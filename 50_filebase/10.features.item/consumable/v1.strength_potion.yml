@@ -1,0 +1,24 @@
+schemaVersion: 1
+id: strength_potion
+category: consumable
+name: "&c剛力の薬"
+icon: POTION
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 80
+lore:
+  - "&7飲むと一定時間、攻撃力が上昇する。"
+  - "&7攻撃力が15%上昇する。"
+unTradeable: false
+unSellable: false
+
+consumable:
+  onUse:
+    sound: entity.generic.drink
+    effect: angry_villager
+    amount: 1
+  effects:
+    - type: BUFF
+      buffId: attack_up_small
+      rate: 100
+

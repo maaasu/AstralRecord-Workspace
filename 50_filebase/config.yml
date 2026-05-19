@@ -1,0 +1,51 @@
+schemaVersion: 1
+
+database:
+  - name: item #カテゴリごとにサブディレクトリが作成されていることを前提とする。
+    path: 10.features.item
+  - name: class
+    path: 20.features.classes
+  - name: skill
+    path: 30.features.classes.skills
+  - name: mob
+    path: 40.features.mob
+
+  - name: set_effect
+    path: 10.features.item/equipment/set_effect
+
+  - name: buff
+    path: 70.shared.buff
+  - name: loot #サブディレクトリとして、pool, tableが作成されていることを前提とする。
+    path: 80.shared.loot
+  - name: recipe
+    path: 85.shared.recipe
+
+referenceResolver:
+  - prefix: "item:"
+    database: item
+    aliases: ["im"]
+  - prefix: "loot_table:"
+    database: loot.table
+    aliases: ["lt"]
+  - prefix: "loot_pool:"
+    database: loot.pool
+    aliases: ["lp"]
+  - prefix: "buff:"
+    database: buff
+    aliases: ["bf"]
+  - prefix: "class:"
+    database: class
+    aliases: ["cs"]
+  - prefix: "skill:"
+    database: skill
+    aliases: ["sk"]
+  - prefix: "set:"
+    database: set_effect
+    aliases: ["st"]
+  - prefix: "recipe:"
+    database: recipe
+    aliases: ["rc"]
+  - prefix: "mob:"
+    database: mob
+    aliases: ["mb"]
+

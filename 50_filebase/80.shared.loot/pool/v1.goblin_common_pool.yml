@@ -1,0 +1,22 @@
+schemaVersion: 1
+id: goblin_common_pool
+type: LOOT_POOL
+pick: 1
+contents:
+  - itemId:
+      ref: item:iron_ingot
+    rate: 40
+    amount: 1~2
+  - itemId:
+      ref: item:bone_fragment
+    rate: 60
+    amount: 1~3
+  - itemId:
+      ref: item:healing_potion_small
+    rate: 15
+    amount: 1
+  - itemId:
+      ref: item:gold_ingot
+    rate: 5
+    amount: 1
+

@@ -1,0 +1,14 @@
+schemaVersion: 1
+id: magic_crystal
+category: material
+name: "&b魔力結晶"
+icon: AMETHYST_SHARD
+rarity: RARE
+maxStack: 64
+saleValue: 120
+lore:
+  - "&7凝縮された魔力が結晶化したもの。"
+  - "&7魔法武器や上位装備の強化に必要。"
+unTradeable: false
+unSellable: false
+

@@ -1,0 +1,4 @@
+interface:
+  display_name: "AstralRecord Docs Review"
+  short_description: "AstralRecord設計書の矛盾・形式・未確定事項を確認"
+  default_prompt: "/astralrecord-docs-review E:\\AstralRecord-Workspace\\00_docs\\10_プラグイン設計書\\feature\\07-status"

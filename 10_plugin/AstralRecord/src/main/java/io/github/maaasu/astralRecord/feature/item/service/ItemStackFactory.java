@@ -1,0 +1,1028 @@
+package io.github.maaasu.astralRecord.feature.item.service;
+
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentEnchant;
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentRune;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceStatIncrease;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentHandType;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStat;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStatType;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentTranscendence;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
+import io.github.maaasu.astralRecord.feature.loot.model.LootEntry;
+import io.github.maaasu.astralRecord.feature.loot.model.LootModel;
+import io.github.maaasu.astralRecord.feature.loot.service.LootService;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.infrastructure.util.CustomModelDataComponentUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.enchantments.Enchantment;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.ItemFlag;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.math.BigDecimal;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * {@link ItemModel} からサーバ側 {@link ItemStack} を生成するファクトリ。
+ * <p>
+ * サーバ側の base Material は常に {@link Material#PAPER} とし、
+ * プレイヤーへの見た目（icon）は {@link PersistentDataContainer} に埋め込んで
+ * パケットアダプタ（ItemStackPacketAdapter）がパケット書き換えで適用します。
+ * <p>
+ * 同一 {@link ItemModel} から何度も ItemStack を生成するケースを想定し、
+ * テンプレート（プロトタイプ）を {@link ConcurrentHashMap} でキャッシュします。
+ * {@link #create} は clone + 個数セットのみで済むため軽量です。
+ */
+public class ItemStackFactory {
+
+    /** サーバ側ベースマテリアル */
+    private static final Material BASE_MATERIAL = Material.PAPER;
+
+    /** レガシーカラーコード（§）→ Adventure Component 変換用シリアライザ */
+    private static final LegacyComponentSerializer LEGACY_SERIALIZER =
+            LegacyComponentSerializer.legacySection();
+
+    /** PDC キー: AstralRecord アイテムID */
+    private static final NamespacedKey KEY_ITEM_ID =
+            new NamespacedKey("astralrecord", "item_id");
+
+    /** PDC キー: プレイヤーへ表示する icon Material 名 */
+    private static final NamespacedKey KEY_ICON =
+            new NamespacedKey("astralrecord", "icon");
+
+    /** PDC キー: カスタムモデルデータ */
+    private static final NamespacedKey KEY_CUSTOM_MODEL_DATA =
+            new NamespacedKey("astralrecord", "custom_model_data");
+
+    /** PDC キー: カテゴリ */
+    private static final NamespacedKey KEY_CATEGORY =
+            new NamespacedKey("astralrecord", "category");
+
+    /** PDC キー: レアリティ */
+    private static final NamespacedKey KEY_RARITY =
+            new NamespacedKey("astralrecord", "rarity");
+
+    /** PDC キー: 装備インスタンス ID */
+    private static final NamespacedKey KEY_EQUIPMENT_INSTANCE_ID =
+            new NamespacedKey("astralrecord", "equipment_instance_id");
+
+    /** PDC キー: ルーンインスタンス ID */
+    private static final NamespacedKey KEY_RUNE_INSTANCE_ID =
+            new NamespacedKey("astralrecord", "rune_instance_id");
+
+    /** テンプレートキャッシュ (category:id → プロトタイプ ItemStack) */
+    private final Map<String, ItemStack> templateCache = new ConcurrentHashMap<>();
+
+    /** 表示名/Loreは維持しつつ、バニラ表示の抑制対象から除外する ItemFlag 名 */
+    private static final Set<String> ITEM_FLAG_EXCLUSIONS = Set.of(
+            "HIDE_CUSTOM_NAME",
+            "HIDE_ITEM_NAME",
+            "HIDE_LORE"
+    );
+
+    /** バニラ由来表示を抑制するために適用する ItemFlag 一式（起動時解決） */
+    private static final ItemFlag[] VANILLA_HIDE_FLAGS = resolveVanillaHideFlags();
+
+    /** ルートテーブル参照用（nullable: 未初期化時は Lore に含めない） */
+    private final LootService lootService;
+
+    /**
+     * ItemStackFactory を初期化します。
+     *
+     * @param lootService ルートテーブルサービス（bundle の lootTableId 解決に使用）
+     */
+    public ItemStackFactory(@NotNull LootService lootService) {
+        this.lootService = lootService;
+    }
+
+    // region --- public API ---
+
+    /**
+     * {@link ItemModel} から ItemStack を 1 個生成します。
+     *
+     * @param model アイテム定義
+     * @return 生成された ItemStack（サーバ側は PAPER）
+     */
+    public @NotNull ItemStack create(@NotNull ItemModel model) {
+        return create(model, 1);
+    }
+
+    /**
+     * {@link ItemModel} から指定個数の ItemStack を生成します。
+     *
+     * @param model  アイテム定義
+     * @param amount 個数（1 ～ maxStack）
+     * @return 生成された ItemStack（サーバ側は PAPER）
+     */
+    public @NotNull ItemStack create(@NotNull ItemModel model, int amount) {
+        String key = cacheKey(model);
+        ItemStack template = templateCache.computeIfAbsent(key, k -> buildTemplate(model));
+        ItemStack item = template.clone();
+        item.setAmount(Math.clamp(amount, 1, model.getMaxStack()));
+        return item;
+    }
+
+    /**
+     * {@link ItemModel} と {@link EquipmentInstance} から ItemStack を生成します。
+     * インスタンス固有のステータスロール値を Lore に反映します。キャッシュは使用しません。
+     *
+     * @param model    アイテムマスタ定義
+     * @param instance 装備インスタンス
+     * @param amount   個数
+     * @return 生成された ItemStack
+     */
+    public @NotNull ItemStack create(@NotNull ItemModel model, @NotNull EquipmentInstance instance, int amount) {
+        var item = new ItemStack(BASE_MATERIAL, 1);
+        var meta = item.getItemMeta();
+        if (meta == null) {
+            return item;
+        }
+
+        var rarityColor = rarityToColor(model.getRarity());
+
+        // --- アイテム名: transcendence オーバーライド → enhance +N サフィックス ---
+        String baseName = resolveEquipmentDisplayName(model, instance);
+        var decoratedName = ColorCodeUtil.translateAlternateColorCodes(baseName);
+        String enhanceSuffix = instance.getEnhanceLevel() > 0
+                ? " §f+" + instance.getEnhanceLevel()
+                : "";
+        meta.displayName(LEGACY_SERIALIZER.deserialize(
+                rarityColor + decoratedName + enhanceSuffix + ColorCodeUtil.RESET));
+
+        var loreStrings = buildLoreForEquipmentInstance(model, instance);
+        meta.lore(loreStrings.stream()
+                .map(ColorCodeUtil::translateAlternateColorCodes)
+                .map(LEGACY_SERIALIZER::deserialize)
+                .map(c -> (Component) c)
+                .toList());
+
+        if (model.getCustomModelData() != null) {
+            applyCustomModelData(meta, model.getCustomModelData());
+        }
+        applyVanillaHideFlags(meta);
+
+        // enchant がある場合はバニラエンチャントの輝きを付与（エンチャント名はHIDE_ENCHANTSで非表示）
+        if (!instance.getEnchants().isEmpty()) {
+            meta.addEnchant(Enchantment.UNBREAKING, 1, true);
+        }
+
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        pdc.set(KEY_ITEM_ID, PersistentDataType.STRING, model.getId());
+        pdc.set(KEY_ICON, PersistentDataType.STRING, model.getIcon().toUpperCase(Locale.ROOT));
+        if (model.getCustomModelData() != null) {
+            pdc.set(KEY_CUSTOM_MODEL_DATA, PersistentDataType.INTEGER, model.getCustomModelData());
+        }
+        pdc.set(KEY_CATEGORY, PersistentDataType.STRING, model.getCategory());
+        pdc.set(KEY_RARITY, PersistentDataType.STRING, model.getRarity());
+        pdc.set(KEY_EQUIPMENT_INSTANCE_ID, PersistentDataType.STRING, instance.getEquipmentInstanceId());
+
+        item.setItemMeta(meta);
+        item.setAmount(Math.clamp(amount, 1, model.getMaxStack()));
+        //Logger.log(LogId.D_5211, model.getCategory(), model.getId());
+        return item;
+    }
+
+    /**
+     * {@link ItemModel} と {@link RuneInstance} から ItemStack を生成します。
+     * インスタンス固有のステータス確定値を Lore に反映します。キャッシュは使用しません。
+     *
+     * @param model    アイテムマスタ定義
+     * @param instance ルーンインスタンス
+     * @param amount   個数
+     * @return 生成された ItemStack
+     */
+    public @NotNull ItemStack create(@NotNull ItemModel model, @NotNull RuneInstance instance, int amount) {
+        var item = new ItemStack(BASE_MATERIAL, 1);
+        var meta = item.getItemMeta();
+        if (meta == null) {
+            return item;
+        }
+
+        var rarityColor = rarityToColor(model.getRarity());
+        var decoratedName = ColorCodeUtil.translateAlternateColorCodes(model.getName());
+        meta.displayName(LEGACY_SERIALIZER.deserialize(rarityColor + decoratedName + ColorCodeUtil.RESET));
+
+        var loreStrings = buildLoreForRuneInstance(model, instance);
+        meta.lore(loreStrings.stream()
+                .map(ColorCodeUtil::translateAlternateColorCodes)
+                .map(LEGACY_SERIALIZER::deserialize)
+                .map(c -> (Component) c)
+                .toList());
+
+        if (model.getCustomModelData() != null) {
+            applyCustomModelData(meta, model.getCustomModelData());
+        }
+        applyVanillaHideFlags(meta);
+
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        pdc.set(KEY_ITEM_ID, PersistentDataType.STRING, model.getId());
+        pdc.set(KEY_ICON, PersistentDataType.STRING, model.getIcon().toUpperCase(Locale.ROOT));
+        if (model.getCustomModelData() != null) {
+            pdc.set(KEY_CUSTOM_MODEL_DATA, PersistentDataType.INTEGER, model.getCustomModelData());
+        }
+        pdc.set(KEY_CATEGORY, PersistentDataType.STRING, model.getCategory());
+        pdc.set(KEY_RARITY, PersistentDataType.STRING, model.getRarity());
+        pdc.set(KEY_RUNE_INSTANCE_ID, PersistentDataType.STRING, instance.getRuneInstanceId());
+
+        item.setItemMeta(meta);
+        item.setAmount(Math.clamp(amount, 1, model.getMaxStack()));
+        //Logger.log(LogId.D_5211, model.getCategory(), model.getId());
+        return item;
+    }
+
+    /**
+     * テンプレートキャッシュをクリアします。
+     * アイテム定義のリロード時に呼び出してください。
+     */
+    public void clearCache() {
+        templateCache.clear();
+        Logger.log(LogId.D_5210);
+    }
+
+    /**
+     * キャッシュ済みテンプレート数を返します。
+     *
+     * @return キャッシュ数
+     */
+    public int cacheSize() {
+        return templateCache.size();
+    }
+
+    // endregion
+
+    // region --- PDC 読み取りユーティリティ (PacketAdapter 用) ---
+
+    /**
+     * ItemStack に埋め込まれた AstralRecord アイテムIDを取得します。
+     *
+     * @param item 判定対象
+     * @return アイテムID。AstralRecord アイテムでなければ {@code null}
+     */
+    public static @Nullable String getAstralItemId(@NotNull ItemStack item) {
+        if (!item.hasItemMeta()) {
+            return null;
+        }
+        return item.getItemMeta().getPersistentDataContainer()
+                .get(KEY_ITEM_ID, PersistentDataType.STRING);
+    }
+
+    /**
+     * ItemStack に埋め込まれた icon Material 名を取得します。
+     *
+     * @param item 判定対象
+     * @return icon 名。未設定なら {@code null}
+     */
+    public static @Nullable String getIconName(@NotNull ItemStack item) {
+        if (!item.hasItemMeta()) {
+            return null;
+        }
+        return item.getItemMeta().getPersistentDataContainer()
+                .get(KEY_ICON, PersistentDataType.STRING);
+    }
+
+    /**
+     * ItemStack に埋め込まれた customModelData を取得します。
+     *
+     * @param item 判定対象
+     * @return customModelData。未設定なら {@code null}
+     */
+    public static @Nullable Integer getCustomModelData(@NotNull ItemStack item) {
+        if (!item.hasItemMeta()) {
+            return null;
+        }
+        return item.getItemMeta().getPersistentDataContainer()
+                .get(KEY_CUSTOM_MODEL_DATA, PersistentDataType.INTEGER);
+    }
+
+    /**
+     * ItemStack に埋め込まれた AstralRecord カテゴリを取得します。
+     *
+     * @param item 判定対象
+     * @return カテゴリ。AstralRecord アイテムでなければ {@code null}
+     */
+    public static @Nullable String getCategory(@NotNull ItemStack item) {
+        if (!item.hasItemMeta()) {
+            return null;
+        }
+        return item.getItemMeta().getPersistentDataContainer()
+                .get(KEY_CATEGORY, PersistentDataType.STRING);
+    }
+
+    /**
+     * ItemStack に埋め込まれた装備インスタンス ID を取得します。
+     *
+     * @param item 判定対象
+     * @return 装備インスタンス ID。装備インスタンスでなければ {@code null}
+     */
+    public static @Nullable String getEquipmentInstanceId(@NotNull ItemStack item) {
+        if (!item.hasItemMeta()) {
+            return null;
+        }
+        return item.getItemMeta().getPersistentDataContainer()
+                .get(KEY_EQUIPMENT_INSTANCE_ID, PersistentDataType.STRING);
+    }
+
+    /**
+     * ItemStack に埋め込まれたルーンインスタンス ID を取得します。
+     *
+     * @param item 判定対象
+     * @return ルーンインスタンス ID。ルーンインスタンスでなければ {@code null}
+     */
+    public static @Nullable String getRuneInstanceId(@NotNull ItemStack item) {
+        if (!item.hasItemMeta()) {
+            return null;
+        }
+        return item.getItemMeta().getPersistentDataContainer()
+                .get(KEY_RUNE_INSTANCE_ID, PersistentDataType.STRING);
+    }
+
+    // endregion
+
+    // region --- テンプレート構築 ---
+
+    /**
+     * ItemModel からプロトタイプ ItemStack を構築します（キャッシュ用）。
+     */
+    private @NotNull ItemStack buildTemplate(@NotNull ItemModel model) {
+        var item = new ItemStack(BASE_MATERIAL, 1);
+        var meta = item.getItemMeta();
+        if (meta == null) {
+            return item;
+        }
+
+        // --- 表示名 ---
+        var rarityColor = rarityToColor(model.getRarity());
+        var decoratedName = ColorCodeUtil.translateAlternateColorCodes(model.getName());
+        meta.displayName(LEGACY_SERIALIZER.deserialize(
+                rarityColor + decoratedName + ColorCodeUtil.RESET));
+
+        // --- Lore 構築 ---
+        var loreStrings = buildLore(model);
+        meta.lore(loreStrings.stream()
+                .map(ColorCodeUtil::translateAlternateColorCodes)
+                .map(LEGACY_SERIALIZER::deserialize)
+                .map(c -> (Component) c)
+                .toList());
+
+        // --- custom_model_data（リソースパック側のモデル切り替え用） ---
+        if (model.getCustomModelData() != null) {
+            applyCustomModelData(meta, model.getCustomModelData());
+        }
+
+        // 表示名/Loreは維持しつつ、可能な限りバニラ要素を非表示化
+        applyVanillaHideFlags(meta);
+
+        // --- PDC にメタ情報を格納 ---
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        pdc.set(KEY_ITEM_ID, PersistentDataType.STRING, model.getId());
+        pdc.set(KEY_ICON, PersistentDataType.STRING, model.getIcon().toUpperCase(Locale.ROOT));
+        if (model.getCustomModelData() != null) {
+            pdc.set(KEY_CUSTOM_MODEL_DATA, PersistentDataType.INTEGER, model.getCustomModelData());
+        }
+        pdc.set(KEY_CATEGORY, PersistentDataType.STRING, model.getCategory());
+        pdc.set(KEY_RARITY, PersistentDataType.STRING, model.getRarity());
+
+        item.setItemMeta(meta);
+
+        //Logger.log(LogId.D_5211, model.getCategory(), model.getId());
+        return item;
+    }
+
+    // endregion
+
+    // region --- Lore 構築 ---
+
+    /**
+     * ItemModel の情報を元に Lore 行リストを構築します。
+     */
+    private @NotNull List<String> buildLore(@NotNull ItemModel model) {
+        List<String> lore = new ArrayList<>();
+        String rarityColor = rarityToColor(model.getRarity());
+        String decoratedName = ColorCodeUtil.translateAlternateColorCodes(model.getName());
+
+        // ヘッダー
+        lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
+        lore.add(rarityColor + "◆ " + decoratedName);
+        lore.add(rarityStars(model.getRarity())
+                + ColorCodeUtil.DARK_GRAY + "  " + rarityDisplayName(model.getRarity())
+                + ColorCodeUtil.DARK_GRAY + " │ " + ColorCodeUtil.GRAY + model.getCategory());
+        lore.add("");
+
+        // ユーザー定義 lore（フレーバーテキスト: イタリック）
+        if (!model.getLore().isEmpty()) {
+            for (String line : model.getLore()) {
+                lore.add(ColorCodeUtil.GRAY + ColorCodeUtil.ITALIC
+                        + ColorCodeUtil.translateAlternateColorCodes(line));
+            }
+            lore.add("");
+        }
+
+        // equipment ステータス（APIデータをそのまま表示）
+        if (model.getEquipment() != null) {
+            appendEquipmentLore(lore, model.getEquipment());
+        }
+
+        // bundle の Loot 情報
+        if (model.getBundle() != null && model.getBundle().getLootTableId() != null) {
+            appendBundleLootLore(lore, model.getBundle().getLootTableId());
+        }
+
+        // フッター
+        lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
+        lore.add(ColorCodeUtil.DARK_GRAY + ColorCodeUtil.ITALIC + "ID: " + model.getId());
+
+        // 取引不可 / 売却不可 フラグ
+        if (model.getUnTradeable()) {
+            lore.add(ColorCodeUtil.RED + "✖ 取引不可");
+        }
+        if (model.getUnSellable()) {
+            lore.add(ColorCodeUtil.RED + "✖ 売却不可");
+        }
+
+        return lore;
+    }
+
+    /**
+     * Equipment 情報を Lore に追加します。
+     * 現時点では API から取得した親データの表示のみ。
+     */
+    private void appendEquipmentLore(@NotNull List<String> lore, @NotNull ItemEquipment equipment) {
+        lore.add(ColorCodeUtil.GOLD + "❖ 装備情報");
+
+        // スロット / ハンドタイプ
+        if (equipment.getSlot() != null) {
+            lore.add(ColorCodeUtil.GRAY + " ▸ スロット: " + ColorCodeUtil.WHITE
+                    + toEquipmentSlotLabel(equipment.getSlot()));
+        }
+        lore.add(ColorCodeUtil.GRAY + " ▸ ハンド: " + ColorCodeUtil.WHITE
+                + toHandTypeLabel(equipment.getHandType()));
+
+        // 装備条件
+        if (equipment.getRequiredLevel() > 0) {
+            lore.add(ColorCodeUtil.GRAY + " ▸ 必要Lv: " + ColorCodeUtil.YELLOW + equipment.getRequiredLevel());
+        }
+        if (!equipment.getRequiredClasses().isEmpty()) {
+            lore.add(ColorCodeUtil.GRAY + " ▸ 必要クラス: " + ColorCodeUtil.WHITE
+                    + String.join(", ", equipment.getRequiredClasses()));
+        }
+
+        // ステータス
+        if (!equipment.getStats().isEmpty()) {
+            lore.add("");
+            lore.add(ColorCodeUtil.YELLOW + " ▸ ステータス補正");
+            for (ItemEquipmentStat stat : equipment.getStats()) {
+                String prefix = stat.getType().name().equals("SCALAR") ? "×" : "+";
+                StatusType statusType = resolveStatusTypeOrNull(stat.getStatus());
+                String statColor = statusCategoryColor(statusType);
+                String displayName = resolveStatusDisplayName(stat.getStatus(), statusType);
+                lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
+                        + ColorCodeUtil.WHITE + displayName
+                        + ColorCodeUtil.DARK_GRAY + " : "
+                        + statColor + prefix + stat.displayValue());
+            }
+        }
+
+        // 耐久値
+        if (equipment.getDurability() != null) {
+            lore.add(ColorCodeUtil.GRAY + " ▸ 耐久値: " + ColorCodeUtil.WHITE
+                    + equipment.getDurability().getMax());
+        }
+
+        lore.add("");
+    }
+
+    /**
+     * Bundle に紐付く Loot テーブルの内容を Lore に追加します。
+     * LootService にキャッシュ済みのデータのみを参照し、API リクエストは発行しません。
+     */
+    private void appendBundleLootLore(@NotNull List<String> lore, @NotNull String lootTableId) {
+        LootModel lootModel = lootService.getLoaded(lootTableId);
+        if (lootModel == null) {
+            lore.add(ColorCodeUtil.DARK_GRAY + "◆ Loot: " + lootTableId + " (未ロード)");
+            return;
+        }
+
+        lore.add(ColorCodeUtil.GOLD + "❖ Loot: " + lootModel.getName());
+        for (LootEntry entry : lootModel.getEntries()) {
+            String amountText = entry.getMinAmount() == entry.getMaxAmount()
+                    ? String.valueOf(entry.getMinAmount())
+                    : entry.getMinAmount() + "~" + entry.getMaxAmount();
+            String weightText = entry.getWeight() >= 100.0
+                    ? ""
+                    : ColorCodeUtil.DARK_GRAY + " (" + String.format("%.1f%%", entry.getWeight()) + ")";
+            lore.add(ColorCodeUtil.DARK_GRAY + " ▹ " + ColorCodeUtil.GRAY + entry.getItemId()
+                    + ColorCodeUtil.DARK_GRAY + " [" + entry.getCategory() + "]"
+                    + ColorCodeUtil.WHITE + " ×" + amountText + weightText);
+        }
+        lore.add("");
+    }
+
+    /**
+     * 装備インスタンス向けの Lore 行リストを構築します。
+     * enhance 累積ステータス・enchant 情報・rune スロット・transcendence 状態を表示します。
+     */
+    private @NotNull List<String> buildLoreForEquipmentInstance(
+            @NotNull ItemModel model, @NotNull EquipmentInstance instance) {
+        List<String> lore = new ArrayList<>();
+        String rarityColor = rarityToColor(model.getRarity());
+        String decoratedName = ColorCodeUtil.translateAlternateColorCodes(
+                resolveEquipmentDisplayName(model, instance));
+
+        lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
+        lore.add(rarityColor + "◆ " + decoratedName);
+        lore.add(rarityStars(model.getRarity())
+                + ColorCodeUtil.DARK_GRAY + "  " + rarityDisplayName(model.getRarity())
+                + ColorCodeUtil.DARK_GRAY + " │ " + ColorCodeUtil.GRAY + model.getCategory());
+        lore.add("");
+
+        if (!model.getLore().isEmpty()) {
+            for (String line : model.getLore()) {
+                lore.add(ColorCodeUtil.GRAY + ColorCodeUtil.ITALIC
+                        + ColorCodeUtil.translateAlternateColorCodes(line));
+            }
+            lore.add("");
+        }
+
+        if (model.getEquipment() != null) {
+            var eq = model.getEquipment();
+
+            lore.add(ColorCodeUtil.GOLD + "❖ 装備情報");
+            if (eq.getSlot() != null) {
+                lore.add(ColorCodeUtil.GRAY + " ▸ スロット: " + ColorCodeUtil.WHITE
+                        + toEquipmentSlotLabel(eq.getSlot()));
+            }
+            lore.add(ColorCodeUtil.GRAY + " ▸ ハンド: " + ColorCodeUtil.WHITE
+                    + toHandTypeLabel(eq.getHandType()));
+            if (eq.getRequiredLevel() > 0) {
+                lore.add(ColorCodeUtil.GRAY + " ▸ 必要Lv: " + ColorCodeUtil.YELLOW + eq.getRequiredLevel());
+            }
+            if (!eq.getRequiredClasses().isEmpty()) {
+                lore.add(ColorCodeUtil.GRAY + " ▸ 必要クラス: " + ColorCodeUtil.WHITE
+                        + String.join(", ", eq.getRequiredClasses()));
+            }
+
+            // --- transcendence 状態変化表示 ---
+            if (instance.getTranscendenceRank() > 0) {
+                ItemEquipmentTranscendence currentTrans = eq.getTranscendence().stream()
+                        .filter(t -> t.getRank() == instance.getTranscendenceRank())
+                        .findFirst().orElse(null);
+                String transName = currentTrans != null && currentTrans.getName() != null
+                        ? currentTrans.getName() : "ランク " + instance.getTranscendenceRank();
+                lore.add(ColorCodeUtil.LIGHT_PURPLE + " ▸ 状態変化: " + ColorCodeUtil.WHITE + "【" + transName + "】");
+            }
+
+            // --- 強化レベル表示 ---
+            if (eq.getEnhance() != null) {
+                int effectiveMaxLevel = resolveEffectiveEnhanceMaxLevel(eq, instance);
+                String enhanceLabel = instance.getEnhanceLevel() > 0
+                        ? ColorCodeUtil.YELLOW + "+" + instance.getEnhanceLevel()
+                        + ColorCodeUtil.GRAY + " / 最大 " + ColorCodeUtil.WHITE + "+" + effectiveMaxLevel
+                        : ColorCodeUtil.GRAY + "未強化" + ColorCodeUtil.DARK_GRAY + " (最大 +" + effectiveMaxLevel + ")";
+                lore.add(ColorCodeUtil.GRAY + " ▸ 強化: " + enhanceLabel);
+            }
+
+            // --- ステータス表示（ベース + enhance 累積） ---
+            if (!instance.getStatRolls().isEmpty() || !eq.getStats().isEmpty()) {
+                lore.add("");
+                lore.add(ColorCodeUtil.YELLOW + " ▸ ステータス補正");
+
+                // ItemEquipmentStat の status → type マップ
+                Map<String, ItemEquipmentStatType> statTypeMap = new LinkedHashMap<>();
+                for (var stat : eq.getStats()) {
+                    statTypeMap.put(stat.getStatus(), stat.getType());
+                }
+
+                // enhance 累積計算 (status#type → [minAccum, maxAccum])
+                Map<String, double[]> enhanceAccum = calculateEnhanceStats(eq, instance.getEnhanceLevel());
+
+                for (var roll : instance.getStatRolls()) {
+                    ItemEquipmentStatType rollType = statTypeMap.getOrDefault(
+                            roll.getStatus(), ItemEquipmentStatType.FLAT);
+                    double baseMin = parseStatDouble(roll.getMin());
+                    double baseMax = parseStatDouble(roll.getMax());
+
+                    String enhanceKey = roll.getStatus() + "#" + rollType.name();
+                    double[] enhAdd = enhanceAccum.getOrDefault(enhanceKey, new double[]{0.0, 0.0});
+
+                    double totalMin = baseMin + enhAdd[0];
+                    double totalMax = baseMax + enhAdd[1];
+
+                    String prefix = rollType == ItemEquipmentStatType.SCALAR ? "×" : "+";
+                    String displayValue = totalMin == totalMax
+                            ? prefix + formatStatValue(totalMin)
+                            : prefix + formatStatValue(totalMin) + "~" + formatStatValue(totalMax);
+
+                    // enhance 加算分の表示注釈
+                    String enhanceNote = (enhAdd[0] != 0.0 || enhAdd[1] != 0.0)
+                            ? ColorCodeUtil.YELLOW + " [強化+" + formatStatValue(enhAdd[0])
+                                    + (enhAdd[0] != enhAdd[1] ? "~" + formatStatValue(enhAdd[1]) : "") + "]"
+                            : "";
+
+                    StatusType statusType = resolveStatusTypeOrNull(roll.getStatus());
+                    String statColor = statusCategoryColor(statusType);
+                    String displayName = resolveStatusDisplayName(roll.getStatus(), statusType);
+                    lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
+                            + ColorCodeUtil.WHITE + displayName
+                            + ColorCodeUtil.DARK_GRAY + " : "
+                            + statColor + displayValue
+                            + enhanceNote);
+                }
+
+                // enhance の statIncrease に含まれるが statRolls にないステータス（SCALAR など追加分）を別表示
+                for (var entry : enhanceAccum.entrySet()) {
+                    String[] parts = entry.getKey().split("#", 2);
+                    if (parts.length < 2) continue;
+                    String status = parts[0];
+                    ItemEquipmentStatType type = ItemEquipmentStatType.FLAT;
+                    try { type = ItemEquipmentStatType.valueOf(parts[1]); } catch (IllegalArgumentException ignored) { }
+
+                    boolean alreadyShown = instance.getStatRolls().stream()
+                            .anyMatch(r -> r.getStatus().equals(status));
+                    if (alreadyShown) continue;
+
+                    double[] enhAdd = entry.getValue();
+                    String prefix = type == ItemEquipmentStatType.SCALAR ? "×" : "+";
+                    String displayValue = enhAdd[0] == enhAdd[1]
+                            ? prefix + formatStatValue(enhAdd[0])
+                            : prefix + formatStatValue(enhAdd[0]) + "~" + formatStatValue(enhAdd[1]);
+
+                    StatusType statusType = resolveStatusTypeOrNull(status);
+                    String statColor = statusCategoryColor(statusType);
+                    String displayName = resolveStatusDisplayName(status, statusType);
+                    lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
+                            + ColorCodeUtil.WHITE + displayName
+                            + ColorCodeUtil.DARK_GRAY + " : "
+                            + statColor + displayValue
+                            + ColorCodeUtil.YELLOW + " [強化]");
+                }
+            }
+
+            // --- enchant（エンチャント）情報 ---
+            if (eq.getEnchant() != null) {
+                int effectiveMaxSlots = resolveEffectiveEnchantMaxSlots(eq, instance);
+                lore.add("");
+                lore.add(ColorCodeUtil.AQUA + "✦ エンチャント"
+                        + ColorCodeUtil.DARK_GRAY + " (" + instance.getEnchants().size()
+                        + "/" + effectiveMaxSlots + ")");
+                if (instance.getEnchants().isEmpty()) {
+                    lore.add(ColorCodeUtil.DARK_GRAY + "   ─ 未付与");
+                } else {
+                    for (EquipmentEnchant enchant : instance.getEnchants()) {
+                        String prefix = "SCALAR".equals(enchant.getType()) ? "×" : "+";
+                        StatusType statusType = resolveStatusTypeOrNull(enchant.getStatus());
+                        String statColor = statusCategoryColor(statusType);
+                        String displayName = resolveStatusDisplayName(enchant.getStatus(), statusType);
+                        String valueStr = formatStatValue(enchant.getValue());
+                        lore.add(ColorCodeUtil.DARK_GRAY + " [" + (enchant.getSlotIndex() + 1) + "] "
+                                + ColorCodeUtil.WHITE + displayName
+                                + ColorCodeUtil.DARK_GRAY + " : "
+                                + statColor + prefix + valueStr);
+                    }
+                }
+            }
+
+            // --- rune（ルーン）スロット情報 ---
+            if (instance.getRuneMaxSlots() > 0) {
+                lore.add("");
+                lore.add(ColorCodeUtil.GREEN + "◆ ルーンスロット"
+                        + ColorCodeUtil.DARK_GRAY + " (" + instance.getRunes().size()
+                        + "/" + instance.getRuneMaxSlots() + ")");
+                // 装着済みルーン
+                Map<Integer, EquipmentRune> runeBySlot = new LinkedHashMap<>();
+                for (EquipmentRune rune : instance.getRunes()) {
+                    runeBySlot.put(rune.getSlotIndex(), rune);
+                }
+                for (int slot = 0; slot < instance.getRuneMaxSlots(); slot++) {
+                    EquipmentRune rune = runeBySlot.get(slot);
+                    if (rune != null) {
+                        lore.add(ColorCodeUtil.GREEN + " ● " + ColorCodeUtil.WHITE + rune.getItemId());
+                    } else {
+                        lore.add(ColorCodeUtil.DARK_GRAY + " ○ 空きスロット");
+                    }
+                }
+            }
+
+            // --- 耐久値 ---
+            if (instance.getDurabilityMax() > 0) {
+                lore.add(ColorCodeUtil.GRAY + " ▸ 耐久値: " + ColorCodeUtil.WHITE
+                        + instance.getDurabilityValue() + "/" + instance.getDurabilityMax());
+            }
+            lore.add("");
+        }
+
+        lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
+        lore.add(ColorCodeUtil.DARK_GRAY + ColorCodeUtil.ITALIC + "ID: " + model.getId());
+        lore.add(ColorCodeUtil.DARK_GRAY + ColorCodeUtil.ITALIC + "InstanceID: " + instance.getEquipmentInstanceId());
+        if (model.getUnTradeable()) lore.add(ColorCodeUtil.RED + "✖ 取引不可");
+        if (model.getUnSellable()) lore.add(ColorCodeUtil.RED + "✖ 売却不可");
+        return lore;
+    }
+
+    /**
+     * ルーンインスタンス向けの Lore 行リストを構築します。
+     * ステータスロールはインスタンスの確定値（value）を使用します。
+     */
+    private @NotNull List<String> buildLoreForRuneInstance(
+            @NotNull ItemModel model, @NotNull RuneInstance instance) {
+        List<String> lore = new ArrayList<>();
+        String rarityColor = rarityToColor(model.getRarity());
+        String decoratedName = ColorCodeUtil.translateAlternateColorCodes(model.getName());
+
+        lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
+        lore.add(rarityColor + "◆ " + decoratedName);
+        lore.add(rarityStars(model.getRarity())
+                + ColorCodeUtil.DARK_GRAY + "  " + rarityDisplayName(model.getRarity())
+                + ColorCodeUtil.DARK_GRAY + " │ " + ColorCodeUtil.GRAY + model.getCategory());
+        lore.add("");
+
+        if (!model.getLore().isEmpty()) {
+            for (String line : model.getLore()) {
+                lore.add(ColorCodeUtil.GRAY + ColorCodeUtil.ITALIC
+                        + ColorCodeUtil.translateAlternateColorCodes(line));
+            }
+            lore.add("");
+        }
+
+        if (!instance.getStatRolls().isEmpty()) {
+            lore.add(ColorCodeUtil.GOLD + "❖ ルーン効果");
+            lore.add(ColorCodeUtil.YELLOW + " ▸ ステータス補正");
+            for (var roll : instance.getStatRolls()) {
+                String prefix = "SCALAR".equals(roll.getType()) ? "×" : "+";
+                StatusType statusType = resolveStatusTypeOrNull(roll.getStatus());
+                String statColor = statusCategoryColor(statusType);
+                String displayName = resolveStatusDisplayName(roll.getStatus(), statusType);
+                lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
+                        + ColorCodeUtil.WHITE + displayName
+                        + ColorCodeUtil.DARK_GRAY + " : "
+                        + statColor + prefix + roll.getValue());
+            }
+            lore.add("");
+        }
+
+        lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
+        lore.add(ColorCodeUtil.DARK_GRAY + ColorCodeUtil.ITALIC + "ID: " + model.getId());
+        lore.add(ColorCodeUtil.DARK_GRAY + ColorCodeUtil.ITALIC + "InstanceID: " + instance.getRuneInstanceId());
+        if (model.getUnTradeable()) lore.add(ColorCodeUtil.RED + "✖ 取引不可");
+        if (model.getUnSellable()) lore.add(ColorCodeUtil.RED + "✖ 売却不可");
+        return lore;
+    }
+
+    /**
+     * 装備の表示名を決定します。
+     * transcendence の overrides.name → 元の name の優先順で解決します。
+     */
+    private @NotNull String resolveEquipmentDisplayName(@NotNull ItemModel model,
+            @NotNull EquipmentInstance instance) {
+        if (instance.getTranscendenceRank() > 0 && model.getEquipment() != null) {
+            for (ItemEquipmentTranscendence t : model.getEquipment().getTranscendence()) {
+                if (t.getRank() == instance.getTranscendenceRank()
+                        && t.getOverridesName() != null) {
+                    return t.getOverridesName();
+                }
+            }
+        }
+        return model.getName();
+    }
+
+    /**
+     * 現在の transcendence ランクを考慮して有効な強化最大レベルを返します。
+     */
+    private int resolveEffectiveEnhanceMaxLevel(@NotNull ItemEquipment eq,
+            @NotNull EquipmentInstance instance) {
+        if (instance.getTranscendenceRank() > 0) {
+            for (ItemEquipmentTranscendence t : eq.getTranscendence()) {
+                if (t.getRank() == instance.getTranscendenceRank()
+                        && t.getOverridesEnhanceMaxLevel() != null) {
+                    return t.getOverridesEnhanceMaxLevel();
+                }
+            }
+        }
+        return eq.getEnhance() != null ? eq.getEnhance().getMaxLevel() : 0;
+    }
+
+    /**
+     * 現在の transcendence ランクを考慮して有効なエンチャント最大スロット数を返します。
+     */
+    private int resolveEffectiveEnchantMaxSlots(@NotNull ItemEquipment eq,
+            @NotNull EquipmentInstance instance) {
+        if (instance.getTranscendenceRank() > 0) {
+            for (ItemEquipmentTranscendence t : eq.getTranscendence()) {
+                if (t.getRank() == instance.getTranscendenceRank()
+                        && t.getOverridesEnchantMaxSlots() != null) {
+                    return t.getOverridesEnchantMaxSlots();
+                }
+            }
+        }
+        return eq.getEnchant() != null ? eq.getEnchant().getMaxSlots() : 0;
+    }
+
+    /**
+     * enhance.levels の statIncrease を Lv1〜enhanceLevel まで累積します。
+     * キーは "status#TYPE"（例: "ATTACK#FLAT"）、値は [minAccum, maxAccum]。
+     */
+    private @NotNull Map<String, double[]> calculateEnhanceStats(@NotNull ItemEquipment eq, int enhanceLevel) {
+        Map<String, double[]> accum = new LinkedHashMap<>();
+        if (eq.getEnhance() == null || enhanceLevel <= 0) {
+            return accum;
+        }
+        for (var level : eq.getEnhance().getLevels()) {
+            if (level.getLevel() > enhanceLevel) {
+                continue;
+            }
+            for (ItemEquipmentEnhanceStatIncrease inc : level.getStatIncrease()) {
+                String key = inc.getStatus() + "#" + inc.getType().name();
+                double[] cur = accum.computeIfAbsent(key, k -> new double[]{0.0, 0.0});
+                cur[0] += inc.getMin();
+                cur[1] += inc.getMax();
+            }
+        }
+        return accum;
+    }
+
+    /**
+     * ステータス値文字列を double にパースします。パース失敗時は 0.0 を返します。
+     */
+    private double parseStatDouble(@NotNull String value) {
+        try {
+            return Double.parseDouble(value.trim().split("~")[0].trim());
+        } catch (NumberFormatException ignored) {
+            return 0.0;
+        }
+    }
+
+    /**
+     * double をステータス表示用の文字列にフォーマットします。
+     * 末尾のゼロを除去した十進数表現を返します。
+     */
+    private @NotNull String formatStatValue(double value) {
+        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
+    }
+
+    /**
+     * 解決済みStatusTypeがある場合はそれを優先して表示名を返します。
+     */
+    private @NotNull String resolveStatusDisplayName(@NotNull String rawStatus, @Nullable StatusType type) {
+        if (type != null) {
+            return type.getDisplayName();
+        }
+
+        String normalized = rawStatus.trim();
+        if (normalized.isEmpty()) {
+            return rawStatus;
+        }
+        return normalized;
+    }
+
+    /**
+     * APIから取得したステータス識別子を、可能な限りStatusTypeに解決します。
+     */
+    private @Nullable StatusType resolveStatusTypeOrNull(@NotNull String rawStatus) {
+        String normalized = rawStatus.trim();
+        if (normalized.isEmpty()) {
+            return null;
+        }
+
+        String enumName = normalized
+                .replace(' ', '_')
+                .replace('-', '_')
+                .toUpperCase(Locale.ROOT);
+        try {
+            return StatusType.valueOf(enumName);
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+    }
+
+    /**
+     * StatusTypeカテゴリに応じてLoreのステータス値カラーを返します。
+     */
+    private @NotNull String statusCategoryColor(@Nullable StatusType type) {
+        if (type == null) {
+            return ColorCodeUtil.AQUA;
+        }
+
+        return switch (type.getCategory()) {
+            case OFFENSE -> ColorCodeUtil.RED;
+            case DEFENSE -> ColorCodeUtil.BLUE;
+            case PRIMARY -> ColorCodeUtil.GREEN;
+            case RESOURCE -> ColorCodeUtil.AQUA;
+            case UTILITY -> ColorCodeUtil.YELLOW;
+        };
+    }
+
+    /**
+     * 装備スロットをLore表示向けの日本語に変換します。
+     */
+    private @NotNull String toEquipmentSlotLabel(@Nullable ItemEquipmentSlot slot) {
+        return Objects.requireNonNullElse(slot, ItemEquipmentSlot.UNKNOWN).getDisplayName();
+    }
+
+    /**
+     * 装備ハンドタイプをLore表示向けの日本語に変換します。
+     */
+    private @NotNull String toHandTypeLabel(@Nullable ItemEquipmentHandType handType) {
+        return Objects.requireNonNullElse(handType, ItemEquipmentHandType.ONE).getDisplayName();
+    }
+
+    // endregion
+
+    // region --- ユーティリティ ---
+
+    /**
+     * レアリティを星評価文字列に変換します。
+     */
+    private @NotNull String rarityStars(@NotNull String rarity) {
+        return switch (rarity.toLowerCase(Locale.ROOT)) {
+            case "common"    -> ColorCodeUtil.GRAY + "★" + ColorCodeUtil.DARK_GRAY + "☆☆☆☆";
+            case "uncommon"  -> ColorCodeUtil.GREEN + "★★" + ColorCodeUtil.DARK_GRAY + "☆☆☆";
+            case "rare"      -> ColorCodeUtil.AQUA + "★★★" + ColorCodeUtil.DARK_GRAY + "☆☆";
+            case "epic"      -> ColorCodeUtil.LIGHT_PURPLE + "★★★★" + ColorCodeUtil.DARK_GRAY + "☆";
+            case "legendary" -> ColorCodeUtil.GOLD + "★★★★★";
+            case "mythic"    -> ColorCodeUtil.RED + "✦✦✦✦✦";
+            default          -> ColorCodeUtil.GRAY + "─";
+        };
+    }
+
+    /**
+     * レアリティを日本語表示名に変換します。
+     */
+    private @NotNull String rarityDisplayName(@NotNull String rarity) {
+        return switch (rarity.toLowerCase(Locale.ROOT)) {
+            case "common"    -> "コモン";
+            case "uncommon"  -> "アンコモン";
+            case "rare"      -> "レア";
+            case "epic"      -> "エピック";
+            case "legendary" -> "レジェンダリー";
+            case "mythic"    -> "ミシック";
+            default          -> rarity;
+        };
+    }
+
+    /**
+     * レアリティ文字列から Minecraft カラーコードを返します。
+     */
+    private @NotNull String rarityToColor(@NotNull String rarity) {
+        return switch (rarity.toLowerCase(Locale.ROOT)) {
+            case "common"    -> ColorCodeUtil.WHITE;
+            case "uncommon"  -> ColorCodeUtil.GREEN;
+            case "rare"      -> ColorCodeUtil.AQUA;
+            case "epic"      -> ColorCodeUtil.LIGHT_PURPLE;
+            case "legendary" -> ColorCodeUtil.GOLD;
+            case "mythic"    -> ColorCodeUtil.RED;
+            default          -> ColorCodeUtil.GRAY;
+        };
+    }
+
+    /**
+     * テンプレートキャッシュのキーを生成します。
+     */
+    private @NotNull String cacheKey(@NotNull ItemModel model) {
+        return model.getCategory().toLowerCase(Locale.ROOT)
+                + ":" + model.getId().toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * 可能な限りバニラのツールチップ要素を隠す ItemFlag 配列を解決します。
+     * 新規 ItemFlag が追加されても {@code HIDE_} 系は自動で追従します。
+     */
+    private static @NotNull ItemFlag[] resolveVanillaHideFlags() {
+        return Arrays.stream(ItemFlag.values())
+                .filter(flag -> flag.name().startsWith("HIDE_"))
+                .filter(flag -> !ITEM_FLAG_EXCLUSIONS.contains(flag.name()))
+                .toArray(ItemFlag[]::new);
+    }
+
+    /**
+     * 非表示対象の ItemFlag を ItemMeta に一括適用します。
+     */
+    private static void applyVanillaHideFlags(@NotNull ItemMeta meta) {
+        if (VANILLA_HIDE_FLAGS.length == 0) {
+            return;
+        }
+        meta.addItemFlags(VANILLA_HIDE_FLAGS);
+    }
+
+    private static void applyCustomModelData(@NotNull ItemMeta meta, int customModelData) {
+        CustomModelDataComponentUtil.writeFromInt(meta, customModelData);
+    }
+
+    // endregion
+}
+
+
+

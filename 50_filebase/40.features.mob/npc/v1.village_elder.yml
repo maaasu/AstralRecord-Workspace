@@ -1,0 +1,32 @@
+schemaVersion: 1
+id: village_elder
+type: MOB
+category: NPC
+name: "&e村長マルクス"
+title: "&7始まりの村 村長"
+level: 1
+entityType: PLAYER
+skin:
+  texture: "ewogICJ0aW1lc3RhbXAi..."
+  signature: "dGVzdFNpZ25hdHVyZQ..."
+nameVisible: true
+icon: VILLAGER_SPAWN_EGG
+lore:
+  - "&7この村を長年治めてきた長老。"
+  - "&7冒険者に助言を与えてくれる。"
+tags:
+  - npc
+  - quest_giver
+
+equipment:
+  mainHand:
+    ref: item:wooden_staff
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+
+ai:
+  idle:
+    behavior: STATIONARY
+

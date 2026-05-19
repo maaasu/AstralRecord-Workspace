@@ -1,0 +1,26 @@
+schemaVersion: 1
+id: healing_potion_small
+category: consumable
+name: "&a回復ポーション(小)"
+icon: POTION
+rarity: COMMON
+maxStack: 64
+saleValue: 15
+lore:
+  - "&7飲むとHPを少量回復する。"
+  - "&7最大HPの15%を回復。"
+unTradeable: false
+unSellable: false
+
+consumable:
+  onUse:
+    sound: entity.generic.drink
+    effect: heart
+    amount: 1
+  effects:
+    - type: HEAL
+      status: HP
+      value: 0.15
+      isPercent: true
+      rate: 100
+

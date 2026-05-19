@@ -1,0 +1,26 @@
+schemaVersion: 1
+id: starter_bundle_pool
+type: LOOT_POOL
+pick: 3
+contents:
+  - itemId:
+      ref: item:healing_potion_small
+    rate: 100
+    amount: 3
+  - itemId:
+      ref: item:mana_potion_small
+    rate: 100
+    amount: 2
+  - itemId:
+      ref: item:bronze_sword
+    rate: 100
+    amount: 1
+  - itemId:
+      ref: item:leather_boots
+    rate: 80
+    amount: 1
+  - itemId:
+      ref: item:iron_ingot
+    rate: 60
+    amount: 3~5
+

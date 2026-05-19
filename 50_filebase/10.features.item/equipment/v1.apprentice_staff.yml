@@ -1,0 +1,32 @@
+schemaVersion: 1
+id: apprentice_staff
+category: equipment
+name: "&d見習いの杖"
+icon: BLAZE_ROD
+rarity: UNCOMMON
+maxStack: 1
+saleValue: 65
+lore:
+  - "&7魔法の入門に適した杖。"
+  - "&7魔法攻撃のスケーリングに影響する知力を底上げする。"
+unTradeable: false
+unSellable: false
+
+equipment:
+  slot: WEAPON
+  handType: TWO
+  requiredLevel: 5
+  stats:
+    - status: ATTACK
+      type: FLAT
+      value: 8~12
+    - status: INTELLIGENCE
+      type: FLAT
+      value: 6
+    - status: MP_REGEN
+      type: FLAT
+      value: 2.0
+  durability:
+    max: 80
+    consume: 1
+

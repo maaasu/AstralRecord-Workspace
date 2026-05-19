@@ -1,0 +1,24 @@
+id: iron_warrior_set
+name: "&6鉄の戦士セット"
+pieces:
+  - count: 2
+    stats:
+      - status: DEFENSE
+        type: FLAT
+        value: 15
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 30
+  - count: 4
+    stats:
+      - status: DEFENSE
+        type: FLAT
+        value: 40
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 80
+      - status: HP_REGEN
+        type: FLAT
+        value: 5
+    skills:
+      - ref: skill:iron_will

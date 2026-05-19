@@ -1,0 +1,78 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "ホーム";
+}
+
+<section class="ar-hero">
+    <div class="ar-hero-overlay"></div>
+    <div class="ar-hero-content text-center">
+        <img src="~/images/icon.png" alt="Astral Record" class="ar-hero-icon mb-4" />
+        <h1 class="ar-hero-title">Astral Record</h1>
+        <p class="ar-hero-subtitle">Minecraft MMO RPG Server</p>
+        <p class="ar-hero-desc">広大な星界を舞台に、仲間と共に伝説を刻め。</p>
+        <div class="mt-4 d-flex gap-3 justify-content-center flex-wrap">
+            <a href="#features" class="btn ar-btn-primary">サーバーについて</a>
+            <a asp-page="/Terms" class="btn ar-btn-outline">利用規約を確認</a>
+        </div>
+    </div>
+    <div class="ar-hero-scroll-hint">
+        <span>&#8595;</span>
+    </div>
+</section>
+
+<section class="ar-section ar-section-dark" id="features">
+    <div class="container">
+        <h2 class="ar-section-title text-center mb-5">サーバーの特徴</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="ar-card h-100">
+                    <div class="ar-card-icon">⚔️</div>
+                    <h3 class="ar-card-title">本格MMO RPG</h3>
+                    <p class="ar-card-text">クエスト、スキル、レベルアップシステムを備えた本格的なRPG体験。仲間と共にダンジョンを攻略しよう。</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="ar-card h-100">
+                    <div class="ar-card-icon">🐉</div>
+                    <h3 class="ar-card-title">壮大な世界観</h3>
+                    <p class="ar-card-text">星界をテーマにした独自の世界。空に浮かぶ島々、神秘的な遺跡、そして強大なボスが待ち受ける。</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="ar-card h-100">
+                    <div class="ar-card-icon">👥</div>
+                    <h3 class="ar-card-title">コミュニティ</h3>
+                    <p class="ar-card-text">ギルドを結成し、仲間と協力してサーバー最強を目指せ。定期的なイベントも開催予定。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="ar-section ar-section-bg" style="background-image: url('/images/bg-town.png');">
+    <div class="ar-section-overlay"></div>
+    <div class="container position-relative text-center">
+        <h2 class="ar-section-title mb-3">今すぐ参加しよう</h2>
+        <p class="ar-section-text mb-4">Minecraft Java Edition でサーバーに接続できます。</p>
+        <div class="ar-server-address">
+            <span class="ar-server-label">サーバーアドレス</span>
+            <code class="ar-server-ip" id="serverIp">astralrecord.example.com</code>
+            <button class="btn ar-btn-copy" onclick="copyIp()">コピー</button>
+        </div>
+        <p class="ar-section-note mt-3">※ 参加前に<a asp-page="/Terms" class="ar-link">利用規約</a>をご確認ください。</p>
+    </div>
+</section>
+
+@section Scripts {
+<script>
+function copyIp() {
+    const ip = document.getElementById('serverIp').textContent;
+    navigator.clipboard.writeText(ip).then(() => {
+        const btn = document.querySelector('.ar-btn-copy');
+        btn.textContent = 'コピー済み！';
+        setTimeout(() => btn.textContent = 'コピー', 2000);
+    });
+}
+</script>
+}

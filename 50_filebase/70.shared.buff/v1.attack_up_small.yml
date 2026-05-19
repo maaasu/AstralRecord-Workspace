@@ -1,0 +1,13 @@
+schemaVersion: 1
+id: attack_up_small
+type: BUFF
+name: "&c攻撃強化(小)"
+lore:
+  - "&7一定時間、攻撃力が上昇する。"
+durationTicks: 600 # 30秒
+isDebuff: false
+modifiers:
+  - status: ATTACK
+    type: SCALAR
+    value: 0.15 # +15%
+

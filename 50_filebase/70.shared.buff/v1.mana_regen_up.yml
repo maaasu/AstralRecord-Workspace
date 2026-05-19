@@ -1,0 +1,13 @@
+schemaVersion: 1
+id: mana_regen_up
+type: BUFF
+name: "&b魔力再生"
+lore:
+  - "&7一定時間、MP回復速度が上昇する。"
+durationTicks: 1200 # 60秒
+isDebuff: false
+modifiers:
+  - status: MP_REGEN
+    type: SCALAR
+    value: 0.30 # +30%
+

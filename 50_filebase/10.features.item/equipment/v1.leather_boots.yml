@@ -1,0 +1,31 @@
+schemaVersion: 1
+id: leather_boots
+category: equipment
+name: "&f軽革のブーツ"
+icon: LEATHER_BOOTS
+rarity: COMMON
+maxStack: 1
+saleValue: 20
+lore:
+  - "&7軽くて動きやすい革製のブーツ。"
+  - "&7移動速度をわずかに上昇させる。"
+unTradeable: false
+unSellable: false
+
+equipment:
+  slot: FEET
+  requiredLevel: 1
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 4
+    - status: MOVEMENT_SPEED
+      type: FLAT
+      value: 3.0
+    - status: AGILITY
+      type: FLAT
+      value: 2
+  durability:
+    max: 80
+    consume: 1
+

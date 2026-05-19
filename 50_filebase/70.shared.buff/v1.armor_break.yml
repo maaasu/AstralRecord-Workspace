@@ -1,0 +1,13 @@
+schemaVersion: 1
+id: armor_break
+type: BUFF
+name: "&4防御崩壊"
+lore:
+  - "&7物理防御力が大幅に低下する。"
+durationTicks: 200 # 10秒
+isDebuff: true
+modifiers:
+  - status: DEFENSE
+    type: FLAT
+    value: -15.0
+

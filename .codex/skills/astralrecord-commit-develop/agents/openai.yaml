@@ -1,0 +1,4 @@
+interface:
+  display_name: "AstralRecord Commit Develop"
+  short_description: "Select safe diffs and commit to develop"
+  default_prompt: "/astralrecord-commit-develop E:\\AstralRecord-Workspace\\.codex\\skills"

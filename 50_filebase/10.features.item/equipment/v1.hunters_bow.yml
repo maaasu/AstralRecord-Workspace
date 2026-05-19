@@ -1,0 +1,32 @@
+schemaVersion: 1
+id: hunters_bow
+category: equipment
+name: "&a狩人の弓"
+icon: BOW
+rarity: UNCOMMON
+maxStack: 1
+saleValue: 55
+lore:
+  - "&7熟練の猟師が使う長弓。"
+  - "&7遠距離攻撃に適しており、器用さを活かせる。"
+unTradeable: false
+unSellable: false
+
+equipment:
+  slot: WEAPON
+  handType: TWO
+  requiredLevel: 8
+  stats:
+    - status: ATTACK
+      type: FLAT
+      value: 15
+    - status: DEXTERITY
+      type: FLAT
+      value: 5
+    - status: ACCURACY
+      type: FLAT
+      value: 5.0
+  durability:
+    max: 100
+    consume: 1
+

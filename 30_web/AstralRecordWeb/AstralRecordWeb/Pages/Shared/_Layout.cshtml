@@ -1,0 +1,80 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Astral Record</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/AstralRecordWeb.styles.css" asp-append-version="true" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg ar-navbar fixed-top">
+        <div class="container">
+            <a class="navbar-brand ar-brand" asp-area="" asp-page="/Index">
+                <img src="~/images/icon.png" alt="Astral Record" class="ar-brand-icon" />
+                <span class="ar-brand-text">Astral Record</span>
+            </a>
+            <button class="navbar-toggler ar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-1">
+                    <li class="nav-item">
+                        <a class="nav-link ar-nav-link" asp-area="" asp-page="/Index">ホーム</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link ar-nav-link" asp-area="" asp-page="/Terms">利用規約</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link ar-nav-link" asp-area="" asp-page="/Privacy">プライバシーポリシー</a>
+                    </li>
+                    <li class="nav-item ms-lg-2">
+                        <a class="btn ar-btn-nav-login disabled" href="#" aria-disabled="true">
+                            ログイン <span class="ar-badge-soon">近日公開</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        @RenderBody()
+    </main>
+
+    <footer class="ar-footer">
+        <div class="container">
+            <div class="row align-items-center gy-3">
+                <div class="col-md-4 text-center text-md-start">
+                    <img src="~/images/icon.png" alt="Astral Record" class="ar-footer-icon" />
+                </div>
+                <div class="col-md-4 text-center">
+                    <p class="ar-footer-title mb-1">Astral Record</p>
+                    <p class="ar-footer-sub mb-0">Minecraft MMO RPG Server</p>
+                </div>
+                <div class="col-md-4 text-center text-md-end">
+                    <div class="ar-footer-links">
+                        <a asp-page="/Index">ホーム</a>
+                        <span class="mx-2 opacity-50">|</span>
+                        <a asp-page="/Terms">利用規約</a>
+                        <span class="mx-2 opacity-50">|</span>
+                        <a asp-page="/Privacy">プライバシーポリシー</a>
+                    </div>
+                </div>
+            </div>
+            <hr class="ar-footer-hr" />
+            <p class="ar-footer-copy text-center mb-0">&copy; 2026 Astral Record. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,12 @@
+schemaVersion: 1
+id: haste_small
+type: BUFF
+name: "&e迅速(小)"
+lore:
+  - "&7一定時間、移動速度が上昇する。"
+durationTicks: 600 # 30秒
+isDebuff: false
+modifiers:
+  - status: MOVEMENT_SPEED
+    type: SCALAR
+    value: 0.10 # +10%

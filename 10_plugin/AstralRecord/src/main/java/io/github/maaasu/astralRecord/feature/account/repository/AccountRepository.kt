@@ -1,0 +1,273 @@
+package io.github.maaasu.astralRecord.feature.account.repository
+
+import com.google.gson.JsonArray
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger
+import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil
+import java.io.IOException
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
+import java.util.UUID
+
+/**
+ * AstralRecord API を通じてアカウントデータへのアクセスを担うリポジトリ。
+ * JDBC による直接 DB アクセスの代わりに HTTP リクエストを使用します。
+ */
+class AccountRepository {
+
+    private val formatter: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+
+    // -------------------------------------------------------
+    // SELECT
+    // -------------------------------------------------------
+
+    /**
+     * プレイヤー UUID に紐付くアカウント一覧を取得します（論理削除除外）。
+     * GET /api/account?user_id={userId}
+     */
+    fun findByUserId(userId: UUID): List<AccountModel> {
+        val path = "/api/account?user_id=$userId"
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                return when (response.statusCode()) {
+                    200 -> {
+                        val list = parseAccountList(response.body())
+                        Logger.log(LogId.D_5150, userId, list.size)
+                        list
+                    }
+                    404 -> {
+                        Logger.log(LogId.W_5150, userId)
+                        emptyList()
+                    }
+                    else -> {
+                        Logger.log(LogId.E_5150, "HTTP ${response.statusCode()} for GET $path")
+                        throw IOException("Unexpected status ${response.statusCode()} for GET $path")
+                    }
+                }
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            Logger.log(LogId.E_5150, e)
+            throw RuntimeException(e)
+        } catch (e: IOException) {
+            Logger.log(LogId.E_5150, e)
+            throw e
+        }
+    }
+
+    /**
+     * アカウント UUID でアカウントを取得します（論理削除除外）。
+     * GET /api/account/{uuid}
+     */
+    fun findByUuid(uuid: UUID): AccountModel? {
+        val path = "/api/account/$uuid"
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                return when (response.statusCode()) {
+                    200 -> {
+                        Logger.log(LogId.D_5151, uuid)
+                        parseAccountModel(response.body())
+                    }
+                    404 -> {
+                        Logger.log(LogId.W_5151, uuid)
+                        null
+                    }
+                    else -> {
+                        Logger.log(LogId.E_5151, "HTTP ${response.statusCode()} for GET $path")
+                        throw IOException("Unexpected status ${response.statusCode()} for GET $path")
+                    }
+                }
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            Logger.log(LogId.E_5151, e)
+            throw RuntimeException(e)
+        } catch (e: IOException) {
+            Logger.log(LogId.E_5151, e)
+            throw e
+        }
+    }
+
+    // -------------------------------------------------------
+    // INSERT
+    // -------------------------------------------------------
+
+    /**
+     * 新規アカウントを登録します。登録されたアカウント情報（サーバー生成 UUID を含む）を返します。
+     * POST /api/account
+     */
+    fun insert(model: AccountModel): AccountModel {
+        val path = "/api/account"
+        val body = buildAccountJson(model)
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val request = ApiRequestUtil.buildRequestBuilder(path)
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                if (response.statusCode() !in 200..299) {
+                    Logger.log(LogId.E_5152, "HTTP ${response.statusCode()} for POST $path")
+                    throw IOException("Unexpected status ${response.statusCode()} for POST $path")
+                }
+                val created = parseAccountModel(response.body())
+                Logger.log(LogId.D_5152, created.uuid)
+                return created
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            Logger.log(LogId.E_5152, e)
+            throw RuntimeException(e)
+        } catch (e: IOException) {
+            Logger.log(LogId.E_5152, e)
+            throw e
+        }
+    }
+
+    // -------------------------------------------------------
+    // UPDATE
+    // -------------------------------------------------------
+
+    /**
+     * 指定プレイヤーの選択中アカウントを切り替えます。
+     * PUT /api/account/{targetUuid}
+     */
+    fun switchActiveAccount(userId: UUID, targetUuid: UUID, updatedBy: UUID) {
+        val path = "/api/account/$targetUuid"
+        val body = buildSwitchActiveAccountJson(updatedBy)
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val request = ApiRequestUtil.buildRequestBuilder(path)
+                    .PUT(HttpRequest.BodyPublishers.ofString(body))
+                    .build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                if (response.statusCode() !in 200..299) {
+                    Logger.log(LogId.E_5153, "HTTP ${response.statusCode()} for PUT $path")
+                    throw IOException("Unexpected status ${response.statusCode()} for PUT $path")
+                }
+                Logger.log(LogId.D_5153, userId, targetUuid)
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            Logger.log(LogId.E_5153, e)
+            throw RuntimeException(e)
+        } catch (e: IOException) {
+            Logger.log(LogId.E_5153, e)
+            throw e
+        }
+    }
+
+    /**
+     * account.mode 繧呈峩譁ｰ縺励∪縺吶・
+     * PUT /api/account/{targetUuid}
+     */
+    fun updateMode(targetUuid: UUID, mode: AccountMode, updatedBy: UUID): AccountModel {
+        val path = "/api/account/$targetUuid"
+        val body = buildAccountUpdateJson(isActive = null, mode = mode, updatedBy = updatedBy)
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val request = ApiRequestUtil.buildRequestBuilder(path)
+                    .PUT(HttpRequest.BodyPublishers.ofString(body))
+                    .build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                if (response.statusCode() !in 200..299) {
+                    Logger.log(LogId.E_5153, "HTTP ${response.statusCode()} for PUT $path")
+                    throw IOException("Unexpected status ${response.statusCode()} for PUT $path")
+                }
+                Logger.log(LogId.D_5153, targetUuid, mode.value)
+                return parseAccountModel(response.body())
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            Logger.log(LogId.E_5153, e)
+            throw RuntimeException(e)
+        } catch (e: IOException) {
+            Logger.log(LogId.E_5153, e)
+            throw e
+        }
+    }
+
+    // -------------------------------------------------------
+    // JSON マッピング
+    // -------------------------------------------------------
+
+    private fun buildAccountJson(model: AccountModel): String {
+        val obj = JsonObject()
+        obj.addProperty("userId", model.userId.toString())
+        obj.addProperty("accountName", model.accountName)
+        obj.addProperty("slotIndex", model.slotIndex)
+        obj.addProperty("mode", model.mode.value.toInt())
+        obj.addProperty("createdBy", model.createdBy.toString())
+        return obj.toString()
+    }
+
+    private fun buildSwitchActiveAccountJson(updatedBy: UUID): String {
+        return buildAccountUpdateJson(isActive = true, mode = null, updatedBy = updatedBy)
+    }
+
+    private fun buildAccountUpdateJson(isActive: Boolean?, mode: AccountMode?, updatedBy: UUID): String {
+        return ApiRequestUtil.buildJsonBody {
+            addProperty("accountName", null as String?)
+            if (isActive != null) {
+                addProperty("isActive", isActive)
+            } else {
+                addProperty("isActive", null as Boolean?)
+            }
+            if (mode != null) {
+                addProperty("mode", mode.value.toInt())
+            } else {
+                addProperty("mode", null as Number?)
+            }
+            addProperty("menuShortcutsJson", null as String?)
+            addProperty("updatedBy", updatedBy.toString())
+        }
+    }
+
+    private fun parseAccountModel(json: String): AccountModel {
+        val obj = JsonParser.parseString(json).asJsonObject
+        return obj.toAccountModel()
+    }
+
+    private fun parseAccountList(json: String): List<AccountModel> {
+        val arr: JsonArray = JsonParser.parseString(json).asJsonArray
+        return arr.map { it.asJsonObject.toAccountModel() }
+    }
+
+    private fun parseApiDateTime(value: String): LocalDateTime {
+        return try {
+            LocalDateTime.parse(value, formatter)
+        } catch (_: DateTimeParseException) {
+            try {
+                OffsetDateTime.parse(value, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toLocalDateTime()
+            } catch (e: DateTimeParseException) {
+                throw DateTimeParseException("Unsupported datetime format: $value", value, e.errorIndex, e)
+            }
+        }
+    }
+
+    private fun JsonObject.toAccountModel() = AccountModel(
+        uuid        = UUID.fromString(get("uuid").asString),
+        userId      = UUID.fromString(get("userId").asString),
+        accountName = get("accountName").asString,
+        slotIndex   = get("slotIndex").asInt,
+        isActive    = get("isActive").asBoolean,
+        mode        = AccountMode.fromValue(get("mode").asByte),
+        menuShortcutsJson = get("menuShortcutsJson")?.takeIf { !it.isJsonNull }?.asString ?: "",
+        createdAt   = parseApiDateTime(get("createdAt").asString),
+        updatedAt   = parseApiDateTime(get("updatedAt").asString),
+        createdBy   = UUID.fromString(get("createdBy").asString),
+        updatedBy   = UUID.fromString(get("updatedBy").asString),
+        isDeleted   = get("isDeleted").asBoolean,
+    )
+}

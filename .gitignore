@@ -1,0 +1,50 @@
+# Local assistant/tool state
+.claude/
+.codex/tmp/
+
+# IDE and editor metadata
+.idea/
+.vscode/
+.vs/
+.settings/
+*.iml
+.classpath
+.project
+.factorypath
+
+# Obsidian local vault state
+.obsidian/
+
+# Build outputs and generated packages
+target/
+build/
+out/
+bin/
+obj/
+.gradle/
+node_modules/
+dist/
+dependency-reduced-pom.xml
+
+# Local/development configuration and secrets
+.env
+.env.*
+*.secret.*
+*secrets*.json
+local.settings.json
+appsettings.Development.json
+appsettings.Local.json
+
+# ASP.NET Web Deploy generated artifacts
+*.deploy.cmd
+*.deploy-readme.txt
+*.Parameters.xml
+*.SetParameters.xml
+*.SourceManifest.xml
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db

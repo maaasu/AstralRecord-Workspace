@@ -1,0 +1,31 @@
+# EditorConfig: https://editorconfig.org
+# IntelliJ IDEA / VS Code などが自動的にこの設定を適用します
+
+root = true
+
+# デフォルト設定（全ファイル）
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# Java / Kotlin
+[*.{java,kt}]
+indent_size = 4
+
+# YAML
+[*.{yml,yaml}]
+indent_size = 2
+
+# プロパティファイル（logger.properties / player.properties など）
+# ※ UTF-8 BOM なしで保存すること（UTF-8 with BOM は使用禁止）
+[*.properties]
+charset = utf-8
+
+# Markdown
+[*.md]
+trim_trailing_whitespace = false
+

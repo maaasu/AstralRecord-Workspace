@@ -1,0 +1,73 @@
+schemaVersion: 1
+id: goblin_warrior
+type: MOB
+category: ENEMY
+name: "&cゴブリンウォリアー"
+level: 5
+entityType: ZOMBIE
+icon: ZOMBIE_HEAD
+lore:
+  - "&7森に生息する好戦的なゴブリン。"
+  - "&7粗末な武器を持って襲い掛かる。"
+tags:
+  - humanoid
+  - goblin
+
+equipment:
+  mainHand:
+    ref: item:rusty_sword
+  helmet:
+    ref: item:leather_cap
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 150
+  - status: ATTACK
+    value: 18
+  - status: DEFENSE
+    value: 5
+  - status: MOVEMENT_SPEED
+    value: 0.12
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 8
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 12
+    deaggroRange: 25
+    leashRange: 30
+  combat:
+    style: MELEE
+    preferredRange: 1.5
+    attackIntervalTicks: 25
+    skills:
+      - ref: skill:slash
+
+drops:
+  exp: 30
+  money:
+    min: 5
+    max: 15
+  items:
+    - itemId:
+        ref: item:goblin_ear
+      rate: 80.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:rusty_sword
+      rate: 5.50
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:goblin_kings_seal
+      rate: 0.05
+      amount: 1
+      luckAffected: false
+      hidden: true
+

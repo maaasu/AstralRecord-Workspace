@@ -1,0 +1,16 @@
+schemaVersion: 1
+id: critical_eye
+type: BUFF
+name: "&6鷹の目"
+lore:
+  - "&7一定時間、会心率と命中率が上昇する。"
+durationTicks: 400 # 20秒
+isDebuff: false
+modifiers:
+  - status: CRITICAL_RATE
+    type: FLAT
+    value: 10.0
+  - status: ACCURACY
+    type: FLAT
+    value: 8.0
+

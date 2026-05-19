@@ -1,0 +1,14 @@
+schemaVersion: 1
+id: bone_fragment
+category: material
+name: "&f骨片"
+icon: BONE
+rarity: COMMON
+maxStack: 64
+saleValue: 5
+lore:
+  - "&7アンデッド系モンスターから得られる骨片。"
+  - "&7錬金素材として利用できる。"
+unTradeable: false
+unSellable: false
+

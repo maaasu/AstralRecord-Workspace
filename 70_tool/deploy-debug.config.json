@@ -1,0 +1,60 @@
+{
+  "iis": {
+    "enabled": false,
+    "host": "192.168.0.88",
+    "executablePath": ""
+  },
+  "api": {
+    "enabled": true,
+    "projectPath": "E:\\AstralRecord-Workspace\\20_api\\AstralRecordApi\\AstralRecordApi\\AstralRecordApi.csproj",
+    "buildOutputPath": "E:\\AstralRecord-Workspace\\20_api\\AstralRecordApi\\AstralRecordApi\\bin\\Release\\net10.0\\publish",
+    "deployPath": "\\\\192.168.0.88\\server\\AstralRecordApi",
+    "preserveDirectories": [
+      "logs"
+    ],
+    "preserveFilePatterns": [
+      "appsettings*.json",
+      "web.config"
+    ],
+    "backup": {
+      "enabled": true,
+      "folderName": "bak"
+    }
+  },
+  "web": {
+    "enabled": true,
+    "projectPath": "E:\\AstralRecord-Workspace\\30_web\\AstralRecordWeb\\AstralRecordWeb\\AstralRecordWeb.csproj",
+    "buildOutputPath": "E:\\AstralRecord-Workspace\\30_web\\AstralRecordWeb\\AstralRecordWeb\\bin\\Release\\net10.0\\publish",
+    "deployPath": "\\\\192.168.0.88\\server\\AstralRecordWeb",
+    "preserveDirectories": [
+      "logs"
+    ],
+    "preserveFilePatterns": [
+      "appsettings*.json"
+    ],
+    "backup": {
+      "enabled": true,
+      "folderName": "bak"
+    }
+  },
+  "plugin": {
+    "enabled": true,
+    "projectPath": "E:\\AstralRecord-Workspace\\10_plugin\\AstralRecord",
+    "buildOutputPath": "E:\\AstralRecord-Workspace\\10_plugin\\AstralRecord\\dist",
+    "deployPath": "\\\\192.168.0.88\\server\\CraftyController\\crafty-__saas-windows-medium-amd64__-_03629d64\\servers\\5bf4f70b-2c02-4a6b-b23f-8453237d2d97\\plugins",
+    "artifactPattern": "AstralRecord-*.jar"
+  },
+  "fileDatabase": {
+    "enabled": true,
+    "sourcePath": "E:\\AstralRecord-Workspace\\50_filebase",
+    "deployPath": "\\\\192.168.0.88\\server\\FileDatabase\\file",
+    "preserveFilePatterns": [],
+    "preserveDirectories": [
+      "99.work"
+    ],
+    "backup": {
+      "enabled": false,
+      "folderName": "bak"
+    }
+  }
+}

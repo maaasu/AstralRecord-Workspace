@@ -1,0 +1,53 @@
+schemaVersion: 1
+id: bronze_sword
+category: equipment
+name: "&fブロンズソード"
+icon: IRON_SWORD
+rarity: COMMON
+maxStack: 1
+saleValue: 30
+lore:
+  - "&7初心者向けの片手剣。"
+  - "&7扱いやすく、安定した性能を持つ。"
+unTradeable: false
+unSellable: false
+
+equipment:
+  slot: WEAPON
+  handType: ONE
+  requiredLevel: 3
+  stats:
+    - status: ATTACK
+      type: FLAT
+      value: 12
+    - status: CRITICAL_RATE
+      type: FLAT
+      value: 3.0
+  durability:
+    max: 120
+    consume: 1
+  enchant:
+    maxSlots: 2
+    pools:
+      - requiredMaterial:
+          itemId: magic_crystal
+          amount: 1
+        requiredCurrency: 150
+        entries:
+          - status: ATTACK
+            type: FLAT
+            value: 2~5
+            weight: 10
+          - status: CRITICAL_RATE
+            type: FLAT
+            value: 1~3
+            weight: 8
+          - status: ATTACK_SPEED
+            type: FLAT
+            value: 1~3
+            weight: 6
+          - status: ACCURACY
+            type: FLAT
+            value: 2~4
+            weight: 5
+

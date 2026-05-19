@@ -1,0 +1,21 @@
+schemaVersion: 1
+id: starter_bundle
+category: bundle
+name: "&e冒険者パック"
+icon: CHEST
+rarity: COMMON
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7これから冒険を始める者への贈り物。"
+  - "&7開封すると初心者向けのアイテムが手に入る。"
+unTradeable: true
+unSellable: true
+
+bundle:
+  lootTableId:
+    ref: loot_table:starter_bundle_table
+  onUse:
+    sound: block.chest.open
+    particle: totem_of_undying
+

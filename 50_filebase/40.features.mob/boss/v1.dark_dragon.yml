@@ -1,0 +1,75 @@
+schemaVersion: 1
+id: dark_dragon
+type: MOB
+category: BOSS
+name: "&4&l暗黒竜ヴァルザード"
+title: "&8―― 深淵の支配者 ――"
+level: 50
+entityType: ENDER_DRAGON
+icon: DRAGON_HEAD
+lore:
+  - "&7古より封印されし暗黒竜。"
+  - "&7強大な力を持ち、挑戦者を待ち受ける。"
+tags:
+  - dragon
+  - boss
+  - fire
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 50000
+  - status: ATTACK
+    value: 200
+  - status: DEFENSE
+    value: 80
+  - status: MOVEMENT_SPEED
+    value: 0.15
+  - status: CRITICAL_RATE
+    value: 0.10
+  - status: CRITICAL_DAMAGE
+    value: 1.5
+
+ai:
+  idle:
+    behavior: STATIONARY
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 40
+    deaggroRange: 60
+    leashRange: 50
+  combat:
+    style: MAGIC
+    preferredRange: 8
+    attackIntervalTicks: 15
+    skills:
+      - ref: skill:dragon_breath
+      - ref: skill:dark_nova
+      - ref: skill:tail_sweep
+
+drops:
+  exp: 5000
+  money:
+    min: 500
+    max: 1500
+  items:
+    - itemId:
+        ref: item:dragon_scale
+      rate: 100.0
+      amount: 3~5
+      luckAffected: false
+      hidden: false
+    - itemId:
+        ref: item:dark_dragon_fang
+      rate: 30.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:varzard_soul_fragment
+      rate: 1.00
+      amount: 1
+      luckAffected: false
+      hidden: true
+  lootTable:
+    ref: loot_table:boss_common_drop
+

@@ -1,0 +1,26 @@
+{
+  "resourcePack": {
+    "name": "AstralRecordResourcePack",
+    "root": ".",
+    "namespace": "astralrecord",
+    "minecraftVersion": "1.21.4",
+    "packFormat": 46
+  },
+  "referenceStrategy": "Prefer relative paths so the repository works across environments. Use absolutePathOverrides only when a local checkout cannot use the relative paths.",
+  "references": {
+    "astralRecordPom": "../10_plugin/AstralRecord/pom.xml",
+    "astralRecordPluginResources": "../10_plugin/AstralRecord/src/main/resources",
+    "filebaseRoot": "../50_filebase",
+    "workspaceRoot": ".."
+  },
+  "absolutePathOverrides": {
+    "astralRecordPom": "",
+    "astralRecordPluginResources": "",
+    "filebaseRoot": "",
+    "workspaceRoot": ""
+  },
+  "externalReferences": {
+    "mojangVersionManifest": "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json",
+    "packFormatSource": "Minecraft client version.json: pack_version.resource_major"
+  }
+}

@@ -1,0 +1,14 @@
+schemaVersion: 1
+id: gold_ingot
+category: material
+name: "&6金インゴット"
+icon: GOLD_INGOT
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 50
+lore:
+  - "&7輝く金のインゴット。"
+  - "&7高級装備の素材として使用される。"
+unTradeable: false
+unSellable: false
+

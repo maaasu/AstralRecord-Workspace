@@ -1,0 +1,26 @@
+schemaVersion: 1
+id: mana_potion_small
+category: consumable
+name: "&9マナポーション(小)"
+icon: POTION
+rarity: COMMON
+maxStack: 64
+saleValue: 20
+lore:
+  - "&7飲むとMPを少量回復する。"
+  - "&7最大MPの20%を回復。"
+unTradeable: false
+unSellable: false
+
+consumable:
+  onUse:
+    sound: entity.generic.drink
+    effect: witch
+    amount: 1
+  effects:
+    - type: HEAL
+      status: MP
+      value: 0.20
+      isPercent: true
+      rate: 100
+
