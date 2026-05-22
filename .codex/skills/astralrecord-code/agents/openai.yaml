@@ -1,0 +1,4 @@
+interface:
+  display_name: "AstralRecord Code"
+  short_description: "Implement AstralRecord code changes."
+  default_prompt: "Use $astralrecord-code to implement a coding change for E:\\AstralRecord-Workspace\\<target-path> and report the result."

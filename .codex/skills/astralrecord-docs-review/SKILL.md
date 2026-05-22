@@ -17,7 +17,7 @@ If a judgment depends on the designer's intent, gather intent from docs first: r
    - `00_docs/10_プラグイン設計書`: read `references/plugin-design-docs.md`.
    - Future API/Web docs: use this generic workflow, then look for an added reference file such as `references/api-design-docs.md` or `references/web-design-docs.md`. If no domain reference exists, review only general design quality and documented local rules.
 2. Read documented rules before judging: the nearest docs README, feature README, and any local rule files inside the target docs tree.
-3. Run `scripts/docs_structure_audit.py <absolute-docs-path>` when reviewing Markdown docs. Use its output as evidence for format and structure findings, not as the whole review.
+3. Run `scripts/docs_structure_audit.py <absolute-docs-path>` only when reviewing `00_docs/10_プラグイン設計書`. Use its output as evidence for format and structure findings, not as the whole review. For other docs areas, write `未実行（理由: docs_structure_audit.py は 10_プラグイン設計書 専用）` in the checked-scope section unless a matching domain audit script has been added.
 4. Read the minimum related design docs needed to understand the feature intent and cross-document contracts. Follow Wiki links to docs when they define terms, models, methods, flows, dependencies, or unresolved items.
 5. Review for design defects:
    - Contradictions between overview, model, use case, method spec, integration flow, operation/logging, and unresolved issues.
@@ -28,23 +28,70 @@ If a judgment depends on the designer's intent, gather intent from docs first: r
 
 ## Report Format
 
-Write the review in Japanese. Start with findings, ordered by severity.
+Write the review in Japanese. Start with findings, ordered by severity. Use this exact section order so `astralrecord-docs-fix` can use the result as input.
 
-For each finding include:
+```markdown
+## 指摘一覧
 
-- Severity: `重大`, `高`, `中`, or `低`.
-- Location: file path and line when available.
-- Problem: what is contradictory, unsafe, unclear, or rule-breaking.
-- Impact: why this matters as design.
-- Suggested fix: the smallest docs/design change that would resolve it.
+### AR-DOC-001 [高] <短い指摘タイトル>
+- 種別: `矛盾` | `不適切なロジック` | `不足` | `未確定事項` | `形式/命名` | `運用リスク`
+- 対象: `<absolute-or-workspace-relative-path>:<line>` または `<path>` when line is unavailable
+- 関連箇所: `<path>:<line>` / `なし`
+- 根拠: <設計書上の根拠。ソースコード根拠は使わない>
+- 問題: <何が矛盾、不明確、危険、またはルール違反か>
+- 影響: <設計としてなぜ困るか>
+- 修正方針: <最小の docs/design 変更>
+- 修正対象候補: `<path>` / `複数` / `未確定`
+- 修正可否: `自動修正可` | `要確認` | `設計判断待ち`
+```
 
-After findings, include:
+Use sequential IDs starting at `AR-DOC-001`. Set `修正可否: 自動修正可` only when the report contains enough information to edit docs without inventing design intent. Use `要確認` or `設計判断待ち` when the fix requires a new product/design decision.
 
-- `確認した範囲`: docs read and whether the audit script was run.
-- `未確認/質問`: designer intent or external information needed before judging.
-- `ソース参照`: always state `ソースコードは参照していません。`
+After findings, include these sections:
 
-If there are no findings, say so explicitly and still list residual risks or questions.
+```markdown
+## 未確認/質問
+
+### Q-DOC-001
+- 関連指摘: `AR-DOC-001` / `なし`
+- 確認事項: <設計者に確認したいこと>
+- 判断が必要な理由: <なぜレビューだけでは確定できないか>
+
+## 修正スキル入力サマリ
+- 自動修正候補: `AR-DOC-001`, `AR-DOC-003` / `なし`
+- 要確認: `AR-DOC-002`, `Q-DOC-001` / `なし`
+- 推奨修正順: `AR-DOC-001` -> `AR-DOC-003` / `なし`
+- 対象範囲: `<review target path>`
+
+## 確認した範囲
+- 読んだ設計書: <paths>
+- 実行した検査: `docs_structure_audit.py <path>` / `未実行（理由: ...）`
+
+## ソース参照
+ソースコードは参照していません。
+```
+
+If there are no findings, write `## 指摘一覧` followed by `指摘なし。` and still include residual questions, checked scope, and source-reference sections.
+
+## Review Result File
+
+When the user asks to save a review result, or when the review is intended to be used by `astralrecord-docs-fix`, save a Markdown copy under `E:\AstralRecord-Workspace\99_work`.
+
+Use this filename format:
+
+```text
+yyyy-MM-dd HH：mm：ss <skill-name> (<fixed-count>／<finding-count>).md
+```
+
+Windows file names cannot contain `:` or `/`, so use fullwidth `：` and `／` in the filename. For a new review result, set `<fixed-count>` to `0`. When all findings are fixed, prefix the filename with `[完了] ` and update the metadata in the file to `完了状態: 完了`.
+
+The saved file must keep the normal report sections and include:
+
+- the review target path.
+- the skill name.
+- `指摘修正数 / 指摘数`.
+- each finding's `修正状態`.
+- a `修正スキル入力サマリ` section that can be passed directly to `astralrecord-docs-fix`.
 
 ## Extension Points
 

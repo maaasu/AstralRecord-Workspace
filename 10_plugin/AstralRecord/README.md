@@ -1,7 +1,7 @@
 # AstralRecord — 開発ガイドライン
 
 Minecraft MMO RPG プラグイン「AstralRecord」の開発に関する方針・構成をまとめたドキュメントです。
-GitHub Copilot・JetBrains AI Assistant・Junie 向けのプロンプト設定もこのディレクトリで管理します。
+GitHub Copilot・JetBrains AI Assistant・Junie 向けの補助プロンプトは `.agents/prompts/` で管理し、コード実装の AI 手順は workspace-local skill `$astralrecord-code` で管理します。
 
 ---
 
@@ -13,12 +13,12 @@ GitHub Copilot・JetBrains AI Assistant・Junie 向けのプロンプト設定�
 
 ## 技術スタック
 
-| 分類             | 内容                                                                    |
-|:---------------|:----------------------------------------------------------------------|
-| **言語**         | Java / Kotlin                                                         |
-| **API**        | PaperAPI およびその関連ライブラリ                                                 |
-| **データベース**     | SQL Server (T-SQL)                                                    |
-| **ORM**        | Jetbrains Exposed                                                     |
+| 分類             | 内容                                                                   |
+|:---------------|:---------------------------------------------------------------------|
+| **言語**         | Java / Kotlin                                                        |
+| **API**        | PaperAPI およびその関連ライブラリ                                                |
+| **データベース**     | SQL Server (T-SQL)                                                   |
+| **ORM**        | Jetbrains Exposed                                                    |
 | **外部 Web API** | AstralRecord API（`E:\AstralRecord-Workspace\20_api\AstralRecordApi`） |
 
 ---
@@ -28,8 +28,8 @@ GitHub Copilot・JetBrains AI Assistant・Junie 向けのプロンプト設定�
 データの性質に応じて保存先を厳格に区別し、適切なパスを参照すること。
 ただし、**DB への直接接続・直接アクセスは原則禁止**とし、後述の「AstralRecord API」経由でデータを操作することを基本方針とする。
 
-| データ種別     | 内容例                        | 管理手法           | ディレクトリパス             |
-|:----------|:---------------------------|:---------------|:---------------------|
+| データ種別     | 内容例                        | 管理手法           | ディレクトリパス                                |
+|:----------|:---------------------------|:---------------|:----------------------------------------|
 | **動的データ** | プレイヤーレベル、経験値、所持アイテム、座標など   | **SQL Server** | `E:\AstralRecord-Workspace\40_database` |
 | **静的データ** | アイテムの基本設定（名前、説明、武器ステータス）など | **YAMLファイル**   | `E:\AstralRecord-Workspace\50_filebase` |
 
@@ -67,18 +67,18 @@ DB に直接接続してデータを操作するのではなく、API を呼び�
 
 ---
 
-## プロジェクト構造と適用プロンプト
+## プロジェクト構造と適用ルール
 
-各ディレクトリの役割と、変更を行う際に参照すべきカスタムプロンプトを以下に示す。
-**変更・生成作業を行う前に、対象ディレクトリに対応するプロンプトファイルを必ず参照すること。**
+各ディレクトリの役割と、変更を行う際に参照すべきルールを以下に示す。
+**コード追加・修正全般は `$astralrecord-code` を使うこと。ログ、メッセージ、DB 連携など専用の補助プロンプトがある場合だけ追加で参照すること。**
 
-| ディレクトリ               | 役割                                      | 参照プロンプト                                |
-|:---------------------|:----------------------------------------|:---------------------------------------|
-| `E:\AstralRecord-Workspace\50_filebase` | 静的データ（YAML） | `.agents/prompts/database.md` |
-| `E:\AstralRecord-Workspace\40_database` | 動的データ（SQL） | `.agents/prompts/database.md` |
-| `src` | ソースコード（Java / Kotlin） | `.agents/prompts/code.md` |
-| `src`（ログ出力） | ログ出力・LogId・logger.properties 定義 | `.agents/prompts/logger.md` |
-| `src`（プレイヤーメッセージ） | プレイヤー向けメッセージ・MsgId・player.properties 定義 | `.agents/prompts/player_msg.md` |
+| ディレクトリ                                  | 役割                                      | 参照ルール                           |
+|:----------------------------------------|:----------------------------------------|:--------------------------------|
+| `E:\AstralRecord-Workspace\50_filebase` | 静的データ（YAML）                             | `.agents/prompts/database.md`   |
+| `E:\AstralRecord-Workspace\40_database` | 動的データ（SQL）                              | `.agents/prompts/database.md`   |
+| `src`                                   | ソースコード（Java / Kotlin）                   | `$astralrecord-code`            |
+| `src`（ログ出力）                             | ログ出力・LogId・logger.properties 定義         | `.agents/prompts/logger.md`     |
+| `src`（プレイヤーメッセージ）                       | プレイヤー向けメッセージ・MsgId・player.properties 定義 | `.agents/prompts/player_msg.md` |
 
 ---
 

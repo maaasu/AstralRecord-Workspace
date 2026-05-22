@@ -1,13 +1,13 @@
 # AstralRecord Monorepo Guide
 
 このファイルはモノレポ全体の統括ガイドです。  
-作業を始める前に対象プロジェクトを特定し、このファイルに加えて対象プロジェクト直下の `AGENTS.md` を読むこと。
+作業を始める前に対象プロジェクトを特定し、このファイルに加えて対象プロジェクトの `Read Next` を読むこと。
 
 ## 対象プロジェクト
 
 | Project | Role | Main Stack | Read Next |
 |:--|:--|:--|:--|
-| `10_plugin/AstralRecord/` | Minecraft Plugin | Java, Kotlin, Paper/Spigot, Maven | `10_plugin/AstralRecord/AGENTS.md` |
+| `10_plugin/AstralRecord/` | Minecraft Plugin | Java, Kotlin, Paper/Spigot, Maven | `10_plugin/AstralRecord/README.md` / `$astralrecord-code` |
 | `20_api/AstralRecordApi/` | REST API | ASP.NET Core, C#, SQL Server | `20_api/AstralRecordApi/AGENTS.md` |
 | `30_web/AstralRecordWeb/` | Web Site | ASP.NET Core Razor Pages | `30_web/AstralRecordWeb/AGENTS.md` |
 | `40_database/` | SQL Server schema / table docs | SQL Server, Markdown | `40_database/AGENTS.md` |
@@ -40,7 +40,7 @@
 ## 共通方針
 
 - まず対象プロジェクトを特定してから作業する。
-- 実装ルールは対象プロジェクト直下の `AGENTS.md` を優先する。
+- 実装ルールは対象プロジェクトの `Read Next` を優先する。
 - `.agents/prompts/` がある場合は、作業内容に対応する補助プロンプトも読む。
 - ソースコードだけで運用ルールを推測しない。明文化された補助プロンプトを優先する。
 - SQL Server の DB / テーブル定義は `40_database/`、file 系マスタデータは `50_filebase/` に分けて扱う。
@@ -53,7 +53,7 @@
 ### 実行前チェック
 
 1. 対象プロジェクトを先に判定する（本ファイルの「対象判定ルール」を使用）。
-2. 対象が `10_plugin/AstralRecord` の場合、`10_plugin/AstralRecord/AGENTS.md` と必要な `.agents/prompts/*.md` を読む。
+2. 対象が `10_plugin/AstralRecord` の場合、`10_plugin/AstralRecord/README.md` と `$astralrecord-code` を使い、必要な `.agents/prompts/*.md` だけを読む。
 3. 使う skill は `E:\AstralRecord-Workspace\.codex\skills\README.md` の「正本ルール」に従って判定する。
 
 ### テンプレート実行手順
