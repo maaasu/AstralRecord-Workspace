@@ -4,9 +4,9 @@ database:
   - name: item #カテゴリごとにサブディレクトリが作成されていることを前提とする。
     path: 10.features.item
   - name: class
-    path: 20.features.classes
+    path: 20.features.class
   - name: skill
-    path: 30.features.classes.skills
+    path: 30.features.skill
   - name: mob
     path: 40.features.mob
 

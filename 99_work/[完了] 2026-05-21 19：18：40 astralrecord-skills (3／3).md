@@ -1,0 +1,107 @@
+# AstralRecord workspace skills レビュー結果
+
+## メタ情報
+
+- レビュー日時: 2026-05-21 19:18:40 +09:00
+- 対象: `E:\AstralRecord-Workspace\.codex\skills`
+- スキル名: `astralrecord-skills`
+- 指摘修正数 / 指摘数: `3 / 3`
+- 完了状態: 完了
+- 修正インプット用途: 次回修正時にこのファイルを指定し、`自動修正可` の指摘を優先して反映する。
+
+## 指摘一覧
+
+### AR-SKILL-001 [高] skill 呼び出し形式が `AGENTS.md` と README / agent 定義で不一致
+
+- 種別: `運用ルール矛盾`
+- 対象: `E:\AstralRecord-Workspace\.codex\skills\README.md:9`
+- 関連箇所:
+  - `E:\AstralRecord-Workspace\AGENTS.md:76`
+  - `E:\AstralRecord-Workspace\.codex\skills\README.md:15`
+  - `E:\AstralRecord-Workspace\.codex\skills\README.md:18`
+  - `E:\AstralRecord-Workspace\.codex\skills\astralrecord-docs-review\agents\openai.yaml:4`
+  - `E:\AstralRecord-Workspace\.codex\skills\astralrecord-docs-fix\agents\openai.yaml:4`
+  - `E:\AstralRecord-Workspace\.codex\skills\astralrecord-commit-develop\agents\openai.yaml:4`
+- 根拠: ルート `AGENTS.md` は skill 名を `$skill-name` 形式で明示すると定めている一方、`.codex/skills/README.md` と `agents/openai.yaml` は `/skill-name` 形式を例示している。
+- 問題: ユーザーやエージェントがどちらの形式で依頼すべきか判断できず、skill 起動テンプレートの再利用性が落ちる。
+- 影響: skill 実行依頼の書式が揺れ、修正依頼やレビュー依頼のインプットとして機械的に扱いにくくなる。
+- 修正方針: `.codex/skills/README.md` と各 `agents/openai.yaml` の例を、ルート `AGENTS.md` の `$skill-name` 形式に統一する。
+- 修正対象候補:
+  - `E:\AstralRecord-Workspace\.codex\skills\README.md`
+  - `E:\AstralRecord-Workspace\.codex\skills\astralrecord-docs-review\agents\openai.yaml`
+  - `E:\AstralRecord-Workspace\.codex\skills\astralrecord-docs-fix\agents\openai.yaml`
+  - `E:\AstralRecord-Workspace\.codex\skills\astralrecord-commit-develop\agents\openai.yaml`
+- 修正可否: `自動修正可`
+- 修正状態: `修正済み`
+
+### AR-SKILL-002 [中] docs review workflow と構造監査スクリプトの対応範囲がずれている
+
+- 種別: `スコープ不整合`
+- 対象: `E:\AstralRecord-Workspace\.codex\skills\astralrecord-docs-review\SKILL.md:20`
+- 関連箇所:
+  - `E:\AstralRecord-Workspace\.codex\skills\astralrecord-docs-review\SKILL.md:18`
+  - `E:\AstralRecord-Workspace\.codex\skills\astralrecord-docs-review\scripts\docs_structure_audit.py`
+- 根拠: `SKILL.md` は Markdown docs レビュー時に `scripts/docs_structure_audit.py <absolute-docs-path>` を実行するとしている。一方、スクリプトは `10_プラグイン設計書` 配下以外を `Target is not under 10_プラグイン設計書` として終了する実装になっている。
+- 問題: 将来 API/Web docs や他 docs をレビューする導線を記載しているのに、手順どおりスクリプトを実行すると失敗する。
+- 影響: plugin docs 以外のレビューで不要なエラーが発生し、レビュー結果の `実行した検査` に何を書くべきか曖昧になる。
+- 修正方針: `astralrecord-docs-review/SKILL.md` の手順を「plugin docs の場合のみ構造監査を実行。非対応 docs では未実行理由を記録」に変更する。将来 API/Web 監査を追加する場合はスクリプト側にドメイン分岐を追加する。
+- 修正対象候補:
+  - `E:\AstralRecord-Workspace\.codex\skills\astralrecord-docs-review\SKILL.md`
+  - 必要に応じて `E:\AstralRecord-Workspace\.codex\skills\astralrecord-docs-review\scripts\docs_structure_audit.py`
+- 修正可否: `自動修正可`
+- 修正状態: `修正済み`
+
+### AR-SKILL-003 [中] レビュー結果ファイルの保存規約が skill 本体に明文化されていない
+
+- 種別: `運用不足`
+- 対象: `E:\AstralRecord-Workspace\.codex\skills\astralrecord-docs-review\SKILL.md`
+- 関連箇所:
+  - `E:\AstralRecord-Workspace\.codex\skills\astralrecord-docs-fix\SKILL.md`
+  - `E:\AstralRecord-Workspace\99_work`
+- 根拠: `astralrecord-docs-review` は修正 skill が読み取れるレビュー形式を定めているが、レビュー結果を `99_work` に保存する手順、ファイル名規約、完了タグ、指摘修正数の更新方法を定めていない。
+- 問題: レビュー結果が会話ログに残るだけになりやすく、後続の `astralrecord-docs-fix` に安定したファイル入力として渡しづらい。
+- 影響: 修正タイミングがレビュー直後でない場合、指摘一覧・修正対象・修正可否の再構成が必要になり、修正漏れや重複対応が起きやすい。
+- 修正方針: `astralrecord-docs-review` に「レビュー結果は `E:\AstralRecord-Workspace\99_work` へ保存する」運用を追加する。Windows で使えない `:` と `/` はファイル名では全角 `：` と `／` に置換し、全指摘修正済みの場合は `[完了]` を付ける規約を明記する。
+- 修正対象候補:
+  - `E:\AstralRecord-Workspace\.codex\skills\astralrecord-docs-review\SKILL.md`
+  - 必要に応じて `E:\AstralRecord-Workspace\.codex\skills\astralrecord-docs-fix\SKILL.md`
+- 修正可否: `自動修正可`
+- 修正状態: `修正済み`
+
+## 未確認/質問
+
+なし。
+
+## 修正スキル入力サマリ
+
+- 自動修正候補: `なし`
+- 要確認: `なし`
+- 推奨修正順: `なし`
+- 対象範囲: `E:\AstralRecord-Workspace\.codex\skills`
+- 修正時の入力例: `完了済みのため追加修正入力はありません。`
+
+## 修正結果
+
+- `AR-SKILL-001`: 修正済み - `.codex/skills/README.md` と各 `agents/openai.yaml` の skill 呼び出し例を `$skill-name` 形式に統一。
+- `AR-SKILL-002`: 修正済み - `docs_structure_audit.py` を `10_プラグイン設計書` 専用検査として扱い、非対応 docs では未実行理由を書く手順に変更。
+- `AR-SKILL-003`: 修正済み - `99_work` へのレビュー結果保存、ファイル名規約、完了タグ、修正数更新の運用を `astralrecord-docs-review` / `astralrecord-docs-fix` に追加。
+
+## 確認した範囲
+
+- 読んだファイル:
+  - `E:\AstralRecord-Workspace\AGENTS.md`
+  - `E:\AstralRecord-Workspace\.codex\skills\README.md`
+  - `E:\AstralRecord-Workspace\.codex\skills\astralrecord-docs-review\SKILL.md`
+  - `E:\AstralRecord-Workspace\.codex\skills\astralrecord-docs-fix\SKILL.md`
+  - `E:\AstralRecord-Workspace\.codex\skills\astralrecord-commit-develop\SKILL.md`
+  - `E:\AstralRecord-Workspace\.codex\skills\astralrecord-docs-review\references\plugin-design-docs.md`
+  - `E:\AstralRecord-Workspace\.codex\skills\astralrecord-commit-develop\references\commit-message.md`
+  - `E:\AstralRecord-Workspace\.codex\skills\astralrecord-docs-review\scripts\docs_structure_audit.py`
+  - `E:\AstralRecord-Workspace\.codex\skills\astralrecord-commit-develop\scripts\commit_candidate_audit.py`
+- 実行した検査:
+  - `rg -n "slash|/astralrecord|\$<skill-name>|<skill-name>|docs_structure_audit|API/Web|Future API|review result" .codex\skills AGENTS.md`
+  - `git status --short`
+
+## ソース参照
+
+ソースコードは参照していません。対象は workspace-local skill とその補助スクリプトです。

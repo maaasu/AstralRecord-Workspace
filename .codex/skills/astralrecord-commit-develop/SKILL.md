@@ -35,6 +35,7 @@ Follow the workspace commit rules in `E:\AstralRecord-Workspace\COMMIT_RULES.md`
 6. Compose a commit message:
    - Follow `E:\AstralRecord-Workspace\COMMIT_RULES.md`.
    - Use the dominant type: `feat`, `fix`, `docs`, `refactor`, `test`, `build`, or `chore`.
+   - Commit message text must be Japanese (type prefix may remain English, but summary must be Japanese).
    - Keep the subject concise and specific.
 7. Commit:
    - Run `git commit -m "<type>: <summary>"`.

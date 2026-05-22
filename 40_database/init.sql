@@ -2,17 +2,10 @@
 -- Database initialization script
 -- Created    : 2026-03-08
 -- Updated    : 2026-05-04
--- Target DBs : AstralRecord / AstralRecordSnapshot
+-- Target DBs : AstralRecord
 -- ============================================================
 
 USE [master];
-GO
-
-IF DB_ID(N'AstralRecordSnapshot') IS NOT NULL
-BEGIN
-    ALTER DATABASE [AstralRecordSnapshot] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-    DROP DATABASE [AstralRecordSnapshot];
-END
 GO
 
 IF DB_ID(N'AstralRecord') IS NOT NULL
@@ -520,36 +513,4 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_rune_instance_stat_roll_rune_instance_id]
     ON [dbo].[rune_instance_stat_roll] ([rune_instance_id]);
-GO
-
-USE [master];
-GO
-
-IF DB_ID(N'AstralRecordSnapshot') IS NULL
-BEGIN
-    CREATE DATABASE [AstralRecordSnapshot];
-END
-GO
-
-USE [AstralRecordSnapshot];
-GO
-
-CREATE TABLE [dbo].[yaml_snapshot] (
-    [snapshot_id]    UNIQUEIDENTIFIER  NOT NULL,
-    [file_path]      NVARCHAR(500)     NOT NULL,
-    [file_hash]      NVARCHAR(64)      NOT NULL,
-    [content_json]   NVARCHAR(MAX)     NOT NULL,
-    [created_at]     DATETIME2(3)      NOT NULL,
-    [updated_at]     DATETIME2(3)      NOT NULL,
-    [created_by]     UNIQUEIDENTIFIER  NOT NULL,
-    [updated_by]     UNIQUEIDENTIFIER  NOT NULL,
-    [is_deleted]     BIT               NOT NULL  CONSTRAINT [DF_yaml_snapshot_is_deleted] DEFAULT (0),
-
-    CONSTRAINT [PK_yaml_snapshot] PRIMARY KEY CLUSTERED ([snapshot_id]),
-    CONSTRAINT [UQ_yaml_snapshot_file_path] UNIQUE ([file_path])
-);
-GO
-
-CREATE NONCLUSTERED INDEX [IX_yaml_snapshot_file_path]
-    ON [dbo].[yaml_snapshot] ([file_path]);
 GO

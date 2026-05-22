@@ -76,6 +76,9 @@ Minecraft Purpur サーバー向け MMO RPG プラグイン Astral Record と連
 | GET `/api/loot/pool/{poolId}` | ルートプール取得 | [docs/api/loot.md](docs/api/loot.md) |
 | GET `/api/loot/table` | ルートテーブル一覧取得 | [docs/api/loot.md](docs/api/loot.md) |
 | GET `/api/loot/table/{tableId}` | ルートテーブル取得 | [docs/api/loot.md](docs/api/loot.md) |
+| POST `/api/master-data/seed` | filebase から MasterDataDB を同期 | [docs/api/master-data.md](docs/api/master-data.md) |
+| GET `/api/master-data/seed-runs` | Seeder 実行履歴取得 | [docs/api/master-data.md](docs/api/master-data.md) |
+| GET `/api/master-data/health` | MasterDataDB の参照可能状態取得 | [docs/api/master-data.md](docs/api/master-data.md) |
 
 ### Scalar API UI
 

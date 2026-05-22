@@ -22,10 +22,19 @@ builder.Logging.AddSimpleConsole(options =>
 builder.Services.Configure<FileDatabaseOptions>(
     builder.Configuration.GetSection(FileDatabaseOptions.SectionName));
 
+builder.Services.Configure<MasterDataOptions>(
+    builder.Configuration.GetSection(MasterDataOptions.SectionName));
+
 builder.Services.AddDbContext<AstralRecordDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("SqlServer")
         ?? throw new InvalidOperationException("Connection string 'SqlServer' is not configured."),
+        sqlServerOptions => sqlServerOptions.EnableRetryOnFailure()));
+
+builder.Services.AddDbContext<MasterDataDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("MasterData")
+        ?? throw new InvalidOperationException("Connection string 'MasterData' is not configured."),
         sqlServerOptions => sqlServerOptions.EnableRetryOnFailure()));
 
 builder.Services.AddProblemDetails();
@@ -45,6 +54,9 @@ builder.Services.AddScoped<IEquipmentLoadoutRepository, EquipmentLoadoutReposito
 builder.Services.AddScoped<IRuneRepository, RuneRepository>();
 builder.Services.AddScoped<IEquipmentService, EquipmentService>();
 builder.Services.AddScoped<IRuneService, RuneService>();
+builder.Services.AddScoped<IMasterDataRepository, MasterDataRepository>();
+builder.Services.AddScoped<IMasterDataSeeder, MasterDataSeeder>();
+builder.Services.AddHostedService<MasterDataSeedHostedService>();
 
 builder.Services.AddAuthentication(ApiKeyAuthenticationHandler.SchemeName)
     .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
