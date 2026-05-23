@@ -56,12 +56,12 @@ Use these rules when adding or changing plugin-side DB access, features that dep
 
 1. Check repository input/output models.
 2. Check API contracts in `E:\AstralRecord-Workspace\00_docs\20_API設計書\feature\`.
-3. Check SQL Server definitions under `E:\AstralRecord-Workspace\40_database\`.
-4. Check file-based master data and YAML schemas under `E:\AstralRecord-Workspace\50_filebase\`.
-5. Before writing DB-schema-dependent code, verify that `40_database` definitions and implementation agree.
-6. Before writing filebase-dependent code, verify that `50_filebase` YAML and schema definitions agree.
-7. If table or column changes are involved, check whether `40_database` needs a matching update.
-8. If file master structure changes are involved, check whether `50_filebase` needs a matching update.
+3. Check SQL Server definitions under `E:\AstralRecord-Workspace\00_docs\40_Database設計書\`.
+4. Check file-based master data and YAML schemas under `E:\AstralRecord-Workspace\40_filebase\`.
+5. Before writing DB-schema-dependent code, verify that `00_docs\40_Database設計書` definitions and implementation agree.
+6. Before writing filebase-dependent code, verify that `40_filebase` YAML and schema definitions agree.
+7. If table or column changes are involved, check whether `00_docs\40_Database設計書` needs a matching update.
+8. If file master structure changes are involved, check whether `40_filebase` needs a matching update.
 9. Do not finish API and Plugin contract changes on only one side.
 10. Avoid hard-coding DB names or YAML paths without checking Database/Filebase definitions.
 

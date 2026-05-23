@@ -1,4 +1,4 @@
----
+﻿---
 name: astralrecord-code
 description: Implement AstralRecord code changes across the monorepo. Use when asked to code from a design document path, migrate docs/specs into implementation, modify plugin/API/Web/database/filebase/resourcepack behavior, or apply custom implementation instructions such as changing item IDs while following the root guide, project README/AGENTS.md, and skill references.
 ---
@@ -19,12 +19,12 @@ This skill handles two input modes:
 1. Read `E:\AstralRecord-Workspace\AGENTS.md`.
 2. Identify the target project from explicit paths, technical terms, or affected files.
 3. Read the target project's rule file before editing:
-   - Root `README.md` AstralRecord Plugin section and `references/plugin-code.md` for Minecraft plugin code.
-   - Root `README.md` AstralRecord API section and `references/api-code.md` for REST API code.
-   - `30_web/AstralRecordWeb/AGENTS.md` for Razor Pages web code.
-   - `40_database/AGENTS.md` for SQL Server schema or table docs.
-   - `50_filebase/AGENTS.md` for file-based master data.
-   - `60_resourcepack/AGENTS.md` for resource pack assets or JSON.
+   - `PLUGIN_GUIDE.md` and `references/plugin-code.md` for Minecraft plugin code.
+   - `API_GUIDE.md` and `references/api-code.md` for REST API code.
+   - Root `README.md` "AstralRecord Web" section for Razor Pages web code.
+   - `00_docs/40_Database設計書/README.md` for SQL Server schema or table docs.
+   - Root `README.md` "AstralRecord Filebase" section for file-based master data.
+   - Root `README.md` "AstralRecord Resource Pack" section for resource pack assets or JSON.
 4. If the request crosses project boundaries, split the work by project and read each project's rules.
 
 If target project cannot be determined, stop and ask the project-selection question from the root `AGENTS.md`.
@@ -33,10 +33,10 @@ If target project cannot be determined, stop and ask the project-selection quest
 
 1. Classify the request:
    - Design path under `00_docs/`: use `references/design-driven-implementation.md`.
-   - Plugin implementation under `10_plugin/AstralRecord`: use `references/plugin-code.md`.
-   - API implementation: use the root `README.md` AstralRecord API section and `references/api-code.md`, then apply the general workflow here.
-   - Web implementation: use the target `AGENTS.md`, then apply the general workflow here.
-   - Database, filebase, or resourcepack changes: use the target `AGENTS.md`; treat generated/runtime outputs as out of scope unless the project rules say otherwise.
+   - Plugin implementation under `10_plugin/AstralRecord`: use `PLUGIN_GUIDE.md` and `references/plugin-code.md`.
+   - API implementation: use `API_GUIDE.md` and `references/api-code.md`, then apply the general workflow here.
+   - Web implementation: use the root `README.md` "AstralRecord Web" section, then apply the general workflow here.
+   - Database, filebase, or resourcepack changes: use `00_docs/40_Database設計書/README.md` or the root `README.md` "AstralRecord Filebase" / "AstralRecord Resource Pack" sections; treat generated/runtime outputs as out of scope unless the project rules say otherwise.
 2. Build the minimum context:
    - For design-driven work, read the specified design docs, feature README, linked contract docs, and unresolved-decision notes.
    - For custom instructions, search for the named symbols, item IDs, routes, messages, tables, or resource keys.
@@ -66,7 +66,7 @@ See `references/design-driven-implementation.md` for the detailed checklist.
 
 ## Plugin-Specific Rule
 
-For `10_plugin/AstralRecord`, always read the root `README.md` AstralRecord Plugin section before code changes, then use `references/plugin-code.md`. The old `/code` prompt and old helper prompts are treated as migrated into that reference.
+For `10_plugin/AstralRecord`, always read `PLUGIN_GUIDE.md` before code changes, then use `references/plugin-code.md`. The old `/code` prompt and old helper prompts are treated as migrated into that reference.
 
 ## Report Format
 

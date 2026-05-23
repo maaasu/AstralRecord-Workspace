@@ -44,4 +44,4 @@ Use these rules when adding APIs, changing endpoint contracts, or updating API d
 
 1. Prefer targeted tests for the changed Controller/Service/Repository.
 2. Use `dotnet build` from `E:\AstralRecord-Workspace\20_api\AstralRecordApi` when the change affects compile-time contracts.
-3. For Database/Filebase-backed endpoints, also check the corresponding definitions under `40_database` or `50_filebase`.
+3. For Database/Filebase-backed endpoints, also check the corresponding definitions under `00_docs/40_Database設計書` or `40_filebase`.
