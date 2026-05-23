@@ -10,7 +10,7 @@
   "references": {
     "astralRecordPom": "../10_plugin/AstralRecord/pom.xml",
     "astralRecordPluginResources": "../10_plugin/AstralRecord/src/main/resources",
-    "filebaseRoot": "../50_filebase",
+    "filebaseRoot": "../40_filebase",
     "workspaceRoot": ".."
   },
   "absolutePathOverrides": {

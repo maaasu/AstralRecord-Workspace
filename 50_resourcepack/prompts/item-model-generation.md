@@ -5,10 +5,10 @@ Use this prompt when creating a Minecraft Java resource pack item model and text
 ```text
 対象プロジェクトは resourcepack です。
 
-50_filebase 配下の指定アイテム定義を読み、AstralRecord の Minecraft Java 1.21.11 用リソースパックに、対象アイテムの見た目を追加してください。
+40_filebase 配下の指定アイテム定義を読み、AstralRecord の Minecraft Java 1.21.11 用リソースパックに、対象アイテムの見た目を追加してください。
 
 対象アイテム:
-- Filebase YAML path: <例: E:/AstralRecord-Workspace/50_filebase/10.features.item/equipment/v1.sample_sword.yml>
+- Filebase YAML path: <例: E:/AstralRecord-Workspace/40_filebase/10.features.item/equipment/v1.sample_sword.yml>
 - item id: <例: sample_sword>
 
 作業方針:

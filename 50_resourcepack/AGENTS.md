@@ -1,6 +1,6 @@
 # AstralRecord リソースパック指示
 
-このディレクトリは、AstralRecord サーバで配布するリソースパックを管理します。
+このディレクトリは、AstralRecord サーバーで配布するリソースパックを管理します。
 
 ## 必ず確認する情報
 
@@ -10,7 +10,7 @@
 - `README.md`
 - `../10_plugin/AstralRecord/pom.xml`
 - `../10_plugin/AstralRecord/src/main/resources/plugin.yml`
-- `../50_filebase/config.yml`
+- `../40_filebase/config.yml`
 
 参照先の管理には `resourcepack.config.json` を使います。基本はこのディレクトリからの相対パスを優先してください。相対パスで解決できない環境では、`resourcepack.config.json` の `absolutePathOverrides` を確認してください。
 
@@ -31,15 +31,15 @@
 - 独自アセットには `astralrecord` 名前空間を使う。
 - `minecraft` 名前空間は、バニラアセットを意図的に上書きする場合だけ使う。
 - ファイル名とディレクトリ名は小文字で統一する。
-- モデル識別子、テクスチャ名、言語キーは、プラグインやDB定義のアイテム識別子と対応させる。
-- ユーザーが明示的に求めた場合、または作業に必須の場合を除き、大きなバイナリアセットは追加しない。
+- モデル識別子、テクスチャ名、言語キーは、プラグインや DB 定義のアイテム識別子と対応させる。
+- ユーザーが明示的に求めた場合、または作業に必要な場合を除き、大きなバイナリアセットは追加しない。
 
 ## 検証
 
 構造を変更した後は、以下を確認してください。
 
-- `pack.mcmeta` が有効なJSONであること。
-- モデルファイルが有効なJSONであること。
+- `pack.mcmeta` が有効な JSON であること。
+- モデルファイルが有効な JSON であること。
 - モデルから参照しているテクスチャが存在すること。
 - `scripts/build-resourcepack.ps1` で `dist/AstralRecordResourcePack.zip` を作成できること。
 
