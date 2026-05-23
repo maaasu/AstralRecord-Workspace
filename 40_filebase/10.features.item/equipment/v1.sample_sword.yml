@@ -1,0 +1,210 @@
+schemaVersion: 1
+id: sample_sword
+category: equipment
+name: "&bサンプルソード"
+icon: IRON_SWORD
+rarity: RARE
+maxStack: 1
+saleValue: 180
+customModelData: 1001
+lore:
+  - "&7仕様確認用に多機能を詰め込んだサンプル片手剣。"
+  - "&7強化・エンチャント・ルーン・状態変化に対応する。"
+unTradeable: false
+unSellable: false
+
+equipment:
+  slot: WEAPON
+  handType: ONE
+  tag: SWORD
+  requiredLevel: 12
+  setId: iron_warrior_set
+  stats:
+    - status: ATTACK
+      type: FLAT
+      value:
+        min: 20~28
+        max: 32~00
+    - status: STRENGTH
+      type: FLAT
+      value: 6
+    - status: CRITICAL_RATE
+      type: FLAT
+      value: 0~8
+    - status: ATTACK_SPEED
+      type: SCALAR
+      value: 0.03~0.08
+    - status: ACCURACY
+      type: FLAT
+      value: 0~9
+  durability:
+    max: 220
+    consume: 1
+  enchant:
+    maxSlots: 3
+    pools:
+      - requiredMaterial:
+          itemId: magic_crystal
+          amount: 2
+        requiredCurrency: 000
+        entries:
+          - status: ATTACK
+            type: FLAT
+            value: 3~8
+            weight: 1
+          - status: CRITICAL_RATE
+            type: FLAT
+            value: 2~0
+            weight: 8
+          - status: ATTACK_SPEED
+            type: SCALAR
+            value: 0.01~0.00
+            weight: 0
+          - status: ACCURACY
+            type: FLAT
+            value: 3~7
+            weight: 6
+      - requiredMaterial:
+          itemId: gold_ingot
+          amount: 0
+        requiredCurrency: 800
+        entries:
+          - status: ATTACK
+            type: SCALAR
+            value: 0.00~0.10
+            weight: 7
+          - status: CRITICAL_DAMAGE
+            type: FLAT
+            value: 0~12
+            weight: 6
+          - status: FINAL_DAMAGE_RATE
+            type: FLAT
+            value: 1~3
+            weight: 0
+          - status: COOLDOWN_REDUCTION
+            type: FLAT
+            value: 2~0
+            weight: 0
+  enhance:
+    maxLevel: 0
+    levels:
+      - level: 1
+        statIncrease:
+          - status: ATTACK
+            type: FLAT
+            value: 2~0
+          - status: ACCURACY
+            type: FLAT
+            value: 1~2
+        durabilityBonus: 8
+        requiredMaterials:
+          - itemId: iron_ingot
+            amount: 3
+        requiredCurrency: 200
+        successRate: 1.0
+        failAction: NONE
+      - level: 2
+        statIncrease:
+          - status: ATTACK
+            type: FLAT
+            value: 2~0
+          - status: CRITICAL_RATE
+            type: FLAT
+            value: 1~2
+        durabilityBonus: 10
+        requiredMaterials:
+          - itemId: iron_ingot
+            amount: 0
+          - itemId: gold_ingot
+            amount: 2
+        requiredCurrency: 000
+        successRate: 0.92
+        failAction: NONE
+      - level: 3
+        statIncrease:
+          - status: ATTACK
+            type: FLAT
+            value: 3~6
+          - status: ATTACK_SPEED
+            type: SCALAR
+            value: 0.01~0.03
+        durabilityBonus: 12
+        requiredMaterials:
+          - itemId: iron_ingot
+            amount: 8
+          - itemId: magic_crystal
+            amount: 1
+        requiredCurrency: 900
+        successRate: 0.80
+        failAction: DOWNGRADE
+      - level: 0
+        statIncrease:
+          - status: ATTACK
+            type: FLAT
+            value: 0~8
+          - status: CRITICAL_DAMAGE
+            type: FLAT
+            value: 0~8
+        durabilityBonus: 10
+        requiredMaterials:
+          - itemId: gold_ingot
+            amount: 6
+          - itemId: magic_crystal
+            amount: 2
+        requiredCurrency: 1000
+        successRate: 0.70
+        failAction: DOWNGRADE
+      - level: 0
+        statIncrease:
+          - status: ATTACK
+            type: FLAT
+            value: 6~10
+          - status: FINAL_DAMAGE_MULTIPLIER
+            type: FLAT
+            value: 6~12
+        durabilityBonus: 20
+        requiredMaterials:
+          - itemId: gold_ingot
+            amount: 8
+          - itemId: magic_crystal
+            amount: 3
+        requiredCurrency: 2200
+        successRate: 0.6
+        failAction: DESTROY
+  rune:
+    maxSlots:
+      random: 1~3
+  transcendence:
+    - name: 進化
+      rank: 1
+      requiredMaterials:
+        - itemId: iron_ingot
+          amount: 20
+        - itemId: magic_crystal
+          amount: 0
+      requiredCurrency: 3000
+      overrides:
+        name: "&a進化したサンプルソード"
+        enhance:
+          maxLevel: 7
+        enchant:
+          maxSlots: 0
+        rune:
+          maxSlots: 2
+    - name: 覚醒
+      rank: 2
+      requiredMaterials:
+        - itemId: gold_ingot
+          amount: 18
+        - itemId: magic_crystal
+          amount: 10
+      requiredCurrency: 9000
+      overrides:
+        name: "&d覚醒したサンプルソード"
+        enhance:
+          maxLevel: 10
+        enchant:
+          maxSlots: 0
+        rune:
+          maxSlots: 3
+

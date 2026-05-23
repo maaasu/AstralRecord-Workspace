@@ -1,0 +1,32 @@
+schemaVersion: 1
+id: sample_rune
+category: rune
+name: "&dサンプルルーン"
+icon: AMETHYST_SHARD
+rarity: RARE
+maxStack: 1
+saleValue: 200
+lore:
+  - "&7仕様確認用のサンプルルーン。"
+  - "&7攻撃力と会心率を上昇させる。"
+  - "&7一部ステータスは個体ごとにランダムで決定される。"
+unTradeable: false
+unSellable: false
+
+rune:
+  targetSlots:
+    - WEAPON
+    - SUBWEAPON
+  requiredEnhanceLevel: 2
+  stats:
+    - status: ATTACK
+      type: FLAT
+      value: 6~12
+    - status: CRITICAL_RATE
+      type: FLAT
+      value: 0.01~0.00
+    - status: ATTACK_SPEED
+      type: SCALAR
+      value: 0.01~0.03
+  skills:
+    - ref: skill:fire_boost
