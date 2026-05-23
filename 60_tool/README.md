@@ -1,6 +1,6 @@
 # Debug Deploy Tool
 
-`E:\AstralRecord-Workspace\70_tool\deploy-debug.bat` を実行すると、API / WEB / プラグインのビルドと配置をまとめて実行します。
+`E:\AstralRecord-Workspace\60_tool\deploy-debug.bat` を実行すると、API / WEB / プラグインのビルドと配置をまとめて実行します。
 
 ## できること
 
@@ -15,22 +15,22 @@
 
 ## ファイル構成
 
-- [deploy-debug.bat](/E:/AstralRecord-Workspace/70_tool/deploy-debug.bat:1)
+- [deploy-debug.bat](/E:/AstralRecord-Workspace/60_tool/deploy-debug.bat:1)
   - ダブルクリック実行用の入口
-- [deploy-debug.ps1](/E:/AstralRecord-Workspace/70_tool/deploy-debug.ps1:1)
+- [deploy-debug.ps1](/E:/AstralRecord-Workspace/60_tool/deploy-debug.ps1:1)
   - 本体の PowerShell スクリプト
-- [deploy-debug.config.json](/E:/AstralRecord-Workspace/70_tool/deploy-debug.config.json:1)
+- [deploy-debug.config.json](/E:/AstralRecord-Workspace/60_tool/deploy-debug.config.json:1)
   - パスや設定ファイル保護ルールを持つ設定ファイル
 
 ## 使い方
 
-1. `E:\AstralRecord-Workspace\70_tool\deploy-debug.config.json` の値を確認します。
-2. `E:\AstralRecord-Workspace\70_tool\deploy-debug.bat` を実行します。
+1. `E:\AstralRecord-Workspace\60_tool\deploy-debug.config.json` の値を確認します。
+2. `E:\AstralRecord-Workspace\60_tool\deploy-debug.bat` を実行します。
 3. コンソールに `Deployment completed successfully` が出れば完了です。
 
 ## 設定ファイルの扱い
 
-API / WEB は `preserveFilePatterns` に指定したファイルを上書きしません。
+API / WEB は `preserveFilePatterns` に指定したファイルを上書きしません。  
 また、`preserveDirectories` に指定したディレクトリは削除しません。
 
 初期設定では以下を保護しています。
@@ -54,7 +54,7 @@ API / WEB は `preserveFilePatterns` に指定したファイルを上書きし�
 
 ## アプリ停止と IIS 制御
 
-API / WEB は配置直前に `app_offline.htm` を配置先へ一時作成し、ASP.NET Core アプリを停止してから反映します。
+API / WEB は配置直前に `app_offline.htm` を配置先へ一時作成し、ASP.NET Core アプリを停止してから反映します。  
 反映後は `app_offline.htm` を削除します。
 
 初期状態では `iis.enabled` は `false` です。
@@ -67,10 +67,8 @@ API / WEB は配置直前に `app_offline.htm` を配置先へ一時作成し、
 }
 ```
 
-- `false`
-  - IIS の停止と起動を行わず、そのまま配置します
-- `true`
-  - `iisreset.exe` を使って IIS を停止してから反映し、最後に起動します
+- `false`: IIS の停止と起動を行わず、そのまま配置します。
+- `true`: `iisreset.exe` を使って IIS を停止してから反映し、最後に起動します。
 
 この端末に `iisreset.exe` が入っていない場合は、次のどちらかにしてください。
 
@@ -92,7 +90,7 @@ API / WEB は配置直前に `app_offline.htm` を配置先へ一時作成し、
   - ビルド成果物: `E:\AstralRecord-Workspace\10_plugin\AstralRecord\dist`
   - 配置先: `\\192.168.0.88\server\CraftyController\crafty-__saas-windows-medium-amd64__-_03629d64\servers\5bf4f70b-2c02-4a6b-b23f-8453237d2d97\plugins`
 - FileDatabase
-  - 開発環境: `E:\AstralRecord-Workspace\50_filebase`
+  - 開発環境: `E:\AstralRecord-Workspace\40_filebase`
   - 配置先: `\\192.168.0.88\server\FileDatabase\file`
   - 保持ディレクトリ: `99.work`
 

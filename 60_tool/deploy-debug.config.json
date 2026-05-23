@@ -46,7 +46,7 @@
   },
   "fileDatabase": {
     "enabled": true,
-    "sourcePath": "E:\\AstralRecord-Workspace\\50_filebase",
+    "sourcePath": "E:\\AstralRecord-Workspace\\40_filebase",
     "deployPath": "\\\\192.168.0.88\\server\\FileDatabase\\file",
     "preserveFilePatterns": [],
     "preserveDirectories": [
