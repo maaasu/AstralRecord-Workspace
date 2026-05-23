@@ -1,4 +1,4 @@
-﻿# dbo.inventory テーブル設計
+# dbo.inventory テーブル設計
 
 アカウントごと・用途ごと・プロファイルごとのインベントリ本体を保持するテーブルです。
 実際の中身は `dbo.inventory_entry` に保持します。

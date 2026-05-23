@@ -45,10 +45,10 @@ MasterDataDB は「完全正規化テーブル群」ではなく、検索キー�
 
 | テーブル | 役割 | 詳細 |
 |:--|:--|:--|
-| `dbo.master_data_source` | filebase の source 定義 | `40_database/MasterDataDB/dbo.master_data_source/master_data_source.md` |
-| `dbo.master_data_entry` | マスタ本体 JSON と検索キー | `40_database/MasterDataDB/dbo.master_data_entry/master_data_entry.md` |
-| `dbo.master_data_reference` | `ref:` 参照関係 | `40_database/MasterDataDB/dbo.master_data_reference/master_data_reference.md` |
-| `dbo.master_data_seed_run` | Seeder 実行履歴 | `40_database/MasterDataDB/dbo.master_data_seed_run/master_data_seed_run.md` |
+| `dbo.master_data_source` | filebase の source 定義 | `00_docs/40_Database設計書/table-definitions/MasterDataDB/dbo.master_data_source/master_data_source.md` |
+| `dbo.master_data_entry` | マスタ本体 JSON と検索キー | `00_docs/40_Database設計書/table-definitions/MasterDataDB/dbo.master_data_entry/master_data_entry.md` |
+| `dbo.master_data_reference` | `ref:` 参照関係 | `00_docs/40_Database設計書/table-definitions/MasterDataDB/dbo.master_data_reference/master_data_reference.md` |
+| `dbo.master_data_seed_run` | Seeder 実行履歴 | `00_docs/40_Database設計書/table-definitions/MasterDataDB/dbo.master_data_seed_run/master_data_seed_run.md` |
 
 ## 6. キャッシュ方針
 

@@ -51,4 +51,4 @@ master_type + master_id
 
 ## 5. DDL
 
-DDL は `40_database/MasterDataDB/init.sql` を正本とする。
+DDL は `00_docs/40_Database設計書/table-definitions/MasterDataDB/init.sql` を正本とする。

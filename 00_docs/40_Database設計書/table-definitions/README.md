@@ -1,14 +1,22 @@
 # テーブル定義一覧
 
-このディレクトリは `40_database/` 配下のテーブル定義 Markdown を `00_docs` から確認できるようにした閲覧用ミラーです。  
-DDL の正本は各 DB の `40_database/**/` 側に置くが、設計レビューではこのディレクトリからカラム・制約・インデックス定義を確認できる。
+このディレクトリは SQL Server のテーブル定義 Markdown と DB 別 `init.sql` を管理する。
 
 ## DB 一覧
 
-| DB | テーブル定義 |
+| DB | 役割 | 定義 |
+|:--|:--|:--|
+| `AstralRecord` | プレイヤー、アカウント、インベントリ、装備/ルーン個体などの動的データ | `table-definitions/AstralRecord/` |
+| `MasterDataDB` | filebase 由来の配信用マスタデータ | `table-definitions/MasterDataDB/` |
+| `HistoryDB` | ログイン/ログアウトなどの履歴データ | `table-definitions/HistoryDB/` |
+
+## init.sql
+
+| DB | 初期化 SQL |
 |:--|:--|
-| `AstralRecord` | `table-definitions/AstralRecord/` |
-| `MasterDataDB` | `table-definitions/MasterDataDB/` |
+| `AstralRecord` | `AstralRecord/init.sql` |
+| `MasterDataDB` | `MasterDataDB/init.sql` |
+| `HistoryDB` | `HistoryDB/init.sql` |
 
 ## AstralRecord
 
@@ -35,3 +43,9 @@ DDL の正本は各 DB の `40_database/**/` 側に置くが、設計レビュ�
 | `dbo.master_data_entry` | `MasterDataDB/dbo.master_data_entry.md` |
 | `dbo.master_data_reference` | `MasterDataDB/dbo.master_data_reference.md` |
 | `dbo.master_data_seed_run` | `MasterDataDB/dbo.master_data_seed_run.md` |
+
+## HistoryDB
+
+| テーブル | 定義 |
+|:--|:--|
+| `dbo.user_history` | `HistoryDB/dbo.user_history.md` |
