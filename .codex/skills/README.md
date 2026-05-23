@@ -139,6 +139,8 @@ Use $astralrecord-docs-fix to fix only AR-DOC-001 for E:\AstralRecord-Workspace\
 
 AstralRecord monorepo の実装変更を行う skill。設計書パスが指定された場合は設計書を入力として実装し、直接のカスタム指示が指定された場合は対象プロジェクトのコーディングルールに従って最小変更する。
 
+Plugin と API の個別ルールは `$astralrecord-code` 本体に詰め込まず、`references/` 配下の専用ファイルに分けて管理する。
+
 ### 使う場面
 
 - `/code` 相当の依頼を workspace-local skill として実行したい。
@@ -168,8 +170,11 @@ Use $astralrecord-code to add the requested API behavior for E:\AstralRecord-Wor
 
 ### 注意点
 
-- 先に対象プロジェクトを判定し、ルート `AGENTS.md` と対象プロジェクト直下の `AGENTS.md` を読む。
-- 対象プロジェクトの `README.md` や `.agents/prompts/*.md` が実装ルールを持つ場合は、それを優先する。
+- 先に対象プロジェクトを判定し、ルート `AGENTS.md`、ルート `README.md`、対象プロジェクト用の `references/` を読む。
+- Plugin 実装では、ルート `README.md` の AstralRecord Plugin セクションと `astralrecord-code/references/plugin-code.md` を読む。
+- API 実装では、ルート `README.md` の AstralRecord API セクションと `astralrecord-code/references/api-code.md` を読む。
+- API エンドポイントを追加・変更する場合は、`00_docs/20_API設計書/feature/` の設計書とルート `README.md` の API 一覧をあわせて更新する。
+- 旧 `.agents/prompts` 配下の補助プロンプトは、対応する `references/` に統合済みとして扱う。
 - 設計書に未決事項がある場合、ユーザー判断なしに仕様を補完しない。
 - docs の修正だけを行う依頼は `$astralrecord-docs-fix`、docs のレビューだけを行う依頼は `$astralrecord-docs-review` を使う。
 

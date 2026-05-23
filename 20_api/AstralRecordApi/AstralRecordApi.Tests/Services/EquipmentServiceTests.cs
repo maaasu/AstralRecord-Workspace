@@ -2,6 +2,7 @@ using AstralRecordApi.Data;
 using AstralRecordApi.Repositories;
 using AstralRecordApi.Services;
 using AstralRecordApi.Models;
+using AstralRecordApi.Tests.TestSupport;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -48,8 +49,7 @@ public class EquipmentServiceTests
             await setupContext.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = ON;");
         }
 
-        var fileDbOptions = Microsoft.Extensions.Options.Options.Create(new AstralRecordApi.Options.FileDatabaseOptions { RootPath = @"E:\AstralRecord-Workspace\50_filebase" });
-        var itemRepository = new ItemRepository(fileDbOptions, NullLogger<ItemRepository>.Instance);
+        var itemRepository = await CreateItemRepositoryFromFilebaseAsync();
 
         await using var dbContext = new AstralRecordDbContext(options);
         var equipmentRepository = new EquipmentRepository(dbContext);
@@ -122,8 +122,7 @@ public class EquipmentServiceTests
             await setupContext.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = ON;");
         }
 
-        var fileDbOptions = Microsoft.Extensions.Options.Options.Create(new AstralRecordApi.Options.FileDatabaseOptions { RootPath = @"E:\AstralRecord-Workspace\50_filebase" });
-        var itemRepository = new ItemRepository(fileDbOptions, NullLogger<ItemRepository>.Instance);
+        var itemRepository = await CreateItemRepositoryFromFilebaseAsync();
 
         await using var dbContext = new AstralRecordDbContext(options);
         var equipmentRepository = new EquipmentRepository(dbContext);
@@ -179,8 +178,7 @@ public class EquipmentServiceTests
             await setupContext.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = ON;");
         }
 
-        var fileDbOptions = Microsoft.Extensions.Options.Options.Create(new AstralRecordApi.Options.FileDatabaseOptions { RootPath = @"E:\AstralRecord-Workspace\50_filebase" });
-        var itemRepository = new ItemRepository(fileDbOptions, NullLogger<ItemRepository>.Instance);
+        var itemRepository = await CreateItemRepositoryFromFilebaseAsync();
 
         await using var dbContext = new AstralRecordDbContext(options);
         var equipmentRepository = new EquipmentRepository(dbContext);
@@ -197,6 +195,23 @@ public class EquipmentServiceTests
         });
 
         Assert.Null(result);
+    }
+
+    private static async Task<ItemRepository> CreateItemRepositoryFromFilebaseAsync()
+    {
+        var masterDbConnection = new SqliteConnection("Data Source=:memory:");
+        await masterDbConnection.OpenAsync();
+        var masterOptions = new DbContextOptionsBuilder<MasterDataDbContext>()
+            .UseSqlite(masterDbConnection)
+            .Options;
+        var masterContext = new MasterDataDbContext(masterOptions);
+        await MasterDataTestSeed.CreateSchemaAsync(masterContext);
+        await MasterDataTestSeed.SeedEntryAsync(
+            masterContext,
+            @"E:\AstralRecord-Workspace\50_filebase\10.features.item\equipment\v1.sample_sword.yml",
+            masterType: "item",
+            category: "equipment");
+        return new ItemRepository(masterContext);
     }
 
     private static async Task CreateEquipmentTestSchemaAsync(AstralRecordDbContext setupContext)

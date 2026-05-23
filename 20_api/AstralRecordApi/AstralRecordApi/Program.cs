@@ -39,13 +39,14 @@ builder.Services.AddDbContext<MasterDataDbContext>(options =>
 
 builder.Services.AddProblemDetails();
 
-builder.Services.AddSingleton<IBuffRepository, BuffRepository>();
-builder.Services.AddSingleton<IClassRepository, ClassRepository>();
-builder.Services.AddSingleton<IItemRepository, ItemRepository>();
-builder.Services.AddSingleton<ILootRepository, LootRepository>();
-builder.Services.AddSingleton<IRecipeRepository, RecipeRepository>();
-builder.Services.AddSingleton<ISetEffectRepository, SetEffectRepository>();
-builder.Services.AddSingleton<ISkillRepository, SkillRepository>();
+// マスタデータ参照系は MasterDataDB から取得するため Scoped で登録する。
+builder.Services.AddScoped<IBuffRepository, BuffRepository>();
+builder.Services.AddScoped<IClassRepository, ClassRepository>();
+builder.Services.AddScoped<IItemRepository, ItemRepository>();
+builder.Services.AddScoped<ILootRepository, LootRepository>();
+builder.Services.AddScoped<IRecipeRepository, RecipeRepository>();
+builder.Services.AddScoped<ISetEffectRepository, SetEffectRepository>();
+builder.Services.AddScoped<ISkillRepository, SkillRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
@@ -144,12 +145,8 @@ app.UseAuthorization();
 
 app.MapControllers().RequireAuthorization();
 
-logger.LogInformation("静的データの読み込みを開始します");
-_ = app.Services.GetRequiredService<IBuffRepository>();
-_ = app.Services.GetRequiredService<IItemRepository>();
-_ = app.Services.GetRequiredService<ILootRepository>();
-_ = app.Services.GetRequiredService<IRecipeRepository>();
-logger.LogInformation("静的データの読み込みが完了しました");
+// マスタデータは MasterDataSeeder（filebase → MasterDataDB）経由で投入されるため、
+// 起動時の事前ロードは行わない。各 Repository はリクエスト毎に MasterDataDB を参照する。
 
 app.Run();
 

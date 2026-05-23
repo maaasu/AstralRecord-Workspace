@@ -7,8 +7,8 @@
 
 | Project | Role | Main Stack | Read Next |
 |:--|:--|:--|:--|
-| `10_plugin/AstralRecord/` | Minecraft Plugin | Java, Kotlin, Paper/Spigot, Maven | `10_plugin/AstralRecord/README.md` / `$astralrecord-code` |
-| `20_api/AstralRecordApi/` | REST API | ASP.NET Core, C#, SQL Server | `20_api/AstralRecordApi/AGENTS.md` |
+| `10_plugin/AstralRecord/` | Minecraft Plugin | Java, Kotlin, Paper/Spigot, Maven | `README.md` / `$astralrecord-code` |
+| `20_api/AstralRecordApi/` | REST API | ASP.NET Core, C#, SQL Server | `README.md` / `$astralrecord-code` |
 | `30_web/AstralRecordWeb/` | Web Site | ASP.NET Core Razor Pages | `30_web/AstralRecordWeb/AGENTS.md` |
 | `40_database/` | SQL Server schema / table docs | SQL Server, Markdown | `40_database/AGENTS.md` |
 | `50_filebase/` | File-based master data | YAML, Markdown | `50_filebase/AGENTS.md` |
@@ -41,8 +41,7 @@
 
 - まず対象プロジェクトを特定してから作業する。
 - 実装ルールは対象プロジェクトの `Read Next` を優先する。
-- `.agents/prompts/` がある場合は、作業内容に対応する補助プロンプトも読む。
-- ソースコードだけで運用ルールを推測しない。明文化された補助プロンプトを優先する。
+- ソースコードだけで運用ルールを推測しない。明文化された `AGENTS.md`、`README.md`、skill 参照を優先する。
 - SQL Server の DB / テーブル定義は `40_database/`、file 系マスタデータは `50_filebase/` に分けて扱う。
 
 ## Skills 実行ガイド（E:\AstralRecord-Workspace）
@@ -53,8 +52,9 @@
 ### 実行前チェック
 
 1. 対象プロジェクトを先に判定する（本ファイルの「対象判定ルール」を使用）。
-2. 対象が `10_plugin/AstralRecord` の場合、`10_plugin/AstralRecord/README.md` と `$astralrecord-code` を使い、必要な `.agents/prompts/*.md` だけを読む。
-3. 使う skill は `E:\AstralRecord-Workspace\.codex\skills\README.md` の「正本ルール」に従って判定する。
+2. 対象が `10_plugin/AstralRecord` の場合、ルート `README.md` の AstralRecord Plugin セクションと `$astralrecord-code` を使う。
+3. 対象が `20_api/AstralRecordApi` の場合、ルート `README.md` の AstralRecord API セクションと `$astralrecord-code` の API 参照を使う。
+4. 使う skill は `E:\AstralRecord-Workspace\.codex\skills\README.md` の「正本ルール」に従って判定する。
 
 ### テンプレート実行手順
 

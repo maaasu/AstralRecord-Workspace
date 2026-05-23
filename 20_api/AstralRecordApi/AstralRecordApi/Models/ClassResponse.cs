@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace AstralRecordApi.Models;
 
 public class ClassResponse
@@ -44,6 +46,8 @@ public class ClassSummaryResponse
 
 public class ClassUnlockClassLevelResponse
 {
+    // filebase YAML 上はキー名 `class`（C# 予約語のため DTO 側は ClassId にしている）。
+    [JsonPropertyName("class")]
     public required string ClassId { get; init; }
 
     public int Level { get; init; }

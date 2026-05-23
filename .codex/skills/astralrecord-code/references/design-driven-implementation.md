@@ -35,8 +35,8 @@ Extract only what is needed for the requested implementation:
 
 Prefer project-local checks:
 
-- Plugin: Maven compile/test or the narrow module command documented by `10_plugin/AstralRecord/README.md`.
-- API: `dotnet build` / targeted tests from the API project.
+- Plugin: Maven compile/test or the narrow module command documented by the root `README.md` / `references/plugin-code.md`.
+- API: `dotnet build` / targeted tests from the API project, following `references/api-code.md`.
 - Web: `dotnet build` / page-level checks from the Web project.
 - Database/Filebase/Resourcepack: run documented validators or syntax checks when available.
 
