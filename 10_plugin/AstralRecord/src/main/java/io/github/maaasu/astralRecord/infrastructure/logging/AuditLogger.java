@@ -1,12 +1,7 @@
 package io.github.maaasu.astralRecord.infrastructure.logging;
 
-import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -18,53 +13,23 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 監査ログをファイルに記録するための汎用クラスです。
- * <p>
- * {@link LogEntry} を実装した任意のエントリ型を指定することで、様々なクラスのログ記録に再利用できます。
- * 出力先ディレクトリ・CSVヘッダー・ファイル名プレフィックスはエントリ型の {@link LogEntry#logDir()}・
- * {@link LogEntry#csvHeader()}・{@link LogEntry#fileNamePrefix()} で定義します。
- * </p>
- * <p>
- * 非同期キューを使用して、高負荷時でもパフォーマンスを維持します。
- * </p>
+ * Async audit log queue.
  *
- * <h3>使用例（エントリ型に設定を持たせる場合）</h3>
- * <pre>{@code
- * // 独自エントリの定義（logDir・csvHeader・fileNamePrefix をオーバーライド）
- * record TradeEntry(String timestamp, String player, String item) implements LogEntry {
- *     public String toCsvRow() {
- *         return "\"" + timestamp + "\",\"" + player + "\",\"" + item + "\"";
- *     }
- *     public String logDir()        { return "logs/trade"; }
- *     public String csvHeader()     { return "Timestamp,Player,Item"; }
- *     public String fileNamePrefix(){ return "trade"; }
- * }
+ * <p>CSV persistence has been removed. The queue is still consumed so the
+ * integration point can later be replaced by DB persistence.</p>
  *
- * // インスタンス生成（サンプルインスタンスを渡すだけ、内容は使われない）
- * AuditLogger<TradeEntry> logger = new AuditLogger<>(new TradeEntry("", "", ""));
- * logger.init();
- * logger.offer(new TradeEntry("2024-01-01 00:00:00", "Steve", "Diamond"));
- * }</pre>
- *
- * @param <E> ログエントリの型。{@link LogEntry} を実装している必要があります。
+ * @param <E> log entry type
  */
 public final class AuditLogger<E extends LogEntry> {
 
-    private static final DateTimeFormatter FILE_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    // ---- デフォルトインスタンス（Logger クラスや既存コードからの後方互換用） ----
     private static final String DEFAULT_LOG_DIR = "logs";
     private static final String DEFAULT_CSV_HEADER = "Timestamp,Type,Details";
     private static final String DEFAULT_FILE_NAME_PREFIX = "audit";
     private static AuditLogger<DefaultLogEntry> defaultInstance;
 
-    // ---- インスタンスフィールド ----
-    /** ログファイルの出力先ディレクトリパス（プラグインのデータフォルダからの相対パス） */
     private final String logDir;
-    /** CSVファイルの先頭に書き出すヘッダー行 */
-    private final String csvHeader;
-    /** CSVファイルのファイル名プレフィックス */
     private final String fileNamePrefix;
 
     private final ConcurrentLinkedQueue<E> logQueue = new ConcurrentLinkedQueue<>();
@@ -72,47 +37,29 @@ public final class AuditLogger<E extends LogEntry> {
     private volatile boolean running = false;
 
     /**
-     * エントリのサンプルインスタンスから設定を取得して {@code AuditLogger} を生成します。
-     * {@link LogEntry#logDir()}・{@link LogEntry#csvHeader()}・{@link LogEntry#fileNamePrefix()} の
-     * デフォルト実装またはオーバーライドした値が使用されます。
-     * <p>
-     * {@code record} など引数付きコンストラクタしか持たないエントリ型でも使用できます。
-     * </p>
+     * Construct from a sample entry.
      *
-     * <pre>{@code
-     * // record エントリの場合
-     * AuditLogger<TradeEntry> logger = new AuditLogger<>(
-     *         new TradeEntry("", "", ""));
-     * }</pre>
-     *
-     * @param sampleEntry メタ情報取得用のサンプルインスタンス（内容は使用されません）
+     * @param sampleEntry sample entry instance
      */
     public AuditLogger(E sampleEntry) {
         this.logDir = sampleEntry.logDir();
-        this.csvHeader = sampleEntry.csvHeader();
         this.fileNamePrefix = sampleEntry.fileNamePrefix();
     }
 
     /**
-     * 出力先ディレクトリ・CSVヘッダー・ファイル名プレフィックスを直接指定して {@code AuditLogger} を生成します。
-     * エントリ型にデフォルトコンストラクタがない場合や、エントリ型と異なる設定を使いたい場合に使用します。
+     * Construct with direct config values.
      *
-     * @param logDir         ログファイルの出力先ディレクトリパス（プラグインのデータフォルダからの相対パス）
-     * @param csvHeader      CSVファイルの先頭に書き出すヘッダー行
-     * @param fileNamePrefix CSVファイルのファイル名プレフィックス（実際のファイル名は {@code "<prefix>-yyyy-MM-dd.csv"}）
+     * @param logDir logical output directory name
+     * @param csvHeader unused compatibility parameter
+     * @param fileNamePrefix logical file name prefix
      */
     public AuditLogger(String logDir, String csvHeader, String fileNamePrefix) {
         this.logDir = logDir;
-        this.csvHeader = csvHeader;
         this.fileNamePrefix = fileNamePrefix;
     }
 
-    // =========================================================================
-    // ライフサイクル
-    // =========================================================================
-
     /**
-     * ロガーを初期化し、バックグラウンドでの書き込みを開始します。
+     * Initialize background worker.
      */
     public synchronized void init() {
         if (running) return;
@@ -126,7 +73,7 @@ public final class AuditLogger<E extends LogEntry> {
     }
 
     /**
-     * ロガーを終了し、残っているログをすべて書き出します。
+     * Shutdown worker and drain queued items as much as possible.
      */
     public synchronized void shutdown() {
         if (!running) return;
@@ -142,26 +89,18 @@ public final class AuditLogger<E extends LogEntry> {
                 Thread.currentThread().interrupt();
             }
         }
-        flush(); // 残っているログを書き出し
+        flush();
     }
 
-    // =========================================================================
-    // ログ追加
-    // =========================================================================
-
     /**
-     * エントリをキューに追加します。
+     * Enqueue one entry.
      *
-     * @param entry 追加するログエントリ
+     * @param entry log entry
      */
     public void offer(E entry) {
         if (!entry.isEnabled()) return;
         logQueue.offer(entry);
     }
-
-    // =========================================================================
-    // フラッシュ（内部）
-    // =========================================================================
 
     private void flush() {
         if (!running && logQueue.isEmpty()) return;
@@ -175,47 +114,17 @@ public final class AuditLogger<E extends LogEntry> {
 
         if (entries.isEmpty()) return;
 
-        File dataFolder = AstralRecord.getInstance().getDataFolder();
-        File logDirFile = new File(dataFolder, logDir);
-        if (!logDirFile.exists() && !logDirFile.mkdirs()) {
-            return; // ログディレクトリ作成失敗
-        }
+        // CSV output removed.
+        // TODO: Persist entries to DB once audit history repository is available.
+        entries.clear();
 
-        String fileName = String.format("%s-%s.csv", fileNamePrefix, LocalDateTime.now().format(FILE_DATE_FORMATTER));
-        File logFile = new File(logDirFile, fileName);
-        boolean isNewFile = !logFile.exists();
-
-        try (FileWriter fw = new FileWriter(logFile, true);
-             BufferedWriter bw = new BufferedWriter(fw);
-             PrintWriter pw = new PrintWriter(bw)) {
-
-            if (isNewFile) {
-                pw.println(csvHeader);
-            }
-
-            for (E e : entries) {
-                pw.println(e.toCsvRow());
-            }
-            pw.flush();
-
-        } catch (IOException e) {
-            // ここでのエラーは Logger 経由で出すと無限ループになる可能性があるため注意
-            System.err.println("監査ログバッチの書き込みに失敗しました: " + e.getMessage());
-        }
-
-        // まだキューに残っている場合は再度呼び出し
         if (!logQueue.isEmpty()) {
             flush();
         }
     }
 
-    // =========================================================================
-    // 静的ユーティリティ（後方互換 / Logger クラスからの利用）
-    // =========================================================================
-
     /**
-     * デフォルトインスタンスを初期化します。
-     * {@link io.github.maaasu.astralRecord.AstralRecord} の起動時に呼び出してください。
+     * Initialize default audit logger.
      */
     public static synchronized void initDefault() {
         if (defaultInstance == null) {
@@ -225,7 +134,7 @@ public final class AuditLogger<E extends LogEntry> {
     }
 
     /**
-     * デフォルトインスタンスを終了します。
+     * Shutdown default audit logger.
      */
     public static synchronized void shutdownDefault() {
         if (defaultInstance != null) {
@@ -233,27 +142,24 @@ public final class AuditLogger<E extends LogEntry> {
         }
     }
 
-    /**
-     * ログを記録します（コンソール出力用）。
-     */
     static void consoleLog(String details) {
         customLog("CONSOLE", details);
     }
 
     /**
-     * システムイベントを記録します。
+     * Enqueue system audit log.
      *
-     * @param details 詳細情報
+     * @param details details
      */
     public static void logSystem(String details) {
         customLog("SYSTEM", details);
     }
 
     /**
-     * エラーを記録します。
+     * Enqueue error audit log.
      *
-     * @param message エラーメッセージ
-     * @param t       発生した例外
+     * @param message message
+     * @param t throwable
      */
     public static void logError(String message, Throwable t) {
         String details = (t != null) ? String.format("%s (Exception: %s)", message, t.getMessage()) : message;
@@ -264,10 +170,10 @@ public final class AuditLogger<E extends LogEntry> {
     }
 
     /**
-     * 任意のログを記録します。
+     * Enqueue custom audit log.
      *
-     * @param type    種類
-     * @param details 詳細情報
+     * @param type type
+     * @param details details
      */
     public static void customLog(String type, String details) {
         if (!ConfigProperties.getInstance().isLoggingAuditEnabled()) {
@@ -291,17 +197,8 @@ public final class AuditLogger<E extends LogEntry> {
         defaultInstance.offer(new DefaultLogEntry(timestamp, "STK", sw.toString()));
     }
 
-    // =========================================================================
-    // デフォルトエントリ（Timestamp, Type, Details の3カラム）
-    // =========================================================================
-
     /**
-     * デフォルトの監査ログエントリです。
-     * Timestamp・Type・Details の3カラムをCSV形式で出力します。
-     *
-     * @param timestamp タイムスタンプ
-     * @param type      ログ種別
-     * @param details   詳細情報
+     * Default audit entry shape.
      */
     @LogEntryMeta(
             logDir = "logs/audit",

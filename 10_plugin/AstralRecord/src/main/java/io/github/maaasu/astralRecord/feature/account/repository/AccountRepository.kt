@@ -169,7 +169,7 @@ class AccountRepository {
     }
 
     /**
-     * account.mode 繧呈峩譁ｰ縺励∪縺吶・
+     * account.mode を更新します。
      * PUT /api/account/{targetUuid}
      */
     fun updateMode(targetUuid: UUID, mode: AccountMode, updatedBy: UUID): AccountModel {

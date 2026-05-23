@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.repository.PlayerHistoryRepository;
 import io.github.maaasu.astralRecord.feature.player.save.PlayerSaveCoordinator;
 import io.github.maaasu.astralRecord.feature.player.save.PlayerSaveTrigger;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -29,19 +30,22 @@ public class PlayerService {
     private final InventoryService inventoryService;
     private final StatusService statusService;
     private final PlayerSaveCoordinator playerSaveCoordinator;
+    private final PlayerHistoryRepository playerHistoryRepository;
 
     public PlayerService(
         UserService userService,
         AccountService accountService,
         InventoryService inventoryService,
         StatusService statusService,
-        PlayerSaveCoordinator playerSaveCoordinator
+        PlayerSaveCoordinator playerSaveCoordinator,
+        PlayerHistoryRepository playerHistoryRepository
     ) {
         this.userService = userService;
         this.accountService = accountService;
         this.inventoryService = inventoryService;
         this.statusService = statusService;
         this.playerSaveCoordinator = playerSaveCoordinator;
+        this.playerHistoryRepository = playerHistoryRepository;
     }
 
     /**
@@ -103,6 +107,26 @@ public class PlayerService {
             playerSaveCoordinator.save(astPlayer, PlayerSaveTrigger.LOGOUT);
         }
         AstPlayerCache.remove(player.getUniqueId());
+    }
+
+    /**
+     * プレイヤーログイン履歴を API へ登録します。
+     *
+     * @param playerUuid プレイヤー UUID
+     * @param playerName プレイヤー名
+     */
+    public void recordLoginHistory(@NotNull UUID playerUuid, @NotNull String playerName) {
+        playerHistoryRepository.insertHistory(playerUuid, "PLAYER_LOGIN", "Player login: " + playerName);
+    }
+
+    /**
+     * プレイヤーログアウト履歴を API へ登録します。
+     *
+     * @param playerUuid プレイヤー UUID
+     * @param playerName プレイヤー名
+     */
+    public void recordLogoutHistory(@NotNull UUID playerUuid, @NotNull String playerName) {
+        playerHistoryRepository.insertHistory(playerUuid, "PLAYER_LOGOUT", "Player logout: " + playerName);
     }
 
     /**

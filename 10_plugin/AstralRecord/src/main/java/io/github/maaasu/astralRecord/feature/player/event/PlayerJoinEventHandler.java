@@ -36,7 +36,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         UUID playerUuid = player.getUniqueId();
         String playerName = player.getName();
 
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () ->
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             runSafely(() -> {
                 var joinData = playerService.loadPlayerJoinData(playerUuid, playerName);
                 if (joinData == null) {
@@ -46,13 +46,21 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 plugin.getServer().getScheduler().runTask(plugin, () ->
                     runSafely(() -> playerService.applyPlayerJoin(player, joinData), LogId.E_5070, playerName)
                 );
-            }, LogId.E_5070, playerName)
-        );
+            }, LogId.E_5070, playerName);
+            runSafely(() -> playerService.recordLoginHistory(playerUuid, playerName), LogId.E_5070, playerName);
+        });
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerQuit(PlayerQuitEvent event) {
-        runSafely(() -> playerService.onPlayerQuit(event.getPlayer()), LogId.E_5070, event.getPlayer().getName());
+        var player = event.getPlayer();
+        UUID playerUuid = player.getUniqueId();
+        String playerName = player.getName();
+
+        runSafely(() -> playerService.onPlayerQuit(player), LogId.E_5070, playerName);
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () ->
+            runSafely(() -> playerService.recordLogoutHistory(playerUuid, playerName), LogId.E_5070, playerName)
+        );
     }
 }
 

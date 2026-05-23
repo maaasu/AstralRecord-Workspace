@@ -27,6 +27,7 @@ import io.github.maaasu.astralRecord.feature.player.event.PlayerInventoryClickEv
 import io.github.maaasu.astralRecord.feature.player.event.PlayerJoinEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerModeEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerSneakEventHandler;
+import io.github.maaasu.astralRecord.feature.player.repository.PlayerHistoryRepository;
 import io.github.maaasu.astralRecord.feature.player.save.PlayerSaveCoordinator;
 import io.github.maaasu.astralRecord.feature.player.service.DodgeService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
@@ -192,6 +193,7 @@ public final class AstralRecord extends JavaPlugin {
         var playerSaveCoordinator = new PlayerSaveCoordinator(
             java.util.List.of(new InventorySaveTask(inventoryService))
         );
+        var playerHistoryRepository = new PlayerHistoryRepository();
 
         // player
         playerService = new PlayerService(
@@ -199,7 +201,8 @@ public final class AstralRecord extends JavaPlugin {
             accountService,
             inventoryService,
             statusService,
-            playerSaveCoordinator
+            playerSaveCoordinator,
+            playerHistoryRepository
         );
 
         // resource pack

@@ -194,7 +194,7 @@ class UserRepository {
     }
 
     /**
-     * user.permission 繧呈峩譁ｰ縺励∪縺吶・
+     * user.permission を更新します。
      * PUT /api/user/{uuid}
      */
     fun updatePermission(uuid: UUID, permission: Int, updatedBy: UUID) {
