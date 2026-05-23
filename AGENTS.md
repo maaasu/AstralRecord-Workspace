@@ -1,29 +1,29 @@
 # AstralRecord Monorepo Guide
 
 このファイルはモノレポ全体の統括ガイドです。  
-作業を始める前に対象プロジェクトを特定し、このファイルに加えて対象プロジェクトの `Read Next` を読むこと。
+作業を始める前に対象プロジェクトを特定し、このファイルに加えて対象プロジェクトの `Read Next` を読んでください。
 
 ## 対象プロジェクト
 
 | Project | Role | Main Stack | Read Next |
 |:--|:--|:--|:--|
-| `10_plugin/AstralRecord/` | Minecraft Plugin | Java, Kotlin, Paper/Spigot, Maven | `README.md` / `$astralrecord-code` |
-| `20_api/AstralRecordApi/` | REST API | ASP.NET Core, C#, SQL Server | `README.md` / `$astralrecord-code` |
+| `10_plugin/AstralRecord/` | Minecraft Plugin | Java, Kotlin, Paper/Spigot, Maven | `PLUGIN_GUIDE.md` / `$astralrecord-code` |
+| `20_api/AstralRecordApi/` | REST API | ASP.NET Core, C#, SQL Server | `API_GUIDE.md` / `$astralrecord-code` |
 | `30_web/AstralRecordWeb/` | Web Site | ASP.NET Core Razor Pages | `30_web/AstralRecordWeb/AGENTS.md` |
-| `40_database/` | SQL Server schema / table docs | SQL Server, Markdown | `40_database/AGENTS.md` |
-| `50_filebase/` | File-based master data | YAML, Markdown | `50_filebase/AGENTS.md` |
-| `60_resourcepack/` | Minecraft Resource Pack | JSON, PNG, PowerShell | `60_resourcepack/AGENTS.md` |
+| `00_docs/40_Database設計書/` | SQL Server schema / table docs | SQL Server, Markdown | `00_docs/40_Database設計書/README.md` |
+| `40_filebase/` | File-based master data | YAML, Markdown | `40_filebase/AGENTS.md` |
+| `50_resourcepack/` | Minecraft Resource Pack | JSON, PNG, PowerShell | `50_resourcepack/AGENTS.md` |
 
-実行環境や配置先の確認が必要な場合は、`E:\AstralRecord-Workspace` に加えて `\\DEVICE_SERVER\server` も確認対象に含めること。
+実行環境や配置先の確認が必要な場合は、`E:\AstralRecord-Workspace` に加えて `\\DEVICE_SERVER\server` も確認対象に含めてください。
 
 ## 対象判定ルール
 
 1. パスが明示されている場合は、そのパスが属するプロジェクトを対象にする。
-2. 技術スタックや単語で判断できる場合は、その領域のプロジェクトを対象にする。
+2. 技術スタックや用語で判断できる場合は、その領域のプロジェクトを対象にする。
 3. 複数プロジェクトにまたがる場合は、対象を分けて扱う。
-4. 判定できない場合は作業を止めて確認する。
+4. 判定できない場合は、作業を止めて確認する。
 
-確認が必要なときは次の形式を使うこと。
+確認が必要なときは次の形式を使ってください。
 
 ```text
 1. 質問
@@ -41,20 +41,20 @@
 
 - まず対象プロジェクトを特定してから作業する。
 - 実装ルールは対象プロジェクトの `Read Next` を優先する。
-- ソースコードだけで運用ルールを推測しない。明文化された `AGENTS.md`、`README.md`、skill 参照を優先する。
-- SQL Server の DB / テーブル定義は `40_database/`、file 系マスタデータは `50_filebase/` に分けて扱う。
+- ソースコードだけで運用ルールを推測しない。文書化された `AGENTS.md`、`README.md`、skill 参照を優先する。
+- SQL Server の DB / テーブル定義は `00_docs/40_Database設計書/`、file 系マスタデータは `40_filebase/` に分けて扱う。
 
 ## Skills 実行ガイド（E:\AstralRecord-Workspace）
 
 本モノレポで skill を使う場合は、`E:\AstralRecord-Workspace\.codex\skills\README.md` を正本として扱うこと。  
-以下は、テンプレート実行時に迷わないための最小手順。
+以下は、テンプレート実行時に迷わないための最小手順です。
 
 ### 実行前チェック
 
 1. 対象プロジェクトを先に判定する（本ファイルの「対象判定ルール」を使用）。
-2. 対象が `10_plugin/AstralRecord` の場合、ルート `README.md` の AstralRecord Plugin セクションと `$astralrecord-code` を使う。
-3. 対象が `20_api/AstralRecordApi` の場合、ルート `README.md` の AstralRecord API セクションと `$astralrecord-code` の API 参照を使う。
-4. 使う skill は `E:\AstralRecord-Workspace\.codex\skills\README.md` の「正本ルール」に従って判定する。
+2. 対象が `10_plugin/AstralRecord` の場合、ルート `PLUGIN_GUIDE.md` と `$astralrecord-code` を使う。
+3. 対象が `20_api/AstralRecordApi` の場合、ルート `API_GUIDE.md` と `$astralrecord-code` の API 参照を使う。
+4. 使う skill は `E:\AstralRecord-Workspace\.codex\skills\README.md` の正本ルールに従って判定する。
 
 ### テンプレート実行手順
 
@@ -68,7 +68,7 @@
 1. `E:\AstralRecord-Workspace\.codex\skills\` 配下のサブディレクトリを skill 候補として扱う。
 2. `<skill-directory>\SKILL.md` が存在するものを有効 skill として扱う。
 3. 利用時は `SKILL.md` の frontmatter（`name` / `description`）を正として解釈する。
-4. 新しい skill 追加時は、この `AGENTS.md` に個別追記しない。配置規約（`<skill-directory>\SKILL.md`）を満たせば参照対象とする。
+4. 新しい skill 追加時は、この `AGENTS.md` に個別追記しない。配置要件（`<skill-directory>\SKILL.md`）を満たせば参照対象とする。
 
 ### 汎用実行テンプレート
 
