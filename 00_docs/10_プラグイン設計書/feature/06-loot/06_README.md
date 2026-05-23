@@ -22,7 +22,7 @@
 ## 依存 feature
 
 - `item`
-  - `ItemStackFactory` のバンドル lore 構築（`appendBundleLootLore`）で [[06_3.02-サービス]].ロード済みルート取得 を参照する。
+  - `ItemStackFactory` のバンドルルートロア追加（[[04_3.02-サービス]].プロトタイプテンプレート構築 内の内部処理、物理名: `appendBundleLootLore`）で [[06_3.02-サービス]].ロード済みルート取得 を参照する。
   - `ItemBundle.lootTableId` が本 feature のキャッシュキーとなる。
 
 ## 更新ルール（変更時に必ず更新する章）

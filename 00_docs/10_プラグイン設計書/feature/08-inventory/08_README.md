@@ -9,6 +9,7 @@
 - `src/main/java/io/github/maaasu/astralRecord/feature/inventory/event/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/inventory/service/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/inventory/repository/*`
+- `src/main/java/io/github/maaasu/astralRecord/feature/inventory/task/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/inventory/model/*`
 
 ## ドキュメント一覧（推奨順）
