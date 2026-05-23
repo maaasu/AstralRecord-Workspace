@@ -42,6 +42,33 @@ public class UserController(IUserRepository userRepository) : ControllerBase
         return CreatedAtAction(nameof(GetByUuid), new { uuid = created.Uuid }, created);
     }
 
+    /// <summary>ユーザー履歴登録</summary>
+    /// <param name="request">登録する履歴情報</param>
+    /// <response code="201">履歴登録成功</response>
+    /// <response code="400">必須項目不足</response>
+    /// <response code="404">指定ユーザーが存在しない</response>
+    [HttpPost("history")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CreateHistory([FromBody] UserHistoryCreateRequest request)
+    {
+        if (request.EventTime == default
+            || string.IsNullOrWhiteSpace(request.EventType)
+            || string.IsNullOrWhiteSpace(request.Message))
+            return BadRequest();
+
+        if (request.UserUuid.HasValue)
+        {
+            var existingUser = await userRepository.GetByUuidAsync(request.UserUuid.Value);
+            if (existingUser is null)
+                return NotFound();
+        }
+
+        var created = await userRepository.CreateHistoryAsync(request);
+        return StatusCode(StatusCodes.Status201Created, created);
+    }
+
     /// <summary>ユーザー情報更新</summary>
     /// <param name="uuid">更新対象のプレイヤー UUID</param>
     /// <param name="request">更新内容</param>

@@ -5,7 +5,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AstralRecordApi.Repositories;
 
-public class UserRepository(AstralRecordDbContext dbContext) : IUserRepository
+public class UserRepository(
+    AstralRecordDbContext dbContext,
+    HistoryDbContext historyDbContext) : IUserRepository
 {
     public async Task<UserResponse?> GetByUuidAsync(Guid uuid)
     {
@@ -78,6 +80,26 @@ public class UserRepository(AstralRecordDbContext dbContext) : IUserRepository
         return MapToResponse(user);
     }
 
+    public async Task<UserHistoryResponse> CreateHistoryAsync(UserHistoryCreateRequest request)
+    {
+        var now = DateTime.UtcNow;
+        var history = new UserHistoryEntity
+        {
+            UserUuid = request.UserUuid,
+            EventTime = request.EventTime,
+            EventType = request.EventType,
+            Source = string.IsNullOrWhiteSpace(request.Source) ? "PLUGIN" : request.Source,
+            Message = request.Message,
+            PayloadJson = request.PayloadJson,
+            CreatedAt = now,
+        };
+
+        await historyDbContext.UserHistories.AddAsync(history);
+        await historyDbContext.SaveChangesAsync();
+
+        return MapToHistoryResponse(history);
+    }
+
     private static UserResponse MapToResponse(UserEntity user) => new()
     {
         Uuid = user.Uuid,
@@ -95,5 +117,17 @@ public class UserRepository(AstralRecordDbContext dbContext) : IUserRepository
         CreatedBy = user.CreatedBy,
         UpdatedBy = user.UpdatedBy,
         IsDeleted = user.IsDeleted,
+    };
+
+    private static UserHistoryResponse MapToHistoryResponse(UserHistoryEntity history) => new()
+    {
+        HistoryId = history.HistoryId,
+        UserUuid = history.UserUuid,
+        EventTime = history.EventTime,
+        EventType = history.EventType,
+        Source = history.Source,
+        Message = history.Message,
+        PayloadJson = history.PayloadJson,
+        CreatedAt = history.CreatedAt,
     };
 }

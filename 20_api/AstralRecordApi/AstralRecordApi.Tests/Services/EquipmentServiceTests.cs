@@ -1,4 +1,4 @@
-using AstralRecordApi.Data;
+﻿using AstralRecordApi.Data;
 using AstralRecordApi.Repositories;
 using AstralRecordApi.Services;
 using AstralRecordApi.Models;
@@ -208,7 +208,7 @@ public class EquipmentServiceTests
         await MasterDataTestSeed.CreateSchemaAsync(masterContext);
         await MasterDataTestSeed.SeedEntryAsync(
             masterContext,
-            @"E:\AstralRecord-Workspace\50_filebase\10.features.item\equipment\v1.sample_sword.yml",
+            @"E:\AstralRecord-Workspace\40_filebase\10.features.item\equipment\v1.sample_sword.yml",
             masterType: "item",
             category: "equipment");
         return new ItemRepository(masterContext);
@@ -294,3 +294,4 @@ public class EquipmentServiceTests
             );");
     }
 }
+

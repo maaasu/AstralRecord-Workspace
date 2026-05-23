@@ -37,6 +37,12 @@ builder.Services.AddDbContext<MasterDataDbContext>(options =>
         ?? throw new InvalidOperationException("Connection string 'MasterData' is not configured."),
         sqlServerOptions => sqlServerOptions.EnableRetryOnFailure()));
 
+builder.Services.AddDbContext<HistoryDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("History")
+        ?? throw new InvalidOperationException("Connection string 'History' is not configured."),
+        sqlServerOptions => sqlServerOptions.EnableRetryOnFailure()));
+
 builder.Services.AddProblemDetails();
 
 // マスタデータ参照系は MasterDataDB から取得するため Scoped で登録する。
