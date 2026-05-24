@@ -29,6 +29,10 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
 
     public async Task<InventoryResponse> CreateAsync(InventoryCreateRequest request)
     {
+        var existing = await FindExistingInventoryAsync(request);
+        if (existing is not null)
+            return MapInventory(existing);
+
         var now = DateTime.UtcNow;
         var entity = new InventoryEntity
         {
@@ -47,9 +51,32 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
         };
 
         await dbContext.Inventories.AddAsync(entity);
-        await dbContext.SaveChangesAsync();
+        try
+        {
+            await dbContext.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            dbContext.Entry(entity).State = EntityState.Detached;
+            existing = await FindExistingInventoryAsync(request);
+            if (existing is not null)
+                return MapInventory(existing);
+
+            throw;
+        }
 
         return MapInventory(entity);
+    }
+
+    private async Task<InventoryEntity?> FindExistingInventoryAsync(InventoryCreateRequest request)
+    {
+        return await dbContext.Inventories
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x =>
+                x.AccountId == request.AccountId
+                && x.InventoryType == request.InventoryType
+                && x.InventoryProfile == request.InventoryProfile
+                && !x.IsDeleted);
     }
 
     public async Task<InventoryResponse?> UpdateAsync(Guid inventoryId, InventoryUpdateRequest request)

@@ -1201,7 +1201,7 @@ public class InventoryService {
         equipmentType.applyTo(inventory, clickedItem.clone());
         inventory.setItem(sourceBukkitSlot, emptyToAir(previous));
 
-        removeDisplayedEntryAtBukkitSlot(astPlayer, sourceBukkitSlot);
+        deleteDisplayedEntryAtBukkitSlot(astPlayer, sourceBukkitSlot);
         compactDisplayedInventory(astPlayer);
         saveDisplayedStorageSnapshotIfNormal(astPlayer);
         saveEquipSlotSnapshot(astPlayer);
@@ -1235,7 +1235,7 @@ public class InventoryService {
             updateAccessorySnapshotSlot(astPlayer, accessorySlot, clickedItem.clone());
         }
 
-        removeDisplayedEntryAtBukkitSlot(astPlayer, sourceBukkitSlot);
+        deleteDisplayedEntryAtBukkitSlot(astPlayer, sourceBukkitSlot);
         compactDisplayedInventory(astPlayer);
         saveDisplayedStorageSnapshotIfNormal(astPlayer);
         syncCurrentEquipmentState(astPlayer);
@@ -1665,37 +1665,6 @@ public class InventoryService {
             case OFF_HAND -> inventory.getItemInOffHand();
             case UNSUPPORTED -> null;
         };
-    }
-
-    private void removeDisplayedEntryAtBukkitSlot(@NotNull AstPlayer astPlayer, int sourceBukkitSlot) {
-        if (!NormalInventoryLayout.isManagedGuiSlot(sourceBukkitSlot)) {
-            return;
-        }
-
-        UUID accountId = astPlayer.getAccount().getUuid();
-        InventoryType displayedType = getDisplayedInventoryType(accountId);
-        int dbSlot = NormalInventoryLayout.toDbSlotIndex(sourceBukkitSlot);
-
-        getInventories(accountId).stream()
-            .filter(this::isDefaultProfile)
-            .filter(inventory -> inventory.getInventoryType() == displayedType)
-            .findFirst()
-            .ifPresent(inventory -> getEntries(inventory.getInventoryId()).stream()
-                .filter(entry -> entry.getSlotIndex() != null && entry.getSlotIndex() == dbSlot && !entry.isDeleted())
-                .findFirst()
-                .ifPresent(entry -> updateEntryOptimistically(
-                    entry.getInventoryEntryId(),
-                    new InventoryEntryDraft(
-                        null,
-                        entry.getItemCategory(),
-                        entry.getItemId(),
-                        entry.getInstanceType(),
-                        entry.getInstanceId(),
-                        entry.getQuantity(),
-                        entry.getMetadataJson()
-                    ),
-                    accountId
-                )));
     }
 
     /**
