@@ -94,7 +94,7 @@ public class StatusService {
             merged = restoreAllInternal(refreshed);
         } else {
             // 再計算時は現在値を維持しつつ、新しい最大値へクランプ
-            merged = refreshed.withCurrentValues(previous.getCurrentHp(), previous.getCurrentMp());
+            merged = refreshed.withCurrentValues(previous.getCurrentHp(), previous.getCurrentMp(), previous.getCurrentEnergy());
         }
 
         player.setStatusSnapshot(merged);

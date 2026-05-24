@@ -26,6 +26,7 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerJoinEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerModeEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerSneakEventHandler;
+import io.github.maaasu.astralRecord.feature.player.event.PlayerVanillaDamageBlockEventHandler;
 import io.github.maaasu.astralRecord.feature.player.save.PlayerSaveCoordinator;
 import io.github.maaasu.astralRecord.feature.player.service.DodgeService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
@@ -275,6 +276,10 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             new PlayerSneakEventHandler(dodgeService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new PlayerVanillaDamageBlockEventHandler(),
             getServer().getPluginManager()
         );
         playerHudService.start(this);
