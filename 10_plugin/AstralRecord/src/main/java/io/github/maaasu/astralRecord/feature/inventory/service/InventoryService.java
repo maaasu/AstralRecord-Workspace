@@ -19,6 +19,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -659,6 +660,102 @@ public class InventoryService {
             autoSwitchDisplayedInventory(astPlayer, inventoryType);
         }
         return granted;
+    }
+
+    /**
+     * BUILDER モードのインベントリ全体（storage + armor + offhand）を
+     * BUILDER プロファイルの NORMAL インベントリ metadataJson へスナップショット保存します。
+     *
+     * @param astPlayer 保存対象プレイヤー
+     */
+    public void saveBuilderInventorySnapshot(@NotNull AstPlayer astPlayer) {
+        UUID accountId = astPlayer.getAccount().getUuid();
+        InventoryModel inventory = ensureBuilderInventory(accountId);
+        ItemStack[] contents = astPlayer.getBukkit().getInventory().getContents();
+        String metadataJson = snapshotCodec.encode(contents);
+        updateMetadataAsync(inventory.getInventoryId(), metadataJson, accountId);
+    }
+
+    /**
+     * BUILDER プロファイルに保存されたスナップショットをプレイヤーのインベントリへ復元します。
+     * <p>
+     * キャッシュにある場合はメインスレッドで即時反映し、最新内容を非同期で取り直して再描画します。
+     *
+     * @param astPlayer 復元対象プレイヤー
+     */
+    public void applyBuilderInventoryToGui(@NotNull AstPlayer astPlayer) {
+        clearGuiInventory(astPlayer.getBukkit());
+        UUID accountId = astPlayer.getAccount().getUuid();
+        InventoryModel cached = getCachedInventories(accountId).stream()
+            .filter(this::isBuilderProfile)
+            .filter(inv -> inv.getInventoryType() == InventoryType.NORMAL)
+            .findFirst()
+            .orElse(null);
+        if (cached != null) {
+            applyBuilderSnapshot(astPlayer, cached.getMetadataJson());
+        }
+        refreshBuilderInventoryAsync(astPlayer, accountId);
+    }
+
+    private void refreshBuilderInventoryAsync(@NotNull AstPlayer astPlayer, @NotNull UUID accountId) {
+        CompletableFuture.supplyAsync(() -> {
+            List<InventoryModel> inventories = inventoryRepository.findByAccountId(accountId);
+            inventoryCache.put(accountId, List.copyOf(inventories));
+            return inventories.stream()
+                .filter(this::isBuilderProfile)
+                .filter(inv -> inv.getInventoryType() == InventoryType.NORMAL)
+                .findFirst()
+                .orElse(null);
+        }).thenAccept(inventory -> {
+            AstralRecord plugin = AstralRecord.getInstance();
+            if (plugin == null || inventory == null || !astPlayer.getBukkit().isOnline()) {
+                return;
+            }
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                if (astPlayer.getAccount().getMode() != AccountMode.BUILDER) {
+                    return;
+                }
+                applyBuilderSnapshot(astPlayer, inventory.getMetadataJson());
+            });
+        }).exceptionally(error -> {
+            Logger.warn(LogId.W_5252, accountId, error.getMessage());
+            return null;
+        });
+    }
+
+    private void applyBuilderSnapshot(@NotNull AstPlayer astPlayer, @Nullable String metadataJson) {
+        if (metadataJson == null || metadataJson.isBlank()) {
+            return;
+        }
+        ItemStack[] contents = snapshotCodec.decode(metadataJson);
+        if (contents == null) {
+            return;
+        }
+        astPlayer.getBukkit().getInventory().setContents(contents);
+        astPlayer.getBukkit().updateInventory();
+    }
+
+    private @NotNull InventoryModel ensureBuilderInventory(@NotNull UUID accountId) {
+        InventoryModel cached = getCachedInventories(accountId).stream()
+            .filter(this::isBuilderProfile)
+            .filter(inv -> inv.getInventoryType() == InventoryType.NORMAL)
+            .findFirst()
+            .orElse(null);
+        if (cached != null) {
+            return cached;
+        }
+        return createInventoryOptimistically(
+            accountId,
+            InventoryType.NORMAL,
+            null,
+            accountId,
+            InventoryProfile.BUILDER,
+            null
+        );
+    }
+
+    private boolean isBuilderProfile(@NotNull InventoryModel inventory) {
+        return InventoryProfile.BUILDER.getCode().equalsIgnoreCase(inventory.getInventoryProfile());
     }
 
     public void applyInventoriesToGui(AstPlayer astPlayer) {

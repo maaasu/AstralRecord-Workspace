@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.player.service;
 
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
@@ -87,6 +88,8 @@ public class PlayerService {
         AstPlayerCache.put(astPlayer);
         if (joinData.account().getMode().shouldReflectInventoryToGui()) {
             inventoryService.applyInventoriesToGui(astPlayer);
+        } else if (joinData.account().getMode() == AccountMode.BUILDER) {
+            inventoryService.applyBuilderInventoryToGui(astPlayer);
         }
         statusService.refreshStatus(astPlayer);
     }

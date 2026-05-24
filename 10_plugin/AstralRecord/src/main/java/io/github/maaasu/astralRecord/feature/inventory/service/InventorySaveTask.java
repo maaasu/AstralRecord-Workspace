@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.inventory.service;
 
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.save.PlayerSaveTask;
 import io.github.maaasu.astralRecord.feature.player.save.PlayerSaveTrigger;
@@ -20,6 +21,10 @@ public class InventorySaveTask implements PlayerSaveTask {
 
     @Override
     public void save(@NotNull AstPlayer player, @NotNull PlayerSaveTrigger trigger) {
+        if (player.getAccount().getMode() == AccountMode.BUILDER) {
+            inventoryService.saveBuilderInventorySnapshot(player);
+            return;
+        }
         if (!player.getAccount().getMode().shouldReflectInventoryToGui()) {
             return;
         }

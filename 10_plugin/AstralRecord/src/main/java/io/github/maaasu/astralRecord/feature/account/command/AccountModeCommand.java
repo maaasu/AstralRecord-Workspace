@@ -128,11 +128,20 @@ public class AccountModeCommand extends AstCommand {
             if (!astPlayer.getAccount().getUuid().equals(updated.getUuid())) {
                 continue;
             }
-            astPlayer.applyAccountMode(updated);
+            var previousMode = astPlayer.getAccount().getMode();
             var inventoryService = AstralRecord.getInstance().getInventoryService();
-            if (inventoryService != null && updated.getMode().shouldReflectInventoryToGui()) {
+            if (inventoryService != null && previousMode == AccountMode.BUILDER && updated.getMode() != AccountMode.BUILDER) {
+                inventoryService.saveBuilderInventorySnapshot(astPlayer);
+            }
+            astPlayer.applyAccountMode(updated);
+            if (inventoryService == null) {
+                continue;
+            }
+            if (updated.getMode().shouldReflectInventoryToGui()) {
                 inventoryService.applyInventoriesToGui(astPlayer);
-            } else if (inventoryService != null) {
+            } else if (updated.getMode() == AccountMode.BUILDER) {
+                inventoryService.applyBuilderInventoryToGui(astPlayer);
+            } else {
                 inventoryService.clearGuiInventory(astPlayer);
             }
         }
