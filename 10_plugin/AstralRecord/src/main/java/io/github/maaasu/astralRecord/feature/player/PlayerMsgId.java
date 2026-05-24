@@ -26,7 +26,7 @@ public enum PlayerMsgId {
     P_5000(5000),
     // endregion
 
-    // region /feature/player/command/TestCommand.java 5050-5059
+    // region /temp/command/TestCommand.java 5050-5059
     /**
      * [TEST] プレイヤー情報: 名前={0}, UUID={1}
      */
@@ -37,7 +37,7 @@ public enum PlayerMsgId {
     P_5051(5051),
     // endregion
 
-    // region /feature/player/command/TempCommand.java 5080-5089
+    // region /temp/command/TempCommand.java 5080-5089
     /**
      * [TEMP] テンポラリコマンドを実行しました。実行者: {0}
      */

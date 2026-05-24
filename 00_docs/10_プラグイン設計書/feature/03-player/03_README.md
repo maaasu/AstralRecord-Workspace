@@ -9,7 +9,6 @@
 - `src/main/java/io/github/maaasu/astralRecord/feature/player/service/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/player/model/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/player/save/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/player/command/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/player/*`
 
 ## ドキュメント一覧（推奨順）
@@ -21,6 +20,8 @@
 5. [[03_4.00-統合フロー]]
 6. [[03_5.00-例外・ログ・運用]]
 7. [[03_9.00-未決事項]]（必要時）
+
+`/test`・`/temp` は `src/main/java/io/github/maaasu/astralRecord/temp/command/` へ移動済みで本 feature の責務外。
 
 ## 依存 feature
 

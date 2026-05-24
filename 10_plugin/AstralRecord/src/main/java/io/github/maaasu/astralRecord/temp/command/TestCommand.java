@@ -1,4 +1,4 @@
-package io.github.maaasu.astralRecord.feature.player.command;
+package io.github.maaasu.astralRecord.temp.command;
 
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
