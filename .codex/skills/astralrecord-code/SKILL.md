@@ -1,13 +1,13 @@
 ---
 name: astralrecord-code
-description: Implement AstralRecord code changes across the monorepo. Use when asked to code from a design document path, migrate docs/specs into implementation, modify plugin/API/Web/database/filebase/resourcepack behavior, or apply custom implementation instructions such as changing item IDs while following the root guide, project README/AGENTS.md, and skill references.
+description: Implement AstralRecord code changes across the monorepo and keep related design documents synchronized with the implemented behavior. Use when asked to code from a design document path, migrate docs/specs into implementation, modify plugin/API/Web/database/filebase/resourcepack behavior, reflect implementation changes back into docs, or apply custom implementation instructions such as changing item IDs while following the root guide, project README/AGENTS.md, and skill references.
 ---
 
 # AstralRecord Code
 
 ## Core Rule
 
-Implement code or implementation-adjacent data only after identifying the target project and reading its documented rules. Do not infer operating rules from source alone when the root guide, project `README.md`, project `AGENTS.md`, or skill references cover the work.
+Implement code or implementation-adjacent data only after identifying the target project and reading its documented rules. Reflect the implemented behavior back into the relevant design document when the change clarifies, narrows, or changes the documented specification. Do not infer operating rules from source alone when the root guide, project `README.md`, project `AGENTS.md`, or skill references cover the work.
 
 This skill handles two input modes:
 
@@ -48,19 +48,24 @@ If target project cannot be determined, stop and ask the project-selection quest
    - Match surrounding language, naming, package, layer, DI, error handling, and tests.
    - Prefer existing enums, IDs, repositories, DTOs, services, helpers, and resource conventions over new ad hoc strings or abstractions.
    - Keep unrelated refactors out of scope.
-5. Verify:
+5. Sync design documents:
+   - For design-driven work, update the source design document(s) so they describe the final implemented behavior, names, IDs, routes, commands, tables, files, messages, and unresolved items accurately.
+   - For custom implementation work, locate the related design document when a stable docs path, feature name, ID, route, table, or project rule makes it reasonably discoverable; update it if the implementation changes documented behavior.
+   - Keep docs edits narrow and factual. Do not rewrite unrelated sections, invent future behavior, or resolve open decisions without user input.
+   - If no related design document can be identified with reasonable search, report that explicitly instead of creating a new speculative document.
+6. Verify:
    - Run the narrowest meaningful tests or build checks for the touched project.
    - If a full build is too expensive or blocked, run targeted compile/test/lint checks and report what was not run.
-   - Re-read changed snippets for rule compliance before final reporting.
+   - Re-read changed source and docs snippets for rule compliance before final reporting.
 
 ## Design-Driven Implementation
 
-When the user gives a design document path, the design is input for implementation, not something to rewrite by default.
+When the user gives a design document path, the design is input for implementation and must be kept aligned with the completed implementation. Do not rewrite it broadly by default; update only the parts whose documented behavior, contracts, names, or status changed because of the implementation.
 
 - Extract required behavior, data contracts, lifecycle/state rules, commands/routes, messages/logs, error behavior, and unresolved decisions.
 - Do not implement behavior that the docs mark as unresolved unless the user provides the missing decision.
 - If docs contradict current code, prefer the explicit design for new implementation, but report the mismatch if it creates risk.
-- If a docs-to-implementation task requires a future dedicated skill, keep this skill focused on coding and note any docs remediation separately.
+- If implementation reveals a documentation gap, add the smallest necessary note or status update in the relevant design document. If the gap requires broader design remediation, keep this skill focused on coding and note the remaining docs work separately.
 
 See `references/design-driven-implementation.md` for the detailed checklist.
 
@@ -78,6 +83,9 @@ Write the result in Japanese.
 
 ## 変更ファイル
 - `<path>`: <変更内容>
+
+## 設計書反映
+- `<path>`: <反映内容> / 未反映（理由）
 
 ## 検証
 - `<command>`: 成功 / 失敗 / 未実行（理由）

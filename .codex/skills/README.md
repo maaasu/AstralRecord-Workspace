@@ -20,31 +20,9 @@ Use $<skill-name> to <task> for <absolute-path> and report the result.
 
 パスは `E:\AstralRecord-Workspace\...` から始まる絶対パスを推奨する。曖昧な「このへん」「docs」などの指定は避ける。
 
-## `$code`
-
-`/code` 補完用の短縮 alias。実体の実装ルールは `$astralrecord-code` を正とする。
-
-### 使う場面
-
-- `/code` 相当の依頼を workspace-local skill として実行したい。
-- UI の予測変換から短い `Code` entry を選びたい。
-- AstralRecord の実装作業を `$astralrecord-code` に委譲したい。
-
-### 実行例
-
-```text
-Use $code to implement the design for E:\AstralRecord-Workspace\00_docs\10_プラグイン設計書\feature\07-status and report the result.
-```
-
-### 注意点
-
-- `$code` は薄い alias として維持する。
-- 実装時の正本ルールは必ず `$astralrecord-code`、対象プロジェクトの guide / README / AGENTS.md、必要な `references/` を読む。
-- `$astralrecord-code` と矛盾する内容を `$code` に追加しない。
-
 ## `$astralrecord-code`
 
-AstralRecord monorepo の実装変更を行う skill。設計書パスが指定された場合は設計書を入力として実装し、直接のカスタム指示が指定された場合は対象プロジェクトのコーディングルールに従って最小変更する。
+AstralRecord monorepo の実装変更を行う正本 skill。設計書パスが指定された場合は設計書を入力として実装し、実装後に関連する設計書へ反映する。直接のカスタム指示が指定された場合は、対象プロジェクトのコーディングルールに従って最小変更する。
 
 Plugin と API の個別ルールは `$astralrecord-code` 本体に詰め込まず、`references/` 配下の専用ファイルに分けて管理する。
 
@@ -66,6 +44,10 @@ Use $astralrecord-code to change the display item from apple to iron_ingot for E
 
 ```text
 Use $astralrecord-code to add the requested API behavior for E:\AstralRecord-Workspace\20_api\AstralRecordApi and report the result.
+```
+
+```text
+Use $astralrecord-code to implement the requested change for E:\AstralRecord-Workspace\10_plugin\AstralRecord, reflect it in related design docs, and report the result.
 ```
 
 ### 注意点
