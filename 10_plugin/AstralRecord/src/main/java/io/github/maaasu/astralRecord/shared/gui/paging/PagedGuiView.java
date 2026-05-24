@@ -1,4 +1,4 @@
-package io.github.maaasu.astralRecord.feature.gui.paging;
+package io.github.maaasu.astralRecord.shared.gui.paging;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;

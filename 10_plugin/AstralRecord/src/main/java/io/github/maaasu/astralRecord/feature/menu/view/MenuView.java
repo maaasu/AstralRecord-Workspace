@@ -4,7 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.currency.view.CurrencyGuiView;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
-import io.github.maaasu.astralRecord.feature.gui.paging.PagedGuiView;
+import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutAction;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;

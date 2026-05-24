@@ -1,4 +1,4 @@
-package io.github.maaasu.astralRecord.feature.gui.debug.command;
+package io.github.maaasu.astralRecord.shared.gui.debug.command;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;

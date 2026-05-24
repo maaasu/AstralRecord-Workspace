@@ -1,4 +1,4 @@
-package io.github.maaasu.astralRecord.feature.gui.sound;
+package io.github.maaasu.astralRecord.shared.gui.sound;
 
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;

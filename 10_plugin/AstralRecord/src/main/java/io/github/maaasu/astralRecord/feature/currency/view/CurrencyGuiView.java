@@ -1,6 +1,6 @@
 package io.github.maaasu.astralRecord.feature.currency.view;
 
-import io.github.maaasu.astralRecord.feature.gui.paging.PagedGuiView;
+import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;

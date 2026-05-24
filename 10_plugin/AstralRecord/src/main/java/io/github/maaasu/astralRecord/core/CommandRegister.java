@@ -4,7 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.command.ReloadCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountTabCompleter;
-import io.github.maaasu.astralRecord.feature.gui.debug.command.PagingDebugCommand;
+import io.github.maaasu.astralRecord.shared.gui.debug.command.PagingDebugCommand;
 import io.github.maaasu.astralRecord.feature.inventory.command.InventoryCommand;
 import io.github.maaasu.astralRecord.feature.inventory.command.InventoryTabCompleter;
 import io.github.maaasu.astralRecord.feature.item.command.ItemCommand;

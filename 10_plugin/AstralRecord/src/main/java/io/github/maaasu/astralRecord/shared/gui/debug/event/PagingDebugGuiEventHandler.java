@@ -1,9 +1,9 @@
-package io.github.maaasu.astralRecord.feature.gui.debug.event;
+package io.github.maaasu.astralRecord.shared.gui.debug.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
-import io.github.maaasu.astralRecord.feature.gui.debug.PagingDebugGui;
-import io.github.maaasu.astralRecord.feature.gui.paging.PagedGuiView;
-import io.github.maaasu.astralRecord.feature.gui.sound.GuiSound;
+import io.github.maaasu.astralRecord.shared.gui.debug.PagingDebugGui;
+import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
+import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.entity.Player;

@@ -1,6 +1,6 @@
-package io.github.maaasu.astralRecord.feature.gui.debug;
+package io.github.maaasu.astralRecord.shared.gui.debug;
 
-import io.github.maaasu.astralRecord.feature.gui.paging.PagedGuiView;
+import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
