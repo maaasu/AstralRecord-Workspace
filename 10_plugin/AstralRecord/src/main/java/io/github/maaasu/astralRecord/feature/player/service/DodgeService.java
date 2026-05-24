@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -46,10 +47,16 @@ public class DodgeService {
 
     private final AstralRecord plugin;
     private final StatusService statusService;
+    private final ParticleDisplayService particleDisplayService;
 
-    public DodgeService(@NotNull AstralRecord plugin, @NotNull StatusService statusService) {
+    public DodgeService(
+        @NotNull AstralRecord plugin,
+        @NotNull StatusService statusService,
+        @NotNull ParticleDisplayService particleDisplayService
+    ) {
         this.plugin = plugin;
         this.statusService = statusService;
+        this.particleDisplayService = particleDisplayService;
     }
 
     /**
@@ -154,12 +161,14 @@ public class DodgeService {
             0.8f,
             1.6f
         );
-        player.getWorld().spawnParticle(
-            Particle.CLOUD,
+        particleDisplayService.spawnWorld(
+            player.getWorld(),
             player.getLocation().add(0.0D, 0.2D, 0.0D),
+            Particle.CLOUD,
             PARTICLE_COUNT,
             0.2D, 0.05D, 0.2D,
-            0.0D
+            0.0D,
+            1.0D
         );
     }
 

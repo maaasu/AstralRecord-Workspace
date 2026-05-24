@@ -49,6 +49,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.AuditLogger;
 import io.github.maaasu.astralRecord.infrastructure.logging.AuditLoggerRegistry;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class AstralRecord extends JavaPlugin {
@@ -74,6 +75,7 @@ public final class AstralRecord extends JavaPlugin {
     private PagingDebugGui pagingDebugGui;
     private MobService mobService;
     private EventManager eventManager;
+    private ParticleDisplayService particleDisplayService;
 
     @Override
     public void onLoad() {
@@ -185,9 +187,10 @@ public final class AstralRecord extends JavaPlugin {
         statusService = new StatusService(itemService, inventoryService);
         statusRegenTask = new StatusRegenTask(statusService);
         playerHudService = new PlayerHudService(statusService);
+        particleDisplayService = new ParticleDisplayService();
 
         // dodge
-        dodgeService = new DodgeService(this, statusService);
+        dodgeService = new DodgeService(this, statusService, particleDisplayService);
 
         var playerSaveCoordinator = new PlayerSaveCoordinator(
             java.util.List.of(new InventorySaveTask(inventoryService))
