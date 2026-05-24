@@ -214,14 +214,53 @@ class UserRepository {
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 if (response.statusCode() !in 200..299) {
                     val message = "HTTP ${response.statusCode()} for PUT $path"
-                    Logger.log(LogId.E_5057, message)
+                    Logger.log(LogId.E_5059, message)
                     throw IOException("Unexpected status ${response.statusCode()} for PUT $path")
                 }
-                Logger.log(LogId.D_5057, uuid, permission)
+                Logger.log(LogId.D_5059, uuid, permission)
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            Logger.log(LogId.E_5057, e, e.message ?: "Interrupted while PUT $path")
+            Logger.log(LogId.E_5059, e, e.message ?: "Interrupted while PUT $path")
+            throw RuntimeException(e)
+        }
+    }
+
+    /**
+     * ユーザー履歴を登録します。
+     * POST /api/user/history
+     *
+     * @param userUuid 対象ユーザー UUID
+     * @param eventType 履歴種別（例: PLAYER_LOGIN）
+     * @param source 発生元（例: PLUGIN）
+     * @param message 履歴メッセージ
+     */
+    fun insertHistory(userUuid: UUID, eventType: String, source: String, message: String) {
+        val path = "/api/user/history"
+        val body = ApiRequestUtil.buildJsonBody {
+            addProperty("userUuid", userUuid.toString())
+            addProperty("eventTime", LocalDateTime.now().format(formatter))
+            addProperty("eventType", eventType)
+            addProperty("source", source)
+            addProperty("message", message)
+            addProperty("payloadJson", null as String?)
+        }
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val request = ApiRequestUtil.buildRequestBuilder(path)
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                if (response.statusCode() !in 200..299) {
+                    val message2 = "HTTP ${response.statusCode()} for POST $path"
+                    Logger.log(LogId.E_5060, message2)
+                    throw IOException("Unexpected status ${response.statusCode()} for POST $path")
+                }
+                Logger.log(LogId.D_5060, userUuid, eventType)
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            Logger.log(LogId.E_5060, e, e.message ?: "Interrupted while POST $path")
             throw RuntimeException(e)
         }
     }

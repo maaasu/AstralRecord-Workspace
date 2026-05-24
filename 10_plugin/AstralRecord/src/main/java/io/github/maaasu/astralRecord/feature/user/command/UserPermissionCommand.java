@@ -2,9 +2,14 @@ package io.github.maaasu.astralRecord.feature.user.command;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.user.model.SystemUser;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
+import io.github.maaasu.astralRecord.feature.user.service.UserService;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -13,6 +18,9 @@ import org.jetbrains.annotations.NotNull;
 import java.util.UUID;
 
 public class UserPermissionCommand extends AstCommand {
+
+    private static final String SOURCE_PLAYER = "PLAYER";
+    private static final String SOURCE_CONSOLE = "CONSOLE";
 
     public UserPermissionCommand() {
         super("userpermission", "Set user permission.", "/user permission <player|uuid> <permission>", false, 99);
@@ -23,7 +31,7 @@ public class UserPermissionCommand extends AstCommand {
         if (sender instanceof Player player) {
             var astPlayer = AstPlayerCache.get(player);
             if (astPlayer == null || astPlayer.getUser().getPermission() < 99) {
-                sendError(sender, "このコマンドを実行する権限がありません。");
+                sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5061.getId()));
                 return;
             }
         }
@@ -35,7 +43,7 @@ public class UserPermissionCommand extends AstCommand {
 
         UUID targetUuid = resolveUuid(args[0]);
         if (targetUuid == null) {
-            sendError(sender, "対象プレイヤーまたはUUIDが見つかりません: " + args[0]);
+            sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5300.getId(), args[0]));
             return;
         }
 
@@ -43,21 +51,33 @@ public class UserPermissionCommand extends AstCommand {
         try {
             permission = Integer.parseInt(args[1]);
         } catch (NumberFormatException e) {
-            sendError(sender, "permission は数値で指定してください。");
+            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5301.getId()));
+            return;
+        }
+        if (permission >= 100) {
+            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5301.getId()));
             return;
         }
 
-        var userService = AstralRecord.getInstance().getUserService();
+        UserService userService = AstralRecord.getInstance().getUserService();
         if (userService == null) {
-            sendError(sender, "UserService が初期化されていません。");
+            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5302.getId()));
             return;
         }
 
-        UserModel updated = userService.setPermission(targetUuid, permission, getUpdatedBy(sender));
+        // 監査ログ用に変更前 permission を取得（取得失敗時は null として記録する）
+        UserModel before = userService.getUser(targetUuid);
+        Integer previousPermission = (before != null) ? before.getPermission() : null;
+
+        UUID executorUuid = getUpdatedBy(sender);
+        UserModel updated = userService.setPermission(targetUuid, permission, executorUuid);
         if (updated == null) {
-            sendError(sender, "ユーザー更新後の取得に失敗しました: " + targetUuid);
+            sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5303.getId(), targetUuid));
             return;
         }
+
+        String source = (sender instanceof Player) ? SOURCE_PLAYER : SOURCE_CONSOLE;
+        Logger.log(LogId.I_5053, executorUuid, targetUuid, previousPermission, updated.getPermission(), source);
 
         var online = Bukkit.getPlayer(targetUuid);
         if (online != null) {
@@ -67,7 +87,7 @@ public class UserPermissionCommand extends AstCommand {
             }
         }
 
-        sendSuccess(sender, "permission を更新しました: " + updated.getMcid() + " = " + updated.getPermission());
+        sendSuccess(sender, PlayerMsgResource.format(PlayerMsgId.P_5304.getId(), updated.getMcid(), updated.getPermission()));
     }
 
     private UUID resolveUuid(@NotNull String value) {

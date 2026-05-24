@@ -124,4 +124,30 @@ public class UserService {
         userRepository.updatePermission(uuid, permission, updatedBy);
         return getUser(uuid);
     }
+
+    /**
+     * ユーザー履歴を登録します。
+     * 他 feature から渡された履歴イベントを user feature が所有する履歴 API へ登録します。
+     *
+     * @param userUuid  対象ユーザー UUID
+     * @param eventType 履歴種別
+     * @param source    履歴発生元
+     * @param message   履歴メッセージ
+     * @throws IllegalArgumentException 必須項目が欠落している場合
+     */
+    public void recordUserHistory(UUID userUuid, String eventType, String source, String message) {
+        if (userUuid == null) {
+            throw new IllegalArgumentException("userUuid is required");
+        }
+        if (eventType == null || eventType.isEmpty()) {
+            throw new IllegalArgumentException("eventType is required");
+        }
+        if (source == null || source.isEmpty()) {
+            throw new IllegalArgumentException("source is required");
+        }
+        if (message == null || message.isEmpty()) {
+            throw new IllegalArgumentException("message is required");
+        }
+        userRepository.insertHistory(userUuid, eventType, source, message);
+    }
 }

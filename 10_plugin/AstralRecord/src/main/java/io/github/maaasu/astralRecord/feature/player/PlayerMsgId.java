@@ -295,6 +295,29 @@ public enum PlayerMsgId {
     P_5241(5241),
     // endregion
 
+    // region /feature/user/command/UserPermissionCommand.java 5300-5309
+    /**
+     * 対象プレイヤーまたはUUIDが見つかりません: {0}
+     */
+    P_5300(5300),
+    /**
+     * permission は99以下の数値で指定してください。
+     */
+    P_5301(5301),
+    /**
+     * UserService が初期化されていません。
+     */
+    P_5302(5302),
+    /**
+     * ユーザー更新後の取得に失敗しました: {0}
+     */
+    P_5303(5303),
+    /**
+     * permission を更新しました: {0} = {1}
+     */
+    P_5304(5304),
+    // endregion
+
     // region /feature/inventory/command/InventoryCommand.java 5250-5269
     /**
      * 現在の mode では AstralRecord インベントリを反映しません。

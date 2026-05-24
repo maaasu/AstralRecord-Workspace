@@ -289,6 +289,22 @@ public enum LogId {
      * ログイン情報の更新に失敗しました (API): %s
      */
     E_5058(5058),
+    /**
+     * permissionを更新しました (API): %s → %s
+     */
+    D_5059(5059),
+    /**
+     * permissionの更新に失敗しました (API): %s
+     */
+    E_5059(5059),
+    /**
+     * ユーザー履歴を登録しました (API): user=%s, eventType=%s
+     */
+    D_5060(5060),
+    /**
+     * ユーザー履歴の登録に失敗しました (API): %s
+     */
+    E_5060(5060),
     // endregion
 
     // region /feature/user/service/UserService.java
@@ -304,6 +320,13 @@ public enum LogId {
      * ユーザー取得をスキップしました（API一時障害）: %s (%s)
      */
     W_5052(5052),
+    // endregion
+
+    // region /feature/user/command/UserPermissionCommand.java
+    /**
+     * permission を変更しました: 実行者=%s, 対象=%s, 変更前=%s, 変更後=%s, 経路=%s
+     */
+    I_5053(5053),
     // endregion
 
     // region /feature/player/event/PlayerJoinEventHandler.java
