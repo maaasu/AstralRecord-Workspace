@@ -17,7 +17,7 @@ public class UserCommand extends AstCommand {
      * ユーザー管理コマンドを初期化します。
      */
     public UserCommand() {
-        super("user", "Manage users.", "/user <permission>", false, 99);
+        super("user", "Manage users.", "/user permission <permission> [<player|uuid>]", false, 99);
     }
 
     /**

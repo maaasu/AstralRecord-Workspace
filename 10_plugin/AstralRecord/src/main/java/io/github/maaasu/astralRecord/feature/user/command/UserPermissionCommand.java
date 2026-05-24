@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.user.model.SystemUser;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
+import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -14,6 +15,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -23,39 +25,33 @@ public class UserPermissionCommand extends AstCommand {
     private static final String SOURCE_CONSOLE = "CONSOLE";
 
     public UserPermissionCommand() {
-        super("userpermission", "Set user permission.", "/user permission <player|uuid> <permission>", false, 99);
+        super("userpermission", "Set user permission.",
+                "/user permission <permission> [<player|uuid>]", false, 99);
     }
 
     @Override
     protected void executeCommand(@NotNull CommandSender sender, @NotNull String[] args) {
         if (sender instanceof Player player) {
             var astPlayer = AstPlayerCache.get(player);
-            if (astPlayer == null || astPlayer.getUser().getPermission() < 99) {
+            if (astPlayer == null || astPlayer.getUser().getPermission() < UserPermission.ADMIN.getValue()) {
                 sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5061.getId()));
                 return;
             }
         }
 
-        if (args.length < 2) {
+        if (args.length < 1) {
             sendUsage(sender);
             return;
         }
 
-        UUID targetUuid = resolveUuid(args[0]);
-        if (targetUuid == null) {
-            sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5300.getId(), args[0]));
+        UserPermission permission = UserPermission.Companion.parse(args[0]);
+        if (permission == null) {
+            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5301.getId()));
             return;
         }
 
-        int permission;
-        try {
-            permission = Integer.parseInt(args[1]);
-        } catch (NumberFormatException e) {
-            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5301.getId()));
-            return;
-        }
-        if (permission >= 100) {
-            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5301.getId()));
+        UUID targetUuid = resolveTargetUuid(sender, args);
+        if (targetUuid == null) {
             return;
         }
 
@@ -70,7 +66,7 @@ public class UserPermissionCommand extends AstCommand {
         Integer previousPermission = (before != null) ? before.getPermission() : null;
 
         UUID executorUuid = getUpdatedBy(sender);
-        UserModel updated = userService.setPermission(targetUuid, permission, executorUuid);
+        UserModel updated = userService.setPermission(targetUuid, permission.getValue(), executorUuid);
         if (updated == null) {
             sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5303.getId(), targetUuid));
             return;
@@ -88,6 +84,33 @@ public class UserPermissionCommand extends AstCommand {
         }
 
         sendSuccess(sender, PlayerMsgResource.format(PlayerMsgId.P_5304.getId(), updated.getMcid(), updated.getPermission()));
+    }
+
+    /**
+     * 対象プレイヤー UUID を解決します。
+     * <p>
+     * プレイヤー指定が省略された場合、送信者がプレイヤーであれば自身を対象にします。
+     * コンソール実行で省略された場合はエラーメッセージを送信して `null` を返します。
+     *
+     * @param sender コマンド送信者
+     * @param args コマンド引数
+     * @return 対象 UUID。解決できない場合は `null`
+     */
+    @Nullable
+    private UUID resolveTargetUuid(@NotNull CommandSender sender, @NotNull String[] args) {
+        if (args.length < 2) {
+            if (sender instanceof Player player) {
+                return player.getUniqueId();
+            }
+            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5305.getId()));
+            return null;
+        }
+
+        UUID resolved = resolveUuid(args[1]);
+        if (resolved == null) {
+            sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5300.getId(), args[1]));
+        }
+        return resolved;
     }
 
     private UUID resolveUuid(@NotNull String value) {

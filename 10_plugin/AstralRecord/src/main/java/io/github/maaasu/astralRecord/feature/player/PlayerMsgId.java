@@ -316,6 +316,10 @@ public enum PlayerMsgId {
      * permission を更新しました: {0} = {1}
      */
     P_5304(5304),
+    /**
+     * このコマンドをコンソールから実行する場合は対象プレイヤーの指定が必要です。
+     */
+    P_5305(5305),
     // endregion
 
     // region /feature/inventory/command/InventoryCommand.java 5250-5269

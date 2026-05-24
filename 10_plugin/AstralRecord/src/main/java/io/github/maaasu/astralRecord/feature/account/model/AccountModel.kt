@@ -4,15 +4,17 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 /**
- * 権限モードを表す列挙型。
+ * アカウントモードを表す列挙型。
+ *
+ * 番号・英語ID・日本語表示の 3 種で管理する。
  */
-enum class AccountMode(val value: Byte) {
+enum class AccountMode(val value: Byte, val displayName: String) {
     /** 通常プレイヤー（デフォルト） */
-    PLAYER(0),
+    PLAYER(0, "プレイヤー"),
     /** ビルド権限を持つプレイヤー */
-    BUILDER(1),
+    BUILDER(1, "ビルダー"),
     /** サーバー管理権限を持つプレイヤー */
-    ADMIN(2);
+    ADMIN(2, "サーバー管理者");
 
     fun shouldReflectInventoryToGui(): Boolean =
         this == PLAYER
@@ -22,10 +24,33 @@ enum class AccountMode(val value: Byte) {
          * バイト値から AccountMode を取得します。
          *
          * @param value バイト値
-         * @return 対応する AccountMode
+         * @return 対応する AccountMode。一致がない場合は [PLAYER]
          */
         fun fromValue(value: Byte): AccountMode =
             entries.firstOrNull { it.value == value } ?: PLAYER
+
+        /**
+         * 名称（大小文字無視）から AccountMode を取得します。
+         *
+         * @param name 英語ID（`PLAYER` / `BUILDER` / `ADMIN`）
+         * @return 一致するモード。一致がない場合は `null`
+         */
+        fun fromName(name: String): AccountMode? =
+            entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
+
+        /**
+         * 名称または数値文字列から AccountMode を取得します。
+         * 名称優先で解決し、整数として解析できる場合のみ数値で再解決します。
+         *
+         * @param token 入力トークン
+         * @return 一致するモード。一致がない場合は `null`
+         */
+        fun parse(token: String): AccountMode? {
+            fromName(token)?.let { return it }
+            val intValue = token.toIntOrNull() ?: return null
+            if (intValue < Byte.MIN_VALUE || intValue > Byte.MAX_VALUE) return null
+            return entries.firstOrNull { it.value == intValue.toByte() }
+        }
     }
 }
 
