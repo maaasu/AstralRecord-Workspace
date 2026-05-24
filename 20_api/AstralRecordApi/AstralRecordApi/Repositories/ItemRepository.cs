@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using AstralRecordApi.Data;
 using AstralRecordApi.Models;
 using Microsoft.EntityFrameworkCore;
@@ -28,16 +29,23 @@ public class ItemRepository(MasterDataDbContext dbContext) : IItemRepository
 
     public ItemResponse? GetById(string itemId)
     {
-        var payload = dbContext.Entries
+        var entry = dbContext.Entries
             .AsNoTracking()
             .Where(entry => !entry.IsDeleted
                 && entry.MasterType == MasterType
                 && entry.MasterId == itemId)
-            .Select(entry => entry.PayloadJson)
+            .Select(entry => new { entry.PayloadJson, entry.Category })
             .FirstOrDefault();
 
-        return payload is null
-            ? null
-            : MasterDataPayloadJson.Deserialize<ItemResponse>(payload);
+        if (entry?.PayloadJson is null)
+            return null;
+
+        // category は YAML 本文に含まれず、Seeder がサブディレクトリ名から
+        // master_data_entry.category 列に書き込んでいるため、ここで JSON にマージする。
+        var node = JsonNode.Parse(entry.PayloadJson)?.AsObject();
+        if (node is null)
+            return null;
+        node["category"] = entry.Category ?? string.Empty;
+        return MasterDataPayloadJson.Deserialize<ItemResponse>(node.ToJsonString());
     }
 }
