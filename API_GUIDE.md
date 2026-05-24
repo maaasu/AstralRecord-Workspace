@@ -49,6 +49,8 @@
 | DELETE `/api/inventory/entries/{inventoryEntryId}` | インベントリエントリ削除 | `00_docs/20_API設計書/feature/13-inventory/3-エンドポイント仕様/13_3.00-索引.md` |
 | GET `/api/item` | アイテム一覧取得 | `00_docs/20_API設計書/feature/04-item/3-エンドポイント仕様/04_3.00-索引.md` |
 | GET `/api/item/{itemId}` | アイテム取得 | `00_docs/20_API設計書/feature/04-item/3-エンドポイント仕様/04_3.00-索引.md` |
+| GET `/api/seteffect` | セット効果一覧取得 | `00_docs/20_API設計書/feature/04-item/3-エンドポイント仕様/04_3.00-索引.md` |
+| GET `/api/seteffect/{setId}` | セット効果取得 | `00_docs/20_API設計書/feature/04-item/3-エンドポイント仕様/04_3.00-索引.md` |
 | POST `/api/equipment/instances` | 装備インスタンス作成 | `00_docs/20_API設計書/feature/14-equipment/3-エンドポイント仕様/14_3.00-索引.md` |
 | GET `/api/equipment/instances/{instanceId}` | 装備インスタンス取得 | `00_docs/20_API設計書/feature/14-equipment/3-エンドポイント仕様/14_3.00-索引.md` |
 | POST `/api/equipment/enchant` | エンチャント適用 | `00_docs/20_API設計書/feature/14-equipment/3-エンドポイント仕様/14_3.00-索引.md` |

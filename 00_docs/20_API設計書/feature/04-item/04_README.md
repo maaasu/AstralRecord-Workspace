@@ -9,9 +9,13 @@
 ## 対象実装パス
 
 - `20_api/AstralRecordApi/AstralRecordApi/Controllers/ItemController.cs`
+- `20_api/AstralRecordApi/AstralRecordApi/Controllers/SetEffectController.cs`
 - `20_api/AstralRecordApi/AstralRecordApi/Models/ItemResponse.cs`
+- `20_api/AstralRecordApi/AstralRecordApi/Models/SetEffectResponse.cs`
 - `20_api/AstralRecordApi/AstralRecordApi/Repositories/IItemRepository.cs`
 - `20_api/AstralRecordApi/AstralRecordApi/Repositories/ItemRepository.cs`
+- `20_api/AstralRecordApi/AstralRecordApi/Repositories/ISetEffectRepository.cs`
+- `20_api/AstralRecordApi/AstralRecordApi/Repositories/SetEffectRepository.cs`
 
 ## 対応プラグイン feature
 
