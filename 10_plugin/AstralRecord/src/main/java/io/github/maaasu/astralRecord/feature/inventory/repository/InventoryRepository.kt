@@ -92,6 +92,51 @@ class InventoryRepository {
         return sendWithBody(path, "PUT", body, ::parseInventoryEntryModel)
     }
 
+    fun replaceEntries(
+        inventoryId: UUID,
+        drafts: List<InventoryEntryDraft>,
+        updatedBy: UUID,
+    ): List<InventoryEntryModel> {
+        val path = "/api/inventory/$inventoryId/entries"
+        val body = ApiRequestUtil.buildJsonBody {
+            addProperty("updatedBy", updatedBy.toString())
+            val entries = JsonArray()
+            drafts.forEach { draft ->
+                val entry = JsonObject()
+                if (draft.slotIndex != null) {
+                    entry.addProperty("slotIndex", draft.slotIndex)
+                } else {
+                    entry.addProperty("slotIndex", null as Number?)
+                }
+                entry.addProperty("itemCategory", draft.itemCategory)
+                if (draft.itemId != null) {
+                    entry.addProperty("itemId", draft.itemId)
+                } else {
+                    entry.addProperty("itemId", null as String?)
+                }
+                if (draft.instanceType != null) {
+                    entry.addProperty("instanceType", draft.instanceType)
+                } else {
+                    entry.addProperty("instanceType", null as String?)
+                }
+                if (draft.instanceId != null) {
+                    entry.addProperty("instanceId", draft.instanceId.toString())
+                } else {
+                    entry.addProperty("instanceId", null as String?)
+                }
+                entry.addProperty("quantity", draft.quantity)
+                if (draft.metadataJson != null) {
+                    entry.addProperty("metadataJson", draft.metadataJson)
+                } else {
+                    entry.addProperty("metadataJson", null as String?)
+                }
+                entries.add(entry)
+            }
+            add("entries", entries)
+        }
+        return sendWithBody(path, "PUT", body, ::parseInventoryEntryList)
+    }
+
     fun deleteEntry(
         inventoryEntryId: UUID,
         updatedBy: UUID,

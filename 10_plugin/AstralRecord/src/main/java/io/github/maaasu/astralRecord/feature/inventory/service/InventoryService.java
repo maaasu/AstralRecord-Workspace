@@ -23,14 +23,9 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
-import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
-import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.ItemFlag;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -49,7 +44,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 public class InventoryService {
     private static final InventoryProfile DEFAULT_PROFILE = InventoryProfile.GAME;
@@ -65,20 +59,12 @@ public class InventoryService {
     private final ItemService itemService;
     private final InventoryItemStackResolver itemStackResolver;
     private final InventorySnapshotCodec snapshotCodec;
+    private final InventoryEntryWriteBuffer entryWriteBuffer;
+    private final HotbarRenderer hotbarRenderer;
     private final Map<UUID, List<InventoryModel>> inventoryCache = new ConcurrentHashMap<>();
-    private final Map<UUID, List<InventoryEntryModel>> entryCache = new ConcurrentHashMap<>();
     private final Map<UUID, CompletableFuture<InventoryModel>> pendingInventoryCreates = new ConcurrentHashMap<>();
-    private final Set<UUID> pendingEntryCreates = ConcurrentHashMap.newKeySet();
-    private final Set<UUID> pendingEntryDeletes = ConcurrentHashMap.newKeySet();
-    /**
-     * 楽観的更新中の entry ID。
-     * API への UPDATE 完了前に {@link #refreshEntries} が走った場合、
-     * DB から取得した古い slot_index などでキャッシュを上書きしてしまうのを防ぐために使用する。
-     */
-    private final Set<UUID> pendingEntryUpdates = ConcurrentHashMap.newKeySet();
     private final Set<CompletableFuture<?>> pendingWriteTasks = ConcurrentHashMap.newKeySet();
     private final Set<UUID> refreshingInventories = ConcurrentHashMap.newKeySet();
-    private final Set<UUID> refreshingEntries = ConcurrentHashMap.newKeySet();
     private final Set<UUID> refreshingLoadouts = ConcurrentHashMap.newKeySet();
     private final Map<UUID, InventoryType> displayedInventoryTypes = new ConcurrentHashMap<>();
     private final Map<UUID, List<EquipmentLoadoutModel>> equipmentLoadoutCache = new ConcurrentHashMap<>();
@@ -98,6 +84,12 @@ public class InventoryService {
         this.itemService = itemService;
         this.itemStackResolver = new InventoryItemStackResolver(itemService, itemStackFactory);
         this.snapshotCodec = new InventorySnapshotCodec();
+        this.entryWriteBuffer = new InventoryEntryWriteBuffer(
+            inventoryRepository,
+            pendingInventoryCreates,
+            pendingWriteTasks
+        );
+        this.hotbarRenderer = new HotbarRenderer(itemStackResolver);
     }
 
     public List<InventoryModel> getInventories(UUID accountId) {
@@ -110,7 +102,7 @@ public class InventoryService {
     }
 
     public List<InventoryEntryModel> getEntries(UUID inventoryId) {
-        refreshEntriesAsync(inventoryId);
+        entryWriteBuffer.refreshEntriesAsync(inventoryId);
         return getCachedEntries(inventoryId);
     }
 
@@ -132,14 +124,6 @@ public class InventoryService {
         return createInventoryOptimistically(accountId, inventoryType, slotCapacity, createdBy, DEFAULT_PROFILE, null);
     }
 
-    public InventoryEntryModel addEntry(
-        UUID inventoryId,
-        InventoryEntryDraft draft,
-        UUID createdBy
-    ) {
-        return createEntryOptimistically(inventoryId, draft, createdBy);
-    }
-
     /**
      * 表示用キャッシュからアカウントのインベントリ一覧を取得します。
      *
@@ -157,7 +141,7 @@ public class InventoryService {
      * @return キャッシュ済み entry 一覧
      */
     private @NotNull List<InventoryEntryModel> getCachedEntries(@NotNull UUID inventoryId) {
-        return entryCache.getOrDefault(inventoryId, List.of());
+        return entryWriteBuffer.getCachedEntries(inventoryId);
     }
 
     private @Nullable InventoryModel findCachedInventory(@NotNull UUID inventoryId) {
@@ -177,7 +161,7 @@ public class InventoryService {
                 List<InventoryModel> inventories = inventoryRepository.findByAccountId(accountId);
                 inventoryCache.put(accountId, List.copyOf(inventories));
                 for (InventoryModel inventory : inventories) {
-                    refreshEntries(inventory.getInventoryId());
+                    entryWriteBuffer.refreshEntries(inventory.getInventoryId());
                 }
             } catch (RuntimeException e) {
                 Logger.warn(LogId.W_5252, accountId, e.getMessage());
@@ -185,39 +169,6 @@ public class InventoryService {
                 refreshingInventories.remove(accountId);
             }
         });
-    }
-
-    private void refreshEntriesAsync(@NotNull UUID inventoryId) {
-        if (!refreshingEntries.add(inventoryId)) {
-            return;
-        }
-        CompletableFuture.runAsync(() -> {
-            try {
-                refreshEntries(inventoryId);
-            } catch (RuntimeException e) {
-                Logger.warn(LogId.W_5252, inventoryId, e.getMessage());
-            } finally {
-                refreshingEntries.remove(inventoryId);
-            }
-        });
-    }
-
-    private void refreshEntries(@NotNull UUID inventoryId) {
-        List<InventoryEntryModel> cached = getCachedEntries(inventoryId);
-        List<InventoryEntryModel> pendingCreates = cached.stream()
-            .filter(entry -> pendingEntryCreates.contains(entry.getInventoryEntryId()))
-            .toList();
-        Map<UUID, InventoryEntryModel> pendingUpdates = new HashMap<>();
-        for (InventoryEntryModel entry : cached) {
-            if (pendingEntryUpdates.contains(entry.getInventoryEntryId())) {
-                pendingUpdates.put(entry.getInventoryEntryId(), entry);
-            }
-        }
-        List<InventoryEntryModel> refreshed = new ArrayList<>(inventoryRepository.findEntries(inventoryId));
-        refreshed.removeIf(entry -> pendingEntryDeletes.contains(entry.getInventoryEntryId()));
-        refreshed.replaceAll(entry -> pendingUpdates.getOrDefault(entry.getInventoryEntryId(), entry));
-        refreshed.addAll(pendingCreates);
-        entryCache.put(inventoryId, List.copyOf(refreshed));
     }
 
     private void refreshEquipmentLoadoutsAsync(@NotNull UUID accountId) {
@@ -250,7 +201,7 @@ public class InventoryService {
                 .findFirst()
                 .orElse(null);
             if (selected != null) {
-                refreshEntries(selected.getInventoryId());
+                entryWriteBuffer.refreshEntries(selected.getInventoryId());
             }
             return selected;
         }).thenAccept(selected -> {
@@ -311,125 +262,12 @@ public class InventoryService {
         return optimistic;
     }
 
-    private @NotNull InventoryEntryModel createEntryOptimistically(
+    private @NotNull List<InventoryEntryModel> replaceEntriesOptimistically(
         @NotNull UUID inventoryId,
-        @NotNull InventoryEntryDraft draft,
-        @NotNull UUID createdBy
-    ) {
-        UUID temporaryId = UUID.randomUUID();
-        InventoryEntryModel optimistic = createEntryModel(temporaryId, inventoryId, draft, createdBy, false);
-        putEntryInCache(optimistic);
-        pendingEntryCreates.add(temporaryId);
-
-        CompletableFuture<InventoryModel> pendingInventory = pendingInventoryCreates.get(inventoryId);
-        CompletableFuture<InventoryEntryModel> createFuture = pendingInventory == null
-            ? CompletableFuture.supplyAsync(() -> inventoryRepository.createEntry(inventoryId, toDraft(findCachedEntry(temporaryId), draft), createdBy))
-            : pendingInventory.thenApply(savedInventory ->
-                inventoryRepository.createEntry(savedInventory.getInventoryId(), toDraft(findCachedEntry(temporaryId), draft), createdBy)
-            );
-
-        createFuture.whenComplete((saved, error) -> {
-            pendingEntryCreates.remove(temporaryId);
-            if (error != null) {
-                Logger.warn(LogId.W_5252, inventoryId, error.getMessage());
-                return;
-            }
-            replaceEntryInCache(temporaryId, saved);
-        });
-        return optimistic;
-    }
-
-    private @NotNull InventoryEntryModel createEntryOptimistically(
-        @NotNull UUID inventoryId,
-        @NotNull InventoryEntryDraft displayDraft,
-        @NotNull Supplier<InventoryEntryDraft> apiDraftSupplier,
-        @NotNull UUID createdBy
-    ) {
-        UUID temporaryId = UUID.randomUUID();
-        InventoryEntryModel optimistic = createEntryModel(temporaryId, inventoryId, displayDraft, createdBy, false);
-        putEntryInCache(optimistic);
-        pendingEntryCreates.add(temporaryId);
-
-        CompletableFuture<InventoryModel> pendingInventory = pendingInventoryCreates.get(inventoryId);
-        CompletableFuture<InventoryEntryModel> createFuture = pendingInventory == null
-            ? CompletableFuture.supplyAsync(() -> inventoryRepository.createEntry(inventoryId, apiDraftSupplier.get(), createdBy))
-            : pendingInventory.thenApply(savedInventory ->
-                inventoryRepository.createEntry(savedInventory.getInventoryId(), apiDraftSupplier.get(), createdBy)
-            );
-
-        createFuture.whenComplete((saved, error) -> {
-            pendingEntryCreates.remove(temporaryId);
-            if (error != null) {
-                Logger.warn(LogId.W_5252, inventoryId, error.getMessage());
-                return;
-            }
-            replaceEntryInCache(temporaryId, saved);
-        });
-        return optimistic;
-    }
-
-    private @NotNull InventoryEntryModel updateEntryOptimistically(
-        @NotNull UUID inventoryEntryId,
-        @NotNull InventoryEntryDraft draft,
+        @NotNull List<InventoryEntryDraft> drafts,
         @NotNull UUID updatedBy
     ) {
-        InventoryEntryModel current = findCachedEntry(inventoryEntryId);
-        if (current == null) {
-            pendingEntryUpdates.add(inventoryEntryId);
-            CompletableFuture.runAsync(() -> inventoryRepository.updateEntry(inventoryEntryId, draft, updatedBy))
-                .whenComplete((ignored, error) -> pendingEntryUpdates.remove(inventoryEntryId))
-                .exceptionally(error -> {
-                    Logger.warn(LogId.W_5252, inventoryEntryId, error.getMessage());
-                    return null;
-                });
-            return createEntryModel(inventoryEntryId, UUID.randomUUID(), draft, updatedBy, false);
-        }
-
-        InventoryEntryModel updated = new InventoryEntryModel(
-            current.getInventoryEntryId(),
-            current.getInventoryId(),
-            draft.getSlotIndex(),
-            draft.getItemCategory(),
-            draft.getItemId(),
-            draft.getInstanceType(),
-            draft.getInstanceId(),
-            draft.getQuantity(),
-            draft.getMetadataJson(),
-            current.getCreatedAt(),
-            LocalDateTime.now(),
-            current.getCreatedBy(),
-            updatedBy,
-            false
-        );
-        replaceEntryInCache(inventoryEntryId, updated);
-
-        if (pendingEntryCreates.contains(inventoryEntryId)) {
-            return updated;
-        }
-
-        pendingEntryUpdates.add(inventoryEntryId);
-        CompletableFuture.runAsync(() -> inventoryRepository.updateEntry(inventoryEntryId, draft, updatedBy))
-            .whenComplete((ignored, error) -> pendingEntryUpdates.remove(inventoryEntryId))
-            .exceptionally(error -> {
-                Logger.warn(LogId.W_5252, inventoryEntryId, error.getMessage());
-                return null;
-            });
-        return updated;
-    }
-
-    private void deleteEntryOptimistically(@NotNull UUID inventoryEntryId, @NotNull UUID updatedBy) {
-        pendingEntryDeletes.add(inventoryEntryId);
-        removeEntryFromCache(inventoryEntryId);
-        if (pendingEntryCreates.remove(inventoryEntryId)) {
-            pendingEntryDeletes.remove(inventoryEntryId);
-            return;
-        }
-        CompletableFuture.runAsync(() -> inventoryRepository.deleteEntry(inventoryEntryId, updatedBy))
-            .whenComplete((ignored, error) -> pendingEntryDeletes.remove(inventoryEntryId))
-            .exceptionally(error -> {
-                Logger.warn(LogId.W_5252, inventoryEntryId, error.getMessage());
-                return null;
-            });
+        return entryWriteBuffer.replaceEntriesOptimistically(inventoryId, drafts, updatedBy);
     }
 
     private void updateMetadataAsync(
@@ -476,50 +314,6 @@ public class InventoryService {
         }
     }
 
-    private @NotNull InventoryEntryModel createEntryModel(
-        @NotNull UUID entryId,
-        @NotNull UUID inventoryId,
-        @NotNull InventoryEntryDraft draft,
-        @NotNull UUID actorId,
-        boolean deleted
-    ) {
-        LocalDateTime now = LocalDateTime.now();
-        return new InventoryEntryModel(
-            entryId,
-            inventoryId,
-            draft.getSlotIndex(),
-            draft.getItemCategory(),
-            draft.getItemId(),
-            draft.getInstanceType(),
-            draft.getInstanceId(),
-            draft.getQuantity(),
-            draft.getMetadataJson(),
-            now,
-            now,
-            actorId,
-            actorId,
-            deleted
-        );
-    }
-
-    private @NotNull InventoryEntryDraft toDraft(
-        @Nullable InventoryEntryModel entry,
-        @NotNull InventoryEntryDraft fallback
-    ) {
-        if (entry == null) {
-            return fallback;
-        }
-        return new InventoryEntryDraft(
-            entry.getSlotIndex(),
-            entry.getItemCategory(),
-            entry.getItemId(),
-            entry.getInstanceType(),
-            entry.getInstanceId(),
-            entry.getQuantity(),
-            entry.getMetadataJson()
-        );
-    }
-
     private void putInventoryInCache(@NotNull InventoryModel inventory) {
         inventoryCache.compute(inventory.getAccountId(), (accountId, current) -> {
             List<InventoryModel> next = new ArrayList<>(current == null ? List.of() : current);
@@ -537,8 +331,8 @@ public class InventoryService {
             return Collections.unmodifiableList(next);
         });
 
-        List<InventoryEntryModel> temporaryEntries = entryCache.remove(temporaryId);
-        if (temporaryEntries != null && !temporaryEntries.isEmpty()) {
+        List<InventoryEntryModel> temporaryEntries = entryWriteBuffer.removeEntriesFromCache(temporaryId);
+        if (!temporaryEntries.isEmpty()) {
             List<InventoryEntryModel> remapped = temporaryEntries.stream()
                 .map(entry -> new InventoryEntryModel(
                     entry.getInventoryEntryId(),
@@ -557,7 +351,7 @@ public class InventoryService {
                     entry.isDeleted()
                 ))
                 .toList();
-            entryCache.put(saved.getInventoryId(), List.copyOf(remapped));
+            entryWriteBuffer.putEntriesInCache(saved.getInventoryId(), remapped);
         }
     }
 
@@ -585,38 +379,6 @@ public class InventoryService {
             cached.isDeleted()
         );
         putInventoryInCache(updated);
-    }
-
-    private void putEntryInCache(@NotNull InventoryEntryModel entry) {
-        entryCache.compute(entry.getInventoryId(), (inventoryId, current) -> {
-            List<InventoryEntryModel> next = new ArrayList<>(current == null ? List.of() : current);
-            next.removeIf(cached -> cached.getInventoryEntryId().equals(entry.getInventoryEntryId()));
-            next.add(entry);
-            return Collections.unmodifiableList(next);
-        });
-    }
-
-    private @Nullable InventoryEntryModel findCachedEntry(@NotNull UUID inventoryEntryId) {
-        return entryCache.values().stream()
-            .flatMap(List::stream)
-            .filter(entry -> entry.getInventoryEntryId().equals(inventoryEntryId))
-            .findFirst()
-            .orElse(null);
-    }
-
-    private void replaceEntryInCache(@NotNull UUID entryId, @NotNull InventoryEntryModel replacement) {
-        removeEntryFromCache(entryId);
-        putEntryInCache(replacement);
-    }
-
-    private void removeEntryFromCache(@NotNull UUID inventoryEntryId) {
-        for (UUID inventoryId : List.copyOf(entryCache.keySet())) {
-            entryCache.computeIfPresent(inventoryId, (id, current) -> {
-                List<InventoryEntryModel> next = new ArrayList<>(current);
-                next.removeIf(entry -> entry.getInventoryEntryId().equals(inventoryEntryId));
-                return Collections.unmodifiableList(next);
-            });
-        }
     }
 
     /**
@@ -1047,39 +809,13 @@ public class InventoryService {
             accountId
         );
 
-        var existingEntries = getEntries(equipInventory.getInventoryId());
-        existingEntries.stream()
-            .filter(e -> e.getSlotIndex() != null && e.getSlotIndex() == slotIndex && !e.isDeleted())
-            .findFirst()
-            .ifPresent(existing -> updateEntryOptimistically(
-                existing.getInventoryEntryId(),
-                new InventoryEntryDraft(
-                    existing.getSlotIndex(),
-                    entry.getItemCategory(),
-                    entry.getItemId(),
-                    entry.getInstanceType(),
-                    entry.getInstanceId(),
-                    entry.getQuantity(),
-                    entry.getMetadataJson()
-                ),
-                accountId
-            ));
-
-        if (existingEntries.stream().noneMatch(e -> e.getSlotIndex() != null && e.getSlotIndex() == slotIndex && !e.isDeleted())) {
-            addEntry(
-                equipInventory.getInventoryId(),
-                new InventoryEntryDraft(
-                    slotIndex,
-                    entry.getItemCategory(),
-                    entry.getItemId(),
-                    entry.getInstanceType(),
-                    entry.getInstanceId(),
-                    entry.getQuantity(),
-                    entry.getMetadataJson()
-                ),
-                accountId
-            );
-        }
+        List<InventoryEntryDraft> drafts = getEntries(equipInventory.getInventoryId()).stream()
+            .filter(e -> e.getSlotIndex() == null || e.getSlotIndex() != slotIndex || e.isDeleted())
+            .filter(e -> !e.isDeleted())
+            .map(e -> copyEntryDraft(e, e.getSlotIndex()))
+            .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+        drafts.add(copyEntryDraft(entry, slotIndex));
+        replaceEntriesOptimistically(equipInventory.getInventoryId(), drafts, accountId);
 
         EquipmentType.fromEquipSlotIndex(slotIndex)
             .applyTo(astPlayer.getBukkit().getInventory(), itemStackResolver.resolve(entry));
@@ -1128,7 +864,7 @@ public class InventoryService {
             if (hotbar == null) {
                 return null;
             }
-            refreshEntries(hotbar.getInventoryId());
+            entryWriteBuffer.refreshEntries(hotbar.getInventoryId());
             return hotbar.getInventoryId();
         }).thenAccept(hotbarInventoryId -> {
             AstralRecord plugin = AstralRecord.getInstance();
@@ -1286,10 +1022,10 @@ public class InventoryService {
                 || itemSlot == ItemEquipmentSlot.CHEST
                 || itemSlot == ItemEquipmentSlot.LEGS
                 || itemSlot == ItemEquipmentSlot.FEET) {
-                return equipArmorItem(astPlayer, sourceItem, sourceBukkitSlot, EquipmentType.fromItemEquipmentSlot(itemSlot));
+                return equipArmorItem(astPlayer, sourceEntry, sourceItem, sourceBukkitSlot, EquipmentType.fromItemEquipmentSlot(itemSlot));
             }
             if (itemSlot == ItemEquipmentSlot.ACCESSORY) {
-                return equipAccessoryItem(astPlayer, sourceItem, sourceBukkitSlot);
+                return equipAccessoryItem(astPlayer, sourceEntry, sourceItem, sourceBukkitSlot);
             }
             if (itemSlot == ItemEquipmentSlot.WEAPON || itemSlot == ItemEquipmentSlot.TOOL) {
                 return assignHotbarItem(astPlayer, sourceEntry, sourceBukkitSlot);
@@ -1306,6 +1042,7 @@ public class InventoryService {
 
     private boolean equipArmorItem(
         @NotNull AstPlayer astPlayer,
+        @NotNull InventoryEntryModel sourceEntry,
         @NotNull ItemStack clickedItem,
         int sourceBukkitSlot,
         @NotNull EquipmentType equipmentType
@@ -1319,18 +1056,17 @@ public class InventoryService {
         equipmentType.applyTo(inventory, clickedItem.clone());
         inventory.setItem(sourceBukkitSlot, emptyToAir(previous));
 
-        deleteDisplayedEntryAtBukkitSlot(astPlayer, sourceBukkitSlot);
-        compactDisplayedInventory(astPlayer);
-        saveDisplayedStorageSnapshotIfNormal(astPlayer);
+        removeDisplayedEntryAfterMove(astPlayer, sourceEntry);
+        returnReplacedItemToOwnedInventory(astPlayer, previous);
         saveEquipSlotSnapshot(astPlayer);
         syncCurrentEquipmentState(astPlayer);
-        applyDisplayedInventoryToGui(astPlayer);
-        astPlayer.getBukkit().updateInventory();
+        requestManagedInventoryUiRefresh(astPlayer, false);
         return true;
     }
 
     private boolean equipAccessoryItem(
         @NotNull AstPlayer astPlayer,
+        @NotNull InventoryEntryModel sourceEntry,
         @NotNull ItemStack clickedItem,
         int sourceBukkitSlot
     ) {
@@ -1353,12 +1089,12 @@ public class InventoryService {
             updateAccessorySnapshotSlot(astPlayer, accessorySlot, clickedItem.clone());
         }
 
-        deleteDisplayedEntryAtBukkitSlot(astPlayer, sourceBukkitSlot);
-        compactDisplayedInventory(astPlayer);
-        saveDisplayedStorageSnapshotIfNormal(astPlayer);
+        removeDisplayedEntryAfterMove(astPlayer, sourceEntry);
+        if (accessorySlot == AccessorySlotLayout.SLOT_OFF_HAND) {
+            returnReplacedItemToOwnedInventory(astPlayer, inventory.getItem(sourceBukkitSlot));
+        }
         syncCurrentEquipmentState(astPlayer);
-        applyDisplayedInventoryToGui(astPlayer);
-        astPlayer.getBukkit().updateInventory();
+        requestManagedInventoryUiRefresh(astPlayer, false);
         return true;
     }
 
@@ -1377,37 +1113,108 @@ public class InventoryService {
         }
 
         upsertHotbarEntry(astPlayer, sourceEntry, targetDbSlot);
-        deleteDisplayedEntryAtBukkitSlot(astPlayer, sourceBukkitSlot);
-        compactDisplayedInventory(astPlayer);
-        applyDisplayedInventoryToGui(astPlayer);
-        renderHotbarInventory(astPlayer);
-        AstralRecord plugin = AstralRecord.getInstance();
-        if (plugin != null) {
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
-                if (!astPlayer.getBukkit().isOnline()) {
-                    return;
-                }
-                applyDisplayedInventoryToGui(astPlayer);
-                renderHotbarInventory(astPlayer);
-                astPlayer.getBukkit().updateInventory();
-            });
-        }
+        removeDisplayedEntryAfterMove(astPlayer, sourceEntry);
+        requestManagedInventoryUiRefresh(astPlayer, true);
         return true;
     }
 
     /**
-     * 現在表示中のインベントリの entry を slot_index 1, 2, 3, ... へ詰め直します。
+     * 装備 GUI 内へ移動した表示中インベントリの entry を削除し、必要に応じて入れ替え元アイテムを戻します。
      *
      * @param astPlayer 対象プレイヤー
+     * @param sourceBukkitSlot 移動元 Bukkit storage slot
+     * @param replacedItem 装備 GUI 側で入れ替えられたアイテム。ない場合は null
+     * @return 元 entry の削除と返却処理が成功した場合 true
      */
-    private void compactDisplayedInventory(@NotNull AstPlayer astPlayer) {
+    public boolean moveDisplayedItemToEquipmentGui(
+        @NotNull AstPlayer astPlayer,
+        int sourceBukkitSlot,
+        @Nullable ItemStack replacedItem
+    ) {
+        boolean hasReplacedItem = replacedItem != null && replacedItem.getType() != Material.AIR;
+        if (hasReplacedItem
+            && (ItemStackFactory.getAstralItemId(replacedItem) == null || ItemStackFactory.getCategory(replacedItem) == null)) {
+            return false;
+        }
+
+        InventoryEntryModel sourceEntry = findDisplayedEntryAtBukkitSlot(astPlayer, sourceBukkitSlot);
+        if (sourceEntry == null) {
+            return false;
+        }
+
+        removeDisplayedEntryAfterMove(astPlayer, sourceEntry);
+        if (hasReplacedItem && returnItemToOwnedInventory(astPlayer, replacedItem.clone()) == null) {
+            return false;
+        }
+        requestManagedInventoryUiRefresh(astPlayer, false);
+        return true;
+    }
+
+    /**
+     * 表示中インベントリから他の管理領域へ移動した entry を削除し、詰め直します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param sourceEntry 移動元 entry
+     */
+    private void removeDisplayedEntryAfterMove(
+        @NotNull AstPlayer astPlayer,
+        @NotNull InventoryEntryModel sourceEntry
+    ) {
         UUID accountId = astPlayer.getAccount().getUuid();
-        InventoryType displayedType = getDisplayedInventoryType(accountId);
-        inventoryRepository.findByAccountId(accountId).stream()
-            .filter(this::isDefaultProfile)
-            .filter(inv -> inv.getInventoryType() == displayedType)
-            .findFirst()
-            .ifPresent(inventory -> compactInventoryEntries(inventory.getInventoryId(), accountId));
+        List<InventoryEntryModel> remaining = getCachedEntries(sourceEntry.getInventoryId()).stream()
+            .filter(entry -> !entry.isDeleted())
+            .filter(entry -> !entry.getInventoryEntryId().equals(sourceEntry.getInventoryEntryId()))
+            .sorted(java.util.Comparator.<InventoryEntryModel, Integer>comparing(
+                entry -> entry.getSlotIndex() == null ? Integer.MAX_VALUE : entry.getSlotIndex()
+            ).thenComparing(InventoryEntryModel::getCreatedAt))
+            .toList();
+        List<InventoryEntryDraft> drafts = new ArrayList<>();
+        int next = NormalInventoryLayout.DB_SLOT_START;
+        for (InventoryEntryModel entry : remaining) {
+            drafts.add(copyEntryDraft(entry, next));
+            next++;
+        }
+        replaceEntriesOptimistically(sourceEntry.getInventoryId(), drafts, accountId);
+        saveDisplayedStorageSnapshotIfNormal(astPlayer);
+    }
+
+    private void returnReplacedItemToOwnedInventory(
+        @NotNull AstPlayer astPlayer,
+        @Nullable ItemStack replacedItem
+    ) {
+        if (replacedItem == null || replacedItem.getType() == Material.AIR) {
+            return;
+        }
+        returnItemToOwnedInventory(astPlayer, replacedItem.clone());
+    }
+
+    /**
+     * 管理インベントリの表示を即時と次 tick の両方で再描画します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param includeHotbar ホットバーも再描画する場合 true
+     */
+    private void requestManagedInventoryUiRefresh(@NotNull AstPlayer astPlayer, boolean includeHotbar) {
+        applyDisplayedInventoryToGui(astPlayer);
+        if (includeHotbar) {
+            renderHotbarInventory(astPlayer);
+        }
+        astPlayer.getBukkit().updateInventory();
+
+        AstralRecord plugin = AstralRecord.getInstance();
+        if (plugin == null) {
+            return;
+        }
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            if (!astPlayer.getBukkit().isOnline()) {
+                return;
+            }
+            applyDisplayedInventoryToGui(astPlayer);
+            if (includeHotbar) {
+                renderHotbarInventory(astPlayer);
+            }
+            astPlayer.getBukkit().updateInventory();
+        });
     }
 
     private int findNextHotbarSlot(@NotNull UUID accountId) {
@@ -1440,13 +1247,14 @@ public class InventoryService {
         var accountId = astPlayer.getAccount().getUuid();
         var hotbarInventory = ensureInventory(accountId, InventoryType.HOTBAR, HotbarLayout.CAPACITY, accountId);
         rebuildHotbarEntryCache(accountId);
-        Map<Integer, InventoryEntryModel> cachedEntries = hotbarEntryCache.computeIfAbsent(accountId, key -> new ConcurrentHashMap<>());
-        InventoryEntryModel existing = cachedEntries.get(targetDbSlot);
-        InventoryEntryDraft draft = copyEntryDraft(sourceEntry, targetDbSlot);
-        InventoryEntryModel saved = existing != null
-            ? updateEntryOptimistically(existing.getInventoryEntryId(), draft, accountId)
-            : addEntry(hotbarInventory.getInventoryId(), draft, accountId);
-        cachedEntries.put(targetDbSlot, saved);
+        List<InventoryEntryDraft> drafts = getCachedEntries(hotbarInventory.getInventoryId()).stream()
+            .filter(entry -> !entry.isDeleted())
+            .filter(entry -> entry.getSlotIndex() == null || entry.getSlotIndex() != targetDbSlot)
+            .map(entry -> copyEntryDraft(entry, entry.getSlotIndex()))
+            .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+        drafts.add(copyEntryDraft(sourceEntry, targetDbSlot));
+        List<InventoryEntryModel> saved = replaceEntriesOptimistically(hotbarInventory.getInventoryId(), drafts, accountId);
+        cacheHotbarEntries(accountId, saved);
     }
 
     /**
@@ -1470,22 +1278,21 @@ public class InventoryService {
             return false;
         }
 
-        InventoryEntryModel reusable = targetEntries.stream()
-            .filter(entry -> entry.getSlotIndex() == null && isSameEntryIdentity(entry, hotbarEntry))
-            .findFirst()
-            .orElse(null);
-        if (reusable != null) {
-            updateEntryOptimistically(reusable.getInventoryEntryId(), copyEntryDraft(hotbarEntry, targetSlot), accountId);
-        } else {
-            addEntry(targetInventory.getInventoryId(), copyEntryDraft(hotbarEntry, targetSlot), accountId);
-        }
+        List<InventoryEntryDraft> targetDrafts = targetEntries.stream()
+            .filter(entry -> !entry.isDeleted())
+            .map(entry -> copyEntryDraft(entry, entry.getSlotIndex()))
+            .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+        targetDrafts.add(copyEntryDraft(hotbarEntry, targetSlot));
+        replaceEntriesOptimistically(targetInventory.getInventoryId(), targetDrafts, accountId);
 
-        deleteEntryOptimistically(hotbarEntry.getInventoryEntryId(), accountId);
-        rebuildHotbarEntryCache(accountId);
-        Map<Integer, InventoryEntryModel> cachedEntries = hotbarEntryCache.computeIfAbsent(accountId, key -> new ConcurrentHashMap<>());
-        if (hotbarEntry.getSlotIndex() != null) {
-            cachedEntries.remove(hotbarEntry.getSlotIndex());
-        }
+        InventoryModel hotbarInventory = ensureInventory(accountId, InventoryType.HOTBAR, HotbarLayout.CAPACITY, accountId);
+        List<InventoryEntryDraft> hotbarDrafts = getCachedEntries(hotbarInventory.getInventoryId()).stream()
+            .filter(entry -> !entry.isDeleted())
+            .filter(entry -> !entry.getInventoryEntryId().equals(hotbarEntry.getInventoryEntryId()))
+            .map(entry -> copyEntryDraft(entry, entry.getSlotIndex()))
+            .toList();
+        List<InventoryEntryModel> hotbarEntries = replaceEntriesOptimistically(hotbarInventory.getInventoryId(), hotbarDrafts, accountId);
+        cacheHotbarEntries(accountId, hotbarEntries);
         if (getDisplayedInventoryType(accountId) == targetType) {
             applyDisplayedInventoryToGui(astPlayer);
         }
@@ -1586,175 +1393,15 @@ public class InventoryService {
     }
 
     private void renderHotbarInventory(@NotNull AstPlayer astPlayer) {
+        UUID accountId = astPlayer.getAccount().getUuid();
         if (isHotbarShortcutMode(astPlayer)) {
-            renderHotbarShortcutIcons(astPlayer);
+            hotbarRenderer.renderShortcutIcons(astPlayer, getDisplayedInventoryType(accountId));
             return;
         }
-        var accountId = astPlayer.getAccount().getUuid();
         rebuildHotbarEntryCache(accountId);
         Map<Integer, InventoryEntryModel> entries = hotbarEntryCache.computeIfAbsent(accountId, key -> new ConcurrentHashMap<>());
         Integer selectedSlot = selectedHotbarSlots.get(accountId);
-        PlayerInventory inventory = astPlayer.getBukkit().getInventory();
-        boolean changed = false;
-        // ホットバー本体（1〜9） → Bukkit storage 0〜8
-        for (int dbSlot = HotbarLayout.DB_SLOT_START; dbSlot <= HotbarLayout.DB_SLOT_END; dbSlot++) {
-            InventoryEntryModel entry = entries.get(dbSlot);
-            ItemStack itemStack = entry == null ? createHotbarDummyItem(dbSlot) : itemStackResolver.resolve(entry);
-            if (itemStack == null || itemStack.getType() == Material.AIR) {
-                itemStack = createHotbarDummyItem(dbSlot);
-            }
-            if (selectedSlot != null && selectedSlot == dbSlot) {
-                itemStack = withSelectionGlow(itemStack);
-            }
-            changed |= setStorageItemIfChanged(inventory, HotbarLayout.toBukkitSlot(dbSlot), itemStack);
-        }
-        // オフハンド（slot 10） → Bukkit offhand
-        InventoryEntryModel offhandEntry = entries.get(HotbarLayout.DB_SLOT_OFFHAND);
-        ItemStack offhandStack = offhandEntry == null
-            ? createHotbarDummyItem(HotbarLayout.DB_SLOT_OFFHAND)
-            : itemStackResolver.resolve(offhandEntry);
-        if (offhandStack == null || offhandStack.getType() == Material.AIR) {
-            offhandStack = createHotbarDummyItem(HotbarLayout.DB_SLOT_OFFHAND);
-        }
-        if (selectedSlot != null && selectedSlot == HotbarLayout.DB_SLOT_OFFHAND) {
-            offhandStack = withSelectionGlow(offhandStack);
-        }
-        ItemStack currentOffhand = inventory.getItemInOffHand();
-        if (!isSameItemStack(currentOffhand, offhandStack)) {
-            inventory.setItemInOffHand(offhandStack);
-            changed = true;
-        }
-        if (changed) {
-            astPlayer.getBukkit().updateInventory();
-        }
-    }
-
-    /**
-     * GUI 中ホットバーへインベントリ選択ショートカット＋閉じるボタンを描画します。
-     *
-     * @param astPlayer 対象プレイヤー
-     */
-    private void renderHotbarShortcutIcons(@NotNull AstPlayer astPlayer) {
-        UUID accountId = astPlayer.getAccount().getUuid();
-        InventoryType displayed = getDisplayedInventoryType(accountId);
-        PlayerInventory inventory = astPlayer.getBukkit().getInventory();
-        boolean changed = false;
-
-        changed |= setStorageItemIfChanged(inventory, 0, createInventoryShortcutIcon(InventoryType.NORMAL, Material.CHEST, displayed));
-        changed |= setStorageItemIfChanged(inventory, 1, createInventoryShortcutIcon(InventoryType.EQUIPMENT, Material.IRON_CHESTPLATE, displayed));
-        changed |= setStorageItemIfChanged(inventory, 2, createInventoryShortcutIcon(InventoryType.RUNE, Material.AMETHYST_SHARD, displayed));
-        for (int i = 3; i <= 7; i++) {
-            changed |= setStorageItemIfChanged(inventory, i, createHotbarSpacerIcon());
-        }
-        changed |= setStorageItemIfChanged(inventory, 8, createCloseShortcutIcon());
-
-        // オフハンドはダミー（ショートカット非対象）
-        ItemStack offhandDummy = createHotbarDummyItem(HotbarLayout.DB_SLOT_OFFHAND);
-        if (!isSameItemStack(inventory.getItemInOffHand(), offhandDummy)) {
-            inventory.setItemInOffHand(offhandDummy);
-            changed = true;
-        }
-        if (changed) {
-            astPlayer.getBukkit().updateInventory();
-        }
-    }
-
-    /**
-     * インベントリ選択ショートカットの ItemStack を生成します。
-     *
-     * @param type 対象 InventoryType
-     * @param material 表示マテリアル
-     * @param currentDisplayed 現在表示中の種別（一致時に発光）
-     * @return ショートカット用 ItemStack
-     */
-    private @NotNull ItemStack createInventoryShortcutIcon(
-        @NotNull InventoryType type,
-        @NotNull Material material,
-        @NotNull InventoryType currentDisplayed
-    ) {
-        ItemStack itemStack = new ItemStack(material);
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(Component.text(ColorCodeUtil.YELLOW + type.getDisplayNameJa()));
-            meta.lore(List.of(Component.text(ColorCodeUtil.GRAY + "クリックして表示")));
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            itemStack.setItemMeta(meta);
-        }
-        if (type == currentDisplayed) {
-            return withSelectionGlow(itemStack);
-        }
-        return itemStack;
-    }
-
-    /**
-     * ホットバーショートカットの空白スロット用アイテムを生成します。
-     *
-     * @return 空白表示 ItemStack
-     */
-    private @NotNull ItemStack createHotbarSpacerIcon() {
-        ItemStack itemStack = new ItemStack(Material.LIGHT_GRAY_STAINED_GLASS_PANE);
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(Component.text(" "));
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
-    }
-
-    /**
-     * 閉じるショートカットの ItemStack を生成します。
-     *
-     * @return 閉じる用 ItemStack
-     */
-    private @NotNull ItemStack createCloseShortcutIcon() {
-        ItemStack itemStack = new ItemStack(Material.BARRIER);
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(Component.text(ColorCodeUtil.RED + "閉じる"));
-            meta.lore(List.of(Component.text(ColorCodeUtil.GRAY + "GUI を閉じる")));
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
-    }
-
-    /**
-     * 未設定ホットバースロット用のダミー ItemStack を生成します。
-     *
-     * @param dbSlot HOTBAR の DB slot_index（1〜9 = ホットバー本体, 10 = オフハンド）
-     * @return 表示用ダミー ItemStack
-     */
-    private @NotNull ItemStack createHotbarDummyItem(int dbSlot) {
-        ItemStack itemStack = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            String label = HotbarLayout.isOffhandSlot(dbSlot)
-                ? ColorCodeUtil.GRAY + "オフハンドスロット"
-                : ColorCodeUtil.GRAY + "ホットバースロット[" + dbSlot + "]";
-            meta.displayName(Component.text(label));
-            meta.lore(List.of(Component.text(ColorCodeUtil.GRAY + "アイテム未選択")));
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
-    }
-
-    /**
-     * ItemStack に選択中を示す発光表示を付与します。
-     *
-     * @param itemStack 元の表示 ItemStack
-     * @return 発光を付与した clone
-     */
-    private @NotNull ItemStack withSelectionGlow(@NotNull ItemStack itemStack) {
-        ItemStack glowing = itemStack.clone();
-        ItemMeta meta = glowing.getItemMeta();
-        if (meta != null) {
-            meta.addEnchant(Enchantment.UNBREAKING, 1, true);
-            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-            glowing.setItemMeta(meta);
-        }
-        return glowing;
+        hotbarRenderer.renderHotbarInventory(astPlayer, entries, selectedSlot);
     }
 
     private int findAccessoryTargetSlot(@NotNull AstPlayer astPlayer) {
@@ -1812,19 +1459,6 @@ public class InventoryService {
                 .filter(entry -> entry.getSlotIndex() != null && entry.getSlotIndex() == dbSlot && !entry.isDeleted())
                 .findFirst())
             .orElse(null);
-    }
-
-    /**
-     * 現在表示中のインベントリから、指定 Bukkit スロットに対応する entry を削除します。
-     *
-     * @param astPlayer 対象プレイヤー
-     * @param sourceBukkitSlot Bukkit storage slot
-     */
-    private void deleteDisplayedEntryAtBukkitSlot(@NotNull AstPlayer astPlayer, int sourceBukkitSlot) {
-        InventoryEntryModel entry = findDisplayedEntryAtBukkitSlot(astPlayer, sourceBukkitSlot);
-        if (entry != null) {
-            deleteEntryOptimistically(entry.getInventoryEntryId(), astPlayer.getAccount().getUuid());
-        }
     }
 
     /**
@@ -2532,26 +2166,26 @@ public class InventoryService {
         @NotNull UUID accountId
     ) {
         int granted = 0;
+        List<InventoryEntryDraft> drafts = getEntries(inventory.getInventoryId()).stream()
+            .filter(entry -> !entry.isDeleted())
+            .map(entry -> copyEntryDraft(entry, entry.getSlotIndex()))
+            .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
         for (int i = 0; i < amount; i++) {
             Integer slot = findNextFreeSlot(inventory, usedSlots);
             if (slot == null) {
                 break;
             }
 
-            createEntryOptimistically(
-                inventory.getInventoryId(),
-                new InventoryEntryDraft(slot, model.getCategory(), model.getId(), null, null, 1L, null),
-                () -> {
-                    UUID instanceId = createInstanceId(model, accountId, instanceType);
-                    if (instanceId == null) {
-                        throw new IllegalStateException("Failed to create inventory item instance.");
-                    }
-                    return new InventoryEntryDraft(slot, model.getCategory(), null, instanceType.getCode(), instanceId, 1L, null);
-                },
-                accountId
-            );
+            UUID instanceId = createInstanceId(model, accountId, instanceType);
+            if (instanceId == null) {
+                break;
+            }
+            drafts.add(new InventoryEntryDraft(slot, model.getCategory(), null, instanceType.getCode(), instanceId, 1L, null));
             usedSlots.add(slot);
             granted++;
+        }
+        if (granted > 0) {
+            replaceEntriesOptimistically(inventory.getInventoryId(), drafts, accountId);
         }
         return granted;
     }
@@ -2570,34 +2204,35 @@ public class InventoryService {
         int remaining = amount;
         int maxStack = Math.max(1, model.getMaxStack());
         List<InventoryEntryModel> entries = getEntries(inventory.getInventoryId());
+        List<InventoryEntryDraft> drafts = entries.stream()
+            .filter(entry -> !entry.isDeleted())
+            .map(entry -> copyEntryDraft(entry, entry.getSlotIndex()))
+            .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
 
-        for (InventoryEntryModel entry : entries) {
+        for (int index = 0; index < drafts.size(); index++) {
             if (remaining <= 0) {
                 break;
             }
-            if (!isStackableEntry(entry, model, maxStack)) {
+            InventoryEntryDraft draft = drafts.get(index);
+            if (!isStackableDraft(draft, model, maxStack)) {
                 continue;
             }
 
-            long room = maxStack - entry.getQuantity();
+            long room = maxStack - draft.getQuantity();
             if (room <= 0) {
                 continue;
             }
 
             int addAmount = (int) Math.min(room, remaining);
-            updateEntryOptimistically(
-                entry.getInventoryEntryId(),
-                new InventoryEntryDraft(
-                    entry.getSlotIndex(),
-                    entry.getItemCategory(),
-                    entry.getItemId(),
-                    entry.getInstanceType(),
-                    entry.getInstanceId(),
-                    entry.getQuantity() + addAmount,
-                    entry.getMetadataJson()
-                ),
-                accountId
-            );
+            drafts.set(index, new InventoryEntryDraft(
+                draft.getSlotIndex(),
+                draft.getItemCategory(),
+                draft.getItemId(),
+                draft.getInstanceType(),
+                draft.getInstanceId(),
+                draft.getQuantity() + addAmount,
+                draft.getMetadataJson()
+            ));
             granted += addAmount;
             remaining -= addAmount;
         }
@@ -2609,14 +2244,13 @@ public class InventoryService {
             }
 
             int stackAmount = Math.min(maxStack, remaining);
-            addEntry(
-                inventory.getInventoryId(),
-                new InventoryEntryDraft(slot, model.getCategory(), model.getId(), null, null, (long) stackAmount, null),
-                accountId
-            );
+            drafts.add(new InventoryEntryDraft(slot, model.getCategory(), model.getId(), null, null, (long) stackAmount, null));
             usedSlots.add(slot);
             granted += stackAmount;
             remaining -= stackAmount;
+        }
+        if (granted > 0) {
+            replaceEntriesOptimistically(inventory.getInventoryId(), drafts, accountId);
         }
         return granted;
     }
@@ -2639,6 +2273,26 @@ public class InventoryService {
             return false;
         }
         return entry.getQuantity() < maxStack;
+    }
+
+    private boolean isStackableDraft(
+        @NotNull InventoryEntryDraft draft,
+        @NotNull ItemModel model,
+        int maxStack
+    ) {
+        if (maxStack <= 1) {
+            return false;
+        }
+        if (draft.getItemId() == null || !draft.getItemId().equals(model.getId())) {
+            return false;
+        }
+        if (!draft.getItemCategory().equalsIgnoreCase(model.getCategory())) {
+            return false;
+        }
+        if (draft.getInstanceType() != null || draft.getInstanceId() != null) {
+            return false;
+        }
+        return draft.getQuantity() < maxStack;
     }
 
     /**
@@ -2958,11 +2612,12 @@ public class InventoryService {
         if (slot == null) {
             return false;
         }
-        addEntry(
-            inventory.getInventoryId(),
-            new InventoryEntryDraft(slot, model.getCategory(), null, instanceType.getCode(), instanceId, 1L, null),
-            accountId
-        );
+        List<InventoryEntryDraft> drafts = getEntries(inventory.getInventoryId()).stream()
+            .filter(entry -> !entry.isDeleted())
+            .map(entry -> copyEntryDraft(entry, entry.getSlotIndex()))
+            .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+        drafts.add(new InventoryEntryDraft(slot, model.getCategory(), null, instanceType.getCode(), instanceId, 1L, null));
+        replaceEntriesOptimistically(inventory.getInventoryId(), drafts, accountId);
         return true;
     }
 
@@ -2985,21 +2640,24 @@ public class InventoryService {
         InventoryModel inventory = findCachedInventory(inventoryId);
         boolean unlimitedSlots = inventory != null && inventory.getInventoryType() == InventoryType.CURRENCY;
         int next = NormalInventoryLayout.DB_SLOT_START;
+        List<InventoryEntryDraft> drafts = new ArrayList<>();
+        boolean changed = false;
         for (InventoryEntryModel entry : entries) {
             if (!unlimitedSlots && next > NormalInventoryLayout.DB_SLOT_END) {
                 break;
             }
             Integer current = entry.getSlotIndex();
             if (current != null && current == next) {
+                drafts.add(copyEntryDraft(entry, current));
                 next++;
                 continue;
             }
-            updateEntryOptimistically(
-                entry.getInventoryEntryId(),
-                copyEntryDraft(entry, next),
-                accountId
-            );
+            drafts.add(copyEntryDraft(entry, next));
+            changed = true;
             next++;
+        }
+        if (changed) {
+            replaceEntriesOptimistically(inventoryId, drafts, accountId);
         }
     }
 }

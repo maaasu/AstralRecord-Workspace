@@ -4,7 +4,7 @@ category: currency
 name: "&6ダンジョンメダル"
 icon: GOLD_NUGGET
 rarity: RARE
-maxStack: 60
+maxStack: 64
 saleValue: 0
 lore:
   - "&7過酷なダンジョンを制した証。"
@@ -15,4 +15,3 @@ unSellable: true
 currency:
   type: DUNGEON_TOKEN
   group: dungeon
-

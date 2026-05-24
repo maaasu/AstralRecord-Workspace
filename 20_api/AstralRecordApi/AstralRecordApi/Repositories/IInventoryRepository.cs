@@ -12,5 +12,6 @@ public interface IInventoryRepository
     Task<InventoryEntryResponse?> GetEntryByIdAsync(Guid inventoryEntryId);
     Task<InventoryEntryResponse?> CreateEntryAsync(Guid inventoryId, InventoryEntryCreateRequest request);
     Task<InventoryEntryResponse?> UpdateEntryAsync(Guid inventoryEntryId, InventoryEntryUpdateRequest request);
+    Task<IReadOnlyList<InventoryEntryResponse>?> ReplaceEntriesAsync(Guid inventoryId, InventoryEntryReplaceRequest request);
     Task<bool?> DeleteEntryAsync(Guid inventoryEntryId, Guid updatedBy);
 }

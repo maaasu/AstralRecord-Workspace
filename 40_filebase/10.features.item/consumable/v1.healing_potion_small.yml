@@ -4,7 +4,7 @@ category: consumable
 name: "&a回復ポーション(小)"
 icon: POTION
 rarity: COMMON
-maxStack: 60
+maxStack: 64
 saleValue: 10
 lore:
   - "&7飲むとHPを少量回復する。"
@@ -23,4 +23,3 @@ consumable:
       value: 0.10
       isPercent: true
       rate: 100
-

@@ -209,7 +209,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         @NotNull Inventory topInventory,
         @NotNull Player player
     ) {
-        if (!(event.getClickedInventory() instanceof PlayerInventory playerInventory)) {
+        if (!(event.getClickedInventory() instanceof PlayerInventory)) {
             GuiSound.DENY.play(player);
             return;
         }
@@ -220,6 +220,11 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             && event.getSlot() >= 0
             && event.getSlot() <= 8) {
             handleHotbarShortcutClick(astPlayer, player, event.getSlot());
+            return;
+        }
+
+        if (astPlayer == null) {
+            GuiSound.DENY.play(player);
             return;
         }
 
@@ -252,8 +257,11 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         }
 
         ItemStack previous = menuView.getEquipmentGuiItem(topInventory, targetSlot);
+        if (!inventoryService.moveDisplayedItemToEquipmentGui(astPlayer, event.getSlot(), previous)) {
+            GuiSound.DENY.play(player);
+            return;
+        }
         topInventory.setItem(targetSlot, clickedItem.clone());
-        playerInventory.setItem(event.getSlot(), previous == null ? new ItemStack(Material.AIR) : previous);
         GuiSound.SELECT.play(player);
     }
 
@@ -382,6 +390,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         @NotNull Player player,
         int slot
     ) {
+        event.setCancelled(true);
         boolean handled = swapArmorSlotItem(event, astPlayer, slot);
         if (handled) {
             statusService.refreshStatus(astPlayer);

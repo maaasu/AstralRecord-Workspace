@@ -3,7 +3,7 @@ id: haste_potion_small
 name: &e迅速ポーション(小)
 icon: POTION
 rarity: COMMON
-maxStack: 60
+maxStack: 64
 saleValue: 20
 lore:
   - &7飲むと一定時間、移動速度が上昇する。

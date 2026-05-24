@@ -4,11 +4,10 @@ category: material
 name: "&6金インゴット"
 icon: GOLD_INGOT
 rarity: UNCOMMON
-maxStack: 60
+maxStack: 64
 saleValue: 00
 lore:
   - "&7輝く金のインゴット。"
   - "&7高級装備の素材として使用される。"
 unTradeable: false
 unSellable: false
-

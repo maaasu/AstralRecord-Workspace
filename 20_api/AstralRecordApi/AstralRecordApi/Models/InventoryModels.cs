@@ -60,6 +60,23 @@ public class InventoryEntryUpdateRequest
     public Guid UpdatedBy { get; set; }
 }
 
+public class InventoryEntryReplaceRequest
+{
+    public Guid UpdatedBy { get; set; }
+    public List<InventoryEntryReplaceItemRequest> Entries { get; set; } = [];
+}
+
+public class InventoryEntryReplaceItemRequest
+{
+    public int? SlotIndex { get; set; }
+    public required string ItemCategory { get; set; }
+    public string? ItemId { get; set; }
+    public string? InstanceType { get; set; }
+    public Guid? InstanceId { get; set; }
+    public long Quantity { get; set; } = 1;
+    public string? MetadataJson { get; set; }
+}
+
 public class InventoryEntryResponse
 {
     public Guid InventoryEntryId { get; init; }

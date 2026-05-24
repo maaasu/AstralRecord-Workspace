@@ -4,7 +4,7 @@ category: consumable
 name: "&c剛力の薬"
 icon: POTION
 rarity: UNCOMMON
-maxStack: 60
+maxStack: 64
 saleValue: 80
 lore:
   - "&7飲むと一定時間、攻撃力が上昇する。"
@@ -21,4 +21,3 @@ consumable:
     - type: BUFF
       buffId: attack_up_small
       rate: 100
-

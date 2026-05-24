@@ -50,6 +50,7 @@
 | GET `/api/inventory/entries/{inventoryEntryId}` | インベントリエントリ取得 | `00_docs/20_API設計書/feature/13-inventory/3-エンドポイント仕様/13_3.00-索引.md` |
 | POST `/api/inventory/{inventoryId}/entries` | インベントリエントリ作成 | `00_docs/20_API設計書/feature/13-inventory/3-エンドポイント仕様/13_3.00-索引.md` |
 | PUT `/api/inventory/entries/{inventoryEntryId}` | インベントリエントリ更新 | `00_docs/20_API設計書/feature/13-inventory/3-エンドポイント仕様/13_3.00-索引.md` |
+| PUT `/api/inventory/{inventoryId}/entries` | インベントリエントリ一括置換 | `00_docs/20_API設計書/feature/13-inventory/3-エンドポイント仕様/13_3.00-索引.md` |
 | DELETE `/api/inventory/entries/{inventoryEntryId}` | インベントリエントリ削除 | `00_docs/20_API設計書/feature/13-inventory/3-エンドポイント仕様/13_3.00-索引.md` |
 | GET `/api/item` | アイテム一覧取得 | `00_docs/20_API設計書/feature/04-item/3-エンドポイント仕様/04_3.00-索引.md` |
 | GET `/api/item/{itemId}` | アイテム取得 | `00_docs/20_API設計書/feature/04-item/3-エンドポイント仕様/04_3.00-索引.md` |

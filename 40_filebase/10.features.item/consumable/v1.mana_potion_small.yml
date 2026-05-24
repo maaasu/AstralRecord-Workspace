@@ -4,7 +4,7 @@ category: consumable
 name: "&9マナポーション(小)"
 icon: POTION
 rarity: COMMON
-maxStack: 60
+maxStack: 64
 saleValue: 20
 lore:
   - "&7飲むとMPを少量回復する。"
@@ -23,4 +23,3 @@ consumable:
       value: 0.20
       isPercent: true
       rate: 100
-

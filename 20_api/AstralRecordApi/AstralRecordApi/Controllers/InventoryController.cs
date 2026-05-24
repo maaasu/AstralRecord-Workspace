@@ -100,6 +100,26 @@ public class InventoryController(IInventoryRepository inventoryRepository) : Con
         return Ok(updated);
     }
 
+    /// <summary>
+    /// 指定インベントリの有効エントリをリクエスト内容で丸ごと置換します。
+    /// </summary>
+    [HttpPut("{inventoryId:guid}/entries")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ReplaceEntries(Guid inventoryId, [FromBody] InventoryEntryReplaceRequest request)
+    {
+        if (request.Entries.Any(entry =>
+            !HasValidPayload(entry.ItemId, entry.InstanceType, entry.InstanceId) || entry.Quantity < 1))
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "Entry payload is invalid.");
+
+        var replaced = await inventoryRepository.ReplaceEntriesAsync(inventoryId, request);
+        if (replaced is null)
+            return NotFound();
+
+        return Ok(replaced);
+    }
+
     [HttpDelete("entries/{inventoryEntryId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

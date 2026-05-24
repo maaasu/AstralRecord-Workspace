@@ -4,7 +4,7 @@ category: material
 name: 鉄インゴット
 icon: IRON_INGOT
 rarity: COMMON
-maxStack: 60
+maxStack: 64
 saleValue: 10
 lore:
   - 基本的な素材として使用される鉄のインゴット。

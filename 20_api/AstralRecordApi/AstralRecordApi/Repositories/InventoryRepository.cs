@@ -182,6 +182,58 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
         return MapEntry(entity);
     }
 
+    public async Task<IReadOnlyList<InventoryEntryResponse>?> ReplaceEntriesAsync(
+        Guid inventoryId,
+        InventoryEntryReplaceRequest request
+    )
+    {
+        var inventoryExists = await dbContext.Inventories
+            .AnyAsync(x => x.InventoryId == inventoryId && !x.IsDeleted);
+
+        if (!inventoryExists)
+            return null;
+
+        var now = DateTime.UtcNow;
+        var currentEntries = await dbContext.InventoryEntries
+            .Where(x => x.InventoryId == inventoryId && !x.IsDeleted)
+            .ToListAsync();
+
+        foreach (var current in currentEntries)
+        {
+            current.IsDeleted = true;
+            current.UpdatedAt = now;
+            current.UpdatedBy = request.UpdatedBy;
+        }
+
+        var nextEntries = request.Entries.Select(entry => new InventoryEntryEntity
+        {
+            InventoryEntryId = Guid.NewGuid(),
+            InventoryId = inventoryId,
+            SlotIndex = entry.SlotIndex,
+            ItemCategory = entry.ItemCategory,
+            ItemId = entry.ItemId,
+            InstanceType = entry.InstanceType,
+            InstanceId = entry.InstanceId,
+            Quantity = entry.Quantity,
+            MetadataJson = entry.MetadataJson,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = request.UpdatedBy,
+            UpdatedBy = request.UpdatedBy,
+            IsDeleted = false,
+        }).ToList();
+
+        await dbContext.InventoryEntries.AddRangeAsync(nextEntries);
+        await dbContext.SaveChangesAsync();
+
+        return nextEntries
+            .OrderBy(x => x.SlotIndex.HasValue ? 0 : 1)
+            .ThenBy(x => x.SlotIndex)
+            .ThenBy(x => x.ItemId)
+            .Select(MapEntry)
+            .ToList();
+    }
+
     public async Task<bool?> DeleteEntryAsync(Guid inventoryEntryId, Guid updatedBy)
     {
         var entity = await dbContext.InventoryEntries
