@@ -3,15 +3,34 @@ package io.github.maaasu.astralRecord.feature.status.service;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.buff.service.BuffService;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentEnchant;
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentStatRoll;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceStatIncrease;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStat;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStatType;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusValue;
+import org.bukkit.Material;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -23,9 +42,24 @@ import java.util.Map;
 public class StatusService {
 
     private final BuffService buffService;
+    private final ItemService itemService;
+    private final InventoryService inventoryService;
 
     public StatusService() {
+        this(null, null);
+    }
+
+    public StatusService(@Nullable ItemService itemService) {
+        this(itemService, null);
+    }
+
+    public StatusService(
+        @Nullable ItemService itemService,
+        @Nullable InventoryService inventoryService
+    ) {
         this.buffService = new BuffService();
+        this.itemService = itemService;
+        this.inventoryService = inventoryService;
     }
 
     /**
@@ -229,10 +263,11 @@ public class StatusService {
 
     private @NotNull StatusSnapshot createSnapshot(@NotNull AstPlayer player) {
         Map<StatusType, StatusValue> values = new EnumMap<>(StatusType.class);
+        EquipmentBonus equipmentBonus = itemService == null ? EquipmentBonus.empty() : collectEquipmentBonus(player);
 
         for (StatusType type : StatusType.values()) {
             double baseValue = getBaseValue(type);
-            double bonusValue = getBonusValue(player, type, baseValue);
+            double bonusValue = getBonusValue(player, type, baseValue, equipmentBonus);
             values.put(type, new StatusValue(baseValue, bonusValue));
         }
 
@@ -285,13 +320,209 @@ public class StatusService {
         };
     }
 
-    private double getBonusValue(@NotNull AstPlayer player, @NotNull StatusType type, double baseValue) {
+    private double getBonusValue(
+        @NotNull AstPlayer player,
+        @NotNull StatusType type,
+        double baseValue,
+        @NotNull EquipmentBonus equipmentBonus
+    ) {
         double nonBuffBonus = getAccountModeBonus(player.getAccount().getMode(), type);
         nonBuffBonus += getPermissionBonus(player.getUser().getPermission(), type);
+        nonBuffBonus += getEquipmentBonus(equipmentBonus, type, baseValue + nonBuffBonus);
 
         double preBuffTotal = baseValue + nonBuffBonus;
         double buffBonus = buffService.getTotalBonus(player, type, preBuffTotal);
         return nonBuffBonus + buffBonus;
+    }
+
+    private double getEquipmentBonus(@NotNull EquipmentBonus bonus, @NotNull StatusType type, double baseValue) {
+        double flat = bonus.flatValues.getOrDefault(type, 0.0D);
+        double scalar = bonus.scalarValues.getOrDefault(type, 0.0D);
+        return flat + (baseValue * scalar);
+    }
+
+    private @NotNull EquipmentBonus collectEquipmentBonus(@NotNull AstPlayer player) {
+        EquipmentBonus bonus = new EquipmentBonus();
+        for (ItemStack itemStack : collectEquippedItems(player)) {
+            applyEquipmentItemBonus(itemStack, bonus);
+        }
+        return bonus;
+    }
+
+    private @NotNull List<ItemStack> collectEquippedItems(@NotNull AstPlayer player) {
+        PlayerInventory inventory = player.getBukkit().getInventory();
+        List<ItemStack> items = new ArrayList<>();
+        items.add(inventory.getHelmet());
+        items.add(inventory.getChestplate());
+        items.add(inventory.getLeggings());
+        items.add(inventory.getBoots());
+        items.add(inventory.getItemInOffHand());
+        items.add(inventory.getItemInMainHand());
+        if (inventoryService != null) {
+            for (int slotIndex = 2; slotIndex <= 7; slotIndex++) {
+                items.add(inventoryService.getAccessorySnapshotItem(player, slotIndex));
+            }
+        }
+        return items;
+    }
+
+    private void applyEquipmentItemBonus(@Nullable ItemStack itemStack, @NotNull EquipmentBonus bonus) {
+        if (itemStack == null || itemStack.getType() == Material.AIR) {
+            return;
+        }
+        String instanceId = ItemStackFactory.getEquipmentInstanceId(itemStack);
+        if (instanceId == null || instanceId.isBlank()) {
+            return;
+        }
+
+        EquipmentInstance instance = itemService.findEquipmentInstanceById(instanceId);
+        if (instance == null) {
+            return;
+        }
+        ItemModel model = resolveItemModel(instance.getItemId());
+        if (model == null || model.getEquipment() == null) {
+            return;
+        }
+
+        ItemEquipment equipment = model.getEquipment();
+        Map<String, ItemEquipmentStatType> statTypes = new HashMap<>();
+        for (ItemEquipmentStat stat : equipment.getStats()) {
+            statTypes.put(normalizeStatusKey(stat.getStatus()), stat.getType());
+        }
+
+        for (EquipmentStatRoll roll : instance.getStatRolls()) {
+            StatusType statusType = resolveStatusTypeOrNull(roll.getStatus());
+            if (statusType == null) {
+                continue;
+            }
+            ItemEquipmentStatType statType = statTypes.getOrDefault(
+                normalizeStatusKey(roll.getStatus()),
+                ItemEquipmentStatType.FLAT
+            );
+            addBonus(bonus, statusType, statType, averageStatValue(roll.getMin(), roll.getMax()));
+        }
+
+        for (Map.Entry<String, EquipmentStatAmount> entry : calculateEnhanceStats(equipment, instance.getEnhanceLevel()).entrySet()) {
+            EquipmentStatAmount amount = entry.getValue();
+            addBonus(bonus, amount.statusType, amount.type, amount.average());
+        }
+
+        for (EquipmentEnchant enchant : instance.getEnchants()) {
+            StatusType statusType = resolveStatusTypeOrNull(enchant.getStatus());
+            if (statusType == null) {
+                continue;
+            }
+            addBonus(bonus, statusType, ItemEquipmentStatType.fromApiValue(enchant.getType()), enchant.getValue());
+        }
+    }
+
+    private @Nullable ItemModel resolveItemModel(@NotNull String itemId) {
+        ItemModel loaded = itemService.findLoadedById(itemId);
+        if (loaded != null) {
+            return loaded;
+        }
+        return itemService.loadItem(itemId);
+    }
+
+    private void addBonus(
+        @NotNull EquipmentBonus bonus,
+        @NotNull StatusType statusType,
+        @NotNull ItemEquipmentStatType statType,
+        double value
+    ) {
+        Map<StatusType, Double> target = statType == ItemEquipmentStatType.SCALAR
+            ? bonus.scalarValues
+            : bonus.flatValues;
+        target.merge(statusType, value, Double::sum);
+    }
+
+    private @NotNull Map<String, EquipmentStatAmount> calculateEnhanceStats(
+        @NotNull ItemEquipment equipment,
+        int enhanceLevel
+    ) {
+        Map<String, EquipmentStatAmount> amounts = new LinkedHashMap<>();
+        if (equipment.getEnhance() == null || enhanceLevel <= 0) {
+            return amounts;
+        }
+        for (var level : equipment.getEnhance().getLevels()) {
+            if (level.getLevel() > enhanceLevel) {
+                continue;
+            }
+            for (ItemEquipmentEnhanceStatIncrease increase : level.getStatIncrease()) {
+                StatusType statusType = resolveStatusTypeOrNull(increase.getStatus());
+                if (statusType == null) {
+                    continue;
+                }
+                String key = statusType.name() + "#" + increase.getType().name();
+                EquipmentStatAmount current = amounts.computeIfAbsent(
+                    key,
+                    ignored -> new EquipmentStatAmount(statusType, increase.getType())
+                );
+                current.add(increase.getMin(), increase.getMax());
+            }
+        }
+        return amounts;
+    }
+
+    private double averageStatValue(@NotNull String min, @NotNull String max) {
+        return (parseStatDouble(min) + parseStatDouble(max)) / 2.0D;
+    }
+
+    private double parseStatDouble(@NotNull String value) {
+        try {
+            return Double.parseDouble(value.trim().split("~")[0].trim());
+        } catch (NumberFormatException ignored) {
+            return 0.0D;
+        }
+    }
+
+    private @NotNull String normalizeStatusKey(@NotNull String status) {
+        return status.trim().replace(' ', '_').replace('-', '_').toUpperCase(Locale.ROOT);
+    }
+
+    private @Nullable StatusType resolveStatusTypeOrNull(@NotNull String rawStatus) {
+        String normalized = normalizeStatusKey(rawStatus);
+        if (normalized.isEmpty()) {
+            return null;
+        }
+        try {
+            return StatusType.valueOf(normalized);
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+    }
+
+    private static final class EquipmentBonus {
+        private final Map<StatusType, Double> flatValues = new EnumMap<>(StatusType.class);
+        private final Map<StatusType, Double> scalarValues = new EnumMap<>(StatusType.class);
+
+        private static @NotNull EquipmentBonus empty() {
+            return new EquipmentBonus();
+        }
+    }
+
+    private static final class EquipmentStatAmount {
+        private final StatusType statusType;
+        private final ItemEquipmentStatType type;
+        private double min;
+        private double max;
+
+        private EquipmentStatAmount(
+            @NotNull StatusType statusType,
+            @NotNull ItemEquipmentStatType type
+        ) {
+            this.statusType = statusType;
+            this.type = type;
+        }
+
+        private void add(double min, double max) {
+            this.min += min;
+            this.max += max;
+        }
+
+        private double average() {
+            return (min + max) / 2.0D;
+        }
     }
 
     private double getAccountModeBonus(@NotNull AccountMode mode, @NotNull StatusType type) {

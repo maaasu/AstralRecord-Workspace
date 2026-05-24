@@ -12,7 +12,10 @@ import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView
 import io.github.maaasu.astralRecord.feature.menu.view.screen.EquipmentMenuScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.InventorySelectorScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.MainMenuScreenView;
+import io.github.maaasu.astralRecord.feature.menu.view.screen.StatusScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.ShortcutSettingsScreenView;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -33,6 +36,7 @@ public class MenuView {
     public static final int SIZE = BaseMenuScreenView.SIZE;
     public static final int CLOSE_SLOT = BaseMenuScreenView.CLOSE_SLOT;
     public static final int BACK_SLOT = BaseMenuScreenView.BACK_SLOT;
+    public static final int STATUS_SLOT = MainMenuScreenView.STATUS_SLOT;
     public static final int INVENTORY_SELECTOR_SLOT = MainMenuScreenView.INVENTORY_SELECTOR_SLOT;
     public static final int EQUIPMENT_GUI_SLOT = MainMenuScreenView.EQUIPMENT_GUI_SLOT;
     public static final int SHORTCUT_SETTINGS_SLOT = MainMenuScreenView.SHORTCUT_SETTINGS_SLOT;
@@ -62,6 +66,7 @@ public class MenuView {
     private static final Component SHORTCUT_ACTION_TITLE = Component.text("ショートカット項目", NamedTextColor.AQUA);
 
     private final MainMenuScreenView mainMenuScreenView;
+    private final StatusScreenView statusScreenView;
     private final InventorySelectorScreenView inventorySelectorScreenView;
     private final EquipmentMenuScreenView equipmentMenuScreenView;
     private final CurrencyGuiView currencyGuiView;
@@ -78,6 +83,7 @@ public class MenuView {
         NamespacedKey craftActionKey = new NamespacedKey(plugin, "menu_shortcut_action");
         NamespacedKey equipmentPlaceholderKey = new NamespacedKey(plugin, "equipment_placeholder");
         this.mainMenuScreenView = new MainMenuScreenView();
+        this.statusScreenView = new StatusScreenView();
         this.inventorySelectorScreenView = new InventorySelectorScreenView();
         this.equipmentMenuScreenView = new EquipmentMenuScreenView(equipmentPlaceholderKey);
         this.currencyGuiView = new CurrencyGuiView();
@@ -88,6 +94,16 @@ public class MenuView {
     public void open(@NotNull Player player) {
         Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.MAIN), SIZE, MAIN_TITLE);
         mainMenuScreenView.render(inventory);
+        player.openInventory(inventory);
+    }
+
+    public void openStatus(
+        @NotNull Player player,
+        @NotNull AstPlayer astPlayer,
+        @NotNull StatusSnapshot snapshot
+    ) {
+        Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.STATUS), SIZE, Component.text("ステータス", NamedTextColor.GREEN));
+        statusScreenView.render(inventory, astPlayer, snapshot);
         player.openInventory(inventory);
     }
 

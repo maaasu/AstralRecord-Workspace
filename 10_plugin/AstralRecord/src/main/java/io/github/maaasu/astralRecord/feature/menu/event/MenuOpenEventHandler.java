@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.gui.sound.GuiSound;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -46,6 +47,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     private final MenuShortcutRepository shortcutRepository;
     private final InventoryService inventoryService;
     private final CurrencyService currencyService;
+    private final StatusService statusService;
     private final Set<UUID> craftRenderSuppressed = ConcurrentHashMap.newKeySet();
 
     /**
@@ -62,13 +64,15 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         @NotNull MenuView menuView,
         @NotNull MenuShortcutRepository shortcutRepository,
         @NotNull InventoryService inventoryService,
-        @NotNull CurrencyService currencyService
+        @NotNull CurrencyService currencyService,
+        @NotNull StatusService statusService
     ) {
         this.plugin = plugin;
         this.menuView = menuView;
         this.shortcutRepository = shortcutRepository;
         this.inventoryService = inventoryService;
         this.currencyService = currencyService;
+        this.statusService = statusService;
     }
 
     /**
@@ -296,6 +300,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
 
         switch (screen) {
             case MAIN -> handleMainMenuClick(player, event.getRawSlot());
+            case STATUS -> handleStatusClick(player, event.getRawSlot());
             case INVENTORY_SELECTOR -> handleInventorySelectorClick(player, event.getRawSlot());
             case EQUIPMENT_GUI -> {
             }
@@ -349,6 +354,16 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
      * @param rawSlot クリックされた raw slot
      */
     private void handleMainMenuClick(@NotNull Player player, int rawSlot) {
+        if (rawSlot == MenuView.STATUS_SLOT) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer == null) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.SELECT.play(player);
+            menuView.openStatus(player, astPlayer, statusService.refreshStatus(astPlayer));
+            return;
+        }
         if (rawSlot == MenuView.INVENTORY_SELECTOR_SLOT) {
             GuiSound.SELECT.play(player);
             AstPlayer astPlayer = AstPlayerCache.get(player);
@@ -442,6 +457,15 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             return;
         }
 
+        GuiSound.DENY.play(player);
+    }
+
+    private void handleStatusClick(@NotNull Player player, int rawSlot) {
+        if (rawSlot == MenuView.BACK_SLOT) {
+            GuiSound.SELECT.play(player);
+            menuView.open(player);
+            return;
+        }
         GuiSound.DENY.play(player);
     }
 

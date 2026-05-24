@@ -34,6 +34,7 @@ import io.github.maaasu.astralRecord.feature.resourcepack.event.ResourcePackStat
 import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusRegenTask;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
+import io.github.maaasu.astralRecord.feature.status.event.PlayerHeldItemStatusEventHandler;
 import io.github.maaasu.astralRecord.feature.user.event.UserLoginEventHandler;
 import io.github.maaasu.astralRecord.feature.user.repository.UserRepository;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
@@ -181,7 +182,7 @@ public final class AstralRecord extends JavaPlugin {
         currencyService = new CurrencyService(inventoryService);
 
         // status
-        statusService = new StatusService();
+        statusService = new StatusService(itemService, inventoryService);
         statusRegenTask = new StatusRegenTask(statusService);
         playerHudService = new PlayerHudService(statusService);
 
@@ -250,11 +251,15 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new MenuOpenEventHandler(this, menuView, menuShortcutRepository, inventoryService, currencyService),
+            new MenuOpenEventHandler(this, menuView, menuShortcutRepository, inventoryService, currencyService, statusService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new InventoryEquipmentGuiEventHandler(menuView, inventoryService, currencyService),
+            new InventoryEquipmentGuiEventHandler(menuView, inventoryService, currencyService, statusService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new PlayerHeldItemStatusEventHandler(this, statusService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

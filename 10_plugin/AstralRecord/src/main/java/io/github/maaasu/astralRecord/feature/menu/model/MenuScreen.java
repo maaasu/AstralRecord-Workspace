@@ -6,6 +6,8 @@ package io.github.maaasu.astralRecord.feature.menu.model;
 public enum MenuScreen {
     /** メインメニュー。 */
     MAIN,
+    /** プレイヤーステータスを表示する画面。 */
+    STATUS,
     /** 表示するインベントリを選択する画面。 */
     INVENTORY_SELECTOR,
     /** 装備スロットを編集する画面。 */

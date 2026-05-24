@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -30,6 +31,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
     private final MenuView menuView;
     private final InventoryService inventoryService;
     private final CurrencyService currencyService;
+    private final StatusService statusService;
 
     /**
      * 装備 GUI とプレイヤーインベントリ上の装備操作を処理するイベントハンドラーを生成します。
@@ -41,11 +43,13 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
     public InventoryEquipmentGuiEventHandler(
         @NotNull MenuView menuView,
         @NotNull InventoryService inventoryService,
-        @NotNull CurrencyService currencyService
+        @NotNull CurrencyService currencyService,
+        @NotNull StatusService statusService
     ) {
         this.menuView = menuView;
         this.inventoryService = inventoryService;
         this.currencyService = currencyService;
+        this.statusService = statusService;
     }
 
     /**
@@ -273,6 +277,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             accessories[6],
             accessories[7]
         );
+        statusService.refreshStatus(astPlayer);
     }
 
     private void handlePlayerInventoryClick(@NotNull InventoryClickEvent event) {
@@ -324,6 +329,9 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             return;
         }
         boolean handled = inventoryService.handleHotbarSlotClick(astPlayer, slot + 1);
+        if (handled) {
+            statusService.refreshStatus(astPlayer);
+        }
         playResultSound(player, handled);
     }
 
@@ -350,7 +358,11 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         @NotNull Player player
     ) {
         event.setCancelled(true);
-        playResultSound(player, inventoryService.handleHotbarSlotClick(astPlayer, HotbarLayout.DB_SLOT_OFFHAND));
+        boolean handled = inventoryService.handleHotbarSlotClick(astPlayer, HotbarLayout.DB_SLOT_OFFHAND);
+        if (handled) {
+            statusService.refreshStatus(astPlayer);
+        }
+        playResultSound(player, handled);
     }
 
     private void handleArmorSlotClick(
@@ -359,7 +371,11 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         @NotNull Player player,
         int slot
     ) {
-        playResultSound(player, swapArmorSlotItem(event, astPlayer, slot));
+        boolean handled = swapArmorSlotItem(event, astPlayer, slot);
+        if (handled) {
+            statusService.refreshStatus(astPlayer);
+        }
+        playResultSound(player, handled);
     }
 
     private void handleDisplayedInventoryItemClick(
@@ -381,7 +397,11 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         }
 
         event.setCancelled(true);
-        playResultSound(player, inventoryService.equipOrAssignClickedItem(astPlayer, clickedItem, slot));
+        boolean handled = inventoryService.equipOrAssignClickedItem(astPlayer, clickedItem, slot);
+        if (handled) {
+            statusService.refreshStatus(astPlayer);
+        }
+        playResultSound(player, handled);
     }
 
     private void playResultSound(@NotNull Player player, boolean handled) {
