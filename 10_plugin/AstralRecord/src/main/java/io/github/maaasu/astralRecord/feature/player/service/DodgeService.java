@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
+import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
@@ -15,7 +16,7 @@ import org.jetbrains.annotations.NotNull;
  * プレイヤーのドッジ（短距離ダッシュ回避）アクションを制御するサービス。
  * <p>
  * ドッジは「しゃがみ開始から短時間以内にしゃがみを解除した」場合に発動候補となります。
- * 発動条件・クールダウン管理・スタミナ消費・演出（効果音/パーティクル）・
+ * 発動条件・スタミナ消費・演出（効果音/パーティクル）・
  * {@link AstPlayer#isDodging} フラグの ON/OFF を一元管理します。
  * <p>
  * 攻撃処理側では {@link AstPlayer#isDodging} を参照してジャスト回避判定を行ってください。
@@ -24,9 +25,6 @@ public class DodgeService {
 
     /** しゃがみ開始から解除までがこのミリ秒未満であればドッジ判定対象とする */
     public static final long QUICK_SNEAK_WINDOW_MS = 250L;
-
-    /** ドッジのクールタイム（ミリ秒） */
-    private static final long COOLDOWN_MS = 2000L;
 
     /** ドッジ中（ジャスト回避判定）フラグを true に保つ Tick 数（20Tick = 1秒） */
     private static final long DODGE_FLAG_DURATION_TICKS = 8L;
@@ -40,8 +38,11 @@ public class DodgeService {
     /** 落下抑制のために加える上向き成分 */
     private static final double DODGE_VERTICAL_STRENGTH = 0.15D;
 
+    /** 進行方向ベクトル採用に必要な最小移動距離の二乗（XZ 平面） */
+    private static final double MIN_TRAVEL_SQ = 1.0E-4D;
+
     /** パーティクル数 */
-    private static final int PARTICLE_COUNT = 20;
+    private static final int PARTICLE_COUNT = 6;
 
     private final AstralRecord plugin;
     private final StatusService statusService;
@@ -54,19 +55,21 @@ public class DodgeService {
     /**
      * しゃがみ解除時にドッジ発動を試みます。
      * しゃがみ開始からの経過時間が {@link #QUICK_SNEAK_WINDOW_MS} 未満の場合のみ判定し、
-     * クールダウン未経過 / エネルギー不足の場合は発動しません。
+     * エネルギー不足の場合は発動しません。
      *
      * @param astPlayer 対象プレイヤー
      */
     public void tryTriggerOnSneakRelease(@NotNull AstPlayer astPlayer) {
         long sneakStartedAt = astPlayer.getSneakStartedAtMs();
+        Location sneakStartedAtLocation = astPlayer.getSneakStartedAtLocation();
+        astPlayer.setSneakStartedAtMs(0L);
+        astPlayer.setSneakStartedAtLocation(null);
+
         if (sneakStartedAt <= 0L) {
             return;
         }
-        astPlayer.setSneakStartedAtMs(0L);
 
-        long now = System.currentTimeMillis();
-        long sneakDuration = now - sneakStartedAt;
+        long sneakDuration = System.currentTimeMillis() - sneakStartedAt;
         if (sneakDuration >= QUICK_SNEAK_WINDOW_MS) {
             return;
         }
@@ -76,35 +79,30 @@ public class DodgeService {
             return;
         }
 
-        if (now < astPlayer.getDodgeCooldownEndAtMs()) {
-            playDenied(player);
-            return;
-        }
-
         StatusSnapshot snapshot = statusService.getStatus(astPlayer);
         if (snapshot.getCurrentEnergy() < ENERGY_COST) {
             playDenied(player);
             return;
         }
 
-        executeDodge(astPlayer);
+        executeDodge(astPlayer, sneakStartedAtLocation);
     }
 
     /**
      * ドッジを実行します（条件チェック済み前提）。
      *
-     * @param astPlayer 対象プレイヤー
+     * @param astPlayer            対象プレイヤー
+     * @param sneakStartedAtLocation しゃがみ開始時の座標（null の場合は視線方向にフォールバック）
      */
-    private void executeDodge(@NotNull AstPlayer astPlayer) {
+    private void executeDodge(@NotNull AstPlayer astPlayer, Location sneakStartedAtLocation) {
         Player player = astPlayer.getBukkit();
 
         statusService.consumeEnergy(astPlayer, ENERGY_COST);
 
-        Vector direction = computeDodgeDirection(player);
+        Vector direction = computeDodgeDirection(player, sneakStartedAtLocation);
         player.setVelocity(direction);
 
         astPlayer.setDodging(true);
-        astPlayer.setDodgeCooldownEndAtMs(System.currentTimeMillis() + COOLDOWN_MS);
 
         playDodgeEffects(player);
 
@@ -113,22 +111,34 @@ public class DodgeService {
 
     /**
      * ドッジ方向のベクトルを計算します。
-     * プレイヤーの移動入力（ない場合は視線方向）を水平に正規化し、ジャンプ風の上昇成分を僅かに付加します。
+     * しゃがみ開始から解除までのプレイヤー移動方向（XZ 平面）を採用し、
+     * 移動量が小さい場合のみ視線方向へフォールバックします。最後にジャンプ風の上昇成分を僅かに付加します。
      *
-     * @param player 対象 Bukkit プレイヤー
+     * @param player                 対象 Bukkit プレイヤー
+     * @param sneakStartedAtLocation しゃがみ開始時の座標
      * @return ドッジ用の {@link Vector}
      */
-    private @NotNull Vector computeDodgeDirection(@NotNull Player player) {
-        Vector facing = player.getLocation().getDirection();
-        facing.setY(0.0D);
-        if (facing.lengthSquared() < 1.0E-6D) {
-            facing = new Vector(0.0D, 0.0D, 1.0D);
-        } else {
-            facing.normalize();
+    private @NotNull Vector computeDodgeDirection(@NotNull Player player, Location sneakStartedAtLocation) {
+        Vector direction = null;
+        if (sneakStartedAtLocation != null && sneakStartedAtLocation.getWorld() == player.getWorld()) {
+            Vector delta = player.getLocation().toVector().subtract(sneakStartedAtLocation.toVector());
+            delta.setY(0.0D);
+            if (delta.lengthSquared() > MIN_TRAVEL_SQ) {
+                direction = delta.normalize();
+            }
         }
-        facing.multiply(DODGE_HORIZONTAL_STRENGTH);
-        facing.setY(DODGE_VERTICAL_STRENGTH);
-        return facing;
+        if (direction == null) {
+            direction = player.getLocation().getDirection();
+            direction.setY(0.0D);
+            if (direction.lengthSquared() < 1.0E-6D) {
+                direction = new Vector(0.0D, 0.0D, 1.0D);
+            } else {
+                direction.normalize();
+            }
+        }
+        direction.multiply(DODGE_HORIZONTAL_STRENGTH);
+        direction.setY(DODGE_VERTICAL_STRENGTH);
+        return direction;
     }
 
     /**
@@ -144,31 +154,17 @@ public class DodgeService {
             0.8f,
             1.6f
         );
-        player.getWorld().playSound(
-            player.getLocation(),
-            Sound.ENTITY_HORSE_BREATHE,
-            SoundCategory.PLAYERS,
-            0.4f,
-            1.8f
-        );
         player.getWorld().spawnParticle(
             Particle.CLOUD,
-            player.getLocation().add(0.0D, 1.0D, 0.0D),
+            player.getLocation().add(0.0D, 0.2D, 0.0D),
             PARTICLE_COUNT,
-            0.3D, 0.3D, 0.3D,
-            0.05D
-        );
-        player.getWorld().spawnParticle(
-            Particle.SWEEP_ATTACK,
-            player.getLocation().add(0.0D, 1.0D, 0.0D),
-            1,
-            0.0D, 0.0D, 0.0D,
+            0.2D, 0.05D, 0.2D,
             0.0D
         );
     }
 
     /**
-     * ドッジ発動失敗時（クールダウン中・エネルギー不足）のフィードバック音を再生します。
+     * ドッジ発動失敗時（エネルギー不足）のフィードバック音を再生します。
      *
      * @param player 対象 Bukkit プレイヤー
      */

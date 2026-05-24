@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger
 import org.bukkit.GameMode
+import org.bukkit.Location
 import org.bukkit.attribute.Attribute
 import org.bukkit.entity.Player
 
@@ -41,10 +42,10 @@ data class AstPlayer(
     var sneakStartedAtMs: Long = 0L
 
     /**
-     * 次にドッジを発動できる時刻（System.currentTimeMillis ベース）。
-     * クールダウン中はドッジを発動できません。
+     * しゃがみ開始時のプレイヤー座標。
+     * しゃがみ開始から解除までの座標差分をドッジ移動ベクトルの方向として使用します。
      */
-    var dodgeCooldownEndAtMs: Long = 0L
+    var sneakStartedAtLocation: Location? = null
 
     /**
      * ドッジ実行中フラグ。

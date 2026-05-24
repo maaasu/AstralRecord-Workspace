@@ -33,6 +33,7 @@ public class PlayerSneakEventHandler extends AbstractEventHandler {
 
             if (event.isSneaking()) {
                 astPlayer.setSneakStartedAtMs(System.currentTimeMillis());
+                astPlayer.setSneakStartedAtLocation(event.getPlayer().getLocation());
                 return;
             }
 
