@@ -70,6 +70,12 @@ public class InventoryService {
     private final Map<UUID, CompletableFuture<InventoryModel>> pendingInventoryCreates = new ConcurrentHashMap<>();
     private final Set<UUID> pendingEntryCreates = ConcurrentHashMap.newKeySet();
     private final Set<UUID> pendingEntryDeletes = ConcurrentHashMap.newKeySet();
+    /**
+     * 楽観的更新中の entry ID。
+     * API への UPDATE 完了前に {@link #refreshEntries} が走った場合、
+     * DB から取得した古い slot_index などでキャッシュを上書きしてしまうのを防ぐために使用する。
+     */
+    private final Set<UUID> pendingEntryUpdates = ConcurrentHashMap.newKeySet();
     private final Set<CompletableFuture<?>> pendingWriteTasks = ConcurrentHashMap.newKeySet();
     private final Set<UUID> refreshingInventories = ConcurrentHashMap.newKeySet();
     private final Set<UUID> refreshingEntries = ConcurrentHashMap.newKeySet();
@@ -197,12 +203,20 @@ public class InventoryService {
     }
 
     private void refreshEntries(@NotNull UUID inventoryId) {
-        List<InventoryEntryModel> pending = getCachedEntries(inventoryId).stream()
+        List<InventoryEntryModel> cached = getCachedEntries(inventoryId);
+        List<InventoryEntryModel> pendingCreates = cached.stream()
             .filter(entry -> pendingEntryCreates.contains(entry.getInventoryEntryId()))
             .toList();
+        Map<UUID, InventoryEntryModel> pendingUpdates = new HashMap<>();
+        for (InventoryEntryModel entry : cached) {
+            if (pendingEntryUpdates.contains(entry.getInventoryEntryId())) {
+                pendingUpdates.put(entry.getInventoryEntryId(), entry);
+            }
+        }
         List<InventoryEntryModel> refreshed = new ArrayList<>(inventoryRepository.findEntries(inventoryId));
         refreshed.removeIf(entry -> pendingEntryDeletes.contains(entry.getInventoryEntryId()));
-        refreshed.addAll(pending);
+        refreshed.replaceAll(entry -> pendingUpdates.getOrDefault(entry.getInventoryEntryId(), entry));
+        refreshed.addAll(pendingCreates);
         entryCache.put(inventoryId, List.copyOf(refreshed));
     }
 
@@ -361,7 +375,9 @@ public class InventoryService {
     ) {
         InventoryEntryModel current = findCachedEntry(inventoryEntryId);
         if (current == null) {
+            pendingEntryUpdates.add(inventoryEntryId);
             CompletableFuture.runAsync(() -> inventoryRepository.updateEntry(inventoryEntryId, draft, updatedBy))
+                .whenComplete((ignored, error) -> pendingEntryUpdates.remove(inventoryEntryId))
                 .exceptionally(error -> {
                     Logger.warn(LogId.W_5252, inventoryEntryId, error.getMessage());
                     return null;
@@ -391,7 +407,9 @@ public class InventoryService {
             return updated;
         }
 
+        pendingEntryUpdates.add(inventoryEntryId);
         CompletableFuture.runAsync(() -> inventoryRepository.updateEntry(inventoryEntryId, draft, updatedBy))
+            .whenComplete((ignored, error) -> pendingEntryUpdates.remove(inventoryEntryId))
             .exceptionally(error -> {
                 Logger.warn(LogId.W_5252, inventoryEntryId, error.getMessage());
                 return null;
