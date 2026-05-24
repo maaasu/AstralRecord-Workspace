@@ -2028,6 +2028,23 @@ public class InventoryService {
         ItemStack accessory6Snapshot = cloneItemStack(accessory6);
         ItemStack accessory7Snapshot = cloneItemStack(accessory7);
 
+        // 装備の脱着直後に applyActiveEquipmentLoadoutToGui が古いキャッシュを読んで
+        // 取り外したはずの装備を再適用しないよう、DB 書き込み前にキャッシュを同期更新する。
+        updateActiveLoadoutCacheOptimistically(
+            accountId,
+            headSnapshot,
+            chestSnapshot,
+            legsSnapshot,
+            feetSnapshot,
+            offHandSnapshot,
+            accessory2Snapshot,
+            accessory3Snapshot,
+            accessory4Snapshot,
+            accessory5Snapshot,
+            accessory6Snapshot,
+            accessory7Snapshot
+        );
+
         CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
             EquipmentLoadoutModel loadout = ensureActiveEquipmentLoadout(accountId);
             if (loadout == null) {
@@ -2050,6 +2067,126 @@ public class InventoryService {
 
     private @Nullable ItemStack cloneItemStack(@Nullable ItemStack itemStack) {
         return itemStack == null ? null : itemStack.clone();
+    }
+
+    /**
+     * アクティブな装備ロードアウトのキャッシュを、与えられた装備状態へ同期的に書き換えます。
+     * <p>
+     * 装備の脱着直後にキャッシュが古いまま残り、{@link #applyActiveEquipmentLoadoutToGui} が
+     * 取り外したはずの装備を再適用してしまう状況を防ぐために、DB 反映を待たずに呼び出します。
+     *
+     * @param accountId 対象アカウントID
+     * @param head      頭装備（null/AIR で未装備として扱う）
+     * @param chest     胴装備
+     * @param legs      脚装備
+     * @param feet      足装備
+     * @param offHand   オフハンド装備
+     * @param accessory2 アクセサリスロット1
+     * @param accessory3 アクセサリスロット2
+     * @param accessory4 アクセサリスロット3
+     * @param accessory5 アクセサリスロット4
+     * @param accessory6 アクセサリスロット5
+     * @param accessory7 アクセサリスロット6
+     */
+    private void updateActiveLoadoutCacheOptimistically(
+        @NotNull UUID accountId,
+        @Nullable ItemStack head,
+        @Nullable ItemStack chest,
+        @Nullable ItemStack legs,
+        @Nullable ItemStack feet,
+        @Nullable ItemStack offHand,
+        @Nullable ItemStack accessory2,
+        @Nullable ItemStack accessory3,
+        @Nullable ItemStack accessory4,
+        @Nullable ItemStack accessory5,
+        @Nullable ItemStack accessory6,
+        @Nullable ItemStack accessory7
+    ) {
+        List<EquipmentLoadoutModel> cached = equipmentLoadoutCache.get(accountId);
+        if (cached == null || cached.isEmpty()) {
+            return;
+        }
+        EquipmentLoadoutModel active = cached.stream()
+            .filter(loadout -> loadout.isActive() && !loadout.isDeleted())
+            .findFirst()
+            .orElse(null);
+        if (active == null) {
+            return;
+        }
+
+        Map<String, Map<Integer, EquipmentLoadoutSlotModel>> bySlot = new HashMap<>();
+        for (EquipmentLoadoutSlotModel slot : active.getSlots()) {
+            bySlot.computeIfAbsent(slot.getSlotType(), key -> new HashMap<>())
+                .put(slot.getSlotIndex(), slot);
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        applyOptimisticLoadoutSlot(bySlot, SLOT_TYPE_HEAD, 0, head, active, accountId, now);
+        applyOptimisticLoadoutSlot(bySlot, SLOT_TYPE_CHEST, 0, chest, active, accountId, now);
+        applyOptimisticLoadoutSlot(bySlot, SLOT_TYPE_LEGS, 0, legs, active, accountId, now);
+        applyOptimisticLoadoutSlot(bySlot, SLOT_TYPE_FEET, 0, feet, active, accountId, now);
+        applyOptimisticLoadoutSlot(bySlot, SLOT_TYPE_ACCESSORY, 0, offHand, active, accountId, now);
+        applyOptimisticLoadoutSlot(bySlot, SLOT_TYPE_ACCESSORY, 1, accessory2, active, accountId, now);
+        applyOptimisticLoadoutSlot(bySlot, SLOT_TYPE_ACCESSORY, 2, accessory3, active, accountId, now);
+        applyOptimisticLoadoutSlot(bySlot, SLOT_TYPE_ACCESSORY, 3, accessory4, active, accountId, now);
+        applyOptimisticLoadoutSlot(bySlot, SLOT_TYPE_ACCESSORY, 4, accessory5, active, accountId, now);
+        applyOptimisticLoadoutSlot(bySlot, SLOT_TYPE_ACCESSORY, 5, accessory6, active, accountId, now);
+        applyOptimisticLoadoutSlot(bySlot, SLOT_TYPE_ACCESSORY, 6, accessory7, active, accountId, now);
+
+        List<EquipmentLoadoutSlotModel> nextSlots = bySlot.values().stream()
+            .flatMap(map -> map.values().stream())
+            .toList();
+
+        EquipmentLoadoutModel updated = new EquipmentLoadoutModel(
+            active.getEquipmentLoadoutId(),
+            active.getAccountId(),
+            active.getLoadoutProfile(),
+            active.getLoadoutName(),
+            active.getSortOrder(),
+            active.isActive(),
+            active.getMetadataJson(),
+            nextSlots,
+            active.getCreatedAt(),
+            now,
+            active.getCreatedBy(),
+            accountId,
+            active.isDeleted()
+        );
+
+        List<EquipmentLoadoutModel> next = new ArrayList<>(cached);
+        next.removeIf(loadout -> loadout.getEquipmentLoadoutId().equals(active.getEquipmentLoadoutId()));
+        next.add(updated);
+        equipmentLoadoutCache.put(accountId, List.copyOf(next));
+    }
+
+    private void applyOptimisticLoadoutSlot(
+        @NotNull Map<String, Map<Integer, EquipmentLoadoutSlotModel>> bySlot,
+        @NotNull String slotType,
+        int slotIndex,
+        @Nullable ItemStack itemStack,
+        @NotNull EquipmentLoadoutModel active,
+        @NotNull UUID accountId,
+        @NotNull LocalDateTime now
+    ) {
+        UUID equipmentInstanceId = readEquipmentInstanceId(itemStack);
+        Map<Integer, EquipmentLoadoutSlotModel> slots = bySlot.computeIfAbsent(slotType, key -> new HashMap<>());
+        if (equipmentInstanceId == null) {
+            slots.remove(slotIndex);
+            return;
+        }
+        EquipmentLoadoutSlotModel existing = slots.get(slotIndex);
+        slots.put(slotIndex, new EquipmentLoadoutSlotModel(
+            existing != null ? existing.getEquipmentLoadoutSlotId() : UUID.randomUUID(),
+            active.getEquipmentLoadoutId(),
+            slotType,
+            slotIndex,
+            equipmentInstanceId,
+            existing != null ? existing.getCreatedAt() : now,
+            now,
+            existing != null ? existing.getCreatedBy() : accountId,
+            accountId,
+            false
+        ));
     }
 
     private void syncLoadoutSlot(
