@@ -1988,14 +1988,21 @@ public class InventoryService {
         inventory.setChestplate(new ItemStack(Material.AIR));
         inventory.setLeggings(new ItemStack(Material.AIR));
         inventory.setBoots(new ItemStack(Material.AIR));
-        inventory.setItemInOffHand(new ItemStack(Material.AIR));
 
+        ItemStack desiredOffHand = new ItemStack(Material.AIR);
         for (EquipmentLoadoutSlotModel slot : loadout.getSlots()) {
             ItemStack itemStack = itemStackResolver.resolve(toInventoryEntry(slot));
             if (itemStack == null) {
                 continue;
             }
+            if (SLOT_TYPE_ACCESSORY.equalsIgnoreCase(slot.getSlotType()) && slot.getSlotIndex() == 0) {
+                desiredOffHand = itemStack;
+                continue;
+            }
             applyLoadoutSlot(inventory, slot.getSlotType(), slot.getSlotIndex(), itemStack);
+        }
+        if (!isSameItemStack(inventory.getItemInOffHand(), desiredOffHand)) {
+            inventory.setItemInOffHand(desiredOffHand);
         }
 
         astPlayer.getBukkit().updateInventory();

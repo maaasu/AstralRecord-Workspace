@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.inventory.service;
 import io.github.maaasu.astralRecord.feature.inventory.model.AccessorySlotType;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -79,12 +80,27 @@ final class AccessorySlotLayout {
 
     /**
      * スナップショット配列をプレイヤーのアクセサリスロットへ反映します。
+     * <p>
+     * 既存オフハンドと表示上同一の場合は再設置せず、不要な装備アニメーションや
+     * 同等アイテムの再配置を抑制します。
      */
     static void applySnapshot(@NotNull Player player, @NotNull ItemStack[] snapshot) {
-        if (snapshot.length > SLOT_OFF_HAND && snapshot[SLOT_OFF_HAND] != null) {
-            player.getInventory().setItemInOffHand(snapshot[SLOT_OFF_HAND]);
+        ItemStack desired = snapshot.length > SLOT_OFF_HAND && snapshot[SLOT_OFF_HAND] != null
+            ? snapshot[SLOT_OFF_HAND]
+            : new ItemStack(Material.AIR);
+        PlayerInventory inventory = player.getInventory();
+        if (isSameOffHand(inventory.getItemInOffHand(), desired)) {
             return;
         }
-        player.getInventory().setItemInOffHand(new ItemStack(org.bukkit.Material.AIR));
+        inventory.setItemInOffHand(desired);
+    }
+
+    private static boolean isSameOffHand(@Nullable ItemStack current, @Nullable ItemStack next) {
+        boolean currentEmpty = current == null || current.getType() == Material.AIR;
+        boolean nextEmpty = next == null || next.getType() == Material.AIR;
+        if (currentEmpty || nextEmpty) {
+            return currentEmpty == nextEmpty;
+        }
+        return current.getAmount() == next.getAmount() && current.isSimilar(next);
     }
 }
