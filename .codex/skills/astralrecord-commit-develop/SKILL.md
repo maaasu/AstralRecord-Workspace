@@ -31,6 +31,9 @@ Follow the workspace commit rules in `E:\AstralRecord-Workspace\COMMIT_RULES.md`
 5. Stage safely:
    - Use explicit paths: `git add -- <path1> <path2> ...`.
    - After staging, run `git diff --cached --stat` and `git diff --cached --check`.
+   - Run mojibake check for staged files:
+     - `python E:\AstralRecord-Workspace\.codex\skills\astralrecord-commit-develop\scripts\staged_mojibake_check.py E:\AstralRecord-Workspace`
+     - If any file is reported, stop and fix encoding/content before commit.
    - If staged content includes an excluded or unrelated file, unstage that file with `git restore --staged -- <path>`.
 6. Compose a commit message:
    - Follow `E:\AstralRecord-Workspace\COMMIT_RULES.md`.
