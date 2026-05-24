@@ -1,0 +1,16 @@
+schemaVersion: 1
+id: fire_boost
+type: SKILL
+implementationId: fire_boost
+name: "&cファイアブースト"
+description: "&7火属性ダメージを上昇させるパッシブスキル。"
+icon: BLAZE_POWDER
+cooldownTicks: 0
+manaCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+params:
+  fireDamageBonus: 0.15
+tags:
+  - passive
+  - fire

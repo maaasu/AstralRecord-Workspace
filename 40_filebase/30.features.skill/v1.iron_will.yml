@@ -1,0 +1,16 @@
+schemaVersion: 1
+id: iron_will
+type: SKILL
+implementationId: iron_will
+name: "&7アイアンウィル"
+description: "&7装備セット効果用のパッシブスキル。被ダメージを軽減する。"
+icon: IRON_INGOT
+cooldownTicks: 0
+manaCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+params:
+  damageReduction: 0.10
+tags:
+  - passive
+  - defense

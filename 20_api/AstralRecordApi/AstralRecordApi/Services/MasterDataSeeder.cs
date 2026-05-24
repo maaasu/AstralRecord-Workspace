@@ -92,29 +92,42 @@ public class MasterDataSeeder(
         try
         {
             var config = SeedConfig.Load(rootPath);
-            await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
 
-            if (mode == MasterDataSeedMode.Rebuild)
+            var strategy = db.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async ct =>
             {
-                await db.References.ExecuteDeleteAsync(cancellationToken);
-                await db.Entries.ExecuteDeleteAsync(cancellationToken);
-            }
+                // リトライ戦略が有効な DbContext では、ユーザー開始トランザクションを
+                // ExecutionStrategy のスコープ内で開く必要がある。
+                db.ChangeTracker.Clear();
+                counts.Reset();
+                warnings.Clear();
 
-            var plans = BuildSourcePlans(rootPath, config, warnings);
-            var sourceIdByKey = await SyncSourcesAsync(plans, config.SchemaVersion, systemUser, cancellationToken);
-            await db.SaveChangesAsync(cancellationToken);
+                await using var transaction = await db.Database.BeginTransactionAsync(ct);
 
-            await SyncEntriesAsync(plans, sourceIdByKey, config, systemUser, mode, counts, cancellationToken);
-            await db.SaveChangesAsync(cancellationToken);
+                if (mode == MasterDataSeedMode.Rebuild)
+                {
+                    await db.References.ExecuteDeleteAsync(ct);
+                    await db.Entries.ExecuteDeleteAsync(ct);
+                }
 
-            await ValidateReferencesAsync(warnings, cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+                var plans = BuildSourcePlans(rootPath, config, warnings);
+                var sourceIdByKey = await SyncSourcesAsync(plans, config.SchemaVersion, systemUser, ct);
+                await db.SaveChangesAsync(ct);
+
+                await SyncEntriesAsync(plans, sourceIdByKey, config, systemUser, mode, counts, ct);
+                await db.SaveChangesAsync(ct);
+
+                await ValidateReferencesAsync(warnings, ct);
+                await transaction.CommitAsync(ct);
+            }, cancellationToken);
 
             var finishedAt = DateTime.UtcNow;
             run.Status = StatusSucceeded;
             run.FinishedAt = finishedAt;
             run.UpdatedAt = finishedAt;
             ApplyCounts(run, counts);
+            // ExecuteAsync 内で ChangeTracker.Clear() しているため、run を再アタッチして UPDATE を永続化する。
+            db.SeedRuns.Update(run);
             await db.SaveChangesAsync(cancellationToken);
 
             logger.LogInformation(
@@ -764,6 +777,14 @@ public class MasterDataSeeder(
         public int UpsertedCount { get; set; }
         public int DeletedCount { get; set; }
         public int SkippedCount { get; set; }
+
+        public void Reset()
+        {
+            FileCount = 0;
+            UpsertedCount = 0;
+            DeletedCount = 0;
+            SkippedCount = 0;
+        }
     }
 
     private sealed class TupleKeyComparer : IEqualityComparer<(string, string)>
