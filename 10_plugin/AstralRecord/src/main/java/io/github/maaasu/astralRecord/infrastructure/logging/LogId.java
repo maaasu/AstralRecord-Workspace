@@ -364,6 +364,10 @@ public enum LogId {
      * アカウントを切り替えました: %s (user=%s)
      */
     I_5101(5101),
+    /**
+     * アカウントモードを更新しました: %s (mode=%s, updatedBy=%s)
+     */
+    I_5102(5102),
     // endregion
 
     // region /feature/account/repository/AccountRepository.kt
@@ -407,6 +411,14 @@ public enum LogId {
      * アクティブアカウントの切り替えに失敗しました (API): %s
      */
     E_5153(5153),
+    /**
+     * アカウントモードを更新しました (API): accountId=%s, mode=%s
+     */
+    D_5154(5154),
+    /**
+     * アカウントモードの更新に失敗しました (API): %s
+     */
+    E_5154(5154),
     // endregion
 
     // region /feature/item/repository/ItemRepository.kt /feature/item/service/ItemService.java

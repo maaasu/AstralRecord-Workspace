@@ -182,18 +182,18 @@ class AccountRepository {
                     .build()
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 if (response.statusCode() !in 200..299) {
-                    Logger.log(LogId.E_5153, "HTTP ${response.statusCode()} for PUT $path")
+                    Logger.log(LogId.E_5154, "HTTP ${response.statusCode()} for PUT $path")
                     throw IOException("Unexpected status ${response.statusCode()} for PUT $path")
                 }
-                Logger.log(LogId.D_5153, targetUuid, mode.value)
+                Logger.log(LogId.D_5154, targetUuid, mode.value)
                 return parseAccountModel(response.body())
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            Logger.log(LogId.E_5153, e)
+            Logger.log(LogId.E_5154, e)
             throw RuntimeException(e)
         } catch (e: IOException) {
-            Logger.log(LogId.E_5153, e)
+            Logger.log(LogId.E_5154, e)
             throw e
         }
     }

@@ -117,9 +117,17 @@ public class AccountService {
         Logger.log(LogId.I_5101, accountUuid, userId);
     }
 
+    /**
+     * 指定アカウントのモードを更新します。
+     *
+     * @param accountUuid 更新対象アカウント UUID
+     * @param mode        新しいアカウントモード
+     * @param updatedBy   更新者 UUID
+     * @return 更新後のアカウントモデル
+     */
     public AccountModel setMode(UUID accountUuid, AccountMode mode, UUID updatedBy) {
         AccountModel updated = accountRepository.updateMode(accountUuid, mode, updatedBy);
-        Logger.log(LogId.I_5101, accountUuid, updatedBy);
+        Logger.log(LogId.I_5102, accountUuid, mode.getValue(), updatedBy);
         return updated;
     }
 }
