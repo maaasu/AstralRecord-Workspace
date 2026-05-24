@@ -1620,7 +1620,7 @@ public class InventoryService {
         boolean changed = false;
 
         changed |= setStorageItemIfChanged(inventory, 0, createInventoryShortcutIcon(InventoryType.NORMAL, Material.CHEST, displayed));
-        changed |= setStorageItemIfChanged(inventory, 1, createInventoryShortcutIcon(InventoryType.EQUIPMENT, Material.NETHERITE_CHESTPLATE, displayed));
+        changed |= setStorageItemIfChanged(inventory, 1, createInventoryShortcutIcon(InventoryType.EQUIPMENT, Material.IRON_CHESTPLATE, displayed));
         changed |= setStorageItemIfChanged(inventory, 2, createInventoryShortcutIcon(InventoryType.RUNE, Material.AMETHYST_SHARD, displayed));
         for (int i = 3; i <= 7; i++) {
             changed |= setStorageItemIfChanged(inventory, i, createHotbarSpacerIcon());
