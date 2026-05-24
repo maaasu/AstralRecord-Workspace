@@ -6,6 +6,7 @@ namespace AstralRecordApi.Data;
 public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> options) : DbContext(options)
 {
     public DbSet<UserEntity> Users => Set<UserEntity>();
+    public DbSet<PlayerSettingEntity> PlayerSettings => Set<PlayerSettingEntity>();
     public DbSet<AccountEntity> Accounts => Set<AccountEntity>();
     public DbSet<InventoryEntity> Inventories => Set<InventoryEntity>();
     public DbSet<InventoryEntryEntity> InventoryEntries => Set<InventoryEntryEntity>();
@@ -60,6 +61,23 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(account => account.CreatedBy).HasColumnName("created_by");
             entity.Property(account => account.UpdatedBy).HasColumnName("updated_by");
             entity.Property(account => account.IsDeleted).HasColumnName("is_deleted");
+        });
+
+        modelBuilder.Entity<PlayerSettingEntity>(entity =>
+        {
+            entity.ToTable("user_setting", "dbo");
+            entity.HasKey(setting => setting.UserSettingId);
+
+            entity.Property(setting => setting.UserSettingId).HasColumnName("user_setting_id");
+            entity.Property(setting => setting.UserId).HasColumnName("user_id");
+            entity.Property(setting => setting.SettingKey).HasColumnName("setting_key");
+            entity.Property(setting => setting.SettingValueJson).HasColumnName("setting_value_json");
+            entity.Property(setting => setting.Version).HasColumnName("version");
+            entity.Property(setting => setting.CreatedAt).HasColumnName("created_at");
+            entity.Property(setting => setting.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(setting => setting.CreatedBy).HasColumnName("created_by");
+            entity.Property(setting => setting.UpdatedBy).HasColumnName("updated_by");
+            entity.Property(setting => setting.IsDeleted).HasColumnName("is_deleted");
         });
 
         modelBuilder.Entity<InventoryEntity>(entity =>

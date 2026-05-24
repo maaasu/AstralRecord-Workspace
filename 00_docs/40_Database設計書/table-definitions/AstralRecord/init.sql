@@ -55,6 +55,46 @@ CREATE NONCLUSTERED INDEX [IX_user_account_id]
 GO
 
 -- ============================================================
+-- AstralRecord\dbo.user_setting.md
+-- ============================================================
+
+CREATE TABLE [dbo].[user_setting] (
+    [user_setting_id]    UNIQUEIDENTIFIER  NOT NULL,
+    [user_id]            UNIQUEIDENTIFIER  NOT NULL,
+    [setting_key]        NVARCHAR(100)     NOT NULL,
+    [setting_value_json] NVARCHAR(MAX)     NOT NULL,
+    [version]            INT               NOT NULL  CONSTRAINT [DF_user_setting_version]    DEFAULT (1),
+    [created_at]         DATETIME2(3)      NOT NULL,
+    [updated_at]         DATETIME2(3)      NOT NULL,
+    [created_by]         UNIQUEIDENTIFIER  NOT NULL,
+    [updated_by]         UNIQUEIDENTIFIER  NOT NULL,
+    [is_deleted]         BIT               NOT NULL  CONSTRAINT [DF_user_setting_is_deleted] DEFAULT (0),
+
+    CONSTRAINT [PK_user_setting] PRIMARY KEY CLUSTERED ([user_setting_id]),
+    CONSTRAINT [FK_user_setting_user] FOREIGN KEY ([user_id])
+        REFERENCES [dbo].[user] ([uuid])
+        ON DELETE NO ACTION
+        ON UPDATE NO ACTION,
+    CONSTRAINT [CK_user_setting_setting_key_not_blank] CHECK (LEN(LTRIM(RTRIM([setting_key]))) > 0),
+    CONSTRAINT [CK_user_setting_value_json] CHECK (ISJSON([setting_value_json]) = 1),
+    CONSTRAINT [CK_user_setting_version] CHECK ([version] >= 1)
+);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_user_setting_user_id]
+    ON [dbo].[user_setting] ([user_id]);
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [UX_user_setting_user_key_active]
+    ON [dbo].[user_setting] ([user_id], [setting_key])
+    WHERE [is_deleted] = 0;
+GO
+
+CREATE NONCLUSTERED INDEX [IX_user_setting_is_deleted]
+    ON [dbo].[user_setting] ([is_deleted]);
+GO
+
+-- ============================================================
 -- AstralRecord\dbo.account.md
 -- ============================================================
 

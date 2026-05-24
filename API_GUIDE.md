@@ -38,6 +38,10 @@
 | GET `/api/account/{uuid}` | アカウント取得 | `00_docs/20_API設計書/feature/02-account/3-エンドポイント仕様/02_3.00-索引.md` |
 | POST `/api/account` | アカウント作成 | `00_docs/20_API設計書/feature/02-account/3-エンドポイント仕様/02_3.00-索引.md` |
 | PUT `/api/account/{uuid}` | アカウント更新 | `00_docs/20_API設計書/feature/02-account/3-エンドポイント仕様/02_3.00-索引.md` |
+| GET `/api/player-setting?user_id={user_id}` | ユーザー単位プレイヤー設定一覧取得 | `00_docs/20_API設計書/feature/03-player-setting/3-エンドポイント仕様/03_3.00-索引.md` |
+| GET `/api/player-setting/{userSettingId}` | プレイヤー設定取得 | `00_docs/20_API設計書/feature/03-player-setting/3-エンドポイント仕様/03_3.00-索引.md` |
+| POST `/api/player-setting` | プレイヤー設定作成 | `00_docs/20_API設計書/feature/03-player-setting/3-エンドポイント仕様/03_3.00-索引.md` |
+| PUT `/api/player-setting/{userSettingId}` | プレイヤー設定更新（楽観ロック） | `00_docs/20_API設計書/feature/03-player-setting/3-エンドポイント仕様/03_3.00-索引.md` |
 | GET `/api/inventory?account_id={account_id}` | アカウント配下のインベントリ一覧取得 | `00_docs/20_API設計書/feature/13-inventory/3-エンドポイント仕様/13_3.00-索引.md` |
 | GET `/api/inventory/{inventoryId}` | インベントリ本体取得 | `00_docs/20_API設計書/feature/13-inventory/3-エンドポイント仕様/13_3.00-索引.md` |
 | POST `/api/inventory` | インベントリ本体作成 | `00_docs/20_API設計書/feature/13-inventory/3-エンドポイント仕様/13_3.00-索引.md` |
