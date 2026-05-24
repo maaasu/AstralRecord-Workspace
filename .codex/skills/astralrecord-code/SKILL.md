@@ -1,4 +1,4 @@
-﻿---
+---
 name: astralrecord-code
 description: Implement AstralRecord code changes across the monorepo. Use when asked to code from a design document path, migrate docs/specs into implementation, modify plugin/API/Web/database/filebase/resourcepack behavior, or apply custom implementation instructions such as changing item IDs while following the root guide, project README/AGENTS.md, and skill references.
 ---

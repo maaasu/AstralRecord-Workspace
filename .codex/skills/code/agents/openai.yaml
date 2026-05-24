@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code"
+  short_description: "Run AstralRecord implementation workflow"
+  default_prompt: "Use $code to implement a coding change for E:\\AstralRecord-Workspace\\<target-path> and report the result."
