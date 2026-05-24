@@ -87,13 +87,7 @@ public class ItemCommand extends AstCommand {
         }
 
         InventoryType inventoryType = inventoryService.resolveInventoryType(model);
-        if (inventoryType == InventoryType.CURRENCY) {
-            plugin.getMenuView().openCurrency(
-                player.getBukkit(),
-                plugin.getCurrencyService().getCurrencyItemStacks(player.getAccount().getUuid()),
-                0
-            );
-        } else {
+        if (inventoryType != InventoryType.CURRENCY) {
             inventoryService.applyInventoryToGui(player, inventoryType);
         }
         player.sendMessage(PlayerMsgId.P_5240, model.getName(), granted);
