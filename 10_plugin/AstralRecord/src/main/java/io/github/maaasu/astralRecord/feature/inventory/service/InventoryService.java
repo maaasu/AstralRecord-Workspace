@@ -690,7 +690,7 @@ public class InventoryService {
         UUID accountId = astPlayer.getAccount().getUuid();
         InventoryModel inventory = ensureBuilderInventory(accountId);
         ItemStack[] contents = astPlayer.getBukkit().getInventory().getContents();
-        String metadataJson = snapshotCodec.encode(contents);
+        String metadataJson = snapshotCodec.encodeBuilder(contents, astPlayer.getBukkit().getGameMode());
         updateMetadataAsync(inventory.getInventoryId(), metadataJson, accountId);
     }
 
@@ -745,11 +745,14 @@ public class InventoryService {
         if (metadataJson == null || metadataJson.isBlank()) {
             return;
         }
-        ItemStack[] contents = snapshotCodec.decode(metadataJson);
-        if (contents == null) {
+        InventorySnapshotCodec.BuilderSnapshot snapshot = snapshotCodec.decodeBuilder(metadataJson);
+        if (snapshot == null) {
             return;
         }
-        astPlayer.getBukkit().getInventory().setContents(contents);
+        astPlayer.getBukkit().getInventory().setContents(snapshot.contents());
+        if (snapshot.gameMode() != null) {
+            astPlayer.getBukkit().setGameMode(snapshot.gameMode());
+        }
         astPlayer.getBukkit().updateInventory();
     }
 

@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import org.bukkit.GameMode;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.io.BukkitObjectInputStream;
 import org.jetbrains.annotations.NotNull;
@@ -20,6 +21,16 @@ final class InventorySnapshotCodec {
     private static final String LEGACY_SNAPSHOT_FORMAT = "bukkit_inventory_v1";
     private static final String KEY_FORMAT = "format";
     private static final String KEY_CONTENTS = "contents";
+    private static final String KEY_GAME_MODE = "gameMode";
+
+    /**
+     * BUILDER モード用スナップショット復元結果。
+     *
+     * @param contents 復元した ItemStack 配列
+     * @param gameMode 保存されていた GameMode。未保存または不明値の場合は null
+     */
+    record BuilderSnapshot(@NotNull ItemStack[] contents, @Nullable GameMode gameMode) {
+    }
 
     /**
      * ItemStack 配列を API 保存用 metadataJson に変換します。
@@ -32,6 +43,51 @@ final class InventorySnapshotCodec {
         json.addProperty(KEY_FORMAT, SNAPSHOT_FORMAT);
         json.addProperty(KEY_CONTENTS, encodeContents(contents));
         return json.toString();
+    }
+
+    /**
+     * BUILDER モード用に ItemStack 配列と GameMode を metadataJson に変換します。
+     *
+     * @param contents Bukkit インベントリ内容
+     * @param gameMode 保存対象 GameMode。null の場合は GameMode を含めずに保存します
+     * @return metadataJson
+     */
+    @NotNull String encodeBuilder(@NotNull ItemStack[] contents, @Nullable GameMode gameMode) {
+        JsonObject json = new JsonObject();
+        json.addProperty(KEY_FORMAT, SNAPSHOT_FORMAT);
+        json.addProperty(KEY_CONTENTS, encodeContents(contents));
+        if (gameMode != null) {
+            json.addProperty(KEY_GAME_MODE, gameMode.name());
+        }
+        return json.toString();
+    }
+
+    /**
+     * BUILDER モード用 metadataJson から ItemStack 配列と GameMode を復元します。
+     *
+     * @param metadataJson API に保存された metadataJson
+     * @return 復元できた [BuilderSnapshot]。形式不一致や破損時は null
+     */
+    @Nullable BuilderSnapshot decodeBuilder(@NotNull String metadataJson) {
+        ItemStack[] contents = decode(metadataJson);
+        if (contents == null) {
+            return null;
+        }
+        GameMode gameMode = null;
+        try {
+            JsonObject obj = JsonParser.parseString(metadataJson).getAsJsonObject();
+            if (obj.has(KEY_GAME_MODE)) {
+                String name = obj.get(KEY_GAME_MODE).getAsString();
+                try {
+                    gameMode = GameMode.valueOf(name);
+                } catch (IllegalArgumentException ignored) {
+                    gameMode = null;
+                }
+            }
+        } catch (Exception ignored) {
+            gameMode = null;
+        }
+        return new BuilderSnapshot(contents, gameMode);
     }
 
     /**
