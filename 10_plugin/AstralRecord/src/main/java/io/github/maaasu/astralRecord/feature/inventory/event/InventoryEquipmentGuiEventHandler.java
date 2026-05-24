@@ -352,6 +352,17 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         GuiSound.DENY.play(player);
     }
 
+    private void handleHotbarShortcutClick(
+        @NotNull AstPlayer astPlayer,
+        @NotNull Player player,
+        @NotNull Inventory topInventory,
+        int slot
+    ) {
+        // 装備GUIを閉じずに切り替える場合でも、GUI上の最新装備状態を保存してから遷移する。
+        saveEquipmentMenuSnapshot(player, topInventory);
+        handleHotbarShortcutClick(astPlayer, player, slot);
+    }
+
     private void handleOffhandHotbarClick(
         @NotNull InventoryClickEvent event,
         @NotNull AstPlayer astPlayer,
