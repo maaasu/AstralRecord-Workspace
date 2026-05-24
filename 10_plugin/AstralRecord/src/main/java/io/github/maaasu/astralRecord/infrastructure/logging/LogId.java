@@ -348,6 +348,13 @@ public enum LogId {
     E_5070(5070),
     // endregion
 
+    // region /feature/player/event/PlayerModeEventHandler.java
+    /**
+     * プレイヤーモード操作制限処理に失敗しました: %s
+     */
+    E_5072(5072),
+    // endregion
+
     // region /feature/player/event/PlayerSneakEventHandler.java
     /**
      * プレイヤーのしゃがみイベント処理に失敗しました: %s

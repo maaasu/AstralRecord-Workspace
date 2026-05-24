@@ -25,7 +25,7 @@ public class PlayerModeEventHandler extends AbstractEventHandler {
                 return;
             }
             event.setCancelled(true);
-        }, LogId.E_5070, event.getWhoClicked().getName());
+        }, LogId.E_5072, event.getWhoClicked().getName());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -38,7 +38,7 @@ public class PlayerModeEventHandler extends AbstractEventHandler {
                 return;
             }
             event.setCancelled(true);
-        }, LogId.E_5070, event.getWhoClicked().getName());
+        }, LogId.E_5072, event.getWhoClicked().getName());
     }
 
     /**
@@ -53,7 +53,7 @@ public class PlayerModeEventHandler extends AbstractEventHandler {
                 return;
             }
             event.setCancelled(true);
-        }, LogId.E_5070, event.getPlayer().getName());
+        }, LogId.E_5072, event.getPlayer().getName());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -67,7 +67,7 @@ public class PlayerModeEventHandler extends AbstractEventHandler {
             }
             event.setCancelled(true);
             event.getPlayer().setGameMode(GameMode.ADVENTURE);
-        }, LogId.E_5070, event.getPlayer().getName());
+        }, LogId.E_5072, event.getPlayer().getName());
     }
 
     private boolean isPlayerMode(Player player) {

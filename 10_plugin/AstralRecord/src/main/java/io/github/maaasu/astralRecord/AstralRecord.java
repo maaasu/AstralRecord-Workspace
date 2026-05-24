@@ -23,7 +23,6 @@ import io.github.maaasu.astralRecord.feature.menu.repository.MenuShortcutReposit
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.mob.repository.MobRepository;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
-import io.github.maaasu.astralRecord.feature.player.event.PlayerInventoryClickEvent;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerJoinEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerModeEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerSneakEventHandler;
@@ -268,10 +267,6 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             new PlayerSneakEventHandler(dodgeService),
-            getServer().getPluginManager()
-        );
-        eventManager.registerHandler(
-            new PlayerInventoryClickEvent(),
             getServer().getPluginManager()
         );
         playerHudService.start(this);
