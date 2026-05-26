@@ -33,7 +33,7 @@ public class MenuView {
     public static final int CLOSE_SLOT = BaseMenuScreenView.CLOSE_SLOT;
     public static final int BACK_SLOT = BaseMenuScreenView.BACK_SLOT;
     public static final int STATUS_SLOT = MainMenuScreenView.STATUS_SLOT;
-    public static final int INVENTORY_SELECTOR_SLOT = MainMenuScreenView.INVENTORY_SELECTOR_SLOT;
+    public static final int PLAYER_SETTING_SLOT = MainMenuScreenView.PLAYER_SETTING_SLOT;
     public static final int EQUIPMENT_GUI_SLOT = MainMenuScreenView.EQUIPMENT_GUI_SLOT;
     public static final int GUIDE_SLOT = MainMenuScreenView.GUIDE_SLOT;
     public static final int EQUIPMENT_HEAD_SLOT = EquipmentMenuScreenView.EQUIPMENT_HEAD_SLOT;

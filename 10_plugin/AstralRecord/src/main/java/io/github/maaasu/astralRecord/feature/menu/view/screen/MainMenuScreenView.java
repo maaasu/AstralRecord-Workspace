@@ -10,7 +10,7 @@ import java.util.List;
 
 public final class MainMenuScreenView extends BaseMenuScreenView {
     public static final int STATUS_SLOT = 20;
-    public static final int INVENTORY_SELECTOR_SLOT = 21;
+    public static final int PLAYER_SETTING_SLOT = 21;
     public static final int EQUIPMENT_GUI_SLOT = 22;
     public static final int GUIDE_SLOT = 24;
 
@@ -19,12 +19,17 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
         inventory.setItem(STATUS_SLOT, createItem(
             Material.PLAYER_HEAD,
             Component.text("ステータス", NamedTextColor.GREEN),
-            List.of(Component.text("キャラクター情報を確認する", NamedTextColor.GRAY))
+            List.of(Component.text("キャラクター情報を確認", NamedTextColor.GRAY))
+        ));
+        inventory.setItem(PLAYER_SETTING_SLOT, createItem(
+            Material.COMPARATOR,
+            Component.text("プレイヤー設定", NamedTextColor.AQUA),
+            List.of(Component.text("表示設定を変更", NamedTextColor.GRAY))
         ));
         inventory.setItem(EQUIPMENT_GUI_SLOT, createItem(
             Material.NETHERITE_CHESTPLATE,
             Component.text("装備", NamedTextColor.GOLD),
-            List.of(Component.text("防具、オフハンド、アクセサリを確認する", NamedTextColor.GRAY))
+            List.of(Component.text("防具、オフハンド、アクセサリを確認", NamedTextColor.GRAY))
         ));
         inventory.setItem(GUIDE_SLOT, createItem(
             Material.BOOK,

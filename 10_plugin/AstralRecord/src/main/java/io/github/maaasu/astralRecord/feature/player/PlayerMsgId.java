@@ -330,6 +330,14 @@ public enum PlayerMsgId {
     P_5305(5305),
     // endregion
 
+    // region /feature/playersetting 5320-5329
+    P_5320(5320),
+    P_5321(5321),
+    P_5322(5322),
+    P_5323(5323),
+    P_5324(5324),
+    // endregion
+
     // region /feature/inventory/command/InventoryCommand.java 5250-5269
     /**
      * 現在の mode では AstralRecord インベントリを反映しません。

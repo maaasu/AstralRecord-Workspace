@@ -44,7 +44,7 @@
 ## 関連外部設計書
 
 - API: `00_docs/20_API設計書/feature/03-player-setting/`
-- DB: `00_docs/40_Database設計書/AstralRecord/dbo.user_setting.md`
+- DB: `00_docs/40_Database設計書/table-definitions/AstralRecord/dbo.user_setting.md`
 
 ## 更新ルール（変更時に必ず更新する章）
 

@@ -29,6 +29,13 @@ import io.github.maaasu.astralRecord.feature.player.event.PlayerVanillaDamageBlo
 import io.github.maaasu.astralRecord.feature.player.save.PlayerSaveCoordinator;
 import io.github.maaasu.astralRecord.feature.player.service.DodgeService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
+import io.github.maaasu.astralRecord.feature.playersetting.cache.PlayerSettingCache;
+import io.github.maaasu.astralRecord.feature.playersetting.event.PlayerSettingGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.playersetting.event.PlayerSettingJoinEventHandler;
+import io.github.maaasu.astralRecord.feature.playersetting.gui.PlayerSettingGui;
+import io.github.maaasu.astralRecord.feature.playersetting.repository.PlayerSettingRepository;
+import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingDefaults;
+import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.resourcepack.event.ResourcePackJoinEventHandler;
 import io.github.maaasu.astralRecord.feature.resourcepack.event.ResourcePackStatusEventHandler;
 import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
@@ -75,6 +82,8 @@ public final class AstralRecord extends JavaPlugin {
     private MobService mobService;
     private EventManager eventManager;
     private ParticleDisplayService particleDisplayService;
+    private PlayerSettingService playerSettingService;
+    private PlayerSettingGui playerSettingGui;
 
     @Override
     public void onLoad() {
@@ -209,6 +218,12 @@ public final class AstralRecord extends JavaPlugin {
         // menu
         menuView = new MenuView(this);
         pagingDebugGui = new PagingDebugGui();
+        playerSettingService = new PlayerSettingService(
+            new PlayerSettingRepository(),
+            new PlayerSettingDefaults(),
+            new PlayerSettingCache()
+        );
+        playerSettingGui = new PlayerSettingGui(playerSettingService);
 
         // item & loot
         getServer().getScheduler().runTaskAsynchronously(this, () -> {
@@ -265,6 +280,14 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             new PagingDebugGuiEventHandler(pagingDebugGui, menuView),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new PlayerSettingJoinEventHandler(this, playerSettingService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new PlayerSettingGuiEventHandler(playerSettingGui, playerSettingService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
@@ -344,5 +367,13 @@ public final class AstralRecord extends JavaPlugin {
 
     public MobService getMobService() {
         return mobService;
+    }
+
+    public PlayerSettingService getPlayerSettingService() {
+        return playerSettingService;
+    }
+
+    public PlayerSettingGui getPlayerSettingGui() {
+        return playerSettingGui;
     }
 }

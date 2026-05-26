@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.player.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
@@ -111,7 +112,7 @@ public class DodgeService {
 
         astPlayer.setDodging(true);
 
-        playDodgeEffects(player);
+        playDodgeEffects(astPlayer);
 
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> astPlayer.setDodging(false), DODGE_FLAG_DURATION_TICKS);
     }
@@ -153,7 +154,8 @@ public class DodgeService {
      *
      * @param player 対象 Bukkit プレイヤー
      */
-    private void playDodgeEffects(@NotNull Player player) {
+    private void playDodgeEffects(@NotNull AstPlayer astPlayer) {
+        Player player = astPlayer.getBukkit();
         player.getWorld().playSound(
             player.getLocation(),
             Sound.ENTITY_PLAYER_ATTACK_SWEEP,
@@ -168,7 +170,7 @@ public class DodgeService {
             PARTICLE_COUNT,
             0.2D, 0.05D, 0.2D,
             0.0D,
-            1.0D
+            resolvePlayerDensityScale(astPlayer)
         );
     }
 
@@ -185,5 +187,13 @@ public class DodgeService {
             0.4f,
             0.7f
         );
+    }
+
+    private double resolvePlayerDensityScale(@NotNull AstPlayer astPlayer) {
+        PlayerSettingService service = plugin.getPlayerSettingService();
+        if (service == null) {
+            return 1.0D;
+        }
+        return service.getParticleDensityScale(astPlayer.getUser().getUuid());
     }
 }

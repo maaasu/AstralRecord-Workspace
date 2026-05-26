@@ -1,0 +1,141 @@
+package io.github.maaasu.astralRecord.feature.playersetting.gui;
+
+import io.github.maaasu.astralRecord.feature.playersetting.model.ParticleDensity;
+import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKey;
+import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingSnapshot;
+import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemFlag;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * プレイヤー設定 GUI です。
+ */
+public final class PlayerSettingGui {
+    public static final int SIZE = 27;
+    public static final int DAMAGE_LOG_SLOT = 11;
+    public static final int PARTICLE_DENSITY_SLOT = 13;
+    public static final int DROP_LOG_SLOT = 15;
+    public static final int CLOSE_SLOT = 26;
+
+    private final PlayerSettingService playerSettingService;
+
+    public PlayerSettingGui(@NotNull PlayerSettingService playerSettingService) {
+        this.playerSettingService = playerSettingService;
+    }
+
+    public void open(@NotNull Player player) {
+        UUID userId = player.getUniqueId();
+        PlayerSettingSnapshot snapshot = playerSettingService.getSnapshot(userId);
+        Inventory inventory = Bukkit.createInventory(
+            new Holder(userId),
+            SIZE,
+            Component.text("プレイヤー設定", NamedTextColor.AQUA)
+        );
+        render(inventory, snapshot);
+        player.openInventory(inventory);
+    }
+
+    public boolean isInventory(@Nullable Inventory inventory) {
+        return inventory != null && inventory.getHolder() instanceof Holder;
+    }
+
+    public @Nullable PlayerSettingKey getKeyAtSlot(int rawSlot) {
+        return switch (rawSlot) {
+            case DAMAGE_LOG_SLOT -> PlayerSettingKey.DAMAGE_LOG_DISPLAY;
+            case PARTICLE_DENSITY_SLOT -> PlayerSettingKey.PARTICLE_DENSITY;
+            case DROP_LOG_SLOT -> PlayerSettingKey.DROP_LOG_DISPLAY;
+            default -> null;
+        };
+    }
+
+    public @Nullable UUID getUserId(@Nullable Inventory inventory) {
+        if (inventory != null && inventory.getHolder() instanceof Holder holder) {
+            return holder.userId();
+        }
+        return null;
+    }
+
+    private void render(@NotNull Inventory inventory, @NotNull PlayerSettingSnapshot snapshot) {
+        inventory.clear();
+        inventory.setItem(DAMAGE_LOG_SLOT, createBooleanItem(
+            Material.REDSTONE,
+            PlayerSettingKey.DAMAGE_LOG_DISPLAY,
+            (Boolean) playerSettingService.getPlayerSetting(snapshot.getUserId(), PlayerSettingKey.DAMAGE_LOG_DISPLAY)
+        ));
+        inventory.setItem(PARTICLE_DENSITY_SLOT, createParticleItem(
+            (ParticleDensity) playerSettingService.getPlayerSetting(snapshot.getUserId(), PlayerSettingKey.PARTICLE_DENSITY)
+        ));
+        inventory.setItem(DROP_LOG_SLOT, createBooleanItem(
+            Material.CHEST,
+            PlayerSettingKey.DROP_LOG_DISPLAY,
+            (Boolean) playerSettingService.getPlayerSetting(snapshot.getUserId(), PlayerSettingKey.DROP_LOG_DISPLAY)
+        ));
+        inventory.setItem(CLOSE_SLOT, createItem(
+            Material.BARRIER,
+            Component.text("閉じる", NamedTextColor.RED),
+            List.of(Component.text("クリックで GUI を閉じます", NamedTextColor.GRAY))
+        ));
+    }
+
+    private @NotNull ItemStack createBooleanItem(
+        @NotNull Material material,
+        @NotNull PlayerSettingKey key,
+        boolean enabled
+    ) {
+        return createItem(
+            material,
+            Component.text(key.getDisplayNameJa(), NamedTextColor.GOLD),
+            List.of(
+                Component.text("現在: " + key.formatValue(enabled), enabled ? NamedTextColor.GREEN : NamedTextColor.RED),
+                Component.text("クリックで切り替え", NamedTextColor.GRAY)
+            )
+        );
+    }
+
+    private @NotNull ItemStack createParticleItem(@NotNull ParticleDensity density) {
+        return createItem(
+            Material.BLAZE_POWDER,
+            Component.text(PlayerSettingKey.PARTICLE_DENSITY.getDisplayNameJa(), NamedTextColor.GOLD),
+            List.of(
+                Component.text("現在: " + density.getDisplayNameJa(), NamedTextColor.AQUA),
+                Component.text("クリックで次の密度へ", NamedTextColor.GRAY)
+            )
+        );
+    }
+
+    private @NotNull ItemStack createItem(
+        @NotNull Material material,
+        @NotNull Component name,
+        @NotNull List<Component> lore
+    ) {
+        ItemStack itemStack = new ItemStack(material);
+        ItemMeta meta = itemStack.getItemMeta();
+        if (meta != null) {
+            meta.displayName(name);
+            meta.lore(lore);
+            meta.addItemFlags(ItemFlag.values());
+            itemStack.setItemMeta(meta);
+        }
+        return itemStack;
+    }
+
+    private record Holder(@NotNull UUID userId) implements InventoryHolder {
+        @Override
+        public @NotNull Inventory getInventory() {
+            return Bukkit.createInventory(this, SIZE);
+        }
+    }
+}

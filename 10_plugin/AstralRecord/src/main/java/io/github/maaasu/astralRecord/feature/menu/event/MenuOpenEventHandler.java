@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.playersetting.gui.PlayerSettingGui;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
@@ -283,6 +284,16 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             }
             GuiSound.SELECT.play(player);
             menuView.openStatus(player, astPlayer, statusService.refreshStatus(astPlayer));
+            return;
+        }
+        if (rawSlot == MenuView.PLAYER_SETTING_SLOT) {
+            PlayerSettingGui playerSettingGui = plugin.getPlayerSettingGui();
+            if (playerSettingGui == null) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.SELECT.play(player);
+            playerSettingGui.open(player);
             return;
         }
         if (rawSlot == MenuView.EQUIPMENT_GUI_SLOT) {
