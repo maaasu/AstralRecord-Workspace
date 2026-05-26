@@ -91,7 +91,7 @@ class SkillRepository {
      * `onCast.sound` は `onCastSound` へ射影し、null 許容項目は Plugin 側既定値で補完しません。
      */
     private fun toDefinition(obj: JsonObject): SkillDefinition {
-        val onCastObj = obj.getAsJsonObject("onCast")
+        val onCastObj = parseObjectOrNull(obj, "onCast")
         val onCastSound = onCastObj?.get("sound")?.takeIf { !it.isJsonNull }?.asString
 
         return SkillDefinition(
@@ -106,7 +106,7 @@ class SkillRepository {
             castTimeTicks = obj.get("castTimeTicks")?.takeIf { !it.isJsonNull }?.asLong ?: 0L,
             requiredLevel = obj.get("requiredLevel")?.takeIf { !it.isJsonNull }?.asInt ?: 1,
             onCastSound = onCastSound,
-            params = parseParams(obj.getAsJsonObject("params")),
+            params = parseParams(parseObjectOrNull(obj, "params")),
             tags = parseStringList(obj.getAsJsonArray("tags")),
         )
     }
@@ -178,5 +178,11 @@ class SkillRepository {
             }
             else -> null
         }
+    }
+
+    private fun parseObjectOrNull(obj: JsonObject, key: String): JsonObject? {
+        val element = obj.get(key) ?: return null
+        if (element.isJsonNull || !element.isJsonObject) return null
+        return element.asJsonObject
     }
 }
