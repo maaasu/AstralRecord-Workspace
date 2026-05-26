@@ -6,7 +6,7 @@ namespace AstralRecordApi.Controllers;
 
 /// <summary>プレイヤー設定 API</summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/player-setting")]
 public class PlayerSettingController(IPlayerSettingRepository playerSettingRepository) : ControllerBase
 {
     /// <summary>ユーザ単位のプレイヤー設定一覧を取得</summary>
