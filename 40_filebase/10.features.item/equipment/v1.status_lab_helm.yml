@@ -1,0 +1,31 @@
+﻿schemaVersion: 1
+id: status_lab_helm
+category: equipment
+name: "&d検証者のヘルム"
+icon: IRON_HELMET
+rarity: RARE
+maxStack: 1
+saleValue: 90
+lore:
+  - "&7ステータス検証セット用の実験防具。"
+  - "&7セット効果の計算確認に使用する。"
+unTradeable: false
+unSellable: false
+
+equipment:
+  slot: HEAD
+  requiredLevel: 1
+  setId: status_lab_set
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 8
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 15
+    - status: HP_REGEN
+      type: FLAT
+      value: 1.0
+  durability:
+    max: 180
+    consume: 1

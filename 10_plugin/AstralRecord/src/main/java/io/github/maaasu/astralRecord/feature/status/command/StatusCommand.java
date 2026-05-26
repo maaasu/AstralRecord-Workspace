@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.status.command;
 
+import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
@@ -10,6 +11,7 @@ import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.format.DateTimeFormatter;
+import java.util.stream.Collectors;
 
 /**
  * /status コマンドの実装クラスです。
@@ -27,7 +29,7 @@ public class StatusCommand extends AstCommand {
      */
     public StatusCommand() {
         super("status", "現在のステータスを表示します", "/status [show|detail|refresh]", true);
-        this.statusService = new StatusService();
+        this.statusService = resolveStatusService();
     }
 
     @Override
@@ -43,7 +45,7 @@ public class StatusCommand extends AstCommand {
         }
 
         if (args[0].equalsIgnoreCase("refresh")) {
-            statusService.refreshStatus(player);
+            resolveStatusService().refreshStatus(player);
             player.sendMessage(PlayerMsgId.P_5102);
             showStatus(player, false);
             return;
@@ -53,7 +55,8 @@ public class StatusCommand extends AstCommand {
     }
 
     private void showStatus(@NotNull AstPlayer player, boolean detail) {
-        StatusSnapshot snapshot = statusService.getStatus(player);
+        StatusService service = resolveStatusService();
+        StatusSnapshot snapshot = service.getStatus(player);
         double maxHp = snapshot.getMaxValue(StatusType.MAX_HEALTH);
         double maxMp = snapshot.getMaxValue(StatusType.MAX_MANA);
         double maxEnergy = snapshot.getMaxValue(StatusType.MAX_ENERGY);
@@ -94,7 +97,32 @@ public class StatusCommand extends AstCommand {
                 type.formatValue(value.getTotalValue())
             );
         }
+        if (detail) {
+            var activeSetEffects = service.getActiveSetEffects(player);
+            if (!activeSetEffects.isEmpty()) {
+                player.sendMessage(PlayerMsgId.P_5107);
+                for (StatusService.ActiveSetEffect effect : activeSetEffects) {
+                    String activeCounts = effect.activePieceCounts().stream()
+                        .map(count -> count + "set")
+                        .collect(Collectors.joining(", "));
+                    player.sendMessage(
+                        PlayerMsgId.P_5108,
+                        effect.setName(),
+                        Integer.toString(effect.equippedCount()),
+                        activeCounts
+                    );
+                }
+            }
+        }
 
         player.sendMessage(PlayerMsgId.P_5104, DATE_TIME_FORMATTER.format(snapshot.getCalculatedAt()));
+    }
+
+    private @NotNull StatusService resolveStatusService() {
+        AstralRecord plugin = AstralRecord.getInstance();
+        if (plugin != null && plugin.getStatusService() != null) {
+            return plugin.getStatusService();
+        }
+        return statusService != null ? statusService : new StatusService();
     }
 }

@@ -12,6 +12,9 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceStat
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStat;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStatType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.model.SetEffect;
+import io.github.maaasu.astralRecord.feature.item.model.SetEffectPiece;
+import io.github.maaasu.astralRecord.feature.item.model.SetEffectStat;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -32,6 +35,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * ステータス機能のビジネスロジックを担うサービスクラスです。
@@ -261,6 +266,42 @@ public class StatusService {
         return snapshot;
     }
 
+    /**
+     * 現在装備から有効化されているセット効果一覧を返します。
+     *
+     * @param player プレイヤー
+     * @return 有効セット効果一覧
+     */
+    public @NotNull List<ActiveSetEffect> getActiveSetEffects(@NotNull AstPlayer player) {
+        if (itemService == null) {
+            return List.of();
+        }
+        Map<String, Integer> setCounts = collectEquippedSetCounts(player);
+        if (setCounts.isEmpty()) {
+            return List.of();
+        }
+
+        List<ActiveSetEffect> effects = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : setCounts.entrySet()) {
+            SetEffect setEffect = itemService.findSetEffectById(entry.getKey());
+            if (setEffect == null) {
+                continue;
+            }
+            int equippedCount = entry.getValue();
+            Set<Integer> activeCounts = new TreeSet<>();
+            for (SetEffectPiece piece : setEffect.getPieces()) {
+                if (piece.getCount() > 0 && equippedCount >= piece.getCount()) {
+                    activeCounts.add(piece.getCount());
+                }
+            }
+            if (activeCounts.isEmpty()) {
+                continue;
+            }
+            effects.add(new ActiveSetEffect(setEffect.getId(), setEffect.getName(), equippedCount, List.copyOf(activeCounts)));
+        }
+        return effects;
+    }
+
     private @NotNull StatusSnapshot createSnapshot(@NotNull AstPlayer player) {
         Map<StatusType, StatusValue> values = new EnumMap<>(StatusType.class);
         EquipmentBonus equipmentBonus = itemService == null ? EquipmentBonus.empty() : collectEquipmentBonus(player);
@@ -343,10 +384,23 @@ public class StatusService {
 
     private @NotNull EquipmentBonus collectEquipmentBonus(@NotNull AstPlayer player) {
         EquipmentBonus bonus = new EquipmentBonus();
+        Map<String, Integer> setCounts = new HashMap<>();
         for (ItemStack itemStack : collectEquippedItems(player)) {
-            applyEquipmentItemBonus(itemStack, bonus);
+            applyEquipmentItemBonus(itemStack, bonus, setCounts);
         }
+        applySetEffectBonus(setCounts, bonus);
         return bonus;
+    }
+
+    private @NotNull Map<String, Integer> collectEquippedSetCounts(@NotNull AstPlayer player) {
+        Map<String, Integer> setCounts = new HashMap<>();
+        if (itemService == null) {
+            return setCounts;
+        }
+        for (ItemStack itemStack : collectEquippedItems(player)) {
+            countSetId(itemStack, setCounts);
+        }
+        return setCounts;
     }
 
     private @NotNull List<ItemStack> collectEquippedItems(@NotNull AstPlayer player) {
@@ -366,7 +420,11 @@ public class StatusService {
         return items;
     }
 
-    private void applyEquipmentItemBonus(@Nullable ItemStack itemStack, @NotNull EquipmentBonus bonus) {
+    private void applyEquipmentItemBonus(
+        @Nullable ItemStack itemStack,
+        @NotNull EquipmentBonus bonus,
+        @NotNull Map<String, Integer> setCounts
+    ) {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return;
         }
@@ -385,6 +443,10 @@ public class StatusService {
         }
 
         ItemEquipment equipment = model.getEquipment();
+        String setId = equipment.getSetId();
+        if (setId != null && !setId.isBlank()) {
+            setCounts.merge(setId.trim(), 1, Integer::sum);
+        }
         Map<String, ItemEquipmentStatType> statTypes = new HashMap<>();
         for (ItemEquipmentStat stat : equipment.getStats()) {
             statTypes.put(normalizeStatusKey(stat.getStatus()), stat.getType());
@@ -413,6 +475,54 @@ public class StatusService {
                 continue;
             }
             addBonus(bonus, statusType, ItemEquipmentStatType.fromApiValue(enchant.getType()), enchant.getValue());
+        }
+    }
+
+    private void countSetId(@Nullable ItemStack itemStack, @NotNull Map<String, Integer> setCounts) {
+        if (itemStack == null || itemStack.getType() == Material.AIR || itemService == null) {
+            return;
+        }
+        String instanceId = ItemStackFactory.getEquipmentInstanceId(itemStack);
+        if (instanceId == null || instanceId.isBlank()) {
+            return;
+        }
+        EquipmentInstance instance = itemService.findEquipmentInstanceById(instanceId);
+        if (instance == null) {
+            return;
+        }
+        ItemModel model = resolveItemModel(instance.getItemId());
+        if (model == null || model.getEquipment() == null) {
+            return;
+        }
+        String setId = model.getEquipment().getSetId();
+        if (setId == null || setId.isBlank()) {
+            return;
+        }
+        setCounts.merge(setId.trim(), 1, Integer::sum);
+    }
+
+    private void applySetEffectBonus(@NotNull Map<String, Integer> setCounts, @NotNull EquipmentBonus bonus) {
+        if (itemService == null || setCounts.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<String, Integer> entry : setCounts.entrySet()) {
+            SetEffect setEffect = itemService.findSetEffectById(entry.getKey());
+            if (setEffect == null) {
+                continue;
+            }
+            int equippedCount = entry.getValue();
+            for (SetEffectPiece piece : setEffect.getPieces()) {
+                if (piece.getCount() <= 0 || equippedCount < piece.getCount()) {
+                    continue;
+                }
+                for (SetEffectStat stat : piece.getStats()) {
+                    StatusType statusType = resolveStatusTypeOrNull(stat.getStatus());
+                    if (statusType == null) {
+                        continue;
+                    }
+                    addBonus(bonus, statusType, stat.getType(), parseStatDouble(stat.getValue()));
+                }
+            }
         }
     }
 
@@ -523,6 +633,14 @@ public class StatusService {
         private double average() {
             return (min + max) / 2.0D;
         }
+    }
+
+    public record ActiveSetEffect(
+        @NotNull String setId,
+        @NotNull String setName,
+        int equippedCount,
+        @NotNull List<Integer> activePieceCounts
+    ) {
     }
 
     private double getAccountModeBonus(@NotNull AccountMode mode, @NotNull StatusType type) {

@@ -1,0 +1,32 @@
+﻿schemaVersion: 1
+id: status_lab_blade
+category: equipment
+name: "&d検証者のブレード"
+icon: IRON_SWORD
+rarity: RARE
+maxStack: 1
+saleValue: 120
+lore:
+  - "&7ステータス検証セット用の実験武器。"
+  - "&7セット効果の計算確認に使用する。"
+unTradeable: false
+unSellable: false
+
+equipment:
+  slot: WEAPON
+  handType: ONE
+  requiredLevel: 1
+  setId: status_lab_set
+  stats:
+    - status: ATTACK
+      type: FLAT
+      value: 18
+    - status: ACCURACY
+      type: FLAT
+      value: 6
+    - status: CRITICAL_RATE
+      type: FLAT
+      value: 2.0
+  durability:
+    max: 160
+    consume: 1

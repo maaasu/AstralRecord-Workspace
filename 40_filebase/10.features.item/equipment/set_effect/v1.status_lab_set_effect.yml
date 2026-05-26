@@ -1,0 +1,28 @@
+﻿schemaVersion: 1
+id: status_lab_set
+name: "&dステータス検証セット"
+pieces:
+  - count: 2
+    stats:
+      - status: ATTACK
+        type: FLAT
+        value: 15
+      - status: CRITICAL_RATE
+        type: FLAT
+        value: 3
+  - count: 3
+    stats:
+      - status: ATTACK_SPEED
+        type: SCALAR
+        value: 0.05
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 40
+  - count: 4
+    stats:
+      - status: FINAL_DAMAGE_MULTIPLIER
+        type: FLAT
+        value: 12
+      - status: COOLDOWN_REDUCTION
+        type: FLAT
+        value: 4

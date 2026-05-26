@@ -126,6 +126,14 @@ public enum PlayerMsgId {
      * 現在EN: {0}/{1}
      */
     P_5106(5106),
+    /**
+     * セット効果:
+     */
+    P_5107(5107),
+    /**
+     * {0}: 装備数 {1} / 発動 {2}
+     */
+    P_5108(5108),
     // endregion
 
     // region /feature/item/command/ItemCommand.java 5200-5249

@@ -5,7 +5,9 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemSummary;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
+import io.github.maaasu.astralRecord.feature.item.model.SetEffect;
 import io.github.maaasu.astralRecord.feature.item.repository.ItemRepository;
+import io.github.maaasu.astralRecord.feature.item.repository.SetEffectRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -25,11 +27,15 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ItemService {
 
     private final ItemRepository itemRepository;
+    private final SetEffectRepository setEffectRepository;
     private final Map<String, ItemModel> loadedItems;
+    private final Map<String, SetEffect> loadedSetEffects;
 
     public ItemService() {
         this.itemRepository = new ItemRepository();
+        this.setEffectRepository = new SetEffectRepository();
         this.loadedItems = new ConcurrentHashMap<>();
+        this.loadedSetEffects = new ConcurrentHashMap<>();
     }
 
     /**
@@ -175,6 +181,33 @@ public class ItemService {
         }
 
         return loadedItems.get(normalizedId);
+    }
+
+    /**
+     * セット効果 ID から定義を取得します。未キャッシュの場合は API 取得結果をキャッシュします。
+     *
+     * @param setId セット効果 ID
+     * @return セット効果定義。見つからない場合は null
+     */
+    public @Nullable SetEffect findSetEffectById(@NotNull String setId) {
+        String normalizedId = normalize(setId);
+        if (normalizedId.isBlank()) {
+            return null;
+        }
+        SetEffect cached = loadedSetEffects.get(normalizedId);
+        if (cached != null) {
+            return cached;
+        }
+        try {
+            SetEffect loaded = setEffectRepository.findById(setId);
+            if (loaded != null) {
+                loadedSetEffects.put(normalizedId, loaded);
+            }
+            return loaded;
+        } catch (Exception e) {
+            Logger.log(LogId.E_5202, e, setId);
+            return null;
+        }
     }
 
     public @NotNull List<String> getLoadedCategories() {
