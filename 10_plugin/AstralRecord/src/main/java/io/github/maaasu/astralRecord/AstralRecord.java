@@ -19,7 +19,6 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.item.view.ItemStackPacketAdapter;
 import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
-import io.github.maaasu.astralRecord.feature.menu.repository.MenuShortcutRepository;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.mob.repository.MobRepository;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
@@ -72,7 +71,6 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerHudService playerHudService;
     private ResourcePackService resourcePackService;
     private MenuView menuView;
-    private MenuShortcutRepository menuShortcutRepository;
     private PagingDebugGui pagingDebugGui;
     private MobService mobService;
     private EventManager eventManager;
@@ -209,7 +207,6 @@ public final class AstralRecord extends JavaPlugin {
         resourcePackService = new ResourcePackService(ConfigProperties.getInstance());
 
         // menu
-        menuShortcutRepository = new MenuShortcutRepository();
         menuView = new MenuView(this);
         pagingDebugGui = new PagingDebugGui();
 
@@ -255,7 +252,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new MenuOpenEventHandler(this, menuView, menuShortcutRepository, inventoryService, currencyService, statusService),
+            new MenuOpenEventHandler(this, menuView, inventoryService, currencyService, statusService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
