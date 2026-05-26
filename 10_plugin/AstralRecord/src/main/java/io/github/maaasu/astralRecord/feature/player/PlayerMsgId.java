@@ -360,6 +360,13 @@ public enum PlayerMsgId {
     P_5553(5553),
     // endregion
 
+    // region /feature/menu 5600-5609
+    /**
+     * ショートカット設定の保存に失敗しました。設定を初期化しました。
+     */
+    P_5600(5600),
+    // endregion
+
     ;
 
     private final String id;
