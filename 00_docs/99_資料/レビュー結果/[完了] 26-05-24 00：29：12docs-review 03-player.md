@@ -1,7 +1,7 @@
-# astralrecord-docs-review result
+﻿# docs-review result
 
 - レビュー対象: `E:\AstralRecord-Workspace\00_docs\10_プラグイン設計書\feature\03-player`
-- skill: `$astralrecord-docs-review`
+- skill: `$docs-review`
 - 指摘修正数 / 指摘数: `2 / 2`
 - 完了状態: `完了`
 

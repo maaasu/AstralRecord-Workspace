@@ -157,7 +157,7 @@ Use $astralrecord-code-review to review API endpoints under E:\AstralRecord-Work
 ### 実行例
 
 ```text
-Use $astralrecord-code-fix to fix code for E:\AstralRecord-Workspace\10_plugin\AstralRecord using E:\AstralRecord-Workspace\99_work\<review-result>.md and report the result.
+Use $astralrecord-code-fix to fix code for E:\AstralRecord-Workspace\10_plugin\AstralRecord using E:\AstralRecord-Workspace\00_docs\99_資料\レビュー結果\<review-result>.md and report the result.
 ```
 
 ```text
@@ -172,8 +172,8 @@ Use $astralrecord-code-fix to apply review fixes for E:\AstralRecord-Workspace\1
 
 - この skill は設計書 (`00_docs/...` Markdown) を編集しない。docs への反映が必要な場合は `残事項` に記録し、`$astralrecord-docs-fix` に引き継ぐ。
 - レビュー結果なしでの新規実装やリファクタは行わない。新規実装は `$astralrecord-code` を使う。
-- `要確認` / `設計判断待ち` / `Q-CODE-*` は、ユーザー判断が示された場合だけ修正する。
-- 99_work 配下にレビュー結果ファイルがある場合、修正済み指摘の `修正状態` を更新し、ファイル名の `<fixed-count>／<finding-count>` を更新する（全件修正時は先頭に `[完了] ` を付ける）。
+- `要確認` / `設計判断待ち` / `Q-CODE-*` は、レビュー結果・ユーザー回答・必読コンテキストから解決できる場合だけ修正し、解決できないものは未対応に残す。
+- `00_docs\99_資料\レビュー結果` 配下にレビュー結果ファイルがある場合、修正済み指摘の `修正状態` を更新し、未完了時はファイル名先頭の `<fixed-count>／<finding-count>` を更新する（全件修正時は先頭を `[完了] ` にする）。
 - 既存パターン (enum / ID / DTO / リポジトリ / メッセージ / ログカテゴリ / リソースキー) を優先し、指摘外の構造変更は行わない。
 
 ## `$astralrecord-commit-develop`

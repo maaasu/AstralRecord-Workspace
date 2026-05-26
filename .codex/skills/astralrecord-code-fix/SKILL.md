@@ -69,11 +69,13 @@ If no review result or finding detail is available, ask for the review result be
 8. Verify:
    - Run the narrowest meaningful build / test / static-analysis check for the touched project.
    - If a full build is too expensive or blocked, run targeted compile / test / lint checks and report what was not run.
-9. If the review source is a saved review result under `E:\AstralRecord-Workspace\99_work`, update that file after fixes:
+9. If the review source is a saved review result under `E:\AstralRecord-Workspace\00_docs\99_資料\レビュー結果`, update that file after fixes:
    - set each fixed finding's `修正状態` to `修正済み`.
    - update `指摘修正数 / 指摘数`.
    - set `完了状態: 完了` when all findings are fixed.
-   - rename the file to `yyyy-MM-dd HH：mm：ss <skill-name> (<fixed-count>／<finding-count>).md`, prefixing `[完了] ` when all findings are fixed.
+   - rename the file to `yy-MM-dd HH：mm：ss<skill-name-without-astralrecord-prefix>.md`.
+   - prefix the filename with `(<fixed-count>／<finding-count>) ` while incomplete, or `[完了] ` when all findings are fixed.
+   - use the visible skill name without the `astralrecord-` prefix.
    - use fullwidth `：` and `／` in the filename because Windows file names cannot contain `:` or `/`.
 
 ## Editing Guardrails
@@ -82,7 +84,7 @@ If no review result or finding detail is available, ask for the review result be
 - Design doc edits must be minimal and traceable to a fixed finding. Do not restructure, rewrite, or extend beyond what the code change requires.
 - Prefer fixing the authoritative location over duplicating fixes across multiple files.
 - Do not introduce new abstractions, helpers, or configuration toggles beyond what the finding requires.
-- Do not silently resolve `未確認/質問` (`Q-CODE-*`). Leave them unresolved and list them in the report.
+- Resolve `未確認/質問` (`Q-CODE-*`) only when the answer is already present in the review result, supplied by the user, or unambiguously confirmed from the required context. Otherwise leave them unresolved and list them in the report.
 - Do not change public APIs, command names, message IDs, log categories, table names, item IDs, or resource keys unless the finding explicitly requires it.
 - Preserve Japanese terminology and message wording already used in the project.
 

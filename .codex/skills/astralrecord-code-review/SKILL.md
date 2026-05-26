@@ -50,7 +50,9 @@ Base every judgment on documented rules first (root guide, project README/AGENTS
    - Trace call sites with grep before claiming "unused" or "dead".
    - Re-read the documented rule before claiming a rule violation.
    - When a doubt remains, downgrade the finding to a question instead of inventing a defect.
-6. Report findings in the format below. Do not modify any file.
+6. Resolve questions that can be answered from the reviewed code, design docs, or documented rules during the review. Only leave `## 未確認/質問` entries for decisions or facts that cannot be confirmed from the allowed review sources.
+7. If a finding-specific question is needed (including questions tied to a specific `AR-CODE-*` finding), put it under `## 未確認/質問` and reference the finding from `関連指摘`. Do not leave questions inline only inside the finding body.
+8. Report findings in the format below. Do not modify source, docs, or configuration files, except for saving the review result file required by this skill.
 
 ## Review Checklist
 
@@ -134,13 +136,14 @@ findings の後に次のセクションを必ず含める。
 
 ## Review Result File
 
-レビュー結果の保存を依頼された場合、または `$astralrecord-code` への入力として使う場合は、`E:\AstralRecord-Workspace\99_work` 配下に Markdown コピーを残す。ファイル名フォーマットは `$astralrecord-docs-review` に合わせる。
+レビュー結果は必ず `E:\AstralRecord-Workspace\00_docs\99_資料\レビュー結果` 配下に Markdown コピーを残す。ファイル名フォーマットは `$astralrecord-docs-review` に合わせる。
 
 ```text
-yyyy-MM-dd HH：mm：ss <skill-name> (<fixed-count>／<finding-count>).md
+yy-MM-dd HH：mm：ss<skill-name-without-astralrecord-prefix>.md
 ```
 
-Windows の制約により `:` と `/` は全角 `：` `／` を使う。新規時は `<fixed-count>` を `0` に、全件修正済みになった時点で先頭に `[完了] ` を付け、本文メタデータの `完了状態` を `完了` にする。
+未完了時はファイル名の先頭に `(<fixed-count>／<finding-count>) ` を付ける。全件修正済みになった時点で先頭を `[完了] ` にし、本文メタデータの `完了状態` を `完了` にする。
+ファイル名とレビュー結果本文の表示用 skill 名では `astralrecord-` prefix を省略する（例: `code-review`）。Windows の制約により `:` と `/` は全角 `：` `／` を使う。新規時は `<fixed-count>` を `0` にする。
 
 保存ファイルには通常レポートのセクションに加えて、対象パス、skill 名、`指摘修正数 / 指摘数`、各指摘の `修正状態`、`修正スキル入力サマリ` を含める。
 

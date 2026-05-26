@@ -34,11 +34,13 @@ If no review result or finding detail is available, ask for the review result be
 4. Read the target docs and nearby docs needed to make a coherent minimal edit. Prefer the files listed in `修正対象候補`; if it says `複数`, read each referenced target before editing.
 5. Apply the smallest Markdown/design change that resolves the finding while preserving the local structure, headings, terminology, Wiki link style, and table format.
 6. After editing, re-read changed snippets and verify that each fixed finding is addressed.
-7. If the review source is a saved review result under `E:\AstralRecord-Workspace\99_work`, update that file after fixes:
+7. If the review source is a saved review result under `E:\AstralRecord-Workspace\00_docs\99_資料\レビュー結果`, update that file after fixes:
    - set each fixed finding's `修正状態` to `修正済み`.
    - update `指摘修正数 / 指摘数`.
    - set `完了状態: 完了` when all findings are fixed.
-   - rename the file to `yyyy-MM-dd HH：mm：ss <skill-name> (<fixed-count>／<finding-count>).md`, prefixing `[完了] ` when all findings are fixed.
+   - rename the file to `yy-MM-dd HH：mm：ss<skill-name-without-astralrecord-prefix>.md`.
+   - prefix the filename with `(<fixed-count>／<finding-count>) ` while incomplete, or `[完了] ` when all findings are fixed.
+   - use the visible skill name without the `astralrecord-` prefix.
    - use fullwidth `：` and `／` in the filename because Windows file names cannot contain `:` or `/`.
 8. For plugin design docs, run:
 
@@ -56,6 +58,7 @@ Use the audit as a format check. If the script reports unrelated pre-existing is
 - Keep unresolved design decisions in `9-未決事項` when the review result or user instruction says to record them instead of deciding them.
 - Do not add implementation details that are not stated in docs or by the user.
 - Do not remove ambiguity by choosing one behavior when the review marked it as requiring confirmation.
+- Resolve `未確認/質問` (`Q-DOC-*`) only when the answer is already present in the review result, supplied by the user, or unambiguously confirmed from the allowed docs context. Otherwise leave them unresolved and list them in the report.
 
 ## Report Format
 

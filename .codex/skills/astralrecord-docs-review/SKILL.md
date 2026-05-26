@@ -25,6 +25,8 @@ If a judgment depends on the designer's intent, gather intent from docs first: r
    - Missing preconditions, failure behavior, ownership boundaries, dependencies, data lifecycle, state transitions, idempotency, concurrency, rollback, or observability where the design implies them.
    - Format and naming violations against documented docs rules.
 6. Separate "findings" from "questions". Do not label missing designer intent as a defect unless the current docs already require that intent to be defined.
+7. Resolve questions that can be answered from the reviewed documents during the review. Only leave `## 未確認/質問` entries for decisions or facts that cannot be confirmed from the allowed review sources.
+8. If a finding-specific question is needed (including questions tied to a specific `AR-DOC-*` finding), put it under `## 未確認/質問` and reference the finding from `関連指摘`. Do not leave questions inline only inside the finding body.
 
 ## Report Format
 
@@ -75,15 +77,16 @@ If there are no findings, write `## 指摘一覧` followed by `指摘なし。` 
 
 ## Review Result File
 
-When the user asks to save a review result, or when the review is intended to be used by `astralrecord-docs-fix`, save a Markdown copy under `E:\AstralRecord-Workspace\99_work`.
+Always save a Markdown copy of the review result under `E:\AstralRecord-Workspace\00_docs\99_資料\レビュー結果`.
 
 Use this filename format:
 
 ```text
-yyyy-MM-dd HH：mm：ss <skill-name> (<fixed-count>／<finding-count>).md
+yy-MM-dd HH：mm：ss<skill-name-without-astralrecord-prefix>.md
 ```
 
-Windows file names cannot contain `:` or `/`, so use fullwidth `：` and `／` in the filename. For a new review result, set `<fixed-count>` to `0`. When all findings are fixed, prefix the filename with `[完了] ` and update the metadata in the file to `完了状態: 完了`.
+When the result is not complete, prefix the filename with `(<fixed-count>／<finding-count>) `. When all findings are fixed, prefix the filename with `[完了] ` instead and update the metadata in the file to `完了状態: 完了`.
+Use the skill name without the `astralrecord-` prefix in the filename and visible review metadata (for example, `docs-review` instead of `astralrecord-docs-review`). Windows file names cannot contain `:` or `/`, so use fullwidth `：` and `／` in the filename. For a new review result, set `<fixed-count>` to `0`.
 
 The saved file must keep the normal report sections and include:
 
