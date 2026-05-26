@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -286,6 +287,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             accessories[7]
         );
         statusService.refreshStatus(astPlayer);
+        astPlayer.sendMessage(PlayerMsgId.P_5601);
     }
 
     private void handlePlayerInventoryClick(@NotNull InventoryClickEvent event) {
@@ -339,8 +341,9 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         boolean handled = inventoryService.handleHotbarSlotClick(astPlayer, slot + 1);
         if (handled) {
             statusService.refreshStatus(astPlayer);
+            astPlayer.sendMessage(PlayerMsgId.P_5601);
         }
-        playResultSound(player, handled);
+        playResultSound(player, handled, true);
     }
 
     private void handleHotbarShortcutClick(
@@ -380,8 +383,9 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         boolean handled = inventoryService.handleHotbarSlotClick(astPlayer, HotbarLayout.DB_SLOT_OFFHAND);
         if (handled) {
             statusService.refreshStatus(astPlayer);
+            astPlayer.sendMessage(PlayerMsgId.P_5601);
         }
-        playResultSound(player, handled);
+        playResultSound(player, handled, true);
     }
 
     private void handleArmorSlotClick(
@@ -394,8 +398,9 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         boolean handled = swapArmorSlotItem(event, astPlayer, slot);
         if (handled) {
             statusService.refreshStatus(astPlayer);
+            astPlayer.sendMessage(PlayerMsgId.P_5601);
         }
-        playResultSound(player, handled);
+        playResultSound(player, handled, true);
     }
 
     private void handleDisplayedInventoryItemClick(
@@ -420,13 +425,18 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         boolean handled = inventoryService.equipOrAssignClickedItem(astPlayer, clickedItem, slot);
         if (handled) {
             statusService.refreshStatus(astPlayer);
+            astPlayer.sendMessage(PlayerMsgId.P_5601);
         }
-        playResultSound(player, handled);
+        playResultSound(player, handled, true);
     }
 
-    private void playResultSound(@NotNull Player player, boolean handled) {
+    private void playResultSound(@NotNull Player player, boolean handled, boolean equipAction) {
         if (handled) {
-            GuiSound.SELECT.play(player);
+            if (equipAction) {
+                GuiSound.EQUIP.play(player);
+            } else {
+                GuiSound.SELECT.play(player);
+            }
             return;
         }
         GuiSound.DENY.play(player);
