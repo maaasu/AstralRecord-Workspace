@@ -1,6 +1,6 @@
 ---
 name: astralrecord-docs-review
-description: Review AstralRecord design documents without reading source code. Use when asked to review docs, design specs, feature design documents, Markdown design files, Obsidian-style docs, or docs under 00_docs such as 10_プラグイン設計書; checks design consistency, unsuitable logic, missing intent, unresolved decisions, cross-document contradictions, naming/format rules, and review reporting.
+description: AstralRecord の設計書をソースコードを読まずにレビューする。docs レビュー、設計仕様レビュー、feature 設計書、Markdown 設計ファイル、Obsidian 形式 docs、00_docs 配下 (10_プラグイン設計書 等) のレビューを行い、設計整合性・不適切なロジック・意図不足・未決事項・文書間矛盾・命名/フォーマットルール・レビュー報告をチェックしたい場合に使う。
 ---
 
 # AstralRecord Docs Review

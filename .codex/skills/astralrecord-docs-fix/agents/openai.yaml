@@ -1,4 +1,4 @@
 interface:
   display_name: "AstralRecord Docs Fix"
-  short_description: "Fix AstralRecord design docs"
+  short_description: "AstralRecord の設計書を修正する"
   default_prompt: "Use $astralrecord-docs-fix to fix design docs for E:\\AstralRecord-Workspace\\00_docs\\10_プラグイン設計書\\feature\\07-status using <review-result-path> and report the result."

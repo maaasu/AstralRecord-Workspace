@@ -1,6 +1,6 @@
 ---
 name: astralrecord-code
-description: Implement AstralRecord code changes across the monorepo and keep related design documents synchronized with the implemented behavior. Use when asked to code from a design document path, migrate docs/specs into implementation, modify plugin/API/Web/database/filebase/resourcepack behavior, reflect implementation changes back into docs, or apply custom implementation instructions such as changing item IDs while following the root guide, project README/AGENTS.md, and skill references.
+description: AstralRecord モノレポ全体のコード変更を実装し、関連する設計書を実装内容と同期する。設計書パスからの実装、docs/spec の実装への移行、plugin/API/Web/database/filebase/resourcepack の挙動変更、実装変更の docs への反映、アイテム ID 変更などの個別実装指示を、ルートガイド・プロジェクト README/AGENTS.md・skill references に従って行いたい場合に使う。
 ---
 
 # AstralRecord Code

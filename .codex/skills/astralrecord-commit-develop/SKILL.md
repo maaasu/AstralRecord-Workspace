@@ -1,6 +1,6 @@
 ---
 name: astralrecord-commit-develop
-description: Inspect AstralRecord workspace git changes, select only appropriate files, generate a suitable commit message, and commit them on develop. Use when asked to commit plugin or monorepo changes to develop while excluding local build outputs, IDE settings, generated folders, secrets, appsettings.Development.json, and unrelated files.
+description: AstralRecord ワークスペースの git 差分を確認し、コミット対象として適切なファイルだけを選択し、適切なコミットメッセージを生成して develop ブランチにコミットする。ローカルビルド成果物、IDE 設定、生成フォルダ、シークレット、appsettings.Development.json、無関係なファイルを除外しつつ、plugin やモノレポの変更を develop にコミットしたい場合に使う。
 ---
 
 # AstralRecord Commit Develop

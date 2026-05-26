@@ -1,6 +1,6 @@
 ---
 name: astralrecord-docs-fix
-description: Apply fixes to AstralRecord design documents based on an astralrecord-docs-review result. Use when asked to fix docs review findings, apply review results to Markdown design docs, update docs from AR-DOC finding IDs, or resolve review指摘 in 00_docs without changing source code.
+description: astralrecord-docs-review のレビュー結果に基づき AstralRecord 設計書を修正する。docs レビュー指摘の修正、レビュー結果の Markdown 設計書への反映、AR-DOC 指摘 ID からの docs 更新、00_docs 配下の指摘解決を、ソースコードを変更せずに行いたい場合に使う。
 ---
 
 # AstralRecord Docs Fix

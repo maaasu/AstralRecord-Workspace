@@ -1,4 +1,4 @@
 interface:
   display_name: "AstralRecord Code"
-  short_description: "Implement AstralRecord code changes and sync design docs."
+  short_description: "AstralRecord のコード変更を実装し設計書と同期する"
   default_prompt: "Use $astralrecord-code to implement a coding change for E:\\AstralRecord-Workspace\\<target-path>, reflect it in related design docs, and report the result."

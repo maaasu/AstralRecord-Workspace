@@ -1,4 +1,4 @@
 interface:
   display_name: "AstralRecord Commit Develop"
-  short_description: "Select safe diffs and commit to develop"
+  short_description: "安全な差分だけを選んで develop にコミットする"
   default_prompt: "Use $astralrecord-commit-develop to commit skill changes for E:\\AstralRecord-Workspace\\.codex\\skills and report the result."
