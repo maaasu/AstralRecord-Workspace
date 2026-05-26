@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.menu.repository.MenuShortcutReposit
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -82,6 +83,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
      */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPrepareItemCraft(PrepareItemCraftEvent event) {
+        String playerName = event.getView().getPlayer() instanceof Player p ? p.getName() : "unknown";
         runSafely(() -> {
             if (!isPlayerCraftingInventory(event.getInventory())) {
                 return;
@@ -93,7 +95,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 return;
             }
             scheduleCraftShortcutRender(player);
-        }, LogId.E_5600, "prepare");
+        }, LogId.E_5600, playerName);
     }
 
     /**
@@ -307,6 +309,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             case CURRENCY -> handleCurrencyClick(event, player);
             case SHORTCUT_SLOT_SELECTOR -> handleShortcutSlotSelectorClick(player, event.getRawSlot());
             case SHORTCUT_ACTION_SELECTOR -> handleShortcutActionSelectorClick(player, event.getRawSlot());
+            case GUIDE -> handleGuideClick(player, event.getRawSlot());
         }
     }
 
@@ -389,6 +392,26 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         if (rawSlot == MenuView.SHORTCUT_SETTINGS_SLOT) {
             GuiSound.SELECT.play(player);
             menuView.openShortcutSlotSelector(player, settings(player));
+            return;
+        }
+        if (rawSlot == MenuView.GUIDE_SLOT) {
+            GuiSound.SELECT.play(player);
+            menuView.openGuide(player);
+            return;
+        }
+        GuiSound.DENY.play(player);
+    }
+
+    /**
+     * ガイド画面のクリックを処理します。
+     *
+     * @param player 操作プレイヤー
+     * @param rawSlot クリックされた raw slot
+     */
+    private void handleGuideClick(@NotNull Player player, int rawSlot) {
+        if (rawSlot == MenuView.BACK_SLOT) {
+            GuiSound.SELECT.play(player);
+            menuView.open(player);
             return;
         }
         GuiSound.DENY.play(player);
@@ -485,6 +508,9 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
 
     /**
      * ショートカット項目選択メニューのクリックを処理します。
+     * <p>
+     * API 保存は非同期スレッドで行い、結果に応じてプレイヤーへ音と通知を返します。
+     * 保存失敗時はキャッシュがデフォルト設定に初期化され、プレイヤーへ {@code P_5600} メッセージを送信します。
      *
      * @param player 操作プレイヤー
      * @param rawSlot クリックされた raw slot
@@ -509,8 +535,21 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
 
         int shortcutSlot = menuView.getShortcutSlotIndex(player.getOpenInventory().getTopInventory());
-        shortcutRepository.updateSlot(astPlayer.getAccount().getUuid(), shortcutSlot, action);
+        UUID accountId = astPlayer.getAccount().getUuid();
         GuiSound.SELECT.play(player);
+        shortcutRepository.updateSlot(accountId, shortcutSlot, action).thenAccept(success -> {
+            if (!success) {
+                plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    GuiSound.DENY.play(player);
+                    AstPlayer current = AstPlayerCache.get(player);
+                    if (current != null) {
+                        current.sendMessage(PlayerMsgId.P_5600);
+                    }
+                    scheduleCraftShortcutRender(player);
+                    menuView.openShortcutSlotSelector(player, settings(player));
+                });
+            }
+        });
         scheduleCraftShortcutRender(player);
         menuView.openShortcutSlotSelector(player, settings(player));
     }
@@ -612,12 +651,20 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     }
 
     /**
-     * 次 tick にクラフトショートカットを再描画します。
+     * ショートカット設定をキャッシュへ非同期でプリロードし、次 tick にクラフトショートカットを再描画します。
+     * <p>
+     * キャッシュ未取得の場合は非同期スレッドで API フェッチを行い、Bukkit API への描画はメインスレッドで行います。
      *
      * @param player 表示対象プレイヤー
      */
     private void scheduleCraftShortcutRender(@NotNull Player player) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> renderCraftShortcuts(player));
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer != null && astPlayer.getAccount().getMode() == AccountMode.PLAYER) {
+                shortcutRepository.findByAccountId(astPlayer.getAccount().getUuid());
+            }
+            plugin.getServer().getScheduler().runTask(plugin, () -> renderCraftShortcuts(player));
+        });
     }
 
     /**
