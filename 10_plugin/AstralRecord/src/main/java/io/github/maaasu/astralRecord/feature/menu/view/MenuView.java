@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutAction;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.EquipmentMenuScreenView;
+import io.github.maaasu.astralRecord.feature.menu.view.screen.GuideScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.InventorySelectorScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.MainMenuScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.StatusScreenView;
@@ -40,6 +41,7 @@ public class MenuView {
     public static final int INVENTORY_SELECTOR_SLOT = MainMenuScreenView.INVENTORY_SELECTOR_SLOT;
     public static final int EQUIPMENT_GUI_SLOT = MainMenuScreenView.EQUIPMENT_GUI_SLOT;
     public static final int SHORTCUT_SETTINGS_SLOT = MainMenuScreenView.SHORTCUT_SETTINGS_SLOT;
+    public static final int GUIDE_SLOT = MainMenuScreenView.GUIDE_SLOT;
     public static final int EQUIPMENT_HEAD_SLOT = EquipmentMenuScreenView.EQUIPMENT_HEAD_SLOT;
     public static final int EQUIPMENT_CHEST_SLOT = EquipmentMenuScreenView.EQUIPMENT_CHEST_SLOT;
     public static final int EQUIPMENT_LEGS_SLOT = EquipmentMenuScreenView.EQUIPMENT_LEGS_SLOT;
@@ -71,6 +73,7 @@ public class MenuView {
     private final EquipmentMenuScreenView equipmentMenuScreenView;
     private final CurrencyGuiView currencyGuiView;
     private final ShortcutSettingsScreenView shortcutSettingsScreenView;
+    private final GuideScreenView guideScreenView;
     private final CraftShortcutView craftShortcutView;
 
     /**
@@ -88,6 +91,7 @@ public class MenuView {
         this.equipmentMenuScreenView = new EquipmentMenuScreenView(equipmentPlaceholderKey);
         this.currencyGuiView = new CurrencyGuiView();
         this.shortcutSettingsScreenView = new ShortcutSettingsScreenView();
+        this.guideScreenView = new GuideScreenView();
         this.craftShortcutView = new CraftShortcutView(craftShortcutKey, craftActionKey);
     }
 
@@ -160,6 +164,12 @@ public class MenuView {
             title
         );
         currencyGuiView.render(inventory, currencyItems, normalizedPage);
+        player.openInventory(inventory);
+    }
+
+    public void openGuide(@NotNull Player player) {
+        Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.GUIDE), SIZE, Component.text("ガイド", NamedTextColor.LIGHT_PURPLE));
+        guideScreenView.render(inventory);
         player.openInventory(inventory);
     }
 

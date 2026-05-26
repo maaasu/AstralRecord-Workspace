@@ -17,5 +17,7 @@ public enum MenuScreen {
     /** ショートカットを設定するクラフトスロットを選択する画面。 */
     SHORTCUT_SLOT_SELECTOR,
     /** 選択したクラフトスロットへ割り当てる項目を選ぶ画面。 */
-    SHORTCUT_ACTION_SELECTOR
+    SHORTCUT_ACTION_SELECTOR,
+    /** ガイド・ヘルプを表示する画面。 */
+    GUIDE
 }
