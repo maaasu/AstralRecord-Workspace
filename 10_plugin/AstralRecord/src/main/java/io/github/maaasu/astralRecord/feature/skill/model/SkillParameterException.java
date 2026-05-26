@@ -11,6 +11,8 @@ import org.jetbrains.annotations.Nullable;
  */
 public class SkillParameterException extends RuntimeException {
 
+    private static final long serialVersionUID = 1L;
+
     private final String key;
 
     /**
