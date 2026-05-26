@@ -69,7 +69,7 @@ final class CraftShortcutView {
         for (int slot = 0; slot < MenuShortcutSettings.SLOT_COUNT; slot++) {
             MenuShortcutAction action = settings.getAction(slot);
             boolean selected = action.getInventoryType() != null && action.getInventoryType() == selectedType;
-            newMatrix[slot] = createCraftShortcutIcon(slot, action, selected);
+            newMatrix[slot] = createCraftShortcutIcon(slot, action, selected, selectedType);
             ItemStack existing = currentMatrix != null && slot < currentMatrix.length ? currentMatrix[slot] : null;
             if (!isSameDisplayItem(existing, newMatrix[slot])) {
                 matrixChanged = true;
@@ -133,8 +133,12 @@ final class CraftShortcutView {
     private @NotNull ItemStack createCraftShortcutIcon(
         int shortcutSlotIndex,
         @NotNull MenuShortcutAction action,
-        boolean selected
+        boolean selected,
+        @Nullable InventoryType selectedType
     ) {
+        if (action == MenuShortcutAction.INVENTORY_CYCLE) {
+            return createInventoryCycleShortcutIcon(shortcutSlotIndex, selectedType);
+        }
         ItemStack itemStack = createItem(
             action.getMaterial(),
             Component.text(action.getDisplayNameJa(), action.getColor()),
@@ -144,6 +148,23 @@ final class CraftShortcutView {
         if (selected) {
             applySelectionGlow(itemStack);
         }
+        return itemStack;
+    }
+
+    private @NotNull ItemStack createInventoryCycleShortcutIcon(
+        int shortcutSlotIndex,
+        @Nullable InventoryType selectedType
+    ) {
+        String currentLabel = selectedType != null ? selectedType.getDisplayNameJa() : InventoryType.NORMAL.getDisplayNameJa();
+        ItemStack itemStack = createItem(
+            Material.CHEST,
+            Component.text("インベントリ切替", NamedTextColor.YELLOW),
+            List.of(
+                Component.text("現在: " + currentLabel, NamedTextColor.GRAY),
+                Component.text("ノーマル → 装備 → ルーン", NamedTextColor.GRAY)
+            )
+        );
+        markCraftShortcutIcon(itemStack, shortcutSlotIndex, MenuShortcutAction.INVENTORY_CYCLE);
         return itemStack;
     }
 

@@ -297,25 +297,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             return;
         }
         if (rawSlot == MenuView.EQUIPMENT_GUI_SLOT) {
-            AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (astPlayer == null) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            GuiSound.SELECT.play(player);
-            menuView.openEquipmentGui(
-                player,
-                new ItemStack[] {
-                    null,
-                    inventoryService.getAccessorySnapshotItem(astPlayer, 1),
-                    inventoryService.getAccessorySnapshotItem(astPlayer, 2),
-                    inventoryService.getAccessorySnapshotItem(astPlayer, 3),
-                    inventoryService.getAccessorySnapshotItem(astPlayer, 4),
-                    inventoryService.getAccessorySnapshotItem(astPlayer, 5),
-                    inventoryService.getAccessorySnapshotItem(astPlayer, 6),
-                    inventoryService.getAccessorySnapshotItem(astPlayer, 7)
-                }
-            );
+            openEquipmentGui(player);
             return;
         }
         if (rawSlot == MenuView.GUIDE_SLOT) {
@@ -405,19 +387,18 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             menuView.openStatus(player, astPlayer, statusService.refreshStatus(astPlayer));
             return;
         }
-        if (shortcutIndex == 1) {
-            AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (astPlayer == null || !astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
+        if (action == MenuShortcutAction.INVENTORY_CYCLE || shortcutIndex == 1) {
+            InventoryType next = nextInventoryType(player);
+            if (next == null) {
                 GuiSound.DENY.play(player);
                 return;
             }
-            InventoryType current = inventoryService.getDisplayedInventoryType(astPlayer.getAccount().getUuid());
-            InventoryType next = switch (current) {
-                case NORMAL -> InventoryType.EQUIPMENT;
-                case EQUIPMENT -> InventoryType.RUNE;
-                default -> InventoryType.NORMAL;
-            };
             applyInventoryShortcut(player, next);
+            return;
+        }
+        if (action == MenuShortcutAction.EQUIPMENT_GUI) {
+            GuiSound.SELECT.play(player);
+            openEquipmentGui(player);
             return;
         }
         if (action.isCurrencyAction()) {
@@ -430,6 +411,20 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             return;
         }
         GuiSound.DENY.play(player);
+    }
+
+    private @Nullable InventoryType nextInventoryType(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null || !astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
+            return null;
+        }
+
+        InventoryType current = inventoryService.getDisplayedInventoryType(astPlayer.getAccount().getUuid());
+        return switch (current) {
+            case NORMAL -> InventoryType.EQUIPMENT;
+            case EQUIPMENT -> InventoryType.RUNE;
+            default -> InventoryType.NORMAL;
+        };
     }
 
     private void applyInventoryShortcut(@NotNull Player player, @NotNull InventoryType inventoryType) {
@@ -466,6 +461,27 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             menuView.openCurrency(player, currencyItems(player), pageIndex);
             resumeCraftRendering(player);
         });
+    }
+
+    private void openEquipmentGui(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        menuView.openEquipmentGui(
+            player,
+            new ItemStack[] {
+                null,
+                inventoryService.getAccessorySnapshotItem(astPlayer, 1),
+                inventoryService.getAccessorySnapshotItem(astPlayer, 2),
+                inventoryService.getAccessorySnapshotItem(astPlayer, 3),
+                inventoryService.getAccessorySnapshotItem(astPlayer, 4),
+                inventoryService.getAccessorySnapshotItem(astPlayer, 5),
+                inventoryService.getAccessorySnapshotItem(astPlayer, 6),
+                inventoryService.getAccessorySnapshotItem(astPlayer, 7)
+            }
+        );
     }
 
     private @NotNull List<ItemStack> currencyItems(@NotNull Player player) {
