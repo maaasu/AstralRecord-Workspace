@@ -39,6 +39,7 @@ import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSetting
 import io.github.maaasu.astralRecord.feature.resourcepack.event.ResourcePackJoinEventHandler;
 import io.github.maaasu.astralRecord.feature.resourcepack.event.ResourcePackStatusEventHandler;
 import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusRegenTask;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.status.event.PlayerHeldItemStatusEventHandler;
@@ -84,6 +85,7 @@ public final class AstralRecord extends JavaPlugin {
     private ParticleDisplayService particleDisplayService;
     private PlayerSettingService playerSettingService;
     private PlayerSettingGui playerSettingGui;
+    private SkillService skillService;
 
     @Override
     public void onLoad() {
@@ -225,10 +227,14 @@ public final class AstralRecord extends JavaPlugin {
         );
         playerSettingGui = new PlayerSettingGui(playerSettingService);
 
+        // skill
+        skillService = new SkillService();
+
         // item & loot
         getServer().getScheduler().runTaskAsynchronously(this, () -> {
             lootService.loadAll();
             itemService.loadAll();
+            skillService.reloadDefinitions();
         });
 
         // mob
@@ -375,5 +381,14 @@ public final class AstralRecord extends JavaPlugin {
 
     public PlayerSettingGui getPlayerSettingGui() {
         return playerSettingGui;
+    }
+
+    /**
+     * スキルサービスを取得します。
+     *
+     * @return スキルサービス
+     */
+    public SkillService getSkillService() {
+        return skillService;
     }
 }

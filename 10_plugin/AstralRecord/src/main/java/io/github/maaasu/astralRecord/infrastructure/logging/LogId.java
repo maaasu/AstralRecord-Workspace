@@ -770,6 +770,45 @@ public enum LogId {
     I_5703(5703),
     // endregion
 
+    // region /feature/skill/ 5800-5899
+    /**
+     * スキル詳細を取得しました (API): %s
+     */
+    D_5800(5800),
+    /**
+     * スキルが見つかりませんでした (API): %s
+     */
+    W_5800(5800),
+    /**
+     * スキル取得に失敗しました (API): %s
+     */
+    E_5800(5800),
+    /**
+     * スキル一覧取得に失敗しました (API): %s
+     */
+    E_5801(5801),
+    /**
+     * スキル定義を読み込みました: count=%s
+     */
+    I_5800(5800),
+    /**
+     * スキル定義を読み込みませんでした: skillId=%s, implementationId=%s, reason=%s
+     */
+    W_5801(5801),
+    /**
+     * 実行クラスが既に登録されています（後勝ち禁止）: implementationId=%s
+     */
+    W_5802(5802),
+    /**
+     * スキル定義をレジストリに反映しました: count=%d
+     */
+    D_5801(5801),
+    /**
+     * スキル発動に失敗しました: skillId=%s, implementationId=%s
+     */
+    E_5802(5802),
+    // endregion
+
     ;
     private final String id;
 
