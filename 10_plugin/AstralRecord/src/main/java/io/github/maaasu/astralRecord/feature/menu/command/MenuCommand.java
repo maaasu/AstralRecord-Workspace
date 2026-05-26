@@ -1,7 +1,10 @@
 package io.github.maaasu.astralRecord.feature.menu.command;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
+import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.jetbrains.annotations.NotNull;
 
@@ -14,11 +17,21 @@ public final class MenuCommand extends AstCommand {
      * /menu コマンドを生成します。
      */
     public MenuCommand() {
-        super("menu", "Open AstralRecord menu.", "/menu", true);
+        super("menu", "Open AstralRecord menu.", "/menu [status]", true);
     }
 
     @Override
     protected void executePlayerCommand(@NotNull AstPlayer player, @NotNull String[] args) {
-        AstralRecord.getInstance().getMenuView().open(player.getBukkit());
+        MenuView menuView = AstralRecord.getInstance().getMenuView();
+        if (args.length == 0) {
+            menuView.open(player.getBukkit());
+            return;
+        }
+        if (args[0].equalsIgnoreCase("status")) {
+            StatusSnapshot snapshot = AstralRecord.getInstance().getStatusService().refreshStatus(player);
+            menuView.openStatus(player.getBukkit(), player, snapshot);
+            return;
+        }
+        sendUsage(player.getBukkit());
     }
 }

@@ -27,6 +27,7 @@
 - `account`
 - `inventory`
 - `currency`
+- `status`
 
 ## 更新ルール（変更時に必ず更新する章）
 
