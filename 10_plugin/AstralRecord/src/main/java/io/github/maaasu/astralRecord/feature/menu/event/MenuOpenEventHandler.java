@@ -364,15 +364,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             menuView.openStatus(player, astPlayer, statusService.refreshStatus(astPlayer));
             return;
         }
-        if (rawSlot == MenuView.INVENTORY_SELECTOR_SLOT) {
-            GuiSound.SELECT.play(player);
-            AstPlayer astPlayer = AstPlayerCache.get(player);
-            menuView.openInventorySelector(
-                player,
-                astPlayer == null ? null : inventoryService.getDisplayedInventoryType(astPlayer.getAccount().getUuid())
-            );
-            return;
-        }
         if (rawSlot == MenuView.EQUIPMENT_GUI_SLOT) {
             AstPlayer astPlayer = AstPlayerCache.get(player);
             if (astPlayer == null) {
