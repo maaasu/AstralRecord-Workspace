@@ -70,7 +70,7 @@ final class CraftShortcutView {
             MenuShortcutAction action = settings.getAction(slot);
             boolean selected = action.getInventoryType() != null && action.getInventoryType() == selectedType;
             newMatrix[slot] = createCraftShortcutIcon(slot, action, selected, selectedType);
-            ItemStack existing = currentMatrix != null && slot < currentMatrix.length ? currentMatrix[slot] : null;
+            ItemStack existing = slot < currentMatrix.length ? currentMatrix[slot] : null;
             if (!isSameDisplayItem(existing, newMatrix[slot])) {
                 matrixChanged = true;
             }
@@ -155,12 +155,20 @@ final class CraftShortcutView {
         int shortcutSlotIndex,
         @Nullable InventoryType selectedType
     ) {
-        String currentLabel = selectedType != null ? selectedType.getDisplayNameJa() : InventoryType.NORMAL.getDisplayNameJa();
-        ItemStack itemStack = createItem(
-            Material.CHEST,
+        var currentLabel = selectedType != null ? selectedType.getDisplayNameJa() : InventoryType.NORMAL.getDisplayNameJa();
+
+        Material icon;
+        if (selectedType == null) icon = Material.CHEST;
+        else icon = switch (selectedType) {
+            case EQUIPMENT -> Material.IRON_CHESTPLATE;
+            case RUNE -> Material.AMETHYST_SHARD;
+            default -> Material.CHEST;
+        };
+        var itemStack = createItem(
+            icon,
             Component.text("インベントリ切替", NamedTextColor.YELLOW),
             List.of(
-                Component.text("現在: " + currentLabel, NamedTextColor.GRAY),
+                Component.text("現在: " ,NamedTextColor.GRAY).append(Component.text(currentLabel, NamedTextColor.WHITE)),
                 Component.text("ノーマル → 装備 → ルーン", NamedTextColor.GRAY)
             )
         );

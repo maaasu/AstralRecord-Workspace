@@ -18,7 +18,7 @@ public enum MenuShortcutAction {
     INVENTORY_CURRENCY("INVENTORY_CURRENCY", "通貨", Material.EMERALD, NamedTextColor.GREEN, null, true),
     INVENTORY_EQUIPMENT("INVENTORY_EQUIPMENT", InventoryType.EQUIPMENT.getDisplayNameJa(), Material.IRON_CHESTPLATE, NamedTextColor.GOLD, InventoryType.EQUIPMENT, false),
     INVENTORY_RUNE("INVENTORY_RUNE", InventoryType.RUNE.getDisplayNameJa(), Material.AMETHYST_SHARD, NamedTextColor.LIGHT_PURPLE, InventoryType.RUNE, false),
-    EQUIPMENT_GUI("EQUIPMENT_GUI", "装備GUI", Material.NETHERITE_CHESTPLATE, NamedTextColor.GOLD, null, false);
+    EQUIPMENT_GUI("EQUIPMENT_GUI", "装備", Material.NETHERITE_CHESTPLATE, NamedTextColor.GOLD, null, false);
 
     private final String code;
     private final String displayNameJa;

@@ -388,7 +388,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             return;
         }
         if (action == MenuShortcutAction.INVENTORY_CYCLE || shortcutIndex == 1) {
-            InventoryType next = nextInventoryType(player);
+            var next = nextInventoryType(player);
             if (next == null) {
                 GuiSound.DENY.play(player);
                 return;

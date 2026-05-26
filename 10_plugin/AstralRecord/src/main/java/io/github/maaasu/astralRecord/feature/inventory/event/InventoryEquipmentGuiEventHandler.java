@@ -413,7 +413,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             return;
         }
 
-        ItemStack clickedItem = event.getCurrentItem();
+        var clickedItem = event.getCurrentItem();
         if (clickedItem == null || clickedItem.getType() == Material.AIR) {
             return;
         }
