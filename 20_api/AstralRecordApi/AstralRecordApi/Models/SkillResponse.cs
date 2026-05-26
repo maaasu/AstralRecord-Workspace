@@ -40,6 +40,10 @@ public class SkillSummaryResponse
     public required string Name { get; init; }
 
     public required string ImplementationId { get; init; }
+
+    public string? Icon { get; init; }
+
+    public IReadOnlyList<string> Tags { get; init; } = [];
 }
 
 public class SkillOnCastResponse

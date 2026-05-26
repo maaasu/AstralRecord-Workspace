@@ -29,6 +29,8 @@ public class SkillRepository(MasterDataDbContext dbContext) : ISkillRepository
                 Id = skill!.Id,
                 Name = skill.Name,
                 ImplementationId = skill.ImplementationId,
+                Icon = skill.Icon,
+                Tags = skill.Tags,
             })
             .ToArray();
     }
