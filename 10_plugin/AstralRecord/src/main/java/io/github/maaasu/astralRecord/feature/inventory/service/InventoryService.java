@@ -63,6 +63,7 @@ public class InventoryService {
     private final HotbarRenderer hotbarRenderer;
     private final Map<UUID, List<InventoryModel>> inventoryCache = new ConcurrentHashMap<>();
     private final Map<UUID, CompletableFuture<InventoryModel>> pendingInventoryCreates = new ConcurrentHashMap<>();
+    private final Map<UUID, UUID> persistedInventoryIds = new ConcurrentHashMap<>();
     private final Set<CompletableFuture<?>> pendingWriteTasks = ConcurrentHashMap.newKeySet();
     private final Set<UUID> refreshingInventories = ConcurrentHashMap.newKeySet();
     private final Set<UUID> refreshingLoadouts = ConcurrentHashMap.newKeySet();
@@ -87,6 +88,7 @@ public class InventoryService {
         this.entryWriteBuffer = new InventoryEntryWriteBuffer(
             inventoryRepository,
             pendingInventoryCreates,
+            persistedInventoryIds,
             pendingWriteTasks
         );
         this.hotbarRenderer = new HotbarRenderer(itemStackResolver);
@@ -324,6 +326,7 @@ public class InventoryService {
     }
 
     private void replaceInventoryInCache(@NotNull UUID temporaryId, @NotNull InventoryModel saved) {
+        persistedInventoryIds.put(temporaryId, saved.getInventoryId());
         inventoryCache.compute(saved.getAccountId(), (accountId, current) -> {
             List<InventoryModel> next = new ArrayList<>(current == null ? List.of() : current);
             next.removeIf(cached -> cached.getInventoryId().equals(temporaryId) || cached.getInventoryId().equals(saved.getInventoryId()));

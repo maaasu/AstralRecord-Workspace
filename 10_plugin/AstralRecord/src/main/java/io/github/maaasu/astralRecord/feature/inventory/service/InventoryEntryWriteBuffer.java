@@ -23,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 final class InventoryEntryWriteBuffer {
     private final InventoryRepository inventoryRepository;
     private final Map<UUID, CompletableFuture<InventoryModel>> pendingInventoryCreates;
+    private final Map<UUID, UUID> persistedInventoryIds;
     private final Set<CompletableFuture<?>> pendingWriteTasks;
     private final Map<UUID, List<InventoryEntryModel>> entryCache = new ConcurrentHashMap<>();
     private final Set<UUID> pendingEntryReplaces = ConcurrentHashMap.newKeySet();
@@ -31,10 +32,12 @@ final class InventoryEntryWriteBuffer {
     InventoryEntryWriteBuffer(
         @NotNull InventoryRepository inventoryRepository,
         @NotNull Map<UUID, CompletableFuture<InventoryModel>> pendingInventoryCreates,
+        @NotNull Map<UUID, UUID> persistedInventoryIds,
         @NotNull Set<CompletableFuture<?>> pendingWriteTasks
     ) {
         this.inventoryRepository = inventoryRepository;
         this.pendingInventoryCreates = pendingInventoryCreates;
+        this.persistedInventoryIds = persistedInventoryIds;
         this.pendingWriteTasks = pendingWriteTasks;
     }
 
@@ -87,17 +90,18 @@ final class InventoryEntryWriteBuffer {
         @NotNull List<InventoryEntryDraft> drafts,
         @NotNull UUID updatedBy
     ) {
-        pendingEntryReplaces.add(inventoryId);
+        UUID resolvedInventoryId = persistedInventoryIds.getOrDefault(inventoryId, inventoryId);
+        pendingEntryReplaces.add(resolvedInventoryId);
         List<InventoryEntryModel> optimistic = drafts.stream()
-            .map(draft -> createEntryModel(UUID.randomUUID(), inventoryId, draft, updatedBy))
+            .map(draft -> createEntryModel(UUID.randomUUID(), resolvedInventoryId, draft, updatedBy))
             .toList();
-        putEntriesInCache(inventoryId, optimistic);
+        putEntriesInCache(resolvedInventoryId, optimistic);
 
-        CompletableFuture<InventoryModel> pendingInventory = pendingInventoryCreates.get(inventoryId);
+        CompletableFuture<InventoryModel> pendingInventory = pendingInventoryCreates.get(resolvedInventoryId);
         java.util.concurrent.atomic.AtomicReference<UUID> persistedInventoryId =
-            new java.util.concurrent.atomic.AtomicReference<>(inventoryId);
+            new java.util.concurrent.atomic.AtomicReference<>(resolvedInventoryId);
         CompletableFuture<List<InventoryEntryModel>> replaceFuture = pendingInventory == null
-            ? CompletableFuture.supplyAsync(() -> inventoryRepository.replaceEntries(inventoryId, drafts, updatedBy))
+            ? CompletableFuture.supplyAsync(() -> inventoryRepository.replaceEntries(resolvedInventoryId, drafts, updatedBy))
             : pendingInventory.thenApply(savedInventory -> {
                 UUID savedInventoryId = savedInventory.getInventoryId();
                 persistedInventoryId.set(savedInventoryId);
@@ -106,7 +110,7 @@ final class InventoryEntryWriteBuffer {
             });
 
         trackWriteTask(replaceFuture.thenAccept(saved -> {
-            pendingEntryReplaces.remove(inventoryId);
+            pendingEntryReplaces.remove(resolvedInventoryId);
             UUID savedInventoryId = persistedInventoryId.get();
             pendingEntryReplaces.remove(savedInventoryId);
             if (saved != null) {
@@ -118,9 +122,9 @@ final class InventoryEntryWriteBuffer {
                 putEntriesInCache(responseInventoryId, saved);
             }
         }).exceptionally(error -> {
-            pendingEntryReplaces.remove(inventoryId);
+            pendingEntryReplaces.remove(resolvedInventoryId);
             pendingEntryReplaces.remove(persistedInventoryId.get());
-            Logger.warn(LogId.W_5252, inventoryId, error.getMessage());
+            Logger.warn(LogId.W_5252, resolvedInventoryId, error.getMessage());
             return null;
         }));
 
