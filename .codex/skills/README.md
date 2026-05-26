@@ -112,6 +112,38 @@ Use $astralrecord-docs-fix to fix only AR-DOC-001 for E:\AstralRecord-Workspace\
 - `要確認` または `設計判断待ち` の指摘は、ユーザー判断が示された場合だけ修正する。
 - plugin 設計書を修正した後は、docs review skill の `docs_structure_audit.py` を形式確認に使う。
 
+## `$astralrecord-code-review`
+
+AstralRecord monorepo のソースコードをレビューする skill。設計書とコードの整合、コーディングルール準拠、バグ・アルゴリズム破綻、死コード、セキュリティ、パフォーマンス、テスト不足、可読性などを点検し、ソースを編集せずに指摘レポートを出す。
+
+### 使う場面
+
+- 実装済みのコードがコーディングルール (`PLUGIN_GUIDE.md` / `API_GUIDE.md` / プロジェクト `AGENTS.md`) に沿っているかを確認したい。
+- `00_docs/10_プラグイン設計書` などの設計書とコードの食い違いを洗い出したい。
+- バグ、境界値の取り扱い不備、並行性・例外処理の問題、死コード・重複・未使用要素を検出したい。
+- 修正は別途 `$astralrecord-code` / `$astralrecord-docs-fix` に渡す前提で、指摘だけ受け取りたい。
+
+### 実行例
+
+```text
+Use $astralrecord-code-review to review code for E:\AstralRecord-Workspace\10_plugin\AstralRecord and report the result.
+```
+
+```text
+Use $astralrecord-code-review to review the implementation against the design at E:\AstralRecord-Workspace\00_docs\10_プラグイン設計書\feature\07-status and report the result.
+```
+
+```text
+Use $astralrecord-code-review to review API endpoints under E:\AstralRecord-Workspace\20_api\AstralRecordApi for coding rule compliance and report the result.
+```
+
+### 注意点
+
+- この skill はソース、設計書、設定ファイルを編集しない。修正が必要な指摘は `$astralrecord-code` / `$astralrecord-docs-fix` に渡す。
+- 設計書だけのレビューは `$astralrecord-docs-review` を使う。コードレビューと docs レビューを混在させない。
+- 「死コード」「未使用」を主張する前に grep で呼び出し元を確認する。確信が持てない場合は `要確認` として残す。
+- 大規模リファクタや再設計提案はスコープ外。最小修正案にとどめ、構造的な変更は別タスクとして提案する。
+
 ## `$astralrecord-commit-develop`
 
 AstralRecord workspace の差分を確認し、コミット対象として適切なファイルだけを stage して `develop` にコミットする skill。
