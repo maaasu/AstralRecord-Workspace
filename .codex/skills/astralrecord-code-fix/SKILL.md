@@ -7,11 +7,11 @@ description: astralrecord-code-review のレビュー結果に基づき AstralRe
 
 ## Core Rule
 
-Fix source code (and implementation-adjacent data such as filebase / resourcepack assets) based on a review result. Do not invent new design intent. If a finding is marked `要確認` or `設計判断待ち`, leave it unresolved unless the user explicitly supplies the missing decision in the request.
+Fix source code (and implementation-adjacent data such as filebase / resourcepack assets) based on a review result, then update any design documents in `00_docs/` whose described behavior is changed by those fixes. Do not invent new design intent. If a finding is marked `要確認` or `設計判断待ち`, leave it unresolved unless the user explicitly supplies the missing decision in the request.
 
 Use the review result as the authority for what to change. Follow the target project's documented coding rules (root guide, project `README.md` / `AGENTS.md`, `astralrecord-code/references/*`) when making the edits. Keep edits minimal — do not bundle unrelated refactors.
 
-This skill is the code counterpart of `$astralrecord-docs-fix`. Design document edits remain the job of `$astralrecord-docs-fix`; new implementation work without a review result belongs to `$astralrecord-code`.
+This skill handles both code fixes and the corresponding docs sync in one pass. Use `$astralrecord-docs-fix` only when the change is docs-only (no code involved). New implementation work without a review result belongs to `$astralrecord-code`.
 
 ## Inputs
 
@@ -37,7 +37,7 @@ If no review result or finding detail is available, ask for the review result be
    - API: root `API_GUIDE.md`, project `README.md` / `AGENTS.md`, and `astralrecord-code/references/api-code.md`.
    - Web: root `README.md` "AstralRecord Web" section and `30_web/AstralRecordWeb/AGENTS.md`.
    - Filebase / Resourcepack / Database: the corresponding section of root `README.md` and the area's `AGENTS.md` / `README.md`.
-4. When a finding references a design document, read that design doc to understand the contract before editing the code. Do not edit the design doc from this skill; if the implementation change would also change documented behavior, record that in `残事項` so `$astralrecord-docs-fix` or `$astralrecord-code` can follow up.
+4. When a finding references a design document, read that design doc to understand the contract before editing the code.
 5. If the target project cannot be determined, stop and ask the project-selection question from the root `AGENTS.md`.
 
 ## Workflow
@@ -60,11 +60,16 @@ If no review result or finding detail is available, ask for the review result be
    - Surrounding language, naming, package/layer structure, DI style, error handling, and test patterns.
    - The project's documented coding rules.
    - Unrelated behavior — no opportunistic refactors.
-6. After editing, re-read changed snippets and verify that each fixed finding is addressed.
-7. Verify:
+6. After editing code, identify design documents that describe the changed behavior:
+   - Start from paths named in each finding's `関連箇所` / `根拠`.
+   - Also check `00_docs/10_プラグイン設計書/feature/` (plugin), `00_docs/20_API設計書/` (API), and the relevant area docs for the target project.
+   - For each affected doc, apply the minimal edit that keeps it consistent with the fixed code: update method signatures, behavior descriptions, field definitions, or state diagrams as needed.
+   - Do not restructure documents beyond what the fix requires.
+7. After editing, re-read changed snippets and verify that each fixed finding is addressed.
+8. Verify:
    - Run the narrowest meaningful build / test / static-analysis check for the touched project.
    - If a full build is too expensive or blocked, run targeted compile / test / lint checks and report what was not run.
-8. If the review source is a saved review result under `E:\AstralRecord-Workspace\99_work`, update that file after fixes:
+9. If the review source is a saved review result under `E:\AstralRecord-Workspace\99_work`, update that file after fixes:
    - set each fixed finding's `修正状態` to `修正済み`.
    - update `指摘修正数 / 指摘数`.
    - set `完了状態: 完了` when all findings are fixed.
@@ -73,8 +78,8 @@ If no review result or finding detail is available, ask for the review result be
 
 ## Editing Guardrails
 
-- Keep changes limited to code (and implementation-adjacent data) under the requested target unless a finding explicitly points elsewhere.
-- Do not modify design documents (`00_docs/...` Markdown). If a fix would change documented behavior, record it under `残事項` for `$astralrecord-docs-fix`.
+- Keep changes limited to code, implementation-adjacent data, and directly-affected design documents under `00_docs/` unless a finding explicitly points elsewhere.
+- Design doc edits must be minimal and traceable to a fixed finding. Do not restructure, rewrite, or extend beyond what the code change requires.
 - Prefer fixing the authoritative location over duplicating fixes across multiple files.
 - Do not introduce new abstractions, helpers, or configuration toggles beyond what the finding requires.
 - Do not silently resolve `未確認/質問` (`Q-CODE-*`). Leave them unresolved and list them in the report.
@@ -83,7 +88,7 @@ If no review result or finding detail is available, ask for the review result be
 
 ## Out of Scope
 
-- Design document edits → `$astralrecord-docs-fix`.
+- Docs-only changes with no code change → `$astralrecord-docs-fix`.
 - New feature implementation without a review result → `$astralrecord-code`.
 - Large-scale refactors. Keep each fix minimal; defer structural redesign to a separate task.
 
@@ -97,7 +102,12 @@ Write the result in Japanese.
 - `AR-CODE-002`: 未対応（要確認） - <必要な確認>
 
 ## 変更ファイル
+
+### コード
 - `<path>`: <変更概要>
+
+### 設計書
+- `<path>`: <変更概要> / なし
 
 ## 未対応
 - `AR-CODE-002`: <理由>
@@ -107,10 +117,10 @@ Write the result in Japanese.
 - `<command>`: 成功 / 失敗 / 未実行（理由）
 - 変更箇所の再確認: 実施
 - 設計書参照: <読んだ docs / なし>
-- 設計書編集: していません
+- 設計書編集: <編集したdocsパス一覧 / なし>
 
 ## 残事項
-- なし / <docs 反映が必要な項目（$astralrecord-docs-fix へ引き継ぐ内容）>
+- なし / <追加のdocs整備や設計判断が必要な項目>
 ```
 
 ## Extension Points

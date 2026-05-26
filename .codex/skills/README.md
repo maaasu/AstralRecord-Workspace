@@ -139,10 +139,42 @@ Use $astralrecord-code-review to review API endpoints under E:\AstralRecord-Work
 
 ### 注意点
 
-- この skill はソース、設計書、設定ファイルを編集しない。修正が必要な指摘は `$astralrecord-code` / `$astralrecord-docs-fix` に渡す。
+- この skill はソース、設計書、設定ファイルを編集しない。修正が必要な指摘は `$astralrecord-code-fix` / `$astralrecord-docs-fix` に渡す（新規実装は `$astralrecord-code`）。
 - 設計書だけのレビューは `$astralrecord-docs-review` を使う。コードレビューと docs レビューを混在させない。
 - 「死コード」「未使用」を主張する前に grep で呼び出し元を確認する。確信が持てない場合は `要確認` として残す。
 - 大規模リファクタや再設計提案はスコープ外。最小修正案にとどめ、構造的な変更は別タスクとして提案する。
+
+## `$astralrecord-code-fix`
+
+`$astralrecord-code-review` のレビュー結果を入力にして、AstralRecord monorepo のソースコードを修正する skill。`$astralrecord-docs-fix` のコード版に相当する。
+
+### 使う場面
+
+- レビュー結果の `AR-CODE-*` 指摘をコードへ反映したい。
+- `修正可否: 自動修正可` の指摘だけを最小修正で反映したい。
+- plugin / API / Web / database / filebase / resourcepack の指摘を、コーディングルールに沿って解決したい。
+
+### 実行例
+
+```text
+Use $astralrecord-code-fix to fix code for E:\AstralRecord-Workspace\10_plugin\AstralRecord using E:\AstralRecord-Workspace\99_work\<review-result>.md and report the result.
+```
+
+```text
+Use $astralrecord-code-fix to fix only AR-CODE-001 for E:\AstralRecord-Workspace\20_api\AstralRecordApi and report the result.
+```
+
+```text
+Use $astralrecord-code-fix to apply review fixes for E:\AstralRecord-Workspace\10_plugin\AstralRecord based on the review result already in the conversation, and report the result.
+```
+
+### 注意点
+
+- この skill は設計書 (`00_docs/...` Markdown) を編集しない。docs への反映が必要な場合は `残事項` に記録し、`$astralrecord-docs-fix` に引き継ぐ。
+- レビュー結果なしでの新規実装やリファクタは行わない。新規実装は `$astralrecord-code` を使う。
+- `要確認` / `設計判断待ち` / `Q-CODE-*` は、ユーザー判断が示された場合だけ修正する。
+- 99_work 配下にレビュー結果ファイルがある場合、修正済み指摘の `修正状態` を更新し、ファイル名の `<fixed-count>／<finding-count>` を更新する（全件修正時は先頭に `[完了] ` を付ける）。
+- 既存パターン (enum / ID / DTO / リポジトリ / メッセージ / ログカテゴリ / リソースキー) を優先し、指摘外の構造変更は行わない。
 
 ## `$astralrecord-commit-develop`
 
