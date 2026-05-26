@@ -82,7 +82,7 @@ type: MOB
 category: BOSS
 name: "&0&l暗黒竜ヴァルザード"
 title: "&8―― 深淵の支配者 ――"
-level: 00
+level: 80
 entityType: ENDER_DRAGON
 icon: DRAGON_HEAD
 lore:
@@ -95,45 +95,47 @@ tags:
 
 baseStats:
   - status: MAX_HEALTH
-    value: 00000
+    value: 50000
   - status: ATTACK
     value: 200
   - status: DEFENSE
     value: 80
+  - status: MAGIC_DEFENSE
+    value: 80
   - status: MOVEMENT_SPEED
-    value: 0.10
+    value: 100
   - status: CRITICAL_RATE
-    value: 0.10
+    value: 10.0
   - status: CRITICAL_DAMAGE
-    value: 1.0
+    value: 200.0
 
 ai:
   idle:
     behavior: STATIONARY
   targeting:
     strategy: HIGHEST_THREAT
-    aggroRange: 00
+    aggroRange: 40
     deaggroRange: 60
-    leashRange: 00
+    leashRange: 80
   combat:
     style: MAGIC
     preferredRange: 8
-    attackIntervalTicks: 10
+    attackIntervalTicks: 40
     skills:
       - ref: skill:dragon_breath
       - ref: skill:dark_nova
       - ref: skill:tail_sweep
 
 drops:
-  exp: 0000
+  exp: 5000
   money:
-    min: 000
+    min: 500
     max: 1000
   items:
     - itemId:
         ref: item:dragon_scale
       rate: 100.0
-      amount: 3~0
+      amount: 3~5
       luckAffected: false
       hidden: false
     - itemId:

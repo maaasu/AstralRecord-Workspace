@@ -3,7 +3,7 @@ id: goblin_warrior
 type: MOB
 category: ENEMY
 name: "&cゴブリンウォリアー"
-level: 0
+level: 5
 entityType: ZOMBIE
 icon: ZOMBIE_HEAD
 lore:
@@ -25,9 +25,9 @@ baseStats:
   - status: ATTACK
     value: 18
   - status: DEFENSE
-    value: 0
+    value: 5
   - status: MOVEMENT_SPEED
-    value: 0.12
+    value: 100
 
 ai:
   idle:
@@ -60,14 +60,13 @@ drops:
       hidden: false
     - itemId:
         ref: item:rusty_sword
-      rate: 0.00
+      rate: 5.00
       amount: 1
       luckAffected: true
       hidden: false
     - itemId:
         ref: item:goblin_kings_seal
-      rate: 0.00
+      rate: 0.10
       amount: 1
       luckAffected: false
       hidden: true
-

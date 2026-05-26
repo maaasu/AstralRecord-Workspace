@@ -1,0 +1,169 @@
+namespace AstralRecordApi.Models;
+
+/// <summary>
+/// Mob 詳細レスポンス。
+/// MasterDataDB の <c>master_type IN ('mob.boss', 'mob.enemy', 'mob.npc')</c> の <c>payload_json</c> を
+/// このモデルへデシリアライズして返却する。
+/// </summary>
+public class MobResponse
+{
+    public required int SchemaVersion { get; init; }
+
+    public required string Id { get; init; }
+
+    public required string Category { get; init; }
+
+    public required string Name { get; init; }
+
+    public string? Title { get; init; }
+
+    public int Level { get; init; }
+
+    public required string EntityType { get; init; }
+
+    public bool NameVisible { get; init; } = true;
+
+    public string? Icon { get; init; }
+
+    public IReadOnlyList<string> Lore { get; init; } = [];
+
+    public IReadOnlyList<string> Tags { get; init; } = [];
+
+    public MobSkinResponse? Skin { get; init; }
+
+    public MobEquipmentResponse? Equipment { get; init; }
+
+    public IReadOnlyList<MobBaseStatResponse> BaseStats { get; init; } = [];
+
+    public MobAiResponse? Ai { get; init; }
+
+    public MobDropsResponse? Drops { get; init; }
+}
+
+/// <summary>Mob 一覧レスポンス要素。主要項目のみ。</summary>
+public class MobSummaryResponse
+{
+    public required string Id { get; init; }
+
+    public required string Category { get; init; }
+
+    public required string Name { get; init; }
+
+    public int Level { get; init; }
+
+    public required string EntityType { get; init; }
+
+    public string? Icon { get; init; }
+
+    public IReadOnlyList<string> Tags { get; init; } = [];
+}
+
+/// <summary>Mob スキン設定。</summary>
+public class MobSkinResponse
+{
+    public string? Texture { get; init; }
+
+    public string? Signature { get; init; }
+}
+
+/// <summary>Mob 装備設定（表示のみ。ダメージ計算には影響しない）。</summary>
+public class MobEquipmentResponse
+{
+    public string? MainHand { get; init; }
+
+    public string? OffHand { get; init; }
+
+    public string? Helmet { get; init; }
+
+    public string? Chestplate { get; init; }
+
+    public string? Leggings { get; init; }
+
+    public string? Boots { get; init; }
+}
+
+/// <summary>Mob のステータス値（独自 StatusType ベース）。</summary>
+public class MobBaseStatResponse
+{
+    public required string Status { get; init; }
+
+    public required double Value { get; init; }
+}
+
+/// <summary>Mob の AI 設定。</summary>
+public class MobAiResponse
+{
+    public MobIdleResponse? Idle { get; init; }
+
+    public MobTargetingResponse? Targeting { get; init; }
+
+    public MobCombatResponse? Combat { get; init; }
+}
+
+/// <summary>Mob の待機行動設定。</summary>
+public class MobIdleResponse
+{
+    public required string Behavior { get; init; }
+
+    public double WanderRadius { get; init; } = 10.0;
+
+    public double Speed { get; init; } = 1.0;
+}
+
+/// <summary>Mob のターゲット選定設定。</summary>
+public class MobTargetingResponse
+{
+    public required string Strategy { get; init; }
+
+    public required double AggroRange { get; init; }
+
+    public double? DeaggroRange { get; init; }
+
+    public double LeashRange { get; init; } = 30.0;
+}
+
+/// <summary>Mob の戦闘設定。</summary>
+public class MobCombatResponse
+{
+    public required string Style { get; init; }
+
+    public double PreferredRange { get; init; } = 1.0;
+
+    public long AttackIntervalTicks { get; init; } = 20;
+
+    public IReadOnlyList<string> Skills { get; init; } = [];
+}
+
+/// <summary>Mob のドロップ設定。</summary>
+public class MobDropsResponse
+{
+    public int Exp { get; init; }
+
+    public MobMoneyDropResponse? Money { get; init; }
+
+    public IReadOnlyList<MobDropItemResponse> Items { get; init; } = [];
+
+    public string? LootTable { get; init; }
+}
+
+/// <summary>Mob の金銭ドロップ範囲。</summary>
+public class MobMoneyDropResponse
+{
+    public int Min { get; init; }
+
+    public int Max { get; init; }
+}
+
+/// <summary>Mob のドロップアイテム 1 エントリ。</summary>
+public class MobDropItemResponse
+{
+    public required string ItemId { get; init; }
+
+    public required double Rate { get; init; }
+
+    public string Amount { get; init; } = "1";
+
+    public bool LuckAffected { get; init; } = true;
+
+    public bool Hidden { get; init; }
+}

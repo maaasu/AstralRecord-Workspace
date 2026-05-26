@@ -87,6 +87,8 @@
 | GET `/api/loot/pool/{poolId}` | ルートプール取得 | `00_docs/20_API設計書/feature/06-loot/3-エンドポイント仕様/06_3.00-索引.md` |
 | GET `/api/loot/table` | ルートテーブル一覧取得 | `00_docs/20_API設計書/feature/06-loot/3-エンドポイント仕様/06_3.00-索引.md` |
 | GET `/api/loot/table/{tableId}` | ルートテーブル取得 | `00_docs/20_API設計書/feature/06-loot/3-エンドポイント仕様/06_3.00-索引.md` |
+| GET `/api/mob` | Mob 一覧取得（`category` クエリで絞り込み可） | `00_docs/20_API設計書/feature/16-mob/3-エンドポイント仕様/16_3.00-索引.md` |
+| GET `/api/mob/{mobId}` | Mob 詳細取得 | `00_docs/20_API設計書/feature/16-mob/3-エンドポイント仕様/16_3.00-索引.md` |
 | POST `/api/master-data/seed` | filebase から MasterDataDB を同期 | `00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.00-索引.md` |
 | GET `/api/master-data/seed-runs` | Seeder 実行履歴取得 | `00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.00-索引.md` |
 | GET `/api/master-data/health` | MasterDataDB の参照可能状態取得 | `00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.00-索引.md` |

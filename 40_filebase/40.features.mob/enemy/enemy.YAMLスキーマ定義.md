@@ -72,7 +72,7 @@ id: goblin_warrior
 type: MOB
 category: ENEMY
 name: "&cゴブリンウォリアー"
-level: 0
+level: 5
 entityType: ZOMBIE
 icon: ZOMBIE_HEAD
 lore:
@@ -94,12 +94,12 @@ baseStats:
   - status: ATTACK
     value: 18
   - status: DEFENSE
-    value: 0
+    value: 5
   - status: MOVEMENT_SPEED
-    value: 0.12
+    value: 100
 
-
-
+ai:
+  idle:
     behavior: WANDER
     wanderRadius: 8
     speed: 0.8
@@ -129,13 +129,13 @@ drops:
       hidden: false
     - itemId:
         ref: item:rusty_sword
-      rate: 0.00
+      rate: 5.00
       amount: 1
       luckAffected: true
       hidden: false
     - itemId:
         ref: item:goblin_kings_seal
-      rate: 0.00
+      rate: 0.10
       amount: 1
       luckAffected: false
       hidden: true
@@ -165,13 +165,15 @@ equipment:
 
 baseStats:
   - status: MAX_HEALTH
-    value: 100
+    value: 180
   - status: ATTACK
     value: 30
   - status: DEFENSE
     value: 3
+  - status: MAGIC_DEFENSE
+    value: 8
   - status: MOVEMENT_SPEED
-    value: 0.10
+    value: 90
 
 ai:
   idle:
@@ -182,7 +184,7 @@ ai:
   combat:
     style: MAGIC
     preferredRange: 12
-    attackIntervalTicks: 00
+    attackIntervalTicks: 40
     skills:
       - ref: skill:dark_bolt
       - ref: skill:shadow_curse
@@ -191,7 +193,7 @@ drops:
   exp: 60
   money:
     min: 10
-    max: 00
+    max: 40
   items:
     - itemId:
         ref: item:bone_fragment

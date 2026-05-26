@@ -1,109 +1,335 @@
 package io.github.maaasu.astralRecord.feature.mob.repository;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import io.github.maaasu.astralRecord.feature.mob.model.CombatStyle;
+import io.github.maaasu.astralRecord.feature.mob.model.IdleBehavior;
 import io.github.maaasu.astralRecord.feature.mob.model.MobBaseStat;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
+import io.github.maaasu.astralRecord.feature.mob.model.MobCombatConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobDropConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobDropItem;
+import io.github.maaasu.astralRecord.feature.mob.model.MobEquipmentConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobIdleConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobMoneyDrop;
+import io.github.maaasu.astralRecord.feature.mob.model.MobSkin;
+import io.github.maaasu.astralRecord.feature.mob.model.MobTargetingConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
-import io.github.maaasu.astralRecord.infrastructure.database.file.FileDatabaseManager;
-import io.github.maaasu.astralRecord.infrastructure.util.YamlLoaderUtil;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
 import org.bukkit.entity.EntityType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 /**
- * Mob YAML 定義を読み込むリポジトリです。
+ * AstralRecord API を通じて Mob テンプレートを取得するリポジトリ。
+ *
+ * <p>API レスポンスは {@code item:rusty_sword} のような prefix 付き参照値で返るため、
+ * 本リポジトリで {@code :} 区切りの suffix のみを抽出して保持する。</p>
  */
 public class MobRepository {
 
-    private static final String MOB_DIRECTORY = "40.features.mob";
-
     /**
-     * すべての Mob テンプレートを読み込みます。
+     * Mob 一覧を取得します。
      *
-     * @return テンプレート ID をキーにした Mob テンプレート
+     * @return ロードした Mob テンプレートのリスト（順序は API レスポンス順）
      */
     @NotNull
-    public Map<String, MobTemplate> findAll() {
-        File root = FileDatabaseManager.getInstance().getRootDirectory();
-        if (root == null) {
-            return Map.of();
-        }
+    public List<MobTemplate> findAll() {
+        String path = "/api/mob";
 
-        File mobDirectory = new File(root, MOB_DIRECTORY);
-        Map<String, YamlConfiguration> yamlMap = YamlLoaderUtil.loadAllFromDirectory(mobDirectory, true);
-        Map<String, MobTemplate> result = new LinkedHashMap<>();
+        try {
+            try (var client = ApiRequestUtil.buildClient()) {
+                var request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        for (YamlConfiguration yaml : yamlMap.values()) {
-            MobTemplate template = parse(yaml);
-            if (template != null) {
-                result.put(template.id(), template);
+                if (response.statusCode() != 200) {
+                    Logger.log(LogId.E_5701, "status=" + response.statusCode());
+                    throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
+                }
+
+                JsonArray array = JsonParser.parseString(response.body()).getAsJsonArray();
+                List<MobTemplate> result = new ArrayList<>();
+                for (JsonElement element : array) {
+                    if (!element.isJsonObject()) continue;
+                    // summary には category や level のみが入る。詳細を取得するため findById で再取得する
+                    JsonObject summary = element.getAsJsonObject();
+                    String id = optionalString(summary, "id");
+                    if (id == null) continue;
+                    MobTemplate template = findById(id);
+                    if (template != null) {
+                        result.add(template);
+                    }
+                }
+                return result;
             }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        return result;
+    }
+
+    /**
+     * 指定 ID の Mob テンプレートを取得します。
+     *
+     * @param mobId Mob テンプレート ID
+     * @return 取得したテンプレート。存在しない場合は {@code null}
+     */
+    @Nullable
+    public MobTemplate findById(@NotNull String mobId) {
+        String encoded = URLEncoder.encode(mobId, StandardCharsets.UTF_8).replace("+", "%20");
+        String path = "/api/mob/" + encoded;
+
+        try {
+            try (var client = ApiRequestUtil.buildClient()) {
+                var request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                return switch (response.statusCode()) {
+                    case 200 -> parseTemplate(JsonParser.parseString(response.body()).getAsJsonObject());
+                    case 404 -> {
+                        Logger.log(LogId.W_5700, mobId);
+                        yield null;
+                    }
+                    default -> {
+                        Logger.log(LogId.E_5700, mobId + " status=" + response.statusCode());
+                        throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
+                    }
+                };
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Nullable
-    private MobTemplate parse(@NotNull YamlConfiguration yaml) {
-        String id = yaml.getString("id");
-        String entityTypeName = yaml.getString("entityType");
-        if (id == null || id.isBlank() || entityTypeName == null || entityTypeName.isBlank()) {
-            return null;
-        }
+    private MobTemplate parseTemplate(@NotNull JsonObject obj) {
+        String id = optionalString(obj, "id");
+        if (id == null) return null;
 
+        String entityTypeName = optionalString(obj, "entityType");
         EntityType entityType;
         try {
-            entityType = EntityType.valueOf(entityTypeName.trim().toUpperCase());
+            entityType = EntityType.valueOf(entityTypeName == null ? "" : entityTypeName.trim().toUpperCase());
         } catch (IllegalArgumentException ex) {
+            Logger.log(LogId.W_5705, entityTypeName, id);
             return null;
         }
 
+        MobCategory category = MobCategory.from(optionalString(obj, "category"));
+
+        Logger.log(LogId.D_5700, id);
         return new MobTemplate(
-                yaml.getInt("schemaVersion", 1),
+                obj.has("schemaVersion") ? obj.get("schemaVersion").getAsInt() : 1,
                 id,
-                MobCategory.from(yaml.getString("category")),
-                yaml.getString("name", id),
-                yaml.getString("title"),
-                yaml.getInt("level", 1),
+                category,
+                optionalString(obj, "name", id),
+                optionalString(obj, "title"),
+                obj.has("level") ? obj.get("level").getAsInt() : 1,
                 entityType,
-                yaml.getBoolean("nameVisible", true),
-                parseStats(yaml),
-                parseIdle(yaml.getConfigurationSection("ai.idle"))
+                obj.has("nameVisible") ? obj.get("nameVisible").getAsBoolean() : true,
+                optionalString(obj, "icon"),
+                parseStringArray(obj.getAsJsonArray("lore")),
+                parseStringArray(obj.getAsJsonArray("tags")),
+                parseSkin(getObject(obj, "skin")),
+                parseEquipment(getObject(obj, "equipment")),
+                parseBaseStats(obj.getAsJsonArray("baseStats"), id),
+                parseIdle(getObject(getObject(obj, "ai"), "idle")),
+                category == MobCategory.NPC ? null : parseTargeting(getObject(getObject(obj, "ai"), "targeting")),
+                category == MobCategory.NPC ? null : parseCombat(getObject(getObject(obj, "ai"), "combat")),
+                category == MobCategory.NPC ? null : parseDrops(getObject(obj, "drops"))
+        );
+    }
+
+    @Nullable
+    private MobSkin parseSkin(@Nullable JsonObject obj) {
+        if (obj == null) return null;
+        return new MobSkin(optionalString(obj, "texture"), optionalString(obj, "signature"));
+    }
+
+    @NotNull
+    private MobEquipmentConfig parseEquipment(@Nullable JsonObject obj) {
+        if (obj == null) return MobEquipmentConfig.EMPTY;
+        return new MobEquipmentConfig(
+                stripPrefix(optionalString(obj, "mainHand")),
+                stripPrefix(optionalString(obj, "offHand")),
+                stripPrefix(optionalString(obj, "helmet")),
+                stripPrefix(optionalString(obj, "chestplate")),
+                stripPrefix(optionalString(obj, "leggings")),
+                stripPrefix(optionalString(obj, "boots"))
         );
     }
 
     @NotNull
-    private List<MobBaseStat> parseStats(@NotNull YamlConfiguration yaml) {
-        List<Map<?, ?>> statMaps = yaml.getMapList("baseStats");
-        List<MobBaseStat> stats = new ArrayList<>();
-        for (Map<?, ?> statMap : statMaps) {
-            Object status = statMap.get("status");
-            Object value = statMap.get("value");
-            if (status == null || value == null) {
+    private List<MobBaseStat> parseBaseStats(@Nullable JsonArray array, @NotNull String mobId) {
+        if (array == null) return List.of();
+        List<MobBaseStat> result = new ArrayList<>();
+        for (JsonElement element : array) {
+            if (!element.isJsonObject()) continue;
+            JsonObject obj = element.getAsJsonObject();
+            String status = optionalString(obj, "status");
+            JsonElement valueElement = obj.get("value");
+            if (status == null || valueElement == null || !valueElement.isJsonPrimitive()) continue;
+
+            // StatusType に存在しない status はスキップ（forward-compat）
+            try {
+                StatusType.valueOf(status);
+            } catch (IllegalArgumentException ex) {
+                Logger.log(LogId.W_5704, status, mobId);
                 continue;
             }
-            double number = value instanceof Number n ? n.doubleValue() : Double.parseDouble(value.toString());
-            stats.add(new MobBaseStat(status.toString(), number));
+            result.add(new MobBaseStat(status, valueElement.getAsDouble()));
         }
-        return List.copyOf(stats);
+        return Collections.unmodifiableList(result);
     }
 
     @NotNull
-    private MobIdleConfig parseIdle(@Nullable ConfigurationSection section) {
-        if (section == null) {
-            return new MobIdleConfig("STATIONARY", 10.0, 1.0);
-        }
+    private MobIdleConfig parseIdle(@Nullable JsonObject obj) {
+        if (obj == null) return MobIdleConfig.defaults();
         return new MobIdleConfig(
-                section.getString("behavior", "STATIONARY"),
-                section.getDouble("wanderRadius", 10.0),
-                section.getDouble("speed", 1.0)
+                IdleBehavior.from(optionalString(obj, "behavior")),
+                obj.has("wanderRadius") ? obj.get("wanderRadius").getAsDouble() : 10.0,
+                obj.has("speed") ? obj.get("speed").getAsDouble() : 1.0
         );
+    }
+
+    @Nullable
+    private MobTargetingConfig parseTargeting(@Nullable JsonObject obj) {
+        if (obj == null) return null;
+        double aggro = obj.has("aggroRange") ? obj.get("aggroRange").getAsDouble() : 0.0;
+        double deaggro = obj.has("deaggroRange") && !obj.get("deaggroRange").isJsonNull()
+                ? obj.get("deaggroRange").getAsDouble()
+                : aggro * 2.0;
+        double leash = obj.has("leashRange") ? obj.get("leashRange").getAsDouble() : 30.0;
+        return new MobTargetingConfig(TargetStrategyFrom(optionalString(obj, "strategy")), aggro, deaggro, leash);
+    }
+
+    @Nullable
+    private MobCombatConfig parseCombat(@Nullable JsonObject obj) {
+        if (obj == null) return null;
+        List<String> skills = new ArrayList<>();
+        JsonArray skillsArray = obj.getAsJsonArray("skills");
+        if (skillsArray != null) {
+            for (JsonElement element : skillsArray) {
+                if (!element.isJsonPrimitive()) continue;
+                String stripped = stripPrefix(element.getAsString());
+                if (stripped != null) {
+                    skills.add(stripped);
+                }
+            }
+        }
+        return new MobCombatConfig(
+                CombatStyle.from(optionalString(obj, "style")),
+                obj.has("preferredRange") ? obj.get("preferredRange").getAsDouble() : 1.0,
+                obj.has("attackIntervalTicks") ? obj.get("attackIntervalTicks").getAsLong() : 20L,
+                skills
+        );
+    }
+
+    @Nullable
+    private MobDropConfig parseDrops(@Nullable JsonObject obj) {
+        if (obj == null) return null;
+        int exp = obj.has("exp") ? obj.get("exp").getAsInt() : 0;
+
+        MobMoneyDrop money = null;
+        JsonObject moneyObj = getObject(obj, "money");
+        if (moneyObj != null) {
+            money = new MobMoneyDrop(
+                    moneyObj.has("min") ? moneyObj.get("min").getAsInt() : 0,
+                    moneyObj.has("max") ? moneyObj.get("max").getAsInt() : 0
+            );
+        }
+
+        List<MobDropItem> items = new ArrayList<>();
+        JsonArray itemsArray = obj.getAsJsonArray("items");
+        if (itemsArray != null) {
+            for (JsonElement element : itemsArray) {
+                if (!element.isJsonObject()) continue;
+                JsonObject itemObj = element.getAsJsonObject();
+                String itemId = stripPrefix(optionalString(itemObj, "itemId"));
+                if (itemId == null) continue;
+                items.add(new MobDropItem(
+                        itemId,
+                        itemObj.has("rate") ? itemObj.get("rate").getAsDouble() : 0.0,
+                        optionalString(itemObj, "amount", "1"),
+                        !itemObj.has("luckAffected") || itemObj.get("luckAffected").getAsBoolean(),
+                        itemObj.has("hidden") && itemObj.get("hidden").getAsBoolean()
+                ));
+            }
+        }
+
+        return new MobDropConfig(exp, money, items, stripPrefix(optionalString(obj, "lootTable")));
+    }
+
+    /**
+     * {@code "item:rusty_sword"} のような prefix 付き参照値から、{@code ":"} 以降の suffix を返します。
+     * prefix がない場合はそのまま返します。
+     *
+     * @param raw 参照値
+     * @return suffix のみの素の ID
+     */
+    @Nullable
+    private static String stripPrefix(@Nullable String raw) {
+        if (raw == null) return null;
+        int idx = raw.indexOf(':');
+        return idx < 0 ? raw : raw.substring(idx + 1);
+    }
+
+    @NotNull
+    private static List<String> parseStringArray(@Nullable JsonArray array) {
+        if (array == null) return List.of();
+        List<String> result = new ArrayList<>();
+        for (JsonElement element : array) {
+            if (element.isJsonPrimitive()) {
+                result.add(element.getAsString());
+            }
+        }
+        return Collections.unmodifiableList(result);
+    }
+
+    @Nullable
+    private static JsonObject getObject(@Nullable JsonObject obj, @NotNull String key) {
+        if (obj == null || !obj.has(key) || obj.get(key).isJsonNull()) return null;
+        JsonElement element = obj.get(key);
+        return element.isJsonObject() ? element.getAsJsonObject() : null;
+    }
+
+    @Nullable
+    private static String optionalString(@Nullable JsonObject obj, @NotNull String key) {
+        return optionalString(obj, key, null);
+    }
+
+    private static String optionalString(@Nullable JsonObject obj, @NotNull String key, @Nullable String fallback) {
+        if (obj == null || !obj.has(key) || obj.get(key).isJsonNull()) return fallback;
+        JsonElement element = obj.get(key);
+        return element.isJsonPrimitive() ? element.getAsString() : fallback;
+    }
+
+    /**
+     * 戦略文字列から {@link io.github.maaasu.astralRecord.feature.mob.model.TargetStrategy} を解決します。
+     * <p>循環インポートを避けるためメソッド単位で参照を分離しています。</p>
+     *
+     * @param raw 戦略文字列
+     * @return 解決された戦略
+     */
+    private static io.github.maaasu.astralRecord.feature.mob.model.TargetStrategy TargetStrategyFrom(@Nullable String raw) {
+        return io.github.maaasu.astralRecord.feature.mob.model.TargetStrategy.from(raw);
     }
 }

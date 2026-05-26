@@ -119,7 +119,11 @@ internal static class MasterDataPayloadJson
     }
 
     /// <summary>
-    /// 文字列型の DTO プロパティに対し、数値スカラ / オブジェクト <c>{random: "1~3"}</c> も受け付ける Converter。
+    /// 文字列型の DTO プロパティに対し、数値スカラや以下のオブジェクト形式も受け付ける Converter。
+    /// <list type="bullet">
+    ///   <item><c>{ random: "1~3" }</c> — ドロップ数量などのランダム範囲表現</item>
+    ///   <item><c>{ ref: "item:rusty_sword" }</c> — filebase の参照値表現。<c>ref</c> 値をそのまま返す</item>
+    /// </list>
     /// </summary>
     private sealed class FlexibleStringConverter : JsonConverter<string>
     {
@@ -149,6 +153,7 @@ internal static class MasterDataPayloadJson
 
                 case JsonTokenType.StartObject:
                     string? random = null;
+                    string? refValue = null;
                     while (reader.Read())
                     {
                         if (reader.TokenType == JsonTokenType.EndObject)
@@ -161,10 +166,13 @@ internal static class MasterDataPayloadJson
                         reader.Read();
                         if (string.Equals(propertyName, "random", StringComparison.OrdinalIgnoreCase))
                             random = reader.TokenType == JsonTokenType.String ? reader.GetString() : null;
+                        else if (string.Equals(propertyName, "ref", StringComparison.OrdinalIgnoreCase))
+                            refValue = reader.TokenType == JsonTokenType.String ? reader.GetString() : null;
                         else
                             reader.Skip();
                     }
-                    return random ?? "0";
+                    // ref が指定されていれば最優先で返す。次に random、最後に "0" フォールバック。
+                    return refValue ?? random ?? "0";
 
                 default:
                     throw new JsonException($"Unexpected token for string field: {reader.TokenType}");

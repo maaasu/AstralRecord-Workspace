@@ -1,33 +1,81 @@
 package io.github.maaasu.astralRecord.feature.mob.model;
 
 import org.bukkit.entity.EntityType;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
 /**
- * YAMLから読み込まれるMobテンプレート。
+ * API から取得した Mob テンプレート。
+ *
+ * <p>本テンプレートは静的定義であり、ワールド上のインスタンスは {@link MobInstance} で表現する。</p>
  *
  * @param schemaVersion スキーマバージョン
- * @param id            テンプレートID
- * @param category      Mobカテゴリ
- * @param name          表示名
- * @param title         肩書き
+ * @param id            テンプレート ID
+ * @param category      Mob カテゴリ
+ * @param displayName   ゲーム内に表示する名前（カラーコード可）
+ * @param title         二つ名・称号（任意）
  * @param level         レベル
- * @param entityType    表示に使用するBukkit EntityType
- * @param nameVisible   ネームタグ表示有無
- * @param stats         基礎ステータス
- * @param idleConfig    待機行動設定
+ * @param entityType    表示に使用する Bukkit {@link EntityType}
+ * @param nameVisible   ネームタグの可視性
+ * @param icon          UI/図鑑表示用アイコン（Bukkit Material 名、任意）
+ * @param lore          説明文
+ * @param tags          検索・分類用タグ
+ * @param skin          外見スキン設定（任意）
+ * @param equipment     表示装備設定
+ * @param baseStats     ベースステータス（StatusType ベース）
+ * @param idle          待機行動設定
+ * @param targeting     ターゲット選定設定（NPC では {@code null}）
+ * @param combat        戦闘設定（NPC では {@code null}）
+ * @param drops         ドロップ設定（NPC では {@code null}）
  */
 public record MobTemplate(
         int schemaVersion,
-        String id,
-        MobCategory category,
-        String name,
-        String title,
+        @NotNull String id,
+        @NotNull MobCategory category,
+        @NotNull String displayName,
+        @Nullable String title,
         int level,
-        EntityType entityType,
+        @NotNull EntityType entityType,
         boolean nameVisible,
-        List<MobBaseStat> stats,
-        MobIdleConfig idleConfig
+        @Nullable String icon,
+        @NotNull List<String> lore,
+        @NotNull List<String> tags,
+        @Nullable MobSkin skin,
+        @NotNull MobEquipmentConfig equipment,
+        @NotNull List<MobBaseStat> baseStats,
+        @NotNull MobIdleConfig idle,
+        @Nullable MobTargetingConfig targeting,
+        @Nullable MobCombatConfig combat,
+        @Nullable MobDropConfig drops
 ) {
+
+    public MobTemplate {
+        lore = lore == null ? List.of() : List.copyOf(lore);
+        tags = tags == null ? List.of() : List.copyOf(tags);
+        baseStats = baseStats == null ? List.of() : List.copyOf(baseStats);
+        if (equipment == null) {
+            equipment = MobEquipmentConfig.EMPTY;
+        }
+        if (idle == null) {
+            idle = MobIdleConfig.defaults();
+        }
+    }
+
+    /**
+     * baseStats から指定 status の値を取得します。
+     *
+     * @param status     ステータス名（例: {@code "MAX_HEALTH"}）
+     * @param defaultValue 未指定時のデフォルト値
+     * @return ステータス値
+     */
+    public double statValue(@NotNull String status, double defaultValue) {
+        for (MobBaseStat stat : baseStats) {
+            if (status.equals(stat.status())) {
+                return stat.value();
+            }
+        }
+        return defaultValue;
+    }
 }

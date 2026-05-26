@@ -1,0 +1,72 @@
+package io.github.maaasu.astralRecord.feature.mob.service;
+
+import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
+import org.bukkit.Location;
+import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
+import org.jetbrains.annotations.NotNull;
+
+/**
+ * 攻撃方向に対するノックバックベクトルを算出し、対象（プレイヤー / Mob）へ送出する。
+ *
+ * <p>ノックバック耐性は {@code StatusType.KNOCKBACK_RESISTANCE} が未定義のため、
+ * 現状は一律の基本量で適用する（[[12_9.00-未決事項]] 参照）。</p>
+ */
+public class MobKnockbackService {
+
+    /** 水平ノックバックの基本量（ブロック単位の速度）。 */
+    private static final double DEFAULT_HORIZONTAL = 0.4;
+
+    /** 垂直ノックバックの基本量。 */
+    private static final double DEFAULT_VERTICAL = 0.4;
+
+    /**
+     * 攻撃元 -> 対象プレイヤーへのノックバックを適用します。
+     *
+     * @param sourceLocation 攻撃元の位置
+     * @param target         被攻撃側プレイヤー
+     * @param multiplier     ノックバック倍率（既定 1.0）
+     */
+    public void applyToPlayer(@NotNull Location sourceLocation, @NotNull Player target, double multiplier) {
+        Vector velocity = computeVelocity(sourceLocation, target.getLocation(), multiplier);
+        target.setVelocity(target.getVelocity().add(velocity));
+    }
+
+    /**
+     * 攻撃元 -> 対象 Mob へのノックバックを適用します。Mob 側は {@code currentLocation} を直接補正します。
+     *
+     * @param sourceLocation 攻撃元の位置
+     * @param target         被攻撃側 Mob
+     * @param multiplier     ノックバック倍率
+     */
+    public void applyToMob(@NotNull Location sourceLocation, @NotNull MobInstance target, double multiplier) {
+        Vector velocity = computeVelocity(sourceLocation, target.currentLocation(), multiplier);
+        Location next = target.currentLocation().add(velocity);
+        target.currentLocation(next);
+    }
+
+    /**
+     * 攻撃元から対象への水平正規化ベクトルに、垂直成分を加えたノックバックベクトルを計算します。
+     *
+     * @param source     攻撃元位置
+     * @param target     対象位置
+     * @param multiplier 倍率
+     * @return ノックバックベクトル
+     */
+    @NotNull
+    private Vector computeVelocity(@NotNull Location source, @NotNull Location target, double multiplier) {
+        double dx = target.getX() - source.getX();
+        double dz = target.getZ() - source.getZ();
+        double length = Math.sqrt(dx * dx + dz * dz);
+        if (length < 1.0E-6) {
+            // 同位置なら水平成分なし、垂直のみ
+            return new Vector(0.0, DEFAULT_VERTICAL * multiplier, 0.0);
+        }
+
+        double inv = 1.0 / length;
+        double vx = dx * inv * DEFAULT_HORIZONTAL * multiplier;
+        double vz = dz * inv * DEFAULT_HORIZONTAL * multiplier;
+        double vy = DEFAULT_VERTICAL * multiplier;
+        return new Vector(vx, vy, vz);
+    }
+}
