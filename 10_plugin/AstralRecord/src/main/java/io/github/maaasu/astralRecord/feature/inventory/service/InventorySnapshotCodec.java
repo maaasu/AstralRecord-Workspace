@@ -81,11 +81,9 @@ final class InventorySnapshotCodec {
                 try {
                     gameMode = GameMode.valueOf(name);
                 } catch (IllegalArgumentException ignored) {
-                    gameMode = null;
                 }
             }
         } catch (Exception ignored) {
-            gameMode = null;
         }
         return new BuilderSnapshot(contents, gameMode);
     }

@@ -56,7 +56,7 @@ final class AccessorySlotLayout {
             if (slotIndex == null || !isManagedSlot(slotIndex)) {
                 continue;
             }
-            EquipmentType equipmentType = EquipmentType.fromAccessorySlotIndex(slotIndex.intValue());
+            EquipmentType equipmentType = EquipmentType.fromAccessorySlotIndex(slotIndex);
             if (equipmentType == EquipmentType.UNSUPPORTED) {
                 continue;
             }
@@ -85,7 +85,7 @@ final class AccessorySlotLayout {
      * 同等アイテムの再配置を抑制します。
      */
     static void applySnapshot(@NotNull Player player, @NotNull ItemStack[] snapshot) {
-        ItemStack desired = snapshot.length > SLOT_OFF_HAND && snapshot[SLOT_OFF_HAND] != null
+        ItemStack desired = snapshot.length > SLOT_OFF_HAND
             ? snapshot[SLOT_OFF_HAND]
             : new ItemStack(Material.AIR);
         PlayerInventory inventory = player.getInventory();

@@ -381,10 +381,6 @@ public enum PlayerMsgId {
      * ショートカット設定の保存に失敗しました。設定を初期化しました。
      */
     P_5600(5600),
-    /**
-     * 装備効果をオンにしました。
-     */
-    P_5601(5601),
     // endregion
 
     // region /feature/skill 5800-5809

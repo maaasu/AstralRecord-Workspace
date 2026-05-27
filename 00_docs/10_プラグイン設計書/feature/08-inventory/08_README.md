@@ -1,6 +1,6 @@
-﻿# 08_README
+# 08_README
 
-このディレクトリは `feature/inventory` の設計書です。
+このディレクトリは `feature/inventory` の設計書です。  
 採番・命名・参照ルールは [[README]] に従います。
 
 ## 対象実装パス
@@ -9,8 +9,8 @@
 - `src/main/java/io/github/maaasu/astralRecord/feature/inventory/event/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/inventory/service/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/inventory/repository/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/inventory/task/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/inventory/model/*`
+- `src/main/java/io/github/maaasu/astralRecord/feature/inventory/state/*`
 
 ## ドキュメント一覧（推奨順）
 
@@ -39,5 +39,9 @@
   - [[08_3.03-コマンド]]
   - [[08_5.00-例外・ログ・運用]]
 - 保存・復元処理の変更:
+  - [[08_1.00-モデル定義]]
+  - [[08_3.02-サービス]]
   - [[08_3.04-リポジトリ]]
+  - [[08_3.05-タスク・補助]]
   - [[08_4.00-統合フロー]]
+  - [[08_5.00-例外・ログ・運用]]

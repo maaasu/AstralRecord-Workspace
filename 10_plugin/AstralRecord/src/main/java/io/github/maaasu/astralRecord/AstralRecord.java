@@ -12,8 +12,11 @@ import io.github.maaasu.astralRecord.feature.item.event.ItemInteractionBlockEven
 import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryRepository;
 import io.github.maaasu.astralRecord.feature.inventory.repository.EquipmentLoadoutRepository;
 import io.github.maaasu.astralRecord.feature.inventory.event.InventoryEquipmentGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryAutoSaveTask;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveTask;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.inventory.state.InventoryPersistence;
+import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStateRegistry;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.item.view.ItemStackPacketAdapter;
@@ -72,6 +75,9 @@ public final class AstralRecord extends JavaPlugin {
     private UserService userService;
     private PlayerService playerService;
     private InventoryService inventoryService;
+    private InventoryPersistence inventoryPersistence;
+    private PlayerInventoryStateRegistry inventoryStateRegistry;
+    private InventoryAutoSaveTask inventoryAutoSaveTask;
     private CurrencyService currencyService;
     private StatusService statusService;
     private StatusRegenTask statusRegenTask;
@@ -122,6 +128,9 @@ public final class AstralRecord extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (inventoryAutoSaveTask != null) {
+            inventoryAutoSaveTask.stop();
+        }
         if (playerService != null) {
             playerService.saveAllOnlinePlayersAndClear();
         }
@@ -190,7 +199,17 @@ public final class AstralRecord extends JavaPlugin {
         // inventory
         var inventoryRepository = new InventoryRepository();
         var equipmentLoadoutRepository = new EquipmentLoadoutRepository();
-        inventoryService = new InventoryService(inventoryRepository, equipmentLoadoutRepository, itemService, itemStackFactory);
+        inventoryStateRegistry = new PlayerInventoryStateRegistry();
+        inventoryPersistence = new InventoryPersistence(inventoryRepository, equipmentLoadoutRepository);
+        inventoryService = new InventoryService(
+            inventoryRepository,
+            equipmentLoadoutRepository,
+            itemService,
+            itemStackFactory,
+            inventoryStateRegistry,
+            inventoryPersistence
+        );
+        inventoryAutoSaveTask = new InventoryAutoSaveTask(inventoryPersistence, inventoryStateRegistry);
         currencyService = new CurrencyService(inventoryService);
 
         // status
@@ -203,13 +222,15 @@ public final class AstralRecord extends JavaPlugin {
         dodgeService = new DodgeService(this, statusService, particleDisplayService);
 
         var playerSaveCoordinator = new PlayerSaveCoordinator(
-            java.util.List.of(new InventorySaveTask(inventoryService))
+            java.util.List.of(new InventorySaveTask(inventoryService, inventoryStateRegistry, inventoryPersistence))
         );
         // player
         playerService = new PlayerService(
             userService,
             accountService,
             inventoryService,
+            inventoryPersistence,
+            inventoryStateRegistry,
             statusService,
             playerSaveCoordinator
         );
@@ -310,6 +331,8 @@ public final class AstralRecord extends JavaPlugin {
         );
         playerHudService.start(this);
         statusRegenTask.start(this);
+        // インベントリオートセーブ (60s) を開始
+        inventoryAutoSaveTask.start(this, InventoryAutoSaveTask.DEFAULT_INTERVAL_TICKS);
     }
     /**
      * AstralSaga のインスタンスを取得します。

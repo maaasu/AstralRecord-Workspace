@@ -2,8 +2,8 @@
 
 - レビュー対象: `E:\AstralRecord-Workspace\00_docs\10_プラグイン設計書\feature\13-skill`
 - 使用 skill: `docs-review`
-- 指摘修正数 / 指摘数: 0 / 10
-- 完了状態: 未完了
+- 指摘修正数 / 指摘数: 10 / 10
+- 完了状態: 完了
 
 ## 指摘一覧
 
@@ -123,11 +123,13 @@
 - 関連指摘: `AR-DOC-002`
 - 確認事項: `SkillCastContext.caster` を共通インターフェース（`SkillCaster` 等）でラップするのか、`AstPlayer` と Mob 用キャスター実体を直接保持して `instanceof` で分岐するのか。
 - 判断が必要な理由: feature/skill の責務（共通制御）と feature/player・feature/mob の責務分離に影響する設計上の判断であり、設計書本体には現状方針が読み取れない。
+- 回答: 共通インターフェース `SkillCaster` でラップする方針に確定（ユーザー指示）。13_1.00 に `SkillCaster` を正式モデルとして追記し、`SkillCastContext.caster` の型を `SkillCaster` 抽象に統一。
 
 ### Q-DOC-002
 - 関連指摘: `AR-DOC-005`, `AR-DOC-006`
 - 確認事項: 失敗系の返却契約として、`canCast` / `findById` / `getExecutor` をそれぞれ「`null`」「専用例外」「結果オブジェクト」のどれに統一するか。
 - 判断が必要な理由: ステータス連携・GUI 表示・Mob AI 側の失敗ハンドリング方針に依存し、ドキュメント単独では決定できない。
+- 回答: 管理側観点で適切な選択として、`canCast` は `SkillCastResult`（判定理由と消費見込み値を呼び出し側が同一型で扱えるため）、`getExecutor` / `findById` の未登録・404 は `null`（W_5801 で運用上検知可能であり、batch 処理での skip + ログ集約が成立するため）に確定。
 
 ## 修正スキル入力サマリ
 - 自動修正候補: `AR-DOC-001`, `AR-DOC-003`, `AR-DOC-004`, `AR-DOC-007`, `AR-DOC-008`, `AR-DOC-009`, `AR-DOC-010`
@@ -153,16 +155,16 @@
 - 実行した検査: `docs_structure_audit.py 00_docs/10_プラグイン設計書/feature/13-skill`（Findings: 0）
 
 各指摘の `修正状態`:
-- AR-DOC-001: 未修正
-- AR-DOC-002: 未修正
-- AR-DOC-003: 未修正
-- AR-DOC-004: 未修正
-- AR-DOC-005: 未修正
-- AR-DOC-006: 未修正
-- AR-DOC-007: 未修正
-- AR-DOC-008: 未修正
-- AR-DOC-009: 未修正
-- AR-DOC-010: 未修正
+- AR-DOC-001: 修正済み
+- AR-DOC-002: 修正済み
+- AR-DOC-003: 修正済み
+- AR-DOC-004: 修正済み
+- AR-DOC-005: 修正済み（既存修正で `SkillCastResult` に確定済みであることを確認）
+- AR-DOC-006: 修正済み（既存修正で `null` に確定済みであることを確認）
+- AR-DOC-007: 修正済み
+- AR-DOC-008: 修正済み（既存修正で `validateParams` ステップが追加済みであることを確認）
+- AR-DOC-009: 修正済み（既存修正で索引へ `SkillExecutor` 追加済みであることを確認）
+- AR-DOC-010: 修正済み
 
 ## ソース参照
 ソースコードは参照していません。

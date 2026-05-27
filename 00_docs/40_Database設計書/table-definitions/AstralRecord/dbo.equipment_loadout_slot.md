@@ -7,12 +7,12 @@
 
 ## テーブル情報
 
-| 項目 | 値 |
-|:---|:---|
-| スキーマ名 | `dbo` |
-| テーブル名 | `equipment_loadout_slot` |
-| 完全修飾名 | `dbo.equipment_loadout_slot` |
-| 主キー | `equipment_loadout_slot_id` |
+| 項目    | 値                                                                                            |
+| :---- | :------------------------------------------------------------------------------------------- |
+| スキーマ名 | `dbo`                                                                                        |
+| テーブル名 | `equipment_loadout_slot`                                                                     |
+| 完全修飾名 | `dbo.equipment_loadout_slot`                                                                 |
+| 主キー   | `equipment_loadout_slot_id`                                                                  |
 | 親テーブル | `dbo.equipment_loadout.equipment_loadout_id`, `dbo.equipment_instance.equipment_instance_id` |
 
 ---

@@ -4,6 +4,9 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.inventory.state.InventoryPersistence;
+import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryState;
+import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStateRegistry;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.save.PlayerSaveCoordinator;
@@ -28,6 +31,8 @@ public class PlayerService {
     private final UserService userService;
     private final AccountService accountService;
     private final InventoryService inventoryService;
+    private final InventoryPersistence inventoryPersistence;
+    private final PlayerInventoryStateRegistry inventoryStateRegistry;
     private final StatusService statusService;
     private final PlayerSaveCoordinator playerSaveCoordinator;
 
@@ -35,12 +40,16 @@ public class PlayerService {
         UserService userService,
         AccountService accountService,
         InventoryService inventoryService,
+        InventoryPersistence inventoryPersistence,
+        PlayerInventoryStateRegistry inventoryStateRegistry,
         StatusService statusService,
         PlayerSaveCoordinator playerSaveCoordinator
     ) {
         this.userService = userService;
         this.accountService = accountService;
         this.inventoryService = inventoryService;
+        this.inventoryPersistence = inventoryPersistence;
+        this.inventoryStateRegistry = inventoryStateRegistry;
         this.statusService = statusService;
         this.playerSaveCoordinator = playerSaveCoordinator;
     }
@@ -66,6 +75,11 @@ public class PlayerService {
             Logger.log(LogId.W_5070, playerName);
             return null;
         }
+
+        // インベントリ・装備ロードアウトを API から取得し、in-memory state として構築する。
+        // 以降のゲームロジックは PlayerInventoryState のみを参照し、API 通信は autosave/logout のみで発生する。
+        PlayerInventoryState inventoryState = inventoryPersistence.load(account.getUuid());
+        inventoryStateRegistry.put(inventoryState);
 
         return new PlayerJoinData(user, account);
     }
@@ -103,10 +117,11 @@ public class PlayerService {
     public void onPlayerQuit(Player player) {
         var astPlayer = AstPlayerCache.get(player);
         if (astPlayer != null) {
-            // debounce 中の最新書き込みをログアウト前に確実に API へ送る。
-            inventoryService.flushPendingCoalescedWrites(astPlayer.getAccount().getUuid());
+            // ログアウト時にだけ API へ反映。失敗時は warn ログのみ残しデータロスを許容する。
             playerSaveCoordinator.save(astPlayer, PlayerSaveTrigger.LOGOUT);
             inventoryService.clearClickGuard(astPlayer.getAccount().getUuid());
+            inventoryStateRegistry.remove(astPlayer.getAccount().getUuid());
+            inventoryPersistence.clearAccount(astPlayer.getAccount().getUuid());
         }
         AstPlayerCache.remove(player.getUniqueId());
     }
@@ -138,6 +153,8 @@ public class PlayerService {
     public void saveAllOnlinePlayersAndClear() {
         for (AstPlayer astPlayer : AstPlayerCache.getAll()) {
             playerSaveCoordinator.save(astPlayer, PlayerSaveTrigger.PLUGIN_DISABLE);
+            inventoryStateRegistry.remove(astPlayer.getAccount().getUuid());
+            inventoryPersistence.clearAccount(astPlayer.getAccount().getUuid());
         }
         AstPlayerCache.clear();
     }

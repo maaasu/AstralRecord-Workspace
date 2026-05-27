@@ -300,7 +300,6 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             accessories[7]
         );
         statusService.refreshStatus(astPlayer);
-        astPlayer.sendMessage(PlayerMsgId.P_5601);
     }
 
     private void handlePlayerInventoryClick(@NotNull InventoryClickEvent event) {
@@ -359,7 +358,6 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         boolean handled = inventoryService.handleHotbarSlotClick(astPlayer, slot + 1);
         if (handled) {
             statusService.refreshStatus(astPlayer);
-            astPlayer.sendMessage(PlayerMsgId.P_5601);
         }
         playResultSound(player, handled, true);
     }
@@ -409,7 +407,6 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         boolean handled = inventoryService.handleHotbarSlotClick(astPlayer, HotbarLayout.DB_SLOT_OFFHAND);
         if (handled) {
             statusService.refreshStatus(astPlayer);
-            astPlayer.sendMessage(PlayerMsgId.P_5601);
         }
         playResultSound(player, handled, true);
     }
@@ -428,7 +425,6 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         boolean handled = swapArmorSlotItem(event, astPlayer, slot);
         if (handled) {
             statusService.refreshStatus(astPlayer);
-            astPlayer.sendMessage(PlayerMsgId.P_5601);
         }
         playResultSound(player, handled, true);
     }
@@ -459,7 +455,6 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         boolean handled = inventoryService.equipOrAssignClickedItem(astPlayer, clickedItem, slot);
         if (handled) {
             statusService.refreshStatus(astPlayer);
-            astPlayer.sendMessage(PlayerMsgId.P_5601);
         }
         playResultSound(player, handled, true);
     }

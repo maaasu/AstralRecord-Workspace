@@ -25,6 +25,8 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 
 `10_plugin/AstralRecord/` は Minecraft MMO RPG「AstralRecord」のサーバープラグインです。コード追加・修正全般は `$astralrecord-code` を使い、詳細ルールは [PLUGIN_GUIDE.md](PLUGIN_GUIDE.md) と `.codex/skills/astralrecord-code/references/plugin-code.md` を参照してください。
 
+設計方針として、Plugin はライトビハインド方式を採用しています。そのためクラッシュ発生時の未反映データや書き込み途中の整合性までは考慮対象としておらず、クラッシュ耐性に関する考慮は不要です。
+
 ## AstralRecord Web
 
 `30_web/AstralRecordWeb/AstralRecordWeb/` は管理・公開用の Web UI を提供します。
