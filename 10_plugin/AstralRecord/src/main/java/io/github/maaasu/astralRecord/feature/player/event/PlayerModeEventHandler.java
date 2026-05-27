@@ -2,9 +2,12 @@ package io.github.maaasu.astralRecord.feature.player.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
+import io.github.maaasu.astralRecord.feature.menu.view.MenuInventoryHolder;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.GameMode;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -24,6 +27,9 @@ public class PlayerModeEventHandler extends AbstractEventHandler {
             if (!isPlayerMode(player)) {
                 return;
             }
+            if (isTrashScreen(event.getView().getTopInventory())) {
+                return;
+            }
             event.setCancelled(true);
         }, LogId.E_5072, event.getWhoClicked().getName());
     }
@@ -35,6 +41,9 @@ public class PlayerModeEventHandler extends AbstractEventHandler {
                 return;
             }
             if (!isPlayerMode(player)) {
+                return;
+            }
+            if (isTrashScreen(event.getView().getTopInventory())) {
                 return;
             }
             event.setCancelled(true);
@@ -73,5 +82,12 @@ public class PlayerModeEventHandler extends AbstractEventHandler {
     private boolean isPlayerMode(Player player) {
         var astPlayer = AstPlayerCache.get(player);
         return astPlayer != null && astPlayer.getAccount().getMode() == AccountMode.PLAYER;
+    }
+
+    private boolean isTrashScreen(Inventory topInventory) {
+        if (!(topInventory.getHolder() instanceof MenuInventoryHolder holder)) {
+            return false;
+        }
+        return holder.screen() == MenuScreen.TRASH;
     }
 }
