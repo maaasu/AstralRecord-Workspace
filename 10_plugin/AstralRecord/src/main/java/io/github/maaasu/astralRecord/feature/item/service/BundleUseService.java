@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.item.service;
 
+import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemBundle;
@@ -12,19 +13,28 @@ import io.github.maaasu.astralRecord.feature.loot.model.LootPoolModel;
 import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.World;
+import org.bukkit.boss.BarColor;
+import org.bukkit.boss.BarStyle;
+import org.bukkit.boss.BossBar;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -33,26 +43,32 @@ import java.util.concurrent.ThreadLocalRandom;
 public class BundleUseService {
 
     private static final String SOURCE_BUNDLE_USE = "bundle_use";
+    private static final long OPEN_DURATION_TICKS = 40L;
 
+    private final AstralRecord plugin;
     private final ItemService itemService;
     private final LootService lootService;
     private final InventoryService inventoryService;
     private final ItemStackFactory itemStackFactory;
+    private final Map<UUID, PendingBundleUse> pendingUses = new ConcurrentHashMap<>();
 
     /**
      * bundle 使用サービスを構築します。
      *
-     * @param itemService       アイテム解決サービス
-     * @param lootService       loot 解決サービス
-     * @param inventoryService  インベントリ追加・消費サービス
-     * @param itemStackFactory  余剰ドロップ生成用 ItemStackFactory
+     * @param plugin           プラグインインスタンス
+     * @param itemService      アイテム解決サービス
+     * @param lootService      loot 解決サービス
+     * @param inventoryService インベントリ操作・報酬付与サービス
+     * @param itemStackFactory 落下ドロップ生成用 ItemStackFactory
      */
     public BundleUseService(
+        @NotNull AstralRecord plugin,
         @NotNull ItemService itemService,
         @NotNull LootService lootService,
         @NotNull InventoryService inventoryService,
         @NotNull ItemStackFactory itemStackFactory
     ) {
+        this.plugin = plugin;
         this.itemService = itemService;
         this.lootService = lootService;
         this.inventoryService = inventoryService;
@@ -60,14 +76,14 @@ public class BundleUseService {
     }
 
     /**
-     * bundle を使用して報酬を配布します。
+     * bundle の開封を開始します。開封完了までは約 2 秒の待機時間を設けます。
      *
      * @param astPlayer 使用プレイヤー
      * @param hand      使用した手
      * @param model     使用した bundle アイテム
-     * @return 処理を完了した場合は {@code true}
+     * @return 開封待機の開始に成功した場合は {@code true}
      */
-    public boolean useBundle(
+    public boolean beginBundleUse(
         @NotNull AstPlayer astPlayer,
         @NotNull EquipmentSlot hand,
         @NotNull ItemModel model
@@ -84,10 +100,108 @@ public class BundleUseService {
             return false;
         }
 
-        Map<String, Integer> rewards = rollRewards(lootModel);
-        if (!inventoryService.consumeHotbarItemInHand(astPlayer, hand, model.getId(), 1)) {
-            astPlayer.sendMessage(PlayerMsgId.P_5245);
+        cancelPendingOpen(astPlayer.getBukkit().getUniqueId(), false);
+
+        Player player = astPlayer.getBukkit();
+        BossBar bossBar = Bukkit.createBossBar(
+            ColorCodeUtil.translateAlternateColorCodes("&6バンドル開封中 &7" + model.getName()),
+            BarColor.YELLOW,
+            BarStyle.SOLID
+        );
+        bossBar.setVisible(true);
+        bossBar.setProgress(0.0d);
+        bossBar.addPlayer(player);
+
+        PendingBundleUse pending = new PendingBundleUse(
+            astPlayer,
+            hand,
+            model,
+            bundle,
+            lootModel,
+            bossBar
+        );
+
+        BukkitTask task = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> tickPendingUse(player.getUniqueId()), 1L, 1L);
+        pending.setTask(task);
+        pendingUses.put(player.getUniqueId(), pending);
+        astPlayer.sendMessage(PlayerMsgId.P_5246, model.getName());
+        return true;
+    }
+
+    /**
+     * 進行中の bundle 開封をキャンセルします。
+     *
+     * @param astPlayer キャンセル対象プレイヤー
+     * @param notify    プレイヤーへ通知する場合は {@code true}
+     * @return キャンセル対象が存在した場合は {@code true}
+     */
+    public boolean cancelPendingOpen(@NotNull AstPlayer astPlayer, boolean notify) {
+        return cancelPendingOpen(astPlayer.getBukkit().getUniqueId(), notify && astPlayer.getBukkit().isOnline());
+    }
+
+    /**
+     * 進行中の bundle 開封を破棄します。切断や内部都合のクリーンアップ用途です。
+     *
+     * @param playerId プレイヤー UUID
+     * @return キャンセル対象が存在した場合は {@code true}
+     */
+    public boolean cancelPendingOpen(@NotNull UUID playerId) {
+        return cancelPendingOpen(playerId, false);
+    }
+
+    private boolean cancelPendingOpen(@NotNull UUID playerId, boolean notify) {
+        PendingBundleUse pending = pendingUses.remove(playerId);
+        if (pending == null) {
             return false;
+        }
+
+        cleanupPendingUse(pending);
+        if (notify) {
+            pending.astPlayer().sendMessage(PlayerMsgId.P_5247);
+        }
+        return true;
+    }
+
+    private void tickPendingUse(@NotNull UUID playerId) {
+        PendingBundleUse pending = pendingUses.get(playerId);
+        if (pending == null) {
+            return;
+        }
+
+        Player player = pending.astPlayer().getBukkit();
+        if (!player.isOnline()) {
+            cancelPendingOpen(playerId, false);
+            return;
+        }
+
+        long elapsedTicks = pending.incrementElapsedTicks();
+        double progress = Math.min(1.0d, (double) elapsedTicks / (double) OPEN_DURATION_TICKS);
+        pending.bossBar().setProgress(progress);
+
+        if (elapsedTicks >= OPEN_DURATION_TICKS) {
+            completePendingUse(playerId, pending);
+        }
+    }
+
+    private void completePendingUse(@NotNull UUID playerId, @NotNull PendingBundleUse pending) {
+        if (!pendingUses.remove(playerId, pending)) {
+            return;
+        }
+
+        cleanupPendingUse(pending);
+        if (!isStillHoldingBundle(pending)) {
+            return;
+        }
+
+        Map<String, Integer> rewards = rollRewards(pending.lootModel());
+        if (!inventoryService.consumeHotbarItemInHand(
+            pending.astPlayer(),
+            pending.hand(),
+            pending.model().getId(),
+            1
+        )) {
+            pending.astPlayer().sendMessage(PlayerMsgId.P_5245);
+            return;
         }
 
         int rewardKinds = 0;
@@ -109,21 +223,37 @@ public class BundleUseService {
             rewardKinds++;
             int requestedAmount = reward.getValue();
             int granted = inventoryService.addItemToNormalInventory(
-                astPlayer, rewardModel, requestedAmount, SOURCE_BUNDLE_USE);
+                pending.astPlayer(), rewardModel, requestedAmount, SOURCE_BUNDLE_USE);
             totalGranted += granted;
 
             int overflow = requestedAmount - granted;
             if (overflow > 0) {
-                totalDropped += dropOverflow(astPlayer, rewardModel, overflow);
+                totalDropped += dropOverflow(pending.astPlayer(), rewardModel, overflow);
             }
         }
 
-        playUseEffects(astPlayer, bundle);
-        astPlayer.sendMessage(PlayerMsgId.P_5243, rewardKinds, totalGranted);
+        playUseEffects(pending.astPlayer(), pending.bundle());
+        pending.astPlayer().sendMessage(PlayerMsgId.P_5243, rewardKinds, totalGranted);
         if (totalDropped > 0) {
-            astPlayer.sendMessage(PlayerMsgId.P_5244, totalDropped);
+            pending.astPlayer().sendMessage(PlayerMsgId.P_5244, totalDropped);
         }
-        return true;
+    }
+
+    private boolean isStillHoldingBundle(@NotNull PendingBundleUse pending) {
+        Player player = pending.astPlayer().getBukkit();
+        ItemStack currentItem = pending.hand() == EquipmentSlot.OFF_HAND
+            ? player.getInventory().getItemInOffHand()
+            : player.getInventory().getItemInMainHand();
+        String currentItemId = currentItem == null ? null : ItemStackFactory.getAstralItemId(currentItem);
+        return pending.model().getId().equals(currentItemId);
+    }
+
+    private void cleanupPendingUse(@NotNull PendingBundleUse pending) {
+        if (pending.task() != null) {
+            pending.task().cancel();
+        }
+        pending.bossBar().removeAll();
+        pending.bossBar().setVisible(false);
     }
 
     private @NotNull Map<String, Integer> rollRewards(@NotNull LootModel lootModel) {
@@ -289,6 +419,70 @@ public class BundleUseService {
             return Particle.valueOf(normalized);
         } catch (IllegalArgumentException ignored) {
             return null;
+        }
+    }
+
+    private static final class PendingBundleUse {
+        private final AstPlayer astPlayer;
+        private final EquipmentSlot hand;
+        private final ItemModel model;
+        private final ItemBundle bundle;
+        private final LootModel lootModel;
+        private final BossBar bossBar;
+        private long elapsedTicks;
+        private BukkitTask task;
+
+        private PendingBundleUse(
+            @NotNull AstPlayer astPlayer,
+            @NotNull EquipmentSlot hand,
+            @NotNull ItemModel model,
+            @NotNull ItemBundle bundle,
+            @NotNull LootModel lootModel,
+            @NotNull BossBar bossBar
+        ) {
+            this.astPlayer = astPlayer;
+            this.hand = hand;
+            this.model = model;
+            this.bundle = bundle;
+            this.lootModel = lootModel;
+            this.bossBar = bossBar;
+        }
+
+        private @NotNull AstPlayer astPlayer() {
+            return astPlayer;
+        }
+
+        private @NotNull EquipmentSlot hand() {
+            return hand;
+        }
+
+        private @NotNull ItemModel model() {
+            return model;
+        }
+
+        private @NotNull ItemBundle bundle() {
+            return bundle;
+        }
+
+        private @NotNull LootModel lootModel() {
+            return lootModel;
+        }
+
+        private @NotNull BossBar bossBar() {
+            return bossBar;
+        }
+
+        private long incrementElapsedTicks() {
+            elapsedTicks++;
+            return elapsedTicks;
+        }
+
+        private @Nullable BukkitTask task() {
+            return task;
+        }
+
+        private void setTask(@NotNull BukkitTask task) {
+            this.task = task;
         }
     }
 }

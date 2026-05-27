@@ -101,13 +101,18 @@ public class ItemStackFactory {
     /** ルートテーブル参照用（nullable: 未初期化時は Lore に含めない） */
     private final LootService lootService;
 
+    /** ルート内アイテム名の日本語表示解決に使用します。 */
+    private final ItemService itemService;
+
     /**
      * ItemStackFactory を初期化します。
      *
      * @param lootService ルートテーブルサービス（bundle の lootTableId 解決に使用）
+     * @param itemService アイテムサービス（bundle のルート表示名解決に使用）
      */
-    public ItemStackFactory(@NotNull LootService lootService) {
+    public ItemStackFactory(@NotNull LootService lootService, @NotNull ItemService itemService) {
         this.lootService = lootService;
+        this.itemService = itemService;
     }
 
     // region --- public API ---
@@ -513,22 +518,45 @@ public class ItemStackFactory {
     private void appendBundleLootLore(@NotNull List<String> lore, @NotNull String lootTableId) {
         LootModel lootModel = lootService.getLoaded(lootTableId);
         if (lootModel == null) {
-            lore.add(ColorCodeUtil.DARK_GRAY + "◆ Loot: " + lootTableId + " (未ロード)");
+            lore.add(ColorCodeUtil.DARK_GRAY + "◆ ルート情報: " + lootTableId + " (未取得)");
             return;
         }
 
-        lore.add(ColorCodeUtil.GOLD + "❖ Loot: " + lootModel.getName());
+        lore.add(ColorCodeUtil.GOLD + "❖ 取得候補");
+        lore.add(ColorCodeUtil.GRAY + " ▸ ルート: " + ColorCodeUtil.WHITE + lootModel.getName());
         for (LootEntry entry : lootModel.flattenedEntries()) {
             String amountText = entry.getMinAmount() == entry.getMaxAmount()
                     ? String.valueOf(entry.getMinAmount())
                     : entry.getMinAmount() + "~" + entry.getMaxAmount();
             String weightText = entry.getWeight() >= 100.0
                     ? ""
-                    : ColorCodeUtil.DARK_GRAY + " (" + String.format("%.1f%%", entry.getWeight()) + ")";
-            lore.add(ColorCodeUtil.DARK_GRAY + " ▹ " + ColorCodeUtil.GRAY + entry.getItemId()
-                    + ColorCodeUtil.WHITE + " ×" + amountText + weightText);
+                    : ColorCodeUtil.DARK_GRAY + " / " + String.format("%.1f%%", entry.getWeight());
+            lore.add(ColorCodeUtil.DARK_GRAY + " ▹ "
+                    + ColorCodeUtil.WHITE + resolveBundleLootDisplayName(entry.getItemId())
+                    + ColorCodeUtil.GRAY + " ×" + amountText
+                    + weightText);
         }
         lore.add("");
+    }
+
+    /**
+     * bundle Lore 用にルート報酬の表示名を解決します。
+     *
+     * @param itemId ルート定義上のアイテムID
+     * @return 日本語名優先の表示文字列
+     */
+    private @NotNull String resolveBundleLootDisplayName(@NotNull String itemId) {
+        ItemModel rewardModel = itemService.findLoadedById(itemId);
+        if (rewardModel == null) {
+            rewardModel = itemService.loadItem(itemId);
+        }
+
+        if (rewardModel == null || rewardModel.getName() == null || rewardModel.getName().isBlank()) {
+            return itemId;
+        }
+        return ColorCodeUtil.translateAlternateColorCodes(rewardModel.getName())
+                + ColorCodeUtil.GRAY + " "
+                + ColorCodeUtil.DARK_GRAY + "(" + itemId + ")";
     }
 
     /**

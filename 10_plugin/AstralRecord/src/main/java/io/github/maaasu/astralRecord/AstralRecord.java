@@ -104,7 +104,7 @@ public final class AstralRecord extends JavaPlugin {
         instance = this;
         itemService = new ItemService();
         lootService = new LootService();
-        itemStackFactory = new ItemStackFactory(lootService);
+        itemStackFactory = new ItemStackFactory(lootService, itemService);
         mobService = new MobService(this, new MobRepository());
         // CommandManagerの初期化はPaper Lifecycle APIの制約上、onLoad()内で行う
         // コマンドをここで登録し、initialize()を呼び出す
@@ -217,7 +217,7 @@ public final class AstralRecord extends JavaPlugin {
         );
         inventoryAutoSaveTask = new InventoryAutoSaveTask(inventoryPersistence, inventoryStateRegistry);
         currencyService = new CurrencyService(inventoryService);
-        bundleUseService = new BundleUseService(itemService, lootService, inventoryService, itemStackFactory);
+        bundleUseService = new BundleUseService(this, itemService, lootService, inventoryService, itemStackFactory);
 
         // status
         statusService = new StatusService(itemService, inventoryService);

@@ -17,7 +17,9 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -65,7 +67,7 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler {
                 if (astPlayer != null) {
                     ItemModel model = resolveItemModel(event.getItem());
                     if (model != null && ItemCategory.fromApiValue(model.getCategory()) == ItemCategory.BUNDLE) {
-                        bundleUseService.useBundle(astPlayer, event.getHand(), model);
+                        bundleUseService.beginBundleUse(astPlayer, event.getHand(), model);
                     }
                 }
             }
@@ -129,6 +131,23 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler {
             }
             event.setCancelled(true);
         }, LogId.E_5200, event.getPlayer().getName());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerItemHeld(PlayerItemHeldEvent event) {
+        runSafely(() -> {
+            var astPlayer = AstPlayerCache.get(event.getPlayer());
+            if (astPlayer == null) {
+                return;
+            }
+            bundleUseService.cancelPendingOpen(astPlayer, true);
+        }, LogId.E_5200, event.getPlayer().getName());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        runSafely(() -> bundleUseService.cancelPendingOpen(event.getPlayer().getUniqueId()),
+            LogId.E_5200, event.getPlayer().getName());
     }
 
     private static boolean isAstralItem(ItemStack item) {
