@@ -441,6 +441,12 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         if (rawSlot == MenuView.TRASH_CLOSE_SLOT) {
             event.setCancelled(true);
             GuiSound.CLOSE.play(player);
+            if (currentTrashItems.isEmpty()) {
+                discardTrash(player);
+                suppressTrashConfirmOnClose.add(player.getUniqueId());
+                player.closeInventory();
+                return;
+            }
             openTrashConfirm(player, currentTrashItems, 0);
             return;
         }
@@ -689,6 +695,10 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     }
 
     private void openTrashConfirm(@NotNull Player player, @NotNull List<ItemStack> currentItems, int pageIndex) {
+        if (currentItems.isEmpty()) {
+            discardTrash(player);
+            return;
+        }
         trashItemsByPlayer.put(player.getUniqueId(), currentItems);
         suppressTrashConfirmOnClose.add(player.getUniqueId());
         menuView.openTrashConfirm(player, currentItems, pageIndex);
@@ -704,6 +714,10 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             List<ItemStack> items = snapshotTrashItems(inventory);
             trashItemsByPlayer.put(playerId, items);
             if (suppressTrashConfirmOnClose.remove(playerId)) {
+                return;
+            }
+            if (items.isEmpty()) {
+                discardTrash(player);
                 return;
             }
             plugin.getServer().getScheduler().runTask(plugin, () -> menuView.openTrashConfirm(player, items, 0));
