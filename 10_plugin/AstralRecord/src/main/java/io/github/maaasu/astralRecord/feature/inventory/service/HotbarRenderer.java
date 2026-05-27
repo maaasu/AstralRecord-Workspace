@@ -33,6 +33,7 @@ final class HotbarRenderer {
     void renderHotbarInventory(
         @NotNull AstPlayer astPlayer,
         @NotNull Map<Integer, InventoryEntryModel> entries,
+        @NotNull InventoryType displayedType,
         @Nullable Integer selectedSlot
     ) {
         PlayerInventory inventory = astPlayer.getBukkit().getInventory();
@@ -49,7 +50,7 @@ final class HotbarRenderer {
             changed |= setStorageItemIfChanged(inventory, HotbarLayout.toBukkitSlot(dbSlot), itemStack);
         }
         changed |= setStorageItemIfChanged(inventory, SHORTCUT_INVENTORY_CYCLE_SLOT,
-            createInventoryCycleShortcutIcon(InventoryType.NORMAL));
+            createInventoryCycleShortcutIcon(displayedType));
 
         InventoryEntryModel offhandEntry = entries.get(HotbarLayout.DB_SLOT_OFFHAND);
         ItemStack offhandStack = offhandEntry == null

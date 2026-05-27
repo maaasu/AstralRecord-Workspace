@@ -1063,7 +1063,7 @@ public class InventoryService {
                 }
             }
         }
-        hotbarRenderer.renderHotbarInventory(astPlayer, bySlot, state.getSelectedHotbarSlot());
+        hotbarRenderer.renderHotbarInventory(astPlayer, bySlot, state.getDisplayedType(), state.getSelectedHotbarSlot());
     }
 
     public void setHotbarShortcutMode(@NotNull AstPlayer astPlayer, boolean on) {
@@ -1079,6 +1079,11 @@ public class InventoryService {
     public boolean isHotbarShortcutMode(@NotNull AstPlayer astPlayer) {
         PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
         return state != null && state.isHotbarShortcutMode();
+    }
+
+    public boolean hasHotbarEntry(@NotNull AstPlayer astPlayer, int hotbarSlotIndex) {
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        return state != null && findHotbarEntryBySlot(state, hotbarSlotIndex) != null;
     }
 
     public boolean handleHotbarShortcutClick(@NotNull AstPlayer astPlayer, int bukkitSlot) {

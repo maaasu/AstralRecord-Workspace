@@ -360,11 +360,12 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             event.setCancelled(true);
             return;
         }
+        boolean equipAction = inventoryService.hasHotbarEntry(astPlayer, slot + 1);
         boolean handled = inventoryService.handleHotbarSlotClick(astPlayer, slot + 1);
         if (handled) {
             statusService.refreshStatus(astPlayer);
         }
-        playResultSound(player, handled, true);
+        playResultSound(player, handled, equipAction);
     }
 
     private void handleHotbarShortcutClick(
@@ -409,11 +410,12 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
                 astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.HOTBAR_SLOT)) {
             return;
         }
+        boolean equipAction = inventoryService.hasHotbarEntry(astPlayer, HotbarLayout.DB_SLOT_OFFHAND);
         boolean handled = inventoryService.handleHotbarSlotClick(astPlayer, HotbarLayout.DB_SLOT_OFFHAND);
         if (handled) {
             statusService.refreshStatus(astPlayer);
         }
-        playResultSound(player, handled, true);
+        playResultSound(player, handled, equipAction);
     }
 
     private void handleArmorSlotClick(
