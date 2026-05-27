@@ -345,6 +345,11 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         @NotNull Player player,
         int slot
     ) {
+        if (slot == 8) {
+            event.setCancelled(true);
+            handleHotbarShortcutClick(astPlayer, player, slot);
+            return;
+        }
         if (inventoryService.isHotbarShortcutMode(astPlayer)) {
             event.setCancelled(true);
             handleHotbarShortcutClick(astPlayer, player, slot);

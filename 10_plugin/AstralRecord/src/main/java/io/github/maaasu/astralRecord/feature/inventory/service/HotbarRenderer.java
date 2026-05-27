@@ -48,6 +48,8 @@ final class HotbarRenderer {
             }
             changed |= setStorageItemIfChanged(inventory, HotbarLayout.toBukkitSlot(dbSlot), itemStack);
         }
+        changed |= setStorageItemIfChanged(inventory, SHORTCUT_INVENTORY_CYCLE_SLOT,
+            createInventoryCycleShortcutIcon(InventoryType.NORMAL));
 
         InventoryEntryModel offhandEntry = entries.get(HotbarLayout.DB_SLOT_OFFHAND);
         ItemStack offhandStack = offhandEntry == null

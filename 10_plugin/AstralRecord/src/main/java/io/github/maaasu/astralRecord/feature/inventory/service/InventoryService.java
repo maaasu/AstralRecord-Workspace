@@ -1002,9 +1002,6 @@ public class InventoryService {
     }
 
     public boolean handleHotbarShortcutClick(@NotNull AstPlayer astPlayer, int bukkitSlot) {
-        if (!isHotbarShortcutMode(astPlayer)) {
-            return false;
-        }
         if (bukkitSlot == HotbarRenderer.SHORTCUT_INVENTORY_CYCLE_SLOT) {
             PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
             if (state == null) {
@@ -1017,6 +1014,9 @@ public class InventoryService {
             };
             applyInventoryToGui(astPlayer, target);
             return true;
+        }
+        if (!isHotbarShortcutMode(astPlayer)) {
+            return false;
         }
         if (bukkitSlot == HotbarRenderer.SHORTCUT_CLOSE_SLOT) {
             astPlayer.getBukkit().closeInventory();

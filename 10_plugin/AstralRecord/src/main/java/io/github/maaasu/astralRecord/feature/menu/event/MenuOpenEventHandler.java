@@ -336,6 +336,11 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             openEquipmentGui(player);
             return;
         }
+        if (rawSlot == MenuView.TRASH_SLOT) {
+            GuiSound.OPEN.play(player);
+            openTrash(player, 0);
+            return;
+        }
         if (rawSlot == MenuView.GUIDE_SLOT) {
             GuiSound.SELECT.play(player);
             menuView.openGuide(player);

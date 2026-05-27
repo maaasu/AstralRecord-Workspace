@@ -19,7 +19,7 @@ import java.util.List;
 public final class HotbarLayout {
 
     public static final int DB_SLOT_START = 1;
-    public static final int DB_SLOT_END = 9;
+    public static final int DB_SLOT_END = 8;
     /** オフハンドをホットバーの拡張スロットとして扱うための DB slot_index */
     public static final int DB_SLOT_OFFHAND = 10;
     public static final int BUKKIT_SLOT_START = 0;
@@ -31,7 +31,7 @@ public final class HotbarLayout {
     }
 
     static boolean isManagedSlot(int dbSlotIndex) {
-        return dbSlotIndex >= DB_SLOT_START && dbSlotIndex <= DB_SLOT_OFFHAND;
+        return (dbSlotIndex >= DB_SLOT_START && dbSlotIndex <= DB_SLOT_END) || dbSlotIndex == DB_SLOT_OFFHAND;
     }
 
     /**

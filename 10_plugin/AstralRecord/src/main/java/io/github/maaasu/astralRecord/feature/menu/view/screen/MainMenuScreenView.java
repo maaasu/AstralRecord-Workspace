@@ -12,6 +12,7 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
     public static final int STATUS_SLOT = 20;
     public static final int PLAYER_SETTING_SLOT = 21;
     public static final int EQUIPMENT_GUI_SLOT = 22;
+    public static final int TRASH_SLOT = 23;
     public static final int GUIDE_SLOT = 24;
 
     public void render(@NotNull Inventory inventory) {
@@ -29,7 +30,12 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
         inventory.setItem(EQUIPMENT_GUI_SLOT, createItem(
             Material.NETHERITE_CHESTPLATE,
             Component.text("装備", NamedTextColor.GOLD),
-            List.of(Component.text("防具、オフハンド、アクセサリを確認", NamedTextColor.GRAY))
+            List.of(Component.text("武器、防具、アクセサリを確認", NamedTextColor.GRAY))
+        ));
+        inventory.setItem(TRASH_SLOT, createItem(
+            Material.LAVA_BUCKET,
+            Component.text("ゴミ箱", NamedTextColor.RED),
+            List.of(Component.text("アイテムを廃棄する", NamedTextColor.GRAY))
         ));
         inventory.setItem(GUIDE_SLOT, createItem(
             Material.BOOK,

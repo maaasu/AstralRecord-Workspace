@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.item.command.ItemTabCompleter;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.menu.command.MenuCommand;
+import io.github.maaasu.astralRecord.feature.menu.command.TrashCommand;
 import io.github.maaasu.astralRecord.feature.mob.command.MobCommand;
 import io.github.maaasu.astralRecord.feature.mob.command.MobTabCompleter;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
@@ -48,6 +49,7 @@ public class CommandRegister {
         cm.registerCommand("status", new StatusCommand(), new StatusTabCompleter());
         cm.registerCommand("inventory", new InventoryCommand(), new InventoryTabCompleter());
         cm.registerCommand("menu", new MenuCommand());
+        cm.registerCommand("trash", new TrashCommand());
         cm.registerCommand("pagingdummy", new PagingDebugCommand());
         cm.registerCommand("item", new ItemCommand(itemService), new ItemTabCompleter(itemService));
         cm.registerCommand("mob", new MobCommand(mobService), new MobTabCompleter(mobService));
