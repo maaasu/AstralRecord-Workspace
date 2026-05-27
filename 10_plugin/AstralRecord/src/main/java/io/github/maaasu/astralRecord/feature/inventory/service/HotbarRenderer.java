@@ -18,9 +18,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * HOTBAR 表示と GUI 中ショートカット表示の描画を担当します。
+ * HOTBAR 表示と GUI 中ショートカット表示を描画します。
  */
 final class HotbarRenderer {
+    static final int SHORTCUT_CLOSE_SLOT = 4;
+    static final int SHORTCUT_INVENTORY_CYCLE_SLOT = 8;
+
     private final InventoryItemStackResolver itemStackResolver;
 
     HotbarRenderer(@NotNull InventoryItemStackResolver itemStackResolver) {
@@ -69,13 +72,17 @@ final class HotbarRenderer {
         PlayerInventory inventory = astPlayer.getBukkit().getInventory();
         boolean changed = false;
 
-        changed |= setStorageItemIfChanged(inventory, 0, createInventoryShortcutIcon(InventoryType.NORMAL, Material.CHEST, displayed));
-        changed |= setStorageItemIfChanged(inventory, 1, createInventoryShortcutIcon(InventoryType.EQUIPMENT, Material.IRON_CHESTPLATE, displayed));
-        changed |= setStorageItemIfChanged(inventory, 2, createInventoryShortcutIcon(InventoryType.RUNE, Material.AMETHYST_SHARD, displayed));
-        for (int i = 3; i <= 7; i++) {
+        for (int i = 0; i <= 8; i++) {
+            if (i == SHORTCUT_CLOSE_SLOT) {
+                changed |= setStorageItemIfChanged(inventory, i, createCloseShortcutIcon());
+                continue;
+            }
+            if (i == SHORTCUT_INVENTORY_CYCLE_SLOT) {
+                changed |= setStorageItemIfChanged(inventory, i, createInventoryCycleShortcutIcon(displayed));
+                continue;
+            }
             changed |= setStorageItemIfChanged(inventory, i, createHotbarSpacerIcon());
         }
-        changed |= setStorageItemIfChanged(inventory, 8, createCloseShortcutIcon());
 
         ItemStack offhandDummy = createHotbarDummyItem(HotbarLayout.DB_SLOT_OFFHAND);
         if (!isSameItemStack(inventory.getItemInOffHand(), offhandDummy)) {
@@ -87,21 +94,22 @@ final class HotbarRenderer {
         }
     }
 
-    private @NotNull ItemStack createInventoryShortcutIcon(
-        @NotNull InventoryType type,
-        @NotNull Material material,
-        @NotNull InventoryType currentDisplayed
-    ) {
+    private @NotNull ItemStack createInventoryCycleShortcutIcon(@NotNull InventoryType currentDisplayed) {
+        Material material = switch (currentDisplayed) {
+            case EQUIPMENT -> Material.IRON_CHESTPLATE;
+            case RUNE -> Material.AMETHYST_SHARD;
+            default -> Material.CHEST;
+        };
         ItemStack itemStack = new ItemStack(material);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(Component.text(ColorCodeUtil.YELLOW + type.getDisplayNameJa()));
-            meta.lore(List.of(Component.text(ColorCodeUtil.GRAY + "クリックして表示")));
+            meta.displayName(Component.text(ColorCodeUtil.YELLOW + "インベントリ切替"));
+            meta.lore(List.of(
+                Component.text(ColorCodeUtil.GRAY + "現在: " + currentDisplayed.getDisplayNameJa()),
+                Component.text(ColorCodeUtil.GRAY + "クリックで次へ切替")
+            ));
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             itemStack.setItemMeta(meta);
-        }
-        if (type == currentDisplayed) {
-            return withSelectionGlow(itemStack);
         }
         return itemStack;
     }

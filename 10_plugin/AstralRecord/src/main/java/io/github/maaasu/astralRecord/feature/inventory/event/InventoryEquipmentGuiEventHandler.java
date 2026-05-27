@@ -373,7 +373,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         }
         boolean handled = inventoryService.handleHotbarShortcutClick(astPlayer, slot);
         if (handled) {
-            if (slot == 8) {
+            if (slot == 4) {
                 GuiSound.CLOSE.play(player);
             } else {
                 GuiSound.SELECT.play(player);

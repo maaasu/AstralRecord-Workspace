@@ -882,17 +882,30 @@ public class InventoryService {
         InventoryType targetType = resolveTargetInventoryType(hotbarEntry);
         InventoryModel targetInventory = ensureInventory(state, targetType,
             resolveSlotCapacity(targetType), state.getAccountId(), DEFAULT_PROFILE);
-        List<InventoryEntryModel> targetEntries = state.snapshotEntries(targetInventory.getInventoryId());
-        Set<Integer> usedSlots = NormalInventoryLayout.collectUsedSlots(targetEntries);
-        Integer targetSlot = NormalInventoryLayout.findNextFreeSlot(usedSlots);
-        if (targetSlot == null) {
-            return false;
+        ItemCategory category = ItemCategory.fromApiValue(hotbarEntry.getItemCategory());
+        if (category == ItemCategory.EQUIPMENT || category == ItemCategory.RUNE) {
+            List<InventoryEntryModel> targetEntries = state.snapshotEntries(targetInventory.getInventoryId());
+            Set<Integer> usedSlots = NormalInventoryLayout.collectUsedSlots(targetEntries);
+            Integer targetSlot = NormalInventoryLayout.findNextFreeSlot(usedSlots);
+            if (targetSlot == null) {
+                return false;
+            }
+            List<InventoryEntryModel> newTargetEntries = new ArrayList<>(targetEntries.stream()
+                .filter(e -> !e.isDeleted())
+                .toList());
+            newTargetEntries.add(copyEntryWithSlot(hotbarEntry, targetInventory.getInventoryId(), targetSlot, state.getAccountId()));
+            state.replaceEntries(targetInventory.getInventoryId(), newTargetEntries);
+        } else {
+            ItemModel model = resolveItemModel(hotbarEntry);
+            if (model == null) {
+                return false;
+            }
+            int amount = Math.max(1, (int) hotbarEntry.getQuantity());
+            Set<Integer> usedSlots = collectUsedSlots(state, targetInventory);
+            if (addStackedItems(state, targetInventory, model, amount, usedSlots) != amount) {
+                return false;
+            }
         }
-        List<InventoryEntryModel> newTargetEntries = new ArrayList<>(targetEntries.stream()
-            .filter(e -> !e.isDeleted())
-            .toList());
-        newTargetEntries.add(copyEntryWithSlot(hotbarEntry, targetInventory.getInventoryId(), targetSlot, state.getAccountId()));
-        state.replaceEntries(targetInventory.getInventoryId(), newTargetEntries);
 
         InventoryModel hotbarInventory = ensureInventory(state, InventoryType.HOTBAR,
             HotbarLayout.CAPACITY, state.getAccountId(), DEFAULT_PROFILE);
@@ -992,17 +1005,20 @@ public class InventoryService {
         if (!isHotbarShortcutMode(astPlayer)) {
             return false;
         }
-        InventoryType target = switch (bukkitSlot) {
-            case 0 -> InventoryType.NORMAL;
-            case 1 -> InventoryType.EQUIPMENT;
-            case 2 -> InventoryType.RUNE;
-            default -> null;
-        };
-        if (target != null) {
+        if (bukkitSlot == HotbarRenderer.SHORTCUT_INVENTORY_CYCLE_SLOT) {
+            PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+            if (state == null) {
+                return false;
+            }
+            InventoryType target = switch (state.getDisplayedType()) {
+                case NORMAL -> InventoryType.EQUIPMENT;
+                case EQUIPMENT -> InventoryType.RUNE;
+                default -> InventoryType.NORMAL;
+            };
             applyInventoryToGui(astPlayer, target);
             return true;
         }
-        if (bukkitSlot == 8) {
+        if (bukkitSlot == HotbarRenderer.SHORTCUT_CLOSE_SLOT) {
             astPlayer.getBukkit().closeInventory();
             return true;
         }

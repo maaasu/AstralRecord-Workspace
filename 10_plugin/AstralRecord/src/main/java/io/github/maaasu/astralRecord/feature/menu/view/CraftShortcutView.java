@@ -43,14 +43,6 @@ final class CraftShortcutView {
         return itemStack;
     }
 
-    /**
-     * クラフト枠ショートカットを描画します。同等の表示内容なら更新を抑止し、
-     * 表示中のインベントリ種別と一致するショートカットには発光を付与します。
-     *
-     * @param player          描画対象プレイヤー
-     * @param settings        ショートカット設定
-     * @param selectedType    現在表示中のインベントリ種別（指定なしなら null）
-     */
     void renderCraftShortcuts(
         @NotNull Player player,
         @NotNull MenuShortcutSettings settings,
@@ -137,7 +129,7 @@ final class CraftShortcutView {
         @Nullable InventoryType selectedType
     ) {
         if (action == MenuShortcutAction.INVENTORY_CYCLE) {
-            return createInventoryCycleShortcutIcon(shortcutSlotIndex, selectedType);
+            return createUserInfoDummyIcon(shortcutSlotIndex, selectedType);
         }
         ItemStack itemStack = createItem(
             action.getMaterial(),
@@ -151,28 +143,20 @@ final class CraftShortcutView {
         return itemStack;
     }
 
-    private @NotNull ItemStack createInventoryCycleShortcutIcon(
+    private @NotNull ItemStack createUserInfoDummyIcon(
         int shortcutSlotIndex,
         @Nullable InventoryType selectedType
     ) {
-        var currentLabel = selectedType != null ? selectedType.getDisplayNameJa() : InventoryType.NORMAL.getDisplayNameJa();
-
-        Material icon;
-        if (selectedType == null) icon = Material.CHEST;
-        else icon = switch (selectedType) {
-            case EQUIPMENT -> Material.IRON_CHESTPLATE;
-            case RUNE -> Material.AMETHYST_SHARD;
-            default -> Material.CHEST;
-        };
-        var itemStack = createItem(
-            icon,
-            Component.text("インベントリ切替", NamedTextColor.YELLOW),
+        String currentLabel = selectedType != null ? selectedType.getDisplayNameJa() : InventoryType.NORMAL.getDisplayNameJa();
+        ItemStack itemStack = createItem(
+            Material.PLAYER_HEAD,
+            Component.text("ユーザ情報", NamedTextColor.YELLOW),
             List.of(
-                Component.text("現在: " ,NamedTextColor.GRAY).append(Component.text(currentLabel, NamedTextColor.WHITE)),
-                Component.text("ノーマル → 装備 → ルーン", NamedTextColor.GRAY)
+                Component.text("現在: ", NamedTextColor.GRAY).append(Component.text(currentLabel, NamedTextColor.WHITE)),
+                Component.text("※ 今後ここに詳細情報を表示予定", NamedTextColor.GRAY)
             )
         );
-        markCraftShortcutIcon(itemStack, shortcutSlotIndex, MenuShortcutAction.INVENTORY_CYCLE);
+        markCraftShortcutIcon(itemStack, shortcutSlotIndex, MenuShortcutAction.NONE);
         return itemStack;
     }
 

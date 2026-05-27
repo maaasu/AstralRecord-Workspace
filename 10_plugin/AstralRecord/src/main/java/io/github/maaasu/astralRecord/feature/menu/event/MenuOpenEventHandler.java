@@ -269,7 +269,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
         boolean handled = inventoryService.handleHotbarShortcutClick(astPlayer, slot);
         if (handled) {
-            if (slot == 8) {
+            if (slot == 4) {
                 GuiSound.CLOSE.play(player);
             } else {
                 GuiSound.SELECT.play(player);
@@ -392,7 +392,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             menuView.openStatus(player, astPlayer, statusService.refreshStatus(astPlayer));
             return;
         }
-        if (action == MenuShortcutAction.INVENTORY_CYCLE || shortcutIndex == 1) {
+        if (action == MenuShortcutAction.INVENTORY_CYCLE) {
             var next = nextInventoryType(player);
             if (next == null) {
                 GuiSound.DENY.play(player);
