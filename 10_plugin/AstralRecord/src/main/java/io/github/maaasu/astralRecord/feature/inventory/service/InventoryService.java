@@ -27,6 +27,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.NotNull;
@@ -244,6 +245,24 @@ public class InventoryService {
         @NotNull ItemModel model,
         int amount
     ) {
+        return addItemToNormalInventory(astPlayer, model, amount, "command");
+    }
+
+    /**
+     * 通常インベントリへアイテムを追加します。
+     *
+     * @param astPlayer 追加先プレイヤー
+     * @param model     追加するアイテム
+     * @param amount    追加数
+     * @param source    インスタンス生成元
+     * @return 実際に追加できた数
+     */
+    public int addItemToNormalInventory(
+        @NotNull AstPlayer astPlayer,
+        @NotNull ItemModel model,
+        int amount,
+        @NotNull String source
+    ) {
         PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
         if (state == null) {
             return 0;
@@ -254,8 +273,8 @@ public class InventoryService {
         Set<Integer> usedSlots = collectUsedSlots(state, targetInventory);
 
         int granted = switch (ItemCategory.fromApiValue(model.getCategory())) {
-            case EQUIPMENT -> addInstanceItems(state, targetInventory, model, safeAmount, InventoryInstanceType.EQUIPMENT, usedSlots);
-            case RUNE -> addInstanceItems(state, targetInventory, model, safeAmount, InventoryInstanceType.RUNE, usedSlots);
+            case EQUIPMENT -> addInstanceItems(state, targetInventory, model, safeAmount, InventoryInstanceType.EQUIPMENT, usedSlots, source);
+            case RUNE -> addInstanceItems(state, targetInventory, model, safeAmount, InventoryInstanceType.RUNE, usedSlots, source);
             default -> addStackedItems(state, targetInventory, model, safeAmount, usedSlots);
         };
         if (granted > 0) {
@@ -270,7 +289,8 @@ public class InventoryService {
         @NotNull ItemModel model,
         int amount,
         @NotNull InventoryInstanceType instanceType,
-        @NotNull Set<Integer> usedSlots
+        @NotNull Set<Integer> usedSlots,
+        @NotNull String source
     ) {
         UUID accountId = state.getAccountId();
         List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(inventory.getInventoryId()).stream()
@@ -282,7 +302,7 @@ public class InventoryService {
             if (slot == null) {
                 break;
             }
-            UUID instanceId = createInstanceId(model, accountId, instanceType);
+            UUID instanceId = createInstanceId(model, accountId, instanceType, source);
             if (instanceId == null) {
                 break;
             }
@@ -854,6 +874,66 @@ public class InventoryService {
     }
 
     /**
+     * 手持ちスロットの hotbar エントリを消費します。
+     *
+     * @param astPlayer       対象プレイヤー
+     * @param hand            消費元の手
+     * @param expectedItemId  期待するアイテムID
+     * @param amount          消費数
+     * @return 消費成功時は {@code true}
+     */
+    public boolean consumeHotbarItemInHand(
+        @NotNull AstPlayer astPlayer,
+        @NotNull EquipmentSlot hand,
+        @NotNull String expectedItemId,
+        int amount
+    ) {
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) {
+            return false;
+        }
+
+        int safeAmount = Math.max(1, amount);
+        int hotbarSlot = hand == EquipmentSlot.OFF_HAND
+            ? HotbarLayout.DB_SLOT_OFFHAND
+            : HotbarLayout.toDbSlot(astPlayer.getBukkit().getInventory().getHeldItemSlot());
+        InventoryEntryModel entry = findHotbarEntryBySlot(state, hotbarSlot);
+        if (entry == null || entry.isDeleted()) {
+            return false;
+        }
+        if (entry.getItemId() == null || !entry.getItemId().equalsIgnoreCase(expectedItemId)) {
+            return false;
+        }
+        if (entry.getQuantity() < safeAmount) {
+            return false;
+        }
+
+        InventoryModel hotbarInventory = ensureInventory(
+            state, InventoryType.HOTBAR, HotbarLayout.CAPACITY, state.getAccountId(), DEFAULT_PROFILE);
+        List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(hotbarInventory.getInventoryId()).stream()
+            .filter(e -> !e.isDeleted())
+            .toList());
+        for (int index = 0; index < entries.size(); index++) {
+            InventoryEntryModel candidate = entries.get(index);
+            if (!candidate.getInventoryEntryId().equals(entry.getInventoryEntryId())) {
+                continue;
+            }
+
+            long remaining = candidate.getQuantity() - safeAmount;
+            if (remaining > 0) {
+                entries.set(index, withQuantity(candidate, remaining, state.getAccountId()));
+            } else {
+                entries.remove(index);
+            }
+            state.replaceEntries(hotbarInventory.getInventoryId(), entries);
+            renderHotbarInventory(astPlayer);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * 同一ホットバースロットへの再装備で entry が複製していたバグの修正点。
      * <p>
      * 旧実装では coalescer の窓中に楽観反映キャッシュがズレ、複数 entry が API へ書かれることがありました。
@@ -1180,6 +1260,74 @@ public class InventoryService {
         }
         requestManagedInventoryUiRefresh(astPlayer, false);
         return true;
+    }
+
+    public @Nullable ItemStack takeDisplayedItem(
+        @NotNull AstPlayer astPlayer,
+        int sourceBukkitSlot
+    ) {
+        return takeDisplayedItemAmount(astPlayer, sourceBukkitSlot, 0);
+    }
+
+    /**
+     * 表示中インベントリの指定スロットから、指定数量だけアイテムを取り出します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param sourceBukkitSlot 表示中インベントリ上の Bukkit スロット
+     * @param amount 取り出す数量。0 以下、または entry の数量を超える場合は entry 全量を取り出す。
+     *               entry がインスタンス系（装備・ルーン）の場合は常に全量を取り出す。
+     * @return 取り出した ItemStack（指定数量分）。対象が存在しない場合は null。
+     */
+    public @Nullable ItemStack takeDisplayedItemAmount(
+        @NotNull AstPlayer astPlayer,
+        int sourceBukkitSlot,
+        int amount
+    ) {
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) {
+            return null;
+        }
+        InventoryEntryModel sourceEntry = findDisplayedEntryAtBukkitSlot(state, sourceBukkitSlot);
+        if (sourceEntry == null) {
+            return null;
+        }
+        ItemStack sourceItem = itemStackResolver.resolve(sourceEntry);
+        if (sourceItem == null || sourceItem.getType() == Material.AIR) {
+            return null;
+        }
+        int totalAmount = sourceItem.getAmount();
+        boolean takeAll = amount <= 0
+            || amount >= totalAmount
+            || sourceEntry.getInstanceType() != null;
+        int takeAmount = takeAll ? totalAmount : amount;
+        if (takeAll) {
+            removeDisplayedEntryAfterMove(state, sourceEntry);
+        } else {
+            reduceDisplayedEntryQuantity(state, sourceEntry, sourceEntry.getQuantity() - takeAmount);
+        }
+        requestManagedInventoryUiRefresh(astPlayer, false);
+        ItemStack result = sourceItem.clone();
+        result.setAmount(takeAmount);
+        return result;
+    }
+
+    private void reduceDisplayedEntryQuantity(
+        @NotNull PlayerInventoryState state,
+        @NotNull InventoryEntryModel sourceEntry,
+        long newQuantity
+    ) {
+        List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(sourceEntry.getInventoryId()).stream()
+            .filter(e -> !e.isDeleted())
+            .toList());
+        for (int index = 0; index < entries.size(); index++) {
+            InventoryEntryModel candidate = entries.get(index);
+            if (!candidate.getInventoryEntryId().equals(sourceEntry.getInventoryEntryId())) {
+                continue;
+            }
+            entries.set(index, withQuantity(candidate, newQuantity, state.getAccountId()));
+            state.replaceEntries(sourceEntry.getInventoryId(), entries);
+            return;
+        }
     }
 
     private void removeDisplayedEntryAfterMove(
@@ -1784,17 +1932,18 @@ public class InventoryService {
     private @Nullable UUID createInstanceId(
         @NotNull ItemModel model,
         @NotNull UUID accountId,
-        @NotNull InventoryInstanceType instanceType
+        @NotNull InventoryInstanceType instanceType,
+        @NotNull String source
     ) {
         String instanceId = switch (instanceType) {
             case EQUIPMENT -> {
                 EquipmentInstance instance = itemService.createEquipmentInstance(
-                    model.getId(), accountId.toString(), "command", accountId.toString());
+                    model.getId(), accountId.toString(), source, accountId.toString());
                 yield instance == null ? null : instance.getEquipmentInstanceId();
             }
             case RUNE -> {
                 RuneInstance instance = itemService.createRuneInstance(
-                    model.getId(), accountId.toString(), "command", accountId.toString());
+                    model.getId(), accountId.toString(), source, accountId.toString());
                 yield instance == null ? null : instance.getRuneInstanceId();
             }
         };

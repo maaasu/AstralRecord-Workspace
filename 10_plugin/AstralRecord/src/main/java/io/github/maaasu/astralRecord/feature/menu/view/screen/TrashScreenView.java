@@ -74,12 +74,20 @@ public final class TrashScreenView extends BaseMenuScreenView {
             Material.PAPER,
             Component.text("ゴミ箱ガイド", NamedTextColor.YELLOW),
             List.of(
-                Component.text("このGUIを閉じると", NamedTextColor.GRAY),
-                Component.text("入っているアイテムが廃棄されます", NamedTextColor.GRAY),
-                Component.text("戻るボタンでは廃棄されません", NamedTextColor.GRAY)
+                Component.text("左クリック: 1個ゴミ箱へ", NamedTextColor.GRAY),
+                Component.text("Shift+左クリック: すべてゴミ箱へ", NamedTextColor.GRAY),
+                Component.text("右クリック: 半分ゴミ箱へ", NamedTextColor.GRAY),
+                Component.text("ゴミ箱→インベントリも同様", NamedTextColor.GRAY),
+                Component.text(" ", NamedTextColor.GRAY),
+                Component.text("GUIを閉じるとインベントリに戻ります", NamedTextColor.GRAY),
+                Component.text("廃棄ボタンで廃棄確認画面へ", NamedTextColor.GRAY)
             )
         ));
-        inventory.setItem(CLOSE_SLOT, closeItem());
+        inventory.setItem(CLOSE_SLOT, createItem(
+            Material.BARRIER,
+            Component.text("廃棄", NamedTextColor.RED),
+            List.of(Component.text("廃棄確認画面を開く", NamedTextColor.GRAY))
+        ));
         if (hasNextPage(pageIndex, itemCount)) {
             inventory.setItem(NEXT_SLOT, createItem(
                 Material.MAP,

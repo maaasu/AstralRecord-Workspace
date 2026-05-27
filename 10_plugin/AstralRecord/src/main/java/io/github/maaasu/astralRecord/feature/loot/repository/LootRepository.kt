@@ -1,67 +1,97 @@
 package io.github.maaasu.astralRecord.feature.loot.repository
 
+import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
-import io.github.maaasu.astralRecord.feature.loot.model.LootEntry
+import io.github.maaasu.astralRecord.feature.loot.model.LootContent
 import io.github.maaasu.astralRecord.feature.loot.model.LootModel
+import io.github.maaasu.astralRecord.feature.loot.model.LootPoolModel
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil
 import java.io.IOException
 import java.net.URLEncoder
+import java.net.http.HttpClient
 import java.net.http.HttpResponse
 import java.nio.charset.StandardCharsets
+import kotlin.math.max
+import kotlin.math.min
 
 /**
- * AstralRecord API を通じてルートテーブル定義を取得するリポジトリ。
+ * AstralRecord API からルートテーブルとプールを取得するリポジトリ。
  */
 class LootRepository {
 
     /**
-     * 全ルートテーブル一覧を取得します。
+     * 全ルートテーブルを取得し、参照プールを解決した形で返します。
      * GET /api/loot/table
+     * GET /api/loot/pool
      */
     fun findAll(): List<LootModel> {
-        val path = "/api/loot/table"
+        val tablePath = "/api/loot/table"
+        val poolPath = "/api/loot/pool"
         try {
-            ApiRequestUtil.buildClient().use { client ->
-                val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
-                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-                return when (response.statusCode()) {
-                    200 -> parseLootList(response.body())
-                    else -> {
-                        Logger.log(LogId.E_5300, "HTTP ${response.statusCode()} for GET $path")
-                        throw IOException("Unexpected status ${response.statusCode()} for GET $path")
-                    }
+            val client = ApiRequestUtil.buildClient()
+            client.use {
+                val tableResponse = client.send(
+                    ApiRequestUtil.buildRequestBuilder(tablePath).GET().build(),
+                    HttpResponse.BodyHandlers.ofString()
+                )
+                val poolResponse = client.send(
+                    ApiRequestUtil.buildRequestBuilder(poolPath).GET().build(),
+                    HttpResponse.BodyHandlers.ofString()
+                )
+
+                if (tableResponse.statusCode() != 200) {
+                    Logger.log(LogId.E_5300, "HTTP ${tableResponse.statusCode()} for GET $tablePath")
+                    throw IOException("Unexpected status ${tableResponse.statusCode()} for GET $tablePath")
                 }
+                if (poolResponse.statusCode() != 200) {
+                    Logger.log(LogId.E_5300, "HTTP ${poolResponse.statusCode()} for GET $poolPath")
+                    throw IOException("Unexpected status ${poolResponse.statusCode()} for GET $poolPath")
+                }
+
+                val poolMap = parsePoolList(poolResponse.body()).associateBy { normalizeId(it.id) }
+                return parseTableList(tableResponse.body()).map { table -> resolveTable(table, poolMap) }
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            Logger.log(LogId.E_5300, e, e.message ?: "Interrupted while GET $path")
+            Logger.log(LogId.E_5300, e, e.message ?: "Interrupted while GET $tablePath / $poolPath")
             throw RuntimeException(e)
         }
     }
 
     /**
-     * 指定IDのルートテーブルを取得します。
+     * 指定ルートテーブルを取得し、参照プールを都度解決して返します。
      * GET /api/loot/table/{tableId}
+     * GET /api/loot/pool/{poolId}
      */
     fun findById(lootId: String): LootModel? {
-        val encodedId = URLEncoder.encode(lootId.trim(), StandardCharsets.UTF_8).replace("+", "%20")
+        val normalizedLootId = normalizeId(lootId)
+        val encodedId = URLEncoder.encode(normalizedLootId, StandardCharsets.UTF_8).replace("+", "%20")
         val path = "/api/loot/table/$encodedId"
 
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            val client = ApiRequestUtil.buildClient()
+            client.use {
                 val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 return when (response.statusCode()) {
                     200 -> {
-                        val loot = parseLoot(response.body())
-                        Logger.log(LogId.D_5300, lootId)
+                        val table = parseTable(response.body())
+                        val pools = linkedMapOf<String, LootPoolModel>()
+                        table.poolRefs.forEach { poolRef ->
+                            val pool = findPoolById(client, poolRef)
+                            if (pool != null) {
+                                pools[normalizeId(pool.id)] = pool
+                            }
+                        }
+                        val loot = resolveTable(table, pools)
+                        Logger.log(LogId.D_5300, normalizedLootId)
                         loot
                     }
                     404 -> {
-                        Logger.log(LogId.W_5300, lootId)
+                        Logger.log(LogId.W_5300, normalizedLootId)
                         null
                     }
                     else -> {
@@ -80,43 +110,148 @@ class LootRepository {
         }
     }
 
-    // ── パーサ ──────────────────────────────────────────────
-
-    private fun parseLootList(json: String): List<LootModel> {
-        val array = JsonParser.parseString(json).asJsonArray
-        return array.mapNotNull { element ->
-            if (!element.isJsonObject) return@mapNotNull null
-            parseLootObject(element.asJsonObject)
+    private fun findPoolById(
+        client: HttpClient,
+        poolIdOrRef: String
+    ): LootPoolModel? {
+        val normalizedPoolId = normalizeId(poolIdOrRef)
+        val encodedId = URLEncoder.encode(normalizedPoolId, StandardCharsets.UTF_8).replace("+", "%20")
+        val path = "/api/loot/pool/$encodedId"
+        val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
+        val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+        return when (response.statusCode()) {
+            200 -> parsePool(response.body())
+            404 -> null
+            else -> {
+                Logger.log(LogId.E_5300, "HTTP ${response.statusCode()} for GET $path")
+                throw IOException("Unexpected status ${response.statusCode()} for GET $path")
+            }
         }
     }
 
-    private fun parseLoot(json: String): LootModel {
-        val obj = JsonParser.parseString(json).asJsonObject
-        return parseLootObject(obj)
+    private fun parseTableList(json: String): List<LootTableDto> {
+        val array = JsonParser.parseString(json).asJsonArray
+        return array.mapNotNull { element ->
+            if (!element.isJsonObject) return@mapNotNull null
+            parseTableObject(element.asJsonObject)
+        }
     }
 
-    private fun parseLootObject(obj: JsonObject): LootModel {
-        val entriesArray = obj.getAsJsonArray("entries")
-        val entries = entriesArray?.mapNotNull { element ->
-            if (!element.isJsonObject) return@mapNotNull null
-            val e = element.asJsonObject
-            val category = e.get("category")?.takeIf { !it.isJsonNull }?.asString ?: return@mapNotNull null
-            val itemId = e.get("itemId")?.takeIf { !it.isJsonNull }?.asString ?: return@mapNotNull null
-            LootEntry(
-                category = category,
-                itemId = itemId,
-                minAmount = e.get("minAmount")?.asInt ?: 1,
-                maxAmount = e.get("maxAmount")?.asInt ?: 1,
-                weight = e.get("weight")?.asDouble ?: 100.0,
-            )
-        } ?: emptyList()
+    private fun parseTable(json: String): LootTableDto {
+        val obj = JsonParser.parseString(json).asJsonObject
+        return parseTableObject(obj)
+    }
 
-        return LootModel(
+    private fun parsePoolList(json: String): List<LootPoolModel> {
+        val array = JsonParser.parseString(json).asJsonArray
+        return array.mapNotNull { element ->
+            if (!element.isJsonObject) return@mapNotNull null
+            parsePoolObject(element.asJsonObject)
+        }
+    }
+
+    private fun parsePool(json: String): LootPoolModel {
+        val obj = JsonParser.parseString(json).asJsonObject
+        return parsePoolObject(obj)
+    }
+
+    private fun parseTableObject(obj: JsonObject): LootTableDto {
+        val pools = parseStringList(obj.getAsJsonArray("pools"))
+        return LootTableDto(
             schemaVersion = obj.get("schemaVersion")?.asInt ?: 1,
-            id = obj.get("id").asString,
-            name = obj.get("name")?.asString ?: obj.get("id").asString,
-            entries = entries,
+            id = obj.get("id")?.asString ?: "",
+            rolls = parseAmountRangeUpperBound(obj, "rolls"),
+            poolRefs = pools,
         )
     }
-}
 
+    private fun parsePoolObject(obj: JsonObject): LootPoolModel {
+        val contentsArray = obj.getAsJsonArray("contents") ?: JsonArray()
+        val contents = contentsArray.mapNotNull { element ->
+            if (!element.isJsonObject) return@mapNotNull null
+            val content = element.asJsonObject
+            val itemId = content.get("itemId")?.takeIf { !it.isJsonNull }?.asString ?: return@mapNotNull null
+            val amountText = content.get("amount")?.takeIf { !it.isJsonNull }?.asString ?: "1"
+            val (minAmount, maxAmount) = parseAmountRange(amountText)
+            LootContent(
+                itemId = normalizeId(itemId),
+                minAmount = minAmount,
+                maxAmount = maxAmount,
+                rate = content.get("rate")?.asDouble ?: 100.0,
+            )
+        }
+
+        return LootPoolModel(
+            id = obj.get("id")?.asString ?: "",
+            pick = parseAmountRangeUpperBound(obj, "pick").coerceAtLeast(1),
+            contents = contents,
+        )
+    }
+
+    private fun resolveTable(
+        table: LootTableDto,
+        poolMap: Map<String, LootPoolModel>
+    ): LootModel {
+        val pools = table.poolRefs.mapNotNull { poolMap[normalizeId(it)] }
+        return LootModel(
+            schemaVersion = table.schemaVersion,
+            id = table.id,
+            name = table.id,
+            rolls = table.rolls.coerceAtLeast(1),
+            pools = pools,
+        )
+    }
+
+    private fun parseStringList(array: JsonArray?): List<String> {
+        if (array == null) {
+            return emptyList()
+        }
+
+        return array.mapNotNull { element ->
+            if (element.isJsonPrimitive) element.asString else null
+        }
+    }
+
+    private fun parseAmountRangeUpperBound(obj: JsonObject, key: String): Int {
+        val element = obj.get(key) ?: return 1
+        if (element.isJsonNull) {
+            return 1
+        }
+        val raw = element.asString.trim()
+        val (parsedMin, parsedMax) = parseAmountRange(raw)
+        return max(parsedMin, parsedMax).coerceAtLeast(1)
+    }
+
+    private fun parseAmountRange(raw: String): Pair<Int, Int> {
+        val trimmed = raw.trim()
+        if (trimmed.isBlank()) {
+            return 1 to 1
+        }
+
+        val parts = trimmed.split("~", limit = 2)
+        return try {
+            val first = parts.first().trim().toInt()
+            val second = if (parts.size >= 2) parts[1].trim().toInt() else first
+            min(first, second) to max(first, second)
+        } catch (_: NumberFormatException) {
+            1 to 1
+        }
+    }
+
+    private fun normalizeId(value: String): String {
+        val trimmed = value.trim()
+        val prefixIndex = trimmed.indexOf(':')
+        return if (prefixIndex >= 0) {
+            trimmed.substring(prefixIndex + 1).trim()
+        } else {
+            trimmed
+        }
+    }
+
+    private data class LootTableDto(
+        val schemaVersion: Int,
+        val id: String,
+        val rolls: Int,
+        val poolRefs: List<String>,
+    )
+}

@@ -2,6 +2,10 @@ package io.github.maaasu.astralRecord.feature.item.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.service.BundleUseService;
+import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -17,11 +21,29 @@ import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * AstralRecord アイテムのバニラアクション（左/右クリック等）を抑止するイベントハンドラ。
  */
 public class ItemInteractionBlockEventHandler extends AbstractEventHandler {
+
+    private final ItemService itemService;
+    private final BundleUseService bundleUseService;
+
+    /**
+     * アイテム操作抑止・bundle 開封イベントを構築します。
+     *
+     * @param itemService      アイテム定義サービス
+     * @param bundleUseService bundle 使用サービス
+     */
+    public ItemInteractionBlockEventHandler(
+        @NotNull ItemService itemService,
+        @NotNull BundleUseService bundleUseService
+    ) {
+        this.itemService = itemService;
+        this.bundleUseService = bundleUseService;
+    }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlayerInteract(PlayerInteractEvent event) {
@@ -36,6 +58,16 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler {
 
             if (!isAstralItem(event.getItem())) {
                 return;
+            }
+
+            if (isBundleUseAction(action) && event.getHand() != null) {
+                var astPlayer = AstPlayerCache.get(event.getPlayer());
+                if (astPlayer != null) {
+                    ItemModel model = resolveItemModel(event.getItem());
+                    if (model != null && ItemCategory.fromApiValue(model.getCategory()) == ItemCategory.BUNDLE) {
+                        bundleUseService.useBundle(astPlayer, event.getHand(), model);
+                    }
+                }
             }
 
             event.setUseItemInHand(org.bukkit.event.Event.Result.DENY);
@@ -102,6 +134,20 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler {
     private static boolean isAstralItem(ItemStack item) {
         return item != null && item.getType() != org.bukkit.Material.AIR
                 && ItemStackFactory.getAstralItemId(item) != null;
+    }
+
+    private @Nullable ItemModel resolveItemModel(@NotNull ItemStack itemStack) {
+        String itemId = ItemStackFactory.getAstralItemId(itemStack);
+        if (itemId == null || itemId.isBlank()) {
+            return null;
+        }
+
+        ItemModel loaded = itemService.findLoadedById(itemId);
+        return loaded != null ? loaded : itemService.loadItem(itemId);
+    }
+
+    private static boolean isBundleUseAction(@NotNull Action action) {
+        return action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
     }
 
     private static @NotNull ItemStack getItemInHand(@NotNull Player player, @NotNull EquipmentSlot hand) {

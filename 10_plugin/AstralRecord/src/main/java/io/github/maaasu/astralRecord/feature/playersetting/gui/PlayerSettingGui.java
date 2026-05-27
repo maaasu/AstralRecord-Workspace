@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.playersetting.gui;
 
+import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.feature.playersetting.model.ParticleDensity;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKey;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingSnapshot;
@@ -11,9 +12,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -23,13 +22,13 @@ import java.util.UUID;
 /**
  * プレイヤー設定 GUI です。
  */
-public final class PlayerSettingGui {
-    public static final int SIZE = 27;
-    public static final int DAMAGE_LOG_SLOT = 11;
-    public static final int PARTICLE_DENSITY_SLOT = 13;
-    public static final int DROP_LOG_SLOT = 15;
-    public static final int BACK_TO_MENU_SLOT = 18;
-    public static final int CLOSE_SLOT = 26;
+public final class PlayerSettingGui extends BaseMenuScreenView {
+    public static final int SIZE = BaseMenuScreenView.SIZE;
+    public static final int DAMAGE_LOG_SLOT = 20;
+    public static final int PARTICLE_DENSITY_SLOT = 22;
+    public static final int DROP_LOG_SLOT = 24;
+    public static final int BACK_TO_MENU_SLOT = BaseMenuScreenView.BACK_SLOT;
+    public static final int CLOSE_SLOT = BaseMenuScreenView.CLOSE_SLOT;
 
     private final PlayerSettingService playerSettingService;
 
@@ -85,25 +84,7 @@ public final class PlayerSettingGui {
             PlayerSettingKey.DROP_LOG_DISPLAY,
             (Boolean) playerSettingService.getPlayerSetting(snapshot.getUserId(), PlayerSettingKey.DROP_LOG_DISPLAY)
         ));
-        inventory.setItem(BACK_TO_MENU_SLOT, createItem(
-            Material.ARROW,
-            Component.text("メニューに戻る", NamedTextColor.WHITE),
-            List.of(Component.text("メインメニューへ戻ります", NamedTextColor.GRAY))
-        ));
-        inventory.setItem(CLOSE_SLOT, createItem(
-            Material.BARRIER,
-            Component.text("閉じる", NamedTextColor.RED),
-            List.of(Component.text("クリックで GUI を閉じます", NamedTextColor.GRAY))
-        ));
-    }
-
-    private void fill(@NotNull Inventory inventory) {
-        ItemStack border = createItem(Material.BLACK_STAINED_GLASS_PANE, Component.text(" "), List.of());
-        ItemStack panel = createItem(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of());
-        for (int slot = 0; slot < SIZE; slot++) {
-            boolean isBorder = slot < 9 || slot >= 18 || slot % 9 == 0 || slot % 9 == 8;
-            inventory.setItem(slot, isBorder ? border : panel);
-        }
+        inventory.setItem(BACK_TO_MENU_SLOT, backItem());
     }
 
     private @NotNull ItemStack createBooleanItem(
@@ -130,22 +111,6 @@ public final class PlayerSettingGui {
                 Component.text("クリックで次の密度へ", NamedTextColor.GRAY)
             )
         );
-    }
-
-    private @NotNull ItemStack createItem(
-        @NotNull Material material,
-        @NotNull Component name,
-        @NotNull List<Component> lore
-    ) {
-        ItemStack itemStack = new ItemStack(material);
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(name);
-            meta.lore(lore);
-            meta.addItemFlags(ItemFlag.values());
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
     }
 
     private record Holder(@NotNull UUID userId) implements InventoryHolder {

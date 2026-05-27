@@ -301,6 +301,10 @@ public enum PlayerMsgId {
      * インベントリに空きがありません。
      */
     P_5241(5241),
+    P_5242(5242),
+    P_5243(5243),
+    P_5244(5244),
+    P_5245(5245),
     // endregion
 
     // region /feature/user/command/UserPermissionCommand.java 5300-5309

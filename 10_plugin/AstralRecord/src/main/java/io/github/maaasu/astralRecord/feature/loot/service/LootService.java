@@ -59,6 +59,30 @@ public class LootService {
     }
 
     /**
+     * キャッシュ未命中時は API から単体取得して登録します。
+     *
+     * @param lootId ルートテーブルIDまたは参照値
+     * @return 解決済み LootModel。取得失敗時は {@code null}
+     */
+    public @Nullable LootModel getLoadedOrFetch(@NotNull String lootId) {
+        LootModel cached = getLoaded(lootId);
+        if (cached != null) {
+            return cached;
+        }
+
+        try {
+            LootModel loaded = lootRepository.findById(lootId);
+            if (loaded != null) {
+                cacheLoot(loaded);
+            }
+            return loaded;
+        } catch (Exception e) {
+            Logger.log(LogId.E_5301, e, lootId);
+            return null;
+        }
+    }
+
+    /**
      * キャッシュ済みルートテーブルの一覧を返します。
      *
      * @return ロード済み全 LootModel
@@ -85,7 +109,12 @@ public class LootService {
     }
 
     private @NotNull String normalize(@NotNull String value) {
-        return value.trim().toLowerCase(Locale.ROOT);
+        String trimmed = value.trim();
+        int prefixIndex = trimmed.indexOf(':');
+        String id = prefixIndex >= 0
+                ? trimmed.substring(prefixIndex + 1).trim()
+                : trimmed;
+        return id.toLowerCase(Locale.ROOT);
     }
 }
 

@@ -59,3 +59,10 @@
 - ログIDや障害対応手順の変更:
   - [[04_5.00-例外・ログ・運用]]
   - [[04_9.00-未決事項]]（未確定事項がある場合）
+
+## 2026-05-27 実装反映
+
+- bundle アイテムは `ItemInteractionBlockEventHandler` で右クリック時に `BundleUseService` を起動し、開封処理を行う。
+- バンドル開封後も vanilla 側の使用・設置・消費は抑止する。
+- bundle の loot 参照は `loot_table:` 接頭辞付き ID を許容し、plugin 側で table / pool 構造を解決する。
+- 追加メモ: [[04_90.01-bundle開封実装メモ]]

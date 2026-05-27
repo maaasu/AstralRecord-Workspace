@@ -518,7 +518,7 @@ public class ItemStackFactory {
         }
 
         lore.add(ColorCodeUtil.GOLD + "❖ Loot: " + lootModel.getName());
-        for (LootEntry entry : lootModel.getEntries()) {
+        for (LootEntry entry : lootModel.flattenedEntries()) {
             String amountText = entry.getMinAmount() == entry.getMaxAmount()
                     ? String.valueOf(entry.getMinAmount())
                     : entry.getMinAmount() + "~" + entry.getMaxAmount();
@@ -526,7 +526,6 @@ public class ItemStackFactory {
                     ? ""
                     : ColorCodeUtil.DARK_GRAY + " (" + String.format("%.1f%%", entry.getWeight()) + ")";
             lore.add(ColorCodeUtil.DARK_GRAY + " ▹ " + ColorCodeUtil.GRAY + entry.getItemId()
-                    + ColorCodeUtil.DARK_GRAY + " [" + entry.getCategory() + "]"
                     + ColorCodeUtil.WHITE + " ×" + amountText + weightText);
         }
         lore.add("");

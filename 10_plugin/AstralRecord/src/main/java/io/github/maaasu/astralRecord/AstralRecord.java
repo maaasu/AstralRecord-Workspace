@@ -4,11 +4,14 @@ import io.github.maaasu.astralRecord.core.CommandRegister;
 import io.github.maaasu.astralRecord.core.event.EventManager;
 import io.github.maaasu.astralRecord.feature.account.repository.AccountRepository;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
+import io.github.maaasu.astralRecord.feature.combat.event.CombatDamageEventHandler;
+import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.shared.gui.debug.PagingDebugGui;
 import io.github.maaasu.astralRecord.shared.gui.debug.event.PagingDebugGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.item.event.ItemInteractionBlockEventHandler;
+import io.github.maaasu.astralRecord.feature.item.service.BundleUseService;
 import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryRepository;
 import io.github.maaasu.astralRecord.feature.inventory.repository.EquipmentLoadoutRepository;
 import io.github.maaasu.astralRecord.feature.inventory.event.InventoryEquipmentGuiEventHandler;
@@ -93,6 +96,8 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerSettingService playerSettingService;
     private PlayerSettingGui playerSettingGui;
     private SkillService skillService;
+    private DamageService damageService;
+    private BundleUseService bundleUseService;
 
     @Override
     public void onLoad() {
@@ -212,12 +217,16 @@ public final class AstralRecord extends JavaPlugin {
         );
         inventoryAutoSaveTask = new InventoryAutoSaveTask(inventoryPersistence, inventoryStateRegistry);
         currencyService = new CurrencyService(inventoryService);
+        bundleUseService = new BundleUseService(itemService, lootService, inventoryService, itemStackFactory);
 
         // status
         statusService = new StatusService(itemService, inventoryService);
         statusRegenTask = new StatusRegenTask(statusService);
         playerHudService = new PlayerHudService(statusService);
         particleDisplayService = new ParticleDisplayService();
+
+        // combat
+        damageService = new DamageService(statusService);
 
         // dodge
         dodgeService = new DodgeService(this, statusService, particleDisplayService);
@@ -292,7 +301,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new ItemInteractionBlockEventHandler(),
+            new ItemInteractionBlockEventHandler(itemService, bundleUseService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
@@ -316,7 +325,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new PlayerSettingGuiEventHandler(playerSettingGui, playerSettingService, menuView),
+            new PlayerSettingGuiEventHandler(playerSettingGui, playerSettingService, inventoryService, menuView),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
@@ -329,6 +338,10 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             new PlayerVanillaDamageBlockEventHandler(),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new CombatDamageEventHandler(damageService),
             getServer().getPluginManager()
         );
         playerHudService.start(this);
@@ -415,5 +428,14 @@ public final class AstralRecord extends JavaPlugin {
      */
     public SkillService getSkillService() {
         return skillService;
+    }
+
+    /**
+     * 戦闘ダメージサービスを取得します。
+     *
+     * @return 戦闘ダメージサービス
+     */
+    public DamageService getDamageService() {
+        return damageService;
     }
 }

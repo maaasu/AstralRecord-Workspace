@@ -37,3 +37,9 @@
 - ログIDや障害対応手順の変更:
   - [[06_5.00-例外・ログ・運用]]
   - [[06_9.00-未決事項]]（未確定事項がある場合）
+
+## 2026-05-27 実装反映
+
+- plugin の `LootRepository` は API の loot table / loot pool を結合して `LootModel` を構築する。
+- `loot_table:` 接頭辞付き参照を正規化して解決する。
+- item 側の bundle 開封と lore 表示は、この解決済み loot 構造を利用する。

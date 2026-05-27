@@ -805,6 +805,13 @@ public enum LogId {
     E_5802(5802),
     // endregion
 
+    // region /feature/combat/ 5900-5999
+    /**
+     * 戦闘ダメージ処理に失敗しました: %s
+     */
+    E_5900(5900),
+    // endregion
+
     ;
     private final String id;
 
