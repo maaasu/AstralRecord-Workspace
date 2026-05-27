@@ -653,7 +653,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             InventoryType displayedType = astPlayer.getAccount().getMode().shouldReflectInventoryToGui()
                 ? inventoryService.getDisplayedInventoryType(astPlayer.getAccount().getUuid())
                 : null;
-            menuView.renderCraftShortcuts(player, MenuShortcutSettings.defaults(), displayedType);
+            var snapshot = statusService.getStatus(astPlayer);
+            menuView.renderCraftShortcuts(player, MenuShortcutSettings.defaults(), displayedType, snapshot);
         } finally {
             craftRenderSuppressed.remove(playerId);
         }

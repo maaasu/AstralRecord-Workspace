@@ -19,7 +19,7 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
         fill(inventory);
         inventory.setItem(STATUS_SLOT, createItem(
             Material.PLAYER_HEAD,
-            Component.text("ステータス", NamedTextColor.GREEN),
+            Component.text("アカウント情報", NamedTextColor.GREEN),
             List.of(Component.text("キャラクター情報を確認", NamedTextColor.GRAY))
         ));
         inventory.setItem(PLAYER_SETTING_SLOT, createItem(

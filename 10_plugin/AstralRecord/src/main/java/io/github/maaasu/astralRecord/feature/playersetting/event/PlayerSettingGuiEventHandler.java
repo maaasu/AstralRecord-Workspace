@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.playersetting.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
+import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.playersetting.PlayerSettingMsgId;
 import io.github.maaasu.astralRecord.feature.playersetting.gui.PlayerSettingGui;
@@ -23,13 +24,16 @@ import org.jetbrains.annotations.NotNull;
 public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
     private final PlayerSettingGui gui;
     private final PlayerSettingService playerSettingService;
+    private final MenuView menuView;
 
     public PlayerSettingGuiEventHandler(
         @NotNull PlayerSettingGui gui,
-        @NotNull PlayerSettingService playerSettingService
+        @NotNull PlayerSettingService playerSettingService,
+        @NotNull MenuView menuView
     ) {
         this.gui = gui;
         this.playerSettingService = playerSettingService;
+        this.menuView = menuView;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -60,6 +64,11 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
     }
 
     private void handleClick(@NotNull Player player, int rawSlot) {
+        if (rawSlot == PlayerSettingGui.BACK_TO_MENU_SLOT) {
+            GuiSound.SELECT.play(player);
+            menuView.open(player);
+            return;
+        }
         if (rawSlot == PlayerSettingGui.CLOSE_SLOT) {
             GuiSound.CLOSE.play(player);
             player.closeInventory();

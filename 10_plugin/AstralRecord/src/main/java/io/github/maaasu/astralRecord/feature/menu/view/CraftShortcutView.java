@@ -3,6 +3,8 @@ package io.github.maaasu.astralRecord.feature.menu.view;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutAction;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;
+import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
@@ -19,7 +21,9 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 final class CraftShortcutView {
     static final int CRAFT_RESULT_RAW_SLOT = 0;
@@ -46,7 +50,8 @@ final class CraftShortcutView {
     void renderCraftShortcuts(
         @NotNull Player player,
         @NotNull MenuShortcutSettings settings,
-        @Nullable InventoryType selectedType
+        @Nullable InventoryType selectedType,
+        @Nullable StatusSnapshot snapshot
     ) {
         if (!(player.getOpenInventory().getTopInventory() instanceof CraftingInventory inventory)) {
             return;
@@ -61,7 +66,7 @@ final class CraftShortcutView {
         for (int slot = 0; slot < MenuShortcutSettings.SLOT_COUNT; slot++) {
             MenuShortcutAction action = settings.getAction(slot);
             boolean selected = action.getInventoryType() != null && action.getInventoryType() == selectedType;
-            newMatrix[slot] = createCraftShortcutIcon(slot, action, selected, selectedType);
+            newMatrix[slot] = createCraftShortcutIcon(slot, action, selected, selectedType, snapshot);
             ItemStack existing = slot < currentMatrix.length ? currentMatrix[slot] : null;
             if (!isSameDisplayItem(existing, newMatrix[slot])) {
                 matrixChanged = true;
@@ -126,10 +131,14 @@ final class CraftShortcutView {
         int shortcutSlotIndex,
         @NotNull MenuShortcutAction action,
         boolean selected,
-        @Nullable InventoryType selectedType
+        @Nullable InventoryType selectedType,
+        @Nullable StatusSnapshot snapshot
     ) {
         if (action == MenuShortcutAction.INVENTORY_CYCLE) {
             return createUserInfoDummyIcon(shortcutSlotIndex, selectedType);
+        }
+        if (action == MenuShortcutAction.STATUS) {
+            return createStatusShortcutIcon(shortcutSlotIndex, snapshot);
         }
         ItemStack itemStack = createItem(
             action.getMaterial(),
@@ -141,6 +150,38 @@ final class CraftShortcutView {
             applySelectionGlow(itemStack);
         }
         return itemStack;
+    }
+
+    private @NotNull ItemStack createStatusShortcutIcon(int shortcutSlotIndex, @Nullable StatusSnapshot snapshot) {
+        List<Component> lore = new ArrayList<>();
+        if (snapshot != null && !snapshot.getValues().isEmpty()) {
+            lore.add(statusResourceLine("♥ HP", snapshot.getCurrentHp(), snapshot.getMaxValue(StatusType.MAX_HEALTH), NamedTextColor.RED));
+            lore.add(statusResourceLine("✦ MP", snapshot.getCurrentMp(), snapshot.getMaxValue(StatusType.MAX_MANA), NamedTextColor.AQUA));
+            lore.add(statusResourceLine("⚡ EN", snapshot.getCurrentEnergy(), snapshot.getMaxValue(StatusType.MAX_ENERGY), NamedTextColor.YELLOW));
+        }
+        lore.add(Component.text("クリックして開く", NamedTextColor.GRAY));
+        ItemStack itemStack = createItem(
+            Material.PLAYER_HEAD,
+            Component.text("アカウント情報", NamedTextColor.GREEN),
+            lore
+        );
+        markCraftShortcutIcon(itemStack, shortcutSlotIndex, MenuShortcutAction.STATUS);
+        return itemStack;
+    }
+
+    private @NotNull Component statusResourceLine(
+        @NotNull String label,
+        double current,
+        double max,
+        @NotNull NamedTextColor color
+    ) {
+        String value = formatResourceValue(current) + " / " + formatResourceValue(max);
+        return Component.text(label + ": ", color)
+            .append(Component.text(value, NamedTextColor.WHITE));
+    }
+
+    private @NotNull String formatResourceValue(double value) {
+        return String.format(Locale.US, "%,d", Math.round(value));
     }
 
     private @NotNull ItemStack createUserInfoDummyIcon(

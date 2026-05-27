@@ -46,7 +46,14 @@ public class PlayerHudService {
                 playerHudView.renderActionBar(player, snapshot);
             }
             playerHudView.renderBars(player, snapshot);
-            playerHudView.renderSidebar(player, astPlayer.getAccount().getMode().name(), astPlayer.getUser().getPermission(), tps);
+            playerHudView.renderSidebar(
+                player,
+                astPlayer.getAccount().getMode().name(),
+                astPlayer.getUser().getPermission(),
+                tps,
+                0,
+                0L
+            );
             playerHudView.renderTabList(player, tps);
         }
     }

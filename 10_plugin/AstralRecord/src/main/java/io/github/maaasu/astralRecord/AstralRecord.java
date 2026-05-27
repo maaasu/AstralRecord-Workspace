@@ -43,6 +43,7 @@ import io.github.maaasu.astralRecord.feature.resourcepack.event.ResourcePackJoin
 import io.github.maaasu.astralRecord.feature.resourcepack.event.ResourcePackStatusEventHandler;
 import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
+import io.github.maaasu.astralRecord.feature.skill.executor.FireBoostSkillExecutor;
 import io.github.maaasu.astralRecord.feature.status.service.StatusRegenTask;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.status.event.PlayerHeldItemStatusEventHandler;
@@ -250,6 +251,7 @@ public final class AstralRecord extends JavaPlugin {
 
         // skill
         skillService = new SkillService();
+        skillService.registerExecutor(new FireBoostSkillExecutor());
 
         // item & loot
         getServer().getScheduler().runTaskAsynchronously(this, () -> {
@@ -314,7 +316,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new PlayerSettingGuiEventHandler(playerSettingGui, playerSettingService),
+            new PlayerSettingGuiEventHandler(playerSettingGui, playerSettingService, menuView),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

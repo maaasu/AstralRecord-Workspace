@@ -28,6 +28,7 @@ public final class PlayerSettingGui {
     public static final int DAMAGE_LOG_SLOT = 11;
     public static final int PARTICLE_DENSITY_SLOT = 13;
     public static final int DROP_LOG_SLOT = 15;
+    public static final int BACK_TO_MENU_SLOT = 18;
     public static final int CLOSE_SLOT = 26;
 
     private final PlayerSettingService playerSettingService;
@@ -70,6 +71,7 @@ public final class PlayerSettingGui {
 
     private void render(@NotNull Inventory inventory, @NotNull PlayerSettingSnapshot snapshot) {
         inventory.clear();
+        fill(inventory);
         inventory.setItem(DAMAGE_LOG_SLOT, createBooleanItem(
             Material.REDSTONE,
             PlayerSettingKey.DAMAGE_LOG_DISPLAY,
@@ -83,11 +85,25 @@ public final class PlayerSettingGui {
             PlayerSettingKey.DROP_LOG_DISPLAY,
             (Boolean) playerSettingService.getPlayerSetting(snapshot.getUserId(), PlayerSettingKey.DROP_LOG_DISPLAY)
         ));
+        inventory.setItem(BACK_TO_MENU_SLOT, createItem(
+            Material.ARROW,
+            Component.text("メニューに戻る", NamedTextColor.WHITE),
+            List.of(Component.text("メインメニューへ戻ります", NamedTextColor.GRAY))
+        ));
         inventory.setItem(CLOSE_SLOT, createItem(
             Material.BARRIER,
             Component.text("閉じる", NamedTextColor.RED),
             List.of(Component.text("クリックで GUI を閉じます", NamedTextColor.GRAY))
         ));
+    }
+
+    private void fill(@NotNull Inventory inventory) {
+        ItemStack border = createItem(Material.BLACK_STAINED_GLASS_PANE, Component.text(" "), List.of());
+        ItemStack panel = createItem(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of());
+        for (int slot = 0; slot < SIZE; slot++) {
+            boolean isBorder = slot < 9 || slot >= 18 || slot % 9 == 0 || slot % 9 == 8;
+            inventory.setItem(slot, isBorder ? border : panel);
+        }
     }
 
     private @NotNull ItemStack createBooleanItem(

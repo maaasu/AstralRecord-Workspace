@@ -10,7 +10,12 @@ manaCost: 0
 castTimeTicks: 0
 requiredLevel: 1
 params:
-  fireDamageBonus: 0.15
+  strengthDurationTicks: 400
+  strengthAmplifier: 1
+  fireResistanceDurationTicks: 400
+  fireResistanceAmplifier: 0
+  flameParticleCount: 40
+  lavaParticleCount: 8
 tags:
-  - passive
+  - active
   - fire

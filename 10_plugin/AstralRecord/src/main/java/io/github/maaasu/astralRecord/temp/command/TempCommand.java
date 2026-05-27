@@ -1,6 +1,9 @@
 package io.github.maaasu.astralRecord.temp.command;
 
+import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.bukkit.Bukkit;
 import org.bukkit.event.inventory.InventoryType;
@@ -26,6 +29,7 @@ public class TempCommand extends AstCommand {
     private static final int REQUIRED_PERMISSION = 99;
 
     static final List<String> SUPPORTED_UI_TYPES = List.of(
+        "fire_boost",
         "chest",
         "double_chest",
         "hopper",
@@ -60,6 +64,11 @@ public class TempCommand extends AstCommand {
             return;
         }
 
+        if ("fire_boost".equalsIgnoreCase(args[0])) {
+            triggerFireBoost(player);
+            return;
+        }
+
         Inventory inventory = createInventory(args[0]);
         if (inventory == null) {
             sendUsage(player.getBukkit());
@@ -67,6 +76,17 @@ public class TempCommand extends AstCommand {
         }
 
         player.getBukkit().openInventory(inventory);
+    }
+
+    private void triggerFireBoost(@NotNull AstPlayer player) {
+        AstralRecord.getInstance().getSkillService().castSkill(
+            new PlayerSkillCaster(player),
+            "fire_boost",
+            SkillCastTrigger.PLAYER_COMMAND,
+            player.getBukkit().getLocation(),
+            null,
+            List.of()
+        );
     }
 
     protected Inventory createInventory(@NotNull String uiType) {

@@ -165,8 +165,13 @@ public class MenuView {
         return craftShortcutView.createCraftResultIcon();
     }
 
-    public void renderCraftShortcuts(@NotNull Player player, @NotNull MenuShortcutSettings settings, @Nullable InventoryType selectedType) {
-        craftShortcutView.renderCraftShortcuts(player, settings, selectedType);
+    public void renderCraftShortcuts(
+        @NotNull Player player,
+        @NotNull MenuShortcutSettings settings,
+        @Nullable InventoryType selectedType,
+        @Nullable StatusSnapshot snapshot
+    ) {
+        craftShortcutView.renderCraftShortcuts(player, settings, selectedType, snapshot);
     }
 
     public void clearCraftShortcuts(@NotNull Player player) {
