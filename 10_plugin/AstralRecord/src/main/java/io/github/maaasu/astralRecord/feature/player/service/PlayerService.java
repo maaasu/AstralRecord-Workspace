@@ -103,7 +103,10 @@ public class PlayerService {
     public void onPlayerQuit(Player player) {
         var astPlayer = AstPlayerCache.get(player);
         if (astPlayer != null) {
+            // debounce 中の最新書き込みをログアウト前に確実に API へ送る。
+            inventoryService.flushPendingCoalescedWrites(astPlayer.getAccount().getUuid());
             playerSaveCoordinator.save(astPlayer, PlayerSaveTrigger.LOGOUT);
+            inventoryService.clearClickGuard(astPlayer.getAccount().getUuid());
         }
         AstPlayerCache.remove(player.getUniqueId());
     }

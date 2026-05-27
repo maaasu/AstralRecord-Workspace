@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
 import io.github.maaasu.astralRecord.feature.inventory.service.HotbarLayout;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
@@ -144,6 +145,13 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         @NotNull Inventory topInventory,
         @NotNull Player player
     ) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer != null
+            && !inventoryService.getClickGuard().tryAcquire(
+                astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.EQUIPMENT_GUI_SLOT)) {
+            return;
+        }
+
         ItemStack cursor = event.getCursor();
         int rawSlot = event.getRawSlot();
         EquipmentType equipmentType = menuView.getEquipmentTypeAtSlot(rawSlot);
@@ -226,6 +234,11 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
 
         if (astPlayer == null) {
             GuiSound.DENY.play(player);
+            return;
+        }
+
+        if (!inventoryService.getClickGuard().tryAcquire(
+                astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.DISPLAYED_ITEM)) {
             return;
         }
 
@@ -338,6 +351,11 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             handleHotbarShortcutClick(astPlayer, player, slot);
             return;
         }
+        if (!inventoryService.getClickGuard().tryAcquire(
+                astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.HOTBAR_SLOT)) {
+            event.setCancelled(true);
+            return;
+        }
         boolean handled = inventoryService.handleHotbarSlotClick(astPlayer, slot + 1);
         if (handled) {
             statusService.refreshStatus(astPlayer);
@@ -351,6 +369,10 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         @NotNull Player player,
         int slot
     ) {
+        if (!inventoryService.getClickGuard().tryAcquire(
+                astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.HOTBAR_SHORTCUT)) {
+            return;
+        }
         boolean handled = inventoryService.handleHotbarShortcutClick(astPlayer, slot);
         if (handled) {
             if (slot == 8) {
@@ -380,6 +402,10 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         @NotNull Player player
     ) {
         event.setCancelled(true);
+        if (!inventoryService.getClickGuard().tryAcquire(
+                astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.HOTBAR_SLOT)) {
+            return;
+        }
         boolean handled = inventoryService.handleHotbarSlotClick(astPlayer, HotbarLayout.DB_SLOT_OFFHAND);
         if (handled) {
             statusService.refreshStatus(astPlayer);
@@ -395,6 +421,10 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         int slot
     ) {
         event.setCancelled(true);
+        if (!inventoryService.getClickGuard().tryAcquire(
+                astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.ARMOR_SLOT)) {
+            return;
+        }
         boolean handled = swapArmorSlotItem(event, astPlayer, slot);
         if (handled) {
             statusService.refreshStatus(astPlayer);
@@ -422,6 +452,10 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         }
 
         event.setCancelled(true);
+        if (!inventoryService.getClickGuard().tryAcquire(
+                astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.DISPLAYED_ITEM)) {
+            return;
+        }
         boolean handled = inventoryService.equipOrAssignClickedItem(astPlayer, clickedItem, slot);
         if (handled) {
             statusService.refreshStatus(astPlayer);

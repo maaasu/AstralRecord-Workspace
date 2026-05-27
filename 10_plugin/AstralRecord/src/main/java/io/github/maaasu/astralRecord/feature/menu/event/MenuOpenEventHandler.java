@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutAction;
@@ -262,6 +263,10 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
 
         event.setCancelled(true);
+        if (!inventoryService.getClickGuard().tryAcquire(
+                astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.HOTBAR_SHORTCUT)) {
+            return true;
+        }
         boolean handled = inventoryService.handleHotbarShortcutClick(astPlayer, slot);
         if (handled) {
             if (slot == 8) {
@@ -435,6 +440,10 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
         if (inventoryService.getDisplayedInventoryType(astPlayer.getAccount().getUuid()) == inventoryType) {
             GuiSound.SELECT.play(player);
+            return;
+        }
+        if (!inventoryService.getClickGuard().tryAcquire(
+                astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.INVENTORY_SWITCH)) {
             return;
         }
 

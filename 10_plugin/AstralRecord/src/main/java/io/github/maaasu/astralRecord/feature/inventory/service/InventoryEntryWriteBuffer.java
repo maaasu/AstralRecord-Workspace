@@ -16,29 +16,46 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * インベントリ entry の表示キャッシュと API 一括同期を管理します。
+ * <p>
+ * 書き込み戦略:
+ * <ol>
+ *   <li>cache は呼び出し直後に楽観反映する（プレイヤーの操作は即時に見える）</li>
+ *   <li>API 書き込みは {@link InventoryWriteCoalescer} で 1 秒の窓に集約する</li>
+ *   <li>flush 時、inventoryId 単位の write チェーンで API 呼び出しを直列化する</li>
+ *   <li>API 応答は最新書き込みシーケンスに一致する場合のみ cache を書き戻す</li>
+ * </ol>
  */
 final class InventoryEntryWriteBuffer {
     private final InventoryRepository inventoryRepository;
     private final Map<UUID, CompletableFuture<InventoryModel>> pendingInventoryCreates;
     private final Map<UUID, UUID> persistedInventoryIds;
     private final Set<CompletableFuture<?>> pendingWriteTasks;
+    private final InventoryWriteCoalescer entryCoalescer;
     private final Map<UUID, List<InventoryEntryModel>> entryCache = new ConcurrentHashMap<>();
     private final Set<UUID> pendingEntryReplaces = ConcurrentHashMap.newKeySet();
     private final Set<UUID> refreshingEntries = ConcurrentHashMap.newKeySet();
+    /** inventoryId 単位に API 書き込みを直列化するためのチェーン末尾。 */
+    private final Map<UUID, CompletableFuture<Void>> writeChains = new ConcurrentHashMap<>();
+    /** inventoryId 単位の書き込みシーケンス番号。古い書き込み応答での上書きを防ぐ。 */
+    private final Map<UUID, AtomicLong> writeSequence = new ConcurrentHashMap<>();
 
     InventoryEntryWriteBuffer(
         @NotNull InventoryRepository inventoryRepository,
         @NotNull Map<UUID, CompletableFuture<InventoryModel>> pendingInventoryCreates,
         @NotNull Map<UUID, UUID> persistedInventoryIds,
-        @NotNull Set<CompletableFuture<?>> pendingWriteTasks
+        @NotNull Set<CompletableFuture<?>> pendingWriteTasks,
+        @NotNull InventoryWriteCoalescer entryCoalescer
     ) {
         this.inventoryRepository = inventoryRepository;
         this.pendingInventoryCreates = pendingInventoryCreates;
         this.persistedInventoryIds = persistedInventoryIds;
         this.pendingWriteTasks = pendingWriteTasks;
+        this.entryCoalescer = entryCoalescer;
     }
 
     /**
@@ -78,7 +95,7 @@ final class InventoryEntryWriteBuffer {
     }
 
     /**
-     * entry 一覧を即時キャッシュ反映し、API へ一括置換として非同期同期します。
+     * entry 一覧を即時キャッシュ反映し、API への一括置換を coalescer で集約します。
      *
      * @param inventoryId 対象インベントリID
      * @param drafts 置換後 entry 一覧
@@ -92,26 +109,72 @@ final class InventoryEntryWriteBuffer {
     ) {
         UUID resolvedInventoryId = persistedInventoryIds.getOrDefault(inventoryId, inventoryId);
         pendingEntryReplaces.add(resolvedInventoryId);
-        List<InventoryEntryModel> optimistic = drafts.stream()
+        List<InventoryEntryDraft> snapshotDrafts = List.copyOf(drafts);
+        List<InventoryEntryModel> optimistic = snapshotDrafts.stream()
             .map(draft -> createEntryModel(UUID.randomUUID(), resolvedInventoryId, draft, updatedBy))
             .toList();
         putEntriesInCache(resolvedInventoryId, optimistic);
 
+        ReplacePayload payload = new ReplacePayload(snapshotDrafts, updatedBy);
+        entryCoalescer.submit(
+            resolvedInventoryId,
+            payload,
+            latest -> executeReplaceEntries(resolvedInventoryId, latest)
+        );
+
+        return optimistic;
+    }
+
+    /**
+     * coalescer の flush から呼び出され、実 API 書き込みを直列化・シーケンス検査つきで発行します。
+     */
+    private void executeReplaceEntries(@NotNull UUID resolvedInventoryId, @NotNull ReplacePayload payload) {
+        List<InventoryEntryDraft> drafts = payload.drafts();
+        UUID updatedBy = payload.updatedBy();
+
+        AtomicLong seqCounter = writeSequence.computeIfAbsent(resolvedInventoryId, key -> new AtomicLong());
+        long mySeq = seqCounter.incrementAndGet();
+
         CompletableFuture<InventoryModel> pendingInventory = pendingInventoryCreates.get(resolvedInventoryId);
-        java.util.concurrent.atomic.AtomicReference<UUID> persistedInventoryId =
-            new java.util.concurrent.atomic.AtomicReference<>(resolvedInventoryId);
-        CompletableFuture<List<InventoryEntryModel>> replaceFuture = pendingInventory == null
-            ? CompletableFuture.supplyAsync(() -> inventoryRepository.replaceEntries(resolvedInventoryId, drafts, updatedBy))
-            : pendingInventory.thenApply(savedInventory -> {
+        AtomicReference<UUID> persistedInventoryId = new AtomicReference<>(resolvedInventoryId);
+
+        // 直前の同一 inventoryId 書き込み完了後にだけ次の API リクエストを発行する。
+        // 直列化により、後発の楽観反映が古い書き込み応答で上書きされる事故を防ぐ。
+        CompletableFuture<Void> previousChain = writeChains
+            .getOrDefault(resolvedInventoryId, CompletableFuture.completedFuture(null))
+            .exceptionally(error -> null);
+
+        CompletableFuture<List<InventoryEntryModel>> replaceFuture = previousChain.thenComposeAsync(ignored -> {
+            if (pendingInventory == null) {
+                return CompletableFuture.completedFuture(
+                    inventoryRepository.replaceEntries(resolvedInventoryId, drafts, updatedBy)
+                );
+            }
+            return pendingInventory.thenApply(savedInventory -> {
                 UUID savedInventoryId = savedInventory.getInventoryId();
                 persistedInventoryId.set(savedInventoryId);
                 pendingEntryReplaces.add(savedInventoryId);
                 return inventoryRepository.replaceEntries(savedInventoryId, drafts, updatedBy);
             });
+        });
 
-        trackWriteTask(replaceFuture.thenAccept(saved -> {
-            pendingEntryReplaces.remove(resolvedInventoryId);
+        CompletableFuture<Void> writeCompletion = replaceFuture.handle((saved, error) -> {
+            boolean isLatest = seqCounter.get() == mySeq;
             UUID savedInventoryId = persistedInventoryId.get();
+            if (error != null) {
+                Logger.warn(LogId.W_5252, resolvedInventoryId, error.getMessage());
+                if (isLatest) {
+                    pendingEntryReplaces.remove(resolvedInventoryId);
+                    pendingEntryReplaces.remove(savedInventoryId);
+                }
+                return null;
+            }
+            if (!isLatest) {
+                // 後続の書き込みが既に発行されているため、API 応答でキャッシュを上書きしない。
+                // pendingEntryReplaces は最新の書き込み完了時にまとめて解除する。
+                return null;
+            }
+            pendingEntryReplaces.remove(resolvedInventoryId);
             pendingEntryReplaces.remove(savedInventoryId);
             if (saved != null) {
                 UUID responseInventoryId = saved.stream()
@@ -121,14 +184,15 @@ final class InventoryEntryWriteBuffer {
                 pendingEntryReplaces.remove(responseInventoryId);
                 putEntriesInCache(responseInventoryId, saved);
             }
-        }).exceptionally(error -> {
-            pendingEntryReplaces.remove(resolvedInventoryId);
-            pendingEntryReplaces.remove(persistedInventoryId.get());
-            Logger.warn(LogId.W_5252, resolvedInventoryId, error.getMessage());
             return null;
-        }));
+        });
 
-        return optimistic;
+        writeChains.put(resolvedInventoryId, writeCompletion);
+        writeCompletion.whenComplete((ignored, error) -> writeChains.compute(
+            resolvedInventoryId,
+            (key, current) -> current == writeCompletion ? null : current
+        ));
+        trackWriteTask(writeCompletion);
     }
 
     void putEntriesInCache(@NotNull UUID inventoryId, @NotNull List<InventoryEntryModel> entries) {
@@ -168,5 +232,9 @@ final class InventoryEntryWriteBuffer {
             actorId,
             false
         );
+    }
+
+    /** coalescer に詰める書き込みペイロード。 */
+    private record ReplacePayload(@NotNull List<InventoryEntryDraft> drafts, @NotNull UUID updatedBy) {
     }
 }

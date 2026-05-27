@@ -44,6 +44,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class InventoryService {
     private static final InventoryProfile DEFAULT_PROFILE = InventoryProfile.GAME;
@@ -73,6 +74,18 @@ public class InventoryService {
     private final Map<UUID, Integer> selectedHotbarSlots = new ConcurrentHashMap<>();
     /** GUI（プレイヤーインベントリ）を開いている間、ホットバーをショートカット表示モードへ切り替える */
     private final Set<UUID> hotbarShortcutMode = ConcurrentHashMap.newKeySet();
+    /** クリック連打抑止用のクールタイム管理。 */
+    private final InventoryClickGuard clickGuard = new InventoryClickGuard();
+    /** 装備ロードアウト書き込み直列化用のチェーン末尾。 */
+    private final Map<UUID, CompletableFuture<Void>> loadoutWriteChains = new ConcurrentHashMap<>();
+    /** 装備ロードアウト書き込み件数。0 より大きい間は async refresh を抑止する。 */
+    private final Map<UUID, AtomicInteger> loadoutWriteCounts = new ConcurrentHashMap<>();
+    /** entry 書き込みを inventoryId 単位で 1 秒窓に集約する coalescer。 */
+    private final InventoryWriteCoalescer entryCoalescer = new InventoryWriteCoalescer("InventoryEntryCoalesce");
+    /** metadata 書き込みを inventoryId 単位で 1 秒窓に集約する coalescer。 */
+    private final InventoryWriteCoalescer metadataCoalescer = new InventoryWriteCoalescer("InventoryMetadataCoalesce");
+    /** 装備ロードアウト書き込みを accountId 単位で 1 秒窓に集約する coalescer。 */
+    private final InventoryWriteCoalescer loadoutCoalescer = new InventoryWriteCoalescer("InventoryLoadoutCoalesce");
 
     public InventoryService(
         InventoryRepository inventoryRepository,
@@ -89,9 +102,28 @@ public class InventoryService {
             inventoryRepository,
             pendingInventoryCreates,
             persistedInventoryIds,
-            pendingWriteTasks
+            pendingWriteTasks,
+            entryCoalescer
         );
         this.hotbarRenderer = new HotbarRenderer(itemStackResolver);
+    }
+
+    /**
+     * クリック連打抑止用のクールタイム管理を返します。
+     *
+     * @return InventoryClickGuard インスタンス
+     */
+    public @NotNull InventoryClickGuard getClickGuard() {
+        return clickGuard;
+    }
+
+    /**
+     * プレイヤー退出時などにクリッククールタイム情報を破棄します。
+     *
+     * @param accountId 対象アカウントID
+     */
+    public void clearClickGuard(@NotNull UUID accountId) {
+        clickGuard.clear(accountId);
     }
 
     public List<InventoryModel> getInventories(UUID accountId) {
@@ -174,11 +206,18 @@ public class InventoryService {
     }
 
     private void refreshEquipmentLoadoutsAsync(@NotNull UUID accountId) {
+        if (hasPendingLoadoutWrites(accountId)) {
+            // 楽観反映済みのキャッシュを古い DB 状態で上書きしないよう、書き込み完了まで refresh をスキップする。
+            return;
+        }
         if (!refreshingLoadouts.add(accountId)) {
             return;
         }
         CompletableFuture.runAsync(() -> {
             try {
+                if (hasPendingLoadoutWrites(accountId)) {
+                    return;
+                }
                 List<EquipmentLoadoutModel> loadouts = equipmentLoadoutRepository.findByAccountId(accountId, DEFAULT_PROFILE);
                 equipmentLoadoutCache.put(accountId, List.copyOf(loadouts));
             } catch (RuntimeException e) {
@@ -187,6 +226,14 @@ public class InventoryService {
                 refreshingLoadouts.remove(accountId);
             }
         });
+    }
+
+    private boolean hasPendingLoadoutWrites(@NotNull UUID accountId) {
+        if (loadoutCoalescer.hasPending(accountId)) {
+            return true;
+        }
+        AtomicInteger count = loadoutWriteCounts.get(accountId);
+        return count != null && count.get() > 0;
     }
 
     private void refreshDisplayedInventoryForGuiAsync(
@@ -277,7 +324,19 @@ public class InventoryService {
         @Nullable String metadataJson,
         @NotNull UUID updatedBy
     ) {
+        // キャッシュは即時更新し、API 書き込みは coalescer で 1 秒窓に集約する。
         updateInventoryMetadataInCache(inventoryId, metadataJson, updatedBy);
+        MetadataPayload payload = new MetadataPayload(metadataJson, updatedBy);
+        metadataCoalescer.submit(
+            inventoryId,
+            payload,
+            latest -> executeMetadataUpdate(inventoryId, latest)
+        );
+    }
+
+    private void executeMetadataUpdate(@NotNull UUID inventoryId, @NotNull MetadataPayload payload) {
+        String metadataJson = payload.metadataJson();
+        UUID updatedBy = payload.updatedBy();
         CompletableFuture<InventoryModel> pendingInventory = pendingInventoryCreates.get(inventoryId);
         CompletableFuture<?> updateFuture = pendingInventory == null
             ? CompletableFuture.runAsync(() -> inventoryRepository.updateMetadata(inventoryId, metadataJson, updatedBy))
@@ -290,9 +349,28 @@ public class InventoryService {
         }));
     }
 
+    /** metadata 書き込みを coalescer に詰めるためのペイロード。 */
+    private record MetadataPayload(@Nullable String metadataJson, @NotNull UUID updatedBy) {
+    }
+
     private void trackWriteTask(@NotNull CompletableFuture<?> future) {
         pendingWriteTasks.add(future);
         future.whenComplete((ignored, error) -> pendingWriteTasks.remove(future));
+    }
+
+    /**
+     * 指定アカウントに紐づく coalescer 保留分を即時 flush します。
+     * <p>
+     * プレイヤー退出時など、debounce 窓内で保持していた最新状態を確実に API へ送りたい場面で呼び出してください。
+     *
+     * @param accountId 対象アカウントID
+     */
+    public void flushPendingCoalescedWrites(@NotNull UUID accountId) {
+        loadoutCoalescer.flushNow(accountId);
+        for (InventoryModel inventory : getCachedInventories(accountId)) {
+            entryCoalescer.flushNow(inventory.getInventoryId());
+            metadataCoalescer.flushNow(inventory.getInventoryId());
+        }
     }
 
     /**
@@ -302,11 +380,16 @@ public class InventoryService {
      * @param timeoutMillis 最大待機時間（ミリ秒）
      */
     public void awaitPendingWrites(long timeoutMillis) {
+        // 保留中の debounce を即時 flush し、その先の async write を待機対象へ流す。
+        entryCoalescer.flushAll();
+        metadataCoalescer.flushAll();
+        loadoutCoalescer.flushAll();
+
         long deadline = System.currentTimeMillis() + Math.max(0L, timeoutMillis);
         for (CompletableFuture<?> future : List.copyOf(pendingWriteTasks)) {
             long remaining = deadline - System.currentTimeMillis();
             if (remaining <= 0L) {
-                return;
+                break;
             }
             try {
                 future.get(remaining, TimeUnit.MILLISECONDS);
@@ -314,6 +397,10 @@ public class InventoryService {
                 Logger.warn(LogId.W_5252, "shutdown", e.getMessage());
             }
         }
+
+        entryCoalescer.shutdown();
+        metadataCoalescer.shutdown();
+        loadoutCoalescer.shutdown();
     }
 
     private void putInventoryInCache(@NotNull InventoryModel inventory) {
@@ -1710,24 +1797,85 @@ public class InventoryService {
             accessory7Snapshot
         );
 
-        CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+        LoadoutPayload payload = new LoadoutPayload(
+            headSnapshot,
+            chestSnapshot,
+            legsSnapshot,
+            feetSnapshot,
+            offHandSnapshot,
+            accessory2Snapshot,
+            accessory3Snapshot,
+            accessory4Snapshot,
+            accessory5Snapshot,
+            accessory6Snapshot,
+            accessory7Snapshot
+        );
+
+        // submit を更新すると最新 payload で上書きされ、既存スケジュールはそのまま 1 秒後に発火する。
+        // 保留中・実行中いずれの状態でも hasPendingLoadoutWrites が true を返すため、
+        // 古い DB 状態で equipmentLoadoutCache が refresh される事故は起きない。
+        loadoutCoalescer.submit(
+            accountId,
+            payload,
+            latest -> executeLoadoutSync(accountId, latest)
+        );
+    }
+
+    /**
+     * coalescer の flush から呼び出される、装備ロードアウト DB 書き込み本体。
+     */
+    private void executeLoadoutSync(
+        @NotNull UUID accountId,
+        @NotNull LoadoutPayload payload
+    ) {
+        // 実 DB 書き込みが完了するまで refresh を抑止するために in-flight 件数を増減する。
+        AtomicInteger inflight = loadoutWriteCounts.computeIfAbsent(accountId, key -> new AtomicInteger());
+        inflight.incrementAndGet();
+        // 同一アカウントの装備書き込みは直列化する。
+        CompletableFuture<Void> previousChain = loadoutWriteChains
+            .getOrDefault(accountId, CompletableFuture.completedFuture(null))
+            .exceptionally(error -> null);
+
+        CompletableFuture<Void> future = previousChain.thenRunAsync(() -> {
             EquipmentLoadoutModel loadout = ensureActiveEquipmentLoadout(accountId);
             if (loadout == null) {
                 return;
             }
-            syncLoadoutSlot(loadout, SLOT_TYPE_HEAD, 0, headSnapshot, accountId);
-            syncLoadoutSlot(loadout, SLOT_TYPE_CHEST, 0, chestSnapshot, accountId);
-            syncLoadoutSlot(loadout, SLOT_TYPE_LEGS, 0, legsSnapshot, accountId);
-            syncLoadoutSlot(loadout, SLOT_TYPE_FEET, 0, feetSnapshot, accountId);
-            syncLoadoutSlot(loadout, SLOT_TYPE_ACCESSORY, 0, offHandSnapshot, accountId);
-            syncLoadoutSlot(loadout, SLOT_TYPE_ACCESSORY, 1, accessory2Snapshot, accountId);
-            syncLoadoutSlot(loadout, SLOT_TYPE_ACCESSORY, 2, accessory3Snapshot, accountId);
-            syncLoadoutSlot(loadout, SLOT_TYPE_ACCESSORY, 3, accessory4Snapshot, accountId);
-            syncLoadoutSlot(loadout, SLOT_TYPE_ACCESSORY, 4, accessory5Snapshot, accountId);
-            syncLoadoutSlot(loadout, SLOT_TYPE_ACCESSORY, 5, accessory6Snapshot, accountId);
-            syncLoadoutSlot(loadout, SLOT_TYPE_ACCESSORY, 6, accessory7Snapshot, accountId);
+            syncLoadoutSlot(loadout, SLOT_TYPE_HEAD, 0, payload.head(), accountId);
+            syncLoadoutSlot(loadout, SLOT_TYPE_CHEST, 0, payload.chest(), accountId);
+            syncLoadoutSlot(loadout, SLOT_TYPE_LEGS, 0, payload.legs(), accountId);
+            syncLoadoutSlot(loadout, SLOT_TYPE_FEET, 0, payload.feet(), accountId);
+            syncLoadoutSlot(loadout, SLOT_TYPE_ACCESSORY, 0, payload.offHand(), accountId);
+            syncLoadoutSlot(loadout, SLOT_TYPE_ACCESSORY, 1, payload.accessory2(), accountId);
+            syncLoadoutSlot(loadout, SLOT_TYPE_ACCESSORY, 2, payload.accessory3(), accountId);
+            syncLoadoutSlot(loadout, SLOT_TYPE_ACCESSORY, 3, payload.accessory4(), accountId);
+            syncLoadoutSlot(loadout, SLOT_TYPE_ACCESSORY, 4, payload.accessory5(), accountId);
+            syncLoadoutSlot(loadout, SLOT_TYPE_ACCESSORY, 5, payload.accessory6(), accountId);
+            syncLoadoutSlot(loadout, SLOT_TYPE_ACCESSORY, 6, payload.accessory7(), accountId);
+        });
+
+        loadoutWriteChains.put(accountId, future);
+        future.whenComplete((ignored, error) -> {
+            inflight.decrementAndGet();
+            loadoutWriteChains.compute(accountId, (key, current) -> current == future ? null : current);
         });
         trackWriteTask(future);
+    }
+
+    /** 装備ロードアウト書き込みを coalescer に詰めるためのペイロード。 */
+    private record LoadoutPayload(
+        @Nullable ItemStack head,
+        @Nullable ItemStack chest,
+        @Nullable ItemStack legs,
+        @Nullable ItemStack feet,
+        @Nullable ItemStack offHand,
+        @Nullable ItemStack accessory2,
+        @Nullable ItemStack accessory3,
+        @Nullable ItemStack accessory4,
+        @Nullable ItemStack accessory5,
+        @Nullable ItemStack accessory6,
+        @Nullable ItemStack accessory7
+    ) {
     }
 
     private @Nullable ItemStack cloneItemStack(@Nullable ItemStack itemStack) {
