@@ -9,7 +9,6 @@ import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.EquipmentMenuScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.GuideScreenView;
-import io.github.maaasu.astralRecord.feature.menu.view.screen.InventorySelectorScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.MainMenuScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.StatusScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.TrashConfirmScreenView;
@@ -39,7 +38,6 @@ public class MenuView {
     public static final int EQUIPMENT_GUI_SLOT = MainMenuScreenView.EQUIPMENT_GUI_SLOT;
     public static final int TRASH_SLOT = MainMenuScreenView.TRASH_SLOT;
     public static final int GUIDE_SLOT = MainMenuScreenView.GUIDE_SLOT;
-    public static final int INVENTORY_SELECTOR_TRASH_SLOT = InventorySelectorScreenView.TRASH_SLOT;
     public static final int EQUIPMENT_HEAD_SLOT = EquipmentMenuScreenView.EQUIPMENT_HEAD_SLOT;
     public static final int EQUIPMENT_CHEST_SLOT = EquipmentMenuScreenView.EQUIPMENT_CHEST_SLOT;
     public static final int EQUIPMENT_LEGS_SLOT = EquipmentMenuScreenView.EQUIPMENT_LEGS_SLOT;
@@ -67,13 +65,11 @@ public class MenuView {
     public static final int CRAFT_SHORTCUT_RAW_SLOT_START = CraftShortcutView.CRAFT_SHORTCUT_RAW_SLOT_START;
 
     private static final Component MAIN_TITLE = Component.text("AstralRecord メニュー", NamedTextColor.DARK_AQUA);
-    private static final Component INVENTORY_TITLE = Component.text("インベントリ選択", NamedTextColor.GOLD);
     private static final Component EQUIPMENT_TITLE = Component.text("装備", NamedTextColor.GOLD);
     private static final String CURRENCY_TITLE = "通貨";
 
     private final MainMenuScreenView mainMenuScreenView;
     private final StatusScreenView statusScreenView;
-    private final InventorySelectorScreenView inventorySelectorScreenView;
     private final EquipmentMenuScreenView equipmentMenuScreenView;
     private final CurrencyGuiView currencyGuiView;
     private final GuideScreenView guideScreenView;
@@ -87,7 +83,6 @@ public class MenuView {
         NamespacedKey equipmentPlaceholderKey = new NamespacedKey(plugin, "equipment_placeholder");
         this.mainMenuScreenView = new MainMenuScreenView();
         this.statusScreenView = new StatusScreenView();
-        this.inventorySelectorScreenView = new InventorySelectorScreenView();
         this.equipmentMenuScreenView = new EquipmentMenuScreenView(equipmentPlaceholderKey);
         this.currencyGuiView = new CurrencyGuiView();
         this.guideScreenView = new GuideScreenView();
@@ -105,16 +100,6 @@ public class MenuView {
     public void openStatus(@NotNull Player player, @NotNull AstPlayer astPlayer, @NotNull StatusSnapshot snapshot) {
         Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.STATUS), SIZE, Component.text("ステータス", NamedTextColor.GREEN));
         statusScreenView.render(inventory, astPlayer, snapshot);
-        player.openInventory(inventory);
-    }
-
-    public void openInventorySelector(@NotNull Player player) {
-        openInventorySelector(player, null);
-    }
-
-    public void openInventorySelector(@NotNull Player player, @Nullable InventoryType selectedType) {
-        Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.INVENTORY_SELECTOR), SIZE, INVENTORY_TITLE);
-        inventorySelectorScreenView.render(inventory, selectedType);
         player.openInventory(inventory);
     }
 
@@ -202,10 +187,6 @@ public class MenuView {
             return holder.pageIndex();
         }
         return 0;
-    }
-
-    public @Nullable InventoryType getInventoryTypeAtSlot(int rawSlot) {
-        return inventorySelectorScreenView.getInventoryTypeAtSlot(rawSlot);
     }
 
     public @Nullable EquipmentType getEquipmentTypeAtSlot(int rawSlot) {

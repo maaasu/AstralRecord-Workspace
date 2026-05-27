@@ -274,7 +274,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         switch (screen) {
             case MAIN -> handleMainMenuClick(player, event.getRawSlot());
             case STATUS -> handleStatusClick(player, event.getRawSlot());
-            case INVENTORY_SELECTOR -> handleInventorySelectorClick(player, event.getRawSlot());
             case EQUIPMENT_GUI -> {
             }
             case CURRENCY -> handleCurrencyClick(event, player);
@@ -362,27 +361,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         GuiSound.DENY.play(player);
     }
 
-    private void handleInventorySelectorClick(@NotNull Player player, int rawSlot) {
-        if (rawSlot == MenuView.BACK_SLOT) {
-            GuiSound.SELECT.play(player);
-            menuView.open(player);
-            return;
-        }
-        if (rawSlot == MenuView.INVENTORY_SELECTOR_TRASH_SLOT) {
-            GuiSound.OPEN.play(player);
-            openTrash(player, 0);
-            return;
-        }
-
-        InventoryType inventoryType = menuView.getInventoryTypeAtSlot(rawSlot);
-        if (inventoryType == null) {
-            GuiSound.DENY.play(player);
-            return;
-        }
-
-        applyInventoryShortcut(player, inventoryType);
-    }
-
     private void handleCurrencyClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
         int rawSlot = event.getRawSlot();
         if (rawSlot == MenuView.PAGING_CLOSE_SLOT) {
@@ -438,7 +416,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         if (rawSlot == MenuView.BACK_SLOT) {
             suppressTrashConfirmOnClose.add(player.getUniqueId());
             GuiSound.SELECT.play(player);
-            menuView.openInventorySelector(player);
+            menuView.open(player);
             return;
         }
         if (rawSlot == MenuView.TRASH_CLOSE_SLOT) {
@@ -491,6 +469,14 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         Inventory topInventory = event.getView().getTopInventory();
         List<ItemStack> currentTrashItems = snapshotTrashItems(topInventory);
         int pageIndex = menuView.getPageIndex(topInventory);
+
+        if (rawSlot >= topInventory.getSize()) {
+            if (handleMenuHotbarShortcutClick(event, player)) {
+                return;
+            }
+            GuiSound.DENY.play(player);
+            return;
+        }
 
         if (rawSlot == MenuView.TRASH_CONFIRM_DISPOSE_SLOT) {
             GuiSound.CLOSE.play(player);
@@ -788,6 +774,9 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         @NotNull Inventory topInventory
     ) {
         if (!(event.getClickedInventory() instanceof PlayerInventory)) {
+            return;
+        }
+        if (handleMenuHotbarShortcutClick(event, player)) {
             return;
         }
         AstPlayer astPlayer = AstPlayerCache.get(player);
