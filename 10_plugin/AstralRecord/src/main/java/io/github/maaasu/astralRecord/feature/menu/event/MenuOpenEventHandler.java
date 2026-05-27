@@ -30,6 +30,7 @@ import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -46,6 +47,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     private final CurrencyService currencyService;
     private final StatusService statusService;
     private final Set<UUID> craftRenderSuppressed = ConcurrentHashMap.newKeySet();
+    private final ConcurrentHashMap<UUID, List<ItemStack>> trashItemsByPlayer = new ConcurrentHashMap<>();
+    private final Set<UUID> suppressTrashConfirmOnClose = ConcurrentHashMap.newKeySet();
 
     public MenuOpenEventHandler(
         @NotNull AstralRecord plugin,
@@ -113,6 +116,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 }
             }
             if (event.getPlayer() instanceof Player player) {
+                handleTrashClose(event.getInventory(), player);
                 AstPlayer astPlayer = AstPlayerCache.get(player);
                 if (astPlayer != null) {
                     inventoryService.setHotbarShortcutMode(astPlayer, false);
@@ -135,11 +139,20 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     public void onInventoryClick(InventoryClickEvent event) {
         runSafely(() -> {
             if (menuView.isMenuInventory(event.getView().getTopInventory())) {
+                MenuScreen menuScreen = menuView.getMenuScreen(event.getView().getTopInventory());
+                if (menuScreen == MenuScreen.TRASH) {
+                    handleTrashClick(event);
+                    return;
+                }
+                if (menuScreen == MenuScreen.TRASH_CONFIRM) {
+                    handleTrashConfirmClick(event);
+                    return;
+                }
                 if (event.getWhoClicked() instanceof Player player
                     && handleMenuHotbarShortcutClick(event, player)) {
                     return;
                 }
-                if (menuView.getMenuScreen(event.getView().getTopInventory()) == MenuScreen.EQUIPMENT_GUI) {
+                if (menuScreen == MenuScreen.EQUIPMENT_GUI) {
                     return;
                 }
                 handleMenuClick(event);
@@ -200,6 +213,23 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     public void onInventoryDrag(InventoryDragEvent event) {
         runSafely(() -> {
             if (menuView.isMenuInventory(event.getView().getTopInventory())) {
+                MenuScreen menuScreen = menuView.getMenuScreen(event.getView().getTopInventory());
+                if (menuScreen == MenuScreen.TRASH) {
+                    if (event.getRawSlots().stream().anyMatch(this::isTrashControlSlot)) {
+                        event.setCancelled(true);
+                        if (event.getWhoClicked() instanceof Player player) {
+                            GuiSound.DENY.play(player);
+                        }
+                    }
+                    return;
+                }
+                if (menuScreen == MenuScreen.TRASH_CONFIRM) {
+                    event.setCancelled(true);
+                    if (event.getWhoClicked() instanceof Player player) {
+                        GuiSound.DENY.play(player);
+                    }
+                    return;
+                }
                 event.setCancelled(true);
                 if (event.getWhoClicked() instanceof Player player) {
                     GuiSound.DENY.play(player);
@@ -245,6 +275,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             }
             case CURRENCY -> handleCurrencyClick(event, player);
             case GUIDE -> handleGuideClick(player, event.getRawSlot());
+            case TRASH, TRASH_CONFIRM -> GuiSound.DENY.play(player);
             default -> GuiSound.DENY.play(player);
         }
     }
@@ -328,6 +359,11 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             menuView.open(player);
             return;
         }
+        if (rawSlot == MenuView.INVENTORY_SELECTOR_TRASH_SLOT) {
+            GuiSound.OPEN.play(player);
+            openTrash(player, 0);
+            return;
+        }
 
         InventoryType inventoryType = menuView.getInventoryTypeAtSlot(rawSlot);
         if (inventoryType == null) {
@@ -371,6 +407,93 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         if (rawSlot == MenuView.BACK_SLOT) {
             GuiSound.SELECT.play(player);
             menuView.open(player);
+            return;
+        }
+        GuiSound.DENY.play(player);
+    }
+
+    private void handleTrashClick(@NotNull InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+        int rawSlot = event.getRawSlot();
+        Inventory topInventory = event.getView().getTopInventory();
+        List<ItemStack> currentTrashItems = snapshotTrashItems(topInventory);
+
+        if (rawSlot >= topInventory.getSize()) {
+            return;
+        }
+        if (rawSlot >= 45) {
+            event.setCancelled(true);
+        }
+
+        if (rawSlot == MenuView.BACK_SLOT) {
+            suppressTrashConfirmOnClose.add(player.getUniqueId());
+            GuiSound.SELECT.play(player);
+            menuView.openInventorySelector(player);
+            return;
+        }
+        if (rawSlot == MenuView.TRASH_CLOSE_SLOT) {
+            event.setCancelled(true);
+            GuiSound.CLOSE.play(player);
+            openTrashConfirm(player, currentTrashItems, 0);
+            return;
+        }
+        if (rawSlot == MenuView.TRASH_PREVIOUS_SLOT) {
+            int pageIndex = menuView.getPageIndex(topInventory);
+            if (menuView.hasPreviousTrashPage(pageIndex)) {
+                GuiSound.SELECT.play(player);
+                openTrash(player, pageIndex - 1);
+            } else {
+                GuiSound.DENY.play(player);
+            }
+            return;
+        }
+        if (rawSlot == MenuView.TRASH_NEXT_SLOT) {
+            int pageIndex = menuView.getPageIndex(topInventory);
+            if (menuView.hasNextTrashPage(currentTrashItems, pageIndex)) {
+                GuiSound.SELECT.play(player);
+                openTrash(player, pageIndex + 1);
+            } else {
+                GuiSound.DENY.play(player);
+            }
+            return;
+        }
+        if (isTrashControlSlot(rawSlot)) {
+            GuiSound.DENY.play(player);
+        }
+    }
+
+    private void handleTrashConfirmClick(@NotNull InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+        event.setCancelled(true);
+        int rawSlot = event.getRawSlot();
+        Inventory topInventory = event.getView().getTopInventory();
+        List<ItemStack> currentTrashItems = snapshotTrashItems(topInventory);
+        int pageIndex = menuView.getPageIndex(topInventory);
+
+        if (rawSlot == MenuView.TRASH_CONFIRM_DISPOSE_SLOT) {
+            GuiSound.CLOSE.play(player);
+            discardTrash(player);
+            player.closeInventory();
+            return;
+        }
+        if (rawSlot == MenuView.TRASH_CONFIRM_RETURN_SLOT) {
+            GuiSound.SELECT.play(player);
+            suppressTrashConfirmOnClose.add(player.getUniqueId());
+            menuView.openTrash(player, currentTrashItems, pageIndex);
+            return;
+        }
+        if (rawSlot == MenuView.TRASH_CONFIRM_PREVIOUS_SLOT && menuView.hasPreviousTrashConfirmPage(pageIndex)) {
+            GuiSound.SELECT.play(player);
+            menuView.openTrashConfirm(player, currentTrashItems, pageIndex - 1);
+            return;
+        }
+        if (rawSlot == MenuView.TRASH_CONFIRM_NEXT_SLOT && menuView.hasNextTrashConfirmPage(currentTrashItems, pageIndex)) {
+            GuiSound.SELECT.play(player);
+            menuView.openTrashConfirm(player, currentTrashItems, pageIndex + 1);
             return;
         }
         GuiSound.DENY.play(player);
@@ -554,5 +677,62 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
         var astPlayer = AstPlayerCache.get(player);
         return astPlayer != null && astPlayer.getAccount().getMode() == AccountMode.PLAYER;
+    }
+
+    private void openTrash(@NotNull Player player, int pageIndex) {
+        menuView.openTrash(player, trashItemsByPlayer.getOrDefault(player.getUniqueId(), List.of()), pageIndex);
+    }
+
+    private void openTrashConfirm(@NotNull Player player, @NotNull List<ItemStack> currentItems, int pageIndex) {
+        trashItemsByPlayer.put(player.getUniqueId(), currentItems);
+        suppressTrashConfirmOnClose.add(player.getUniqueId());
+        menuView.openTrashConfirm(player, currentItems, pageIndex);
+    }
+
+    private void handleTrashClose(@NotNull Inventory inventory, @NotNull Player player) {
+        MenuScreen screen = menuView.getMenuScreen(inventory);
+        if (screen == null) {
+            return;
+        }
+        UUID playerId = player.getUniqueId();
+        if (screen == MenuScreen.TRASH) {
+            List<ItemStack> items = snapshotTrashItems(inventory);
+            trashItemsByPlayer.put(playerId, items);
+            if (suppressTrashConfirmOnClose.remove(playerId)) {
+                return;
+            }
+            plugin.getServer().getScheduler().runTask(plugin, () -> menuView.openTrashConfirm(player, items, 0));
+            return;
+        }
+        if (screen == MenuScreen.TRASH_CONFIRM) {
+            if (suppressTrashConfirmOnClose.remove(playerId)) {
+                return;
+            }
+            discardTrash(player);
+        }
+    }
+
+    private @NotNull List<ItemStack> snapshotTrashItems(@NotNull Inventory inventory) {
+        List<ItemStack> items = new java.util.ArrayList<>();
+        for (int slot = 0; slot < 45; slot++) {
+            ItemStack itemStack = inventory.getItem(slot);
+            if (itemStack == null || itemStack.getType() == Material.AIR) {
+                continue;
+            }
+            items.add(itemStack.clone());
+        }
+        return items;
+    }
+
+    private boolean isTrashControlSlot(int rawSlot) {
+        return rawSlot == MenuView.TRASH_PREVIOUS_SLOT
+            || rawSlot == MenuView.TRASH_GUIDE_SLOT
+            || rawSlot == MenuView.BACK_SLOT
+            || rawSlot == MenuView.TRASH_CLOSE_SLOT
+            || rawSlot == MenuView.TRASH_NEXT_SLOT;
+    }
+
+    private void discardTrash(@NotNull Player player) {
+        trashItemsByPlayer.remove(player.getUniqueId());
     }
 }

@@ -6,5 +6,7 @@ public enum MenuScreen {
     INVENTORY_SELECTOR,
     EQUIPMENT_GUI,
     CURRENCY,
-    GUIDE
+    GUIDE,
+    TRASH,
+    TRASH_CONFIRM
 }

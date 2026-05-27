@@ -12,6 +12,8 @@ import io.github.maaasu.astralRecord.feature.menu.view.screen.GuideScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.InventorySelectorScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.MainMenuScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.StatusScreenView;
+import io.github.maaasu.astralRecord.feature.menu.view.screen.TrashConfirmScreenView;
+import io.github.maaasu.astralRecord.feature.menu.view.screen.TrashScreenView;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
@@ -36,6 +38,7 @@ public class MenuView {
     public static final int PLAYER_SETTING_SLOT = MainMenuScreenView.PLAYER_SETTING_SLOT;
     public static final int EQUIPMENT_GUI_SLOT = MainMenuScreenView.EQUIPMENT_GUI_SLOT;
     public static final int GUIDE_SLOT = MainMenuScreenView.GUIDE_SLOT;
+    public static final int INVENTORY_SELECTOR_TRASH_SLOT = InventorySelectorScreenView.TRASH_SLOT;
     public static final int EQUIPMENT_HEAD_SLOT = EquipmentMenuScreenView.EQUIPMENT_HEAD_SLOT;
     public static final int EQUIPMENT_CHEST_SLOT = EquipmentMenuScreenView.EQUIPMENT_CHEST_SLOT;
     public static final int EQUIPMENT_LEGS_SLOT = EquipmentMenuScreenView.EQUIPMENT_LEGS_SLOT;
@@ -51,6 +54,14 @@ public class MenuView {
     public static final int PAGING_BACK_SLOT = PagedGuiView.BACK_SLOT;
     public static final int PAGING_CLOSE_SLOT = PagedGuiView.CLOSE_SLOT;
     public static final int PAGING_NEXT_SLOT = PagedGuiView.NEXT_SLOT;
+    public static final int TRASH_PREVIOUS_SLOT = TrashScreenView.PREVIOUS_SLOT;
+    public static final int TRASH_GUIDE_SLOT = TrashScreenView.GUIDE_SLOT;
+    public static final int TRASH_CLOSE_SLOT = TrashScreenView.CLOSE_SLOT;
+    public static final int TRASH_NEXT_SLOT = TrashScreenView.NEXT_SLOT;
+    public static final int TRASH_CONFIRM_PREVIOUS_SLOT = TrashConfirmScreenView.PREVIOUS_SLOT;
+    public static final int TRASH_CONFIRM_DISPOSE_SLOT = TrashConfirmScreenView.DISPOSE_SLOT;
+    public static final int TRASH_CONFIRM_RETURN_SLOT = TrashConfirmScreenView.RETURN_TO_TRASH_SLOT;
+    public static final int TRASH_CONFIRM_NEXT_SLOT = TrashConfirmScreenView.NEXT_SLOT;
     public static final int CRAFT_RESULT_RAW_SLOT = CraftShortcutView.CRAFT_RESULT_RAW_SLOT;
     public static final int CRAFT_SHORTCUT_RAW_SLOT_START = CraftShortcutView.CRAFT_SHORTCUT_RAW_SLOT_START;
 
@@ -65,6 +76,8 @@ public class MenuView {
     private final EquipmentMenuScreenView equipmentMenuScreenView;
     private final CurrencyGuiView currencyGuiView;
     private final GuideScreenView guideScreenView;
+    private final TrashScreenView trashScreenView;
+    private final TrashConfirmScreenView trashConfirmScreenView;
     private final CraftShortcutView craftShortcutView;
 
     public MenuView(@NotNull AstralRecord plugin) {
@@ -77,6 +90,8 @@ public class MenuView {
         this.equipmentMenuScreenView = new EquipmentMenuScreenView(equipmentPlaceholderKey);
         this.currencyGuiView = new CurrencyGuiView();
         this.guideScreenView = new GuideScreenView();
+        this.trashScreenView = new TrashScreenView();
+        this.trashConfirmScreenView = new TrashConfirmScreenView();
         this.craftShortcutView = new CraftShortcutView(craftShortcutKey, craftActionKey);
     }
 
@@ -124,6 +139,24 @@ public class MenuView {
     public void openGuide(@NotNull Player player) {
         Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.GUIDE), SIZE, Component.text("ガイド", NamedTextColor.LIGHT_PURPLE));
         guideScreenView.render(inventory);
+        player.openInventory(inventory);
+    }
+
+    public void openTrash(@NotNull Player player, @NotNull List<ItemStack> trashItems, int pageIndex) {
+        int normalizedPage = trashScreenView.normalizePage(pageIndex, trashItems.size());
+        int totalPages = trashScreenView.totalPages(trashItems.size());
+        Component title = Component.text("ゴミ箱 " + (normalizedPage + 1) + "/" + totalPages, NamedTextColor.RED);
+        Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.TRASH, -1, normalizedPage), SIZE, title);
+        trashScreenView.render(inventory, trashItems, normalizedPage);
+        player.openInventory(inventory);
+    }
+
+    public void openTrashConfirm(@NotNull Player player, @NotNull List<ItemStack> trashItems, int pageIndex) {
+        int normalizedPage = trashConfirmScreenView.normalizePage(pageIndex, trashItems.size());
+        int totalPages = trashConfirmScreenView.totalPages(trashItems.size());
+        Component title = Component.text("本当に廃棄しますか？ " + (normalizedPage + 1) + "/" + totalPages, NamedTextColor.RED);
+        Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.TRASH_CONFIRM, -1, normalizedPage), SIZE, title);
+        trashConfirmScreenView.render(inventory, trashItems, normalizedPage);
         player.openInventory(inventory);
     }
 
@@ -211,5 +244,21 @@ public class MenuView {
 
     public boolean hasNextCurrencyPage(@NotNull List<ItemStack> currencyItems, int pageIndex) {
         return currencyGuiView.hasNextPage(pageIndex, currencyItems.size());
+    }
+
+    public boolean hasPreviousTrashPage(int pageIndex) {
+        return trashScreenView.hasPreviousPage(pageIndex);
+    }
+
+    public boolean hasNextTrashPage(@NotNull List<ItemStack> trashItems, int pageIndex) {
+        return trashScreenView.hasNextPage(pageIndex, trashItems.size());
+    }
+
+    public boolean hasPreviousTrashConfirmPage(int pageIndex) {
+        return trashConfirmScreenView.hasPreviousPage(pageIndex);
+    }
+
+    public boolean hasNextTrashConfirmPage(@NotNull List<ItemStack> trashItems, int pageIndex) {
+        return trashConfirmScreenView.hasNextPage(pageIndex, trashItems.size());
     }
 }

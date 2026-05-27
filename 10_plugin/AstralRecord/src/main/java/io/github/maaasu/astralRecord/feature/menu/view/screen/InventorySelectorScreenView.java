@@ -16,6 +16,7 @@ import java.util.List;
 
 public final class InventorySelectorScreenView extends BaseMenuScreenView {
     private static final int[] INVENTORY_TYPE_SLOTS = {21, 22, 23};
+    public static final int TRASH_SLOT = 24;
 
     /**
      * 種別選択メニューを描画します。選択中の種別は発光で強調表示します。
@@ -38,6 +39,11 @@ public final class InventorySelectorScreenView extends BaseMenuScreenView {
             }
             inventory.setItem(INVENTORY_TYPE_SLOTS[i], icon);
         }
+        inventory.setItem(TRASH_SLOT, createItem(
+            org.bukkit.Material.LAVA_BUCKET,
+            Component.text("ゴミ箱", NamedTextColor.RED),
+            List.of(Component.text("アイテムを廃棄する", NamedTextColor.GRAY))
+        ));
         inventory.setItem(BACK_SLOT, backItem());
     }
 
