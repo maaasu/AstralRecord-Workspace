@@ -582,10 +582,6 @@ public enum LogId {
 
     // region /feature/item/repository/SetEffectRepository.kt 5400-5409
     /**
-     * セット効果を取得しました (API): id=%s
-     */
-    D_5400(5400),
-    /**
      * セット効果が見つかりませんでした (API): id=%s
      */
     W_5400(5400),

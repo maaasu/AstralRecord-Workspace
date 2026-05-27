@@ -59,9 +59,7 @@ class SetEffectRepository {
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 return when (response.statusCode()) {
                     200 -> {
-                        val setEffect = parseSetEffect(response.body())
-                        Logger.log(LogId.D_5400, setId)
-                        setEffect
+                        parseSetEffect(response.body())
                     }
                     404 -> {
                         Logger.log(LogId.W_5400, setId)
