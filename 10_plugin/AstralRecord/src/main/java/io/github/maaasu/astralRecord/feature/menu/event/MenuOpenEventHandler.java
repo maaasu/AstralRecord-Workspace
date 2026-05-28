@@ -13,6 +13,8 @@ import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.TrashScreenView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.gui.PlayerSettingGui;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -479,8 +481,10 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
 
         if (rawSlot == MenuView.TRASH_CONFIRM_DISPOSE_SLOT) {
+            List<ItemStack> disposedItems = collectAllTrashItems(topInventory, player.getUniqueId());
             GuiSound.CLOSE.play(player);
             discardTrash(player);
+            notifyTrashDisposed(player, disposedItems);
             player.closeInventory();
             return;
         }
@@ -709,15 +713,20 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 return;
             }
             List<ItemStack> allItems = collectAllTrashItems(inventory, playerId);
-            returnTrashItemsToInventory(player, allItems);
+            boolean returned = returnTrashItemsToInventory(player, allItems);
             discardTrash(player);
+            if (returned) {
+                notifyTrashReturned(player, allItems);
+            }
             return;
         }
         if (screen == MenuScreen.TRASH_CONFIRM) {
             if (suppressTrashConfirmOnClose.remove(playerId)) {
                 return;
             }
+            List<ItemStack> allItems = collectAllTrashItems(inventory, playerId);
             discardTrash(player);
+            notifyTrashDisposed(player, allItems);
         }
     }
 
@@ -738,13 +747,13 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         return merged;
     }
 
-    private void returnTrashItemsToInventory(@NotNull Player player, @NotNull List<ItemStack> items) {
+    private boolean returnTrashItemsToInventory(@NotNull Player player, @NotNull List<ItemStack> items) {
         if (items.isEmpty()) {
-            return;
+            return false;
         }
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) {
-            return;
+            return false;
         }
         for (ItemStack itemStack : items) {
             if (itemStack == null || itemStack.getType() == Material.AIR) {
@@ -752,6 +761,44 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             }
             inventoryService.returnItemToOwnedInventory(astPlayer, itemStack.clone());
         }
+        return true;
+    }
+
+    private void notifyTrashDisposed(@NotNull Player player, @NotNull List<ItemStack> items) {
+        int disposedCount = countTrashItemStacks(items);
+        if (disposedCount <= 0) {
+            return;
+        }
+        sendTrashMessage(player, PlayerMsgId.P_5601, disposedCount);
+    }
+
+    private void notifyTrashReturned(@NotNull Player player, @NotNull List<ItemStack> items) {
+        int returnedCount = countTrashItemStacks(items);
+        if (returnedCount <= 0) {
+            return;
+        }
+        GuiSound.SELECT.play(player);
+        sendTrashMessage(player, PlayerMsgId.P_5602, returnedCount);
+    }
+
+    private int countTrashItemStacks(@NotNull List<ItemStack> items) {
+        int count = 0;
+        for (ItemStack itemStack : items) {
+            if (itemStack == null || itemStack.getType() == Material.AIR) {
+                continue;
+            }
+            count++;
+        }
+        return count;
+    }
+
+    private void sendTrashMessage(@NotNull Player player, @NotNull PlayerMsgId msgId, Object... args) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer != null) {
+            astPlayer.sendMessage(msgId, args);
+            return;
+        }
+        player.sendMessage(PlayerMsgResource.format(msgId.getId(), args));
     }
 
     private @NotNull List<ItemStack> snapshotTrashItems(@NotNull Inventory inventory) {

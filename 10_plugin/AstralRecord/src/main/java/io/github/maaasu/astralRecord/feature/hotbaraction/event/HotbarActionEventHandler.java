@@ -5,7 +5,6 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
-import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.Material;
 import org.bukkit.event.EventHandler;
@@ -28,28 +27,31 @@ public class HotbarActionEventHandler extends AbstractEventHandler {
     /**
      * プレイヤーのアイテム操作を検知し、左クリック・右クリックを識別してデバッグメッセージを送信します。
      * <p>
-     * {@link io.github.maaasu.astralRecord.feature.item.event.ItemInteractionBlockEventHandler} が
-     * {@link EventPriority#HIGHEST} でキャンセルするため、本ハンドラは {@link EventPriority#LOWEST} で先行して処理します。
+     * Paper はインタラクト可能なブロックへの操作時に {@code useItemInHand = DENY} を事前セットするため、
+     * {@code ignoreCancelled = true} にすると本ハンドラが呼ばれなくなります。
+     * そのため {@code ignoreCancelled} はデフォルト（false）のまま使用し、キャンセル済みイベントでも必ず実行します。
+     * バニラ動作の抑止は {@link io.github.maaasu.astralRecord.feature.item.event.ItemInteractionBlockEventHandler}
+     * が {@link EventPriority#HIGHEST} で担います。
      *
      * @param event Bukkit のアイテム操作イベント
      */
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerInteract(@NotNull PlayerInteractEvent event) {
         runSafely(() -> {
             if (event.getHand() != EquipmentSlot.HAND) {
                 return;
             }
-            Action action = event.getAction();
+            var action = event.getAction();
             if (action == Action.PHYSICAL) {
                 return;
             }
 
-            AstPlayer astPlayer = AstPlayerCache.get(event.getPlayer());
+            var astPlayer = AstPlayerCache.get(event.getPlayer());
             if (astPlayer == null || astPlayer.getAccount().getMode() != AccountMode.PLAYER) {
                 return;
             }
 
-            String itemId = resolveAstralItemId(event.getItem());
+            var itemId = resolveAstralItemId(event.getItem());
             if (itemId == null) {
                 return;
             }
