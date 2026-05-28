@@ -446,6 +446,11 @@ public class ItemStackFactory {
 
         // フッター
         lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
+        if (model.getBundle() != null
+                && model.getBundle().getLootTableId() != null
+                && !model.getBundle().getLootTableId().isBlank()) {
+            appendBundleLootLore(lore, model.getBundle().getLootTableId());
+        }
         if (model.getBundle() == null) {
             lore.add(ColorCodeUtil.DARK_GRAY + ColorCodeUtil.ITALIC + "ID: " + model.getId());
         }
@@ -515,7 +520,7 @@ public class ItemStackFactory {
      * LootService にキャッシュ済みのデータのみを参照し、API リクエストは発行しません。
      */
     private void appendBundleLootLore(@NotNull List<String> lore, @NotNull String lootTableId) {
-        LootModel lootModel = lootService.getLoaded(lootTableId);
+        LootModel lootModel = lootService.getLoadedOrFetch(lootTableId);
         if (lootModel == null) {
             lore.add(ColorCodeUtil.DARK_GRAY + "◆ ルート情報: " + lootTableId + " (未取得)");
             return;

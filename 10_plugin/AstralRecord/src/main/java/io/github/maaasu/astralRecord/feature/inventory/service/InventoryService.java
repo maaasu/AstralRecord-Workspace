@@ -42,6 +42,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -333,6 +334,11 @@ public class InventoryService {
         List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(inventory.getInventoryId()).stream()
             .filter(e -> !e.isDeleted())
             .toList());
+        if (unlimitedStack) {
+            entries = new ArrayList<>(normalizeCurrencyEntries(state, inventory));
+            usedSlots.clear();
+            usedSlots.addAll(collectUsedSlots(state, inventory));
+        }
         int remaining = amount;
         int granted = 0;
         for (int index = 0; index < entries.size(); index++) {
@@ -358,7 +364,7 @@ public class InventoryService {
             if (slot == null) {
                 break;
             }
-            int stackAmount = Math.min(maxStack, remaining);
+            int stackAmount = unlimitedStack ? remaining : Math.min(maxStack, remaining);
             entries.add(newEntry(inventory.getInventoryId(), slot, model.getCategory(), model.getId(),
                 null, null, stackAmount, null, accountId));
             usedSlots.add(slot);
@@ -538,7 +544,12 @@ public class InventoryService {
         if (inventory == null || !inventory.isEnabled()) {
             return List.of();
         }
-        return state.snapshotEntries(inventory.getInventoryId()).stream()
+        List<InventoryEntryModel> entries = inventoryType == InventoryType.CURRENCY
+            ? normalizeCurrencyEntries(state, inventory)
+            : state.snapshotEntries(inventory.getInventoryId()).stream()
+                .filter(entry -> !entry.isDeleted())
+                .toList();
+        return entries.stream()
             .filter(entry -> !entry.isDeleted())
             .sorted(Comparator.<InventoryEntryModel, Integer>comparing(
                 entry -> entry.getSlotIndex() == null ? Integer.MAX_VALUE : entry.getSlotIndex()
@@ -1072,10 +1083,7 @@ public class InventoryService {
             .filter(e -> !e.getInventoryEntryId().equals(hotbarEntry.getInventoryEntryId()))
             .toList();
         state.replaceEntries(hotbarInventory.getInventoryId(), hotbarEntries);
-
-        if (state.getDisplayedType() == targetType) {
-            applyDisplayedInventoryToGui(astPlayer);
-        }
+        autoSwitchDisplayedInventory(astPlayer, targetType);
         return true;
     }
 
@@ -1772,6 +1780,9 @@ public class InventoryService {
             .toList();
         InventoryModel inventory = state.findInventoryById(inventoryId);
         boolean unlimitedSlots = inventory != null && inventory.getInventoryType() == InventoryType.CURRENCY;
+        if (inventory != null && inventory.getInventoryType() == InventoryType.CURRENCY) {
+            entries = normalizeCurrencyEntries(state, inventory);
+        }
         int next = NormalInventoryLayout.DB_SLOT_START;
         List<InventoryEntryModel> compacted = new ArrayList<>();
         boolean changed = false;
@@ -2021,12 +2032,69 @@ public class InventoryService {
         );
     }
 
+    private @NotNull List<InventoryEntryModel> normalizeCurrencyEntries(
+        @NotNull PlayerInventoryState state,
+        @NotNull InventoryModel inventory
+    ) {
+        if (inventory.getInventoryType() != InventoryType.CURRENCY) {
+            return state.snapshotEntries(inventory.getInventoryId()).stream()
+                .filter(entry -> !entry.isDeleted())
+                .toList();
+        }
+
+        List<InventoryEntryModel> entries = state.snapshotEntries(inventory.getInventoryId()).stream()
+            .filter(entry -> !entry.isDeleted())
+            .sorted(Comparator.<InventoryEntryModel, Integer>comparing(
+                entry -> entry.getSlotIndex() == null ? Integer.MAX_VALUE : entry.getSlotIndex()
+            ).thenComparing(InventoryEntryModel::getCreatedAt))
+            .toList();
+        Map<String, InventoryEntryModel> mergedByItemId = new LinkedHashMap<>();
+        boolean changed = false;
+
+        for (InventoryEntryModel entry : entries) {
+            String itemId = entry.getItemId();
+            if (itemId == null || itemId.isBlank()) {
+                mergedByItemId.put("__entry__:" + entry.getInventoryEntryId(), entry);
+                continue;
+            }
+
+            InventoryEntryModel existing = mergedByItemId.get(itemId);
+            if (existing == null) {
+                mergedByItemId.put(itemId, entry);
+                continue;
+            }
+
+            mergedByItemId.put(
+                itemId,
+                withQuantity(existing, existing.getQuantity() + entry.getQuantity(), state.getAccountId())
+            );
+            changed = true;
+        }
+
+        List<InventoryEntryModel> normalized = new ArrayList<>();
+        int slot = NormalInventoryLayout.DB_SLOT_START;
+        for (InventoryEntryModel entry : mergedByItemId.values()) {
+            InventoryEntryModel normalizedEntry = withSlot(entry, slot, state.getAccountId());
+            if (normalizedEntry != entry) {
+                changed = true;
+            }
+            normalized.add(normalizedEntry);
+            slot++;
+        }
+
+        if (changed) {
+            state.replaceEntries(inventory.getInventoryId(), normalized);
+        }
+        return normalized;
+    }
+
     private boolean isStackableEntry(@NotNull InventoryEntryModel entry, @NotNull ItemModel model, int maxStack) {
-        if (maxStack <= 1) return false;
+        boolean isCurrency = ItemCategory.fromApiValue(model.getCategory()) == ItemCategory.CURRENCY;
+        if (!isCurrency && maxStack <= 1) return false;
         if (entry.getItemId() == null || !entry.getItemId().equals(model.getId())) return false;
         if (!entry.getItemCategory().equalsIgnoreCase(model.getCategory())) return false;
         if (entry.getInstanceType() != null || entry.getInstanceId() != null) return false;
-        return entry.getQuantity() < maxStack;
+        return isCurrency || entry.getQuantity() < maxStack;
     }
 
     private @Nullable UUID createInstanceId(
