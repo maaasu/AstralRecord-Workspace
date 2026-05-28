@@ -329,6 +329,7 @@ public class InventoryService {
     ) {
         UUID accountId = state.getAccountId();
         int maxStack = Math.max(1, model.getMaxStack());
+        boolean unlimitedStack = inventory.getInventoryType() == InventoryType.CURRENCY;
         List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(inventory.getInventoryId()).stream()
             .filter(e -> !e.isDeleted())
             .toList());
@@ -342,11 +343,12 @@ public class InventoryService {
             if (!isStackableEntry(entry, model, maxStack)) {
                 continue;
             }
-            long room = maxStack - entry.getQuantity();
-            if (room <= 0) {
+            int addAmount = unlimitedStack
+                ? remaining
+                : (int) Math.min(maxStack - entry.getQuantity(), remaining);
+            if (addAmount <= 0) {
                 continue;
             }
-            int addAmount = (int) Math.min(room, remaining);
             entries.set(index, withQuantity(entry, entry.getQuantity() + addAmount, accountId));
             granted += addAmount;
             remaining -= addAmount;
@@ -541,7 +543,9 @@ public class InventoryService {
             .sorted(Comparator.<InventoryEntryModel, Integer>comparing(
                 entry -> entry.getSlotIndex() == null ? Integer.MAX_VALUE : entry.getSlotIndex()
             ).thenComparing(InventoryEntryModel::getCreatedAt))
-            .map(itemStackResolver::resolve)
+            .map(entry -> inventoryType == InventoryType.CURRENCY
+                ? itemStackResolver.resolveCurrencyDisplay(entry)
+                : itemStackResolver.resolve(entry))
             .filter(itemStack -> itemStack != null && itemStack.getType() != Material.AIR)
             .toList();
     }

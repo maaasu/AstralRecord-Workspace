@@ -1,8 +1,12 @@
 package io.github.maaasu.astralRecord.feature.currency.view;
 
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
+import net.kyori.adventure.text.Component;
+import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -22,6 +26,7 @@ public final class CurrencyGuiView {
      */
     public void render(@NotNull Inventory inventory, @NotNull List<ItemStack> items, int pageIndex) {
         pagedGuiView.render(inventory, items, pageIndex);
+        fillEmptySlots(inventory);
     }
 
     /**
@@ -64,5 +69,26 @@ public final class CurrencyGuiView {
      */
     public boolean hasNextPage(int pageIndex, int itemCount) {
         return pagedGuiView.hasNextPage(pageIndex, itemCount);
+    }
+
+    private void fillEmptySlots(@NotNull Inventory inventory) {
+        ItemStack filler = createFiller();
+        for (int slot = 0; slot < inventory.getSize(); slot++) {
+            ItemStack current = inventory.getItem(slot);
+            if (current == null || current.getType() == Material.AIR) {
+                inventory.setItem(slot, filler.clone());
+            }
+        }
+    }
+
+    private @NotNull ItemStack createFiller() {
+        ItemStack itemStack = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta meta = itemStack.getItemMeta();
+        if (meta != null) {
+            meta.displayName(Component.text(" "));
+            meta.addItemFlags(ItemFlag.values());
+            itemStack.setItemMeta(meta);
+        }
+        return itemStack;
     }
 }

@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.item.service;
 
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
+import io.github.maaasu.astralRecord.feature.item.model.ItemCurrency;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemSummary;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
@@ -25,6 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * APIから取得したアイテムをメモリに保持し、一覧/詳細参照に使用します。
  */
 public class ItemService {
+    public static final String DEFAULT_CURRENCY_ITEM_ID = "ast_gold";
 
     private final ItemRepository itemRepository;
     private final SetEffectRepository setEffectRepository;
@@ -118,7 +120,11 @@ public class ItemService {
                 .findFirst()
                 .orElse(null);
             if (summary == null) {
-                return null;
+                ItemModel builtin = resolveBuiltinItem(normalizedId);
+                if (builtin != null) {
+                    cacheItem(builtin);
+                }
+                return builtin;
             }
             return loadItem(summary.getId(), summary.getCategory());
         } catch (Exception e) {
@@ -141,7 +147,10 @@ public class ItemService {
 
         ItemModel item = itemRepository.findById(itemId, category);
         if (item == null) {
-            return null;
+            item = resolveBuiltinItem(normalizedId);
+            if (item == null) {
+                return null;
+            }
         }
 
         cacheItem(item);
@@ -181,6 +190,30 @@ public class ItemService {
         }
 
         return loadedItems.get(normalizedId);
+    }
+
+    private @Nullable ItemModel resolveBuiltinItem(@NotNull String normalizedId) {
+        if (DEFAULT_CURRENCY_ITEM_ID.equals(normalizedId)) {
+            return new ItemModel(
+                1,
+                DEFAULT_CURRENCY_ITEM_ID,
+                ItemCategory.CURRENCY.getApiValue(),
+                "アストゴールド",
+                "GOLD_NUGGET",
+                "common",
+                64,
+                0,
+                null,
+                List.of("プラグイン内蔵のデフォルト通貨です。"),
+                false,
+                true,
+                null,
+                new ItemCurrency("gold", "default", null),
+                null,
+                null
+            );
+        }
+        return null;
     }
 
     /**

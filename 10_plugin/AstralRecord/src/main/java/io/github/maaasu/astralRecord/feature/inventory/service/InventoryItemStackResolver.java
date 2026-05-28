@@ -3,13 +3,20 @@ package io.github.maaasu.astralRecord.feature.inventory.service;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryInstanceType;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
+import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * API の inventory_entry を Bukkit の ItemStack に解決します。
@@ -30,7 +37,7 @@ final class InventoryItemStackResolver {
      * エントリの itemId / instanceType / instanceId から ItemStack を生成します。
      *
      * @param entry インベントリエントリ
-     * @return 生成できた ItemStack。マスタやインスタンスが見つからない場合は null
+     * @return 生成できた ItemStack。アイテム情報が見つからない場合は null
      */
     @Nullable ItemStack resolve(@NotNull InventoryEntryModel entry) {
         if (entry.getItemId() != null && !entry.getItemId().isBlank()) {
@@ -50,6 +57,28 @@ final class InventoryItemStackResolver {
             case EQUIPMENT -> resolveEquipment(entry);
             case RUNE -> resolveRune(entry);
         };
+    }
+
+    @Nullable ItemStack resolveCurrencyDisplay(@NotNull InventoryEntryModel entry) {
+        ItemStack resolved = resolve(entry);
+        if (resolved == null) {
+            return null;
+        }
+        if (ItemCategory.fromApiValue(entry.getItemCategory()) != ItemCategory.CURRENCY) {
+            return resolved;
+        }
+
+        ItemMeta meta = resolved.getItemMeta();
+        if (meta == null) {
+            return resolved;
+        }
+        List<Component> lore = meta.lore();
+        List<Component> updatedLore = lore == null ? new ArrayList<>() : new ArrayList<>(lore);
+        updatedLore.add(Component.empty());
+        updatedLore.add(Component.text("スタック数: " + entry.getQuantity(), NamedTextColor.GRAY));
+        meta.lore(updatedLore);
+        resolved.setItemMeta(meta);
+        return resolved;
     }
 
     private @Nullable ItemStack resolveEquipment(@NotNull InventoryEntryModel entry) {
