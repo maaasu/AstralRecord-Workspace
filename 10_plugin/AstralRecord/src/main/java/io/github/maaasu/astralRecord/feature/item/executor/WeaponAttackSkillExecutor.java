@@ -6,9 +6,11 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.SoundCategory;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Player;
@@ -24,6 +26,19 @@ import java.util.Locale;
 public final class WeaponAttackSkillExecutor implements SkillExecutor {
 
     private static final String IMPLEMENTATION_ID = "normal_attack";
+
+    private final Plugin plugin;
+    private final ParticleDisplayService particleDisplayService;
+
+    /**
+     * パーティクル表示サービスを受け取って executor を構築します。
+     *
+     * @param particleDisplayService パーティクル表示サービス
+     */
+    public WeaponAttackSkillExecutor(@NotNull Plugin plugin, @NotNull ParticleDisplayService particleDisplayService) {
+        this.plugin = plugin;
+        this.particleDisplayService = particleDisplayService;
+    }
 
     @Override
     public @NotNull String implementationId() {
@@ -51,9 +66,11 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         double spreadZ = readDoubleParam(context.skill(), "spreadZ", 0.15D);
         double extra = readDoubleParam(context.skill(), "extra", 0.0D);
 
-        player.getWorld().spawnParticle(
-                particle,
+        particleDisplayService.spawnWorld(
+                caster.player(),
+                player.getWorld(),
                 effectLocation,
+                particle,
                 particleCount,
                 spreadX,
                 spreadY,
@@ -68,7 +85,20 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             player.getWorld().playSound(player.getLocation(), soundKey, SoundCategory.PLAYERS, volume, pitch);
         }
 
-        spawnLinearProjectile(context.skill(), player, effectLocation, direction);
+        if (!spawnForwardEffectTrail(
+                context.skill(),
+                caster,
+                effectLocation,
+                direction,
+                particle,
+                particleCount,
+                spreadX,
+                spreadY,
+                spreadZ,
+                extra
+        )) {
+            spawnLinearProjectile(context.skill(), player, effectLocation, direction);
+        }
         return SkillCastResult.success(resourceCost, context.skill().getCooldownTicks());
     }
 
@@ -85,6 +115,13 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         requireNonNegativeDouble(skill, "soundVolume");
         requireNonNegativeDouble(skill, "soundPitch");
         requireNonNegativeDouble(skill, "projectileSpeed");
+        requireNonNegativeInt(skill, "trailSteps");
+        requireNonNegativeInt(skill, "trailIntervalTicks");
+        requireNonNegativeDouble(skill, "trailStepDistance");
+        requireNonNegativeDouble(skill, "trailSpreadX");
+        requireNonNegativeDouble(skill, "trailSpreadY");
+        requireNonNegativeDouble(skill, "trailSpreadZ");
+        requireNonNegativeDouble(skill, "trailExtra");
     }
 
     private @NotNull Particle readParticle(
@@ -197,5 +234,55 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             default -> {
             }
         }
+    }
+
+    private boolean spawnForwardEffectTrail(
+            @NotNull SkillDefinition skill,
+            @NotNull PlayerSkillCaster caster,
+            @NotNull Location startLocation,
+            @NotNull Vector direction,
+            @NotNull Particle particle,
+            int particleCount,
+            double spreadX,
+            double spreadY,
+            double spreadZ,
+            double extra
+    ) {
+        int trailSteps = readIntParam(skill, "trailSteps", 0);
+        if (trailSteps <= 0) {
+            return false;
+        }
+
+        int trailIntervalTicks = Math.max(1, readIntParam(skill, "trailIntervalTicks", 1));
+        double trailStepDistance = readDoubleParam(skill, "trailStepDistance", 0.75D);
+        int trailParticleCount = readIntParam(skill, "trailParticleCount", particleCount);
+        double trailSpreadX = readDoubleParam(skill, "trailSpreadX", Math.min(spreadX, 0.08D));
+        double trailSpreadY = readDoubleParam(skill, "trailSpreadY", Math.min(spreadY, 0.08D));
+        double trailSpreadZ = readDoubleParam(skill, "trailSpreadZ", Math.min(spreadZ, 0.08D));
+        double trailExtra = readDoubleParam(skill, "trailExtra", extra);
+        Location baseLocation = startLocation.clone();
+        Vector normalizedDirection = direction.clone().normalize();
+
+        for (int step = 1; step <= trailSteps; step++) {
+            final int currentStep = step;
+            long delayTicks = (long) (currentStep - 1) * trailIntervalTicks;
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                Location trailLocation = baseLocation.clone().add(
+                        normalizedDirection.clone().multiply(trailStepDistance * currentStep)
+                );
+                particleDisplayService.spawnWorld(
+                        caster.player(),
+                        trailLocation.getWorld(),
+                        trailLocation,
+                        particle,
+                        trailParticleCount,
+                        trailSpreadX,
+                        trailSpreadY,
+                        trailSpreadZ,
+                        trailExtra
+                );
+            }, delayTicks);
+        }
+        return true;
     }
 }

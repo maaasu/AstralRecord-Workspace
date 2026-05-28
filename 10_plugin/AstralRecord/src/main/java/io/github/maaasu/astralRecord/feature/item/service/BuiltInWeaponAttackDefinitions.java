@@ -80,8 +80,14 @@ public final class BuiltInWeaponAttackDefinitions {
                                 Map.entry("sound", "entity.arrow.shoot"),
                                 Map.entry("soundVolume", 1.0D),
                                 Map.entry("soundPitch", 1.15D),
-                                Map.entry("projectileType", "arrow"),
-                                Map.entry("projectileSpeed", 3.0D)
+                                Map.entry("trailSteps", 7),
+                                Map.entry("trailIntervalTicks", 1),
+                                Map.entry("trailStepDistance", 0.9D),
+                                Map.entry("trailParticleCount", 6),
+                                Map.entry("trailSpreadX", 0.04D),
+                                Map.entry("trailSpreadY", 0.04D),
+                                Map.entry("trailSpreadZ", 0.04D),
+                                Map.entry("trailExtra", 0.0D)
                         ),
                         List.of("builtin", "equipment", "normal_attack", "bow")
                 ),
@@ -111,8 +117,14 @@ public final class BuiltInWeaponAttackDefinitions {
                                 Map.entry("sound", "entity.evoker.cast_spell"),
                                 Map.entry("soundVolume", 1.0D),
                                 Map.entry("soundPitch", 1.2D),
-                                Map.entry("projectileType", "magic"),
-                                Map.entry("projectileSpeed", 2.0D)
+                                Map.entry("trailSteps", 8),
+                                Map.entry("trailIntervalTicks", 1),
+                                Map.entry("trailStepDistance", 0.68D),
+                                Map.entry("trailParticleCount", 8),
+                                Map.entry("trailSpreadX", 0.06D),
+                                Map.entry("trailSpreadY", 0.06D),
+                                Map.entry("trailSpreadZ", 0.06D),
+                                Map.entry("trailExtra", 0.15D)
                         ),
                         List.of("builtin", "equipment", "normal_attack", "magic")
                 ),
