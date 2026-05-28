@@ -1802,7 +1802,21 @@ public class InventoryService {
             applyDisplayedInventoryToGui(astPlayer);
             return;
         }
-        applyInventoryToGui(astPlayer, targetType);
+        applyInventoryToGuiNextTick(astPlayer, targetType);
+    }
+
+    private void applyInventoryToGuiNextTick(@NotNull AstPlayer astPlayer, @NotNull InventoryType targetType) {
+        io.github.maaasu.astralRecord.AstralRecord plugin = io.github.maaasu.astralRecord.AstralRecord.getInstance();
+        if (plugin == null) {
+            applyInventoryToGui(astPlayer, targetType);
+            return;
+        }
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            if (!astPlayer.getBukkit().isOnline()) {
+                return;
+            }
+            applyInventoryToGui(astPlayer, targetType);
+        });
     }
 
     // ---------------------------------------------------------------
