@@ -1311,7 +1311,7 @@ public class InventoryService {
         }
         upsertHotbarEntry(state, sourceEntry, targetDbSlot);
         removeDisplayedEntryAfterMove(state, sourceEntry);
-        requestManagedInventoryUiRefresh(astPlayer, true);
+        autoSwitchDisplayedInventory(astPlayer, InventoryType.HOTBAR);
         return true;
     }
 
