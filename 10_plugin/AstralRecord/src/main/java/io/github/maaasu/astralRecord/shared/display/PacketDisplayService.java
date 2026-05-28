@@ -15,6 +15,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Type;
@@ -194,13 +195,7 @@ public class PacketDisplayService {
     public void teleport(@NotNull Player viewer, int entityId, @NotNull Location location) {
         PacketContainer packet = protocolManager.createPacket(PacketType.Play.Server.ENTITY_TELEPORT);
         packet.getIntegers().write(0, entityId);
-        packet.getDoubles()
-                .write(0, location.getX())
-                .write(1, location.getY())
-                .write(2, location.getZ());
-        packet.getBytes()
-                .writeSafely(0, toAngle(location.getYaw()))
-                .writeSafely(1, toAngle(location.getPitch()));
+        writeTeleportPosition(packet, location);
         packet.getBooleans().writeSafely(0, false);
         send(viewer, packet);
     }
@@ -259,6 +254,16 @@ public class PacketDisplayService {
 
     private byte toAngle(float degrees) {
         return (byte) (degrees * 256.0F / 360.0F);
+    }
+
+    private void writeTeleportPosition(@NotNull PacketContainer packet, @NotNull Location location) {
+        var positionMoveRotation = packet.getStructures().read(0);
+        positionMoveRotation.getVectors()
+                .write(0, location.toVector())
+                .write(1, new Vector());
+        positionMoveRotation.getFloat()
+                .write(0, location.getYaw())
+                .write(1, location.getPitch());
     }
 
     private String toLegacyText(@NotNull String text) {

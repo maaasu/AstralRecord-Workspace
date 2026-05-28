@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
@@ -128,13 +129,7 @@ public class PacketMobView {
     private void sendTeleport(@NotNull Player player, @NotNull MobInstance instance, @NotNull Location target) {
         PacketContainer packet = protocolManager.createPacket(PacketType.Play.Server.ENTITY_TELEPORT);
         packet.getIntegers().write(0, instance.entityId());
-        packet.getDoubles()
-                .write(0, target.getX())
-                .write(1, target.getY())
-                .write(2, target.getZ());
-        packet.getBytes()
-                .writeSafely(0, toAngle(target.getYaw()))
-                .writeSafely(1, toAngle(target.getPitch()));
+        writeTeleportPosition(packet, target);
         packet.getBooleans().writeSafely(0, false);
         send(player, packet);
         lastSentLocation.put(instance.instanceId(), target.clone());
@@ -183,6 +178,16 @@ public class PacketMobView {
      */
     private byte toAngle(float degrees) {
         return (byte) (degrees * 256.0F / 360.0F);
+    }
+
+    private void writeTeleportPosition(@NotNull PacketContainer packet, @NotNull Location target) {
+        var positionMoveRotation = packet.getStructures().read(0);
+        positionMoveRotation.getVectors()
+                .write(0, target.toVector())
+                .write(1, new Vector());
+        positionMoveRotation.getFloat()
+                .write(0, target.getYaw())
+                .write(1, target.getPitch());
     }
 
     private void send(@NotNull Player player, @NotNull PacketContainer packet) {
