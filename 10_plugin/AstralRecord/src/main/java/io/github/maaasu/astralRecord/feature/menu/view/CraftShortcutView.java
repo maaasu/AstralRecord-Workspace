@@ -18,6 +18,7 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -70,7 +71,7 @@ final class CraftShortcutView {
         for (int slot = 0; slot < MenuShortcutSettings.SLOT_COUNT; slot++) {
             MenuShortcutAction action = settings.getAction(slot);
             boolean selected = action.getInventoryType() != null && action.getInventoryType() == selectedType;
-            newMatrix[slot] = createCraftShortcutIcon(slot, action, selected, selectedType, snapshot, selectedAccount, accounts);
+            newMatrix[slot] = createCraftShortcutIcon(player, slot, action, selected, selectedType, snapshot, selectedAccount, accounts);
             ItemStack existing = slot < currentMatrix.length ? currentMatrix[slot] : null;
             if (!isSameDisplayItem(existing, newMatrix[slot])) {
                 matrixChanged = true;
@@ -132,6 +133,7 @@ final class CraftShortcutView {
     }
 
     private @NotNull ItemStack createCraftShortcutIcon(
+        @NotNull Player player,
         int shortcutSlotIndex,
         @NotNull MenuShortcutAction action,
         boolean selected,
@@ -141,7 +143,7 @@ final class CraftShortcutView {
         @NotNull List<AccountModel> accounts
     ) {
         if (action == MenuShortcutAction.INVENTORY_CYCLE) {
-            return createUserInfoDummyIcon(shortcutSlotIndex, selectedType, selectedAccount, accounts);
+            return createUserInfoDummyIcon(player, shortcutSlotIndex, selectedType, selectedAccount, accounts);
         }
         if (action == MenuShortcutAction.STATUS) {
             return createStatusShortcutIcon(shortcutSlotIndex, snapshot);
@@ -191,6 +193,7 @@ final class CraftShortcutView {
     }
 
     private @NotNull ItemStack createUserInfoDummyIcon(
+        @NotNull Player player,
         int shortcutSlotIndex,
         @Nullable InventoryType selectedType,
         @NotNull AccountModel selectedAccount,
@@ -217,6 +220,11 @@ final class CraftShortcutView {
                 Component.text("左クリックでインベントリ切替", NamedTextColor.GRAY)
             )
         );
+        ItemMeta rawMeta = itemStack.getItemMeta();
+        if (rawMeta instanceof SkullMeta skullMeta) {
+            skullMeta.setOwningPlayer(player);
+            itemStack.setItemMeta(skullMeta);
+        }
         markCraftShortcutIcon(itemStack, shortcutSlotIndex, MenuShortcutAction.NONE);
         return itemStack;
     }
