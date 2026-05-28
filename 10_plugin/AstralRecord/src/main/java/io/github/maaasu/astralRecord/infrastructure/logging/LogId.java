@@ -812,6 +812,13 @@ public enum LogId {
     E_5900(5900),
     // endregion
 
+    // region /feature/hotbaraction/event/HotbarActionEventHandler.java 6000-6099
+    /**
+     * ホットバーアクション処理に失敗しました: %s
+     */
+    E_6000(6000),
+    // endregion
+
     ;
     private final String id;
 
