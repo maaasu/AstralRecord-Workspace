@@ -1,11 +1,9 @@
-package io.github.maaasu.astralRecord.feature.equipment.service;
+package io.github.maaasu.astralRecord.feature.item.service;
 
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentOnUse;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
-import io.github.maaasu.astralRecord.feature.item.service.ItemService;
-import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
@@ -20,14 +18,14 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 /**
- * equipment 左クリック通常攻撃の発動制御を担当します。
+ * weapon equipment の左右クリック攻撃を処理します。
  */
-public final class EquipmentAttackService {
+public final class ItemWeaponAttackService {
 
     private final ItemService itemService;
     private final SkillService skillService;
 
-    public EquipmentAttackService(
+    public ItemWeaponAttackService(
             @NotNull ItemService itemService,
             @NotNull SkillService skillService
     ) {
@@ -36,16 +34,40 @@ public final class EquipmentAttackService {
     }
 
     /**
-     * 武器の左クリック通常攻撃を処理します。
+     * 左クリック通常攻撃を処理します。
      *
      * @param player 発動プレイヤー
-     * @param itemStack メインハンドのアイテム
-     * @param castLocation 発動基準座標
+     * @param itemStack メインハンド武器
+     * @param castLocation 発動位置
      */
     public void handleLeftClick(
             @NotNull AstPlayer player,
             @Nullable ItemStack itemStack,
             @NotNull Location castLocation
+    ) {
+        handleAttack(player, itemStack, castLocation, true);
+    }
+
+    /**
+     * 右クリック特殊攻撃を処理します。
+     *
+     * @param player 発動プレイヤー
+     * @param itemStack メインハンド武器
+     * @param castLocation 発動位置
+     */
+    public void handleRightClick(
+            @NotNull AstPlayer player,
+            @Nullable ItemStack itemStack,
+            @NotNull Location castLocation
+    ) {
+        handleAttack(player, itemStack, castLocation, false);
+    }
+
+    private void handleAttack(
+            @NotNull AstPlayer player,
+            @Nullable ItemStack itemStack,
+            @NotNull Location castLocation,
+            boolean leftClick
     ) {
         ItemModel itemModel = resolveItemModel(itemStack);
         if (itemModel == null || itemModel.getEquipment() == null) {
@@ -58,13 +80,18 @@ public final class EquipmentAttackService {
         }
 
         ItemEquipmentOnUse onUse = equipment.getOnUse();
-        if (onUse == null || onUse.getLeftClickSkillId() == null || onUse.getLeftClickSkillId().isBlank()) {
+        if (onUse == null) {
             return;
         }
 
-        String skillId = onUse.getLeftClickSkillId().trim();
+        String rawSkillId = leftClick ? onUse.getLeftClickSkillId() : onUse.getRightClickSkillId();
+        if (rawSkillId == null || rawSkillId.isBlank()) {
+            return;
+        }
+
+        String skillId = rawSkillId.trim();
+        Integer cooldownTicks = leftClick ? onUse.getLeftClickCooldownTicks() : onUse.getRightClickCooldownTicks();
         PlayerSkillCaster caster = new PlayerSkillCaster(player);
-        Integer cooldownTicks = onUse.getLeftClickCooldownTicks();
         if (cooldownTicks != null && cooldownTicks > 0 && skillService.isOnCooldown(caster, skillId)) {
             caster.notify(PlayerMsgId.P_5802);
             return;

@@ -27,6 +27,11 @@ equipment:
     - status: CRITICAL_RATE
       type: FLAT
       value: 2.0
+  onUse:
+    leftClickCooldownTicks: 10
+    leftClickSkillId: normal_attack_melee
+    rightClickCooldownTicks: 30
+    rightClickSkillId: special_attack_melee
   durability:
     max: 160
     consume: 1

@@ -26,7 +26,11 @@ equipment:
     - status: ACCURACY
       type: FLAT
       value: 0.0
+  onUse:
+    leftClickCooldownTicks: 12
+    leftClickSkillId: normal_attack_bow
+    rightClickCooldownTicks: 36
+    rightClickSkillId: special_attack_bow
   durability:
     max: 100
     consume: 1
-

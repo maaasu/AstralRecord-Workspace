@@ -7,16 +7,16 @@ import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.combat.event.CombatDamageEventHandler;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
-import io.github.maaasu.astralRecord.feature.equipment.event.EquipmentAttackEventHandler;
-import io.github.maaasu.astralRecord.feature.equipment.executor.NormalAttackSkillExecutor;
-import io.github.maaasu.astralRecord.feature.equipment.service.BuiltInNormalAttackDefinitions;
-import io.github.maaasu.astralRecord.feature.equipment.service.EquipmentAttackService;
 import io.github.maaasu.astralRecord.shared.gui.debug.PagingDebugGui;
 import io.github.maaasu.astralRecord.shared.gui.debug.event.PagingDebugGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.item.event.ItemInteractionBlockEventHandler;
+import io.github.maaasu.astralRecord.feature.item.event.ItemWeaponAttackEventHandler;
+import io.github.maaasu.astralRecord.feature.item.executor.WeaponAttackSkillExecutor;
+import io.github.maaasu.astralRecord.feature.item.service.BuiltInWeaponAttackDefinitions;
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseEffectService;
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseService;
+import io.github.maaasu.astralRecord.feature.item.service.ItemWeaponAttackService;
 import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryRepository;
 import io.github.maaasu.astralRecord.feature.inventory.repository.EquipmentLoadoutRepository;
 import io.github.maaasu.astralRecord.feature.inventory.event.InventoryEquipmentGuiEventHandler;
@@ -113,7 +113,7 @@ public final class AstralRecord extends JavaPlugin {
     private BundleUseService bundleUseService;
     private BundleUseEffectService bundleUseEffectService;
     private PlayerClassService playerClassService;
-    private EquipmentAttackService equipmentAttackService;
+    private ItemWeaponAttackService itemWeaponAttackService;
     private WorldService worldService;
     private JoinSpawnLocation joinSpawnLocation;
 
@@ -295,9 +295,9 @@ public final class AstralRecord extends JavaPlugin {
         // skill
         skillService = new SkillService();
         skillService.registerExecutor(new FireBoostSkillExecutor());
-        skillService.registerExecutor(new NormalAttackSkillExecutor());
-        skillService.registerBuiltInDefinitions(BuiltInNormalAttackDefinitions.definitions());
-        equipmentAttackService = new EquipmentAttackService(itemService, skillService);
+        skillService.registerExecutor(new WeaponAttackSkillExecutor());
+        skillService.registerBuiltInDefinitions(BuiltInWeaponAttackDefinitions.definitions());
+        itemWeaponAttackService = new ItemWeaponAttackService(itemService, skillService);
 
         // item, loot, skill, class（マスタデータ非同期ロード）
         getServer().getScheduler().runTaskAsynchronously(this, () -> {
@@ -392,7 +392,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new EquipmentAttackEventHandler(equipmentAttackService),
+            new ItemWeaponAttackEventHandler(itemWeaponAttackService),
             getServer().getPluginManager()
         );
         playerHudService.start(this);

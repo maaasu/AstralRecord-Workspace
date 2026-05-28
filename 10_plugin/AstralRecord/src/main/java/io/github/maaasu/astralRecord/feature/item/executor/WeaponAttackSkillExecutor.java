@@ -1,4 +1,4 @@
-package io.github.maaasu.astralRecord.feature.equipment.executor;
+package io.github.maaasu.astralRecord.feature.item.executor;
 
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
@@ -16,9 +16,9 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Locale;
 
 /**
- * implementationId {@code normal_attack} の組み込み通常攻撃 executor です。
+ * implementationId {@code normal_attack} の組み込み武器攻撃 executor です。
  */
-public final class NormalAttackSkillExecutor implements SkillExecutor {
+public final class WeaponAttackSkillExecutor implements SkillExecutor {
 
     private static final String IMPLEMENTATION_ID = "normal_attack";
 
@@ -122,12 +122,12 @@ public final class NormalAttackSkillExecutor implements SkillExecutor {
     private void requireParticle(@NotNull SkillDefinition skill, @NotNull String key) {
         Object raw = skill.getParams().get(key);
         if (!(raw instanceof String value) || value.isBlank()) {
-            throw new SkillParameterException(key, "Particle 名を設定してください");
+            throw new SkillParameterException(key, "Particle を設定してください");
         }
         try {
             Particle.valueOf(value.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
-            throw new SkillParameterException(key, "不正な Particle 名です");
+            throw new SkillParameterException(key, "有効な Particle 名ではありません");
         }
     }
 

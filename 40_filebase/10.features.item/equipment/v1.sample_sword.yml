@@ -37,6 +37,11 @@ equipment:
     - status: ACCURACY
       type: FLAT
       value: 0~9
+  onUse:
+    leftClickCooldownTicks: 10
+    leftClickSkillId: normal_attack_melee
+    rightClickCooldownTicks: 30
+    rightClickSkillId: special_attack_melee
   durability:
     max: 220
     consume: 1
@@ -207,4 +212,3 @@ equipment:
           maxSlots: 0
         rune:
           maxSlots: 3
-
