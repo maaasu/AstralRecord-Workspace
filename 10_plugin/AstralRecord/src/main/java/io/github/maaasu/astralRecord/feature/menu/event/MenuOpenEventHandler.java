@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.menu.event;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
@@ -649,7 +650,15 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 ? inventoryService.getDisplayedInventoryType(astPlayer.getAccount().getUuid())
                 : null;
             var snapshot = statusService.getStatus(astPlayer);
-            menuView.renderCraftShortcuts(player, MenuShortcutSettings.defaults(), displayedType, snapshot);
+            List<AccountModel> accounts = plugin.getAccountService().getAccounts(astPlayer.getUser().getUuid());
+            menuView.renderCraftShortcuts(
+                player,
+                MenuShortcutSettings.defaults(),
+                displayedType,
+                snapshot,
+                astPlayer.getAccount(),
+                accounts
+            );
         } finally {
             craftRenderSuppressed.remove(playerId);
         }
@@ -687,17 +696,22 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     }
 
     private void openTrash(@NotNull Player player, int pageIndex) {
-        menuView.openTrash(player, trashItemsByPlayer.getOrDefault(player.getUniqueId(), List.of()), pageIndex);
+        List<ItemStack> normalized = normalizeTrashItems(
+            trashItemsByPlayer.getOrDefault(player.getUniqueId(), List.of())
+        );
+        trashItemsByPlayer.put(player.getUniqueId(), normalized);
+        menuView.openTrash(player, normalized, pageIndex);
     }
 
     private void openTrashConfirm(@NotNull Player player, @NotNull List<ItemStack> currentItems, int pageIndex) {
-        if (currentItems.isEmpty()) {
+        List<ItemStack> normalized = normalizeTrashItems(currentItems);
+        if (normalized.isEmpty()) {
             discardTrash(player);
             return;
         }
-        trashItemsByPlayer.put(player.getUniqueId(), currentItems);
+        trashItemsByPlayer.put(player.getUniqueId(), normalized);
         suppressTrashConfirmOnClose.add(player.getUniqueId());
-        menuView.openTrashConfirm(player, currentItems, pageIndex);
+        menuView.openTrashConfirm(player, normalized, pageIndex);
     }
 
     private void handleTrashClose(@NotNull Inventory inventory, @NotNull Player player) {
@@ -744,7 +758,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         for (int i = pageEnd; i < existing.size(); i++) {
             merged.add(existing.get(i));
         }
-        return merged;
+        return normalizeTrashItems(merged);
     }
 
     private boolean returnTrashItemsToInventory(@NotNull Player player, @NotNull List<ItemStack> items) {
@@ -784,7 +798,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     private int countTrashItemStacks(@NotNull List<ItemStack> items) {
         int count = 0;
         for (ItemStack itemStack : items) {
-            if (itemStack == null || itemStack.getType() == Material.AIR) {
+            if (isTrashEmptyItem(null, itemStack)) {
                 continue;
             }
             count++;
@@ -805,12 +819,12 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         List<ItemStack> items = new java.util.ArrayList<>();
         for (int slot = 0; slot < 45; slot++) {
             ItemStack itemStack = inventory.getItem(slot);
-            if (itemStack == null || itemStack.getType() == Material.AIR) {
+            if (isTrashEmptyItem(inventory, itemStack)) {
                 continue;
             }
             items.add(itemStack.clone());
         }
-        return items;
+        return normalizeTrashItems(items);
     }
 
     private void handleTrashPlayerInventoryClick(
@@ -864,7 +878,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     ) {
         ItemStack current = topInventory.getItem(rawSlot);
         ItemStack cursor = event.getCursor();
-        boolean hasCurrent = current != null && current.getType() != Material.AIR;
+        boolean hasCurrent = !isTrashEmptyItem(topInventory, current);
         boolean hasCursor = cursor != null && cursor.getType() != Material.AIR;
 
         if (hasCursor) {
@@ -923,52 +937,98 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         @NotNull ItemStack template,
         int desired
     ) {
-        int capacity = 0;
-        int maxStack = template.getMaxStackSize();
-        for (int slot = 0; slot < TrashScreenView.CONTENT_SLOT_COUNT && capacity < desired; slot++) {
+        for (int slot = 0; slot < TrashScreenView.CONTENT_SLOT_COUNT; slot++) {
             ItemStack existing = topInventory.getItem(slot);
-            if (existing == null || existing.getType() == Material.AIR) {
-                capacity += maxStack;
-                continue;
-            }
-            if (existing.isSimilar(template)) {
-                capacity += Math.max(0, maxStack - existing.getAmount());
+            if (isTrashEmptyItem(topInventory, existing) || existing != null && existing.isSimilar(template)) {
+                return desired;
             }
         }
-        return Math.min(capacity, desired);
+        return 0;
     }
 
     private void placeItemsIntoTrash(@NotNull Inventory topInventory, @NotNull ItemStack moved) {
         int remaining = moved.getAmount();
-        int maxStack = moved.getMaxStackSize();
         for (int slot = 0; slot < TrashScreenView.CONTENT_SLOT_COUNT && remaining > 0; slot++) {
             ItemStack existing = topInventory.getItem(slot);
-            if (existing == null || existing.getType() == Material.AIR) {
+            if (isTrashEmptyItem(topInventory, existing)) {
                 continue;
             }
             if (!existing.isSimilar(moved)) {
                 continue;
             }
-            int canAdd = Math.min(remaining, maxStack - existing.getAmount());
-            if (canAdd <= 0) {
-                continue;
-            }
             ItemStack updated = existing.clone();
-            updated.setAmount(existing.getAmount() + canAdd);
+            updated.setAmount(saturatingAdd(existing.getAmount(), remaining));
             topInventory.setItem(slot, updated);
-            remaining -= canAdd;
+            remaining = 0;
         }
         for (int slot = 0; slot < TrashScreenView.CONTENT_SLOT_COUNT && remaining > 0; slot++) {
             ItemStack existing = topInventory.getItem(slot);
-            if (existing != null && existing.getType() != Material.AIR) {
+            if (!isTrashEmptyItem(topInventory, existing)) {
                 continue;
             }
-            int canAdd = Math.min(remaining, maxStack);
             ItemStack newStack = moved.clone();
-            newStack.setAmount(canAdd);
+            newStack.setAmount(remaining);
             topInventory.setItem(slot, newStack);
-            remaining -= canAdd;
+            remaining = 0;
         }
+    }
+
+    private @NotNull List<ItemStack> normalizeTrashItems(@NotNull List<ItemStack> items) {
+        List<ItemStack> normalized = new java.util.ArrayList<>();
+        for (ItemStack itemStack : items) {
+            if (isTrashEmptyItem(null, itemStack)) {
+                continue;
+            }
+            ItemStack candidate = itemStack.clone();
+            if (candidate.getMaxStackSize() <= 1) {
+                normalized.add(candidate);
+                continue;
+            }
+
+            boolean merged = false;
+            for (int index = 0; index < normalized.size(); index++) {
+                ItemStack existing = normalized.get(index);
+                if (existing.getMaxStackSize() <= 1 || !existing.isSimilar(candidate)) {
+                    continue;
+                }
+                ItemStack updated = existing.clone();
+                updated.setAmount(saturatingAdd(existing.getAmount(), candidate.getAmount()));
+                normalized.set(index, updated);
+                merged = true;
+                break;
+            }
+            if (!merged) {
+                normalized.add(candidate);
+            }
+        }
+        return normalized;
+    }
+
+    private boolean isTrashEmptyItem(@Nullable Inventory inventory, @Nullable ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType() == Material.AIR) {
+            return true;
+        }
+        return isTrashPlaceholderItem(inventory, itemStack);
+    }
+
+    private boolean isTrashPlaceholderItem(@Nullable Inventory inventory, @Nullable ItemStack itemStack) {
+        if (itemStack == null) {
+            return false;
+        }
+        MenuScreen screen = inventory == null ? null : menuView.getMenuScreen(inventory);
+        if (screen == MenuScreen.TRASH) {
+            return menuView.isTrashContentPlaceholder(itemStack);
+        }
+        if (screen == MenuScreen.TRASH_CONFIRM) {
+            return menuView.isTrashConfirmContentPlaceholder(itemStack);
+        }
+        return menuView.isTrashContentPlaceholder(itemStack)
+            || menuView.isTrashConfirmContentPlaceholder(itemStack);
+    }
+
+    private int saturatingAdd(int left, int right) {
+        long sum = (long) left + right;
+        return sum >= Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) sum;
     }
 
     private boolean isTrashContentSlot(int rawSlot) {

@@ -3,9 +3,13 @@ package io.github.maaasu.astralRecord.feature.menu.view.screen;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -15,6 +19,12 @@ public final class TrashScreenView extends BaseMenuScreenView {
     public static final int GUIDE_SLOT = 47;
     public static final int NEXT_SLOT = 53;
     public static final int CLOSE_SLOT = 51;
+
+    private final NamespacedKey contentPlaceholderKey;
+
+    public TrashScreenView(@NotNull NamespacedKey contentPlaceholderKey) {
+        this.contentPlaceholderKey = contentPlaceholderKey;
+    }
 
     public void render(@NotNull Inventory inventory, @NotNull List<ItemStack> items, int pageIndex) {
         int normalizedPage = normalizePage(pageIndex, items.size());
@@ -39,8 +49,19 @@ public final class TrashScreenView extends BaseMenuScreenView {
         return pageIndex + 1 < totalPages(itemCount);
     }
 
+    public boolean isContentPlaceholder(@Nullable ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType() != Material.GRAY_STAINED_GLASS_PANE || !itemStack.hasItemMeta()) {
+            return false;
+        }
+        ItemMeta meta = itemStack.getItemMeta();
+        return meta != null && meta.getPersistentDataContainer().has(contentPlaceholderKey, PersistentDataType.INTEGER);
+    }
+
     private void clear(@NotNull Inventory inventory) {
-        for (int slot = 0; slot < SIZE; slot++) {
+        for (int slot = 0; slot < CONTENT_SLOT_COUNT; slot++) {
+            inventory.setItem(slot, createContentPlaceholder());
+        }
+        for (int slot = CONTENT_SLOT_COUNT; slot < SIZE; slot++) {
             inventory.setItem(slot, new ItemStack(Material.AIR));
         }
     }
@@ -76,11 +97,11 @@ public final class TrashScreenView extends BaseMenuScreenView {
             List.of(
                 Component.text("左クリック: 1個ゴミ箱へ", NamedTextColor.GRAY),
                 Component.text("Shift+左クリック: すべてゴミ箱へ", NamedTextColor.GRAY),
-                Component.text("右クリック: 半分ゴミ箱へ", NamedTextColor.GRAY),
-                Component.text("ゴミ箱→インベントリも同様", NamedTextColor.GRAY),
+                Component.text("右クリック: 半分をゴミ箱へ", NamedTextColor.GRAY),
+                Component.text("ゴミ箱→インベントリも同じ操作", NamedTextColor.GRAY),
                 Component.text(" ", NamedTextColor.GRAY),
-                Component.text("GUIを閉じるとインベントリに戻ります", NamedTextColor.GRAY),
-                Component.text("廃棄ボタンで廃棄確認画面へ", NamedTextColor.GRAY)
+                Component.text("空きスロットは灰色ガラスで表示", NamedTextColor.GRAY),
+                Component.text("廃棄ボタンで確認画面を開く", NamedTextColor.GRAY)
             )
         ));
         inventory.setItem(CLOSE_SLOT, createItem(
@@ -95,5 +116,15 @@ public final class TrashScreenView extends BaseMenuScreenView {
                 List.of(Component.text((pageIndex + 2) + " / " + totalPages(itemCount), NamedTextColor.GRAY))
             ));
         }
+    }
+
+    private @NotNull ItemStack createContentPlaceholder() {
+        ItemStack itemStack = createItem(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of());
+        ItemMeta meta = itemStack.getItemMeta();
+        if (meta != null) {
+            meta.getPersistentDataContainer().set(contentPlaceholderKey, PersistentDataType.INTEGER, 1);
+            itemStack.setItemMeta(meta);
+        }
+        return itemStack;
     }
 }

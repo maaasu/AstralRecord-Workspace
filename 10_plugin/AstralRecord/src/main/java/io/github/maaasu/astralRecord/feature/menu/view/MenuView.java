@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.menu.view;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.currency.view.CurrencyGuiView;
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
@@ -81,13 +82,14 @@ public class MenuView {
         NamespacedKey craftShortcutKey = new NamespacedKey(plugin, "menu_shortcut_slot");
         NamespacedKey craftActionKey = new NamespacedKey(plugin, "menu_shortcut_action");
         NamespacedKey equipmentPlaceholderKey = new NamespacedKey(plugin, "equipment_placeholder");
+        NamespacedKey trashPlaceholderKey = new NamespacedKey(plugin, "trash_content_placeholder");
         this.mainMenuScreenView = new MainMenuScreenView();
         this.statusScreenView = new StatusScreenView();
         this.equipmentMenuScreenView = new EquipmentMenuScreenView(equipmentPlaceholderKey);
         this.currencyGuiView = new CurrencyGuiView();
         this.guideScreenView = new GuideScreenView();
-        this.trashScreenView = new TrashScreenView();
-        this.trashConfirmScreenView = new TrashConfirmScreenView();
+        this.trashScreenView = new TrashScreenView(trashPlaceholderKey);
+        this.trashConfirmScreenView = new TrashConfirmScreenView(trashPlaceholderKey);
         this.craftShortcutView = new CraftShortcutView(craftShortcutKey, craftActionKey);
     }
 
@@ -154,9 +156,11 @@ public class MenuView {
         @NotNull Player player,
         @NotNull MenuShortcutSettings settings,
         @Nullable InventoryType selectedType,
-        @Nullable StatusSnapshot snapshot
+        @Nullable StatusSnapshot snapshot,
+        @NotNull AccountModel selectedAccount,
+        @NotNull List<AccountModel> accounts
     ) {
-        craftShortcutView.renderCraftShortcuts(player, settings, selectedType, snapshot);
+        craftShortcutView.renderCraftShortcuts(player, settings, selectedType, snapshot, selectedAccount, accounts);
     }
 
     public void clearCraftShortcuts(@NotNull Player player) {
@@ -247,5 +251,13 @@ public class MenuView {
 
     public boolean hasNextTrashConfirmPage(@NotNull List<ItemStack> trashItems, int pageIndex) {
         return trashConfirmScreenView.hasNextPage(pageIndex, trashItems.size());
+    }
+
+    public boolean isTrashContentPlaceholder(@Nullable ItemStack itemStack) {
+        return trashScreenView.isContentPlaceholder(itemStack);
+    }
+
+    public boolean isTrashConfirmContentPlaceholder(@Nullable ItemStack itemStack) {
+        return trashConfirmScreenView.isContentPlaceholder(itemStack);
     }
 }

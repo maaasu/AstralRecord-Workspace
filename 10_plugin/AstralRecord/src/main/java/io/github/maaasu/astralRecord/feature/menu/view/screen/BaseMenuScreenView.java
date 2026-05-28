@@ -60,7 +60,7 @@ public abstract class BaseMenuScreenView {
 
     protected @NotNull ItemStack cloneWithAmountLore(@NotNull ItemStack itemStack) {
         ItemStack displayItem = itemStack.clone();
-        if (displayItem.getAmount() <= 1) {
+        if (displayItem.getMaxStackSize() <= 1 && displayItem.getAmount() <= 1) {
             return displayItem;
         }
 
@@ -72,7 +72,7 @@ public abstract class BaseMenuScreenView {
         List<Component> lore = meta.hasLore() && meta.lore() != null
             ? new ArrayList<>(meta.lore())
             : new ArrayList<>();
-        lore.add(Component.text("個数: " + displayItem.getAmount(), NamedTextColor.GRAY));
+        lore.add(Component.text("スタック: " + displayItem.getAmount(), NamedTextColor.GRAY));
         meta.lore(lore);
         displayItem.setItemMeta(meta);
         return displayItem;
