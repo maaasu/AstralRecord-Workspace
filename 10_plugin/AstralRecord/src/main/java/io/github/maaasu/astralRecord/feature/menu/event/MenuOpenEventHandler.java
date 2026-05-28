@@ -21,6 +21,8 @@ import io.github.maaasu.astralRecord.feature.playersetting.gui.PlayerSettingGui;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -34,6 +36,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;
@@ -45,6 +48,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MenuOpenEventHandler extends AbstractEventHandler {
+    private static final String TRASH_AMOUNT_LORE_PREFIX = "\u30b9\u30bf\u30c3\u30af: ";
 
     private final AstralRecord plugin;
     private final MenuView menuView;
@@ -822,7 +826,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             if (isTrashEmptyItem(inventory, itemStack)) {
                 continue;
             }
-            items.add(itemStack.clone());
+            items.add(stripTrashDisplayAmountLore(itemStack));
         }
         return normalizeTrashItems(items);
     }
@@ -902,7 +906,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        ItemStack partial = current.clone();
+        ItemStack partial = stripTrashDisplayAmountLore(current);
         partial.setAmount(requested);
         if (inventoryService.returnItemToOwnedInventory(astPlayer, partial) == null) {
             GuiSound.DENY.play(player);
@@ -947,13 +951,17 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         @NotNull ItemStack template,
         int desired
     ) {
+        ItemStack cleanTemplate = stripTrashDisplayAmountLore(template);
         int capacity = 0;
         for (int slot = 0; slot < TrashScreenView.CONTENT_SLOT_COUNT; slot++) {
             ItemStack existing = topInventory.getItem(slot);
             if (isTrashEmptyItem(topInventory, existing)) {
-                capacity += template.getMaxStackSize();
-            } else if (existing != null && existing.isSimilar(template)) {
-                capacity += Math.max(0, existing.getMaxStackSize() - existing.getAmount());
+                capacity += cleanTemplate.getMaxStackSize();
+            } else if (existing != null) {
+                ItemStack comparableExisting = stripTrashDisplayAmountLore(existing);
+                if (comparableExisting.isSimilar(cleanTemplate)) {
+                    capacity += Math.max(0, comparableExisting.getMaxStackSize() - comparableExisting.getAmount());
+                }
             }
             if (capacity >= desired) {
                 return desired;
@@ -963,22 +971,24 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     }
 
     private void placeItemsIntoTrash(@NotNull Inventory topInventory, @NotNull ItemStack moved) {
-        int remaining = moved.getAmount();
+        ItemStack cleanMoved = stripTrashDisplayAmountLore(moved);
+        int remaining = cleanMoved.getAmount();
         for (int slot = 0; slot < TrashScreenView.CONTENT_SLOT_COUNT && remaining > 0; slot++) {
             ItemStack existing = topInventory.getItem(slot);
             if (isTrashEmptyItem(topInventory, existing)) {
                 continue;
             }
-            if (!existing.isSimilar(moved)) {
+            ItemStack cleanExisting = stripTrashDisplayAmountLore(existing);
+            if (!cleanExisting.isSimilar(cleanMoved)) {
                 continue;
             }
-            int available = Math.max(0, existing.getMaxStackSize() - existing.getAmount());
+            int available = Math.max(0, cleanExisting.getMaxStackSize() - cleanExisting.getAmount());
             if (available <= 0) {
                 continue;
             }
             int transfer = Math.min(remaining, available);
-            ItemStack updated = existing.clone();
-            updated.setAmount(existing.getAmount() + transfer);
+            ItemStack updated = cleanExisting.clone();
+            updated.setAmount(cleanExisting.getAmount() + transfer);
             topInventory.setItem(slot, updated);
             remaining -= transfer;
         }
@@ -987,7 +997,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             if (!isTrashEmptyItem(topInventory, existing)) {
                 continue;
             }
-            ItemStack newStack = moved.clone();
+            ItemStack newStack = cleanMoved.clone();
             int transfer = Math.min(remaining, newStack.getMaxStackSize());
             newStack.setAmount(transfer);
             topInventory.setItem(slot, newStack);
@@ -1001,7 +1011,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             if (isTrashEmptyItem(null, itemStack)) {
                 continue;
             }
-            ItemStack candidate = itemStack.clone();
+            ItemStack candidate = stripTrashDisplayAmountLore(itemStack);
             if (candidate.getMaxStackSize() <= 1) {
                 normalized.add(candidate);
                 continue;
@@ -1036,6 +1046,25 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             }
         }
         return normalized;
+    }
+
+    private @NotNull ItemStack stripTrashDisplayAmountLore(@NotNull ItemStack itemStack) {
+        ItemStack cleaned = itemStack.clone();
+        ItemMeta meta = cleaned.getItemMeta();
+        if (meta == null || !meta.hasLore() || meta.lore() == null) {
+            return cleaned;
+        }
+
+        List<Component> lore = new java.util.ArrayList<>(meta.lore());
+        boolean removed = lore.removeIf(line ->
+            PlainTextComponentSerializer.plainText().serialize(line).startsWith(TRASH_AMOUNT_LORE_PREFIX)
+        );
+        if (!removed) {
+            return cleaned;
+        }
+        meta.lore(lore);
+        cleaned.setItemMeta(meta);
+        return cleaned;
     }
 
     private boolean isTrashEmptyItem(@Nullable Inventory inventory, @Nullable ItemStack itemStack) {
