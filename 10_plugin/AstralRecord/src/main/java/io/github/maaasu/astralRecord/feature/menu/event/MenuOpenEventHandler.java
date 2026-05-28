@@ -947,13 +947,19 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         @NotNull ItemStack template,
         int desired
     ) {
+        int capacity = 0;
         for (int slot = 0; slot < TrashScreenView.CONTENT_SLOT_COUNT; slot++) {
             ItemStack existing = topInventory.getItem(slot);
-            if (isTrashEmptyItem(topInventory, existing) || existing != null && existing.isSimilar(template)) {
+            if (isTrashEmptyItem(topInventory, existing)) {
+                capacity += template.getMaxStackSize();
+            } else if (existing != null && existing.isSimilar(template)) {
+                capacity += Math.max(0, existing.getMaxStackSize() - existing.getAmount());
+            }
+            if (capacity >= desired) {
                 return desired;
             }
         }
-        return 0;
+        return Math.max(0, Math.min(desired, capacity));
     }
 
     private void placeItemsIntoTrash(@NotNull Inventory topInventory, @NotNull ItemStack moved) {
@@ -966,10 +972,15 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             if (!existing.isSimilar(moved)) {
                 continue;
             }
+            int available = Math.max(0, existing.getMaxStackSize() - existing.getAmount());
+            if (available <= 0) {
+                continue;
+            }
+            int transfer = Math.min(remaining, available);
             ItemStack updated = existing.clone();
-            updated.setAmount(saturatingAdd(existing.getAmount(), remaining));
+            updated.setAmount(existing.getAmount() + transfer);
             topInventory.setItem(slot, updated);
-            remaining = 0;
+            remaining -= transfer;
         }
         for (int slot = 0; slot < TrashScreenView.CONTENT_SLOT_COUNT && remaining > 0; slot++) {
             ItemStack existing = topInventory.getItem(slot);
@@ -977,9 +988,10 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 continue;
             }
             ItemStack newStack = moved.clone();
-            newStack.setAmount(remaining);
+            int transfer = Math.min(remaining, newStack.getMaxStackSize());
+            newStack.setAmount(transfer);
             topInventory.setItem(slot, newStack);
-            remaining = 0;
+            remaining -= transfer;
         }
     }
 
@@ -1001,14 +1013,26 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 if (existing.getMaxStackSize() <= 1 || !existing.isSimilar(candidate)) {
                     continue;
                 }
+                int available = Math.max(0, existing.getMaxStackSize() - existing.getAmount());
+                if (available <= 0) {
+                    continue;
+                }
+                int transfer = Math.min(candidate.getAmount(), available);
                 ItemStack updated = existing.clone();
-                updated.setAmount(saturatingAdd(existing.getAmount(), candidate.getAmount()));
+                updated.setAmount(existing.getAmount() + transfer);
                 normalized.set(index, updated);
-                merged = true;
-                break;
+                candidate.setAmount(candidate.getAmount() - transfer);
+                if (candidate.getAmount() <= 0) {
+                    merged = true;
+                    break;
+                }
             }
-            if (!merged) {
-                normalized.add(candidate);
+            while (!merged && candidate.getAmount() > 0) {
+                ItemStack split = candidate.clone();
+                int transfer = Math.min(candidate.getAmount(), split.getMaxStackSize());
+                split.setAmount(transfer);
+                normalized.add(split);
+                candidate.setAmount(candidate.getAmount() - transfer);
             }
         }
         return normalized;
@@ -1034,11 +1058,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
         return menuView.isTrashContentPlaceholder(itemStack)
             || menuView.isTrashConfirmContentPlaceholder(itemStack);
-    }
-
-    private int saturatingAdd(int left, int right) {
-        long sum = (long) left + right;
-        return sum >= Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) sum;
     }
 
     private boolean isTrashContentSlot(int rawSlot) {
