@@ -2,8 +2,8 @@ schemaVersion: 1
 id: world
 displayName: "Central Base"
 worldType: BASE
-baseWorldPath: "world_arcanum_city"
-instanceRootPath: "world_instances/world_arcanum_city"
+baseWorldPath: "worlds/world_arcanum_city"
+instanceRootPath: "worlds/world_instances/world_arcanum_city"
 autoLoad: true
 instanceEnabled: false
 maxPlayers: 100

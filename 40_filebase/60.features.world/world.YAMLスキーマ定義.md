@@ -1,6 +1,6 @@
 # WorldMasterData YAML スキーマ定義
 
-World システムで参照する静的ワールド定義です。インスタンス生成時は `baseWorldPath` を複製元、`instanceRootPath` を複製先ルートとして扱います。生成ワールド名はプラグイン側で `{worldId}_{instanceType}_{ownerId}_{shortHash}` の形式で一意に生成する想定です。
+World システムで参照する静的ワールド定義です。インスタンス生成時は `baseWorldPath` を複製元、`instanceRootPath` を複製先ルートとして扱います。サーバー配置は `worlds/` 配下を基準とし、生成ワールド名はプラグイン側で `{worldId}_{instanceType}_{ownerId}_{shortHash}` の形式で一意に生成する想定です。
 
 ```yaml
 schemaVersion: 1

@@ -2,8 +2,8 @@ schemaVersion: 1
 id: hub_lobby
 displayName: "Hub Lobby"
 worldType: HUB
-baseWorldPath: "world"
-instanceRootPath: "world_instances/hub"
+baseWorldPath: "worlds/world"
+instanceRootPath: "worlds/world_instances/hub"
 autoLoad: true
 instanceEnabled: true
 maxPlayers: 8
