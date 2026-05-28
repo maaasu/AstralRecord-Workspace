@@ -13,19 +13,16 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * サーバー参加時に plugin.yml の参加先へプレイヤーを移動します。
- */
+ * 繧ｵ繝ｼ繝舌・蜿ょ刈譎ゅ↓ config.yml 縺ｮ蜿ょ刈蜈医∈繝励Ξ繧､繝､繝ｼ繧堤ｧｻ蜍輔＠縺ｾ縺吶・ */
 public class WorldJoinSpawnEventHandler extends AbstractEventHandler {
 
     private final AstralRecord plugin;
     private final JoinSpawnLocation joinSpawnLocation;
 
     /**
-     * WorldJoinSpawnEventHandler を初期化します。
-     *
-     * @param plugin プラグイン
-     * @param joinSpawnLocation 参加時スポーン設定
-     */
+     * WorldJoinSpawnEventHandler 繧貞・譛溷喧縺励∪縺吶・     *
+     * @param plugin 繝励Λ繧ｰ繧､繝ｳ
+     * @param joinSpawnLocation 蜿ょ刈譎ゅせ繝昴・繝ｳ險ｭ螳・     */
     public WorldJoinSpawnEventHandler(
             @NotNull AstralRecord plugin,
             @NotNull JoinSpawnLocation joinSpawnLocation

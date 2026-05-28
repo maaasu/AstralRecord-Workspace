@@ -1,6 +1,13 @@
 # Plugin Settings
 plugin:
   debugMode: false
+  joinSpawn:
+    world: "world"
+    x: -1484.5
+    y: 77
+    z: -1486.5
+    yaw: 0.0
+    pitch: 0.0
 
 # Database Settings
 database:
