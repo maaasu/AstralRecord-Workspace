@@ -307,6 +307,7 @@ public enum PlayerMsgId {
     P_5245(5245),
     P_5246(5246),
     P_5247(5247),
+    P_5248(5248),
     // endregion
 
     // region /feature/user/command/UserPermissionCommand.java 5300-5309

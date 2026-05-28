@@ -64,5 +64,7 @@
 
 - bundle アイテムは `ItemInteractionBlockEventHandler` で右クリック時に `BundleUseService` を起動し、開封処理を行う。
 - バンドル開封後も vanilla 側の使用・設置・消費は抑止する。
+- 開封完了後はサマリーメッセージに加えて、獲得した各アイテム名と個数をプレイヤーへ表示する。
 - bundle の loot 参照は `loot_table:` 接頭辞付き ID を許容し、plugin 側で table / pool 構造を解決する。
+- bundle Lore の取得候補表示は候補アイテム名と個数を中心に構成し、ルート名やアイテム ID は表示しない。
 - 追加メモ: [[04_90.01-bundle開封実装メモ]]

@@ -227,6 +227,7 @@ public class BundleUseService {
         int rewardKinds = 0;
         int totalGranted = 0;
         int totalDropped = 0;
+        List<String> rewardSummaries = new ArrayList<>();
         for (Map.Entry<String, Integer> reward : rewards.entrySet()) {
             if (reward.getValue() <= 0) {
                 continue;
@@ -242,6 +243,7 @@ public class BundleUseService {
 
             rewardKinds++;
             int requestedAmount = reward.getValue();
+            rewardSummaries.add(buildRewardSummary(rewardModel, requestedAmount));
             int granted = inventoryService.addItemToNormalInventory(
                 pending.astPlayer(), rewardModel, requestedAmount, SOURCE_BUNDLE_USE);
             totalGranted += granted;
@@ -254,9 +256,22 @@ public class BundleUseService {
 
         playUseEffects(pending.astPlayer(), pending.bundle());
         pending.astPlayer().sendMessage(PlayerMsgId.P_5243, rewardKinds, totalGranted);
+        for (String rewardSummary : rewardSummaries) {
+            pending.astPlayer().sendMessage(PlayerMsgId.P_5248, rewardSummary);
+        }
         if (totalDropped > 0) {
             pending.astPlayer().sendMessage(PlayerMsgId.P_5244, totalDropped);
         }
+    }
+
+    private @NotNull String buildRewardSummary(@NotNull ItemModel rewardModel, int amount) {
+        String displayName = rewardModel.getName();
+        if (displayName == null || displayName.isBlank()) {
+            displayName = rewardModel.getId();
+        } else {
+            displayName = ColorCodeUtil.translateAlternateColorCodes(displayName);
+        }
+        return displayName + ColorCodeUtil.GRAY + " x" + amount;
     }
 
     private boolean isStillHoldingBundle(@NotNull PendingBundleUse pending) {

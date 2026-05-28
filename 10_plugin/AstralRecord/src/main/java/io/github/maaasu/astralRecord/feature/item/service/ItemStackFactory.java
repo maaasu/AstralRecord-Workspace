@@ -527,7 +527,6 @@ public class ItemStackFactory {
         }
 
         lore.add(ColorCodeUtil.GOLD + "❖ 取得候補");
-        lore.add(ColorCodeUtil.GRAY + " ▸ ルート: " + ColorCodeUtil.WHITE + lootModel.getName());
         for (LootEntry entry : lootModel.flattenedEntries()) {
             String amountText = entry.getMinAmount() == entry.getMaxAmount()
                     ? String.valueOf(entry.getMinAmount())
@@ -558,9 +557,7 @@ public class ItemStackFactory {
         if (rewardModel == null || rewardModel.getName() == null || rewardModel.getName().isBlank()) {
             return itemId;
         }
-        return ColorCodeUtil.translateAlternateColorCodes(rewardModel.getName())
-                + ColorCodeUtil.GRAY + " "
-                + ColorCodeUtil.DARK_GRAY + "(" + itemId + ")";
+        return ColorCodeUtil.translateAlternateColorCodes(rewardModel.getName());
     }
 
     /**
