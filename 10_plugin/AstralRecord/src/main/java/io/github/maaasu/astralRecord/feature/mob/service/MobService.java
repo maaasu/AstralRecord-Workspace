@@ -294,6 +294,19 @@ public class MobService {
         return player.getLocation().distanceSquared(loc) <= DEFAULT_VIEW_DISTANCE_SQ;
     }
 
+    /**
+     * 指定インスタンスを現在視認しているプレイヤーの UUID 集合を返します。
+     * インスタンスが存在しない場合は空集合を返します。
+     *
+     * @param instanceId インスタンス ID
+     * @return 視認中プレイヤーの UUID 集合（変更不可なコピー）
+     */
+    @NotNull
+    public Set<UUID> getViewers(@NotNull UUID instanceId) {
+        Set<UUID> v = viewers.get(instanceId);
+        return v != null ? new HashSet<>(v) : new HashSet<>();
+    }
+
     /** プラグイン本体を返します（共通基盤用）。 */
     @NotNull
     public Plugin plugin() {

@@ -4,6 +4,7 @@ import org.bukkit.Location;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -26,6 +27,26 @@ public final class MobInstance {
     private MobState state = MobState.IDLE;
     private UUID targetId;
     private long lastAttackTick;
+
+    // ナビゲーション状態
+    /** 現在の経路ウェイポイントリスト。null の場合は未計算。 */
+    private List<Location> navPath;
+    /** 次に向かうウェイポイントのインデックス。 */
+    private int navPathIndex;
+    /** 最後に経路計算したターゲットの X 座標。 */
+    private double navTargetX;
+    /** 最後に経路計算したターゲットの Z 座標。 */
+    private double navTargetZ;
+    /** 最後に経路を再計算した内部 tick（レート制限用）。 */
+    private long navRecomputeTick = -1000L;
+    /** WANDER 行動時の現在の徘徊目的地。 */
+    private Location wanderTarget;
+
+    // 頭部の向き（プレイヤーへの追跡用）
+    /** 頭部の yaw（度）。体と独立してプレイヤー方向を向く。 */
+    private float headYaw;
+    /** 頭部の pitch（度）。 */
+    private float headPitch;
 
     /**
      * インスタンスを生成します。初期 HP は {@code MAX_HEALTH} のベースステータス値、
@@ -152,5 +173,129 @@ public final class MobInstance {
     @NotNull
     public MobThreatTable threatTable() {
         return threatTable;
+    }
+
+    // ---------- ナビゲーション ----------
+
+    /** 現在の経路ウェイポイントリストを返します。未計算の場合は {@code null}。 */
+    @Nullable
+    public List<Location> navPath() {
+        return navPath;
+    }
+
+    /**
+     * 経路ウェイポイントリストを設定します。
+     *
+     * @param path ウェイポイントリスト。{@code null} で未計算状態にリセット
+     */
+    public void navPath(@Nullable List<Location> path) {
+        this.navPath = path;
+    }
+
+    /** 次のウェイポイントインデックスを返します。 */
+    public int navPathIndex() {
+        return navPathIndex;
+    }
+
+    /**
+     * 次のウェイポイントインデックスを設定します。
+     *
+     * @param index 新しいインデックス
+     */
+    public void navPathIndex(int index) {
+        this.navPathIndex = index;
+    }
+
+    /** 最後に経路計算したターゲットの X 座標を返します。 */
+    public double navTargetX() {
+        return navTargetX;
+    }
+
+    /**
+     * 最後に経路計算したターゲットの X 座標を設定します。
+     *
+     * @param x X 座標
+     */
+    public void navTargetX(double x) {
+        this.navTargetX = x;
+    }
+
+    /** 最後に経路計算したターゲットの Z 座標を返します。 */
+    public double navTargetZ() {
+        return navTargetZ;
+    }
+
+    /**
+     * 最後に経路計算したターゲットの Z 座標を設定します。
+     *
+     * @param z Z 座標
+     */
+    public void navTargetZ(double z) {
+        this.navTargetZ = z;
+    }
+
+    /** 最後に経路を再計算した内部 tick を返します。 */
+    public long navRecomputeTick() {
+        return navRecomputeTick;
+    }
+
+    /**
+     * 最後に経路を再計算した内部 tick を設定します。
+     *
+     * @param tick 内部 tick
+     */
+    public void navRecomputeTick(long tick) {
+        this.navRecomputeTick = tick;
+    }
+
+    /** 現在の経路をリセットします（次 tick で再計算される）。 */
+    public void clearNavPath() {
+        this.navPath = null;
+        this.navPathIndex = 0;
+    }
+
+    /** WANDER 時の現在の徘徊目的地を返します。未設定なら {@code null}。 */
+    @Nullable
+    public Location wanderTarget() {
+        return wanderTarget;
+    }
+
+    /**
+     * WANDER 時の徘徊目的地を設定します。
+     *
+     * @param target 目的地（{@code null} で未設定）
+     */
+    public void wanderTarget(@Nullable Location target) {
+        this.wanderTarget = target;
+    }
+
+    // ---------- 頭部の向き ----------
+
+    /** 頭部の yaw（度）を返します。 */
+    public float headYaw() {
+        return headYaw;
+    }
+
+    /**
+     * 頭部の yaw（度）を設定します。
+     *
+     * @param yaw 頭部 yaw
+     */
+    public void headYaw(float yaw) {
+        this.headYaw = yaw;
+    }
+
+    /** 頭部の pitch（度）を返します。 */
+    public float headPitch() {
+        return headPitch;
+    }
+
+    /**
+     * 頭部の pitch（度）を設定します。
+     *
+     * @param pitch 頭部 pitch
+     */
+    public void headPitch(float pitch) {
+        this.headPitch = pitch;
     }
 }

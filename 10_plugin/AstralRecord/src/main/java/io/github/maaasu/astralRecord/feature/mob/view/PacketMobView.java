@@ -84,6 +84,7 @@ public class PacketMobView {
     /**
      * 指定プレイヤーへ Mob の位置・回転更新パケットを送信します。
      * 前回送出位置との差分が小さければ相対移動、大きければテレポートを使用します。
+     * 位置パケット送信後に頭部回転パケットも送信します。
      *
      * @param player   送信先プレイヤー
      * @param instance Mob インスタンス
@@ -94,20 +95,21 @@ public class PacketMobView {
 
         if (previous == null || previous.getWorld() != current.getWorld()) {
             sendTeleport(player, instance, current);
-            return;
-        }
-
-        double dx = current.getX() - previous.getX();
-        double dy = current.getY() - previous.getY();
-        double dz = current.getZ() - previous.getZ();
-        double distanceSq = dx * dx + dy * dy + dz * dz;
-
-        // 8 ブロック超の移動はテレポート、それ未満は相対移動とする
-        if (distanceSq > 64.0) {
-            sendTeleport(player, instance, current);
         } else {
-            sendRelativeMove(player, instance, current, dx, dy, dz);
+            double dx = current.getX() - previous.getX();
+            double dy = current.getY() - previous.getY();
+            double dz = current.getZ() - previous.getZ();
+            double distanceSq = dx * dx + dy * dy + dz * dz;
+
+            // 8 ブロック超の移動はテレポート、それ未満は相対移動とする
+            if (distanceSq > 64.0) {
+                sendTeleport(player, instance, current);
+            } else {
+                sendRelativeMove(player, instance, current, dx, dy, dz);
+            }
         }
+
+        sendHeadRotation(player, instance);
     }
 
     /**
@@ -157,6 +159,20 @@ public class PacketMobView {
         packet.getBooleans().writeSafely(0, false);
         send(player, packet);
         lastSentLocation.put(instance.instanceId(), target.clone());
+    }
+
+    /**
+     * 指定プレイヤーへ Mob の頭部回転パケット（ENTITY_HEAD_ROTATION）を送信します。
+     * 体の向きと独立して頭部 yaw を設定します。
+     *
+     * @param player   送信先プレイヤー
+     * @param instance Mob インスタンス
+     */
+    private void sendHeadRotation(@NotNull Player player, @NotNull MobInstance instance) {
+        PacketContainer packet = protocolManager.createPacket(PacketType.Play.Server.ENTITY_HEAD_ROTATION);
+        packet.getIntegers().write(0, instance.entityId());
+        packet.getBytes().writeSafely(0, toAngle(instance.headYaw()));
+        send(player, packet);
     }
 
     /**
