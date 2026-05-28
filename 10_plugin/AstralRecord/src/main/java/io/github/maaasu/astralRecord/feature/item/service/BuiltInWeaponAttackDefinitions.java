@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * weapon equipment の通常攻撃/特殊攻撃で使用する組み込みスキル定義です。
+ * weapon equipment の通常攻撃・特殊攻撃で使用する組み込みスキル定義です。
  */
 public final class BuiltInWeaponAttackDefinitions {
 
@@ -28,7 +28,7 @@ public final class BuiltInWeaponAttackDefinitions {
                 new SkillDefinition(
                         NORMAL_ATTACK_MELEE,
                         IMPLEMENTATION_ID,
-                        "通常攻撃: 近接",
+                        "通常攻撃 近接",
                         "equipment 左クリックで発動する近接通常攻撃です。",
                         null,
                         List.of(),
@@ -39,7 +39,7 @@ public final class BuiltInWeaponAttackDefinitions {
                         null,
                         Map.ofEntries(
                                 Map.entry("resourceType", "ENERGY"),
-                                Map.entry("resourceCost", 10.0D),
+                                Map.entry("resourceCost", 0.0D),
                                 Map.entry("particle", "SWEEP_ATTACK"),
                                 Map.entry("particleCount", 1),
                                 Map.entry("spreadX", 0.0D),
@@ -57,8 +57,8 @@ public final class BuiltInWeaponAttackDefinitions {
                 new SkillDefinition(
                         NORMAL_ATTACK_BOW,
                         IMPLEMENTATION_ID,
-                        "通常攻撃: 弓",
-                        "equipment 左クリックで発動する弓の通常攻撃です。",
+                        "通常攻撃 弓",
+                        "equipment 左クリックで発動する弓通常攻撃です。",
                         null,
                         List.of(),
                         0L,
@@ -68,7 +68,7 @@ public final class BuiltInWeaponAttackDefinitions {
                         null,
                         Map.ofEntries(
                                 Map.entry("resourceType", "ENERGY"),
-                                Map.entry("resourceCost", 14.0D),
+                                Map.entry("resourceCost", 0.0D),
                                 Map.entry("particle", "CRIT"),
                                 Map.entry("particleCount", 12),
                                 Map.entry("spreadX", 0.18D),
@@ -79,14 +79,16 @@ public final class BuiltInWeaponAttackDefinitions {
                                 Map.entry("upwardOffset", -0.1D),
                                 Map.entry("sound", "entity.arrow.shoot"),
                                 Map.entry("soundVolume", 1.0D),
-                                Map.entry("soundPitch", 1.15D)
+                                Map.entry("soundPitch", 1.15D),
+                                Map.entry("projectileType", "arrow"),
+                                Map.entry("projectileSpeed", 3.0D)
                         ),
                         List.of("builtin", "equipment", "normal_attack", "bow")
                 ),
                 new SkillDefinition(
                         NORMAL_ATTACK_MAGIC,
                         IMPLEMENTATION_ID,
-                        "通常攻撃: 魔法",
+                        "通常攻撃 魔法",
                         "equipment 左クリックで発動する魔法通常攻撃です。",
                         null,
                         List.of(),
@@ -97,7 +99,7 @@ public final class BuiltInWeaponAttackDefinitions {
                         null,
                         Map.ofEntries(
                                 Map.entry("resourceType", "MANA"),
-                                Map.entry("resourceCost", 8.0D),
+                                Map.entry("resourceCost", 0.0D),
                                 Map.entry("particle", "ENCHANT"),
                                 Map.entry("particleCount", 20),
                                 Map.entry("spreadX", 0.25D),
@@ -108,14 +110,16 @@ public final class BuiltInWeaponAttackDefinitions {
                                 Map.entry("upwardOffset", -0.05D),
                                 Map.entry("sound", "entity.evoker.cast_spell"),
                                 Map.entry("soundVolume", 1.0D),
-                                Map.entry("soundPitch", 1.2D)
+                                Map.entry("soundPitch", 1.2D),
+                                Map.entry("projectileType", "magic"),
+                                Map.entry("projectileSpeed", 2.0D)
                         ),
                         List.of("builtin", "equipment", "normal_attack", "magic")
                 ),
                 new SkillDefinition(
                         SPECIAL_ATTACK_MELEE,
                         IMPLEMENTATION_ID,
-                        "特殊攻撃: 近接",
+                        "特殊攻撃 近接",
                         "equipment 右クリックで発動する近接特殊攻撃です。",
                         null,
                         List.of(),
@@ -144,8 +148,8 @@ public final class BuiltInWeaponAttackDefinitions {
                 new SkillDefinition(
                         SPECIAL_ATTACK_BOW,
                         IMPLEMENTATION_ID,
-                        "特殊攻撃: 弓",
-                        "equipment 右クリックで発動する弓の特殊攻撃です。",
+                        "特殊攻撃 弓",
+                        "equipment 右クリックで発動する弓特殊攻撃です。",
                         null,
                         List.of(),
                         0L,
@@ -166,14 +170,16 @@ public final class BuiltInWeaponAttackDefinitions {
                                 Map.entry("upwardOffset", -0.08D),
                                 Map.entry("sound", "entity.arrow.shoot"),
                                 Map.entry("soundVolume", 1.15D),
-                                Map.entry("soundPitch", 0.85D)
+                                Map.entry("soundPitch", 0.85D),
+                                Map.entry("projectileType", "arrow"),
+                                Map.entry("projectileSpeed", 3.0D)
                         ),
                         List.of("builtin", "equipment", "special_attack", "bow")
                 ),
                 new SkillDefinition(
                         SPECIAL_ATTACK_MAGIC,
                         IMPLEMENTATION_ID,
-                        "特殊攻撃: 魔法",
+                        "特殊攻撃 魔法",
                         "equipment 右クリックで発動する魔法特殊攻撃です。",
                         null,
                         List.of(),
@@ -195,7 +201,9 @@ public final class BuiltInWeaponAttackDefinitions {
                                 Map.entry("upwardOffset", 0.0D),
                                 Map.entry("sound", "entity.evoker.cast_spell"),
                                 Map.entry("soundVolume", 1.1D),
-                                Map.entry("soundPitch", 0.9D)
+                                Map.entry("soundPitch", 0.9D),
+                                Map.entry("projectileType", "magic"),
+                                Map.entry("projectileSpeed", 2.0D)
                         ),
                         List.of("builtin", "equipment", "special_attack", "magic")
                 )

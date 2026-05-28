@@ -4,7 +4,6 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentOnUse;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
-import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
@@ -18,7 +17,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 /**
- * weapon equipment の左右クリック攻撃を処理します。
+ * weapon equipment の左クリック攻撃と右クリック攻撃を処理します。
  */
 public final class ItemWeaponAttackService {
 
@@ -33,13 +32,6 @@ public final class ItemWeaponAttackService {
         this.skillService = skillService;
     }
 
-    /**
-     * 左クリック通常攻撃を処理します。
-     *
-     * @param player 発動プレイヤー
-     * @param itemStack メインハンド武器
-     * @param castLocation 発動位置
-     */
     public void handleLeftClick(
             @NotNull AstPlayer player,
             @Nullable ItemStack itemStack,
@@ -48,13 +40,6 @@ public final class ItemWeaponAttackService {
         handleAttack(player, itemStack, castLocation, true);
     }
 
-    /**
-     * 右クリック特殊攻撃を処理します。
-     *
-     * @param player 発動プレイヤー
-     * @param itemStack メインハンド武器
-     * @param castLocation 発動位置
-     */
     public void handleRightClick(
             @NotNull AstPlayer player,
             @Nullable ItemStack itemStack,
@@ -84,16 +69,15 @@ public final class ItemWeaponAttackService {
             return;
         }
 
-        String rawSkillId = leftClick ? onUse.getLeftClickSkillId() : onUse.getRightClickSkillId();
+        var rawSkillId = leftClick ? onUse.getLeftClickSkillId() : onUse.getRightClickSkillId();
         if (rawSkillId == null || rawSkillId.isBlank()) {
             return;
         }
 
-        String skillId = rawSkillId.trim();
-        Integer cooldownTicks = leftClick ? onUse.getLeftClickCooldownTicks() : onUse.getRightClickCooldownTicks();
-        PlayerSkillCaster caster = new PlayerSkillCaster(player);
+        var skillId = rawSkillId.trim();
+        var cooldownTicks = leftClick ? onUse.getLeftClickCooldownTicks() : onUse.getRightClickCooldownTicks();
+        var caster = new PlayerSkillCaster(player);
         if (cooldownTicks != null && cooldownTicks > 0 && skillService.isOnCooldown(caster, skillId)) {
-            caster.notify(PlayerMsgId.P_5802);
             return;
         }
 

@@ -9,7 +9,10 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.SoundCategory;
+import org.bukkit.entity.AbstractArrow;
+import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Snowball;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
@@ -65,6 +68,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             player.getWorld().playSound(player.getLocation(), soundKey, SoundCategory.PLAYERS, volume, pitch);
         }
 
+        spawnLinearProjectile(context.skill(), player, effectLocation, direction);
         return SkillCastResult.success(resourceCost, context.skill().getCooldownTicks());
     }
 
@@ -80,6 +84,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         requireNonNegativeDouble(skill, "forwardOffset");
         requireNonNegativeDouble(skill, "soundVolume");
         requireNonNegativeDouble(skill, "soundPitch");
+        requireNonNegativeDouble(skill, "projectileSpeed");
     }
 
     private @NotNull Particle readParticle(
@@ -154,6 +159,43 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         }
         if (number.doubleValue() < 0.0D) {
             throw new SkillParameterException(key, "0 以上を設定してください");
+        }
+    }
+
+    private void spawnLinearProjectile(
+            @NotNull SkillDefinition skill,
+            @NotNull Player player,
+            @NotNull Location spawnLocation,
+            @NotNull Vector direction
+    ) {
+        String projectileType = readStringParam(skill, "projectileType").toLowerCase(Locale.ROOT);
+        if (projectileType.isBlank()) {
+            return;
+        }
+
+        double projectileSpeed = readDoubleParam(skill, "projectileSpeed", 0.0D);
+        if (projectileSpeed <= 0.0D) {
+            return;
+        }
+
+        Vector velocity = direction.clone().multiply(projectileSpeed);
+        switch (projectileType) {
+            case "arrow" -> {
+                Arrow arrow = player.getWorld().spawn(spawnLocation, Arrow.class);
+                arrow.setShooter(player);
+                arrow.setCritical(false);
+                arrow.setPickupStatus(AbstractArrow.PickupStatus.DISALLOWED);
+                arrow.setGravity(false);
+                arrow.setVelocity(velocity);
+            }
+            case "magic" -> {
+                Snowball snowball = player.getWorld().spawn(spawnLocation, Snowball.class);
+                snowball.setShooter(player);
+                snowball.setGravity(false);
+                snowball.setVelocity(velocity);
+            }
+            default -> {
+            }
         }
     }
 }
