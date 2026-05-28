@@ -421,8 +421,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
         if (rawSlot == MenuView.TRASH_CLOSE_SLOT) {
             event.setCancelled(true);
-            GuiSound.CLOSE.play(player);
             if (currentTrashItems.isEmpty()) {
+                GuiSound.CLOSE.play(player);
                 discardTrash(player);
                 suppressTrashConfirmOnClose.add(player.getUniqueId());
                 player.closeInventory();
@@ -550,13 +550,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         if (astPlayer == null || !astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
             return null;
         }
-
-        InventoryType current = inventoryService.getDisplayedInventoryType(astPlayer.getAccount().getUuid());
-        return switch (current) {
-            case NORMAL -> InventoryType.EQUIPMENT;
-            case EQUIPMENT -> InventoryType.RUNE;
-            default -> InventoryType.NORMAL;
-        };
+        return inventoryService.findNextSwitchableInventoryType(astPlayer.getAccount().getUuid());
     }
 
     private void applyInventoryShortcut(@NotNull Player player, @NotNull InventoryType inventoryType) {
@@ -567,6 +561,10 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
         if (inventoryService.getDisplayedInventoryType(astPlayer.getAccount().getUuid()) == inventoryType) {
             GuiSound.SELECT.play(player);
+            return;
+        }
+        if (!inventoryService.canSwitchToInventory(astPlayer.getAccount().getUuid(), inventoryType)) {
+            GuiSound.DENY.play(player);
             return;
         }
         if (!inventoryService.getClickGuard().tryAcquire(

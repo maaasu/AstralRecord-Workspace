@@ -15,9 +15,9 @@ tags:
 
 equipment:
   mainHand:
-    ref: item:rusty_sword
+    ref: item:bronze_sword
   helmet:
-    ref: item:leather_cap
+    ref: item:leather_boots
 
 baseStats:
   - status: MAX_HEALTH
@@ -44,29 +44,4 @@ ai:
     preferredRange: 1.0
     attackIntervalTicks: 20
     skills:
-      - ref: skill:slash
-
-drops:
-  exp: 30
-  money:
-    min: 0
-    max: 10
-  items:
-    - itemId:
-        ref: item:goblin_ear
-      rate: 80.0
-      amount: 1
-      luckAffected: true
-      hidden: false
-    - itemId:
-        ref: item:rusty_sword
-      rate: 5.00
-      amount: 1
-      luckAffected: true
-      hidden: false
-    - itemId:
-        ref: item:goblin_kings_seal
-      rate: 0.10
-      amount: 1
-      luckAffected: false
-      hidden: true
+      - ref: skill:iron_will

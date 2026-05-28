@@ -17,6 +17,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -113,6 +114,16 @@ public class MobService {
     }
 
     /**
+     * 現在スポーン中の Mob インスタンス ID 一覧を返します。
+     *
+     * @return インスタンス ID 一覧（変更不可）
+     */
+    @NotNull
+    public Collection<UUID> getInstanceIds() {
+        return Collections.unmodifiableSet(instances.keySet());
+    }
+
+    /**
      * 指定インスタンスを取得します。
      *
      * @param instanceId インスタンス ID
@@ -183,6 +194,42 @@ public class MobService {
         }
         Logger.log(LogId.D_5702, instanceId);
         return true;
+    }
+
+    /**
+     * コマンド指定 ID に一致する Mob を破棄します。
+     * <p>UUID として解釈できる場合はインスタンス ID、そうでない場合はテンプレート ID として扱います。</p>
+     *
+     * @param id インスタンス ID またはテンプレート ID
+     * @return 破棄した Mob 数
+     */
+    public int destroyById(@NotNull String id) {
+        try {
+            return destroy(UUID.fromString(id)) ? 1 : 0;
+        } catch (IllegalArgumentException ignored) {
+            return destroyByTemplateId(id);
+        }
+    }
+
+    /**
+     * 指定テンプレート ID から生成された Mob をすべて破棄します。
+     *
+     * @param templateId テンプレート ID
+     * @return 破棄した Mob 数
+     */
+    public int destroyByTemplateId(@NotNull String templateId) {
+        List<UUID> targetIds = instances.values().stream()
+                .filter(instance -> instance.template().id().equals(templateId))
+                .map(MobInstance::instanceId)
+                .toList();
+
+        int count = 0;
+        for (UUID instanceId : targetIds) {
+            if (destroy(instanceId)) {
+                count++;
+            }
+        }
+        return count;
     }
 
     /**

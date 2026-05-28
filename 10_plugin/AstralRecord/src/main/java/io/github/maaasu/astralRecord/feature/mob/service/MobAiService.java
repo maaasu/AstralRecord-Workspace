@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.mob.service;
 
 import io.github.maaasu.astralRecord.feature.mob.model.IdleBehavior;
+import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTargetingConfig;
@@ -12,16 +13,18 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Mob の AI を tick 単位で駆動するサービス。
  *
- * <p>{@link BukkitTask} で 1 tick 周期に {@link #tick()} を実行し、
- * 全 Mob インスタンスの状態遷移と表示更新を行う。</p>
+ * <p>このサービスは、マスタデータの AI 定義に基づく待機移動・追跡・帰還と、
+ * パケット表示の更新のみを担当します。攻撃・ドロップ処理はこの段階では実行しません。</p>
  */
 public class MobAiService {
 
@@ -31,8 +34,10 @@ public class MobAiService {
     /** 脅威値を減衰させる間隔（tick）。 */
     private static final long THREAT_DECAY_INTERVAL_TICKS = 100L;
 
+    /** 1 tick あたりの基準移動量（ブロック）。 */
+    private static final double BASE_STEP_PER_TICK = 0.25;
+
     private final MobService mobService;
-    private final MobCombatService combatService;
 
     private BukkitTask task;
     private long internalTick;
@@ -40,12 +45,10 @@ public class MobAiService {
     /**
      * コンストラクタ。
      *
-     * @param mobService    Mob サービス
-     * @param combatService 戦闘サービス
+     * @param mobService Mob サービス
      */
-    public MobAiService(@NotNull MobService mobService, @NotNull MobCombatService combatService) {
+    public MobAiService(@NotNull MobService mobService) {
         this.mobService = mobService;
-        this.combatService = combatService;
     }
 
     /**
@@ -74,22 +77,13 @@ public class MobAiService {
         try {
             internalTick++;
             List<MobInstance> snapshot = new ArrayList<>(mobService.getInstances());
-            List<MobInstance> deathQueue = new ArrayList<>();
-            long serverTick = internalTick;
 
             for (MobInstance instance : snapshot) {
                 try {
-                    if (instance.state() == MobState.DEAD) {
-                        deathQueue.add(instance);
-                        continue;
-                    }
-
-                    // 脅威値の減衰
                     if (internalTick % THREAT_DECAY_INTERVAL_TICKS == 0L) {
                         instance.threatTable().decay(THREAT_DECAY_PER_TICK);
                     }
 
-                    // leashRange 判定
                     if (isLeashed(instance)) {
                         instance.state(MobState.LEASHED);
                     }
@@ -97,31 +91,16 @@ public class MobAiService {
                     switch (instance.state()) {
                         case IDLE -> tickIdle(instance);
                         case AGGRO -> tickAggro(instance);
-                        case COMBAT -> {
-                            combatService.tickCombat(instance, serverTick);
-                            // tickCombat 内で state が変わる可能性がある
-                        }
+                        case COMBAT -> tickCombatHold(instance);
                         case LEASHED -> tickLeashed(instance);
-                        case DEAD -> deathQueue.add(instance);
+                        case DEAD -> mobService.destroy(instance.instanceId());
                     }
                 } catch (RuntimeException ex) {
                     Logger.warn(LogId.W_5702, instance.instanceId());
-                    instance.state(MobState.DEAD);
-                    deathQueue.add(instance);
+                    mobService.destroy(instance.instanceId());
                 }
             }
 
-            // 死亡キュー処理
-            for (MobInstance dead : deathQueue) {
-                try {
-                    combatService.handleDeath(dead);
-                } catch (RuntimeException ex) {
-                    Logger.error(LogId.E_5703, ex, dead.template().id());
-                    mobService.destroy(dead.instanceId());
-                }
-            }
-
-            // 表示範囲更新
             mobService.updateViewers();
         } catch (RuntimeException ex) {
             Logger.error(LogId.E_5702, ex);
@@ -131,24 +110,20 @@ public class MobAiService {
     /**
      * IDLE 状態の Mob を {@link IdleBehavior} に従って動かします。
      * 同時に aggroRange 内のプレイヤーを検知して AGGRO に遷移します。
+     *
+     * @param instance 対象 Mob
      */
     private void tickIdle(@NotNull MobInstance instance) {
         MobTemplate template = instance.template();
         MobTargetingConfig targeting = template.targeting();
 
-        // 接敵チェック
-        if (targeting != null) {
-            Player target = combatService.selectTarget(instance);
-            if (target != null) {
-                instance.state(MobState.AGGRO);
-                return;
-            }
+        if (targeting != null && selectTarget(instance) != null) {
+            instance.state(MobState.AGGRO);
+            return;
         }
 
-        // 待機行動
         IdleBehavior behavior = template.idle().behavior();
         if (behavior == IdleBehavior.WANDER) {
-            // 30 tick に 1 回程度ランダムに移動する（負荷抑制）
             if (internalTick % 30L != 0L) return;
             double radius = template.idle().wanderRadius();
             ThreadLocalRandom rng = ThreadLocalRandom.current();
@@ -156,13 +131,14 @@ public class MobAiService {
             double dx = (rng.nextDouble() - 0.5) * 2.0 * radius;
             double dz = (rng.nextDouble() - 0.5) * 2.0 * radius;
             Location next = anchor.clone().add(dx, 0.0, dz);
-            instance.currentLocation(next);
+            moveToward(instance, next, template.idle().speed());
         }
-        // STATIONARY / PATROL は当面何もしない
     }
 
     /**
-     * AGGRO 状態の Mob のターゲット追跡を行います。
+     * AGGRO 状態の Mob がターゲットへ接近します。
+     *
+     * @param instance 対象 Mob
      */
     private void tickAggro(@NotNull MobInstance instance) {
         MobTargetingConfig targeting = instance.template().targeting();
@@ -171,7 +147,7 @@ public class MobAiService {
             return;
         }
 
-        Player target = combatService.selectTarget(instance);
+        Player target = resolveChaseTarget(instance);
         if (target == null) {
             instance.targetId(null);
             instance.state(MobState.IDLE);
@@ -193,13 +169,35 @@ public class MobAiService {
         if (distSq <= preferredSq + 1.0) {
             instance.state(MobState.COMBAT);
         } else {
-            // ターゲットに近づく（線形補間。経路探索なし）
-            moveToward(instance, target.getLocation());
+            moveToward(instance, target.getLocation(), instance.template().idle().speed());
+        }
+    }
+
+    /**
+     * COMBAT 状態では攻撃を行わず、射程内なら待機し、離れたら追跡へ戻します。
+     *
+     * @param instance 対象 Mob
+     */
+    private void tickCombatHold(@NotNull MobInstance instance) {
+        Player target = resolveChaseTarget(instance);
+        if (target == null) {
+            instance.state(MobState.AGGRO);
+            return;
+        }
+
+        double preferredRange = instance.template().combat() == null
+                ? 1.0
+                : instance.template().combat().preferredRange();
+        double preferredSq = preferredRange * preferredRange;
+        if (target.getLocation().distanceSquared(instance.currentLocation()) > preferredSq + 1.0) {
+            instance.state(MobState.AGGRO);
         }
     }
 
     /**
      * LEASHED 状態の Mob をスポーン地点へ移動させます。到達したら IDLE に復帰します。
+     *
+     * @param instance 対象 Mob
      */
     private void tickLeashed(@NotNull MobInstance instance) {
         Location spawn = instance.spawnLocation();
@@ -207,14 +205,85 @@ public class MobAiService {
         if (current.distanceSquared(spawn) <= 1.0) {
             instance.currentLocation(spawn);
             instance.state(MobState.IDLE);
+            instance.targetId(null);
             instance.threatTable().snapshot().keySet().forEach(id -> instance.threatTable().remove(id));
             return;
         }
-        moveToward(instance, spawn);
+        moveToward(instance, spawn, instance.template().idle().speed());
+    }
+
+    /**
+     * Mob のターゲットを選定して {@link MobInstance#targetId(UUID)} に設定します。
+     *
+     * @param instance 対象 Mob
+     * @return 選定されたプレイヤー。候補なしなら {@code null}
+     */
+    @Nullable
+    private Player selectTarget(@NotNull MobInstance instance) {
+        MobTemplate template = instance.template();
+        MobTargetingConfig targeting = template.targeting();
+        if (targeting == null || template.category() == MobCategory.NPC) {
+            instance.targetId(null);
+            return null;
+        }
+
+        double aggroSq = targeting.aggroRange() * targeting.aggroRange();
+        Location loc = instance.currentLocation();
+        List<Player> candidates = new ArrayList<>();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (player.getWorld() != loc.getWorld()) continue;
+            if (player.getLocation().distanceSquared(loc) > aggroSq) continue;
+            candidates.add(player);
+        }
+
+        if (candidates.isEmpty()) {
+            instance.targetId(null);
+            return null;
+        }
+
+        Player chosen = switch (targeting.strategy()) {
+            case NEAREST -> nearest(candidates, loc);
+            case HIGHEST_THREAT -> {
+                UUID top = instance.threatTable().top();
+                Player player = top == null ? null : Bukkit.getPlayer(top);
+                yield player != null && candidates.contains(player) ? player : nearest(candidates, loc);
+            }
+            case RANDOM -> candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
+            case LOWEST_HP -> lowestHp(candidates);
+        };
+
+        instance.targetId(chosen == null ? null : chosen.getUniqueId());
+        return chosen;
+    }
+
+    /**
+     * 追跡中のターゲットを解決します。
+     * <p>既存ターゲットが deaggroRange 内にいる間は維持し、いなければ新規選定します。</p>
+     *
+     * @param instance 対象 Mob
+     * @return 追跡対象。存在しなければ {@code null}
+     */
+    @Nullable
+    private Player resolveChaseTarget(@NotNull MobInstance instance) {
+        MobTargetingConfig targeting = instance.template().targeting();
+        UUID targetId = instance.targetId();
+        if (targeting != null && targetId != null) {
+            Player current = Bukkit.getPlayer(targetId);
+            if (current != null && current.isOnline() && current.getWorld() == instance.currentLocation().getWorld()) {
+                double deaggroSq = targeting.deaggroRange() * targeting.deaggroRange();
+                if (current.getLocation().distanceSquared(instance.currentLocation()) <= deaggroSq) {
+                    return current;
+                }
+            }
+        }
+        return selectTarget(instance);
     }
 
     /**
      * スポーン地点から leashRange を超えているか判定します。
+     *
+     * @param instance 対象 Mob
+     * @return leashRange 超過なら {@code true}
      */
     private boolean isLeashed(@NotNull MobInstance instance) {
         MobTargetingConfig targeting = instance.template().targeting();
@@ -224,9 +293,13 @@ public class MobAiService {
     }
 
     /**
-     * 対象位置へ最大 0.25 ブロック分接近します。
+     * 対象位置へ移動します。
+     *
+     * @param instance 対象 Mob
+     * @param target   目標位置
+     * @param speed    移動速度倍率
      */
-    private void moveToward(@NotNull MobInstance instance, @NotNull Location target) {
+    private void moveToward(@NotNull MobInstance instance, @NotNull Location target, double speed) {
         Location current = instance.currentLocation();
         if (current.getWorld() != target.getWorld()) return;
 
@@ -236,9 +309,38 @@ public class MobAiService {
         double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (length < 0.1) return;
 
-        double step = 0.25;
+        double step = BASE_STEP_PER_TICK * Math.max(0.0, speed);
+        if (step <= 0.0) return;
         double scale = Math.min(step / length, 1.0);
         Location next = current.clone().add(dx * scale, dy * scale, dz * scale);
         instance.currentLocation(next);
+    }
+
+    @Nullable
+    private Player nearest(@NotNull List<Player> candidates, @NotNull Location origin) {
+        Player best = null;
+        double bestSq = Double.MAX_VALUE;
+        for (Player player : candidates) {
+            double sq = player.getLocation().distanceSquared(origin);
+            if (sq < bestSq) {
+                bestSq = sq;
+                best = player;
+            }
+        }
+        return best;
+    }
+
+    @Nullable
+    private Player lowestHp(@NotNull List<Player> candidates) {
+        Player best = null;
+        double bestHp = Double.MAX_VALUE;
+        for (Player player : candidates) {
+            double hp = player.getHealth();
+            if (hp < bestHp) {
+                bestHp = hp;
+                best = player;
+            }
+        }
+        return best;
     }
 }

@@ -5,6 +5,8 @@ import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
@@ -14,6 +16,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -34,6 +37,8 @@ final class HotbarRenderer {
         @NotNull AstPlayer astPlayer,
         @NotNull Map<Integer, InventoryEntryModel> entries,
         @NotNull InventoryType displayedType,
+        @NotNull Map<InventoryType, Long> ownedCounts,
+        int usedSlots,
         @Nullable Integer selectedSlot
     ) {
         PlayerInventory inventory = astPlayer.getBukkit().getInventory();
@@ -50,7 +55,7 @@ final class HotbarRenderer {
             changed |= setStorageItemIfChanged(inventory, HotbarLayout.toBukkitSlot(dbSlot), itemStack);
         }
         changed |= setStorageItemIfChanged(inventory, SHORTCUT_INVENTORY_CYCLE_SLOT,
-            createInventoryCycleShortcutIcon(displayedType));
+            createInventoryCycleShortcutIcon(displayedType, ownedCounts, usedSlots));
 
         InventoryEntryModel offhandEntry = entries.get(HotbarLayout.DB_SLOT_OFFHAND);
         ItemStack offhandStack = offhandEntry == null
@@ -71,7 +76,12 @@ final class HotbarRenderer {
         }
     }
 
-    void renderShortcutIcons(@NotNull AstPlayer astPlayer, @NotNull InventoryType displayed) {
+    void renderShortcutIcons(
+        @NotNull AstPlayer astPlayer,
+        @NotNull InventoryType displayed,
+        @NotNull Map<InventoryType, Long> ownedCounts,
+        int usedSlots
+    ) {
         PlayerInventory inventory = astPlayer.getBukkit().getInventory();
         boolean changed = false;
 
@@ -81,7 +91,7 @@ final class HotbarRenderer {
                 continue;
             }
             if (i == SHORTCUT_INVENTORY_CYCLE_SLOT) {
-                changed |= setStorageItemIfChanged(inventory, i, createInventoryCycleShortcutIcon(displayed));
+                changed |= setStorageItemIfChanged(inventory, i, createInventoryCycleShortcutIcon(displayed, ownedCounts, usedSlots));
                 continue;
             }
             changed |= setStorageItemIfChanged(inventory, i, createHotbarSpacerIcon());
@@ -97,24 +107,47 @@ final class HotbarRenderer {
         }
     }
 
-    private @NotNull ItemStack createInventoryCycleShortcutIcon(@NotNull InventoryType currentDisplayed) {
+    private @NotNull ItemStack createInventoryCycleShortcutIcon(
+        @NotNull InventoryType currentDisplayed,
+        @NotNull Map<InventoryType, Long> ownedCounts,
+        int usedSlots
+    ) {
         Material material = switch (currentDisplayed) {
             case EQUIPMENT -> Material.IRON_CHESTPLATE;
             case RUNE -> Material.AMETHYST_SHARD;
             default -> Material.CHEST;
         };
         ItemStack itemStack = new ItemStack(material);
+        itemStack.setAmount(Math.max(1, Math.min(usedSlots, 64)));
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(Component.text(ColorCodeUtil.YELLOW + "インベントリ切替"));
-            meta.lore(List.of(
-                Component.text(ColorCodeUtil.GRAY + "現在: " + currentDisplayed.getDisplayNameJa()),
-                Component.text(ColorCodeUtil.GRAY + "クリックで次へ切替")
-            ));
+            meta.displayName(Component.text("インベントリ切替", NamedTextColor.YELLOW));
+            List<Component> lore = new ArrayList<>();
+            lore.add(createInventoryCycleLine(InventoryType.NORMAL, currentDisplayed, ownedCounts));
+            lore.add(createInventoryCycleLine(InventoryType.EQUIPMENT, currentDisplayed, ownedCounts));
+            lore.add(createInventoryCycleLine(InventoryType.RUNE, currentDisplayed, ownedCounts));
+            meta.lore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             itemStack.setItemMeta(meta);
         }
         return itemStack;
+    }
+
+    private @NotNull Component createInventoryCycleLine(
+        @NotNull InventoryType inventoryType,
+        @NotNull InventoryType currentDisplayed,
+        @NotNull Map<InventoryType, Long> ownedCounts
+    ) {
+        long count = ownedCounts.getOrDefault(inventoryType, 0L);
+        Component line = Component.text(
+            "→ " + inventoryType.getDisplayNameJa() + "[" + count + "]",
+            NamedTextColor.GRAY
+        );
+        if (currentDisplayed == inventoryType) {
+            line = line.decorate(TextDecoration.BOLD)
+                .append(Component.text(" (選択中)", NamedTextColor.YELLOW));
+        }
+        return line;
     }
 
     private @NotNull ItemStack createHotbarSpacerIcon() {

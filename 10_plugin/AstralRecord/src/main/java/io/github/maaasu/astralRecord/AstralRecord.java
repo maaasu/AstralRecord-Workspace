@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.core.event.EventManager;
 import io.github.maaasu.astralRecord.feature.account.repository.AccountRepository;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.combat.event.CombatDamageEventHandler;
+import io.github.maaasu.astralRecord.feature.hotbaraction.event.HotbarActionEventHandler;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.shared.gui.debug.PagingDebugGui;
@@ -27,6 +28,7 @@ import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.mob.repository.MobRepository;
+import io.github.maaasu.astralRecord.feature.mob.service.MobAiService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerJoinEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerModeEventHandler;
@@ -35,6 +37,7 @@ import io.github.maaasu.astralRecord.feature.player.event.PlayerVanillaDamageBlo
 import io.github.maaasu.astralRecord.feature.player.save.PlayerSaveCoordinator;
 import io.github.maaasu.astralRecord.feature.player.service.DodgeService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
+import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.playersetting.cache.PlayerSettingCache;
 import io.github.maaasu.astralRecord.feature.playersetting.event.PlayerSettingGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.playersetting.event.PlayerSettingJoinEventHandler;
@@ -91,6 +94,7 @@ public final class AstralRecord extends JavaPlugin {
     private MenuView menuView;
     private PagingDebugGui pagingDebugGui;
     private MobService mobService;
+    private MobAiService mobAiService;
     private EventManager eventManager;
     private ParticleDisplayService particleDisplayService;
     private PlayerSettingService playerSettingService;
@@ -98,6 +102,7 @@ public final class AstralRecord extends JavaPlugin {
     private SkillService skillService;
     private DamageService damageService;
     private BundleUseService bundleUseService;
+    private PlayerClassService playerClassService;
 
     @Override
     public void onLoad() {
@@ -148,6 +153,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (statusRegenTask != null) {
             statusRegenTask.stop();
+        }
+        if (mobAiService != null) {
+            mobAiService.stop();
         }
         if (mobService != null) {
             mobService.destroyAll();
@@ -219,10 +227,13 @@ public final class AstralRecord extends JavaPlugin {
         currencyService = new CurrencyService(inventoryService);
         bundleUseService = new BundleUseService(this, itemService, lootService, inventoryService, itemStackFactory);
 
+        // class
+        playerClassService = new PlayerClassService();
+
         // status
         statusService = new StatusService(itemService, inventoryService);
         statusRegenTask = new StatusRegenTask(statusService);
-        playerHudService = new PlayerHudService(statusService);
+        playerHudService = new PlayerHudService(statusService, playerClassService);
         particleDisplayService = new ParticleDisplayService();
 
         // combat
@@ -262,15 +273,18 @@ public final class AstralRecord extends JavaPlugin {
         skillService = new SkillService();
         skillService.registerExecutor(new FireBoostSkillExecutor());
 
-        // item & loot
+        // item, loot, skill, class（マスタデータ非同期ロード）
         getServer().getScheduler().runTaskAsynchronously(this, () -> {
             lootService.loadAll();
             itemService.loadAll();
             skillService.reloadDefinitions();
+            playerClassService.loadAll();
         });
 
         // mob
         mobService.loadAll();
+        mobAiService = new MobAiService(mobService);
+        mobAiService.start();
 
         // item: ProtocolLib パケットアダプタ（icon 差し替え）登録
         ItemStackPacketAdapter packetAdapter = new ItemStackPacketAdapter(this);
@@ -342,6 +356,10 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             new CombatDamageEventHandler(damageService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new HotbarActionEventHandler(),
             getServer().getPluginManager()
         );
         playerHudService.start(this);
@@ -437,5 +455,14 @@ public final class AstralRecord extends JavaPlugin {
      */
     public DamageService getDamageService() {
         return damageService;
+    }
+
+    /**
+     * 職業サービスを取得します。
+     *
+     * @return 職業サービス
+     */
+    public PlayerClassService getPlayerClassService() {
+        return playerClassService;
     }
 }

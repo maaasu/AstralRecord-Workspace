@@ -2,6 +2,8 @@ package io.github.maaasu.astralRecord.feature.mob.command;
 
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.jetbrains.annotations.NotNull;
@@ -21,7 +23,7 @@ public class MobCommand extends AstCommand {
      * @param mobService Mob サービス
      */
     public MobCommand(@NotNull MobService mobService) {
-        super("mob", "Manage packet mobs.", "/mob <load|list|spawn> [mobId]", true);
+        super("mob", "Manage packet mobs.", "/mob <load|list|spawn|delete> [id]", true);
         this.mobService = mobService;
     }
 
@@ -37,18 +39,23 @@ public class MobCommand extends AstCommand {
             case "load" -> handleLoad(player);
             case "list" -> handleList(player);
             case "spawn" -> handleSpawn(player, args);
+            case "delete" -> handleDelete(player, args);
             default -> sendUsage(player.getBukkit());
         }
     }
 
     private void handleLoad(@NotNull AstPlayer player) {
         int count = mobService.loadAll();
-        sendSuccess(player.getBukkit(), "Mob template loaded: " + count);
+        sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5700.getId(), count));
     }
 
     private void handleList(@NotNull AstPlayer player) {
         var ids = mobService.getLoadedMobIds();
-        sendInfo(player.getBukkit(), ids.isEmpty() ? "Loaded mob: none" : "Loaded mob: " + String.join(", ", ids));
+        if (ids.isEmpty()) {
+            sendInfo(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5701.getId()));
+            return;
+        }
+        sendInfo(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5702.getId(), String.join(", ", ids)));
     }
 
     private void handleSpawn(@NotNull AstPlayer player, @NotNull String[] args) {
@@ -59,10 +66,29 @@ public class MobCommand extends AstCommand {
 
         MobInstance instance = mobService.spawn(args[1], player.getBukkit().getLocation());
         if (instance == null) {
-            sendError(player.getBukkit(), "Mob template not found: " + args[1]);
+            sendError(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5703.getId(), args[1]));
             return;
         }
 
-        sendSuccess(player.getBukkit(), "Spawned packet mob: " + instance.template().id());
+        sendSuccess(player.getBukkit(), PlayerMsgResource.format(
+                PlayerMsgId.P_5704.getId(),
+                instance.template().id(),
+                instance.instanceId()
+        ));
+    }
+
+    private void handleDelete(@NotNull AstPlayer player, @NotNull String[] args) {
+        if (args.length < 2) {
+            sendUsage(player.getBukkit());
+            return;
+        }
+
+        int count = mobService.destroyById(args[1]);
+        if (count <= 0) {
+            sendError(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5705.getId(), args[1]));
+            return;
+        }
+
+        sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5706.getId(), count));
     }
 }

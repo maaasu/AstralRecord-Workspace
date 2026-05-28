@@ -542,8 +542,78 @@ public class InventoryService {
             .toList();
     }
 
+    public long countOwnedItems(@NotNull UUID accountId, @NotNull InventoryType inventoryType) {
+        PlayerInventoryState state = getState(accountId);
+        return state == null ? 0L : countOwnedItems(state, inventoryType);
+    }
+
+    public int countUsedSlots(@NotNull UUID accountId, @NotNull InventoryType inventoryType) {
+        PlayerInventoryState state = getState(accountId);
+        return state == null ? 0 : countUsedSlots(state, inventoryType);
+    }
+
+    public boolean canSwitchToInventory(@NotNull UUID accountId, @NotNull InventoryType inventoryType) {
+        return countOwnedItems(accountId, inventoryType) > 0L;
+    }
+
+    public @Nullable InventoryType findNextSwitchableInventoryType(@NotNull UUID accountId) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return null;
+        }
+        List<InventoryType> ordered = InventoryType.commandSwitchableEntries();
+        List<InventoryType> available = ordered.stream()
+            .filter(type -> countOwnedItems(state, type) > 0L)
+            .toList();
+        if (available.isEmpty()) {
+            return null;
+        }
+
+        InventoryType current = state.getDisplayedType();
+        int startIndex = ordered.indexOf(current);
+        if (startIndex < 0) {
+            startIndex = 0;
+        }
+        for (int offset = 1; offset <= ordered.size(); offset++) {
+            InventoryType candidate = ordered.get((startIndex + offset) % ordered.size());
+            if (candidate != current && available.contains(candidate)) {
+                return candidate;
+            }
+        }
+        return available.contains(current) ? null : available.get(0);
+    }
+
     public InventoryType resolveInventoryType(@NotNull ItemModel model) {
         return resolveTargetInventoryType(model);
+    }
+
+    private long countOwnedItems(@NotNull PlayerInventoryState state, @NotNull InventoryType inventoryType) {
+        InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, inventoryType);
+        if (inventory == null || !inventory.isEnabled()) {
+            return 0L;
+        }
+        return state.snapshotEntries(inventory.getInventoryId()).stream()
+            .filter(entry -> !entry.isDeleted())
+            .mapToLong(InventoryEntryModel::getQuantity)
+            .sum();
+    }
+
+    private int countUsedSlots(@NotNull PlayerInventoryState state, @NotNull InventoryType inventoryType) {
+        InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, inventoryType);
+        if (inventory == null || !inventory.isEnabled()) {
+            return 0;
+        }
+        return (int) state.snapshotEntries(inventory.getInventoryId()).stream()
+            .filter(entry -> !entry.isDeleted())
+            .count();
+    }
+
+    private @NotNull Map<InventoryType, Long> buildOwnedItemCounts(@NotNull PlayerInventoryState state) {
+        Map<InventoryType, Long> counts = new HashMap<>();
+        for (InventoryType type : InventoryType.commandSwitchableEntries()) {
+            counts.put(type, countOwnedItems(state, type));
+        }
+        return counts;
     }
 
     // ---------------------------------------------------------------
@@ -1049,8 +1119,10 @@ public class InventoryService {
         if (state == null) {
             return;
         }
+        Map<InventoryType, Long> ownedCounts = buildOwnedItemCounts(state);
+        int usedSlots = Math.max(1, countUsedSlots(state, state.getDisplayedType()));
         if (state.isHotbarShortcutMode()) {
-            hotbarRenderer.renderShortcutIcons(astPlayer, state.getDisplayedType());
+            hotbarRenderer.renderShortcutIcons(astPlayer, state.getDisplayedType(), ownedCounts, usedSlots);
             return;
         }
         InventoryModel hotbarInventory = state.findInventory(DEFAULT_PROFILE, InventoryType.HOTBAR);
@@ -1063,7 +1135,14 @@ public class InventoryService {
                 }
             }
         }
-        hotbarRenderer.renderHotbarInventory(astPlayer, bySlot, state.getDisplayedType(), state.getSelectedHotbarSlot());
+        hotbarRenderer.renderHotbarInventory(
+            astPlayer,
+            bySlot,
+            state.getDisplayedType(),
+            ownedCounts,
+            usedSlots,
+            state.getSelectedHotbarSlot()
+        );
     }
 
     public void setHotbarShortcutMode(@NotNull AstPlayer astPlayer, boolean on) {
@@ -1088,15 +1167,10 @@ public class InventoryService {
 
     public boolean handleHotbarShortcutClick(@NotNull AstPlayer astPlayer, int bukkitSlot) {
         if (bukkitSlot == HotbarRenderer.SHORTCUT_INVENTORY_CYCLE_SLOT) {
-            PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
-            if (state == null) {
+            InventoryType target = findNextSwitchableInventoryType(astPlayer.getAccount().getUuid());
+            if (target == null) {
                 return false;
             }
-            InventoryType target = switch (state.getDisplayedType()) {
-                case NORMAL -> InventoryType.EQUIPMENT;
-                case EQUIPMENT -> InventoryType.RUNE;
-                default -> InventoryType.NORMAL;
-            };
             applyInventoryToGui(astPlayer, target);
             return true;
         }

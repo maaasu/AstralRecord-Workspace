@@ -51,7 +51,7 @@ public final class TrashScreenView extends BaseMenuScreenView {
         for (int i = start; i < end; i++) {
             ItemStack itemStack = items.get(i);
             if (itemStack != null && itemStack.getType() != Material.AIR) {
-                inventory.setItem(i - start, itemStack.clone());
+                inventory.setItem(i - start, cloneWithAmountLore(itemStack));
             }
         }
     }

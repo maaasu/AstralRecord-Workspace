@@ -20,7 +20,7 @@ tags:
 
 equipment:
   mainHand:
-    ref: item:wooden_staff
+    ref: item:apprentice_staff
 
 baseStats:
   - status: MAX_HEALTH

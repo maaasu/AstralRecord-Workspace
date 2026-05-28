@@ -389,6 +389,48 @@ public enum PlayerMsgId {
     P_5600(5600),
     // endregion
 
+    // region /feature/mob/command/MobCommand.java 5700-5709
+    /**
+     * Mob テンプレートをロードしました: {0}件
+     */
+    P_5700(5700),
+    /**
+     * ロード済み Mob はありません。
+     */
+    P_5701(5701),
+    /**
+     * ロード済み Mob: {0}
+     */
+    P_5702(5702),
+    /**
+     * Mob テンプレートが見つかりません: {0}
+     */
+    P_5703(5703),
+    /**
+     * Mob を出現させました: {0} / instance={1}
+     */
+    P_5704(5704),
+    /**
+     * 削除対象の Mob が見つかりません: {0}
+     */
+    P_5705(5705),
+    /**
+     * Mob を削除しました: {0}件
+     */
+    P_5706(5706),
+    // endregion
+
+    // region /feature/hotbaraction/event/HotbarActionEventHandler.java 6000-6009
+    /**
+     * [DEBUG] ホットバー左クリック: {0}
+     */
+    P_6000(6000),
+    /**
+     * [DEBUG] ホットバー右クリック: {0}
+     */
+    P_6001(6001),
+    // endregion
+
     // region /feature/skill 5800-5809
     /**
      * 必要レベルが不足しています。

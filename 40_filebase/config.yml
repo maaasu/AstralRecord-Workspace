@@ -7,9 +7,8 @@ database:
     path: 20.features.class
   - name: skill
     path: 30.features.skill
-  # mob は参照先 item/skill/loot.table が揃うまで一時的に無効化する。
-  # - name: mob
-  #   path: 40.features.mob
+  - name: mob
+    path: 40.features.mob
 
   - name: set_effect
     path: 10.features.item/equipment/set_effect

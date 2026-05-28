@@ -9,6 +9,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public abstract class BaseMenuScreenView {
@@ -55,5 +56,25 @@ public abstract class BaseMenuScreenView {
             itemStack.setItemMeta(meta);
         }
         return itemStack;
+    }
+
+    protected @NotNull ItemStack cloneWithAmountLore(@NotNull ItemStack itemStack) {
+        ItemStack displayItem = itemStack.clone();
+        if (displayItem.getAmount() <= 1) {
+            return displayItem;
+        }
+
+        ItemMeta meta = displayItem.getItemMeta();
+        if (meta == null) {
+            return displayItem;
+        }
+
+        List<Component> lore = meta.hasLore() && meta.lore() != null
+            ? new ArrayList<>(meta.lore())
+            : new ArrayList<>();
+        lore.add(Component.text("個数: " + displayItem.getAmount(), NamedTextColor.GRAY));
+        meta.lore(lore);
+        displayItem.setItemMeta(meta);
+        return displayItem;
     }
 }

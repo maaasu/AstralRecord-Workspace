@@ -44,33 +44,6 @@ ai:
     preferredRange: 8
     attackIntervalTicks: 40
     skills:
-      - ref: skill:dragon_breath
-      - ref: skill:dark_nova
-      - ref: skill:tail_sweep
-
-drops:
-  exp: 5000
-  money:
-    min: 500
-    max: 1000
-  items:
-    - itemId:
-        ref: item:dragon_scale
-      rate: 100.0
-      amount: 3~5
-      luckAffected: false
-      hidden: false
-    - itemId:
-        ref: item:dark_dragon_fang
-      rate: 30.0
-      amount: 1
-      luckAffected: true
-      hidden: false
-    - itemId:
-        ref: item:varzard_soul_fragment
-      rate: 1.00
-      amount: 1
-      luckAffected: false
-      hidden: true
-  lootTable:
-    ref: loot_table:boss_common_drop
+      - ref: skill:fire_boost
+      - ref: skill:fire_boost
+      - ref: skill:iron_will

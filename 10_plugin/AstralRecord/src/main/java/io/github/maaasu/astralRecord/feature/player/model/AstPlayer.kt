@@ -35,6 +35,12 @@ data class AstPlayer(
     var statusSnapshot: StatusSnapshot = StatusSnapshot.empty()
     val activeBuffs: MutableList<ActiveBuff> = mutableListOf()
 
+    /** 現在の職業 ID。未設定の場合はデフォルト職業 "adventurer"。 */
+    var classId: String = "adventurer"
+
+    /** 現在の職業レベル。 */
+    var classLevel: Int = 1
+
     /**
      * しゃがみ開始時刻（System.currentTimeMillis ベース）。
      * しゃがみ開始 → 短時間以内に解除でドッジ判定に使用します。

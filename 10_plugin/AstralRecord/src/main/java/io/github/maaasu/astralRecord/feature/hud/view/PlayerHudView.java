@@ -36,7 +36,18 @@ public class PlayerHudView {
         player.setExp((float) ratio(snapshot.getCurrentMp(), snapshot.getMaxValue(StatusType.MAX_MANA)));
     }
 
-    public void renderSidebar(Player player, String mode, int permission, double tps, int level, long totalExperience) {
+    /**
+     * サイドバーを描画します。
+     *
+     * @param player          対象プレイヤー
+     * @param mode            アカウントモード名
+     * @param permission      権限レベル
+     * @param tps             現在の TPS
+     * @param classLevel      職業レベル
+     * @param totalExperience 累計経験値（進捗バー算出用）
+     * @param className       職業表示名（カラーコード付き可）
+     */
+    public void renderSidebar(Player player, String mode, int permission, double tps, int classLevel, long totalExperience, String className) {
         Scoreboard scoreboard = player.getScoreboard();
         if (scoreboard == Bukkit.getScoreboardManager().getMainScoreboard()) {
             scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
@@ -59,8 +70,8 @@ public class PlayerHudView {
         objective.getScore(ColorCodeUtil.AQUA + "オンライン " + ColorCodeUtil.WHITE + Bukkit.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers()).setScore(7);
         objective.getScore(tpsLegacyColor(tps) + "TPS " + ColorCodeUtil.WHITE + String.format("%.1f", tps)).setScore(6);
         objective.getScore(pingLegacyColor(ping) + "遅延 " + ColorCodeUtil.WHITE + ping + "ms").setScore(5);
-        objective.getScore(ColorCodeUtil.BLACK + " ").setScore(4);
-        objective.getScore(ColorCodeUtil.YELLOW + "レベル " + ColorCodeUtil.GOLD + level).setScore(3);
+        objective.getScore(ColorCodeUtil.GRAY + "職業 " + className).setScore(4);
+        objective.getScore(ColorCodeUtil.YELLOW + "レベル " + ColorCodeUtil.GOLD + classLevel).setScore(3);
         objective.getScore(buildLevelBar(totalExperience)).setScore(2);
         objective.getScore(ColorCodeUtil.BLACK + "  ").setScore(1);
         objective.getScore(ColorCodeUtil.BLUE + "モード " + ColorCodeUtil.WHITE + mode).setScore(0);
