@@ -1,6 +1,5 @@
 package io.github.maaasu.astralRecord.feature.combat.model;
 
-import org.bukkit.entity.Entity;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -20,8 +19,8 @@ import org.jetbrains.annotations.Nullable;
  * @param damageType   ダメージ種別（物理 / 魔法 / 純粋）
  */
 public record DamageContext(
-        @Nullable Entity attacker,
-        @NotNull Entity victim,
+        @Nullable AstEntity attacker,
+        @NotNull AstEntity victim,
         double baseDamage,
         @NotNull AttackType attackType,
         @NotNull DamageType damageType
@@ -38,8 +37,8 @@ public record DamageContext(
      */
     public static @NotNull DamageContext from(@NotNull EntityDamageByEntityEvent event) {
         return new DamageContext(
-                event.getDamager(),
-                event.getEntity(),
+                AstEntity.bukkit(event.getDamager()),
+                AstEntity.bukkit(event.getEntity()),
                 event.getDamage(),
                 AttackType.MELEE,
                 DamageType.PHYSICAL
