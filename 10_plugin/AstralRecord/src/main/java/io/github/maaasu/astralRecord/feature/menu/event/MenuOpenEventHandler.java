@@ -867,6 +867,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
         placeItemsIntoTrash(topInventory, moved);
         GuiSound.SELECT.play(player);
+        rerenderTrashInventory(player, topInventory);
         player.updateInventory();
     }
 
@@ -917,7 +918,16 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             topInventory.setItem(rawSlot, updated);
         }
         GuiSound.SELECT.play(player);
+        rerenderTrashInventory(player, topInventory);
         player.updateInventory();
+    }
+
+    private void rerenderTrashInventory(@NotNull Player player, @NotNull Inventory topInventory) {
+        int pageIndex = menuView.getPageIndex(topInventory);
+        List<ItemStack> currentItems = snapshotTrashItems(topInventory);
+        trashItemsByPlayer.put(player.getUniqueId(), currentItems);
+        suppressTrashConfirmOnClose.add(player.getUniqueId());
+        menuView.openTrash(player, currentItems, pageIndex);
     }
 
     private int resolveTrashTransferAmount(@NotNull ClickType clickType, int sourceAmount) {
