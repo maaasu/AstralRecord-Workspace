@@ -1,0 +1,13 @@
+schemaVersion: 1
+id: goblins_den
+displayName: "Goblin's Den"
+worldType: DUNGEON
+baseWorldPath: "world_templates/dungeons/goblins_den"
+instanceRootPath: "world_instances/dungeon"
+autoLoad: false
+instanceEnabled: true
+maxPlayers: 4
+allowBlockBreak: false
+allowBlockPlace: false
+allowMobSpawn: true
+description: "Party dungeon where a fixed set of goblin enemies will spawn."

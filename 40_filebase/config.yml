@@ -9,6 +9,8 @@ database:
     path: 30.features.skill
   - name: mob
     path: 40.features.mob
+  - name: world
+    path: 50.features.world
 
   - name: set_effect
     path: 10.features.item/equipment/set_effect
@@ -48,4 +50,6 @@ referenceResolver:
   - prefix: "mob:"
     database: mob
     aliases: ["mb"]
-
+  - prefix: "world:"
+    database: world
+    aliases: ["wd"]

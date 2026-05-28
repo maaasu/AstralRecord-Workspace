@@ -5,9 +5,12 @@ import io.github.maaasu.astralRecord.core.event.EventManager;
 import io.github.maaasu.astralRecord.feature.account.repository.AccountRepository;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.combat.event.CombatDamageEventHandler;
-import io.github.maaasu.astralRecord.feature.hotbaraction.event.HotbarActionEventHandler;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
+import io.github.maaasu.astralRecord.feature.equipment.event.EquipmentAttackEventHandler;
+import io.github.maaasu.astralRecord.feature.equipment.executor.NormalAttackSkillExecutor;
+import io.github.maaasu.astralRecord.feature.equipment.service.BuiltInNormalAttackDefinitions;
+import io.github.maaasu.astralRecord.feature.equipment.service.EquipmentAttackService;
 import io.github.maaasu.astralRecord.shared.gui.debug.PagingDebugGui;
 import io.github.maaasu.astralRecord.shared.gui.debug.event.PagingDebugGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
@@ -57,6 +60,11 @@ import io.github.maaasu.astralRecord.feature.status.event.PlayerHeldItemStatusEv
 import io.github.maaasu.astralRecord.feature.user.event.UserLoginEventHandler;
 import io.github.maaasu.astralRecord.feature.user.repository.UserRepository;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
+import io.github.maaasu.astralRecord.feature.world.config.PluginJoinSpawnConfig;
+import io.github.maaasu.astralRecord.feature.world.event.WorldJoinSpawnEventHandler;
+import io.github.maaasu.astralRecord.feature.world.model.JoinSpawnLocation;
+import io.github.maaasu.astralRecord.feature.world.repository.WorldRepository;
+import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.command.CommandManager;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigManager;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
@@ -105,6 +113,9 @@ public final class AstralRecord extends JavaPlugin {
     private BundleUseService bundleUseService;
     private BundleUseEffectService bundleUseEffectService;
     private PlayerClassService playerClassService;
+    private EquipmentAttackService equipmentAttackService;
+    private WorldService worldService;
+    private JoinSpawnLocation joinSpawnLocation;
 
     @Override
     public void onLoad() {
@@ -113,9 +124,11 @@ public final class AstralRecord extends JavaPlugin {
         lootService = new LootService();
         itemStackFactory = new ItemStackFactory(lootService, itemService);
         mobService = new MobService(this, new MobRepository());
+        worldService = new WorldService(new WorldRepository());
+        joinSpawnLocation = PluginJoinSpawnConfig.load(this);
         // CommandManagerの初期化はPaper Lifecycle APIの制約上、onLoad()内で行う
         // コマンドをここで登録し、initialize()を呼び出す
-        new CommandRegister(itemService, itemStackFactory, mobService);
+        new CommandRegister(itemService, itemStackFactory, mobService, worldService);
         CommandManager.getInstance().initialize(this);
     }
 
@@ -282,6 +295,9 @@ public final class AstralRecord extends JavaPlugin {
         // skill
         skillService = new SkillService();
         skillService.registerExecutor(new FireBoostSkillExecutor());
+        skillService.registerExecutor(new NormalAttackSkillExecutor());
+        skillService.registerBuiltInDefinitions(BuiltInNormalAttackDefinitions.definitions());
+        equipmentAttackService = new EquipmentAttackService(itemService, skillService);
 
         // item, loot, skill, class（マスタデータ非同期ロード）
         getServer().getScheduler().runTaskAsynchronously(this, () -> {
@@ -295,6 +311,9 @@ public final class AstralRecord extends JavaPlugin {
         mobService.loadAll();
         mobAiService = new MobAiService(mobService);
         mobAiService.start();
+
+        // world
+        worldService.loadAll();
 
         // item: ProtocolLib パケットアダプタ（icon 差し替え）登録
         ItemStackPacketAdapter packetAdapter = new ItemStackPacketAdapter(this);
@@ -314,6 +333,10 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             new PlayerJoinEventHandler(this, playerService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new WorldJoinSpawnEventHandler(this, joinSpawnLocation),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
@@ -369,7 +392,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new HotbarActionEventHandler(),
+            new EquipmentAttackEventHandler(equipmentAttackService),
             getServer().getPluginManager()
         );
         playerHudService.start(this);
@@ -474,5 +497,14 @@ public final class AstralRecord extends JavaPlugin {
      */
     public PlayerClassService getPlayerClassService() {
         return playerClassService;
+    }
+
+    /**
+     * WorldMasterData サービスを取得します。
+     *
+     * @return WorldMasterData サービス
+     */
+    public WorldService getWorldService() {
+        return worldService;
     }
 }

@@ -428,6 +428,23 @@ public enum PlayerMsgId {
     P_5706(5706),
     // endregion
 
+    // region /feature/world/command/WorldCommand.java 5750-5769
+    P_5750(5750),
+    P_5751(5751),
+    P_5752(5752),
+    P_5753(5753),
+    P_5754(5754),
+    P_5755(5755),
+    P_5756(5756),
+    P_5757(5757),
+    P_5758(5758),
+    P_5759(5759),
+    P_5760(5760),
+    P_5761(5761),
+    P_5762(5762),
+    P_5763(5763),
+    // endregion
+
     // region /feature/hotbaraction/event/HotbarActionEventHandler.java 6000-6009
     /**
      * [DEBUG] ホットバー左クリック: {0}

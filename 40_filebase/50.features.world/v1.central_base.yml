@@ -1,0 +1,13 @@
+schemaVersion: 1
+id: world
+displayName: "Central Base"
+worldType: BASE
+baseWorldPath: "world"
+instanceRootPath: "world_instances/base"
+autoLoad: true
+instanceEnabled: false
+maxPlayers: 100
+allowBlockBreak: false
+allowBlockPlace: false
+allowMobSpawn: false
+description: "Shared base world for NPC and player interaction."

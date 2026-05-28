@@ -1,0 +1,13 @@
+schemaVersion: 1
+id: wild_overworld
+displayName: "Wild Overworld"
+worldType: OVERWORLD
+baseWorldPath: "world_templates/wild_overworld"
+instanceRootPath: "world_instances/overworld"
+autoLoad: false
+instanceEnabled: true
+maxPlayers: 40
+allowBlockBreak: false
+allowBlockPlace: false
+allowMobSpawn: true
+description: "Exploration world where enemies spawn. Future instances are channel based."

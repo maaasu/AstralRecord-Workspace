@@ -1,0 +1,13 @@
+schemaVersion: 1
+id: boss_dragon
+displayName: "Dragon Boss Field"
+worldType: BOSS_FIELD
+baseWorldPath: "world_templates/boss/dragon"
+instanceRootPath: "world_instances/boss"
+autoLoad: false
+instanceEnabled: true
+maxPlayers: 8
+allowBlockBreak: true
+allowBlockPlace: true
+allowMobSpawn: true
+description: "Party boss field for the dragon encounter. Instance worlds are expected to be deleted after victory."

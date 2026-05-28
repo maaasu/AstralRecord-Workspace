@@ -766,6 +766,16 @@ public enum LogId {
     I_5703(5703),
     // endregion
 
+    // region /feature/world/ 5750-5799
+    I_5750(5750),
+    D_5750(5750),
+    W_5750(5750),
+    W_5751(5751),
+    E_5750(5750),
+    E_5751(5751),
+    E_5752(5752),
+    // endregion
+
     // region /feature/skill/ 5800-5899
     /**
      * スキル詳細を取得しました (API): %s

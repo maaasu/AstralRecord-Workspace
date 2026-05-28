@@ -26,6 +26,9 @@ import io.github.maaasu.astralRecord.feature.status.command.StatusCommand;
 import io.github.maaasu.astralRecord.feature.status.command.StatusTabCompleter;
 import io.github.maaasu.astralRecord.feature.user.command.UserCommand;
 import io.github.maaasu.astralRecord.feature.user.command.UserTabCompleter;
+import io.github.maaasu.astralRecord.feature.world.command.WorldCommand;
+import io.github.maaasu.astralRecord.feature.world.command.WorldTabCompleter;
+import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.command.CommandManager;
 
 /**
@@ -34,10 +37,17 @@ import io.github.maaasu.astralRecord.infrastructure.command.CommandManager;
 public class CommandRegister {
     private final ItemService itemService;
     private final MobService mobService;
+    private final WorldService worldService;
 
-    public CommandRegister(ItemService itemService, ItemStackFactory itemStackFactory, MobService mobService) {
+    public CommandRegister(
+            ItemService itemService,
+            ItemStackFactory itemStackFactory,
+            MobService mobService,
+            WorldService worldService
+    ) {
         this.itemService = itemService;
         this.mobService = mobService;
+        this.worldService = worldService;
         registerCommand();
     }
 
@@ -53,6 +63,7 @@ public class CommandRegister {
         cm.registerCommand("pagingdummy", new PagingDebugCommand());
         cm.registerCommand("item", new ItemCommand(itemService), new ItemTabCompleter(itemService));
         cm.registerCommand("mob", new MobCommand(mobService), new MobTabCompleter(mobService));
+        cm.registerCommand("world", new WorldCommand(worldService), new WorldTabCompleter(worldService));
         cm.registerCommand("user", new UserCommand(), new UserTabCompleter());
         cm.registerCommand("account", new AccountCommand(), new AccountTabCompleter());
         cm.registerCommand("setting", new PlayerSettingCommand(), new PlayerSettingTabCompleter());

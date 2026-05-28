@@ -1,0 +1,13 @@
+schemaVersion: 1
+id: hub_lobby
+displayName: "Hub Lobby"
+worldType: HUB
+baseWorldPath: "world_templates/hub_lobby"
+instanceRootPath: "world_instances/hub"
+autoLoad: true
+instanceEnabled: true
+maxPlayers: 8
+allowBlockBreak: false
+allowBlockPlace: false
+allowMobSpawn: false
+description: "Dungeon and boss challenge lobby for future player or party instances."
