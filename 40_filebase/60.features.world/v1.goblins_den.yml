@@ -2,8 +2,8 @@ schemaVersion: 1
 id: goblins_den
 displayName: "Goblin's Den"
 worldType: DUNGEON
-baseWorldPath: "world_templates/dungeons/goblins_den"
-instanceRootPath: "world_instances/dungeon"
+baseWorldPath: "world_the_dungeon"
+instanceRootPath: "world_instances/world_the_dungeon"
 autoLoad: false
 instanceEnabled: true
 maxPlayers: 4

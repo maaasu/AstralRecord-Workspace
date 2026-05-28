@@ -2,8 +2,8 @@ schemaVersion: 1
 id: wild_overworld
 displayName: "Wild Overworld"
 worldType: OVERWORLD
-baseWorldPath: "world_templates/wild_overworld"
-instanceRootPath: "world_instances/overworld"
+baseWorldPath: "Arcadia"
+instanceRootPath: "world_instances/Arcadia"
 autoLoad: false
 instanceEnabled: true
 maxPlayers: 40

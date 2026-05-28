@@ -2,8 +2,8 @@ schemaVersion: 1
 id: boss_dragon
 displayName: "Dragon Boss Field"
 worldType: BOSS_FIELD
-baseWorldPath: "world_templates/boss/dragon"
-instanceRootPath: "world_instances/boss"
+baseWorldPath: "Arcadia11"
+instanceRootPath: "world_instances/Arcadia11"
 autoLoad: false
 instanceEnabled: true
 maxPlayers: 8

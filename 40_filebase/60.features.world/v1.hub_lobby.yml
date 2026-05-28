@@ -2,7 +2,7 @@ schemaVersion: 1
 id: hub_lobby
 displayName: "Hub Lobby"
 worldType: HUB
-baseWorldPath: "world_templates/hub_lobby"
+baseWorldPath: "world"
 instanceRootPath: "world_instances/hub"
 autoLoad: true
 instanceEnabled: true
