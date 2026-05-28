@@ -1232,12 +1232,12 @@ public class InventoryService {
                 return equipAccessoryItem(astPlayer, state, sourceEntry, sourceItem, sourceBukkitSlot);
             }
             if (itemSlot == ItemEquipmentSlot.WEAPON || itemSlot == ItemEquipmentSlot.TOOL) {
-                return assignHotbarItem(astPlayer, state, sourceEntry, sourceBukkitSlot);
+                return assignHotbarItem(astPlayer, state, sourceEntry);
             }
             return false;
         }
         if (category == ItemCategory.BUNDLE || category == ItemCategory.CONSUMABLE) {
-            return assignHotbarItem(astPlayer, state, sourceEntry, sourceBukkitSlot);
+            return assignHotbarItem(astPlayer, state, sourceEntry);
         }
         return false;
     }
@@ -1302,8 +1302,7 @@ public class InventoryService {
     private boolean assignHotbarItem(
         @NotNull AstPlayer astPlayer,
         @NotNull PlayerInventoryState state,
-        @NotNull InventoryEntryModel sourceEntry,
-        int sourceBukkitSlot
+        @NotNull InventoryEntryModel sourceEntry
     ) {
         Integer selectedHotbarSlotIndex = state.getSelectedHotbarSlot();
         state.setSelectedHotbarSlot(null);
@@ -1314,8 +1313,7 @@ public class InventoryService {
             return false;
         }
         upsertHotbarEntry(state, sourceEntry, targetDbSlot);
-        removeDisplayedEntryAfterMove(state, sourceEntry);
-        autoSwitchDisplayedInventory(astPlayer, InventoryType.HOTBAR);
+        renderHotbarInventory(astPlayer);
         return true;
     }
 
