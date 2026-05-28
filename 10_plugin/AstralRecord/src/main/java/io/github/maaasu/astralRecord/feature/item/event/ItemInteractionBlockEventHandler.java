@@ -48,7 +48,7 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler {
         this.bundleUseService = bundleUseService;
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onPlayerInteract(PlayerInteractEvent event) {
         runSafely(() -> {
             var action = event.getAction();
