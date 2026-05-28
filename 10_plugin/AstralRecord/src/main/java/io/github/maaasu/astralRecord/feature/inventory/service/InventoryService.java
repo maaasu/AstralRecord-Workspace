@@ -25,11 +25,14 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -481,6 +484,7 @@ public class InventoryService {
         List<InventoryEntryModel> entries = state.snapshotEntries(inventory.getInventoryId());
         PlayerInventory playerInventory = bukkitPlayer.getInventory();
         Map<Integer, ItemStack> itemByGuiSlot = new HashMap<>();
+        ItemStack filler = createManagedSlotFiller();
 
         for (InventoryEntryModel entry : entries) {
             Integer slotIndex = entry.getSlotIndex();
@@ -499,7 +503,7 @@ public class InventoryService {
         }
         for (int dbSlot = NormalInventoryLayout.DB_SLOT_START; dbSlot <= NormalInventoryLayout.DB_SLOT_END; dbSlot++) {
             int guiSlot = NormalInventoryLayout.toGuiSlotIndex(dbSlot);
-            setStorageItemIfChanged(playerInventory, guiSlot, itemByGuiSlot.get(guiSlot));
+            setStorageItemIfChanged(playerInventory, guiSlot, itemByGuiSlot.getOrDefault(guiSlot, filler));
         }
     }
 
@@ -2049,6 +2053,17 @@ public class InventoryService {
         } catch (IllegalArgumentException e) {
             return null;
         }
+    }
+
+    private @NotNull ItemStack createManagedSlotFiller() {
+        ItemStack itemStack = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta meta = itemStack.getItemMeta();
+        if (meta != null) {
+            meta.displayName(Component.text(" "));
+            meta.addItemFlags(ItemFlag.values());
+            itemStack.setItemMeta(meta);
+        }
+        return itemStack;
     }
 
     private @NotNull ItemStack itemOrAir(@Nullable ItemStack itemStack) {
