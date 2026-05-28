@@ -13,11 +13,23 @@ public class ItemRepository(MasterDataDbContext dbContext) : IItemRepository
 {
     private const string MasterType = "item";
     private static readonly StringComparer KeyComparer = StringComparer.OrdinalIgnoreCase;
+    private static readonly HashSet<string> SupportedCategories = new(KeyComparer)
+    {
+        "bundle",
+        "consumable",
+        "currency",
+        "equipment",
+        "material",
+        "rune",
+    };
 
     public IReadOnlyList<ItemSummaryResponse> GetAllSummaries()
         => dbContext.Entries
             .AsNoTracking()
-            .Where(entry => !entry.IsDeleted && entry.MasterType == MasterType)
+            .Where(entry => !entry.IsDeleted
+                && entry.MasterType == MasterType
+                && entry.Category != null
+                && SupportedCategories.Contains(entry.Category))
             .OrderBy(entry => entry.Category)
             .ThenBy(entry => entry.MasterId)
             .Select(entry => new ItemSummaryResponse
@@ -33,6 +45,8 @@ public class ItemRepository(MasterDataDbContext dbContext) : IItemRepository
             .AsNoTracking()
             .Where(entry => !entry.IsDeleted
                 && entry.MasterType == MasterType
+                && entry.Category != null
+                && SupportedCategories.Contains(entry.Category)
                 && entry.MasterId == itemId)
             .Select(entry => new { entry.PayloadJson, entry.Category })
             .FirstOrDefault();
