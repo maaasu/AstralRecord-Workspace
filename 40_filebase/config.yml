@@ -10,7 +10,9 @@ database:
   - name: mob
     path: 40.features.mob
   - name: world
-    path: 50.features.world
+    path: 60.features.world
+  - name: dungeon
+    path: 65.features.dungeon
 
   - name: set_effect
     path: 10.features.item/equipment/set_effect
