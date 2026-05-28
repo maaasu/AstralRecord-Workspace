@@ -16,7 +16,7 @@ import org.bukkit.scoreboard.Scoreboard;
 
 public class PlayerHudView {
     private static final String OBJECTIVE_NAME = "astral_info";
-    private static final int DODGE_BAR_LENGTH = 12;
+    private static final int DODGE_BAR_LENGTH = 20;
 
     public void renderActionBar(Player player, StatusSnapshot snapshot) {
         double maxHp = snapshot.getMaxValue(StatusType.MAX_HEALTH);
