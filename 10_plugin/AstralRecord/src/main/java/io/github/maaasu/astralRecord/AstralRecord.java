@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.shared.gui.debug.PagingDebugGui;
 import io.github.maaasu.astralRecord.shared.gui.debug.event.PagingDebugGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.item.event.ItemInteractionBlockEventHandler;
+import io.github.maaasu.astralRecord.feature.item.service.BundleUseEffectService;
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseService;
 import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryRepository;
 import io.github.maaasu.astralRecord.feature.inventory.repository.EquipmentLoadoutRepository;
@@ -102,6 +103,7 @@ public final class AstralRecord extends JavaPlugin {
     private SkillService skillService;
     private DamageService damageService;
     private BundleUseService bundleUseService;
+    private BundleUseEffectService bundleUseEffectService;
     private PlayerClassService playerClassService;
 
     @Override
@@ -225,7 +227,15 @@ public final class AstralRecord extends JavaPlugin {
         );
         inventoryAutoSaveTask = new InventoryAutoSaveTask(inventoryPersistence, inventoryStateRegistry);
         currencyService = new CurrencyService(inventoryService);
-        bundleUseService = new BundleUseService(this, itemService, lootService, inventoryService, itemStackFactory);
+        bundleUseEffectService = new BundleUseEffectService();
+        bundleUseService = new BundleUseService(
+            this,
+            itemService,
+            lootService,
+            inventoryService,
+            itemStackFactory,
+            bundleUseEffectService
+        );
 
         // class
         playerClassService = new PlayerClassService();

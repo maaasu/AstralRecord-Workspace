@@ -1,0 +1,5 @@
+schemaVersion: 1
+id: bundle_chest_open
+sound: block.chest.open
+volume: 1.0
+pitch: 1.0

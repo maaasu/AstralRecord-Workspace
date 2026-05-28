@@ -1,47 +1,47 @@
 # Bundle (パッケージ) YAML スキーマ定義
 
-パッケージアイテムの基本的なスキーマ定義。
+パッケージアイテムの基本スキーマ定義です。
 
-共通のアイテムフィールド（`schemaVersion` / `id` / `category` / `name` など）は `item.YAMLスキーマ定義.md` を参照し、本書では Bundle 固有フィールドのみを定義します。
+共通のアイテムフィールド `schemaVersion` / `id` / `category` / `name` などは `item.YAMLスキーマ定義.md` を参照してください。ここでは Bundle 固有フィールドのみを定義します。
 
-Bundle の中身の指定方法は以下の2種類があります。
+Bundle の中身の指定方法は 2 系統あります。
 
-| 方式                   | 説明                                         |
-|:---------------------|:-------------------------------------------|
-| `bundle.lootTableId` | 既存の LootTable を参照して中身を決定する                 |
-| `bundle.items[]`     | 個別にアイテムを直接指定する（mob の drops.items[] と同様の形式） |
+| 方式 | 説明 |
+|:--|:--|
+| `bundle.lootTableId` | 既存の LootTable を参照して中身を決定する |
+| `bundle.items[]` | bundle 側に報酬アイテムを直接定義する |
 
-両方を同時に指定することも可能です。その場合、両方の結果が合算されます。
+両方を定義した場合も併用可能です。
 
 ---
 
 ## スキーマ定義
 
-| キー                          | 型       | 必須 | デフォルト | 説明                          |
-|:----------------------------|:--------|:--:|:------|:----------------------------|
-| `maxStack`                  | Integer | ×  | 64    | アイテムの最大スタック数                |
-| `bundle.lootTableId`        | String  | ×  | Null  | LootTableId。参照値             |
-| `bundle.items[]`            | List    | ×  | Null  | 個別アイテム指定リスト（後述）             |
-| `bundle.onUse.sound`        | String  | ×  | Null  | 使用時に鳴るサウンド                  |
-| `bundle.onUse.particle`     | String  | ×  | Null  | 使用時のパーティクル                  |
+| キー | 型 | 必須 | 既定値 | 説明 |
+|:--|:--|:--:|:--|:--|
+| `maxStack` | Integer | × | 64 | アイテムの最大スタック数 |
+| `bundle.lootTableId` | String | × | Null | LootTableId の参照先 ID |
+| `bundle.items[]` | List | × | Null | 報酬アイテムの直接定義 |
+| `bundle.onUse.sound` | String | × | Null | bundle 用カスタム Sound ID。実体は `10.features.item/bundle_sound/` で定義 |
+| `bundle.onUse.particle` | String | × | Null | bundle 用カスタム Particle ID。実体は `10.features.item/bundle_particle/` で定義 |
 
-### bundle.items[]（個別アイテム指定）
+### bundle.items[]
 
-`bundle.lootTableId` の代わりに、または併用して個別にアイテムを指定できます。
+`bundle.lootTableId` の代わりに、または併用して報酬アイテムを直接定義できます。
 
-| キー                            | 型       | 必須 | デフォルト | 説明                                                   |
-|:------------------------------|:--------|:--:|:------|:-----------------------------------------------------|
-| `bundle.items[].itemId`       | String  | ○  | -     | 付与するアイテムのID（参照値。例: `ref: item:iron_ingot`）           |
-| `bundle.items[].amount`       | String  | ×  | 1     | 付与数。固定値または範囲（例: `1` / `1~3`）                         |
-| `bundle.items[].rate`         | Double  | ×  | 100.0 | 付与確率（0.00 〜 100.00）。省略時は必ず付与                         |
-| `bundle.items[].luckAffected` | Boolean | ×  | false | `true` の場合、幸運ステータスによる確率補正を受ける                        |
-| `bundle.items[].hidden`       | Boolean | ×  | false | `true` の場合、図鑑等の情報ブック（未実装）にドロップアイテムとして表示されない（秘密のドロップ） |
+| キー | 型 | 必須 | 既定値 | 説明 |
+|:--|:--|:--:|:--|:--|
+| `bundle.items[].itemId` | String | ○ | - | アイテム ID。例: `ref: item:iron_ingot` |
+| `bundle.items[].amount` | String | × | 1 | 個数。例: `1` / `1~3` |
+| `bundle.items[].rate` | Double | × | 100.0 | 抽選確率 |
+| `bundle.items[].luckAffected` | Boolean | × | false | `true` の場合は luck 補正対象 |
+| `bundle.items[].hidden` | Boolean | × | false | `true` の場合は開封前の表示から隠す |
 
 ---
 
 ## YAML 例
 
-### 例: LootTable 参照
+### LootTable 参照
 
 ```yaml
 schemaVersion: 1
@@ -51,23 +51,23 @@ name: "&b魔鉄のパケット"
 icon: CHEST
 rarity: UNCOMMON
 lore:
-  - "&7魔鉄を詰め込んだ珍しいパケット。"
+  - "&7魔鉄を詰め込んだ簡易パケット。"
 unTradeable: false
 bundle:
   lootTableId:
     ref: loot_table:magic_iron_ingot
   onUse:
-    sound: block.anvil.land
-    particle: block_break
+    sound: bundle_chest_open
+    particle: bundle_chest_totem
 ```
 
-### 例: 個別アイテム指定
+### 報酬アイテム直接定義
 
 ```yaml
 schemaVersion: 1
 id: starter_bundle
 category: BUNDLE
-name: "&e初心者パック"
+name: "&e初期支給パック"
 icon: CHEST
 rarity: COMMON
 maxStack: 1
@@ -93,22 +93,22 @@ bundle:
       luckAffected: true
       hidden: true
   onUse:
-    sound: block.chest.open
-    particle: totem_of_undying
+    sound: bundle_chest_open
+    particle: bundle_chest_totem
 ```
 
-### 例: LootTable と個別アイテムの併用
+### LootTable と直接定義の併用
 
 ```yaml
 schemaVersion: 1
 id: adventurer_bundle
 category: BUNDLE
-name: "&6冒険者の荷物"
+name: "&6冒険者の支援箱"
 icon: CHEST
 rarity: RARE
 maxStack: 1
 lore:
-  - "&7冒険者が残した荷物。何が入っているか…"
+  - "&7冒険者向けの支援箱。何が入っているかは開けてのお楽しみ。"
 unTradeable: true
 bundle:
   lootTableId:
@@ -118,5 +118,5 @@ bundle:
         ref: item:dungeon_medal
       amount: 1
   onUse:
-    sound: block.chest.open
+    sound: bundle_chest_open
 ```

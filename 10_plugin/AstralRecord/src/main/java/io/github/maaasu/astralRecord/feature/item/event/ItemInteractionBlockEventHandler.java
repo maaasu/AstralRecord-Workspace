@@ -19,6 +19,7 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -136,6 +137,26 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerItemHeld(PlayerItemHeldEvent event) {
         runSafely(() -> {
+            var astPlayer = AstPlayerCache.get(event.getPlayer());
+            if (astPlayer == null) {
+                return;
+            }
+            bundleUseService.cancelPendingOpen(astPlayer, true);
+        }, LogId.E_5200, event.getPlayer().getName());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerMove(PlayerMoveEvent event) {
+        runSafely(() -> {
+            if (event.getTo() == null) {
+                return;
+            }
+            if (event.getFrom().getX() == event.getTo().getX()
+                && event.getFrom().getY() == event.getTo().getY()
+                && event.getFrom().getZ() == event.getTo().getZ()) {
+                return;
+            }
+
             var astPlayer = AstPlayerCache.get(event.getPlayer());
             if (astPlayer == null) {
                 return;

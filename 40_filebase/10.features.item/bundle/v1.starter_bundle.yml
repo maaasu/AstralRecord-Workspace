@@ -16,6 +16,5 @@ bundle:
   lootTableId:
     ref: loot_table:starter_bundle_table
   onUse:
-    sound: block.chest.open
-    particle: totem_of_undying
-
+    sound: bundle_chest_open
+    particle: bundle_chest_totem

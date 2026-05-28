@@ -1,0 +1,11 @@
+schemaVersion: 1
+id: bundle_chest_totem
+particle: totem_of_undying
+count: 24
+originOffsetX: 0.0
+originOffsetY: 1.0
+originOffsetZ: 0.0
+offsetX: 0.35
+offsetY: 0.45
+offsetZ: 0.35
+extra: 0.0

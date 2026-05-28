@@ -14,9 +14,10 @@ import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
@@ -28,10 +29,10 @@ import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,45 +44,50 @@ import java.util.concurrent.ThreadLocalRandom;
 public class BundleUseService {
 
     private static final String SOURCE_BUNDLE_USE = "bundle_use";
-    private static final long OPEN_DURATION_TICKS = 40L;
+    private static final long OPEN_DURATION_TICKS = 60L;
+    private static final double MOVE_CANCEL_DISTANCE_SQUARED = 0.0001d;
 
     private final AstralRecord plugin;
     private final ItemService itemService;
     private final LootService lootService;
     private final InventoryService inventoryService;
     private final ItemStackFactory itemStackFactory;
+    private final BundleUseEffectService bundleUseEffectService;
     private final Map<UUID, PendingBundleUse> pendingUses = new ConcurrentHashMap<>();
 
     /**
      * bundle 使用サービスを構築します。
      *
-     * @param plugin           プラグインインスタンス
-     * @param itemService      アイテム解決サービス
-     * @param lootService      loot 解決サービス
-     * @param inventoryService インベントリ操作・報酬付与サービス
-     * @param itemStackFactory 落下ドロップ生成用 ItemStackFactory
+     * @param plugin プラグインインスタンス
+     * @param itemService アイテム解決サービス
+     * @param lootService loot 解決サービス
+     * @param inventoryService インベントリ操作サービス
+     * @param itemStackFactory ドロップ生成用 ItemStackFactory
+     * @param bundleUseEffectService bundle 演出マスタ解決サービス
      */
     public BundleUseService(
         @NotNull AstralRecord plugin,
         @NotNull ItemService itemService,
         @NotNull LootService lootService,
         @NotNull InventoryService inventoryService,
-        @NotNull ItemStackFactory itemStackFactory
+        @NotNull ItemStackFactory itemStackFactory,
+        @NotNull BundleUseEffectService bundleUseEffectService
     ) {
         this.plugin = plugin;
         this.itemService = itemService;
         this.lootService = lootService;
         this.inventoryService = inventoryService;
         this.itemStackFactory = itemStackFactory;
+        this.bundleUseEffectService = bundleUseEffectService;
     }
 
     /**
-     * bundle の開封を開始します。開封完了までは約 2 秒の待機時間を設けます。
+     * bundle の開封を開始します。開封完了までは約 3 秒の待機時間を設けます。
      *
      * @param astPlayer 使用プレイヤー
-     * @param hand      使用した手
-     * @param model     使用した bundle アイテム
-     * @return 開封待機の開始に成功した場合は {@code true}
+     * @param hand 使用した手
+     * @param model 使用した bundle アイテム
+     * @return 開封処理の開始に成功した場合は {@code true}
      */
     public boolean beginBundleUse(
         @NotNull AstPlayer astPlayer,
@@ -104,13 +110,14 @@ public class BundleUseService {
 
         Player player = astPlayer.getBukkit();
         BossBar bossBar = Bukkit.createBossBar(
-            ColorCodeUtil.translateAlternateColorCodes("&6バンドル開封中 &7" + model.getName()),
+            ColorCodeUtil.translateAlternateColorCodes("&6使用中 &7" + model.getName()),
             BarColor.YELLOW,
             BarStyle.SOLID
         );
         bossBar.setVisible(true);
         bossBar.setProgress(0.0d);
         bossBar.addPlayer(player);
+        showUsingSubtitle(player, model.getName());
 
         PendingBundleUse pending = new PendingBundleUse(
             astPlayer,
@@ -121,7 +128,12 @@ public class BundleUseService {
             bossBar
         );
 
-        BukkitTask task = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> tickPendingUse(player.getUniqueId()), 1L, 1L);
+        BukkitTask task = plugin.getServer().getScheduler().runTaskTimer(
+            plugin,
+            () -> tickPendingUse(player.getUniqueId()),
+            1L,
+            1L
+        );
         pending.setTask(task);
         pendingUses.put(player.getUniqueId(), pending);
         astPlayer.sendMessage(PlayerMsgId.P_5246, model.getName());
@@ -132,7 +144,7 @@ public class BundleUseService {
      * 進行中の bundle 開封をキャンセルします。
      *
      * @param astPlayer キャンセル対象プレイヤー
-     * @param notify    プレイヤーへ通知する場合は {@code true}
+     * @param notify プレイヤーへ通知する場合は {@code true}
      * @return キャンセル対象が存在した場合は {@code true}
      */
     public boolean cancelPendingOpen(@NotNull AstPlayer astPlayer, boolean notify) {
@@ -171,6 +183,10 @@ public class BundleUseService {
         Player player = pending.astPlayer().getBukkit();
         if (!player.isOnline()) {
             cancelPendingOpen(playerId, false);
+            return;
+        }
+        if (hasMoved(pending, player)) {
+            cancelPendingOpen(playerId, true);
             return;
         }
 
@@ -252,8 +268,18 @@ public class BundleUseService {
         if (pending.task() != null) {
             pending.task().cancel();
         }
+        pending.astPlayer().getBukkit().resetTitle();
         pending.bossBar().removeAll();
         pending.bossBar().setVisible(false);
+    }
+
+    private boolean hasMoved(@NotNull PendingBundleUse pending, @NotNull Player player) {
+        Location current = player.getLocation();
+        Location start = pending.startLocation();
+        if (current.getWorld() == null || start.getWorld() == null || current.getWorld() != start.getWorld()) {
+            return true;
+        }
+        return current.distanceSquared(start) > MOVE_CANCEL_DISTANCE_SQUARED;
     }
 
     private @NotNull Map<String, Integer> rollRewards(@NotNull LootModel lootModel) {
@@ -388,38 +414,42 @@ public class BundleUseService {
             return;
         }
 
-        String sound = bundle.getOnUse().getSound();
-        if (sound != null && !sound.isBlank()) {
-            astPlayer.getBukkit().playSound(location, sound, 1.0f, 1.0f);
+        BundleUseEffectService.BundleUseSound soundDefinition =
+            bundleUseEffectService.findSound(bundle.getOnUse().getSound());
+        if (soundDefinition != null) {
+            astPlayer.getBukkit().playSound(
+                location,
+                soundDefinition.soundKey(),
+                soundDefinition.volume(),
+                soundDefinition.pitch()
+            );
         }
 
-        String particleKey = bundle.getOnUse().getParticle();
-        if (particleKey != null && !particleKey.isBlank()) {
-            Particle particle = parseParticle(particleKey);
-            if (particle != null) {
-                world.spawnParticle(
-                    particle,
-                    location.clone().add(0.0, 1.0, 0.0),
-                    24,
-                    0.4,
-                    0.5,
-                    0.4,
-                    0.0
-                );
-            }
+        BundleUseEffectService.BundleUseParticle particleDefinition =
+            bundleUseEffectService.findParticle(bundle.getOnUse().getParticle());
+        if (particleDefinition != null) {
+            world.spawnParticle(
+                particleDefinition.particle(),
+                location.clone().add(
+                    particleDefinition.originOffsetX(),
+                    particleDefinition.originOffsetY(),
+                    particleDefinition.originOffsetZ()
+                ),
+                particleDefinition.count(),
+                particleDefinition.offsetX(),
+                particleDefinition.offsetY(),
+                particleDefinition.offsetZ(),
+                particleDefinition.extra()
+            );
         }
     }
 
-    private @Nullable Particle parseParticle(@NotNull String raw) {
-        String normalized = raw.trim()
-            .replace(' ', '_')
-            .replace('-', '_')
-            .toUpperCase(Locale.ROOT);
-        try {
-            return Particle.valueOf(normalized);
-        } catch (IllegalArgumentException ignored) {
-            return null;
-        }
+    private void showUsingSubtitle(@NotNull Player player, @NotNull String itemName) {
+        player.showTitle(Title.title(
+            Component.empty(),
+            Component.text(ColorCodeUtil.translateAlternateColorCodes("&6使用中... &f" + itemName)),
+            Title.Times.times(Duration.ZERO, Duration.ofSeconds(4), Duration.ofMillis(250))
+        ));
     }
 
     private static final class PendingBundleUse {
@@ -429,6 +459,7 @@ public class BundleUseService {
         private final ItemBundle bundle;
         private final LootModel lootModel;
         private final BossBar bossBar;
+        private final Location startLocation;
         private long elapsedTicks;
         private BukkitTask task;
 
@@ -446,6 +477,7 @@ public class BundleUseService {
             this.bundle = bundle;
             this.lootModel = lootModel;
             this.bossBar = bossBar;
+            this.startLocation = astPlayer.getBukkit().getLocation().clone();
         }
 
         private @NotNull AstPlayer astPlayer() {
@@ -470,6 +502,10 @@ public class BundleUseService {
 
         private @NotNull BossBar bossBar() {
             return bossBar;
+        }
+
+        private @NotNull Location startLocation() {
+            return startLocation;
         }
 
         private long incrementElapsedTicks() {

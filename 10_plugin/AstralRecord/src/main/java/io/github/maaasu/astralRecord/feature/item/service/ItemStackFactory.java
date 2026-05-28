@@ -443,13 +443,12 @@ public class ItemStackFactory {
         }
 
         // bundle の Loot 情報
-        if (model.getBundle() != null && model.getBundle().getLootTableId() != null) {
-            appendBundleLootLore(lore, model.getBundle().getLootTableId());
-        }
 
         // フッター
         lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
-        lore.add(ColorCodeUtil.DARK_GRAY + ColorCodeUtil.ITALIC + "ID: " + model.getId());
+        if (model.getBundle() == null) {
+            lore.add(ColorCodeUtil.DARK_GRAY + ColorCodeUtil.ITALIC + "ID: " + model.getId());
+        }
 
         // 取引不可 / 売却不可 フラグ
         if (model.getUnTradeable()) {
