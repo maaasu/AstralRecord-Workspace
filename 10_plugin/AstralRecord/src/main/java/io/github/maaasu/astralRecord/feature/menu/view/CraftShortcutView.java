@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.menu.view;
 
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutAction;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;
@@ -24,6 +25,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 final class CraftShortcutView {
     static final int CRAFT_RESULT_RAW_SLOT = 0;
@@ -51,7 +53,9 @@ final class CraftShortcutView {
         @NotNull Player player,
         @NotNull MenuShortcutSettings settings,
         @Nullable InventoryType selectedType,
-        @Nullable StatusSnapshot snapshot
+        @Nullable StatusSnapshot snapshot,
+        @NotNull AccountModel selectedAccount,
+        @NotNull List<AccountModel> accounts
     ) {
         if (!(player.getOpenInventory().getTopInventory() instanceof CraftingInventory inventory)) {
             return;
@@ -66,7 +70,7 @@ final class CraftShortcutView {
         for (int slot = 0; slot < MenuShortcutSettings.SLOT_COUNT; slot++) {
             MenuShortcutAction action = settings.getAction(slot);
             boolean selected = action.getInventoryType() != null && action.getInventoryType() == selectedType;
-            newMatrix[slot] = createCraftShortcutIcon(slot, action, selected, selectedType, snapshot);
+            newMatrix[slot] = createCraftShortcutIcon(slot, action, selected, selectedType, snapshot, selectedAccount, accounts);
             ItemStack existing = slot < currentMatrix.length ? currentMatrix[slot] : null;
             if (!isSameDisplayItem(existing, newMatrix[slot])) {
                 matrixChanged = true;
@@ -132,10 +136,12 @@ final class CraftShortcutView {
         @NotNull MenuShortcutAction action,
         boolean selected,
         @Nullable InventoryType selectedType,
-        @Nullable StatusSnapshot snapshot
+        @Nullable StatusSnapshot snapshot,
+        @NotNull AccountModel selectedAccount,
+        @NotNull List<AccountModel> accounts
     ) {
         if (action == MenuShortcutAction.INVENTORY_CYCLE) {
-            return createUserInfoDummyIcon(shortcutSlotIndex, selectedType);
+            return createUserInfoDummyIcon(shortcutSlotIndex, selectedType, selectedAccount, accounts);
         }
         if (action == MenuShortcutAction.STATUS) {
             return createStatusShortcutIcon(shortcutSlotIndex, snapshot);
@@ -155,9 +161,9 @@ final class CraftShortcutView {
     private @NotNull ItemStack createStatusShortcutIcon(int shortcutSlotIndex, @Nullable StatusSnapshot snapshot) {
         List<Component> lore = new ArrayList<>();
         if (snapshot != null && !snapshot.getValues().isEmpty()) {
-            lore.add(statusResourceLine("♥ HP", snapshot.getCurrentHp(), snapshot.getMaxValue(StatusType.MAX_HEALTH), NamedTextColor.RED));
-            lore.add(statusResourceLine("✦ MP", snapshot.getCurrentMp(), snapshot.getMaxValue(StatusType.MAX_MANA), NamedTextColor.AQUA));
-            lore.add(statusResourceLine("⚡ EN", snapshot.getCurrentEnergy(), snapshot.getMaxValue(StatusType.MAX_ENERGY), NamedTextColor.YELLOW));
+            lore.add(statusResourceLine("HP", snapshot.getCurrentHp(), snapshot.getMaxValue(StatusType.MAX_HEALTH), NamedTextColor.RED));
+            lore.add(statusResourceLine("MP", snapshot.getCurrentMp(), snapshot.getMaxValue(StatusType.MAX_MANA), NamedTextColor.AQUA));
+            lore.add(statusResourceLine("EN", snapshot.getCurrentEnergy(), snapshot.getMaxValue(StatusType.MAX_ENERGY), NamedTextColor.YELLOW));
         }
         lore.add(Component.text("クリックして開く", NamedTextColor.GRAY));
         ItemStack itemStack = createItem(
@@ -186,15 +192,29 @@ final class CraftShortcutView {
 
     private @NotNull ItemStack createUserInfoDummyIcon(
         int shortcutSlotIndex,
-        @Nullable InventoryType selectedType
+        @Nullable InventoryType selectedType,
+        @NotNull AccountModel selectedAccount,
+        @NotNull List<AccountModel> accounts
     ) {
         String currentLabel = selectedType != null ? selectedType.getDisplayNameJa() : InventoryType.NORMAL.getDisplayNameJa();
+        String unselectedNames = accounts.stream()
+            .filter(account -> !account.getUuid().equals(selectedAccount.getUuid()))
+            .map(AccountModel::getAccountName)
+            .collect(Collectors.joining(", "));
+        if (unselectedNames.isBlank()) {
+            unselectedNames = "なし";
+        }
+
         ItemStack itemStack = createItem(
             Material.PLAYER_HEAD,
             Component.text("ユーザ情報", NamedTextColor.YELLOW),
             List.of(
                 Component.text("現在: ", NamedTextColor.GRAY).append(Component.text(currentLabel, NamedTextColor.WHITE)),
-                Component.text("※ 今後ここに詳細情報を表示予定", NamedTextColor.GRAY)
+                Component.text("選択中アカウント: ", NamedTextColor.GRAY)
+                    .append(Component.text(selectedAccount.getAccountName(), NamedTextColor.GOLD)),
+                Component.text("未選択アカウント: ", NamedTextColor.GRAY)
+                    .append(Component.text(unselectedNames, NamedTextColor.WHITE)),
+                Component.text("左クリックでインベントリ切替", NamedTextColor.GRAY)
             )
         );
         markCraftShortcutIcon(itemStack, shortcutSlotIndex, MenuShortcutAction.NONE);

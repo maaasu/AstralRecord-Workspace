@@ -82,7 +82,7 @@ public enum MenuShortcutAction {
     public static @NotNull MenuShortcutAction defaultForSlot(int slotIndex) {
         return switch (slotIndex) {
             case 0 -> STATUS;
-            case 1 -> NONE;
+            case 1 -> INVENTORY_CYCLE;
             case 2 -> INVENTORY_CURRENCY;
             case 3 -> EQUIPMENT_GUI;
             default -> NONE;
