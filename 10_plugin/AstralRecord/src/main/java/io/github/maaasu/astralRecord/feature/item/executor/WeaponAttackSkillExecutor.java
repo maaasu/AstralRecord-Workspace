@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.item.executor;
 
+import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastContext;
@@ -7,10 +8,10 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.SoundCategory;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Player;
@@ -27,7 +28,6 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
 
     private static final String IMPLEMENTATION_ID = "normal_attack";
 
-    private final Plugin plugin;
     private final ParticleDisplayService particleDisplayService;
 
     /**
@@ -35,8 +35,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
      *
      * @param particleDisplayService パーティクル表示サービス
      */
-    public WeaponAttackSkillExecutor(@NotNull Plugin plugin, @NotNull ParticleDisplayService particleDisplayService) {
-        this.plugin = plugin;
+    public WeaponAttackSkillExecutor(@NotNull ParticleDisplayService particleDisplayService) {
         this.particleDisplayService = particleDisplayService;
     }
 
@@ -266,7 +265,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         for (int step = 1; step <= trailSteps; step++) {
             final int currentStep = step;
             long delayTicks = (long) (currentStep - 1) * trailIntervalTicks;
-            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            Bukkit.getScheduler().runTaskLater(AstralRecord.getInstance(), () -> {
                 Location trailLocation = baseLocation.clone().add(
                         normalizedDirection.clone().multiply(trailStepDistance * currentStep)
                 );

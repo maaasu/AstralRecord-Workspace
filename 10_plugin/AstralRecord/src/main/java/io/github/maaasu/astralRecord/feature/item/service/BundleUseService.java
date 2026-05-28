@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
@@ -53,6 +54,7 @@ public class BundleUseService {
     private final InventoryService inventoryService;
     private final ItemStackFactory itemStackFactory;
     private final BundleUseEffectService bundleUseEffectService;
+    private final ParticleDisplayService particleDisplayService;
     private final Map<UUID, PendingBundleUse> pendingUses = new ConcurrentHashMap<>();
 
     /**
@@ -71,7 +73,8 @@ public class BundleUseService {
         @NotNull LootService lootService,
         @NotNull InventoryService inventoryService,
         @NotNull ItemStackFactory itemStackFactory,
-        @NotNull BundleUseEffectService bundleUseEffectService
+        @NotNull BundleUseEffectService bundleUseEffectService,
+        @NotNull ParticleDisplayService particleDisplayService
     ) {
         this.plugin = plugin;
         this.itemService = itemService;
@@ -79,6 +82,7 @@ public class BundleUseService {
         this.inventoryService = inventoryService;
         this.itemStackFactory = itemStackFactory;
         this.bundleUseEffectService = bundleUseEffectService;
+        this.particleDisplayService = particleDisplayService;
     }
 
     /**
@@ -428,13 +432,15 @@ public class BundleUseService {
         BundleUseEffectService.BundleUseParticle particleDefinition =
             bundleUseEffectService.findParticle(bundle.getOnUse().getParticle());
         if (particleDefinition != null) {
-            world.spawnParticle(
-                particleDefinition.particle(),
+            particleDisplayService.spawnWorld(
+                astPlayer,
+                world,
                 location.clone().add(
                     particleDefinition.originOffsetX(),
                     particleDefinition.originOffsetY(),
                     particleDefinition.originOffsetZ()
                 ),
+                particleDefinition.particle(),
                 particleDefinition.count(),
                 particleDefinition.offsetX(),
                 particleDefinition.offsetY(),

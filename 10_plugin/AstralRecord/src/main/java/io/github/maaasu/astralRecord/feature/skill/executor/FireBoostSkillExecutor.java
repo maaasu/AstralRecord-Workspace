@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -20,6 +21,17 @@ import org.jetbrains.annotations.NotNull;
 public final class FireBoostSkillExecutor implements SkillExecutor {
 
     private static final String IMPLEMENTATION_ID = "fire_boost";
+
+    private final ParticleDisplayService particleDisplayService;
+
+    /**
+     * パーティクル表示サービスを受け取って executor を構築します。
+     *
+     * @param particleDisplayService パーティクル表示サービス
+     */
+    public FireBoostSkillExecutor(@NotNull ParticleDisplayService particleDisplayService) {
+        this.particleDisplayService = particleDisplayService;
+    }
 
     @Override
     public @NotNull String implementationId() {
@@ -44,8 +56,28 @@ public final class FireBoostSkillExecutor implements SkillExecutor {
 
         player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, strengthDurationTicks, strengthAmplifier, false, true, true));
         player.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, fireResistanceDurationTicks, fireResistanceAmplifier, false, true, true));
-        player.getWorld().spawnParticle(Particle.FLAME, baseLocation, flameCount, 0.4D, 0.6D, 0.4D, 0.03D);
-        player.getWorld().spawnParticle(Particle.LAVA, baseLocation, lavaCount, 0.2D, 0.4D, 0.2D, 0.01D);
+        particleDisplayService.spawnWorld(
+            caster.player(),
+            player.getWorld(),
+            baseLocation,
+            Particle.FLAME,
+            flameCount,
+            0.4D,
+            0.6D,
+            0.4D,
+            0.03D
+        );
+        particleDisplayService.spawnWorld(
+            caster.player(),
+            player.getWorld(),
+            baseLocation,
+            Particle.LAVA,
+            lavaCount,
+            0.2D,
+            0.4D,
+            0.2D,
+            0.01D
+        );
         player.playSound(player.getLocation(), Sound.ITEM_FIRECHARGE_USE, 1.0F, 1.2F);
 
         return SkillCastResult.success(context.skill().getManaCost(), context.skill().getCooldownTicks());

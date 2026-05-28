@@ -3,7 +3,6 @@ package io.github.maaasu.astralRecord.feature.player.service;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
-import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
@@ -169,13 +168,13 @@ public class DodgeService {
             1.6f
         );
         particleDisplayService.spawnWorld(
+            astPlayer,
             player.getWorld(),
             player.getLocation().add(0.0D, 0.2D, 0.0D),
             Particle.CLOUD,
             PARTICLE_COUNT,
             0.2D, 0.05D, 0.2D,
-            0.0D,
-            resolvePlayerDensityScale(astPlayer)
+            0.0D
         );
     }
 
@@ -194,11 +193,4 @@ public class DodgeService {
         );
     }
 
-    private double resolvePlayerDensityScale(@NotNull AstPlayer astPlayer) {
-        PlayerSettingService service = plugin.getPlayerSettingService();
-        if (service == null) {
-            return 1.0D;
-        }
-        return service.getParticleDensityScale(astPlayer.getUser().getUuid());
-    }
 }

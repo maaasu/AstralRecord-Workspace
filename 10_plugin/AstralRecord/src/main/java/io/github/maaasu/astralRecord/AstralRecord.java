@@ -76,6 +76,8 @@ import io.github.maaasu.astralRecord.infrastructure.logging.AuditLogger;
 import io.github.maaasu.astralRecord.infrastructure.logging.AuditLoggerRegistry;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.shared.display.OverheadDisplayService;
+import io.github.maaasu.astralRecord.shared.display.PacketDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -106,6 +108,8 @@ public final class AstralRecord extends JavaPlugin {
     private MobAiService mobAiService;
     private EventManager eventManager;
     private ParticleDisplayService particleDisplayService;
+    private PacketDisplayService packetDisplayService;
+    private OverheadDisplayService overheadDisplayService;
     private PlayerSettingService playerSettingService;
     private PlayerSettingGui playerSettingGui;
     private SkillService skillService;
@@ -168,6 +172,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (statusRegenTask != null) {
             statusRegenTask.stop();
+        }
+        if (overheadDisplayService != null) {
+            overheadDisplayService.stop();
         }
         if (mobAiService != null) {
             mobAiService.stop();
@@ -240,6 +247,13 @@ public final class AstralRecord extends JavaPlugin {
         );
         inventoryAutoSaveTask = new InventoryAutoSaveTask(inventoryPersistence, inventoryStateRegistry);
         currencyService = new CurrencyService(inventoryService);
+        playerSettingService = new PlayerSettingService(
+            new PlayerSettingRepository(),
+            new PlayerSettingDefaults(),
+            new PlayerSettingCache()
+        );
+        particleDisplayService = new ParticleDisplayService(playerSettingService);
+        packetDisplayService = new PacketDisplayService(this);
         bundleUseEffectService = new BundleUseEffectService();
         bundleUseService = new BundleUseService(
             this,
@@ -247,7 +261,8 @@ public final class AstralRecord extends JavaPlugin {
             lootService,
             inventoryService,
             itemStackFactory,
-            bundleUseEffectService
+            bundleUseEffectService,
+            particleDisplayService
         );
 
         // class
@@ -257,7 +272,7 @@ public final class AstralRecord extends JavaPlugin {
         statusService = new StatusService(itemService, inventoryService);
         statusRegenTask = new StatusRegenTask(statusService);
         playerHudService = new PlayerHudService(statusService, playerClassService);
-        particleDisplayService = new ParticleDisplayService();
+        overheadDisplayService = new OverheadDisplayService(packetDisplayService, statusService, mobService);
 
         // combat
         damageService = new DamageService(statusService);
@@ -285,17 +300,12 @@ public final class AstralRecord extends JavaPlugin {
         // menu
         menuView = new MenuView(this);
         pagingDebugGui = new PagingDebugGui();
-        playerSettingService = new PlayerSettingService(
-            new PlayerSettingRepository(),
-            new PlayerSettingDefaults(),
-            new PlayerSettingCache()
-        );
         playerSettingGui = new PlayerSettingGui(playerSettingService);
 
         // skill
         skillService = new SkillService();
-        skillService.registerExecutor(new FireBoostSkillExecutor());
-        skillService.registerExecutor(new WeaponAttackSkillExecutor());
+        skillService.registerExecutor(new FireBoostSkillExecutor(particleDisplayService));
+        skillService.registerExecutor(new WeaponAttackSkillExecutor(particleDisplayService));
         skillService.registerBuiltInDefinitions(BuiltInWeaponAttackDefinitions.definitions());
         itemWeaponAttackService = new ItemWeaponAttackService(itemService, skillService);
 
@@ -397,6 +407,7 @@ public final class AstralRecord extends JavaPlugin {
         );
         playerHudService.start(this);
         statusRegenTask.start(this);
+        overheadDisplayService.start(this);
         // インベントリオートセーブ (60s) を開始
         inventoryAutoSaveTask.start(this, InventoryAutoSaveTask.DEFAULT_INTERVAL_TICKS);
     }
