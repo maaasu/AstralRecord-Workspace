@@ -27,6 +27,9 @@ final class MobAiCalculator {
     private static final double WAYPOINT_REACHED_DISTANCE_SQ = 0.09;
     private static final double TARGET_DRIFT_DISTANCE_SQ = 4.0;
     private static final long NAV_RECOMPUTE_INTERVAL = 5L;
+    private static final long JUMP_AFTER_BLOCKED_TICKS = 20L;
+    private static final double JUMP_ASSIST_UP_PER_TICK = 0.42;
+    private static final double HIGHER_TARGET_THRESHOLD = 0.5;
     private static final int WANDER_PAUSE_MIN_TICKS = 20;
     private static final int WANDER_PAUSE_MAX_TICKS = 60;
 
@@ -52,12 +55,16 @@ final class MobAiCalculator {
         if (step <= 0.0) return false;
 
         Location waypoint = nextWaypoint(instance, current, target, currentTick);
-        if (waypoint == null) return false;
+        if (waypoint == null) {
+            return tryJumpAssist(instance, current, target, currentTick);
+        }
 
         double dx = waypoint.getX() - current.getX();
         double dz = waypoint.getZ() - current.getZ();
         double hDist = Math.sqrt(dx * dx + dz * dz);
-        if (hDist < 0.01) return false;
+        if (hDist < 0.01) {
+            return tryJumpAssist(instance, current, target, currentTick);
+        }
 
         World world = current.getWorld();
         boolean liquid = isLiquidAround(world, current.getX(), current.getY(), current.getZ());
@@ -77,8 +84,8 @@ final class MobAiCalculator {
             terrainY = (int) Math.floor(current.getY());
         }
         if (terrainY < 0) {
-            instance.clearNavPath();
-            return false;
+            markNavigationBlocked(instance, currentTick);
+            return tryJumpAssist(instance, current, target, currentTick);
         }
 
         double newY = nextVerticalPosition(world, current, newX, newZ, terrainY, liquid);
@@ -88,12 +95,13 @@ final class MobAiCalculator {
         }
 
         if (!MobNavigator.hasBodyClearance(world, newX, newY, newZ)) {
-            instance.clearNavPath();
-            return false;
+            markNavigationBlocked(instance, currentTick);
+            return tryJumpAssist(instance, current, target, currentTick);
         }
 
         float movementYaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
         instance.currentLocation(new Location(world, newX, newY, newZ, movementYaw, 0.0f));
+        instance.navBlockedSinceTick(-1L);
         return true;
     }
 
@@ -111,6 +119,54 @@ final class MobAiCalculator {
         double statusMultiplier = Math.max(0.0, statusSpeed) / STANDARD_MOVEMENT_SPEED;
         double speedMultiplier = Math.min(statusMultiplier * Math.max(0.0, aiSpeedModifier), MAX_SPEED_MULTIPLIER);
         return VANILLA_ZOMBIE_STEP_PER_TICK * speedMultiplier;
+    }
+
+    private void markNavigationBlocked(@NotNull MobInstance instance, long currentTick) {
+        long blockedSinceTick = instance.navBlockedSinceTick();
+        instance.clearNavPath();
+        instance.navBlockedSinceTick(blockedSinceTick < 0L ? currentTick : blockedSinceTick);
+    }
+
+    private boolean tryJumpAssist(
+            @NotNull MobInstance instance,
+            @NotNull Location current,
+            @NotNull Location target,
+            long currentTick) {
+
+        if (target.getY() <= current.getY() + HIGHER_TARGET_THRESHOLD) {
+            instance.navBlockedSinceTick(-1L);
+            return false;
+        }
+
+        if (instance.navBlockedSinceTick() < 0L) {
+            instance.navBlockedSinceTick(currentTick);
+            return false;
+        }
+        if (currentTick - instance.navBlockedSinceTick() < JUMP_AFTER_BLOCKED_TICKS) {
+            return false;
+        }
+
+        World world = current.getWorld();
+        if (world == null) return false;
+        int standY = MobNavigator.findStandableY(
+                world,
+                (int) Math.floor(current.getX()),
+                (int) Math.floor(current.getY()),
+                (int) Math.floor(current.getZ())
+        );
+        if (standY < 0) return false;
+
+        double jumpY = Math.min(current.getY() + JUMP_ASSIST_UP_PER_TICK, standY + 1.0);
+        if (jumpY <= current.getY() + 0.01) return false;
+        if (!MobNavigator.hasBodyClearance(world, current.getX(), jumpY, current.getZ())) {
+            return false;
+        }
+
+        double dx = target.getX() - current.getX();
+        double dz = target.getZ() - current.getZ();
+        float movementYaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
+        instance.currentLocation(new Location(world, current.getX(), jumpY, current.getZ(), movementYaw, 0.0f));
+        return true;
     }
 
     private double nextVerticalPosition(

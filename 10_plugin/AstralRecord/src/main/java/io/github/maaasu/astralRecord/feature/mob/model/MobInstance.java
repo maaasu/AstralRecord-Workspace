@@ -39,6 +39,8 @@ public final class MobInstance {
     private double navTargetZ;
     /** 最後に経路を再計算した内部 tick（レート制限用）。 */
     private long navRecomputeTick = -1000L;
+    /** 移動が詰まり始めた内部 tick。詰まりなしは -1。 */
+    private long navBlockedSinceTick = -1L;
     /** WANDER 行動時の現在の徘徊目的地。 */
     private Location wanderTarget;
     /** WANDER 停止を解除する内部 tick。 */
@@ -250,10 +252,25 @@ public final class MobInstance {
         this.navRecomputeTick = tick;
     }
 
+    /** 移動が詰まり始めた内部 tick を返します。 */
+    public long navBlockedSinceTick() {
+        return navBlockedSinceTick;
+    }
+
+    /**
+     * 移動が詰まり始めた内部 tick を設定します。
+     *
+     * @param tick 詰まり始めた tick。詰まりなしは -1
+     */
+    public void navBlockedSinceTick(long tick) {
+        this.navBlockedSinceTick = tick;
+    }
+
     /** 現在の経路をリセットします（次 tick で再計算される）。 */
     public void clearNavPath() {
         this.navPath = null;
         this.navPathIndex = 0;
+        this.navBlockedSinceTick = -1L;
     }
 
     /** WANDER 時の現在の徘徊目的地を返します。未設定なら {@code null}。 */

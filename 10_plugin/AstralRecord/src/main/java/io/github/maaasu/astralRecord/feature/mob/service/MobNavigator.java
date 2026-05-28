@@ -22,9 +22,6 @@ public final class MobNavigator {
     /** 生成するウェイポイントの最大数。 */
     private static final int MAX_PATH_WAYPOINTS = 32;
 
-    /** 落下を許容する最大ブロック数。 */
-    private static final int MAX_FALL_BLOCKS = 3;
-
     private static final double BODY_RADIUS = 0.31;
 
     /**
@@ -54,13 +51,13 @@ public final class MobNavigator {
         if (world == null || world != to.getWorld()) return new ArrayList<>();
 
         int sx = (int) Math.floor(from.getX());
-        int sy = (int) Math.floor(from.getY());
         int sz = (int) Math.floor(from.getZ());
+        int sy = findStandableY(world, sx, (int) Math.floor(from.getY()), sz);
         int ex = (int) Math.floor(to.getX());
         int ez = (int) Math.floor(to.getZ());
         int ey = findStandableY(world, ex, (int) Math.floor(to.getY()), ez);
-        if (ey < 0) return new ArrayList<>();
-        if (sx == ex && sz == ez) return new ArrayList<>();
+        if (sy < 0 || ey < 0) return new ArrayList<>();
+        if (sx == ex && sy == ey && sz == ez) return new ArrayList<>();
 
         Node startNode = new Node(sx, sy, sz, null, 0.0, heuristic(sx, sy, sz, ex, ey, ez));
         PriorityQueue<Node> open = new PriorityQueue<>(Comparator.comparingDouble(n -> n.f));
@@ -77,7 +74,7 @@ public final class MobNavigator {
             if (closed.contains(curKey)) continue;
             closed.add(curKey);
 
-            if (cur.x == ex && cur.z == ez) {
+            if (cur.x == ex && cur.y == ey && cur.z == ez) {
                 return buildPath(world, cur);
             }
 
@@ -95,8 +92,6 @@ public final class MobNavigator {
                 int ny = findStandableY(world, nx, cur.y, nz);
                 if (ny < 0) continue;
                 if (ny > cur.y + 1) continue;               // ステップアップは1ブロックまで
-                if (ny < cur.y - MAX_FALL_BLOCKS) continue; // 落下上限
-
                 double stepCost = (diagonal ? 1.414 : 1.0) + Math.abs(ny - cur.y) * 0.5;
                 double ng = cur.g + stepCost;
                 NodeKey nKey = new NodeKey(nx, ny, nz);
@@ -115,7 +110,7 @@ public final class MobNavigator {
      * 指定 X, Z 座標でモブが立てる足元 Y 座標を返します。
      *
      * <p>まず {@code startY} を確認し、次に1ブロック上（ステップアップ）、
-     * 次に最大 {@value MAX_FALL_BLOCKS} ブロック下方向を探索します。</p>
+     * 次にワールド下限まで下方向を探索します。</p>
      *
      * @param world  ワールド
      * @param x      X 座標
@@ -126,8 +121,8 @@ public final class MobNavigator {
     public static int findStandableY(@NotNull World world, int x, int startY, int z) {
         if (canStandAt(world, x, startY, z)) return startY;
         if (canStandAt(world, x, startY + 1, z)) return startY + 1;
-        for (int dy = 1; dy <= MAX_FALL_BLOCKS; dy++) {
-            if (canStandAt(world, x, startY - dy, z)) return startY - dy;
+        for (int y = startY - 1; y >= world.getMinHeight(); y--) {
+            if (canStandAt(world, x, y, z)) return y;
         }
         return -1;
     }
