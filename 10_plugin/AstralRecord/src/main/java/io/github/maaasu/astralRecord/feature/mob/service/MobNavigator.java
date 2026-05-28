@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.mob.service;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.jetbrains.annotations.NotNull;
@@ -23,6 +24,8 @@ public final class MobNavigator {
 
     /** 落下を許容する最大ブロック数。 */
     private static final int MAX_FALL_BLOCKS = 3;
+
+    private static final double BODY_RADIUS = 0.31;
 
     /**
      * 水平方向の隣接マス定義（東西南北および斜め4方向）。
@@ -142,9 +145,37 @@ public final class MobNavigator {
     public static boolean canStandAt(@NotNull World world, int x, int y, int z) {
         if (y <= world.getMinHeight() || y + 1 >= world.getMaxHeight()) return false;
         Block floor = world.getBlockAt(x, y - 1, z);
-        Block feet = world.getBlockAt(x, y, z);
-        Block head = world.getBlockAt(x, y + 1, z);
-        return !floor.isPassable() && feet.isPassable() && head.isPassable();
+        return !floor.isPassable() && hasBodyClearance(world, x + 0.5, y, z + 0.5);
+    }
+
+    /**
+     * Mob の表示上の幅を考慮して、指定座標に体を置けるか判定します。
+     *
+     * @param world   ワールド
+     * @param centerX Mob 中心 X 座標
+     * @param feetY   Mob 足元 Y 座標
+     * @param centerZ Mob 中心 Z 座標
+     * @return 体のクリアランスがある場合は {@code true}
+     */
+    public static boolean hasBodyClearance(@NotNull World world, double centerX, double feetY, double centerZ) {
+        int y = (int) Math.floor(feetY);
+        if (y <= world.getMinHeight() || y + 1 >= world.getMaxHeight()) return false;
+
+        double[] offsets = {-BODY_RADIUS, BODY_RADIUS};
+        for (double ox : offsets) {
+            for (double oz : offsets) {
+                int bodyX = (int) Math.floor(centerX + ox);
+                int bodyZ = (int) Math.floor(centerZ + oz);
+                if (!isBodyPassable(world.getBlockAt(bodyX, y, bodyZ))) return false;
+                if (!isBodyPassable(world.getBlockAt(bodyX, y + 1, bodyZ))) return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean isBodyPassable(@NotNull Block block) {
+        Material type = block.getType();
+        return block.isPassable() || type == Material.WATER || type == Material.LAVA;
     }
 
     private static double heuristic(int x, int y, int z, int ex, int ey, int ez) {

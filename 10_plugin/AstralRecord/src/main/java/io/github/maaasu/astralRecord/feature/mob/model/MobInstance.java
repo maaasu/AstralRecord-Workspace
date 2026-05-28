@@ -41,6 +41,8 @@ public final class MobInstance {
     private long navRecomputeTick = -1000L;
     /** WANDER 行動時の現在の徘徊目的地。 */
     private Location wanderTarget;
+    /** WANDER 停止を解除する内部 tick。 */
+    private long wanderPauseUntilTick;
 
     // 頭部の向き（プレイヤーへの追跡用）
     /** 頭部の yaw（度）。体と独立してプレイヤー方向を向く。 */
@@ -267,6 +269,20 @@ public final class MobInstance {
      */
     public void wanderTarget(@Nullable Location target) {
         this.wanderTarget = target;
+    }
+
+    /** WANDER 停止を解除する内部 tick を返します。 */
+    public long wanderPauseUntilTick() {
+        return wanderPauseUntilTick;
+    }
+
+    /**
+     * WANDER 停止を解除する内部 tick を設定します。
+     *
+     * @param tick 停止解除 tick
+     */
+    public void wanderPauseUntilTick(long tick) {
+        this.wanderPauseUntilTick = tick;
     }
 
     // ---------- 頭部の向き ----------

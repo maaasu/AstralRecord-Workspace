@@ -10,7 +10,6 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
@@ -39,12 +38,6 @@ public class MobAiService {
     /** 脅威値を減衰させる間隔（tick）。 */
     private static final long THREAT_DECAY_INTERVAL_TICKS = 100L;
 
-    /** 1 tick あたりの基準移動量（ブロック）。speed=1.0 のとき 0.25 ブロック/tick（5 ブロック/秒）。 */
-    private static final double BASE_STEP_PER_TICK = 0.25;
-
-    /** 経路再計算のレート制限（tick）。同一ターゲットに対して最低この間隔を空ける。 */
-    private static final long NAV_RECOMPUTE_INTERVAL = 5L;
-
     /** WANDER 行動で同一ターゲットを追い続ける最大 tick 数（スタック防止）。 */
     private static final long WANDER_TARGET_MAX_TICKS = 100L;
 
@@ -55,6 +48,7 @@ public class MobAiService {
     private static final double MOB_EYE_HEIGHT = 1.0;
 
     private final MobService mobService;
+    private final MobAiCalculator aiCalculator = new MobAiCalculator();
 
     private BukkitTask task;
     private long internalTick;
@@ -160,12 +154,22 @@ public class MobAiService {
         }
 
         if (needNewTarget) {
+            instance.wanderTarget(null);
+            instance.clearNavPath();
+            if (instance.wanderPauseUntilTick() == 0L) {
+                instance.wanderPauseUntilTick(internalTick + aiCalculator.randomWanderPauseTicks());
+            }
+            if (internalTick < instance.wanderPauseUntilTick()) {
+                return;
+            }
+
             double radius = template.idle().wanderRadius();
             ThreadLocalRandom rng = ThreadLocalRandom.current();
             Location anchor = instance.wanderAnchor();
             double dx = (rng.nextDouble() - 0.5) * 2.0 * radius;
             double dz = (rng.nextDouble() - 0.5) * 2.0 * radius;
             instance.wanderTarget(anchor.clone().add(dx, 0.0, dz));
+            instance.wanderPauseUntilTick(0L);
             instance.clearNavPath();
         }
 
@@ -384,100 +388,10 @@ public class MobAiService {
      *
      * @param instance 対象 Mob
      * @param target   目標位置
-     * @param speed    移動速度倍率（{@code BASE_STEP_PER_TICK} に掛ける）
+     * @param speed    AI 設定側の速度倍率
      */
     private void moveToward(@NotNull MobInstance instance, @NotNull Location target, double speed) {
-        Location current = instance.currentLocation();
-        if (current.getWorld() != target.getWorld()) return;
-
-        double step = BASE_STEP_PER_TICK * Math.max(0.0, speed);
-        if (step <= 0.0) return;
-
-        Location waypoint = nextWaypoint(instance, current, target);
-
-        double dx = waypoint.getX() - current.getX();
-        double dz = waypoint.getZ() - current.getZ();
-        double hDist = Math.sqrt(dx * dx + dz * dz);
-        if (hDist < 0.01) return;
-
-        // 移動方向に体を向ける
-        float movementYaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
-
-        double scale = Math.min(step / hDist, 1.0);
-        double newX = current.getX() + dx * scale;
-        double newZ = current.getZ() + dz * scale;
-
-        // ブロック表面に Y を合わせる
-        World world = current.getWorld();
-        int terrainY = MobNavigator.findStandableY(
-            world,
-            (int) Math.floor(newX),
-            (int) Math.floor(current.getY()),
-            (int) Math.floor(newZ)
-        );
-        double newY = terrainY >= 0 ? terrainY : current.getY();
-
-        instance.currentLocation(new Location(world, newX, newY, newZ, movementYaw, 0.0f));
-    }
-
-    /**
-     * 次のウェイポイントを返します。
-     * ターゲットがずれた、またはパスが尽きた場合は A* で再計算します。
-     *
-     * @param instance 対象 Mob
-     * @param current  現在位置
-     * @param target   最終目標位置
-     * @return 次に向かうべき座標
-     */
-    @NotNull
-    private Location nextWaypoint(
-            @NotNull MobInstance instance,
-            @NotNull Location current,
-            @NotNull Location target) {
-
-        boolean pathExhausted = instance.navPath() == null
-                || instance.navPathIndex() >= instance.navPath().size();
-        boolean targetDrifted = hasTargetDrifted(instance, target);
-
-        if ((pathExhausted || targetDrifted) && internalTick - instance.navRecomputeTick() >= NAV_RECOMPUTE_INTERVAL) {
-            List<Location> newPath = MobNavigator.findPath(current, target);
-            instance.navPath(newPath.isEmpty() ? null : newPath);
-            instance.navPathIndex(0);
-            instance.navTargetX(target.getX());
-            instance.navTargetZ(target.getZ());
-            instance.navRecomputeTick(internalTick);
-        }
-
-        List<Location> path = instance.navPath();
-        if (path != null && instance.navPathIndex() < path.size()) {
-            Location waypoint = path.get(instance.navPathIndex());
-            double dxW = waypoint.getX() - current.getX();
-            double dzW = waypoint.getZ() - current.getZ();
-            if (dxW * dxW + dzW * dzW < 0.09) { // 0.3ブロック以内でウェイポイント到達
-                instance.navPathIndex(instance.navPathIndex() + 1);
-                if (instance.navPathIndex() < path.size()) {
-                    return path.get(instance.navPathIndex());
-                }
-            } else {
-                return waypoint;
-            }
-        }
-
-        // フォールバック: ターゲットへ直接
-        return target;
-    }
-
-    /**
-     * 前回経路計算時のターゲットから 2 ブロック以上ずれているか判定します。
-     *
-     * @param instance 対象 Mob
-     * @param target   現在のターゲット位置
-     * @return 2 ブロック以上ずれている場合 {@code true}
-     */
-    private boolean hasTargetDrifted(@NotNull MobInstance instance, @NotNull Location target) {
-        double dx = target.getX() - instance.navTargetX();
-        double dz = target.getZ() - instance.navTargetZ();
-        return dx * dx + dz * dz > 4.0;
+        aiCalculator.moveToward(instance, target, speed, internalTick);
     }
 
     @Nullable
