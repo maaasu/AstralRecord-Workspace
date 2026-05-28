@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillSummary;
 import io.github.maaasu.astralRecord.feature.skill.registry.SkillRegistry;
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillRepository;
@@ -42,6 +43,7 @@ public class SkillService {
 
     private final SkillRepository repository;
     private final SkillRegistry registry;
+    private final Map<String, SkillDefinition> builtInDefinitions = new ConcurrentHashMap<>();
 
     /** 発動者ごと・スキルごとの cooldown 終了予定時刻（{@link System#currentTimeMillis()} 基準）。 */
     private final Map<UUID, Map<String, Long>> cooldownExpiryByCaster = new ConcurrentHashMap<>();
@@ -75,6 +77,26 @@ public class SkillService {
     }
 
     /**
+     * Plugin 側で定義する組み込みスキル定義を登録します。
+     *
+     * @param definition スキル定義
+     */
+    public void registerBuiltInDefinition(@NotNull SkillDefinition definition) {
+        builtInDefinitions.put(definition.getId(), definition);
+    }
+
+    /**
+     * Plugin 側で定義する組み込みスキル定義をまとめて登録します。
+     *
+     * @param definitions スキル定義一覧
+     */
+    public void registerBuiltInDefinitions(@NotNull Iterable<SkillDefinition> definitions) {
+        for (SkillDefinition definition : definitions) {
+            registerBuiltInDefinition(definition);
+        }
+    }
+
+    /**
      * レジストリを返します。テストや別 feature からの参照用。
      *
      * @return スキルレジストリ
@@ -94,12 +116,11 @@ public class SkillService {
      * @return 反映できた定義の件数
      */
     public int reloadDefinitions() {
-        List<SkillSummary> summaries;
+        List<SkillSummary> summaries = List.of();
         try {
             summaries = repository.findAll();
         } catch (Exception e) {
             Logger.log(LogId.E_5801, e, "reloadDefinitions");
-            return registry.definitionCount();
         }
 
         Map<String, SkillDefinition> next = new LinkedHashMap<>();
@@ -138,6 +159,28 @@ public class SkillService {
             next.put(definition.getId(), definition);
         }
 
+        for (SkillDefinition definition : builtInDefinitions.values()) {
+            if (definition.getImplementationId().isBlank()) {
+                Logger.log(LogId.W_5801, definition.getId(), definition.getImplementationId(),
+                        "implementationId が空です");
+                continue;
+            }
+            SkillExecutor executor = registry.getExecutor(definition.getImplementationId());
+            if (executor == null) {
+                Logger.log(LogId.W_5801, definition.getId(), definition.getImplementationId(),
+                        "実行クラスが登録されていません");
+                continue;
+            }
+            try {
+                executor.validateParams(definition);
+            } catch (SkillParameterException e) {
+                Logger.log(LogId.W_5801, definition.getId(), definition.getImplementationId(),
+                        "params 検証失敗: key=" + e.key() + ", message=" + e.getMessage());
+                continue;
+            }
+            next.put(definition.getId(), definition);
+        }
+
         registry.replaceDefinitions(next);
         Logger.log(LogId.I_5800, next.size());
         return next.size();
@@ -155,13 +198,15 @@ public class SkillService {
         if (caster.level() < skill.getRequiredLevel()) {
             return SkillCastResult.failure(PlayerMsgId.P_5800);
         }
-        if (caster.currentMana() < skill.getManaCost()) {
-            return SkillCastResult.failure(PlayerMsgId.P_5801);
+        SkillResourceType resourceType = resolveResourceType(skill);
+        double requiredCost = resolveResourceCost(skill);
+        if (currentResource(caster, resourceType) < requiredCost) {
+            return SkillCastResult.failure(resourceType.insufficientMessageId());
         }
         if (isOnCooldown(caster, skill.getId())) {
             return SkillCastResult.failure(PlayerMsgId.P_5802);
         }
-        return SkillCastResult.success(skill.getManaCost(), skill.getCooldownTicks());
+        return SkillCastResult.success(requiredCost, skill.getCooldownTicks());
     }
 
     /**
@@ -232,7 +277,7 @@ public class SkillService {
         }
 
         if (result.success()) {
-            caster.consumeMana(result.consumedMana());
+            consumeResource(caster, resolveResourceType(definition), result.consumedMana());
             if (result.startedCooldownTicks() > 0L) {
                 startCooldown(caster, definition.getId(), result.startedCooldownTicks());
             }
@@ -297,5 +342,38 @@ public class SkillService {
 
     private @NotNull String normalize(@NotNull String value) {
         return value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private @NotNull SkillResourceType resolveResourceType(@NotNull SkillDefinition skill) {
+        return SkillResourceType.fromRaw(skill.getParams().get("resourceType"));
+    }
+
+    private double resolveResourceCost(@NotNull SkillDefinition skill) {
+        Object raw = skill.getParams().get("resourceCost");
+        if (raw instanceof Number number) {
+            return number.doubleValue();
+        }
+        return skill.getManaCost();
+    }
+
+    private double currentResource(@NotNull SkillCaster caster, @NotNull SkillResourceType resourceType) {
+        return switch (resourceType) {
+            case MANA -> caster.currentMana();
+            case ENERGY -> caster.currentEnergy();
+        };
+    }
+
+    private void consumeResource(
+            @NotNull SkillCaster caster,
+            @NotNull SkillResourceType resourceType,
+            double amount
+    ) {
+        if (amount <= 0.0D) {
+            return;
+        }
+        switch (resourceType) {
+            case MANA -> caster.consumeMana(amount);
+            case ENERGY -> caster.consumeEnergy(amount);
+        }
     }
 }

@@ -449,11 +449,9 @@ public enum PlayerMsgId {
     /**
      * [DEBUG] ホットバー左クリック: {0}
      */
-    P_6000(6000),
     /**
      * [DEBUG] ホットバー右クリック: {0}
      */
-    P_6001(6001),
     // endregion
 
     // region /feature/skill 5800-5809
@@ -481,6 +479,7 @@ public enum PlayerMsgId {
      * スキル発動に失敗しました。
      */
     P_5805(5805),
+    P_5806(5806),
     // endregion
 
     ;

@@ -47,12 +47,32 @@ public interface SkillCaster {
     double currentMana();
 
     /**
+     * 現在 EN を返します。
+     * EN を扱わない発動主体は {@code 0.0} を返して構いません。
+     *
+     * @return 現在 EN
+     */
+    default double currentEnergy() {
+        return 0.0D;
+    }
+
+    /**
      * MP を消費します。
      * 上限・下限のクランプは呼び出し先の責務とします。
      *
      * @param amount 消費量
      */
     void consumeMana(double amount);
+
+    /**
+     * EN を消費します。
+     * EN を扱わない発動主体は no-op で構いません。
+     *
+     * @param amount 消費量
+     */
+    default void consumeEnergy(double amount) {
+        // no-op
+    }
 
     /**
      * 発動者向け通知メッセージを送信します。

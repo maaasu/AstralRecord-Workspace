@@ -61,12 +61,28 @@ public final class PlayerSkillCaster implements SkillCaster {
     }
 
     @Override
+    public double currentEnergy() {
+        return player.getStatusSnapshot().getCurrentEnergy();
+    }
+
+    @Override
     public void consumeMana(double amount) {
         if (amount <= 0.0) return;
         StatusSnapshot snapshot = player.getStatusSnapshot();
         player.setStatusSnapshot(snapshot.withCurrentValues(
                 snapshot.getCurrentHp(),
                 snapshot.getCurrentMp() - amount
+        ));
+    }
+
+    @Override
+    public void consumeEnergy(double amount) {
+        if (amount <= 0.0) return;
+        StatusSnapshot snapshot = player.getStatusSnapshot();
+        player.setStatusSnapshot(snapshot.withCurrentValues(
+                snapshot.getCurrentHp(),
+                snapshot.getCurrentMp(),
+                snapshot.getCurrentEnergy() - amount
         ));
     }
 
