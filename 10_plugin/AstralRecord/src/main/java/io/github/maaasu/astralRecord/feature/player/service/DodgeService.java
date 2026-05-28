@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.player.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
@@ -48,15 +49,18 @@ public class DodgeService {
 
     private final AstralRecord plugin;
     private final StatusService statusService;
+    private final PlayerHudService playerHudService;
     private final ParticleDisplayService particleDisplayService;
 
     public DodgeService(
         @NotNull AstralRecord plugin,
         @NotNull StatusService statusService,
+        @NotNull PlayerHudService playerHudService,
         @NotNull ParticleDisplayService particleDisplayService
     ) {
         this.plugin = plugin;
         this.statusService = statusService;
+        this.playerHudService = playerHudService;
         this.particleDisplayService = particleDisplayService;
     }
 
@@ -72,6 +76,7 @@ public class DodgeService {
         Location sneakStartedAtLocation = astPlayer.getSneakStartedAtLocation();
         astPlayer.setSneakStartedAtMs(0L);
         astPlayer.setSneakStartedAtLocation(null);
+        playerHudService.restoreStatusActionBar(astPlayer);
 
         if (sneakStartedAt <= 0L) {
             return;

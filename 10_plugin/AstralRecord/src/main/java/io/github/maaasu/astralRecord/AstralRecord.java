@@ -263,7 +263,7 @@ public final class AstralRecord extends JavaPlugin {
         damageService = new DamageService(statusService);
 
         // dodge
-        dodgeService = new DodgeService(this, statusService, particleDisplayService);
+        dodgeService = new DodgeService(this, statusService, playerHudService, particleDisplayService);
 
         var playerSaveCoordinator = new PlayerSaveCoordinator(
             java.util.List.of(new InventorySaveTask(inventoryService, inventoryStateRegistry, inventoryPersistence))
@@ -380,7 +380,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new PlayerSneakEventHandler(dodgeService),
+            new PlayerSneakEventHandler(dodgeService, playerHudService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

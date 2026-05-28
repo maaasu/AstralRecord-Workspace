@@ -54,6 +54,12 @@ data class AstPlayer(
     var sneakStartedAtLocation: Location? = null
 
     /**
+     * ドッジ受付ウィンドウの終了時刻（System.currentTimeMillis ベース）。
+     * HUD 上のドッジ受付バー表示の終了判定に使用します。
+     */
+    var sneakDodgeWindowExpiresAtMs: Long = 0L
+
+    /**
      * ドッジ実行中フラグ。
      * 攻撃処理側でジャスト回避判定に使用するため、常に最新の状態へ同期する必要があります。
      */

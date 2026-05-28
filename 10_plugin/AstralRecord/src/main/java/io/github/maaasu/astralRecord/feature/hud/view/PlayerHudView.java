@@ -16,6 +16,7 @@ import org.bukkit.scoreboard.Scoreboard;
 
 public class PlayerHudView {
     private static final String OBJECTIVE_NAME = "astral_info";
+    private static final int DODGE_BAR_LENGTH = 12;
 
     public void renderActionBar(Player player, StatusSnapshot snapshot) {
         double maxHp = snapshot.getMaxValue(StatusType.MAX_HEALTH);
@@ -27,6 +28,24 @@ public class PlayerHudView {
             .append(statText("MP", snapshot.getCurrentMp(), maxMp, NamedTextColor.AQUA))
             .append(Component.text("  ", NamedTextColor.DARK_GRAY))
             .append(statText("ENG", snapshot.getCurrentEnergy(), maxEnergy, NamedTextColor.YELLOW)));
+    }
+
+    /**
+     * ドッジ受付中のアクションバーを描画します。
+     *
+     * @param player 対象プレイヤー
+     * @param progressRemaining 受付残量（0.0-1.0）
+     */
+    public void renderDodgeWindowActionBar(Player player, double progressRemaining) {
+        int filledLength = (int) Math.round(Math.clamp(progressRemaining, 0.0D, 1.0D) * DODGE_BAR_LENGTH);
+        Component bar = Component.empty();
+        for (int i = 0; i < DODGE_BAR_LENGTH; i++) {
+            bar = bar.append(Component.text("|", i < filledLength ? NamedTextColor.GREEN : NamedTextColor.DARK_GRAY));
+        }
+
+        player.sendActionBar(Component.empty()
+            .append(Component.text("DODGE ", NamedTextColor.YELLOW, TextDecoration.BOLD))
+            .append(bar));
     }
 
     public void renderBars(Player player, StatusSnapshot snapshot) {
