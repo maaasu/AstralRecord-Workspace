@@ -9,7 +9,7 @@ import com.comphenix.protocol.wrappers.WrappedDataValue;
 import com.comphenix.protocol.wrappers.WrappedDataWatcher;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
-import org.bukkit.ChatColor;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -17,6 +17,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -244,7 +245,7 @@ public class PacketDisplayService {
         send(viewer, packet);
     }
 
-    private WrappedDataValue dataValue(int index, @NotNull Class<?> type, @NotNull Object value) {
+    private WrappedDataValue dataValue(int index, @NotNull Type type, @NotNull Object value) {
         return dataValue(index, WrappedDataWatcher.Registry.get(type), value);
     }
 
@@ -261,7 +262,7 @@ public class PacketDisplayService {
     }
 
     private String toLegacyText(@NotNull String text) {
-        return ChatColor.translateAlternateColorCodes('&', text);
+        return ColorCodeUtil.translateAlternateColorCodes(text);
     }
 
     private void send(@NotNull Player viewer, @NotNull PacketContainer packet) {

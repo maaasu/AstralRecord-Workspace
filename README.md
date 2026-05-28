@@ -27,6 +27,7 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 
 設計方針として、Plugin はライトビハインド方式を採用しています。そのためクラッシュ発生時の未反映データや書き込み途中の整合性までは考慮対象としておらず、クラッシュ耐性に関する考慮は不要です。
 
+- AstralRecord Plugin では legacy color code の共通定義として `io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil` を使い、`org.bukkit.ChatColor` は新規利用しません。
 ## AstralRecord Web
 
 `30_web/AstralRecordWeb/AstralRecordWeb/` は管理・公開用の Web UI を提供します。

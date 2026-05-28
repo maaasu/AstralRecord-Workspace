@@ -20,6 +20,7 @@ After applying README rules, verify:
 7. Values already represented by enums/constants are not hard-coded as strings.
 8. Logs and player messages are not written inline; use the specialized rules below when touching them.
 9. Public externally-called methods include Japanese JavaDoc/KDoc covering arguments, return value, exceptions, and preconditions.
+10. Legacy color code handling must use the plugin shared definition `io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil`; do not use `org.bukkit.ChatColor` in plugin code.
 
 ## Language Selection
 
