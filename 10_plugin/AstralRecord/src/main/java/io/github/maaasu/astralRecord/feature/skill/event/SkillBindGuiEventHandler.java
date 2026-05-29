@@ -38,7 +38,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * スキルバインド GUI の操作を処理します。
+ * 繧ｹ繧ｭ繝ｫ繝舌う繝ｳ繝・GUI 縺ｮ謫堺ｽ懊ｒ蜃ｦ逅・＠縺ｾ縺吶・
  */
 public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     private static final String ACTION_BACK = "back";
@@ -74,7 +74,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     }
 
     /**
-     * 指定プレイヤーへスキルバインド GUI を開きます。
+     * 謖・ｮ壹・繝ｬ繧､繝､繝ｼ縺ｸ繧ｹ繧ｭ繝ｫ繝舌う繝ｳ繝・GUI 繧帝幕縺阪∪縺吶・
      */
     public void open(@NotNull Player player) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
@@ -145,7 +145,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             SkillBindSession session = sessions.get(playerId);
             if (holder.screen() == SkillBindScreen.MAIN && session != null && session.isDirty()) {
                 plugin.getServer().getScheduler().runTask(plugin, () ->
-                    openConfirm(player, session, ACTION_CLOSE, -1, Component.text("変更を破棄して閉じますか", NamedTextColor.YELLOW))
+                    openConfirm(player, session, ACTION_CLOSE, -1, Component.text("螟画峩繧堤ｴ譽・＠縺ｦ髢峨§縺ｾ縺吶°", NamedTextColor.YELLOW))
                 );
                 return;
             }
@@ -162,7 +162,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         org.bukkit.inventory.ItemStack currentItem
     ) {
         if (rawSlot == SkillBindGui.BACK_SLOT) {
-            openConfirm(player, session, ACTION_BACK, -1, Component.text("スキル設定を閉じて戻りますか", NamedTextColor.YELLOW));
+            openConfirm(player, session, ACTION_BACK, -1, Component.text("繧ｹ繧ｭ繝ｫ險ｭ螳壹ｒ髢峨§縺ｦ謌ｻ繧翫∪縺吶°", NamedTextColor.YELLOW));
             return;
         }
         if (rawSlot == SkillBindGui.PREVIOUS_SLOT) {
@@ -217,7 +217,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             if (session.isDirty()) {
-                openConfirm(player, session, ACTION_SWITCH_PRESET, presetIndex, Component.text("変更を破棄して切り替えますか", NamedTextColor.YELLOW));
+                openConfirm(player, session, ACTION_SWITCH_PRESET, presetIndex, Component.text("螟画峩繧堤ｴ譽・＠縺ｦ蛻・ｊ譖ｿ縺医∪縺吶°", NamedTextColor.YELLOW));
                 return;
             }
             session.loadPreset(presetIndex);
@@ -317,7 +317,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     private void openMain(@NotNull Player player, @NotNull SkillBindSession session, int pageIndex) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         Set<String> ownedSkillIds = astPlayer == null ? Set.of() : ownershipService.ownedSkillIds(astPlayer);
-        suppressClose.add(player.getUniqueId());
+        suppressCloseIfSwitchingWithinSkillGui(player);
         gui.open(player, session, currentSkills(), ownedSkillIds, pageIndex);
     }
 
@@ -328,8 +328,14 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         int pendingPresetIndex,
         @NotNull Component message
     ) {
-        suppressClose.add(player.getUniqueId());
+        suppressCloseIfSwitchingWithinSkillGui(player);
         gui.openConfirm(player, session.selectedPresetIndex(), action, pendingPresetIndex, message);
+    }
+
+    private void suppressCloseIfSwitchingWithinSkillGui(@NotNull Player player) {
+        if (gui.isInventory(player.getOpenInventory().getTopInventory())) {
+            suppressClose.add(player.getUniqueId());
+        }
     }
 
     private @NotNull List<SkillDefinition> currentSkills() {
@@ -347,6 +353,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer != null) {
             inventoryService.applyInventoriesToGui(astPlayer);
+            player.updateInventory();
         }
     }
 }
