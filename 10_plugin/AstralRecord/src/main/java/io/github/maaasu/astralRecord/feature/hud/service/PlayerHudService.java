@@ -61,7 +61,7 @@ public class PlayerHudService {
      * @param astPlayer 対象プレイヤー
      */
     public void showDodgeWindow(AstPlayer astPlayer) {
-        if (plugin == null || !astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
+        if (plugin == null || !astPlayer.getAccount().getMode().shouldProcessGameplay()) {
             return;
         }
 
@@ -99,31 +99,31 @@ public class PlayerHudService {
             }
 
             StatusSnapshot snapshot = statusService.getStatus(astPlayer);
-            if (astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
+            if (astPlayer.getAccount().getMode().shouldProcessGameplay()) {
                 if (isDodgeWindowActive(astPlayer)) {
                     renderDodgeWindow(astPlayer);
                 } else {
                     playerHudView.renderActionBar(player, snapshot);
                 }
+                String className = playerClassService.getDisplayName(astPlayer.getClassId());
+                playerHudView.renderSidebar(
+                    player,
+                    astPlayer.getAccount().getMode().name(),
+                    astPlayer.getUser().getPermission(),
+                    tps,
+                    astPlayer.getClassLevel(),
+                    0L,
+                    className
+                );
             }
             playerHudView.renderBars(player, snapshot);
-            String className = playerClassService.getDisplayName(astPlayer.getClassId());
-            playerHudView.renderSidebar(
-                player,
-                astPlayer.getAccount().getMode().name(),
-                astPlayer.getUser().getPermission(),
-                tps,
-                astPlayer.getClassLevel(),
-                0L,
-                className
-            );
             playerHudView.renderTabList(player, tps);
         }
     }
 
     private void renderStatusActionBar(AstPlayer astPlayer) {
         Player player = astPlayer.getBukkit();
-        if (!player.isOnline() || !astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
+        if (!player.isOnline() || !astPlayer.getAccount().getMode().shouldProcessGameplay()) {
             return;
         }
         playerHudView.renderActionBar(player, statusService.getStatus(astPlayer));
@@ -131,7 +131,7 @@ public class PlayerHudService {
 
     private void renderDodgeWindow(AstPlayer astPlayer) {
         Player player = astPlayer.getBukkit();
-        if (!player.isOnline() || !astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
+        if (!player.isOnline() || !astPlayer.getAccount().getMode().shouldProcessGameplay()) {
             return;
         }
         long remaining = Math.max(0L, astPlayer.getSneakDodgeWindowExpiresAtMs() - System.currentTimeMillis());

@@ -33,6 +33,9 @@ public class PlayerSneakEventHandler extends AbstractEventHandler {
             if (astPlayer == null) {
                 return;
             }
+            if (!astPlayer.getAccount().getMode().shouldProcessGameplay()) {
+                return;
+            }
 
             if (event.isSneaking()) {
                 long startedAtMs = System.currentTimeMillis();

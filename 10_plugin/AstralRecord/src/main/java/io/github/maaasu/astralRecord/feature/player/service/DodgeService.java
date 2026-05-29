@@ -71,6 +71,10 @@ public class DodgeService {
      * @param astPlayer 対象プレイヤー
      */
     public void tryTriggerOnSneakRelease(@NotNull AstPlayer astPlayer) {
+        if (!astPlayer.getAccount().getMode().shouldProcessGameplay()) {
+            return;
+        }
+
         long sneakStartedAt = astPlayer.getSneakStartedAtMs();
         Location sneakStartedAtLocation = astPlayer.getSneakStartedAtLocation();
         astPlayer.setSneakStartedAtMs(0L);

@@ -16,8 +16,11 @@ enum class AccountMode(val value: Byte, val displayName: String) {
     /** サーバー管理権限を持つプレイヤー */
     ADMIN(2, "サーバー管理者");
 
-    fun shouldReflectInventoryToGui(): Boolean =
+    fun shouldProcessGameplay(): Boolean =
         this == PLAYER
+
+    fun shouldReflectInventoryToGui(): Boolean =
+        shouldProcessGameplay()
 
     companion object {
         /**
