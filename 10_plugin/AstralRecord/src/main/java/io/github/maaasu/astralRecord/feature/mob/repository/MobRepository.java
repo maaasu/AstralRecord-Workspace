@@ -124,16 +124,13 @@ public class MobRepository {
         String id = optionalString(obj, "id");
         if (id == null) return null;
 
+        MobCategory category = MobCategory.from(optionalString(obj, "category"));
         String entityTypeName = optionalString(obj, "entityType");
-        EntityType entityType;
-        try {
-            entityType = EntityType.valueOf(entityTypeName == null ? "" : entityTypeName.trim().toUpperCase());
-        } catch (IllegalArgumentException ex) {
+        EntityType entityType = resolveEntityType(entityTypeName, category);
+        if (entityType == null) {
             Logger.log(LogId.W_5705, entityTypeName, id);
             return null;
         }
-
-        MobCategory category = MobCategory.from(optionalString(obj, "category"));
 
         Logger.log(LogId.D_5700, id);
         return new MobTemplate(
@@ -156,6 +153,24 @@ public class MobRepository {
                 category == MobCategory.NPC ? null : parseCombat(getObject(getObject(obj, "ai"), "combat")),
                 category == MobCategory.NPC ? null : parseDrops(getObject(obj, "drops"))
         );
+    }
+
+    @Nullable
+    private EntityType resolveEntityType(@Nullable String entityTypeName, @NotNull MobCategory category) {
+        if (entityTypeName == null || entityTypeName.isBlank()) {
+            return null;
+        }
+
+        String normalized = entityTypeName.trim().toUpperCase();
+        if ("PLAYER".equals(normalized)) {
+            return category == MobCategory.NPC ? EntityType.VILLAGER : EntityType.ZOMBIE;
+        }
+
+        try {
+            return EntityType.valueOf(normalized);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 
     @Nullable

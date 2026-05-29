@@ -30,7 +30,7 @@ public class MobEntityController {
     private static final LegacyComponentSerializer LEGACY_COMPONENT_SERIALIZER =
             LegacyComponentSerializer.legacySection();
     private static final double STANDARD_MOVEMENT_SPEED = 100.0D;
-    private static final double PATHFINDER_SPEED_MULTIPLIER = 1.5D;
+    private static final double PATHFINDER_SPEED_MULTIPLIER = 0.9D;
     private static final double MIN_PATHFINDER_SPEED = 0.05D;
     private static final double MAX_PATHFINDER_SPEED = 2.5D;
     private static final double PATH_TARGET_DRIFT_DISTANCE_SQ = 2.25D;

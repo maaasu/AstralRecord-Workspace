@@ -1,7 +1,9 @@
 package io.github.maaasu.astralRecord.feature.mob.service;
 
+import io.github.maaasu.astralRecord.feature.mob.model.CombatStyle;
 import io.github.maaasu.astralRecord.feature.mob.model.IdleBehavior;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
+import io.github.maaasu.astralRecord.feature.mob.model.MobCombatConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTargetingConfig;
@@ -54,6 +56,8 @@ public class MobAiService {
 
     private static final double COMBAT_VERTICAL_TOLERANCE = 1.25D;
     private static final double COMBAT_RANGE_BUFFER = 0.25D;
+    private static final double RANGED_RETREAT_BUFFER = 1.0D;
+    private static final double MIN_RETREAT_DISTANCE = 1.5D;
 
     private final MobService mobService;
 
@@ -240,7 +244,11 @@ public class MobAiService {
         Location currentLoc = instance.currentLocation();
         double horizontalSq = horizontalDistanceSquared(currentLoc, targetLoc);
         double verticalDiff = Math.abs(targetLoc.getY() - currentLoc.getY());
-        if (horizontalSq <= preferredSq + COMBAT_RANGE_BUFFER
+        if (verticalDiff <= COMBAT_VERTICAL_TOLERANCE
+                && shouldRetreat(instance, horizontalSq, preferredRange)) {
+            instance.state(MobState.COMBAT);
+            moveAway(instance, targetLoc, preferredRange);
+        } else if (horizontalSq <= preferredSq + COMBAT_RANGE_BUFFER
                 && verticalDiff <= COMBAT_VERTICAL_TOLERANCE) {
             instance.state(MobState.COMBAT);
             mobService.stopPathfinding(instance);
@@ -272,11 +280,18 @@ public class MobAiService {
         Location currentLoc = instance.currentLocation();
         double horizontalSq = horizontalDistanceSquared(currentLoc, targetLoc);
         double verticalDiff = Math.abs(targetLoc.getY() - currentLoc.getY());
+        if (verticalDiff <= COMBAT_VERTICAL_TOLERANCE
+                && shouldRetreat(instance, horizontalSq, preferredRange)) {
+            moveAway(instance, targetLoc, preferredRange);
+            return;
+        }
         if (horizontalSq > preferredSq + COMBAT_RANGE_BUFFER
                 || verticalDiff > COMBAT_VERTICAL_TOLERANCE) {
             mobService.stopPathfinding(instance);
             instance.state(MobState.AGGRO);
+            return;
         }
+        mobService.stopPathfinding(instance);
     }
 
     /**
@@ -387,6 +402,38 @@ public class MobAiService {
      */
     private void moveToward(@NotNull MobInstance instance, @NotNull Location target, double speed) {
         mobService.moveToward(instance, target, speed, internalTick);
+    }
+
+    private void moveAway(@NotNull MobInstance instance, @NotNull Location target, double preferredRange) {
+        Location current = instance.currentLocation();
+        double dx = current.getX() - target.getX();
+        double dz = current.getZ() - target.getZ();
+        double lengthSq = dx * dx + dz * dz;
+        if (lengthSq < 1.0E-6D) {
+            dx = 1.0D;
+            dz = 0.0D;
+            lengthSq = 1.0D;
+        }
+
+        double length = Math.sqrt(lengthSq);
+        double retreatDistance = Math.max(MIN_RETREAT_DISTANCE, preferredRange + RANGED_RETREAT_BUFFER);
+        Location retreatTarget = current.clone().add(dx / length * retreatDistance, 0.0D, dz / length * retreatDistance);
+        moveToward(instance, retreatTarget, instance.template().idle().speed());
+    }
+
+    private boolean shouldRetreat(@NotNull MobInstance instance, double horizontalSq, double preferredRange) {
+        if (!isRangedStyle(instance.template().combat())) {
+            return false;
+        }
+        double threshold = Math.max(0.0D, preferredRange - COMBAT_RANGE_BUFFER);
+        return horizontalSq < threshold * threshold;
+    }
+
+    private boolean isRangedStyle(@Nullable MobCombatConfig combat) {
+        if (combat == null) {
+            return false;
+        }
+        return combat.style() == CombatStyle.RANGED || combat.style() == CombatStyle.MAGIC;
     }
 
     private boolean shouldProcess(@NotNull MobInstance instance, long interval) {
