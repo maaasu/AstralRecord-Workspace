@@ -13,11 +13,8 @@ public class AccountModeTabCompleter extends AstTabCompleter {
     protected List<String> getCompletions(@NotNull CommandSender sender, @NotNull String[] args) {
         if (args.length == 1) {
             List<String> completions = new ArrayList<>();
-            for (AccountMode m : AccountMode.values()) {
+            for (AccountMode m : AccountMode.getEntries()) {
                 completions.add(m.name());
-            }
-            for (AccountMode m : AccountMode.values()) {
-                completions.add(String.valueOf(m.getValue()));
             }
             return completions;
         }
