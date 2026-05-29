@@ -53,7 +53,12 @@ import io.github.maaasu.astralRecord.feature.resourcepack.event.ResourcePackJoin
 import io.github.maaasu.astralRecord.feature.resourcepack.event.ResourcePackStatusEventHandler;
 import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
+import io.github.maaasu.astralRecord.feature.skill.event.SkillBindGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.executor.FireBoostSkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui;
+import io.github.maaasu.astralRecord.feature.skill.repository.SkillBindPresetRepository;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusRegenTask;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.status.event.PlayerHeldItemStatusEventHandler;
@@ -113,6 +118,10 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerSettingService playerSettingService;
     private PlayerSettingGui playerSettingGui;
     private SkillService skillService;
+    private SkillBindPresetService skillBindPresetService;
+    private SkillOwnershipService skillOwnershipService;
+    private SkillBindGui skillBindGui;
+    private SkillBindGuiEventHandler skillBindGuiEventHandler;
     private DamageService damageService;
     private BundleUseService bundleUseService;
     private BundleUseEffectService bundleUseEffectService;
@@ -278,7 +287,7 @@ public final class AstralRecord extends JavaPlugin {
         overheadDisplayService = new OverheadDisplayService(displayTextService, statusService, mobService);
 
         // combat
-        damageService = new DamageService(statusService, mobService, displayTextService);
+        damageService = new DamageService(statusService, mobService, displayTextService, playerSettingService);
 
         // dodge
         dodgeService = new DodgeService(this, statusService, playerHudService, particleDisplayService);
@@ -307,9 +316,12 @@ public final class AstralRecord extends JavaPlugin {
 
         // skill
         skillService = new SkillService();
+        skillBindPresetService = new SkillBindPresetService(new SkillBindPresetRepository());
         skillService.registerExecutor(new FireBoostSkillExecutor(particleDisplayService));
         skillService.registerExecutor(new WeaponAttackSkillExecutor(particleDisplayService, damageService));
         skillService.registerBuiltInDefinitions(BuiltInWeaponAttackDefinitions.definitions());
+        skillOwnershipService = new SkillOwnershipService(playerClassService, inventoryService, itemService);
+        skillBindGui = new SkillBindGui(this);
         itemWeaponAttackService = new ItemWeaponAttackService(itemService, skillService);
 
         // item, loot, skill, class（マスタデータ非同期ロード）
@@ -390,6 +402,19 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             new PlayerSettingGuiEventHandler(playerSettingGui, playerSettingService, inventoryService, menuView),
+            getServer().getPluginManager()
+        );
+        skillBindGuiEventHandler = new SkillBindGuiEventHandler(
+            this,
+            skillBindGui,
+            skillService,
+            skillBindPresetService,
+            skillOwnershipService,
+            inventoryService,
+            menuView
+        );
+        eventManager.registerHandler(
+            skillBindGuiEventHandler,
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
@@ -507,6 +532,15 @@ public final class AstralRecord extends JavaPlugin {
      */
     public SkillService getSkillService() {
         return skillService;
+    }
+
+    /**
+     * スキルバインド GUI イベントハンドラを返します。
+     *
+     * @return スキルバインド GUI イベントハンドラ
+     */
+    public SkillBindGuiEventHandler getSkillBindGuiEventHandler() {
+        return skillBindGuiEventHandler;
     }
 
     /**

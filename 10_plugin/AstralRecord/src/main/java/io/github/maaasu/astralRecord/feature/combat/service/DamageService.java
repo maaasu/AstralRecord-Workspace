@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import org.bukkit.entity.Entity;
@@ -27,6 +28,7 @@ public final class DamageService {
     private final MobService mobService;
     private final DamageCalculator damageCalculator;
     private final DisplayTextService displayTextService;
+    private final PlayerSettingService playerSettingService;
 
     /**
      * サービスを構築します。
@@ -37,12 +39,14 @@ public final class DamageService {
     public DamageService(
             @NotNull StatusService statusService,
             @NotNull MobService mobService,
-            @NotNull DisplayTextService displayTextService
+            @NotNull DisplayTextService displayTextService,
+            @NotNull PlayerSettingService playerSettingService
     ) {
         this.statusService = statusService;
         this.mobService = mobService;
         this.damageCalculator = new DamageCalculator();
         this.displayTextService = displayTextService;
+        this.playerSettingService = playerSettingService;
     }
 
     /**
@@ -165,7 +169,7 @@ public final class DamageService {
         DamageContext context = new DamageContext(attacker, victim, baseDamage, attackType, damageType, scaling);
         DamageResult result = damageCalculator.calculate(context);
         applyDamageResult(attacker, victim, result);
-        spawnDamageDisplay(victim, result);
+        spawnDamageDisplay(attacker, victim, result);
         return result;
     }
 
@@ -207,10 +211,25 @@ public final class DamageService {
         }
     }
 
-    private void spawnDamageDisplay(@NotNull AstEntity victim, @NotNull DamageResult result) {
+    private void spawnDamageDisplay(
+            @Nullable AstEntity attacker,
+            @NotNull AstEntity victim,
+            @NotNull DamageResult result
+    ) {
         if (result.finalDamage() <= 0.0D) {
             return;
         }
+        if (!shouldDisplayDamage(attacker, victim)) {
+            return;
+        }
         displayTextService.spawnDamageNumber(victim.location().clone().add(0.0D, 1.2D, 0.0D), result.finalDamage(), false);
+    }
+
+    private boolean shouldDisplayDamage(@Nullable AstEntity attacker, @NotNull AstEntity victim) {
+        if (attacker != null && attacker.isPlayer()
+                && !playerSettingService.isDamageLogDisplayEnabled(attacker.player().getUser().getUuid())) {
+            return false;
+        }
+        return !victim.isPlayer() || playerSettingService.isDamageLogDisplayEnabled(victim.player().getUser().getUuid());
     }
 }

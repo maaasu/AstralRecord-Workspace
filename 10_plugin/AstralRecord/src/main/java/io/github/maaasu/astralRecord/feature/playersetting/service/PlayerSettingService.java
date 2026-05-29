@@ -98,6 +98,17 @@ public final class PlayerSettingService {
         return ParticleDensity.NORMAL.getDensityScale();
     }
 
+    /**
+     * 指定プレイヤーでダメージログ表示が有効かを返します。
+     *
+     * @param userId 判定対象ユーザー ID
+     * @return ダメージログ表示が有効な場合は {@code true}
+     */
+    public boolean isDamageLogDisplayEnabled(@NotNull UUID userId) {
+        Object value = getPlayerSetting(userId, PlayerSettingKey.DAMAGE_LOG_DISPLAY);
+        return value instanceof Boolean enabled ? enabled : (Boolean) PlayerSettingKey.DAMAGE_LOG_DISPLAY.getDefaultValue();
+    }
+
     public @NotNull UpdateResult updatePlayerSetting(@NotNull PlayerSettingChangeRequest request) {
         PlayerSettingSnapshot snapshot = cache.find(request.userId());
         if (snapshot == null) {
