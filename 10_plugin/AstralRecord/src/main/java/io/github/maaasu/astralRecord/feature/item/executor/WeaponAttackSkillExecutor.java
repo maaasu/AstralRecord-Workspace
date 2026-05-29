@@ -1,6 +1,10 @@
 package io.github.maaasu.astralRecord.feature.item.executor;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
+import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageType;
+import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastContext;
@@ -12,14 +16,15 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.SoundCategory;
-import org.bukkit.entity.AbstractArrow;
-import org.bukkit.entity.Arrow;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Snowball;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * implementationId {@code normal_attack} の組み込み武器攻撃 executor です。
@@ -29,14 +34,20 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
     private static final String IMPLEMENTATION_ID = "normal_attack";
 
     private final ParticleDisplayService particleDisplayService;
+    private final DamageService damageService;
 
     /**
-     * パーティクル表示サービスを受け取って executor を構築します。
+     * executor を構築します。
      *
      * @param particleDisplayService パーティクル表示サービス
+     * @param damageService          custom damage 適用サービス
      */
-    public WeaponAttackSkillExecutor(@NotNull ParticleDisplayService particleDisplayService) {
+    public WeaponAttackSkillExecutor(
+            @NotNull ParticleDisplayService particleDisplayService,
+            @NotNull DamageService damageService
+    ) {
         this.particleDisplayService = particleDisplayService;
+        this.damageService = damageService;
     }
 
     @Override
@@ -84,7 +95,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             player.getWorld().playSound(player.getLocation(), soundKey, SoundCategory.PLAYERS, volume, pitch);
         }
 
-        if (!spawnForwardEffectTrail(
+        spawnForwardEffectTrail(
                 context.skill(),
                 caster,
                 effectLocation,
@@ -95,9 +106,8 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 spreadY,
                 spreadZ,
                 extra
-        )) {
-            spawnLinearProjectile(context.skill(), player, effectLocation, direction);
-        }
+        );
+        applyDirectDamage(context.skill(), caster, effectLocation, direction);
         return SkillCastResult.success(resourceCost, context.skill().getCooldownTicks());
     }
 
@@ -113,7 +123,6 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         requireNonNegativeDouble(skill, "forwardOffset");
         requireNonNegativeDouble(skill, "soundVolume");
         requireNonNegativeDouble(skill, "soundPitch");
-        requireNonNegativeDouble(skill, "projectileSpeed");
         requireNonNegativeInt(skill, "trailSteps");
         requireNonNegativeInt(skill, "trailIntervalTicks");
         requireNonNegativeDouble(skill, "trailStepDistance");
@@ -121,6 +130,50 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         requireNonNegativeDouble(skill, "trailSpreadY");
         requireNonNegativeDouble(skill, "trailSpreadZ");
         requireNonNegativeDouble(skill, "trailExtra");
+        requireNonNegativeDouble(skill, "hitRange");
+        requireNonNegativeDouble(skill, "hitRadius");
+        requireNonNegativeDouble(skill, "hitStepDistance");
+        requireNonNegativeDouble(skill, "maxTargets");
+    }
+
+    private void applyDirectDamage(
+            @NotNull SkillDefinition skill,
+            @NotNull PlayerSkillCaster caster,
+            @NotNull Location startLocation,
+            @NotNull Vector direction
+    ) {
+        double hitRadius = readDoubleParam(skill, "hitRadius", 0.75D);
+        double hitRange = readDoubleParam(skill, "hitRange", 2.5D);
+        double hitStepDistance = readDoubleParam(skill, "hitStepDistance", Math.max(0.45D, hitRadius));
+        int maxTargets = Math.max(1, (int) Math.round(readDoubleParam(skill, "maxTargets", 8.0D)));
+        AttackType attackType = readAttackType(skill);
+        DamageType damageType = readDamageType(skill);
+        AstEntity attacker = AstEntity.player(caster.player());
+
+        Map<UUID, AstEntity> victims = new LinkedHashMap<>();
+        int steps = Math.max(1, (int) Math.ceil(hitRange / Math.max(0.1D, hitStepDistance)));
+        Vector normalizedDirection = direction.clone().normalize();
+
+        for (int step = 0; step <= steps; step++) {
+            Location sample = startLocation.clone().add(normalizedDirection.clone().multiply(hitStepDistance * step));
+            for (Entity candidate : sample.getWorld().getNearbyEntities(sample, hitRadius, hitRadius, hitRadius)) {
+                AstEntity victim = damageService.resolveEntity(candidate);
+                if (!victim.isManaged() || victim.id().equals(attacker.id())) {
+                    continue;
+                }
+                victims.putIfAbsent(victim.id(), victim);
+                if (victims.size() >= maxTargets) {
+                    break;
+                }
+            }
+            if (victims.size() >= maxTargets) {
+                break;
+            }
+        }
+
+        for (AstEntity victim : victims.values()) {
+            damageService.attack(attacker, victim, attackType, damageType);
+        }
     }
 
     private @NotNull Particle readParticle(
@@ -198,44 +251,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         }
     }
 
-    private void spawnLinearProjectile(
-            @NotNull SkillDefinition skill,
-            @NotNull Player player,
-            @NotNull Location spawnLocation,
-            @NotNull Vector direction
-    ) {
-        String projectileType = readStringParam(skill, "projectileType").toLowerCase(Locale.ROOT);
-        if (projectileType.isBlank()) {
-            return;
-        }
-
-        double projectileSpeed = readDoubleParam(skill, "projectileSpeed", 0.0D);
-        if (projectileSpeed <= 0.0D) {
-            return;
-        }
-
-        Vector velocity = direction.clone().multiply(projectileSpeed);
-        switch (projectileType) {
-            case "arrow" -> {
-                Arrow arrow = player.getWorld().spawn(spawnLocation, Arrow.class);
-                arrow.setShooter(player);
-                arrow.setCritical(false);
-                arrow.setPickupStatus(AbstractArrow.PickupStatus.DISALLOWED);
-                arrow.setGravity(false);
-                arrow.setVelocity(velocity);
-            }
-            case "magic" -> {
-                Snowball snowball = player.getWorld().spawn(spawnLocation, Snowball.class);
-                snowball.setShooter(player);
-                snowball.setGravity(false);
-                snowball.setVelocity(velocity);
-            }
-            default -> {
-            }
-        }
-    }
-
-    private boolean spawnForwardEffectTrail(
+    private void spawnForwardEffectTrail(
             @NotNull SkillDefinition skill,
             @NotNull PlayerSkillCaster caster,
             @NotNull Location startLocation,
@@ -249,7 +265,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
     ) {
         int trailSteps = readIntParam(skill, "trailSteps", 0);
         if (trailSteps <= 0) {
-            return false;
+            return;
         }
 
         int trailIntervalTicks = Math.max(1, readIntParam(skill, "trailIntervalTicks", 1));
@@ -282,6 +298,29 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 );
             }, delayTicks);
         }
-        return true;
+    }
+
+    private @NotNull AttackType readAttackType(@NotNull SkillDefinition skill) {
+        String raw = readStringParam(skill, "attackType");
+        if (raw.isBlank()) {
+            return AttackType.MELEE;
+        }
+        try {
+            return AttackType.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ignored) {
+            return AttackType.MELEE;
+        }
+    }
+
+    private @NotNull DamageType readDamageType(@NotNull SkillDefinition skill) {
+        String raw = readStringParam(skill, "damageType");
+        if (raw.isBlank()) {
+            return DamageType.PHYSICAL;
+        }
+        try {
+            return DamageType.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ignored) {
+            return DamageType.PHYSICAL;
+        }
     }
 }

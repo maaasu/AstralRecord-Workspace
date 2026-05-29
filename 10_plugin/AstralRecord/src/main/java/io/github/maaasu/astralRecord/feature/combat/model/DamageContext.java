@@ -23,7 +23,8 @@ public record DamageContext(
         @NotNull AstEntity victim,
         double baseDamage,
         @NotNull AttackType attackType,
-        @NotNull DamageType damageType
+        @NotNull DamageType damageType,
+        @NotNull DamageScaling scaling
 ) {
 
     /**
@@ -41,7 +42,8 @@ public record DamageContext(
                 AstEntity.bukkit(event.getEntity()),
                 event.getDamage(),
                 AttackType.MELEE,
-                DamageType.PHYSICAL
+                DamageType.PHYSICAL,
+                DamageScaling.ATTACKER_STATUS
         );
     }
 }

@@ -25,11 +25,7 @@ public final class DamageCalculator {
      * @return 計算結果
      */
     public @NotNull DamageResult calculate(@NotNull DamageContext context) {
-        double damage = context.baseDamage();
-
-        if (context.attacker() != null && context.attacker().isManaged()) {
-            damage = Math.max(damage, attackPower(context));
-        }
+        double damage = resolveBaseDamage(context);
 
         if (context.damageType() != DamageType.TRUE && context.victim().isManaged()) {
             double defense = defensePower(context);
@@ -39,6 +35,16 @@ public final class DamageCalculator {
         damage = Math.max(0.0D, damage);
 
         return new DamageResult(damage);
+    }
+
+    private double resolveBaseDamage(@NotNull DamageContext context) {
+        if (context.scaling() == io.github.maaasu.astralRecord.feature.combat.model.DamageScaling.FIXED) {
+            return context.baseDamage();
+        }
+        if (context.attacker() != null && context.attacker().isManaged()) {
+            return Math.max(context.baseDamage(), attackPower(context));
+        }
+        return context.baseDamage();
     }
 
     private double attackPower(@NotNull DamageContext context) {

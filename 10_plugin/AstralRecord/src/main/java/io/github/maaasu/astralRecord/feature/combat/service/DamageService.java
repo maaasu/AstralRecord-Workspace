@@ -4,11 +4,14 @@ import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageContext;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageScaling;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageType;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
+import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
+import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -16,59 +19,68 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * 戦闘ダメージ処理の入口となるサービスクラスです。
- * <p>
- * イベント・スキル・Mob 攻撃などからの呼び出しを受け、{@link AstEntity} を使って
- * プレイヤー / Mob の組み合わせに依らないダメージ確定処理を行います。
+ * custom combat のダメージ適用を一元化するサービスです。
  */
 public final class DamageService {
 
     private final StatusService statusService;
+    private final MobService mobService;
     private final DamageCalculator damageCalculator;
+    private final DisplayTextService displayTextService;
 
     /**
-     * {@link DamageService} を構築します。
+     * サービスを構築します。
      *
-     * @param statusService 被弾者の現在ステータス参照・更新に使用するサービス
+     * @param statusService プレイヤー HP 反映に使うサービス
+     * @param mobService    Bukkit Entity から custom mob を解決するサービス
      */
-    public DamageService(@NotNull StatusService statusService) {
+    public DamageService(
+            @NotNull StatusService statusService,
+            @NotNull MobService mobService,
+            @NotNull DisplayTextService displayTextService
+    ) {
         this.statusService = statusService;
+        this.mobService = mobService;
         this.damageCalculator = new DamageCalculator();
+        this.displayTextService = displayTextService;
     }
 
     /**
-     * Bukkit のエンティティ間ダメージイベントを処理します。
-     * <p>
-     * AstPlayer に解決できるプレイヤーが被弾者の場合、バニラダメージはキャンセルし、
-     * AstralRecord 側の HP へダメージを反映します。
+     * Bukkit の近接ダメージイベントを custom combat へ変換します。
      *
-     * @param event Bukkit のエンティティ間ダメージイベント
+     * @param event Bukkit ダメージイベント
      */
     public void handleEntityDamage(@NotNull EntityDamageByEntityEvent event) {
-        AstEntity attacker = resolveBukkitEntity(event.getDamager());
-        AstEntity victim = resolveBukkitEntity(event.getEntity());
-        DamageResult result = applyDamage(attacker, victim, event.getDamage(), AttackType.MELEE, DamageType.PHYSICAL);
+        AstEntity attacker = resolveEntity(event.getDamager());
+        AstEntity victim = resolveEntity(event.getEntity());
 
-        if (victim.isManaged()) {
-            event.setDamage(0.0D);
-            event.setCancelled(true);
+        if (!attacker.isManaged() && !victim.isManaged()) {
             return;
         }
 
-        event.setDamage(result.finalDamage());
+        event.setDamage(0.0D);
+        event.setCancelled(true);
+
+        if (!victim.isManaged()) {
+            return;
+        }
+
+        if (attacker.isManaged()) {
+            attack(attacker, victim, AttackType.MELEE, DamageType.PHYSICAL);
+            return;
+        }
+
+        applyDamage(attacker, victim, event.getDamage(), AttackType.MELEE, DamageType.PHYSICAL);
     }
 
     /**
-     * 攻撃者のステータスを基礎値としてダメージを確定し、被弾者へ適用します。
-     * <p>
-     * プレイヤー対プレイヤー、プレイヤー対 Mob、Mob 対プレイヤー、Mob 対 Mob の
-     * いずれも同じ API で処理できます。
+     * 攻撃者ステータスを使って通常攻撃ダメージを適用します。
      *
      * @param attacker   攻撃者
      * @param victim     被弾者
      * @param attackType 攻撃種別
      * @param damageType ダメージ種別
-     * @return ダメージ計算結果
+     * @return ダメージ結果
      */
     public @NotNull DamageResult attack(
             @NotNull AstEntity attacker,
@@ -76,22 +88,18 @@ public final class DamageService {
             @NotNull AttackType attackType,
             @NotNull DamageType damageType
     ) {
-        return applyDamage(attacker, victim, 0.0D, attackType, damageType);
+        return applyDamage(attacker, victim, 0.0D, attackType, damageType, DamageScaling.ATTACKER_STATUS);
     }
 
     /**
-     * 指定基礎ダメージを元にダメージを確定し、被弾者へ適用します。
-     * <p>
-     * 被弾者がプレイヤーの場合は {@link StatusService#consumeHp(AstPlayer, double)} で現在 HP を減算します。
-     * 被弾者が Mob の場合は {@code MobInstance.currentHealth} を減算し、0 以下で DEAD へ遷移します。
-     * Bukkit エンティティのみの場合、呼び出し元イベントへ反映するため計算結果だけを返します。
+     * 外部で確定した基礎ダメージをそのまま適用します。
      *
-     * @param attacker   攻撃者。環境ダメージなど攻撃者がない場合は null
+     * @param attacker   攻撃者。存在しない場合は {@code null}
      * @param victim     被弾者
-     * @param baseDamage 外部から与えられた基礎ダメージ。0 以下の場合は攻撃者ステータスのみで計算
+     * @param baseDamage 基礎ダメージ
      * @param attackType 攻撃種別
      * @param damageType ダメージ種別
-     * @return ダメージ計算結果
+     * @return ダメージ結果
      */
     public @NotNull DamageResult applyDamage(
             @Nullable AstEntity attacker,
@@ -100,12 +108,64 @@ public final class DamageService {
             @NotNull AttackType attackType,
             @NotNull DamageType damageType
     ) {
+        return applyDamage(attacker, victim, baseDamage, attackType, damageType, DamageScaling.FIXED);
+    }
+
+    /**
+     * 持続ダメージやデバフ起点の固定値ダメージを適用します。
+     *
+     * @param attacker   原因元の攻撃者。存在しない場合は {@code null}
+     * @param victim     被弾者
+     * @param baseDamage 固定ダメージ
+     * @param damageType ダメージ種別
+     * @return ダメージ結果
+     */
+    public @NotNull DamageResult applyEffectDamage(
+            @Nullable AstEntity attacker,
+            @NotNull AstEntity victim,
+            double baseDamage,
+            @NotNull DamageType damageType
+    ) {
+        return applyDamage(attacker, victim, baseDamage, AttackType.MAGIC, damageType, DamageScaling.FIXED);
+    }
+
+    /**
+     * Bukkit Entity を combat で扱う統一エンティティへ解決します。
+     *
+     * @param entity Bukkit Entity
+     * @return 解決済みエンティティ
+     */
+    public @NotNull AstEntity resolveEntity(@NotNull Entity entity) {
+        if (entity instanceof Player player) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer != null) {
+                return AstEntity.player(astPlayer);
+            }
+        }
+
+        var mob = mobService.getInstanceByEntity(entity.getUniqueId());
+        if (mob != null) {
+            return AstEntity.mob(mob);
+        }
+
+        return AstEntity.bukkit(entity);
+    }
+
+    private @NotNull DamageResult applyDamage(
+            @Nullable AstEntity attacker,
+            @NotNull AstEntity victim,
+            double baseDamage,
+            @NotNull AttackType attackType,
+            @NotNull DamageType damageType,
+            @NotNull DamageScaling scaling
+    ) {
         ensureStatusLoaded(attacker);
         ensureStatusLoaded(victim);
 
-        DamageContext context = new DamageContext(attacker, victim, baseDamage, attackType, damageType);
+        DamageContext context = new DamageContext(attacker, victim, baseDamage, attackType, damageType, scaling);
         DamageResult result = damageCalculator.calculate(context);
         applyDamageResult(attacker, victim, result);
+        spawnDamageDisplay(victim, result);
         return result;
     }
 
@@ -123,19 +183,21 @@ public final class DamageService {
             return;
         }
 
-        if (victim.isMob()) {
-            var mob = victim.mob();
-            mob.currentHealth(Math.max(0.0D, mob.currentHealth() - result.finalDamage()));
-            if (attacker != null && attacker.isPlayer()) {
-                mob.threatTable().add(attacker.id(), result.finalDamage());
-                if (mob.state() == MobState.IDLE) {
-                    mob.state(MobState.AGGRO);
-                    mob.targetId(attacker.id());
-                }
+        if (!victim.isMob()) {
+            return;
+        }
+
+        var mob = victim.mob();
+        mob.currentHealth(Math.max(0.0D, mob.currentHealth() - result.finalDamage()));
+        if (attacker != null && attacker.isPlayer()) {
+            mob.threatTable().add(attacker.id(), result.finalDamage());
+            if (mob.state() == MobState.IDLE) {
+                mob.state(MobState.AGGRO);
+                mob.targetId(attacker.id());
             }
-            if (mob.currentHealth() <= 0.0D) {
-                mob.state(MobState.DEAD);
-            }
+        }
+        if (mob.currentHealth() <= 0.0D) {
+            mob.state(MobState.DEAD);
         }
     }
 
@@ -145,13 +207,10 @@ public final class DamageService {
         }
     }
 
-    private @NotNull AstEntity resolveBukkitEntity(@NotNull Entity entity) {
-        if (entity instanceof Player player) {
-            AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (astPlayer != null) {
-                return AstEntity.player(astPlayer);
-            }
+    private void spawnDamageDisplay(@NotNull AstEntity victim, @NotNull DamageResult result) {
+        if (result.finalDamage() <= 0.0D) {
+            return;
         }
-        return AstEntity.bukkit(entity);
+        displayTextService.spawnDamageNumber(victim.location().clone().add(0.0D, 1.2D, 0.0D), result.finalDamage(), false);
     }
 }
