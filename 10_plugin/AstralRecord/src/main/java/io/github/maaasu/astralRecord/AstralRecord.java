@@ -72,6 +72,7 @@ import io.github.maaasu.astralRecord.feature.world.event.WorldNaturalSpawnBlockE
 import io.github.maaasu.astralRecord.feature.world.event.WorldJoinSpawnEventHandler;
 import io.github.maaasu.astralRecord.feature.world.repository.WorldRepository;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
+import io.github.maaasu.astralRecord.feature.world.service.WorldSpawnParticleTask;
 import io.github.maaasu.astralRecord.infrastructure.command.CommandManager;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigManager;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
@@ -131,6 +132,7 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerClassService playerClassService;
     private ItemWeaponAttackService itemWeaponAttackService;
     private WorldService worldService;
+    private WorldSpawnParticleTask worldSpawnParticleTask;
     private String joinSpawnWorldId;
 
     @Override
@@ -196,6 +198,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (mobAiService != null) {
             mobAiService.stop();
+        }
+        if (worldSpawnParticleTask != null) {
+            worldSpawnParticleTask.stop();
         }
         if (mobService != null) {
             mobService.destroyAll();
@@ -346,6 +351,7 @@ public final class AstralRecord extends JavaPlugin {
 
         // world
         worldService.loadAll();
+        worldSpawnParticleTask = new WorldSpawnParticleTask(this, worldService, particleDisplayService);
 
         // item: ProtocolLib パケットアダプタ（icon 差し替え）登録
         ItemStackPacketAdapter packetAdapter = new ItemStackPacketAdapter(this);
@@ -452,6 +458,7 @@ public final class AstralRecord extends JavaPlugin {
         statusRegenTask.start(this);
         displayTextService.start(this);
         overheadDisplayService.start(this);
+        worldSpawnParticleTask.start();
         // インベントリオートセーブ (60s) を開始
         inventoryAutoSaveTask.start(this, InventoryAutoSaveTask.DEFAULT_INTERVAL_TICKS);
     }
