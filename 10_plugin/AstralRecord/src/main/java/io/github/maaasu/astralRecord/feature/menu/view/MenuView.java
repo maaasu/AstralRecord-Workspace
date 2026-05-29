@@ -140,14 +140,15 @@ public class MenuView {
     }
 
     public void openTrashConfirm(@NotNull Player player, @NotNull List<ItemStack> trashItems, int pageIndex) {
-        int normalizedPage = trashConfirmScreenView.normalizePage(pageIndex, trashItems.size());
-        int totalPages = trashConfirmScreenView.totalPages(trashItems.size());
-        Component title = Component.text("本当に廃棄しますか？ " + (normalizedPage + 1) + "/" + totalPages, NamedTextColor.RED);
-        Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.TRASH_CONFIRM, -1, normalizedPage), SIZE, title);
-        trashConfirmScreenView.render(inventory, trashItems, normalizedPage);
+        Component title = Component.text("確認", NamedTextColor.RED);
+        Inventory inventory = Bukkit.createInventory(
+            new MenuInventoryHolder(MenuScreen.TRASH_CONFIRM, -1, 0),
+            io.github.maaasu.astralRecord.shared.gui.confirm.ConfirmDialogView.SIZE,
+            title
+        );
+        trashConfirmScreenView.render(inventory, trashItems, 0);
         player.openInventory(inventory);
     }
-
     public @NotNull ItemStack createCraftResultIcon() {
         return craftShortcutView.createCraftResultIcon();
     }

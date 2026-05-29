@@ -7,6 +7,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
 {
     public DbSet<UserEntity> Users => Set<UserEntity>();
     public DbSet<PlayerSettingEntity> PlayerSettings => Set<PlayerSettingEntity>();
+    public DbSet<SkillBindPresetEntity> SkillBindPresets => Set<SkillBindPresetEntity>();
     public DbSet<AccountEntity> Accounts => Set<AccountEntity>();
     public DbSet<InventoryEntity> Inventories => Set<InventoryEntity>();
     public DbSet<InventoryEntryEntity> InventoryEntries => Set<InventoryEntryEntity>();
@@ -78,6 +79,28 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(setting => setting.CreatedBy).HasColumnName("created_by");
             entity.Property(setting => setting.UpdatedBy).HasColumnName("updated_by");
             entity.Property(setting => setting.IsDeleted).HasColumnName("is_deleted");
+        });
+
+        modelBuilder.Entity<SkillBindPresetEntity>(entity =>
+        {
+            entity.ToTable("skill_bind_preset", "dbo");
+            entity.HasKey(preset => preset.SkillBindPresetId);
+
+            entity.Property(preset => preset.SkillBindPresetId).HasColumnName("skill_bind_preset_id");
+            entity.Property(preset => preset.AccountId).HasColumnName("account_id");
+            entity.Property(preset => preset.PresetIndex).HasColumnName("preset_index");
+            entity.Property(preset => preset.ActiveSkillSlotsJson).HasColumnName("active_skill_slots_json");
+            entity.Property(preset => preset.PassiveSkillSlotsJson).HasColumnName("passive_skill_slots_json");
+            entity.Property(preset => preset.IsUnlocked).HasColumnName("is_unlocked");
+            entity.Property(preset => preset.Version).HasColumnName("version");
+            entity.Property(preset => preset.CreatedAt).HasColumnName("created_at");
+            entity.Property(preset => preset.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(preset => preset.CreatedBy).HasColumnName("created_by");
+            entity.Property(preset => preset.UpdatedBy).HasColumnName("updated_by");
+            entity.Property(preset => preset.IsDeleted).HasColumnName("is_deleted");
+            entity.HasIndex(preset => new { preset.AccountId, preset.PresetIndex })
+                .IsUnique()
+                .HasDatabaseName("UX_skill_bind_preset_account_preset");
         });
 
         modelBuilder.Entity<InventoryEntity>(entity =>

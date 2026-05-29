@@ -474,44 +474,32 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         event.setCancelled(true);
         int rawSlot = event.getRawSlot();
         Inventory topInventory = event.getView().getTopInventory();
-        List<ItemStack> currentTrashItems = snapshotTrashItems(topInventory);
-        int pageIndex = menuView.getPageIndex(topInventory);
+        List<ItemStack> currentTrashItems = trashItemsByPlayer.getOrDefault(player.getUniqueId(), List.of());
 
         if (rawSlot >= topInventory.getSize()) {
-            if (handleMenuHotbarShortcutClick(event, player)) {
-                return;
-            }
             GuiSound.DENY.play(player);
             return;
         }
 
         if (rawSlot == MenuView.TRASH_CONFIRM_DISPOSE_SLOT) {
-            List<ItemStack> disposedItems = collectAllTrashItems(topInventory, player.getUniqueId());
+            List<ItemStack> disposedItems = normalizeTrashItems(currentTrashItems);
             GuiSound.CLOSE.play(player);
             discardTrash(player);
             notifyTrashDisposed(player, disposedItems);
+            restorePlayerInventory(player);
+            suppressTrashConfirmOnClose.add(player.getUniqueId());
             player.closeInventory();
             return;
         }
         if (rawSlot == MenuView.TRASH_CONFIRM_RETURN_SLOT) {
             GuiSound.SELECT.play(player);
             suppressTrashConfirmOnClose.add(player.getUniqueId());
-            menuView.openTrash(player, currentTrashItems, pageIndex);
-            return;
-        }
-        if (rawSlot == MenuView.TRASH_CONFIRM_PREVIOUS_SLOT && menuView.hasPreviousTrashConfirmPage(pageIndex)) {
-            GuiSound.SELECT.play(player);
-            menuView.openTrashConfirm(player, currentTrashItems, pageIndex - 1);
-            return;
-        }
-        if (rawSlot == MenuView.TRASH_CONFIRM_NEXT_SLOT && menuView.hasNextTrashConfirmPage(currentTrashItems, pageIndex)) {
-            GuiSound.SELECT.play(player);
-            menuView.openTrashConfirm(player, currentTrashItems, pageIndex + 1);
+            restorePlayerInventory(player);
+            menuView.openTrash(player, currentTrashItems, 0);
             return;
         }
         GuiSound.DENY.play(player);
     }
-
     private void executeShortcutAction(@NotNull Player player, @NotNull MenuShortcutAction action, int shortcutIndex) {
         if (action == MenuShortcutAction.MAIN_MENU) {
             GuiSound.OPEN.play(player);
@@ -716,6 +704,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         trashItemsByPlayer.put(player.getUniqueId(), normalized);
         suppressTrashConfirmOnClose.add(player.getUniqueId());
         menuView.openTrashConfirm(player, normalized, pageIndex);
+        fillPlayerInventoryDummy(player);
     }
 
     private void handleTrashClose(@NotNull Inventory inventory, @NotNull Player player) {
@@ -740,11 +729,35 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
         if (screen == MenuScreen.TRASH_CONFIRM) {
             if (suppressTrashConfirmOnClose.remove(playerId)) {
+                restorePlayerInventory(player);
                 return;
             }
-            List<ItemStack> allItems = collectAllTrashItems(inventory, playerId);
+            List<ItemStack> allItems = normalizeTrashItems(trashItemsByPlayer.getOrDefault(playerId, List.of()));
             discardTrash(player);
+            restorePlayerInventory(player);
             notifyTrashDisposed(player, allItems);
+        }
+    }
+
+    private void fillPlayerInventoryDummy(@NotNull Player player) {
+        ItemStack dummy = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta meta = dummy.getItemMeta();
+        if (meta != null) {
+            meta.displayName(Component.text(" "));
+            dummy.setItemMeta(meta);
+        }
+        PlayerInventory inventory = player.getInventory();
+        for (int slot = 0; slot < 36; slot++) {
+            inventory.setItem(slot, dummy);
+        }
+        player.updateInventory();
+    }
+
+    private void restorePlayerInventory(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer != null) {
+            inventoryService.applyInventoriesToGui(astPlayer);
+            player.updateInventory();
         }
     }
 
@@ -821,7 +834,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
 
     private @NotNull List<ItemStack> snapshotTrashItems(@NotNull Inventory inventory) {
         List<ItemStack> items = new java.util.ArrayList<>();
-        for (int slot = 0; slot < 45; slot++) {
+        int maxSlot = Math.min(45, inventory.getSize());
+        for (int slot = 0; slot < maxSlot; slot++) {
             ItemStack itemStack = inventory.getItem(slot);
             if (isTrashEmptyItem(inventory, itemStack)) {
                 continue;

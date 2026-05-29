@@ -81,6 +81,8 @@
 | GET `/api/class/{classId}` | クラス取得 | `00_docs/20_API設計書/feature/10-class/3-エンドポイント仕様/10_3.00-索引.md` |
 | GET `/api/skill` | スキル一覧取得 | `00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.00-索引.md` |
 | GET `/api/skill/{skillId}` | スキル取得 | `00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.00-索引.md` |
+| GET `/api/skill-bind-presets?account_id={account_id}` | スキルバインドプリセット一覧取得 | `00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.02-バインドプリセット.md` |
+| PUT `/api/skill-bind-presets/{accountId}/{presetIndex}` | スキルバインドプリセット保存 | `00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.02-バインドプリセット.md` |
 | GET `/api/buff` | バフ一覧取得 | `00_docs/20_API設計書/feature/05-buff/3-エンドポイント仕様/05_3.00-索引.md` |
 | GET `/api/buff/{buffId}` | バフ取得 | `00_docs/20_API設計書/feature/05-buff/3-エンドポイント仕様/05_3.00-索引.md` |
 | GET `/api/loot/pool` | ルートプール一覧取得 | `00_docs/20_API設計書/feature/06-loot/3-エンドポイント仕様/06_3.00-索引.md` |

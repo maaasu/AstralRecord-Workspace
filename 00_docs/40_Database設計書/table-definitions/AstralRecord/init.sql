@@ -136,6 +136,49 @@ CREATE NONCLUSTERED INDEX [IX_account_is_deleted]
 GO
 
 -- ============================================================
+-- AstralRecord\dbo.skill_bind_preset.md
+-- ============================================================
+
+CREATE TABLE [dbo].[skill_bind_preset] (
+    [skill_bind_preset_id]    UNIQUEIDENTIFIER  NOT NULL,
+    [account_id]              UNIQUEIDENTIFIER  NOT NULL,
+    [preset_index]            INT               NOT NULL,
+    [active_skill_slots_json]  NVARCHAR(MAX)     NOT NULL  CONSTRAINT [DF_skill_bind_preset_active_slots_json]  DEFAULT (N'[]'),
+    [passive_skill_slots_json] NVARCHAR(MAX)     NOT NULL  CONSTRAINT [DF_skill_bind_preset_passive_slots_json] DEFAULT (N'[]'),
+    [is_unlocked]             BIT               NOT NULL  CONSTRAINT [DF_skill_bind_preset_is_unlocked] DEFAULT (0),
+    [version]                 INT               NOT NULL  CONSTRAINT [DF_skill_bind_preset_version]     DEFAULT (1),
+    [created_at]              DATETIME2(3)      NOT NULL,
+    [updated_at]              DATETIME2(3)      NOT NULL,
+    [created_by]              UNIQUEIDENTIFIER  NOT NULL,
+    [updated_by]              UNIQUEIDENTIFIER  NOT NULL,
+    [is_deleted]              BIT               NOT NULL  CONSTRAINT [DF_skill_bind_preset_is_deleted] DEFAULT (0),
+
+    CONSTRAINT [PK_skill_bind_preset] PRIMARY KEY CLUSTERED ([skill_bind_preset_id]),
+    CONSTRAINT [FK_skill_bind_preset_account] FOREIGN KEY ([account_id])
+        REFERENCES [dbo].[account] ([uuid])
+        ON DELETE NO ACTION
+        ON UPDATE NO ACTION,
+    CONSTRAINT [CK_skill_bind_preset_index] CHECK ([preset_index] BETWEEN 1 AND 9),
+    CONSTRAINT [CK_skill_bind_preset_active_slots_json] CHECK (ISJSON([active_skill_slots_json]) = 1),
+    CONSTRAINT [CK_skill_bind_preset_passive_slots_json] CHECK (ISJSON([passive_skill_slots_json]) = 1),
+    CONSTRAINT [CK_skill_bind_preset_version] CHECK ([version] >= 1)
+);
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [UX_skill_bind_preset_account_preset]
+    ON [dbo].[skill_bind_preset] ([account_id], [preset_index])
+    WHERE [is_deleted] = 0;
+GO
+
+CREATE NONCLUSTERED INDEX [IX_skill_bind_preset_account_id]
+    ON [dbo].[skill_bind_preset] ([account_id]);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_skill_bind_preset_is_deleted]
+    ON [dbo].[skill_bind_preset] ([is_deleted]);
+GO
+
+-- ============================================================
 -- AstralRecord\dbo.inventory.md
 -- ============================================================
 
