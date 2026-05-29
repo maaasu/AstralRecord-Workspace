@@ -168,7 +168,14 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         org.bukkit.inventory.ItemStack currentItem
     ) {
         if (rawSlot == SkillBindGui.BACK_SLOT) {
-            openConfirm(player, session, ACTION_BACK, -1, Component.text("繧ｹ繧ｭ繝ｫ險ｭ螳壹ｒ髢峨§縺ｦ謌ｻ繧翫∪縺吶°", NamedTextColor.YELLOW));
+            if (session.isDirty()) {
+                openConfirm(player, session, ACTION_BACK, -1, Component.text("繧ｹ繧ｭ繝ｫ險ｭ螳壹ｒ髢峨§縺ｦ謌ｻ繧翫∪縺吶°", NamedTextColor.YELLOW));
+            } else {
+                sessions.remove(player.getUniqueId());
+                restorePlayerInventory(player);
+                suppressClose.add(player.getUniqueId());
+                menuView.open(player);
+            }
             return;
         }
         if (rawSlot == SkillBindGui.PREVIOUS_SLOT) {
