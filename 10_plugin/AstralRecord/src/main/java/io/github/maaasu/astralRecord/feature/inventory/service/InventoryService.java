@@ -630,7 +630,7 @@ public class InventoryService {
     private @NotNull Map<InventoryType, Long> buildOwnedItemCounts(@NotNull PlayerInventoryState state) {
         Map<InventoryType, Long> counts = new HashMap<>();
         for (InventoryType type : InventoryType.commandSwitchableEntries()) {
-            counts.put(type, countOwnedItems(state, type));
+            counts.put(type, (long) countUsedSlots(state, type));
         }
         return counts;
     }
