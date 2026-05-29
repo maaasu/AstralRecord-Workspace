@@ -1,6 +1,6 @@
 namespace AstralRecordApi.Models;
 
-/// <summary>World マスタ詳細レスポンス。</summary>
+/// <summary>World マスタ詳細レスポンスです。</summary>
 public class WorldResponse
 {
     public required int SchemaVersion { get; init; }
@@ -27,10 +27,26 @@ public class WorldResponse
 
     public bool AllowMobSpawn { get; init; }
 
+    public required WorldSpawnLocationResponse SpawnLocation { get; init; }
+
     public required string Description { get; init; }
 }
 
-/// <summary>World マスタ一覧レスポンス要素。</summary>
+/// <summary>World のスポーン地点座標です。</summary>
+public class WorldSpawnLocationResponse
+{
+    public double X { get; init; }
+
+    public double Y { get; init; }
+
+    public double Z { get; init; }
+
+    public float Yaw { get; init; }
+
+    public float Pitch { get; init; }
+}
+
+/// <summary>World マスタ一覧レスポンス要約です。</summary>
 public class WorldSummaryResponse
 {
     public required string Id { get; init; }

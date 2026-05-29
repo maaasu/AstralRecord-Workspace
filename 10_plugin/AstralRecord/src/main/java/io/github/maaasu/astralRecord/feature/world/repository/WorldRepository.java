@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
+import io.github.maaasu.astralRecord.feature.world.model.WorldSpawnLocation;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -54,7 +55,7 @@ public class WorldRepository {
     /**
      * WorldMasterData の全件を取得します。
      *
-     * @return WorldMasterData の一覧
+     * @return WorldMasterData 一覧
      */
     @NotNull
     public List<WorldMasterData> findAll() {
@@ -152,7 +153,24 @@ public class WorldRepository {
                 obj.has("allowBlockBreak") && obj.get("allowBlockBreak").getAsBoolean(),
                 obj.has("allowBlockPlace") && obj.get("allowBlockPlace").getAsBoolean(),
                 obj.has("allowMobSpawn") && obj.get("allowMobSpawn").getAsBoolean(),
+                parseSpawnLocation(obj),
                 optionalString(obj, "description", "")
+        );
+    }
+
+    @NotNull
+    private static WorldSpawnLocation parseSpawnLocation(@NotNull JsonObject obj) {
+        JsonObject spawn = optionalObject(obj, "spawnLocation");
+        if (spawn == null) {
+            return WorldSpawnLocation.defaultLocation();
+        }
+
+        return new WorldSpawnLocation(
+                optionalDouble(spawn, "x", 0.5D),
+                optionalDouble(spawn, "y", 64.0D),
+                optionalDouble(spawn, "z", 0.5D),
+                (float) optionalDouble(spawn, "yaw", 0.0D),
+                (float) optionalDouble(spawn, "pitch", 0.0D)
         );
     }
 
@@ -168,5 +186,24 @@ public class WorldRepository {
         }
         JsonElement element = obj.get(key);
         return element.isJsonPrimitive() ? element.getAsString() : fallback;
+    }
+
+    @Nullable
+    private static JsonObject optionalObject(@NotNull JsonObject obj, @NotNull String key) {
+        if (!obj.has(key) || obj.get(key).isJsonNull()) {
+            return null;
+        }
+        JsonElement element = obj.get(key);
+        return element.isJsonObject() ? element.getAsJsonObject() : null;
+    }
+
+    private static double optionalDouble(@NotNull JsonObject obj, @NotNull String key, double fallback) {
+        if (!obj.has(key) || obj.get(key).isJsonNull()) {
+            return fallback;
+        }
+        JsonElement element = obj.get(key);
+        return element.isJsonPrimitive() && element.getAsJsonPrimitive().isNumber()
+                ? element.getAsDouble()
+                : fallback;
     }
 }

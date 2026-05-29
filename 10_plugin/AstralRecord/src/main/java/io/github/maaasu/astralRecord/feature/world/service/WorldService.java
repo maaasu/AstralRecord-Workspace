@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.world.repository.WorldRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.WorldCreator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -13,14 +14,14 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 /**
- * WorldMasterData をロードし、Plugin 内で参照するサービスです。
+ * WorldMasterData をロードし、Plugin 内で保持するサービスです。
  */
 public class WorldService {
 
@@ -37,9 +38,9 @@ public class WorldService {
     }
 
     /**
-     * WorldMasterData を API から再ロードします。
+     * WorldMasterData を API から全件ロードします。
      *
-     * @return ロードした件数
+     * @return ロード件数
      */
     public synchronized int loadAll() {
         List<WorldMasterData> worlds = repository.findAll().stream()
@@ -57,7 +58,7 @@ public class WorldService {
     /**
      * filebase YAML を MasterDataDB に同期してから WorldMasterData を再ロードします。
      *
-     * @return ロードした件数
+     * @return ロード件数
      */
     public synchronized int reloadFromYaml() {
         repository.seedMasterData();
@@ -65,7 +66,7 @@ public class WorldService {
     }
 
     /**
-     * ロード済み WorldMasterData を取得します。
+     * ロード済み WorldMasterData 一覧を返します。
      *
      * @return WorldMasterData 一覧
      */
@@ -75,10 +76,10 @@ public class WorldService {
     }
 
     /**
-     * 指定 ID の WorldMasterData を取得します。
+     * 指定 ID の WorldMasterData を返します。
      *
      * @param worldId WorldMasterData ID
-     * @return WorldMasterData。未ロードの場合は {@code null}
+     * @return WorldMasterData。未ロード時は {@code null}
      */
     @Nullable
     public synchronized WorldMasterData getById(@NotNull String worldId) {
@@ -86,10 +87,10 @@ public class WorldService {
     }
 
     /**
-     * 定義に対応する Bukkit ロード済みワールドを取得します。
+     * 定義に対応する Bukkit ロード済みワールドを解決します。
      *
      * @param data WorldMasterData
-     * @return ロード済みワールド。未ロードの場合は {@code null}
+     * @return ロード済みワールド。未ロード時は {@code null}
      */
     @Nullable
     public org.bukkit.World resolveLoadedWorld(@NotNull WorldMasterData data) {
@@ -107,6 +108,40 @@ public class WorldService {
             }
         }
         return Bukkit.getWorld(data.id());
+    }
+
+    /**
+     * Bukkit ワールドから対応する WorldMasterData を解決します。
+     *
+     * @param world Bukkit ワールド
+     * @return 対応する WorldMasterData。未登録時は {@code null}
+     */
+    @Nullable
+    public synchronized WorldMasterData findByBukkitWorld(@NotNull org.bukkit.World world) {
+        for (WorldMasterData data : loadedWorlds.values()) {
+            org.bukkit.World loaded = resolveLoadedWorld(data);
+            if (loaded != null && loaded.getUID().equals(world.getUID())) {
+                return data;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * WorldMasterData のスポーン地点を Bukkit Location に変換します。
+     *
+     * @param data WorldMasterData
+     * @return スポーン地点。ワールド未ロード時は {@code null}
+     */
+    @Nullable
+    public Location resolveSpawnLocation(@NotNull WorldMasterData data) {
+        org.bukkit.World world = resolveLoadedWorld(data);
+        if (world == null) {
+            return null;
+        }
+
+        var spawn = data.spawnLocation();
+        return new Location(world, spawn.x(), spawn.y(), spawn.z(), spawn.yaw(), spawn.pitch());
     }
 
     private int loadRegisteredBukkitWorlds(@NotNull Collection<WorldMasterData> worlds) {

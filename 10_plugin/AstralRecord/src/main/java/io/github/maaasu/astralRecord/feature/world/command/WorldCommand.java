@@ -116,14 +116,14 @@ public class WorldCommand extends AstCommand {
             return;
         }
 
-        org.bukkit.World loadedWorld = worldService.resolveLoadedWorld(data);
-        if (loadedWorld == null) {
+        var spawnLocation = worldService.resolveSpawnLocation(data);
+        if (spawnLocation == null || spawnLocation.getWorld() == null) {
             sendError(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5760.getId(), data.id()));
             return;
         }
 
-        player.getBukkit().teleport(loadedWorld.getSpawnLocation());
-        sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5761.getId(), loadedWorld.getName()));
+        player.getBukkit().teleport(spawnLocation);
+        sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5761.getId(), spawnLocation.getWorld().getName()));
     }
 
     private void handleLoaded(@NotNull AstPlayer player) {

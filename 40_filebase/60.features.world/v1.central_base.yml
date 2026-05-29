@@ -10,4 +10,10 @@ maxPlayers: 100
 allowBlockBreak: false
 allowBlockPlace: false
 allowMobSpawn: false
+spawnLocation:
+  x: -1484.5
+  y: 77
+  z: -1486.5
+  yaw: 0.0
+  pitch: 0.0
 description: "Shared base world for NPC and player interaction."

@@ -10,4 +10,10 @@ maxPlayers: 8
 allowBlockBreak: false
 allowBlockPlace: false
 allowMobSpawn: false
+spawnLocation:
+  x: 0.5
+  y: 64.0
+  z: 0.5
+  yaw: 0.0
+  pitch: 0.0
 description: "Dungeon and boss challenge lobby for future player or party instances."

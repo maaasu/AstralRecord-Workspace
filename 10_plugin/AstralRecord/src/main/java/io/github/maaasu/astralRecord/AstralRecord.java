@@ -60,9 +60,9 @@ import io.github.maaasu.astralRecord.feature.status.event.PlayerHeldItemStatusEv
 import io.github.maaasu.astralRecord.feature.user.event.UserLoginEventHandler;
 import io.github.maaasu.astralRecord.feature.user.repository.UserRepository;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
-import io.github.maaasu.astralRecord.feature.world.config.PluginJoinSpawnConfig;
+import io.github.maaasu.astralRecord.feature.world.config.PluginJoinSpawnWorldConfig;
+import io.github.maaasu.astralRecord.feature.world.event.WorldNaturalSpawnBlockEventHandler;
 import io.github.maaasu.astralRecord.feature.world.event.WorldJoinSpawnEventHandler;
-import io.github.maaasu.astralRecord.feature.world.model.JoinSpawnLocation;
 import io.github.maaasu.astralRecord.feature.world.repository.WorldRepository;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.command.CommandManager;
@@ -119,7 +119,7 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerClassService playerClassService;
     private ItemWeaponAttackService itemWeaponAttackService;
     private WorldService worldService;
-    private JoinSpawnLocation joinSpawnLocation;
+    private String joinSpawnWorldId;
 
     @Override
     public void onLoad() {
@@ -129,7 +129,7 @@ public final class AstralRecord extends JavaPlugin {
         itemStackFactory = new ItemStackFactory(lootService, itemService);
         mobService = new MobService(this, new MobRepository());
         worldService = new WorldService(new WorldRepository());
-        joinSpawnLocation = PluginJoinSpawnConfig.load(this);
+        joinSpawnWorldId = PluginJoinSpawnWorldConfig.load(this);
         // CommandManagerの初期化はPaper Lifecycle APIの制約上、onLoad()内で行う
         // コマンドをここで登録し、initialize()を呼び出す
         new CommandRegister(itemService, itemStackFactory, mobService, worldService);
@@ -346,7 +346,11 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new WorldJoinSpawnEventHandler(this, joinSpawnLocation, worldService),
+            new WorldJoinSpawnEventHandler(this, joinSpawnWorldId, worldService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new WorldNaturalSpawnBlockEventHandler(worldService, mobService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
