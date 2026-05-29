@@ -42,6 +42,10 @@ public enum PlayerMsgId {
      * [TEMP] テンポラリコマンドを実行しました。実行者: {0}
      */
     P_5080(5080),
+    /**
+     * [TEMP] テキスト表示を削除しました。
+     */
+    P_5081(5081),
     // endregion
 
     // region /feature/player/event/PlayerJoinEventHandler.java 5070-5079

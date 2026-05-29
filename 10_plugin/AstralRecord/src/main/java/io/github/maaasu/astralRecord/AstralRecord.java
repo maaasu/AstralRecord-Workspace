@@ -479,6 +479,15 @@ public final class AstralRecord extends JavaPlugin {
         return statusService;
     }
 
+    /**
+     * TextDisplay 基盤サービスを返します。
+     *
+     * @return TextDisplay 基盤サービス
+     */
+    public DisplayTextService getDisplayTextService() {
+        return displayTextService;
+    }
+
     public MobService getMobService() {
         return mobService;
     }

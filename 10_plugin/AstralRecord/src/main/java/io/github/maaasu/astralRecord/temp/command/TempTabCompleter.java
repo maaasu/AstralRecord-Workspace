@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 
 /**
- * /temp コマンドのタブ補完実装クラス。
+ * /temp コマンドのタブ補完実装クラスです。
  */
 public class TempTabCompleter extends AstTabCompleter {
 
@@ -20,6 +20,6 @@ public class TempTabCompleter extends AstTabCompleter {
 
     @Override
     protected List<String> getPlayerCompletions(@NotNull AstPlayer player, @NotNull String[] args) {
-        return completeAtPosition(args, 0, TempCommand.SUPPORTED_UI_TYPES);
+        return List.of();
     }
 }
