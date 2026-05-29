@@ -23,7 +23,7 @@ public class MobCommand extends AstCommand {
      * @param mobService Mob サービス
      */
     public MobCommand(@NotNull MobService mobService) {
-        super("mob", "Manage packet mobs.", "/mob <load|list|spawn|delete> [id]", true);
+        super("mob", "Manage AstralRecord mobs.", "/mob <load|list|spawn|delete> [id]", true);
         this.mobService = mobService;
     }
 

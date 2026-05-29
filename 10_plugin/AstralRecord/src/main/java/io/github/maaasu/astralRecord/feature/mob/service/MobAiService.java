@@ -17,42 +17,45 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Mob の AI を tick 単位で駆動するサービス。
  *
- * <p>マスタデータの AI 定義に基づく待機移動・追跡・帰還と、
- * パケット表示の更新のみを担当します。攻撃・ドロップ処理は行いません。</p>
+ * <p>実体 Mob の同期・当たり判定・経路探索は Bukkit/Paper に任せ、
+ * AstralRecord 側ではターゲット選定、状態遷移、帰還、徘徊の意思決定だけを行います。</p>
  *
- * <p>移動はブロック衝突判定を持つ A* 経路探索（{@link MobNavigator}）を使用し、
- * 地形に沿って歩くバニラモブに近い動作を実現します。</p>
+ * <p>100体規模の Mob を想定し、IDLE の探索・AGGRO の追跡判断・viewer 更新は
+ * インスタンスごとに分散して実行します。</p>
  */
 public class MobAiService {
 
     /** 脅威値の減衰係数（1 tick あたり）。100 tick で約 0.37 まで減衰する。 */
-    private static final double THREAT_DECAY_PER_TICK = 0.99;
+    private static final double THREAT_DECAY_PER_TICK = 0.99D;
 
     /** 脅威値を減衰させる間隔（tick）。 */
     private static final long THREAT_DECAY_INTERVAL_TICKS = 100L;
 
+    /** IDLE 状態のターゲット探索・徘徊判断間隔。 */
+    private static final long IDLE_DECISION_INTERVAL_TICKS = 10L;
+
+    /** AGGRO / LEASHED 状態の追跡判断間隔。 */
+    private static final long ACTIVE_DECISION_INTERVAL_TICKS = 5L;
+
+    /** 頭上 packet display 用 viewer キャッシュ更新間隔。 */
+    private static final long VIEWER_UPDATE_INTERVAL_TICKS = 5L;
+
     /** WANDER 行動で同一ターゲットを追い続ける最大 tick 数（スタック防止）。 */
     private static final long WANDER_TARGET_MAX_TICKS = 100L;
 
-    /** 頭部をプレイヤーに向ける範囲（ブロック）の二乗。 */
-    private static final double HEAD_LOOK_RANGE_SQ = 25.0; // 5ブロック
+    private static final int WANDER_PAUSE_MIN_TICKS = 20;
+    private static final int WANDER_PAUSE_MAX_TICKS = 60;
 
-    /** モブの目線高さ（足元からのオフセット）。 */
-    private static final double MOB_EYE_HEIGHT = 1.0;
-
-    private static final double COMBAT_VERTICAL_TOLERANCE = 1.25;
-
-    private static final double COMBAT_RANGE_BUFFER = 0.25;
+    private static final double COMBAT_VERTICAL_TOLERANCE = 1.25D;
+    private static final double COMBAT_RANGE_BUFFER = 0.25D;
 
     private final MobService mobService;
-    private final MobAiCalculator aiCalculator = new MobAiCalculator();
 
     private BukkitTask task;
     private long internalTick;
@@ -95,24 +98,37 @@ public class MobAiService {
 
             for (MobInstance instance : snapshot) {
                 try {
+                    if (!mobService.syncLocation(instance)) {
+                        mobService.destroy(instance.instanceId());
+                        continue;
+                    }
+
                     if (internalTick % THREAT_DECAY_INTERVAL_TICKS == 0L) {
                         instance.threatTable().decay(THREAT_DECAY_PER_TICK);
                     }
 
-                    if (isLeashed(instance)) {
+                    if (instance.state() != MobState.DEAD && isLeashed(instance)) {
                         instance.state(MobState.LEASHED);
                     }
 
                     switch (instance.state()) {
-                        case IDLE -> tickIdle(instance);
-                        case AGGRO -> tickAggro(instance);
+                        case IDLE -> {
+                            if (shouldProcess(instance, IDLE_DECISION_INTERVAL_TICKS)) {
+                                tickIdle(instance);
+                            }
+                        }
+                        case AGGRO -> {
+                            if (shouldProcess(instance, ACTIVE_DECISION_INTERVAL_TICKS)) {
+                                tickAggro(instance);
+                            }
+                        }
                         case COMBAT -> tickCombatHold(instance);
-                        case LEASHED -> tickLeashed(instance);
+                        case LEASHED -> {
+                            if (shouldProcess(instance, ACTIVE_DECISION_INTERVAL_TICKS)) {
+                                tickLeashed(instance);
+                            }
+                        }
                         case DEAD -> mobService.destroy(instance.instanceId());
-                    }
-
-                    if (instance.state() != MobState.DEAD) {
-                        tickHeadLook(instance);
                     }
                 } catch (RuntimeException ex) {
                     Logger.warn(LogId.W_5702, instance.instanceId());
@@ -120,15 +136,16 @@ public class MobAiService {
                 }
             }
 
-            mobService.updateViewers();
+            if (internalTick % VIEWER_UPDATE_INTERVAL_TICKS == 0L) {
+                mobService.updateViewers();
+            }
         } catch (RuntimeException ex) {
             Logger.error(LogId.E_5702, ex);
         }
     }
 
     /**
-     * IDLE 状態の Mob を {@link IdleBehavior} に従って動かします。
-     * aggroRange 内のプレイヤーを検知して AGGRO に遷移します。
+     * IDLE 状態の Mob を待機設定に従って処理します。
      *
      * @param instance 対象 Mob
      */
@@ -138,11 +155,14 @@ public class MobAiService {
 
         if (targeting != null && selectTarget(instance) != null) {
             instance.state(MobState.AGGRO);
-            instance.clearNavPath();
+            mobService.stopPathfinding(instance);
             return;
         }
 
-        if (template.idle().behavior() != IdleBehavior.WANDER) return;
+        if (template.idle().behavior() != IdleBehavior.WANDER) {
+            mobService.stopPathfinding(instance);
+            return;
+        }
 
         Location currentLoc = instance.currentLocation();
         Location wanderTarget = instance.wanderTarget();
@@ -151,17 +171,17 @@ public class MobAiService {
         if (!needNewTarget) {
             double dx = wanderTarget.getX() - currentLoc.getX();
             double dz = wanderTarget.getZ() - currentLoc.getZ();
-            needNewTarget = dx * dx + dz * dz < 0.25; // 0.5ブロック以内で到達とみなす
+            needNewTarget = dx * dx + dz * dz < 0.25D;
         }
         if (!needNewTarget && internalTick % WANDER_TARGET_MAX_TICKS == 0L) {
-            needNewTarget = true; // タイムアウトで新しいターゲット
+            needNewTarget = true;
         }
 
         if (needNewTarget) {
             instance.wanderTarget(null);
-            instance.clearNavPath();
+            mobService.stopPathfinding(instance);
             if (instance.wanderPauseUntilTick() == 0L) {
-                instance.wanderPauseUntilTick(internalTick + aiCalculator.randomWanderPauseTicks());
+                instance.wanderPauseUntilTick(internalTick + randomWanderPauseTicks());
             }
             if (internalTick < instance.wanderPauseUntilTick()) {
                 return;
@@ -170,11 +190,10 @@ public class MobAiService {
             double radius = template.idle().wanderRadius();
             ThreadLocalRandom rng = ThreadLocalRandom.current();
             Location anchor = instance.wanderAnchor();
-            double dx = (rng.nextDouble() - 0.5) * 2.0 * radius;
-            double dz = (rng.nextDouble() - 0.5) * 2.0 * radius;
-            instance.wanderTarget(anchor.clone().add(dx, 0.0, dz));
+            double dx = (rng.nextDouble() - 0.5D) * 2.0D * radius;
+            double dz = (rng.nextDouble() - 0.5D) * 2.0D * radius;
+            instance.wanderTarget(anchor.clone().add(dx, 0.0D, dz));
             instance.wanderPauseUntilTick(0L);
-            instance.clearNavPath();
         }
 
         if (instance.wanderTarget() != null) {
@@ -183,7 +202,7 @@ public class MobAiService {
     }
 
     /**
-     * AGGRO 状態の Mob がターゲットへ接近します。
+     * AGGRO 状態の Mob をターゲットへ追跡させます。
      *
      * @param instance 対象 Mob
      */
@@ -191,7 +210,7 @@ public class MobAiService {
         MobTargetingConfig targeting = instance.template().targeting();
         if (targeting == null) {
             instance.state(MobState.IDLE);
-            instance.clearNavPath();
+            mobService.stopPathfinding(instance);
             return;
         }
 
@@ -199,7 +218,7 @@ public class MobAiService {
         if (target == null) {
             instance.targetId(null);
             instance.state(MobState.IDLE);
-            instance.clearNavPath();
+            mobService.stopPathfinding(instance);
             return;
         }
 
@@ -208,12 +227,12 @@ public class MobAiService {
         if (distSq > deaggroSq) {
             instance.targetId(null);
             instance.state(MobState.IDLE);
-            instance.clearNavPath();
+            mobService.stopPathfinding(instance);
             return;
         }
 
         double preferredRange = instance.template().combat() == null
-                ? 1.0
+                ? 1.0D
                 : instance.template().combat().preferredRange();
         double preferredSq = preferredRange * preferredRange;
         Location targetLoc = target.getLocation();
@@ -223,25 +242,28 @@ public class MobAiService {
         if (horizontalSq <= preferredSq + COMBAT_RANGE_BUFFER
                 && verticalDiff <= COMBAT_VERTICAL_TOLERANCE) {
             instance.state(MobState.COMBAT);
+            mobService.stopPathfinding(instance);
         } else {
             moveToward(instance, targetLoc, instance.template().idle().speed());
         }
     }
 
     /**
-     * COMBAT 状態では攻撃を行わず、射程内なら待機し、離れたら追跡へ戻します。
+     * COMBAT 状態の Mob について、距離が離れた場合に追跡へ戻します。
      *
      * @param instance 対象 Mob
      */
     private void tickCombatHold(@NotNull MobInstance instance) {
         Player target = resolveChaseTarget(instance);
         if (target == null) {
-            instance.state(MobState.AGGRO);
+            instance.targetId(null);
+            instance.state(MobState.IDLE);
+            mobService.stopPathfinding(instance);
             return;
         }
 
         double preferredRange = instance.template().combat() == null
-                ? 1.0
+                ? 1.0D
                 : instance.template().combat().preferredRange();
         double preferredSq = preferredRange * preferredRange;
         Location targetLoc = target.getLocation();
@@ -250,68 +272,27 @@ public class MobAiService {
         double verticalDiff = Math.abs(targetLoc.getY() - currentLoc.getY());
         if (horizontalSq > preferredSq + COMBAT_RANGE_BUFFER
                 || verticalDiff > COMBAT_VERTICAL_TOLERANCE) {
-            instance.clearNavPath();
+            mobService.stopPathfinding(instance);
             instance.state(MobState.AGGRO);
         }
     }
 
     /**
-     * LEASHED 状態の Mob をスポーン地点へ移動させます。到達したら IDLE に復帰します。
+     * LEASHED 状態の Mob をスポーン地点へ帰還させます。
      *
      * @param instance 対象 Mob
      */
     private void tickLeashed(@NotNull MobInstance instance) {
         Location spawn = instance.spawnLocation();
         Location current = instance.currentLocation();
-        if (current.distanceSquared(spawn) <= 1.0) {
-            instance.currentLocation(spawn);
+        if (current.distanceSquared(spawn) <= 1.0D) {
+            mobService.stopPathfinding(instance);
             instance.state(MobState.IDLE);
             instance.targetId(null);
-            instance.clearNavPath();
             instance.threatTable().snapshot().keySet().forEach(id -> instance.threatTable().remove(id));
             return;
         }
         moveToward(instance, spawn, instance.template().idle().speed());
-    }
-
-    /**
-     * 視認中のプレイヤーのうち 5m 以内で最も近いプレイヤーに頭部を向けます。
-     * 該当プレイヤーがいない場合は頭部を体の向きに合わせます。
-     *
-     * @param instance 対象 Mob
-     */
-    private void tickHeadLook(@NotNull MobInstance instance) {
-        Set<UUID> viewerIds = mobService.getViewers(instance.instanceId());
-        Location mobLoc = instance.currentLocation();
-
-        Player nearest = null;
-        double nearestSq = HEAD_LOOK_RANGE_SQ;
-
-        for (UUID viewerId : viewerIds) {
-            Player player = Bukkit.getPlayer(viewerId);
-            if (player == null || !player.isOnline()) continue;
-            if (player.getWorld() != mobLoc.getWorld()) continue;
-            double sq = player.getLocation().distanceSquared(mobLoc);
-            if (sq < nearestSq) {
-                nearestSq = sq;
-                nearest = player;
-            }
-        }
-
-        if (nearest != null) {
-            Location playerLoc = nearest.getLocation();
-            double dx = playerLoc.getX() - mobLoc.getX();
-            double dy = (playerLoc.getY() + nearest.getEyeHeight()) - (mobLoc.getY() + MOB_EYE_HEIGHT);
-            double dz = playerLoc.getZ() - mobLoc.getZ();
-            float headYaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
-            float headPitch = (float) -Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)));
-            instance.headYaw(headYaw);
-            instance.headPitch(headPitch);
-        } else {
-            // 近くにプレイヤーがいない場合は体の向きと一致させる
-            instance.headYaw(mobLoc.getYaw());
-            instance.headPitch(0.0f);
-        }
     }
 
     /**
@@ -360,6 +341,7 @@ public class MobAiService {
 
     /**
      * 追跡中のターゲットを解決します。
+     *
      * <p>既存ターゲットが deaggroRange 内にいる間は維持し、いなければ新規選定します。</p>
      *
      * @param instance 対象 Mob
@@ -395,18 +377,25 @@ public class MobAiService {
     }
 
     /**
-     * ターゲット位置へ向けて 1 tick 分移動します。
-     *
-     * <p>A* 経路探索を用いてブロック衝突を考慮した経路を計算します。
-     * 経路が見つからない場合はターゲットへの直線フォールバックを使用します。
-     * 移動方向に体（yaw）を向け、移動後の位置をブロック表面に合わせます。</p>
+     * ターゲット位置へ Paper Pathfinder で移動させます。
      *
      * @param instance 対象 Mob
      * @param target   目標位置
      * @param speed    AI 設定側の速度倍率
      */
     private void moveToward(@NotNull MobInstance instance, @NotNull Location target, double speed) {
-        aiCalculator.moveToward(instance, target, speed, internalTick);
+        mobService.moveToward(instance, target, speed, internalTick);
+    }
+
+    private boolean shouldProcess(@NotNull MobInstance instance, long interval) {
+        if (interval <= 1L) {
+            return true;
+        }
+        return Math.floorMod(instance.instanceId().hashCode() + internalTick, interval) == 0L;
+    }
+
+    private long randomWanderPauseTicks() {
+        return ThreadLocalRandom.current().nextLong(WANDER_PAUSE_MIN_TICKS, WANDER_PAUSE_MAX_TICKS + 1L);
     }
 
     private double horizontalDistanceSquared(@NotNull Location a, @NotNull Location b) {

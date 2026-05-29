@@ -23,7 +23,7 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * プレイヤーと packet Mob の頭上に resource status テキストを表示するサービスです。
+ * プレイヤーと AstralRecord Mob の頭上に resource status テキストを表示するサービスです。
  *
  * <p>表示 entity はすべて {@link PacketDisplayService} を通じて packet として送信し、
  * 実体 Entity はワールドへ生成しません。</p>
@@ -49,7 +49,7 @@ public class OverheadDisplayService {
      *
      * @param displayService packet display 送信用サービス
      * @param statusService  プレイヤーステータス参照サービス
-     * @param mobService     packet Mob 管理サービス
+     * @param mobService     Mob 管理サービス
      */
     public OverheadDisplayService(
             @NotNull PacketDisplayService displayService,

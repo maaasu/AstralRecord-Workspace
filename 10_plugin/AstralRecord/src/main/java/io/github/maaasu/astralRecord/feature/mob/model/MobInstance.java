@@ -16,12 +16,13 @@ import java.util.UUID;
 public final class MobInstance {
 
     private final UUID instanceId;
-    private final int entityId;
     private final MobTemplate template;
     private final Location spawnLocation;
     private final Location wanderAnchor;
     private final MobThreatTable threatTable = new MobThreatTable();
 
+    private UUID bukkitEntityId;
+    private int entityId = -1;
     private Location currentLocation;
     private double currentHealth;
     private MobState state = MobState.IDLE;
@@ -57,13 +58,11 @@ public final class MobInstance {
      * 状態は {@link MobState#IDLE} となります。
      *
      * @param instanceId    一意なインスタンス ID
-     * @param entityId      パケット送出用の仮想 Entity ID
      * @param template      元テンプレート
      * @param spawnLocation スポーン位置（leash 判定の基準）
      */
-    public MobInstance(@NotNull UUID instanceId, int entityId, @NotNull MobTemplate template, @NotNull Location spawnLocation) {
+    public MobInstance(@NotNull UUID instanceId, @NotNull MobTemplate template, @NotNull Location spawnLocation) {
         this.instanceId = instanceId;
-        this.entityId = entityId;
         this.template = template;
         this.spawnLocation = spawnLocation.clone();
         this.wanderAnchor = spawnLocation.clone();
@@ -77,9 +76,28 @@ public final class MobInstance {
         return instanceId;
     }
 
-    /** 仮想 Entity ID を返します。 */
+    /** Bukkit Entity ID を返します。未紐付けの場合は {@code -1}。 */
     public int entityId() {
         return entityId;
+    }
+
+    /** Bukkit Entity UUID を返します。未紐付けの場合は {@code null}。 */
+    @Nullable
+    public UUID bukkitEntityId() {
+        return bukkitEntityId;
+    }
+
+    /**
+     * 実体 Mob とインスタンスを紐付けます。
+     *
+     * @param bukkitEntityId Bukkit Entity UUID
+     * @param entityId       Bukkit Entity ID
+     * @param location       紐付け時点の実体位置
+     */
+    public void bindEntity(@NotNull UUID bukkitEntityId, int entityId, @NotNull Location location) {
+        this.bukkitEntityId = bukkitEntityId;
+        this.entityId = entityId;
+        this.currentLocation = location.clone();
     }
 
     /** 元テンプレートを返します。 */

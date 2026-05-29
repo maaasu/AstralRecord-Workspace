@@ -9,7 +9,6 @@
 - `src/main/java/io/github/maaasu/astralRecord/feature/mob/model/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/mob/repository/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/mob/service/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/mob/view/*`
 
 ## ドキュメント一覧（推奨順）
 
@@ -48,9 +47,9 @@
 
 ## 更新ルール（変更時に必ず更新する章）
 
-- スポーン・デスポーン・パケット表示の処理順変更:
+- スポーン・デスポーン・実体 Mob 制御の処理順変更:
   - [[12_3.02-サービス]]
-  - [[12_3.05-パケット表示]]
+  - [[12_3.05-実体Mob制御]]
   - [[12_4.00-統合フロー]]
 - ターゲット選定・戦闘ロジック・ノックバック式の変更:
   - [[12_3.03-戦闘]]

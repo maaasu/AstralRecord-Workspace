@@ -3,7 +3,6 @@ package io.github.maaasu.astralRecord.feature.mob.service;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.repository.MobRepository;
-import io.github.maaasu.astralRecord.feature.mob.view.PacketMobView;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.Bukkit;
@@ -21,32 +20,27 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Mob テンプレートのキャッシュ・インスタンス管理・パケット表示連携を担うサービス。
+ * Mob テンプレートのキャッシュ・実体 Mob インスタンス管理を担うサービス。
  *
- * <p>本サービスはメインスレッドからの呼び出しを前提とする。
- * API 経由のテンプレート取得は同期 HTTP のため、スポーン時の遅延ロードが発生する可能性に注意する。</p>
+ * <p>Mob 本体は Bukkit/Paper の実体 Entity として生成し、バニラ goal は
+ * {@link MobEntityController} で全削除する。AI の意思決定と HP は AstralRecord 側で管理する。</p>
  */
 public class MobService {
 
-    /** 仮想 Entity ID の採番開始値（プロセス内一意）。 */
-    private static final int ENTITY_ID_BASE = 2_000_000;
-
-    /** 視認距離（ブロック単位）。本距離を超えるプレイヤーには破棄パケットを送る。 */
-    private static final double DEFAULT_VIEW_DISTANCE = 64.0;
+    /** 頭上 packet display の視認距離（ブロック単位）。 */
+    private static final double DEFAULT_VIEW_DISTANCE = 64.0D;
     private static final double DEFAULT_VIEW_DISTANCE_SQ = DEFAULT_VIEW_DISTANCE * DEFAULT_VIEW_DISTANCE;
-
-    private static final AtomicInteger ENTITY_ID_SEQUENCE = new AtomicInteger(ENTITY_ID_BASE);
 
     private final Plugin plugin;
     private final MobRepository repository;
-    private final PacketMobView view;
+    private final MobEntityController entityController;
 
     private final Map<String, MobTemplate> templates = new LinkedHashMap<>();
     private final Map<UUID, MobInstance> instances = new LinkedHashMap<>();
-    /** インスタンスごとに、現在表示中（spawn パケットを送出済み）のプレイヤー UUID 集合を保持。 */
+    private final Map<UUID, UUID> instanceByEntity = new LinkedHashMap<>();
+    /** インスタンスごとに、頭上 packet display を表示するプレイヤー UUID 集合を保持。 */
     private final Map<UUID, Set<UUID>> viewers = new LinkedHashMap<>();
 
     /**
@@ -58,7 +52,7 @@ public class MobService {
     public MobService(@NotNull Plugin plugin, @NotNull MobRepository repository) {
         this.plugin = plugin;
         this.repository = repository;
-        this.view = new PacketMobView(plugin);
+        this.entityController = new MobEntityController(plugin);
     }
 
     /**
@@ -135,11 +129,23 @@ public class MobService {
     }
 
     /**
-     * Mob をスポーンします。
+     * Bukkit Entity UUID から AstralRecord Mob インスタンスを取得します。
+     *
+     * @param entityId Bukkit Entity UUID
+     * @return 対応する Mob インスタンス。未管理の場合は {@code null}
+     */
+    @Nullable
+    public MobInstance getInstanceByEntity(@NotNull UUID entityId) {
+        UUID instanceId = instanceByEntity.get(entityId);
+        return instanceId == null ? null : instances.get(instanceId);
+    }
+
+    /**
+     * Mob を実体 Entity としてスポーンします。
      *
      * @param templateId テンプレート ID
      * @param location   スポーン位置
-     * @return 生成した Mob インスタンス。テンプレート未取得時は {@code null}
+     * @return 生成した Mob インスタンス。テンプレート未取得または実体生成不可なら {@code null}
      */
     @Nullable
     public MobInstance spawn(@NotNull String templateId, @NotNull Location location) {
@@ -150,18 +156,17 @@ public class MobService {
         }
 
         UUID instanceId = UUID.randomUUID();
-        int entityId = ENTITY_ID_SEQUENCE.incrementAndGet();
-        MobInstance instance = new MobInstance(instanceId, entityId, template, location);
-        instances.put(instanceId, instance);
-        viewers.put(instanceId, new HashSet<>());
-
-        // 範囲内プレイヤーへ初回送出
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (canSee(player, instance.currentLocation())) {
-                view.spawn(player, instance);
-                viewers.get(instanceId).add(player.getUniqueId());
-            }
+        MobInstance instance = new MobInstance(instanceId, template, location);
+        var mob = entityController.spawn(instance, location);
+        if (mob == null) {
+            Logger.log(LogId.W_5705, template.entityType().name(), template.id());
+            return null;
         }
+
+        instances.put(instanceId, instance);
+        instanceByEntity.put(mob.getUniqueId(), instanceId);
+        viewers.put(instanceId, new HashSet<>());
+        updateViewers(instance);
 
         Logger.log(LogId.D_5701, templateId, instanceId);
         return instance;
@@ -177,28 +182,19 @@ public class MobService {
         MobInstance instance = instances.remove(instanceId);
         if (instance == null) return false;
 
-        Set<UUID> shown = viewers.remove(instanceId);
-        if (shown != null) {
-            for (UUID playerId : shown) {
-                Player player = Bukkit.getPlayer(playerId);
-                if (player != null && player.isOnline()) {
-                    view.destroy(player, instance);
-                }
-            }
+        viewers.remove(instanceId);
+        if (instance.bukkitEntityId() != null) {
+            instanceByEntity.remove(instance.bukkitEntityId());
         }
-        // 範囲外プレイヤー側にも念のため破棄を送る（オンラインのうち shown に含まれていないプレイヤー）
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (shown == null || !shown.contains(player.getUniqueId())) {
-                view.destroy(player, instance);
-            }
-        }
+        entityController.remove(instance);
         Logger.log(LogId.D_5702, instanceId);
         return true;
     }
 
     /**
      * コマンド指定 ID に一致する Mob を破棄します。
-     * <p>UUID として解釈できる場合はインスタンス ID、そうでない場合はテンプレート ID として扱います。</p>
+     *
+     * <p>UUID として解釈できる場合はインスタンス ID、それ以外はテンプレート ID として扱います。</p>
      *
      * @param id インスタンス ID またはテンプレート ID
      * @return 破棄した Mob 数
@@ -240,50 +236,26 @@ public class MobService {
     public int destroyAll() {
         int count = instances.size();
         for (MobInstance instance : instances.values()) {
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                view.destroy(player, instance);
-            }
+            entityController.remove(instance);
         }
         instances.clear();
+        instanceByEntity.clear();
         viewers.clear();
         Logger.log(LogId.I_5701, count);
         return count;
     }
 
     /**
-     * すべてのインスタンスについて、現在表示中のプレイヤー集合を更新します。
-     * 新規プレイヤーへは spawn パケット、範囲外プレイヤーへは destroy パケットを送出します。
-     * 既存表示中プレイヤーへは差分の位置パケットを送出します。
+     * すべてのインスタンスについて、頭上 packet display の表示対象プレイヤー集合を更新します。
      */
     public void updateViewers() {
-        Collection<? extends Player> online = Bukkit.getOnlinePlayers();
         for (MobInstance instance : instances.values()) {
-            Set<UUID> currentViewers = viewers.computeIfAbsent(instance.instanceId(), id -> new HashSet<>());
-            Location loc = instance.currentLocation();
-
-            for (Player player : online) {
-                UUID playerId = player.getUniqueId();
-                boolean inRange = canSee(player, loc);
-                boolean shown = currentViewers.contains(playerId);
-
-                if (inRange && !shown) {
-                    view.spawn(player, instance);
-                    currentViewers.add(playerId);
-                } else if (!inRange && shown) {
-                    view.destroy(player, instance);
-                    currentViewers.remove(playerId);
-                } else if (inRange) {
-                    view.move(player, instance);
-                }
-            }
-
-            // オフラインになったプレイヤーは viewers から除去
-            currentViewers.removeIf(id -> Bukkit.getPlayer(id) == null);
+            updateViewers(instance);
         }
     }
 
     /**
-     * 指定プレイヤーが指定座標の Mob を視認できる距離内か判定します。
+     * 指定プレイヤーが Mob の頭上表示を視認できる距離内か判定します。
      *
      * @param player プレイヤー
      * @param loc    対象座標
@@ -307,15 +279,72 @@ public class MobService {
         return v != null ? new HashSet<>(v) : new HashSet<>();
     }
 
-    /** プラグイン本体を返します（共通基盤用）。 */
+    /**
+     * 実体 Mob の現在位置を {@link MobInstance} へ同期します。
+     *
+     * @param instance 同期対象インスタンス
+     * @return 実体が有効なら {@code true}
+     */
+    public boolean syncLocation(@NotNull MobInstance instance) {
+        return entityController.syncLocation(instance);
+    }
+
+    /**
+     * Paper Pathfinder へ移動目標を設定します。
+     *
+     * @param instance        移動対象インスタンス
+     * @param target          目標位置
+     * @param aiSpeedModifier AI 定義側の速度倍率
+     * @param currentTick     Mob AI 内部 tick
+     * @return 経路設定を実行した場合は {@code true}
+     */
+    public boolean moveToward(
+            @NotNull MobInstance instance,
+            @NotNull Location target,
+            double aiSpeedModifier,
+            long currentTick) {
+        return entityController.moveTo(instance, target, aiSpeedModifier, currentTick);
+    }
+
+    /**
+     * 対象 Mob の経路探索を停止します。
+     *
+     * @param instance 対象インスタンス
+     */
+    public void stopPathfinding(@NotNull MobInstance instance) {
+        entityController.stopPathfinding(instance);
+    }
+
+    /**
+     * 実体 Mob 制御サービスを返します。
+     *
+     * @return 実体 Mob 制御サービス
+     */
+    @NotNull
+    public MobEntityController entityController() {
+        return entityController;
+    }
+
+    /** プラグイン本体を返します（内部基盤用）。 */
     @NotNull
     public Plugin plugin() {
         return plugin;
     }
 
-    /** パケットビューを返します（共通基盤用）。 */
-    @NotNull
-    public PacketMobView view() {
-        return view;
+    private void updateViewers(@NotNull MobInstance instance) {
+        entityController.syncLocation(instance);
+        Set<UUID> currentViewers = viewers.computeIfAbsent(instance.instanceId(), id -> new HashSet<>());
+        Location loc = instance.currentLocation();
+
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            UUID playerId = player.getUniqueId();
+            if (canSee(player, loc)) {
+                currentViewers.add(playerId);
+            } else {
+                currentViewers.remove(playerId);
+            }
+        }
+
+        currentViewers.removeIf(id -> Bukkit.getPlayer(id) == null);
     }
 }

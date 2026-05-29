@@ -20,6 +20,17 @@ public class MobKnockbackService {
     /** 垂直ノックバックの基本量。 */
     private static final double DEFAULT_VERTICAL = 0.4;
 
+    private final MobService mobService;
+
+    /**
+     * ノックバックサービスを初期化します。
+     *
+     * @param mobService 実体 Mob への速度反映に使用する Mob サービス
+     */
+    public MobKnockbackService(@NotNull MobService mobService) {
+        this.mobService = mobService;
+    }
+
     /**
      * 攻撃元 -> 対象プレイヤーへのノックバックを適用します。
      *
@@ -33,7 +44,7 @@ public class MobKnockbackService {
     }
 
     /**
-     * 攻撃元 -> 対象 Mob へのノックバックを適用します。Mob 側は {@code currentLocation} を直接補正します。
+     * 攻撃元 -> 対象 Mob へのノックバックを適用します。Mob 側は実体 Entity の速度へ反映します。
      *
      * @param sourceLocation 攻撃元の位置
      * @param target         被攻撃側 Mob
@@ -41,8 +52,7 @@ public class MobKnockbackService {
      */
     public void applyToMob(@NotNull Location sourceLocation, @NotNull MobInstance target, double multiplier) {
         Vector velocity = computeVelocity(sourceLocation, target.currentLocation(), multiplier);
-        Location next = target.currentLocation().add(velocity);
-        target.currentLocation(next);
+        mobService.entityController().addVelocity(target, velocity);
     }
 
     /**
