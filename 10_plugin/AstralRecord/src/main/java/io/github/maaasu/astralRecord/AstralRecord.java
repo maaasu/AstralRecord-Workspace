@@ -335,7 +335,7 @@ public final class AstralRecord extends JavaPlugin {
         // skill
         skillService = new SkillService();
         skillBindPresetService = new SkillBindPresetService(new SkillBindPresetRepository());
-        skillActionRingService = new SkillActionRingService(this, skillBindPresetService, particleDisplayService);
+        skillActionRingService = new SkillActionRingService(this, skillBindPresetService, skillService);
         skillService.registerExecutor(new FireBoostSkillExecutor(particleDisplayService));
         skillService.registerExecutor(new WeaponAttackSkillExecutor(particleDisplayService, damageService));
         skillService.registerBuiltInDefinitions(BuiltInWeaponAttackDefinitions.definitions());
@@ -462,7 +462,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new ItemWeaponAttackEventHandler(itemWeaponAttackService),
+            new ItemWeaponAttackEventHandler(itemWeaponAttackService, skillActionRingService),
             getServer().getPluginManager()
         );
         playerHudService.start(this);

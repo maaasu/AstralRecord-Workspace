@@ -16,6 +16,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -92,6 +93,19 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
             }
             event.setCancelled(true);
         }, LogId.E_5802, event.getPlayer().getName(), "skill_action_ring_hotbar");
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    public void onEntityDamageByEntity(@NotNull EntityDamageByEntityEvent event) {
+        runSafely(() -> {
+            if (!(event.getDamager() instanceof Player player)) {
+                return;
+            }
+            if (!actionRingService.isOpen(player)) {
+                return;
+            }
+            event.setCancelled(true);
+        }, LogId.E_5802, event.getDamager().getName(), "skill_action_ring_damage");
     }
 
     @EventHandler(priority = EventPriority.MONITOR)

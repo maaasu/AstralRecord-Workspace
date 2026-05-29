@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.item.service.ItemWeaponAttackService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -18,9 +19,14 @@ import org.jetbrains.annotations.NotNull;
 public final class ItemWeaponAttackEventHandler extends AbstractEventHandler {
 
     private final ItemWeaponAttackService itemWeaponAttackService;
+    private final SkillActionRingService actionRingService;
 
-    public ItemWeaponAttackEventHandler(@NotNull ItemWeaponAttackService itemWeaponAttackService) {
+    public ItemWeaponAttackEventHandler(
+        @NotNull ItemWeaponAttackService itemWeaponAttackService,
+        @NotNull SkillActionRingService actionRingService
+    ) {
         this.itemWeaponAttackService = itemWeaponAttackService;
+        this.actionRingService = actionRingService;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -34,6 +40,9 @@ public final class ItemWeaponAttackEventHandler extends AbstractEventHandler {
             boolean isLeftClick = action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK;
             boolean isRightClick = action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
             if (!isLeftClick && !isRightClick) {
+                return;
+            }
+            if (isLeftClick && actionRingService.isOpen(event.getPlayer())) {
                 return;
             }
 
