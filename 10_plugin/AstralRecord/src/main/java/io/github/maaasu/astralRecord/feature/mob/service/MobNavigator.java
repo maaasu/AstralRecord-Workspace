@@ -4,6 +4,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.util.BoundingBox;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -23,6 +24,9 @@ public final class MobNavigator {
     private static final int MAX_PATH_WAYPOINTS = 32;
 
     private static final double BODY_RADIUS = 0.31;
+    private static final double BODY_HEIGHT = 1.8;
+    private static final double COLLISION_EPSILON = 1.0E-4;
+    private static final double LOW_DECORATION_HEIGHT = 0.45;
 
     /**
      * 水平方向の隣接マス定義（東西南北および斜め4方向）。
@@ -153,24 +157,45 @@ public final class MobNavigator {
      * @return 体のクリアランスがある場合は {@code true}
      */
     public static boolean hasBodyClearance(@NotNull World world, double centerX, double feetY, double centerZ) {
-        int y = (int) Math.floor(feetY);
-        if (y <= world.getMinHeight() || y + 1 >= world.getMaxHeight()) return false;
+        if (feetY <= world.getMinHeight() || feetY + BODY_HEIGHT >= world.getMaxHeight()) return false;
 
-        double[] offsets = {-BODY_RADIUS, BODY_RADIUS};
-        for (double ox : offsets) {
-            for (double oz : offsets) {
-                int bodyX = (int) Math.floor(centerX + ox);
-                int bodyZ = (int) Math.floor(centerZ + oz);
-                if (!isBodyPassable(world.getBlockAt(bodyX, y, bodyZ))) return false;
-                if (!isBodyPassable(world.getBlockAt(bodyX, y + 1, bodyZ))) return false;
+        BoundingBox bodyBox = new BoundingBox(
+                centerX - BODY_RADIUS,
+                feetY + COLLISION_EPSILON,
+                centerZ - BODY_RADIUS,
+                centerX + BODY_RADIUS,
+                feetY + BODY_HEIGHT,
+                centerZ + BODY_RADIUS
+        );
+        int minX = (int) Math.floor(bodyBox.getMinX());
+        int maxX = (int) Math.floor(bodyBox.getMaxX());
+        int minY = (int) Math.floor(bodyBox.getMinY());
+        int maxY = (int) Math.floor(bodyBox.getMaxY());
+        int minZ = (int) Math.floor(bodyBox.getMinZ());
+        int maxZ = (int) Math.floor(bodyBox.getMaxZ());
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    Block block = world.getBlockAt(x, y, z);
+                    if (isLiquid(block)) continue;
+                    if (!block.getCollisionShape().overlaps(bodyBox)) continue;
+                    if (isLowDecoration(block, feetY)) continue;
+                    return false;
+                }
             }
         }
         return true;
     }
 
-    private static boolean isBodyPassable(@NotNull Block block) {
+    private static boolean isLiquid(@NotNull Block block) {
         Material type = block.getType();
-        return block.isPassable() || type == Material.WATER || type == Material.LAVA;
+        return type == Material.WATER || type == Material.LAVA;
+    }
+
+    private static boolean isLowDecoration(@NotNull Block block, double feetY) {
+        BoundingBox blockBox = block.getBoundingBox();
+        return blockBox.getVolume() > 0.0 && blockBox.getMaxY() <= feetY + LOW_DECORATION_HEIGHT;
     }
 
     private static double heuristic(int x, int y, int z, int ex, int ey, int ez) {
