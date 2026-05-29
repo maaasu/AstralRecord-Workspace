@@ -316,6 +316,16 @@ public class MobService {
     }
 
     /**
+     * 蟇ｾ雎｡ Mob 縺ｮ隕九∪繧呈ｿ九∪縺吶・
+     *
+     * @param instance 蟇ｾ雎｡繧､繝ｳ繧ｹ繧ｿ繝ｳ繧ｹ
+     * @param target   隕九∪繧呈ｸ｡縺代◆縺・菴咲ｽｮ
+     */
+    public void lookAt(@NotNull MobInstance instance, @NotNull Location target) {
+        entityController.lookAt(instance, target);
+    }
+
+    /**
      * 実体 Mob 制御サービスを返します。
      *
      * @return 実体 Mob 制御サービス

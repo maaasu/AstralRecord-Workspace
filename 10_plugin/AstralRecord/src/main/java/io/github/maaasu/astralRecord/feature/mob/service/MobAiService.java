@@ -221,6 +221,7 @@ public class MobAiService {
             mobService.stopPathfinding(instance);
             return;
         }
+        mobService.lookAt(instance, target.getEyeLocation());
 
         double deaggroSq = targeting.deaggroRange() * targeting.deaggroRange();
         double distSq = target.getLocation().distanceSquared(instance.currentLocation());
@@ -261,6 +262,7 @@ public class MobAiService {
             mobService.stopPathfinding(instance);
             return;
         }
+        mobService.lookAt(instance, target.getEyeLocation());
 
         double preferredRange = instance.template().combat() == null
                 ? 1.0D

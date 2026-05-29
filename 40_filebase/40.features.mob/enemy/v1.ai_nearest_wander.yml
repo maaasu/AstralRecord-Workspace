@@ -1,0 +1,43 @@
+schemaVersion: 1
+id: ai_nearest_wander
+type: MOB
+category: ENEMY
+name: "&aAI検証: 近接追跡"
+level: 1
+entityType: ZOMBIE
+icon: ZOMBIE_HEAD
+lore:
+  - "&7WANDER + NEAREST + MELEE の確認用。"
+tags:
+  - test
+  - ai
+  - nearest
+
+equipment:
+  mainHand:
+    ref: item:bronze_sword
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: ATTACK
+    value: 10
+  - status: DEFENSE
+    value: 2
+  - status: MOVEMENT_SPEED
+    value: 100
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 6
+    speed: 1.0
+  targeting:
+    strategy: NEAREST
+    aggroRange: 16
+    deaggroRange: 24
+    leashRange: 32
+  combat:
+    style: MELEE
+    preferredRange: 1.5
+    attackIntervalTicks: 20

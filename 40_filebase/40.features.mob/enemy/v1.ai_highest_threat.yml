@@ -1,0 +1,43 @@
+schemaVersion: 1
+id: ai_highest_threat
+type: MOB
+category: ENEMY
+name: "&6AI検証: ヘイト優先"
+level: 1
+entityType: ZOMBIE
+icon: ZOMBIE_HEAD
+lore:
+  - "&7WANDER + HIGHEST_THREAT + MELEE の確認用。"
+tags:
+  - test
+  - ai
+  - highest_threat
+
+equipment:
+  mainHand:
+    ref: item:bronze_sword
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 160
+  - status: ATTACK
+    value: 14
+  - status: DEFENSE
+    value: 4
+  - status: MOVEMENT_SPEED
+    value: 100
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 4
+    speed: 1.1
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 16
+    deaggroRange: 24
+    leashRange: 32
+  combat:
+    style: MELEE
+    preferredRange: 1.5
+    attackIntervalTicks: 18

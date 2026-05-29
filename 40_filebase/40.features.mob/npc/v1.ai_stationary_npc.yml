@@ -1,0 +1,23 @@
+schemaVersion: 1
+id: ai_stationary_npc
+type: MOB
+category: NPC
+name: "&eAI検証: 待機NPC"
+level: 1
+entityType: PLAYER
+nameVisible: true
+icon: VILLAGER_SPAWN_EGG
+lore:
+  - "&7STATIONARY の確認用 NPC。"
+tags:
+  - test
+  - ai
+  - stationary
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+
+ai:
+  idle:
+    behavior: STATIONARY

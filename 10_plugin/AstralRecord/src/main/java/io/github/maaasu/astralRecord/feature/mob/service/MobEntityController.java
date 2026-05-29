@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.mob.service;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.papermc.paper.entity.LookAnchor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
@@ -26,6 +27,7 @@ import java.util.UUID;
 public class MobEntityController {
 
     private static final double STANDARD_MOVEMENT_SPEED = 100.0D;
+    private static final double PATHFINDER_SPEED_MULTIPLIER = 1.5D;
     private static final double MIN_PATHFINDER_SPEED = 0.05D;
     private static final double MAX_PATHFINDER_SPEED = 2.5D;
     private static final double PATH_TARGET_DRIFT_DISTANCE_SQ = 2.25D;
@@ -216,6 +218,20 @@ public class MobEntityController {
     }
 
     /**
+     * 螳滉ｽ・Mob 縺ｮ隕九∪繧貞・讓呎ｺ門ｺｦ縺ｫ蜷代￠縺ｾ縺吶・
+     *
+     * @param instance 蟇ｾ雎｡繧､繝ｳ繧ｹ繧ｿ繝ｳ繧ｹ
+     * @param target   隕九∪繧呈ｸ｡縺代◆縺・菴咲ｽｮ
+     */
+    public void lookAt(@NotNull MobInstance instance, @NotNull Location target) {
+        Mob mob = getMob(instance);
+        if (mob == null || mob.getWorld() != target.getWorld()) {
+            return;
+        }
+        mob.lookAt(target.getX(), target.getY(), target.getZ(), LookAnchor.EYES);
+    }
+
+    /**
      * 実体 Mob をワールドから削除します。
      *
      * @param instance 対象インスタンス
@@ -255,7 +271,7 @@ public class MobEntityController {
     private double resolvePathfinderSpeed(@NotNull MobInstance instance, double aiSpeedModifier) {
         double statusSpeed = instance.template().statValue("MOVEMENT_SPEED", STANDARD_MOVEMENT_SPEED);
         double statusMultiplier = Math.max(0.0D, statusSpeed) / STANDARD_MOVEMENT_SPEED;
-        double speed = Math.max(0.0D, aiSpeedModifier) * statusMultiplier;
+        double speed = Math.max(0.0D, aiSpeedModifier) * statusMultiplier * PATHFINDER_SPEED_MULTIPLIER;
         return Math.max(MIN_PATHFINDER_SPEED, Math.min(speed, MAX_PATHFINDER_SPEED));
     }
 }
