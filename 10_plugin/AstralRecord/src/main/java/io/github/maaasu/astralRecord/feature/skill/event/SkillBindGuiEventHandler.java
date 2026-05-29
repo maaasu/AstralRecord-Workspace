@@ -185,10 +185,6 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             }
             return;
         }
-        if (rawSlot == SkillBindGui.SAVE_SLOT) {
-            saveCurrentPreset(player, session, pageIndex);
-            return;
-        }
         String skillId = gui.skillId(currentItem);
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (skillId == null || astPlayer == null || !ownershipService.owns(astPlayer, skillId)) {
@@ -206,6 +202,10 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         int slot,
         int pageIndex
     ) {
+        if (slot == SkillBindGui.SAVE_SLOT) {
+            saveCurrentPreset(player, session, pageIndex);
+            return;
+        }
         if (slot >= SkillBindGui.PRESET_SLOT_START && slot <= SkillBindGui.PRESET_SLOT_END) {
             int presetIndex = slot - SkillBindGui.PRESET_SLOT_START + 1;
             if (!session.presets().get(presetIndex - 1).isUnlocked()) {

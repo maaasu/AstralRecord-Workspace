@@ -356,6 +356,16 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             menuView.openGuide(player);
             return;
         }
+        if (rawSlot == MenuView.SKILL_BIND_SLOT) {
+            var skillBindHandler = plugin.getSkillBindGuiEventHandler();
+            if (skillBindHandler == null) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.SELECT.play(player);
+            skillBindHandler.open(player);
+            return;
+        }
         GuiSound.DENY.play(player);
     }
 
