@@ -31,8 +31,8 @@ import java.util.UUID;
 public class OverheadDisplayService {
 
     private static final long UPDATE_INTERVAL_TICKS = 5L;
-    private static final double PLAYER_TEXT_OFFSET = 0.55D;
-    private static final double MOB_TEXT_OFFSET = 0.55D;
+    private static final double PLAYER_TEXT_OFFSET = 0.25D;
+    private static final double MOB_TEXT_OFFSET = 0.25D;
     private static final String HIDDEN_NAME_TEAM = "ar_hidden_names";
 
     private final DisplayTextService displayService;
@@ -225,7 +225,7 @@ public class OverheadDisplayService {
         StatusSnapshot snapshot = statusService.getStatus(astPlayer);
         return String.format(
                 Locale.ROOT,
-                "&f%s%n&cHP %s/%s &9MP %s/%s &eEN %s/%s",
+                "&f%s\n&cHP %s/%s &9MP %s/%s &eEN %s/%s",
                 player.getName(),
                 number(snapshot.getCurrentHp()),
                 number(snapshot.getMaxValue(StatusType.MAX_HEALTH)),
@@ -241,7 +241,7 @@ public class OverheadDisplayService {
         double maxHealth = instance.template().statValue(StatusType.MAX_HEALTH.name(), 1.0D);
         return String.format(
                 Locale.ROOT,
-                "%s%n&cHP %s/%s",
+                "%s\n&cHP %s/%s",
                 instance.template().displayName(),
                 number(instance.currentHealth()),
                 number(maxHealth)
