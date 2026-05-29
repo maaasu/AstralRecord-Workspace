@@ -3,11 +3,13 @@ package io.github.maaasu.astralRecord.feature.menu.view;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.currency.view.CurrencyGuiView;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
+import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
+import io.github.maaasu.astralRecord.feature.menu.view.screen.BuffScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.EquipmentMenuScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.GuideScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.MainMenuScreenView;
@@ -39,7 +41,9 @@ public class MenuView {
     public static final int EQUIPMENT_GUI_SLOT = MainMenuScreenView.EQUIPMENT_GUI_SLOT;
     public static final int TRASH_SLOT = MainMenuScreenView.TRASH_SLOT;
     public static final int GUIDE_SLOT = MainMenuScreenView.GUIDE_SLOT;
+    public static final int BUFF_SLOT = MainMenuScreenView.BUFF_SLOT;
     public static final int SKILL_BIND_SLOT = MainMenuScreenView.SKILL_BIND_SLOT;
+    public static final int CURRENCY_SLOT = MainMenuScreenView.CURRENCY_SLOT;
     public static final int EQUIPMENT_HEAD_SLOT = EquipmentMenuScreenView.EQUIPMENT_HEAD_SLOT;
     public static final int EQUIPMENT_CHEST_SLOT = EquipmentMenuScreenView.EQUIPMENT_CHEST_SLOT;
     public static final int EQUIPMENT_LEGS_SLOT = EquipmentMenuScreenView.EQUIPMENT_LEGS_SLOT;
@@ -68,11 +72,13 @@ public class MenuView {
 
     private static final Component MAIN_TITLE = Component.text("AstralRecord メニュー", NamedTextColor.DARK_AQUA);
     private static final Component EQUIPMENT_TITLE = Component.text("装備", NamedTextColor.GOLD);
+    private static final Component BUFF_TITLE = Component.text("バフ", NamedTextColor.AQUA);
     private static final String CURRENCY_TITLE = "通貨";
 
     private final MainMenuScreenView mainMenuScreenView;
     private final StatusScreenView statusScreenView;
     private final EquipmentMenuScreenView equipmentMenuScreenView;
+    private final BuffScreenView buffScreenView;
     private final CurrencyGuiView currencyGuiView;
     private final GuideScreenView guideScreenView;
     private final TrashScreenView trashScreenView;
@@ -87,6 +93,7 @@ public class MenuView {
         this.mainMenuScreenView = new MainMenuScreenView();
         this.statusScreenView = new StatusScreenView();
         this.equipmentMenuScreenView = new EquipmentMenuScreenView(equipmentPlaceholderKey);
+        this.buffScreenView = new BuffScreenView();
         this.currencyGuiView = new CurrencyGuiView();
         this.guideScreenView = new GuideScreenView();
         this.trashScreenView = new TrashScreenView(trashPlaceholderKey);
@@ -113,6 +120,12 @@ public class MenuView {
     public void openEquipmentGui(@NotNull Player player, @NotNull ItemStack[] accessories) {
         Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.EQUIPMENT_GUI), SIZE, EQUIPMENT_TITLE);
         equipmentMenuScreenView.render(inventory, player, accessories);
+        player.openInventory(inventory);
+    }
+
+    public void openBuff(@NotNull Player player, @NotNull List<ActiveBuff> activeBuffs) {
+        Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.BUFF), SIZE, BUFF_TITLE);
+        buffScreenView.render(inventory, activeBuffs);
         player.openInventory(inventory);
     }
 

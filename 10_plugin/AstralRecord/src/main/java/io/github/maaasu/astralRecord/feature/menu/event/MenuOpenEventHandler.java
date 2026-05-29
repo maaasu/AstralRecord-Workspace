@@ -281,6 +281,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         switch (screen) {
             case MAIN -> handleMainMenuClick(player, event.getRawSlot());
             case STATUS -> handleStatusClick(player, event.getRawSlot());
+            case BUFF -> handleBuffClick(player, event.getRawSlot());
             case EQUIPMENT_GUI -> {
             }
             case CURRENCY -> handleCurrencyClick(event, player);
@@ -356,6 +357,16 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             menuView.openGuide(player);
             return;
         }
+        if (rawSlot == MenuView.BUFF_SLOT) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer == null) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.SELECT.play(player);
+            menuView.openBuff(player, statusService.getActiveBuffs(astPlayer));
+            return;
+        }
         if (rawSlot == MenuView.SKILL_BIND_SLOT) {
             var skillBindHandler = plugin.getSkillBindGuiEventHandler();
             if (skillBindHandler == null) {
@@ -364,6 +375,11 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             }
             GuiSound.SELECT.play(player);
             skillBindHandler.open(player);
+            return;
+        }
+        if (rawSlot == MenuView.CURRENCY_SLOT) {
+            GuiSound.OPEN.play(player);
+            openCurrency(player, 0);
             return;
         }
         GuiSound.DENY.play(player);
@@ -408,6 +424,15 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     }
 
     private void handleStatusClick(@NotNull Player player, int rawSlot) {
+        if (rawSlot == MenuView.BACK_SLOT) {
+            GuiSound.SELECT.play(player);
+            menuView.open(player);
+            return;
+        }
+        GuiSound.DENY.play(player);
+    }
+
+    private void handleBuffClick(@NotNull Player player, int rawSlot) {
         if (rawSlot == MenuView.BACK_SLOT) {
             GuiSound.SELECT.play(player);
             menuView.open(player);

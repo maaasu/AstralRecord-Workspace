@@ -26,7 +26,7 @@
 - `status`
   - `StatusService` が `BuffService` を内部生成・所有し、ステータス再計算時に [[05_3.02-サービス]].バフ補正合計取得 を呼ぶ。
 - `item`
-  - `ItemConsumable.effects` の `BUFF` タイプから将来的にバフ付与を呼ぶ想定（未実装）。
+  - `PotionUseService` が `ItemConsumable.effects` の `BUFF` タイプから `StatusService.applyBuff` を呼び、付与成功時にバフ獲得通知を表示する。
 
 ## 更新ルール（変更時に必ず更新する章）
 

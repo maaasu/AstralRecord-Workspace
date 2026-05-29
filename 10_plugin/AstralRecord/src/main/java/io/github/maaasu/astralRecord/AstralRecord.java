@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.combat.event.CombatDamageEventHandler;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
+import io.github.maaasu.astralRecord.feature.buff.service.BuffAcquisitionDisplayService;
 import io.github.maaasu.astralRecord.shared.gui.debug.PagingDebugGui;
 import io.github.maaasu.astralRecord.shared.gui.debug.event.PagingDebugGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
@@ -17,6 +18,7 @@ import io.github.maaasu.astralRecord.feature.item.service.BuiltInWeaponAttackDef
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseEffectService;
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemWeaponAttackService;
+import io.github.maaasu.astralRecord.feature.item.service.PotionUseService;
 import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryRepository;
 import io.github.maaasu.astralRecord.feature.inventory.repository.EquipmentLoadoutRepository;
 import io.github.maaasu.astralRecord.feature.inventory.event.InventoryEquipmentGuiEventHandler;
@@ -136,6 +138,8 @@ public final class AstralRecord extends JavaPlugin {
     private DamageService damageService;
     private BundleUseService bundleUseService;
     private BundleUseEffectService bundleUseEffectService;
+    private BuffAcquisitionDisplayService buffAcquisitionDisplayService;
+    private PotionUseService potionUseService;
     private PlayerClassService playerClassService;
     private ItemWeaponAttackService itemWeaponAttackService;
     private WorldService worldService;
@@ -303,6 +307,8 @@ public final class AstralRecord extends JavaPlugin {
 
         // status
         statusService = new StatusService(itemService, inventoryService);
+        buffAcquisitionDisplayService = new BuffAcquisitionDisplayService(displayTextService);
+        potionUseService = new PotionUseService(inventoryService, statusService, buffAcquisitionDisplayService);
         statusRegenTask = new StatusRegenTask(statusService);
         playerHudService = new PlayerHudService(statusService, playerClassService);
         overheadDisplayService = new OverheadDisplayService(displayTextService, statusService, mobService);
@@ -406,7 +412,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new ItemInteractionBlockEventHandler(itemService, bundleUseService),
+            new ItemInteractionBlockEventHandler(itemService, bundleUseService, potionUseService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
+import io.github.maaasu.astralRecord.feature.item.service.PotionUseService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.entity.Player;
@@ -33,19 +34,23 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler {
 
     private final ItemService itemService;
     private final BundleUseService bundleUseService;
+    private final PotionUseService potionUseService;
 
     /**
      * アイテム操作抑止・bundle 開封イベントを構築します。
      *
      * @param itemService      アイテム定義サービス
      * @param bundleUseService bundle 使用サービス
+     * @param potionUseService ポーション使用サービス
      */
     public ItemInteractionBlockEventHandler(
         @NotNull ItemService itemService,
-        @NotNull BundleUseService bundleUseService
+        @NotNull BundleUseService bundleUseService,
+        @NotNull PotionUseService potionUseService
     ) {
         this.itemService = itemService;
         this.bundleUseService = bundleUseService;
+        this.potionUseService = potionUseService;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -69,6 +74,8 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler {
                     ItemModel model = resolveItemModel(event.getItem());
                     if (model != null && ItemCategory.fromApiValue(model.getCategory()) == ItemCategory.BUNDLE) {
                         bundleUseService.beginBundleUse(astPlayer, event.getHand(), model);
+                    } else if (model != null && ItemCategory.fromApiValue(model.getCategory()) == ItemCategory.CONSUMABLE) {
+                        potionUseService.use(astPlayer, event.getHand(), model);
                     }
                 }
             }
