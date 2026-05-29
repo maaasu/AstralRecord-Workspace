@@ -57,7 +57,37 @@ public class ParticleDisplayService {
         double offsetZ,
         double extra
     ) {
-        spawnWorld(world, location, particle, baseCount, offsetX, offsetY, offsetZ, extra, resolvePlayerDensityScale(astPlayer));
+        spawnWorld(astPlayer, world, location, particle, baseCount, offsetX, offsetY, offsetZ, extra, null);
+    }
+
+    /**
+     * 対象プレイヤーの設定密度を反映して、追加データ付きパーティクルをワールド向けに表示します。
+     *
+     * @param astPlayer 対象密度設定の参照元プレイヤー
+     * @param world ワールド
+     * @param location 表示座標
+     * @param particle パーティクル種別
+     * @param baseCount 基準個数
+     * @param offsetX X拡散
+     * @param offsetY Y拡散
+     * @param offsetZ Z拡散
+     * @param extra 追加パラメータ
+     * @param data パーティクル追加データ。不要な場合は null
+     * @param <T> パーティクル追加データ型
+     */
+    public <T> void spawnWorld(
+        @NotNull AstPlayer astPlayer,
+        @NotNull World world,
+        @NotNull Location location,
+        @NotNull Particle particle,
+        int baseCount,
+        double offsetX,
+        double offsetY,
+        double offsetZ,
+        double extra,
+        @Nullable T data
+    ) {
+        spawnWorld(world, location, particle, baseCount, offsetX, offsetY, offsetZ, extra, resolvePlayerDensityScale(astPlayer), data);
     }
 
     /**
@@ -84,11 +114,41 @@ public class ParticleDisplayService {
         double extra,
         double playerDensityScale
     ) {
+        spawnWorld(world, location, particle, baseCount, offsetX, offsetY, offsetZ, extra, playerDensityScale, null);
+    }
+
+    /**
+     * ワールド向けに追加データ付きパーティクルを表示する。
+     *
+     * @param world ワールド
+     * @param location 表示座標
+     * @param particle パーティクル種別
+     * @param baseCount 基準個数
+     * @param offsetX X拡散
+     * @param offsetY Y拡散
+     * @param offsetZ Z拡散
+     * @param extra 追加パラメータ
+     * @param playerDensityScale プレイヤー個別の密度係数（未設定時は 1.0）
+     * @param data パーティクル追加データ。不要な場合は null
+     * @param <T> パーティクル追加データ型
+     */
+    public <T> void spawnWorld(
+        @NotNull World world,
+        @NotNull Location location,
+        @NotNull Particle particle,
+        int baseCount,
+        double offsetX,
+        double offsetY,
+        double offsetZ,
+        double extra,
+        double playerDensityScale,
+        @Nullable T data
+    ) {
         int count = resolveCount(baseCount, playerDensityScale);
         if (count <= 0) {
             return;
         }
-        world.spawnParticle(particle, location, count, offsetX, offsetY, offsetZ, extra);
+        world.spawnParticle(particle, location, count, offsetX, offsetY, offsetZ, extra, data);
     }
 
     /**
@@ -113,7 +173,35 @@ public class ParticleDisplayService {
         double offsetZ,
         double extra
     ) {
-        spawnForViewer(viewer.getBukkit(), location, particle, baseCount, offsetX, offsetY, offsetZ, extra, resolvePlayerDensityScale(viewer));
+        spawnForViewer(viewer, location, particle, baseCount, offsetX, offsetY, offsetZ, extra, null);
+    }
+
+    /**
+     * 指定プレイヤーにのみ追加データ付きパーティクルを送信する。
+     *
+     * @param viewer 送信先プレイヤー
+     * @param location 表示座標
+     * @param particle パーティクル種別
+     * @param baseCount 基準個数
+     * @param offsetX X拡散
+     * @param offsetY Y拡散
+     * @param offsetZ Z拡散
+     * @param extra 追加パラメータ
+     * @param data パーティクル追加データ。不要な場合は null
+     * @param <T> パーティクル追加データ型
+     */
+    public <T> void spawnForViewer(
+        @NotNull AstPlayer viewer,
+        @NotNull Location location,
+        @NotNull Particle particle,
+        int baseCount,
+        double offsetX,
+        double offsetY,
+        double offsetZ,
+        double extra,
+        @Nullable T data
+    ) {
+        spawnForViewer(viewer.getBukkit(), location, particle, baseCount, offsetX, offsetY, offsetZ, extra, resolvePlayerDensityScale(viewer), data);
     }
 
     /**
@@ -140,11 +228,41 @@ public class ParticleDisplayService {
         double extra,
         double playerDensityScale
     ) {
+        spawnForViewer(viewer, location, particle, baseCount, offsetX, offsetY, offsetZ, extra, playerDensityScale, null);
+    }
+
+    /**
+     * 指定のプレイヤーにのみ追加データ付きパーティクルを送信する。
+     *
+     * @param viewer 送信先プレイヤー
+     * @param location 表示座標
+     * @param particle パーティクル種別
+     * @param baseCount 基準個数
+     * @param offsetX X拡散
+     * @param offsetY Y拡散
+     * @param offsetZ Z拡散
+     * @param extra 追加パラメータ
+     * @param playerDensityScale プレイヤー個別の密度係数（未設定時は 1.0）
+     * @param data パーティクル追加データ。不要な場合は null
+     * @param <T> パーティクル追加データ型
+     */
+    public <T> void spawnForViewer(
+        @NotNull Player viewer,
+        @NotNull Location location,
+        @NotNull Particle particle,
+        int baseCount,
+        double offsetX,
+        double offsetY,
+        double offsetZ,
+        double extra,
+        double playerDensityScale,
+        @Nullable T data
+    ) {
         int count = resolveCount(baseCount, playerDensityScale);
         if (count <= 0) {
             return;
         }
-        viewer.spawnParticle(particle, location, count, offsetX, offsetY, offsetZ, extra);
+        viewer.spawnParticle(particle, location, count, offsetX, offsetY, offsetZ, extra, data);
     }
 
     private double resolvePlayerDensityScale(@NotNull AstPlayer astPlayer) {

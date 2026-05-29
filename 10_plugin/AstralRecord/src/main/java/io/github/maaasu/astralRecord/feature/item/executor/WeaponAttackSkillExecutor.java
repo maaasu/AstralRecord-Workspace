@@ -458,7 +458,18 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 extra
         );
         if (attackType == AttackType.MAGIC) {
-            location.getWorld().spawnParticle(Particle.DUST, location, 3, 0.03D, 0.03D, 0.03D, 0.0D, MAGIC_CORE_DUST);
+            particleDisplayService.spawnWorld(
+                    caster.player(),
+                    location.getWorld(),
+                    location,
+                    Particle.DUST,
+                    3,
+                    0.03D,
+                    0.03D,
+                    0.03D,
+                    0.0D,
+                    MAGIC_CORE_DUST
+            );
         }
     }
 
@@ -481,7 +492,18 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 0.12D,
                 0.05D
         );
-        location.getWorld().spawnParticle(Particle.DUST, location, 8, 0.08D, 0.08D, 0.08D, 0.0D, MAGIC_CORE_DUST);
+        particleDisplayService.spawnWorld(
+                caster.player(),
+                location.getWorld(),
+                location,
+                Particle.DUST,
+                8,
+                0.08D,
+                0.08D,
+                0.08D,
+                0.0D,
+                MAGIC_CORE_DUST
+        );
     }
 
     private @Nullable AstEntity findClosestMobTarget(
