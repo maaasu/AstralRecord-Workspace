@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.Color;
 import org.bukkit.Location;
@@ -34,9 +35,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class SkillActionRingService {
     private static final int SLOT_COUNT = SkillBindPreset.SLOT_COUNT;
-    private static final double RING_DISTANCE = 3.0D;
-    private static final double RING_RADIUS = 1.15D;
-    private static final int CIRCLE_PARTICLE_POINTS = 56;
+    private static final double RING_DISTANCE = 2.0D;
+    private static final double RING_RADIUS = 1.38D;
+    private static final int CIRCLE_PARTICLE_POINTS = 20;
     private static final long UPDATE_INTERVAL_TICKS = 1L;
 
     private static final List<DummySkillSlot> DUMMY_SLOTS = List.of(
@@ -52,6 +53,7 @@ public final class SkillActionRingService {
 
     private final AstralRecord plugin;
     private final SkillBindPresetService presetService;
+    private final ParticleDisplayService particleDisplayService;
     private final Map<UUID, RingSession> sessions = new ConcurrentHashMap<>();
     private BukkitTask task;
 
@@ -63,10 +65,12 @@ public final class SkillActionRingService {
      */
     public SkillActionRingService(
         @NotNull AstralRecord plugin,
-        @NotNull SkillBindPresetService presetService
+        @NotNull SkillBindPresetService presetService,
+        @NotNull ParticleDisplayService particleDisplayService
     ) {
         this.plugin = plugin;
         this.presetService = presetService;
+        this.particleDisplayService = particleDisplayService;
     }
 
     /**
@@ -84,7 +88,7 @@ public final class SkillActionRingService {
             return;
         }
 
-        sessions.put(playerId, RingSession.create(player, resolveSlotNames(astPlayer)));
+        sessions.put(playerId, RingSession.create(player, resolveSlotNames(astPlayer), particleDisplayService));
         GuiSound.OPEN.play(player);
         ensureTask();
     }
@@ -190,6 +194,7 @@ public final class SkillActionRingService {
         private final Vector right;
         private final Vector up;
         private final List<String> names;
+        private final ParticleDisplayService particleDisplayService;
         private final List<ItemDisplay> icons = new ArrayList<>(SLOT_COUNT);
         private final List<TextDisplay> labels = new ArrayList<>(SLOT_COUNT);
         private int selectedIndex;
@@ -200,7 +205,8 @@ public final class SkillActionRingService {
             @NotNull Vector normal,
             @NotNull Vector right,
             @NotNull Vector up,
-            @NotNull List<String> names
+            @NotNull List<String> names,
+            @NotNull ParticleDisplayService particleDisplayService
         ) {
             this.baseEye = baseEye;
             this.baseCenter = baseCenter;
@@ -208,9 +214,14 @@ public final class SkillActionRingService {
             this.right = right;
             this.up = up;
             this.names = names;
+            this.particleDisplayService = particleDisplayService;
         }
 
-        private static @NotNull RingSession create(@NotNull Player player, @NotNull List<String> names) {
+        private static @NotNull RingSession create(
+            @NotNull Player player,
+            @NotNull List<String> names,
+            @NotNull ParticleDisplayService particleDisplayService
+        ) {
             Location eye = player.getEyeLocation();
             Vector normal = eye.getDirection().normalize();
             Vector right = normal.clone().crossProduct(new Vector(0.0D, 1.0D, 0.0D));
@@ -221,7 +232,7 @@ public final class SkillActionRingService {
             }
             Vector up = right.clone().crossProduct(normal).normalize();
             Location center = eye.clone().add(normal.clone().multiply(RING_DISTANCE));
-            RingSession session = new RingSession(eye.clone(), center, normal, right, up, names);
+            RingSession session = new RingSession(eye.clone(), center, normal, right, up, names, particleDisplayService);
             session.spawnEntities(player.getWorld());
             return session;
         }
@@ -269,7 +280,7 @@ public final class SkillActionRingService {
                 GuiSound.SELECT.play(player);
             }
 
-            spawnCircle(center);
+            spawnCircle(player, center);
             for (int index = 0; index < SLOT_COUNT; index++) {
                 boolean selected = index == selectedIndex;
                 Vector slotOffset = slotOffset(index);
@@ -286,7 +297,7 @@ public final class SkillActionRingService {
                     label.teleport(labelLocation);
                     String color = selected ? ColorCodeUtil.YELLOW : ColorCodeUtil.GRAY;
                     label.setText(ColorCodeUtil.translateAlternateColorCodes(color + names.get(index)));
-                    label.setTransformation(scaleTransformation(selected ? 0.72F : 0.56F));
+                    label.setTransformation(scaleTransformation(selected ? 0.864F : 0.672F));
                 }
             }
         }
@@ -318,7 +329,7 @@ public final class SkillActionRingService {
                 .add(right.clone().multiply(Math.sin(angle) * RING_RADIUS));
         }
 
-        private void spawnCircle(@NotNull Location center) {
+        private void spawnCircle(@NotNull Player player, @NotNull Location center) {
             World world = center.getWorld();
             if (world == null) {
                 return;
@@ -327,7 +338,17 @@ public final class SkillActionRingService {
                 double angle = ((Math.PI * 2.0D) / CIRCLE_PARTICLE_POINTS) * index;
                 Vector offset = up.clone().multiply(Math.cos(angle) * RING_RADIUS)
                     .add(right.clone().multiply(Math.sin(angle) * RING_RADIUS));
-                world.spawnParticle(Particle.END_ROD, center.clone().add(offset), 1, 0.0D, 0.0D, 0.0D, 0.0D);
+                particleDisplayService.spawnForViewer(
+                    player,
+                    center.clone().add(offset),
+                    Particle.ELECTRIC_SPARK,
+                    1,
+                    0.0D,
+                    0.0D,
+                    0.0D,
+                    0.0D,
+                    1.0D
+                );
             }
         }
 
