@@ -36,9 +36,11 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobAiService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerJoinEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerModeEventHandler;
+import io.github.maaasu.astralRecord.feature.player.event.PlayerInputEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerSneakEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerVanillaDamageBlockEventHandler;
 import io.github.maaasu.astralRecord.feature.player.save.PlayerSaveCoordinator;
+import io.github.maaasu.astralRecord.feature.player.service.AirActionService;
 import io.github.maaasu.astralRecord.feature.player.service.DodgeService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
@@ -105,6 +107,7 @@ public final class AstralRecord extends JavaPlugin {
     private StatusService statusService;
     private StatusRegenTask statusRegenTask;
     private DodgeService dodgeService;
+    private AirActionService airActionService;
     private PlayerHudService playerHudService;
     private ResourcePackService resourcePackService;
     private MenuView menuView;
@@ -175,6 +178,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (inventoryService != null) {
             inventoryService.awaitPendingWrites(5000L);
+        }
+        if (airActionService != null) {
+            airActionService.stop();
         }
         if (playerHudService != null) {
             playerHudService.stop();
@@ -291,6 +297,7 @@ public final class AstralRecord extends JavaPlugin {
 
         // dodge
         dodgeService = new DodgeService(this, statusService, playerHudService, particleDisplayService);
+        airActionService = new AirActionService(this, playerHudService, particleDisplayService);
 
         var playerSaveCoordinator = new PlayerSaveCoordinator(
             java.util.List.of(new InventorySaveTask(inventoryService, inventoryStateRegistry, inventoryPersistence))
@@ -422,7 +429,11 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new PlayerSneakEventHandler(dodgeService, playerHudService),
+            new PlayerInputEventHandler(airActionService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new PlayerSneakEventHandler(airActionService, dodgeService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

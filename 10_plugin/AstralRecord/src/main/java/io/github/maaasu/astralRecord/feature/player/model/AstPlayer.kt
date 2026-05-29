@@ -14,6 +14,8 @@ import org.bukkit.GameMode
 import org.bukkit.Location
 import org.bukkit.attribute.Attribute
 import org.bukkit.entity.Player
+import org.bukkit.event.player.PlayerInputEvent
+import org.bukkit.util.Vector
 
 /**
  * AstralRecord プロジェクト独自のプレイヤーモデル。
@@ -58,6 +60,36 @@ data class AstPlayer(
      * HUD 上のドッジ受付バー表示の終了判定に使用します。
      */
     var sneakDodgeWindowExpiresAtMs: Long = 0L
+
+    /**
+     * 直近のジャンプ入力押下状態です。
+     * [PlayerInputEvent] の立ち上がり検知に使用します。
+     */
+    var isJumpInputPressed: Boolean = false
+
+    /**
+     * 現在の滞空中で二段ジャンプを消費済みかを表します。
+     * 着地時に解除し、空中での再入力では再利用できないようにします。
+     */
+    var isAirJumpConsumed: Boolean = false
+
+    /**
+     * 壁張り付き猶予の終了時刻（System.currentTimeMillis ベース）。
+     * HUD 上の壁張り付きバー表示と、自然落下復帰の判定に使用します。
+     */
+    var wallClingExpiresAtMs: Long = 0L
+
+    /**
+     * 壁張り付き中フラグです。
+     * 重力停止とスニーク解除時の壁キック判定に使用します。
+     */
+    var isWallClinging: Boolean = false
+
+    /**
+     * 壁張り付き時にプレイヤー正面にあった壁方向です。
+     * スニーク解除時に「壁から十分背を向けたか」を判定する基準に使用します。
+     */
+    var wallClingTowardWallDirection: Vector? = null
 
     /**
      * ドッジ実行中フラグ。

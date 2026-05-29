@@ -64,6 +64,32 @@ public class DodgeService {
     }
 
     /**
+     * 地上スニーク入力からドッジ受付ウィンドウを開始します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @return ドッジ受付を開始した場合は {@code true}
+     */
+    public boolean beginSneakWindow(@NotNull AstPlayer astPlayer) {
+        clearSneakWindowState(astPlayer);
+
+        if (!astPlayer.getAccount().getMode().shouldProcessGameplay()) {
+            return false;
+        }
+
+        Player player = astPlayer.getBukkit();
+        if (!player.isOnline() || player.isDead() || !player.isOnGround()) {
+            return false;
+        }
+
+        long startedAtMs = System.currentTimeMillis();
+        astPlayer.setSneakStartedAtMs(startedAtMs);
+        astPlayer.setSneakStartedAtLocation(player.getLocation());
+        astPlayer.setSneakDodgeWindowExpiresAtMs(startedAtMs + QUICK_SNEAK_WINDOW_MS);
+        playerHudService.showDodgeWindow(astPlayer);
+        return true;
+    }
+
+    /**
      * しゃがみ解除時にドッジ発動を試みます。
      * しゃがみ開始からの経過時間が {@link #QUICK_SNEAK_WINDOW_MS} 未満の場合のみ判定し、
      * エネルギー不足の場合は発動しません。
@@ -77,8 +103,7 @@ public class DodgeService {
 
         long sneakStartedAt = astPlayer.getSneakStartedAtMs();
         Location sneakStartedAtLocation = astPlayer.getSneakStartedAtLocation();
-        astPlayer.setSneakStartedAtMs(0L);
-        astPlayer.setSneakStartedAtLocation(null);
+        clearSneakWindowState(astPlayer);
         playerHudService.restoreStatusActionBar(astPlayer);
 
         if (sneakStartedAt <= 0L) {
@@ -92,6 +117,9 @@ public class DodgeService {
 
         Player player = astPlayer.getBukkit();
         if (!player.isOnline() || player.isDead()) {
+            return;
+        }
+        if (!player.isOnGround()) {
             return;
         }
 
@@ -195,6 +223,12 @@ public class DodgeService {
             0.4f,
             0.7f
         );
+    }
+
+    private void clearSneakWindowState(@NotNull AstPlayer astPlayer) {
+        astPlayer.setSneakStartedAtMs(0L);
+        astPlayer.setSneakStartedAtLocation(null);
+        astPlayer.setSneakDodgeWindowExpiresAtMs(0L);
     }
 
 }

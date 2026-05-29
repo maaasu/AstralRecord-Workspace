@@ -360,6 +360,10 @@ public enum LogId {
      * プレイヤーのしゃがみイベント処理に失敗しました: %s
      */
     E_5170(5170),
+    /**
+     * プレイヤーの入力イベント処理に失敗しました: %s
+     */
+    E_5171(5171),
     // endregion
 
     // region /feature/account/service/AccountService.java

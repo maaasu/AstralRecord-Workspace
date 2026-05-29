@@ -14,12 +14,13 @@ import org.bukkit.scheduler.BukkitTask;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.BooleanSupplier;
 
 public class PlayerHudService {
     private final StatusService statusService;
     private final PlayerClassService playerClassService;
     private final PlayerHudView playerHudView;
-    private final Map<UUID, BukkitTask> dodgeWindowTasks = new HashMap<>();
+    private final Map<UUID, BukkitTask> actionBarOverrideTasks = new HashMap<>();
     private AstralRecord plugin;
     private BukkitTask task;
 
@@ -48,10 +49,10 @@ public class PlayerHudService {
             task.cancel();
             task = null;
         }
-        for (BukkitTask dodgeWindowTask : dodgeWindowTasks.values()) {
-            dodgeWindowTask.cancel();
+        for (BukkitTask actionBarOverrideTask : actionBarOverrideTasks.values()) {
+            actionBarOverrideTask.cancel();
         }
-        dodgeWindowTasks.clear();
+        actionBarOverrideTasks.clear();
         plugin = null;
     }
 
@@ -65,18 +66,20 @@ public class PlayerHudService {
             return;
         }
 
-        cancelDodgeWindowTask(astPlayer.getBukkit().getUniqueId());
-        renderDodgeWindow(astPlayer);
-        BukkitTask dodgeWindowTask = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
-            if (!isDodgeWindowActive(astPlayer)) {
-                astPlayer.setSneakDodgeWindowExpiresAtMs(0L);
-                cancelDodgeWindowTask(astPlayer.getBukkit().getUniqueId());
-                renderStatusActionBar(astPlayer);
-                return;
-            }
-            renderDodgeWindow(astPlayer);
-        }, 1L, 1L);
-        dodgeWindowTasks.put(astPlayer.getBukkit().getUniqueId(), dodgeWindowTask);
+        showActionBarOverride(astPlayer, () -> renderDodgeWindow(astPlayer), () -> isDodgeWindowActive(astPlayer));
+    }
+
+    /**
+     * 壁張り付きバーの表示を開始します。
+     *
+     * @param astPlayer 対象プレイヤー
+     */
+    public void showWallClingWindow(AstPlayer astPlayer) {
+        if (plugin == null || !astPlayer.getAccount().getMode().shouldProcessGameplay()) {
+            return;
+        }
+
+        showActionBarOverride(astPlayer, () -> renderWallClingWindow(astPlayer), () -> isWallClingActive(astPlayer));
     }
 
     /**
@@ -85,8 +88,9 @@ public class PlayerHudService {
      * @param astPlayer 対象プレイヤー
      */
     public void restoreStatusActionBar(AstPlayer astPlayer) {
-        cancelDodgeWindowTask(astPlayer.getBukkit().getUniqueId());
+        cancelActionBarOverrideTask(astPlayer.getBukkit().getUniqueId());
         astPlayer.setSneakDodgeWindowExpiresAtMs(0L);
+        astPlayer.setWallClingExpiresAtMs(0L);
         renderStatusActionBar(astPlayer);
     }
 
@@ -100,7 +104,9 @@ public class PlayerHudService {
 
             StatusSnapshot snapshot = statusService.getStatus(astPlayer);
             if (astPlayer.getAccount().getMode().shouldProcessGameplay()) {
-                if (isDodgeWindowActive(astPlayer)) {
+                if (isWallClingActive(astPlayer)) {
+                    renderWallClingWindow(astPlayer);
+                } else if (isDodgeWindowActive(astPlayer)) {
                     renderDodgeWindow(astPlayer);
                 } else {
                     playerHudView.renderActionBar(player, snapshot);
@@ -139,12 +145,40 @@ public class PlayerHudService {
         playerHudView.renderDodgeWindowActionBar(player, progress);
     }
 
+    private void renderWallClingWindow(AstPlayer astPlayer) {
+        Player player = astPlayer.getBukkit();
+        if (!player.isOnline() || !astPlayer.getAccount().getMode().shouldProcessGameplay()) {
+            return;
+        }
+        long remaining = Math.max(0L, astPlayer.getWallClingExpiresAtMs() - System.currentTimeMillis());
+        double progress = (double) remaining / (double) io.github.maaasu.astralRecord.feature.player.service.AirActionService.WALL_CLING_DURATION_MS;
+        playerHudView.renderWallClingActionBar(player, progress);
+    }
+
     private boolean isDodgeWindowActive(AstPlayer astPlayer) {
         return astPlayer.getSneakDodgeWindowExpiresAtMs() > System.currentTimeMillis();
     }
 
-    private void cancelDodgeWindowTask(UUID playerUuid) {
-        BukkitTask task = dodgeWindowTasks.remove(playerUuid);
+    private boolean isWallClingActive(AstPlayer astPlayer) {
+        return astPlayer.getWallClingExpiresAtMs() > System.currentTimeMillis();
+    }
+
+    private void showActionBarOverride(AstPlayer astPlayer, Runnable renderer, BooleanSupplier activeChecker) {
+        cancelActionBarOverrideTask(astPlayer.getBukkit().getUniqueId());
+        renderer.run();
+        BukkitTask actionBarOverrideTask = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
+            if (!activeChecker.getAsBoolean()) {
+                cancelActionBarOverrideTask(astPlayer.getBukkit().getUniqueId());
+                renderStatusActionBar(astPlayer);
+                return;
+            }
+            renderer.run();
+        }, 1L, 1L);
+        actionBarOverrideTasks.put(astPlayer.getBukkit().getUniqueId(), actionBarOverrideTask);
+    }
+
+    private void cancelActionBarOverrideTask(UUID playerUuid) {
+        BukkitTask task = actionBarOverrideTasks.remove(playerUuid);
         if (task != null) {
             task.cancel();
         }

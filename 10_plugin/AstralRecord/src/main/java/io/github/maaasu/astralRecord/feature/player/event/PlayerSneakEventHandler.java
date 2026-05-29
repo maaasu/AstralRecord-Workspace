@@ -1,9 +1,9 @@
 package io.github.maaasu.astralRecord.feature.player.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
-import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.AirActionService;
 import io.github.maaasu.astralRecord.feature.player.service.DodgeService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.event.EventHandler;
@@ -18,12 +18,12 @@ import org.bukkit.event.player.PlayerToggleSneakEvent;
  */
 public class PlayerSneakEventHandler extends AbstractEventHandler {
 
+    private final AirActionService airActionService;
     private final DodgeService dodgeService;
-    private final PlayerHudService playerHudService;
 
-    public PlayerSneakEventHandler(DodgeService dodgeService, PlayerHudService playerHudService) {
+    public PlayerSneakEventHandler(AirActionService airActionService, DodgeService dodgeService) {
+        this.airActionService = airActionService;
         this.dodgeService = dodgeService;
-        this.playerHudService = playerHudService;
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
@@ -38,14 +38,16 @@ public class PlayerSneakEventHandler extends AbstractEventHandler {
             }
 
             if (event.isSneaking()) {
-                long startedAtMs = System.currentTimeMillis();
-                astPlayer.setSneakStartedAtMs(startedAtMs);
-                astPlayer.setSneakStartedAtLocation(event.getPlayer().getLocation());
-                astPlayer.setSneakDodgeWindowExpiresAtMs(startedAtMs + DodgeService.QUICK_SNEAK_WINDOW_MS);
-                playerHudService.showDodgeWindow(astPlayer);
+                if (airActionService.tryStartWallCling(astPlayer)) {
+                    return;
+                }
+                dodgeService.beginSneakWindow(astPlayer);
                 return;
             }
 
+            if (airActionService.releaseWallCling(astPlayer)) {
+                return;
+            }
             dodgeService.tryTriggerOnSneakRelease(astPlayer);
         }, LogId.E_5170, event.getPlayer().getName());
     }

@@ -16,7 +16,7 @@ import org.bukkit.scoreboard.Scoreboard;
 
 public class PlayerHudView {
     private static final String OBJECTIVE_NAME = "astral_info";
-    private static final int DODGE_BAR_LENGTH = 20;
+    private static final int TRANSIENT_BAR_LENGTH = 28;
 
     public void renderActionBar(Player player, StatusSnapshot snapshot) {
         double maxHp = snapshot.getMaxValue(StatusType.MAX_HEALTH);
@@ -37,15 +37,17 @@ public class PlayerHudView {
      * @param progressRemaining 受付残量（0.0-1.0）
      */
     public void renderDodgeWindowActionBar(Player player, double progressRemaining) {
-        int filledLength = (int) Math.round(Math.clamp(progressRemaining, 0.0D, 1.0D) * DODGE_BAR_LENGTH);
-        Component bar = Component.empty();
-        for (int i = 0; i < DODGE_BAR_LENGTH; i++) {
-            bar = bar.append(Component.text("|", i < filledLength ? NamedTextColor.GREEN : NamedTextColor.DARK_GRAY));
-        }
+        renderTransientActionBar(player, "DODGE", progressRemaining, NamedTextColor.GOLD, NamedTextColor.GREEN);
+    }
 
-        player.sendActionBar(Component.empty()
-            .append(Component.text("DODGE ", NamedTextColor.YELLOW, TextDecoration.BOLD))
-            .append(bar));
+    /**
+     * 壁張り付き中のアクションバーを描画します。
+     *
+     * @param player 対象プレイヤー
+     * @param progressRemaining 残り進捗（0.0-1.0）
+     */
+    public void renderWallClingActionBar(Player player, double progressRemaining) {
+        renderTransientActionBar(player, "WALL", progressRemaining, NamedTextColor.AQUA, NamedTextColor.WHITE);
     }
 
     public void renderBars(Player player, StatusSnapshot snapshot) {
@@ -206,5 +208,19 @@ public class PlayerHudView {
             .append(Component.text(String.format("%.0f", current), NamedTextColor.WHITE))
             .append(Component.text("/", NamedTextColor.DARK_GRAY))
             .append(Component.text(String.format("%.0f", max), NamedTextColor.GRAY));
+    }
+
+    private void renderTransientActionBar(Player player, String label, double progressRemaining, NamedTextColor labelColor, NamedTextColor fillColor) {
+        int filledLength = (int) Math.round(Math.clamp(progressRemaining, 0.0D, 1.0D) * TRANSIENT_BAR_LENGTH);
+        Component bar = Component.text("[", NamedTextColor.DARK_GRAY);
+        for (int i = 0; i < TRANSIENT_BAR_LENGTH; i++) {
+            bar = bar.append(Component.text("=", i < filledLength ? fillColor : NamedTextColor.DARK_GRAY));
+        }
+        bar = bar.append(Component.text("]", NamedTextColor.DARK_GRAY));
+
+        player.sendActionBar(Component.empty()
+            .append(Component.text(label, labelColor, TextDecoration.BOLD))
+            .append(Component.text(" ", NamedTextColor.DARK_GRAY))
+            .append(bar));
     }
 }
