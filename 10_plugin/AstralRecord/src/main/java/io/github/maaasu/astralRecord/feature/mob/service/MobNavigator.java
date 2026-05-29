@@ -7,7 +7,17 @@ import org.bukkit.block.Block;
 import org.bukkit.util.BoundingBox;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Set;
 
 /**
  * A* アルゴリズムを用いてブロック衝突判定を考慮した経路を探索するユーティリティ。
@@ -158,14 +168,7 @@ public final class MobNavigator {
     public static double findStandableFeetY(@NotNull World world, double centerX, int cellY, double centerZ) {
         if (cellY <= world.getMinHeight() || cellY + 1 >= world.getMaxHeight()) return -1.0;
 
-        BoundingBox footprint = new BoundingBox(
-                centerX - BODY_RADIUS,
-                cellY - 1.0,
-                centerZ - BODY_RADIUS,
-                centerX + BODY_RADIUS,
-                cellY + COLLISION_EPSILON,
-                centerZ + BODY_RADIUS
-        );
+        BoundingBox footprint = footprintBox(centerX, cellY, centerZ);
         int minX = (int) Math.floor(footprint.getMinX());
         int maxX = (int) Math.floor(footprint.getMaxX());
         int minY = Math.max(world.getMinHeight(), cellY - 1);
@@ -179,7 +182,7 @@ public final class MobNavigator {
                 for (int z = minZ; z <= maxZ; z++) {
                     Block block = world.getBlockAt(x, y, z);
                     if (isLiquid(block) || isLowDecoration(block, y)) continue;
-                    for (BoundingBox box : block.getCollisionShape().getBoundingBoxes()) {
+                    for (BoundingBox box : worldCollisionBoxes(block)) {
                         if (!overlapsHorizontally(box, footprint)) continue;
                         double surfaceY = box.getMaxY();
                         if (surfaceY <= cellY - 1.0 + FOOT_SUPPORT_EPSILON) continue;
@@ -208,14 +211,7 @@ public final class MobNavigator {
     public static boolean hasBodyClearance(@NotNull World world, double centerX, double feetY, double centerZ) {
         if (feetY <= world.getMinHeight() || feetY + BODY_HEIGHT >= world.getMaxHeight()) return false;
 
-        BoundingBox bodyBox = new BoundingBox(
-                centerX - BODY_RADIUS,
-                feetY + COLLISION_EPSILON,
-                centerZ - BODY_RADIUS,
-                centerX + BODY_RADIUS,
-                feetY + BODY_HEIGHT,
-                centerZ + BODY_RADIUS
-        );
+        BoundingBox bodyBox = bodyBox(centerX, feetY, centerZ);
         int minX = (int) Math.floor(bodyBox.getMinX());
         int maxX = (int) Math.floor(bodyBox.getMaxX());
         int minY = (int) Math.floor(bodyBox.getMinY());
@@ -228,7 +224,7 @@ public final class MobNavigator {
                 for (int z = minZ; z <= maxZ; z++) {
                     Block block = world.getBlockAt(x, y, z);
                     if (isLiquid(block)) continue;
-                    if (!block.getCollisionShape().overlaps(bodyBox)) continue;
+                    if (!overlapsCollisionShape(block, bodyBox)) continue;
                     if (isLowDecoration(block, feetY)) continue;
                     return false;
                 }
@@ -250,6 +246,55 @@ public final class MobNavigator {
     private static boolean overlapsHorizontally(@NotNull BoundingBox a, @NotNull BoundingBox b) {
         return a.getMinX() < b.getMaxX() && a.getMaxX() > b.getMinX()
                 && a.getMinZ() < b.getMaxZ() && a.getMaxZ() > b.getMinZ();
+    }
+
+    private static boolean overlapsCollisionShape(@NotNull Block block, @NotNull BoundingBox bodyBox) {
+        for (BoundingBox box : worldCollisionBoxes(block)) {
+            if (box.overlaps(bodyBox)) return true;
+        }
+        return false;
+    }
+
+    @NotNull
+    private static BoundingBox footprintBox(double centerX, int cellY, double centerZ) {
+        return new BoundingBox(
+                centerX - BODY_RADIUS,
+                cellY - 1.0,
+                centerZ - BODY_RADIUS,
+                centerX + BODY_RADIUS,
+                cellY + COLLISION_EPSILON,
+                centerZ + BODY_RADIUS
+        );
+    }
+
+    @NotNull
+    private static BoundingBox bodyBox(double centerX, double feetY, double centerZ) {
+        return new BoundingBox(
+                centerX - BODY_RADIUS,
+                feetY + COLLISION_EPSILON,
+                centerZ - BODY_RADIUS,
+                centerX + BODY_RADIUS,
+                feetY + BODY_HEIGHT,
+                centerZ + BODY_RADIUS
+        );
+    }
+
+    @NotNull
+    private static Collection<BoundingBox> worldCollisionBoxes(@NotNull Block block) {
+        Collection<BoundingBox> boxes = block.getCollisionShape().getBoundingBoxes();
+        List<BoundingBox> normalized = new ArrayList<>(boxes.size());
+        for (BoundingBox box : boxes) {
+            normalized.add(isLocalBlockBox(box)
+                    ? box.clone().shift(block.getX(), block.getY(), block.getZ())
+                    : box);
+        }
+        return normalized;
+    }
+
+    private static boolean isLocalBlockBox(@NotNull BoundingBox box) {
+        return box.getMinX() >= 0.0 && box.getMaxX() <= 1.0
+                && box.getMinY() >= 0.0 && box.getMaxY() <= 1.0
+                && box.getMinZ() >= 0.0 && box.getMaxZ() <= 1.0;
     }
 
     private static double heuristic(int x, int y, int z, int ex, int ey, int ez) {

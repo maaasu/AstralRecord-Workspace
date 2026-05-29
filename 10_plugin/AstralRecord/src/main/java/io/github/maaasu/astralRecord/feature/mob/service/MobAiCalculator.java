@@ -61,59 +61,33 @@ final class MobAiCalculator {
             return tryJumpAssist(instance, current, target, step, currentTick);
         }
 
-        double dx = waypoint.getX() - current.getX();
-        double dz = waypoint.getZ() - current.getZ();
-        double hDist = Math.sqrt(dx * dx + dz * dz);
-        if (hDist < 0.01) {
+        MovementVector vector = MovementVector.between(current, waypoint);
+        if (vector == null) {
             return tryJumpAssist(instance, current, target, step, currentTick);
         }
 
         World world = current.getWorld();
         boolean liquid = isLiquidAround(world, current.getX(), current.getY(), current.getZ());
         double adjustedStep = liquid ? step * LIQUID_SPEED_MULTIPLIER : step;
-        int substeps = Math.max(1, (int) Math.ceil(adjustedStep / MAX_HORIZONTAL_SUBSTEP));
-        double segmentStep = adjustedStep / substeps;
-        double dirX = dx / hDist;
-        double dirZ = dz / hDist;
+        double travelDistance = Math.min(adjustedStep, vector.distance());
+        int substeps = Math.max(1, (int) Math.ceil(travelDistance / MAX_HORIZONTAL_SUBSTEP));
+        double segmentStep = travelDistance / substeps;
         Location next = current.clone();
         boolean moved = false;
 
         for (int i = 0; i < substeps; i++) {
-            double newX = next.getX() + dirX * segmentStep;
-            double newZ = next.getZ() + dirZ * segmentStep;
-            int terrainCellY = MobNavigator.findStandableY(
-                    world,
-                    (int) Math.floor(newX),
-                    (int) Math.floor(next.getY()),
-                    (int) Math.floor(newZ)
-            );
-            double terrainFeetY = terrainCellY < 0
-                    ? -1.0
-                    : MobNavigator.findStandableFeetY(world, newX, terrainCellY, newZ);
-            if (terrainFeetY < 0.0 && liquid) {
-                terrainFeetY = next.getY();
-            }
-            if (terrainFeetY < 0.0) {
+            StepResult result = resolveStep(world, next, vector, segmentStep, liquid);
+            if (result.blocked()) {
                 markNavigationBlocked(instance, currentTick);
-                return moved || tryJumpAssist(instance, next, waypoint, adjustedStep, currentTick);
+                return moved
+                        ? applyMovement(instance, next, vector)
+                        : tryJumpAssist(instance, next, waypoint, adjustedStep, currentTick);
             }
-
-            double newY = nextVerticalPosition(world, next, newX, newZ, terrainFeetY, liquid);
-            if (newY < 0.0 || !MobNavigator.hasBodyClearance(world, newX, newY, newZ)) {
-                markNavigationBlocked(instance, currentTick);
-                return moved || tryJumpAssist(instance, next, waypoint, adjustedStep, currentTick);
-            }
-
-            next.setX(newX);
-            next.setY(newY);
-            next.setZ(newZ);
+            next = result.location();
             moved = true;
         }
 
-        float movementYaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
-        next.setYaw(movementYaw);
-        next.setPitch(0.0f);
-        instance.currentLocation(next);
+        applyMovement(instance, next, vector);
         instance.navBlockedSinceTick(-1L);
         return moved;
     }
@@ -138,6 +112,59 @@ final class MobAiCalculator {
         long blockedSinceTick = instance.navBlockedSinceTick();
         instance.clearNavPath();
         instance.navBlockedSinceTick(blockedSinceTick < 0L ? currentTick : blockedSinceTick);
+    }
+
+    private boolean applyMovement(@NotNull MobInstance instance, @NotNull Location location, @NotNull MovementVector vector) {
+        location.setYaw(vector.yaw());
+        location.setPitch(0.0f);
+        instance.currentLocation(location);
+        return true;
+    }
+
+    @NotNull
+    private StepResult resolveStep(
+            @NotNull World world,
+            @NotNull Location current,
+            @NotNull MovementVector vector,
+            double segmentStep,
+            boolean liquid) {
+
+        double newX = current.getX() + vector.dirX() * segmentStep;
+        double newZ = current.getZ() + vector.dirZ() * segmentStep;
+        double terrainFeetY = resolveTerrainFeetY(world, current, newX, newZ, liquid);
+        if (terrainFeetY < 0.0) {
+            return StepResult.blocked(current);
+        }
+
+        double newY = nextVerticalPosition(world, current, newX, newZ, terrainFeetY, liquid);
+        if (newY < 0.0 || !MobNavigator.hasBodyClearance(world, newX, newY, newZ)) {
+            return StepResult.blocked(current);
+        }
+
+        Location next = current.clone();
+        next.setX(newX);
+        next.setY(newY);
+        next.setZ(newZ);
+        return StepResult.moved(next);
+    }
+
+    private double resolveTerrainFeetY(
+            @NotNull World world,
+            @NotNull Location current,
+            double newX,
+            double newZ,
+            boolean liquid) {
+
+        int terrainCellY = MobNavigator.findStandableY(
+                world,
+                (int) Math.floor(newX),
+                (int) Math.floor(current.getY()),
+                (int) Math.floor(newZ)
+        );
+        if (terrainCellY < 0) {
+            return liquid ? current.getY() : -1.0;
+        }
+        return MobNavigator.findStandableFeetY(world, newX, terrainCellY, newZ);
     }
 
     private boolean tryJumpAssist(
@@ -292,5 +319,29 @@ final class MobAiCalculator {
     private boolean isLiquid(@NotNull Block block) {
         Material type = block.getType();
         return type == Material.WATER || type == Material.LAVA;
+    }
+
+    private record MovementVector(double dirX, double dirZ, double distance, float yaw) {
+        @Nullable
+        static MovementVector between(@NotNull Location from, @NotNull Location to) {
+            double dx = to.getX() - from.getX();
+            double dz = to.getZ() - from.getZ();
+            double distance = Math.sqrt(dx * dx + dz * dz);
+            if (distance < 0.01) return null;
+            float yaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
+            return new MovementVector(dx / distance, dz / distance, distance, yaw);
+        }
+    }
+
+    private record StepResult(@NotNull Location location, boolean blocked) {
+        @NotNull
+        static StepResult moved(@NotNull Location location) {
+            return new StepResult(location, false);
+        }
+
+        @NotNull
+        static StepResult blocked(@NotNull Location location) {
+            return new StepResult(location, true);
+        }
     }
 }
