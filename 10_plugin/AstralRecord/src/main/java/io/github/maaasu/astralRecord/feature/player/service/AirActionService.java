@@ -298,7 +298,8 @@ public class AirActionService {
     }
 
     private boolean isGrounded(@NotNull Player player) {
-        return player.isOnGround();
+        Location below = player.getLocation().clone().subtract(0.0D, 0.05D, 0.0D);
+        return below.getBlock().getType().isSolid();
     }
 
     private void cancelWallClingTask(@NotNull UUID playerUuid) {

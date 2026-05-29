@@ -77,7 +77,7 @@ public class DodgeService {
         }
 
         Player player = astPlayer.getBukkit();
-        if (!player.isOnline() || player.isDead() || !player.isOnGround()) {
+        if (!player.isOnline() || player.isDead() || !isGrounded(player)) {
             return false;
         }
 
@@ -119,7 +119,7 @@ public class DodgeService {
         if (!player.isOnline() || player.isDead()) {
             return;
         }
-        if (!player.isOnGround()) {
+        if (!isGrounded(player)) {
             return;
         }
 
@@ -229,6 +229,11 @@ public class DodgeService {
         astPlayer.setSneakStartedAtMs(0L);
         astPlayer.setSneakStartedAtLocation(null);
         astPlayer.setSneakDodgeWindowExpiresAtMs(0L);
+    }
+
+    private boolean isGrounded(@NotNull Player player) {
+        Location below = player.getLocation().clone().subtract(0.0D, 0.05D, 0.0D);
+        return below.getBlock().getType().isSolid();
     }
 
 }

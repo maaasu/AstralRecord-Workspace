@@ -289,7 +289,9 @@ public final class SkillActionRingService {
                     display.setShadowed(false);
                     display.setDefaultBackground(false);
                     display.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
-                    display.setText(ColorCodeUtil.AQUA + "*");
+                    display.text(LegacyComponentSerializer.legacySection().deserialize(
+                        ColorCodeUtil.translateAlternateColorCodes(ColorCodeUtil.AQUA + "*")
+                    ));
                     display.setTransformation(scaleTransformation(0.42F));
                 });
                 circleDots.add(dot);
@@ -363,7 +365,9 @@ public final class SkillActionRingService {
                 if (label.isValid()) {
                     label.teleport(labelLocation);
                     String color = selected ? ColorCodeUtil.YELLOW : ColorCodeUtil.GRAY;
-                    label.setText(ColorCodeUtil.translateAlternateColorCodes(color + slots.get(index).name()));
+                    label.text(LegacyComponentSerializer.legacySection().deserialize(
+                        ColorCodeUtil.translateAlternateColorCodes(color + slots.get(index).name())
+                    ));
                     label.setTransformation(scaleTransformation(selected ? 0.864F : 0.672F));
                 }
             }

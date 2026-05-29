@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.shared.display;
 
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -198,7 +199,7 @@ public final class DisplayTextService {
     ) {
         String appliedText = ColorCodeUtil.translateAlternateColorCodes(frame.text());
         if (!Objects.equals(state.lastText, appliedText)) {
-            entity.setText(appliedText);
+            entity.text(LegacyComponentSerializer.legacySection().deserialize(appliedText));
             state.lastText = appliedText;
         }
     }

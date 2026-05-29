@@ -43,7 +43,7 @@ class SkillOwnershipService(
     private fun addEquipmentSkills(player: AstPlayer, skillIds: MutableSet<String>) {
         val loadout = inventoryService.getActiveEquipmentLoadout(player.account.uuid) ?: return
         for (slot in loadout.slots) {
-            if (slot.isDeleted || slot.equipmentInstanceId == null) continue
+            if (slot.isDeleted) continue
             val instance = itemService.findEquipmentInstanceById(slot.equipmentInstanceId.toString()) ?: continue
             val item = itemService.findLoadedById(instance.itemId) ?: itemService.loadItem(instance.itemId) ?: continue
             val equipment = item.equipment ?: continue
