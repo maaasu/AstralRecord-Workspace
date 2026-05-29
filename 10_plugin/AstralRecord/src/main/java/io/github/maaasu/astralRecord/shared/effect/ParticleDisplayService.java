@@ -102,7 +102,6 @@ public class ParticleDisplayService {
      * @param offsetY Y拡散
      * @param offsetZ Z拡散
      * @param extra 追加パラメータ
-     * @param playerDensityScale プレイヤー個別の密度倍率（未設定時は 1.0）
      */
     public void spawnForViewer(
         @NotNull AstPlayer viewer,
