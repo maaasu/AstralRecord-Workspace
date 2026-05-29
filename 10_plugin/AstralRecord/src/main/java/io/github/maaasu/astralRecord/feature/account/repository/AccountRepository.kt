@@ -42,7 +42,6 @@ class AccountRepository {
                 return when (response.statusCode()) {
                     200 -> {
                         val list = parseAccountList(response.body())
-                        Logger.log(LogId.D_5150, userId, list.size)
                         list
                     }
                     404 -> {
