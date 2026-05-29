@@ -20,7 +20,6 @@ public class WorldNaturalSpawnBlockEventHandler extends AbstractEventHandler {
 
     private static final Set<CreatureSpawnEvent.SpawnReason> NATURAL_REASONS = EnumSet.of(
             CreatureSpawnEvent.SpawnReason.NATURAL,
-            CreatureSpawnEvent.SpawnReason.CHUNK_GEN,
             CreatureSpawnEvent.SpawnReason.JOCKEY,
             CreatureSpawnEvent.SpawnReason.MOUNT,
             CreatureSpawnEvent.SpawnReason.PATROL,

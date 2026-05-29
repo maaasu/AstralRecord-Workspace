@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.papermc.paper.entity.LookAnchor;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
@@ -26,6 +27,8 @@ import java.util.UUID;
  */
 public class MobEntityController {
 
+    private static final LegacyComponentSerializer LEGACY_COMPONENT_SERIALIZER =
+            LegacyComponentSerializer.legacySection();
     private static final double STANDARD_MOVEMENT_SPEED = 100.0D;
     private static final double PATHFINDER_SPEED_MULTIPLIER = 1.5D;
     private static final double MIN_PATHFINDER_SPEED = 0.05D;
@@ -100,7 +103,8 @@ public class MobEntityController {
         mob.setCanPickupItems(false);
         mob.setCollidable(false);
         mob.setSilent(true);
-        mob.setCustomName(ColorCodeUtil.translateAlternateColorCodes(template.displayName()));
+        mob.customName(LEGACY_COMPONENT_SERIALIZER.deserialize(
+                ColorCodeUtil.translateAlternateColorCodes(template.displayName())));
         mob.setCustomNameVisible(template.nameVisible());
 
         mob.getPersistentDataContainer().set(instanceIdKey, PersistentDataType.STRING, instance.instanceId().toString());
