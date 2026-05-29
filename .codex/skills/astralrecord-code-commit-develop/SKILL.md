@@ -13,6 +13,7 @@ Do not redefine the implementation or commit rules in this skill. Use the existi
 2. After the implementation completes, immediately use `$astralrecord-commit-develop` for the resulting changes.
 3. Pass the same target path or target project context into both steps whenever the request includes it.
 4. Keep the commit scope limited to the files that were changed for the implementation just completed.
+5. Keep the existing commit message format `<type>: <summary>`, and require the summary text to be Japanese. The type prefix may remain English.
 
 ## Workflow
 
@@ -31,7 +32,7 @@ Use $astralrecord-code to <implementation task> for <absolute-path> and report t
 ```
 
 ```text
-Use $astralrecord-commit-develop to commit the files changed for <absolute-path> and report the result.
+Use $astralrecord-commit-develop to commit the files changed for <absolute-path> with a Japanese commit summary and report the result.
 ```
 
 When the user did not provide a path but the target project is still clear from the request, keep the project context explicit in both steps.
