@@ -206,6 +206,32 @@ Use $astralrecord-commit-develop to commit plugin implementation changes for E:\
 - `git add .` や `git add -A` は使わず、対象ファイルを個別に stage する。
 - `EXCLUDE` と分類されたファイルは、明示的な指示がない限り stage しない。
 
+## `$astralrecord-code-commit-develop`
+
+`$astralrecord-code` で AstralRecord の実装を行った直後に、同じ対象について `$astralrecord-commit-develop` で `develop` へコミットする統合 skill。
+
+### 使う場面
+
+- 実装からコミットまでを 1 回の依頼で続けて進めたい。
+- plugin / API / Web / `.codex/skills` の変更を、既存の実装 skill と既存のコミット skill の順でそのまま実行したい。
+- 実装ルールとコミットルールを別々に再説明せず、既存 skill の参照だけでつなぎたい。
+
+### 実行例
+
+```text
+Use $astralrecord-code-commit-develop to implement the requested API behavior for E:\AstralRecord-Workspace\20_api\AstralRecordApi and commit the resulting files to develop.
+```
+
+```text
+Use $astralrecord-code-commit-develop to implement the requested skill change for E:\AstralRecord-Workspace\.codex\skills and commit the resulting files to develop.
+```
+
+### 注意点
+
+- 実装そのもののルールは `$astralrecord-code` を正本とし、この skill では再定義しない。
+- コミット条件は `$astralrecord-commit-develop` を正本とし、現在ブランチが `develop` でない場合はその時点で停止する。
+- コミット対象は、直前の実装で変更したファイルだけに限定する。
+
 ## skill 追加時の README 更新
 
 新しい skill を追加したら、この README に次の項目を追記する。

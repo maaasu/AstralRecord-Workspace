@@ -1,0 +1,4 @@
+interface:
+  display_name: "AstralRecord Code Commit"
+  short_description: "Run AstralRecord Code, then safely commit to develop."
+  default_prompt: "Use $astralrecord-code-commit-develop to implement the requested AstralRecord change and commit the resulting files to develop."
