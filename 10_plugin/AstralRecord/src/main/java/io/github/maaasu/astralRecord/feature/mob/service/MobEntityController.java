@@ -5,10 +5,13 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.papermc.paper.entity.LookAnchor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Mob;
+import org.bukkit.inventory.EntityEquipment;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
@@ -101,6 +104,7 @@ public class MobEntityController {
         mob.setSilent(true);
         mob.customName(null);
         mob.setCustomNameVisible(false);
+        clearEquipment(mob.getEquipment());
 
         mob.getPersistentDataContainer().set(instanceIdKey, PersistentDataType.STRING, instance.instanceId().toString());
         mob.getPersistentDataContainer().set(templateIdKey, PersistentDataType.STRING, template.id());
@@ -256,6 +260,26 @@ public class MobEntityController {
         } catch (IllegalArgumentException ignored) {
             return null;
         }
+    }
+
+    private void clearEquipment(@Nullable EntityEquipment equipment) {
+        if (equipment == null) {
+            return;
+        }
+
+        ItemStack air = new ItemStack(Material.AIR);
+        equipment.setItemInMainHand(air);
+        equipment.setItemInOffHand(air);
+        equipment.setHelmet(air);
+        equipment.setChestplate(air);
+        equipment.setLeggings(air);
+        equipment.setBoots(air);
+        equipment.setItemInMainHandDropChance(0.0F);
+        equipment.setItemInOffHandDropChance(0.0F);
+        equipment.setHelmetDropChance(0.0F);
+        equipment.setChestplateDropChance(0.0F);
+        equipment.setLeggingsDropChance(0.0F);
+        equipment.setBootsDropChance(0.0F);
     }
 
     private boolean hasTargetDrifted(@NotNull MobInstance instance, @NotNull Location target) {
