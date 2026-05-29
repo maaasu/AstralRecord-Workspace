@@ -27,6 +27,7 @@ public final class MobNavigator {
     private static final double BODY_HEIGHT = 1.8;
     private static final double COLLISION_EPSILON = 1.0E-4;
     private static final double LOW_DECORATION_HEIGHT = 0.45;
+    private static final double FOOT_SUPPORT_EPSILON = 1.0E-3;
 
     /**
      * 水平方向の隣接マス定義（東西南北および斜め4方向）。
@@ -142,9 +143,57 @@ public final class MobNavigator {
      * @return 立てる場合 {@code true}
      */
     public static boolean canStandAt(@NotNull World world, int x, int y, int z) {
-        if (y <= world.getMinHeight() || y + 1 >= world.getMaxHeight()) return false;
-        Block floor = world.getBlockAt(x, y - 1, z);
-        return !floor.isPassable() && hasBodyClearance(world, x + 0.5, y, z + 0.5);
+        return findStandableFeetY(world, x + 0.5, y, z + 0.5) >= 0.0;
+    }
+
+    /**
+     * 指定した standing cell（足元が入る整数 Y 層）に対して、実際に立つ足元 Y 座標を返す。
+     *
+     * @param world   ワールド
+     * @param centerX Mob 中心 X 座標
+     * @param cellY   standing cell の Y
+     * @param centerZ Mob 中心 Z 座標
+     * @return 立てる足元 Y 座標。立てない場合は {@code -1.0}
+     */
+    public static double findStandableFeetY(@NotNull World world, double centerX, int cellY, double centerZ) {
+        if (cellY <= world.getMinHeight() || cellY + 1 >= world.getMaxHeight()) return -1.0;
+
+        BoundingBox footprint = new BoundingBox(
+                centerX - BODY_RADIUS,
+                cellY - 1.0,
+                centerZ - BODY_RADIUS,
+                centerX + BODY_RADIUS,
+                cellY + COLLISION_EPSILON,
+                centerZ + BODY_RADIUS
+        );
+        int minX = (int) Math.floor(footprint.getMinX());
+        int maxX = (int) Math.floor(footprint.getMaxX());
+        int minY = Math.max(world.getMinHeight(), cellY - 1);
+        int maxY = Math.min(world.getMaxHeight() - 1, cellY);
+        int minZ = (int) Math.floor(footprint.getMinZ());
+        int maxZ = (int) Math.floor(footprint.getMaxZ());
+
+        double bestSurfaceY = -1.0;
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    Block block = world.getBlockAt(x, y, z);
+                    if (isLiquid(block) || isLowDecoration(block, y)) continue;
+                    for (BoundingBox box : block.getCollisionShape().getBoundingBoxes()) {
+                        if (!overlapsHorizontally(box, footprint)) continue;
+                        double surfaceY = box.getMaxY();
+                        if (surfaceY <= cellY - 1.0 + FOOT_SUPPORT_EPSILON) continue;
+                        if (surfaceY > cellY + FOOT_SUPPORT_EPSILON) continue;
+                        if (surfaceY > bestSurfaceY) {
+                            bestSurfaceY = surfaceY;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (bestSurfaceY < 0.0) return -1.0;
+        return hasBodyClearance(world, centerX, bestSurfaceY, centerZ) ? bestSurfaceY : -1.0;
     }
 
     /**
@@ -196,6 +245,11 @@ public final class MobNavigator {
     private static boolean isLowDecoration(@NotNull Block block, double feetY) {
         BoundingBox blockBox = block.getBoundingBox();
         return blockBox.getVolume() > 0.0 && blockBox.getMaxY() <= feetY + LOW_DECORATION_HEIGHT;
+    }
+
+    private static boolean overlapsHorizontally(@NotNull BoundingBox a, @NotNull BoundingBox b) {
+        return a.getMinX() < b.getMaxX() && a.getMaxX() > b.getMinX()
+                && a.getMinZ() < b.getMaxZ() && a.getMaxZ() > b.getMinZ();
     }
 
     private static double heuristic(int x, int y, int z, int ex, int ey, int ez) {

@@ -25,6 +25,7 @@ final class MobAiCalculator {
     private static final double LIQUID_BUOYANCY_PER_TICK = 0.04;
     private static final double MAX_STEP_UP_HEIGHT = 1.0;
     private static final double STEP_DOWN_PER_TICK = 0.30;
+    private static final double MAX_HORIZONTAL_SUBSTEP = 0.12;
     private static final double WAYPOINT_REACHED_DISTANCE_SQ = 0.09;
     private static final double TARGET_DRIFT_DISTANCE_SQ = 0.36;
     private static final long NAV_RECOMPUTE_INTERVAL = 2L;
@@ -70,40 +71,51 @@ final class MobAiCalculator {
         World world = current.getWorld();
         boolean liquid = isLiquidAround(world, current.getX(), current.getY(), current.getZ());
         double adjustedStep = liquid ? step * LIQUID_SPEED_MULTIPLIER : step;
+        int substeps = Math.max(1, (int) Math.ceil(adjustedStep / MAX_HORIZONTAL_SUBSTEP));
+        double segmentStep = adjustedStep / substeps;
+        double dirX = dx / hDist;
+        double dirZ = dz / hDist;
+        Location next = current.clone();
+        boolean moved = false;
 
-        double scale = Math.min(adjustedStep / hDist, 1.0);
-        double newX = current.getX() + dx * scale;
-        double newZ = current.getZ() + dz * scale;
+        for (int i = 0; i < substeps; i++) {
+            double newX = next.getX() + dirX * segmentStep;
+            double newZ = next.getZ() + dirZ * segmentStep;
+            int terrainCellY = MobNavigator.findStandableY(
+                    world,
+                    (int) Math.floor(newX),
+                    (int) Math.floor(next.getY()),
+                    (int) Math.floor(newZ)
+            );
+            double terrainFeetY = terrainCellY < 0
+                    ? -1.0
+                    : MobNavigator.findStandableFeetY(world, newX, terrainCellY, newZ);
+            if (terrainFeetY < 0.0 && liquid) {
+                terrainFeetY = next.getY();
+            }
+            if (terrainFeetY < 0.0) {
+                markNavigationBlocked(instance, currentTick);
+                return moved || tryJumpAssist(instance, next, waypoint, adjustedStep, currentTick);
+            }
 
-        int terrainY = MobNavigator.findStandableY(
-                world,
-                (int) Math.floor(newX),
-                (int) Math.floor(current.getY()),
-                (int) Math.floor(newZ)
-        );
-        if (terrainY < 0 && liquid) {
-            terrainY = (int) Math.floor(current.getY());
-        }
-        if (terrainY < 0) {
-            markNavigationBlocked(instance, currentTick);
-            return tryJumpAssist(instance, current, waypoint, adjustedStep, currentTick);
-        }
+            double newY = nextVerticalPosition(world, next, newX, newZ, terrainFeetY, liquid);
+            if (newY < 0.0 || !MobNavigator.hasBodyClearance(world, newX, newY, newZ)) {
+                markNavigationBlocked(instance, currentTick);
+                return moved || tryJumpAssist(instance, next, waypoint, adjustedStep, currentTick);
+            }
 
-        double newY = nextVerticalPosition(world, current, newX, newZ, terrainY, liquid);
-        if (newY < 0.0) {
-            markNavigationBlocked(instance, currentTick);
-            return tryJumpAssist(instance, current, waypoint, adjustedStep, currentTick);
-        }
-
-        if (!MobNavigator.hasBodyClearance(world, newX, newY, newZ)) {
-            markNavigationBlocked(instance, currentTick);
-            return tryJumpAssist(instance, current, waypoint, adjustedStep, currentTick);
+            next.setX(newX);
+            next.setY(newY);
+            next.setZ(newZ);
+            moved = true;
         }
 
         float movementYaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
-        instance.currentLocation(new Location(world, newX, newY, newZ, movementYaw, 0.0f));
+        next.setYaw(movementYaw);
+        next.setPitch(0.0f);
+        instance.currentLocation(next);
         instance.navBlockedSinceTick(-1L);
-        return true;
+        return moved;
     }
 
     /**
@@ -160,8 +172,10 @@ final class MobAiCalculator {
                 (int) Math.floor(nextZ)
         );
         if (standY < 0) return false;
+        double standFeetY = MobNavigator.findStandableFeetY(world, nextX, standY, nextZ);
+        if (standFeetY < 0.0) return false;
 
-        double rise = standY - current.getY();
+        double rise = standFeetY - current.getY();
         if (rise > MAX_STEP_UP_HEIGHT) return false;
 
         boolean targetHigher = target.getY() > current.getY() + HIGHER_TARGET_THRESHOLD;
@@ -171,8 +185,8 @@ final class MobAiCalculator {
         }
 
         double jumpY = rise > HIGHER_TARGET_THRESHOLD
-                ? standY
-                : Math.min(current.getY() + JUMP_ASSIST_UP_PER_TICK, standY + 1.0);
+                ? standFeetY
+                : Math.min(current.getY() + JUMP_ASSIST_UP_PER_TICK, standFeetY);
         if (jumpY <= current.getY() + 0.01) return false;
         if (!MobNavigator.hasBodyClearance(world, nextX, jumpY, nextZ)) {
             return false;
@@ -188,7 +202,7 @@ final class MobAiCalculator {
             @NotNull Location current,
             double newX,
             double newZ,
-            int terrainY,
+            double terrainY,
             boolean liquid) {
 
         double currentY = current.getY();
