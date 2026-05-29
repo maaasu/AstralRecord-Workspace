@@ -485,6 +485,10 @@ public enum PlayerMsgId {
      */
     P_5805(5805),
     P_5806(5806),
+    /**
+     * [DEBUG] アクションリング発動: bindCount={0}, selectedSlot={1}
+     */
+    P_5807(5807),
     // endregion
 
     ;

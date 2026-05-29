@@ -54,11 +54,13 @@ import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSetting
 import io.github.maaasu.astralRecord.feature.resourcepack.event.ResourcePackJoinEventHandler;
 import io.github.maaasu.astralRecord.feature.resourcepack.event.ResourcePackStatusEventHandler;
 import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
+import io.github.maaasu.astralRecord.feature.skill.event.SkillActionRingEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillBindGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.executor.FireBoostSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui;
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillBindPresetRepository;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusRegenTask;
@@ -122,6 +124,7 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerSettingService playerSettingService;
     private PlayerSettingGui playerSettingGui;
     private SkillService skillService;
+    private SkillActionRingService skillActionRingService;
     private SkillBindPresetService skillBindPresetService;
     private SkillOwnershipService skillOwnershipService;
     private SkillBindGui skillBindGui;
@@ -201,6 +204,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (worldSpawnParticleTask != null) {
             worldSpawnParticleTask.stop();
+        }
+        if (skillActionRingService != null) {
+            skillActionRingService.stop();
         }
         if (mobService != null) {
             mobService.destroyAll();
@@ -329,6 +335,7 @@ public final class AstralRecord extends JavaPlugin {
         // skill
         skillService = new SkillService();
         skillBindPresetService = new SkillBindPresetService(new SkillBindPresetRepository());
+        skillActionRingService = new SkillActionRingService(this, skillBindPresetService);
         skillService.registerExecutor(new FireBoostSkillExecutor(particleDisplayService));
         skillService.registerExecutor(new WeaponAttackSkillExecutor(particleDisplayService, damageService));
         skillService.registerBuiltInDefinitions(BuiltInWeaponAttackDefinitions.definitions());
@@ -428,6 +435,10 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             skillBindGuiEventHandler,
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new SkillActionRingEventHandler(skillActionRingService, itemService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
