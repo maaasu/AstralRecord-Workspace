@@ -22,12 +22,12 @@ final class MobAiCalculator {
     private static final double MAX_SPEED_MULTIPLIER = 3.0;
     private static final double LIQUID_SPEED_MULTIPLIER = 0.45;
     private static final double LIQUID_BUOYANCY_PER_TICK = 0.04;
-    private static final double STEP_UP_PER_TICK = 0.20;
+    private static final double MAX_STEP_UP_HEIGHT = 1.0;
     private static final double STEP_DOWN_PER_TICK = 0.30;
     private static final double WAYPOINT_REACHED_DISTANCE_SQ = 0.09;
-    private static final double TARGET_DRIFT_DISTANCE_SQ = 4.0;
-    private static final long NAV_RECOMPUTE_INTERVAL = 5L;
-    private static final long JUMP_AFTER_BLOCKED_TICKS = 20L;
+    private static final double TARGET_DRIFT_DISTANCE_SQ = 0.36;
+    private static final long NAV_RECOMPUTE_INTERVAL = 2L;
+    private static final long JUMP_AFTER_BLOCKED_TICKS = 8L;
     private static final double JUMP_ASSIST_UP_PER_TICK = 0.42;
     private static final double HIGHER_TARGET_THRESHOLD = 0.5;
     private static final int WANDER_PAUSE_MIN_TICKS = 20;
@@ -89,9 +89,9 @@ final class MobAiCalculator {
         }
 
         double newY = nextVerticalPosition(world, current, newX, newZ, terrainY, liquid);
-        if (terrainY > current.getY() + 0.01) {
-            newX = current.getX();
-            newZ = current.getZ();
+        if (newY < 0.0) {
+            markNavigationBlocked(instance, currentTick);
+            return tryJumpAssist(instance, current, target, currentTick);
         }
 
         if (!MobNavigator.hasBodyClearance(world, newX, newY, newZ)) {
@@ -183,7 +183,8 @@ final class MobAiCalculator {
             targetY = Math.max(targetY, currentY + LIQUID_BUOYANCY_PER_TICK);
         }
         if (targetY > currentY) {
-            return Math.min(currentY + STEP_UP_PER_TICK, targetY);
+            double rise = targetY - currentY;
+            return rise <= MAX_STEP_UP_HEIGHT ? targetY : -1.0;
         }
         if (targetY < currentY) {
             return Math.max(currentY - STEP_DOWN_PER_TICK, targetY);
@@ -226,17 +227,21 @@ final class MobAiCalculator {
                 if (instance.navPathIndex() < path.size()) {
                     return path.get(instance.navPathIndex());
                 }
-                return null;
+                return target;
             }
             return waypoint;
         }
 
-        return sameBlock(current, target) && MobNavigator.hasBodyClearance(
+        if (sameBlock(current, target) && MobNavigator.hasBodyClearance(
                 current.getWorld(),
                 target.getX(),
                 target.getY(),
                 target.getZ()
-        ) ? target : null;
+        )) {
+            return target;
+        }
+
+        return target;
     }
 
     private boolean sameBlock(@NotNull Location a, @NotNull Location b) {

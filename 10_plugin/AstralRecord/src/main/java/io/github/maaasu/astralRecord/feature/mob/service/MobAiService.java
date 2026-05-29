@@ -47,6 +47,10 @@ public class MobAiService {
     /** モブの目線高さ（足元からのオフセット）。 */
     private static final double MOB_EYE_HEIGHT = 1.0;
 
+    private static final double COMBAT_VERTICAL_TOLERANCE = 1.25;
+
+    private static final double COMBAT_RANGE_BUFFER = 0.25;
+
     private final MobService mobService;
     private final MobAiCalculator aiCalculator = new MobAiCalculator();
 
@@ -212,10 +216,15 @@ public class MobAiService {
                 ? 1.0
                 : instance.template().combat().preferredRange();
         double preferredSq = preferredRange * preferredRange;
-        if (distSq <= preferredSq + 1.0) {
+        Location targetLoc = target.getLocation();
+        Location currentLoc = instance.currentLocation();
+        double horizontalSq = horizontalDistanceSquared(currentLoc, targetLoc);
+        double verticalDiff = Math.abs(targetLoc.getY() - currentLoc.getY());
+        if (horizontalSq <= preferredSq + COMBAT_RANGE_BUFFER
+                && verticalDiff <= COMBAT_VERTICAL_TOLERANCE) {
             instance.state(MobState.COMBAT);
         } else {
-            moveToward(instance, target.getLocation(), instance.template().idle().speed());
+            moveToward(instance, targetLoc, instance.template().idle().speed());
         }
     }
 
@@ -235,7 +244,13 @@ public class MobAiService {
                 ? 1.0
                 : instance.template().combat().preferredRange();
         double preferredSq = preferredRange * preferredRange;
-        if (target.getLocation().distanceSquared(instance.currentLocation()) > preferredSq + 1.0) {
+        Location targetLoc = target.getLocation();
+        Location currentLoc = instance.currentLocation();
+        double horizontalSq = horizontalDistanceSquared(currentLoc, targetLoc);
+        double verticalDiff = Math.abs(targetLoc.getY() - currentLoc.getY());
+        if (horizontalSq > preferredSq + COMBAT_RANGE_BUFFER
+                || verticalDiff > COMBAT_VERTICAL_TOLERANCE) {
+            instance.clearNavPath();
             instance.state(MobState.AGGRO);
         }
     }
@@ -392,6 +407,12 @@ public class MobAiService {
      */
     private void moveToward(@NotNull MobInstance instance, @NotNull Location target, double speed) {
         aiCalculator.moveToward(instance, target, speed, internalTick);
+    }
+
+    private double horizontalDistanceSquared(@NotNull Location a, @NotNull Location b) {
+        double dx = a.getX() - b.getX();
+        double dz = a.getZ() - b.getZ();
+        return dx * dx + dz * dz;
     }
 
     @Nullable
