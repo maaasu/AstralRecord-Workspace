@@ -84,6 +84,10 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
                 return;
             }
             event.setCancelled(true);
+            if (isRightClick) {
+                actionRingService.returnToSelecting(player);
+                return;
+            }
             if (!isLeftClick) {
                 return;
             }

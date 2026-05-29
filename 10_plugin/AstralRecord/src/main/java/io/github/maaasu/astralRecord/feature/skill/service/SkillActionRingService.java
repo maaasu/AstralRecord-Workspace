@@ -45,7 +45,8 @@ public final class SkillActionRingService {
     private static final long UPDATE_INTERVAL_TICKS = 1L;
     private static final long RING_DISPLAY_LIMIT_TICKS = 100L;
     private static final long CAST_WAIT_LIMIT_TICKS = 60L;
-    private static final long SELECT_ANIMATION_TICKS = 8L;
+    private static final long OPEN_ANIMATION_TICKS = 10L;
+    private static final long SELECT_ANIMATION_TICKS = 4L;
 
     private static final List<DummySkillSlot> DUMMY_SLOTS = List.of(
         new DummySkillSlot("スキル 1", Material.BLAZE_POWDER),
@@ -96,7 +97,7 @@ public final class SkillActionRingService {
         }
 
         sessions.put(playerId, RingSession.create(player, resolveSlots(astPlayer)));
-        GuiSound.OPEN.play(player);
+        GuiSound.RING_OPEN.play(player);
         ensureTask();
     }
 
@@ -143,6 +144,22 @@ public final class SkillActionRingService {
         }
         GuiSound.RING_CAST.play(player);
         astPlayer.sendMessage(PlayerMsgId.P_5807, SLOT_COUNT, selectedSlot);
+    }
+
+    /**
+     * 確定待ちの選択を解除し、リング選択表示へ戻します。
+     *
+     * @param player 対象プレイヤー
+     * @return 選択待ちへ戻した場合は true
+     */
+    public boolean returnToSelecting(@NotNull Player player) {
+        RingSession session = sessions.get(player.getUniqueId());
+        if (session == null || !session.hasConfirmedSelection()) {
+            return false;
+        }
+        session.returnToSelecting();
+        GuiSound.RING_SWITCH.play(player);
+        return true;
     }
 
     /**
@@ -244,6 +261,7 @@ public final class SkillActionRingService {
         private int selectedIndex;
         private int confirmedIndex = -1;
         private RingPhase phase = RingPhase.SELECTING;
+        private long ageTicks;
         private long phaseElapsedTicks;
 
         private RingSession(
@@ -348,6 +366,7 @@ public final class SkillActionRingService {
             if (center.getWorld() == null) {
                 return false;
             }
+            ageTicks++;
             phaseElapsedTicks++;
             if (phase == RingPhase.SELECTING && phaseElapsedTicks > RING_DISPLAY_LIMIT_TICKS) {
                 GuiSound.CLOSE.play(player);
@@ -369,6 +388,7 @@ public final class SkillActionRingService {
             updateCircle(center);
             for (int index = 0; index < SLOT_COUNT; index++) {
                 boolean selected = index == selectedIndex;
+                boolean hiddenByConfirmedSelection = phase == RingPhase.WAITING_CAST && index != confirmedIndex;
                 Vector slotOffset = animatedSlotOffset(index);
                 Location iconLocation = center.clone().add(slotOffset);
                 Location labelLocation = iconLocation.clone().subtract(up.clone().multiply(selected ? 0.43D : 0.35D));
@@ -376,14 +396,19 @@ public final class SkillActionRingService {
                 TextDisplay label = labels.get(index);
                 if (icon.isValid()) {
                     icon.teleport(iconLocation);
-                    icon.setGlowing(selected);
-                    icon.setTransformation(scaleTransformation(selected ? 0.86F : 0.58F));
+                    icon.setGlowing(selected && !hiddenByConfirmedSelection);
+                    icon.setTransformation(scaleTransformation(iconScale(selected, hiddenByConfirmedSelection)));
                 }
                 if (label.isValid()) {
                     label.teleport(labelLocation);
+                    if (hiddenByConfirmedSelection) {
+                        label.text(Component.empty());
+                        label.setTransformation(scaleTransformation(0.0F));
+                        continue;
+                    }
                     String color = selected ? ColorCodeUtil.YELLOW : ColorCodeUtil.GRAY;
                     label.text(legacyComponent(color + slots.get(index).name()));
-                    label.setTransformation(scaleTransformation(selected ? 0.864F : 0.672F));
+                    label.setTransformation(scaleTransformation(labelScale(selected)));
                 }
             }
             updateTimer(center);
@@ -397,6 +422,12 @@ public final class SkillActionRingService {
         private void confirmSelection() {
             confirmedIndex = selectedIndex;
             phase = RingPhase.WAITING_CAST;
+            phaseElapsedTicks = 0L;
+        }
+
+        private void returnToSelecting() {
+            phase = RingPhase.SELECTING;
+            confirmedIndex = -1;
             phaseElapsedTicks = 0L;
         }
 
@@ -441,6 +472,23 @@ public final class SkillActionRingService {
             }
             double progress = Math.min(1.0D, (double) phaseElapsedTicks / SELECT_ANIMATION_TICKS);
             return offset.multiply(1.0D - progress);
+        }
+
+        private float iconScale(boolean selected, boolean hiddenByConfirmedSelection) {
+            if (hiddenByConfirmedSelection) {
+                return 0.0F;
+            }
+            float targetScale = selected ? 0.86F : 0.58F;
+            return targetScale * openAnimationProgress();
+        }
+
+        private float labelScale(boolean selected) {
+            float targetScale = selected ? 0.864F : 0.672F;
+            return targetScale * openAnimationProgress();
+        }
+
+        private float openAnimationProgress() {
+            return Math.min(1.0F, (float) ageTicks / OPEN_ANIMATION_TICKS);
         }
 
         private void updateCircle(@NotNull Location center) {
