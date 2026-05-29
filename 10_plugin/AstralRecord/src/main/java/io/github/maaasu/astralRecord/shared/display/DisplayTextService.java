@@ -9,9 +9,12 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -111,7 +114,11 @@ public final class DisplayTextService {
         }
 
         DisplayAnimationFrame frame = resolveFrame(state);
-        Location targetLocation = anchorLocation.clone().add(state.options.offset()).add(frame.offset());
+        Entity attachment = state.anchor.attachment();
+        Vector attachedOffset = resolveAttachedOffset(state, frame);
+        Location targetLocation = attachment != null
+                ? attachment.getLocation()
+                : anchorLocation.clone().add(state.options.offset()).add(frame.offset());
         TextDisplay entity = ensureEntity(state, targetLocation);
         if (entity == null) {
             return;
@@ -119,7 +126,12 @@ public final class DisplayTextService {
 
         applyOptions(entity, state.options);
         applyFrame(entity, state, frame);
-        teleportIfNeeded(entity, state, targetLocation);
+        if (attachment != null) {
+            attachIfNeeded(entity, state, attachment, attachedOffset);
+        } else {
+            detachIfNeeded(entity, state);
+            teleportIfNeeded(entity, state, targetLocation);
+        }
 
         if (!state.frames.isEmpty()) {
             state.animationAge++;
@@ -151,6 +163,7 @@ public final class DisplayTextService {
         });
         state.lastLocation = null;
         state.lastText = null;
+        state.lastAttachmentOffset = null;
         return state.entity;
     }
 
@@ -199,6 +212,56 @@ public final class DisplayTextService {
             entity.teleport(targetLocation);
             state.lastLocation = targetLocation.clone();
         }
+    }
+
+    private @NotNull Vector resolveAttachedOffset(
+            @NotNull ManagedDisplayState state,
+            @NotNull DisplayAnimationFrame frame
+    ) {
+        return state.anchor.attachmentOffset()
+                .add(state.options.offset())
+                .add(frame.offset());
+    }
+
+    private void attachIfNeeded(
+            @NotNull TextDisplay entity,
+            @NotNull ManagedDisplayState state,
+            @NotNull Entity attachment,
+            @NotNull Vector offset
+    ) {
+        Entity currentVehicle = entity.getVehicle();
+        if (currentVehicle != null && !currentVehicle.equals(attachment)) {
+            entity.leaveVehicle();
+        }
+        if (!attachment.getPassengers().contains(entity)) {
+            attachment.addPassenger(entity);
+        }
+        applyAttachmentTransform(entity, state, offset);
+        state.lastLocation = null;
+    }
+
+    private void detachIfNeeded(@NotNull TextDisplay entity, @NotNull ManagedDisplayState state) {
+        if (entity.isInsideVehicle()) {
+            entity.leaveVehicle();
+        }
+        applyAttachmentTransform(entity, state, new Vector());
+    }
+
+    private void applyAttachmentTransform(
+            @NotNull TextDisplay entity,
+            @NotNull ManagedDisplayState state,
+            @NotNull Vector offset
+    ) {
+        if (state.lastAttachmentOffset != null && state.lastAttachmentOffset.equals(offset)) {
+            return;
+        }
+        entity.setTransformation(new Transformation(
+                new Vector3f((float) offset.getX(), (float) offset.getY(), (float) offset.getZ()),
+                new Quaternionf(),
+                new Vector3f(1.0F, 1.0F, 1.0F),
+                new Quaternionf()
+        ));
+        state.lastAttachmentOffset = offset.clone();
     }
 
     private @NotNull DisplayAnimationFrame resolveFrame(@NotNull ManagedDisplayState state) {
@@ -346,6 +409,7 @@ public final class DisplayTextService {
         private @Nullable TextDisplay entity;
         private @Nullable String lastText;
         private @Nullable Location lastLocation;
+        private @Nullable Vector lastAttachmentOffset;
 
         private ManagedDisplayState(@NotNull DisplayAnchor anchor, @NotNull DisplayTextOptions options) {
             this.anchor = anchor;

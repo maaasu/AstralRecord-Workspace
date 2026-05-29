@@ -28,6 +28,24 @@ public interface DisplayAnchor {
     Location resolve();
 
     /**
+     * TextDisplay を乗せる対象 Entity を返します。
+     *
+     * @return 乗せる対象 Entity。固定表示など、乗せない場合は null
+     */
+    default @Nullable Entity attachment() {
+        return null;
+    }
+
+    /**
+     * 乗せた TextDisplay に適用するローカル位置補正を返します。
+     *
+     * @return 対象 Entity 基準のローカル位置補正
+     */
+    default @NotNull Vector attachmentOffset() {
+        return new Vector();
+    }
+
+    /**
      * 固定位置アンカーを生成します。
      *
      * @param location 固定表示位置
@@ -62,12 +80,26 @@ public interface DisplayAnchor {
         Objects.requireNonNull(entityId, "entityId");
         Objects.requireNonNull(offset, "offset");
         Vector appliedOffset = offset.clone();
-        return () -> {
-            Entity entity = Bukkit.getEntity(entityId);
-            if (entity == null || !entity.isValid()) {
-                return null;
+        return new DisplayAnchor() {
+            @Override
+            public @Nullable Location resolve() {
+                Entity entity = attachment();
+                if (entity == null) {
+                    return null;
+                }
+                return entity.getLocation().add(appliedOffset);
             }
-            return entity.getLocation().add(appliedOffset);
+
+            @Override
+            public @Nullable Entity attachment() {
+                Entity entity = Bukkit.getEntity(entityId);
+                return entity != null && entity.isValid() && !entity.isDead() ? entity : null;
+            }
+
+            @Override
+            public @NotNull Vector attachmentOffset() {
+                return appliedOffset.clone();
+            }
         };
     }
 

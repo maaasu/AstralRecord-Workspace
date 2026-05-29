@@ -8,9 +8,13 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.Team;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
@@ -28,7 +32,8 @@ public class OverheadDisplayService {
 
     private static final long UPDATE_INTERVAL_TICKS = 5L;
     private static final double PLAYER_TEXT_OFFSET = 0.55D;
-    private static final double MOB_TEXT_OFFSET = 2.2D;
+    private static final double MOB_TEXT_OFFSET = 0.55D;
+    private static final String HIDDEN_NAME_TEAM = "ar_hidden_names";
 
     private final DisplayTextService displayService;
     private final StatusService statusService;
@@ -75,6 +80,7 @@ public class OverheadDisplayService {
             task.cancel();
             task = null;
         }
+        restoreVanillaPlayerNames();
         destroyAll(playerDisplays);
         destroyAll(mobDisplays);
     }
@@ -87,18 +93,21 @@ public class OverheadDisplayService {
     private void updatePlayerDisplays() {
         Collection<? extends Player> onlinePlayers = Bukkit.getOnlinePlayers();
         Set<UUID> activeSubjects = new HashSet<>();
+        hideVanillaPlayerNames(onlinePlayers);
 
         for (Player subject : onlinePlayers) {
             UUID subjectId = subject.getUniqueId();
             activeSubjects.add(subjectId);
+            subject.setCustomNameVisible(false);
 
             DisplayTextService.ManagedTextDisplay display = playerDisplays.computeIfAbsent(
                     subjectId,
                     ignored -> displayService.create(
-                            () -> subject.getLocation().add(0.0D, subject.getHeight() + PLAYER_TEXT_OFFSET, 0.0D),
+                            DisplayAnchor.entity(subject, overheadOffset(subject, PLAYER_TEXT_OFFSET)),
                             DisplayTextOptions.overhead(playerText(subject))
                     )
             );
+            display.setAnchor(DisplayAnchor.entity(subject, overheadOffset(subject, PLAYER_TEXT_OFFSET)));
             display.setText(playerText(subject));
         }
 
@@ -109,16 +118,22 @@ public class OverheadDisplayService {
         Set<UUID> activeSubjects = new HashSet<>();
 
         for (MobInstance instance : mobService.getInstances()) {
+            Entity entity = resolveMobEntity(instance);
+            if (entity == null) {
+                continue;
+            }
             UUID instanceId = instance.instanceId();
             activeSubjects.add(instanceId);
+            entity.setCustomNameVisible(false);
 
             DisplayTextService.ManagedTextDisplay display = mobDisplays.computeIfAbsent(
                     instanceId,
                     ignored -> displayService.create(
-                            () -> instance.currentLocation().add(0.0D, MOB_TEXT_OFFSET, 0.0D),
+                            DisplayAnchor.entity(entity, overheadOffset(entity, MOB_TEXT_OFFSET)),
                             DisplayTextOptions.overhead(mobText(instance))
                     )
             );
+            display.setAnchor(DisplayAnchor.entity(entity, overheadOffset(entity, MOB_TEXT_OFFSET)));
             display.setText(mobText(instance));
         }
 
@@ -144,6 +159,60 @@ public class OverheadDisplayService {
             display.destroy();
         }
         displays.clear();
+    }
+
+    private @NotNull Vector overheadOffset(@NotNull Entity entity, double offset) {
+        return new Vector(0.0D, entity.getHeight() + offset, 0.0D);
+    }
+
+    private Entity resolveMobEntity(@NotNull MobInstance instance) {
+        UUID entityId = instance.bukkitEntityId();
+        if (entityId == null) {
+            return null;
+        }
+        Entity entity = Bukkit.getEntity(entityId);
+        return entity != null && entity.isValid() && !entity.isDead() ? entity : null;
+    }
+
+    private void hideVanillaPlayerNames(@NotNull Collection<? extends Player> onlinePlayers) {
+        Set<String> activeNames = new HashSet<>();
+        for (Player player : onlinePlayers) {
+            activeNames.add(player.getName());
+        }
+
+        for (Player viewer : onlinePlayers) {
+            Scoreboard scoreboard = viewer.getScoreboard();
+            if (scoreboard == Bukkit.getScoreboardManager().getMainScoreboard()) {
+                scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
+                viewer.setScoreboard(scoreboard);
+            }
+
+            Team team = scoreboard.getTeam(HIDDEN_NAME_TEAM);
+            if (team == null) {
+                team = scoreboard.registerNewTeam(HIDDEN_NAME_TEAM);
+            }
+            team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.NEVER);
+
+            for (String entry : new HashSet<>(team.getEntries())) {
+                if (!activeNames.contains(entry)) {
+                    team.removeEntry(entry);
+                }
+            }
+            for (String playerName : activeNames) {
+                if (!team.getEntries().contains(playerName)) {
+                    team.addEntry(playerName);
+                }
+            }
+        }
+    }
+
+    private void restoreVanillaPlayerNames() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            Team team = player.getScoreboard().getTeam(HIDDEN_NAME_TEAM);
+            if (team != null) {
+                team.unregister();
+            }
+        }
     }
 
     @NotNull

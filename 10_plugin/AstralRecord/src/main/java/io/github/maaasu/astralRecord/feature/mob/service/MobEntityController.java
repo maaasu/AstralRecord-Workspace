@@ -2,9 +2,7 @@ package io.github.maaasu.astralRecord.feature.mob.service;
 
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
-import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.papermc.paper.entity.LookAnchor;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
@@ -27,8 +25,6 @@ import java.util.UUID;
  */
 public class MobEntityController {
 
-    private static final LegacyComponentSerializer LEGACY_COMPONENT_SERIALIZER =
-            LegacyComponentSerializer.legacySection();
     private static final double STANDARD_MOVEMENT_SPEED = 100.0D;
     private static final double PATHFINDER_SPEED_MULTIPLIER = 0.9D;
     private static final double MIN_PATHFINDER_SPEED = 0.05D;
@@ -103,9 +99,8 @@ public class MobEntityController {
         mob.setCanPickupItems(false);
         mob.setCollidable(false);
         mob.setSilent(true);
-        mob.customName(LEGACY_COMPONENT_SERIALIZER.deserialize(
-                ColorCodeUtil.translateAlternateColorCodes(template.displayName())));
-        mob.setCustomNameVisible(template.nameVisible());
+        mob.customName(null);
+        mob.setCustomNameVisible(false);
 
         mob.getPersistentDataContainer().set(instanceIdKey, PersistentDataType.STRING, instance.instanceId().toString());
         mob.getPersistentDataContainer().set(templateIdKey, PersistentDataType.STRING, template.id());
@@ -175,8 +170,11 @@ public class MobEntityController {
 
         boolean targetDrifted = hasTargetDrifted(instance, target);
         boolean intervalPassed = currentTick - instance.navRecomputeTick() >= PATH_RECOMPUTE_INTERVAL_TICKS;
-        boolean hasPath = mob.getPathfinder().hasPath();
-        if (hasPath && !targetDrifted && !intervalPassed) {
+        if (!targetDrifted && mob.getPathfinder().hasPath() && !intervalPassed) {
+            instance.currentLocation(current);
+            return false;
+        }
+        if (!intervalPassed && mob.getPathfinder().hasPath()) {
             instance.currentLocation(current);
             return false;
         }

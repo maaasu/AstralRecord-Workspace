@@ -14,7 +14,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
-import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -59,9 +58,6 @@ public class MobAiService {
     private static final double COMBAT_RANGE_BUFFER = 0.25D;
     private static final double RANGED_RETREAT_BUFFER = 1.0D;
     private static final double MIN_RETREAT_DISTANCE = 1.5D;
-    private static final double DIRECT_RETREAT_VELOCITY = 0.22D;
-    private static final double DIRECT_STRAFE_VELOCITY = 0.16D;
-    private static final long STRAFE_DIRECTION_INTERVAL_TICKS = 40L;
 
     private final MobService mobService;
 
@@ -243,6 +239,7 @@ public class MobAiService {
         double preferredRange = instance.template().combat() == null
                 ? 1.0D
                 : instance.template().combat().preferredRange();
+        double preferredSq = preferredRange * preferredRange;
         Location targetLoc = target.getLocation();
         Location currentLoc = instance.currentLocation();
         double horizontalSq = horizontalDistanceSquared(currentLoc, targetLoc);
@@ -251,10 +248,10 @@ public class MobAiService {
                 && shouldRetreat(instance, horizontalSq, preferredRange)) {
             instance.state(MobState.COMBAT);
             moveAway(instance, targetLoc, preferredRange);
-        } else if (isWithinCombatRange(horizontalSq, preferredRange)
+        } else if (horizontalSq <= preferredSq + COMBAT_RANGE_BUFFER
                 && verticalDiff <= COMBAT_VERTICAL_TOLERANCE) {
             instance.state(MobState.COMBAT);
-            strafeOrStop(instance, currentLoc, targetLoc, horizontalSq, preferredRange);
+            mobService.stopPathfinding(instance);
         } else {
             moveToward(instance, targetLoc, instance.template().idle().speed());
         }
@@ -278,6 +275,7 @@ public class MobAiService {
         double preferredRange = instance.template().combat() == null
                 ? 1.0D
                 : instance.template().combat().preferredRange();
+        double preferredSq = preferredRange * preferredRange;
         Location targetLoc = target.getLocation();
         Location currentLoc = instance.currentLocation();
         double horizontalSq = horizontalDistanceSquared(currentLoc, targetLoc);
@@ -287,13 +285,13 @@ public class MobAiService {
             moveAway(instance, targetLoc, preferredRange);
             return;
         }
-        if (!isWithinCombatRange(horizontalSq, preferredRange)
+        if (horizontalSq > preferredSq + COMBAT_RANGE_BUFFER
                 || verticalDiff > COMBAT_VERTICAL_TOLERANCE) {
             mobService.stopPathfinding(instance);
             instance.state(MobState.AGGRO);
             return;
         }
-        strafeOrStop(instance, currentLoc, targetLoc, horizontalSq, preferredRange);
+        mobService.stopPathfinding(instance);
     }
 
     /**
@@ -420,7 +418,6 @@ public class MobAiService {
         double length = Math.sqrt(lengthSq);
         double retreatDistance = Math.max(MIN_RETREAT_DISTANCE, preferredRange + RANGED_RETREAT_BUFFER);
         Location retreatTarget = current.clone().add(dx / length * retreatDistance, 0.0D, dz / length * retreatDistance);
-        applyDirectMovement(instance, dx, dz, DIRECT_RETREAT_VELOCITY);
         moveToward(instance, retreatTarget, instance.template().idle().speed());
     }
 
@@ -430,63 +427,6 @@ public class MobAiService {
         }
         double threshold = Math.max(0.0D, preferredRange - COMBAT_RANGE_BUFFER);
         return horizontalSq < threshold * threshold;
-    }
-
-    private void strafeOrStop(
-            @NotNull MobInstance instance,
-            @NotNull Location current,
-            @NotNull Location target,
-            double horizontalSq,
-            double preferredRange) {
-        if (!shouldStrafe(instance, horizontalSq, preferredRange)) {
-            mobService.stopPathfinding(instance);
-            return;
-        }
-
-        double dx = current.getX() - target.getX();
-        double dz = current.getZ() - target.getZ();
-        double direction = strafeDirection(instance);
-        mobService.stopPathfinding(instance);
-        applyDirectMovement(instance, -dz * direction, dx * direction, DIRECT_STRAFE_VELOCITY);
-    }
-
-    private boolean shouldStrafe(@NotNull MobInstance instance, double horizontalSq, double preferredRange) {
-        if (!isRangedStyle(instance.template().combat())) {
-            return false;
-        }
-        double min = Math.max(0.0D, preferredRange - COMBAT_RANGE_BUFFER);
-        double max = preferredRange + COMBAT_RANGE_BUFFER;
-        return horizontalSq >= min * min && horizontalSq <= max * max;
-    }
-
-    private double strafeDirection(@NotNull MobInstance instance) {
-        long offset = Math.floorMod(instance.instanceId().getLeastSignificantBits(), STRAFE_DIRECTION_INTERVAL_TICKS * 2L);
-        long phase = Math.floorDiv(internalTick + offset, STRAFE_DIRECTION_INTERVAL_TICKS);
-        return phase % 2L == 0L ? 1.0D : -1.0D;
-    }
-
-    private void applyDirectMovement(@NotNull MobInstance instance, double x, double z, double baseVelocity) {
-        double lengthSq = x * x + z * z;
-        if (lengthSq < 1.0E-6D) {
-            return;
-        }
-        if (!shouldProcess(instance, ACTIVE_DECISION_INTERVAL_TICKS)) {
-            return;
-        }
-
-        double speedScale = Math.max(0.0D, Math.min(instance.template().idle().speed(), 2.0D));
-        double velocity = baseVelocity * speedScale;
-        if (velocity <= 0.0D) {
-            return;
-        }
-
-        double length = Math.sqrt(lengthSq);
-        mobService.entityController().addVelocity(instance, new Vector(x / length * velocity, 0.0D, z / length * velocity));
-    }
-
-    private boolean isWithinCombatRange(double horizontalSq, double preferredRange) {
-        double threshold = preferredRange + COMBAT_RANGE_BUFFER;
-        return horizontalSq <= threshold * threshold;
     }
 
     private boolean isRangedStyle(@Nullable MobCombatConfig combat) {
