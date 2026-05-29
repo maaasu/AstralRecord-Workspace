@@ -105,6 +105,10 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
                 return;
             }
             event.setCancelled(true);
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (isPlayerMode(astPlayer)) {
+                actionRingService.activateSelected(astPlayer);
+            }
         }, LogId.E_5802, event.getDamager().getName(), "skill_action_ring_damage");
     }
 

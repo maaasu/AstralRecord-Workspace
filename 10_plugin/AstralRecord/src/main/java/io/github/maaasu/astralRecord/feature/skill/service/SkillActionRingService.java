@@ -10,7 +10,6 @@ import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import net.kyori.adventure.title.Title;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -27,9 +26,9 @@ import org.jetbrains.annotations.NotNull;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,7 +41,7 @@ public final class SkillActionRingService {
     private static final double RING_DISTANCE = 2.0D;
     private static final double RING_RADIUS = 1.12D;
     private static final int CIRCLE_DISPLAY_POINTS = 24;
-    private static final int BAR_LENGTH = 18;
+    private static final int TIMER_BAR_LENGTH = 12;
     private static final long UPDATE_INTERVAL_TICKS = 1L;
     private static final long RING_DISPLAY_LIMIT_TICKS = 100L;
     private static final long CAST_WAIT_LIMIT_TICKS = 60L;
@@ -221,6 +220,12 @@ public final class SkillActionRingService {
     private record SlotView(String skillId, @NotNull String name) {
     }
 
+    private static @NotNull Component legacyComponent(@NotNull String text) {
+        return LegacyComponentSerializer.legacySection().deserialize(
+            ColorCodeUtil.translateAlternateColorCodes(text)
+        );
+    }
+
     private enum RingPhase {
         SELECTING,
         WAITING_CAST
@@ -236,6 +241,7 @@ public final class SkillActionRingService {
         private final List<ItemDisplay> icons = new ArrayList<>(SLOT_COUNT);
         private final List<TextDisplay> labels = new ArrayList<>(SLOT_COUNT);
         private final List<TextDisplay> circleDots = new ArrayList<>(CIRCLE_DISPLAY_POINTS);
+        private TextDisplay timerLabel;
         private int selectedIndex;
         private int confirmedIndex = -1;
         private RingPhase phase = RingPhase.SELECTING;
@@ -289,9 +295,7 @@ public final class SkillActionRingService {
                     display.setShadowed(false);
                     display.setDefaultBackground(false);
                     display.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
-                    display.text(LegacyComponentSerializer.legacySection().deserialize(
-                        ColorCodeUtil.translateAlternateColorCodes(ColorCodeUtil.AQUA + "*")
-                    ));
+                    display.text(legacyComponent(ColorCodeUtil.AQUA + "*"));
                     display.setTransformation(scaleTransformation(0.42F));
                 });
                 circleDots.add(dot);
@@ -324,6 +328,20 @@ public final class SkillActionRingService {
                 icons.add(icon);
                 labels.add(label);
             }
+            timerLabel = world.spawn(baseCenter, TextDisplay.class, display -> {
+                display.setBillboard(Display.Billboard.CENTER);
+                display.setGravity(false);
+                display.setInvulnerable(true);
+                display.setPersistent(false);
+                display.setSilent(true);
+                display.setViewRange(16.0F);
+                display.setLineWidth(96);
+                display.setSeeThrough(true);
+                display.setShadowed(true);
+                display.setDefaultBackground(false);
+                display.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
+                display.setTransformation(scaleTransformation(0.56F));
+            });
         }
 
         private boolean tick(@NotNull Player player) {
@@ -365,13 +383,11 @@ public final class SkillActionRingService {
                 if (label.isValid()) {
                     label.teleport(labelLocation);
                     String color = selected ? ColorCodeUtil.YELLOW : ColorCodeUtil.GRAY;
-                    label.text(LegacyComponentSerializer.legacySection().deserialize(
-                        ColorCodeUtil.translateAlternateColorCodes(color + slots.get(index).name())
-                    ));
+                    label.text(legacyComponent(color + slots.get(index).name()));
                     label.setTransformation(scaleTransformation(selected ? 0.864F : 0.672F));
                 }
             }
-            showSubtitleBar(player);
+            updateTimer(center);
             return true;
         }
 
@@ -447,25 +463,38 @@ public final class SkillActionRingService {
             }
         }
 
-        private void showSubtitleBar(@NotNull Player player) {
+        private void updateTimer(@NotNull Location center) {
+            if (timerLabel == null || !timerLabel.isValid()) {
+                return;
+            }
+            Location timerLocation = center.clone().subtract(up.clone().multiply(0.30D));
+            timerLabel.teleport(timerLocation);
+            timerLabel.text(legacyComponent(timerText()));
+        }
+
+        private @NotNull String timerText() {
             long limit = phase == RingPhase.SELECTING ? RING_DISPLAY_LIMIT_TICKS : CAST_WAIT_LIMIT_TICKS;
-            double remaining = Math.max(0.0D, Math.min(1.0D, (double) (limit - phaseElapsedTicks) / limit));
-            int filled = (int) Math.round(remaining * BAR_LENGTH);
-            StringBuilder bar = new StringBuilder(BAR_LENGTH + 16);
-            bar.append(phase == RingPhase.SELECTING ? "SELECT " : "CAST ");
-            bar.append(ColorCodeUtil.GREEN);
+            long remainingTicks = Math.max(0L, limit - phaseElapsedTicks);
+            double remaining = Math.max(0.0D, Math.min(1.0D, (double) remainingTicks / limit));
+            int filled = (int) Math.round(remaining * TIMER_BAR_LENGTH);
+            String label = phase == RingPhase.SELECTING ? "SELECT" : "CAST";
+            String accent = phase == RingPhase.SELECTING ? ColorCodeUtil.AQUA : ColorCodeUtil.YELLOW;
+            StringBuilder bar = new StringBuilder(TIMER_BAR_LENGTH + 32);
+            bar.append(accent)
+                .append(label)
+                .append(' ')
+                .append(ColorCodeUtil.WHITE)
+                .append(String.format(Locale.ROOT, "%.1fs", remainingTicks / 20.0D))
+                .append('\n')
+                .append(ColorCodeUtil.GREEN);
             for (int index = 0; index < filled; index++) {
                 bar.append('|');
             }
             bar.append(ColorCodeUtil.DARK_GRAY);
-            for (int index = filled; index < BAR_LENGTH; index++) {
+            for (int index = filled; index < TIMER_BAR_LENGTH; index++) {
                 bar.append('|');
             }
-            player.showTitle(Title.title(
-                Component.empty(),
-                LegacyComponentSerializer.legacySection().deserialize(ColorCodeUtil.translateAlternateColorCodes(bar.toString())),
-                Title.Times.times(Duration.ZERO, Duration.ofMillis(350), Duration.ZERO)
-            ));
+            return bar.toString();
         }
 
         private @NotNull Transformation scaleTransformation(float scale) {
@@ -496,6 +525,10 @@ public final class SkillActionRingService {
                 }
             }
             circleDots.clear();
+            if (timerLabel != null && timerLabel.isValid()) {
+                timerLabel.remove();
+            }
+            timerLabel = null;
         }
     }
 }
