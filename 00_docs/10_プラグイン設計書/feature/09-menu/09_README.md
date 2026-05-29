@@ -43,5 +43,9 @@
   - [[09_3.04-リポジトリ]]
   - [[09_4.00-統合フロー]]
 
+## 実装メモ
+
+- 2026-05-30: `STATUS` ショートカットの lore は current HP / MP / EN を表示せず、`ATTACK` / `MELEE_ATTACK` / `RANGED_ATTACK` / `MAGIC_ATTACK` / `DEFENSE` / `MAGIC_DEFENSE` を表示する。
+
 ## 追記（ゴミ箱GUI）
 - ゴミ箱GUI追加に伴い、[[09_1.00-モデル定義]]・[[09_3.01-イベント]]・[[09_3.07-GUI・View]]・[[09_4.00-統合フロー]] を更新。

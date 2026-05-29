@@ -25,7 +25,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.stream.Collectors;
 
 final class CraftShortcutView {
@@ -163,9 +162,12 @@ final class CraftShortcutView {
     private @NotNull ItemStack createStatusShortcutIcon(int shortcutSlotIndex, @Nullable StatusSnapshot snapshot) {
         List<Component> lore = new ArrayList<>();
         if (snapshot != null && !snapshot.getValues().isEmpty()) {
-            lore.add(statusResourceLine("HP", snapshot.getCurrentHp(), snapshot.getMaxValue(StatusType.MAX_HEALTH), NamedTextColor.RED));
-            lore.add(statusResourceLine("MP", snapshot.getCurrentMp(), snapshot.getMaxValue(StatusType.MAX_MANA), NamedTextColor.AQUA));
-            lore.add(statusResourceLine("EN", snapshot.getCurrentEnergy(), snapshot.getMaxValue(StatusType.MAX_ENERGY), NamedTextColor.YELLOW));
+            addStatusLine(lore, snapshot, StatusType.ATTACK, NamedTextColor.RED);
+            addStatusLine(lore, snapshot, StatusType.MELEE_ATTACK, NamedTextColor.RED);
+            addStatusLine(lore, snapshot, StatusType.RANGED_ATTACK, NamedTextColor.RED);
+            addStatusLine(lore, snapshot, StatusType.MAGIC_ATTACK, NamedTextColor.RED);
+            addStatusLine(lore, snapshot, StatusType.DEFENSE, NamedTextColor.BLUE);
+            addStatusLine(lore, snapshot, StatusType.MAGIC_DEFENSE, NamedTextColor.BLUE);
         }
         lore.add(Component.text("クリックして開く", NamedTextColor.GRAY));
         ItemStack itemStack = createItem(
@@ -177,19 +179,17 @@ final class CraftShortcutView {
         return itemStack;
     }
 
-    private @NotNull Component statusResourceLine(
-        @NotNull String label,
-        double current,
-        double max,
+    private void addStatusLine(
+        @NotNull List<Component> lore,
+        @NotNull StatusSnapshot snapshot,
+        @NotNull StatusType statusType,
         @NotNull NamedTextColor color
     ) {
-        String value = formatResourceValue(current) + " / " + formatResourceValue(max);
-        return Component.text(label + ": ", color)
-            .append(Component.text(value, NamedTextColor.WHITE));
-    }
-
-    private @NotNull String formatResourceValue(double value) {
-        return String.format(Locale.US, "%,d", Math.round(value));
+        if (snapshot.getValue(statusType) == null) {
+            return;
+        }
+        lore.add(Component.text(statusType.getDisplayName() + ": ", color)
+            .append(Component.text(statusType.formatValue(snapshot.getMaxValue(statusType)), NamedTextColor.WHITE)));
     }
 
     private @NotNull ItemStack createUserInfoDummyIcon(
