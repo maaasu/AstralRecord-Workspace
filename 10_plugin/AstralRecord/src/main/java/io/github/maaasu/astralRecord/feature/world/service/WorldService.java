@@ -181,7 +181,31 @@ public class WorldService {
     @NotNull
     private static File resolveWorldFolder(@NotNull String worldName) {
         File folder = new File(worldName);
-        return folder.isAbsolute() ? folder : new File(Bukkit.getWorldContainer(), worldName);
+        if (folder.isAbsolute()) {
+            return folder;
+        }
+
+        File worldContainer = Bukkit.getWorldContainer();
+        File direct = new File(worldContainer, worldName);
+        if (direct.exists()) {
+            return direct;
+        }
+
+        String normalizedContainer = normalizeWorldPath(worldContainer.getPath());
+        String normalizedName = normalizeWorldPath(worldName);
+        if (!normalizedContainer.isBlank()
+                && normalizedName.startsWith(normalizedContainer + "/")) {
+            String relativeName = normalizedName.substring(normalizedContainer.length() + 1);
+            return new File(worldContainer, relativeName);
+        }
+
+        String containerLeaf = worldContainer.getName();
+        if (!containerLeaf.isBlank() && normalizedName.startsWith(containerLeaf + "/")) {
+            String relativeName = normalizedName.substring(containerLeaf.length() + 1);
+            return new File(worldContainer, relativeName);
+        }
+
+        return direct;
     }
 
     private static boolean sameFile(@NotNull File left, @NotNull File right) {
