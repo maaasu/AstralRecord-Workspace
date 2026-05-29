@@ -21,6 +21,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
@@ -70,12 +71,20 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
     public void onPlayerInteract(@NotNull PlayerInteractEvent event) {
         runSafely(() -> {
             Player player = event.getPlayer();
+            Action action = event.getAction();
+            boolean isLeftClick = action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK;
+            boolean isRightClick = action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
+            if (event.getHand() == EquipmentSlot.HAND
+                && (isLeftClick || isRightClick)
+                && player.getInventory().getHeldItemSlot() == 8) {
+                event.setCancelled(true);
+                return;
+            }
             if (!actionRingService.isOpen(player)) {
                 return;
             }
             event.setCancelled(true);
-            Action action = event.getAction();
-            if (action != Action.LEFT_CLICK_AIR && action != Action.LEFT_CLICK_BLOCK) {
+            if (!isLeftClick) {
                 return;
             }
             AstPlayer astPlayer = AstPlayerCache.get(player);
