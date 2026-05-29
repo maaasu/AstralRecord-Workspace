@@ -108,6 +108,20 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
         }, LogId.E_5802, event.getPlayer().getName(), "skill_action_ring_hotbar");
     }
 
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
+    public void onEntityDamageByEntityBeforeCombat(@NotNull EntityDamageByEntityEvent event) {
+        runSafely(() -> {
+            if (!(event.getDamager() instanceof Player player)) {
+                return;
+            }
+            if (!actionRingService.isOpen(player)) {
+                return;
+            }
+            event.setDamage(0.0D);
+            event.setCancelled(true);
+        }, LogId.E_5802, event.getDamager().getName(), "skill_action_ring_damage_cancel");
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onEntityDamageByEntity(@NotNull EntityDamageByEntityEvent event) {
         runSafely(() -> {
