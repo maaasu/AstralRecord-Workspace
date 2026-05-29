@@ -20,7 +20,6 @@ import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
-import org.bukkit.EntityEffect;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -256,16 +255,13 @@ public final class DamageService {
     private void playMobHurtEffect(@Nullable UUID entityId) {
         Entity entity = resolveBukkitEntity(entityId);
         if (entity instanceof LivingEntity livingEntity) {
-            livingEntity.playEffect(EntityEffect.HURT);
+            livingEntity.playHurtAnimation(0.0F);
             livingEntity.setNoDamageTicks(0);
         }
     }
 
     private void playMobDeathEffect(@Nullable UUID entityId, @NotNull Location location) {
         Entity entity = resolveBukkitEntity(entityId);
-        if (entity instanceof LivingEntity livingEntity) {
-            livingEntity.playEffect(EntityEffect.DEATH);
-        }
         World world = location.getWorld();
         if (world == null) {
             return;
