@@ -11,9 +11,9 @@ allowBlockBreak: false
 allowBlockPlace: false
 allowMobSpawn: true
 spawnLocation:
-  x: 0.5
-  y: 64.0
-  z: 0.5
+  x: -446.5
+  y: 8
+  z: -597.5
   yaw: 0.0
   pitch: 0.0
 description: "Exploration world where enemies spawn. Future instances are channel based."
