@@ -31,8 +31,8 @@ import java.util.UUID;
 public class OverheadDisplayService {
 
     private static final long UPDATE_INTERVAL_TICKS = 5L;
-    private static final double PLAYER_TEXT_OFFSET = 0.25D;
-    private static final double MOB_TEXT_OFFSET = 0.25D;
+    private static final double PLAYER_TEXT_OFFSET = -0.10D;
+    private static final double MOB_TEXT_OFFSET = -0.10D;
     private static final String HIDDEN_NAME_TEAM = "ar_hidden_names";
 
     private final DisplayTextService displayService;
