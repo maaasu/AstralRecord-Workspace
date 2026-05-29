@@ -17,9 +17,14 @@ public final class SkillBindSession {
     private String selectedSkillId;
 
     public SkillBindSession(@NotNull List<SkillBindPreset> presets) {
+        this(presets, 1);
+    }
+
+    public SkillBindSession(@NotNull List<SkillBindPreset> presets, int initialPresetIndex) {
         this.presets = presets;
-        this.selectedPresetIndex = 1;
-        loadPreset(1);
+        int safePresetIndex = Math.max(1, Math.min(initialPresetIndex, presets.size()));
+        this.selectedPresetIndex = safePresetIndex;
+        loadPreset(safePresetIndex);
     }
 
     public @NotNull List<SkillBindPreset> presets() {

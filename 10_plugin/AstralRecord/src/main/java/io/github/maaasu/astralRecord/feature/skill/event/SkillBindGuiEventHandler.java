@@ -53,6 +53,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     private final InventoryService inventoryService;
     private final MenuView menuView;
     private final Map<UUID, SkillBindSession> sessions = new ConcurrentHashMap<>();
+    private final Map<UUID, Integer> selectedPresetIndexes = new ConcurrentHashMap<>();
     private final Set<UUID> suppressClose = ConcurrentHashMap.newKeySet();
 
     public SkillBindGuiEventHandler(
@@ -82,7 +83,12 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        SkillBindSession session = new SkillBindSession(presetService.getPresets(astPlayer.getAccount().getUuid()));
+        int initialPresetIndex = selectedPresetIndexes.getOrDefault(player.getUniqueId(), 1);
+        SkillBindSession session = new SkillBindSession(presetService.getPresets(astPlayer.getAccount().getUuid()), initialPresetIndex);
+        if (!session.selectedPreset().isUnlocked()) {
+            session.loadPreset(1);
+        }
+        selectedPresetIndexes.put(player.getUniqueId(), session.selectedPresetIndex());
         sessions.put(player.getUniqueId(), session);
         openMain(player, session, 0);
     }
@@ -221,6 +227,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             session.loadPreset(presetIndex);
+            selectedPresetIndexes.put(player.getUniqueId(), presetIndex);
             GuiSound.SELECT.play(player);
             openMain(player, session, 0);
             return;
@@ -279,6 +286,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         switch (holder.action()) {
             case ACTION_SWITCH_PRESET -> {
                 session.loadPreset(holder.pendingPresetIndex());
+                selectedPresetIndexes.put(player.getUniqueId(), holder.pendingPresetIndex());
                 openMain(player, session, 0);
             }
             case ACTION_BACK -> {
