@@ -72,7 +72,7 @@ public class WorldSpawnParticleTask {
             return;
         }
 
-        double pulse = 0.80D + (Math.sin(baseAngle * 0.65D) * 0.10D);
+        double pulse = 1.5D + (Math.sin(baseAngle * 0.65D) * 0.12D);
         for (int i = 0; i < RING_POINTS; i++) {
             double angle = baseAngle + ((Math.PI * 2.0D * i) / RING_POINTS);
             double x = Math.cos(angle) * pulse;
