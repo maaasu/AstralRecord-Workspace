@@ -13,13 +13,16 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -32,6 +35,10 @@ import java.util.UUID;
 public final class WeaponAttackSkillExecutor implements SkillExecutor {
 
     private static final String IMPLEMENTATION_ID = "normal_attack";
+    private static final double DEFAULT_RANGED_GRAVITY = 0.035D;
+    private static final double DEFAULT_MAGIC_HOMING_STRENGTH = 0.18D;
+    private static final double DEFAULT_MAGIC_HOMING_RANGE = 4.5D;
+    private static final Particle.DustOptions MAGIC_CORE_DUST = new Particle.DustOptions(Color.fromRGB(170, 70, 255), 1.2F);
 
     private final ParticleDisplayService particleDisplayService;
     private final DamageService damageService;
@@ -105,9 +112,10 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 spreadX,
                 spreadY,
                 spreadZ,
-                extra
+                extra,
+                readAttackType(context.skill())
         );
-        applyDirectDamage(context.skill(), caster, effectLocation, direction);
+        applyAttackDamage(context.skill(), caster, effectLocation, direction);
         return SkillCastResult.success(resourceCost, context.skill().getCooldownTicks());
     }
 
@@ -136,7 +144,21 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         requireNonNegativeDouble(skill, "maxTargets");
     }
 
-    private void applyDirectDamage(
+    private void applyAttackDamage(
+            @NotNull SkillDefinition skill,
+            @NotNull PlayerSkillCaster caster,
+            @NotNull Location startLocation,
+            @NotNull Vector direction
+    ) {
+        AttackType attackType = readAttackType(skill);
+        if (attackType == AttackType.MELEE) {
+            applyMeleeDamage(skill, caster, startLocation, direction);
+            return;
+        }
+        launchProjectileAttack(skill, caster, startLocation, direction, attackType, readDamageType(skill));
+    }
+
+    private void applyMeleeDamage(
             @NotNull SkillDefinition skill,
             @NotNull PlayerSkillCaster caster,
             @NotNull Location startLocation,
@@ -146,8 +168,6 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         double hitRange = readDoubleParam(skill, "hitRange", 2.5D);
         double hitStepDistance = readDoubleParam(skill, "hitStepDistance", Math.max(0.45D, hitRadius));
         int maxTargets = Math.max(1, (int) Math.round(readDoubleParam(skill, "maxTargets", 8.0D)));
-        AttackType attackType = readAttackType(skill);
-        DamageType damageType = readDamageType(skill);
         AstEntity attacker = AstEntity.player(caster.player());
 
         Map<UUID, AstEntity> victims = new LinkedHashMap<>();
@@ -158,7 +178,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             Location sample = startLocation.clone().add(normalizedDirection.clone().multiply(hitStepDistance * step));
             for (Entity candidate : sample.getWorld().getNearbyEntities(sample, hitRadius, hitRadius, hitRadius)) {
                 AstEntity victim = damageService.resolveEntity(candidate);
-                if (!victim.isManaged() || victim.id().equals(attacker.id())) {
+                if (!isAttackableMob(attacker, victim)) {
                     continue;
                 }
                 victims.putIfAbsent(victim.id(), victim);
@@ -172,8 +192,91 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         }
 
         for (AstEntity victim : victims.values()) {
-            damageService.attack(attacker, victim, attackType, damageType);
+            damageService.attack(attacker, victim, AttackType.MELEE, readDamageType(skill));
         }
+    }
+
+    private void launchProjectileAttack(
+            @NotNull SkillDefinition skill,
+            @NotNull PlayerSkillCaster caster,
+            @NotNull Location startLocation,
+            @NotNull Vector direction,
+            @NotNull AttackType attackType,
+            @NotNull DamageType damageType
+    ) {
+        AstEntity attacker = AstEntity.player(caster.player());
+        double hitRadius = readDoubleParam(skill, "hitRadius", 0.75D);
+        double hitRange = readDoubleParam(skill, "hitRange", 6.0D);
+        double projectileSpeed = readDoubleParam(skill, "projectileSpeed", attackType == AttackType.RANGED ? 1.0D : 0.8D);
+        double gravity = attackType == AttackType.RANGED
+                ? readDoubleParam(skill, "projectileGravity", DEFAULT_RANGED_GRAVITY)
+                : 0.0D;
+        double homingStrength = attackType == AttackType.MAGIC
+                ? readDoubleParam(skill, "homingStrength", DEFAULT_MAGIC_HOMING_STRENGTH)
+                : 0.0D;
+        double homingRange = attackType == AttackType.MAGIC
+                ? readDoubleParam(skill, "homingRange", DEFAULT_MAGIC_HOMING_RANGE)
+                : 0.0D;
+        int maxTicks = Math.max(1, (int) Math.ceil(hitRange / Math.max(0.1D, projectileSpeed))) + 2;
+        int trailParticleCount = readIntParam(skill, "trailParticleCount", readIntParam(skill, "particleCount", 10));
+        double trailSpreadX = readDoubleParam(skill, "trailSpreadX", 0.05D);
+        double trailSpreadY = readDoubleParam(skill, "trailSpreadY", 0.05D);
+        double trailSpreadZ = readDoubleParam(skill, "trailSpreadZ", 0.05D);
+        double trailExtra = readDoubleParam(skill, "trailExtra", 0.0D);
+        Particle particle = readParticle(skill, "particle", attackType == AttackType.MAGIC ? Particle.ENCHANT : Particle.CRIT);
+        Location currentLocation = startLocation.clone();
+        Vector velocity = direction.clone().normalize().multiply(projectileSpeed);
+        Player player = caster.player().getBukkit();
+
+        final BukkitTask[] taskHolder = new BukkitTask[1];
+        taskHolder[0] = Bukkit.getScheduler().runTaskTimer(AstralRecord.getInstance(), new Runnable() {
+            private int tick;
+            private double traveledDistance;
+
+            @Override
+            public void run() {
+                if (!player.isOnline() || currentLocation.getWorld() == null) {
+                    cancel();
+                    return;
+                }
+                if (tick++ >= maxTicks || traveledDistance >= hitRange) {
+                    cancel();
+                    return;
+                }
+
+                if (attackType == AttackType.MAGIC) {
+                    retargetMagicProjectile(currentLocation, velocity, homingRange, homingStrength, projectileSpeed, attacker);
+                }
+
+                currentLocation.add(velocity);
+                traveledDistance += velocity.length();
+                if (attackType == AttackType.RANGED) {
+                    velocity.setY(velocity.getY() - gravity);
+                }
+
+                if (!currentLocation.getBlock().isPassable()) {
+                    cancel();
+                    return;
+                }
+
+                spawnProjectileTrail(caster, currentLocation, particle, trailParticleCount,
+                        trailSpreadX, trailSpreadY, trailSpreadZ, trailExtra, attackType);
+
+                AstEntity victim = findClosestMobTarget(currentLocation, hitRadius, attacker);
+                if (victim != null) {
+                    damageService.attack(attacker, victim, attackType, damageType);
+                    spawnImpactEffect(caster, currentLocation, attackType);
+                    cancel();
+                }
+            }
+
+            private void cancel() {
+                BukkitTask task = taskHolder[0];
+                if (task != null) {
+                    task.cancel();
+                }
+            }
+        }, 0L, 1L);
     }
 
     private @NotNull Particle readParticle(
@@ -261,8 +364,12 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             double spreadX,
             double spreadY,
             double spreadZ,
-            double extra
+            double extra,
+            @NotNull AttackType attackType
     ) {
+        if (attackType != AttackType.MELEE) {
+            return;
+        }
         int trailSteps = readIntParam(skill, "trailSteps", 0);
         if (trailSteps <= 0) {
             return;
@@ -298,6 +405,111 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 );
             }, delayTicks);
         }
+    }
+
+    private void retargetMagicProjectile(
+            @NotNull Location currentLocation,
+            @NotNull Vector velocity,
+            double homingRange,
+            double homingStrength,
+            double projectileSpeed,
+            @NotNull AstEntity attacker
+    ) {
+        if (homingRange <= 0.0D || homingStrength <= 0.0D) {
+            return;
+        }
+        AstEntity target = findClosestMobTarget(currentLocation, homingRange, attacker);
+        if (target == null) {
+            return;
+        }
+
+        Location targetLocation = target.location().clone().add(0.0D, 0.8D, 0.0D);
+        Vector desiredDirection = targetLocation.toVector().subtract(currentLocation.toVector());
+        if (desiredDirection.lengthSquared() <= 1.0E-6D) {
+            return;
+        }
+        desiredDirection.normalize().multiply(projectileSpeed);
+        velocity.multiply(Math.max(0.0D, 1.0D - homingStrength)).add(desiredDirection.multiply(homingStrength));
+        if (velocity.lengthSquared() > 1.0E-6D) {
+            velocity.normalize().multiply(projectileSpeed);
+        }
+    }
+
+    private void spawnProjectileTrail(
+            @NotNull PlayerSkillCaster caster,
+            @NotNull Location location,
+            @NotNull Particle particle,
+            int particleCount,
+            double spreadX,
+            double spreadY,
+            double spreadZ,
+            double extra,
+            @NotNull AttackType attackType
+    ) {
+        particleDisplayService.spawnWorld(
+                caster.player(),
+                location.getWorld(),
+                location,
+                particle,
+                particleCount,
+                spreadX,
+                spreadY,
+                spreadZ,
+                extra
+        );
+        if (attackType == AttackType.MAGIC) {
+            location.getWorld().spawnParticle(Particle.DUST, location, 3, 0.03D, 0.03D, 0.03D, 0.0D, MAGIC_CORE_DUST);
+        }
+    }
+
+    private void spawnImpactEffect(
+            @NotNull PlayerSkillCaster caster,
+            @NotNull Location location,
+            @NotNull AttackType attackType
+    ) {
+        if (attackType != AttackType.MAGIC) {
+            return;
+        }
+        particleDisplayService.spawnWorld(
+                caster.player(),
+                location.getWorld(),
+                location,
+                Particle.ENCHANT,
+                8,
+                0.12D,
+                0.12D,
+                0.12D,
+                0.05D
+        );
+        location.getWorld().spawnParticle(Particle.DUST, location, 8, 0.08D, 0.08D, 0.08D, 0.0D, MAGIC_CORE_DUST);
+    }
+
+    private @Nullable AstEntity findClosestMobTarget(
+            @NotNull Location center,
+            double radius,
+            @NotNull AstEntity attacker
+    ) {
+        AstEntity nearest = null;
+        double bestDistanceSquared = Double.MAX_VALUE;
+        for (Entity candidate : center.getWorld().getNearbyEntities(center, radius, radius, radius)) {
+            AstEntity victim = damageService.resolveEntity(candidate);
+            if (!isAttackableMob(attacker, victim)) {
+                continue;
+            }
+            double distanceSquared = victim.location().distanceSquared(center);
+            if (distanceSquared < bestDistanceSquared) {
+                bestDistanceSquared = distanceSquared;
+                nearest = victim;
+            }
+        }
+        return nearest;
+    }
+
+    private boolean isAttackableMob(@NotNull AstEntity attacker, @NotNull AstEntity victim) {
+        return victim.isMob()
+                && victim.mob() != null
+                && victim.mob().state() != io.github.maaasu.astralRecord.feature.mob.model.MobState.DEAD
+                && !victim.id().equals(attacker.id());
     }
 
     private @NotNull AttackType readAttackType(@NotNull SkillDefinition skill) {
