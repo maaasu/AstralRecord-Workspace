@@ -13,11 +13,8 @@ public class UserPermissionTabCompleter extends AstTabCompleter {
     protected List<String> getCompletions(@NotNull CommandSender sender, @NotNull String[] args) {
         if (args.length == 1) {
             List<String> completions = new ArrayList<>();
-            for (UserPermission p : UserPermission.values()) {
+            for (UserPermission p : UserPermission.getEntries()) {
                 completions.add(p.name());
-            }
-            for (UserPermission p : UserPermission.values()) {
-                completions.add(String.valueOf(p.getValue()));
             }
             return completions;
         }
