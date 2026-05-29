@@ -41,7 +41,7 @@ public final class SkillActionRingService {
     private static final double RING_DISTANCE = 2.0D;
     private static final double RING_RADIUS = 1.12D;
     private static final int CIRCLE_DISPLAY_POINTS = 24;
-    private static final int TIMER_BAR_LENGTH = 12;
+    private static final int TIMER_BAR_LENGTH = 24;
     private static final long UPDATE_INTERVAL_TICKS = 1L;
     private static final long RING_DISPLAY_LIMIT_TICKS = 100L;
     private static final long CAST_WAIT_LIMIT_TICKS = 60L;
@@ -122,9 +122,8 @@ public final class SkillActionRingService {
             return;
         }
         if (!session.hasConfirmedSelection()) {
-            if (session.confirmSelection(player)) {
-                GuiSound.RING_SELECT.play(player);
-            }
+            session.confirmSelection();
+            GuiSound.RING_SELECT.play(player);
             return;
         }
 
@@ -141,8 +140,8 @@ public final class SkillActionRingService {
                 null,
                 List.of()
             );
-            GuiSound.RING_CAST.play(player);
         }
+        GuiSound.RING_CAST.play(player);
         astPlayer.sendMessage(PlayerMsgId.P_5807, SLOT_COUNT, selectedSlot);
     }
 
@@ -335,12 +334,12 @@ public final class SkillActionRingService {
                 display.setPersistent(false);
                 display.setSilent(true);
                 display.setViewRange(16.0F);
-                display.setLineWidth(96);
+                display.setLineWidth(180);
                 display.setSeeThrough(true);
                 display.setShadowed(true);
                 display.setDefaultBackground(false);
                 display.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
-                display.setTransformation(scaleTransformation(0.56F));
+                display.setTransformation(scaleTransformation(0.60F));
             });
         }
 
@@ -395,16 +394,10 @@ public final class SkillActionRingService {
             return phase == RingPhase.WAITING_CAST;
         }
 
-        private boolean confirmSelection(@NotNull Player player) {
-            String skillId = slots.get(selectedIndex).skillId();
-            if (skillId == null || skillId.isBlank()) {
-                GuiSound.DENY.play(player);
-                return false;
-            }
+        private void confirmSelection() {
             confirmedIndex = selectedIndex;
             phase = RingPhase.WAITING_CAST;
             phaseElapsedTicks = 0L;
-            return true;
         }
 
         private String selectedSkillId() {
