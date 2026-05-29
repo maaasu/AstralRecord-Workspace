@@ -77,7 +77,6 @@ public final class DamageService {
         }
 
         event.setDamage(0.0D);
-        event.setCancelled(true);
 
         if (!victim.isManaged()) {
             return;
