@@ -175,11 +175,8 @@ public class MobEntityController {
 
         boolean targetDrifted = hasTargetDrifted(instance, target);
         boolean intervalPassed = currentTick - instance.navRecomputeTick() >= PATH_RECOMPUTE_INTERVAL_TICKS;
-        if (!targetDrifted && mob.getPathfinder().hasPath() && !intervalPassed) {
-            instance.currentLocation(current);
-            return false;
-        }
-        if (!intervalPassed && mob.getPathfinder().hasPath()) {
+        boolean hasPath = mob.getPathfinder().hasPath();
+        if (hasPath && !targetDrifted && !intervalPassed) {
             instance.currentLocation(current);
             return false;
         }
