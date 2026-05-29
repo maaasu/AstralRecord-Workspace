@@ -33,6 +33,9 @@ import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.mob.repository.MobRepository;
 import io.github.maaasu.astralRecord.feature.mob.service.MobAiService;
+import io.github.maaasu.astralRecord.feature.mob.service.MobCombatService;
+import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
+import io.github.maaasu.astralRecord.feature.mob.service.MobKnockbackService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerJoinEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerModeEventHandler;
@@ -117,6 +120,7 @@ public final class AstralRecord extends JavaPlugin {
     private PagingDebugGui pagingDebugGui;
     private MobService mobService;
     private MobAiService mobAiService;
+    private MobCombatService mobCombatService;
     private EventManager eventManager;
     private ParticleDisplayService particleDisplayService;
     private DisplayTextService displayTextService;
@@ -304,7 +308,12 @@ public final class AstralRecord extends JavaPlugin {
         overheadDisplayService = new OverheadDisplayService(displayTextService, statusService, mobService);
 
         // combat
-        damageService = new DamageService(statusService, mobService, displayTextService, playerSettingService);
+        mobCombatService = new MobCombatService(
+                mobService,
+                new MobKnockbackService(mobService),
+                new MobDropService()
+        );
+        damageService = new DamageService(statusService, mobService, mobCombatService, displayTextService, playerSettingService);
 
         // dodge
         dodgeService = new DodgeService(this, statusService, playerHudService, particleDisplayService);

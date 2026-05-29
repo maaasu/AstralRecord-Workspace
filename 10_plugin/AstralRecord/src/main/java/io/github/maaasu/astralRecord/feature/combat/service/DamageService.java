@@ -6,18 +6,30 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageContext;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageScaling;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageType;
+import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
+import io.github.maaasu.astralRecord.feature.mob.service.MobCombatService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
+import org.bukkit.World;
+import org.bukkit.EntityEffect;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * custom combat のダメージ適用を一元化するサービスです。
@@ -26,6 +38,7 @@ public final class DamageService {
 
     private final StatusService statusService;
     private final MobService mobService;
+    private final MobCombatService mobCombatService;
     private final DamageCalculator damageCalculator;
     private final DisplayTextService displayTextService;
     private final PlayerSettingService playerSettingService;
@@ -39,11 +52,13 @@ public final class DamageService {
     public DamageService(
             @NotNull StatusService statusService,
             @NotNull MobService mobService,
+            @NotNull MobCombatService mobCombatService,
             @NotNull DisplayTextService displayTextService,
             @NotNull PlayerSettingService playerSettingService
     ) {
         this.statusService = statusService;
         this.mobService = mobService;
+        this.mobCombatService = mobCombatService;
         this.damageCalculator = new DamageCalculator();
         this.displayTextService = displayTextService;
         this.playerSettingService = playerSettingService;
@@ -193,6 +208,7 @@ public final class DamageService {
 
         var mob = victim.mob();
         mob.currentHealth(Math.max(0.0D, mob.currentHealth() - result.finalDamage()));
+        playMobHurtEffect(mob.bukkitEntityId());
         if (attacker != null && attacker.isPlayer()) {
             mob.threatTable().add(attacker.id(), result.finalDamage());
             if (mob.state() == MobState.IDLE) {
@@ -202,6 +218,10 @@ public final class DamageService {
         }
         if (mob.currentHealth() <= 0.0D) {
             mob.state(MobState.DEAD);
+            Location deathLocation = mob.currentLocation();
+            playMobDeathEffect(mob.bukkitEntityId(), deathLocation);
+            MobDropResult dropResult = mobCombatService.handleDeath(mob);
+            spawnMobDeathResult(deathLocation, victim.name(), dropResult);
         }
     }
 
@@ -231,5 +251,59 @@ public final class DamageService {
             return false;
         }
         return !victim.isPlayer() || playerSettingService.isDamageLogDisplayEnabled(victim.player().getUser().getUuid());
+    }
+
+    private void playMobHurtEffect(@Nullable UUID entityId) {
+        Entity entity = resolveBukkitEntity(entityId);
+        if (entity instanceof LivingEntity livingEntity) {
+            livingEntity.playEffect(EntityEffect.HURT);
+            livingEntity.setNoDamageTicks(0);
+        }
+    }
+
+    private void playMobDeathEffect(@Nullable UUID entityId, @NotNull Location location) {
+        Entity entity = resolveBukkitEntity(entityId);
+        if (entity instanceof LivingEntity livingEntity) {
+            livingEntity.playEffect(EntityEffect.DEATH);
+        }
+        World world = location.getWorld();
+        if (world == null) {
+            return;
+        }
+        world.spawnParticle(Particle.POOF, location.clone().add(0.0D, 0.8D, 0.0D), 28, 0.45D, 0.35D, 0.45D, 0.02D);
+        world.spawnParticle(Particle.CRIT, location.clone().add(0.0D, 0.9D, 0.0D), 18, 0.35D, 0.3D, 0.35D, 0.1D);
+        world.playSound(location, Sound.ENTITY_GENERIC_DEATH, 0.8F, 1.1F);
+    }
+
+    private void spawnMobDeathResult(
+            @NotNull Location deathLocation,
+            @NotNull String mobName,
+            @NotNull MobDropResult result
+    ) {
+        displayTextService.spawnResultText(deathLocation.clone().add(0.0D, 1.8D, 0.0D), formatMobDeathResult(mobName, result));
+    }
+
+    private @NotNull String formatMobDeathResult(@NotNull String mobName, @NotNull MobDropResult result) {
+        StringBuilder text = new StringBuilder("&6&l討伐: &f").append(mobName);
+        text.append("\n&eEXP &f+").append(result.exp());
+        text.append("  &6Money &f+").append(result.money());
+        text.append("\n&aDrop &f");
+        if (result.items().isEmpty()) {
+            text.append("なし");
+            return text.toString();
+        }
+        boolean first = true;
+        for (Map.Entry<String, Integer> item : result.items()) {
+            if (!first) {
+                text.append("&7, &f");
+            }
+            text.append(item.getKey()).append(" x").append(item.getValue());
+            first = false;
+        }
+        return text.toString();
+    }
+
+    private @Nullable Entity resolveBukkitEntity(@Nullable UUID entityId) {
+        return entityId == null ? null : Bukkit.getEntity(entityId);
     }
 }

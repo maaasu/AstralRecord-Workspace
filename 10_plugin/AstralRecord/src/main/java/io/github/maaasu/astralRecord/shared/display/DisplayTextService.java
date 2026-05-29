@@ -97,6 +97,33 @@ public final class DisplayTextService {
         return display;
     }
 
+    /**
+     * Mob 討伐時のリザルト表示を一定時間ワールド上へ表示します。
+     *
+     * @param origin 表示基準座標
+     * @param text   表示するリザルト本文
+     * @return 管理ハンドル
+     */
+    public @NotNull ManagedTextDisplay spawnResultText(@NotNull Location origin, @NotNull String text) {
+        ManagedTextDisplay display = create(
+                DisplayAnchor.fixed(origin),
+                DisplayTextOptions.defaults(text)
+                        .withSeeThrough(true)
+                        .withShadowed(true)
+                        .withLineWidth(260)
+                        .withViewRange(48.0F)
+                        .withInterpolationDuration(2)
+                        .withTeleportDuration(2)
+        );
+
+        List<DisplayAnimationFrame> frames = new ArrayList<>();
+        for (int index = 0; index < 40; index++) {
+            frames.add(new DisplayAnimationFrame(text, new Vector(0.0D, index * 0.01D, 0.0D), 2L));
+        }
+        display.playAnimation(frames, false, true);
+        return display;
+    }
+
     private void tick() {
         for (ManagedDisplayState state : displays.values()) {
             if (state.destroyed) {
