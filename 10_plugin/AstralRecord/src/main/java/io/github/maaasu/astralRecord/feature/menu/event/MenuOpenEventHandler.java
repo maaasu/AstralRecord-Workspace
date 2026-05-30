@@ -19,6 +19,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.gui.PlayerSettingGui;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
+import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
@@ -390,14 +391,14 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             openCurrency(player, 0);
             return;
         }
-        if (rawSlot == MenuView.CLASS_SLOT) {
-            AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (astPlayer == null || plugin.getPlayerClassService() == null) {
+        if (rawSlot == MenuView.PARTY_SLOT) {
+            var partyGui = plugin.getPartyGui();
+            if (partyGui == null) {
                 GuiSound.DENY.play(player);
                 return;
             }
-            GuiSound.SELECT.play(player);
-            menuView.openClass(player, astPlayer, plugin.getPlayerClassService().getClassViewEntries());
+            GuiSound.OPEN.play(player);
+            partyGui.open(player);
             return;
         }
         GuiSound.DENY.play(player);
@@ -480,6 +481,11 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             menuView.open(player);
             return;
         }
+        if (!hasAdminPermission(player)) {
+            GuiSound.DENY.play(player);
+            player.closeInventory();
+            return;
+        }
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null || plugin.getPlayerClassService() == null) {
             GuiSound.DENY.play(player);
@@ -498,6 +504,11 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         astPlayer.sendMessage(PlayerMsgId.P_5812, oldDisplayName, newDisplayName);
         GuiSound.SELECT.play(player);
         menuView.openClass(player, astPlayer, plugin.getPlayerClassService().getClassViewEntries());
+    }
+
+    private boolean hasAdminPermission(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        return astPlayer != null && astPlayer.getUser().getPermission() >= UserPermission.ADMIN.getValue();
     }
 
     private void handleTrashClick(@NotNull InventoryClickEvent event) {

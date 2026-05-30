@@ -20,13 +20,17 @@ import org.jetbrains.annotations.Nullable;
 public final class ClassCommand extends AstCommand {
 
     public ClassCommand() {
-        super("class", "Change player class.", "/class change <classId> [player]", false, UserPermission.ADMIN.getValue());
+        super("class", "Change player class.", "/class gui|change <classId> [player]", false, UserPermission.ADMIN.getValue());
     }
 
     @Override
     protected void executeCommand(@NotNull CommandSender sender, @NotNull String[] args) {
         if (!hasAdminPermission(sender)) {
             sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5061.getId()));
+            return;
+        }
+        if (args.length >= 1 && args[0].equalsIgnoreCase("gui")) {
+            openGui(sender);
             return;
         }
         if (args.length < 2 || !args[0].equalsIgnoreCase("change")) {
@@ -70,6 +74,20 @@ public final class ClassCommand extends AstCommand {
         }
         AstPlayer astPlayer = AstPlayerCache.get(player);
         return astPlayer != null && astPlayer.getUser().getPermission() >= UserPermission.ADMIN.getValue();
+    }
+
+    private void openGui(@NotNull CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5305.getId()));
+            return;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        PlayerClassService classService = AstralRecord.getInstance().getPlayerClassService();
+        if (astPlayer == null || classService == null) {
+            sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5814.getId(), player.getName()));
+            return;
+        }
+        AstralRecord.getInstance().getMenuView().openClass(player, astPlayer, classService.getClassViewEntries());
     }
 
     private @Nullable AstPlayer resolveTarget(@NotNull CommandSender sender, @NotNull String[] args) {

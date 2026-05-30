@@ -28,6 +28,7 @@
 - `inventory`
 - `currency`
 - `status`
+- `party`
 
 ## 更新ルール（変更時に必ず更新する章）
 
@@ -47,6 +48,7 @@
 
 - 2026-05-30: クラフトスロットの `STATUS` は `アカウント情報` として、選択中アカウント名、Lv、スロット、モード、累計経験値、主要ステータスを装飾付き lore で表示する。
 - 2026-05-30: `STATUS` ショートカットの lore は current HP / MP / EN を表示せず、`ATTACK` / `MELEE_ATTACK` / `RANGED_ATTACK` / `MAGIC_ATTACK` / `DEFENSE` / `MAGIC_DEFENSE` を表示する。
+- 2026-05-30: メインメニュー slot 33 は職業 GUI ではなくパーティー GUI を開く。職業 GUI は ADMIN の `/class gui` からのみ開く。
 
 ## 追記（ゴミ箱GUI）
 - ゴミ箱GUI追加に伴い、[[09_1.00-モデル定義]]・[[09_3.01-イベント]]・[[09_3.07-GUI・View]]・[[09_4.00-統合フロー]] を更新。

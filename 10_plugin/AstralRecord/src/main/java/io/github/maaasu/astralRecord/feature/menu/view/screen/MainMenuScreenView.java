@@ -17,7 +17,7 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
     public static final int BUFF_SLOT = 30;
     public static final int SKILL_BIND_SLOT = 31;
     public static final int CURRENCY_SLOT = 32;
-    public static final int CLASS_SLOT = 33;
+    public static final int PARTY_SLOT = 33;
 
     public void render(@NotNull Inventory inventory) {
         fill(inventory);
@@ -61,10 +61,10 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
             Component.text("通貨", NamedTextColor.GOLD),
             List.of(Component.text("所持通貨を確認", NamedTextColor.GRAY))
         ));
-        inventory.setItem(CLASS_SLOT, createItem(
-            Material.NETHER_STAR,
-            Component.text("クラス", NamedTextColor.YELLOW),
-            List.of(Component.text("クラス情報を確認し、クリックで転職", NamedTextColor.GRAY))
+        inventory.setItem(PARTY_SLOT, createItem(
+            Material.PLAYER_HEAD,
+            Component.text("パーティー", NamedTextColor.AQUA),
+            List.of(Component.text("作成・招待・参加状態を確認", NamedTextColor.GRAY))
         ));
     }
 }

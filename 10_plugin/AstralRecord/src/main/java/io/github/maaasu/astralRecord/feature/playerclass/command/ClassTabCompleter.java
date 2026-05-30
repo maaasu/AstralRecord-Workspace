@@ -23,7 +23,7 @@ public final class ClassTabCompleter extends AstTabCompleter {
             return List.of();
         }
 
-        List<String> subCommands = completeAtPosition(args, 0, "change");
+        List<String> subCommands = completeAtPosition(args, 0, "gui", "change");
         if (!subCommands.isEmpty()) {
             return subCommands;
         }
