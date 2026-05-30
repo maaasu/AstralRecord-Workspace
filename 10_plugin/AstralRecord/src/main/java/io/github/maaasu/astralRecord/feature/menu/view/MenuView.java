@@ -135,6 +135,16 @@ public class MenuView {
         player.openInventory(inventory);
     }
 
+    /**
+     * バフ一覧 GUI の内容を再描画します。
+     *
+     * @param inventory   再描画するインベントリ
+     * @param activeBuffs 現在有効なバフ一覧
+     */
+    public void renderBuff(@NotNull Inventory inventory, @NotNull List<ActiveBuff> activeBuffs) {
+        buffScreenView.render(inventory, activeBuffs);
+    }
+
     public void openClass(@NotNull Player player, @NotNull AstPlayer astPlayer, @NotNull List<ClassViewEntry> classes) {
         Inventory inventory = Bukkit.createInventory(
             new MenuInventoryHolder(MenuScreen.CLASS),

@@ -23,6 +23,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Supplier;
 
 /**
  * 実体 TextDisplay を用いて、固定表示・追従表示・アニメーション表示を統一管理するサービスです。
@@ -141,6 +142,7 @@ public final class DisplayTextService {
             return;
         }
 
+        refreshDynamicText(state);
         DisplayAnimationFrame frame = resolveFrame(state);
         Entity attachment = state.anchor.attachment();
         Vector attachedOffset = resolveAttachedOffset(state, frame);
@@ -193,6 +195,27 @@ public final class DisplayTextService {
         state.lastText = null;
         state.lastAttachmentOffset = null;
         return state.entity;
+    }
+
+    private void refreshDynamicText(@NotNull ManagedDisplayState state) {
+        Supplier<String> supplier = state.textSupplier;
+        if (supplier == null) {
+            return;
+        }
+
+        String text = supplier.get();
+        if (Objects.equals(state.options.text(), text)) {
+            return;
+        }
+
+        state.options = state.options.withText(text);
+        if (!state.frames.isEmpty()) {
+            List<DisplayAnimationFrame> updatedFrames = new ArrayList<>(state.frames.size());
+            for (DisplayAnimationFrame frame : state.frames) {
+                updatedFrames.add(new DisplayAnimationFrame(text, frame.offset(), frame.durationTicks()));
+            }
+            state.frames = List.copyOf(updatedFrames);
+        }
     }
 
     private void applyOptions(@NotNull TextDisplay entity, @NotNull DisplayTextOptions options) {
@@ -363,6 +386,17 @@ public final class DisplayTextService {
             state.frames = List.of();
             state.animationAge = 0L;
             state.destroyAfterAnimation = false;
+            state.textSupplier = null;
+        }
+
+        /**
+         * 表示文字列を毎 tick 再計算します。
+         *
+         * @param textSupplier 新しい表示文字列を返す supplier
+         */
+        public void setDynamicText(@NotNull Supplier<String> textSupplier) {
+            ManagedDisplayState state = requireState();
+            state.textSupplier = textSupplier;
         }
 
         /**
@@ -438,6 +472,7 @@ public final class DisplayTextService {
         private @Nullable String lastText;
         private @Nullable Location lastLocation;
         private @Nullable Vector lastAttachmentOffset;
+        private @Nullable Supplier<String> textSupplier;
 
         private ManagedDisplayState(@NotNull DisplayAnchor anchor, @NotNull DisplayTextOptions options) {
             this.anchor = anchor;

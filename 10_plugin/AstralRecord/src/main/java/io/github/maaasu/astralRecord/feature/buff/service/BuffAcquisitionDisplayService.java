@@ -30,7 +30,7 @@ public final class BuffAcquisitionDisplayService {
     private static final long HOLD_TICKS = 54L;
     private static final long FADE_TICKS = 10L;
     private static final double DISTANCE = 1.85D;
-    private static final Vector LOWER_RIGHT_OFFSET = new Vector(1.18D, -0.78D, 0.0D);
+    private static final Vector LOWER_RIGHT_OFFSET = new Vector(1.48D, -1.02D, 0.0D);
 
     private final DisplayTextService displayTextService;
     private final Map<UUID, DisplayTextService.ManagedTextDisplay> activeDisplays = new ConcurrentHashMap<>();
@@ -88,6 +88,7 @@ public final class BuffAcquisitionDisplayService {
             options
         );
         display.playAnimation(frames(text), false, true);
+        display.setDynamicText(() -> buildText(buff));
         activeDisplays.put(player.getUniqueId(), display);
     }
 

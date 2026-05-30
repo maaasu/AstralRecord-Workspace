@@ -49,6 +49,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MenuOpenEventHandler extends AbstractEventHandler {
     private static final String TRASH_AMOUNT_LORE_PREFIX = "\u30b9\u30bf\u30c3\u30af: ";
+    private static final long BUFF_GUI_REFRESH_INTERVAL_TICKS = 20L;
 
     private final AstralRecord plugin;
     private final MenuView menuView;
@@ -71,6 +72,12 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         this.inventoryService = inventoryService;
         this.currencyService = currencyService;
         this.statusService = statusService;
+        plugin.getServer().getScheduler().runTaskTimer(
+            plugin,
+            (Runnable) this::refreshOpenBuffMenus,
+            BUFF_GUI_REFRESH_INTERVAL_TICKS,
+            BUFF_GUI_REFRESH_INTERVAL_TICKS
+        );
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -450,6 +457,21 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             return;
         }
         GuiSound.DENY.play(player);
+    }
+
+    private void refreshOpenBuffMenus() {
+        for (Player player : plugin.getServer().getOnlinePlayers()) {
+            Inventory inventory = player.getOpenInventory().getTopInventory();
+            if (!menuView.isMenuInventory(inventory) || menuView.getMenuScreen(inventory) != MenuScreen.BUFF) {
+                continue;
+            }
+
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer == null) {
+                continue;
+            }
+            menuView.renderBuff(inventory, statusService.getActiveBuffs(astPlayer));
+        }
     }
 
     private void handleClassClick(@NotNull Player player, @Nullable ItemStack clickedItem, int rawSlot) {
