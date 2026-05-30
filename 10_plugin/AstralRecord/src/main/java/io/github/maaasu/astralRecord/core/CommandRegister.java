@@ -16,6 +16,8 @@ import io.github.maaasu.astralRecord.feature.menu.command.TrashCommand;
 import io.github.maaasu.astralRecord.feature.mob.command.MobCommand;
 import io.github.maaasu.astralRecord.feature.mob.command.MobTabCompleter;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.party.command.PartyCommand;
+import io.github.maaasu.astralRecord.feature.party.command.PartyTabCompleter;
 import io.github.maaasu.astralRecord.feature.playersetting.command.PlayerSettingCommand;
 import io.github.maaasu.astralRecord.feature.playersetting.command.PlayerSettingTabCompleter;
 import io.github.maaasu.astralRecord.feature.playerclass.command.ClassCommand;
@@ -74,6 +76,7 @@ public class CommandRegister {
         cm.registerCommand("setting", new PlayerSettingCommand(), new PlayerSettingTabCompleter());
         cm.registerCommand("class", new ClassCommand(), new ClassTabCompleter());
         cm.registerCommand("skill", new SkillCommand());
+        cm.registerCommand("party", new PartyCommand(), new PartyTabCompleter());
         cm.registerCommand("astreload", new ReloadCommand());
     }
 }

@@ -1,0 +1,383 @@
+package io.github.maaasu.astralRecord.feature.party.service;
+
+import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.party.model.Party;
+import io.github.maaasu.astralRecord.feature.party.model.PartyActionResult;
+import io.github.maaasu.astralRecord.feature.party.model.PartyInvite;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.user.service.UserService;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * 一時パーティーの作成、招待、参加、離脱を管理します。
+ */
+public final class PartyService {
+    public static final int MAX_MEMBERS = 6;
+
+    private final AstralRecord plugin;
+    private final UserService userService;
+    private final Map<UUID, Party> parties = new ConcurrentHashMap<>();
+    private final Map<UUID, UUID> partyIdByMember = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<UUID, PartyInvite>> invitesByTarget = new ConcurrentHashMap<>();
+
+    /**
+     * PartyService を作成します。
+     *
+     * @param plugin プラグインインスタンス
+     * @param userService 履歴登録に使うユーザーサービス
+     */
+    public PartyService(@NotNull AstralRecord plugin, @NotNull UserService userService) {
+        this.plugin = plugin;
+        this.userService = userService;
+    }
+
+    /**
+     * パーティーを新規作成します。
+     *
+     * @param leader 作成者
+     * @return 操作結果
+     */
+    public synchronized @NotNull PartyActionResult createParty(@NotNull AstPlayer leader) {
+        UUID leaderId = leader.getBukkit().getUniqueId();
+        if (partyIdByMember.containsKey(leaderId)) {
+            return PartyActionResult.failure(PlayerMsgId.P_5901);
+        }
+
+        Party party = new Party(UUID.randomUUID(), leaderId);
+        parties.put(party.getPartyId(), party);
+        partyIdByMember.put(leaderId, party.getPartyId());
+        recordHistory(leaderId, "PARTY_CREATED", "Party created: " + party.getPartyId());
+        return PartyActionResult.success(PlayerMsgId.P_5900);
+    }
+
+    /**
+     * 指定プレイヤーをパーティーへ招待します。招待者が未所属なら自動でパーティーを作成します。
+     *
+     * @param inviter 招待者
+     * @param target 招待対象
+     * @return 操作結果
+     */
+    public synchronized @NotNull PartyActionResult invite(@NotNull AstPlayer inviter, @NotNull Player target) {
+        UUID inviterId = inviter.getBukkit().getUniqueId();
+        UUID targetId = target.getUniqueId();
+        if (inviterId.equals(targetId)) {
+            return PartyActionResult.failure(PlayerMsgId.P_5904);
+        }
+        if (partyIdByMember.containsKey(targetId)) {
+            return PartyActionResult.failure(PlayerMsgId.P_5906);
+        }
+
+        Party party = findParty(inviterId);
+        if (party == null) {
+            PartyActionResult created = createParty(inviter);
+            if (!created.success()) {
+                return created;
+            }
+            party = findParty(inviterId);
+        }
+        if (party == null) {
+            return PartyActionResult.failure(PlayerMsgId.P_5919);
+        }
+        if (!party.isLeader(inviterId)) {
+            return PartyActionResult.failure(PlayerMsgId.P_5920);
+        }
+        if (party.size() >= MAX_MEMBERS) {
+            return PartyActionResult.failure(PlayerMsgId.P_5903, MAX_MEMBERS);
+        }
+
+        invitesByTarget.computeIfAbsent(targetId, ignored -> new LinkedHashMap<>())
+            .put(inviterId, new PartyInvite(party.getPartyId(), inviterId, targetId, java.time.Instant.now()));
+        target.sendMessage(PlayerMsgResource.format(PlayerMsgId.P_5908.getId(), inviter.getBukkit().getName()));
+        recordHistory(inviterId, "PARTY_INVITED", "Party invite sent to " + target.getName());
+        recordHistory(targetId, "PARTY_INVITE_RECEIVED", "Party invite received from " + inviter.getBukkit().getName());
+        return PartyActionResult.success(PlayerMsgId.P_5907, target.getName());
+    }
+
+    /**
+     * 招待を承諾してパーティーへ参加します。
+     *
+     * @param player 承諾者
+     * @param leaderName 招待者名
+     * @return 操作結果
+     */
+    public synchronized @NotNull PartyActionResult acceptInvite(@NotNull AstPlayer player, @NotNull String leaderName) {
+        Player leader = Bukkit.getPlayerExact(leaderName);
+        if (leader == null) {
+            return PartyActionResult.failure(PlayerMsgId.P_5905, leaderName);
+        }
+
+        UUID playerId = player.getBukkit().getUniqueId();
+        UUID leaderId = leader.getUniqueId();
+        PartyInvite invite = invitesByTarget.getOrDefault(playerId, Map.of()).get(leaderId);
+        if (invite == null) {
+            return PartyActionResult.failure(PlayerMsgId.P_5911, leaderName);
+        }
+        if (partyIdByMember.containsKey(playerId)) {
+            removeInvite(playerId, leaderId);
+            return PartyActionResult.failure(PlayerMsgId.P_5901);
+        }
+
+        Party party = parties.get(invite.partyId());
+        if (party == null || !party.contains(leaderId)) {
+            removeInvite(playerId, leaderId);
+            return PartyActionResult.failure(PlayerMsgId.P_5911, leaderName);
+        }
+        if (party.size() >= MAX_MEMBERS) {
+            return PartyActionResult.failure(PlayerMsgId.P_5903, MAX_MEMBERS);
+        }
+
+        party.addMember(playerId);
+        partyIdByMember.put(playerId, party.getPartyId());
+        removeInvite(playerId, leaderId);
+        clearInvitesForTarget(playerId);
+        notifyPartyExcept(party, playerId, PlayerMsgId.P_5913, player.getBukkit().getName());
+        recordHistory(playerId, "PARTY_JOINED", "Party joined: " + party.getPartyId());
+        return PartyActionResult.success(PlayerMsgId.P_5912, leader.getName());
+    }
+
+    /**
+     * 招待を辞退します。
+     *
+     * @param player 辞退者
+     * @param leaderName 招待者名
+     * @return 操作結果
+     */
+    public synchronized @NotNull PartyActionResult declineInvite(@NotNull AstPlayer player, @NotNull String leaderName) {
+        Player leader = Bukkit.getPlayerExact(leaderName);
+        if (leader == null) {
+            return PartyActionResult.failure(PlayerMsgId.P_5905, leaderName);
+        }
+        UUID playerId = player.getBukkit().getUniqueId();
+        UUID leaderId = leader.getUniqueId();
+        PartyInvite invite = invitesByTarget.getOrDefault(playerId, Map.of()).get(leaderId);
+        if (invite == null) {
+            return PartyActionResult.failure(PlayerMsgId.P_5911, leaderName);
+        }
+
+        removeInvite(playerId, leaderId);
+        leader.sendMessage(PlayerMsgResource.format(PlayerMsgId.P_5915.getId(), player.getBukkit().getName()));
+        recordHistory(playerId, "PARTY_INVITE_DECLINED", "Party invite declined from " + leaderName);
+        return PartyActionResult.success(PlayerMsgId.P_5914, leaderName);
+    }
+
+    /**
+     * パーティーから離脱します。
+     *
+     * @param player 離脱者
+     * @return 操作結果
+     */
+    public synchronized @NotNull PartyActionResult leave(@NotNull AstPlayer player) {
+        boolean left = leaveInternal(player.getBukkit().getUniqueId(), player.getBukkit().getName(), "PARTY_LEFT", true);
+        return left
+            ? PartyActionResult.success(PlayerMsgId.P_5916)
+            : PartyActionResult.failure(PlayerMsgId.P_5902);
+    }
+
+    /**
+     * ログアウトしたプレイヤーをパーティーから自動離脱させます。
+     *
+     * @param playerId プレイヤーUUID
+     * @param playerName プレイヤー名
+     */
+    public synchronized void leaveOnLogout(@NotNull UUID playerId, @NotNull String playerName) {
+        leaveInternal(playerId, playerName, "PARTY_LEFT_LOGOUT", true);
+        clearInvitesForTarget(playerId);
+    }
+
+    /**
+     * リーダー操作でパーティーを解散します。
+     *
+     * @param leader リーダー
+     * @return 操作結果
+     */
+    public synchronized @NotNull PartyActionResult disband(@NotNull AstPlayer leader) {
+        Party party = findParty(leader.getBukkit().getUniqueId());
+        if (party == null) {
+            return PartyActionResult.failure(PlayerMsgId.P_5902);
+        }
+        if (!party.isLeader(leader.getBukkit().getUniqueId())) {
+            return PartyActionResult.failure(PlayerMsgId.P_5920);
+        }
+
+        List<UUID> members = party.members();
+        UUID leaderId = leader.getBukkit().getUniqueId();
+        parties.remove(party.getPartyId());
+        for (UUID memberId : members) {
+            partyIdByMember.remove(memberId);
+            clearInvitesForTarget(memberId);
+            if (!memberId.equals(leaderId)) {
+                sendIfOnline(memberId, PlayerMsgId.P_5918);
+            }
+            recordHistory(memberId, "PARTY_DISBANDED", "Party disbanded: " + party.getPartyId());
+        }
+        return PartyActionResult.success(PlayerMsgId.P_5918);
+    }
+
+    /**
+     * メンバーをパーティーから追放します。
+     *
+     * @param leader リーダー
+     * @param target 追放対象
+     * @return 操作結果
+     */
+    public synchronized @NotNull PartyActionResult kick(@NotNull AstPlayer leader, @NotNull Player target) {
+        UUID leaderId = leader.getBukkit().getUniqueId();
+        UUID targetId = target.getUniqueId();
+        if (leaderId.equals(targetId)) {
+            return PartyActionResult.failure(PlayerMsgId.P_5925);
+        }
+
+        Party party = findParty(leaderId);
+        if (party == null) {
+            return PartyActionResult.failure(PlayerMsgId.P_5902);
+        }
+        if (!party.isLeader(leaderId)) {
+            return PartyActionResult.failure(PlayerMsgId.P_5920);
+        }
+        if (!party.contains(targetId)) {
+            return PartyActionResult.failure(PlayerMsgId.P_5924);
+        }
+
+        party.removeMember(targetId);
+        partyIdByMember.remove(targetId);
+        clearInvitesForTarget(targetId);
+        target.sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5922.getId()));
+        notifyPartyExcept(party, leaderId, PlayerMsgId.P_5917, target.getName());
+        recordHistory(targetId, "PARTY_KICKED", "Kicked from party: " + party.getPartyId());
+        recordHistory(leaderId, "PARTY_MEMBER_KICKED", "Kicked party member: " + target.getName());
+        return PartyActionResult.success(PlayerMsgId.P_5921, target.getName());
+    }
+
+    /**
+     * リーダーを移譲します。
+     *
+     * @param leader 現リーダー
+     * @param target 新リーダー
+     * @return 操作結果
+     */
+    public synchronized @NotNull PartyActionResult promote(@NotNull AstPlayer leader, @NotNull Player target) {
+        UUID leaderId = leader.getBukkit().getUniqueId();
+        UUID targetId = target.getUniqueId();
+        Party party = findParty(leaderId);
+        if (party == null) {
+            return PartyActionResult.failure(PlayerMsgId.P_5902);
+        }
+        if (!party.isLeader(leaderId)) {
+            return PartyActionResult.failure(PlayerMsgId.P_5920);
+        }
+        if (!party.contains(targetId)) {
+            return PartyActionResult.failure(PlayerMsgId.P_5924);
+        }
+
+        party.setLeaderId(targetId);
+        notifyPartyExcept(party, leaderId, PlayerMsgId.P_5923, target.getName());
+        recordHistory(leaderId, "PARTY_LEADER_TRANSFERRED", "Party leader transferred to " + target.getName());
+        recordHistory(targetId, "PARTY_LEADER_ASSIGNED", "Party leader assigned: " + party.getPartyId());
+        return PartyActionResult.success(PlayerMsgId.P_5923, target.getName());
+    }
+
+    public @Nullable Party findParty(@NotNull UUID playerId) {
+        UUID partyId = partyIdByMember.get(playerId);
+        return partyId == null ? null : parties.get(partyId);
+    }
+
+    public @NotNull List<PartyInvite> getInvites(@NotNull UUID playerId) {
+        return new ArrayList<>(invitesByTarget.getOrDefault(playerId, Map.of()).values());
+    }
+
+    public void clearAll() {
+        parties.clear();
+        partyIdByMember.clear();
+        invitesByTarget.clear();
+    }
+
+    private boolean leaveInternal(@NotNull UUID playerId, @NotNull String playerName, @NotNull String eventType, boolean notify) {
+        Party party = findParty(playerId);
+        if (party == null) {
+            return false;
+        }
+
+        party.removeMember(playerId);
+        partyIdByMember.remove(playerId);
+        recordHistory(playerId, eventType, "Party left: " + party.getPartyId());
+        if (party.isEmpty()) {
+            parties.remove(party.getPartyId());
+            return true;
+        }
+
+        if (party.getLeaderId().equals(playerId)) {
+            UUID nextLeader = party.members().get(0);
+            party.setLeaderId(nextLeader);
+            Player nextLeaderPlayer = Bukkit.getPlayer(nextLeader);
+            notifyParty(party, PlayerMsgId.P_5923, nextLeaderPlayer == null ? nextLeader.toString() : nextLeaderPlayer.getName());
+            recordHistory(nextLeader, "PARTY_LEADER_ASSIGNED", "Party leader assigned after leave: " + party.getPartyId());
+        }
+        if (notify) {
+            notifyParty(party, PlayerMsgId.P_5917, playerName);
+        }
+        return true;
+    }
+
+    private void notifyParty(@NotNull Party party, @NotNull PlayerMsgId messageId, Object... args) {
+        for (UUID memberId : party.members()) {
+            sendIfOnline(memberId, messageId, args);
+        }
+    }
+
+    private void notifyPartyExcept(@NotNull Party party, @NotNull UUID excludedMemberId, @NotNull PlayerMsgId messageId, Object... args) {
+        for (UUID memberId : party.members()) {
+            if (!memberId.equals(excludedMemberId)) {
+                sendIfOnline(memberId, messageId, args);
+            }
+        }
+    }
+
+    private void sendIfOnline(@NotNull UUID memberId, @NotNull PlayerMsgId messageId, Object... args) {
+        Player member = Bukkit.getPlayer(memberId);
+        if (member != null && member.isOnline()) {
+            member.sendMessage(PlayerMsgResource.format(messageId.getId(), args));
+        }
+    }
+
+    private void removeInvite(@NotNull UUID targetId, @NotNull UUID leaderId) {
+        Map<UUID, PartyInvite> invites = invitesByTarget.get(targetId);
+        if (invites == null) {
+            return;
+        }
+        invites.remove(leaderId);
+        if (invites.isEmpty()) {
+            invitesByTarget.remove(targetId);
+        }
+    }
+
+    private void clearInvitesForTarget(@NotNull UUID targetId) {
+        invitesByTarget.remove(targetId);
+        for (Map<UUID, PartyInvite> invites : invitesByTarget.values()) {
+            invites.remove(targetId);
+        }
+    }
+
+    private void recordHistory(@NotNull UUID userId, @NotNull String eventType, @NotNull String message) {
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                userService.recordUserHistory(userId, eventType, "PLUGIN", message);
+            } catch (Exception e) {
+                Logger.log(LogId.W_6100, userId, eventType, e.getMessage());
+            }
+        });
+    }
+}

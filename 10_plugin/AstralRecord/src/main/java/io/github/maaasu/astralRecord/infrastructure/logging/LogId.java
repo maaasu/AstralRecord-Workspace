@@ -837,6 +837,11 @@ public enum LogId {
     E_6000(6000),
     // endregion
 
+    // region /feature/party/ 6100-6199
+    W_6100(6100),
+    E_6100(6100),
+    // endregion
+
     ;
     private final String id;
 

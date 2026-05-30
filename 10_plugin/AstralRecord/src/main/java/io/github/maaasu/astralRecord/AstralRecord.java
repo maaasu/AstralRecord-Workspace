@@ -39,6 +39,10 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobCombatService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobKnockbackService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.party.event.PartyGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.party.event.PartyQuitEventHandler;
+import io.github.maaasu.astralRecord.feature.party.gui.PartyGui;
+import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerJoinEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerModeEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerInputEventHandler;
@@ -146,6 +150,8 @@ public final class AstralRecord extends JavaPlugin {
     private ItemWeaponAttackService itemWeaponAttackService;
     private WorldService worldService;
     private WorldSpawnParticleTask worldSpawnParticleTask;
+    private PartyService partyService;
+    private PartyGui partyGui;
     private String joinSpawnWorldId;
 
     @Override
@@ -215,6 +221,9 @@ public final class AstralRecord extends JavaPlugin {
         if (worldSpawnParticleTask != null) {
             worldSpawnParticleTask.stop();
         }
+        if (partyService != null) {
+            partyService.clearAll();
+        }
         if (skillActionRingService != null) {
             skillActionRingService.stop();
         }
@@ -273,6 +282,8 @@ public final class AstralRecord extends JavaPlugin {
         // user
         var userRepository = new UserRepository();
         userService = new UserService(userRepository, accountService);
+        partyService = new PartyService(this, userService);
+        partyGui = new PartyGui(partyService);
 
         // inventory
         var inventoryRepository = new InventoryRepository();
@@ -487,6 +498,14 @@ public final class AstralRecord extends JavaPlugin {
             new ItemWeaponAttackEventHandler(itemWeaponAttackService, skillActionRingService),
             getServer().getPluginManager()
         );
+        eventManager.registerHandler(
+            new PartyGuiEventHandler(partyGui, partyService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new PartyQuitEventHandler(partyService),
+            getServer().getPluginManager()
+        );
         playerHudService.start(this);
         statusRegenTask.start(this);
         displayTextService.start(this);
@@ -619,5 +638,13 @@ public final class AstralRecord extends JavaPlugin {
      */
     public WorldService getWorldService() {
         return worldService;
+    }
+
+    public PartyService getPartyService() {
+        return partyService;
+    }
+
+    public PartyGui getPartyGui() {
+        return partyGui;
     }
 }

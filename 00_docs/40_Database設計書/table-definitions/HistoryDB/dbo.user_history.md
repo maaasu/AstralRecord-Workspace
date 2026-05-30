@@ -25,7 +25,7 @@
 | `history_id` | `BIGINT` | ○ | ○ | `IDENTITY(1,1)` | 履歴 ID |
 | `user_uuid` | `UNIQUEIDENTIFIER` |  |  |  | 対象ユーザー UUID |
 | `event_time` | `DATETIME2(3)` |  | ○ |  | イベント発生日時 |
-| `event_type` | `NVARCHAR(50)` |  | ○ |  | イベント種別（例: `PLAYER_LOGIN`, `PLAYER_LOGOUT`） |
+| `event_type` | `NVARCHAR(50)` |  | ○ |  | イベント種別（例: `PLAYER_LOGIN`, `PLAYER_LOGOUT`, `PARTY_CREATED`, `PARTY_LEFT_LOGOUT`） |
 | `source` | `NVARCHAR(50)` |  | ○ | `N'PLUGIN'` | 発生元 |
 | `message` | `NVARCHAR(MAX)` |  | ○ |  | 履歴メッセージ |
 | `payload_json` | `NVARCHAR(MAX)` |  |  |  | 任意の詳細情報（JSON） |
