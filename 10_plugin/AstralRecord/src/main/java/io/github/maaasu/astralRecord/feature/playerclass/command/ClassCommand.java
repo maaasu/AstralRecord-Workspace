@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.bukkit.Bukkit;
@@ -33,15 +34,15 @@ public final class ClassCommand extends AstCommand {
             return;
         }
 
-        var classService = AstralRecord.getInstance().getPlayerClassService();
+        PlayerClassService classService = AstralRecord.getInstance().getPlayerClassService();
         if (classService == null) {
             sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5813.getId(), args[1].trim()));
             return;
         }
 
         String classInput = args[1].trim();
-        var resolvedClass = classService.resolveLoadedClass(classInput);
-        if (resolvedClass == null) {
+        String resolvedClassId = classService.resolveLoadedClassId(classInput);
+        if (resolvedClassId == null) {
             sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5813.getId(), classInput));
             return;
         }
@@ -52,7 +53,7 @@ public final class ClassCommand extends AstCommand {
         }
 
         String oldClassId = target.getClassId();
-        String newClassId = resolvedClass.getId();
+        String newClassId = resolvedClassId;
         target.setClassId(newClassId);
         target.setClassLevel(Math.max(1, target.getClassLevel()));
         String oldDisplayName = classService.getDisplayName(oldClassId);

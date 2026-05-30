@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.playerclass.command;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstTabCompleter;
 import org.bukkit.command.CommandSender;
@@ -28,7 +29,7 @@ public final class ClassTabCompleter extends AstTabCompleter {
         }
 
         if (args.length == 2 && args[0].equalsIgnoreCase("change")) {
-            var classService = AstralRecord.getInstance().getPlayerClassService();
+            PlayerClassService classService = AstralRecord.getInstance().getPlayerClassService();
             if (classService == null) {
                 return List.of();
             }

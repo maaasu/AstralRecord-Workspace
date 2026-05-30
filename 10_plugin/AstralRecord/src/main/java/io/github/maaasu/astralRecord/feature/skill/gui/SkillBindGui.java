@@ -18,6 +18,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -51,15 +52,18 @@ public final class SkillBindGui {
     public static final int ACTIVE_CLEAR_SLOT = 26;
     public static final int PASSIVE_BIND_SLOT_START = 27;
     public static final int PASSIVE_CLEAR_SLOT = 35;
+
     private static final Material DEFAULT_SKILL_ICON = Material.AMETHYST_SHARD;
+    private static final String DUMMY_KEY_VALUE = "skill_bind_dummy";
+    private static final String SKILL_ID_KEY_VALUE = "skill_bind_skill_id";
 
     private final NamespacedKey skillIdKey;
     private final NamespacedKey dummyKey;
     private final ConfirmDialogView confirmDialogView = new ConfirmDialogView();
 
     public SkillBindGui(@NotNull AstralRecord plugin) {
-        this.skillIdKey = new NamespacedKey(plugin, "skill_bind_skill_id");
-        this.dummyKey = new NamespacedKey(plugin, "skill_bind_dummy");
+        this.skillIdKey = new NamespacedKey(plugin, SKILL_ID_KEY_VALUE);
+        this.dummyKey = new NamespacedKey(plugin, DUMMY_KEY_VALUE);
     }
 
     /**
@@ -79,14 +83,16 @@ public final class SkillBindGui {
             SIZE,
             Component.text("スキル設定 " + (normalizedPage + 1) + "/" + totalPages, NamedTextColor.AQUA)
         );
-        renderTopInventory(inventory, session, skills, ownedSkillIds, normalizedPage);
+
+        renderTopInventory(inventory, skills, ownedSkillIds, normalizedPage);
         player.openInventory(inventory);
+
         renderPlayerInventoryControls(player.getInventory(), session, ownedSkillIds, skillMap(skills));
         player.updateInventory();
     }
 
     /**
-     * 確認ダイアログを開きます。プレイヤーインベントリ領域をダミーで埋めます。
+     * 確認ダイアログを開きます。
      */
     public void openConfirm(
         @NotNull Player player,
@@ -106,29 +112,51 @@ public final class SkillBindGui {
             Component.text("確定", NamedTextColor.GREEN),
             Component.text("キャンセル", NamedTextColor.RED)
         );
+
         player.openInventory(inventory);
         fillPlayerInventoryDummy(player.getInventory());
         player.updateInventory();
     }
 
     public boolean isInventory(@Nullable Inventory inventory) {
-        return inventory != null && inventory.getHolder() instanceof SkillBindInventoryHolder;
+        return holder(inventory) != null;
     }
 
     public @Nullable SkillBindInventoryHolder holder(@Nullable Inventory inventory) {
-        return inventory != null && inventory.getHolder() instanceof SkillBindInventoryHolder holder ? holder : null;
+        if (inventory == null) {
+            return null;
+        }
+
+        InventoryHolder holder = inventory.getHolder();
+        if (!(holder instanceof SkillBindInventoryHolder)) {
+            return null;
+        }
+
+        return (SkillBindInventoryHolder) holder;
     }
 
     public @Nullable String skillId(@Nullable ItemStack itemStack) {
         if (itemStack == null || !itemStack.hasItemMeta()) {
             return null;
         }
+
         ItemMeta meta = itemStack.getItemMeta();
-        return meta == null ? null : meta.getPersistentDataContainer().get(skillIdKey, PersistentDataType.STRING);
+        if (meta == null) {
+            return null;
+        }
+
+        return meta.getPersistentDataContainer().get(skillIdKey, PersistentDataType.STRING);
     }
 
     public int normalizePage(int pageIndex, int itemCount) {
-        return Math.clamp(pageIndex, 0, totalPages(itemCount) - 1);
+        int maxPage = totalPages(itemCount) - 1;
+        if (pageIndex < 0) {
+            return 0;
+        }
+        if (pageIndex > maxPage) {
+            return maxPage;
+        }
+        return pageIndex;
     }
 
     public int totalPages(int itemCount) {
@@ -154,50 +182,42 @@ public final class SkillBindGui {
 
     private void renderTopInventory(
         @NotNull Inventory inventory,
-        @NotNull SkillBindSession session,
         @NotNull List<SkillDefinition> skills,
         @NotNull Set<String> ownedSkillIds,
         int pageIndex
     ) {
-        for (int slot = 0; slot < SIZE; slot++) {
-            inventory.setItem(slot, new ItemStack(Material.AIR));
-        }
+        clearInventory(inventory, SIZE);
 
         int start = pageIndex * CONTENT_SLOT_COUNT;
         int end = Math.min(start + CONTENT_SLOT_COUNT, skills.size());
-        for (int i = start; i < end; i++) {
-            SkillDefinition skill = skills.get(i);
-            inventory.setItem(
-                i - start,
-                createSkillItem(
-                    skill,
-                    ownedSkillIds.contains(skill.getId())
-                )
-            );
+        for (int index = start; index < end; index++) {
+            SkillDefinition skill = skills.get(index);
+            boolean owned = ownedSkillIds.contains(skill.getId());
+            inventory.setItem(index - start, createSkillItem(skill, owned));
         }
 
         ItemStack spacer = createItem(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of());
         for (int slot = CONTENT_SLOT_COUNT; slot < SIZE; slot++) {
             inventory.setItem(slot, spacer);
         }
+
         if (hasPreviousPage(pageIndex)) {
-            inventory.setItem(PREVIOUS_SLOT, createItem(
-                Material.MAP,
-                Component.text("前のページ", NamedTextColor.WHITE),
-                List.of()
-            ));
+            inventory.setItem(
+                PREVIOUS_SLOT,
+                createItem(Material.MAP, Component.text("前のページ", NamedTextColor.WHITE), List.of())
+            );
         }
-        inventory.setItem(BACK_SLOT, createItem(
-            Material.ARROW,
-            Component.text("戻る", NamedTextColor.WHITE),
-            List.of()
-        ));
+
+        inventory.setItem(
+            BACK_SLOT,
+            createItem(Material.ARROW, Component.text("戻る", NamedTextColor.WHITE), List.of())
+        );
+
         if (hasNextPage(pageIndex, skills.size())) {
-            inventory.setItem(NEXT_SLOT, createItem(
-                Material.MAP,
-                Component.text("次のページ", NamedTextColor.WHITE),
-                List.of()
-            ));
+            inventory.setItem(
+                NEXT_SLOT,
+                createItem(Material.MAP, Component.text("次のページ", NamedTextColor.WHITE), List.of())
+            );
         }
     }
 
@@ -208,44 +228,65 @@ public final class SkillBindGui {
         @NotNull Map<String, SkillDefinition> skillMap
     ) {
         fillManagedPlayerSlots(inventory);
+
         for (int index = 0; index < session.presets().size(); index++) {
             SkillBindPreset preset = session.presets().get(index);
+            boolean selected = preset.getPresetIndex() == session.selectedPresetIndex();
+            inventory.setItem(PRESET_SLOT_START + index, createPresetItem(preset, selected));
+        }
+
+        for (int index = 0; index < SkillBindPreset.SLOT_COUNT; index++) {
             inventory.setItem(
-                PRESET_SLOT_START + index,
-                createPresetItem(preset, preset.getPresetIndex() == session.selectedPresetIndex())
+                ACTIVE_BIND_SLOT_START + index,
+                createBindSlotItem(
+                    SkillBindType.ACTIVE,
+                    index,
+                    session.activeDraft().get(index),
+                    ownedSkillIds,
+                    session.isSelectedBindSlot(SkillBindType.ACTIVE, index),
+                    skillMap
+                )
+            );
+            inventory.setItem(
+                PASSIVE_BIND_SLOT_START + index,
+                createBindSlotItem(
+                    SkillBindType.PASSIVE,
+                    index,
+                    session.passiveDraft().get(index),
+                    ownedSkillIds,
+                    session.isSelectedBindSlot(SkillBindType.PASSIVE, index),
+                    skillMap
+                )
             );
         }
-        for (int index = 0; index < SkillBindPreset.SLOT_COUNT; index++) {
-            inventory.setItem(ACTIVE_BIND_SLOT_START + index, createBindSlotItem(
-                SkillBindType.ACTIVE,
-                index,
-                session.activeDraft().get(index),
-                ownedSkillIds,
-                session.isSelectedBindSlot(SkillBindType.ACTIVE, index),
-                skillMap
-            ));
-            inventory.setItem(PASSIVE_BIND_SLOT_START + index, createBindSlotItem(
-                SkillBindType.PASSIVE,
-                index,
-                session.passiveDraft().get(index),
-                ownedSkillIds,
-                session.isSelectedBindSlot(SkillBindType.PASSIVE, index),
-                skillMap
-            ));
-        }
+
         inventory.setItem(
             ACTIVE_CLEAR_SLOT,
-            createItem(Material.BARRIER, Component.text("発動系クリア", NamedTextColor.RED), List.of())
+            createItem(Material.BARRIER, Component.text("アクティブ解除", NamedTextColor.RED), List.of())
         );
         inventory.setItem(
             PASSIVE_CLEAR_SLOT,
-            createItem(Material.BARRIER, Component.text("パッシブ系クリア", NamedTextColor.RED), List.of())
+            createItem(Material.BARRIER, Component.text("パッシブ解除", NamedTextColor.RED), List.of())
         );
-        inventory.setItem(SAVE_SLOT, createItem(
-            Material.EMERALD,
-            Component.text("保存", NamedTextColor.GREEN),
-            List.of(Component.text("プリセット " + session.selectedPresetIndex() + " に保存", NamedTextColor.GRAY))
-        ));
+        inventory.setItem(
+            SAVE_SLOT,
+            createItem(
+                Material.EMERALD,
+                Component.text("保存", NamedTextColor.GREEN),
+                List.of(
+                    Component.text(
+                        "プリセット " + session.selectedPresetIndex() + " に保存",
+                        NamedTextColor.GRAY
+                    )
+                )
+            )
+        );
+    }
+
+    private void clearInventory(@NotNull Inventory inventory, int size) {
+        for (int slot = 0; slot < size; slot++) {
+            inventory.setItem(slot, new ItemStack(Material.AIR));
+        }
     }
 
     private void fillManagedPlayerSlots(@NotNull PlayerInventory inventory) {
@@ -263,18 +304,31 @@ public final class SkillBindGui {
     }
 
     private @NotNull ItemStack createPresetItem(@NotNull SkillBindPreset preset, boolean selected) {
-        Material material = !preset.isUnlocked()
-            ? Material.GRAY_DYE
-            : selected ? Material.LIME_DYE : Material.LIGHT_BLUE_DYE;
-        ItemStack itemStack = createItem(
-            material,
-            Component.text(selected ? "選択中プリセット" : "プリセット", selected ? NamedTextColor.GREEN : NamedTextColor.AQUA),
-            List.of(
-                Component.text("No. " + preset.getPresetIndex(), NamedTextColor.WHITE),
-                Component.text(preset.isSaved() ? "保存済み" : "未保存", NamedTextColor.GRAY),
-                Component.text(preset.isUnlocked() ? "解放済み" : "未解放", preset.isUnlocked() ? NamedTextColor.GREEN : NamedTextColor.RED)
+        Material material;
+        if (!preset.isUnlocked()) {
+            material = Material.GRAY_DYE;
+        } else if (selected) {
+            material = Material.LIME_DYE;
+        } else {
+            material = Material.LIGHT_BLUE_DYE;
+        }
+
+        List<Component> lore = new ArrayList<>();
+        lore.add(Component.text("No. " + preset.getPresetIndex(), NamedTextColor.WHITE));
+        lore.add(Component.text(preset.isSaved() ? "保存済み" : "未保存", NamedTextColor.GRAY));
+        lore.add(
+            Component.text(
+                preset.isUnlocked() ? "解放済み" : "未解放",
+                preset.isUnlocked() ? NamedTextColor.GREEN : NamedTextColor.RED
             )
         );
+
+        Component name = Component.text(
+            selected ? "選択中プリセット" : "プリセット",
+            selected ? NamedTextColor.GREEN : NamedTextColor.AQUA
+        );
+
+        ItemStack itemStack = createItem(material, name, lore);
         itemStack.setAmount(Math.max(1, preset.getPresetIndex()));
         return itemStack;
     }
@@ -290,49 +344,57 @@ public final class SkillBindGui {
         boolean empty = skillId == null || skillId.isBlank();
         boolean owned = !empty && ownedSkillIds.contains(skillId);
         SkillDefinition skill = empty ? null : skillMap.get(skillId);
+
         Material material = empty
             ? Material.LIGHT_GRAY_STAINED_GLASS_PANE
             : resolveSkillMaterial(skill, owned);
-        String label = type == SkillBindType.ACTIVE ? "発動系" : "パッシブ系";
+        String label = type == SkillBindType.ACTIVE ? "アクティブ" : "パッシブ";
+
         List<Component> lore = new ArrayList<>();
-        lore.add(Component.text("〘 " + label + "スロット " + (index + 1) + " 〙", NamedTextColor.GOLD));
+        lore.add(Component.text(label + "スロット " + (index + 1), NamedTextColor.GOLD));
+
         if (empty) {
-            lore.add(Component.text("スキル一覧から割り当てる空き枠です。", NamedTextColor.GRAY));
-            lore.add(Component.text("クリックでこの枠を選択します。", NamedTextColor.YELLOW));
+            lore.add(Component.text("スキル一覧から選択するとここに設定されます。", NamedTextColor.GRAY));
+            lore.add(Component.text("クリックでこの枠を選択できます。", NamedTextColor.YELLOW));
         } else if (skill == null) {
             lore.add(Component.text("ID: " + skillId, NamedTextColor.DARK_GRAY));
             lore.add(Component.text("スキル定義が見つかりません。", NamedTextColor.RED));
         } else {
             addSkillLore(lore, skill, owned);
             lore.add(Component.empty());
-            lore.add(Component.text("クリックでこのスロットから外します。", NamedTextColor.YELLOW));
+            lore.add(Component.text("クリックでこのスロットから外せます。", NamedTextColor.YELLOW));
         }
+
         if (selected) {
             lore.add(Component.empty());
-            lore.add(Component.text("選択中: スキル一覧から割り当て先を選べます。", NamedTextColor.YELLOW));
+            lore.add(Component.text("選択中: スキル一覧から選ぶとここに設定されます。", NamedTextColor.YELLOW));
         }
-        ItemStack itemStack = createItem(
-            material,
-            empty
-                ? Component.text(label + " 未設定", NamedTextColor.GRAY)
-                : skillName(skill, skillId, owned),
-            lore
-        );
+
+        Component name;
+        if (empty) {
+            name = Component.text(label + " 未設定", NamedTextColor.GRAY);
+        } else {
+            name = skillName(skill, skillId, owned);
+        }
+
+        ItemStack itemStack = createItem(material, name, lore);
         return selected ? withSelectionGlow(itemStack) : itemStack;
     }
 
     private @NotNull ItemStack createSkillItem(@NotNull SkillDefinition skill, boolean owned) {
         Material material = resolveSkillMaterial(skill, owned);
+
         List<Component> lore = new ArrayList<>();
         addSkillLore(lore, skill, owned);
         lore.add(Component.empty());
-        lore.add(Component.text(owned ? "クリックで選択中スロットへ設定します。" : "未所持のため設定できません。",
-            owned ? NamedTextColor.YELLOW : NamedTextColor.RED));
-        ItemStack itemStack = createItem(
-            material,
-            skillName(skill, skill.getId(), owned),
-            lore
+        lore.add(
+            Component.text(
+                owned ? "クリックで選択中スロットに設定します。" : "未習得のため設定できません。",
+                owned ? NamedTextColor.YELLOW : NamedTextColor.RED
+            )
         );
+
+        ItemStack itemStack = createItem(material, skillName(skill, skill.getId(), owned), lore);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
             meta.getPersistentDataContainer().set(skillIdKey, PersistentDataType.STRING, skill.getId());
@@ -365,27 +427,36 @@ public final class SkillBindGui {
 
     private void addSkillLore(@NotNull List<Component> lore, @NotNull SkillDefinition skill, boolean owned) {
         lore.add(Component.text("ID: " + skill.getId(), NamedTextColor.DARK_GRAY));
-        lore.add(Component.text(owned ? "所持スキル" : "未所持", owned ? NamedTextColor.GREEN : NamedTextColor.RED));
+        lore.add(
+            Component.text(
+                owned ? "習得済みスキル" : "未習得",
+                owned ? NamedTextColor.GREEN : NamedTextColor.RED
+            )
+        );
+
         if (skill.getDescription() != null && !skill.getDescription().isBlank()) {
             lore.add(Component.empty());
-            lore.add(Component.text("◆ 説明", NamedTextColor.GOLD));
+            lore.add(Component.text("説明", NamedTextColor.GOLD));
             lore.add(legacyComponent(skill.getDescription()));
         }
+
         if (!skill.getLore().isEmpty()) {
             lore.add(Component.empty());
-            lore.add(Component.text("◆ 詳細", NamedTextColor.GOLD));
+            lore.add(Component.text("詳細", NamedTextColor.GOLD));
             for (String line : skill.getLore()) {
                 if (line != null && !line.isBlank()) {
                     lore.add(legacyComponent(line));
                 }
             }
         }
+
         lore.add(Component.empty());
-        lore.add(Component.text("◆ 性能", NamedTextColor.GOLD));
+        lore.add(Component.text("性能", NamedTextColor.GOLD));
         lore.add(Component.text("クールダウン: " + formatTicks(skill.getCooldownTicks()), NamedTextColor.GRAY));
         lore.add(Component.text("詠唱: " + formatTicks(skill.getCastTimeTicks()), NamedTextColor.GRAY));
         lore.add(Component.text("消費MP: " + formatDecimal(skill.getManaCost()), NamedTextColor.AQUA));
         lore.add(Component.text("必要Lv: " + skill.getRequiredLevel(), NamedTextColor.GRAY));
+
         if (!skill.getTags().isEmpty()) {
             lore.add(Component.text("タグ: " + String.join(", ", skill.getTags()), NamedTextColor.DARK_GRAY));
         }
@@ -452,6 +523,7 @@ public final class SkillBindGui {
         if (value == null || value.isBlank()) {
             return fallback;
         }
+
         Material material = Material.matchMaterial(value.trim());
         return material == null ? fallback : material;
     }

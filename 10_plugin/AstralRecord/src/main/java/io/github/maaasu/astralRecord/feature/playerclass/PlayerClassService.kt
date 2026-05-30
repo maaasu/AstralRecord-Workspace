@@ -95,6 +95,14 @@ class PlayerClassService {
     }
 
     /**
+     * Java から扱いやすいように、解決したクラスの ID だけを返します。
+     *
+     * @param input 入力された class ID または表示名
+     * @return 解決した class ID。解決できない場合は `null`
+     */
+    fun resolveLoadedClassId(input: String): String? = resolveLoadedClass(input)?.id
+
+    /**
      * キャッシュをクリアします。
      */
     fun clearCache() = classService.clearCache()
