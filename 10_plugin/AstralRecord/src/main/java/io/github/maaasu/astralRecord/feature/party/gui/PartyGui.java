@@ -28,8 +28,9 @@ import java.util.UUID;
 public final class PartyGui {
     public static final int SIZE = 54;
     public static final int CREATE_SLOT = 22;
-    public static final int LEAVE_OR_DISBAND_SLOT = 49;
-    public static final int CLOSE_SLOT = 53;
+    public static final int LEAVE_OR_DISBAND_SLOT = 51;
+    public static final int BACK_SLOT = 49;
+    public static final int CLOSE_SLOT = -1;
     private static final int INFO_SLOT = 4;
     private static final int[] MEMBER_SLOTS = {20, 21, 22, 23, 24, 29};
     private static final int[] INVITE_SLOTS = {29, 30, 31, 32, 33};
@@ -92,15 +93,14 @@ public final class PartyGui {
 
         for (int index = 0; index < INVITE_SLOTS.length && index < invites.size(); index++) {
             PartyInvite invite = invites.get(index);
-            Player leader = Bukkit.getPlayer(invite.leaderId());
-            String leaderName = leader == null ? invite.leaderId().toString() : leader.getName();
-            inventory.setItem(INVITE_SLOTS[index], item(
-                Material.PLAYER_HEAD,
+            String leaderName = playerName(invite.leaderId());
+            inventory.setItem(INVITE_SLOTS[index], playerHead(
+                invite.leaderId(),
                 Component.text(leaderName + " からの招待", NamedTextColor.AQUA),
                 List.of(Component.text("クリックで参加します。", NamedTextColor.GRAY))
             ));
         }
-        inventory.setItem(CLOSE_SLOT, item(Material.BARRIER, Component.text("閉じる", NamedTextColor.RED), List.of()));
+        inventory.setItem(BACK_SLOT, backItem());
     }
 
     private void renderParty(@NotNull Inventory inventory, @NotNull Party party, @NotNull UUID viewerId) {
@@ -136,7 +136,7 @@ public final class PartyGui {
             Component.text(viewerLeader ? "パーティーを解散" : "パーティーを抜ける", viewerLeader ? NamedTextColor.RED : NamedTextColor.YELLOW),
             List.of(Component.text(viewerLeader ? "全メンバーを解散します。" : "自分だけ離脱します。", NamedTextColor.GRAY))
         ));
-        inventory.setItem(CLOSE_SLOT, item(Material.BARRIER, Component.text("閉じる", NamedTextColor.RED), List.of()));
+        inventory.setItem(BACK_SLOT, backItem());
     }
 
     private void fill(@NotNull Inventory inventory) {
@@ -161,6 +161,14 @@ public final class PartyGui {
             return itemStack;
         }
         return item(Material.PLAYER_HEAD, name, lore);
+    }
+
+    private @NotNull ItemStack backItem() {
+        return item(
+            Material.ARROW,
+            Component.text("戻る", NamedTextColor.WHITE),
+            List.of(Component.text("メニューへ戻る", NamedTextColor.GRAY))
+        );
     }
 
     private @NotNull ItemStack item(@NotNull Material material, @NotNull Component name, @NotNull List<Component> lore) {

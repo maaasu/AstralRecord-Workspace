@@ -527,7 +527,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new PartyGuiEventHandler(partyGui, partyService),
+            new PartyGuiEventHandler(partyGui, partyService, menuView),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.party.gui.PartyGui;
 import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.model.PartyActionResult;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
+import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -26,10 +27,12 @@ import java.util.UUID;
 public final class PartyGuiEventHandler extends AbstractEventHandler {
     private final PartyGui gui;
     private final PartyService partyService;
+    private final MenuView menuView;
 
-    public PartyGuiEventHandler(@NotNull PartyGui gui, @NotNull PartyService partyService) {
+    public PartyGuiEventHandler(@NotNull PartyGui gui, @NotNull PartyService partyService, @NotNull MenuView menuView) {
         this.gui = gui;
         this.partyService = partyService;
+        this.menuView = menuView;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -63,6 +66,11 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
         if (rawSlot == PartyGui.CLOSE_SLOT) {
             GuiSound.CLOSE.play(player);
             player.closeInventory();
+            return;
+        }
+        if (rawSlot == PartyGui.BACK_SLOT) {
+            GuiSound.SELECT.play(player);
+            menuView.open(player);
             return;
         }
 

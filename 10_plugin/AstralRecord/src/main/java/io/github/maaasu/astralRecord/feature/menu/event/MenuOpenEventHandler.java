@@ -60,6 +60,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     private final Set<UUID> craftRenderSuppressed = ConcurrentHashMap.newKeySet();
     private final ConcurrentHashMap<UUID, List<ItemStack>> trashItemsByPlayer = new ConcurrentHashMap<>();
     private final Set<UUID> suppressTrashConfirmOnClose = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> playerInventoryDummyApplied = ConcurrentHashMap.newKeySet();
 
     public MenuOpenEventHandler(
         @NotNull AstralRecord plugin,
@@ -104,6 +105,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             if (event.getPlayer() instanceof Player player) {
                 scheduleCraftShortcutRender(player);
                 applyHotbarShortcutMode(player, event.getInventory(), event.getView().getType());
+                applyPlayerInventoryDummy(player, event.getInventory(), event.getView().getType());
             }
         }, LogId.E_5600, event.getPlayer().getName());
     }
@@ -136,6 +138,9 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             }
             if (event.getPlayer() instanceof Player player) {
                 handleTrashClose(event.getInventory(), player);
+                if (playerInventoryDummyApplied.remove(player.getUniqueId())) {
+                    restorePlayerInventory(player);
+                }
                 AstPlayer astPlayer = AstPlayerCache.get(player);
                 if (astPlayer != null) {
                     inventoryService.setHotbarShortcutMode(astPlayer, false);
@@ -854,9 +859,56 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
         PlayerInventory inventory = player.getInventory();
         for (int slot = 0; slot < 36; slot++) {
-            inventory.setItem(slot, dummy);
+            inventory.setItem(slot, dummy.clone());
         }
         player.updateInventory();
+    }
+
+    private void applyPlayerInventoryDummy(
+        @NotNull Player player,
+        @NotNull Inventory openedInventory,
+        @NotNull org.bukkit.event.inventory.InventoryType viewType
+    ) {
+        if (!shouldFillPlayerInventoryDummy(player, openedInventory, viewType)) {
+            return;
+        }
+        playerInventoryDummyApplied.add(player.getUniqueId());
+        fillPlayerInventoryDummy(player);
+    }
+
+    private boolean shouldFillPlayerInventoryDummy(
+        @NotNull Player player,
+        @NotNull Inventory openedInventory,
+        @NotNull org.bukkit.event.inventory.InventoryType viewType
+    ) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null || !astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
+            return false;
+        }
+        if (viewType == org.bukkit.event.inventory.InventoryType.CRAFTING) {
+            return false;
+        }
+
+        MenuScreen menuScreen = menuView.getMenuScreen(openedInventory);
+        if (menuScreen != null) {
+            return switch (menuScreen) {
+                case EQUIPMENT_GUI, TRASH, TRASH_CONFIRM -> false;
+                default -> true;
+            };
+        }
+
+        PlayerSettingGui playerSettingGui = plugin.getPlayerSettingGui();
+        if (playerSettingGui != null && playerSettingGui.isInventory(openedInventory)) {
+            return true;
+        }
+
+        var partyGui = plugin.getPartyGui();
+        if (partyGui != null && partyGui.isInventory(openedInventory)) {
+            return true;
+        }
+
+        var loginBonusService = plugin.getLoginBonusService();
+        return loginBonusService != null && loginBonusService.getGui().isLoginBonusInventory(openedInventory);
     }
 
     private void restorePlayerInventory(@NotNull Player player) {
