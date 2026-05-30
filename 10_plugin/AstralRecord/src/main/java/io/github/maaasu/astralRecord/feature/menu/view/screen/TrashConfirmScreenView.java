@@ -12,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public final class TrashConfirmScreenView extends BaseMenuScreenView {
+    public static final Component CONFIRM_MESSAGE = Component.text("ゴミ箱の内容を破棄しますか？", NamedTextColor.YELLOW);
     public static final int CONTENT_SLOT_COUNT = 0;
     public static final int PREVIOUS_SLOT = -1;
     public static final int DISPOSE_SLOT = ConfirmDialogView.CONFIRM_SLOT;
@@ -26,7 +27,7 @@ public final class TrashConfirmScreenView extends BaseMenuScreenView {
     public void render(@NotNull Inventory inventory, @NotNull List<ItemStack> items, int pageIndex) {
         confirmDialogView.render(
             inventory,
-            Component.text("ゴミ箱の内容を破棄しますか", NamedTextColor.YELLOW),
+            CONFIRM_MESSAGE,
             Component.text("破棄する", NamedTextColor.RED),
             Component.text("戻る", NamedTextColor.GREEN)
         );

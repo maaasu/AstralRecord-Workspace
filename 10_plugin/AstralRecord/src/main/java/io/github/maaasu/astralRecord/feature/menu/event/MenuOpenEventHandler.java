@@ -518,7 +518,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
 
         if (rawSlot == MenuView.TRASH_CONFIRM_DISPOSE_SLOT) {
             List<ItemStack> disposedItems = normalizeTrashItems(currentTrashItems);
-            GuiSound.CLOSE.play(player);
+            GuiSound.TRASH_DISPOSE.play(player);
             discardTrash(player);
             notifyTrashDisposed(player, disposedItems);
             restorePlayerInventory(player);
@@ -767,10 +767,11 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 restorePlayerInventory(player);
                 return;
             }
-            List<ItemStack> allItems = normalizeTrashItems(trashItemsByPlayer.getOrDefault(playerId, List.of()));
-            discardTrash(player);
             restorePlayerInventory(player);
-            notifyTrashDisposed(player, allItems);
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                GuiSound.SELECT.play(player);
+                openTrash(player, 0);
+            });
         }
     }
 
@@ -1154,3 +1155,4 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         trashItemsByPlayer.remove(player.getUniqueId());
     }
 }
+
