@@ -430,7 +430,24 @@ public class InventoryService {
     // ---------------------------------------------------------------
 
     public void applyInventoriesToGui(@NotNull AstPlayer astPlayer) {
-        applyInventoryToGui(astPlayer, InventoryType.NORMAL);
+        applyInventoryToGuiInternal(astPlayer, InventoryType.NORMAL, true);
+        if (!applyActiveEquipmentLoadoutToGui(astPlayer)) {
+            applyEquipSlotInventoryToGui(astPlayer);
+            applyAccessorySlotInventoryToGui(astPlayer);
+        }
+        applyHotbarInventoryToGui(astPlayer);
+    }
+
+    /**
+     * ログイン直後の初期描画専用の適用処理です。
+     * <p>
+     * 退出直前の Bukkit 側スナップショットを取り込む前にロード済み state を描画し、
+     * ロード完了前の空スナップショットで state を上書きしないようにします。
+     *
+     * @param astPlayer 対象プレイヤー
+     */
+    public void applyInventoriesToGuiOnJoin(@NotNull AstPlayer astPlayer) {
+        applyInventoryToGuiInternal(astPlayer, InventoryType.NORMAL, false);
         if (!applyActiveEquipmentLoadoutToGui(astPlayer)) {
             applyEquipSlotInventoryToGui(astPlayer);
             applyAccessorySlotInventoryToGui(astPlayer);
@@ -439,6 +456,14 @@ public class InventoryService {
     }
 
     public void applyInventoryToGui(@NotNull AstPlayer astPlayer, @NotNull InventoryType inventoryType) {
+        applyInventoryToGuiInternal(astPlayer, inventoryType, true);
+    }
+
+    private void applyInventoryToGuiInternal(
+        @NotNull AstPlayer astPlayer,
+        @NotNull InventoryType inventoryType,
+        boolean captureCurrentSnapshots
+    ) {
         if (!astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
             return;
         }
@@ -451,9 +476,11 @@ public class InventoryService {
             astPlayer.getBukkit().updateInventory();
             return;
         }
-        saveEquipSlotSnapshot(astPlayer);
-        saveAccessorySlotSnapshot(astPlayer);
-        syncCurrentEquipmentState(astPlayer);
+        if (captureCurrentSnapshots) {
+            saveEquipSlotSnapshot(astPlayer);
+            saveAccessorySlotSnapshot(astPlayer);
+            syncCurrentEquipmentState(astPlayer);
+        }
         state.setDisplayedType(inventoryType);
 
         InventoryModel selectedInventory = state.findInventory(DEFAULT_PROFILE, inventoryType);

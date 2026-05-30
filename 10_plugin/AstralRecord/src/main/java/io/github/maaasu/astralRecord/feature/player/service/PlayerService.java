@@ -101,7 +101,7 @@ public class PlayerService {
         var astPlayer = new AstPlayer(player, joinData.user(), joinData.account());
         AstPlayerCache.put(astPlayer);
         if (joinData.account().getMode().shouldReflectInventoryToGui()) {
-            inventoryService.applyInventoriesToGui(astPlayer);
+            inventoryService.applyInventoriesToGuiOnJoin(astPlayer);
         } else if (joinData.account().getMode() == AccountMode.BUILDER) {
             inventoryService.applyBuilderInventoryToGui(astPlayer);
         }
@@ -168,4 +168,3 @@ public class PlayerService {
     public record PlayerJoinData(@NotNull UserModel user, @NotNull AccountModel account) {
     }
 }
-
