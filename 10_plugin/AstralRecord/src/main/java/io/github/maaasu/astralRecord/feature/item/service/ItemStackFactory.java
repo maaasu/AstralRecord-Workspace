@@ -100,6 +100,15 @@ public class ItemStackFactory {
     /** バニラ由来表示を抑制するために適用する ItemFlag 一式（起動時解決） */
     private static final ItemFlag[] VANILLA_HIDE_FLAGS = resolveVanillaHideFlags();
 
+    private static final Set<String> HIDDEN_EQUIPMENT_SKILL_IDS = Set.of(
+            BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_MELEE,
+            BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_BOW,
+            BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_MAGIC,
+            BuiltInWeaponAttackDefinitions.SPECIAL_ATTACK_MELEE,
+            BuiltInWeaponAttackDefinitions.SPECIAL_ATTACK_BOW,
+            BuiltInWeaponAttackDefinitions.SPECIAL_ATTACK_MAGIC
+    );
+
     /** ルートテーブル参照用（nullable: 未初期化時は Lore に含めない） */
     private final LootService lootService;
 
@@ -455,6 +464,7 @@ public class ItemStackFactory {
         }
 
         // bundle の Loot 情報
+        appendSaleValueLore(lore, model);
 
         // フッター
         lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
@@ -528,6 +538,12 @@ public class ItemStackFactory {
         lore.add("");
     }
 
+    private void appendSaleValueLore(@NotNull List<String> lore, @NotNull ItemModel model) {
+        lore.add(ColorCodeUtil.GRAY + " ▸ 売値: "
+                + ColorCodeUtil.YELLOW + model.getSaleValue()
+                + ColorCodeUtil.GOLD + " ゴールド");
+    }
+
     /**
      * Bundle に紐付く Loot テーブルの内容を Lore に追加します。
      * LootService にキャッシュ済みのデータのみを参照し、API リクエストは発行しません。
@@ -557,10 +573,6 @@ public class ItemStackFactory {
 
     private void appendEquipmentSkillLore(@NotNull List<String> lore, @NotNull ItemEquipment equipment) {
         List<String> skillIds = new ArrayList<>();
-        if (equipment.getOnUse() != null) {
-            addSkillId(skillIds, equipment.getOnUse().getLeftClickSkillId());
-            addSkillId(skillIds, equipment.getOnUse().getRightClickSkillId());
-        }
         for (String skillId : equipment.getSkills()) {
             addSkillId(skillIds, skillId);
         }
@@ -569,7 +581,7 @@ public class ItemStackFactory {
         }
 
         lore.add("");
-        lore.add(ColorCodeUtil.LIGHT_PURPLE + "◆ Skill");
+        lore.add(ColorCodeUtil.LIGHT_PURPLE + "◆ スキル");
         for (String skillId : skillIds) {
             appendSkillDefinitionLore(lore, skillId);
         }
@@ -597,10 +609,16 @@ public class ItemStackFactory {
     }
 
     private void addSkillId(@NotNull List<String> skillIds, @Nullable String skillId) {
-        if (skillId == null || skillId.isBlank() || skillIds.contains(skillId)) {
+        if (skillId == null) {
             return;
         }
-        skillIds.add(skillId);
+        String normalizedSkillId = skillId.trim();
+        if (normalizedSkillId.isBlank()
+                || HIDDEN_EQUIPMENT_SKILL_IDS.contains(normalizedSkillId)
+                || skillIds.contains(normalizedSkillId)) {
+            return;
+        }
+        skillIds.add(normalizedSkillId);
     }
 
     private @NotNull String formatSkillTicks(long ticks) {
@@ -829,6 +847,7 @@ public class ItemStackFactory {
             lore.add("");
         }
 
+        appendSaleValueLore(lore, model);
         lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
         lore.add(ColorCodeUtil.DARK_GRAY + ColorCodeUtil.ITALIC + "ID: " + model.getId());
         lore.add(ColorCodeUtil.DARK_GRAY + ColorCodeUtil.ITALIC + "InstanceID: " + instance.getEquipmentInstanceId());
@@ -878,6 +897,7 @@ public class ItemStackFactory {
             lore.add("");
         }
 
+        appendSaleValueLore(lore, model);
         lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
         lore.add(ColorCodeUtil.DARK_GRAY + ColorCodeUtil.ITALIC + "ID: " + model.getId());
         lore.add(ColorCodeUtil.DARK_GRAY + ColorCodeUtil.ITALIC + "InstanceID: " + instance.getRuneInstanceId());

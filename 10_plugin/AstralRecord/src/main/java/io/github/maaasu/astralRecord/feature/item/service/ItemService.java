@@ -26,7 +26,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * APIから取得したアイテムをメモリに保持し、一覧/詳細参照に使用します。
  */
 public class ItemService {
-    public static final String DEFAULT_CURRENCY_ITEM_ID = "ast_gold";
+    public static final String DEFAULT_CURRENCY_ITEM_ID = "gold";
+    public static final String LEGACY_DEFAULT_CURRENCY_ITEM_ID = "ast_gold";
 
     private final ItemRepository itemRepository;
     private final SetEffectRepository setEffectRepository;
@@ -67,6 +68,7 @@ public class ItemService {
             Logger.log(LogId.E_5202, e, "loadAll");
         }
 
+        total += cacheBuiltInItems(categoryCounts);
         for (Map.Entry<String, Integer> entry : categoryCounts.entrySet()) {
             Logger.log(LogId.I_5202, entry.getKey(), entry.getValue());
         }
@@ -93,8 +95,12 @@ public class ItemService {
             for (io.github.maaasu.astralRecord.feature.item.model.ItemModel item : items) {
                 cacheItem(item);
             }
-            Logger.log(LogId.I_5202, normalizedCategory, items.size());
-            return items.size();
+            int total = items.size();
+            if (ItemCategory.CURRENCY.getApiValue().equalsIgnoreCase(normalizedCategory)) {
+                total += cacheBuiltInItems(new HashMap<>());
+            }
+            Logger.log(LogId.I_5202, normalizedCategory, total);
+            return total;
         } catch (Exception e) {
             Logger.log(LogId.E_5202, e, normalizedCategory);
             return 0;
@@ -112,6 +118,11 @@ public class ItemService {
         if (normalizedId.isBlank()) {
             return null;
         }
+        ItemModel builtin = resolveBuiltinItem(normalizedId);
+        if (builtin != null) {
+            cacheItem(builtin);
+            return builtin;
+        }
 
         try {
             List<ItemSummary> summaries = itemRepository.findAll();
@@ -120,11 +131,7 @@ public class ItemService {
                 .findFirst()
                 .orElse(null);
             if (summary == null) {
-                ItemModel builtin = resolveBuiltinItem(normalizedId);
-                if (builtin != null) {
-                    cacheItem(builtin);
-                }
-                return builtin;
+                return null;
             }
             return loadItem(summary.getId(), summary.getCategory());
         } catch (Exception e) {
@@ -143,6 +150,11 @@ public class ItemService {
         String normalizedId = normalize(itemId);
         if (normalizedId.isBlank()) {
             return null;
+        }
+        ItemModel builtin = resolveBuiltinItem(normalizedId);
+        if (builtin != null) {
+            cacheItem(builtin);
+            return builtin;
         }
 
         ItemModel item = itemRepository.findById(itemId, category);
@@ -193,27 +205,38 @@ public class ItemService {
     }
 
     private @Nullable ItemModel resolveBuiltinItem(@NotNull String normalizedId) {
-        if (DEFAULT_CURRENCY_ITEM_ID.equals(normalizedId)) {
-            return new ItemModel(
-                1,
-                DEFAULT_CURRENCY_ITEM_ID,
-                ItemCategory.CURRENCY.getApiValue(),
-                "アストゴールド",
-                "GOLD_NUGGET",
-                "common",
-                64,
-                0,
-                null,
-                List.of("プラグイン内蔵のデフォルト通貨です。"),
-                false,
-                true,
-                null,
-                new ItemCurrency("gold", "default", null),
-                null,
-                null
-            );
+        if (DEFAULT_CURRENCY_ITEM_ID.equals(normalizedId) || LEGACY_DEFAULT_CURRENCY_ITEM_ID.equals(normalizedId)) {
+            return createGoldCurrencyItem(normalizedId);
         }
         return null;
+    }
+
+    private int cacheBuiltInItems(@NotNull Map<String, Integer> categoryCounts) {
+        ItemModel gold = createGoldCurrencyItem(DEFAULT_CURRENCY_ITEM_ID);
+        cacheItem(gold);
+        categoryCounts.merge(gold.getCategory().toLowerCase(Locale.ROOT), 1, Integer::sum);
+        return 1;
+    }
+
+    private @NotNull ItemModel createGoldCurrencyItem(@NotNull String itemId) {
+        return new ItemModel(
+            1,
+            itemId,
+            ItemCategory.CURRENCY.getApiValue(),
+            "ゴールド",
+            "GOLD_NUGGET",
+            "common",
+            64,
+            0,
+            null,
+            List.of("プラグイン内蔵の基本通貨です。"),
+            false,
+            true,
+            null,
+            new ItemCurrency("gold", "default", null),
+            null,
+            null
+        );
     }
 
     /**

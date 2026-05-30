@@ -30,6 +30,9 @@ import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStat
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.item.view.ItemStackPacketAdapter;
+import io.github.maaasu.astralRecord.feature.loginbonus.event.LoginBonusGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.loginbonus.service.LoginBonusService;
+import io.github.maaasu.astralRecord.feature.loginbonus.view.LoginBonusGui;
 import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
@@ -152,6 +155,7 @@ public final class AstralRecord extends JavaPlugin {
     private WorldSpawnParticleTask worldSpawnParticleTask;
     private PartyService partyService;
     private PartyGui partyGui;
+    private LoginBonusService loginBonusService;
     private String joinSpawnWorldId;
 
     @Override
@@ -362,6 +366,7 @@ public final class AstralRecord extends JavaPlugin {
         menuView = new MenuView(this);
         pagingDebugGui = new PagingDebugGui();
         playerSettingGui = new PlayerSettingGui(playerSettingService);
+        loginBonusService = new LoginBonusService(new LoginBonusGui());
 
         // skill
         skillService = new SkillService(new SkillRepository(), new SkillRegistry(), this);
@@ -410,7 +415,11 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new PlayerJoinEventHandler(this, playerService),
+            new PlayerJoinEventHandler(this, playerService, loginBonusService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new LoginBonusGuiEventHandler(loginBonusService.getGui()),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
@@ -542,6 +551,15 @@ public final class AstralRecord extends JavaPlugin {
      */
     public CurrencyService getCurrencyService() {
         return currencyService;
+    }
+
+    /**
+     * ログインボーナスサービスを取得します。
+     *
+     * @return ログインボーナスサービス
+     */
+    public LoginBonusService getLoginBonusService() {
+        return loginBonusService;
     }
 
     /**

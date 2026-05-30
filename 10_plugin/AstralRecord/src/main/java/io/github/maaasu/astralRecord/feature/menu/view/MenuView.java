@@ -88,8 +88,10 @@ public class MenuView {
     private final TrashScreenView trashScreenView;
     private final TrashConfirmScreenView trashConfirmScreenView;
     private final CraftShortcutView craftShortcutView;
+    private final AstralRecord plugin;
 
     public MenuView(@NotNull AstralRecord plugin) {
+        this.plugin = plugin;
         NamespacedKey craftShortcutKey = new NamespacedKey(plugin, "menu_shortcut_slot");
         NamespacedKey craftActionKey = new NamespacedKey(plugin, "menu_shortcut_action");
         NamespacedKey equipmentPlaceholderKey = new NamespacedKey(plugin, "equipment_placeholder");
@@ -109,7 +111,7 @@ public class MenuView {
 
     public void open(@NotNull Player player) {
         Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.MAIN), SIZE, MAIN_TITLE);
-        mainMenuScreenView.render(inventory);
+        mainMenuScreenView.render(inventory, plugin.getCurrencyService().getGoldAmount(player));
         player.openInventory(inventory);
     }
 

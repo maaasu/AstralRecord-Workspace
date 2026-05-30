@@ -19,7 +19,7 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
     public static final int CURRENCY_SLOT = 32;
     public static final int PARTY_SLOT = 33;
 
-    public void render(@NotNull Inventory inventory) {
+    public void render(@NotNull Inventory inventory, long goldAmount) {
         fill(inventory);
         inventory.setItem(STATUS_SLOT, createItem(
             Material.PLAYER_HEAD,
@@ -59,7 +59,10 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
         inventory.setItem(CURRENCY_SLOT, createItem(
             Material.EMERALD,
             Component.text("通貨", NamedTextColor.GOLD),
-            List.of(Component.text("所持通貨を確認", NamedTextColor.GRAY))
+            List.of(
+                Component.text("所持通貨を確認", NamedTextColor.GRAY),
+                Component.text("ゴールド: " + goldAmount, NamedTextColor.YELLOW)
+            )
         ));
         inventory.setItem(PARTY_SLOT, createItem(
             Material.PLAYER_HEAD,

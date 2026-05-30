@@ -68,17 +68,27 @@ final class InventoryItemStackResolver {
             return resolved;
         }
 
-        ItemMeta meta = resolved.getItemMeta();
+        appendCurrencyQuantityLore(resolved, entry.getQuantity());
+        return resolved;
+    }
+
+    @NotNull ItemStack resolveCurrencyDisplay(@NotNull ItemModel itemModel, long quantity) {
+        ItemStack resolved = itemStackFactory.create(itemModel, normalizeAmount(quantity, itemModel.getMaxStack()));
+        appendCurrencyQuantityLore(resolved, quantity);
+        return resolved;
+    }
+
+    private void appendCurrencyQuantityLore(@NotNull ItemStack itemStack, long quantity) {
+        ItemMeta meta = itemStack.getItemMeta();
         if (meta == null) {
-            return resolved;
+            return;
         }
         List<Component> lore = meta.lore();
         List<Component> updatedLore = lore == null ? new ArrayList<>() : new ArrayList<>(lore);
         updatedLore.add(Component.empty());
-        updatedLore.add(Component.text("スタック数: " + entry.getQuantity(), NamedTextColor.GRAY));
+        updatedLore.add(Component.text("所持量: " + quantity, NamedTextColor.GRAY));
         meta.lore(updatedLore);
-        resolved.setItemMeta(meta);
-        return resolved;
+        itemStack.setItemMeta(meta);
     }
 
     private @Nullable ItemStack resolveEquipment(@NotNull InventoryEntryModel entry) {

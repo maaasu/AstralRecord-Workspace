@@ -569,6 +569,9 @@ public class InventoryService {
         }
         InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, inventoryType);
         if (inventory == null || !inventory.isEnabled()) {
+            if (inventoryType == InventoryType.CURRENCY) {
+                return goldCurrencyDisplay(0L);
+            }
             return List.of();
         }
         List<InventoryEntryModel> entries = inventoryType == InventoryType.CURRENCY
@@ -576,7 +579,7 @@ public class InventoryService {
             : state.snapshotEntries(inventory.getInventoryId()).stream()
                 .filter(entry -> !entry.isDeleted())
                 .toList();
-        return entries.stream()
+        List<ItemStack> itemStacks = entries.stream()
             .filter(entry -> !entry.isDeleted())
             .sorted(Comparator.<InventoryEntryModel, Integer>comparing(
                 entry -> entry.getSlotIndex() == null ? Integer.MAX_VALUE : entry.getSlotIndex()
@@ -586,6 +589,43 @@ public class InventoryService {
                 : itemStackResolver.resolve(entry))
             .filter(itemStack -> itemStack != null && itemStack.getType() != Material.AIR)
             .toList();
+        if (inventoryType != InventoryType.CURRENCY
+            || hasCurrencyEntry(entries, ItemService.DEFAULT_CURRENCY_ITEM_ID)
+            || hasCurrencyEntry(entries, ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID)) {
+            return itemStacks;
+        }
+
+        List<ItemStack> withGold = new ArrayList<>(itemStacks.size() + 1);
+        withGold.addAll(goldCurrencyDisplay(0L));
+        withGold.addAll(itemStacks);
+        return withGold;
+    }
+
+    /**
+     * 指定アカウントの通貨インベントリから対象 itemId の数量合計を返します。
+     *
+     * @param accountId 対象アカウントID
+     * @param itemId 通貨アイテムID
+     * @return 所持数量。未ロードまたは未所持の場合は 0
+     */
+    public long getCurrencyAmount(@NotNull UUID accountId, @NotNull String itemId) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return 0L;
+        }
+        InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, InventoryType.CURRENCY);
+        if (inventory == null || !inventory.isEnabled()) {
+            return 0L;
+        }
+        String normalizedItemId = itemId.trim();
+        if (normalizedItemId.isBlank()) {
+            return 0L;
+        }
+        return normalizeCurrencyEntries(state, inventory).stream()
+            .filter(entry -> !entry.isDeleted())
+            .filter(entry -> entry.getItemId() != null && entry.getItemId().equalsIgnoreCase(normalizedItemId))
+            .mapToLong(InventoryEntryModel::getQuantity)
+            .sum();
     }
 
     public long countOwnedItems(@NotNull UUID accountId, @NotNull InventoryType inventoryType) {
@@ -2122,6 +2162,20 @@ public class InventoryService {
         if (!entry.getItemCategory().equalsIgnoreCase(model.getCategory())) return false;
         if (entry.getInstanceType() != null || entry.getInstanceId() != null) return false;
         return isCurrency || entry.getQuantity() < maxStack;
+    }
+
+    private boolean hasCurrencyEntry(@NotNull List<InventoryEntryModel> entries, @NotNull String itemId) {
+        return entries.stream()
+            .filter(entry -> !entry.isDeleted())
+            .anyMatch(entry -> entry.getItemId() != null && entry.getItemId().equalsIgnoreCase(itemId));
+    }
+
+    private @NotNull List<ItemStack> goldCurrencyDisplay(long amount) {
+        ItemModel gold = itemService.loadItem(ItemService.DEFAULT_CURRENCY_ITEM_ID);
+        if (gold == null) {
+            return List.of();
+        }
+        return List.of(itemStackResolver.resolveCurrencyDisplay(gold, amount));
     }
 
     private @Nullable UUID createInstanceId(

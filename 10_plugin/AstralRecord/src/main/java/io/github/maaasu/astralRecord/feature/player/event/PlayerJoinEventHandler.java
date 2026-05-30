@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.player.event;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
+import io.github.maaasu.astralRecord.feature.loginbonus.service.LoginBonusService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -23,11 +24,17 @@ import java.util.UUID;
 public class PlayerJoinEventHandler extends AbstractEventHandler {
 
     private final PlayerService playerService;
+    private final LoginBonusService loginBonusService;
     private final AstralRecord plugin;
 
-    public PlayerJoinEventHandler(AstralRecord plugin, PlayerService playerService) {
+    public PlayerJoinEventHandler(
+        AstralRecord plugin,
+        PlayerService playerService,
+        LoginBonusService loginBonusService
+    ) {
         this.plugin = plugin;
         this.playerService = playerService;
+        this.loginBonusService = loginBonusService;
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
@@ -44,7 +51,10 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 }
 
                 plugin.getServer().getScheduler().runTask(plugin, () ->
-                    runSafely(() -> playerService.applyPlayerJoin(player, joinData), LogId.E_5070, playerName)
+                    runSafely(() -> {
+                        playerService.applyPlayerJoin(player, joinData);
+                        loginBonusService.openAfterDataLoaded(player);
+                    }, LogId.E_5070, playerName)
                 );
             }, LogId.E_5070, playerName);
             runSafely(() -> playerService.recordLoginHistory(playerUuid, playerName), LogId.E_5070, playerName);
