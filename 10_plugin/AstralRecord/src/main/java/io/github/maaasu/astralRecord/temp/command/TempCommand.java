@@ -1,9 +1,6 @@
 package io.github.maaasu.astralRecord.temp.command;
 
 import io.github.maaasu.astralRecord.AstralRecord;
-import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
-import io.github.maaasu.astralRecord.feature.item.service.ItemService;
-import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKey;
@@ -32,7 +29,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 指定アイテムをドロップ表示または BlockDisplay で 10 秒間だけ表示する /temp コマンドです。
+ * 指定したバニラアイテムを drop 表示または BlockDisplay で 10 秒間だけ表示する /temp コマンドです。
  */
 public final class TempCommand extends AstCommand {
 
@@ -41,24 +38,16 @@ public final class TempCommand extends AstCommand {
     private static final double HEIGHT_OFFSET = -0.35D;
     private static final Map<UUID, List<Entity>> ACTIVE_ENTITIES = new ConcurrentHashMap<>();
 
-    private final ItemService itemService;
-    private final ItemStackFactory itemStackFactory;
-
     /**
      * TempCommand を初期化します。
-     *
-     * @param itemService アイテム解決サービス
-     * @param itemStackFactory アイテム表示用 ItemStack ファクトリ
      */
-    public TempCommand(@NotNull ItemService itemService, @NotNull ItemStackFactory itemStackFactory) {
+    public TempCommand() {
         super(
             "temp",
-            "Temporarily show an item as drop or block display.",
-            "/temp <itemId> <block|drop>",
+            "Temporarily show a vanilla item as drop or block display.",
+            "/temp <material> <block|drop>",
             true
         );
-        this.itemService = itemService;
-        this.itemStackFactory = itemStackFactory;
     }
 
     @Override
@@ -73,15 +62,15 @@ public final class TempCommand extends AstCommand {
             return;
         }
 
-        ItemModel itemModel = resolveItem(args[0]);
-        if (itemModel == null) {
+        Material material = resolveMaterial(args[0]);
+        if (material == null) {
             player.sendMessage(PlayerMsgId.P_5081, args[0]);
             return;
         }
 
         clearActiveDisplay(player.getBukkit().getUniqueId());
 
-        SpawnResult spawnResult = spawnDisplay(player.getBukkit(), itemModel, mode);
+        SpawnResult spawnResult = spawnDisplay(player.getBukkit(), material, mode);
         if (spawnResult == null) {
             return;
         }
@@ -91,29 +80,29 @@ public final class TempCommand extends AstCommand {
 
         player.sendMessage(
             PlayerMsgId.P_5080,
-            itemModel.getId(),
+            material.name(),
             mode.getDisplayNameJa(),
             spawnResult.viewerCount()
         );
     }
 
-    private @Nullable ItemModel resolveItem(@NotNull String itemId) {
-        ItemModel loaded = itemService.findLoadedById(itemId);
-        if (loaded != null) {
-            return loaded;
+    private @Nullable Material resolveMaterial(@NotNull String materialName) {
+        Material material = Material.matchMaterial(materialName.trim(), true);
+        if (material == null || material == Material.AIR) {
+            return null;
         }
-        return itemService.loadItem(itemId);
+        return material;
     }
 
     private @Nullable SpawnResult spawnDisplay(
         @NotNull Player executor,
-        @NotNull ItemModel itemModel,
+        @NotNull Material material,
         @NotNull TempDisplayMode mode
     ) {
         Location spawnLocation = resolveSpawnLocation(executor);
         Entity entity = switch (mode) {
-            case DROP -> spawnDropDisplay(spawnLocation, itemModel);
-            case BLOCK -> spawnBlockDisplay(executor, spawnLocation, itemModel);
+            case DROP -> spawnDropDisplay(spawnLocation, material);
+            case BLOCK -> spawnBlockDisplay(executor, spawnLocation, material);
         };
         if (entity == null) {
             return null;
@@ -124,33 +113,33 @@ public final class TempCommand extends AstCommand {
         return new SpawnResult(List.of(entity), viewerCount);
     }
 
-    private @NotNull Item spawnDropDisplay(@NotNull Location spawnLocation, @NotNull ItemModel itemModel) {
+    private @NotNull Item spawnDropDisplay(@NotNull Location spawnLocation, @NotNull Material material) {
         World world = spawnLocation.getWorld();
         if (world == null) {
             throw new IllegalStateException("World is unavailable.");
         }
 
-        ItemStack itemStack = itemStackFactory.create(itemModel);
-        Item droppedItem = world.dropItem(spawnLocation, itemStack);
-        droppedItem.setVelocity(new Vector(0.0D, 0.0D, 0.0D));
-        droppedItem.setGravity(false);
-        droppedItem.setPickupDelay(Integer.MAX_VALUE);
-        droppedItem.setCanMobPickup(false);
-        droppedItem.setUnlimitedLifetime(false);
-        droppedItem.setInvulnerable(true);
-        return droppedItem;
+        ItemStack itemStack = new ItemStack(material);
+        return world.spawn(spawnLocation, Item.class, item -> {
+            item.setItemStack(itemStack);
+            item.setVelocity(new Vector(0.0D, 0.0D, 0.0D));
+            item.setGravity(false);
+            item.setPickupDelay(Integer.MAX_VALUE);
+            item.setCanMobPickup(false);
+            item.setUnlimitedLifetime(false);
+            item.setInvulnerable(true);
+        });
     }
 
     private @Nullable BlockDisplay spawnBlockDisplay(
         @NotNull Player executor,
         @NotNull Location spawnLocation,
-        @NotNull ItemModel itemModel
+        @NotNull Material material
     ) {
-        Material material = resolveBlockMaterial(itemModel);
-        if (material == null) {
+        if (!material.isBlock()) {
             AstPlayer astPlayer = io.github.maaasu.astralRecord.feature.player.AstPlayerCache.get(executor);
             if (astPlayer != null) {
-                astPlayer.sendMessage(PlayerMsgId.P_5082, itemModel.getId(), itemModel.getIcon());
+                astPlayer.sendMessage(PlayerMsgId.P_5082, material.name(), material.name());
             }
             return null;
         }
@@ -166,19 +155,6 @@ public final class TempCommand extends AstCommand {
             display.setInterpolationDuration(2);
             display.setTeleportDuration(2);
         });
-    }
-
-    private @Nullable Material resolveBlockMaterial(@NotNull ItemModel itemModel) {
-        String iconName = itemModel.getIcon();
-        if (iconName == null || iconName.isBlank()) {
-            return null;
-        }
-
-        Material material = Material.matchMaterial(iconName.trim().toUpperCase(Locale.ROOT));
-        if (material == null || !material.isBlock()) {
-            return null;
-        }
-        return material;
     }
 
     private int applyVisibility(@NotNull Entity entity, @NotNull TempDisplayMode mode) {

@@ -58,7 +58,7 @@ public class CommandRegister {
         CommandManager cm = CommandManager.getInstance();
 
         cm.registerCommand("test", new TestCommand(), new TestTabCompleter());
-        cm.registerCommand("temp", new TempCommand(itemService, itemStackFactory), new TempTabCompleter(itemService));
+        cm.registerCommand("temp", new TempCommand(), new TempTabCompleter());
         cm.registerCommand("status", new StatusCommand(), new StatusTabCompleter());
         cm.registerCommand("inventory", new InventoryCommand(), new InventoryTabCompleter());
         cm.registerCommand("menu", new MenuCommand());
