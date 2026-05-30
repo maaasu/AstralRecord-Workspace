@@ -14,7 +14,9 @@ import java.util.stream.Collectors;
 public enum PlayerSettingKey {
     DAMAGE_LOG_DISPLAY("DAMAGE_LOG_DISPLAY", "ダメージログ表示", true),
     PARTICLE_DENSITY("PARTICLE_DENSITY", "パーティクル密度", ParticleDensity.NORMAL),
-    DROP_LOG_DISPLAY("DROP_LOG_DISPLAY", "ドロップログ表示", true);
+    DROP_LOG_DISPLAY("DROP_LOG_DISPLAY", "ドロップログ表示", true),
+    TEMP_DROP_DISPLAY("TEMP_DROP_DISPLAY", "Temp ドロップ表示", true),
+    TEMP_BLOCK_DISPLAY("TEMP_BLOCK_DISPLAY", "Temp BlockDisplay 表示", true);
 
     private final String code;
     private final String displayNameJa;

@@ -46,6 +46,10 @@ public enum PlayerMsgId {
      * [TEMP] テキスト表示を削除しました。
      */
     P_5081(5081),
+    /**
+     * [TEMP] BlockDisplay に使えるブロック icon がありません: item={0}, icon={1}
+     */
+    P_5082(5082),
     // endregion
 
     // region /feature/player/event/PlayerJoinEventHandler.java 5070-5079

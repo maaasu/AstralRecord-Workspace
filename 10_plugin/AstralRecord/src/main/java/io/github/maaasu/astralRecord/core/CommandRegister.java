@@ -37,6 +37,7 @@ import io.github.maaasu.astralRecord.infrastructure.command.CommandManager;
  */
 public class CommandRegister {
     private final ItemService itemService;
+    private final ItemStackFactory itemStackFactory;
     private final MobService mobService;
     private final WorldService worldService;
 
@@ -47,6 +48,7 @@ public class CommandRegister {
             WorldService worldService
     ) {
         this.itemService = itemService;
+        this.itemStackFactory = itemStackFactory;
         this.mobService = mobService;
         this.worldService = worldService;
         registerCommand();
@@ -56,7 +58,7 @@ public class CommandRegister {
         CommandManager cm = CommandManager.getInstance();
 
         cm.registerCommand("test", new TestCommand(), new TestTabCompleter());
-        cm.registerCommand("temp", new TempCommand(), new TempTabCompleter());
+        cm.registerCommand("temp", new TempCommand(itemService, itemStackFactory), new TempTabCompleter(itemService));
         cm.registerCommand("status", new StatusCommand(), new StatusTabCompleter());
         cm.registerCommand("inventory", new InventoryCommand(), new InventoryTabCompleter());
         cm.registerCommand("menu", new MenuCommand());
