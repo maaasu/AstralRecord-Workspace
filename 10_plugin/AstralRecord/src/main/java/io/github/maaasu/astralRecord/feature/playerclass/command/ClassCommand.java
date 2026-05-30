@@ -33,10 +33,16 @@ public final class ClassCommand extends AstCommand {
             return;
         }
 
-        String classId = args[1].trim();
         var classService = AstralRecord.getInstance().getPlayerClassService();
-        if (classService == null || classService.getLoadedClass(classId) == null) {
-            sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5813.getId(), classId));
+        if (classService == null) {
+            sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5813.getId(), args[1].trim()));
+            return;
+        }
+
+        String classInput = args[1].trim();
+        var resolvedClass = classService.resolveLoadedClass(classInput);
+        if (resolvedClass == null) {
+            sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5813.getId(), classInput));
             return;
         }
 
@@ -46,11 +52,14 @@ public final class ClassCommand extends AstCommand {
         }
 
         String oldClassId = target.getClassId();
-        target.setClassId(classId);
+        String newClassId = resolvedClass.getId();
+        target.setClassId(newClassId);
         target.setClassLevel(Math.max(1, target.getClassLevel()));
-        sendSuccess(sender, PlayerMsgResource.format(PlayerMsgId.P_5812.getId(), oldClassId, classId));
+        String oldDisplayName = classService.getDisplayName(oldClassId);
+        String newDisplayName = classService.getDisplayName(newClassId);
+        sendSuccess(sender, PlayerMsgResource.format(PlayerMsgId.P_5812.getId(), oldDisplayName, newDisplayName));
         if (sender != target.getBukkit()) {
-            target.sendMessage(PlayerMsgId.P_5812, oldClassId, classId);
+            target.sendMessage(PlayerMsgId.P_5812, oldDisplayName, newDisplayName);
         }
     }
 
