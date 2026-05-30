@@ -42,6 +42,9 @@ public final class ItemWeaponAttackEventHandler extends AbstractEventHandler {
             if (!isLeftClick && !isRightClick) {
                 return;
             }
+            if (actionRingService.isAttackSuppressed(event.getPlayer())) {
+                return;
+            }
             if (actionRingService.isOpen(event.getPlayer())) {
                 return;
             }

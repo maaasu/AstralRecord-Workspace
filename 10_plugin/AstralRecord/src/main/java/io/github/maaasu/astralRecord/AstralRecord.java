@@ -473,7 +473,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new CombatDamageEventHandler(damageService),
+            new CombatDamageEventHandler(damageService, skillActionRingService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

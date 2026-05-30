@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -63,6 +64,7 @@ public final class SkillActionRingService {
     private final SkillBindPresetService presetService;
     private final SkillService skillService;
     private final Map<UUID, RingSession> sessions = new ConcurrentHashMap<>();
+    private final Set<UUID> suppressedAttackPlayers = ConcurrentHashMap.newKeySet();
     private BukkitTask task;
 
     /**
@@ -109,6 +111,27 @@ public final class SkillActionRingService {
      */
     public boolean isOpen(@NotNull Player player) {
         return sessions.containsKey(player.getUniqueId());
+    }
+
+    /**
+     * アクションリングで消費した左クリックから通常攻撃が派生しないよう、次 tick まで攻撃入力を抑止します。
+     *
+     * @param player 対象プレイヤー
+     */
+    public void suppressAttack(@NotNull Player player) {
+        UUID playerId = player.getUniqueId();
+        suppressedAttackPlayers.add(playerId);
+        plugin.getServer().getScheduler().runTask(plugin, () -> suppressedAttackPlayers.remove(playerId));
+    }
+
+    /**
+     * 直前のアクションリング操作により通常攻撃を抑止中か判定します。
+     *
+     * @param player 対象プレイヤー
+     * @return 抑止中の場合 true
+     */
+    public boolean isAttackSuppressed(@NotNull Player player) {
+        return suppressedAttackPlayers.contains(player.getUniqueId());
     }
 
     /**
@@ -186,6 +209,7 @@ public final class SkillActionRingService {
             session.destroy();
         }
         sessions.clear();
+        suppressedAttackPlayers.clear();
     }
 
     private void ensureTask() {

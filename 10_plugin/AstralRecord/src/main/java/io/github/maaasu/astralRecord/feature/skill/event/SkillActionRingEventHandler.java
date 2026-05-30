@@ -91,6 +91,7 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
             if (!isLeftClick) {
                 return;
             }
+            actionRingService.suppressAttack(player);
             AstPlayer astPlayer = AstPlayerCache.get(player);
             if (isPlayerMode(astPlayer)) {
                 actionRingService.activateSelected(astPlayer);
@@ -132,6 +133,7 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
                 return;
             }
             event.setCancelled(true);
+            actionRingService.suppressAttack(player);
             AstPlayer astPlayer = AstPlayerCache.get(player);
             if (isPlayerMode(astPlayer)) {
                 actionRingService.activateSelected(astPlayer);
