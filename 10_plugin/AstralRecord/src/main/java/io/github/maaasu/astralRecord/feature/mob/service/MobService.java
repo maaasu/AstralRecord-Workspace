@@ -316,10 +316,10 @@ public class MobService {
     }
 
     /**
-     * 蟇ｾ雎｡ Mob 縺ｮ隕九∪繧呈ｿ九∪縺吶・
+     * 対象 Mob の視線を指定位置に向けます。
      *
-     * @param instance 蟇ｾ雎｡繧､繝ｳ繧ｹ繧ｿ繝ｳ繧ｹ
-     * @param target   隕九∪繧呈ｸ｡縺代◆縺・菴咲ｽｮ
+     * @param instance 対象インスタンス
+     * @param target   視線を向ける位置
      */
     public void lookAt(@NotNull MobInstance instance, @NotNull Location target) {
         entityController.lookAt(instance, target);
