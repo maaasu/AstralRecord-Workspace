@@ -26,7 +26,7 @@ public final class StatusScreenView extends BaseMenuScreenView {
     private static final int UTILITY_SLOT = 24;
 
     private static final int BAR_LENGTH = 20;
-    private static final String SEPARATOR = "━━━━━━━━━━━━━━━━━━━━━━";
+    private static final String SEPARATOR = "◇════════════════◇";
 
     private static final NamedTextColor HP_COLOR = NamedTextColor.RED;
     private static final NamedTextColor MP_COLOR = NamedTextColor.AQUA;
@@ -47,28 +47,40 @@ public final class StatusScreenView extends BaseMenuScreenView {
         inventory.setItem(BACK_SLOT, backItem());
         inventory.setItem(SUMMARY_SLOT, summaryItem(player, snapshot));
         inventory.setItem(RESOURCE_SLOT, categoryItem(
-            Material.GOLDEN_APPLE, "❖", StatusType.Category.RESOURCE, RESOURCE_COLOR, snapshot));
+            Material.GOLDEN_APPLE, "◆", StatusType.Category.RESOURCE, RESOURCE_COLOR, snapshot));
         inventory.setItem(PRIMARY_SLOT, categoryItem(
-            Material.DIAMOND, "◆", StatusType.Category.PRIMARY, PRIMARY_COLOR, snapshot));
+            Material.DIAMOND, "◇", StatusType.Category.PRIMARY, PRIMARY_COLOR, snapshot));
         inventory.setItem(OFFENSE_SLOT, categoryItem(
             Material.NETHERITE_SWORD, "⚔", StatusType.Category.OFFENSE, OFFENSE_COLOR, snapshot));
         inventory.setItem(DEFENSE_SLOT, categoryItem(
             Material.SHIELD, "✚", StatusType.Category.DEFENSE, DEFENSE_COLOR, snapshot));
         inventory.setItem(UTILITY_SLOT, categoryItem(
-            Material.FEATHER, "✤", StatusType.Category.UTILITY, UTILITY_COLOR, snapshot));
+            Material.FEATHER, "✦", StatusType.Category.UTILITY, UTILITY_COLOR, snapshot));
     }
 
     private @NotNull ItemStack summaryItem(@NotNull AstPlayer player, @NotNull StatusSnapshot snapshot) {
         Component name = noItalic(Component.empty()
-            .append(Component.text("✦ ", NamedTextColor.YELLOW))
+            .append(Component.text("◆ ", NamedTextColor.YELLOW))
             .append(Component.text(player.getAccount().getAccountName(), NamedTextColor.GOLD, TextDecoration.BOLD))
-            .append(Component.text(" ✦", NamedTextColor.YELLOW)));
+            .append(Component.text(" ◆", NamedTextColor.YELLOW)));
 
         List<Component> lore = new ArrayList<>();
         lore.add(separatorLine());
-        lore.add(noItalic(Component.text("  〘 冒険者プロフィール 〙", NamedTextColor.GOLD, TextDecoration.BOLD)));
+        lore.add(noItalic(Component.text("  Character Profile  ", NamedTextColor.GOLD, TextDecoration.BOLD)));
         lore.add(separatorLine());
         lore.add(Component.empty());
+        lore.add(noItalic(Component.text("◆ アカウント", NamedTextColor.GOLD, TextDecoration.BOLD)));
+        lore.add(noItalic(Component.text("  Player Lv: " + player.getAccount().getLevel(), NamedTextColor.YELLOW)));
+        lore.add(noItalic(Component.text("  Total EXP: " + formatInt(player.getAccount().getTotalExperience()), NamedTextColor.GRAY)));
+        lore.add(noItalic(Component.text("  Slot: " + player.getAccount().getSlotIndex(), NamedTextColor.GRAY)));
+        lore.add(noItalic(Component.text("  Mode: " + player.getAccount().getMode().name(), NamedTextColor.GRAY)));
+        lore.add(noItalic(Component.text("  Active: " + player.getAccount().isActive(), NamedTextColor.GREEN)));
+        lore.add(Component.empty());
+        lore.add(noItalic(Component.text("◆ クラス", NamedTextColor.AQUA, TextDecoration.BOLD)));
+        lore.add(noItalic(Component.text("  Class: " + player.getClassId(), NamedTextColor.AQUA)));
+        lore.add(noItalic(Component.text("  Class Lv: " + player.getClassLevel(), NamedTextColor.GREEN)));
+        lore.add(Component.empty());
+        lore.add(noItalic(Component.text("◆ リソース", NamedTextColor.RED, TextDecoration.BOLD)));
         lore.add(resourceLine("HP", "♥",
             snapshot.getCurrentHp(),
             snapshot.getMaxValue(StatusType.MAX_HEALTH),
@@ -122,15 +134,16 @@ public final class StatusScreenView extends BaseMenuScreenView {
             .append(Component.text(" ▸ ", accent))
             .append(Component.text(type.getDisplayName(), NamedTextColor.GRAY))
             .append(Component.text(" ", NamedTextColor.DARK_GRAY))
-            .append(Component.text(type.formatValue(value.getTotalValue()), NamedTextColor.WHITE, TextDecoration.BOLD));
+            .append(Component.text(type.formatValue(value.getTotalValue()), NamedTextColor.WHITE, TextDecoration.BOLD))
+            .append(Component.text("  base ", NamedTextColor.DARK_GRAY))
+            .append(Component.text(type.formatValue(value.getBaseValue()), NamedTextColor.GRAY));
 
         double bonus = value.getBonusValue();
         if (bonus != 0.0) {
             NamedTextColor bonusColor = bonus > 0.0 ? NamedTextColor.GREEN : NamedTextColor.RED;
             line = line
-                .append(Component.text(" (", NamedTextColor.DARK_GRAY))
-                .append(Component.text(type.formatSignedValue(bonus), bonusColor))
-                .append(Component.text(")", NamedTextColor.DARK_GRAY));
+                .append(Component.text(" bonus ", NamedTextColor.DARK_GRAY))
+                .append(Component.text(type.formatSignedValue(bonus), bonusColor));
         }
         return noItalic(line);
     }

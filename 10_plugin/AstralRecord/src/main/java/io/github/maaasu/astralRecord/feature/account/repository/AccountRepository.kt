@@ -268,5 +268,7 @@ class AccountRepository {
         createdBy   = UUID.fromString(get("createdBy").asString),
         updatedBy   = UUID.fromString(get("updatedBy").asString),
         isDeleted   = get("isDeleted").asBoolean,
+        level        = get("level")?.takeIf { !it.isJsonNull }?.asInt ?: 1,
+        totalExperience = get("totalExperience")?.takeIf { !it.isJsonNull }?.asLong ?: 0L,
     )
 }

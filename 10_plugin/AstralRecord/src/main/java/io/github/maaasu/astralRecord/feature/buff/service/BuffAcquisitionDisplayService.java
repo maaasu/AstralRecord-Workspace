@@ -30,7 +30,7 @@ public final class BuffAcquisitionDisplayService {
     private static final long HOLD_TICKS = 54L;
     private static final long FADE_TICKS = 10L;
     private static final double DISTANCE = 1.85D;
-    private static final Vector LOWER_RIGHT_OFFSET = new Vector(0.82D, -0.45D, 0.0D);
+    private static final Vector LOWER_RIGHT_OFFSET = new Vector(1.18D, -0.78D, 0.0D);
 
     private final DisplayTextService displayTextService;
     private final Map<UUID, DisplayTextService.ManagedTextDisplay> activeDisplays = new ConcurrentHashMap<>();
@@ -46,8 +46,6 @@ public final class BuffAcquisitionDisplayService {
 
     /**
      * 指定プレイヤーへバフ獲得通知を表示します。
-     * <p>
-     * 既存通知が残っている場合は破棄してから新しい通知を表示し、右下表示が重ならないようにします。
      *
      * @param player 表示対象プレイヤー
      * @param buff   獲得したバフ
@@ -61,7 +59,7 @@ public final class BuffAcquisitionDisplayService {
         String text = buildText(buff);
         DisplayTextOptions options = DisplayTextOptions.defaults(text)
             .withBillboard(Display.Billboard.CENTER)
-            .withLineWidth(180)
+            .withLineWidth(220)
             .withViewRange(24.0F)
             .withSeeThrough(true)
             .withShadowed(true)
@@ -77,7 +75,7 @@ public final class BuffAcquisitionDisplayService {
             options.seeThrough(),
             options.shadowed(),
             false,
-            Color.fromARGB(96, 0, 0, 0),
+            Color.fromARGB(136, 8, 4, 18),
             options.interpolationDuration(),
             options.teleportDuration(),
             options.persistent(),
@@ -108,18 +106,25 @@ public final class BuffAcquisitionDisplayService {
         }
 
         StringBuilder builder = new StringBuilder();
-        builder.append(ColorCodeUtil.AQUA)
-            .append("+ BUFF\n")
+        builder.append(ColorCodeUtil.DARK_GRAY)
+            .append("◇════ ")
+            .append(ColorCodeUtil.AQUA)
+            .append("BUFF")
+            .append(ColorCodeUtil.DARK_GRAY)
+            .append(" ════◇\n")
+            .append(ColorCodeUtil.GOLD)
+            .append("✦ ")
             .append(ColorCodeUtil.WHITE)
             .append(displayName)
-            .append('\n')
+            .append(ColorCodeUtil.GOLD)
+            .append(" ✦\n")
             .append(ColorCodeUtil.GRAY)
-            .append("残り ")
+            .append("⏳ 残り ")
             .append(formatRemaining(buff));
 
         String modifierSummary = modifierSummary(buff);
         if (!modifierSummary.isBlank()) {
-            builder.append('\n').append(ColorCodeUtil.GREEN).append(modifierSummary);
+            builder.append('\n').append(ColorCodeUtil.GREEN).append("⚔ ").append(modifierSummary);
         }
         return builder.toString();
     }

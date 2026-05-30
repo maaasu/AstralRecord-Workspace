@@ -9,6 +9,8 @@ public class AccountEntity
     public bool IsActive { get; set; }
     public byte Mode { get; set; }
     public string MenuShortcutsJson { get; set; } = """["INVENTORY_NORMAL","INVENTORY_EQUIPMENT","INVENTORY_RUNE","INVENTORY_CURRENCY"]""";
+    public int Level { get; set; } = 1;
+    public long TotalExperience { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public Guid CreatedBy { get; set; }

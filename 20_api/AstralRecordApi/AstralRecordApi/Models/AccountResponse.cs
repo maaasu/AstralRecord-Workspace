@@ -9,6 +9,8 @@ public class AccountResponse
     public bool IsActive { get; set; }
     public byte Mode { get; set; }
     public string MenuShortcutsJson { get; set; } = string.Empty;
+    public int Level { get; set; }
+    public long TotalExperience { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public Guid CreatedBy { get; set; }

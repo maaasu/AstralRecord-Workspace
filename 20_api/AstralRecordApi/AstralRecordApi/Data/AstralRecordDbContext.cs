@@ -57,6 +57,8 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(account => account.IsActive).HasColumnName("is_active");
             entity.Property(account => account.Mode).HasColumnName("mode");
             entity.Property(account => account.MenuShortcutsJson).HasColumnName("menu_shortcuts_json");
+            entity.Property(account => account.Level).HasColumnName("level");
+            entity.Property(account => account.TotalExperience).HasColumnName("total_experience");
             entity.Property(account => account.CreatedAt).HasColumnName("created_at");
             entity.Property(account => account.UpdatedAt).HasColumnName("updated_at");
             entity.Property(account => account.CreatedBy).HasColumnName("created_by");

@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BuffScreenView;
+import io.github.maaasu.astralRecord.feature.menu.view.screen.ClassScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.EquipmentMenuScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.GuideScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.MainMenuScreenView;
@@ -17,6 +18,7 @@ import io.github.maaasu.astralRecord.feature.menu.view.screen.StatusScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.TrashConfirmScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.TrashScreenView;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.playerclass.model.ClassViewEntry;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import net.kyori.adventure.text.Component;
@@ -44,6 +46,7 @@ public class MenuView {
     public static final int BUFF_SLOT = MainMenuScreenView.BUFF_SLOT;
     public static final int SKILL_BIND_SLOT = MainMenuScreenView.SKILL_BIND_SLOT;
     public static final int CURRENCY_SLOT = MainMenuScreenView.CURRENCY_SLOT;
+    public static final int CLASS_SLOT = MainMenuScreenView.CLASS_SLOT;
     public static final int EQUIPMENT_HEAD_SLOT = EquipmentMenuScreenView.EQUIPMENT_HEAD_SLOT;
     public static final int EQUIPMENT_CHEST_SLOT = EquipmentMenuScreenView.EQUIPMENT_CHEST_SLOT;
     public static final int EQUIPMENT_LEGS_SLOT = EquipmentMenuScreenView.EQUIPMENT_LEGS_SLOT;
@@ -79,6 +82,7 @@ public class MenuView {
     private final StatusScreenView statusScreenView;
     private final EquipmentMenuScreenView equipmentMenuScreenView;
     private final BuffScreenView buffScreenView;
+    private final ClassScreenView classScreenView;
     private final CurrencyGuiView currencyGuiView;
     private final GuideScreenView guideScreenView;
     private final TrashScreenView trashScreenView;
@@ -89,11 +93,13 @@ public class MenuView {
         NamespacedKey craftShortcutKey = new NamespacedKey(plugin, "menu_shortcut_slot");
         NamespacedKey craftActionKey = new NamespacedKey(plugin, "menu_shortcut_action");
         NamespacedKey equipmentPlaceholderKey = new NamespacedKey(plugin, "equipment_placeholder");
+        NamespacedKey classIdKey = new NamespacedKey(plugin, "menu_class_id");
         NamespacedKey trashPlaceholderKey = new NamespacedKey(plugin, "trash_content_placeholder");
         this.mainMenuScreenView = new MainMenuScreenView();
         this.statusScreenView = new StatusScreenView();
         this.equipmentMenuScreenView = new EquipmentMenuScreenView(equipmentPlaceholderKey);
         this.buffScreenView = new BuffScreenView();
+        this.classScreenView = new ClassScreenView(classIdKey);
         this.currencyGuiView = new CurrencyGuiView();
         this.guideScreenView = new GuideScreenView();
         this.trashScreenView = new TrashScreenView(trashPlaceholderKey);
@@ -126,6 +132,16 @@ public class MenuView {
     public void openBuff(@NotNull Player player, @NotNull List<ActiveBuff> activeBuffs) {
         Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.BUFF), SIZE, BUFF_TITLE);
         buffScreenView.render(inventory, activeBuffs);
+        player.openInventory(inventory);
+    }
+
+    public void openClass(@NotNull Player player, @NotNull AstPlayer astPlayer, @NotNull List<ClassViewEntry> classes) {
+        Inventory inventory = Bukkit.createInventory(
+            new MenuInventoryHolder(MenuScreen.CLASS),
+            SIZE,
+            Component.text("クラス", NamedTextColor.YELLOW)
+        );
+        classScreenView.render(inventory, astPlayer, classes);
         player.openInventory(inventory);
     }
 
@@ -274,6 +290,10 @@ public class MenuView {
 
     public boolean isTrashConfirmContentPlaceholder(@Nullable ItemStack itemStack) {
         return trashConfirmScreenView.isContentPlaceholder(itemStack);
+    }
+
+    public @Nullable String getClassId(@Nullable ItemStack itemStack) {
+        return classScreenView.getClassId(itemStack);
     }
 }
 

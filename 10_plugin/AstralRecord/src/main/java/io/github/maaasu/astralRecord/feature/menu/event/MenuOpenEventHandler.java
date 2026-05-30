@@ -282,6 +282,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             case MAIN -> handleMainMenuClick(player, event.getRawSlot());
             case STATUS -> handleStatusClick(player, event.getRawSlot());
             case BUFF -> handleBuffClick(player, event.getRawSlot());
+            case CLASS -> handleClassClick(player, event.getCurrentItem(), event.getRawSlot());
             case EQUIPMENT_GUI -> {
             }
             case CURRENCY -> handleCurrencyClick(event, player);
@@ -382,6 +383,16 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             openCurrency(player, 0);
             return;
         }
+        if (rawSlot == MenuView.CLASS_SLOT) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer == null || plugin.getPlayerClassService() == null) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.SELECT.play(player);
+            menuView.openClass(player, astPlayer, plugin.getPlayerClassService().getClassViewEntries());
+            return;
+        }
         GuiSound.DENY.play(player);
     }
 
@@ -439,6 +450,32 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             return;
         }
         GuiSound.DENY.play(player);
+    }
+
+    private void handleClassClick(@NotNull Player player, @Nullable ItemStack clickedItem, int rawSlot) {
+        if (rawSlot == MenuView.BACK_SLOT) {
+            GuiSound.SELECT.play(player);
+            menuView.open(player);
+            return;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null || plugin.getPlayerClassService() == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        String classId = menuView.getClassId(clickedItem);
+        if (classId == null || classId.isBlank() || classId.equalsIgnoreCase(astPlayer.getClassId())) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+
+        String oldDisplayName = plugin.getPlayerClassService().getDisplayName(astPlayer.getClassId());
+        astPlayer.setClassId(classId);
+        astPlayer.setClassLevel(Math.max(1, astPlayer.getClassLevel()));
+        String newDisplayName = plugin.getPlayerClassService().getDisplayName(classId);
+        astPlayer.sendMessage(PlayerMsgId.P_5812, oldDisplayName, newDisplayName);
+        GuiSound.SELECT.play(player);
+        menuView.openClass(player, astPlayer, plugin.getPlayerClassService().getClassViewEntries());
     }
 
     private void handleTrashClick(@NotNull InventoryClickEvent event) {

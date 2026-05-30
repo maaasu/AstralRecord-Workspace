@@ -117,8 +117,9 @@ public class PlayerHudService {
                     astPlayer.getAccount().getMode().name(),
                     astPlayer.getUser().getPermission(),
                     tps,
+                    astPlayer.getAccount().getLevel(),
+                    astPlayer.getAccount().getTotalExperience(),
                     astPlayer.getClassLevel(),
-                    0L,
                     className
                 );
             }

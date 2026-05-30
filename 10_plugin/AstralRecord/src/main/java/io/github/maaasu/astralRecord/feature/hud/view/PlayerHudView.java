@@ -60,15 +60,25 @@ public class PlayerHudView {
     /**
      * サイドバーを描画します。
      *
-     * @param player          対象プレイヤー
-     * @param mode            アカウントモード名
-     * @param permission      権限レベル
-     * @param tps             現在の TPS
-     * @param classLevel      職業レベル
-     * @param totalExperience 累計経験値（進捗バー算出用）
-     * @param className       職業表示名（カラーコード付き可）
+     * @param player 対象プレイヤー
+     * @param mode アカウントモード名
+     * @param permission 権限レベル
+     * @param tps 現在の TPS
+     * @param playerLevel アカウント単位のプレイヤーレベル
+     * @param totalExperience アカウント単位の累計経験値
+     * @param classLevel 現在の職業レベル
+     * @param className 現在の職業表示名
      */
-    public void renderSidebar(Player player, String mode, int permission, double tps, int classLevel, long totalExperience, String className) {
+    public void renderSidebar(
+        Player player,
+        String mode,
+        int permission,
+        double tps,
+        int playerLevel,
+        long totalExperience,
+        int classLevel,
+        String className
+    ) {
         Scoreboard scoreboard = player.getScoreboard();
         if (scoreboard == Bukkit.getScoreboardManager().getMainScoreboard()) {
             scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
@@ -87,22 +97,28 @@ public class PlayerHudView {
 
         int ping = player.getPing();
         clearSidebar(scoreboard);
-        objective.getScore(ColorCodeUtil.DARK_GRAY + "━━━━━━━━━━━━━━━━━━").setScore(8);
-        objective.getScore(ColorCodeUtil.AQUA + "オンライン " + ColorCodeUtil.WHITE + Bukkit.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers()).setScore(7);
-        objective.getScore(tpsLegacyColor(tps) + "TPS " + ColorCodeUtil.WHITE + String.format("%.1f", tps)).setScore(6);
-        objective.getScore(pingLegacyColor(ping) + "遅延 " + ColorCodeUtil.WHITE + ping + "ms").setScore(5);
-        objective.getScore(ColorCodeUtil.GRAY + "職業 " + className).setScore(4);
-        objective.getScore(ColorCodeUtil.YELLOW + "レベル " + ColorCodeUtil.GOLD + classLevel).setScore(3);
-        objective.getScore(buildLevelBar(totalExperience)).setScore(2);
-        objective.getScore(ColorCodeUtil.BLACK + "  ").setScore(1);
-        objective.getScore(ColorCodeUtil.BLUE + "モード " + ColorCodeUtil.WHITE + mode).setScore(0);
+        objective.getScore(ColorCodeUtil.DARK_GRAY + "◇════════════◇").setScore(11);
+        objective.getScore(ColorCodeUtil.GOLD + "PLv " + ColorCodeUtil.WHITE + playerLevel
+                + ColorCodeUtil.DARK_GRAY + " / " + ColorCodeUtil.GRAY + "Total").setScore(10);
+        objective.getScore(buildLevelBar(totalExperience)).setScore(9);
+        objective.getScore(ColorCodeUtil.DARK_AQUA + "Class " + className).setScore(8);
+        objective.getScore(ColorCodeUtil.YELLOW + "ClassLv " + ColorCodeUtil.GOLD + classLevel
+                + ColorCodeUtil.DARK_GRAY + " / " + ColorCodeUtil.GRAY + "Job").setScore(7);
+        objective.getScore(ColorCodeUtil.BLACK + " ").setScore(6);
+        objective.getScore(ColorCodeUtil.AQUA + "Online " + ColorCodeUtil.WHITE
+                + Bukkit.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers()).setScore(5);
+        objective.getScore(tpsLegacyColor(tps) + "TPS " + ColorCodeUtil.WHITE + String.format("%.1f", tps)).setScore(4);
+        objective.getScore(pingLegacyColor(ping) + "Ping " + ColorCodeUtil.WHITE + ping + "ms").setScore(3);
+        objective.getScore(ColorCodeUtil.GRAY + "Mode " + ColorCodeUtil.WHITE + mode).setScore(2);
+        objective.getScore(ColorCodeUtil.DARK_GRAY + "Perm " + ColorCodeUtil.WHITE + permission).setScore(1);
+        objective.getScore(ColorCodeUtil.DARK_GRAY + "◇════════════◇ ").setScore(0);
     }
 
     /**
-     * Tabキー押下時のプレイヤーリストにTPS・pingをヘッダー/フッターとして表示します。
+     * Tab キー押下時のプレイヤーリストに TPS・ping をヘッダー/フッターとして表示します。
      *
      * @param player 対象プレイヤー
-     * @param tps 現在のサーバーTPS（平均値）
+     * @param tps 現在のサーバー TPS（平均値）
      */
     public void renderTabList(Player player, double tps) {
         int ping = player.getPing();
@@ -136,27 +152,20 @@ public class PlayerHudView {
         }
     }
 
-    /**
-     * レベル進行度をプログレスバー形式で表示するテキストを生成します。
-     * 経験値の上位ビットを使用して進捗を算出し、パーセンテージと視覚的なバーを表示します。
-     *
-     * @param totalExperience 累計経験値
-     * @return プログレスバー形式のテキスト
-     */
     private String buildLevelBar(long totalExperience) {
         int progressPercent = (int) Math.min(100, (totalExperience / 100000L) % 100);
         int barLength = 10;
         int filledLength = (progressPercent * barLength) / 100;
 
         StringBuilder bar = new StringBuilder();
-        bar.append(ColorCodeUtil.DARK_GRAY + "進捗 ");
+        bar.append(ColorCodeUtil.DARK_GRAY).append("EXP ");
         bar.append(ColorCodeUtil.GREEN);
         for (int i = 0; i < filledLength; i++) {
-            bar.append("█");
+            bar.append("■");
         }
         bar.append(ColorCodeUtil.DARK_GRAY);
         for (int i = filledLength; i < barLength; i++) {
-            bar.append("█");
+            bar.append("■");
         }
         bar.append(ColorCodeUtil.WHITE).append(" ").append(progressPercent).append("%");
 
@@ -194,15 +203,6 @@ public class PlayerHudView {
         return Math.clamp(current / max, 0.0D, 1.0D);
     }
 
-    /**
-     * アクションバー用の値表示テキストを生成します。
-     *
-     * @param label 表示ラベル
-     * @param current 現在値
-     * @param max 最大値
-     * @param color メインカラー
-     * @return 表示用コンポーネント
-     */
     private Component statText(String label, double current, double max, NamedTextColor color) {
         return Component.text(label + " ", color, TextDecoration.BOLD)
             .append(Component.text(String.format("%.0f", current), NamedTextColor.WHITE))

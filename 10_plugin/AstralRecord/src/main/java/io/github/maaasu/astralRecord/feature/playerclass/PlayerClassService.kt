@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.playerclass
 
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassModel
+import io.github.maaasu.astralRecord.feature.playerclass.model.ClassViewEntry
 import io.github.maaasu.astralRecord.feature.`class`.service.ClassService
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil
 import java.util.LinkedHashSet
@@ -51,6 +52,28 @@ class PlayerClassService {
      * @return ロード済み全 [ClassModel]
      */
     fun getLoadedClasses(): List<ClassModel> = classService.getLoadedClasses()
+
+    /**
+     * GUI 表示向けに、Java から扱いやすいクラス情報へ変換して返します。
+     *
+     * @return GUI 表示用クラス情報一覧
+     */
+    fun getClassViewEntries(): List<ClassViewEntry> = classService.getLoadedClasses().map { model ->
+        ClassViewEntry(
+            id = model.id,
+            type = model.type,
+            name = ColorCodeUtil.translateAlternateColorCodes(model.name),
+            description = model.description?.let(ColorCodeUtil::translateAlternateColorCodes),
+            icon = model.icon,
+            role = model.role,
+            unlockLevel = model.unlockLevel,
+            baseStats = model.baseStats.map { "${it.status} +${formatClassStat(it.value)}" },
+            growthPerLevel = model.growthPerLevel.map { "${it.status} +${formatClassStat(it.value)} / Lv" },
+            starterSkills = model.starterSkills,
+            levelSkills = model.levelSkills.map { "Lv.${it.level}: ${it.skill}" },
+            tags = model.tags,
+        )
+    }
 
     /**
      * クラス指定用の候補一覧を返します。
@@ -111,5 +134,14 @@ class PlayerClassService {
         val translated = ColorCodeUtil.translateAlternateColorCodes(value)
         val stripped = ColorCodeUtil.stripColor(translated)
         return stripped?.trim()?.lowercase(Locale.ROOT).orEmpty()
+    }
+
+    private fun formatClassStat(value: Double): String {
+        val longValue = value.toLong()
+        return if (value == longValue.toDouble()) {
+            longValue.toString()
+        } else {
+            "%.2f".format(Locale.ROOT, value)
+        }
     }
 }

@@ -15,6 +15,8 @@ import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
 import io.github.maaasu.astralRecord.feature.loot.model.LootEntry;
 import io.github.maaasu.astralRecord.feature.loot.model.LootModel;
 import io.github.maaasu.astralRecord.feature.loot.service.LootService;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -103,6 +105,7 @@ public class ItemStackFactory {
 
     /** ルート内アイテム名の日本語表示解決に使用します。 */
     private final ItemService itemService;
+    private SkillService skillService;
 
     /**
      * ItemStackFactory を初期化します。
@@ -113,6 +116,15 @@ public class ItemStackFactory {
     public ItemStackFactory(@NotNull LootService lootService, @NotNull ItemService itemService) {
         this.lootService = lootService;
         this.itemService = itemService;
+    }
+
+    /**
+     * 装備 lore へスキル定義情報を表示するための参照を設定します。
+     *
+     * @param skillService 起動後に初期化されたスキルサービス
+     */
+    public void setSkillService(@NotNull SkillService skillService) {
+        this.skillService = skillService;
     }
 
     // region --- public API ---
@@ -512,6 +524,7 @@ public class ItemStackFactory {
                     + equipment.getDurability().getMax());
         }
 
+        appendEquipmentSkillLore(lore, equipment);
         lore.add("");
     }
 
@@ -540,6 +553,68 @@ public class ItemStackFactory {
                     + weightText);
         }
         lore.add("");
+    }
+
+    private void appendEquipmentSkillLore(@NotNull List<String> lore, @NotNull ItemEquipment equipment) {
+        List<String> skillIds = new ArrayList<>();
+        if (equipment.getOnUse() != null) {
+            addSkillId(skillIds, equipment.getOnUse().getLeftClickSkillId());
+            addSkillId(skillIds, equipment.getOnUse().getRightClickSkillId());
+        }
+        for (String skillId : equipment.getSkills()) {
+            addSkillId(skillIds, skillId);
+        }
+        if (skillIds.isEmpty()) {
+            return;
+        }
+
+        lore.add("");
+        lore.add(ColorCodeUtil.LIGHT_PURPLE + "◆ Skill");
+        for (String skillId : skillIds) {
+            appendSkillDefinitionLore(lore, skillId);
+        }
+    }
+
+    private void appendSkillDefinitionLore(@NotNull List<String> lore, @NotNull String skillId) {
+        SkillDefinition definition = skillService == null ? null : skillService.registry().getDefinition(skillId);
+        if (definition == null) {
+            lore.add(ColorCodeUtil.DARK_GRAY + "  - " + skillId + ColorCodeUtil.GRAY + " (not loaded)");
+            return;
+        }
+
+        String displayName = definition.getName() == null || definition.getName().isBlank()
+                ? definition.getId()
+                : ColorCodeUtil.translateAlternateColorCodes(definition.getName());
+        lore.add(ColorCodeUtil.DARK_GRAY + "  - " + ColorCodeUtil.WHITE + displayName
+                + ColorCodeUtil.DARK_GRAY + " [" + definition.getId() + "]");
+        if (definition.getDescription() != null && !definition.getDescription().isBlank()) {
+            lore.add(ColorCodeUtil.GRAY + "    " + ColorCodeUtil.translateAlternateColorCodes(definition.getDescription()));
+        }
+        lore.add(ColorCodeUtil.DARK_GRAY + "    CD " + formatSkillTicks(definition.getCooldownTicks())
+                + " / Cast " + formatSkillTicks(definition.getCastTimeTicks())
+                + " / MP " + formatSkillDecimal(definition.getManaCost())
+                + " / ReqLv " + definition.getRequiredLevel());
+    }
+
+    private void addSkillId(@NotNull List<String> skillIds, @Nullable String skillId) {
+        if (skillId == null || skillId.isBlank() || skillIds.contains(skillId)) {
+            return;
+        }
+        skillIds.add(skillId);
+    }
+
+    private @NotNull String formatSkillTicks(long ticks) {
+        if (ticks <= 0L) {
+            return "-";
+        }
+        return ticks + "t";
+    }
+
+    private @NotNull String formatSkillDecimal(double value) {
+        if (value == Math.rint(value)) {
+            return String.format(Locale.ROOT, "%.0f", value);
+        }
+        return String.format(Locale.ROOT, "%.1f", value);
     }
 
     /**
@@ -750,6 +825,7 @@ public class ItemStackFactory {
                 lore.add(ColorCodeUtil.GRAY + " ▸ 耐久値: " + ColorCodeUtil.WHITE
                         + instance.getDurabilityValue() + "/" + instance.getDurabilityMax());
             }
+            appendEquipmentSkillLore(lore, eq);
             lore.add("");
         }
 

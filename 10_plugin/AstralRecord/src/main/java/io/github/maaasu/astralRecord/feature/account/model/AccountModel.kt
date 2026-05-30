@@ -61,7 +61,7 @@ enum class AccountMode(val value: Byte, val displayName: String) {
  * dbo.account テーブルに対応するデータモデル。
  * プレイヤーが所持するゲーム内アカウント（キャラクター）の情報を保持します。
  */
-data class AccountModel(
+data class AccountModel @JvmOverloads constructor(
     val uuid: UUID,
     val userId: UUID,
     val accountName: String,
@@ -74,5 +74,7 @@ data class AccountModel(
     val createdBy: UUID,
     val updatedBy: UUID,
     val isDeleted: Boolean,
+    val level: Int = 1,
+    val totalExperience: Long = 0L,
 )
 
