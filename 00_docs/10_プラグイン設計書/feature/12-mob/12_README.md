@@ -9,6 +9,7 @@
 - `src/main/java/io/github/maaasu/astralRecord/feature/mob/model/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/mob/repository/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/mob/service/*`
+- `src/main/java/io/github/maaasu/astralRecord/feature/mob/spawner/*`
 
 ## ドキュメント一覧（推奨順）
 

@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: goblin_training_spawner
+type: MOB_SPAWNER
+radiusMeters: 18
+
+spawnMobs:
+  - mobId: mob:goblin_warrior
+    weight: 100
+
+spawnTimes:
+  - startTick: 0
+    endTick: 23999
+
+itemMaterial: SPAWNER
+spawnIntervalTicks: 100
+
+spawnLimit:
+  maxAlivePerSpawner: 8
+  maxNearbyMobs: 18
+  spawnPerPlayer: 1

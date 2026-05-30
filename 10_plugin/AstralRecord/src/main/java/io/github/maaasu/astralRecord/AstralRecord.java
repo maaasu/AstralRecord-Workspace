@@ -42,6 +42,10 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobCombatService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobKnockbackService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.mob.spawner.event.MobSpawnerBlockEventHandler;
+import io.github.maaasu.astralRecord.feature.mob.spawner.repository.MobSpawnerDefinitionRepository;
+import io.github.maaasu.astralRecord.feature.mob.spawner.repository.MobSpawnerLocationRepository;
+import io.github.maaasu.astralRecord.feature.mob.spawner.service.MobSpawnerService;
 import io.github.maaasu.astralRecord.feature.party.event.PartyGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.party.event.PartyQuitEventHandler;
 import io.github.maaasu.astralRecord.feature.party.gui.PartyGui;
@@ -130,6 +134,7 @@ public final class AstralRecord extends JavaPlugin {
     private MenuView menuView;
     private PagingDebugGui pagingDebugGui;
     private MobService mobService;
+    private MobSpawnerService mobSpawnerService;
     private MobAiService mobAiService;
     private MobCombatService mobCombatService;
     private EventManager eventManager;
@@ -165,11 +170,17 @@ public final class AstralRecord extends JavaPlugin {
         lootService = new LootService();
         itemStackFactory = new ItemStackFactory(lootService, itemService);
         mobService = new MobService(this, new MobRepository());
+        mobSpawnerService = new MobSpawnerService(
+                this,
+                mobService,
+                new MobSpawnerDefinitionRepository(),
+                new MobSpawnerLocationRepository(this)
+        );
         worldService = new WorldService(new WorldRepository());
         joinSpawnWorldId = PluginJoinSpawnWorldConfig.load(this);
         // CommandManagerの初期化はPaper Lifecycle APIの制約上、onLoad()内で行う
         // コマンドをここで登録し、initialize()を呼び出す
-        new CommandRegister(itemService, itemStackFactory, mobService, worldService);
+        new CommandRegister(itemService, itemStackFactory, mobService, mobSpawnerService, worldService);
         CommandManager.getInstance().initialize(this);
     }
 
@@ -221,6 +232,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (mobAiService != null) {
             mobAiService.stop();
+        }
+        if (mobSpawnerService != null) {
+            mobSpawnerService.stop();
         }
         if (worldSpawnParticleTask != null) {
             worldSpawnParticleTask.stop();
@@ -391,6 +405,7 @@ public final class AstralRecord extends JavaPlugin {
 
         // mob
         mobService.loadAll();
+        mobSpawnerService.loadAll();
         mobAiService = new MobAiService(mobService);
         mobAiService.start();
 
@@ -504,6 +519,10 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
+            new MobSpawnerBlockEventHandler(mobSpawnerService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
             new ItemWeaponAttackEventHandler(itemWeaponAttackService, skillActionRingService),
             getServer().getPluginManager()
         );
@@ -520,6 +539,7 @@ public final class AstralRecord extends JavaPlugin {
         displayTextService.start(this);
         overheadDisplayService.start(this);
         worldSpawnParticleTask.start();
+        mobSpawnerService.start();
         // インベントリオートセーブ (60s) を開始
         inventoryAutoSaveTask.start(this, InventoryAutoSaveTask.DEFAULT_INTERVAL_TICKS);
     }
@@ -603,6 +623,15 @@ public final class AstralRecord extends JavaPlugin {
 
     public MobService getMobService() {
         return mobService;
+    }
+
+    /**
+     * Mob スポナーサービスを取得します。
+     *
+     * @return Mob スポナーサービス
+     */
+    public MobSpawnerService getMobSpawnerService() {
+        return mobSpawnerService;
     }
 
     public PlayerSettingService getPlayerSettingService() {

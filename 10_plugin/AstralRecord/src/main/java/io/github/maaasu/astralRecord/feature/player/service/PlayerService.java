@@ -102,7 +102,7 @@ public class PlayerService {
         AstPlayerCache.put(astPlayer);
         if (joinData.account().getMode().shouldReflectInventoryToGui()) {
             inventoryService.applyInventoriesToGuiOnJoin(astPlayer);
-        } else if (joinData.account().getMode() == AccountMode.BUILDER) {
+        } else if (isToolInventoryMode(joinData.account().getMode())) {
             inventoryService.applyBuilderInventoryToGui(astPlayer);
         }
         statusService.refreshStatus(astPlayer);
@@ -166,5 +166,9 @@ public class PlayerService {
      * @param account 選択中アカウントデータ
      */
     public record PlayerJoinData(@NotNull UserModel user, @NotNull AccountModel account) {
+    }
+
+    private boolean isToolInventoryMode(@NotNull AccountMode mode) {
+        return mode == AccountMode.BUILDER || mode == AccountMode.ADMIN;
     }
 }

@@ -16,6 +16,7 @@ import io.github.maaasu.astralRecord.feature.menu.command.TrashCommand;
 import io.github.maaasu.astralRecord.feature.mob.command.MobCommand;
 import io.github.maaasu.astralRecord.feature.mob.command.MobTabCompleter;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.mob.spawner.service.MobSpawnerService;
 import io.github.maaasu.astralRecord.feature.party.command.PartyCommand;
 import io.github.maaasu.astralRecord.feature.party.command.PartyTabCompleter;
 import io.github.maaasu.astralRecord.feature.playersetting.command.PlayerSettingCommand;
@@ -43,17 +44,20 @@ public class CommandRegister {
     private final ItemService itemService;
     private final ItemStackFactory itemStackFactory;
     private final MobService mobService;
+    private final MobSpawnerService spawnerService;
     private final WorldService worldService;
 
     public CommandRegister(
             ItemService itemService,
             ItemStackFactory itemStackFactory,
             MobService mobService,
+            MobSpawnerService spawnerService,
             WorldService worldService
     ) {
         this.itemService = itemService;
         this.itemStackFactory = itemStackFactory;
         this.mobService = mobService;
+        this.spawnerService = spawnerService;
         this.worldService = worldService;
         registerCommand();
     }
@@ -69,7 +73,7 @@ public class CommandRegister {
         cm.registerCommand("trash", new TrashCommand());
         cm.registerCommand("pagingdummy", new PagingDebugCommand());
         cm.registerCommand("item", new ItemCommand(itemService), new ItemTabCompleter(itemService));
-        cm.registerCommand("mob", new MobCommand(mobService), new MobTabCompleter(mobService));
+        cm.registerCommand("mob", new MobCommand(mobService, spawnerService), new MobTabCompleter(mobService, spawnerService));
         cm.registerCommand("world", new WorldCommand(worldService), new WorldTabCompleter(worldService));
         cm.registerCommand("user", new UserCommand(), new UserTabCompleter());
         cm.registerCommand("account", new AccountCommand(), new AccountTabCompleter());

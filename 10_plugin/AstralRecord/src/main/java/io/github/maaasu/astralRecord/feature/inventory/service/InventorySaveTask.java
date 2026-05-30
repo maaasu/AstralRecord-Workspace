@@ -44,7 +44,7 @@ public class InventorySaveTask implements PlayerSaveTask {
             return;
         }
 
-        if (player.getAccount().getMode() == AccountMode.BUILDER) {
+        if (isToolInventoryMode(player.getAccount().getMode())) {
             inventoryService.saveBuilderInventorySnapshot(player);
         } else if (player.getAccount().getMode().shouldReflectInventoryToGui()) {
             inventoryService.saveEquipSlotSnapshot(player);
@@ -54,6 +54,10 @@ public class InventorySaveTask implements PlayerSaveTask {
         }
 
         persistence.save(state, mapTrigger(trigger));
+    }
+
+    private boolean isToolInventoryMode(@NotNull AccountMode mode) {
+        return mode == AccountMode.BUILDER || mode == AccountMode.ADMIN;
     }
 
     private @NotNull InventoryPersistence.SaveTrigger mapTrigger(@NotNull PlayerSaveTrigger trigger) {
