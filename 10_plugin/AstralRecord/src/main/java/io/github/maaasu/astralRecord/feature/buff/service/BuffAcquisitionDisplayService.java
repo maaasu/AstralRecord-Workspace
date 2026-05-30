@@ -103,7 +103,7 @@ public final class BuffAcquisitionDisplayService {
 
     private @NotNull String buildText(@NotNull ActiveBuff buff) {
         String displayName = buff.getType().getDisplayName();
-        if (displayName == null || displayName.isBlank()) {
+        if (displayName.isBlank()) {
             displayName = buff.getType().getId();
         }
 

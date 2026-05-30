@@ -196,7 +196,8 @@ public final class DamageService {
         }
 
         if (victim.isPlayer()) {
-            statusService.consumeHp(victim.player(), result.finalDamage());
+            if (victim.player() != null)
+                statusService.consumeHp(victim.player(), result.finalDamage());
             return;
         }
 
@@ -205,6 +206,7 @@ public final class DamageService {
         }
 
         var mob = victim.mob();
+        if (mob == null) return;
         mob.currentHealth(Math.max(0.0D, mob.currentHealth() - result.finalDamage()));
         playMobHurtEffect(mob.bukkitEntityId());
         if (attacker != null && attacker.isPlayer()) {
