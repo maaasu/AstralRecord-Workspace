@@ -145,7 +145,7 @@ final class CraftShortcutView {
             return createUserInfoDummyIcon(player, shortcutSlotIndex, selectedType, selectedAccount, accounts);
         }
         if (action == MenuShortcutAction.STATUS) {
-            return createStatusShortcutIcon(shortcutSlotIndex, snapshot);
+            return createStatusShortcutIcon(shortcutSlotIndex, snapshot, selectedAccount);
         }
         ItemStack itemStack = createItem(
             action.getMaterial(),
@@ -159,8 +159,24 @@ final class CraftShortcutView {
         return itemStack;
     }
 
-    private @NotNull ItemStack createStatusShortcutIcon(int shortcutSlotIndex, @Nullable StatusSnapshot snapshot) {
+    private @NotNull ItemStack createStatusShortcutIcon(
+        int shortcutSlotIndex,
+        @Nullable StatusSnapshot snapshot,
+        @NotNull AccountModel selectedAccount
+    ) {
         List<Component> lore = new ArrayList<>();
+        lore.add(Component.text("選択中のアカウント", NamedTextColor.DARK_GRAY));
+        lore.add(Component.text(selectedAccount.getAccountName(), NamedTextColor.GOLD)
+            .append(Component.text("  Lv.", NamedTextColor.GRAY))
+            .append(Component.text(String.valueOf(selectedAccount.getLevel()), NamedTextColor.YELLOW)));
+        lore.add(Component.text("━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
+        lore.add(Component.text("アカウントスロット: ", NamedTextColor.GRAY)
+            .append(Component.text("#" + selectedAccount.getSlotIndex(), NamedTextColor.AQUA)));
+        lore.add(Component.text("モード: ", NamedTextColor.GRAY)
+            .append(Component.text(selectedAccount.getMode().getDisplayName(), NamedTextColor.LIGHT_PURPLE)));
+        lore.add(Component.text("累計経験値: ", NamedTextColor.GRAY)
+            .append(Component.text(String.valueOf(selectedAccount.getTotalExperience()), NamedTextColor.GREEN)));
+        lore.add(Component.text("━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
         if (snapshot != null && !snapshot.getValues().isEmpty()) {
             addStatusLine(lore, snapshot, StatusType.ATTACK, NamedTextColor.RED);
             addStatusLine(lore, snapshot, StatusType.MELEE_ATTACK, NamedTextColor.RED);
@@ -168,13 +184,17 @@ final class CraftShortcutView {
             addStatusLine(lore, snapshot, StatusType.MAGIC_ATTACK, NamedTextColor.RED);
             addStatusLine(lore, snapshot, StatusType.DEFENSE, NamedTextColor.BLUE);
             addStatusLine(lore, snapshot, StatusType.MAGIC_DEFENSE, NamedTextColor.BLUE);
+        } else {
+            lore.add(Component.text("ステータス未取得", NamedTextColor.DARK_GRAY));
         }
-        lore.add(Component.text("クリックして開く", NamedTextColor.GRAY));
+        lore.add(Component.text("━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
+        lore.add(Component.text("クリックして開く", NamedTextColor.YELLOW));
         ItemStack itemStack = createItem(
             Material.PLAYER_HEAD,
-            Component.text("アカウント情報", NamedTextColor.GREEN),
+            Component.text("アカウント情報", NamedTextColor.GOLD),
             lore
         );
+        applySelectionGlow(itemStack);
         markCraftShortcutIcon(itemStack, shortcutSlotIndex, MenuShortcutAction.STATUS);
         return itemStack;
     }
