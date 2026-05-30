@@ -39,7 +39,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 繧ｹ繧ｭ繝ｫ繝舌う繝ｳ繝・GUI 縺ｮ謫堺ｽ懊ｒ蜃ｦ逅・＠縺ｾ縺吶・
+ * スキルバインド GUI の操作を処理します。
  */
 public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     private static final String ACTION_BACK = "back";
@@ -75,7 +75,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     }
 
     /**
-     * 謖・ｮ壹・繝ｬ繧､繝､繝ｼ縺ｸ繧ｹ繧ｭ繝ｫ繝舌う繝ｳ繝・GUI 繧帝幕縺阪∪縺吶・
+     * 指定のプレイヤーへスキルバインド GUI を開きます。
      */
     public void open(@NotNull Player player) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
@@ -151,7 +151,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             SkillBindSession session = sessions.get(playerId);
             if (holder.screen() == SkillBindScreen.MAIN && session != null && session.isDirty()) {
                 plugin.getServer().getScheduler().runTask(plugin, () ->
-                    openConfirm(player, session, ACTION_CLOSE, -1, Component.text("螟画峩繧堤ｴ譽・＠縺ｦ髢峨§縺ｾ縺吶°", NamedTextColor.YELLOW))
+                    openConfirm(player, session, ACTION_CLOSE, -1, Component.text("変更を破棄して閉じますか", NamedTextColor.YELLOW))
                 );
                 return;
             }
@@ -169,7 +169,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     ) {
         if (rawSlot == SkillBindGui.BACK_SLOT) {
             if (session.isDirty()) {
-                openConfirm(player, session, ACTION_BACK, -1, Component.text("繧ｹ繧ｭ繝ｫ險ｭ螳壹ｒ髢峨§縺ｦ謌ｻ繧翫∪縺吶°", NamedTextColor.YELLOW));
+                openConfirm(player, session, ACTION_BACK, -1, Component.text("スキル設定を閉じて戻りますか", NamedTextColor.YELLOW));
             } else {
                 sessions.remove(player.getUniqueId());
                 restorePlayerInventory(player);
@@ -203,7 +203,11 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        session.selectedSkillId(skillId);
+        if (!session.assignSelectedOrNextSlot(skillId)) {
+            GuiSound.DENY.play(player);
+            openMain(player, session, pageIndex);
+            return;
+        }
         GuiSound.SELECT.play(player);
         openMain(player, session, pageIndex);
     }
@@ -229,7 +233,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             if (session.isDirty()) {
-                openConfirm(player, session, ACTION_SWITCH_PRESET, presetIndex, Component.text("螟画峩繧堤ｴ譽・＠縺ｦ蛻・ｊ譖ｿ縺医∪縺吶°", NamedTextColor.YELLOW));
+                openConfirm(player, session, ACTION_SWITCH_PRESET, presetIndex, Component.text("変更を破棄して切り替えますか", NamedTextColor.YELLOW));
                 return;
             }
             session.loadPreset(presetIndex);
@@ -243,7 +247,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (slot >= SkillBindGui.ACTIVE_BIND_SLOT_START && slot < SkillBindGui.ACTIVE_BIND_SLOT_START + SkillBindPreset.SLOT_COUNT) {
-            bindSlot(player, session, SkillBindType.ACTIVE, slot - SkillBindGui.ACTIVE_BIND_SLOT_START, pageIndex);
+            handleBindSlotClick(player, session, SkillBindType.ACTIVE, slot - SkillBindGui.ACTIVE_BIND_SLOT_START, pageIndex);
             return;
         }
         if (slot == SkillBindGui.ACTIVE_CLEAR_SLOT) {
@@ -253,7 +257,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (slot >= SkillBindGui.PASSIVE_BIND_SLOT_START && slot < SkillBindGui.PASSIVE_BIND_SLOT_START + SkillBindPreset.SLOT_COUNT) {
-            bindSlot(player, session, SkillBindType.PASSIVE, slot - SkillBindGui.PASSIVE_BIND_SLOT_START, pageIndex);
+            handleBindSlotClick(player, session, SkillBindType.PASSIVE, slot - SkillBindGui.PASSIVE_BIND_SLOT_START, pageIndex);
             return;
         }
         if (slot == SkillBindGui.PASSIVE_CLEAR_SLOT) {
@@ -265,14 +269,22 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         GuiSound.DENY.play(player);
     }
 
-    private void bindSlot(
+    private void handleBindSlotClick(
         @NotNull Player player,
         @NotNull SkillBindSession session,
         @NotNull SkillBindType type,
         int slotIndex,
         int pageIndex
     ) {
-        session.setSlot(type, slotIndex, session.selectedSkillId());
+        String currentSkillId = session.skillIdAt(type, slotIndex);
+        if (currentSkillId != null && !currentSkillId.isBlank()) {
+            session.setSlot(type, slotIndex, null);
+            session.selectBindSlot(type, slotIndex);
+        } else if (session.isSelectedBindSlot(type, slotIndex)) {
+            session.clearSelectedBindSlot();
+        } else {
+            session.selectBindSlot(type, slotIndex);
+        }
         GuiSound.SELECT.play(player);
         openMain(player, session, pageIndex);
     }

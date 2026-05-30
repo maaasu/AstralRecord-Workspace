@@ -14,6 +14,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
@@ -165,8 +166,7 @@ public final class SkillBindGui {
                 i - start,
                 createSkillItem(
                     skill,
-                    ownedSkillIds.contains(skill.getId()),
-                    skill.getId().equals(session.selectedSkillId())
+                    ownedSkillIds.contains(skill.getId())
                 )
             );
         }
@@ -214,13 +214,15 @@ public final class SkillBindGui {
                 SkillBindType.ACTIVE,
                 index,
                 session.activeDraft().get(index),
-                ownedSkillIds
+                ownedSkillIds,
+                session.isSelectedBindSlot(SkillBindType.ACTIVE, index)
             ));
             inventory.setItem(PASSIVE_BIND_SLOT_START + index, createBindSlotItem(
                 SkillBindType.PASSIVE,
                 index,
                 session.passiveDraft().get(index),
-                ownedSkillIds
+                ownedSkillIds,
+                session.isSelectedBindSlot(SkillBindType.PASSIVE, index)
             ));
         }
         inventory.setItem(
@@ -273,7 +275,8 @@ public final class SkillBindGui {
         @NotNull SkillBindType type,
         int index,
         @Nullable String skillId,
-        @NotNull Set<String> ownedSkillIds
+        @NotNull Set<String> ownedSkillIds,
+        boolean selected
     ) {
         boolean empty = skillId == null || skillId.isBlank();
         Material material = empty
@@ -288,14 +291,18 @@ public final class SkillBindGui {
                 lore.add(Component.text("現在は未所持", NamedTextColor.RED));
             }
         }
-        return createItem(
+        if (selected) {
+            lore.add(Component.text("選択中", NamedTextColor.YELLOW));
+        }
+        ItemStack itemStack = createItem(
             material,
             Component.text(empty ? label + " 未設定" : skillId, empty ? NamedTextColor.GRAY : NamedTextColor.WHITE),
             lore
         );
+        return selected ? withSelectionGlow(itemStack) : itemStack;
     }
 
-    private @NotNull ItemStack createSkillItem(@NotNull SkillDefinition skill, boolean owned, boolean selected) {
+    private @NotNull ItemStack createSkillItem(@NotNull SkillDefinition skill, boolean owned) {
         Material material = parseMaterial(skill.getIcon(), owned ? Material.BOOK : Material.GRAY_DYE);
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text(skill.getId(), NamedTextColor.DARK_GRAY));
@@ -303,9 +310,6 @@ public final class SkillBindGui {
             lore.add(Component.text(ColorCodeUtil.translateAlternateColorCodes(skill.getDescription()), NamedTextColor.GRAY));
         }
         lore.add(Component.text(owned ? "所持スキル" : "未所持", owned ? NamedTextColor.GREEN : NamedTextColor.RED));
-        if (selected) {
-            lore.add(Component.text("選択中", NamedTextColor.YELLOW));
-        }
         ItemStack itemStack = createItem(
             material,
             Component.text(
@@ -320,6 +324,17 @@ public final class SkillBindGui {
             itemStack.setItemMeta(meta);
         }
         return itemStack;
+    }
+
+    private @NotNull ItemStack withSelectionGlow(@NotNull ItemStack itemStack) {
+        ItemStack glowing = itemStack.clone();
+        ItemMeta meta = glowing.getItemMeta();
+        if (meta != null) {
+            meta.addEnchant(Enchantment.UNBREAKING, 1, true);
+            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+            glowing.setItemMeta(meta);
+        }
+        return glowing;
     }
 
     private @NotNull ItemStack createDummy() {
