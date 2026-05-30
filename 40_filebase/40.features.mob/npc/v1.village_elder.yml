@@ -30,3 +30,12 @@ ai:
   idle:
     behavior: STATIONARY
 
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&e村長マルクス&7: よく来たな、冒険者よ。"
+  rightClick:
+    - id: gui
+      params:
+        type: QUEST

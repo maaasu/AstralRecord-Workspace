@@ -13,6 +13,8 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobDropConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropItem;
 import io.github.maaasu.astralRecord.feature.mob.model.MobEquipmentConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobIdleConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionActionConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionsConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobMoneyDrop;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkin;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTargetingConfig;
@@ -31,7 +33,9 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * AstralRecord API を通じて Mob テンプレートを取得するリポジトリ。
@@ -149,6 +153,7 @@ public class MobRepository {
                 parseEquipment(getObject(obj, "equipment")),
                 parseBaseStats(obj.getAsJsonArray("baseStats"), id),
                 parseIdle(getObject(getObject(obj, "ai"), "idle")),
+                category == MobCategory.NPC ? parseInteractions(getObject(obj, "interactions")) : MobInteractionsConfig.EMPTY,
                 category == MobCategory.NPC ? null : parseTargeting(getObject(getObject(obj, "ai"), "targeting")),
                 category == MobCategory.NPC ? null : parseCombat(getObject(getObject(obj, "ai"), "combat")),
                 category == MobCategory.NPC ? null : parseDrops(getObject(obj, "drops"))
@@ -258,6 +263,42 @@ public class MobRepository {
         );
     }
 
+    @NotNull
+    private MobInteractionsConfig parseInteractions(@Nullable JsonObject obj) {
+        if (obj == null) return MobInteractionsConfig.EMPTY;
+        return new MobInteractionsConfig(
+                parseInteractionActions(obj.getAsJsonArray("leftClick")),
+                parseInteractionActions(obj.getAsJsonArray("rightClick"))
+        );
+    }
+
+    @NotNull
+    private List<MobInteractionActionConfig> parseInteractionActions(@Nullable JsonArray array) {
+        if (array == null) return List.of();
+        List<MobInteractionActionConfig> result = new ArrayList<>();
+        for (JsonElement element : array) {
+            if (!element.isJsonObject()) continue;
+            JsonObject actionObj = element.getAsJsonObject();
+            String id = optionalString(actionObj, "id");
+            if (id == null || id.isBlank()) continue;
+            result.add(new MobInteractionActionConfig(id, parseInteractionParams(getObject(actionObj, "params"))));
+        }
+        return Collections.unmodifiableList(result);
+    }
+
+    @NotNull
+    private Map<String, String> parseInteractionParams(@Nullable JsonObject obj) {
+        if (obj == null) return Map.of();
+        Map<String, String> result = new LinkedHashMap<>();
+        for (Map.Entry<String, JsonElement> entry : obj.entrySet()) {
+            String value = primitiveToString(entry.getValue());
+            if (value != null) {
+                result.put(entry.getKey(), value);
+            }
+        }
+        return Collections.unmodifiableMap(result);
+    }
+
     @Nullable
     private MobDropConfig parseDrops(@Nullable JsonObject obj) {
         if (obj == null) return null;
@@ -291,6 +332,12 @@ public class MobRepository {
         }
 
         return new MobDropConfig(exp, money, items, stripPrefix(optionalString(obj, "lootTable")));
+    }
+
+    @Nullable
+    private static String primitiveToString(@Nullable JsonElement element) {
+        if (element == null || element.isJsonNull() || !element.isJsonPrimitive()) return null;
+        return element.getAsString();
     }
 
     /**

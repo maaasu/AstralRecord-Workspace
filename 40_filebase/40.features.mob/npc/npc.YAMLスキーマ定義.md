@@ -18,9 +18,35 @@ NPC は戦闘を行わないため、**ターゲット選択（`ai.targeting`）
 | `ai.combat`    | 不要 | NPCは戦闘しない               |
 | `drops`        | 不要 | NPCはドロップを持たない           |
 | `ai.idle`      | 必須 | 共通スキーマで定義済み。NPCの行動はこれのみ |
+| `interactions` | 任意 | 左クリック・右クリック時のアクション定義 |
 
-> NPC固有の追加フィールドは現時点では存在しません。
-> 会話・ショップ・クエスト受注などのインタラクションはプラグイン側で実装します。
+---
+
+## NPC インタラクション定義
+
+`interactions` は NPC に対する左クリック・右クリック時の動作を宣言する任意フィールドです。
+クリックごとにアクション配列を指定し、プラグイン側の実行系は `id` と `params` を見て処理を選択します。
+
+| フィールド | 型 | 必須 | 説明 |
+|:--|:--|:--|:--|
+| `interactions.leftClick` | Action[] | - | 左クリック時に実行するアクション。未指定または空配列なら何もしない |
+| `interactions.rightClick` | Action[] | - | 右クリック時に実行するアクション。未指定または空配列なら何もしない |
+
+### Action
+
+| フィールド | 型 | 必須 | 説明 |
+|:--|:--|:--|:--|
+| `id` | String | ○ | アクション ID。初期定義は `message` / `gui` |
+| `params` | Map<String, String> | - | アクションごとのパラメータ。未指定時は空オブジェクト扱い |
+
+### アクション ID
+
+| `id` | `params` | 説明 |
+|:--|:--|:--|
+| `message` | `message` | プレイヤーに送るメッセージ本文。Minecraft カラーコードを使用可能 |
+| `gui` | `type` | 開く GUI の種類。例: `SHOP`, `QUEST`, `MENU` |
+
+`params` のキーは文字列で定義します。数値や真偽値が必要な場合も、まずは文字列として記述してください。
 
 ---
 
@@ -60,6 +86,16 @@ baseStats:
 ai:
   idle:
     behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&e村長マルクス&7: よく来たな、冒険者よ。"
+  rightClick:
+    - id: gui
+      params:
+        type: QUEST
 ```
 
 ### 例2: 巡回NPC（バニラエンティティ型）
@@ -91,5 +127,10 @@ ai:
     behavior: WANDER
     wanderRadius: 10
     speed: 0.6
-```
 
+interactions:
+  rightClick:
+    - id: gui
+      params:
+        type: SHOP
+```

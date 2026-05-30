@@ -46,6 +46,7 @@ public record MobTemplate(
         @NotNull MobEquipmentConfig equipment,
         @NotNull List<MobBaseStat> baseStats,
         @NotNull MobIdleConfig idle,
+        @NotNull MobInteractionsConfig interactions,
         @Nullable MobTargetingConfig targeting,
         @Nullable MobCombatConfig combat,
         @Nullable MobDropConfig drops
@@ -60,6 +61,9 @@ public record MobTemplate(
         }
         if (idle == null) {
             idle = MobIdleConfig.defaults();
+        }
+        if (interactions == null) {
+            interactions = MobInteractionsConfig.EMPTY;
         }
     }
 

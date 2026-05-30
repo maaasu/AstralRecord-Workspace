@@ -37,6 +37,8 @@ public class MobResponse
 
     public MobAiResponse? Ai { get; init; }
 
+    public MobInteractionsResponse? Interactions { get; init; }
+
     public MobDropsResponse? Drops { get; init; }
 }
 
@@ -132,6 +134,22 @@ public class MobCombatResponse
     public long AttackIntervalTicks { get; init; } = 20;
 
     public IReadOnlyList<string> Skills { get; init; } = [];
+}
+
+/// <summary>NPC のクリックインタラクション設定。</summary>
+public class MobInteractionsResponse
+{
+    public IReadOnlyList<MobInteractionActionResponse> LeftClick { get; init; } = [];
+
+    public IReadOnlyList<MobInteractionActionResponse> RightClick { get; init; } = [];
+}
+
+/// <summary>NPC クリック時に実行するアクション 1 件。</summary>
+public class MobInteractionActionResponse
+{
+    public required string Id { get; init; }
+
+    public Dictionary<string, string> Params { get; init; } = [];
 }
 
 /// <summary>Mob のドロップ設定。</summary>
