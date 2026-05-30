@@ -279,7 +279,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         String currentSkillId = session.skillIdAt(type, slotIndex);
         if (currentSkillId != null && !currentSkillId.isBlank()) {
             session.setSlot(type, slotIndex, null);
-            session.selectBindSlot(type, slotIndex);
+            session.clearSelectedBindSlot();
         } else if (session.isSelectedBindSlot(type, slotIndex)) {
             session.clearSelectedBindSlot();
         } else {

@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.confirm.ConfirmDialogView;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -27,7 +28,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -43,10 +47,11 @@ public final class SkillBindGui {
 
     public static final int PRESET_SLOT_START = 9;
     public static final int PRESET_SLOT_END = 17;
-    public static final int ACTIVE_BIND_SLOT_START = 0;
+    public static final int ACTIVE_BIND_SLOT_START = 18;
     public static final int ACTIVE_CLEAR_SLOT = 26;
     public static final int PASSIVE_BIND_SLOT_START = 27;
     public static final int PASSIVE_CLEAR_SLOT = 35;
+    private static final Material DEFAULT_SKILL_ICON = Material.AMETHYST_SHARD;
 
     private final NamespacedKey skillIdKey;
     private final NamespacedKey dummyKey;
@@ -76,7 +81,7 @@ public final class SkillBindGui {
         );
         renderTopInventory(inventory, session, skills, ownedSkillIds, normalizedPage);
         player.openInventory(inventory);
-        renderPlayerInventoryControls(player.getInventory(), session, ownedSkillIds);
+        renderPlayerInventoryControls(player.getInventory(), session, ownedSkillIds, skillMap(skills));
         player.updateInventory();
     }
 
@@ -199,7 +204,8 @@ public final class SkillBindGui {
     private void renderPlayerInventoryControls(
         @NotNull PlayerInventory inventory,
         @NotNull SkillBindSession session,
-        @NotNull Set<String> ownedSkillIds
+        @NotNull Set<String> ownedSkillIds,
+        @NotNull Map<String, SkillDefinition> skillMap
     ) {
         fillManagedPlayerSlots(inventory);
         for (int index = 0; index < session.presets().size(); index++) {
@@ -215,14 +221,16 @@ public final class SkillBindGui {
                 index,
                 session.activeDraft().get(index),
                 ownedSkillIds,
-                session.isSelectedBindSlot(SkillBindType.ACTIVE, index)
+                session.isSelectedBindSlot(SkillBindType.ACTIVE, index),
+                skillMap
             ));
             inventory.setItem(PASSIVE_BIND_SLOT_START + index, createBindSlotItem(
                 SkillBindType.PASSIVE,
                 index,
                 session.passiveDraft().get(index),
                 ownedSkillIds,
-                session.isSelectedBindSlot(SkillBindType.PASSIVE, index)
+                session.isSelectedBindSlot(SkillBindType.PASSIVE, index),
+                skillMap
             ));
         }
         inventory.setItem(
@@ -276,46 +284,53 @@ public final class SkillBindGui {
         int index,
         @Nullable String skillId,
         @NotNull Set<String> ownedSkillIds,
-        boolean selected
+        boolean selected,
+        @NotNull Map<String, SkillDefinition> skillMap
     ) {
         boolean empty = skillId == null || skillId.isBlank();
+        boolean owned = !empty && ownedSkillIds.contains(skillId);
+        SkillDefinition skill = empty ? null : skillMap.get(skillId);
         Material material = empty
             ? Material.LIGHT_GRAY_STAINED_GLASS_PANE
-            : ownedSkillIds.contains(skillId) ? Material.ENCHANTED_BOOK : Material.BOOK;
+            : resolveSkillMaterial(skill, owned);
         String label = type == SkillBindType.ACTIVE ? "発動系" : "パッシブ系";
         List<Component> lore = new ArrayList<>();
-        lore.add(Component.text(label + "スロット " + (index + 1), NamedTextColor.GRAY));
-        if (!empty) {
-            lore.add(Component.text(skillId, NamedTextColor.WHITE));
-            if (!ownedSkillIds.contains(skillId)) {
-                lore.add(Component.text("現在は未所持", NamedTextColor.RED));
-            }
+        lore.add(Component.text("〘 " + label + "スロット " + (index + 1) + " 〙", NamedTextColor.GOLD));
+        if (empty) {
+            lore.add(Component.text("スキル一覧から割り当てる空き枠です。", NamedTextColor.GRAY));
+            lore.add(Component.text("クリックでこの枠を選択します。", NamedTextColor.YELLOW));
+        } else if (skill == null) {
+            lore.add(Component.text("ID: " + skillId, NamedTextColor.DARK_GRAY));
+            lore.add(Component.text("スキル定義が見つかりません。", NamedTextColor.RED));
+        } else {
+            addSkillLore(lore, skill, owned);
+            lore.add(Component.empty());
+            lore.add(Component.text("クリックでこのスロットから外します。", NamedTextColor.YELLOW));
         }
         if (selected) {
-            lore.add(Component.text("選択中", NamedTextColor.YELLOW));
+            lore.add(Component.empty());
+            lore.add(Component.text("選択中: スキル一覧から割り当て先を選べます。", NamedTextColor.YELLOW));
         }
         ItemStack itemStack = createItem(
             material,
-            Component.text(empty ? label + " 未設定" : skillId, empty ? NamedTextColor.GRAY : NamedTextColor.WHITE),
+            empty
+                ? Component.text(label + " 未設定", NamedTextColor.GRAY)
+                : skillName(skill, skillId, owned),
             lore
         );
         return selected ? withSelectionGlow(itemStack) : itemStack;
     }
 
     private @NotNull ItemStack createSkillItem(@NotNull SkillDefinition skill, boolean owned) {
-        Material material = parseMaterial(skill.getIcon(), owned ? Material.BOOK : Material.GRAY_DYE);
+        Material material = resolveSkillMaterial(skill, owned);
         List<Component> lore = new ArrayList<>();
-        lore.add(Component.text(skill.getId(), NamedTextColor.DARK_GRAY));
-        if (skill.getDescription() != null && !skill.getDescription().isBlank()) {
-            lore.add(Component.text(ColorCodeUtil.translateAlternateColorCodes(skill.getDescription()), NamedTextColor.GRAY));
-        }
-        lore.add(Component.text(owned ? "所持スキル" : "未所持", owned ? NamedTextColor.GREEN : NamedTextColor.RED));
+        addSkillLore(lore, skill, owned);
+        lore.add(Component.empty());
+        lore.add(Component.text(owned ? "クリックで選択中スロットへ設定します。" : "未所持のため設定できません。",
+            owned ? NamedTextColor.YELLOW : NamedTextColor.RED));
         ItemStack itemStack = createItem(
             material,
-            Component.text(
-                ColorCodeUtil.translateAlternateColorCodes(skill.getName()),
-                owned ? NamedTextColor.WHITE : NamedTextColor.GRAY
-            ),
+            skillName(skill, skill.getId(), owned),
             lore
         );
         ItemMeta meta = itemStack.getItemMeta();
@@ -324,6 +339,76 @@ public final class SkillBindGui {
             itemStack.setItemMeta(meta);
         }
         return itemStack;
+    }
+
+    private @NotNull Map<String, SkillDefinition> skillMap(@NotNull List<SkillDefinition> skills) {
+        Map<String, SkillDefinition> map = new HashMap<>();
+        for (SkillDefinition skill : skills) {
+            map.put(skill.getId(), skill);
+        }
+        return map;
+    }
+
+    private @NotNull Material resolveSkillMaterial(@Nullable SkillDefinition skill, boolean owned) {
+        if (skill != null) {
+            return parseMaterial(skill.getIcon(), DEFAULT_SKILL_ICON);
+        }
+        return owned ? DEFAULT_SKILL_ICON : Material.GRAY_DYE;
+    }
+
+    private @NotNull Component skillName(@Nullable SkillDefinition skill, @NotNull String fallback, boolean owned) {
+        if (skill == null || skill.getName().isBlank()) {
+            return Component.text(fallback, owned ? NamedTextColor.WHITE : NamedTextColor.GRAY);
+        }
+        return legacyComponent(skill.getName());
+    }
+
+    private void addSkillLore(@NotNull List<Component> lore, @NotNull SkillDefinition skill, boolean owned) {
+        lore.add(Component.text("ID: " + skill.getId(), NamedTextColor.DARK_GRAY));
+        lore.add(Component.text(owned ? "所持スキル" : "未所持", owned ? NamedTextColor.GREEN : NamedTextColor.RED));
+        if (skill.getDescription() != null && !skill.getDescription().isBlank()) {
+            lore.add(Component.empty());
+            lore.add(Component.text("◆ 説明", NamedTextColor.GOLD));
+            lore.add(legacyComponent(skill.getDescription()));
+        }
+        if (!skill.getLore().isEmpty()) {
+            lore.add(Component.empty());
+            lore.add(Component.text("◆ 詳細", NamedTextColor.GOLD));
+            for (String line : skill.getLore()) {
+                if (line != null && !line.isBlank()) {
+                    lore.add(legacyComponent(line));
+                }
+            }
+        }
+        lore.add(Component.empty());
+        lore.add(Component.text("◆ 性能", NamedTextColor.GOLD));
+        lore.add(Component.text("クールダウン: " + formatTicks(skill.getCooldownTicks()), NamedTextColor.GRAY));
+        lore.add(Component.text("詠唱: " + formatTicks(skill.getCastTimeTicks()), NamedTextColor.GRAY));
+        lore.add(Component.text("消費MP: " + formatDecimal(skill.getManaCost()), NamedTextColor.AQUA));
+        lore.add(Component.text("必要Lv: " + skill.getRequiredLevel(), NamedTextColor.GRAY));
+        if (!skill.getTags().isEmpty()) {
+            lore.add(Component.text("タグ: " + String.join(", ", skill.getTags()), NamedTextColor.DARK_GRAY));
+        }
+    }
+
+    private @NotNull String formatTicks(long ticks) {
+        if (ticks <= 0L) {
+            return "なし";
+        }
+        return ticks + " tick (" + String.format(Locale.ROOT, "%.1f", ticks / 20.0D) + "秒)";
+    }
+
+    private @NotNull String formatDecimal(double value) {
+        if (value == Math.rint(value)) {
+            return String.format(Locale.ROOT, "%.0f", value);
+        }
+        return String.format(Locale.ROOT, "%.1f", value);
+    }
+
+    private @NotNull Component legacyComponent(@NotNull String text) {
+        return LegacyComponentSerializer.legacySection().deserialize(
+            ColorCodeUtil.translateAlternateColorCodes(text)
+        );
     }
 
     private @NotNull ItemStack withSelectionGlow(@NotNull ItemStack itemStack) {

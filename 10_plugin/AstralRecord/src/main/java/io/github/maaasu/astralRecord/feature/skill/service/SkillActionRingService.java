@@ -461,7 +461,7 @@ public final class SkillActionRingService {
                 if (icon.isValid()) {
                     icon.teleport(iconLocation);
                     icon.setGlowing(selected && !hiddenByConfirmedSelection);
-                    icon.setTransformation(scaleTransformation(iconScale(selected, hiddenByConfirmedSelection)));
+                    icon.setTransformation(scaleTransformation(iconScale(slot.material(), selected, hiddenByConfirmedSelection)));
                 }
                 if (label.isValid()) {
                     label.teleport(labelLocation);
@@ -545,12 +545,16 @@ public final class SkillActionRingService {
             return offset.multiply(1.0D - progress);
         }
 
-        private float iconScale(boolean selected, boolean hiddenByConfirmedSelection) {
+        private float iconScale(@NotNull Material material, boolean selected, boolean hiddenByConfirmedSelection) {
             if (hiddenByConfirmedSelection) {
                 return 0.0F;
             }
             float targetScale = selected ? 0.86F : 0.58F;
-            return targetScale * openAnimationProgress();
+            return targetScale * materialScale(material) * openAnimationProgress();
+        }
+
+        private float materialScale(@NotNull Material material) {
+            return material.isBlock() ? 0.62F : 1.0F;
         }
 
         private float labelScale(boolean selected) {
