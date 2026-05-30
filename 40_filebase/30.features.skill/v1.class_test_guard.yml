@@ -1,0 +1,21 @@
+schemaVersion: 1
+id: class_test_guard
+type: SKILL
+implementationId: fire_boost
+name: "&aクラス検証 ガード"
+description: "&7テスト用クラスが初期所持するスキル。"
+icon: SHIELD
+cooldownTicks: 80
+manaCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+onCast:
+  sound: item.shield.block
+params:
+  strengthDurationTicks: 120
+  strengthAmplifier: 0
+  fireResistanceDurationTicks: 120
+  fireResistanceAmplifier: 0
+  flameParticleCount: 10
+  lavaParticleCount: 1
+tags: [test, class, active]

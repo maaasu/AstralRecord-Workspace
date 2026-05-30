@@ -1,0 +1,21 @@
+schemaVersion: 1
+id: skill_test_flame_06
+type: SKILL
+implementationId: fire_boost
+name: "&9検証スキル06 フロスト"
+description: "&7装備スキル所有の検証用。"
+icon: SNOWBALL
+cooldownTicks: 60
+manaCost: 3
+castTimeTicks: 10
+requiredLevel: 1
+onCast:
+  sound: block.glass.break
+params:
+  strengthDurationTicks: 140
+  strengthAmplifier: 0
+  fireResistanceDurationTicks: 140
+  fireResistanceAmplifier: 0
+  flameParticleCount: 14
+  lavaParticleCount: 2
+tags: [test, bind, active, cast]

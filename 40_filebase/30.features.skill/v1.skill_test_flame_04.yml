@@ -1,0 +1,21 @@
+schemaVersion: 1
+id: skill_test_flame_04
+type: SKILL
+implementationId: fire_boost
+name: "&a検証スキル04 ブリーズ"
+description: "&7所持判定の検証用。"
+icon: FEATHER
+cooldownTicks: 100
+manaCost: 5
+castTimeTicks: 20
+requiredLevel: 1
+onCast:
+  sound: entity.breeze.jump
+params:
+  strengthDurationTicks: 180
+  strengthAmplifier: 0
+  fireResistanceDurationTicks: 180
+  fireResistanceAmplifier: 0
+  flameParticleCount: 18
+  lavaParticleCount: 3
+tags: [test, bind, active, cast]

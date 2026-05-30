@@ -1,0 +1,21 @@
+schemaVersion: 1
+id: skill_test_flame_15
+type: SKILL
+implementationId: fire_boost
+name: "&0検証スキル15 シャドウ"
+description: "&7未設定スロット表示の検証用。"
+icon: BLACK_DYE
+cooldownTicks: 80
+manaCost: 4
+castTimeTicks: 0
+requiredLevel: 1
+onCast:
+  sound: entity.warden.sonic_boom
+params:
+  strengthDurationTicks: 160
+  strengthAmplifier: 0
+  fireResistanceDurationTicks: 160
+  fireResistanceAmplifier: 0
+  flameParticleCount: 16
+  lavaParticleCount: 3
+tags: [test, bind, active]

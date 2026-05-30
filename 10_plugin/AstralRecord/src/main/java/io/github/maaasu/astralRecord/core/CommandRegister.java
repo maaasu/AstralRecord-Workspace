@@ -18,6 +18,7 @@ import io.github.maaasu.astralRecord.feature.mob.command.MobTabCompleter;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.playersetting.command.PlayerSettingCommand;
 import io.github.maaasu.astralRecord.feature.playersetting.command.PlayerSettingTabCompleter;
+import io.github.maaasu.astralRecord.feature.playerclass.command.ClassCommand;
 import io.github.maaasu.astralRecord.feature.skill.command.SkillCommand;
 import io.github.maaasu.astralRecord.temp.command.TempCommand;
 import io.github.maaasu.astralRecord.temp.command.TempTabCompleter;
@@ -70,6 +71,7 @@ public class CommandRegister {
         cm.registerCommand("user", new UserCommand(), new UserTabCompleter());
         cm.registerCommand("account", new AccountCommand(), new AccountTabCompleter());
         cm.registerCommand("setting", new PlayerSettingCommand(), new PlayerSettingTabCompleter());
+        cm.registerCommand("class", new ClassCommand());
         cm.registerCommand("skill", new SkillCommand());
         cm.registerCommand("astreload", new ReloadCommand());
     }

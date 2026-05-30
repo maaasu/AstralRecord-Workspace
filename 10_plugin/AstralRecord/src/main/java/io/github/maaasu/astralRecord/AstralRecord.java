@@ -64,7 +64,9 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillBindGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.executor.FireBoostSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui;
+import io.github.maaasu.astralRecord.feature.skill.registry.SkillRegistry;
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillBindPresetRepository;
+import io.github.maaasu.astralRecord.feature.skill.repository.SkillRepository;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService;
@@ -216,6 +218,9 @@ public final class AstralRecord extends JavaPlugin {
         if (skillActionRingService != null) {
             skillActionRingService.stop();
         }
+        if (skillService != null) {
+            skillService.stop();
+        }
         if (mobService != null) {
             mobService.destroyAll();
         }
@@ -348,13 +353,14 @@ public final class AstralRecord extends JavaPlugin {
         playerSettingGui = new PlayerSettingGui(playerSettingService);
 
         // skill
-        skillService = new SkillService();
+        skillService = new SkillService(new SkillRepository(), new SkillRegistry(), this);
         skillBindPresetService = new SkillBindPresetService(new SkillBindPresetRepository());
-        skillActionRingService = new SkillActionRingService(this, skillBindPresetService, skillService);
         skillService.registerExecutor(new FireBoostSkillExecutor(particleDisplayService));
         skillService.registerExecutor(new WeaponAttackSkillExecutor(particleDisplayService, damageService));
         skillService.registerBuiltInDefinitions(BuiltInWeaponAttackDefinitions.definitions());
         skillOwnershipService = new SkillOwnershipService(playerClassService, inventoryService, itemService);
+        skillService.setOwnershipService(skillOwnershipService);
+        skillActionRingService = new SkillActionRingService(this, skillBindPresetService, skillService, skillOwnershipService);
         skillBindGui = new SkillBindGui(this);
         itemWeaponAttackService = new ItemWeaponAttackService(itemService, skillService);
 

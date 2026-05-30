@@ -18,6 +18,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
@@ -97,6 +98,16 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
                 actionRingService.activateSelected(astPlayer);
             }
         }, LogId.E_5802, event.getPlayer().getName(), "skill_action_ring_click");
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    public void onPlayerAnimation(@NotNull PlayerAnimationEvent event) {
+        runSafely(() -> {
+            if (!actionRingService.isOpen(event.getPlayer())) {
+                return;
+            }
+            event.setCancelled(true);
+        }, LogId.E_5802, event.getPlayer().getName(), "skill_action_ring_animation");
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)

@@ -42,7 +42,7 @@ public final class SkillBindGui {
 
     public static final int PRESET_SLOT_START = 9;
     public static final int PRESET_SLOT_END = 17;
-    public static final int ACTIVE_BIND_SLOT_START = 18;
+    public static final int ACTIVE_BIND_SLOT_START = 0;
     public static final int ACTIVE_CLEAR_SLOT = 26;
     public static final int PASSIVE_BIND_SLOT_START = 27;
     public static final int PASSIVE_CLEAR_SLOT = 35;

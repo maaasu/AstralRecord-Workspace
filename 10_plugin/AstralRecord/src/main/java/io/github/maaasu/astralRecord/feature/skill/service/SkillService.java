@@ -1,7 +1,10 @@
 package io.github.maaasu.astralRecord.feature.skill.service;
 
+import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
@@ -14,8 +17,13 @@ import io.github.maaasu.astralRecord.feature.skill.registry.SkillRegistry;
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,16 +51,19 @@ public class SkillService {
 
     private final SkillRepository repository;
     private final SkillRegistry registry;
+    private final AstralRecord plugin;
+    private SkillOwnershipService ownershipService;
     private final Map<String, SkillDefinition> builtInDefinitions = new ConcurrentHashMap<>();
 
     /** 発動者ごと・スキルごとの cooldown 終了予定時刻（{@link System#currentTimeMillis()} 基準）。 */
     private final Map<UUID, Map<String, Long>> cooldownExpiryByCaster = new ConcurrentHashMap<>();
+    private final Map<UUID, CastingSession> castingSessions = new ConcurrentHashMap<>();
 
     /**
      * 既定のリポジトリとレジストリでサービスを構築します。
      */
     public SkillService() {
-        this(new SkillRepository(), new SkillRegistry());
+        this(new SkillRepository(), new SkillRegistry(), AstralRecord.getInstance());
     }
 
     /**
@@ -62,8 +73,29 @@ public class SkillService {
      * @param registry   レジストリ
      */
     public SkillService(@NotNull SkillRepository repository, @NotNull SkillRegistry registry) {
+        this(repository, registry, AstralRecord.getInstance());
+    }
+
+    /**
+     * テスト等で依存を注入するためのコンストラクタ。
+     *
+     * @param repository リポジトリ
+     * @param registry   レジストリ
+     * @param plugin     scheduler 用プラグイン
+     */
+    public SkillService(@NotNull SkillRepository repository, @NotNull SkillRegistry registry, @Nullable AstralRecord plugin) {
         this.repository = repository;
         this.registry = registry;
+        this.plugin = plugin;
+    }
+
+    /**
+     * プレイヤー所持スキル判定サービスを設定します。
+     *
+     * @param ownershipService 所持スキル判定サービス
+     */
+    public void setOwnershipService(@NotNull SkillOwnershipService ownershipService) {
+        this.ownershipService = ownershipService;
     }
 
     /**
@@ -235,6 +267,11 @@ public class SkillService {
             notifyIfFailed(caster, failure, skillId);
             return failure;
         }
+        if (requiresOwnershipCheck(caster, trigger) && !ownsSkill((PlayerSkillCaster) caster, skillId)) {
+            SkillCastResult failure = SkillCastResult.failure(PlayerMsgId.P_5809);
+            notifyIfFailed(caster, failure, skillId);
+            return failure;
+        }
 
         SkillCastResult guard = canCast(caster, definition);
         if (!guard.success()) {
@@ -243,7 +280,24 @@ public class SkillService {
         }
 
         if (definition.getCastTimeTicks() > 0L) {
-            // 詠唱開始ハンドリングは将来拡張対象。現状は通過のみで実体処理は executor 側に委ねる。
+            return beginCast(caster, definition, trigger, castLocation, primaryTarget, targets);
+        }
+
+        return executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets);
+    }
+
+    private @NotNull SkillCastResult executeSkillNow(
+            @NotNull SkillCaster caster,
+            @NotNull SkillDefinition definition,
+            @NotNull SkillCastTrigger trigger,
+            @NotNull Location castLocation,
+            @Nullable LivingEntity primaryTarget,
+            @NotNull List<LivingEntity> targets
+    ) {
+        SkillCastResult guard = canCast(caster, definition);
+        if (!guard.success()) {
+            notifyIfFailed(caster, guard, definition.getId());
+            return guard;
         }
 
         playOnCastSound(castLocation, definition.getOnCastSound());
@@ -251,7 +305,7 @@ public class SkillService {
         SkillExecutor executor = registry.getExecutor(definition.getImplementationId());
         if (executor == null) {
             SkillCastResult failure = SkillCastResult.failure(PlayerMsgId.P_5804);
-            notifyIfFailed(caster, failure, skillId);
+            notifyIfFailed(caster, failure, definition.getId());
             return failure;
         }
 
@@ -272,7 +326,7 @@ public class SkillService {
         } catch (RuntimeException e) {
             Logger.log(LogId.E_5802, e, definition.getId(), definition.getImplementationId());
             SkillCastResult failure = SkillCastResult.failure(PlayerMsgId.P_5805);
-            notifyIfFailed(caster, failure, skillId);
+            notifyIfFailed(caster, failure, definition.getId());
             return failure;
         }
 
@@ -282,9 +336,103 @@ public class SkillService {
                 startCooldown(caster, definition.getId(), result.startedCooldownTicks());
             }
         } else {
-            notifyIfFailed(caster, result, skillId);
+            notifyIfFailed(caster, result, definition.getId());
         }
         return result;
+    }
+
+    private @NotNull SkillCastResult beginCast(
+            @NotNull SkillCaster caster,
+            @NotNull SkillDefinition definition,
+            @NotNull SkillCastTrigger trigger,
+            @NotNull Location castLocation,
+            @Nullable LivingEntity primaryTarget,
+            @NotNull List<LivingEntity> targets
+    ) {
+        if (!(caster instanceof PlayerSkillCaster playerCaster) || plugin == null) {
+            return executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets);
+        }
+
+        var astPlayer = playerCaster.player();
+        Player player = astPlayer.getBukkit();
+        if (astPlayer.isSkillCasting() || castingSessions.containsKey(player.getUniqueId())) {
+            SkillCastResult failure = SkillCastResult.failure(PlayerMsgId.P_5810);
+            notifyIfFailed(caster, failure, definition.getId());
+            return failure;
+        }
+
+        long castTimeTicks = definition.getCastTimeTicks();
+        astPlayer.setSkillCastingUntilMs(System.currentTimeMillis() + castTimeTicks * MS_PER_TICK);
+        float originalWalkSpeed = player.getWalkSpeed();
+        player.setWalkSpeed(clampWalkSpeed(originalWalkSpeed * 0.5F));
+
+        BukkitRunnable runnable = new BukkitRunnable() {
+            private long elapsedTicks = 0L;
+
+            @Override
+            public void run() {
+                if (!player.isOnline() || player.isDead()) {
+                    finishCast(player, astPlayer, false, playerCaster, definition, trigger, castLocation, primaryTarget, targets);
+                    cancel();
+                    return;
+                }
+                showCastActionBar(player, definition, castTimeTicks - elapsedTicks);
+                elapsedTicks++;
+                if (elapsedTicks >= castTimeTicks) {
+                    finishCast(player, astPlayer, true, playerCaster, definition, trigger, castLocation, primaryTarget, targets);
+                    cancel();
+                }
+            }
+        };
+        BukkitTask task = runnable.runTaskTimer(plugin, 0L, 1L);
+        castingSessions.put(player.getUniqueId(), new CastingSession(task, originalWalkSpeed));
+        return SkillCastResult.success(0.0D, 0L);
+    }
+
+    private void finishCast(
+            @NotNull Player player,
+            @NotNull io.github.maaasu.astralRecord.feature.player.model.AstPlayer astPlayer,
+            boolean execute,
+            @NotNull PlayerSkillCaster caster,
+            @NotNull SkillDefinition definition,
+            @NotNull SkillCastTrigger trigger,
+            @NotNull Location castLocation,
+            @Nullable LivingEntity primaryTarget,
+            @NotNull List<LivingEntity> targets
+    ) {
+        CastingSession session = castingSessions.remove(player.getUniqueId());
+        if (session != null) {
+            player.setWalkSpeed(session.originalWalkSpeed());
+        }
+        astPlayer.setSkillCastingUntilMs(0L);
+        if (execute) {
+            executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets);
+        }
+    }
+
+    private void showCastActionBar(@NotNull Player player, @NotNull SkillDefinition definition, long remainingTicks) {
+        double seconds = Math.max(0.0D, remainingTicks / 20.0D);
+        String message = PlayerMsgResource.format(
+                PlayerMsgId.P_5811.getId(),
+                definition.getName(),
+                String.format(Locale.ROOT, "%.1f", seconds)
+        );
+        Component component = LegacyComponentSerializer.legacySection().deserialize(message);
+        player.sendActionBar(component);
+    }
+
+    private boolean requiresOwnershipCheck(@NotNull SkillCaster caster, @NotNull SkillCastTrigger trigger) {
+        return caster instanceof PlayerSkillCaster
+            && trigger != SkillCastTrigger.AUTO_ATTACK
+            && ownershipService != null;
+    }
+
+    private boolean ownsSkill(@NotNull PlayerSkillCaster caster, @NotNull String skillId) {
+        return ownershipService == null || ownershipService.owns(caster.player(), skillId);
+    }
+
+    private float clampWalkSpeed(float value) {
+        return Math.max(-1.0F, Math.min(1.0F, value));
     }
 
     /**
@@ -319,6 +467,22 @@ public class SkillService {
             return false;
         }
         return true;
+    }
+
+    /**
+     * 進行中の詠唱を停止し、詠唱中に変更した歩行速度を戻します。
+     */
+    public void stop() {
+        for (Map.Entry<UUID, CastingSession> entry : castingSessions.entrySet()) {
+            entry.getValue().task().cancel();
+            if (plugin != null) {
+                Player player = plugin.getServer().getPlayer(entry.getKey());
+                if (player != null) {
+                    player.setWalkSpeed(entry.getValue().originalWalkSpeed());
+                }
+            }
+        }
+        castingSessions.clear();
     }
 
     private void notifyIfFailed(@NotNull SkillCaster caster, @NotNull SkillCastResult result, @NotNull String skillId) {
@@ -375,5 +539,8 @@ public class SkillService {
             case MANA -> caster.consumeMana(amount);
             case ENERGY -> caster.consumeEnergy(amount);
         }
+    }
+
+    private record CastingSession(@NotNull BukkitTask task, float originalWalkSpeed) {
     }
 }

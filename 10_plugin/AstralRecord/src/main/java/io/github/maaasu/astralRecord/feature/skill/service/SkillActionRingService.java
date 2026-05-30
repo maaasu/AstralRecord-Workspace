@@ -6,10 +6,13 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -48,21 +51,12 @@ public final class SkillActionRingService {
     private static final long CAST_WAIT_LIMIT_TICKS = 60L;
     private static final long OPEN_ANIMATION_TICKS = 10L;
     private static final long SELECT_ANIMATION_TICKS = 4L;
-
-    private static final List<DummySkillSlot> DUMMY_SLOTS = List.of(
-        new DummySkillSlot("スキル 1", Material.BLAZE_POWDER),
-        new DummySkillSlot("スキル 2", Material.FEATHER),
-        new DummySkillSlot("スキル 3", Material.IRON_SWORD),
-        new DummySkillSlot("スキル 4", Material.SHIELD),
-        new DummySkillSlot("スキル 5", Material.ENDER_PEARL),
-        new DummySkillSlot("スキル 6", Material.AMETHYST_SHARD),
-        new DummySkillSlot("スキル 7", Material.EMERALD),
-        new DummySkillSlot("スキル 8", Material.NETHER_STAR)
-    );
+    private static final double SELECTING_BLOCK_BREAK_SPEED = 1024.0D;
 
     private final AstralRecord plugin;
     private final SkillBindPresetService presetService;
     private final SkillService skillService;
+    private final SkillOwnershipService ownershipService;
     private final Map<UUID, RingSession> sessions = new ConcurrentHashMap<>();
     private final Set<UUID> suppressedAttackPlayers = ConcurrentHashMap.newKeySet();
     private BukkitTask task;
@@ -76,11 +70,13 @@ public final class SkillActionRingService {
     public SkillActionRingService(
         @NotNull AstralRecord plugin,
         @NotNull SkillBindPresetService presetService,
-        @NotNull SkillService skillService
+        @NotNull SkillService skillService,
+        @NotNull SkillOwnershipService ownershipService
     ) {
         this.plugin = plugin;
         this.presetService = presetService;
         this.skillService = skillService;
+        this.ownershipService = ownershipService;
     }
 
     /**
@@ -98,7 +94,8 @@ public final class SkillActionRingService {
             return;
         }
 
-        sessions.put(playerId, RingSession.create(player, resolveSlots(astPlayer)));
+        RingSession session = RingSession.create(player, resolveSlots(astPlayer));
+        sessions.put(playerId, session);
         GuiSound.RING_OPEN.play(player);
         ensureTask();
     }
@@ -145,6 +142,10 @@ public final class SkillActionRingService {
         if (session == null) {
             return;
         }
+        if (!session.canActivateSelected()) {
+            GuiSound.DENY.play(player);
+            return;
+        }
         if (!session.hasConfirmedSelection()) {
             session.confirmSelection();
             GuiSound.RING_SELECT.play(player);
@@ -166,7 +167,7 @@ public final class SkillActionRingService {
             );
         }
         GuiSound.RING_CAST.play(player);
-        astPlayer.sendMessage(PlayerMsgId.P_5807, SLOT_COUNT, selectedSlot);
+        astPlayer.sendMessage(PlayerMsgId.P_5807, SLOT_COUNT, selectedSlot, skillId);
     }
 
     /**
@@ -240,24 +241,38 @@ public final class SkillActionRingService {
 
     private @NotNull List<SlotView> resolveSlots(@NotNull AstPlayer astPlayer) {
         List<SlotView> slots = new ArrayList<>(SLOT_COUNT);
-        List<String> activeSlots = presetService.getPresets(astPlayer.getAccount().getUuid()).stream()
-            .filter(SkillBindPreset::isUnlocked)
+        UUID accountId = astPlayer.getAccount().getUuid();
+        int selectedPresetIndex = presetService.selectedPresetIndex(accountId);
+        List<String> activeSlots = presetService.getPresets(accountId).stream()
+            .filter(preset -> preset.isUnlocked() && preset.getPresetIndex() == selectedPresetIndex)
             .findFirst()
             .map(SkillBindPreset::getActiveSkillSlots)
             .orElse(List.of());
+        Set<String> ownedSkillIds = ownershipService.ownedSkillIds(astPlayer);
 
         for (int index = 0; index < SLOT_COUNT; index++) {
             String skillId = index < activeSlots.size() ? activeSlots.get(index) : null;
-            String displayName = skillId == null || skillId.isBlank() ? DUMMY_SLOTS.get(index).name() : skillId;
-            slots.add(new SlotView(skillId, displayName));
+            if (skillId == null || skillId.isBlank()) {
+                slots.add(new SlotView(null, "未設定", Material.BARRIER, false));
+                continue;
+            }
+            SkillDefinition definition = skillService.registry().getDefinition(skillId);
+            String displayName = definition == null ? skillId : ColorCodeUtil.translateAlternateColorCodes(definition.getName());
+            Material material = parseMaterial(definition == null ? null : definition.getIcon(), Material.BOOK);
+            slots.add(new SlotView(skillId, displayName, material, ownedSkillIds.contains(skillId)));
         }
         return slots;
     }
 
-    private record DummySkillSlot(@NotNull String name, @NotNull Material material) {
+    private @NotNull Material parseMaterial(String value, @NotNull Material fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        Material material = Material.matchMaterial(value.trim());
+        return material == null ? fallback : material;
     }
 
-    private record SlotView(String skillId, @NotNull String name) {
+    private record SlotView(String skillId, @NotNull String name, @NotNull Material material, boolean selectable) {
     }
 
     private static @NotNull Component legacyComponent(@NotNull String text) {
@@ -281,6 +296,8 @@ public final class SkillActionRingService {
         private final List<ItemDisplay> icons = new ArrayList<>(SLOT_COUNT);
         private final List<TextDisplay> labels = new ArrayList<>(SLOT_COUNT);
         private final List<TextDisplay> circleDots = new ArrayList<>(CIRCLE_DISPLAY_POINTS);
+        private final AttributeInstance blockBreakSpeedAttribute;
+        private final Double originalBlockBreakSpeed;
         private TextDisplay timerLabel;
         private int selectedIndex;
         private int confirmedIndex = -1;
@@ -294,7 +311,9 @@ public final class SkillActionRingService {
             @NotNull Vector normal,
             @NotNull Vector right,
             @NotNull Vector up,
-            @NotNull List<SlotView> slots
+            @NotNull List<SlotView> slots,
+            AttributeInstance blockBreakSpeedAttribute,
+            Double originalBlockBreakSpeed
         ) {
             this.baseEye = baseEye;
             this.baseCenter = baseCenter;
@@ -302,6 +321,9 @@ public final class SkillActionRingService {
             this.right = right;
             this.up = up;
             this.slots = slots;
+            this.blockBreakSpeedAttribute = blockBreakSpeedAttribute;
+            this.originalBlockBreakSpeed = originalBlockBreakSpeed;
+            this.selectedIndex = firstSelectableSlot(slots);
         }
 
         private static @NotNull RingSession create(
@@ -318,7 +340,22 @@ public final class SkillActionRingService {
             }
             Vector up = right.clone().crossProduct(normal).normalize();
             Location center = eye.clone().add(normal.clone().multiply(RING_DISTANCE));
-            RingSession session = new RingSession(eye.clone(), center, normal, right, up, slots);
+            AttributeInstance blockBreakSpeed = player.getAttribute(Attribute.BLOCK_BREAK_SPEED);
+            Double originalBlockBreakSpeed = null;
+            if (blockBreakSpeed != null) {
+                originalBlockBreakSpeed = blockBreakSpeed.getBaseValue();
+                blockBreakSpeed.setBaseValue(SELECTING_BLOCK_BREAK_SPEED);
+            }
+            RingSession session = new RingSession(
+                eye.clone(),
+                center,
+                normal,
+                right,
+                up,
+                slots,
+                blockBreakSpeed,
+                originalBlockBreakSpeed
+            );
             session.spawnEntities(player.getWorld());
             return session;
         }
@@ -345,7 +382,7 @@ public final class SkillActionRingService {
                 Location location = baseCenter.clone();
                 int slotIndex = index;
                 ItemDisplay icon = world.spawn(location, ItemDisplay.class, display -> {
-                    display.setItemStack(new ItemStack(DUMMY_SLOTS.get(slotIndex).material()));
+                    display.setItemStack(new ItemStack(slots.get(slotIndex).material()));
                     display.setBillboard(Display.Billboard.CENTER);
                     display.setGravity(false);
                     display.setInvulnerable(true);
@@ -405,13 +442,16 @@ public final class SkillActionRingService {
                 int nextSelectedIndex = resolveSelectedIndex(player);
                 if (nextSelectedIndex != selectedIndex) {
                     selectedIndex = nextSelectedIndex;
-                    GuiSound.RING_SWITCH.play(player);
+                    if (selectedIndex >= 0) {
+                        GuiSound.RING_SWITCH.play(player);
+                    }
                 }
             }
 
             updateCircle(center);
             for (int index = 0; index < SLOT_COUNT; index++) {
-                boolean selected = index == selectedIndex;
+                SlotView slot = slots.get(index);
+                boolean selected = index == selectedIndex && slot.selectable();
                 boolean hiddenByConfirmedSelection = phase == RingPhase.WAITING_CAST && index != confirmedIndex;
                 Vector slotOffset = animatedSlotOffset(index);
                 Location iconLocation = center.clone().add(slotOffset);
@@ -430,8 +470,8 @@ public final class SkillActionRingService {
                         label.setTransformation(scaleTransformation(0.0F));
                         continue;
                     }
-                    String color = selected ? ColorCodeUtil.YELLOW : ColorCodeUtil.GRAY;
-                    label.text(legacyComponent(color + slots.get(index).name()));
+                    String color = selected ? ColorCodeUtil.YELLOW : slot.selectable() ? ColorCodeUtil.GRAY : ColorCodeUtil.DARK_GRAY;
+                    label.text(legacyComponent(color + slot.name()));
                     label.setTransformation(scaleTransformation(labelScale(selected)));
                 }
             }
@@ -441,6 +481,12 @@ public final class SkillActionRingService {
 
         private boolean hasConfirmedSelection() {
             return phase == RingPhase.WAITING_CAST;
+        }
+
+        private boolean canActivateSelected() {
+            return selectedIndex >= 0
+                && selectedIndex < slots.size()
+                && slots.get(selectedIndex).selectable();
         }
 
         private void confirmSelection() {
@@ -480,7 +526,8 @@ public final class SkillActionRingService {
             double angle = Math.atan2(projected.dot(right), projected.dot(up));
             double unit = (Math.PI * 2.0D) / SLOT_COUNT;
             int index = (int) Math.round(angle / unit);
-            return Math.floorMod(index, SLOT_COUNT);
+            int resolved = Math.floorMod(index, SLOT_COUNT);
+            return slots.get(resolved).selectable() ? resolved : -1;
         }
 
         private @NotNull Vector slotOffset(int index) {
@@ -594,6 +641,18 @@ public final class SkillActionRingService {
                 timerLabel.remove();
             }
             timerLabel = null;
+            if (blockBreakSpeedAttribute != null && originalBlockBreakSpeed != null) {
+                blockBreakSpeedAttribute.setBaseValue(originalBlockBreakSpeed);
+            }
+        }
+
+        private static int firstSelectableSlot(@NotNull List<SlotView> slots) {
+            for (int index = 0; index < slots.size(); index++) {
+                if (slots.get(index).selectable()) {
+                    return index;
+                }
+            }
+            return -1;
         }
     }
 }

@@ -1,0 +1,26 @@
+schemaVersion: 1
+id: skill_lab_leggings
+category: equipment
+name: "&dスキル実験レギンス"
+icon: IRON_LEGGINGS
+rarity: RARE
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7装備スキル所持の検証用。"
+unTradeable: true
+unSellable: true
+equipment:
+  slot: LEGS
+  requiredLevel: 1
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 5
+  skills:
+    - skill_test_flame_11
+    - skill_test_flame_12
+    - skill_test_flame_13
+  durability:
+    max: 200
+    consume: 1

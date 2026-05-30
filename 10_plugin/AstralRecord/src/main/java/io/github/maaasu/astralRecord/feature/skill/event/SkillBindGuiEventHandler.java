@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindInventoryHolder;
@@ -53,7 +54,6 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     private final InventoryService inventoryService;
     private final MenuView menuView;
     private final Map<UUID, SkillBindSession> sessions = new ConcurrentHashMap<>();
-    private final Map<UUID, Integer> selectedPresetIndexes = new ConcurrentHashMap<>();
     private final Set<UUID> suppressClose = ConcurrentHashMap.newKeySet();
 
     public SkillBindGuiEventHandler(
@@ -83,12 +83,12 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        int initialPresetIndex = selectedPresetIndexes.getOrDefault(player.getUniqueId(), 1);
+        int initialPresetIndex = presetService.selectedPresetIndex(astPlayer.getAccount().getUuid());
         SkillBindSession session = new SkillBindSession(presetService.getPresets(astPlayer.getAccount().getUuid()), initialPresetIndex);
         if (!session.selectedPreset().isUnlocked()) {
             session.loadPreset(1);
         }
-        selectedPresetIndexes.put(player.getUniqueId(), session.selectedPresetIndex());
+        presetService.selectPreset(astPlayer.getAccount().getUuid(), session.selectedPresetIndex());
         sessions.put(player.getUniqueId(), session);
         openMain(player, session, 0);
     }
@@ -179,7 +179,6 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (rawSlot == SkillBindGui.PREVIOUS_SLOT) {
-            List<SkillDefinition> skills = currentSkills();
             if (gui.hasPreviousPage(pageIndex)) {
                 GuiSound.SELECT.play(player);
                 openMain(player, session, pageIndex - 1);
@@ -189,7 +188,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (rawSlot == SkillBindGui.NEXT_SLOT) {
-            List<SkillDefinition> skills = currentSkills();
+            List<SkillDefinition> skills = currentSkills(player);
             if (gui.hasNextPage(pageIndex, skills.size())) {
                 GuiSound.SELECT.play(player);
                 openMain(player, session, pageIndex + 1);
@@ -234,7 +233,11 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             session.loadPreset(presetIndex);
-            selectedPresetIndexes.put(player.getUniqueId(), presetIndex);
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer != null) {
+                presetService.selectPreset(astPlayer.getAccount().getUuid(), presetIndex);
+                astPlayer.sendMessage(PlayerMsgId.P_5808, presetIndex);
+            }
             GuiSound.SELECT.play(player);
             openMain(player, session, 0);
             return;
@@ -293,7 +296,11 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         switch (holder.action()) {
             case ACTION_SWITCH_PRESET -> {
                 session.loadPreset(holder.pendingPresetIndex());
-                selectedPresetIndexes.put(player.getUniqueId(), holder.pendingPresetIndex());
+                AstPlayer astPlayer = AstPlayerCache.get(player);
+                if (astPlayer != null) {
+                    presetService.selectPreset(astPlayer.getAccount().getUuid(), holder.pendingPresetIndex());
+                    astPlayer.sendMessage(PlayerMsgId.P_5808, holder.pendingPresetIndex());
+                }
                 openMain(player, session, 0);
             }
             case ACTION_BACK -> {
@@ -333,7 +340,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         Set<String> ownedSkillIds = astPlayer == null ? Set.of() : ownershipService.ownedSkillIds(astPlayer);
         suppressCloseIfSwitchingWithinSkillGui(player);
-        gui.open(player, session, currentSkills(), ownedSkillIds, pageIndex);
+        gui.open(player, session, currentSkills(ownedSkillIds), ownedSkillIds, pageIndex);
     }
 
     private void openConfirm(
@@ -353,8 +360,16 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         }
     }
 
-    private @NotNull List<SkillDefinition> currentSkills() {
-        return gui.sortedSkills(skillService.registry().definitions());
+    private @NotNull List<SkillDefinition> currentSkills(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        Set<String> ownedSkillIds = astPlayer == null ? Set.of() : ownershipService.ownedSkillIds(astPlayer);
+        return currentSkills(ownedSkillIds);
+    }
+
+    private @NotNull List<SkillDefinition> currentSkills(@NotNull Set<String> ownedSkillIds) {
+        return gui.sortedSkills(skillService.registry().definitions()).stream()
+            .filter(skill -> ownedSkillIds.contains(skill.getId()))
+            .toList();
     }
 
     private void restoreAndClose(@NotNull Player player) {

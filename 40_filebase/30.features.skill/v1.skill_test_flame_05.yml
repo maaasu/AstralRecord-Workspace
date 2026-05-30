@@ -1,0 +1,21 @@
+schemaVersion: 1
+id: skill_test_flame_05
+type: SKILL
+implementationId: fire_boost
+name: "&b検証スキル05 ウェーブ"
+description: "&7装備スキル所有の検証用。"
+icon: PRISMARINE_SHARD
+cooldownTicks: 40
+manaCost: 2
+castTimeTicks: 0
+requiredLevel: 1
+onCast:
+  sound: block.bubble_column.upwards_inside
+params:
+  strengthDurationTicks: 120
+  strengthAmplifier: 0
+  fireResistanceDurationTicks: 120
+  fireResistanceAmplifier: 0
+  flameParticleCount: 12
+  lavaParticleCount: 2
+tags: [test, bind, active]

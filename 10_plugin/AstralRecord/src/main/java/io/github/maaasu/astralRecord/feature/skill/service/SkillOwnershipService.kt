@@ -53,8 +53,6 @@ class SkillOwnershipService(
 
     private fun addEquipmentDefinitionSkills(skillIds: MutableSet<String>, equipment: ItemEquipment) {
         skillIds.addAllNotBlank(equipment.skills)
-        addSkillId(skillIds, equipment.onUse?.leftClickSkillId)
-        addSkillId(skillIds, equipment.onUse?.rightClickSkillId)
     }
 
     private fun MutableSet<String>.addAllNotBlank(values: Iterable<String>) {

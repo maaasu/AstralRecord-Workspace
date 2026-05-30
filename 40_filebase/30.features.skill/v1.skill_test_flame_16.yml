@@ -1,0 +1,21 @@
+schemaVersion: 1
+id: skill_test_flame_16
+type: SKILL
+implementationId: fire_boost
+name: "&f検証スキル16 スター"
+description: "&7未設定スロット表示の検証用。"
+icon: BEACON
+cooldownTicks: 100
+manaCost: 5
+castTimeTicks: 20
+requiredLevel: 1
+onCast:
+  sound: block.beacon.activate
+params:
+  strengthDurationTicks: 180
+  strengthAmplifier: 0
+  fireResistanceDurationTicks: 180
+  fireResistanceAmplifier: 0
+  flameParticleCount: 18
+  lavaParticleCount: 3
+tags: [test, bind, active, cast]

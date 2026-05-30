@@ -1,0 +1,21 @@
+schemaVersion: 1
+id: class_test_focus
+type: SKILL
+implementationId: fire_boost
+name: "&bクラス検証 フォーカス"
+description: "&7テスト用クラスがレベルで習得するスキル。"
+icon: AMETHYST_SHARD
+cooldownTicks: 100
+manaCost: 4
+castTimeTicks: 10
+requiredLevel: 1
+onCast:
+  sound: block.amethyst_block.chime
+params:
+  strengthDurationTicks: 160
+  strengthAmplifier: 0
+  fireResistanceDurationTicks: 160
+  fireResistanceAmplifier: 0
+  flameParticleCount: 14
+  lavaParticleCount: 2
+tags: [test, class, active, cast]

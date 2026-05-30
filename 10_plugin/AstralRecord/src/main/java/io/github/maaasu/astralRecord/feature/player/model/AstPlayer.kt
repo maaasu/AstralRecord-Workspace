@@ -97,6 +97,9 @@ data class AstPlayer(
      */
     var isDodging: Boolean = false
 
+    /** スキル詠唱が終了する予定時刻（System.currentTimeMillis ベース）。 */
+    var skillCastingUntilMs: Long = 0L
+
     init {
         applyPermission(user)
         applyAccountMode(account)
@@ -164,6 +167,13 @@ data class AstPlayer(
     private fun applyReach(attribute: Attribute, value: Double) {
         bukkit.getAttribute(attribute)?.baseValue = value
     }
+
+    /**
+     * 現在スキル詠唱中かを返します。
+     *
+     * @return 詠唱中なら true
+     */
+    fun isSkillCasting(): Boolean = skillCastingUntilMs > System.currentTimeMillis()
 
     /**
      * プレイヤーにメッセージを送信します。

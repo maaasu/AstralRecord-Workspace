@@ -1,0 +1,47 @@
+schemaVersion: 1
+id: skill_tester
+type: CLASS
+name: "&dスキルテスター"
+description: "&7クラス由来の所持スキル検証に使うテスト用クラス。"
+icon: COMMAND_BLOCK
+role: SUPPORT
+unlockLevel: 1
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MAX_MANA
+    value: 80
+  - status: MAX_ENERGY
+    value: 100
+  - status: STRENGTH
+    value: 5
+  - status: DEXTERITY
+    value: 5
+  - status: VITALITY
+    value: 5
+  - status: AGILITY
+    value: 5
+  - status: ATTACK
+    value: 5
+  - status: DEFENSE
+    value: 5
+  - status: MOVEMENT_SPEED
+    value: 100
+growthPerLevel:
+  - status: MAX_MANA
+    value: 4
+  - status: ATTACK
+    value: 1
+  - status: DEFENSE
+    value: 1
+expRate: 100
+starterSkills:
+  - class_test_guard
+levelSkills:
+  - level: 2
+    skill: class_test_focus
+  - level: 3
+    skill: class_test_burst
+tags:
+  - test
+  - skill

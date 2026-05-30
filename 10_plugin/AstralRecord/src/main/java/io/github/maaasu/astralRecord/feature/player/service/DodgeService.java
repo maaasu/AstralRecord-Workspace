@@ -75,6 +75,9 @@ public class DodgeService {
         if (!astPlayer.getAccount().getMode().shouldProcessGameplay()) {
             return false;
         }
+        if (astPlayer.isSkillCasting()) {
+            return false;
+        }
 
         Player player = astPlayer.getBukkit();
         if (!player.isOnline() || player.isDead() || !isGrounded(player)) {
@@ -98,6 +101,11 @@ public class DodgeService {
      */
     public void tryTriggerOnSneakRelease(@NotNull AstPlayer astPlayer) {
         if (!astPlayer.getAccount().getMode().shouldProcessGameplay()) {
+            return;
+        }
+        if (astPlayer.isSkillCasting()) {
+            clearSneakWindowState(astPlayer);
+            playerHudService.restoreStatusActionBar(astPlayer);
             return;
         }
 

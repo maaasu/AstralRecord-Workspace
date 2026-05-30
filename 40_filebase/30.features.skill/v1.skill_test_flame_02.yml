@@ -1,0 +1,21 @@
+schemaVersion: 1
+id: skill_test_flame_02
+type: SKILL
+implementationId: fire_boost
+name: "&6検証スキル02 スパーク"
+description: "&7スキルバインド検証用の短詠唱スキル。"
+icon: FIRE_CHARGE
+cooldownTicks: 60
+manaCost: 3
+castTimeTicks: 10
+requiredLevel: 1
+onCast:
+  sound: item.firecharge.use
+params:
+  strengthDurationTicks: 140
+  strengthAmplifier: 0
+  fireResistanceDurationTicks: 140
+  fireResistanceAmplifier: 0
+  flameParticleCount: 14
+  lavaParticleCount: 2
+tags: [test, bind, active, cast]

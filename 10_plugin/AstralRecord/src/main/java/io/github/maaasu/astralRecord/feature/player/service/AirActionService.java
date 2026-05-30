@@ -68,6 +68,9 @@ public class AirActionService {
         if (!astPlayer.getAccount().getMode().shouldProcessGameplay()) {
             return;
         }
+        if (astPlayer.isSkillCasting()) {
+            return;
+        }
 
         Player player = astPlayer.getBukkit();
         if (!player.isOnline() || player.isDead()) {
@@ -97,6 +100,9 @@ public class AirActionService {
      */
     public boolean tryStartWallCling(@NotNull AstPlayer astPlayer) {
         if (!astPlayer.getAccount().getMode().shouldProcessGameplay()) {
+            return false;
+        }
+        if (astPlayer.isSkillCasting()) {
             return false;
         }
 
@@ -140,7 +146,7 @@ public class AirActionService {
             return false;
         }
 
-        endWallCling(astPlayer, shouldWallKick(astPlayer));
+        endWallCling(astPlayer, !astPlayer.isSkillCasting() && shouldWallKick(astPlayer));
         return true;
     }
 

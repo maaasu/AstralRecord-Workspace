@@ -1,0 +1,21 @@
+schemaVersion: 1
+id: skill_test_flame_03
+type: SKILL
+implementationId: fire_boost
+name: "&e検証スキル03 ライト"
+description: "&7スキル一覧とリング表示の検証用。"
+icon: GLOWSTONE_DUST
+cooldownTicks: 80
+manaCost: 4
+castTimeTicks: 0
+requiredLevel: 1
+onCast:
+  sound: block.amethyst_block.chime
+params:
+  strengthDurationTicks: 160
+  strengthAmplifier: 0
+  fireResistanceDurationTicks: 160
+  fireResistanceAmplifier: 0
+  flameParticleCount: 16
+  lavaParticleCount: 3
+tags: [test, bind, active]

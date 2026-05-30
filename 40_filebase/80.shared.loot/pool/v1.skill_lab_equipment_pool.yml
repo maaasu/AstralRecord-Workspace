@@ -1,0 +1,25 @@
+schemaVersion: 1
+id: skill_lab_equipment_pool
+type: LOOT_POOL
+pick: 5
+contents:
+  - itemId:
+      ref: item:skill_lab_blade
+    rate: 100
+    amount: 1
+  - itemId:
+      ref: item:skill_lab_helm
+    rate: 100
+    amount: 1
+  - itemId:
+      ref: item:skill_lab_armor
+    rate: 100
+    amount: 1
+  - itemId:
+      ref: item:skill_lab_leggings
+    rate: 100
+    amount: 1
+  - itemId:
+      ref: item:skill_lab_boots
+    rate: 100
+    amount: 1

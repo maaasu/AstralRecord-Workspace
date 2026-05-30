@@ -1,0 +1,6 @@
+schemaVersion: 1
+id: skill_lab_equipment_table
+type: LOOT_TABLE
+rolls: 1
+pools:
+  - ref: loot_pool:skill_lab_equipment_pool
