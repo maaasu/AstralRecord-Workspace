@@ -93,13 +93,17 @@ public class MobSpawnerBlockEventHandler extends AbstractEventHandler {
             return;
         }
 
-        Optional<Location> target = findTargetedSpawner(event.getPlayer());
+        AstPlayer astPlayer = AstPlayerCache.get(event.getPlayer());
+        if (!spawnerService.canViewSpawnerVisual(astPlayer)) {
+            return;
+        }
+
+        Optional<Location> target = resolveTargetedSpawner(event);
         if (target.isEmpty()) {
             return;
         }
 
         event.setCancelled(true);
-        AstPlayer astPlayer = AstPlayerCache.get(event.getPlayer());
         if (!spawnerService.isAdminMode(astPlayer)) {
             event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5707.getId()));
             return;
@@ -108,6 +112,18 @@ public class MobSpawnerBlockEventHandler extends AbstractEventHandler {
         if (spawnerService.removeLocation(target.get())) {
             event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5710.getId()));
         }
+    }
+
+    @NotNull
+    private Optional<Location> resolveTargetedSpawner(@NotNull PlayerInteractEvent event) {
+        if (event.getAction() == Action.LEFT_CLICK_BLOCK && event.getClickedBlock() != null) {
+            Location clickedLocation = event.getClickedBlock().getLocation();
+            if (spawnerService.hasLocation(clickedLocation)) {
+                return Optional.of(clickedLocation);
+            }
+            return Optional.empty();
+        }
+        return findTargetedSpawner(event.getPlayer());
     }
 
     private void consumePlacedItem(@NotNull Player player, @NotNull EquipmentSlot hand) {
