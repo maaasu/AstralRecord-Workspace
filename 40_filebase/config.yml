@@ -14,7 +14,7 @@ database:
   - name: dungeon
     path: 65.features.dungeon
   - name: mail
-    path: 90.features.mail
+    path: 05.features.mail
 
   - name: set_effect
     path: 10.features.item/equipment/set_effect
