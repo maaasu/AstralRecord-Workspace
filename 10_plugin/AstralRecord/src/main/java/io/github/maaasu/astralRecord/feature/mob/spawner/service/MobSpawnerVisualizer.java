@@ -9,10 +9,8 @@ import org.bukkit.Particle;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
@@ -92,15 +90,6 @@ final class MobSpawnerVisualizer {
             display.setBillboard(Display.Billboard.FIXED);
             display.setBlock(spawnerService.getDisplayMaterial(spawnerLocation.spawnerId()).createBlockData());
         });
-        ItemDisplay item = location.getWorld().spawn(location.clone().add(0.0D, 0.85D, 0.0D), ItemDisplay.class, display -> {
-            display.setPersistent(false);
-            display.setGravity(false);
-            display.setInvulnerable(true);
-            display.setSilent(true);
-            display.setVisibleByDefault(false);
-            display.setBillboard(Display.Billboard.CENTER);
-            display.setItemStack(new ItemStack(spawnerService.getDisplayMaterial(spawnerLocation.spawnerId())));
-        });
         TextDisplay text = location.getWorld().spawn(location.clone().add(0.0D, 1.45D, 0.0D), TextDisplay.class, display -> {
             display.setPersistent(false);
             display.setGravity(false);
@@ -114,7 +103,7 @@ final class MobSpawnerVisualizer {
                     ColorCodeUtil.translateAlternateColorCodes("&dSpawner&7: &f" + spawnerLocation.spawnerId())
             ));
         });
-        return new SpawnerVisual(block, item, text);
+        return new SpawnerVisual(block, text);
     }
 
     private void updateViewers(@NotNull SpawnerVisual display, @NotNull Location location) {
@@ -136,11 +125,10 @@ final class MobSpawnerVisualizer {
         return spawnerService.canViewSpawnerVisual(AstPlayerCache.get(player));
     }
 
-    private record SpawnerVisual(@NotNull BlockDisplay block, @NotNull ItemDisplay item, @NotNull TextDisplay text) {
+    private record SpawnerVisual(@NotNull BlockDisplay block, @NotNull TextDisplay text) {
 
         private void teleport(@NotNull Location location) {
             block.teleport(location.clone().add(-0.35D, 0.05D, -0.35D));
-            item.teleport(location.clone().add(0.0D, 0.85D, 0.0D));
             text.teleport(location.clone().add(0.0D, 1.45D, 0.0D));
         }
 
@@ -165,7 +153,7 @@ final class MobSpawnerVisualizer {
         }
 
         private Entity[] entities() {
-            return new Entity[]{block, item, text};
+            return new Entity[]{block, text};
         }
     }
 }
