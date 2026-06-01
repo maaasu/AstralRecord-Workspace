@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.menu.view.screen;
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.buff.model.BuffModifier;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -59,7 +60,7 @@ public final class BuffScreenView extends BaseMenuScreenView {
 
     private @NotNull ItemStack buffItem(@NotNull ActiveBuff buff) {
         NamedTextColor accent = buff.getType().isDebuff() ? NamedTextColor.RED : NamedTextColor.AQUA;
-        Component name = noItalic(Component.text(buff.getType().getDisplayName(), accent, TextDecoration.BOLD));
+        Component name = noItalic(Component.text(sanitizeDisplayName(buff.getType().getDisplayName()), accent, TextDecoration.BOLD));
         List<Component> lore = new ArrayList<>();
         lore.add(noItalic(Component.text("ID: " + buff.getType().getId(), NamedTextColor.DARK_GRAY)));
         lore.add(noItalic(Component.text("種別: " + buff.getType().getType(), NamedTextColor.GRAY)));
@@ -91,5 +92,10 @@ public final class BuffScreenView extends BaseMenuScreenView {
 
     private @NotNull Component noItalic(@NotNull Component component) {
         return component.decoration(TextDecoration.ITALIC, false);
+    }
+
+    private @NotNull String sanitizeDisplayName(@NotNull String displayName) {
+        String sanitized = ColorCodeUtil.stripColor(ColorCodeUtil.translateAlternateColorCodes(displayName));
+        return sanitized == null || sanitized.isBlank() ? displayName : sanitized;
     }
 }

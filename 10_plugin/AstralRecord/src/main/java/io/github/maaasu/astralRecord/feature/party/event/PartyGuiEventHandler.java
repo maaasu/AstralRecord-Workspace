@@ -1,11 +1,13 @@
 package io.github.maaasu.astralRecord.feature.party.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
+import io.github.maaasu.astralRecord.feature.menu.player.PlayerBrowserGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.party.gui.PartyGui;
+import io.github.maaasu.astralRecord.feature.party.gui.PartyMemberActionGui;
 import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.model.PartyActionResult;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
-import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -22,27 +24,43 @@ import org.jetbrains.annotations.NotNull;
 import java.util.UUID;
 
 /**
- * パーティー GUI のクリック操作を処理します。
+ * パーティー GUI とメンバー操作 GUI のクリックを処理します。
  */
 public final class PartyGuiEventHandler extends AbstractEventHandler {
     private final PartyGui gui;
+    private final PartyMemberActionGui memberActionGui;
     private final PartyService partyService;
     private final MenuView menuView;
+    private final PlayerBrowserGuiEventHandler playerBrowserGuiEventHandler;
 
-    public PartyGuiEventHandler(@NotNull PartyGui gui, @NotNull PartyService partyService, @NotNull MenuView menuView) {
+    public PartyGuiEventHandler(
+        @NotNull PartyGui gui,
+        @NotNull PartyMemberActionGui memberActionGui,
+        @NotNull PartyService partyService,
+        @NotNull MenuView menuView,
+        @NotNull PlayerBrowserGuiEventHandler playerBrowserGuiEventHandler
+    ) {
         this.gui = gui;
+        this.memberActionGui = memberActionGui;
         this.partyService = partyService;
         this.menuView = menuView;
+        this.playerBrowserGuiEventHandler = playerBrowserGuiEventHandler;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onInventoryClick(@NotNull InventoryClickEvent event) {
         runSafely(() -> {
-            if (!gui.isInventory(event.getView().getTopInventory())) {
+            boolean isPartyGui = gui.isInventory(event.getView().getTopInventory());
+            boolean isMemberActionGui = memberActionGui.isInventory(event.getView().getTopInventory());
+            if (!isPartyGui && !isMemberActionGui) {
                 return;
             }
             event.setCancelled(true);
             if (!(event.getWhoClicked() instanceof Player player)) {
+                return;
+            }
+            if (isMemberActionGui) {
+                handleMemberActionClick(player, event.getRawSlot());
                 return;
             }
             handleClick(player, event.getRawSlot());
@@ -52,7 +70,8 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onInventoryDrag(@NotNull InventoryDragEvent event) {
         runSafely(() -> {
-            if (!gui.isInventory(event.getView().getTopInventory())) {
+            if (!gui.isInventory(event.getView().getTopInventory())
+                && !memberActionGui.isInventory(event.getView().getTopInventory())) {
                 return;
             }
             event.setCancelled(true);
@@ -85,6 +104,7 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
             handleNoPartyClick(player, astPlayer, rawSlot);
             return;
         }
+
         if (rawSlot == PartyGui.LEAVE_OR_DISBAND_SLOT) {
             PartyActionResult result = party.isLeader(player.getUniqueId())
                 ? partyService.disband(astPlayer)
@@ -93,6 +113,19 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
             playResultSound(player, result);
             gui.open(player);
             return;
+        }
+        if (rawSlot == PartyGui.INVITE_SLOT && party.isLeader(player.getUniqueId())) {
+            GuiSound.OPEN.play(player);
+            playerBrowserGuiEventHandler.openInviteList(player, 0);
+            return;
+        }
+        if (gui.isMemberSlot(rawSlot)) {
+            UUID memberId = gui.getMemberId(player.getOpenInventory().getTopInventory(), rawSlot);
+            if (memberId != null && !memberId.equals(player.getUniqueId()) && party.isLeader(player.getUniqueId())) {
+                GuiSound.SELECT.play(player);
+                memberActionGui.open(player, memberId);
+                return;
+            }
         }
 
         GuiSound.DENY.play(player);
@@ -121,6 +154,40 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
             return;
         }
         GuiSound.DENY.play(player);
+    }
+
+    private void handleMemberActionClick(@NotNull Player player, int rawSlot) {
+        if (rawSlot == PartyGui.CLOSE_SLOT) {
+            GuiSound.CLOSE.play(player);
+            player.closeInventory();
+            return;
+        }
+        if (rawSlot == PartyMemberActionGui.BACK_TO_PARTY_SLOT) {
+            GuiSound.SELECT.play(player);
+            gui.open(player);
+            return;
+        }
+
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        UUID targetId = memberActionGui.getTargetId(player.getOpenInventory().getTopInventory());
+        Player target = targetId == null ? null : Bukkit.getPlayer(targetId);
+        if (astPlayer == null || target == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+
+        PartyActionResult result;
+        if (rawSlot == PartyMemberActionGui.PROMOTE_SLOT) {
+            result = partyService.promote(astPlayer, target);
+        } else if (rawSlot == PartyMemberActionGui.KICK_SLOT) {
+            result = partyService.kick(astPlayer, target);
+        } else {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        sendResult(player, result);
+        playResultSound(player, result);
+        gui.open(player);
     }
 
     private void sendResult(@NotNull Player player, @NotNull PartyActionResult result) {

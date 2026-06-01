@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutAction;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;
+import io.github.maaasu.astralRecord.feature.menu.player.PlayerBrowserGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.TrashScreenView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -414,6 +415,16 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             }
             GuiSound.OPEN.play(player);
             partyGui.open(player);
+            return;
+        }
+        if (rawSlot == MenuView.PLAYER_INFO_SLOT) {
+            PlayerBrowserGuiEventHandler playerBrowserGuiEventHandler = plugin.getPlayerBrowserGuiEventHandler();
+            if (playerBrowserGuiEventHandler == null) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.OPEN.play(player);
+            playerBrowserGuiEventHandler.openInfoList(player, 0);
             return;
         }
         GuiSound.DENY.play(player);
@@ -934,6 +945,14 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
 
         var partyGui = plugin.getPartyGui();
         if (partyGui != null && partyGui.isInventory(openedInventory)) {
+            return true;
+        }
+        var playerListGui = plugin.getPlayerListGui();
+        if (playerListGui != null && playerListGui.isInventory(openedInventory)) {
+            return true;
+        }
+        var playerDetailGui = plugin.getPlayerDetailGui();
+        if (playerDetailGui != null && playerDetailGui.isInventory(openedInventory)) {
             return true;
         }
 

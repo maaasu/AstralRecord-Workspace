@@ -7,6 +7,7 @@ import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public final class MainMenuScreenView extends BaseMenuScreenView {
@@ -19,8 +20,9 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
     public static final int SKILL_BIND_SLOT = 31;
     public static final int CURRENCY_SLOT = 32;
     public static final int PARTY_SLOT = 33;
+    public static final int PLAYER_INFO_SLOT = 34;
 
-    public void render(@NotNull Inventory inventory, long goldAmount) {
+    public void render(@NotNull Inventory inventory, long goldAmount, @NotNull List<String> activeBuffNames) {
         fill(inventory);
         inventory.setItem(STATUS_SLOT, createItem(
             MenuIconDefinition.ACCOUNT_INFO.getMaterial(),
@@ -50,25 +52,44 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
         inventory.setItem(BUFF_SLOT, createItem(
             Material.POTION,
             Component.text("バフ", NamedTextColor.AQUA),
-            List.of(Component.text("現在のバフを確認", NamedTextColor.GRAY))
+            createBuffLore(activeBuffNames)
         ));
         inventory.setItem(SKILL_BIND_SLOT, createItem(
             Material.ENCHANTED_BOOK,
             Component.text("スキル設定", NamedTextColor.AQUA),
-            List.of(Component.text("スキルプリセットを編集", NamedTextColor.GRAY))
+            List.of(Component.text("スキルプリセットを設定", NamedTextColor.GRAY))
         ));
         inventory.setItem(CURRENCY_SLOT, createItem(
             MenuIconDefinition.CURRENCY.getMaterial(),
             Component.text(MenuIconDefinition.CURRENCY.getDisplayNameJa(), MenuIconDefinition.CURRENCY.getColor()),
             List.of(
                 Component.text("所持通貨を確認", NamedTextColor.GRAY),
-                Component.text("ゴールド: " + goldAmount, NamedTextColor.YELLOW)
+                Component.text("ゴールド " + goldAmount, NamedTextColor.YELLOW)
             )
         ));
         inventory.setItem(PARTY_SLOT, createItem(
             Material.PLAYER_HEAD,
             Component.text("パーティー", NamedTextColor.AQUA),
-            List.of(Component.text("作成・招待・参加状態を確認", NamedTextColor.GRAY))
+            List.of(Component.text("作成・招待・参加状況を確認", NamedTextColor.GRAY))
         ));
+        inventory.setItem(PLAYER_INFO_SLOT, createItem(
+            Material.SPYGLASS,
+            Component.text("プレイヤー一覧", NamedTextColor.YELLOW),
+            List.of(Component.text("参加中プレイヤーの基本情報を確認", NamedTextColor.GRAY))
+        ));
+    }
+
+    private @NotNull List<Component> createBuffLore(@NotNull List<String> activeBuffNames) {
+        List<Component> lore = new ArrayList<>();
+        lore.add(Component.text("現在のバフを確認", NamedTextColor.GRAY));
+        if (activeBuffNames.isEmpty()) {
+            lore.add(Component.text("現在獲得中: なし", NamedTextColor.DARK_GRAY));
+            return lore;
+        }
+        lore.add(Component.text("現在獲得中:", NamedTextColor.YELLOW));
+        for (String buffName : activeBuffNames) {
+            lore.add(Component.text("- " + buffName, NamedTextColor.WHITE));
+        }
+        return lore;
     }
 }

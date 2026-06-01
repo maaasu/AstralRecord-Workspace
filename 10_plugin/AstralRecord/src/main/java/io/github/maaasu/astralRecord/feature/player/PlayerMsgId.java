@@ -404,6 +404,7 @@ public enum PlayerMsgId {
      * ゴミ箱GUI内の {0} 件のアイテムをインベントリに戻しました。
      */
     P_5602(5602),
+    P_5603(5603),
     // endregion
 
     // region /feature/mob/command/MobCommand.java 5700-5714

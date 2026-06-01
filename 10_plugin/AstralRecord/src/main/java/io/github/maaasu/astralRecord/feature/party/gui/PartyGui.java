@@ -28,11 +28,13 @@ import java.util.UUID;
 public final class PartyGui {
     public static final int SIZE = 54;
     public static final int CREATE_SLOT = 22;
+    public static final int INVITE_SLOT = 15;
     public static final int LEAVE_OR_DISBAND_SLOT = 51;
     public static final int BACK_SLOT = 49;
     public static final int CLOSE_SLOT = -1;
     private static final int INFO_SLOT = 4;
-    private static final int[] MEMBER_SLOTS = {20, 21, 22, 23, 24, 29};
+    private static final int LEADER_SLOT = 13;
+    private static final int[] MEMBER_SLOTS = {31, 30, 32, 29, 33};
     private static final int[] INVITE_SLOTS = {29, 30, 31, 32, 33};
 
     private final PartyService partyService;
@@ -50,7 +52,11 @@ public final class PartyGui {
         Party party = partyService.findParty(player.getUniqueId());
         List<PartyInvite> invites = partyService.getInvites(player.getUniqueId());
         Inventory inventory = Bukkit.createInventory(
-            new Holder(player.getUniqueId(), invites.stream().map(PartyInvite::leaderId).toList()),
+            new Holder(
+                player.getUniqueId(),
+                invites.stream().map(PartyInvite::leaderId).toList(),
+                party == null ? List.of() : orderedMembers(party)
+            ),
             SIZE,
             Component.text("パーティー", NamedTextColor.AQUA)
         );
@@ -78,17 +84,49 @@ public final class PartyGui {
         return null;
     }
 
+    public boolean isMemberSlot(int rawSlot) {
+        if (rawSlot == LEADER_SLOT) {
+            return true;
+        }
+        for (int memberSlot : MEMBER_SLOTS) {
+            if (memberSlot == rawSlot) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public @Nullable UUID getMemberId(@Nullable Inventory inventory, int rawSlot) {
+        if (!(inventory != null && inventory.getHolder() instanceof Holder holder)) {
+            return null;
+        }
+        if (rawSlot == LEADER_SLOT) {
+            return holder.partyMembers().isEmpty() ? null : holder.partyMembers().get(0);
+        }
+        for (int index = 0; index < MEMBER_SLOTS.length; index++) {
+            if (MEMBER_SLOTS[index] != rawSlot) {
+                continue;
+            }
+            int memberIndex = index + 1;
+            if (memberIndex >= holder.partyMembers().size()) {
+                return null;
+            }
+            return holder.partyMembers().get(memberIndex);
+        }
+        return null;
+    }
+
     private void renderNoParty(@NotNull Inventory inventory, @NotNull List<PartyInvite> invites) {
         fill(inventory);
         inventory.setItem(INFO_SLOT, item(
             Material.WRITABLE_BOOK,
-            Component.text("現在パーティーに未所属", NamedTextColor.YELLOW),
-            List.of(Component.text("作成または招待の承諾ができます。", NamedTextColor.GRAY))
+            Component.text("現在パーティーに所属していません", NamedTextColor.YELLOW),
+            List.of(Component.text("作成または招待承諾ができます", NamedTextColor.GRAY))
         ));
         inventory.setItem(CREATE_SLOT, item(
             Material.EMERALD,
             Component.text("パーティーを作成", NamedTextColor.GREEN),
-            List.of(Component.text("最大 " + PartyService.MAX_MEMBERS + " 人まで参加できます。", NamedTextColor.GRAY))
+            List.of(Component.text("最大 " + PartyService.MAX_MEMBERS + " 人まで参加できます", NamedTextColor.GRAY))
         ));
 
         for (int index = 0; index < INVITE_SLOTS.length && index < invites.size(); index++) {
@@ -97,7 +135,7 @@ public final class PartyGui {
             inventory.setItem(INVITE_SLOTS[index], playerHead(
                 invite.leaderId(),
                 Component.text(leaderName + " からの招待", NamedTextColor.AQUA),
-                List.of(Component.text("クリックで参加します。", NamedTextColor.GRAY))
+                List.of(Component.text("クリックで参加します", NamedTextColor.GRAY))
             ));
         }
         inventory.setItem(BACK_SLOT, backItem());
@@ -111,30 +149,46 @@ public final class PartyGui {
             List.of(Component.text("リーダー: " + playerName(party.getLeaderId()), NamedTextColor.GRAY))
         ));
 
-        List<UUID> members = party.members();
+        List<UUID> members = orderedMembers(party);
+        if (!members.isEmpty()) {
+            UUID leaderId = members.get(0);
+            inventory.setItem(LEADER_SLOT, playerHead(
+                leaderId,
+                Component.text(playerName(leaderId) + " ★", NamedTextColor.GOLD),
+                List.of(Component.text("リーダー", NamedTextColor.GRAY))
+            ));
+        }
+
         for (int index = 0; index < MEMBER_SLOTS.length; index++) {
-            if (index < members.size()) {
-                UUID memberId = members.get(index);
-                boolean leader = party.getLeaderId().equals(memberId);
+            int memberIndex = index + 1;
+            if (memberIndex < members.size()) {
+                UUID memberId = members.get(memberIndex);
                 inventory.setItem(MEMBER_SLOTS[index], playerHead(
                     memberId,
-                    Component.text(playerName(memberId) + (leader ? " ★" : ""), leader ? NamedTextColor.GOLD : NamedTextColor.WHITE),
-                    List.of(Component.text(leader ? "リーダー" : "メンバー", NamedTextColor.GRAY))
+                    Component.text(playerName(memberId), NamedTextColor.WHITE),
+                    List.of(Component.text("メンバー", NamedTextColor.GRAY))
                 ));
-            } else {
-                inventory.setItem(MEMBER_SLOTS[index], item(
-                    Material.LIGHT_GRAY_STAINED_GLASS_PANE,
-                    Component.text("空き枠", NamedTextColor.DARK_GRAY),
-                    List.of()
-                ));
+                continue;
             }
+            inventory.setItem(MEMBER_SLOTS[index], item(
+                Material.LIGHT_GRAY_STAINED_GLASS_PANE,
+                Component.text("空きスロット", NamedTextColor.DARK_GRAY),
+                List.of()
+            ));
         }
 
         boolean viewerLeader = party.getLeaderId().equals(viewerId);
+        if (viewerLeader && party.size() < PartyService.MAX_MEMBERS) {
+            inventory.setItem(INVITE_SLOT, item(
+                Material.WRITABLE_BOOK,
+                Component.text("プレイヤー招待", NamedTextColor.GREEN),
+                List.of(Component.text("未所属プレイヤー一覧を開く", NamedTextColor.GRAY))
+            ));
+        }
         inventory.setItem(LEAVE_OR_DISBAND_SLOT, item(
             viewerLeader ? Material.TNT : Material.OAK_DOOR,
             Component.text(viewerLeader ? "パーティーを解散" : "パーティーを抜ける", viewerLeader ? NamedTextColor.RED : NamedTextColor.YELLOW),
-            List.of(Component.text(viewerLeader ? "全メンバーを解散します。" : "自分だけ離脱します。", NamedTextColor.GRAY))
+            List.of(Component.text(viewerLeader ? "全メンバーを解散します" : "自分だけが離脱します", NamedTextColor.GRAY))
         ));
         inventory.setItem(BACK_SLOT, backItem());
     }
@@ -192,9 +246,25 @@ public final class PartyGui {
         return offlinePlayer.getName() == null ? playerId.toString() : offlinePlayer.getName();
     }
 
-    private record Holder(@NotNull UUID viewerId, @NotNull List<UUID> inviteLeaderIds) implements InventoryHolder {
+    private @NotNull List<UUID> orderedMembers(@NotNull Party party) {
+        List<UUID> ordered = new ArrayList<>();
+        ordered.add(party.getLeaderId());
+        for (UUID memberId : party.members()) {
+            if (!memberId.equals(party.getLeaderId())) {
+                ordered.add(memberId);
+            }
+        }
+        return ordered;
+    }
+
+    private record Holder(
+        @NotNull UUID viewerId,
+        @NotNull List<UUID> inviteLeaderIds,
+        @NotNull List<UUID> partyMembers
+    ) implements InventoryHolder {
         private Holder {
             inviteLeaderIds = List.copyOf(inviteLeaderIds);
+            partyMembers = List.copyOf(partyMembers);
         }
 
         @Override

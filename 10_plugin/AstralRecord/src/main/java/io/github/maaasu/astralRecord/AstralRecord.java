@@ -35,6 +35,9 @@ import io.github.maaasu.astralRecord.feature.loginbonus.service.LoginBonusServic
 import io.github.maaasu.astralRecord.feature.loginbonus.view.LoginBonusGui;
 import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
+import io.github.maaasu.astralRecord.feature.menu.player.PlayerBrowserGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.menu.player.PlayerDetailGui;
+import io.github.maaasu.astralRecord.feature.menu.player.PlayerListGui;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.mob.repository.MobRepository;
 import io.github.maaasu.astralRecord.feature.mob.service.MobAiService;
@@ -49,6 +52,7 @@ import io.github.maaasu.astralRecord.feature.mob.spawner.service.MobSpawnerServi
 import io.github.maaasu.astralRecord.feature.party.event.PartyGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.party.event.PartyQuitEventHandler;
 import io.github.maaasu.astralRecord.feature.party.gui.PartyGui;
+import io.github.maaasu.astralRecord.feature.party.gui.PartyMemberActionGui;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerJoinEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerModeEventHandler;
@@ -132,6 +136,9 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerHudService playerHudService;
     private ResourcePackService resourcePackService;
     private MenuView menuView;
+    private PlayerListGui playerListGui;
+    private PlayerDetailGui playerDetailGui;
+    private PlayerBrowserGuiEventHandler playerBrowserGuiEventHandler;
     private PagingDebugGui pagingDebugGui;
     private MobService mobService;
     private MobSpawnerService mobSpawnerService;
@@ -160,6 +167,7 @@ public final class AstralRecord extends JavaPlugin {
     private WorldSpawnParticleTask worldSpawnParticleTask;
     private PartyService partyService;
     private PartyGui partyGui;
+    private PartyMemberActionGui partyMemberActionGui;
     private LoginBonusService loginBonusService;
     private String joinSpawnWorldId;
 
@@ -378,9 +386,12 @@ public final class AstralRecord extends JavaPlugin {
 
         // menu
         menuView = new MenuView(this);
+        playerListGui = new PlayerListGui();
+        playerDetailGui = new PlayerDetailGui();
         pagingDebugGui = new PagingDebugGui();
         playerSettingGui = new PlayerSettingGui(playerSettingService);
         loginBonusService = new LoginBonusService(new LoginBonusGui());
+        partyMemberActionGui = new PartyMemberActionGui();
 
         // skill
         skillService = new SkillService(new SkillRepository(), new SkillRegistry(), this);
@@ -461,6 +472,18 @@ public final class AstralRecord extends JavaPlugin {
             new MenuOpenEventHandler(this, menuView, inventoryService, currencyService, statusService),
             getServer().getPluginManager()
         );
+        playerBrowserGuiEventHandler = new PlayerBrowserGuiEventHandler(
+            this,
+            playerListGui,
+            playerDetailGui,
+            partyService,
+            statusService,
+            menuView
+        );
+        eventManager.registerHandler(
+            playerBrowserGuiEventHandler,
+            getServer().getPluginManager()
+        );
         eventManager.registerHandler(
             new InventoryEquipmentGuiEventHandler(menuView, inventoryService, currencyService, statusService),
             getServer().getPluginManager()
@@ -527,7 +550,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new PartyGuiEventHandler(partyGui, partyService, menuView),
+            new PartyGuiEventHandler(partyGui, partyMemberActionGui, partyService, menuView, playerBrowserGuiEventHandler),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
@@ -589,6 +612,18 @@ public final class AstralRecord extends JavaPlugin {
      */
     public MenuView getMenuView() {
         return menuView;
+    }
+
+    public PlayerListGui getPlayerListGui() {
+        return playerListGui;
+    }
+
+    public PlayerDetailGui getPlayerDetailGui() {
+        return playerDetailGui;
+    }
+
+    public PlayerBrowserGuiEventHandler getPlayerBrowserGuiEventHandler() {
+        return playerBrowserGuiEventHandler;
     }
 
     /**
@@ -693,5 +728,9 @@ public final class AstralRecord extends JavaPlugin {
 
     public PartyGui getPartyGui() {
         return partyGui;
+    }
+
+    public PartyMemberActionGui getPartyMemberActionGui() {
+        return partyMemberActionGui;
     }
 }
