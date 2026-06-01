@@ -258,8 +258,9 @@ public final class SkillActionRingService {
             }
             SkillDefinition definition = skillService.registry().getDefinition(skillId);
             String displayName = definition == null ? skillId : ColorCodeUtil.translateAlternateColorCodes(definition.getName());
-            Material material = parseMaterial(definition == null ? null : definition.getIcon(), Material.BOOK);
-            slots.add(new SlotView(skillId, displayName, material, ownedSkillIds.contains(skillId)));
+            boolean owned = ownedSkillIds.contains(skillId);
+            Material material = owned ? parseMaterial(definition == null ? null : definition.getIcon(), Material.BARRIER) : Material.BARRIER;
+            slots.add(new SlotView(skillId, displayName, material, owned));
         }
         return slots;
     }

@@ -29,7 +29,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -73,6 +72,7 @@ public final class SkillBindGui {
         @NotNull Player player,
         @NotNull SkillBindSession session,
         @NotNull List<SkillDefinition> skills,
+        @NotNull Map<String, SkillDefinition> bindSkillMap,
         @NotNull Set<String> ownedSkillIds,
         int pageIndex
     ) {
@@ -87,7 +87,7 @@ public final class SkillBindGui {
         renderTopInventory(inventory, skills, ownedSkillIds, normalizedPage);
         player.openInventory(inventory);
 
-        renderPlayerInventoryControls(player.getInventory(), session, ownedSkillIds, skillMap(skills));
+        renderPlayerInventoryControls(player.getInventory(), session, ownedSkillIds, bindSkillMap);
         player.updateInventory();
     }
 
@@ -403,14 +403,6 @@ public final class SkillBindGui {
         return itemStack;
     }
 
-    private @NotNull Map<String, SkillDefinition> skillMap(@NotNull List<SkillDefinition> skills) {
-        Map<String, SkillDefinition> map = new HashMap<>();
-        for (SkillDefinition skill : skills) {
-            map.put(skill.getId(), skill);
-        }
-        return map;
-    }
-
     private @NotNull Material resolveSkillMaterial(@Nullable SkillDefinition skill, boolean owned) {
         if (skill != null) {
             return parseMaterial(skill.getIcon(), DEFAULT_SKILL_ICON);
@@ -429,10 +421,13 @@ public final class SkillBindGui {
         lore.add(Component.text("ID: " + skill.getId(), NamedTextColor.DARK_GRAY));
         lore.add(
             Component.text(
-                owned ? "習得済みスキル" : "未習得",
+                owned ? "習得済みスキル" : "未所持スキル",
                 owned ? NamedTextColor.GREEN : NamedTextColor.RED
             )
         );
+        if (!owned) {
+            lore.add(Component.text("現在未所持のため、発動や新規設定はできません。", NamedTextColor.RED));
+        }
 
         if (skill.getDescription() != null && !skill.getDescription().isBlank()) {
             lore.add(Component.empty());

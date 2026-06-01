@@ -352,7 +352,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         Set<String> ownedSkillIds = astPlayer == null ? Set.of() : ownershipService.ownedSkillIds(astPlayer);
         suppressCloseIfSwitchingWithinSkillGui(player);
-        gui.open(player, session, currentSkills(ownedSkillIds), ownedSkillIds, pageIndex);
+        gui.open(player, session, currentSkills(ownedSkillIds), allSkillMap(), ownedSkillIds, pageIndex);
     }
 
     private void openConfirm(
@@ -382,6 +382,15 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         return gui.sortedSkills(skillService.registry().definitions()).stream()
             .filter(skill -> ownedSkillIds.contains(skill.getId()))
             .toList();
+    }
+
+    private @NotNull Map<String, SkillDefinition> allSkillMap() {
+        return skillService.registry().definitions().stream()
+            .collect(java.util.stream.Collectors.toMap(
+                SkillDefinition::getId,
+                skill -> skill,
+                (current, replacement) -> current
+            ));
     }
 
     private void restoreAndClose(@NotNull Player player) {
