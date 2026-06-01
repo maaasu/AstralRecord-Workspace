@@ -15,6 +15,6 @@ itemMaterial: SPAWNER
 spawnIntervalTicks: 100
 
 spawnLimit:
-  maxAlivePerSpawner: 8
-  maxNearbyMobs: 18
-  spawnPerPlayer: 1
+  maxAlivePerSpawner: 24
+  maxNearbyMobs: 36
+  spawnPerPlayer: 4
