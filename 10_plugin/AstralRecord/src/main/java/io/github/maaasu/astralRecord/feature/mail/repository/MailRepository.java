@@ -1,0 +1,202 @@
+package io.github.maaasu.astralRecord.feature.mail.repository;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import io.github.maaasu.astralRecord.feature.mail.model.MailEntry;
+import io.github.maaasu.astralRecord.feature.mail.model.MailFilter;
+import io.github.maaasu.astralRecord.feature.mail.model.MailReward;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * AstralRecord API の /api/mail と通信する repository です。
+ */
+public class MailRepository {
+    private final DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE_TIME;
+
+    /**
+     * ユーザーの表示可能メール一覧を取得します。
+     *
+     * @param userId 対象ユーザー ID
+     * @param filter 既読フィルター
+     * @return メール一覧
+     */
+    public @NotNull List<MailEntry> findAvailable(@NotNull UUID userId, @NotNull MailFilter filter) {
+        String path = "/api/mail?user_id=" + userId + "&filter=" + filter.getApiValue();
+        try {
+            var client = ApiRequestUtil.buildClient();
+            var request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
+            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200) {
+                return parseList(response.body());
+            }
+            Logger.log(LogId.E_5200, "HTTP " + response.statusCode() + " for GET " + path);
+            throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            Logger.log(LogId.E_5200, e);
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            Logger.log(LogId.E_5200, e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * メールを既読化します。
+     *
+     * @param userId 対象ユーザー ID
+     * @param mailId メール ID
+     * @return 更新後メール。存在しない場合 null
+     */
+    public @Nullable MailEntry markRead(@NotNull UUID userId, @NotNull String mailId) {
+        return sendAction(userId, mailId, "read");
+    }
+
+    /**
+     * メールをプレイヤー単位で削除状態にします。
+     *
+     * @param userId 対象ユーザー ID
+     * @param mailId メール ID
+     * @return 削除状態へ更新できた場合 true
+     */
+    public boolean delete(@NotNull UUID userId, @NotNull String mailId) {
+        String encodedMailId = URLEncoder.encode(mailId, StandardCharsets.UTF_8).replace("+", "%20");
+        String path = "/api/mail/" + encodedMailId + "/delete";
+        try {
+            var client = ApiRequestUtil.buildClient();
+            var request = ApiRequestUtil.buildRequestBuilder(path)
+                .PUT(HttpRequest.BodyPublishers.ofString(actionBody(userId)))
+                .build();
+            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 204) {
+                return true;
+            }
+            if (response.statusCode() == 404) {
+                return false;
+            }
+            Logger.log(LogId.E_5200, "HTTP " + response.statusCode() + " for PUT " + path);
+            throw new IOException("Unexpected status " + response.statusCode() + " for PUT " + path);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            Logger.log(LogId.E_5200, e);
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            Logger.log(LogId.E_5200, e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    private @Nullable MailEntry sendAction(@NotNull UUID userId, @NotNull String mailId, @NotNull String action) {
+        String encodedMailId = URLEncoder.encode(mailId, StandardCharsets.UTF_8).replace("+", "%20");
+        String path = "/api/mail/" + encodedMailId + "/" + action;
+        try {
+            var client = ApiRequestUtil.buildClient();
+            var request = ApiRequestUtil.buildRequestBuilder(path)
+                .PUT(HttpRequest.BodyPublishers.ofString(actionBody(userId)))
+                .build();
+            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200) {
+                return parse(JsonParser.parseString(response.body()).getAsJsonObject());
+            }
+            if (response.statusCode() == 404) {
+                return null;
+            }
+            Logger.log(LogId.E_5200, "HTTP " + response.statusCode() + " for PUT " + path);
+            throw new IOException("Unexpected status " + response.statusCode() + " for PUT " + path);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            Logger.log(LogId.E_5200, e);
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            Logger.log(LogId.E_5200, e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    private @NotNull String actionBody(@NotNull UUID userId) {
+        JsonObject body = new JsonObject();
+        body.addProperty("userId", userId.toString());
+        body.addProperty("updatedBy", userId.toString());
+        return body.toString();
+    }
+
+    private @NotNull List<MailEntry> parseList(@NotNull String json) {
+        JsonArray array = JsonParser.parseString(json).getAsJsonArray();
+        List<MailEntry> mails = new ArrayList<>();
+        for (var element : array) {
+            if (element.isJsonObject()) {
+                mails.add(parse(element.getAsJsonObject()));
+            }
+        }
+        return mails;
+    }
+
+    private @NotNull MailEntry parse(@NotNull JsonObject obj) {
+        List<MailReward> rewards = new ArrayList<>();
+        JsonArray rewardArray = obj.getAsJsonArray("rewards");
+        if (rewardArray != null) {
+            for (var element : rewardArray) {
+                if (!element.isJsonObject()) {
+                    continue;
+                }
+                JsonObject rewardObj = element.getAsJsonObject();
+                rewards.add(new MailReward(
+                    stringValue(rewardObj, "itemId", ""),
+                    stringValue(rewardObj, "category", "material"),
+                    intValue(rewardObj, "amount", 1)
+                ));
+            }
+        }
+        return new MailEntry(
+            stringValue(obj, "id", ""),
+            stringValue(obj, "icon", "PAPER"),
+            stringValue(obj, "title", ""),
+            stringValue(obj, "body", ""),
+            parseDateTime(stringValue(obj, "publishFrom", LocalDateTime.MIN.toString())),
+            parseNullableDateTime(obj, "publishTo"),
+            booleanValue(obj, "receiveOnRead", true),
+            List.copyOf(rewards),
+            booleanValue(obj, "isRead", false),
+            parseNullableDateTime(obj, "readAt")
+        );
+    }
+
+    private @NotNull LocalDateTime parseDateTime(@NotNull String value) {
+        return LocalDateTime.parse(value, formatter);
+    }
+
+    private @Nullable LocalDateTime parseNullableDateTime(@NotNull JsonObject obj, @NotNull String key) {
+        if (!obj.has(key) || obj.get(key).isJsonNull()) {
+            return null;
+        }
+        return parseDateTime(obj.get(key).getAsString());
+    }
+
+    private @NotNull String stringValue(@NotNull JsonObject obj, @NotNull String key, @NotNull String fallback) {
+        return obj.has(key) && !obj.get(key).isJsonNull() ? obj.get(key).getAsString() : fallback;
+    }
+
+    private int intValue(@NotNull JsonObject obj, @NotNull String key, int fallback) {
+        return obj.has(key) && !obj.get(key).isJsonNull() ? obj.get(key).getAsInt() : fallback;
+    }
+
+    private boolean booleanValue(@NotNull JsonObject obj, @NotNull String key, boolean fallback) {
+        return obj.has(key) && !obj.get(key).isJsonNull() ? obj.get(key).getAsBoolean() : fallback;
+    }
+}

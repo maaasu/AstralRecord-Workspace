@@ -402,6 +402,16 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             skillBindHandler.open(player);
             return;
         }
+        if (rawSlot == MenuView.MAIL_SLOT) {
+            var mailGuiEventHandler = plugin.getMailGuiEventHandler();
+            if (mailGuiEventHandler == null) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.OPEN.play(player);
+            mailGuiEventHandler.open(player);
+            return;
+        }
         if (rawSlot == MenuView.CURRENCY_SLOT) {
             GuiSound.OPEN.play(player);
             openCurrency(player, 0);
@@ -953,6 +963,10 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
         var playerDetailGui = plugin.getPlayerDetailGui();
         if (playerDetailGui != null && playerDetailGui.isInventory(openedInventory)) {
+            return true;
+        }
+        var mailGuiEventHandler = plugin.getMailGuiEventHandler();
+        if (mailGuiEventHandler != null && mailGuiEventHandler.isInventory(openedInventory)) {
             return true;
         }
 

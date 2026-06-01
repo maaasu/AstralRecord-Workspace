@@ -20,6 +20,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<RuneInstanceEntity> RuneInstances => Set<RuneInstanceEntity>();
     public DbSet<RuneInstanceStatRollEntity> RuneInstanceStatRolls => Set<RuneInstanceStatRollEntity>();
     public DbSet<EquipmentInstanceEnchantPoolEntity> EquipmentInstanceEnchantPools => Set<EquipmentInstanceEnchantPoolEntity>();
+    public DbSet<PlayerMailStateEntity> PlayerMailStates => Set<PlayerMailStateEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -81,6 +82,28 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(setting => setting.CreatedBy).HasColumnName("created_by");
             entity.Property(setting => setting.UpdatedBy).HasColumnName("updated_by");
             entity.Property(setting => setting.IsDeleted).HasColumnName("is_deleted");
+        });
+
+        modelBuilder.Entity<PlayerMailStateEntity>(entity =>
+        {
+            entity.ToTable("player_mail_state", "dbo");
+            entity.HasKey(mail => mail.PlayerMailStateId);
+
+            entity.Property(mail => mail.PlayerMailStateId).HasColumnName("player_mail_state_id");
+            entity.Property(mail => mail.UserId).HasColumnName("user_id");
+            entity.Property(mail => mail.MailId).HasColumnName("mail_id");
+            entity.Property(mail => mail.IsRead).HasColumnName("is_read");
+            entity.Property(mail => mail.ReadAt).HasColumnName("read_at");
+            entity.Property(mail => mail.Version).HasColumnName("version");
+            entity.Property(mail => mail.CreatedAt).HasColumnName("created_at");
+            entity.Property(mail => mail.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(mail => mail.CreatedBy).HasColumnName("created_by");
+            entity.Property(mail => mail.UpdatedBy).HasColumnName("updated_by");
+            entity.Property(mail => mail.IsDeleted).HasColumnName("is_deleted");
+            entity.Property(mail => mail.DeletedAt).HasColumnName("deleted_at");
+            entity.HasIndex(mail => new { mail.UserId, mail.MailId })
+                .IsUnique()
+                .HasDatabaseName("UX_player_mail_state_user_mail");
         });
 
         modelBuilder.Entity<SkillBindPresetEntity>(entity =>

@@ -95,6 +95,50 @@ CREATE NONCLUSTERED INDEX [IX_user_setting_is_deleted]
 GO
 
 -- ============================================================
+-- AstralRecord\dbo.player_mail_state.md
+-- ============================================================
+
+CREATE TABLE [dbo].[player_mail_state] (
+    [player_mail_state_id] UNIQUEIDENTIFIER NOT NULL,
+    [user_id]              UNIQUEIDENTIFIER NOT NULL,
+    [mail_id]              NVARCHAR(100)    NOT NULL,
+    [is_read]              BIT              NOT NULL CONSTRAINT [DF_player_mail_state_is_read] DEFAULT (0),
+    [read_at]              DATETIME2(3)         NULL,
+    [version]              INT              NOT NULL CONSTRAINT [DF_player_mail_state_version] DEFAULT (1),
+    [created_at]           DATETIME2(3)     NOT NULL,
+    [updated_at]           DATETIME2(3)     NOT NULL,
+    [created_by]           UNIQUEIDENTIFIER NOT NULL,
+    [updated_by]           UNIQUEIDENTIFIER NOT NULL,
+    [is_deleted]           BIT              NOT NULL CONSTRAINT [DF_player_mail_state_is_deleted] DEFAULT (0),
+    [deleted_at]           DATETIME2(3)         NULL,
+
+    CONSTRAINT [PK_player_mail_state] PRIMARY KEY CLUSTERED ([player_mail_state_id]),
+    CONSTRAINT [FK_player_mail_state_user] FOREIGN KEY ([user_id])
+        REFERENCES [dbo].[user] ([uuid])
+        ON DELETE NO ACTION
+        ON UPDATE NO ACTION,
+    CONSTRAINT [CK_player_mail_state_mail_id_not_blank] CHECK (LEN(LTRIM(RTRIM([mail_id]))) > 0),
+    CONSTRAINT [CK_player_mail_state_version] CHECK ([version] >= 1)
+);
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [UX_player_mail_state_user_mail]
+    ON [dbo].[player_mail_state] ([user_id], [mail_id]);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_player_mail_state_user_id]
+    ON [dbo].[player_mail_state] ([user_id]);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_player_mail_state_mail_id]
+    ON [dbo].[player_mail_state] ([mail_id]);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_player_mail_state_is_deleted]
+    ON [dbo].[player_mail_state] ([is_deleted]);
+GO
+
+-- ============================================================
 -- AstralRecord\dbo.account.md
 -- ============================================================
 

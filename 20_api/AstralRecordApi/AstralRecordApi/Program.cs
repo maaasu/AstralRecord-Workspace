@@ -55,6 +55,7 @@ builder.Services.AddScoped<ISetEffectRepository, SetEffectRepository>();
 builder.Services.AddScoped<ISkillRepository, SkillRepository>();
 builder.Services.AddScoped<IMobRepository, MobRepository>();
 builder.Services.AddScoped<IWorldRepository, WorldRepository>();
+builder.Services.AddScoped<IMailRepository, MailRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IPlayerSettingRepository, PlayerSettingRepository>();
 builder.Services.AddScoped<ISkillBindPresetRepository, SkillBindPresetRepository>();

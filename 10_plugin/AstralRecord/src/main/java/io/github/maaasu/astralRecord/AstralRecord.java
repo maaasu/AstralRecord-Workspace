@@ -34,6 +34,10 @@ import io.github.maaasu.astralRecord.feature.loginbonus.event.LoginBonusGuiEvent
 import io.github.maaasu.astralRecord.feature.loginbonus.service.LoginBonusService;
 import io.github.maaasu.astralRecord.feature.loginbonus.view.LoginBonusGui;
 import io.github.maaasu.astralRecord.feature.loot.service.LootService;
+import io.github.maaasu.astralRecord.feature.mail.event.MailGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.mail.gui.MailGuiView;
+import io.github.maaasu.astralRecord.feature.mail.repository.MailRepository;
+import io.github.maaasu.astralRecord.feature.mail.service.MailService;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.player.PlayerBrowserGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.player.PlayerDetailGui;
@@ -171,6 +175,8 @@ public final class AstralRecord extends JavaPlugin {
     private PartyGui partyGui;
     private PartyMemberActionGui partyMemberActionGui;
     private LoginBonusService loginBonusService;
+    private MailService mailService;
+    private MailGuiEventHandler mailGuiEventHandler;
     private String joinSpawnWorldId;
 
     @Override
@@ -402,6 +408,7 @@ public final class AstralRecord extends JavaPlugin {
         playerSettingGui = new PlayerSettingGui(playerSettingService);
         loginBonusService = new LoginBonusService(new LoginBonusGui());
         partyMemberActionGui = new PartyMemberActionGui();
+        mailService = new MailService(new MailRepository(), itemService, inventoryService);
 
         // skill
         skillService = new SkillService(new SkillRepository(), new SkillRegistry(), this);
@@ -480,6 +487,11 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             new MenuOpenEventHandler(this, menuView, inventoryService, currencyService, statusService),
+            getServer().getPluginManager()
+        );
+        mailGuiEventHandler = new MailGuiEventHandler(new MailGuiView(this), mailService, menuView);
+        eventManager.registerHandler(
+            mailGuiEventHandler,
             getServer().getPluginManager()
         );
         playerBrowserGuiEventHandler = new PlayerBrowserGuiEventHandler(
@@ -742,5 +754,9 @@ public final class AstralRecord extends JavaPlugin {
 
     public PartyMemberActionGui getPartyMemberActionGui() {
         return partyMemberActionGui;
+    }
+
+    public MailGuiEventHandler getMailGuiEventHandler() {
+        return mailGuiEventHandler;
     }
 }

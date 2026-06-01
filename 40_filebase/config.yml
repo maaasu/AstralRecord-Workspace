@@ -13,6 +13,8 @@ database:
     path: 60.features.world
   - name: dungeon
     path: 65.features.dungeon
+  - name: mail
+    path: 90.features.mail
 
   - name: set_effect
     path: 10.features.item/equipment/set_effect
@@ -55,3 +57,6 @@ referenceResolver:
   - prefix: "world:"
     database: world
     aliases: ["wd"]
+  - prefix: "mail:"
+    database: mail
+    aliases: ["ml"]

@@ -93,6 +93,9 @@
 | GET `/api/mob/{mobId}` | Mob 詳細取得 | `00_docs/20_API設計書/feature/16-mob/3-エンドポイント仕様/16_3.00-索引.md` |
 | GET `/api/world` | WorldMasterData 一覧取得 | `00_docs/20_API設計書/feature/17-world/3-エンドポイント仕様/17_3.00-検索.md` |
 | GET `/api/world/{worldId}` | WorldMasterData 詳細取得 | `00_docs/20_API設計書/feature/17-world/3-エンドポイント仕様/17_3.00-検索.md` |
+| GET `/api/mail?user_id={user_id}&filter={filter}` | 期限内メール一覧取得 | `00_docs/20_API設計書/feature/18-mail/3-エンドポイント仕様/18_3.00-索引.md` |
+| PUT `/api/mail/{mailId}/read` | メール既読更新 | `00_docs/20_API設計書/feature/18-mail/3-エンドポイント仕様/18_3.00-索引.md` |
+| PUT `/api/mail/{mailId}/delete` | プレイヤー単位メール削除 | `00_docs/20_API設計書/feature/18-mail/3-エンドポイント仕様/18_3.00-索引.md` |
 | POST `/api/master-data/seed` | filebase から MasterDataDB を同期 | `00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.00-索引.md` |
 | GET `/api/master-data/seed-runs` | Seeder 実行履歴取得 | `00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.00-索引.md` |
 | GET `/api/master-data/health` | MasterDataDB の参照可能状態取得 | `00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.00-索引.md` |

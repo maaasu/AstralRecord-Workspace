@@ -24,6 +24,7 @@
 |:--|:--|
 | `dbo.user` | `AstralRecord/dbo.user.md` |
 | `dbo.user_setting` | `AstralRecord/dbo.user_setting.md` |
+| `dbo.player_mail_state` | `AstralRecord/dbo.player_mail_state.md` |
 | `dbo.account` | `AstralRecord/dbo.account.md` |
 | `dbo.inventory` | `AstralRecord/dbo.inventory.md` |
 | `dbo.inventory_entry` | `AstralRecord/dbo.inventory_entry.md` |
