@@ -1,0 +1,30 @@
+schemaVersion: 1
+id: rusty_sword
+category: equipment
+name: "&7錆びた剣"
+icon: STONE_SWORD
+rarity: COMMON
+maxStack: 1
+saleValue: 6
+lore:
+  - "&7長く放置され、刃こぼれと錆が目立つ剣。"
+  - "&7粗末だが、駆け出しの敵が振るうには十分な代物。"
+unTradeable: false
+unSellable: false
+
+equipment:
+  slot: WEAPON
+  handType: ONE
+  requiredLevel: 0
+  stats:
+    - status: ATTACK
+      type: FLAT
+      value: 5~7
+  onUse:
+    leftClickCooldownTicks: 10
+    leftClickSkillId: normal_attack_melee
+    rightClickCooldownTicks: 30
+    rightClickSkillId: special_attack_melee
+  durability:
+    max: 40
+    consume: 1

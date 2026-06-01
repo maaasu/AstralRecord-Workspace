@@ -1,0 +1,13 @@
+schemaVersion: 1
+id: dark_essence
+category: material
+name: "&5闇のエッセンス"
+icon: GHAST_TEAR
+rarity: RARE
+maxStack: 64
+saleValue: 45
+lore:
+  - "&7闇属性の魔力が凝縮した不穏な残滓。"
+  - "&7呪具や魔術触媒の材料として重宝される。"
+unTradeable: false
+unSellable: false

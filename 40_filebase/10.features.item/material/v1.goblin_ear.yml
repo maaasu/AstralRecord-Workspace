@@ -1,0 +1,13 @@
+schemaVersion: 1
+id: goblin_ear
+category: material
+name: "&aゴブリンの耳"
+icon: RABBIT_HIDE
+rarity: COMMON
+maxStack: 64
+saleValue: 8
+lore:
+  - "&7ゴブリン討伐の証として集められる耳。"
+  - "&7討伐依頼や納品で使われることがある。"
+unTradeable: false
+unSellable: false

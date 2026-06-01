@@ -1,0 +1,13 @@
+schemaVersion: 1
+id: goblin_kings_seal
+category: material
+name: "&6ゴブリン王の印章"
+icon: GOLD_NUGGET
+rarity: EPIC
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7ゴブリン王のみが持つ古びた印章。"
+  - "&7希少な戦利品で、特別な依頼の証拠にもなる。"
+unTradeable: true
+unSellable: true
