@@ -82,11 +82,6 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
     }
 
     private void handleClick(@NotNull Player player, int rawSlot) {
-        if (rawSlot == PartyGui.CLOSE_SLOT) {
-            GuiSound.CLOSE.play(player);
-            player.closeInventory();
-            return;
-        }
         if (rawSlot == PartyGui.BACK_SLOT) {
             GuiSound.SELECT.play(player);
             menuView.open(player);
@@ -157,11 +152,6 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
     }
 
     private void handleMemberActionClick(@NotNull Player player, int rawSlot) {
-        if (rawSlot == PartyMemberActionGui.CLOSE_SLOT) {
-            GuiSound.CLOSE.play(player);
-            player.closeInventory();
-            return;
-        }
         if (rawSlot == PartyMemberActionGui.BACK_TO_PARTY_SLOT) {
             GuiSound.SELECT.play(player);
             gui.open(player);

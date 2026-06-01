@@ -136,7 +136,6 @@ public final class PartyGui extends BaseMenuScreenView {
             ));
         }
         inventory.setItem(BACK_SLOT, backItem());
-        inventory.setItem(CLOSE_SLOT, closeItem());
     }
 
     private void renderParty(@NotNull Inventory inventory, @NotNull Party party, @NotNull UUID viewerId) {
@@ -189,7 +188,6 @@ public final class PartyGui extends BaseMenuScreenView {
             List.of(Component.text(viewerLeader ? "全メンバーのパーティーを解散します" : "自分だけが退出します", NamedTextColor.GRAY))
         ));
         inventory.setItem(BACK_SLOT, backItem());
-        inventory.setItem(CLOSE_SLOT, closeItem());
     }
 
     private @NotNull ItemStack playerHead(@NotNull UUID playerId, @NotNull Component name, @NotNull List<Component> lore) {

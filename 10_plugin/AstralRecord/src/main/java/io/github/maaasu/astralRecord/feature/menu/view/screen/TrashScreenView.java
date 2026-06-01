@@ -17,8 +17,8 @@ public final class TrashScreenView extends BaseMenuScreenView {
     public static final int CONTENT_SLOT_COUNT = 45;
     public static final int PREVIOUS_SLOT = 45;
     public static final int GUIDE_SLOT = 46;
-    public static final int NEXT_SLOT = 53;
-    public static final int CLOSE_SLOT = BaseMenuScreenView.CLOSE_SLOT;
+    public static final int NEXT_SLOT = 52;
+    public static final int CLOSE_SLOT = 53;
 
     private final NamespacedKey contentPlaceholderKey;
 
@@ -103,7 +103,7 @@ public final class TrashScreenView extends BaseMenuScreenView {
         ));
         inventory.setItem(BACK_SLOT, backItem());
         inventory.setItem(CLOSE_SLOT, createItem(
-            Material.BARRIER,
+            Material.LAVA_BUCKET,
             Component.text("確認へ", NamedTextColor.RED),
             List.of(Component.text("廃棄前の確認画面を開きます", NamedTextColor.GRAY))
         ));

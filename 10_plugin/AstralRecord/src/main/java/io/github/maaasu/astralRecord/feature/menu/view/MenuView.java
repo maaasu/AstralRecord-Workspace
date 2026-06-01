@@ -117,7 +117,7 @@ public class MenuView {
 
     public void open(@NotNull Player player) {
         Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.MAIN), SIZE, MAIN_TITLE);
-        mainMenuScreenView.render(inventory, plugin.getCurrencyService().getGoldAmount(player), activeBuffNames(player));
+        mainMenuScreenView.render(inventory, player, plugin.getCurrencyService().getGoldAmount(player), activeBuffNames(player));
         player.openInventory(inventory);
     }
 

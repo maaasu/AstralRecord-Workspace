@@ -41,8 +41,8 @@ public final class SkillBindGui {
     public static final int SIZE = 54;
     public static final int CONTENT_SLOT_COUNT = 45;
     public static final int PREVIOUS_SLOT = 45;
-    public static final int BACK_SLOT = 48;
-    public static final int CLOSE_SLOT = 49;
+    public static final int BACK_SLOT = 49;
+    public static final int CLOSE_SLOT = 50;
     public static final int NEXT_SLOT = 53;
     public static final int PLAYER_CLOSE_SLOT = 4;
     public static final int SAVE_SLOT = 8;
@@ -212,7 +212,7 @@ public final class SkillBindGui {
 
         inventory.setItem(
             BACK_SLOT,
-            createItem(Material.ARROW, Component.text("戻る", NamedTextColor.WHITE), List.of())
+            createItem(Material.SPECTRAL_ARROW, Component.text("戻る", NamedTextColor.WHITE), List.of())
         );
 
         if (hasNextPage(pageIndex, skills.size())) {
@@ -282,6 +282,10 @@ public final class SkillBindGui {
                     )
                 )
             )
+        );
+        inventory.setItem(
+            PLAYER_CLOSE_SLOT,
+            createItem(Material.BARRIER, Component.text("閉じる", NamedTextColor.RED), List.of())
         );
     }
 

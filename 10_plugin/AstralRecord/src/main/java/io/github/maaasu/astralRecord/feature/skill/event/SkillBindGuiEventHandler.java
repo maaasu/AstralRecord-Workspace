@@ -168,6 +168,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         org.bukkit.inventory.ItemStack currentItem
     ) {
         if (rawSlot == SkillBindGui.BACK_SLOT) {
+            GuiSound.SELECT.play(player);
             if (session.isDirty()) {
                 openConfirm(player, session, ACTION_BACK, -1, Component.text("スキル設定を閉じて戻りますか", NamedTextColor.YELLOW));
             } else {
@@ -220,6 +221,11 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     ) {
         if (slot == SkillBindGui.SAVE_SLOT) {
             saveCurrentPreset(player, session, pageIndex);
+            return;
+        }
+        if (slot == SkillBindGui.PLAYER_CLOSE_SLOT) {
+            GuiSound.CLOSE.play(player);
+            restoreAndClose(player);
             return;
         }
         if (slot >= SkillBindGui.PRESET_SLOT_START && slot <= SkillBindGui.PRESET_SLOT_END) {

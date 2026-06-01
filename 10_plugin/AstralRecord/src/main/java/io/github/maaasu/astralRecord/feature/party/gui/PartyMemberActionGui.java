@@ -65,7 +65,6 @@ public final class PartyMemberActionGui extends BaseMenuScreenView {
             List.of(Component.text("対象プレイヤーをパーティーから外します", NamedTextColor.GRAY))
         ));
         inventory.setItem(BACK_TO_PARTY_SLOT, backItem());
-        inventory.setItem(CLOSE_SLOT, closeItem());
     }
 
     @Override
@@ -76,7 +75,6 @@ public final class PartyMemberActionGui extends BaseMenuScreenView {
             boolean isBorder = slot < 9 || slot >= 18 || slot % 9 == 0 || slot % 9 == 8;
             inventory.setItem(slot, isBorder ? border : panel);
         }
-        inventory.setItem(CLOSE_SLOT, closeItem());
     }
 
     private @NotNull ItemStack playerHead(@NotNull UUID targetId) {

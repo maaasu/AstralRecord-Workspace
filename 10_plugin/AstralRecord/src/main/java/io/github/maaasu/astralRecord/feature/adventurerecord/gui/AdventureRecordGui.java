@@ -144,6 +144,7 @@ public class AdventureRecordGui {
         fill(inventory);
         for (int i = 0; i < SEARCH_ITEM_SLOTS.length; i++) {
             ItemStack item = i < selectedItems.size() ? selectedItems.get(i).clone() : searchPlaceholder();
+            item.setAmount(1);
             inventory.setItem(SEARCH_ITEM_SLOTS[i], item);
         }
         inventory.setItem(SEARCH_BACK_SLOT, backItem());
@@ -211,7 +212,9 @@ public class AdventureRecordGui {
             if (isEmptySearchItem(item)) {
                 continue;
             }
-            result.add(item.clone());
+            ItemStack normalized = item.clone();
+            normalized.setAmount(1);
+            result.add(normalized);
         }
         return result;
     }
@@ -224,7 +227,9 @@ public class AdventureRecordGui {
             }
             ItemStack item = inventory.getItem(slot);
             if (!isEmptySearchItem(item)) {
-                result.add(item.clone());
+                ItemStack normalized = item.clone();
+                normalized.setAmount(1);
+                result.add(normalized);
             }
         }
         return result;

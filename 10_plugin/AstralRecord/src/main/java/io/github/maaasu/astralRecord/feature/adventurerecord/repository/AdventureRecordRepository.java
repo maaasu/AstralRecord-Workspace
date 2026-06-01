@@ -16,6 +16,11 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -110,8 +115,20 @@ public class AdventureRecordRepository {
             obj.get("mobId").getAsString(),
             MobCategory.from(obj.get("mobCategory").getAsString()),
             obj.get("defeatCount").getAsLong(),
-            Instant.parse(obj.get("firstDefeatedAt").getAsString()),
-            Instant.parse(obj.get("lastDefeatedAt").getAsString())
+            parseApiInstant(obj.get("firstDefeatedAt").getAsString()),
+            parseApiInstant(obj.get("lastDefeatedAt").getAsString())
         );
+    }
+
+    private @NotNull Instant parseApiInstant(@NotNull String value) {
+        try {
+            return Instant.parse(value);
+        } catch (DateTimeParseException ignored) {
+            try {
+                return OffsetDateTime.parse(value, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant();
+            } catch (DateTimeParseException ignoredOffset) {
+                return LocalDateTime.parse(value, DateTimeFormatter.ISO_LOCAL_DATE_TIME).toInstant(ZoneOffset.UTC);
+            }
+        }
     }
 }

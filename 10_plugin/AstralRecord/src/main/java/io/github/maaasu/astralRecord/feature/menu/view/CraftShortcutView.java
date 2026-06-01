@@ -148,6 +148,12 @@ final class CraftShortcutView {
         if (action == MenuShortcutAction.STATUS) {
             return createStatusShortcutIcon(shortcutSlotIndex, snapshot, selectedAccount);
         }
+        if (action.isCurrencyAction()) {
+            return createCurrencyShortcutIcon(player, shortcutSlotIndex, action);
+        }
+        if (action == MenuShortcutAction.EQUIPMENT_GUI) {
+            return createEquipmentShortcutIcon(player, shortcutSlotIndex, action);
+        }
         ItemStack itemStack = createItem(
             action.getMaterial(),
             Component.text(action.getDisplayNameJa(), action.getColor()),
@@ -198,6 +204,62 @@ final class CraftShortcutView {
         applySelectionGlow(itemStack);
         markCraftShortcutIcon(itemStack, shortcutSlotIndex, MenuShortcutAction.STATUS);
         return itemStack;
+    }
+
+    private @NotNull ItemStack createCurrencyShortcutIcon(
+        @NotNull Player player,
+        int shortcutSlotIndex,
+        @NotNull MenuShortcutAction action
+    ) {
+        long gold = io.github.maaasu.astralRecord.AstralRecord.getInstance().getCurrencyService().getGoldAmount(player);
+        ItemStack itemStack = createItem(
+            action.getMaterial(),
+            Component.text(action.getDisplayNameJa(), action.getColor()),
+            List.of(
+                Component.text("クリックして開く", NamedTextColor.YELLOW),
+                Component.text("ゴールド: " + gold, NamedTextColor.GOLD)
+            )
+        );
+        markCraftShortcutIcon(itemStack, shortcutSlotIndex, action);
+        return itemStack;
+    }
+
+    private @NotNull ItemStack createEquipmentShortcutIcon(
+        @NotNull Player player,
+        int shortcutSlotIndex,
+        @NotNull MenuShortcutAction action
+    ) {
+        PlayerInventory inventory = player.getInventory();
+        List<Component> lore = new ArrayList<>();
+        lore.add(Component.text("現在装備中の防具", NamedTextColor.GRAY));
+        lore.add(equipmentLine("頭", inventory.getHelmet()));
+        lore.add(equipmentLine("胴", inventory.getChestplate()));
+        lore.add(equipmentLine("脚", inventory.getLeggings()));
+        lore.add(equipmentLine("足", inventory.getBoots()));
+        lore.add(Component.text("クリックして開く", NamedTextColor.YELLOW));
+        ItemStack itemStack = createItem(
+            action.getMaterial(),
+            Component.text(action.getDisplayNameJa(), action.getColor()),
+            lore
+        );
+        markCraftShortcutIcon(itemStack, shortcutSlotIndex, action);
+        return itemStack;
+    }
+
+    private @NotNull Component equipmentLine(@NotNull String label, @Nullable ItemStack itemStack) {
+        return Component.text(label + ": ", NamedTextColor.GRAY)
+            .append(itemName(itemStack));
+    }
+
+    private @NotNull Component itemName(@Nullable ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType() == Material.AIR) {
+            return Component.text("なし", NamedTextColor.DARK_GRAY);
+        }
+        ItemMeta meta = itemStack.getItemMeta();
+        if (meta != null && meta.hasDisplayName() && meta.displayName() != null) {
+            return meta.displayName();
+        }
+        return Component.text(itemStack.getType().name(), NamedTextColor.WHITE);
     }
 
     private void addStatusLine(

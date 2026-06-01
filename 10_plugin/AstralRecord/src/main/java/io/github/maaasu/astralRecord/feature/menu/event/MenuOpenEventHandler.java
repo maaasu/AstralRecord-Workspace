@@ -396,7 +396,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 return;
             }
             GuiSound.SELECT.play(player);
-            skillBindHandler.open(player);
+            switchGuiWithoutInventoryReload(player, () -> skillBindHandler.open(player));
             return;
         }
         if (rawSlot == MenuView.MAIL_SLOT) {

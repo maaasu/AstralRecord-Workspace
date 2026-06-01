@@ -19,8 +19,8 @@ public final class PagedGuiView {
     public static final int SIZE = 54;
     public static final int CONTENT_SLOT_COUNT = 45;
     public static final int PREVIOUS_SLOT = 45;
-    public static final int BACK_SLOT = 48;
-    public static final int CLOSE_SLOT = 49;
+    public static final int BACK_SLOT = 49;
+    public static final int CLOSE_SLOT = 50;
     public static final int NEXT_SLOT = 53;
 
     public void render(@NotNull Inventory inventory, @NotNull List<ItemStack> items, int pageIndex) {

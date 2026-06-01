@@ -4,8 +4,13 @@ import io.github.maaasu.astralRecord.feature.menu.model.MenuIconDefinition;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +29,7 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
     public static final int ADVENTURE_RECORD_SLOT = 28;
     public static final int MAIL_SLOT = 29;
 
-    public void render(@NotNull Inventory inventory, long goldAmount, @NotNull List<String> activeBuffNames) {
+    public void render(@NotNull Inventory inventory, @NotNull Player player, long goldAmount, @NotNull List<String> activeBuffNames) {
         fill(inventory);
         inventory.setItem(STATUS_SLOT, createItem(
             MenuIconDefinition.ACCOUNT_INFO.getMaterial(),
@@ -39,7 +44,7 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
         inventory.setItem(EQUIPMENT_GUI_SLOT, createItem(
             MenuIconDefinition.EQUIPMENT.getMaterial(),
             Component.text(MenuIconDefinition.EQUIPMENT.getDisplayNameJa(), MenuIconDefinition.EQUIPMENT.getColor()),
-            List.of(Component.text("武器・防具・アクセサリを確認", NamedTextColor.GRAY))
+            createEquipmentLore(player)
         ));
         inventory.setItem(TRASH_SLOT, createItem(
             Material.LAVA_BUCKET,
@@ -103,5 +108,32 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
             lore.add(Component.text("- " + buffName, NamedTextColor.WHITE));
         }
         return lore;
+    }
+
+    private @NotNull List<Component> createEquipmentLore(@NotNull Player player) {
+        PlayerInventory inventory = player.getInventory();
+        List<Component> lore = new ArrayList<>();
+        lore.add(Component.text("現在装備中の防具", NamedTextColor.GRAY));
+        lore.add(equipmentLine("頭", inventory.getHelmet()));
+        lore.add(equipmentLine("胴", inventory.getChestplate()));
+        lore.add(equipmentLine("脚", inventory.getLeggings()));
+        lore.add(equipmentLine("足", inventory.getBoots()));
+        return lore;
+    }
+
+    private @NotNull Component equipmentLine(@NotNull String label, @Nullable ItemStack itemStack) {
+        return Component.text(label + ": ", NamedTextColor.GRAY)
+            .append(itemName(itemStack));
+    }
+
+    private @NotNull Component itemName(@Nullable ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType() == Material.AIR) {
+            return Component.text("なし", NamedTextColor.DARK_GRAY);
+        }
+        ItemMeta meta = itemStack.getItemMeta();
+        if (meta != null && meta.hasDisplayName() && meta.displayName() != null) {
+            return meta.displayName();
+        }
+        return Component.text(itemStack.getType().name(), NamedTextColor.WHITE);
     }
 }
