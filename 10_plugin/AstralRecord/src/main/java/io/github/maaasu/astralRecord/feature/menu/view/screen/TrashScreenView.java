@@ -16,9 +16,9 @@ import java.util.List;
 public final class TrashScreenView extends BaseMenuScreenView {
     public static final int CONTENT_SLOT_COUNT = 45;
     public static final int PREVIOUS_SLOT = 45;
-    public static final int GUIDE_SLOT = 47;
+    public static final int GUIDE_SLOT = 46;
     public static final int NEXT_SLOT = 53;
-    public static final int CLOSE_SLOT = 51;
+    public static final int CLOSE_SLOT = BaseMenuScreenView.CLOSE_SLOT;
 
     private final NamespacedKey contentPlaceholderKey;
 
@@ -90,24 +90,22 @@ public final class TrashScreenView extends BaseMenuScreenView {
                 List.of(Component.text(pageIndex + " / " + totalPages(itemCount), NamedTextColor.GRAY))
             ));
         }
-        inventory.setItem(BACK_SLOT, backItem());
         inventory.setItem(GUIDE_SLOT, createItem(
             Material.PAPER,
             Component.text("ゴミ箱ガイド", NamedTextColor.YELLOW),
             List.of(
-                Component.text("左クリック: 1個ゴミ箱へ", NamedTextColor.GRAY),
-                Component.text("Shift+左クリック: すべてゴミ箱へ", NamedTextColor.GRAY),
-                Component.text("右クリック: 半分をゴミ箱へ", NamedTextColor.GRAY),
-                Component.text("ゴミ箱→インベントリも同じ操作", NamedTextColor.GRAY),
-                Component.text(" ", NamedTextColor.GRAY),
-                Component.text("空きスロットは灰色ガラスで表示", NamedTextColor.GRAY),
-                Component.text("廃棄ボタンで確認画面を開く", NamedTextColor.GRAY)
+                Component.text("左クリック: 1 個をゴミ箱へ移動", NamedTextColor.GRAY),
+                Component.text("Shift+左クリック: まとめてゴミ箱へ移動", NamedTextColor.GRAY),
+                Component.text("右クリック: 分割してゴミ箱へ移動", NamedTextColor.GRAY),
+                Component.text("空きスロットは灰色ガラスで表示されます", NamedTextColor.GRAY),
+                Component.text("中央の閉じるボタンで確認画面を開きます", NamedTextColor.GRAY)
             )
         ));
+        inventory.setItem(BACK_SLOT, backItem());
         inventory.setItem(CLOSE_SLOT, createItem(
             Material.BARRIER,
-            Component.text("廃棄", NamedTextColor.RED),
-            List.of(Component.text("廃棄確認画面を開く", NamedTextColor.GRAY))
+            Component.text("確認へ", NamedTextColor.RED),
+            List.of(Component.text("廃棄前の確認画面を開きます", NamedTextColor.GRAY))
         ));
         if (hasNextPage(pageIndex, itemCount)) {
             inventory.setItem(NEXT_SLOT, createItem(

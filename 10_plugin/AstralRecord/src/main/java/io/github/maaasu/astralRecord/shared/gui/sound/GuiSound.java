@@ -9,14 +9,14 @@ import org.jetbrains.annotations.NotNull;
  * Shared UI sound definitions used by menu/inventory screens.
  */
 public enum GuiSound {
-    OPEN(Sound.BLOCK_CHEST_OPEN, 0.6f, 1.2f),
+    OPEN(Sound.BLOCK_CHEST_OPEN, 0.6f, 1.28f),
     SELECT(Sound.UI_BUTTON_CLICK, 0.6f, 1.4f),
     RING_OPEN(Sound.BLOCK_BEACON_ACTIVATE, 0.45f, 1.65f),
     RING_SWITCH(Sound.BLOCK_NOTE_BLOCK_HAT, 0.35f, 1.7f),
     RING_SELECT(Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.55f, 1.25f),
     RING_CAST(Sound.ENTITY_ILLUSIONER_CAST_SPELL, 0.55f, 1.35f),
     TRASH_DISPOSE(Sound.ENTITY_ITEM_BREAK, 0.7f, 0.9f),
-    CLOSE(Sound.BLOCK_CHEST_CLOSE, 0.6f, 1.0f),
+    CLOSE(Sound.BLOCK_CHEST_CLOSE, 0.6f, 1.16f),
     DENY(Sound.BLOCK_NOTE_BLOCK_BASS, 0.5f, 0.7f),
     EQUIP(Sound.ITEM_ARMOR_EQUIP_GENERIC, 0.7f, 1.0f),
     UNEQUIP(Sound.ITEM_ARMOR_EQUIP_LEATHER, 0.6f, 0.9f);

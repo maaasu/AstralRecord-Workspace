@@ -181,7 +181,7 @@ public class AirActionService {
         astPlayer.setAirJumpConsumed(true);
         player.setFallDistance(0.0F);
         player.setVelocity(velocity);
-        player.playSound(player.getLocation(), Sound.ENTITY_BREEZE_JUMP, SoundCategory.PLAYERS, 0.75F, 1.25F);
+        player.playSound(player.getLocation(), Sound.ENTITY_BAT_TAKEOFF, SoundCategory.PLAYERS, 0.55F, 1.08F);
         particleDisplayService.spawnWorld(
             astPlayer,
             player.getWorld(),

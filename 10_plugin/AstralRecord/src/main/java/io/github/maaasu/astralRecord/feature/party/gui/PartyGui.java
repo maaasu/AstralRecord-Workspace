@@ -1,10 +1,12 @@
 package io.github.maaasu.astralRecord.feature.party.gui;
 
+import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.model.PartyInvite;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -25,13 +27,13 @@ import java.util.UUID;
 /**
  * パーティーの状態と招待を表示する GUI です。
  */
-public final class PartyGui {
+public final class PartyGui extends BaseMenuScreenView {
     public static final int SIZE = 54;
     public static final int CREATE_SLOT = 22;
     public static final int INVITE_SLOT = 15;
     public static final int LEAVE_OR_DISBAND_SLOT = 51;
-    public static final int BACK_SLOT = 49;
-    public static final int CLOSE_SLOT = -1;
+    public static final int BACK_SLOT = BaseMenuScreenView.BACK_SLOT;
+    public static final int CLOSE_SLOT = BaseMenuScreenView.CLOSE_SLOT;
     private static final int INFO_SLOT = 4;
     private static final int LEADER_SLOT = 13;
     private static final int[] MEMBER_SLOTS = {31, 30, 32, 29, 33};
@@ -43,11 +45,6 @@ public final class PartyGui {
         this.partyService = partyService;
     }
 
-    /**
-     * パーティー GUI を開きます。
-     *
-     * @param player 表示対象プレイヤー
-     */
     public void open(@NotNull Player player) {
         Party party = partyService.findParty(player.getUniqueId());
         List<PartyInvite> invites = partyService.getInvites(player.getUniqueId());
@@ -118,14 +115,14 @@ public final class PartyGui {
 
     private void renderNoParty(@NotNull Inventory inventory, @NotNull List<PartyInvite> invites) {
         fill(inventory);
-        inventory.setItem(INFO_SLOT, item(
+        inventory.setItem(INFO_SLOT, createItem(
             Material.WRITABLE_BOOK,
-            Component.text("現在パーティーに所属していません", NamedTextColor.YELLOW),
-            List.of(Component.text("作成または招待承諾ができます", NamedTextColor.GRAY))
+            Component.text("まだパーティーに参加していません", NamedTextColor.YELLOW, TextDecoration.BOLD),
+            List.of(Component.text("作成または招待の承認を行えます", NamedTextColor.GRAY))
         ));
-        inventory.setItem(CREATE_SLOT, item(
+        inventory.setItem(CREATE_SLOT, createItem(
             Material.EMERALD,
-            Component.text("パーティーを作成", NamedTextColor.GREEN),
+            Component.text("パーティーを作成", NamedTextColor.GREEN, TextDecoration.BOLD),
             List.of(Component.text("最大 " + PartyService.MAX_MEMBERS + " 人まで参加できます", NamedTextColor.GRAY))
         ));
 
@@ -134,18 +131,19 @@ public final class PartyGui {
             String leaderName = playerName(invite.leaderId());
             inventory.setItem(INVITE_SLOTS[index], playerHead(
                 invite.leaderId(),
-                Component.text(leaderName + " からの招待", NamedTextColor.AQUA),
-                List.of(Component.text("クリックで参加します", NamedTextColor.GRAY))
+                Component.text(leaderName + " からの招待", NamedTextColor.AQUA, TextDecoration.BOLD),
+                List.of(Component.text("クリックでパーティーへ参加します", NamedTextColor.GRAY))
             ));
         }
         inventory.setItem(BACK_SLOT, backItem());
+        inventory.setItem(CLOSE_SLOT, closeItem());
     }
 
     private void renderParty(@NotNull Inventory inventory, @NotNull Party party, @NotNull UUID viewerId) {
         fill(inventory);
-        inventory.setItem(INFO_SLOT, item(
+        inventory.setItem(INFO_SLOT, createItem(
             Material.NETHER_STAR,
-            Component.text("パーティー " + party.size() + "/" + PartyService.MAX_MEMBERS, NamedTextColor.GOLD),
+            Component.text("パーティー " + party.size() + "/" + PartyService.MAX_MEMBERS, NamedTextColor.GOLD, TextDecoration.BOLD),
             List.of(Component.text("リーダー: " + playerName(party.getLeaderId()), NamedTextColor.GRAY))
         ));
 
@@ -154,8 +152,8 @@ public final class PartyGui {
             UUID leaderId = members.get(0);
             inventory.setItem(LEADER_SLOT, playerHead(
                 leaderId,
-                Component.text(playerName(leaderId) + " ★", NamedTextColor.GOLD),
-                List.of(Component.text("リーダー", NamedTextColor.GRAY))
+                Component.text(playerName(leaderId) + " ★", NamedTextColor.GOLD, TextDecoration.BOLD),
+                List.of(Component.text("パーティーリーダー", NamedTextColor.GRAY))
             ));
         }
 
@@ -165,41 +163,33 @@ public final class PartyGui {
                 UUID memberId = members.get(memberIndex);
                 inventory.setItem(MEMBER_SLOTS[index], playerHead(
                     memberId,
-                    Component.text(playerName(memberId), NamedTextColor.WHITE),
-                    List.of(Component.text("メンバー", NamedTextColor.GRAY))
+                    Component.text(playerName(memberId), NamedTextColor.WHITE, TextDecoration.BOLD),
+                    List.of(Component.text("クリックでメンバー操作", NamedTextColor.GRAY))
                 ));
                 continue;
             }
-            inventory.setItem(MEMBER_SLOTS[index], item(
+            inventory.setItem(MEMBER_SLOTS[index], createItem(
                 Material.LIGHT_GRAY_STAINED_GLASS_PANE,
                 Component.text("空きスロット", NamedTextColor.DARK_GRAY),
-                List.of()
+                List.of(Component.text("新しい仲間を招待できます", NamedTextColor.GRAY))
             ));
         }
 
         boolean viewerLeader = party.getLeaderId().equals(viewerId);
         if (viewerLeader && party.size() < PartyService.MAX_MEMBERS) {
-            inventory.setItem(INVITE_SLOT, item(
+            inventory.setItem(INVITE_SLOT, createItem(
                 Material.WRITABLE_BOOK,
-                Component.text("プレイヤー招待", NamedTextColor.GREEN),
-                List.of(Component.text("未所属プレイヤー一覧を開く", NamedTextColor.GRAY))
+                Component.text("プレイヤー招待", NamedTextColor.GREEN, TextDecoration.BOLD),
+                List.of(Component.text("未招待のプレイヤー一覧を開きます", NamedTextColor.GRAY))
             ));
         }
-        inventory.setItem(LEAVE_OR_DISBAND_SLOT, item(
+        inventory.setItem(LEAVE_OR_DISBAND_SLOT, createItem(
             viewerLeader ? Material.TNT : Material.OAK_DOOR,
-            Component.text(viewerLeader ? "パーティーを解散" : "パーティーを抜ける", viewerLeader ? NamedTextColor.RED : NamedTextColor.YELLOW),
-            List.of(Component.text(viewerLeader ? "全メンバーを解散します" : "自分だけが離脱します", NamedTextColor.GRAY))
+            Component.text(viewerLeader ? "パーティーを解散" : "パーティーを抜ける", viewerLeader ? NamedTextColor.RED : NamedTextColor.YELLOW, TextDecoration.BOLD),
+            List.of(Component.text(viewerLeader ? "全メンバーのパーティーを解散します" : "自分だけが退出します", NamedTextColor.GRAY))
         ));
         inventory.setItem(BACK_SLOT, backItem());
-    }
-
-    private void fill(@NotNull Inventory inventory) {
-        ItemStack border = item(Material.BLACK_STAINED_GLASS_PANE, Component.text(" "), List.of());
-        ItemStack panel = item(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of());
-        for (int slot = 0; slot < SIZE; slot++) {
-            boolean isBorder = slot < 9 || slot >= 45 || slot % 9 == 0 || slot % 9 == 8;
-            inventory.setItem(slot, isBorder ? border : panel);
-        }
+        inventory.setItem(CLOSE_SLOT, closeItem());
     }
 
     private @NotNull ItemStack playerHead(@NotNull UUID playerId, @NotNull Component name, @NotNull List<Component> lore) {
@@ -208,33 +198,13 @@ public final class PartyGui {
         if (meta instanceof SkullMeta skullMeta) {
             OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerId);
             skullMeta.setOwningPlayer(offlinePlayer);
-            skullMeta.displayName(name);
-            skullMeta.lore(lore);
+            skullMeta.displayName(name.decoration(TextDecoration.ITALIC, false));
+            skullMeta.lore(lore.stream().map(line -> line.decoration(TextDecoration.ITALIC, false)).toList());
             skullMeta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(skullMeta);
             return itemStack;
         }
-        return item(Material.PLAYER_HEAD, name, lore);
-    }
-
-    private @NotNull ItemStack backItem() {
-        return item(
-            Material.ARROW,
-            Component.text("戻る", NamedTextColor.WHITE),
-            List.of(Component.text("メニューへ戻る", NamedTextColor.GRAY))
-        );
-    }
-
-    private @NotNull ItemStack item(@NotNull Material material, @NotNull Component name, @NotNull List<Component> lore) {
-        ItemStack itemStack = new ItemStack(material);
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(name);
-            meta.lore(new ArrayList<>(lore));
-            meta.addItemFlags(ItemFlag.values());
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
+        return createItem(Material.PLAYER_HEAD, name, lore);
     }
 
     private @NotNull String playerName(@NotNull UUID playerId) {

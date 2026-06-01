@@ -90,6 +90,11 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
             menuView.open(player);
             return;
         }
+        if (event.getRawSlot() == MailGuiView.CLOSE_SLOT) {
+            GuiSound.CLOSE.play(player);
+            player.closeInventory();
+            return;
+        }
         if (event.getRawSlot() == MailGuiView.FILTER_SLOT) {
             GuiSound.SELECT.play(player);
             open(player, filter.next(), 0);

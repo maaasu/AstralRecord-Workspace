@@ -26,15 +26,10 @@ public final class PartyMemberActionGui extends BaseMenuScreenView {
     public static final int HEAD_SLOT = 4;
     public static final int PROMOTE_SLOT = 11;
     public static final int KICK_SLOT = 15;
-    public static final int BACK_TO_PARTY_SLOT = 22;
+    public static final int BACK_TO_PARTY_SLOT = 21;
+    public static final int CLOSE_SLOT = 22;
     public static final int SIZE = 27;
 
-    /**
-     * メンバー操作 GUI を開きます。
-     *
-     * @param viewer   閲覧プレイヤー
-     * @param targetId 対象メンバー UUID
-     */
     public void open(@NotNull org.bukkit.entity.Player viewer, @NotNull UUID targetId) {
         Inventory inventory = Bukkit.createInventory(
             new Holder(targetId),
@@ -61,15 +56,16 @@ public final class PartyMemberActionGui extends BaseMenuScreenView {
         inventory.setItem(HEAD_SLOT, playerHead(targetId));
         inventory.setItem(PROMOTE_SLOT, createItem(
             Material.GOLDEN_HELMET,
-            noItalic(Component.text("リーダー昇格", NamedTextColor.GOLD)),
-            List.of(noItalic(Component.text("対象をパーティーリーダーに変更", NamedTextColor.GRAY)))
+            Component.text("リーダー委譲", NamedTextColor.GOLD, TextDecoration.BOLD),
+            List.of(Component.text("対象プレイヤーをパーティーリーダーに変更します", NamedTextColor.GRAY))
         ));
         inventory.setItem(KICK_SLOT, createItem(
             Material.BARRIER,
-            noItalic(Component.text("キック", NamedTextColor.RED)),
-            List.of(noItalic(Component.text("対象をパーティーから除外", NamedTextColor.GRAY)))
+            Component.text("キック", NamedTextColor.RED, TextDecoration.BOLD),
+            List.of(Component.text("対象プレイヤーをパーティーから外します", NamedTextColor.GRAY))
         ));
         inventory.setItem(BACK_TO_PARTY_SLOT, backItem());
+        inventory.setItem(CLOSE_SLOT, closeItem());
     }
 
     @Override
@@ -80,6 +76,7 @@ public final class PartyMemberActionGui extends BaseMenuScreenView {
             boolean isBorder = slot < 9 || slot >= 18 || slot % 9 == 0 || slot % 9 == 8;
             inventory.setItem(slot, isBorder ? border : panel);
         }
+        inventory.setItem(CLOSE_SLOT, closeItem());
     }
 
     private @NotNull ItemStack playerHead(@NotNull UUID targetId) {
@@ -89,16 +86,12 @@ public final class PartyMemberActionGui extends BaseMenuScreenView {
             OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(targetId);
             skullMeta.setOwningPlayer(offlinePlayer);
             String displayName = offlinePlayer.getName() == null ? targetId.toString() : offlinePlayer.getName();
-            skullMeta.displayName(noItalic(Component.text(displayName, NamedTextColor.WHITE, TextDecoration.BOLD)));
-            skullMeta.lore(List.of(noItalic(Component.text("操作対象メンバー", NamedTextColor.GRAY))));
+            skullMeta.displayName(Component.text(displayName, NamedTextColor.WHITE, TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false));
+            skullMeta.lore(List.of(Component.text("操作対象のメンバーです", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false)));
             skullMeta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(skullMeta);
         }
         return itemStack;
-    }
-
-    private @NotNull Component noItalic(@NotNull Component component) {
-        return component.decoration(TextDecoration.ITALIC, false);
     }
 
     private record Holder(@NotNull UUID targetId) implements InventoryHolder {

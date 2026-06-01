@@ -157,7 +157,7 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
     }
 
     private void handleMemberActionClick(@NotNull Player player, int rawSlot) {
-        if (rawSlot == PartyGui.CLOSE_SLOT) {
+        if (rawSlot == PartyMemberActionGui.CLOSE_SLOT) {
             GuiSound.CLOSE.play(player);
             player.closeInventory();
             return;
