@@ -164,6 +164,38 @@ public class ItemStackFactory {
     }
 
     /**
+     * {@link ItemModel} から ItemDisplay やドロップ実体の表示に使う ItemStack を生成します。
+     * サーバ内部用の PDC は維持しつつ、Material は icon に差し替えます。
+     *
+     * @param model  アイテム定義
+     * @param amount 表示個数
+     * @return icon Material を反映した表示専用 ItemStack
+     */
+    public @NotNull ItemStack createDisplay(@NotNull ItemModel model, int amount) {
+        return asDisplayStack(create(model, amount));
+    }
+
+    /**
+     * AstralRecord ItemStack を表示専用に icon Material へ差し替えます。
+     * icon が未設定または解決不能な場合は、元スタックの clone を返します。
+     *
+     * @param item 変換元 ItemStack
+     * @return icon Material を反映した ItemStack
+     */
+    public @NotNull ItemStack asDisplayStack(@NotNull ItemStack item) {
+        String iconName = getIconName(item);
+        if (iconName == null || iconName.isBlank()) {
+            return item.clone();
+        }
+
+        Material iconMaterial = resolveIconMaterial(iconName);
+        if (iconMaterial == null || iconMaterial == item.getType()) {
+            return item.clone();
+        }
+        return item.withType(iconMaterial);
+    }
+
+    /**
      * {@link ItemModel} と {@link EquipmentInstance} から ItemStack を生成します。
      * インスタンス固有のステータスロール値を Lore に反映します。キャッシュは使用しません。
      *
@@ -1118,6 +1150,15 @@ public class ItemStackFactory {
     private @NotNull String cacheKey(@NotNull ItemModel model) {
         return model.getCategory().toLowerCase(Locale.ROOT)
                 + ":" + model.getId().toLowerCase(Locale.ROOT);
+    }
+
+    private static @Nullable Material resolveIconMaterial(@NotNull String iconName) {
+        Material material = Material.matchMaterial(iconName.trim().toUpperCase(Locale.ROOT));
+        if (material == null || material == Material.AIR || !material.isItem()) {
+            Logger.log(LogId.W_5210, iconName);
+            return null;
+        }
+        return material;
     }
 
     /**

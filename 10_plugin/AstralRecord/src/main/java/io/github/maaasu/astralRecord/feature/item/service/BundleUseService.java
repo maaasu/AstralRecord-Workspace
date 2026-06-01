@@ -53,6 +53,7 @@ public class BundleUseService {
     private final LootService lootService;
     private final InventoryService inventoryService;
     private final ItemStackFactory itemStackFactory;
+    private final ItemDropAnimationService itemDropAnimationService;
     private final BundleUseEffectService bundleUseEffectService;
     private final ParticleDisplayService particleDisplayService;
     private final Map<UUID, PendingBundleUse> pendingUses = new ConcurrentHashMap<>();
@@ -65,6 +66,7 @@ public class BundleUseService {
      * @param lootService loot 解決サービス
      * @param inventoryService インベントリ操作サービス
      * @param itemStackFactory ドロップ生成用 ItemStackFactory
+     * @param itemDropAnimationService 報酬アイテムの落下・回収演出サービス
      * @param bundleUseEffectService bundle 演出マスタ解決サービス
      */
     public BundleUseService(
@@ -73,6 +75,7 @@ public class BundleUseService {
         @NotNull LootService lootService,
         @NotNull InventoryService inventoryService,
         @NotNull ItemStackFactory itemStackFactory,
+        @NotNull ItemDropAnimationService itemDropAnimationService,
         @NotNull BundleUseEffectService bundleUseEffectService,
         @NotNull ParticleDisplayService particleDisplayService
     ) {
@@ -81,6 +84,7 @@ public class BundleUseService {
         this.lootService = lootService;
         this.inventoryService = inventoryService;
         this.itemStackFactory = itemStackFactory;
+        this.itemDropAnimationService = itemDropAnimationService;
         this.bundleUseEffectService = bundleUseEffectService;
         this.particleDisplayService = particleDisplayService;
     }
@@ -228,6 +232,7 @@ public class BundleUseService {
         int totalGranted = 0;
         int totalDropped = 0;
         List<String> rewardSummaries = new ArrayList<>();
+        List<ResolvedReward> resolvedRewards = new ArrayList<>();
         for (Map.Entry<String, Integer> reward : rewards.entrySet()) {
             if (reward.getValue() <= 0) {
                 continue;
@@ -243,6 +248,7 @@ public class BundleUseService {
 
             rewardKinds++;
             int requestedAmount = reward.getValue();
+            resolvedRewards.add(new ResolvedReward(rewardModel, requestedAmount));
             rewardSummaries.add(buildRewardSummary(rewardModel, requestedAmount));
             int granted = inventoryService.addItemToNormalInventory(
                 pending.astPlayer(), rewardModel, requestedAmount, SOURCE_BUNDLE_USE);
@@ -255,6 +261,7 @@ public class BundleUseService {
         }
 
         playUseEffects(pending.astPlayer(), pending.bundle());
+        playRewardDropAnimations(pending.astPlayer(), resolvedRewards);
         pending.astPlayer().sendMessage(PlayerMsgId.P_5243, rewardKinds, totalGranted);
         for (String rewardSummary : rewardSummaries) {
             pending.astPlayer().sendMessage(PlayerMsgId.P_5248, rewardSummary);
@@ -387,7 +394,8 @@ public class BundleUseService {
                     if (instance == null) {
                         continue;
                     }
-                    world.dropItemNaturally(location, itemStackFactory.create(rewardModel, instance, 1));
+                    ItemStack stack = itemStackFactory.create(rewardModel, instance, 1);
+                    world.dropItemNaturally(location, itemStackFactory.asDisplayStack(stack));
                     dropped++;
                 }
             }
@@ -402,7 +410,8 @@ public class BundleUseService {
                     if (instance == null) {
                         continue;
                     }
-                    world.dropItemNaturally(location, itemStackFactory.create(rewardModel, instance, 1));
+                    ItemStack stack = itemStackFactory.create(rewardModel, instance, 1);
+                    world.dropItemNaturally(location, itemStackFactory.asDisplayStack(stack));
                     dropped++;
                 }
             }
@@ -412,7 +421,7 @@ public class BundleUseService {
                 while (remaining > 0) {
                     int stackAmount = Math.min(maxStack, remaining);
                     ItemStack stack = itemStackFactory.create(rewardModel, stackAmount);
-                    world.dropItemNaturally(location, stack);
+                    world.dropItemNaturally(location, itemStackFactory.asDisplayStack(stack));
                     dropped += stackAmount;
                     remaining -= stackAmount;
                 }
@@ -420,6 +429,25 @@ public class BundleUseService {
         }
 
         return dropped;
+    }
+
+    private void playRewardDropAnimations(
+        @NotNull AstPlayer astPlayer,
+        @NotNull List<ResolvedReward> rewards
+    ) {
+        Player player = astPlayer.getBukkit();
+        Location origin = player.getLocation();
+        for (int index = 0; index < rewards.size(); index++) {
+            ResolvedReward reward = rewards.get(index);
+            itemDropAnimationService.playCollectingDrop(
+                player,
+                origin,
+                reward.model(),
+                reward.amount(),
+                index,
+                null
+            );
+        }
     }
 
     private void playUseEffects(@NotNull AstPlayer astPlayer, @NotNull ItemBundle bundle) {
@@ -540,6 +568,12 @@ public class BundleUseService {
 
         private void setTask(@NotNull BukkitTask task) {
             this.task = task;
+        }
+    }
+
+    private record ResolvedReward(@NotNull ItemModel model, int amount) {
+        private ResolvedReward {
+            amount = Math.max(1, amount);
         }
     }
 }

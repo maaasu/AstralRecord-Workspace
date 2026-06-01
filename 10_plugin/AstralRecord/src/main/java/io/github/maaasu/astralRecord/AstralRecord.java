@@ -21,6 +21,7 @@ import io.github.maaasu.astralRecord.feature.item.executor.WeaponAttackSkillExec
 import io.github.maaasu.astralRecord.feature.item.service.BuiltInWeaponAttackDefinitions;
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseEffectService;
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseService;
+import io.github.maaasu.astralRecord.feature.item.service.ItemDropAnimationService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemWeaponAttackService;
 import io.github.maaasu.astralRecord.feature.item.service.PotionUseService;
 import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryRepository;
@@ -169,6 +170,7 @@ public final class AstralRecord extends JavaPlugin {
     private DamageService damageService;
     private BundleUseService bundleUseService;
     private BundleUseEffectService bundleUseEffectService;
+    private ItemDropAnimationService itemDropAnimationService;
     private BuffAcquisitionDisplayService buffAcquisitionDisplayService;
     private PotionUseService potionUseService;
     private PlayerClassService playerClassService;
@@ -354,12 +356,14 @@ public final class AstralRecord extends JavaPlugin {
         particleDisplayService = new ParticleDisplayService(playerSettingService);
         displayTextService = new DisplayTextService();
         bundleUseEffectService = new BundleUseEffectService();
+        itemDropAnimationService = new ItemDropAnimationService(this, itemStackFactory);
         bundleUseService = new BundleUseService(
             this,
             itemService,
             lootService,
             inventoryService,
             itemStackFactory,
+            itemDropAnimationService,
             bundleUseEffectService,
             particleDisplayService
         );
@@ -380,7 +384,7 @@ public final class AstralRecord extends JavaPlugin {
                 this,
                 itemService,
                 inventoryService,
-                itemStackFactory
+                itemDropAnimationService
         );
         mobCombatService = new MobCombatService(
                 mobService,
