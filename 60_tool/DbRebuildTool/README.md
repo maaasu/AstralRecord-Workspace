@@ -15,10 +15,28 @@
 dotnet run --project E:\AstralRecord-Workspace\60_tool\DbRebuildTool\DbRebuildTool.csproj -- --yes
 ```
 
+Batch file:
+
+```bat
+E:\AstralRecord-Workspace\60_tool\DbRebuildTool\db-rebuild.bat
+```
+
+Run without confirmation:
+
+```bat
+E:\AstralRecord-Workspace\60_tool\DbRebuildTool\db-rebuild.bat --yes
+```
+
 Use another config file:
 
 ```powershell
 dotnet run --project E:\AstralRecord-Workspace\60_tool\DbRebuildTool\DbRebuildTool.csproj -- --config E:\path\to\db-rebuild.config.json --yes
+```
+
+Batch file with another config:
+
+```bat
+E:\AstralRecord-Workspace\60_tool\DbRebuildTool\db-rebuild.bat --config E:\path\to\db-rebuild.config.json
 ```
 
 ## Notes
