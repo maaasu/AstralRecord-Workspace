@@ -21,6 +21,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<RuneInstanceStatRollEntity> RuneInstanceStatRolls => Set<RuneInstanceStatRollEntity>();
     public DbSet<EquipmentInstanceEnchantPoolEntity> EquipmentInstanceEnchantPools => Set<EquipmentInstanceEnchantPoolEntity>();
     public DbSet<PlayerMailStateEntity> PlayerMailStates => Set<PlayerMailStateEntity>();
+    public DbSet<AccountMobRecordEntity> AccountMobRecords => Set<AccountMobRecordEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -104,6 +105,30 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.HasIndex(mail => new { mail.UserId, mail.MailId })
                 .IsUnique()
                 .HasDatabaseName("UX_player_mail_state_user_mail");
+        });
+
+        modelBuilder.Entity<AccountMobRecordEntity>(entity =>
+        {
+            entity.ToTable("account_mob_record", "dbo");
+            entity.HasKey(record => record.AccountMobRecordId);
+
+            entity.Property(record => record.AccountMobRecordId).HasColumnName("account_mob_record_id");
+            entity.Property(record => record.AccountId).HasColumnName("account_id");
+            entity.Property(record => record.MobId).HasColumnName("mob_id");
+            entity.Property(record => record.MobCategory).HasColumnName("mob_category");
+            entity.Property(record => record.DefeatCount).HasColumnName("defeat_count");
+            entity.Property(record => record.FirstDefeatedAt).HasColumnName("first_defeated_at");
+            entity.Property(record => record.LastDefeatedAt).HasColumnName("last_defeated_at");
+            entity.Property(record => record.CreatedAt).HasColumnName("created_at");
+            entity.Property(record => record.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(record => record.CreatedBy).HasColumnName("created_by");
+            entity.Property(record => record.UpdatedBy).HasColumnName("updated_by");
+            entity.Property(record => record.IsDeleted).HasColumnName("is_deleted");
+            entity.HasIndex(record => new { record.AccountId, record.MobId })
+                .IsUnique()
+                .HasDatabaseName("UX_account_mob_record_account_mob");
+            entity.HasIndex(record => new { record.AccountId, record.MobCategory, record.LastDefeatedAt })
+                .HasDatabaseName("IX_account_mob_record_account_category_last_defeated");
         });
 
         modelBuilder.Entity<SkillBindPresetEntity>(entity =>

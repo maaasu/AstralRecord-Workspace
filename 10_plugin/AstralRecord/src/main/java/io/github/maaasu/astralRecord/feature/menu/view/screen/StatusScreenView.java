@@ -197,7 +197,7 @@ public final class StatusScreenView extends BaseMenuScreenView {
         return noItalic(Component.text(SEPARATOR, NamedTextColor.DARK_GRAY));
     }
 
-    private @NotNull Component noItalic(@NotNull Component component) {
+    protected @NotNull Component noItalic(@NotNull Component component) {
         return component.decoration(TextDecoration.ITALIC, false);
     }
 

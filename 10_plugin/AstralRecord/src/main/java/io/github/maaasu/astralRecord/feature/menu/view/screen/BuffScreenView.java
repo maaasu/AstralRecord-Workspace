@@ -90,7 +90,7 @@ public final class BuffScreenView extends BaseMenuScreenView {
         return String.format(Locale.ROOT, "%d:%02d", seconds / 60L, seconds % 60L);
     }
 
-    private @NotNull Component noItalic(@NotNull Component component) {
+    protected @NotNull Component noItalic(@NotNull Component component) {
         return component.decoration(TextDecoration.ITALIC, false);
     }
 

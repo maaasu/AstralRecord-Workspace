@@ -539,6 +539,43 @@ CREATE NONCLUSTERED INDEX [IX_equipment_instance_enchant_equipment_instance_id]
 GO
 
 -- ============================================================
+-- AstralRecord\dbo.account_mob_record.md
+-- ============================================================
+
+CREATE TABLE [dbo].[account_mob_record] (
+    [account_mob_record_id] UNIQUEIDENTIFIER NOT NULL,
+    [account_id]            UNIQUEIDENTIFIER NOT NULL,
+    [mob_id]                NVARCHAR(100)    NOT NULL,
+    [mob_category]          NVARCHAR(20)     NOT NULL,
+    [defeat_count]          BIGINT           NOT NULL CONSTRAINT [DF_account_mob_record_defeat_count] DEFAULT (1),
+    [first_defeated_at]     DATETIME2(3)     NOT NULL,
+    [last_defeated_at]      DATETIME2(3)     NOT NULL,
+    [created_at]            DATETIME2(3)     NOT NULL,
+    [updated_at]            DATETIME2(3)     NOT NULL,
+    [created_by]            UNIQUEIDENTIFIER NOT NULL,
+    [updated_by]            UNIQUEIDENTIFIER NOT NULL,
+    [is_deleted]            BIT              NOT NULL CONSTRAINT [DF_account_mob_record_is_deleted] DEFAULT (0),
+
+    CONSTRAINT [PK_account_mob_record] PRIMARY KEY CLUSTERED ([account_mob_record_id]),
+    CONSTRAINT [FK_account_mob_record_account] FOREIGN KEY ([account_id])
+        REFERENCES [dbo].[account] ([uuid])
+        ON DELETE CASCADE
+        ON UPDATE NO ACTION,
+    CONSTRAINT [UX_account_mob_record_account_mob] UNIQUE ([account_id], [mob_id]),
+    CONSTRAINT [CK_account_mob_record_category] CHECK ([mob_category] IN (N'ENEMY', N'BOSS')),
+    CONSTRAINT [CK_account_mob_record_defeat_count] CHECK ([defeat_count] >= 1)
+);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_account_mob_record_account_category_last_defeated]
+    ON [dbo].[account_mob_record] ([account_id], [mob_category], [last_defeated_at] DESC);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_account_mob_record_is_deleted]
+    ON [dbo].[account_mob_record] ([is_deleted]);
+GO
+
+-- ============================================================
 -- AstralRecord\dbo.equipment_instance_rune.md
 -- ============================================================
 

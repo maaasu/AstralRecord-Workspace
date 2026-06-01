@@ -2,6 +2,12 @@ package io.github.maaasu.astralRecord.feature.player;
 
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.infrastructure.util.MessageFormatUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,6 +27,7 @@ import java.util.ResourceBundle;
 public final class PlayerMsgResource {
 
     private static final String BUNDLE_NAME = "player";
+    private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacySection();
     private static ResourceBundle resourceBundle;
 
     /** UTF-8 で .properties を読み込む ResourceBundle.Control */
@@ -85,5 +92,59 @@ public final class PlayerMsgResource {
      */
     public static String format(String key, Object... args) {
         return MessageFormatUtil.format(getMessage(key), args);
+    }
+
+    /**
+     * キーに対応するメッセージを Component として取得し、引数部分へクリック・hover 補助を付与します。
+     *
+     * @param key メッセージキー
+     * @param args フォーマット引数
+     * @return 装飾済み Component
+     */
+    public static Component formatComponent(String key, Object... args) {
+        return decorateInteractiveArguments(format(key, args), args);
+    }
+
+    /**
+     * 任意のメッセージ文字列を Component 化し、引数文字列へクリック・hover 補助を付与します。
+     *
+     * @param message メッセージ本文
+     * @param args フォーマット引数
+     * @return 装飾済み Component
+     */
+    public static Component decorateInteractiveArguments(String message, Object... args) {
+        Component component = LEGACY_SERIALIZER.deserialize(message);
+        if (args == null || args.length == 0) {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                component = component.replaceText(builder -> builder
+                    .matchLiteral(player.getName())
+                    .replacement(interactiveArgument(player.getName())));
+            }
+            return component;
+        }
+        for (Object arg : args) {
+            if (arg == null) {
+                continue;
+            }
+            String value = ColorCodeUtil.stripColor(String.valueOf(arg));
+            if (value == null || value.isBlank()) {
+                continue;
+            }
+            component = component.replaceText(builder -> builder
+                .matchLiteral(value)
+                .replacement(interactiveArgument(value)));
+        }
+        return component;
+    }
+
+    private static Component interactiveArgument(String value) {
+        Player player = Bukkit.getPlayerExact(value);
+        if (player != null) {
+            return Component.text(value)
+                .clickEvent(ClickEvent.runCommand("/player info " + value))
+                .hoverEvent(HoverEvent.showText(Component.text("クリックでプレイヤー情報を開く")));
+        }
+        return Component.text(value)
+            .hoverEvent(HoverEvent.showText(Component.text(value)));
     }
 }

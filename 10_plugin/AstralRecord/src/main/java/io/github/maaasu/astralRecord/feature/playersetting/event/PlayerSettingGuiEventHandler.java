@@ -23,14 +23,20 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * プレイヤー設定 GUI のイベント処理です。
  */
 public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
+    private static final int SUPER_MODE_TOGGLE_CLICK_COUNT = 5;
+
     private final PlayerSettingGui gui;
     private final PlayerSettingService playerSettingService;
     private final InventoryService inventoryService;
     private final MenuView menuView;
+    private final ConcurrentHashMap<UUID, Integer> secretClickCounts = new ConcurrentHashMap<>();
 
     public PlayerSettingGuiEventHandler(
         @NotNull PlayerSettingGui gui,
@@ -111,8 +117,13 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
 
     private void handleClick(@NotNull Player player, int rawSlot) {
         if (rawSlot == PlayerSettingGui.BACK_TO_MENU_SLOT) {
+            secretClickCounts.remove(player.getUniqueId());
             GuiSound.SELECT.play(player);
             menuView.open(player);
+            return;
+        }
+        if (rawSlot == PlayerSettingGui.SUPER_MODE_SECRET_SLOT) {
+            handleSuperModeSecretClick(player);
             return;
         }
         if (rawSlot == PlayerSettingGui.CLOSE_SLOT) {
@@ -123,12 +134,43 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
 
         PlayerSettingKey key = gui.getKeyAtSlot(rawSlot);
         if (key == null) {
+            secretClickCounts.remove(player.getUniqueId());
             GuiSound.DENY.play(player);
             return;
         }
 
         Object currentValue = playerSettingService.getPlayerSetting(player.getUniqueId(), key);
         Object nextValue = nextValue(key, currentValue);
+        PlayerSettingService.UpdateResult result = playerSettingService.updatePlayerSetting(
+            new PlayerSettingChangeRequest(player.getUniqueId(), key, nextValue, player.getUniqueId())
+        );
+        if (result.conflict()) {
+            GuiSound.DENY.play(player);
+            player.sendMessage(result.message());
+            gui.open(player);
+            return;
+        }
+
+        GuiSound.SELECT.play(player);
+        player.sendMessage(PlayerMsgResource.format(
+            PlayerSettingMsgId.P_5321.getId(),
+            key.getDisplayNameJa(),
+            key.formatValue(nextValue)
+        ));
+        gui.open(player);
+    }
+
+    private void handleSuperModeSecretClick(@NotNull Player player) {
+        int count = secretClickCounts.merge(player.getUniqueId(), 1, Integer::sum);
+        if (count < SUPER_MODE_TOGGLE_CLICK_COUNT) {
+            GuiSound.SELECT.play(player);
+            return;
+        }
+
+        secretClickCounts.remove(player.getUniqueId());
+        PlayerSettingKey key = PlayerSettingKey.ADVENTURE_RECORD_SUPER_MODE;
+        Object currentValue = playerSettingService.getPlayerSetting(player.getUniqueId(), key);
+        Object nextValue = !(currentValue instanceof Boolean enabled && enabled);
         PlayerSettingService.UpdateResult result = playerSettingService.updatePlayerSetting(
             new PlayerSettingChangeRequest(player.getUniqueId(), key, nextValue, player.getUniqueId())
         );

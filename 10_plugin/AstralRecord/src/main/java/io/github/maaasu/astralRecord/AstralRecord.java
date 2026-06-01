@@ -2,6 +2,10 @@ package io.github.maaasu.astralRecord;
 
 import io.github.maaasu.astralRecord.core.CommandRegister;
 import io.github.maaasu.astralRecord.core.event.EventManager;
+import io.github.maaasu.astralRecord.feature.adventurerecord.event.AdventureRecordGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.adventurerecord.gui.AdventureRecordGui;
+import io.github.maaasu.astralRecord.feature.adventurerecord.repository.AdventureRecordRepository;
+import io.github.maaasu.astralRecord.feature.adventurerecord.service.AdventureRecordService;
 import io.github.maaasu.astralRecord.feature.account.repository.AccountRepository;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.combat.event.CombatDamageEventHandler;
@@ -177,6 +181,8 @@ public final class AstralRecord extends JavaPlugin {
     private LoginBonusService loginBonusService;
     private MailService mailService;
     private MailGuiEventHandler mailGuiEventHandler;
+    private AdventureRecordService adventureRecordService;
+    private AdventureRecordGuiEventHandler adventureRecordGuiEventHandler;
     private String joinSpawnWorldId;
 
     @Override
@@ -339,6 +345,12 @@ public final class AstralRecord extends JavaPlugin {
             new PlayerSettingDefaults(),
             new PlayerSettingCache()
         );
+        adventureRecordService = new AdventureRecordService(
+            this,
+            new AdventureRecordRepository(),
+            mobService,
+            playerSettingService
+        );
         particleDisplayService = new ParticleDisplayService(playerSettingService);
         displayTextService = new DisplayTextService();
         bundleUseEffectService = new BundleUseEffectService();
@@ -375,7 +387,8 @@ public final class AstralRecord extends JavaPlugin {
                 new MobKnockbackService(mobService),
                 new MobDropService(),
                 mobDropPresentationService,
-                partyService
+                partyService,
+                adventureRecordService
         );
         damageService = new DamageService(statusService, mobService, mobCombatService, displayTextService, playerSettingService);
 
@@ -406,6 +419,11 @@ public final class AstralRecord extends JavaPlugin {
         playerDetailGui = new PlayerDetailGui();
         pagingDebugGui = new PagingDebugGui();
         playerSettingGui = new PlayerSettingGui(playerSettingService);
+        adventureRecordGuiEventHandler = new AdventureRecordGuiEventHandler(
+            new AdventureRecordGui(itemService),
+            adventureRecordService,
+            inventoryService
+        );
         loginBonusService = new LoginBonusService(new LoginBonusGui());
         partyMemberActionGui = new PartyMemberActionGui();
         mailService = new MailService(new MailRepository(), itemService, inventoryService);
@@ -524,6 +542,10 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             new PlayerSettingGuiEventHandler(playerSettingGui, playerSettingService, inventoryService, menuView),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            adventureRecordGuiEventHandler,
             getServer().getPluginManager()
         );
         skillBindGuiEventHandler = new SkillBindGuiEventHandler(
@@ -758,5 +780,13 @@ public final class AstralRecord extends JavaPlugin {
 
     public MailGuiEventHandler getMailGuiEventHandler() {
         return mailGuiEventHandler;
+    }
+
+    public AdventureRecordGuiEventHandler getAdventureRecordGuiEventHandler() {
+        return adventureRecordGuiEventHandler;
+    }
+
+    public AdventureRecordService getAdventureRecordService() {
+        return adventureRecordService;
     }
 }

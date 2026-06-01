@@ -213,7 +213,7 @@ public abstract class AstCommand implements CommandExecutor {
      * @param message メッセージ
      */
     protected void sendSuccess(@NotNull CommandSender sender, @NotNull String message) {
-        sender.sendMessage(ColorCodeUtil.colorize(ColorCodeUtil.GREEN, message));
+        sendDecorated(sender, ColorCodeUtil.colorize(ColorCodeUtil.GREEN, message));
     }
 
     /**
@@ -223,7 +223,7 @@ public abstract class AstCommand implements CommandExecutor {
      * @param message メッセージ
      */
     protected void sendInfo(@NotNull CommandSender sender, @NotNull String message) {
-        sender.sendMessage(ColorCodeUtil.colorize(ColorCodeUtil.AQUA, message));
+        sendDecorated(sender, ColorCodeUtil.colorize(ColorCodeUtil.AQUA, message));
     }
 
     /**
@@ -233,7 +233,7 @@ public abstract class AstCommand implements CommandExecutor {
      * @param message メッセージ
      */
     protected void sendWarning(@NotNull CommandSender sender, @NotNull String message) {
-        sender.sendMessage(ColorCodeUtil.colorize(ColorCodeUtil.YELLOW, message));
+        sendDecorated(sender, ColorCodeUtil.colorize(ColorCodeUtil.YELLOW, message));
     }
 
     /**
@@ -243,7 +243,15 @@ public abstract class AstCommand implements CommandExecutor {
      * @param message メッセージ
      */
     protected void sendError(@NotNull CommandSender sender, @NotNull String message) {
-        sender.sendMessage(ColorCodeUtil.colorize(ColorCodeUtil.RED, message));
+        sendDecorated(sender, ColorCodeUtil.colorize(ColorCodeUtil.RED, message));
+    }
+
+    private void sendDecorated(@NotNull CommandSender sender, @NotNull String message) {
+        if (sender instanceof Player player) {
+            player.sendMessage(PlayerMsgResource.decorateInteractiveArguments(message));
+            return;
+        }
+        sender.sendMessage(message);
     }
 
     /**

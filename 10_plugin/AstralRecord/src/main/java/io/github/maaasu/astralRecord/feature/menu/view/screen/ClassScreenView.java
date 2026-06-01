@@ -137,7 +137,7 @@ public final class ClassScreenView extends BaseMenuScreenView {
         ));
     }
 
-    private @NotNull Component noItalic(@NotNull Component component) {
+    protected @NotNull Component noItalic(@NotNull Component component) {
         return component.decoration(TextDecoration.ITALIC, false);
     }
 

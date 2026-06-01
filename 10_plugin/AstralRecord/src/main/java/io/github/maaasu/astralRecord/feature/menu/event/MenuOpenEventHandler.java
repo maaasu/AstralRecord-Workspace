@@ -412,6 +412,16 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             mailGuiEventHandler.open(player);
             return;
         }
+        if (rawSlot == MenuView.ADVENTURE_RECORD_SLOT) {
+            var adventureRecordGuiEventHandler = plugin.getAdventureRecordGuiEventHandler();
+            if (adventureRecordGuiEventHandler == null) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.OPEN.play(player);
+            adventureRecordGuiEventHandler.open(player);
+            return;
+        }
         if (rawSlot == MenuView.CURRENCY_SLOT) {
             GuiSound.OPEN.play(player);
             openCurrency(player, 0);

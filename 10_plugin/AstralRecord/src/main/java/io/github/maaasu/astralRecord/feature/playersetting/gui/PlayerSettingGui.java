@@ -27,6 +27,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
     public static final int DAMAGE_LOG_SLOT = 20;
     public static final int PARTICLE_DENSITY_SLOT = 22;
     public static final int DROP_LOG_SLOT = 24;
+    public static final int SUPER_MODE_SECRET_SLOT = 53;
     public static final int BACK_TO_MENU_SLOT = BaseMenuScreenView.BACK_SLOT;
     public static final int CLOSE_SLOT = BaseMenuScreenView.CLOSE_SLOT;
 

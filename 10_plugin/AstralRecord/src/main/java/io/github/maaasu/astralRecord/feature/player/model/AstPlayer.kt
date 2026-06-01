@@ -184,7 +184,7 @@ data class AstPlayer(
      */
     fun sendMessage(msgId: PlayerMsgId, vararg args: Any) {
         if (!bukkit.isOnline) return
-        val message = PlayerMsgResource.format(msgId.id, *args)
+        val message = PlayerMsgResource.formatComponent(msgId.id, *args)
         bukkit.sendMessage(message)
     }
 }

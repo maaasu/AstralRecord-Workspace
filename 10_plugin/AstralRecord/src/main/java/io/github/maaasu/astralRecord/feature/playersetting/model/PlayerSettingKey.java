@@ -16,7 +16,8 @@ public enum PlayerSettingKey {
     PARTICLE_DENSITY("PARTICLE_DENSITY", "パーティクル密度", ParticleDensity.NORMAL),
     DROP_LOG_DISPLAY("DROP_LOG_DISPLAY", "ドロップログ表示", true),
     TEMP_DROP_DISPLAY("TEMP_DROP_DISPLAY", "Temp ドロップ表示", true),
-    TEMP_BLOCK_DISPLAY("TEMP_BLOCK_DISPLAY", "Temp BlockDisplay 表示", true);
+    TEMP_BLOCK_DISPLAY("TEMP_BLOCK_DISPLAY", "Temp BlockDisplay 表示", true),
+    ADVENTURE_RECORD_SUPER_MODE("ADVENTURE_RECORD_SUPER_MODE", "冒険記録スーパーモード", false);
 
     private final String code;
     private final String displayNameJa;

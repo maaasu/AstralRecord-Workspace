@@ -21,6 +21,7 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
     public static final int CURRENCY_SLOT = 32;
     public static final int PARTY_SLOT = 33;
     public static final int PLAYER_INFO_SLOT = 34;
+    public static final int ADVENTURE_RECORD_SLOT = 28;
     public static final int MAIL_SLOT = 29;
 
     public void render(@NotNull Inventory inventory, long goldAmount, @NotNull List<String> activeBuffNames) {
@@ -54,6 +55,11 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
             Material.POTION,
             Component.text("バフ", NamedTextColor.AQUA),
             createBuffLore(activeBuffNames)
+        ));
+        inventory.setItem(ADVENTURE_RECORD_SLOT, createItem(
+            Material.WRITTEN_BOOK,
+            Component.text("冒険記録", NamedTextColor.GOLD),
+            List.of(Component.text("魔物録・厄災録・モブ検索を開く", NamedTextColor.GRAY))
         ));
         inventory.setItem(MAIL_SLOT, createItem(
             Material.WRITABLE_BOOK,

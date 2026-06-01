@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.playersetting.gui.PlayerSettingGui;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingChangeRequest;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKey;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
+import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.jetbrains.annotations.NotNull;
 
@@ -53,6 +54,13 @@ public final class PlayerSettingCommand extends AstCommand {
             ));
             return;
         }
+        if (key == PlayerSettingKey.ADVENTURE_RECORD_SUPER_MODE
+            && player.getUser().getPermission() < UserPermission.ADMIN.getValue()) {
+            sendError(player.getBukkit(), io.github.maaasu.astralRecord.feature.player.PlayerMsgResource.getMessage(
+                io.github.maaasu.astralRecord.feature.player.PlayerMsgId.P_5061.getId()
+            ));
+            return;
+        }
 
         Object parsedValue = key.parseInputValue(args[1]);
         if (parsedValue == null) {
@@ -89,6 +97,9 @@ public final class PlayerSettingCommand extends AstCommand {
 
     private void showCurrentSettings(@NotNull AstPlayer player, @NotNull PlayerSettingService service) {
         for (PlayerSettingKey key : PlayerSettingKey.values()) {
+            if (key == PlayerSettingKey.ADVENTURE_RECORD_SUPER_MODE) {
+                continue;
+            }
             Object value = service.getPlayerSetting(player.getUser().getUuid(), key);
             sendInfo(
                 player.getBukkit(),

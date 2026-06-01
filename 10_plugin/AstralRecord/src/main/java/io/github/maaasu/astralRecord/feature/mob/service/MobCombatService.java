@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.mob.service;
 
+import io.github.maaasu.astralRecord.feature.adventurerecord.service.AdventureRecordService;
 import io.github.maaasu.astralRecord.feature.mob.model.CombatStyle;
 import io.github.maaasu.astralRecord.feature.mob.model.DamageType;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
@@ -43,6 +44,7 @@ public class MobCombatService {
     private final MobDropService dropService;
     private final MobDropPresentationService dropPresentationService;
     private final PartyService partyService;
+    private final AdventureRecordService adventureRecordService;
 
     /**
      * コンストラクタ。
@@ -56,12 +58,14 @@ public class MobCombatService {
             @NotNull MobKnockbackService knockbackService,
             @NotNull MobDropService dropService,
             @NotNull MobDropPresentationService dropPresentationService,
-            @NotNull PartyService partyService) {
+            @NotNull PartyService partyService,
+            @NotNull AdventureRecordService adventureRecordService) {
         this.mobService = mobService;
         this.knockbackService = knockbackService;
         this.dropService = dropService;
         this.dropPresentationService = dropPresentationService;
         this.partyService = partyService;
+        this.adventureRecordService = adventureRecordService;
     }
 
     /**
@@ -282,6 +286,7 @@ public class MobCombatService {
                 result = new MobDropResult(List.of(), 0, 0);
             }
             results.add(result);
+            adventureRecordService.recordDefeatAsync(recipient, template);
             dropPresentationService.presentAndGrant(recipient, instance.currentLocation(), template.displayName(), result);
         }
 
