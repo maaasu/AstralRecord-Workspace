@@ -2,6 +2,9 @@ package io.github.maaasu.astralRecord.feature.loginbonus.service;
 
 import io.github.maaasu.astralRecord.feature.loginbonus.view.LoginBonusGui;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
@@ -16,8 +19,11 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class LoginBonusService {
     private static final ZoneId DATE_ZONE = ZoneId.of("Asia/Tokyo");
+    private static final int DAILY_LOGIN_BONUS_GOLD = 1000;
 
     private final LoginBonusGui gui;
+    private final InventoryService inventoryService;
+    private final ItemService itemService;
     private final Map<UUID, LocalDate> receivedDates = new ConcurrentHashMap<>();
 
     /**
@@ -25,8 +31,14 @@ public final class LoginBonusService {
      *
      * @param gui 表示に使用する GUI
      */
-    public LoginBonusService(@NotNull LoginBonusGui gui) {
+    public LoginBonusService(
+        @NotNull LoginBonusGui gui,
+        @NotNull InventoryService inventoryService,
+        @NotNull ItemService itemService
+    ) {
         this.gui = gui;
+        this.inventoryService = inventoryService;
+        this.itemService = itemService;
     }
 
     /**
@@ -45,8 +57,17 @@ public final class LoginBonusService {
         boolean alreadyReceivedToday = today.equals(receivedDates.get(accountId));
         if (!alreadyReceivedToday) {
             receivedDates.put(accountId, today);
+            grantDailyLoginBonus(astPlayer);
         }
         gui.open(player, alreadyReceivedToday, today);
+    }
+
+    private void grantDailyLoginBonus(@NotNull AstPlayer astPlayer) {
+        var goldModel = itemService.loadItem(ItemService.DEFAULT_CURRENCY_ITEM_ID);
+        if (goldModel == null) {
+            return;
+        }
+        inventoryService.addItemToNormalInventory(astPlayer, goldModel, DAILY_LOGIN_BONUS_GOLD, "daily_login_bonus");
     }
 
     /**

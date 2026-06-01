@@ -424,7 +424,7 @@ public final class AstralRecord extends JavaPlugin {
             adventureRecordService,
             inventoryService
         );
-        loginBonusService = new LoginBonusService(new LoginBonusGui());
+        loginBonusService = new LoginBonusService(new LoginBonusGui(), inventoryService, itemService);
         partyMemberActionGui = new PartyMemberActionGui();
         mailService = new MailService(new MailRepository(), itemService, inventoryService);
 
@@ -507,7 +507,7 @@ public final class AstralRecord extends JavaPlugin {
             new MenuOpenEventHandler(this, menuView, inventoryService, currencyService, statusService),
             getServer().getPluginManager()
         );
-        mailGuiEventHandler = new MailGuiEventHandler(new MailGuiView(this), mailService, menuView);
+        mailGuiEventHandler = new MailGuiEventHandler(new MailGuiView(this), mailService, menuView, inventoryService);
         eventManager.registerHandler(
             mailGuiEventHandler,
             getServer().getPluginManager()
