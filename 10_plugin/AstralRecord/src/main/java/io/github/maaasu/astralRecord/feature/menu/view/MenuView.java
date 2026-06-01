@@ -78,6 +78,7 @@ public class MenuView {
     public static final int CRAFT_SHORTCUT_RAW_SLOT_START = CraftShortcutView.CRAFT_SHORTCUT_RAW_SLOT_START;
 
     private static final Component MAIN_TITLE = Component.text("AstralRecord メニュー", NamedTextColor.DARK_AQUA);
+    private static final Component ACCOUNT_INFO_TITLE = Component.text("アカウント情報", NamedTextColor.GOLD);
     private static final Component EQUIPMENT_TITLE = Component.text("装備", NamedTextColor.GOLD);
     private static final Component BUFF_TITLE = Component.text("バフ", NamedTextColor.AQUA);
     private static final String CURRENCY_TITLE = "通貨";
@@ -120,7 +121,7 @@ public class MenuView {
     }
 
     public void openStatus(@NotNull Player player, @NotNull AstPlayer astPlayer, @NotNull StatusSnapshot snapshot) {
-        Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.STATUS), SIZE, Component.text("ステータス", NamedTextColor.GREEN));
+        Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.STATUS), SIZE, ACCOUNT_INFO_TITLE);
         statusScreenView.render(inventory, astPlayer, snapshot);
         player.openInventory(inventory);
     }

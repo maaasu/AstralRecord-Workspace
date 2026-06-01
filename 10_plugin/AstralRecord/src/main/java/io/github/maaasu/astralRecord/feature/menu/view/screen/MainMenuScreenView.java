@@ -28,7 +28,7 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
         inventory.setItem(STATUS_SLOT, createItem(
             MenuIconDefinition.ACCOUNT_INFO.getMaterial(),
             Component.text(MenuIconDefinition.ACCOUNT_INFO.getDisplayNameJa(), MenuIconDefinition.ACCOUNT_INFO.getColor()),
-            List.of(Component.text("キャラクター情報を確認", NamedTextColor.GRAY))
+            List.of(Component.text("アカウント統計とステータスを確認", NamedTextColor.GRAY))
         ));
         inventory.setItem(PLAYER_SETTING_SLOT, createItem(
             Material.COMPARATOR,

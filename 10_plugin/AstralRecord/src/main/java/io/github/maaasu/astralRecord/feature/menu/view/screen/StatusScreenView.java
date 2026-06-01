@@ -9,10 +9,13 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
+import org.bukkit.Statistic;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -27,6 +30,7 @@ public final class StatusScreenView extends BaseMenuScreenView {
 
     private static final int BAR_LENGTH = 20;
     private static final String SEPARATOR = "◇════════════════◇";
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
 
     private static final NamedTextColor HP_COLOR = NamedTextColor.RED;
     private static final NamedTextColor MP_COLOR = NamedTextColor.AQUA;
@@ -75,6 +79,12 @@ public final class StatusScreenView extends BaseMenuScreenView {
         lore.add(noItalic(Component.text("  Slot: " + player.getAccount().getSlotIndex(), NamedTextColor.GRAY)));
         lore.add(noItalic(Component.text("  Mode: " + player.getAccount().getMode().name(), NamedTextColor.GRAY)));
         lore.add(noItalic(Component.text("  Active: " + player.getAccount().isActive(), NamedTextColor.GREEN)));
+        lore.add(Component.empty());
+        lore.add(noItalic(Component.text("◆ アカウント統計", NamedTextColor.GOLD, TextDecoration.BOLD)));
+        lore.add(noItalic(Component.text("  初ログイン日: " + formatDateTime(player.getUser().getJoinDate()), NamedTextColor.GRAY)));
+        lore.add(noItalic(Component.text("  最終ログイン日: " + formatDateTime(player.getUser().getLastJoinDate()), NamedTextColor.GRAY)));
+        lore.add(noItalic(Component.text("  プレイ時間: " + formatPlayTime(player), NamedTextColor.YELLOW)));
+        lore.add(noItalic(Component.text("  アカウント作成日: " + formatDateTime(player.getAccount().getCreatedAt()), NamedTextColor.GRAY)));
         lore.add(Component.empty());
         lore.add(noItalic(Component.text("◆ クラス", NamedTextColor.AQUA, TextDecoration.BOLD)));
         lore.add(noItalic(Component.text("  Class: " + player.getClassId(), NamedTextColor.AQUA)));
@@ -193,6 +203,25 @@ public final class StatusScreenView extends BaseMenuScreenView {
 
     private @NotNull String formatInt(double value) {
         return String.format(Locale.US, "%,d", Math.round(value));
+    }
+
+    private @NotNull String formatDateTime(@NotNull LocalDateTime value) {
+        return value.format(DATE_TIME_FORMATTER);
+    }
+
+    private @NotNull String formatPlayTime(@NotNull AstPlayer player) {
+        long totalTicks = Math.max(0L, (long) player.getBukkit().getStatistic(Statistic.PLAY_ONE_MINUTE));
+        long totalSeconds = totalTicks / 20L;
+        long hours = totalSeconds / 3600L;
+        long minutes = totalSeconds % 3600L / 60L;
+        long seconds = totalSeconds % 60L;
+        if (hours > 0L) {
+            return String.format(Locale.US, "%d時間%02d分", hours, minutes);
+        }
+        if (minutes > 0L) {
+            return String.format(Locale.US, "%d分%02d秒", minutes, seconds);
+        }
+        return String.format(Locale.US, "%d秒", seconds);
     }
 
     private @NotNull String repeat(@NotNull String unit, int count) {
