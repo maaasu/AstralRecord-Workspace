@@ -27,6 +27,7 @@ public final class MobInstance {
     private double currentHealth;
     private MobState state = MobState.IDLE;
     private UUID targetId;
+    private UUID lastAttackerUuid;
     private long lastAttackTick;
 
     // ナビゲーション状態
@@ -175,6 +176,21 @@ public final class MobInstance {
      */
     public void targetId(@Nullable UUID targetId) {
         this.targetId = targetId;
+    }
+
+    /** 最後にこの Mob へ有効ダメージを与えたプレイヤー UUID を返します。 */
+    @Nullable
+    public UUID lastAttackerUuid() {
+        return lastAttackerUuid;
+    }
+
+    /**
+     * 最後にこの Mob へ有効ダメージを与えたプレイヤー UUID を更新します。
+     *
+     * @param lastAttackerUuid 攻撃者 UUID
+     */
+    public void lastAttackerUuid(@Nullable UUID lastAttackerUuid) {
+        this.lastAttackerUuid = lastAttackerUuid;
     }
 
     /** 最終攻撃 tick を返します。 */

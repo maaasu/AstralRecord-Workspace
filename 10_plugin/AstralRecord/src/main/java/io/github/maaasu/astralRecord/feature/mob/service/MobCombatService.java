@@ -10,6 +10,9 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTargetingConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.model.TargetStrategy;
+import io.github.maaasu.astralRecord.feature.party.model.Party;
+import io.github.maaasu.astralRecord.feature.party.service.PartyService;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -21,6 +24,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -37,6 +41,8 @@ public class MobCombatService {
     private final MobService mobService;
     private final MobKnockbackService knockbackService;
     private final MobDropService dropService;
+    private final MobDropPresentationService dropPresentationService;
+    private final PartyService partyService;
 
     /**
      * コンストラクタ。
@@ -48,10 +54,14 @@ public class MobCombatService {
     public MobCombatService(
             @NotNull MobService mobService,
             @NotNull MobKnockbackService knockbackService,
-            @NotNull MobDropService dropService) {
+            @NotNull MobDropService dropService,
+            @NotNull MobDropPresentationService dropPresentationService,
+            @NotNull PartyService partyService) {
         this.mobService = mobService;
         this.knockbackService = knockbackService;
         this.dropService = dropService;
+        this.dropPresentationService = dropPresentationService;
+        this.partyService = partyService;
     }
 
     /**
@@ -227,6 +237,7 @@ public class MobCombatService {
 
         instance.currentHealth(instance.currentHealth() - effective);
         instance.threatTable().add(attacker.getBukkit().getUniqueId(), effective);
+        instance.lastAttackerUuid(attacker.getBukkit().getUniqueId());
 
         knockbackService.applyToMob(attacker.getBukkit().getLocation(), instance, 1.0);
 
@@ -244,58 +255,86 @@ public class MobCombatService {
      * 死亡確定 Mob のドロップ・破棄処理を実行します。
      *
      * @param instance 死亡 Mob
-     * @return ドロップ結果（キラー特定できなければアイテム配布は行わず、結果のみ返す）
+     * @return 配布対象プレイヤーごとのドロップ結果
      */
     @NotNull
-    public MobDropResult handleDeath(@NotNull MobInstance instance) {
+    public List<MobDropResult> handleDeath(@NotNull MobInstance instance) {
         MobTemplate template = instance.template();
-        UUID killerId = instance.threatTable().top();
+        UUID killerId = instance.lastAttackerUuid();
+        if (killerId == null) {
+            killerId = instance.threatTable().top();
+        }
         Player killer = killerId == null ? null : Bukkit.getPlayer(killerId);
         Logger.log(LogId.D_5703, template.id(), killerId);
 
-        MobDropResult result;
-        try {
-            // killer の AstPlayer 解決は外部 feature で行う。本サービスは Bukkit Player を介してドロップ抽選のみ実行
-            result = dropService.roll(template, null);
-        } catch (RuntimeException ex) {
-            Logger.error(LogId.E_5703, ex, template.id());
-            result = new MobDropResult(List.of(), 0, 0);
-        }
-
-        if (killer != null) {
-            distributeDrops(killer, result);
-        } else {
+        List<AstPlayer> recipients = resolveDropRecipients(instance, killer);
+        if (recipients.isEmpty()) {
             Logger.log(LogId.W_5703, template.id());
         }
 
+        List<MobDropResult> results = new ArrayList<>();
+        for (AstPlayer recipient : recipients) {
+            MobDropResult result;
+            try {
+                result = dropService.roll(template, recipient);
+            } catch (RuntimeException ex) {
+                Logger.error(LogId.E_5703, ex, template.id());
+                result = new MobDropResult(List.of(), 0, 0);
+            }
+            results.add(result);
+            dropPresentationService.presentAndGrant(recipient, instance.currentLocation(), template.displayName(), result);
+        }
+
         mobService.destroy(instance.instanceId());
-        return result;
+        return results;
     }
 
-    /**
-     * ドロップ結果を Bukkit Player へ配布します（最小実装: インベントリへ直接付与）。
-     * 経験値・金銭の付与経路は他 feature の API 確立後に置き換える（[[12_9.00-未決事項]] 参照）。
-     *
-     * @param killer キラー
-     * @param result ドロップ結果
-     */
-    private void distributeDrops(@NotNull Player killer, @NotNull MobDropResult result) {
-        // 当面は Bukkit のインベントリへの直接付与は行わず、サーバログへの記録のみで暫定運用する。
-        // 実際の付与は item / inventory feature の API 経由で行う前提。
-        if (!result.items().isEmpty()) {
-            killer.sendMessage("§7[mob] ドロップ確定: " + summarize(result));
+    private @NotNull List<AstPlayer> resolveDropRecipients(@NotNull MobInstance instance, @Nullable Player killer) {
+        Map<UUID, AstPlayer> recipients = new LinkedHashMap<>();
+        for (Map.Entry<UUID, Double> entry : instance.threatTable().snapshot().entrySet()) {
+            if (entry.getValue() <= 0.0D) {
+                continue;
+            }
+            Player player = Bukkit.getPlayer(entry.getKey());
+            addRecipient(recipients, player);
         }
+
+        if (killer == null || !killer.isOnline()) {
+            return List.copyOf(recipients.values());
+        }
+
+        Party party = partyService.findParty(killer.getUniqueId());
+        if (party == null) {
+            addRecipient(recipients, killer);
+            return List.copyOf(recipients.values());
+        }
+
+        double rangeSq = 60.0D * 60.0D;
+        for (UUID memberId : party.members()) {
+            Player member = Bukkit.getPlayer(memberId);
+            if (member == null || !member.isOnline()) {
+                continue;
+            }
+            if (member.getWorld() != killer.getWorld()) {
+                continue;
+            }
+            if (member.getLocation().distanceSquared(killer.getLocation()) > rangeSq) {
+                continue;
+            }
+            addRecipient(recipients, member);
+        }
+        return List.copyOf(recipients.values());
     }
 
-    private String summarize(@NotNull MobDropResult result) {
-        StringBuilder sb = new StringBuilder();
-        for (Map.Entry<String, Integer> entry : result.items()) {
-            if (sb.length() > 0) sb.append(", ");
-            sb.append(entry.getKey()).append(" x").append(entry.getValue());
+    private void addRecipient(@NotNull Map<UUID, AstPlayer> recipients, @Nullable Player player) {
+        if (player == null || !player.isOnline()) {
+            return;
         }
-        sb.append(" / exp=").append(result.exp());
-        sb.append(" / money=").append(result.money());
-        return sb.toString();
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            return;
+        }
+        recipients.putIfAbsent(player.getUniqueId(), astPlayer);
     }
 
     private double resolvePlayerDefense(@NotNull Player target, @NotNull DamageType type) {

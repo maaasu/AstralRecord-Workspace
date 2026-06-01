@@ -42,6 +42,7 @@ import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.mob.repository.MobRepository;
 import io.github.maaasu.astralRecord.feature.mob.service.MobAiService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobCombatService;
+import io.github.maaasu.astralRecord.feature.mob.service.MobDropPresentationService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobKnockbackService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
@@ -144,6 +145,7 @@ public final class AstralRecord extends JavaPlugin {
     private MobSpawnerService mobSpawnerService;
     private MobAiService mobAiService;
     private MobCombatService mobCombatService;
+    private MobDropPresentationService mobDropPresentationService;
     private EventManager eventManager;
     private ParticleDisplayService particleDisplayService;
     private DisplayTextService displayTextService;
@@ -356,10 +358,18 @@ public final class AstralRecord extends JavaPlugin {
         overheadDisplayService = new OverheadDisplayService(displayTextService, statusService, mobService);
 
         // combat
+        mobDropPresentationService = new MobDropPresentationService(
+                this,
+                itemService,
+                inventoryService,
+                itemStackFactory
+        );
         mobCombatService = new MobCombatService(
                 mobService,
                 new MobKnockbackService(mobService),
-                new MobDropService()
+                new MobDropService(),
+                mobDropPresentationService,
+                partyService
         );
         damageService = new DamageService(statusService, mobService, mobCombatService, displayTextService, playerSettingService);
 

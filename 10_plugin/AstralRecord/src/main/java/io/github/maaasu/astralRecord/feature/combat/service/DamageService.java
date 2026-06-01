@@ -211,6 +211,7 @@ public final class DamageService {
         playMobHurtEffect(mob.bukkitEntityId());
         if (attacker != null && attacker.isPlayer()) {
             mob.threatTable().add(attacker.id(), result.finalDamage());
+            mob.lastAttackerUuid(attacker.id());
             if (mob.state() == MobState.IDLE) {
                 mob.state(MobState.AGGRO);
                 mob.targetId(attacker.id());
@@ -220,8 +221,7 @@ public final class DamageService {
             mob.state(MobState.DEAD);
             Location deathLocation = mob.currentLocation();
             playMobDeathEffect(mob.bukkitEntityId(), deathLocation);
-            MobDropResult dropResult = mobCombatService.handleDeath(mob);
-            spawnMobDeathResult(deathLocation, victim.name(), dropResult);
+            mobCombatService.handleDeath(mob);
         }
     }
 
