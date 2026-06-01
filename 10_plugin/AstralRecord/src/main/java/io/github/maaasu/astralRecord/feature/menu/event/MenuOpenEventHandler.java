@@ -60,6 +60,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     private final Set<UUID> craftRenderSuppressed = ConcurrentHashMap.newKeySet();
     private final ConcurrentHashMap<UUID, List<ItemStack>> trashItemsByPlayer = new ConcurrentHashMap<>();
     private final Set<UUID> suppressTrashConfirmOnClose = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> suppressPlayerInventoryRestoreOnClose = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> suppressTrashConfirmRestoreOnClose = ConcurrentHashMap.newKeySet();
     private final Set<UUID> playerInventoryDummyApplied = ConcurrentHashMap.newKeySet();
 
     public MenuOpenEventHandler(
@@ -139,7 +141,9 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             if (event.getPlayer() instanceof Player player) {
                 handleTrashClose(event.getInventory(), player);
                 if (playerInventoryDummyApplied.remove(player.getUniqueId())) {
-                    restorePlayerInventory(player);
+                    if (!suppressPlayerInventoryRestoreOnClose.remove(player.getUniqueId())) {
+                        restorePlayerInventory(player);
+                    }
                 }
                 AstPlayer astPlayer = AstPlayerCache.get(player);
                 if (astPlayer != null) {
@@ -344,7 +348,10 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 return;
             }
             GuiSound.SELECT.play(player);
-            menuView.openStatus(player, astPlayer, statusService.refreshStatus(astPlayer));
+            switchGuiWithoutInventoryReload(
+                player,
+                () -> menuView.openStatus(player, astPlayer, statusService.refreshStatus(astPlayer))
+            );
             return;
         }
         if (rawSlot == MenuView.PLAYER_SETTING_SLOT) {
@@ -363,12 +370,12 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
         if (rawSlot == MenuView.TRASH_SLOT) {
             GuiSound.OPEN.play(player);
-            openTrash(player, 0);
+            openTrash(player, 0, true);
             return;
         }
         if (rawSlot == MenuView.GUIDE_SLOT) {
             GuiSound.SELECT.play(player);
-            menuView.openGuide(player);
+            switchGuiWithoutInventoryReload(player, () -> menuView.openGuide(player));
             return;
         }
         if (rawSlot == MenuView.BUFF_SLOT) {
@@ -378,7 +385,10 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 return;
             }
             GuiSound.SELECT.play(player);
-            menuView.openBuff(player, statusService.getActiveBuffs(astPlayer));
+            switchGuiWithoutInventoryReload(
+                player,
+                () -> menuView.openBuff(player, statusService.getActiveBuffs(astPlayer))
+            );
             return;
         }
         if (rawSlot == MenuView.SKILL_BIND_SLOT) {
@@ -412,7 +422,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     private void handleGuideClick(@NotNull Player player, int rawSlot) {
         if (rawSlot == MenuView.BACK_SLOT) {
             GuiSound.SELECT.play(player);
-            menuView.open(player);
+            switchGuiWithoutInventoryReload(player, () -> menuView.open(player));
             return;
         }
         GuiSound.DENY.play(player);
@@ -427,7 +437,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
         if (rawSlot == MenuView.PAGING_BACK_SLOT) {
             GuiSound.SELECT.play(player);
-            menuView.open(player);
+            switchGuiWithoutInventoryReload(player, () -> menuView.open(player));
             return;
         }
 
@@ -435,12 +445,12 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         List<ItemStack> currencyItems = currencyItems(player);
         if (rawSlot == MenuView.PAGING_PREVIOUS_SLOT && menuView.hasPreviousCurrencyPage(pageIndex)) {
             GuiSound.SELECT.play(player);
-            menuView.openCurrency(player, currencyItems, pageIndex - 1);
+            switchGuiWithoutInventoryReload(player, () -> menuView.openCurrency(player, currencyItems, pageIndex - 1));
             return;
         }
         if (rawSlot == MenuView.PAGING_NEXT_SLOT && menuView.hasNextCurrencyPage(currencyItems, pageIndex)) {
             GuiSound.SELECT.play(player);
-            menuView.openCurrency(player, currencyItems, pageIndex + 1);
+            switchGuiWithoutInventoryReload(player, () -> menuView.openCurrency(player, currencyItems, pageIndex + 1));
             return;
         }
 
@@ -450,7 +460,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     private void handleStatusClick(@NotNull Player player, int rawSlot) {
         if (rawSlot == MenuView.BACK_SLOT) {
             GuiSound.SELECT.play(player);
-            menuView.open(player);
+            switchGuiWithoutInventoryReload(player, () -> menuView.open(player));
             return;
         }
         GuiSound.DENY.play(player);
@@ -459,7 +469,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     private void handleBuffClick(@NotNull Player player, int rawSlot) {
         if (rawSlot == MenuView.BACK_SLOT) {
             GuiSound.SELECT.play(player);
-            menuView.open(player);
+            switchGuiWithoutInventoryReload(player, () -> menuView.open(player));
             return;
         }
         GuiSound.DENY.play(player);
@@ -508,7 +518,10 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         String newDisplayName = plugin.getPlayerClassService().getDisplayName(classId);
         astPlayer.sendMessage(PlayerMsgId.P_5812, oldDisplayName, newDisplayName);
         GuiSound.SELECT.play(player);
-        menuView.openClass(player, astPlayer, plugin.getPlayerClassService().getClassViewEntries());
+        switchGuiWithoutInventoryReload(
+            player,
+            () -> menuView.openClass(player, astPlayer, plugin.getPlayerClassService().getClassViewEntries())
+        );
     }
 
     private boolean hasAdminPermission(@NotNull Player player) {
@@ -604,8 +617,9 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         if (rawSlot == MenuView.TRASH_CONFIRM_RETURN_SLOT) {
             GuiSound.SELECT.play(player);
             suppressTrashConfirmOnClose.add(player.getUniqueId());
-            restorePlayerInventory(player);
+            suppressTrashConfirmRestoreOnClose.add(player.getUniqueId());
             menuView.openTrash(player, currentTrashItems, 0);
+            restorePlayerInventory(player);
             return;
         }
         GuiSound.DENY.play(player);
@@ -623,7 +637,10 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 return;
             }
             GuiSound.SELECT.play(player);
-            menuView.openStatus(player, astPlayer, statusService.refreshStatus(astPlayer));
+            switchGuiWithoutInventoryReload(
+                player,
+                () -> menuView.openStatus(player, astPlayer, statusService.refreshStatus(astPlayer))
+            );
             return;
         }
         if (action == MenuShortcutAction.INVENTORY_CYCLE) {
@@ -690,7 +707,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         suppressCraftRendering(player);
         menuView.clearCraftShortcuts(player);
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            menuView.open(player);
+            switchGuiWithoutInventoryReload(player, () -> menuView.open(player));
             resumeCraftRendering(player);
         });
     }
@@ -699,7 +716,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         suppressCraftRendering(player);
         menuView.clearCraftShortcuts(player);
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            menuView.openCurrency(player, currencyItems(player), pageIndex);
+            switchGuiWithoutInventoryReload(player, () -> menuView.openCurrency(player, currencyItems(player), pageIndex));
             resumeCraftRendering(player);
         });
     }
@@ -710,18 +727,21 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        menuView.openEquipmentGui(
+        switchGuiWithInventoryRestore(
             player,
-            new ItemStack[] {
-                null,
-                inventoryService.getAccessorySnapshotItem(astPlayer, 1),
-                inventoryService.getAccessorySnapshotItem(astPlayer, 2),
-                inventoryService.getAccessorySnapshotItem(astPlayer, 3),
-                inventoryService.getAccessorySnapshotItem(astPlayer, 4),
-                inventoryService.getAccessorySnapshotItem(astPlayer, 5),
-                inventoryService.getAccessorySnapshotItem(astPlayer, 6),
-                inventoryService.getAccessorySnapshotItem(astPlayer, 7)
-            }
+            () -> menuView.openEquipmentGui(
+                player,
+                new ItemStack[] {
+                    null,
+                    inventoryService.getAccessorySnapshotItem(astPlayer, 1),
+                    inventoryService.getAccessorySnapshotItem(astPlayer, 2),
+                    inventoryService.getAccessorySnapshotItem(astPlayer, 3),
+                    inventoryService.getAccessorySnapshotItem(astPlayer, 4),
+                    inventoryService.getAccessorySnapshotItem(astPlayer, 5),
+                    inventoryService.getAccessorySnapshotItem(astPlayer, 6),
+                    inventoryService.getAccessorySnapshotItem(astPlayer, 7)
+                }
+            )
         );
     }
 
@@ -798,10 +818,18 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     }
 
     private void openTrash(@NotNull Player player, int pageIndex) {
+        openTrash(player, pageIndex, false);
+    }
+
+    private void openTrash(@NotNull Player player, int pageIndex, boolean restoreAfterOpen) {
         List<ItemStack> normalized = normalizeTrashItems(
             trashItemsByPlayer.getOrDefault(player.getUniqueId(), List.of())
         );
         trashItemsByPlayer.put(player.getUniqueId(), normalized);
+        if (restoreAfterOpen) {
+            switchGuiWithInventoryRestore(player, () -> menuView.openTrash(player, normalized, pageIndex));
+            return;
+        }
         menuView.openTrash(player, normalized, pageIndex);
     }
 
@@ -839,7 +867,9 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
         if (screen == MenuScreen.TRASH_CONFIRM) {
             if (suppressTrashConfirmOnClose.remove(playerId)) {
-                restorePlayerInventory(player);
+                if (!suppressTrashConfirmRestoreOnClose.remove(playerId)) {
+                    restorePlayerInventory(player);
+                }
                 return;
             }
             restorePlayerInventory(player);
@@ -916,6 +946,23 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         if (astPlayer != null) {
             inventoryService.applyInventoriesToGui(astPlayer);
             player.updateInventory();
+        }
+    }
+
+    private void switchGuiWithoutInventoryReload(@NotNull Player player, @NotNull Runnable opener) {
+        suppressPlayerInventoryRestoreForGuiSwitch(player);
+        opener.run();
+    }
+
+    private void switchGuiWithInventoryRestore(@NotNull Player player, @NotNull Runnable opener) {
+        suppressPlayerInventoryRestoreForGuiSwitch(player);
+        opener.run();
+        restorePlayerInventory(player);
+    }
+
+    private void suppressPlayerInventoryRestoreForGuiSwitch(@NotNull Player player) {
+        if (playerInventoryDummyApplied.contains(player.getUniqueId())) {
+            suppressPlayerInventoryRestoreOnClose.add(player.getUniqueId());
         }
     }
 
