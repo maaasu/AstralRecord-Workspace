@@ -41,3 +41,22 @@ ai:
     style: MELEE
     preferredRange: 1.5
     attackIntervalTicks: 18
+
+drops:
+  exp: 18
+  money:
+    min: 3
+    max: 9
+  items:
+    - itemId:
+        ref: item:iron_ingot
+      rate: 45.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:gold_ingot
+      rate: 15.0
+      amount: 1
+      luckAffected: true
+      hidden: false

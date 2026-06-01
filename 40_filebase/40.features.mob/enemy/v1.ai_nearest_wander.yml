@@ -41,3 +41,22 @@ ai:
     style: MELEE
     preferredRange: 1.5
     attackIntervalTicks: 20
+
+drops:
+  exp: 10
+  money:
+    min: 1
+    max: 5
+  items:
+    - itemId:
+        ref: item:bone_fragment
+      rate: 55.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:iron_ingot
+      rate: 20.0
+      amount: 1
+      luckAffected: true
+      hidden: false
