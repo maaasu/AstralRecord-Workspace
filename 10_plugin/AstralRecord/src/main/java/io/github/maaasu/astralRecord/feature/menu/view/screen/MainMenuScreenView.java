@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.menu.view.screen;
 
+import io.github.maaasu.astralRecord.feature.menu.model.MenuIconDefinition;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
@@ -22,8 +23,8 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
     public void render(@NotNull Inventory inventory, long goldAmount) {
         fill(inventory);
         inventory.setItem(STATUS_SLOT, createItem(
-            Material.PLAYER_HEAD,
-            Component.text("アカウント情報", NamedTextColor.GREEN),
+            MenuIconDefinition.ACCOUNT_INFO.getMaterial(),
+            Component.text(MenuIconDefinition.ACCOUNT_INFO.getDisplayNameJa(), MenuIconDefinition.ACCOUNT_INFO.getColor()),
             List.of(Component.text("キャラクター情報を確認", NamedTextColor.GRAY))
         ));
         inventory.setItem(PLAYER_SETTING_SLOT, createItem(
@@ -32,8 +33,8 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
             List.of(Component.text("表示設定を変更", NamedTextColor.GRAY))
         ));
         inventory.setItem(EQUIPMENT_GUI_SLOT, createItem(
-            Material.NETHERITE_CHESTPLATE,
-            Component.text("装備", NamedTextColor.GOLD),
+            MenuIconDefinition.EQUIPMENT.getMaterial(),
+            Component.text(MenuIconDefinition.EQUIPMENT.getDisplayNameJa(), MenuIconDefinition.EQUIPMENT.getColor()),
             List.of(Component.text("武器・防具・アクセサリを確認", NamedTextColor.GRAY))
         ));
         inventory.setItem(TRASH_SLOT, createItem(
@@ -57,8 +58,8 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
             List.of(Component.text("スキルプリセットを編集", NamedTextColor.GRAY))
         ));
         inventory.setItem(CURRENCY_SLOT, createItem(
-            Material.EMERALD,
-            Component.text("通貨", NamedTextColor.GOLD),
+            MenuIconDefinition.CURRENCY.getMaterial(),
+            Component.text(MenuIconDefinition.CURRENCY.getDisplayNameJa(), MenuIconDefinition.CURRENCY.getColor()),
             List.of(
                 Component.text("所持通貨を確認", NamedTextColor.GRAY),
                 Component.text("ゴールド: " + goldAmount, NamedTextColor.YELLOW)

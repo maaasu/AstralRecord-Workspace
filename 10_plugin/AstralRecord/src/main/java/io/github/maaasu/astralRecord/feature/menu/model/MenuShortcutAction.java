@@ -15,10 +15,10 @@ public enum MenuShortcutAction {
     STATUS("STATUS", "ステータス", Material.PLAYER_HEAD, NamedTextColor.GREEN, null, false),
     INVENTORY_CYCLE("INVENTORY_CYCLE", "インベントリ切替", Material.CHEST, NamedTextColor.YELLOW, null, false),
     INVENTORY_NORMAL("INVENTORY_NORMAL", InventoryType.NORMAL.getDisplayNameJa(), Material.CHEST, NamedTextColor.YELLOW, InventoryType.NORMAL, false),
-    INVENTORY_CURRENCY("INVENTORY_CURRENCY", "通貨", Material.EMERALD, NamedTextColor.GREEN, null, true),
-    INVENTORY_EQUIPMENT("INVENTORY_EQUIPMENT", InventoryType.EQUIPMENT.getDisplayNameJa(), Material.IRON_CHESTPLATE, NamedTextColor.GOLD, InventoryType.EQUIPMENT, false),
+    INVENTORY_CURRENCY("INVENTORY_CURRENCY", MenuIconDefinition.CURRENCY.getDisplayNameJa(), MenuIconDefinition.CURRENCY.getMaterial(), MenuIconDefinition.CURRENCY.getColor(), null, true),
+    INVENTORY_EQUIPMENT("INVENTORY_EQUIPMENT", MenuIconDefinition.EQUIPMENT.getDisplayNameJa(), MenuIconDefinition.EQUIPMENT.getMaterial(), MenuIconDefinition.EQUIPMENT.getColor(), InventoryType.EQUIPMENT, false),
     INVENTORY_RUNE("INVENTORY_RUNE", InventoryType.RUNE.getDisplayNameJa(), Material.AMETHYST_SHARD, NamedTextColor.LIGHT_PURPLE, InventoryType.RUNE, false),
-    EQUIPMENT_GUI("EQUIPMENT_GUI", "装備", Material.NETHERITE_CHESTPLATE, NamedTextColor.GOLD, null, false);
+    EQUIPMENT_GUI("EQUIPMENT_GUI", MenuIconDefinition.EQUIPMENT.getDisplayNameJa(), MenuIconDefinition.EQUIPMENT.getMaterial(), MenuIconDefinition.EQUIPMENT.getColor(), null, false);
 
     private final String code;
     private final String displayNameJa;

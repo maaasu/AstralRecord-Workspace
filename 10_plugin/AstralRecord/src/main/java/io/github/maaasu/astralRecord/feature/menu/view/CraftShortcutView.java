@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.menu.view;
 
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
+import io.github.maaasu.astralRecord.feature.menu.model.MenuIconDefinition;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutAction;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
@@ -190,8 +191,8 @@ final class CraftShortcutView {
         lore.add(Component.text("━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
         lore.add(Component.text("クリックして開く", NamedTextColor.YELLOW));
         ItemStack itemStack = createItem(
-            Material.PLAYER_HEAD,
-            Component.text("アカウント情報", NamedTextColor.GOLD),
+            MenuIconDefinition.ACCOUNT_INFO.getMaterial(),
+            Component.text(MenuIconDefinition.ACCOUNT_INFO.getDisplayNameJa(), MenuIconDefinition.ACCOUNT_INFO.getColor()),
             lore
         );
         applySelectionGlow(itemStack);
@@ -229,7 +230,7 @@ final class CraftShortcutView {
         }
 
         ItemStack itemStack = createItem(
-            Material.PLAYER_HEAD,
+            MenuIconDefinition.ACCOUNT_INFO.getMaterial(),
             Component.text("ユーザ情報", NamedTextColor.YELLOW),
             List.of(
                 Component.text("現在: ", NamedTextColor.GRAY).append(Component.text(currentLabel, NamedTextColor.WHITE)),
