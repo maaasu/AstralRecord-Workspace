@@ -5,9 +5,14 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.entity.Display;
+import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
@@ -27,7 +32,7 @@ final class MobSpawnerVisualizer {
 
     private final Plugin plugin;
     private final MobSpawnerService spawnerService;
-    private final Map<String, TextDisplay> displays = new HashMap<>();
+    private final Map<String, SpawnerVisual> displays = new HashMap<>();
     private BukkitTask task;
 
     MobSpawnerVisualizer(@NotNull Plugin plugin, @NotNull MobSpawnerService spawnerService) {
@@ -47,10 +52,8 @@ final class MobSpawnerVisualizer {
             task.cancel();
             task = null;
         }
-        for (TextDisplay display : displays.values()) {
-            if (display.isValid()) {
-                display.remove();
-            }
+        for (SpawnerVisual display : displays.values()) {
+            display.remove();
         }
         displays.clear();
     }
@@ -64,8 +67,8 @@ final class MobSpawnerVisualizer {
             }
             String key = spawnerLocation.locationKey();
             activeKeys.add(key);
-            TextDisplay display = displays.computeIfAbsent(key, ignored -> createDisplay(spawnerLocation, location));
-            display.teleport(location.clone().add(0.0D, 1.35D, 0.0D));
+            SpawnerVisual display = displays.computeIfAbsent(key, ignored -> createDisplay(spawnerLocation, location));
+            display.teleport(location);
             updateViewers(display, location);
         }
 
@@ -73,16 +76,32 @@ final class MobSpawnerVisualizer {
             if (activeKeys.contains(entry.getKey())) {
                 return false;
             }
-            if (entry.getValue().isValid()) {
-                entry.getValue().remove();
-            }
+            entry.getValue().remove();
             return true;
         });
     }
 
     @NotNull
-    private TextDisplay createDisplay(@NotNull MobSpawnerLocation spawnerLocation, @NotNull Location location) {
-        return location.getWorld().spawn(location.clone().add(0.0D, 1.35D, 0.0D), TextDisplay.class, display -> {
+    private SpawnerVisual createDisplay(@NotNull MobSpawnerLocation spawnerLocation, @NotNull Location location) {
+        BlockDisplay block = location.getWorld().spawn(location.clone().add(-0.35D, 0.05D, -0.35D), BlockDisplay.class, display -> {
+            display.setPersistent(false);
+            display.setGravity(false);
+            display.setInvulnerable(true);
+            display.setSilent(true);
+            display.setVisibleByDefault(false);
+            display.setBillboard(Display.Billboard.FIXED);
+            display.setBlock(spawnerService.getDisplayMaterial(spawnerLocation.spawnerId()).createBlockData());
+        });
+        ItemDisplay item = location.getWorld().spawn(location.clone().add(0.0D, 0.85D, 0.0D), ItemDisplay.class, display -> {
+            display.setPersistent(false);
+            display.setGravity(false);
+            display.setInvulnerable(true);
+            display.setSilent(true);
+            display.setVisibleByDefault(false);
+            display.setBillboard(Display.Billboard.CENTER);
+            display.setItemStack(new ItemStack(spawnerService.getDisplayMaterial(spawnerLocation.spawnerId())));
+        });
+        TextDisplay text = location.getWorld().spawn(location.clone().add(0.0D, 1.45D, 0.0D), TextDisplay.class, display -> {
             display.setPersistent(false);
             display.setGravity(false);
             display.setInvulnerable(true);
@@ -95,15 +114,17 @@ final class MobSpawnerVisualizer {
                     ColorCodeUtil.translateAlternateColorCodes("&dSpawner&7: &f" + spawnerLocation.spawnerId())
             ));
         });
+        return new SpawnerVisual(block, item, text);
     }
 
-    private void updateViewers(@NotNull TextDisplay display, @NotNull Location location) {
+    private void updateViewers(@NotNull SpawnerVisual display, @NotNull Location location) {
         for (Player player : plugin.getServer().getOnlinePlayers()) {
             boolean visible = isVisibleTo(player, location);
             if (visible) {
-                player.showEntity(plugin, display);
+                display.show(plugin, player);
+                player.spawnParticle(Particle.ENCHANT, location.clone().add(0.0D, 0.75D, 0.0D), 3, 0.35D, 0.35D, 0.35D, 0.0D);
             } else {
-                player.hideEntity(plugin, display);
+                display.hide(plugin, player);
             }
         }
     }
@@ -112,6 +133,39 @@ final class MobSpawnerVisualizer {
         if (player.getWorld() != location.getWorld() || player.getLocation().distanceSquared(location) > VIEW_DISTANCE_SQ) {
             return false;
         }
-        return spawnerService.isAdminMode(AstPlayerCache.get(player));
+        return spawnerService.canViewSpawnerVisual(AstPlayerCache.get(player));
+    }
+
+    private record SpawnerVisual(@NotNull BlockDisplay block, @NotNull ItemDisplay item, @NotNull TextDisplay text) {
+
+        private void teleport(@NotNull Location location) {
+            block.teleport(location.clone().add(-0.35D, 0.05D, -0.35D));
+            item.teleport(location.clone().add(0.0D, 0.85D, 0.0D));
+            text.teleport(location.clone().add(0.0D, 1.45D, 0.0D));
+        }
+
+        private void show(@NotNull Plugin plugin, @NotNull Player player) {
+            for (Entity entity : entities()) {
+                player.showEntity(plugin, entity);
+            }
+        }
+
+        private void hide(@NotNull Plugin plugin, @NotNull Player player) {
+            for (Entity entity : entities()) {
+                player.hideEntity(plugin, entity);
+            }
+        }
+
+        private void remove() {
+            for (Entity entity : entities()) {
+                if (entity.isValid()) {
+                    entity.remove();
+                }
+            }
+        }
+
+        private Entity[] entities() {
+            return new Entity[]{block, item, text};
+        }
     }
 }

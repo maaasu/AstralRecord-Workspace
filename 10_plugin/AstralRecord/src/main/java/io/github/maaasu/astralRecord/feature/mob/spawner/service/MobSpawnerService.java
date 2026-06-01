@@ -240,6 +240,28 @@ public class MobSpawnerService {
     }
 
     /**
+     * スポナー表示を見せるアカウントモードか判定します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @return PLAYER モード以外なら true
+     */
+    public boolean canViewSpawnerVisual(@Nullable AstPlayer astPlayer) {
+        return astPlayer != null && astPlayer.getAccount().getMode() != AccountMode.PLAYER;
+    }
+
+    /**
+     * スポナー定義の表示 Material を返します。
+     *
+     * @param spawnerId スポナー ID
+     * @return 定義済み Material。未ロードなら SPAWNER
+     */
+    @NotNull
+    public Material getDisplayMaterial(@NotNull String spawnerId) {
+        MobSpawnerDefinition definition = definitions.get(spawnerId);
+        return definition == null ? Material.SPAWNER : definition.itemMaterial();
+    }
+
+    /**
      * ロード済みスポナー ID 一覧を返します。
      *
      * @return スポナー ID 一覧
