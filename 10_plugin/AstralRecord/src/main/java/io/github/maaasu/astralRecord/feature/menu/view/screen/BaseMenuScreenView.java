@@ -25,7 +25,6 @@ public abstract class BaseMenuScreenView {
             boolean isBorder = slot < 9 || slot >= 45 || slot % 9 == 0 || slot % 9 == 8;
             inventory.setItem(slot, isBorder ? border : panel);
         }
-        inventory.setItem(CLOSE_SLOT, closeItem());
     }
 
     protected @NotNull ItemStack backItem() {

@@ -42,8 +42,8 @@ public class AdventureRecordGui {
     public static final int MOB_SEARCH_SLOT = 24;
     public static final int BOND_RECORD_SLOT = 31;
     public static final int SEARCH_BUTTON_SLOT = 53;
-    public static final int SEARCH_BACK_SLOT = 49;
-    public static final int SEARCH_CLOSE_SLOT = 45;
+    public static final int SEARCH_BACK_SLOT = BaseMenuScreenView.BACK_SLOT;
+    public static final int SEARCH_CLOSE_SLOT = BaseMenuScreenView.CLOSE_SLOT;
     public static final int[] SEARCH_ITEM_SLOTS = {
         10, 11, 12, 13, 14, 15, 16,
         19, 20, 21, 22, 23, 24, 25,
@@ -146,7 +146,6 @@ public class AdventureRecordGui {
             ItemStack item = i < selectedItems.size() ? selectedItems.get(i).clone() : searchPlaceholder();
             inventory.setItem(SEARCH_ITEM_SLOTS[i], item);
         }
-        inventory.setItem(SEARCH_CLOSE_SLOT, closeItem());
         inventory.setItem(SEARCH_BACK_SLOT, backItem());
         inventory.setItem(SEARCH_BUTTON_SLOT, createItem(
             Material.LIME_DYE,
@@ -318,7 +317,14 @@ public class AdventureRecordGui {
     }
 
     private @NotNull ItemStack backItem() {
-        return createItem(Material.ARROW, Component.text("戻る", NamedTextColor.WHITE), List.of());
+        return createItem(
+            Material.SPECTRAL_ARROW,
+            Component.text("戻る", NamedTextColor.WHITE, TextDecoration.BOLD),
+            List.of(
+                Component.text("前の画面へ戻ります", NamedTextColor.GRAY),
+                Component.text("navigation", NamedTextColor.DARK_GRAY)
+            )
+        );
     }
 
     private @NotNull ItemStack closeItem() {

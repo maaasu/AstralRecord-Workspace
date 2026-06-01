@@ -52,6 +52,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MenuOpenEventHandler extends AbstractEventHandler {
     private static final String TRASH_AMOUNT_LORE_PREFIX = "\u30b9\u30bf\u30c3\u30af: ";
     private static final long BUFF_GUI_REFRESH_INTERVAL_TICKS = 20L;
+    private static final Set<UUID> SUPPRESS_CLOSE_SOUND_ON_CLOSE = ConcurrentHashMap.newKeySet();
 
     private final AstralRecord plugin;
     private final MenuView menuView;
@@ -122,9 +123,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         if (astPlayer == null || !astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
             return;
         }
-        PlayerSettingGui playerSettingGui = plugin.getPlayerSettingGui();
-        if (menuView.isMenuInventory(openedInventory)
-            || playerSettingGui != null && playerSettingGui.isInventory(openedInventory)
+        if (isHotbarShortcutGui(openedInventory)
             || viewType == org.bukkit.event.inventory.InventoryType.CRAFTING) {
             inventoryService.setHotbarShortcutMode(astPlayer, true);
         }
@@ -140,6 +139,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 }
             }
             if (event.getPlayer() instanceof Player player) {
+                boolean shouldPlayCloseSound = isHotbarShortcutGui(event.getInventory())
+                    && !consumeSuppressedCloseSound(player);
                 handleTrashClose(event.getInventory(), player);
                 if (playerInventoryDummyApplied.remove(player.getUniqueId())) {
                     if (!suppressPlayerInventoryRestoreOnClose.remove(player.getUniqueId())) {
@@ -149,6 +150,9 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 AstPlayer astPlayer = AstPlayerCache.get(player);
                 if (astPlayer != null) {
                     inventoryService.setHotbarShortcutMode(astPlayer, false);
+                }
+                if (shouldPlayCloseSound) {
+                    GuiSound.CLOSE.play(player);
                 }
                 scheduleCraftShortcutRender(player);
             }
@@ -285,12 +289,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
         event.setCancelled(true);
 
-        if (event.getRawSlot() == MenuView.CLOSE_SLOT) {
-            GuiSound.CLOSE.play(player);
-            player.closeInventory();
-            return;
-        }
-
         MenuScreen screen = menuView.getMenuScreen(event.getView().getTopInventory());
         if (screen == null) {
             return;
@@ -330,9 +328,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
         boolean handled = inventoryService.handleHotbarShortcutClick(astPlayer, slot);
         if (handled) {
-            if (slot == 4) {
-                GuiSound.CLOSE.play(player);
-            } else {
+            if (slot != 4) {
                 GuiSound.SELECT.play(player);
             }
         } else {
@@ -362,15 +358,16 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 return;
             }
             GuiSound.SELECT.play(player);
-            playerSettingGui.open(player);
+            switchGuiWithoutInventoryReload(player, () -> playerSettingGui.open(player));
             return;
         }
         if (rawSlot == MenuView.EQUIPMENT_GUI_SLOT) {
+            GuiSound.SELECT.play(player);
             openEquipmentGui(player);
             return;
         }
         if (rawSlot == MenuView.TRASH_SLOT) {
-            GuiSound.OPEN.play(player);
+            GuiSound.SELECT.play(player);
             openTrash(player, 0, true);
             return;
         }
@@ -408,8 +405,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 GuiSound.DENY.play(player);
                 return;
             }
-            GuiSound.OPEN.play(player);
-            mailGuiEventHandler.open(player);
+            GuiSound.SELECT.play(player);
+            switchGuiWithoutInventoryReload(player, () -> mailGuiEventHandler.open(player));
             return;
         }
         if (rawSlot == MenuView.ADVENTURE_RECORD_SLOT) {
@@ -418,12 +415,12 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 GuiSound.DENY.play(player);
                 return;
             }
-            GuiSound.OPEN.play(player);
-            adventureRecordGuiEventHandler.open(player);
+            GuiSound.SELECT.play(player);
+            switchGuiWithoutInventoryReload(player, () -> adventureRecordGuiEventHandler.open(player));
             return;
         }
         if (rawSlot == MenuView.CURRENCY_SLOT) {
-            GuiSound.OPEN.play(player);
+            GuiSound.SELECT.play(player);
             openCurrency(player, 0);
             return;
         }
@@ -433,8 +430,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 GuiSound.DENY.play(player);
                 return;
             }
-            GuiSound.OPEN.play(player);
-            partyGui.open(player);
+            GuiSound.SELECT.play(player);
+            switchGuiWithoutInventoryReload(player, () -> partyGui.open(player));
             return;
         }
         if (rawSlot == MenuView.PLAYER_INFO_SLOT) {
@@ -443,8 +440,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 GuiSound.DENY.play(player);
                 return;
             }
-            GuiSound.OPEN.play(player);
-            playerBrowserGuiEventHandler.openInfoList(player, 0);
+            GuiSound.SELECT.play(player);
+            switchGuiWithoutInventoryReload(player, () -> playerBrowserGuiEventHandler.openInfoList(player, 0));
             return;
         }
         GuiSound.DENY.play(player);
@@ -461,11 +458,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
 
     private void handleCurrencyClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
         int rawSlot = event.getRawSlot();
-        if (rawSlot == MenuView.PAGING_CLOSE_SLOT) {
-            GuiSound.CLOSE.play(player);
-            player.closeInventory();
-            return;
-        }
         if (rawSlot == MenuView.PAGING_BACK_SLOT) {
             GuiSound.SELECT.play(player);
             switchGuiWithoutInventoryReload(player, () -> menuView.open(player));
@@ -583,7 +575,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         if (rawSlot == MenuView.TRASH_CLOSE_SLOT) {
             event.setCancelled(true);
             if (currentTrashItems.isEmpty()) {
-                GuiSound.CLOSE.play(player);
                 discardTrash(player);
                 suppressTrashConfirmOnClose.add(player.getUniqueId());
                 player.closeInventory();
@@ -684,7 +675,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             return;
         }
         if (action == MenuShortcutAction.EQUIPMENT_GUI) {
-            GuiSound.SELECT.play(player);
+            GuiSound.OPEN.play(player);
             openEquipmentGui(player);
             return;
         }
@@ -952,17 +943,41 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
 
         MenuScreen menuScreen = menuView.getMenuScreen(openedInventory);
         if (menuScreen != null) {
-            return switch (menuScreen) {
-                case EQUIPMENT_GUI, TRASH, TRASH_CONFIRM -> false;
-                default -> true;
-            };
+            return false;
         }
 
         PlayerSettingGui playerSettingGui = plugin.getPlayerSettingGui();
         if (playerSettingGui != null && playerSettingGui.isInventory(openedInventory)) {
-            return true;
+            return false;
         }
 
+        var partyGui = plugin.getPartyGui();
+        if (partyGui != null && partyGui.isInventory(openedInventory)) {
+            return false;
+        }
+        var playerListGui = plugin.getPlayerListGui();
+        if (playerListGui != null && playerListGui.isInventory(openedInventory)) {
+            return false;
+        }
+        var playerDetailGui = plugin.getPlayerDetailGui();
+        if (playerDetailGui != null && playerDetailGui.isInventory(openedInventory)) {
+            return false;
+        }
+        var mailGuiEventHandler = plugin.getMailGuiEventHandler();
+        if (mailGuiEventHandler != null && mailGuiEventHandler.isInventory(openedInventory)) {
+            return false;
+        }
+        return false;
+    }
+
+    private boolean isHotbarShortcutGui(@NotNull Inventory openedInventory) {
+        if (menuView.isMenuInventory(openedInventory)) {
+            return true;
+        }
+        PlayerSettingGui playerSettingGui = plugin.getPlayerSettingGui();
+        if (playerSettingGui != null && playerSettingGui.isInventory(openedInventory)) {
+            return true;
+        }
         var partyGui = plugin.getPartyGui();
         if (partyGui != null && partyGui.isInventory(openedInventory)) {
             return true;
@@ -979,7 +994,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         if (mailGuiEventHandler != null && mailGuiEventHandler.isInventory(openedInventory)) {
             return true;
         }
-
         var loginBonusService = plugin.getLoginBonusService();
         return loginBonusService != null && loginBonusService.getGui().isLoginBonusInventory(openedInventory);
     }
@@ -994,11 +1008,13 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
 
     private void switchGuiWithoutInventoryReload(@NotNull Player player, @NotNull Runnable opener) {
         suppressPlayerInventoryRestoreForGuiSwitch(player);
+        suppressCloseSoundForGuiSwitch(player);
         opener.run();
     }
 
     private void switchGuiWithInventoryRestore(@NotNull Player player, @NotNull Runnable opener) {
         suppressPlayerInventoryRestoreForGuiSwitch(player);
+        suppressCloseSoundForGuiSwitch(player);
         opener.run();
         restorePlayerInventory(player);
     }
@@ -1007,6 +1023,18 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         if (playerInventoryDummyApplied.contains(player.getUniqueId())) {
             suppressPlayerInventoryRestoreOnClose.add(player.getUniqueId());
         }
+    }
+
+    private void suppressCloseSoundForGuiSwitch(@NotNull Player player) {
+        suppressNextCloseSound(player);
+    }
+
+    public static void suppressNextCloseSound(@NotNull Player player) {
+        SUPPRESS_CLOSE_SOUND_ON_CLOSE.add(player.getUniqueId());
+    }
+
+    public static boolean consumeSuppressedCloseSound(@NotNull Player player) {
+        return SUPPRESS_CLOSE_SOUND_ON_CLOSE.remove(player.getUniqueId());
     }
 
     private @NotNull List<ItemStack> collectAllTrashItems(@NotNull Inventory inventory, @NotNull UUID playerId) {

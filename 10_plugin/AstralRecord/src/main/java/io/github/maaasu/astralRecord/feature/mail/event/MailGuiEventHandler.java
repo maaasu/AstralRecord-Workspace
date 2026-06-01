@@ -5,6 +5,9 @@ import io.github.maaasu.astralRecord.feature.mail.gui.MailGuiView;
 import io.github.maaasu.astralRecord.feature.mail.model.MailEntry;
 import io.github.maaasu.astralRecord.feature.mail.model.MailFilter;
 import io.github.maaasu.astralRecord.feature.mail.service.MailService;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -14,6 +17,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -25,15 +29,18 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
     private final MailGuiView mailGuiView;
     private final MailService mailService;
     private final MenuView menuView;
+    private final InventoryService inventoryService;
 
     public MailGuiEventHandler(
         @NotNull MailGuiView mailGuiView,
         @NotNull MailService mailService,
-        @NotNull MenuView menuView
+        @NotNull MenuView menuView,
+        @NotNull InventoryService inventoryService
     ) {
         this.mailGuiView = mailGuiView;
         this.mailService = mailService;
         this.menuView = menuView;
+        this.inventoryService = inventoryService;
     }
 
     public void open(@NotNull Player player) {
@@ -85,18 +92,18 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
         MailFilter filter = mailGuiView.getFilter(topInventory);
         int pageIndex = mailGuiView.getPageIndex(topInventory);
 
-        if (event.getRawSlot() == MailGuiView.BACK_SLOT) {
-            GuiSound.SELECT.play(player);
-            menuView.open(player);
+        if (handleHotbarShortcutClick(event, player)) {
             return;
         }
-        if (event.getRawSlot() == MailGuiView.CLOSE_SLOT) {
-            GuiSound.CLOSE.play(player);
-            player.closeInventory();
+        if (event.getRawSlot() == MailGuiView.BACK_SLOT) {
+            GuiSound.SELECT.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
+            menuView.open(player);
             return;
         }
         if (event.getRawSlot() == MailGuiView.FILTER_SLOT) {
             GuiSound.SELECT.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
             open(player, filter.next(), 0);
             return;
         }
@@ -104,11 +111,13 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
         List<MailEntry> mails = mailService.list(player.getUniqueId(), filter);
         if (event.getRawSlot() == MailGuiView.PREVIOUS_SLOT && mailGuiView.hasPreviousPage(pageIndex)) {
             GuiSound.SELECT.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
             open(player, filter, pageIndex - 1);
             return;
         }
         if (event.getRawSlot() == MailGuiView.NEXT_SLOT && mailGuiView.hasNextPage(mails, pageIndex)) {
             GuiSound.SELECT.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
             open(player, filter, pageIndex + 1);
             return;
         }
@@ -140,6 +149,7 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
             case RIGHT, SHIFT_RIGHT -> {
                 if (mailService.delete(astPlayer, mailId)) {
                     GuiSound.SELECT.play(player);
+                    MenuOpenEventHandler.suppressNextCloseSound(player);
                     open(player, filter, pageIndex);
                 } else {
                     GuiSound.DENY.play(player);
@@ -148,6 +158,7 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
             case LEFT, SHIFT_LEFT -> {
                 if (mailService.readAndReceive(astPlayer, mail)) {
                     GuiSound.SELECT.play(player);
+                    MenuOpenEventHandler.suppressNextCloseSound(player);
                     open(player, filter, pageIndex);
                 } else {
                     GuiSound.DENY.play(player);
@@ -155,5 +166,32 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
             }
             default -> GuiSound.DENY.play(player);
         }
+    }
+
+    private boolean handleHotbarShortcutClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
+        if (!(event.getClickedInventory() instanceof PlayerInventory)) {
+            return false;
+        }
+        int slot = event.getSlot();
+        if (slot < 0 || slot > 8) {
+            return false;
+        }
+        var astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null || !inventoryService.isHotbarShortcutMode(astPlayer)) {
+            return false;
+        }
+        if (!inventoryService.getClickGuard().tryAcquire(
+            astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.HOTBAR_SHORTCUT)) {
+            return true;
+        }
+        boolean handled = inventoryService.handleHotbarShortcutClick(astPlayer, slot);
+        if (handled) {
+            if (slot != 4) {
+                GuiSound.SELECT.play(player);
+            }
+        } else {
+            GuiSound.DENY.play(player);
+        }
+        return true;
     }
 }

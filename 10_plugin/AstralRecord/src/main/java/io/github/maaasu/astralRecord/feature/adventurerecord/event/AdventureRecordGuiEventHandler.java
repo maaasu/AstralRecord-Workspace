@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureReco
 import io.github.maaasu.astralRecord.feature.adventurerecord.service.AdventureRecordService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -106,6 +107,9 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
             }
             if (event.getPlayer() instanceof Player player) {
                 setHotbarShortcutMode(player, false);
+                if (!MenuOpenEventHandler.consumeSuppressedCloseSound(player)) {
+                    GuiSound.CLOSE.play(player);
+                }
             }
         }, LogId.E_5600, event.getPlayer().getName(), "adventure_record_gui_close");
     }
@@ -113,6 +117,7 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
     private void handleMainClick(@NotNull Player player, int rawSlot) {
         if (rawSlot == BaseMenuScreenView.BACK_SLOT) {
             GuiSound.SELECT.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
             io.github.maaasu.astralRecord.AstralRecord.getInstance().getMenuView().open(player);
             return;
         }
@@ -125,7 +130,8 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (rawSlot == AdventureRecordGui.MOB_SEARCH_SLOT) {
-            GuiSound.OPEN.play(player);
+            GuiSound.SELECT.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
             gui.openSearch(player, List.of());
             return;
         }
@@ -144,6 +150,7 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
         }
         if (rawSlot == PagedGuiView.BACK_SLOT) {
             GuiSound.SELECT.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
             if (listType == AdventureRecordListType.SEARCH) {
                 gui.openSearch(player, List.of());
                 return;
@@ -166,24 +173,20 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
     }
 
     private void handleSearchClick(@NotNull Player player, @NotNull Inventory inventory, int rawSlot) {
-        if (rawSlot == AdventureRecordGui.SEARCH_CLOSE_SLOT) {
-            GuiSound.CLOSE.play(player);
-            player.closeInventory();
-            return;
-        }
         if (rawSlot == AdventureRecordGui.SEARCH_BACK_SLOT) {
             GuiSound.SELECT.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
             gui.openMain(player);
             return;
         }
         if (rawSlot == AdventureRecordGui.SEARCH_BUTTON_SLOT) {
             Set<String> ids = gui.getSearchItemIds(inventory);
-            GuiSound.SELECT.play(player);
             openList(player, AdventureRecordListType.SEARCH, 0, ids);
             return;
         }
         if (gui.isSearchItemSlot(rawSlot)) {
             GuiSound.SELECT.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
             gui.openSearch(player, gui.withoutSearchSlot(inventory, rawSlot));
             return;
         }
@@ -208,7 +211,9 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
             && inventoryService.getClickGuard().tryAcquire(astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.HOTBAR_SHORTCUT)) {
             boolean handled = inventoryService.handleHotbarShortcutClick(astPlayer, slot);
             if (handled) {
-                GuiSound.SELECT.play(player);
+                if (slot != 4) {
+                    GuiSound.SELECT.play(player);
+                }
             } else {
                 GuiSound.DENY.play(player);
             }
@@ -230,6 +235,7 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
         }
         selected.add(clicked.clone());
         GuiSound.SELECT.play(player);
+        MenuOpenEventHandler.suppressNextCloseSound(player);
         gui.openSearch(player, selected);
         return true;
     }
@@ -246,7 +252,8 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
             return;
         }
         List<AdventureRecordService.Entry> entries = adventureRecordService.buildEntries(astPlayer, listType, searchItemIds);
-        GuiSound.OPEN.play(player);
+        GuiSound.SELECT.play(player);
+        MenuOpenEventHandler.suppressNextCloseSound(player);
         gui.openMobList(player, listType, entries, pageIndex, searchItemIds, adventureRecordService.isSuperMode(astPlayer));
     }
 

@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
 import io.github.maaasu.astralRecord.feature.inventory.service.HotbarLayout;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
@@ -126,14 +127,10 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         @NotNull Player player
     ) {
         int rawSlot = event.getRawSlot();
-        if (rawSlot == MenuView.CLOSE_SLOT) {
-            GuiSound.CLOSE.play(player);
-            player.closeInventory();
-            return true;
-        }
         if (rawSlot == MenuView.BACK_SLOT) {
             saveEquipmentMenuSnapshot(player, topInventory);
             GuiSound.SELECT.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
             menuView.open(player);
             return true;
         }
@@ -379,9 +376,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         }
         boolean handled = inventoryService.handleHotbarShortcutClick(astPlayer, slot);
         if (handled) {
-            if (slot == 4) {
-                GuiSound.CLOSE.play(player);
-            } else {
+            if (slot != 4) {
                 GuiSound.SELECT.play(player);
             }
             return;
