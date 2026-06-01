@@ -8,6 +8,7 @@
 - Override file: [db-rebuild.config.json](/E:/AstralRecord-Workspace/60_tool/DbRebuildTool/db-rebuild.config.json:1)
 - Override keys: `connectionStrings.*`, `fileDatabase.rootPath`, `masterData.systemUserId`
 - When `seedMasterData` is `true`, the tool reuses the API `MasterDataSeeder` after recreating `MasterDataDB`
+- `fileDatabase.rootPath` is optional even when the source API settings point to a server-local path. If that path is not accessible from the machine running the tool, the tool falls back to the workspace `40_filebase` directory when it can discover it.
 
 ## Run
 

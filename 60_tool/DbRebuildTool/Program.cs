@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 var options = CliOptions.Parse(args);
 var configPath = ResolveConfigPath(options.ConfigPath);
 var config = LoadConfig(configPath);
-var effectiveSettings = await ResolveEffectiveSettingsAsync(config, CancellationToken.None);
+var effectiveSettings = await ResolveEffectiveSettingsAsync(config, configPath, CancellationToken.None);
 
 PrintSummary(effectiveSettings, configPath);
 
@@ -83,6 +83,7 @@ static RebuildToolConfig LoadConfig(string configPath)
 
 static async Task<EffectiveSettings> ResolveEffectiveSettingsAsync(
     RebuildToolConfig config,
+    string configPath,
     CancellationToken cancellationToken)
 {
     var sourceConfiguration = await LoadSourceConfigurationAsync(config.SourceApiAppsettingsPath, cancellationToken);
@@ -96,7 +97,7 @@ static async Task<EffectiveSettings> ResolveEffectiveSettingsAsync(
     var history = FirstNonEmpty(
         config.ConnectionStrings.History,
         sourceConfiguration.GetConnectionString("History"));
-    var fileDatabaseRootPath = FirstNonEmpty(
+    var configuredFileDatabaseRootPath = FirstNonEmpty(
         config.FileDatabase.RootPath,
         sourceConfiguration["FileDatabase:RootPath"]);
     var systemUserIdText = FirstNonEmpty(
@@ -110,6 +111,11 @@ static async Task<EffectiveSettings> ResolveEffectiveSettingsAsync(
     if (string.IsNullOrWhiteSpace(history))
         throw new InvalidOperationException("ConnectionStrings:History could not be resolved.");
 
+    var fileDatabaseRootPath = ResolveFileDatabaseRootPath(
+        configuredFileDatabaseRootPath,
+        config.SourceApiAppsettingsPath,
+        configPath);
+
     if (config.SeedMasterData && string.IsNullOrWhiteSpace(fileDatabaseRootPath))
         throw new InvalidOperationException("FileDatabase:RootPath is required when SeedMasterData is true.");
 
@@ -122,6 +128,25 @@ static async Task<EffectiveSettings> ResolveEffectiveSettingsAsync(
         fileDatabaseRootPath ?? string.Empty,
         systemUserId,
         config.SeedMasterData);
+}
+
+static string? ResolveFileDatabaseRootPath(
+    string? configuredRootPath,
+    string? sourceApiAppsettingsPath,
+    string configPath)
+{
+    var normalizedConfiguredPath = ExpandPath(configuredRootPath);
+    if (IsUsableFileDatabaseRoot(normalizedConfiguredPath))
+        return normalizedConfiguredPath;
+
+    foreach (var startPath in GetWorkspaceSearchStartPaths(sourceApiAppsettingsPath, configPath))
+    {
+        var discoveredRootPath = TryFindWorkspaceFileDatabaseRoot(startPath);
+        if (!string.IsNullOrWhiteSpace(discoveredRootPath))
+            return discoveredRootPath;
+    }
+
+    return normalizedConfiguredPath;
 }
 
 static async Task<IConfigurationRoot> LoadSourceConfigurationAsync(
@@ -140,6 +165,68 @@ static async Task<IConfigurationRoot> LoadSourceConfigurationAsync(
     return new ConfigurationBuilder()
         .AddJsonStream(stream)
         .Build();
+}
+
+static IEnumerable<string> GetWorkspaceSearchStartPaths(string? sourceApiAppsettingsPath, string configPath)
+{
+    yield return AppContext.BaseDirectory;
+    yield return Directory.GetCurrentDirectory();
+    yield return Path.GetDirectoryName(configPath) ?? string.Empty;
+
+    var normalizedSourceConfigPath = ExpandPath(sourceApiAppsettingsPath);
+    if (!string.IsNullOrWhiteSpace(normalizedSourceConfigPath))
+        yield return Path.GetDirectoryName(normalizedSourceConfigPath) ?? string.Empty;
+}
+
+static string? TryFindWorkspaceFileDatabaseRoot(string startPath)
+{
+    if (string.IsNullOrWhiteSpace(startPath))
+        return null;
+
+    DirectoryInfo? currentDirectory;
+    try
+    {
+        currentDirectory = new DirectoryInfo(Path.GetFullPath(startPath));
+    }
+    catch
+    {
+        return null;
+    }
+
+    while (currentDirectory is not null)
+    {
+        var candidate = Path.Combine(currentDirectory.FullName, "40_filebase");
+        if (IsUsableFileDatabaseRoot(candidate))
+            return candidate;
+
+        currentDirectory = currentDirectory.Parent;
+    }
+
+    return null;
+}
+
+static bool IsUsableFileDatabaseRoot(string? rootPath)
+{
+    if (string.IsNullOrWhiteSpace(rootPath))
+        return false;
+
+    try
+    {
+        return Directory.Exists(rootPath)
+               && File.Exists(Path.Combine(rootPath, "config.yml"));
+    }
+    catch
+    {
+        return false;
+    }
+}
+
+static string? ExpandPath(string? path)
+{
+    if (string.IsNullOrWhiteSpace(path))
+        return path;
+
+    return Path.GetFullPath(Environment.ExpandEnvironmentVariables(path));
 }
 
 static IHost BuildHost(EffectiveSettings settings)
