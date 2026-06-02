@@ -218,7 +218,10 @@ public final class ShopGui {
                 preview.canPurchase() ? NamedTextColor.GREEN : NamedTextColor.RED,
                 TextDecoration.BOLD)
             .decoration(TextDecoration.ITALIC, false));
-        return actionItem(material, preview.canPurchase() ? "購入する" : "素材が不足しています", lore);
+        return actionItem(material, Component.text(preview.canPurchase() ? "購入する" : "素材が不足しています",
+                preview.canPurchase() ? NamedTextColor.GREEN : NamedTextColor.RED,
+                TextDecoration.BOLD)
+            .decoration(TextDecoration.ITALIC, false), lore);
     }
 
     private int toGuiSlot(@NotNull ShopEntry entry) {
@@ -257,12 +260,12 @@ public final class ShopGui {
             .toList());
     }
 
-    private @NotNull ItemStack actionItem(@NotNull Material material, @NotNull Component name, @NotNull List<Component> lore) {
+    private @NotNull ItemStack actionItem(@NotNull Material material, @NotNull Component name, @NotNull List<? extends Component> lore) {
         ItemStack itemStack = new ItemStack(material);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
             meta.displayName(name);
-            meta.lore(lore);
+            meta.lore(new ArrayList<>(lore));
             meta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(meta);
         }
