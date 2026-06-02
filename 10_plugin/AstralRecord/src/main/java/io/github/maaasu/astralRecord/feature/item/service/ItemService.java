@@ -34,12 +34,16 @@ public class ItemService {
     private final SetEffectRepository setEffectRepository;
     private final Map<String, ItemModel> loadedItems;
     private final Map<String, SetEffect> loadedSetEffects;
+    private final Map<String, EquipmentInstance> loadedEquipmentInstances;
+    private final Map<String, RuneInstance> loadedRuneInstances;
 
     public ItemService() {
         this.itemRepository = new ItemRepository();
         this.setEffectRepository = new SetEffectRepository();
         this.loadedItems = new ConcurrentHashMap<>();
         this.loadedSetEffects = new ConcurrentHashMap<>();
+        this.loadedEquipmentInstances = new ConcurrentHashMap<>();
+        this.loadedRuneInstances = new ConcurrentHashMap<>();
     }
 
     /**
@@ -334,7 +338,11 @@ public class ItemService {
         @NotNull String createdBy
     ) {
         try {
-            return itemRepository.createEquipmentInstance(equipmentId, accountId, source, createdBy);
+            EquipmentInstance instance = itemRepository.createEquipmentInstance(equipmentId, accountId, source, createdBy);
+            if (instance != null) {
+                loadedEquipmentInstances.put(normalize(instance.getEquipmentInstanceId()), instance);
+            }
+            return instance;
         } catch (Exception e) {
             Logger.log(LogId.E_5202, e, equipmentId);
             return null;
@@ -342,8 +350,20 @@ public class ItemService {
     }
 
     public @Nullable EquipmentInstance findEquipmentInstanceById(@NotNull String instanceId) {
+        String normalizedId = normalize(instanceId);
+        if (normalizedId.isBlank()) {
+            return null;
+        }
+        EquipmentInstance cached = loadedEquipmentInstances.get(normalizedId);
+        if (cached != null) {
+            return cached;
+        }
         try {
-            return itemRepository.findEquipmentInstanceById(instanceId);
+            EquipmentInstance loaded = itemRepository.findEquipmentInstanceById(instanceId);
+            if (loaded != null) {
+                loadedEquipmentInstances.put(normalizedId, loaded);
+            }
+            return loaded;
         } catch (Exception e) {
             Logger.log(LogId.E_5202, e, instanceId);
             return null;
@@ -366,7 +386,11 @@ public class ItemService {
         @NotNull String createdBy
     ) {
         try {
-            return itemRepository.createRuneInstance(runeId, accountId, source, createdBy);
+            RuneInstance instance = itemRepository.createRuneInstance(runeId, accountId, source, createdBy);
+            if (instance != null) {
+                loadedRuneInstances.put(normalize(instance.getRuneInstanceId()), instance);
+            }
+            return instance;
         } catch (Exception e) {
             Logger.log(LogId.E_5202, e, runeId);
             return null;
@@ -374,8 +398,20 @@ public class ItemService {
     }
 
     public @Nullable RuneInstance findRuneInstanceById(@NotNull String instanceId) {
+        String normalizedId = normalize(instanceId);
+        if (normalizedId.isBlank()) {
+            return null;
+        }
+        RuneInstance cached = loadedRuneInstances.get(normalizedId);
+        if (cached != null) {
+            return cached;
+        }
         try {
-            return itemRepository.findRuneInstanceById(instanceId);
+            RuneInstance loaded = itemRepository.findRuneInstanceById(instanceId);
+            if (loaded != null) {
+                loadedRuneInstances.put(normalizedId, loaded);
+            }
+            return loaded;
         } catch (Exception e) {
             Logger.log(LogId.E_5202, e, instanceId);
             return null;

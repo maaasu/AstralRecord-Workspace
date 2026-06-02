@@ -77,6 +77,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     private final Set<UUID> playerInventoryDummyApplied = ConcurrentHashMap.newKeySet();
     private final ConcurrentHashMap<UUID, StorageViewOptions> storageOptionsByPlayer = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, List<StorageViewEntry>> storageEntriesByPlayer = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UUID, CachedAccounts> cachedAccountsByUserId = new ConcurrentHashMap<>();
+    private static final long ACCOUNTS_CACHE_TTL_MILLIS = 5_000L;
 
     public MenuOpenEventHandler(
         @NotNull AstralRecord plugin,
@@ -1016,7 +1018,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 ? inventoryService.getDisplayedInventoryType(astPlayer.getAccount().getUuid())
                 : null;
             var snapshot = statusService.getStatus(astPlayer);
-            List<AccountModel> accounts = plugin.getAccountService().getAccounts(astPlayer.getUser().getUuid());
+            List<AccountModel> accounts = getCachedAccounts(astPlayer.getUser().getUuid());
             menuView.renderCraftShortcuts(
                 player,
                 MenuShortcutSettings.defaults(),
@@ -1037,6 +1039,17 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     private void resumeCraftRendering(@NotNull Player player) {
         craftRenderSuppressed.remove(player.getUniqueId());
         scheduleCraftShortcutRender(player);
+    }
+
+    private @NotNull List<AccountModel> getCachedAccounts(@NotNull UUID userId) {
+        long now = System.currentTimeMillis();
+        CachedAccounts cached = cachedAccountsByUserId.get(userId);
+        if (cached != null && now - cached.loadedAtMillis() <= ACCOUNTS_CACHE_TTL_MILLIS) {
+            return cached.accounts();
+        }
+        List<AccountModel> loaded = List.copyOf(plugin.getAccountService().getAccounts(userId));
+        cachedAccountsByUserId.put(userId, new CachedAccounts(loaded, now));
+        return loaded;
     }
 
     private boolean isCraftMenuClick(@NotNull InventoryClickEvent event) {
@@ -1355,6 +1368,9 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
 
     public static boolean consumeSuppressedCloseSound(@NotNull Player player) {
         return SUPPRESS_CLOSE_SOUND_ON_CLOSE.remove(player.getUniqueId());
+    }
+
+    private record CachedAccounts(@NotNull List<AccountModel> accounts, long loadedAtMillis) {
     }
 
     private @NotNull List<ItemStack> collectAllTrashItems(@NotNull Inventory inventory, @NotNull UUID playerId) {
