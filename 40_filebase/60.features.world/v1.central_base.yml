@@ -2,8 +2,8 @@ schemaVersion: 1
 id: starlit_nox
 displayName: "星影の街ノクス"
 worldType: BASE
-baseWorldPath: "base/starlit_nox"
-instanceRootPath: "_world_instances/starlit_nox"
+baseWorldPath: "plugins/AstralRecord/worlds/base/starlit_nox"
+instanceRootPath: "plugins/AstralRecord/_world_instances/starlit_nox"
 autoLoad: true
 instanceEnabled: false
 maxPlayers: 100

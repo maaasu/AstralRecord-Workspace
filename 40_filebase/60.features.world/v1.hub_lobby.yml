@@ -2,8 +2,8 @@ schemaVersion: 1
 id: skyhaven_isle
 displayName: "空庭島スカイヘイヴン"
 worldType: HUB
-baseWorldPath: "hub/skyhaven_isle"
-instanceRootPath: "_world_instances/skyhaven_isle"
+baseWorldPath: "plugins/AstralRecord/worlds/hub/skyhaven_isle"
+instanceRootPath: "plugins/AstralRecord/_world_instances/skyhaven_isle"
 autoLoad: true
 instanceEnabled: true
 maxPlayers: 8
@@ -11,9 +11,9 @@ allowBlockBreak: false
 allowBlockPlace: false
 allowMobSpawn: false
 spawnLocation:
-  x: 0.5
-  y: 64.0
-  z: 0.5
+  x: -1483.5
+  y: 77.0
+  z: -1485.5
   yaw: 0.0
   pitch: 0.0
 description: "空に浮かぶ大樹の島。冒険者のハブ、ロビー、個人スペースとして使われる穏やかな空の拠点。"

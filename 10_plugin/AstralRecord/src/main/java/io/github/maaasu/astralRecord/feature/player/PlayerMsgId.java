@@ -520,6 +520,7 @@ public enum PlayerMsgId {
     P_5763(5763),
     P_5764(5764),
     P_5765(5765),
+    P_5766(5766),
     // endregion
 
     // region /feature/hotbaraction/event/HotbarActionEventHandler.java 6000-6009

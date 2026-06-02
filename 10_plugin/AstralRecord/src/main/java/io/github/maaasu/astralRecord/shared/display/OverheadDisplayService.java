@@ -18,12 +18,14 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * プレイヤーと Mob の頭上に、実体 TextDisplay としてステータス文字列を表示するサービスです。
@@ -40,6 +42,7 @@ public class OverheadDisplayService {
     private final MobService mobService;
     private final Map<UUID, DisplayTextService.ManagedTextDisplay> playerDisplays = new HashMap<>();
     private final Map<UUID, DisplayTextService.ManagedTextDisplay> mobDisplays = new HashMap<>();
+    private final Set<UUID> suspendedPlayerDisplays = ConcurrentHashMap.newKeySet();
 
     private BukkitTask task;
 
@@ -85,6 +88,23 @@ public class OverheadDisplayService {
         destroyAll(mobDisplays);
     }
 
+    public void suspendPlayerDisplay(@NotNull UUID playerId) {
+        suspendedPlayerDisplays.add(playerId);
+        DisplayTextService.ManagedTextDisplay display = playerDisplays.remove(playerId);
+        if (display != null) {
+            display.destroy();
+        }
+    }
+
+    public void resumePlayerDisplay(@NotNull UUID playerId) {
+        suspendedPlayerDisplays.remove(playerId);
+    }
+
+    @NotNull
+    public Set<UUID> getSuspendedPlayerDisplays() {
+        return Collections.unmodifiableSet(suspendedPlayerDisplays);
+    }
+
     private void tick() {
         updatePlayerDisplays();
         updateMobDisplays();
@@ -99,6 +119,14 @@ public class OverheadDisplayService {
             UUID subjectId = subject.getUniqueId();
             activeSubjects.add(subjectId);
             subject.setCustomNameVisible(false);
+
+            if (suspendedPlayerDisplays.contains(subjectId)) {
+                DisplayTextService.ManagedTextDisplay suspendedDisplay = playerDisplays.remove(subjectId);
+                if (suspendedDisplay != null) {
+                    suspendedDisplay.destroy();
+                }
+                continue;
+            }
 
             DisplayTextService.ManagedTextDisplay display = playerDisplays.computeIfAbsent(
                     subjectId,

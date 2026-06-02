@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.world.command;
 
+import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -7,6 +8,8 @@ import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
 
@@ -130,20 +133,41 @@ public class WorldCommand extends AstCommand {
                 spawnLocation.getY(),
                 spawnLocation.getZ()
         ));
-        boolean teleported = player.getBukkit().teleport(spawnLocation);
-        sendInfo(player.getBukkit(), PlayerMsgResource.format(
-                PlayerMsgId.P_5765.getId(),
-                teleported,
-                player.getBukkit().getWorld() == null ? "null" : player.getBukkit().getWorld().getName(),
-                player.getBukkit().getLocation().getX(),
-                player.getBukkit().getLocation().getY(),
-                player.getBukkit().getLocation().getZ()
-        ));
-        if (!teleported) {
-            sendError(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5760.getId(), data.id()));
-            return;
-        }
-        sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5761.getId(), spawnLocation.getWorld().getName()));
+        worldService.teleportToSpawnAsync(player.getBukkit(), data).thenAccept(success ->
+                Bukkit.getScheduler().runTask(AstralRecord.getInstance(), () -> {
+                    sendInfo(player.getBukkit(), PlayerMsgResource.format(
+                            PlayerMsgId.P_5765.getId(),
+                            success,
+                            player.getBukkit().getWorld() == null ? "null" : player.getBukkit().getWorld().getName(),
+                            player.getBukkit().getLocation().getX(),
+                            player.getBukkit().getLocation().getY(),
+                            player.getBukkit().getLocation().getZ()
+                    ));
+                    if (!success) {
+                        Logger.log(
+                                LogId.W_5753,
+                                data.id(),
+                                spawnLocation.getWorld() == null ? "null" : spawnLocation.getWorld().getName(),
+                                spawnLocation.getX(),
+                                spawnLocation.getY(),
+                                spawnLocation.getZ()
+                        );
+                        sendError(
+                                player.getBukkit(),
+                                PlayerMsgResource.format(
+                                        PlayerMsgId.P_5766.getId(),
+                                        data.id(),
+                                        spawnLocation.getWorld() == null ? "null" : spawnLocation.getWorld().getName()
+                                )
+                        );
+                        return;
+                    }
+                    sendSuccess(
+                            player.getBukkit(),
+                            PlayerMsgResource.format(PlayerMsgId.P_5761.getId(), spawnLocation.getWorld().getName())
+                    );
+                })
+        );
     }
 
     private void handleLoaded(@NotNull AstPlayer player) {

@@ -114,6 +114,7 @@ import io.github.maaasu.astralRecord.feature.user.repository.UserRepository;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
 import io.github.maaasu.astralRecord.feature.world.config.PluginJoinSpawnWorldConfig;
 import io.github.maaasu.astralRecord.feature.world.event.WorldNaturalSpawnBlockEventHandler;
+import io.github.maaasu.astralRecord.feature.world.event.WorldTeleportDebugEventHandler;
 import io.github.maaasu.astralRecord.feature.world.event.WorldJoinSpawnEventHandler;
 import io.github.maaasu.astralRecord.feature.world.repository.WorldRepository;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
@@ -534,6 +535,10 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
+            new WorldTeleportDebugEventHandler(),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
             new ResourcePackJoinEventHandler(resourcePackService),
             getServer().getPluginManager()
         );
@@ -759,6 +764,10 @@ public final class AstralRecord extends JavaPlugin {
      */
     public DisplayTextService getDisplayTextService() {
         return displayTextService;
+    }
+
+    public OverheadDisplayService getOverheadDisplayService() {
+        return overheadDisplayService;
     }
 
     public MobService getMobService() {

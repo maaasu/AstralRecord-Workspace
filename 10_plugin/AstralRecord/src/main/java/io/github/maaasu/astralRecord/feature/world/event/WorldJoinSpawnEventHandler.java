@@ -51,7 +51,18 @@ public class WorldJoinSpawnEventHandler extends AbstractEventHandler {
                 return;
             }
 
-            event.getPlayer().teleport(location);
+            worldService.teleportToSpawnAsync(event.getPlayer(), worldData).thenAccept(success -> {
+                if (!success) {
+                    Logger.log(
+                            LogId.W_5753,
+                            worldData.id(),
+                            location.getWorld() == null ? "null" : location.getWorld().getName(),
+                            location.getX(),
+                            location.getY(),
+                            location.getZ()
+                    );
+                }
+            });
         }, LogId.E_5752, event.getPlayer().getName()));
     }
 }

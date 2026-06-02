@@ -2,8 +2,8 @@ schemaVersion: 1
 id: greenfall_fields
 displayName: "Wild Overworld"
 worldType: 翠風の原野
-baseWorldPath: "overworld/greenfall_fields"
-instanceRootPath: "_world_instances/greenfall_fields"
+baseWorldPath: "plugins/AstralRecord/worlds/overworld/greenfall_fields"
+instanceRootPath: "plugins/AstralRecord/_world_instances/greenfall_fields"
 autoLoad: false
 instanceEnabled: true
 maxPlayers: 40

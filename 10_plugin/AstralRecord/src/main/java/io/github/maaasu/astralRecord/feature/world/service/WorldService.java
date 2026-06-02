@@ -1,18 +1,23 @@
 package io.github.maaasu.astralRecord.feature.world.service;
 
+import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.repository.WorldRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.shared.display.OverheadDisplayService;
 import org.bukkit.Bukkit;
 import org.bukkit.GameRules;
 import org.bukkit.Location;
 import org.bukkit.WorldCreator;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.TextDisplay;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -20,11 +25,15 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 /**
  * WorldMasterData をロードし、Plugin 内で保持するサービスです。
  */
 public class WorldService {
+    private static final long TELEPORT_PREPARE_DELAY_TICKS = 2L;
+    private static final long TELEPORT_RESUME_DELAY_TICKS = 10L;
 
     private final WorldRepository repository;
     private final Map<String, WorldMasterData> loadedWorlds = new LinkedHashMap<>();
@@ -102,10 +111,11 @@ public class WorldService {
             }
         }
 
-        File baseWorldFolder = resolveWorldFolder(normalizeWorldPath(data.baseWorldPath()));
-        for (org.bukkit.World world : Bukkit.getWorlds()) {
-            if (sameFile(world.getWorldFolder(), baseWorldFolder)) {
-                return world;
+        for (File baseWorldFolder : resolveWorldFolderCandidates(normalizeWorldPath(data.baseWorldPath()))) {
+            for (org.bukkit.World world : Bukkit.getWorlds()) {
+                if (sameFile(world.getWorldFolder(), baseWorldFolder)) {
+                    return world;
+                }
             }
         }
         return Bukkit.getWorld(data.id());
@@ -145,6 +155,167 @@ public class WorldService {
         return new Location(world, spawn.x(), spawn.y(), spawn.z(), spawn.yaw(), spawn.pitch());
     }
 
+    /**
+     * WorldMasterData のスポーン地点へプレイヤーを移動します。
+     *
+     * @param player 移動対象プレイヤー
+     * @param data 移動先 WorldMasterData
+     * @return 移動に成功した場合は {@code true}
+     */
+    public boolean teleportToSpawn(@NotNull org.bukkit.entity.Player player, @NotNull WorldMasterData data) {
+        Location spawnLocation = resolveSpawnLocation(data);
+        if (spawnLocation == null || spawnLocation.getWorld() == null) {
+            return false;
+        }
+
+        logPlayerTransportState(player);
+        OverheadDisplayService overheadDisplayService = suspendOverheadDisplay(player);
+        try {
+            detachTextDisplayPassengers(player);
+            // 異世界移動前に対象チャンクを明示ロードして teleport() の失敗を減らす
+            spawnLocation.getChunk().load();
+            return player.teleport(spawnLocation);
+        } finally {
+            resumeOverheadDisplay(overheadDisplayService, player);
+        }
+    }
+
+    /**
+     * WorldMasterData のスポーン地点へプレイヤーを非同期で移動します。
+     *
+     * @param player 移動対象プレイヤー
+     * @param data 移動先 WorldMasterData
+     * @return 移動結果を返す Future
+     */
+    @NotNull
+    public CompletableFuture<Boolean> teleportToSpawnAsync(
+            @NotNull org.bukkit.entity.Player player,
+            @NotNull WorldMasterData data
+    ) {
+        return teleportToSpawnAsync(player, data, null);
+    }
+
+    @NotNull
+    public CompletableFuture<Boolean> teleportToSpawnAsync(
+            @NotNull org.bukkit.entity.Player player,
+            @NotNull WorldMasterData data,
+            @Nullable Runnable onSuccess
+    ) {
+        Location spawnLocation = resolveSpawnLocation(data);
+        if (spawnLocation == null || spawnLocation.getWorld() == null) {
+            return CompletableFuture.completedFuture(false);
+        }
+
+        logPlayerTransportState(player);
+        org.bukkit.World world = spawnLocation.getWorld();
+        int chunkX = spawnLocation.getBlockX() >> 4;
+        int chunkZ = spawnLocation.getBlockZ() >> 4;
+        Logger.log(LogId.I_5753, data.id(), world.getName(), chunkX, chunkZ);
+        return teleportPlayerAsync(player, spawnLocation, onSuccess);
+    }
+
+    @NotNull
+    public CompletableFuture<Boolean> teleportPlayerAsync(
+            @NotNull org.bukkit.entity.Player player,
+            @NotNull Location targetLocation,
+            @Nullable Runnable onSuccess
+    ) {
+        if (targetLocation.getWorld() == null) {
+            return CompletableFuture.completedFuture(false);
+        }
+
+        AstralRecord plugin = AstralRecord.getInstance();
+        if (plugin == null) {
+            return CompletableFuture.completedFuture(false);
+        }
+
+        OverheadDisplayService overheadDisplayService = suspendOverheadDisplay(player);
+        detachTextDisplayPassengers(player);
+
+        CompletableFuture<Boolean> result = new CompletableFuture<>();
+        targetLocation.getWorld().getChunkAtAsyncUrgently(targetLocation, true).whenComplete((chunk, chunkThrowable) -> {
+            if (chunkThrowable != null) {
+                scheduleOverheadResume(plugin, overheadDisplayService, player);
+                result.complete(false);
+                return;
+            }
+
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (!player.isOnline()) {
+                    scheduleOverheadResume(plugin, overheadDisplayService, player);
+                    result.complete(false);
+                    return;
+                }
+
+                detachTextDisplayPassengers(player);
+                player.teleportAsync(targetLocation).whenComplete((success, teleportThrowable) ->
+                        Bukkit.getScheduler().runTask(plugin, () -> {
+                            boolean teleported = teleportThrowable == null && Boolean.TRUE.equals(success);
+                            if (teleported && onSuccess != null) {
+                                onSuccess.run();
+                            }
+                            scheduleOverheadResume(plugin, overheadDisplayService, player);
+                            result.complete(teleported);
+                        })
+                );
+            }, TELEPORT_PREPARE_DELAY_TICKS);
+        });
+        return result;
+    }
+
+    @Nullable
+    private OverheadDisplayService suspendOverheadDisplay(@NotNull org.bukkit.entity.Player player) {
+        AstralRecord plugin = AstralRecord.getInstance();
+        if (plugin == null) {
+            return null;
+        }
+
+        OverheadDisplayService overheadDisplayService = plugin.getOverheadDisplayService();
+        if (overheadDisplayService != null) {
+            overheadDisplayService.suspendPlayerDisplay(player.getUniqueId());
+        }
+        return overheadDisplayService;
+    }
+
+    private void resumeOverheadDisplay(
+            @Nullable OverheadDisplayService overheadDisplayService,
+            @NotNull org.bukkit.entity.Player player
+    ) {
+        if (overheadDisplayService != null) {
+            overheadDisplayService.resumePlayerDisplay(player.getUniqueId());
+        }
+    }
+
+    private void scheduleOverheadResume(
+            @NotNull AstralRecord plugin,
+            @Nullable OverheadDisplayService overheadDisplayService,
+            @NotNull org.bukkit.entity.Player player
+    ) {
+        Bukkit.getScheduler().runTaskLater(
+                plugin,
+                () -> resumeOverheadDisplay(overheadDisplayService, player),
+                TELEPORT_RESUME_DELAY_TICKS
+        );
+    }
+
+    private void detachTextDisplayPassengers(@NotNull org.bukkit.entity.Player player) {
+        for (Entity passenger : new ArrayList<>(player.getPassengers())) {
+            if (passenger instanceof TextDisplay) {
+                player.removePassenger(passenger);
+            }
+        }
+    }
+
+    private void logPlayerTransportState(@NotNull org.bukkit.entity.Player player) {
+        String vehicle = player.getVehicle() == null ? "-" : player.getVehicle().getType().name();
+        String passengers = player.getPassengers().isEmpty()
+                ? "-"
+                : player.getPassengers().stream()
+                .map(entity -> entity.getType().name())
+                .collect(Collectors.joining(","));
+        Logger.log(LogId.I_5754, player.getName(), vehicle, passengers);
+    }
+
     private void loadRegisteredBukkitWorlds(@NotNull Collection<WorldMasterData> worlds) {
         int loadedCount = 0;
         for (WorldMasterData world : worlds) {
@@ -171,8 +342,8 @@ public class WorldService {
             return null;
         }
 
-        File worldFolder = resolveWorldFolder(worldName);
-        if (!new File(worldFolder, "level.dat").isFile()) {
+        File worldFolder = resolveExistingWorldFolder(worldName);
+        if (worldFolder == null) {
             Logger.log(LogId.W_5752, data.id(), worldName);
             return null;
         }
@@ -216,33 +387,67 @@ public class WorldService {
     }
 
     @NotNull
-    private static File resolveWorldFolder(@NotNull String worldName) {
+    private static List<File> resolveWorldFolderCandidates(@NotNull String worldName) {
+        Set<File> candidates = new LinkedHashSet<>();
         File folder = new File(worldName);
         if (folder.isAbsolute()) {
-            return folder;
+            candidates.add(folder);
+            return List.copyOf(candidates);
+        }
+
+        for (File searchRoot : worldSearchRoots()) {
+            candidates.add(new File(searchRoot, worldName));
         }
 
         File worldContainer = Bukkit.getWorldContainer();
-        File direct = new File(worldContainer, worldName);
-        if (direct.exists()) {
-            return direct;
-        }
-
         String normalizedContainer = normalizeWorldPath(worldContainer.getPath());
         String normalizedName = normalizeWorldPath(worldName);
         if (!normalizedContainer.isBlank()
                 && normalizedName.startsWith(normalizedContainer + "/")) {
             String relativeName = normalizedName.substring(normalizedContainer.length() + 1);
-            return new File(worldContainer, relativeName);
+            candidates.add(new File(worldContainer, relativeName));
         }
 
         String containerLeaf = worldContainer.getName();
         if (!containerLeaf.isBlank() && normalizedName.startsWith(containerLeaf + "/")) {
             String relativeName = normalizedName.substring(containerLeaf.length() + 1);
-            return new File(worldContainer, relativeName);
+            candidates.add(new File(worldContainer, relativeName));
         }
 
-        return direct;
+        return List.copyOf(candidates);
+    }
+
+    @NotNull
+    private static List<File> worldSearchRoots() {
+        Set<File> roots = new LinkedHashSet<>();
+        File worldContainer = Bukkit.getWorldContainer();
+        roots.add(worldContainer);
+        roots.add(new File(worldContainer, "worlds"));
+
+        for (org.bukkit.World loadedWorld : Bukkit.getWorlds()) {
+            File cursor = loadedWorld.getWorldFolder();
+            int depth = 0;
+            while (cursor != null && depth < 4) {
+                File parent = cursor.getParentFile();
+                if (parent == null) {
+                    break;
+                }
+                roots.add(parent);
+                cursor = parent;
+                depth++;
+            }
+        }
+        return List.copyOf(roots);
+    }
+
+    @Nullable
+    private static File resolveExistingWorldFolder(@NotNull String worldName) {
+        for (File candidate : resolveWorldFolderCandidates(worldName)) {
+            if (new File(candidate, "level.dat").isFile()) {
+                return candidate;
+            }
+        }
+        return null;
     }
 
     private static boolean sameFile(@NotNull File left, @NotNull File right) {

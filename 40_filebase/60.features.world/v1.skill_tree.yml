@@ -2,8 +2,8 @@ schemaVersion: 1
 id: skill_tree
 displayName: "スキルツリー"
 worldType: HUB
-baseWorldPath: "hub/skill_tree"
-instanceRootPath: "_world_instances/skill_tree"
+baseWorldPath: "plugins/AstralRecord/worlds/hub/skill_tree"
+instanceRootPath: "plugins/AstralRecord/_world_instances/skill_tree"
 autoLoad: true
 instanceEnabled: true
 maxPlayers: 8

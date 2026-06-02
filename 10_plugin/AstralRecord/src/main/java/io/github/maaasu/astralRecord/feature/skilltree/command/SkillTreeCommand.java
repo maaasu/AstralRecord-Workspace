@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.bukkit.Bukkit;
+import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
@@ -42,11 +43,15 @@ public class SkillTreeCommand extends AstCommand {
             sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5829.getId()));
             return;
         }
-        if (!service.teleportToSkillTree(player)) {
-            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5820.getId()));
-            return;
-        }
-        sendSuccess(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5819.getId()));
+        service.teleportToSkillTree(player).thenAccept(success ->
+                Bukkit.getScheduler().runTask(io.github.maaasu.astralRecord.AstralRecord.getInstance(), () -> {
+                    if (!success) {
+                        sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5820.getId()));
+                        return;
+                    }
+                    sendSuccess(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5819.getId()));
+                })
+        );
     }
 
     private void handleReload(@NotNull AstPlayer player) {

@@ -37,6 +37,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
+import java.util.concurrent.CompletableFuture;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -171,24 +172,22 @@ public class SkillTreeService {
         return current != null && current.worldType() == WorldType.BASE;
     }
 
-    public boolean teleportToSkillTree(@NotNull AstPlayer astPlayer) {
+    @NotNull
+    public CompletableFuture<Boolean> teleportToSkillTree(@NotNull AstPlayer astPlayer) {
         Optional<Location> spawn = resolveSkillTreeSpawn();
         if (spawn.isEmpty()) {
-            return false;
+            return CompletableFuture.completedFuture(false);
         }
-        returnLocations.put(astPlayer.getBukkit().getUniqueId(), astPlayer.getBukkit().getLocation().clone());
-        boolean teleported = astPlayer.getBukkit().teleport(spawn.get());
-        if (teleported) {
-            applySkillTreeHotbar(astPlayer.getBukkit());
-        }
-        return teleported;
+        Player player = astPlayer.getBukkit();
+        returnLocations.put(player.getUniqueId(), player.getLocation().clone());
+        return worldService.teleportPlayerAsync(player, spawn.get(), () -> applySkillTreeHotbar(player));
     }
 
-    public boolean returnToBase(@NotNull Player player) {
+    @NotNull
+    public CompletableFuture<Boolean> returnToBase(@NotNull Player player) {
         Location saved = returnLocations.remove(player.getUniqueId());
         if (saved != null && saved.getWorld() != null) {
-            restoreHotbar(player);
-            return player.teleport(saved);
+            return worldService.teleportPlayerAsync(player, saved, () -> restoreHotbar(player));
         }
         for (WorldMasterData data : worldService.getAll()) {
             if (data.worldType() != WorldType.BASE) {
@@ -196,11 +195,10 @@ public class SkillTreeService {
             }
             Location spawn = worldService.resolveSpawnLocation(data);
             if (spawn != null) {
-                restoreHotbar(player);
-                return player.teleport(spawn);
+                return worldService.teleportPlayerAsync(player, spawn, () -> restoreHotbar(player));
             }
         }
-        return false;
+        return CompletableFuture.completedFuture(false);
     }
 
     public boolean isSkillTreeWorld(@NotNull World world) {

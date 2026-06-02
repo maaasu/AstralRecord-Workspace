@@ -72,7 +72,11 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
         if (action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK) {
             if (event.getPlayer().getInventory().getHeldItemSlot() == 8) {
                 event.setCancelled(true);
-                service.returnToBase(event.getPlayer());
+                service.returnToBase(event.getPlayer()).thenAccept(success -> {
+                    if (!success) {
+                        event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5820.getId()));
+                    }
+                });
                 return;
             }
         }
@@ -143,7 +147,11 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
         if (event.getClickedInventory() == player.getInventory() && event.getSlot() >= 0 && event.getSlot() <= 8) {
             event.setCancelled(true);
             if (event.getSlot() == 8) {
-                service.returnToBase(player);
+                service.returnToBase(player).thenAccept(success -> {
+                    if (!success) {
+                        player.sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5820.getId()));
+                    }
+                });
             }
         }
     }
