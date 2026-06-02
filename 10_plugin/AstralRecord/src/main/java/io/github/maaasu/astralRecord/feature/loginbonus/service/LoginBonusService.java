@@ -1,35 +1,44 @@
 package io.github.maaasu.astralRecord.feature.loginbonus.service;
 
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.loginbonus.view.LoginBonusGui;
+import io.github.maaasu.astralRecord.feature.loginbonus.view.LoginBonusHoliday;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
-import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
-import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.ZoneId;
+import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * ログインボーナスの日次受け取り状態と GUI 表示を管理します。
+ * ログイン報酬の日次受け取り状態と GUI 表示を管理します。
  */
 public final class LoginBonusService {
     private static final ZoneId DATE_ZONE = ZoneId.of("Asia/Tokyo");
-    private static final int DAILY_LOGIN_BONUS_GOLD = 1000;
+    private static final int DAILY_LOGIN_BONUS_ASTRALD = 10;
+    private static final int HOLIDAY_LOGIN_BONUS_ASTRALD = 10;
+    private static final String REWARD_SOURCE = "daily_login_bonus";
 
     private final LoginBonusGui gui;
     private final InventoryService inventoryService;
     private final ItemService itemService;
-    private final Map<UUID, LocalDate> receivedDates = new ConcurrentHashMap<>();
+    private final Map<UUID, Set<LocalDate>> receivedDates = new ConcurrentHashMap<>();
 
     /**
-     * ログインボーナスサービスを構築します。
+     * ログイン報酬サービスを構築します。
      *
      * @param gui 表示に使用する GUI
+     * @param inventoryService インベントリ操作サービス
+     * @param itemService アイテム定義サービス
      */
     public LoginBonusService(
         @NotNull LoginBonusGui gui,
@@ -42,40 +51,96 @@ public final class LoginBonusService {
     }
 
     /**
-     * データロード済みプレイヤーへログインボーナス画面を開きます。
+     * データロード済みプレイヤーへ当月のログイン報酬画面を開きます。
      *
      * @param player 対象プレイヤー
      */
     public void openAfterDataLoaded(@NotNull Player player) {
+        open(player, YearMonth.now(DATE_ZONE));
+    }
+
+    /**
+     * 指定年月のログイン報酬画面を開きます。
+     *
+     * @param player 対象プレイヤー
+     * @param displayMonth 表示する年月
+     */
+    public void open(@NotNull Player player, @NotNull YearMonth displayMonth) {
         var astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null || !player.isOnline()) {
             return;
         }
-
         UUID accountId = astPlayer.getAccount().getUuid();
-        LocalDate today = LocalDate.now(DATE_ZONE);
-        boolean alreadyReceivedToday = today.equals(receivedDates.get(accountId));
-        if (!alreadyReceivedToday) {
-            receivedDates.put(accountId, today);
-            grantDailyLoginBonus(astPlayer);
-        }
-        gui.open(player, alreadyReceivedToday, today);
-    }
-
-    private void grantDailyLoginBonus(@NotNull AstPlayer astPlayer) {
-        var goldModel = itemService.loadItem(ItemService.DEFAULT_CURRENCY_ITEM_ID);
-        if (goldModel == null) {
-            return;
-        }
-        inventoryService.addItemToNormalInventory(astPlayer, goldModel, DAILY_LOGIN_BONUS_GOLD, "daily_login_bonus");
+        gui.open(
+            player,
+            displayMonth,
+            LocalDate.now(DATE_ZONE),
+            receivedDates.getOrDefault(accountId, Collections.emptySet()),
+            resolveRewardModel()
+        );
     }
 
     /**
-     * ログインボーナス GUI を返します。
+     * 当日スロットの報酬受け取りを試行します。
      *
-     * @return ログインボーナス GUI
+     * @param player 対象プレイヤー
+     * @param targetDate クリックされた日付
+     * @return 受け取りに成功した場合は true
+     */
+    public boolean claim(@NotNull Player player, @NotNull LocalDate targetDate) {
+        var astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null || !player.isOnline()) {
+            return false;
+        }
+        LocalDate today = LocalDate.now(DATE_ZONE);
+        if (!targetDate.equals(today)) {
+            return false;
+        }
+        UUID accountId = astPlayer.getAccount().getUuid();
+        Set<LocalDate> dates = receivedDates.computeIfAbsent(accountId, ignored -> ConcurrentHashMap.newKeySet());
+        if (!dates.add(today)) {
+            return false;
+        }
+        if (!grantDailyLoginBonus(astPlayer, today)) {
+            dates.remove(today);
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * ログイン報酬 GUI を返します。
+     *
+     * @return ログイン報酬 GUI
      */
     public @NotNull LoginBonusGui getGui() {
         return gui;
+    }
+
+    private boolean grantDailyLoginBonus(@NotNull AstPlayer astPlayer, @NotNull LocalDate date) {
+        ItemModel astraldModel = resolveRewardModel();
+        if (astraldModel == null) {
+            return false;
+        }
+        int granted = inventoryService.addItemToNormalInventory(
+            astPlayer,
+            astraldModel,
+            rewardAmount(date),
+            REWARD_SOURCE
+        );
+        return granted > 0;
+    }
+
+    private int rewardAmount(@NotNull LocalDate date) {
+        return DAILY_LOGIN_BONUS_ASTRALD
+            + (LoginBonusHoliday.isJapaneseHoliday(date) ? HOLIDAY_LOGIN_BONUS_ASTRALD : 0);
+    }
+
+    private ItemModel resolveRewardModel() {
+        ItemModel model = itemService.findLoadedById(ItemService.ASTRALD_CURRENCY_ITEM_ID);
+        if (model == null) {
+            model = itemService.loadItem(ItemService.ASTRALD_CURRENCY_ITEM_ID);
+        }
+        return model;
     }
 }

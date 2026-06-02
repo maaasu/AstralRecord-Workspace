@@ -1,7 +1,9 @@
 package io.github.maaasu.astralRecord.feature.loginbonus.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
+import io.github.maaasu.astralRecord.feature.loginbonus.service.LoginBonusService;
 import io.github.maaasu.astralRecord.feature.loginbonus.view.LoginBonusGui;
+import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.entity.Player;
@@ -11,19 +13,24 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.jetbrains.annotations.NotNull;
 
+import java.time.LocalDate;
+import java.time.YearMonth;
+
 /**
- * ログインボーナス GUI の操作を処理します。
+ * ログイン報酬 GUI の操作を処理します。
  */
 public final class LoginBonusGuiEventHandler extends AbstractEventHandler {
+    private final LoginBonusService loginBonusService;
     private final LoginBonusGui gui;
 
     /**
-     * ログインボーナス GUI イベントハンドラを構築します。
+     * ログイン報酬 GUI イベントハンドラを構築します。
      *
-     * @param gui 対象 GUI
+     * @param loginBonusService ログイン報酬サービス
      */
-    public LoginBonusGuiEventHandler(@NotNull LoginBonusGui gui) {
-        this.gui = gui;
+    public LoginBonusGuiEventHandler(@NotNull LoginBonusService loginBonusService) {
+        this.loginBonusService = loginBonusService;
+        this.gui = loginBonusService.getGui();
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -36,12 +43,7 @@ public final class LoginBonusGuiEventHandler extends AbstractEventHandler {
             if (!(event.getWhoClicked() instanceof Player player)) {
                 return;
             }
-            if (event.getRawSlot() == LoginBonusGui.CLOSE_SLOT) {
-                GuiSound.CLOSE.play(player);
-                player.closeInventory();
-                return;
-            }
-            GuiSound.DENY.play(player);
+            handleClick(event, player);
         }, LogId.E_5070, "login_bonus_click: " + event.getWhoClicked().getName());
     }
 
@@ -52,5 +54,37 @@ public final class LoginBonusGuiEventHandler extends AbstractEventHandler {
                 event.setCancelled(true);
             }
         }, LogId.E_5070, "login_bonus_drag: " + event.getWhoClicked().getName());
+    }
+
+    private void handleClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
+        YearMonth displayMonth = gui.getDisplayMonth(event.getView().getTopInventory());
+        if (displayMonth == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (event.getRawSlot() == LoginBonusGui.PREVIOUS_MONTH_SLOT) {
+            GuiSound.SELECT.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
+            loginBonusService.open(player, displayMonth.minusMonths(1));
+            return;
+        }
+        if (event.getRawSlot() == LoginBonusGui.NEXT_MONTH_SLOT) {
+            GuiSound.SELECT.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
+            loginBonusService.open(player, displayMonth.plusMonths(1));
+            return;
+        }
+        LocalDate clickedDate = gui.resolveDate(displayMonth, event.getRawSlot());
+        if (clickedDate == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (loginBonusService.claim(player, clickedDate)) {
+            GuiSound.SELECT.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
+            loginBonusService.open(player, displayMonth);
+        } else {
+            GuiSound.DENY.play(player);
+        }
     }
 }

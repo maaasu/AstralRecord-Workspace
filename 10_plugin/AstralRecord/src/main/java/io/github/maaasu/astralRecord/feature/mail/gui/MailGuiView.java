@@ -1,6 +1,9 @@
 package io.github.maaasu.astralRecord.feature.mail.gui;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.item.service.RewardDisplayFormatter;
 import io.github.maaasu.astralRecord.feature.mail.model.MailEntry;
 import io.github.maaasu.astralRecord.feature.mail.model.MailFilter;
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
@@ -40,9 +43,11 @@ public final class MailGuiView {
 
     private final PagedGuiView pagedGuiView = new PagedGuiView();
     private final NamespacedKey mailIdKey;
+    private final ItemService itemService;
 
-    public MailGuiView(@NotNull AstralRecord plugin) {
+    public MailGuiView(@NotNull AstralRecord plugin, @NotNull ItemService itemService) {
         this.mailIdKey = new NamespacedKey(plugin, "mail_id");
+        this.itemService = itemService;
     }
 
     public void open(
@@ -144,9 +149,13 @@ public final class MailGuiView {
         if (!mail.rewards().isEmpty()) {
             lore.add(Component.empty());
             lore.add(Component.text("報酬:", NamedTextColor.AQUA));
-            mail.rewards().forEach(reward ->
-                lore.add(Component.text("- " + reward.itemId() + " x" + reward.amount(), NamedTextColor.GRAY))
-            );
+            mail.rewards().forEach(reward -> {
+                ItemModel model = itemService.findLoadedById(reward.itemId());
+                if (model == null) {
+                    model = itemService.loadItem(reward.itemId(), reward.category());
+                }
+                lore.add(RewardDisplayFormatter.rewardBullet(model, reward.itemId(), reward.amount()));
+            });
         }
         lore.add(Component.empty());
         lore.add(Component.text("左クリック: 既読/受け取り", NamedTextColor.GREEN));

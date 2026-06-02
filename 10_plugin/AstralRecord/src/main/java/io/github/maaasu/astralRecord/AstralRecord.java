@@ -503,7 +503,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new LoginBonusGuiEventHandler(loginBonusService.getGui()),
+            new LoginBonusGuiEventHandler(loginBonusService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
@@ -528,7 +528,7 @@ public final class AstralRecord extends JavaPlugin {
         );
         menuOpenEventHandler = new MenuOpenEventHandler(this, menuView, inventoryService, currencyService, statusService);
         eventManager.registerHandler(menuOpenEventHandler, getServer().getPluginManager());
-        mailGuiEventHandler = new MailGuiEventHandler(new MailGuiView(this), mailService, menuView, inventoryService);
+        mailGuiEventHandler = new MailGuiEventHandler(new MailGuiView(this, itemService), mailService, menuView, inventoryService);
         eventManager.registerHandler(
             mailGuiEventHandler,
             getServer().getPluginManager()
