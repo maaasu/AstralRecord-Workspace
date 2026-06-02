@@ -1034,6 +1034,47 @@ public class InventoryService {
         }
     }
 
+    /**
+     * 現在の装備状態を業務ロジック向けのアイテム参照一覧として返します。
+     * <p>
+     * 防具・アクセサリはアクティブ loadout を正本として解決し、主武器は現在選択中の
+     * HOTBAR スロットから補完します。Bukkit の見た目 ItemStack を直接走査せず、
+     * state / loadout ベースでステータス系ロジックから利用する想定です。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @return 現在装備中として扱うアイテム参照一覧
+     */
+    public @NotNull List<ItemReference> getEquippedItemReferences(@NotNull AstPlayer astPlayer) {
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) {
+            return List.of();
+        }
+
+        List<ItemReference> references = new ArrayList<>();
+        EquipmentLoadoutModel loadout = getActiveEquipmentLoadout(astPlayer.getAccount().getUuid());
+        if (loadout != null) {
+            for (EquipmentLoadoutSlotModel slot : loadout.getSlots()) {
+                if (slot.isDeleted()) {
+                    continue;
+                }
+                ItemReference reference = resolveItemReference(toInventoryEntry(slot));
+                if (reference != null) {
+                    references.add(reference);
+                }
+            }
+        }
+
+        InventoryEntryModel mainHandEntry = findHotbarEntryBySlot(
+            state,
+            HotbarLayout.toDbSlot(astPlayer.getBukkit().getInventory().getHeldItemSlot())
+        );
+        ItemReference mainHandReference = mainHandEntry == null ? null : resolveItemReference(mainHandEntry);
+        if (mainHandReference != null) {
+            references.add(mainHandReference);
+        }
+        return references;
+    }
+
     private boolean applyActiveEquipmentLoadoutToGui(@NotNull AstPlayer astPlayer) {
         if (!astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
             return false;

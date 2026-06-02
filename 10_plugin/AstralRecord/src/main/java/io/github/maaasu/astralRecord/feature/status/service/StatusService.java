@@ -22,9 +22,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusValue;
-import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -388,8 +386,8 @@ public class StatusService {
     private @NotNull EquipmentBonus collectEquipmentBonus(@NotNull AstPlayer player) {
         EquipmentBonus bonus = new EquipmentBonus();
         Map<String, Integer> setCounts = new HashMap<>();
-        for (ItemStack itemStack : collectEquippedItems(player)) {
-            applyEquipmentItemBonus(itemStack, bonus, setCounts);
+        for (ItemReference reference : collectEquippedReferences(player)) {
+            applyEquipmentItemBonus(reference, bonus, setCounts);
         }
         applySetEffectBonus(setCounts, bonus);
         return bonus;
@@ -400,39 +398,36 @@ public class StatusService {
         if (itemService == null) {
             return setCounts;
         }
-        for (ItemStack itemStack : collectEquippedItems(player)) {
-            countSetId(itemStack, setCounts);
+        for (ItemReference reference : collectEquippedReferences(player)) {
+            countSetId(reference, setCounts);
         }
         return setCounts;
     }
 
-    private @NotNull List<ItemStack> collectEquippedItems(@NotNull AstPlayer player) {
-        PlayerInventory inventory = player.getBukkit().getInventory();
-        List<ItemStack> items = new ArrayList<>();
-        items.add(inventory.getHelmet());
-        items.add(inventory.getChestplate());
-        items.add(inventory.getLeggings());
-        items.add(inventory.getBoots());
-        items.add(inventory.getItemInOffHand());
-        items.add(inventory.getItemInMainHand());
+    private @NotNull List<ItemReference> collectEquippedReferences(@NotNull AstPlayer player) {
         if (inventoryService != null) {
-            for (int slotIndex = 2; slotIndex <= 7; slotIndex++) {
-                items.add(inventoryService.getAccessorySnapshotItem(player, slotIndex));
+            return inventoryService.getEquippedItemReferences(player);
+        }
+
+        List<ItemReference> references = new ArrayList<>();
+        if (itemReferenceResolver == null) {
+            return references;
+        }
+        for (ItemStack itemStack : collectLegacyEquippedItems(player)) {
+            ItemReference reference = itemReferenceResolver.resolve(itemStack);
+            if (reference != null) {
+                references.add(reference);
             }
         }
-        return items;
+        return references;
     }
 
     private void applyEquipmentItemBonus(
-        @Nullable ItemStack itemStack,
+        @Nullable ItemReference reference,
         @NotNull EquipmentBonus bonus,
         @NotNull Map<String, Integer> setCounts
     ) {
-        if (itemStack == null || itemStack.getType() == Material.AIR || itemReferenceResolver == null) {
-            return;
-        }
-        ItemReference reference = itemReferenceResolver.resolve(itemStack);
-        if (reference == null || !reference.hasEquipmentInstanceId()) {
+        if (reference == null || itemReferenceResolver == null || !reference.hasEquipmentInstanceId()) {
             return;
         }
 
@@ -481,15 +476,8 @@ public class StatusService {
         }
     }
 
-    private void countSetId(@Nullable ItemStack itemStack, @NotNull Map<String, Integer> setCounts) {
-        if (itemStack == null
-            || itemStack.getType() == Material.AIR
-            || itemService == null
-            || itemReferenceResolver == null) {
-            return;
-        }
-        ItemReference reference = itemReferenceResolver.resolve(itemStack);
-        if (reference == null || !reference.hasEquipmentInstanceId()) {
+    private void countSetId(@Nullable ItemReference reference, @NotNull Map<String, Integer> setCounts) {
+        if (reference == null || itemService == null || itemReferenceResolver == null || !reference.hasEquipmentInstanceId()) {
             return;
         }
         EquipmentInstance instance = itemReferenceResolver.resolveEquipmentInstance(reference);
@@ -505,6 +493,23 @@ public class StatusService {
             return;
         }
         setCounts.merge(setId.trim(), 1, Integer::sum);
+    }
+
+    private @NotNull List<ItemStack> collectLegacyEquippedItems(@NotNull AstPlayer player) {
+        var inventory = player.getBukkit().getInventory();
+        List<ItemStack> items = new ArrayList<>();
+        items.add(inventory.getHelmet());
+        items.add(inventory.getChestplate());
+        items.add(inventory.getLeggings());
+        items.add(inventory.getBoots());
+        items.add(inventory.getItemInOffHand());
+        items.add(inventory.getItemInMainHand());
+        if (inventoryService != null) {
+            for (int slotIndex = 2; slotIndex <= 7; slotIndex++) {
+                items.add(inventoryService.getAccessorySnapshotItem(player, slotIndex));
+            }
+        }
+        return items;
     }
 
     private void applySetEffectBonus(@NotNull Map<String, Integer> setCounts, @NotNull EquipmentBonus bonus) {
