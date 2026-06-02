@@ -10,8 +10,9 @@ import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGua
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
+import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
-import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutAction;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;
@@ -66,6 +67,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     private final InventoryService inventoryService;
     private final CurrencyService currencyService;
     private final StatusService statusService;
+    private final ItemReferenceResolver transferItemResolver;
     private final Set<UUID> craftRenderSuppressed = ConcurrentHashMap.newKeySet();
     private final ConcurrentHashMap<UUID, List<ItemStack>> trashItemsByPlayer = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, List<ItemStack>> sellItemsByPlayer = new ConcurrentHashMap<>();
@@ -92,6 +94,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         this.inventoryService = inventoryService;
         this.currencyService = currencyService;
         this.statusService = statusService;
+        this.transferItemResolver = new ItemReferenceResolver(plugin.getItemService());
         plugin.getServer().getScheduler().runTaskTimer(
             plugin,
             (Runnable) this::refreshOpenBuffMenus,
@@ -1579,7 +1582,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
         ItemStack partial = stripTrashDisplayAmountLore(current);
         partial.setAmount(requested);
-        if (inventoryService.returnItemToOwnedInventory(astPlayer, partial) == null) {
+        ItemReference reference = resolveTransferReference(partial);
+        if (reference == null || inventoryService.returnItemToOwnedInventory(astPlayer, reference, requested) == null) {
             GuiSound.DENY.play(player);
             player.updateInventory();
             return;
@@ -1621,12 +1625,18 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
+        ItemModel sourceModel = inventoryService.getDisplayedItemModelAtBukkitSlot(astPlayer, event.getSlot());
+        if (sourceModel == null) {
+            GuiSound.DENY.play(player);
+            player.updateInventory();
+            return;
+        }
         ItemStack clicked = event.getCurrentItem();
         if (clicked == null || clicked.getType() == Material.AIR) {
             GuiSound.DENY.play(player);
             return;
         }
-        if (!isSellableItem(clicked)) {
+        if (sourceModel.getUnSellable()) {
             GuiSound.DENY.play(player);
             sendTrashMessage(player, PlayerMsgId.P_5605);
             return;
@@ -1687,7 +1697,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
         ItemStack partial = stripTransferDisplayLore(current);
         partial.setAmount(requested);
-        if (inventoryService.returnItemToOwnedInventory(astPlayer, partial) == null) {
+        ItemReference reference = resolveTransferReference(partial);
+        if (reference == null || inventoryService.returnItemToOwnedInventory(astPlayer, reference, requested) == null) {
             GuiSound.DENY.play(player);
             player.updateInventory();
             return;
@@ -1946,20 +1957,19 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         if (existing.getMaxStackSize() <= 1 || candidate.getMaxStackSize() <= 1) {
             return false;
         }
-        if (ItemStackFactory.getEquipmentInstanceId(existing) != null
-            || ItemStackFactory.getEquipmentInstanceId(candidate) != null
-            || ItemStackFactory.getRuneInstanceId(existing) != null
-            || ItemStackFactory.getRuneInstanceId(candidate) != null) {
+        ItemReference existingReference = resolveTransferReference(existing);
+        ItemReference candidateReference = resolveTransferReference(candidate);
+        if (existingReference == null || candidateReference == null) {
             return false;
         }
-        String existingItemId = ItemStackFactory.getAstralItemId(existing);
-        String candidateItemId = ItemStackFactory.getAstralItemId(candidate);
-        if (existingItemId == null || candidateItemId == null || !existingItemId.equals(candidateItemId)) {
+        if (existingReference.hasEquipmentInstanceId()
+            || candidateReference.hasEquipmentInstanceId()
+            || existingReference.hasRuneInstanceId()
+            || candidateReference.hasRuneInstanceId()) {
             return false;
         }
-        String existingCategory = ItemStackFactory.getCategory(existing);
-        String candidateCategory = ItemStackFactory.getCategory(candidate);
-        return existingCategory != null && existingCategory.equals(candidateCategory);
+        return existingReference.itemId().equals(candidateReference.itemId())
+            && existingReference.category().equals(candidateReference.category());
     }
 
     private @NotNull ItemStack stripTrashDisplayAmountLore(@NotNull ItemStack itemStack) {
@@ -2099,38 +2109,30 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         return null;
     }
 
-    private boolean isSellableItem(@NotNull ItemStack itemStack) {
-        String itemId = ItemStackFactory.getAstralItemId(stripTransferDisplayLore(itemStack));
-        if (itemId == null || itemId.isBlank()) {
-            return false;
-        }
-        ItemModel model = plugin.getItemService().findLoadedById(itemId);
-        if (model == null) {
-            model = plugin.getItemService().loadItem(itemId);
-        }
-        return model != null && !model.getUnSellable();
-    }
-
     private long totalSaleValue(@NotNull List<ItemStack> items) {
         long total = 0L;
         for (ItemStack itemStack : items) {
             if (isSellEmptyItem(null, itemStack)) {
                 continue;
             }
-            String itemId = ItemStackFactory.getAstralItemId(stripTransferDisplayLore(itemStack));
-            if (itemId == null || itemId.isBlank()) {
-                continue;
-            }
-            ItemModel model = plugin.getItemService().findLoadedById(itemId);
-            if (model == null) {
-                model = plugin.getItemService().loadItem(itemId);
-            }
+            ItemModel model = resolveTransferItemModel(itemStack);
             if (model == null || model.getUnSellable()) {
                 continue;
             }
             total += (long) Math.max(0, model.getSaleValue()) * Math.max(1, itemStack.getAmount());
         }
         return total;
+    }
+
+    private @Nullable ItemReference resolveTransferReference(@Nullable ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType() == Material.AIR) {
+            return null;
+        }
+        return transferItemResolver.resolve(stripTransferDisplayLore(itemStack));
+    }
+
+    private @Nullable ItemModel resolveTransferItemModel(@Nullable ItemStack itemStack) {
+        return transferItemResolver.resolveItemModel(resolveTransferReference(itemStack));
     }
 
     private boolean creditGold(@NotNull AstPlayer astPlayer, long amount) {

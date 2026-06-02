@@ -1,8 +1,8 @@
 package io.github.maaasu.astralRecord.feature.menu.view.screen;
 
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
-import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
@@ -27,11 +27,11 @@ public final class SellScreenView extends BaseMenuScreenView {
     public static final String TOTAL_PRICE_LORE_PREFIX = "合計売値: ";
 
     private final NamespacedKey contentPlaceholderKey;
-    private final ItemService itemService;
+    private final ItemReferenceResolver itemReferenceResolver;
 
     public SellScreenView(@NotNull NamespacedKey contentPlaceholderKey, @NotNull ItemService itemService) {
         this.contentPlaceholderKey = contentPlaceholderKey;
-        this.itemService = itemService;
+        this.itemReferenceResolver = new ItemReferenceResolver(itemService);
     }
 
     public void render(@NotNull Inventory inventory, @NotNull List<ItemStack> items, int pageIndex) {
@@ -153,14 +153,7 @@ public final class SellScreenView extends BaseMenuScreenView {
     }
 
     private int unitSaleValue(@NotNull ItemStack itemStack) {
-        String itemId = ItemStackFactory.getAstralItemId(itemStack);
-        if (itemId == null || itemId.isBlank()) {
-            return 0;
-        }
-        ItemModel model = itemService.findLoadedById(itemId);
-        if (model == null) {
-            model = itemService.loadItem(itemId);
-        }
+        ItemModel model = itemReferenceResolver.resolveItemModel(itemStack);
         if (model == null || model.getUnSellable()) {
             return 0;
         }

@@ -1949,6 +1949,20 @@ public class InventoryService {
         return findDisplayedEntryAtBukkitSlot(state, sourceBukkitSlot);
     }
 
+    /**
+     * 表示中インベントリ上の Bukkit スロットに対応する正本 entry からアイテムモデルを返します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param sourceBukkitSlot 表示中インベントリ上の Bukkit スロット
+     * @return 対応するアイテムモデル。見つからない場合は null
+     */
+    public @Nullable ItemModel getDisplayedItemModelAtBukkitSlot(
+        @NotNull AstPlayer astPlayer,
+        int sourceBukkitSlot
+    ) {
+        return resolveItemModel(getDisplayedEntryAtBukkitSlot(astPlayer, sourceBukkitSlot));
+    }
+
     private @Nullable InventoryEntryModel findDisplayedEntryAtBukkitSlot(
         @NotNull PlayerInventoryState state,
         int sourceBukkitSlot
@@ -2190,7 +2204,7 @@ public class InventoryService {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return null;
         }
-        return returnItemToOwnedInventory(astPlayer, itemReferenceResolver.resolve(itemStack), itemStack.getAmount());
+        return returnResolvedItemToOwnedInventory(astPlayer, itemReferenceResolver.resolve(itemStack), itemStack.getAmount());
     }
 
     /**
@@ -2207,14 +2221,30 @@ public class InventoryService {
         if (entry == null) {
             return null;
         }
-        return returnItemToOwnedInventory(
+        return returnResolvedItemToOwnedInventory(
             astPlayer,
             resolveItemReference(entry),
             Math.max(1, (int) Math.min(Integer.MAX_VALUE, entry.getQuantity()))
         );
     }
 
-    private @Nullable InventoryType returnItemToOwnedInventory(
+    /**
+     * 参照情報と個数を指定して、対象アイテムを所有インベントリへ返却します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param reference 返却対象アイテム参照
+     * @param amount 返却個数
+     * @return 返却先インベントリ種別。返却できない場合は null
+     */
+    public @Nullable InventoryType returnItemToOwnedInventory(
+        @NotNull AstPlayer astPlayer,
+        @Nullable ItemReference reference,
+        int amount
+    ) {
+        return returnResolvedItemToOwnedInventory(astPlayer, reference, amount);
+    }
+
+    private @Nullable InventoryType returnResolvedItemToOwnedInventory(
         @NotNull AstPlayer astPlayer,
         @Nullable ItemReference reference,
         int amount
