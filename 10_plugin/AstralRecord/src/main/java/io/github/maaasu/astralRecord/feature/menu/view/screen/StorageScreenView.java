@@ -1,6 +1,5 @@
 package io.github.maaasu.astralRecord.feature.menu.view.screen;
 
-import io.github.maaasu.astralRecord.feature.storage.model.StorageSortDirection;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewEntry;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewOptions;
 import net.kyori.adventure.text.Component;
@@ -127,22 +126,21 @@ public final class StorageScreenView extends BaseMenuScreenView {
         }
         inventory.setItem(CATEGORY_FILTER_SLOT, createItem(
             Material.HOPPER,
-            Component.text("カテゴリ", NamedTextColor.AQUA),
-            List.of(Component.text(filterLabel(options.categoryFilter()), NamedTextColor.WHITE))
+            Component.text("カテゴリフィルター", NamedTextColor.AQUA),
+            filterLore("CATEGORY", filterLabel(options.categoryFilter()))
         ));
         inventory.setItem(RARITY_FILTER_SLOT, createItem(
             Material.NETHER_STAR,
-            Component.text("レア度", NamedTextColor.LIGHT_PURPLE),
-            List.of(Component.text(filterLabel(options.rarityFilter()), NamedTextColor.WHITE))
+            Component.text("レアリティフィルター", NamedTextColor.LIGHT_PURPLE),
+            filterLore("RARITY", filterLabel(options.rarityFilter()))
         ));
         inventory.setItem(SORT_KEY_SLOT, createItem(
             Material.COMPASS,
-            Component.text("並び順", NamedTextColor.YELLOW),
-            List.of(Component.text(options.sortKey().getDisplayNameJa(), NamedTextColor.WHITE))
+            Component.text("並び替え", NamedTextColor.YELLOW),
+            filterLore("SORT", options.sortKey().getDisplayNameJa())
         ));
-        inventory.setItem(BACK_SLOT, backItem());
         inventory.setItem(SORT_DIRECTION_SLOT, createItem(
-            options.sortDirection() == StorageSortDirection.ASC ? Material.ARROW : Material.SPECTRAL_ARROW,
+            Material.ARROW,
             Component.text("方向", NamedTextColor.GREEN),
             List.of(Component.text(options.sortDirection().getDisplayNameJa(), NamedTextColor.WHITE))
         ));
@@ -190,6 +188,14 @@ public final class StorageScreenView extends BaseMenuScreenView {
 
     private @NotNull String filterLabel(@Nullable String value) {
         return value == null || value.isBlank() ? "すべて" : value;
+    }
+
+    private @NotNull List<Component> filterLore(@NotNull String label, @NotNull String value) {
+        return List.of(
+            Component.text("◇ " + label, NamedTextColor.DARK_AQUA),
+            Component.text("  現在: ", NamedTextColor.GRAY).append(Component.text(value, NamedTextColor.WHITE)),
+            Component.text("  Click to switch", NamedTextColor.DARK_GRAY)
+        );
     }
 
     private @NotNull ItemStack createContentPlaceholder() {

@@ -2378,6 +2378,7 @@ public class InventoryService {
         if (itemStack == null || itemStack.getType() == Material.AIR || itemModel == null) {
             return null;
         }
+        itemStack.setAmount((int) Math.min(Integer.MAX_VALUE, Math.max(1L, entry.getQuantity())));
         return new StorageViewEntry(entry, itemStack, itemModel, storageAcquiredAt(entry));
     }
 

@@ -76,6 +76,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     private final Set<UUID> suppressSellConfirmRestoreOnClose = ConcurrentHashMap.newKeySet();
     private final Set<UUID> playerInventoryDummyApplied = ConcurrentHashMap.newKeySet();
     private final ConcurrentHashMap<UUID, StorageViewOptions> storageOptionsByPlayer = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UUID, List<StorageViewEntry>> storageEntriesByPlayer = new ConcurrentHashMap<>();
 
     public MenuOpenEventHandler(
         @NotNull AstralRecord plugin,
@@ -421,11 +422,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         if (rawSlot == MenuView.GUIDE_SLOT) {
             GuiSound.SELECT.play(player);
             switchGuiWithoutInventoryReload(player, () -> menuView.openGuide(player));
-            return;
-        }
-        if (rawSlot == MenuView.STORAGE_SLOT) {
-            GuiSound.SELECT.play(player);
-            openStorage(player, 0);
             return;
         }
         if (rawSlot == MenuView.BUFF_SLOT) {
@@ -808,19 +804,13 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         Inventory topInventory = event.getView().getTopInventory();
 
         if (rawSlot >= topInventory.getSize()) {
-            handleStoragePlayerInventoryClick(event, player);
-            return;
-        }
-
-        if (rawSlot == MenuView.BACK_SLOT) {
-            GuiSound.SELECT.play(player);
-            switchGuiWithInventoryRestore(player, () -> menuView.open(player));
+            handleStoragePlayerInventoryClick(event, player, topInventory);
             return;
         }
 
         int pageIndex = menuView.getPageIndex(topInventory);
         StorageViewOptions options = storageOptions(player);
-        List<StorageViewEntry> entries = storageEntries(player, options);
+        List<StorageViewEntry> entries = currentStorageEntries(player, options);
         if (rawSlot == MenuView.STORAGE_PREVIOUS_SLOT) {
             if (menuView.hasPreviousStoragePage(pageIndex)) {
                 GuiSound.SELECT.play(player);
@@ -841,25 +831,29 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
         if (rawSlot == MenuView.STORAGE_CATEGORY_FILTER_SLOT) {
             GuiSound.SELECT.play(player);
-            storageOptionsByPlayer.put(player.getUniqueId(), options.withCategoryFilter(nextStorageCategory(options.categoryFilter())));
+            StorageViewOptions updatedOptions = options.withCategoryFilter(nextStorageCategory(options.categoryFilter()));
+            storageOptionsByPlayer.put(player.getUniqueId(), updatedOptions);
             openStorage(player, 0);
             return;
         }
         if (rawSlot == MenuView.STORAGE_RARITY_FILTER_SLOT) {
             GuiSound.SELECT.play(player);
-            storageOptionsByPlayer.put(player.getUniqueId(), options.withRarityFilter(nextStorageRarity(options.rarityFilter())));
+            StorageViewOptions updatedOptions = options.withRarityFilter(nextStorageRarity(options.rarityFilter()));
+            storageOptionsByPlayer.put(player.getUniqueId(), updatedOptions);
             openStorage(player, 0);
             return;
         }
         if (rawSlot == MenuView.STORAGE_SORT_KEY_SLOT) {
             GuiSound.SELECT.play(player);
-            storageOptionsByPlayer.put(player.getUniqueId(), options.withSortKey(options.sortKey().next()));
+            StorageViewOptions updatedOptions = options.withSortKey(options.sortKey().next());
+            storageOptionsByPlayer.put(player.getUniqueId(), updatedOptions);
             openStorage(player, 0);
             return;
         }
         if (rawSlot == MenuView.STORAGE_SORT_DIRECTION_SLOT) {
             GuiSound.SELECT.play(player);
-            storageOptionsByPlayer.put(player.getUniqueId(), options.withSortDirection(options.sortDirection().next()));
+            StorageViewOptions updatedOptions = options.withSortDirection(options.sortDirection().next());
+            storageOptionsByPlayer.put(player.getUniqueId(), updatedOptions);
             openStorage(player, 0);
             return;
         }
@@ -1125,9 +1119,10 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
 
     public void openStorage(@NotNull Player player, int pageIndex) {
         StorageViewOptions options = storageOptions(player);
+        List<StorageViewEntry> entries = refreshStorageEntries(player, options);
         switchGuiWithInventoryRestore(
             player,
-            () -> menuView.openStorage(player, storageEntries(player, options), options, pageIndex)
+            () -> menuView.openStorage(player, entries, options, pageIndex)
         );
     }
 
@@ -1135,15 +1130,26 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         return storageOptionsByPlayer.computeIfAbsent(player.getUniqueId(), ignored -> StorageViewOptions.defaults());
     }
 
-    private @NotNull List<StorageViewEntry> storageEntries(
+    private @NotNull List<StorageViewEntry> currentStorageEntries(
+        @NotNull Player player,
+        @NotNull StorageViewOptions options
+    ) {
+        List<StorageViewEntry> entries = storageEntriesByPlayer.get(player.getUniqueId());
+        return entries == null ? refreshStorageEntries(player, options) : entries;
+    }
+
+    private @NotNull List<StorageViewEntry> refreshStorageEntries(
         @NotNull Player player,
         @NotNull StorageViewOptions options
     ) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) {
+            storageEntriesByPlayer.remove(player.getUniqueId());
             return List.of();
         }
-        return inventoryService.getStorageViewEntries(astPlayer.getAccount().getUuid(), options);
+        List<StorageViewEntry> entries = inventoryService.getStorageViewEntries(astPlayer.getAccount().getUuid(), options);
+        storageEntriesByPlayer.put(player.getUniqueId(), entries);
+        return entries;
     }
 
     private void handleTrashClose(@NotNull Inventory inventory, @NotNull Player player) {
@@ -1685,7 +1691,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
 
     private void handleStoragePlayerInventoryClick(
         @NotNull InventoryClickEvent event,
-        @NotNull Player player
+        @NotNull Player player,
+        @NotNull Inventory topInventory
     ) {
         if (!(event.getClickedInventory() instanceof PlayerInventory)) {
             return;
@@ -1714,9 +1721,11 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             player.updateInventory();
             return;
         }
+        inventoryService.saveNow(astPlayer.getAccount().getUuid());
+        refreshStorageEntries(player, storageOptions(player));
         GuiSound.SELECT.play(player);
         sendTrashMessage(player, PlayerMsgId.P_5607, moved);
-        openStorage(player, menuView.getPageIndex(event.getView().getTopInventory()));
+        rerenderStorageInventory(player, topInventory);
         player.updateInventory();
     }
 
@@ -1752,9 +1761,11 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             player.updateInventory();
             return;
         }
+        inventoryService.saveNow(astPlayer.getAccount().getUuid());
+        refreshStorageEntries(player, storageOptions(player));
         GuiSound.SELECT.play(player);
         sendTrashMessage(player, PlayerMsgId.P_5608, moved);
-        openStorage(player, menuView.getPageIndex(topInventory));
+        rerenderStorageInventory(player, topInventory);
         player.updateInventory();
     }
 
@@ -1775,6 +1786,26 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         sellItemsByPlayer.put(player.getUniqueId(), currentItems);
         suppressSellConfirmOnClose.add(player.getUniqueId());
         menuView.openSell(player, currentItems, pageIndex);
+    }
+
+    private void rerenderStorageInventory(@NotNull Player player, @NotNull Inventory topInventory) {
+        int pageIndex = menuView.getPageIndex(topInventory);
+        StorageViewOptions options = storageOptions(player);
+        List<StorageViewEntry> entries = currentStorageEntries(player, options);
+        int normalizedPage = normalizeStoragePage(pageIndex, entries.size());
+        if (normalizedPage != pageIndex) {
+            openStorage(player, normalizedPage);
+            return;
+        }
+        menuView.renderStorage(topInventory, entries, options, normalizedPage);
+    }
+
+    private int normalizeStoragePage(int pageIndex, int itemCount) {
+        int totalPages = Math.max(
+            1,
+            (int) Math.ceil(itemCount / (double) io.github.maaasu.astralRecord.feature.menu.view.screen.StorageScreenView.CONTENT_SLOT_COUNT)
+        );
+        return Math.max(0, Math.min(pageIndex, totalPages - 1));
     }
 
     private int resolveTrashTransferAmount(@NotNull ClickType clickType, int sourceAmount) {
@@ -2001,7 +2032,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             || rawSlot == MenuView.STORAGE_CATEGORY_FILTER_SLOT
             || rawSlot == MenuView.STORAGE_RARITY_FILTER_SLOT
             || rawSlot == MenuView.STORAGE_SORT_KEY_SLOT
-            || rawSlot == MenuView.BACK_SLOT
             || rawSlot == MenuView.STORAGE_SORT_DIRECTION_SLOT
             || rawSlot == MenuView.STORAGE_GUIDE_SLOT
             || rawSlot == MenuView.STORAGE_NEXT_SLOT;

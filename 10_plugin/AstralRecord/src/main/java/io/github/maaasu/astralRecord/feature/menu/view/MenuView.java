@@ -52,7 +52,6 @@ public class MenuView {
     public static final int EQUIPMENT_GUI_SLOT = MainMenuScreenView.EQUIPMENT_GUI_SLOT;
     public static final int TRASH_SLOT = MainMenuScreenView.TRASH_SLOT;
     public static final int GUIDE_SLOT = MainMenuScreenView.GUIDE_SLOT;
-    public static final int STORAGE_SLOT = MainMenuScreenView.STORAGE_SLOT;
     public static final int BUFF_SLOT = MainMenuScreenView.BUFF_SLOT;
     public static final int SKILL_BIND_SLOT = MainMenuScreenView.SKILL_BIND_SLOT;
     public static final int CURRENCY_SLOT = MainMenuScreenView.CURRENCY_SLOT;
@@ -258,6 +257,15 @@ public class MenuView {
         Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.STORAGE, -1, normalizedPage), SIZE, title);
         storageScreenView.render(inventory, storageItems, options, normalizedPage);
         player.openInventory(inventory);
+    }
+
+    public void renderStorage(
+        @NotNull Inventory inventory,
+        @NotNull List<StorageViewEntry> storageItems,
+        @NotNull StorageViewOptions options,
+        int pageIndex
+    ) {
+        storageScreenView.render(inventory, storageItems, options, pageIndex);
     }
 
     public @NotNull ItemStack createCraftResultIcon() {

@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.menu.command;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.jetbrains.annotations.NotNull;
 
@@ -11,7 +12,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class StorageCommand extends AstCommand {
     public StorageCommand() {
-        super("storage", "Open storage GUI.", "/storage", true);
+        super("storage", "Open storage GUI.", "/storage", true, UserPermission.ADMIN.getValue());
     }
 
     @Override
