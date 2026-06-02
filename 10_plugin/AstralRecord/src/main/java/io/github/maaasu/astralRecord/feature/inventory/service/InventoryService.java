@@ -460,12 +460,15 @@ public class InventoryService {
      * @param astPlayer 対象プレイヤー
      */
     public void applyInventoriesToGuiOnJoin(@NotNull AstPlayer astPlayer) {
+        // Join 直後は以前のセッションで残った見た目 ItemStack を全消去してから正本を反映する。
+        clearGuiInventory(astPlayer.getBukkit());
         applyInventoryToGuiInternal(astPlayer, InventoryType.NORMAL, false);
         if (!applyActiveEquipmentLoadoutToGui(astPlayer)) {
             applyEquipSlotInventoryToGui(astPlayer);
             applyAccessorySlotInventoryToGui(astPlayer);
         }
         applyHotbarInventoryToGui(astPlayer);
+        purgeUnknownAstralItemsFromReflectedSlots(astPlayer);
     }
 
     public void applyInventoryToGui(@NotNull AstPlayer astPlayer, @NotNull InventoryType inventoryType) {
@@ -1273,6 +1276,11 @@ public class InventoryService {
             return;
         }
         Player bukkitPlayer = astPlayer.getBukkit();
+        PlayerInventory playerInventory = bukkitPlayer.getInventory();
+        playerInventory.setHelmet(new ItemStack(Material.AIR));
+        playerInventory.setChestplate(new ItemStack(Material.AIR));
+        playerInventory.setLeggings(new ItemStack(Material.AIR));
+        playerInventory.setBoots(new ItemStack(Material.AIR));
         InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, InventoryType.EQUIP_SLOT);
         if (inventory != null) {
             List<InventoryEntryModel> entries = state.snapshotEntries(inventory.getInventoryId());
@@ -2438,6 +2446,56 @@ public class InventoryService {
         for (int dbSlot = NormalInventoryLayout.DB_SLOT_START; dbSlot <= NormalInventoryLayout.DB_SLOT_END; dbSlot++) {
             setStorageItemIfChanged(inventory, NormalInventoryLayout.toGuiSlotIndex(dbSlot), null);
         }
+    }
+
+    private void purgeUnknownAstralItemsFromReflectedSlots(@NotNull AstPlayer astPlayer) {
+        PlayerInventory inventory = astPlayer.getBukkit().getInventory();
+        boolean changed = false;
+
+        for (int dbSlot = NormalInventoryLayout.DB_SLOT_START; dbSlot <= NormalInventoryLayout.DB_SLOT_END; dbSlot++) {
+            changed |= purgeUnknownAstralItemAtStorageSlot(inventory, NormalInventoryLayout.toGuiSlotIndex(dbSlot));
+        }
+        for (int dbSlot = HotbarLayout.DB_SLOT_START; dbSlot <= HotbarLayout.DB_SLOT_END; dbSlot++) {
+            changed |= purgeUnknownAstralItemAtStorageSlot(inventory, HotbarLayout.toBukkitSlot(dbSlot));
+        }
+
+        if (shouldPurgeUnknownAstralItem(inventory.getHelmet())) {
+            inventory.setHelmet(new ItemStack(Material.AIR));
+            changed = true;
+        }
+        if (shouldPurgeUnknownAstralItem(inventory.getChestplate())) {
+            inventory.setChestplate(new ItemStack(Material.AIR));
+            changed = true;
+        }
+        if (shouldPurgeUnknownAstralItem(inventory.getLeggings())) {
+            inventory.setLeggings(new ItemStack(Material.AIR));
+            changed = true;
+        }
+        if (shouldPurgeUnknownAstralItem(inventory.getBoots())) {
+            inventory.setBoots(new ItemStack(Material.AIR));
+            changed = true;
+        }
+        if (shouldPurgeUnknownAstralItem(inventory.getItemInOffHand())) {
+            inventory.setItemInOffHand(new ItemStack(Material.AIR));
+            changed = true;
+        }
+
+        if (changed) {
+            astPlayer.getBukkit().updateInventory();
+        }
+    }
+
+    private boolean purgeUnknownAstralItemAtStorageSlot(@NotNull PlayerInventory inventory, int bukkitSlot) {
+        if (!shouldPurgeUnknownAstralItem(inventory.getItem(bukkitSlot))) {
+            return false;
+        }
+        inventory.setItem(bukkitSlot, new ItemStack(Material.AIR));
+        return true;
+    }
+
+    private boolean shouldPurgeUnknownAstralItem(@Nullable ItemStack itemStack) {
+        ItemReference reference = itemReferenceResolver.resolve(itemStack);
+        return reference != null && itemReferenceResolver.resolveItemModel(reference) == null;
     }
 
     private boolean setStorageItemIfChanged(
