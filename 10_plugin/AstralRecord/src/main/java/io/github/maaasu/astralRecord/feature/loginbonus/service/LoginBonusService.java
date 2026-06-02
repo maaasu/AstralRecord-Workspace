@@ -118,6 +118,15 @@ public final class LoginBonusService {
         return gui;
     }
 
+    /**
+     * ログインボーナス GUI が利用するインベントリサービスを返します。
+     *
+     * @return インベントリサービス
+     */
+    public @NotNull InventoryService getInventoryService() {
+        return inventoryService;
+    }
+
     private boolean grantDailyLoginBonus(@NotNull AstPlayer astPlayer, @NotNull LocalDate date) {
         ItemModel goldModel = resolveGoldRewardModel();
         if (goldModel == null) {

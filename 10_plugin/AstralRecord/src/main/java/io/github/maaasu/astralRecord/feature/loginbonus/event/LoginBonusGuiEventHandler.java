@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.loginbonus.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.loginbonus.service.LoginBonusService;
 import io.github.maaasu.astralRecord.feature.loginbonus.view.LoginBonusGui;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
@@ -11,6 +13,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.LocalDate;
@@ -57,6 +60,9 @@ public final class LoginBonusGuiEventHandler extends AbstractEventHandler {
     }
 
     private void handleClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
+        if (handlePlayerInventoryClick(event, player)) {
+            return;
+        }
         YearMonth displayMonth = gui.getDisplayMonth(event.getView().getTopInventory());
         if (displayMonth == null) {
             GuiSound.DENY.play(player);
@@ -86,5 +92,38 @@ public final class LoginBonusGuiEventHandler extends AbstractEventHandler {
         } else {
             GuiSound.DENY.play(player);
         }
+    }
+
+    private boolean handlePlayerInventoryClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
+        if (!(event.getClickedInventory() instanceof PlayerInventory)) {
+            return false;
+        }
+        int slot = event.getSlot();
+        if (slot < 0 || slot > 8) {
+            GuiSound.DENY.play(player);
+            return true;
+        }
+        var astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null || !loginBonusService.getInventoryService().isHotbarShortcutMode(astPlayer)) {
+            GuiSound.DENY.play(player);
+            return true;
+        }
+        if (!loginBonusService.getInventoryService().getClickGuard().tryAcquire(
+            astPlayer.getAccount().getUuid(),
+            InventoryClickGuard.ClickAction.HOTBAR_SHORTCUT
+        )) {
+            return true;
+        }
+        boolean handled = loginBonusService.getInventoryService().handleHotbarShortcutClick(astPlayer, slot);
+        if (handled) {
+            if (slot == 4) {
+                GuiSound.CLOSE.play(player);
+            } else {
+                GuiSound.SELECT.play(player);
+            }
+        } else {
+            GuiSound.DENY.play(player);
+        }
+        return true;
     }
 }
