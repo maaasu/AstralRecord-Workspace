@@ -26,6 +26,8 @@ import io.github.maaasu.astralRecord.feature.playersetting.command.PlayerSetting
 import io.github.maaasu.astralRecord.feature.playerclass.command.ClassCommand;
 import io.github.maaasu.astralRecord.feature.playerclass.command.ClassTabCompleter;
 import io.github.maaasu.astralRecord.feature.skill.command.SkillCommand;
+import io.github.maaasu.astralRecord.feature.shop.command.ShopCommand;
+import io.github.maaasu.astralRecord.feature.shop.command.ShopTabCompleter;
 import io.github.maaasu.astralRecord.temp.command.TempCommand;
 import io.github.maaasu.astralRecord.temp.command.TempTabCompleter;
 import io.github.maaasu.astralRecord.temp.command.TestCommand;
@@ -84,6 +86,7 @@ public class CommandRegister {
         cm.registerCommand("class", new ClassCommand(), new ClassTabCompleter());
         cm.registerCommand("skill", new SkillCommand());
         cm.registerCommand("party", new PartyCommand(), new PartyTabCompleter());
+        cm.registerCommand("shop", new ShopCommand(), new ShopTabCompleter());
         cm.registerCommand("astreload", new ReloadCommand());
     }
 }

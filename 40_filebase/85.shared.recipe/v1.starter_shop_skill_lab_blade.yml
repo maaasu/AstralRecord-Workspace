@@ -1,0 +1,26 @@
+schemaVersion: 1
+id: starter_shop_skill_lab_blade
+type: RECIPE
+category: SHOP
+name: "&dSkill Lab Blade Shop Cost"
+lore:
+  - "&7Additional material cost for the starter shop."
+tags:
+  - shop
+  - starter
+result:
+  itemId:
+    ref: item:skill_lab_blade
+  amount: 1
+ingredients:
+  - itemId:
+      ref: item:iron_ingot
+    amount: 4
+  - itemId:
+      ref: item:magic_crystal
+    amount: 2
+requiredLevel: 0
+requiredCurrency: 150
+stationId: starter_shop
+successRate: 100.0
+failAction: NONE

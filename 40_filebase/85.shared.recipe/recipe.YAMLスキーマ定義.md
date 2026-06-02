@@ -42,6 +42,7 @@
 | `ENHANCE`   | 強化レシピ（既存アイテムを素材で強化。equipment の enhance と連携可） | ×（不使用）      |
 | `ALCHEMY`   | 調合レシピ（ポーション・消耗品などの生成）                        | ○           |
 | `DISMANTLE` | 分解レシピ（アイテムを素材に分解）                            | ○           |
+| `SHOP`      | shop GUI の購入条件から参照する素材・通貨コスト。`result` は販売対象の説明用。 | 任意          |
 
 > **`ENHANCE` における `result` について**  
 > `category: ENHANCE` の場合、強化対象はプレイヤーが持ち込んだアイテム自体です。プラグイン側は「持ち込まれたアイテムを強化して返す」処理を行うため、`result.itemId` / `result.amount` は参照されません。`ENHANCE` レシピでは `result` ブロックを省略してください。

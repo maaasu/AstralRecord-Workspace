@@ -1,0 +1,28 @@
+schemaVersion: 1
+id: starter_shop
+type: SHOP
+name: "&6Starter Shop"
+items:
+  - id: healing_potion_direct
+    itemId:
+      ref: item:healing_potion_small
+    category: consumable
+    amount: 1
+    slot: 2
+    priceGold: 100
+    requiredItems:
+      - itemId:
+          ref: item:magic_crystal
+        category: material
+        amount: 1
+
+  - id: skill_lab_blade_recipe
+    itemId:
+      ref: item:skill_lab_blade
+    category: equipment
+    amount: 1
+    row: 2
+    column: 3
+    priceGold: 250
+    recipeId:
+      ref: recipe:starter_shop_skill_lab_blade

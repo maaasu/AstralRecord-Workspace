@@ -15,6 +15,8 @@ database:
     path: 65.features.dungeon
   - name: mail
     path: 05.features.mail
+  - name: shop
+    path: 45.features.shop
 
   - name: set_effect
     path: 10.features.item/equipment/set_effect
@@ -24,7 +26,7 @@ database:
   - name: loot #サブディレクトリとして、pool, tableが作成されていることを前提とする。
     path: 80.shared.loot
   - name: recipe
-    path: 80.shared.recipe
+    path: 85.shared.recipe
 
 referenceResolver:
   - prefix: "item:"
@@ -51,6 +53,9 @@ referenceResolver:
   - prefix: "recipe:"
     database: recipe
     aliases: ["rc"]
+  - prefix: "shop:"
+    database: shop
+    aliases: ["sh"]
   - prefix: "mob:"
     database: mob
     aliases: ["mb"]

@@ -604,6 +604,10 @@ public enum PlayerMsgId {
     P_5925(5925),
     // endregion
 
+    // region /feature/shop 5930-5939
+    P_5930(5930),
+    // endregion
+
     ;
 
     private final String id;

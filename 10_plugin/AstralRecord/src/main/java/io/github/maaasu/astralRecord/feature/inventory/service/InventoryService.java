@@ -628,6 +628,71 @@ public class InventoryService {
             .sum();
     }
 
+    public long getNormalItemAmount(@NotNull UUID accountId, @NotNull String itemId) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return 0L;
+        }
+        String normalizedItemId = itemId.trim();
+        if (normalizedItemId.isBlank()) {
+            return 0L;
+        }
+        return getItemAmount(state, InventoryType.NORMAL, normalizedItemId)
+            + getItemAmount(state, InventoryType.HOTBAR, normalizedItemId);
+    }
+
+    public boolean consumeGold(@NotNull UUID accountId, long amount) {
+        if (amount <= 0L) {
+            return true;
+        }
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return false;
+        }
+        InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, InventoryType.CURRENCY);
+        if (inventory == null || !inventory.isEnabled()) {
+            return false;
+        }
+        if (getCurrencyAmount(accountId, ItemService.DEFAULT_CURRENCY_ITEM_ID)
+            + getCurrencyAmount(accountId, ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID) < amount) {
+            return false;
+        }
+        long remaining = amount;
+        remaining -= consumeItemAmountFromInventory(state, inventory, ItemService.DEFAULT_CURRENCY_ITEM_ID, remaining);
+        if (remaining > 0L) {
+            remaining -= consumeItemAmountFromInventory(state, inventory, ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID, remaining);
+        }
+        return remaining <= 0L;
+    }
+
+    public boolean consumeNormalItem(@NotNull UUID accountId, @NotNull String itemId, long amount) {
+        if (amount <= 0L) {
+            return true;
+        }
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return false;
+        }
+        if (getNormalItemAmount(accountId, itemId) < amount) {
+            return false;
+        }
+        long remaining = amount;
+        InventoryModel normalInventory = state.findInventory(DEFAULT_PROFILE, InventoryType.NORMAL);
+        if (normalInventory != null && normalInventory.isEnabled()) {
+            remaining -= consumeItemAmountFromInventory(state, normalInventory, itemId, remaining);
+        }
+        InventoryModel hotbarInventory = state.findInventory(DEFAULT_PROFILE, InventoryType.HOTBAR);
+        if (remaining > 0L && hotbarInventory != null && hotbarInventory.isEnabled()) {
+            remaining -= consumeItemAmountFromInventory(state, hotbarInventory, itemId, remaining);
+        }
+        return remaining <= 0L;
+    }
+
+    public boolean saveNow(@NotNull UUID accountId) {
+        PlayerInventoryState state = getState(accountId);
+        return state != null && persistence.saveNow(state);
+    }
+
     public long countOwnedItems(@NotNull UUID accountId, @NotNull InventoryType inventoryType) {
         PlayerInventoryState state = getState(accountId);
         return state == null ? 0L : countOwnedItems(state, inventoryType);
@@ -673,6 +738,55 @@ public class InventoryService {
         return resolveTargetInventoryType(model);
     }
 
+    public boolean canAddItemToNormalInventory(
+        @NotNull AstPlayer astPlayer,
+        @NotNull ItemModel model,
+        int amount
+    ) {
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) {
+            return false;
+        }
+        int safeAmount = Math.max(1, amount);
+        InventoryType targetType = resolveTargetInventoryType(model);
+        if (targetType == InventoryType.CURRENCY) {
+            return true;
+        }
+        InventoryModel inventory = ensureInventory(state, targetType);
+        Set<Integer> usedSlots = collectUsedSlots(state, inventory);
+        ItemCategory category = ItemCategory.fromApiValue(model.getCategory());
+        if (category == ItemCategory.EQUIPMENT || category == ItemCategory.RUNE) {
+            int freeSlots = 0;
+            Set<Integer> simulatedUsed = new HashSet<>(usedSlots);
+            for (int i = 0; i < safeAmount; i++) {
+                Integer freeSlot = findNextFreeSlot(inventory, simulatedUsed);
+                if (freeSlot == null) {
+                    break;
+                }
+                simulatedUsed.add(freeSlot);
+                freeSlots++;
+            }
+            return freeSlots >= safeAmount;
+        }
+
+        int maxStack = Math.max(1, model.getMaxStack());
+        long capacity = state.snapshotEntries(inventory.getInventoryId()).stream()
+            .filter(entry -> !entry.isDeleted())
+            .filter(entry -> isStackableEntry(entry, model, maxStack))
+            .mapToLong(entry -> maxStack - entry.getQuantity())
+            .sum();
+        Set<Integer> simulatedUsed = new HashSet<>(usedSlots);
+        while (capacity < safeAmount) {
+            Integer freeSlot = findNextFreeSlot(inventory, simulatedUsed);
+            if (freeSlot == null) {
+                break;
+            }
+            simulatedUsed.add(freeSlot);
+            capacity += maxStack;
+        }
+        return capacity >= safeAmount;
+    }
+
     private long countOwnedItems(@NotNull PlayerInventoryState state, @NotNull InventoryType inventoryType) {
         InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, inventoryType);
         if (inventory == null || !inventory.isEnabled()) {
@@ -680,6 +794,22 @@ public class InventoryService {
         }
         return state.snapshotEntries(inventory.getInventoryId()).stream()
             .filter(entry -> !entry.isDeleted())
+            .mapToLong(InventoryEntryModel::getQuantity)
+            .sum();
+    }
+
+    private long getItemAmount(
+        @NotNull PlayerInventoryState state,
+        @NotNull InventoryType inventoryType,
+        @NotNull String itemId
+    ) {
+        InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, inventoryType);
+        if (inventory == null || !inventory.isEnabled()) {
+            return 0L;
+        }
+        return state.snapshotEntries(inventory.getInventoryId()).stream()
+            .filter(entry -> !entry.isDeleted())
+            .filter(entry -> entry.getItemId() != null && entry.getItemId().equalsIgnoreCase(itemId))
             .mapToLong(InventoryEntryModel::getQuantity)
             .sum();
     }
@@ -2153,6 +2283,44 @@ public class InventoryService {
             state.replaceEntries(inventory.getInventoryId(), normalized);
         }
         return normalized;
+    }
+
+    private long consumeItemAmountFromInventory(
+        @NotNull PlayerInventoryState state,
+        @NotNull InventoryModel inventory,
+        @NotNull String itemId,
+        long amount
+    ) {
+        if (amount <= 0L) {
+            return 0L;
+        }
+        List<InventoryEntryModel> sourceEntries = inventory.getInventoryType() == InventoryType.CURRENCY
+            ? normalizeCurrencyEntries(state, inventory)
+            : state.snapshotEntries(inventory.getInventoryId()).stream()
+                .filter(entry -> !entry.isDeleted())
+                .toList();
+        List<InventoryEntryModel> entries = new ArrayList<>(sourceEntries);
+        long remaining = amount;
+        for (int index = 0; index < entries.size() && remaining > 0L; index++) {
+            InventoryEntryModel entry = entries.get(index);
+            if (entry.getItemId() == null || !entry.getItemId().equalsIgnoreCase(itemId)) {
+                continue;
+            }
+            long consumed = Math.min(entry.getQuantity(), remaining);
+            long nextQuantity = entry.getQuantity() - consumed;
+            remaining -= consumed;
+            if (nextQuantity > 0L) {
+                entries.set(index, withQuantity(entry, nextQuantity, state.getAccountId()));
+            } else {
+                entries.remove(index);
+                index--;
+            }
+        }
+        long consumedTotal = amount - remaining;
+        if (consumedTotal > 0L) {
+            state.replaceEntries(inventory.getInventoryId(), entries);
+        }
+        return consumedTotal;
     }
 
     private boolean isStackableEntry(@NotNull InventoryEntryModel entry, @NotNull ItemModel model, int maxStack) {

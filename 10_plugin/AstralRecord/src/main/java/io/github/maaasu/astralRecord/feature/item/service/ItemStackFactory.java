@@ -175,6 +175,10 @@ public class ItemStackFactory {
         return asDisplayStack(create(model, amount));
     }
 
+    public @NotNull ItemStack createShopDisplay(@NotNull ItemModel model, int amount) {
+        return createDisplay(model, amount);
+    }
+
     /**
      * AstralRecord ItemStack を表示専用に icon Material へ差し替えます。
      * icon が未設定または解決不能な場合は、元スタックの clone を返します。
@@ -629,15 +633,7 @@ public class ItemStackFactory {
         String displayName = definition.getName() == null || definition.getName().isBlank()
                 ? definition.getId()
                 : ColorCodeUtil.translateAlternateColorCodes(definition.getName());
-        lore.add(ColorCodeUtil.DARK_GRAY + "  - " + ColorCodeUtil.WHITE + displayName
-                + ColorCodeUtil.DARK_GRAY + " [" + definition.getId() + "]");
-        if (definition.getDescription() != null && !definition.getDescription().isBlank()) {
-            lore.add(ColorCodeUtil.GRAY + "    " + ColorCodeUtil.translateAlternateColorCodes(definition.getDescription()));
-        }
-        lore.add(ColorCodeUtil.DARK_GRAY + "    CD " + formatSkillTicks(definition.getCooldownTicks())
-                + " / Cast " + formatSkillTicks(definition.getCastTimeTicks())
-                + " / MP " + formatSkillDecimal(definition.getManaCost())
-                + " / ReqLv " + definition.getRequiredLevel());
+        lore.add(ColorCodeUtil.DARK_GRAY + "  - " + ColorCodeUtil.WHITE + displayName);
     }
 
     private void addSkillId(@NotNull List<String> skillIds, @Nullable String skillId) {

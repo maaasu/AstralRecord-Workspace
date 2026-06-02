@@ -95,6 +95,11 @@ import io.github.maaasu.astralRecord.feature.skill.repository.SkillRepository;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService;
+import io.github.maaasu.astralRecord.feature.shop.event.ShopGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.shop.gui.ShopGui;
+import io.github.maaasu.astralRecord.feature.shop.repository.ShopRecipeRepository;
+import io.github.maaasu.astralRecord.feature.shop.repository.ShopRepository;
+import io.github.maaasu.astralRecord.feature.shop.service.ShopService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusRegenTask;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.status.event.PlayerHeldItemStatusEventHandler;
@@ -185,6 +190,9 @@ public final class AstralRecord extends JavaPlugin {
     private MailGuiEventHandler mailGuiEventHandler;
     private AdventureRecordService adventureRecordService;
     private AdventureRecordGuiEventHandler adventureRecordGuiEventHandler;
+    private ShopService shopService;
+    private ShopGui shopGui;
+    private ShopGuiEventHandler shopGuiEventHandler;
     private String joinSpawnWorldId;
 
     @Override
@@ -431,6 +439,15 @@ public final class AstralRecord extends JavaPlugin {
         loginBonusService = new LoginBonusService(new LoginBonusGui(), inventoryService, itemService);
         partyMemberActionGui = new PartyMemberActionGui();
         mailService = new MailService(new MailRepository(), itemService, inventoryService);
+        shopService = new ShopService(
+            new ShopRepository(),
+            new ShopRecipeRepository(),
+            itemService,
+            inventoryService,
+            currencyService
+        );
+        shopGui = new ShopGui(this, shopService, itemStackFactory);
+        shopGuiEventHandler = new ShopGuiEventHandler(shopGui, shopService, menuView);
 
         // skill
         skillService = new SkillService(new SkillRepository(), new SkillRegistry(), this);
@@ -514,6 +531,10 @@ public final class AstralRecord extends JavaPlugin {
         mailGuiEventHandler = new MailGuiEventHandler(new MailGuiView(this), mailService, menuView, inventoryService);
         eventManager.registerHandler(
             mailGuiEventHandler,
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            shopGuiEventHandler,
             getServer().getPluginManager()
         );
         playerBrowserGuiEventHandler = new PlayerBrowserGuiEventHandler(
@@ -792,5 +813,13 @@ public final class AstralRecord extends JavaPlugin {
 
     public AdventureRecordService getAdventureRecordService() {
         return adventureRecordService;
+    }
+
+    public ShopService getShopService() {
+        return shopService;
+    }
+
+    public ShopGuiEventHandler getShopGuiEventHandler() {
+        return shopGuiEventHandler;
     }
 }
