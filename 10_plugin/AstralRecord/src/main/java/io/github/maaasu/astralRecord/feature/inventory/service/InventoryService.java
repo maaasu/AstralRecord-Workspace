@@ -1598,19 +1598,22 @@ public class InventoryService {
     // equip / assign clicked item
     // ---------------------------------------------------------------
 
+    /**
+     * 表示中インベントリ上のアイテムを、その entry を正本として装備または HOTBAR へ割り当てます。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param sourceBukkitSlot 表示中インベントリ上の Bukkit スロット
+     * @return 処理に成功した場合 true
+     */
     public boolean equipOrAssignClickedItem(
         @NotNull AstPlayer astPlayer,
-        @NotNull ItemStack clickedItem,
         int sourceBukkitSlot
     ) {
-        if (clickedItem.getType() == Material.AIR) {
-            return false;
-        }
         PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
         if (state == null) {
             return false;
         }
-        InventoryEntryModel sourceEntry = findDisplayedEntryAtBukkitSlot(state, sourceBukkitSlot);
+        InventoryEntryModel sourceEntry = getDisplayedEntryAtBukkitSlot(astPlayer, sourceBukkitSlot);
         if (sourceEntry == null) {
             return false;
         }
@@ -1884,6 +1887,24 @@ public class InventoryService {
         applyInventoryToBukkit(astPlayer.getBukkit(), state, inventory);
     }
 
+    /**
+     * 表示中インベントリ上の Bukkit スロットに対応する正本 entry を返します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param sourceBukkitSlot 表示中インベントリ上の Bukkit スロット
+     * @return 対応する entry。見つからない場合は null
+     */
+    public @Nullable InventoryEntryModel getDisplayedEntryAtBukkitSlot(
+        @NotNull AstPlayer astPlayer,
+        int sourceBukkitSlot
+    ) {
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) {
+            return null;
+        }
+        return findDisplayedEntryAtBukkitSlot(state, sourceBukkitSlot);
+    }
+
     private @Nullable InventoryEntryModel findDisplayedEntryAtBukkitSlot(
         @NotNull PlayerInventoryState state,
         int sourceBukkitSlot
@@ -2045,7 +2066,33 @@ public class InventoryService {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return true;
         }
-        ItemReference reference = itemReferenceResolver.resolve(itemStack);
+        return canPlaceInEquipmentGuiSlot(itemReferenceResolver.resolve(itemStack), equipmentType, extendedAccessory);
+    }
+
+    /**
+     * inventory entry を正本として、指定装備スロットへ配置可能か判定します。
+     *
+     * @param entry 判定対象 entry
+     * @param equipmentType 対象装備種別
+     * @param extendedAccessory 拡張アクセサリ枠かどうか
+     * @return 配置可能な場合 true
+     */
+    public boolean canPlaceInEquipmentGuiSlot(
+        @Nullable InventoryEntryModel entry,
+        @Nullable EquipmentType equipmentType,
+        boolean extendedAccessory
+    ) {
+        if (entry == null) {
+            return true;
+        }
+        return canPlaceInEquipmentGuiSlot(resolveItemReference(entry), equipmentType, extendedAccessory);
+    }
+
+    private boolean canPlaceInEquipmentGuiSlot(
+        @Nullable ItemReference reference,
+        @Nullable EquipmentType equipmentType,
+        boolean extendedAccessory
+    ) {
         if (reference == null || ItemCategory.fromApiValue(reference.category()) != ItemCategory.EQUIPMENT) {
             return false;
         }
@@ -2064,7 +2111,20 @@ public class InventoryService {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return EquipmentType.UNSUPPORTED;
         }
-        ItemReference reference = itemReferenceResolver.resolve(itemStack);
+        return getEquipmentType(resolveItemReference(itemStack));
+    }
+
+    /**
+     * inventory entry を正本として、装備種別を解決します。
+     *
+     * @param entry 解決対象 entry
+     * @return 解決できた装備種別。非装備または未対応の場合は {@link EquipmentType#UNSUPPORTED}
+     */
+    public @NotNull EquipmentType getEquipmentTypeForEntry(@Nullable InventoryEntryModel entry) {
+        return getEquipmentType(resolveItemReference(entry));
+    }
+
+    private @NotNull EquipmentType getEquipmentType(@Nullable ItemReference reference) {
         if (reference == null || ItemCategory.fromApiValue(reference.category()) != ItemCategory.EQUIPMENT) {
             return EquipmentType.UNSUPPORTED;
         }
@@ -2086,7 +2146,35 @@ public class InventoryService {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return null;
         }
-        ItemReference reference = itemReferenceResolver.resolve(itemStack);
+        return returnItemToOwnedInventory(astPlayer, itemReferenceResolver.resolve(itemStack), itemStack.getAmount());
+    }
+
+    /**
+     * inventory entry を正本として、対象アイテムを所有インベントリへ戻します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param entry 返却対象 entry
+     * @return 返却先のインベントリ種別。返却できなかった場合は null
+     */
+    public @Nullable InventoryType returnItemToOwnedInventory(
+        @NotNull AstPlayer astPlayer,
+        @Nullable InventoryEntryModel entry
+    ) {
+        if (entry == null) {
+            return null;
+        }
+        return returnItemToOwnedInventory(
+            astPlayer,
+            resolveItemReference(entry),
+            Math.max(1, (int) Math.min(Integer.MAX_VALUE, entry.getQuantity()))
+        );
+    }
+
+    private @Nullable InventoryType returnItemToOwnedInventory(
+        @NotNull AstPlayer astPlayer,
+        @Nullable ItemReference reference,
+        int amount
+    ) {
         if (reference == null) {
             return null;
         }
@@ -2109,7 +2197,6 @@ public class InventoryService {
             case RUNE -> addExistingInstanceEntry(state, targetInventory, model,
                 InventoryInstanceType.RUNE, reference.runeInstanceId());
             default -> {
-                int amount = Math.max(1, itemStack.getAmount());
                 Set<Integer> usedSlots = collectUsedSlots(state, targetInventory);
                 yield addStackedItems(state, targetInventory, model, amount, usedSlots) > 0;
             }
@@ -2769,7 +2856,14 @@ public class InventoryService {
         return itemReferenceResolver.resolveItemModel(resolveItemReference(entry));
     }
 
-    private @Nullable ItemReference resolveItemReference(@NotNull InventoryEntryModel entry) {
+    private @Nullable ItemReference resolveItemReference(@Nullable ItemStack itemStack) {
+        return itemReferenceResolver.resolve(itemStack);
+    }
+
+    private @Nullable ItemReference resolveItemReference(@Nullable InventoryEntryModel entry) {
+        if (entry == null) {
+            return null;
+        }
         if (entry.getItemId() != null && !entry.getItemId().isBlank()) {
             return new ItemReference(entry.getItemId(), entry.getItemCategory(), null, null);
         }

@@ -10,7 +10,6 @@ import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
-import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -251,7 +250,13 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             return;
         }
 
-        EquipmentType equipmentType = inventoryService.getEquipmentTypeForItem(clickedItem);
+        var sourceEntry = inventoryService.getDisplayedEntryAtBukkitSlot(astPlayer, event.getSlot());
+        if (sourceEntry == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+
+        EquipmentType equipmentType = inventoryService.getEquipmentTypeForEntry(sourceEntry);
         int targetSlot = equipmentType == EquipmentType.OFF_HAND
             ? menuView.firstEmptyAccessorySlot(topInventory)
             : menuView.getSlotForEquipmentType(equipmentType);
@@ -262,7 +267,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
 
         boolean extendedAccessory = menuView.isExtendedAccessorySlot(targetSlot);
         EquipmentType targetEquipmentType = menuView.getEquipmentTypeAtSlot(targetSlot);
-        if (!inventoryService.canPlaceInEquipmentGuiSlot(clickedItem, targetEquipmentType, extendedAccessory)) {
+        if (!inventoryService.canPlaceInEquipmentGuiSlot(sourceEntry, targetEquipmentType, extendedAccessory)) {
             GuiSound.DENY.play(player);
             return;
         }
@@ -445,7 +450,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         if (clickedItem == null || clickedItem.getType() == Material.AIR) {
             return;
         }
-        if (ItemStackFactory.getAstralItemId(clickedItem) == null) {
+        if (inventoryService.getDisplayedEntryAtBukkitSlot(astPlayer, slot) == null) {
             return;
         }
 
@@ -454,7 +459,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
                 astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.DISPLAYED_ITEM)) {
             return;
         }
-        boolean handled = inventoryService.equipOrAssignClickedItem(astPlayer, clickedItem, slot);
+        boolean handled = inventoryService.equipOrAssignClickedItem(astPlayer, slot);
         if (handled) {
             statusService.refreshStatus(astPlayer);
         }
