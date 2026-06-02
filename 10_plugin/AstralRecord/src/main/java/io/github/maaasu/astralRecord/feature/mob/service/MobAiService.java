@@ -146,6 +146,7 @@ public class MobAiService {
 
             if (internalTick % VIEWER_UPDATE_INTERVAL_TICKS == 0L) {
                 mobService.updateViewers();
+                mobService.destroyEnemiesOutsideViewDistance();
             }
         } catch (RuntimeException ex) {
             Logger.error(LogId.E_5702, ex);

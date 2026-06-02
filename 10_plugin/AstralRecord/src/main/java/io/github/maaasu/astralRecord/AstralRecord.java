@@ -511,7 +511,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new WorldNaturalSpawnBlockEventHandler(worldService, mobService),
+            new WorldNaturalSpawnBlockEventHandler(this, worldService, mobService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

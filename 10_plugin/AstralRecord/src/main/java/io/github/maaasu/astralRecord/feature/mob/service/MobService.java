@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.mob.service;
 
+import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.repository.MobRepository;
@@ -267,6 +268,34 @@ public class MobService {
     }
 
     /**
+     * どのオンラインプレイヤーの描画距離にも入っていない enemy Mob を破棄します。
+     *
+     * <p>プラグイン都合の破棄のため、討伐リザルトやドロップ処理は呼び出しません。</p>
+     *
+     * @return 破棄した enemy Mob 数
+     */
+    public int destroyEnemiesOutsideViewDistance() {
+        List<UUID> targetIds = instances.values().stream()
+                .filter(instance -> instance.template().category() == MobCategory.ENEMY)
+                .filter(instance -> {
+                    if (!syncLocation(instance)) {
+                        return true;
+                    }
+                    return !hasViewerInRange(instance);
+                })
+                .map(MobInstance::instanceId)
+                .toList();
+
+        int count = 0;
+        for (UUID instanceId : targetIds) {
+            if (destroy(instanceId)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
      * 指定インスタンスを現在視認しているプレイヤーの UUID 集合を返します。
      * インスタンスが存在しない場合は空集合を返します。
      *
@@ -356,5 +385,15 @@ public class MobService {
         }
 
         currentViewers.removeIf(id -> Bukkit.getPlayer(id) == null);
+    }
+
+    private boolean hasViewerInRange(@NotNull MobInstance instance) {
+        Location loc = instance.currentLocation();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (canSee(player, loc)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

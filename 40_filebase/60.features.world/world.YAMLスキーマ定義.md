@@ -39,6 +39,6 @@ description: string
 | `maxPlayers` | yes | 想定最大プレイヤー数。 |
 | `allowBlockBreak` | yes | ブロック破壊許可。 |
 | `allowBlockPlace` | yes | ブロック設置許可。 |
-| `allowMobSpawn` | yes | バニラ自然スポーン許可。`false` のワールドでは自然スポーンしたバニラ Mob を削除する。 |
+| `allowMobSpawn` | yes | 互換用フィールド。Plugin は RPG マップ保護を優先し、管理ワールドでは値にかかわらずバニラ Mob スポーンを抑止し、AstralRecord が生成した Mob 以外の Bukkit `Mob` を削除する。 |
 | `spawnLocation` | yes | 既定スポーン地点。`x` `y` `z` `yaw` `pitch` を持つ。 |
 | `description` | yes | 説明。 |

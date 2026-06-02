@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.world.repository.WorldRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.Bukkit;
+import org.bukkit.GameRule;
 import org.bukkit.Location;
 import org.bukkit.WorldCreator;
 import org.jetbrains.annotations.NotNull;
@@ -161,6 +162,7 @@ public class WorldService {
         org.bukkit.World existing = resolveLoadedWorld(data);
         if (existing != null) {
             Logger.log(LogId.D_5751, data.id(), existing.getName());
+            applyRpgGameRules(existing);
             return existing;
         }
 
@@ -182,6 +184,7 @@ public class WorldService {
                 Logger.log(LogId.W_5752, data.id(), worldName);
                 return null;
             }
+            applyRpgGameRules(created);
             Logger.log(LogId.D_5751, data.id(), created.getName());
             return created;
         } catch (RuntimeException e) {
@@ -249,5 +252,31 @@ public class WorldService {
         } catch (IOException e) {
             return left.getAbsoluteFile().equals(right.getAbsoluteFile());
         }
+    }
+
+    /**
+     * RPG マップとして扱う Bukkit ワールドへ標準のゲームルールを適用します。
+     *
+     * @param world 適用対象の Bukkit ワールド
+     */
+    public void applyRpgGameRules(@NotNull org.bukkit.World world) {
+        world.setGameRule(GameRule.DO_MOB_SPAWNING, false);
+        world.setGameRule(GameRule.SPAWN_MONSTERS, false);
+        world.setGameRule(GameRule.DO_PATROL_SPAWNING, false);
+        world.setGameRule(GameRule.DO_TRADER_SPAWNING, false);
+        world.setGameRule(GameRule.DO_WARDEN_SPAWNING, false);
+        world.setGameRule(GameRule.DISABLE_RAIDS, true);
+        world.setGameRule(GameRule.DO_INSOMNIA, false);
+        world.setGameRule(GameRule.MOB_GRIEFING, false);
+        world.setGameRule(GameRule.DO_MOB_LOOT, false);
+        world.setGameRule(GameRule.DO_ENTITY_DROPS, false);
+        world.setGameRule(GameRule.DO_FIRE_TICK, false);
+        world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
+        world.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
+        world.setGameRule(GameRule.KEEP_INVENTORY, true);
+        world.setGameRule(GameRule.DO_IMMEDIATE_RESPAWN, true);
+        world.setGameRule(GameRule.NATURAL_REGENERATION, false);
+        world.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, false);
+        world.setGameRule(GameRule.SEND_COMMAND_FEEDBACK, false);
     }
 }
