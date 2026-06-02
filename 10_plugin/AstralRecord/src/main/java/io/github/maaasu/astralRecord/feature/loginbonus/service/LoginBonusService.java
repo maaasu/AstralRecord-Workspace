@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class LoginBonusService {
     private static final ZoneId DATE_ZONE = ZoneId.of("Asia/Tokyo");
-    private static final int DAILY_LOGIN_BONUS_ASTRALD = 10;
+    private static final int DAILY_LOGIN_BONUS_GOLD = 1000;
     private static final int HOLIDAY_LOGIN_BONUS_ASTRALD = 10;
     private static final String REWARD_SOURCE = "daily_login_bonus";
 
@@ -76,7 +76,8 @@ public final class LoginBonusService {
             displayMonth,
             LocalDate.now(DATE_ZONE),
             receivedDates.getOrDefault(accountId, Collections.emptySet()),
-            resolveRewardModel()
+            resolveGoldRewardModel(),
+            resolveAstraldRewardModel()
         );
     }
 
@@ -118,25 +119,44 @@ public final class LoginBonusService {
     }
 
     private boolean grantDailyLoginBonus(@NotNull AstPlayer astPlayer, @NotNull LocalDate date) {
-        ItemModel astraldModel = resolveRewardModel();
+        ItemModel goldModel = resolveGoldRewardModel();
+        if (goldModel == null) {
+            return false;
+        }
+        int grantedGold = inventoryService.addItemToNormalInventory(
+            astPlayer,
+            goldModel,
+            DAILY_LOGIN_BONUS_GOLD,
+            REWARD_SOURCE
+        );
+        if (grantedGold <= 0) {
+            return false;
+        }
+        if (!LoginBonusHoliday.isJapaneseHoliday(date)) {
+            return true;
+        }
+        ItemModel astraldModel = resolveAstraldRewardModel();
         if (astraldModel == null) {
             return false;
         }
-        int granted = inventoryService.addItemToNormalInventory(
+        int grantedAstrald = inventoryService.addItemToNormalInventory(
             astPlayer,
             astraldModel,
-            rewardAmount(date),
+            HOLIDAY_LOGIN_BONUS_ASTRALD,
             REWARD_SOURCE
         );
-        return granted > 0;
+        return grantedAstrald > 0;
     }
 
-    private int rewardAmount(@NotNull LocalDate date) {
-        return DAILY_LOGIN_BONUS_ASTRALD
-            + (LoginBonusHoliday.isJapaneseHoliday(date) ? HOLIDAY_LOGIN_BONUS_ASTRALD : 0);
+    private ItemModel resolveGoldRewardModel() {
+        ItemModel model = itemService.findLoadedById(ItemService.DEFAULT_CURRENCY_ITEM_ID);
+        if (model == null) {
+            model = itemService.loadItem(ItemService.DEFAULT_CURRENCY_ITEM_ID);
+        }
+        return model;
     }
 
-    private ItemModel resolveRewardModel() {
+    private ItemModel resolveAstraldRewardModel() {
         ItemModel model = itemService.findLoadedById(ItemService.ASTRALD_CURRENCY_ITEM_ID);
         if (model == null) {
             model = itemService.loadItem(ItemService.ASTRALD_CURRENCY_ITEM_ID);

@@ -36,6 +36,9 @@ public final class LoginBonusGui {
     private static final int CALENDAR_FIRST_COLUMN = 1;
     private static final int CALENDAR_COLUMNS = 7;
     private static final int MAX_ITEM_AMOUNT = 64;
+    private static final int DAILY_LOGIN_BONUS_GOLD = 1000;
+    private static final int HOLIDAY_LOGIN_BONUS_ASTRALD = 10;
+    private static final String[] JAPANESE_WEEKDAYS = {"月", "火", "水", "木", "金", "土", "日"};
 
     /**
      * ログイン報酬画面を開きます。
@@ -44,14 +47,16 @@ public final class LoginBonusGui {
      * @param displayMonth 表示する年月
      * @param today 今日の日付
      * @param receivedDates 受け取り済み日付
-     * @param rewardModel 表示する報酬アイテム
+     * @param goldRewardModel 表示する通常報酬アイテム
+     * @param astraldRewardModel 表示する休日報酬アイテム
      */
     public void open(
         @NotNull Player player,
         @NotNull YearMonth displayMonth,
         @NotNull LocalDate today,
         @NotNull Set<LocalDate> receivedDates,
-        @Nullable ItemModel rewardModel
+        @Nullable ItemModel goldRewardModel,
+        @Nullable ItemModel astraldRewardModel
     ) {
         Inventory inventory = Bukkit.createInventory(
             new Holder(displayMonth),
@@ -59,7 +64,7 @@ public final class LoginBonusGui {
             Component.text(displayMonth.getYear() + "年" + displayMonth.getMonthValue() + "月 ログイン報酬", NamedTextColor.GOLD)
         );
         fill(inventory);
-        renderCalendar(inventory, displayMonth, today, receivedDates, rewardModel);
+        renderCalendar(inventory, displayMonth, today, receivedDates, goldRewardModel, astraldRewardModel);
         renderControls(inventory);
         player.openInventory(inventory);
     }
@@ -77,7 +82,7 @@ public final class LoginBonusGui {
     /**
      * 表示中の年月を返します。
      *
-     * @param inventory 判定対象
+     * @param inventory 対象インベントリ
      * @return 表示中の年月
      */
     public @Nullable YearMonth getDisplayMonth(@Nullable Inventory inventory) {
@@ -117,7 +122,8 @@ public final class LoginBonusGui {
         @NotNull YearMonth displayMonth,
         @NotNull LocalDate today,
         @NotNull Set<LocalDate> receivedDates,
-        @Nullable ItemModel rewardModel
+        @Nullable ItemModel goldRewardModel,
+        @Nullable ItemModel astraldRewardModel
     ) {
         for (int day = 1; day <= displayMonth.lengthOfMonth(); day++) {
             LocalDate date = displayMonth.atDay(day);
@@ -126,7 +132,7 @@ public final class LoginBonusGui {
                 continue;
             }
             boolean received = receivedDates.contains(date);
-            inventory.setItem(slot, createDateItem(date, today, received, rewardModel));
+            inventory.setItem(slot, createDateItem(date, today, received, goldRewardModel, astraldRewardModel));
         }
     }
 
@@ -161,16 +167,16 @@ public final class LoginBonusGui {
         @NotNull LocalDate date,
         @NotNull LocalDate today,
         boolean received,
-        @Nullable ItemModel rewardModel
+        @Nullable ItemModel goldRewardModel,
+        @Nullable ItemModel astraldRewardModel
     ) {
-        int rewardAmount = rewardAmount(date);
         boolean todayClaimable = date.equals(today) && !received;
         Material material = resolveDateMaterial(date, today, received);
         List<Component> lore = new ArrayList<>();
-        lore.add(Component.text(date.getDayOfWeek().name(), NamedTextColor.DARK_GRAY));
-        lore.add(RewardDisplayFormatter.rewardLine(rewardModel, rewardAmount));
+        lore.add(Component.text(japaneseWeekday(date.getDayOfWeek()), NamedTextColor.DARK_GRAY));
+        lore.add(RewardDisplayFormatter.rewardLine(goldRewardModel, DAILY_LOGIN_BONUS_GOLD));
         if (isHoliday(date)) {
-            lore.add(Component.text("祝日ボーナス +10", NamedTextColor.LIGHT_PURPLE));
+            lore.add(RewardDisplayFormatter.rewardLine(astraldRewardModel, HOLIDAY_LOGIN_BONUS_ASTRALD));
         }
         lore.add(Component.empty());
         if (received) {
@@ -178,9 +184,9 @@ public final class LoginBonusGui {
         } else if (todayClaimable) {
             lore.add(Component.text("クリックで受け取り", NamedTextColor.YELLOW));
         } else if (date.isBefore(today)) {
-            lore.add(Component.text("期限切れ", NamedTextColor.GRAY));
+            lore.add(Component.text("受け取り期限切れ", NamedTextColor.GRAY));
         } else {
-            lore.add(Component.text("未来の報酬", NamedTextColor.GRAY));
+            lore.add(Component.text("未到達の報酬", NamedTextColor.GRAY));
         }
         return createItem(
             material,
@@ -199,10 +205,6 @@ public final class LoginBonusGui {
             return Material.GRAY_TERRACOTTA;
         }
         return Material.PAPER;
-    }
-
-    private int rewardAmount(@NotNull LocalDate date) {
-        return 10 + (isHoliday(date) ? 10 : 0);
     }
 
     private void fill(@NotNull Inventory inventory) {
@@ -251,6 +253,10 @@ public final class LoginBonusGui {
 
     private boolean isHoliday(@NotNull LocalDate date) {
         return LoginBonusHoliday.isJapaneseHoliday(date);
+    }
+
+    private @NotNull String japaneseWeekday(@NotNull DayOfWeek dayOfWeek) {
+        return JAPANESE_WEEKDAYS[dayOfWeek.getValue() - 1];
     }
 
     public record Holder(@NotNull YearMonth displayMonth) implements InventoryHolder {
