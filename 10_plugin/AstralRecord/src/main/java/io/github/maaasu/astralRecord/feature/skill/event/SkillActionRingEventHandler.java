@@ -5,8 +5,7 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
-import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
-import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
@@ -23,7 +22,6 @@ import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -31,7 +29,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class SkillActionRingEventHandler extends AbstractEventHandler {
     private final SkillActionRingService actionRingService;
-    private final ItemReferenceResolver itemReferenceResolver;
+    private final InventoryService inventoryService;
 
     /**
      * ハンドラを生成します。
@@ -41,10 +39,10 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
      */
     public SkillActionRingEventHandler(
         @NotNull SkillActionRingService actionRingService,
-        @NotNull ItemService itemService
+        @NotNull InventoryService inventoryService
     ) {
         this.actionRingService = actionRingService;
-        this.itemReferenceResolver = new ItemReferenceResolver(itemService);
+        this.inventoryService = inventoryService;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -60,7 +58,7 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
                 actionRingService.toggle(astPlayer);
                 return;
             }
-            if (!isWeapon(player.getInventory().getItemInMainHand())) {
+            if (!isWeapon(astPlayer)) {
                 GuiSound.DENY.play(player);
                 return;
             }
@@ -162,8 +160,8 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
         return astPlayer != null && astPlayer.getAccount().getMode() == AccountMode.PLAYER;
     }
 
-    private boolean isWeapon(@NotNull ItemStack itemStack) {
-        ItemModel item = itemReferenceResolver.resolveItemModel(itemStack);
+    private boolean isWeapon(@NotNull AstPlayer astPlayer) {
+        ItemModel item = inventoryService.getItemModelInHand(astPlayer, EquipmentSlot.HAND);
         return item != null
             && ItemCategory.EQUIPMENT.getApiValue().equalsIgnoreCase(item.getCategory())
             && item.getEquipment() != null

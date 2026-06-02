@@ -462,7 +462,7 @@ public final class AstralRecord extends JavaPlugin {
         skillService.setOwnershipService(skillOwnershipService);
         skillActionRingService = new SkillActionRingService(this, skillBindPresetService, skillService, skillOwnershipService);
         skillBindGui = new SkillBindGui(this);
-        itemWeaponAttackService = new ItemWeaponAttackService(itemService, skillService);
+        itemWeaponAttackService = new ItemWeaponAttackService(inventoryService, skillService);
 
         // item, loot, skill, class（マスタデータ非同期ロード）
         getServer().getScheduler().runTaskAsynchronously(this, () -> {
@@ -523,7 +523,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new ItemInteractionBlockEventHandler(itemService, bundleUseService, potionUseService),
+            new ItemInteractionBlockEventHandler(inventoryService, bundleUseService, potionUseService),
             getServer().getPluginManager()
         );
         menuOpenEventHandler = new MenuOpenEventHandler(this, menuView, inventoryService, currencyService, statusService);
@@ -587,7 +587,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new SkillActionRingEventHandler(skillActionRingService, itemService),
+            new SkillActionRingEventHandler(skillActionRingService, inventoryService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

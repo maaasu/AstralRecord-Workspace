@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemBundle;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
 import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
 import io.github.maaasu.astralRecord.feature.loot.model.LootContent;
 import io.github.maaasu.astralRecord.feature.loot.model.LootModel;
@@ -282,12 +283,11 @@ public class BundleUseService {
     }
 
     private boolean isStillHoldingBundle(@NotNull PendingBundleUse pending) {
-        Player player = pending.astPlayer().getBukkit();
-        ItemStack currentItem = pending.hand() == EquipmentSlot.OFF_HAND
-            ? player.getInventory().getItemInOffHand()
-            : player.getInventory().getItemInMainHand();
-        String currentItemId = currentItem == null ? null : ItemStackFactory.getAstralItemId(currentItem);
-        return pending.model().getId().equals(currentItemId);
+        ItemReference currentReference = inventoryService.getItemReferenceInHand(
+            pending.astPlayer(),
+            pending.hand()
+        );
+        return currentReference != null && pending.model().getId().equalsIgnoreCase(currentReference.itemId());
     }
 
     private void cleanupPendingUse(@NotNull PendingBundleUse pending) {

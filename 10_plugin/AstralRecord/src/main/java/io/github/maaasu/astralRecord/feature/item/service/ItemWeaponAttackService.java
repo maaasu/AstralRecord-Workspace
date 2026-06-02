@@ -4,14 +4,14 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentOnUse;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import org.bukkit.Location;
-import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.EquipmentSlot;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -20,40 +20,37 @@ import java.util.List;
  */
 public final class ItemWeaponAttackService {
 
+    private final InventoryService inventoryService;
     private final SkillService skillService;
-    private final ItemReferenceResolver itemReferenceResolver;
 
     public ItemWeaponAttackService(
-            @NotNull ItemService itemService,
+            @NotNull InventoryService inventoryService,
             @NotNull SkillService skillService
     ) {
+        this.inventoryService = inventoryService;
         this.skillService = skillService;
-        this.itemReferenceResolver = new ItemReferenceResolver(itemService);
     }
 
     public void handleLeftClick(
             @NotNull AstPlayer player,
-            @Nullable ItemStack itemStack,
             @NotNull Location castLocation
     ) {
-        handleAttack(player, itemStack, castLocation, true);
+        handleAttack(player, castLocation, true);
     }
 
     public void handleRightClick(
             @NotNull AstPlayer player,
-            @Nullable ItemStack itemStack,
             @NotNull Location castLocation
     ) {
-        handleAttack(player, itemStack, castLocation, false);
+        handleAttack(player, castLocation, false);
     }
 
     private void handleAttack(
             @NotNull AstPlayer player,
-            @Nullable ItemStack itemStack,
             @NotNull Location castLocation,
             boolean leftClick
     ) {
-        ItemModel itemModel = resolveItemModel(itemStack);
+        ItemModel itemModel = inventoryService.getItemModelInHand(player, EquipmentSlot.HAND);
         if (itemModel == null || itemModel.getEquipment() == null) {
             return;
         }
@@ -91,9 +88,5 @@ public final class ItemWeaponAttackService {
         if (result.success() && cooldownTicks != null && cooldownTicks > 0) {
             skillService.startCooldown(caster, skillId, cooldownTicks.longValue());
         }
-    }
-
-    private @Nullable ItemModel resolveItemModel(@Nullable ItemStack itemStack) {
-        return itemReferenceResolver.resolveItemModel(itemStack);
     }
 }

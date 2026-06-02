@@ -54,13 +54,12 @@ public final class ItemWeaponAttackEventHandler extends AbstractEventHandler {
                 return;
             }
 
-            var mainHandItem = event.getPlayer().getInventory().getItemInMainHand();
             if (isLeftClick) {
-                itemWeaponAttackService.handleLeftClick(astPlayer, mainHandItem, event.getPlayer().getEyeLocation());
+                itemWeaponAttackService.handleLeftClick(astPlayer, event.getPlayer().getEyeLocation());
                 return;
             }
 
-            itemWeaponAttackService.handleRightClick(astPlayer, mainHandItem, event.getPlayer().getEyeLocation());
+            itemWeaponAttackService.handleRightClick(astPlayer, event.getPlayer().getEyeLocation());
         }, LogId.E_6000, event.getPlayer().getName());
     }
 }

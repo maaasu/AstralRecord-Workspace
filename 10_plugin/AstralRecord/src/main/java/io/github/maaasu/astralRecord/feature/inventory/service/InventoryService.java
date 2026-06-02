@@ -1075,6 +1075,52 @@ public class InventoryService {
         return references;
     }
 
+    /**
+     * 指定した手に対応する HOTBAR 正本 entry を返します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param hand 主手またはオフハンド
+     * @return 正本 entry。未設定時は null
+     */
+    public @Nullable InventoryEntryModel getHotbarEntryInHand(
+        @NotNull AstPlayer astPlayer,
+        @NotNull EquipmentSlot hand
+    ) {
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) {
+            return null;
+        }
+        return findHotbarEntryBySlot(state, toHotbarDbSlot(astPlayer, hand));
+    }
+
+    /**
+     * 指定した手に対応する HOTBAR 正本の参照情報を返します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param hand 主手またはオフハンド
+     * @return 参照情報。未設定時は null
+     */
+    public @Nullable ItemReference getItemReferenceInHand(
+        @NotNull AstPlayer astPlayer,
+        @NotNull EquipmentSlot hand
+    ) {
+        return resolveItemReference(getHotbarEntryInHand(astPlayer, hand));
+    }
+
+    /**
+     * 指定した手に対応する HOTBAR 正本のアイテムモデルを返します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param hand 主手またはオフハンド
+     * @return アイテムモデル。未設定時は null
+     */
+    public @Nullable ItemModel getItemModelInHand(
+        @NotNull AstPlayer astPlayer,
+        @NotNull EquipmentSlot hand
+    ) {
+        return itemReferenceResolver.resolveItemModel(getItemReferenceInHand(astPlayer, hand));
+    }
+
     private boolean applyActiveEquipmentLoadoutToGui(@NotNull AstPlayer astPlayer) {
         if (!astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
             return false;
@@ -1377,9 +1423,7 @@ public class InventoryService {
         }
 
         int safeAmount = Math.max(1, amount);
-        int hotbarSlot = hand == EquipmentSlot.OFF_HAND
-            ? HotbarLayout.DB_SLOT_OFFHAND
-            : HotbarLayout.toDbSlot(astPlayer.getBukkit().getInventory().getHeldItemSlot());
+        int hotbarSlot = toHotbarDbSlot(astPlayer, hand);
         InventoryEntryModel entry = findHotbarEntryBySlot(state, hotbarSlot);
         if (entry == null || entry.isDeleted()) {
             return false;
@@ -2865,7 +2909,15 @@ public class InventoryService {
             return null;
         }
         if (entry.getItemId() != null && !entry.getItemId().isBlank()) {
-            return new ItemReference(entry.getItemId(), entry.getItemCategory(), null, null);
+            String category = entry.getItemCategory();
+            if (category == null || category.isBlank()) {
+                ItemModel model = resolveItemModel(entry.getItemId());
+                if (model == null) {
+                    return null;
+                }
+                category = model.getCategory();
+            }
+            return new ItemReference(entry.getItemId(), category, null, null);
         }
         InventoryInstanceType instanceType = InventoryInstanceType.fromCode(entry.getInstanceType());
         if (instanceType == null || entry.getInstanceId() == null) {
@@ -2893,6 +2945,12 @@ public class InventoryService {
                 );
             }
         };
+    }
+
+    private int toHotbarDbSlot(@NotNull AstPlayer astPlayer, @NotNull EquipmentSlot hand) {
+        return hand == EquipmentSlot.OFF_HAND
+            ? HotbarLayout.DB_SLOT_OFFHAND
+            : HotbarLayout.toDbSlot(astPlayer.getBukkit().getInventory().getHeldItemSlot());
     }
 
     private @NotNull InventoryEntryModel toInventoryEntry(@NotNull EquipmentLoadoutSlotModel slot) {

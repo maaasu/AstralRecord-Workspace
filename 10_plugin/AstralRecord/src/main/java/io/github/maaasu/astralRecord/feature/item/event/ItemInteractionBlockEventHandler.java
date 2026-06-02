@@ -2,13 +2,15 @@ package io.github.maaasu.astralRecord.feature.item.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseService;
-import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
-import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.item.service.PotionUseService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -18,37 +20,35 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
- * AstralRecord アイテムのバニラアクション（左/右クリック等）を抑止するイベントハンドラ。
+ * AstralRecord アイテムのバニラアクションを抑止しつつ、必要な使用処理へ橋渡しするイベントハンドラ。
  */
 public class ItemInteractionBlockEventHandler extends AbstractEventHandler {
 
-    private final ItemReferenceResolver itemReferenceResolver;
+    private final InventoryService inventoryService;
     private final BundleUseService bundleUseService;
     private final PotionUseService potionUseService;
 
     /**
-     * アイテム操作抑止・bundle 開封イベントを構築します。
+     * アイテム使用抑止と bundle 使用開始を扱います。
      *
-     * @param itemService      アイテム定義サービス
+     * @param inventoryService インベントリ正本サービス
      * @param bundleUseService bundle 使用サービス
      * @param potionUseService ポーション使用サービス
      */
     public ItemInteractionBlockEventHandler(
-        @NotNull ItemService itemService,
+        @NotNull InventoryService inventoryService,
         @NotNull BundleUseService bundleUseService,
         @NotNull PotionUseService potionUseService
     ) {
-        this.itemReferenceResolver = new ItemReferenceResolver(itemService);
+        this.inventoryService = inventoryService;
         this.bundleUseService = bundleUseService;
         this.potionUseService = potionUseService;
     }
@@ -60,23 +60,28 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler {
             if (action == Action.PHYSICAL) {
                 return;
             }
-            if (!isPlayerMode(event.getPlayer())) {
+
+            var astPlayer = AstPlayerCache.get(event.getPlayer());
+            if (!isPlayerMode(astPlayer)) {
                 return;
             }
 
-            if (!isAstralItem(event.getItem())) {
+            var hand = event.getHand();
+            if (hand == null) {
                 return;
             }
 
-            if (isBundleUseAction(action) && event.getHand() != null) {
-                var astPlayer = AstPlayerCache.get(event.getPlayer());
-                if (astPlayer != null) {
-                    ItemModel model = resolveItemModel(event.getItem());
-                    if (model != null && ItemCategory.fromApiValue(model.getCategory()) == ItemCategory.BUNDLE) {
-                        bundleUseService.beginBundleUse(astPlayer, event.getHand(), model);
-                    } else if (model != null && ItemCategory.fromApiValue(model.getCategory()) == ItemCategory.CONSUMABLE) {
-                        potionUseService.use(astPlayer, event.getHand(), model);
-                    }
+            ItemModel model = inventoryService.getItemModelInHand(astPlayer, hand);
+            if (model == null) {
+                return;
+            }
+
+            if (isBundleUseAction(action)) {
+                ItemCategory category = ItemCategory.fromApiValue(model.getCategory());
+                if (category == ItemCategory.BUNDLE) {
+                    bundleUseService.beginBundleUse(astPlayer, hand, model);
+                } else if (category == ItemCategory.CONSUMABLE) {
+                    potionUseService.use(astPlayer, hand, model);
                 }
             }
 
@@ -89,10 +94,11 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
         runSafely(() -> {
-            if (!isAstralItem(getItemInHand(event.getPlayer(), event.getHand()))) {
+            var astPlayer = AstPlayerCache.get(event.getPlayer());
+            if (!isPlayerMode(astPlayer)) {
                 return;
             }
-            if (!isPlayerMode(event.getPlayer())) {
+            if (inventoryService.getItemReferenceInHand(astPlayer, event.getHand()) == null) {
                 return;
             }
             event.setCancelled(true);
@@ -102,10 +108,11 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlayerInteractAtEntity(PlayerInteractAtEntityEvent event) {
         runSafely(() -> {
-            if (!isAstralItem(getItemInHand(event.getPlayer(), event.getHand()))) {
+            var astPlayer = AstPlayerCache.get(event.getPlayer());
+            if (!isPlayerMode(astPlayer)) {
                 return;
             }
-            if (!isPlayerMode(event.getPlayer())) {
+            if (inventoryService.getItemReferenceInHand(astPlayer, event.getHand()) == null) {
                 return;
             }
             event.setCancelled(true);
@@ -118,10 +125,12 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler {
             if (!(event.getDamager() instanceof Player player)) {
                 return;
             }
-            if (!isAstralItem(player.getInventory().getItemInMainHand())) {
+
+            var astPlayer = AstPlayerCache.get(player);
+            if (!isPlayerMode(astPlayer)) {
                 return;
             }
-            if (!isPlayerMode(player)) {
+            if (inventoryService.getItemReferenceInHand(astPlayer, EquipmentSlot.HAND) == null) {
                 return;
             }
             event.setCancelled(true);
@@ -131,10 +140,20 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlayerItemConsume(PlayerItemConsumeEvent event) {
         runSafely(() -> {
-            if (!isAstralItem(event.getItem())) {
+            var astPlayer = AstPlayerCache.get(event.getPlayer());
+            if (!isPlayerMode(astPlayer)) {
                 return;
             }
-            if (!isPlayerMode(event.getPlayer())) {
+
+            var consumedItemId = ItemStackFactory.getAstralItemId(event.getItem());
+            if (consumedItemId == null || consumedItemId.isBlank()) {
+                return;
+            }
+
+            var mainHandReference = inventoryService.getItemReferenceInHand(astPlayer, EquipmentSlot.HAND);
+            var offHandReference = inventoryService.getItemReferenceInHand(astPlayer, EquipmentSlot.OFF_HAND);
+            if (!matchesItemId(mainHandReference, consumedItemId)
+                && !matchesItemId(offHandReference, consumedItemId)) {
                 return;
             }
             event.setCancelled(true);
@@ -178,28 +197,15 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler {
             LogId.E_5200, event.getPlayer().getName());
     }
 
-    private boolean isAstralItem(@Nullable ItemStack item) {
-        return itemReferenceResolver.isAstralItem(item);
-    }
-
-    private @Nullable ItemModel resolveItemModel(@NotNull ItemStack itemStack) {
-        return itemReferenceResolver.resolveItemModel(itemStack);
-    }
-
     private static boolean isBundleUseAction(@NotNull Action action) {
         return action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
     }
 
-    private static @NotNull ItemStack getItemInHand(@NotNull Player player, @NotNull EquipmentSlot hand) {
-        return hand == EquipmentSlot.OFF_HAND
-                ? player.getInventory().getItemInOffHand()
-                : player.getInventory().getItemInMainHand();
-    }
-
-    private static boolean isPlayerMode(@NotNull Player player) {
-        var astPlayer = AstPlayerCache.get(player);
+    private static boolean isPlayerMode(AstPlayer astPlayer) {
         return astPlayer != null && astPlayer.getAccount().getMode() == AccountMode.PLAYER;
     }
+
+    private static boolean matchesItemId(ItemReference reference, @NotNull String itemId) {
+        return reference != null && reference.itemId().equalsIgnoreCase(itemId);
+    }
 }
-
-
