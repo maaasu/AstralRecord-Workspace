@@ -1,6 +1,7 @@
 # Debug Deploy Tool
 
-`E:\AstralRecord-Workspace\60_tool\deploy-debug.bat` を実行すると、API / WEB / プラグインのビルドと配置をまとめて実行します。
+`E:\AstralRecord-Workspace\60_tool\deploy-debug.bat` を実行すると、API / WEB / プラグインのビルドと配置をまとめて実行します。  
+`E:\AstralRecord-Workspace\60_tool\deploy-debug-plugin-only.bat` を実行すると、プラグインだけをビルドして配置します。
 
 ## できること
 
@@ -17,6 +18,8 @@
 
 - [deploy-debug.bat](/E:/AstralRecord-Workspace/60_tool/deploy-debug.bat:1)
   - ダブルクリック実行用の入口
+- [deploy-debug-plugin-only.bat](/E:/AstralRecord-Workspace/60_tool/deploy-debug-plugin-only.bat:1)
+  - プラグインのみ実行するダブルクリック用の入口
 - [deploy-debug.ps1](/E:/AstralRecord-Workspace/60_tool/deploy-debug.ps1:1)
   - 本体の PowerShell スクリプト
 - [deploy-debug.config.json](/E:/AstralRecord-Workspace/60_tool/deploy-debug.config.json:1)
@@ -25,7 +28,9 @@
 ## 使い方
 
 1. `E:\AstralRecord-Workspace\60_tool\deploy-debug.config.json` の値を確認します。
-2. `E:\AstralRecord-Workspace\60_tool\deploy-debug.bat` を実行します。
+2. 次のどちらかを実行します。
+   - 全体実行: `E:\AstralRecord-Workspace\60_tool\deploy-debug.bat`
+   - プラグインのみ: `E:\AstralRecord-Workspace\60_tool\deploy-debug-plugin-only.bat`
 3. コンソールに `Deployment completed successfully` が出れば完了です。
 
 ## 設定ファイルの扱い

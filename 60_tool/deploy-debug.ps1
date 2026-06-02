@@ -1,5 +1,7 @@
 [CmdletBinding()]
-param()
+param(
+    [switch]$PluginOnly
+)
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
@@ -333,6 +335,13 @@ if (-not (Test-CommandExists -Name "robocopy")) {
 }
 
 $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+
+if ($PluginOnly) {
+    $config.api.enabled = $false
+    $config.web.enabled = $false
+    $config.fileDatabase.enabled = $false
+}
+
 $script:iisResetCommand = Resolve-IisResetCommand -IisConfig $config.iis
 
 $iisStopped = $false
