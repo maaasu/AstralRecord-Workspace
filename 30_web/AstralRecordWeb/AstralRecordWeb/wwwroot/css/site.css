@@ -81,11 +81,19 @@ body {
     color: var(--ar-gold-light);
     border-radius: 20px;
     background: transparent;
-    opacity: 0.6;
-    cursor: not-allowed;
+    opacity: 1;
+    cursor: pointer;
     display: flex;
     align-items: center;
     gap: 6px;
+    text-decoration: none;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+
+.ar-btn-nav-login:hover {
+    background: rgba(201, 168, 76, 0.12);
+    color: var(--ar-gold-light);
+    box-shadow: 0 0 20px rgba(201, 168, 76, 0.15);
 }
 
 .ar-badge-soon {
@@ -469,6 +477,124 @@ body {
     line-height: 1.8;
 }
 
+/* ===== Login Bonus ===== */
+.ar-login-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.ar-login-summary-card,
+.ar-login-calendar-wrap {
+    background: linear-gradient(180deg, rgba(17, 24, 39, 0.96), rgba(10, 12, 20, 0.96));
+    border: 1px solid var(--ar-border);
+    border-radius: 20px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+}
+
+.ar-login-summary-card {
+    padding: 1.5rem;
+}
+
+.ar-login-summary-label {
+    display: inline-block;
+    font-size: 0.8rem;
+    color: var(--ar-gold-light);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+}
+
+.ar-login-summary-value {
+    display: block;
+    font-family: 'Cinzel', serif;
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    color: #fff;
+    margin-bottom: 0.5rem;
+}
+
+.ar-login-summary-note,
+.ar-login-calendar-sub,
+.ar-login-calendar-note {
+    color: var(--ar-text-muted);
+}
+
+.ar-login-calendar-wrap {
+    padding: 1.5rem;
+}
+
+.ar-login-calendar-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.ar-login-calendar {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.ar-login-weekday {
+    text-align: center;
+    font-weight: 700;
+    color: var(--ar-gold-light);
+    padding: 0.75rem 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ar-login-day {
+    min-height: 150px;
+    padding: 1rem;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.ar-login-day-holiday {
+    border-color: rgba(201, 168, 76, 0.45);
+    background: linear-gradient(180deg, rgba(201, 168, 76, 0.12), rgba(255, 255, 255, 0.03));
+}
+
+.ar-login-day-empty {
+    min-height: 150px;
+    background: transparent;
+    border: 1px dashed rgba(255, 255, 255, 0.04);
+}
+
+.ar-login-day-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-bottom: 0.9rem;
+}
+
+.ar-login-day-number {
+    font-family: 'Cinzel', serif;
+    font-size: 1.5rem;
+    color: #fff;
+}
+
+.ar-login-day-week {
+    font-size: 0.85rem;
+    color: var(--ar-text-muted);
+}
+
+.ar-login-reward-list {
+    margin: 0;
+    padding-left: 1.2rem;
+    color: var(--ar-text);
+    line-height: 1.9;
+}
+
+.ar-login-reward-list li::marker {
+    color: var(--ar-gold);
+}
+
 /* ===== Footer ===== */
 .ar-footer {
     background: #060810;
@@ -524,3 +650,32 @@ body {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--ar-bg-dark); }
 ::-webkit-scrollbar-thumb { background: var(--ar-gold); border-radius: 3px; }
+
+@media (max-width: 991.98px) {
+    .ar-login-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .ar-login-calendar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ar-login-weekday {
+        display: none;
+    }
+
+    .ar-login-day-empty {
+        display: none;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .ar-login-calendar-head {
+        align-items: start;
+        flex-direction: column;
+    }
+
+    .ar-login-calendar {
+        grid-template-columns: 1fr;
+    }
+}

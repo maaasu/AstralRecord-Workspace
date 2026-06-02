@@ -1,0 +1,71 @@
+@page
+@model AstralRecordWeb.Pages.LoginModel
+@{
+    ViewData["Title"] = "ログイン";
+}
+
+<section class="ar-page-hero" style="background-image: url('/images/bg-town.png');">
+    <div class="ar-hero-overlay"></div>
+    <div class="container position-relative text-center">
+        <p class="ar-page-hero-sub">Daily Login Bonus</p>
+        <h1 class="ar-page-hero-title">ログイン報酬</h1>
+    </div>
+</section>
+
+<section class="ar-section ar-section-dark">
+    <div class="container">
+        <div class="ar-login-summary">
+            <div class="ar-login-summary-card">
+                <span class="ar-login-summary-label">通常報酬</span>
+                <strong class="ar-login-summary-value">ゴールド 1000G</strong>
+                <p class="ar-login-summary-note">ログインした日は毎回受け取れます。</p>
+            </div>
+            <div class="ar-login-summary-card">
+                <span class="ar-login-summary-label">休日ボーナス</span>
+                <strong class="ar-login-summary-value">アストラルド 10個</strong>
+                <p class="ar-login-summary-note">土曜日・日曜日のみ追加で受け取れます。</p>
+            </div>
+        </div>
+
+        <div class="ar-login-calendar-wrap">
+            <div class="ar-login-calendar-head">
+                <div>
+                    <p class="ar-login-calendar-sub mb-1">@Model.DisplayMonthText</p>
+                    <h2 class="ar-section-title mb-0">月間カレンダー</h2>
+                </div>
+                <p class="ar-login-calendar-note mb-0">曜日表記は日本語です。</p>
+            </div>
+
+            <div class="ar-login-calendar">
+                @foreach (var dayName in Model.WeekdayLabels)
+                {
+                    <div class="ar-login-weekday">@dayName</div>
+                }
+
+                @foreach (var cell in Model.CalendarCells)
+                {
+                    if (cell is null)
+                    {
+                        <div class="ar-login-day ar-login-day-empty" aria-hidden="true"></div>
+                    }
+                    else
+                    {
+                        <article class="ar-login-day @(cell.IsHoliday ? "ar-login-day-holiday" : "")">
+                            <div class="ar-login-day-top">
+                                <span class="ar-login-day-number">@cell.Day</span>
+                                <span class="ar-login-day-week">@cell.WeekdayLabel</span>
+                            </div>
+                            <ul class="ar-login-reward-list">
+                                <li>ゴールド 1000G</li>
+                                @if (cell.IsHoliday)
+                                {
+                                    <li>アストラルド 10個</li>
+                                }
+                            </ul>
+                        </article>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</section>
