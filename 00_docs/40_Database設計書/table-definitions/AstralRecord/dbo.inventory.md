@@ -23,7 +23,7 @@
 |:---|:---|:---:|:---:|:---:|:---|
 | `inventory_id` | `UNIQUEIDENTIFIER` | ○ | ○ |  | インベントリ ID |
 | `account_id` | `UNIQUEIDENTIFIER` |  | ○ |  | 所有アカウント UUID |
-| `inventory_type` | `NVARCHAR(30)` |  | ○ |  | インベントリ種別コード。例: `NORMAL`, `CURRENCY`, `EQUIPMENT`, `RUNE`, `HOTBAR` |
+| `inventory_type` | `NVARCHAR(30)` |  | ○ |  | インベントリ種別コード。例: `NORMAL`, `CURRENCY`, `EQUIPMENT`, `RUNE`, `STORAGE`, `HOTBAR` |
 | `inventory_profile` | `NVARCHAR(20)` |  | ○ | `GAME` | プロファイル。`GAME` / `BUILDER` |
 | `slot_capacity` | `INT` |  |  |  | スロット上限。未指定時は `NULL` |
 | `is_enabled` | `BIT` |  | ○ | `1` | 利用可否 |

@@ -417,6 +417,8 @@ public enum PlayerMsgId {
      * 売却GUI内の {0} 件のアイテムをインベントリに戻しました。
      */
     P_5606(5606),
+    P_5607(5607),
+    P_5608(5608),
     // endregion
 
     // region /feature/mail 5620-5629

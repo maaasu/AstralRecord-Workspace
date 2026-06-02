@@ -1,5 +1,8 @@
 package io.github.maaasu.astralRecord.feature.inventory.service;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentLoadoutModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentLoadoutSlotModel;
@@ -23,6 +26,10 @@ import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.storage.model.StorageSortDirection;
+import io.github.maaasu.astralRecord.feature.storage.model.StorageSortKey;
+import io.github.maaasu.astralRecord.feature.storage.model.StorageViewEntry;
+import io.github.maaasu.astralRecord.feature.storage.model.StorageViewOptions;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import net.kyori.adventure.text.Component;
@@ -44,6 +51,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -64,6 +72,7 @@ public class InventoryService {
     private static final String SLOT_TYPE_LEGS = "LEGS";
     private static final String SLOT_TYPE_FEET = "FEET";
     private static final String SLOT_TYPE_ACCESSORY = "ACCESSORY";
+    private static final String STORAGE_ACQUIRED_AT_KEY = "acquiredAt";
 
     private final InventoryRepository inventoryRepository;
     private final EquipmentLoadoutRepository equipmentLoadoutRepository;
@@ -599,6 +608,140 @@ public class InventoryService {
         withGold.addAll(goldCurrencyDisplay(0L));
         withGold.addAll(itemStacks);
         return withGold;
+    }
+
+    /**
+     * ストレージ GUI の表示候補を取得します。
+     *
+     * @param accountId 対象アカウントID
+     * @param options フィルタと並び順
+     * @return 表示条件に一致したストレージ entry 一覧
+     */
+    public @NotNull List<StorageViewEntry> getStorageViewEntries(
+        @NotNull UUID accountId,
+        @NotNull StorageViewOptions options
+    ) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return List.of();
+        }
+        InventoryModel storageInventory = state.findInventory(DEFAULT_PROFILE, InventoryType.STORAGE);
+        if (storageInventory == null || !storageInventory.isEnabled()) {
+            return List.of();
+        }
+
+        return state.snapshotEntries(storageInventory.getInventoryId()).stream()
+            .filter(entry -> !entry.isDeleted())
+            .map(this::toStorageViewEntry)
+            .filter(entry -> entry != null)
+            .filter(entry -> matchesStorageFilters(entry, options))
+            .sorted(storageComparator(options))
+            .toList();
+    }
+
+    /**
+     * 表示中インベントリのアイテムをストレージへ収納します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param sourceBukkitSlot 表示中インベントリの Bukkit スロット
+     * @param amount 収納数。0 以下は全数扱い
+     * @return 実際に収納した個数
+     */
+    public int moveDisplayedItemToStorage(
+        @NotNull AstPlayer astPlayer,
+        int sourceBukkitSlot,
+        int amount
+    ) {
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) {
+            return 0;
+        }
+        InventoryEntryModel sourceEntry = findDisplayedEntryAtBukkitSlot(state, sourceBukkitSlot);
+        if (sourceEntry == null) {
+            return 0;
+        }
+        ItemStack sourceItem = itemStackResolver.resolve(sourceEntry);
+        if (sourceItem == null || sourceItem.getType() == Material.AIR) {
+            return 0;
+        }
+
+        boolean takeAll = amount <= 0
+            || amount >= sourceItem.getAmount()
+            || sourceEntry.getInstanceType() != null;
+        int movedAmount = takeAll ? sourceItem.getAmount() : Math.max(1, amount);
+        InventoryModel storageInventory = ensureInventory(
+            state,
+            InventoryType.STORAGE,
+            null,
+            state.getAccountId(),
+            DEFAULT_PROFILE
+        );
+        List<InventoryEntryModel> storageEntries = new ArrayList<>(state.snapshotEntries(storageInventory.getInventoryId()).stream()
+            .filter(entry -> !entry.isDeleted())
+            .toList());
+        storageEntries.add(copyEntryToStorage(sourceEntry, storageInventory.getInventoryId(), movedAmount, state.getAccountId()));
+        state.replaceEntries(storageInventory.getInventoryId(), storageEntries);
+
+        if (takeAll) {
+            removeDisplayedEntryAfterMove(state, sourceEntry);
+        } else {
+            reduceDisplayedEntryQuantity(state, sourceEntry, sourceEntry.getQuantity() - movedAmount);
+        }
+        requestManagedInventoryUiRefresh(astPlayer, true);
+        return movedAmount;
+    }
+
+    /**
+     * ストレージ entry を通常の所持インベントリへ取り出します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param storageEntryId 取り出すストレージ entry ID
+     * @param amount 取り出し数。0 以下は全数扱い
+     * @return 実際に取り出した個数
+     */
+    public int withdrawStorageEntry(
+        @NotNull AstPlayer astPlayer,
+        @NotNull UUID storageEntryId,
+        int amount
+    ) {
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) {
+            return 0;
+        }
+        InventoryModel storageInventory = state.findInventory(DEFAULT_PROFILE, InventoryType.STORAGE);
+        if (storageInventory == null || !storageInventory.isEnabled()) {
+            return 0;
+        }
+        List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(storageInventory.getInventoryId()).stream()
+            .filter(entry -> !entry.isDeleted())
+            .toList());
+        for (int index = 0; index < entries.size(); index++) {
+            InventoryEntryModel entry = entries.get(index);
+            if (!entry.getInventoryEntryId().equals(storageEntryId)) {
+                continue;
+            }
+            ItemStack itemStack = itemStackResolver.resolve(entry);
+            if (itemStack == null || itemStack.getType() == Material.AIR) {
+                return 0;
+            }
+            boolean takeAll = amount <= 0
+                || amount >= itemStack.getAmount()
+                || entry.getInstanceType() != null;
+            int movedAmount = takeAll ? itemStack.getAmount() : Math.max(1, amount);
+            ItemStack moved = itemStack.clone();
+            moved.setAmount(movedAmount);
+            if (returnItemToOwnedInventory(astPlayer, moved) == null) {
+                return 0;
+            }
+            if (takeAll) {
+                entries.remove(index);
+            } else {
+                entries.set(index, withQuantity(entry, entry.getQuantity() - movedAmount, state.getAccountId()));
+            }
+            state.replaceEntries(storageInventory.getInventoryId(), entries);
+            return movedAmount;
+        }
+        return 0;
     }
 
     /**
@@ -2178,6 +2321,127 @@ public class InventoryService {
             actor,
             false
         );
+    }
+
+    private @NotNull InventoryEntryModel copyEntryToStorage(
+        @NotNull InventoryEntryModel entry,
+        @NotNull UUID storageInventoryId,
+        int quantity,
+        @NotNull UUID actor
+    ) {
+        LocalDateTime now = LocalDateTime.now();
+        return new InventoryEntryModel(
+            UUID.randomUUID(),
+            storageInventoryId,
+            nextStorageSlot(storageInventoryId),
+            entry.getItemCategory(),
+            entry.getItemId(),
+            entry.getInstanceType(),
+            entry.getInstanceId(),
+            Math.max(1L, quantity),
+            storageMetadataJson(entry),
+            now,
+            now,
+            actor,
+            actor,
+            false
+        );
+    }
+
+    private int nextStorageSlot(@NotNull UUID storageInventoryId) {
+        int next = 1;
+        for (PlayerInventoryState state : stateRegistry.all()) {
+            InventoryModel inventory = state.findInventoryById(storageInventoryId);
+            if (inventory == null) {
+                continue;
+            }
+            for (InventoryEntryModel entry : state.snapshotEntries(storageInventoryId)) {
+                if (entry.isDeleted() || entry.getSlotIndex() == null) {
+                    continue;
+                }
+                next = Math.max(next, entry.getSlotIndex() + 1);
+            }
+            return next;
+        }
+        return next;
+    }
+
+    private @NotNull String storageMetadataJson(@NotNull InventoryEntryModel sourceEntry) {
+        JsonObject object = new JsonObject();
+        object.addProperty(STORAGE_ACQUIRED_AT_KEY, sourceEntry.getCreatedAt().toString());
+        return object.toString();
+    }
+
+    private @Nullable StorageViewEntry toStorageViewEntry(@NotNull InventoryEntryModel entry) {
+        ItemStack itemStack = itemStackResolver.resolve(entry);
+        ItemModel itemModel = resolveItemModel(entry);
+        if (itemStack == null || itemStack.getType() == Material.AIR || itemModel == null) {
+            return null;
+        }
+        return new StorageViewEntry(entry, itemStack, itemModel, storageAcquiredAt(entry));
+    }
+
+    private @NotNull LocalDateTime storageAcquiredAt(@NotNull InventoryEntryModel entry) {
+        String metadataJson = entry.getMetadataJson();
+        if (metadataJson == null || metadataJson.isBlank()) {
+            return entry.getCreatedAt();
+        }
+        try {
+            JsonObject object = JsonParser.parseString(metadataJson).getAsJsonObject();
+            if (object.has(STORAGE_ACQUIRED_AT_KEY) && !object.get(STORAGE_ACQUIRED_AT_KEY).isJsonNull()) {
+                return LocalDateTime.parse(object.get(STORAGE_ACQUIRED_AT_KEY).getAsString());
+            }
+        } catch (JsonSyntaxException | IllegalStateException | java.time.format.DateTimeParseException ignored) {
+            return entry.getCreatedAt();
+        }
+        return entry.getCreatedAt();
+    }
+
+    private boolean matchesStorageFilters(
+        @NotNull StorageViewEntry entry,
+        @NotNull StorageViewOptions options
+    ) {
+        String categoryFilter = options.categoryFilter();
+        if (categoryFilter != null
+            && !categoryFilter.isBlank()
+            && !entry.itemModel().getCategory().equalsIgnoreCase(categoryFilter)) {
+            return false;
+        }
+        String rarityFilter = options.rarityFilter();
+        return rarityFilter == null
+            || rarityFilter.isBlank()
+            || entry.itemModel().getRarity().equalsIgnoreCase(rarityFilter);
+    }
+
+    private @NotNull Comparator<StorageViewEntry> storageComparator(@NotNull StorageViewOptions options) {
+        Comparator<StorageViewEntry> primary = switch (options.sortKey()) {
+            case STORED_ORDER -> Comparator.comparingInt(this::storageSequence);
+            case ACQUIRED_ORDER -> Comparator.comparing(StorageViewEntry::acquiredAt);
+            case RARITY -> Comparator.comparingInt(entry -> rarityRank(entry.itemModel().getRarity()));
+            case SALE_VALUE -> Comparator.comparingInt(entry -> Math.max(0, entry.itemModel().getSaleValue()));
+        };
+        if (options.sortDirection() == StorageSortDirection.DESC) {
+            primary = primary.reversed();
+        }
+        return primary.thenComparingInt(this::storageSequence)
+            .thenComparing(entry -> entry.entry().getInventoryEntryId());
+    }
+
+    private int storageSequence(@NotNull StorageViewEntry entry) {
+        Integer slotIndex = entry.entry().getSlotIndex();
+        return slotIndex == null ? Integer.MAX_VALUE : slotIndex;
+    }
+
+    private int rarityRank(@NotNull String rarity) {
+        return switch (rarity.toUpperCase(Locale.ROOT)) {
+            case "COMMON" -> 1;
+            case "UNCOMMON" -> 2;
+            case "RARE" -> 3;
+            case "EPIC" -> 4;
+            case "LEGENDARY" -> 5;
+            case "MYTHIC" -> 6;
+            default -> 0;
+        };
     }
 
     private @NotNull InventoryEntryModel withSlot(

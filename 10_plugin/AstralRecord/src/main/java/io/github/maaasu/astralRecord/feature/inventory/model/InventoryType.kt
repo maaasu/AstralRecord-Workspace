@@ -12,6 +12,7 @@ enum class InventoryType(
     CURRENCY("CURRENCY", "通貨", true, false, false, "currency", "通貨"),
     EQUIPMENT("EQUIPMENT", "装備", true, true, true, "equipment", "equip", "装備"),
     RUNE("RUNE", "ルーン", true, true, true, "rune", "ルーン"),
+    STORAGE("STORAGE", "ストレージ", false, false, false, "storage", "ストレージ"),
     /** 装着中の防具・武器スロット（slot_index 1=メインハンド, 2=頭, 3=胴, 4=脚, 5=足） */
     EQUIP_SLOT("EQUIP_SLOT", "装備スロット", true, true, false, "equipslot", "装備スロット"),
     /** ホットバースロット（slot_index 1〜9 が Bukkit スロット 0〜8 に対応）スナップショット保存 */

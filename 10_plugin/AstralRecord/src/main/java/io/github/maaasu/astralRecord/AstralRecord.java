@@ -151,6 +151,7 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerHudService playerHudService;
     private ResourcePackService resourcePackService;
     private MenuView menuView;
+    private MenuOpenEventHandler menuOpenEventHandler;
     private PlayerListGui playerListGui;
     private PlayerDetailGui playerDetailGui;
     private PlayerBrowserGuiEventHandler playerBrowserGuiEventHandler;
@@ -524,10 +525,8 @@ public final class AstralRecord extends JavaPlugin {
             new ItemInteractionBlockEventHandler(itemService, bundleUseService, potionUseService),
             getServer().getPluginManager()
         );
-        eventManager.registerHandler(
-            new MenuOpenEventHandler(this, menuView, inventoryService, currencyService, statusService),
-            getServer().getPluginManager()
-        );
+        menuOpenEventHandler = new MenuOpenEventHandler(this, menuView, inventoryService, currencyService, statusService);
+        eventManager.registerHandler(menuOpenEventHandler, getServer().getPluginManager());
         mailGuiEventHandler = new MailGuiEventHandler(new MailGuiView(this), mailService, menuView, inventoryService);
         eventManager.registerHandler(
             mailGuiEventHandler,
@@ -685,6 +684,10 @@ public final class AstralRecord extends JavaPlugin {
      */
     public MenuView getMenuView() {
         return menuView;
+    }
+
+    public MenuOpenEventHandler getMenuOpenEventHandler() {
+        return menuOpenEventHandler;
     }
 
     public PlayerListGui getPlayerListGui() {

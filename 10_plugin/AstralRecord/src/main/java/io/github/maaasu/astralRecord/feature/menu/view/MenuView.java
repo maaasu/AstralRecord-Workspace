@@ -19,11 +19,14 @@ import io.github.maaasu.astralRecord.feature.menu.view.screen.MainMenuScreenView
 import io.github.maaasu.astralRecord.feature.menu.view.screen.StatusScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.SellConfirmScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.SellScreenView;
+import io.github.maaasu.astralRecord.feature.menu.view.screen.StorageScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.TrashConfirmScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.TrashScreenView;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playerclass.model.ClassViewEntry;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
+import io.github.maaasu.astralRecord.feature.storage.model.StorageViewEntry;
+import io.github.maaasu.astralRecord.feature.storage.model.StorageViewOptions;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import net.kyori.adventure.text.Component;
@@ -38,6 +41,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.UUID;
 
 public class MenuView {
     public static final int SIZE = BaseMenuScreenView.SIZE;
@@ -48,6 +52,7 @@ public class MenuView {
     public static final int EQUIPMENT_GUI_SLOT = MainMenuScreenView.EQUIPMENT_GUI_SLOT;
     public static final int TRASH_SLOT = MainMenuScreenView.TRASH_SLOT;
     public static final int GUIDE_SLOT = MainMenuScreenView.GUIDE_SLOT;
+    public static final int STORAGE_SLOT = MainMenuScreenView.STORAGE_SLOT;
     public static final int BUFF_SLOT = MainMenuScreenView.BUFF_SLOT;
     public static final int SKILL_BIND_SLOT = MainMenuScreenView.SKILL_BIND_SLOT;
     public static final int CURRENCY_SLOT = MainMenuScreenView.CURRENCY_SLOT;
@@ -78,6 +83,13 @@ public class MenuView {
     public static final int TRASH_CONFIRM_DISPOSE_SLOT = TrashConfirmScreenView.DISPOSE_SLOT;
     public static final int TRASH_CONFIRM_RETURN_SLOT = TrashConfirmScreenView.RETURN_TO_TRASH_SLOT;
     public static final int TRASH_CONFIRM_NEXT_SLOT = TrashConfirmScreenView.NEXT_SLOT;
+    public static final int STORAGE_PREVIOUS_SLOT = StorageScreenView.PREVIOUS_SLOT;
+    public static final int STORAGE_CATEGORY_FILTER_SLOT = StorageScreenView.CATEGORY_FILTER_SLOT;
+    public static final int STORAGE_RARITY_FILTER_SLOT = StorageScreenView.RARITY_FILTER_SLOT;
+    public static final int STORAGE_SORT_KEY_SLOT = StorageScreenView.SORT_KEY_SLOT;
+    public static final int STORAGE_SORT_DIRECTION_SLOT = StorageScreenView.SORT_DIRECTION_SLOT;
+    public static final int STORAGE_GUIDE_SLOT = StorageScreenView.GUIDE_SLOT;
+    public static final int STORAGE_NEXT_SLOT = StorageScreenView.NEXT_SLOT;
     public static final int CRAFT_RESULT_RAW_SLOT = CraftShortcutView.CRAFT_RESULT_RAW_SLOT;
     public static final int CRAFT_SHORTCUT_RAW_SLOT_START = CraftShortcutView.CRAFT_SHORTCUT_RAW_SLOT_START;
 
@@ -98,6 +110,7 @@ public class MenuView {
     private final TrashConfirmScreenView trashConfirmScreenView;
     private final SellScreenView sellScreenView;
     private final SellConfirmScreenView sellConfirmScreenView;
+    private final StorageScreenView storageScreenView;
     private final CraftShortcutView craftShortcutView;
     private final AstralRecord plugin;
 
@@ -109,6 +122,8 @@ public class MenuView {
         NamespacedKey classIdKey = new NamespacedKey(plugin, "menu_class_id");
         NamespacedKey trashPlaceholderKey = new NamespacedKey(plugin, "trash_content_placeholder");
         NamespacedKey sellPlaceholderKey = new NamespacedKey(plugin, "sell_content_placeholder");
+        NamespacedKey storagePlaceholderKey = new NamespacedKey(plugin, "storage_content_placeholder");
+        NamespacedKey storageEntryIdKey = new NamespacedKey(plugin, "storage_entry_id");
         ItemService itemService = plugin.getItemService();
         this.mainMenuScreenView = new MainMenuScreenView();
         this.statusScreenView = new StatusScreenView();
@@ -121,6 +136,7 @@ public class MenuView {
         this.trashConfirmScreenView = new TrashConfirmScreenView(trashPlaceholderKey);
         this.sellScreenView = new SellScreenView(sellPlaceholderKey, itemService);
         this.sellConfirmScreenView = new SellConfirmScreenView(sellPlaceholderKey);
+        this.storageScreenView = new StorageScreenView(storagePlaceholderKey, storageEntryIdKey);
         this.craftShortcutView = new CraftShortcutView(craftShortcutKey, craftActionKey);
     }
 
@@ -225,6 +241,21 @@ public class MenuView {
         sellConfirmScreenView.render(inventory, sellItems, 0);
         player.openInventory(inventory);
     }
+
+    public void openStorage(
+        @NotNull Player player,
+        @NotNull List<StorageViewEntry> storageItems,
+        @NotNull StorageViewOptions options,
+        int pageIndex
+    ) {
+        int normalizedPage = storageScreenView.normalizePage(pageIndex, storageItems.size());
+        int totalPages = storageScreenView.totalPages(storageItems.size());
+        Component title = Component.text("ストレージ " + (normalizedPage + 1) + "/" + totalPages, NamedTextColor.GOLD);
+        Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.STORAGE, -1, normalizedPage), SIZE, title);
+        storageScreenView.render(inventory, storageItems, options, normalizedPage);
+        player.openInventory(inventory);
+    }
+
     public @NotNull ItemStack createCraftResultIcon() {
         return craftShortcutView.createCraftResultIcon();
     }
@@ -338,6 +369,14 @@ public class MenuView {
         return sellScreenView.hasNextPage(pageIndex, sellItems.size());
     }
 
+    public boolean hasPreviousStoragePage(int pageIndex) {
+        return storageScreenView.hasPreviousPage(pageIndex);
+    }
+
+    public boolean hasNextStoragePage(@NotNull List<StorageViewEntry> storageItems, int pageIndex) {
+        return storageScreenView.hasNextPage(pageIndex, storageItems.size());
+    }
+
     public boolean isTrashContentPlaceholder(@Nullable ItemStack itemStack) {
         return trashScreenView.isContentPlaceholder(itemStack);
     }
@@ -352,6 +391,14 @@ public class MenuView {
 
     public boolean isSellConfirmContentPlaceholder(@Nullable ItemStack itemStack) {
         return sellConfirmScreenView.isContentPlaceholder(itemStack);
+    }
+
+    public boolean isStorageContentPlaceholder(@Nullable ItemStack itemStack) {
+        return storageScreenView.isContentPlaceholder(itemStack);
+    }
+
+    public @Nullable UUID getStorageEntryId(@Nullable ItemStack itemStack) {
+        return storageScreenView.getEntryId(itemStack);
     }
 
     public @Nullable String getClassId(@Nullable ItemStack itemStack) {

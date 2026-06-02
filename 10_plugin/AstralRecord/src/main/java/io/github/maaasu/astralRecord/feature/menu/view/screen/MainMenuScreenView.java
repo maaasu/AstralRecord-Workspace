@@ -21,6 +21,7 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
     public static final int EQUIPMENT_GUI_SLOT = 22;
     public static final int TRASH_SLOT = 23;
     public static final int GUIDE_SLOT = 24;
+    public static final int STORAGE_SLOT = 25;
     public static final int BUFF_SLOT = 30;
     public static final int SKILL_BIND_SLOT = 31;
     public static final int CURRENCY_SLOT = 32;
@@ -55,6 +56,11 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
             Material.BOOK,
             Component.text("ガイド", NamedTextColor.LIGHT_PURPLE),
             List.of(Component.text("ヘルプを開く", NamedTextColor.GRAY))
+        ));
+        inventory.setItem(STORAGE_SLOT, createItem(
+            Material.CHEST,
+            Component.text("ストレージ", NamedTextColor.GOLD),
+            List.of(Component.text("アイテムを収納・整理する", NamedTextColor.GRAY))
         ));
         inventory.setItem(BUFF_SLOT, createItem(
             Material.POTION,

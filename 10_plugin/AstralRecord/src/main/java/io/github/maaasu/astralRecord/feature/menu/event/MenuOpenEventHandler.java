@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
@@ -25,6 +26,8 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.gui.PlayerSettingGui;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
+import io.github.maaasu.astralRecord.feature.storage.model.StorageViewEntry;
+import io.github.maaasu.astralRecord.feature.storage.model.StorageViewOptions;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
@@ -72,6 +75,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     private final Set<UUID> suppressTrashConfirmRestoreOnClose = ConcurrentHashMap.newKeySet();
     private final Set<UUID> suppressSellConfirmRestoreOnClose = ConcurrentHashMap.newKeySet();
     private final Set<UUID> playerInventoryDummyApplied = ConcurrentHashMap.newKeySet();
+    private final ConcurrentHashMap<UUID, StorageViewOptions> storageOptionsByPlayer = new ConcurrentHashMap<>();
 
     public MenuOpenEventHandler(
         @NotNull AstralRecord plugin,
@@ -197,6 +201,10 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                     handleSellConfirmClick(event);
                     return;
                 }
+                if (menuScreen == MenuScreen.STORAGE) {
+                    handleStorageClick(event);
+                    return;
+                }
                 if (event.getWhoClicked() instanceof Player player
                     && handleMenuHotbarShortcutClick(event, player)) {
                     return;
@@ -289,6 +297,13 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                     return;
                 }
                 if (menuScreen == MenuScreen.SELL_CONFIRM) {
+                    event.setCancelled(true);
+                    if (event.getWhoClicked() instanceof Player player) {
+                        GuiSound.DENY.play(player);
+                    }
+                    return;
+                }
+                if (menuScreen == MenuScreen.STORAGE) {
                     event.setCancelled(true);
                     if (event.getWhoClicked() instanceof Player player) {
                         GuiSound.DENY.play(player);
@@ -406,6 +421,11 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         if (rawSlot == MenuView.GUIDE_SLOT) {
             GuiSound.SELECT.play(player);
             switchGuiWithoutInventoryReload(player, () -> menuView.openGuide(player));
+            return;
+        }
+        if (rawSlot == MenuView.STORAGE_SLOT) {
+            GuiSound.SELECT.play(player);
+            openStorage(player, 0);
             return;
         }
         if (rawSlot == MenuView.BUFF_SLOT) {
@@ -778,6 +798,82 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
         GuiSound.DENY.play(player);
     }
+
+    private void handleStorageClick(@NotNull InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+        event.setCancelled(true);
+        int rawSlot = event.getRawSlot();
+        Inventory topInventory = event.getView().getTopInventory();
+
+        if (rawSlot >= topInventory.getSize()) {
+            handleStoragePlayerInventoryClick(event, player);
+            return;
+        }
+
+        if (rawSlot == MenuView.BACK_SLOT) {
+            GuiSound.SELECT.play(player);
+            switchGuiWithInventoryRestore(player, () -> menuView.open(player));
+            return;
+        }
+
+        int pageIndex = menuView.getPageIndex(topInventory);
+        StorageViewOptions options = storageOptions(player);
+        List<StorageViewEntry> entries = storageEntries(player, options);
+        if (rawSlot == MenuView.STORAGE_PREVIOUS_SLOT) {
+            if (menuView.hasPreviousStoragePage(pageIndex)) {
+                GuiSound.SELECT.play(player);
+                openStorage(player, pageIndex - 1);
+            } else {
+                GuiSound.DENY.play(player);
+            }
+            return;
+        }
+        if (rawSlot == MenuView.STORAGE_NEXT_SLOT) {
+            if (menuView.hasNextStoragePage(entries, pageIndex)) {
+                GuiSound.SELECT.play(player);
+                openStorage(player, pageIndex + 1);
+            } else {
+                GuiSound.DENY.play(player);
+            }
+            return;
+        }
+        if (rawSlot == MenuView.STORAGE_CATEGORY_FILTER_SLOT) {
+            GuiSound.SELECT.play(player);
+            storageOptionsByPlayer.put(player.getUniqueId(), options.withCategoryFilter(nextStorageCategory(options.categoryFilter())));
+            openStorage(player, 0);
+            return;
+        }
+        if (rawSlot == MenuView.STORAGE_RARITY_FILTER_SLOT) {
+            GuiSound.SELECT.play(player);
+            storageOptionsByPlayer.put(player.getUniqueId(), options.withRarityFilter(nextStorageRarity(options.rarityFilter())));
+            openStorage(player, 0);
+            return;
+        }
+        if (rawSlot == MenuView.STORAGE_SORT_KEY_SLOT) {
+            GuiSound.SELECT.play(player);
+            storageOptionsByPlayer.put(player.getUniqueId(), options.withSortKey(options.sortKey().next()));
+            openStorage(player, 0);
+            return;
+        }
+        if (rawSlot == MenuView.STORAGE_SORT_DIRECTION_SLOT) {
+            GuiSound.SELECT.play(player);
+            storageOptionsByPlayer.put(player.getUniqueId(), options.withSortDirection(options.sortDirection().next()));
+            openStorage(player, 0);
+            return;
+        }
+        if (isStorageControlSlot(rawSlot)) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (!isStorageContentSlot(rawSlot)) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        handleStorageContentClick(event, player, topInventory, rawSlot);
+    }
+
     private void executeShortcutAction(@NotNull Player player, @NotNull MenuShortcutAction action, int shortcutIndex) {
         if (action == MenuShortcutAction.MAIN_MENU) {
             GuiSound.OPEN.play(player);
@@ -1025,6 +1121,29 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         suppressSellConfirmOnClose.add(player.getUniqueId());
         menuView.openSellConfirm(player, normalized, pageIndex);
         fillPlayerInventoryDummy(player);
+    }
+
+    public void openStorage(@NotNull Player player, int pageIndex) {
+        StorageViewOptions options = storageOptions(player);
+        switchGuiWithInventoryRestore(
+            player,
+            () -> menuView.openStorage(player, storageEntries(player, options), options, pageIndex)
+        );
+    }
+
+    private @NotNull StorageViewOptions storageOptions(@NotNull Player player) {
+        return storageOptionsByPlayer.computeIfAbsent(player.getUniqueId(), ignored -> StorageViewOptions.defaults());
+    }
+
+    private @NotNull List<StorageViewEntry> storageEntries(
+        @NotNull Player player,
+        @NotNull StorageViewOptions options
+    ) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            return List.of();
+        }
+        return inventoryService.getStorageViewEntries(astPlayer.getAccount().getUuid(), options);
     }
 
     private void handleTrashClose(@NotNull Inventory inventory, @NotNull Player player) {
@@ -1558,6 +1677,81 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         player.updateInventory();
     }
 
+    private void handleStoragePlayerInventoryClick(
+        @NotNull InventoryClickEvent event,
+        @NotNull Player player
+    ) {
+        if (!(event.getClickedInventory() instanceof PlayerInventory)) {
+            return;
+        }
+        if (handleMenuHotbarShortcutClick(event, player)) {
+            return;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        ItemStack clicked = event.getCurrentItem();
+        if (clicked == null || clicked.getType() == Material.AIR) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        int requested = resolveTrashTransferAmount(event.getClick(), clicked.getAmount());
+        if (requested <= 0) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        int moved = inventoryService.moveDisplayedItemToStorage(astPlayer, event.getSlot(), requested);
+        if (moved <= 0) {
+            GuiSound.DENY.play(player);
+            player.updateInventory();
+            return;
+        }
+        GuiSound.SELECT.play(player);
+        sendTrashMessage(player, PlayerMsgId.P_5607, moved);
+        openStorage(player, menuView.getPageIndex(event.getView().getTopInventory()));
+        player.updateInventory();
+    }
+
+    private void handleStorageContentClick(
+        @NotNull InventoryClickEvent event,
+        @NotNull Player player,
+        @NotNull Inventory topInventory,
+        int rawSlot
+    ) {
+        ItemStack current = topInventory.getItem(rawSlot);
+        if (current == null || current.getType() == Material.AIR || menuView.isStorageContentPlaceholder(current)) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        UUID storageEntryId = menuView.getStorageEntryId(current);
+        if (storageEntryId == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        int requested = resolveTrashTransferAmount(event.getClick(), current.getAmount());
+        if (requested <= 0) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        int moved = inventoryService.withdrawStorageEntry(astPlayer, storageEntryId, requested);
+        if (moved <= 0) {
+            GuiSound.DENY.play(player);
+            player.updateInventory();
+            return;
+        }
+        GuiSound.SELECT.play(player);
+        sendTrashMessage(player, PlayerMsgId.P_5608, moved);
+        openStorage(player, menuView.getPageIndex(topInventory));
+        player.updateInventory();
+    }
+
     private void rerenderTrashInventory(@NotNull Player player, @NotNull Inventory topInventory) {
         int pageIndex = menuView.getPageIndex(topInventory);
         List<ItemStack> currentItems = snapshotTrashItems(topInventory);
@@ -1832,6 +2026,10 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         return rawSlot >= 0 && rawSlot < SellScreenView.CONTENT_SLOT_COUNT;
     }
 
+    private boolean isStorageContentSlot(int rawSlot) {
+        return rawSlot >= 0 && rawSlot < io.github.maaasu.astralRecord.feature.menu.view.screen.StorageScreenView.CONTENT_SLOT_COUNT;
+    }
+
     private boolean isTrashControlSlot(int rawSlot) {
         return rawSlot == MenuView.TRASH_PREVIOUS_SLOT
             || rawSlot == MenuView.TRASH_GUIDE_SLOT
@@ -1846,6 +2044,43 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             || rawSlot == MenuView.BACK_SLOT
             || rawSlot == MenuView.TRASH_CLOSE_SLOT
             || rawSlot == MenuView.TRASH_NEXT_SLOT;
+    }
+
+    private boolean isStorageControlSlot(int rawSlot) {
+        return rawSlot == MenuView.STORAGE_PREVIOUS_SLOT
+            || rawSlot == MenuView.STORAGE_CATEGORY_FILTER_SLOT
+            || rawSlot == MenuView.STORAGE_RARITY_FILTER_SLOT
+            || rawSlot == MenuView.STORAGE_SORT_KEY_SLOT
+            || rawSlot == MenuView.BACK_SLOT
+            || rawSlot == MenuView.STORAGE_SORT_DIRECTION_SLOT
+            || rawSlot == MenuView.STORAGE_GUIDE_SLOT
+            || rawSlot == MenuView.STORAGE_NEXT_SLOT;
+    }
+
+    private @Nullable String nextStorageCategory(@Nullable String current) {
+        List<String> values = ItemCategory.supportedApiValues();
+        return nextNullableCycle(current, values);
+    }
+
+    private @Nullable String nextStorageRarity(@Nullable String current) {
+        return nextNullableCycle(current, List.of("COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY", "MYTHIC"));
+    }
+
+    private @Nullable String nextNullableCycle(@Nullable String current, @NotNull List<String> values) {
+        if (values.isEmpty()) {
+            return null;
+        }
+        if (current == null || current.isBlank()) {
+            return values.get(0);
+        }
+        for (int index = 0; index < values.size(); index++) {
+            if (!values.get(index).equalsIgnoreCase(current)) {
+                continue;
+            }
+            int nextIndex = index + 1;
+            return nextIndex >= values.size() ? null : values.get(nextIndex);
+        }
+        return null;
     }
 
     private boolean isSellableItem(@NotNull ItemStack itemStack) {
