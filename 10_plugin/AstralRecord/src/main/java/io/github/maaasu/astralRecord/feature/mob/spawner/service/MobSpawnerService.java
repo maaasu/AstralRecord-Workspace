@@ -17,6 +17,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -46,6 +47,9 @@ public class MobSpawnerService {
     private static final long TICK_INTERVAL = 20L;
     private static final long SAVE_INTERVAL = 20L * 60L;
     private static final int MAX_PLAYER_SCALE = 6;
+    private static final int SPAWN_LOCATION_ATTEMPTS = 24;
+    private static final int INTERIOR_Y_OFFSET = -3;
+    private static final int REQUIRED_SPAWN_SPACE_BLOCKS = 2;
 
     private final Plugin plugin;
     private final MobService mobService;
@@ -375,16 +379,113 @@ public class MobSpawnerService {
     @NotNull
     private Location randomSpawnLocation(@NotNull Location origin, double radius) {
         ThreadLocalRandom random = ThreadLocalRandom.current();
+        World world = origin.getWorld();
+        if (world == null) {
+            return origin.clone();
+        }
+
+        int minInteriorY = Math.max(world.getMinHeight() + 1, origin.getBlockY() + INTERIOR_Y_OFFSET);
+        int maxSpawnY = Math.min(world.getMaxHeight() - REQUIRED_SPAWN_SPACE_BLOCKS, (int) Math.floor(origin.getY() + radius));
+        for (int attempt = 0; attempt < SPAWN_LOCATION_ATTEMPTS; attempt++) {
+            Location horizontalCandidate = randomHorizontalLocation(origin, radius, random);
+            Location interiorLocation = randomInteriorSpawnLocation(horizontalCandidate, minInteriorY, maxSpawnY, random);
+            if (interiorLocation != null) {
+                return interiorLocation;
+            }
+            Location surfaceLocation = surfaceSpawnLocation(horizontalCandidate, maxSpawnY);
+            if (surfaceLocation != null) {
+                return surfaceLocation;
+            }
+        }
+
+        Location surfaceLocation = surfaceSpawnLocation(origin, maxSpawnY);
+        if (surfaceLocation != null) {
+            return surfaceLocation;
+        }
+        return origin.clone();
+    }
+
+    @NotNull
+    private Location randomHorizontalLocation(
+            @NotNull Location origin,
+            double radius,
+            @NotNull ThreadLocalRandom random
+    ) {
         double angle = random.nextDouble(0.0D, Math.PI * 2.0D);
         double distance = Math.sqrt(random.nextDouble()) * radius;
-        Location location = origin.clone().add(Math.cos(angle) * distance, 0.0D, Math.sin(angle) * distance);
+        return origin.clone().add(Math.cos(angle) * distance, 0.0D, Math.sin(angle) * distance);
+    }
+
+    @Nullable
+    private Location randomInteriorSpawnLocation(
+            @NotNull Location horizontalCandidate,
+            int minInteriorY,
+            int maxSpawnY,
+            @NotNull ThreadLocalRandom random
+    ) {
+        if (minInteriorY > maxSpawnY) {
+            return null;
+        }
+
+        int yCount = maxSpawnY - minInteriorY + 1;
+        int startOffset = random.nextInt(yCount);
+        for (int offset = 0; offset < yCount; offset++) {
+            int y = minInteriorY + ((startOffset + offset) % yCount);
+            Location candidate = horizontalCandidate.clone();
+            candidate.setY(y);
+            if (isSpawnSpace(candidate)) {
+                return blockCenter(candidate);
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private Location surfaceSpawnLocation(@NotNull Location horizontalCandidate, int maxSpawnY) {
+        World world = horizontalCandidate.getWorld();
+        if (world == null) {
+            return null;
+        }
+
+        int spawnY = world.getHighestBlockYAt(horizontalCandidate) + 1;
+        if (spawnY > maxSpawnY) {
+            return null;
+        }
+        Location candidate = horizontalCandidate.clone();
+        candidate.setY(spawnY);
+        return isSpawnSpace(candidate) ? blockCenter(candidate) : null;
+    }
+
+    private boolean isSpawnSpace(@NotNull Location location) {
         World world = location.getWorld();
         if (world == null) {
-            return location;
+            return false;
         }
-        int highestY = world.getHighestBlockYAt(location);
-        location.setY(Math.max(location.getY(), highestY + 1.0D));
-        return location;
+
+        int x = location.getBlockX();
+        int y = location.getBlockY();
+        int z = location.getBlockZ();
+        if (y <= world.getMinHeight() || y + 1 >= world.getMaxHeight()) {
+            return false;
+        }
+        Block ground = world.getBlockAt(x, y - 1, z);
+        Block feet = world.getBlockAt(x, y, z);
+        Block head = world.getBlockAt(x, y + 1, z);
+        return ground.getType().isSolid()
+                && feet.isPassable()
+                && !feet.isLiquid()
+                && head.isPassable()
+                && !head.isLiquid();
+    }
+
+    @NotNull
+    private Location blockCenter(@NotNull Location location) {
+        return new Location(
+                location.getWorld(),
+                location.getBlockX() + 0.5D,
+                location.getBlockY(),
+                location.getBlockZ() + 0.5D
+        );
     }
 
     private void saveIfDirty() {
