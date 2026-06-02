@@ -1,9 +1,9 @@
 schemaVersion: 1
-id: hub_lobby
-displayName: "Hub Lobby"
+id: skyhaven_isle
+displayName: "空庭島スカイヘイヴン"
 worldType: HUB
-baseWorldPath: "worlds/world"
-instanceRootPath: "worlds/world_instances/hub"
+baseWorldPath: "hub/skyhaven_isle"
+instanceRootPath: "_world_instances/skyhaven_isle"
 autoLoad: true
 instanceEnabled: true
 maxPlayers: 8
@@ -16,4 +16,4 @@ spawnLocation:
   z: 0.5
   yaw: 0.0
   pitch: 0.0
-description: "Dungeon and boss challenge lobby for future player or party instances."
+description: "空に浮かぶ大樹の島。冒険者のハブ、ロビー、個人スペースとして使われる穏やかな空の拠点。"

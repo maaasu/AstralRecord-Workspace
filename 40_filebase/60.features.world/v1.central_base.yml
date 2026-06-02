@@ -1,9 +1,9 @@
 schemaVersion: 1
-id: world
-displayName: "Central Base"
+id: starlit_nox
+displayName: "星影の街ノクス"
 worldType: BASE
-baseWorldPath: "worlds/world_arcanum_city"
-instanceRootPath: "worlds/world_instances/world_arcanum_city"
+baseWorldPath: "base/starlit_nox"
+instanceRootPath: "_world_instances/starlit_nox"
 autoLoad: true
 instanceEnabled: false
 maxPlayers: 100
@@ -16,4 +16,4 @@ spawnLocation:
   z: -576
   yaw: 0.0
   pitch: 0.0
-description: "Shared base world for NPC and player interaction."
+description: "夜の森に包まれた、古い石造りの拠点都市"

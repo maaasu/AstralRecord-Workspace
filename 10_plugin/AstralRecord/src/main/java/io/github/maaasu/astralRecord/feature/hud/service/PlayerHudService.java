@@ -114,7 +114,6 @@ public class PlayerHudService {
                 String className = playerClassService.getDisplayName(astPlayer.getClassId());
                 playerHudView.renderSidebar(
                     player,
-                    astPlayer.getAccount().getMode().name(),
                     tps,
                     astPlayer.getAccount().getLevel(),
                     astPlayer.getAccount().getTotalExperience(),

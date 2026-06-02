@@ -5,7 +5,7 @@ import io.github.maaasu.astralRecord.feature.world.repository.WorldRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.Bukkit;
-import org.bukkit.GameRule;
+import org.bukkit.GameRules;
 import org.bukkit.Location;
 import org.bukkit.WorldCreator;
 import org.jetbrains.annotations.NotNull;
@@ -145,7 +145,7 @@ public class WorldService {
         return new Location(world, spawn.x(), spawn.y(), spawn.z(), spawn.yaw(), spawn.pitch());
     }
 
-    private int loadRegisteredBukkitWorlds(@NotNull Collection<WorldMasterData> worlds) {
+    private void loadRegisteredBukkitWorlds(@NotNull Collection<WorldMasterData> worlds) {
         int loadedCount = 0;
         for (WorldMasterData world : worlds) {
             org.bukkit.World loaded = loadBukkitWorld(world);
@@ -154,7 +154,6 @@ public class WorldService {
             }
         }
         Logger.log(LogId.I_5751, loadedCount, worlds.size());
-        return loadedCount;
     }
 
     @Nullable
@@ -196,7 +195,7 @@ public class WorldService {
     @NotNull
     private Set<String> baseWorldNameCandidates(@NotNull WorldMasterData data) {
         Set<String> candidates = new LinkedHashSet<>();
-        String normalizedPath = normalizeWorldPath(data.baseWorldPath());
+        var normalizedPath = normalizeWorldPath(data.baseWorldPath());
         addCandidate(candidates, normalizedPath);
         addCandidate(candidates, new File(normalizedPath).getName());
         return candidates;
@@ -260,23 +259,23 @@ public class WorldService {
      * @param world 適用対象の Bukkit ワールド
      */
     public void applyRpgGameRules(@NotNull org.bukkit.World world) {
-        world.setGameRule(GameRule.DO_MOB_SPAWNING, false);
-        world.setGameRule(GameRule.SPAWN_MONSTERS, false);
-        world.setGameRule(GameRule.DO_PATROL_SPAWNING, false);
-        world.setGameRule(GameRule.DO_TRADER_SPAWNING, false);
-        world.setGameRule(GameRule.DO_WARDEN_SPAWNING, false);
-        world.setGameRule(GameRule.DISABLE_RAIDS, true);
-        world.setGameRule(GameRule.DO_INSOMNIA, false);
-        world.setGameRule(GameRule.MOB_GRIEFING, false);
-        world.setGameRule(GameRule.DO_MOB_LOOT, false);
-        world.setGameRule(GameRule.DO_ENTITY_DROPS, false);
-        world.setGameRule(GameRule.DO_FIRE_TICK, false);
-        world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
-        world.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
-        world.setGameRule(GameRule.KEEP_INVENTORY, true);
-        world.setGameRule(GameRule.DO_IMMEDIATE_RESPAWN, true);
-        world.setGameRule(GameRule.NATURAL_REGENERATION, false);
-        world.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, false);
-        world.setGameRule(GameRule.SEND_COMMAND_FEEDBACK, false);
+        world.setGameRule(GameRules.SPAWN_MOBS, false);
+        world.setGameRule(GameRules.SPAWN_MONSTERS, false);
+        world.setGameRule(GameRules.SPAWN_PATROLS, false);
+        world.setGameRule(GameRules.SPAWN_WANDERING_TRADERS, false);
+        world.setGameRule(GameRules.SPAWN_WARDENS, false);
+        world.setGameRule(GameRules.RAIDS, false);
+        world.setGameRule(GameRules.SPAWN_PHANTOMS, false);
+        world.setGameRule(GameRules.MOB_GRIEFING, false);
+        world.setGameRule(GameRules.MOB_DROPS, false);
+        world.setGameRule(GameRules.ENTITY_DROPS, false);
+        world.setGameRule(GameRules.FIRE_SPREAD_RADIUS_AROUND_PLAYER, 0);
+        world.setGameRule(GameRules.ADVANCE_TIME, false);
+        world.setGameRule(GameRules.ADVANCE_WEATHER, false);
+        world.setGameRule(GameRules.KEEP_INVENTORY, true);
+        world.setGameRule(GameRules.IMMEDIATE_RESPAWN, true);
+        world.setGameRule(GameRules.NATURAL_HEALTH_REGENERATION, false);
+        world.setGameRule(GameRules.SHOW_ADVANCEMENT_MESSAGES, false);
+        world.setGameRule(GameRules.SEND_COMMAND_FEEDBACK, false);
     }
 }

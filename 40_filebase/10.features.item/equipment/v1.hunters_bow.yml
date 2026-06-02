@@ -19,7 +19,9 @@ equipment:
   stats:
     - status: ATTACK
       type: FLAT
-      value: 10
+      value:
+        min: 10~20
+        max: 30~40
     - status: DEXTERITY
       type: FLAT
       value: 0

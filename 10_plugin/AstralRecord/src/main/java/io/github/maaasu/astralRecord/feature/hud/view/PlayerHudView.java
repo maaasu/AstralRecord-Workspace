@@ -17,7 +17,7 @@ import org.bukkit.scoreboard.Scoreboard;
 public class PlayerHudView {
     private static final String OBJECTIVE_NAME = "astral_info";
     private static final int TRANSIENT_BAR_LENGTH = 28;
-    private static final int SIDEBAR_BAR_LENGTH = 10;
+    private static final int SIDEBAR_BAR_LENGTH = 30;
 
     public void renderActionBar(Player player, StatusSnapshot snapshot) {
         double maxHp = snapshot.getMaxValue(StatusType.MAX_HEALTH);
@@ -71,7 +71,6 @@ public class PlayerHudView {
      */
     public void renderSidebar(
         Player player,
-        String mode,
         double tps,
         int playerLevel,
         long totalExperience,
@@ -96,18 +95,17 @@ public class PlayerHudView {
 
         int ping = player.getPing();
         clearSidebar(scoreboard);
-        objective.getScore(buildSeparator(13, "サーバー")).setScore(13);
-        objective.getScore(ColorCodeUtil.AQUA + "Online " + ColorCodeUtil.WHITE
-                + Bukkit.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers()).setScore(12);
-        objective.getScore(tpsLegacyColor(tps) + "TPS " + ColorCodeUtil.WHITE + String.format("%.1f", tps)).setScore(11);
-        objective.getScore(pingLegacyColor(ping) + "Ping " + ColorCodeUtil.WHITE + ping + "ms").setScore(10);
-        objective.getScore(ColorCodeUtil.GRAY + "Mode " + ColorCodeUtil.WHITE + mode).setScore(9);
-        objective.getScore(buildSeparator(8, "プレイヤー")).setScore(8);
-        objective.getScore(ColorCodeUtil.GOLD + "PLv " + ColorCodeUtil.WHITE + playerLevel).setScore(7);
+        objective.getScore(buildSeparator("サーバー")).setScore(12);
+        objective.getScore(ColorCodeUtil.AQUA + "オンライン" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
+                + Bukkit.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers()).setScore(11);
+        objective.getScore(tpsLegacyColor(tps) + "TPS" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + String.format("%.1f", tps)).setScore(10);
+        objective.getScore(pingLegacyColor(ping) + "Ping" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + ping + "ms").setScore(9);
+        objective.getScore(buildSeparator("プレイヤー")).setScore(8);
+        objective.getScore(ColorCodeUtil.GOLD + "プレイヤーレベル" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + playerLevel).setScore(7);
         objective.getScore(buildExperienceBar("EXP", experienceProgress(totalExperience), ColorCodeUtil.GREEN)).setScore(6);
-        objective.getScore(buildSeparator(5, "クラス")).setScore(5);
-        objective.getScore(ColorCodeUtil.DARK_AQUA + "Class " + className).setScore(4);
-        objective.getScore(ColorCodeUtil.YELLOW + "ClassLv " + ColorCodeUtil.GOLD + classLevel).setScore(3);
+        objective.getScore(buildSeparator("クラス")).setScore(5);
+        objective.getScore(ColorCodeUtil.DARK_AQUA + "クラス" + ColorCodeUtil.GRAY + ": "  + className).setScore(4);
+        objective.getScore(ColorCodeUtil.YELLOW + "クラスレベル" + ColorCodeUtil.GRAY + ": "  + ColorCodeUtil.GOLD + classLevel).setScore(3);
         objective.getScore(buildExperienceBar("CEXP", 0.0D, ColorCodeUtil.AQUA)).setScore(2);
         objective.getScore(ColorCodeUtil.DARK_GRAY + "クラスEXP 準備中").setScore(1);
     }
@@ -157,35 +155,20 @@ public class PlayerHudView {
         StringBuilder bar = new StringBuilder();
         bar.append(ColorCodeUtil.DARK_GRAY).append(label).append(" ");
         bar.append(fillColor);
-        for (int i = 0; i < filledLength; i++) {
-            bar.append("|");
-        }
+        bar.repeat("|", Math.max(0, filledLength));
         bar.append(ColorCodeUtil.DARK_GRAY);
-        for (int i = filledLength; i < SIDEBAR_BAR_LENGTH; i++) {
-            bar.append("|");
-        }
+        bar.repeat("|", Math.max(0, SIDEBAR_BAR_LENGTH - filledLength));
         bar.append(ColorCodeUtil.WHITE).append(" ").append(progressPercent).append("%");
 
         return bar.toString();
     }
 
     private double experienceProgress(long totalExperience) {
-        return ((totalExperience / 100000L) % 100L) / 100.0D;
+        return (((double) totalExperience / 100000L) % 100L) / 100.0D;
     }
 
-    private String buildSeparator(int variant, String label) {
-        return colorByVariant(variant) + "----- " + label + " -----";
-    }
-
-    private String colorByVariant(int variant) {
-        return switch (Math.floorMod(variant, 6)) {
-            case 0 -> ColorCodeUtil.DARK_GRAY;
-            case 1 -> ColorCodeUtil.GRAY;
-            case 2 -> ColorCodeUtil.BLACK;
-            case 3 -> ColorCodeUtil.DARK_AQUA;
-            case 4 -> ColorCodeUtil.DARK_BLUE;
-            default -> ColorCodeUtil.DARK_GREEN;
-        };
+    private String buildSeparator(String label) {
+        return ColorCodeUtil.DARK_AQUA + "◈───── " + label + " ─────◈";
     }
 
     private String tpsLegacyColor(double tps) {

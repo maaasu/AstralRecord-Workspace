@@ -1,9 +1,9 @@
 schemaVersion: 1
-id: wild_overworld
+id: greenfall_fields
 displayName: "Wild Overworld"
-worldType: OVERWORLD
-baseWorldPath: "worlds/Arcadia"
-instanceRootPath: "worlds/world_instances/Arcadia"
+worldType: 翠風の原野
+baseWorldPath: "overworld/greenfall_fields"
+instanceRootPath: "_world_instances/greenfall_fields"
 autoLoad: false
 instanceEnabled: true
 maxPlayers: 40
@@ -16,4 +16,4 @@ spawnLocation:
   z: -597.5
   yaw: 0.0
   pitch: 0.0
-description: "Exploration world where enemies spawn. Future instances are channel based."
+description: "星影の街ノクスを出た冒険者が最初に足を踏み入れる、穏やかな草原と森のフィールド。"

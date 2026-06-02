@@ -56,8 +56,8 @@ drops:
   items:
     - itemId:
         ref: item:bone_fragment
-      rate: 60.0
-      amount: 1~2
+      rate: 100.0
+      amount: 40~80
       luckAffected: true
       hidden: false
     - itemId:
