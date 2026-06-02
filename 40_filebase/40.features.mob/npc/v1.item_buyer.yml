@@ -1,0 +1,33 @@
+schemaVersion: 1
+id: item_buyer
+type: MOB
+category: NPC
+name: "&e買取係"
+title: "&7Item Buyer"
+level: 1
+entityType: PLAYER
+nameVisible: true
+icon: GOLD_INGOT
+lore:
+  - "&7不要なアイテムを買い取る担当者。"
+tags:
+  - npc
+  - sell
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&e買取係&7: 右クリックで売却できます。"
+  rightClick:
+    - id: gui
+      params:
+        type: SELL

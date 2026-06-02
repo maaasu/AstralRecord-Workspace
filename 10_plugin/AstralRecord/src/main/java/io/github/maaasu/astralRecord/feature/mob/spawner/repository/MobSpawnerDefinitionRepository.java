@@ -19,7 +19,7 @@ import java.util.Locale;
  */
 public class MobSpawnerDefinitionRepository {
 
-    private static final String RELATIVE_PATH = "40.features.mob" + File.separator + "spawner";
+    private static final String RELATIVE_PATH = "41.features.mob.spawner";
 
     /**
      * すべてのスポナー定義を読み込みます。

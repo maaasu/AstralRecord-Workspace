@@ -44,7 +44,7 @@ NPC は戦闘を行わないため、**ターゲット選択（`ai.targeting`）
 | `id` | `params` | 説明 |
 |:--|:--|:--|
 | `message` | `message` | プレイヤーに送るメッセージ本文。Minecraft カラーコードを使用可能 |
-| `gui` | `type` | 開く GUI の種類。例: `SHOP`, `QUEST`, `MENU` |
+| `gui` | `type`, `shopId` | 開く GUI の種類。`SHOP` は `shopId` で対象ショップ ID を指定する。`SELL` は売却 GUI を開く |
 
 `params` のキーは文字列で定義します。数値や真偽値が必要な場合も、まずは文字列として記述してください。
 
@@ -133,4 +133,5 @@ interactions:
     - id: gui
       params:
         type: SHOP
+        shopId: starter_shop
 ```

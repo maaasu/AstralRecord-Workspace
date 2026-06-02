@@ -49,6 +49,7 @@ import io.github.maaasu.astralRecord.feature.menu.player.PlayerDetailGui;
 import io.github.maaasu.astralRecord.feature.menu.player.PlayerListGui;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.mob.repository.MobRepository;
+import io.github.maaasu.astralRecord.feature.mob.event.MobInteractionEventHandler;
 import io.github.maaasu.astralRecord.feature.mob.service.MobAiService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobCombatService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropPresentationService;
@@ -611,6 +612,10 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             new MobSpawnerBlockEventHandler(mobSpawnerService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new MobInteractionEventHandler(mobService, shopGuiEventHandler, menuView),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

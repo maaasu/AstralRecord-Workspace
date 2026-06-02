@@ -9,6 +9,8 @@ database:
     path: 30.features.skill
   - name: mob
     path: 40.features.mob
+  - name: mob_spawner
+    path: 41.features.mob.spawner
   - name: world
     path: 60.features.world
   - name: dungeon
@@ -59,6 +61,9 @@ referenceResolver:
   - prefix: "mob:"
     database: mob
     aliases: ["mb"]
+  - prefix: "mob_spawner:"
+    database: mob_spawner
+    aliases: ["ms"]
   - prefix: "world:"
     database: world
     aliases: ["wd"]

@@ -1,0 +1,34 @@
+schemaVersion: 1
+id: starter_shopkeeper
+type: MOB
+category: NPC
+name: "&6始まりの商人"
+title: "&7Starter Shop"
+level: 1
+entityType: PLAYER
+nameVisible: true
+icon: EMERALD
+lore:
+  - "&7冒険の始まりに必要な品を扱う商人。"
+tags:
+  - npc
+  - shop
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&6始まりの商人&7: 右クリックで商品を見られるよ。"
+  rightClick:
+    - id: gui
+      params:
+        type: SHOP
+        shopId: starter_shop
