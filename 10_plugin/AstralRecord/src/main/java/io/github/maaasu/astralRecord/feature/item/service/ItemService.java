@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ItemService {
     public static final String DEFAULT_CURRENCY_ITEM_ID = "gold";
     public static final String LEGACY_DEFAULT_CURRENCY_ITEM_ID = "ast_gold";
+    public static final String ASTRALD_CURRENCY_ITEM_ID = "astrald";
 
     private final ItemRepository itemRepository;
     private final SetEffectRepository setEffectRepository;
@@ -208,6 +209,9 @@ public class ItemService {
         if (DEFAULT_CURRENCY_ITEM_ID.equals(normalizedId) || LEGACY_DEFAULT_CURRENCY_ITEM_ID.equals(normalizedId)) {
             return createGoldCurrencyItem(normalizedId);
         }
+        if (ASTRALD_CURRENCY_ITEM_ID.equals(normalizedId)) {
+            return createAstraldCurrencyItem();
+        }
         return null;
     }
 
@@ -215,7 +219,10 @@ public class ItemService {
         ItemModel gold = createGoldCurrencyItem(DEFAULT_CURRENCY_ITEM_ID);
         cacheItem(gold);
         categoryCounts.merge(gold.getCategory().toLowerCase(Locale.ROOT), 1, Integer::sum);
-        return 1;
+        ItemModel astrald = createAstraldCurrencyItem();
+        cacheItem(astrald);
+        categoryCounts.merge(astrald.getCategory().toLowerCase(Locale.ROOT), 1, Integer::sum);
+        return 2;
     }
 
     private @NotNull ItemModel createGoldCurrencyItem(@NotNull String itemId) {
@@ -229,11 +236,32 @@ public class ItemService {
             64,
             0,
             null,
-            List.of("プラグイン内蔵の基本通貨です。"),
+            List.of("冒険や取引で使う基本通貨です。"),
             false,
             true,
             null,
             new ItemCurrency("gold", "default", null),
+            null,
+            null
+        );
+    }
+
+    private @NotNull ItemModel createAstraldCurrencyItem() {
+        return new ItemModel(
+            1,
+            ASTRALD_CURRENCY_ITEM_ID,
+            ItemCategory.CURRENCY.getApiValue(),
+            "アストラルド",
+            "AMETHYST_SHARD",
+            "rare",
+            64,
+            0,
+            null,
+            List.of("サーバへの支援で受け取れる特別な通貨です。"),
+            true,
+            true,
+            null,
+            new ItemCurrency("astrald", "donation", null),
             null,
             null
         );

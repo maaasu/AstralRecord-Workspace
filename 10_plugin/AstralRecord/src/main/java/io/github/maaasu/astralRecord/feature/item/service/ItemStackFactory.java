@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStat;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStatType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentTranscendence;
+import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
 import io.github.maaasu.astralRecord.feature.loot.model.LootEntry;
@@ -499,7 +500,6 @@ public class ItemStackFactory {
             appendEquipmentLore(lore, model.getEquipment());
         }
 
-        // bundle の Loot 情報
         appendSaleValueLore(lore, model);
 
         // フッター
@@ -513,11 +513,10 @@ public class ItemStackFactory {
             lore.add(ColorCodeUtil.DARK_GRAY + ColorCodeUtil.ITALIC + "ID: " + model.getId());
         }
 
-        // 取引不可 / 売却不可 フラグ
         if (model.getUnTradeable()) {
             lore.add(ColorCodeUtil.RED + "✖ 取引不可");
         }
-        if (model.getUnSellable()) {
+        if (shouldShowUnSellable(model)) {
             lore.add(ColorCodeUtil.RED + "✖ 売却不可");
         }
 
@@ -575,9 +574,20 @@ public class ItemStackFactory {
     }
 
     private void appendSaleValueLore(@NotNull List<String> lore, @NotNull ItemModel model) {
+        if (isCurrencyItem(model)) {
+            return;
+        }
         lore.add(ColorCodeUtil.GRAY + " ▸ 売値: "
                 + ColorCodeUtil.YELLOW + model.getSaleValue()
                 + ColorCodeUtil.GOLD + " ゴールド");
+    }
+
+    private boolean shouldShowUnSellable(@NotNull ItemModel model) {
+        return model.getUnSellable() && !isCurrencyItem(model);
+    }
+
+    private boolean isCurrencyItem(@NotNull ItemModel model) {
+        return ItemCategory.fromApiValue(model.getCategory()) == ItemCategory.CURRENCY;
     }
 
     /**
@@ -880,7 +890,7 @@ public class ItemStackFactory {
         lore.add(ColorCodeUtil.DARK_GRAY + ColorCodeUtil.ITALIC + "ID: " + model.getId());
         lore.add(ColorCodeUtil.DARK_GRAY + ColorCodeUtil.ITALIC + "InstanceID: " + instance.getEquipmentInstanceId());
         if (model.getUnTradeable()) lore.add(ColorCodeUtil.RED + "✖ 取引不可");
-        if (model.getUnSellable()) lore.add(ColorCodeUtil.RED + "✖ 売却不可");
+        if (shouldShowUnSellable(model)) lore.add(ColorCodeUtil.RED + "✖ 売却不可");
         return lore;
     }
 
@@ -930,7 +940,7 @@ public class ItemStackFactory {
         lore.add(ColorCodeUtil.DARK_GRAY + ColorCodeUtil.ITALIC + "ID: " + model.getId());
         lore.add(ColorCodeUtil.DARK_GRAY + ColorCodeUtil.ITALIC + "InstanceID: " + instance.getRuneInstanceId());
         if (model.getUnTradeable()) lore.add(ColorCodeUtil.RED + "✖ 取引不可");
-        if (model.getUnSellable()) lore.add(ColorCodeUtil.RED + "✖ 売却不可");
+        if (shouldShowUnSellable(model)) lore.add(ColorCodeUtil.RED + "✖ 売却不可");
         return lore;
     }
 

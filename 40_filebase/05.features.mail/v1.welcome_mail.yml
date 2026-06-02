@@ -1,12 +1,12 @@
 schemaVersion: 1
 id: welcome_mail
 icon: WRITABLE_BOOK
-title: "AstralRecord へようこそ"
-body: "冒険の準備が整いました。\nこのメールを開くとスターター素材を受け取れます。"
+title: "サーバ参加ありがとうございます"
+body: "AstralRecord サーバへ参加してくださりありがとうございます。\n冒険の始まりを記念して、100 アストラルドをお届けします。"
 publishFrom: "2026-06-01T00:00:00"
 publishTo: null
 receiveOnRead: true
 rewards:
-  - itemId: iron_ingot
-    category: material
-    amount: 3
+  - itemId: astrald
+    category: currency
+    amount: 100

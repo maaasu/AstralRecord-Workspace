@@ -10,13 +10,16 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * API の inventory_entry を Bukkit の ItemStack に解決します。
@@ -85,8 +88,12 @@ final class InventoryItemStackResolver {
         }
         List<Component> lore = meta.lore();
         List<Component> updatedLore = lore == null ? new ArrayList<>() : new ArrayList<>(lore);
+        String formattedQuantity = NumberFormat.getNumberInstance(Locale.JAPAN).format(quantity);
         updatedLore.add(Component.empty());
-        updatedLore.add(Component.text("所持量: " + quantity, NamedTextColor.GRAY));
+        updatedLore.add(Component.text("◆ 所持量 ◆", NamedTextColor.GOLD)
+            .decorate(TextDecoration.BOLD));
+        updatedLore.add(Component.text("  " + formattedQuantity, NamedTextColor.YELLOW)
+            .decorate(TextDecoration.BOLD));
         meta.lore(updatedLore);
         itemStack.setItemMeta(meta);
     }
