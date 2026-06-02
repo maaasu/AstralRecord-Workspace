@@ -29,6 +29,9 @@ import io.github.maaasu.astralRecord.feature.playersetting.command.PlayerSetting
 import io.github.maaasu.astralRecord.feature.playerclass.command.ClassCommand;
 import io.github.maaasu.astralRecord.feature.playerclass.command.ClassTabCompleter;
 import io.github.maaasu.astralRecord.feature.skill.command.SkillCommand;
+import io.github.maaasu.astralRecord.feature.skilltree.command.SkillTreeCommand;
+import io.github.maaasu.astralRecord.feature.skilltree.command.SkillTreeTabCompleter;
+import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.shop.command.ShopCommand;
 import io.github.maaasu.astralRecord.feature.shop.command.ShopTabCompleter;
 import io.github.maaasu.astralRecord.temp.command.TempCommand;
@@ -53,19 +56,22 @@ public class CommandRegister {
     private final MobService mobService;
     private final MobSpawnerService spawnerService;
     private final WorldService worldService;
+    private final SkillTreeService skillTreeService;
 
     public CommandRegister(
             ItemService itemService,
             ItemStackFactory itemStackFactory,
             MobService mobService,
             MobSpawnerService spawnerService,
-            WorldService worldService
+            WorldService worldService,
+            SkillTreeService skillTreeService
     ) {
         this.itemService = itemService;
         this.itemStackFactory = itemStackFactory;
         this.mobService = mobService;
         this.spawnerService = spawnerService;
         this.worldService = worldService;
+        this.skillTreeService = skillTreeService;
         registerCommand();
     }
 
@@ -91,6 +97,7 @@ public class CommandRegister {
         cm.registerCommand("setting", new PlayerSettingCommand(), new PlayerSettingTabCompleter());
         cm.registerCommand("class", new ClassCommand(), new ClassTabCompleter());
         cm.registerCommand("skill", new SkillCommand());
+        cm.registerCommand("skilltree", new SkillTreeCommand(skillTreeService), new SkillTreeTabCompleter(skillTreeService));
         cm.registerCommand("party", new PartyCommand(), new PartyTabCompleter());
         cm.registerCommand("shop", new ShopCommand(), new ShopTabCompleter());
         cm.registerCommand("astreload", new ReloadCommand());

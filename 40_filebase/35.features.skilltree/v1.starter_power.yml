@@ -1,0 +1,10 @@
+schemaVersion: 1
+id: starter_power
+positionId: root_001
+name: "&f基礎鍛錬"
+icon: IRON_SWORD
+lore:
+  - "&7スキルツリーの開始ノード。"
+  - "&8現時点では解放状態のみを保持する。"
+tags:
+  - starter

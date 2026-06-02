@@ -96,6 +96,11 @@ import io.github.maaasu.astralRecord.feature.skill.repository.SkillRepository;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService;
+import io.github.maaasu.astralRecord.feature.skilltree.event.SkillTreeEventHandler;
+import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreeNodeRepository;
+import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreePlayerStateRepository;
+import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreeStructureRepository;
+import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.shop.event.ShopGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.shop.gui.ShopGui;
 import io.github.maaasu.astralRecord.feature.shop.repository.ShopRecipeRepository;
@@ -170,6 +175,7 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerSettingGui playerSettingGui;
     private SkillService skillService;
     private SkillActionRingService skillActionRingService;
+    private SkillTreeService skillTreeService;
     private SkillBindPresetService skillBindPresetService;
     private SkillOwnershipService skillOwnershipService;
     private SkillBindGui skillBindGui;
@@ -211,10 +217,18 @@ public final class AstralRecord extends JavaPlugin {
                 new MobSpawnerLocationRepository(this)
         );
         worldService = new WorldService(new WorldRepository());
+        skillTreeService = new SkillTreeService(
+                this,
+                worldService,
+                null,
+                new SkillTreeNodeRepository(),
+                new SkillTreeStructureRepository(this),
+                new SkillTreePlayerStateRepository(this)
+        );
         joinSpawnWorldId = PluginJoinSpawnWorldConfig.load(this);
         // CommandManagerの初期化はPaper Lifecycle APIの制約上、onLoad()内で行う
         // コマンドをここで登録し、initialize()を呼び出す
-        new CommandRegister(itemService, itemStackFactory, mobService, mobSpawnerService, worldService);
+        new CommandRegister(itemService, itemStackFactory, mobService, mobSpawnerService, worldService, skillTreeService);
         CommandManager.getInstance().initialize(this);
     }
 
@@ -278,6 +292,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (skillActionRingService != null) {
             skillActionRingService.stop();
+        }
+        if (skillTreeService != null) {
+            skillTreeService.stop();
         }
         if (skillService != null) {
             skillService.stop();
@@ -350,6 +367,7 @@ public final class AstralRecord extends JavaPlugin {
             inventoryStateRegistry,
             inventoryPersistence
         );
+        skillTreeService.setInventoryService(inventoryService);
         inventoryAutoSaveTask = new InventoryAutoSaveTask(inventoryPersistence, inventoryStateRegistry);
         currencyService = new CurrencyService(inventoryService);
         playerSettingService = new PlayerSettingService(
@@ -480,6 +498,7 @@ public final class AstralRecord extends JavaPlugin {
 
         // world
         worldService.loadAll();
+        skillTreeService.loadAll();
         worldSpawnParticleTask = new WorldSpawnParticleTask(this, worldService, particleDisplayService);
 
         // item: ProtocolLib パケットアダプタ（icon 差し替え）登録
@@ -615,6 +634,10 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
+            new SkillTreeEventHandler(skillTreeService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
             new MobInteractionEventHandler(mobService, shopGuiEventHandler, menuView),
             getServer().getPluginManager()
         );
@@ -636,6 +659,7 @@ public final class AstralRecord extends JavaPlugin {
         overheadDisplayService.start(this);
         worldSpawnParticleTask.start();
         mobSpawnerService.start();
+        skillTreeService.start();
         // インベントリオートセーブ (60s) を開始
         inventoryAutoSaveTask.start(this, InventoryAutoSaveTask.DEFAULT_INTERVAL_TICKS);
     }
