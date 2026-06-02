@@ -5,8 +5,8 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
-import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
@@ -31,7 +31,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class SkillActionRingEventHandler extends AbstractEventHandler {
     private final SkillActionRingService actionRingService;
-    private final ItemService itemService;
+    private final ItemReferenceResolver itemReferenceResolver;
 
     /**
      * ハンドラを生成します。
@@ -44,7 +44,7 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
         @NotNull ItemService itemService
     ) {
         this.actionRingService = actionRingService;
-        this.itemService = itemService;
+        this.itemReferenceResolver = new ItemReferenceResolver(itemService);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -163,14 +163,7 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
     }
 
     private boolean isWeapon(@NotNull ItemStack itemStack) {
-        String itemId = ItemStackFactory.getAstralItemId(itemStack);
-        if (itemId == null || itemId.isBlank()) {
-            return false;
-        }
-        ItemModel item = itemService.findLoadedById(itemId);
-        if (item == null) {
-            item = itemService.loadItem(itemId);
-        }
+        ItemModel item = itemReferenceResolver.resolveItemModel(itemStack);
         return item != null
             && ItemCategory.EQUIPMENT.getApiValue().equalsIgnoreCase(item.getCategory())
             && item.getEquipment() != null

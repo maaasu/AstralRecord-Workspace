@@ -12,11 +12,12 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceStat
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStat;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStatType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
 import io.github.maaasu.astralRecord.feature.item.model.SetEffect;
 import io.github.maaasu.astralRecord.feature.item.model.SetEffectPiece;
 import io.github.maaasu.astralRecord.feature.item.model.SetEffectStat;
+import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
-import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -49,6 +50,7 @@ public class StatusService {
     private final BuffService buffService;
     private final ItemService itemService;
     private final InventoryService inventoryService;
+    private final ItemReferenceResolver itemReferenceResolver;
 
     public StatusService() {
         this(null, null);
@@ -65,6 +67,7 @@ public class StatusService {
         this.buffService = new BuffService();
         this.itemService = itemService;
         this.inventoryService = inventoryService;
+        this.itemReferenceResolver = itemService == null ? null : new ItemReferenceResolver(itemService);
     }
 
     /**
@@ -425,15 +428,15 @@ public class StatusService {
         @NotNull EquipmentBonus bonus,
         @NotNull Map<String, Integer> setCounts
     ) {
-        if (itemStack == null || itemStack.getType() == Material.AIR) {
+        if (itemStack == null || itemStack.getType() == Material.AIR || itemReferenceResolver == null) {
             return;
         }
-        String instanceId = ItemStackFactory.getEquipmentInstanceId(itemStack);
-        if (instanceId == null || instanceId.isBlank()) {
+        ItemReference reference = itemReferenceResolver.resolve(itemStack);
+        if (reference == null || !reference.hasEquipmentInstanceId()) {
             return;
         }
 
-        EquipmentInstance instance = itemService.findEquipmentInstanceById(instanceId);
+        EquipmentInstance instance = itemReferenceResolver.resolveEquipmentInstance(reference);
         if (instance == null) {
             return;
         }
@@ -479,14 +482,17 @@ public class StatusService {
     }
 
     private void countSetId(@Nullable ItemStack itemStack, @NotNull Map<String, Integer> setCounts) {
-        if (itemStack == null || itemStack.getType() == Material.AIR || itemService == null) {
+        if (itemStack == null
+            || itemStack.getType() == Material.AIR
+            || itemService == null
+            || itemReferenceResolver == null) {
             return;
         }
-        String instanceId = ItemStackFactory.getEquipmentInstanceId(itemStack);
-        if (instanceId == null || instanceId.isBlank()) {
+        ItemReference reference = itemReferenceResolver.resolve(itemStack);
+        if (reference == null || !reference.hasEquipmentInstanceId()) {
             return;
         }
-        EquipmentInstance instance = itemService.findEquipmentInstanceById(instanceId);
+        EquipmentInstance instance = itemReferenceResolver.resolveEquipmentInstance(reference);
         if (instance == null) {
             return;
         }

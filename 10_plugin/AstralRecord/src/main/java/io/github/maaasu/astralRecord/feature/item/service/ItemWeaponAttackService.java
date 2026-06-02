@@ -9,7 +9,6 @@ import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -21,15 +20,15 @@ import java.util.List;
  */
 public final class ItemWeaponAttackService {
 
-    private final ItemService itemService;
     private final SkillService skillService;
+    private final ItemReferenceResolver itemReferenceResolver;
 
     public ItemWeaponAttackService(
             @NotNull ItemService itemService,
             @NotNull SkillService skillService
     ) {
-        this.itemService = itemService;
         this.skillService = skillService;
+        this.itemReferenceResolver = new ItemReferenceResolver(itemService);
     }
 
     public void handleLeftClick(
@@ -95,16 +94,6 @@ public final class ItemWeaponAttackService {
     }
 
     private @Nullable ItemModel resolveItemModel(@Nullable ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType() == Material.AIR) {
-            return null;
-        }
-
-        String itemId = ItemStackFactory.getAstralItemId(itemStack);
-        if (itemId == null || itemId.isBlank()) {
-            return null;
-        }
-
-        ItemModel loaded = itemService.findLoadedById(itemId);
-        return loaded != null ? loaded : itemService.loadItem(itemId);
+        return itemReferenceResolver.resolveItemModel(itemStack);
     }
 }

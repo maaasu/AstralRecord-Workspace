@@ -22,7 +22,9 @@ import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
 import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
+import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -77,6 +79,7 @@ public class InventoryService {
     private final InventoryRepository inventoryRepository;
     private final EquipmentLoadoutRepository equipmentLoadoutRepository;
     private final ItemService itemService;
+    private final ItemReferenceResolver itemReferenceResolver;
     private final InventoryItemStackResolver itemStackResolver;
     private final InventorySnapshotCodec snapshotCodec;
     private final HotbarRenderer hotbarRenderer;
@@ -105,6 +108,7 @@ public class InventoryService {
         this.inventoryRepository = inventoryRepository;
         this.equipmentLoadoutRepository = equipmentLoadoutRepository;
         this.itemService = itemService;
+        this.itemReferenceResolver = new ItemReferenceResolver(itemService);
         this.itemStackResolver = new InventoryItemStackResolver(itemService, itemStackFactory);
         this.snapshotCodec = new InventorySnapshotCodec();
         this.hotbarRenderer = new HotbarRenderer(itemStackResolver);
@@ -1689,8 +1693,7 @@ public class InventoryService {
             return false;
         }
         boolean hasReplacedItem = replacedItem != null && replacedItem.getType() != Material.AIR;
-        if (hasReplacedItem
-            && (ItemStackFactory.getAstralItemId(replacedItem) == null || ItemStackFactory.getCategory(replacedItem) == null)) {
+        if (hasReplacedItem && itemReferenceResolver.resolve(replacedItem) == null) {
             return false;
         }
         InventoryEntryModel sourceEntry = findDisplayedEntryAtBukkitSlot(state, sourceBukkitSlot);
@@ -2001,12 +2004,11 @@ public class InventoryService {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return true;
         }
-        String itemId = ItemStackFactory.getAstralItemId(itemStack);
-        String category = ItemStackFactory.getCategory(itemStack);
-        if (itemId == null || category == null || ItemCategory.fromApiValue(category) != ItemCategory.EQUIPMENT) {
+        ItemReference reference = itemReferenceResolver.resolve(itemStack);
+        if (reference == null || ItemCategory.fromApiValue(reference.category()) != ItemCategory.EQUIPMENT) {
             return false;
         }
-        ItemModel model = resolveItemModel(itemId);
+        ItemModel model = itemReferenceResolver.resolveItemModel(reference);
         if (model == null || model.getEquipment() == null) {
             return false;
         }
@@ -2021,12 +2023,11 @@ public class InventoryService {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return EquipmentType.UNSUPPORTED;
         }
-        String itemId = ItemStackFactory.getAstralItemId(itemStack);
-        String category = ItemStackFactory.getCategory(itemStack);
-        if (itemId == null || category == null || ItemCategory.fromApiValue(category) != ItemCategory.EQUIPMENT) {
+        ItemReference reference = itemReferenceResolver.resolve(itemStack);
+        if (reference == null || ItemCategory.fromApiValue(reference.category()) != ItemCategory.EQUIPMENT) {
             return EquipmentType.UNSUPPORTED;
         }
-        ItemModel model = resolveItemModel(itemId);
+        ItemModel model = itemReferenceResolver.resolveItemModel(reference);
         if (model == null || model.getEquipment() == null) {
             return EquipmentType.UNSUPPORTED;
         }
@@ -2044,12 +2045,11 @@ public class InventoryService {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return null;
         }
-        String itemId = ItemStackFactory.getAstralItemId(itemStack);
-        String categoryCode = ItemStackFactory.getCategory(itemStack);
-        if (itemId == null || categoryCode == null) {
+        ItemReference reference = itemReferenceResolver.resolve(itemStack);
+        if (reference == null) {
             return null;
         }
-        ItemModel model = resolveItemModel(itemId);
+        ItemModel model = itemReferenceResolver.resolveItemModel(reference);
         if (model == null) {
             return null;
         }
@@ -2057,16 +2057,16 @@ public class InventoryService {
         if (state == null) {
             return null;
         }
-        ItemCategory category = ItemCategory.fromApiValue(categoryCode);
+        ItemCategory category = ItemCategory.fromApiValue(reference.category());
         InventoryType targetType = resolveTargetInventoryType(model);
         InventoryModel targetInventory = ensureInventory(state, targetType,
             resolveSlotCapacity(targetType), state.getAccountId(), DEFAULT_PROFILE);
 
         boolean added = switch (category) {
             case EQUIPMENT -> addExistingInstanceEntry(state, targetInventory, model,
-                InventoryInstanceType.EQUIPMENT, ItemStackFactory.getEquipmentInstanceId(itemStack));
+                InventoryInstanceType.EQUIPMENT, reference.equipmentInstanceId());
             case RUNE -> addExistingInstanceEntry(state, targetInventory, model,
-                InventoryInstanceType.RUNE, ItemStackFactory.getRuneInstanceId(itemStack));
+                InventoryInstanceType.RUNE, reference.runeInstanceId());
             default -> {
                 int amount = Math.max(1, itemStack.getAmount());
                 Set<Integer> usedSlots = collectUsedSlots(state, targetInventory);
@@ -2709,11 +2709,11 @@ public class InventoryService {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return null;
         }
-        String instanceId = ItemStackFactory.getEquipmentInstanceId(itemStack);
-        if (instanceId == null || instanceId.isBlank()) {
+        ItemReference reference = itemReferenceResolver.resolve(itemStack);
+        if (reference == null || !reference.hasEquipmentInstanceId()) {
             return null;
         }
-        return parseUuidOrNull(instanceId);
+        return parseUuidOrNull(reference.equipmentInstanceId());
     }
 
     private ItemModel resolveItemModel(@NotNull String itemId) {
@@ -2725,8 +2725,12 @@ public class InventoryService {
     }
 
     private @Nullable ItemModel resolveItemModel(@NotNull InventoryEntryModel entry) {
+        return itemReferenceResolver.resolveItemModel(resolveItemReference(entry));
+    }
+
+    private @Nullable ItemReference resolveItemReference(@NotNull InventoryEntryModel entry) {
         if (entry.getItemId() != null && !entry.getItemId().isBlank()) {
-            return resolveItemModel(entry.getItemId());
+            return new ItemReference(entry.getItemId(), entry.getItemCategory(), null, null);
         }
         InventoryInstanceType instanceType = InventoryInstanceType.fromCode(entry.getInstanceType());
         if (instanceType == null || entry.getInstanceId() == null) {
@@ -2735,11 +2739,23 @@ public class InventoryService {
         return switch (instanceType) {
             case EQUIPMENT -> {
                 EquipmentInstance instance = itemService.findEquipmentInstanceById(entry.getInstanceId().toString());
-                yield instance == null ? null : resolveItemModel(instance.getItemId());
+                ItemModel model = instance == null ? null : resolveItemModel(instance.getItemId());
+                yield model == null ? null : new ItemReference(
+                    model.getId(),
+                    model.getCategory(),
+                    instance.getEquipmentInstanceId(),
+                    null
+                );
             }
             case RUNE -> {
                 RuneInstance instance = itemService.findRuneInstanceById(entry.getInstanceId().toString());
-                yield instance == null ? null : resolveItemModel(instance.getItemId());
+                ItemModel model = instance == null ? null : resolveItemModel(instance.getItemId());
+                yield model == null ? null : new ItemReference(
+                    model.getId(),
+                    model.getCategory(),
+                    null,
+                    instance.getRuneInstanceId()
+                );
             }
         };
     }

@@ -5,8 +5,8 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseService;
+import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
-import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.item.service.PotionUseService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -32,7 +32,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public class ItemInteractionBlockEventHandler extends AbstractEventHandler {
 
-    private final ItemService itemService;
+    private final ItemReferenceResolver itemReferenceResolver;
     private final BundleUseService bundleUseService;
     private final PotionUseService potionUseService;
 
@@ -48,7 +48,7 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler {
         @NotNull BundleUseService bundleUseService,
         @NotNull PotionUseService potionUseService
     ) {
-        this.itemService = itemService;
+        this.itemReferenceResolver = new ItemReferenceResolver(itemService);
         this.bundleUseService = bundleUseService;
         this.potionUseService = potionUseService;
     }
@@ -178,19 +178,12 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler {
             LogId.E_5200, event.getPlayer().getName());
     }
 
-    private static boolean isAstralItem(ItemStack item) {
-        return item != null && item.getType() != org.bukkit.Material.AIR
-                && ItemStackFactory.getAstralItemId(item) != null;
+    private boolean isAstralItem(@Nullable ItemStack item) {
+        return itemReferenceResolver.isAstralItem(item);
     }
 
     private @Nullable ItemModel resolveItemModel(@NotNull ItemStack itemStack) {
-        String itemId = ItemStackFactory.getAstralItemId(itemStack);
-        if (itemId == null || itemId.isBlank()) {
-            return null;
-        }
-
-        ItemModel loaded = itemService.findLoadedById(itemId);
-        return loaded != null ? loaded : itemService.loadItem(itemId);
+        return itemReferenceResolver.resolveItemModel(itemStack);
     }
 
     private static boolean isBundleUseAction(@NotNull Action action) {
