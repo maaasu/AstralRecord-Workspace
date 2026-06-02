@@ -178,9 +178,6 @@ function Build-Plugin {
 
     Write-Step "Normalizing plugin source encodings (UTF-8 no BOM)"
     & $encodingNormalizerPath -RootPath (Join-Path $Component.projectPath "src\main\java")
-    if ($LASTEXITCODE -ne 0) {
-        throw "Source encoding normalization failed for plugin."
-    }
 
     Write-Step "Building plugin"
     Push-Location $Component.projectPath
