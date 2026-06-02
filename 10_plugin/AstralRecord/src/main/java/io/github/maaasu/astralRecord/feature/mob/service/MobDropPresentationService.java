@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemDropAnimationService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -182,7 +183,10 @@ public final class MobDropPresentationService {
         if (!recipient.getBukkit().isOnline()) {
             return;
         }
-        inventoryService.addItemToNormalInventory(recipient, item.model(), item.amount(), "mob_drop");
+        int granted = inventoryService.addItemToNormalInventory(recipient, item.model(), item.amount(), "mob_drop");
+        if (granted < item.amount()) {
+            recipient.sendMessage(PlayerMsgId.P_5241);
+        }
     }
 
     private static @NotNull Transformation scale(float value) {
