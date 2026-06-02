@@ -330,10 +330,7 @@ final class SkillTreeVisualizer {
         }
 
         private void remove() {
-            for (Entity entity : List.of(adminItem, adminText)) {
-                entity.remove();
-            }
-            for (Entity entity : List.of(lockedItem, lockedText, unlockedItem, unlockedText)) {
+            for (Entity entity : new Entity[]{adminItem, adminText, lockedItem, lockedText, unlockedItem, unlockedText}) {
                 if (entity != null) {
                     entity.remove();
                 }
