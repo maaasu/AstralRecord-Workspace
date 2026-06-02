@@ -611,7 +611,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         event.setCancelled(true);
         int rawSlot = event.getRawSlot();
         Inventory topInventory = event.getView().getTopInventory();
-        List<ItemStack> currentTrashItems = snapshotTrashItems(topInventory);
+        List<ItemStack> currentTrashItems = collectAllTrashItems(topInventory, player.getUniqueId());
 
         if (rawSlot >= topInventory.getSize()) {
             handleTrashPlayerInventoryClick(event, player, topInventory);
@@ -1508,21 +1508,19 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        int capacity = countTrashPlacementCapacity(topInventory, clicked, requested);
-        if (capacity <= 0) {
-            GuiSound.DENY.play(player);
-            player.updateInventory();
-            return;
-        }
-        ItemStack moved = inventoryService.takeDisplayedItemAmount(astPlayer, event.getSlot(), capacity);
+        ItemStack moved = inventoryService.takeDisplayedItemAmount(astPlayer, event.getSlot(), requested);
         if (moved == null || moved.getType() == Material.AIR) {
             GuiSound.DENY.play(player);
             player.updateInventory();
             return;
         }
-        placeItemsIntoTrash(topInventory, moved);
+        List<ItemStack> updatedItems = collectAllTrashItems(topInventory, player.getUniqueId());
+        updatedItems = new java.util.ArrayList<>(updatedItems);
+        updatedItems.add(moved);
+        updatedItems = normalizeTrashItems(updatedItems);
+        trashItemsByPlayer.put(player.getUniqueId(), updatedItems);
         GuiSound.SELECT.play(player);
-        rerenderTrashInventory(player, topInventory);
+        rerenderTrashInventory(player, topInventory, updatedItems);
         player.updateInventory();
     }
 
@@ -1564,16 +1562,24 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             player.updateInventory();
             return;
         }
-        int remaining = current.getAmount() - requested;
-        if (remaining <= 0) {
-            topInventory.setItem(rawSlot, new ItemStack(Material.AIR));
-        } else {
-            ItemStack updated = current.clone();
-            updated.setAmount(remaining);
-            topInventory.setItem(rawSlot, updated);
+        List<ItemStack> updatedItems = collectAllTrashItems(topInventory, player.getUniqueId());
+        int itemIndex = menuView.getPageIndex(topInventory) * TrashScreenView.CONTENT_SLOT_COUNT + rawSlot;
+        if (itemIndex >= 0 && itemIndex < updatedItems.size()) {
+            ItemStack updated = stripTrashDisplayAmountLore(updatedItems.get(itemIndex));
+            int remaining = updated.getAmount() - requested;
+            if (remaining <= 0) {
+                updatedItems = new java.util.ArrayList<>(updatedItems);
+                updatedItems.remove(itemIndex);
+            } else {
+                updated.setAmount(remaining);
+                updatedItems = new java.util.ArrayList<>(updatedItems);
+                updatedItems.set(itemIndex, updated);
+            }
         }
+        updatedItems = normalizeTrashItems(updatedItems);
+        trashItemsByPlayer.put(player.getUniqueId(), updatedItems);
         GuiSound.SELECT.play(player);
-        rerenderTrashInventory(player, topInventory);
+        rerenderTrashInventory(player, topInventory, updatedItems);
         player.updateInventory();
     }
 
@@ -1752,12 +1758,15 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         player.updateInventory();
     }
 
-    private void rerenderTrashInventory(@NotNull Player player, @NotNull Inventory topInventory) {
+    private void rerenderTrashInventory(
+        @NotNull Player player,
+        @NotNull Inventory topInventory,
+        @NotNull List<ItemStack> trashItems
+    ) {
         int pageIndex = menuView.getPageIndex(topInventory);
-        List<ItemStack> currentItems = snapshotTrashItems(topInventory);
-        trashItemsByPlayer.put(player.getUniqueId(), currentItems);
-        suppressTrashConfirmOnClose.add(player.getUniqueId());
-        menuView.openTrash(player, currentItems, pageIndex);
+        List<ItemStack> normalized = normalizeTrashItems(trashItems);
+        trashItemsByPlayer.put(player.getUniqueId(), normalized);
+        menuView.renderTrash(topInventory, normalized, pageIndex);
     }
 
     private void rerenderSellInventory(@NotNull Player player, @NotNull Inventory topInventory) {
@@ -1778,65 +1787,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             case RIGHT -> Math.max(1, (sourceAmount + 1) / 2);
             default -> 0;
         };
-    }
-
-    private int countTrashPlacementCapacity(
-        @NotNull Inventory topInventory,
-        @NotNull ItemStack template,
-        int desired
-    ) {
-        ItemStack cleanTemplate = stripTransferDisplayLore(template);
-        int capacity = 0;
-        for (int slot = 0; slot < TrashScreenView.CONTENT_SLOT_COUNT; slot++) {
-            ItemStack existing = topInventory.getItem(slot);
-            if (isTrashEmptyItem(topInventory, existing)) {
-                capacity += cleanTemplate.getMaxStackSize();
-            } else if (existing != null) {
-                ItemStack comparableExisting = stripTransferDisplayLore(existing);
-                if (comparableExisting.isSimilar(cleanTemplate)) {
-                    capacity += Math.max(0, comparableExisting.getMaxStackSize() - comparableExisting.getAmount());
-                }
-            }
-            if (capacity >= desired) {
-                return desired;
-            }
-        }
-        return Math.max(0, Math.min(desired, capacity));
-    }
-
-    private void placeItemsIntoTrash(@NotNull Inventory topInventory, @NotNull ItemStack moved) {
-        ItemStack cleanMoved = stripTransferDisplayLore(moved);
-        int remaining = cleanMoved.getAmount();
-        for (int slot = 0; slot < TrashScreenView.CONTENT_SLOT_COUNT && remaining > 0; slot++) {
-            ItemStack existing = topInventory.getItem(slot);
-            if (isTrashEmptyItem(topInventory, existing)) {
-                continue;
-            }
-            ItemStack cleanExisting = stripTransferDisplayLore(existing);
-            if (!cleanExisting.isSimilar(cleanMoved)) {
-                continue;
-            }
-            int available = Math.max(0, cleanExisting.getMaxStackSize() - cleanExisting.getAmount());
-            if (available <= 0) {
-                continue;
-            }
-            int transfer = Math.min(remaining, available);
-            ItemStack updated = cleanExisting.clone();
-            updated.setAmount(cleanExisting.getAmount() + transfer);
-            topInventory.setItem(slot, updated);
-            remaining -= transfer;
-        }
-        for (int slot = 0; slot < TrashScreenView.CONTENT_SLOT_COUNT && remaining > 0; slot++) {
-            ItemStack existing = topInventory.getItem(slot);
-            if (!isTrashEmptyItem(topInventory, existing)) {
-                continue;
-            }
-            ItemStack newStack = cleanMoved.clone();
-            int transfer = Math.min(remaining, newStack.getMaxStackSize());
-            newStack.setAmount(transfer);
-            topInventory.setItem(slot, newStack);
-            remaining -= transfer;
-        }
     }
 
     private int countSellPlacementCapacity(

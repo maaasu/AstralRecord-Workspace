@@ -212,6 +212,10 @@ public class MenuView {
         player.openInventory(inventory);
     }
 
+    public void renderTrash(@NotNull Inventory inventory, @NotNull List<ItemStack> trashItems, int pageIndex) {
+        trashScreenView.render(inventory, trashItems, pageIndex);
+    }
+
     public void openTrashConfirm(@NotNull Player player, @NotNull List<ItemStack> trashItems, int pageIndex) {
         Component title = TrashConfirmScreenView.CONFIRM_MESSAGE;
         Inventory inventory = Bukkit.createInventory(
