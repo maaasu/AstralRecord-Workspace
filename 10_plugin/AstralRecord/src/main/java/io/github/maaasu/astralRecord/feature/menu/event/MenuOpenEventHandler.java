@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutAction;
@@ -754,7 +755,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             List<ItemStack> soldItems = normalizeSellItems(currentSellItems);
             long totalSaleValue = totalSaleValue(soldItems);
             AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (astPlayer == null || !inventoryService.addGold(astPlayer.getAccount().getUuid(), totalSaleValue)) {
+            if (astPlayer == null || !creditGold(astPlayer, totalSaleValue)) {
                 GuiSound.DENY.play(player);
                 player.updateInventory();
                 return;
@@ -1879,6 +1880,27 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             total += (long) Math.max(0, model.getSaleValue()) * Math.max(1, itemStack.getAmount());
         }
         return total;
+    }
+
+    private boolean creditGold(@NotNull AstPlayer astPlayer, long amount) {
+        if (amount <= 0L) {
+            return true;
+        }
+        ItemModel gold = plugin.getItemService().loadItem(ItemService.DEFAULT_CURRENCY_ITEM_ID);
+        if (gold == null) {
+            return false;
+        }
+        long remaining = amount;
+        while (remaining > 0L) {
+            int chunk = (int) Math.min(Integer.MAX_VALUE, remaining);
+            ItemStack goldStack = plugin.getItemStackFactory().create(gold);
+            goldStack.setAmount(chunk);
+            if (inventoryService.returnItemToOwnedInventory(astPlayer, goldStack) == null) {
+                return false;
+            }
+            remaining -= chunk;
+        }
+        return true;
     }
 
     private void discardTrash(@NotNull Player player) {
