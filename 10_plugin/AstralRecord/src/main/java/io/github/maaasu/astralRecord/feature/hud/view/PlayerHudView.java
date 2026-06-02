@@ -101,11 +101,11 @@ public class PlayerHudView {
         objective.getScore(tpsLegacyColor(tps) + "TPS" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + String.format("%.1f", tps)).setScore(10);
         objective.getScore(pingLegacyColor(ping) + "Ping" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + ping + "ms").setScore(9);
         objective.getScore(buildSeparator("プレイヤー")).setScore(8);
-        objective.getScore(ColorCodeUtil.GOLD + "プレイヤーレベル" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + playerLevel).setScore(7);
+        objective.getScore(ColorCodeUtil.GOLD + "Lv." + ColorCodeUtil.WHITE + playerLevel).setScore(7);
         objective.getScore(buildExperienceBar("EXP", experienceProgress(totalExperience), ColorCodeUtil.GREEN)).setScore(6);
         objective.getScore(buildSeparator("クラス")).setScore(5);
         objective.getScore(ColorCodeUtil.DARK_AQUA + "クラス" + ColorCodeUtil.GRAY + ": "  + className).setScore(4);
-        objective.getScore(ColorCodeUtil.YELLOW + "クラスレベル" + ColorCodeUtil.GRAY + ": "  + ColorCodeUtil.GOLD + classLevel).setScore(3);
+        objective.getScore(ColorCodeUtil.YELLOW + "Class Lv." + ColorCodeUtil.GOLD + classLevel).setScore(3);
         objective.getScore(buildExperienceBar("CEXP", 0.0D, ColorCodeUtil.AQUA)).setScore(2);
         objective.getScore(ColorCodeUtil.DARK_GRAY + "クラスEXP 準備中").setScore(1);
     }

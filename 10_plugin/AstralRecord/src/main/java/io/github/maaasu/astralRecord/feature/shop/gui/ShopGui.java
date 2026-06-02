@@ -31,6 +31,7 @@ import java.util.List;
 
 public final class ShopGui {
     private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacySection();
+    private static final String LORE_DIVIDER = "━━━━━━━━━━━━";
 
     public static final int LIST_SIZE = 54;
     public static final int CONFIRM_SIZE = 27;
@@ -95,10 +96,26 @@ public final class ShopGui {
         if (model != null) {
             inventory.setItem(ITEM_PREVIEW_SLOT, itemStackFactory.createShopDisplay(model, Math.max(1, entry.amount()) * preview.quantity()));
         }
-        inventory.setItem(QUANTITY_MINUS_10_SLOT, actionItem(Material.REDSTONE, "数量 -10", List.of("現在の数量: " + preview.quantity())));
-        inventory.setItem(QUANTITY_MINUS_1_SLOT, actionItem(Material.REDSTONE_TORCH, "数量 -1", List.of("現在の数量: " + preview.quantity())));
-        inventory.setItem(QUANTITY_PLUS_1_SLOT, actionItem(Material.LIME_DYE, "数量 +1", List.of("現在の数量: " + preview.quantity())));
-        inventory.setItem(QUANTITY_PLUS_10_SLOT, actionItem(Material.EMERALD, "数量 +10", List.of("現在の数量: " + preview.quantity())));
+        inventory.setItem(QUANTITY_MINUS_10_SLOT, actionItem(
+            Material.REDSTONE,
+            quantityAdjustName("数量 ", "-10", NamedTextColor.RED),
+            List.of(quantityLore(preview.quantity()))
+        ));
+        inventory.setItem(QUANTITY_MINUS_1_SLOT, actionItem(
+            Material.REDSTONE_TORCH,
+            quantityAdjustName("数量 ", "-1", NamedTextColor.RED),
+            List.of(quantityLore(preview.quantity()))
+        ));
+        inventory.setItem(QUANTITY_PLUS_1_SLOT, actionItem(
+            Material.LIME_DYE,
+            quantityAdjustName("数量 ", "+1", NamedTextColor.GREEN),
+            List.of(quantityLore(preview.quantity()))
+        ));
+        inventory.setItem(QUANTITY_PLUS_10_SLOT, actionItem(
+            Material.EMERALD,
+            quantityAdjustName("数量 ", "+10", NamedTextColor.GREEN),
+            List.of(quantityLore(preview.quantity()))
+        ));
         inventory.setItem(CONFIRM_BACK_SLOT, actionItem(Material.SPECTRAL_ARROW, "商品一覧へ戻る", List.of("ショップの商品一覧を開きます")));
         inventory.setItem(BUY_SLOT, buyItem(entry, preview));
         player.openInventory(inventory);
@@ -158,10 +175,9 @@ public final class ShopGui {
             .decoration(TextDecoration.ITALIC, false));
         lore.add(Component.text("価格: " + shopService.resolveGoldCost(entry) + " ゴールド", NamedTextColor.YELLOW)
             .decoration(TextDecoration.ITALIC, false));
-        for (ShopCostItem cost : shopService.resolveRequiredItems(entry)) {
-            lore.add(Component.text("必要素材: " + cost.itemId() + " x" + cost.amount(), NamedTextColor.AQUA)
-                .decoration(TextDecoration.ITALIC, false));
-        }
+        lore.add(sectionHeader("必要素材"));
+        appendMaterialList(lore, shopService.resolveRequiredItems(entry), "なし", NamedTextColor.AQUA);
+        lore.add(Component.empty());
         lore.add(Component.text("クリックで購入確認へ", NamedTextColor.GREEN, TextDecoration.BOLD)
             .decoration(TextDecoration.ITALIC, false));
         meta.lore(lore);
@@ -172,23 +188,36 @@ public final class ShopGui {
 
     private @NotNull ItemStack buyItem(@NotNull ShopEntry entry, @NotNull ShopPurchasePreview preview) {
         Material material = preview.canPurchase() ? Material.GREEN_TERRACOTTA : Material.RED_TERRACOTTA;
-        List<String> lore = new ArrayList<>();
-        lore.add("購入品: " + entry.itemId() + " x" + (Math.max(1, entry.amount()) * preview.quantity()));
-        lore.add("購入数量: " + preview.quantity());
-        lore.add("ゴールド: 必要 " + preview.requiredGold() + " / 所持 " + preview.ownedGold());
-        for (ShopCostItem cost : preview.requiredItems()) {
-            lore.add("消費素材: " + cost.itemId() + " x" + cost.amount());
-        }
+        List<Component> lore = new ArrayList<>();
+        lore.add(Component.text("◆ 購入確認 ◆", NamedTextColor.GOLD, TextDecoration.BOLD)
+            .decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("購入品: ", NamedTextColor.GRAY)
+            .append(Component.text(entry.itemId(), NamedTextColor.WHITE))
+            .append(Component.text(" x" + (Math.max(1, entry.amount()) * preview.quantity()), NamedTextColor.AQUA))
+            .decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("購入数量: ", NamedTextColor.GRAY)
+            .append(Component.text(String.valueOf(preview.quantity()), NamedTextColor.YELLOW))
+            .decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("ゴールド: ", NamedTextColor.GRAY)
+            .append(Component.text("必要 " + preview.requiredGold(), NamedTextColor.GOLD))
+            .append(Component.text(" / ", NamedTextColor.DARK_GRAY))
+            .append(Component.text("所持 " + preview.ownedGold(), NamedTextColor.YELLOW))
+            .decoration(TextDecoration.ITALIC, false));
+        lore.add(sectionHeader("必要素材"));
+        appendMaterialList(lore, preview.requiredItems(), "なし", NamedTextColor.AQUA);
         if (!preview.canPurchase()) {
-            lore.add("");
-            lore.add("不足素材:");
-            for (ShopCostItem missing : preview.missingItems()) {
-                lore.add("- " + missing.itemId() + " x" + missing.amount());
-            }
+            lore.add(sectionHeader("不足素材"));
+            appendMaterialList(lore, preview.missingItems(), "不足なし", NamedTextColor.RED);
         } else {
-            lore.add("");
-            lore.add("クリックで購入します。");
+            lore.add(sectionHeader("購入可能"));
+            lore.add(Component.text("• 素材とゴールドを消費して購入します", NamedTextColor.GREEN)
+                .decoration(TextDecoration.ITALIC, false));
         }
+        lore.add(Component.empty());
+        lore.add(Component.text(preview.canPurchase() ? "◆ クリックして購入する ◆" : "◆ 素材不足で購入できません ◆",
+                preview.canPurchase() ? NamedTextColor.GREEN : NamedTextColor.RED,
+                TextDecoration.BOLD)
+            .decoration(TextDecoration.ITALIC, false));
         return actionItem(material, preview.canPurchase() ? "購入する" : "素材が不足しています", lore);
     }
 
@@ -222,18 +251,60 @@ public final class ShopGui {
     }
 
     private @NotNull ItemStack actionItem(@NotNull Material material, @NotNull String name, @NotNull List<String> lore) {
+        return actionItem(material, Component.text(name, NamedTextColor.WHITE, TextDecoration.BOLD)
+            .decoration(TextDecoration.ITALIC, false), lore.stream()
+            .map(line -> Component.text(line, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false))
+            .toList());
+    }
+
+    private @NotNull ItemStack actionItem(@NotNull Material material, @NotNull Component name, @NotNull List<Component> lore) {
         ItemStack itemStack = new ItemStack(material);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(Component.text(name, NamedTextColor.WHITE, TextDecoration.BOLD)
-                .decoration(TextDecoration.ITALIC, false));
-            meta.lore(lore.stream()
-                .map(line -> Component.text(line, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false))
-                .toList());
+            meta.displayName(name);
+            meta.lore(lore);
             meta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(meta);
         }
         return itemStack;
+    }
+
+    private @NotNull Component quantityAdjustName(@NotNull String label, @NotNull String amount, @NotNull NamedTextColor accentColor) {
+        return Component.text(label, NamedTextColor.WHITE, TextDecoration.BOLD)
+            .append(Component.text(amount, accentColor, TextDecoration.BOLD))
+            .decoration(TextDecoration.ITALIC, false);
+    }
+
+    private @NotNull Component quantityLore(int quantity) {
+        return Component.text("現在の数量: ", NamedTextColor.GRAY)
+            .append(Component.text(String.valueOf(quantity), NamedTextColor.YELLOW))
+            .decoration(TextDecoration.ITALIC, false);
+    }
+
+    private @NotNull Component sectionHeader(@NotNull String title) {
+        return Component.text(LORE_DIVIDER, NamedTextColor.DARK_GRAY)
+            .append(Component.text(" " + title + " ", NamedTextColor.GRAY))
+            .append(Component.text(LORE_DIVIDER, NamedTextColor.DARK_GRAY))
+            .decoration(TextDecoration.ITALIC, false);
+    }
+
+    private void appendMaterialList(
+        @NotNull List<Component> lore,
+        @NotNull List<ShopCostItem> materials,
+        @NotNull String emptyLabel,
+        @NotNull NamedTextColor accentColor
+    ) {
+        if (materials.isEmpty()) {
+            lore.add(Component.text("• " + emptyLabel, NamedTextColor.DARK_GRAY)
+                .decoration(TextDecoration.ITALIC, false));
+            return;
+        }
+        for (ShopCostItem material : materials) {
+            lore.add(Component.text("• ", accentColor)
+                .append(Component.text(material.itemId(), NamedTextColor.WHITE))
+                .append(Component.text(" x" + material.amount(), accentColor))
+                .decoration(TextDecoration.ITALIC, false));
+        }
     }
 
     public record ListHolder(@NotNull String shopId) implements InventoryHolder {
