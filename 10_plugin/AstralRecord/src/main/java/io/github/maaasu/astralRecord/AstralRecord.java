@@ -449,7 +449,7 @@ public final class AstralRecord extends JavaPlugin {
             currencyService
         );
         shopGui = new ShopGui(this, shopService, itemStackFactory);
-        shopGuiEventHandler = new ShopGuiEventHandler(shopGui, shopService, menuView);
+        shopGuiEventHandler = new ShopGuiEventHandler(shopGui, shopService, inventoryService);
 
         // skill
         skillService = new SkillService(new SkillRepository(), new SkillRegistry(), this);

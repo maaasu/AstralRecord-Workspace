@@ -34,9 +34,7 @@ public final class ShopGui {
 
     public static final int LIST_SIZE = 54;
     public static final int CONFIRM_SIZE = 27;
-    public static final int MAX_LOGICAL_SLOT = 26;
-    public static final int BACK_SLOT = 45;
-    public static final int CLOSE_SLOT = 49;
+    public static final int MAX_LOGICAL_SLOT = 27;
     public static final int ITEM_PREVIEW_SLOT = 13;
     public static final int QUANTITY_MINUS_10_SLOT = 9;
     public static final int QUANTITY_MINUS_1_SLOT = 10;
@@ -77,8 +75,6 @@ public final class ShopGui {
             }
             inventory.setItem(guiSlot, createShopItem(model, entry));
         }
-        inventory.setItem(BACK_SLOT, actionItem(Material.SPECTRAL_ARROW, "Back", List.of("Open menu")));
-        inventory.setItem(CLOSE_SLOT, actionItem(Material.BARRIER, "Close", List.of()));
         player.openInventory(inventory);
     }
 
@@ -92,18 +88,18 @@ public final class ShopGui {
         Inventory inventory = Bukkit.createInventory(
             new ConfirmHolder(shop.id(), entry.id(), preview.quantity()),
             CONFIRM_SIZE,
-            LEGACY_SERIALIZER.deserialize(ColorCodeUtil.translateAlternateColorCodes(shop.name() + " &7/ Buy"))
+            LEGACY_SERIALIZER.deserialize(ColorCodeUtil.translateAlternateColorCodes(shop.name() + " &7/ 購入確認"))
         );
         fill(inventory, Material.GRAY_STAINED_GLASS_PANE);
         ItemModel model = shopService.resolveItem(entry);
         if (model != null) {
             inventory.setItem(ITEM_PREVIEW_SLOT, itemStackFactory.createShopDisplay(model, Math.max(1, entry.amount()) * preview.quantity()));
         }
-        inventory.setItem(QUANTITY_MINUS_10_SLOT, actionItem(Material.REDSTONE, "-10", List.of("Quantity: " + preview.quantity())));
-        inventory.setItem(QUANTITY_MINUS_1_SLOT, actionItem(Material.REDSTONE_TORCH, "-1", List.of("Quantity: " + preview.quantity())));
-        inventory.setItem(QUANTITY_PLUS_1_SLOT, actionItem(Material.LIME_DYE, "+1", List.of("Quantity: " + preview.quantity())));
-        inventory.setItem(QUANTITY_PLUS_10_SLOT, actionItem(Material.EMERALD, "+10", List.of("Quantity: " + preview.quantity())));
-        inventory.setItem(CONFIRM_BACK_SLOT, actionItem(Material.SPECTRAL_ARROW, "Back", List.of("Return to list")));
+        inventory.setItem(QUANTITY_MINUS_10_SLOT, actionItem(Material.REDSTONE, "数量 -10", List.of("現在の数量: " + preview.quantity())));
+        inventory.setItem(QUANTITY_MINUS_1_SLOT, actionItem(Material.REDSTONE_TORCH, "数量 -1", List.of("現在の数量: " + preview.quantity())));
+        inventory.setItem(QUANTITY_PLUS_1_SLOT, actionItem(Material.LIME_DYE, "数量 +1", List.of("現在の数量: " + preview.quantity())));
+        inventory.setItem(QUANTITY_PLUS_10_SLOT, actionItem(Material.EMERALD, "数量 +10", List.of("現在の数量: " + preview.quantity())));
+        inventory.setItem(CONFIRM_BACK_SLOT, actionItem(Material.SPECTRAL_ARROW, "商品一覧へ戻る", List.of("ショップの商品一覧を開きます")));
         inventory.setItem(BUY_SLOT, buyItem(entry, preview));
         player.openInventory(inventory);
     }
@@ -158,11 +154,16 @@ public final class ShopGui {
         }
         List<Component> lore = meta.lore() == null ? new ArrayList<>() : new ArrayList<>(meta.lore());
         lore.add(Component.empty());
-        lore.add(Component.text("Price: " + shopService.resolveGoldCost(entry) + " gold", NamedTextColor.GOLD));
+        lore.add(Component.text("◆ 販売情報 ◆", NamedTextColor.GOLD, TextDecoration.BOLD)
+            .decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("価格: " + shopService.resolveGoldCost(entry) + " ゴールド", NamedTextColor.YELLOW)
+            .decoration(TextDecoration.ITALIC, false));
         for (ShopCostItem cost : shopService.resolveRequiredItems(entry)) {
-            lore.add(Component.text("Need: " + cost.itemId() + " x" + cost.amount(), NamedTextColor.GRAY));
+            lore.add(Component.text("必要素材: " + cost.itemId() + " x" + cost.amount(), NamedTextColor.AQUA)
+                .decoration(TextDecoration.ITALIC, false));
         }
-        lore.add(Component.text("Click to buy", NamedTextColor.GREEN));
+        lore.add(Component.text("クリックで購入確認へ", NamedTextColor.GREEN, TextDecoration.BOLD)
+            .decoration(TextDecoration.ITALIC, false));
         meta.lore(lore);
         meta.getPersistentDataContainer().set(entryIdKey, PersistentDataType.STRING, entry.id());
         itemStack.setItemMeta(meta);
@@ -172,23 +173,23 @@ public final class ShopGui {
     private @NotNull ItemStack buyItem(@NotNull ShopEntry entry, @NotNull ShopPurchasePreview preview) {
         Material material = preview.canPurchase() ? Material.GREEN_TERRACOTTA : Material.RED_TERRACOTTA;
         List<String> lore = new ArrayList<>();
-        lore.add("Item: " + entry.itemId() + " x" + (Math.max(1, entry.amount()) * preview.quantity()));
-        lore.add("Quantity: " + preview.quantity());
-        lore.add("Gold: " + preview.requiredGold() + " / owned " + preview.ownedGold());
+        lore.add("購入品: " + entry.itemId() + " x" + (Math.max(1, entry.amount()) * preview.quantity()));
+        lore.add("購入数量: " + preview.quantity());
+        lore.add("ゴールド: 必要 " + preview.requiredGold() + " / 所持 " + preview.ownedGold());
         for (ShopCostItem cost : preview.requiredItems()) {
-            lore.add("Consume: " + cost.itemId() + " x" + cost.amount());
+            lore.add("消費素材: " + cost.itemId() + " x" + cost.amount());
         }
         if (!preview.canPurchase()) {
             lore.add("");
-            lore.add("Missing:");
+            lore.add("不足素材:");
             for (ShopCostItem missing : preview.missingItems()) {
                 lore.add("- " + missing.itemId() + " x" + missing.amount());
             }
         } else {
             lore.add("");
-            lore.add("Click to purchase.");
+            lore.add("クリックで購入します。");
         }
-        return actionItem(material, preview.canPurchase() ? "Purchase" : "Not enough materials", lore);
+        return actionItem(material, preview.canPurchase() ? "購入する" : "素材が不足しています", lore);
     }
 
     private int toGuiSlot(@NotNull ShopEntry entry) {
@@ -201,7 +202,7 @@ public final class ShopGui {
         }
         int row = logicalSlot / 7;
         int column = logicalSlot % 7;
-        return row * 9 + column + 1;
+        return (row + 1) * 9 + column + 1;
     }
 
     private void fillFrame(@NotNull Inventory inventory) {
@@ -209,7 +210,7 @@ public final class ShopGui {
         for (int logical = 0; logical <= MAX_LOGICAL_SLOT; logical++) {
             int row = logical / 7;
             int column = logical % 7;
-            inventory.setItem(row * 9 + column + 1, new ItemStack(Material.AIR));
+            inventory.setItem((row + 1) * 9 + column + 1, new ItemStack(Material.AIR));
         }
     }
 

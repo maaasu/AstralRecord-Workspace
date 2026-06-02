@@ -1,8 +1,9 @@
 package io.github.maaasu.astralRecord.feature.shop.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
-import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.shop.gui.ShopGui;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopDefinition;
@@ -15,21 +16,22 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.NotNull;
 
 public final class ShopGuiEventHandler extends AbstractEventHandler {
     private final ShopGui shopGui;
     private final ShopService shopService;
-    private final MenuView menuView;
+    private final InventoryService inventoryService;
 
     public ShopGuiEventHandler(
         @NotNull ShopGui shopGui,
         @NotNull ShopService shopService,
-        @NotNull MenuView menuView
+        @NotNull InventoryService inventoryService
     ) {
         this.shopGui = shopGui;
         this.shopService = shopService;
-        this.menuView = menuView;
+        this.inventoryService = inventoryService;
     }
 
     public void open(@NotNull Player player, @NotNull String shopId) {
@@ -72,14 +74,7 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
     }
 
     private void handleListClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
-        if (event.getRawSlot() == ShopGui.CLOSE_SLOT) {
-            player.closeInventory();
-            return;
-        }
-        if (event.getRawSlot() == ShopGui.BACK_SLOT) {
-            GuiSound.SELECT.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
-            menuView.open(player);
+        if (handleHotbarShortcutClick(event, player)) {
             return;
         }
         String shopId = shopGui.getShopId(event.getView().getTopInventory());
@@ -101,6 +96,9 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
     }
 
     private void handleConfirmClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
+        if (handleHotbarShortcutClick(event, player)) {
+            return;
+        }
         String shopId = shopGui.getShopId(event.getView().getTopInventory());
         String entryId = shopGui.getEntryId(event.getView().getTopInventory());
         ShopDefinition shop = shopId == null ? null : shopService.findById(shopId);
@@ -143,5 +141,34 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
         MenuOpenEventHandler.suppressNextCloseSound(player);
         shopGui.openConfirm(player, shop, entry, quantity, shopService.preview(astPlayer, entry, quantity));
         GuiSound.SELECT.play(player);
+    }
+
+    private boolean handleHotbarShortcutClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
+        if (!(event.getClickedInventory() instanceof PlayerInventory)) {
+            return false;
+        }
+        int slot = event.getSlot();
+        if (slot < 0 || slot > 8) {
+            return false;
+        }
+        var astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null || !inventoryService.isHotbarShortcutMode(astPlayer)) {
+            return false;
+        }
+        if (!inventoryService.getClickGuard().tryAcquire(
+            astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.HOTBAR_SHORTCUT)) {
+            return true;
+        }
+        boolean handled = inventoryService.handleHotbarShortcutClick(astPlayer, slot);
+        if (handled) {
+            if (slot == 4) {
+                GuiSound.CLOSE.play(player);
+            } else {
+                GuiSound.SELECT.play(player);
+            }
+        } else {
+            GuiSound.DENY.play(player);
+        }
+        return true;
     }
 }
