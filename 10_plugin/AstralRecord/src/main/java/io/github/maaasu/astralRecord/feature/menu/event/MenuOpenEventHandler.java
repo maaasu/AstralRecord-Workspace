@@ -1777,7 +1777,12 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        int requested = resolveTrashTransferAmount(event.getClick(), current.getAmount());
+        int sourceAmount = currentStorageEntries(player, storageOptions(player)).stream()
+            .filter(entry -> entry.entry().getInventoryEntryId().equals(storageEntryId))
+            .findFirst()
+            .map(entry -> (int) Math.min(Integer.MAX_VALUE, Math.max(0L, entry.entry().getQuantity())))
+            .orElse(current.getAmount());
+        int requested = resolveTrashTransferAmount(event.getClick(), sourceAmount);
         if (requested <= 0) {
             GuiSound.DENY.play(player);
             return;
@@ -1791,7 +1796,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         inventoryService.saveNow(astPlayer.getAccount().getUuid());
         refreshStorageEntries(player, storageOptions(player));
         GuiSound.SELECT.play(player);
-        sendTrashMessage(player, PlayerMsgId.P_5608, moved);
         rerenderStorageInventory(player, topInventory);
         player.updateInventory();
     }
