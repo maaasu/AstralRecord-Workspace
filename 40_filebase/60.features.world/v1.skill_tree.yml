@@ -1,0 +1,19 @@
+schemaVersion: 1
+id: skill_tree
+displayName: "スキルツリー"
+worldType: HUB
+baseWorldPath: "hub/skill_tree"
+instanceRootPath: "_world_instances/skill_tree"
+autoLoad: true
+instanceEnabled: true
+maxPlayers: 8
+allowBlockBreak: false
+allowBlockPlace: false
+allowMobSpawn: false
+spawnLocation:
+  x: 1000.5
+  y: 68.0
+  z: 1000.5
+  yaw: 0.0
+  pitch: 90.0
+description: "空に浮かぶ大樹の島。冒険者のハブ、ロビー、個人スペースとして使われる穏やかな空の拠点。"

@@ -1,7 +1,7 @@
 schemaVersion: 1
 id: starter_shop
 type: SHOP
-name: "&6Starter Shop"
+name: "&6スターターショップ"
 items:
   - id: healing_potion_direct
     itemId:

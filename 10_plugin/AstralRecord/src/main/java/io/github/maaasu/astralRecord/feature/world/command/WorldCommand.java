@@ -122,7 +122,27 @@ public class WorldCommand extends AstCommand {
             return;
         }
 
-        player.getBukkit().teleport(spawnLocation);
+        sendInfo(player.getBukkit(), PlayerMsgResource.format(
+                PlayerMsgId.P_5764.getId(),
+                data.id(),
+                spawnLocation.getWorld().getName(),
+                spawnLocation.getX(),
+                spawnLocation.getY(),
+                spawnLocation.getZ()
+        ));
+        boolean teleported = player.getBukkit().teleport(spawnLocation);
+        sendInfo(player.getBukkit(), PlayerMsgResource.format(
+                PlayerMsgId.P_5765.getId(),
+                teleported,
+                player.getBukkit().getWorld() == null ? "null" : player.getBukkit().getWorld().getName(),
+                player.getBukkit().getLocation().getX(),
+                player.getBukkit().getLocation().getY(),
+                player.getBukkit().getLocation().getZ()
+        ));
+        if (!teleported) {
+            sendError(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5760.getId(), data.id()));
+            return;
+        }
         sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5761.getId(), spawnLocation.getWorld().getName()));
     }
 

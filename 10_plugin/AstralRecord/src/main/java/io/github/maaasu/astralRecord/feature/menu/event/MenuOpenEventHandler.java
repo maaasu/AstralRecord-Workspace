@@ -1910,7 +1910,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             boolean merged = false;
             for (int index = 0; index < normalized.size(); index++) {
                 ItemStack existing = normalized.get(index);
-                if (existing.getMaxStackSize() <= 1 || !existing.isSimilar(candidate)) {
+                if (!canMergeTransferItems(existing, candidate)) {
                     continue;
                 }
                 int available = Math.max(0, existing.getMaxStackSize() - existing.getAmount());
@@ -1940,6 +1940,26 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
 
     private @NotNull List<ItemStack> normalizeSellItems(@NotNull List<ItemStack> items) {
         return normalizeTrashItems(items);
+    }
+
+    private boolean canMergeTransferItems(@NotNull ItemStack existing, @NotNull ItemStack candidate) {
+        if (existing.getMaxStackSize() <= 1 || candidate.getMaxStackSize() <= 1) {
+            return false;
+        }
+        if (ItemStackFactory.getEquipmentInstanceId(existing) != null
+            || ItemStackFactory.getEquipmentInstanceId(candidate) != null
+            || ItemStackFactory.getRuneInstanceId(existing) != null
+            || ItemStackFactory.getRuneInstanceId(candidate) != null) {
+            return false;
+        }
+        String existingItemId = ItemStackFactory.getAstralItemId(existing);
+        String candidateItemId = ItemStackFactory.getAstralItemId(candidate);
+        if (existingItemId == null || candidateItemId == null || !existingItemId.equals(candidateItemId)) {
+            return false;
+        }
+        String existingCategory = ItemStackFactory.getCategory(existing);
+        String candidateCategory = ItemStackFactory.getCategory(candidate);
+        return existingCategory != null && existingCategory.equals(candidateCategory);
     }
 
     private @NotNull ItemStack stripTrashDisplayAmountLore(@NotNull ItemStack itemStack) {

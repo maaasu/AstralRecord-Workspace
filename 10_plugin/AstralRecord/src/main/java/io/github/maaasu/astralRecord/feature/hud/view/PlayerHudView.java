@@ -62,7 +62,6 @@ public class PlayerHudView {
      * サイドバーを描画します。
      *
      * @param player 対象プレイヤー
-     * @param mode アカウントモード名
      * @param tps 現在のTPS
      * @param playerLevel アカウント単位のプレイヤーレベル
      * @param totalExperience アカウント単位の総経験値
@@ -95,17 +94,16 @@ public class PlayerHudView {
 
         int ping = player.getPing();
         clearSidebar(scoreboard);
-        objective.getScore(buildSeparator("サーバー")).setScore(12);
         objective.getScore(ColorCodeUtil.AQUA + "オンライン" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
                 + Bukkit.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers()).setScore(11);
         objective.getScore(tpsLegacyColor(tps) + "TPS" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + String.format("%.1f", tps)).setScore(10);
         objective.getScore(pingLegacyColor(ping) + "Ping" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + ping + "ms").setScore(9);
-        objective.getScore(buildSeparator("プレイヤー")).setScore(8);
-        objective.getScore(ColorCodeUtil.GOLD + "Lv." + ColorCodeUtil.WHITE + playerLevel).setScore(7);
+        objective.getScore(buildSeparator("player")).setScore(8);
+        objective.getScore(ColorCodeUtil.GOLD + "レベル" + ColorCodeUtil.GRAY + ": "  + "Lv." + ColorCodeUtil.YELLOW + playerLevel).setScore(7);
         objective.getScore(buildExperienceBar("EXP", experienceProgress(totalExperience), ColorCodeUtil.GREEN)).setScore(6);
         objective.getScore(buildSeparator("クラス")).setScore(5);
-        objective.getScore(ColorCodeUtil.DARK_AQUA + "クラス" + ColorCodeUtil.GRAY + ": "  + className).setScore(4);
-        objective.getScore(ColorCodeUtil.YELLOW + "Class Lv." + ColorCodeUtil.GOLD + classLevel).setScore(3);
+        objective.getScore(ColorCodeUtil.DARK_AQUA + "class" + ColorCodeUtil.GRAY + ": "  + className).setScore(4);
+        objective.getScore(ColorCodeUtil.YELLOW + "クラスレベル" + ColorCodeUtil.GRAY + ": "  + "Lv." + ColorCodeUtil.YELLOW + classLevel).setScore(3);
         objective.getScore(buildExperienceBar("CEXP", 0.0D, ColorCodeUtil.AQUA)).setScore(2);
         objective.getScore(ColorCodeUtil.DARK_GRAY + "クラスEXP 準備中").setScore(1);
     }
@@ -168,7 +166,7 @@ public class PlayerHudView {
     }
 
     private String buildSeparator(String label) {
-        return ColorCodeUtil.DARK_AQUA + "◈───── " + label + " ─────◈";
+        return ColorCodeUtil.DARK_AQUA + "◈─── " + label + " ───◈";
     }
 
     private String tpsLegacyColor(double tps) {

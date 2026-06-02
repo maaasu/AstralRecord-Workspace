@@ -679,7 +679,16 @@ public class InventoryService {
         List<InventoryEntryModel> storageEntries = new ArrayList<>(state.snapshotEntries(storageInventory.getInventoryId()).stream()
             .filter(entry -> !entry.isDeleted())
             .toList());
-        storageEntries.add(copyEntryToStorage(sourceEntry, storageInventory.getInventoryId(), movedAmount, state.getAccountId()));
+        int stackableIndex = findStackableStorageEntryIndex(storageEntries, sourceEntry);
+        if (stackableIndex >= 0) {
+            InventoryEntryModel existing = storageEntries.get(stackableIndex);
+            storageEntries.set(
+                stackableIndex,
+                withQuantity(existing, existing.getQuantity() + movedAmount, state.getAccountId())
+            );
+        } else {
+            storageEntries.add(copyEntryToStorage(sourceEntry, storageInventory.getInventoryId(), movedAmount, state.getAccountId()));
+        }
         state.replaceEntries(storageInventory.getInventoryId(), storageEntries);
 
         if (takeAll) {
@@ -2346,6 +2355,40 @@ public class InventoryService {
             actor,
             false
         );
+    }
+
+    private int findStackableStorageEntryIndex(
+        @NotNull List<InventoryEntryModel> storageEntries,
+        @NotNull InventoryEntryModel sourceEntry
+    ) {
+        if (!isStackableByItemId(sourceEntry)) {
+            return -1;
+        }
+        for (int index = 0; index < storageEntries.size(); index++) {
+            if (isSameStackableItem(storageEntries.get(index), sourceEntry)) {
+                return index;
+            }
+        }
+        return -1;
+    }
+
+    private boolean isSameStackableItem(
+        @NotNull InventoryEntryModel existing,
+        @NotNull InventoryEntryModel sourceEntry
+    ) {
+        if (!isStackableByItemId(existing) || !isStackableByItemId(sourceEntry)) {
+            return false;
+        }
+        return existing.getItemCategory().equals(sourceEntry.getItemCategory())
+            && existing.getItemId() != null
+            && existing.getItemId().equals(sourceEntry.getItemId());
+    }
+
+    private boolean isStackableByItemId(@NotNull InventoryEntryModel entry) {
+        return entry.getInstanceType() == null
+            && entry.getInstanceId() == null
+            && entry.getItemId() != null
+            && !entry.getItemId().isBlank();
     }
 
     private int nextStorageSlot(@NotNull UUID storageInventoryId) {
