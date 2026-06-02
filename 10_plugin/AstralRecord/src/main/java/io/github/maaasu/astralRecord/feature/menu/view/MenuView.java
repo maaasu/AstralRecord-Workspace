@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
+import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;
@@ -16,6 +17,8 @@ import io.github.maaasu.astralRecord.feature.menu.view.screen.EquipmentMenuScree
 import io.github.maaasu.astralRecord.feature.menu.view.screen.GuideScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.MainMenuScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.StatusScreenView;
+import io.github.maaasu.astralRecord.feature.menu.view.screen.SellConfirmScreenView;
+import io.github.maaasu.astralRecord.feature.menu.view.screen.SellScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.TrashConfirmScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.TrashScreenView;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -93,6 +96,8 @@ public class MenuView {
     private final GuideScreenView guideScreenView;
     private final TrashScreenView trashScreenView;
     private final TrashConfirmScreenView trashConfirmScreenView;
+    private final SellScreenView sellScreenView;
+    private final SellConfirmScreenView sellConfirmScreenView;
     private final CraftShortcutView craftShortcutView;
     private final AstralRecord plugin;
 
@@ -103,6 +108,8 @@ public class MenuView {
         NamespacedKey equipmentPlaceholderKey = new NamespacedKey(plugin, "equipment_placeholder");
         NamespacedKey classIdKey = new NamespacedKey(plugin, "menu_class_id");
         NamespacedKey trashPlaceholderKey = new NamespacedKey(plugin, "trash_content_placeholder");
+        NamespacedKey sellPlaceholderKey = new NamespacedKey(plugin, "sell_content_placeholder");
+        ItemService itemService = plugin.getItemService();
         this.mainMenuScreenView = new MainMenuScreenView();
         this.statusScreenView = new StatusScreenView();
         this.equipmentMenuScreenView = new EquipmentMenuScreenView(equipmentPlaceholderKey);
@@ -112,6 +119,8 @@ public class MenuView {
         this.guideScreenView = new GuideScreenView();
         this.trashScreenView = new TrashScreenView(trashPlaceholderKey);
         this.trashConfirmScreenView = new TrashConfirmScreenView(trashPlaceholderKey);
+        this.sellScreenView = new SellScreenView(sellPlaceholderKey, itemService);
+        this.sellConfirmScreenView = new SellConfirmScreenView(sellPlaceholderKey);
         this.craftShortcutView = new CraftShortcutView(craftShortcutKey, craftActionKey);
     }
 
@@ -195,6 +204,25 @@ public class MenuView {
             title
         );
         trashConfirmScreenView.render(inventory, trashItems, 0);
+        player.openInventory(inventory);
+    }
+
+    public void openSell(@NotNull Player player, @NotNull List<ItemStack> sellItems, int pageIndex) {
+        int normalizedPage = sellScreenView.normalizePage(pageIndex, sellItems.size());
+        int totalPages = sellScreenView.totalPages(sellItems.size());
+        Component title = Component.text("売却 " + (normalizedPage + 1) + "/" + totalPages, NamedTextColor.GOLD);
+        Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.SELL, -1, normalizedPage), SIZE, title);
+        sellScreenView.render(inventory, sellItems, normalizedPage);
+        player.openInventory(inventory);
+    }
+
+    public void openSellConfirm(@NotNull Player player, @NotNull List<ItemStack> sellItems, int pageIndex) {
+        Inventory inventory = Bukkit.createInventory(
+            new MenuInventoryHolder(MenuScreen.SELL_CONFIRM, -1, 0),
+            io.github.maaasu.astralRecord.shared.gui.confirm.ConfirmDialogView.SIZE,
+            SellConfirmScreenView.CONFIRM_MESSAGE
+        );
+        sellConfirmScreenView.render(inventory, sellItems, 0);
         player.openInventory(inventory);
     }
     public @NotNull ItemStack createCraftResultIcon() {
@@ -302,12 +330,28 @@ public class MenuView {
         return trashConfirmScreenView.hasNextPage(pageIndex, trashItems.size());
     }
 
+    public boolean hasPreviousSellPage(int pageIndex) {
+        return sellScreenView.hasPreviousPage(pageIndex);
+    }
+
+    public boolean hasNextSellPage(@NotNull List<ItemStack> sellItems, int pageIndex) {
+        return sellScreenView.hasNextPage(pageIndex, sellItems.size());
+    }
+
     public boolean isTrashContentPlaceholder(@Nullable ItemStack itemStack) {
         return trashScreenView.isContentPlaceholder(itemStack);
     }
 
     public boolean isTrashConfirmContentPlaceholder(@Nullable ItemStack itemStack) {
         return trashConfirmScreenView.isContentPlaceholder(itemStack);
+    }
+
+    public boolean isSellContentPlaceholder(@Nullable ItemStack itemStack) {
+        return sellScreenView.isContentPlaceholder(itemStack);
+    }
+
+    public boolean isSellConfirmContentPlaceholder(@Nullable ItemStack itemStack) {
+        return sellConfirmScreenView.isContentPlaceholder(itemStack);
     }
 
     public @Nullable String getClassId(@Nullable ItemStack itemStack) {

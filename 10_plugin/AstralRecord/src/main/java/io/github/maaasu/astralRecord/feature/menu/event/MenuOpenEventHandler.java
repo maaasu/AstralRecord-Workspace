@@ -8,11 +8,15 @@ import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutAction;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;
 import io.github.maaasu.astralRecord.feature.menu.player.PlayerBrowserGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
+import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
+import io.github.maaasu.astralRecord.feature.menu.view.screen.SellScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.TrashScreenView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
@@ -50,7 +54,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MenuOpenEventHandler extends AbstractEventHandler {
-    private static final String TRASH_AMOUNT_LORE_PREFIX = "\u30b9\u30bf\u30c3\u30af: ";
     private static final long BUFF_GUI_REFRESH_INTERVAL_TICKS = 20L;
     private static final Set<UUID> SUPPRESS_CLOSE_SOUND_ON_CLOSE = ConcurrentHashMap.newKeySet();
 
@@ -61,9 +64,12 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     private final StatusService statusService;
     private final Set<UUID> craftRenderSuppressed = ConcurrentHashMap.newKeySet();
     private final ConcurrentHashMap<UUID, List<ItemStack>> trashItemsByPlayer = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UUID, List<ItemStack>> sellItemsByPlayer = new ConcurrentHashMap<>();
     private final Set<UUID> suppressTrashConfirmOnClose = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> suppressSellConfirmOnClose = ConcurrentHashMap.newKeySet();
     private final Set<UUID> suppressPlayerInventoryRestoreOnClose = ConcurrentHashMap.newKeySet();
     private final Set<UUID> suppressTrashConfirmRestoreOnClose = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> suppressSellConfirmRestoreOnClose = ConcurrentHashMap.newKeySet();
     private final Set<UUID> playerInventoryDummyApplied = ConcurrentHashMap.newKeySet();
 
     public MenuOpenEventHandler(
@@ -142,6 +148,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 boolean shouldPlayCloseSound = isHotbarShortcutGui(event.getInventory())
                     && !consumeSuppressedCloseSound(player);
                 handleTrashClose(event.getInventory(), player);
+                handleSellClose(event.getInventory(), player);
                 if (playerInventoryDummyApplied.remove(player.getUniqueId())) {
                     if (!suppressPlayerInventoryRestoreOnClose.remove(player.getUniqueId())) {
                         restorePlayerInventory(player);
@@ -179,6 +186,14 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 }
                 if (menuScreen == MenuScreen.TRASH_CONFIRM) {
                     handleTrashConfirmClick(event);
+                    return;
+                }
+                if (menuScreen == MenuScreen.SELL) {
+                    handleSellClick(event);
+                    return;
+                }
+                if (menuScreen == MenuScreen.SELL_CONFIRM) {
+                    handleSellConfirmClick(event);
                     return;
                 }
                 if (event.getWhoClicked() instanceof Player player
@@ -257,6 +272,22 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                     return;
                 }
                 if (menuScreen == MenuScreen.TRASH_CONFIRM) {
+                    event.setCancelled(true);
+                    if (event.getWhoClicked() instanceof Player player) {
+                        GuiSound.DENY.play(player);
+                    }
+                    return;
+                }
+                if (menuScreen == MenuScreen.SELL) {
+                    if (event.getRawSlots().stream().anyMatch(this::isSellControlSlot)) {
+                        event.setCancelled(true);
+                        if (event.getWhoClicked() instanceof Player player) {
+                            GuiSound.DENY.play(player);
+                        }
+                    }
+                    return;
+                }
+                if (menuScreen == MenuScreen.SELL_CONFIRM) {
                     event.setCancelled(true);
                     if (event.getWhoClicked() instanceof Player player) {
                         GuiSound.DENY.play(player);
@@ -646,6 +677,106 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
         GuiSound.DENY.play(player);
     }
+
+    private void handleSellClick(@NotNull InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+        event.setCancelled(true);
+        int rawSlot = event.getRawSlot();
+        Inventory topInventory = event.getView().getTopInventory();
+        List<ItemStack> currentSellItems = snapshotSellItems(topInventory);
+
+        if (rawSlot >= topInventory.getSize()) {
+            handleSellPlayerInventoryClick(event, player, topInventory);
+            return;
+        }
+
+        if (rawSlot == MenuView.BACK_SLOT) {
+            GuiSound.SELECT.play(player);
+            player.closeInventory();
+            return;
+        }
+        if (rawSlot == MenuView.TRASH_CLOSE_SLOT) {
+            if (currentSellItems.isEmpty()) {
+                discardSell(player);
+                suppressSellConfirmOnClose.add(player.getUniqueId());
+                player.closeInventory();
+                return;
+            }
+            openSellConfirm(player, currentSellItems, 0);
+            return;
+        }
+        if (rawSlot == MenuView.TRASH_PREVIOUS_SLOT) {
+            int pageIndex = menuView.getPageIndex(topInventory);
+            if (menuView.hasPreviousSellPage(pageIndex)) {
+                GuiSound.SELECT.play(player);
+                openSell(player, pageIndex - 1);
+            } else {
+                GuiSound.DENY.play(player);
+            }
+            return;
+        }
+        if (rawSlot == MenuView.TRASH_NEXT_SLOT) {
+            int pageIndex = menuView.getPageIndex(topInventory);
+            if (menuView.hasNextSellPage(currentSellItems, pageIndex)) {
+                GuiSound.SELECT.play(player);
+                openSell(player, pageIndex + 1);
+            } else {
+                GuiSound.DENY.play(player);
+            }
+            return;
+        }
+        if (isSellContentSlot(rawSlot)) {
+            handleSellContentClick(event, player, topInventory, rawSlot);
+            return;
+        }
+        if (isSellControlSlot(rawSlot)) {
+            GuiSound.DENY.play(player);
+        }
+    }
+
+    private void handleSellConfirmClick(@NotNull InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+        event.setCancelled(true);
+        int rawSlot = event.getRawSlot();
+        Inventory topInventory = event.getView().getTopInventory();
+        List<ItemStack> currentSellItems = sellItemsByPlayer.getOrDefault(player.getUniqueId(), List.of());
+
+        if (rawSlot >= topInventory.getSize()) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+
+        if (rawSlot == MenuView.TRASH_CONFIRM_DISPOSE_SLOT) {
+            List<ItemStack> soldItems = normalizeSellItems(currentSellItems);
+            long totalSaleValue = totalSaleValue(soldItems);
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer == null || !inventoryService.addGold(astPlayer.getAccount().getUuid(), totalSaleValue)) {
+                GuiSound.DENY.play(player);
+                player.updateInventory();
+                return;
+            }
+            GuiSound.SELECT.play(player);
+            discardSell(player);
+            notifySellCompleted(player, soldItems, totalSaleValue);
+            restorePlayerInventory(player);
+            suppressSellConfirmOnClose.add(player.getUniqueId());
+            player.closeInventory();
+            return;
+        }
+        if (rawSlot == MenuView.TRASH_CONFIRM_RETURN_SLOT) {
+            GuiSound.SELECT.play(player);
+            suppressSellConfirmOnClose.add(player.getUniqueId());
+            suppressSellConfirmRestoreOnClose.add(player.getUniqueId());
+            menuView.openSell(player, currentSellItems, 0);
+            restorePlayerInventory(player);
+            return;
+        }
+        GuiSound.DENY.play(player);
+    }
     private void executeShortcutAction(@NotNull Player player, @NotNull MenuShortcutAction action, int shortcutIndex) {
         if (action == MenuShortcutAction.MAIN_MENU) {
             GuiSound.OPEN.play(player);
@@ -867,6 +998,34 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         fillPlayerInventoryDummy(player);
     }
 
+    private void openSell(@NotNull Player player, int pageIndex) {
+        openSell(player, pageIndex, false);
+    }
+
+    private void openSell(@NotNull Player player, int pageIndex, boolean restoreAfterOpen) {
+        List<ItemStack> normalized = normalizeSellItems(
+            sellItemsByPlayer.getOrDefault(player.getUniqueId(), List.of())
+        );
+        sellItemsByPlayer.put(player.getUniqueId(), normalized);
+        if (restoreAfterOpen) {
+            switchGuiWithInventoryRestore(player, () -> menuView.openSell(player, normalized, pageIndex));
+            return;
+        }
+        menuView.openSell(player, normalized, pageIndex);
+    }
+
+    private void openSellConfirm(@NotNull Player player, @NotNull List<ItemStack> currentItems, int pageIndex) {
+        List<ItemStack> normalized = normalizeSellItems(currentItems);
+        if (normalized.isEmpty()) {
+            discardSell(player);
+            return;
+        }
+        sellItemsByPlayer.put(player.getUniqueId(), normalized);
+        suppressSellConfirmOnClose.add(player.getUniqueId());
+        menuView.openSellConfirm(player, normalized, pageIndex);
+        fillPlayerInventoryDummy(player);
+    }
+
     private void handleTrashClose(@NotNull Inventory inventory, @NotNull Player player) {
         MenuScreen screen = menuView.getMenuScreen(inventory);
         if (screen == null) {
@@ -898,6 +1057,41 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             plugin.getServer().getScheduler().runTask(plugin, () -> {
                 GuiSound.SELECT.play(player);
                 openTrash(player, 0);
+            });
+        }
+    }
+
+    private void handleSellClose(@NotNull Inventory inventory, @NotNull Player player) {
+        MenuScreen screen = menuView.getMenuScreen(inventory);
+        if (screen == null) {
+            return;
+        }
+        UUID playerId = player.getUniqueId();
+        if (screen == MenuScreen.SELL) {
+            if (suppressSellConfirmOnClose.remove(playerId)) {
+                List<ItemStack> items = snapshotSellItems(inventory);
+                sellItemsByPlayer.put(playerId, items);
+                return;
+            }
+            List<ItemStack> allItems = collectAllSellItems(inventory, playerId);
+            boolean returned = returnTrashItemsToInventory(player, allItems);
+            discardSell(player);
+            if (returned) {
+                notifySellReturned(player, allItems);
+            }
+            return;
+        }
+        if (screen == MenuScreen.SELL_CONFIRM) {
+            if (suppressSellConfirmOnClose.remove(playerId)) {
+                if (!suppressSellConfirmRestoreOnClose.remove(playerId)) {
+                    restorePlayerInventory(player);
+                }
+                return;
+            }
+            restorePlayerInventory(player);
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                GuiSound.SELECT.play(player);
+                openSell(player, 0);
             });
         }
     }
@@ -1054,6 +1248,23 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         return normalizeTrashItems(merged);
     }
 
+    private @NotNull List<ItemStack> collectAllSellItems(@NotNull Inventory inventory, @NotNull UUID playerId) {
+        int pageIndex = menuView.getPageIndex(inventory);
+        int pageStart = pageIndex * SellScreenView.CONTENT_SLOT_COUNT;
+        int pageEnd = pageStart + SellScreenView.CONTENT_SLOT_COUNT;
+        List<ItemStack> currentPage = snapshotSellItems(inventory);
+        List<ItemStack> existing = sellItemsByPlayer.getOrDefault(playerId, List.of());
+        List<ItemStack> merged = new java.util.ArrayList<>();
+        for (int i = 0; i < Math.min(pageStart, existing.size()); i++) {
+            merged.add(existing.get(i));
+        }
+        merged.addAll(currentPage);
+        for (int i = pageEnd; i < existing.size(); i++) {
+            merged.add(existing.get(i));
+        }
+        return normalizeSellItems(merged);
+    }
+
     private boolean returnTrashItemsToInventory(@NotNull Player player, @NotNull List<ItemStack> items) {
         if (items.isEmpty()) {
             return false;
@@ -1088,6 +1299,23 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         sendTrashMessage(player, PlayerMsgId.P_5602, returnedCount);
     }
 
+    private void notifySellCompleted(@NotNull Player player, @NotNull List<ItemStack> items, long totalSaleValue) {
+        int soldCount = countTrashItemStacks(items);
+        if (soldCount <= 0) {
+            return;
+        }
+        sendTrashMessage(player, PlayerMsgId.P_5604, soldCount, totalSaleValue);
+    }
+
+    private void notifySellReturned(@NotNull Player player, @NotNull List<ItemStack> items) {
+        int returnedCount = countTrashItemStacks(items);
+        if (returnedCount <= 0) {
+            return;
+        }
+        GuiSound.SELECT.play(player);
+        sendTrashMessage(player, PlayerMsgId.P_5606, returnedCount);
+    }
+
     private int countTrashItemStacks(@NotNull List<ItemStack> items) {
         int count = 0;
         for (ItemStack itemStack : items) {
@@ -1119,6 +1347,19 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             items.add(stripTrashDisplayAmountLore(itemStack));
         }
         return normalizeTrashItems(items);
+    }
+
+    private @NotNull List<ItemStack> snapshotSellItems(@NotNull Inventory inventory) {
+        List<ItemStack> items = new java.util.ArrayList<>();
+        int maxSlot = Math.min(SellScreenView.CONTENT_SLOT_COUNT, inventory.getSize());
+        for (int slot = 0; slot < maxSlot; slot++) {
+            ItemStack itemStack = inventory.getItem(slot);
+            if (isSellEmptyItem(inventory, itemStack)) {
+                continue;
+            }
+            items.add(stripTransferDisplayLore(itemStack));
+        }
+        return normalizeSellItems(items);
     }
 
     private void handleTrashPlayerInventoryClick(
@@ -1216,12 +1457,120 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         player.updateInventory();
     }
 
+    private void handleSellPlayerInventoryClick(
+        @NotNull InventoryClickEvent event,
+        @NotNull Player player,
+        @NotNull Inventory topInventory
+    ) {
+        if (!(event.getClickedInventory() instanceof PlayerInventory)) {
+            return;
+        }
+        if (handleMenuHotbarShortcutClick(event, player)) {
+            return;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        ItemStack clicked = event.getCurrentItem();
+        if (clicked == null || clicked.getType() == Material.AIR) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (!isSellableItem(clicked)) {
+            GuiSound.DENY.play(player);
+            sendTrashMessage(player, PlayerMsgId.P_5605);
+            return;
+        }
+        int requested = resolveTrashTransferAmount(event.getClick(), clicked.getAmount());
+        if (requested <= 0) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        int capacity = countSellPlacementCapacity(topInventory, clicked, requested);
+        if (capacity <= 0) {
+            GuiSound.DENY.play(player);
+            player.updateInventory();
+            return;
+        }
+        ItemStack moved = inventoryService.takeDisplayedItemAmount(astPlayer, event.getSlot(), capacity);
+        if (moved == null || moved.getType() == Material.AIR) {
+            GuiSound.DENY.play(player);
+            player.updateInventory();
+            return;
+        }
+        placeItemsIntoSell(topInventory, moved);
+        GuiSound.SELECT.play(player);
+        rerenderSellInventory(player, topInventory);
+        player.updateInventory();
+    }
+
+    private void handleSellContentClick(
+        @NotNull InventoryClickEvent event,
+        @NotNull Player player,
+        @NotNull Inventory topInventory,
+        int rawSlot
+    ) {
+        ItemStack current = topInventory.getItem(rawSlot);
+        ItemStack cursor = event.getCursor();
+        boolean hasCurrent = !isSellEmptyItem(topInventory, current);
+        boolean hasCursor = cursor != null && cursor.getType() != Material.AIR;
+
+        if (hasCursor) {
+            GuiSound.DENY.play(player);
+            player.updateInventory();
+            return;
+        }
+        if (!hasCurrent) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        int requested = resolveTrashTransferAmount(event.getClick(), current.getAmount());
+        if (requested <= 0) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        ItemStack partial = stripTransferDisplayLore(current);
+        partial.setAmount(requested);
+        if (inventoryService.returnItemToOwnedInventory(astPlayer, partial) == null) {
+            GuiSound.DENY.play(player);
+            player.updateInventory();
+            return;
+        }
+        int remaining = current.getAmount() - requested;
+        if (remaining <= 0) {
+            topInventory.setItem(rawSlot, new ItemStack(Material.AIR));
+        } else {
+            ItemStack updated = stripTransferDisplayLore(current);
+            updated.setAmount(remaining);
+            topInventory.setItem(rawSlot, updated);
+        }
+        GuiSound.SELECT.play(player);
+        rerenderSellInventory(player, topInventory);
+        player.updateInventory();
+    }
+
     private void rerenderTrashInventory(@NotNull Player player, @NotNull Inventory topInventory) {
         int pageIndex = menuView.getPageIndex(topInventory);
         List<ItemStack> currentItems = snapshotTrashItems(topInventory);
         trashItemsByPlayer.put(player.getUniqueId(), currentItems);
         suppressTrashConfirmOnClose.add(player.getUniqueId());
         menuView.openTrash(player, currentItems, pageIndex);
+    }
+
+    private void rerenderSellInventory(@NotNull Player player, @NotNull Inventory topInventory) {
+        int pageIndex = menuView.getPageIndex(topInventory);
+        List<ItemStack> currentItems = snapshotSellItems(topInventory);
+        sellItemsByPlayer.put(player.getUniqueId(), currentItems);
+        suppressSellConfirmOnClose.add(player.getUniqueId());
+        menuView.openSell(player, currentItems, pageIndex);
     }
 
     private int resolveTrashTransferAmount(@NotNull ClickType clickType, int sourceAmount) {
@@ -1241,14 +1590,14 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         @NotNull ItemStack template,
         int desired
     ) {
-        ItemStack cleanTemplate = stripTrashDisplayAmountLore(template);
+        ItemStack cleanTemplate = stripTransferDisplayLore(template);
         int capacity = 0;
         for (int slot = 0; slot < TrashScreenView.CONTENT_SLOT_COUNT; slot++) {
             ItemStack existing = topInventory.getItem(slot);
             if (isTrashEmptyItem(topInventory, existing)) {
                 capacity += cleanTemplate.getMaxStackSize();
             } else if (existing != null) {
-                ItemStack comparableExisting = stripTrashDisplayAmountLore(existing);
+                ItemStack comparableExisting = stripTransferDisplayLore(existing);
                 if (comparableExisting.isSimilar(cleanTemplate)) {
                     capacity += Math.max(0, comparableExisting.getMaxStackSize() - comparableExisting.getAmount());
                 }
@@ -1261,14 +1610,14 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     }
 
     private void placeItemsIntoTrash(@NotNull Inventory topInventory, @NotNull ItemStack moved) {
-        ItemStack cleanMoved = stripTrashDisplayAmountLore(moved);
+        ItemStack cleanMoved = stripTransferDisplayLore(moved);
         int remaining = cleanMoved.getAmount();
         for (int slot = 0; slot < TrashScreenView.CONTENT_SLOT_COUNT && remaining > 0; slot++) {
             ItemStack existing = topInventory.getItem(slot);
             if (isTrashEmptyItem(topInventory, existing)) {
                 continue;
             }
-            ItemStack cleanExisting = stripTrashDisplayAmountLore(existing);
+            ItemStack cleanExisting = stripTransferDisplayLore(existing);
             if (!cleanExisting.isSimilar(cleanMoved)) {
                 continue;
             }
@@ -1295,13 +1644,72 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
     }
 
+    private int countSellPlacementCapacity(
+        @NotNull Inventory topInventory,
+        @NotNull ItemStack template,
+        int desired
+    ) {
+        ItemStack cleanTemplate = stripTransferDisplayLore(template);
+        int capacity = 0;
+        for (int slot = 0; slot < SellScreenView.CONTENT_SLOT_COUNT; slot++) {
+            ItemStack existing = topInventory.getItem(slot);
+            if (isSellEmptyItem(topInventory, existing)) {
+                capacity += cleanTemplate.getMaxStackSize();
+            } else if (existing != null) {
+                ItemStack comparableExisting = stripTransferDisplayLore(existing);
+                if (comparableExisting.isSimilar(cleanTemplate)) {
+                    capacity += Math.max(0, comparableExisting.getMaxStackSize() - comparableExisting.getAmount());
+                }
+            }
+            if (capacity >= desired) {
+                return desired;
+            }
+        }
+        return Math.max(0, Math.min(desired, capacity));
+    }
+
+    private void placeItemsIntoSell(@NotNull Inventory topInventory, @NotNull ItemStack moved) {
+        ItemStack cleanMoved = stripTransferDisplayLore(moved);
+        int remaining = cleanMoved.getAmount();
+        for (int slot = 0; slot < SellScreenView.CONTENT_SLOT_COUNT && remaining > 0; slot++) {
+            ItemStack existing = topInventory.getItem(slot);
+            if (isSellEmptyItem(topInventory, existing)) {
+                continue;
+            }
+            ItemStack cleanExisting = stripTransferDisplayLore(existing);
+            if (!cleanExisting.isSimilar(cleanMoved)) {
+                continue;
+            }
+            int available = Math.max(0, cleanExisting.getMaxStackSize() - cleanExisting.getAmount());
+            if (available <= 0) {
+                continue;
+            }
+            int transfer = Math.min(remaining, available);
+            ItemStack updated = cleanExisting.clone();
+            updated.setAmount(cleanExisting.getAmount() + transfer);
+            topInventory.setItem(slot, updated);
+            remaining -= transfer;
+        }
+        for (int slot = 0; slot < SellScreenView.CONTENT_SLOT_COUNT && remaining > 0; slot++) {
+            ItemStack existing = topInventory.getItem(slot);
+            if (!isSellEmptyItem(topInventory, existing)) {
+                continue;
+            }
+            ItemStack newStack = cleanMoved.clone();
+            int transfer = Math.min(remaining, newStack.getMaxStackSize());
+            newStack.setAmount(transfer);
+            topInventory.setItem(slot, newStack);
+            remaining -= transfer;
+        }
+    }
+
     private @NotNull List<ItemStack> normalizeTrashItems(@NotNull List<ItemStack> items) {
         List<ItemStack> normalized = new java.util.ArrayList<>();
         for (ItemStack itemStack : items) {
             if (isTrashEmptyItem(null, itemStack)) {
                 continue;
             }
-            ItemStack candidate = stripTrashDisplayAmountLore(itemStack);
+            ItemStack candidate = stripTransferDisplayLore(itemStack);
             if (candidate.getMaxStackSize() <= 1) {
                 normalized.add(candidate);
                 continue;
@@ -1338,7 +1746,15 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         return normalized;
     }
 
+    private @NotNull List<ItemStack> normalizeSellItems(@NotNull List<ItemStack> items) {
+        return normalizeTrashItems(items);
+    }
+
     private @NotNull ItemStack stripTrashDisplayAmountLore(@NotNull ItemStack itemStack) {
+        return stripTransferDisplayLore(itemStack);
+    }
+
+    private @NotNull ItemStack stripTransferDisplayLore(@NotNull ItemStack itemStack) {
         ItemStack cleaned = itemStack.clone();
         ItemMeta meta = cleaned.getItemMeta();
         if (meta == null || !meta.hasLore() || meta.lore() == null) {
@@ -1347,7 +1763,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
 
         List<Component> lore = new java.util.ArrayList<>(meta.lore());
         boolean removed = lore.removeIf(line ->
-            PlainTextComponentSerializer.plainText().serialize(line).startsWith(TRASH_AMOUNT_LORE_PREFIX)
+            isTransferDisplayLoreLine(PlainTextComponentSerializer.plainText().serialize(line))
         );
         if (!removed) {
             return cleaned;
@@ -1357,11 +1773,24 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         return cleaned;
     }
 
+    private boolean isTransferDisplayLoreLine(@NotNull String line) {
+        return line.startsWith(BaseMenuScreenView.DISPLAY_AMOUNT_LORE_PREFIX)
+            || line.startsWith(SellScreenView.UNIT_PRICE_LORE_PREFIX)
+            || line.startsWith(SellScreenView.TOTAL_PRICE_LORE_PREFIX);
+    }
+
     private boolean isTrashEmptyItem(@Nullable Inventory inventory, @Nullable ItemStack itemStack) {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return true;
         }
         return isTrashPlaceholderItem(inventory, itemStack);
+    }
+
+    private boolean isSellEmptyItem(@Nullable Inventory inventory, @Nullable ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType() == Material.AIR) {
+            return true;
+        }
+        return isSellPlaceholderItem(inventory, itemStack);
     }
 
     private boolean isTrashPlaceholderItem(@Nullable Inventory inventory, @Nullable ItemStack itemStack) {
@@ -1379,8 +1808,27 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             || menuView.isTrashConfirmContentPlaceholder(itemStack);
     }
 
+    private boolean isSellPlaceholderItem(@Nullable Inventory inventory, @Nullable ItemStack itemStack) {
+        if (itemStack == null) {
+            return false;
+        }
+        MenuScreen screen = inventory == null ? null : menuView.getMenuScreen(inventory);
+        if (screen == MenuScreen.SELL) {
+            return menuView.isSellContentPlaceholder(itemStack);
+        }
+        if (screen == MenuScreen.SELL_CONFIRM) {
+            return menuView.isSellConfirmContentPlaceholder(itemStack);
+        }
+        return menuView.isSellContentPlaceholder(itemStack)
+            || menuView.isSellConfirmContentPlaceholder(itemStack);
+    }
+
     private boolean isTrashContentSlot(int rawSlot) {
         return rawSlot >= 0 && rawSlot < TrashScreenView.CONTENT_SLOT_COUNT;
+    }
+
+    private boolean isSellContentSlot(int rawSlot) {
+        return rawSlot >= 0 && rawSlot < SellScreenView.CONTENT_SLOT_COUNT;
     }
 
     private boolean isTrashControlSlot(int rawSlot) {
@@ -1391,8 +1839,54 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             || rawSlot == MenuView.TRASH_NEXT_SLOT;
     }
 
+    private boolean isSellControlSlot(int rawSlot) {
+        return rawSlot == MenuView.TRASH_PREVIOUS_SLOT
+            || rawSlot == MenuView.TRASH_GUIDE_SLOT
+            || rawSlot == MenuView.BACK_SLOT
+            || rawSlot == MenuView.TRASH_CLOSE_SLOT
+            || rawSlot == MenuView.TRASH_NEXT_SLOT;
+    }
+
+    private boolean isSellableItem(@NotNull ItemStack itemStack) {
+        String itemId = ItemStackFactory.getAstralItemId(stripTransferDisplayLore(itemStack));
+        if (itemId == null || itemId.isBlank()) {
+            return false;
+        }
+        ItemModel model = plugin.getItemService().findLoadedById(itemId);
+        if (model == null) {
+            model = plugin.getItemService().loadItem(itemId);
+        }
+        return model != null && !model.getUnSellable();
+    }
+
+    private long totalSaleValue(@NotNull List<ItemStack> items) {
+        long total = 0L;
+        for (ItemStack itemStack : items) {
+            if (isSellEmptyItem(null, itemStack)) {
+                continue;
+            }
+            String itemId = ItemStackFactory.getAstralItemId(stripTransferDisplayLore(itemStack));
+            if (itemId == null || itemId.isBlank()) {
+                continue;
+            }
+            ItemModel model = plugin.getItemService().findLoadedById(itemId);
+            if (model == null) {
+                model = plugin.getItemService().loadItem(itemId);
+            }
+            if (model == null || model.getUnSellable()) {
+                continue;
+            }
+            total += (long) Math.max(0, model.getSaleValue()) * Math.max(1, itemStack.getAmount());
+        }
+        return total;
+    }
+
     private void discardTrash(@NotNull Player player) {
         trashItemsByPlayer.remove(player.getUniqueId());
+    }
+
+    private void discardSell(@NotNull Player player) {
+        sellItemsByPlayer.remove(player.getUniqueId());
     }
 }
 

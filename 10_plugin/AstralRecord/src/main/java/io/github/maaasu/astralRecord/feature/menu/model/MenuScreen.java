@@ -9,5 +9,8 @@ public enum MenuScreen {
     CURRENCY,
     GUIDE,
     TRASH,
-    TRASH_CONFIRM
+    TRASH_CONFIRM,
+    SELL,
+    SELL_CONFIRM,
+    STORAGE
 }

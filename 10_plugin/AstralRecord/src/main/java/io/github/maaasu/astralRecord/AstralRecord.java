@@ -652,6 +652,10 @@ public final class AstralRecord extends JavaPlugin {
         return itemStackFactory;
     }
 
+    public ItemService getItemService() {
+        return itemService;
+    }
+
     public InventoryService getInventoryService() {
         return inventoryService;
     }

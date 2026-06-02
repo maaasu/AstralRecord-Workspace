@@ -17,6 +17,7 @@ public abstract class BaseMenuScreenView {
     public static final int SIZE = 54;
     public static final int BACK_SLOT = 49;
     public static final int CLOSE_SLOT = 50;
+    public static final String DISPLAY_AMOUNT_LORE_PREFIX = "スタック: ";
 
     protected void fill(@NotNull Inventory inventory) {
         ItemStack border = createItem(Material.BLACK_STAINED_GLASS_PANE, Component.text(" "), List.of());
@@ -79,7 +80,7 @@ public abstract class BaseMenuScreenView {
         List<Component> lore = meta.hasLore() && meta.lore() != null
             ? new ArrayList<>(meta.lore())
             : new ArrayList<>();
-        lore.add(Component.text("スタック: " + displayItem.getAmount(), NamedTextColor.GRAY));
+        lore.add(Component.text(DISPLAY_AMOUNT_LORE_PREFIX + displayItem.getAmount(), NamedTextColor.GRAY));
         meta.lore(lore.stream().map(this::noItalic).toList());
         displayItem.setItemMeta(meta);
         return displayItem;
