@@ -10,17 +10,22 @@ import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
+import net.kyori.adventure.text.Component;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.BooleanSupplier;
+import java.util.function.Function;
 
 public class PlayerHudService {
     private final StatusService statusService;
     private final PlayerClassService playerClassService;
     private final PlayerHudView playerHudView;
     private final Map<UUID, BukkitTask> actionBarOverrideTasks = new HashMap<>();
+    private final Map<UUID, Function<AstPlayer, Component>> primaryActionBarRenderers = new HashMap<>();
     private AstralRecord plugin;
     private BukkitTask task;
 
@@ -91,7 +96,43 @@ public class PlayerHudService {
         cancelActionBarOverrideTask(astPlayer.getBukkit().getUniqueId());
         astPlayer.setSneakDodgeWindowExpiresAtMs(0L);
         astPlayer.setWallClingExpiresAtMs(0L);
-        renderStatusActionBar(astPlayer);
+        refreshActionBar(astPlayer);
+    }
+
+    /**
+     * プレイヤー固有の ActionBar 描画関数を設定します。
+     *
+     * @param playerId プレイヤー UUID
+     * @param renderer 通常 HUD の代わりに使う描画関数
+     */
+    public void setPrimaryActionBarRenderer(@NotNull UUID playerId, @NotNull Function<AstPlayer, Component> renderer) {
+        primaryActionBarRenderers.put(playerId, renderer);
+    }
+
+    /**
+     * プレイヤー固有の ActionBar 描画関数を解除します。
+     *
+     * @param playerId プレイヤー UUID
+     */
+    public void clearPrimaryActionBarRenderer(@NotNull UUID playerId) {
+        primaryActionBarRenderers.remove(playerId);
+    }
+
+    /**
+     * 現在の状態に応じた ActionBar を即時再描画します。
+     *
+     * @param astPlayer 対象プレイヤー
+     */
+    public void refreshActionBar(@NotNull AstPlayer astPlayer) {
+        if (isWallClingActive(astPlayer)) {
+            renderWallClingWindow(astPlayer);
+            return;
+        }
+        if (isDodgeWindowActive(astPlayer)) {
+            renderDodgeWindow(astPlayer);
+            return;
+        }
+        renderPrimaryActionBar(astPlayer, statusService.getStatus(astPlayer));
     }
 
     private void updateAll() {
@@ -109,7 +150,7 @@ public class PlayerHudService {
                 } else if (isDodgeWindowActive(astPlayer)) {
                     renderDodgeWindow(astPlayer);
                 } else {
-                    playerHudView.renderActionBar(player, snapshot);
+                    renderPrimaryActionBar(astPlayer, snapshot);
                 }
                 String className = playerClassService.getDisplayName(astPlayer.getClassId());
                 playerHudView.renderSidebar(
@@ -131,7 +172,7 @@ public class PlayerHudService {
         if (!player.isOnline() || !astPlayer.getAccount().getMode().shouldProcessGameplay()) {
             return;
         }
-        playerHudView.renderActionBar(player, statusService.getStatus(astPlayer));
+        renderPrimaryActionBar(astPlayer, statusService.getStatus(astPlayer));
     }
 
     private void renderDodgeWindow(AstPlayer astPlayer) {
@@ -168,7 +209,7 @@ public class PlayerHudService {
         BukkitTask actionBarOverrideTask = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
             if (!activeChecker.getAsBoolean()) {
                 cancelActionBarOverrideTask(astPlayer.getBukkit().getUniqueId());
-                renderStatusActionBar(astPlayer);
+                refreshActionBar(astPlayer);
                 return;
             }
             renderer.run();
@@ -181,5 +222,23 @@ public class PlayerHudService {
         if (task != null) {
             task.cancel();
         }
+    }
+
+    private void renderPrimaryActionBar(@NotNull AstPlayer astPlayer, @NotNull StatusSnapshot snapshot) {
+        Player player = astPlayer.getBukkit();
+        if (!player.isOnline() || !astPlayer.getAccount().getMode().shouldProcessGameplay()) {
+            return;
+        }
+        Component override = resolvePrimaryActionBar(astPlayer);
+        if (override != null) {
+            player.sendActionBar(override);
+            return;
+        }
+        playerHudView.renderActionBar(player, snapshot);
+    }
+
+    private @Nullable Component resolvePrimaryActionBar(@NotNull AstPlayer astPlayer) {
+        Function<AstPlayer, Component> renderer = primaryActionBarRenderers.get(astPlayer.getBukkit().getUniqueId());
+        return renderer == null ? null : renderer.apply(astPlayer);
     }
 }

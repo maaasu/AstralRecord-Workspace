@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.skilltree.service;
 
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
@@ -26,6 +27,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -48,12 +50,14 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * スキルツリーのマスタ、構造、プレイヤー状態を統合して扱うサービスです。
- */
+ * 郢ｧ・ｹ郢ｧ・ｭ郢晢ｽｫ郢昴・ﾎ懃ｹ晢ｽｼ邵ｺ・ｮ郢晄ｧｭ縺帷ｹｧ・ｿ邵ｲ竏ｵ・ｧ遏ｩﾂ・ｰ邵ｲ竏壹・郢晢ｽｬ郢ｧ・､郢晢ｽ､郢晢ｽｼ霑･・ｶ隲ｷ荵晢ｽ帝お・ｱ陷ｷ蛹ｻ・邵ｺ・ｦ隰・ｽｱ邵ｺ繝ｻ縺礼ｹ晢ｽｼ郢晁侭縺帷ｸｺ・ｧ邵ｺ蜷ｶﾂ繝ｻ */
 public class SkillTreeService {
     public static final String SKILL_TREE_WORLD_ID = "skill_tree";
     public static final long RELOCK_GOLD_COST = 100L;
 
+    private static final int HOTBAR_TARGET_SLOT = 0;
+    private static final int HOTBAR_ACTION_BAR_TOGGLE_SLOT = 7;
+    private static final int HOTBAR_RETURN_SLOT = 8;
     private static final double TARGET_DISTANCE = 8.0D;
     private static final double TARGET_RADIUS_SQ = 0.9D * 0.9D;
     private static final long SAVE_INTERVAL_TICKS = 20L * 60L;
@@ -61,6 +65,7 @@ public class SkillTreeService {
     private final Plugin plugin;
     private final WorldService worldService;
     private InventoryService inventoryService;
+    private PlayerHudService playerHudService;
     private final SkillTreeNodeRepository nodeRepository;
     private final SkillTreeStructureRepository structureRepository;
     private final SkillTreePlayerStateRepository playerStateRepository;
@@ -75,6 +80,7 @@ public class SkillTreeService {
     private final Map<UUID, String> connectorLeftSelections = new HashMap<>();
     private final Map<UUID, ItemStack[]> savedHotbars = new HashMap<>();
     private final Map<UUID, Location> returnLocations = new HashMap<>();
+    private final Map<UUID, SkillTreeActionBarMode> actionBarModes = new HashMap<>();
 
     private BukkitTask saveTask;
     private BukkitTask hotbarTask;
@@ -101,6 +107,14 @@ public class SkillTreeService {
 
     public void setInventoryService(@NotNull InventoryService inventoryService) {
         this.inventoryService = inventoryService;
+    }
+
+    /**
+     * 郢ｧ・ｹ郢ｧ・ｭ郢晢ｽｫ郢昴・ﾎ懃ｹ晢ｽｼ騾包ｽｨ HUD 鬨ｾ・｣隰ｳ・ｺ郢ｧ・ｵ郢晢ｽｼ郢晁侭縺帷ｹｧ螳夲ｽｨ・ｭ陞ｳ螢ｹ・邵ｺ・ｾ邵ｺ蜷ｶﾂ繝ｻ     *
+     * @param playerHudService 郢晏干ﾎ樒ｹｧ・､郢晢ｽ､郢晢ｽｼ HUD 郢ｧ・ｵ郢晢ｽｼ郢晁侭縺・
+     */
+    public void setPlayerHudService(@NotNull PlayerHudService playerHudService) {
+        this.playerHudService = playerHudService;
     }
 
     public int loadAll() {
@@ -234,22 +248,27 @@ public class SkillTreeService {
         ItemStack itemStack = new ItemStack(Material.ARMOR_STAND, Math.max(1, amount));
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(component("&dスキルノードポジション設定&7[&f" + positionId + "&7]"));
-            meta.lore(List.of(component("&7右クリックで設置 / 左クリックで削除"), component("&7positionId: &f" + positionId)));
+            meta.displayName(component("&dSkillTree Position [&f" + positionId + "&d]"));
+            meta.lore(List.of(
+                    component("&7Right click block: register / Left click: remove"),
+                    component("&7positionId: &f" + positionId)
+            ));
             meta.addItemFlags(ItemFlag.values());
             meta.getPersistentDataContainer().set(positionItemKey, PersistentDataType.STRING, positionId);
             itemStack.setItemMeta(meta);
         }
         return itemStack;
     }
-
     @NotNull
     public ItemStack createConnectorItem(int amount) {
         ItemStack itemStack = new ItemStack(Material.LEAD, Math.max(1, amount));
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(component("&bスキルノード接続"));
-            meta.lore(List.of(component("&7左クリックでノード1"), component("&7右クリックでノード2を選択して接続/解除")));
+            meta.displayName(component("&bSkillTree Connector"));
+            meta.lore(List.of(
+                    component("&7Left click: select left node"),
+                    component("&7Right click: toggle connection with targeted node")
+            ));
             meta.addItemFlags(ItemFlag.values());
             meta.getPersistentDataContainer().set(connectorItemKey, PersistentDataType.BOOLEAN, true);
             itemStack.setItemMeta(meta);
@@ -342,6 +361,15 @@ public class SkillTreeService {
     }
 
     @NotNull
+    public Collection<String> getDefinedPositionIds() {
+        return List.copyOf(nodesByPositionId.keySet());
+    }
+
+    public boolean hasDefinedPosition(@NotNull String positionId) {
+        return nodesByPositionId.containsKey(positionId);
+    }
+
+    @NotNull
     public SkillTreePlayerState state(@NotNull AstPlayer astPlayer) {
         UUID accountId = astPlayer.getAccount().getUuid();
         return playerStates.computeIfAbsent(accountId, playerStateRepository::load);
@@ -410,29 +438,32 @@ public class SkillTreeService {
             return;
         }
         savedHotbars.computeIfAbsent(player.getUniqueId(), ignored -> player.getInventory().getContents().clone());
-        renderSkillTreeHotbar(player);
+        registerSkillTreeHud(player);
+        if (shouldUseSkillTreeHotbar(player)) {
+            renderSkillTreeHotbar(player);
+        }
     }
 
     public void renderSkillTreeHotbar(@NotNull Player player) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null || !isPlayerModeSkillTree(player)) {
+        if (astPlayer == null || !shouldUseSkillTreeHotbar(player)) {
             return;
         }
-        player.getInventory().setHeldItemSlot(0);
+        player.getInventory().setHeldItemSlot(HOTBAR_TARGET_SLOT);
         Optional<SkillTreeNodeDefinition> targeted = findTargetedNode(player);
-        player.getInventory().setItem(0, targeted.map(node -> createNodeHotbarItem(astPlayer, node)).orElseGet(this::createEmptyTargetItem));
-        for (int slot = 1; slot <= 7; slot++) {
+        player.getInventory().setItem(HOTBAR_TARGET_SLOT, targeted.map(node -> createNodeHotbarItem(astPlayer, node)).orElseGet(this::createEmptyTargetItem));
+        for (int slot = 1; slot < HOTBAR_ACTION_BAR_TOGGLE_SLOT; slot++) {
             player.getInventory().setItem(slot, createDummyItem());
         }
-        player.getInventory().setItem(8, createReturnItem());
+        player.getInventory().setItem(HOTBAR_ACTION_BAR_TOGGLE_SLOT, createActionBarToggleItem(player));
+        player.getInventory().setItem(HOTBAR_RETURN_SLOT, createReturnItem());
     }
 
     private void tickPlayerHotbars() {
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (isPlayerModeSkillTree(player)) {
-                renderSkillTreeHotbar(player);
-                player.sendActionBar(PlayerMsgResource.formatComponent(PlayerMsgId.P_5833.getId()));
-            } else if (savedHotbars.containsKey(player.getUniqueId())) {
+                applySkillTreeHotbar(player);
+            } else if (savedHotbars.containsKey(player.getUniqueId()) || actionBarModes.containsKey(player.getUniqueId())) {
                 restoreHotbar(player);
             }
         }
@@ -440,12 +471,54 @@ public class SkillTreeService {
 
     public void restoreHotbar(@NotNull Player player) {
         ItemStack[] saved = savedHotbars.remove(player.getUniqueId());
+        actionBarModes.remove(player.getUniqueId());
+        if (playerHudService != null) {
+            playerHudService.clearPrimaryActionBarRenderer(player.getUniqueId());
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer != null) {
+                playerHudService.refreshActionBar(astPlayer);
+            }
+        }
         if (saved == null) {
             return;
         }
         for (int slot = 0; slot < 9; slot++) {
             player.getInventory().setItem(slot, saved[slot]);
         }
+    }
+
+    /**
+     * 郢ｧ・ｹ郢ｧ・ｭ郢晢ｽｫ郢昴・ﾎ懃ｹ晢ｽｼ陝・ｉ逡・HOTBAR 郢ｧ雋樞煤陷磯メ・｡・ｨ驕会ｽｺ郢晢ｽｻ隰ｫ蝣ｺ・ｽ諛岩・邵ｺ・ｹ邵ｺ蜥ｲ諞ｾ隲ｷ荵敖ｰ陋ｻ・､陞ｳ螢ｹ・邵ｺ・ｾ邵ｺ蜷ｶﾂ繝ｻ     *
+     * @param player 陝・ｽｾ髮趣ｽ｡郢晏干ﾎ樒ｹｧ・､郢晢ｽ､郢晢ｽｼ
+     * @return 郢ｧ・ｹ郢ｧ・ｭ郢晢ｽｫ郢昴・ﾎ懃ｹ晢ｽｼ陝・ｉ逡・HOTBAR 郢ｧ蜑・ｽｽ・ｿ邵ｺ繝ｻ・ｰ・ｴ陷ｷ繝ｻtrue
+     */
+    public boolean shouldUseSkillTreeHotbar(@NotNull Player player) {
+        return isPlayerModeSkillTree(player) && !hasInteractiveGuiOpen(player);
+    }
+
+    /**
+     * 郢ｧ・ｹ郢ｧ・ｭ郢晢ｽｫ郢昴・ﾎ懃ｹ晢ｽｼ陝・ｉ逡・HOTBAR 邵ｺ・ｮ陋ｻ・ｶ陟包ｽ｡郢ｧ・ｹ郢晢ｽｭ郢昴・繝ｨ郢ｧ雋槭・騾・・・邵ｺ・ｾ邵ｺ蜷ｶﾂ繝ｻ     *
+     * @param player 陝・ｽｾ髮趣ｽ｡郢晏干ﾎ樒ｹｧ・､郢晢ｽ､郢晢ｽｼ
+     * @param slot HOTBAR 郢ｧ・ｹ郢晢ｽｭ郢昴・繝ｨ騾｡・ｪ陷ｿ・ｷ
+     * @return 陋ｻ・ｶ陟包ｽ｡郢ｧ・ｹ郢晢ｽｭ郢昴・繝ｨ邵ｺ・ｨ邵ｺ蜉ｱ窶ｻ陷・ｽｦ騾・・・邵ｺ貅ｷ・ｰ・ｴ陷ｷ繝ｻtrue
+     */
+    public boolean handleSkillTreeHotbarControl(@NotNull Player player, int slot) {
+        if (!shouldUseSkillTreeHotbar(player)) {
+            return false;
+        }
+        if (slot == HOTBAR_ACTION_BAR_TOGGLE_SLOT) {
+            toggleActionBarMode(player);
+            return true;
+        }
+        if (slot == HOTBAR_RETURN_SLOT) {
+            returnToBase(player).thenAccept(success -> {
+                if (!success) {
+                    player.sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5820.getId()));
+                }
+            });
+            return true;
+        }
+        return false;
     }
 
     @NotNull
@@ -522,7 +595,9 @@ public class SkillTreeService {
             lore.add(component("&8ID: &f" + node.id()));
             lore.add(component("&8Position: &f" + node.positionId()));
             lore.add(component("&8SkillPoint: &f" + state.skillPoints()));
-            lore.add(component(unlocked ? "&6解放済み" : "&7未解放"));
+            lore.add(component(unlocked ? "&6Unlocked" : "&7Locked"));
+            lore.add(component("&eLeft click&7: unlock node"));
+            lore.add(component("&eRight click&7: relock node (&f100G&7)"));
             if (!node.lore().isEmpty()) {
                 lore.add(component(""));
                 node.lore().forEach(line -> lore.add(component("&7" + line)));
@@ -538,7 +613,12 @@ public class SkillTreeService {
         ItemStack itemStack = new ItemStack(Material.GRAY_DYE);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(component("&7視線先にスキルノードがありません"));
+            meta.displayName(component("&7No skill node targeted"));
+            meta.lore(List.of(
+                    component("&7Look at a node to inspect it"),
+                    component("&eslot7 &7: toggle ActionBar"),
+                    component("&cslot8 &7: return to base")
+            ));
             meta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(meta);
         }
@@ -562,16 +642,83 @@ public class SkillTreeService {
         ItemStack itemStack = new ItemStack(Material.RED_BED);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(component("&c拠点に戻る"));
-            meta.lore(List.of(component("&7スキルツリーから退出します")));
+            meta.displayName(component("&cReturn to Base"));
+            meta.lore(List.of(component("&7Leave the skill tree world")));
             meta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(meta);
         }
         return itemStack;
     }
+    @NotNull
+    private ItemStack createActionBarToggleItem(@NotNull Player player) {
+        SkillTreeActionBarMode mode = actionBarModes.getOrDefault(player.getUniqueId(), SkillTreeActionBarMode.RESOURCE_STATUS);
+        boolean resourceStatus = mode == SkillTreeActionBarMode.RESOURCE_STATUS;
+        ItemStack itemStack = new ItemStack(resourceStatus ? Material.COMPASS : Material.WRITABLE_BOOK);
+        ItemMeta meta = itemStack.getItemMeta();
+        if (meta != null) {
+            meta.displayName(component(resourceStatus
+                    ? "&bActionBar: &fResource HUD"
+                    : "&bActionBar: &fNode Guide"));
+            meta.lore(List.of(
+                    component("&7Select slot to toggle"),
+                    component(resourceStatus ? "&8Current: &fHP / MP / ENG" : "&8Current: &fNode Guide")
+            ));
+            meta.addItemFlags(ItemFlag.values());
+            itemStack.setItemMeta(meta);
+        }
+        return itemStack;
+    }
+    private void registerSkillTreeHud(@NotNull Player player) {
+        actionBarModes.putIfAbsent(player.getUniqueId(), SkillTreeActionBarMode.RESOURCE_STATUS);
+        if (playerHudService == null) {
+            return;
+        }
+        playerHudService.setPrimaryActionBarRenderer(player.getUniqueId(), this::resolveSkillTreeActionBar);
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer != null) {
+            playerHudService.refreshActionBar(astPlayer);
+        }
+    }
+
+    private @Nullable Component resolveSkillTreeActionBar(@NotNull AstPlayer astPlayer) {
+        if (!isPlayerModeSkillTree(astPlayer.getBukkit())) {
+            return null;
+        }
+        SkillTreeActionBarMode mode = actionBarModes.getOrDefault(astPlayer.getBukkit().getUniqueId(), SkillTreeActionBarMode.RESOURCE_STATUS);
+        return mode == SkillTreeActionBarMode.NODE_GUIDE
+                ? PlayerMsgResource.formatComponent(PlayerMsgId.P_5833.getId())
+                : null;
+    }
+
+    private void toggleActionBarMode(@NotNull Player player) {
+        UUID playerId = player.getUniqueId();
+        SkillTreeActionBarMode next = actionBarModes.getOrDefault(playerId, SkillTreeActionBarMode.RESOURCE_STATUS).toggle();
+        actionBarModes.put(playerId, next);
+        renderSkillTreeHotbar(player);
+        if (playerHudService != null) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer != null) {
+                playerHudService.refreshActionBar(astPlayer);
+            }
+        }
+    }
+
+    private boolean hasInteractiveGuiOpen(@NotNull Player player) {
+        InventoryType topType = player.getOpenInventory().getTopInventory().getType();
+        return topType != InventoryType.CRAFTING && topType != InventoryType.CREATIVE;
+    }
 
     @NotNull
     private Component component(@NotNull String text) {
         return LegacyComponentSerializer.legacySection().deserialize(ColorCodeUtil.translateAlternateColorCodes(text));
+    }
+
+    private enum SkillTreeActionBarMode {
+        RESOURCE_STATUS,
+        NODE_GUIDE;
+
+        private @NotNull SkillTreeActionBarMode toggle() {
+            return this == RESOURCE_STATUS ? NODE_GUIDE : RESOURCE_STATUS;
+        }
     }
 }

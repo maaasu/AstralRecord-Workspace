@@ -68,18 +68,10 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
         if (!service.isPlayerModeSkillTree(event.getPlayer())) {
             return;
         }
-        Action action = event.getAction();
-        if (action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK) {
-            if (event.getPlayer().getInventory().getHeldItemSlot() == 8) {
-                event.setCancelled(true);
-                service.returnToBase(event.getPlayer()).thenAccept(success -> {
-                    if (!success) {
-                        event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5820.getId()));
-                    }
-                });
-                return;
-            }
+        if (!service.shouldUseSkillTreeHotbar(event.getPlayer())) {
+            return;
         }
+        Action action = event.getAction();
         if (action != Action.LEFT_CLICK_AIR && action != Action.LEFT_CLICK_BLOCK
                 && action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) {
             return;
@@ -130,9 +122,14 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
         if (!service.isPlayerModeSkillTree(event.getPlayer())) {
             return;
         }
+        if (!service.shouldUseSkillTreeHotbar(event.getPlayer())) {
+            return;
+        }
         if (event.getNewSlot() != 0) {
             event.setCancelled(true);
-            event.getPlayer().getInventory().setHeldItemSlot(0);
+            if (!service.handleSkillTreeHotbarControl(event.getPlayer(), event.getNewSlot())) {
+                event.getPlayer().getInventory().setHeldItemSlot(0);
+            }
         }
     }
 
@@ -144,15 +141,12 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
         if (!service.isPlayerModeSkillTree(player)) {
             return;
         }
+        if (!service.shouldUseSkillTreeHotbar(player)) {
+            return;
+        }
         if (event.getClickedInventory() == player.getInventory() && event.getSlot() >= 0 && event.getSlot() <= 8) {
             event.setCancelled(true);
-            if (event.getSlot() == 8) {
-                service.returnToBase(player).thenAccept(success -> {
-                    if (!success) {
-                        player.sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5820.getId()));
-                    }
-                });
-            }
+            service.handleSkillTreeHotbarControl(player, event.getSlot());
         }
     }
 
