@@ -19,16 +19,17 @@ import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;
 import io.github.maaasu.astralRecord.feature.menu.player.PlayerBrowserGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
-import io.github.maaasu.astralRecord.feature.menu.view.screen.SellScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.TrashScreenView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.gui.PlayerSettingGui;
+import io.github.maaasu.astralRecord.feature.sell.view.SellScreenView;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewEntry;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewOptions;
+import io.github.maaasu.astralRecord.feature.storage.view.StorageScreenView;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
@@ -1834,7 +1835,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     private int normalizeStoragePage(int pageIndex, int itemCount) {
         int totalPages = Math.max(
             1,
-            (int) Math.ceil(itemCount / (double) io.github.maaasu.astralRecord.feature.menu.view.screen.StorageScreenView.CONTENT_SLOT_COUNT)
+            (int) Math.ceil(itemCount / (double) StorageScreenView.CONTENT_SLOT_COUNT)
         );
         return Math.max(0, Math.min(pageIndex, totalPages - 1));
     }
@@ -2058,7 +2059,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     }
 
     private boolean isStorageContentSlot(int rawSlot) {
-        return rawSlot >= 0 && rawSlot < io.github.maaasu.astralRecord.feature.menu.view.screen.StorageScreenView.CONTENT_SLOT_COUNT;
+        return rawSlot >= 0 && rawSlot < StorageScreenView.CONTENT_SLOT_COUNT;
     }
 
     private boolean isTrashControlSlot(int rawSlot) {

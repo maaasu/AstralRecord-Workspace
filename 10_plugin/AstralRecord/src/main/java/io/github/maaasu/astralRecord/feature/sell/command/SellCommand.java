@@ -1,8 +1,8 @@
-package io.github.maaasu.astralRecord.feature.menu.command;
+package io.github.maaasu.astralRecord.feature.sell.command;
 
 import io.github.maaasu.astralRecord.AstralRecord;
-import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.sell.service.SellService;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.jetbrains.annotations.NotNull;
@@ -17,7 +17,9 @@ public final class SellCommand extends AstCommand {
 
     @Override
     protected void executePlayerCommand(@NotNull AstPlayer player, @NotNull String[] args) {
-        MenuView menuView = AstralRecord.getInstance().getMenuView();
-        menuView.openSell(player.getBukkit(), java.util.List.of(), 0);
+        SellService sellService = AstralRecord.getInstance().getSellService();
+        if (sellService != null) {
+            sellService.open(player.getBukkit());
+        }
     }
 }

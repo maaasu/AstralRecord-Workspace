@@ -85,6 +85,7 @@ import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSetting
 import io.github.maaasu.astralRecord.feature.resourcepack.event.ResourcePackJoinEventHandler;
 import io.github.maaasu.astralRecord.feature.resourcepack.event.ResourcePackStatusEventHandler;
 import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
+import io.github.maaasu.astralRecord.feature.sell.service.SellService;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillActionRingEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillBindGuiEventHandler;
@@ -108,6 +109,7 @@ import io.github.maaasu.astralRecord.feature.shop.repository.ShopRepository;
 import io.github.maaasu.astralRecord.feature.shop.service.ShopService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusRegenTask;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
+import io.github.maaasu.astralRecord.feature.storage.service.StorageService;
 import io.github.maaasu.astralRecord.feature.status.event.PlayerHeldItemStatusEventHandler;
 import io.github.maaasu.astralRecord.feature.user.event.UserLoginEventHandler;
 import io.github.maaasu.astralRecord.feature.user.repository.UserRepository;
@@ -159,6 +161,8 @@ public final class AstralRecord extends JavaPlugin {
     private ResourcePackService resourcePackService;
     private MenuView menuView;
     private MenuOpenEventHandler menuOpenEventHandler;
+    private SellService sellService;
+    private StorageService storageService;
     private PlayerListGui playerListGui;
     private PlayerDetailGui playerDetailGui;
     private PlayerBrowserGuiEventHandler playerBrowserGuiEventHandler;
@@ -448,6 +452,7 @@ public final class AstralRecord extends JavaPlugin {
 
         // menu
         menuView = new MenuView(this);
+        sellService = new SellService(menuView);
         playerListGui = new PlayerListGui();
         playerDetailGui = new PlayerDetailGui();
         pagingDebugGui = new PagingDebugGui();
@@ -551,6 +556,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         menuOpenEventHandler = new MenuOpenEventHandler(this, menuView, inventoryService, currencyService, statusService);
+        storageService = new StorageService(menuOpenEventHandler);
         eventManager.registerHandler(menuOpenEventHandler, getServer().getPluginManager());
         mailGuiEventHandler = new MailGuiEventHandler(new MailGuiView(this, itemService), mailService, menuView, inventoryService);
         eventManager.registerHandler(
@@ -722,6 +728,14 @@ public final class AstralRecord extends JavaPlugin {
 
     public MenuOpenEventHandler getMenuOpenEventHandler() {
         return menuOpenEventHandler;
+    }
+
+    public SellService getSellService() {
+        return sellService;
+    }
+
+    public StorageService getStorageService() {
+        return storageService;
     }
 
     public PlayerListGui getPlayerListGui() {

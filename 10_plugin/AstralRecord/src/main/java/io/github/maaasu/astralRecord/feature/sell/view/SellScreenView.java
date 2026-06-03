@@ -1,8 +1,9 @@
-package io.github.maaasu.astralRecord.feature.menu.view.screen;
+package io.github.maaasu.astralRecord.feature.sell.view;
 
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
@@ -18,11 +19,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class SellScreenView extends BaseMenuScreenView {
-    public static final int CONTENT_SLOT_COUNT = TrashScreenView.CONTENT_SLOT_COUNT;
-    public static final int PREVIOUS_SLOT = TrashScreenView.PREVIOUS_SLOT;
-    public static final int GUIDE_SLOT = TrashScreenView.GUIDE_SLOT;
-    public static final int NEXT_SLOT = TrashScreenView.NEXT_SLOT;
-    public static final int CLOSE_SLOT = TrashScreenView.CLOSE_SLOT;
+    public static final int CONTENT_SLOT_COUNT = 45;
+    public static final int PREVIOUS_SLOT = 45;
+    public static final int GUIDE_SLOT = 46;
+    public static final int NEXT_SLOT = 52;
+    public static final int CLOSE_SLOT = 53;
     public static final String UNIT_PRICE_LORE_PREFIX = "売値: ";
     public static final String TOTAL_PRICE_LORE_PREFIX = "合計売値: ";
 

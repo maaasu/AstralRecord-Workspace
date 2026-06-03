@@ -1,7 +1,8 @@
-package io.github.maaasu.astralRecord.feature.menu.view.screen;
+package io.github.maaasu.astralRecord.feature.storage.view;
 
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewEntry;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewOptions;
+import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
