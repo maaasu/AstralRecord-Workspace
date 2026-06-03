@@ -1,20 +1,17 @@
-package io.github.maaasu.astralRecord.feature.sell.service;
+package io.github.maaasu.astralRecord.feature.menu.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
-import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
 import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
-import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
-import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
+import io.github.maaasu.astralRecord.feature.menu.view.screen.TrashScreenView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
-import io.github.maaasu.astralRecord.feature.sell.view.SellScreenView;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -37,27 +34,27 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 売却 GUI の状態管理とイベント処理を担当するサービスです。
+ * ゴミ箱 GUI の状態管理とイベント処理を担当するサービスです。
  */
-public final class SellService {
+public final class TrashService {
     private final AstralRecord plugin;
     private final MenuView menuView;
     private final InventoryService inventoryService;
     private final MenuGuiTransitionService menuGuiTransitionService;
     private final ItemReferenceResolver transferItemResolver;
-    private final ConcurrentHashMap<UUID, List<ItemStack>> sellItemsByPlayer = new ConcurrentHashMap<>();
-    private final Set<UUID> suppressSellConfirmOnClose = ConcurrentHashMap.newKeySet();
-    private final Set<UUID> suppressSellConfirmRestoreOnClose = ConcurrentHashMap.newKeySet();
+    private final ConcurrentHashMap<UUID, List<ItemStack>> trashItemsByPlayer = new ConcurrentHashMap<>();
+    private final Set<UUID> suppressTrashConfirmOnClose = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> suppressTrashConfirmRestoreOnClose = ConcurrentHashMap.newKeySet();
 
     /**
-     * 売却 GUI サービスを初期化します。
+     * ゴミ箱 GUI サービスを初期化します。
      *
      * @param plugin プラグイン本体
      * @param menuView メニュー GUI 表示
      * @param inventoryService インベントリサービス
      * @param menuGuiTransitionService GUI 切替サービス
      */
-    public SellService(
+    public TrashService(
         @NotNull AstralRecord plugin,
         @NotNull MenuView menuView,
         @NotNull InventoryService inventoryService,
@@ -71,7 +68,7 @@ public final class SellService {
     }
 
     /**
-     * 空の売却 GUI を開きます。
+     * 空のゴミ箱 GUI を開きます。
      *
      * @param player 対象プレイヤー
      */
@@ -80,7 +77,7 @@ public final class SellService {
     }
 
     /**
-     * 現在保持している売却内容で指定ページを開きます。
+     * 現在保持しているゴミ箱内容で指定ページを開きます。
      *
      * @param player 対象プレイヤー
      * @param pageIndex 表示ページ
@@ -90,32 +87,32 @@ public final class SellService {
     }
 
     /**
-     * 現在保持している売却内容で指定ページを開きます。
+     * 現在保持しているゴミ箱内容で指定ページを開きます。
      *
      * @param player 対象プレイヤー
      * @param pageIndex 表示ページ
      * @param restoreAfterOpen GUI 表示後にプレイヤーインベントリを復元する場合は true
      */
     public void open(@NotNull Player player, int pageIndex, boolean restoreAfterOpen) {
-        List<ItemStack> normalized = normalizeSellItems(
-            sellItemsByPlayer.getOrDefault(player.getUniqueId(), List.of())
+        List<ItemStack> normalized = normalizeTrashItems(
+            trashItemsByPlayer.getOrDefault(player.getUniqueId(), List.of())
         );
         openInternal(player, normalized, pageIndex, restoreAfterOpen);
     }
 
     /**
-     * 指定アイテム内容で売却 GUI を開きます。
+     * 指定アイテム内容でゴミ箱 GUI を開きます。
      *
      * @param player 対象プレイヤー
-     * @param sellItems 表示するアイテム一覧
+     * @param trashItems 表示するアイテム一覧
      * @param pageIndex 表示ページ
      */
-    public void open(@NotNull Player player, @NotNull List<ItemStack> sellItems, int pageIndex) {
-        openInternal(player, normalizeSellItems(sellItems), pageIndex, false);
+    public void open(@NotNull Player player, @NotNull List<ItemStack> trashItems, int pageIndex) {
+        openInternal(player, normalizeTrashItems(trashItems), pageIndex, false);
     }
 
     /**
-     * 売却 GUI のクリックイベントを処理します。
+     * ゴミ箱 GUI のクリックイベントを処理します。
      *
      * @param event クリックイベント
      */
@@ -124,24 +121,24 @@ public final class SellService {
             return;
         }
         MenuScreen screen = menuView.getMenuScreen(event.getView().getTopInventory());
-        if (screen == MenuScreen.SELL) {
-            handleSellClick(event, player);
+        if (screen == MenuScreen.TRASH) {
+            handleTrashClick(event, player);
             return;
         }
-        if (screen == MenuScreen.SELL_CONFIRM) {
-            handleSellConfirmClick(event, player);
+        if (screen == MenuScreen.TRASH_CONFIRM) {
+            handleTrashConfirmClick(event, player);
         }
     }
 
     /**
-     * 売却 GUI のドラッグイベントを処理します。
+     * ゴミ箱 GUI のドラッグイベントを処理します。
      *
      * @param event ドラッグイベント
      */
     public void handleDrag(@NotNull InventoryDragEvent event) {
         MenuScreen screen = menuView.getMenuScreen(event.getView().getTopInventory());
-        if (screen == MenuScreen.SELL) {
-            if (event.getRawSlots().stream().anyMatch(this::isSellControlSlot)) {
+        if (screen == MenuScreen.TRASH) {
+            if (event.getRawSlots().stream().anyMatch(this::isTrashControlSlot)) {
                 event.setCancelled(true);
                 if (event.getWhoClicked() instanceof Player player) {
                     GuiSound.DENY.play(player);
@@ -149,7 +146,7 @@ public final class SellService {
             }
             return;
         }
-        if (screen == MenuScreen.SELL_CONFIRM) {
+        if (screen == MenuScreen.TRASH_CONFIRM) {
             event.setCancelled(true);
             if (event.getWhoClicked() instanceof Player player) {
                 GuiSound.DENY.play(player);
@@ -158,7 +155,7 @@ public final class SellService {
     }
 
     /**
-     * 売却 GUI クローズ時の後処理を行います。
+     * ゴミ箱 GUI クローズ時の後処理を行います。
      *
      * @param inventory 閉じられたインベントリ
      * @param player 対象プレイヤー
@@ -169,23 +166,23 @@ public final class SellService {
             return;
         }
         UUID playerId = player.getUniqueId();
-        if (screen == MenuScreen.SELL) {
-            if (suppressSellConfirmOnClose.remove(playerId)) {
-                List<ItemStack> items = snapshotSellItems(inventory);
-                sellItemsByPlayer.put(playerId, items);
+        if (screen == MenuScreen.TRASH) {
+            if (suppressTrashConfirmOnClose.remove(playerId)) {
+                List<ItemStack> items = snapshotTrashItems(inventory);
+                trashItemsByPlayer.put(playerId, items);
                 return;
             }
-            List<ItemStack> allItems = collectAllSellItems(inventory, playerId);
-            boolean returned = returnSellItemsToInventory(player, allItems);
+            List<ItemStack> allItems = collectAllTrashItems(inventory, playerId);
+            boolean returned = returnTrashItemsToInventory(player, allItems);
             discard(player);
             if (returned) {
-                notifySellReturned(player, allItems);
+                notifyTrashReturned(player, allItems);
             }
             return;
         }
-        if (screen == MenuScreen.SELL_CONFIRM) {
-            if (suppressSellConfirmOnClose.remove(playerId)) {
-                if (!suppressSellConfirmRestoreOnClose.remove(playerId)) {
+        if (screen == MenuScreen.TRASH_CONFIRM) {
+            if (suppressTrashConfirmOnClose.remove(playerId)) {
+                if (!suppressTrashConfirmRestoreOnClose.remove(playerId)) {
                     menuGuiTransitionService.restorePlayerInventory(player);
                 }
                 return;
@@ -200,62 +197,63 @@ public final class SellService {
 
     private void openInternal(
         @NotNull Player player,
-        @NotNull List<ItemStack> sellItems,
+        @NotNull List<ItemStack> trashItems,
         int pageIndex,
         boolean restoreAfterOpen
     ) {
-        sellItemsByPlayer.put(player.getUniqueId(), sellItems);
+        trashItemsByPlayer.put(player.getUniqueId(), trashItems);
         if (restoreAfterOpen) {
             menuGuiTransitionService.switchGuiWithInventoryRestore(
                 player,
-                () -> menuView.openSell(player, sellItems, pageIndex)
+                () -> menuView.openTrash(player, trashItems, pageIndex)
             );
             return;
         }
-        menuView.openSell(player, sellItems, pageIndex);
+        menuView.openTrash(player, trashItems, pageIndex);
     }
 
-    private void openSellConfirm(@NotNull Player player, @NotNull List<ItemStack> currentItems, int pageIndex) {
-        List<ItemStack> normalized = normalizeSellItems(currentItems);
+    private void openTrashConfirm(@NotNull Player player, @NotNull List<ItemStack> currentItems, int pageIndex) {
+        List<ItemStack> normalized = normalizeTrashItems(currentItems);
         if (normalized.isEmpty()) {
             discard(player);
             return;
         }
-        sellItemsByPlayer.put(player.getUniqueId(), normalized);
-        suppressSellConfirmOnClose.add(player.getUniqueId());
-        menuView.openSellConfirm(player, normalized, pageIndex);
+        trashItemsByPlayer.put(player.getUniqueId(), normalized);
+        suppressTrashConfirmOnClose.add(player.getUniqueId());
+        menuView.openTrashConfirm(player, normalized, pageIndex);
         menuGuiTransitionService.fillPlayerInventoryDummy(player);
     }
 
-    private void handleSellClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
+    private void handleTrashClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
         event.setCancelled(true);
         int rawSlot = event.getRawSlot();
         Inventory topInventory = event.getView().getTopInventory();
-        List<ItemStack> currentSellItems = snapshotSellItems(topInventory);
+        List<ItemStack> currentTrashItems = snapshotTrashItems(topInventory);
 
         if (rawSlot >= topInventory.getSize()) {
-            handleSellPlayerInventoryClick(event, player, topInventory);
+            handleTrashPlayerInventoryClick(event, player, topInventory);
             return;
         }
 
         if (rawSlot == MenuView.BACK_SLOT) {
+            suppressTrashConfirmOnClose.add(player.getUniqueId());
             GuiSound.SELECT.play(player);
-            player.closeInventory();
+            menuView.open(player);
             return;
         }
         if (rawSlot == MenuView.TRASH_CLOSE_SLOT) {
-            if (currentSellItems.isEmpty()) {
+            if (currentTrashItems.isEmpty()) {
                 discard(player);
-                suppressSellConfirmOnClose.add(player.getUniqueId());
+                suppressTrashConfirmOnClose.add(player.getUniqueId());
                 player.closeInventory();
                 return;
             }
-            openSellConfirm(player, currentSellItems, 0);
+            openTrashConfirm(player, currentTrashItems, 0);
             return;
         }
         if (rawSlot == MenuView.TRASH_PREVIOUS_SLOT) {
             int pageIndex = menuView.getPageIndex(topInventory);
-            if (menuView.hasPreviousSellPage(pageIndex)) {
+            if (menuView.hasPreviousTrashPage(pageIndex)) {
                 GuiSound.SELECT.play(player);
                 open(player, pageIndex - 1);
             } else {
@@ -265,7 +263,7 @@ public final class SellService {
         }
         if (rawSlot == MenuView.TRASH_NEXT_SLOT) {
             int pageIndex = menuView.getPageIndex(topInventory);
-            if (menuView.hasNextSellPage(currentSellItems, pageIndex)) {
+            if (menuView.hasNextTrashPage(currentTrashItems, pageIndex)) {
                 GuiSound.SELECT.play(player);
                 open(player, pageIndex + 1);
             } else {
@@ -273,20 +271,20 @@ public final class SellService {
             }
             return;
         }
-        if (isSellContentSlot(rawSlot)) {
-            handleSellContentClick(event, player, topInventory, rawSlot);
+        if (isTrashContentSlot(rawSlot)) {
+            handleTrashContentClick(event, player, topInventory, rawSlot);
             return;
         }
-        if (isSellControlSlot(rawSlot)) {
+        if (isTrashControlSlot(rawSlot)) {
             GuiSound.DENY.play(player);
         }
     }
 
-    private void handleSellConfirmClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
+    private void handleTrashConfirmClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
         event.setCancelled(true);
         int rawSlot = event.getRawSlot();
         Inventory topInventory = event.getView().getTopInventory();
-        List<ItemStack> currentSellItems = sellItemsByPlayer.getOrDefault(player.getUniqueId(), List.of());
+        List<ItemStack> currentTrashItems = trashItemsByPlayer.getOrDefault(player.getUniqueId(), List.of());
 
         if (rawSlot >= topInventory.getSize()) {
             GuiSound.DENY.play(player);
@@ -294,34 +292,27 @@ public final class SellService {
         }
 
         if (rawSlot == MenuView.TRASH_CONFIRM_DISPOSE_SLOT) {
-            List<ItemStack> soldItems = normalizeSellItems(currentSellItems);
-            long totalSaleValue = totalSaleValue(soldItems);
-            AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (astPlayer == null || !creditGold(astPlayer, totalSaleValue)) {
-                GuiSound.DENY.play(player);
-                player.updateInventory();
-                return;
-            }
-            GuiSound.SELECT.play(player);
+            List<ItemStack> disposedItems = normalizeTrashItems(currentTrashItems);
+            GuiSound.TRASH_DISPOSE.play(player);
             discard(player);
-            notifySellCompleted(player, soldItems, totalSaleValue);
+            notifyTrashDisposed(player, disposedItems);
             menuGuiTransitionService.restorePlayerInventory(player);
-            suppressSellConfirmOnClose.add(player.getUniqueId());
+            suppressTrashConfirmOnClose.add(player.getUniqueId());
             player.closeInventory();
             return;
         }
         if (rawSlot == MenuView.TRASH_CONFIRM_RETURN_SLOT) {
             GuiSound.SELECT.play(player);
-            suppressSellConfirmOnClose.add(player.getUniqueId());
-            suppressSellConfirmRestoreOnClose.add(player.getUniqueId());
-            open(player, currentSellItems, 0);
+            suppressTrashConfirmOnClose.add(player.getUniqueId());
+            suppressTrashConfirmRestoreOnClose.add(player.getUniqueId());
+            open(player, currentTrashItems, 0);
             menuGuiTransitionService.restorePlayerInventory(player);
             return;
         }
         GuiSound.DENY.play(player);
     }
 
-    private void handleSellPlayerInventoryClick(
+    private void handleTrashPlayerInventoryClick(
         @NotNull InventoryClickEvent event,
         @NotNull Player player,
         @NotNull Inventory topInventory
@@ -334,20 +325,9 @@ public final class SellService {
             GuiSound.DENY.play(player);
             return;
         }
-        ItemModel sourceModel = inventoryService.getDisplayedItemModelAtBukkitSlot(astPlayer, event.getSlot());
-        if (sourceModel == null) {
-            GuiSound.DENY.play(player);
-            player.updateInventory();
-            return;
-        }
         ItemStack clicked = event.getCurrentItem();
         if (clicked == null || clicked.getType() == Material.AIR) {
             GuiSound.DENY.play(player);
-            return;
-        }
-        if (sourceModel.getUnSellable()) {
-            GuiSound.DENY.play(player);
-            sendSellMessage(player, PlayerMsgId.P_5605);
             return;
         }
         int requested = resolveTransferAmount(event.getClick(), clicked.getAmount());
@@ -355,25 +335,22 @@ public final class SellService {
             GuiSound.DENY.play(player);
             return;
         }
-        int capacity = countSellPlacementCapacity(topInventory, clicked, requested);
-        if (capacity <= 0) {
-            GuiSound.DENY.play(player);
-            player.updateInventory();
-            return;
-        }
-        ItemStack moved = inventoryService.takeDisplayedItemAmount(astPlayer, event.getSlot(), capacity);
+        ItemStack moved = inventoryService.takeDisplayedItemAmount(astPlayer, event.getSlot(), requested);
         if (moved == null || moved.getType() == Material.AIR) {
             GuiSound.DENY.play(player);
             player.updateInventory();
             return;
         }
-        placeItemsIntoSell(topInventory, moved);
+        List<ItemStack> updatedItems = new ArrayList<>(collectAllTrashItems(topInventory, player.getUniqueId()));
+        updatedItems.add(moved);
+        updatedItems = normalizeTrashItems(updatedItems);
+        trashItemsByPlayer.put(player.getUniqueId(), updatedItems);
         GuiSound.SELECT.play(player);
-        rerenderSellInventory(player, topInventory);
+        rerenderTrashInventory(player, topInventory, updatedItems);
         player.updateInventory();
     }
 
-    private void handleSellContentClick(
+    private void handleTrashContentClick(
         @NotNull InventoryClickEvent event,
         @NotNull Player player,
         @NotNull Inventory topInventory,
@@ -381,7 +358,7 @@ public final class SellService {
     ) {
         ItemStack current = topInventory.getItem(rawSlot);
         ItemStack cursor = event.getCursor();
-        boolean hasCurrent = !isSellEmptyItem(topInventory, current);
+        boolean hasCurrent = !isTrashEmptyItem(topInventory, current);
         boolean hasCursor = cursor != null && cursor.getType() != Material.AIR;
 
         if (hasCursor) {
@@ -404,7 +381,7 @@ public final class SellService {
             GuiSound.DENY.play(player);
             return;
         }
-        ItemStack partial = stripTransferDisplayLore(current);
+        ItemStack partial = stripTrashDisplayAmountLore(current);
         partial.setAmount(requested);
         ItemReference reference = resolveTransferReference(partial);
         if (reference == null || inventoryService.returnItemToOwnedInventory(astPlayer, reference, requested) == null) {
@@ -412,33 +389,43 @@ public final class SellService {
             player.updateInventory();
             return;
         }
-        int remaining = current.getAmount() - requested;
-        if (remaining <= 0) {
-            topInventory.setItem(rawSlot, new ItemStack(Material.AIR));
-        } else {
-            ItemStack updated = stripTransferDisplayLore(current);
-            updated.setAmount(remaining);
-            topInventory.setItem(rawSlot, updated);
+        List<ItemStack> updatedItems = collectAllTrashItems(topInventory, player.getUniqueId());
+        int itemIndex = menuView.getPageIndex(topInventory) * TrashScreenView.CONTENT_SLOT_COUNT + rawSlot;
+        if (itemIndex >= 0 && itemIndex < updatedItems.size()) {
+            ItemStack updated = stripTrashDisplayAmountLore(updatedItems.get(itemIndex));
+            int remaining = updated.getAmount() - requested;
+            updatedItems = new ArrayList<>(updatedItems);
+            if (remaining <= 0) {
+                updatedItems.remove(itemIndex);
+            } else {
+                updated.setAmount(remaining);
+                updatedItems.set(itemIndex, updated);
+            }
         }
+        updatedItems = normalizeTrashItems(updatedItems);
+        trashItemsByPlayer.put(player.getUniqueId(), updatedItems);
         GuiSound.SELECT.play(player);
-        rerenderSellInventory(player, topInventory);
+        rerenderTrashInventory(player, topInventory, updatedItems);
         player.updateInventory();
     }
 
-    private void rerenderSellInventory(@NotNull Player player, @NotNull Inventory topInventory) {
+    private void rerenderTrashInventory(
+        @NotNull Player player,
+        @NotNull Inventory topInventory,
+        @NotNull List<ItemStack> trashItems
+    ) {
         int pageIndex = menuView.getPageIndex(topInventory);
-        List<ItemStack> currentItems = snapshotSellItems(topInventory);
-        sellItemsByPlayer.put(player.getUniqueId(), currentItems);
-        suppressSellConfirmOnClose.add(player.getUniqueId());
-        menuView.openSell(player, currentItems, pageIndex);
+        List<ItemStack> normalized = normalizeTrashItems(trashItems);
+        trashItemsByPlayer.put(player.getUniqueId(), normalized);
+        menuView.renderTrash(topInventory, normalized, pageIndex);
     }
 
-    private @NotNull List<ItemStack> collectAllSellItems(@NotNull Inventory inventory, @NotNull UUID playerId) {
+    private @NotNull List<ItemStack> collectAllTrashItems(@NotNull Inventory inventory, @NotNull UUID playerId) {
         int pageIndex = menuView.getPageIndex(inventory);
-        int pageStart = pageIndex * SellScreenView.CONTENT_SLOT_COUNT;
-        int pageEnd = pageStart + SellScreenView.CONTENT_SLOT_COUNT;
-        List<ItemStack> currentPage = snapshotSellItems(inventory);
-        List<ItemStack> existing = sellItemsByPlayer.getOrDefault(playerId, List.of());
+        int pageStart = pageIndex * TrashScreenView.CONTENT_SLOT_COUNT;
+        int pageEnd = pageStart + TrashScreenView.CONTENT_SLOT_COUNT;
+        List<ItemStack> currentPage = snapshotTrashItems(inventory);
+        List<ItemStack> existing = trashItemsByPlayer.getOrDefault(playerId, List.of());
         List<ItemStack> merged = new ArrayList<>();
         for (int index = 0; index < Math.min(pageStart, existing.size()); index++) {
             merged.add(existing.get(index));
@@ -447,10 +434,10 @@ public final class SellService {
         for (int index = pageEnd; index < existing.size(); index++) {
             merged.add(existing.get(index));
         }
-        return normalizeSellItems(merged);
+        return normalizeTrashItems(merged);
     }
 
-    private boolean returnSellItemsToInventory(@NotNull Player player, @NotNull List<ItemStack> items) {
+    private boolean returnTrashItemsToInventory(@NotNull Player player, @NotNull List<ItemStack> items) {
         if (items.isEmpty()) {
             return false;
         }
@@ -467,27 +454,27 @@ public final class SellService {
         return true;
     }
 
-    private void notifySellCompleted(@NotNull Player player, @NotNull List<ItemStack> items, long totalSaleValue) {
-        int soldCount = countSellItemStacks(items);
-        if (soldCount <= 0) {
+    private void notifyTrashDisposed(@NotNull Player player, @NotNull List<ItemStack> items) {
+        int disposedCount = countTrashItemStacks(items);
+        if (disposedCount <= 0) {
             return;
         }
-        sendSellMessage(player, PlayerMsgId.P_5604, soldCount, totalSaleValue);
+        sendTrashMessage(player, PlayerMsgId.P_5601, disposedCount);
     }
 
-    private void notifySellReturned(@NotNull Player player, @NotNull List<ItemStack> items) {
-        int returnedCount = countSellItemStacks(items);
+    private void notifyTrashReturned(@NotNull Player player, @NotNull List<ItemStack> items) {
+        int returnedCount = countTrashItemStacks(items);
         if (returnedCount <= 0) {
             return;
         }
         GuiSound.SELECT.play(player);
-        sendSellMessage(player, PlayerMsgId.P_5606, returnedCount);
+        sendTrashMessage(player, PlayerMsgId.P_5602, returnedCount);
     }
 
-    private int countSellItemStacks(@NotNull List<ItemStack> items) {
+    private int countTrashItemStacks(@NotNull List<ItemStack> items) {
         int count = 0;
         for (ItemStack itemStack : items) {
-            if (isSellEmptyItem(null, itemStack)) {
+            if (isTrashEmptyItem(null, itemStack)) {
                 continue;
             }
             count++;
@@ -495,7 +482,7 @@ public final class SellService {
         return count;
     }
 
-    private void sendSellMessage(@NotNull Player player, @NotNull PlayerMsgId msgId, Object... args) {
+    private void sendTrashMessage(@NotNull Player player, @NotNull PlayerMsgId msgId, Object... args) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer != null) {
             astPlayer.sendMessage(msgId, args);
@@ -504,23 +491,23 @@ public final class SellService {
         player.sendMessage(PlayerMsgResource.format(msgId.getId(), args));
     }
 
-    private @NotNull List<ItemStack> snapshotSellItems(@NotNull Inventory inventory) {
+    private @NotNull List<ItemStack> snapshotTrashItems(@NotNull Inventory inventory) {
         List<ItemStack> items = new ArrayList<>();
-        int maxSlot = Math.min(SellScreenView.CONTENT_SLOT_COUNT, inventory.getSize());
+        int maxSlot = Math.min(TrashScreenView.CONTENT_SLOT_COUNT, inventory.getSize());
         for (int slot = 0; slot < maxSlot; slot++) {
             ItemStack itemStack = inventory.getItem(slot);
-            if (isSellEmptyItem(inventory, itemStack)) {
+            if (isTrashEmptyItem(inventory, itemStack)) {
                 continue;
             }
-            items.add(stripTransferDisplayLore(itemStack));
+            items.add(stripTrashDisplayAmountLore(itemStack));
         }
-        return normalizeSellItems(items);
+        return normalizeTrashItems(items);
     }
 
-    private @NotNull List<ItemStack> normalizeSellItems(@NotNull List<ItemStack> items) {
+    private @NotNull List<ItemStack> normalizeTrashItems(@NotNull List<ItemStack> items) {
         List<ItemStack> normalized = new ArrayList<>();
         for (ItemStack itemStack : items) {
-            if (isSellEmptyItem(null, itemStack)) {
+            if (isTrashEmptyItem(null, itemStack)) {
                 continue;
             }
             ItemStack candidate = stripTransferDisplayLore(itemStack);
@@ -572,65 +559,6 @@ public final class SellService {
         };
     }
 
-    private int countSellPlacementCapacity(
-        @NotNull Inventory topInventory,
-        @NotNull ItemStack template,
-        int desired
-    ) {
-        ItemStack cleanTemplate = stripTransferDisplayLore(template);
-        int capacity = 0;
-        for (int slot = 0; slot < SellScreenView.CONTENT_SLOT_COUNT; slot++) {
-            ItemStack existing = topInventory.getItem(slot);
-            if (isSellEmptyItem(topInventory, existing)) {
-                capacity += cleanTemplate.getMaxStackSize();
-            } else if (existing != null) {
-                ItemStack comparableExisting = stripTransferDisplayLore(existing);
-                if (comparableExisting.isSimilar(cleanTemplate)) {
-                    capacity += Math.max(0, comparableExisting.getMaxStackSize() - comparableExisting.getAmount());
-                }
-            }
-            if (capacity >= desired) {
-                return desired;
-            }
-        }
-        return Math.max(0, Math.min(desired, capacity));
-    }
-
-    private void placeItemsIntoSell(@NotNull Inventory topInventory, @NotNull ItemStack moved) {
-        ItemStack cleanMoved = stripTransferDisplayLore(moved);
-        int remaining = cleanMoved.getAmount();
-        for (int slot = 0; slot < SellScreenView.CONTENT_SLOT_COUNT && remaining > 0; slot++) {
-            ItemStack existing = topInventory.getItem(slot);
-            if (isSellEmptyItem(topInventory, existing)) {
-                continue;
-            }
-            ItemStack cleanExisting = stripTransferDisplayLore(existing);
-            if (!cleanExisting.isSimilar(cleanMoved)) {
-                continue;
-            }
-            int available = Math.max(0, cleanExisting.getMaxStackSize() - cleanExisting.getAmount());
-            if (available <= 0) {
-                continue;
-            }
-            int transfer = Math.min(remaining, available);
-            ItemStack updated = cleanExisting.clone();
-            updated.setAmount(cleanExisting.getAmount() + transfer);
-            topInventory.setItem(slot, updated);
-            remaining -= transfer;
-        }
-        for (int slot = 0; slot < SellScreenView.CONTENT_SLOT_COUNT && remaining > 0; slot++) {
-            ItemStack existing = topInventory.getItem(slot);
-            if (!isSellEmptyItem(topInventory, existing)) {
-                continue;
-            }
-            ItemStack newStack = cleanMoved.clone();
-            int transfer = Math.min(remaining, newStack.getMaxStackSize());
-            newStack.setAmount(transfer);
-            topInventory.setItem(slot, newStack);
-            remaining -= transfer;
-        }
-    }
-
     private boolean canMergeTransferItems(@NotNull ItemStack existing, @NotNull ItemStack candidate) {
         if (existing.getMaxStackSize() <= 1 || candidate.getMaxStackSize() <= 1) {
             return false;
@@ -650,21 +578,6 @@ public final class SellService {
             && existingReference.category().equals(candidateReference.category());
     }
 
-    private long totalSaleValue(@NotNull List<ItemStack> items) {
-        long total = 0L;
-        for (ItemStack itemStack : items) {
-            if (isSellEmptyItem(null, itemStack)) {
-                continue;
-            }
-            ItemModel model = resolveTransferItemModel(itemStack);
-            if (model == null || model.getUnSellable()) {
-                continue;
-            }
-            total += (long) Math.max(0, model.getSaleValue()) * Math.max(1, itemStack.getAmount());
-        }
-        return total;
-    }
-
     private @Nullable ItemReference resolveTransferReference(@Nullable ItemStack itemStack) {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return null;
@@ -672,29 +585,8 @@ public final class SellService {
         return transferItemResolver.resolve(stripTransferDisplayLore(itemStack));
     }
 
-    private @Nullable ItemModel resolveTransferItemModel(@Nullable ItemStack itemStack) {
-        return transferItemResolver.resolveItemModel(resolveTransferReference(itemStack));
-    }
-
-    private boolean creditGold(@NotNull AstPlayer astPlayer, long amount) {
-        if (amount <= 0L) {
-            return true;
-        }
-        ItemModel gold = plugin.getItemService().loadItem(ItemService.DEFAULT_CURRENCY_ITEM_ID);
-        if (gold == null) {
-            return false;
-        }
-        long remaining = amount;
-        while (remaining > 0L) {
-            int chunk = (int) Math.min(Integer.MAX_VALUE, remaining);
-            ItemStack goldStack = plugin.getItemStackFactory().create(gold);
-            goldStack.setAmount(chunk);
-            if (inventoryService.returnItemToOwnedInventory(astPlayer, goldStack) == null) {
-                return false;
-            }
-            remaining -= chunk;
-        }
-        return true;
+    private @NotNull ItemStack stripTrashDisplayAmountLore(@NotNull ItemStack itemStack) {
+        return stripTransferDisplayLore(itemStack);
     }
 
     private @NotNull ItemStack stripTransferDisplayLore(@NotNull ItemStack itemStack) {
@@ -717,38 +609,36 @@ public final class SellService {
     }
 
     private boolean isTransferDisplayLoreLine(@NotNull String line) {
-        return line.startsWith(BaseMenuScreenView.DISPLAY_AMOUNT_LORE_PREFIX)
-            || line.startsWith(SellScreenView.UNIT_PRICE_LORE_PREFIX)
-            || line.startsWith(SellScreenView.TOTAL_PRICE_LORE_PREFIX);
+        return line.startsWith(BaseMenuScreenView.DISPLAY_AMOUNT_LORE_PREFIX);
     }
 
-    private boolean isSellEmptyItem(@Nullable Inventory inventory, @Nullable ItemStack itemStack) {
+    private boolean isTrashEmptyItem(@Nullable Inventory inventory, @Nullable ItemStack itemStack) {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return true;
         }
-        return isSellPlaceholderItem(inventory, itemStack);
+        return isTrashPlaceholderItem(inventory, itemStack);
     }
 
-    private boolean isSellPlaceholderItem(@Nullable Inventory inventory, @Nullable ItemStack itemStack) {
+    private boolean isTrashPlaceholderItem(@Nullable Inventory inventory, @Nullable ItemStack itemStack) {
         if (itemStack == null) {
             return false;
         }
         MenuScreen screen = inventory == null ? null : menuView.getMenuScreen(inventory);
-        if (screen == MenuScreen.SELL) {
-            return menuView.isSellContentPlaceholder(itemStack);
+        if (screen == MenuScreen.TRASH) {
+            return menuView.isTrashContentPlaceholder(itemStack);
         }
-        if (screen == MenuScreen.SELL_CONFIRM) {
-            return menuView.isSellConfirmContentPlaceholder(itemStack);
+        if (screen == MenuScreen.TRASH_CONFIRM) {
+            return menuView.isTrashConfirmContentPlaceholder(itemStack);
         }
-        return menuView.isSellContentPlaceholder(itemStack)
-            || menuView.isSellConfirmContentPlaceholder(itemStack);
+        return menuView.isTrashContentPlaceholder(itemStack)
+            || menuView.isTrashConfirmContentPlaceholder(itemStack);
     }
 
-    private boolean isSellContentSlot(int rawSlot) {
-        return rawSlot >= 0 && rawSlot < SellScreenView.CONTENT_SLOT_COUNT;
+    private boolean isTrashContentSlot(int rawSlot) {
+        return rawSlot >= 0 && rawSlot < TrashScreenView.CONTENT_SLOT_COUNT;
     }
 
-    private boolean isSellControlSlot(int rawSlot) {
+    private boolean isTrashControlSlot(int rawSlot) {
         return rawSlot == MenuView.TRASH_PREVIOUS_SLOT
             || rawSlot == MenuView.TRASH_GUIDE_SLOT
             || rawSlot == MenuView.BACK_SLOT
@@ -757,6 +647,6 @@ public final class SellService {
     }
 
     private void discard(@NotNull Player player) {
-        sellItemsByPlayer.remove(player.getUniqueId());
+        trashItemsByPlayer.remove(player.getUniqueId());
     }
 }

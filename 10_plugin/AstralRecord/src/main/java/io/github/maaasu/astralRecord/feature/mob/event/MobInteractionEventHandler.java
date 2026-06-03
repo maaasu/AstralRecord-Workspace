@@ -1,7 +1,7 @@
 package io.github.maaasu.astralRecord.feature.mob.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
-import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
+import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
@@ -121,7 +121,7 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
         switch (type) {
             case "SHOP" -> openShop(player, action);
             case "SELL" -> {
-                MenuOpenEventHandler.suppressNextCloseSound(player);
+                MenuGuiTransitionService.suppressNextCloseSound(player);
                 menuView.openSell(player, List.of(), 0);
                 GuiSound.OPEN.play(player);
             }
@@ -135,7 +135,7 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        MenuOpenEventHandler.suppressNextCloseSound(player);
+        MenuGuiTransitionService.suppressNextCloseSound(player);
         shopGuiEventHandler.open(player, shopId);
     }
 }
