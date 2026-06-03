@@ -204,6 +204,9 @@ public final class LoginBonusGui {
         if (date.isBefore(today)) {
             return Material.GRAY_TERRACOTTA;
         }
+        if (isHoliday(date)) {
+            return Material.MAP;
+        }
         return Material.PAPER;
     }
 
