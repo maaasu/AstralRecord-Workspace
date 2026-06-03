@@ -72,6 +72,10 @@ public class SkillTreeCommand extends AstCommand {
             sendUsage(player.getBukkit());
             return;
         }
+        if (!service.hasDefinedPosition(args[1])) {
+            sendError(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5834.getId(), args[1]));
+            return;
+        }
         int amount = args.length >= 3 ? parseInt(args[2], 1) : 1;
         ItemStack itemStack = service.createPositionItem(args[1], amount);
         if (itemStack == null) {

@@ -414,8 +414,8 @@ public final class AstralRecord extends JavaPlugin {
         potionUseService = new PotionUseService(inventoryService, statusService, buffAcquisitionDisplayService);
         statusRegenTask = new StatusRegenTask(statusService);
         playerHudService = new PlayerHudService(statusService, playerClassService);
-        overheadDisplayService = new OverheadDisplayService(displayTextService, statusService, mobService);
         skillTreeService.setPlayerHudService(playerHudService);
+        overheadDisplayService = new OverheadDisplayService(displayTextService, statusService, mobService);
 
         // combat
         mobDropPresentationService = new MobDropPresentationService(

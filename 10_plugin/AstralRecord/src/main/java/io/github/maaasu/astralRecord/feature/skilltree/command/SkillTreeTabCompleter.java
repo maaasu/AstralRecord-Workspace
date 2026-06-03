@@ -24,7 +24,7 @@ public class SkillTreeTabCompleter extends AstTabCompleter {
             return List.of("reload", "position-item", "connector-item", "points");
         }
         if (args.length == 2 && "position-item".equalsIgnoreCase(args[0])) {
-            return service.getPositionIds().stream().toList();
+            return service.getDefinedPositionIds().stream().sorted().toList();
         }
         if (args.length == 2 && "points".equalsIgnoreCase(args[0])) {
             return List.of("set", "add");
