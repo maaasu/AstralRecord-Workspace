@@ -86,8 +86,8 @@ public final class LoginBonusGui {
      * @return 表示中の年月
      */
     public @Nullable YearMonth getDisplayMonth(@Nullable Inventory inventory) {
-        if (inventory != null && inventory.getHolder() instanceof Holder holder) {
-            return holder.displayMonth();
+        if (inventory != null && inventory.getHolder() instanceof Holder(YearMonth displayMonth)) {
+            return displayMonth;
         }
         return null;
     }
@@ -131,7 +131,7 @@ public final class LoginBonusGui {
             if (slot < 0 || slot >= SIZE || slot == PREVIOUS_MONTH_SLOT || slot == NEXT_MONTH_SLOT) {
                 continue;
             }
-            boolean received = receivedDates.contains(date);
+            var received = receivedDates.contains(date);
             inventory.setItem(slot, createDateItem(date, today, received, goldRewardModel, astraldRewardModel));
         }
     }
@@ -175,9 +175,8 @@ public final class LoginBonusGui {
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text(japaneseWeekday(date.getDayOfWeek()), NamedTextColor.DARK_GRAY));
         lore.add(RewardDisplayFormatter.rewardLine(goldRewardModel, DAILY_LOGIN_BONUS_GOLD));
-        if (isHoliday(date)) {
+        if (isHoliday(date)  || date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY)
             lore.add(RewardDisplayFormatter.rewardLine(astraldRewardModel, HOLIDAY_LOGIN_BONUS_ASTRALD));
-        }
         lore.add(Component.empty());
         if (received) {
             lore.add(Component.text("受け取り済み", NamedTextColor.GREEN));
@@ -204,7 +203,7 @@ public final class LoginBonusGui {
         if (date.isBefore(today)) {
             return Material.GRAY_TERRACOTTA;
         }
-        if (isHoliday(date)) {
+        if (isHoliday(date) || date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY) {
             return Material.MAP;
         }
         return Material.PAPER;
@@ -233,11 +232,11 @@ public final class LoginBonusGui {
         int amount,
         boolean enchanted
     ) {
-        ItemStack itemStack = new ItemStack(material);
+        var itemStack = new ItemStack(material);
         if (material != Material.AIR) {
-            itemStack.setAmount(Math.min(MAX_ITEM_AMOUNT, Math.max(1, amount)));
+            itemStack.setAmount(Math.clamp(amount, 1, MAX_ITEM_AMOUNT));
         }
-        ItemMeta meta = itemStack.getItemMeta();
+        var meta = itemStack.getItemMeta();
         if (meta != null) {
             meta.displayName(noItalic(name));
             meta.lore(lore.stream().map(this::noItalic).toList());

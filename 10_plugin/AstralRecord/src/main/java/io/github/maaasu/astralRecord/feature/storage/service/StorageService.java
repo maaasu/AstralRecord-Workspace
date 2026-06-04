@@ -99,7 +99,7 @@ public final class StorageService {
         }
 
         int pageIndex = menuView.getPageIndex(topInventory);
-        StorageViewOptions options = storageOptions(player);
+        var options = storageOptions(player);
         List<StorageViewEntry> entries = currentStorageEntries(player, options);
         if (rawSlot == MenuView.STORAGE_PREVIOUS_SLOT) {
             if (menuView.hasPreviousStoragePage(pageIndex)) {
@@ -255,7 +255,7 @@ public final class StorageService {
         int sourceAmount = currentStorageEntries(player, storageOptions(player)).stream()
             .filter(entry -> entry.entry().getInventoryEntryId().equals(storageEntryId))
             .findFirst()
-            .map(entry -> (int) Math.min(Integer.MAX_VALUE, Math.max(0L, entry.entry().getQuantity())))
+            .map(entry -> (int) Math.clamp(entry.entry().getQuantity(), 0L, Integer.MAX_VALUE))
             .orElse(current.getAmount());
         int requested = resolveTransferAmount(event.getClick(), sourceAmount);
         if (requested <= 0) {
