@@ -740,19 +740,29 @@ public class InventoryService {
             if (itemStack == null || itemStack.getType() == Material.AIR) {
                 return 0;
             }
-            boolean takeAll = amount <= 0
-                || amount >= itemStack.getAmount()
-                || entry.getInstanceType() != null;
-            int movedAmount = takeAll ? itemStack.getAmount() : Math.max(1, amount);
+            if (entry.getInstanceType() != null) {
+                if (returnItemToOwnedInventory(astPlayer, itemStack.clone()) == null) {
+                    return 0;
+                }
+                entries.remove(index);
+                state.replaceEntries(storageInventory.getInventoryId(), entries);
+                return itemStack.getAmount();
+            }
+            int availableQuantity = (int) Math.clamp(entry.getQuantity(), 1L, Integer.MAX_VALUE);
+            int requestedAmount = amount <= 0 ? availableQuantity : Math.max(1, amount);
+            int movedAmount = Math.min(
+                availableQuantity,
+                Math.min(requestedAmount, Math.max(1, itemStack.getMaxStackSize()))
+            );
             ItemStack moved = itemStack.clone();
             moved.setAmount(movedAmount);
             if (returnItemToOwnedInventory(astPlayer, moved) == null) {
                 return 0;
             }
-            if (takeAll) {
+            if (movedAmount >= availableQuantity) {
                 entries.remove(index);
             } else {
-                entries.set(index, withQuantity(entry, entry.getQuantity() - movedAmount, state.getAccountId()));
+                entries.set(index, withQuantity(entry, availableQuantity - movedAmount, state.getAccountId()));
             }
             state.replaceEntries(storageInventory.getInventoryId(), entries);
             return movedAmount;
