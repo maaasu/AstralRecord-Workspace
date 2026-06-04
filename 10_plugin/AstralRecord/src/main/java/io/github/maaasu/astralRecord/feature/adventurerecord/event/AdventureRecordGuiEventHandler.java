@@ -25,6 +25,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Set;
@@ -55,6 +56,10 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
     public void open(@NotNull Player player) {
         setHotbarShortcutMode(player, true);
         gui.openMain(player);
+    }
+
+    public boolean isInventory(@Nullable Inventory inventory) {
+        return gui.isInventory(inventory);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)

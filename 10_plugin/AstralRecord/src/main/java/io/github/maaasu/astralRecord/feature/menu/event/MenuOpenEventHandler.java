@@ -797,6 +797,10 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         if (mailGuiEventHandler != null && mailGuiEventHandler.isInventory(openedInventory)) {
             return true;
         }
+        var adventureRecordGuiEventHandler = plugin.getAdventureRecordGuiEventHandler();
+        if (adventureRecordGuiEventHandler != null && adventureRecordGuiEventHandler.isInventory(openedInventory)) {
+            return true;
+        }
         var loginBonusService = plugin.getLoginBonusService();
         return loginBonusService != null && loginBonusService.getGui().isLoginBonusInventory(openedInventory);
     }
