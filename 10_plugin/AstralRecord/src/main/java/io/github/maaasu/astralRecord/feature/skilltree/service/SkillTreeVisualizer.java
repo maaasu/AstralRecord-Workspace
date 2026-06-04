@@ -219,6 +219,7 @@ final class SkillTreeVisualizer {
     @NotNull
     private Item spawnItem(@NotNull Location location, @NotNull ItemStack itemStack) {
         return location.getWorld().spawn(itemLocation(location), Item.class, item -> {
+            item.setPersistent(false);
             item.setItemStack(itemStack);
             item.setVelocity(new Vector(0.0D, 0.0D, 0.0D));
             item.setGravity(false);

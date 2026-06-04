@@ -25,8 +25,11 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Item;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -38,6 +41,7 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.HashMap;
@@ -141,6 +145,7 @@ public class SkillTreeService {
     }
 
     public void start() {
+        purgeSkillTreeVisualEntities();
         if (visualizer == null) {
             visualizer = new SkillTreeVisualizer(plugin, this);
             visualizer.start();
@@ -719,6 +724,38 @@ public class SkillTreeService {
 
         private @NotNull SkillTreeActionBarMode toggle() {
             return this == RESOURCE_STATUS ? NODE_GUIDE : RESOURCE_STATUS;
+        }
+    }
+
+    /**
+     * 旧実装で保存されてしまったスキルツリー可視化 entity を掃除します。
+     */
+    private void purgeSkillTreeVisualEntities() {
+        WorldMasterData data = worldService.getById(SKILL_TREE_WORLD_ID);
+        if (data == null) {
+            return;
+        }
+
+        World world = worldService.resolveLoadedWorld(data);
+        if (world == null) {
+            return;
+        }
+
+        for (Entity entity : List.copyOf(world.getEntities())) {
+            if (entity instanceof Item || entity instanceof TextDisplay) {
+                entity.remove();
+            }
+        }
+
+        File entitiesDirectory = new File(world.getWorldFolder(), "entities");
+        File[] files = entitiesDirectory.listFiles();
+        if (files == null) {
+            return;
+        }
+        for (File file : files) {
+            if (file.isFile()) {
+                file.delete();
+            }
         }
     }
 }
