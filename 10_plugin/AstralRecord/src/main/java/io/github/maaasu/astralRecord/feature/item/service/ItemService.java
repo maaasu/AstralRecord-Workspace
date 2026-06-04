@@ -246,6 +246,7 @@ public class ItemService {
             null,
             new ItemCurrency("gold", "default", null),
             null,
+            null,
             null
         );
     }
@@ -266,6 +267,7 @@ public class ItemService {
             true,
             null,
             new ItemCurrency("astrald", "donation", null),
+            null,
             null,
             null
         );

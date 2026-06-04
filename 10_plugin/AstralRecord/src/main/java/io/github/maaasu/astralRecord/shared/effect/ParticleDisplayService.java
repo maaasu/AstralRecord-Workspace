@@ -1,4 +1,4 @@
-﻿package io.github.maaasu.astralRecord.shared.effect;
+package io.github.maaasu.astralRecord.shared.effect;
 
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.model.ParticleDensity;

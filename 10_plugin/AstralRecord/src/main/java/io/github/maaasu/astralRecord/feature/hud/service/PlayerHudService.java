@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.hud.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.hud.view.PlayerHudView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -39,6 +40,14 @@ public class PlayerHudService {
         this.statusService = statusService;
         this.playerClassService = playerClassService;
         this.playerHudView = new PlayerHudView();
+    }
+
+    public PlayerHudService(
+        StatusService statusService,
+        PlayerClassService playerClassService,
+        CurrencyService currencyService
+    ) {
+        this(statusService, playerClassService);
     }
 
     public void start(AstralRecord plugin) {

@@ -2,6 +2,8 @@ package io.github.maaasu.astralRecord.feature.skill.executor;
 
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillStatusModifier;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillCastContext;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
@@ -26,6 +28,11 @@ public final class IronWillSkillExecutor implements SkillExecutor {
     @Override
     public @NotNull SkillKind kind() {
         return SkillKind.PASSIVE;
+    }
+
+    @Override
+    public @NotNull SkillCastResult cast(@NotNull SkillCastContext context) {
+        return SkillCastResult.failure(null);
     }
 
     @Override

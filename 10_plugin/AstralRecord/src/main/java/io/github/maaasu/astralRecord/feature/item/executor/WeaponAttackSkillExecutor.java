@@ -1,4 +1,4 @@
-﻿package io.github.maaasu.astralRecord.feature.item.executor;
+package io.github.maaasu.astralRecord.feature.item.executor;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;

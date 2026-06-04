@@ -122,36 +122,31 @@ public class SkillTreeService {
 
     public void setInventoryService(@NotNull InventoryService inventoryService) {
         this.inventoryService = inventoryService;
+    }
+
     /**
-     * スキルツリー操作後に HUD を更新するための HUD サービスを設定します。
-     *
-     * @param playerHudService プレイヤー HUD サービス
-     */
-     * @param playerHudService 驛｢譎丞ｹｲ・取ｨ抵ｽｹ・ｧ繝ｻ・､驛｢譎｢・ｽ・､驛｢譎｢・ｽ・ｼ HUD 驛｢・ｧ繝ｻ・ｵ驛｢譎｢・ｽ・ｼ驛｢譎∽ｾｭ邵ｺ繝ｻ
+     * ?????????? HUD ???????? HUD ???????????
      */
     public void setPlayerHudService(@NotNull PlayerHudService playerHudService) {
         this.playerHudService = playerHudService;
     }
 
     /**
-     * 繧ｹ繝・・繧ｿ繧ｹ譖ｴ譁ｰ騾｣謳ｺ蜈医ｒ險ｭ螳壹＠縺ｾ縺吶・     *
-     * @param statusService 繧ｹ繝・・繧ｿ繧ｹ繧ｵ繝ｼ繝薙せ
+     * ?????????????????????????
      */
     public void setStatusService(@NotNull StatusService statusService) {
         this.statusService = statusService;
     }
 
     /**
-     * 繧ｹ繧ｭ繝ｫ螳夂ｾｩ蜿ら・繧ｵ繝ｼ繝薙せ繧定ｨｭ螳壹＠縺ｾ縺吶・     *
-     * @param skillService 繧ｹ繧ｭ繝ｫ繧ｵ繝ｼ繝薙せ
+     * ??????????????????
      */
     public void setSkillService(@NotNull SkillService skillService) {
         this.skillService = skillService;
     }
 
     /**
-     * 繝代ャ繧ｷ繝悶せ繧ｭ繝ｫ蜀崎ｩ穂ｾ｡騾｣謳ｺ蜈医ｒ險ｭ螳壹＠縺ｾ縺吶・     *
-     * @param passiveSkillService 繝代ャ繧ｷ繝悶せ繧ｭ繝ｫ繧ｵ繝ｼ繝薙せ
+     * ?????????????????????
      */
     public void setPassiveSkillService(@NotNull PassiveSkillService passiveSkillService) {
         this.passiveSkillService = passiveSkillService;
@@ -421,9 +416,7 @@ public class SkillTreeService {
     }
 
     /**
-     * 隗｣謾ｾ貂医∩繝弱・繝臥罰譚･縺ｮ繧ｹ繧ｭ繝ｫ ID 荳隕ｧ繧貞叙蠕励＠縺ｾ縺吶・     *
-     * @param astPlayer 繝励Ξ繧､繝､繝ｼ
-     * @return 繧ｹ繧ｭ繝ｫ ID 荳隕ｧ
+     * ????????????? ID ????????
      */
     public @NotNull Set<String> getUnlockedSkillIds(@NotNull AstPlayer astPlayer) {
         SkillTreePlayerState state = state(astPlayer);
@@ -443,11 +436,7 @@ public class SkillTreeService {
     }
 
     /**
-     * 隗｣謾ｾ貂医∩繝弱・繝臥罰譚･縺ｮ逶ｴ謗･繧ｹ繝・・繧ｿ繧ｹ陬懈ｭ｣繧貞叙蠕励＠縺ｾ縺吶・     *
-     * @param astPlayer 繝励Ξ繧､繝､繝ｼ
-     * @param statusType 蟇ｾ雎｡繧ｹ繝・・繧ｿ繧ｹ
-     * @param baseValue FLAT 驕ｩ逕ｨ蠕後・蝓ｺ貅門､
-     * @return 邱剰｣懈ｭ｣蛟､
+     * ????????????????????????
      */
     public double getStatusBonus(
         @NotNull AstPlayer astPlayer,
@@ -583,26 +572,18 @@ public class SkillTreeService {
         }
         for (int slot = 0; slot < 9; slot++) {
             player.getInventory().setItem(slot, saved[slot]);
+        }
+    }
+
     /**
-     * プレイヤーがスキルツリー用 HOTBAR 制御を使うべき状態かを返します。
-     *
-     * @param player 対象プレイヤー
-     * @return スキルツリー用 HOTBAR 制御を使う場合は true
+     * ????????????? HOTBAR ????????????????
      */
-     * @param player 髯昴・・ｽ・ｾ鬮ｮ雜｣・ｽ・｡驛｢譎丞ｹｲ・取ｨ抵ｽｹ・ｧ繝ｻ・､驛｢譎｢・ｽ・､驛｢譎｢・ｽ・ｼ
-     * @return 驛｢・ｧ繝ｻ・ｹ驛｢・ｧ繝ｻ・ｭ驛｢譎｢・ｽ・ｫ驛｢譏ｴ繝ｻ・取㏍・ｹ譎｢・ｽ・ｼ髯昴・・蛾｡繝ｻHOTBAR 驛｢・ｧ陷代・・ｽ・ｽ繝ｻ・ｿ驍ｵ・ｺ郢晢ｽｻ繝ｻ・ｰ繝ｻ・ｴ髯ｷ・ｷ郢晢ｽｻtrue
-     */
+    public boolean shouldUseSkillTreeHotbar(@NotNull Player player) {
+        return isPlayerModeSkillTree(player) && !hasInteractiveGuiOpen(player);
+    }
+
     /**
-     * スキルツリー用 HOTBAR 入力を処理します。
-     *
-     * @param player 対象プレイヤー
-     * @param slot HOTBAR スロット番号
-     * @return 入力を処理した場合は true
-     */
-     * 驛｢・ｧ繝ｻ・ｹ驛｢・ｧ繝ｻ・ｭ驛｢譎｢・ｽ・ｫ驛｢譏ｴ繝ｻ・取㏍・ｹ譎｢・ｽ・ｼ髯昴・・蛾｡繝ｻHOTBAR 驍ｵ・ｺ繝ｻ・ｮ髯具ｽｻ繝ｻ・ｶ髯溷桁・ｽ・｡驛｢・ｧ繝ｻ・ｹ驛｢譎｢・ｽ・ｭ驛｢譏ｴ繝ｻ郢晢ｽｨ驛｢・ｧ髮区ｧｭ繝ｻ鬨ｾ繝ｻ繝ｻ繝ｻ・ｰ驍ｵ・ｺ繝ｻ・ｾ驍ｵ・ｺ陷ｷ・ｶ・つ郢晢ｽｻ     *
-     * @param player 髯昴・・ｽ・ｾ鬮ｮ雜｣・ｽ・｡驛｢譎丞ｹｲ・取ｨ抵ｽｹ・ｧ繝ｻ・､驛｢譎｢・ｽ・､驛｢譎｢・ｽ・ｼ
-     * @param slot HOTBAR 驛｢・ｧ繝ｻ・ｹ驛｢譎｢・ｽ・ｭ驛｢譏ｴ繝ｻ郢晢ｽｨ鬨ｾ・｡繝ｻ・ｪ髯ｷ・ｿ繝ｻ・ｷ
-     * @return 髯具ｽｻ繝ｻ・ｶ髯溷桁・ｽ・｡驛｢・ｧ繝ｻ・ｹ驛｢譎｢・ｽ・ｭ驛｢譏ｴ繝ｻ郢晢ｽｨ驍ｵ・ｺ繝ｻ・ｨ驍ｵ・ｺ陷会ｽｱ遯ｶ・ｻ髯ｷ繝ｻ・ｽ・ｦ鬨ｾ繝ｻ繝ｻ繝ｻ・ｰ驍ｵ・ｺ雋・ｽｷ繝ｻ・ｰ繝ｻ・ｴ髯ｷ・ｷ郢晢ｽｻtrue
+     * ??????? HOTBAR ?????????
      */
     public boolean handleSkillTreeHotbarControl(@NotNull Player player, int slot) {
         if (!shouldUseSkillTreeHotbar(player)) {
@@ -695,11 +676,11 @@ public class SkillTreeService {
         if (meta != null) {
             var lore = new java.util.ArrayList<Component>();
             lore.add(component("&8ID: &f" + node.id()));
-            lore.add(component("&8菴咲ｽｮID: &f" + node.positionId()));
-            lore.add(component("&8謇謖ヾP: &f" + state.skillPoints()));
-            lore.add(component(unlocked ? "&6笳・隗｣謾ｾ貂医∩繝弱・繝・笳・ : "&7笳・譛ｪ隗｣謾ｾ繝弱・繝・笳・));
-            lore.add(component("&e蟾ｦ繧ｯ繝ｪ繝・け&7縺ｧ繝弱・繝峨ｒ隗｣謾ｾ"));
-            lore.add(component("&6蜿ｳ繧ｯ繝ｪ繝・け&7縺ｧ繝弱・繝峨ｒ隗｣髯､ &8(100G)"));
+            lore.add(component("&8??ID: &f" + node.positionId()));
+            lore.add(component("&8??SP: &f" + state.skillPoints()));
+            lore.add(component(unlocked ? "&6? ??????? ?" : "&7? ?????? ?"));
+            lore.add(component("&e?????&7???????"));
+            lore.add(component("&6?????&7??????? &8(100G)"));
             appendNodeSkillInfo(lore, node);
             appendNodeStatusInfo(lore, node);
             if (!node.lore().isEmpty()) {
@@ -717,7 +698,7 @@ public class SkillTreeService {
             return;
         }
         lore.add(component(""));
-        lore.add(component("&b邏舌▼縺上せ繧ｭ繝ｫ"));
+        lore.add(component("&b?????"));
         for (String rawSkillId : node.skillIds()) {
             if (rawSkillId == null || rawSkillId.isBlank()) {
                 continue;
@@ -729,13 +710,13 @@ public class SkillTreeService {
             }
             var definition = skillService.registry().getDefinition(skillId);
             if (definition == null) {
-                lore.add(component("&7- &f" + skillId + " &8(譛ｪ隱ｭ霎ｼ)"));
+                lore.add(component("&7- &f" + skillId + " &8(???)"));
                 continue;
             }
-            String kindLabel = definition.getKind().isPassive() ? "繝代ャ繧ｷ繝・ : "逋ｺ蜍・;
+            String kindLabel = definition.getKind().isPassive() ? "????" : "?????";
             String triggerLabel = definition.getKind().isPassive()
-                    ? (definition.getPassiveBindRequired() ? "隕√ヰ繧､繝ｳ繝・ : "謇謖√・縺ｿ")
-                    : "繧｢繧ｯ繝・ぅ繝・;
+                    ? (definition.getPassiveBindRequired() ? "?????" : "????")
+                    : "?????";
             lore.add(component("&7- &f" + stripLegacy(definition.getName()) + " &8[" + kindLabel + " / " + triggerLabel + "]"));
             lore.add(component("&8  ID: " + definition.getId()));
         }
@@ -746,7 +727,7 @@ public class SkillTreeService {
             return;
         }
         lore.add(component(""));
-        lore.add(component("&a繝弱・繝峨せ繝・・繧ｿ繧ｹ"));
+        lore.add(component("&a????????"));
         for (SkillTreeNodeStatusDefinition status : node.statuses()) {
             boolean scalar = status.type() == StatusModifierType.SCALAR;
             double displayValue = scalar ? status.value() * 100.0D : status.value();
@@ -780,13 +761,13 @@ public class SkillTreeService {
         ItemStack itemStack = new ItemStack(Material.GRAY_DYE);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(component("&7繧ｹ繧ｭ繝ｫ繝弱・繝画ュ蝣ｱ"));
+            meta.displayName(component("&7????????"));
             meta.lore(List.of(
-                    component("&8隕也ｷ壼・縺ｫ繧ｹ繧ｭ繝ｫ繝弱・繝峨′縺ゅｊ縺ｾ縺帙ｓ"),
-                    component("&7繝弱・繝峨∈辣ｧ貅悶ｒ蜷医ｏ縺帙ｋ縺ｨ隧ｳ邏ｰ縺瑚｡ｨ遉ｺ縺輔ｌ縺ｾ縺・),
+                    component("&8????????????????"),
+                    component("&7?????????????????????"),
                     component(""),
-                    component("&eslot7 &7: ActionBar陦ｨ遉ｺ蛻・崛"),
-                    component("&cslot8 &7: 諡轤ｹ縺ｸ謌ｻ繧・)
+                    component("&eslot7 &7: ActionBar????"),
+                    component("&cslot8 &7: ?????")
             ));
             meta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(meta);
@@ -811,13 +792,14 @@ public class SkillTreeService {
         ItemStack itemStack = new ItemStack(Material.RED_BED);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(component("&c諡轤ｹ縺ｸ謌ｻ繧・));
-            meta.lore(List.of(component("&7繧ｹ繧ｭ繝ｫ繝・Μ繝ｼ繧帝屬繧後※蜈・・蝣ｴ謇縺ｸ謌ｻ繧翫∪縺・)));
+            meta.displayName(component("&c?????"));
+            meta.lore(List.of(component("&7???????????????????")));
             meta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(meta);
         }
         return itemStack;
     }
+
     @NotNull
     private ItemStack createActionBarToggleItem(@NotNull Player player) {
         SkillTreeActionBarMode mode = actionBarModes.getOrDefault(player.getUniqueId(), SkillTreeActionBarMode.RESOURCE_STATUS);
@@ -826,17 +808,18 @@ public class SkillTreeService {
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
             meta.displayName(component(resourceStatus
-                    ? "&bActionBar陦ｨ遉ｺ: &f繝ｪ繧ｽ繝ｼ繧ｹHUD"
-                    : "&bActionBar陦ｨ遉ｺ: &f繝弱・繝峨ぎ繧､繝・));
+                    ? "&bActionBar??: &f????HUD"
+                    : "&bActionBar??: &f??????"));
             meta.lore(List.of(
-                    component("&7繧ｯ繝ｪ繝・け縺ｧ陦ｨ遉ｺ蜀・ｮｹ繧貞・繧頑崛縺・),
-                    component(resourceStatus ? "&8迴ｾ蝨ｨ: &fHP / MP / ENG" : "&8迴ｾ蝨ｨ: &f繝弱・繝峨ぎ繧､繝・)
+                    component("&7??????????????"),
+                    component(resourceStatus ? "&8??: &fHP / MP / ENG" : "&8??: &f??????")
             ));
             meta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(meta);
         }
         return itemStack;
     }
+
     private void registerSkillTreeHud(@NotNull Player player) {
         actionBarModes.putIfAbsent(player.getUniqueId(), SkillTreeActionBarMode.RESOURCE_STATUS);
         if (playerHudService == null) {
