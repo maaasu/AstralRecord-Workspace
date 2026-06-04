@@ -175,8 +175,9 @@ public final class LoginBonusGui {
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text(japaneseWeekday(date.getDayOfWeek()), NamedTextColor.DARK_GRAY));
         lore.add(RewardDisplayFormatter.rewardLine(goldRewardModel, DAILY_LOGIN_BONUS_GOLD));
-        if (isHoliday(date)  || date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY)
+        if (isHolidayBonusDate(date)) {
             lore.add(RewardDisplayFormatter.rewardLine(astraldRewardModel, HOLIDAY_LOGIN_BONUS_ASTRALD));
+        }
         lore.add(Component.empty());
         if (received) {
             lore.add(Component.text("受け取り済み", NamedTextColor.GREEN));
@@ -203,7 +204,7 @@ public final class LoginBonusGui {
         if (date.isBefore(today)) {
             return Material.GRAY_TERRACOTTA;
         }
-        if (isHoliday(date) || date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY) {
+        if (isHolidayBonusDate(date)) {
             return Material.MAP;
         }
         return Material.PAPER;
@@ -253,8 +254,8 @@ public final class LoginBonusGui {
         return component.decoration(TextDecoration.ITALIC, false);
     }
 
-    private boolean isHoliday(@NotNull LocalDate date) {
-        return LoginBonusHoliday.isJapaneseHoliday(date);
+    private boolean isHolidayBonusDate(@NotNull LocalDate date) {
+        return LoginBonusHoliday.isHolidayBonusDate(date);
     }
 
     private @NotNull String japaneseWeekday(@NotNull DayOfWeek dayOfWeek) {

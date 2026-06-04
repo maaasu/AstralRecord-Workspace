@@ -25,6 +25,19 @@ public final class LoginBonusHoliday {
         return holidays.contains(date) || substituteHolidays(holidays).contains(date);
     }
 
+    /**
+     * ログインボーナスの休日加算対象日かどうかを返します。
+     *
+     * @param date 判定日
+     * @return 土日または日本の祝日の場合は true
+     */
+    public static boolean isHolidayBonusDate(@NotNull LocalDate date) {
+        DayOfWeek dayOfWeek = date.getDayOfWeek();
+        return dayOfWeek == DayOfWeek.SATURDAY
+            || dayOfWeek == DayOfWeek.SUNDAY
+            || isJapaneseHoliday(date);
+    }
+
     private static @NotNull Set<LocalDate> holidaysOfYear(int year) {
         Set<LocalDate> holidays = new HashSet<>();
         holidays.add(LocalDate.of(year, 1, 1));

@@ -299,6 +299,26 @@ function Deploy-PluginArtifact {
 
     Write-Step "Copying plugin artifact to $destination"
     Copy-Item -LiteralPath $artifact.FullName -Destination $destination -Force
+
+    $paperRemappedPath = Join-Path $Component.deployPath ".paper-remapped"
+    if (-not (Test-Path -LiteralPath $paperRemappedPath)) {
+        return
+    }
+
+    $staleArtifacts = @(
+        (Join-Path $paperRemappedPath $artifact.Name)
+    )
+
+    $unknownOriginPath = Join-Path $paperRemappedPath "unknown-origin"
+    if (Test-Path -LiteralPath $unknownOriginPath) {
+        $staleArtifacts += Get-ChildItem -LiteralPath $unknownOriginPath -Filter "$($artifact.BaseName)-*.jar" -File |
+            Select-Object -ExpandProperty FullName
+    }
+
+    foreach ($staleArtifactPath in $staleArtifacts | Where-Object { $_ -and (Test-Path -LiteralPath $_) }) {
+        Write-Step "Removing stale paper remapped artifact $staleArtifactPath"
+        Remove-Item -LiteralPath $staleArtifactPath -Force
+    }
 }
 
 function Invoke-IisReset {

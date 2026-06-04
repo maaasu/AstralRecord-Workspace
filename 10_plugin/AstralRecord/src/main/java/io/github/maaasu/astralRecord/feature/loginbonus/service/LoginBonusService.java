@@ -141,7 +141,7 @@ public final class LoginBonusService {
         if (grantedGold <= 0) {
             return false;
         }
-        if (!LoginBonusHoliday.isJapaneseHoliday(date)) {
+        if (!LoginBonusHoliday.isHolidayBonusDate(date)) {
             return true;
         }
         ItemModel astraldModel = resolveAstraldRewardModel();
