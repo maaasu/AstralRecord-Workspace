@@ -36,7 +36,7 @@ import java.util.UUID;
 final class SkillTreeVisualizer {
     private static final long INTERVAL_TICKS = 10L;
     private static final double VIEW_DISTANCE_SQ = 96.0D * 96.0D;
-    private static final double EDGE_STEP = 0.75D;
+    private static final double EDGE_STEP = 0.45D;
 
     private final Plugin plugin;
     private final SkillTreeService service;
