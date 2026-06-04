@@ -598,11 +598,11 @@ public class SkillTreeService {
         if (meta != null) {
             var lore = new java.util.ArrayList<Component>();
             lore.add(component("&8ID: &f" + node.id()));
-            lore.add(component("&8Position: &f" + node.positionId()));
-            lore.add(component("&8SkillPoint: &f" + state.skillPoints()));
-            lore.add(component(unlocked ? "&6Unlocked" : "&7Locked"));
-            lore.add(component("&eLeft click&7: unlock node"));
-            lore.add(component("&eRight click&7: relock node (&f100G&7)"));
+            lore.add(component("&8位置ID: &f" + node.positionId()));
+            lore.add(component("&8所持SP: &f" + state.skillPoints()));
+            lore.add(component(unlocked ? "&6◆ 解放済みノード ◆" : "&7◆ 未解放ノード ◆"));
+            lore.add(component("&e左クリック&7でノードを解放"));
+            lore.add(component("&6右クリック&7でノードを解除 &8(100G)"));
             if (!node.lore().isEmpty()) {
                 lore.add(component(""));
                 node.lore().forEach(line -> lore.add(component("&7" + line)));
@@ -618,11 +618,13 @@ public class SkillTreeService {
         ItemStack itemStack = new ItemStack(Material.GRAY_DYE);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(component("&7No skill node targeted"));
+            meta.displayName(component("&7スキルノード情報"));
             meta.lore(List.of(
-                    component("&7Look at a node to inspect it"),
-                    component("&eslot7 &7: toggle ActionBar"),
-                    component("&cslot8 &7: return to base")
+                    component("&8視線先にスキルノードがありません"),
+                    component("&7ノードへ照準を合わせると詳細が表示されます"),
+                    component(""),
+                    component("&eslot7 &7: ActionBar表示切替"),
+                    component("&cslot8 &7: 拠点へ戻る")
             ));
             meta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(meta);
@@ -647,8 +649,8 @@ public class SkillTreeService {
         ItemStack itemStack = new ItemStack(Material.RED_BED);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(component("&cReturn to Base"));
-            meta.lore(List.of(component("&7Leave the skill tree world")));
+            meta.displayName(component("&c拠点へ戻る"));
+            meta.lore(List.of(component("&7スキルツリーを離れて元の場所へ戻ります")));
             meta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(meta);
         }
@@ -662,11 +664,11 @@ public class SkillTreeService {
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
             meta.displayName(component(resourceStatus
-                    ? "&bActionBar: &fResource HUD"
-                    : "&bActionBar: &fNode Guide"));
+                    ? "&bActionBar表示: &fリソースHUD"
+                    : "&bActionBar表示: &fノードガイド"));
             meta.lore(List.of(
-                    component("&7Select slot to toggle"),
-                    component(resourceStatus ? "&8Current: &fHP / MP / ENG" : "&8Current: &fNode Guide")
+                    component("&7クリックで表示内容を切り替え"),
+                    component(resourceStatus ? "&8現在: &fHP / MP / ENG" : "&8現在: &fノードガイド")
             ));
             meta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(meta);
