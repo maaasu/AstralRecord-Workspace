@@ -2,7 +2,7 @@ package io.github.maaasu.astralRecord.feature.mob.command;
 
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
-import io.github.maaasu.astralRecord.feature.mob.spawner.service.MobSpawnerService;
+import io.github.maaasu.astralRecord.feature.spawner.service.MobSpawnerService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;

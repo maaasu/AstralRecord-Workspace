@@ -1,7 +1,7 @@
 package io.github.maaasu.astralRecord.feature.mob.command;
 
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
-import io.github.maaasu.astralRecord.feature.mob.spawner.service.MobSpawnerService;
+import io.github.maaasu.astralRecord.feature.spawner.service.MobSpawnerService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.command.AstTabCompleter;
 import org.jetbrains.annotations.NotNull;

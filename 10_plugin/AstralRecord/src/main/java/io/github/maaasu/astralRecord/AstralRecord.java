@@ -58,10 +58,10 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobDropPresentationServ
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobKnockbackService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
-import io.github.maaasu.astralRecord.feature.mob.spawner.event.MobSpawnerBlockEventHandler;
-import io.github.maaasu.astralRecord.feature.mob.spawner.repository.MobSpawnerDefinitionRepository;
-import io.github.maaasu.astralRecord.feature.mob.spawner.repository.MobSpawnerLocationRepository;
-import io.github.maaasu.astralRecord.feature.mob.spawner.service.MobSpawnerService;
+import io.github.maaasu.astralRecord.feature.spawner.event.MobSpawnerBlockEventHandler;
+import io.github.maaasu.astralRecord.feature.spawner.repository.MobSpawnerDefinitionRepository;
+import io.github.maaasu.astralRecord.feature.spawner.repository.MobSpawnerLocationRepository;
+import io.github.maaasu.astralRecord.feature.spawner.service.MobSpawnerService;
 import io.github.maaasu.astralRecord.feature.party.event.PartyGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.party.event.PartyQuitEventHandler;
 import io.github.maaasu.astralRecord.feature.party.gui.PartyGui;
@@ -413,7 +413,7 @@ public final class AstralRecord extends JavaPlugin {
         buffAcquisitionDisplayService = new BuffAcquisitionDisplayService(displayTextService);
         potionUseService = new PotionUseService(inventoryService, statusService, buffAcquisitionDisplayService);
         statusRegenTask = new StatusRegenTask(statusService);
-        playerHudService = new PlayerHudService(statusService, playerClassService);
+        playerHudService = new PlayerHudService(statusService, playerClassService, currencyService);
         skillTreeService.setPlayerHudService(playerHudService);
         overheadDisplayService = new OverheadDisplayService(displayTextService, statusService, mobService);
 

@@ -19,7 +19,7 @@ import io.github.maaasu.astralRecord.feature.menu.command.TrashCommand;
 import io.github.maaasu.astralRecord.feature.mob.command.MobCommand;
 import io.github.maaasu.astralRecord.feature.mob.command.MobTabCompleter;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
-import io.github.maaasu.astralRecord.feature.mob.spawner.service.MobSpawnerService;
+import io.github.maaasu.astralRecord.feature.spawner.service.MobSpawnerService;
 import io.github.maaasu.astralRecord.feature.party.command.PartyCommand;
 import io.github.maaasu.astralRecord.feature.party.command.PartyTabCompleter;
 import io.github.maaasu.astralRecord.feature.playersetting.command.PlayerSettingCommand;
