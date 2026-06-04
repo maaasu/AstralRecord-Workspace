@@ -264,7 +264,7 @@ final class SkillTreeVisualizer {
     }
 
     private int pointCount(@NotNull Location left, @NotNull Location right) {
-        return Math.max(1, (int) Math.floor(left.distance(right) / EDGE_STEP));
+        return Math.max(1, (int) Math.ceil(left.distance(right) / EDGE_STEP));
     }
 
     @NotNull
