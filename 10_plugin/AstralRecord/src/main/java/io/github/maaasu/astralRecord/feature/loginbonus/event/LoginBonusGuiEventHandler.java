@@ -86,7 +86,7 @@ public final class LoginBonusGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (loginBonusService.claim(player, clickedDate)) {
-            GuiSound.SELECT.play(player);
+            GuiSound.LOGIN_BONUS_REWARD.play(player);
             MenuOpenEventHandler.suppressNextCloseSound(player);
             loginBonusService.open(player, displayMonth);
         } else {
