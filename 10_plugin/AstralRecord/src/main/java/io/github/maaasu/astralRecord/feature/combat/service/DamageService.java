@@ -24,7 +24,9 @@ import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.projectiles.ProjectileSource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -155,6 +157,13 @@ public final class DamageService {
      * @return 解決済みエンティティ
      */
     public @NotNull AstEntity resolveEntity(@NotNull Entity entity) {
+        if (entity instanceof Projectile projectile) {
+            ProjectileSource shooter = projectile.getShooter();
+            if (shooter instanceof Entity shooterEntity) {
+                return resolveEntity(shooterEntity);
+            }
+        }
+
         if (entity instanceof Player player) {
             AstPlayer astPlayer = AstPlayerCache.get(player);
             if (astPlayer != null) {
