@@ -1,4 +1,4 @@
-package io.github.maaasu.astralRecord.feature.item.executor;
+﻿package io.github.maaasu.astralRecord.feature.item.executor;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
@@ -12,8 +12,8 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Bukkit;
-import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.SoundCategory;
@@ -30,24 +30,20 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * implementationId {@code normal_attack} の組み込み武器攻撃 executor です。
- */
+ * implementationId {@code normal_attack} 縺ｮ邨・∩霎ｼ縺ｿ豁ｦ蝎ｨ謾ｻ謦・executor 縺ｧ縺吶・ */
 public final class WeaponAttackSkillExecutor implements SkillExecutor {
 
     private static final String IMPLEMENTATION_ID = "normal_attack";
     private static final double DEFAULT_RANGED_GRAVITY = 0.035D;
     private static final double DEFAULT_MAGIC_HOMING_STRENGTH = 0.18D;
     private static final double DEFAULT_MAGIC_HOMING_RANGE = 4.5D;
-    private static final Particle.DustOptions MAGIC_CORE_DUST = new Particle.DustOptions(Color.fromRGB(170, 70, 255), 1.2F);
-
     private final ParticleDisplayService particleDisplayService;
     private final DamageService damageService;
 
     /**
-     * executor を構築します。
-     *
-     * @param particleDisplayService パーティクル表示サービス
-     * @param damageService          custom damage 適用サービス
+     * executor 繧呈ｧ狗ｯ峨＠縺ｾ縺吶・     *
+     * @param particleDisplayService 繝代・繝・ぅ繧ｯ繝ｫ陦ｨ遉ｺ繧ｵ繝ｼ繝薙せ
+     * @param damageService          custom damage 驕ｩ逕ｨ繧ｵ繝ｼ繝薙せ
      */
     public WeaponAttackSkillExecutor(
             @NotNull ParticleDisplayService particleDisplayService,
@@ -288,11 +284,8 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         if (!(raw instanceof String value) || value.isBlank()) {
             return defaultValue;
         }
-        try {
-            return Particle.valueOf(value.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException ignored) {
-            return defaultValue;
-        }
+        Particle resolved = SharedParticleDefinitions.resolveParticle(value);
+        return resolved == null ? defaultValue : resolved;
     }
 
     private int readIntParam(@NotNull SkillDefinition skill, @NotNull String key, int defaultValue) {
@@ -319,12 +312,10 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
     private void requireParticle(@NotNull SkillDefinition skill, @NotNull String key) {
         Object raw = skill.getParams().get(key);
         if (!(raw instanceof String value) || value.isBlank()) {
-            throw new SkillParameterException(key, "Particle を設定してください");
+            throw new SkillParameterException(key, "Particle 繧定ｨｭ螳壹＠縺ｦ縺上□縺輔＞");
         }
-        try {
-            Particle.valueOf(value.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException e) {
-            throw new SkillParameterException(key, "有効な Particle 名ではありません");
+        if (!SharedParticleDefinitions.isSupportedParticle(value)) {
+            throw new SkillParameterException(key, "譛牙柑縺ｪ Particle 蜷阪〒縺ｯ縺ゅｊ縺ｾ縺帙ｓ");
         }
     }
 
@@ -334,10 +325,10 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             return;
         }
         if (!(raw instanceof Number number)) {
-            throw new SkillParameterException(key, "number を設定してください");
+            throw new SkillParameterException(key, "number 繧定ｨｭ螳壹＠縺ｦ縺上□縺輔＞");
         }
         if (number.intValue() < 0) {
-            throw new SkillParameterException(key, "0 以上を設定してください");
+            throw new SkillParameterException(key, "0 莉･荳翫ｒ險ｭ螳壹＠縺ｦ縺上□縺輔＞");
         }
     }
 
@@ -347,10 +338,10 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             return;
         }
         if (!(raw instanceof Number number)) {
-            throw new SkillParameterException(key, "number を設定してください");
+            throw new SkillParameterException(key, "number 繧定ｨｭ螳壹＠縺ｦ縺上□縺輔＞");
         }
         if (number.doubleValue() < 0.0D) {
-            throw new SkillParameterException(key, "0 以上を設定してください");
+            throw new SkillParameterException(key, "0 莉･荳翫ｒ險ｭ螳壹＠縺ｦ縺上□縺輔＞");
         }
     }
 
@@ -462,13 +453,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                     caster.player(),
                     location.getWorld(),
                     location,
-                    Particle.DUST,
-                    3,
-                    0.03D,
-                    0.03D,
-                    0.03D,
-                    0.0D,
-                    MAGIC_CORE_DUST
+                    SharedParticleDefinitions.MAGIC_PROJECTILE_CORE_DUST
             );
         }
     }
@@ -485,24 +470,13 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 caster.player(),
                 location.getWorld(),
                 location,
-                Particle.ENCHANT,
-                8,
-                0.12D,
-                0.12D,
-                0.12D,
-                0.05D
+                SharedParticleDefinitions.MAGIC_IMPACT_ENCHANT
         );
         particleDisplayService.spawnWorld(
                 caster.player(),
                 location.getWorld(),
                 location,
-                Particle.DUST,
-                8,
-                0.08D,
-                0.08D,
-                0.08D,
-                0.0D,
-                MAGIC_CORE_DUST
+                SharedParticleDefinitions.MAGIC_IMPACT_DUST
         );
     }
 

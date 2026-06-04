@@ -6,8 +6,8 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
-import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
@@ -60,23 +60,13 @@ public final class FireBoostSkillExecutor implements SkillExecutor {
             caster.player(),
             player.getWorld(),
             baseLocation,
-            Particle.FLAME,
-            flameCount,
-            0.4D,
-            0.6D,
-            0.4D,
-            0.03D
+            SharedParticleDefinitions.FIRE_BOOST_FLAME.withCount(flameCount)
         );
         particleDisplayService.spawnWorld(
             caster.player(),
             player.getWorld(),
             baseLocation,
-            Particle.LAVA,
-            lavaCount,
-            0.2D,
-            0.4D,
-            0.2D,
-            0.01D
+            SharedParticleDefinitions.FIRE_BOOST_LAVA.withCount(lavaCount)
         );
         player.playSound(player.getLocation(), Sound.ITEM_FIRECHARGE_USE, 1.0F, 1.2F);
 

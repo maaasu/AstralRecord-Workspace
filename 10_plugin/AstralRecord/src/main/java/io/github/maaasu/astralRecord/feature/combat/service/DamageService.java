@@ -15,9 +15,10 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
@@ -41,6 +42,7 @@ public final class DamageService {
     private final DamageCalculator damageCalculator;
     private final DisplayTextService displayTextService;
     private final PlayerSettingService playerSettingService;
+    private final ParticleDisplayService particleDisplayService = new ParticleDisplayService();
 
     /**
      * サービスを構築します。
@@ -267,8 +269,18 @@ public final class DamageService {
         if (world == null) {
             return;
         }
-        world.spawnParticle(Particle.POOF, location.clone().add(0.0D, 0.8D, 0.0D), 28, 0.45D, 0.35D, 0.45D, 0.02D);
-        world.spawnParticle(Particle.CRIT, location.clone().add(0.0D, 0.9D, 0.0D), 18, 0.35D, 0.3D, 0.35D, 0.1D);
+        particleDisplayService.spawnWorld(
+            world,
+            location.clone().add(0.0D, 0.8D, 0.0D),
+            SharedParticleDefinitions.MOB_DEATH_POOF,
+            1.0D
+        );
+        particleDisplayService.spawnWorld(
+            world,
+            location.clone().add(0.0D, 0.9D, 0.0D),
+            SharedParticleDefinitions.MOB_DEATH_CRIT,
+            1.0D
+        );
         world.playSound(location, Sound.ENTITY_GENERIC_DEATH, 0.8F, 1.1F);
     }
 

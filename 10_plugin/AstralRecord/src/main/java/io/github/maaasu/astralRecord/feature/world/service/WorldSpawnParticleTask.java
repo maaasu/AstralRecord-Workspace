@@ -2,8 +2,8 @@ package io.github.maaasu.astralRecord.feature.world.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
-import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
@@ -82,10 +82,7 @@ public class WorldSpawnParticleTask {
             particleDisplayService.spawnWorld(
                 world,
                 spawn.clone().add(x, y, z),
-                Particle.END_ROD,
-                1,
-                0.0D, 0.0D, 0.0D,
-                0.0D,
+                SharedParticleDefinitions.WORLD_SPAWN_RING_END_ROD,
                 1.0D
             );
         }

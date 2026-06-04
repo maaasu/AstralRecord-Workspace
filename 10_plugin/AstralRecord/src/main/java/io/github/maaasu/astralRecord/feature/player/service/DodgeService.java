@@ -6,8 +6,8 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
-import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
@@ -211,10 +211,7 @@ public class DodgeService {
             astPlayer,
             player.getWorld(),
             player.getLocation().add(0.0D, 0.2D, 0.0D),
-            Particle.CLOUD,
-            PARTICLE_COUNT,
-            0.2D, 0.05D, 0.2D,
-            0.0D
+            SharedParticleDefinitions.DODGE_CLOUD.withCount(PARTICLE_COUNT)
         );
     }
 

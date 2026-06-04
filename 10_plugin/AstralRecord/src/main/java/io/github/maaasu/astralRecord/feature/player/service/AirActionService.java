@@ -5,9 +5,9 @@ import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
-import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
@@ -186,10 +186,7 @@ public class AirActionService {
             astPlayer,
             player.getWorld(),
             player.getLocation().add(0.0D, 0.2D, 0.0D),
-            Particle.CLOUD,
-            AIR_ACTION_PARTICLE_COUNT,
-            0.18D, 0.05D, 0.18D,
-            0.0D
+            SharedParticleDefinitions.AIR_ACTION_CLOUD.withCount(AIR_ACTION_PARTICLE_COUNT)
         );
     }
 
@@ -251,10 +248,7 @@ public class AirActionService {
             astPlayer,
             player.getWorld(),
             player.getLocation().add(0.0D, 0.2D, 0.0D),
-            Particle.CLOUD,
-            AIR_ACTION_PARTICLE_COUNT,
-            0.20D, 0.05D, 0.20D,
-            0.0D
+            SharedParticleDefinitions.AIR_ACTION_CLOUD.withCount(AIR_ACTION_PARTICLE_COUNT)
         );
     }
 

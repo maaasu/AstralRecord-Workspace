@@ -3,9 +3,10 @@ package io.github.maaasu.astralRecord.feature.mob.spawner.service;
 import io.github.maaasu.astralRecord.feature.mob.spawner.model.MobSpawnerLocation;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Location;
-import org.bukkit.Particle;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
@@ -30,6 +31,7 @@ final class MobSpawnerVisualizer {
 
     private final Plugin plugin;
     private final MobSpawnerService spawnerService;
+    private final ParticleDisplayService particleDisplayService = new ParticleDisplayService();
     private final Map<String, SpawnerVisual> displays = new HashMap<>();
     private BukkitTask task;
 
@@ -111,7 +113,12 @@ final class MobSpawnerVisualizer {
             boolean visible = isVisibleTo(player, location);
             if (visible) {
                 display.show(plugin, player);
-                player.spawnParticle(Particle.ENCHANT, location.clone().add(0.0D, 0.75D, 0.0D), 3, 0.35D, 0.35D, 0.35D, 0.0D);
+                particleDisplayService.spawnForViewer(
+                    player,
+                    location.clone().add(0.0D, 0.75D, 0.0D),
+                    SharedParticleDefinitions.SPAWNER_VISUAL_ENCHANT,
+                    1.0D
+                );
             } else {
                 display.hide(plugin, player);
             }

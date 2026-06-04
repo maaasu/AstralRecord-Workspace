@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.item.service;
 
 import io.github.maaasu.astralRecord.infrastructure.database.file.FileDatabaseManager;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Particle;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.jetbrains.annotations.NotNull;
@@ -104,20 +105,7 @@ public class BundleUseEffectService {
     }
 
     private @Nullable Particle parseParticle(@Nullable String raw) {
-        String normalized = trimToNull(raw);
-        if (normalized == null) {
-            return null;
-        }
-
-        String enumName = normalized
-            .replace(' ', '_')
-            .replace('-', '_')
-            .toUpperCase(Locale.ROOT);
-        try {
-            return Particle.valueOf(enumName);
-        } catch (IllegalArgumentException ignored) {
-            return null;
-        }
+        return SharedParticleDefinitions.resolveParticle(raw);
     }
 
     public record BundleUseSound(

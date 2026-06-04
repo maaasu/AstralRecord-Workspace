@@ -89,3 +89,10 @@ For direct requests such as `表示アイテムを apple から iron_ingot に�
 2. Prefer enum/material/constants/resource definitions over string replacement.
 3. Update tests, filebase references, messages, and docs only when the changed contract requires it or the user asks.
 4. Run a targeted compile or test and inspect the diff for accidental broad replacements.
+
+## Particle Rules
+
+1. Particle rendering must go through io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService.
+2. Do not call World#spawnParticle(...) or Player#spawnParticle(...) directly in feature code.
+3. Shared particle species, aliases, and default visual parameters must be defined in io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions.
+4. Do not duplicate Particle.valueOf(...) parsing in feature code; use the shared resolver.

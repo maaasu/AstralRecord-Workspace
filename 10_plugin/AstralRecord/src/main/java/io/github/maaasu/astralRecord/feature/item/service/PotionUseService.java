@@ -15,6 +15,8 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -43,6 +45,7 @@ public final class PotionUseService {
     private final InventoryService inventoryService;
     private final StatusService statusService;
     private final BuffAcquisitionDisplayService buffDisplayService;
+    private final ParticleDisplayService particleDisplayService = new ParticleDisplayService();
 
     /**
      * サービスを生成します。
@@ -184,7 +187,17 @@ public final class PotionUseService {
         if (onUse.getEffect() != null && !onUse.getEffect().isBlank()) {
             Particle particle = parseParticle(onUse.getEffect());
             if (particle != null) {
-                world.spawnParticle(particle, location.clone().add(0.0D, 1.0D, 0.0D), 16, 0.35D, 0.45D, 0.35D, 0.02D);
+                particleDisplayService.spawnWorld(
+                    astPlayer,
+                    world,
+                    location.clone().add(0.0D, 1.0D, 0.0D),
+                    particle,
+                    16,
+                    0.35D,
+                    0.45D,
+                    0.35D,
+                    0.02D
+                );
             }
         }
     }
@@ -194,11 +207,6 @@ public final class PotionUseService {
     }
 
     private @Nullable Particle parseParticle(@NotNull String raw) {
-        String enumName = raw.trim().replace('-', '_').toUpperCase(Locale.ROOT);
-        try {
-            return Particle.valueOf(enumName);
-        } catch (IllegalArgumentException ignored) {
-            return null;
-        }
+        return SharedParticleDefinitions.resolveParticle(raw);
     }
 }

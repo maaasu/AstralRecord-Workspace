@@ -71,3 +71,9 @@
 ## ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹ã‚·ã‚¹ãƒ†ãƒ 
 
 ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹ã®è©³ç´°ä»•æ§˜ã¯æœ¬ã‚¬ã‚¤ãƒ‰ã«é‡è¤‡è¨˜è¼‰ã›ãšã€æ­£æœ¬ã¯ `E:\AstralRecord-Workspace\00_docs\10_ãƒ—ãƒ©ã‚°ã‚¤ãƒ³è¨­è¨ˆæ›¸\feature\07-status` ã¨ã—ã¾ã™ã€‚æ”»æ’ƒãƒ»é˜²å¾¡ãƒ»é­”æ³•ã® 3 ç¨®åˆ¥ã§æ§‹æˆã•ã‚Œã€æ­¦å™¨ã«ã¯æ”»æ’ƒåŠ›ï¼ˆATTACKï¼‰ã®ã¿ã‚’ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹ã¨ã—ã¦æŒãŸã›ã€è·æ¥­ã”ã¨ã«å†…éƒ¨ã§ãƒ€ãƒ¡ãƒ¼ã‚¸è¨ˆç®—ã‚’è¡Œã„ã¾ã™ã€‚
+
+## ƒp[ƒeƒBƒNƒ‹‹¤’Êƒ‹[ƒ‹
+
+- ƒp[ƒeƒBƒNƒ‹‚Í io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService Œo—R‚Å•\¦‚·‚éB
+- feature ‘¤‚Å World#spawnParticle(...) / Player#spawnParticle(...) ‚ğ’¼ŒÄ‚Ñ‚µ‚È‚¢B
+- í•ÊEƒGƒCƒŠƒAƒXEŠù’è‚ÌŒ©‚½–Ú‚Í io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions ‚ÉW–ñ‚·‚éB

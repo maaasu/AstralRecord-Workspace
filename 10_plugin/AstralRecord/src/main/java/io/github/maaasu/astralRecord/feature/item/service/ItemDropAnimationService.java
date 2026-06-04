@@ -1,8 +1,9 @@
 package io.github.maaasu.astralRecord.feature.item.service;
 
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
-import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
@@ -32,6 +33,7 @@ public final class ItemDropAnimationService {
 
     private final Plugin plugin;
     private final ItemStackFactory itemStackFactory;
+    private final ParticleDisplayService particleDisplayService = new ParticleDisplayService();
 
     /**
      * サービスを初期化します。
@@ -110,7 +112,12 @@ public final class ItemDropAnimationService {
                 }
 
                 if (!landed) {
-                    viewer.spawnParticle(Particle.CRIT, landing, 10, 0.18D, 0.04D, 0.18D, 0.03D);
+                    particleDisplayService.spawnForViewer(
+                        viewer,
+                        landing,
+                        SharedParticleDefinitions.ITEM_DROP_LAND_CRIT,
+                        1.0D
+                    );
                     landed = true;
                 }
 
@@ -129,7 +136,12 @@ public final class ItemDropAnimationService {
                     return;
                 }
 
-                viewer.spawnParticle(Particle.END_ROD, target, 8, 0.16D, 0.22D, 0.16D, 0.01D);
+                particleDisplayService.spawnForViewer(
+                    viewer,
+                    target,
+                    SharedParticleDefinitions.ITEM_DROP_COLLECT_END_ROD,
+                    1.0D
+                );
                 viewer.playSound(target, org.bukkit.Sound.ENTITY_ITEM_PICKUP, 0.45F, 1.35F);
                 removeIfValid(display);
                 if (onCollected != null) {
