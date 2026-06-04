@@ -1,0 +1,3 @@
+interface:
+  display_name: "AstralRecord Code Version Commit Develop"
+  short_description: "Run AstralRecord implementation, plugin version update when needed, and develop commit in sequence"

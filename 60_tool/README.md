@@ -94,6 +94,7 @@ API / WEB は配置直前に `app_offline.htm` を配置先へ一時作成し、
   - プロジェクト: `E:\AstralRecord-Workspace\10_plugin\AstralRecord`
   - ビルド成果物: `E:\AstralRecord-Workspace\10_plugin\AstralRecord\dist`
   - 配置先: `\\192.168.0.88\server\CraftyController\crafty-__saas-windows-medium-amd64__-_03629d64\servers\5bf4f70b-2c02-4a6b-b23f-8453237d2d97\plugins`
+  - 配置ファイル名: `AstralRecord.jar`
 - FileDatabase
   - 開発環境: `E:\AstralRecord-Workspace\40_filebase`
   - 配置先: `\\192.168.0.88\server\FileDatabase\file`
@@ -103,6 +104,6 @@ API / WEB は配置直前に `app_offline.htm` を配置先へ一時作成し、
 
 - 実行には `dotnet`、`mvn`、`robocopy`、`iisreset` が必要です。
 - `iisreset` のリモート実行権限がない場合は IIS の停止と起動に失敗します。
-- プラグインは `AstralRecord-*.jar` を配置先から削除して、最新 jar を 1 つだけ配置します。
+- プラグインは配置前に `AstralRecord.jar` と `AstralRecord-*.jar` を削除し、最新ビルドを `AstralRecord.jar` として 1 つだけ配置します。
 - FileDatabase はフォルダ同期で反映します。初期設定では実行環境の `99.work` は削除しません。
 - `bak` は履歴を複数世代で持つ仕組みではありません。毎回上書きされます。

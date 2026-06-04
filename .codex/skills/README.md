@@ -206,31 +206,58 @@ Use $astralrecord-commit-develop to commit plugin implementation changes for E:\
 - `git add .` や `git add -A` は使わず、対象ファイルを個別に stage する。
 - `EXCLUDE` と分類されたファイルは、明示的な指示がない限り stage しない。
 
-## `$astralrecord-code-commit-develop`
+## `$astralrecord-plugin-version`
 
-`$astralrecord-code` で AstralRecord の実装を行った直後に、同じ対象について `$astralrecord-commit-develop` で `develop` へコミットする統合 skill。
+AstralRecord Plugin (`10_plugin/AstralRecord`) の版番号を更新する skill。`pom.xml` の `<version>` を正本として、SemVer ベースの開発版・リリース版・RC/alpha/beta へ更新する。
 
 ### 使う場面
 
-- 実装からコミットまでを 1 回の依頼で続けて進めたい。
-- plugin / API / Web / `.codex/skills` の変更を、既存の実装 skill と既存のコミット skill の順でそのまま実行したい。
-- 実装ルールとコミットルールを別々に再説明せず、既存 skill の参照だけでつなぎたい。
+- プラグイン実装後に、コミット前の版番号を確定したい。
+- `1.0-SNAPSHOT` のような曖昧な開発版から、`1.0.0-dev.YYYYMMDD.N` のように細かく管理したい。
+- `plugin.yml` を直接触らず、Maven の `project.version` を安全に更新したい。
 
 ### 実行例
 
 ```text
-Use $astralrecord-code-commit-develop to implement the requested API behavior for E:\AstralRecord-Workspace\20_api\AstralRecordApi and commit the resulting files to develop.
+Use $astralrecord-plugin-version to update the plugin version for E:\AstralRecord-Workspace\10_plugin\AstralRecord and report the result.
 ```
 
 ```text
-Use $astralrecord-code-commit-develop to implement the requested skill change for E:\AstralRecord-Workspace\.codex\skills and commit the resulting files to develop.
+Use $astralrecord-plugin-version to bump the plugin to a release candidate for E:\AstralRecord-Workspace\10_plugin\AstralRecord and report the result.
 ```
 
 ### 注意点
 
-- 実装そのもののルールは `$astralrecord-code` を正本とし、この skill では再定義しない。
+- `src/main/resources/plugin.yml` は `${project.version}` 参照のため、原則 `pom.xml` だけを更新する。
+- デフォルトではコミットハッシュを版番号に埋め込まない。必要な追跡情報はコミット結果として別管理する。
+- plugin 以外だけを変更した依頼には使わない。
+
+## `$astralrecord-code-version-commit-develop`
+
+`$astralrecord-code` で実装し、必要な場合だけ `$astralrecord-plugin-version` で plugin 版番号を更新し、その後 `$astralrecord-commit-develop` で `develop` へコミットする統合 skill。
+
+### 使う場面
+
+- 実装から版番号更新、コミットまでを 1 回の依頼で続けて進めたい。
+- plugin 実装時は版番号更新を入れたいが、API や docs だけの変更では自動で省略したい。
+- 実装ルール、版番号ルール、コミットルールを既存 skill の正本に委譲したまま順序だけ統合したい。
+
+### 実行例
+
+```text
+Use $astralrecord-code-version-commit-develop to implement the requested plugin behavior for E:\AstralRecord-Workspace\10_plugin\AstralRecord, update the plugin version, and commit the resulting files to develop.
+```
+
+```text
+Use $astralrecord-code-version-commit-develop to implement the requested skill change for E:\AstralRecord-Workspace\.codex\skills, skip plugin versioning if the plugin was not touched, and commit the resulting files to develop.
+```
+
+### 注意点
+
+- 実装そのもののルールは `$astralrecord-code` を正本とする。
+- plugin 変更が含まれる場合だけ `$astralrecord-plugin-version` を実行する。
 - コミット条件は `$astralrecord-commit-develop` を正本とし、現在ブランチが `develop` でない場合はその時点で停止する。
-- コミット対象は、直前の実装で変更したファイルだけに限定する。
+- コミット対象は、直前の実装と必要な版番号更新で変更したファイルだけに限定する。
 
 ## skill 追加時の README 更新
 

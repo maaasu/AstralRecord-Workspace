@@ -292,10 +292,31 @@ function Deploy-PluginArtifact {
         throw "Plugin artifact not found in $($Component.buildOutputPath) with pattern $($Component.artifactPattern)."
     }
 
-    Get-ChildItem -LiteralPath $Component.deployPath -Filter $Component.artifactPattern -File |
-        Remove-Item -Force
+    $destinationFileName = if ([string]::IsNullOrWhiteSpace($Component.deployFileName)) {
+        $artifact.Name
+    } else {
+        [string]$Component.deployFileName
+    }
 
-    $destination = Join-Path $Component.deployPath $artifact.Name
+    $cleanupPatterns = @()
+    if ($null -ne $Component.cleanupPatterns) {
+        $cleanupPatterns += @($Component.cleanupPatterns)
+    }
+    else {
+        $cleanupPatterns += @($Component.artifactPattern, $destinationFileName)
+    }
+
+    $cleanupPatterns += $artifact.Name
+    $cleanupPatterns = $cleanupPatterns |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+        Select-Object -Unique
+
+    foreach ($pattern in $cleanupPatterns) {
+        Get-ChildItem -LiteralPath $Component.deployPath -Filter $pattern -File -ErrorAction SilentlyContinue |
+            Remove-Item -Force
+    }
+
+    $destination = Join-Path $Component.deployPath $destinationFileName
 
     Write-Step "Copying plugin artifact to $destination"
     Copy-Item -LiteralPath $artifact.FullName -Destination $destination -Force
@@ -305,19 +326,23 @@ function Deploy-PluginArtifact {
         return
     }
 
-    $staleArtifacts = @(
-        (Join-Path $paperRemappedPath $artifact.Name)
-    )
+    foreach ($pattern in $cleanupPatterns) {
+        Get-ChildItem -LiteralPath $paperRemappedPath -Filter $pattern -File -ErrorAction SilentlyContinue |
+            ForEach-Object {
+                Write-Step "Removing stale paper remapped artifact $($_.FullName)"
+                Remove-Item -LiteralPath $_.FullName -Force
+            }
+    }
 
     $unknownOriginPath = Join-Path $paperRemappedPath "unknown-origin"
     if (Test-Path -LiteralPath $unknownOriginPath) {
-        $staleArtifacts += Get-ChildItem -LiteralPath $unknownOriginPath -Filter "$($artifact.BaseName)-*.jar" -File |
-            Select-Object -ExpandProperty FullName
-    }
-
-    foreach ($staleArtifactPath in $staleArtifacts | Where-Object { $_ -and (Test-Path -LiteralPath $_) }) {
-        Write-Step "Removing stale paper remapped artifact $staleArtifactPath"
-        Remove-Item -LiteralPath $staleArtifactPath -Force
+        foreach ($pattern in $cleanupPatterns) {
+            Get-ChildItem -LiteralPath $unknownOriginPath -Filter $pattern -File -ErrorAction SilentlyContinue |
+                ForEach-Object {
+                    Write-Step "Removing stale paper remapped artifact $($_.FullName)"
+                    Remove-Item -LiteralPath $_.FullName -Force
+                }
+        }
     }
 }
 

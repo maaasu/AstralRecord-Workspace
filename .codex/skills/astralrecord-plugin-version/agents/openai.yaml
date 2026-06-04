@@ -1,0 +1,3 @@
+interface:
+  display_name: "AstralRecord Plugin Version"
+  short_description: "Update the AstralRecord plugin version in pom.xml with a stable SemVer-based workflow"
