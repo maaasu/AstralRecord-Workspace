@@ -10,6 +10,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
@@ -18,9 +19,12 @@ import org.bukkit.entity.TextDisplay;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,6 +41,7 @@ final class SkillTreeVisualizer {
     private static final long INTERVAL_TICKS = 10L;
     private static final double VIEW_DISTANCE_SQ = 96.0D * 96.0D;
     private static final double EDGE_STEP = 0.75D;
+    private static final float EDGE_MARKER_SCALE = 0.18F;
 
     private final Plugin plugin;
     private final SkillTreeService service;
@@ -175,16 +180,16 @@ final class SkillTreeVisualizer {
     @NotNull
     private EdgeVisual createEdgeVisual(@NotNull Location left, @NotNull Location right) {
         int count = pointCount(left, right);
-        List<TextDisplay> purple = new ArrayList<>();
-        List<TextDisplay> gray = new ArrayList<>();
-        List<TextDisplay> white = new ArrayList<>();
-        List<TextDisplay> yellow = new ArrayList<>();
+        List<BlockDisplay> purple = new ArrayList<>();
+        List<BlockDisplay> gray = new ArrayList<>();
+        List<BlockDisplay> white = new ArrayList<>();
+        List<BlockDisplay> yellow = new ArrayList<>();
         for (int i = 1; i < count; i++) {
             Location location = interpolate(left, right, (double) i / count);
-            purple.add(spawnText(location, component("&d*")));
-            gray.add(spawnText(location, component("&7*")));
-            white.add(spawnText(location, component("&f*")));
-            yellow.add(spawnText(location, component("&e*")));
+            purple.add(spawnEdgeMarker(location, Material.PURPLE_STAINED_GLASS));
+            gray.add(spawnEdgeMarker(location, Material.LIGHT_GRAY_STAINED_GLASS));
+            white.add(spawnEdgeMarker(location, Material.WHITE_STAINED_GLASS));
+            yellow.add(spawnEdgeMarker(location, Material.YELLOW_STAINED_GLASS));
         }
         return new EdgeVisual(purple, gray, white, yellow);
     }
@@ -248,6 +253,21 @@ final class SkillTreeVisualizer {
     }
 
     @NotNull
+    private BlockDisplay spawnEdgeMarker(@NotNull Location location, @NotNull Material material) {
+        return location.getWorld().spawn(edgeMarkerLocation(location), BlockDisplay.class, display -> {
+            display.setPersistent(false);
+            display.setGravity(false);
+            display.setInvulnerable(true);
+            display.setSilent(true);
+            display.setVisibleByDefault(false);
+            display.setBillboard(Display.Billboard.FIXED);
+            display.setBrightness(new Display.Brightness(15, 15));
+            display.setTransformation(scaleTransformation(EDGE_MARKER_SCALE));
+            display.setBlock(material.createBlockData());
+        });
+    }
+
+    @NotNull
     private Location itemLocation(@NotNull Location location) {
         return location.clone().add(0.0D, 0.15D, 0.0D);
     }
@@ -255,6 +275,12 @@ final class SkillTreeVisualizer {
     @NotNull
     private Location textLocation(@NotNull Location location) {
         return location.clone().add(0.0D, 1.2D, 0.0D);
+    }
+
+    @NotNull
+    private Location edgeMarkerLocation(@NotNull Location location) {
+        double offset = EDGE_MARKER_SCALE / 2.0D;
+        return location.clone().add(-offset, 0.0D, -offset);
     }
 
     @NotNull
@@ -293,17 +319,17 @@ final class SkillTreeVisualizer {
     }
 
     private final class EdgeVisual {
-        private final List<TextDisplay> purple;
-        private final List<TextDisplay> gray;
-        private final List<TextDisplay> white;
-        private final List<TextDisplay> yellow;
+        private final List<BlockDisplay> purple;
+        private final List<BlockDisplay> gray;
+        private final List<BlockDisplay> white;
+        private final List<BlockDisplay> yellow;
         private final Map<UUID, EdgeViewerState> viewerStates = new HashMap<>();
 
         private EdgeVisual(
-                @NotNull List<TextDisplay> purple,
-                @NotNull List<TextDisplay> gray,
-                @NotNull List<TextDisplay> white,
-                @NotNull List<TextDisplay> yellow
+                @NotNull List<BlockDisplay> purple,
+                @NotNull List<BlockDisplay> gray,
+                @NotNull List<BlockDisplay> white,
+                @NotNull List<BlockDisplay> yellow
         ) {
             this.purple = purple;
             this.gray = gray;
@@ -325,7 +351,8 @@ final class SkillTreeVisualizer {
             for (int i = 0; i < purple.size(); i++) {
                 double t = (double) (i + 1) / count;
                 Location target = interpolate(left, right, t);
-                teleportAll(target, purple.get(i), gray.get(i), white.get(i), yellow.get(i));
+                Location markerLocation = edgeMarkerLocation(target);
+                teleportAll(markerLocation, purple.get(i), gray.get(i), white.get(i), yellow.get(i));
             }
         }
 
@@ -498,5 +525,14 @@ final class SkillTreeVisualizer {
                 entity.teleport(location);
             }
         }
+    }
+
+    private @NotNull Transformation scaleTransformation(float scale) {
+        return new Transformation(
+                new Vector3f(),
+                new Quaternionf(),
+                new Vector3f(scale, scale, scale),
+                new Quaternionf()
+        );
     }
 }
