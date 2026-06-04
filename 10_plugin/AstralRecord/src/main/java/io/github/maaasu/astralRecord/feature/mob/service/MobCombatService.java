@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.mob.service;
 
 import io.github.maaasu.astralRecord.feature.adventurerecord.service.AdventureRecordService;
+import io.github.maaasu.astralRecord.feature.account.model.AccountExperienceResult;
+import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.mob.model.CombatStyle;
 import io.github.maaasu.astralRecord.feature.mob.model.DamageType;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
@@ -14,8 +16,11 @@ import io.github.maaasu.astralRecord.feature.mob.model.TargetStrategy;
 import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
+import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.Bukkit;
@@ -45,6 +50,9 @@ public class MobCombatService {
     private final MobDropPresentationService dropPresentationService;
     private final PartyService partyService;
     private final AdventureRecordService adventureRecordService;
+    private final AccountService accountService;
+    private final StatusService statusService;
+    private final SkillTreeService skillTreeService;
 
     /**
      * コンストラクタ。
@@ -59,13 +67,19 @@ public class MobCombatService {
             @NotNull MobDropService dropService,
             @NotNull MobDropPresentationService dropPresentationService,
             @NotNull PartyService partyService,
-            @NotNull AdventureRecordService adventureRecordService) {
+            @NotNull AdventureRecordService adventureRecordService,
+            @NotNull AccountService accountService,
+            @NotNull StatusService statusService,
+            @NotNull SkillTreeService skillTreeService) {
         this.mobService = mobService;
         this.knockbackService = knockbackService;
         this.dropService = dropService;
         this.dropPresentationService = dropPresentationService;
         this.partyService = partyService;
         this.adventureRecordService = adventureRecordService;
+        this.accountService = accountService;
+        this.statusService = statusService;
+        this.skillTreeService = skillTreeService;
     }
 
     /**
@@ -286,6 +300,7 @@ public class MobCombatService {
                 result = new MobDropResult(List.of(), 0, 0);
             }
             results.add(result);
+            applyExperienceAndSkillPoints(recipient, result);
             adventureRecordService.recordDefeatAsync(recipient, template);
             dropPresentationService.presentAndGrant(recipient, instance.currentLocation(), template.displayName(), result);
         }
@@ -340,6 +355,31 @@ public class MobCombatService {
             return;
         }
         recipients.putIfAbsent(player.getUniqueId(), astPlayer);
+    }
+
+    private void applyExperienceAndSkillPoints(@NotNull AstPlayer recipient, @NotNull MobDropResult result) {
+        if (result.exp() <= 0) {
+            return;
+        }
+
+        AccountExperienceResult progress = accountService.grantExperience(
+                recipient.getAccount().getUuid(),
+                result.exp(),
+                recipient.getUser().getUuid()
+        );
+        recipient.setAccount(progress.updatedAccount());
+
+        if (progress.leveledUp()) {
+            skillTreeService.addSkillPoints(recipient, progress.levelUps());
+            recipient.sendMessage(
+                    PlayerMsgId.P_5835,
+                    progress.updatedAccount().getLevel(),
+                    progress.grantedExperience(),
+                    progress.levelUps()
+            );
+        }
+
+        statusService.refreshStatus(recipient);
     }
 
     private double resolvePlayerDefense(@NotNull Player target, @NotNull DamageType type) {

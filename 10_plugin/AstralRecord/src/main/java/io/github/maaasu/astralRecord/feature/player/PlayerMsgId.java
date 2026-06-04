@@ -608,6 +608,7 @@ public enum PlayerMsgId {
     P_5832(5832),
     P_5833(5833),
     P_5834(5834),
+    P_5835(5835),
     // endregion
 
     // region /feature/party 5900-5929

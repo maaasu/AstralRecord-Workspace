@@ -6,5 +6,7 @@ public class AccountUpdateRequest
     public bool? IsActive { get; set; }
     public byte? Mode { get; set; }
     public string? MenuShortcutsJson { get; set; }
+    public int? Level { get; set; }
+    public long? TotalExperience { get; set; }
     public Guid UpdatedBy { get; set; }
 }

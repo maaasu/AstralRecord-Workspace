@@ -197,6 +197,42 @@ class AccountRepository {
         }
     }
 
+    /**
+     * account.level と account.totalExperience を更新します。
+     * PUT /api/account/{targetUuid}
+     */
+    fun updateProgress(targetUuid: UUID, level: Int, totalExperience: Long, updatedBy: UUID): AccountModel {
+        val path = "/api/account/$targetUuid"
+        val body = buildAccountUpdateJson(
+            isActive = null,
+            mode = null,
+            updatedBy = updatedBy,
+            level = level,
+            totalExperience = totalExperience
+        )
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val request = ApiRequestUtil.buildRequestBuilder(path)
+                    .PUT(HttpRequest.BodyPublishers.ofString(body))
+                    .build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                if (response.statusCode() !in 200..299) {
+                    Logger.log(LogId.E_5155, "HTTP ${response.statusCode()} for PUT $path")
+                    throw IOException("Unexpected status ${response.statusCode()} for PUT $path")
+                }
+                Logger.log(LogId.D_5155, targetUuid, level, totalExperience)
+                return parseAccountModel(response.body())
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            Logger.log(LogId.E_5155, e)
+            throw RuntimeException(e)
+        } catch (e: IOException) {
+            Logger.log(LogId.E_5155, e)
+            throw e
+        }
+    }
+
     // -------------------------------------------------------
     // JSON マッピング
     // -------------------------------------------------------
@@ -215,7 +251,13 @@ class AccountRepository {
         return buildAccountUpdateJson(isActive = true, mode = null, updatedBy = updatedBy)
     }
 
-    private fun buildAccountUpdateJson(isActive: Boolean?, mode: AccountMode?, updatedBy: UUID): String {
+    private fun buildAccountUpdateJson(
+        isActive: Boolean?,
+        mode: AccountMode?,
+        updatedBy: UUID,
+        level: Int? = null,
+        totalExperience: Long? = null
+    ): String {
         return ApiRequestUtil.buildJsonBody {
             addProperty("accountName", null as String?)
             if (isActive != null) {
@@ -229,6 +271,16 @@ class AccountRepository {
                 addProperty("mode", null as Number?)
             }
             addProperty("menuShortcutsJson", null as String?)
+            if (level != null) {
+                addProperty("level", level)
+            } else {
+                addProperty("level", null as Number?)
+            }
+            if (totalExperience != null) {
+                addProperty("totalExperience", totalExperience)
+            } else {
+                addProperty("totalExperience", null as Number?)
+            }
             addProperty("updatedBy", updatedBy.toString())
         }
     }

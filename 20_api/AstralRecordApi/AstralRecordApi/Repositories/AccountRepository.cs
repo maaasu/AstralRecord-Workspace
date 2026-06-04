@@ -73,6 +73,15 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
         if (request.MenuShortcutsJson is not null)
             account.MenuShortcutsJson = request.MenuShortcutsJson;
 
+        if (request.Level.HasValue != request.TotalExperience.HasValue)
+            throw new ArgumentException("level and totalExperience must be provided together.");
+
+        if (request.Level.HasValue && request.TotalExperience.HasValue)
+        {
+            account.Level = Math.Max(1, request.Level.Value);
+            account.TotalExperience = Math.Max(0, request.TotalExperience.Value);
+        }
+
         account.UpdatedAt = DateTime.UtcNow;
         account.UpdatedBy = request.UpdatedBy;
 

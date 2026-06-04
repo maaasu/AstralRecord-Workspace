@@ -28,13 +28,21 @@ public class AccountController(IAccountRepository accountRepository) : Controlle
     [HttpPut("{uuid:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Update(Guid uuid, [FromBody] AccountUpdateRequest request)
     {
-        var updated = await accountRepository.UpdateAsync(uuid, request);
-        if (updated is null)
-            return NotFound();
+        try
+        {
+            var updated = await accountRepository.UpdateAsync(uuid, request);
+            if (updated is null)
+                return NotFound();
 
-        return Ok(updated);
+            return Ok(updated);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     /// <summary>user_idに紐づくアカウント一覧取得</summary>

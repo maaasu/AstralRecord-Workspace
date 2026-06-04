@@ -379,6 +379,7 @@ public enum LogId {
      * アカウントモードを更新しました: %s (mode=%s, updatedBy=%s)
      */
     I_5102(5102),
+    I_5103(5103),
     // endregion
 
     // region /feature/account/repository/AccountRepository.kt
@@ -430,6 +431,8 @@ public enum LogId {
      * アカウントモードの更新に失敗しました (API): %s
      */
     E_5154(5154),
+    D_5155(5155),
+    E_5155(5155),
     // endregion
 
     // region /feature/item/repository/ItemRepository.kt /feature/item/service/ItemService.java

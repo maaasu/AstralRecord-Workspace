@@ -1,11 +1,15 @@
 package io.github.maaasu.astralRecord.feature.account.service;
 
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.account.model.AccountExperienceResult;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.account.repository.AccountRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -129,6 +133,71 @@ public class AccountService {
         AccountModel updated = accountRepository.updateMode(accountUuid, mode, updatedBy);
         Logger.log(LogId.I_5102, accountUuid, mode.getValue(), updatedBy);
         return updated;
+    }
+
+    /**
+     * 指定アカウントへ経験値を加算し、必要に応じてレベルアップさせます。
+     *
+     * @param accountUuid 対象アカウント UUID
+     * @param experience 加算経験値
+     * @param updatedBy 更新者 UUID
+     * @return 経験値加算結果
+     * @throws IllegalArgumentException 対象アカウントが存在しない場合
+     */
+    public AccountExperienceResult grantExperience(UUID accountUuid, int experience, UUID updatedBy) {
+        AccountModel current = accountRepository.findByUuid(accountUuid);
+        if (current == null) {
+            throw new IllegalArgumentException("Account not found: " + accountUuid);
+        }
+        if (experience <= 0) {
+            return new AccountExperienceResult(current, current, 0, 0);
+        }
+
+        long totalExperience = current.getTotalExperience() + experience;
+        int level = Math.max(1, current.getLevel());
+        while (totalExperience >= totalRequiredExperienceForLevel(accountUuid, level + 1)) {
+            level++;
+        }
+
+        AccountModel updated = accountRepository.updateProgress(accountUuid, level, totalExperience, updatedBy);
+        int levelUps = Math.max(0, updated.getLevel() - current.getLevel());
+        if (levelUps > 0) {
+            Logger.log(LogId.I_5103, accountUuid, updated.getLevel(), updated.getTotalExperience());
+        }
+        return new AccountExperienceResult(current, updated, experience, levelUps);
+    }
+
+    private long totalRequiredExperienceForLevel(UUID accountUuid, int targetLevel) {
+        long total = 0L;
+        for (int level = 1; level < targetLevel; level++) {
+            total += requiredExperienceForNextLevel(accountUuid, level);
+        }
+        return total;
+    }
+
+    private int requiredExperienceForNextLevel(UUID accountUuid, int currentLevel) {
+        int base = 60 + (currentLevel * currentLevel * 5);
+        int tierBonus = (currentLevel / 10) * 25;
+        int[] wavePattern = {0, 8, 3, 13, 5, 17, 9, 21};
+        int waveBonus = wavePattern[Math.floorMod(currentLevel - 1, wavePattern.length)];
+        int milestoneBonus = currentLevel % 5 == 0 ? 18 + (currentLevel * 2) : 0;
+        int hashModulo = 6 + (currentLevel / 8);
+        int hashBonus = stableHash(accountUuid, currentLevel) % hashModulo;
+        return base + tierBonus + waveBonus + milestoneBonus + hashBonus;
+    }
+
+    private int stableHash(UUID accountUuid, int level) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] bytes = digest.digest((accountUuid + ":" + level).getBytes(StandardCharsets.UTF_8));
+            int value = 0;
+            for (int index = 0; index < Integer.BYTES; index++) {
+                value = (value << Byte.SIZE) | (bytes[index] & 0xFF);
+            }
+            return Math.floorMod(value, Integer.MAX_VALUE);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is not available", e);
+        }
     }
 }
 
