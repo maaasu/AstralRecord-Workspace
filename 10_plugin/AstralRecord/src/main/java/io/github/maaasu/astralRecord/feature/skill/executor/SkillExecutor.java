@@ -2,9 +2,14 @@ package io.github.maaasu.astralRecord.feature.skill.executor;
 
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
+import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
+import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillStatusModifier;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.List;
 
 /**
  * {@code implementationId} に紐づく個別スキルロジックの共通契約。
@@ -26,6 +31,15 @@ public interface SkillExecutor {
     String implementationId();
 
     /**
+     * スキル実装の種別を返します。
+     *
+     * @return スキル種別
+     */
+    default @NotNull SkillKind kind() {
+        return SkillKind.ACTIVE;
+    }
+
+    /**
      * スキルを実行します。共通検証（要求レベル・MP・cooldown）は呼び出し前に通過済みです。
      *
      * @param context 実行コンテキスト
@@ -33,6 +47,40 @@ public interface SkillExecutor {
      */
     @NotNull
     SkillCastResult cast(@NotNull SkillCastContext context);
+
+    /**
+     * パッシブスキルが有効化された直後に呼ばれます。
+     *
+     * @param context パッシブコンテキスト
+     */
+    default void onActivate(@NotNull PassiveSkillContext context) {
+    }
+
+    /**
+     * パッシブスキルが無効化される直前に呼ばれます。
+     *
+     * @param context パッシブコンテキスト
+     */
+    default void onDeactivate(@NotNull PassiveSkillContext context) {
+    }
+
+    /**
+     * パッシブスキルが有効な間、定期 tick ごとに呼ばれます。
+     *
+     * @param context パッシブコンテキスト
+     */
+    default void onTick(@NotNull PassiveSkillContext context) {
+    }
+
+    /**
+     * パッシブスキルが付与するステータス補正を返します。
+     *
+     * @param context パッシブコンテキスト
+     * @return ステータス補正一覧
+     */
+    default @NotNull List<PassiveSkillStatusModifier> passiveStatusModifiers(@NotNull PassiveSkillContext context) {
+        return List.of();
+    }
 
     /**
      * 起動時または reload 時に {@code params} の妥当性を検証します。

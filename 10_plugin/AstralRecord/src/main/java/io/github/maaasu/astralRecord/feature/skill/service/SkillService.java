@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillSummary;
@@ -188,7 +189,7 @@ public class SkillService {
                         "params 検証失敗: key=" + e.key() + ", message=" + e.getMessage());
                 continue;
             }
-            next.put(definition.getId(), definition);
+            next.put(definition.getId(), withResolvedKind(definition, executor));
         }
 
         for (SkillDefinition definition : builtInDefinitions.values()) {
@@ -210,7 +211,7 @@ public class SkillService {
                         "params 検証失敗: key=" + e.key() + ", message=" + e.getMessage());
                 continue;
             }
-            next.put(definition.getId(), definition);
+            next.put(definition.getId(), withResolvedKind(definition, executor));
         }
 
         registry.replaceDefinitions(next);
@@ -227,6 +228,9 @@ public class SkillService {
      */
     @NotNull
     public SkillCastResult canCast(@NotNull SkillCaster caster, @NotNull SkillDefinition skill) {
+        if (skill.getKind() == SkillKind.PASSIVE) {
+            return SkillCastResult.failure(PlayerMsgId.P_5805);
+        }
         if (caster.level() < skill.getRequiredLevel()) {
             return SkillCastResult.failure(PlayerMsgId.P_5800);
         }
@@ -539,6 +543,29 @@ public class SkillService {
             case MANA -> caster.consumeMana(amount);
             case ENERGY -> caster.consumeEnergy(amount);
         }
+    }
+
+    private @NotNull SkillDefinition withResolvedKind(
+            @NotNull SkillDefinition definition,
+            @NotNull SkillExecutor executor
+    ) {
+        return new SkillDefinition(
+                definition.getId(),
+                definition.getImplementationId(),
+                definition.getName(),
+                definition.getDescription(),
+                definition.getIcon(),
+                definition.getLore(),
+                definition.getCooldownTicks(),
+                definition.getManaCost(),
+                definition.getCastTimeTicks(),
+                definition.getRequiredLevel(),
+                definition.getOnCastSound(),
+                definition.getParams(),
+                definition.getTags(),
+                executor.kind(),
+                definition.getPassiveBindRequired()
+        );
     }
 
     private record CastingSession(@NotNull BukkitTask task, float originalWalkSpeed) {

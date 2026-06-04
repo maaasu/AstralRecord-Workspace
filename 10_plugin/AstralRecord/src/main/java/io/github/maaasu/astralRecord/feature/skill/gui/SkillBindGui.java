@@ -350,10 +350,11 @@ public final class SkillBindGui {
         boolean empty = skillId == null || skillId.isBlank();
         boolean owned = !empty && ownedSkillIds.contains(skillId);
         SkillDefinition skill = empty ? null : skillMap.get(skillId);
+        boolean kindMatches = skill == null || matchesBindType(type, skill);
 
         Material material = empty
             ? Material.LIGHT_GRAY_STAINED_GLASS_PANE
-            : resolveSkillMaterial(skill, owned);
+            : kindMatches ? resolveSkillMaterial(skill, owned) : Material.BARRIER;
         String label = type == SkillBindType.ACTIVE ? "アクティブ" : "パッシブ";
 
         List<Component> lore = new ArrayList<>();
@@ -367,6 +368,10 @@ public final class SkillBindGui {
             lore.add(Component.text("スキル定義が見つかりません。", NamedTextColor.RED));
         } else {
             addSkillLore(lore, skill, owned);
+            if (!kindMatches) {
+                lore.add(Component.empty());
+                lore.add(Component.text("このスロット種別には設定できません。", NamedTextColor.RED));
+            }
             lore.add(Component.empty());
             lore.add(Component.text("クリックでこのスロットから外せます。", NamedTextColor.YELLOW));
         }
@@ -425,6 +430,13 @@ public final class SkillBindGui {
 
     private void addSkillLore(@NotNull List<Component> lore, @NotNull SkillDefinition skill, boolean owned) {
         lore.add(Component.text("ID: " + skill.getId(), NamedTextColor.DARK_GRAY));
+        lore.add(Component.text("種別: " + (skill.getKind().isPassive() ? "パッシブ" : "発動スキル"), NamedTextColor.GOLD));
+        if (skill.getKind().isPassive()) {
+            lore.add(Component.text(
+                "発動条件: " + (skill.getPassiveBindRequired() ? "パッシブ枠への設定が必要" : "所持のみで常時発動"),
+                NamedTextColor.GRAY
+            ));
+        }
         lore.add(
             Component.text(
                 owned ? "習得済みスキル" : "未所持スキル",
@@ -461,6 +473,10 @@ public final class SkillBindGui {
         if (!skill.getTags().isEmpty()) {
             lore.add(Component.text("タグ: " + String.join(", ", skill.getTags()), NamedTextColor.DARK_GRAY));
         }
+    }
+
+    private boolean matchesBindType(@NotNull SkillBindType type, @NotNull SkillDefinition skill) {
+        return type == SkillBindType.PASSIVE ? skill.getKind().isPassive() : !skill.getKind().isPassive();
     }
 
     private @NotNull String formatTicks(long ticks) {

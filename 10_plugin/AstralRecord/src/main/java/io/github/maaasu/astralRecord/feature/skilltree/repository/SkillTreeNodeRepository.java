@@ -1,6 +1,9 @@
 package io.github.maaasu.astralRecord.feature.skilltree.repository;
 
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefinition;
+import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeStatusDefinition;
+import io.github.maaasu.astralRecord.feature.status.model.StatusModifierType;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.database.file.FileDatabaseManager;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -11,6 +14,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * filebase のスキルツリーノード定義を読み込むリポジトリです。
@@ -53,8 +57,40 @@ public class SkillTreeNodeRepository {
                 yaml.getString("name", id).trim(),
                 resolveMaterial(yaml.getString("icon")),
                 yaml.getStringList("lore"),
-                yaml.getStringList("tags")
+                yaml.getStringList("tags"),
+                yaml.getStringList("skillIds"),
+                parseStatuses(yaml)
         );
+    }
+
+    private @NotNull List<SkillTreeNodeStatusDefinition> parseStatuses(@NotNull YamlConfiguration yaml) {
+        List<Map<?, ?>> rows = yaml.getMapList("statuses");
+        if (rows.isEmpty()) {
+            return List.of();
+        }
+
+        List<SkillTreeNodeStatusDefinition> result = new ArrayList<>();
+        for (Map<?, ?> row : rows) {
+            Object rawStatus = row.get("status");
+            if (!(rawStatus instanceof String status) || status.isBlank()) {
+                continue;
+            }
+            StatusType statusType = resolveStatusType(status);
+            if (statusType == null) {
+                continue;
+            }
+            Object rawValue = row.get("value");
+            if (!(rawValue instanceof Number number)) {
+                continue;
+            }
+            Object rawType = row.get("type");
+            result.add(new SkillTreeNodeStatusDefinition(
+                    statusType,
+                    rawType instanceof String type ? StatusModifierType.fromRaw(type) : StatusModifierType.FLAT,
+                    number.doubleValue()
+            ));
+        }
+        return result;
     }
 
     @NotNull
@@ -64,5 +100,13 @@ public class SkillTreeNodeRepository {
         }
         Material material = Material.matchMaterial(raw.trim().toUpperCase(Locale.ROOT));
         return material == null || material == Material.AIR || !material.isItem() ? Material.NETHER_STAR : material;
+    }
+
+    private @Nullable StatusType resolveStatusType(@NotNull String raw) {
+        try {
+            return StatusType.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
     }
 }

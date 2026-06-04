@@ -92,10 +92,12 @@ import io.github.maaasu.astralRecord.feature.skill.event.SkillActionRingEventHan
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillBindGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.executor.FireBoostSkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.IronWillSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui;
 import io.github.maaasu.astralRecord.feature.skill.registry.SkillRegistry;
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillBindPresetRepository;
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillRepository;
+import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService;
@@ -184,6 +186,7 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerSettingGui playerSettingGui;
     private SkillService skillService;
     private SkillActionRingService skillActionRingService;
+    private PassiveSkillService passiveSkillService;
     private SkillTreeService skillTreeService;
     private SkillBindPresetService skillBindPresetService;
     private SkillOwnershipService skillOwnershipService;
@@ -235,18 +238,18 @@ public final class AstralRecord extends JavaPlugin {
                 new SkillTreePlayerStateRepository(this)
         );
         joinSpawnWorldId = PluginJoinSpawnWorldConfig.load(this);
-        // CommandManagerの初期化はPaper Lifecycle APIの制約上、onLoad()内で行う
-        // コマンドをここで登録し、initialize()を呼び出す
+        // CommandManager縺ｮ蛻晄悄蛹悶・Paper Lifecycle API縺ｮ蛻ｶ邏・ｸ翫｛nLoad()蜀・〒陦後≧
+        // 繧ｳ繝槭Φ繝峨ｒ縺薙％縺ｧ逋ｻ骭ｲ縺励（nitialize()繧貞他縺ｳ蜃ｺ縺・
         new CommandRegister(itemService, itemStackFactory, mobService, mobSpawnerService, worldService, skillTreeService);
         CommandManager.getInstance().initialize(this);
     }
 
     @Override
     public void onEnable() {
-        // AuditLoggerの初期化
+        // AuditLogger縺ｮ蛻晄悄蛹・
         AuditLogger.initDefault();
 
-        // すべての LogEntry 実装クラスを自動スキャンして AuditLogger を初期化
+        // 縺吶∋縺ｦ縺ｮ LogEntry 螳溯｣・け繝ｩ繧ｹ繧定・蜍輔せ繧ｭ繝｣繝ｳ縺励※ AuditLogger 繧貞・譛溷喧
         AuditLoggerRegistry.init("io.github.maaasu.astralRecord");
 
         if (!setupInfrastructure()) {
@@ -254,10 +257,10 @@ public final class AstralRecord extends JavaPlugin {
             return;
         }
 
-        // 3. featureの初期化
+        // 3. feature縺ｮ蛻晄悄蛹・
         setupFeature();
 
-        // 4. 機能層（イベント・コマンド）の登録
+        // 4. 讖溯・螻､・医う繝吶Φ繝医・繧ｳ繝槭Φ繝会ｼ峨・逋ｻ骭ｲ
         registerPluginFeatures();
     }
 
@@ -302,6 +305,9 @@ public final class AstralRecord extends JavaPlugin {
         if (skillActionRingService != null) {
             skillActionRingService.stop();
         }
+        if (passiveSkillService != null) {
+            passiveSkillService.stop();
+        }
         if (skillTreeService != null) {
             skillTreeService.stop();
         }
@@ -311,35 +317,35 @@ public final class AstralRecord extends JavaPlugin {
         if (mobService != null) {
             mobService.destroyAll();
         }
-        // AuditLoggerのシャットダウン
+        // AuditLogger縺ｮ繧ｷ繝｣繝・ヨ繝繧ｦ繝ｳ
         AuditLogger.shutdownDefault();
         AuditLoggerRegistry.shutdownAll();
-        // コマンドマネージャーのシャットダウン
+        // 繧ｳ繝槭Φ繝峨・繝阪・繧ｸ繝｣繝ｼ縺ｮ繧ｷ繝｣繝・ヨ繝繧ｦ繝ｳ
         CommandManager.getInstance().shutdown();
         getServer().getScheduler().cancelTasks(this);
         SqlServerManager.getInstance().shutdown();
     }
 
     /**
-     * 設定ファイル、データベース等の基盤部分をセットアップ
-     * @return 成功した場合はtrue
+     * 險ｭ螳壹ヵ繧｡繧､繝ｫ縲√ョ繝ｼ繧ｿ繝吶・繧ｹ遲峨・蝓ｺ逶､驛ｨ蛻・ｒ繧ｻ繝・ヨ繧｢繝・・
+     * @return 謌仙粥縺励◆蝣ｴ蜷医・true
      */
     private boolean setupInfrastructure() {
         try {
-            //設定ファイルを初期化
+            //險ｭ螳壹ヵ繧｡繧､繝ｫ繧貞・譛溷喧
             ConfigManager.getInstance().initialize();
 
 
-            // DB 初期化
+            // DB 蛻晄悄蛹・
             SqlServerManager.getInstance().initialize();
 
-            // フォルダ型データベース初期化
+            // 繝輔か繝ｫ繝蝙九ョ繝ｼ繧ｿ繝吶・繧ｹ蛻晄悄蛹・
             FileDatabaseManager.getInstance();
 
-            // YamlDB設定の初期化
+            // YamlDB險ｭ螳壹・蛻晄悄蛹・
             YamlDbConfigUtil.INSTANCE.reload();
 
-            // AstralRecord API 疎通確認（非同期）
+            // AstralRecord API 逍朱夂｢ｺ隱搾ｼ磯撼蜷梧悄・・
             ApiHealthChecker.checkAsync();
 
             return true;
@@ -350,7 +356,7 @@ public final class AstralRecord extends JavaPlugin {
     }
 
     /**
-     * プラグインの機能をセットアップします。
+     * 繝励Λ繧ｰ繧､繝ｳ縺ｮ讖溯・繧偵そ繝・ヨ繧｢繝・・縺励∪縺吶・
      */
     private void setupFeature() {
         // account
@@ -410,6 +416,7 @@ public final class AstralRecord extends JavaPlugin {
 
         // status
         statusService = new StatusService(itemService, inventoryService);
+        statusService.setSkillTreeService(skillTreeService);
         buffAcquisitionDisplayService = new BuffAcquisitionDisplayService(displayTextService);
         potionUseService = new PotionUseService(inventoryService, statusService, buffAcquisitionDisplayService);
         statusRegenTask = new StatusRegenTask(statusService);
@@ -491,16 +498,23 @@ public final class AstralRecord extends JavaPlugin {
         skillService = new SkillService(new SkillRepository(), new SkillRegistry(), this);
         skillBindPresetService = new SkillBindPresetService(new SkillBindPresetRepository());
         skillService.registerExecutor(new FireBoostSkillExecutor(particleDisplayService));
+        skillService.registerExecutor(new IronWillSkillExecutor());
         skillService.registerExecutor(new WeaponAttackSkillExecutor(particleDisplayService, damageService));
         skillService.registerBuiltInDefinitions(BuiltInWeaponAttackDefinitions.definitions());
         itemStackFactory.setSkillService(skillService);
-        skillOwnershipService = new SkillOwnershipService(playerClassService, inventoryService, itemService);
+        skillOwnershipService = new SkillOwnershipService(playerClassService, inventoryService, itemService, skillTreeService);
         skillService.setOwnershipService(skillOwnershipService);
+        passiveSkillService = new PassiveSkillService(this, skillService, skillBindPresetService, skillOwnershipService);
+        passiveSkillService.setStatusService(statusService);
+        statusService.setPassiveSkillService(passiveSkillService);
+        skillTreeService.setStatusService(statusService);
+        skillTreeService.setSkillService(skillService);
+        skillTreeService.setPassiveSkillService(passiveSkillService);
         skillActionRingService = new SkillActionRingService(this, skillBindPresetService, skillService, skillOwnershipService);
         skillBindGui = new SkillBindGui(this);
         itemWeaponAttackService = new ItemWeaponAttackService(inventoryService, skillService);
 
-        // item, loot, skill, class（マスタデータ非同期ロード）
+        // item, loot, skill, class・医・繧ｹ繧ｿ繝・・繧ｿ髱槫酔譛溘Ο繝ｼ繝会ｼ・
         getServer().getScheduler().runTaskAsynchronously(this, () -> {
             lootService.loadAll();
             itemService.loadAll();
@@ -519,7 +533,7 @@ public final class AstralRecord extends JavaPlugin {
         skillTreeService.loadAll();
         worldSpawnParticleTask = new WorldSpawnParticleTask(this, worldService, particleDisplayService);
 
-        // item: ProtocolLib パケットアダプタ（icon 差し替え）登録
+        // item: ProtocolLib 繝代こ繝・ヨ繧｢繝繝励ち・・con 蟾ｮ縺玲崛縺茨ｼ臥匳骭ｲ
         ItemStackPacketAdapter packetAdapter = new ItemStackPacketAdapter(this);
         packetAdapter.register();
 
@@ -528,7 +542,7 @@ public final class AstralRecord extends JavaPlugin {
     }
 
     /**
-     * イベントやコマンドなどの機能を登録
+     * 繧､繝吶Φ繝医ｄ繧ｳ繝槭Φ繝峨↑縺ｩ縺ｮ讖溯・繧堤匳骭ｲ
      */
     private void registerPluginFeatures() {
         eventManager.registerHandler(
@@ -630,6 +644,7 @@ public final class AstralRecord extends JavaPlugin {
             skillService,
             skillBindPresetService,
             skillOwnershipService,
+            passiveSkillService,
             inventoryService,
             menuView
         );
@@ -691,20 +706,21 @@ public final class AstralRecord extends JavaPlugin {
         overheadDisplayService.start(this);
         worldSpawnParticleTask.start();
         mobSpawnerService.start();
+        passiveSkillService.start();
         skillTreeService.start();
-        // インベントリオートセーブ (60s) を開始
+        // 繧､繝ｳ繝吶Φ繝医Μ繧ｪ繝ｼ繝医そ繝ｼ繝・(60s) 繧帝幕蟋・
         inventoryAutoSaveTask.start(this, InventoryAutoSaveTask.DEFAULT_INTERVAL_TICKS);
     }
     /**
-     * AstralSaga のインスタンスを取得します。
-     * 他のクラスからインスタンスを取得する必要がある場合に使用します。
+     * AstralSaga 縺ｮ繧､繝ｳ繧ｹ繧ｿ繝ｳ繧ｹ繧貞叙蠕励＠縺ｾ縺吶・
+     * 莉悶・繧ｯ繝ｩ繧ｹ縺九ｉ繧､繝ｳ繧ｹ繧ｿ繝ｳ繧ｹ繧貞叙蠕励☆繧句ｿ・ｦ√′縺ゅｋ蝣ｴ蜷医↓菴ｿ逕ｨ縺励∪縺吶・
      */
     public static AstralRecord getInstance() {
         return instance;
     }
 
     /**
-     * {@link ItemStackFactory} のインスタンスを取得します。
+     * {@link ItemStackFactory} 縺ｮ繧､繝ｳ繧ｹ繧ｿ繝ｳ繧ｹ繧貞叙蠕励＠縺ｾ縺吶・
      *
      * @return ItemStackFactory
      */
@@ -721,27 +737,27 @@ public final class AstralRecord extends JavaPlugin {
     }
 
     /**
-     * 通貨サービスを取得します。
+     * 騾夊ｲｨ繧ｵ繝ｼ繝薙せ繧貞叙蠕励＠縺ｾ縺吶・
      *
-     * @return 通貨サービス
+     * @return 騾夊ｲｨ繧ｵ繝ｼ繝薙せ
      */
     public CurrencyService getCurrencyService() {
         return currencyService;
     }
 
     /**
-     * ログインボーナスサービスを取得します。
+     * 繝ｭ繧ｰ繧､繝ｳ繝懊・繝翫せ繧ｵ繝ｼ繝薙せ繧貞叙蠕励＠縺ｾ縺吶・
      *
-     * @return ログインボーナスサービス
+     * @return 繝ｭ繧ｰ繧､繝ｳ繝懊・繝翫せ繧ｵ繝ｼ繝薙せ
      */
     public LoginBonusService getLoginBonusService() {
         return loginBonusService;
     }
 
     /**
-     * メニュー GUI 表示ビューを取得します。
+     * 繝｡繝九Η繝ｼ GUI 陦ｨ遉ｺ繝薙Η繝ｼ繧貞叙蠕励＠縺ｾ縺吶・
      *
-     * @return メニュー GUI 表示ビュー
+     * @return 繝｡繝九Η繝ｼ GUI 陦ｨ遉ｺ繝薙Η繝ｼ
      */
     public MenuView getMenuView() {
         return menuView;
@@ -776,9 +792,9 @@ public final class AstralRecord extends JavaPlugin {
     }
 
     /**
-     * ページング確認用のダミー GUI を取得します。
+     * 繝壹・繧ｸ繝ｳ繧ｰ遒ｺ隱咲畑縺ｮ繝繝溘・ GUI 繧貞叙蠕励＠縺ｾ縺吶・
      *
-     * @return ページング確認 GUI
+     * @return 繝壹・繧ｸ繝ｳ繧ｰ遒ｺ隱・GUI
      */
     public PagingDebugGui getPagingDebugGui() {
         return pagingDebugGui;
@@ -797,9 +813,9 @@ public final class AstralRecord extends JavaPlugin {
     }
 
     /**
-     * TextDisplay 基盤サービスを返します。
+     * TextDisplay 蝓ｺ逶､繧ｵ繝ｼ繝薙せ繧定ｿ斐＠縺ｾ縺吶・
      *
-     * @return TextDisplay 基盤サービス
+     * @return TextDisplay 蝓ｺ逶､繧ｵ繝ｼ繝薙せ
      */
     public DisplayTextService getDisplayTextService() {
         return displayTextService;
@@ -814,9 +830,9 @@ public final class AstralRecord extends JavaPlugin {
     }
 
     /**
-     * Mob スポナーサービスを取得します。
+     * Mob 繧ｹ繝昴リ繝ｼ繧ｵ繝ｼ繝薙せ繧貞叙蠕励＠縺ｾ縺吶・
      *
-     * @return Mob スポナーサービス
+     * @return Mob 繧ｹ繝昴リ繝ｼ繧ｵ繝ｼ繝薙せ
      */
     public MobSpawnerService getMobSpawnerService() {
         return mobSpawnerService;
@@ -831,45 +847,45 @@ public final class AstralRecord extends JavaPlugin {
     }
 
     /**
-     * スキルサービスを取得します。
+     * 繧ｹ繧ｭ繝ｫ繧ｵ繝ｼ繝薙せ繧貞叙蠕励＠縺ｾ縺吶・
      *
-     * @return スキルサービス
+     * @return 繧ｹ繧ｭ繝ｫ繧ｵ繝ｼ繝薙せ
      */
     public SkillService getSkillService() {
         return skillService;
     }
 
     /**
-     * スキルバインド GUI イベントハンドラを返します。
+     * 繧ｹ繧ｭ繝ｫ繝舌う繝ｳ繝・GUI 繧､繝吶Φ繝医ワ繝ｳ繝峨Λ繧定ｿ斐＠縺ｾ縺吶・
      *
-     * @return スキルバインド GUI イベントハンドラ
+     * @return 繧ｹ繧ｭ繝ｫ繝舌う繝ｳ繝・GUI 繧､繝吶Φ繝医ワ繝ｳ繝峨Λ
      */
     public SkillBindGuiEventHandler getSkillBindGuiEventHandler() {
         return skillBindGuiEventHandler;
     }
 
     /**
-     * 戦闘ダメージサービスを取得します。
+     * 謌ｦ髣倥ム繝｡繝ｼ繧ｸ繧ｵ繝ｼ繝薙せ繧貞叙蠕励＠縺ｾ縺吶・
      *
-     * @return 戦闘ダメージサービス
+     * @return 謌ｦ髣倥ム繝｡繝ｼ繧ｸ繧ｵ繝ｼ繝薙せ
      */
     public DamageService getDamageService() {
         return damageService;
     }
 
     /**
-     * 職業サービスを取得します。
+     * 閨ｷ讌ｭ繧ｵ繝ｼ繝薙せ繧貞叙蠕励＠縺ｾ縺吶・
      *
-     * @return 職業サービス
+     * @return 閨ｷ讌ｭ繧ｵ繝ｼ繝薙せ
      */
     public PlayerClassService getPlayerClassService() {
         return playerClassService;
     }
 
     /**
-     * WorldMasterData サービスを取得します。
+     * WorldMasterData 繧ｵ繝ｼ繝薙せ繧貞叙蠕励＠縺ｾ縺吶・
      *
-     * @return WorldMasterData サービス
+     * @return WorldMasterData 繧ｵ繝ｼ繝薙せ
      */
     public WorldService getWorldService() {
         return worldService;

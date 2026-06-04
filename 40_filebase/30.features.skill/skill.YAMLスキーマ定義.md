@@ -1,191 +1,103 @@
 # Skill YAML スキーマ定義
 
-Skill（スキル）のスキーマ定義。
+`40_filebase/30.features.skill/*.yml` に配置するスキル定義の schema です。
 
-本定義は、プレイヤーやMobが使用するアクティブ／パッシブスキルのテンプレートを管理するためのものです。
+スキルの種別は plugin 側の `SkillExecutor.kind()` が正本です。
+filebase 側では、パッシブスキルだった場合に `passive.bindRequired` でバインド必要可否を定義します。
 
-> **StatusType について**: `status` フィールドに使用できるステータス名の一覧は [`file/00.meta/StatusType.md`](../00.meta/StatusType.md) を参照してください。
+## 項目
 
-## 設計方針
+| キー | 型 | 必須 | 既定値 | 説明 |
+| --- | --- | --- | --- | --- |
+| `schemaVersion` | Integer | 必須 | - | 現在は `1` |
+| `id` | String | 必須 | - | スキル ID |
+| `type` | String | 必須 | - | `SKILL` |
+| `implementationId` | String | 必須 | - | plugin 側実装 ID |
+| `name` | String | 必須 | - | 表示名 |
+| `description` | String | 任意 | `null` | 説明文 |
+| `icon` | String | 任意 | `null` | Material 名 |
+| `lore` | List<String> | 任意 | `[]` | 詳細表示 lore |
+| `cooldownTicks` | Long | 任意 | `0` | クールダウン |
+| `manaCost` | Double | 任意 | `0` | 消費 MP |
+| `castTimeTicks` | Long | 任意 | `0` | 詠唱時間 |
+| `requiredLevel` | Integer | 任意 | `1` | 必要レベル |
+| `onCast` | Map | 任意 | `null` | 発動時演出設定 |
+| `onCast.sound` | String | 任意 | `null` | 再生する sound key |
+| `passive` | Map | 任意 | `null` | パッシブ設定 |
+| `passive.bindRequired` | Boolean | 任意 | `true` | `true` の場合はバインド時のみ有効。`false` の場合は所持のみで常時有効 |
+| `params` | Map<String, Any> | 任意 | `{}` | 実装側パラメータ |
+| `tags` | List<String> | 任意 | `[]` | 任意タグ |
 
-マスタデータ（YAML）とプラグイン実装の責務を以下のように分離します。
+## 補足
 
-| 責務                             | 定義場所                     |
-|--------------------------------|--------------------------|
-| スキルシステム共通の制御情報（クールダウン・MP消費など）  | マスタデータ（YAML）             |
-| プラグイン実装クラスへの紐付け                | `implementationId` フィールド |
-| スキル固有の演出・挙動パラメータ（パーティクル色・弾速など） | `params` フィールド（自由Map）    |
-| エフェクト・パーティクルの描画ロジック・当たり判定      | プラグイン側の実装                |
+- 発動系スキルかパッシブスキルかは `implementationId` に対応する plugin 実装で決まります。
+- `passive.bindRequired` は、plugin 実装がパッシブスキルの場合だけ意味を持ちます。
+- `passive.bindRequired: false` のパッシブスキルは、スキル設定 GUI のバインド一覧には表示しません。
+- `params` の解釈は各 executor に委ねます。
 
-## スキーマ定義
+## 例
 
-| キー                           | 型            | 必須 | デフォルト     | 説明                                                        |
-|:-----------------------------|:-------------|:--:|:----------|:----------------------------------------------------------|
-| `schemaVersion`              | Integer      | ○  | -         | スキーマのバージョン（2026-03-31時点は `1`）                             |
-| `id`                         | String       | ○  | -         | スキルのテンプレートID（例: `fireball_a`）                             |
-| `type`                       | String       | ○  | -         | 種別（SKILL(sk)）                                             |
-| `implementationId`           | String       | ○  | -         | プラグイン側の実装クラスに紐付けるキー（例: `fireball`）。同一実装クラスを複数スキルで共有する際に使用 |
-| `name`                       | String       | ○  | -         | ゲーム内に表示されるスキル名                                            |
-| `description`                | String       | ×  | Null      | スキル説明文                                                    |
-| `icon`                       | String       | ×  | Null      | 表示用アイコン（任意。表現は実装側に委ねる）                                    |
-| `lore`                       | List<String> | ×  | emptyList | 説明文（§ または & の色コード利用可能）                                    |
-| `cooldownTicks`              | Long         | ×  | 0         | クールダウン時間（tick）。20 tick = 1 秒。`0` の場合はクールダウンなし             |
-| `manaCost`                   | Double       | ×  | 0         | 使用時のMP消費量                                                 |
-| `castTimeTicks`              | Long         | ×  | 0         | 詠唱時間（tick）。`0` の場合は即時発動                                   |
-| `requiredLevel`              | Integer      | ×  | 1         | 習得に必要なプレイヤーレベル                                            |
-| `onCast`                     | Map          | ×  | Null      | 発動時の演出（後述）                                                |
-| `onCast.sound`               | String       | ×  | Null      | 発動時に流れるサウンド（SoundKey想定。例: `entity.player.attack.sweep`）   |
-| `params`                     | Map          | ×  | emptyMap  | プラグイン実装が読み取るカスタムパラメータ（後述）。スキーマ検証の対象外                      |
-| `tags`                       | List<String> | ×  | emptyList | 検索・分類用タグ（例: `melee`, `aoe`, `fire`）                       |
-
-### params
-プラグイン実装クラスが読み取る自由形式のパラメータMap（`Map<String, Any>`）。  
-スキーマ検証の対象外であり、`implementationId` に対応するプラグイン実装ごとに自由に定義できます。  
-マスタデータ管理者とプラグイン開発者の間で使用するキー・値の型を合意した上で記述してください。
-
-**例（ファイアボール系スキルの場合）:**
-
-| キー例               | 型例     | 説明例                          |
-|-------------------|--------|------------------------------|
-| `flameColor`      | String | パーティクルの炎色（`RED` / `BLUE` など） |
-| `explosionRadius` | Double | 爆発半径（ブロック単位）                 |
-| `projectileSpeed` | Double | 弾速                           |
-
-### 参照（ref）
-他DBからskillを参照する場合は `skill:` prefix を使用します（aliases: `sk`）。
-
-## YAML 例
-
-### 例1: 近接攻撃スキル
+### 発動系スキル
 
 ```yaml
 schemaVersion: 1
-id: slash
+id: fire_boost
 type: SKILL
-implementationId: slash
-name: "&fスラッシュ"
-description: "&7前方の敵に斬撃を与える基本攻撃スキル。"
-icon: IRON_SWORD
-cooldownTicks: 00
+implementationId: fire_boost
+name: "&cファイアブースト"
+description: "&7筋力を強化する発動系スキル。"
+icon: BLAZE_POWDER
+cooldownTicks: 0
 manaCost: 0
 castTimeTicks: 0
 requiredLevel: 1
-onCast:
-  sound: entity.player.attack.sweep
 params:
-  damage: 20
-  scalingStatus: ATTACK
-  scalingFactor: 1.2
+  strengthDurationTicks: 400
+  strengthAmplifier: 1
 tags:
-  - melee
-  - physical
+  - active
+  - fire
 ```
 
-### 例2: 回復スキル
+### バインド必須のパッシブスキル
 
 ```yaml
 schemaVersion: 1
-id: heal_light
+id: iron_will
 type: SKILL
-implementationId: heal
-name: "&aヒールライト"
-description: "&7味方一人のHPを回復する。"
-icon: GOLDEN_APPLE
-cooldownTicks: 200
-manaCost: 30
-castTimeTicks: 20
-requiredLevel: 0
-onCast:
-  sound: block.amethyst_block.chime
-params:
-  healStatus: HP
-  healValue: 0.10
-  healIsPercent: true
-tags:
-  - heal
-  - magic
-```
-
-### 例3: バフ付きAoEスキル
-
-```yaml
-schemaVersion: 1
-id: war_cry
-type: SKILL
-implementationId: war_cry
-name: "&c雄叫び"
-description: "&7味方全員の攻撃力を上昇させる。"
-icon: GOAT_HORN
-cooldownTicks: 600
-manaCost: 00
-castTimeTicks: 10
-requiredLevel: 10
-onCast:
-  sound: entity.ender_dragon.growl
-params:
-  buffId: "ref: buff:battle_focus"
-tags:
-  - support
-  - aoe
-  - buff
-```
-
-### 例0: ファイアボール（同一実装クラスを params で差別化）
-
-```yaml
-# ファイアボールA（クールタイム短め・赤・低威力）
-schemaVersion: 1
-id: fireball_a
-type: SKILL
-implementationId: fireball
-name: "&cファイアボールA"
-description: "&7素早く放つ小さな火球。"
-icon: FIRE_CHARGE
-cooldownTicks: 20
-manaCost: 10
+implementationId: iron_will
+name: "&7アイアンウィル"
+description: "&7防御系能力を上げるパッシブスキル。"
+icon: IRON_INGOT
+cooldownTicks: 0
+manaCost: 0
 castTimeTicks: 0
 requiredLevel: 1
-onCast:
-  sound: entity.blaze.shoot
+passive:
+  bindRequired: true
 params:
-  flameColor: RED
-  damage: 30
-  scalingStatus: ATTACK
-  scalingFactor: 1.0
-  explosionRadius: 2.0
-  projectileSpeed: 1.0
+  defenseFlat: 5
+  magicDefenseFlat: 3
 tags:
-  - fire
-  - magic
+  - passive
+  - defense
 ```
+
+### 所持のみで常時有効なパッシブスキル
 
 ```yaml
-# ファイアボールB（クールタイム長め・青・高威力）
 schemaVersion: 1
-id: fireball_b
+id: mana_knowledge
 type: SKILL
-implementationId: fireball
-name: "&9ファイアボールB"
-description: "&7強大な蒼炎の火球。詠唱に時間がかかる。"
-icon: FIRE_CHARGE
-cooldownTicks: 100
-manaCost: 00
-castTimeTicks: 00
-requiredLevel: 10
-onCast:
-  sound: entity.blaze.shoot
+implementationId: mana_knowledge
+name: "&bマナナレッジ"
+description: "&7所持しているだけで最大 MP が上がる。"
+icon: LAPIS_LAZULI
+passive:
+  bindRequired: false
 params:
-  flameColor: BLUE
-  damage: 80
-  scalingStatus: ATTACK
-  scalingFactor: 2.0
-  explosionRadius: 0.0
-  projectileSpeed: 2.0
+  maxManaFlat: 20
 tags:
-  - fire
-  - magic
+  - passive
+  - support
 ```
-
-> **プラグイン側の実装イメージ:**  
-> `skillRegistry.register("fireball", FireballSkill())` の1行で `fireball_a` / `fireball_b` 両方に対応。  
-> `FireballSkill` は `context.skillData.params["flameColor"]` などで `params` を読み取り、演出・当たり判定を制御する。

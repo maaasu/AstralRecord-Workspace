@@ -37,11 +37,11 @@ public class SkillRepositoryTests
         var summary = Assert.Single(summaries);
         Assert.Equal("fire_boost", summary.Id);
         Assert.Equal("BLAZE_POWDER", summary.Icon);
-        Assert.Equal(["passive", "fire"], summary.Tags);
+        Assert.Equal(["active", "fire"], summary.Tags);
     }
 
     [Fact]
-    public async Task GetById_ReturnsParamsWithoutFlatteningNestedPayload()
+    public async Task GetById_ReturnsPassiveSettingsAndNestedParams()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
@@ -68,6 +68,8 @@ public class SkillRepositoryTests
         Assert.NotNull(skill);
         Assert.Equal("iron_will", skill.Id);
         Assert.Equal("IRON_INGOT", skill.Icon);
-        Assert.True(skill.Params.ContainsKey("damageReduction"));
+        Assert.NotNull(skill.Passive);
+        Assert.True(skill.Passive!.BindRequired);
+        Assert.True(skill.Params.ContainsKey("defenseFlat"));
     }
 }

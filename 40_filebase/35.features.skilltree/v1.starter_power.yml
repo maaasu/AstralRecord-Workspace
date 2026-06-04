@@ -6,5 +6,11 @@ icon: IRON_SWORD
 lore:
   - "&7スキルツリーの開始ノード。"
   - "&8現時点では解放状態のみを保持する。"
+skillIds:
+  - iron_will
+statuses:
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 10
 tags:
   - starter

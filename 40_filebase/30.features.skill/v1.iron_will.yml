@@ -9,8 +9,11 @@ cooldownTicks: 0
 manaCost: 0
 castTimeTicks: 0
 requiredLevel: 1
+passive:
+  bindRequired: true
 params:
-  damageReduction: 0.10
+  defenseFlat: 5
+  magicDefenseFlat: 3
 tags:
   - passive
   - defense

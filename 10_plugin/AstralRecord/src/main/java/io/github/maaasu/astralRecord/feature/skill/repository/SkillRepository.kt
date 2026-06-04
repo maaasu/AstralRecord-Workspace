@@ -108,7 +108,14 @@ class SkillRepository {
             onCastSound = onCastSound,
             params = parseParams(parseObjectOrNull(obj, "params")),
             tags = parseStringList(obj.getAsJsonArray("tags")),
+            passiveBindRequired = parsePassiveBindRequired(parseObjectOrNull(obj, "passive")),
         )
+    }
+
+    private fun parsePassiveBindRequired(obj: JsonObject?): Boolean {
+        if (obj == null) return true
+        val bindRequired = obj.get("bindRequired") ?: return true
+        return bindRequired.takeIf { !it.isJsonNull }?.asBoolean ?: true
     }
 
     private fun parseSummaryList(json: String): List<SkillSummary> {

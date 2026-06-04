@@ -14,6 +14,8 @@ public record SkillTreeNodeDefinition(
         @NotNull String name,
         @NotNull Material icon,
         @NotNull List<String> lore,
-        @NotNull List<String> tags
+        @NotNull List<String> tags,
+        @NotNull List<String> skillIds,
+        @NotNull List<SkillTreeNodeStatusDefinition> statuses
 ) {
 }

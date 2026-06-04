@@ -19,6 +19,8 @@ import io.github.maaasu.astralRecord.feature.item.model.SetEffectStat;
 import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
+import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusValue;
@@ -49,6 +51,8 @@ public class StatusService {
     private final ItemService itemService;
     private final InventoryService inventoryService;
     private final ItemReferenceResolver itemReferenceResolver;
+    private SkillTreeService skillTreeService;
+    private PassiveSkillService passiveSkillService;
 
     public StatusService() {
         this(null, null);
@@ -66,6 +70,14 @@ public class StatusService {
         this.itemService = itemService;
         this.inventoryService = inventoryService;
         this.itemReferenceResolver = itemService == null ? null : new ItemReferenceResolver(itemService);
+    }
+
+    public void setSkillTreeService(@Nullable SkillTreeService skillTreeService) {
+        this.skillTreeService = skillTreeService;
+    }
+
+    public void setPassiveSkillService(@Nullable PassiveSkillService passiveSkillService) {
+        this.passiveSkillService = passiveSkillService;
     }
 
     /**
@@ -371,10 +383,20 @@ public class StatusService {
         double nonBuffBonus = getAccountModeBonus(player.getAccount().getMode(), type);
         nonBuffBonus += getPermissionBonus(player.getUser().getPermission(), type);
         nonBuffBonus += getEquipmentBonus(equipmentBonus, type, baseValue + nonBuffBonus);
+        nonBuffBonus += getSkillTreeBonus(player, type, baseValue + nonBuffBonus);
+        nonBuffBonus += getPassiveSkillBonus(player, type, baseValue + nonBuffBonus);
 
         double preBuffTotal = baseValue + nonBuffBonus;
         double buffBonus = buffService.getTotalBonus(player, type, preBuffTotal);
         return nonBuffBonus + buffBonus;
+    }
+
+    private double getSkillTreeBonus(@NotNull AstPlayer player, @NotNull StatusType type, double baseValue) {
+        return skillTreeService == null ? 0.0D : skillTreeService.getStatusBonus(player, type, baseValue);
+    }
+
+    private double getPassiveSkillBonus(@NotNull AstPlayer player, @NotNull StatusType type, double baseValue) {
+        return passiveSkillService == null ? 0.0D : passiveSkillService.getStatusBonus(player, type, baseValue);
     }
 
     private double getEquipmentBonus(@NotNull EquipmentBonus bonus, @NotNull StatusType type, double baseValue) {

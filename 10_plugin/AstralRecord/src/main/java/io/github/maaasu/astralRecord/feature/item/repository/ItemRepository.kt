@@ -31,6 +31,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStat
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStatType
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentTranscendence
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel
+import io.github.maaasu.astralRecord.feature.item.model.ItemRune
 import io.github.maaasu.astralRecord.feature.item.model.ItemSummary
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger
@@ -341,6 +342,7 @@ class ItemRepository {
             bundle = parseBundle(obj),
             currency = parseCurrency(obj),
             equipment = parseEquipment(obj),
+            rune = parseRune(obj),
             consumable = parseConsumable(obj),
         )
     }
@@ -446,6 +448,35 @@ class ItemRepository {
             rune = parseEquipmentRuneDef(equipmentObj),
             transcendence = parseEquipmentTranscendence(equipmentObj),
         )
+    }
+
+    private fun parseRune(obj: JsonObject): ItemRune? {
+        val runeObj = parseObjectOrNull(obj, "rune") ?: return null
+        return ItemRune(
+            targetSlots = parseStringList(runeObj.getAsJsonArray("targetSlots")),
+            requiredEnhanceLevel = runeObj.get("requiredEnhanceLevel")?.takeIf { !it.isJsonNull }?.asInt ?: 0,
+            stats = parseRuneDefinitionStats(runeObj.getAsJsonArray("stats")),
+            skills = parseStringList(runeObj.getAsJsonArray("skills")),
+        )
+    }
+
+    private fun parseRuneDefinitionStats(array: JsonArray?): List<ItemEquipmentStat> {
+        if (array == null) {
+            return emptyList()
+        }
+        return array.mapNotNull { element ->
+            if (!element.isJsonObject) return@mapNotNull null
+            val statObj = element.asJsonObject
+            val status = parseStringOrNull(statObj, "status") ?: return@mapNotNull null
+            val minValue = parseLowerBoundOrNull(statObj, "value") ?: return@mapNotNull null
+            val maxValue = parseUpperBoundOrNull(statObj, "value") ?: minValue
+            ItemEquipmentStat(
+                status = status,
+                type = ItemEquipmentStatType.fromApiValue(parseStringOrNull(statObj, "type")),
+                min = minValue,
+                max = maxValue,
+            )
+        }
     }
 
     private fun parseEquipmentEnhance(equipmentObj: JsonObject): ItemEquipmentEnhance? {

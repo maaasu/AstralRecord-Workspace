@@ -19,7 +19,7 @@ package io.github.maaasu.astralRecord.feature.skill.model
  * @property params          `Map<String, Any>`。個別ロジックが解釈する自由形式パラメータ
  * @property tags            検索・分類用タグ
  */
-data class SkillDefinition(
+data class SkillDefinition @JvmOverloads constructor(
     val id: String,
     val implementationId: String,
     val name: String,
@@ -33,4 +33,6 @@ data class SkillDefinition(
     val onCastSound: String?,
     val params: Map<String, Any> = emptyMap(),
     val tags: List<String> = emptyList(),
+    val kind: SkillKind = SkillKind.ACTIVE,
+    val passiveBindRequired: Boolean = true,
 )

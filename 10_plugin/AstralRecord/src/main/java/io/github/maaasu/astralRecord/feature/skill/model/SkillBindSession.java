@@ -94,16 +94,14 @@ public final class SkillBindSession {
      * @param skillId 割り当てるスキル ID
      * @return 割当できた場合は {@code true}
      */
-    public boolean assignSelectedOrNextSlot(@NotNull String skillId) {
+    public boolean assignSelectedOrNextSlot(@NotNull String skillId, @NotNull SkillKind skillKind) {
         SkillBindType targetType = selectedBindType;
         int targetIndex = selectedBindSlotIndex;
         if (targetType == null || targetIndex < 0 || targetIndex >= SkillBindPreset.SLOT_COUNT) {
-            targetType = SkillBindType.ACTIVE;
-            targetIndex = findNextFreeSlot(activeDraft);
-            if (targetIndex < 0) {
-                targetType = SkillBindType.PASSIVE;
-                targetIndex = findNextFreeSlot(passiveDraft);
-            }
+            targetType = skillKind.isPassive() ? SkillBindType.PASSIVE : SkillBindType.ACTIVE;
+            targetIndex = findNextFreeSlot(targetType == SkillBindType.ACTIVE ? activeDraft : passiveDraft);
+        } else if (!matches(targetType, skillKind)) {
+            return false;
         }
         if (targetIndex < 0) {
             return false;
@@ -111,6 +109,10 @@ public final class SkillBindSession {
         setSlot(targetType, targetIndex, skillId);
         clearSelectedBindSlot();
         return true;
+    }
+
+    private boolean matches(@NotNull SkillBindType bindType, @NotNull SkillKind skillKind) {
+        return bindType == SkillBindType.PASSIVE ? skillKind.isPassive() : !skillKind.isPassive();
     }
 
     /**

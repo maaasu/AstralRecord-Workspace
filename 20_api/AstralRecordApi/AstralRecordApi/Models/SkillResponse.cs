@@ -28,6 +28,8 @@ public class SkillResponse
 
     public SkillOnCastResponse? OnCast { get; init; }
 
+    public SkillPassiveResponse? Passive { get; init; }
+
     public IReadOnlyDictionary<string, object?> Params { get; init; } = new Dictionary<string, object?>();
 
     public IReadOnlyList<string> Tags { get; init; } = [];
@@ -49,4 +51,9 @@ public class SkillSummaryResponse
 public class SkillOnCastResponse
 {
     public string? Sound { get; init; }
+}
+
+public class SkillPassiveResponse
+{
+    public bool BindRequired { get; init; } = true;
 }

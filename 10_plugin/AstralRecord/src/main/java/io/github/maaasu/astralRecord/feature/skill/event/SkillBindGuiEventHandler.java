@@ -13,6 +13,8 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillBindScreen;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindSession;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindType;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
+import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
@@ -51,6 +53,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     private final SkillService skillService;
     private final SkillBindPresetService presetService;
     private final SkillOwnershipService ownershipService;
+    private final PassiveSkillService passiveSkillService;
     private final InventoryService inventoryService;
     private final MenuView menuView;
     private final Map<UUID, SkillBindSession> sessions = new ConcurrentHashMap<>();
@@ -62,6 +65,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         @NotNull SkillService skillService,
         @NotNull SkillBindPresetService presetService,
         @NotNull SkillOwnershipService ownershipService,
+        @NotNull PassiveSkillService passiveSkillService,
         @NotNull InventoryService inventoryService,
         @NotNull MenuView menuView
     ) {
@@ -70,6 +74,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         this.skillService = skillService;
         this.presetService = presetService;
         this.ownershipService = ownershipService;
+        this.passiveSkillService = passiveSkillService;
         this.inventoryService = inventoryService;
         this.menuView = menuView;
     }
@@ -204,7 +209,8 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        if (!session.assignSelectedOrNextSlot(skillId)) {
+        SkillDefinition definition = skillService.registry().getDefinition(skillId);
+        if (definition == null || !session.assignSelectedOrNextSlot(skillId, definition.getKind())) {
             GuiSound.DENY.play(player);
             openMain(player, session, pageIndex);
             return;
@@ -246,6 +252,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             AstPlayer astPlayer = AstPlayerCache.get(player);
             if (astPlayer != null) {
                 presetService.selectPreset(astPlayer.getAccount().getUuid(), presetIndex);
+                passiveSkillService.reconcileNow(astPlayer);
                 astPlayer.sendMessage(PlayerMsgId.P_5808, presetIndex);
             }
             GuiSound.SELECT.play(player);
@@ -317,6 +324,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 AstPlayer astPlayer = AstPlayerCache.get(player);
                 if (astPlayer != null) {
                     presetService.selectPreset(astPlayer.getAccount().getUuid(), holder.pendingPresetIndex());
+                    passiveSkillService.reconcileNow(astPlayer);
                     astPlayer.sendMessage(PlayerMsgId.P_5808, holder.pendingPresetIndex());
                 }
                 openMain(player, session, 0);
@@ -347,6 +355,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 astPlayer.getAccount().getUuid()
             );
             session.replaceSelectedPreset(saved);
+            passiveSkillService.reconcileNow(astPlayer);
             GuiSound.SELECT.play(player);
             openMain(player, session, pageIndex);
         } catch (RuntimeException e) {
@@ -387,6 +396,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     private @NotNull List<SkillDefinition> currentSkills(@NotNull Set<String> ownedSkillIds) {
         return gui.sortedSkills(skillService.registry().definitions()).stream()
             .filter(skill -> ownedSkillIds.contains(skill.getId()))
+            .filter(skill -> skill.getKind() != SkillKind.PASSIVE || skill.getPassiveBindRequired())
             .toList();
     }
 

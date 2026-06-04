@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
@@ -257,6 +258,10 @@ public final class SkillActionRingService {
                 continue;
             }
             SkillDefinition definition = skillService.registry().getDefinition(skillId);
+            if (definition != null && definition.getKind() != SkillKind.ACTIVE) {
+                slots.add(new SlotView(skillId, "設定不可", Material.BARRIER, false));
+                continue;
+            }
             String displayName = definition == null ? skillId : ColorCodeUtil.translateAlternateColorCodes(definition.getName());
             boolean owned = ownedSkillIds.contains(skillId);
             Material material = owned ? parseMaterial(definition == null ? null : definition.getIcon(), Material.BARRIER) : Material.BARRIER;

@@ -19,6 +19,7 @@ data class ItemModel(
     val bundle: ItemBundle?,
     val currency: ItemCurrency?,
     val equipment: ItemEquipment?,
+    val rune: ItemRune?,
     val consumable: ItemConsumable?,
 )
 

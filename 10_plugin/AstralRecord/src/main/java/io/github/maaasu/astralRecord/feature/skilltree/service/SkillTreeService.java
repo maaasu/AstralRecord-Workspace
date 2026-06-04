@@ -7,10 +7,16 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeEdge;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefinition;
+import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeStatusDefinition;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePlayerState;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePosition;
+import io.github.maaasu.astralRecord.feature.status.model.StatusModifierType;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
+import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreeNodeRepository;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreePlayerStateRepository;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreeStructureRepository;
@@ -54,7 +60,9 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * 郢ｧ・ｹ郢ｧ・ｭ郢晢ｽｫ郢昴・ﾎ懃ｹ晢ｽｼ邵ｺ・ｮ郢晄ｧｭ縺帷ｹｧ・ｿ邵ｲ竏ｵ・ｧ遏ｩﾂ・ｰ邵ｲ竏壹・郢晢ｽｬ郢ｧ・､郢晢ｽ､郢晢ｽｼ霑･・ｶ隲ｷ荵晢ｽ帝お・ｱ陷ｷ蛹ｻ・邵ｺ・ｦ隰・ｽｱ邵ｺ繝ｻ縺礼ｹ晢ｽｼ郢晁侭縺帷ｸｺ・ｧ邵ｺ蜷ｶﾂ繝ｻ */
+ * スキルツリーのノード状態管理、GUI 更新、ホットバー制御、
+ * およびノード由来のスキル・ステータス反映を担当するサービスです。
+ */
 public class SkillTreeService {
     public static final String SKILL_TREE_WORLD_ID = "skill_tree";
     public static final long RELOCK_GOLD_COST = 100L;
@@ -70,6 +78,9 @@ public class SkillTreeService {
     private final WorldService worldService;
     private InventoryService inventoryService;
     private PlayerHudService playerHudService;
+    private StatusService statusService;
+    private SkillService skillService;
+    private PassiveSkillService passiveSkillService;
     private final SkillTreeNodeRepository nodeRepository;
     private final SkillTreeStructureRepository structureRepository;
     private final SkillTreePlayerStateRepository playerStateRepository;
@@ -111,14 +122,39 @@ public class SkillTreeService {
 
     public void setInventoryService(@NotNull InventoryService inventoryService) {
         this.inventoryService = inventoryService;
-    }
-
     /**
-     * 郢ｧ・ｹ郢ｧ・ｭ郢晢ｽｫ郢昴・ﾎ懃ｹ晢ｽｼ騾包ｽｨ HUD 鬨ｾ・｣隰ｳ・ｺ郢ｧ・ｵ郢晢ｽｼ郢晁侭縺帷ｹｧ螳夲ｽｨ・ｭ陞ｳ螢ｹ・邵ｺ・ｾ邵ｺ蜷ｶﾂ繝ｻ     *
-     * @param playerHudService 郢晏干ﾎ樒ｹｧ・､郢晢ｽ､郢晢ｽｼ HUD 郢ｧ・ｵ郢晢ｽｼ郢晁侭縺・
+     * スキルツリー操作後に HUD を更新するための HUD サービスを設定します。
+     *
+     * @param playerHudService プレイヤー HUD サービス
+     */
+     * @param playerHudService 驛｢譎丞ｹｲ・取ｨ抵ｽｹ・ｧ繝ｻ・､驛｢譎｢・ｽ・､驛｢譎｢・ｽ・ｼ HUD 驛｢・ｧ繝ｻ・ｵ驛｢譎｢・ｽ・ｼ驛｢譎∽ｾｭ邵ｺ繝ｻ
      */
     public void setPlayerHudService(@NotNull PlayerHudService playerHudService) {
         this.playerHudService = playerHudService;
+    }
+
+    /**
+     * 繧ｹ繝・・繧ｿ繧ｹ譖ｴ譁ｰ騾｣謳ｺ蜈医ｒ險ｭ螳壹＠縺ｾ縺吶・     *
+     * @param statusService 繧ｹ繝・・繧ｿ繧ｹ繧ｵ繝ｼ繝薙せ
+     */
+    public void setStatusService(@NotNull StatusService statusService) {
+        this.statusService = statusService;
+    }
+
+    /**
+     * 繧ｹ繧ｭ繝ｫ螳夂ｾｩ蜿ら・繧ｵ繝ｼ繝薙せ繧定ｨｭ螳壹＠縺ｾ縺吶・     *
+     * @param skillService 繧ｹ繧ｭ繝ｫ繧ｵ繝ｼ繝薙せ
+     */
+    public void setSkillService(@NotNull SkillService skillService) {
+        this.skillService = skillService;
+    }
+
+    /**
+     * 繝代ャ繧ｷ繝悶せ繧ｭ繝ｫ蜀崎ｩ穂ｾ｡騾｣謳ｺ蜈医ｒ險ｭ螳壹＠縺ｾ縺吶・     *
+     * @param passiveSkillService 繝代ャ繧ｷ繝悶せ繧ｭ繝ｫ繧ｵ繝ｼ繝薙せ
+     */
+    public void setPassiveSkillService(@NotNull PassiveSkillService passiveSkillService) {
+        this.passiveSkillService = passiveSkillService;
     }
 
     public int loadAll() {
@@ -384,11 +420,68 @@ public class SkillTreeService {
         dirtyPlayerStates.add(state.accountId());
     }
 
+    /**
+     * 隗｣謾ｾ貂医∩繝弱・繝臥罰譚･縺ｮ繧ｹ繧ｭ繝ｫ ID 荳隕ｧ繧貞叙蠕励＠縺ｾ縺吶・     *
+     * @param astPlayer 繝励Ξ繧､繝､繝ｼ
+     * @return 繧ｹ繧ｭ繝ｫ ID 荳隕ｧ
+     */
+    public @NotNull Set<String> getUnlockedSkillIds(@NotNull AstPlayer astPlayer) {
+        SkillTreePlayerState state = state(astPlayer);
+        Set<String> skillIds = new LinkedHashSet<>();
+        for (String nodeId : state.unlockedNodeIds()) {
+            SkillTreeNodeDefinition node = nodesById.get(nodeId);
+            if (node == null) {
+                continue;
+            }
+            for (String skillId : node.skillIds()) {
+                if (skillId != null && !skillId.isBlank()) {
+                    skillIds.add(skillId.trim());
+                }
+            }
+        }
+        return skillIds;
+    }
+
+    /**
+     * 隗｣謾ｾ貂医∩繝弱・繝臥罰譚･縺ｮ逶ｴ謗･繧ｹ繝・・繧ｿ繧ｹ陬懈ｭ｣繧貞叙蠕励＠縺ｾ縺吶・     *
+     * @param astPlayer 繝励Ξ繧､繝､繝ｼ
+     * @param statusType 蟇ｾ雎｡繧ｹ繝・・繧ｿ繧ｹ
+     * @param baseValue FLAT 驕ｩ逕ｨ蠕後・蝓ｺ貅門､
+     * @return 邱剰｣懈ｭ｣蛟､
+     */
+    public double getStatusBonus(
+        @NotNull AstPlayer astPlayer,
+        @NotNull StatusType statusType,
+        double baseValue
+    ) {
+        SkillTreePlayerState state = state(astPlayer);
+        double flat = 0.0D;
+        double scalar = 0.0D;
+        for (String nodeId : state.unlockedNodeIds()) {
+            SkillTreeNodeDefinition node = nodesById.get(nodeId);
+            if (node == null) {
+                continue;
+            }
+            for (SkillTreeNodeStatusDefinition status : node.statuses()) {
+                if (status.statusType() != statusType) {
+                    continue;
+                }
+                if (status.type() == StatusModifierType.SCALAR) {
+                    scalar += status.value();
+                } else {
+                    flat += status.value();
+                }
+            }
+        }
+        return flat + (baseValue * scalar);
+    }
+
     public boolean unlockNode(@NotNull AstPlayer astPlayer, @NotNull SkillTreeNodeDefinition node) {
         SkillTreePlayerState state = state(astPlayer);
         boolean changed = state.unlock(node.id());
         if (changed) {
             markDirty(state);
+            refreshDerivedState(astPlayer);
         }
         return changed;
     }
@@ -404,6 +497,7 @@ public class SkillTreeService {
         boolean changed = state.relock(node.id());
         if (changed) {
             markDirty(state);
+            refreshDerivedState(astPlayer);
         }
         return changed;
     }
@@ -489,23 +583,26 @@ public class SkillTreeService {
         }
         for (int slot = 0; slot < 9; slot++) {
             player.getInventory().setItem(slot, saved[slot]);
-        }
-    }
-
     /**
-     * 郢ｧ・ｹ郢ｧ・ｭ郢晢ｽｫ郢昴・ﾎ懃ｹ晢ｽｼ陝・ｉ逡・HOTBAR 郢ｧ雋樞煤陷磯メ・｡・ｨ驕会ｽｺ郢晢ｽｻ隰ｫ蝣ｺ・ｽ諛岩・邵ｺ・ｹ邵ｺ蜥ｲ諞ｾ隲ｷ荵敖ｰ陋ｻ・､陞ｳ螢ｹ・邵ｺ・ｾ邵ｺ蜷ｶﾂ繝ｻ     *
-     * @param player 陝・ｽｾ髮趣ｽ｡郢晏干ﾎ樒ｹｧ・､郢晢ｽ､郢晢ｽｼ
-     * @return 郢ｧ・ｹ郢ｧ・ｭ郢晢ｽｫ郢昴・ﾎ懃ｹ晢ｽｼ陝・ｉ逡・HOTBAR 郢ｧ蜑・ｽｽ・ｿ邵ｺ繝ｻ・ｰ・ｴ陷ｷ繝ｻtrue
+     * プレイヤーがスキルツリー用 HOTBAR 制御を使うべき状態かを返します。
+     *
+     * @param player 対象プレイヤー
+     * @return スキルツリー用 HOTBAR 制御を使う場合は true
      */
-    public boolean shouldUseSkillTreeHotbar(@NotNull Player player) {
-        return isPlayerModeSkillTree(player) && !hasInteractiveGuiOpen(player);
-    }
-
+     * @param player 髯昴・・ｽ・ｾ鬮ｮ雜｣・ｽ・｡驛｢譎丞ｹｲ・取ｨ抵ｽｹ・ｧ繝ｻ・､驛｢譎｢・ｽ・､驛｢譎｢・ｽ・ｼ
+     * @return 驛｢・ｧ繝ｻ・ｹ驛｢・ｧ繝ｻ・ｭ驛｢譎｢・ｽ・ｫ驛｢譏ｴ繝ｻ・取㏍・ｹ譎｢・ｽ・ｼ髯昴・・蛾｡繝ｻHOTBAR 驛｢・ｧ陷代・・ｽ・ｽ繝ｻ・ｿ驍ｵ・ｺ郢晢ｽｻ繝ｻ・ｰ繝ｻ・ｴ髯ｷ・ｷ郢晢ｽｻtrue
+     */
     /**
-     * 郢ｧ・ｹ郢ｧ・ｭ郢晢ｽｫ郢昴・ﾎ懃ｹ晢ｽｼ陝・ｉ逡・HOTBAR 邵ｺ・ｮ陋ｻ・ｶ陟包ｽ｡郢ｧ・ｹ郢晢ｽｭ郢昴・繝ｨ郢ｧ雋槭・騾・・・邵ｺ・ｾ邵ｺ蜷ｶﾂ繝ｻ     *
-     * @param player 陝・ｽｾ髮趣ｽ｡郢晏干ﾎ樒ｹｧ・､郢晢ｽ､郢晢ｽｼ
-     * @param slot HOTBAR 郢ｧ・ｹ郢晢ｽｭ郢昴・繝ｨ騾｡・ｪ陷ｿ・ｷ
-     * @return 陋ｻ・ｶ陟包ｽ｡郢ｧ・ｹ郢晢ｽｭ郢昴・繝ｨ邵ｺ・ｨ邵ｺ蜉ｱ窶ｻ陷・ｽｦ騾・・・邵ｺ貅ｷ・ｰ・ｴ陷ｷ繝ｻtrue
+     * スキルツリー用 HOTBAR 入力を処理します。
+     *
+     * @param player 対象プレイヤー
+     * @param slot HOTBAR スロット番号
+     * @return 入力を処理した場合は true
+     */
+     * 驛｢・ｧ繝ｻ・ｹ驛｢・ｧ繝ｻ・ｭ驛｢譎｢・ｽ・ｫ驛｢譏ｴ繝ｻ・取㏍・ｹ譎｢・ｽ・ｼ髯昴・・蛾｡繝ｻHOTBAR 驍ｵ・ｺ繝ｻ・ｮ髯具ｽｻ繝ｻ・ｶ髯溷桁・ｽ・｡驛｢・ｧ繝ｻ・ｹ驛｢譎｢・ｽ・ｭ驛｢譏ｴ繝ｻ郢晢ｽｨ驛｢・ｧ髮区ｧｭ繝ｻ鬨ｾ繝ｻ繝ｻ繝ｻ・ｰ驍ｵ・ｺ繝ｻ・ｾ驍ｵ・ｺ陷ｷ・ｶ・つ郢晢ｽｻ     *
+     * @param player 髯昴・・ｽ・ｾ鬮ｮ雜｣・ｽ・｡驛｢譎丞ｹｲ・取ｨ抵ｽｹ・ｧ繝ｻ・､驛｢譎｢・ｽ・､驛｢譎｢・ｽ・ｼ
+     * @param slot HOTBAR 驛｢・ｧ繝ｻ・ｹ驛｢譎｢・ｽ・ｭ驛｢譏ｴ繝ｻ郢晢ｽｨ鬨ｾ・｡繝ｻ・ｪ髯ｷ・ｿ繝ｻ・ｷ
+     * @return 髯具ｽｻ繝ｻ・ｶ髯溷桁・ｽ・｡驛｢・ｧ繝ｻ・ｹ驛｢譎｢・ｽ・ｭ驛｢譏ｴ繝ｻ郢晢ｽｨ驍ｵ・ｺ繝ｻ・ｨ驍ｵ・ｺ陷会ｽｱ遯ｶ・ｻ髯ｷ繝ｻ・ｽ・ｦ鬨ｾ繝ｻ繝ｻ繝ｻ・ｰ驍ｵ・ｺ雋・ｽｷ繝ｻ・ｰ繝ｻ・ｴ髯ｷ・ｷ郢晢ｽｻtrue
      */
     public boolean handleSkillTreeHotbarControl(@NotNull Player player, int slot) {
         if (!shouldUseSkillTreeHotbar(player)) {
@@ -598,11 +695,13 @@ public class SkillTreeService {
         if (meta != null) {
             var lore = new java.util.ArrayList<Component>();
             lore.add(component("&8ID: &f" + node.id()));
-            lore.add(component("&8位置ID: &f" + node.positionId()));
-            lore.add(component("&8所持SP: &f" + state.skillPoints()));
-            lore.add(component(unlocked ? "&6◆ 解放済みノード ◆" : "&7◆ 未解放ノード ◆"));
-            lore.add(component("&e左クリック&7でノードを解放"));
-            lore.add(component("&6右クリック&7でノードを解除 &8(100G)"));
+            lore.add(component("&8菴咲ｽｮID: &f" + node.positionId()));
+            lore.add(component("&8謇謖ヾP: &f" + state.skillPoints()));
+            lore.add(component(unlocked ? "&6笳・隗｣謾ｾ貂医∩繝弱・繝・笳・ : "&7笳・譛ｪ隗｣謾ｾ繝弱・繝・笳・));
+            lore.add(component("&e蟾ｦ繧ｯ繝ｪ繝・け&7縺ｧ繝弱・繝峨ｒ隗｣謾ｾ"));
+            lore.add(component("&6蜿ｳ繧ｯ繝ｪ繝・け&7縺ｧ繝弱・繝峨ｒ隗｣髯､ &8(100G)"));
+            appendNodeSkillInfo(lore, node);
+            appendNodeStatusInfo(lore, node);
             if (!node.lore().isEmpty()) {
                 lore.add(component(""));
                 node.lore().forEach(line -> lore.add(component("&7" + line)));
@@ -613,18 +712,81 @@ public class SkillTreeService {
         return itemStack;
     }
 
+    private void appendNodeSkillInfo(@NotNull List<Component> lore, @NotNull SkillTreeNodeDefinition node) {
+        if (node.skillIds().isEmpty()) {
+            return;
+        }
+        lore.add(component(""));
+        lore.add(component("&b邏舌▼縺上せ繧ｭ繝ｫ"));
+        for (String rawSkillId : node.skillIds()) {
+            if (rawSkillId == null || rawSkillId.isBlank()) {
+                continue;
+            }
+            String skillId = rawSkillId.trim();
+            if (skillService == null) {
+                lore.add(component("&7- &f" + skillId));
+                continue;
+            }
+            var definition = skillService.registry().getDefinition(skillId);
+            if (definition == null) {
+                lore.add(component("&7- &f" + skillId + " &8(譛ｪ隱ｭ霎ｼ)"));
+                continue;
+            }
+            String kindLabel = definition.getKind().isPassive() ? "繝代ャ繧ｷ繝・ : "逋ｺ蜍・;
+            String triggerLabel = definition.getKind().isPassive()
+                    ? (definition.getPassiveBindRequired() ? "隕√ヰ繧､繝ｳ繝・ : "謇謖√・縺ｿ")
+                    : "繧｢繧ｯ繝・ぅ繝・;
+            lore.add(component("&7- &f" + stripLegacy(definition.getName()) + " &8[" + kindLabel + " / " + triggerLabel + "]"));
+            lore.add(component("&8  ID: " + definition.getId()));
+        }
+    }
+
+    private void appendNodeStatusInfo(@NotNull List<Component> lore, @NotNull SkillTreeNodeDefinition node) {
+        if (node.statuses().isEmpty()) {
+            return;
+        }
+        lore.add(component(""));
+        lore.add(component("&a繝弱・繝峨せ繝・・繧ｿ繧ｹ"));
+        for (SkillTreeNodeStatusDefinition status : node.statuses()) {
+            boolean scalar = status.type() == StatusModifierType.SCALAR;
+            double displayValue = scalar ? status.value() * 100.0D : status.value();
+            lore.add(component("&7- &f" + status.statusType().name() + "&7: &a+" + formatStatusValue(displayValue) + (scalar ? "%" : "")));
+        }
+    }
+
+    private @NotNull String stripLegacy(@NotNull String text) {
+        return text.replaceAll("(?i)&[0-9A-FK-OR]", "");
+    }
+
+    private @NotNull String formatStatusValue(double value) {
+        if (value == Math.rint(value)) {
+            return String.format(java.util.Locale.ROOT, "%.0f", value);
+        }
+        return String.format(java.util.Locale.ROOT, "%.2f", value);
+    }
+
+    private void refreshDerivedState(@NotNull AstPlayer astPlayer) {
+        if (passiveSkillService != null) {
+            passiveSkillService.reconcileNow(astPlayer);
+            return;
+        }
+        if (statusService != null) {
+            statusService.refreshStatus(astPlayer);
+        }
+    }
+
     @NotNull
     private ItemStack createEmptyTargetItem() {
         ItemStack itemStack = new ItemStack(Material.GRAY_DYE);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(component("&7スキルノード情報"));
+            meta.displayName(component("&7繧ｹ繧ｭ繝ｫ繝弱・繝画ュ蝣ｱ"));
             meta.lore(List.of(
-                    component("&8視線先にスキルノードがありません"),
-                    component("&7ノードへ照準を合わせると詳細が表示されます"),
+                    component("&8隕也ｷ壼・縺ｫ繧ｹ繧ｭ繝ｫ繝弱・繝峨′縺ゅｊ縺ｾ縺帙ｓ"),
+                    component("&7繝弱・繝峨∈辣ｧ貅悶ｒ蜷医ｏ縺帙ｋ縺ｨ隧ｳ邏ｰ縺瑚｡ｨ遉ｺ縺輔ｌ縺ｾ縺・),
                     component(""),
-                    component("&eslot7 &7: ActionBar表示切替"),
-                    component("&cslot8 &7: 拠点へ戻る")
+                    component("&eslot7 &7: ActionBar陦ｨ遉ｺ蛻・崛"),
+                    component("&cslot8 &7: 諡轤ｹ縺ｸ謌ｻ繧・)
             ));
             meta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(meta);
@@ -649,8 +811,8 @@ public class SkillTreeService {
         ItemStack itemStack = new ItemStack(Material.RED_BED);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(component("&c拠点へ戻る"));
-            meta.lore(List.of(component("&7スキルツリーを離れて元の場所へ戻ります")));
+            meta.displayName(component("&c諡轤ｹ縺ｸ謌ｻ繧・));
+            meta.lore(List.of(component("&7繧ｹ繧ｭ繝ｫ繝・Μ繝ｼ繧帝屬繧後※蜈・・蝣ｴ謇縺ｸ謌ｻ繧翫∪縺・)));
             meta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(meta);
         }
@@ -664,11 +826,11 @@ public class SkillTreeService {
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
             meta.displayName(component(resourceStatus
-                    ? "&bActionBar表示: &fリソースHUD"
-                    : "&bActionBar表示: &fノードガイド"));
+                    ? "&bActionBar陦ｨ遉ｺ: &f繝ｪ繧ｽ繝ｼ繧ｹHUD"
+                    : "&bActionBar陦ｨ遉ｺ: &f繝弱・繝峨ぎ繧､繝・));
             meta.lore(List.of(
-                    component("&7クリックで表示内容を切り替え"),
-                    component(resourceStatus ? "&8現在: &fHP / MP / ENG" : "&8現在: &fノードガイド")
+                    component("&7繧ｯ繝ｪ繝・け縺ｧ陦ｨ遉ｺ蜀・ｮｹ繧貞・繧頑崛縺・),
+                    component(resourceStatus ? "&8迴ｾ蝨ｨ: &fHP / MP / ENG" : "&8迴ｾ蝨ｨ: &f繝弱・繝峨ぎ繧､繝・)
             ));
             meta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(meta);
@@ -730,8 +892,7 @@ public class SkillTreeService {
     }
 
     /**
-     * 旧実装で保存されてしまったスキルツリー可視化 entity を掃除します。
-     */
+     * 譌ｧ螳溯｣・〒菫晏ｭ倥＆繧後※縺励∪縺｣縺溘せ繧ｭ繝ｫ繝・Μ繝ｼ蜿ｯ隕門喧 entity 繧呈祉髯､縺励∪縺吶・     */
     private void purgeSkillTreeVisualEntities() {
         WorldMasterData data = worldService.getById(SKILL_TREE_WORLD_ID);
         if (data == null) {
