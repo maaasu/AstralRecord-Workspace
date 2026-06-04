@@ -39,6 +39,9 @@ public class AirActionService {
     private static final double MIN_HORIZONTAL_LENGTH_SQ = 1.0E-6D;
     private static final double WALL_KICK_DIRECTION_DOT_THRESHOLD = -0.5D;
     private static final int AIR_ACTION_PARTICLE_COUNT = 8;
+    private static final long DOUBLE_JUMP_TRIGGER_DELAY_TICKS = 4L;
+    private static final long DOUBLE_JUMP_TRIGGER_DELAY_MS = DOUBLE_JUMP_TRIGGER_DELAY_TICKS * 50L;
+    private static final Sound DOUBLE_JUMP_SOUND = Sound.ENTITY_HORSE_JUMP;
 
     private final AstralRecord plugin;
     private final PlayerHudService playerHudService;
@@ -76,15 +79,23 @@ public class AirActionService {
         if (!player.isOnline() || player.isDead()) {
             return;
         }
+        long nowMs = System.currentTimeMillis();
 
         if (isGrounded(player)) {
             astPlayer.setAirJumpConsumed(false);
+            if (jumpPressed && !wasJumpPressed) {
+                astPlayer.setDoubleJumpCooldownUntilMs(nowMs + DOUBLE_JUMP_TRIGGER_DELAY_MS);
+            }
             return;
         }
 
         if (!jumpPressed || wasJumpPressed || astPlayer.isAirJumpConsumed() || astPlayer.isWallClinging()) {
             return;
         }
+        if (nowMs < astPlayer.getDoubleJumpCooldownUntilMs()) {
+            return;
+        }
+
         if (player.isFlying() || player.isGliding() || player.isSwimming() || player.isInsideVehicle()) {
             return;
         }
@@ -181,7 +192,13 @@ public class AirActionService {
         astPlayer.setAirJumpConsumed(true);
         player.setFallDistance(0.0F);
         player.setVelocity(velocity);
-        player.playSound(player.getLocation(), Sound.ENTITY_BAT_TAKEOFF, SoundCategory.PLAYERS, 0.55F, 1.08F);
+        player.playSound(
+            player.getLocation(),
+            DOUBLE_JUMP_SOUND,
+            SoundCategory.PLAYERS,
+            0.55F,
+            1.08F
+        );
         particleDisplayService.spawnWorld(
             astPlayer,
             player.getWorld(),

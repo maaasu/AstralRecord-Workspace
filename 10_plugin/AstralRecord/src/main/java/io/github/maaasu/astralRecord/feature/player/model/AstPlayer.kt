@@ -74,6 +74,12 @@ data class AstPlayer(
     var isAirJumpConsumed: Boolean = false
 
     /**
+     * 二段ジャンプを再生可能になる時刻（epoch ms）。
+     * 地上で通常ジャンプを押した直後は、この時刻を過ぎるまでは二段ジャンプを許可しない。
+     */
+    var doubleJumpCooldownUntilMs: Long = 0L
+
+    /**
      * 壁張り付き猶予の終了時刻（System.currentTimeMillis ベース）。
      * HUD 上の壁張り付きバー表示と、自然落下復帰の判定に使用します。
      */
