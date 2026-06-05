@@ -48,9 +48,20 @@ public record PacketTextDisplayOptions(
      * @return 標準 TextDisplay オプション
      */
     public static @NotNull PacketTextDisplayOptions skillTree(@NotNull Component text) {
+        return skillTree(text, 1.0F);
+    }
+
+    /**
+     * スキルツリー向けの TextDisplay オプションをサイズ指定付きで返します。
+     *
+     * @param text  表示文字列
+     * @param scale 表示倍率
+     * @return 標準 TextDisplay オプション
+     */
+    public static @NotNull PacketTextDisplayOptions skillTree(@NotNull Component text, float scale) {
         return new PacketTextDisplayOptions(
                 text,
-                1.0F,
+                scale,
                 160,
                 96.0F,
                 Color.fromARGB(0, 0, 0, 0),

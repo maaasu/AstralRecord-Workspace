@@ -15,6 +15,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.joml.Vector3f;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ public final class PacketDisplayService {
 
     private static final int META_ENTITY_SILENT = 4;
     private static final int META_ENTITY_NO_GRAVITY = 5;
+    private static final int META_DISPLAY_SCALE = 12;
     private static final int META_DISPLAY_BILLBOARD = 15;
     private static final int META_DISPLAY_VIEW_RANGE = 17;
     private static final int META_TEXT_TEXT = 23;
@@ -140,7 +142,7 @@ public final class PacketDisplayService {
     }
 
     private @NotNull List<WrappedDataValue> textMetadata(@NotNull PacketTextDisplayOptions options) {
-        List<WrappedDataValue> values = baseDisplayMetadata(options.viewRange());
+        List<WrappedDataValue> values = baseDisplayMetadata(options.scale(), options.viewRange());
         byte flags = 0;
         if (options.shadowed()) {
             flags |= TEXT_FLAG_SHADOW;
@@ -157,16 +159,17 @@ public final class PacketDisplayService {
     }
 
     private @NotNull List<WrappedDataValue> itemMetadata(@NotNull PacketItemDisplayOptions options) {
-        List<WrappedDataValue> values = baseDisplayMetadata(options.viewRange());
+        List<WrappedDataValue> values = baseDisplayMetadata(options.scale(), options.viewRange());
         values.add(data(META_ITEM_STACK, itemSerializer(), options.itemStack().clone()));
         values.add(data(META_ITEM_TRANSFORM, byteSerializer(), ITEM_TRANSFORM_FIXED));
         return values;
     }
 
-    private @NotNull List<WrappedDataValue> baseDisplayMetadata(float viewRange) {
+    private @NotNull List<WrappedDataValue> baseDisplayMetadata(float scale, float viewRange) {
         List<WrappedDataValue> values = new ArrayList<>();
         values.add(data(META_ENTITY_SILENT, booleanSerializer(), true));
         values.add(data(META_ENTITY_NO_GRAVITY, booleanSerializer(), true));
+        values.add(data(META_DISPLAY_SCALE, vector3fSerializer(), new Vector3f(scale, scale, scale)));
         values.add(data(META_DISPLAY_BILLBOARD, byteSerializer(), BILLBOARD_CENTER));
         values.add(data(META_DISPLAY_VIEW_RANGE, floatSerializer(), viewRange));
         return values;
@@ -200,6 +203,10 @@ public final class PacketDisplayService {
 
     private @NotNull WrappedDataWatcher.Serializer floatSerializer() {
         return WrappedDataWatcher.Registry.get((Type) Float.class);
+    }
+
+    private @NotNull WrappedDataWatcher.Serializer vector3fSerializer() {
+        return WrappedDataWatcher.Registry.get(Vector3f.class);
     }
 
     private @NotNull WrappedDataWatcher.Serializer chatSerializer() {

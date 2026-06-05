@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.skilltree.service;
 
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeEdge;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefinition;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePlayerState;
@@ -28,13 +29,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * スキルツリーのノードと接続線を、サーバ実体を作らず viewer ごとのパケット表示で管理します。
- */
 final class SkillTreeVisualizer {
     private static final long INTERVAL_TICKS = 10L;
-    private static final double VIEW_DISTANCE_SQ = 96.0D * 96.0D;
+    private static final double VIEW_DISTANCE = 96.0D;
+    private static final double VIEW_DISTANCE_SQ = VIEW_DISTANCE * VIEW_DISTANCE;
     private static final double EDGE_STEP = 0.45D;
+    private static final double ITEM_Y_OFFSET = 0.15D;
+    private static final double EDGE_Y_OFFSET = 0.65D;
+    private static final double TEXT_Y_OFFSET = 1.2D;
+    private static final float NODE_TEXT_SCALE = 0.85F;
+    private static final float ADMIN_TEXT_SCALE = 0.72F;
+    private static final float EDGE_TEXT_SCALE = 0.42F;
 
     private final Plugin plugin;
     private final SkillTreeService service;
@@ -65,19 +70,23 @@ final class SkillTreeVisualizer {
     private void tick() {
         Set<UUID> onlineViewerIds = new HashSet<>();
         for (Player player : plugin.getServer().getOnlinePlayers()) {
-            onlineViewerIds.add(player.getUniqueId());
-            ViewerScene scene = viewerScenes.computeIfAbsent(
-                    player.getUniqueId(),
-                    ignored -> new ViewerScene(player)
-            );
+            UUID playerId = player.getUniqueId();
+            onlineViewerIds.add(playerId);
+
+            RenderMode mode = resolveMode(player);
+            if (mode == RenderMode.HIDDEN) {
+                removeScene(playerId);
+                continue;
+            }
+
+            ViewerScene scene = viewerScenes.computeIfAbsent(playerId, ignored -> new ViewerScene(player));
             scene.resetIfWorldChanged(player);
             scene.begin();
-            updatePositions(player, scene);
-            updateEdges(player, scene);
+            renderPositions(player, scene, mode);
+            renderEdges(player, scene, mode);
             scene.end();
             if (scene.isEmpty()) {
-                scene.destroy();
-                viewerScenes.remove(player.getUniqueId());
+                removeScene(playerId);
             }
         }
 
@@ -90,55 +99,45 @@ final class SkillTreeVisualizer {
         });
     }
 
-    private void updatePositions(@NotNull Player player, @NotNull ViewerScene scene) {
+    private void removeScene(@NotNull UUID playerId) {
+        ViewerScene scene = viewerScenes.remove(playerId);
+        if (scene != null) {
+            scene.destroy();
+        }
+    }
+
+    private @NotNull RenderMode resolveMode(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (service.isAdminMode(astPlayer)) {
+            return RenderMode.ADMIN;
+        }
+        if (service.isPlayerModeSkillTree(player)) {
+            return RenderMode.PLAYER;
+        }
+        return RenderMode.HIDDEN;
+    }
+
+    private void renderPositions(
+            @NotNull Player player,
+            @NotNull ViewerScene scene,
+            @NotNull RenderMode mode
+    ) {
         for (SkillTreePosition position : service.getPositions()) {
             Location location = position.toLocation();
-            if (location == null || location.getWorld() == null) {
+            if (!isVisibleTo(player, location)) {
+                continue;
+            }
+
+            if (mode == RenderMode.ADMIN) {
+                renderAdminPosition(scene, position.positionId(), location);
                 continue;
             }
 
             SkillTreeNodeDefinition node = service.getNodeByPositionId(position.positionId());
-            PositionViewerState state = resolvePositionState(player, location, node);
-            if (state == PositionViewerState.HIDDEN) {
-                continue;
-            }
-
-            if (state == PositionViewerState.ADMIN_ONLY || state == PositionViewerState.ADMIN_PREVIEW) {
-                renderAdminPosition(scene, position.positionId(), location);
-                if (state == PositionViewerState.ADMIN_PREVIEW && node != null) {
-                    renderNodePosition(scene, position.positionId(), location, node, false);
-                }
-                continue;
-            }
-
             if (node != null) {
-                renderNodePosition(scene, position.positionId(), location, node, state == PositionViewerState.PLAYER_UNLOCKED);
+                renderPlayerNode(player, scene, position.positionId(), location, node);
             }
         }
-    }
-
-    private @NotNull PositionViewerState resolvePositionState(
-            @NotNull Player player,
-            @NotNull Location location,
-            @Nullable SkillTreeNodeDefinition node
-    ) {
-        boolean near = player.getWorld() == location.getWorld()
-                && player.getLocation().distanceSquared(location) <= VIEW_DISTANCE_SQ;
-        boolean adminVisible = near && service.shouldShowAdminPosition(player, location);
-        boolean playerVisible = near && node != null && service.shouldShowPlayerNode(player, location);
-        if (adminVisible) {
-            return node == null ? PositionViewerState.ADMIN_ONLY : PositionViewerState.ADMIN_PREVIEW;
-        }
-        if (!playerVisible || node == null) {
-            return PositionViewerState.HIDDEN;
-        }
-
-        var astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) {
-            return PositionViewerState.HIDDEN;
-        }
-        SkillTreePlayerState state = service.state(astPlayer);
-        return state.isUnlocked(node.id()) ? PositionViewerState.PLAYER_UNLOCKED : PositionViewerState.PLAYER_LOCKED;
     }
 
     private void renderAdminPosition(
@@ -146,78 +145,83 @@ final class SkillTreeVisualizer {
             @NotNull String positionId,
             @NotNull Location location
     ) {
-        scene.upsertItem("p:" + positionId + ":admin:item", itemLocation(location), new ItemStack(Material.ARMOR_STAND));
-        scene.upsertText("p:" + positionId + ":admin:marker", textLocation(location), component("&d*"));
-        scene.upsertText("p:" + positionId + ":admin:text", location.clone().add(0.0D, 1.2D, 0.0D), component("&d" + positionId));
+        String key = "admin:position:" + positionId;
+        scene.upsertItem(key + ":item", itemLocation(location), new ItemStack(Material.ARMOR_STAND));
+        scene.upsertText(key + ":marker", textLocation(location), component("&d*"), ADMIN_TEXT_SCALE);
+        scene.upsertText(key + ":label", location.clone().add(0.0D, TEXT_Y_OFFSET + 0.45D, 0.0D), component("&d" + positionId), ADMIN_TEXT_SCALE);
     }
 
-    private void renderNodePosition(
+    private void renderPlayerNode(
+            @NotNull Player player,
             @NotNull ViewerScene scene,
             @NotNull String positionId,
             @NotNull Location location,
-            @NotNull SkillTreeNodeDefinition node,
-            boolean unlocked
+            @NotNull SkillTreeNodeDefinition node
     ) {
-        String stateKey = unlocked ? "unlocked" : "locked";
-        scene.upsertItem(
-                "p:" + positionId + ":" + stateKey + ":item",
-                itemLocation(location),
-                service.createNodeDisplayItem(node, unlocked)
-        );
-        scene.upsertText(
-                "p:" + positionId + ":" + stateKey + ":text",
-                textLocation(location),
-                service.nodeName(node, unlocked)
-        );
+        boolean unlocked = isUnlocked(player, node);
+        String key = "node:" + positionId;
+        scene.upsertItem(key + ":item", itemLocation(location), service.createNodeDisplayItem(node, unlocked));
+        scene.upsertText(key + ":label", textLocation(location), service.nodeName(node, unlocked), NODE_TEXT_SCALE);
     }
 
-    private void updateEdges(@NotNull Player player, @NotNull ViewerScene scene) {
+    private void renderEdges(
+            @NotNull Player player,
+            @NotNull ViewerScene scene,
+            @NotNull RenderMode mode
+    ) {
         for (SkillTreeEdge edge : service.getEdges()) {
             SkillTreePosition left = service.getPosition(edge.leftPositionId());
             SkillTreePosition right = service.getPosition(edge.rightPositionId());
             if (left == null || right == null) {
                 continue;
             }
+
             Location leftLocation = left.toLocation();
             Location rightLocation = right.toLocation();
-            if (leftLocation == null || rightLocation == null || leftLocation.getWorld() != rightLocation.getWorld()) {
+            if (leftLocation == null
+                    || rightLocation == null
+                    || leftLocation.getWorld() == null
+                    || leftLocation.getWorld() != rightLocation.getWorld()) {
                 continue;
             }
 
-            EdgeViewerState state = resolveEdgeState(player, edge, leftLocation, rightLocation);
-            if (state == EdgeViewerState.HIDDEN) {
+            Location midpoint = interpolate(leftLocation, rightLocation, 0.5D);
+            if (!isVisibleTo(player, midpoint)) {
                 continue;
             }
-            renderEdge(scene, edge, leftLocation, rightLocation, state);
+
+            EdgeColor color = resolveEdgeColor(player, edge, mode);
+            if (color == EdgeColor.HIDDEN) {
+                continue;
+            }
+            renderEdge(scene, edge, leftLocation, rightLocation, color);
         }
     }
 
-    private @NotNull EdgeViewerState resolveEdgeState(
+    private @NotNull EdgeColor resolveEdgeColor(
             @NotNull Player player,
             @NotNull SkillTreeEdge edge,
-            @NotNull Location left,
-            @NotNull Location right
+            @NotNull RenderMode mode
     ) {
-        Location midpoint = interpolate(left, right, 0.5D);
-        boolean near = player.getWorld() == midpoint.getWorld()
-                && player.getLocation().distanceSquared(midpoint) <= VIEW_DISTANCE_SQ;
-        if (!near) {
-            return EdgeViewerState.HIDDEN;
-        }
-        if (service.shouldShowAdminPosition(player, midpoint)) {
-            return EdgeViewerState.ADMIN;
+        if (mode == RenderMode.ADMIN) {
+            return EdgeColor.ADMIN;
         }
 
         SkillTreeNodeDefinition leftNode = service.getNodeByPositionId(edge.leftPositionId());
         SkillTreeNodeDefinition rightNode = service.getNodeByPositionId(edge.rightPositionId());
-        if (leftNode == null || rightNode == null || !service.shouldShowPlayerNode(player, midpoint)) {
-            return EdgeViewerState.HIDDEN;
+        if (leftNode == null || rightNode == null) {
+            return EdgeColor.HIDDEN;
         }
-        return switch (service.edgeState(player, edge)) {
-            case 2 -> EdgeViewerState.YELLOW;
-            case 1 -> EdgeViewerState.WHITE;
-            default -> EdgeViewerState.GRAY;
-        };
+
+        boolean leftUnlocked = isUnlocked(player, leftNode);
+        boolean rightUnlocked = isUnlocked(player, rightNode);
+        if (leftUnlocked && rightUnlocked) {
+            return EdgeColor.YELLOW;
+        }
+        if (leftUnlocked || rightUnlocked) {
+            return EdgeColor.WHITE;
+        }
+        return EdgeColor.GRAY;
     }
 
     private void renderEdge(
@@ -225,50 +229,60 @@ final class SkillTreeVisualizer {
             @NotNull SkillTreeEdge edge,
             @NotNull Location left,
             @NotNull Location right,
-            @NotNull EdgeViewerState state
+            @NotNull EdgeColor color
     ) {
         int count = pointCount(left, right);
-        Component text = component(state.colorCode + "*");
+        Component text = component(color.colorCode + "*");
         for (int i = 1; i < count; i++) {
             Location location = interpolate(left, right, (double) i / count);
-            scene.upsertText("e:" + edge.key() + ":" + i, location, text);
+            scene.upsertText("edge:" + edge.key() + ":" + i, location, text, EDGE_TEXT_SCALE);
         }
     }
 
-    @NotNull
-    private Location itemLocation(@NotNull Location location) {
-        return location.clone().add(0.0D, 0.15D, 0.0D);
+    private boolean isUnlocked(@NotNull Player player, @NotNull SkillTreeNodeDefinition node) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            return false;
+        }
+        SkillTreePlayerState state = service.state(astPlayer);
+        return state.isUnlocked(node.id());
     }
 
-    @NotNull
-    private Location textLocation(@NotNull Location location) {
-        return location.clone().add(0.0D, 1.2D, 0.0D);
+    private boolean isVisibleTo(@NotNull Player player, @Nullable Location location) {
+        return location != null
+                && location.getWorld() != null
+                && player.getWorld() == location.getWorld()
+                && player.getLocation().distanceSquared(location) <= VIEW_DISTANCE_SQ;
     }
 
-    @NotNull
-    private Location interpolate(@NotNull Location left, @NotNull Location right, double t) {
+    private @NotNull Location itemLocation(@NotNull Location location) {
+        return location.clone().add(0.0D, ITEM_Y_OFFSET, 0.0D);
+    }
+
+    private @NotNull Location textLocation(@NotNull Location location) {
+        return location.clone().add(0.0D, TEXT_Y_OFFSET, 0.0D);
+    }
+
+    private @NotNull Location interpolate(@NotNull Location left, @NotNull Location right, double t) {
         Vector vector = left.toVector().multiply(1.0D - t).add(right.toVector().multiply(t));
-        return vector.toLocation(left.getWorld()).add(0.0D, 0.65D, 0.0D);
+        return vector.toLocation(left.getWorld()).add(0.0D, EDGE_Y_OFFSET, 0.0D);
     }
 
     private int pointCount(@NotNull Location left, @NotNull Location right) {
         return Math.max(1, (int) Math.ceil(left.distance(right) / EDGE_STEP));
     }
 
-    @NotNull
-    private Component component(@NotNull String text) {
+    private @NotNull Component component(@NotNull String text) {
         return LegacyComponentSerializer.legacySection().deserialize(ColorCodeUtil.translateAlternateColorCodes(text));
     }
 
-    private enum PositionViewerState {
+    private enum RenderMode {
         HIDDEN,
-        ADMIN_ONLY,
-        ADMIN_PREVIEW,
-        PLAYER_LOCKED,
-        PLAYER_UNLOCKED
+        ADMIN,
+        PLAYER
     }
 
-    private enum EdgeViewerState {
+    private enum EdgeColor {
         HIDDEN(""),
         ADMIN("&d"),
         GRAY("&7"),
@@ -277,7 +291,7 @@ final class SkillTreeVisualizer {
 
         private final String colorCode;
 
-        EdgeViewerState(@NotNull String colorCode) {
+        EdgeColor(@NotNull String colorCode) {
             this.colorCode = colorCode;
         }
     }
@@ -306,12 +320,17 @@ final class SkillTreeVisualizer {
             activeKeys.clear();
         }
 
-        private void upsertText(@NotNull String key, @NotNull Location location, @NotNull Component text) {
+        private void upsertText(
+                @NotNull String key,
+                @NotNull Location location,
+                @NotNull Component text,
+                float scale
+        ) {
             activeKeys.add(key);
             SceneEntry entry = entries.get(key);
             if (entry == null || entry.type != SceneEntryType.TEXT) {
                 destroy(entry);
-                PacketDisplayHandle handle = displayService.spawnText(location, PacketTextDisplayOptions.skillTree(text));
+                PacketDisplayHandle handle = displayService.spawnText(location, PacketTextDisplayOptions.skillTree(text, scale));
                 entries.put(key, new SceneEntry(SceneEntryType.TEXT, handle));
                 return;
             }
