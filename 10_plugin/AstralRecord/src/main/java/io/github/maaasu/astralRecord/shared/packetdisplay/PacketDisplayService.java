@@ -7,6 +7,7 @@ import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.wrappers.WrappedChatComponent;
 import com.comphenix.protocol.wrappers.WrappedDataValue;
 import com.comphenix.protocol.wrappers.WrappedDataWatcher;
+import com.comphenix.protocol.wrappers.Vector3F;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -15,7 +16,6 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
-import org.joml.Vector3f;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -169,7 +169,7 @@ public final class PacketDisplayService {
         List<WrappedDataValue> values = new ArrayList<>();
         values.add(data(META_ENTITY_SILENT, booleanSerializer(), true));
         values.add(data(META_ENTITY_NO_GRAVITY, booleanSerializer(), true));
-        values.add(data(META_DISPLAY_SCALE, vector3fSerializer(), new Vector3f(scale, scale, scale)));
+        values.add(data(META_DISPLAY_SCALE, vector3fSerializer(), new Vector3F(scale, scale, scale)));
         values.add(data(META_DISPLAY_BILLBOARD, byteSerializer(), BILLBOARD_CENTER));
         values.add(data(META_DISPLAY_VIEW_RANGE, floatSerializer(), viewRange));
         return values;
@@ -206,7 +206,7 @@ public final class PacketDisplayService {
     }
 
     private @NotNull WrappedDataWatcher.Serializer vector3fSerializer() {
-        return WrappedDataWatcher.Registry.get(Vector3f.class);
+        return WrappedDataWatcher.Registry.getVectorSerializer();
     }
 
     private @NotNull WrappedDataWatcher.Serializer chatSerializer() {
