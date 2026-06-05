@@ -299,6 +299,16 @@ public class SkillTreeService {
                 || (inSkillTreeWorld && (isAdminMode(astPlayer) || hasSetupItemInHotbar(player)));
     }
 
+    /**
+     * プレイヤーがスキルツリー編集中で、通常攻撃・特殊攻撃などの通常操作を抑止すべきか判定します。
+     *
+     * @param player 判定対象のプレイヤー
+     * @return スキルツリー編集中の場合は true
+     */
+    public boolean isSkillTreeEditing(@NotNull Player player) {
+        return shouldSuppressSkillTreeSetupControls(player) || isPlayerModeSkillTree(player);
+    }
+
     private boolean hasSetupItemInHands(@NotNull Player player) {
         return isSkillTreeSetupItem(player.getInventory().getItemInMainHand())
                 || isSkillTreeSetupItem(player.getInventory().getItemInOffHand());

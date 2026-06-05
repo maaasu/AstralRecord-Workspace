@@ -46,7 +46,7 @@ public final class ItemWeaponAttackEventHandler extends AbstractEventHandler {
             if (!isLeftClick && !isRightClick) {
                 return;
             }
-            if (skillTreeService.shouldSuppressSkillTreeSetupControls(event.getPlayer())) {
+            if (skillTreeService.isSkillTreeEditing(event.getPlayer())) {
                 event.setCancelled(true);
                 return;
             }
