@@ -287,7 +287,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             return;
         }
         ItemStack[] accessories = menuView.getAccessoryItems(inventory);
-        inventoryService.saveEquipmentGui(
+        boolean changed = inventoryService.saveEquipmentGui(
             astPlayer,
             menuView.getEquipmentGuiItem(inventory, MenuView.EQUIPMENT_HEAD_SLOT),
             menuView.getEquipmentGuiItem(inventory, MenuView.EQUIPMENT_CHEST_SLOT),
@@ -301,7 +301,9 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             accessories[6],
             accessories[7]
         );
-        statusService.refreshStatus(astPlayer);
+        if (changed) {
+            statusService.refreshStatus(astPlayer);
+        }
     }
 
     private void handlePlayerInventoryClick(@NotNull InventoryClickEvent event) {

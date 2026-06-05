@@ -1232,7 +1232,7 @@ public class InventoryService {
     /**
      * 装備 GUI の内容を Bukkit 装備欄と state へ反映します。
      */
-    public void saveEquipmentGui(
+    public boolean saveEquipmentGui(
         @NotNull AstPlayer astPlayer,
         @Nullable ItemStack head,
         @Nullable ItemStack chest,
@@ -1248,9 +1248,15 @@ public class InventoryService {
     ) {
         PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
         if (state == null) {
-            return;
+            return false;
         }
         PlayerInventory bukkitInventory = astPlayer.getBukkit().getInventory();
+        if (!hasEquipmentGuiChanges(
+            astPlayer, bukkitInventory, head, chest, legs, feet, offHand,
+            accessory2, accessory3, accessory4, accessory5, accessory6, accessory7
+        )) {
+            return false;
+        }
         bukkitInventory.setHelmet(itemOrAir(head));
         bukkitInventory.setChestplate(itemOrAir(chest));
         bukkitInventory.setLeggings(itemOrAir(legs));
@@ -1271,6 +1277,44 @@ public class InventoryService {
             accessory2, accessory3, accessory4, accessory5, accessory6, accessory7);
 
         astPlayer.getBukkit().updateInventory();
+        return true;
+    }
+
+    private boolean hasEquipmentGuiChanges(
+        @NotNull AstPlayer astPlayer,
+        @NotNull PlayerInventory bukkitInventory,
+        @Nullable ItemStack head,
+        @Nullable ItemStack chest,
+        @Nullable ItemStack legs,
+        @Nullable ItemStack feet,
+        @Nullable ItemStack offHand,
+        @Nullable ItemStack accessory2,
+        @Nullable ItemStack accessory3,
+        @Nullable ItemStack accessory4,
+        @Nullable ItemStack accessory5,
+        @Nullable ItemStack accessory6,
+        @Nullable ItemStack accessory7
+    ) {
+        return !isSameEquipmentItem(head, bukkitInventory.getHelmet())
+            || !isSameEquipmentItem(chest, bukkitInventory.getChestplate())
+            || !isSameEquipmentItem(legs, bukkitInventory.getLeggings())
+            || !isSameEquipmentItem(feet, bukkitInventory.getBoots())
+            || !isSameEquipmentItem(offHand, bukkitInventory.getItemInOffHand())
+            || !isSameEquipmentItem(accessory2, getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_NECKLACE))
+            || !isSameEquipmentItem(accessory3, getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_RING))
+            || !isSameEquipmentItem(accessory4, getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_EARRING))
+            || !isSameEquipmentItem(accessory5, getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_BRACELET))
+            || !isSameEquipmentItem(accessory6, getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_BELT))
+            || !isSameEquipmentItem(accessory7, getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_CHARM));
+    }
+
+    private boolean isSameEquipmentItem(@Nullable ItemStack expected, @Nullable ItemStack current) {
+        UUID expectedInstanceId = readEquipmentInstanceId(expected);
+        UUID currentInstanceId = readEquipmentInstanceId(current);
+        if (expectedInstanceId != null || currentInstanceId != null) {
+            return expectedInstanceId != null && expectedInstanceId.equals(currentInstanceId);
+        }
+        return itemOrAir(expected).getType() == itemOrAir(current).getType();
     }
 
     // ---------------------------------------------------------------
