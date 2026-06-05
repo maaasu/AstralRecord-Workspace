@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
+import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.entity.Player;
@@ -30,6 +31,7 @@ import org.jetbrains.annotations.NotNull;
 public final class SkillActionRingEventHandler extends AbstractEventHandler {
     private final SkillActionRingService actionRingService;
     private final InventoryService inventoryService;
+    private final SkillTreeService skillTreeService;
 
     /**
      * ハンドラを生成します。
@@ -39,10 +41,12 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
      */
     public SkillActionRingEventHandler(
         @NotNull SkillActionRingService actionRingService,
-        @NotNull InventoryService inventoryService
+        @NotNull InventoryService inventoryService,
+        @NotNull SkillTreeService skillTreeService
     ) {
         this.actionRingService = actionRingService;
         this.inventoryService = inventoryService;
+        this.skillTreeService = skillTreeService;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -50,6 +54,10 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
         runSafely(() -> {
             event.setCancelled(true);
             Player player = event.getPlayer();
+            if (skillTreeService.shouldSuppressSkillTreeSetupControls(player)) {
+                actionRingService.close(player);
+                return;
+            }
             AstPlayer astPlayer = AstPlayerCache.get(player);
             if (!isPlayerMode(astPlayer)) {
                 return;
@@ -73,6 +81,11 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
             Action action = event.getAction();
             boolean isLeftClick = action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK;
             boolean isRightClick = action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
+            if ((isLeftClick || isRightClick) && skillTreeService.shouldSuppressSkillTreeSetupControls(player)) {
+                event.setCancelled(true);
+                actionRingService.close(player);
+                return;
+            }
             if (event.getHand() == EquipmentSlot.HAND
                 && (isLeftClick || isRightClick)
                 && player.getInventory().getHeldItemSlot() == 8) {
@@ -101,6 +114,11 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onPlayerAnimation(@NotNull PlayerAnimationEvent event) {
         runSafely(() -> {
+            if (skillTreeService.shouldSuppressSkillTreeSetupControls(event.getPlayer())) {
+                event.setCancelled(true);
+                actionRingService.close(event.getPlayer());
+                return;
+            }
             if (!actionRingService.isOpen(event.getPlayer())) {
                 return;
             }
@@ -111,6 +129,11 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onPlayerItemHeld(@NotNull PlayerItemHeldEvent event) {
         runSafely(() -> {
+            if (skillTreeService.shouldSuppressSkillTreeSetupControls(event.getPlayer())) {
+                event.setCancelled(true);
+                actionRingService.close(event.getPlayer());
+                return;
+            }
             if (!actionRingService.isOpen(event.getPlayer())) {
                 return;
             }
@@ -122,6 +145,12 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
     public void onEntityDamageByEntityBeforeCombat(@NotNull EntityDamageByEntityEvent event) {
         runSafely(() -> {
             if (!(event.getDamager() instanceof Player player)) {
+                return;
+            }
+            if (skillTreeService.shouldSuppressSkillTreeSetupControls(player)) {
+                event.setDamage(0.0D);
+                event.setCancelled(true);
+                actionRingService.close(player);
                 return;
             }
             if (!actionRingService.isOpen(player)) {
@@ -136,6 +165,11 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
     public void onEntityDamageByEntity(@NotNull EntityDamageByEntityEvent event) {
         runSafely(() -> {
             if (!(event.getDamager() instanceof Player player)) {
+                return;
+            }
+            if (skillTreeService.shouldSuppressSkillTreeSetupControls(player)) {
+                event.setCancelled(true);
+                actionRingService.close(player);
                 return;
             }
             if (!actionRingService.isOpen(player)) {

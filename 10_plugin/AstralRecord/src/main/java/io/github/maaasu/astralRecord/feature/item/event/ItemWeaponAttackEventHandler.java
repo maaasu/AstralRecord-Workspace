@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.item.service.ItemWeaponAttackService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
+import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -20,13 +21,16 @@ public final class ItemWeaponAttackEventHandler extends AbstractEventHandler {
 
     private final ItemWeaponAttackService itemWeaponAttackService;
     private final SkillActionRingService actionRingService;
+    private final SkillTreeService skillTreeService;
 
     public ItemWeaponAttackEventHandler(
         @NotNull ItemWeaponAttackService itemWeaponAttackService,
-        @NotNull SkillActionRingService actionRingService
+        @NotNull SkillActionRingService actionRingService,
+        @NotNull SkillTreeService skillTreeService
     ) {
         this.itemWeaponAttackService = itemWeaponAttackService;
         this.actionRingService = actionRingService;
+        this.skillTreeService = skillTreeService;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -40,6 +44,10 @@ public final class ItemWeaponAttackEventHandler extends AbstractEventHandler {
             boolean isLeftClick = action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK;
             boolean isRightClick = action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
             if (!isLeftClick && !isRightClick) {
+                return;
+            }
+            if (skillTreeService.shouldSuppressSkillTreeSetupControls(event.getPlayer())) {
+                event.setCancelled(true);
                 return;
             }
             if (actionRingService.isAttackSuppressed(event.getPlayer())) {

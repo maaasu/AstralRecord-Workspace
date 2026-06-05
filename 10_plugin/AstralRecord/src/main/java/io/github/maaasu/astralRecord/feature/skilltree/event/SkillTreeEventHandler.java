@@ -104,7 +104,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onBlockPlace(@NotNull BlockPlaceEvent event) {
-        if (service.readPositionItemId(event.getItemInHand()) != null || service.isConnectorItem(event.getItemInHand())) {
+        if (service.isSkillTreeSetupItem(event.getItemInHand())) {
             event.setCancelled(true);
         }
     }
@@ -112,13 +112,17 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onBlockBreak(@NotNull BlockBreakEvent event) {
         ItemStack held = event.getPlayer().getInventory().getItemInMainHand();
-        if (service.readPositionItemId(held) != null || service.isConnectorItem(held)) {
+        if (service.isSkillTreeSetupItem(held)) {
             event.setCancelled(true);
         }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onHeldSlotChange(@NotNull PlayerItemHeldEvent event) {
+        if (service.shouldSuppressSkillTreeSetupControls(event.getPlayer())) {
+            event.setCancelled(true);
+            return;
+        }
         if (!service.isPlayerModeSkillTree(event.getPlayer())) {
             return;
         }
@@ -136,6 +140,13 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onInventoryClick(@NotNull InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof org.bukkit.entity.Player player)) {
+            return;
+        }
+        if (service.shouldSuppressSkillTreeSetupControls(player)
+                && event.getClickedInventory() == player.getInventory()
+                && event.getSlot() >= 0
+                && event.getSlot() <= 8) {
+            event.setCancelled(true);
             return;
         }
         if (!service.isPlayerModeSkillTree(player)) {

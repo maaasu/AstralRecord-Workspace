@@ -259,7 +259,7 @@ public class SkillTreeService {
     public boolean isPlayerModeSkillTree(@NotNull Player player) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         return astPlayer != null
-                && astPlayer.getAccount().getMode() == AccountMode.PLAYER
+                && astPlayer.getAccount().getMode() != AccountMode.ADMIN
                 && isSkillTreeWorld(player.getWorld());
     }
 
@@ -274,6 +274,17 @@ public class SkillTreeService {
 
     public boolean shouldShowPlayerNode(@NotNull Player player, @NotNull Location location) {
         return isPlayerModeSkillTree(player) && player.getWorld() == location.getWorld();
+    }
+
+    public boolean isSkillTreeSetupItem(@Nullable ItemStack itemStack) {
+        return readPositionItemId(itemStack) != null || isConnectorItem(itemStack);
+    }
+
+    public boolean shouldSuppressSkillTreeSetupControls(@NotNull Player player) {
+        boolean hasSetupItem = isSkillTreeSetupItem(player.getInventory().getItemInMainHand())
+                || isSkillTreeSetupItem(player.getInventory().getItemInOffHand());
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        return hasSetupItem || (isAdminMode(astPlayer) && isSkillTreeWorld(player.getWorld()));
     }
 
     @Nullable
