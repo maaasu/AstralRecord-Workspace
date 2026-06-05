@@ -121,6 +121,10 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
     public void onHeldSlotChange(@NotNull PlayerItemHeldEvent event) {
         if (service.shouldSuppressSkillTreeSetupControls(event.getPlayer())) {
             event.setCancelled(true);
+            org.bukkit.Bukkit.getScheduler().runTask(
+                    io.github.maaasu.astralRecord.AstralRecord.getInstance(),
+                    () -> event.getPlayer().getInventory().setHeldItemSlot(event.getPreviousSlot())
+            );
             return;
         }
         if (!service.isPlayerModeSkillTree(event.getPlayer())) {

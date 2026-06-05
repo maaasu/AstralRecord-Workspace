@@ -259,7 +259,7 @@ public class SkillTreeService {
     public boolean isPlayerModeSkillTree(@NotNull Player player) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         return astPlayer != null
-                && astPlayer.getAccount().getMode() != AccountMode.ADMIN
+                && astPlayer.getAccount().getMode() == AccountMode.PLAYER
                 && isSkillTreeWorld(player.getWorld());
     }
 
@@ -276,15 +276,41 @@ public class SkillTreeService {
         return isPlayerModeSkillTree(player) && player.getWorld() == location.getWorld();
     }
 
+    /**
+     * ItemStack がスキルツリー設定用アイテムかを判定します。
+     *
+     * @param itemStack 判定対象の ItemStack
+     * @return Position / Connector アイテムの場合は true
+     */
     public boolean isSkillTreeSetupItem(@Nullable ItemStack itemStack) {
         return readPositionItemId(itemStack) != null || isConnectorItem(itemStack);
     }
 
+    /**
+     * スキルツリー設定中として通常戦闘系入力を抑止すべきかを判定します。
+     *
+     * @param player 判定対象プレイヤー
+     * @return 設定アイテム操作中、または管理者が skill_tree ワールドにいる場合は true
+     */
     public boolean shouldSuppressSkillTreeSetupControls(@NotNull Player player) {
-        boolean hasSetupItem = isSkillTreeSetupItem(player.getInventory().getItemInMainHand())
-                || isSkillTreeSetupItem(player.getInventory().getItemInOffHand());
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        return hasSetupItem || (isAdminMode(astPlayer) && isSkillTreeWorld(player.getWorld()));
+        boolean inSkillTreeWorld = isSkillTreeWorld(player.getWorld());
+        return hasSetupItemInHands(player)
+                || (inSkillTreeWorld && (isAdminMode(astPlayer) || hasSetupItemInHotbar(player)));
+    }
+
+    private boolean hasSetupItemInHands(@NotNull Player player) {
+        return isSkillTreeSetupItem(player.getInventory().getItemInMainHand())
+                || isSkillTreeSetupItem(player.getInventory().getItemInOffHand());
+    }
+
+    private boolean hasSetupItemInHotbar(@NotNull Player player) {
+        for (int slot = 0; slot <= 8; slot++) {
+            if (isSkillTreeSetupItem(player.getInventory().getItem(slot))) {
+                return true;
+            }
+        }
+        return isSkillTreeSetupItem(player.getInventory().getItemInOffHand());
     }
 
     @Nullable

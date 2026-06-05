@@ -70,6 +70,7 @@ final class SkillTreeVisualizer {
                     player.getUniqueId(),
                     ignored -> new ViewerScene(player)
             );
+            scene.resetIfWorldChanged(player);
             scene.begin();
             updatePositions(player, scene);
             updateEdges(player, scene);
@@ -285,9 +286,20 @@ final class SkillTreeVisualizer {
         private final PacketDisplayService displayService;
         private final Map<String, SceneEntry> entries = new HashMap<>();
         private final Set<String> activeKeys = new HashSet<>();
+        private UUID worldId;
 
         private ViewerScene(@NotNull Player viewer) {
             this.displayService = new PacketDisplayService(viewer);
+            this.worldId = viewer.getWorld().getUID();
+        }
+
+        private void resetIfWorldChanged(@NotNull Player viewer) {
+            UUID currentWorldId = viewer.getWorld().getUID();
+            if (worldId.equals(currentWorldId)) {
+                return;
+            }
+            destroy();
+            worldId = currentWorldId;
         }
 
         private void begin() {
