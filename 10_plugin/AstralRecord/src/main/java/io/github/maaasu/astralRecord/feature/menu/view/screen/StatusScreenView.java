@@ -41,6 +41,7 @@ public final class StatusScreenView extends BaseMenuScreenView {
     private static final TextColor OFFENSE_COLOR = NamedTextColor.RED;
     private static final TextColor DEFENSE_COLOR = NamedTextColor.BLUE;
     private static final TextColor UTILITY_COLOR = NamedTextColor.GREEN;
+    private static final boolean SHOW_BASE_BONUS_STATS = false;
 
     public void render(
         @NotNull Inventory inventory,
@@ -144,16 +145,20 @@ public final class StatusScreenView extends BaseMenuScreenView {
             .append(Component.text(" ▸ ", accent))
             .append(Component.text(type.getDisplayName(), NamedTextColor.GRAY))
             .append(Component.text(" ", NamedTextColor.DARK_GRAY))
-            .append(Component.text(type.formatValue(value.getTotalValue()), NamedTextColor.WHITE, TextDecoration.BOLD))
-            .append(Component.text("  base ", NamedTextColor.DARK_GRAY))
-            .append(Component.text(type.formatValue(value.getBaseValue()), NamedTextColor.GRAY));
+            .append(Component.text(type.formatValue(value.getTotalValue()), NamedTextColor.WHITE, TextDecoration.BOLD));
 
-        double bonus = value.getBonusValue();
-        if (bonus != 0.0) {
-            NamedTextColor bonusColor = bonus > 0.0 ? NamedTextColor.GREEN : NamedTextColor.RED;
+        if (SHOW_BASE_BONUS_STATS) {
             line = line
-                .append(Component.text(" bonus ", NamedTextColor.DARK_GRAY))
-                .append(Component.text(type.formatSignedValue(bonus), bonusColor));
+                .append(Component.text("  base ", NamedTextColor.DARK_GRAY))
+                .append(Component.text(type.formatValue(value.getBaseValue()), NamedTextColor.GRAY));
+
+            double bonus = value.getBonusValue();
+            if (bonus != 0.0) {
+                NamedTextColor bonusColor = bonus > 0.0 ? NamedTextColor.GREEN : NamedTextColor.RED;
+                line = line
+                    .append(Component.text(" bonus ", NamedTextColor.DARK_GRAY))
+                    .append(Component.text(type.formatSignedValue(bonus), bonusColor));
+            }
         }
         return noItalic(line);
     }

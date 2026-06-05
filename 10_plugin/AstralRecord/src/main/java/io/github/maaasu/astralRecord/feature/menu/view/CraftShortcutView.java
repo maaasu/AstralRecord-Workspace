@@ -56,6 +56,7 @@ final class CraftShortcutView {
         @Nullable InventoryType selectedType,
         @Nullable StatusSnapshot snapshot,
         @NotNull AccountModel selectedAccount,
+        int skillPoints,
         @NotNull List<AccountModel> accounts
     ) {
         if (!(player.getOpenInventory().getTopInventory() instanceof CraftingInventory inventory)) {
@@ -71,7 +72,17 @@ final class CraftShortcutView {
         for (int slot = 0; slot < MenuShortcutSettings.SLOT_COUNT; slot++) {
             MenuShortcutAction action = settings.getAction(slot);
             boolean selected = action.getInventoryType() != null && action.getInventoryType() == selectedType;
-            newMatrix[slot] = createCraftShortcutIcon(player, slot, action, selected, selectedType, snapshot, selectedAccount, accounts);
+            newMatrix[slot] = createCraftShortcutIcon(
+                player,
+                slot,
+                action,
+                selected,
+                selectedType,
+                snapshot,
+                selectedAccount,
+                skillPoints,
+                accounts
+            );
             ItemStack existing = slot < currentMatrix.length ? currentMatrix[slot] : null;
             if (!isSameDisplayItem(existing, newMatrix[slot])) {
                 matrixChanged = true;
@@ -140,13 +151,14 @@ final class CraftShortcutView {
         @Nullable InventoryType selectedType,
         @Nullable StatusSnapshot snapshot,
         @NotNull AccountModel selectedAccount,
+        int skillPoints,
         @NotNull List<AccountModel> accounts
     ) {
         if (action == MenuShortcutAction.INVENTORY_CYCLE) {
             return createUserInfoDummyIcon(player, shortcutSlotIndex, selectedType, selectedAccount, accounts);
         }
         if (action == MenuShortcutAction.STATUS) {
-            return createStatusShortcutIcon(shortcutSlotIndex, snapshot, selectedAccount);
+            return createStatusShortcutIcon(shortcutSlotIndex, snapshot, selectedAccount, skillPoints);
         }
         if (action.isCurrencyAction()) {
             return createCurrencyShortcutIcon(player, shortcutSlotIndex, action);
@@ -169,7 +181,8 @@ final class CraftShortcutView {
     private @NotNull ItemStack createStatusShortcutIcon(
         int shortcutSlotIndex,
         @Nullable StatusSnapshot snapshot,
-        @NotNull AccountModel selectedAccount
+        @NotNull AccountModel selectedAccount,
+        int skillPoints
     ) {
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text("選択中のアカウント", NamedTextColor.DARK_GRAY));
@@ -183,6 +196,8 @@ final class CraftShortcutView {
             .append(Component.text(selectedAccount.getMode().getDisplayName(), NamedTextColor.LIGHT_PURPLE)));
         lore.add(Component.text("累計経験値: ", NamedTextColor.GRAY)
             .append(Component.text(String.valueOf(selectedAccount.getTotalExperience()), NamedTextColor.GREEN)));
+        lore.add(Component.text("所持SP: ", NamedTextColor.GRAY)
+            .append(Component.text(String.valueOf(skillPoints), NamedTextColor.AQUA)));
         lore.add(Component.text("━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
         if (snapshot != null && !snapshot.getValues().isEmpty()) {
             addStatusLine(lore, snapshot, StatusType.ATTACK, NamedTextColor.RED);

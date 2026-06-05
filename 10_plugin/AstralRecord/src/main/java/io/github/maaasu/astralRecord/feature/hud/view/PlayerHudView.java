@@ -17,7 +17,7 @@ import org.bukkit.scoreboard.Scoreboard;
 public class PlayerHudView {
     private static final String OBJECTIVE_NAME = "astral_info";
     private static final int TRANSIENT_BAR_LENGTH = 28;
-    private static final int SIDEBAR_BAR_LENGTH = 30;
+    private static final int SIDEBAR_BAR_LENGTH = 50;
 
     public void renderActionBar(Player player, StatusSnapshot snapshot) {
         double maxHp = snapshot.getMaxValue(StatusType.MAX_HEALTH);
@@ -64,7 +64,7 @@ public class PlayerHudView {
      * @param player 対象プレイヤー
      * @param tps 現在のTPS
      * @param playerLevel アカウント単位のプレイヤーレベル
-     * @param totalExperience アカウント単位の総経験値
+     * @param experienceProgress 現在レベル内の経験値進捗（0.0-1.0）
      * @param classLevel 現在のクラスレベル
      * @param className 現在のクラス表示名
      */
@@ -72,7 +72,7 @@ public class PlayerHudView {
         Player player,
         double tps,
         int playerLevel,
-        long totalExperience,
+        double experienceProgress,
         int classLevel,
         String className
     ) {
@@ -99,11 +99,11 @@ public class PlayerHudView {
         objective.getScore(tpsLegacyColor(tps) + "TPS" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + String.format("%.1f", tps)).setScore(10);
         objective.getScore(pingLegacyColor(ping) + "Ping" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + ping + "ms").setScore(9);
         objective.getScore(buildSeparator("player")).setScore(8);
-        objective.getScore(ColorCodeUtil.GOLD + "レベル" + ColorCodeUtil.GRAY + ": "  + "Lv." + ColorCodeUtil.YELLOW + playerLevel).setScore(7);
-        objective.getScore(buildExperienceBar("EXP", experienceProgress(totalExperience), ColorCodeUtil.GREEN)).setScore(6);
-        objective.getScore(buildSeparator("クラス")).setScore(5);
-        objective.getScore(ColorCodeUtil.DARK_AQUA + "class" + ColorCodeUtil.GRAY + ": "  + className).setScore(4);
-        objective.getScore(ColorCodeUtil.YELLOW + "クラスレベル" + ColorCodeUtil.GRAY + ": "  + "Lv." + ColorCodeUtil.YELLOW + classLevel).setScore(3);
+        objective.getScore(ColorCodeUtil.GOLD + "レベル" + ColorCodeUtil.GRAY + ": " + "Lv." + ColorCodeUtil.YELLOW + playerLevel).setScore(7);
+        objective.getScore(buildExperienceBar("EXP", experienceProgress, ColorCodeUtil.GREEN)).setScore(6);
+        objective.getScore(buildSeparator("class")).setScore(5);
+        objective.getScore(ColorCodeUtil.DARK_AQUA + "Class" + ColorCodeUtil.GRAY + ": " + className).setScore(4);
+        objective.getScore(ColorCodeUtil.YELLOW + "Class Lv." + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.YELLOW + classLevel).setScore(3);
         objective.getScore(buildExperienceBar("CEXP", 0.0D, ColorCodeUtil.AQUA)).setScore(2);
         objective.getScore(ColorCodeUtil.DARK_GRAY + "クラスEXP 準備中").setScore(1);
     }
@@ -159,10 +159,6 @@ public class PlayerHudView {
         bar.append(ColorCodeUtil.WHITE).append(" ").append(progressPercent).append("%");
 
         return bar.toString();
-    }
-
-    private double experienceProgress(long totalExperience) {
-        return (((double) totalExperience / 100000L) % 100L) / 100.0D;
     }
 
     private String buildSeparator(String label) {
