@@ -125,28 +125,28 @@ public class SkillTreeService {
     }
 
     /**
-     * ?????????? HUD ???????? HUD ???????????
+     * プレイヤー HUD サービスを設定します。
      */
     public void setPlayerHudService(@NotNull PlayerHudService playerHudService) {
         this.playerHudService = playerHudService;
     }
 
     /**
-     * ?????????????????????????
+     * ステータスサービスを設定します。
      */
     public void setStatusService(@NotNull StatusService statusService) {
         this.statusService = statusService;
     }
 
     /**
-     * ??????????????????
+     * スキルサービスを設定します。
      */
     public void setSkillService(@NotNull SkillService skillService) {
         this.skillService = skillService;
     }
 
     /**
-     * ?????????????????????
+     * パッシブスキルサービスを設定します。
      */
     public void setPassiveSkillService(@NotNull PassiveSkillService passiveSkillService) {
         this.passiveSkillService = passiveSkillService;
@@ -416,7 +416,7 @@ public class SkillTreeService {
     }
 
     /**
-     * ????????????? ID ????????
+     * 解放済みノードに紐づくスキル ID 一覧を返します。
      */
     public @NotNull Set<String> getUnlockedSkillIds(@NotNull AstPlayer astPlayer) {
         SkillTreePlayerState state = state(astPlayer);
@@ -436,7 +436,7 @@ public class SkillTreeService {
     }
 
     /**
-     * ????????????????????????
+     * 解放済みノードから指定ステータスへの補正値を返します。
      */
     public double getStatusBonus(
         @NotNull AstPlayer astPlayer,
@@ -576,14 +576,14 @@ public class SkillTreeService {
     }
 
     /**
-     * ????????????? HOTBAR ????????????????
+     * スキルツリー中に専用 HOTBAR を使うか判定します。
      */
     public boolean shouldUseSkillTreeHotbar(@NotNull Player player) {
         return isPlayerModeSkillTree(player) && !hasInteractiveGuiOpen(player);
     }
 
     /**
-     * ??????? HOTBAR ?????????
+     * 専用 HOTBAR の操作を処理します。
      */
     public boolean handleSkillTreeHotbarControl(@NotNull Player player, int slot) {
         if (!shouldUseSkillTreeHotbar(player)) {
@@ -676,11 +676,11 @@ public class SkillTreeService {
         if (meta != null) {
             var lore = new java.util.ArrayList<Component>();
             lore.add(component("&8ID: &f" + node.id()));
-            lore.add(component("&8??ID: &f" + node.positionId()));
-            lore.add(component("&8??SP: &f" + state.skillPoints()));
-            lore.add(component(unlocked ? "&6? ??????? ?" : "&7? ?????? ?"));
-            lore.add(component("&e?????&7???????"));
-            lore.add(component("&6?????&7??????? &8(100G)"));
+            lore.add(component("&8位置ID: &f" + node.positionId()));
+            lore.add(component("&8所持SP: &f" + state.skillPoints()));
+            lore.add(component(unlocked ? "&6◆ 解放済みノード ◆" : "&7◆ 未解放ノード ◆"));
+            lore.add(component("&e左クリック&7でノードを解放"));
+            lore.add(component("&6右クリック&7でノードを解除 &8(100G)"));
             appendNodeSkillInfo(lore, node);
             appendNodeStatusInfo(lore, node);
             if (!node.lore().isEmpty()) {
@@ -698,7 +698,7 @@ public class SkillTreeService {
             return;
         }
         lore.add(component(""));
-        lore.add(component("&b?????"));
+        lore.add(component("&b紐づくスキル"));
         for (String rawSkillId : node.skillIds()) {
             if (rawSkillId == null || rawSkillId.isBlank()) {
                 continue;
@@ -710,13 +710,13 @@ public class SkillTreeService {
             }
             var definition = skillService.registry().getDefinition(skillId);
             if (definition == null) {
-                lore.add(component("&7- &f" + skillId + " &8(???)"));
+                lore.add(component("&7- &f" + skillId + " &8(未読込)"));
                 continue;
             }
-            String kindLabel = definition.getKind().isPassive() ? "????" : "?????";
+            String kindLabel = definition.getKind().isPassive() ? "パッシブ" : "発動";
             String triggerLabel = definition.getKind().isPassive()
-                    ? (definition.getPassiveBindRequired() ? "?????" : "????")
-                    : "?????";
+                    ? (definition.getPassiveBindRequired() ? "要バインド" : "所持のみ")
+                    : "アクティブ";
             lore.add(component("&7- &f" + stripLegacy(definition.getName()) + " &8[" + kindLabel + " / " + triggerLabel + "]"));
             lore.add(component("&8  ID: " + definition.getId()));
         }
@@ -727,7 +727,7 @@ public class SkillTreeService {
             return;
         }
         lore.add(component(""));
-        lore.add(component("&a????????"));
+        lore.add(component("&aノードステータス"));
         for (SkillTreeNodeStatusDefinition status : node.statuses()) {
             boolean scalar = status.type() == StatusModifierType.SCALAR;
             double displayValue = scalar ? status.value() * 100.0D : status.value();
@@ -761,13 +761,13 @@ public class SkillTreeService {
         ItemStack itemStack = new ItemStack(Material.GRAY_DYE);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(component("&7????????"));
+            meta.displayName(component("&7スキルノード情報"));
             meta.lore(List.of(
-                    component("&8????????????????"),
-                    component("&7?????????????????????"),
+                    component("&8視線先にスキルノードがありません"),
+                    component("&7ノードへ照準を合わせると詳細が表示されます"),
                     component(""),
-                    component("&eslot7 &7: ActionBar????"),
-                    component("&cslot8 &7: ?????")
+                    component("&eslot7 &7: ActionBar表示切替"),
+                    component("&cslot8 &7: 拠点へ戻る")
             ));
             meta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(meta);
@@ -792,8 +792,8 @@ public class SkillTreeService {
         ItemStack itemStack = new ItemStack(Material.RED_BED);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(component("&c?????"));
-            meta.lore(List.of(component("&7???????????????????")));
+            meta.displayName(component("&c拠点へ戻る"));
+            meta.lore(List.of(component("&7スキルツリーを離れて元の場所へ戻ります")));
             meta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(meta);
         }
@@ -808,11 +808,11 @@ public class SkillTreeService {
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
             meta.displayName(component(resourceStatus
-                    ? "&bActionBar??: &f????HUD"
-                    : "&bActionBar??: &f??????"));
+                    ? "&bActionBar表示: &fリソースHUD"
+                    : "&bActionBar表示: &fノードガイド"));
             meta.lore(List.of(
-                    component("&7??????????????"),
-                    component(resourceStatus ? "&8??: &fHP / MP / ENG" : "&8??: &f??????")
+                    component("&7クリックで表示内容を切り替え"),
+                    component(resourceStatus ? "&8現在: &fHP / MP / ENG" : "&8現在: &fノードガイド")
             ));
             meta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(meta);
