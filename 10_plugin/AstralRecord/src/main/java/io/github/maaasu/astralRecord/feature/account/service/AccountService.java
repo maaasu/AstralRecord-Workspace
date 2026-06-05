@@ -167,6 +167,18 @@ public class AccountService {
         return new AccountExperienceResult(current, updated, experience, levelUps);
     }
 
+    public double experienceProgress(UUID accountUuid, int level, long totalExperience) {
+        int normalizedLevel = Math.max(1, level);
+        long currentLevelRequiredExperience = totalRequiredExperienceForLevel(accountUuid, normalizedLevel);
+        long nextLevelRequiredExperience = totalRequiredExperienceForLevel(accountUuid, normalizedLevel + 1);
+        long levelRange = nextLevelRequiredExperience - currentLevelRequiredExperience;
+        if (levelRange <= 0L) {
+            return 0.0D;
+        }
+        long levelProgress = Math.max(0L, totalExperience - currentLevelRequiredExperience);
+        return Math.clamp((double) levelProgress / (double) levelRange, 0.0D, 1.0D);
+    }
+
     private long totalRequiredExperienceForLevel(UUID accountUuid, int targetLevel) {
         long total = 0L;
         for (int level = 1; level < targetLevel; level++) {

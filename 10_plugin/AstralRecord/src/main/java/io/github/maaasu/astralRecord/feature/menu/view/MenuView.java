@@ -278,9 +278,18 @@ public class MenuView {
         @Nullable InventoryType selectedType,
         @Nullable StatusSnapshot snapshot,
         @NotNull AccountModel selectedAccount,
+        int skillPoints,
         @NotNull List<AccountModel> accounts
     ) {
-        craftShortcutView.renderCraftShortcuts(player, settings, selectedType, snapshot, selectedAccount, accounts);
+        craftShortcutView.renderCraftShortcuts(
+            player,
+            settings,
+            selectedType,
+            snapshot,
+            selectedAccount,
+            skillPoints,
+            accounts
+        );
     }
 
     public void clearCraftShortcuts(@NotNull Player player) {

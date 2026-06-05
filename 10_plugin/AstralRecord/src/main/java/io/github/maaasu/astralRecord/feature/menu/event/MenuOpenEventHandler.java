@@ -23,6 +23,7 @@ import io.github.maaasu.astralRecord.feature.sell.service.SellService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.storage.service.StorageService;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
+import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.entity.Player;
@@ -59,6 +60,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     private final TrashService trashService;
     private final SellService sellService;
     private final StorageService storageService;
+    private final SkillTreeService skillTreeService;
     private final Set<UUID> craftRenderSuppressed = ConcurrentHashMap.newKeySet();
     private final ConcurrentHashMap<UUID, CachedAccounts> cachedAccountsByUserId = new ConcurrentHashMap<>();
 
@@ -84,7 +86,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         @NotNull MenuGuiTransitionService menuGuiTransitionService,
         @NotNull TrashService trashService,
         @NotNull SellService sellService,
-        @NotNull StorageService storageService
+        @NotNull StorageService storageService,
+        @NotNull SkillTreeService skillTreeService
     ) {
         this.plugin = plugin;
         this.menuView = menuView;
@@ -95,6 +98,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         this.trashService = trashService;
         this.sellService = sellService;
         this.storageService = storageService;
+        this.skillTreeService = skillTreeService;
         plugin.getServer().getScheduler().runTaskTimer(
             plugin,
             (Runnable) this::refreshOpenBuffMenus,
@@ -717,6 +721,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 ? inventoryService.getDisplayedInventoryType(astPlayer.getAccount().getUuid())
                 : null;
             var snapshot = statusService.getStatus(astPlayer);
+            int skillPoints = skillTreeService.state(astPlayer).skillPoints();
             List<AccountModel> accounts = getCachedAccounts(astPlayer.getUser().getUuid());
             menuView.renderCraftShortcuts(
                 player,
@@ -724,6 +729,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 displayedType,
                 snapshot,
                 astPlayer.getAccount(),
+                skillPoints,
                 accounts
             );
         } finally {

@@ -1,10 +1,10 @@
 package io.github.maaasu.astralRecord.feature.hud.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
-import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.hud.view.PlayerHudView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -24,6 +24,7 @@ import java.util.function.Function;
 public class PlayerHudService {
     private final StatusService statusService;
     private final PlayerClassService playerClassService;
+    private final AccountService accountService;
     private final PlayerHudView playerHudView;
     private final Map<UUID, BukkitTask> actionBarOverrideTasks = new HashMap<>();
     private final Map<UUID, Function<AstPlayer, Component>> primaryActionBarRenderers = new HashMap<>();
@@ -36,18 +37,15 @@ public class PlayerHudService {
      * @param statusService       ステータスサービス
      * @param playerClassService  職業サービス（サイドバーの職業名・レベル表示に使用）
      */
-    public PlayerHudService(StatusService statusService, PlayerClassService playerClassService) {
-        this.statusService = statusService;
-        this.playerClassService = playerClassService;
-        this.playerHudView = new PlayerHudView();
-    }
-
     public PlayerHudService(
         StatusService statusService,
         PlayerClassService playerClassService,
-        CurrencyService currencyService
+        AccountService accountService
     ) {
-        this(statusService, playerClassService);
+        this.statusService = statusService;
+        this.playerClassService = playerClassService;
+        this.accountService = accountService;
+        this.playerHudView = new PlayerHudView();
     }
 
     public void start(AstralRecord plugin) {
@@ -159,14 +157,19 @@ public class PlayerHudService {
                 } else if (isDodgeWindowActive(astPlayer)) {
                     renderDodgeWindow(astPlayer);
                 } else {
-                    renderPrimaryActionBar(astPlayer, snapshot);
+                renderPrimaryActionBar(astPlayer, snapshot);
                 }
+                double experienceProgress = accountService.experienceProgress(
+                    astPlayer.getAccount().getUuid(),
+                    astPlayer.getAccount().getLevel(),
+                    astPlayer.getAccount().getTotalExperience()
+                );
                 String className = playerClassService.getDisplayName(astPlayer.getClassId());
                 playerHudView.renderSidebar(
                     player,
                     tps,
                     astPlayer.getAccount().getLevel(),
-                    astPlayer.getAccount().getTotalExperience(),
+                    experienceProgress,
                     astPlayer.getClassLevel(),
                     className
                 );

@@ -420,7 +420,7 @@ public final class AstralRecord extends JavaPlugin {
         buffAcquisitionDisplayService = new BuffAcquisitionDisplayService(displayTextService);
         potionUseService = new PotionUseService(inventoryService, statusService, buffAcquisitionDisplayService);
         statusRegenTask = new StatusRegenTask(statusService);
-        playerHudService = new PlayerHudService(statusService, playerClassService, currencyService);
+        playerHudService = new PlayerHudService(statusService, playerClassService, accountService);
         skillTreeService.setPlayerHudService(playerHudService);
         overheadDisplayService = new OverheadDisplayService(displayTextService, statusService, mobService);
 
@@ -590,7 +590,8 @@ public final class AstralRecord extends JavaPlugin {
             menuGuiTransitionService,
             trashService,
             sellService,
-            storageService
+            storageService,
+            skillTreeService
         );
         eventManager.registerHandler(menuOpenEventHandler, getServer().getPluginManager());
         mailGuiEventHandler = new MailGuiEventHandler(new MailGuiView(this, itemService), mailService, menuView, inventoryService);
