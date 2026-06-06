@@ -111,7 +111,7 @@ final class SkillTreeVisualizer {
         if (service.isAdminMode(astPlayer)) {
             return RenderMode.ADMIN;
         }
-        if (service.isPlayerModeSkillTree(player)) {
+        if (service.isPlayerModeSkillTree(player) && service.isSkillTreeVisualReady(player)) {
             return RenderMode.PLAYER;
         }
         return RenderMode.HIDDEN;

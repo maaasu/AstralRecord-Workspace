@@ -73,6 +73,7 @@ public class SkillTreeService {
     private static final double TARGET_DISTANCE = 8.0D;
     private static final double TARGET_RADIUS_SQ = 0.9D * 0.9D;
     private static final long SAVE_INTERVAL_TICKS = 20L * 60L;
+    private static final long VISUAL_DELAY_MILLIS = 3_000L;
 
     private final Plugin plugin;
     private final WorldService worldService;
@@ -96,6 +97,7 @@ public class SkillTreeService {
     private final Map<UUID, ItemStack[]> savedHotbars = new HashMap<>();
     private final Map<UUID, Location> returnLocations = new HashMap<>();
     private final Map<UUID, SkillTreeActionBarMode> actionBarModes = new HashMap<>();
+    private final Map<UUID, Long> visualReadyAtMillis = new HashMap<>();
 
     private BukkitTask saveTask;
     private BukkitTask hotbarTask;
@@ -230,11 +232,13 @@ public class SkillTreeService {
         }
         Player player = astPlayer.getBukkit();
         returnLocations.put(player.getUniqueId(), player.getLocation().clone());
+        visualReadyAtMillis.put(player.getUniqueId(), System.currentTimeMillis() + VISUAL_DELAY_MILLIS);
         return worldService.teleportPlayerAsync(player, spawn.get(), () -> applySkillTreeHotbar(player));
     }
 
     @NotNull
     public CompletableFuture<Boolean> returnToBase(@NotNull Player player) {
+        visualReadyAtMillis.remove(player.getUniqueId());
         Location saved = returnLocations.remove(player.getUniqueId());
         if (saved != null && saved.getWorld() != null) {
             return worldService.teleportPlayerAsync(player, saved, () -> restoreHotbar(player));
@@ -273,7 +277,14 @@ public class SkillTreeService {
     }
 
     public boolean shouldShowPlayerNode(@NotNull Player player, @NotNull Location location) {
-        return isPlayerModeSkillTree(player) && player.getWorld() == location.getWorld();
+        return isSkillTreeVisualReady(player)
+                && isPlayerModeSkillTree(player)
+                && player.getWorld() == location.getWorld();
+    }
+
+    public boolean isSkillTreeVisualReady(@NotNull Player player) {
+        Long readyAt = visualReadyAtMillis.get(player.getUniqueId());
+        return readyAt == null || System.currentTimeMillis() >= readyAt;
     }
 
     /**
@@ -605,6 +616,7 @@ public class SkillTreeService {
     }
 
     public void restoreHotbar(@NotNull Player player) {
+        visualReadyAtMillis.remove(player.getUniqueId());
         ItemStack[] saved = savedHotbars.remove(player.getUniqueId());
         actionBarModes.remove(player.getUniqueId());
         if (playerHudService != null) {
