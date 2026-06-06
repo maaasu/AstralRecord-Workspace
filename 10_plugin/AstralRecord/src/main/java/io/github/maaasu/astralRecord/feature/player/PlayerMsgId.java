@@ -23,33 +23,27 @@ public enum PlayerMsgId {
     /**
      * AstralRecord へようこそ、%s さん！
      */
-    P_5000(5000),
     // endregion
 
     // region /temp/command/TestCommand.java 5050-5059
     /**
      * [TEST] プレイヤー情報: 名前={0}, UUID={1}
      */
-    P_5050(5050),
     /**
      * [TEST] ユーザー権限レベル: {0}
      */
-    P_5051(5051),
     // endregion
 
     // region /temp/command/TempCommand.java 5080-5089
     /**
      * [TEMP] テンポラリコマンドを実行しました。実行者: {0}
      */
-    P_5080(5080),
     /**
      * [TEMP] テキスト表示を削除しました。
      */
-    P_5081(5081),
     /**
      * [TEMP] BlockDisplay に使えるブロック icon がありません: item={0}, icon={1}
      */
-    P_5082(5082),
     // endregion
 
     // region /feature/player/event/PlayerJoinEventHandler.java 5070-5079
@@ -148,7 +142,6 @@ public enum PlayerMsgId {
     /**
      * 無効なカテゴリです: {0}
      */
-    P_5200(5200),
     /**
      * アイテムが見つかりません: category={0}, id={1}
      */
@@ -156,31 +149,24 @@ public enum PlayerMsgId {
     /**
      * アイテム: {0} ({1})
      */
-    P_5202(5202),
     /**
      * カテゴリ: {0} / レアリティ: {1} / 売却値: {2}
      */
-    P_5203(5203),
     /**
      * 説明はありません。
      */
-    P_5204(5204),
     /**
      * 説明:
      */
-    P_5205(5205),
     /**
      * - {0}
      */
-    P_5206(5206),
     /**
      * {0} は消耗品ではないため使用できません。
      */
-    P_5207(5207),
     /**
      * {0} を使用しました。適用: {1}件 / スキップ: {2}件
      */
-    P_5208(5208),
     /**
      * ロードしました: {0}/{1} ({2})
      */
@@ -188,15 +174,12 @@ public enum PlayerMsgId {
     /**
      * ロード済みアイテムはありません。
      */
-    P_5210(5210),
     /**
      * ロード済みアイテム一覧 ({0}件)
      */
-    P_5211(5211),
     /**
      * [{0}] {1} - {2}
      */
-    P_5212(5212),
     /**
      * 指定IDのロード済みアイテムが見つかりません: {0}
      */
@@ -204,103 +187,78 @@ public enum PlayerMsgId {
     /**
      * 同一IDが複数カテゴリに存在します。カテゴリを指定してください: {0}
      */
-    P_5214(5214),
     /**
      * 候補: [{0}] {1} - {2}
      */
-    P_5215(5215),
     /**
      * icon={0}, schema={1}, customModelData={2}
      */
-    P_5216(5216),
     /**
      * 取引不可={0}, 売却不可={1}
      */
-    P_5217(5217),
     /**
      * maxStack={0}
      */
-    P_5218(5218),
     /**
      * [bundle]
      */
-    P_5219(5219),
     /**
      * lootTableId={0}
      */
-    P_5220(5220),
     /**
      * onUse: sound={0}, effect={1}, particle={2}
      */
-    P_5221(5221),
     /**
      * [currency]
      */
-    P_5222(5222),
     /**
      * type={0}, group={1}, expiresAt={2}
      */
-    P_5223(5223),
     /**
      * [equipment]
      */
-    P_5224(5224),
     /**
      * slot={0}, handType={1}, requiredLevel={2}
      */
-    P_5225(5225),
     /**
      * requiredClasses={0}
      */
-    P_5226(5226),
     /**
      * stat: {0} {1} {2}
      */
-    P_5227(5227),
     /**
      * durability: max={0}, consume={1}
      */
-    P_5228(5228),
     /**
      * onUse: leftCooldown={0}, leftSkill={1}, rightCooldown={2}, rightSkill={3}
      */
-    P_5229(5229),
     /**
      * skills={0}
      */
-    P_5230(5230),
     /**
      * [{0}] 追加セクションはありません。
      */
-    P_5231(5231),
     /**
      * [{0}] 未対応カテゴリです。
      */
-    P_5232(5232),
     /**
      * [{0}] セクション定義がありません。
      */
-    P_5233(5233),
     /**
      * [consumable]
      */
-    P_5234(5234),
     /**
      * onUse: sound={0}, effect={1}, amount={2}
      */
-    P_5235(5235),
     /**
      * effects={0}
      */
-    P_5236(5236),
     /**
      * effect: type={0}, rate={1}, status={2}, value={3}, isPercent={4}, buffId={5}
      */
-    P_5237(5237),
     /**
      * [lore]
      */
-    P_5238(5238),
     /**
      * アイテムを付与しました: {0} x{1}
      */
@@ -395,7 +353,6 @@ public enum PlayerMsgId {
     /**
      * ショートカット設定の保存に失敗しました。設定を初期化しました。
      */
-    P_5600(5600),
     /**
      * ゴミ箱から {0} 件のアイテムを削除しました。
      */
@@ -502,7 +459,6 @@ public enum PlayerMsgId {
     // endregion
 
     // region /feature/world/command/WorldCommand.java 5750-5769
-    P_5750(5750),
     P_5751(5751),
     P_5752(5752),
     P_5753(5753),

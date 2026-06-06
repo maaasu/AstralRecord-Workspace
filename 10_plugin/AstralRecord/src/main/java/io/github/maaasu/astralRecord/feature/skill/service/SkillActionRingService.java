@@ -86,9 +86,9 @@ public final class SkillActionRingService {
      * @param astPlayer 対象プレイヤー
      */
     public void toggle(@NotNull AstPlayer astPlayer) {
-        Player player = astPlayer.getBukkit();
-        UUID playerId = player.getUniqueId();
-        RingSession current = sessions.remove(playerId);
+        var player = astPlayer.getBukkit();
+        var playerId = player.getUniqueId();
+        var current = sessions.remove(playerId);
         if (current != null) {
             current.destroy();
             GuiSound.CLOSE.play(player);

@@ -24,6 +24,8 @@ import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
@@ -175,11 +177,21 @@ public class SkillTreeService {
             }
         }
         structureDirty = false;
+        Logger.log(LogId.I_9000, nodesById.size(), positionsById.size(), edgesByKey.size());
         return nodesById.size();
     }
 
     public void start() {
         purgeSkillTreeVisualEntities();
+        WorldMasterData data = worldService.getById(SKILL_TREE_WORLD_ID);
+        World resolvedWorld = data == null ? null : worldService.resolveLoadedWorld(data);
+        Logger.log(
+                LogId.I_9001,
+                SKILL_TREE_WORLD_ID,
+                resolvedWorld == null ? "null" : resolvedWorld.getName(),
+                positionsById.size(),
+                edgesByKey.size()
+        );
         if (visualizer == null) {
             visualizer = new SkillTreeVisualizer(plugin, this);
             visualizer.start();
@@ -948,11 +960,14 @@ public class SkillTreeService {
             return;
         }
 
+        int removedCount = 0;
         for (Entity entity : List.copyOf(world.getEntities())) {
             if (entity instanceof Item || entity instanceof ItemDisplay || entity instanceof TextDisplay) {
                 entity.remove();
+                removedCount++;
             }
         }
+        Logger.log(LogId.W_9001, world.getName(), removedCount);
 
         File entitiesDirectory = new File(world.getWorldFolder(), "entities");
         File[] files = entitiesDirectory.listFiles();

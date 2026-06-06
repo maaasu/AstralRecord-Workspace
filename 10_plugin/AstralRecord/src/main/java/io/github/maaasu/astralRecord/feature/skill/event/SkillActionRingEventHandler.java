@@ -37,7 +37,6 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
      * ハンドラを生成します。
      *
      * @param actionRingService アクションリング表示サービス
-     * @param itemService 武器判定に使用するアイテムサービス
      */
     public SkillActionRingEventHandler(
         @NotNull SkillActionRingService actionRingService,
@@ -53,12 +52,14 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
     public void onSwapHandItems(@NotNull PlayerSwapHandItemsEvent event) {
         runSafely(() -> {
             event.setCancelled(true);
-            Player player = event.getPlayer();
+            var player = event.getPlayer();
             if (skillTreeService.shouldSuppressSkillTreeSetupControls(player)) {
                 actionRingService.close(player);
                 return;
             }
-            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (skillTreeService.isSkillTreeEditing(player))
+                return;
+            var astPlayer = AstPlayerCache.get(player);
             if (!isPlayerMode(astPlayer)) {
                 return;
             }

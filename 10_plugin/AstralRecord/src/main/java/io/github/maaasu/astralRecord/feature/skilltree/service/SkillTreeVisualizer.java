@@ -6,6 +6,8 @@ import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeEdge;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefinition;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePlayerState;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePosition;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -57,6 +59,8 @@ final class SkillTreeVisualizer {
     private final Map<String, NodeVisual> nodeVisuals = new HashMap<>();
     private final Map<String, AdminPositionVisual> adminPositionVisuals = new HashMap<>();
     private final Map<String, EdgeVisual> edgeVisuals = new HashMap<>();
+    private final Set<String> loggedInvalidPositions = new HashSet<>();
+    private final Set<String> loggedInvalidEdges = new HashSet<>();
     private BukkitTask task;
 
     SkillTreeVisualizer(@NotNull Plugin plugin, @NotNull SkillTreeService service) {
@@ -120,8 +124,12 @@ final class SkillTreeVisualizer {
         for (SkillTreePosition position : positions) {
             Location location = position.toLocation();
             if (location == null || location.getWorld() == null) {
+                if (loggedInvalidPositions.add(position.positionId())) {
+                    Logger.log(LogId.W_9000, position.positionId(), position.worldName(), "location_resolve_failed");
+                }
                 continue;
             }
+            loggedInvalidPositions.remove(position.positionId());
             activePositionIds.add(position.positionId());
 
             AdminPositionVisual adminVisual = adminPositionVisuals.get(position.positionId());
@@ -174,8 +182,17 @@ final class SkillTreeVisualizer {
                     || rightLocation == null
                     || leftLocation.getWorld() == null
                     || leftLocation.getWorld() != rightLocation.getWorld()) {
+                if (loggedInvalidEdges.add(edge.key())) {
+                    Logger.log(
+                            LogId.W_9000,
+                            edge.key(),
+                            left == null ? "null" : left.worldName(),
+                            "edge_location_resolve_failed"
+                    );
+                }
                 continue;
             }
+            loggedInvalidEdges.remove(edge.key());
 
             activeEdgeKeys.add(edge.key());
             EdgeVisual edgeVisual = edgeVisuals.get(edge.key());
@@ -301,10 +318,10 @@ final class SkillTreeVisualizer {
             entity.setPersistent(false);
             entity.setSilent(true);
             entity.setViewRange(VIEW_RANGE);
+            entity.setVisibleByDefault(false);
             entity.setTransformation(scaleTransformation(scale));
             entity.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.FIXED);
         });
-        hideForCurrentPlayers(display);
         return display;
     }
 
@@ -324,6 +341,7 @@ final class SkillTreeVisualizer {
             entity.setPersistent(false);
             entity.setSilent(true);
             entity.setViewRange(VIEW_RANGE);
+            entity.setVisibleByDefault(false);
             entity.setLineWidth(160);
             entity.setSeeThrough(true);
             entity.setShadowed(true);
@@ -332,7 +350,6 @@ final class SkillTreeVisualizer {
             entity.setTransformation(scaleTransformation(scale));
             entity.text(text);
         });
-        hideForCurrentPlayers(display);
         return display;
     }
 
@@ -375,6 +392,15 @@ final class SkillTreeVisualizer {
             this.marker = spawnTextDisplay(location, component("&d*"), ADMIN_TEXT_SCALE);
             Location labelLocation = location.clone().add(0.0D, 0.45D, 0.0D);
             this.label = spawnTextDisplay(labelLocation, component("&d" + positionId), ADMIN_TEXT_SCALE);
+            Logger.log(
+                    LogId.I_9002,
+                    "admin",
+                    positionId,
+                    location.getWorld() == null ? "null" : location.getWorld().getName(),
+                    location.getX(),
+                    location.getY(),
+                    location.getZ()
+            );
         }
 
         private @NotNull Location baseLocation() {
@@ -428,6 +454,15 @@ final class SkillTreeVisualizer {
             this.unlockedItem = spawnItemDisplay(location, service.createNodeDisplayItem(node, true), NODE_ITEM_SCALE);
             this.lockedLabel = spawnTextDisplay(location, service.nodeName(node, false), NODE_TEXT_SCALE);
             this.unlockedLabel = spawnTextDisplay(location, service.nodeName(node, true), NODE_TEXT_SCALE);
+            Logger.log(
+                    LogId.I_9002,
+                    "node",
+                    node.id(),
+                    location.getWorld() == null ? "null" : location.getWorld().getName(),
+                    location.getX(),
+                    location.getY(),
+                    location.getZ()
+            );
         }
 
         private @NotNull SkillTreeNodeDefinition node() {
@@ -509,6 +544,15 @@ final class SkillTreeVisualizer {
             this.whiteDots = spawnEdgeDots(left, right, EdgeColor.WHITE);
             this.yellowDots = spawnEdgeDots(left, right, EdgeColor.YELLOW);
             this.midpoint = interpolate(left, right, 0.5D);
+            Logger.log(
+                    LogId.I_9002,
+                    "edge",
+                    edge.key(),
+                    midpoint.getWorld() == null ? "null" : midpoint.getWorld().getName(),
+                    midpoint.getX(),
+                    midpoint.getY(),
+                    midpoint.getZ()
+            );
         }
 
         private @NotNull SkillTreeEdge edge() {
@@ -602,12 +646,6 @@ final class SkillTreeVisualizer {
     private void showEntities(@NotNull Player player, @NotNull Entity... entities) {
         for (Entity entity : entities) {
             player.showEntity(plugin, entity);
-        }
-    }
-
-    private void hideForCurrentPlayers(@NotNull Entity entity) {
-        for (Player player : plugin.getServer().getOnlinePlayers()) {
-            player.hideEntity(plugin, entity);
         }
     }
 
