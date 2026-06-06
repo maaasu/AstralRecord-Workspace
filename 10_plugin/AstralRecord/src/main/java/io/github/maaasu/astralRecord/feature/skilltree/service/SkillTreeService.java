@@ -26,13 +26,20 @@ import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
+import org.bukkit.boss.BarColor;
+import org.bukkit.boss.BarStyle;
+import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.ItemDisplay;
@@ -51,6 +58,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.HashMap;
@@ -61,6 +69,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import net.kyori.adventure.title.Title;
 
 /**
  * スキルツリーのノード状態管理、GUI 更新、ホットバー制御、
@@ -75,6 +84,8 @@ public class SkillTreeService {
     private static final int HOTBAR_RETURN_SLOT = 8;
     private static final double TARGET_DISTANCE = 8.0D;
     private static final double TARGET_RADIUS_SQ = 0.9D * 0.9D;
+    private static final double TARGET_HIGHLIGHT_RADIUS = 0.46D;
+    private static final double TARGET_HIGHLIGHT_Y = 0.54D;
     private static final long SAVE_INTERVAL_TICKS = 20L * 60L;
     private static final long VISUAL_DELAY_MILLIS = 3_000L;
 
@@ -85,6 +96,7 @@ public class SkillTreeService {
     private StatusService statusService;
     private SkillService skillService;
     private PassiveSkillService passiveSkillService;
+    private final ParticleDisplayService particleDisplayService = new ParticleDisplayService();
     private final SkillTreeNodeRepository nodeRepository;
     private final SkillTreeStructureRepository structureRepository;
     private final SkillTreePlayerStateRepository playerStateRepository;
@@ -101,6 +113,7 @@ public class SkillTreeService {
     private final Map<UUID, Location> returnLocations = new HashMap<>();
     private final Map<UUID, SkillTreeActionBarMode> actionBarModes = new HashMap<>();
     private final Map<UUID, Long> visualReadyAtMillis = new HashMap<>();
+    private final Map<UUID, BossBar> loadingBossBars = new HashMap<>();
 
     private BukkitTask saveTask;
     private BukkitTask hotbarTask;
@@ -220,6 +233,7 @@ public class SkillTreeService {
         for (Player player : Bukkit.getOnlinePlayers()) {
             restoreHotbar(player);
         }
+        clearAllLoadingBossBars();
         saveDirty();
     }
 
@@ -298,6 +312,40 @@ public class SkillTreeService {
     public boolean isSkillTreeVisualReady(@NotNull Player player) {
         Long readyAt = visualReadyAtMillis.get(player.getUniqueId());
         return readyAt == null || System.currentTimeMillis() >= readyAt;
+    }
+
+    /**
+     * ノードが解放済みかを返します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param node 判定対象ノード
+     * @return 解放済みなら {@code true}
+     */
+    public boolean isNodeUnlocked(@NotNull AstPlayer astPlayer, @NotNull SkillTreeNodeDefinition node) {
+        return state(astPlayer).isUnlocked(node.id());
+    }
+
+    /**
+     * プレイヤーがノード解放用の SP を持っているかを返します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @return 1 以上の SP を持つなら {@code true}
+     */
+    public boolean hasSkillPoints(@NotNull AstPlayer astPlayer) {
+        return state(astPlayer).skillPoints() > 0;
+    }
+
+    /**
+     * ノード解除に必要な Gold を支払える状態かを返します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @return 解除コストを支払えるなら {@code true}
+     */
+    public boolean canAffordRelock(@NotNull AstPlayer astPlayer) {
+        return inventoryService != null
+                && inventoryService.getCurrencyAmount(astPlayer.getAccount().getUuid(), io.github.maaasu.astralRecord.feature.item.service.ItemService.DEFAULT_CURRENCY_ITEM_ID)
+                + inventoryService.getCurrencyAmount(astPlayer.getAccount().getUuid(), io.github.maaasu.astralRecord.feature.item.service.ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID)
+                >= RELOCK_GOLD_COST;
     }
 
     /**
@@ -623,6 +671,8 @@ public class SkillTreeService {
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (isPlayerModeSkillTree(player)) {
                 applySkillTreeHotbar(player);
+                updateLoadingPresentation(player);
+                updateTargetHighlight(player);
             } else if (savedHotbars.containsKey(player.getUniqueId()) || actionBarModes.containsKey(player.getUniqueId())) {
                 restoreHotbar(player);
             }
@@ -631,6 +681,7 @@ public class SkillTreeService {
 
     public void restoreHotbar(@NotNull Player player) {
         visualReadyAtMillis.remove(player.getUniqueId());
+        stopLoadingPresentation(player);
         ItemStack[] saved = savedHotbars.remove(player.getUniqueId());
         actionBarModes.remove(player.getUniqueId());
         if (playerHudService != null) {
@@ -931,6 +982,121 @@ public class SkillTreeService {
     private boolean hasInteractiveGuiOpen(@NotNull Player player) {
         InventoryType topType = player.getOpenInventory().getTopInventory().getType();
         return topType != InventoryType.CRAFTING && topType != InventoryType.CREATIVE;
+    }
+
+    private void updateLoadingPresentation(@NotNull Player player) {
+        Long readyAt = visualReadyAtMillis.get(player.getUniqueId());
+        if (readyAt == null) {
+            stopLoadingPresentation(player);
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        if (now >= readyAt) {
+            visualReadyAtMillis.remove(player.getUniqueId());
+            stopLoadingPresentation(player);
+            return;
+        }
+
+        BossBar bossBar = loadingBossBars.computeIfAbsent(player.getUniqueId(), ignored -> createLoadingBossBar(player));
+        if (!bossBar.getPlayers().contains(player)) {
+            bossBar.addPlayer(player);
+        }
+        double progress = 1.0D - ((double) (readyAt - now) / (double) VISUAL_DELAY_MILLIS);
+        bossBar.setProgress(Math.max(0.0D, Math.min(1.0D, progress)));
+    }
+
+    private @NotNull BossBar createLoadingBossBar(@NotNull Player player) {
+        BossBar bossBar = Bukkit.createBossBar(
+                PlayerMsgResource.getMessage(PlayerMsgId.P_5837.getId()),
+                BarColor.BLUE,
+                BarStyle.SEGMENTED_12
+        );
+        bossBar.setVisible(true);
+        bossBar.setProgress(0.0D);
+        bossBar.addPlayer(player);
+        player.showTitle(Title.title(
+                Component.empty(),
+                PlayerMsgResource.formatComponent(PlayerMsgId.P_5836.getId()),
+                Title.Times.times(Duration.ZERO, Duration.ofMillis(VISUAL_DELAY_MILLIS), Duration.ofMillis(200))
+        ));
+        player.playSound(player.getLocation(), Sound.BLOCK_BEACON_AMBIENT, SoundCategory.PLAYERS, 0.35F, 1.45F);
+        return bossBar;
+    }
+
+    private void stopLoadingPresentation(@NotNull Player player) {
+        BossBar bossBar = loadingBossBars.remove(player.getUniqueId());
+        if (bossBar == null) {
+            return;
+        }
+        bossBar.removeAll();
+        bossBar.setVisible(false);
+    }
+
+    private void clearAllLoadingBossBars() {
+        for (BossBar bossBar : loadingBossBars.values()) {
+            bossBar.removeAll();
+            bossBar.setVisible(false);
+        }
+        loadingBossBars.clear();
+    }
+
+    private void updateTargetHighlight(@NotNull Player player) {
+        if (!shouldUseSkillTreeHotbar(player) || !isSkillTreeVisualReady(player) || particleDisplayService == null) {
+            return;
+        }
+
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            return;
+        }
+
+        SkillTreeNodeDefinition node = findTargetedNode(player).orElse(null);
+        if (node == null) {
+            return;
+        }
+
+        SkillTreePosition position = getPosition(node.positionId());
+        if (position == null) {
+            return;
+        }
+
+        Location base = position.toLocation();
+        if (base == null || base.getWorld() == null) {
+            return;
+        }
+
+        boolean unlocked = isNodeUnlocked(astPlayer, node);
+        boolean canUnlock = !unlocked && hasSkillPoints(astPlayer);
+        emitTargetHighlight(astPlayer, base, unlocked, canUnlock);
+    }
+
+    private void emitTargetHighlight(
+            @NotNull AstPlayer astPlayer,
+            @NotNull Location base,
+            boolean unlocked,
+            boolean canUnlock
+    ) {
+        long step = System.currentTimeMillis() / 150L;
+        double baseAngle = (step % 360L) * (Math.PI / 18.0D);
+        for (int i = 0; i < 4; i++) {
+            double angle = baseAngle + (Math.PI / 2.0D * i);
+            Location point = base.clone().add(
+                    Math.cos(angle) * TARGET_HIGHLIGHT_RADIUS,
+                    TARGET_HIGHLIGHT_Y + (i % 2 == 0 ? 0.12D : -0.02D),
+                    Math.sin(angle) * TARGET_HIGHLIGHT_RADIUS
+            );
+            particleDisplayService.spawnForViewer(
+                    astPlayer,
+                    point,
+                    unlocked
+                            ? SharedParticleDefinitions.SKILLTREE_TARGET_UNLOCKED_DUST
+                            : canUnlock
+                            ? SharedParticleDefinitions.SKILLTREE_TARGET_LOCKED_DUST
+                            : SharedParticleDefinitions.SKILLTREE_TARGET_DENIED_DUST
+            );
+        }
+        particleDisplayService.spawnForViewer(astPlayer, base.clone().add(0.0D, 0.82D, 0.0D), SharedParticleDefinitions.SKILLTREE_TARGET_ENCHANT);
     }
 
     @NotNull

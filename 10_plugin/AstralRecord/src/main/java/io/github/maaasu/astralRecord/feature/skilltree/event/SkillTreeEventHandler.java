@@ -9,6 +9,8 @@ import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefini
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePosition;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import org.bukkit.Location;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.event.EventHandler;
@@ -84,20 +86,45 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
         }
         SkillTreeNodeDefinition node = service.findTargetedNode(event.getPlayer()).orElse(null);
         if (node == null) {
+            playDenied(event.getPlayer(), 0.85F);
             event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5828.getId()));
             return;
         }
         if (action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK) {
+            if (service.isNodeUnlocked(astPlayer, node)) {
+                playDenied(event.getPlayer(), 1.15F);
+                event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5838.getId()));
+                return;
+            }
+            if (!service.hasSkillPoints(astPlayer)) {
+                playDenied(event.getPlayer(), 0.65F);
+                event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5839.getId()));
+                return;
+            }
             if (service.unlockNode(astPlayer, node)) {
+                playUnlock(event.getPlayer());
                 event.getPlayer().sendMessage(PlayerMsgResource.format(PlayerMsgId.P_5824.getId(), node.name()));
             } else {
+                playDenied(event.getPlayer(), 0.75F);
                 event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5825.getId()));
             }
             return;
         }
+        if (!service.isNodeUnlocked(astPlayer, node)) {
+            playDenied(event.getPlayer(), 1.0F);
+            event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5840.getId()));
+            return;
+        }
+        if (!service.canAffordRelock(astPlayer)) {
+            playDenied(event.getPlayer(), 0.6F);
+            event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5841.getId()));
+            return;
+        }
         if (service.relockNode(astPlayer, node)) {
+            playRelock(event.getPlayer());
             event.getPlayer().sendMessage(PlayerMsgResource.format(PlayerMsgId.P_5826.getId(), node.name()));
         } else {
+            playDenied(event.getPlayer(), 0.75F);
             event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5827.getId()));
         }
     }
@@ -224,5 +251,18 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
     @NotNull
     private Location placementLocation(@NotNull Block clicked, @NotNull BlockFace face) {
         return clicked.getRelative(face).getLocation();
+    }
+
+    private void playUnlock(@NotNull org.bukkit.entity.Player player) {
+        player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.45F, 1.45F);
+        player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.PLAYERS, 0.35F, 1.8F);
+    }
+
+    private void playRelock(@NotNull org.bukkit.entity.Player player) {
+        player.playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_CHAIN, SoundCategory.PLAYERS, 0.55F, 1.2F);
+    }
+
+    private void playDenied(@NotNull org.bukkit.entity.Player player, float pitch) {
+        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, SoundCategory.PLAYERS, 0.45F, pitch);
     }
 }

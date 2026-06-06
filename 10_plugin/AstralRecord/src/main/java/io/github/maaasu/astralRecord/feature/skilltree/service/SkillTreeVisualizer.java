@@ -55,7 +55,7 @@ final class SkillTreeVisualizer {
     private static final float NODE_TEXT_SCALE = 0.85F;
     private static final float ADMIN_ITEM_SCALE = 0.72F;
     private static final float ADMIN_TEXT_SCALE = 0.72F;
-    private static final float EDGE_TEXT_SCALE = 0.42F;
+    private static final float EDGE_TEXT_SCALE = 0.52F;
     private static final float VIEW_RANGE = 96.0F;
 
     private final Plugin plugin;
@@ -473,11 +473,15 @@ final class SkillTreeVisualizer {
         private void updateViewer(@NotNull Player player, boolean visible) {
             UUID playerId = player.getUniqueId();
             if (!visible) {
-                visibleViewers.remove(playerId);
+                if (!visibleViewers.remove(playerId)) {
+                    return;
+                }
                 hideEntities(player, item, marker, label);
                 return;
             }
-            visibleViewers.add(playerId);
+            if (!visibleViewers.add(playerId)) {
+                return;
+            }
             showEntities(player, item, marker, label);
         }
 
@@ -546,6 +550,11 @@ final class SkillTreeVisualizer {
         private void updateViewer(@NotNull Player player, boolean visible, boolean unlocked) {
             NodeState nextState = !visible ? NodeState.HIDDEN : unlocked ? NodeState.UNLOCKED : NodeState.LOCKED;
             UUID playerId = player.getUniqueId();
+            NodeState previousState = viewerStates.getOrDefault(playerId, NodeState.HIDDEN);
+
+            if (previousState == nextState) {
+                return;
+            }
 
             if (nextState == NodeState.HIDDEN) {
                 viewerStates.remove(playerId);
@@ -553,7 +562,7 @@ final class SkillTreeVisualizer {
                 viewerStates.put(playerId, nextState);
             }
 
-            hideEntities(player, lockedItem, unlockedItem, lockedLabel, unlockedLabel);
+            hideState(player, previousState);
             showState(player, nextState);
         }
 
@@ -637,16 +646,19 @@ final class SkillTreeVisualizer {
 
         private void updateViewer(@NotNull Player player, @NotNull EdgeColor nextColor) {
             UUID playerId = player.getUniqueId();
+            EdgeColor previousColor = viewerStates.getOrDefault(playerId, EdgeColor.HIDDEN);
+
+            if (previousColor == nextColor) {
+                return;
+            }
+
             if (nextColor == EdgeColor.HIDDEN) {
                 viewerStates.remove(playerId);
             } else {
                 viewerStates.put(playerId, nextColor);
             }
 
-            hideEntities(player, entitiesFor(EdgeColor.ADMIN));
-            hideEntities(player, entitiesFor(EdgeColor.GRAY));
-            hideEntities(player, entitiesFor(EdgeColor.WHITE));
-            hideEntities(player, entitiesFor(EdgeColor.YELLOW));
+            hideColor(player, previousColor);
             showColor(player, nextColor);
         }
 
