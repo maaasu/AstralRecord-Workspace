@@ -304,10 +304,11 @@ public class SkillTreeService {
      * @return 設定アイテム操作中、または管理者が skill_tree ワールドにいる場合は true
      */
     public boolean shouldSuppressSkillTreeSetupControls(@NotNull Player player) {
-        AstPlayer astPlayer = AstPlayerCache.get(player);
         boolean inSkillTreeWorld = isSkillTreeWorld(player.getWorld());
-        return hasSetupItemInHands(player)
-                || (inSkillTreeWorld && (isAdminMode(astPlayer) || hasSetupItemInHotbar(player)));
+        if (!inSkillTreeWorld) {
+            return hasSetupItemInHands(player);
+        }
+        return hasSetupItemInHotbar(player);
     }
 
     /**
