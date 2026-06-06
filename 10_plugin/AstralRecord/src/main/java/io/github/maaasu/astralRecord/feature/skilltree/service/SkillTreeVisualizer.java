@@ -293,18 +293,19 @@ final class SkillTreeVisualizer {
         if (world == null) {
             throw new IllegalArgumentException("location world is null");
         }
-        return world.spawn(itemLocation(location), ItemDisplay.class, display -> {
-            display.setItemStack(itemStack);
-            display.setBillboard(Display.Billboard.CENTER);
-            display.setGravity(false);
-            display.setInvulnerable(true);
-            display.setPersistent(false);
-            display.setSilent(true);
-            display.setViewRange(VIEW_RANGE);
-            display.setVisibleByDefault(false);
-            display.setTransformation(scaleTransformation(scale));
-            display.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.FIXED);
+        ItemDisplay display = world.spawn(itemLocation(location), ItemDisplay.class, entity -> {
+            entity.setItemStack(itemStack);
+            entity.setBillboard(Display.Billboard.CENTER);
+            entity.setGravity(false);
+            entity.setInvulnerable(true);
+            entity.setPersistent(false);
+            entity.setSilent(true);
+            entity.setViewRange(VIEW_RANGE);
+            entity.setTransformation(scaleTransformation(scale));
+            entity.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.FIXED);
         });
+        hideForCurrentPlayers(display);
+        return display;
     }
 
     private @NotNull TextDisplay spawnTextDisplay(
@@ -316,22 +317,23 @@ final class SkillTreeVisualizer {
         if (world == null) {
             throw new IllegalArgumentException("location world is null");
         }
-        return world.spawn(textLocation(location), TextDisplay.class, display -> {
-            display.setBillboard(Display.Billboard.CENTER);
-            display.setGravity(false);
-            display.setInvulnerable(true);
-            display.setPersistent(false);
-            display.setSilent(true);
-            display.setViewRange(VIEW_RANGE);
-            display.setVisibleByDefault(false);
-            display.setLineWidth(160);
-            display.setSeeThrough(true);
-            display.setShadowed(true);
-            display.setDefaultBackground(false);
-            display.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
-            display.setTransformation(scaleTransformation(scale));
-            display.text(text);
+        TextDisplay display = world.spawn(textLocation(location), TextDisplay.class, entity -> {
+            entity.setBillboard(Display.Billboard.CENTER);
+            entity.setGravity(false);
+            entity.setInvulnerable(true);
+            entity.setPersistent(false);
+            entity.setSilent(true);
+            entity.setViewRange(VIEW_RANGE);
+            entity.setLineWidth(160);
+            entity.setSeeThrough(true);
+            entity.setShadowed(true);
+            entity.setDefaultBackground(false);
+            entity.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
+            entity.setTransformation(scaleTransformation(scale));
+            entity.text(text);
         });
+        hideForCurrentPlayers(display);
+        return display;
     }
 
     private enum RenderMode {
@@ -600,6 +602,12 @@ final class SkillTreeVisualizer {
     private void showEntities(@NotNull Player player, @NotNull Entity... entities) {
         for (Entity entity : entities) {
             player.showEntity(plugin, entity);
+        }
+    }
+
+    private void hideForCurrentPlayers(@NotNull Entity entity) {
+        for (Player player : plugin.getServer().getOnlinePlayers()) {
+            player.hideEntity(plugin, entity);
         }
     }
 
