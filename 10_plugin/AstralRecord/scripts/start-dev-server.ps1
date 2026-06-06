@@ -15,6 +15,12 @@ param(
 
     [string]$PluginJarPath = "",
 
+    [switch]$UseLiveServerClone,
+
+    [string]$LiveServerSourceRoot = "",
+
+    [switch]$RefreshLiveServerClone,
+
     [switch]$SkipBuild,
 
     [switch]$NoStart,
@@ -25,18 +31,39 @@ param(
 $ErrorActionPreference = "Stop"
 
 $pluginRoot = Split-Path -Parent $PSScriptRoot
-$defaultServerRoot = Join-Path $pluginRoot ".dev-server\$($ServerType.ToLowerInvariant())-$MinecraftVersion"
-$resolvedServerRoot = if ([string]::IsNullOrWhiteSpace($ServerRoot)) { $defaultServerRoot } else { $ServerRoot }
+$configPath = Join-Path $PSScriptRoot "dev-server.config.json"
 $distDir = Join-Path $pluginRoot "dist"
-$pluginsDir = Join-Path $resolvedServerRoot "plugins"
-$logsDir = Join-Path $resolvedServerRoot "logs"
-$serverJarPath = Join-Path $resolvedServerRoot "server.jar"
-$eulaPath = Join-Path $resolvedServerRoot "eula.txt"
-$serverPropertiesPath = Join-Path $resolvedServerRoot "server.properties"
 
 function Write-Info {
     param([string]$Message)
     Write-Host "[AstralRecord dev-server] $Message"
+}
+
+function Load-DevServerConfig {
+    if (-not (Test-Path -LiteralPath $configPath)) {
+        return $null
+    }
+
+    return Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+}
+
+function Get-AbsolutePath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+
+        [switch]$MustExist
+    )
+
+    if ($MustExist) {
+        return (Resolve-Path -LiteralPath $Path).ProviderPath
+    }
+
+    if (Test-Path -LiteralPath $Path) {
+        return (Resolve-Path -LiteralPath $Path).ProviderPath
+    }
+
+    return [System.IO.Path]::GetFullPath($Path)
 }
 
 function Get-PurpurDownloadUrl {
@@ -56,22 +83,6 @@ function Get-PaperDownloadUrl {
     $latestBuild = ($buildsResponse.builds | Sort-Object build)[-1]
     $buildNumber = $latestBuild.build
     return "https://api.papermc.io/v2/projects/paper/versions/$Version/builds/$buildNumber/downloads/paper-$Version-$buildNumber.jar"
-}
-
-function Ensure-ServerJar {
-    if (Test-Path -LiteralPath $serverJarPath) {
-        Write-Info "server.jar already exists: $serverJarPath"
-        return
-    }
-
-    $downloadUrl = if ($ServerType -eq "Purpur") {
-        Get-PurpurDownloadUrl -Version $MinecraftVersion
-    } else {
-        Get-PaperDownloadUrl -Version $MinecraftVersion
-    }
-
-    Write-Info "Downloading $ServerType $MinecraftVersion"
-    Invoke-WebRequest -Uri $downloadUrl -OutFile $serverJarPath
 }
 
 function Build-PluginJar {
@@ -113,25 +124,189 @@ function Get-LatestPluginJar {
     return $candidate.FullName
 }
 
-function Write-ServerFiles {
-    Set-Content -Path $eulaPath -Value "eula=true" -Encoding ascii
+function Write-StandaloneServerFiles {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$EulaPath,
 
-    if (-not (Test-Path -LiteralPath $serverPropertiesPath)) {
+        [Parameter(Mandatory = $true)]
+        [string]$ServerPropertiesPath
+    )
+
+    Set-Content -Path $EulaPath -Value "eula=true" -Encoding ascii
+
+    if (-not (Test-Path -LiteralPath $ServerPropertiesPath)) {
         @(
             "motd=AstralRecord Dev Server"
             "online-mode=false"
             "spawn-protection=0"
             "enable-command-block=true"
             "difficulty=easy"
-        ) | Set-Content -Path $serverPropertiesPath -Encoding ascii
+        ) | Set-Content -Path $ServerPropertiesPath -Encoding ascii
     }
 }
 
-New-Item -ItemType Directory -Force -Path $resolvedServerRoot, $pluginsDir, $logsDir | Out-Null
+function Sync-LiveServerClone {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$SourceRoot,
+
+        [Parameter(Mandatory = $true)]
+        [string]$TargetRoot,
+
+        [string[]]$ExcludedDirectories,
+
+        [string[]]$ExcludedFiles
+    )
+
+    $resolvedSourceRoot = Get-AbsolutePath -Path $SourceRoot -MustExist
+    $resolvedTargetRoot = Get-AbsolutePath -Path $TargetRoot
+
+    if ($resolvedSourceRoot.TrimEnd('\') -eq $resolvedTargetRoot.TrimEnd('\')) {
+        throw "Target root must be different from the live server source root."
+    }
+
+    New-Item -ItemType Directory -Force -Path $resolvedTargetRoot | Out-Null
+
+    $robocopyArgs = @(
+        $resolvedSourceRoot,
+        $resolvedTargetRoot,
+        "/MIR",
+        "/FFT",
+        "/R:1",
+        "/W:1",
+        "/NFL",
+        "/NDL",
+        "/NJH",
+        "/NJS",
+        "/NP"
+    )
+
+    if ($ExcludedDirectories -and $ExcludedDirectories.Count -gt 0) {
+        $robocopyArgs += "/XD"
+        $robocopyArgs += $ExcludedDirectories
+    }
+
+    if ($ExcludedFiles -and $ExcludedFiles.Count -gt 0) {
+        $robocopyArgs += "/XF"
+        $robocopyArgs += $ExcludedFiles
+    }
+
+    Write-Info "Cloning live server package from $resolvedSourceRoot"
+    & robocopy @robocopyArgs | Out-Null
+    if ($LASTEXITCODE -gt 7) {
+        throw "robocopy failed while cloning the live server package. Exit code: $LASTEXITCODE"
+    }
+}
+
+function Resolve-ServerJarPath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$TargetRoot,
+
+        [switch]$AllowDownloadFallback,
+
+        [string]$DownloadedServerJarPath
+    )
+
+    $serverJarCandidate = Join-Path $TargetRoot "server.jar"
+    if (Test-Path -LiteralPath $serverJarCandidate) {
+        return $serverJarCandidate
+    }
+
+    $rootJar = Get-ChildItem -Path $TargetRoot -Filter "*.jar" -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -match '^(purpur|paper|spigot).+\.jar$' } |
+        Sort-Object LastWriteTimeUtc -Descending |
+        Select-Object -First 1
+
+    if ($null -ne $rootJar) {
+        return $rootJar.FullName
+    }
+
+    if ($AllowDownloadFallback -and -not [string]::IsNullOrWhiteSpace($DownloadedServerJarPath)) {
+        return $DownloadedServerJarPath
+    }
+
+    throw "No server jar was found under $TargetRoot."
+}
+
+$config = Load-DevServerConfig
+$configuredCloneRoot = $null
+$configuredLiveSourceRoot = $null
+$configuredVelocityEnabled = $false
+$configuredExcludedDirectories = @(".git", ".idea", "cache", "logs", "crash-reports")
+$configuredExcludedFiles = @("session.lock")
+
+if ($null -ne $config -and $null -ne $config.integration) {
+    $configuredCloneRoot = $config.integration.defaultCloneRoot
+    $configuredLiveSourceRoot = $config.integration.liveServerSourceRoot
+    $configuredVelocityEnabled = [bool]$config.integration.velocityEnabled
+    if ($config.integration.copyExcludedDirectories) {
+        $configuredExcludedDirectories = @($config.integration.copyExcludedDirectories)
+    }
+    if ($config.integration.copyExcludedFiles) {
+        $configuredExcludedFiles = @($config.integration.copyExcludedFiles)
+    }
+}
+
+if ([string]::IsNullOrWhiteSpace($ServerRoot)) {
+    if ($UseLiveServerClone -and -not [string]::IsNullOrWhiteSpace($configuredCloneRoot)) {
+        $ServerRoot = $configuredCloneRoot
+    } else {
+        $ServerRoot = Join-Path $pluginRoot ".dev-server\$($ServerType.ToLowerInvariant())-$MinecraftVersion"
+    }
+}
+
+if ([string]::IsNullOrWhiteSpace($LiveServerSourceRoot) -and -not [string]::IsNullOrWhiteSpace($configuredLiveSourceRoot)) {
+    $LiveServerSourceRoot = $configuredLiveSourceRoot
+}
+
+$resolvedServerRoot = Get-AbsolutePath -Path $ServerRoot
+$pluginsDir = Join-Path $resolvedServerRoot "plugins"
+$logsDir = Join-Path $resolvedServerRoot "logs"
+$downloadedServerJarPath = Join-Path $resolvedServerRoot "server.jar"
+$eulaPath = Join-Path $resolvedServerRoot "eula.txt"
+$serverPropertiesPath = Join-Path $resolvedServerRoot "server.properties"
 
 Build-PluginJar
-Ensure-ServerJar
-Write-ServerFiles
+
+if ($UseLiveServerClone) {
+    if ([string]::IsNullOrWhiteSpace($LiveServerSourceRoot)) {
+        throw "Live server source root is required for -UseLiveServerClone."
+    }
+
+    if ($RefreshLiveServerClone -or -not (Test-Path -LiteralPath $resolvedServerRoot)) {
+        Sync-LiveServerClone `
+            -SourceRoot $LiveServerSourceRoot `
+            -TargetRoot $resolvedServerRoot `
+            -ExcludedDirectories $configuredExcludedDirectories `
+            -ExcludedFiles $configuredExcludedFiles
+    } else {
+        Write-Info "Using existing live server clone at $resolvedServerRoot"
+    }
+
+    New-Item -ItemType Directory -Force -Path $pluginsDir, $logsDir | Out-Null
+    if ($configuredVelocityEnabled) {
+        Write-Info "Velocity profile is expected and preserved from the cloned live server configuration."
+    }
+} else {
+    New-Item -ItemType Directory -Force -Path $resolvedServerRoot, $pluginsDir, $logsDir | Out-Null
+
+    if (-not (Test-Path -LiteralPath $downloadedServerJarPath)) {
+        $downloadUrl = if ($ServerType -eq "Purpur") {
+            Get-PurpurDownloadUrl -Version $MinecraftVersion
+        } else {
+            Get-PaperDownloadUrl -Version $MinecraftVersion
+        }
+
+        Write-Info "Downloading $ServerType $MinecraftVersion"
+        Invoke-WebRequest -Uri $downloadUrl -OutFile $downloadedServerJarPath
+    } else {
+        Write-Info "server.jar already exists: $downloadedServerJarPath"
+    }
+
+    Write-StandaloneServerFiles -EulaPath $eulaPath -ServerPropertiesPath $serverPropertiesPath
+}
 
 $pluginJar = Get-LatestPluginJar
 $copiedPluginJar = Join-Path $pluginsDir (Split-Path -Leaf $pluginJar)
@@ -142,6 +317,11 @@ if ($NoStart) {
     Write-Info "Prepared server only. Start skipped because -NoStart was specified."
     exit 0
 }
+
+$serverJarPath = Resolve-ServerJarPath `
+    -TargetRoot $resolvedServerRoot `
+    -AllowDownloadFallback:(-not $UseLiveServerClone) `
+    -DownloadedServerJarPath $downloadedServerJarPath
 
 $javaArgs = @(
     "-Xms${MinMemoryMb}M",

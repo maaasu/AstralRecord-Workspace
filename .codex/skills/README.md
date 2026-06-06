@@ -71,6 +71,7 @@ AstralRecord Plugin (`10_plugin/AstralRecord`) 向けに、JUnit / MockBukkit �
 - `10_plugin/AstralRecord` の挙動確認を手動サーバ起動からテストへ寄せたい
 - `MockBukkit` で確認できる範囲を増やしたい
 - Purpur / Paper の一時検証サーバーを PowerShell で立ち上げたい
+- 現在の動作サーバー一式を clone して integration 用 dev server を作りたい
 - 手動再現手順を AI が追える形へ固定したい
 
 ### 実行例
@@ -81,6 +82,10 @@ Use $astralrecord-plugin-test to add a JUnit and MockBukkit test scaffold for E:
 
 ```text
 Use $astralrecord-plugin-test to convert manual verification steps for E:\AstralRecord-Workspace\10_plugin\AstralRecord into tests and a temporary Purpur server script, then report the result.
+```
+
+```text
+Use $astralrecord-plugin-test to prepare an integration dev server by cloning the configured live server package for E:\AstralRecord-Workspace\10_plugin\AstralRecord and report the result.
 ```
 
 ### 補足

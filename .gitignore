@@ -24,6 +24,7 @@ obj/
 .gradle/
 node_modules/
 dist/
+10_plugin/AstralRecord/.dev-server/
 dependency-reduced-pom.xml
 
 # Local/development configuration and secrets

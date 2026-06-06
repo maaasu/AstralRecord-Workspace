@@ -1,0 +1,17 @@
+{
+  "integration": {
+    "liveServerSourceRoot": "\\\\192.168.0.88\\server\\CraftyController\\crafty-__saas-windows-medium-amd64__-_03629d64\\servers\\5bf4f70b-2c02-4a6b-b23f-8453237d2d97",
+    "defaultCloneRoot": "E:\\AstralRecord-Workspace\\10_plugin\\AstralRecord\\.dev-server\\integration-live-clone",
+    "velocityEnabled": true,
+    "copyExcludedDirectories": [
+      ".git",
+      ".idea",
+      "cache",
+      "logs",
+      "crash-reports"
+    ],
+    "copyExcludedFiles": [
+      "session.lock"
+    ]
+  }
+}
