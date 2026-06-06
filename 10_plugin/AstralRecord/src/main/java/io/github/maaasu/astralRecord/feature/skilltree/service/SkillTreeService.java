@@ -33,6 +33,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
@@ -948,7 +949,7 @@ public class SkillTreeService {
         }
 
         for (Entity entity : List.copyOf(world.getEntities())) {
-            if (entity instanceof Item || entity instanceof TextDisplay) {
+            if (entity instanceof Item || entity instanceof ItemDisplay || entity instanceof TextDisplay) {
                 entity.remove();
             }
         }

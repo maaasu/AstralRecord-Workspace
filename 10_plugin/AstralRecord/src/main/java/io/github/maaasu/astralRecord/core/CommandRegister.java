@@ -34,8 +34,6 @@ import io.github.maaasu.astralRecord.feature.sell.command.SellCommand;
 import io.github.maaasu.astralRecord.feature.shop.command.ShopCommand;
 import io.github.maaasu.astralRecord.feature.shop.command.ShopTabCompleter;
 import io.github.maaasu.astralRecord.feature.storage.command.StorageCommand;
-import io.github.maaasu.astralRecord.temp.command.TestCommand;
-import io.github.maaasu.astralRecord.temp.command.TestTabCompleter;
 import io.github.maaasu.astralRecord.feature.status.command.StatusCommand;
 import io.github.maaasu.astralRecord.feature.status.command.StatusTabCompleter;
 import io.github.maaasu.astralRecord.feature.user.command.UserCommand;
@@ -76,7 +74,6 @@ public class CommandRegister {
     public final void registerCommand() {
         CommandManager cm = CommandManager.getInstance();
 
-        cm.registerCommand("test", new TestCommand(), new TestTabCompleter());
         cm.registerCommand("status", new StatusCommand(), new StatusTabCompleter());
         cm.registerCommand("inventory", new InventoryCommand(), new InventoryTabCompleter());
         cm.registerCommand("menu", new MenuCommand());

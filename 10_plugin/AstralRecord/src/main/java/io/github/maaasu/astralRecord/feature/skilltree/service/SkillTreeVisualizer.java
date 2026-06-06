@@ -7,24 +7,32 @@ import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefini
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePlayerState;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePosition;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
-import io.github.maaasu.astralRecord.shared.packetdisplay.PacketDisplayHandle;
-import io.github.maaasu.astralRecord.shared.packetdisplay.PacketDisplayService;
-import io.github.maaasu.astralRecord.shared.packetdisplay.PacketItemDisplayOptions;
-import io.github.maaasu.astralRecord.shared.packetdisplay.PacketTextDisplayOptions;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.entity.Display;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TextDisplay;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -37,13 +45,18 @@ final class SkillTreeVisualizer {
     private static final double ITEM_Y_OFFSET = 0.15D;
     private static final double EDGE_Y_OFFSET = 0.65D;
     private static final double TEXT_Y_OFFSET = 1.2D;
+    private static final float NODE_ITEM_SCALE = 0.72F;
     private static final float NODE_TEXT_SCALE = 0.85F;
+    private static final float ADMIN_ITEM_SCALE = 0.72F;
     private static final float ADMIN_TEXT_SCALE = 0.72F;
     private static final float EDGE_TEXT_SCALE = 0.42F;
+    private static final float VIEW_RANGE = 96.0F;
 
     private final Plugin plugin;
     private final SkillTreeService service;
-    private final Map<UUID, ViewerScene> viewerScenes = new HashMap<>();
+    private final Map<String, NodeVisual> nodeVisuals = new HashMap<>();
+    private final Map<String, AdminPositionVisual> adminPositionVisuals = new HashMap<>();
+    private final Map<String, EdgeVisual> edgeVisuals = new HashMap<>();
     private BukkitTask task;
 
     SkillTreeVisualizer(@NotNull Plugin plugin, @NotNull SkillTreeService service) {
@@ -63,46 +76,129 @@ final class SkillTreeVisualizer {
             task.cancel();
             task = null;
         }
-        viewerScenes.values().forEach(ViewerScene::destroy);
-        viewerScenes.clear();
+        nodeVisuals.values().forEach(NodeVisual::remove);
+        adminPositionVisuals.values().forEach(AdminPositionVisual::remove);
+        edgeVisuals.values().forEach(EdgeVisual::remove);
+        nodeVisuals.clear();
+        adminPositionVisuals.clear();
+        edgeVisuals.clear();
     }
 
     private void tick() {
+        syncVisuals();
+
         Set<UUID> onlineViewerIds = new HashSet<>();
         for (Player player : plugin.getServer().getOnlinePlayers()) {
             UUID playerId = player.getUniqueId();
             onlineViewerIds.add(playerId);
 
             RenderMode mode = resolveMode(player);
-            if (mode == RenderMode.HIDDEN) {
-                removeScene(playerId);
-                continue;
+            for (AdminPositionVisual visual : adminPositionVisuals.values()) {
+                boolean visible = mode == RenderMode.ADMIN && isVisibleTo(player, visual.baseLocation());
+                visual.updateViewer(player, visible);
             }
-
-            ViewerScene scene = viewerScenes.computeIfAbsent(playerId, ignored -> new ViewerScene(player));
-            scene.resetIfWorldChanged(player);
-            scene.begin();
-            renderPositions(player, scene, mode);
-            renderEdges(player, scene, mode);
-            scene.end();
-            if (scene.isEmpty()) {
-                removeScene(playerId);
+            for (NodeVisual visual : nodeVisuals.values()) {
+                boolean visible = mode == RenderMode.PLAYER && isVisibleTo(player, visual.baseLocation());
+                boolean unlocked = visible && isUnlocked(player, visual.node());
+                visual.updateViewer(player, visible, unlocked);
+            }
+            for (EdgeVisual visual : edgeVisuals.values()) {
+                EdgeColor color = resolveEdgeColor(player, visual.edge(), mode);
+                boolean visible = color != EdgeColor.HIDDEN && isVisibleTo(player, visual.midpoint());
+                visual.updateViewer(player, visible ? color : EdgeColor.HIDDEN);
             }
         }
 
-        viewerScenes.entrySet().removeIf(entry -> {
-            if (onlineViewerIds.contains(entry.getKey())) {
+        nodeVisuals.values().forEach(visual -> visual.pruneViewers(onlineViewerIds));
+        adminPositionVisuals.values().forEach(visual -> visual.pruneViewers(onlineViewerIds));
+        edgeVisuals.values().forEach(visual -> visual.pruneViewers(onlineViewerIds));
+    }
+
+    private void syncVisuals() {
+        Collection<SkillTreePosition> positions = service.getPositions();
+        Set<String> activePositionIds = new HashSet<>();
+        for (SkillTreePosition position : positions) {
+            Location location = position.toLocation();
+            if (location == null || location.getWorld() == null) {
+                continue;
+            }
+            activePositionIds.add(position.positionId());
+
+            AdminPositionVisual adminVisual = adminPositionVisuals.get(position.positionId());
+            if (adminVisual == null) {
+                adminPositionVisuals.put(position.positionId(), new AdminPositionVisual(position.positionId(), location));
+            } else {
+                adminVisual.teleport(location);
+            }
+
+            SkillTreeNodeDefinition node = service.getNodeByPositionId(position.positionId());
+            if (node == null) {
+                removeNodeVisual(position.positionId());
+                continue;
+            }
+
+            NodeVisual nodeVisual = nodeVisuals.get(position.positionId());
+            if (nodeVisual == null || !nodeVisual.node().id().equals(node.id())) {
+                removeNodeVisual(position.positionId());
+                nodeVisuals.put(position.positionId(), new NodeVisual(node, location));
+            } else {
+                nodeVisual.teleport(location);
+            }
+        }
+
+        adminPositionVisuals.entrySet().removeIf(entry -> {
+            if (activePositionIds.contains(entry.getKey())) {
                 return false;
             }
-            entry.getValue().destroy();
+            entry.getValue().remove();
+            return true;
+        });
+        nodeVisuals.entrySet().removeIf(entry -> {
+            if (activePositionIds.contains(entry.getKey())) {
+                return false;
+            }
+            entry.getValue().remove();
+            return true;
+        });
+
+        Set<String> activeEdgeKeys = new HashSet<>();
+        for (SkillTreeEdge edge : service.getEdges()) {
+            SkillTreePosition left = service.getPosition(edge.leftPositionId());
+            SkillTreePosition right = service.getPosition(edge.rightPositionId());
+            if (left == null || right == null) {
+                continue;
+            }
+            Location leftLocation = left.toLocation();
+            Location rightLocation = right.toLocation();
+            if (leftLocation == null
+                    || rightLocation == null
+                    || leftLocation.getWorld() == null
+                    || leftLocation.getWorld() != rightLocation.getWorld()) {
+                continue;
+            }
+
+            activeEdgeKeys.add(edge.key());
+            EdgeVisual edgeVisual = edgeVisuals.get(edge.key());
+            if (edgeVisual == null) {
+                edgeVisuals.put(edge.key(), new EdgeVisual(edge, leftLocation, rightLocation));
+            } else {
+                edgeVisual.teleport(leftLocation, rightLocation);
+            }
+        }
+
+        edgeVisuals.entrySet().removeIf(entry -> {
+            if (activeEdgeKeys.contains(entry.getKey())) {
+                return false;
+            }
+            entry.getValue().remove();
             return true;
         });
     }
 
-    private void removeScene(@NotNull UUID playerId) {
-        ViewerScene scene = viewerScenes.remove(playerId);
-        if (scene != null) {
-            scene.destroy();
+    private void removeNodeVisual(@NotNull String positionId) {
+        NodeVisual removed = nodeVisuals.remove(positionId);
+        if (removed != null) {
+            removed.remove();
         }
     }
 
@@ -117,89 +213,6 @@ final class SkillTreeVisualizer {
         return RenderMode.HIDDEN;
     }
 
-    private void renderPositions(
-            @NotNull Player player,
-            @NotNull ViewerScene scene,
-            @NotNull RenderMode mode
-    ) {
-        for (SkillTreePosition position : service.getPositions()) {
-            Location location = position.toLocation();
-            if (!isVisibleTo(player, location)) {
-                continue;
-            }
-
-            if (mode == RenderMode.ADMIN) {
-                renderAdminPosition(scene, position.positionId(), location);
-                continue;
-            }
-
-            SkillTreeNodeDefinition node = service.getNodeByPositionId(position.positionId());
-            if (node != null) {
-                renderPlayerNode(player, scene, position.positionId(), location, node);
-            }
-        }
-    }
-
-    private void renderAdminPosition(
-            @NotNull ViewerScene scene,
-            @NotNull String positionId,
-            @NotNull Location location
-    ) {
-        String key = "admin:position:" + positionId;
-        scene.upsertItem(key + ":item", itemLocation(location), new ItemStack(Material.ARMOR_STAND));
-        scene.upsertText(key + ":marker", textLocation(location), component("&d*"), ADMIN_TEXT_SCALE);
-        scene.upsertText(key + ":label", location.clone().add(0.0D, TEXT_Y_OFFSET + 0.45D, 0.0D), component("&d" + positionId), ADMIN_TEXT_SCALE);
-    }
-
-    private void renderPlayerNode(
-            @NotNull Player player,
-            @NotNull ViewerScene scene,
-            @NotNull String positionId,
-            @NotNull Location location,
-            @NotNull SkillTreeNodeDefinition node
-    ) {
-        boolean unlocked = isUnlocked(player, node);
-        String key = "node:" + positionId;
-        scene.upsertItem(key + ":item", itemLocation(location), service.createNodeDisplayItem(node, unlocked));
-    }
-
-    private void renderEdges(
-            @NotNull Player player,
-            @NotNull ViewerScene scene,
-            @NotNull RenderMode mode
-    ) {
-        if (mode == RenderMode.PLAYER) {
-            return;
-        }
-        for (SkillTreeEdge edge : service.getEdges()) {
-            SkillTreePosition left = service.getPosition(edge.leftPositionId());
-            SkillTreePosition right = service.getPosition(edge.rightPositionId());
-            if (left == null || right == null) {
-                continue;
-            }
-
-            Location leftLocation = left.toLocation();
-            Location rightLocation = right.toLocation();
-            if (leftLocation == null
-                    || rightLocation == null
-                    || leftLocation.getWorld() == null
-                    || leftLocation.getWorld() != rightLocation.getWorld()) {
-                continue;
-            }
-
-            Location midpoint = interpolate(leftLocation, rightLocation, 0.5D);
-            if (!isVisibleTo(player, midpoint)) {
-                continue;
-            }
-
-            EdgeColor color = resolveEdgeColor(player, edge, mode);
-            if (color == EdgeColor.HIDDEN) {
-                continue;
-            }
-            renderEdge(scene, edge, leftLocation, rightLocation, color);
-        }
-    }
-
     private @NotNull EdgeColor resolveEdgeColor(
             @NotNull Player player,
             @NotNull SkillTreeEdge edge,
@@ -207,6 +220,9 @@ final class SkillTreeVisualizer {
     ) {
         if (mode == RenderMode.ADMIN) {
             return EdgeColor.ADMIN;
+        }
+        if (mode != RenderMode.PLAYER) {
+            return EdgeColor.HIDDEN;
         }
 
         SkillTreeNodeDefinition leftNode = service.getNodeByPositionId(edge.leftPositionId());
@@ -224,21 +240,6 @@ final class SkillTreeVisualizer {
             return EdgeColor.WHITE;
         }
         return EdgeColor.GRAY;
-    }
-
-    private void renderEdge(
-            @NotNull ViewerScene scene,
-            @NotNull SkillTreeEdge edge,
-            @NotNull Location left,
-            @NotNull Location right,
-            @NotNull EdgeColor color
-    ) {
-        int count = pointCount(left, right);
-        Component text = component(color.colorCode + "*");
-        for (int i = 1; i < count; i++) {
-            Location location = interpolate(left, right, (double) i / count);
-            scene.upsertText("edge:" + edge.key() + ":" + i, location, text, EDGE_TEXT_SCALE);
-        }
     }
 
     private boolean isUnlocked(@NotNull Player player, @NotNull SkillTreeNodeDefinition node) {
@@ -274,14 +275,75 @@ final class SkillTreeVisualizer {
         return Math.max(1, (int) Math.ceil(left.distance(right) / EDGE_STEP));
     }
 
+    private @NotNull Transformation scaleTransformation(float scale) {
+        return new Transformation(
+                new Vector3f(),
+                new Quaternionf(),
+                new Vector3f(scale, scale, scale),
+                new Quaternionf()
+        );
+    }
+
     private @NotNull Component component(@NotNull String text) {
         return LegacyComponentSerializer.legacySection().deserialize(ColorCodeUtil.translateAlternateColorCodes(text));
+    }
+
+    private @NotNull ItemDisplay spawnItemDisplay(@NotNull Location location, @NotNull ItemStack itemStack, float scale) {
+        World world = location.getWorld();
+        if (world == null) {
+            throw new IllegalArgumentException("location world is null");
+        }
+        return world.spawn(itemLocation(location), ItemDisplay.class, display -> {
+            display.setItemStack(itemStack);
+            display.setBillboard(Display.Billboard.CENTER);
+            display.setGravity(false);
+            display.setInvulnerable(true);
+            display.setPersistent(false);
+            display.setSilent(true);
+            display.setViewRange(VIEW_RANGE);
+            display.setVisibleByDefault(false);
+            display.setTransformation(scaleTransformation(scale));
+            display.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.FIXED);
+        });
+    }
+
+    private @NotNull TextDisplay spawnTextDisplay(
+            @NotNull Location location,
+            @NotNull Component text,
+            float scale
+    ) {
+        World world = location.getWorld();
+        if (world == null) {
+            throw new IllegalArgumentException("location world is null");
+        }
+        return world.spawn(textLocation(location), TextDisplay.class, display -> {
+            display.setBillboard(Display.Billboard.CENTER);
+            display.setGravity(false);
+            display.setInvulnerable(true);
+            display.setPersistent(false);
+            display.setSilent(true);
+            display.setViewRange(VIEW_RANGE);
+            display.setVisibleByDefault(false);
+            display.setLineWidth(160);
+            display.setSeeThrough(true);
+            display.setShadowed(true);
+            display.setDefaultBackground(false);
+            display.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
+            display.setTransformation(scaleTransformation(scale));
+            display.text(text);
+        });
     }
 
     private enum RenderMode {
         HIDDEN,
         ADMIN,
         PLAYER
+    }
+
+    private enum NodeState {
+        HIDDEN,
+        LOCKED,
+        UNLOCKED
     }
 
     private enum EdgeColor {
@@ -298,95 +360,277 @@ final class SkillTreeVisualizer {
         }
     }
 
-    private static final class ViewerScene {
-        private final PacketDisplayService displayService;
-        private final Map<String, SceneEntry> entries = new HashMap<>();
-        private final Set<String> activeKeys = new HashSet<>();
-        private UUID worldId;
+    private final class AdminPositionVisual {
+        private final Location baseLocation;
+        private final ItemDisplay item;
+        private final TextDisplay marker;
+        private final TextDisplay label;
+        private final Set<UUID> visibleViewers = new HashSet<>();
 
-        private ViewerScene(@NotNull Player viewer) {
-            this.displayService = new PacketDisplayService(viewer);
-            this.worldId = viewer.getWorld().getUID();
+        private AdminPositionVisual(@NotNull String positionId, @NotNull Location location) {
+            this.baseLocation = location.clone();
+            this.item = spawnItemDisplay(location, new ItemStack(Material.ARMOR_STAND), ADMIN_ITEM_SCALE);
+            this.marker = spawnTextDisplay(location, component("&d*"), ADMIN_TEXT_SCALE);
+            Location labelLocation = location.clone().add(0.0D, 0.45D, 0.0D);
+            this.label = spawnTextDisplay(labelLocation, component("&d" + positionId), ADMIN_TEXT_SCALE);
         }
 
-        private void resetIfWorldChanged(@NotNull Player viewer) {
-            UUID currentWorldId = viewer.getWorld().getUID();
-            if (worldId.equals(currentWorldId)) {
-                return;
-            }
-            destroy();
-            worldId = currentWorldId;
+        private @NotNull Location baseLocation() {
+            return baseLocation.clone();
         }
 
-        private void begin() {
-            activeKeys.clear();
+        private void teleport(@NotNull Location location) {
+            baseLocation.setWorld(location.getWorld());
+            baseLocation.setX(location.getX());
+            baseLocation.setY(location.getY());
+            baseLocation.setZ(location.getZ());
+            item.teleport(itemLocation(location));
+            marker.teleport(textLocation(location));
+            label.teleport(location.clone().add(0.0D, TEXT_Y_OFFSET + 0.45D, 0.0D));
         }
 
-        private void upsertText(
-                @NotNull String key,
-                @NotNull Location location,
-                @NotNull Component text,
-                float scale
-        ) {
-            activeKeys.add(key);
-            SceneEntry entry = entries.get(key);
-            if (entry == null || entry.type != SceneEntryType.TEXT) {
-                destroy(entry);
-                PacketDisplayHandle handle = displayService.spawnText(location, PacketTextDisplayOptions.skillTree(text, scale));
-                entries.put(key, new SceneEntry(SceneEntryType.TEXT, handle));
-                return;
-            }
-            entry.handle.teleport(location);
-            entry.handle.updateText(text);
-        }
-
-        private void upsertItem(@NotNull String key, @NotNull Location location, @NotNull ItemStack itemStack) {
-            activeKeys.add(key);
-            SceneEntry entry = entries.get(key);
-            if (entry == null || entry.type != SceneEntryType.ITEM) {
-                destroy(entry);
-                PacketDisplayHandle handle = displayService.spawnItem(location, PacketItemDisplayOptions.skillTree(itemStack));
-                entries.put(key, new SceneEntry(SceneEntryType.ITEM, handle));
-                return;
-            }
-            entry.handle.teleport(location);
-            entry.handle.updateItem(itemStack);
-        }
-
-        private void end() {
-            entries.entrySet().removeIf(entry -> {
-                if (activeKeys.contains(entry.getKey())) {
-                    return false;
+        private void updateViewer(@NotNull Player player, boolean visible) {
+            UUID playerId = player.getUniqueId();
+            if (!visible) {
+                if (visibleViewers.remove(playerId)) {
+                    hideEntities(player, item, marker, label);
                 }
-                entry.getValue().handle.destroy();
-                return true;
-            });
-        }
-
-        private boolean isEmpty() {
-            return entries.isEmpty();
-        }
-
-        private void destroy() {
-            for (SceneEntry entry : entries.values()) {
-                entry.handle.destroy();
+                return;
             }
-            entries.clear();
-            activeKeys.clear();
+            if (visibleViewers.add(playerId)) {
+                showEntities(player, item, marker, label);
+            }
         }
 
-        private void destroy(@Nullable SceneEntry entry) {
-            if (entry != null) {
-                entry.handle.destroy();
+        private void pruneViewers(@NotNull Set<UUID> onlineViewerIds) {
+            visibleViewers.removeIf(playerId -> !onlineViewerIds.contains(playerId));
+        }
+
+        private void remove() {
+            visibleViewers.clear();
+            removeEntities(item, marker, label);
+        }
+    }
+
+    private final class NodeVisual {
+        private final SkillTreeNodeDefinition node;
+        private final Location baseLocation;
+        private final ItemDisplay lockedItem;
+        private final ItemDisplay unlockedItem;
+        private final TextDisplay lockedLabel;
+        private final TextDisplay unlockedLabel;
+        private final Map<UUID, NodeState> viewerStates = new HashMap<>();
+
+        private NodeVisual(@NotNull SkillTreeNodeDefinition node, @NotNull Location location) {
+            this.node = node;
+            this.baseLocation = location.clone();
+            this.lockedItem = spawnItemDisplay(location, service.createNodeDisplayItem(node, false), NODE_ITEM_SCALE);
+            this.unlockedItem = spawnItemDisplay(location, service.createNodeDisplayItem(node, true), NODE_ITEM_SCALE);
+            this.lockedLabel = spawnTextDisplay(location, service.nodeName(node, false), NODE_TEXT_SCALE);
+            this.unlockedLabel = spawnTextDisplay(location, service.nodeName(node, true), NODE_TEXT_SCALE);
+        }
+
+        private @NotNull SkillTreeNodeDefinition node() {
+            return node;
+        }
+
+        private @NotNull Location baseLocation() {
+            return baseLocation.clone();
+        }
+
+        private void teleport(@NotNull Location location) {
+            baseLocation.setWorld(location.getWorld());
+            baseLocation.setX(location.getX());
+            baseLocation.setY(location.getY());
+            baseLocation.setZ(location.getZ());
+            Location itemLocation = itemLocation(location);
+            Location textLocation = textLocation(location);
+            lockedItem.teleport(itemLocation);
+            unlockedItem.teleport(itemLocation);
+            lockedLabel.teleport(textLocation);
+            unlockedLabel.teleport(textLocation);
+        }
+
+        private void updateViewer(@NotNull Player player, boolean visible, boolean unlocked) {
+            NodeState nextState = !visible ? NodeState.HIDDEN : unlocked ? NodeState.UNLOCKED : NodeState.LOCKED;
+            UUID playerId = player.getUniqueId();
+            NodeState currentState = viewerStates.getOrDefault(playerId, NodeState.HIDDEN);
+            if (currentState == nextState) {
+                return;
+            }
+
+            hideState(player, currentState);
+            showState(player, nextState);
+
+            if (nextState == NodeState.HIDDEN) {
+                viewerStates.remove(playerId);
+            } else {
+                viewerStates.put(playerId, nextState);
+            }
+        }
+
+        private void hideState(@NotNull Player player, @NotNull NodeState state) {
+            switch (state) {
+                case LOCKED -> hideEntities(player, lockedItem, lockedLabel);
+                case UNLOCKED -> hideEntities(player, unlockedItem, unlockedLabel);
+                case HIDDEN -> {
+                }
+            }
+        }
+
+        private void showState(@NotNull Player player, @NotNull NodeState state) {
+            switch (state) {
+                case LOCKED -> showEntities(player, lockedItem, lockedLabel);
+                case UNLOCKED -> showEntities(player, unlockedItem, unlockedLabel);
+                case HIDDEN -> {
+                }
+            }
+        }
+
+        private void pruneViewers(@NotNull Set<UUID> onlineViewerIds) {
+            viewerStates.entrySet().removeIf(entry -> !onlineViewerIds.contains(entry.getKey()));
+        }
+
+        private void remove() {
+            viewerStates.clear();
+            removeEntities(lockedItem, unlockedItem, lockedLabel, unlockedLabel);
+        }
+    }
+
+    private final class EdgeVisual {
+        private final SkillTreeEdge edge;
+        private final List<TextDisplay> adminDots;
+        private final List<TextDisplay> grayDots;
+        private final List<TextDisplay> whiteDots;
+        private final List<TextDisplay> yellowDots;
+        private final Map<UUID, EdgeColor> viewerStates = new HashMap<>();
+        private Location midpoint;
+
+        private EdgeVisual(@NotNull SkillTreeEdge edge, @NotNull Location left, @NotNull Location right) {
+            this.edge = edge;
+            this.adminDots = spawnEdgeDots(left, right, EdgeColor.ADMIN);
+            this.grayDots = spawnEdgeDots(left, right, EdgeColor.GRAY);
+            this.whiteDots = spawnEdgeDots(left, right, EdgeColor.WHITE);
+            this.yellowDots = spawnEdgeDots(left, right, EdgeColor.YELLOW);
+            this.midpoint = interpolate(left, right, 0.5D);
+        }
+
+        private @NotNull SkillTreeEdge edge() {
+            return edge;
+        }
+
+        private @NotNull Location midpoint() {
+            return midpoint.clone();
+        }
+
+        private void teleport(@NotNull Location left, @NotNull Location right) {
+            teleportDots(adminDots, left, right);
+            teleportDots(grayDots, left, right);
+            teleportDots(whiteDots, left, right);
+            teleportDots(yellowDots, left, right);
+            midpoint = interpolate(left, right, 0.5D);
+        }
+
+        private void updateViewer(@NotNull Player player, @NotNull EdgeColor nextColor) {
+            UUID playerId = player.getUniqueId();
+            EdgeColor currentColor = viewerStates.getOrDefault(playerId, EdgeColor.HIDDEN);
+            if (currentColor == nextColor) {
+                return;
+            }
+
+            hideColor(player, currentColor);
+            showColor(player, nextColor);
+
+            if (nextColor == EdgeColor.HIDDEN) {
+                viewerStates.remove(playerId);
+            } else {
+                viewerStates.put(playerId, nextColor);
+            }
+        }
+
+        private void hideColor(@NotNull Player player, @NotNull EdgeColor color) {
+            hideEntities(player, entitiesFor(color));
+        }
+
+        private void showColor(@NotNull Player player, @NotNull EdgeColor color) {
+            showEntities(player, entitiesFor(color));
+        }
+
+        private @NotNull Entity[] entitiesFor(@NotNull EdgeColor color) {
+            return switch (color) {
+                case ADMIN -> adminDots.toArray(Entity[]::new);
+                case GRAY -> grayDots.toArray(Entity[]::new);
+                case WHITE -> whiteDots.toArray(Entity[]::new);
+                case YELLOW -> yellowDots.toArray(Entity[]::new);
+                case HIDDEN -> new Entity[0];
+            };
+        }
+
+        private void pruneViewers(@NotNull Set<UUID> onlineViewerIds) {
+            viewerStates.entrySet().removeIf(entry -> !onlineViewerIds.contains(entry.getKey()));
+        }
+
+        private void remove() {
+            viewerStates.clear();
+            removeEntities(adminDots);
+            removeEntities(grayDots);
+            removeEntities(whiteDots);
+            removeEntities(yellowDots);
+        }
+    }
+
+    private @NotNull List<TextDisplay> spawnEdgeDots(
+            @NotNull Location left,
+            @NotNull Location right,
+            @NotNull EdgeColor color
+    ) {
+        int count = pointCount(left, right);
+        List<TextDisplay> displays = new ArrayList<>();
+        Component text = component(color.colorCode + "*");
+        for (int i = 1; i < count; i++) {
+            displays.add(spawnTextDisplay(interpolate(left, right, (double) i / count), text, EDGE_TEXT_SCALE));
+        }
+        return displays;
+    }
+
+    private void teleportDots(
+            @NotNull List<TextDisplay> dots,
+            @NotNull Location left,
+            @NotNull Location right
+    ) {
+        int count = pointCount(left, right);
+        int dotCount = Math.min(dots.size(), Math.max(0, count - 1));
+        for (int i = 0; i < dotCount; i++) {
+            dots.get(i).teleport(interpolate(left, right, (double) (i + 1) / count));
+        }
+    }
+
+    private void showEntities(@NotNull Player player, @NotNull Entity... entities) {
+        for (Entity entity : entities) {
+            player.showEntity(plugin, entity);
+        }
+    }
+
+    private void hideEntities(@NotNull Player player, @NotNull Entity... entities) {
+        for (Entity entity : entities) {
+            player.hideEntity(plugin, entity);
+        }
+    }
+
+    private void removeEntities(@NotNull Entity... entities) {
+        for (Entity entity : entities) {
+            if (entity.isValid()) {
+                entity.remove();
             }
         }
     }
 
-    private enum SceneEntryType {
-        TEXT,
-        ITEM
-    }
-
-    private record SceneEntry(@NotNull SceneEntryType type, @NotNull PacketDisplayHandle handle) {
+    private void removeEntities(@NotNull List<? extends Entity> entities) {
+        for (Entity entity : entities) {
+            if (entity.isValid()) {
+                entity.remove();
+            }
+        }
+        entities.clear();
     }
 }
