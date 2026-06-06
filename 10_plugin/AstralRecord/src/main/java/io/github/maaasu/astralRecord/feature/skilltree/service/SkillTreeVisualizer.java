@@ -392,14 +392,12 @@ final class SkillTreeVisualizer {
         private void updateViewer(@NotNull Player player, boolean visible) {
             UUID playerId = player.getUniqueId();
             if (!visible) {
-                if (visibleViewers.remove(playerId)) {
-                    hideEntities(player, item, marker, label);
-                }
+                visibleViewers.remove(playerId);
+                hideEntities(player, item, marker, label);
                 return;
             }
-            if (visibleViewers.add(playerId)) {
-                showEntities(player, item, marker, label);
-            }
+            visibleViewers.add(playerId);
+            showEntities(player, item, marker, label);
         }
 
         private void pruneViewers(@NotNull Set<UUID> onlineViewerIds) {
@@ -454,19 +452,15 @@ final class SkillTreeVisualizer {
         private void updateViewer(@NotNull Player player, boolean visible, boolean unlocked) {
             NodeState nextState = !visible ? NodeState.HIDDEN : unlocked ? NodeState.UNLOCKED : NodeState.LOCKED;
             UUID playerId = player.getUniqueId();
-            NodeState currentState = viewerStates.getOrDefault(playerId, NodeState.HIDDEN);
-            if (currentState == nextState) {
-                return;
-            }
-
-            hideState(player, currentState);
-            showState(player, nextState);
 
             if (nextState == NodeState.HIDDEN) {
                 viewerStates.remove(playerId);
             } else {
                 viewerStates.put(playerId, nextState);
             }
+
+            hideEntities(player, lockedItem, unlockedItem, lockedLabel, unlockedLabel);
+            showState(player, nextState);
         }
 
         private void hideState(@NotNull Player player, @NotNull NodeState state) {
@@ -533,19 +527,17 @@ final class SkillTreeVisualizer {
 
         private void updateViewer(@NotNull Player player, @NotNull EdgeColor nextColor) {
             UUID playerId = player.getUniqueId();
-            EdgeColor currentColor = viewerStates.getOrDefault(playerId, EdgeColor.HIDDEN);
-            if (currentColor == nextColor) {
-                return;
-            }
-
-            hideColor(player, currentColor);
-            showColor(player, nextColor);
-
             if (nextColor == EdgeColor.HIDDEN) {
                 viewerStates.remove(playerId);
             } else {
                 viewerStates.put(playerId, nextColor);
             }
+
+            hideEntities(player, entitiesFor(EdgeColor.ADMIN));
+            hideEntities(player, entitiesFor(EdgeColor.GRAY));
+            hideEntities(player, entitiesFor(EdgeColor.WHITE));
+            hideEntities(player, entitiesFor(EdgeColor.YELLOW));
+            showColor(player, nextColor);
         }
 
         private void hideColor(@NotNull Player player, @NotNull EdgeColor color) {
