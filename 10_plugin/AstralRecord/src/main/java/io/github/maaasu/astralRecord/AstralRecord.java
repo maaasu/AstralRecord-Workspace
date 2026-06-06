@@ -238,18 +238,18 @@ public final class AstralRecord extends JavaPlugin {
                 new SkillTreePlayerStateRepository(this)
         );
         joinSpawnWorldId = PluginJoinSpawnWorldConfig.load(this);
-        // CommandManager縺ｮ蛻晄悄蛹悶・Paper Lifecycle API縺ｮ蛻ｶ邏・ｸ翫｛nLoad()蜀・〒陦後≧
-        // 繧ｳ繝槭Φ繝峨ｒ縺薙％縺ｧ逋ｻ骭ｲ縺励（nitialize()繧貞他縺ｳ蜃ｺ縺・
+        // CommandManager は Paper Lifecycle API の制約に合わせて
+        // onLoad() で初期化し、コマンド登録クラスを先に生成する。
         new CommandRegister(itemService, itemStackFactory, mobService, mobSpawnerService, worldService, skillTreeService);
         CommandManager.getInstance().initialize(this);
     }
 
     @Override
     public void onEnable() {
-        // AuditLogger縺ｮ蛻晄悄蛹・
+        // AuditLogger を初期化
         AuditLogger.initDefault();
 
-        // 縺吶∋縺ｦ縺ｮ LogEntry 螳溯｣・け繝ｩ繧ｹ繧定・蜍輔せ繧ｭ繝｣繝ｳ縺励※ AuditLogger 繧貞・譛溷喧
+        // すべての LogEntry 実装クラスを走査し、AuditLogger を登録する
         AuditLoggerRegistry.init("io.github.maaasu.astralRecord");
 
         if (!setupInfrastructure()) {
@@ -257,10 +257,10 @@ public final class AstralRecord extends JavaPlugin {
             return;
         }
 
-        // 3. feature縺ｮ蛻晄悄蛹・
+        // 3. feature を初期化
         setupFeature();
 
-        // 4. 讖溯・螻､・医う繝吶Φ繝医・繧ｳ繝槭Φ繝会ｼ峨・逋ｻ骭ｲ
+        // 4. イベントとコマンドを登録
         registerPluginFeatures();
     }
 
@@ -317,10 +317,10 @@ public final class AstralRecord extends JavaPlugin {
         if (mobService != null) {
             mobService.destroyAll();
         }
-        // AuditLogger縺ｮ繧ｷ繝｣繝・ヨ繝繧ｦ繝ｳ
+        // AuditLogger をシャットダウン
         AuditLogger.shutdownDefault();
         AuditLoggerRegistry.shutdownAll();
-        // 繧ｳ繝槭Φ繝峨・繝阪・繧ｸ繝｣繝ｼ縺ｮ繧ｷ繝｣繝・ヨ繝繧ｦ繝ｳ
+        // コマンドマネージャーをシャットダウン
         CommandManager.getInstance().shutdown();
         getServer().getScheduler().cancelTasks(this);
         if (ConfigProperties.getInstance().isSqlserverEnabled()) {
@@ -329,29 +329,30 @@ public final class AstralRecord extends JavaPlugin {
     }
 
     /**
-     * 險ｭ螳壹ヵ繧｡繧､繝ｫ縲√ョ繝ｼ繧ｿ繝吶・繧ｹ遲峨・蝓ｺ逶､驛ｨ蛻・ｒ繧ｻ繝・ヨ繧｢繝・・
-     * @return 謌仙粥縺励◆蝣ｴ蜷医・true
+     * 設定ファイル、データベース接続、基盤サービス初期化をセットアップします。
+     *
+     * @return 成功した場合は true
      */
     private boolean setupInfrastructure() {
         try {
-            //險ｭ螳壹ヵ繧｡繧､繝ｫ繧貞・譛溷喧
+            // 設定ファイルを初期化
             ConfigManager.getInstance().initialize();
 
 
-            // DB 蛻晄悄蛹・
+            // DB を初期化
             if (ConfigProperties.getInstance().isSqlserverEnabled()) {
                 SqlServerManager.getInstance().initialize();
             } else {
                 Logger.log(LogId.I_1104);
             }
 
-            // 繝輔か繝ｫ繝蝙九ョ繝ｼ繧ｿ繝吶・繧ｹ蛻晄悄蛹・
+            // フォルダ型データベースを初期化
             FileDatabaseManager.getInstance();
 
-            // YamlDB險ｭ螳壹・蛻晄悄蛹・
+            // YamlDB 設定を初期化
             YamlDbConfigUtil.INSTANCE.reload();
 
-            // AstralRecord API 逍朱夂｢ｺ隱搾ｼ磯撼蜷梧悄・・
+            // AstralRecord API 疎通確認を非同期で開始
             ApiHealthChecker.checkAsync();
 
             return true;
@@ -362,7 +363,7 @@ public final class AstralRecord extends JavaPlugin {
     }
 
     /**
-     * 繝励Λ繧ｰ繧､繝ｳ縺ｮ讖溯・繧偵そ繝・ヨ繧｢繝・・縺励∪縺吶・
+     * プラグインの feature 群をセットアップします。
      */
     private void setupFeature() {
         // account
