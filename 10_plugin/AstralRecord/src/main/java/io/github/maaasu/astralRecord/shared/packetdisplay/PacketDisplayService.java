@@ -7,7 +7,6 @@ import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.wrappers.WrappedChatComponent;
 import com.comphenix.protocol.wrappers.WrappedDataValue;
 import com.comphenix.protocol.wrappers.WrappedDataWatcher;
-import com.comphenix.protocol.wrappers.Vector3F;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -36,7 +35,6 @@ public final class PacketDisplayService {
 
     private static final int META_ENTITY_SILENT = 4;
     private static final int META_ENTITY_NO_GRAVITY = 5;
-    private static final int META_DISPLAY_SCALE = 12;
     private static final int META_DISPLAY_BILLBOARD = 15;
     private static final int META_DISPLAY_VIEW_RANGE = 17;
     private static final int META_TEXT_TEXT = 23;
@@ -142,7 +140,7 @@ public final class PacketDisplayService {
     }
 
     private @NotNull List<WrappedDataValue> textMetadata(@NotNull PacketTextDisplayOptions options) {
-        List<WrappedDataValue> values = baseDisplayMetadata(options.scale(), options.viewRange());
+        List<WrappedDataValue> values = baseDisplayMetadata(options.viewRange());
         byte flags = 0;
         if (options.shadowed()) {
             flags |= TEXT_FLAG_SHADOW;
@@ -159,17 +157,16 @@ public final class PacketDisplayService {
     }
 
     private @NotNull List<WrappedDataValue> itemMetadata(@NotNull PacketItemDisplayOptions options) {
-        List<WrappedDataValue> values = baseDisplayMetadata(options.scale(), options.viewRange());
+        List<WrappedDataValue> values = baseDisplayMetadata(options.viewRange());
         values.add(data(META_ITEM_STACK, itemSerializer(), options.itemStack().clone()));
         values.add(data(META_ITEM_TRANSFORM, byteSerializer(), ITEM_TRANSFORM_FIXED));
         return values;
     }
 
-    private @NotNull List<WrappedDataValue> baseDisplayMetadata(float scale, float viewRange) {
+    private @NotNull List<WrappedDataValue> baseDisplayMetadata(float viewRange) {
         List<WrappedDataValue> values = new ArrayList<>();
         values.add(data(META_ENTITY_SILENT, booleanSerializer(), true));
         values.add(data(META_ENTITY_NO_GRAVITY, booleanSerializer(), true));
-        values.add(data(META_DISPLAY_SCALE, vector3fSerializer(), new Vector3F(scale, scale, scale)));
         values.add(data(META_DISPLAY_BILLBOARD, byteSerializer(), BILLBOARD_CENTER));
         values.add(data(META_DISPLAY_VIEW_RANGE, floatSerializer(), viewRange));
         return values;
@@ -203,10 +200,6 @@ public final class PacketDisplayService {
 
     private @NotNull WrappedDataWatcher.Serializer floatSerializer() {
         return WrappedDataWatcher.Registry.get((Type) Float.class);
-    }
-
-    private @NotNull WrappedDataWatcher.Serializer vector3fSerializer() {
-        return WrappedDataWatcher.Registry.getVectorSerializer();
     }
 
     private @NotNull WrappedDataWatcher.Serializer chatSerializer() {
