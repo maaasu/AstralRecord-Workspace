@@ -161,7 +161,6 @@ final class SkillTreeVisualizer {
         boolean unlocked = isUnlocked(player, node);
         String key = "node:" + positionId;
         scene.upsertItem(key + ":item", itemLocation(location), service.createNodeDisplayItem(node, unlocked));
-        scene.upsertText(key + ":label", textLocation(location), service.nodeName(node, unlocked), NODE_TEXT_SCALE);
     }
 
     private void renderEdges(
@@ -169,6 +168,9 @@ final class SkillTreeVisualizer {
             @NotNull ViewerScene scene,
             @NotNull RenderMode mode
     ) {
+        if (mode == RenderMode.PLAYER) {
+            return;
+        }
         for (SkillTreeEdge edge : service.getEdges()) {
             SkillTreePosition left = service.getPosition(edge.leftPositionId());
             SkillTreePosition right = service.getPosition(edge.rightPositionId());
