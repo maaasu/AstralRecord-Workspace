@@ -14,6 +14,7 @@ public final class ConfigKeys {
     public static final String PLUGIN_DEBUG_MODE = "plugin.debugMode";
 
     // SQL Server 関連
+    public static final String SQLSERVER_ENABLED = "database.sqlserver.enabled";
     public static final String SQLSERVER_IP_ADDRESS = "database.sqlserver.ipAddress";
     public static final String SQLSERVER_PORT = "database.sqlserver.port";
     public static final String SQLSERVER_DATABASE = "database.sqlserver.database";

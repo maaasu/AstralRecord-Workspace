@@ -309,6 +309,14 @@ if ($UseLiveServerClone) {
 }
 
 $pluginJar = Get-LatestPluginJar
+$pluginNamePrefix = [System.IO.Path]::GetFileNameWithoutExtension($pluginJar) -replace '-\d.*$',''
+Get-ChildItem -Path $pluginsDir -Filter "$pluginNamePrefix*.jar" -File -ErrorAction SilentlyContinue |
+    Remove-Item -Force -ErrorAction SilentlyContinue
+$paperRemappedDir = Join-Path $pluginsDir ".paper-remapped"
+if (Test-Path -LiteralPath $paperRemappedDir) {
+    Get-ChildItem -Path $paperRemappedDir -Filter "$pluginNamePrefix*.jar" -File -ErrorAction SilentlyContinue |
+        Remove-Item -Force -ErrorAction SilentlyContinue
+}
 $copiedPluginJar = Join-Path $pluginsDir (Split-Path -Leaf $pluginJar)
 Copy-Item -LiteralPath $pluginJar -Destination $copiedPluginJar -Force
 Write-Info "Copied plugin jar to $copiedPluginJar"

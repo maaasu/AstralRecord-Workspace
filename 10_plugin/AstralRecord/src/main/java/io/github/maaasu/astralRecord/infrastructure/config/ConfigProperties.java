@@ -13,6 +13,7 @@ public class ConfigProperties {
     private boolean pluginDebugMode;
 
     // SQL Server 関連
+    private boolean sqlserverEnabled;
     private String sqlserverIpAddress;
     private int sqlserverPort;
     private String sqlserverDatabaseName;
@@ -75,6 +76,7 @@ public class ConfigProperties {
         this.pluginDebugMode = configManager.getConfig().getBoolean(ConfigKeys.PLUGIN_DEBUG_MODE);
 
         // SQL Server 関連
+        this.sqlserverEnabled = configManager.getConfig().getBoolean(ConfigKeys.SQLSERVER_ENABLED, true);
         this.sqlserverIpAddress = configManager.getConfig().getString(ConfigKeys.SQLSERVER_IP_ADDRESS);
         this.sqlserverPort = configManager.getConfig().getInt(ConfigKeys.SQLSERVER_PORT);
         this.sqlserverDatabaseName = configManager.getConfig().getString(ConfigKeys.SQLSERVER_DATABASE);
@@ -138,6 +140,10 @@ public class ConfigProperties {
     }
 
     // SQL Server 関連のゲッター
+    public boolean isSqlserverEnabled() {
+        return sqlserverEnabled;
+    }
+
     public String getSqlserverIpAddress() {
         return sqlserverIpAddress;
     }

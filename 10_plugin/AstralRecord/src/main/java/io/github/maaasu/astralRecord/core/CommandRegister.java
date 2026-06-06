@@ -42,6 +42,8 @@ import io.github.maaasu.astralRecord.feature.world.command.WorldCommand;
 import io.github.maaasu.astralRecord.feature.world.command.WorldTabCompleter;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.command.CommandManager;
+import io.github.maaasu.astralRecord.test.SkillTreeSpawnCheckCommand;
+import io.github.maaasu.astralRecord.test.SkillTreeSpawnCheckTabCompleter;
 import io.github.maaasu.astralRecord.test.TestCommand;
 import io.github.maaasu.astralRecord.test.TestTabCompleter;
 
@@ -97,6 +99,7 @@ public class CommandRegister {
         cm.registerCommand("party", new PartyCommand(), new PartyTabCompleter());
         cm.registerCommand("shop", new ShopCommand(), new ShopTabCompleter());
         cm.registerCommand("test", new TestCommand(AstralRecord.getInstance()), new TestTabCompleter());
+        cm.registerCommand("testskilltree", new SkillTreeSpawnCheckCommand(), new SkillTreeSpawnCheckTabCompleter());
         cm.registerCommand("astreload", new ReloadCommand());
     }
 }

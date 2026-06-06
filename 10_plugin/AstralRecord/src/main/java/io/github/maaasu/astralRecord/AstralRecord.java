@@ -323,7 +323,9 @@ public final class AstralRecord extends JavaPlugin {
         // 繧ｳ繝槭Φ繝峨・繝阪・繧ｸ繝｣繝ｼ縺ｮ繧ｷ繝｣繝・ヨ繝繧ｦ繝ｳ
         CommandManager.getInstance().shutdown();
         getServer().getScheduler().cancelTasks(this);
-        SqlServerManager.getInstance().shutdown();
+        if (ConfigProperties.getInstance().isSqlserverEnabled()) {
+            SqlServerManager.getInstance().shutdown();
+        }
     }
 
     /**
@@ -337,7 +339,11 @@ public final class AstralRecord extends JavaPlugin {
 
 
             // DB 蛻晄悄蛹・
-            SqlServerManager.getInstance().initialize();
+            if (ConfigProperties.getInstance().isSqlserverEnabled()) {
+                SqlServerManager.getInstance().initialize();
+            } else {
+                Logger.log(LogId.I_1104);
+            }
 
             // 繝輔か繝ｫ繝蝙九ョ繝ｼ繧ｿ繝吶・繧ｹ蛻晄悄蛹・
             FileDatabaseManager.getInstance();

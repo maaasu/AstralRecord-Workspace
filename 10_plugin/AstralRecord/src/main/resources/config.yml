@@ -8,6 +8,7 @@ plugin:
 database:
   # SQL Server Settings
   sqlserver:
+    enabled: true
     ipAddress: "localhost"
     port: 1433
     database: "AstralRecord"

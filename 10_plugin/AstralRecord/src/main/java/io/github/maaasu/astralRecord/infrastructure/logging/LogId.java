@@ -86,6 +86,7 @@ public enum LogId {
      * イベントマネージャーをシャットダウンしています
      */
     I_3052(3052),
+    I_3053(3053),
     /**
      * イベントマネージャーのシャットダウンが完了しました
      */
@@ -95,6 +96,7 @@ public enum LogId {
     /**
      * イベントハンドラーの登録に失敗しました: %s
      */
+    W_3000(3000),
     E_3000(3000),
     /**
      * イベントハンドラーのクリーンアップに失敗しました: %s
@@ -127,6 +129,7 @@ public enum LogId {
      * SQL Serverが正常にシャットダウンされました
      */
     I_1103(1103),
+    I_1104(1104),
     /**
      * SQL Serverの接続テストに失敗しました: %s
      */
@@ -825,6 +828,10 @@ public enum LogId {
     /**
      * ホットバーアクション処理に失敗しました: %s
      */
+    // endregion
+
+    // region /feature/equipment/event/EquipmentAttackEventHandler.java 6000-6099
+    E_6000(6000),
     // endregion
 
     // region /feature/party/ 6100-6199
