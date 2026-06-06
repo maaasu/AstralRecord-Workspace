@@ -208,7 +208,7 @@ public final class TestCommand extends AstCommand {
     }
 
     private @Nullable Material resolveMaterial(@NotNull String input) {
-        Material material = Material.matchMaterial(input.trim(), true);
+        Material material = Material.matchMaterial(input.trim());
         if (material == null || material == Material.AIR) {
             return null;
         }
