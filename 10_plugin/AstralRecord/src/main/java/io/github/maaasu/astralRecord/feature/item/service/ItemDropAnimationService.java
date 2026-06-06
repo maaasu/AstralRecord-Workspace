@@ -33,7 +33,7 @@ public final class ItemDropAnimationService {
 
     private final Plugin plugin;
     private final ItemStackFactory itemStackFactory;
-    private final ParticleDisplayService particleDisplayService = new ParticleDisplayService();
+    private final ParticleDisplayService particleDisplayService;
 
     /**
      * サービスを初期化します。
@@ -43,10 +43,12 @@ public final class ItemDropAnimationService {
      */
     public ItemDropAnimationService(
             @NotNull Plugin plugin,
-            @NotNull ItemStackFactory itemStackFactory
+            @NotNull ItemStackFactory itemStackFactory,
+            @NotNull ParticleDisplayService particleDisplayService
     ) {
         this.plugin = plugin;
         this.itemStackFactory = itemStackFactory;
+        this.particleDisplayService = particleDisplayService;
     }
 
     /**
@@ -115,8 +117,7 @@ public final class ItemDropAnimationService {
                     particleDisplayService.spawnForViewer(
                         viewer,
                         landing,
-                        SharedParticleDefinitions.ITEM_DROP_LAND_CRIT,
-                        1.0D
+                        SharedParticleDefinitions.ITEM_DROP_LAND_CRIT
                     );
                     landed = true;
                 }
@@ -139,8 +140,7 @@ public final class ItemDropAnimationService {
                 particleDisplayService.spawnForViewer(
                     viewer,
                     target,
-                    SharedParticleDefinitions.ITEM_DROP_COLLECT_END_ROD,
-                    1.0D
+                    SharedParticleDefinitions.ITEM_DROP_COLLECT_END_ROD
                 );
                 viewer.playSound(target, org.bukkit.Sound.ENTITY_ITEM_PICKUP, 0.45F, 1.35F);
                 removeIfValid(display);

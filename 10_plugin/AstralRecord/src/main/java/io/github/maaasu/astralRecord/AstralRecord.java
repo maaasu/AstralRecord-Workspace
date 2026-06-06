@@ -404,9 +404,10 @@ public final class AstralRecord extends JavaPlugin {
             playerSettingService
         );
         particleDisplayService = new ParticleDisplayService(playerSettingService);
+        mobSpawnerService.setParticleDisplayService(particleDisplayService);
         displayTextService = new DisplayTextService();
         bundleUseEffectService = new BundleUseEffectService();
-        itemDropAnimationService = new ItemDropAnimationService(this, itemStackFactory);
+        itemDropAnimationService = new ItemDropAnimationService(this, itemStackFactory, particleDisplayService);
         bundleUseService = new BundleUseService(
             this,
             itemService,
@@ -425,10 +426,11 @@ public final class AstralRecord extends JavaPlugin {
         statusService = new StatusService(itemService, inventoryService);
         statusService.setSkillTreeService(skillTreeService);
         buffAcquisitionDisplayService = new BuffAcquisitionDisplayService(displayTextService);
-        potionUseService = new PotionUseService(inventoryService, statusService, buffAcquisitionDisplayService);
+        potionUseService = new PotionUseService(inventoryService, statusService, buffAcquisitionDisplayService, particleDisplayService);
         statusRegenTask = new StatusRegenTask(statusService);
         playerHudService = new PlayerHudService(statusService, playerClassService, accountService);
         skillTreeService.setPlayerHudService(playerHudService);
+        skillTreeService.setParticleDisplayService(particleDisplayService);
         overheadDisplayService = new OverheadDisplayService(displayTextService, statusService, mobService);
 
         // combat
@@ -449,7 +451,14 @@ public final class AstralRecord extends JavaPlugin {
                 statusService,
                 skillTreeService
         );
-        damageService = new DamageService(statusService, mobService, mobCombatService, displayTextService, playerSettingService);
+        damageService = new DamageService(
+            statusService,
+            mobService,
+            mobCombatService,
+            displayTextService,
+            playerSettingService,
+            particleDisplayService
+        );
 
         // dodge
         dodgeService = new DodgeService(this, statusService, playerHudService, particleDisplayService);

@@ -199,9 +199,7 @@ public class AirActionService {
             0.55F,
             1.08F
         );
-        particleDisplayService.spawnWorld(
-            astPlayer,
-            player.getWorld(),
+        particleDisplayService.spawnForNearbyViewers(
             player.getLocation().add(0.0D, 0.2D, 0.0D),
             SharedParticleDefinitions.AIR_ACTION_CLOUD.withCount(AIR_ACTION_PARTICLE_COUNT)
         );
@@ -261,9 +259,7 @@ public class AirActionService {
         player.setFallDistance(0.0F);
         player.setVelocity(velocity);
         player.playSound(player.getLocation(), Sound.ENTITY_WIND_CHARGE_WIND_BURST, SoundCategory.PLAYERS, 0.75F, 1.15F);
-        particleDisplayService.spawnWorld(
-            astPlayer,
-            player.getWorld(),
+        particleDisplayService.spawnForNearbyViewers(
             player.getLocation().add(0.0D, 0.2D, 0.0D),
             SharedParticleDefinitions.AIR_ACTION_CLOUD.withCount(AIR_ACTION_PARTICLE_COUNT)
         );

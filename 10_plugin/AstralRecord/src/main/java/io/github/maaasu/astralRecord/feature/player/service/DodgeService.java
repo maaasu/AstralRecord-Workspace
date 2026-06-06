@@ -207,9 +207,7 @@ public class DodgeService {
             0.8f,
             1.6f
         );
-        particleDisplayService.spawnWorld(
-            astPlayer,
-            player.getWorld(),
+        particleDisplayService.spawnForNearbyViewers(
             player.getLocation().add(0.0D, 0.2D, 0.0D),
             SharedParticleDefinitions.DODGE_CLOUD.withCount(PARTICLE_COUNT)
         );

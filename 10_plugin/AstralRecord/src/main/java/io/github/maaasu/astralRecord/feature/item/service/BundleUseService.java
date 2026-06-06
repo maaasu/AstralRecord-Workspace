@@ -475,9 +475,7 @@ public class BundleUseService {
         BundleUseEffectService.BundleUseParticle particleDefinition =
             bundleUseEffectService.findParticle(bundle.getOnUse().getParticle());
         if (particleDefinition != null) {
-            particleDisplayService.spawnWorld(
-                astPlayer,
-                world,
+            particleDisplayService.spawnForNearbyViewers(
                 location.clone().add(
                     particleDefinition.originOffsetX(),
                     particleDefinition.originOffsetY(),

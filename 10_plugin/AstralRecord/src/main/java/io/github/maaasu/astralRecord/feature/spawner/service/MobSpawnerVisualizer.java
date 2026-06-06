@@ -31,13 +31,18 @@ final class MobSpawnerVisualizer {
 
     private final Plugin plugin;
     private final MobSpawnerService spawnerService;
-    private final ParticleDisplayService particleDisplayService = new ParticleDisplayService();
+    private final ParticleDisplayService particleDisplayService;
     private final Map<String, SpawnerVisual> displays = new HashMap<>();
     private BukkitTask task;
 
-    MobSpawnerVisualizer(@NotNull Plugin plugin, @NotNull MobSpawnerService spawnerService) {
+    MobSpawnerVisualizer(
+        @NotNull Plugin plugin,
+        @NotNull MobSpawnerService spawnerService,
+        @NotNull ParticleDisplayService particleDisplayService
+    ) {
         this.plugin = plugin;
         this.spawnerService = spawnerService;
+        this.particleDisplayService = particleDisplayService;
     }
 
     void start() {
@@ -116,8 +121,7 @@ final class MobSpawnerVisualizer {
                 particleDisplayService.spawnForViewer(
                     player,
                     location.clone().add(0.0D, 0.75D, 0.0D),
-                    SharedParticleDefinitions.SPAWNER_VISUAL_ENCHANT,
-                    1.0D
+                    SharedParticleDefinitions.SPAWNER_VISUAL_ENCHANT
                 );
             } else {
                 display.hide(plugin, player);

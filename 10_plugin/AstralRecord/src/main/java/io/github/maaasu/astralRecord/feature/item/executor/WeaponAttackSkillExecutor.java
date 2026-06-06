@@ -79,9 +79,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         double spreadZ = readDoubleParam(context.skill(), "spreadZ", 0.15D);
         double extra = readDoubleParam(context.skill(), "extra", 0.0D);
 
-        particleDisplayService.spawnWorld(
-                caster.player(),
-                player.getWorld(),
+        particleDisplayService.spawnForNearbyViewers(
                 effectLocation,
                 particle,
                 particleCount,
@@ -383,9 +381,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 Location trailLocation = baseLocation.clone().add(
                         normalizedDirection.clone().multiply(trailStepDistance * currentStep)
                 );
-                particleDisplayService.spawnWorld(
-                        caster.player(),
-                        trailLocation.getWorld(),
+                particleDisplayService.spawnForNearbyViewers(
                         trailLocation,
                         particle,
                         trailParticleCount,
@@ -437,9 +433,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             double extra,
             @NotNull AttackType attackType
     ) {
-        particleDisplayService.spawnWorld(
-                caster.player(),
-                location.getWorld(),
+        particleDisplayService.spawnForNearbyViewers(
                 location,
                 particle,
                 particleCount,
@@ -449,9 +443,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 extra
         );
         if (attackType == AttackType.MAGIC) {
-            particleDisplayService.spawnWorld(
-                    caster.player(),
-                    location.getWorld(),
+            particleDisplayService.spawnForNearbyViewers(
                     location,
                     SharedParticleDefinitions.MAGIC_PROJECTILE_CORE_DUST
             );
@@ -466,15 +458,11 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         if (attackType != AttackType.MAGIC) {
             return;
         }
-        particleDisplayService.spawnWorld(
-                caster.player(),
-                location.getWorld(),
+        particleDisplayService.spawnForNearbyViewers(
                 location,
                 SharedParticleDefinitions.MAGIC_IMPACT_ENCHANT
         );
-        particleDisplayService.spawnWorld(
-                caster.player(),
-                location.getWorld(),
+        particleDisplayService.spawnForNearbyViewers(
                 location,
                 SharedParticleDefinitions.MAGIC_IMPACT_DUST
         );

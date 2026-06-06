@@ -45,7 +45,7 @@ public final class PotionUseService {
     private final InventoryService inventoryService;
     private final StatusService statusService;
     private final BuffAcquisitionDisplayService buffDisplayService;
-    private final ParticleDisplayService particleDisplayService = new ParticleDisplayService();
+    private final ParticleDisplayService particleDisplayService;
 
     /**
      * サービスを生成します。
@@ -57,11 +57,13 @@ public final class PotionUseService {
     public PotionUseService(
         @NotNull InventoryService inventoryService,
         @NotNull StatusService statusService,
-        @NotNull BuffAcquisitionDisplayService buffDisplayService
+        @NotNull BuffAcquisitionDisplayService buffDisplayService,
+        @NotNull ParticleDisplayService particleDisplayService
     ) {
         this.inventoryService = inventoryService;
         this.statusService = statusService;
         this.buffDisplayService = buffDisplayService;
+        this.particleDisplayService = particleDisplayService;
     }
 
     /**
@@ -187,9 +189,7 @@ public final class PotionUseService {
         if (onUse.getEffect() != null && !onUse.getEffect().isBlank()) {
             Particle particle = parseParticle(onUse.getEffect());
             if (particle != null) {
-                particleDisplayService.spawnWorld(
-                    astPlayer,
-                    world,
+                particleDisplayService.spawnForNearbyViewers(
                     location.clone().add(0.0D, 1.0D, 0.0D),
                     particle,
                     16,

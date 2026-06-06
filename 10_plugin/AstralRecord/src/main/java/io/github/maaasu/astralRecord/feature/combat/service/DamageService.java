@@ -44,7 +44,7 @@ public final class DamageService {
     private final DamageCalculator damageCalculator;
     private final DisplayTextService displayTextService;
     private final PlayerSettingService playerSettingService;
-    private final ParticleDisplayService particleDisplayService = new ParticleDisplayService();
+    private final ParticleDisplayService particleDisplayService;
 
     /**
      * サービスを構築します。
@@ -57,7 +57,8 @@ public final class DamageService {
             @NotNull MobService mobService,
             @NotNull MobCombatService mobCombatService,
             @NotNull DisplayTextService displayTextService,
-            @NotNull PlayerSettingService playerSettingService
+            @NotNull PlayerSettingService playerSettingService,
+            @NotNull ParticleDisplayService particleDisplayService
     ) {
         this.statusService = statusService;
         this.mobService = mobService;
@@ -65,6 +66,7 @@ public final class DamageService {
         this.damageCalculator = new DamageCalculator();
         this.displayTextService = displayTextService;
         this.playerSettingService = playerSettingService;
+        this.particleDisplayService = particleDisplayService;
     }
 
     /**
@@ -278,17 +280,13 @@ public final class DamageService {
         if (world == null) {
             return;
         }
-        particleDisplayService.spawnWorld(
-            world,
+        particleDisplayService.spawnForNearbyViewers(
             location.clone().add(0.0D, 0.8D, 0.0D),
-            SharedParticleDefinitions.MOB_DEATH_POOF,
-            1.0D
+            SharedParticleDefinitions.MOB_DEATH_POOF
         );
-        particleDisplayService.spawnWorld(
-            world,
+        particleDisplayService.spawnForNearbyViewers(
             location.clone().add(0.0D, 0.9D, 0.0D),
-            SharedParticleDefinitions.MOB_DEATH_CRIT,
-            1.0D
+            SharedParticleDefinitions.MOB_DEATH_CRIT
         );
         world.playSound(location, Sound.ENTITY_GENERIC_DEATH, 0.8F, 1.1F);
     }

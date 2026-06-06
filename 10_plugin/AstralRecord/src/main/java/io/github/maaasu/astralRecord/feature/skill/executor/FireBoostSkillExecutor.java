@@ -56,15 +56,11 @@ public final class FireBoostSkillExecutor implements SkillExecutor {
 
         player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, strengthDurationTicks, strengthAmplifier, false, true, true));
         player.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, fireResistanceDurationTicks, fireResistanceAmplifier, false, true, true));
-        particleDisplayService.spawnWorld(
-            caster.player(),
-            player.getWorld(),
+        particleDisplayService.spawnForNearbyViewers(
             baseLocation,
             SharedParticleDefinitions.FIRE_BOOST_FLAME.withCount(flameCount)
         );
-        particleDisplayService.spawnWorld(
-            caster.player(),
-            player.getWorld(),
+        particleDisplayService.spawnForNearbyViewers(
             baseLocation,
             SharedParticleDefinitions.FIRE_BOOST_LAVA.withCount(lavaCount)
         );

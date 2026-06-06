@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -61,6 +62,7 @@ public class MobSpawnerService {
     private final Map<String, MobSpawnerLocation> locations = new LinkedHashMap<>();
     private final Map<String, Set<UUID>> spawnedByLocation = new HashMap<>();
 
+    private ParticleDisplayService particleDisplayService;
     private BukkitTask task;
     private BukkitTask saveTask;
     private MobSpawnerVisualizer visualizer;
@@ -119,10 +121,14 @@ public class MobSpawnerService {
         if (saveTask == null) {
             saveTask = Bukkit.getScheduler().runTaskTimer(plugin, this::saveIfDirty, SAVE_INTERVAL, SAVE_INTERVAL);
         }
-        if (visualizer == null) {
-            visualizer = new MobSpawnerVisualizer(plugin, this);
+        if (visualizer == null && particleDisplayService != null) {
+            visualizer = new MobSpawnerVisualizer(plugin, this, particleDisplayService);
             visualizer.start();
         }
+    }
+
+    public void setParticleDisplayService(@NotNull ParticleDisplayService particleDisplayService) {
+        this.particleDisplayService = particleDisplayService;
     }
 
     /**

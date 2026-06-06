@@ -79,11 +79,9 @@ public class WorldSpawnParticleTask {
             double z = Math.sin(angle) * pulse;
             double y = 1.15D + (Math.sin((baseAngle * 1.4D) + (i * 0.45D)) * 0.25D);
 
-            particleDisplayService.spawnWorld(
-                world,
+            particleDisplayService.spawnForNearbyViewers(
                 spawn.clone().add(x, y, z),
-                SharedParticleDefinitions.WORLD_SPAWN_RING_END_ROD,
-                1.0D
+                SharedParticleDefinitions.WORLD_SPAWN_RING_END_ROD
             );
         }
     }
