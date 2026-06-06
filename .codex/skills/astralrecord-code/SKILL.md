@@ -34,6 +34,7 @@ If target project cannot be determined, stop and ask the project-selection quest
 1. Classify the request:
    - Design path under `00_docs/`: use `references/design-driven-implementation.md`.
    - Plugin implementation under `10_plugin/AstralRecord`: use `PLUGIN_GUIDE.md` and `references/plugin-code.md`.
+   - Plugin test / MockBukkit / dev-server scaffolding under `10_plugin/AstralRecord`: prefer `$astralrecord-plugin-test` when the main work is verification harness rather than feature behavior.
    - API implementation: use `API_GUIDE.md` and `references/api-code.md`, then apply the general workflow here.
    - Web implementation: use the root `README.md` "AstralRecord Web" section, then apply the general workflow here.
    - Database, filebase, or resourcepack changes: use `00_docs/40_Database設計書/README.md` or the root `README.md` "AstralRecord Filebase" / "AstralRecord Resource Pack" sections; treat generated/runtime outputs as out of scope unless the project rules say otherwise.

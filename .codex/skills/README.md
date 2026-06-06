@@ -60,6 +60,35 @@ Use $astralrecord-code to implement the requested change for E:\AstralRecord-Wor
 - 設計書に未決事項がある場合、ユーザー判断なしに仕様を補完しない。
 - docs の修正だけを行う依頼は `$astralrecord-docs-fix`、docs のレビューだけを行う依頼は `$astralrecord-docs-review` を使う。
 
+`10_plugin/AstralRecord` のテスト雛形追加、MockBukkit 化、一時サーバースクリプト整備が主目的なら `$astralrecord-plugin-test` を優先する。
+
+## `$astralrecord-plugin-test`
+
+AstralRecord Plugin (`10_plugin/AstralRecord`) 向けに、JUnit / MockBukkit のテスト雛形追加、手動確認のテスト化、一時 Purpur/Paper サーバー起動スクリプト作成、AI デバッグ用の再現基盤整備を行う skill。
+
+### 使いどころ
+
+- `10_plugin/AstralRecord` の挙動確認を手動サーバ起動からテストへ寄せたい
+- `MockBukkit` で確認できる範囲を増やしたい
+- Purpur / Paper の一時検証サーバーを PowerShell で立ち上げたい
+- 手動再現手順を AI が追える形へ固定したい
+
+### 実行例
+
+```text
+Use $astralrecord-plugin-test to add a JUnit and MockBukkit test scaffold for E:\AstralRecord-Workspace\10_plugin\AstralRecord and report the result.
+```
+
+```text
+Use $astralrecord-plugin-test to convert manual verification steps for E:\AstralRecord-Workspace\10_plugin\AstralRecord into tests and a temporary Purpur server script, then report the result.
+```
+
+### 補足
+
+- 機能仕様そのものを変える依頼なら `$astralrecord-code` を使う。
+- コード修正を伴わないレビューだけなら `$astralrecord-code-review` を使う。
+- テスト追加後に `develop` へコミットしたい場合は `$astralrecord-commit-develop` を組み合わせる。
+
 ## `$astralrecord-docs-review`
 
 AstralRecord の設計書をレビューする skill。ソースコードは読まず、設計書だけを対象にして、設計上の矛盾、不適切なロジック、未決事項、フォーマット差分を確認する。

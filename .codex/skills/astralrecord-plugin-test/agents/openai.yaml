@@ -1,0 +1,4 @@
+interface:
+  display_name: "AstralRecord Plugin Test"
+  short_description: "AstralRecord Plugin の JUnit / MockBukkit テストと dev server 基盤を整備する"
+  default_prompt: "Use $astralrecord-plugin-test to add tests or verification scaffolding for E:\\AstralRecord-Workspace\\10_plugin\\AstralRecord and report the result."

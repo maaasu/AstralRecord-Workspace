@@ -1,0 +1,4 @@
+interface:
+  display_name: "AstralRecord Unused Properties"
+  short_description: "player/logger.properties の未使用定義を洗い出して削除する"
+  default_prompt: "Use $astralrecord-unused-properties-prune to inspect E:\\AstralRecord-Workspace\\10_plugin\\AstralRecord and remove unused player/logger property definitions."
