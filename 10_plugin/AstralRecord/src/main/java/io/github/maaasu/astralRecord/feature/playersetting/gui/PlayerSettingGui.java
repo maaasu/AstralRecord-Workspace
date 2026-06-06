@@ -17,6 +17,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -45,8 +46,16 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             SIZE,
             Component.text("プレイヤー設定", NamedTextColor.AQUA)
         );
-        render(inventory, snapshot);
+        render(inventory, snapshot.getUserId(), null);
         player.openInventory(inventory);
+    }
+
+    public void refresh(
+        @NotNull Inventory inventory,
+        @NotNull UUID userId,
+        @Nullable Map<PlayerSettingKey, Object> draftValues
+    ) {
+        render(inventory, userId, draftValues);
     }
 
     public boolean isInventory(@Nullable Inventory inventory) {
@@ -69,23 +78,38 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
         return null;
     }
 
-    private void render(@NotNull Inventory inventory, @NotNull PlayerSettingSnapshot snapshot) {
+    private void render(
+        @NotNull Inventory inventory,
+        @NotNull UUID userId,
+        @Nullable Map<PlayerSettingKey, Object> draftValues
+    ) {
         inventory.clear();
         fill(inventory);
         inventory.setItem(DAMAGE_LOG_SLOT, createBooleanItem(
             Material.REDSTONE,
             PlayerSettingKey.DAMAGE_LOG_DISPLAY,
-            (Boolean) playerSettingService.getPlayerSetting(snapshot.getUserId(), PlayerSettingKey.DAMAGE_LOG_DISPLAY)
+            (Boolean) resolveValue(userId, PlayerSettingKey.DAMAGE_LOG_DISPLAY, draftValues)
         ));
         inventory.setItem(PARTICLE_DENSITY_SLOT, createParticleItem(
-            (ParticleDensity) playerSettingService.getPlayerSetting(snapshot.getUserId(), PlayerSettingKey.PARTICLE_DENSITY)
+            (ParticleDensity) resolveValue(userId, PlayerSettingKey.PARTICLE_DENSITY, draftValues)
         ));
         inventory.setItem(DROP_LOG_SLOT, createBooleanItem(
             Material.CHEST,
             PlayerSettingKey.DROP_LOG_DISPLAY,
-            (Boolean) playerSettingService.getPlayerSetting(snapshot.getUserId(), PlayerSettingKey.DROP_LOG_DISPLAY)
+            (Boolean) resolveValue(userId, PlayerSettingKey.DROP_LOG_DISPLAY, draftValues)
         ));
         inventory.setItem(BACK_TO_MENU_SLOT, backItem());
+    }
+
+    private @NotNull Object resolveValue(
+        @NotNull UUID userId,
+        @NotNull PlayerSettingKey key,
+        @Nullable Map<PlayerSettingKey, Object> draftValues
+    ) {
+        if (draftValues != null && draftValues.containsKey(key)) {
+            return draftValues.get(key);
+        }
+        return playerSettingService.getPlayerSetting(userId, key);
     }
 
     private @NotNull ItemStack createBooleanItem(

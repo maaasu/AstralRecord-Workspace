@@ -19,10 +19,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.EnumMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -37,6 +41,7 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
     private final InventoryService inventoryService;
     private final MenuView menuView;
     private final ConcurrentHashMap<UUID, Integer> secretClickCounts = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UUID, EnumMap<PlayerSettingKey, Object>> draftValues = new ConcurrentHashMap<>();
 
     public PlayerSettingGuiEventHandler(
         @NotNull PlayerSettingGui gui,
@@ -79,6 +84,21 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
                 GuiSound.DENY.play(player);
             }
         }, LogId.E_5313, event.getWhoClicked().getName());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onInventoryClose(InventoryCloseEvent event) {
+        runSafely(() -> {
+            if (!gui.isInventory(event.getInventory())) {
+                return;
+            }
+            if (!(event.getPlayer() instanceof Player player)) {
+                return;
+            }
+            persistDraftChanges(player);
+            secretClickCounts.remove(player.getUniqueId());
+            draftValues.remove(player.getUniqueId());
+        }, LogId.E_5313, event.getPlayer().getName());
     }
 
     private boolean handleHotbarShortcutClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
@@ -139,25 +159,13 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
             return;
         }
 
-        Object currentValue = playerSettingService.getPlayerSetting(player.getUniqueId(), key);
+        Object currentValue = currentValue(player, key);
         Object nextValue = nextValue(key, currentValue);
-        PlayerSettingService.UpdateResult result = playerSettingService.updatePlayerSetting(
-            new PlayerSettingChangeRequest(player.getUniqueId(), key, nextValue, player.getUniqueId())
-        );
-        if (result.conflict()) {
-            GuiSound.DENY.play(player);
-            player.sendMessage(result.message());
-            gui.open(player);
-            return;
-        }
-
+        draftValues
+            .computeIfAbsent(player.getUniqueId(), ignored -> new EnumMap<>(PlayerSettingKey.class))
+            .put(key, nextValue);
         GuiSound.SELECT.play(player);
-        player.sendMessage(PlayerMsgResource.format(
-            PlayerSettingMsgId.P_5321.getId(),
-            key.getDisplayNameJa(),
-            key.formatValue(nextValue)
-        ));
-        gui.open(player);
+        refreshInventory(player);
     }
 
     private void handleSuperModeSecretClick(@NotNull Player player) {
@@ -169,25 +177,61 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
 
         secretClickCounts.remove(player.getUniqueId());
         PlayerSettingKey key = PlayerSettingKey.ADVENTURE_RECORD_SUPER_MODE;
-        Object currentValue = playerSettingService.getPlayerSetting(player.getUniqueId(), key);
+        Object currentValue = currentValue(player, key);
         Object nextValue = !(currentValue instanceof Boolean enabled && enabled);
-        PlayerSettingService.UpdateResult result = playerSettingService.updatePlayerSetting(
-            new PlayerSettingChangeRequest(player.getUniqueId(), key, nextValue, player.getUniqueId())
-        );
-        if (result.conflict()) {
-            GuiSound.DENY.play(player);
-            player.sendMessage(result.message());
-            gui.open(player);
+        draftValues
+            .computeIfAbsent(player.getUniqueId(), ignored -> new EnumMap<>(PlayerSettingKey.class))
+            .put(key, nextValue);
+        GuiSound.SELECT.play(player);
+        refreshInventory(player);
+    }
+
+    private @NotNull Object currentValue(@NotNull Player player, @NotNull PlayerSettingKey key) {
+        Map<PlayerSettingKey, Object> values = draftValues.get(player.getUniqueId());
+        if (values != null && values.containsKey(key)) {
+            return values.get(key);
+        }
+        return playerSettingService.getPlayerSetting(player.getUniqueId(), key);
+    }
+
+    private void refreshInventory(@NotNull Player player) {
+        Inventory inventory = player.getOpenInventory().getTopInventory();
+        UUID userId = gui.getUserId(inventory);
+        if (userId == null) {
+            return;
+        }
+        gui.refresh(inventory, userId, draftValues.get(player.getUniqueId()));
+        player.updateInventory();
+    }
+
+    private void persistDraftChanges(@NotNull Player player) {
+        Map<PlayerSettingKey, Object> pending = draftValues.get(player.getUniqueId());
+        if (pending == null || pending.isEmpty()) {
             return;
         }
 
-        GuiSound.SELECT.play(player);
-        player.sendMessage(PlayerMsgResource.format(
-            PlayerSettingMsgId.P_5321.getId(),
-            key.getDisplayNameJa(),
-            key.formatValue(nextValue)
-        ));
-        gui.open(player);
+        for (Map.Entry<PlayerSettingKey, Object> entry : pending.entrySet()) {
+            PlayerSettingKey key = entry.getKey();
+            Object nextValue = entry.getValue();
+            Object currentValue = playerSettingService.getPlayerSetting(player.getUniqueId(), key);
+            if (currentValue.equals(nextValue)) {
+                continue;
+            }
+
+            PlayerSettingService.UpdateResult result = playerSettingService.updatePlayerSetting(
+                new PlayerSettingChangeRequest(player.getUniqueId(), key, nextValue, player.getUniqueId())
+            );
+            if (result.conflict()) {
+                player.sendMessage(result.message());
+                continue;
+            }
+
+            player.sendMessage(PlayerMsgResource.format(
+                PlayerSettingMsgId.P_5321.getId(),
+                key.getDisplayNameJa(),
+                key.formatValue(nextValue)
+            ));
+        }
     }
 
     private @NotNull Object nextValue(@NotNull PlayerSettingKey key, @NotNull Object currentValue) {
