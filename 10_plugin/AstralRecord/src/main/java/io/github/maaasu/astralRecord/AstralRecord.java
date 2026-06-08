@@ -270,6 +270,9 @@ public final class AstralRecord extends JavaPlugin {
         if (inventoryAutoSaveTask != null) {
             inventoryAutoSaveTask.stop();
         }
+        if (accountService != null) {
+            accountService.stop();
+        }
         if (playerService != null) {
             playerService.saveAllOnlinePlayersAndClear();
         }
@@ -431,7 +434,6 @@ public final class AstralRecord extends JavaPlugin {
         statusRegenTask = new StatusRegenTask(statusService);
         playerHudService = new PlayerHudService(statusService, playerClassService, accountService);
         skillTreeService.setPlayerHudService(playerHudService);
-        skillTreeService.setParticleDisplayService(particleDisplayService);
         overheadDisplayService = new OverheadDisplayService(displayTextService, statusService, mobService);
 
         // combat
@@ -439,6 +441,7 @@ public final class AstralRecord extends JavaPlugin {
                 this,
                 itemService,
                 inventoryService,
+                itemStackFactory,
                 itemDropAnimationService
         );
         mobCombatService = new MobCombatService(

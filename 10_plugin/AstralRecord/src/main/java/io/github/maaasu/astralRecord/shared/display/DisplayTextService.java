@@ -23,6 +23,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 /**
@@ -31,8 +32,10 @@ import java.util.function.Supplier;
 public final class DisplayTextService {
 
     private static final long UPDATE_INTERVAL_TICKS = 1L;
+    private static final int MAX_DAMAGE_DISPLAYS = 80;
 
     private final ConcurrentHashMap<UUID, ManagedDisplayState> displays = new ConcurrentHashMap<>();
+    private final AtomicLong displaySequence = new AtomicLong();
     private BukkitTask task;
 
     /**
@@ -69,7 +72,15 @@ public final class DisplayTextService {
      * @return 管理ハンドル
      */
     public @NotNull ManagedTextDisplay create(@NotNull DisplayAnchor anchor, @NotNull DisplayTextOptions options) {
-        ManagedDisplayState state = new ManagedDisplayState(anchor, options);
+        return create(anchor, options, false);
+    }
+
+    private @NotNull ManagedTextDisplay create(
+            @NotNull DisplayAnchor anchor,
+            @NotNull DisplayTextOptions options,
+            boolean damageDisplay
+    ) {
+        ManagedDisplayState state = new ManagedDisplayState(anchor, options, damageDisplay, displaySequence.incrementAndGet());
         displays.put(state.id, state);
         return new ManagedTextDisplay(state.id);
     }
@@ -83,19 +94,40 @@ public final class DisplayTextService {
      * @return 管理ハンドル
      */
     public @NotNull ManagedTextDisplay spawnDamageNumber(@NotNull Location origin, double amount, boolean critical) {
+        pruneDamageDisplays();
         String prefix = critical ? "&e✦ " : "&c";
         String text = prefix + String.format(java.util.Locale.ROOT, "%.0f", Math.max(0.0D, amount));
-        ManagedTextDisplay display = create(DisplayAnchor.fixed(origin), DisplayTextOptions.damage(text));
+        ManagedTextDisplay display = create(DisplayAnchor.fixed(origin), DisplayTextOptions.damage(text), true);
 
         double xDrift = ThreadLocalRandom.current().nextDouble(-0.18D, 0.18D);
         double zDrift = ThreadLocalRandom.current().nextDouble(-0.18D, 0.18D);
         List<DisplayAnimationFrame> frames = new ArrayList<>();
-        for (int index = 0; index < 10; index++) {
+        for (int index = 0; index < 8; index++) {
             double yOffset = 0.2D + (index * 0.12D);
             frames.add(new DisplayAnimationFrame(text, new Vector(xDrift, yOffset, zDrift), 2L));
         }
         display.playAnimation(frames, false, true);
         return display;
+    }
+
+    private void pruneDamageDisplays() {
+        long damageDisplays = displays.values().stream()
+                .filter(state -> state.damageDisplay && !state.destroyed)
+                .count();
+        if (damageDisplays < MAX_DAMAGE_DISPLAYS) {
+            return;
+        }
+
+        long removeCount = damageDisplays - MAX_DAMAGE_DISPLAYS + 1;
+        displays.values().stream()
+                .filter(state -> state.damageDisplay && !state.destroyed)
+                .sorted((left, right) -> Long.compare(left.sequence, right.sequence))
+                .limit(removeCount)
+                .forEach(state -> {
+                    state.destroyed = true;
+                    destroyEntity(state);
+                    displays.remove(state.id);
+                });
     }
 
     /**
@@ -461,6 +493,8 @@ public final class DisplayTextService {
 
     private static final class ManagedDisplayState {
         private final UUID id = UUID.randomUUID();
+        private final boolean damageDisplay;
+        private final long sequence;
         private DisplayAnchor anchor;
         private DisplayTextOptions options;
         private List<DisplayAnimationFrame> frames = List.of();
@@ -474,9 +508,16 @@ public final class DisplayTextService {
         private @Nullable Vector lastAttachmentOffset;
         private @Nullable Supplier<String> textSupplier;
 
-        private ManagedDisplayState(@NotNull DisplayAnchor anchor, @NotNull DisplayTextOptions options) {
+        private ManagedDisplayState(
+                @NotNull DisplayAnchor anchor,
+                @NotNull DisplayTextOptions options,
+                boolean damageDisplay,
+                long sequence
+        ) {
             this.anchor = anchor;
             this.options = options;
+            this.damageDisplay = damageDisplay;
+            this.sequence = sequence;
         }
     }
 }

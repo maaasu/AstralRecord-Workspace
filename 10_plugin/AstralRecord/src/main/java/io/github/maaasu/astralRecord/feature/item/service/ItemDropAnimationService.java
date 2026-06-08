@@ -18,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -27,7 +28,7 @@ public final class ItemDropAnimationService {
 
     private static final long FALL_TICKS = 12L;
     private static final long REST_TICKS = 4L;
-    private static final long COLLECT_TICKS = 7L;
+    private static final long COLLECT_TICKS = 10L;
     private static final double START_HEIGHT = 1.85D;
     private static final double LAND_HEIGHT = 0.18D;
 
@@ -69,8 +70,33 @@ public final class ItemDropAnimationService {
             int index,
             @Nullable Runnable onCollected
     ) {
+        playCollectingDrop(
+            viewer,
+            origin,
+            model,
+            amount,
+            index,
+            CompletableFuture.completedFuture(null),
+            onCollected,
+            null
+        );
+    }
+
+    public void playCollectingDrop(
+            @NotNull Player viewer,
+            @NotNull Location origin,
+            @NotNull ItemModel model,
+            int amount,
+            int index,
+            @NotNull CompletableFuture<?> readyFuture,
+            @Nullable Runnable onCollected,
+            @Nullable Runnable onCancelled
+    ) {
         World world = origin.getWorld();
         if (world == null || !viewer.isOnline()) {
+            if (onCancelled != null) {
+                onCancelled.run();
+            }
             return;
         }
 
@@ -102,6 +128,9 @@ public final class ItemDropAnimationService {
             public void run() {
                 if (!display.isValid() || !viewer.isOnline()) {
                     removeIfValid(display);
+                    if (onCancelled != null) {
+                        onCancelled.run();
+                    }
                     cancel();
                     return;
                 }
@@ -134,6 +163,17 @@ public final class ItemDropAnimationService {
                 double progress = Math.min(1.0D, collectAge / (double) COLLECT_TICKS);
                 display.teleport(interpolate(landing, target, easeInOut(progress)));
                 if (collectAge < COLLECT_TICKS) {
+                    return;
+                }
+                if (!readyFuture.isDone()) {
+                    return;
+                }
+                if (readyFuture.isCancelled() || readyFuture.isCompletedExceptionally()) {
+                    removeIfValid(display);
+                    if (onCancelled != null) {
+                        onCancelled.run();
+                    }
+                    cancel();
                     return;
                 }
 

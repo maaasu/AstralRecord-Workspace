@@ -300,7 +300,7 @@ public class MobCombatService {
                 result = new MobDropResult(List.of(), 0, 0);
             }
             results.add(result);
-            applyExperienceAndSkillPointsAsync(recipient, result);
+            applyExperienceAndSkillPoints(recipient, result);
             adventureRecordService.recordDefeatAsync(recipient, template);
             dropPresentationService.presentAndGrant(recipient, instance.currentLocation(), template.displayName(), result);
         }
@@ -357,33 +357,26 @@ public class MobCombatService {
         recipients.putIfAbsent(player.getUniqueId(), astPlayer);
     }
 
-    private void applyExperienceAndSkillPointsAsync(@NotNull AstPlayer recipient, @NotNull MobDropResult result) {
+    private void applyExperienceAndSkillPoints(@NotNull AstPlayer recipient, @NotNull MobDropResult result) {
         if (result.exp() <= 0) {
             return;
         }
-        UUID accountId = recipient.getAccount().getUuid();
-        accountService.grantExperienceAsync(
-                accountId,
+        try {
+            AccountExperienceResult progress = accountService.grantExperienceCached(
+                recipient.getAccount(),
                 result.exp(),
                 recipient.getUser().getUuid()
-        ).thenAccept(progress -> Bukkit.getScheduler().runTask(
-                mobService.plugin(),
-                () -> applyExperienceAndSkillPointsResult(recipient, accountId, progress)
-        )).exceptionally(ex -> {
-            Logger.error(LogId.E_5155, ex, accountId, result.exp());
-            return null;
-        });
+            );
+            applyExperienceAndSkillPointsResult(recipient, progress);
+        } catch (RuntimeException ex) {
+            Logger.error(LogId.E_5155, ex, recipient.getAccount().getUuid(), result.exp());
+        }
     }
 
     private void applyExperienceAndSkillPointsResult(
             @NotNull AstPlayer recipient,
-            @NotNull UUID accountId,
             @NotNull AccountExperienceResult progress
     ) {
-        if (!recipient.getAccount().getUuid().equals(accountId)) {
-            return;
-        }
-
         recipient.setAccount(progress.updatedAccount());
         if (!recipient.getBukkit().isOnline()) {
             return;
@@ -397,9 +390,8 @@ public class MobCombatService {
                     progress.grantedExperience(),
                     progress.levelUps()
             );
+            statusService.refreshStatus(recipient);
         }
-
-        statusService.refreshStatus(recipient);
     }
 
     private double resolvePlayerDefense(@NotNull Player target, @NotNull DamageType type) {

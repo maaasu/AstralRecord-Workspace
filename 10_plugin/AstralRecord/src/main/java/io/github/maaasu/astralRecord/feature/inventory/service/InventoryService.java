@@ -302,6 +302,44 @@ public class InventoryService {
         return granted;
     }
 
+    public int addPreparedInstanceToNormalInventory(
+        @NotNull AstPlayer astPlayer,
+        @NotNull ItemModel model,
+        @NotNull InventoryInstanceType instanceType,
+        @NotNull UUID instanceId
+    ) {
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) {
+            return 0;
+        }
+
+        InventoryType inventoryType = resolveTargetInventoryType(model);
+        InventoryModel targetInventory = ensureInventory(state, inventoryType);
+        Set<Integer> usedSlots = collectUsedSlots(state, targetInventory);
+        Integer slot = findNextFreeSlot(targetInventory, usedSlots);
+        if (slot == null) {
+            return 0;
+        }
+
+        List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(targetInventory.getInventoryId()).stream()
+            .filter(entry -> !entry.isDeleted())
+            .toList());
+        entries.add(newEntry(
+            targetInventory.getInventoryId(),
+            slot,
+            model.getCategory(),
+            null,
+            instanceType.getCode(),
+            instanceId,
+            1L,
+            null,
+            state.getAccountId()
+        ));
+        state.replaceEntries(targetInventory.getInventoryId(), entries);
+        autoSwitchDisplayedInventory(astPlayer, inventoryType);
+        return 1;
+    }
+
     private int addInstanceItems(
         @NotNull PlayerInventoryState state,
         @NotNull InventoryModel inventory,
