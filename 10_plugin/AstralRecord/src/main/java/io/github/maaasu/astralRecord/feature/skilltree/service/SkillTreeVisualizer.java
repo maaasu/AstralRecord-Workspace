@@ -38,8 +38,9 @@ final class SkillTreeVisualizer {
     private static final long INTERVAL_TICKS = 10L;
     private static final double VIEW_DISTANCE = 96.0D;
     private static final double VIEW_DISTANCE_SQ = VIEW_DISTANCE * VIEW_DISTANCE;
-    private static final double ITEM_Y_OFFSET = 0.15D;
-    private static final double EDGE_Y_OFFSET = 0.65D;
+    private static final double ADMIN_ITEM_Y_OFFSET = 0.15D;
+    private static final double NODE_ITEM_Y_OFFSET = 1.15D;
+    private static final double EDGE_Y_OFFSET = 0.15D;
     private static final float EDGE_THICKNESS = 0.18F;
     private static final double TEXT_Y_OFFSET = 1.2D;
     private static final float NODE_ITEM_SCALE = 0.72F;
@@ -323,8 +324,8 @@ final class SkillTreeVisualizer {
         location.getBlock().setBlockData(desired, false);
     }
 
-    private @NotNull Location itemLocation(@NotNull Location location) {
-        return location.clone().add(0.0D, ITEM_Y_OFFSET, 0.0D);
+    private @NotNull Location itemLocation(@NotNull Location location, double yOffset) {
+        return location.clone().add(0.0D, yOffset, 0.0D);
     }
 
     private @NotNull Location textLocation(@NotNull Location location) {
@@ -343,9 +344,10 @@ final class SkillTreeVisualizer {
     private @NotNull SkillTreePacketDisplay.PacketEntity packetItemDisplay(
             @NotNull Location location,
             @NotNull ItemStack itemStack,
-            float scale
+            float scale,
+            double yOffset
     ) {
-        return packetDisplay.item(itemLocation(location), itemStack, scale, ItemDisplay.ItemDisplayTransform.FIXED);
+        return packetDisplay.item(itemLocation(location, yOffset), itemStack, scale, ItemDisplay.ItemDisplayTransform.FIXED);
     }
 
     private @NotNull SkillTreePacketDisplay.PacketEntity packetTextDisplay(
@@ -416,7 +418,7 @@ final class SkillTreeVisualizer {
 
         private AdminPositionVisual(@NotNull String positionId, @NotNull Location location) {
             this.baseLocation = location.clone();
-            this.item = packetItemDisplay(location, new ItemStack(Material.ARMOR_STAND), ADMIN_ITEM_SCALE);
+            this.item = packetItemDisplay(location, new ItemStack(Material.ARMOR_STAND), ADMIN_ITEM_SCALE, ADMIN_ITEM_Y_OFFSET);
             this.marker = packetTextDisplay(location, component("&d*"), ADMIN_TEXT_SCALE);
             Location labelLocation = location.clone().add(0.0D, 0.45D, 0.0D);
             this.label = packetTextDisplay(labelLocation, component("&d" + positionId), ADMIN_TEXT_SCALE);
@@ -436,12 +438,15 @@ final class SkillTreeVisualizer {
         }
 
         private void teleport(@NotNull Location location) {
+            if (sameLocation(baseLocation, location)) {
+                return;
+            }
             hideCurrentViewers();
             baseLocation.setWorld(location.getWorld());
             baseLocation.setX(location.getX());
             baseLocation.setY(location.getY());
             baseLocation.setZ(location.getZ());
-            item.move(itemLocation(location));
+            item.move(itemLocation(location, ADMIN_ITEM_Y_OFFSET));
             marker.move(textLocation(location));
             label.move(textLocation(location.clone().add(0.0D, 0.45D, 0.0D)));
             showCurrentViewers();
@@ -506,8 +511,8 @@ final class SkillTreeVisualizer {
         private NodeVisual(@NotNull SkillTreeNodeDefinition node, @NotNull Location location) {
             this.node = node;
             this.baseLocation = location.clone();
-            this.lockedItem = packetItemDisplay(location, service.createNodeDisplayItem(node, false), NODE_ITEM_SCALE);
-            this.unlockedItem = packetItemDisplay(location, service.createNodeDisplayItem(node, true), NODE_ITEM_SCALE);
+            this.lockedItem = packetItemDisplay(location, service.createNodeDisplayItem(node, false), NODE_ITEM_SCALE, NODE_ITEM_Y_OFFSET);
+            this.unlockedItem = packetItemDisplay(location, service.createNodeDisplayItem(node, true), NODE_ITEM_SCALE, NODE_ITEM_Y_OFFSET);
             this.lockedLabel = packetTextDisplay(location, service.nodeFieldLabel(node, false), NODE_TEXT_SCALE);
             this.unlockedLabel = packetTextDisplay(location, service.nodeFieldLabel(node, true), NODE_TEXT_SCALE);
             Logger.log(
@@ -530,12 +535,15 @@ final class SkillTreeVisualizer {
         }
 
         private void teleport(@NotNull Location location) {
+            if (sameLocation(baseLocation, location)) {
+                return;
+            }
             hideCurrentViewers();
             baseLocation.setWorld(location.getWorld());
             baseLocation.setX(location.getX());
             baseLocation.setY(location.getY());
             baseLocation.setZ(location.getZ());
-            Location itemLocation = itemLocation(location);
+            Location itemLocation = itemLocation(location, NODE_ITEM_Y_OFFSET);
             Location textLocation = textLocation(location);
             lockedItem.move(itemLocation);
             unlockedItem.move(itemLocation);
@@ -617,11 +625,15 @@ final class SkillTreeVisualizer {
         private final SkillTreeEdge edge;
         private final SkillTreePacketDisplay.PacketEntity block;
         private final Map<UUID, EdgeState> viewerStates = new HashMap<>();
+        private Location leftLocation;
+        private Location rightLocation;
         private Location midpoint;
 
         private EdgeVisual(@NotNull SkillTreeEdge edge, @NotNull Location left, @NotNull Location right) {
             this.edge = edge;
             this.block = packetEdgeDisplay(left, right, EdgeState.LOCKED.material);
+            this.leftLocation = left.clone();
+            this.rightLocation = right.clone();
             this.midpoint = interpolate(left, right, 0.5D);
             Logger.log(
                     LogId.I_9002,
@@ -643,7 +655,12 @@ final class SkillTreeVisualizer {
         }
 
         private void teleport(@NotNull Location left, @NotNull Location right) {
+            if (sameLocation(leftLocation, left) && sameLocation(rightLocation, right)) {
+                return;
+            }
             hideCurrentViewers();
+            leftLocation = left.clone();
+            rightLocation = right.clone();
             Location start = interpolate(left, right, 0.0D);
             Location end = interpolate(left, right, 1.0D);
             packetDisplay.moveBlock(block, start, EdgeState.LOCKED.material, edgeTransform(start, end));
@@ -706,6 +723,13 @@ final class SkillTreeVisualizer {
                 }
             }
         }
+    }
+
+    private boolean sameLocation(@NotNull Location left, @NotNull Location right) {
+        return left.getWorld() == right.getWorld()
+                && Double.compare(left.getX(), right.getX()) == 0
+                && Double.compare(left.getY(), right.getY()) == 0
+                && Double.compare(left.getZ(), right.getZ()) == 0;
     }
 
     private void spawn(@NotNull Player player, @NotNull SkillTreePacketDisplay.PacketEntity... entities) {
