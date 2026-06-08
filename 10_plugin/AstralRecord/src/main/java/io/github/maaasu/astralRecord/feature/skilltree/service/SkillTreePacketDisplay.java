@@ -23,6 +23,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Quaternionf;
+import org.joml.Quaternionfc;
 import org.joml.Vector3f;
 
 import java.lang.reflect.Type;
@@ -151,8 +152,8 @@ final class SkillTreePacketDisplay {
         values.add(value(DISPLAY_POSITION_ROTATION_DURATION_INDEX, serializer(Integer.class), 0));
         values.add(value(DISPLAY_TRANSLATION_INDEX, WrappedDataWatcher.Registry.getVectorSerializer(), vector(translation)));
         values.add(value(DISPLAY_SCALE_INDEX, WrappedDataWatcher.Registry.getVectorSerializer(), vector(scale)));
-        values.add(value(DISPLAY_LEFT_ROTATION_INDEX, serializer(Quaternionf.class), leftRotation));
-        values.add(value(DISPLAY_RIGHT_ROTATION_INDEX, serializer(Quaternionf.class), new Quaternionf()));
+        values.add(value(DISPLAY_LEFT_ROTATION_INDEX, quaternionSerializer(), leftRotation));
+        values.add(value(DISPLAY_RIGHT_ROTATION_INDEX, quaternionSerializer(), new Quaternionf()));
         values.add(value(DISPLAY_BILLBOARD_INDEX, serializer(Byte.class), (byte) billboard.ordinal()));
         values.add(value(DISPLAY_VIEW_RANGE_INDEX, serializer(Float.class), DEFAULT_VIEW_RANGE));
         values.add(value(DISPLAY_WIDTH_INDEX, serializer(Float.class), 0.0F));
@@ -178,6 +179,14 @@ final class SkillTreePacketDisplay {
 
     private WrappedDataWatcher.Serializer serializer(Type type) {
         return WrappedDataWatcher.Registry.get(type);
+    }
+
+    private WrappedDataWatcher.Serializer quaternionSerializer() {
+        try {
+            return serializer(Quaternionf.class);
+        } catch (IllegalArgumentException ignored) {
+            return serializer(Quaternionfc.class);
+        }
     }
 
     private Vector3F vector(Vector3f value) {
