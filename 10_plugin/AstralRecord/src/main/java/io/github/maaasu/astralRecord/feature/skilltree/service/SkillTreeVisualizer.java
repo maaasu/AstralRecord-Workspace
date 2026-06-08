@@ -534,8 +534,8 @@ final class SkillTreeVisualizer {
             this.baseLocation = location.clone();
             this.lockedItem = spawnItemDisplay(location, service.createNodeDisplayItem(node, false), NODE_ITEM_SCALE, TAG_SKILLTREE_NODE);
             this.unlockedItem = spawnItemDisplay(location, service.createNodeDisplayItem(node, true), NODE_ITEM_SCALE, TAG_SKILLTREE_NODE);
-            this.lockedLabel = spawnTextDisplay(location, service.nodeName(node, false), NODE_TEXT_SCALE, TAG_SKILLTREE_NODE);
-            this.unlockedLabel = spawnTextDisplay(location, service.nodeName(node, true), NODE_TEXT_SCALE, TAG_SKILLTREE_NODE);
+            this.lockedLabel = spawnTextDisplay(location, service.nodeFieldLabel(node, false), NODE_TEXT_SCALE, TAG_SKILLTREE_NODE);
+            this.unlockedLabel = spawnTextDisplay(location, service.nodeFieldLabel(node, true), NODE_TEXT_SCALE, TAG_SKILLTREE_NODE);
             Logger.log(
                     LogId.I_9002,
                     "node",

@@ -804,9 +804,20 @@ public class SkillTreeService {
         return itemStack;
     }
 
+    /**
+     * スキルツリーのワールド表示用ラベルを組み立てます。
+     *
+     * @param node 表示対象ノード定義
+     * @param unlocked 解放済み表示にする場合は {@code true}
+     * @return ノード名と詳細行を含むラベル
+     */
     @NotNull
-    public Component nodeName(@NotNull SkillTreeNodeDefinition node, boolean unlocked) {
-        return component(resolveNodeDisplayName(node, unlocked));
+    public Component nodeFieldLabel(@NotNull SkillTreeNodeDefinition node, boolean unlocked) {
+        List<String> lines = new java.util.ArrayList<>();
+        lines.add(resolveNodeDisplayName(node, unlocked));
+        appendNodeFieldStatusLines(lines, node, unlocked);
+        appendNodeFieldPassiveLines(lines, node, unlocked);
+        return component(String.join("\n", lines));
     }
 
     public int edgeState(@NotNull Player player, @NotNull SkillTreeEdge edge) {
@@ -861,8 +872,9 @@ public class SkillTreeService {
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
             var lore = new java.util.ArrayList<Component>();
-            if (!node.statuses().isEmpty()) {
-                appendNodeStatusInfo(lore, node);
+            appendNodeStatusInfo(lore, node);
+            appendNodePassiveInfo(lore, node);
+            if (!lore.isEmpty()) {
                 lore.add(component(""));
             }
             lore.add(component(unlocked
@@ -876,7 +888,6 @@ public class SkillTreeService {
             lore.add(component(unlocked ? "&6◆ 解放済みノード ◆" : "&7◆ 未解放ノード ◆"));
             lore.add(component("&e左クリック&7でノードを解放"));
             lore.add(component("&6右クリック&7でノードを解除 &8(100G)"));
-            appendNodeSkillInfo(lore, node);
             if (!node.lore().isEmpty()) {
                 lore.add(component(""));
                 node.lore().forEach(line -> lore.add(component("&7" + line)));
@@ -920,9 +931,97 @@ public class SkillTreeService {
         if (node.statuses().isEmpty()) {
             return;
         }
+        lore.add(component("&8--- &dステータス &8---"));
         for (SkillTreeNodeStatusDefinition status : node.statuses()) {
-            lore.add(component("&d◆ &f" + status.statusType().getDisplayName() + " &a" + formatNodeStatusModifier(status)));
+            lore.add(component("&7- &f" + status.statusType().getDisplayName() + " &a" + formatNodeStatusModifier(status)));
         }
+    }
+
+    private void appendNodePassiveInfo(@NotNull List<Component> lore, @NotNull SkillTreeNodeDefinition node) {
+        if (node.skillIds().isEmpty()) {
+            return;
+        }
+        if (!lore.isEmpty()) {
+            lore.add(component(""));
+        }
+        lore.add(component("&8--- &bパッシブ &8---"));
+        appendNodePassiveSkillLines(lore, node);
+    }
+
+    private void appendNodePassiveSkillLines(@NotNull List<Component> lore, @NotNull SkillTreeNodeDefinition node) {
+        for (String rawSkillId : node.skillIds()) {
+            if (rawSkillId == null || rawSkillId.isBlank()) {
+                continue;
+            }
+            String skillId = rawSkillId.trim();
+            var definition = skillService == null ? null : skillService.registry().getDefinition(skillId);
+            if (definition == null) {
+                lore.add(component("&7- &f" + skillId + " &8(未読込)"));
+                continue;
+            }
+            lore.add(component("&7- &f" + stripLegacy(definition.getName())));
+            String description = firstSkillDescription(definition);
+            if (!description.isBlank()) {
+                lore.add(component("&8  " + stripLegacy(description)));
+            }
+        }
+    }
+
+    private void appendNodeFieldStatusLines(
+            @NotNull List<String> lines,
+            @NotNull SkillTreeNodeDefinition node,
+            boolean unlocked
+    ) {
+        if (node.statuses().isEmpty()) {
+            return;
+        }
+        lines.add(unlocked ? "&8--- &dステータス &8---" : "&8--- ステータス ---");
+        for (SkillTreeNodeStatusDefinition status : node.statuses()) {
+            lines.add((unlocked ? "&7- &f" : "&8- &7")
+                    + status.statusType().getDisplayName()
+                    + " "
+                    + (unlocked ? "&a" : "&7")
+                    + formatNodeStatusModifier(status));
+        }
+    }
+
+    private void appendNodeFieldPassiveLines(
+            @NotNull List<String> lines,
+            @NotNull SkillTreeNodeDefinition node,
+            boolean unlocked
+    ) {
+        if (node.skillIds().isEmpty()) {
+            return;
+        }
+        lines.add(unlocked ? "&8--- &bパッシブ &8---" : "&8--- パッシブ ---");
+        for (String rawSkillId : node.skillIds()) {
+            if (rawSkillId == null || rawSkillId.isBlank()) {
+                continue;
+            }
+            String skillId = rawSkillId.trim();
+            var definition = skillService == null ? null : skillService.registry().getDefinition(skillId);
+            if (definition == null) {
+                lines.add((unlocked ? "&7- &f" : "&8- &7") + skillId);
+                continue;
+            }
+            lines.add((unlocked ? "&7- &f" : "&8- &7") + stripLegacy(definition.getName()));
+            String description = firstSkillDescription(definition);
+            if (!description.isBlank()) {
+                lines.add("&8  " + stripLegacy(description));
+            }
+        }
+    }
+
+    private @NotNull String firstSkillDescription(@NotNull io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition definition) {
+        if (definition.getDescription() != null && !definition.getDescription().isBlank()) {
+            return definition.getDescription();
+        }
+        for (String line : definition.getLore()) {
+            if (line != null && !line.isBlank()) {
+                return line;
+            }
+        }
+        return "";
     }
 
     private @NotNull String formatNodeStatusModifier(@NotNull SkillTreeNodeStatusDefinition status) {
