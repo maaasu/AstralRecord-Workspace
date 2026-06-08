@@ -794,7 +794,7 @@ public class SkillTreeService {
         ItemStack itemStack = new ItemStack(node.icon());
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(component((unlocked ? "&6&l" : "&7") + node.name()));
+            meta.displayName(component(resolveNodeDisplayName(node, unlocked)));
             meta.addItemFlags(ItemFlag.values());
             if (unlocked) {
                 meta.addEnchant(Enchantment.UNBREAKING, 1, true);
@@ -806,7 +806,7 @@ public class SkillTreeService {
 
     @NotNull
     public Component nodeName(@NotNull SkillTreeNodeDefinition node, boolean unlocked) {
-        return component((unlocked ? "&6&l" : "&7") + node.name());
+        return component(resolveNodeDisplayName(node, unlocked));
     }
 
     public int edgeState(@NotNull Player player, @NotNull SkillTreeEdge edge) {
@@ -936,6 +936,10 @@ public class SkillTreeService {
 
     private @NotNull String stripLegacy(@NotNull String text) {
         return text.replaceAll("(?i)&[0-9A-FK-OR]", "");
+    }
+
+    private @NotNull String resolveNodeDisplayName(@NotNull SkillTreeNodeDefinition node, boolean unlocked) {
+        return unlocked ? node.name() : "&7" + stripLegacy(node.name());
     }
 
     private @NotNull String formatStatusValue(double value) {

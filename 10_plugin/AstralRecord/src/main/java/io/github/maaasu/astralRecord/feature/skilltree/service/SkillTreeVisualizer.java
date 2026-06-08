@@ -15,6 +15,8 @@ import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Levelled;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ItemDisplay;
@@ -57,6 +59,7 @@ final class SkillTreeVisualizer {
     private static final float ADMIN_TEXT_SCALE = 0.72F;
     private static final float EDGE_TEXT_SCALE = 0.52F;
     private static final float VIEW_RANGE = 96.0F;
+    private static final int NODE_LIGHT_LEVEL = 15;
 
     private final Plugin plugin;
     private final SkillTreeService service;
@@ -138,6 +141,7 @@ final class SkillTreeVisualizer {
                 removeNodeVisual(position.positionId());
                 continue;
             }
+            ensureNodeLight(location);
             loggedInvalidPositions.remove(position.positionId());
             activePositionIds.add(position.positionId());
 
@@ -284,10 +288,10 @@ final class SkillTreeVisualizer {
         boolean leftUnlocked = isUnlocked(player, leftNode);
         boolean rightUnlocked = isUnlocked(player, rightNode);
         if (leftUnlocked && rightUnlocked) {
-            return EdgeColor.YELLOW;
+            return EdgeColor.GREEN;
         }
         if (leftUnlocked || rightUnlocked) {
-            return EdgeColor.WHITE;
+            return EdgeColor.YELLOW;
         }
         return EdgeColor.GRAY;
     }
@@ -311,6 +315,23 @@ final class SkillTreeVisualizer {
     private boolean isChunkLoaded(@NotNull Location location) {
         World world = location.getWorld();
         return world != null && world.isChunkLoaded(location.getBlockX() >> 4, location.getBlockZ() >> 4);
+    }
+
+    private void ensureNodeLight(@NotNull Location location) {
+        if (location.getWorld() == null) {
+            return;
+        }
+        BlockData desired = Material.LIGHT.createBlockData();
+        if (desired instanceof Levelled levelled) {
+            levelled.setLevel(NODE_LIGHT_LEVEL);
+        }
+        BlockData current = location.getBlock().getBlockData();
+        if (current.getMaterial() == Material.LIGHT
+                && current instanceof Levelled levelled
+                && levelled.getLevel() == NODE_LIGHT_LEVEL) {
+            return;
+        }
+        location.getBlock().setBlockData(desired, false);
     }
 
     private @NotNull Location itemLocation(@NotNull Location location) {
@@ -422,8 +443,8 @@ final class SkillTreeVisualizer {
         HIDDEN(""),
         ADMIN("&d"),
         GRAY("&7"),
-        WHITE("&f"),
-        YELLOW("&e");
+        YELLOW("&e"),
+        GREEN("&a");
 
         private final String colorCode;
 
@@ -605,8 +626,8 @@ final class SkillTreeVisualizer {
         private final SkillTreeEdge edge;
         private final List<TextDisplay> adminDots;
         private final List<TextDisplay> grayDots;
-        private final List<TextDisplay> whiteDots;
         private final List<TextDisplay> yellowDots;
+        private final List<TextDisplay> greenDots;
         private final Map<UUID, EdgeColor> viewerStates = new HashMap<>();
         private Location midpoint;
 
@@ -614,8 +635,8 @@ final class SkillTreeVisualizer {
             this.edge = edge;
             this.adminDots = spawnEdgeDots(left, right, EdgeColor.ADMIN);
             this.grayDots = spawnEdgeDots(left, right, EdgeColor.GRAY);
-            this.whiteDots = spawnEdgeDots(left, right, EdgeColor.WHITE);
             this.yellowDots = spawnEdgeDots(left, right, EdgeColor.YELLOW);
+            this.greenDots = spawnEdgeDots(left, right, EdgeColor.GREEN);
             this.midpoint = interpolate(left, right, 0.5D);
             Logger.log(
                     LogId.I_9002,
@@ -639,8 +660,8 @@ final class SkillTreeVisualizer {
         private void teleport(@NotNull Location left, @NotNull Location right) {
             teleportDots(adminDots, left, right);
             teleportDots(grayDots, left, right);
-            teleportDots(whiteDots, left, right);
             teleportDots(yellowDots, left, right);
+            teleportDots(greenDots, left, right);
             midpoint = interpolate(left, right, 0.5D);
         }
 
@@ -674,8 +695,8 @@ final class SkillTreeVisualizer {
             return switch (color) {
                 case ADMIN -> adminDots.toArray(Entity[]::new);
                 case GRAY -> grayDots.toArray(Entity[]::new);
-                case WHITE -> whiteDots.toArray(Entity[]::new);
                 case YELLOW -> yellowDots.toArray(Entity[]::new);
+                case GREEN -> greenDots.toArray(Entity[]::new);
                 case HIDDEN -> new Entity[0];
             };
         }
@@ -685,15 +706,15 @@ final class SkillTreeVisualizer {
         }
 
         private boolean isValid() {
-            return areValid(adminDots) && areValid(grayDots) && areValid(whiteDots) && areValid(yellowDots);
+            return areValid(adminDots) && areValid(grayDots) && areValid(yellowDots) && areValid(greenDots);
         }
 
         private void remove() {
             viewerStates.clear();
             removeEntities(adminDots);
             removeEntities(grayDots);
-            removeEntities(whiteDots);
             removeEntities(yellowDots);
+            removeEntities(greenDots);
         }
     }
 
