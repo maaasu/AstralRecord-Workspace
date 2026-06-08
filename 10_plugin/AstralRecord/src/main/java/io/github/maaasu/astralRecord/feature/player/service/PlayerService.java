@@ -103,7 +103,7 @@ public class PlayerService {
         if (joinData.account().getMode().shouldReflectInventoryToGui()) {
             inventoryService.applyInventoriesToGuiOnJoin(astPlayer);
         } else if (isToolInventoryMode(joinData.account().getMode())) {
-            inventoryService.applyBuilderInventoryToGui(astPlayer);
+            inventoryService.applyToolInventoryToGui(astPlayer);
         }
         statusService.refreshStatus(astPlayer);
     }

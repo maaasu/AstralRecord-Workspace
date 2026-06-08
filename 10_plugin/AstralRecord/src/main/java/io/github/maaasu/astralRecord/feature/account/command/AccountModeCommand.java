@@ -133,7 +133,7 @@ public class AccountModeCommand extends AstCommand {
             if (inventoryService != null
                     && isToolInventoryMode(previousMode)
                     && previousMode != updated.getMode()) {
-                inventoryService.saveBuilderInventorySnapshot(astPlayer);
+                inventoryService.saveToolInventorySnapshot(astPlayer);
             }
             astPlayer.applyAccountMode(updated);
             if (inventoryService == null) {
@@ -142,7 +142,7 @@ public class AccountModeCommand extends AstCommand {
             if (updated.getMode().shouldReflectInventoryToGui()) {
                 inventoryService.applyInventoriesToGui(astPlayer);
             } else if (isToolInventoryMode(updated.getMode())) {
-                inventoryService.applyBuilderInventoryToGui(astPlayer);
+                inventoryService.applyToolInventoryToGui(astPlayer);
             } else {
                 inventoryService.clearGuiInventory(astPlayer);
             }

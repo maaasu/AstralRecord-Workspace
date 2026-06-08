@@ -75,6 +75,8 @@ public class InventoryService {
     private static final String SLOT_TYPE_FEET = "FEET";
     private static final String SLOT_TYPE_ACCESSORY = "ACCESSORY";
     private static final String STORAGE_ACQUIRED_AT_KEY = "acquiredAt";
+    private static final String TOOL_SNAPSHOT_BUILDER_KEY = "builder";
+    private static final String TOOL_SNAPSHOT_ADMIN_KEY = "admin";
 
     private final InventoryRepository inventoryRepository;
     private final EquipmentLoadoutRepository equipmentLoadoutRepository;
@@ -391,12 +393,16 @@ public class InventoryService {
     }
 
     // ---------------------------------------------------------------
-    // Builder snapshot
+    // Tool snapshot
     // ---------------------------------------------------------------
 
-    public void saveBuilderInventorySnapshot(@NotNull AstPlayer astPlayer) {
+    public void saveToolInventorySnapshot(@NotNull AstPlayer astPlayer) {
         PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
         if (state == null) {
+            return;
+        }
+        String snapshotKey = resolveToolSnapshotKey(astPlayer.getAccount().getMode());
+        if (snapshotKey == null) {
             return;
         }
         InventoryModel inventory = ensureInventory(
@@ -407,11 +413,19 @@ public class InventoryService {
             InventoryProfile.BUILDER
         );
         ItemStack[] contents = astPlayer.getBukkit().getInventory().getContents();
-        String metadataJson = snapshotCodec.encodeBuilder(contents, astPlayer.getBukkit().getGameMode());
-        state.updateInventoryMetadata(inventory.getInventoryId(), metadataJson, state.getAccountId());
+        JsonObject snapshots = parseToolSnapshots(inventory.getMetadataJson());
+        JsonObject snapshot = JsonParser.parseString(
+            snapshotCodec.encodeBuilder(contents, astPlayer.getBukkit().getGameMode())
+        ).getAsJsonObject();
+        snapshots.add(snapshotKey, snapshot);
+        state.updateInventoryMetadata(inventory.getInventoryId(), snapshots.toString(), state.getAccountId());
     }
 
-    public void applyBuilderInventoryToGui(@NotNull AstPlayer astPlayer) {
+    public void saveBuilderInventorySnapshot(@NotNull AstPlayer astPlayer) {
+        saveToolInventorySnapshot(astPlayer);
+    }
+
+    public void applyToolInventoryToGui(@NotNull AstPlayer astPlayer) {
         PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
         if (state == null) {
             return;
@@ -419,15 +433,24 @@ public class InventoryService {
         clearGuiInventory(astPlayer.getBukkit());
         InventoryModel inventory = state.findInventory(InventoryProfile.BUILDER, InventoryType.NORMAL);
         if (inventory != null) {
-            applyBuilderSnapshot(astPlayer, inventory.getMetadataJson());
+            applyToolSnapshot(astPlayer, inventory.getMetadataJson(), astPlayer.getAccount().getMode());
         }
     }
 
-    private void applyBuilderSnapshot(@NotNull AstPlayer astPlayer, @Nullable String metadataJson) {
-        if (metadataJson == null || metadataJson.isBlank()) {
+    public void applyBuilderInventoryToGui(@NotNull AstPlayer astPlayer) {
+        applyToolInventoryToGui(astPlayer);
+    }
+
+    private void applyToolSnapshot(
+        @NotNull AstPlayer astPlayer,
+        @Nullable String metadataJson,
+        @NotNull AccountMode mode
+    ) {
+        String snapshotJson = resolveToolSnapshotJson(metadataJson, mode);
+        if (snapshotJson == null || snapshotJson.isBlank()) {
             return;
         }
-        InventorySnapshotCodec.BuilderSnapshot snapshot = snapshotCodec.decodeBuilder(metadataJson);
+        InventorySnapshotCodec.BuilderSnapshot snapshot = snapshotCodec.decodeBuilder(snapshotJson);
         if (snapshot == null) {
             return;
         }
@@ -436,6 +459,64 @@ public class InventoryService {
             astPlayer.getBukkit().setGameMode(snapshot.gameMode());
         }
         astPlayer.getBukkit().updateInventory();
+    }
+
+    private @Nullable String resolveToolSnapshotKey(@NotNull AccountMode mode) {
+        return switch (mode) {
+            case BUILDER -> TOOL_SNAPSHOT_BUILDER_KEY;
+            case ADMIN -> TOOL_SNAPSHOT_ADMIN_KEY;
+            default -> null;
+        };
+    }
+
+    private @NotNull JsonObject parseToolSnapshots(@Nullable String metadataJson) {
+        if (metadataJson == null || metadataJson.isBlank()) {
+            return new JsonObject();
+        }
+        try {
+            JsonObject parsed = JsonParser.parseString(metadataJson).getAsJsonObject();
+            if (isLegacyToolSnapshot(parsed)) {
+                JsonObject migrated = new JsonObject();
+                migrated.add(TOOL_SNAPSHOT_BUILDER_KEY, parsed.deepCopy());
+                return migrated;
+            }
+            return parsed.deepCopy();
+        } catch (JsonSyntaxException | IllegalStateException ignored) {
+            return new JsonObject();
+        }
+    }
+
+    private @Nullable String resolveToolSnapshotJson(
+        @Nullable String metadataJson,
+        @NotNull AccountMode mode
+    ) {
+        if (metadataJson == null || metadataJson.isBlank()) {
+            return null;
+        }
+        try {
+            JsonObject parsed = JsonParser.parseString(metadataJson).getAsJsonObject();
+            if (isLegacyToolSnapshot(parsed)) {
+                return metadataJson;
+            }
+            String snapshotKey = resolveToolSnapshotKey(mode);
+            if (snapshotKey != null
+                && parsed.has(snapshotKey)
+                && parsed.get(snapshotKey).isJsonObject()) {
+                return parsed.getAsJsonObject(snapshotKey).toString();
+            }
+            if (mode == AccountMode.ADMIN
+                && parsed.has(TOOL_SNAPSHOT_BUILDER_KEY)
+                && parsed.get(TOOL_SNAPSHOT_BUILDER_KEY).isJsonObject()) {
+                return parsed.getAsJsonObject(TOOL_SNAPSHOT_BUILDER_KEY).toString();
+            }
+        } catch (JsonSyntaxException | IllegalStateException ignored) {
+            return null;
+        }
+        return null;
+    }
+
+    private boolean isLegacyToolSnapshot(@NotNull JsonObject object) {
+        return object.has("format") && object.has("contents");
     }
 
     // ---------------------------------------------------------------

@@ -45,7 +45,7 @@ public class InventorySaveTask implements PlayerSaveTask {
         }
 
         if (isToolInventoryMode(player.getAccount().getMode())) {
-            inventoryService.saveBuilderInventorySnapshot(player);
+            inventoryService.saveToolInventorySnapshot(player);
         } else if (player.getAccount().getMode().shouldReflectInventoryToGui()) {
             inventoryService.saveEquipSlotSnapshot(player);
             inventoryService.saveHotbarSnapshot(player);
