@@ -41,7 +41,7 @@ final class SkillTreeVisualizer {
     private static final double ADMIN_ITEM_Y_OFFSET = 0.15D;
     private static final double NODE_ITEM_Y_OFFSET = 1.15D;
     private static final float EDGE_THICKNESS = 0.18F;
-    private static final double EDGE_Y_OFFSET = EDGE_THICKNESS * 0.5D;
+    private static final double EDGE_Y_OFFSET = 0.02D;
     private static final double TEXT_Y_OFFSET = 1.2D;
     private static final float NODE_ITEM_SCALE = 0.72F;
     private static final float NODE_TEXT_SCALE = 0.85F;
