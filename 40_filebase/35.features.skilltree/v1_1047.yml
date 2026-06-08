@@ -1,0 +1,14 @@
+schemaVersion: 1
+id: 1047
+positionId: 1047
+name: "&e連祷"
+icon: CHAIN
+lore:
+  - "&7回転率を高める支援構成で扱いやすい。"
+  - "&7支援回転。"
+skillIds:
+  - ac_passive_chain
+tags:
+  - passive
+  - support
+  - outer

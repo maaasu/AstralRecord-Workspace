@@ -1,0 +1,14 @@
+schemaVersion: 1
+id: 1015
+positionId: 1015
+name: "&aすり抜け"
+icon: FEATHER
+lore:
+  - "&7被弾を避けて戦う軽量ビルド向け。"
+  - "&7回避補正。"
+skillIds:
+  - ht_passive_dodge
+tags:
+  - passive
+  - ranged
+  - mid

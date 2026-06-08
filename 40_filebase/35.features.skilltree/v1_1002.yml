@@ -1,0 +1,18 @@
+schemaVersion: 1
+id: 1002
+positionId: 1002
+name: "&6闘気収束"
+icon: BLAZE_POWDER
+lore:
+  - "&7近接でも射撃でも、手数を増やす起点。"
+statuses:
+  - status: ATTACK
+    type: FLAT
+    value: 2
+  - status: ENERGY_REGEN
+    type: FLAT
+    value: 1
+tags:
+  - shared
+  - status
+  - hybrid

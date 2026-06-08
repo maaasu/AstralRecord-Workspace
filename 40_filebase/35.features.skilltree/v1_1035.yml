@@ -1,0 +1,14 @@
+schemaVersion: 1
+id: 1035
+positionId: 1035
+name: "&a毒手"
+icon: SPIDER_EYE
+lore:
+  - "&7会心や継続削りを意識する構成向け。"
+  - "&7継続削り。"
+skillIds:
+  - ht_passive_poison
+tags:
+  - passive
+  - ranged
+  - outer

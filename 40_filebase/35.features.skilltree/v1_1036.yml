@@ -1,0 +1,14 @@
+schemaVersion: 1
+id: 1036
+positionId: 1036
+name: "&a夜歩"
+icon: BLACK_DYE
+lore:
+  - "&7機動力を極める軽量ビルドで活きる。"
+  - "&7隠密機動。"
+skillIds:
+  - ht_passive_nightstep
+tags:
+  - passive
+  - ranged
+  - outer

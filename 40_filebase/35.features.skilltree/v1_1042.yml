@@ -1,0 +1,14 @@
+schemaVersion: 1
+id: 1042
+positionId: 1042
+name: "&b焼尽"
+icon: MAGMA_CREAM
+lore:
+  - "&7純火力志向の術式ビルド向け。"
+  - "&7炎術増幅。"
+skillIds:
+  - mg_passive_incinerate
+tags:
+  - passive
+  - magic
+  - outer

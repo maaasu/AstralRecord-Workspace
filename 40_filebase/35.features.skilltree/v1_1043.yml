@@ -1,0 +1,14 @@
+schemaVersion: 1
+id: 1043
+positionId: 1043
+name: "&e聖域"
+icon: GLOWSTONE_DUST
+lore:
+  - "&7持久支援や自己維持型の後衛に噛み合う。"
+  - "&7回復安定。"
+skillIds:
+  - ac_passive_sanctuary
+tags:
+  - passive
+  - support
+  - outer

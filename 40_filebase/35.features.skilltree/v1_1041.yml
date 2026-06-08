@@ -1,0 +1,14 @@
+schemaVersion: 1
+id: 1041
+positionId: 1041
+name: "&b位相移動"
+icon: ENDER_PEARL
+lore:
+  - "&7機動力を混ぜた魔法型で強みが出る。"
+  - "&7転位補正。"
+skillIds:
+  - mg_passive_blink
+tags:
+  - passive
+  - magic
+  - outer

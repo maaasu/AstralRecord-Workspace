@@ -1,0 +1,22 @@
+schemaVersion: 1
+id: 1000
+positionId: 1000
+name: "&f星図の起点"
+icon: NETHER_STAR
+lore:
+  - "&7すべてのビルドがここから始まる共通起点。"
+statuses:
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 5
+  - status: MAX_MANA
+    type: FLAT
+    value: 5
+  - status: MAX_ENERGY
+    type: FLAT
+    value: 5
+tags:
+  - root
+  - shared
+  - status
+  - core

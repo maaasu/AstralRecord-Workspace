@@ -1,0 +1,14 @@
+schemaVersion: 1
+id: 1024
+positionId: 1024
+name: "&e霊脈"
+icon: LAPIS_LAZULI
+lore:
+  - "&7魔力補助を持つ支援ビルドで扱いやすい。"
+  - "&7魔力脈動。"
+skillIds:
+  - ac_passive_soul
+tags:
+  - passive
+  - support
+  - mid

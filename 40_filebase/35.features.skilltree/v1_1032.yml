@@ -1,0 +1,14 @@
+schemaVersion: 1
+id: 1032
+positionId: 1032
+name: "&a貫通狙い"
+icon: SPECTRAL_ARROW
+lore:
+  - "&7遠距離火力を素直に伸ばしたい構成向け。"
+  - "&7射貫補正。"
+skillIds:
+  - ht_passive_pierce
+tags:
+  - passive
+  - ranged
+  - outer

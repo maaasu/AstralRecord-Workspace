@@ -1,0 +1,14 @@
+schemaVersion: 1
+id: 1044
+positionId: 1044
+name: "&e恩寵の気配"
+icon: TOTEM_OF_UNDYING
+lore:
+  - "&7耐久支援を厚くしたい構成で強い。"
+  - "&7守護気配。"
+skillIds:
+  - ac_passive_grace_aura
+tags:
+  - passive
+  - support
+  - outer

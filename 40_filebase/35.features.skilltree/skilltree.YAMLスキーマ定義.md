@@ -10,6 +10,7 @@
 
 - プレイヤー単位の動的進行状態（`skillPoints`、解放済み `nodeId` 一覧）は plugin ローカル YAML には保持せず、`account-skilltree` API と AstralRecord DB を正本とする
 - `positionId` の参照先である `skilltree_structure.yml` は `skill_tree` ワールド上の座標配置を表す plugin データファイルであり、サーバローカルで管理する
+- 現行 plugin は `skilltree_structure.yml` の `edges[]` を参照し、`root` tag を起点に隣接ノードを解放する単一連結ツリーとして扱う
 
 `skilltree_structure.yml` の契約:
 
@@ -27,8 +28,8 @@
 | キー | 型 | 必須 | 既定値 | 説明 |
 | --- | --- | --- | --- | --- |
 | `schemaVersion` | Integer | 必須 | - | 現在は `1` |
-| `id` | String | 必須 | - | ノードID |
-| `positionId` | String | 必須 | - | `skilltree_structure.yml` の position ID |
+| `id` | String / Integer | 必須 | - | ノードID。数値 scalar でもよい |
+| `positionId` | String / Integer | 必須 | - | `skilltree_structure.yml` の position ID。数値 scalar でもよい |
 | `name` | String | 必須 | - | 表示名 |
 | `icon` | String | 任意 | `NETHER_STAR` | Material 名 |
 | `lore` | List<String> | 任意 | `[]` | ノード説明 |
@@ -42,6 +43,7 @@
 ## 補足
 
 - `positionId` は filebase node 定義と、サーバローカル `skilltree_structure.yml` の位置定義をつなぐキーである
+- `id` / `positionId` / `edges[].left` / `edges[].right` は YAML 上で数値として書いてよく、plugin 側では文字列化して扱う
 - `skillIds` に含まれるスキルがパッシブで `passive.bindRequired: false` の場合、ノード解放だけで恒常効果になる
 - `skillIds` に含まれるスキルがパッシブで `passive.bindRequired: true` の場合、ノード解放後にパッシブスロットへ設定された時だけ効果になる
 - `statuses` はパッシブスキルを実装せず、ノード解放状態から直接プレイヤーステータスへ反映される
@@ -53,8 +55,8 @@
 
 ```yaml
 schemaVersion: 1
-id: starter_power
-positionId: root_001
+id: 1001
+positionId: 1001
 name: "&f始まりの力"
 icon: IRON_SWORD
 lore:
@@ -69,8 +71,8 @@ tags:
 
 ```yaml
 schemaVersion: 1
-id: starter_vital
-positionId: root_002
+id: 1002
+positionId: 1002
 name: "&a生命強化"
 icon: APPLE
 statuses:
@@ -89,8 +91,8 @@ tags:
 
 ```yaml
 schemaVersion: 1
-id: hybrid_guard
-positionId: mid_010
+id: 1101
+positionId: 1101
 name: "&b守りの構え"
 icon: SHIELD
 skillIds:

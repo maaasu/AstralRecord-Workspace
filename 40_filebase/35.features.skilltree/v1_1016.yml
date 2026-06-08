@@ -1,0 +1,14 @@
+schemaVersion: 1
+id: 1016
+positionId: 1016
+name: "&a罠師"
+icon: TRIPWIRE_HOOK
+lore:
+  - "&7罠や補助を混ぜる器用型の伸びがよい。"
+  - "&7仕込み補正。"
+skillIds:
+  - ht_passive_trapmaster
+tags:
+  - passive
+  - ranged
+  - mid

@@ -101,6 +101,11 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
                 event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5839.getId()));
                 return;
             }
+            if (!service.canUnlockNode(astPlayer, node)) {
+                playDenied(event.getPlayer(), 0.75F);
+                event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5825.getId()));
+                return;
+            }
             if (service.unlockNode(astPlayer, node)) {
                 playUnlock(event.getPlayer());
                 event.getPlayer().sendMessage(PlayerMsgResource.format(PlayerMsgId.P_5824.getId(), node.name()));

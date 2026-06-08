@@ -1,0 +1,18 @@
+schemaVersion: 1
+id: 1001
+positionId: 1001
+name: "&c武骨鍛錬"
+icon: IRON_CHESTPLATE
+lore:
+  - "&7前線寄りの土台。耐久を先に固めたいときの入口。"
+statuses:
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 8
+  - status: DEFENSE
+    type: FLAT
+    value: 2
+tags:
+  - shared
+  - status
+  - melee

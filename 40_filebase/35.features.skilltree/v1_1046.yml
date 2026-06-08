@@ -1,0 +1,14 @@
+schemaVersion: 1
+id: 1046
+positionId: 1046
+name: "&e衰滅"
+icon: INK_SAC
+lore:
+  - "&7攻撃支援を混ぜるビルドの火力源になる。"
+  - "&7弱体締め。"
+skillIds:
+  - ac_passive_decay
+tags:
+  - passive
+  - support
+  - outer

@@ -46,8 +46,8 @@ public class SkillTreeNodeRepository {
 
     @Nullable
     private SkillTreeNodeDefinition parse(@NotNull YamlConfiguration yaml) {
-        String id = yaml.getString("id");
-        String positionId = yaml.getString("positionId");
+        String id = stringValue(yaml.get("id"));
+        String positionId = stringValue(yaml.get("positionId"));
         if (id == null || id.isBlank() || positionId == null || positionId.isBlank()) {
             return null;
         }
@@ -108,5 +108,9 @@ public class SkillTreeNodeRepository {
         } catch (IllegalArgumentException ignored) {
             return null;
         }
+    }
+
+    private @Nullable String stringValue(@Nullable Object raw) {
+        return raw == null ? null : raw.toString();
     }
 }

@@ -1,0 +1,14 @@
+schemaVersion: 1
+id: 1027
+positionId: 1027
+name: "&f追撃態勢"
+icon: RABBIT_FOOT
+lore:
+  - "&7接敵維持と追撃重視の構成で強い。"
+  - "&7追撃補正。"
+skillIds:
+  - sw_passive_chase
+tags:
+  - passive
+  - melee
+  - outer

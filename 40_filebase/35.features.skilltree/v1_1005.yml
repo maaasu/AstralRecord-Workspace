@@ -1,0 +1,18 @@
+schemaVersion: 1
+id: 1005
+positionId: 1005
+name: "&b魔力循環"
+icon: LAPIS_LAZULI
+lore:
+  - "&7魔力リソースを伸ばす魔導寄りの基礎。"
+statuses:
+  - status: MAX_MANA
+    type: FLAT
+    value: 15
+  - status: MAGIC_ATTACK
+    type: FLAT
+    value: 2
+tags:
+  - shared
+  - status
+  - magic

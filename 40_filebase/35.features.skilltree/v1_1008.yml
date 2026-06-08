@@ -1,0 +1,18 @@
+schemaVersion: 1
+id: 1008
+positionId: 1008
+name: "&7連撃素養"
+icon: CHAIN
+lore:
+  - "&7近接ハイブリッドや手数型のビルド向け。"
+statuses:
+  - status: ATTACK_SPEED
+    type: FLAT
+    value: 4
+  - status: MELEE_ATTACK
+    type: FLAT
+    value: 2
+tags:
+  - shared
+  - status
+  - hybrid

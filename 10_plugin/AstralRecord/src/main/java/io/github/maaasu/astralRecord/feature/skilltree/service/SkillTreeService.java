@@ -78,6 +78,7 @@ import net.kyori.adventure.title.Title;
 public class SkillTreeService {
     public static final String SKILL_TREE_WORLD_ID = "skill_tree";
     public static final long RELOCK_GOLD_COST = 100L;
+    private static final String ROOT_TAG = "root";
 
     private static final int HOTBAR_TARGET_SLOT = 0;
     private static final int HOTBAR_ACTION_BAR_TOGGLE_SLOT = 7;
@@ -335,6 +336,17 @@ public class SkillTreeService {
         return state(astPlayer).skillPoints() > 0;
     }
 
+    public boolean canUnlockNode(@NotNull AstPlayer astPlayer, @NotNull SkillTreeNodeDefinition node) {
+        SkillTreePlayerState state = state(astPlayer);
+        if (state.isUnlocked(node.id()) || state.skillPoints() <= 0) {
+            return false;
+        }
+        if (state.unlockedNodeIds().isEmpty()) {
+            return hasTag(node, ROOT_TAG);
+        }
+        return isAdjacentToUnlockedNode(state, node.positionId());
+    }
+
     /**
      * ノード解除に必要な Gold を支払える状態かを返します。
      *
@@ -586,6 +598,9 @@ public class SkillTreeService {
     }
 
     public boolean unlockNode(@NotNull AstPlayer astPlayer, @NotNull SkillTreeNodeDefinition node) {
+        if (!canUnlockNode(astPlayer, node)) {
+            return false;
+        }
         SkillTreePlayerState state = state(astPlayer);
         boolean changed = state.unlock(node.id());
         if (changed) {
@@ -596,13 +611,13 @@ public class SkillTreeService {
     }
 
     public boolean relockNode(@NotNull AstPlayer astPlayer, @NotNull SkillTreeNodeDefinition node) {
-        SkillTreePlayerState state = state(astPlayer);
-        if (!state.isUnlocked(node.id())) {
+        if (!canRelockNode(astPlayer, node)) {
             return false;
         }
         if (inventoryService == null || !inventoryService.consumeGold(astPlayer.getAccount().getUuid(), RELOCK_GOLD_COST)) {
             return false;
         }
+        SkillTreePlayerState state = state(astPlayer);
         boolean changed = state.relock(node.id());
         if (changed) {
             markDirty(state);
@@ -621,6 +636,52 @@ public class SkillTreeService {
         SkillTreePlayerState state = state(astPlayer);
         state.addSkillPoints(points);
         markDirty(state);
+    }
+
+    public boolean canRelockNode(@NotNull AstPlayer astPlayer, @NotNull SkillTreeNodeDefinition node) {
+        SkillTreePlayerState state = state(astPlayer);
+        if (!state.isUnlocked(node.id())) {
+            return false;
+        }
+
+        Set<String> remainingUnlocked = new LinkedHashSet<>(state.unlockedNodeIds());
+        remainingUnlocked.remove(node.id());
+        if (remainingUnlocked.isEmpty()) {
+            return true;
+        }
+
+        Set<String> rootPositions = new LinkedHashSet<>();
+        for (String nodeId : remainingUnlocked) {
+            SkillTreeNodeDefinition unlockedNode = nodesById.get(nodeId);
+            if (unlockedNode != null && hasTag(unlockedNode, ROOT_TAG)) {
+                rootPositions.add(unlockedNode.positionId());
+            }
+        }
+        if (rootPositions.isEmpty()) {
+            return false;
+        }
+
+        Set<String> reachableUnlocked = new LinkedHashSet<>();
+        java.util.ArrayDeque<String> queue = new java.util.ArrayDeque<>(rootPositions);
+        Set<String> visitedPositions = new LinkedHashSet<>();
+        while (!queue.isEmpty()) {
+            String positionId = queue.removeFirst();
+            if (!visitedPositions.add(positionId)) {
+                continue;
+            }
+            SkillTreeNodeDefinition current = nodesByPositionId.get(positionId);
+            if (current == null || !remainingUnlocked.contains(current.id())) {
+                continue;
+            }
+            reachableUnlocked.add(current.id());
+            for (String adjacentPositionId : adjacentPositionIds(positionId)) {
+                SkillTreeNodeDefinition adjacent = nodesByPositionId.get(adjacentPositionId);
+                if (adjacent != null && remainingUnlocked.contains(adjacent.id())) {
+                    queue.addLast(adjacentPositionId);
+                }
+            }
+        }
+        return reachableUnlocked.containsAll(remainingUnlocked);
     }
 
     @NotNull
@@ -795,10 +856,16 @@ public class SkillTreeService {
     private ItemStack createNodeHotbarItem(@NotNull AstPlayer astPlayer, @NotNull SkillTreeNodeDefinition node) {
         SkillTreePlayerState state = state(astPlayer);
         boolean unlocked = state.isUnlocked(node.id());
+        boolean canUnlock = canUnlockNode(astPlayer, node);
         ItemStack itemStack = createNodeDisplayItem(node, unlocked);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
             var lore = new java.util.ArrayList<Component>();
+            lore.add(component(unlocked
+                    ? "&8State: &fUnlocked"
+                    : canUnlock
+                    ? "&8State: &aConnected"
+                    : "&8State: &cNeed adjacent unlocked node"));
             lore.add(component("&8ID: &f" + node.id()));
             lore.add(component("&8位置ID: &f" + node.positionId()));
             lore.add(component("&8所持SP: &f" + state.skillPoints()));
@@ -1067,7 +1134,7 @@ public class SkillTreeService {
         }
 
         boolean unlocked = isNodeUnlocked(astPlayer, node);
-        boolean canUnlock = !unlocked && hasSkillPoints(astPlayer);
+        boolean canUnlock = !unlocked && canUnlockNode(astPlayer, node);
         emitTargetHighlight(astPlayer, base, unlocked, canUnlock);
     }
 
@@ -1097,6 +1164,37 @@ public class SkillTreeService {
             );
         }
         particleDisplayService.spawnForViewer(astPlayer, base.clone().add(0.0D, 0.70D, 0.0D), SharedParticleDefinitions.SKILLTREE_TARGET_ENCHANT);
+    }
+
+    private boolean isAdjacentToUnlockedNode(@NotNull SkillTreePlayerState state, @NotNull String positionId) {
+        for (String adjacentPositionId : adjacentPositionIds(positionId)) {
+            SkillTreeNodeDefinition adjacent = nodesByPositionId.get(adjacentPositionId);
+            if (adjacent != null && state.isUnlocked(adjacent.id())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private @NotNull Set<String> adjacentPositionIds(@NotNull String positionId) {
+        Set<String> result = new LinkedHashSet<>();
+        for (SkillTreeEdge edge : edgesByKey.values()) {
+            if (positionId.equals(edge.leftPositionId())) {
+                result.add(edge.rightPositionId());
+            } else if (positionId.equals(edge.rightPositionId())) {
+                result.add(edge.leftPositionId());
+            }
+        }
+        return result;
+    }
+
+    private boolean hasTag(@NotNull SkillTreeNodeDefinition node, @NotNull String tag) {
+        for (String nodeTag : node.tags()) {
+            if (nodeTag != null && tag.equalsIgnoreCase(nodeTag.trim())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @NotNull

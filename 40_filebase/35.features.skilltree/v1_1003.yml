@@ -1,0 +1,18 @@
+schemaVersion: 1
+id: 1003
+positionId: 1003
+name: "&a精密照準"
+icon: SPYGLASS
+lore:
+  - "&7命中と会心を伸ばす射撃寄りの基礎。"
+statuses:
+  - status: ACCURACY
+    type: FLAT
+    value: 6
+  - status: CRITICAL_RATE
+    type: FLAT
+    value: 2
+tags:
+  - shared
+  - status
+  - ranged

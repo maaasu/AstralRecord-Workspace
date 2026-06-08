@@ -1,0 +1,18 @@
+schemaVersion: 1
+id: 1007
+positionId: 1007
+name: "&e祈護脈動"
+icon: GLOWSTONE_DUST
+lore:
+  - "&7持久と回復を重ねる支援寄りの基礎。"
+statuses:
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 8
+  - status: HP_REGEN
+    type: FLAT
+    value: 1
+tags:
+  - shared
+  - status
+  - support

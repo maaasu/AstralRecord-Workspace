@@ -1,0 +1,15 @@
+schemaVersion: 1
+id: 1020
+positionId: 1020
+name: "&b魔刃循環"
+icon: IRON_SWORD
+lore:
+  - "&7近接混成の魔導型で特に活きる。"
+  - "&7近魔両立。"
+skillIds:
+  - mg_passive_blade_aura
+tags:
+  - passive
+  - magic
+  - mid
+  - hybrid

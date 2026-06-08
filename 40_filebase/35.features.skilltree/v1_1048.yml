@@ -1,0 +1,14 @@
+schemaVersion: 1
+id: 1048
+positionId: 1048
+name: "&e魂食"
+icon: SOUL_SAND
+lore:
+  - "&7魔力と気力の循環を両立したいとき向け。"
+  - "&7術後回転。"
+skillIds:
+  - ac_passive_soul_feast
+tags:
+  - passive
+  - support
+  - outer

@@ -1,0 +1,14 @@
+schemaVersion: 1
+id: 1019
+positionId: 1019
+name: "&b連鎖理論"
+icon: CHAIN
+lore:
+  - "&7回転率を求める術式ビルド向け。"
+  - "&7術式連鎖。"
+skillIds:
+  - mg_passive_chain
+tags:
+  - passive
+  - magic
+  - mid

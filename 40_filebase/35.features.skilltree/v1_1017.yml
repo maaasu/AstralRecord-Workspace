@@ -1,0 +1,14 @@
+schemaVersion: 1
+id: 1017
+positionId: 1017
+name: "&b瞑想"
+icon: BOOK
+lore:
+  - "&7魔力継戦を最優先したいキャスター向け。"
+  - "&7魔力循環。"
+skillIds:
+  - mg_passive_meditation
+tags:
+  - passive
+  - magic
+  - mid

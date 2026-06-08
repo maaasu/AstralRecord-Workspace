@@ -1,0 +1,18 @@
+schemaVersion: 1
+id: 1006
+positionId: 1006
+name: "&9霊装障壁"
+icon: SHIELD
+lore:
+  - "&7魔防と回復効率を支える防護の節点。"
+statuses:
+  - status: MAGIC_DEFENSE
+    type: FLAT
+    value: 3
+  - status: MP_REGEN
+    type: FLAT
+    value: 1
+tags:
+  - shared
+  - status
+  - hybrid

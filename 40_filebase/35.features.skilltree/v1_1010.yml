@@ -1,0 +1,14 @@
+schemaVersion: 1
+id: 1010
+positionId: 1010
+name: "&f鉄身"
+icon: IRON_CHESTPLATE
+lore:
+  - "&7前衛の耐久を厚くしたいときに有力。"
+  - "&7全身強化。"
+skillIds:
+  - sw_passive_iron_body
+tags:
+  - passive
+  - melee
+  - mid

@@ -1,0 +1,14 @@
+schemaVersion: 1
+id: 1038
+positionId: 1038
+name: "&b冷気制御"
+icon: SNOW_BLOCK
+lore:
+  - "&7守りも欲しい術師ビルドで扱いやすい。"
+  - "&7冷気補正。"
+skillIds:
+  - mg_passive_chill
+tags:
+  - passive
+  - magic
+  - outer

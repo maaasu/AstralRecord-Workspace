@@ -1,0 +1,14 @@
+schemaVersion: 1
+id: 1031
+positionId: 1031
+name: "&a鷹の眼"
+icon: ENDER_EYE
+lore:
+  - "&7会心型の射撃ビルドで強く出やすい。"
+  - "&7中距離精度。"
+skillIds:
+  - ht_passive_falcon
+tags:
+  - passive
+  - ranged
+  - outer
