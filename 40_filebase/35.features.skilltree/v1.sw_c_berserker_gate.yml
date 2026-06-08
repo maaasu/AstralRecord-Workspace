@@ -1,0 +1,17 @@
+schemaVersion: 1
+id: sw_c_berserker_gate
+positionId: sw_c_berserker_gate
+name: "&fバーサーカー適性"
+icon: NETHERITE_AXE
+statuses:
+  - status: STRENGTH
+    type: FLAT
+    value: 5
+  - status: CRITICAL_DAMAGE
+    type: FLAT
+    value: 4
+tags:
+  - tier1
+  - swordsman
+  - gate
+  - status

@@ -1,0 +1,71 @@
+schemaVersion: 1
+id: swordsman
+type: CLASS
+name: "&fソードマン"
+description: "&7前線近接戦士。"
+icon: IRON_SWORD
+role: TANK
+unlockLevel: 1
+baseStats:
+  - status: MAX_HEALTH
+    value: 120
+  - status: MAX_MANA
+    value: 30
+  - status: MAX_ENERGY
+    value: 100
+  - status: STRENGTH
+    value: 8
+  - status: DEXTERITY
+    value: 4
+  - status: INTELLIGENCE
+    value: 2
+  - status: VITALITY
+    value: 8
+  - status: AGILITY
+    value: 5
+  - status: LUCK
+    value: 3
+  - status: ATTACK
+    value: 8
+  - status: DEFENSE
+    value: 7
+  - status: MAGIC_DEFENSE
+    value: 4
+  - status: MOVEMENT_SPEED
+    value: 100
+growthPerLevel:
+  - status: MAX_HEALTH
+    value: 7
+  - status: MAX_MANA
+    value: 1
+  - status: STRENGTH
+    value: 1.2
+  - status: VITALITY
+    value: 1
+  - status: AGILITY
+    value: 0.4
+  - status: ATTACK
+    value: 1
+  - status: DEFENSE
+    value: 0.8
+  - status: MAGIC_DEFENSE
+    value: 0.4
+expRate: 100
+starterSkills:
+  - sw_active_cleave
+levelSkills:
+  - level: 3
+    skill: sw_active_guard_break
+  - level: 6
+    skill: sw_active_iron_step
+  - level: 9
+    skill: sw_active_war_cry
+  - level: 12
+    skill: sw_active_counter_guard
+  - level: 15
+    skill: sw_active_rend_cross
+tags:
+  - tier1
+  - melee
+  - tank
+  - sword

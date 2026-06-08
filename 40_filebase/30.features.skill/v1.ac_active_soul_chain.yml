@@ -1,0 +1,29 @@
+schemaVersion: 1
+id: ac_active_soul_chain
+type: SKILL
+implementationId: normal_attack
+name: "&eソウルチェイン"
+description: "&7魂連結。"
+icon: CHAIN
+cooldownTicks: 100
+manaCost: 12
+castTimeTicks: 0
+requiredLevel: 12
+params:
+  attackType: MAGIC
+  damageType: MAGIC
+  particle: SOUL_FIRE_FLAME
+  particleCount: 4
+  projectileSpeed: 0.9
+  hitRange: 8
+  hitRadius: 0.95
+  homingStrength: 0.18
+  homingRange: 4.5
+  trailParticleCount: 4
+  sound: block.enchantment_table.use
+tags:
+  - tier1
+  - acolyte
+  - active
+  - magic
+  - hex

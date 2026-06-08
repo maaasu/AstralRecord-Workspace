@@ -1,0 +1,16 @@
+schemaVersion: 1
+id: sw_i_step
+positionId: sw_i_step
+name: "&f戦歩"
+icon: IRON_BOOTS
+statuses:
+  - status: AGILITY
+    type: FLAT
+    value: 3
+  - status: MOVEMENT_SPEED
+    type: FLAT
+    value: 2
+tags:
+  - tier1
+  - swordsman
+  - status

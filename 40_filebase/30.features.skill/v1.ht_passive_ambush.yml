@@ -1,0 +1,25 @@
+schemaVersion: 1
+id: ht_passive_ambush
+type: SKILL
+implementationId: status_passive
+name: "&a待ち伏せ"
+description: "&7奇襲補正。"
+icon: FERMENTED_SPIDER_EYE
+cooldownTicks: 0
+manaCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+passive:
+  bindRequired: false
+params:
+  modifiers:
+    - status: EVASION
+      type: FLAT
+      value: 4
+    - status: CRITICAL_DAMAGE
+      type: FLAT
+      value: 10
+tags:
+  - tier1
+  - hunter
+  - passive

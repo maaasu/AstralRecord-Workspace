@@ -1,0 +1,11 @@
+schemaVersion: 1
+id: ac_o_chain
+positionId: ac_o_chain
+name: "&e連祷"
+icon: CHAIN
+skillIds:
+  - ac_passive_chain
+tags:
+  - tier1
+  - acolyte
+  - passive

@@ -1,0 +1,11 @@
+schemaVersion: 1
+id: mg_o_burst
+positionId: mg_o_burst
+name: "&b瞬間出力"
+icon: AMETHYST_CLUSTER
+skillIds:
+  - mg_passive_burst
+tags:
+  - tier1
+  - mage
+  - passive

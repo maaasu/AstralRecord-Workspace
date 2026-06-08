@@ -1,0 +1,17 @@
+schemaVersion: 1
+id: mg_c_elemental_gate
+positionId: mg_c_elemental_gate
+name: "&bエレメンタリスト適性"
+icon: END_ROD
+statuses:
+  - status: MAGIC_ATTACK
+    type: FLAT
+    value: 5
+  - status: MP_REGEN
+    type: FLAT
+    value: 4
+tags:
+  - tier1
+  - mage
+  - gate
+  - status

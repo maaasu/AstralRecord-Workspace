@@ -1,0 +1,12 @@
+schemaVersion: 1
+id: mg_c_incinerate
+positionId: mg_c_incinerate
+name: "&b焼尽"
+icon: MAGMA_CREAM
+skillIds:
+  - mg_passive_incinerate
+tags:
+  - tier1
+  - mage
+  - gate
+  - passive

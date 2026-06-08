@@ -1,0 +1,16 @@
+schemaVersion: 1
+id: ht_i_precision
+positionId: ht_i_precision
+name: "&a射線維持"
+icon: ARROW
+statuses:
+  - status: DEXTERITY
+    type: FLAT
+    value: 3
+  - status: ACCURACY
+    type: FLAT
+    value: 4
+tags:
+  - tier1
+  - hunter
+  - status

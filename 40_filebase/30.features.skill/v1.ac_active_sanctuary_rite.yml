@@ -1,0 +1,29 @@
+schemaVersion: 1
+id: ac_active_sanctuary_rite
+type: SKILL
+implementationId: normal_attack
+name: "&eサンクチュアリライト"
+description: "&7聖域解放。"
+icon: TOTEM_OF_UNDYING
+cooldownTicks: 140
+manaCost: 16
+castTimeTicks: 0
+requiredLevel: 15
+params:
+  attackType: MAGIC
+  damageType: MAGIC
+  particle: TOTEM_OF_UNDYING
+  particleCount: 6
+  projectileSpeed: 0.95
+  hitRange: 9
+  hitRadius: 1
+  homingStrength: 0.16
+  homingRange: 4
+  trailParticleCount: 5
+  sound: item.totem.use
+tags:
+  - tier1
+  - acolyte
+  - active
+  - magic
+  - support

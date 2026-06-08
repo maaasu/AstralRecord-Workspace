@@ -1,0 +1,16 @@
+schemaVersion: 1
+id: sw_o_bulwark
+positionId: sw_o_bulwark
+name: "&f盾壁の鍛錬"
+icon: IRON_CHESTPLATE
+statuses:
+  - status: VITALITY
+    type: FLAT
+    value: 5
+  - status: DEFENSE
+    type: FLAT
+    value: 3
+tags:
+  - tier1
+  - swordsman
+  - status

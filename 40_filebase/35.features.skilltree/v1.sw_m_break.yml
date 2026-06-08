@@ -1,0 +1,11 @@
+schemaVersion: 1
+id: sw_m_break
+positionId: sw_m_break
+name: "&f破甲"
+icon: ANVIL
+skillIds:
+  - sw_passive_break
+tags:
+  - tier1
+  - swordsman
+  - passive

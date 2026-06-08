@@ -1,0 +1,25 @@
+schemaVersion: 1
+id: ac_passive_malice
+type: SKILL
+implementationId: status_passive
+name: "&e悪意流入"
+description: "&7呪圧補正。"
+icon: WITHER_ROSE
+cooldownTicks: 0
+manaCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+passive:
+  bindRequired: false
+params:
+  modifiers:
+    - status: MAGIC_ATTACK
+      type: FLAT
+      value: 4
+    - status: FINAL_DAMAGE_RATE
+      type: FLAT
+      value: 2
+tags:
+  - tier1
+  - acolyte
+  - passive

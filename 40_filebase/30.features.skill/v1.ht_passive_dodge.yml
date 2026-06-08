@@ -1,0 +1,25 @@
+schemaVersion: 1
+id: ht_passive_dodge
+type: SKILL
+implementationId: status_passive
+name: "&aすり抜け"
+description: "&7回避補正。"
+icon: FEATHER
+cooldownTicks: 0
+manaCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+passive:
+  bindRequired: false
+params:
+  modifiers:
+    - status: EVASION
+      type: FLAT
+      value: 4
+    - status: MOVEMENT_SPEED
+      type: FLAT
+      value: 3
+tags:
+  - tier1
+  - hunter
+  - passive

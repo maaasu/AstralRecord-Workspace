@@ -1,0 +1,25 @@
+schemaVersion: 1
+id: sw_passive_bloodrush
+type: SKILL
+implementationId: status_passive
+name: "&f血戦"
+description: "&7激戦補正。"
+icon: REDSTONE
+cooldownTicks: 0
+manaCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+passive:
+  bindRequired: false
+params:
+  modifiers:
+    - status: ATTACK_SPEED
+      type: FLAT
+      value: 10
+    - status: FINAL_DAMAGE_RATE
+      type: FLAT
+      value: 4
+tags:
+  - tier1
+  - swordsman
+  - passive

@@ -1,0 +1,25 @@
+schemaVersion: 1
+id: mg_passive_chain
+type: SKILL
+implementationId: status_passive
+name: "&b連鎖理論"
+description: "&7術式連鎖。"
+icon: CHAIN
+cooldownTicks: 0
+manaCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+passive:
+  bindRequired: false
+params:
+  modifiers:
+    - status: COOLDOWN_REDUCTION
+      type: FLAT
+      value: 2
+    - status: MAGIC_ATTACK
+      type: FLAT
+      value: 2
+tags:
+  - tier1
+  - mage
+  - passive

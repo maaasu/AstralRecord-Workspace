@@ -1,0 +1,25 @@
+schemaVersion: 1
+id: mg_passive_mana_well
+type: SKILL
+implementationId: status_passive
+name: "&b魔力井戸"
+description: "&7貯蔵拡張。"
+icon: WATER_BUCKET
+cooldownTicks: 0
+manaCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+passive:
+  bindRequired: false
+params:
+  modifiers:
+    - status: MAX_MANA
+      type: FLAT
+      value: 25
+    - status: MP_REGEN
+      type: FLAT
+      value: 2
+tags:
+  - tier1
+  - mage
+  - passive

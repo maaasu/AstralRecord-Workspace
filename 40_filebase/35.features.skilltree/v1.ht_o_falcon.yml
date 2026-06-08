@@ -1,0 +1,11 @@
+schemaVersion: 1
+id: ht_o_falcon
+positionId: ht_o_falcon
+name: "&a鷹の眼"
+icon: ENDER_EYE
+skillIds:
+  - ht_passive_falcon
+tags:
+  - tier1
+  - hunter
+  - passive

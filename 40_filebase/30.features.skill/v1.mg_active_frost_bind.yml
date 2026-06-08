@@ -1,0 +1,29 @@
+schemaVersion: 1
+id: mg_active_frost_bind
+type: SKILL
+implementationId: normal_attack
+name: "&bフロストバインド"
+description: "&7冷気束縛。"
+icon: SNOWBALL
+cooldownTicks: 80
+manaCost: 10
+castTimeTicks: 0
+requiredLevel: 6
+params:
+  attackType: MAGIC
+  damageType: MAGIC
+  particle: SNOWFLAKE
+  particleCount: 5
+  projectileSpeed: 0.85
+  hitRange: 8.5
+  hitRadius: 0.9
+  homingStrength: 0.14
+  homingRange: 4
+  trailParticleCount: 4
+  sound: block.glass.break
+tags:
+  - tier1
+  - mage
+  - active
+  - magic
+  - ice

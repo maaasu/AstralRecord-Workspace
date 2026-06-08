@@ -1,0 +1,25 @@
+schemaVersion: 1
+id: ac_passive_balance
+type: SKILL
+implementationId: status_passive
+name: "&e均衡"
+description: "&7耐久両立。"
+icon: AMETHYST_SHARD
+cooldownTicks: 0
+manaCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+passive:
+  bindRequired: false
+params:
+  modifiers:
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 10
+    - status: MAGIC_ATTACK
+      type: FLAT
+      value: 3
+tags:
+  - tier1
+  - acolyte
+  - passive

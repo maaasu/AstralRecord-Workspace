@@ -1,0 +1,28 @@
+schemaVersion: 1
+id: sw_active_cleave
+type: SKILL
+implementationId: normal_attack
+name: "&fクレイヴ"
+description: "&7近接薙ぎ払い。"
+icon: IRON_SWORD
+cooldownTicks: 20
+manaCost: 4
+castTimeTicks: 0
+requiredLevel: 1
+params:
+  attackType: MELEE
+  damageType: PHYSICAL
+  particle: SWEEP_ATTACK
+  particleCount: 4
+  forwardOffset: 0.9
+  hitRange: 3
+  hitRadius: 1
+  trailSteps: 2
+  trailStepDistance: 0.7
+  trailParticleCount: 2
+  sound: entity.player.attack.sweep
+tags:
+  - tier1
+  - swordsman
+  - active
+  - melee

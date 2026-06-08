@@ -1,0 +1,16 @@
+schemaVersion: 1
+id: ac_i_bless
+positionId: ac_i_bless
+name: "&e祝福の基礎"
+icon: GOLDEN_APPLE
+statuses:
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 10
+  - status: HP_REGEN
+    type: FLAT
+    value: 2
+tags:
+  - tier1
+  - acolyte
+  - status

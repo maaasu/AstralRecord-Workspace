@@ -1,0 +1,11 @@
+schemaVersion: 1
+id: ht_o_pierce
+positionId: ht_o_pierce
+name: "&a貫通狙い"
+icon: SPECTRAL_ARROW
+skillIds:
+  - ht_passive_pierce
+tags:
+  - tier1
+  - hunter
+  - passive

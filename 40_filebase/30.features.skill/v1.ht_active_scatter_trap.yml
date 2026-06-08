@@ -1,0 +1,26 @@
+schemaVersion: 1
+id: ht_active_scatter_trap
+type: SKILL
+implementationId: normal_attack
+name: "&aスキャッタートラップ"
+description: "&7散開射。"
+icon: TRIPWIRE_HOOK
+cooldownTicks: 100
+manaCost: 8
+castTimeTicks: 0
+requiredLevel: 6
+params:
+  attackType: RANGED
+  damageType: PHYSICAL
+  particle: SMOKE
+  particleCount: 3
+  projectileSpeed: 1
+  hitRange: 8
+  hitRadius: 1
+  trailParticleCount: 2
+  sound: block.tripwire.click_on
+tags:
+  - tier1
+  - hunter
+  - active
+  - ranged

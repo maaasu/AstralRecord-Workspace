@@ -1,0 +1,11 @@
+schemaVersion: 1
+id: ht_m_dodge
+positionId: ht_m_dodge
+name: "&aすり抜け"
+icon: FEATHER
+skillIds:
+  - ht_passive_dodge
+tags:
+  - tier1
+  - hunter
+  - passive

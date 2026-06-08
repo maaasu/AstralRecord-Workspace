@@ -1,0 +1,29 @@
+schemaVersion: 1
+id: ac_active_healing_echo
+type: SKILL
+implementationId: normal_attack
+name: "&eヒーリングエコー"
+description: "&7加護反響。"
+icon: GHAST_TEAR
+cooldownTicks: 70
+manaCost: 8
+castTimeTicks: 0
+requiredLevel: 3
+params:
+  attackType: MAGIC
+  damageType: MAGIC
+  particle: HEART
+  particleCount: 4
+  projectileSpeed: 0.85
+  hitRange: 7.5
+  hitRadius: 0.9
+  homingStrength: 0.18
+  homingRange: 4.5
+  trailParticleCount: 3
+  sound: entity.allay.item_given
+tags:
+  - tier1
+  - acolyte
+  - active
+  - magic
+  - support

@@ -1,0 +1,25 @@
+schemaVersion: 1
+id: mg_passive_blade_aura
+type: SKILL
+implementationId: status_passive
+name: "&b魔刃循環"
+description: "&7近魔両立。"
+icon: IRON_SWORD
+cooldownTicks: 0
+manaCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+passive:
+  bindRequired: false
+params:
+  modifiers:
+    - status: MELEE_ATTACK
+      type: FLAT
+      value: 4
+    - status: MAGIC_ATTACK
+      type: FLAT
+      value: 3
+tags:
+  - tier1
+  - mage
+  - passive

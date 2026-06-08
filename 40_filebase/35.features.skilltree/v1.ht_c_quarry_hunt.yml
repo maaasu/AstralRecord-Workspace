@@ -1,0 +1,17 @@
+schemaVersion: 1
+id: ht_c_quarry_hunt
+positionId: ht_c_quarry_hunt
+name: "&a獲物追跡"
+icon: COMPASS
+statuses:
+  - status: AGILITY
+    type: FLAT
+    value: 5
+  - status: FINAL_DAMAGE_RATE
+    type: FLAT
+    value: 3
+tags:
+  - tier1
+  - hunter
+  - gate
+  - status

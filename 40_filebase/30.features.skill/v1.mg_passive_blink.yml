@@ -1,0 +1,25 @@
+schemaVersion: 1
+id: mg_passive_blink
+type: SKILL
+implementationId: status_passive
+name: "&b位相移動"
+description: "&7転位補正。"
+icon: ENDER_PEARL
+cooldownTicks: 0
+manaCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+passive:
+  bindRequired: false
+params:
+  modifiers:
+    - status: MOVEMENT_SPEED
+      type: FLAT
+      value: 3
+    - status: MAGIC_ATTACK
+      type: FLAT
+      value: 2
+tags:
+  - tier1
+  - mage
+  - passive

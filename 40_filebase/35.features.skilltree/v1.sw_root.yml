@@ -1,0 +1,16 @@
+schemaVersion: 1
+id: sw_root
+positionId: sw_root
+name: "&fソードマンの心得"
+icon: IRON_SWORD
+statuses:
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 10
+  - status: ATTACK
+    type: FLAT
+    value: 2
+tags:
+  - tier1
+  - swordsman
+  - status

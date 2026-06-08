@@ -1,0 +1,28 @@
+schemaVersion: 1
+id: mg_active_mana_burst
+type: SKILL
+implementationId: normal_attack
+name: "&bマナバースト"
+description: "&7瞬間解放。"
+icon: AMETHYST_SHARD
+cooldownTicks: 120
+manaCost: 14
+castTimeTicks: 0
+requiredLevel: 9
+params:
+  attackType: MAGIC
+  damageType: MAGIC
+  particle: ENCHANT
+  particleCount: 5
+  projectileSpeed: 0.95
+  hitRange: 7.5
+  hitRadius: 1
+  homingStrength: 0.18
+  homingRange: 4
+  trailParticleCount: 5
+  sound: entity.illusioner.cast_spell
+tags:
+  - tier1
+  - mage
+  - active
+  - magic

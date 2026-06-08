@@ -1,0 +1,16 @@
+schemaVersion: 1
+id: mg_root
+positionId: mg_root
+name: "&bメイジの心得"
+icon: BLAZE_ROD
+statuses:
+  - status: INTELLIGENCE
+    type: FLAT
+    value: 3
+  - status: MAX_MANA
+    type: FLAT
+    value: 10
+tags:
+  - tier1
+  - mage
+  - status

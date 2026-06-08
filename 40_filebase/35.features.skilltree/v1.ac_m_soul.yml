@@ -1,0 +1,11 @@
+schemaVersion: 1
+id: ac_m_soul
+positionId: ac_m_soul
+name: "&e霊脈"
+icon: LAPIS_LAZULI
+skillIds:
+  - ac_passive_soul
+tags:
+  - tier1
+  - acolyte
+  - passive

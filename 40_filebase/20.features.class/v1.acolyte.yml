@@ -1,0 +1,73 @@
+schemaVersion: 1
+id: acolyte
+type: CLASS
+name: "&eアコライト"
+description: "&7支援呪術師。"
+icon: TOTEM_OF_UNDYING
+role: SUPPORT
+unlockLevel: 1
+baseStats:
+  - status: MAX_HEALTH
+    value: 95
+  - status: MAX_MANA
+    value: 90
+  - status: MAX_ENERGY
+    value: 90
+  - status: STRENGTH
+    value: 3
+  - status: DEXTERITY
+    value: 4
+  - status: INTELLIGENCE
+    value: 8
+  - status: VITALITY
+    value: 6
+  - status: AGILITY
+    value: 4
+  - status: LUCK
+    value: 5
+  - status: ATTACK
+    value: 5
+  - status: DEFENSE
+    value: 4
+  - status: MAGIC_DEFENSE
+    value: 8
+  - status: MOVEMENT_SPEED
+    value: 100
+growthPerLevel:
+  - status: MAX_HEALTH
+    value: 5
+  - status: MAX_MANA
+    value: 5
+  - status: MAX_ENERGY
+    value: 1
+  - status: INTELLIGENCE
+    value: 1
+  - status: VITALITY
+    value: 0.7
+  - status: LUCK
+    value: 0.5
+  - status: MAGIC_DEFENSE
+    value: 0.9
+  - status: HP_REGEN
+    value: 0.2
+  - status: MP_REGEN
+    value: 0.2
+expRate: 100
+starterSkills:
+  - ac_active_smite
+levelSkills:
+  - level: 3
+    skill: ac_active_healing_echo
+  - level: 6
+    skill: ac_active_ward_circle
+  - level: 9
+    skill: ac_active_weakness_seal
+  - level: 12
+    skill: ac_active_soul_chain
+  - level: 15
+    skill: ac_active_sanctuary_rite
+tags:
+  - tier1
+  - support
+  - magic
+  - focus

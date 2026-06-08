@@ -1,0 +1,12 @@
+schemaVersion: 1
+id: ac_c_grace_aura
+positionId: ac_c_grace_aura
+name: "&e恩寵の気配"
+icon: TOTEM_OF_UNDYING
+skillIds:
+  - ac_passive_grace_aura
+tags:
+  - tier1
+  - acolyte
+  - gate
+  - passive

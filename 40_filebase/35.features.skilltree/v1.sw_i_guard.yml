@@ -1,0 +1,16 @@
+schemaVersion: 1
+id: sw_i_guard
+positionId: sw_i_guard
+name: "&f守勢の構え"
+icon: SHIELD
+statuses:
+  - status: MAX_HEALTH
+    type: FLAT
+    value: 10
+  - status: DEFENSE
+    type: FLAT
+    value: 3
+tags:
+  - tier1
+  - swordsman
+  - status

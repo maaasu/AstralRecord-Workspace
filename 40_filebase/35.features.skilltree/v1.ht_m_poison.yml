@@ -1,0 +1,11 @@
+schemaVersion: 1
+id: ht_m_poison
+positionId: ht_m_poison
+name: "&a毒手"
+icon: SPIDER_EYE
+skillIds:
+  - ht_passive_poison
+tags:
+  - tier1
+  - hunter
+  - passive

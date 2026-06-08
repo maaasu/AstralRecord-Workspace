@@ -1,0 +1,11 @@
+schemaVersion: 1
+id: sw_m_wall
+positionId: sw_m_wall
+name: "&f鉄壁"
+icon: IRON_BLOCK
+skillIds:
+  - sw_passive_wall
+tags:
+  - tier1
+  - swordsman
+  - passive

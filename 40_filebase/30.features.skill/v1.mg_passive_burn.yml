@@ -1,0 +1,25 @@
+schemaVersion: 1
+id: mg_passive_burn
+type: SKILL
+implementationId: status_passive
+name: "&b燃焼偏向"
+description: "&7炎火力補正。"
+icon: BLAZE_POWDER
+cooldownTicks: 0
+manaCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+passive:
+  bindRequired: false
+params:
+  modifiers:
+    - status: MAGIC_ATTACK
+      type: FLAT
+      value: 4
+    - status: FINAL_DAMAGE_RATE
+      type: FLAT
+      value: 2
+tags:
+  - tier1
+  - mage
+  - passive

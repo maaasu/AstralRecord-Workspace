@@ -1,0 +1,17 @@
+schemaVersion: 1
+id: mg_c_overflow
+positionId: mg_c_overflow
+name: "&b魔力越流"
+icon: LAPIS_BLOCK
+statuses:
+  - status: MAX_MANA
+    type: FLAT
+    value: 25
+  - status: COOLDOWN_REDUCTION
+    type: FLAT
+    value: 3
+tags:
+  - tier1
+  - mage
+  - gate
+  - status

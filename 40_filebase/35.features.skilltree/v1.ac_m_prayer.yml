@@ -1,0 +1,11 @@
+schemaVersion: 1
+id: ac_m_prayer
+positionId: ac_m_prayer
+name: "&e祈り"
+icon: BREAD
+skillIds:
+  - ac_passive_prayer
+tags:
+  - tier1
+  - acolyte
+  - passive

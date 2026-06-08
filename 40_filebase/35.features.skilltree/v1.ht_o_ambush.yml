@@ -1,0 +1,11 @@
+schemaVersion: 1
+id: ht_o_ambush
+positionId: ht_o_ambush
+name: "&a待ち伏せ"
+icon: FERMENTED_SPIDER_EYE
+skillIds:
+  - ht_passive_ambush
+tags:
+  - tier1
+  - hunter
+  - passive

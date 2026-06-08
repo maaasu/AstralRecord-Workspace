@@ -1,0 +1,17 @@
+schemaVersion: 1
+id: ac_c_sacred_rite
+positionId: ac_c_sacred_rite
+name: "&e聖律"
+icon: ENCHANTED_BOOK
+statuses:
+  - status: MP_REGEN
+    type: FLAT
+    value: 4
+  - status: COOLDOWN_REDUCTION
+    type: FLAT
+    value: 3
+tags:
+  - tier1
+  - acolyte
+  - gate
+  - status

@@ -1,0 +1,11 @@
+schemaVersion: 1
+id: mg_m_burn
+positionId: mg_m_burn
+name: "&b燃焼偏向"
+icon: BLAZE_POWDER
+skillIds:
+  - mg_passive_burn
+tags:
+  - tier1
+  - mage
+  - passive

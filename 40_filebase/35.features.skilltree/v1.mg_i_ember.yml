@@ -1,0 +1,16 @@
+schemaVersion: 1
+id: mg_i_ember
+positionId: mg_i_ember
+name: "&b炎の基礎"
+icon: BLAZE_POWDER
+statuses:
+  - status: INTELLIGENCE
+    type: FLAT
+    value: 3
+  - status: MAGIC_ATTACK
+    type: FLAT
+    value: 3
+tags:
+  - tier1
+  - mage
+  - status

@@ -1,0 +1,25 @@
+schemaVersion: 1
+id: mg_passive_freeze_field
+type: SKILL
+implementationId: status_passive
+name: "&b凍結領域"
+description: "&7氷制圧。"
+icon: PACKED_ICE
+cooldownTicks: 0
+manaCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+passive:
+  bindRequired: false
+params:
+  modifiers:
+    - status: MAGIC_DEFENSE
+      type: FLAT
+      value: 5
+    - status: COOLDOWN_REDUCTION
+      type: FLAT
+      value: 2
+tags:
+  - tier1
+  - mage
+  - passive

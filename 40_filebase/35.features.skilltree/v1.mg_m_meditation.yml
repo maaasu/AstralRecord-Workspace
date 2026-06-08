@@ -1,0 +1,11 @@
+schemaVersion: 1
+id: mg_m_meditation
+positionId: mg_m_meditation
+name: "&b瞑想"
+icon: BOOK
+skillIds:
+  - mg_passive_meditation
+tags:
+  - tier1
+  - mage
+  - passive

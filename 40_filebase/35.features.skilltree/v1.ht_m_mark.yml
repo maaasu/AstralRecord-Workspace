@@ -1,0 +1,11 @@
+schemaVersion: 1
+id: ht_m_mark
+positionId: ht_m_mark
+name: "&a定点把握"
+icon: SPYGLASS
+skillIds:
+  - ht_passive_mark
+tags:
+  - tier1
+  - hunter
+  - passive

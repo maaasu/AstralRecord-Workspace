@@ -1,0 +1,25 @@
+schemaVersion: 1
+id: sw_passive_iron_body
+type: SKILL
+implementationId: status_passive
+name: "&f鉄身"
+description: "&7全身強化。"
+icon: IRON_CHESTPLATE
+cooldownTicks: 0
+manaCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+passive:
+  bindRequired: false
+params:
+  modifiers:
+    - status: DEFENSE
+      type: FLAT
+      value: 5
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 20
+tags:
+  - tier1
+  - swordsman
+  - passive

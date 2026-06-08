@@ -1,0 +1,27 @@
+schemaVersion: 1
+id: sw_active_guard_break
+type: SKILL
+implementationId: normal_attack
+name: "&fガードブレイク"
+description: "&7重い一撃。"
+icon: SHIELD
+cooldownTicks: 60
+manaCost: 6
+castTimeTicks: 0
+requiredLevel: 3
+params:
+  attackType: MELEE
+  damageType: PHYSICAL
+  particle: CRIT
+  particleCount: 8
+  forwardOffset: 1
+  hitRange: 2.8
+  hitRadius: 0.95
+  trailSteps: 1
+  trailParticleCount: 3
+  sound: item.shield.break
+tags:
+  - tier1
+  - swordsman
+  - active
+  - melee

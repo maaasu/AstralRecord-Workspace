@@ -1,0 +1,16 @@
+schemaVersion: 1
+id: mg_o_fire_lance
+positionId: mg_o_fire_lance
+name: "&b炎槍感覚"
+icon: BLAZE_ROD
+statuses:
+  - status: MAGIC_ATTACK
+    type: FLAT
+    value: 4
+  - status: FINAL_DAMAGE_RATE
+    type: FLAT
+    value: 3
+tags:
+  - tier1
+  - mage
+  - status

@@ -1,0 +1,26 @@
+schemaVersion: 1
+id: ht_active_mark_prey
+type: SKILL
+implementationId: normal_attack
+name: "&aマークプレイ"
+description: "&7狙撃。"
+icon: SPYGLASS
+cooldownTicks: 80
+manaCost: 6
+castTimeTicks: 0
+requiredLevel: 3
+params:
+  attackType: RANGED
+  damageType: PHYSICAL
+  particle: GLOW
+  particleCount: 2
+  projectileSpeed: 1.15
+  hitRange: 9
+  hitRadius: 0.8
+  trailParticleCount: 2
+  sound: entity.arrow.shoot
+tags:
+  - tier1
+  - hunter
+  - active
+  - ranged

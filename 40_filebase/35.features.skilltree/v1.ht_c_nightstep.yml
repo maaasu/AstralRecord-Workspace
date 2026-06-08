@@ -1,0 +1,12 @@
+schemaVersion: 1
+id: ht_c_nightstep
+positionId: ht_c_nightstep
+name: "&a夜歩"
+icon: BLACK_DYE
+skillIds:
+  - ht_passive_nightstep
+tags:
+  - tier1
+  - hunter
+  - gate
+  - passive

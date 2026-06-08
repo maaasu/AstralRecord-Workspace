@@ -1,0 +1,16 @@
+schemaVersion: 1
+id: mg_i_arcane
+positionId: mg_i_arcane
+name: "&b魔力循環"
+icon: BOOK
+statuses:
+  - status: MAX_MANA
+    type: FLAT
+    value: 15
+  - status: MP_REGEN
+    type: FLAT
+    value: 2
+tags:
+  - tier1
+  - mage
+  - status
