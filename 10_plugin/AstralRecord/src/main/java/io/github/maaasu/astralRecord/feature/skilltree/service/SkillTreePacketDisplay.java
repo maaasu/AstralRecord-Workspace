@@ -8,6 +8,7 @@ import com.comphenix.protocol.wrappers.WrappedBlockData;
 import com.comphenix.protocol.wrappers.WrappedChatComponent;
 import com.comphenix.protocol.wrappers.WrappedDataValue;
 import com.comphenix.protocol.wrappers.WrappedDataWatcher;
+import com.comphenix.protocol.wrappers.Vector3F;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import net.kyori.adventure.text.Component;
@@ -148,8 +149,8 @@ final class SkillTreePacketDisplay {
         values.add(value(DISPLAY_INTERPOLATION_START_INDEX, serializer(Integer.class), 0));
         values.add(value(DISPLAY_INTERPOLATION_DURATION_INDEX, serializer(Integer.class), 0));
         values.add(value(DISPLAY_POSITION_ROTATION_DURATION_INDEX, serializer(Integer.class), 0));
-        values.add(value(DISPLAY_TRANSLATION_INDEX, serializer(Vector3f.class), translation));
-        values.add(value(DISPLAY_SCALE_INDEX, serializer(Vector3f.class), scale));
+        values.add(value(DISPLAY_TRANSLATION_INDEX, WrappedDataWatcher.Registry.getVectorSerializer(), vector(translation)));
+        values.add(value(DISPLAY_SCALE_INDEX, WrappedDataWatcher.Registry.getVectorSerializer(), vector(scale)));
         values.add(value(DISPLAY_LEFT_ROTATION_INDEX, serializer(Quaternionf.class), leftRotation));
         values.add(value(DISPLAY_RIGHT_ROTATION_INDEX, serializer(Quaternionf.class), new Quaternionf()));
         values.add(value(DISPLAY_BILLBOARD_INDEX, serializer(Byte.class), (byte) billboard.ordinal()));
@@ -177,6 +178,10 @@ final class SkillTreePacketDisplay {
 
     private WrappedDataWatcher.Serializer serializer(Type type) {
         return WrappedDataWatcher.Registry.get(type);
+    }
+
+    private Vector3F vector(Vector3f value) {
+        return new Vector3F(value.x, value.y, value.z);
     }
 
     private void send(Player player, PacketContainer packet) {
