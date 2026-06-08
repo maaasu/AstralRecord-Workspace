@@ -35,39 +35,39 @@ public final class SharedParticleDefinitions {
     public static final SharedParticleDefinition WORLD_SPAWN_RING_END_ROD =
         new SharedParticleDefinition("world_spawn_ring_end_rod", Particle.END_ROD, 1, 0.0D, 0.0D, 0.0D, 0.0D);
     public static final SharedParticleDefinition SKILLTREE_TARGET_ENCHANT =
-        new SharedParticleDefinition("skilltree_target_enchant", Particle.ENCHANT, 5, 0.18D, 0.18D, 0.18D, 0.02D);
+        new SharedParticleDefinition("skilltree_target_enchant", Particle.ENCHANT, 2, 0.10D, 0.10D, 0.10D, 0.01D);
     public static final SharedParticleDefinition SKILLTREE_TARGET_LOCKED_DUST =
         new SharedParticleDefinition(
             "skilltree_target_locked_dust",
             Particle.DUST,
-            4,
-            0.05D,
-            0.05D,
-            0.05D,
+            2,
+            0.03D,
+            0.03D,
+            0.03D,
             0.0D,
-            new Particle.DustOptions(Color.fromRGB(180, 235, 255), 1.1F)
+            new Particle.DustOptions(Color.fromRGB(180, 235, 255), 0.7F)
         );
     public static final SharedParticleDefinition SKILLTREE_TARGET_UNLOCKED_DUST =
         new SharedParticleDefinition(
             "skilltree_target_unlocked_dust",
             Particle.DUST,
-            5,
-            0.05D,
-            0.05D,
-            0.05D,
+            2,
+            0.03D,
+            0.03D,
+            0.03D,
             0.0D,
-            new Particle.DustOptions(Color.fromRGB(255, 214, 92), 1.2F)
+            new Particle.DustOptions(Color.fromRGB(255, 214, 92), 0.78F)
         );
     public static final SharedParticleDefinition SKILLTREE_TARGET_DENIED_DUST =
         new SharedParticleDefinition(
             "skilltree_target_denied_dust",
             Particle.DUST,
-            4,
-            0.05D,
-            0.05D,
-            0.05D,
+            2,
+            0.03D,
+            0.03D,
+            0.03D,
             0.0D,
-            new Particle.DustOptions(Color.fromRGB(255, 120, 120), 1.05F)
+            new Particle.DustOptions(Color.fromRGB(255, 120, 120), 0.68F)
         );
     public static final SharedParticleDefinition MAGIC_PROJECTILE_CORE_DUST =
         new SharedParticleDefinition(

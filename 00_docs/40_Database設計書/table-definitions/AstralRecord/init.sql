@@ -223,6 +223,70 @@ CREATE NONCLUSTERED INDEX [IX_skill_bind_preset_is_deleted]
 GO
 
 -- ============================================================
+-- AstralRecord\dbo.account_skilltree_state.md
+-- ============================================================
+
+CREATE TABLE [dbo].[account_skilltree_state] (
+    [account_skilltree_state_id] UNIQUEIDENTIFIER NOT NULL,
+    [account_id]                 UNIQUEIDENTIFIER NOT NULL,
+    [skill_points]               INT              NOT NULL CONSTRAINT [DF_account_skilltree_state_skill_points] DEFAULT (0),
+    [version]                    INT              NOT NULL CONSTRAINT [DF_account_skilltree_state_version] DEFAULT (1),
+    [created_at]                 DATETIME2(3)     NOT NULL,
+    [updated_at]                 DATETIME2(3)     NOT NULL,
+    [created_by]                 UNIQUEIDENTIFIER NOT NULL,
+    [updated_by]                 UNIQUEIDENTIFIER NOT NULL,
+    [is_deleted]                 BIT              NOT NULL CONSTRAINT [DF_account_skilltree_state_is_deleted] DEFAULT (0),
+
+    CONSTRAINT [PK_account_skilltree_state] PRIMARY KEY CLUSTERED ([account_skilltree_state_id]),
+    CONSTRAINT [FK_account_skilltree_state_account] FOREIGN KEY ([account_id])
+        REFERENCES [dbo].[account] ([uuid])
+        ON DELETE NO ACTION
+        ON UPDATE NO ACTION,
+    CONSTRAINT [CK_account_skilltree_state_skill_points] CHECK ([skill_points] >= 0),
+    CONSTRAINT [CK_account_skilltree_state_version] CHECK ([version] >= 1)
+);
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [UX_account_skilltree_state_account]
+    ON [dbo].[account_skilltree_state] ([account_id])
+    WHERE [is_deleted] = 0;
+GO
+
+CREATE NONCLUSTERED INDEX [IX_account_skilltree_state_is_deleted]
+    ON [dbo].[account_skilltree_state] ([is_deleted]);
+GO
+
+-- ============================================================
+-- AstralRecord\dbo.account_skilltree_unlocked_node.md
+-- ============================================================
+
+CREATE TABLE [dbo].[account_skilltree_unlocked_node] (
+    [account_skilltree_unlocked_node_id] UNIQUEIDENTIFIER NOT NULL,
+    [account_skilltree_state_id]         UNIQUEIDENTIFIER NOT NULL,
+    [node_id]                            NVARCHAR(100)    NOT NULL,
+    [created_at]                         DATETIME2(3)     NOT NULL,
+    [updated_at]                         DATETIME2(3)     NOT NULL,
+    [created_by]                         UNIQUEIDENTIFIER NOT NULL,
+    [updated_by]                         UNIQUEIDENTIFIER NOT NULL,
+
+    CONSTRAINT [PK_account_skilltree_unlocked_node] PRIMARY KEY CLUSTERED ([account_skilltree_unlocked_node_id]),
+    CONSTRAINT [FK_account_skilltree_unlocked_node_state] FOREIGN KEY ([account_skilltree_state_id])
+        REFERENCES [dbo].[account_skilltree_state] ([account_skilltree_state_id])
+        ON DELETE CASCADE
+        ON UPDATE NO ACTION,
+    CONSTRAINT [CK_account_skilltree_unlocked_node_node_id_not_blank] CHECK (LEN(LTRIM(RTRIM([node_id]))) > 0)
+);
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [UX_account_skilltree_unlocked_node_state_node]
+    ON [dbo].[account_skilltree_unlocked_node] ([account_skilltree_state_id], [node_id]);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_account_skilltree_unlocked_node_node_id]
+    ON [dbo].[account_skilltree_unlocked_node] ([node_id]);
+GO
+
+-- ============================================================
 -- AstralRecord\dbo.inventory.md
 -- ============================================================
 

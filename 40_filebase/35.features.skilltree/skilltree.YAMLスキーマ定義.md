@@ -1,37 +1,51 @@
 # SkillTree YAML スキーマ定義
 
 `40_filebase/35.features.skilltree/*.yml` に配置するスキルツリーノード定義の schema です。
+ノードごとに次の 2 系統の効果を持てます。
 
-ノードは次の 2 種類の効果を持てます。
+- `skillIds`: ノード解放時にプレイヤーが恒常的に得るスキル
+- `statuses`: ノード解放時に永続プレイヤーへ付与されるステータス
 
-- `skillIds`: ノード解放時にプレイヤーが所持扱いになるスキル
-- `statuses`: ノード解放時に直接プレイヤーへ加算されるステータス
+進行データの責務:
 
-両方を同時に定義することも可能です。
+- プレイヤー単位の動的進行状態（`skillPoints`、解放済み `nodeId` 一覧）は plugin ローカル YAML には保持せず、`account-skilltree` API と AstralRecord DB を正本とする
+- `positionId` の参照先である `skilltree_structure.yml` は `skill_tree` ワールド上の座標配置を表す plugin データファイルであり、サーバローカルで管理する
 
-## 項目
+`skilltree_structure.yml` の契約:
+
+- 配置場所: plugin data folder 直下の `skilltree_structure.yml`
+- 管理対象: `positions[]` と `edges[]`
+- `positions[]`: `{ id, world, x, y, z }`
+- `edges[]`: `{ left, right }`
+- 用途: filebase ノード定義の `positionId` と、Purpur サーバ上の `skill_tree` ワールド座標を結び付ける
+- 非対象: プレイヤーごとの解放状態、スキルポイント、監査履歴
+
+仕様を簡潔に先に整理すると次のようになります。
+
+## 概要
 
 | キー | 型 | 必須 | 既定値 | 説明 |
 | --- | --- | --- | --- | --- |
 | `schemaVersion` | Integer | 必須 | - | 現在は `1` |
-| `id` | String | 必須 | - | ノード ID |
+| `id` | String | 必須 | - | ノードID |
 | `positionId` | String | 必須 | - | `skilltree_structure.yml` の position ID |
 | `name` | String | 必須 | - | 表示名 |
 | `icon` | String | 任意 | `NETHER_STAR` | Material 名 |
 | `lore` | List<String> | 任意 | `[]` | ノード説明 |
 | `tags` | List<String> | 任意 | `[]` | 任意タグ |
-| `skillIds` | List<String> | 任意 | `[]` | 解放時に所持扱いになるスキル ID 一覧 |
-| `statuses` | List<Map> | 任意 | `[]` | 解放時に直接加算するステータス一覧 |
+| `skillIds` | List<String> | 任意 | `[]` | 解放時に得るスキル ID 一覧 |
+| `statuses` | List<Map> | 任意 | `[]` | 解放時に付与するステータス一覧 |
 | `statuses[].status` | String | 必須 | - | `StatusType` 名 |
 | `statuses[].type` | String | 任意 | `FLAT` | `FLAT` または `SCALAR` |
-| `statuses[].value` | Number | 必須 | - | 加算値。`SCALAR` の場合は `0.10 = 10%` |
+| `statuses[].value` | Number | 必須 | - | 付与値。`SCALAR` の場合は `0.10 = 10%` |
 
 ## 補足
 
-- `skillIds` に含まれるスキルがパッシブで `passive.bindRequired: false` の場合、ノード解放だけで常時有効になります。
-- `skillIds` に含まれるスキルがパッシブで `passive.bindRequired: true` の場合、ノード解放後にパッシブスロットへ設定した時だけ有効になります。
-- `statuses` はパッシブスキルを経由せず、ノード解放状態から直接プレイヤーステータスへ反映されます。
-- `statuses.type` は schema 上は省略可能で、未指定時は `FLAT` として扱います。
+- `positionId` は filebase node 定義と、サーバローカル `skilltree_structure.yml` の位置定義をつなぐキーである
+- `skillIds` に含まれるスキルがパッシブで `passive.bindRequired: false` の場合、ノード解放だけで恒常効果になる
+- `skillIds` に含まれるスキルがパッシブで `passive.bindRequired: true` の場合、ノード解放後にパッシブスロットへ設定された時だけ効果になる
+- `statuses` はパッシブスキルを実装せず、ノード解放状態から直接プレイヤーステータスへ反映される
+- `statuses.type` は schema 上の受理値で、実装時は `FLAT` として扱います
 
 ## 例
 
@@ -41,7 +55,7 @@
 schemaVersion: 1
 id: starter_power
 positionId: root_001
-name: "&f初歩の覚醒"
+name: "&f始まりの力"
 icon: IRON_SWORD
 lore:
   - "&7スキルツリーの最初のノード。"
@@ -71,13 +85,13 @@ tags:
   - status
 ```
 
-### 複合ノード
+### 混合ノード
 
 ```yaml
 schemaVersion: 1
 id: hybrid_guard
 positionId: mid_010
-name: "&b護りの心得"
+name: "&b守りの構え"
 icon: SHIELD
 skillIds:
   - iron_will

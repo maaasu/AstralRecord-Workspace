@@ -1,63 +1,97 @@
 package io.github.maaasu.astralRecord.feature.skilltree.repository;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePlayerState;
-import org.bukkit.configuration.file.YamlConfiguration;
+import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
 import java.io.IOException;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
 
 /**
- * プレイヤー別のスキルツリー状態を plugin data に保存するリポジトリです。
+ * プレイヤー単位のスキルツリー進行を AstralRecord API 経由で永続化する repository です。
  */
 public class SkillTreePlayerStateRepository {
-    private static final String FILE_NAME = "skilltree_players.yml";
-
-    private final Plugin plugin;
-
     public SkillTreePlayerStateRepository(@NotNull Plugin plugin) {
-        this.plugin = plugin;
     }
 
     @NotNull
     public SkillTreePlayerState load(@NotNull UUID accountId) {
-        YamlConfiguration yaml = loadYaml();
-        String path = "accounts." + accountId;
-        return new SkillTreePlayerState(
-                accountId,
-                yaml.getInt(path + ".skillPoints", 0),
-                new LinkedHashSet<>(yaml.getStringList(path + ".unlockedNodes"))
-        );
+        String path = "/api/account-skilltree/" + accountId;
+        try {
+            try (var client = ApiRequestUtil.buildClient()) {
+                HttpRequest request = ApiRequestUtil.buildRequestBuilder(path)
+                        .GET()
+                        .build();
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                return switch (response.statusCode()) {
+                    case 200 -> parse(accountId, JsonParser.parseString(response.body()).getAsJsonObject());
+                    case 404 -> new SkillTreePlayerState(accountId, 0, Set.of());
+                    default -> throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
+                };
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void save(@NotNull SkillTreePlayerState state) {
-        YamlConfiguration yaml = loadYaml();
-        String path = "accounts." + state.accountId();
-        yaml.set(path + ".skillPoints", state.skillPoints());
-        yaml.set(path + ".unlockedNodes", state.unlockedNodeIds().stream().sorted().toList());
-        File file = file();
-        File parent = file.getParentFile();
-        if (parent != null && !parent.exists()) {
-            parent.mkdirs();
-        }
+        String path = "/api/account-skilltree/" + state.accountId();
+        JsonObject body = new JsonObject();
+        body.addProperty("skillPoints", state.skillPoints());
+        JsonArray unlockedNodeIds = new JsonArray();
+        state.unlockedNodeIds().stream()
+                .sorted()
+                .forEach(unlockedNodeIds::add);
+        body.add("unlockedNodeIds", unlockedNodeIds);
+        body.addProperty("updatedBy", state.accountId().toString());
         try {
-            yaml.save(file);
-        } catch (IOException ignored) {
+            try (var client = ApiRequestUtil.buildClient()) {
+                HttpRequest request = ApiRequestUtil.buildRequestBuilder(path)
+                        .PUT(HttpRequest.BodyPublishers.ofString(body.toString()))
+                        .build();
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() != 200) {
+                    throw new IOException("Unexpected status " + response.statusCode() + " for PUT " + path);
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
     @NotNull
-    private YamlConfiguration loadYaml() {
-        File file = file();
-        return file.exists() ? YamlConfiguration.loadConfiguration(file) : new YamlConfiguration();
-    }
-
-    @NotNull
-    private File file() {
-        return new File(plugin.getDataFolder(), FILE_NAME);
+    private SkillTreePlayerState parse(@NotNull UUID fallbackAccountId, @NotNull JsonObject obj) {
+        UUID accountId = obj.has("accountId") && !obj.get("accountId").isJsonNull()
+                ? UUID.fromString(obj.get("accountId").getAsString())
+                : fallbackAccountId;
+        int skillPoints = obj.has("skillPoints") && !obj.get("skillPoints").isJsonNull()
+                ? obj.get("skillPoints").getAsInt()
+                : 0;
+        Set<String> unlockedNodeIds = new LinkedHashSet<>();
+        if (obj.has("unlockedNodeIds") && obj.get("unlockedNodeIds").isJsonArray()) {
+            for (var element : obj.getAsJsonArray("unlockedNodeIds")) {
+                if (element != null && !element.isJsonNull()) {
+                    String nodeId = element.getAsString().trim();
+                    if (!nodeId.isEmpty()) {
+                        unlockedNodeIds.add(nodeId);
+                    }
+                }
+            }
+        }
+        return new SkillTreePlayerState(accountId, skillPoints, unlockedNodeIds);
     }
 }

@@ -225,6 +225,8 @@ public class EquipmentServiceTests
                 is_active INTEGER NOT NULL,
                 mode INTEGER NOT NULL,
                 menu_shortcuts_json TEXT NOT NULL,
+                level INTEGER NOT NULL,
+                total_experience INTEGER NOT NULL,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
                 created_by TEXT NOT NULL,

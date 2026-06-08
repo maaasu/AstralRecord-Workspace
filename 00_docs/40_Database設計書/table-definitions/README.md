@@ -27,6 +27,9 @@
 | `dbo.player_mail_state` | `AstralRecord/dbo.player_mail_state.md` |
 | `dbo.account_mob_record` | `AstralRecord/dbo.account_mob_record.md` |
 | `dbo.account` | `AstralRecord/dbo.account.md` |
+| `dbo.account_skilltree_state` | `AstralRecord/dbo.account_skilltree_state.md` |
+| `dbo.account_skilltree_unlocked_node` | `AstralRecord/dbo.account_skilltree_unlocked_node.md` |
+| `dbo.skill_bind_preset` | `AstralRecord/dbo.skill_bind_preset.md` |
 | `dbo.inventory` | `AstralRecord/dbo.inventory.md` |
 | `dbo.inventory_entry` | `AstralRecord/dbo.inventory_entry.md` |
 | `dbo.equipment_instance` | `AstralRecord/dbo.equipment_instance.md` |

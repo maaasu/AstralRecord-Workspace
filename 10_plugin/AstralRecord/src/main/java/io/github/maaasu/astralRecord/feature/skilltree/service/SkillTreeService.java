@@ -84,8 +84,8 @@ public class SkillTreeService {
     private static final int HOTBAR_RETURN_SLOT = 8;
     private static final double TARGET_DISTANCE = 8.0D;
     private static final double TARGET_RADIUS_SQ = 0.9D * 0.9D;
-    private static final double TARGET_HIGHLIGHT_RADIUS = 0.46D;
-    private static final double TARGET_HIGHLIGHT_Y = 0.54D;
+    private static final double TARGET_HIGHLIGHT_RADIUS = 0.30D;
+    private static final double TARGET_HIGHLIGHT_Y = 0.46D;
     private static final long SAVE_INTERVAL_TICKS = 20L * 60L;
     private static final long VISUAL_DELAY_MILLIS = 3_000L;
 
@@ -1079,11 +1079,11 @@ public class SkillTreeService {
     ) {
         long step = System.currentTimeMillis() / 150L;
         double baseAngle = (step % 360L) * (Math.PI / 18.0D);
-        for (int i = 0; i < 4; i++) {
-            double angle = baseAngle + (Math.PI / 2.0D * i);
+        for (int i = 0; i < 2; i++) {
+            double angle = baseAngle + (Math.PI * i);
             Location point = base.clone().add(
                     Math.cos(angle) * TARGET_HIGHLIGHT_RADIUS,
-                    TARGET_HIGHLIGHT_Y + (i % 2 == 0 ? 0.12D : -0.02D),
+                    TARGET_HIGHLIGHT_Y + (i == 0 ? 0.05D : -0.01D),
                     Math.sin(angle) * TARGET_HIGHLIGHT_RADIUS
             );
             particleDisplayService.spawnForViewer(
@@ -1096,7 +1096,7 @@ public class SkillTreeService {
                             : SharedParticleDefinitions.SKILLTREE_TARGET_DENIED_DUST
             );
         }
-        particleDisplayService.spawnForViewer(astPlayer, base.clone().add(0.0D, 0.82D, 0.0D), SharedParticleDefinitions.SKILLTREE_TARGET_ENCHANT);
+        particleDisplayService.spawnForViewer(astPlayer, base.clone().add(0.0D, 0.70D, 0.0D), SharedParticleDefinitions.SKILLTREE_TARGET_ENCHANT);
     }
 
     @NotNull

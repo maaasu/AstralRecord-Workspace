@@ -44,6 +44,8 @@
 | PUT `/api/player-setting/{userSettingId}` | プレイヤー設定更新（楽観ロック） | `00_docs/20_API設計書/feature/03-player-setting/3-エンドポイント仕様/03_3.00-索引.md` |
 | GET `/api/adventure-record/mob?account_id={account_id}&category={category}` | アカウント単位の Mob 討伐記録一覧取得 | `00_docs/20_API設計書/feature/19-adventure-record/3-エンドポイント仕様/19_3.00-索引.md` |
 | POST `/api/adventure-record/mob/defeat` | Mob 討伐記録の登録・更新 | `00_docs/20_API設計書/feature/19-adventure-record/3-エンドポイント仕様/19_3.00-索引.md` |
+| GET `/api/account-skilltree/{accountId}` | アカウント単位のスキルツリー進行取得 | `00_docs/20_API設計書/feature/20-skilltree/3-エンドポイント仕様/20_3.00-索引.md` |
+| PUT `/api/account-skilltree/{accountId}` | アカウント単位のスキルツリー進行保存 | `00_docs/20_API設計書/feature/20-skilltree/3-エンドポイント仕様/20_3.00-索引.md` |
 | GET `/api/inventory?account_id={account_id}` | アカウント配下のインベントリ一覧取得 | `00_docs/20_API設計書/feature/13-inventory/3-エンドポイント仕様/13_3.00-索引.md` |
 | GET `/api/inventory/{inventoryId}` | インベントリ本体取得 | `00_docs/20_API設計書/feature/13-inventory/3-エンドポイント仕様/13_3.00-索引.md` |
 | POST `/api/inventory` | インベントリ本体作成 | `00_docs/20_API設計書/feature/13-inventory/3-エンドポイント仕様/13_3.00-索引.md` |

@@ -22,6 +22,8 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<EquipmentInstanceEnchantPoolEntity> EquipmentInstanceEnchantPools => Set<EquipmentInstanceEnchantPoolEntity>();
     public DbSet<PlayerMailStateEntity> PlayerMailStates => Set<PlayerMailStateEntity>();
     public DbSet<AccountMobRecordEntity> AccountMobRecords => Set<AccountMobRecordEntity>();
+    public DbSet<AccountSkillTreeStateEntity> AccountSkillTreeStates => Set<AccountSkillTreeStateEntity>();
+    public DbSet<AccountSkillTreeUnlockedNodeEntity> AccountSkillTreeUnlockedNodes => Set<AccountSkillTreeUnlockedNodeEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -129,6 +131,46 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
                 .HasDatabaseName("UX_account_mob_record_account_mob");
             entity.HasIndex(record => new { record.AccountId, record.MobCategory, record.LastDefeatedAt })
                 .HasDatabaseName("IX_account_mob_record_account_category_last_defeated");
+        });
+
+        modelBuilder.Entity<AccountSkillTreeStateEntity>(entity =>
+        {
+            entity.ToTable("account_skilltree_state", "dbo");
+            entity.HasKey(state => state.AccountSkillTreeStateId);
+
+            entity.Property(state => state.AccountSkillTreeStateId).HasColumnName("account_skilltree_state_id");
+            entity.Property(state => state.AccountId).HasColumnName("account_id");
+            entity.Property(state => state.SkillPoints).HasColumnName("skill_points");
+            entity.Property(state => state.Version).HasColumnName("version");
+            entity.Property(state => state.CreatedAt).HasColumnName("created_at");
+            entity.Property(state => state.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(state => state.CreatedBy).HasColumnName("created_by");
+            entity.Property(state => state.UpdatedBy).HasColumnName("updated_by");
+            entity.Property(state => state.IsDeleted).HasColumnName("is_deleted");
+            entity.HasIndex(state => state.AccountId)
+                .IsUnique()
+                .HasDatabaseName("UX_account_skilltree_state_account");
+            entity.HasMany(state => state.UnlockedNodes)
+                .WithOne(node => node.State)
+                .HasForeignKey(node => node.AccountSkillTreeStateId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AccountSkillTreeUnlockedNodeEntity>(entity =>
+        {
+            entity.ToTable("account_skilltree_unlocked_node", "dbo");
+            entity.HasKey(node => node.AccountSkillTreeUnlockedNodeId);
+
+            entity.Property(node => node.AccountSkillTreeUnlockedNodeId).HasColumnName("account_skilltree_unlocked_node_id");
+            entity.Property(node => node.AccountSkillTreeStateId).HasColumnName("account_skilltree_state_id");
+            entity.Property(node => node.NodeId).HasColumnName("node_id");
+            entity.Property(node => node.CreatedAt).HasColumnName("created_at");
+            entity.Property(node => node.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(node => node.CreatedBy).HasColumnName("created_by");
+            entity.Property(node => node.UpdatedBy).HasColumnName("updated_by");
+            entity.HasIndex(node => new { node.AccountSkillTreeStateId, node.NodeId })
+                .IsUnique()
+                .HasDatabaseName("UX_account_skilltree_unlocked_node_state_node");
         });
 
         modelBuilder.Entity<SkillBindPresetEntity>(entity =>
