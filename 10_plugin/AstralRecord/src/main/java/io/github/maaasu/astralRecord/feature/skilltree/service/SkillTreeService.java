@@ -42,6 +42,7 @@ import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
+import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
@@ -88,7 +89,7 @@ public class SkillTreeService {
     private static final double TARGET_HIGHLIGHT_RADIUS = 0.30D;
     private static final double TARGET_HIGHLIGHT_Y = 0.46D;
     private static final long SAVE_INTERVAL_TICKS = 20L * 60L;
-    private static final long VISUAL_DELAY_MILLIS = 3_000L;
+    private static final long VISUAL_DELAY_MILLIS = 1_500L;
 
     private final Plugin plugin;
     private final WorldService worldService;
@@ -1337,7 +1338,7 @@ public class SkillTreeService {
 
         int removedCount = 0;
         for (Entity entity : List.copyOf(world.getEntities())) {
-            if (entity instanceof Item || entity instanceof ItemDisplay || entity instanceof TextDisplay) {
+            if (entity instanceof Item || entity instanceof ItemDisplay || entity instanceof TextDisplay || entity instanceof BlockDisplay) {
                 entity.remove();
                 removedCount++;
             }
