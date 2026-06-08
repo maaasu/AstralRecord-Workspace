@@ -1,7 +1,7 @@
 schemaVersion: 1
 id: 1022
 positionId: 1022
-name: "&e祈り"
+name: "&e&l祈り"
 icon: BREAD
 lore:
   - "&7回復と持久の底上げをしたい構成向け。"

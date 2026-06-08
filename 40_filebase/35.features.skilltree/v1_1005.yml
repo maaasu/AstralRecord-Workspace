@@ -1,8 +1,8 @@
 schemaVersion: 1
 id: 1005
 positionId: 1005
-name: "&b魔力循環"
-icon: LAPIS_LAZULI
+name: "&d魔力循環"
+icon: AMETHYST_SHARD
 lore:
   - "&7魔力リソースを伸ばす魔導寄りの基礎。"
 statuses:

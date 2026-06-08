@@ -1,8 +1,8 @@
 schemaVersion: 1
 id: 1003
 positionId: 1003
-name: "&a精密照準"
-icon: SPYGLASS
+name: "&d精密照準"
+icon: AMETHYST_SHARD
 lore:
   - "&7命中と会心を伸ばす射撃寄りの基礎。"
 statuses:

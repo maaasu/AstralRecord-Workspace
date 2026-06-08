@@ -1,8 +1,8 @@
 schemaVersion: 1
 id: 1007
 positionId: 1007
-name: "&e祈護脈動"
-icon: GLOWSTONE_DUST
+name: "&d祈護脈動"
+icon: AMETHYST_SHARD
 lore:
   - "&7持久と回復を重ねる支援寄りの基礎。"
 statuses:

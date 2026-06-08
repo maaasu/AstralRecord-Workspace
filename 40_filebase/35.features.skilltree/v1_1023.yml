@@ -1,7 +1,7 @@
 schemaVersion: 1
 id: 1023
 positionId: 1023
-name: "&e均衡"
+name: "&e&l均衡"
 icon: AMETHYST_SHARD
 lore:
   - "&7耐久と魔力を両取りする安定型向け。"

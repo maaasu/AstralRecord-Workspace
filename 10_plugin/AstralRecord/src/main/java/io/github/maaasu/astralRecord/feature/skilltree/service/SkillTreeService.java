@@ -861,6 +861,10 @@ public class SkillTreeService {
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
             var lore = new java.util.ArrayList<Component>();
+            if (!node.statuses().isEmpty()) {
+                appendNodeStatusInfo(lore, node);
+                lore.add(component(""));
+            }
             lore.add(component(unlocked
                     ? "&8State: &fUnlocked"
                     : canUnlock
@@ -873,7 +877,6 @@ public class SkillTreeService {
             lore.add(component("&e左クリック&7でノードを解放"));
             lore.add(component("&6右クリック&7でノードを解除 &8(100G)"));
             appendNodeSkillInfo(lore, node);
-            appendNodeStatusInfo(lore, node);
             if (!node.lore().isEmpty()) {
                 lore.add(component(""));
                 node.lore().forEach(line -> lore.add(component("&7" + line)));
@@ -917,13 +920,18 @@ public class SkillTreeService {
         if (node.statuses().isEmpty()) {
             return;
         }
-        lore.add(component(""));
-        lore.add(component("&aノードステータス"));
         for (SkillTreeNodeStatusDefinition status : node.statuses()) {
-            boolean scalar = status.type() == StatusModifierType.SCALAR;
-            double displayValue = scalar ? status.value() * 100.0D : status.value();
-            lore.add(component("&7- &f" + status.statusType().name() + "&7: &a+" + formatStatusValue(displayValue) + (scalar ? "%" : "")));
+            lore.add(component("&d◆ &f" + status.statusType().getDisplayName() + " &a" + formatNodeStatusModifier(status)));
         }
+    }
+
+    private @NotNull String formatNodeStatusModifier(@NotNull SkillTreeNodeStatusDefinition status) {
+        if (status.type() == StatusModifierType.SCALAR) {
+            double displayValue = status.value() * 100.0D;
+            String sign = displayValue > 0.0D ? "+" : "";
+            return sign + formatStatusValue(displayValue) + "%";
+        }
+        return status.statusType().formatSignedValue(status.value());
     }
 
     private @NotNull String stripLegacy(@NotNull String text) {

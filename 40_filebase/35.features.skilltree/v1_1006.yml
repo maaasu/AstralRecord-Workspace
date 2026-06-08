@@ -1,8 +1,8 @@
 schemaVersion: 1
 id: 1006
 positionId: 1006
-name: "&9霊装障壁"
-icon: SHIELD
+name: "&d霊装障壁"
+icon: AMETHYST_SHARD
 lore:
   - "&7魔防と回復効率を支える防護の節点。"
 statuses:

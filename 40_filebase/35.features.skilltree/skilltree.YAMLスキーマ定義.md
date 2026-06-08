@@ -57,7 +57,7 @@
 schemaVersion: 1
 id: 1001
 positionId: 1001
-name: "&f始まりの力"
+name: "&c&l始まりの力"
 icon: IRON_SWORD
 lore:
   - "&7スキルツリーの最初のノード。"
@@ -73,8 +73,8 @@ tags:
 schemaVersion: 1
 id: 1002
 positionId: 1002
-name: "&a生命強化"
-icon: APPLE
+name: "&d生命強化"
+icon: AMETHYST_SHARD
 statuses:
   - status: MAX_HEALTH
     type: FLAT
@@ -104,3 +104,9 @@ statuses:
 tags:
   - hybrid
 ```
+
+## 表示ルール
+
+- `statuses` のみを持つ基礎ステータス上昇ノードは、名前色を `&d` で統一し、`root` ノードを除くアイコンは `AMETHYST_SHARD` を基本とする。
+- `skillIds` を持つパッシブスキルノードは、系統タグに応じた色付き太字の名前を使用する。
+- `melee` 系パッシブは `&c&l`、`ranged` 系は `&a&l`、`magic` 系は `&b&l`、`support` 系は `&e&l` を基準にする。

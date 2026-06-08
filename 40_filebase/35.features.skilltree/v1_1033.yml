@@ -1,7 +1,7 @@
 schemaVersion: 1
 id: 1033
 positionId: 1033
-name: "&a速射体勢"
+name: "&a&l速射体勢"
 icon: ARROW
 lore:
   - "&7手数で押す射撃ビルドと相性がよい。"

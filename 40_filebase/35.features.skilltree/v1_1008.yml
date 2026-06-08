@@ -1,8 +1,8 @@
 schemaVersion: 1
 id: 1008
 positionId: 1008
-name: "&7連撃素養"
-icon: CHAIN
+name: "&d連撃素養"
+icon: AMETHYST_SHARD
 lore:
   - "&7近接ハイブリッドや手数型のビルド向け。"
 statuses:

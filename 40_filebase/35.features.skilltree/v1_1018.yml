@@ -1,7 +1,7 @@
 schemaVersion: 1
 id: 1018
 positionId: 1018
-name: "&b魔力井戸"
+name: "&b&l魔力井戸"
 icon: WATER_BUCKET
 lore:
   - "&7長期戦の魔導ビルドの土台として強い。"

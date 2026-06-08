@@ -1,7 +1,7 @@
 schemaVersion: 1
 id: 1009
 positionId: 1009
-name: "&f鉄壁"
+name: "&c&l鉄壁"
 icon: IRON_BLOCK
 lore:
   - "&7防御寄りの近接や壁役で強い。"

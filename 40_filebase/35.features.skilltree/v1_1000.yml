@@ -1,7 +1,7 @@
 schemaVersion: 1
 id: 1000
 positionId: 1000
-name: "&f星図の起点"
+name: "&d星図の起点"
 icon: NETHER_STAR
 lore:
   - "&7すべてのビルドがここから始まる共通起点。"

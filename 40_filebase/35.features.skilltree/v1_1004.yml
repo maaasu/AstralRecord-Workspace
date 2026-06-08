@@ -1,8 +1,8 @@
 schemaVersion: 1
 id: 1004
 positionId: 1004
-name: "&2軽身歩法"
-icon: FEATHER
+name: "&d軽身歩法"
+icon: AMETHYST_SHARD
 lore:
   - "&7機動と回避で立ち回るビルドの足場。"
 statuses:

@@ -1,7 +1,7 @@
 schemaVersion: 1
 id: 1040
 positionId: 1040
-name: "&b凍結領域"
+name: "&b&l凍結領域"
 icon: PACKED_ICE
 lore:
   - "&7回転率と防護を両立した魔導向け。"

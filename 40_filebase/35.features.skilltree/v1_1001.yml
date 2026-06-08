@@ -1,8 +1,8 @@
 schemaVersion: 1
 id: 1001
 positionId: 1001
-name: "&c武骨鍛錬"
-icon: IRON_CHESTPLATE
+name: "&d武骨鍛錬"
+icon: AMETHYST_SHARD
 lore:
   - "&7前線寄りの土台。耐久を先に固めたいときの入口。"
 statuses:

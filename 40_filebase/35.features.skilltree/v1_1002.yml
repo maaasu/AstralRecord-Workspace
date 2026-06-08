@@ -1,8 +1,8 @@
 schemaVersion: 1
 id: 1002
 positionId: 1002
-name: "&6闘気収束"
-icon: BLAZE_POWDER
+name: "&d闘気収束"
+icon: AMETHYST_SHARD
 lore:
   - "&7近接でも射撃でも、手数を増やす起点。"
 statuses:

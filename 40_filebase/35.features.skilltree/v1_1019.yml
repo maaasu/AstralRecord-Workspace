@@ -1,7 +1,7 @@
 schemaVersion: 1
 id: 1019
 positionId: 1019
-name: "&b連鎖理論"
+name: "&b&l連鎖理論"
 icon: CHAIN
 lore:
   - "&7回転率を求める術式ビルド向け。"

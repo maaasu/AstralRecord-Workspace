@@ -1,7 +1,7 @@
 schemaVersion: 1
 id: 1030
 positionId: 1030
-name: "&f血戦"
+name: "&c&l血戦"
 icon: REDSTONE
 lore:
   - "&7継続火力を突き詰める前衛に噛み合う。"

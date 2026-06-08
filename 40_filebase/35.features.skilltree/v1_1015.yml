@@ -1,7 +1,7 @@
 schemaVersion: 1
 id: 1015
 positionId: 1015
-name: "&aすり抜け"
+name: "&a&lすり抜け"
 icon: FEATHER
 lore:
   - "&7被弾を避けて戦う軽量ビルド向け。"
