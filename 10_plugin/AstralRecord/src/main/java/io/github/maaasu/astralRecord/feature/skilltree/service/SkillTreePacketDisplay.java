@@ -24,6 +24,7 @@ import org.jetbrains.annotations.NotNull;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -83,7 +84,7 @@ final class SkillTreePacketDisplay {
         ));
         metadata.add(value(
                 ITEM_DISPLAY_TRANSFORM_INDEX,
-                WrappedDataWatcher.Registry.get(Byte.class),
+                serializer(Byte.class),
                 (byte) displayTransform.ordinal()
         ));
         return new PacketEntity(EntityType.ITEM_DISPLAY, location, metadata);
@@ -101,10 +102,10 @@ final class SkillTreePacketDisplay {
                 WrappedDataWatcher.Registry.getChatComponentSerializer(false),
                 WrappedChatComponent.fromJson(GsonComponentSerializer.gson().serialize(text))
         ));
-        metadata.add(value(TEXT_DISPLAY_LINE_WIDTH_INDEX, WrappedDataWatcher.Registry.get(Integer.class), 160));
-        metadata.add(value(TEXT_DISPLAY_BACKGROUND_INDEX, WrappedDataWatcher.Registry.get(Integer.class), 0));
-        metadata.add(value(TEXT_DISPLAY_TEXT_OPACITY_INDEX, WrappedDataWatcher.Registry.get(Byte.class), (byte) -1));
-        metadata.add(value(TEXT_DISPLAY_FLAGS_INDEX, WrappedDataWatcher.Registry.get(Byte.class), TEXT_DISPLAY_SHADOW_AND_SEE_THROUGH));
+        metadata.add(value(TEXT_DISPLAY_LINE_WIDTH_INDEX, serializer(Integer.class), 160));
+        metadata.add(value(TEXT_DISPLAY_BACKGROUND_INDEX, serializer(Integer.class), 0));
+        metadata.add(value(TEXT_DISPLAY_TEXT_OPACITY_INDEX, serializer(Byte.class), (byte) -1));
+        metadata.add(value(TEXT_DISPLAY_FLAGS_INDEX, serializer(Byte.class), TEXT_DISPLAY_SHADOW_AND_SEE_THROUGH));
         return new PacketEntity(EntityType.TEXT_DISPLAY, location, metadata);
     }
 
@@ -144,17 +145,17 @@ final class SkillTreePacketDisplay {
             Display.Billboard billboard
     ) {
         List<WrappedDataValue> values = new ArrayList<>();
-        values.add(value(DISPLAY_INTERPOLATION_START_INDEX, WrappedDataWatcher.Registry.get(Integer.class), 0));
-        values.add(value(DISPLAY_INTERPOLATION_DURATION_INDEX, WrappedDataWatcher.Registry.get(Integer.class), 0));
-        values.add(value(DISPLAY_POSITION_ROTATION_DURATION_INDEX, WrappedDataWatcher.Registry.get(Integer.class), 0));
-        values.add(value(DISPLAY_TRANSLATION_INDEX, WrappedDataWatcher.Registry.get(Vector3f.class), translation));
-        values.add(value(DISPLAY_SCALE_INDEX, WrappedDataWatcher.Registry.get(Vector3f.class), scale));
-        values.add(value(DISPLAY_LEFT_ROTATION_INDEX, WrappedDataWatcher.Registry.get(Quaternionf.class), leftRotation));
-        values.add(value(DISPLAY_RIGHT_ROTATION_INDEX, WrappedDataWatcher.Registry.get(Quaternionf.class), new Quaternionf()));
-        values.add(value(DISPLAY_BILLBOARD_INDEX, WrappedDataWatcher.Registry.get(Byte.class), (byte) billboard.ordinal()));
-        values.add(value(DISPLAY_VIEW_RANGE_INDEX, WrappedDataWatcher.Registry.get(Float.class), DEFAULT_VIEW_RANGE));
-        values.add(value(DISPLAY_WIDTH_INDEX, WrappedDataWatcher.Registry.get(Float.class), 0.0F));
-        values.add(value(DISPLAY_HEIGHT_INDEX, WrappedDataWatcher.Registry.get(Float.class), 0.0F));
+        values.add(value(DISPLAY_INTERPOLATION_START_INDEX, serializer(Integer.class), 0));
+        values.add(value(DISPLAY_INTERPOLATION_DURATION_INDEX, serializer(Integer.class), 0));
+        values.add(value(DISPLAY_POSITION_ROTATION_DURATION_INDEX, serializer(Integer.class), 0));
+        values.add(value(DISPLAY_TRANSLATION_INDEX, serializer(Vector3f.class), translation));
+        values.add(value(DISPLAY_SCALE_INDEX, serializer(Vector3f.class), scale));
+        values.add(value(DISPLAY_LEFT_ROTATION_INDEX, serializer(Quaternionf.class), leftRotation));
+        values.add(value(DISPLAY_RIGHT_ROTATION_INDEX, serializer(Quaternionf.class), new Quaternionf()));
+        values.add(value(DISPLAY_BILLBOARD_INDEX, serializer(Byte.class), (byte) billboard.ordinal()));
+        values.add(value(DISPLAY_VIEW_RANGE_INDEX, serializer(Float.class), DEFAULT_VIEW_RANGE));
+        values.add(value(DISPLAY_WIDTH_INDEX, serializer(Float.class), 0.0F));
+        values.add(value(DISPLAY_HEIGHT_INDEX, serializer(Float.class), 0.0F));
         return values;
     }
 
@@ -172,6 +173,10 @@ final class SkillTreePacketDisplay {
             Object value
     ) {
         return WrappedDataValue.fromWrappedValue(index, serializer, value);
+    }
+
+    private WrappedDataWatcher.Serializer serializer(Type type) {
+        return WrappedDataWatcher.Registry.get(type);
     }
 
     private void send(Player player, PacketContainer packet) {
