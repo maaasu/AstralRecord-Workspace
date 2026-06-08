@@ -300,7 +300,7 @@ public class MobCombatService {
                 result = new MobDropResult(List.of(), 0, 0);
             }
             results.add(result);
-            applyExperienceAndSkillPoints(recipient, result);
+            applyExperienceAndSkillPointsAsync(recipient, result);
             adventureRecordService.recordDefeatAsync(recipient, template);
             dropPresentationService.presentAndGrant(recipient, instance.currentLocation(), template.displayName(), result);
         }
@@ -357,17 +357,37 @@ public class MobCombatService {
         recipients.putIfAbsent(player.getUniqueId(), astPlayer);
     }
 
-    private void applyExperienceAndSkillPoints(@NotNull AstPlayer recipient, @NotNull MobDropResult result) {
+    private void applyExperienceAndSkillPointsAsync(@NotNull AstPlayer recipient, @NotNull MobDropResult result) {
         if (result.exp() <= 0) {
             return;
         }
-
-        AccountExperienceResult progress = accountService.grantExperience(
-                recipient.getAccount().getUuid(),
+        UUID accountId = recipient.getAccount().getUuid();
+        accountService.grantExperienceAsync(
+                accountId,
                 result.exp(),
                 recipient.getUser().getUuid()
-        );
+        ).thenAccept(progress -> Bukkit.getScheduler().runTask(
+                mobService.plugin(),
+                () -> applyExperienceAndSkillPointsResult(recipient, accountId, progress)
+        )).exceptionally(ex -> {
+            Logger.error(LogId.E_5155, ex, accountId, result.exp());
+            return null;
+        });
+    }
+
+    private void applyExperienceAndSkillPointsResult(
+            @NotNull AstPlayer recipient,
+            @NotNull UUID accountId,
+            @NotNull AccountExperienceResult progress
+    ) {
+        if (!recipient.getAccount().getUuid().equals(accountId)) {
+            return;
+        }
+
         recipient.setAccount(progress.updatedAccount());
+        if (!recipient.getBukkit().isOnline()) {
+            return;
+        }
 
         if (progress.leveledUp()) {
             skillTreeService.addSkillPoints(recipient, progress.levelUps());

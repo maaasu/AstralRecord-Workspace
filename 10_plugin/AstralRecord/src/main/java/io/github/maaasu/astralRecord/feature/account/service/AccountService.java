@@ -6,13 +6,19 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.account.repository.AccountRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 
 /**
  * アカウント機能のビジネスロジックを担うサービスクラス。
@@ -20,10 +26,15 @@ import java.util.UUID;
  */
 public class AccountService {
 
+    private final Plugin plugin;
     private final AccountRepository accountRepository;
+    private final Executor asyncExecutor;
+    private final Map<UUID, CompletableFuture<Void>> experienceUpdateChains = new ConcurrentHashMap<>();
 
-    public AccountService(AccountRepository accountRepository) {
+    public AccountService(@NotNull Plugin plugin, @NotNull AccountRepository accountRepository) {
+        this.plugin = plugin;
         this.accountRepository = accountRepository;
+        this.asyncExecutor = command -> plugin.getServer().getScheduler().runTaskAsynchronously(plugin, command);
     }
 
     /**
@@ -165,6 +176,39 @@ public class AccountService {
             Logger.log(LogId.I_5103, accountUuid, updated.getLevel(), updated.getTotalExperience());
         }
         return new AccountExperienceResult(current, updated, experience, levelUps);
+    }
+
+    /**
+     * 経験値加算をアカウント単位で順序保証しながら非同期実行します。
+     * <p>Mob 討伐のように短時間で連続実行される経路でも、同一 account への更新順が崩れないよう
+     * 前回リクエストの完了後に次の API 更新を開始します。</p>
+     *
+     * @param accountUuid 対象アカウント UUID
+     * @param experience 加算経験値
+     * @param updatedBy 更新者 UUID
+     * @return 非同期で完了する経験値加算結果
+     */
+    public CompletableFuture<AccountExperienceResult> grantExperienceAsync(
+        @NotNull UUID accountUuid,
+        int experience,
+        @NotNull UUID updatedBy
+    ) {
+        CompletableFuture<AccountExperienceResult> result = new CompletableFuture<>();
+        experienceUpdateChains.compute(accountUuid, (ignored, previousChain) -> {
+            CompletableFuture<Void> base = previousChain == null
+                ? CompletableFuture.completedFuture(null)
+                : previousChain.handle((unused, ex) -> null);
+            CompletableFuture<Void> nextChain = base.thenRunAsync(() -> {
+                try {
+                    result.complete(grantExperience(accountUuid, experience, updatedBy));
+                } catch (Throwable ex) {
+                    result.completeExceptionally(ex);
+                }
+            }, asyncExecutor);
+            nextChain.whenComplete((unused, ex) -> experienceUpdateChains.remove(accountUuid, nextChain));
+            return nextChain;
+        });
+        return result;
     }
 
     public double experienceProgress(UUID accountUuid, int level, long totalExperience) {

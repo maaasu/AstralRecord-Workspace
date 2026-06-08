@@ -369,7 +369,7 @@ public final class AstralRecord extends JavaPlugin {
     private void setupFeature() {
         // account
         var accountRepository = new AccountRepository();
-        accountService = new AccountService(accountRepository);
+        accountService = new AccountService(this, accountRepository);
 
         // user
         var userRepository = new UserRepository();
