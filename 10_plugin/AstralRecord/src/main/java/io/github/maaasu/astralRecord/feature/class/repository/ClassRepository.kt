@@ -121,11 +121,16 @@ class ClassRepository {
 
     private fun parseUnlockClassLevelList(array: JsonArray?): List<ClassUnlockClassLevel> {
         if (array == null || array.isJsonNull) return emptyList()
-        return array.map { element ->
+        return array.mapNotNull { element ->
             val obj = element.asJsonObject
+            val classId = parseStringOrNull(obj, "classId")
+                ?: parseStringOrNull(obj, "class")
+                ?: return@mapNotNull null
+            val level = obj.get("level")?.takeUnless { it.isJsonNull }?.asInt ?: return@mapNotNull null
+
             ClassUnlockClassLevel(
-                classId = obj.get("classId").asString,
-                level = obj.get("level").asInt,
+                classId = classId,
+                level = level,
             )
         }
     }
