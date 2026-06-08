@@ -1,0 +1,68 @@
+schemaVersion: 1
+id: adventurer
+type: CLASS
+name: "&f冒険者"
+description: "&7基礎を学びながら進路を決める見習い冒険者。"
+icon: COMPASS
+role: DEALER
+unlockLevel: 1
+baseStats:
+  - status: MAX_HEALTH
+    value: 105
+  - status: MAX_MANA
+    value: 60
+  - status: MAX_ENERGY
+    value: 100
+  - status: STRENGTH
+    value: 5
+  - status: DEXTERITY
+    value: 5
+  - status: INTELLIGENCE
+    value: 5
+  - status: VITALITY
+    value: 5
+  - status: AGILITY
+    value: 5
+  - status: LUCK
+    value: 5
+  - status: ATTACK
+    value: 6
+  - status: DEFENSE
+    value: 5
+  - status: MAGIC_DEFENSE
+    value: 5
+  - status: MOVEMENT_SPEED
+    value: 100
+growthPerLevel:
+  - status: MAX_HEALTH
+    value: 5
+  - status: MAX_MANA
+    value: 3
+  - status: MAX_ENERGY
+    value: 2
+  - status: STRENGTH
+    value: 0.6
+  - status: DEXTERITY
+    value: 0.6
+  - status: INTELLIGENCE
+    value: 0.6
+  - status: VITALITY
+    value: 0.6
+  - status: AGILITY
+    value: 0.6
+  - status: LUCK
+    value: 0.3
+  - status: ATTACK
+    value: 0.6
+  - status: DEFENSE
+    value: 0.5
+  - status: MAGIC_DEFENSE
+    value: 0.5
+expRate: 100
+starterSkills: []
+levelSkills: []
+tags:
+  - starter
+  - beginner
+  - balanced
+  - adventurer

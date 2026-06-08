@@ -6,6 +6,9 @@ description: "&7属性魔術師。"
 icon: BLAZE_ROD
 role: DEALER
 unlockLevel: 1
+unlockClassLevel:
+  - class: adventurer
+    level: 10
 baseStats:
   - status: MAX_HEALTH
     value: 85

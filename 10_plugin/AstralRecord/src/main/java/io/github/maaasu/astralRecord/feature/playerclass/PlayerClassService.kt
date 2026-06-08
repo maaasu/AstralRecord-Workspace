@@ -67,6 +67,9 @@ class PlayerClassService {
             icon = model.icon,
             role = model.role,
             unlockLevel = model.unlockLevel,
+            unlockRequirements = model.unlockClassLevel.map { unlockRequirement ->
+                "${getDisplayName(unlockRequirement.classId)} Lv.${unlockRequirement.level}"
+            },
             baseStats = model.baseStats.map { "${it.status} +${formatClassStat(it.value)}" },
             growthPerLevel = model.growthPerLevel.map { "${it.status} +${formatClassStat(it.value)} / Lv" },
             starterSkills = model.starterSkills,

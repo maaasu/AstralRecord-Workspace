@@ -83,6 +83,7 @@ public final class ClassScreenView extends BaseMenuScreenView {
         lore.add(noItalic(Component.text("ID: " + entry.getId(), NamedTextColor.DARK_GRAY)));
         lore.add(noItalic(Component.text("Role: " + entry.getRole() + " / Type: " + entry.getType(), NamedTextColor.GRAY)));
         lore.add(noItalic(Component.text("Unlock Player Lv: " + entry.getUnlockLevel(), NamedTextColor.YELLOW)));
+        addList(lore, "Unlock Requirements", entry.getUnlockRequirements(), NamedTextColor.GOLD);
         lore.add(noItalic(Component.text(selected ? "現在のクラス" : "クリックで転職", selected ? NamedTextColor.GREEN : NamedTextColor.GOLD, TextDecoration.BOLD)));
 
         if (entry.getDescription() != null && !entry.getDescription().isBlank()) {

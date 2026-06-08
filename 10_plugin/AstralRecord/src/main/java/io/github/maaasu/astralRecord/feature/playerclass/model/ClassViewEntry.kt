@@ -11,6 +11,7 @@ data class ClassViewEntry(
     val icon: String?,
     val role: String,
     val unlockLevel: Int,
+    val unlockRequirements: List<String>,
     val baseStats: List<String>,
     val growthPerLevel: List<String>,
     val starterSkills: List<String>,

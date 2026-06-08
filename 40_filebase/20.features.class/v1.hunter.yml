@@ -6,6 +6,9 @@ description: "&7機動遠距離射手。"
 icon: BOW
 role: DEALER
 unlockLevel: 1
+unlockClassLevel:
+  - class: adventurer
+    level: 10
 baseStats:
   - status: MAX_HEALTH
     value: 100

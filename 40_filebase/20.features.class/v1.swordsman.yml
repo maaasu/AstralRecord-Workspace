@@ -6,6 +6,9 @@ description: "&7前線近接戦士。"
 icon: IRON_SWORD
 role: TANK
 unlockLevel: 1
+unlockClassLevel:
+  - class: adventurer
+    level: 10
 baseStats:
   - status: MAX_HEALTH
     value: 120

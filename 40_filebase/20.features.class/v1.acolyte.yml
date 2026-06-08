@@ -6,6 +6,9 @@ description: "&7支援呪術師。"
 icon: TOTEM_OF_UNDYING
 role: SUPPORT
 unlockLevel: 1
+unlockClassLevel:
+  - class: adventurer
+    level: 10
 baseStats:
   - status: MAX_HEALTH
     value: 95
