@@ -430,6 +430,8 @@ public class InventoryService {
         if (state == null) {
             return;
         }
+        resetGuiInteractionState(state);
+        clearClickGuard(state.getAccountId());
         clearGuiInventory(astPlayer.getBukkit());
         InventoryModel inventory = state.findInventory(InventoryProfile.BUILDER, InventoryType.NORMAL);
         if (inventory != null) {
@@ -530,6 +532,24 @@ public class InventoryService {
             applyAccessorySlotInventoryToGui(astPlayer);
         }
         applyHotbarInventoryToGui(astPlayer);
+    }
+
+    /**
+     * ツールモードから通常プレイヤーモードへ戻る際に GUI インベントリを再反映します。
+     *
+     * @param astPlayer 対象プレイヤー
+     */
+    public void applyInventoriesToGuiForModeSwitch(@NotNull AstPlayer astPlayer) {
+        if (!astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
+            return;
+        }
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) {
+            return;
+        }
+        resetGuiInteractionState(state);
+        clearClickGuard(state.getAccountId());
+        applyInventoryToGuiInternal(astPlayer, state.getDisplayedType(), false);
     }
 
     /**
@@ -2574,6 +2594,11 @@ public class InventoryService {
         });
         inventory.setItemInMainHand(new ItemStack(Material.AIR));
         inventory.setItemInOffHand(new ItemStack(Material.AIR));
+    }
+
+    private void resetGuiInteractionState(@NotNull PlayerInventoryState state) {
+        state.setSelectedHotbarSlot(null);
+        state.setHotbarShortcutMode(false);
     }
 
     private void clearManagedStorageSlots(@NotNull Player bukkitPlayer) {

@@ -140,7 +140,11 @@ public class AccountModeCommand extends AstCommand {
                 continue;
             }
             if (updated.getMode().shouldReflectInventoryToGui()) {
-                inventoryService.applyInventoriesToGui(astPlayer);
+                if (isToolInventoryMode(previousMode) && previousMode != updated.getMode()) {
+                    inventoryService.applyInventoriesToGuiForModeSwitch(astPlayer);
+                } else {
+                    inventoryService.applyInventoriesToGui(astPlayer);
+                }
             } else if (isToolInventoryMode(updated.getMode())) {
                 inventoryService.applyToolInventoryToGui(astPlayer);
             } else {
