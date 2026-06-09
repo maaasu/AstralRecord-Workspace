@@ -4,7 +4,7 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountModel
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId
-import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot
 import io.github.maaasu.astralRecord.feature.user.model.UserModel
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties
@@ -141,7 +141,7 @@ data class AstPlayer(
         if (newUser.permission >= OP_PERMISSION_THRESHOLD) {
             bukkit.isOp = true
             Logger.log(LogId.I_5070, bukkit.name, newUser.permission)
-            sendMessage(PlayerMsgId.P_5070, newUser.permission)
+            PlayerMessageService.getInstance().send(this, PlayerMsgId.P_5070, newUser.permission)
         } else {
             bukkit.isOp = false
         }
@@ -188,9 +188,8 @@ data class AstPlayer(
      * @param msgId メッセージID
      * @param args  フォーマット引数（省略可）
      */
+    @Deprecated("Use PlayerMessageService instead.")
     fun sendMessage(msgId: PlayerMsgId, vararg args: Any) {
-        if (!bukkit.isOnline) return
-        val message = PlayerMsgResource.formatComponent(msgId.id, *args)
-        bukkit.sendMessage(message)
+        PlayerMessageService.getInstance().send(this, msgId, *args)
     }
 }

@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -247,11 +248,7 @@ public abstract class AstCommand implements CommandExecutor {
     }
 
     private void sendDecorated(@NotNull CommandSender sender, @NotNull String message) {
-        if (sender instanceof Player player) {
-            player.sendMessage(PlayerMsgResource.decorateInteractiveArguments(message));
-            return;
-        }
-        sender.sendMessage(message);
+        PlayerMessageService.getInstance().sendRaw(sender, message);
     }
 
     /**

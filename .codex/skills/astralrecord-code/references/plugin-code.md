@@ -44,12 +44,13 @@ Use these rules when adding or changing log messages, `LogId`, or `logger.proper
 Use these rules when adding or changing player-facing messages, `MsgId`, or `player.properties`.
 
 1. Do not write message text directly in code.
-2. Route player notifications through the existing message management.
+2. Route player notifications through `io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService`.
 3. Update `player.properties` and `MsgId` together.
-4. Call through `PlayerMsgResource` or `AstPlayer.sendMessage(...)`.
-5. Do not pass string literals directly to `sendInfo`, `sendSuccess`, `sendError`, or `sendMessage`.
-6. Check color codes, placeholders, and existing wording style.
-7. Avoid changing an existing message's meaning without checking all call sites.
+4. `AstPlayer.sendMessage(...)` is legacy compatibility only. Do not use it in new or modified code.
+5. Do not call `Player#sendMessage(...)` directly for plugin-managed player messaging. Use `PlayerMessageService` so the common tag/prefix and chat routing rules stay consistent.
+6. Do not pass string literals directly to `sendInfo`, `sendSuccess`, `sendError`, `sendMessage`, or new player-message helper methods unless the API is explicitly for managed chat formatting.
+7. Check color codes, placeholders, and existing wording style.
+8. Avoid changing an existing message's meaning without checking all call sites.
 
 ## Database, API, and Filebase Contracts
 

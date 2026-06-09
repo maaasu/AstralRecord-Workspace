@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionActionConfig;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.shop.event.ShopGuiEventHandler;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
@@ -112,7 +113,10 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        player.sendMessage(LEGACY.deserialize(ColorCodeUtil.translateAlternateColorCodes(message)));
+        PlayerMessageService.getInstance().sendComponent(
+            player,
+            LEGACY.deserialize(ColorCodeUtil.translateAlternateColorCodes(message))
+        );
     }
 
     private void openGui(@NotNull Player player, @NotNull MobInteractionActionConfig action) {

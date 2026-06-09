@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.PlayerSettingMsgId;
 import io.github.maaasu.astralRecord.feature.playersetting.gui.PlayerSettingGui;
@@ -222,11 +223,11 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
                 new PlayerSettingChangeRequest(player.getUniqueId(), key, nextValue, player.getUniqueId())
             );
             if (result.conflict()) {
-                player.sendMessage(result.message());
+                PlayerMessageService.getInstance().sendRaw(player, result.message());
                 continue;
             }
 
-            player.sendMessage(PlayerMsgResource.format(
+            PlayerMessageService.getInstance().sendRaw(player, PlayerMsgResource.format(
                 PlayerSettingMsgId.P_5321.getId(),
                 key.getDisplayNameJa(),
                 key.formatValue(nextValue)

@@ -12,7 +12,7 @@ import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
-import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.sell.view.SellScreenView;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
@@ -496,12 +496,7 @@ public final class SellService {
     }
 
     private void sendSellMessage(@NotNull Player player, @NotNull PlayerMsgId msgId, Object... args) {
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer != null) {
-            astPlayer.sendMessage(msgId, args);
-            return;
-        }
-        player.sendMessage(PlayerMsgResource.format(msgId.getId(), args));
+        PlayerMessageService.getInstance().send(player, msgId, args);
     }
 
     private @NotNull List<ItemStack> snapshotSellItems(@NotNull Inventory inventory) {

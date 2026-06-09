@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.menu.player.PlayerBrowserGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -30,13 +31,13 @@ public final class PlayerInfoCommand extends AstCommand {
 
         Player target = Bukkit.getPlayerExact(args[1]);
         if (target == null) {
-            player.sendMessage(PlayerMsgId.P_5603, args[1]);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5603, args[1]);
             return;
         }
 
         PlayerBrowserGuiEventHandler handler = AstralRecord.getInstance().getPlayerBrowserGuiEventHandler();
         if (handler == null) {
-            player.sendMessage(PlayerMsgId.P_5603, args[1]);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5603, args[1]);
             return;
         }
         handler.openDetailFromCommand(player.getBukkit(), target);

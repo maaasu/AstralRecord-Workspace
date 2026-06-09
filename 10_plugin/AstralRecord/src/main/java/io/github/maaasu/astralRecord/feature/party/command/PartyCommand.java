@@ -6,13 +6,14 @@ import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.model.PartyActionResult;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
-import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -24,21 +25,21 @@ public final class PartyCommand extends AstCommand {
      * PartyCommand を初期化します。
      */
     public PartyCommand() {
-        super("party", "Manage temporary parties.", "/party [gui|create|invite|accept|decline|leave|disband|kick|promote|list]", true);
+        super("party", "Manage temporary parties.", "/party [gui|create|invite|accept|decline|leave|disband|kick|promote|list|chat]", true);
     }
 
     @Override
     protected void executePlayerCommand(@NotNull AstPlayer player, @NotNull String[] args) {
         PartyService partyService = AstralRecord.getInstance().getPartyService();
         if (partyService == null) {
-            player.sendMessage(PlayerMsgId.P_5919);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5919);
             return;
         }
 
         if (args.length == 0 || "gui".equalsIgnoreCase(args[0])) {
             PartyGui partyGui = AstralRecord.getInstance().getPartyGui();
             if (partyGui == null) {
-                player.sendMessage(PlayerMsgId.P_5919);
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5919);
                 return;
             }
             partyGui.open(player.getBukkit());
@@ -55,6 +56,7 @@ public final class PartyCommand extends AstCommand {
             case "kick" -> kick(player, partyService, args);
             case "promote" -> promote(player, partyService, args);
             case "list" -> showList(player, partyService);
+            case "chat" -> chat(player, partyService, args);
             default -> sendUsage(player.getBukkit());
         }
     }
@@ -65,7 +67,7 @@ public final class PartyCommand extends AstCommand {
         }
         Player target = Bukkit.getPlayerExact(args[1]);
         if (target == null) {
-            player.sendMessage(PlayerMsgId.P_5905, args[1]);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5905, args[1]);
             return;
         }
         sendResult(player, partyService.invite(player, target));
@@ -91,7 +93,7 @@ public final class PartyCommand extends AstCommand {
         }
         Player target = Bukkit.getPlayerExact(args[1]);
         if (target == null) {
-            player.sendMessage(PlayerMsgId.P_5905, args[1]);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5905, args[1]);
             return;
         }
         sendResult(player, partyService.kick(player, target));
@@ -103,7 +105,7 @@ public final class PartyCommand extends AstCommand {
         }
         Player target = Bukkit.getPlayerExact(args[1]);
         if (target == null) {
-            player.sendMessage(PlayerMsgId.P_5905, args[1]);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5905, args[1]);
             return;
         }
         sendResult(player, partyService.promote(player, target));
@@ -112,20 +114,46 @@ public final class PartyCommand extends AstCommand {
     private void showList(@NotNull AstPlayer player, @NotNull PartyService partyService) {
         Party party = partyService.findParty(player.getBukkit().getUniqueId());
         if (party == null) {
-            player.sendMessage(PlayerMsgId.P_5902);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5902);
             return;
         }
 
-        player.sendMessage(PlayerMsgId.P_5909, party.size(), PartyService.MAX_MEMBERS);
+        PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5909, party.size(), PartyService.MAX_MEMBERS);
         for (UUID memberId : party.members()) {
             Player member = Bukkit.getPlayer(memberId);
             String name = member == null ? memberId.toString() : member.getName();
             String leaderMark = party.getLeaderId().equals(memberId) ? " (Leader)" : "";
-            player.sendMessage(PlayerMsgId.P_5910, name, leaderMark);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5910, name, leaderMark);
         }
     }
 
+    private void chat(@NotNull AstPlayer player, @NotNull PartyService partyService, @NotNull String[] args) {
+        if (!checkArgsLength(args, 2, player.getBukkit())) {
+            return;
+        }
+        Party party = partyService.findParty(player.getBukkit().getUniqueId());
+        if (party == null) {
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5902);
+            return;
+        }
+
+        String message = joinArgs(args, 1).trim();
+        if (message.isBlank()) {
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5946);
+            return;
+        }
+
+        PlayerMessageService.getInstance().broadcastPartyChat(
+            party.members().stream()
+                .map(Bukkit::getPlayer)
+                .filter(Objects::nonNull)
+                .toList(),
+            player.getBukkit().getName(),
+            message
+        );
+    }
+
     private void sendResult(@NotNull AstPlayer player, @NotNull PartyActionResult result) {
-        player.getBukkit().sendMessage(PlayerMsgResource.format(result.messageId().getId(), result.args()));
+        PlayerMessageService.getInstance().send(player, result.messageId(), result.args());
     }
 }

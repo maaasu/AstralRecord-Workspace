@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.shop.command;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.jetbrains.annotations.NotNull;
 
@@ -21,13 +22,13 @@ public final class ShopCommand extends AstCommand {
         var shopService = plugin.getShopService();
         var shopGuiEventHandler = plugin.getShopGuiEventHandler();
         if (shopService == null || shopGuiEventHandler == null) {
-            player.sendMessage(PlayerMsgId.P_5063);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5063);
             return;
         }
         String shopInput = joinArgs(args, 0);
         var shop = shopService.findByIdOrName(shopInput);
         if (shop == null) {
-            player.sendMessage(PlayerMsgId.P_5930, shopInput);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5930, shopInput);
             return;
         }
         shopGuiEventHandler.open(player.getBukkit(), shop.id());

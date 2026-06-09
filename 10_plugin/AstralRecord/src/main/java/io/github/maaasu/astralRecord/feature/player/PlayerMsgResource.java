@@ -95,6 +95,16 @@ public final class PlayerMsgResource {
     }
 
     /**
+     * キーに対応するメッセージを Component として取得します。
+     *
+     * @param key メッセージキー
+     * @return Component 化したメッセージ
+     */
+    public static Component getComponent(String key) {
+        return LEGACY_SERIALIZER.deserialize(getMessage(key));
+    }
+
+    /**
      * キーに対応するメッセージを Component として取得し、引数部分へクリック・hover 補助を付与します。
      *
      * @param key メッセージキー

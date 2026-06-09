@@ -6,6 +6,7 @@
 ## 対象実装パス
 
 - `src/main/java/io/github/maaasu/astralRecord/feature/player/event/*`
+- `src/main/java/io/github/maaasu/astralRecord/feature/player/command/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/player/service/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/player/model/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/player/save/*`
@@ -55,3 +56,8 @@
 - 保存契機や保存タスク変更:
   - [[03_3.05-保存]]
   - [[03_5.00-例外・ログ・運用]]
+- 全体チャット・ダイレクトメッセージ・プレイヤー向け通知の管理方式変更:
+  - [[03_1.00-モデル定義]]
+  - [[03_3.01-イベント]]
+  - [[03_3.02-サービス]]
+  - [[03_4.00-統合フロー]]

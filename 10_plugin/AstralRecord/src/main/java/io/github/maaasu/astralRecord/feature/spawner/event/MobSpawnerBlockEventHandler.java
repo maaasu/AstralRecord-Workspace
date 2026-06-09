@@ -4,7 +4,7 @@ import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.spawner.service.MobSpawnerService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
-import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -52,17 +52,17 @@ public class MobSpawnerBlockEventHandler extends AbstractEventHandler {
 
         AstPlayer astPlayer = AstPlayerCache.get(event.getPlayer());
         if (!spawnerService.isAdminMode(astPlayer)) {
-            event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5707.getId()));
+            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5707);
             return;
         }
 
         if (!spawnerService.registerLocation(spawnerId, event.getBlockPlaced().getLocation())) {
-            event.getPlayer().sendMessage(PlayerMsgResource.format(PlayerMsgId.P_5711.getId(), spawnerId));
+            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5711, spawnerId);
             return;
         }
 
         consumePlacedItem(event.getPlayer(), event.getHand());
-        event.getPlayer().sendMessage(PlayerMsgResource.format(PlayerMsgId.P_5709.getId(), spawnerId));
+        PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5709, spawnerId);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -74,12 +74,12 @@ public class MobSpawnerBlockEventHandler extends AbstractEventHandler {
         AstPlayer astPlayer = AstPlayerCache.get(event.getPlayer());
         if (!spawnerService.isAdminMode(astPlayer)) {
             event.setCancelled(true);
-            event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5707.getId()));
+            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5707);
             return;
         }
 
         if (spawnerService.removeLocation(event.getBlock().getLocation())) {
-            event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5710.getId()));
+            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5710);
         }
     }
 
@@ -105,12 +105,12 @@ public class MobSpawnerBlockEventHandler extends AbstractEventHandler {
 
         event.setCancelled(true);
         if (!spawnerService.isAdminMode(astPlayer)) {
-            event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5707.getId()));
+            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5707);
             return;
         }
 
         if (spawnerService.removeLocation(target.get())) {
-            event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5710.getId()));
+            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5710);
         }
     }
 

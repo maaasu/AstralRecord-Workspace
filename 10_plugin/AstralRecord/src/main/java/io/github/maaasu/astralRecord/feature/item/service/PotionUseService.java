@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemConsumableOnUse;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -94,7 +95,7 @@ public final class PotionUseService {
 
         int consumeAmount = consumable.getOnUse() == null ? 1 : Math.max(1, consumable.getOnUse().getAmount());
         if (!inventoryService.consumeHotbarItemInHand(astPlayer, hand, model.getId(), consumeAmount)) {
-            astPlayer.sendMessage(PlayerMsgId.P_5245);
+            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5245);
             return false;
         }
 

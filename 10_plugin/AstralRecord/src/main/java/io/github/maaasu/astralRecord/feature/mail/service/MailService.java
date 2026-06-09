@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.mail.model.MailReward;
 import io.github.maaasu.astralRecord.feature.mail.repository.MailRepository;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -55,15 +56,15 @@ public final class MailService {
     public boolean readAndReceive(@NotNull AstPlayer astPlayer, @NotNull MailEntry mail) {
         MailEntry updated = mailRepository.markRead(astPlayer.getBukkit().getUniqueId(), mail.id());
         if (updated == null) {
-            astPlayer.sendMessage(PlayerMsgId.P_5622);
+            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5622);
             return false;
         }
         if (!mail.read() && mail.receiveOnRead()) {
             int granted = grantRewards(astPlayer, mail.rewards());
             if (granted > 0) {
-                astPlayer.sendMessage(PlayerMsgId.P_5620, mail.title(), granted);
+                PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5620, mail.title(), granted);
             } else if (!mail.rewards().isEmpty()) {
-                astPlayer.sendMessage(PlayerMsgId.P_5623, mail.title());
+                PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5623, mail.title());
             }
         }
         return true;
@@ -79,9 +80,9 @@ public final class MailService {
     public boolean delete(@NotNull AstPlayer astPlayer, @NotNull String mailId) {
         boolean deleted = mailRepository.delete(astPlayer.getBukkit().getUniqueId(), mailId);
         if (deleted) {
-            astPlayer.sendMessage(PlayerMsgId.P_5621);
+            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5621);
         } else {
-            astPlayer.sendMessage(PlayerMsgId.P_5622);
+            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5622);
         }
         return deleted;
     }

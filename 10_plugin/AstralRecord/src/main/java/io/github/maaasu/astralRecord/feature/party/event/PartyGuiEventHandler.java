@@ -9,8 +9,8 @@ import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.model.PartyActionResult;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
-import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.Bukkit;
@@ -181,7 +181,7 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
     }
 
     private void sendResult(@NotNull Player player, @NotNull PartyActionResult result) {
-        player.sendMessage(PlayerMsgResource.format(result.messageId().getId(), result.args()));
+        PlayerMessageService.getInstance().send(player, result.messageId(), result.args());
     }
 
     private void playResultSound(@NotNull Player player, @NotNull PartyActionResult result) {

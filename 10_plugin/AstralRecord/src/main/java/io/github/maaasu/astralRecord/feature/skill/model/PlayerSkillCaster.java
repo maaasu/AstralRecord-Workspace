@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.skill.model;
 
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import org.jetbrains.annotations.NotNull;
 
@@ -88,6 +89,6 @@ public final class PlayerSkillCaster implements SkillCaster {
 
     @Override
     public void notify(@NotNull PlayerMsgId messageId, Object... args) {
-        player.sendMessage(messageId, args == null ? new Object[0] : args);
+        PlayerMessageService.getInstance().send(player, messageId, args == null ? new Object[0] : args);
     }
 }

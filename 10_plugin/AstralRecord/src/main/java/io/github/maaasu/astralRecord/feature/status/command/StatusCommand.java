@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.status.command;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusValue;
@@ -46,7 +47,7 @@ public class StatusCommand extends AstCommand {
 
         if (args[0].equalsIgnoreCase("refresh")) {
             resolveStatusService().refreshStatus(player);
-            player.sendMessage(PlayerMsgId.P_5102);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5102);
             showStatus(player, false);
             return;
         }
@@ -60,16 +61,19 @@ public class StatusCommand extends AstCommand {
         double maxHp = snapshot.getMaxValue(StatusType.MAX_HEALTH);
         double maxMp = snapshot.getMaxValue(StatusType.MAX_MANA);
         double maxEnergy = snapshot.getMaxValue(StatusType.MAX_ENERGY);
+        PlayerMessageService playerMessageService = PlayerMessageService.getInstance();
 
-        player.sendMessage(PlayerMsgId.P_5100, player.getAccount().getAccountName());
-        player.sendMessage(
+        playerMessageService.send(player, PlayerMsgId.P_5100, player.getAccount().getAccountName());
+        playerMessageService.send(
+            player,
             PlayerMsgId.P_5105,
             StatusType.MAX_HEALTH.formatValue(snapshot.getCurrentHp()),
             StatusType.MAX_HEALTH.formatValue(maxHp),
             StatusType.MAX_MANA.formatValue(snapshot.getCurrentMp()),
             StatusType.MAX_MANA.formatValue(maxMp)
         );
-        player.sendMessage(
+        playerMessageService.send(
+            player,
             PlayerMsgId.P_5106,
             StatusType.MAX_ENERGY.formatValue(snapshot.getCurrentEnergy()),
             StatusType.MAX_ENERGY.formatValue(maxEnergy)
@@ -81,7 +85,8 @@ public class StatusCommand extends AstCommand {
             }
 
             if (detail) {
-                player.sendMessage(
+                playerMessageService.send(
+                    player,
                     PlayerMsgId.P_5103,
                     type.getDisplayName(),
                     type.formatValue(value.getBaseValue()),
@@ -91,7 +96,8 @@ public class StatusCommand extends AstCommand {
                 continue;
             }
 
-            player.sendMessage(
+            playerMessageService.send(
+                player,
                 PlayerMsgId.P_5101,
                 type.getDisplayName(),
                 type.formatValue(value.getTotalValue())
@@ -100,12 +106,13 @@ public class StatusCommand extends AstCommand {
         if (detail) {
             var activeSetEffects = service.getActiveSetEffects(player);
             if (!activeSetEffects.isEmpty()) {
-                player.sendMessage(PlayerMsgId.P_5107);
+                playerMessageService.send(player, PlayerMsgId.P_5107);
                 for (StatusService.ActiveSetEffect effect : activeSetEffects) {
                     String activeCounts = effect.activePieceCounts().stream()
                         .map(count -> count + "set")
                         .collect(Collectors.joining(", "));
-                    player.sendMessage(
+                    playerMessageService.send(
+                        player,
                         PlayerMsgId.P_5108,
                         effect.setName(),
                         Integer.toString(effect.equippedCount()),
@@ -115,7 +122,7 @@ public class StatusCommand extends AstCommand {
             }
         }
 
-        player.sendMessage(PlayerMsgId.P_5104, DATE_TIME_FORMATTER.format(snapshot.getCalculatedAt()));
+        playerMessageService.send(player, PlayerMsgId.P_5104, DATE_TIME_FORMATTER.format(snapshot.getCalculatedAt()));
     }
 
     private @NotNull StatusService resolveStatusService() {

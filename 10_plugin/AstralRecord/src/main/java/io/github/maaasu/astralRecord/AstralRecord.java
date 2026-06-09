@@ -68,6 +68,7 @@ import io.github.maaasu.astralRecord.feature.party.gui.PartyGui;
 import io.github.maaasu.astralRecord.feature.party.gui.PartyMemberActionGui;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerJoinEventHandler;
+import io.github.maaasu.astralRecord.feature.player.event.ManagedChatEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerModeEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerInputEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerSneakEventHandler;
@@ -75,6 +76,7 @@ import io.github.maaasu.astralRecord.feature.player.event.PlayerVanillaDamageBlo
 import io.github.maaasu.astralRecord.feature.player.save.PlayerSaveCoordinator;
 import io.github.maaasu.astralRecord.feature.player.service.AirActionService;
 import io.github.maaasu.astralRecord.feature.player.service.DodgeService;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.playersetting.cache.PlayerSettingCache;
@@ -152,6 +154,7 @@ public final class AstralRecord extends JavaPlugin {
     private AccountService accountService;
     private UserService userService;
     private PlayerService playerService;
+    private PlayerMessageService playerMessageService;
     private InventoryService inventoryService;
     private InventoryPersistence inventoryPersistence;
     private PlayerInventoryStateRegistry inventoryStateRegistry;
@@ -480,6 +483,7 @@ public final class AstralRecord extends JavaPlugin {
             statusService,
             playerSaveCoordinator
         );
+        playerMessageService = new PlayerMessageService();
 
         // resource pack
         resourcePackService = new ResourcePackService(ConfigProperties.getInstance());
@@ -571,6 +575,10 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             new PlayerJoinEventHandler(this, playerService, loginBonusService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new ManagedChatEventHandler(this),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
@@ -751,6 +759,15 @@ public final class AstralRecord extends JavaPlugin {
 
     public InventoryService getInventoryService() {
         return inventoryService;
+    }
+
+    /**
+     * プレイヤーメッセージ送信サービスを取得する。
+     *
+     * @return プレイヤーメッセージ送信サービス
+     */
+    public PlayerMessageService getPlayerMessageService() {
+        return playerMessageService;
     }
 
     /**

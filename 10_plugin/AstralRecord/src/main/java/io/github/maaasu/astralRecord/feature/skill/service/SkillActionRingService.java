@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
@@ -227,7 +228,7 @@ public final class SkillActionRingService {
             );
         }
         GuiSound.RING_CAST.play(player);
-        astPlayer.sendMessage(PlayerMsgId.P_5807, SLOT_COUNT, selectedSlot, skillId);
+        PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5807, SLOT_COUNT, selectedSlot, skillId);
     }
 
     /**

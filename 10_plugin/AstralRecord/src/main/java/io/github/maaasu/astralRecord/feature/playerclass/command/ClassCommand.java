@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
@@ -64,7 +65,7 @@ public final class ClassCommand extends AstCommand {
         String newDisplayName = classService.getDisplayName(newClassId);
         sendSuccess(sender, PlayerMsgResource.format(PlayerMsgId.P_5812.getId(), oldDisplayName, newDisplayName));
         if (sender != target.getBukkit()) {
-            target.sendMessage(PlayerMsgId.P_5812, oldDisplayName, newDisplayName);
+            PlayerMessageService.getInstance().send(target, PlayerMsgId.P_5812, oldDisplayName, newDisplayName);
         }
     }
 

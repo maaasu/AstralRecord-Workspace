@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
@@ -283,7 +284,7 @@ public final class MobDropPresentationService {
             case EQUIPMENT, RUNE -> grantPreparedInstance(recipient, prepared);
         };
         if (dropped > 0) {
-            recipient.sendMessage(PlayerMsgId.P_5244, dropped);
+            PlayerMessageService.getInstance().send(recipient, PlayerMsgId.P_5244, dropped);
         }
     }
 

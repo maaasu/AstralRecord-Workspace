@@ -12,7 +12,7 @@ package io.github.maaasu.astralRecord.feature.player;
  * 使用例:
  * <pre>
  * // パラメータあり
- * AstPlayer.sendMessage(PlayerMsgId.P_5000, player.getName());
+ * PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5945);
  * </pre>
  */
 public enum PlayerMsgId {
@@ -609,6 +609,17 @@ public enum PlayerMsgId {
 
     // region /feature/shop 5930-5939
     P_5930(5930),
+    // endregion
+
+    // region /feature/player/service/PlayerMessageService.java 5940-5949
+    P_5940(5940),
+    P_5941(5941),
+    P_5942(5942),
+    P_5943(5943),
+    P_5944(5944),
+    P_5945(5945),
+    P_5946(5946),
+    P_5947(5947),
     // endregion
 
     ;

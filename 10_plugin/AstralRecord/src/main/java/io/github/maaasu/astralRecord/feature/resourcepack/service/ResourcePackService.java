@@ -2,7 +2,7 @@ package io.github.maaasu.astralRecord.feature.resourcepack.service;
 
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
-import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -202,6 +202,6 @@ public class ResourcePackService {
      * @param msgId メッセージ ID
      */
     private static void sendPlayerMessage(Player player, PlayerMsgId msgId) {
-        player.sendMessage(PlayerMsgResource.getMessage(msgId.getId()));
+        PlayerMessageService.getInstance().send(player, msgId);
     }
 }

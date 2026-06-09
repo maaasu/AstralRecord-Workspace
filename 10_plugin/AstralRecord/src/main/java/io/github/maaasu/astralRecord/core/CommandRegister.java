@@ -24,6 +24,8 @@ import io.github.maaasu.astralRecord.feature.party.command.PartyCommand;
 import io.github.maaasu.astralRecord.feature.party.command.PartyTabCompleter;
 import io.github.maaasu.astralRecord.feature.playersetting.command.PlayerSettingCommand;
 import io.github.maaasu.astralRecord.feature.playersetting.command.PlayerSettingTabCompleter;
+import io.github.maaasu.astralRecord.feature.player.command.DirectMessageCommand;
+import io.github.maaasu.astralRecord.feature.player.command.DirectMessageTabCompleter;
 import io.github.maaasu.astralRecord.feature.playerclass.command.ClassCommand;
 import io.github.maaasu.astralRecord.feature.playerclass.command.ClassTabCompleter;
 import io.github.maaasu.astralRecord.feature.skill.command.SkillCommand;
@@ -93,6 +95,7 @@ public class CommandRegister {
         cm.registerCommand("user", new UserCommand(), new UserTabCompleter());
         cm.registerCommand("account", new AccountCommand(), new AccountTabCompleter());
         cm.registerCommand("setting", new PlayerSettingCommand(), new PlayerSettingTabCompleter());
+        cm.registerCommand("message", new DirectMessageCommand(), new DirectMessageTabCompleter());
         cm.registerCommand("class", new ClassCommand(), new ClassTabCompleter());
         cm.registerCommand("skill", new SkillCommand());
         cm.registerCommand("skilltree", new SkillTreeCommand(skillTreeService), new SkillTreeTabCompleter(skillTreeService));

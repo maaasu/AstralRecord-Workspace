@@ -9,8 +9,8 @@ import io.github.maaasu.astralRecord.feature.party.model.PartyActionResult;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
-import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
@@ -160,7 +160,7 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
             return;
         }
         PartyActionResult result = partyService.invite(astPlayer, target);
-        player.sendMessage(PlayerMsgResource.format(result.messageId().getId(), result.args()));
+        PlayerMessageService.getInstance().send(player, result.messageId(), result.args());
         if (result.success()) {
             GuiSound.SELECT.play(player);
         } else {
@@ -178,7 +178,7 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         Player targetPlayer = Bukkit.getPlayer(targetId);
         AstPlayer target = targetPlayer == null ? null : AstPlayerCache.get(targetPlayer);
         if (target == null) {
-            viewer.sendMessage(PlayerMsgResource.format(PlayerMsgId.P_5603.getId(), playerName(targetId)));
+            PlayerMessageService.getInstance().send(viewer, PlayerMsgId.P_5603, playerName(targetId));
             GuiSound.DENY.play(viewer);
             openInfoList(viewer, pageIndex);
             return;
@@ -219,7 +219,7 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
     public void openInviteList(@NotNull Player player, int pageIndex) {
         Party party = partyService.findParty(player.getUniqueId());
         if (party == null) {
-            player.sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5902.getId()));
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5902);
             GuiSound.DENY.play(player);
             return;
         }
@@ -241,7 +241,7 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
     public void openDetailFromCommand(@NotNull Player viewer, @NotNull Player targetPlayer) {
         AstPlayer target = AstPlayerCache.get(targetPlayer);
         if (target == null) {
-            viewer.sendMessage(PlayerMsgResource.format(PlayerMsgId.P_5603.getId(), targetPlayer.getName()));
+            PlayerMessageService.getInstance().send(viewer, PlayerMsgId.P_5603, targetPlayer.getName());
             GuiSound.DENY.play(viewer);
             return;
         }

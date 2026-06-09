@@ -18,6 +18,7 @@ import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -384,11 +385,12 @@ public class MobCombatService {
 
         if (progress.leveledUp()) {
             skillTreeService.addSkillPoints(recipient, progress.levelUps());
-            recipient.sendMessage(
-                    PlayerMsgId.P_5835,
-                    progress.updatedAccount().getLevel(),
-                    progress.grantedExperience(),
-                    progress.levelUps()
+            PlayerMessageService.getInstance().send(
+                recipient,
+                PlayerMsgId.P_5835,
+                progress.updatedAccount().getLevel(),
+                progress.grantedExperience(),
+                progress.levelUps()
             );
             statusService.refreshStatus(recipient);
         }

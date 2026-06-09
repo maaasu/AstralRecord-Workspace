@@ -10,7 +10,7 @@ import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView
 import io.github.maaasu.astralRecord.feature.menu.view.screen.TrashScreenView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
-import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
@@ -483,12 +483,7 @@ public final class TrashService {
     }
 
     private void sendTrashMessage(@NotNull Player player, @NotNull PlayerMsgId msgId, Object... args) {
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer != null) {
-            astPlayer.sendMessage(msgId, args);
-            return;
-        }
-        player.sendMessage(PlayerMsgResource.format(msgId.getId(), args));
+        PlayerMessageService.getInstance().send(player, msgId, args);
     }
 
     private @NotNull List<ItemStack> snapshotTrashItems(@NotNull Inventory inventory) {

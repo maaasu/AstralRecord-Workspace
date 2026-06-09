@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindInventoryHolder;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
@@ -253,7 +254,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             if (astPlayer != null) {
                 presetService.selectPreset(astPlayer.getAccount().getUuid(), presetIndex);
                 passiveSkillService.reconcileNow(astPlayer);
-                astPlayer.sendMessage(PlayerMsgId.P_5808, presetIndex);
+                PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5808, presetIndex);
             }
             GuiSound.SELECT.play(player);
             openMain(player, session, 0);
@@ -325,7 +326,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 if (astPlayer != null) {
                     presetService.selectPreset(astPlayer.getAccount().getUuid(), holder.pendingPresetIndex());
                     passiveSkillService.reconcileNow(astPlayer);
-                    astPlayer.sendMessage(PlayerMsgId.P_5808, holder.pendingPresetIndex());
+                    PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5808, holder.pendingPresetIndex());
                 }
                 openMain(player, session, 0);
             }

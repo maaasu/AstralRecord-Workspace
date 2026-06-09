@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.jetbrains.annotations.NotNull;
 
@@ -51,11 +52,11 @@ public class ItemCommand extends AstCommand {
         }
         var loaded = itemService.loadItem(args[1]);
         if (loaded == null) {
-            player.sendMessage(PlayerMsgId.P_5201, args[1]);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5201, args[1]);
             return;
         }
 
-        player.sendMessage(PlayerMsgId.P_5209, loaded.getCategory(), loaded.getId(), loaded.getName());
+        PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5209, loaded.getCategory(), loaded.getId(), loaded.getName());
     }
 
     private void handleGet(@NotNull AstPlayer player, @NotNull String[] args) {
@@ -67,14 +68,14 @@ public class ItemCommand extends AstCommand {
         var itemId = args[1];
         var model = itemService.findLoadedById(itemId);
         if (model == null) {
-            player.sendMessage(PlayerMsgId.P_5213, itemId);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5213, itemId);
             return;
         }
 
         var plugin = AstralRecord.getInstance();
         var inventoryService = plugin.getInventoryService();
         if (inventoryService == null) {
-            player.sendMessage(PlayerMsgId.P_5063);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5063);
             return;
         }
 
@@ -82,7 +83,7 @@ public class ItemCommand extends AstCommand {
         var granted = inventoryService.addItemToNormalInventory(player, model, amount);
 
         if (granted <= 0) {
-            player.sendMessage(PlayerMsgId.P_5241);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5241);
             return;
         }
 
@@ -90,7 +91,7 @@ public class ItemCommand extends AstCommand {
         if (inventoryType != InventoryType.CURRENCY) {
             inventoryService.applyInventoryToGui(player, inventoryType);
         }
-        player.sendMessage(PlayerMsgId.P_5240, model.getName(), granted);
+        PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5240, model.getName(), granted);
     }
 
     private int parsePositiveInt(@NotNull String[] args, int index, int defaultValue) {

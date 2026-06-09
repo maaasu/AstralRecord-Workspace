@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.loot.model.LootPoolModel;
 import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import net.kyori.adventure.text.Component;
@@ -105,13 +106,13 @@ public class BundleUseService {
     ) {
         ItemBundle bundle = model.getBundle();
         if (bundle == null || bundle.getLootTableId() == null || bundle.getLootTableId().isBlank()) {
-            astPlayer.sendMessage(PlayerMsgId.P_5242, model.getId());
+            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5242, model.getId());
             return false;
         }
 
         LootModel lootModel = lootService.getLoadedOrFetch(bundle.getLootTableId());
         if (lootModel == null) {
-            astPlayer.sendMessage(PlayerMsgId.P_5242, bundle.getLootTableId());
+            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5242, bundle.getLootTableId());
             return false;
         }
 
@@ -145,7 +146,7 @@ public class BundleUseService {
         );
         pending.setTask(task);
         pendingUses.put(player.getUniqueId(), pending);
-        astPlayer.sendMessage(PlayerMsgId.P_5246, model.getName());
+        PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5246, model.getName());
         return true;
     }
 
@@ -178,7 +179,7 @@ public class BundleUseService {
 
         cleanupPendingUse(pending);
         if (notify) {
-            pending.astPlayer().sendMessage(PlayerMsgId.P_5247);
+            PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5247);
         }
         return true;
     }
@@ -225,7 +226,7 @@ public class BundleUseService {
             pending.model().getId(),
             1
         )) {
-            pending.astPlayer().sendMessage(PlayerMsgId.P_5245);
+            PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5245);
             return;
         }
 
@@ -263,12 +264,12 @@ public class BundleUseService {
 
         playUseEffects(pending.astPlayer(), pending.bundle());
         playRewardDropAnimations(pending.astPlayer(), resolvedRewards);
-        pending.astPlayer().sendMessage(PlayerMsgId.P_5243, rewardKinds, totalGranted);
+        PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5243, rewardKinds, totalGranted);
         for (String rewardSummary : rewardSummaries) {
-            pending.astPlayer().sendMessage(PlayerMsgId.P_5248, rewardSummary);
+            PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5248, rewardSummary);
         }
         if (totalDropped > 0) {
-            pending.astPlayer().sendMessage(PlayerMsgId.P_5244, totalDropped);
+            PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5244, totalDropped);
         }
     }
 

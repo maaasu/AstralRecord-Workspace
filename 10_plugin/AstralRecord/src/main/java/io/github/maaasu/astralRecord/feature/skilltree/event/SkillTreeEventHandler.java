@@ -3,7 +3,7 @@ package io.github.maaasu.astralRecord.feature.skilltree.event;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
-import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefinition;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePosition;
@@ -64,7 +64,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
 
         AstPlayer astPlayer = AstPlayerCache.get(event.getPlayer());
         if (!service.isAdminMode(astPlayer)) {
-            event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5707.getId()));
+            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5707);
             return;
         }
         if (positionId != null) {
@@ -97,7 +97,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
         }
         service.preloadState(astPlayer);
         if (!service.isStateReady(astPlayer)) {
-            event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5836.getId()));
+            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5836);
             return;
         }
         UUID playerId = event.getPlayer().getUniqueId();
@@ -108,50 +108,50 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
         SkillTreeNodeDefinition node = service.findTargetedNode(event.getPlayer()).orElse(null);
         if (node == null) {
             playDenied(event.getPlayer(), 0.85F);
-            event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5828.getId()));
+            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5828);
             return;
         }
         if (action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK) {
             if (service.isNodeUnlocked(astPlayer, node)) {
                 playDenied(event.getPlayer(), 1.15F);
-                event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5838.getId()));
+                PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5838);
                 return;
             }
             if (!service.hasSkillPoints(astPlayer)) {
                 playDenied(event.getPlayer(), 0.65F);
-                event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5839.getId()));
+                PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5839);
                 return;
             }
             if (!service.canUnlockNode(astPlayer, node)) {
                 playDenied(event.getPlayer(), 0.75F);
-                event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5825.getId()));
+                PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5825);
                 return;
             }
             if (service.unlockNode(astPlayer, node)) {
                 playUnlock(event.getPlayer());
-                event.getPlayer().sendMessage(PlayerMsgResource.format(PlayerMsgId.P_5824.getId(), ColorCodeUtil.translateAlternateColorCodes(node.name())));
+                PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5824, ColorCodeUtil.translateAlternateColorCodes(node.name()));
             } else {
                 playDenied(event.getPlayer(), 0.75F);
-                event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5825.getId()));
+                PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5825);
             }
             return;
         }
         if (!service.isNodeUnlocked(astPlayer, node)) {
             playDenied(event.getPlayer(), 1.0F);
-            event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5840.getId()));
+            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5840);
             return;
         }
         if (!service.canAffordRelock(astPlayer)) {
             playDenied(event.getPlayer(), 0.6F);
-            event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5841.getId()));
+            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5841);
             return;
         }
         if (service.relockNode(astPlayer, node)) {
             playRelock(event.getPlayer());
-            event.getPlayer().sendMessage(PlayerMsgResource.format(PlayerMsgId.P_5826.getId(), node.name()));
+            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5826, node.name());
         } else {
             playDenied(event.getPlayer(), 0.75F);
-            event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5827.getId()));
+            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5827);
         }
         suppressLeftClickUntilMillis.put(playerId, System.currentTimeMillis() + RIGHT_CLICK_LEFT_SUPPRESS_MILLIS);
     }
@@ -241,13 +241,13 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
         if (action == Action.RIGHT_CLICK_BLOCK && event.getClickedBlock() != null) {
             Location location = placementLocation(event.getClickedBlock(), event.getBlockFace());
             service.registerPosition(positionId, location);
-            event.getPlayer().sendMessage(PlayerMsgResource.format(PlayerMsgId.P_5821.getId(), positionId));
+            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5821, positionId);
             return;
         }
         if (action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK) {
             SkillTreePosition target = service.findTargetedPosition(event.getPlayer()).orElse(null);
             if (target != null && service.removePosition(target.positionId())) {
-                event.getPlayer().sendMessage(PlayerMsgResource.format(PlayerMsgId.P_5822.getId(), target.positionId()));
+                PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5822, target.positionId());
             }
         }
     }
@@ -255,23 +255,23 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
     private void handleConnectorItem(@NotNull PlayerInteractEvent event) {
         SkillTreePosition target = service.findTargetedPosition(event.getPlayer()).orElse(null);
         if (target == null) {
-            event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5823.getId()));
+            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5823);
             return;
         }
         Action action = event.getAction();
         if (action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK) {
             service.selectConnectorLeft(event.getPlayer().getUniqueId(), target.positionId());
-            event.getPlayer().sendMessage(PlayerMsgResource.format(PlayerMsgId.P_5830.getId(), target.positionId()));
+            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5830, target.positionId());
             return;
         }
         if (action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK) {
             String left = service.consumeConnectorLeft(event.getPlayer().getUniqueId());
             if (left == null) {
-                event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5831.getId()));
+                PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5831);
                 return;
             }
             if (service.toggleConnection(left, target.positionId())) {
-                event.getPlayer().sendMessage(PlayerMsgResource.format(PlayerMsgId.P_5832.getId(), left, target.positionId()));
+                PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5832, left, target.positionId());
             }
         }
     }

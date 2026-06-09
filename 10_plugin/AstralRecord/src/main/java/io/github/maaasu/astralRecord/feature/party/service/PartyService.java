@@ -5,8 +5,8 @@ import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.model.PartyActionResult;
 import io.github.maaasu.astralRecord.feature.party.model.PartyInvite;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
-import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -101,7 +101,7 @@ public final class PartyService {
 
         invitesByTarget.computeIfAbsent(targetId, ignored -> new LinkedHashMap<>())
             .put(inviterId, new PartyInvite(party.getPartyId(), inviterId, targetId, java.time.Instant.now()));
-        target.sendMessage(PlayerMsgResource.format(PlayerMsgId.P_5908.getId(), inviter.getBukkit().getName()));
+        PlayerMessageService.getInstance().send(target, PlayerMsgId.P_5908, inviter.getBukkit().getName());
         recordHistory(inviterId, "PARTY_INVITED", "Party invite sent to " + target.getName());
         recordHistory(targetId, "PARTY_INVITE_RECEIVED", "Party invite received from " + inviter.getBukkit().getName());
         return PartyActionResult.success(PlayerMsgId.P_5907, target.getName());
@@ -169,7 +169,7 @@ public final class PartyService {
         }
 
         removeInvite(playerId, leaderId);
-        leader.sendMessage(PlayerMsgResource.format(PlayerMsgId.P_5915.getId(), player.getBukkit().getName()));
+        PlayerMessageService.getInstance().send(leader, PlayerMsgId.P_5915, player.getBukkit().getName());
         recordHistory(playerId, "PARTY_INVITE_DECLINED", "Party invite declined from " + leaderName);
         return PartyActionResult.success(PlayerMsgId.P_5914, leaderName);
     }
@@ -255,7 +255,7 @@ public final class PartyService {
         party.removeMember(targetId);
         partyIdByMember.remove(targetId);
         clearInvitesForTarget(targetId);
-        target.sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5922.getId()));
+        PlayerMessageService.getInstance().send(target, PlayerMsgId.P_5922);
         notifyPartyExcept(party, leaderId, PlayerMsgId.P_5917, target.getName());
         recordHistory(targetId, "PARTY_KICKED", "Kicked from party: " + party.getPartyId());
         recordHistory(leaderId, "PARTY_MEMBER_KICKED", "Kicked party member: " + target.getName());
@@ -349,7 +349,7 @@ public final class PartyService {
     private void sendIfOnline(@NotNull UUID memberId, @NotNull PlayerMsgId messageId, Object... args) {
         Player member = Bukkit.getPlayer(memberId);
         if (member != null && member.isOnline()) {
-            member.sendMessage(PlayerMsgResource.format(messageId.getId(), args));
+            PlayerMessageService.getInstance().send(member, messageId, args);
         }
     }
 

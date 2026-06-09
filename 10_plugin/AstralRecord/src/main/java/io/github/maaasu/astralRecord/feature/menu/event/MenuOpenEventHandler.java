@@ -18,6 +18,7 @@ import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.playersetting.gui.PlayerSettingGui;
 import io.github.maaasu.astralRecord.feature.sell.service.SellService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -560,7 +561,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         astPlayer.setClassId(classId);
         astPlayer.setClassLevel(Math.max(1, astPlayer.getClassLevel()));
         String newDisplayName = plugin.getPlayerClassService().getDisplayName(classId);
-        astPlayer.sendMessage(PlayerMsgId.P_5812, oldDisplayName, newDisplayName);
+        PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5812, oldDisplayName, newDisplayName);
         GuiSound.SELECT.play(player);
         switchGuiWithoutInventoryReload(
             player,
