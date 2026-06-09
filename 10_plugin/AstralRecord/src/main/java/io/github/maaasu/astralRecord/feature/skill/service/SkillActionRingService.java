@@ -12,11 +12,14 @@ import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EquipmentSlotGroup;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
@@ -45,6 +48,8 @@ public final class SkillActionRingService {
     private static final long SELECT_ANIMATION_TICKS = 4L;
     private static final long SWAP_CLOSE_DEBOUNCE_MILLIS = 150L;
     private static final double SELECTING_BLOCK_BREAK_SPEED = 1024.0D;
+    private static final double ACTION_RING_MOVEMENT_SPEED_TARGET = 0.05D;
+    private static final double ACTION_RING_JUMP_STRENGTH_TARGET = 0.0D;
     private static final int CLOSE_SELECTION_INDEX = -2;
     private static final double CLOSE_SELECTION_PROJECTED_LENGTH = 0.28D;
     private static final ItemStack HIDDEN_ITEM = new ItemStack(Material.AIR);
@@ -54,6 +59,8 @@ public final class SkillActionRingService {
     private final SkillService skillService;
     private final SkillOwnershipService ownershipService;
     private final SkillActionRingDisplay actionRingDisplay;
+    private final NamespacedKey actionRingMoveSpeedModifierKey;
+    private final NamespacedKey actionRingJumpStrengthModifierKey;
     private final Map<UUID, RingSession> sessions = new ConcurrentHashMap<>();
     private final Map<UUID, Long> swapCloseSuppressedUntil = new ConcurrentHashMap<>();
     private final Set<UUID> suppressedAttackPlayers = ConcurrentHashMap.newKeySet();
@@ -76,6 +83,8 @@ public final class SkillActionRingService {
         this.skillService = skillService;
         this.ownershipService = ownershipService;
         this.actionRingDisplay = new SkillActionRingDisplay(plugin);
+        this.actionRingMoveSpeedModifierKey = new NamespacedKey(plugin, "action_ring_move_speed");
+        this.actionRingJumpStrengthModifierKey = new NamespacedKey(plugin, "action_ring_jump_strength");
     }
 
     /**
@@ -94,7 +103,13 @@ public final class SkillActionRingService {
             return;
         }
 
-        RingSession session = RingSession.create(player, resolveSlots(astPlayer), actionRingDisplay);
+        RingSession session = RingSession.create(
+            player,
+            resolveSlots(astPlayer),
+            actionRingDisplay,
+            actionRingMoveSpeedModifierKey,
+            actionRingJumpStrengthModifierKey
+        );
         sessions.put(playerId, session);
         GuiSound.RING_OPEN.play(player);
         ensureTask();
@@ -124,7 +139,13 @@ public final class SkillActionRingService {
             return;
         }
 
-        RingSession session = RingSession.create(player, resolveSlots(astPlayer), actionRingDisplay);
+        RingSession session = RingSession.create(
+            player,
+            resolveSlots(astPlayer),
+            actionRingDisplay,
+            actionRingMoveSpeedModifierKey,
+            actionRingJumpStrengthModifierKey
+        );
         sessions.put(playerId, session);
         swapCloseSuppressedUntil.put(playerId, now + SWAP_CLOSE_DEBOUNCE_MILLIS);
         GuiSound.RING_OPEN.play(player);
@@ -348,6 +369,10 @@ public final class SkillActionRingService {
         private final List<SkillActionRingDisplay.DisplayEntity> circleDots = new ArrayList<>(CIRCLE_DISPLAY_POINTS);
         private final AttributeInstance blockBreakSpeedAttribute;
         private final Double originalBlockBreakSpeed;
+        private final AttributeInstance movementSpeedAttribute;
+        private final AttributeInstance jumpStrengthAttribute;
+        private final NamespacedKey moveSpeedModifierKey;
+        private final NamespacedKey jumpStrengthModifierKey;
         private SkillActionRingDisplay.DisplayEntity closeIcon;
         private SkillActionRingDisplay.DisplayEntity closeLabel;
         private SkillActionRingDisplay.DisplayEntity timerLabel;
@@ -367,7 +392,11 @@ public final class SkillActionRingService {
             @NotNull Player viewer,
             @NotNull SkillActionRingDisplay actionRingDisplay,
             AttributeInstance blockBreakSpeedAttribute,
-            Double originalBlockBreakSpeed
+            Double originalBlockBreakSpeed,
+            AttributeInstance movementSpeedAttribute,
+            AttributeInstance jumpStrengthAttribute,
+            @NotNull NamespacedKey moveSpeedModifierKey,
+            @NotNull NamespacedKey jumpStrengthModifierKey
         ) {
             this.baseEye = baseEye;
             this.baseCenter = baseCenter;
@@ -379,13 +408,19 @@ public final class SkillActionRingService {
             this.actionRingDisplay = actionRingDisplay;
             this.blockBreakSpeedAttribute = blockBreakSpeedAttribute;
             this.originalBlockBreakSpeed = originalBlockBreakSpeed;
+            this.movementSpeedAttribute = movementSpeedAttribute;
+            this.jumpStrengthAttribute = jumpStrengthAttribute;
+            this.moveSpeedModifierKey = moveSpeedModifierKey;
+            this.jumpStrengthModifierKey = jumpStrengthModifierKey;
             this.selectedIndex = firstSelectableSlot(slots);
         }
 
         private static @NotNull RingSession create(
             @NotNull Player player,
             @NotNull List<SlotView> slots,
-            @NotNull SkillActionRingDisplay actionRingDisplay
+            @NotNull SkillActionRingDisplay actionRingDisplay,
+            @NotNull NamespacedKey moveSpeedModifierKey,
+            @NotNull NamespacedKey jumpStrengthModifierKey
         ) {
             Location eye = player.getEyeLocation();
             Vector normal = eye.getDirection().normalize();
@@ -403,6 +438,8 @@ public final class SkillActionRingService {
                 originalBlockBreakSpeed = blockBreakSpeed.getBaseValue();
                 blockBreakSpeed.setBaseValue(SELECTING_BLOCK_BREAK_SPEED);
             }
+            AttributeInstance movementSpeed = player.getAttribute(Attribute.MOVEMENT_SPEED);
+            AttributeInstance jumpStrength = player.getAttribute(Attribute.JUMP_STRENGTH);
             RingSession session = new RingSession(
                 eye.clone(),
                 center,
@@ -413,8 +450,13 @@ public final class SkillActionRingService {
                 player,
                 actionRingDisplay,
                 blockBreakSpeed,
-                originalBlockBreakSpeed
+                originalBlockBreakSpeed,
+                movementSpeed,
+                jumpStrength,
+                moveSpeedModifierKey,
+                jumpStrengthModifierKey
             );
+            session.syncMovementRestrictions();
             session.spawnEntities(player);
             return session;
         }
@@ -476,6 +518,7 @@ public final class SkillActionRingService {
                 }
             }
 
+            syncMovementRestrictions();
             updateCircle(center);
             for (int index = 0; index < SLOT_COUNT; index++) {
                 SlotView slot = slots.get(index);
@@ -645,6 +688,7 @@ public final class SkillActionRingService {
 
         private void destroy() {
             if (!viewer.isOnline()) {
+                clearMovementRestrictions();
                 restoreBlockBreakSpeed();
                 return;
             }
@@ -672,12 +716,56 @@ public final class SkillActionRingService {
                 timerLabel.destroy(viewer);
                 timerLabel = null;
             }
+            clearMovementRestrictions();
             restoreBlockBreakSpeed();
         }
 
         private void restoreBlockBreakSpeed() {
             if (blockBreakSpeedAttribute != null && originalBlockBreakSpeed != null) {
                 blockBreakSpeedAttribute.setBaseValue(originalBlockBreakSpeed);
+            }
+        }
+
+        private void syncMovementRestrictions() {
+            syncTargetModifier(
+                movementSpeedAttribute,
+                moveSpeedModifierKey,
+                ACTION_RING_MOVEMENT_SPEED_TARGET
+            );
+            syncTargetModifier(
+                jumpStrengthAttribute,
+                jumpStrengthModifierKey,
+                ACTION_RING_JUMP_STRENGTH_TARGET
+            );
+        }
+
+        private void syncTargetModifier(
+            AttributeInstance attribute,
+            @NotNull NamespacedKey modifierKey,
+            double targetValue
+        ) {
+            if (attribute == null) {
+                return;
+            }
+
+            attribute.removeModifier(modifierKey);
+            double baseValue = attribute.getBaseValue();
+            double amount = targetValue - baseValue;
+            AttributeModifier modifier = new AttributeModifier(
+                modifierKey,
+                amount,
+                AttributeModifier.Operation.ADD_NUMBER,
+                EquipmentSlotGroup.ANY
+            );
+            attribute.addTransientModifier(modifier);
+        }
+
+        private void clearMovementRestrictions() {
+            if (movementSpeedAttribute != null) {
+                movementSpeedAttribute.removeModifier(moveSpeedModifierKey);
+            }
+            if (jumpStrengthAttribute != null) {
+                jumpStrengthAttribute.removeModifier(jumpStrengthModifierKey);
             }
         }
 

@@ -20,7 +20,6 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
-import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -30,9 +29,6 @@ import org.jetbrains.annotations.NotNull;
  * オフハンド切替入力をアクションリング表示へ差し替えるイベントハンドラです。
  */
 public final class SkillActionRingEventHandler extends AbstractEventHandler {
-    private static final double ACTION_RING_MOVE_MULTIPLIER = 0.35D;
-    private static final double ACTION_RING_JUMP_MULTIPLIER = 0.55D;
-
     private final SkillActionRingService actionRingService;
     private final InventoryService inventoryService;
     private final SkillTreeService skillTreeService;
@@ -144,40 +140,6 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
             }
             event.setCancelled(true);
         }, LogId.E_5802, event.getPlayer().getName(), "skill_action_ring_hotbar");
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onPlayerMove(@NotNull PlayerMoveEvent event) {
-        runSafely(() -> {
-            Player player = event.getPlayer();
-            if (!actionRingService.isOpen(player)) {
-                return;
-            }
-            if (player.isFlying() || player.isGliding() || player.isInsideVehicle()) {
-                return;
-            }
-
-            var from = event.getFrom();
-            var to = event.getTo();
-            if (to == null) {
-                return;
-            }
-
-            double deltaX = to.getX() - from.getX();
-            double deltaY = to.getY() - from.getY();
-            double deltaZ = to.getZ() - from.getZ();
-            if (Math.abs(deltaX) < 1.0E-6D && Math.abs(deltaY) < 1.0E-6D && Math.abs(deltaZ) < 1.0E-6D) {
-                return;
-            }
-
-            var adjusted = to.clone();
-            adjusted.setX(from.getX() + deltaX * ACTION_RING_MOVE_MULTIPLIER);
-            adjusted.setZ(from.getZ() + deltaZ * ACTION_RING_MOVE_MULTIPLIER);
-            if (deltaY > 0.0D) {
-                adjusted.setY(from.getY() + deltaY * ACTION_RING_JUMP_MULTIPLIER);
-            }
-            event.setTo(adjusted);
-        }, LogId.E_5802, event.getPlayer().getName(), "skill_action_ring_move");
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
