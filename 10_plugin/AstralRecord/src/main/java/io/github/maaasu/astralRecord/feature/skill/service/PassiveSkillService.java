@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class PassiveSkillService {
     private static final long TICK_INTERVAL = 1L;
     private static final long RECONCILE_INTERVAL_TICKS = 10L;
+    private static final long CLEANUP_INTERVAL_TICKS = 20L;
 
     private final AstralRecord plugin;
     private final SkillService skillService;
@@ -42,6 +43,7 @@ public final class PassiveSkillService {
     private StatusService statusService;
     private BukkitTask task;
     private long tickCounter;
+    private int tickingPassiveCount;
 
     /**
      * サービスを構築します。
@@ -98,6 +100,7 @@ public final class PassiveSkillService {
             }
         }
         activeStates.clear();
+        tickingPassiveCount = 0;
     }
 
     /**
@@ -121,7 +124,7 @@ public final class PassiveSkillService {
         boolean changed = false;
 
         for (String skillId : removedSkillIds) {
-            ActivePassiveSkill current = state.skillsById.remove(skillId);
+            ActivePassiveSkill current = removeActiveSkill(state, skillId);
             if (current == null) {
                 continue;
             }
@@ -174,17 +177,13 @@ public final class PassiveSkillService {
         double flat = 0.0D;
         double scalar = 0.0D;
         for (ActivePassiveSkill activeSkill : state.skillsById.values()) {
-            SkillExecutor executor = skillService.registry().getExecutor(activeSkill.definition().getImplementationId());
-            if (executor == null) {
-                continue;
-            }
             PassiveSkillContext context = new PassiveSkillContext(
                 player,
                 activeSkill.definition(),
                 activeSkill.activatedAt(),
-                activeSkill.activeTicks()
+                activeSkill.activeTicks(tickCounter)
             );
-            for (PassiveSkillStatusModifier modifier : executor.passiveStatusModifiers(context)) {
+            for (PassiveSkillStatusModifier modifier : activeSkill.executor().passiveStatusModifiers(context)) {
                 if (modifier.statusType() != statusType) {
                     continue;
                 }
@@ -200,7 +199,9 @@ public final class PassiveSkillService {
 
     private void tick() {
         tickCounter++;
-        cleanupOfflinePlayers();
+        if (tickCounter % CLEANUP_INTERVAL_TICKS == 0L) {
+            cleanupOfflinePlayers();
+        }
         if (tickCounter % RECONCILE_INTERVAL_TICKS == 0L) {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 AstPlayer astPlayer = AstPlayerCache.get(player);
@@ -210,6 +211,9 @@ public final class PassiveSkillService {
             }
         }
 
+        if (tickingPassiveCount <= 0) {
+            return;
+        }
         for (Player player : Bukkit.getOnlinePlayers()) {
             AstPlayer astPlayer = AstPlayerCache.get(player);
             if (astPlayer == null) {
@@ -230,23 +234,22 @@ public final class PassiveSkillService {
             if (astPlayer != null) {
                 continue;
             }
+            decrementTickingPassiveCount(entry.getValue());
             activeStates.remove(entry.getKey());
         }
     }
 
     private void tickPassives(@NotNull AstPlayer player, @NotNull PlayerPassiveState state) {
-        for (Map.Entry<String, ActivePassiveSkill> entry : List.copyOf(state.skillsById.entrySet())) {
-            ActivePassiveSkill next = entry.getValue().incrementTick();
-            state.skillsById.put(entry.getKey(), next);
-            SkillExecutor executor = skillService.registry().getExecutor(next.definition().getImplementationId());
-            if (executor == null) {
+        for (ActivePassiveSkill activeSkill : List.copyOf(state.skillsById.values())) {
+            if (!activeSkill.shouldTick(tickCounter)) {
                 continue;
             }
-            executor.onTick(new PassiveSkillContext(
+            activeSkill.markTicked(tickCounter);
+            activeSkill.executor().onTick(new PassiveSkillContext(
                 player,
-                next.definition(),
-                next.activatedAt(),
-                next.activeTicks()
+                activeSkill.definition(),
+                activeSkill.activatedAt(),
+                activeSkill.activeTicks(tickCounter)
             ));
         }
     }
@@ -264,7 +267,7 @@ public final class PassiveSkillService {
                 continue;
             }
             deactivate(player, current);
-            state.skillsById.remove(entry.getKey());
+            removeActiveSkill(state, entry.getKey());
             changed = true;
             if (desiredDefinition != null) {
                 activate(player, state, desiredDefinition);
@@ -329,26 +332,31 @@ public final class PassiveSkillService {
         if (executor == null) {
             return;
         }
-        ActivePassiveSkill activeSkill = new ActivePassiveSkill(definition, Instant.now(), 0L);
+        ActivePassiveSkill activeSkill = new ActivePassiveSkill(
+            definition,
+            executor,
+            Instant.now(),
+            tickCounter,
+            Math.max(1L, executor.passiveTickIntervalTicks())
+        );
         state.skillsById.put(definition.getId(), activeSkill);
+        if (activeSkill.requiresTick()) {
+            tickingPassiveCount++;
+        }
         executor.onActivate(new PassiveSkillContext(
             player,
             definition,
             activeSkill.activatedAt(),
-            activeSkill.activeTicks()
+            activeSkill.activeTicks(tickCounter)
         ));
     }
 
     private void deactivate(@NotNull AstPlayer player, @NotNull ActivePassiveSkill activeSkill) {
-        SkillExecutor executor = skillService.registry().getExecutor(activeSkill.definition().getImplementationId());
-        if (executor == null) {
-            return;
-        }
-        executor.onDeactivate(new PassiveSkillContext(
+        activeSkill.executor().onDeactivate(new PassiveSkillContext(
             player,
             activeSkill.definition(),
             activeSkill.activatedAt(),
-            activeSkill.activeTicks()
+            activeSkill.activeTicks(tickCounter)
         ));
     }
 
@@ -358,17 +366,77 @@ public final class PassiveSkillService {
         }
     }
 
+    private ActivePassiveSkill removeActiveSkill(@NotNull PlayerPassiveState state, @NotNull String skillId) {
+        ActivePassiveSkill removed = state.skillsById.remove(skillId);
+        if (removed != null && removed.requiresTick()) {
+            tickingPassiveCount = Math.max(0, tickingPassiveCount - 1);
+        }
+        return removed;
+    }
+
+    private void decrementTickingPassiveCount(@NotNull PlayerPassiveState state) {
+        for (ActivePassiveSkill activeSkill : state.skillsById.values()) {
+            if (activeSkill.requiresTick()) {
+                tickingPassiveCount = Math.max(0, tickingPassiveCount - 1);
+            }
+        }
+    }
+
     private static final class PlayerPassiveState {
         private final Map<String, ActivePassiveSkill> skillsById = new LinkedHashMap<>();
     }
 
-    private record ActivePassiveSkill(
-        @NotNull SkillDefinition definition,
-        @NotNull Instant activatedAt,
-        long activeTicks
-    ) {
-        private @NotNull ActivePassiveSkill incrementTick() {
-            return new ActivePassiveSkill(definition, activatedAt, activeTicks + 1L);
+    private static final class ActivePassiveSkill {
+        private final SkillDefinition definition;
+        private final SkillExecutor executor;
+        private final Instant activatedAt;
+        private final long activatedTick;
+        private final boolean requiresTick;
+        private final long tickIntervalTicks;
+        private long nextTickAt;
+
+        private ActivePassiveSkill(
+            @NotNull SkillDefinition definition,
+            @NotNull SkillExecutor executor,
+            @NotNull Instant activatedAt,
+            long activatedTick,
+            long tickIntervalTicks
+        ) {
+            this.definition = definition;
+            this.executor = executor;
+            this.activatedAt = activatedAt;
+            this.activatedTick = activatedTick;
+            this.requiresTick = executor.requiresPassiveTick();
+            this.tickIntervalTicks = tickIntervalTicks;
+            this.nextTickAt = activatedTick + tickIntervalTicks;
+        }
+
+        private @NotNull SkillDefinition definition() {
+            return definition;
+        }
+
+        private @NotNull SkillExecutor executor() {
+            return executor;
+        }
+
+        private @NotNull Instant activatedAt() {
+            return activatedAt;
+        }
+
+        private long activeTicks(long currentTick) {
+            return Math.max(0L, currentTick - activatedTick);
+        }
+
+        private boolean requiresTick() {
+            return requiresTick;
+        }
+
+        private boolean shouldTick(long currentTick) {
+            return requiresTick && currentTick >= nextTickAt;
+        }
+
+        private void markTicked(long currentTick) {
+            nextTickAt = currentTick + tickIntervalTicks;
         }
     }
 }

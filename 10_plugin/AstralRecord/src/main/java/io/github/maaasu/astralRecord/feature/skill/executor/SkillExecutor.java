@@ -73,6 +73,30 @@ public interface SkillExecutor {
     }
 
     /**
+     * パッシブスキルが定期 tick 呼び出しを必要とするかを返します。
+     * <p>
+     * ステータス補正だけのパッシブは {@code false} のままにし、時間経過で処理が必要な executor だけが
+     * {@code true} を返します。
+     *
+     * @return 定期 tick が必要な場合は {@code true}
+     */
+    default boolean requiresPassiveTick() {
+        return false;
+    }
+
+    /**
+     * パッシブスキルの定期 tick 呼び出し間隔を返します。
+     * <p>
+     * {@link #requiresPassiveTick()} が {@code false} の場合、この値は使用されません。
+     * 1 未満の値を返した場合は呼び出し側で 1 tick として扱います。
+     *
+     * @return 定期 tick 呼び出し間隔
+     */
+    default long passiveTickIntervalTicks() {
+        return 1L;
+    }
+
+    /**
      * パッシブスキルが付与するステータス補正を返します。
      *
      * @param context パッシブコンテキスト
