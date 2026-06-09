@@ -107,26 +107,36 @@ final class SkillActionRingDisplay {
                 return;
             }
             entity.teleport(location);
-            showOnly(player);
         }
 
         void updateItem(@NotNull Player player, @NotNull ItemStack itemStack, boolean glowing) {
-            this.itemStack = itemStack.clone();
+            ItemStack cloned = itemStack.clone();
+            boolean itemChanged = this.itemStack == null || !this.itemStack.equals(cloned);
+            boolean glowingChanged = this.glowing != glowing;
+            this.itemStack = cloned;
             this.glowing = glowing;
             if (entity instanceof ItemDisplay display) {
-                display.setItemStack(this.itemStack);
-                display.setGlowing(glowing);
-                showOnly(player);
+                if (itemChanged) {
+                    display.setItemStack(this.itemStack);
+                }
+                if (glowingChanged) {
+                    display.setGlowing(glowing);
+                }
             }
         }
 
         void updateText(@NotNull Player player, @NotNull Component text, float scale) {
+            boolean textChanged = this.text == null || !this.text.equals(text);
+            boolean scaleChanged = Float.compare(this.scale, scale) != 0;
             this.text = text;
             this.scale = scale;
             if (entity instanceof TextDisplay display) {
-                display.text(text);
-                display.setTransformation(scaleTransformation(scale));
-                showOnly(player);
+                if (textChanged) {
+                    display.text(text);
+                }
+                if (scaleChanged) {
+                    display.setTransformation(scaleTransformation(scale));
+                }
             }
         }
 

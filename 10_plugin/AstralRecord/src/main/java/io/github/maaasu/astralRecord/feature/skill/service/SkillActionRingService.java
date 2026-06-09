@@ -279,7 +279,7 @@ public final class SkillActionRingService {
         if (task != null) {
             return;
         }
-        task = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 1L, UPDATE_INTERVAL_TICKS);
+        task = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 0L, UPDATE_INTERVAL_TICKS);
     }
 
     private void tick() {
@@ -748,9 +748,13 @@ public final class SkillActionRingService {
                 return;
             }
 
-            attribute.removeModifier(modifierKey);
             double baseValue = attribute.getBaseValue();
             double amount = targetValue - baseValue;
+            AttributeModifier current = attribute.getModifier(modifierKey);
+            if (current != null && Double.compare(current.getAmount(), amount) == 0) {
+                return;
+            }
+            attribute.removeModifier(modifierKey);
             AttributeModifier modifier = new AttributeModifier(
                 modifierKey,
                 amount,
