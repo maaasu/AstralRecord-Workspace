@@ -4,7 +4,10 @@ param(
     [int]$ServerPort = 25578,
     [switch]$UseLiveServerClone,
     [switch]$RefreshLiveServerClone,
-    [int]$ReproductionWindowMs = 2000
+    [int]$ReproductionWindowMs = 2000,
+    [int]$AutoOpenDelayTicks = 60,
+    [int]$AutoOpenRetryCount = 20,
+    [int]$AutoOpenRetryIntervalTicks = 20
 )
 
 $ErrorActionPreference = "Stop"
@@ -219,17 +222,32 @@ import com.comphenix.protocol.events.PacketEvent;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import org.bukkit.Bukkit;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public final class ActionRingPacketProbePlugin extends JavaPlugin {
+public final class ActionRingPacketProbePlugin extends JavaPlugin implements Listener {
     private static final int ACTION_RING_ENTITY_ID_MIN = 2200000;
     private static final int ACTION_RING_ENTITY_ID_MAX = 2300000;
     private static final long REPRODUCTION_WINDOW_MS = ${WindowMs}L;
+    private static final long AUTO_OPEN_DELAY_TICKS = ${AutoOpenDelayTicks}L;
+    private static final int AUTO_OPEN_RETRY_COUNT = ${AutoOpenRetryCount};
+    private static final long AUTO_OPEN_RETRY_INTERVAL_TICKS = ${AutoOpenRetryIntervalTicks}L;
     private final Map<Integer, Long> spawnedAt = new ConcurrentHashMap<>();
+    private final Set<UUID> autoOpenedPlayers = ConcurrentHashMap.newKeySet();
 
     @Override
     public void onEnable() {
+        Bukkit.getPluginManager().registerEvents(this, this);
         ProtocolLibrary.getProtocolManager().addPacketListener(new PacketAdapter(
             this,
             ListenerPriority.MONITOR,
@@ -266,12 +284,116 @@ public final class ActionRingPacketProbePlugin extends JavaPlugin {
                 }
             }
         });
-        getLogger().info("Action ring packet probe enabled. reproductionWindowMs=" + REPRODUCTION_WINDOW_MS);
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            scheduleAutoOpen(player, "enable-online-player", AUTO_OPEN_DELAY_TICKS);
+        }
+        getLogger().info("Action ring packet probe enabled. reproductionWindowMs=" + REPRODUCTION_WINDOW_MS
+            + " autoOpenDelayTicks=" + AUTO_OPEN_DELAY_TICKS);
     }
 
     @Override
     public void onDisable() {
         spawnedAt.clear();
+        autoOpenedPlayers.clear();
+    }
+
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        scheduleAutoOpen(event.getPlayer(), "player-join", AUTO_OPEN_DELAY_TICKS);
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (args.length < 1) {
+            sender.sendMessage("usage: /" + label + " <player>");
+            return true;
+        }
+        Player player = Bukkit.getPlayerExact(args[0]);
+        if (player == null) {
+            sender.sendMessage("player not found: " + args[0]);
+            return true;
+        }
+        autoOpenedPlayers.remove(player.getUniqueId());
+        scheduleAutoOpen(player, "command", 1L);
+        sender.sendMessage("scheduled action ring packet probe for " + player.getName());
+        return true;
+    }
+
+    private void scheduleAutoOpen(Player player, String reason, long delayTicks) {
+        Bukkit.getScheduler().runTaskLater(this, () -> tryAutoOpen(player.getName(), reason, 0), delayTicks);
+    }
+
+    private void tryAutoOpen(String playerName, String reason, int attempt) {
+        Player player = Bukkit.getPlayerExact(playerName);
+        if (player == null || !player.isOnline()) {
+            getLogger().info("ACTION_RING_AUTOTEST skipped player=" + playerName + " reason=offline");
+            return;
+        }
+        if (autoOpenedPlayers.contains(player.getUniqueId())) {
+            getLogger().info("ACTION_RING_AUTOTEST skipped player=" + playerName + " reason=already-opened");
+            return;
+        }
+
+        Object astPlayer = astPlayer(player);
+        if (astPlayer == null) {
+            if (attempt < AUTO_OPEN_RETRY_COUNT) {
+                Bukkit.getScheduler().runTaskLater(
+                    this,
+                    () -> tryAutoOpen(playerName, reason, attempt + 1),
+                    AUTO_OPEN_RETRY_INTERVAL_TICKS
+                );
+                return;
+            }
+            getLogger().warning("ACTION_RING_AUTOTEST failed player=" + playerName + " reason=ast-player-unavailable");
+            return;
+        }
+
+        Object service = actionRingService();
+        if (service == null) {
+            getLogger().warning("ACTION_RING_AUTOTEST failed player=" + playerName + " reason=service-unavailable");
+            return;
+        }
+
+        try {
+            boolean open = (Boolean) service.getClass().getMethod("isOpen", Player.class).invoke(service, player);
+            if (open) {
+                service.getClass().getMethod("close", Player.class).invoke(service, player);
+            }
+            service.getClass().getMethod("toggle", astPlayer.getClass()).invoke(service, astPlayer);
+            autoOpenedPlayers.add(player.getUniqueId());
+            getLogger().warning("ACTION_RING_AUTOTEST opened player=" + playerName + " reason=" + reason);
+        } catch (ReflectiveOperationException exception) {
+            getLogger().warning("ACTION_RING_AUTOTEST failed player=" + playerName
+                + " reason=" + exception.getClass().getSimpleName()
+                + " message=" + exception.getMessage());
+        }
+    }
+
+    private Object astPlayer(Player player) {
+        try {
+            Class<?> cacheClass = Class.forName("io.github.maaasu.astralRecord.feature.player.AstPlayerCache");
+            return cacheClass.getMethod("get", Player.class).invoke(null, player);
+        } catch (ReflectiveOperationException exception) {
+            getLogger().warning("ACTION_RING_AUTOTEST ast-player-cache-error type="
+                + exception.getClass().getSimpleName() + " message=" + exception.getMessage());
+            return null;
+        }
+    }
+
+    private Object actionRingService() {
+        try {
+            Plugin plugin = Bukkit.getPluginManager().getPlugin("AstralRecord");
+            if (plugin == null || !plugin.isEnabled()) {
+                return null;
+            }
+            var field = plugin.getClass().getDeclaredField("skillActionRingService");
+            field.setAccessible(true);
+            return field.get(plugin);
+        } catch (ReflectiveOperationException exception) {
+            getLogger().warning("ACTION_RING_AUTOTEST service-error type="
+                + exception.getClass().getSimpleName() + " message=" + exception.getMessage());
+            return null;
+        }
     }
 
     private boolean isActionRingEntityId(Integer entityId) {
@@ -325,7 +447,11 @@ function Build-ActionRingPacketProbe {
         "version: 1.0.0"
         "main: codex.probe.ActionRingPacketProbePlugin"
         "api-version: '1.21'"
-        "depend: [ProtocolLib]"
+        "depend: [ProtocolLib, AstralRecord]"
+        "commands:"
+        "  actionringprobe:"
+        "    description: Open AstralRecord action ring for packet reproduction."
+        "    usage: /actionringprobe <player>"
     ) | Set-Content -LiteralPath $pluginYmlPath -Encoding ASCII
 
     Push-Location $pluginRoot
@@ -413,5 +539,6 @@ Write-Host "[AstralRecord action-ring-packet-test] Server port set to: $ServerPo
 Write-Host "[AstralRecord action-ring-packet-test] Packet probe installed: $probeJar"
 Write-Host "[AstralRecord action-ring-packet-test] Next:"
 Write-Host "  1. Start server with start-dev-server.ps1 -ServerRoot `"$ServerRoot`" -SkipBuild"
-Write-Host "  2. Join the server and open the action ring with the offhand swap key"
-Write-Host "  3. Check logs/latest.log for ACTION_RING_PACKET_REPRODUCED"
+Write-Host "  2. Join the server. The probe auto-opens the action ring for the joined player."
+Write-Host "  3. Check logs/latest.log for ACTION_RING_AUTOTEST and ACTION_RING_PACKET_REPRODUCED"
+Write-Host "  4. Optional manual trigger: /actionringprobe <player>"

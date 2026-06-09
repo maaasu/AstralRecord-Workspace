@@ -60,6 +60,38 @@ description: AstralRecord の Minecraft プラグイン `10_plugin/AstralRecord`
 - 現在の live server source root は `scripts/dev-server.config.json` を正本として扱う。
 - `velocityEnabled: true` の環境では `paper-global.yml` など proxy 設定をスクリプトで再生成しない。live clone に含まれる設定をそのまま使う。
 
+## Action Ring Packet Autotest
+
+アクションリングの packet-only 表示を実サーバー寄りに再現するときは、専用 helper を使う。
+
+```text
+powershell -NoProfile -ExecutionPolicy Bypass -File E:\AstralRecord-Workspace\10_plugin\AstralRecord\scripts\prepare-action-ring-packet-test.ps1 -UseLiveServerClone
+```
+
+準備後は次で起動する。
+
+```text
+powershell -NoProfile -ExecutionPolicy Bypass -File E:\AstralRecord-Workspace\10_plugin\AstralRecord\scripts\start-dev-server.ps1 -ServerRoot E:\AstralRecord-Workspace\10_plugin\AstralRecord\.dev-server\integration-live-clone-actionring -SkipBuild -Background
+```
+
+この helper は `ActionRingPacketProbe.jar` を配置し、clone 側 SQL Server を無効化し、filebase を `E:\AstralRecord-Workspace\40_filebase` に向け、`localhost:25578` へ Velocity なしで直接接続できるよう proxy 設定を補正する。
+
+自律的な実動作確認では、プレイヤーが一度 test server に参加する。probe は online player を読み取り、`AstPlayerCache` の準備を待って、稼働中 AstralRecord plugin の `SkillActionRingService.toggle(AstPlayer)` を呼び出し、packet 証跡を `logs/latest.log` に記録する。
+
+確認する log marker:
+
+- `ACTION_RING_AUTOTEST opened player=<name>`: probe が online player に対して action ring を server-side で開いた。
+- `ACTION_RING_PACKET spawn id=<id>`: action ring の packet-only entity が client に送信された。
+- `ACTION_RING_PACKET_REPRODUCED ... spawn_to_destroy_ms=<ms>`: 設定された reproduction window 内に packet-only entity が destroy された。
+
+再実行が必要で、player が online の場合は次を使う。
+
+```text
+/actionringprobe <player>
+```
+
+これは packet-level の再現証跡として扱う。client 側の目視確認を完全には置き換えないが、player 接続後に Codex が反復可能な server-side packet 実動作チェックを行うための入口として使う。
+
 ## Example Prompts
 
 ```text
