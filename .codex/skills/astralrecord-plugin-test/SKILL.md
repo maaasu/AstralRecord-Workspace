@@ -60,7 +60,19 @@ description: AstralRecord の Minecraft プラグイン `10_plugin/AstralRecord`
 - 現在の live server source root は `scripts/dev-server.config.json` を正本として扱う。
 - `velocityEnabled: true` の環境では `paper-global.yml` など proxy 設定をスクリプトで再生成しない。live clone に含まれる設定をそのまま使う。
 
-## Action Ring Packet Autotest
+## Packet Integration Autotest
+
+ProtocolLib や packet-only 表示の実動作を調べるときは、feature ごとに一時 probe plugin または probe command を用意し、live clone test server に配置する。目的は、Codex が player 接続後に server-side で対象動作を再実行し、packet の送信順・短時間 destroy・metadata 更新などを `logs/latest.log` から反復確認できる状態にすること。
+
+Packet probe の標準要件:
+
+- `ProtocolLib` の `PacketAdapter` を `ListenerPriority.MONITOR` で登録し、対象 packet type と feature 固有の entity id / packet field / marker を記録する。
+- player が一度 test server に参加した後、probe が online player を使って対象 service/command を server-side で再実行できる入口を持つ。
+- 自動実行が危険な場合は `/featureprobe <player>` のような明示 command を用意する。
+- log marker は feature 名を含む安定した prefix にする。例: `ACTION_RING_PACKET`, `SKILLTREE_PACKET`, `MOB_NAMEPLATE_PACKET`。
+- client 側の目視確認を完全には置き換えない。packet-level の再現証跡として扱う。
+
+## Action Ring Packet Autotest Example
 
 アクションリングの packet-only 表示を実サーバー寄りに再現するときは、専用 helper を使う。
 
