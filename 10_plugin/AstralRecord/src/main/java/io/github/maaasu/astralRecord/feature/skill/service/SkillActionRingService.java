@@ -427,6 +427,7 @@ public final class SkillActionRingService {
                     0.42F
                 );
                 dot.spawn(player);
+                dot.ride(player);
                 circleDots.add(dot);
             }
             for (int index = 0; index < SLOT_COUNT; index++) {
@@ -439,6 +440,8 @@ public final class SkillActionRingService {
                 SkillActionRingDisplay.DisplayEntity label = actionRingDisplay.text(location, Component.empty(), 0.60F);
                 icon.spawn(player);
                 label.spawn(player);
+                icon.ride(player);
+                label.ride(player);
                 icons.add(icon);
                 labels.add(label);
             }
@@ -448,6 +451,9 @@ public final class SkillActionRingService {
             closeIcon.spawn(player);
             closeLabel.spawn(player);
             timerLabel.spawn(player);
+            closeIcon.ride(player);
+            closeLabel.ride(player);
+            timerLabel.ride(player);
         }
 
         private boolean tick(@NotNull Player player) {
