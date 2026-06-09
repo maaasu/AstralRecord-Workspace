@@ -35,7 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class SkillActionRingService {
     private static final int SLOT_COUNT = SkillBindPreset.SLOT_COUNT;
-    private static final double RING_DISTANCE = 2.0D;
+    private static final double RING_DISTANCE = 3.0D;
     private static final double RING_RADIUS = 1.12D;
     private static final int CIRCLE_DISPLAY_POINTS = 24;
     private static final int TIMER_BAR_LENGTH = 24;
@@ -43,7 +43,7 @@ public final class SkillActionRingService {
     private static final long RING_DISPLAY_LIMIT_TICKS = 100L;
     private static final long CAST_WAIT_LIMIT_TICKS = 60L;
     private static final long SELECT_ANIMATION_TICKS = 4L;
-    private static final long SWAP_CLOSE_DEBOUNCE_MILLIS = 2_000L;
+    private static final long SWAP_CLOSE_DEBOUNCE_MILLIS = 150L;
     private static final double SELECTING_BLOCK_BREAK_SPEED = 1024.0D;
     private static final int CLOSE_SELECTION_INDEX = -2;
     private static final double CLOSE_SELECTION_PROJECTED_LENGTH = 0.28D;
@@ -427,7 +427,6 @@ public final class SkillActionRingService {
                     0.42F
                 );
                 dot.spawn(player);
-                dot.ride(player);
                 circleDots.add(dot);
             }
             for (int index = 0; index < SLOT_COUNT; index++) {
@@ -440,8 +439,6 @@ public final class SkillActionRingService {
                 SkillActionRingDisplay.DisplayEntity label = actionRingDisplay.text(location, Component.empty(), 0.60F);
                 icon.spawn(player);
                 label.spawn(player);
-                icon.ride(player);
-                label.ride(player);
                 icons.add(icon);
                 labels.add(label);
             }
@@ -451,9 +448,6 @@ public final class SkillActionRingService {
             closeIcon.spawn(player);
             closeLabel.spawn(player);
             timerLabel.spawn(player);
-            closeIcon.ride(player);
-            closeLabel.ride(player);
-            timerLabel.ride(player);
         }
 
         private boolean tick(@NotNull Player player) {

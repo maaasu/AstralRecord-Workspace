@@ -13,7 +13,6 @@ import org.bukkit.entity.TextDisplay;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Transformation;
-import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -55,9 +54,9 @@ final class SkillActionRingDisplay {
         display.setVisibleByDefault(false);
     }
 
-    private static @NotNull Transformation displayTransformation(@NotNull Vector offset, float scale) {
+    private static @NotNull Transformation scaleTransformation(float scale) {
         return new Transformation(
-            new Vector3f((float) offset.getX(), (float) offset.getY(), (float) offset.getZ()),
+            new Vector3f(),
             new Quaternionf(),
             new Vector3f(scale, scale, scale),
             new Quaternionf()
@@ -72,7 +71,6 @@ final class SkillActionRingDisplay {
         private float scale;
         private boolean glowing;
         private Entity entity;
-        private Vector renderOffset = new Vector();
 
         private DisplayEntity(
             @NotNull DisplayKind kind,
@@ -103,29 +101,9 @@ final class SkillActionRingDisplay {
             showOnly(player);
         }
 
-        void ride(@NotNull Player player) {
-            if (entity == null || !entity.isValid()) {
-                return;
-            }
-            Entity currentVehicle = entity.getVehicle();
-            if (currentVehicle != null && !currentVehicle.equals(player)) {
-                entity.leaveVehicle();
-            }
-            if (!player.getPassengers().contains(entity)) {
-                entity.teleport(player.getLocation());
-                player.addPassenger(entity);
-            }
-            showOnly(player);
-        }
-
         void teleport(@NotNull Player player, @NotNull Location location) {
             this.location = location.clone();
             if (entity == null || !entity.isValid()) {
-                return;
-            }
-            if (entity.getVehicle() != null && entity.getVehicle().equals(player)) {
-                updateRenderOffset(player, location);
-                showOnly(player);
                 return;
             }
             entity.teleport(location);
@@ -138,7 +116,6 @@ final class SkillActionRingDisplay {
             if (entity instanceof ItemDisplay display) {
                 display.setItemStack(this.itemStack);
                 display.setGlowing(glowing);
-                applyTransformation(display);
                 showOnly(player);
             }
         }
@@ -148,7 +125,7 @@ final class SkillActionRingDisplay {
             this.scale = scale;
             if (entity instanceof TextDisplay display) {
                 display.text(text);
-                applyTransformation(display);
+                display.setTransformation(scaleTransformation(scale));
                 showOnly(player);
             }
         }
@@ -169,7 +146,7 @@ final class SkillActionRingDisplay {
                 applyDisplayBase(display);
                 display.setItemStack(itemStack == null ? new ItemStack(Material.AIR) : itemStack.clone());
                 display.setGlowing(glowing);
-                display.setTransformation(displayTransformation(renderOffset, ITEM_SCALE));
+                display.setTransformation(scaleTransformation(ITEM_SCALE));
                 display.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.GUI);
             });
         }
@@ -182,20 +159,9 @@ final class SkillActionRingDisplay {
                 display.setShadowed(true);
                 display.setDefaultBackground(false);
                 display.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
-                display.setTransformation(displayTransformation(renderOffset, scale));
+                display.setTransformation(scaleTransformation(scale));
                 display.text(text == null ? Component.empty() : text);
             });
-        }
-
-        private void updateRenderOffset(@NotNull Player player, @NotNull Location targetLocation) {
-            renderOffset = targetLocation.toVector().subtract(player.getLocation().toVector());
-            if (entity instanceof Display display) {
-                applyTransformation(display);
-            }
-        }
-
-        private void applyTransformation(@NotNull Display display) {
-            display.setTransformation(displayTransformation(renderOffset, scale));
         }
 
         private void showOnly(@NotNull Player viewer) {
