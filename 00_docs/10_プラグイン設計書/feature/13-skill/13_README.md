@@ -10,6 +10,7 @@
 - `src/main/java/io/github/maaasu/astralRecord/feature/skill/repository/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/skill/registry/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/*`
+- `src/main/java/io/github/maaasu/astralRecord/feature/skilltree/*`
 
 ## ドキュメント一覧（推奨順）
 
@@ -49,3 +50,6 @@
 - API 取得経路やキャッシュ更新方式の変更:
   - [[13_3.04-リポジトリ]]
   - [[13_4.00-統合フロー]]
+- スキルツリー進行状態のロード・保存・TPS 負荷対策の変更:
+  - [[13_5.00-例外・ログ・運用]]
+  - `00_docs/20_API設計書/feature/20-skilltree/`

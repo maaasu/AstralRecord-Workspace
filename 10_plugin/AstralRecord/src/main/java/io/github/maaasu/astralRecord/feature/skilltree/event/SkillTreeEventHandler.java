@@ -8,6 +8,8 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefinition;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePosition;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
@@ -15,6 +17,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.Event;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
@@ -27,11 +30,18 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 /**
  * スキルツリー管理アイテムとプレイヤー操作のイベントを扱います。
  */
 public class SkillTreeEventHandler extends AbstractEventHandler {
+    private static final long RIGHT_CLICK_LEFT_SUPPRESS_MILLIS = 250L;
+
     private final SkillTreeService service;
+    private final Map<UUID, Long> suppressLeftClickUntilMillis = new HashMap<>();
 
     public SkillTreeEventHandler(@NotNull SkillTreeService service) {
         this.service = service;
@@ -79,9 +89,21 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
             return;
         }
         event.setCancelled(true);
+        event.setUseItemInHand(Event.Result.DENY);
+        event.setUseInteractedBlock(Event.Result.DENY);
 
         AstPlayer astPlayer = AstPlayerCache.get(event.getPlayer());
         if (astPlayer == null) {
+            return;
+        }
+        service.preloadState(astPlayer);
+        if (!service.isStateReady(astPlayer)) {
+            event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5836.getId()));
+            return;
+        }
+        UUID playerId = event.getPlayer().getUniqueId();
+        if ((action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK)
+                && isLeftClickSuppressed(playerId)) {
             return;
         }
         SkillTreeNodeDefinition node = service.findTargetedNode(event.getPlayer()).orElse(null);
@@ -108,7 +130,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
             }
             if (service.unlockNode(astPlayer, node)) {
                 playUnlock(event.getPlayer());
-                event.getPlayer().sendMessage(PlayerMsgResource.format(PlayerMsgId.P_5824.getId(), node.name()));
+                event.getPlayer().sendMessage(PlayerMsgResource.format(PlayerMsgId.P_5824.getId(), ColorCodeUtil.translateAlternateColorCodes(node.name())));
             } else {
                 playDenied(event.getPlayer(), 0.75F);
                 event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5825.getId()));
@@ -132,6 +154,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
             playDenied(event.getPlayer(), 0.75F);
             event.getPlayer().sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5827.getId()));
         }
+        suppressLeftClickUntilMillis.put(playerId, System.currentTimeMillis() + RIGHT_CLICK_LEFT_SUPPRESS_MILLIS);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -269,5 +292,17 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
 
     private void playDenied(@NotNull org.bukkit.entity.Player player, float pitch) {
         player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, SoundCategory.PLAYERS, 0.45F, pitch);
+    }
+
+    private boolean isLeftClickSuppressed(@NotNull UUID playerId) {
+        Long until = suppressLeftClickUntilMillis.get(playerId);
+        if (until == null) {
+            return false;
+        }
+        if (System.currentTimeMillis() <= until) {
+            return true;
+        }
+        suppressLeftClickUntilMillis.remove(playerId);
+        return false;
     }
 }

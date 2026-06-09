@@ -60,6 +60,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.HashMap;
@@ -110,6 +111,8 @@ public class SkillTreeService {
     private final Map<String, SkillTreeEdge> edgesByKey = new LinkedHashMap<>();
     private final Map<UUID, SkillTreePlayerState> playerStates = new HashMap<>();
     private final Set<UUID> dirtyPlayerStates = new LinkedHashSet<>();
+    private final Set<UUID> loadingPlayerStates = new LinkedHashSet<>();
+    private final Set<UUID> failedPlayerStateLoads = new LinkedHashSet<>();
     private final Map<UUID, String> connectorLeftSelections = new HashMap<>();
     private final Map<UUID, ItemStack[]> savedHotbars = new HashMap<>();
     private final Map<UUID, Location> returnLocations = new HashMap<>();
@@ -121,6 +124,7 @@ public class SkillTreeService {
     private BukkitTask hotbarTask;
     private SkillTreeVisualizer visualizer;
     private boolean structureDirty;
+    private boolean playerStateSaveInProgress;
 
     public SkillTreeService(
             @NotNull Plugin plugin,
@@ -212,7 +216,7 @@ public class SkillTreeService {
             visualizer.start();
         }
         if (saveTask == null) {
-            saveTask = Bukkit.getScheduler().runTaskTimer(plugin, this::saveDirty, SAVE_INTERVAL_TICKS, SAVE_INTERVAL_TICKS);
+            saveTask = Bukkit.getScheduler().runTaskTimer(plugin, this::saveDirtyAsync, SAVE_INTERVAL_TICKS, SAVE_INTERVAL_TICKS);
         }
         if (hotbarTask == null) {
             hotbarTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tickPlayerHotbars, 1L, 5L);
@@ -259,6 +263,7 @@ public class SkillTreeService {
         if (spawn.isEmpty()) {
             return CompletableFuture.completedFuture(false);
         }
+        preloadState(astPlayer);
         Player player = astPlayer.getBukkit();
         returnLocations.put(player.getUniqueId(), player.getLocation().clone());
         visualReadyAtMillis.put(player.getUniqueId(), System.currentTimeMillis() + VISUAL_DELAY_MILLIS);
@@ -541,7 +546,77 @@ public class SkillTreeService {
     @NotNull
     public SkillTreePlayerState state(@NotNull AstPlayer astPlayer) {
         UUID accountId = astPlayer.getAccount().getUuid();
-        return playerStates.computeIfAbsent(accountId, playerStateRepository::load);
+        SkillTreePlayerState state = playerStates.get(accountId);
+        if (state != null && !failedPlayerStateLoads.contains(accountId)) {
+            return state;
+        }
+        failedPlayerStateLoads.remove(accountId);
+        SkillTreePlayerState fallback = new SkillTreePlayerState(accountId, 0, Set.of());
+        playerStates.put(accountId, fallback);
+        loadStateAsync(accountId);
+        return fallback;
+    }
+
+    /**
+     * プレイヤー状態の非同期ロードを開始します。既にロード済み、またはロード中の場合は何もしません。
+     *
+     * @param astPlayer 対象プレイヤー
+     */
+    public void preloadState(@NotNull AstPlayer astPlayer) {
+        UUID accountId = astPlayer.getAccount().getUuid();
+        if (loadingPlayerStates.contains(accountId)) {
+            return;
+        }
+        if (playerStates.containsKey(accountId) && !failedPlayerStateLoads.contains(accountId)) {
+            return;
+        }
+        failedPlayerStateLoads.remove(accountId);
+        playerStates.put(accountId, new SkillTreePlayerState(accountId, 0, Set.of()));
+        loadStateAsync(accountId);
+    }
+
+    /**
+     * スキルツリー状態を通信待ちなしで利用できるかを返します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @return API ロードが完了している場合は true
+     */
+    public boolean isStateReady(@NotNull AstPlayer astPlayer) {
+        UUID accountId = astPlayer.getAccount().getUuid();
+        return playerStates.containsKey(accountId)
+                && !loadingPlayerStates.contains(accountId)
+                && !failedPlayerStateLoads.contains(accountId);
+    }
+
+    private void loadStateAsync(@NotNull UUID accountId) {
+        if (!loadingPlayerStates.add(accountId)) {
+            return;
+        }
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            SkillTreePlayerState loaded = null;
+            RuntimeException failure = null;
+            try {
+                loaded = playerStateRepository.load(accountId);
+            } catch (RuntimeException e) {
+                failure = e;
+            }
+
+            SkillTreePlayerState loadedState = loaded;
+            RuntimeException loadFailure = failure;
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                loadingPlayerStates.remove(accountId);
+                if (loadFailure != null) {
+                    failedPlayerStateLoads.add(accountId);
+                    Logger.log(LogId.W_9002, accountId, loadFailure.getMessage());
+                    return;
+                }
+                failedPlayerStateLoads.remove(accountId);
+                if (!dirtyPlayerStates.contains(accountId)) {
+                    playerStates.put(accountId, loadedState);
+                    refreshDerivedState(accountId);
+                }
+            });
+        });
     }
 
     public void markDirty(@NotNull SkillTreePlayerState state) {
@@ -854,6 +929,54 @@ public class SkillTreeService {
         }
     }
 
+    /**
+     * dirty なスキルツリー状態を非同期で API へ保存します。
+     * <p>
+     * Bukkit API には触れず、メインスレッドでは保存対象のスナップショット作成だけを行います。
+     */
+    public void saveDirtyAsync() {
+        if (structureDirty) {
+            structureRepository.save(positionsById.values(), edgesByKey.values());
+            structureDirty = false;
+        }
+        flushDirtyPlayerStatesAsync();
+    }
+
+    private void flushDirtyPlayerStatesAsync() {
+        if (playerStateSaveInProgress || dirtyPlayerStates.isEmpty()) {
+            return;
+        }
+
+        List<SkillTreePlayerState> snapshots = new ArrayList<>();
+        for (UUID accountId : List.copyOf(dirtyPlayerStates)) {
+            SkillTreePlayerState state = playerStates.get(accountId);
+            if (state != null) {
+                snapshots.add(new SkillTreePlayerState(state.accountId(), state.skillPoints(), state.unlockedNodeIds()));
+            }
+            dirtyPlayerStates.remove(accountId);
+        }
+        if (snapshots.isEmpty()) {
+            return;
+        }
+
+        playerStateSaveInProgress = true;
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            Set<UUID> failedAccountIds = new LinkedHashSet<>();
+            for (SkillTreePlayerState snapshot : snapshots) {
+                try {
+                    playerStateRepository.save(snapshot);
+                } catch (RuntimeException e) {
+                    failedAccountIds.add(snapshot.accountId());
+                    Logger.log(LogId.W_9003, snapshot.accountId(), e.getMessage());
+                }
+            }
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                dirtyPlayerStates.addAll(failedAccountIds);
+                playerStateSaveInProgress = false;
+            });
+        });
+    }
+
     private boolean isTargeted(@NotNull Vector origin, @NotNull Vector direction, @NotNull Location target) {
         Vector toTarget = target.toVector().subtract(origin);
         double projection = toTarget.dot(direction);
@@ -1056,6 +1179,16 @@ public class SkillTreeService {
         }
         if (statusService != null) {
             statusService.refreshStatus(astPlayer);
+        }
+    }
+
+    private void refreshDerivedState(@NotNull UUID accountId) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer != null && accountId.equals(astPlayer.getAccount().getUuid())) {
+                refreshDerivedState(astPlayer);
+                return;
+            }
         }
     }
 
