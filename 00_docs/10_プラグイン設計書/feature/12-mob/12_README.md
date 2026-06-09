@@ -9,7 +9,7 @@
 - `src/main/java/io/github/maaasu/astralRecord/feature/mob/model/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/mob/repository/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/mob/service/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/mob/spawner/*`
+- `src/main/java/io/github/maaasu/astralRecord/feature/spawner/*`
 
 ## ドキュメント一覧（推奨順）
 
@@ -34,6 +34,8 @@
   - `ai.combat.skills` 参照解決の入力に skill feature を利用する想定（読み取り側）。
 - `player`
   - ターゲット選択・ヘイト管理・ダメージ授受の対象として `AstPlayer` を扱う。
+- `currency`
+  - Mob 撃破時の金銭払い出しで currency feature の通貨加算経路を利用する。
 
 ## 対応 API feature
 
@@ -64,3 +66,8 @@
 - 必要ライブラリ・依存追加:
   - [[12_0.00-概要]]
   - [[12_9.00-未決事項]]（暫定運用の場合）
+
+## 実装メモ
+
+- 2026-06-09: スポナー設計の正本対象実装パスは `feature/spawner/*` に統一する。旧 `feature/mob/spawner/*` は、残存している場合も本 feature docs の対象外とし、コード側の棚卸しは別タスクで扱う。
+- 2026-06-09: 撃破時の金銭払い出しは `currency` feature 依存として扱い、「未実装ならログのみ」の暫定前提は外す。

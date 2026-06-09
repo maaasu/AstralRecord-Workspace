@@ -34,6 +34,8 @@
   - [[04_3.01-イベント]].アイテム操作ブロック で [[03_1.00-モデル定義]].プレイヤーキャッシュ からアカウントモードを参照する。
 - `status`
   - 装備/ルーンの Lore 表示で `StatusType` を解決し、表示名・カラー分類に使用する。
+- `currency`
+  - `currency` カテゴリの item 表現は本 feature が保持するが、所持通貨の取得・加算・表示用 ItemStack 一覧の正本は currency feature とする。
 
 ## 更新ルール（変更時に必ず更新する章）
 
@@ -68,3 +70,4 @@
 - bundle の loot 参照は `loot_table:` 接頭辞付き ID を許容し、plugin 側で table / pool 構造を解決する。
 - bundle Lore の取得候補表示は候補アイテム名と個数を中心に構成し、ルート名やアイテム ID は表示しない。
 - 追加メモ: [[04_90.01-bundle開封実装メモ]]
+- 2026-06-09: 武器クリック攻撃の起点は旧 `15-hotbar-action` から移行済みとして本 feature 側で扱う。built-in skill の実行正本は `skill`、ホットバー保存・ショートカット表示は `inventory` とする。

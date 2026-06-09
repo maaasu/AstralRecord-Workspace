@@ -1,10 +1,13 @@
-# 15 ホットバーアクション
+# 15 ホットバーアクション（移行済み）
+
+この feature は現役の独立実装を持たない。旧ホットバーアクション設計は、攻撃起動を `item`、ホットバー操作を `inventory`、built-in skill 実行とアクションリングを `skill` へ移管済みとして扱う。
 
 ## 対象実装パス
 
-- `E:\AstralRecord-Workspace\10_plugin\AstralRecord\src\main\java\io\github\maaasu\astralRecord\feature\equipment\event\`
-- `E:\AstralRecord-Workspace\10_plugin\AstralRecord\src\main\java\io\github\maaasu\astralRecord\feature\equipment\service\`
-- `E:\AstralRecord-Workspace\10_plugin\AstralRecord\src\main\java\io\github\maaasu\astralRecord\feature\equipment\executor\`
+- なし（移行済み）
+- 攻撃起動: `src/main/java/io/github/maaasu/astralRecord/feature/item/*`
+- ホットバー操作: `src/main/java/io/github/maaasu/astralRecord/feature/inventory/*`
+- built-in skill 実行・アクションリング: `src/main/java/io/github/maaasu/astralRecord/feature/skill/*`
 
 ## ドキュメント一覧
 
@@ -24,6 +27,7 @@
 
 ## 更新ルール
 
-- 武器左クリック通常攻撃の起点、対象 `Action`、クールダウン開始条件を変更した場合は [[15_3.01-イベント]] を更新する。
-- ホットバー入力の責務範囲、メッセージ ID、ログ ID を変更した場合は [[15_0.00-概要]] を更新する。
-- `equipment.onUse` の通常攻撃連携を変更した場合は [[04_1.00-モデル定義]] も合わせて更新する。
+- 武器クリック攻撃の起点、対象 `Action`、クールダウン開始条件を変更した場合は [[04_3.01-イベント]] と [[13_3.02-サービス]] を更新する。
+- ホットバー操作やショートカット表示を変更した場合は [[08_3.01-イベント]] と [[08_3.02-サービス]] を更新する。
+- built-in skill 実行、アクションリング、skilltree ガードを変更した場合は [[13_3.02-サービス]] と [[13_4.00-統合フロー]] を更新する。
+- 本ディレクトリの本文は移行履歴としてのみ更新し、新しい仕様の正本にはしない。

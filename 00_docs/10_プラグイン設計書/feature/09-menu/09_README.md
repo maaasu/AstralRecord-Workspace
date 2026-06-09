@@ -10,6 +10,7 @@
 - `src/main/java/io/github/maaasu/astralRecord/feature/menu/view/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/menu/repository/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/menu/model/*`
+- `src/main/java/io/github/maaasu/astralRecord/feature/sell/*`
 
 ## ドキュメント一覧（推奨順）
 
@@ -29,6 +30,9 @@
 - `currency`
 - `status`
 - `party`
+- `shop`
+- `adventurerecord`
+- `class` / `playerclass`
 
 ## 更新ルール（変更時に必ず更新する章）
 
@@ -51,6 +55,9 @@
 - 2026-05-30: メインメニュー slot 33 は職業 GUI ではなくパーティー GUI を開く。職業 GUI は ADMIN の `/class gui` からのみ開く。
 - 2026-05-30: 通常メニュー系 GUI 表示中は下部プレイヤーインベントリをダミーで埋める。装備 GUI、ゴミ箱 GUI、スキル選択など実アイテム操作が必要な画面は対象外。
 - 2026-05-30: パーティー GUI は menu 系の戻る仕様に揃え、slot 49 でメインメニューへ戻る。パーティー離脱/解散は slot 51 に配置し、メンバー/招待はプレイヤーヘッドで表示する。
+- 2026-06-09: `sell` は独立実装を持つが、docs では menu の売却 GUI として吸収する。`/sell`、売却 GUI、売却確定は本 feature の対象実装パスに含める。
+- 2026-06-09: `party` / `currency` / `shop` / `adventurerecord` はそれぞれ独立 feature を正本とし、menu はメインメニューや戻る操作などの導線のみを担当する。
+- 2026-06-09: 職業 GUI は class / playerclass 側を正本とし、menu は通常プレイヤー向けメインメニュー導線を持たない。ADMIN の `/class gui` は class / playerclass 側で扱う。
 
 ## 追記（ゴミ箱GUI）
 - ゴミ箱GUI追加に伴い、[[09_1.00-モデル定義]]・[[09_3.01-イベント]]・[[09_3.07-GUI・View]]・[[09_4.00-統合フロー]] を更新。

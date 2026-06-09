@@ -11,6 +11,7 @@
 - `src/main/java/io/github/maaasu/astralRecord/feature/inventory/repository/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/inventory/model/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/inventory/state/*`
+- `src/main/java/io/github/maaasu/astralRecord/feature/storage/*`
 
 ## ドキュメント一覧（推奨順）
 
@@ -28,6 +29,11 @@
 - `account`
 - `item`
 - `menu`
+
+## 実装メモ
+
+- 2026-06-09: `storage` は独立実装を持つが、docs では inventory の拡張範囲として扱う。ストレージ entry の正本、`/storage`、収納・取り出し処理は本 feature の対象実装パスに含める。
+- 2026-06-09: 旧 `15-hotbar-action` のホットバー保存・ショートカット表示・Bukkit スロット操作は本 feature を正本とする。
 
 ## 更新ルール（変更時に必ず更新する章）
 

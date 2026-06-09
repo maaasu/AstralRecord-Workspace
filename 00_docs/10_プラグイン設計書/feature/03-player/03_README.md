@@ -10,6 +10,7 @@
 - `src/main/java/io/github/maaasu/astralRecord/feature/player/model/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/player/save/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/player/*`
+- `src/main/java/io/github/maaasu/astralRecord/feature/loginbonus/*`
 
 ## ドキュメント一覧（推奨順）
 
@@ -35,6 +36,12 @@
   - 通常プレイヤーのインベントリGUI反映と保存タスクで連携する。
 - `status`
   - ログイン時は [[07_3.02-サービス]].ステータス再計算、ドッジ時は [[07_3.02-サービス]].EN消費 で連携する。
+- `class` / `playerclass`
+  - [[03_1.00-モデル定義]].プレイヤーセッション の `classId` / `classLevel` を保持する。職業マスタ、職業 GUI、職業コマンドの正本は本 feature ではなく class / playerclass 側とする。
+
+## 実装メモ
+
+- 2026-06-09: `loginbonus` は独立実装を持つが、docs では player join 導線として本 feature に吸収する。`/loginbonus` コマンドと `LoginBonusService` の呼び出し点は player 設計書の範囲で扱う。
 
 ## 更新ルール（変更時に必ず更新する章）
 
