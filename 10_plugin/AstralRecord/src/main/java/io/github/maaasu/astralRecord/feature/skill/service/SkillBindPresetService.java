@@ -18,6 +18,7 @@ public final class SkillBindPresetService {
 
     private final SkillBindPresetRepository repository;
     private final Map<UUID, Integer> selectedPresetIndexes = new ConcurrentHashMap<>();
+    private final Map<UUID, List<SkillBindPreset>> presetsByAccount = new ConcurrentHashMap<>();
 
     public SkillBindPresetService(@NotNull SkillBindPresetRepository repository) {
         this.repository = repository;
@@ -30,14 +31,39 @@ public final class SkillBindPresetService {
      * @return 1 から 9 までのプリセット一覧
      */
     public @NotNull List<SkillBindPreset> getPresets(@NotNull UUID accountId) {
+        List<SkillBindPreset> cached = presetsByAccount.get(accountId);
+        if (cached != null) {
+            return new ArrayList<>(cached);
+        }
+        List<SkillBindPreset> loaded = loadPresets(accountId);
+        if (loaded == null) {
+            return fallbackPresets(accountId);
+        }
+        List<SkillBindPreset> current = presetsByAccount.putIfAbsent(accountId, loaded);
+        return new ArrayList<>(current == null ? loaded : current);
+    }
+
+    /**
+     * 指定アカウントのプリセットキャッシュを破棄します。
+     *
+     * @param accountId アカウント ID
+     */
+    public void invalidate(@NotNull UUID accountId) {
+        presetsByAccount.remove(accountId);
+    }
+
+    private List<SkillBindPreset> loadPresets(@NotNull UUID accountId) {
         try {
             List<SkillBindPreset> presets = new ArrayList<>(repository.findByAccountId(accountId));
             if (presets.size() >= PRESET_COUNT) {
-                return presets.subList(0, PRESET_COUNT);
+                return new ArrayList<>(presets.subList(0, PRESET_COUNT));
             }
         } catch (RuntimeException ignored) {
         }
+        return null;
+    }
 
+    private @NotNull List<SkillBindPreset> fallbackPresets(@NotNull UUID accountId) {
         List<SkillBindPreset> fallback = new ArrayList<>(PRESET_COUNT);
         for (int index = 1; index <= PRESET_COUNT; index++) {
             fallback.add(new SkillBindPreset(
@@ -91,6 +117,24 @@ public final class SkillBindPresetService {
         @NotNull List<String> passiveSkillSlots,
         @NotNull UUID updatedBy
     ) {
-        return repository.save(accountId, presetIndex, activeSkillSlots, passiveSkillSlots, updatedBy);
+        SkillBindPreset saved = repository.save(accountId, presetIndex, activeSkillSlots, passiveSkillSlots, updatedBy);
+        presetsByAccount.compute(accountId, (ignored, current) -> mergePreset(accountId, current, saved));
+        return saved;
+    }
+
+    private @NotNull List<SkillBindPreset> mergePreset(
+        @NotNull UUID accountId,
+        List<SkillBindPreset> current,
+        @NotNull SkillBindPreset saved
+    ) {
+        List<SkillBindPreset> merged = current == null
+            ? fallbackPresets(accountId)
+            : new ArrayList<>(current);
+        int index = Math.max(1, Math.min(PRESET_COUNT, saved.getPresetIndex())) - 1;
+        while (merged.size() < PRESET_COUNT) {
+            merged.add(fallbackPresets(accountId).get(merged.size()));
+        }
+        merged.set(index, saved);
+        return new ArrayList<>(merged.subList(0, PRESET_COUNT));
     }
 }

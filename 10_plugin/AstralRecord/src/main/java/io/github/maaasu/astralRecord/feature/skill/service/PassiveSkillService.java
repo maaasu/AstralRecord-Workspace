@@ -22,23 +22,28 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * パッシブスキルの有効化状態とライフサイクルを管理するサービスです。
  */
 public final class PassiveSkillService {
     private static final long TICK_INTERVAL = 1L;
-    private static final long RECONCILE_INTERVAL_TICKS = 10L;
     private static final long CLEANUP_INTERVAL_TICKS = 20L;
+    private static final int MAX_DIRTY_RECONCILES_PER_TICK = 2;
 
     private final AstralRecord plugin;
     private final SkillService skillService;
     private final SkillBindPresetService presetService;
     private final SkillOwnershipService ownershipService;
     private final Map<UUID, PlayerPassiveState> activeStates = new ConcurrentHashMap<>();
+    private final Set<UUID> reconciledAccounts = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> dirtyAccounts = ConcurrentHashMap.newKeySet();
+    private final Queue<UUID> dirtyQueue = new ConcurrentLinkedQueue<>();
 
     private StatusService statusService;
     private BukkitTask task;
@@ -93,13 +98,15 @@ public final class PassiveSkillService {
             task = null;
         }
         for (Map.Entry<UUID, PlayerPassiveState> entry : activeStates.entrySet()) {
-            Player player = Bukkit.getPlayer(entry.getKey());
-            AstPlayer astPlayer = player == null ? null : AstPlayerCache.get(player);
+            AstPlayer astPlayer = findOnlineAstPlayer(entry.getKey());
             if (astPlayer != null) {
                 deactivateAll(astPlayer, entry.getValue());
             }
         }
         activeStates.clear();
+        reconciledAccounts.clear();
+        dirtyAccounts.clear();
+        dirtyQueue.clear();
         tickingPassiveCount = 0;
     }
 
@@ -109,7 +116,33 @@ public final class PassiveSkillService {
      * @param player プレイヤー
      */
     public void reconcileNow(@NotNull AstPlayer player) {
+        UUID accountId = player.getAccount().getUuid();
+        dirtyAccounts.remove(accountId);
         reconcile(player, true);
+    }
+
+    /**
+     * 指定プレイヤーのパッシブ状態を再同期待ちにします。
+     * <p>
+     * 装備・プリセットなど、所持スキルやバインド状態に影響する変更の直後に呼び出します。
+     * 同じプレイヤーが連続で dirty 化されても、再同期キューには 1 回だけ積まれます。
+     *
+     * @param player 再同期対象プレイヤー
+     */
+    public void markDirty(@NotNull AstPlayer player) {
+        markDirty(player.getAccount().getUuid());
+    }
+
+    /**
+     * 指定アカウントのパッシブ状態を再同期待ちにします。
+     *
+     * @param accountId 再同期対象アカウント ID
+     */
+    public void markDirty(@NotNull UUID accountId) {
+        reconciledAccounts.remove(accountId);
+        if (dirtyAccounts.add(accountId)) {
+            dirtyQueue.offer(accountId);
+        }
     }
 
     public void reconcileSkillOwnershipDelta(
@@ -119,6 +152,10 @@ public final class PassiveSkillService {
         boolean refreshStatus
     ) {
         UUID accountId = player.getAccount().getUuid();
+        if (!reconciledAccounts.contains(accountId) || dirtyAccounts.remove(accountId)) {
+            reconcile(player, refreshStatus);
+            return;
+        }
         PlayerPassiveState state = activeStates.computeIfAbsent(accountId, ignored -> new PlayerPassiveState());
         Set<String> boundPassiveSkillIds = resolveBoundPassiveSkillIds(accountId);
         boolean changed = false;
@@ -168,7 +205,7 @@ public final class PassiveSkillService {
         @NotNull StatusType statusType,
         double baseValue
     ) {
-        reconcile(player, false);
+        reconcileIfNeeded(player);
         PlayerPassiveState state = activeStates.get(player.getAccount().getUuid());
         if (state == null) {
             return 0.0D;
@@ -202,14 +239,7 @@ public final class PassiveSkillService {
         if (tickCounter % CLEANUP_INTERVAL_TICKS == 0L) {
             cleanupOfflinePlayers();
         }
-        if (tickCounter % RECONCILE_INTERVAL_TICKS == 0L) {
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                AstPlayer astPlayer = AstPlayerCache.get(player);
-                if (astPlayer != null) {
-                    reconcile(astPlayer, true);
-                }
-            }
-        }
+        processDirtyReconciles();
 
         if (tickingPassiveCount <= 0) {
             return;
@@ -229,14 +259,50 @@ public final class PassiveSkillService {
 
     private void cleanupOfflinePlayers() {
         for (Map.Entry<UUID, PlayerPassiveState> entry : List.copyOf(activeStates.entrySet())) {
-            Player player = Bukkit.getPlayer(entry.getKey());
-            AstPlayer astPlayer = player == null ? null : AstPlayerCache.get(player);
+            AstPlayer astPlayer = findOnlineAstPlayer(entry.getKey());
             if (astPlayer != null) {
                 continue;
             }
             decrementTickingPassiveCount(entry.getValue());
             activeStates.remove(entry.getKey());
         }
+        for (UUID accountId : List.copyOf(reconciledAccounts)) {
+            AstPlayer astPlayer = findOnlineAstPlayer(accountId);
+            if (astPlayer == null) {
+                reconciledAccounts.remove(accountId);
+                dirtyAccounts.remove(accountId);
+            }
+        }
+    }
+
+    private void processDirtyReconciles() {
+        int processed = 0;
+        while (processed < MAX_DIRTY_RECONCILES_PER_TICK) {
+            UUID accountId = dirtyQueue.poll();
+            if (accountId == null) {
+                return;
+            }
+            if (!dirtyAccounts.remove(accountId)) {
+                continue;
+            }
+            AstPlayer astPlayer = findOnlineAstPlayer(accountId);
+            if (astPlayer == null) {
+                reconciledAccounts.remove(accountId);
+                continue;
+            }
+            reconcile(astPlayer, true);
+            processed++;
+        }
+    }
+
+    private AstPlayer findOnlineAstPlayer(@NotNull UUID accountId) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer != null && accountId.equals(astPlayer.getAccount().getUuid())) {
+                return astPlayer;
+            }
+        }
+        return null;
     }
 
     private void tickPassives(@NotNull AstPlayer player, @NotNull PlayerPassiveState state) {
@@ -252,6 +318,14 @@ public final class PassiveSkillService {
                 activeSkill.activeTicks(tickCounter)
             ));
         }
+    }
+
+    private void reconcileIfNeeded(@NotNull AstPlayer player) {
+        UUID accountId = player.getAccount().getUuid();
+        if (reconciledAccounts.contains(accountId) && !dirtyAccounts.remove(accountId)) {
+            return;
+        }
+        reconcile(player, false);
     }
 
     private void reconcile(@NotNull AstPlayer player, boolean refreshStatus) {
@@ -282,6 +356,7 @@ public final class PassiveSkillService {
         if (state.skillsById.isEmpty()) {
             activeStates.remove(accountId);
         }
+        reconciledAccounts.add(accountId);
         if (changed && refreshStatus && statusService != null) {
             statusService.refreshStatus(player);
         }

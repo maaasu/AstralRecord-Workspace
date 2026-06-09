@@ -640,7 +640,13 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new InventoryEquipmentGuiEventHandler(menuView, inventoryService, currencyService, statusService),
+            new InventoryEquipmentGuiEventHandler(
+                menuView,
+                inventoryService,
+                currencyService,
+                statusService,
+                passiveSkillService
+            ),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

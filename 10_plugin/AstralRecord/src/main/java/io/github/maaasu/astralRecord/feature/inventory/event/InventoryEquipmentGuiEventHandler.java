@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.Material;
@@ -34,6 +35,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
     private final InventoryService inventoryService;
     private final CurrencyService currencyService;
     private final StatusService statusService;
+    private final PassiveSkillService passiveSkillService;
 
     /**
      * 装備 GUI とプレイヤーインベントリ上の装備操作を処理するイベントハンドラーを生成します。
@@ -41,17 +43,21 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
      * @param menuView 装備メニューの表示・スロット判定に使用するビュー
      * @param inventoryService 装備状態とインベントリ保存を担当するサービス
      * @param currencyService 通貨表示を担当するサービス
+     * @param statusService ステータス再計算サービス
+     * @param passiveSkillService 装備由来パッシブの再同期サービス
      */
     public InventoryEquipmentGuiEventHandler(
         @NotNull MenuView menuView,
         @NotNull InventoryService inventoryService,
         @NotNull CurrencyService currencyService,
-        @NotNull StatusService statusService
+        @NotNull StatusService statusService,
+        @NotNull PassiveSkillService passiveSkillService
     ) {
         this.menuView = menuView;
         this.inventoryService = inventoryService;
         this.currencyService = currencyService;
         this.statusService = statusService;
+        this.passiveSkillService = passiveSkillService;
     }
 
     /**
@@ -302,7 +308,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             accessories[7]
         );
         if (changed) {
-            statusService.refreshStatus(astPlayer);
+            refreshStatusAfterEquipmentChange(astPlayer);
         }
     }
 
@@ -367,7 +373,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         boolean equipAction = inventoryService.hasHotbarEntry(astPlayer, slot + 1);
         boolean handled = inventoryService.handleHotbarSlotClick(astPlayer, slot + 1);
         if (handled) {
-            statusService.refreshStatus(astPlayer);
+            refreshStatusAfterEquipmentChange(astPlayer);
         }
         playResultSound(player, handled, equipAction);
     }
@@ -415,7 +421,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         boolean equipAction = inventoryService.hasHotbarEntry(astPlayer, HotbarLayout.DB_SLOT_OFFHAND);
         boolean handled = inventoryService.handleHotbarSlotClick(astPlayer, HotbarLayout.DB_SLOT_OFFHAND);
         if (handled) {
-            statusService.refreshStatus(astPlayer);
+            refreshStatusAfterEquipmentChange(astPlayer);
         }
         playResultSound(player, handled, equipAction);
     }
@@ -433,7 +439,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         }
         boolean handled = swapArmorSlotItem(event, astPlayer, slot);
         if (handled) {
-            statusService.refreshStatus(astPlayer);
+            refreshStatusAfterEquipmentChange(astPlayer);
         }
         playResultSound(player, handled, true);
     }
@@ -463,9 +469,14 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         }
         boolean handled = inventoryService.equipOrAssignClickedItem(astPlayer, slot);
         if (handled) {
-            statusService.refreshStatus(astPlayer);
+            refreshStatusAfterEquipmentChange(astPlayer);
         }
         playResultSound(player, handled, true);
+    }
+
+    private void refreshStatusAfterEquipmentChange(@NotNull AstPlayer astPlayer) {
+        passiveSkillService.markDirty(astPlayer);
+        statusService.refreshStatus(astPlayer);
     }
 
     private void playResultSound(@NotNull Player player, boolean handled, boolean equipAction) {
