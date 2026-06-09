@@ -106,6 +106,71 @@ function Set-TopLevelYamlValue {
     $Lines.Insert($sectionIndex + 1, $ValueLine)
 }
 
+function Set-PropertiesValue {
+    param(
+        [System.Collections.Generic.List[string]]$Lines,
+        [Parameter(Mandatory = $true)]
+        [string]$Key,
+        [Parameter(Mandatory = $true)]
+        [string]$Value
+    )
+
+    $pattern = '^' + [regex]::Escape($Key) + '='
+    for ($i = 0; $i -lt $Lines.Count; $i++) {
+        if ($Lines[$i] -match $pattern) {
+            $Lines[$i] = "$Key=$Value"
+            return
+        }
+    }
+    [void]$Lines.Add("$Key=$Value")
+}
+
+function Set-ActionRingDirectConnectPaperConfig {
+    param([Parameter(Mandatory = $true)][string]$PaperGlobalPath)
+
+    if (-not (Test-Path -LiteralPath $PaperGlobalPath)) {
+        return
+    }
+
+    $lines = [System.Collections.Generic.List[string]]::new()
+    foreach ($line in @(Get-Content -LiteralPath $PaperGlobalPath)) {
+        [void]$lines.Add($line)
+    }
+
+    $inBungee = $false
+    $inVelocity = $false
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        if ($lines[$i] -match '^\s{2}bungee-cord:\s*$') {
+            $inBungee = $true
+            $inVelocity = $false
+            continue
+        }
+        if ($lines[$i] -match '^\s{2}velocity:\s*$') {
+            $inBungee = $false
+            $inVelocity = $true
+            continue
+        }
+        if ($lines[$i] -match '^\s{2}\S' -and $lines[$i] -notmatch '^\s{2}(bungee-cord|velocity):\s*$') {
+            $inBungee = $false
+            $inVelocity = $false
+        }
+
+        if ($inBungee -and $lines[$i] -match '^\s{4}online-mode:\s*') {
+            $lines[$i] = '    online-mode: false'
+            continue
+        }
+        if ($inVelocity -and $lines[$i] -match '^\s{4}enabled:\s*') {
+            $lines[$i] = '    enabled: false'
+            continue
+        }
+        if ($inVelocity -and $lines[$i] -match '^\s{4}online-mode:\s*') {
+            $lines[$i] = '    online-mode: false'
+        }
+    }
+
+    Set-Content -LiteralPath $PaperGlobalPath -Value $lines -Encoding UTF8
+}
+
 function Resolve-ServerJarPath {
     param([Parameter(Mandatory = $true)][string]$Root)
 
@@ -331,8 +396,13 @@ if (Test-Path -LiteralPath $serverPropertiesPath) {
     if (-not $serverPortUpdated) {
         $serverProperties.Add("server-port=$ServerPort")
     }
+    Set-PropertiesValue -Lines $serverProperties -Key "online-mode" -Value "false"
+    Set-PropertiesValue -Lines $serverProperties -Key "prevent-proxy-connections" -Value "false"
+    Set-PropertiesValue -Lines $serverProperties -Key "enforce-secure-profile" -Value "false"
     Set-Content -LiteralPath $serverPropertiesPath -Value $serverProperties -Encoding ASCII
 }
+
+Set-ActionRingDirectConnectPaperConfig -PaperGlobalPath (Join-Path $ServerRoot "config\paper-global.yml")
 
 $probeJar = Build-ActionRingPacketProbe -Root $ServerRoot
 
