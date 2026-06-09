@@ -1,4 +1,4 @@
-# AstralRecord Plugin
+﻿# AstralRecord Plugin
 
 `10_plugin/AstralRecord/` は Minecraft MMO RPG「AstralRecord」のサーバープラグインです。コード追加・修正全般は `$astralrecord-code` を使い、実装時の詳細ルールは `.codex/skills/astralrecord-code/references/plugin-code.md` を正本として扱います。
 
@@ -72,8 +72,14 @@
 
 ステータスの詳細仕様は本ガイドに重複記載せず、正本は `E:\AstralRecord-Workspace\00_docs\10_プラグイン設計書\feature\07-status` とします。攻撃・防御・魔法の 3 種別で構成され、武器には攻撃力（ATTACK）のみをステータスとして持たせ、職業ごとに内部でダメージ計算を行います。
 
-## �p�[�e�B�N�����ʃ��[��
+## ???????????
 
-- �p�[�e�B�N���� io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService �o�R�ŕ\������B
-- feature ���� World#spawnParticle(...) / Player#spawnParticle(...) �𒼌Ăт��Ȃ��B
-- ��ʁE�G�C���A�X�E����̌����ڂ� io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions �ɏW�񂷂�B
+- ??????? `io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService` ????????
+- feature ?? `World#spawnParticle(...)` / `Player#spawnParticle(...)` ????????
+- ???????????????? `io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions` ??????
+
+## メッセージ管理共通ルール
+
+- プレイヤー向けメッセージ送信の正本は `io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService` とする。
+- `Player#sendMessage(...)`・`AstPlayer#sendMessage(...)` の新規利用は禁止し、既存経路を変更する場合も `PlayerMessageService` 経由へ寄せる。
+- システムメッセージは `PlayerMessageService` が付与する共通タグ付き形式を維持する。全体チャット・パーティーチャット・ダイレクトメッセージも同サービス経由で管理する。
