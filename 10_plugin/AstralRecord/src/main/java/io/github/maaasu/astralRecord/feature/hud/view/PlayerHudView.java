@@ -62,7 +62,7 @@ public class PlayerHudView {
      * サイドバーを描画します。
      *
      * @param player 対象プレイヤー
-     * @param tps 現在のTPS
+     * @param mspt 現在のMSPT
      * @param playerLevel アカウント単位のプレイヤーレベル
      * @param experienceProgress 現在レベル内の経験値進捗（0.0-1.0）
      * @param classLevel 現在のクラスレベル
@@ -70,7 +70,7 @@ public class PlayerHudView {
      */
     public void renderSidebar(
         Player player,
-        double tps,
+        double mspt,
         int playerLevel,
         double experienceProgress,
         int classLevel,
@@ -96,7 +96,7 @@ public class PlayerHudView {
         clearSidebar(scoreboard);
         objective.getScore(ColorCodeUtil.AQUA + "オンライン" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
                 + Bukkit.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers()).setScore(11);
-        objective.getScore(tpsLegacyColor(tps) + "TPS" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + String.format("%.1f", tps)).setScore(10);
+        objective.getScore(msptLegacyColor(mspt) + "MSPT" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + String.format("%.1f", mspt)).setScore(10);
         objective.getScore(pingLegacyColor(ping) + "Ping" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + ping + "ms").setScore(9);
         objective.getScore(buildSeparator("player")).setScore(8);
         objective.getScore(ColorCodeUtil.GOLD + "レベル" + ColorCodeUtil.GRAY + ": " + "Lv." + ColorCodeUtil.YELLOW + playerLevel).setScore(7);
@@ -109,18 +109,18 @@ public class PlayerHudView {
     }
 
     /**
-     * Tabキー押下時のプレイヤーリストにTPS・Pingをヘッダー/フッター表示します。
+     * Tabキー押下時のプレイヤーリストにMSPT・Pingをヘッダー/フッター表示します。
      *
      * @param player 対象プレイヤー
-     * @param tps 現在のサーバーTPS（平均値）
+     * @param mspt 現在のサーバーMSPT（平均値）
      */
-    public void renderTabList(Player player, double tps) {
+    public void renderTabList(Player player, double mspt) {
         int ping = player.getPing();
         Component header = Component.text()
             .append(Component.text("ASTRAL RECORD", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD))
             .append(Component.newline())
-            .append(Component.text("TPS ", NamedTextColor.GRAY))
-            .append(Component.text(String.format("%.1f", tps), tpsTextColor(tps)))
+            .append(Component.text("MSPT ", NamedTextColor.GRAY))
+            .append(Component.text(String.format("%.1f", mspt), msptTextColor(mspt)))
             .build();
         Component footer = Component.text()
             .append(Component.text("Ping ", NamedTextColor.GRAY))
@@ -165,9 +165,9 @@ public class PlayerHudView {
         return ColorCodeUtil.DARK_AQUA + "◈─── " + label + " ───◈";
     }
 
-    private String tpsLegacyColor(double tps) {
-        if (tps >= 18.0) return ColorCodeUtil.GREEN;
-        if (tps >= 15.0) return ColorCodeUtil.YELLOW;
+    private String msptLegacyColor(double mspt) {
+        if (mspt <= 25.0D) return ColorCodeUtil.GREEN;
+        if (mspt <= 40.0D) return ColorCodeUtil.YELLOW;
         return ColorCodeUtil.RED;
     }
 
@@ -177,9 +177,9 @@ public class PlayerHudView {
         return ColorCodeUtil.RED;
     }
 
-    private NamedTextColor tpsTextColor(double tps) {
-        if (tps >= 18.0) return NamedTextColor.GREEN;
-        if (tps >= 15.0) return NamedTextColor.YELLOW;
+    private NamedTextColor msptTextColor(double mspt) {
+        if (mspt <= 25.0D) return NamedTextColor.GREEN;
+        if (mspt <= 40.0D) return NamedTextColor.YELLOW;
         return NamedTextColor.RED;
     }
 

@@ -143,7 +143,7 @@ public class PlayerHudService {
     }
 
     private void updateAll() {
-        double tps = Math.min(Bukkit.getServer().getTPS()[0], 20.0);
+        double mspt = Bukkit.getServer().getAverageTickTime();
         for (var astPlayer : AstPlayerCache.getAll()) {
             Player player = astPlayer.getBukkit();
             if (!player.isOnline()) {
@@ -167,7 +167,7 @@ public class PlayerHudService {
                 String className = playerClassService.getDisplayName(astPlayer.getClassId());
                 playerHudView.renderSidebar(
                     player,
-                    tps,
+                    mspt,
                     astPlayer.getAccount().getLevel(),
                     experienceProgress,
                     astPlayer.getClassLevel(),
@@ -175,7 +175,7 @@ public class PlayerHudService {
                 );
             }
             playerHudView.renderBars(player, snapshot);
-            playerHudView.renderTabList(player, tps);
+            playerHudView.renderTabList(player, mspt);
         }
     }
 
