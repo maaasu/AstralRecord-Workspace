@@ -359,7 +359,11 @@ public final class ActionRingPacketProbePlugin extends JavaPlugin implements Lis
             if (open) {
                 service.getClass().getMethod("close", Player.class).invoke(service, player);
             }
-            service.getClass().getMethod("toggle", astPlayer.getClass()).invoke(service, astPlayer);
+            try {
+                service.getClass().getMethod("toggleBySwapInput", astPlayer.getClass()).invoke(service, astPlayer);
+            } catch (NoSuchMethodException ignored) {
+                service.getClass().getMethod("toggle", astPlayer.getClass()).invoke(service, astPlayer);
+            }
             autoOpenedPlayers.add(player.getUniqueId());
             getLogger().warning("ACTION_RING_AUTOTEST opened player=" + playerName + " reason=" + reason);
         } catch (ReflectiveOperationException exception) {

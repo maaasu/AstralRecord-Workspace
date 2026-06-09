@@ -43,6 +43,7 @@ public final class SkillActionRingService {
     private static final long RING_DISPLAY_LIMIT_TICKS = 100L;
     private static final long CAST_WAIT_LIMIT_TICKS = 60L;
     private static final long SELECT_ANIMATION_TICKS = 4L;
+    private static final long SWAP_CLOSE_DEBOUNCE_MILLIS = 500L;
     private static final double SELECTING_BLOCK_BREAK_SPEED = 1024.0D;
     private static final int CLOSE_SELECTION_INDEX = -2;
     private static final double CLOSE_SELECTION_PROJECTED_LENGTH = 0.28D;
@@ -54,6 +55,7 @@ public final class SkillActionRingService {
     private final SkillOwnershipService ownershipService;
     private final SkillActionRingPacketDisplay packetDisplay;
     private final Map<UUID, RingSession> sessions = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> swapCloseSuppressedUntil = new ConcurrentHashMap<>();
     private final Set<UUID> suppressedAttackPlayers = ConcurrentHashMap.newKeySet();
     private BukkitTask task;
 
@@ -86,6 +88,7 @@ public final class SkillActionRingService {
         var playerId = player.getUniqueId();
         var current = sessions.remove(playerId);
         if (current != null) {
+            swapCloseSuppressedUntil.remove(playerId);
             current.destroy();
             GuiSound.CLOSE.play(player);
             return;
@@ -93,6 +96,37 @@ public final class SkillActionRingService {
 
         RingSession session = RingSession.create(player, resolveSlots(astPlayer), packetDisplay);
         sessions.put(playerId, session);
+        GuiSound.RING_OPEN.play(player);
+        ensureTask();
+    }
+
+    /**
+     * オフハンド切替入力からアクションリング表示状態を切り替えます。
+     * <p>
+     * クライアントが同じ切替入力を短時間に複数送る場合があるため、開いた直後の close 側トグルだけを抑止します。
+     *
+     * @param astPlayer 対象プレイヤー
+     */
+    public void toggleBySwapInput(@NotNull AstPlayer astPlayer) {
+        var player = astPlayer.getBukkit();
+        var playerId = player.getUniqueId();
+        long now = System.currentTimeMillis();
+        var current = sessions.get(playerId);
+        if (current != null) {
+            Long suppressedUntil = swapCloseSuppressedUntil.get(playerId);
+            if (suppressedUntil != null && now <= suppressedUntil) {
+                return;
+            }
+            sessions.remove(playerId);
+            swapCloseSuppressedUntil.remove(playerId);
+            current.destroy();
+            GuiSound.CLOSE.play(player);
+            return;
+        }
+
+        RingSession session = RingSession.create(player, resolveSlots(astPlayer), packetDisplay);
+        sessions.put(playerId, session);
+        swapCloseSuppressedUntil.put(playerId, now + SWAP_CLOSE_DEBOUNCE_MILLIS);
         GuiSound.RING_OPEN.play(player);
         ensureTask();
     }
@@ -145,6 +179,7 @@ public final class SkillActionRingService {
         }
         if (session.isCloseSelected()) {
             sessions.remove(player.getUniqueId());
+            swapCloseSuppressedUntil.remove(player.getUniqueId());
             session.destroy();
             GuiSound.CLOSE.play(player);
             return;
@@ -156,6 +191,7 @@ public final class SkillActionRingService {
         }
 
         sessions.remove(player.getUniqueId());
+        swapCloseSuppressedUntil.remove(player.getUniqueId());
         String skillId = session.selectedSkillId();
         int selectedSlot = session.selectedIndex + 1;
         session.destroy();
@@ -196,6 +232,7 @@ public final class SkillActionRingService {
      */
     public void close(@NotNull Player player) {
         RingSession session = sessions.remove(player.getUniqueId());
+        swapCloseSuppressedUntil.remove(player.getUniqueId());
         if (session != null) {
             session.destroy();
         }
@@ -213,6 +250,7 @@ public final class SkillActionRingService {
             session.destroy();
         }
         sessions.clear();
+        swapCloseSuppressedUntil.clear();
         suppressedAttackPlayers.clear();
     }
 
@@ -229,11 +267,13 @@ public final class SkillActionRingService {
             if (player == null || !player.isOnline()) {
                 entry.getValue().destroy();
                 sessions.remove(entry.getKey());
+                swapCloseSuppressedUntil.remove(entry.getKey());
                 continue;
             }
             if (!entry.getValue().tick(player)) {
                 entry.getValue().destroy();
                 sessions.remove(entry.getKey());
+                swapCloseSuppressedUntil.remove(entry.getKey());
             }
         }
         if (sessions.isEmpty() && task != null) {

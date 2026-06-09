@@ -72,6 +72,22 @@ Packet probe の標準要件:
 - log marker は feature 名を含む安定した prefix にする。例: `ACTION_RING_PACKET`, `SKILLTREE_PACKET`, `MOB_NAMEPLATE_PACKET`。
 - client 側の目視確認を完全には置き換えない。packet-level の再現証跡として扱う。
 
+### Packet Test Bot
+
+player 接続が必要な packet integration 検証では、ユーザーの Minecraft クライアント接続の代わりに packet test bot を使える。bot は `minecraft-protocol` の offline auth で test server に参加し、probe plugin が online player を対象に server-side 実行できる状態を作る。
+
+```text
+powershell -NoProfile -ExecutionPolicy Bypass -File E:\AstralRecord-Workspace\10_plugin\AstralRecord\scripts\run-packet-test-bot.ps1 -HostName localhost -Port 25578 -Username CodexPacketBot -StaySeconds 20
+```
+
+log marker まで自動判定したい場合は `-ExpectLogPattern` を指定する。
+
+```text
+powershell -NoProfile -ExecutionPolicy Bypass -File E:\AstralRecord-Workspace\10_plugin\AstralRecord\scripts\run-packet-test-bot.ps1 -HostName localhost -Port 25578 -Username CodexPacketBot -StaySeconds 20 -ExpectLogPattern "ACTION_RING_PACKET spawn"
+```
+
+bot は packet-level の自律検証用であり、client 側の見た目確認を完全には置き換えない。画面上の配置・視認性・操作感を確認したい場合は実クライアント確認を併用する。
+
 ## Action Ring Packet Autotest Example
 
 アクションリングの packet-only 表示を実サーバー寄りに再現するときは、専用 helper を使う。
@@ -100,6 +116,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File E:\AstralRecord-Workspace\10
 
 ```text
 /actionringprobe <player>
+```
+
+ユーザーの接続なしで action ring packet の自律確認を行う場合は、test server 起動後に bot を参加させる。`ActionRingPacketProbe` は join 後に online player を検出し、`SkillActionRingService.toggle(AstPlayer)` を自動実行する。
+
+```text
+powershell -NoProfile -ExecutionPolicy Bypass -File E:\AstralRecord-Workspace\10_plugin\AstralRecord\scripts\run-packet-test-bot.ps1 -HostName localhost -Port 25578 -Username CodexPacketBot -StaySeconds 20 -ExpectLogPattern "ACTION_RING_PACKET"
 ```
 
 これは packet-level の再現証跡として扱う。client 側の目視確認を完全には置き換えないが、player 接続後に Codex が反復可能な server-side packet 実動作チェックを行うための入口として使う。

@@ -64,14 +64,14 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
                 return;
             }
             if (actionRingService.isOpen(player)) {
-                actionRingService.toggle(astPlayer);
+                actionRingService.toggleBySwapInput(astPlayer);
                 return;
             }
             if (!isWeapon(astPlayer)) {
                 GuiSound.DENY.play(player);
                 return;
             }
-            actionRingService.toggle(astPlayer);
+            actionRingService.toggleBySwapInput(astPlayer);
         }, LogId.E_5802, event.getPlayer().getName(), "skill_action_ring_swap");
     }
 
