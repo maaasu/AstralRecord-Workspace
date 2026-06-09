@@ -19,6 +19,7 @@ import java.util.Collection;
  * このサービス経由で送信する。
  */
 public final class PlayerMessageService {
+    private static final PlayerMessageService FALLBACK_INSTANCE = new PlayerMessageService();
 
     /**
      * PlayerMessageService を初期化する。
@@ -28,16 +29,16 @@ public final class PlayerMessageService {
 
     /**
      * プラグインから保持している単一インスタンスを返す。
+     * プラグイン未初期化のテスト環境ではフォールバックインスタンスを返す。
      *
      * @return メッセージ送信サービス
-     * @throws IllegalStateException プラグイン初期化前でサービスが未生成の場合
      */
     public static @NotNull PlayerMessageService getInstance() {
         AstralRecord plugin = AstralRecord.getInstance();
-        if (plugin == null || plugin.getPlayerMessageService() == null) {
-            throw new IllegalStateException("PlayerMessageService is not initialized.");
+        if (plugin != null && plugin.getPlayerMessageService() != null) {
+            return plugin.getPlayerMessageService();
         }
-        return plugin.getPlayerMessageService();
+        return FALLBACK_INSTANCE;
     }
 
     /**
