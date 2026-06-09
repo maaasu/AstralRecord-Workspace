@@ -43,7 +43,7 @@ public final class SkillActionRingService {
     private static final long RING_DISPLAY_LIMIT_TICKS = 100L;
     private static final long CAST_WAIT_LIMIT_TICKS = 60L;
     private static final long SELECT_ANIMATION_TICKS = 4L;
-    private static final long SWAP_CLOSE_DEBOUNCE_MILLIS = 500L;
+    private static final long SWAP_CLOSE_DEBOUNCE_MILLIS = 2_000L;
     private static final double SELECTING_BLOCK_BREAK_SPEED = 1024.0D;
     private static final int CLOSE_SELECTION_INDEX = -2;
     private static final double CLOSE_SELECTION_PROJECTED_LENGTH = 0.28D;
