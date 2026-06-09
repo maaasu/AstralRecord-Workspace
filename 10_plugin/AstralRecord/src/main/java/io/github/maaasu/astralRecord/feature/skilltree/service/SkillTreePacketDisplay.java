@@ -8,7 +8,6 @@ import com.comphenix.protocol.wrappers.WrappedBlockData;
 import com.comphenix.protocol.wrappers.WrappedChatComponent;
 import com.comphenix.protocol.wrappers.WrappedDataValue;
 import com.comphenix.protocol.wrappers.WrappedDataWatcher;
-import com.comphenix.protocol.wrappers.Vector3F;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import net.kyori.adventure.text.Component;
@@ -25,6 +24,7 @@ import org.jetbrains.annotations.NotNull;
 import org.joml.Quaternionf;
 import org.joml.Quaternionfc;
 import org.joml.Vector3f;
+import org.joml.Vector3fc;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -38,6 +38,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 final class SkillTreePacketDisplay {
     private static final AtomicInteger NEXT_ENTITY_ID = new AtomicInteger(2_000_000);
     private static final float DEFAULT_VIEW_RANGE = 96.0F;
+    private static final int ENTITY_SHARED_FLAGS_INDEX = 0;
+    private static final byte ENTITY_FLAG_GLOWING = 0x40;
     private static final int DISPLAY_INTERPOLATION_START_INDEX = 8;
     private static final int DISPLAY_INTERPOLATION_DURATION_INDEX = 9;
     private static final int DISPLAY_POSITION_ROTATION_DURATION_INDEX = 10;
@@ -71,7 +73,8 @@ final class SkillTreePacketDisplay {
             Location location,
             ItemStack itemStack,
             float scale,
-            ItemDisplay.ItemDisplayTransform displayTransform
+            ItemDisplay.ItemDisplayTransform displayTransform,
+            boolean glowing
     ) {
         List<WrappedDataValue> metadata = baseDisplayMetadata(
                 new Vector3f(),
@@ -79,6 +82,13 @@ final class SkillTreePacketDisplay {
                 new Quaternionf(),
                 Display.Billboard.CENTER
         );
+        if (glowing) {
+            metadata.add(value(
+                    ENTITY_SHARED_FLAGS_INDEX,
+                    serializer(Byte.class),
+                    ENTITY_FLAG_GLOWING
+            ));
+        }
         metadata.add(value(
                 ITEM_DISPLAY_ITEM_INDEX,
                 WrappedDataWatcher.Registry.getItemStackSerializer(false),
@@ -150,8 +160,8 @@ final class SkillTreePacketDisplay {
         values.add(value(DISPLAY_INTERPOLATION_START_INDEX, serializer(Integer.class), 0));
         values.add(value(DISPLAY_INTERPOLATION_DURATION_INDEX, serializer(Integer.class), 0));
         values.add(value(DISPLAY_POSITION_ROTATION_DURATION_INDEX, serializer(Integer.class), 0));
-        values.add(value(DISPLAY_TRANSLATION_INDEX, WrappedDataWatcher.Registry.getVectorSerializer(), vector(translation)));
-        values.add(value(DISPLAY_SCALE_INDEX, WrappedDataWatcher.Registry.getVectorSerializer(), vector(scale)));
+        values.add(value(DISPLAY_TRANSLATION_INDEX, vectorSerializer(), translation));
+        values.add(value(DISPLAY_SCALE_INDEX, vectorSerializer(), scale));
         values.add(value(DISPLAY_LEFT_ROTATION_INDEX, quaternionSerializer(), leftRotation));
         values.add(value(DISPLAY_RIGHT_ROTATION_INDEX, quaternionSerializer(), new Quaternionf()));
         values.add(value(DISPLAY_BILLBOARD_INDEX, serializer(Byte.class), (byte) billboard.ordinal()));
@@ -189,8 +199,12 @@ final class SkillTreePacketDisplay {
         }
     }
 
-    private Vector3F vector(Vector3f value) {
-        return new Vector3F(value.x, value.y, value.z);
+    private WrappedDataWatcher.Serializer vectorSerializer() {
+        try {
+            return serializer(Vector3f.class);
+        } catch (IllegalArgumentException ignored) {
+            return serializer(Vector3fc.class);
+        }
     }
 
     private void send(Player player, PacketContainer packet) {

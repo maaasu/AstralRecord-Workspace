@@ -6,7 +6,6 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.bukkit.Bukkit;
-import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
@@ -19,7 +18,7 @@ public class SkillTreeCommand extends AstCommand {
     private final SkillTreeService service;
 
     public SkillTreeCommand(@NotNull SkillTreeService service) {
-        super("skilltree", "Open and manage the skill tree.", "/skilltree [back|reload|position-item|connector-item|points]", true);
+        super("skilltree", "Open and manage the skill tree.", "/skilltree [back|reload|position-item|connector-item|points|option]", true);
         this.service = service;
     }
 
@@ -35,6 +34,7 @@ public class SkillTreeCommand extends AstCommand {
             case "position-item" -> handlePositionItem(player, args);
             case "connector-item" -> handleConnectorItem(player, args);
             case "points" -> handlePoints(player, args);
+            case "option" -> handleOption(player, args);
             default -> sendUsage(player.getBukkit());
         }
     }
@@ -143,6 +143,56 @@ public class SkillTreeCommand extends AstCommand {
             return;
         }
         sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5818.getId(), target.getBukkit().getName(), service.state(target).skillPoints()));
+    }
+
+    private void handleOption(@NotNull AstPlayer player, @NotNull String[] args) {
+        if (args.length < 2) {
+            sendUsage(player.getBukkit());
+            return;
+        }
+        switch (args[1].toLowerCase(Locale.ROOT)) {
+            case "view-distance" -> handleViewDistanceOption(player, args);
+            case "edge-display" -> handleEdgeDisplayOption(player, args);
+            case "reset" -> handleResetOption(player);
+            default -> sendUsage(player.getBukkit());
+        }
+    }
+
+    private void handleViewDistanceOption(@NotNull AstPlayer player, @NotNull String[] args) {
+        if (args.length < 3) {
+            sendUsage(player.getBukkit());
+            return;
+        }
+        int viewDistance = parseInt(args[2], Integer.MIN_VALUE);
+        if (viewDistance < service.minViewDistance() || viewDistance > service.maxViewDistance()) {
+            sendError(
+                    player.getBukkit(),
+                    PlayerMsgResource.format(PlayerMsgId.P_5844.getId(), service.minViewDistance(), service.maxViewDistance())
+            );
+            return;
+        }
+        service.updateViewDistance(player.getBukkit(), viewDistance);
+        sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5842.getId(), viewDistance));
+    }
+
+    private void handleEdgeDisplayOption(@NotNull AstPlayer player, @NotNull String[] args) {
+        if (args.length < 3) {
+            sendUsage(player.getBukkit());
+            return;
+        }
+        SkillTreeService.SkillTreeEdgeDisplayMode edgeDisplayMode =
+                SkillTreeService.SkillTreeEdgeDisplayMode.fromCommandValue(args[2]);
+        if (edgeDisplayMode == null) {
+            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5845.getId()));
+            return;
+        }
+        service.updateEdgeDisplayMode(player.getBukkit(), edgeDisplayMode);
+        sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5843.getId(), edgeDisplayMode.commandValue()));
+    }
+
+    private void handleResetOption(@NotNull AstPlayer player) {
+        service.resetViewOptions(player.getBukkit());
+        sendSuccess(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5846.getId()));
     }
 
     private int parseInt(@NotNull String value, int fallback) {

@@ -35,15 +35,14 @@ import java.util.UUID;
 
 final class SkillTreeVisualizer {
     private static final long INTERVAL_TICKS = 10L;
-    private static final double VIEW_DISTANCE = 96.0D;
-    private static final double VIEW_DISTANCE_SQ = VIEW_DISTANCE * VIEW_DISTANCE;
     private static final double ADMIN_ITEM_Y_OFFSET = 0.15D;
     private static final double NODE_ITEM_Y_OFFSET = 1.15D;
-    private static final float EDGE_THICKNESS = 0.18F;
+    private static final float EDGE_THICKNESS = 0.045F;
     private static final double EDGE_Y_OFFSET = 0.02D;
     private static final double TEXT_Y_OFFSET = 1.2D;
     private static final float NODE_ITEM_SCALE = 0.72F;
     private static final float NODE_TEXT_SCALE = 0.85F;
+    private static final float NODE_TEXT_COMPACT_SCALE = 0.72F;
     private static final float ADMIN_ITEM_SCALE = 0.72F;
     private static final float ADMIN_TEXT_SCALE = 0.72F;
     private static final int NODE_LIGHT_LEVEL = 15;
@@ -102,7 +101,7 @@ final class SkillTreeVisualizer {
     }
 
     private void tick() {
-        if (structureDirty) {
+        if (structureDirty || !dirtyViewers.isEmpty()) {
             syncVisuals();
             structureDirty = false;
         }
@@ -150,7 +149,10 @@ final class SkillTreeVisualizer {
             SkillTreeService.NodePresentationState nodeState = visible
                     ? resolveNodeState(player, visual.node())
                     : SkillTreeService.NodePresentationState.BLOCKED;
-            visual.updateViewer(player, visible, nodeState);
+            SkillTreeService.NodeLabelDetail labelDetail = visible
+                    ? service.nodeLabelDetail(player, visual.baseLocation())
+                    : SkillTreeService.NodeLabelDetail.HIDDEN;
+            visual.updateViewer(player, visible, nodeState, labelDetail);
         }
         for (EdgeVisual visual : edgeVisuals.values()) {
             if (partialNodeRefresh
@@ -332,7 +334,9 @@ final class SkillTreeVisualizer {
         if (leftUnlocked || rightUnlocked) {
             return EdgeState.CONNECTED;
         }
-        return EdgeState.LOCKED;
+        return service.viewOptions(player).edgeDisplayMode() == SkillTreeService.SkillTreeEdgeDisplayMode.ALL
+                ? EdgeState.LOCKED
+                : EdgeState.HIDDEN;
     }
 
     private @NotNull SkillTreeService.NodePresentationState resolveNodeState(
@@ -347,10 +351,11 @@ final class SkillTreeVisualizer {
     }
 
     private boolean isVisibleTo(@NotNull Player player, @Nullable Location location) {
+        double viewDistance = service.viewOptions(player).viewDistance();
         return location != null
                 && location.getWorld() != null
                 && player.getWorld() == location.getWorld()
-                && player.getLocation().distanceSquared(location) <= VIEW_DISTANCE_SQ;
+                && player.getLocation().distanceSquared(location) <= viewDistance * viewDistance;
     }
 
     private boolean isChunkLoaded(@NotNull Location location) {
@@ -396,9 +401,10 @@ final class SkillTreeVisualizer {
             @NotNull Location location,
             @NotNull ItemStack itemStack,
             float scale,
-            double yOffset
+            double yOffset,
+            boolean glowing
     ) {
-        return packetDisplay.item(itemLocation(location, yOffset), itemStack, scale, ItemDisplay.ItemDisplayTransform.FIXED);
+        return packetDisplay.item(itemLocation(location, yOffset), itemStack, scale, ItemDisplay.ItemDisplayTransform.FIXED, glowing);
     }
 
     private @NotNull SkillTreePacketDisplay.PacketEntity packetTextDisplay(
@@ -440,13 +446,6 @@ final class SkillTreeVisualizer {
         PLAYER
     }
 
-    private enum NodeState {
-        HIDDEN,
-        LOCKED,
-        AVAILABLE,
-        UNLOCKED
-    }
-
     private enum EdgeState {
         HIDDEN(Material.AIR),
         ADMIN(Material.YELLOW_STAINED_GLASS),
@@ -470,7 +469,7 @@ final class SkillTreeVisualizer {
 
         private AdminPositionVisual(@NotNull String positionId, @NotNull Location location) {
             this.baseLocation = location.clone();
-            this.item = packetItemDisplay(location, new ItemStack(Material.ARMOR_STAND), ADMIN_ITEM_SCALE, ADMIN_ITEM_Y_OFFSET);
+            this.item = packetItemDisplay(location, new ItemStack(Material.ARMOR_STAND), ADMIN_ITEM_SCALE, ADMIN_ITEM_Y_OFFSET, false);
             this.marker = packetTextDisplay(location, component("&d*"), ADMIN_TEXT_SCALE);
             Location labelLocation = location.clone().add(0.0D, 0.45D, 0.0D);
             this.label = packetTextDisplay(labelLocation, component("&d" + positionId), ADMIN_TEXT_SCALE);
@@ -556,19 +555,20 @@ final class SkillTreeVisualizer {
         private final Location baseLocation;
         private final SkillTreePacketDisplay.PacketEntity lockedItem;
         private final SkillTreePacketDisplay.PacketEntity unlockedItem;
-        private final SkillTreePacketDisplay.PacketEntity lockedLabel;
-        private final SkillTreePacketDisplay.PacketEntity availableLabel;
-        private final SkillTreePacketDisplay.PacketEntity unlockedLabel;
-        private final Map<UUID, NodeState> viewerStates = new HashMap<>();
+        private final Map<NodeLabelKey, SkillTreePacketDisplay.PacketEntity> labels = new HashMap<>();
+        private final Map<UUID, NodeRenderState> viewerStates = new HashMap<>();
 
         private NodeVisual(@NotNull SkillTreeNodeDefinition node, @NotNull Location location) {
             this.node = node;
             this.baseLocation = location.clone();
-            this.lockedItem = packetItemDisplay(location, service.createNodeDisplayItem(node, false), NODE_ITEM_SCALE, NODE_ITEM_Y_OFFSET);
-            this.unlockedItem = packetItemDisplay(location, service.createNodeDisplayItem(node, true), NODE_ITEM_SCALE, NODE_ITEM_Y_OFFSET);
-            this.lockedLabel = packetTextDisplay(location, service.nodeFieldLabel(node, SkillTreeService.NodePresentationState.BLOCKED), NODE_TEXT_SCALE);
-            this.availableLabel = packetTextDisplay(location, service.nodeFieldLabel(node, SkillTreeService.NodePresentationState.AVAILABLE), NODE_TEXT_SCALE);
-            this.unlockedLabel = packetTextDisplay(location, service.nodeFieldLabel(node, true), NODE_TEXT_SCALE);
+            this.lockedItem = packetItemDisplay(location, service.createNodeDisplayItem(node, false), NODE_ITEM_SCALE, NODE_ITEM_Y_OFFSET, false);
+            this.unlockedItem = packetItemDisplay(location, service.createNodeDisplayItem(node, true), NODE_ITEM_SCALE, NODE_ITEM_Y_OFFSET, true);
+            registerLabel(location, node, SkillTreeService.NodePresentationState.BLOCKED, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
+            registerLabel(location, node, SkillTreeService.NodePresentationState.BLOCKED, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
+            registerLabel(location, node, SkillTreeService.NodePresentationState.AVAILABLE, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
+            registerLabel(location, node, SkillTreeService.NodePresentationState.AVAILABLE, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
+            registerLabel(location, node, SkillTreeService.NodePresentationState.UNLOCKED, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
+            registerLabel(location, node, SkillTreeService.NodePresentationState.UNLOCKED, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
             Logger.log(
                     LogId.I_9002,
                     "node",
@@ -601,30 +601,27 @@ final class SkillTreeVisualizer {
             Location textLocation = textLocation(location);
             lockedItem.move(itemLocation);
             unlockedItem.move(itemLocation);
-            lockedLabel.move(textLocation);
-            availableLabel.move(textLocation);
-            unlockedLabel.move(textLocation);
+            labels.values().forEach(label -> label.move(textLocation));
             showCurrentViewers();
         }
 
         private void updateViewer(
                 @NotNull Player player,
                 boolean visible,
-                @NotNull SkillTreeService.NodePresentationState nodePresentationState
+                @NotNull SkillTreeService.NodePresentationState nodePresentationState,
+                @NotNull SkillTreeService.NodeLabelDetail labelDetail
         ) {
-            NodeState nextState = switch (nodePresentationState) {
-                case BLOCKED -> visible ? NodeState.LOCKED : NodeState.HIDDEN;
-                case AVAILABLE -> visible ? NodeState.AVAILABLE : NodeState.HIDDEN;
-                case UNLOCKED -> visible ? NodeState.UNLOCKED : NodeState.HIDDEN;
-            };
+            NodeRenderState nextState = visible
+                    ? new NodeRenderState(nodePresentationState, labelDetail)
+                    : NodeRenderState.HIDDEN;
             UUID playerId = player.getUniqueId();
-            NodeState previousState = viewerStates.getOrDefault(playerId, NodeState.HIDDEN);
+            NodeRenderState previousState = viewerStates.getOrDefault(playerId, NodeRenderState.HIDDEN);
 
-            if (previousState == nextState) {
+            if (previousState.equals(nextState)) {
                 return;
             }
 
-            if (nextState == NodeState.HIDDEN) {
+            if (nextState.hidden()) {
                 viewerStates.remove(playerId);
             } else {
                 viewerStates.put(playerId, nextState);
@@ -634,24 +631,56 @@ final class SkillTreeVisualizer {
             showState(player, nextState);
         }
 
-        private void hideState(@NotNull Player player, @NotNull NodeState state) {
-            switch (state) {
-                case LOCKED -> destroy(player, lockedItem, lockedLabel);
-                case AVAILABLE -> destroy(player, lockedItem, availableLabel);
-                case UNLOCKED -> destroy(player, unlockedItem, unlockedLabel);
-                case HIDDEN -> {
-                }
-            }
+        private void registerLabel(
+                @NotNull Location location,
+                @NotNull SkillTreeNodeDefinition node,
+                @NotNull SkillTreeService.NodePresentationState presentationState,
+                @NotNull SkillTreeService.NodeLabelDetail labelDetail,
+                float scale
+        ) {
+            labels.put(
+                    new NodeLabelKey(presentationState, labelDetail),
+                    packetTextDisplay(location, service.nodeFieldLabel(node, presentationState, labelDetail), scale)
+            );
         }
 
-        private void showState(@NotNull Player player, @NotNull NodeState state) {
-            switch (state) {
-                case LOCKED -> spawn(player, lockedItem, lockedLabel);
-                case AVAILABLE -> spawn(player, lockedItem, availableLabel);
-                case UNLOCKED -> spawn(player, unlockedItem, unlockedLabel);
-                case HIDDEN -> {
-                }
+        private void hideState(@NotNull Player player, @NotNull NodeRenderState state) {
+            if (state.hidden()) {
+                return;
             }
+            SkillTreePacketDisplay.PacketEntity item = resolveItem(state.presentationState());
+            SkillTreePacketDisplay.PacketEntity label = resolveLabel(state);
+            if (label == null) {
+                destroy(player, item);
+                return;
+            }
+            destroy(player, item, label);
+        }
+
+        private void showState(@NotNull Player player, @NotNull NodeRenderState state) {
+            if (state.hidden()) {
+                return;
+            }
+            SkillTreePacketDisplay.PacketEntity item = resolveItem(state.presentationState());
+            SkillTreePacketDisplay.PacketEntity label = resolveLabel(state);
+            if (label == null) {
+                spawn(player, item);
+                return;
+            }
+            spawn(player, item, label);
+        }
+
+        private @NotNull SkillTreePacketDisplay.PacketEntity resolveItem(
+                @NotNull SkillTreeService.NodePresentationState presentationState
+        ) {
+            return presentationState == SkillTreeService.NodePresentationState.UNLOCKED ? unlockedItem : lockedItem;
+        }
+
+        private @Nullable SkillTreePacketDisplay.PacketEntity resolveLabel(@NotNull NodeRenderState state) {
+            if (state.labelDetail() == SkillTreeService.NodeLabelDetail.HIDDEN) {
+                return null;
+            }
+            return labels.get(new NodeLabelKey(state.presentationState(), state.labelDetail()));
         }
 
         private void pruneViewers(@NotNull Set<UUID> onlineViewerIds) {
@@ -668,7 +697,7 @@ final class SkillTreeVisualizer {
         }
 
         private void hideCurrentViewers() {
-            for (Map.Entry<UUID, NodeState> entry : viewerStates.entrySet()) {
+            for (Map.Entry<UUID, NodeRenderState> entry : viewerStates.entrySet()) {
                 Player player = plugin.getServer().getPlayer(entry.getKey());
                 if (player != null) {
                     hideState(player, entry.getValue());
@@ -677,12 +706,31 @@ final class SkillTreeVisualizer {
         }
 
         private void showCurrentViewers() {
-            for (Map.Entry<UUID, NodeState> entry : viewerStates.entrySet()) {
+            for (Map.Entry<UUID, NodeRenderState> entry : viewerStates.entrySet()) {
                 Player player = plugin.getServer().getPlayer(entry.getKey());
                 if (player != null) {
                     showState(player, entry.getValue());
                 }
             }
+        }
+    }
+
+    private record NodeLabelKey(
+            @NotNull SkillTreeService.NodePresentationState presentationState,
+            @NotNull SkillTreeService.NodeLabelDetail labelDetail
+    ) {
+    }
+
+    private record NodeRenderState(
+            @NotNull SkillTreeService.NodePresentationState presentationState,
+            @NotNull SkillTreeService.NodeLabelDetail labelDetail
+    ) {
+        private static final NodeRenderState HIDDEN =
+                new NodeRenderState(SkillTreeService.NodePresentationState.BLOCKED, SkillTreeService.NodeLabelDetail.HIDDEN);
+
+        private boolean hidden() {
+            return labelDetail == SkillTreeService.NodeLabelDetail.HIDDEN
+                    && presentationState == SkillTreeService.NodePresentationState.BLOCKED;
         }
     }
 

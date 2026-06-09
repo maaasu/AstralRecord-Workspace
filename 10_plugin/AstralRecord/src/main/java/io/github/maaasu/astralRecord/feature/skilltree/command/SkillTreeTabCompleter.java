@@ -21,13 +21,28 @@ public class SkillTreeTabCompleter extends AstTabCompleter {
     @Override
     protected List<String> getPlayerCompletions(@NotNull AstPlayer player, @NotNull String[] args) {
         if (args.length == 1) {
-            return List.of("back", "reload", "position-item", "connector-item", "points");
+            return List.of("back", "reload", "position-item", "connector-item", "points", "option");
         }
         if (args.length == 2 && "position-item".equalsIgnoreCase(args[0])) {
             return service.getDefinedPositionIds().stream().sorted().toList();
         }
         if (args.length == 2 && "points".equalsIgnoreCase(args[0])) {
             return List.of("set", "add");
+        }
+        if (args.length == 2 && "option".equalsIgnoreCase(args[0])) {
+            return List.of("view-distance", "edge-display", "reset");
+        }
+        if (args.length == 3 && "option".equalsIgnoreCase(args[0]) && "edge-display".equalsIgnoreCase(args[1])) {
+            return java.util.Arrays.stream(SkillTreeService.SkillTreeEdgeDisplayMode.values())
+                    .map(SkillTreeService.SkillTreeEdgeDisplayMode::commandValue)
+                    .toList();
+        }
+        if (args.length == 3 && "option".equalsIgnoreCase(args[0]) && "view-distance".equalsIgnoreCase(args[1])) {
+            return List.of(
+                    String.valueOf(service.minViewDistance()),
+                    String.valueOf(service.viewOptions(player.getBukkit()).viewDistance()),
+                    String.valueOf(service.maxViewDistance())
+            );
         }
         return List.of();
     }

@@ -42,7 +42,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.ItemDisplay;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.inventory.ItemFlag;
@@ -84,6 +83,11 @@ public class SkillTreeService {
     private static final long FEEDBACK_INTERVAL_TICKS = 5L;
     private static final long VISUAL_DELAY_MILLIS = 1_500L;
     private static final long SAVE_DEBOUNCE_MILLIS = 5_000L;
+    private static final int DEFAULT_VIEW_DISTANCE = 48;
+    private static final int MIN_VIEW_DISTANCE = 16;
+    private static final int MAX_VIEW_DISTANCE = 96;
+    private static final double DETAILED_LABEL_DISTANCE = 14.0D;
+    private static final double COMPACT_LABEL_DISTANCE = 28.0D;
 
     private final Plugin plugin;
     private final WorldService worldService;
@@ -103,11 +107,12 @@ public class SkillTreeService {
     private final Map<String, SkillTreeEdge> edgesByKey = new LinkedHashMap<>();
     private final Map<String, ItemStack> lockedNodeDisplayItems = new LinkedHashMap<>();
     private final Map<String, ItemStack> unlockedNodeDisplayItems = new LinkedHashMap<>();
-    private final Map<String, Component> blockedNodeFieldLabels = new LinkedHashMap<>();
-    private final Map<String, Component> availableNodeFieldLabels = new LinkedHashMap<>();
-    private final Map<String, Component> unlockedNodeFieldLabels = new LinkedHashMap<>();
+    private final Map<String, NodeLabelSet> blockedNodeFieldLabels = new LinkedHashMap<>();
+    private final Map<String, NodeLabelSet> availableNodeFieldLabels = new LinkedHashMap<>();
+    private final Map<String, NodeLabelSet> unlockedNodeFieldLabels = new LinkedHashMap<>();
     private final Map<UUID, SkillTreePlayerState> playerStates = new HashMap<>();
     private final Map<UUID, DerivedPlayerState> derivedPlayerStates = new HashMap<>();
+    private final Map<UUID, SkillTreeViewOptions> playerViewOptions = new HashMap<>();
     private final Set<UUID> dirtyPlayerStates = new LinkedHashSet<>();
     private final Set<UUID> loadingPlayerStates = new LinkedHashSet<>();
     private final Set<UUID> failedPlayerStateLoads = new LinkedHashSet<>();
@@ -883,8 +888,8 @@ public class SkillTreeService {
     private void tickPlayerFeedbacks() {
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (isPlayerModeSkillTree(player)) {
-                updateLoadingPresentation(player);
-                if (isSkillTreeVisualReady(player)) {
+                boolean becameReady = updateLoadingPresentation(player);
+                if (becameReady) {
                     markViewerContextDirty(player);
                 }
             } else {
@@ -908,6 +913,102 @@ public class SkillTreeService {
         return false;
     }
 
+    /**
+     * 指定プレイヤーのスキルツリー表示設定を返します。
+     *
+     * @param player 対象プレイヤー
+     * @return 表示設定。未設定時は既定値
+     */
+    public @NotNull SkillTreeViewOptions viewOptions(@NotNull Player player) {
+        return playerViewOptions.getOrDefault(resolveViewOptionOwnerId(player), SkillTreeViewOptions.DEFAULT);
+    }
+
+    /**
+     * 指定プレイヤーのスキルツリー表示距離を更新します。
+     *
+     * @param player 対象プレイヤー
+     * @param viewDistance 新しい表示距離
+     * @return 更新後の表示設定
+     * @throws IllegalArgumentException 指定距離が許容範囲外の場合
+     */
+    public @NotNull SkillTreeViewOptions updateViewDistance(@NotNull Player player, int viewDistance) {
+        if (viewDistance < MIN_VIEW_DISTANCE || viewDistance > MAX_VIEW_DISTANCE) {
+            throw new IllegalArgumentException("viewDistance out of range");
+        }
+        SkillTreeViewOptions updated = viewOptions(player).withViewDistance(viewDistance);
+        playerViewOptions.put(resolveViewOptionOwnerId(player), updated);
+        markViewerContextDirty(player);
+        return updated;
+    }
+
+    /**
+     * 指定プレイヤーのスキルツリー接続表示モードを更新します。
+     *
+     * @param player 対象プレイヤー
+     * @param edgeDisplayMode 新しい接続表示モード
+     * @return 更新後の表示設定
+     */
+    public @NotNull SkillTreeViewOptions updateEdgeDisplayMode(
+            @NotNull Player player,
+            @NotNull SkillTreeEdgeDisplayMode edgeDisplayMode
+    ) {
+        SkillTreeViewOptions updated = viewOptions(player).withEdgeDisplayMode(edgeDisplayMode);
+        playerViewOptions.put(resolveViewOptionOwnerId(player), updated);
+        markViewerContextDirty(player);
+        return updated;
+    }
+
+    /**
+     * 指定プレイヤーのスキルツリー表示設定を既定値へ戻します。
+     *
+     * @param player 対象プレイヤー
+     */
+    public void resetViewOptions(@NotNull Player player) {
+        playerViewOptions.remove(resolveViewOptionOwnerId(player));
+        markViewerContextDirty(player);
+    }
+
+    /**
+     * スキルツリー表示距離の最小値を返します。
+     *
+     * @return 最小表示距離
+     */
+    public int minViewDistance() {
+        return MIN_VIEW_DISTANCE;
+    }
+
+    /**
+     * スキルツリー表示距離の最大値を返します。
+     *
+     * @return 最大表示距離
+     */
+    public int maxViewDistance() {
+        return MAX_VIEW_DISTANCE;
+    }
+
+    /**
+     * ノード表示テキストの詳細段階を返します。
+     *
+     * @param player 表示対象プレイヤー
+     * @param nodeLocation ノード位置
+     * @return 距離に応じたテキスト段階
+     */
+    public @NotNull NodeLabelDetail nodeLabelDetail(@NotNull Player player, @Nullable Location nodeLocation) {
+        if (nodeLocation == null || nodeLocation.getWorld() == null || player.getWorld() != nodeLocation.getWorld()) {
+            return NodeLabelDetail.HIDDEN;
+        }
+        double distanceSquared = player.getLocation().distanceSquared(nodeLocation);
+        double detailedThreshold = Math.min(DETAILED_LABEL_DISTANCE, viewOptions(player).viewDistance());
+        if (distanceSquared <= detailedThreshold * detailedThreshold) {
+            return NodeLabelDetail.DETAILED;
+        }
+        double compactThreshold = Math.min(COMPACT_LABEL_DISTANCE, viewOptions(player).viewDistance());
+        if (distanceSquared <= compactThreshold * compactThreshold) {
+            return NodeLabelDetail.COMPACT;
+        }
+        return NodeLabelDetail.HIDDEN;
+    }
+
     @NotNull
     public ItemStack createNodeDisplayItem(@NotNull SkillTreeNodeDefinition node, boolean unlocked) {
         ItemStack cached = unlocked ? unlockedNodeDisplayItems.get(node.id()) : lockedNodeDisplayItems.get(node.id());
@@ -928,10 +1029,27 @@ public class SkillTreeService {
 
     @NotNull
     public Component nodeFieldLabel(@NotNull SkillTreeNodeDefinition node, @NotNull NodePresentationState presentationState) {
+        return nodeFieldLabel(node, presentationState, NodeLabelDetail.DETAILED);
+    }
+
+    /**
+     * スキルツリーノードのワールド表示用ラベルを返します。
+     *
+     * @param node 表示対象ノード
+     * @param presentationState 解放状態
+     * @param labelDetail 表示情報量
+     * @return ラベル
+     */
+    @NotNull
+    public Component nodeFieldLabel(
+            @NotNull SkillTreeNodeDefinition node,
+            @NotNull NodePresentationState presentationState,
+            @NotNull NodeLabelDetail labelDetail
+    ) {
         return switch (presentationState) {
-            case BLOCKED -> blockedNodeFieldLabels.getOrDefault(node.id(), Component.empty());
-            case AVAILABLE -> availableNodeFieldLabels.getOrDefault(node.id(), Component.empty());
-            case UNLOCKED -> unlockedNodeFieldLabels.getOrDefault(node.id(), Component.empty());
+            case BLOCKED -> blockedNodeFieldLabels.getOrDefault(node.id(), NodeLabelSet.EMPTY).component(labelDetail);
+            case AVAILABLE -> availableNodeFieldLabels.getOrDefault(node.id(), NodeLabelSet.EMPTY).component(labelDetail);
+            case UNLOCKED -> unlockedNodeFieldLabels.getOrDefault(node.id(), NodeLabelSet.EMPTY).component(labelDetail);
         };
     }
 
@@ -1257,9 +1375,9 @@ public class SkillTreeService {
     private void cacheNodePresentation(@NotNull SkillTreeNodeDefinition node) {
         lockedNodeDisplayItems.put(node.id(), createCachedNodeDisplayItem(node, false));
         unlockedNodeDisplayItems.put(node.id(), createCachedNodeDisplayItem(node, true));
-        blockedNodeFieldLabels.put(node.id(), createNodeFieldLabel(node, NodePresentationState.BLOCKED));
-        availableNodeFieldLabels.put(node.id(), createNodeFieldLabel(node, NodePresentationState.AVAILABLE));
-        unlockedNodeFieldLabels.put(node.id(), createNodeFieldLabel(node, NodePresentationState.UNLOCKED));
+        blockedNodeFieldLabels.put(node.id(), createNodeLabelSet(node, NodePresentationState.BLOCKED));
+        availableNodeFieldLabels.put(node.id(), createNodeLabelSet(node, NodePresentationState.AVAILABLE));
+        unlockedNodeFieldLabels.put(node.id(), createNodeLabelSet(node, NodePresentationState.UNLOCKED));
     }
 
     private @NotNull ItemStack createCachedNodeDisplayItem(@NotNull SkillTreeNodeDefinition node, boolean unlocked) {
@@ -1268,57 +1386,63 @@ public class SkillTreeService {
         if (meta != null) {
             meta.displayName(component(resolveNodeDisplayName(node, unlocked)));
             meta.addItemFlags(ItemFlag.values());
-            if (unlocked) {
-                meta.addEnchant(Enchantment.UNBREAKING, 1, true);
-            }
             itemStack.setItemMeta(meta);
         }
         return itemStack;
     }
 
-    private @NotNull Component createNodeFieldLabel(
+    private @NotNull NodeLabelSet createNodeLabelSet(
             @NotNull SkillTreeNodeDefinition node,
             @NotNull NodePresentationState presentationState
+    ) {
+        return new NodeLabelSet(
+                createNodeFieldLabel(node, presentationState, NodeLabelDetail.DETAILED),
+                createNodeFieldLabel(node, presentationState, NodeLabelDetail.COMPACT)
+        );
+    }
+
+    private @NotNull Component createNodeFieldLabel(
+            @NotNull SkillTreeNodeDefinition node,
+            @NotNull NodePresentationState presentationState,
+            @NotNull NodeLabelDetail labelDetail
     ) {
         List<String> lines = new ArrayList<>();
         boolean emphasized = presentationState != NodePresentationState.BLOCKED;
         lines.add(resolveNodeDisplayName(node, presentationState == NodePresentationState.UNLOCKED));
-        lines.add(switch (presentationState) {
-            case BLOCKED -> "&8State: &7Blocked";
-            case AVAILABLE -> "&8State: &aUnlockable";
-            case UNLOCKED -> "&8State: &bUnlocked";
-        });
-        lines.add("&8Left click: &fUnlock");
-        lines.add("&8Right click: &fRelock &7(100G)");
-        appendNodeFieldStatusLines(lines, node, emphasized);
-        appendNodeFieldPassiveLines(lines, node, emphasized);
-        if (!node.lore().isEmpty()) {
-            lines.add("&8--- Description ---");
-            for (String loreLine : node.lore()) {
-                lines.add((emphasized ? "&7" : "&8") + stripLegacy(loreLine));
-            }
+        if (labelDetail == NodeLabelDetail.DETAILED) {
+            appendNodeFieldStatusLines(lines, node, emphasized);
+            appendNodeFieldPassiveLines(lines, node, emphasized);
         }
-        lines.add("&8nodeId: &7" + node.id());
-        lines.add("&8positionId: &7" + node.positionId());
+        if (labelDetail == NodeLabelDetail.DETAILED && !node.lore().isEmpty()) {
+            lines.add((emphasized ? "&7" : "&8") + stripLegacy(node.lore().getFirst()));
+        }
         return component(String.join("\n", lines));
+    }
+
+    private @NotNull UUID resolveViewOptionOwnerId(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer != null) {
+            return astPlayer.getAccount().getUuid();
+        }
+        return player.getUniqueId();
     }
 
     private boolean canUnlockWithoutState(@NotNull SkillTreeNodeDefinition node) {
         return hasTag(node, ROOT_TAG);
     }
 
-    private void updateLoadingPresentation(@NotNull Player player) {
+    private boolean updateLoadingPresentation(@NotNull Player player) {
         Long readyAt = visualReadyAtMillis.get(player.getUniqueId());
         if (readyAt == null) {
             stopLoadingPresentation(player);
-            return;
+            return false;
         }
 
         long now = System.currentTimeMillis();
         if (now >= readyAt) {
             visualReadyAtMillis.remove(player.getUniqueId());
             stopLoadingPresentation(player);
-            return;
+            return true;
         }
 
         BossBar bossBar = loadingBossBars.computeIfAbsent(player.getUniqueId(), ignored -> createLoadingBossBar(player));
@@ -1327,6 +1451,7 @@ public class SkillTreeService {
         }
         double progress = 1.0D - ((double) (readyAt - now) / (double) VISUAL_DELAY_MILLIS);
         bossBar.setProgress(Math.max(0.0D, Math.min(1.0D, progress)));
+        return false;
     }
 
     private @NotNull BossBar createLoadingBossBar(@NotNull Player player) {
@@ -1415,6 +1540,67 @@ public class SkillTreeService {
         BLOCKED,
         AVAILABLE,
         UNLOCKED
+    }
+
+    public enum NodeLabelDetail {
+        HIDDEN,
+        COMPACT,
+        DETAILED
+    }
+
+    public enum SkillTreeEdgeDisplayMode {
+        ALL("all"),
+        CONNECTED("connected");
+
+        private final String commandValue;
+
+        SkillTreeEdgeDisplayMode(@NotNull String commandValue) {
+            this.commandValue = commandValue;
+        }
+
+        public @NotNull String commandValue() {
+            return commandValue;
+        }
+
+        public static @Nullable SkillTreeEdgeDisplayMode fromCommandValue(@Nullable String value) {
+            if (value == null) {
+                return null;
+            }
+            for (SkillTreeEdgeDisplayMode mode : values()) {
+                if (mode.commandValue.equalsIgnoreCase(value)) {
+                    return mode;
+                }
+            }
+            return null;
+        }
+    }
+
+    public record SkillTreeViewOptions(
+            int viewDistance,
+            @NotNull SkillTreeEdgeDisplayMode edgeDisplayMode
+    ) {
+        public static final SkillTreeViewOptions DEFAULT =
+                new SkillTreeViewOptions(DEFAULT_VIEW_DISTANCE, SkillTreeEdgeDisplayMode.CONNECTED);
+
+        public @NotNull SkillTreeViewOptions withViewDistance(int updatedViewDistance) {
+            return new SkillTreeViewOptions(updatedViewDistance, edgeDisplayMode);
+        }
+
+        public @NotNull SkillTreeViewOptions withEdgeDisplayMode(@NotNull SkillTreeEdgeDisplayMode updatedEdgeDisplayMode) {
+            return new SkillTreeViewOptions(viewDistance, updatedEdgeDisplayMode);
+        }
+    }
+
+    private record NodeLabelSet(@NotNull Component detailed, @NotNull Component compact) {
+        private static final NodeLabelSet EMPTY = new NodeLabelSet(Component.empty(), Component.empty());
+
+        private @NotNull Component component(@NotNull NodeLabelDetail detail) {
+            return switch (detail) {
+                case HIDDEN -> Component.empty();
+                case COMPACT -> compact;
+                case DETAILED -> detailed;
+            };
+        }
     }
 
     private record DerivedPlayerState(

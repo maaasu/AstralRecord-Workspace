@@ -204,6 +204,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
     public void onWorldChange(@NotNull PlayerChangedWorldEvent event) {
         if (service.isPlayerModeSkillTree(event.getPlayer())) {
             service.markViewerContextDirty(event.getPlayer());
+            return;
         }
         service.restoreHotbar(event.getPlayer());
     }
