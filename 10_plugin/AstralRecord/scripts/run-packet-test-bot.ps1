@@ -13,6 +13,7 @@ param(
     [string]$ExpectLogPattern = "",
     [string]$RejectLogPattern = "",
     [int]$ExpectTimeoutSeconds = 30,
+    [switch]$FailOnProtocolParseWarning,
     [switch]$SkipNpmInstall
 )
 
@@ -55,8 +56,13 @@ if (-not $SkipNpmInstall) {
 $botSourcePath = Join-Path $BotRoot "packet-test-bot.mjs"
 @'
 const originalConsoleLog = console.log.bind(console);
+let protocolParseWarning = false;
 console.log = (...args) => {
-  if (String(args[0] ?? '').startsWith('Chunk size is ')) return;
+  if (String(args[0] ?? '').startsWith('Chunk size is ')) {
+    protocolParseWarning = true;
+    originalConsoleLog('[PacketTestBot] protocol parse warning:', ...args);
+    return;
+  }
   originalConsoleLog(...args);
 };
 
@@ -70,6 +76,7 @@ const staySeconds = Number(process.env.PACKET_BOT_STAY_SECONDS || '20');
 const swapHandCount = Number(process.env.PACKET_BOT_SWAP_HAND_COUNT || '0');
 const swapHandDelayMs = Number(process.env.PACKET_BOT_SWAP_HAND_DELAY_MS || '50');
 const swapHandStartDelayMs = Number(process.env.PACKET_BOT_SWAP_HAND_START_DELAY_MS || '1000');
+const failOnProtocolParseWarning = process.env.PACKET_BOT_FAIL_ON_PROTOCOL_PARSE_WARNING === '1';
 
 let finished = false;
 let joined = false;
@@ -78,6 +85,10 @@ let sequence = 1;
 function finish(code, message) {
   if (finished) return;
   finished = true;
+  if (failOnProtocolParseWarning && protocolParseWarning && code === 0) {
+    code = 1;
+    message = '[PacketTestBot] failed because protocol parse warnings were observed';
+  }
   if (message) {
     const stream = code === 0 ? process.stdout : process.stderr;
     stream.write(message + '\n');
@@ -148,6 +159,7 @@ $env:PACKET_BOT_STAY_SECONDS = [string]$StaySeconds
 $env:PACKET_BOT_SWAP_HAND_COUNT = [string]$SwapHandCount
 $env:PACKET_BOT_SWAP_HAND_DELAY_MS = [string]$SwapHandDelayMs
 $env:PACKET_BOT_SWAP_HAND_START_DELAY_MS = [string]$SwapHandStartDelayMs
+$env:PACKET_BOT_FAIL_ON_PROTOCOL_PARSE_WARNING = if ($FailOnProtocolParseWarning) { "1" } else { "0" }
 
 $logStartOffset = 0L
 if ((-not [string]::IsNullOrWhiteSpace($ExpectLogPattern) -or -not [string]::IsNullOrWhiteSpace($RejectLogPattern)) -and

@@ -12,7 +12,9 @@ import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 import org.bukkit.Location;
+import org.bukkit.entity.Display;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -32,8 +34,6 @@ final class SkillActionRingPacketDisplay {
     private static final AtomicInteger NEXT_ENTITY_ID = new AtomicInteger(2_200_000);
     private static final byte ENTITY_FLAG_GLOWING = 0x40;
     private static final int ENTITY_FLAGS_INDEX = 0;
-    private static final int ENTITY_NO_GRAVITY_INDEX = 5;
-    private static final int ITEM_STACK_INDEX = 8;
     private static final int DISPLAY_INTERPOLATION_START_INDEX = 8;
     private static final int DISPLAY_INTERPOLATION_DURATION_INDEX = 9;
     private static final int DISPLAY_POSITION_ROTATION_DURATION_INDEX = 10;
@@ -45,6 +45,8 @@ final class SkillActionRingPacketDisplay {
     private static final int DISPLAY_VIEW_RANGE_INDEX = 17;
     private static final int DISPLAY_WIDTH_INDEX = 20;
     private static final int DISPLAY_HEIGHT_INDEX = 21;
+    private static final int ITEM_DISPLAY_ITEM_INDEX = 23;
+    private static final int ITEM_DISPLAY_TRANSFORM_INDEX = 24;
     private static final int TEXT_DISPLAY_TEXT_INDEX = 23;
     private static final int TEXT_DISPLAY_LINE_WIDTH_INDEX = 24;
     private static final int TEXT_DISPLAY_BACKGROUND_INDEX = 25;
@@ -61,7 +63,7 @@ final class SkillActionRingPacketDisplay {
     }
 
     PacketEntity item(@NotNull Location location, @NotNull ItemStack itemStack, boolean glowing) {
-        return new PacketEntity(EntityType.ITEM, location, itemMetadata(itemStack, glowing));
+        return new PacketEntity(EntityType.ITEM_DISPLAY, location, itemMetadata(itemStack, glowing));
     }
 
     PacketEntity text(@NotNull Location location, @NotNull Component text, float scale) {
@@ -77,26 +79,16 @@ final class SkillActionRingPacketDisplay {
     }
 
     private List<WrappedDataValue> itemMetadata(@NotNull ItemStack itemStack, boolean glowing) {
-        List<WrappedDataValue> values = new ArrayList<>();
+        List<WrappedDataValue> values = baseDisplayMetadata(new Vector3f(0.0F, -0.10F, 0.0F), new Vector3f(0.55F, 0.55F, 0.55F));
         values.add(value(ENTITY_FLAGS_INDEX, serializer(Byte.class), glowing ? ENTITY_FLAG_GLOWING : (byte) 0));
-        values.add(value(ENTITY_NO_GRAVITY_INDEX, serializer(Boolean.class), true));
-        values.add(value(ITEM_STACK_INDEX, WrappedDataWatcher.Registry.getItemStackSerializer(false), itemStack));
+        values.add(value(ITEM_DISPLAY_ITEM_INDEX, WrappedDataWatcher.Registry.getItemStackSerializer(false), itemStack));
+        values.add(value(ITEM_DISPLAY_TRANSFORM_INDEX, serializer(Byte.class), (byte) ItemDisplay.ItemDisplayTransform.GUI.ordinal()));
         return values;
     }
 
     private List<WrappedDataValue> textMetadata(@NotNull Component text, float scale) {
-        List<WrappedDataValue> values = new ArrayList<>();
-        values.add(value(DISPLAY_INTERPOLATION_START_INDEX, serializer(Integer.class), 0));
-        values.add(value(DISPLAY_INTERPOLATION_DURATION_INDEX, serializer(Integer.class), 0));
-        values.add(value(DISPLAY_POSITION_ROTATION_DURATION_INDEX, serializer(Integer.class), 0));
-        values.add(value(DISPLAY_TRANSLATION_INDEX, vectorSerializer(), new Vector3f()));
-        values.add(value(DISPLAY_SCALE_INDEX, vectorSerializer(), new Vector3f(scale, scale, scale)));
-        values.add(value(DISPLAY_LEFT_ROTATION_INDEX, quaternionSerializer(), new Quaternionf()));
-        values.add(value(DISPLAY_RIGHT_ROTATION_INDEX, quaternionSerializer(), new Quaternionf()));
+        List<WrappedDataValue> values = baseDisplayMetadata(new Vector3f(), new Vector3f(scale, scale, scale));
         values.add(value(DISPLAY_BILLBOARD_INDEX, serializer(Byte.class), TEXT_DISPLAY_BILLBOARD_CENTER));
-        values.add(value(DISPLAY_VIEW_RANGE_INDEX, serializer(Float.class), DEFAULT_VIEW_RANGE));
-        values.add(value(DISPLAY_WIDTH_INDEX, serializer(Float.class), 0.0F));
-        values.add(value(DISPLAY_HEIGHT_INDEX, serializer(Float.class), 0.0F));
         values.add(value(
             TEXT_DISPLAY_TEXT_INDEX,
             WrappedDataWatcher.Registry.getChatComponentSerializer(false),
@@ -106,6 +98,22 @@ final class SkillActionRingPacketDisplay {
         values.add(value(TEXT_DISPLAY_BACKGROUND_INDEX, serializer(Integer.class), 0));
         values.add(value(TEXT_DISPLAY_TEXT_OPACITY_INDEX, serializer(Byte.class), (byte) -1));
         values.add(value(TEXT_DISPLAY_FLAGS_INDEX, serializer(Byte.class), TEXT_DISPLAY_SHADOW_AND_SEE_THROUGH));
+        return values;
+    }
+
+    private List<WrappedDataValue> baseDisplayMetadata(@NotNull Vector3f translation, @NotNull Vector3f scale) {
+        List<WrappedDataValue> values = new ArrayList<>();
+        values.add(value(DISPLAY_INTERPOLATION_START_INDEX, serializer(Integer.class), 0));
+        values.add(value(DISPLAY_INTERPOLATION_DURATION_INDEX, serializer(Integer.class), 0));
+        values.add(value(DISPLAY_POSITION_ROTATION_DURATION_INDEX, serializer(Integer.class), 0));
+        values.add(value(DISPLAY_TRANSLATION_INDEX, vectorSerializer(), translation));
+        values.add(value(DISPLAY_SCALE_INDEX, vectorSerializer(), scale));
+        values.add(value(DISPLAY_LEFT_ROTATION_INDEX, quaternionSerializer(), new Quaternionf()));
+        values.add(value(DISPLAY_RIGHT_ROTATION_INDEX, quaternionSerializer(), new Quaternionf()));
+        values.add(value(DISPLAY_BILLBOARD_INDEX, serializer(Byte.class), (byte) Display.Billboard.CENTER.ordinal()));
+        values.add(value(DISPLAY_VIEW_RANGE_INDEX, serializer(Float.class), DEFAULT_VIEW_RANGE));
+        values.add(value(DISPLAY_WIDTH_INDEX, serializer(Float.class), 0.0F));
+        values.add(value(DISPLAY_HEIGHT_INDEX, serializer(Float.class), 0.0F));
         return values;
     }
 
