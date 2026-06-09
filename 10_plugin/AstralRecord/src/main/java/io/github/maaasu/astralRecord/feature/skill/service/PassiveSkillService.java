@@ -109,6 +109,49 @@ public final class PassiveSkillService {
         reconcile(player, true);
     }
 
+    public void reconcileSkillOwnershipDelta(
+        @NotNull AstPlayer player,
+        @NotNull Set<String> addedSkillIds,
+        @NotNull Set<String> removedSkillIds,
+        boolean refreshStatus
+    ) {
+        UUID accountId = player.getAccount().getUuid();
+        PlayerPassiveState state = activeStates.computeIfAbsent(accountId, ignored -> new PlayerPassiveState());
+        Set<String> boundPassiveSkillIds = resolveBoundPassiveSkillIds(accountId);
+        boolean changed = false;
+
+        for (String skillId : removedSkillIds) {
+            ActivePassiveSkill current = state.skillsById.remove(skillId);
+            if (current == null) {
+                continue;
+            }
+            deactivate(player, current);
+            changed = true;
+        }
+
+        for (String skillId : addedSkillIds) {
+            if (state.skillsById.containsKey(skillId)) {
+                continue;
+            }
+            SkillDefinition definition = skillService.registry().getDefinition(skillId);
+            if (definition == null || definition.getKind() != SkillKind.PASSIVE) {
+                continue;
+            }
+            if (definition.getPassiveBindRequired() && !boundPassiveSkillIds.contains(skillId)) {
+                continue;
+            }
+            activate(player, state, definition);
+            changed = true;
+        }
+
+        if (state.skillsById.isEmpty()) {
+            activeStates.remove(accountId);
+        }
+        if (changed && refreshStatus && statusService != null) {
+            statusService.refreshStatus(player);
+        }
+    }
+
     /**
      * 指定プレイヤーの有効中パッシブからステータス補正を取得します。
      *

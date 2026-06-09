@@ -22,10 +22,12 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -78,9 +80,6 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
             return;
         }
         if (!service.isPlayerModeSkillTree(event.getPlayer())) {
-            return;
-        }
-        if (!service.shouldUseSkillTreeHotbar(event.getPlayer())) {
             return;
         }
         Action action = event.getAction();
@@ -185,15 +184,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
         if (!service.isPlayerModeSkillTree(event.getPlayer())) {
             return;
         }
-        if (!service.shouldUseSkillTreeHotbar(event.getPlayer())) {
-            return;
-        }
-        if (event.getNewSlot() != 0) {
-            event.setCancelled(true);
-            if (!service.handleSkillTreeHotbarControl(event.getPlayer(), event.getNewSlot())) {
-                event.getPlayer().getInventory().setHeldItemSlot(0);
-            }
-        }
+        service.markViewerContextDirty(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -206,34 +197,42 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
                 && event.getSlot() >= 0
                 && event.getSlot() <= 8) {
             event.setCancelled(true);
-            return;
-        }
-        if (!service.isPlayerModeSkillTree(player)) {
-            return;
-        }
-        if (!service.shouldUseSkillTreeHotbar(player)) {
-            return;
-        }
-        if (event.getClickedInventory() == player.getInventory() && event.getSlot() >= 0 && event.getSlot() <= 8) {
-            event.setCancelled(true);
-            service.handleSkillTreeHotbarControl(player, event.getSlot());
-        }
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onInventoryClose(@NotNull InventoryCloseEvent event) {
-        if (event.getPlayer() instanceof org.bukkit.entity.Player player && service.isPlayerModeSkillTree(player)) {
-            org.bukkit.Bukkit.getScheduler().runTask(io.github.maaasu.astralRecord.AstralRecord.getInstance(), () -> service.renderSkillTreeHotbar(player));
         }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onWorldChange(@NotNull PlayerChangedWorldEvent event) {
         if (service.isPlayerModeSkillTree(event.getPlayer())) {
-            service.applySkillTreeHotbar(event.getPlayer());
-        } else {
-            service.restoreHotbar(event.getPlayer());
+            service.markViewerContextDirty(event.getPlayer());
         }
+        service.restoreHotbar(event.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerMove(@NotNull PlayerMoveEvent event) {
+        if (!service.isPlayerModeSkillTree(event.getPlayer()) || event.getTo() == null) {
+            return;
+        }
+        Location from = event.getFrom();
+        Location to = event.getTo();
+        if (from.getWorld() != to.getWorld()
+                || Double.compare(from.getX(), to.getX()) != 0
+                || Double.compare(from.getY(), to.getY()) != 0
+                || Double.compare(from.getZ(), to.getZ()) != 0
+                || Float.compare(from.getYaw(), to.getYaw()) != 0
+                || Float.compare(from.getPitch(), to.getPitch()) != 0) {
+            service.markViewerContextDirty(event.getPlayer());
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerTeleport(@NotNull PlayerTeleportEvent event) {
+        service.markViewerContextDirty(event.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
+        service.restoreHotbar(event.getPlayer());
     }
 
     private void handlePositionItem(@NotNull PlayerInteractEvent event, @NotNull String positionId) {

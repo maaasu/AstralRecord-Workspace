@@ -21,7 +21,7 @@ public class SkillTreeTabCompleter extends AstTabCompleter {
     @Override
     protected List<String> getPlayerCompletions(@NotNull AstPlayer player, @NotNull String[] args) {
         if (args.length == 1) {
-            return List.of("reload", "position-item", "connector-item", "points");
+            return List.of("back", "reload", "position-item", "connector-item", "points");
         }
         if (args.length == 2 && "position-item".equalsIgnoreCase(args[0])) {
             return service.getDefinedPositionIds().stream().sorted().toList();

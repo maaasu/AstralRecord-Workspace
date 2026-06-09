@@ -19,7 +19,7 @@ public class SkillTreeCommand extends AstCommand {
     private final SkillTreeService service;
 
     public SkillTreeCommand(@NotNull SkillTreeService service) {
-        super("skilltree", "Open and manage the skill tree.", "/skilltree [reload|position-item|connector-item|points]", true);
+        super("skilltree", "Open and manage the skill tree.", "/skilltree [back|reload|position-item|connector-item|points]", true);
         this.service = service;
     }
 
@@ -30,12 +30,23 @@ public class SkillTreeCommand extends AstCommand {
             return;
         }
         switch (args[0].toLowerCase(Locale.ROOT)) {
+            case "back" -> handleBack(player);
             case "reload" -> handleReload(player);
             case "position-item" -> handlePositionItem(player, args);
             case "connector-item" -> handleConnectorItem(player, args);
             case "points" -> handlePoints(player, args);
             default -> sendUsage(player.getBukkit());
         }
+    }
+
+    private void handleBack(@NotNull AstPlayer player) {
+        service.returnToBase(player.getBukkit()).thenAccept(success ->
+                Bukkit.getScheduler().runTask(io.github.maaasu.astralRecord.AstralRecord.getInstance(), () -> {
+                    if (!success) {
+                        sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5820.getId()));
+                    }
+                })
+        );
     }
 
     private void handleTeleport(@NotNull AstPlayer player) {

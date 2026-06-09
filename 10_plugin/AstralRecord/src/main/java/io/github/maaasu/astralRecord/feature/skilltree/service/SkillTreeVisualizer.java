@@ -4,7 +4,6 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeEdge;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefinition;
-import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePlayerState;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePosition;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -57,6 +56,9 @@ final class SkillTreeVisualizer {
     private final Map<String, EdgeVisual> edgeVisuals = new HashMap<>();
     private final Set<String> loggedInvalidPositions = new HashSet<>();
     private final Set<String> loggedInvalidEdges = new HashSet<>();
+    private final Set<UUID> dirtyViewers = new HashSet<>();
+    private final Map<UUID, Set<String>> dirtyNodeStatePositionIds = new HashMap<>();
+    private boolean structureDirty = true;
     private BukkitTask task;
 
     SkillTreeVisualizer(@NotNull Plugin plugin, @NotNull SkillTreeService service) {
@@ -85,34 +87,81 @@ final class SkillTreeVisualizer {
         edgeVisuals.clear();
     }
 
+    void markStructureDirty() {
+        structureDirty = true;
+        dirtyViewers.addAll(currentOnlineViewerIds());
+    }
+
+    void markViewerDirty(@NotNull UUID viewerId) {
+        dirtyViewers.add(viewerId);
+    }
+
+    void markNodeStateDirty(@NotNull UUID viewerId, @NotNull Set<String> positionIds) {
+        dirtyViewers.add(viewerId);
+        dirtyNodeStatePositionIds.computeIfAbsent(viewerId, ignored -> new HashSet<>()).addAll(positionIds);
+    }
+
     private void tick() {
-        syncVisuals();
-
-        Set<UUID> onlineViewerIds = new HashSet<>();
-        for (Player player : plugin.getServer().getOnlinePlayers()) {
-            UUID playerId = player.getUniqueId();
-            onlineViewerIds.add(playerId);
-
-            RenderMode mode = resolveMode(player);
-            for (AdminPositionVisual visual : adminPositionVisuals.values()) {
-                boolean visible = mode == RenderMode.ADMIN && isVisibleTo(player, visual.baseLocation());
-                visual.updateViewer(player, visible);
-            }
-            for (NodeVisual visual : nodeVisuals.values()) {
-                boolean visible = mode == RenderMode.PLAYER && isVisibleTo(player, visual.baseLocation());
-                boolean unlocked = visible && isUnlocked(player, visual.node());
-                visual.updateViewer(player, visible, unlocked);
-            }
-            for (EdgeVisual visual : edgeVisuals.values()) {
-                EdgeState state = resolveEdgeState(player, visual.edge(), mode);
-                boolean visible = state != EdgeState.HIDDEN && isVisibleTo(player, visual.midpoint());
-                visual.updateViewer(player, visible ? state : EdgeState.HIDDEN);
-            }
+        if (structureDirty) {
+            syncVisuals();
+            structureDirty = false;
         }
 
+        Set<UUID> onlineViewerIds = currentOnlineViewerIds();
+        Set<UUID> viewersToRefresh = new HashSet<>(dirtyViewers);
+        viewersToRefresh.retainAll(onlineViewerIds);
+
+        for (UUID viewerId : viewersToRefresh) {
+            Player player = plugin.getServer().getPlayer(viewerId);
+            if (player == null) {
+                continue;
+            }
+            refreshViewer(player, dirtyNodeStatePositionIds.remove(viewerId));
+        }
+
+        dirtyViewers.removeAll(viewersToRefresh);
+        dirtyNodeStatePositionIds.keySet().removeIf(viewerId -> !onlineViewerIds.contains(viewerId));
         nodeVisuals.values().forEach(visual -> visual.pruneViewers(onlineViewerIds));
         adminPositionVisuals.values().forEach(visual -> visual.pruneViewers(onlineViewerIds));
         edgeVisuals.values().forEach(visual -> visual.pruneViewers(onlineViewerIds));
+    }
+
+    private @NotNull Set<UUID> currentOnlineViewerIds() {
+        Set<UUID> onlineViewerIds = new HashSet<>();
+        for (Player player : plugin.getServer().getOnlinePlayers()) {
+            onlineViewerIds.add(player.getUniqueId());
+        }
+        return onlineViewerIds;
+    }
+
+    private void refreshViewer(@NotNull Player player, @Nullable Set<String> dirtyPositions) {
+        RenderMode mode = resolveMode(player);
+        boolean partialNodeRefresh = dirtyPositions != null && !dirtyPositions.isEmpty() && mode == RenderMode.PLAYER;
+
+        for (AdminPositionVisual visual : adminPositionVisuals.values()) {
+            boolean visible = mode == RenderMode.ADMIN && isVisibleTo(player, visual.baseLocation());
+            visual.updateViewer(player, visible);
+        }
+        for (NodeVisual visual : nodeVisuals.values()) {
+            if (partialNodeRefresh && !dirtyPositions.contains(visual.node().positionId())) {
+                continue;
+            }
+            boolean visible = mode == RenderMode.PLAYER && isVisibleTo(player, visual.baseLocation());
+            SkillTreeService.NodePresentationState nodeState = visible
+                    ? resolveNodeState(player, visual.node())
+                    : SkillTreeService.NodePresentationState.BLOCKED;
+            visual.updateViewer(player, visible, nodeState);
+        }
+        for (EdgeVisual visual : edgeVisuals.values()) {
+            if (partialNodeRefresh
+                    && !dirtyPositions.contains(visual.edge().leftPositionId())
+                    && !dirtyPositions.contains(visual.edge().rightPositionId())) {
+                continue;
+            }
+            EdgeState state = resolveEdgeState(player, visual.edge(), mode);
+            boolean visible = state != EdgeState.HIDDEN && isVisibleTo(player, visual.midpoint());
+            visual.updateViewer(player, visible ? state : EdgeState.HIDDEN);
+        }
     }
 
     private void syncVisuals() {
@@ -275,8 +324,8 @@ final class SkillTreeVisualizer {
             return EdgeState.HIDDEN;
         }
 
-        boolean leftUnlocked = isUnlocked(player, leftNode);
-        boolean rightUnlocked = isUnlocked(player, rightNode);
+        boolean leftUnlocked = resolveNodeState(player, leftNode) == SkillTreeService.NodePresentationState.UNLOCKED;
+        boolean rightUnlocked = resolveNodeState(player, rightNode) == SkillTreeService.NodePresentationState.UNLOCKED;
         if (leftUnlocked && rightUnlocked) {
             return EdgeState.UNLOCKED;
         }
@@ -286,13 +335,15 @@ final class SkillTreeVisualizer {
         return EdgeState.LOCKED;
     }
 
-    private boolean isUnlocked(@NotNull Player player, @NotNull SkillTreeNodeDefinition node) {
+    private @NotNull SkillTreeService.NodePresentationState resolveNodeState(
+            @NotNull Player player,
+            @NotNull SkillTreeNodeDefinition node
+    ) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) {
-            return false;
+            return SkillTreeService.NodePresentationState.BLOCKED;
         }
-        SkillTreePlayerState state = service.state(astPlayer);
-        return state.isUnlocked(node.id());
+        return service.nodePresentationState(astPlayer, node);
     }
 
     private boolean isVisibleTo(@NotNull Player player, @Nullable Location location) {
@@ -392,6 +443,7 @@ final class SkillTreeVisualizer {
     private enum NodeState {
         HIDDEN,
         LOCKED,
+        AVAILABLE,
         UNLOCKED
     }
 
@@ -505,6 +557,7 @@ final class SkillTreeVisualizer {
         private final SkillTreePacketDisplay.PacketEntity lockedItem;
         private final SkillTreePacketDisplay.PacketEntity unlockedItem;
         private final SkillTreePacketDisplay.PacketEntity lockedLabel;
+        private final SkillTreePacketDisplay.PacketEntity availableLabel;
         private final SkillTreePacketDisplay.PacketEntity unlockedLabel;
         private final Map<UUID, NodeState> viewerStates = new HashMap<>();
 
@@ -513,7 +566,8 @@ final class SkillTreeVisualizer {
             this.baseLocation = location.clone();
             this.lockedItem = packetItemDisplay(location, service.createNodeDisplayItem(node, false), NODE_ITEM_SCALE, NODE_ITEM_Y_OFFSET);
             this.unlockedItem = packetItemDisplay(location, service.createNodeDisplayItem(node, true), NODE_ITEM_SCALE, NODE_ITEM_Y_OFFSET);
-            this.lockedLabel = packetTextDisplay(location, service.nodeFieldLabel(node, false), NODE_TEXT_SCALE);
+            this.lockedLabel = packetTextDisplay(location, service.nodeFieldLabel(node, SkillTreeService.NodePresentationState.BLOCKED), NODE_TEXT_SCALE);
+            this.availableLabel = packetTextDisplay(location, service.nodeFieldLabel(node, SkillTreeService.NodePresentationState.AVAILABLE), NODE_TEXT_SCALE);
             this.unlockedLabel = packetTextDisplay(location, service.nodeFieldLabel(node, true), NODE_TEXT_SCALE);
             Logger.log(
                     LogId.I_9002,
@@ -548,12 +602,21 @@ final class SkillTreeVisualizer {
             lockedItem.move(itemLocation);
             unlockedItem.move(itemLocation);
             lockedLabel.move(textLocation);
+            availableLabel.move(textLocation);
             unlockedLabel.move(textLocation);
             showCurrentViewers();
         }
 
-        private void updateViewer(@NotNull Player player, boolean visible, boolean unlocked) {
-            NodeState nextState = !visible ? NodeState.HIDDEN : unlocked ? NodeState.UNLOCKED : NodeState.LOCKED;
+        private void updateViewer(
+                @NotNull Player player,
+                boolean visible,
+                @NotNull SkillTreeService.NodePresentationState nodePresentationState
+        ) {
+            NodeState nextState = switch (nodePresentationState) {
+                case BLOCKED -> visible ? NodeState.LOCKED : NodeState.HIDDEN;
+                case AVAILABLE -> visible ? NodeState.AVAILABLE : NodeState.HIDDEN;
+                case UNLOCKED -> visible ? NodeState.UNLOCKED : NodeState.HIDDEN;
+            };
             UUID playerId = player.getUniqueId();
             NodeState previousState = viewerStates.getOrDefault(playerId, NodeState.HIDDEN);
 
@@ -574,6 +637,7 @@ final class SkillTreeVisualizer {
         private void hideState(@NotNull Player player, @NotNull NodeState state) {
             switch (state) {
                 case LOCKED -> destroy(player, lockedItem, lockedLabel);
+                case AVAILABLE -> destroy(player, lockedItem, availableLabel);
                 case UNLOCKED -> destroy(player, unlockedItem, unlockedLabel);
                 case HIDDEN -> {
                 }
@@ -583,6 +647,7 @@ final class SkillTreeVisualizer {
         private void showState(@NotNull Player player, @NotNull NodeState state) {
             switch (state) {
                 case LOCKED -> spawn(player, lockedItem, lockedLabel);
+                case AVAILABLE -> spawn(player, lockedItem, availableLabel);
                 case UNLOCKED -> spawn(player, unlockedItem, unlockedLabel);
                 case HIDDEN -> {
                 }

@@ -23,11 +23,9 @@ import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreeStruc
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
-import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
-import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
-import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
@@ -47,7 +45,6 @@ import org.bukkit.entity.ItemDisplay;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
-import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -81,16 +78,12 @@ public class SkillTreeService {
     public static final String SKILL_TREE_WORLD_ID = "skill_tree";
     public static final long RELOCK_GOLD_COST = 100L;
     private static final String ROOT_TAG = "root";
-
-    private static final int HOTBAR_TARGET_SLOT = 0;
-    private static final int HOTBAR_ACTION_BAR_TOGGLE_SLOT = 7;
-    private static final int HOTBAR_RETURN_SLOT = 8;
     private static final double TARGET_DISTANCE = 8.0D;
     private static final double TARGET_RADIUS_SQ = 0.9D * 0.9D;
-    private static final double TARGET_HIGHLIGHT_RADIUS = 0.30D;
-    private static final double TARGET_HIGHLIGHT_Y = 0.46D;
-    private static final long SAVE_INTERVAL_TICKS = 20L * 60L;
+    private static final long SAVE_INTERVAL_TICKS = 20L;
+    private static final long FEEDBACK_INTERVAL_TICKS = 5L;
     private static final long VISUAL_DELAY_MILLIS = 1_500L;
+    private static final long SAVE_DEBOUNCE_MILLIS = 5_000L;
 
     private final Plugin plugin;
     private final WorldService worldService;
@@ -99,7 +92,6 @@ public class SkillTreeService {
     private StatusService statusService;
     private SkillService skillService;
     private PassiveSkillService passiveSkillService;
-    private final ParticleDisplayService particleDisplayService = new ParticleDisplayService();
     private final SkillTreeNodeRepository nodeRepository;
     private final SkillTreeStructureRepository structureRepository;
     private final SkillTreePlayerStateRepository playerStateRepository;
@@ -109,19 +101,24 @@ public class SkillTreeService {
     private final Map<String, SkillTreeNodeDefinition> nodesByPositionId = new LinkedHashMap<>();
     private final Map<String, SkillTreePosition> positionsById = new LinkedHashMap<>();
     private final Map<String, SkillTreeEdge> edgesByKey = new LinkedHashMap<>();
+    private final Map<String, ItemStack> lockedNodeDisplayItems = new LinkedHashMap<>();
+    private final Map<String, ItemStack> unlockedNodeDisplayItems = new LinkedHashMap<>();
+    private final Map<String, Component> blockedNodeFieldLabels = new LinkedHashMap<>();
+    private final Map<String, Component> availableNodeFieldLabels = new LinkedHashMap<>();
+    private final Map<String, Component> unlockedNodeFieldLabels = new LinkedHashMap<>();
     private final Map<UUID, SkillTreePlayerState> playerStates = new HashMap<>();
+    private final Map<UUID, DerivedPlayerState> derivedPlayerStates = new HashMap<>();
     private final Set<UUID> dirtyPlayerStates = new LinkedHashSet<>();
     private final Set<UUID> loadingPlayerStates = new LinkedHashSet<>();
     private final Set<UUID> failedPlayerStateLoads = new LinkedHashSet<>();
+    private final Map<UUID, Long> dirtyPlayerStateDueAtMillis = new HashMap<>();
     private final Map<UUID, String> connectorLeftSelections = new HashMap<>();
-    private final Map<UUID, ItemStack[]> savedHotbars = new HashMap<>();
     private final Map<UUID, Location> returnLocations = new HashMap<>();
-    private final Map<UUID, SkillTreeActionBarMode> actionBarModes = new HashMap<>();
     private final Map<UUID, Long> visualReadyAtMillis = new HashMap<>();
     private final Map<UUID, BossBar> loadingBossBars = new HashMap<>();
 
     private BukkitTask saveTask;
-    private BukkitTask hotbarTask;
+    private BukkitTask feedbackTask;
     private SkillTreeVisualizer visualizer;
     private boolean structureDirty;
     private boolean playerStateSaveInProgress;
@@ -179,9 +176,15 @@ public class SkillTreeService {
     public int loadAll() {
         nodesById.clear();
         nodesByPositionId.clear();
+        lockedNodeDisplayItems.clear();
+        unlockedNodeDisplayItems.clear();
+        blockedNodeFieldLabels.clear();
+        availableNodeFieldLabels.clear();
+        unlockedNodeFieldLabels.clear();
         for (SkillTreeNodeDefinition node : nodeRepository.findAll()) {
             nodesById.put(node.id(), node);
             nodesByPositionId.put(node.positionId(), node);
+            cacheNodePresentation(node);
         }
 
         positionsById.clear();
@@ -196,6 +199,10 @@ public class SkillTreeService {
             }
         }
         structureDirty = false;
+        derivedPlayerStates.replaceAll((accountId, ignored) -> rebuildDerivedState(playerStates.get(accountId)));
+        if (visualizer != null) {
+            visualizer.markStructureDirty();
+        }
         Logger.log(LogId.I_9000, nodesById.size(), positionsById.size(), edgesByKey.size());
         return nodesById.size();
     }
@@ -218,9 +225,10 @@ public class SkillTreeService {
         if (saveTask == null) {
             saveTask = Bukkit.getScheduler().runTaskTimer(plugin, this::saveDirtyAsync, SAVE_INTERVAL_TICKS, SAVE_INTERVAL_TICKS);
         }
-        if (hotbarTask == null) {
-            hotbarTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tickPlayerHotbars, 1L, 5L);
+        if (feedbackTask == null) {
+            feedbackTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tickPlayerFeedbacks, 1L, FEEDBACK_INTERVAL_TICKS);
         }
+        markAllViewerContextsDirty();
     }
 
     public void stop() {
@@ -232,9 +240,9 @@ public class SkillTreeService {
             saveTask.cancel();
             saveTask = null;
         }
-        if (hotbarTask != null) {
-            hotbarTask.cancel();
-            hotbarTask = null;
+        if (feedbackTask != null) {
+            feedbackTask.cancel();
+            feedbackTask = null;
         }
         for (Player player : Bukkit.getOnlinePlayers()) {
             restoreHotbar(player);
@@ -267,15 +275,16 @@ public class SkillTreeService {
         Player player = astPlayer.getBukkit();
         returnLocations.put(player.getUniqueId(), player.getLocation().clone());
         visualReadyAtMillis.put(player.getUniqueId(), System.currentTimeMillis() + VISUAL_DELAY_MILLIS);
-        return worldService.teleportPlayerAsync(player, spawn.get(), () -> applySkillTreeHotbar(player));
+        return worldService.teleportPlayerAsync(player, spawn.get(), () -> markViewerContextDirty(player));
     }
 
     @NotNull
     public CompletableFuture<Boolean> returnToBase(@NotNull Player player) {
         visualReadyAtMillis.remove(player.getUniqueId());
+        stopLoadingPresentation(player);
         Location saved = returnLocations.remove(player.getUniqueId());
         if (saved != null && saved.getWorld() != null) {
-            return worldService.teleportPlayerAsync(player, saved, () -> restoreHotbar(player));
+            return worldService.teleportPlayerAsync(player, saved, () -> markViewerContextDirty(player));
         }
         for (WorldMasterData data : worldService.getAll()) {
             if (data.worldType() != WorldType.BASE) {
@@ -283,7 +292,7 @@ public class SkillTreeService {
             }
             Location spawn = worldService.resolveSpawnLocation(data);
             if (spawn != null) {
-                return worldService.teleportPlayerAsync(player, spawn, () -> restoreHotbar(player));
+                return worldService.teleportPlayerAsync(player, spawn, () -> markViewerContextDirty(player));
             }
         }
         return CompletableFuture.completedFuture(false);
@@ -360,10 +369,7 @@ public class SkillTreeService {
      * @return 解除コストを支払えるなら {@code true}
      */
     public boolean canAffordRelock(@NotNull AstPlayer astPlayer) {
-        return inventoryService != null
-                && inventoryService.getCurrencyAmount(astPlayer.getAccount().getUuid(), io.github.maaasu.astralRecord.feature.item.service.ItemService.DEFAULT_CURRENCY_ITEM_ID)
-                + inventoryService.getCurrencyAmount(astPlayer.getAccount().getUuid(), io.github.maaasu.astralRecord.feature.item.service.ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID)
-                >= RELOCK_GOLD_COST;
+        return availableRelockGold(astPlayer) >= RELOCK_GOLD_COST;
     }
 
     /**
@@ -469,6 +475,9 @@ public class SkillTreeService {
     public boolean registerPosition(@NotNull String positionId, @NotNull Location location) {
         positionsById.put(positionId, SkillTreePosition.from(positionId, location));
         structureDirty = true;
+        if (visualizer != null) {
+            visualizer.markStructureDirty();
+        }
         return true;
     }
 
@@ -477,6 +486,9 @@ public class SkillTreeService {
         edgesByKey.entrySet().removeIf(entry -> entry.getValue().contains(positionId));
         if (removed) {
             structureDirty = true;
+            if (visualizer != null) {
+                visualizer.markStructureDirty();
+            }
         }
         return removed;
     }
@@ -492,6 +504,9 @@ public class SkillTreeService {
             edgesByKey.put(edge.key(), edge);
         }
         structureDirty = true;
+        if (visualizer != null) {
+            visualizer.markStructureDirty();
+        }
         return true;
     }
 
@@ -613,7 +628,9 @@ public class SkillTreeService {
                 failedPlayerStateLoads.remove(accountId);
                 if (!dirtyPlayerStates.contains(accountId)) {
                     playerStates.put(accountId, loadedState);
+                    derivedPlayerStates.put(accountId, rebuildDerivedState(loadedState));
                     refreshDerivedState(accountId);
+                    markViewerContextDirty(accountId);
                 }
             });
         });
@@ -621,6 +638,100 @@ public class SkillTreeService {
 
     public void markDirty(@NotNull SkillTreePlayerState state) {
         dirtyPlayerStates.add(state.accountId());
+        dirtyPlayerStateDueAtMillis.put(state.accountId(), System.currentTimeMillis() + SAVE_DEBOUNCE_MILLIS);
+    }
+
+    private @NotNull DerivedPlayerState derivedState(@NotNull UUID accountId, @NotNull SkillTreePlayerState state) {
+        return derivedPlayerStates.computeIfAbsent(accountId, ignored -> rebuildDerivedState(state));
+    }
+
+    private @NotNull DerivedPlayerState rebuildDerivedState(@Nullable SkillTreePlayerState state) {
+        if (state == null) {
+            return DerivedPlayerState.EMPTY;
+        }
+        Set<String> unlockedSkillIds = new LinkedHashSet<>();
+        Map<StatusType, StatusBonusTotals> statusBonuses = new java.util.EnumMap<>(StatusType.class);
+        for (String nodeId : state.unlockedNodeIds()) {
+            SkillTreeNodeDefinition node = nodesById.get(nodeId);
+            if (node == null) {
+                continue;
+            }
+            for (String rawSkillId : node.skillIds()) {
+                if (rawSkillId != null && !rawSkillId.isBlank()) {
+                    unlockedSkillIds.add(rawSkillId.trim());
+                }
+            }
+            for (SkillTreeNodeStatusDefinition status : node.statuses()) {
+                StatusBonusTotals current = statusBonuses.getOrDefault(status.statusType(), StatusBonusTotals.ZERO);
+                statusBonuses.put(
+                        status.statusType(),
+                        status.type() == StatusModifierType.SCALAR
+                                ? new StatusBonusTotals(current.flat(), current.scalar() + status.value())
+                                : new StatusBonusTotals(current.flat() + status.value(), current.scalar())
+                );
+            }
+        }
+        return new DerivedPlayerState(Set.copyOf(unlockedSkillIds), Map.copyOf(statusBonuses));
+    }
+
+    private void markNodeStateChanged(
+            @NotNull AstPlayer astPlayer,
+            @NotNull SkillTreeNodeDefinition changedNode,
+            @NotNull Set<String> previousSkillIds,
+            @NotNull Set<String> currentSkillIds
+    ) {
+        Set<String> addedSkillIds = new LinkedHashSet<>(currentSkillIds);
+        addedSkillIds.removeAll(previousSkillIds);
+        Set<String> removedSkillIds = new LinkedHashSet<>(previousSkillIds);
+        removedSkillIds.removeAll(currentSkillIds);
+        refreshDerivedState(astPlayer, addedSkillIds, removedSkillIds, !changedNode.statuses().isEmpty());
+        if (visualizer != null) {
+            visualizer.markNodeStateDirty(
+                    astPlayer.getBukkit().getUniqueId(),
+                    affectedPositionIds(changedNode.positionId())
+            );
+        }
+    }
+
+    public @NotNull Set<String> affectedPositionIds(@NotNull String positionId) {
+        Set<String> affected = new LinkedHashSet<>();
+        affected.add(positionId);
+        affected.addAll(adjacentPositionIds(positionId));
+        return affected;
+    }
+
+    private long availableRelockGold(@NotNull AstPlayer astPlayer) {
+        if (inventoryService == null) {
+            return 0L;
+        }
+        UUID accountId = astPlayer.getAccount().getUuid();
+        return inventoryService.getCurrencyAmount(accountId, io.github.maaasu.astralRecord.feature.item.service.ItemService.DEFAULT_CURRENCY_ITEM_ID)
+                + inventoryService.getCurrencyAmount(accountId, io.github.maaasu.astralRecord.feature.item.service.ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID);
+    }
+
+    public void markViewerContextDirty(@NotNull Player player) {
+        if (visualizer != null) {
+            visualizer.markViewerDirty(player.getUniqueId());
+        }
+    }
+
+    private void markViewerContextDirty(@NotNull UUID accountId) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer != null && accountId.equals(astPlayer.getAccount().getUuid())) {
+                markViewerContextDirty(player);
+                return;
+            }
+        }
+    }
+
+    private void markAllViewerContextsDirty() {
+        if (visualizer == null) {
+            return;
+        }
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            visualizer.markViewerDirty(player.getUniqueId());
+        }
     }
 
     /**
@@ -628,19 +739,7 @@ public class SkillTreeService {
      */
     public @NotNull Set<String> getUnlockedSkillIds(@NotNull AstPlayer astPlayer) {
         SkillTreePlayerState state = state(astPlayer);
-        Set<String> skillIds = new LinkedHashSet<>();
-        for (String nodeId : state.unlockedNodeIds()) {
-            SkillTreeNodeDefinition node = nodesById.get(nodeId);
-            if (node == null) {
-                continue;
-            }
-            for (String skillId : node.skillIds()) {
-                if (skillId != null && !skillId.isBlank()) {
-                    skillIds.add(skillId.trim());
-                }
-            }
-        }
-        return skillIds;
+        return derivedState(state.accountId(), state).unlockedSkillIds();
     }
 
     /**
@@ -652,25 +751,9 @@ public class SkillTreeService {
         double baseValue
     ) {
         SkillTreePlayerState state = state(astPlayer);
-        double flat = 0.0D;
-        double scalar = 0.0D;
-        for (String nodeId : state.unlockedNodeIds()) {
-            SkillTreeNodeDefinition node = nodesById.get(nodeId);
-            if (node == null) {
-                continue;
-            }
-            for (SkillTreeNodeStatusDefinition status : node.statuses()) {
-                if (status.statusType() != statusType) {
-                    continue;
-                }
-                if (status.type() == StatusModifierType.SCALAR) {
-                    scalar += status.value();
-                } else {
-                    flat += status.value();
-                }
-            }
-        }
-        return flat + (baseValue * scalar);
+        StatusBonusTotals totals = derivedState(state.accountId(), state).statusBonuses()
+                .getOrDefault(statusType, StatusBonusTotals.ZERO);
+        return totals.flat() + (baseValue * totals.scalar());
     }
 
     public boolean unlockNode(@NotNull AstPlayer astPlayer, @NotNull SkillTreeNodeDefinition node) {
@@ -678,10 +761,13 @@ public class SkillTreeService {
             return false;
         }
         SkillTreePlayerState state = state(astPlayer);
+        Set<String> previousSkillIds = derivedState(state.accountId(), state).unlockedSkillIds();
         boolean changed = state.unlock(node.id());
         if (changed) {
+            DerivedPlayerState nextDerivedState = rebuildDerivedState(state);
+            derivedPlayerStates.put(state.accountId(), nextDerivedState);
             markDirty(state);
-            refreshDerivedState(astPlayer);
+            markNodeStateChanged(astPlayer, node, previousSkillIds, nextDerivedState.unlockedSkillIds());
         }
         return changed;
     }
@@ -694,10 +780,13 @@ public class SkillTreeService {
             return false;
         }
         SkillTreePlayerState state = state(astPlayer);
+        Set<String> previousSkillIds = derivedState(state.accountId(), state).unlockedSkillIds();
         boolean changed = state.relock(node.id());
         if (changed) {
+            DerivedPlayerState nextDerivedState = rebuildDerivedState(state);
+            derivedPlayerStates.put(state.accountId(), nextDerivedState);
             markDirty(state);
-            refreshDerivedState(astPlayer);
+            markNodeStateChanged(astPlayer, node, previousSkillIds, nextDerivedState.unlockedSkillIds());
         }
         return changed;
     }
@@ -706,12 +795,14 @@ public class SkillTreeService {
         SkillTreePlayerState state = state(astPlayer);
         state.setSkillPoints(points);
         markDirty(state);
+        markViewerContextDirty(astPlayer.getBukkit());
     }
 
     public void addSkillPoints(@NotNull AstPlayer astPlayer, int points) {
         SkillTreePlayerState state = state(astPlayer);
         state.addSkillPoints(points);
         markDirty(state);
+        markViewerContextDirty(astPlayer.getBukkit());
     }
 
     public boolean canRelockNode(@NotNull AstPlayer astPlayer, @NotNull SkillTreeNodeDefinition node) {
@@ -779,60 +870,27 @@ public class SkillTreeService {
     }
 
     public void applySkillTreeHotbar(@NotNull Player player) {
-        if (!isPlayerModeSkillTree(player)) {
-            return;
-        }
-        savedHotbars.computeIfAbsent(player.getUniqueId(), ignored -> player.getInventory().getContents().clone());
-        registerSkillTreeHud(player);
-        if (shouldUseSkillTreeHotbar(player)) {
-            renderSkillTreeHotbar(player);
-        }
     }
 
     public void renderSkillTreeHotbar(@NotNull Player player) {
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null || !shouldUseSkillTreeHotbar(player)) {
-            return;
-        }
-        player.getInventory().setHeldItemSlot(HOTBAR_TARGET_SLOT);
-        Optional<SkillTreeNodeDefinition> targeted = findTargetedNode(player);
-        player.getInventory().setItem(HOTBAR_TARGET_SLOT, targeted.map(node -> createNodeHotbarItem(astPlayer, node)).orElseGet(this::createEmptyTargetItem));
-        for (int slot = 1; slot < HOTBAR_ACTION_BAR_TOGGLE_SLOT; slot++) {
-            player.getInventory().setItem(slot, createDummyItem());
-        }
-        player.getInventory().setItem(HOTBAR_ACTION_BAR_TOGGLE_SLOT, createActionBarToggleItem(player));
-        player.getInventory().setItem(HOTBAR_RETURN_SLOT, createReturnItem());
-    }
-
-    private void tickPlayerHotbars() {
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (isPlayerModeSkillTree(player)) {
-                applySkillTreeHotbar(player);
-                updateLoadingPresentation(player);
-                updateTargetHighlight(player);
-            } else if (savedHotbars.containsKey(player.getUniqueId()) || actionBarModes.containsKey(player.getUniqueId())) {
-                restoreHotbar(player);
-            }
-        }
     }
 
     public void restoreHotbar(@NotNull Player player) {
         visualReadyAtMillis.remove(player.getUniqueId());
         stopLoadingPresentation(player);
-        ItemStack[] saved = savedHotbars.remove(player.getUniqueId());
-        actionBarModes.remove(player.getUniqueId());
-        if (playerHudService != null) {
-            playerHudService.clearPrimaryActionBarRenderer(player.getUniqueId());
-            AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (astPlayer != null) {
-                playerHudService.refreshActionBar(astPlayer);
+    }
+
+    private void tickPlayerFeedbacks() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (isPlayerModeSkillTree(player)) {
+                updateLoadingPresentation(player);
+                if (isSkillTreeVisualReady(player)) {
+                    markViewerContextDirty(player);
+                }
+            } else {
+                visualReadyAtMillis.remove(player.getUniqueId());
+                stopLoadingPresentation(player);
             }
-        }
-        if (saved == null) {
-            return;
-        }
-        for (int slot = 0; slot < 9; slot++) {
-            player.getInventory().setItem(slot, saved[slot]);
         }
     }
 
@@ -840,44 +898,20 @@ public class SkillTreeService {
      * スキルツリー中に専用 HOTBAR を使うか判定します。
      */
     public boolean shouldUseSkillTreeHotbar(@NotNull Player player) {
-        return isPlayerModeSkillTree(player) && !hasInteractiveGuiOpen(player);
+        return false;
     }
 
     /**
      * 専用 HOTBAR の操作を処理します。
      */
     public boolean handleSkillTreeHotbarControl(@NotNull Player player, int slot) {
-        if (!shouldUseSkillTreeHotbar(player)) {
-            return false;
-        }
-        if (slot == HOTBAR_ACTION_BAR_TOGGLE_SLOT) {
-            toggleActionBarMode(player);
-            return true;
-        }
-        if (slot == HOTBAR_RETURN_SLOT) {
-            returnToBase(player).thenAccept(success -> {
-                if (!success) {
-                    player.sendMessage(PlayerMsgResource.getMessage(PlayerMsgId.P_5820.getId()));
-                }
-            });
-            return true;
-        }
         return false;
     }
 
     @NotNull
     public ItemStack createNodeDisplayItem(@NotNull SkillTreeNodeDefinition node, boolean unlocked) {
-        ItemStack itemStack = new ItemStack(node.icon());
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(component(resolveNodeDisplayName(node, unlocked)));
-            meta.addItemFlags(ItemFlag.values());
-            if (unlocked) {
-                meta.addEnchant(Enchantment.UNBREAKING, 1, true);
-            }
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
+        ItemStack cached = unlocked ? unlockedNodeDisplayItems.get(node.id()) : lockedNodeDisplayItems.get(node.id());
+        return cached == null ? new ItemStack(node.icon()) : cached.clone();
     }
 
     /**
@@ -889,11 +923,16 @@ public class SkillTreeService {
      */
     @NotNull
     public Component nodeFieldLabel(@NotNull SkillTreeNodeDefinition node, boolean unlocked) {
-        List<String> lines = new java.util.ArrayList<>();
-        lines.add(resolveNodeDisplayName(node, unlocked));
-        appendNodeFieldStatusLines(lines, node, unlocked);
-        appendNodeFieldPassiveLines(lines, node, unlocked);
-        return component(String.join("\n", lines));
+        return nodeFieldLabel(node, unlocked ? NodePresentationState.UNLOCKED : canUnlockWithoutState(node) ? NodePresentationState.AVAILABLE : NodePresentationState.BLOCKED);
+    }
+
+    @NotNull
+    public Component nodeFieldLabel(@NotNull SkillTreeNodeDefinition node, @NotNull NodePresentationState presentationState) {
+        return switch (presentationState) {
+            case BLOCKED -> blockedNodeFieldLabels.getOrDefault(node.id(), Component.empty());
+            case AVAILABLE -> availableNodeFieldLabels.getOrDefault(node.id(), Component.empty());
+            case UNLOCKED -> unlockedNodeFieldLabels.getOrDefault(node.id(), Component.empty());
+        };
     }
 
     public int edgeState(@NotNull Player player, @NotNull SkillTreeEdge edge) {
@@ -926,6 +965,7 @@ public class SkillTreeService {
                 playerStateRepository.save(state);
             }
             dirtyPlayerStates.remove(accountId);
+            dirtyPlayerStateDueAtMillis.remove(accountId);
         }
     }
 
@@ -948,12 +988,18 @@ public class SkillTreeService {
         }
 
         List<SkillTreePlayerState> snapshots = new ArrayList<>();
+        long now = System.currentTimeMillis();
         for (UUID accountId : List.copyOf(dirtyPlayerStates)) {
+            Long dueAt = dirtyPlayerStateDueAtMillis.get(accountId);
+            if (dueAt != null && dueAt > now) {
+                continue;
+            }
             SkillTreePlayerState state = playerStates.get(accountId);
             if (state != null) {
                 snapshots.add(new SkillTreePlayerState(state.accountId(), state.skillPoints(), state.unlockedNodeIds()));
             }
             dirtyPlayerStates.remove(accountId);
+            dirtyPlayerStateDueAtMillis.remove(accountId);
         }
         if (snapshots.isEmpty()) {
             return;
@@ -971,7 +1017,9 @@ public class SkillTreeService {
                 }
             }
             Bukkit.getScheduler().runTask(plugin, () -> {
+                long retryDueAt = System.currentTimeMillis() + SAVE_DEBOUNCE_MILLIS;
                 dirtyPlayerStates.addAll(failedAccountIds);
+                failedAccountIds.forEach(accountId -> dirtyPlayerStateDueAtMillis.put(accountId, retryDueAt));
                 playerStateSaveInProgress = false;
             });
         });
@@ -1173,11 +1221,25 @@ public class SkillTreeService {
     }
 
     private void refreshDerivedState(@NotNull AstPlayer astPlayer) {
+        refreshDerivedState(astPlayer, Set.of(), Set.of(), true);
+    }
+
+    private void refreshDerivedState(
+            @NotNull AstPlayer astPlayer,
+            @NotNull Set<String> addedSkillIds,
+            @NotNull Set<String> removedSkillIds,
+            boolean statusAffected
+    ) {
+        boolean refreshedByPassiveService = false;
         if (passiveSkillService != null) {
-            passiveSkillService.reconcileNow(astPlayer);
-            return;
+            if (addedSkillIds.isEmpty() && removedSkillIds.isEmpty()) {
+                passiveSkillService.reconcileNow(astPlayer);
+            } else {
+                passiveSkillService.reconcileSkillOwnershipDelta(astPlayer, addedSkillIds, removedSkillIds, statusAffected);
+            }
+            refreshedByPassiveService = true;
         }
-        if (statusService != null) {
+        if (statusAffected && statusService != null && !refreshedByPassiveService) {
             statusService.refreshStatus(astPlayer);
         }
     }
@@ -1192,108 +1254,57 @@ public class SkillTreeService {
         }
     }
 
-    @NotNull
-    private ItemStack createEmptyTargetItem() {
-        ItemStack itemStack = new ItemStack(Material.GRAY_DYE);
+    private void cacheNodePresentation(@NotNull SkillTreeNodeDefinition node) {
+        lockedNodeDisplayItems.put(node.id(), createCachedNodeDisplayItem(node, false));
+        unlockedNodeDisplayItems.put(node.id(), createCachedNodeDisplayItem(node, true));
+        blockedNodeFieldLabels.put(node.id(), createNodeFieldLabel(node, NodePresentationState.BLOCKED));
+        availableNodeFieldLabels.put(node.id(), createNodeFieldLabel(node, NodePresentationState.AVAILABLE));
+        unlockedNodeFieldLabels.put(node.id(), createNodeFieldLabel(node, NodePresentationState.UNLOCKED));
+    }
+
+    private @NotNull ItemStack createCachedNodeDisplayItem(@NotNull SkillTreeNodeDefinition node, boolean unlocked) {
+        ItemStack itemStack = new ItemStack(node.icon());
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(component("&7スキルノード情報"));
-            meta.lore(List.of(
-                    component("&8視線先にスキルノードがありません"),
-                    component("&7ノードへ照準を合わせると詳細が表示されます"),
-                    component(""),
-                    component("&eslot7 &7: ActionBar表示切替"),
-                    component("&cslot8 &7: 拠点へ戻る")
-            ));
+            meta.displayName(component(resolveNodeDisplayName(node, unlocked)));
             meta.addItemFlags(ItemFlag.values());
+            if (unlocked) {
+                meta.addEnchant(Enchantment.UNBREAKING, 1, true);
+            }
             itemStack.setItemMeta(meta);
         }
         return itemStack;
     }
 
-    @NotNull
-    private ItemStack createDummyItem() {
-        ItemStack itemStack = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(Component.text(" "));
-            meta.addItemFlags(ItemFlag.values());
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
-    }
-
-    @NotNull
-    private ItemStack createReturnItem() {
-        ItemStack itemStack = new ItemStack(Material.RED_BED);
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(component("&c拠点へ戻る"));
-            meta.lore(List.of(component("&7スキルツリーを離れて元の場所へ戻ります")));
-            meta.addItemFlags(ItemFlag.values());
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
-    }
-
-    @NotNull
-    private ItemStack createActionBarToggleItem(@NotNull Player player) {
-        SkillTreeActionBarMode mode = actionBarModes.getOrDefault(player.getUniqueId(), SkillTreeActionBarMode.RESOURCE_STATUS);
-        boolean resourceStatus = mode == SkillTreeActionBarMode.RESOURCE_STATUS;
-        ItemStack itemStack = new ItemStack(resourceStatus ? Material.COMPASS : Material.WRITABLE_BOOK);
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(component(resourceStatus
-                    ? "&bActionBar表示: &fリソースHUD"
-                    : "&bActionBar表示: &fノードガイド"));
-            meta.lore(List.of(
-                    component("&7クリックで表示内容を切り替え"),
-                    component(resourceStatus ? "&8現在: &fHP / MP / ENG" : "&8現在: &fノードガイド")
-            ));
-            meta.addItemFlags(ItemFlag.values());
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
-    }
-
-    private void registerSkillTreeHud(@NotNull Player player) {
-        actionBarModes.putIfAbsent(player.getUniqueId(), SkillTreeActionBarMode.RESOURCE_STATUS);
-        if (playerHudService == null) {
-            return;
-        }
-        playerHudService.setPrimaryActionBarRenderer(player.getUniqueId(), this::resolveSkillTreeActionBar);
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer != null) {
-            playerHudService.refreshActionBar(astPlayer);
-        }
-    }
-
-    private @Nullable Component resolveSkillTreeActionBar(@NotNull AstPlayer astPlayer) {
-        if (!isPlayerModeSkillTree(astPlayer.getBukkit())) {
-            return null;
-        }
-        SkillTreeActionBarMode mode = actionBarModes.getOrDefault(astPlayer.getBukkit().getUniqueId(), SkillTreeActionBarMode.RESOURCE_STATUS);
-        return mode == SkillTreeActionBarMode.NODE_GUIDE
-                ? PlayerMsgResource.formatComponent(PlayerMsgId.P_5833.getId())
-                : null;
-    }
-
-    private void toggleActionBarMode(@NotNull Player player) {
-        UUID playerId = player.getUniqueId();
-        SkillTreeActionBarMode next = actionBarModes.getOrDefault(playerId, SkillTreeActionBarMode.RESOURCE_STATUS).toggle();
-        actionBarModes.put(playerId, next);
-        renderSkillTreeHotbar(player);
-        if (playerHudService != null) {
-            AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (astPlayer != null) {
-                playerHudService.refreshActionBar(astPlayer);
+    private @NotNull Component createNodeFieldLabel(
+            @NotNull SkillTreeNodeDefinition node,
+            @NotNull NodePresentationState presentationState
+    ) {
+        List<String> lines = new ArrayList<>();
+        boolean emphasized = presentationState != NodePresentationState.BLOCKED;
+        lines.add(resolveNodeDisplayName(node, presentationState == NodePresentationState.UNLOCKED));
+        lines.add(switch (presentationState) {
+            case BLOCKED -> "&8State: &7Blocked";
+            case AVAILABLE -> "&8State: &aUnlockable";
+            case UNLOCKED -> "&8State: &bUnlocked";
+        });
+        lines.add("&8Left click: &fUnlock");
+        lines.add("&8Right click: &fRelock &7(100G)");
+        appendNodeFieldStatusLines(lines, node, emphasized);
+        appendNodeFieldPassiveLines(lines, node, emphasized);
+        if (!node.lore().isEmpty()) {
+            lines.add("&8--- Description ---");
+            for (String loreLine : node.lore()) {
+                lines.add((emphasized ? "&7" : "&8") + stripLegacy(loreLine));
             }
         }
+        lines.add("&8nodeId: &7" + node.id());
+        lines.add("&8positionId: &7" + node.positionId());
+        return component(String.join("\n", lines));
     }
 
-    private boolean hasInteractiveGuiOpen(@NotNull Player player) {
-        InventoryType topType = player.getOpenInventory().getTopInventory().getType();
-        return topType != InventoryType.CRAFTING && topType != InventoryType.CREATIVE;
+    private boolean canUnlockWithoutState(@NotNull SkillTreeNodeDefinition node) {
+        return hasTag(node, ROOT_TAG);
     }
 
     private void updateLoadingPresentation(@NotNull Player player) {
@@ -1353,64 +1364,6 @@ public class SkillTreeService {
         loadingBossBars.clear();
     }
 
-    private void updateTargetHighlight(@NotNull Player player) {
-        if (!shouldUseSkillTreeHotbar(player) || !isSkillTreeVisualReady(player) || particleDisplayService == null) {
-            return;
-        }
-
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) {
-            return;
-        }
-
-        SkillTreeNodeDefinition node = findTargetedNode(player).orElse(null);
-        if (node == null) {
-            return;
-        }
-
-        SkillTreePosition position = getPosition(node.positionId());
-        if (position == null) {
-            return;
-        }
-
-        Location base = position.toLocation();
-        if (base == null || base.getWorld() == null) {
-            return;
-        }
-
-        boolean unlocked = isNodeUnlocked(astPlayer, node);
-        boolean canUnlock = !unlocked && canUnlockNode(astPlayer, node);
-        emitTargetHighlight(astPlayer, base, unlocked, canUnlock);
-    }
-
-    private void emitTargetHighlight(
-            @NotNull AstPlayer astPlayer,
-            @NotNull Location base,
-            boolean unlocked,
-            boolean canUnlock
-    ) {
-        long step = System.currentTimeMillis() / 150L;
-        double baseAngle = (step % 360L) * (Math.PI / 18.0D);
-        for (int i = 0; i < 2; i++) {
-            double angle = baseAngle + (Math.PI * i);
-            Location point = base.clone().add(
-                    Math.cos(angle) * TARGET_HIGHLIGHT_RADIUS,
-                    TARGET_HIGHLIGHT_Y + (i == 0 ? 0.05D : -0.01D),
-                    Math.sin(angle) * TARGET_HIGHLIGHT_RADIUS
-            );
-            particleDisplayService.spawnForViewer(
-                    astPlayer,
-                    point,
-                    unlocked
-                            ? SharedParticleDefinitions.SKILLTREE_TARGET_UNLOCKED_DUST
-                            : canUnlock
-                            ? SharedParticleDefinitions.SKILLTREE_TARGET_LOCKED_DUST
-                            : SharedParticleDefinitions.SKILLTREE_TARGET_DENIED_DUST
-            );
-        }
-        particleDisplayService.spawnForViewer(astPlayer, base.clone().add(0.0D, 0.70D, 0.0D), SharedParticleDefinitions.SKILLTREE_TARGET_ENCHANT);
-    }
-
     private boolean isAdjacentToUnlockedNode(@NotNull SkillTreePlayerState state, @NotNull String positionId) {
         for (String adjacentPositionId : adjacentPositionIds(positionId)) {
             SkillTreeNodeDefinition adjacent = nodesByPositionId.get(adjacentPositionId);
@@ -1447,13 +1400,32 @@ public class SkillTreeService {
         return LegacyComponentSerializer.legacySection().deserialize(ColorCodeUtil.translateAlternateColorCodes(text));
     }
 
-    private enum SkillTreeActionBarMode {
-        RESOURCE_STATUS,
-        NODE_GUIDE;
-
-        private @NotNull SkillTreeActionBarMode toggle() {
-            return this == RESOURCE_STATUS ? NODE_GUIDE : RESOURCE_STATUS;
+    public @NotNull NodePresentationState nodePresentationState(
+            @NotNull AstPlayer astPlayer,
+            @NotNull SkillTreeNodeDefinition node
+    ) {
+        SkillTreePlayerState state = state(astPlayer);
+        if (state.isUnlocked(node.id())) {
+            return NodePresentationState.UNLOCKED;
         }
+        return canUnlockNode(astPlayer, node) ? NodePresentationState.AVAILABLE : NodePresentationState.BLOCKED;
+    }
+
+    public enum NodePresentationState {
+        BLOCKED,
+        AVAILABLE,
+        UNLOCKED
+    }
+
+    private record DerivedPlayerState(
+            @NotNull Set<String> unlockedSkillIds,
+            @NotNull Map<StatusType, StatusBonusTotals> statusBonuses
+    ) {
+        private static final DerivedPlayerState EMPTY = new DerivedPlayerState(Set.of(), Map.of());
+    }
+
+    private record StatusBonusTotals(double flat, double scalar) {
+        private static final StatusBonusTotals ZERO = new StatusBonusTotals(0.0D, 0.0D);
     }
 
     /**
