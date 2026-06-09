@@ -53,7 +53,7 @@ public final class SkillActionRingService {
     private final SkillBindPresetService presetService;
     private final SkillService skillService;
     private final SkillOwnershipService ownershipService;
-    private final SkillActionRingPacketDisplay packetDisplay;
+    private final SkillActionRingDisplay actionRingDisplay;
     private final Map<UUID, RingSession> sessions = new ConcurrentHashMap<>();
     private final Map<UUID, Long> swapCloseSuppressedUntil = new ConcurrentHashMap<>();
     private final Set<UUID> suppressedAttackPlayers = ConcurrentHashMap.newKeySet();
@@ -75,7 +75,7 @@ public final class SkillActionRingService {
         this.presetService = presetService;
         this.skillService = skillService;
         this.ownershipService = ownershipService;
-        this.packetDisplay = new SkillActionRingPacketDisplay(plugin);
+        this.actionRingDisplay = new SkillActionRingDisplay(plugin);
     }
 
     /**
@@ -94,7 +94,7 @@ public final class SkillActionRingService {
             return;
         }
 
-        RingSession session = RingSession.create(player, resolveSlots(astPlayer), packetDisplay);
+        RingSession session = RingSession.create(player, resolveSlots(astPlayer), actionRingDisplay);
         sessions.put(playerId, session);
         GuiSound.RING_OPEN.play(player);
         ensureTask();
@@ -124,7 +124,7 @@ public final class SkillActionRingService {
             return;
         }
 
-        RingSession session = RingSession.create(player, resolveSlots(astPlayer), packetDisplay);
+        RingSession session = RingSession.create(player, resolveSlots(astPlayer), actionRingDisplay);
         sessions.put(playerId, session);
         swapCloseSuppressedUntil.put(playerId, now + SWAP_CLOSE_DEBOUNCE_MILLIS);
         GuiSound.RING_OPEN.play(player);
@@ -342,15 +342,15 @@ public final class SkillActionRingService {
         private final Vector up;
         private final List<SlotView> slots;
         private final Player viewer;
-        private final SkillActionRingPacketDisplay packetDisplay;
-        private final List<SkillActionRingPacketDisplay.PacketEntity> icons = new ArrayList<>(SLOT_COUNT);
-        private final List<SkillActionRingPacketDisplay.PacketEntity> labels = new ArrayList<>(SLOT_COUNT);
-        private final List<SkillActionRingPacketDisplay.PacketEntity> circleDots = new ArrayList<>(CIRCLE_DISPLAY_POINTS);
+        private final SkillActionRingDisplay actionRingDisplay;
+        private final List<SkillActionRingDisplay.DisplayEntity> icons = new ArrayList<>(SLOT_COUNT);
+        private final List<SkillActionRingDisplay.DisplayEntity> labels = new ArrayList<>(SLOT_COUNT);
+        private final List<SkillActionRingDisplay.DisplayEntity> circleDots = new ArrayList<>(CIRCLE_DISPLAY_POINTS);
         private final AttributeInstance blockBreakSpeedAttribute;
         private final Double originalBlockBreakSpeed;
-        private SkillActionRingPacketDisplay.PacketEntity closeIcon;
-        private SkillActionRingPacketDisplay.PacketEntity closeLabel;
-        private SkillActionRingPacketDisplay.PacketEntity timerLabel;
+        private SkillActionRingDisplay.DisplayEntity closeIcon;
+        private SkillActionRingDisplay.DisplayEntity closeLabel;
+        private SkillActionRingDisplay.DisplayEntity timerLabel;
         private int selectedIndex;
         private int confirmedIndex = -1;
         private RingPhase phase = RingPhase.SELECTING;
@@ -365,7 +365,7 @@ public final class SkillActionRingService {
             @NotNull Vector up,
             @NotNull List<SlotView> slots,
             @NotNull Player viewer,
-            @NotNull SkillActionRingPacketDisplay packetDisplay,
+            @NotNull SkillActionRingDisplay actionRingDisplay,
             AttributeInstance blockBreakSpeedAttribute,
             Double originalBlockBreakSpeed
         ) {
@@ -376,7 +376,7 @@ public final class SkillActionRingService {
             this.up = up;
             this.slots = slots;
             this.viewer = viewer;
-            this.packetDisplay = packetDisplay;
+            this.actionRingDisplay = actionRingDisplay;
             this.blockBreakSpeedAttribute = blockBreakSpeedAttribute;
             this.originalBlockBreakSpeed = originalBlockBreakSpeed;
             this.selectedIndex = firstSelectableSlot(slots);
@@ -385,7 +385,7 @@ public final class SkillActionRingService {
         private static @NotNull RingSession create(
             @NotNull Player player,
             @NotNull List<SlotView> slots,
-            @NotNull SkillActionRingPacketDisplay packetDisplay
+            @NotNull SkillActionRingDisplay actionRingDisplay
         ) {
             Location eye = player.getEyeLocation();
             Vector normal = eye.getDirection().normalize();
@@ -411,7 +411,7 @@ public final class SkillActionRingService {
                 up,
                 slots,
                 player,
-                packetDisplay,
+                actionRingDisplay,
                 blockBreakSpeed,
                 originalBlockBreakSpeed
             );
@@ -421,7 +421,7 @@ public final class SkillActionRingService {
 
         private void spawnEntities(@NotNull Player player) {
             for (int index = 0; index < CIRCLE_DISPLAY_POINTS; index++) {
-                SkillActionRingPacketDisplay.PacketEntity dot = packetDisplay.text(
+                SkillActionRingDisplay.DisplayEntity dot = actionRingDisplay.text(
                     baseCenter,
                     legacyComponent(ColorCodeUtil.AQUA + "*"),
                     0.42F
@@ -431,20 +431,20 @@ public final class SkillActionRingService {
             }
             for (int index = 0; index < SLOT_COUNT; index++) {
                 Location location = baseCenter.clone();
-                SkillActionRingPacketDisplay.PacketEntity icon = packetDisplay.item(
+                SkillActionRingDisplay.DisplayEntity icon = actionRingDisplay.item(
                     location,
                     new ItemStack(slots.get(index).material()),
                     false
                 );
-                SkillActionRingPacketDisplay.PacketEntity label = packetDisplay.text(location, Component.empty(), 0.60F);
+                SkillActionRingDisplay.DisplayEntity label = actionRingDisplay.text(location, Component.empty(), 0.60F);
                 icon.spawn(player);
                 label.spawn(player);
                 icons.add(icon);
                 labels.add(label);
             }
-            closeIcon = packetDisplay.item(baseCenter, new ItemStack(Material.BARRIER), false);
-            closeLabel = packetDisplay.text(baseCenter, legacyComponent(ColorCodeUtil.RED + "閉じる"), 0.60F);
-            timerLabel = packetDisplay.text(baseCenter, Component.empty(), 0.60F);
+            closeIcon = actionRingDisplay.item(baseCenter, new ItemStack(Material.BARRIER), false);
+            closeLabel = actionRingDisplay.text(baseCenter, legacyComponent(ColorCodeUtil.RED + "閉じる"), 0.60F);
+            timerLabel = actionRingDisplay.text(baseCenter, Component.empty(), 0.60F);
             closeIcon.spawn(player);
             closeLabel.spawn(player);
             timerLabel.spawn(player);
@@ -484,10 +484,10 @@ public final class SkillActionRingService {
                 Vector slotOffset = animatedSlotOffset(index);
                 Location iconLocation = center.clone().add(slotOffset);
                 Location labelLocation = iconLocation.clone().subtract(up.clone().multiply(0.35D));
-                SkillActionRingPacketDisplay.PacketEntity icon = icons.get(index);
-                SkillActionRingPacketDisplay.PacketEntity label = labels.get(index);
+                SkillActionRingDisplay.DisplayEntity icon = icons.get(index);
+                SkillActionRingDisplay.DisplayEntity label = labels.get(index);
                 icon.teleport(player, iconLocation);
-                packetDisplay.updateItem(
+                actionRingDisplay.updateItem(
                     player,
                     icon,
                     hiddenByConfirmedSelection ? HIDDEN_ITEM : new ItemStack(slot.material()),
@@ -495,7 +495,7 @@ public final class SkillActionRingService {
                 );
                 label.teleport(player, labelLocation);
                 String color = selected ? ColorCodeUtil.YELLOW : slot.selectable() ? ColorCodeUtil.GRAY : ColorCodeUtil.DARK_GRAY;
-                packetDisplay.updateText(
+                actionRingDisplay.updateText(
                     player,
                     label,
                     hiddenByConfirmedSelection ? Component.empty() : legacyComponent(color + slot.name()),
@@ -583,7 +583,7 @@ public final class SkillActionRingService {
 
         private void updateCircle(@NotNull Location center) {
             for (int index = 0; index < circleDots.size(); index++) {
-                SkillActionRingPacketDisplay.PacketEntity dot = circleDots.get(index);
+                SkillActionRingDisplay.DisplayEntity dot = circleDots.get(index);
                 double angle = ((Math.PI * 2.0D) / CIRCLE_DISPLAY_POINTS) * index;
                 Vector offset = up.clone().multiply(Math.cos(angle) * RING_RADIUS)
                     .add(right.clone().multiply(Math.sin(angle) * RING_RADIUS));
@@ -600,8 +600,8 @@ public final class SkillActionRingService {
             Location labelLocation = center.clone().subtract(up.clone().multiply(0.45D));
             closeIcon.teleport(player, center);
             closeLabel.teleport(player, labelLocation);
-            packetDisplay.updateItem(player, closeIcon, hidden ? HIDDEN_ITEM : new ItemStack(Material.BARRIER), selected && !hidden);
-            packetDisplay.updateText(
+            actionRingDisplay.updateItem(player, closeIcon, hidden ? HIDDEN_ITEM : new ItemStack(Material.BARRIER), selected && !hidden);
+            actionRingDisplay.updateText(
                 player,
                 closeLabel,
                 hidden ? Component.empty() : legacyComponent((selected ? ColorCodeUtil.YELLOW : ColorCodeUtil.RED) + "閉じる"),
@@ -615,7 +615,7 @@ public final class SkillActionRingService {
             }
             Location timerLocation = center.clone().subtract(up.clone().multiply(0.30D));
             timerLabel.teleport(viewer, timerLocation);
-            packetDisplay.updateText(viewer, timerLabel, legacyComponent(timerText()), 0.60F);
+            actionRingDisplay.updateText(viewer, timerLabel, legacyComponent(timerText()), 0.60F);
         }
 
         private @NotNull String timerText() {
@@ -648,15 +648,15 @@ public final class SkillActionRingService {
                 restoreBlockBreakSpeed();
                 return;
             }
-            for (SkillActionRingPacketDisplay.PacketEntity icon : icons) {
+            for (SkillActionRingDisplay.DisplayEntity icon : icons) {
                 icon.destroy(viewer);
             }
             icons.clear();
-            for (SkillActionRingPacketDisplay.PacketEntity label : labels) {
+            for (SkillActionRingDisplay.DisplayEntity label : labels) {
                 label.destroy(viewer);
             }
             labels.clear();
-            for (SkillActionRingPacketDisplay.PacketEntity dot : circleDots) {
+            for (SkillActionRingDisplay.DisplayEntity dot : circleDots) {
                 dot.destroy(viewer);
             }
             circleDots.clear();
