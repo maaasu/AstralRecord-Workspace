@@ -99,7 +99,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         openMain(player, session, 0);
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
         runSafely(() -> {
             if (!(event.getWhoClicked() instanceof Player player)) {

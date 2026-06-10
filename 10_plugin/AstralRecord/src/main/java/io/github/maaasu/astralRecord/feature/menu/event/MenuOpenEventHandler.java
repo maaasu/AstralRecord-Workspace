@@ -165,6 +165,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                     && !menuGuiTransitionService.consumeSuppressedCloseSound(player);
                 trashService.handleClose(event.getInventory(), player);
                 sellService.handleClose(event.getInventory(), player);
+                storageService.handleClose(event);
                 if (menuGuiTransitionService.consumePlayerInventoryDummyApplied(player)
                     && !menuGuiTransitionService.consumeSuppressedPlayerInventoryRestore(player)) {
                     menuGuiTransitionService.restorePlayerInventory(player);
@@ -190,7 +191,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         ), LogId.E_5600, event.getPlayer().getName());
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
         runSafely(() -> {
             if (menuView.isMenuInventory(event.getView().getTopInventory())) {

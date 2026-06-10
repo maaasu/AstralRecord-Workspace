@@ -54,7 +54,7 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         this.menuView = menuView;
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryClick(@NotNull InventoryClickEvent event) {
         runSafely(() -> {
             if (playerListGui.isInventory(event.getView().getTopInventory())) {

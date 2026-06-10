@@ -15,6 +15,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -35,6 +36,8 @@ public final class StorageService {
     private final MenuGuiTransitionService menuGuiTransitionService;
     private final ConcurrentHashMap<UUID, StorageViewOptions> storageOptionsByPlayer = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, List<StorageViewEntry>> storageEntriesByPlayer = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UUID, Integer> storagePageByPlayer = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UUID, Boolean> dirtyStorageByPlayer = new ConcurrentHashMap<>();
 
     /**
      * ストレージ GUI サービスを初期化します。
@@ -71,6 +74,7 @@ public final class StorageService {
     public void open(@NotNull Player player, int pageIndex) {
         StorageViewOptions options = storageOptions(player);
         List<StorageViewEntry> entries = refreshStorageEntries(player, options);
+        storagePageByPlayer.put(player.getUniqueId(), normalizeStoragePage(pageIndex, entries.size()));
         menuGuiTransitionService.switchGuiWithInventoryRestore(
             player,
             () -> menuView.openStorage(player, entries, options, pageIndex)
@@ -98,13 +102,13 @@ public final class StorageService {
             return;
         }
 
-        int pageIndex = menuView.getPageIndex(topInventory);
+        int pageIndex = storagePageByPlayer.getOrDefault(player.getUniqueId(), menuView.getPageIndex(topInventory));
         var options = storageOptions(player);
         List<StorageViewEntry> entries = currentStorageEntries(player, options);
         if (rawSlot == MenuView.STORAGE_PREVIOUS_SLOT) {
             if (menuView.hasPreviousStoragePage(pageIndex)) {
                 GuiSound.SELECT.play(player);
-                open(player, pageIndex - 1);
+                rerenderStorageInventory(player, topInventory, pageIndex - 1);
             } else {
                 GuiSound.DENY.play(player);
             }
@@ -113,7 +117,7 @@ public final class StorageService {
         if (rawSlot == MenuView.STORAGE_NEXT_SLOT) {
             if (menuView.hasNextStoragePage(entries, pageIndex)) {
                 GuiSound.SELECT.play(player);
-                open(player, pageIndex + 1);
+                rerenderStorageInventory(player, topInventory, pageIndex + 1);
             } else {
                 GuiSound.DENY.play(player);
             }
@@ -122,25 +126,29 @@ public final class StorageService {
         if (rawSlot == MenuView.STORAGE_CATEGORY_FILTER_SLOT) {
             GuiSound.SELECT.play(player);
             storageOptionsByPlayer.put(player.getUniqueId(), options.withCategoryFilter(nextStorageCategory(options.categoryFilter())));
-            open(player, 0);
+            refreshStorageEntries(player, storageOptions(player));
+            rerenderStorageInventory(player, topInventory, 0);
             return;
         }
         if (rawSlot == MenuView.STORAGE_RARITY_FILTER_SLOT) {
             GuiSound.SELECT.play(player);
             storageOptionsByPlayer.put(player.getUniqueId(), options.withRarityFilter(nextStorageRarity(options.rarityFilter())));
-            open(player, 0);
+            refreshStorageEntries(player, storageOptions(player));
+            rerenderStorageInventory(player, topInventory, 0);
             return;
         }
         if (rawSlot == MenuView.STORAGE_SORT_KEY_SLOT) {
             GuiSound.SELECT.play(player);
             storageOptionsByPlayer.put(player.getUniqueId(), options.withSortKey(options.sortKey().next()));
-            open(player, 0);
+            refreshStorageEntries(player, storageOptions(player));
+            rerenderStorageInventory(player, topInventory, 0);
             return;
         }
         if (rawSlot == MenuView.STORAGE_SORT_DIRECTION_SLOT) {
             GuiSound.SELECT.play(player);
             storageOptionsByPlayer.put(player.getUniqueId(), options.withSortDirection(options.sortDirection().next()));
-            open(player, 0);
+            refreshStorageEntries(player, storageOptions(player));
+            rerenderStorageInventory(player, topInventory, 0);
             return;
         }
         if (isStorageControlSlot(rawSlot)) {
@@ -166,6 +174,29 @@ public final class StorageService {
         event.setCancelled(true);
         if (event.getWhoClicked() instanceof Player player) {
             GuiSound.DENY.play(player);
+        }
+    }
+
+    /**
+     * ストレージ GUI を閉じたときに、開いている間の変更をまとめて保存します。
+     *
+     * @param event Bukkit のインベントリクローズイベント
+     */
+    public void handleClose(@NotNull InventoryCloseEvent event) {
+        if (!(event.getPlayer() instanceof Player player)) {
+            return;
+        }
+        if (menuView.getMenuScreen(event.getInventory()) != MenuScreen.STORAGE) {
+            return;
+        }
+        storageEntriesByPlayer.remove(player.getUniqueId());
+        storagePageByPlayer.remove(player.getUniqueId());
+        if (dirtyStorageByPlayer.remove(player.getUniqueId()) == null) {
+            return;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer != null) {
+            inventoryService.saveNow(astPlayer.getAccount().getUuid());
         }
     }
 
@@ -224,7 +255,7 @@ public final class StorageService {
             player.updateInventory();
             return;
         }
-        inventoryService.saveNow(astPlayer.getAccount().getUuid());
+        dirtyStorageByPlayer.put(player.getUniqueId(), true);
         refreshStorageEntries(player, storageOptions(player));
         GuiSound.SELECT.play(player);
         rerenderStorageInventory(player, topInventory);
@@ -268,7 +299,7 @@ public final class StorageService {
             player.updateInventory();
             return;
         }
-        inventoryService.saveNow(astPlayer.getAccount().getUuid());
+        dirtyStorageByPlayer.put(player.getUniqueId(), true);
         refreshStorageEntries(player, storageOptions(player));
         GuiSound.SELECT.play(player);
         rerenderStorageInventory(player, topInventory);
@@ -276,14 +307,18 @@ public final class StorageService {
     }
 
     private void rerenderStorageInventory(@NotNull Player player, @NotNull Inventory topInventory) {
-        int pageIndex = menuView.getPageIndex(topInventory);
+        rerenderStorageInventory(
+            player,
+            topInventory,
+            storagePageByPlayer.getOrDefault(player.getUniqueId(), menuView.getPageIndex(topInventory))
+        );
+    }
+
+    private void rerenderStorageInventory(@NotNull Player player, @NotNull Inventory topInventory, int pageIndex) {
         StorageViewOptions options = storageOptions(player);
         List<StorageViewEntry> entries = currentStorageEntries(player, options);
         int normalizedPage = normalizeStoragePage(pageIndex, entries.size());
-        if (normalizedPage != pageIndex) {
-            open(player, normalizedPage);
-            return;
-        }
+        storagePageByPlayer.put(player.getUniqueId(), normalizedPage);
         menuView.renderStorage(topInventory, entries, options, normalizedPage);
     }
 

@@ -44,7 +44,7 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
         shopGui.openList(player, shop);
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryClick(@NotNull InventoryClickEvent event) {
         runSafely(() -> {
             if (shopGui.isListInventory(event.getView().getTopInventory())) {

@@ -47,7 +47,7 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
         this.playerBrowserGuiEventHandler = playerBrowserGuiEventHandler;
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryClick(@NotNull InventoryClickEvent event) {
         runSafely(() -> {
             boolean isPartyGui = gui.isInventory(event.getView().getTopInventory());

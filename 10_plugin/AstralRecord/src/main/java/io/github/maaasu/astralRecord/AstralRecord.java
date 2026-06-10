@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.buff.service.BuffAcquisitionDisplayService;
 import io.github.maaasu.astralRecord.shared.gui.debug.PagingDebugGui;
 import io.github.maaasu.astralRecord.shared.gui.debug.event.PagingDebugGuiEventHandler;
+import io.github.maaasu.astralRecord.shared.gui.event.GuiClickCooldownEventHandler;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.item.event.ItemInteractionBlockEventHandler;
 import io.github.maaasu.astralRecord.feature.item.event.ItemWeaponAttackEventHandler;
@@ -569,6 +570,10 @@ public final class AstralRecord extends JavaPlugin {
      * 繧､繝吶Φ繝医ｄ繧ｳ繝槭Φ繝峨↑縺ｩ縺ｮ讖溯・繧堤匳骭ｲ
      */
     private void registerPluginFeatures() {
+        eventManager.registerHandler(
+            new GuiClickCooldownEventHandler(),
+            getServer().getPluginManager()
+        );
         eventManager.registerHandler(
             new UserLoginEventHandler(userService),
             getServer().getPluginManager()

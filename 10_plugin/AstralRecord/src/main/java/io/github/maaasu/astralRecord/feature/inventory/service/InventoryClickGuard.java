@@ -28,7 +28,9 @@ public final class InventoryClickGuard {
         /** 装備 GUI 上の装備スロットクリック。 */
         EQUIPMENT_GUI_SLOT,
         /** クラフトショートカットなどによる表示インベントリ種別切替。 */
-        INVENTORY_SWITCH
+        INVENTORY_SWITCH,
+        /** プラグイン GUI 全体の共通クリック。 */
+        GUI_CLICK
     }
 
     /** 既定 100ms。秒 10 回までは通常クリックとして許容しつつ、連打マクロを抑止する。 */

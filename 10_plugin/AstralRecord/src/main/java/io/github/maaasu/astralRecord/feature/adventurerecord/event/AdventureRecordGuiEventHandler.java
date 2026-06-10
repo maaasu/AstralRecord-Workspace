@@ -62,7 +62,7 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
         return gui.isInventory(inventory);
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryClick(@NotNull InventoryClickEvent event) {
         runSafely(() -> {
             Inventory topInventory = event.getView().getTopInventory();

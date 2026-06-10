@@ -39,7 +39,7 @@ public final class PagingDebugGuiEventHandler extends AbstractEventHandler {
      *
      * @param event インベントリクリックイベント
      */
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
         runSafely(() -> {
             if (!pagingDebugGui.isDebugInventory(event.getView().getTopInventory())) {

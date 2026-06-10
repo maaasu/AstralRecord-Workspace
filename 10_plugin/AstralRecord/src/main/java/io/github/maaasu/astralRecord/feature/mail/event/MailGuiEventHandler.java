@@ -61,7 +61,7 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
         return mailGuiView.isInventory(inventory);
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
         runSafely(() -> {
             if (!mailGuiView.isInventory(event.getView().getTopInventory())) {

@@ -187,7 +187,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
         service.markViewerContextDirty(event.getPlayer());
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryClick(@NotNull InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof org.bukkit.entity.Player player)) {
             return;
