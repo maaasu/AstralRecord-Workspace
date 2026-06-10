@@ -64,24 +64,69 @@ public class PlayerService {
      * @return ログイン反映に必要なデータ。取得できない場合は null
      */
     public @Nullable PlayerJoinData loadPlayerJoinData(@NotNull UUID playerUuid, @NotNull String playerName) {
-        var user = userService.getUser(playerUuid);
+        var user = loadPlayerJoinUser(playerUuid, playerName);
         if (user == null) {
-            Logger.log(LogId.W_5070, playerName);
             return null;
         }
 
-        var account = accountService.getSelectedAccount(user.getUuid(), user.getAccountId());
+        var account = loadPlayerJoinAccount(user, playerName);
         if (account == null) {
-            Logger.log(LogId.W_5070, playerName);
             return null;
         }
 
         // インベントリ・装備ロードアウトを API から取得し、in-memory state として構築する。
         // 以降のゲームロジックは PlayerInventoryState のみを参照し、API 通信は autosave/logout のみで発生する。
-        PlayerInventoryState inventoryState = inventoryPersistence.load(account.getUuid());
-        inventoryStateRegistry.put(inventoryState);
+        loadPlayerJoinInventoryState(account);
 
         return new PlayerJoinData(user, account);
+    }
+
+    /**
+     * プレイヤー参加時に必要なユーザーデータを取得します。
+     * <p>
+     * API 通信を伴うため Bukkit メインスレッド外から呼び出してください。取得できない場合は警告ログを残し、
+     * 後続の参加ロードを中断できるよう {@code null} を返します。
+     *
+     * @param playerUuid ログインしたプレイヤー UUID
+     * @param playerName ログ出力用のプレイヤー名
+     * @return ユーザーデータ。取得できない場合は {@code null}
+     */
+    public @Nullable UserModel loadPlayerJoinUser(@NotNull UUID playerUuid, @NotNull String playerName) {
+        var user = userService.getUser(playerUuid);
+        if (user == null) {
+            Logger.log(LogId.W_5070, playerName);
+        }
+        return user;
+    }
+
+    /**
+     * プレイヤー参加時に使用する選択中アカウントを取得します。
+     * <p>
+     * API 通信を伴うため Bukkit メインスレッド外から呼び出してください。
+     *
+     * @param user ユーザーデータ
+     * @param playerName ログ出力用のプレイヤー名
+     * @return 選択中アカウント。取得できない場合は {@code null}
+     */
+    public @Nullable AccountModel loadPlayerJoinAccount(@NotNull UserModel user, @NotNull String playerName) {
+        var account = accountService.getSelectedAccount(user.getUuid(), user.getAccountId());
+        if (account == null) {
+            Logger.log(LogId.W_5070, playerName);
+        }
+        return account;
+    }
+
+    /**
+     * プレイヤー参加時のインベントリ state を API から読み込み、メモリへ登録します。
+     * <p>
+     * API 通信を伴うため Bukkit メインスレッド外から呼び出してください。以降のゲームロジックは
+     * {@link PlayerInventoryState} を正本として参照します。
+     *
+     * @param account 選択中アカウント
+     */
+    public void loadPlayerJoinInventoryState(@NotNull AccountModel account) {
+        PlayerInventoryState inventoryState = inventoryPersistence.load(account.getUuid());
+        inventoryStateRegistry.put(inventoryState);
     }
 
     /**

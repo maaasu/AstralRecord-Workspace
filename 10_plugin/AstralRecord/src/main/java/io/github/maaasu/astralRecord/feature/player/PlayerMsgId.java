@@ -51,6 +51,14 @@ public enum PlayerMsgId {
      * あなたはpermissionレベル{0}の管理者です。OP権限が付与されました。
      */
     P_5070(5070),
+    /**
+     * プレイヤーデータをロード中です。完了までその場でお待ちください。
+     */
+    P_5071(5071),
+    /**
+     * プレイヤーデータのロードが完了しました。
+     */
+    P_5072(5072),
     // endregion
 
     // region /infrastructure/command/AstCommand.java 5060-5069
