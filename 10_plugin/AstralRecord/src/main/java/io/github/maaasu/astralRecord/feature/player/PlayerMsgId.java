@@ -619,6 +619,19 @@ public enum PlayerMsgId {
     P_5930(5930),
     // endregion
 
+    // region /feature/trade 6200-6209
+    P_6200(6200),
+    P_6201(6201),
+    P_6202(6202),
+    P_6203(6203),
+    P_6204(6204),
+    P_6205(6205),
+    P_6206(6206),
+    P_6207(6207),
+    P_6208(6208),
+    P_6209(6209),
+    // endregion
+
     // region /feature/player/service/PlayerMessageService.java 5940-5949
     P_5940(5940),
     P_5941(5941),

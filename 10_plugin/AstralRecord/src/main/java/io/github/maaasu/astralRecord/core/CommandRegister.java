@@ -38,6 +38,8 @@ import io.github.maaasu.astralRecord.feature.shop.command.ShopTabCompleter;
 import io.github.maaasu.astralRecord.feature.storage.command.StorageCommand;
 import io.github.maaasu.astralRecord.feature.status.command.StatusCommand;
 import io.github.maaasu.astralRecord.feature.status.command.StatusTabCompleter;
+import io.github.maaasu.astralRecord.feature.trade.command.TradeCommand;
+import io.github.maaasu.astralRecord.feature.trade.command.TradeTabCompleter;
 import io.github.maaasu.astralRecord.feature.user.command.UserCommand;
 import io.github.maaasu.astralRecord.feature.user.command.UserTabCompleter;
 import io.github.maaasu.astralRecord.feature.world.command.WorldCommand;
@@ -100,6 +102,7 @@ public class CommandRegister {
         cm.registerCommand("skill", new SkillCommand());
         cm.registerCommand("skilltree", new SkillTreeCommand(skillTreeService), new SkillTreeTabCompleter(skillTreeService));
         cm.registerCommand("party", new PartyCommand(), new PartyTabCompleter());
+        cm.registerCommand("trade", new TradeCommand(), new TradeTabCompleter());
         cm.registerCommand("shop", new ShopCommand(), new ShopTabCompleter());
         cm.registerCommand("test", new TestCommand(AstralRecord.getInstance()), new TestTabCompleter());
         cm.registerCommand("testskilltree", new SkillTreeSpawnCheckCommand(), new SkillTreeSpawnCheckTabCompleter());

@@ -119,6 +119,10 @@ import io.github.maaasu.astralRecord.feature.status.service.StatusRegenTask;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.storage.service.StorageService;
 import io.github.maaasu.astralRecord.feature.status.event.PlayerHeldItemStatusEventHandler;
+import io.github.maaasu.astralRecord.feature.trade.event.TradeGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.trade.gui.TradeCancelConfirmGui;
+import io.github.maaasu.astralRecord.feature.trade.gui.TradeGui;
+import io.github.maaasu.astralRecord.feature.trade.service.TradeService;
 import io.github.maaasu.astralRecord.feature.user.event.UserLoginEventHandler;
 import io.github.maaasu.astralRecord.feature.user.repository.UserRepository;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
@@ -217,6 +221,9 @@ public final class AstralRecord extends JavaPlugin {
     private ShopService shopService;
     private ShopGui shopGui;
     private ShopGuiEventHandler shopGuiEventHandler;
+    private TradeService tradeService;
+    private TradeGui tradeGui;
+    private TradeCancelConfirmGui tradeCancelConfirmGui;
     private String joinSpawnWorldId;
 
     @Override
@@ -308,6 +315,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (partyService != null) {
             partyService.clearAll();
+        }
+        if (tradeService != null) {
+            tradeService.cancelAll();
         }
         if (skillActionRingService != null) {
             skillActionRingService.stop();
@@ -517,6 +527,16 @@ public final class AstralRecord extends JavaPlugin {
         );
         shopGui = new ShopGui(this, shopService, itemStackFactory);
         shopGuiEventHandler = new ShopGuiEventHandler(shopGui, shopService, inventoryService);
+        tradeGui = new TradeGui();
+        tradeCancelConfirmGui = new TradeCancelConfirmGui();
+        tradeService = new TradeService(
+            this,
+            tradeGui,
+            tradeCancelConfirmGui,
+            inventoryService,
+            playerMessageService,
+            itemService
+        );
 
         // skill
         skillService = new SkillService(new SkillRepository(), new SkillRegistry(), this);
@@ -630,6 +650,17 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             shopGuiEventHandler,
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new TradeGuiEventHandler(
+                this,
+                tradeGui,
+                tradeCancelConfirmGui,
+                tradeService,
+                inventoryService,
+                playerMessageService
+            ),
             getServer().getPluginManager()
         );
         playerBrowserGuiEventHandler = new PlayerBrowserGuiEventHandler(
@@ -966,5 +997,14 @@ public final class AstralRecord extends JavaPlugin {
 
     public ShopGuiEventHandler getShopGuiEventHandler() {
         return shopGuiEventHandler;
+    }
+
+    /**
+     * トレードサービスを取得する。
+     *
+     * @return トレードサービス
+     */
+    public TradeService getTradeService() {
+        return tradeService;
     }
 }

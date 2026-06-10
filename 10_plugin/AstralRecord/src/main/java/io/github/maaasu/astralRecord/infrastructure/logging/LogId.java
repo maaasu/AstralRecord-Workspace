@@ -839,6 +839,12 @@ public enum LogId {
     E_6100(6100),
     // endregion
 
+    // region /feature/trade/ 6200-6299
+    E_6200(6200),
+    E_6201(6201),
+    W_6202(6202),
+    // endregion
+
     // region /feature/skilltree/ 9000-9009
     I_9000(9000),
     I_9001(9001),

@@ -1,0 +1,219 @@
+package io.github.maaasu.astralRecord.feature.trade.event;
+
+import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.trade.gui.TradeCancelConfirmGui;
+import io.github.maaasu.astralRecord.feature.trade.gui.TradeGui;
+import io.github.maaasu.astralRecord.feature.trade.gui.TradeGuiLayout;
+import io.github.maaasu.astralRecord.feature.trade.service.TradeService;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
+import org.jetbrains.annotations.NotNull;
+
+public final class TradeGuiEventHandler extends AbstractEventHandler {
+    private final AstralRecord plugin;
+    private final TradeGui tradeGui;
+    private final TradeCancelConfirmGui cancelConfirmGui;
+    private final TradeService tradeService;
+    private final InventoryService inventoryService;
+    private final PlayerMessageService messageService;
+
+    public TradeGuiEventHandler(
+        @NotNull AstralRecord plugin,
+        @NotNull TradeGui tradeGui,
+        @NotNull TradeCancelConfirmGui cancelConfirmGui,
+        @NotNull TradeService tradeService,
+        @NotNull InventoryService inventoryService,
+        @NotNull PlayerMessageService messageService
+    ) {
+        this.plugin = plugin;
+        this.tradeGui = tradeGui;
+        this.cancelConfirmGui = cancelConfirmGui;
+        this.tradeService = tradeService;
+        this.inventoryService = inventoryService;
+        this.messageService = messageService;
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onInventoryClick(@NotNull InventoryClickEvent event) {
+        runSafely(() -> {
+            Inventory top = event.getView().getTopInventory();
+            if (tradeGui.isTradeInventory(top)) {
+                handleTradeClick(event);
+                return;
+            }
+            if (cancelConfirmGui.isCancelInventory(top)) {
+                handleCancelConfirmClick(event);
+            }
+        }, LogId.E_6200, event.getWhoClicked().getName());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onInventoryDrag(@NotNull InventoryDragEvent event) {
+        runSafely(() -> {
+            Inventory top = event.getView().getTopInventory();
+            if (!tradeGui.isTradeInventory(top) && !cancelConfirmGui.isCancelInventory(top)) {
+                return;
+            }
+            if (cancelConfirmGui.isCancelInventory(top)) {
+                event.setCancelled(true);
+                return;
+            }
+            boolean touchesTop = event.getRawSlots().stream().anyMatch(slot -> slot < top.getSize());
+            if (!touchesTop) {
+                return;
+            }
+            boolean allOwnSlots = event.getRawSlots().stream()
+                .filter(slot -> slot < top.getSize())
+                .allMatch(TradeGuiLayout.OWN_SLOTS::contains);
+            if (!allOwnSlots || !tradeService.isTradeable(event.getOldCursor())) {
+                event.setCancelled(true);
+                if (event.getWhoClicked() instanceof Player player && !tradeService.isTradeable(event.getOldCursor())) {
+                    messageService.send(player, PlayerMsgId.P_6204);
+                }
+                return;
+            }
+            if (event.getWhoClicked() instanceof Player player) {
+                scheduleCaptureAndRefresh(player);
+            }
+        }, LogId.E_6200, event.getWhoClicked().getName());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onInventoryClose(@NotNull InventoryCloseEvent event) {
+        if (!(event.getPlayer() instanceof Player player)) {
+            return;
+        }
+        Inventory inventory = event.getInventory();
+        if (!tradeGui.isTradeInventory(inventory) && !cancelConfirmGui.isCancelInventory(inventory)) {
+            return;
+        }
+        if (tradeService.consumeSuppressedClose(player.getUniqueId())) {
+            return;
+        }
+        tradeService.captureInventory(player, inventory);
+        Bukkit.getScheduler().runTask(plugin, () -> tradeService.cancelTrade(player));
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
+        tradeService.cancelTrade(event.getPlayer());
+    }
+
+    private void handleTradeClick(@NotNull InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            event.setCancelled(true);
+            return;
+        }
+        if (handleHotbarShortcutClick(event, player)) {
+            return;
+        }
+        int rawSlot = event.getRawSlot();
+        if (rawSlot == TradeGuiLayout.READY_SLOT) {
+            event.setCancelled(true);
+            tradeService.toggleReady(player);
+            GuiSound.SELECT.play(player);
+            return;
+        }
+        if (rawSlot >= 0 && rawSlot < event.getView().getTopInventory().getSize()) {
+            if (!TradeGuiLayout.OWN_SLOTS.contains(rawSlot)) {
+                event.setCancelled(true);
+                GuiSound.DENY.play(player);
+                return;
+            }
+            if (!tradeService.isTradeable(event.getCursor()) || !tradeService.isTradeable(event.getCurrentItem())) {
+                event.setCancelled(true);
+                messageService.send(player, PlayerMsgId.P_6204);
+                GuiSound.DENY.play(player);
+                return;
+            }
+            scheduleCaptureAndRefresh(player);
+            return;
+        }
+        if (event.isShiftClick() && !tradeService.isTradeable(event.getCurrentItem())) {
+            event.setCancelled(true);
+            messageService.send(player, PlayerMsgId.P_6204);
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (event.isShiftClick()) {
+            scheduleCaptureAndRefresh(player);
+        }
+    }
+
+    private void handleCancelConfirmClick(@NotNull InventoryClickEvent event) {
+        event.setCancelled(true);
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+        if (event.getRawSlot() == TradeCancelConfirmGui.CANCEL_SLOT) {
+            tradeService.cancelTrade(player);
+            GuiSound.CLOSE.play(player);
+            return;
+        }
+        if (event.getRawSlot() == TradeCancelConfirmGui.BACK_SLOT) {
+            tradeService.reopenTrade(player);
+            GuiSound.SELECT.play(player);
+            return;
+        }
+        GuiSound.DENY.play(player);
+    }
+
+    private boolean handleHotbarShortcutClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
+        if (!(event.getClickedInventory() instanceof PlayerInventory)) {
+            return false;
+        }
+        int slot = event.getSlot();
+        if (slot < 0 || slot > 8) {
+            return false;
+        }
+        var astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null || !inventoryService.isHotbarShortcutMode(astPlayer)) {
+            return false;
+        }
+        event.setCancelled(true);
+        if (!inventoryService.getClickGuard().tryAcquire(
+            astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.HOTBAR_SHORTCUT)) {
+            return true;
+        }
+        if (slot == 4 || event.getClick() == ClickType.DROP) {
+            tradeService.openCancelConfirm(player);
+            GuiSound.CLOSE.play(player);
+        } else {
+            GuiSound.DENY.play(player);
+        }
+        return true;
+    }
+
+    private void scheduleCaptureAndRefresh(@NotNull Player player) {
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            var session = tradeService.getOpenSession(player.getUniqueId());
+            if (session == null) {
+                return;
+            }
+            tradeService.captureOpenInventory(player);
+            tradeService.reopenTrade(player);
+            Player partner = Bukkit.getPlayer(session.getPartnerUuid(player.getUniqueId()));
+            if (partner != null && partner.isOnline()) {
+                tradeService.reopenTrade(partner);
+            }
+        });
+    }
+}
