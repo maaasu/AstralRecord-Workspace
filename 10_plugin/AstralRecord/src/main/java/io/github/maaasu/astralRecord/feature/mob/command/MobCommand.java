@@ -2,11 +2,13 @@ package io.github.maaasu.astralRecord.feature.mob.command;
 
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.mob.service.NpcPlacementService;
 import io.github.maaasu.astralRecord.feature.spawner.service.MobSpawnerService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
+import org.bukkit.Location;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
@@ -19,6 +21,7 @@ public class MobCommand extends AstCommand {
 
     private final MobService mobService;
     private final MobSpawnerService spawnerService;
+    private final NpcPlacementService npcPlacementService;
 
     /**
      * MobCommand を初期化します。
@@ -26,10 +29,15 @@ public class MobCommand extends AstCommand {
      * @param mobService Mob サービス
      * @param spawnerService Mob スポナーサービス
      */
-    public MobCommand(@NotNull MobService mobService, @NotNull MobSpawnerService spawnerService) {
-        super("mob", "Manage AstralRecord mobs.", "/mob <load|list|spawn|delete|spawner> [id]", true);
+    public MobCommand(
+            @NotNull MobService mobService,
+            @NotNull MobSpawnerService spawnerService,
+            @NotNull NpcPlacementService npcPlacementService
+    ) {
+        super("mob", "Manage AstralRecord mobs.", "/mob <load|list|spawn|delete|spawner|npc> [id]", true);
         this.mobService = mobService;
         this.spawnerService = spawnerService;
+        this.npcPlacementService = npcPlacementService;
     }
 
     @Override
@@ -46,6 +54,7 @@ public class MobCommand extends AstCommand {
             case "spawn" -> handleSpawn(player, args);
             case "delete" -> handleDelete(player, args);
             case "spawner" -> handleSpawner(player, args);
+            case "npc" -> handleNpc(player, args);
             default -> sendUsage(player.getBukkit());
         }
     }
@@ -143,6 +152,70 @@ public class MobCommand extends AstCommand {
             return;
         }
         sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5714.getId(), args[2], amount));
+    }
+
+    private void handleNpc(@NotNull AstPlayer player, @NotNull String[] args) {
+        if (args.length < 2) {
+            sendUsage(player.getBukkit());
+            return;
+        }
+
+        String action = args[1].toLowerCase(Locale.ROOT);
+        switch (action) {
+            case "place" -> handleNpcPlace(player, args);
+            case "reload" -> {
+                int count = npcPlacementService.loadAll();
+                sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5715.getId(), count));
+            }
+            case "list" -> sendInfo(player.getBukkit(), PlayerMsgResource.format(
+                    PlayerMsgId.P_5716.getId(),
+                    npcPlacementService.getPlacements().size()
+            ));
+            default -> sendUsage(player.getBukkit());
+        }
+    }
+
+    private void handleNpcPlace(@NotNull AstPlayer player, @NotNull String[] args) {
+        if (!spawnerService.isAdminMode(player)) {
+            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5707.getId()));
+            return;
+        }
+        if (args.length < 3) {
+            sendUsage(player.getBukkit());
+            return;
+        }
+        if (args.length > 3 && args.length < 6) {
+            sendUsage(player.getBukkit());
+            return;
+        }
+
+        Location location = player.getBukkit().getLocation();
+        if (args.length >= 6) {
+            try {
+                location = location.clone();
+                location.setX(Double.parseDouble(args[3]));
+                location.setY(Double.parseDouble(args[4]));
+                location.setZ(Double.parseDouble(args[5]));
+            } catch (NumberFormatException ex) {
+                sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5717.getId()));
+                return;
+            }
+        }
+
+        MobInstance instance = npcPlacementService.place(args[2], location);
+        if (instance == null) {
+            sendError(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5703.getId(), args[2]));
+            return;
+        }
+
+        sendSuccess(player.getBukkit(), PlayerMsgResource.format(
+                PlayerMsgId.P_5718.getId(),
+                instance.template().id(),
+                location.getWorld() == null ? "world" : location.getWorld().getName(),
+                String.format(Locale.ROOT, "%.2f", location.getX()),
+                String.format(Locale.ROOT, "%.2f", location.getY()),
+                String.format(Locale.ROOT, "%.2f", location.getZ())
+        ));
     }
 
     private int parseAmount(@NotNull String value) {

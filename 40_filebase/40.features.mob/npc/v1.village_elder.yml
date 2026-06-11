@@ -10,6 +10,7 @@ skin:
   texture: "ewogICJ0aW1lc3RhbXAi..."
   signature: "dGVzdFNpZ20hdHVyZQ..."
 nameVisible: true
+damageImmune: true
 icon: VILLAGER_SPAWN_EGG
 lore:
   - "&7この村を長年治めてきた長老。"

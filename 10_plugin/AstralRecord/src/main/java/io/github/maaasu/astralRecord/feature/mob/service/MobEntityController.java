@@ -100,7 +100,7 @@ public class MobEntityController {
                 && template.idle().behavior() == IdleBehavior.STATIONARY;
         mob.setAI(!stationaryNpc);
         mob.setAware(!stationaryNpc);
-        mob.setInvulnerable(true);
+        mob.setInvulnerable(template.damageImmune());
         mob.setPersistent(false);
         mob.setRemoveWhenFarAway(false);
         mob.setCanPickupItems(false);

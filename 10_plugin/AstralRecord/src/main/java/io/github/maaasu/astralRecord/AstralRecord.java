@@ -53,12 +53,15 @@ import io.github.maaasu.astralRecord.feature.menu.player.PlayerListGui;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.mob.repository.MobRepository;
 import io.github.maaasu.astralRecord.feature.mob.event.MobInteractionEventHandler;
+import io.github.maaasu.astralRecord.feature.mob.event.NpcPlacementWorldEventHandler;
+import io.github.maaasu.astralRecord.feature.mob.repository.NpcPlacementRepository;
 import io.github.maaasu.astralRecord.feature.mob.service.MobAiService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobCombatService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropPresentationService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobKnockbackService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.mob.service.NpcPlacementService;
 import io.github.maaasu.astralRecord.feature.spawner.event.MobSpawnerBlockEventHandler;
 import io.github.maaasu.astralRecord.feature.spawner.repository.MobSpawnerDefinitionRepository;
 import io.github.maaasu.astralRecord.feature.spawner.repository.MobSpawnerLocationRepository;
@@ -183,6 +186,7 @@ public final class AstralRecord extends JavaPlugin {
     private PagingDebugGui pagingDebugGui;
     private MobService mobService;
     private MobSpawnerService mobSpawnerService;
+    private NpcPlacementService npcPlacementService;
     private MobAiService mobAiService;
     private MobCombatService mobCombatService;
     private MobDropPresentationService mobDropPresentationService;
@@ -233,6 +237,7 @@ public final class AstralRecord extends JavaPlugin {
         lootService = new LootService();
         itemStackFactory = new ItemStackFactory(lootService, itemService);
         mobService = new MobService(this, new MobRepository());
+        npcPlacementService = new NpcPlacementService(mobService, new NpcPlacementRepository(this));
         mobSpawnerService = new MobSpawnerService(
                 this,
                 mobService,
@@ -251,7 +256,7 @@ public final class AstralRecord extends JavaPlugin {
         joinSpawnWorldId = PluginJoinSpawnWorldConfig.load(this);
         // CommandManager は Paper Lifecycle API の制約に合わせて
         // onLoad() で初期化し、コマンド登録クラスを先に生成する。
-        new CommandRegister(itemService, itemStackFactory, mobService, mobSpawnerService, worldService, skillTreeService);
+        new CommandRegister(itemService, itemStackFactory, mobService, mobSpawnerService, npcPlacementService, worldService, skillTreeService);
         CommandManager.getInstance().initialize(this);
     }
 
@@ -309,6 +314,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (mobSpawnerService != null) {
             mobSpawnerService.stop();
+        }
+        if (npcPlacementService != null) {
+            npcPlacementService.saveIfDirty();
         }
         if (worldSpawnParticleTask != null) {
             worldSpawnParticleTask.stop();
@@ -569,6 +577,7 @@ public final class AstralRecord extends JavaPlugin {
 
         // mob
         mobService.loadAll();
+        npcPlacementService.loadAll();
         mobSpawnerService.loadAll();
         mobAiService = new MobAiService(mobService);
         mobAiService.start();
@@ -745,6 +754,10 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             new MobSpawnerBlockEventHandler(mobSpawnerService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new NpcPlacementWorldEventHandler(npcPlacementService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

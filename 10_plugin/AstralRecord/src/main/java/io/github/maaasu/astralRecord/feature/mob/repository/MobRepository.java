@@ -153,6 +153,7 @@ public class MobRepository {
                 parseEquipment(getObject(obj, "equipment")),
                 parseBaseStats(obj.getAsJsonArray("baseStats"), id),
                 parseIdle(getObject(getObject(obj, "ai"), "idle")),
+                obj.has("damageImmune") ? obj.get("damageImmune").getAsBoolean() : category == MobCategory.NPC,
                 category == MobCategory.NPC ? parseInteractions(getObject(obj, "interactions")) : MobInteractionsConfig.EMPTY,
                 category == MobCategory.NPC ? null : parseTargeting(getObject(getObject(obj, "ai"), "targeting")),
                 category == MobCategory.NPC ? null : parseCombat(getObject(getObject(obj, "ai"), "combat")),

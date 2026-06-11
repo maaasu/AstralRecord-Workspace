@@ -19,6 +19,7 @@ import io.github.maaasu.astralRecord.feature.menu.command.TrashCommand;
 import io.github.maaasu.astralRecord.feature.mob.command.MobCommand;
 import io.github.maaasu.astralRecord.feature.mob.command.MobTabCompleter;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.mob.service.NpcPlacementService;
 import io.github.maaasu.astralRecord.feature.spawner.service.MobSpawnerService;
 import io.github.maaasu.astralRecord.feature.party.command.PartyCommand;
 import io.github.maaasu.astralRecord.feature.party.command.PartyTabCompleter;
@@ -59,6 +60,7 @@ public class CommandRegister {
     private final ItemStackFactory itemStackFactory;
     private final MobService mobService;
     private final MobSpawnerService spawnerService;
+    private final NpcPlacementService npcPlacementService;
     private final WorldService worldService;
     private final SkillTreeService skillTreeService;
 
@@ -67,6 +69,7 @@ public class CommandRegister {
             ItemStackFactory itemStackFactory,
             MobService mobService,
             MobSpawnerService spawnerService,
+            NpcPlacementService npcPlacementService,
             WorldService worldService,
             SkillTreeService skillTreeService
     ) {
@@ -74,6 +77,7 @@ public class CommandRegister {
         this.itemStackFactory = itemStackFactory;
         this.mobService = mobService;
         this.spawnerService = spawnerService;
+        this.npcPlacementService = npcPlacementService;
         this.worldService = worldService;
         this.skillTreeService = skillTreeService;
         registerCommand();
@@ -92,7 +96,7 @@ public class CommandRegister {
         cm.registerCommand("storage", new StorageCommand());
         cm.registerCommand("pagingdummy", new PagingDebugCommand());
         cm.registerCommand("item", new ItemCommand(itemService), new ItemTabCompleter(itemService));
-        cm.registerCommand("mob", new MobCommand(mobService, spawnerService), new MobTabCompleter(mobService, spawnerService));
+        cm.registerCommand("mob", new MobCommand(mobService, spawnerService, npcPlacementService), new MobTabCompleter(mobService, spawnerService));
         cm.registerCommand("world", new WorldCommand(worldService), new WorldTabCompleter(worldService));
         cm.registerCommand("user", new UserCommand(), new UserTabCompleter());
         cm.registerCommand("account", new AccountCommand(), new AccountTabCompleter());

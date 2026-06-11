@@ -88,6 +88,10 @@ public final class DamageService {
             return;
         }
 
+        if (victim.isMob() && victim.mob() != null && victim.mob().template().damageImmune()) {
+            return;
+        }
+
         if (attacker.isManaged()) {
             attack(attacker, victim, AttackType.MELEE, DamageType.PHYSICAL);
             return;

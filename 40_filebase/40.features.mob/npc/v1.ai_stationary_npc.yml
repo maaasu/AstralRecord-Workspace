@@ -6,6 +6,7 @@ name: "&eAI検証: 待機NPC"
 level: 1
 entityType: PLAYER
 nameVisible: true
+damageImmune: true
 icon: VILLAGER_SPAWN_EGG
 lore:
   - "&7STATIONARY の確認用 NPC。"

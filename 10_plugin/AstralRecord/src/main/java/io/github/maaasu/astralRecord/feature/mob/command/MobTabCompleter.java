@@ -32,7 +32,7 @@ public class MobTabCompleter extends AstTabCompleter {
     @Override
     protected List<String> getPlayerCompletions(@NotNull AstPlayer player, @NotNull String[] args) {
         if (args.length == 1) {
-            return List.of("load", "list", "spawn", "delete", "spawner");
+            return List.of("load", "list", "spawn", "delete", "spawner", "npc");
         }
         if (args.length == 2 && "spawn".equalsIgnoreCase(args[0])) {
             return List.copyOf(mobService.getLoadedMobIds());
@@ -47,6 +47,12 @@ public class MobTabCompleter extends AstTabCompleter {
         }
         if (args.length == 3 && "spawner".equalsIgnoreCase(args[0]) && "item".equalsIgnoreCase(args[1])) {
             return List.copyOf(spawnerService.getLoadedSpawnerIds());
+        }
+        if (args.length == 2 && "npc".equalsIgnoreCase(args[0])) {
+            return List.of("place", "list", "reload");
+        }
+        if (args.length == 3 && "npc".equalsIgnoreCase(args[0]) && "place".equalsIgnoreCase(args[1])) {
+            return List.copyOf(mobService.getLoadedMobIds());
         }
         return List.of();
     }

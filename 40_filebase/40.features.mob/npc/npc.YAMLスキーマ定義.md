@@ -18,6 +18,7 @@ NPC は戦闘を行わないため、**ターゲット選択（`ai.targeting`）
 | `ai.combat`    | 不要 | NPCは戦闘しない               |
 | `drops`        | 不要 | NPCはドロップを持たない           |
 | `ai.idle`      | 必須 | 共通スキーマで定義済み。NPCの行動はこれのみ |
+| `damageImmune` | 任意 | `true` の場合、プラグイン側のダメージ処理を無効化する。NPC は `true` 推奨 |
 | `interactions` | 任意 | 左クリック・右クリック時のアクション定義 |
 
 ---
@@ -26,6 +27,7 @@ NPC は戦闘を行わないため、**ターゲット選択（`ai.targeting`）
 
 `interactions` は NPC に対する左クリック・右クリック時の動作を宣言する任意フィールドです。
 クリックごとにアクション配列を指定し、プラグイン側の実行系は `id` と `params` を見て処理を選択します。
+Plugin は一定距離内にある視線先 NPC に対して、実体を直接クリックできない場合でも `leftClick` / `rightClick` インタラクトを発生させます。
 
 | フィールド | 型 | 必須 | 説明 |
 |:--|:--|:--|:--|
@@ -50,6 +52,18 @@ NPC は戦闘を行わないため、**ターゲット選択（`ai.targeting`）
 
 ---
 
+## NPC 配置管理
+
+NPC マスタ YAML は NPC の定義のみを管理します。実際の配置座標は Plugin のデータフォルダ配下 `npc_locations.yml` に保存されます。
+
+- 配置コマンド: `/mob npc place <npcId> [x y z]`
+- 座標省略時: コマンド実行プレイヤーの現在位置
+- 起動時: `npc_locations.yml` の全配置を読み込み、ロード済みワールドにスポーン
+- ワールドロード時: 当該ワールドの未スポーン NPC をスポーン
+- 配置アイテム: 不要
+
+---
+
 ## YAML 例
 
 ### 例1: 固定NPC（プレイヤースキン型）
@@ -67,6 +81,7 @@ skin:
   texture: "ewogICJ0aW1lc3RhbXAi..."
   signature: "dGVzdFNpZ20hdHVyZQ..."
 nameVisible: true
+damageImmune: true
 icon: VILLAGER_SPAWN_EGG
 lore:
   - "&7この村を長年治めてきた長老。"
@@ -110,6 +125,7 @@ title: "&7各地を巡る行商人"
 level: 1
 entityType: WANDERING_TRADER
 nameVisible: true
+damageImmune: true
 icon: EMERALD
 lore:
   - "&7世界中を旅しながら商いをしている。"

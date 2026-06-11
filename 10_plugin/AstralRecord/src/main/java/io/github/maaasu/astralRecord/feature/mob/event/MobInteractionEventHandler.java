@@ -17,9 +17,12 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.util.RayTraceResult;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -30,6 +33,8 @@ import java.util.Locale;
  */
 public final class MobInteractionEventHandler extends AbstractEventHandler {
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
+    private static final double INTERACTION_DISTANCE = 5.0D;
+    private static final double INTERACTION_RAY_SIZE = 0.75D;
 
     private final MobService mobService;
     private final ShopGuiEventHandler shopGuiEventHandler;
@@ -67,6 +72,32 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    public void onPlayerInteract(@NotNull PlayerInteractEvent event) {
+        runSafely(() -> {
+            if (event.getHand() != null && event.getHand() != EquipmentSlot.HAND) {
+                return;
+            }
+
+            Action action = event.getAction();
+            boolean leftClick = action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK;
+            boolean rightClick = action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
+            if (!leftClick && !rightClick) {
+                return;
+            }
+
+            MobInstance instance = findTargetedNpc(event.getPlayer());
+            if (instance == null) {
+                return;
+            }
+
+            event.setCancelled(true);
+            execute(event.getPlayer(), leftClick
+                    ? instance.template().interactions().leftClick()
+                    : instance.template().interactions().rightClick());
+        }, LogId.E_5702, event.getPlayer().getName());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onEntityDamageByEntity(@NotNull EntityDamageByEntityEvent event) {
         runSafely(() -> {
             if (!(event.getDamager() instanceof Player player)) {
@@ -87,6 +118,20 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
             return null;
         }
         return instance;
+    }
+
+    private MobInstance findTargetedNpc(@NotNull Player player) {
+        RayTraceResult result = player.getWorld().rayTraceEntities(
+                player.getEyeLocation(),
+                player.getEyeLocation().getDirection(),
+                INTERACTION_DISTANCE,
+                INTERACTION_RAY_SIZE,
+                entity -> entity != player && findNpc(entity) != null
+        );
+        if (result == null || result.getHitEntity() == null) {
+            return null;
+        }
+        return findNpc(result.getHitEntity());
     }
 
     private void execute(@NotNull Player player, @NotNull List<MobInteractionActionConfig> actions) {

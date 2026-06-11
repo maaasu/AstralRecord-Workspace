@@ -26,6 +26,7 @@ import java.util.List;
  * @param equipment     表示装備設定
  * @param baseStats     ベースステータス（StatusType ベース）
  * @param idle          待機行動設定
+ * @param damageImmune  ダメージを無効化するかどうか
  * @param targeting     ターゲット選定設定（NPC では {@code null}）
  * @param combat        戦闘設定（NPC では {@code null}）
  * @param drops         ドロップ設定（NPC では {@code null}）
@@ -46,6 +47,7 @@ public record MobTemplate(
         @NotNull MobEquipmentConfig equipment,
         @NotNull List<MobBaseStat> baseStats,
         @NotNull MobIdleConfig idle,
+        boolean damageImmune,
         @NotNull MobInteractionsConfig interactions,
         @Nullable MobTargetingConfig targeting,
         @Nullable MobCombatConfig combat,
