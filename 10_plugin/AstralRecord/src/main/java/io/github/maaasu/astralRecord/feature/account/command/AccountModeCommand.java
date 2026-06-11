@@ -7,7 +7,6 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.user.model.SystemUser;
-import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -28,7 +27,7 @@ public class AccountModeCommand extends AstCommand {
     protected void executeCommand(@NotNull CommandSender sender, @NotNull String[] args) {
         if (sender instanceof Player player) {
             var astPlayer = AstPlayerCache.get(player);
-            if (astPlayer == null || astPlayer.getUser().getPermission() < UserPermission.ADMIN.getValue()) {
+            if (astPlayer == null || !astPlayer.hasAdminPermission()) {
                 sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5061.getId()));
                 return;
             }

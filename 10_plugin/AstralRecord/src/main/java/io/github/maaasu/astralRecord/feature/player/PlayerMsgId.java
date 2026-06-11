@@ -433,7 +433,7 @@ public enum PlayerMsgId {
      */
     P_5706(5706),
     /**
-     * ADMIN モードでのみ使用できます。
+     * permission 99 のプレイヤーのみ使用できます。
      */
     P_5707(5707),
     /**

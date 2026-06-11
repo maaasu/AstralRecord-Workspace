@@ -74,7 +74,7 @@ public final class ClassCommand extends AstCommand {
             return true;
         }
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        return astPlayer != null && astPlayer.getUser().getPermission() >= UserPermission.ADMIN.getValue();
+        return astPlayer != null && astPlayer.hasAdminPermission();
     }
 
     private void openGui(@NotNull CommandSender sender) {

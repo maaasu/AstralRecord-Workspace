@@ -148,6 +148,22 @@ data class AstPlayer(
     }
 
     /**
+     * 指定した権限レベル以上を保持しているか判定する。
+     *
+     * @param requiredPermissionLevel 要求する最小 permission 値
+     * @return 現在の user.permission が要求値以上なら true
+     */
+    fun hasPermissionLevel(requiredPermissionLevel: Int): Boolean =
+        user.permission >= requiredPermissionLevel
+
+    /**
+     * 管理者権限を保持しているか判定する。
+     *
+     * @return user.permission が 99 以上なら true
+     */
+    fun hasAdminPermission(): Boolean = hasPermissionLevel(OP_PERMISSION_THRESHOLD)
+
+    /**
      * [AccountModel] の mode を Bukkit プレイヤーへ反映します。
      * mode が [AccountMode.PLAYER] の場合、通常プレイヤー向け制限として
      * GameMode を [GameMode.ADVENTURE]、エンティティ/ブロックの reach を 0 に設定します。

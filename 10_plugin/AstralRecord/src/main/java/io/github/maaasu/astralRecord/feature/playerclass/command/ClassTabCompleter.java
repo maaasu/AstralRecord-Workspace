@@ -4,7 +4,6 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
-import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstTabCompleter;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -48,6 +47,6 @@ public final class ClassTabCompleter extends AstTabCompleter {
             return true;
         }
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        return astPlayer != null && astPlayer.getUser().getPermission() >= UserPermission.ADMIN.getValue();
+        return astPlayer != null && astPlayer.hasAdminPermission();
     }
 }

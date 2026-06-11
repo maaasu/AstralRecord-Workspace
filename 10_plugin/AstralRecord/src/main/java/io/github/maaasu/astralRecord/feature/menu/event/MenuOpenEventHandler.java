@@ -23,7 +23,6 @@ import io.github.maaasu.astralRecord.feature.playersetting.gui.PlayerSettingGui;
 import io.github.maaasu.astralRecord.feature.sell.service.SellService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.storage.service.StorageService;
-import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
@@ -572,7 +571,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
 
     private boolean hasAdminPermission(@NotNull Player player) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        return astPlayer != null && astPlayer.getUser().getPermission() >= UserPermission.ADMIN.getValue();
+        return astPlayer != null && astPlayer.hasAdminPermission();
     }
 
     private void executeShortcutAction(@NotNull Player player, @NotNull MenuShortcutAction action, int shortcutIndex) {

@@ -316,7 +316,7 @@ public class SkillTreeService {
     }
 
     public boolean isAdminMode(@Nullable AstPlayer astPlayer) {
-        return astPlayer != null && astPlayer.getAccount().getMode() == AccountMode.ADMIN;
+        return astPlayer != null && astPlayer.hasAdminPermission();
     }
 
     public boolean shouldShowAdminPosition(@NotNull Player player, @NotNull Location location) {

@@ -55,7 +55,7 @@ public class ReloadCommand extends AstCommand {
         // プレイヤーからの実行の場合は権限チェック
         if (sender instanceof Player player) {
             var astPlayer = AstPlayerCache.get(player);
-            if (astPlayer == null || astPlayer.getUser().getPermission() < REQUIRED_PERMISSION) {
+            if (astPlayer == null || !astPlayer.hasPermissionLevel(REQUIRED_PERMISSION)) {
                 sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5061.getId()));
                 return;
             }

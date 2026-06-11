@@ -33,7 +33,7 @@ public class UserPermissionCommand extends AstCommand {
     protected void executeCommand(@NotNull CommandSender sender, @NotNull String[] args) {
         if (sender instanceof Player player) {
             var astPlayer = AstPlayerCache.get(player);
-            if (astPlayer == null || astPlayer.getUser().getPermission() < UserPermission.ADMIN.getValue()) {
+            if (astPlayer == null || !astPlayer.hasAdminPermission()) {
                 sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5061.getId()));
                 return;
             }

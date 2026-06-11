@@ -172,7 +172,7 @@ public abstract class AstCommand implements CommandExecutor {
         }
 
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        return astPlayer != null && astPlayer.getUser().getPermission() >= requiredPermissionLevel;
+        return astPlayer != null && astPlayer.hasPermissionLevel(requiredPermissionLevel);
     }
 
     /**

@@ -9,7 +9,6 @@ import io.github.maaasu.astralRecord.feature.spawner.repository.MobSpawnerDefini
 import io.github.maaasu.astralRecord.feature.spawner.repository.MobSpawnerLocationRepository;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
-import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import net.kyori.adventure.text.Component;
@@ -246,7 +245,7 @@ public class MobSpawnerService {
      * @return ADMIN モードなら true
      */
     public boolean isAdminMode(@Nullable AstPlayer astPlayer) {
-        return astPlayer != null && astPlayer.getAccount().getMode() == AccountMode.ADMIN;
+        return astPlayer != null && astPlayer.hasAdminPermission();
     }
 
     /**
@@ -256,7 +255,7 @@ public class MobSpawnerService {
      * @return PLAYER モード以外なら true
      */
     public boolean canViewSpawnerVisual(@Nullable AstPlayer astPlayer) {
-        return astPlayer != null && astPlayer.getAccount().getMode() != AccountMode.PLAYER;
+        return astPlayer != null && astPlayer.hasAdminPermission();
     }
 
     /**
