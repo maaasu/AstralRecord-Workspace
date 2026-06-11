@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.shared.gui.debug.command;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.jetbrains.annotations.NotNull;
 
@@ -14,7 +15,7 @@ public final class PagingDebugCommand extends AstCommand {
      * /pagingdummy コマンドを生成します。
      */
     public PagingDebugCommand() {
-        super("pagingdummy", "Open paging dummy GUI.", "/pagingdummy", true);
+        super("pagingdummy", "Open paging dummy GUI.", "/pagingdummy", true, UserPermission.ADMIN.getValue());
     }
 
     @Override

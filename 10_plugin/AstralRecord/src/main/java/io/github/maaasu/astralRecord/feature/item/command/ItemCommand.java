@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.jetbrains.annotations.NotNull;
 
@@ -20,7 +21,8 @@ public class ItemCommand extends AstCommand {
     private final ItemService itemService;
 
     public ItemCommand(@NotNull ItemService itemService) {
-        super("item", "Load and get items.", "/item <load|get> <itemId> [amount]", true);
+        super("item", "Load and get items.", "/item <load|get> <itemId> [amount]",
+                true, UserPermission.ADMIN.getValue());
         this.itemService = itemService;
     }
 

@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.spawner.service.MobSpawnerService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.bukkit.Location;
 import org.bukkit.inventory.ItemStack;
@@ -34,7 +35,8 @@ public class MobCommand extends AstCommand {
             @NotNull MobSpawnerService spawnerService,
             @NotNull NpcPlacementService npcPlacementService
     ) {
-        super("mob", "Manage AstralRecord mobs.", "/mob <load|list|spawn|delete|spawner|npc> [id]", true);
+        super("mob", "Manage AstralRecord mobs.", "/mob <load|list|spawn|delete|spawner|npc> [id]",
+                true, UserPermission.ADMIN.getValue());
         this.mobService = mobService;
         this.spawnerService = spawnerService;
         this.npcPlacementService = npcPlacementService;

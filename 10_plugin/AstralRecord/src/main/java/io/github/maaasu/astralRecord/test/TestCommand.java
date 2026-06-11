@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.test;
 
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import net.kyori.adventure.text.Component;
@@ -36,7 +37,8 @@ public final class TestCommand extends AstCommand {
     private final Plugin plugin;
 
     public TestCommand(@NotNull Plugin plugin) {
-        super("test", "Show a temporary display for the executor.", "/test <material> [seconds] [label...]", true);
+        super("test", "Show a temporary display for the executor.", "/test <material> [seconds] [label...]",
+                true, UserPermission.ADMIN.getValue());
         this.plugin = plugin;
     }
 

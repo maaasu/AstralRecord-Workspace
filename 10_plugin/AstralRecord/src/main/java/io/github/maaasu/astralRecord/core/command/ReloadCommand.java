@@ -38,7 +38,7 @@ public class ReloadCommand extends AstCommand {
      * ReloadCommand を初期化します。
      */
     public ReloadCommand() {
-        super("astreload", "AstralRecord をホットリロードします", "/astreload");
+        super("astreload", "AstralRecord をホットリロードします", "/astreload", false, REQUIRED_PERMISSION);
     }
 
     /**

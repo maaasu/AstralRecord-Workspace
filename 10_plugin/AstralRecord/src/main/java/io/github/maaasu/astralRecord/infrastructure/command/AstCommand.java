@@ -125,18 +125,16 @@ public abstract class AstCommand implements CommandExecutor {
                 return true;
             }
 
-            // プレイヤー限定コマンドの場合は AstPlayer を解決して権限チェック・専用メソッドへ委譲
+            if (!hasRequiredPermission(sender)) {
+                sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5061.getId()));
+                return true;
+            }
+
+            // プレイヤー限定コマンドの場合は AstPlayer を解決して専用メソッドへ委譲
             if (playerOnly) {
                 AstPlayer astPlayer = AstPlayerCache.get((Player) sender);
                 if (astPlayer == null) {
                     sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5060.getId()));
-                    return true;
-                }
-
-                // 権限チェック（UserModel.permission の数値レベルで判定）
-                if (requiredPermissionLevel != PERMISSION_NONE
-                        && astPlayer.getUser().getPermission() < requiredPermissionLevel) {
-                    sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5061.getId()));
                     return true;
                 }
 
@@ -150,6 +148,31 @@ public abstract class AstCommand implements CommandExecutor {
         }
 
         return true;
+    }
+
+    /**
+     * コマンド送信者がこのコマンドを利用できるかを判定します。
+     * <p>
+     * Brigadier 登録時の可視性判定と実行時ガードを同じ条件に揃えるために使用します。
+     * コンソールはプレイヤー専用コマンドでない限り、権限レベル判定の対象外として扱います。
+     *
+     * @param sender コマンド送信者
+     * @return 利用可能な場合は {@code true}
+     */
+    public final boolean canUse(@NotNull CommandSender sender) {
+        if (playerOnly && !(sender instanceof Player)) {
+            return false;
+        }
+        return hasRequiredPermission(sender);
+    }
+
+    private boolean hasRequiredPermission(@NotNull CommandSender sender) {
+        if (requiredPermissionLevel == PERMISSION_NONE || !(sender instanceof Player player)) {
+            return true;
+        }
+
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        return astPlayer != null && astPlayer.getUser().getPermission() >= requiredPermissionLevel;
     }
 
     /**

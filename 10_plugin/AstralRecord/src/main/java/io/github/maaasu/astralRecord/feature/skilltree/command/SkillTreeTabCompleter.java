@@ -20,8 +20,14 @@ public class SkillTreeTabCompleter extends AstTabCompleter {
 
     @Override
     protected List<String> getPlayerCompletions(@NotNull AstPlayer player, @NotNull String[] args) {
+        boolean adminMode = service.isAdminMode(player);
         if (args.length == 1) {
-            return List.of("back", "reload", "position-item", "connector-item", "points", "option");
+            return adminMode
+                    ? List.of("back", "reload", "position-item", "connector-item", "points", "option")
+                    : List.of("back", "option");
+        }
+        if (!adminMode && isAdminSubCommand(args[0])) {
+            return List.of();
         }
         if (args.length == 2 && "position-item".equalsIgnoreCase(args[0])) {
             return service.getDefinedPositionIds().stream().sorted().toList();
@@ -45,5 +51,12 @@ public class SkillTreeTabCompleter extends AstTabCompleter {
             );
         }
         return List.of();
+    }
+
+    private boolean isAdminSubCommand(@NotNull String subCommand) {
+        return "reload".equalsIgnoreCase(subCommand)
+                || "position-item".equalsIgnoreCase(subCommand)
+                || "connector-item".equalsIgnoreCase(subCommand)
+                || "points".equalsIgnoreCase(subCommand);
     }
 }

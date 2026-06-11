@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.test;
 
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -25,7 +26,8 @@ public final class SkillTreeSpawnCheckCommand extends AstCommand {
     private static final String TAG_SKILLTREE_EDGE = "astralrecord:skilltree:edge";
 
     public SkillTreeSpawnCheckCommand() {
-        super("testskilltree", "Inspect spawned skilltree display entities.", "/testskilltree [world]");
+        super("testskilltree", "Inspect spawned skilltree display entities.", "/testskilltree [world]",
+                false, UserPermission.ADMIN.getValue());
     }
 
     @Override

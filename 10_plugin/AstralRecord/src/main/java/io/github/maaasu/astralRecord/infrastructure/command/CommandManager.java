@@ -125,8 +125,7 @@ public class CommandManager {
                                      @NotNull AstCommand command, @Nullable AstTabCompleter tabCompleter) {
         try {
             var literalBuilder = Commands.literal(commandName)
-                    .requires(stack -> !command.isPlayerOnly()
-                            || stack.getSender() instanceof org.bukkit.entity.Player);
+                    .requires(stack -> command.canUse(stack.getSender()));
 
             com.mojang.brigadier.Command<io.papermc.paper.command.brigadier.CommandSourceStack> executor = ctx -> {
                 String input = ctx.getInput();
