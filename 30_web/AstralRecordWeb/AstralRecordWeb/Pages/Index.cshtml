@@ -6,14 +6,51 @@
 
 <section class="ar-hero">
     <div class="ar-hero-overlay"></div>
-    <div class="ar-hero-content text-center">
-        <img src="~/images/icon.png" alt="Astral Record" class="ar-hero-icon mb-4" />
-        <h1 class="ar-hero-title">Astral Record</h1>
-        <p class="ar-hero-subtitle">Minecraft MMO RPG Server</p>
-        <p class="ar-hero-desc">広大な星界を舞台に、仲間と共に伝説を刻め。</p>
-        <div class="mt-4 d-flex gap-3 justify-content-center flex-wrap">
-            <a href="#features" class="btn ar-btn-primary">サーバーについて</a>
-            <a asp-page="/Terms" class="btn ar-btn-outline">利用規約を確認</a>
+    <div class="container ar-hero-content">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-7 text-center text-lg-start">
+                <p class="ar-kicker">Minecraft Java Edition MMO RPG</p>
+                <h1 class="ar-hero-title"><span>Astral</span><span>Record</span></h1>
+                <p class="ar-hero-desc">
+                    <span>星界を旅し、装備を鍛え、</span>
+                    <span>仲間と攻略を重ねる</span>
+                    <span>Minecraft RPG サーバー。</span>
+                    <span>公開に向けて、ゲーム基盤と</span>
+                    <span>Web連携を整備しています。</span>
+                </p>
+                <div class="ar-hero-actions">
+                    <a href="#access" class="btn ar-btn-primary">参加情報を見る</a>
+                    <a href="#features" class="btn ar-btn-outline">特徴を確認</a>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="ar-hero-panel">
+                    <img src="~/images/icon.png" alt="Astral Record" class="ar-hero-icon" />
+                    <div>
+                        <p class="ar-panel-label">Current Status</p>
+                        <p class="ar-panel-title">公開準備中</p>
+                        <p class="ar-panel-text">
+                            <span>参加アドレスと最新のお知らせは、</span>
+                            <span>公開準備が整い次第</span>
+                            <span>このページで案内します。</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="ar-hero-metrics">
+                    <div>
+                        <span>RPG</span>
+                        <strong>育成</strong>
+                    </div>
+                    <div>
+                        <span>World</span>
+                        <strong>探索</strong>
+                    </div>
+                    <div>
+                        <span>Party</span>
+                        <strong>協力</strong>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     <div class="ar-hero-scroll-hint">
@@ -23,56 +60,93 @@
 
 <section class="ar-section ar-section-dark" id="features">
     <div class="container">
-        <h2 class="ar-section-title text-center mb-5">サーバーの特徴</h2>
-        <div class="row g-4">
+        <div class="ar-section-heading text-center">
+            <p class="ar-kicker">Features</p>
+            <h2 class="ar-section-title">いまのAstral Record</h2>
+            <p class="ar-section-lead">
+                過去の仮ページから、現在開発しているRPGサーバーの姿が伝わる内容へ更新しました。
+            </p>
+        </div>
+        <div class="row g-4 mt-2">
             <div class="col-md-4">
                 <div class="ar-card h-100">
-                    <div class="ar-card-icon">⚔️</div>
-                    <h3 class="ar-card-title">本格MMO RPG</h3>
-                    <p class="ar-card-text">クエスト、スキル、レベルアップシステムを備えた本格的なRPG体験。仲間と共にダンジョンを攻略しよう。</p>
+                    <p class="ar-card-index">01</p>
+                    <h3 class="ar-card-title">育成とビルド</h3>
+                    <p class="ar-card-text">
+                        ステータス、スキルツリー、装備を組み合わせて、自分の戦い方を形にしていく設計です。
+                    </p>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="ar-card h-100">
-                    <div class="ar-card-icon">🐉</div>
-                    <h3 class="ar-card-title">壮大な世界観</h3>
-                    <p class="ar-card-text">星界をテーマにした独自の世界。空に浮かぶ島々、神秘的な遺跡、そして強大なボスが待ち受ける。</p>
+                    <p class="ar-card-index">02</p>
+                    <h3 class="ar-card-title">探索と攻略</h3>
+                    <p class="ar-card-text">
+                        星界を舞台に、街・フィールド・戦闘コンテンツを段階的に拡張していきます。
+                    </p>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="ar-card h-100">
-                    <div class="ar-card-icon">👥</div>
-                    <h3 class="ar-card-title">コミュニティ</h3>
-                    <p class="ar-card-text">ギルドを結成し、仲間と協力してサーバー最強を目指せ。定期的なイベントも開催予定。</p>
+                    <p class="ar-card-index">03</p>
+                    <h3 class="ar-card-title">Web連携</h3>
+                    <p class="ar-card-text">
+                        APIとWeb UIを前提に、プレイヤー情報や運営画面を扱える構成へ育てています。
+                    </p>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<section class="ar-section ar-section-bg" style="background-image: url('/images/bg-town.png');">
+<section class="ar-section ar-section-split">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <div class="ar-image-frame">
+                    <img src="~/images/bg-town.png" alt="Astral Record world" />
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <p class="ar-kicker">World</p>
+                <h2 class="ar-section-title">冒険の入口を整備中</h2>
+                <p class="ar-section-text">
+                    公式サイトは、サーバー公開前の案内場所として整えています。
+                    参加方法、規約、今後のWeb機能をここから確認できるようにしていきます。
+                </p>
+                <div class="ar-progress-list">
+                    <div class="ar-progress-item">
+                        <span>01</span>
+                        <p>サーバー参加情報の掲載</p>
+                    </div>
+                    <div class="ar-progress-item">
+                        <span>02</span>
+                        <p>利用規約とプライバシーポリシーの整備</p>
+                    </div>
+                    <div class="ar-progress-item">
+                        <span>03</span>
+                        <p>運営・プレイヤー向けWeb機能の拡張</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="ar-section ar-section-bg" id="access" style="background-image: url('/images/bg-town.png');">
     <div class="ar-section-overlay"></div>
     <div class="container position-relative text-center">
-        <h2 class="ar-section-title mb-3">今すぐ参加しよう</h2>
-        <p class="ar-section-text mb-4">Minecraft Java Edition でサーバーに接続できます。</p>
+        <p class="ar-kicker">Access</p>
+        <h2 class="ar-section-title mb-3">参加情報</h2>
+        <p class="ar-section-text mb-4">Minecraft Java Edition 向けに公開準備を進めています。</p>
         <div class="ar-server-address">
             <span class="ar-server-label">サーバーアドレス</span>
-            <code class="ar-server-ip" id="serverIp">astralrecord.example.com</code>
-            <button class="btn ar-btn-copy" onclick="copyIp()">コピー</button>
+            <code class="ar-server-ip">公開準備中</code>
         </div>
-        <p class="ar-section-note mt-3">※ 参加前に<a asp-page="/Terms" class="ar-link">利用規約</a>をご確認ください。</p>
+        <div class="ar-access-links">
+            <a asp-page="/Terms" class="ar-link">利用規約</a>
+            <span></span>
+            <a asp-page="/Privacy" class="ar-link">プライバシーポリシー</a>
+        </div>
     </div>
 </section>
-
-@section Scripts {
-<script>
-function copyIp() {
-    const ip = document.getElementById('serverIp').textContent;
-    navigator.clipboard.writeText(ip).then(() => {
-        const btn = document.querySelector('.ar-btn-copy');
-        btn.textContent = 'コピー済み！';
-        setTimeout(() => btn.textContent = 'コピー', 2000);
-    });
-}
-</script>
-}

@@ -28,6 +28,12 @@
                         <a class="nav-link ar-nav-link" asp-area="" asp-page="/Index">ホーム</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link ar-nav-link" asp-area="" asp-page="/Index" asp-fragment="features">特徴</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link ar-nav-link" asp-area="" asp-page="/Index" asp-fragment="access">参加情報</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link ar-nav-link" asp-area="" asp-page="/Terms">利用規約</a>
                     </li>
                     <li class="nav-item">
@@ -67,11 +73,13 @@
                 </div>
                 <div class="col-md-4 text-center">
                     <p class="ar-footer-title mb-1">Astral Record</p>
-                    <p class="ar-footer-sub mb-0">Minecraft MMO RPG Server</p>
+                    <p class="ar-footer-sub mb-0">Minecraft Java Edition MMO RPG</p>
                 </div>
                 <div class="col-md-4 text-center text-md-end">
                     <div class="ar-footer-links">
                         <a asp-page="/Index">ホーム</a>
+                        <span class="mx-2 opacity-50">|</span>
+                        <a asp-page="/Index" asp-fragment="access">参加情報</a>
                         <span class="mx-2 opacity-50">|</span>
                         <a asp-page="/Terms">利用規約</a>
                         <span class="mx-2 opacity-50">|</span>
