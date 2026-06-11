@@ -46,6 +46,13 @@
 | POST `/api/adventure-record/mob/defeat` | Mob 討伐記録の登録・更新 | `00_docs/20_API設計書/feature/19-adventure-record/3-エンドポイント仕様/19_3.00-索引.md` |
 | GET `/api/account-skilltree/{accountId}` | アカウント単位のスキルツリー進行取得 | `00_docs/20_API設計書/feature/20-skilltree/3-エンドポイント仕様/20_3.00-索引.md` |
 | PUT `/api/account-skilltree/{accountId}` | アカウント単位のスキルツリー進行保存 | `00_docs/20_API設計書/feature/20-skilltree/3-エンドポイント仕様/20_3.00-索引.md` |
+| GET `/api/market/listings` | マーケット出品一覧取得 | `00_docs/20_API設計書/feature/23-market/3-エンドポイント仕様/23_3.00-索引.md` |
+| GET `/api/market/listings/{listingId}` | マーケット出品取得 | `00_docs/20_API設計書/feature/23-market/3-エンドポイント仕様/23_3.00-索引.md` |
+| GET `/api/market/accounts/{accountId}/summary` | アカウント単位のマーケット利用状態取得 | `00_docs/20_API設計書/feature/23-market/3-エンドポイント仕様/23_3.00-索引.md` |
+| POST `/api/market/price-quote` | マーケット相場見積 | `00_docs/20_API設計書/feature/23-market/3-エンドポイント仕様/23_3.00-索引.md` |
+| POST `/api/market/listings` | マーケット出品作成 | `00_docs/20_API設計書/feature/23-market/3-エンドポイント仕様/23_3.00-索引.md` |
+| POST `/api/market/listings/{listingId}/purchase` | マーケット購入確定 | `00_docs/20_API設計書/feature/23-market/3-エンドポイント仕様/23_3.00-索引.md` |
+| POST `/api/market/listings/{listingId}/cancel` | マーケット出品キャンセル | `00_docs/20_API設計書/feature/23-market/3-エンドポイント仕様/23_3.00-索引.md` |
 | GET `/api/inventory?account_id={account_id}` | アカウント配下のインベントリ一覧取得 | `00_docs/20_API設計書/feature/13-inventory/3-エンドポイント仕様/13_3.00-索引.md` |
 | GET `/api/inventory/{inventoryId}` | インベントリ本体取得 | `00_docs/20_API設計書/feature/13-inventory/3-エンドポイント仕様/13_3.00-索引.md` |
 | POST `/api/inventory` | インベントリ本体作成 | `00_docs/20_API設計書/feature/13-inventory/3-エンドポイント仕様/13_3.00-索引.md` |

@@ -24,6 +24,10 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<AccountMobRecordEntity> AccountMobRecords => Set<AccountMobRecordEntity>();
     public DbSet<AccountSkillTreeStateEntity> AccountSkillTreeStates => Set<AccountSkillTreeStateEntity>();
     public DbSet<AccountSkillTreeUnlockedNodeEntity> AccountSkillTreeUnlockedNodes => Set<AccountSkillTreeUnlockedNodeEntity>();
+    public DbSet<MarketAccountStateEntity> MarketAccountStates => Set<MarketAccountStateEntity>();
+    public DbSet<MarketListingEntity> MarketListings => Set<MarketListingEntity>();
+    public DbSet<MarketTransactionEntity> MarketTransactions => Set<MarketTransactionEntity>();
+    public DbSet<MarketPriceSnapshotEntity> MarketPriceSnapshots => Set<MarketPriceSnapshotEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -392,6 +396,126 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
             entity.Property(e => e.UpdatedBy).HasColumnName("updated_by");
             entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
+        });
+
+        modelBuilder.Entity<MarketAccountStateEntity>(entity =>
+        {
+            entity.ToTable("market_account_state", "dbo");
+            entity.HasKey(e => e.AccountId);
+
+            entity.Property(e => e.AccountId).HasColumnName("account_id");
+            entity.Property(e => e.CompletedTradeCount).HasColumnName("completed_trade_count");
+            entity.Property(e => e.Tier).HasColumnName("tier");
+            entity.Property(e => e.MaxActiveListingCount).HasColumnName("max_active_listing_count");
+            entity.Property(e => e.SuspendedUntil).HasColumnName("suspended_until");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.UpdatedBy).HasColumnName("updated_by");
+            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
+        });
+
+        modelBuilder.Entity<MarketListingEntity>(entity =>
+        {
+            entity.ToTable("market_listing", "dbo");
+            entity.HasKey(e => e.ListingId);
+
+            entity.Property(e => e.ListingId).HasColumnName("listing_id");
+            entity.Property(e => e.SellerAccountId).HasColumnName("seller_account_id");
+            entity.Property(e => e.BuyerAccountId).HasColumnName("buyer_account_id");
+            entity.Property(e => e.SourceInventoryEntryId).HasColumnName("source_inventory_entry_id");
+            entity.Property(e => e.ItemCategory).HasColumnName("item_category");
+            entity.Property(e => e.ItemId).HasColumnName("item_id");
+            entity.Property(e => e.InstanceType).HasColumnName("instance_type");
+            entity.Property(e => e.InstanceId).HasColumnName("instance_id");
+            entity.Property(e => e.Quantity).HasColumnName("quantity");
+            entity.Property(e => e.CurrencyId).HasColumnName("currency_id");
+            entity.Property(e => e.UnitPrice).HasColumnName("unit_price");
+            entity.Property(e => e.TotalPrice).HasColumnName("total_price");
+            entity.Property(e => e.PriceFloor).HasColumnName("price_floor");
+            entity.Property(e => e.ReferenceUnitPrice).HasColumnName("reference_unit_price");
+            entity.Property(e => e.PriceDeviationRate).HasColumnName("price_deviation_rate").HasPrecision(18, 6);
+            entity.Property(e => e.PriceConfidence).HasColumnName("price_confidence");
+            entity.Property(e => e.ValuationSignature).HasColumnName("valuation_signature");
+            entity.Property(e => e.ValuationSnapshotJson).HasColumnName("valuation_snapshot_json");
+            entity.Property(e => e.Status).HasColumnName("status");
+            entity.Property(e => e.StatusReason).HasColumnName("status_reason");
+            entity.Property(e => e.ListedAt).HasColumnName("listed_at");
+            entity.Property(e => e.ExpiresAt).HasColumnName("expires_at");
+            entity.Property(e => e.SoldAt).HasColumnName("sold_at");
+            entity.Property(e => e.CanceledAt).HasColumnName("canceled_at");
+            entity.Property(e => e.Version).HasColumnName("version");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.UpdatedBy).HasColumnName("updated_by");
+            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
+            entity.HasIndex(e => new { e.Status, e.ListedAt }).HasDatabaseName("IX_market_listing_status_listed_at");
+            entity.HasIndex(e => new { e.SellerAccountId, e.Status }).HasDatabaseName("IX_market_listing_seller_status");
+            entity.HasIndex(e => new { e.ItemCategory, e.ItemId, e.Status, e.UnitPrice }).HasDatabaseName("IX_market_listing_item_status_price");
+            entity.HasIndex(e => new { e.InstanceType, e.InstanceId, e.Status }).HasDatabaseName("IX_market_listing_instance_status");
+        });
+
+        modelBuilder.Entity<MarketTransactionEntity>(entity =>
+        {
+            entity.ToTable("market_transaction", "dbo");
+            entity.HasKey(e => e.TransactionId);
+
+            entity.Property(e => e.TransactionId).HasColumnName("transaction_id");
+            entity.Property(e => e.ListingId).HasColumnName("listing_id");
+            entity.Property(e => e.SellerAccountId).HasColumnName("seller_account_id");
+            entity.Property(e => e.BuyerAccountId).HasColumnName("buyer_account_id");
+            entity.Property(e => e.ItemCategory).HasColumnName("item_category");
+            entity.Property(e => e.ItemId).HasColumnName("item_id");
+            entity.Property(e => e.InstanceType).HasColumnName("instance_type");
+            entity.Property(e => e.InstanceId).HasColumnName("instance_id");
+            entity.Property(e => e.Quantity).HasColumnName("quantity");
+            entity.Property(e => e.CurrencyId).HasColumnName("currency_id");
+            entity.Property(e => e.UnitPrice).HasColumnName("unit_price");
+            entity.Property(e => e.TotalPrice).HasColumnName("total_price");
+            entity.Property(e => e.FeeAmount).HasColumnName("fee_amount");
+            entity.Property(e => e.SellerProceeds).HasColumnName("seller_proceeds");
+            entity.Property(e => e.ValuationSignature).HasColumnName("valuation_signature");
+            entity.Property(e => e.ValuationSnapshotJson).HasColumnName("valuation_snapshot_json");
+            entity.Property(e => e.IdempotencyKey).HasColumnName("idempotency_key");
+            entity.Property(e => e.CompletedAt).HasColumnName("completed_at");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.HasIndex(e => e.ListingId).IsUnique().HasDatabaseName("UQ_market_transaction_listing");
+            entity.HasIndex(e => new { e.BuyerAccountId, e.IdempotencyKey }).IsUnique().HasDatabaseName("UQ_market_transaction_idempotency");
+            entity.HasIndex(e => new { e.ItemCategory, e.ItemId, e.CompletedAt }).HasDatabaseName("IX_market_transaction_item_completed");
+            entity.HasIndex(e => new { e.ValuationSignature, e.CompletedAt }).HasDatabaseName("IX_market_transaction_signature_completed");
+        });
+
+        modelBuilder.Entity<MarketPriceSnapshotEntity>(entity =>
+        {
+            entity.ToTable("market_price_snapshot", "dbo");
+            entity.HasKey(e => e.SnapshotId);
+
+            entity.Property(e => e.SnapshotId).HasColumnName("snapshot_id");
+            entity.Property(e => e.ListingId).HasColumnName("listing_id");
+            entity.Property(e => e.TransactionId).HasColumnName("transaction_id");
+            entity.Property(e => e.ItemCategory).HasColumnName("item_category");
+            entity.Property(e => e.ItemId).HasColumnName("item_id");
+            entity.Property(e => e.InstanceType).HasColumnName("instance_type");
+            entity.Property(e => e.InstanceId).HasColumnName("instance_id");
+            entity.Property(e => e.ValuationSignature).HasColumnName("valuation_signature");
+            entity.Property(e => e.ReferenceScope).HasColumnName("reference_scope");
+            entity.Property(e => e.SampleCount).HasColumnName("sample_count");
+            entity.Property(e => e.Confidence).HasColumnName("confidence");
+            entity.Property(e => e.SellPrice).HasColumnName("sell_price");
+            entity.Property(e => e.SuggestedUnitPrice).HasColumnName("suggested_unit_price");
+            entity.Property(e => e.ReferenceUnitPrice).HasColumnName("reference_unit_price");
+            entity.Property(e => e.AllowedMinUnitPrice).HasColumnName("allowed_min_unit_price");
+            entity.Property(e => e.AllowedMaxUnitPrice).HasColumnName("allowed_max_unit_price");
+            entity.Property(e => e.Judgement).HasColumnName("judgement");
+            entity.Property(e => e.RollQualityScore).HasColumnName("roll_quality_score").HasPrecision(8, 4);
+            entity.Property(e => e.RollQualityBucket).HasColumnName("roll_quality_bucket");
+            entity.Property(e => e.EvaluatedAt).HasColumnName("evaluated_at");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.HasIndex(e => e.ListingId).HasDatabaseName("IX_market_price_snapshot_listing");
+            entity.HasIndex(e => new { e.ItemCategory, e.ItemId, e.EvaluatedAt }).HasDatabaseName("IX_market_price_snapshot_item_evaluated");
+            entity.HasIndex(e => new { e.ValuationSignature, e.EvaluatedAt }).HasDatabaseName("IX_market_price_snapshot_signature_evaluated");
         });
     }
 }

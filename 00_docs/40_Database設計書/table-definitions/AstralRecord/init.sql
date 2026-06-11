@@ -706,3 +706,224 @@ CREATE TABLE [dbo].[rune_instance_stat_roll] (
     CONSTRAINT [UQ_rune_instance_stat_roll_instance_status] UNIQUE ([rune_instance_id], [status], [sort_order])
 );
 GO
+
+-- ============================================================
+-- AstralRecord\dbo.market_account_state.md
+-- ============================================================
+
+CREATE TABLE [dbo].[market_account_state] (
+    [account_id]                 UNIQUEIDENTIFIER NOT NULL,
+    [completed_trade_count]      INT              NOT NULL CONSTRAINT [DF_market_account_state_completed_trade_count] DEFAULT (0),
+    [tier]                       NVARCHAR(10)     NOT NULL CONSTRAINT [DF_market_account_state_tier] DEFAULT (N'T0'),
+    [max_active_listing_count]   INT              NOT NULL CONSTRAINT [DF_market_account_state_max_active_listing_count] DEFAULT (3),
+    [suspended_until]            DATETIME2(3)         NULL,
+    [created_at]                 DATETIME2(3)     NOT NULL,
+    [updated_at]                 DATETIME2(3)     NOT NULL,
+    [created_by]                 UNIQUEIDENTIFIER NOT NULL,
+    [updated_by]                 UNIQUEIDENTIFIER NOT NULL,
+    [is_deleted]                 BIT              NOT NULL CONSTRAINT [DF_market_account_state_is_deleted] DEFAULT (0),
+
+    CONSTRAINT [PK_market_account_state] PRIMARY KEY CLUSTERED ([account_id]),
+    CONSTRAINT [FK_market_account_state_account] FOREIGN KEY ([account_id])
+        REFERENCES [dbo].[account] ([uuid])
+        ON DELETE NO ACTION
+        ON UPDATE NO ACTION,
+    CONSTRAINT [CK_market_account_state_trade_count] CHECK ([completed_trade_count] >= 0),
+    CONSTRAINT [CK_market_account_state_tier] CHECK ([tier] IN (N'T0', N'T1', N'T2', N'T3', N'T4')),
+    CONSTRAINT [CK_market_account_state_limit] CHECK ([max_active_listing_count] >= 0)
+);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_market_account_state_tier]
+    ON [dbo].[market_account_state] ([tier]);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_market_account_state_is_deleted]
+    ON [dbo].[market_account_state] ([is_deleted]);
+GO
+
+-- ============================================================
+-- AstralRecord\dbo.market_listing.md
+-- ============================================================
+
+CREATE TABLE [dbo].[market_listing] (
+    [listing_id]               UNIQUEIDENTIFIER NOT NULL,
+    [seller_account_id]        UNIQUEIDENTIFIER NOT NULL,
+    [buyer_account_id]         UNIQUEIDENTIFIER     NULL,
+    [source_inventory_entry_id] UNIQUEIDENTIFIER     NULL,
+    [item_category]            NVARCHAR(50)     NOT NULL,
+    [item_id]                  NVARCHAR(100)    NOT NULL,
+    [instance_type]            NVARCHAR(30)         NULL,
+    [instance_id]              UNIQUEIDENTIFIER     NULL,
+    [quantity]                 INT              NOT NULL,
+    [currency_id]              NVARCHAR(50)     NOT NULL,
+    [unit_price]               BIGINT           NOT NULL,
+    [total_price]              BIGINT           NOT NULL,
+    [price_floor]              BIGINT           NOT NULL,
+    [reference_unit_price]     BIGINT               NULL,
+    [price_deviation_rate]     DECIMAL(18,6)        NULL,
+    [price_confidence]         NVARCHAR(20)     NOT NULL,
+    [valuation_signature]      NVARCHAR(300)        NULL,
+    [valuation_snapshot_json]  NVARCHAR(MAX)        NULL,
+    [status]                   NVARCHAR(20)     NOT NULL CONSTRAINT [DF_market_listing_status] DEFAULT (N'ACTIVE'),
+    [status_reason]            NVARCHAR(200)        NULL,
+    [listed_at]                DATETIME2(3)     NOT NULL,
+    [expires_at]               DATETIME2(3)     NOT NULL,
+    [sold_at]                  DATETIME2(3)         NULL,
+    [canceled_at]              DATETIME2(3)         NULL,
+    [version]                  INT              NOT NULL CONSTRAINT [DF_market_listing_version] DEFAULT (1),
+    [created_at]               DATETIME2(3)     NOT NULL,
+    [updated_at]               DATETIME2(3)     NOT NULL,
+    [created_by]               UNIQUEIDENTIFIER NOT NULL,
+    [updated_by]               UNIQUEIDENTIFIER NOT NULL,
+    [is_deleted]               BIT              NOT NULL CONSTRAINT [DF_market_listing_is_deleted] DEFAULT (0),
+
+    CONSTRAINT [PK_market_listing] PRIMARY KEY CLUSTERED ([listing_id]),
+    CONSTRAINT [FK_market_listing_seller_account] FOREIGN KEY ([seller_account_id])
+        REFERENCES [dbo].[account] ([uuid]) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT [FK_market_listing_buyer_account] FOREIGN KEY ([buyer_account_id])
+        REFERENCES [dbo].[account] ([uuid]) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT [FK_market_listing_source_inventory_entry] FOREIGN KEY ([source_inventory_entry_id])
+        REFERENCES [dbo].[inventory_entry] ([inventory_entry_id]) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT [CK_market_listing_quantity] CHECK ([quantity] >= 1),
+    CONSTRAINT [CK_market_listing_price] CHECK ([unit_price] >= 1 AND [total_price] = [unit_price] * [quantity] AND [price_floor] >= 0),
+    CONSTRAINT [CK_market_listing_confidence] CHECK ([price_confidence] IN (N'HIGH', N'MEDIUM', N'LOW')),
+    CONSTRAINT [CK_market_listing_status] CHECK ([status] IN (N'ACTIVE', N'SOLD', N'CANCELED', N'EXPIRED', N'SUSPENDED')),
+    CONSTRAINT [CK_market_listing_version] CHECK ([version] >= 1),
+    CONSTRAINT [CK_market_listing_valuation_json] CHECK ([valuation_snapshot_json] IS NULL OR ISJSON([valuation_snapshot_json]) = 1)
+);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_market_listing_status_listed_at]
+    ON [dbo].[market_listing] ([status], [listed_at]);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_market_listing_seller_status]
+    ON [dbo].[market_listing] ([seller_account_id], [status]);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_market_listing_item_status_price]
+    ON [dbo].[market_listing] ([item_category], [item_id], [status], [unit_price]);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_market_listing_instance_status]
+    ON [dbo].[market_listing] ([instance_type], [instance_id], [status]);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_market_listing_is_deleted]
+    ON [dbo].[market_listing] ([is_deleted]);
+GO
+
+-- ============================================================
+-- AstralRecord\dbo.market_transaction.md
+-- ============================================================
+
+CREATE TABLE [dbo].[market_transaction] (
+    [transaction_id]          UNIQUEIDENTIFIER NOT NULL,
+    [listing_id]              UNIQUEIDENTIFIER NOT NULL,
+    [seller_account_id]       UNIQUEIDENTIFIER NOT NULL,
+    [buyer_account_id]        UNIQUEIDENTIFIER NOT NULL,
+    [item_category]           NVARCHAR(50)     NOT NULL,
+    [item_id]                 NVARCHAR(100)    NOT NULL,
+    [instance_type]           NVARCHAR(30)         NULL,
+    [instance_id]             UNIQUEIDENTIFIER     NULL,
+    [quantity]                INT              NOT NULL,
+    [currency_id]             NVARCHAR(50)     NOT NULL,
+    [unit_price]              BIGINT           NOT NULL,
+    [total_price]             BIGINT           NOT NULL,
+    [fee_amount]              BIGINT           NOT NULL CONSTRAINT [DF_market_transaction_fee_amount] DEFAULT (0),
+    [seller_proceeds]         BIGINT           NOT NULL,
+    [valuation_signature]     NVARCHAR(300)        NULL,
+    [valuation_snapshot_json] NVARCHAR(MAX)        NULL,
+    [idempotency_key]         NVARCHAR(100)    NOT NULL,
+    [completed_at]            DATETIME2(3)     NOT NULL,
+    [created_at]              DATETIME2(3)     NOT NULL,
+    [created_by]              UNIQUEIDENTIFIER NOT NULL,
+
+    CONSTRAINT [PK_market_transaction] PRIMARY KEY CLUSTERED ([transaction_id]),
+    CONSTRAINT [FK_market_transaction_listing] FOREIGN KEY ([listing_id])
+        REFERENCES [dbo].[market_listing] ([listing_id]) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT [FK_market_transaction_seller_account] FOREIGN KEY ([seller_account_id])
+        REFERENCES [dbo].[account] ([uuid]) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT [FK_market_transaction_buyer_account] FOREIGN KEY ([buyer_account_id])
+        REFERENCES [dbo].[account] ([uuid]) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT [UQ_market_transaction_listing] UNIQUE ([listing_id]),
+    CONSTRAINT [UQ_market_transaction_idempotency] UNIQUE ([buyer_account_id], [idempotency_key]),
+    CONSTRAINT [CK_market_transaction_quantity] CHECK ([quantity] >= 1),
+    CONSTRAINT [CK_market_transaction_price] CHECK ([unit_price] >= 1 AND [total_price] = [unit_price] * [quantity] AND [fee_amount] >= 0 AND [seller_proceeds] = [total_price] - [fee_amount]),
+    CONSTRAINT [CK_market_transaction_valuation_json] CHECK ([valuation_snapshot_json] IS NULL OR ISJSON([valuation_snapshot_json]) = 1)
+);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_market_transaction_item_completed]
+    ON [dbo].[market_transaction] ([item_category], [item_id], [completed_at]);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_market_transaction_signature_completed]
+    ON [dbo].[market_transaction] ([valuation_signature], [completed_at]);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_market_transaction_seller]
+    ON [dbo].[market_transaction] ([seller_account_id], [completed_at]);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_market_transaction_buyer]
+    ON [dbo].[market_transaction] ([buyer_account_id], [completed_at]);
+GO
+
+-- ============================================================
+-- AstralRecord\dbo.market_price_snapshot.md
+-- ============================================================
+
+CREATE TABLE [dbo].[market_price_snapshot] (
+    [snapshot_id]            UNIQUEIDENTIFIER NOT NULL,
+    [listing_id]             UNIQUEIDENTIFIER     NULL,
+    [transaction_id]         UNIQUEIDENTIFIER     NULL,
+    [item_category]          NVARCHAR(50)     NOT NULL,
+    [item_id]                NVARCHAR(100)    NOT NULL,
+    [instance_type]          NVARCHAR(30)         NULL,
+    [instance_id]            UNIQUEIDENTIFIER     NULL,
+    [valuation_signature]    NVARCHAR(300)        NULL,
+    [reference_scope]        NVARCHAR(50)     NOT NULL,
+    [sample_count]           INT              NOT NULL,
+    [confidence]             NVARCHAR(20)     NOT NULL,
+    [sell_price]             BIGINT           NOT NULL,
+    [suggested_unit_price]   BIGINT           NOT NULL,
+    [reference_unit_price]   BIGINT               NULL,
+    [allowed_min_unit_price] BIGINT           NOT NULL,
+    [allowed_max_unit_price] BIGINT           NOT NULL,
+    [judgement]              NVARCHAR(50)     NOT NULL,
+    [roll_quality_score]     DECIMAL(8,4)         NULL,
+    [roll_quality_bucket]    NVARCHAR(10)         NULL,
+    [evaluated_at]           DATETIME2(3)     NOT NULL,
+    [created_at]             DATETIME2(3)     NOT NULL,
+
+    CONSTRAINT [PK_market_price_snapshot] PRIMARY KEY CLUSTERED ([snapshot_id]),
+    CONSTRAINT [FK_market_price_snapshot_listing] FOREIGN KEY ([listing_id])
+        REFERENCES [dbo].[market_listing] ([listing_id]) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT [FK_market_price_snapshot_transaction] FOREIGN KEY ([transaction_id])
+        REFERENCES [dbo].[market_transaction] ([transaction_id]) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT [CK_market_price_snapshot_sample_count] CHECK ([sample_count] >= 0),
+    CONSTRAINT [CK_market_price_snapshot_confidence] CHECK ([confidence] IN (N'HIGH', N'MEDIUM', N'LOW')),
+    CONSTRAINT [CK_market_price_snapshot_price] CHECK (
+        [sell_price] >= 0
+        AND [suggested_unit_price] >= 0
+        AND ([reference_unit_price] IS NULL OR [reference_unit_price] >= 0)
+        AND [allowed_min_unit_price] >= 0
+        AND [allowed_max_unit_price] >= [allowed_min_unit_price]
+    ),
+    CONSTRAINT [CK_market_price_snapshot_roll_score] CHECK ([roll_quality_score] IS NULL OR [roll_quality_score] BETWEEN 0 AND 100)
+);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_market_price_snapshot_listing]
+    ON [dbo].[market_price_snapshot] ([listing_id]);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_market_price_snapshot_item_evaluated]
+    ON [dbo].[market_price_snapshot] ([item_category], [item_id], [evaluated_at]);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_market_price_snapshot_signature_evaluated]
+    ON [dbo].[market_price_snapshot] ([valuation_signature], [evaluated_at]);
+GO

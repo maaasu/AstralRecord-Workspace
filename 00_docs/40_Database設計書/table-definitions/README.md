@@ -40,6 +40,10 @@
 | `dbo.equipment_loadout_slot` | `AstralRecord/dbo.equipment_loadout_slot.md` |
 | `dbo.rune_instance` | `AstralRecord/dbo.rune_instance.md` |
 | `dbo.rune_instance_stat_roll` | `AstralRecord/dbo.rune_instance_stat_roll.md` |
+| `dbo.market_account_state` | `AstralRecord/dbo.market_account_state.md` |
+| `dbo.market_listing` | `AstralRecord/dbo.market_listing.md` |
+| `dbo.market_transaction` | `AstralRecord/dbo.market_transaction.md` |
+| `dbo.market_price_snapshot` | `AstralRecord/dbo.market_price_snapshot.md` |
 
 ## MasterDataDB
 
