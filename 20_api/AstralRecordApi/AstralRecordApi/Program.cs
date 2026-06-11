@@ -25,6 +25,9 @@ builder.Services.Configure<FileDatabaseOptions>(
 builder.Services.Configure<MasterDataOptions>(
     builder.Configuration.GetSection(MasterDataOptions.SectionName));
 
+builder.Services.Configure<WebAuthOptions>(
+    builder.Configuration.GetSection(WebAuthOptions.SectionName));
+
 builder.Services.AddDbContext<AstralRecordDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("SqlServer")
@@ -67,6 +70,7 @@ builder.Services.AddScoped<IEquipmentRepository, EquipmentRepository>();
 builder.Services.AddScoped<IEquipmentLoadoutRepository, EquipmentLoadoutRepository>();
 builder.Services.AddScoped<IRuneRepository, RuneRepository>();
 builder.Services.AddScoped<IMarketRepository, MarketRepository>();
+builder.Services.AddScoped<IWebAuthRepository, WebAuthRepository>();
 builder.Services.AddScoped<IEquipmentService, EquipmentService>();
 builder.Services.AddScoped<IRuneService, RuneService>();
 builder.Services.AddScoped<IMarketPriceService, MarketPriceService>();

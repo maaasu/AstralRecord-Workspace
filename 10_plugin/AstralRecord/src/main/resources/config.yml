@@ -31,6 +31,8 @@ database:
 api:
   # APIのベースURL
   baseUrl: "https://api.astralrecord.example.com"
+  # Webログインチャレンジ発行元として API に送信するサーバー ID
+  serverId: "main"
   # APIキー認証情報
   auth:
     apiKey: "your_api_key"

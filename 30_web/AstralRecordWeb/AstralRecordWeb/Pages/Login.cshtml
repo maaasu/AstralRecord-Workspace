@@ -1,0 +1,34 @@
+@page
+@model LoginModel
+@{
+    ViewData["Title"] = "ログイン";
+}
+
+<section class="ar-section ar-section-dark">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8 col-lg-5">
+                <div class="ar-card">
+                    <h1 class="ar-card-title h3 mb-3">プレイヤーログイン</h1>
+                    <p class="ar-card-text mb-4">
+                        Minecraft 内で <code>/web login</code> を実行して表示されたログインコードを入力してください。
+                    </p>
+
+                    <form method="post" class="d-grid gap-3">
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                        <div>
+                            <label asp-for="LoginCode" class="form-label">ログインコード</label>
+                            <input asp-for="LoginCode" class="form-control form-control-lg text-uppercase" autocomplete="one-time-code" placeholder="ABCD-EFGH" />
+                            <span asp-validation-for="LoginCode" class="text-danger"></span>
+                        </div>
+                        <button type="submit" class="btn ar-btn-primary">ログイン</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

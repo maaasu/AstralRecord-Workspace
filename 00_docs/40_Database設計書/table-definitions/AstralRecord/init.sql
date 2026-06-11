@@ -180,6 +180,42 @@ CREATE NONCLUSTERED INDEX [IX_account_is_deleted]
 GO
 
 -- ============================================================
+-- AstralRecord\dbo.web_login_challenge.md
+-- ============================================================
+
+CREATE TABLE [dbo].[web_login_challenge] (
+    [challenge_id]     UNIQUEIDENTIFIER NOT NULL,
+    [user_id]          UNIQUEIDENTIFIER NOT NULL,
+    [login_code_hash]  NVARCHAR(256)    NOT NULL,
+    [issued_at]        DATETIME2(3)     NOT NULL,
+    [expires_at]       DATETIME2(3)     NOT NULL,
+    [consumed_at]      DATETIME2(3)         NULL,
+    [revoked_at]       DATETIME2(3)         NULL,
+    [failed_attempts]  INT              NOT NULL CONSTRAINT [DF_web_login_challenge_failed_attempts] DEFAULT (0),
+    [issued_by_server] NVARCHAR(100)    NOT NULL,
+    [created_at]       DATETIME2(3)     NOT NULL,
+
+    CONSTRAINT [PK_web_login_challenge] PRIMARY KEY CLUSTERED ([challenge_id]),
+    CONSTRAINT [FK_web_login_challenge_user] FOREIGN KEY ([user_id])
+        REFERENCES [dbo].[user] ([uuid])
+        ON DELETE NO ACTION
+        ON UPDATE NO ACTION,
+    CONSTRAINT [CK_web_login_challenge_hash_not_blank] CHECK (LEN(LTRIM(RTRIM([login_code_hash]))) > 0),
+    CONSTRAINT [CK_web_login_challenge_server_not_blank] CHECK (LEN(LTRIM(RTRIM([issued_by_server]))) > 0),
+    CONSTRAINT [CK_web_login_challenge_expiry] CHECK ([expires_at] > [issued_at]),
+    CONSTRAINT [CK_web_login_challenge_failed_attempts] CHECK ([failed_attempts] >= 0)
+);
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [UX_web_login_challenge_login_code_hash]
+    ON [dbo].[web_login_challenge] ([login_code_hash]);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_web_login_challenge_user_expires]
+    ON [dbo].[web_login_challenge] ([user_id], [expires_at]);
+GO
+
+-- ============================================================
 -- AstralRecord\dbo.skill_bind_preset.md
 -- ============================================================
 

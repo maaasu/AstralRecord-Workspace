@@ -46,6 +46,8 @@
 | POST `/api/adventure-record/mob/defeat` | Mob 討伐記録の登録・更新 | `00_docs/20_API設計書/feature/19-adventure-record/3-エンドポイント仕様/19_3.00-索引.md` |
 | GET `/api/account-skilltree/{accountId}` | アカウント単位のスキルツリー進行取得 | `00_docs/20_API設計書/feature/20-skilltree/3-エンドポイント仕様/20_3.00-索引.md` |
 | PUT `/api/account-skilltree/{accountId}` | アカウント単位のスキルツリー進行保存 | `00_docs/20_API設計書/feature/20-skilltree/3-エンドポイント仕様/20_3.00-索引.md` |
+| POST `/api/web-auth/challenges` | Web ログインチャレンジ発行 | `00_docs/20_API設計書/feature/24-web-auth/3-エンドポイント仕様/24_3.00-索引.md` |
+| POST `/api/web-auth/challenges/consume` | Web ログインチャレンジ消費 | `00_docs/20_API設計書/feature/24-web-auth/3-エンドポイント仕様/24_3.00-索引.md` |
 | GET `/api/market/listings` | マーケット出品一覧取得 | `00_docs/20_API設計書/feature/23-market/3-エンドポイント仕様/23_3.00-索引.md` |
 | GET `/api/market/listings/{listingId}` | マーケット出品取得 | `00_docs/20_API設計書/feature/23-market/3-エンドポイント仕様/23_3.00-索引.md` |
 | GET `/api/market/accounts/{accountId}/summary` | アカウント単位のマーケット利用状態取得 | `00_docs/20_API設計書/feature/23-market/3-エンドポイント仕様/23_3.00-索引.md` |

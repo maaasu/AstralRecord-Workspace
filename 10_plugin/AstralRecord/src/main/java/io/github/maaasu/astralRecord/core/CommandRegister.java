@@ -43,6 +43,9 @@ import io.github.maaasu.astralRecord.feature.trade.command.TradeCommand;
 import io.github.maaasu.astralRecord.feature.trade.command.TradeTabCompleter;
 import io.github.maaasu.astralRecord.feature.user.command.UserCommand;
 import io.github.maaasu.astralRecord.feature.user.command.UserTabCompleter;
+import io.github.maaasu.astralRecord.feature.webauth.command.WebAuthCommand;
+import io.github.maaasu.astralRecord.feature.webauth.repository.WebAuthRepository;
+import io.github.maaasu.astralRecord.feature.webauth.service.WebAuthService;
 import io.github.maaasu.astralRecord.feature.world.command.WorldCommand;
 import io.github.maaasu.astralRecord.feature.world.command.WorldTabCompleter;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
@@ -108,6 +111,7 @@ public class CommandRegister {
         cm.registerCommand("party", new PartyCommand(), new PartyTabCompleter());
         cm.registerCommand("trade", new TradeCommand(), new TradeTabCompleter());
         cm.registerCommand("shop", new ShopCommand(), new ShopTabCompleter());
+        cm.registerCommand("web", new WebAuthCommand(new WebAuthService(new WebAuthRepository())));
         cm.registerCommand("test", new TestCommand(AstralRecord.getInstance()), new TestTabCompleter());
         cm.registerCommand("testskilltree", new SkillTreeSpawnCheckCommand(), new SkillTreeSpawnCheckTabCompleter());
         cm.registerCommand("astreload", new ReloadCommand());

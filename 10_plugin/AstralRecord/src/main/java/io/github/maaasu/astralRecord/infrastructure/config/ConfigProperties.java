@@ -41,6 +41,7 @@ public class ConfigProperties {
     private String apiAuthApiKey;
     private int apiTimeout;
     private boolean apiSslVerifyEnabled;
+    private String apiServerId;
 
     // Resource pack settings
     private boolean resourcePackEnabled;
@@ -104,6 +105,7 @@ public class ConfigProperties {
         this.apiAuthApiKey = configManager.getConfig().getString(ConfigKeys.API_AUTH_API_KEY, "");
         this.apiTimeout = configManager.getConfig().getInt(ConfigKeys.API_TIMEOUT, 30000);
         this.apiSslVerifyEnabled = configManager.getConfig().getBoolean(ConfigKeys.API_SSL_VERIFY_ENABLED, true);
+        this.apiServerId = configManager.getConfig().getString(ConfigKeys.API_SERVER_ID, "main");
         if (!this.apiSslVerifyEnabled) {
             Logger.log(LogId.W_1601);
         }
@@ -252,6 +254,15 @@ public class ConfigProperties {
      */
     public boolean isApiSslVerifyEnabled() {
         return apiSslVerifyEnabled;
+    }
+
+    /**
+     * Web ログインチャレンジ発行元として API に渡すサーバー ID を返します。
+     *
+     * @return API 発行元サーバー ID
+     */
+    public String getApiServerId() {
+        return apiServerId;
     }
 
     public boolean isResourcePackEnabled() {

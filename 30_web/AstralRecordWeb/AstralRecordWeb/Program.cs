@@ -1,7 +1,36 @@
+using AstralRecordWeb.Options;
+using AstralRecordWeb.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.Extensions.Options;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+builder.Services.Configure<AstralRecordApiOptions>(
+    builder.Configuration.GetSection(AstralRecordApiOptions.SectionName));
+builder.Services
+    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Login";
+        options.LogoutPath = "/Logout";
+        options.AccessDeniedPath = "/Login";
+        options.ExpireTimeSpan = TimeSpan.FromHours(12);
+        options.SlidingExpiration = false;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    });
+builder.Services.AddAuthorization();
+builder.Services.AddHttpClient<WebAuthApiClient>((serviceProvider, httpClient) =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<AstralRecordApiOptions>>().Value;
+    httpClient.BaseAddress = new Uri(options.BaseUrl);
+
+    if (!string.IsNullOrWhiteSpace(options.ApiKey))
+        httpClient.DefaultRequestHeaders.Add("X-Api-Key", options.ApiKey);
+});
 
 var app = builder.Build();
 
@@ -19,6 +48,7 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();

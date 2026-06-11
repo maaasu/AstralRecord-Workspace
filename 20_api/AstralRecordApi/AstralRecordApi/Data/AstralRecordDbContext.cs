@@ -28,6 +28,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<MarketListingEntity> MarketListings => Set<MarketListingEntity>();
     public DbSet<MarketTransactionEntity> MarketTransactions => Set<MarketTransactionEntity>();
     public DbSet<MarketPriceSnapshotEntity> MarketPriceSnapshots => Set<MarketPriceSnapshotEntity>();
+    public DbSet<WebLoginChallengeEntity> WebLoginChallenges => Set<WebLoginChallengeEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -72,6 +73,28 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(account => account.CreatedBy).HasColumnName("created_by");
             entity.Property(account => account.UpdatedBy).HasColumnName("updated_by");
             entity.Property(account => account.IsDeleted).HasColumnName("is_deleted");
+        });
+
+        modelBuilder.Entity<WebLoginChallengeEntity>(entity =>
+        {
+            entity.ToTable("web_login_challenge", "dbo");
+            entity.HasKey(challenge => challenge.ChallengeId);
+
+            entity.Property(challenge => challenge.ChallengeId).HasColumnName("challenge_id");
+            entity.Property(challenge => challenge.UserId).HasColumnName("user_id");
+            entity.Property(challenge => challenge.LoginCodeHash).HasColumnName("login_code_hash").HasMaxLength(256);
+            entity.Property(challenge => challenge.IssuedAt).HasColumnName("issued_at");
+            entity.Property(challenge => challenge.ExpiresAt).HasColumnName("expires_at");
+            entity.Property(challenge => challenge.ConsumedAt).HasColumnName("consumed_at");
+            entity.Property(challenge => challenge.RevokedAt).HasColumnName("revoked_at");
+            entity.Property(challenge => challenge.FailedAttempts).HasColumnName("failed_attempts");
+            entity.Property(challenge => challenge.IssuedByServer).HasColumnName("issued_by_server").HasMaxLength(100);
+            entity.Property(challenge => challenge.CreatedAt).HasColumnName("created_at");
+            entity.HasIndex(challenge => challenge.LoginCodeHash)
+                .IsUnique()
+                .HasDatabaseName("UX_web_login_challenge_login_code_hash");
+            entity.HasIndex(challenge => new { challenge.UserId, challenge.ExpiresAt })
+                .HasDatabaseName("IX_web_login_challenge_user_expires");
         });
 
         modelBuilder.Entity<PlayerSettingEntity>(entity =>

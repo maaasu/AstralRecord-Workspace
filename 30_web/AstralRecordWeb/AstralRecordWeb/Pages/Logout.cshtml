@@ -1,0 +1,21 @@
+@page
+@model LogoutModel
+@{
+    ViewData["Title"] = "ログアウト";
+}
+
+<section class="ar-section ar-section-dark">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8 col-lg-5">
+                <div class="ar-card">
+                    <h1 class="ar-card-title h3 mb-3">ログアウト</h1>
+                    <p class="ar-card-text mb-4">現在の Web セッションを終了します。</p>
+                    <form method="post">
+                        <button type="submit" class="btn ar-btn-primary">ログアウト</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

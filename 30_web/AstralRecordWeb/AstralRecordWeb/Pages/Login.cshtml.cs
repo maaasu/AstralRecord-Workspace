@@ -1,0 +1,56 @@
+using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
+using AstralRecordWeb.Services;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+
+namespace AstralRecordWeb.Pages;
+
+[AllowAnonymous]
+public class LoginModel(WebAuthApiClient webAuthApiClient) : PageModel
+{
+    [BindProperty]
+    [Required(ErrorMessage = "ログインコードを入力してください。")]
+    [Display(Name = "ログインコード")]
+    public string LoginCode { get; set; } = string.Empty;
+
+    public void OnGet()
+    {
+    }
+
+    public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return Page();
+
+        var consumed = await webAuthApiClient.ConsumeAsync(LoginCode, cancellationToken);
+        if (consumed is null)
+        {
+            ModelState.AddModelError(string.Empty, "ログインコードが無効、期限切れ、または使用済みです。");
+            return Page();
+        }
+
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, consumed.UserUuid.ToString()),
+            new(ClaimTypes.Name, consumed.Mcid),
+            new("permission", consumed.Permission.ToString()),
+        };
+
+        if (consumed.CurrentAccountId.HasValue)
+            claims.Add(new Claim("currentAccountId", consumed.CurrentAccountId.Value.ToString()));
+
+        foreach (var accountId in consumed.AccountIds)
+            claims.Add(new Claim("accountId", accountId.ToString()));
+
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        await HttpContext.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            new ClaimsPrincipal(identity));
+
+        return RedirectToPage("/MyPage");
+    }
+}

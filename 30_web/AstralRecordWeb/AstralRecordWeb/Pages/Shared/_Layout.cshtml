@@ -33,11 +33,23 @@
                     <li class="nav-item">
                         <a class="nav-link ar-nav-link" asp-area="" asp-page="/Privacy">プライバシーポリシー</a>
                     </li>
-                    <li class="nav-item ms-lg-2">
-                        <a class="btn ar-btn-nav-login disabled" href="#" aria-disabled="true">
-                            ログイン <span class="ar-badge-soon">近日公開</span>
-                        </a>
-                    </li>
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link ar-nav-link" asp-area="" asp-page="/MyPage">マイページ</a>
+                        </li>
+                        <li class="nav-item">
+                            <form method="post" asp-page="/Logout" class="d-inline">
+                                <button type="submit" class="nav-link ar-nav-link btn btn-link p-0">ログアウト</button>
+                            </form>
+                        </li>
+                    }
+                    else
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link ar-nav-link" asp-area="" asp-page="/Login">ログイン</a>
+                        </li>
+                    }
                 </ul>
             </div>
         </div>

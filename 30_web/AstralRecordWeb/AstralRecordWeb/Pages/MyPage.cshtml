@@ -1,0 +1,27 @@
+@page
+@model MyPageModel
+@{
+    ViewData["Title"] = "マイページ";
+}
+
+<section class="ar-section ar-section-dark">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-lg-8">
+                <div class="ar-card">
+                    <h1 class="ar-card-title h3 mb-3">マイページ</h1>
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">MCID</dt>
+                        <dd class="col-sm-8">@Model.Mcid</dd>
+                        <dt class="col-sm-4">User UUID</dt>
+                        <dd class="col-sm-8 text-break">@Model.UserUuid</dd>
+                        <dt class="col-sm-4">Permission</dt>
+                        <dd class="col-sm-8">@Model.Permission</dd>
+                        <dt class="col-sm-4">Current Account</dt>
+                        <dd class="col-sm-8 text-break">@Model.CurrentAccountId</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

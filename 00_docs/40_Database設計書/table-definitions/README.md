@@ -44,6 +44,7 @@
 | `dbo.market_listing` | `AstralRecord/dbo.market_listing.md` |
 | `dbo.market_transaction` | `AstralRecord/dbo.market_transaction.md` |
 | `dbo.market_price_snapshot` | `AstralRecord/dbo.market_price_snapshot.md` |
+| `dbo.web_login_challenge` | `AstralRecord/dbo.web_login_challenge.md` |
 
 ## MasterDataDB
 

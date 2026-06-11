@@ -648,6 +648,12 @@ public enum PlayerMsgId {
     P_6209(6209),
     // endregion
 
+    // region /feature/webauth 6400-6409
+    P_6400(6400),
+    P_6401(6401),
+    P_6402(6402),
+    // endregion
+
     // region /feature/player/service/PlayerMessageService.java 5940-5949
     P_5940(5940),
     P_5941(5941),
