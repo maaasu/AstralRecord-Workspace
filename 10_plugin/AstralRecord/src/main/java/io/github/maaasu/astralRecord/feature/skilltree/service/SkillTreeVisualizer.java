@@ -450,7 +450,7 @@ final class SkillTreeVisualizer {
         HIDDEN(Material.AIR),
         ADMIN(Material.YELLOW_STAINED_GLASS),
         LOCKED(Material.RED_STAINED_GLASS),
-        CONNECTED(Material.YELLOW_STAINED_GLASS),
+        CONNECTED(Material.BLUE_STAINED_GLASS),
         UNLOCKED(Material.LIME_STAINED_GLASS);
 
         private final Material material;
