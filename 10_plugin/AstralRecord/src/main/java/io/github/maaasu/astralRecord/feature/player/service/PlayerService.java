@@ -145,6 +145,8 @@ public class PlayerService {
 
         var astPlayer = new AstPlayer(player, joinData.user(), joinData.account());
         AstPlayerCache.put(astPlayer);
+        // AstPlayerCache 登録後にコマンドツリーを再送し、permission 反映後の公開条件で同期する。
+        player.updateCommands();
         if (joinData.account().getMode().shouldReflectInventoryToGui()) {
             inventoryService.applyInventoriesToGuiOnJoin(astPlayer);
         } else if (isToolInventoryMode(joinData.account().getMode())) {
