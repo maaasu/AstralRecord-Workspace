@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeEdge;
@@ -14,6 +15,9 @@ import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePosition;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreeNodeRepository;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreePlayerStateRepository;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreeStructureRepository;
+import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
+import io.github.maaasu.astralRecord.feature.world.model.WorldSpawnLocation;
+import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusModifierType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
@@ -38,6 +42,7 @@ import java.util.logging.Logger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
@@ -214,6 +219,53 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
                 SkillTreeService.NodeLabelDetail.HIDDEN,
                 service.nodeLabelDetail(player, new Location(player.getWorld(), 30.0D, 64.0D, 0.0D))
         );
+    }
+
+    @Test
+    void playerModeSkillTreeUsesPermissionInsteadOfAccountMode() {
+        WorldService worldService = mock(WorldService.class);
+        SkillTreeService service = new SkillTreeService(
+                PluginMock.builder()
+                        .withPluginName("AstralRecordTest")
+                        .withPluginVersion("1.0.0")
+                        .build(),
+                worldService,
+                mock(InventoryService.class),
+                mock(SkillTreeNodeRepository.class),
+                mock(SkillTreeStructureRepository.class),
+                mock(SkillTreePlayerStateRepository.class)
+        );
+        Player player = server().addPlayer();
+        AstPlayer builder = mock(AstPlayer.class);
+        when(builder.hasAdminPermission()).thenReturn(false);
+        when(builder.getBukkit()).thenReturn(player);
+        AstPlayerCache.put(builder);
+
+        when(worldService.findByBukkitWorld(player.getWorld())).thenReturn(new WorldMasterData(
+                1,
+                SkillTreeService.SKILL_TREE_WORLD_ID,
+                "skill_tree",
+                WorldType.BASE,
+                "base",
+                "instance",
+                false,
+                false,
+                0,
+                false,
+                false,
+                false,
+                WorldSpawnLocation.defaultLocation(),
+                "test"
+        ));
+
+        assertTrue(service.isPlayerModeSkillTree(player));
+
+        AstPlayer admin = mock(AstPlayer.class);
+        when(admin.hasAdminPermission()).thenReturn(true);
+        when(admin.getBukkit()).thenReturn(player);
+        AstPlayerCache.put(admin);
+
+        assertFalse(service.isPlayerModeSkillTree(player));
     }
 
     private SkillTreeService newService(

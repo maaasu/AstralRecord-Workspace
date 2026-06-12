@@ -945,6 +945,15 @@ public final class AstralRecord extends JavaPlugin {
     }
 
     /**
+     * スキルツリーサービスを返します。
+     *
+     * @return スキルツリーサービス
+     */
+    public SkillTreeService getSkillTreeService() {
+        return skillTreeService;
+    }
+
+    /**
      * 繧ｹ繧ｭ繝ｫ繝舌う繝ｳ繝・GUI 繧､繝吶Φ繝医ワ繝ｳ繝峨Λ繧定ｿ斐＠縺ｾ縺吶・
      *
      * @return 繧ｹ繧ｭ繝ｫ繝舌う繝ｳ繝・GUI 繧､繝吶Φ繝医ワ繝ｳ繝峨Λ

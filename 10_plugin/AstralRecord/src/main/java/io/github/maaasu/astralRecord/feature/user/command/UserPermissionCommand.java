@@ -80,6 +80,11 @@ public class UserPermissionCommand extends AstCommand {
             var astPlayer = AstPlayerCache.get(online);
             if (astPlayer != null) {
                 astPlayer.applyPermission(updated);
+                var skillTreeService = AstralRecord.getInstance().getSkillTreeService();
+                if (skillTreeService != null) {
+                    skillTreeService.markViewerContextDirty(online);
+                }
+                online.updateCommands();
             }
         }
 
