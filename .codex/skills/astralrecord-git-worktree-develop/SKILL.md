@@ -1,6 +1,6 @@
 ---
 name: astralrecord-git-worktree-develop
-description: AstralRecord workspace で task ごとに専用 branch と git worktree を作成し、そこでの差分を選別して commit し、develop へ rebase / fast-forward merge して、成功時に branch と worktree を片付ける git 運用 skill。develop 直作業は行わず、conflict や dirty develop では停止して作業場所を残す。
+description: AstralRecord workspace で task ごとに専用 branch と git worktree を作成し、そこでの差分を選別して commit し、develop へ rebase / fast-forward merge して、成功時に branch と worktree を片付ける git 運用 skill。plugin 変更がある場合の `pom.xml` 版番号更新は finalize 時に最新 develop へ rebase した後でだけ行う。
 ---
 
 # AstralRecord Git Worktree Develop
@@ -9,6 +9,8 @@ description: AstralRecord workspace で task ごとに専用 branch と git work
 
 Never implement a task directly on `develop`. Create a task branch and a dedicated git worktree for each task, do the work there, and merge back to `develop` only after a scoped commit and a clean rebase.
 
+When a task changes the plugin deliverable under `10_plugin/AstralRecord`, do not update `pom.xml` during the parallel implementation phase. Rebase the task branch onto the latest local `develop` first, then run `$astralrecord-plugin-version` only inside that rebased task worktree immediately before the final merge.
+
 Use `E:\AstralRecord-Workspace\COMMIT_RULES.md` as the source of truth for commit message format.
 
 ## Supported Modes
@@ -16,7 +18,7 @@ Use `E:\AstralRecord-Workspace\COMMIT_RULES.md` as the source of truth for commi
 This skill supports two modes.
 
 - Prepare mode: create a task branch and a dedicated worktree from local `develop`, then report the branch name and worktree path for follow-up work.
-- Finalize mode: from an existing task worktree, inspect the diff, stage only relevant files, commit, rebase onto `develop`, fast-forward merge into `develop`, and remove the task worktree and branch when safe.
+- Finalize mode: from an existing task worktree, inspect the diff, commit the implementation changes, rebase onto `develop`, run plugin versioning only when needed on the rebased worktree, fast-forward merge into `develop`, and remove the task worktree and branch when safe.
 
 If the request is ambiguous, infer the mode from the wording:
 
@@ -48,19 +50,28 @@ If the request is ambiguous, infer the mode from the wording:
      - targeted `git diff -- <path>`
    - Run the bundled classifier:
      - `python E:\AstralRecord-Workspace\.codex\skills\astralrecord-git-worktree-develop\scripts\commit_candidate_audit.py <worktree-root>`
-   - Stage only requested files with explicit paths. Never use `git add .` or `git add -A`.
+   - Stage only requested implementation files with explicit paths. Never use `git add .` or `git add -A`.
    - Run:
      - `git diff --cached --stat`
      - `git diff --cached --check`
      - `python E:\AstralRecord-Workspace\.codex\skills\astralrecord-git-worktree-develop\scripts\staged_mojibake_check.py <worktree-root>`
-   - Commit with a Japanese summary that follows `COMMIT_RULES.md`.
+   - Commit the implementation diff with a Japanese summary that follows `COMMIT_RULES.md`.
    - Rebase the task branch onto local `develop`.
-   - If rebase succeeds, fast-forward merge the task branch into `develop`.
+   - After the rebase, determine whether the branch materially changes the plugin deliverable:
+     - Plugin source under `10_plugin/AstralRecord/src/`
+     - Plugin resources such as `plugin.yml`, `config.yml`, message resources, logger resources
+     - Plugin build files under `10_plugin/AstralRecord/`
+   - If the rebased branch still contains plugin deliverable changes, invoke `$astralrecord-plugin-version` in that rebased worktree and create a separate scoped commit for `10_plugin/AstralRecord/pom.xml`.
+   - If rebase succeeds and any required version-bump commit completes, fast-forward merge the task branch into `develop`.
    - Remove the task worktree and delete the task branch only after merge success and only when the user did not request retention.
 7. If any merge or rebase conflict occurs:
    - Stop immediately.
    - Do not delete the branch or worktree.
    - Report the blocking files and the current state.
+8. If the plugin version update or its commit fails:
+   - Stop immediately.
+   - Do not delete the branch or worktree.
+   - Report the failure and keep the rebased worktree for follow-up.
 
 ## Safety Checks
 
@@ -73,6 +84,7 @@ Stop before mutating git state if:
 - The selected files mix unrelated work that cannot be separated safely.
 - The commit would be empty.
 - Rebase or merge produces conflicts.
+- A plugin version update is required but cannot be completed cleanly after the rebase.
 
 ## Worktree Conventions
 
@@ -93,6 +105,7 @@ E:\AstralRecord-Workspace\<relative-path>
 - Exclude local build outputs, IDE settings, machine-local config, secrets, logs, temp files, and unrelated user changes.
 - `.codex/skills/` is commit-eligible when the requested task is a skill creation or skill update.
 - Use `git restore --staged -- <path>` when an unrelated file was staged by mistake.
+- When plugin versioning is required, keep the implementation commit and the `pom.xml` version-bump commit scoped separately.
 
 ## Cleanup Rules
 
@@ -108,6 +121,7 @@ Keep the branch and worktree when:
 - Rebase or merge conflicts occurred.
 - Verification failed and follow-up edits are expected.
 - The user asked to keep the task workspace for review or later edits.
+- The post-rebase plugin version update could not be completed cleanly.
 
 ## Example Prompts
 
@@ -121,6 +135,10 @@ Use $astralrecord-git-worktree-develop to finalize the current task worktree for
 
 ```text
 Use $astralrecord-git-worktree-develop to finalize the current task worktree for E:\AstralRecord-Workspace\.codex\skills, keep the branch and worktree if merge fails, and report the result.
+```
+
+```text
+Use $astralrecord-git-worktree-develop to finalize the current task worktree for E:\AstralRecord-Workspace\10_plugin\AstralRecord after parallel implementation, update the plugin version only after rebasing to develop, and report the result.
 ```
 
 ## Report Format
@@ -137,6 +155,10 @@ Write the result in Japanese.
 
 ## Commit結果
 - `<commit-hash>`: <要点> / 未実施
+
+## バージョン更新結果
+- 実施: はい / いいえ
+- 内容: <旧版 -> 新版> / 不要 / 失敗
 
 ## Merge結果
 - `rebase`: 成功 / 失敗 / 未実施

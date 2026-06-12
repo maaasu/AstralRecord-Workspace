@@ -1,4 +1,4 @@
 interface:
   display_name: "AstralRecord Git Worktree Develop"
-  short_description: "task 単位の branch / worktree を prepare・finalize して develop へ戻す"
+  short_description: "Prepare or finalize a task branch/worktree and merge to develop with late plugin versioning when needed"
   default_prompt: "Use $astralrecord-git-worktree-develop to prepare a task branch and worktree for skill changes under E:\\AstralRecord-Workspace\\.codex\\skills and report the branch name and worktree path."

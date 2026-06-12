@@ -242,13 +242,14 @@ Use $astralrecord-commit-current-diff to commit the current review-fix changes f
 
 ## `$astralrecord-git-worktree-develop`
 
-AstralRecord workspace で task ごとに branch と git worktree を分け、prepare・commit・develop への merge・cleanup を管理する git 運用 skill。
+AstralRecord workspace で task ごとに branch と git worktree を分け、prepare・commit・develop への merge・cleanup を管理する git 運用 skill。plugin 変更がある場合の版番号更新は、finalize 時に最新 local `develop` へ rebase した後でだけ行う。
 
 ### 使う場面
 
 - `develop` 直作業を避けて、task ごとに安全な branch / worktree を作りたい。
 - `target/`、IDE 設定、`.env`、`appsettings.Development.json` などを誤って取り込まずに task 差分だけを commit したい。
 - 完了後に `develop` へ fast-forward merge し、成功時だけ branch / worktree を片付けたい。
+- 並列で実装した複数 task を、最後に 1 件ずつ安全に finalize したい。
 
 ### 実行例
 
@@ -268,15 +269,16 @@ Use $astralrecord-git-worktree-develop to finalize the current task worktree for
 
 - task の開始時は local `develop` から branch / worktree を切り、作業はその worktree で進める。
 - `git add .` や `git add -A` は使わず、対象ファイルを個別に stage する。
+- plugin を触る task でも、`pom.xml` の版番号更新は実装中ではなく finalize 時に行う。
 - rebase / merge conflict が起きた場合は停止し、branch / worktree を残したまま報告する。
 
 ## `$astralrecord-plugin-version`
 
-AstralRecord Plugin (`10_plugin/AstralRecord`) の版番号を更新する skill。`pom.xml` の `<version>` を正本として、SemVer ベースの開発版・リリース版・RC/alpha/beta へ更新する。
+AstralRecord Plugin (`10_plugin/AstralRecord`) の版番号を更新する skill。`pom.xml` の `<version>` を正本として、SemVer ベースの開発版・リリース版・RC/alpha/beta へ更新する。通常の task 運用では、最新版 local `develop` に rebase 済みの finalize 直前 worktree でだけ使う。
 
 ### 使う場面
 
-- プラグイン実装後に、コミット前の版番号を確定したい。
+- プラグイン実装後に、rebase 済み finalize 直前の版番号を確定したい。
 - `1.0-SNAPSHOT` のような曖昧な開発版から、`1.0.0-dev.YYYYMMDD.N` のように細かく管理したい。
 - `plugin.yml` を直接触らず、Maven の `project.version` を安全に更新したい。
 
@@ -294,34 +296,41 @@ Use $astralrecord-plugin-version to bump the plugin to a release candidate for E
 
 - `src/main/resources/plugin.yml` は `${project.version}` 参照のため、原則 `pom.xml` だけを更新する。
 - デフォルトではコミットハッシュを版番号に埋め込まない。必要な追跡情報はコミット結果として別管理する。
+- 並列 task が複数走っている間は使わず、各 task を最新 `develop` へ rebase した後の finalize 時にだけ使う。
 - plugin 以外だけを変更した依頼には使わない。
 
 ## `$astralrecord-code-version-commit-develop`
 
-`$astralrecord-code` で実装し、必要な場合だけ `$astralrecord-plugin-version` で plugin 版番号を更新し、その前後を `$astralrecord-git-worktree-develop` で囲って task branch / worktree 上で進め、最後に `develop` へ戻す統合 skill。
+`$astralrecord-code` で実装し、その前後を `$astralrecord-git-worktree-develop` で囲って task branch / worktree 上で進める統合 skill。plugin 版番号更新が必要な場合でも、実装中には行わず finalize 側へ遅延させる。
 
 ### 使う場面
 
 - 実装から版番号更新、task branch / worktree の作成、commit、`develop` への merge、cleanup までを 1 回の依頼で続けて進めたい。
-- plugin 実装時は版番号更新を入れたいが、API や docs だけの変更では自動で省略したい。
+- plugin 実装時は版番号更新を入れたいが、最新版 `develop` へ rebase した finalize 時にだけ実行したい。
 - 実装ルール、版番号ルール、git 運用ルールを既存 skill の正本に委譲したまま順序だけ統合したい。
+- 並列実行では、prepare + 実装までを先に進め、最後に merge skill へ渡したい。
 
 ### 実行例
 
 ```text
-Use $astralrecord-code-version-commit-develop to implement the requested plugin behavior for E:\AstralRecord-Workspace\10_plugin\AstralRecord, update the plugin version, and merge the resulting files back into develop through a task worktree.
+Use $astralrecord-code-version-commit-develop to implement the requested plugin behavior for E:\AstralRecord-Workspace\10_plugin\AstralRecord and merge the resulting files back into develop through a task worktree with late plugin versioning during finalize.
 ```
 
 ```text
 Use $astralrecord-code-version-commit-develop to implement the requested skill change for E:\AstralRecord-Workspace\.codex\skills, skip plugin versioning if the plugin was not touched, and merge the resulting files back into develop through a task worktree.
 ```
 
+```text
+Use $astralrecord-code-version-commit-develop to implement the requested plugin behavior for E:\AstralRecord-Workspace\10_plugin\AstralRecord in a dedicated task worktree, stop before finalize for parallel execution, and report the branch name and worktree path for later merge.
+```
+
 ### 注意点
 
 - 実装そのもののルールは `$astralrecord-code` を正本とする。
-- plugin 変更が含まれる場合だけ `$astralrecord-plugin-version` を実行する。
+- plugin 変更が含まれる場合でも `$astralrecord-plugin-version` は finalize 時にだけ実行する。
 - git 運用条件は `$astralrecord-git-worktree-develop` を正本とし、prepare / finalize のどちらかが停止した場合はその時点で停止する。
-- コミット対象は、task worktree 上で直前の実装と必要な版番号更新で変更したファイルだけに限定する。
+- 並列実行時は、prepare + 実装を終えた worktree を保持し、最後に `$astralrecord-git-worktree-develop` で 1 件ずつ finalize する。
+- コミット対象は、task worktree 上で直前の実装と、finalize 時に必要になった版番号更新で変更したファイルだけに限定する。
 
 ## skill 追加時の README 更新
 
