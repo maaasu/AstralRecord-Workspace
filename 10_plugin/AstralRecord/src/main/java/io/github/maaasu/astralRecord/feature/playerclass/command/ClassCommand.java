@@ -88,7 +88,7 @@ public final class ClassCommand extends AstCommand {
             sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5814.getId(), player.getName()));
             return;
         }
-        AstralRecord.getInstance().getMenuView().openClass(player, astPlayer, classService.getClassViewEntries());
+        AstralRecord.getInstance().getMenuView().openClass(player, astPlayer, classService.getClassViewEntries(astPlayer));
     }
 
     private @Nullable AstPlayer resolveTarget(@NotNull CommandSender sender, @NotNull String[] args) {

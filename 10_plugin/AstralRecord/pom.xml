@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -6,7 +6,7 @@
 
     <groupId>io.github.maaasu</groupId>
     <artifactId>AstralRecord</artifactId>
-    <version>1.9.0-dev.20260613.3</version>
+    <version>1.9.1-dev.20260613.1</version>
     <packaging>jar</packaging>
 
     <name>AstralRecord</name>
@@ -105,17 +105,17 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <!-- 依存ライブラリ込みのJarを Paper サーバーの plugins フォルダへ直接出力 -->
+                            <!-- 萓晏ｭ倥Λ繧､繝悶Λ繝ｪ霎ｼ縺ｿ縺ｮJar繧・Paper 繧ｵ繝ｼ繝舌・縺ｮ plugins 繝輔か繝ｫ繝縺ｸ逶ｴ謗･蜃ｺ蜉・-->
                             <outputFile>E:\AstralRecord-Workspace\10_plugin\AstralRecord\dist\${project.artifactId}-${project.version}.jar</outputFile>
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>
                                     <excludes>
-                                        <!-- module-info と MRJAR の内容は強カプセル化を壊すため除外 -->
+                                        <!-- module-info 縺ｨ MRJAR 縺ｮ蜀・ｮｹ縺ｯ蠑ｷ繧ｫ繝励そ繝ｫ蛹悶ｒ螢翫☆縺溘ａ髯､螟・-->
                                         <exclude>module-info.class</exclude>
                                         <exclude>META-INF/versions/**</exclude>
 
-                                        <!-- 重複/署名関連の META-INF は除外（Uber-Jarで無意味 or 競合の元） -->
+                                        <!-- 驥崎､・鄂ｲ蜷埼未騾｣縺ｮ META-INF 縺ｯ髯､螟厄ｼ・ber-Jar縺ｧ辟｡諢丞袖 or 遶ｶ蜷医・蜈・ｼ・-->
                                         <exclude>META-INF/MANIFEST.MF</exclude>
                                         <exclude>META-INF/INDEX.LIST</exclude>
                                         <exclude>META-INF/DEPENDENCIES</exclude>
@@ -249,7 +249,7 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Reflections: クラスパススキャン用 -->
+        <!-- Reflections: 繧ｯ繝ｩ繧ｹ繝代せ繧ｹ繧ｭ繝｣繝ｳ逕ｨ -->
         <dependency>
             <groupId>org.reflections</groupId>
             <artifactId>reflections</artifactId>
@@ -300,3 +300,6 @@
         </dependencies>
     </dependencyManagement>
 </project>
+
+
+

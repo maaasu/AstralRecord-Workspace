@@ -541,13 +541,13 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             menuView.open(player);
             return;
         }
-        if (!hasAdminPermission(player)) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
             GuiSound.DENY.play(player);
-            player.closeInventory();
             return;
         }
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null || plugin.getPlayerClassService() == null) {
+        var classService = plugin.getPlayerClassService();
+        if (classService == null) {
             GuiSound.DENY.play(player);
             return;
         }
@@ -556,22 +556,21 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
+        if (!classService.canChangeClass(astPlayer, classId)) {
+            GuiSound.DENY.play(player);
+            return;
+        }
 
-        String oldDisplayName = plugin.getPlayerClassService().getDisplayName(astPlayer.getClassId());
+        String oldDisplayName = classService.getDisplayName(astPlayer.getClassId());
         astPlayer.setClassId(classId);
         astPlayer.setClassLevel(Math.max(1, astPlayer.getClassLevel()));
-        String newDisplayName = plugin.getPlayerClassService().getDisplayName(classId);
+        String newDisplayName = classService.getDisplayName(classId);
         PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5812, oldDisplayName, newDisplayName);
         GuiSound.SELECT.play(player);
         switchGuiWithoutInventoryReload(
             player,
-            () -> menuView.openClass(player, astPlayer, plugin.getPlayerClassService().getClassViewEntries())
+            () -> menuView.openClass(player, astPlayer, classService.getClassViewEntries(astPlayer))
         );
-    }
-
-    private boolean hasAdminPermission(@NotNull Player player) {
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        return astPlayer != null && astPlayer.hasAdminPermission();
     }
 
     private void executeShortcutAction(@NotNull Player player, @NotNull MenuShortcutAction action, int shortcutIndex) {
