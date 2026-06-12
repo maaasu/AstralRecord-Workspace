@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
+import org.bukkit.event.Event;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -20,7 +21,7 @@ import org.mockbukkit.mockbukkit.entity.PlayerMock;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -65,7 +66,8 @@ class ItemWeaponAttackEventHandlerTest extends MockBukkitTestBase {
 
         handler.onPlayerInteract(event);
 
-        assertTrue(event.isCancelled());
+        assertEquals(Event.Result.DENY, event.useInteractedBlock());
+        assertEquals(Event.Result.DENY, event.useItemInHand());
         verify(attackService, never()).handleLeftClick(astPlayer, player.getEyeLocation());
         verify(attackService, never()).handleRightClick(astPlayer, player.getEyeLocation());
     }
@@ -102,7 +104,8 @@ class ItemWeaponAttackEventHandlerTest extends MockBukkitTestBase {
 
         handler.onPlayerInteract(event);
 
-        assertTrue(event.isCancelled());
+        assertEquals(Event.Result.DENY, event.useInteractedBlock());
+        assertEquals(Event.Result.DENY, event.useItemInHand());
         verify(attackService, never()).handleLeftClick(astPlayer, player.getEyeLocation());
         verify(attackService, never()).handleRightClick(astPlayer, player.getEyeLocation());
     }
