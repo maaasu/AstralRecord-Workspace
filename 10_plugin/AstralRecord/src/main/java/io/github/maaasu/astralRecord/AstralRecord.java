@@ -899,6 +899,15 @@ public final class AstralRecord extends JavaPlugin {
         return sellService;
     }
 
+    /**
+     * 装備強化 GUI サービスを取得します。
+     *
+     * @return 装備強化 GUI サービス
+     */
+    public EquipmentEnhancementService getEquipmentEnhancementService() {
+        return equipmentEnhancementService;
+    }
+
     public StorageService getStorageService() {
         return storageService;
     }
