@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.skilltree.service;
 
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -316,7 +317,7 @@ public class SkillTreeService {
     }
 
     public boolean isAdminMode(@Nullable AstPlayer astPlayer) {
-        return astPlayer != null && astPlayer.hasAdminPermission();
+        return astPlayer != null && astPlayer.getAccount().getMode() == AccountMode.ADMIN;
     }
 
     public boolean shouldShowAdminPosition(@NotNull Player player, @NotNull Location location) {

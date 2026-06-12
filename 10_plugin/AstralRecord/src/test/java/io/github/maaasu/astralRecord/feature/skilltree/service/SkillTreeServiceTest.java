@@ -222,7 +222,7 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
     }
 
     @Test
-    void playerModeSkillTreeUsesPermissionInsteadOfAccountMode() {
+    void playerModeSkillTreeUsesAccountModeInsteadOfPermission() {
         WorldService worldService = mock(WorldService.class);
         SkillTreeService service = new SkillTreeService(
                 PluginMock.builder()
@@ -237,7 +237,7 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
         );
         Player player = server().addPlayer();
         AstPlayer builder = mock(AstPlayer.class);
-        when(builder.hasAdminPermission()).thenReturn(false);
+        when(builder.getAccount()).thenReturn(accountModel(AccountMode.BUILDER));
         when(builder.getBukkit()).thenReturn(player);
         AstPlayerCache.put(builder);
 
@@ -259,13 +259,24 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
         ));
 
         assertTrue(service.isPlayerModeSkillTree(player));
+        assertFalse(service.isAdminMode(builder));
 
         AstPlayer admin = mock(AstPlayer.class);
-        when(admin.hasAdminPermission()).thenReturn(true);
+        when(admin.getAccount()).thenReturn(accountModel(AccountMode.ADMIN));
         when(admin.getBukkit()).thenReturn(player);
         AstPlayerCache.put(admin);
 
         assertFalse(service.isPlayerModeSkillTree(player));
+        assertTrue(service.isAdminMode(admin));
+
+        AstPlayer privilegedPlayerMode = mock(AstPlayer.class);
+        when(privilegedPlayerMode.getAccount()).thenReturn(accountModel(AccountMode.PLAYER));
+        when(privilegedPlayerMode.hasAdminPermission()).thenReturn(true);
+        when(privilegedPlayerMode.getBukkit()).thenReturn(player);
+        AstPlayerCache.put(privilegedPlayerMode);
+
+        assertTrue(service.isPlayerModeSkillTree(player));
+        assertFalse(service.isAdminMode(privilegedPlayerMode));
     }
 
     private SkillTreeService newService(
