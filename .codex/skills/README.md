@@ -92,7 +92,7 @@ Use $astralrecord-plugin-test to prepare an integration dev server by cloning th
 
 - 機能仕様そのものを変える依頼なら `$astralrecord-code` を使う。
 - コード修正を伴わないレビューだけなら `$astralrecord-code-review` を使う。
-- テスト追加後に `develop` へコミットしたい場合は `$astralrecord-commit-develop` を組み合わせる。
+- テスト追加後に task branch / worktree から `develop` へ戻したい場合は `$astralrecord-git-worktree-develop` を組み合わせる。
 
 ## `$astralrecord-docs-review`
 
@@ -210,35 +210,65 @@ Use $astralrecord-code-fix to apply review fixes for E:\AstralRecord-Workspace\1
 - `00_docs\99_資料\レビュー結果` 配下にレビュー結果ファイルがある場合、修正済み指摘の `修正状態` を更新し、未完了時はファイル名先頭の `<fixed-count>／<finding-count>` を更新する（全件修正時は先頭を `[完了] ` にする）。
 - 既存パターン (enum / ID / DTO / リポジトリ / メッセージ / ログカテゴリ / リソースキー) を優先し、指摘外の構造変更は行わない。
 
-## `$astralrecord-commit-develop`
+## `$astralrecord-commit-current-diff`
 
-AstralRecord workspace の差分を確認し、コミット対象として適切なファイルだけを stage して `develop` にコミットする skill。
+AstralRecord workspace の現在の branch / worktree にある未コミット差分を確認し、今回の作業に関係するファイルだけを stage して commit する skill。
 
 ### 使う場面
 
-- 作業差分を `develop` にコミットしたい。
-- `target/`、IDE 設定、`.env`、`appsettings.Development.json` などを誤ってコミットしたくない。
-- 未追跡ファイルが多い状態で、今回の作業に関係するファイルだけを選別したい。
+- すでに task branch / worktree があり、その場の差分整理と commit だけを行いたい。
+- `target/`、IDE 設定、`.env`、`appsettings.Development.json` などを誤って取り込まずに、今回の変更だけを commit したい。
+- `.codex/skills`、plugin、API、docs などで、現在の未コミット差分から関係ファイルだけを選別したい。
 
 ### 実行例
 
 ```text
-Use $astralrecord-commit-develop to inspect current changes and commit appropriate files to develop.
+Use $astralrecord-commit-current-diff to commit the current skill changes for E:\AstralRecord-Workspace\.codex\skills and report the result.
 ```
 
 ```text
-Use $astralrecord-commit-develop to commit skill changes for E:\AstralRecord-Workspace\.codex\skills and report the result.
+Use $astralrecord-commit-current-diff to commit the current plugin changes for E:\AstralRecord-Workspace\10_plugin\AstralRecord from the current task branch and report the result.
 ```
 
 ```text
-Use $astralrecord-commit-develop to commit plugin implementation changes for E:\AstralRecord-Workspace\10_plugin\AstralRecord and report the result.
+Use $astralrecord-commit-current-diff to commit the current review-fix changes for E:\AstralRecord-Workspace\00_docs\99_資料\レビュー結果 and report the result.
 ```
 
 ### 注意点
 
-- 現在ブランチが `develop` でない場合、この skill はコミット前に停止して確認する。
+- `develop` 直コミットは既定で行わず、明示指示がない限り停止して `$astralrecord-git-worktree-develop` を案内する。
 - `git add .` や `git add -A` は使わず、対象ファイルを個別に stage する。
-- `EXCLUDE` と分類されたファイルは、明示的な指示がない限り stage しない。
+- branch 作成、worktree 作成、`develop` への merge、cleanup を含む場合は `$astralrecord-git-worktree-develop` を使う。
+
+## `$astralrecord-git-worktree-develop`
+
+AstralRecord workspace で task ごとに branch と git worktree を分け、prepare・commit・develop への merge・cleanup を管理する git 運用 skill。
+
+### 使う場面
+
+- `develop` 直作業を避けて、task ごとに安全な branch / worktree を作りたい。
+- `target/`、IDE 設定、`.env`、`appsettings.Development.json` などを誤って取り込まずに task 差分だけを commit したい。
+- 完了後に `develop` へ fast-forward merge し、成功時だけ branch / worktree を片付けたい。
+
+### 実行例
+
+```text
+Use $astralrecord-git-worktree-develop to prepare a task branch and worktree for skill changes under E:\AstralRecord-Workspace\.codex\skills and report the branch name and worktree path.
+```
+
+```text
+Use $astralrecord-git-worktree-develop to finalize the current task worktree for E:\AstralRecord-Workspace\.codex\skills, merge it into develop, and clean up the task branch and worktree if successful.
+```
+
+```text
+Use $astralrecord-git-worktree-develop to finalize the current task worktree for E:\AstralRecord-Workspace\10_plugin\AstralRecord, keep the worktree if conflicts occur, and report the result.
+```
+
+### 注意点
+
+- task の開始時は local `develop` から branch / worktree を切り、作業はその worktree で進める。
+- `git add .` や `git add -A` は使わず、対象ファイルを個別に stage する。
+- rebase / merge conflict が起きた場合は停止し、branch / worktree を残したまま報告する。
 
 ## `$astralrecord-plugin-version`
 
@@ -268,30 +298,30 @@ Use $astralrecord-plugin-version to bump the plugin to a release candidate for E
 
 ## `$astralrecord-code-version-commit-develop`
 
-`$astralrecord-code` で実装し、必要な場合だけ `$astralrecord-plugin-version` で plugin 版番号を更新し、その後 `$astralrecord-commit-develop` で `develop` へコミットする統合 skill。
+`$astralrecord-code` で実装し、必要な場合だけ `$astralrecord-plugin-version` で plugin 版番号を更新し、その前後を `$astralrecord-git-worktree-develop` で囲って task branch / worktree 上で進め、最後に `develop` へ戻す統合 skill。
 
 ### 使う場面
 
-- 実装から版番号更新、コミットまでを 1 回の依頼で続けて進めたい。
+- 実装から版番号更新、task branch / worktree の作成、commit、`develop` への merge、cleanup までを 1 回の依頼で続けて進めたい。
 - plugin 実装時は版番号更新を入れたいが、API や docs だけの変更では自動で省略したい。
-- 実装ルール、版番号ルール、コミットルールを既存 skill の正本に委譲したまま順序だけ統合したい。
+- 実装ルール、版番号ルール、git 運用ルールを既存 skill の正本に委譲したまま順序だけ統合したい。
 
 ### 実行例
 
 ```text
-Use $astralrecord-code-version-commit-develop to implement the requested plugin behavior for E:\AstralRecord-Workspace\10_plugin\AstralRecord, update the plugin version, and commit the resulting files to develop.
+Use $astralrecord-code-version-commit-develop to implement the requested plugin behavior for E:\AstralRecord-Workspace\10_plugin\AstralRecord, update the plugin version, and merge the resulting files back into develop through a task worktree.
 ```
 
 ```text
-Use $astralrecord-code-version-commit-develop to implement the requested skill change for E:\AstralRecord-Workspace\.codex\skills, skip plugin versioning if the plugin was not touched, and commit the resulting files to develop.
+Use $astralrecord-code-version-commit-develop to implement the requested skill change for E:\AstralRecord-Workspace\.codex\skills, skip plugin versioning if the plugin was not touched, and merge the resulting files back into develop through a task worktree.
 ```
 
 ### 注意点
 
 - 実装そのもののルールは `$astralrecord-code` を正本とする。
 - plugin 変更が含まれる場合だけ `$astralrecord-plugin-version` を実行する。
-- コミット条件は `$astralrecord-commit-develop` を正本とし、現在ブランチが `develop` でない場合はその時点で停止する。
-- コミット対象は、直前の実装と必要な版番号更新で変更したファイルだけに限定する。
+- git 運用条件は `$astralrecord-git-worktree-develop` を正本とし、prepare / finalize のどちらかが停止した場合はその時点で停止する。
+- コミット対象は、task worktree 上で直前の実装と必要な版番号更新で変更したファイルだけに限定する。
 
 ## skill 追加時の README 更新
 

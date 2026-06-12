@@ -9,8 +9,8 @@ from pathlib import Path
 
 
 SUSPICIOUS_TOKENS = (
-    "\ufffd",  # replacement character
-    "・ｽ",     # common mojibake pattern in JP text
+    "\ufffd",
+    "繝ｻ・ｽ",
 )
 
 TEXT_EXTENSIONS = {

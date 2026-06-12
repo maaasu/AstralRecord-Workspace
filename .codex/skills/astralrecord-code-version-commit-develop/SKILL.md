@@ -1,31 +1,33 @@
 ---
 name: astralrecord-code-version-commit-develop
-description: AstralRecord の実装作業を `$astralrecord-code` で行い、その結果として `10_plugin/AstralRecord` を変更した場合に `$astralrecord-plugin-version` でプラグイン版番号を更新し、最後に `$astralrecord-commit-develop` で `develop` ブランチへ安全にコミットする統合スキル。実装・版番号更新・コミットを 1 回で通したいとき、特にプラグイン実装や `.codex/skills` 変更を `develop` ブランチに反映したいときに使う。プラグインに触れない実装ではバージョン更新を自動で省略する。
+description: AstralRecord の実装作業を task ごとの branch / git worktree 上で進め、`$astralrecord-code` で実装し、必要な場合だけ `$astralrecord-plugin-version` でプラグイン版番号を更新し、最後に `$astralrecord-git-worktree-develop` で commit・develop への merge・cleanup まで行う統合スキル。プラグインに触れない実装ではバージョン更新を自動で省略する。
 ---
 
 # AstralRecord Code Version Commit Develop
 
 ## Core Rule
 
-Do not redefine implementation, plugin versioning, or commit rules in this skill. Use the existing skills as the source of truth and connect them in order.
+Do not redefine implementation, plugin versioning, or git workflow rules in this skill. Use the existing skills as the source of truth and connect them in order.
 
-1. First, use `$astralrecord-code` for the user's requested implementation.
-2. If that implementation changed `E:\AstralRecord-Workspace\10_plugin\AstralRecord`, use `$astralrecord-plugin-version`.
-3. After implementation and any required version update complete, use `$astralrecord-commit-develop`.
-4. Keep the commit scope limited to the files changed by the implementation and the version update.
-5. Keep the commit message format from `$astralrecord-commit-develop`.
+1. First, use `$astralrecord-git-worktree-develop` to prepare a task branch and worktree from local `develop`.
+2. Run `$astralrecord-code` inside that prepared worktree.
+3. If that implementation changed `10_plugin/AstralRecord`, use `$astralrecord-plugin-version` in the same worktree.
+4. After implementation and any required version update complete, use `$astralrecord-git-worktree-develop` again to finalize the task worktree back into `develop`.
+5. Keep the commit scope limited to the files changed by the implementation and the version update.
+6. Keep the commit message format from `E:\AstralRecord-Workspace\COMMIT_RULES.md`.
 
 ## Workflow
 
 1. Read `E:\AstralRecord-Workspace\AGENTS.md`.
 2. Identify the target project exactly as `$astralrecord-code` would.
-3. Invoke `$astralrecord-code` and finish the requested implementation, including docs sync and verification required by that skill.
-4. Inspect the resulting changed files.
-5. If plugin files under `10_plugin/AstralRecord` changed, invoke `$astralrecord-plugin-version`:
+3. Invoke `$astralrecord-git-worktree-develop` in Prepare mode and create a task branch / worktree for the request.
+4. Map the requested absolute path from `E:\AstralRecord-Workspace\...` to the returned worktree root and invoke `$astralrecord-code` there. Finish the requested implementation, including docs sync and verification required by that skill.
+5. Inspect the resulting changed files in the task worktree.
+6. If plugin files under `10_plugin/AstralRecord` changed, invoke `$astralrecord-plugin-version` in the same worktree:
    - Default to a `dev` version unless the user explicitly asked for a release or release-candidate style version.
    - Choose `major` / `minor` / `patch` based on the implementation scope.
-6. Invoke `$astralrecord-commit-develop` and commit only the implementation files plus the version update file when step 5 ran.
-7. If `$astralrecord-commit-develop` stops because the current branch is not `develop`, stop there and report that condition instead of inventing a different flow.
+7. Invoke `$astralrecord-git-worktree-develop` in Finalize mode and commit only the implementation files plus the version update file when step 6 ran.
+8. If Prepare mode cannot create the worktree, or Finalize mode stops because of dirty `develop`, branch collision, or rebase / merge conflicts, stop there and report that condition instead of inventing a different flow.
 
 ## Version Update Decision
 
@@ -48,15 +50,19 @@ If both plugin and non-plugin projects changed in one task, run the plugin versi
 Use prompts equivalent to the following:
 
 ```text
-Use $astralrecord-code to <implementation task> for <absolute-path> and report the result.
+Use $astralrecord-git-worktree-develop to prepare a task branch and worktree for <absolute-path> and report the branch name and worktree path.
 ```
 
 ```text
-Use $astralrecord-plugin-version to update the plugin version for E:\AstralRecord-Workspace\10_plugin\AstralRecord based on the implementation just completed and report the result.
+Use $astralrecord-code to <implementation task> for <worktree-absolute-path> and report the result.
 ```
 
 ```text
-Use $astralrecord-commit-develop to commit only the files changed for <absolute-path> including the plugin version update when present, and report the result.
+Use $astralrecord-plugin-version to update the plugin version for <worktree-plugin-path> based on the implementation just completed and report the result.
+```
+
+```text
+Use $astralrecord-git-worktree-develop to finalize the current task worktree for <worktree-absolute-path>, merge it into develop, and clean up the task branch and worktree if successful.
 ```
 
 When the user did not provide a path but the project is still clear, keep the project context explicit in all steps.
@@ -66,16 +72,17 @@ When the user did not provide a path but the project is still clear, keep the pr
 Write the final result in Japanese and merge all executed steps into one report.
 
 - `実装結果`: `$astralrecord-code` の要点
-- `バージョン更新結果`: 実行した場合のみ要点。未実行なら理由を明記
-- `コミット結果`: `$astralrecord-commit-develop` の要点
-- `未完了事項`: ブランチ条件、未実行検証、保留判断のみ
+- `Branch / Worktree`: 準備した branch 名と worktree パス
+- `バージョン更新結果`: 実施した場合のみ要点。未実施なら理由を明記
+- `Git結果`: `$astralrecord-git-worktree-develop` の要点
+- `未対応事項`: ブランチ競合、未実施テスト、競合解決待ちなど
 
 ## Example
 
 ```text
-Use $astralrecord-code-version-commit-develop to implement the requested plugin behavior for E:\AstralRecord-Workspace\10_plugin\AstralRecord, update the plugin version, and commit the resulting files to develop.
+Use $astralrecord-code-version-commit-develop to implement the requested plugin behavior for E:\AstralRecord-Workspace\10_plugin\AstralRecord, update the plugin version, and merge the resulting files back into develop through a task worktree.
 ```
 
 ```text
-Use $astralrecord-code-version-commit-develop to implement the requested skill change for E:\AstralRecord-Workspace\.codex\skills, skip plugin versioning if the plugin was not touched, and commit the resulting files to develop.
+Use $astralrecord-code-version-commit-develop to implement the requested skill change for E:\AstralRecord-Workspace\.codex\skills, skip plugin versioning if the plugin was not touched, and merge the resulting files back into develop through a task worktree.
 ```

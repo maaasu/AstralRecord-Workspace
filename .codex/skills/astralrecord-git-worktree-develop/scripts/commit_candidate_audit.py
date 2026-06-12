@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Classify git changes for safe AstralRecord develop commits."""
+"""Classify git changes for safe AstralRecord task-branch commits."""
 
 from __future__ import annotations
 
@@ -140,14 +140,17 @@ def main() -> int:
     branch = run_git(git_root, ["branch", "--show-current"]).decode("utf-8").strip()
     changes = parse_status(run_git(git_root, ["status", "--porcelain=v1", "-uall", "-z"]))
 
-    print(f"# commit_candidate_audit")
+    print("# commit_candidate_audit")
     print(f"Root: {git_root}")
     print(f"Branch: {branch}")
     print(f"Changed paths: {len(changes)}")
     print()
 
-    if branch != "develop":
-        print("[STOP] Current branch is not develop.")
+    if branch == "develop":
+        print("[WARN] Current branch is develop. Final task commits should happen on a dedicated task branch.")
+        print()
+    elif not branch:
+        print("[WARN] Detached HEAD detected. Confirm branch context before committing.")
         print()
 
     if not changes:

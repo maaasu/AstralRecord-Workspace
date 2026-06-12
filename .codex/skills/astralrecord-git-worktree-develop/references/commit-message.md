@@ -21,6 +21,6 @@ Use `E:\AstralRecord-Workspace\COMMIT_RULES.md` as the source of truth. This fil
 
 Examples:
 
-- `chore: develop向けコミット手順skillを追加`
-- `docs: モノレポのコミットルールを追加`
-- `fix: ログアウト時の保存順を修正`
+- `chore: worktree 運用 skill を追加`
+- `docs: skill README の git 運用説明を更新`
+- `fix: branch slug 生成時の衝突判定を修正`
