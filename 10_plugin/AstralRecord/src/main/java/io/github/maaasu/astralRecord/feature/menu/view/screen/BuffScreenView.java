@@ -68,10 +68,9 @@ public final class BuffScreenView extends BaseMenuScreenView {
         lore.add(Component.empty());
         for (BuffModifier modifier : buff.getType().getModifiers()) {
             StatusType type = modifier.getStatus();
-            lore.add(noItalic(Component.text(
-                type.getDisplayName() + " " + type.formatSignedValue(modifier.getValue()),
-                NamedTextColor.GREEN
-            )));
+            lore.add(noItalic(Component.empty()
+                .append(Component.text(type.getDisplayName() + " ", type.namedColor()))
+                .append(Component.text(type.formatSignedValue(modifier.getValue()), NamedTextColor.WHITE))));
         }
         return createItem(buff.getType().isDebuff() ? Material.FERMENTED_SPIDER_EYE : Material.POTION, name, lore);
     }

@@ -493,8 +493,8 @@ public class SkillService {
         if (result.success()) return;
         PlayerMsgId messageId = result.messageId();
         if (messageId == null) return;
-        if (messageId == PlayerMsgId.P_5803 || messageId == PlayerMsgId.P_5804) {
-            caster.notify(messageId, skillId);
+        if (messageId == PlayerMsgId.P_5803 || messageId == PlayerMsgId.P_5804 || messageId == PlayerMsgId.P_5809) {
+            caster.notify(messageId, SkillPresentationUtil.plainName(registry.getDefinition(skillId), "未定義スキル"));
         } else {
             caster.notify(messageId);
         }

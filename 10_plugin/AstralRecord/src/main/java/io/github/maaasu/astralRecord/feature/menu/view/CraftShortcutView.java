@@ -200,12 +200,12 @@ final class CraftShortcutView {
             .append(Component.text(String.valueOf(skillPoints), NamedTextColor.AQUA)));
         lore.add(Component.text("━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
         if (snapshot != null && !snapshot.getValues().isEmpty()) {
-            addStatusLine(lore, snapshot, StatusType.ATTACK, NamedTextColor.RED);
-            addStatusLine(lore, snapshot, StatusType.MELEE_ATTACK, NamedTextColor.RED);
-            addStatusLine(lore, snapshot, StatusType.RANGED_ATTACK, NamedTextColor.RED);
-            addStatusLine(lore, snapshot, StatusType.MAGIC_ATTACK, NamedTextColor.RED);
-            addStatusLine(lore, snapshot, StatusType.DEFENSE, NamedTextColor.BLUE);
-            addStatusLine(lore, snapshot, StatusType.MAGIC_DEFENSE, NamedTextColor.BLUE);
+            addStatusLine(lore, snapshot, StatusType.ATTACK);
+            addStatusLine(lore, snapshot, StatusType.MELEE_ATTACK);
+            addStatusLine(lore, snapshot, StatusType.RANGED_ATTACK);
+            addStatusLine(lore, snapshot, StatusType.MAGIC_ATTACK);
+            addStatusLine(lore, snapshot, StatusType.DEFENSE);
+            addStatusLine(lore, snapshot, StatusType.MAGIC_DEFENSE);
         } else {
             lore.add(Component.text("ステータス未取得", NamedTextColor.DARK_GRAY));
         }
@@ -280,13 +280,12 @@ final class CraftShortcutView {
     private void addStatusLine(
         @NotNull List<Component> lore,
         @NotNull StatusSnapshot snapshot,
-        @NotNull StatusType statusType,
-        @NotNull NamedTextColor color
+        @NotNull StatusType statusType
     ) {
         if (snapshot.getValue(statusType) == null) {
             return;
         }
-        lore.add(Component.text(statusType.getDisplayName() + ": ", color)
+        lore.add(Component.text(statusType.getDisplayName() + ": ", statusType.namedColor())
             .append(Component.text(statusType.formatValue(snapshot.getMaxValue(statusType)), NamedTextColor.WHITE)));
     }
 

@@ -217,7 +217,10 @@ public final class SkillActionRingService {
         String skillId = session.selectedSkillId();
         int selectedSlot = session.selectedIndex + 1;
         session.destroy();
+        String skillDisplayName = "未設定";
         if (skillId != null && !skillId.isBlank()) {
+            SkillDefinition definition = skillService.registry().getDefinition(skillId);
+            skillDisplayName = SkillPresentationUtil.plainName(definition, "未定義スキル");
             skillService.castSkill(
                 new PlayerSkillCaster(astPlayer),
                 skillId,
@@ -228,7 +231,7 @@ public final class SkillActionRingService {
             );
         }
         GuiSound.RING_CAST.play(player);
-        PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5807, SLOT_COUNT, selectedSlot, skillId);
+        PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5807, SLOT_COUNT, selectedSlot, skillDisplayName);
     }
 
     /**
@@ -326,7 +329,9 @@ public final class SkillActionRingService {
                 slots.add(new SlotView(skillId, "設定不可", Material.BARRIER, false));
                 continue;
             }
-            String displayName = definition == null ? skillId : ColorCodeUtil.translateAlternateColorCodes(definition.getName());
+            String displayName = definition == null
+                    ? "未定義スキル"
+                    : SkillPresentationUtil.legacyName(definition, "未定義スキル");
             boolean owned = ownedSkillIds.contains(skillId);
             Material material = owned ? parseMaterial(definition == null ? null : definition.getIcon(), Material.BARRIER) : Material.BARRIER;
             slots.add(new SlotView(skillId, displayName, material, owned));

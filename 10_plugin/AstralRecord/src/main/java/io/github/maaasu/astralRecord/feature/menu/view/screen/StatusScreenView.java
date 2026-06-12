@@ -143,7 +143,7 @@ public final class StatusScreenView extends BaseMenuScreenView {
     ) {
         Component line = Component.empty()
             .append(Component.text(" ▸ ", accent))
-            .append(Component.text(type.getDisplayName(), NamedTextColor.GRAY))
+            .append(Component.text(type.getDisplayName(), type.namedColor()))
             .append(Component.text(" ", NamedTextColor.DARK_GRAY))
             .append(Component.text(type.formatValue(value.getTotalValue()), NamedTextColor.WHITE, TextDecoration.BOLD));
 

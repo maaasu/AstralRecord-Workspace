@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillBindScreen;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindSession;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindType;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.confirm.ConfirmDialogView;
 import net.kyori.adventure.text.Component;
@@ -364,8 +365,8 @@ public final class SkillBindGui {
             lore.add(Component.text("スキル一覧から選択するとここに設定されます。", NamedTextColor.GRAY));
             lore.add(Component.text("クリックでこの枠を選択できます。", NamedTextColor.YELLOW));
         } else if (skill == null) {
-            lore.add(Component.text("ID: " + skillId, NamedTextColor.DARK_GRAY));
-            lore.add(Component.text("スキル定義が見つかりません。", NamedTextColor.RED));
+            lore.add(Component.text("未読込スキル", NamedTextColor.RED));
+            lore.add(Component.text("スキル定義が見つかりません。", NamedTextColor.DARK_GRAY));
         } else {
             addSkillLore(lore, skill, owned);
             if (!kindMatches) {
@@ -423,13 +424,13 @@ public final class SkillBindGui {
 
     private @NotNull Component skillName(@Nullable SkillDefinition skill, @NotNull String fallback, boolean owned) {
         if (skill == null || skill.getName().isBlank()) {
-            return Component.text(fallback, owned ? NamedTextColor.WHITE : NamedTextColor.GRAY);
+            return Component.text("未定義スキル", owned ? NamedTextColor.WHITE : NamedTextColor.GRAY);
         }
         return legacyComponent(skill.getName());
     }
 
     private void addSkillLore(@NotNull List<Component> lore, @NotNull SkillDefinition skill, boolean owned) {
-        lore.add(Component.text("ID: " + skill.getId(), NamedTextColor.DARK_GRAY));
+        lore.add(Component.text("スキル名: " + SkillPresentationUtil.plainName(skill, "未定義スキル"), NamedTextColor.DARK_GRAY));
         lore.add(Component.text("種別: " + (skill.getKind().isPassive() ? "パッシブ" : "発動スキル"), NamedTextColor.GOLD));
         if (skill.getKind().isPassive()) {
             lore.add(Component.text(

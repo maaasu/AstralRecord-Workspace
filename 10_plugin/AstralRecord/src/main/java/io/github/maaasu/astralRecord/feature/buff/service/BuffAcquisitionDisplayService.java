@@ -142,6 +142,6 @@ public final class BuffAcquisitionDisplayService {
         }
         BuffModifier modifier = modifiers.get(0);
         StatusType type = modifier.getStatus();
-        return type.getDisplayName() + " " + type.formatSignedValue(modifier.getValue());
+        return type.legacyColor() + type.getDisplayName() + ColorCodeUtil.WHITE + " " + type.formatSignedValue(modifier.getValue());
     }
 }

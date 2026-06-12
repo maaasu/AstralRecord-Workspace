@@ -88,7 +88,7 @@ public class StatusCommand extends AstCommand {
                 playerMessageService.send(
                     player,
                     PlayerMsgId.P_5103,
-                    type.getDisplayName(),
+                    type.legacyColor() + type.getDisplayName(),
                     type.formatValue(value.getBaseValue()),
                     type.formatSignedValue(value.getBonusValue()),
                     type.formatValue(value.getTotalValue())
@@ -99,7 +99,7 @@ public class StatusCommand extends AstCommand {
             playerMessageService.send(
                 player,
                 PlayerMsgId.P_5101,
-                type.getDisplayName(),
+                type.legacyColor() + type.getDisplayName(),
                 type.formatValue(value.getTotalValue())
             );
         }

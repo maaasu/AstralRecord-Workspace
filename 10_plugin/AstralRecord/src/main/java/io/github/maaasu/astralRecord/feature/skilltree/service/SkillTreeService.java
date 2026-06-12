@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeEdge;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefinition;
@@ -1199,20 +1200,20 @@ public class SkillTreeService {
             }
             String skillId = rawSkillId.trim();
             if (skillService == null) {
-                lore.add(component("&7- &f" + skillId));
+                lore.add(component("&7- &f未読込スキル"));
                 continue;
             }
             var definition = skillService.registry().getDefinition(skillId);
             if (definition == null) {
-                lore.add(component("&7- &f" + skillId + " &8(未読込)"));
+                lore.add(component("&7- &f未読込スキル &8(未読込)"));
                 continue;
             }
             String kindLabel = definition.getKind().isPassive() ? "パッシブ" : "発動";
             String triggerLabel = definition.getKind().isPassive()
                     ? (definition.getPassiveBindRequired() ? "要バインド" : "所持のみ")
                     : "アクティブ";
-            lore.add(component("&7- &f" + stripLegacy(definition.getName()) + " &8[" + kindLabel + " / " + triggerLabel + "]"));
-            lore.add(component("&8  ID: " + definition.getId()));
+            lore.add(component("&7- &f" + SkillPresentationUtil.plainName(definition, "未定義スキル")
+                    + " &8[" + kindLabel + " / " + triggerLabel + "]"));
         }
     }
 
@@ -1222,7 +1223,8 @@ public class SkillTreeService {
         }
         lore.add(component("&8--- &dステータス &8---"));
         for (SkillTreeNodeStatusDefinition status : node.statuses()) {
-            lore.add(component("&7- &f" + status.statusType().getDisplayName() + " &a" + formatNodeStatusModifier(status)));
+            lore.add(component("&7- " + status.statusType().legacyColor() + status.statusType().getDisplayName()
+                    + " &a" + formatNodeStatusModifier(status)));
         }
     }
 
@@ -1245,10 +1247,10 @@ public class SkillTreeService {
             String skillId = rawSkillId.trim();
             var definition = skillService == null ? null : skillService.registry().getDefinition(skillId);
             if (definition == null) {
-                lore.add(component("&7- &f" + skillId + " &8(未読込)"));
+                lore.add(component("&7- &f未読込スキル &8(未読込)"));
                 continue;
             }
-            lore.add(component("&7- &f" + stripLegacy(definition.getName())));
+            lore.add(component("&7- &f" + SkillPresentationUtil.plainName(definition, "未定義スキル")));
             String description = firstSkillDescription(definition);
             if (!description.isBlank()) {
                 lore.add(component("&8  " + stripLegacy(description)));
@@ -1266,7 +1268,7 @@ public class SkillTreeService {
         }
         lines.add(unlocked ? "&8--- &dステータス &8---" : "&8--- ステータス ---");
         for (SkillTreeNodeStatusDefinition status : node.statuses()) {
-            lines.add((unlocked ? "&7- &f" : "&8- &7")
+            lines.add((unlocked ? "&7- " + status.statusType().legacyColor() : "&8- &7")
                     + status.statusType().getDisplayName()
                     + " "
                     + (unlocked ? "&a" : "&7")
@@ -1290,10 +1292,10 @@ public class SkillTreeService {
             String skillId = rawSkillId.trim();
             var definition = skillService == null ? null : skillService.registry().getDefinition(skillId);
             if (definition == null) {
-                lines.add((unlocked ? "&7- &f" : "&8- &7") + skillId);
+                lines.add((unlocked ? "&7- &f" : "&8- &7") + "未読込スキル");
                 continue;
             }
-            lines.add((unlocked ? "&7- &f" : "&8- &7") + stripLegacy(definition.getName()));
+            lines.add((unlocked ? "&7- &f" : "&8- &7") + SkillPresentationUtil.plainName(definition, "未定義スキル"));
             String description = firstSkillDescription(definition);
             if (!description.isBlank()) {
                 lines.add("&8  " + stripLegacy(description));

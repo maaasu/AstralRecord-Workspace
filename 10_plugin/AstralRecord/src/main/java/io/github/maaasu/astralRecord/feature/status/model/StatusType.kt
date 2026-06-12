@@ -1,5 +1,7 @@
 package io.github.maaasu.astralRecord.feature.status.model
 
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil
+import net.kyori.adventure.text.format.NamedTextColor
 import java.util.Locale
 
 /**
@@ -187,6 +189,34 @@ enum class StatusType(
         val sign = if (value > 0.0) "+" else ""
         return sign + formatValue(value)
     }
+
+    /**
+     * ステータス名の共通表示色を返します。
+     *
+     * @return UI 表示で使う Adventure 色
+     */
+    fun namedColor(): NamedTextColor =
+        when (category) {
+            Category.RESOURCE -> NamedTextColor.GOLD
+            Category.PRIMARY -> NamedTextColor.GREEN
+            Category.OFFENSE -> NamedTextColor.RED
+            Category.DEFENSE -> NamedTextColor.BLUE
+            Category.UTILITY -> NamedTextColor.YELLOW
+        }
+
+    /**
+     * ステータス名の共通表示色を legacy color code で返します。
+     *
+     * @return legacy color code
+     */
+    fun legacyColor(): String =
+        when (category) {
+            Category.RESOURCE -> ColorCodeUtil.GOLD
+            Category.PRIMARY -> ColorCodeUtil.GREEN
+            Category.OFFENSE -> ColorCodeUtil.RED
+            Category.DEFENSE -> ColorCodeUtil.BLUE
+            Category.UTILITY -> ColorCodeUtil.YELLOW
+        }
 
     companion object {
         /**

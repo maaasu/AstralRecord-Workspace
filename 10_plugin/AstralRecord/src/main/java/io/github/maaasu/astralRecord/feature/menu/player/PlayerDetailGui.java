@@ -118,8 +118,8 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
                 noItalic(Component.text("HP: " + snapshot.getCurrentHp() + "/" + snapshot.getMaxValue(StatusType.MAX_HEALTH), NamedTextColor.RED)),
                 noItalic(Component.text("MP: " + snapshot.getCurrentMp() + "/" + snapshot.getMaxValue(StatusType.MAX_MANA), NamedTextColor.BLUE)),
                 noItalic(Component.text("EN: " + snapshot.getCurrentEnergy() + "/" + snapshot.getMaxValue(StatusType.MAX_ENERGY), NamedTextColor.GREEN)),
-                noItalic(Component.text("攻撃: " + totalValue(snapshot, StatusType.ATTACK), NamedTextColor.WHITE)),
-                noItalic(Component.text("防御: " + totalValue(snapshot, StatusType.DEFENSE), NamedTextColor.WHITE))
+                noItalic(Component.text(StatusType.ATTACK.getDisplayName() + ": " + totalValue(snapshot, StatusType.ATTACK), StatusType.ATTACK.namedColor())),
+                noItalic(Component.text(StatusType.DEFENSE.getDisplayName() + ": " + totalValue(snapshot, StatusType.DEFENSE), StatusType.DEFENSE.namedColor()))
             )
         ));
         inventory.setItem(CLASS_SLOT, createItem(

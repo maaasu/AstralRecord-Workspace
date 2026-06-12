@@ -17,6 +17,7 @@ import io.github.maaasu.astralRecord.feature.loot.model.LootEntry;
 import io.github.maaasu.astralRecord.feature.loot.model.LootModel;
 import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -557,7 +558,7 @@ public class ItemStackFactory {
                 String statColor = statusCategoryColor(statusType);
                 String displayName = resolveStatusDisplayName(stat.getStatus(), statusType);
                 lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
-                        + ColorCodeUtil.WHITE + displayName
+                        + statColor + displayName
                         + ColorCodeUtil.DARK_GRAY + " : "
                         + statColor + prefix + stat.displayValue());
             }
@@ -636,13 +637,11 @@ public class ItemStackFactory {
     private void appendSkillDefinitionLore(@NotNull List<String> lore, @NotNull String skillId) {
         SkillDefinition definition = skillService == null ? null : skillService.registry().getDefinition(skillId);
         if (definition == null) {
-            lore.add(ColorCodeUtil.DARK_GRAY + "  - " + skillId + ColorCodeUtil.GRAY + " (not loaded)");
+            lore.add(ColorCodeUtil.DARK_GRAY + "  - " + ColorCodeUtil.GRAY + "未読込スキル");
             return;
         }
 
-        String displayName = definition.getName() == null || definition.getName().isBlank()
-                ? definition.getId()
-                : ColorCodeUtil.translateAlternateColorCodes(definition.getName());
+        String displayName = SkillPresentationUtil.legacyName(definition, "未定義スキル");
         lore.add(ColorCodeUtil.DARK_GRAY + "  - " + ColorCodeUtil.WHITE + displayName);
     }
 
@@ -796,7 +795,7 @@ public class ItemStackFactory {
                     String statColor = statusCategoryColor(statusType);
                     String displayName = resolveStatusDisplayName(roll.getStatus(), statusType);
                     lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
-                            + ColorCodeUtil.WHITE + displayName
+                            + statColor + displayName
                             + ColorCodeUtil.DARK_GRAY + " : "
                             + statColor + displayValue
                             + enhanceNote);
@@ -824,7 +823,7 @@ public class ItemStackFactory {
                     String statColor = statusCategoryColor(statusType);
                     String displayName = resolveStatusDisplayName(status, statusType);
                     lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
-                            + ColorCodeUtil.WHITE + displayName
+                            + statColor + displayName
                             + ColorCodeUtil.DARK_GRAY + " : "
                             + statColor + displayValue
                             + ColorCodeUtil.YELLOW + " [強化]");
@@ -848,7 +847,7 @@ public class ItemStackFactory {
                         String displayName = resolveStatusDisplayName(enchant.getStatus(), statusType);
                         String valueStr = formatStatValue(enchant.getValue());
                         lore.add(ColorCodeUtil.DARK_GRAY + " [" + (enchant.getSlotIndex() + 1) + "] "
-                                + ColorCodeUtil.WHITE + displayName
+                                + statColor + displayName
                                 + ColorCodeUtil.DARK_GRAY + " : "
                                 + statColor + prefix + valueStr);
                     }
@@ -928,7 +927,7 @@ public class ItemStackFactory {
                 String statColor = statusCategoryColor(statusType);
                 String displayName = resolveStatusDisplayName(roll.getStatus(), statusType);
                 lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
-                        + ColorCodeUtil.WHITE + displayName
+                        + statColor + displayName
                         + ColorCodeUtil.DARK_GRAY + " : "
                         + statColor + prefix + roll.getValue());
             }
@@ -1077,14 +1076,7 @@ public class ItemStackFactory {
         if (type == null) {
             return ColorCodeUtil.AQUA;
         }
-
-        return switch (type.getCategory()) {
-            case OFFENSE -> ColorCodeUtil.RED;
-            case DEFENSE -> ColorCodeUtil.BLUE;
-            case PRIMARY -> ColorCodeUtil.GREEN;
-            case RESOURCE -> ColorCodeUtil.AQUA;
-            case UTILITY -> ColorCodeUtil.YELLOW;
-        };
+        return type.legacyColor();
     }
 
     /**
