@@ -2,12 +2,11 @@ package io.github.maaasu.astralRecord.feature.player.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
-import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
-import io.github.maaasu.astralRecord.feature.menu.view.MenuInventoryHolder;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.GameMode;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -17,7 +16,14 @@ import org.bukkit.event.player.PlayerGameModeChangeEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 
 public class PlayerModeEventHandler extends AbstractEventHandler {
+    private static final String PLUGIN_PACKAGE_PREFIX = "io.github.maaasu.astralRecord.";
 
+    /**
+     * プレイヤーモード中の通常インベントリ操作を抑止します。
+     * プラグイン GUI 上のクリックは各 GUI ハンドラへ処理を委譲するため遮断しません。
+     *
+     * @param event インベントリクリックイベント
+     */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
         runSafely(() -> {
@@ -27,13 +33,19 @@ public class PlayerModeEventHandler extends AbstractEventHandler {
             if (!isPlayerMode(player)) {
                 return;
             }
-            if (isTrashScreen(event.getView().getTopInventory())) {
+            if (isPluginGui(event.getView().getTopInventory())) {
                 return;
             }
             event.setCancelled(true);
         }, LogId.E_5072, event.getWhoClicked().getName());
     }
 
+    /**
+     * プレイヤーモード中の通常インベントリドラッグを抑止します。
+     * プラグイン GUI 上のドラッグは各 GUI ハンドラへ処理を委譲するため遮断しません。
+     *
+     * @param event インベントリドラッグイベント
+     */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryDrag(InventoryDragEvent event) {
         runSafely(() -> {
@@ -43,7 +55,7 @@ public class PlayerModeEventHandler extends AbstractEventHandler {
             if (!isPlayerMode(player)) {
                 return;
             }
-            if (isTrashScreen(event.getView().getTopInventory())) {
+            if (isPluginGui(event.getView().getTopInventory())) {
                 return;
             }
             event.setCancelled(true);
@@ -84,10 +96,9 @@ public class PlayerModeEventHandler extends AbstractEventHandler {
         return astPlayer != null && astPlayer.getAccount().getMode() == AccountMode.PLAYER;
     }
 
-    private boolean isTrashScreen(Inventory topInventory) {
-        if (!(topInventory.getHolder() instanceof MenuInventoryHolder holder)) {
-            return false;
-        }
-        return holder.screen() == MenuScreen.TRASH;
+    private boolean isPluginGui(Inventory topInventory) {
+        InventoryHolder inventoryHolder = topInventory.getHolder();
+        return inventoryHolder != null
+            && inventoryHolder.getClass().getName().startsWith(PLUGIN_PACKAGE_PREFIX);
     }
 }
