@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.menu.view.screen;
 
 import io.github.maaasu.astralRecord.feature.menu.model.MenuIconDefinition;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.world.service.ReturnToBaseService;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
@@ -21,6 +23,7 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
     public static final int EQUIPMENT_GUI_SLOT = 22;
     public static final int TRASH_SLOT = 23;
     public static final int GUIDE_SLOT = 24;
+    public static final int RETURN_TO_BASE_SLOT = 25;
     public static final int BUFF_SLOT = 30;
     public static final int SKILL_BIND_SLOT = 31;
     public static final int CURRENCY_SLOT = 32;
@@ -55,6 +58,11 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
             Material.BOOK,
             Component.text("ガイド", NamedTextColor.LIGHT_PURPLE),
             List.of(Component.text("ヘルプを開く", NamedTextColor.GRAY))
+        ));
+        inventory.setItem(RETURN_TO_BASE_SLOT, createItem(
+            MenuIconDefinition.RETURN_TO_BASE.getMaterial(),
+            Component.text(MenuIconDefinition.RETURN_TO_BASE.getDisplayNameJa(), MenuIconDefinition.RETURN_TO_BASE.getColor()),
+            createReturnToBaseLore(player)
         ));
         inventory.setItem(BUFF_SLOT, createItem(
             Material.POTION,
@@ -119,6 +127,19 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
         lore.add(equipmentLine("脚", inventory.getLeggings()));
         lore.add(equipmentLine("足", inventory.getBoots()));
         return lore;
+    }
+
+    private @NotNull List<Component> createReturnToBaseLore(@NotNull Player player) {
+        int level = 1;
+        var astPlayer = AstPlayerCache.get(player);
+        if (astPlayer != null) {
+            level = Math.max(1, astPlayer.getAccount().getLevel());
+        }
+        long cost = ReturnToBaseService.calculateGoldCost(level);
+        return List.of(
+            Component.text("3秒間移動しなければ拠点へ帰還", NamedTextColor.GRAY),
+            Component.text("必要ゴールド " + cost + " (100 x Lv." + level + ")", NamedTextColor.YELLOW)
+        );
     }
 
     private @NotNull Component equipmentLine(@NotNull String label, @Nullable ItemStack itemStack) {

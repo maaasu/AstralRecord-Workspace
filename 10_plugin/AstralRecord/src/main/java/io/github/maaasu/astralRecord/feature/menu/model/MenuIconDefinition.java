@@ -10,7 +10,8 @@ import org.jetbrains.annotations.NotNull;
 public enum MenuIconDefinition {
     ACCOUNT_INFO(Material.PLAYER_HEAD, "アカウント情報", NamedTextColor.GOLD),
     CURRENCY(Material.EMERALD, "通貨", NamedTextColor.GOLD),
-    EQUIPMENT(Material.NETHERITE_CHESTPLATE, "装備", NamedTextColor.GOLD);
+    EQUIPMENT(Material.NETHERITE_CHESTPLATE, "装備", NamedTextColor.GOLD),
+    RETURN_TO_BASE(Material.BEACON, "帰還", NamedTextColor.AQUA);
 
     private final Material material;
     private final String displayNameJa;

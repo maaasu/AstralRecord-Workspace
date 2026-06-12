@@ -34,6 +34,10 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("item_drop_collect_end_rod", Particle.END_ROD, 8, 0.16D, 0.22D, 0.16D, 0.01D);
     public static final SharedParticleDefinition WORLD_SPAWN_RING_END_ROD =
         new SharedParticleDefinition("world_spawn_ring_end_rod", Particle.END_ROD, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+    public static final SharedParticleDefinition BASE_RETURN_RING_END_ROD =
+        new SharedParticleDefinition("base_return_ring_end_rod", Particle.END_ROD, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+    public static final SharedParticleDefinition BASE_RETURN_PORTAL =
+        new SharedParticleDefinition("base_return_portal", Particle.PORTAL, 10, 0.30D, 0.45D, 0.30D, 0.10D);
     public static final SharedParticleDefinition SKILLTREE_TARGET_ENCHANT =
         new SharedParticleDefinition("skilltree_target_enchant", Particle.ENCHANT, 2, 0.10D, 0.10D, 0.10D, 0.01D);
     public static final SharedParticleDefinition SKILLTREE_TARGET_LOCKED_DUST =

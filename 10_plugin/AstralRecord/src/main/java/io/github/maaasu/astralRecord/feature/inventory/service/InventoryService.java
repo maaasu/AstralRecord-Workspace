@@ -973,6 +973,36 @@ public class InventoryService {
         return remaining <= 0L;
     }
 
+    /**
+     * 指定プレイヤーの通貨インベントリへゴールドを加算します。
+     *
+     * @param astPlayer 加算対象プレイヤー
+     * @param amount 加算量
+     * @return 全量を加算できた場合は {@code true}
+     */
+    public boolean addGold(@NotNull AstPlayer astPlayer, long amount) {
+        if (amount <= 0L) {
+            return true;
+        }
+
+        ItemModel gold = itemService.loadItem(ItemService.DEFAULT_CURRENCY_ITEM_ID);
+        if (gold == null) {
+            return false;
+        }
+
+        long remaining = amount;
+        int maxStack = Math.max(1, gold.getMaxStack());
+        while (remaining > 0L) {
+            int chunk = (int) Math.min(maxStack, remaining);
+            ItemStack goldStack = itemStackResolver.resolveCurrencyDisplay(gold, chunk);
+            if (returnItemToOwnedInventory(astPlayer, goldStack) == null) {
+                return false;
+            }
+            remaining -= chunk;
+        }
+        return true;
+    }
+
     public boolean consumeNormalItem(@NotNull UUID accountId, @NotNull String itemId, long amount) {
         if (amount <= 0L) {
             return true;

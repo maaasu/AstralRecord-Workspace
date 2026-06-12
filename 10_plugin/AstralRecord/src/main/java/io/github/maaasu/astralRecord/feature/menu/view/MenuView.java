@@ -52,6 +52,7 @@ public class MenuView {
     public static final int EQUIPMENT_GUI_SLOT = MainMenuScreenView.EQUIPMENT_GUI_SLOT;
     public static final int TRASH_SLOT = MainMenuScreenView.TRASH_SLOT;
     public static final int GUIDE_SLOT = MainMenuScreenView.GUIDE_SLOT;
+    public static final int RETURN_TO_BASE_SLOT = MainMenuScreenView.RETURN_TO_BASE_SLOT;
     public static final int BUFF_SLOT = MainMenuScreenView.BUFF_SLOT;
     public static final int SKILL_BIND_SLOT = MainMenuScreenView.SKILL_BIND_SLOT;
     public static final int CURRENCY_SLOT = MainMenuScreenView.CURRENCY_SLOT;

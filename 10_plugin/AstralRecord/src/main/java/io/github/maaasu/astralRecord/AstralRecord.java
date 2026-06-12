@@ -135,6 +135,7 @@ import io.github.maaasu.astralRecord.feature.world.config.PluginJoinSpawnWorldCo
 import io.github.maaasu.astralRecord.feature.world.event.WorldNaturalSpawnBlockEventHandler;
 import io.github.maaasu.astralRecord.feature.world.event.WorldJoinSpawnEventHandler;
 import io.github.maaasu.astralRecord.feature.world.repository.WorldRepository;
+import io.github.maaasu.astralRecord.feature.world.service.ReturnToBaseService;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.feature.world.service.WorldSpawnParticleTask;
 import io.github.maaasu.astralRecord.infrastructure.command.CommandManager;
@@ -215,6 +216,7 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerClassService playerClassService;
     private ItemWeaponAttackService itemWeaponAttackService;
     private WorldService worldService;
+    private ReturnToBaseService returnToBaseService;
     private WorldSpawnParticleTask worldSpawnParticleTask;
     private PartyService partyService;
     private PartyGui partyGui;
@@ -329,6 +331,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (tradeService != null) {
             tradeService.cancelAll();
+        }
+        if (returnToBaseService != null) {
+            returnToBaseService.cancelAll();
         }
         if (skillActionRingService != null) {
             skillActionRingService.stop();
@@ -506,6 +511,13 @@ public final class AstralRecord extends JavaPlugin {
             playerSaveCoordinator
         );
         playerMessageService = new PlayerMessageService();
+        returnToBaseService = new ReturnToBaseService(
+            this,
+            worldService,
+            inventoryService,
+            particleDisplayService,
+            joinSpawnWorldId
+        );
 
         // resource pack
         resourcePackService = new ResourcePackService(ConfigProperties.getInstance());
@@ -657,7 +669,8 @@ public final class AstralRecord extends JavaPlugin {
             trashService,
             sellService,
             storageService,
-            skillTreeService
+            skillTreeService,
+            returnToBaseService
         );
         eventManager.registerHandler(menuOpenEventHandler, getServer().getPluginManager());
         mailGuiEventHandler = new MailGuiEventHandler(new MailGuiView(this, itemService), mailService, menuView, inventoryService);

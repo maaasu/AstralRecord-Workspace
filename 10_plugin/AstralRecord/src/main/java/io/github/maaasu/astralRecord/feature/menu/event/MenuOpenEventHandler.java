@@ -24,6 +24,7 @@ import io.github.maaasu.astralRecord.feature.sell.service.SellService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.storage.service.StorageService;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
+import io.github.maaasu.astralRecord.feature.world.service.ReturnToBaseService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.entity.Player;
@@ -61,6 +62,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     private final SellService sellService;
     private final StorageService storageService;
     private final SkillTreeService skillTreeService;
+    private final ReturnToBaseService returnToBaseService;
     private final Set<UUID> craftRenderSuppressed = ConcurrentHashMap.newKeySet();
     private final ConcurrentHashMap<UUID, CachedAccounts> cachedAccountsByUserId = new ConcurrentHashMap<>();
 
@@ -76,6 +78,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
      * @param trashService ゴミ箱 GUI サービス
      * @param sellService 売却 GUI サービス
      * @param storageService ストレージ GUI サービス
+     * @param returnToBaseService 拠点帰還サービス
      */
     public MenuOpenEventHandler(
         @NotNull AstralRecord plugin,
@@ -87,7 +90,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         @NotNull TrashService trashService,
         @NotNull SellService sellService,
         @NotNull StorageService storageService,
-        @NotNull SkillTreeService skillTreeService
+        @NotNull SkillTreeService skillTreeService,
+        @NotNull ReturnToBaseService returnToBaseService
     ) {
         this.plugin = plugin;
         this.menuView = menuView;
@@ -99,6 +103,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         this.sellService = sellService;
         this.storageService = storageService;
         this.skillTreeService = skillTreeService;
+        this.returnToBaseService = returnToBaseService;
         plugin.getServer().getScheduler().runTaskTimer(
             plugin,
             (Runnable) this::refreshOpenBuffMenus,
@@ -396,6 +401,20 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         if (rawSlot == MenuView.GUIDE_SLOT) {
             GuiSound.SELECT.play(player);
             switchGuiWithoutInventoryReload(player, () -> menuView.openGuide(player));
+            return;
+        }
+        if (rawSlot == MenuView.RETURN_TO_BASE_SLOT) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer == null) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            if (!returnToBaseService.beginReturn(astPlayer)) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.SELECT.play(player);
+            player.closeInventory();
             return;
         }
         if (rawSlot == MenuView.BUFF_SLOT) {
