@@ -769,7 +769,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new ItemWeaponAttackEventHandler(itemWeaponAttackService, skillActionRingService, skillTreeService),
+            new ItemWeaponAttackEventHandler(itemWeaponAttackService, skillActionRingService, skillTreeService, mobService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.mob.command;
 
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
+import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.mob.service.NpcPlacementService;
 import io.github.maaasu.astralRecord.feature.spawner.service.MobSpawnerService;
@@ -13,12 +14,15 @@ import org.bukkit.Location;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
 import java.util.Locale;
 
 /**
  * /mob コマンドです。
  */
 public class MobCommand extends AstCommand {
+    private static final List<MobCategory> SPAWNABLE_MOB_CATEGORIES = List.of(MobCategory.ENEMY, MobCategory.BOSS);
+
 
     private final MobService mobService;
     private final MobSpawnerService spawnerService;
@@ -78,6 +82,10 @@ public class MobCommand extends AstCommand {
     private void handleSpawn(@NotNull AstPlayer player, @NotNull String[] args) {
         if (args.length < 2) {
             sendUsage(player.getBukkit());
+            return;
+        }
+        if (!mobService.matchesTemplateCategory(args[1], SPAWNABLE_MOB_CATEGORIES)) {
+            sendError(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5703.getId(), args[1]));
             return;
         }
 
@@ -188,6 +196,10 @@ public class MobCommand extends AstCommand {
         }
         if (args.length > 3 && args.length < 6) {
             sendUsage(player.getBukkit());
+            return;
+        }
+        if (!mobService.matchesTemplateCategory(args[2], List.of(MobCategory.NPC))) {
+            sendError(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5703.getId(), args[2]));
             return;
         }
 

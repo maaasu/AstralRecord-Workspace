@@ -10,6 +10,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.util.RayTraceResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -19,6 +20,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -99,6 +101,21 @@ public class MobService {
     }
 
     /**
+     * 指定カテゴリに一致するロード済みテンプレート ID 一覧を返します。
+     *
+     * @param categories 取得対象カテゴリ
+     * @return 指定カテゴリのテンプレート ID 一覧
+     */
+    @NotNull
+    public Collection<String> getLoadedMobIdsByCategory(@NotNull Collection<MobCategory> categories) {
+        Set<MobCategory> allowed = Set.copyOf(categories);
+        return templates.values().stream()
+                .filter(template -> allowed.contains(template.category()))
+                .map(MobTemplate::id)
+                .toList();
+    }
+
+    /**
      * 全インスタンスを取得します。
      *
      * @return Mob インスタンスのコレクション（変更不可）
@@ -139,6 +156,59 @@ public class MobService {
     public MobInstance getInstanceByEntity(@NotNull UUID entityId) {
         UUID instanceId = instanceByEntity.get(entityId);
         return instanceId == null ? null : instances.get(instanceId);
+    }
+
+    /**
+     * Bukkit Entity UUID から NPC インスタンスを取得します。
+     *
+     * @param entityId Bukkit Entity UUID
+     * @return NPC インスタンス。NPC でない、または未管理なら {@code null}
+     */
+    @Nullable
+    public MobInstance getNpcInstanceByEntity(@NotNull UUID entityId) {
+        MobInstance instance = getInstanceByEntity(entityId);
+        if (instance == null || instance.template().category() != MobCategory.NPC) {
+            return null;
+        }
+        return instance;
+    }
+
+    /**
+     * 指定テンプレート ID がカテゴリ条件に一致するか判定します。
+     *
+     * @param templateId 判定するテンプレート ID
+     * @param categories 許可カテゴリ
+     * @return 条件に一致する場合は {@code true}
+     */
+    public boolean matchesTemplateCategory(
+            @NotNull String templateId,
+            @NotNull Collection<MobCategory> categories
+    ) {
+        MobTemplate template = findTemplate(templateId);
+        return template != null && categories.contains(template.category());
+    }
+
+    /**
+     * プレイヤーの視線先にある NPC インスタンスを返します。
+     *
+     * @param player   判定対象プレイヤー
+     * @param distance 判定距離
+     * @param raySize  判定の太さ
+     * @return 視線先の NPC。存在しない場合は {@code null}
+     */
+    @Nullable
+    public MobInstance findTargetedNpc(@NotNull Player player, double distance, double raySize) {
+        RayTraceResult result = player.getWorld().rayTraceEntities(
+                player.getEyeLocation(),
+                player.getEyeLocation().getDirection(),
+                distance,
+                raySize,
+                entity -> entity != player && getNpcInstanceByEntity(entity.getUniqueId()) != null
+        );
+        if (result == null || result.getHitEntity() == null) {
+            return null;
+        }
+        return getNpcInstanceByEntity(Objects.requireNonNull(result.getHitEntity()).getUniqueId());
     }
 
     /**

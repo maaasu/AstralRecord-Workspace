@@ -193,6 +193,10 @@ public final class DamageService {
             @NotNull DamageType damageType,
             @NotNull DamageScaling scaling
     ) {
+        if (victim.isMob() && victim.mob() != null && victim.mob().template().damageImmune()) {
+            return new DamageResult(0.0D);
+        }
+
         ensureStatusLoaded(attacker);
         ensureStatusLoaded(victim);
 

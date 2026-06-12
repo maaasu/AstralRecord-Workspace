@@ -22,7 +22,6 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.util.RayTraceResult;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -62,7 +61,7 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
             if (event.getHand() != EquipmentSlot.HAND) {
                 return;
             }
-            MobInstance instance = findNpc(event.getRightClicked());
+            MobInstance instance = mobService.getNpcInstanceByEntity(event.getRightClicked().getUniqueId());
             if (instance == null) {
                 return;
             }
@@ -85,7 +84,7 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
                 return;
             }
 
-            MobInstance instance = findTargetedNpc(event.getPlayer());
+            MobInstance instance = mobService.findTargetedNpc(event.getPlayer(), INTERACTION_DISTANCE, INTERACTION_RAY_SIZE);
             if (instance == null) {
                 return;
             }
@@ -103,35 +102,13 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
             if (!(event.getDamager() instanceof Player player)) {
                 return;
             }
-            MobInstance instance = findNpc(event.getEntity());
+            MobInstance instance = mobService.getNpcInstanceByEntity(event.getEntity().getUniqueId());
             if (instance == null) {
                 return;
             }
             event.setCancelled(true);
             execute(player, instance.template().interactions().leftClick());
         }, LogId.E_5702, event.getDamager().getName());
-    }
-
-    private MobInstance findNpc(@NotNull Entity entity) {
-        MobInstance instance = mobService.getInstanceByEntity(entity.getUniqueId());
-        if (instance == null || instance.template().category() != MobCategory.NPC) {
-            return null;
-        }
-        return instance;
-    }
-
-    private MobInstance findTargetedNpc(@NotNull Player player) {
-        RayTraceResult result = player.getWorld().rayTraceEntities(
-                player.getEyeLocation(),
-                player.getEyeLocation().getDirection(),
-                INTERACTION_DISTANCE,
-                INTERACTION_RAY_SIZE,
-                entity -> entity != player && findNpc(entity) != null
-        );
-        if (result == null || result.getHitEntity() == null) {
-            return null;
-        }
-        return findNpc(result.getHitEntity());
     }
 
     private void execute(@NotNull Player player, @NotNull List<MobInteractionActionConfig> actions) {

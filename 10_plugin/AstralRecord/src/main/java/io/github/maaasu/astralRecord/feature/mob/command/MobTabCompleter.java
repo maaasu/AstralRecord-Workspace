@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.mob.command;
 
+import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.spawner.service.MobSpawnerService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -13,6 +14,8 @@ import java.util.List;
  * /mob コマンドのタブ補完です。
  */
 public class MobTabCompleter extends AstTabCompleter {
+    private static final List<MobCategory> SPAWNABLE_MOB_CATEGORIES = List.of(MobCategory.ENEMY, MobCategory.BOSS);
+
 
     private final MobService mobService;
     private final MobSpawnerService spawnerService;
@@ -35,7 +38,7 @@ public class MobTabCompleter extends AstTabCompleter {
             return List.of("load", "list", "spawn", "delete", "spawner", "npc");
         }
         if (args.length == 2 && "spawn".equalsIgnoreCase(args[0])) {
-            return List.copyOf(mobService.getLoadedMobIds());
+            return List.copyOf(mobService.getLoadedMobIdsByCategory(SPAWNABLE_MOB_CATEGORIES));
         }
         if (args.length == 2 && "delete".equalsIgnoreCase(args[0])) {
             List<String> completions = new ArrayList<>(mobService.getLoadedMobIds());
@@ -52,7 +55,7 @@ public class MobTabCompleter extends AstTabCompleter {
             return List.of("place", "list", "reload");
         }
         if (args.length == 3 && "npc".equalsIgnoreCase(args[0]) && "place".equalsIgnoreCase(args[1])) {
-            return List.copyOf(mobService.getLoadedMobIds());
+            return List.copyOf(mobService.getLoadedMobIdsByCategory(List.of(MobCategory.NPC)));
         }
         return List.of();
     }
