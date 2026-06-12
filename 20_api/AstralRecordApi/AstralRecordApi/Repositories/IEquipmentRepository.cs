@@ -46,4 +46,6 @@ public interface IEquipmentRepository
     Task<bool> DeleteRuneBySlotIndexAsync(Guid instanceId, int slotIndex);
 
     Task UpdateInstanceAsync(EquipmentInstanceEntity instance);
+
+    Task<bool> SoftDeleteInstanceAsync(Guid instanceId);
 }

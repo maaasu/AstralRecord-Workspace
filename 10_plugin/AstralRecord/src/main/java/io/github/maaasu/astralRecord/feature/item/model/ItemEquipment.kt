@@ -162,6 +162,11 @@ data class ItemEquipmentEnhanceLevel(
     val statIncrease: List<ItemEquipmentEnhanceStatIncrease> = emptyList(),
     /** このレベルで加算される最大耐久値 */
     val durabilityBonus: Int?,
+    val recipeId: String? = null,
+    val requiredMaterials: List<ItemEquipmentEnhanceMaterial> = emptyList(),
+    val requiredCurrency: Int = 0,
+    val successRate: Double = 1.0,
+    val failAction: ItemEquipmentEnhanceFailAction = ItemEquipmentEnhanceFailAction.NONE,
 )
 
 /**
@@ -176,6 +181,32 @@ data class ItemEquipmentEnhanceStatIncrease(
     /** 増加幅の上限（固定値の場合は min と同値） */
     val max: Double,
 )
+
+data class ItemEquipmentEnhanceMaterial(
+    val itemId: String,
+    val amount: Int = 1,
+)
+
+enum class ItemEquipmentEnhanceFailAction {
+    NONE,
+    DOWNGRADE,
+    DESTROY,
+    ;
+
+    companion object {
+        @JvmStatic
+        fun fromApiValue(value: String?): ItemEquipmentEnhanceFailAction {
+            if (value.isNullOrBlank()) {
+                return NONE
+            }
+            return try {
+                valueOf(value.trim().uppercase())
+            } catch (_: IllegalArgumentException) {
+                NONE
+            }
+        }
+    }
+}
 
 /**
  * エンチャントシステム定義。

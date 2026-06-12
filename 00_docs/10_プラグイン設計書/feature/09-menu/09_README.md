@@ -58,6 +58,7 @@
 - 2026-06-09: `sell` は独立実装を持つが、docs では menu の売却 GUI として吸収する。`/sell`、売却 GUI、売却確定は本 feature の対象実装パスに含める。
 - 2026-06-09: `party` / `currency` / `shop` / `adventurerecord` はそれぞれ独立 feature を正本とし、menu はメインメニューや戻る操作などの導線のみを担当する。
 - 2026-06-09: 職業 GUI は class / playerclass 側を正本とし、menu は通常プレイヤー向けメインメニュー導線を持たない。ADMIN の `/class gui` は class / playerclass 側で扱う。
+- 2026-06-13: 装備強化 GUI は menu からの導線と inventory GUI 上の操作フローを担当し、必要素材・成功率・失敗時挙動の定義自体は item master / equipment schema を正本とする。
 
 ## 追記（ゴミ箱GUI）
 - ゴミ箱GUI追加に伴い、[[09_1.00-モデル定義]]・[[09_3.01-イベント]]・[[09_3.07-GUI・View]]・[[09_4.00-統合フロー]] を更新。

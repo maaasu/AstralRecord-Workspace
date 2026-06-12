@@ -83,6 +83,18 @@ public class EquipmentController(IEquipmentService equipmentService) : Controlle
         return Ok(instance);
     }
 
+    [HttpDelete("instances/{instanceId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(Guid instanceId)
+    {
+        var deleted = await equipmentService.DeleteAsync(instanceId);
+        if (!deleted)
+            return NotFound();
+
+        return NoContent();
+    }
+
     [HttpPost("transcendence")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
