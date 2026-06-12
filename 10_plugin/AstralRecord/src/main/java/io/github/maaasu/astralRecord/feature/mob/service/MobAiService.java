@@ -62,6 +62,7 @@ public class MobAiService {
     private static final double DIRECT_RETREAT_VELOCITY = 0.22D;
     private static final double DIRECT_STRAFE_VELOCITY = 0.16D;
     private static final long STRAFE_DIRECTION_INTERVAL_TICKS = 40L;
+    private static final double STATIONARY_LOOK_RANGE_SQ = 64.0D * 64.0D;
 
     private final MobService mobService;
 
@@ -161,6 +162,15 @@ public class MobAiService {
     private void tickIdle(@NotNull MobInstance instance) {
         MobTemplate template = instance.template();
         MobTargetingConfig targeting = template.targeting();
+
+        if (template.category() == MobCategory.NPC && template.idle().behavior() == IdleBehavior.STATIONARY) {
+            mobService.stopPathfinding(instance);
+            Player nearestPlayer = findNearestStationaryLookTarget(instance.currentLocation());
+            if (nearestPlayer != null) {
+                mobService.lookAt(instance, nearestPlayer.getEyeLocation());
+            }
+            return;
+        }
 
         if (targeting != null && selectTarget(instance) != null) {
             instance.state(MobState.AGGRO);
@@ -524,6 +534,26 @@ public class MobAiService {
                 bestSq = sq;
                 best = player;
             }
+        }
+        return best;
+    }
+
+    @Nullable
+    private Player findNearestStationaryLookTarget(@NotNull Location origin) {
+        Player best = null;
+        double bestSq = STATIONARY_LOOK_RANGE_SQ;
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (player.getWorld() != origin.getWorld()) {
+                continue;
+            }
+
+            double sq = player.getLocation().distanceSquared(origin);
+            if (sq > bestSq) {
+                continue;
+            }
+
+            bestSq = sq;
+            best = player;
         }
         return best;
     }

@@ -1,8 +1,6 @@
 package io.github.maaasu.astralRecord.feature.mob.service;
 
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
-import io.github.maaasu.astralRecord.feature.mob.model.IdleBehavior;
-import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.papermc.paper.entity.LookAnchor;
 import org.bukkit.Bukkit;
@@ -96,10 +94,8 @@ public class MobEntityController {
         MobTemplate template = instance.template();
         Bukkit.getMobGoals().removeAllGoals(mob);
 
-        boolean stationaryNpc = template.category() == MobCategory.NPC
-                && template.idle().behavior() == IdleBehavior.STATIONARY;
-        mob.setAI(!stationaryNpc);
-        mob.setAware(!stationaryNpc);
+        mob.setAI(true);
+        mob.setAware(true);
         mob.setInvulnerable(template.damageImmune());
         mob.setPersistent(false);
         mob.setRemoveWhenFarAway(false);

@@ -780,6 +780,7 @@ public final class AstralRecord extends JavaPlugin {
             new PartyQuitEventHandler(partyService),
             getServer().getPluginManager()
         );
+        getServer().getScheduler().runTask(this, npcPlacementService::spawnLoadedWorlds);
         playerHudService.start(this);
         statusRegenTask.start(this);
         displayTextService.start(this);

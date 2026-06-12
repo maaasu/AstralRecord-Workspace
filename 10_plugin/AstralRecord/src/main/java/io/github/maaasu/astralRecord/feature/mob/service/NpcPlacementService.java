@@ -60,6 +60,21 @@ public final class NpcPlacementService {
     }
 
     /**
+     * 現在ロード済みのワールドに紐づく NPC 配置をすべてスポーンします。
+     *
+     * @return 新たにスポーンした NPC 数
+     */
+    public int spawnLoadedWorlds() {
+        int count = 0;
+        for (NpcPlacement placement : placements.values()) {
+            if (spawn(placement) != null) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
      * NPC 配置を登録して即時スポーンします。
      *
      * @param npcId    NPC マスタ ID
@@ -119,12 +134,6 @@ public final class NpcPlacementService {
         }
         repository.saveAll(new ArrayList<>(placements.values()));
         dirty = false;
-    }
-
-    private void spawnLoadedWorlds() {
-        for (NpcPlacement placement : placements.values()) {
-            spawn(placement);
-        }
     }
 
     @Nullable
