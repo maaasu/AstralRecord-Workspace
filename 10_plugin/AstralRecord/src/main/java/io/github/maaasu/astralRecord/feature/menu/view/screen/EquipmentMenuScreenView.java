@@ -17,6 +17,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public final class EquipmentMenuScreenView extends BaseMenuScreenView {
+    public static final int ENHANCEMENT_SLOT = 15;
     public static final int EQUIPMENT_HEAD_SLOT = 11;
     public static final int EQUIPMENT_CHEST_SLOT = 20;
     public static final int EQUIPMENT_LEGS_SLOT = 29;
@@ -62,6 +63,14 @@ public final class EquipmentMenuScreenView extends BaseMenuScreenView {
         inventory.setItem(EQUIPMENT_ACCESSORY_5_SLOT, itemOrPlaceholderForSlot(accessoryAt(accessories, 5), EQUIPMENT_ACCESSORY_5_SLOT));
         inventory.setItem(EQUIPMENT_ACCESSORY_6_SLOT, itemOrPlaceholderForSlot(accessoryAt(accessories, 6), EQUIPMENT_ACCESSORY_6_SLOT));
         inventory.setItem(EQUIPMENT_ACCESSORY_7_SLOT, itemOrPlaceholderForSlot(accessoryAt(accessories, 7), EQUIPMENT_ACCESSORY_7_SLOT));
+        inventory.setItem(ENHANCEMENT_SLOT, createItem(
+            Material.ANVIL,
+            Component.text("装備強化", NamedTextColor.GOLD),
+            List.of(
+                Component.text("武器の強化を行うGUIを開きます。", NamedTextColor.GRAY),
+                Component.text("下段インベントリは装備一覧に切り替わります。", NamedTextColor.GRAY)
+            )
+        ));
         inventory.setItem(BACK_SLOT, backItem());
     }
 

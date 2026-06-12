@@ -372,6 +372,40 @@ public class ItemService {
         }
     }
 
+    public @Nullable EquipmentInstance enhanceEquipmentInstance(
+        @NotNull String instanceId,
+        int targetLevel,
+        @NotNull String updatedBy
+    ) {
+        try {
+            EquipmentInstance instance = itemRepository.enhanceEquipmentInstance(instanceId, targetLevel, updatedBy);
+            if (instance != null) {
+                loadedEquipmentInstances.put(normalize(instance.getEquipmentInstanceId()), instance);
+            }
+            return instance;
+        } catch (Exception e) {
+            Logger.log(LogId.E_5202, e, instanceId);
+            return null;
+        }
+    }
+
+    public boolean deleteEquipmentInstance(@NotNull String instanceId) {
+        String normalizedId = normalize(instanceId);
+        if (normalizedId.isBlank()) {
+            return false;
+        }
+        try {
+            boolean deleted = itemRepository.deleteEquipmentInstance(instanceId);
+            if (deleted) {
+                loadedEquipmentInstances.remove(normalizedId);
+            }
+            return deleted;
+        } catch (Exception e) {
+            Logger.log(LogId.E_5202, e, instanceId);
+            return false;
+        }
+    }
+
     /**
      * ルーンインスタンスを API 経由で新規作成します。
      *

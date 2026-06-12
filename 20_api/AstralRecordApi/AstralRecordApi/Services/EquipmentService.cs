@@ -153,18 +153,24 @@ public class EquipmentService(IItemRepository itemRepository, IEquipmentReposito
         var maxLevel = GetEffectiveEnhanceMaxLevel(item.Equipment, instance.TranscendenceRank);
         var targetLevel = request.TargetLevel ?? (instance.EnhanceLevel + 1);
 
-        if (targetLevel <= instance.EnhanceLevel || targetLevel > maxLevel)
+        if (targetLevel < 0 || targetLevel > maxLevel || targetLevel == instance.EnhanceLevel)
             return null;
 
-        var durabilityBonus = item.Equipment.Enhance.Levels
-            .Where(level => level.Level > instance.EnhanceLevel && level.Level <= targetLevel)
+        var currentDurabilityBonus = item.Equipment.Enhance.Levels
+            .Where(level => level.Level <= instance.EnhanceLevel)
             .Sum(level => level.DurabilityBonus ?? 0);
+        var targetDurabilityBonus = item.Equipment.Enhance.Levels
+            .Where(level => level.Level <= targetLevel)
+            .Sum(level => level.DurabilityBonus ?? 0);
+        var durabilityDelta = targetDurabilityBonus - currentDurabilityBonus;
 
         instance.EnhanceLevel = targetLevel;
-        if (durabilityBonus > 0 && instance.DurabilityMax.HasValue && instance.DurabilityValue.HasValue)
+        if (durabilityDelta != 0 && instance.DurabilityMax.HasValue && instance.DurabilityValue.HasValue)
         {
-            instance.DurabilityMax += durabilityBonus;
-            instance.DurabilityValue += durabilityBonus;
+            var updatedDurabilityMax = instance.DurabilityMax.Value + durabilityDelta;
+            var updatedDurabilityValue = instance.DurabilityValue.Value + durabilityDelta;
+            instance.DurabilityMax = updatedDurabilityMax;
+            instance.DurabilityValue = Math.Clamp(updatedDurabilityValue, 0, updatedDurabilityMax);
         }
 
         instance.UpdatedAt = DateTime.UtcNow;
@@ -173,6 +179,9 @@ public class EquipmentService(IItemRepository itemRepository, IEquipmentReposito
         await equipmentRepository.UpdateInstanceAsync(instance);
         return await GetByInstanceIdAsync(instance.EquipmentInstanceId);
     }
+
+    public async Task<bool> DeleteAsync(Guid instanceId)
+        => await equipmentRepository.SoftDeleteInstanceAsync(instanceId);
 
     public async Task<EquipmentInstanceResponse?> TranscendAsync(EquipmentTranscendenceRequest request)
     {

@@ -216,7 +216,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                     storageService.handleClick(event);
                     return;
                 }
-                if (menuScreen == MenuScreen.EQUIPMENT_GUI) {
+                if (menuScreen == MenuScreen.EQUIPMENT_GUI || menuScreen == MenuScreen.EQUIPMENT_ENHANCE) {
                     return;
                 }
                 handleMenuClick(event);
@@ -327,6 +327,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             case BUFF -> handleBuffClick(player, event.getRawSlot());
             case CLASS -> handleClassClick(player, event.getCurrentItem(), event.getRawSlot());
             case EQUIPMENT_GUI -> {
+            }
+            case EQUIPMENT_ENHANCE -> {
             }
             case CURRENCY -> handleCurrencyClick(event, player);
             case GUIDE -> handleGuideClick(player, event.getRawSlot());

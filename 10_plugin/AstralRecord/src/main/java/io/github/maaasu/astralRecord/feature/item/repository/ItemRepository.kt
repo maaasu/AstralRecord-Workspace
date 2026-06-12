@@ -21,7 +21,9 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentDurability
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnchantDef
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhance
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceFailAction
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceLevel
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceMaterial
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceStatIncrease
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentHandType
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentOnUse
@@ -176,6 +178,69 @@ class ItemRepository {
                     else -> {
                         Logger.log(LogId.E_5200, "HTTP ${response.statusCode()} for GET $path")
                         throw IOException("Unexpected status ${response.statusCode()} for GET $path")
+                    }
+                }
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            Logger.log(LogId.E_5200, e)
+            throw RuntimeException(e)
+        } catch (e: IOException) {
+            Logger.log(LogId.E_5200, e)
+            throw e
+        }
+    }
+
+    fun enhanceEquipmentInstance(
+        instanceId: String,
+        targetLevel: Int,
+        updatedBy: String,
+    ): EquipmentInstance? {
+        val path = "/api/equipment/enhance"
+        val body = ApiRequestUtil.buildJsonBody {
+            addProperty("equipmentInstanceId", instanceId)
+            addProperty("targetLevel", targetLevel)
+            addProperty("updatedBy", updatedBy)
+        }
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val request = ApiRequestUtil.buildRequestBuilder(path)
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                return when (response.statusCode()) {
+                    200 -> parseEquipmentInstance(response.body())
+                    404 -> null
+                    else -> {
+                        Logger.log(LogId.E_5200, "HTTP ${response.statusCode()} for POST $path")
+                        throw IOException("Unexpected status ${response.statusCode()} for POST $path")
+                    }
+                }
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            Logger.log(LogId.E_5200, e)
+            throw RuntimeException(e)
+        } catch (e: IOException) {
+            Logger.log(LogId.E_5200, e)
+            throw e
+        }
+    }
+
+    fun deleteEquipmentInstance(instanceId: String): Boolean {
+        val path = "/api/equipment/instances/$instanceId"
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val request = ApiRequestUtil.buildRequestBuilder(path)
+                    .DELETE()
+                    .build()
+                val response = client.send(request, HttpResponse.BodyHandlers.discarding())
+                return when (response.statusCode()) {
+                    204 -> true
+                    404 -> false
+                    else -> {
+                        Logger.log(LogId.E_5200, "HTTP ${response.statusCode()} for DELETE $path")
+                        throw IOException("Unexpected status ${response.statusCode()} for DELETE $path")
                     }
                 }
             }
@@ -505,9 +570,29 @@ class ItemRepository {
                 level = level,
                 statIncrease = statIncrease,
                 durabilityBonus = parseIntOrNull(lvlObj, "durabilityBonus"),
+                recipeId = parseStringOrNull(lvlObj, "recipeId"),
+                requiredMaterials = parseEquipmentEnhanceMaterials(lvlObj.getAsJsonArray("requiredMaterials")),
+                requiredCurrency = parseIntOrNull(lvlObj, "requiredCurrency") ?: 0,
+                successRate = parseDoubleOrNull(lvlObj, "successRate") ?: 1.0,
+                failAction = ItemEquipmentEnhanceFailAction.fromApiValue(parseStringOrNull(lvlObj, "failAction")),
             )
         }
         return ItemEquipmentEnhance(maxLevel = maxLevel, levels = levels)
+    }
+
+    private fun parseEquipmentEnhanceMaterials(array: JsonArray?): List<ItemEquipmentEnhanceMaterial> {
+        if (array == null) {
+            return emptyList()
+        }
+        return array.mapNotNull { element ->
+            if (!element.isJsonObject) return@mapNotNull null
+            val obj = element.asJsonObject
+            val itemId = parseStringOrNull(obj, "itemId") ?: return@mapNotNull null
+            ItemEquipmentEnhanceMaterial(
+                itemId = itemId,
+                amount = parseIntOrNull(obj, "amount") ?: 1,
+            )
+        }
     }
 
     private fun parseEquipmentEnchantDef(equipmentObj: JsonObject): ItemEquipmentEnchantDef? {

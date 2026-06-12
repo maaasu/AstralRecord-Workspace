@@ -6,8 +6,10 @@ import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
 import io.github.maaasu.astralRecord.feature.inventory.service.HotbarLayout;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.service.EquipmentEnhancementService;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
+import io.github.maaasu.astralRecord.feature.menu.view.screen.EquipmentMenuScreenView;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -36,6 +38,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
     private final CurrencyService currencyService;
     private final StatusService statusService;
     private final PassiveSkillService passiveSkillService;
+    private final EquipmentEnhancementService equipmentEnhancementService;
 
     /**
      * 装備 GUI とプレイヤーインベントリ上の装備操作を処理するイベントハンドラーを生成します。
@@ -51,13 +54,15 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         @NotNull InventoryService inventoryService,
         @NotNull CurrencyService currencyService,
         @NotNull StatusService statusService,
-        @NotNull PassiveSkillService passiveSkillService
+        @NotNull PassiveSkillService passiveSkillService,
+        @NotNull EquipmentEnhancementService equipmentEnhancementService
     ) {
         this.menuView = menuView;
         this.inventoryService = inventoryService;
         this.currencyService = currencyService;
         this.statusService = statusService;
         this.passiveSkillService = passiveSkillService;
+        this.equipmentEnhancementService = equipmentEnhancementService;
     }
 
     /**
@@ -71,6 +76,10 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             var topInventory = event.getView().getTopInventory();
             if (isEquipmentMenu(topInventory)) {
                 handleEquipmentMenuClick(event, topInventory);
+                return;
+            }
+            if (equipmentEnhancementService.isEnhancementMenu(topInventory)) {
+                handleEnhancementMenuClick(event, topInventory);
                 return;
             }
             handlePlayerInventoryClick(event);
@@ -89,6 +98,9 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             if (!isEquipmentMenu(event.getInventory())) {
+                if (equipmentEnhancementService.isEnhancementMenu(event.getInventory())) {
+                    equipmentEnhancementService.handleClose(player);
+                }
                 return;
             }
             saveEquipmentMenuSnapshot(player, event.getInventory());
@@ -139,7 +151,45 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             menuView.open(player);
             return true;
         }
+        if (rawSlot == EquipmentMenuScreenView.ENHANCEMENT_SLOT) {
+            saveEquipmentMenuSnapshot(player, topInventory);
+            GuiSound.OPEN.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
+            equipmentEnhancementService.open(player);
+            return true;
+        }
         return false;
+    }
+
+    private void handleEnhancementMenuClick(@NotNull InventoryClickEvent event, @NotNull Inventory topInventory) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+        event.setCancelled(true);
+
+        if (event.getRawSlot() >= topInventory.getSize()) {
+            if (!(event.getClickedInventory() instanceof PlayerInventory)) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer == null) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            if (!inventoryService.getClickGuard().tryAcquire(
+                    astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.DISPLAYED_ITEM)) {
+                return;
+            }
+            if (event.getCursor().getType() != Material.AIR) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            equipmentEnhancementService.handlePlayerInventoryClick(player, event.getSlot());
+            return;
+        }
+
+        equipmentEnhancementService.handleTopClick(player, event.getRawSlot());
     }
 
     private void handleEquipmentMenuSlotClick(

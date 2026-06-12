@@ -24,6 +24,7 @@ import io.github.maaasu.astralRecord.feature.item.executor.WeaponAttackSkillExec
 import io.github.maaasu.astralRecord.feature.item.service.BuiltInWeaponAttackDefinitions;
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseEffectService;
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseService;
+import io.github.maaasu.astralRecord.feature.item.service.EquipmentEnhancementService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemDropAnimationService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemWeaponAttackService;
 import io.github.maaasu.astralRecord.feature.item.service.PotionUseService;
@@ -215,6 +216,7 @@ public final class AstralRecord extends JavaPlugin {
     private PotionUseService potionUseService;
     private PlayerClassService playerClassService;
     private ItemWeaponAttackService itemWeaponAttackService;
+    private EquipmentEnhancementService equipmentEnhancementService;
     private WorldService worldService;
     private ReturnToBaseService returnToBaseService;
     private WorldSpawnParticleTask worldSpawnParticleTask;
@@ -529,6 +531,12 @@ public final class AstralRecord extends JavaPlugin {
         trashService = new TrashService(this, menuView, inventoryService, menuGuiTransitionService);
         sellService = new SellService(this, menuView, inventoryService, menuGuiTransitionService);
         storageService = new StorageService(menuView, inventoryService, menuGuiTransitionService);
+        equipmentEnhancementService = new EquipmentEnhancementService(
+            menuView,
+            inventoryService,
+            itemService,
+            itemStackFactory
+        );
         playerListGui = new PlayerListGui();
         playerDetailGui = new PlayerDetailGui();
         pagingDebugGui = new PagingDebugGui();
@@ -715,7 +723,8 @@ public final class AstralRecord extends JavaPlugin {
                 inventoryService,
                 currencyService,
                 statusService,
-                passiveSkillService
+                passiveSkillService,
+                equipmentEnhancementService
             ),
             getServer().getPluginManager()
         );

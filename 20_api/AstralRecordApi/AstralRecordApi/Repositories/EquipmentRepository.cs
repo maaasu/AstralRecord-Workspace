@@ -139,6 +139,19 @@ public class EquipmentRepository(AstralRecordDbContext dbContext) : IEquipmentRe
         await dbContext.SaveChangesAsync();
     }
 
+    public async Task<bool> SoftDeleteInstanceAsync(Guid instanceId)
+    {
+        var instance = await dbContext.EquipmentInstances
+            .FirstOrDefaultAsync(x => x.EquipmentInstanceId == instanceId && !x.IsDeleted);
+
+        if (instance is null)
+            return false;
+
+        instance.IsDeleted = true;
+        await dbContext.SaveChangesAsync();
+        return true;
+    }
+
     private void UpdateTrackedEquipmentInstance(EquipmentInstanceEntity instance)
     {
         var tracked = dbContext.EquipmentInstances.Local
