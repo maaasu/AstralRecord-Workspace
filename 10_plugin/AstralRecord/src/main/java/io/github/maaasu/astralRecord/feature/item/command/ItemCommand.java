@@ -21,7 +21,7 @@ public class ItemCommand extends AstCommand {
     private final ItemService itemService;
 
     public ItemCommand(@NotNull ItemService itemService) {
-        super("item", "Load and get items.", "/item <load|get> <itemId> [amount]",
+        super("item", "Load and get items.", "/item [load|get] <itemId> [amount]",
                 true, UserPermission.ADMIN.getValue());
         this.itemService = itemService;
     }
@@ -29,7 +29,7 @@ public class ItemCommand extends AstCommand {
     @Override
     protected void executePlayerCommand(@NotNull AstPlayer player, @NotNull String[] args) {
         if (args.length == 0) {
-            sendUsage(player.getBukkit());
+            openAdminGui(player);
             return;
         }
 
@@ -45,6 +45,15 @@ public class ItemCommand extends AstCommand {
         }
 
         sendUsage(player.getBukkit());
+    }
+
+    private void openAdminGui(@NotNull AstPlayer player) {
+        var handler = AstralRecord.getInstance().getItemAdminGuiEventHandler();
+        if (handler == null) {
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5063);
+            return;
+        }
+        handler.open(player.getBukkit());
     }
 
     private void handleLoad(@NotNull AstPlayer player, @NotNull String[] args) {

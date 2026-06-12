@@ -17,7 +17,9 @@ import io.github.maaasu.astralRecord.shared.gui.debug.event.PagingDebugGuiEventH
 import io.github.maaasu.astralRecord.shared.gui.event.GuiClickCooldownEventHandler;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.item.event.ItemInteractionBlockEventHandler;
+import io.github.maaasu.astralRecord.feature.item.event.ItemAdminGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.item.event.ItemWeaponAttackEventHandler;
+import io.github.maaasu.astralRecord.feature.item.gui.ItemAdminGuiView;
 import io.github.maaasu.astralRecord.feature.item.executor.WeaponAttackSkillExecutor;
 import io.github.maaasu.astralRecord.feature.item.service.BuiltInWeaponAttackDefinitions;
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseEffectService;
@@ -220,6 +222,7 @@ public final class AstralRecord extends JavaPlugin {
     private LoginBonusService loginBonusService;
     private MailService mailService;
     private MailGuiEventHandler mailGuiEventHandler;
+    private ItemAdminGuiEventHandler itemAdminGuiEventHandler;
     private AdventureRecordService adventureRecordService;
     private AdventureRecordGuiEventHandler adventureRecordGuiEventHandler;
     private ShopService shopService;
@@ -533,6 +536,11 @@ public final class AstralRecord extends JavaPlugin {
             inventoryService,
             currencyService
         );
+        itemAdminGuiEventHandler = new ItemAdminGuiEventHandler(
+            new ItemAdminGuiView(this, itemStackFactory),
+            itemService,
+            inventoryService
+        );
         shopGui = new ShopGui(this, shopService, itemStackFactory);
         shopGuiEventHandler = new ShopGuiEventHandler(shopGui, shopService, inventoryService);
         tradeGui = new TradeGui();
@@ -655,6 +663,10 @@ public final class AstralRecord extends JavaPlugin {
         mailGuiEventHandler = new MailGuiEventHandler(new MailGuiView(this, itemService), mailService, menuView, inventoryService);
         eventManager.registerHandler(
             mailGuiEventHandler,
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            itemAdminGuiEventHandler,
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
@@ -1004,6 +1016,15 @@ public final class AstralRecord extends JavaPlugin {
 
     public MailGuiEventHandler getMailGuiEventHandler() {
         return mailGuiEventHandler;
+    }
+
+    /**
+     * 管理者用アイテム一覧 GUI のイベントハンドラを返します。
+     *
+     * @return 管理者用アイテム一覧 GUI イベントハンドラ
+     */
+    public ItemAdminGuiEventHandler getItemAdminGuiEventHandler() {
+        return itemAdminGuiEventHandler;
     }
 
     public AdventureRecordGuiEventHandler getAdventureRecordGuiEventHandler() {
