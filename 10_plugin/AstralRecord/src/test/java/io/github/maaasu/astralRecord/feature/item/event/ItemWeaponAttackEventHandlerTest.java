@@ -53,7 +53,11 @@ class ItemWeaponAttackEventHandlerTest extends MockBukkitTestBase {
         when(skillTreeService.isSkillTreeEditing(player)).thenReturn(false);
         when(actionRingService.isAttackSuppressed(player)).thenReturn(false);
         when(actionRingService.isOpen(player)).thenReturn(false);
-        when(mobService.findTargetedNpc(player, 5.0D, 0.75D)).thenReturn(mock(MobInstance.class));
+        when(mobService.findTargetedNpc(
+                player,
+                MobService.NPC_INTERACTION_DISTANCE,
+                MobService.NPC_INTERACTION_RAY_SIZE
+        )).thenReturn(mock(MobInstance.class));
 
         PlayerInteractEvent event = new PlayerInteractEvent(
                 player,
@@ -91,7 +95,11 @@ class ItemWeaponAttackEventHandlerTest extends MockBukkitTestBase {
         when(skillTreeService.isSkillTreeEditing(player)).thenReturn(false);
         when(actionRingService.isAttackSuppressed(player)).thenReturn(false);
         when(actionRingService.isOpen(player)).thenReturn(false);
-        when(mobService.findTargetedNpc(player, 5.0D, 0.75D)).thenReturn(mock(MobInstance.class));
+        when(mobService.findTargetedNpc(
+                player,
+                MobService.NPC_INTERACTION_DISTANCE,
+                MobService.NPC_INTERACTION_RAY_SIZE
+        )).thenReturn(mock(MobInstance.class));
 
         PlayerInteractEvent event = new PlayerInteractEvent(
                 player,

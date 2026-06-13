@@ -203,6 +203,31 @@ public class MobEntityController {
     }
 
     /**
+     * Mob の水平速度だけを打ち消し、落下や視線追従に必要な縦方向の挙動は維持します。
+     *
+     * @param instance 対象 Mob インスタンス
+     */
+    /**
+     * Mob の水平速度だけを打ち消し、落下や視線追従に必要な縦方向の挙動は維持します。
+     *
+     * @param instance 対象 Mob インスタンス
+     */
+    public void stopHorizontalMovement(@NotNull MobInstance instance) {
+        Mob mob = getMob(instance);
+        if (mob == null) {
+            return;
+        }
+
+        Vector velocity = mob.getVelocity();
+        if (Math.abs(velocity.getX()) < 1.0E-4D && Math.abs(velocity.getZ()) < 1.0E-4D) {
+            return;
+        }
+
+        mob.setVelocity(new Vector(0.0D, velocity.getY(), 0.0D));
+        instance.currentLocation(mob.getLocation());
+    }
+
+    /**
      * 実体 Mob にノックバック速度を加算します。
      *
      * @param instance 対象インスタンス

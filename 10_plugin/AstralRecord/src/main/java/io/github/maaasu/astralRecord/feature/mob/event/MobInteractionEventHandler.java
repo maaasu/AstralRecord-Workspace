@@ -32,8 +32,6 @@ import java.util.Locale;
  */
 public final class MobInteractionEventHandler extends AbstractEventHandler {
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
-    private static final double INTERACTION_DISTANCE = 5.0D;
-    private static final double INTERACTION_RAY_SIZE = 0.75D;
 
     private final MobService mobService;
     private final ShopGuiEventHandler shopGuiEventHandler;
@@ -65,6 +63,10 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
             if (instance == null) {
                 return;
             }
+            if (!isWithinInteractionDistance(event.getPlayer(), event.getRightClicked())) {
+                event.setCancelled(true);
+                return;
+            }
             event.setCancelled(true);
             execute(event.getPlayer(), instance.template().interactions().rightClick());
         }, LogId.E_5702, event.getPlayer().getName());
@@ -84,7 +86,11 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
                 return;
             }
 
-            MobInstance instance = mobService.findTargetedNpc(event.getPlayer(), INTERACTION_DISTANCE, INTERACTION_RAY_SIZE);
+            MobInstance instance = mobService.findTargetedNpc(
+                    event.getPlayer(),
+                    MobService.NPC_INTERACTION_DISTANCE,
+                    MobService.NPC_INTERACTION_RAY_SIZE
+            );
             if (instance == null) {
                 return;
             }
@@ -106,9 +112,18 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
             if (instance == null) {
                 return;
             }
+            if (!isWithinInteractionDistance(player, event.getEntity())) {
+                event.setCancelled(true);
+                return;
+            }
             event.setCancelled(true);
             execute(player, instance.template().interactions().leftClick());
         }, LogId.E_5702, event.getDamager().getName());
+    }
+
+    private boolean isWithinInteractionDistance(@NotNull Player player, @NotNull Entity entity) {
+        double distanceSq = player.getLocation().distanceSquared(entity.getLocation());
+        return distanceSq <= MobService.NPC_INTERACTION_DISTANCE * MobService.NPC_INTERACTION_DISTANCE;
     }
 
     private void execute(@NotNull Player player, @NotNull List<MobInteractionActionConfig> actions) {

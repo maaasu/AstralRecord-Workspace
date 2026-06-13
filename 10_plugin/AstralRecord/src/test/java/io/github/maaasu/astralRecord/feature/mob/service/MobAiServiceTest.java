@@ -64,6 +64,7 @@ class MobAiServiceTest extends MockBukkitTestBase {
         tickIdle.invoke(service, instance);
 
         verify(mobService).stopPathfinding(instance);
+        verify(mobService).stopHorizontalMovement(instance);
         verify(mobService).lookAt(eq(instance), argThat(location ->
                 location.getWorld() == nearPlayer.getWorld()
                         && Math.abs(location.getX() - nearPlayer.getEyeLocation().getX()) < 0.0001D

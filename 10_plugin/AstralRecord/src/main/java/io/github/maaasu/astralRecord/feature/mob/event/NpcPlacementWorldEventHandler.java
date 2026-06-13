@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.world.WorldLoadEvent;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -13,21 +14,30 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class NpcPlacementWorldEventHandler extends AbstractEventHandler {
 
+    private final Plugin plugin;
     private final NpcPlacementService placementService;
 
     /**
      * ハンドラを初期化します。
      *
+     * @param plugin           プラグイン本体
      * @param placementService NPC 配置サービス
      */
-    public NpcPlacementWorldEventHandler(@NotNull NpcPlacementService placementService) {
+    public NpcPlacementWorldEventHandler(
+            @NotNull Plugin plugin,
+            @NotNull NpcPlacementService placementService
+    ) {
+        this.plugin = plugin;
         this.placementService = placementService;
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onWorldLoad(@NotNull WorldLoadEvent event) {
         runSafely(
-                () -> placementService.spawnForWorld(event.getWorld()),
+                () -> plugin.getServer().getScheduler().runTask(
+                        plugin,
+                        () -> placementService.spawnForWorld(event.getWorld())
+                ),
                 LogId.E_5702,
                 event.getWorld().getName()
         );

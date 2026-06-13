@@ -19,9 +19,6 @@ import org.jetbrains.annotations.NotNull;
  * weapon equipment の左右クリック攻撃を処理するイベントハンドラです。
  */
 public final class ItemWeaponAttackEventHandler extends AbstractEventHandler {
-    private static final double NPC_INTERACTION_DISTANCE = 5.0D;
-    private static final double NPC_INTERACTION_RAY_SIZE = 0.75D;
-
     private final ItemWeaponAttackService itemWeaponAttackService;
     private final SkillActionRingService actionRingService;
     private final SkillTreeService skillTreeService;
@@ -52,7 +49,11 @@ public final class ItemWeaponAttackEventHandler extends AbstractEventHandler {
             if (!isLeftClick && !isRightClick) {
                 return;
             }
-            if (mobService.findTargetedNpc(event.getPlayer(), NPC_INTERACTION_DISTANCE, NPC_INTERACTION_RAY_SIZE) != null) {
+            if (mobService.findTargetedNpc(
+                    event.getPlayer(),
+                    MobService.NPC_INTERACTION_DISTANCE,
+                    MobService.NPC_INTERACTION_RAY_SIZE
+            ) != null) {
                 event.setCancelled(true);
                 return;
             }

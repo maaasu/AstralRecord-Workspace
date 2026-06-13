@@ -791,7 +791,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new NpcPlacementWorldEventHandler(npcPlacementService),
+            new NpcPlacementWorldEventHandler(this, npcPlacementService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

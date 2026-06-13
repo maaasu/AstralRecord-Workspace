@@ -35,6 +35,8 @@ public class MobService {
     /** 頭上 packet display の視認距離（ブロック単位）。 */
     private static final double DEFAULT_VIEW_DISTANCE = 64.0D;
     private static final double DEFAULT_VIEW_DISTANCE_SQ = DEFAULT_VIEW_DISTANCE * DEFAULT_VIEW_DISTANCE;
+    public static final double NPC_INTERACTION_DISTANCE = 3.0D;
+    public static final double NPC_INTERACTION_RAY_SIZE = 0.75D;
 
     private final Plugin plugin;
     private final MobRepository repository;
@@ -412,6 +414,20 @@ public class MobService {
      */
     public void stopPathfinding(@NotNull MobInstance instance) {
         entityController.stopPathfinding(instance);
+    }
+
+    /**
+     * Mob の水平移動だけを停止し、視線追従に必要な回転は維持します。
+     *
+     * @param instance 対象 Mob インスタンス
+     */
+    /**
+     * Mob の水平移動だけを停止し、視線追従に必要な回転は維持します。
+     *
+     * @param instance 対象 Mob インスタンス
+     */
+    public void stopHorizontalMovement(@NotNull MobInstance instance) {
+        entityController.stopHorizontalMovement(instance);
     }
 
     /**

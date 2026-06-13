@@ -146,8 +146,8 @@ public final class NpcPlacementService {
             spawnedByLocation.remove(placement.locationKey());
         }
 
-        Location location = placement.toLocation();
-        if (location == null || location.getWorld() == null) {
+        Location location = prepareSpawnLocation(placement);
+        if (location == null) {
             return null;
         }
 
@@ -156,6 +156,20 @@ public final class NpcPlacementService {
             spawnedByLocation.put(placement.locationKey(), instance.instanceId());
         }
         return instance;
+    }
+
+    @Nullable
+    private Location prepareSpawnLocation(@NotNull NpcPlacement placement) {
+        Location location = placement.toLocation();
+        if (location == null || location.getWorld() == null) {
+            return null;
+        }
+
+        var chunk = location.getChunk();
+        if (!chunk.isLoaded() && !chunk.load()) {
+            return null;
+        }
+        return location;
     }
 
     private void destroySpawnedNpcs() {
