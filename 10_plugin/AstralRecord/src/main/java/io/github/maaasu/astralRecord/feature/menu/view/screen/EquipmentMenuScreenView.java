@@ -67,8 +67,8 @@ public final class EquipmentMenuScreenView extends BaseMenuScreenView {
             Material.ANVIL,
             Component.text("装備強化", NamedTextColor.GOLD),
             List.of(
-                Component.text("武器の強化を行うGUIを開きます。", NamedTextColor.GRAY),
-                Component.text("下段インベントリは装備一覧に切り替わります。", NamedTextColor.GRAY)
+                Component.text("装備の強化を行うGUIを開きます。", NamedTextColor.GRAY),
+                Component.text("下部インベントリは装備一覧に切り替わります。", NamedTextColor.GRAY)
             )
         ));
         inventory.setItem(BACK_SLOT, backItem());
@@ -147,10 +147,10 @@ public final class EquipmentMenuScreenView extends BaseMenuScreenView {
     }
 
     /**
-     * 指定スロットの装備種別に対応するプレースホルダー ItemStack を生成します。
+     * 指定スロットの装備種別に対応するプレースホルダー ItemStack を返します。
      *
      * @param slot 装備 GUI スロット番号
-     * @return プレースホルダー（管理外スロットなら null）
+     * @return プレースホルダー。対象外スロットなら null
      */
     public @Nullable ItemStack createPlaceholderForSlot(int slot) {
         return switch (slot) {

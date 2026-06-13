@@ -19,7 +19,7 @@ public final class EquipmentEnhancementMenuScreenView extends BaseMenuScreenView
 
     public void render(
         @NotNull Inventory inventory,
-        @Nullable ItemStack selectedWeapon,
+        @Nullable ItemStack selectedEquipment,
         @NotNull List<ItemStack> materialItems,
         @NotNull ItemStack guideItem,
         @NotNull ItemStack infoItem,
@@ -28,7 +28,7 @@ public final class EquipmentEnhancementMenuScreenView extends BaseMenuScreenView
         fill(inventory);
         inventory.setItem(GUIDE_SLOT, guideItem);
         inventory.setItem(INFO_SLOT, infoItem);
-        inventory.setItem(TARGET_SLOT, selectedWeapon != null ? selectedWeapon : targetPlaceholder());
+        inventory.setItem(TARGET_SLOT, selectedEquipment != null ? selectedEquipment : targetPlaceholder());
 
         for (int index = 0; index < MATERIAL_SLOTS.length; index++) {
             ItemStack display = index < materialItems.size() ? materialItems.get(index) : materialPlaceholder();
@@ -37,16 +37,15 @@ public final class EquipmentEnhancementMenuScreenView extends BaseMenuScreenView
 
         inventory.setItem(EXECUTE_SLOT, executeItem);
         inventory.setItem(BACK_SLOT, backItem());
-        inventory.setItem(CLOSE_SLOT, closeItem());
     }
 
     private @NotNull ItemStack targetPlaceholder() {
         return createItem(
-            Material.NETHERITE_SWORD,
-            Component.text("強化する武器", NamedTextColor.YELLOW),
+            Material.ARMOR_STAND,
+            Component.text("強化する装備", NamedTextColor.YELLOW),
             List.of(
-                Component.text("下のインベントリから武器をクリックしてセットします。", NamedTextColor.GRAY),
-                Component.text("セット済みの武器をクリックすると取り外せます。", NamedTextColor.GRAY)
+                Component.text("下のインベントリから装備をクリックしてセットします。", NamedTextColor.GRAY),
+                Component.text("セット済みの装備をクリックすると取り外せます。", NamedTextColor.GRAY)
             )
         );
     }
@@ -55,7 +54,7 @@ public final class EquipmentEnhancementMenuScreenView extends BaseMenuScreenView
         return createItem(
             Material.GRAY_STAINED_GLASS_PANE,
             Component.text("必要素材", NamedTextColor.DARK_GRAY),
-            List.of(Component.text("武器をセットすると必要素材が表示されます。", NamedTextColor.GRAY))
+            List.of(Component.text("装備をセットすると必要素材が表示されます。", NamedTextColor.GRAY))
         );
     }
 }

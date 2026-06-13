@@ -177,6 +177,9 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
                 GuiSound.DENY.play(player);
                 return;
             }
+            if (handleEnhancementMenuHotbarShortcutClick(event, player, astPlayer)) {
+                return;
+            }
             if (!inventoryService.getClickGuard().tryAcquire(
                     astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.DISPLAYED_ITEM)) {
                 return;
@@ -190,6 +193,30 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         }
 
         equipmentEnhancementService.handleTopClick(player, event.getRawSlot());
+    }
+
+    private boolean handleEnhancementMenuHotbarShortcutClick(
+        @NotNull InventoryClickEvent event,
+        @NotNull Player player,
+        @NotNull AstPlayer astPlayer
+    ) {
+        int slot = event.getSlot();
+        if (slot < 0 || slot > 8 || !inventoryService.isHotbarShortcutMode(astPlayer)) {
+            return false;
+        }
+        if (!inventoryService.getClickGuard().tryAcquire(
+                astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.HOTBAR_SHORTCUT)) {
+            return true;
+        }
+        boolean handled = inventoryService.handleHotbarShortcutClick(astPlayer, slot);
+        if (handled) {
+            if (slot != 4) {
+                GuiSound.SELECT.play(player);
+            }
+        } else {
+            GuiSound.DENY.play(player);
+        }
+        return true;
     }
 
     private void handleEquipmentMenuSlotClick(

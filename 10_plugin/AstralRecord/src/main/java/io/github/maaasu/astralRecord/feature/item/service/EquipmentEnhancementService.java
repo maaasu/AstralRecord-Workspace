@@ -9,7 +9,6 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceFailAction;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceLevel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceMaterial;
-import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentTranscendence;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
@@ -19,12 +18,12 @@ import io.github.maaasu.astralRecord.feature.menu.view.MenuInventoryHolder;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.EquipmentEnhancementMenuScreenView;
-import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -121,14 +120,8 @@ public final class EquipmentEnhancementService {
             openEquipmentMenu(player, astPlayer);
             return;
         }
-        if (rawSlot == BaseMenuScreenView.CLOSE_SLOT) {
-            releaseSession(astPlayer, true);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
-            player.closeInventory();
-            return;
-        }
         if (rawSlot == EquipmentEnhancementMenuScreenView.TARGET_SLOT) {
-            if (!returnSelectedWeapon(astPlayer, session)) {
+            if (!returnSelectedEquipment(astPlayer, session)) {
                 GuiSound.DENY.play(player);
                 return;
             }
@@ -155,8 +148,7 @@ public final class EquipmentEnhancementService {
         );
 
         ItemModel clickedModel = inventoryService.getDisplayedItemModelAtBukkitSlot(astPlayer, bukkitSlot);
-        if (!isWeaponModel(clickedModel)) {
-            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5256);
+        if (!isEquipmentModel(clickedModel)) {
             GuiSound.DENY.play(player);
             return;
         }
@@ -166,19 +158,20 @@ public final class EquipmentEnhancementService {
             GuiSound.DENY.play(player);
             return;
         }
-        if (resolveContext(selected) == null) {
+
+        SelectionResult selection = resolveSelection(selected);
+        if (selection.state() == SelectionState.INVALID_TARGET) {
             inventoryService.returnItemToOwnedInventory(astPlayer, selected);
-            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5255);
             GuiSound.DENY.play(player);
             return;
         }
 
-        ItemStack previous = session.selectedWeapon;
-        session.selectedWeapon = selected.clone();
+        ItemStack previous = session.selectedEquipment;
+        session.selectedEquipment = selected.clone();
         if (previous != null && previous.getType() != Material.AIR) {
             if (inventoryService.returnItemToOwnedInventory(astPlayer, previous.clone()) == null) {
                 inventoryService.returnItemToOwnedInventory(astPlayer, selected.clone());
-                session.selectedWeapon = previous;
+                session.selectedEquipment = previous;
                 GuiSound.DENY.play(player);
                 return;
             }
@@ -202,9 +195,12 @@ public final class EquipmentEnhancementService {
         @NotNull AstPlayer astPlayer,
         @NotNull EnhancementSession session
     ) {
-        EnhancementContext context = resolveContext(session.selectedWeapon);
+        SelectionResult selection = resolveSelection(session.selectedEquipment);
+        EnhancementContext context = selection.context();
         if (context == null) {
-            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5261);
+            if (selection.state() == SelectionState.NONE_SELECTED) {
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5261);
+            }
             GuiSound.DENY.play(player);
             return;
         }
@@ -234,7 +230,7 @@ public final class EquipmentEnhancementService {
 
         switch (result.type) {
             case SUCCESS -> {
-                session.selectedWeapon = itemStackFactory.create(context.model, Objects.requireNonNull(result.updatedInstance), 1);
+                session.selectedEquipment = itemStackFactory.create(context.model, Objects.requireNonNull(result.updatedInstance), 1);
                 PlayerMessageService.getInstance().send(
                     player,
                     PlayerMsgId.P_5257,
@@ -250,7 +246,7 @@ public final class EquipmentEnhancementService {
             }
             case FAIL_DOWNGRADE -> {
                 if (result.updatedInstance != null) {
-                    session.selectedWeapon = itemStackFactory.create(context.model, result.updatedInstance, 1);
+                    session.selectedEquipment = itemStackFactory.create(context.model, result.updatedInstance, 1);
                 }
                 int downgradedLevel = result.updatedInstance == null
                     ? Math.max(0, context.instance.getEnhanceLevel() - 1)
@@ -264,7 +260,7 @@ public final class EquipmentEnhancementService {
                 playFailureEffects(player);
             }
             case FAIL_DESTROY -> {
-                session.selectedWeapon = null;
+                session.selectedEquipment = null;
                 PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5260, displayName(context.model));
                 playDestroyEffects(player);
             }
@@ -340,17 +336,18 @@ public final class EquipmentEnhancementService {
         @NotNull Inventory inventory,
         @NotNull EnhancementSession session
     ) {
-        EnhancementContext context = resolveContext(session.selectedWeapon);
+        SelectionResult selection = resolveSelection(session.selectedEquipment);
+        EnhancementContext context = selection.context();
         List<MaterialRequirement> requirements = context == null
             ? List.of()
             : collectMaterialRequirements(Objects.requireNonNull(AstPlayerCache.get(player)), context.nextLevel);
         view.render(
             inventory,
-            session.selectedWeapon == null ? null : session.selectedWeapon.clone(),
+            session.selectedEquipment == null ? null : session.selectedEquipment.clone(),
             createMaterialItems(requirements),
             createGuideItem(),
-            createInfoItem(player, context),
-            createExecuteItem(player, context, requirements)
+            createInfoItem(player, selection),
+            createExecuteItem(player, selection, requirements)
         );
     }
 
@@ -385,23 +382,45 @@ public final class EquipmentEnhancementService {
             Material.ANVIL,
             Component.text("強化ガイド", NamedTextColor.GOLD, TextDecoration.BOLD),
             List.of(
-                Component.text("1. 下の装備インベントリから武器をクリックしてセットします。", NamedTextColor.GRAY),
-                Component.text("2. 必要素材とゴールドが揃うと実行ボタンが有効になります。", NamedTextColor.GRAY),
+                Component.text("1. 下の装備インベントリから装備をクリックしてセットします。", NamedTextColor.GRAY),
+                Component.text("2. 必要素材とゴールドが揃うと強化ボタンが実行可能になります。", NamedTextColor.GRAY),
                 Component.text("3. 実行すると成功率と失敗時挙動に従って強化されます。", NamedTextColor.GRAY)
             )
         );
     }
 
-    private @NotNull ItemStack createInfoItem(@NotNull Player player, @Nullable EnhancementContext context) {
+    private @NotNull ItemStack createInfoItem(@NotNull Player player, @NotNull SelectionResult selection) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (context == null || astPlayer == null) {
+        if (astPlayer == null) {
+            return createItem(
+                Material.BOOK,
+                Component.text("強化情報", NamedTextColor.YELLOW),
+                List.of(Component.text("強化情報を取得できません。", NamedTextColor.RED))
+            );
+        }
+
+        if (selection.state() == SelectionState.NONE_SELECTED) {
             return createItem(
                 Material.BOOK,
                 Component.text("強化情報", NamedTextColor.YELLOW),
                 List.of(
-                    Component.text("武器をセットすると次の強化情報を表示します。", NamedTextColor.GRAY),
+                    Component.text("装備をセットすると次の強化情報を表示します。", NamedTextColor.GRAY),
                     Component.text("強化値 / 成功率 / 失敗時挙動 / 必要ゴールド", NamedTextColor.GRAY)
                 )
+            );
+        }
+
+        EnhancementContext context = selection.context();
+        if (context == null) {
+            List<Component> lore = new ArrayList<>();
+            if (selection.instance() != null) {
+                lore.add(Component.text("現在強化値: +" + selection.instance().getEnhanceLevel(), NamedTextColor.GRAY));
+            }
+            lore.add(Component.text(selection.state().message(), NamedTextColor.RED));
+            return createItem(
+                Material.BOOK,
+                Component.text("強化情報", NamedTextColor.YELLOW),
+                lore
             );
         }
 
@@ -425,15 +444,27 @@ public final class EquipmentEnhancementService {
 
     private @NotNull ItemStack createExecuteItem(
         @NotNull Player player,
-        @Nullable EnhancementContext context,
+        @NotNull SelectionResult selection,
         @NotNull List<MaterialRequirement> requirements
     ) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (context == null || astPlayer == null) {
+        if (astPlayer == null) {
             return createItem(
                 Material.BARRIER,
                 Component.text("強化実行", NamedTextColor.RED, TextDecoration.BOLD),
-                List.of(Component.text("強化する武器をセットしてください。", NamedTextColor.GRAY))
+                List.of(Component.text("強化情報を取得できません。", NamedTextColor.RED))
+            );
+        }
+
+        EnhancementContext context = selection.context();
+        if (selection.state() != SelectionState.READY || context == null) {
+            return createItem(
+                Material.BARRIER,
+                Component.text("強化実行", NamedTextColor.RED, TextDecoration.BOLD),
+                List.of(
+                    Component.text("クリックしてもこの装備はまだ強化できません。", NamedTextColor.GRAY),
+                    Component.text(selection.state().message(), NamedTextColor.RED)
+                )
             );
         }
 
@@ -442,7 +473,7 @@ public final class EquipmentEnhancementService {
             executable ? Material.ANVIL : Material.BARRIER,
             Component.text("強化実行", executable ? NamedTextColor.GREEN : NamedTextColor.RED, TextDecoration.BOLD),
             List.of(
-                Component.text("クリックするとこの武器の強化を実行します。", NamedTextColor.GRAY),
+                Component.text("クリックするとこの装備の強化を実行します。", NamedTextColor.GRAY),
                 Component.text(
                     executable ? "必要素材とゴールドが揃っています。" : "必要素材またはゴールドが不足しています。",
                     executable ? NamedTextColor.GREEN : NamedTextColor.RED
@@ -451,25 +482,31 @@ public final class EquipmentEnhancementService {
         );
     }
 
-    private @Nullable EnhancementContext resolveContext(@Nullable ItemStack selectedWeapon) {
-        ItemReference reference = itemReferenceResolver.resolve(selectedWeapon);
-        if (reference == null || ItemCategory.fromApiValue(reference.category()) != ItemCategory.EQUIPMENT) {
-            return null;
+    private @NotNull SelectionResult resolveSelection(@Nullable ItemStack selectedEquipment) {
+        if (selectedEquipment == null || selectedEquipment.getType() == Material.AIR) {
+            return new SelectionResult(SelectionState.NONE_SELECTED, null, null, null);
         }
+
+        ItemReference reference = itemReferenceResolver.resolve(selectedEquipment);
+        if (reference == null || ItemCategory.fromApiValue(reference.category()) != ItemCategory.EQUIPMENT) {
+            return new SelectionResult(SelectionState.INVALID_TARGET, null, null, null);
+        }
+
         ItemModel model = itemReferenceResolver.resolveItemModel(reference);
         EquipmentInstance instance = itemReferenceResolver.resolveEquipmentInstance(reference);
-        if (!isWeaponModel(model) || instance == null || model == null || model.getEquipment() == null) {
-            return null;
+        if (!isEquipmentModel(model) || instance == null) {
+            return new SelectionResult(SelectionState.INVALID_TARGET, model, instance, null);
         }
 
-        int effectiveMaxLevel = resolveEffectiveMaxLevel(model.getEquipment(), instance);
-        if (instance.getEnhanceLevel() >= effectiveMaxLevel) {
-            return null;
-        }
-
-        ItemEquipmentEnhance enhance = model.getEquipment().getEnhance();
+        ItemEquipment equipment = Objects.requireNonNull(model.getEquipment());
+        ItemEquipmentEnhance enhance = equipment.getEnhance();
         if (enhance == null) {
-            return null;
+            return new SelectionResult(SelectionState.NO_ENHANCE_DATA, model, instance, null);
+        }
+
+        int effectiveMaxLevel = resolveEffectiveMaxLevel(equipment, instance);
+        if (instance.getEnhanceLevel() >= effectiveMaxLevel) {
+            return new SelectionResult(SelectionState.MAX_LEVEL, model, instance, null);
         }
 
         ItemEquipmentEnhanceLevel nextLevel = enhance.getLevels().stream()
@@ -477,9 +514,15 @@ public final class EquipmentEnhancementService {
             .min(Comparator.comparingInt(ItemEquipmentEnhanceLevel::getLevel))
             .orElse(null);
         if (nextLevel == null) {
-            return null;
+            return new SelectionResult(SelectionState.NEXT_LEVEL_MISSING, model, instance, null);
         }
-        return new EnhancementContext(model, instance, nextLevel);
+
+        return new SelectionResult(
+            SelectionState.READY,
+            model,
+            instance,
+            new EnhancementContext(model, instance, nextLevel)
+        );
     }
 
     private @NotNull List<MaterialRequirement> collectMaterialRequirements(
@@ -523,20 +566,18 @@ public final class EquipmentEnhancementService {
         return maxLevel;
     }
 
-    private boolean isWeaponModel(@Nullable ItemModel model) {
-        return model != null
-            && model.getEquipment() != null
-            && model.getEquipment().getSlot() == ItemEquipmentSlot.WEAPON;
+    private boolean isEquipmentModel(@Nullable ItemModel model) {
+        return model != null && model.getEquipment() != null;
     }
 
-    private boolean returnSelectedWeapon(@NotNull AstPlayer astPlayer, @NotNull EnhancementSession session) {
-        if (session.selectedWeapon == null || session.selectedWeapon.getType() == Material.AIR) {
+    private boolean returnSelectedEquipment(@NotNull AstPlayer astPlayer, @NotNull EnhancementSession session) {
+        if (session.selectedEquipment == null || session.selectedEquipment.getType() == Material.AIR) {
             return false;
         }
-        if (inventoryService.returnItemToOwnedInventory(astPlayer, session.selectedWeapon.clone()) == null) {
-            astPlayer.getBukkit().getWorld().dropItemNaturally(astPlayer.getBukkit().getLocation(), session.selectedWeapon.clone());
+        if (inventoryService.returnItemToOwnedInventory(astPlayer, session.selectedEquipment.clone()) == null) {
+            astPlayer.getBukkit().getWorld().dropItemNaturally(astPlayer.getBukkit().getLocation(), session.selectedEquipment.clone());
         }
-        session.selectedWeapon = null;
+        session.selectedEquipment = null;
         return true;
     }
 
@@ -545,11 +586,11 @@ public final class EquipmentEnhancementService {
         if (session == null) {
             return;
         }
-        if (session.selectedWeapon != null && session.selectedWeapon.getType() != Material.AIR) {
-            if (inventoryService.returnItemToOwnedInventory(astPlayer, session.selectedWeapon.clone()) == null) {
-                astPlayer.getBukkit().getWorld().dropItemNaturally(astPlayer.getBukkit().getLocation(), session.selectedWeapon.clone());
+        if (session.selectedEquipment != null && session.selectedEquipment.getType() != Material.AIR) {
+            if (inventoryService.returnItemToOwnedInventory(astPlayer, session.selectedEquipment.clone()) == null) {
+                astPlayer.getBukkit().getWorld().dropItemNaturally(astPlayer.getBukkit().getLocation(), session.selectedEquipment.clone());
             }
-            session.selectedWeapon = null;
+            session.selectedEquipment = null;
         }
         if (restoreDisplayedInventory && session.previousDisplayedType != null) {
             inventoryService.applyInventoryToGui(astPlayer, session.previousDisplayedType);
@@ -628,11 +669,19 @@ public final class EquipmentEnhancementService {
 
     private static final class EnhancementSession {
         private final InventoryType previousDisplayedType;
-        private ItemStack selectedWeapon;
+        private ItemStack selectedEquipment;
 
         private EnhancementSession(@Nullable InventoryType previousDisplayedType) {
             this.previousDisplayedType = previousDisplayedType;
         }
+    }
+
+    private record SelectionResult(
+        @NotNull SelectionState state,
+        @Nullable ItemModel model,
+        @Nullable EquipmentInstance instance,
+        @Nullable EnhancementContext context
+    ) {
     }
 
     private record EnhancementContext(
@@ -664,5 +713,24 @@ public final class EquipmentEnhancementService {
         FAIL_NONE,
         FAIL_DOWNGRADE,
         FAIL_DESTROY
+    }
+
+    private enum SelectionState {
+        NONE_SELECTED("強化する装備をセットしてください。"),
+        INVALID_TARGET("選択した装備の情報を取得できません。"),
+        NO_ENHANCE_DATA("この装備には強化データが定義されていません。"),
+        MAX_LEVEL("この装備は現在の強化上限に達しています。"),
+        NEXT_LEVEL_MISSING("次の強化レベル定義が見つかりません。"),
+        READY("");
+
+        private final String message;
+
+        SelectionState(@NotNull String message) {
+            this.message = message;
+        }
+
+        private @NotNull String message() {
+            return message;
+        }
     }
 }
