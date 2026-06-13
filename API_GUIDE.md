@@ -104,6 +104,10 @@
 | GET `/api/loot/table/{tableId}` | ルートテーブル取得 | `00_docs/20_API設計書/feature/06-loot/3-エンドポイント仕様/06_3.00-索引.md` |
 | GET `/api/mob` | Mob 一覧取得（`category` クエリで絞り込み可） | `00_docs/20_API設計書/feature/16-mob/3-エンドポイント仕様/16_3.00-索引.md` |
 | GET `/api/mob/{mobId}` | Mob 詳細取得 | `00_docs/20_API設計書/feature/16-mob/3-エンドポイント仕様/16_3.00-索引.md` |
+| GET `/api/gathering?category={category}` | 採集オブジェクト一覧取得。`category=MINING/HARVESTING` で絞り込み可 | 未作成 |
+| GET `/api/gathering/{gatheringId}` | 採集オブジェクト詳細取得 | 未作成 |
+| GET `/api/gathering-spawner` | 採集スポナー一覧取得 | 未作成 |
+| GET `/api/gathering-spawner/{spawnerId}` | 採集スポナー詳細取得 | 未作成 |
 | GET `/api/world` | WorldMasterData 一覧取得 | `00_docs/20_API設計書/feature/17-world/3-エンドポイント仕様/17_3.00-検索.md` |
 | GET `/api/world/{worldId}` | WorldMasterData 詳細取得 | `00_docs/20_API設計書/feature/17-world/3-エンドポイント仕様/17_3.00-検索.md` |
 | GET `/api/mail?user_id={user_id}&filter={filter}` | 期限内メール一覧取得 | `00_docs/20_API設計書/feature/18-mail/3-エンドポイント仕様/18_3.00-索引.md` |

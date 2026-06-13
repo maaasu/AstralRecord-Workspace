@@ -37,6 +37,7 @@ public class MasterDataSeeder(
             ["item"] = SourceStructure.Category,
             ["loot"] = SourceStructure.Split,
             ["mob"] = SourceStructure.Split,
+            ["gathering"] = SourceStructure.Split,
         };
 
     public async Task<MasterDataSeedResultResponse> RunAsync(

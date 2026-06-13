@@ -57,6 +57,8 @@ builder.Services.AddScoped<IRecipeRepository, RecipeRepository>();
 builder.Services.AddScoped<ISetEffectRepository, SetEffectRepository>();
 builder.Services.AddScoped<ISkillRepository, SkillRepository>();
 builder.Services.AddScoped<IMobRepository, MobRepository>();
+builder.Services.AddScoped<IGatheringRepository, GatheringRepository>();
+builder.Services.AddScoped<IGatheringSpawnerRepository, GatheringSpawnerRepository>();
 builder.Services.AddScoped<IWorldRepository, WorldRepository>();
 builder.Services.AddScoped<IMailRepository, MailRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();

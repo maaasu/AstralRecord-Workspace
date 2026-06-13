@@ -21,6 +21,12 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 
 `20_api/AstralRecordApi/` は Plugin と Web が利用する REST API です。SQL Server とアプリケーション間の契約を提供します。詳細仕様、エンドポイント一覧、実装ルールは [API_GUIDE.md](API_GUIDE.md) を参照してください。
 
+主な master data endpoint 例:
+- `GET /api/gathering`
+- `GET /api/gathering/{gatheringId}`
+- `GET /api/gathering-spawner`
+- `GET /api/gathering-spawner/{spawnerId}`
+
 ## AstralRecord Plugin
 
 `10_plugin/AstralRecord/` は Minecraft MMO RPG「AstralRecord」のサーバープラグインです。コード追加・修正全般は `$astralrecord-code` を使い、詳細ルールは [PLUGIN_GUIDE.md](PLUGIN_GUIDE.md) と `.codex/skills/astralrecord-code/references/plugin-code.md` を参照してください。

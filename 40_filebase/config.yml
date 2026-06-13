@@ -11,6 +11,10 @@ database:
     path: 40.features.mob
   - name: mob_spawner
     path: 41.features.mob.spawner
+  - name: gathering
+    path: 42.features.gathering
+  - name: gathering_spawner
+    path: 43.features.gathering.spawner
   - name: world
     path: 60.features.world
   - name: dungeon
@@ -64,6 +68,12 @@ referenceResolver:
   - prefix: "mob_spawner:"
     database: mob_spawner
     aliases: ["ms"]
+  - prefix: "gathering:"
+    database: gathering
+    aliases: ["gt"]
+  - prefix: "gathering_spawner:"
+    database: gathering_spawner
+    aliases: ["gs"]
   - prefix: "world:"
     database: world
     aliases: ["wd"]
