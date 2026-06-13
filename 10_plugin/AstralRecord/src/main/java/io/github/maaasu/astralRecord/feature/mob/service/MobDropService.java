@@ -34,6 +34,18 @@ public class MobDropService {
     @NotNull
     public MobDropResult roll(@NotNull MobTemplate template, @Nullable AstPlayer killer) {
         MobDropConfig drops = template.drops();
+        return roll(drops, killer);
+    }
+
+    /**
+     * Mob 以外の feature からも同じ drops 定義形式でドロップを抽選します。
+     *
+     * @param drops  drops 定義
+     * @param killer 取得者
+     * @return ドロップ確定結果
+     */
+    @NotNull
+    public MobDropResult roll(@Nullable MobDropConfig drops, @Nullable AstPlayer killer) {
         if (drops == null) {
             return new MobDropResult(List.of(), 0, 0);
         }

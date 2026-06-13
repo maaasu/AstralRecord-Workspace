@@ -1,0 +1,26 @@
+schemaVersion: 1
+id: test_herb_bush
+type: GATHERING
+category: HARVESTING
+name: "&aTest Herb Bush"
+maxHealth: 5
+displayBlock: OAK_LEAVES
+displayScale:
+  x: 0.9
+  y: 0.8
+  z: 0.9
+requiredToolTags:
+  - HOE
+drops:
+  exp: 0
+  items:
+    - itemId: item:healing_potion_small
+      rate: 45.0
+      amount: "1"
+      luckAffected: false
+      hidden: false
+    - itemId: item:magic_crystal
+      rate: 15.0
+      amount: "1"
+      luckAffected: true
+      hidden: false

@@ -57,3 +57,28 @@ displayScale:
 requiredToolTags:
   - PICKAXE
 ```
+
+## drops
+
+`drops` は採集オブジェクト破壊時のドロップ候補です。形式は Mob の `drops.items` と同じです。
+
+| キー | 型 | 必須 | デフォルト | 説明 |
+|:--|:--|:--:|:--|:--|
+| `drops.exp` | Integer | 任意 | `0` | 破壊時の経験値。現時点では表示結果用 |
+| `drops.items[]` | List | 任意 | empty | アイテムドロップ候補 |
+| `drops.items[].itemId` | String | 任意 | - | item ID。`item:` prefix 可 |
+| `drops.items[].rate` | Double | 任意 | `0.0` | ドロップ率 `0.0-100.0` |
+| `drops.items[].amount` | String | 任意 | `"1"` | 固定個数または `1~3` 形式 |
+| `drops.items[].luckAffected` | Boolean | 任意 | `true` | LUCK 補正対象か |
+| `drops.items[].hidden` | Boolean | 任意 | `false` | 将来の表示制御用 |
+
+```yaml
+drops:
+  exp: 0
+  items:
+    - itemId: item:iron_ingot
+      rate: 100.0
+      amount: "1~2"
+      luckAffected: false
+      hidden: false
+```

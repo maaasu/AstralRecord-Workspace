@@ -77,20 +77,30 @@ public final class MobDropPresentationService {
         @NotNull String mobName,
         @NotNull MobDropResult result
     ) {
+        presentAndGrant(recipient, deathLocation, mobName, result, DROP_SOURCE);
+    }
+
+    public void presentAndGrant(
+        @NotNull AstPlayer recipient,
+        @NotNull Location deathLocation,
+        @NotNull String sourceName,
+        @NotNull MobDropResult result,
+        @NotNull String dropSource
+    ) {
         Player player = recipient.getBukkit();
         if (!player.isOnline()) {
             return;
         }
 
         List<ResolvedDropItem> resolvedItems = resolveItems(result);
-        spawnResultText(player, deathLocation, mobName, result, resolvedItems);
+        spawnResultText(player, deathLocation, sourceName, result, resolvedItems);
         for (int index = 0; index < resolvedItems.size(); index++) {
             ResolvedDropItem item = resolvedItems.get(index);
             if (index < MAX_ANIMATED_ITEMS_PER_DEFEAT) {
-                spawnCollectingItem(recipient, deathLocation, item, index);
+                spawnCollectingItem(recipient, deathLocation, item, index, dropSource);
                 continue;
             }
-            grantWithoutAnimation(recipient, deathLocation, item);
+            grantWithoutAnimation(recipient, deathLocation, item, dropSource);
         }
     }
 
@@ -183,7 +193,8 @@ public final class MobDropPresentationService {
         @NotNull AstPlayer recipient,
         @NotNull Location deathLocation,
         @NotNull ResolvedDropItem item,
-        int index
+        int index,
+        @NotNull String dropSource
     ) {
         Player player = recipient.getBukkit();
         World world = deathLocation.getWorld();
@@ -191,7 +202,7 @@ public final class MobDropPresentationService {
             return;
         }
 
-        CompletableFuture<PreparedDropGrant> future = prepareDropAsync(recipient, item);
+        CompletableFuture<PreparedDropGrant> future = prepareDropAsync(recipient, item, dropSource);
         future.whenComplete((ignored, ex) -> {
             if (ex != null) {
                 Logger.error(LogId.E_5202, ex, item.model().getId());
@@ -206,7 +217,7 @@ public final class MobDropPresentationService {
             item.amount(),
             index,
             future,
-            () -> grantPreparedItem(recipient, future),
+            () -> grantPreparedItem(recipient, future, dropSource),
             () -> handleCancelledPreparedItem(dropLocation, future)
         );
     }
@@ -214,9 +225,10 @@ public final class MobDropPresentationService {
     private void grantWithoutAnimation(
         @NotNull AstPlayer recipient,
         @NotNull Location deathLocation,
-        @NotNull ResolvedDropItem item
+        @NotNull ResolvedDropItem item,
+        @NotNull String dropSource
     ) {
-        CompletableFuture<PreparedDropGrant> future = prepareDropAsync(recipient, item);
+        CompletableFuture<PreparedDropGrant> future = prepareDropAsync(recipient, item, dropSource);
         future.whenComplete((prepared, ex) -> plugin.getServer().getScheduler().runTask(plugin, () -> {
             if (ex != null) {
                 Logger.error(LogId.E_5202, ex, item.model().getId());
@@ -228,13 +240,14 @@ public final class MobDropPresentationService {
                 }
                 return;
             }
-            grantPreparedItem(recipient, CompletableFuture.completedFuture(prepared));
+            grantPreparedItem(recipient, CompletableFuture.completedFuture(prepared), dropSource);
         }));
     }
 
     private @NotNull CompletableFuture<PreparedDropGrant> prepareDropAsync(
         @NotNull AstPlayer recipient,
-        @NotNull ResolvedDropItem item
+        @NotNull ResolvedDropItem item,
+        @NotNull String dropSource
     ) {
         ItemCategory category = ItemCategory.fromApiValue(item.model().getCategory());
         if (category == ItemCategory.EQUIPMENT) {
@@ -242,7 +255,7 @@ public final class MobDropPresentationService {
                 EquipmentInstance instance = itemService.createEquipmentInstance(
                     item.model().getId(),
                     recipient.getAccount().getUuid().toString(),
-                    DROP_SOURCE,
+                    dropSource,
                     recipient.getAccount().getUuid().toString()
                 );
                 UUID instanceId = instance == null ? null : parseUuidOrNull(instance.getEquipmentInstanceId());
@@ -257,7 +270,7 @@ public final class MobDropPresentationService {
                 RuneInstance instance = itemService.createRuneInstance(
                     item.model().getId(),
                     recipient.getAccount().getUuid().toString(),
-                    DROP_SOURCE,
+                    dropSource,
                     recipient.getAccount().getUuid().toString()
                 );
                 UUID instanceId = instance == null ? null : parseUuidOrNull(instance.getRuneInstanceId());
@@ -272,7 +285,8 @@ public final class MobDropPresentationService {
 
     private void grantPreparedItem(
         @NotNull AstPlayer recipient,
-        @NotNull CompletableFuture<PreparedDropGrant> future
+        @NotNull CompletableFuture<PreparedDropGrant> future,
+        @NotNull String dropSource
     ) {
         PreparedDropGrant prepared = joinPrepared(future);
         if (prepared == null || !recipient.getBukkit().isOnline()) {
@@ -280,7 +294,7 @@ public final class MobDropPresentationService {
         }
 
         int dropped = switch (prepared.kind()) {
-            case STACKED -> grantStackedItem(recipient, prepared);
+            case STACKED -> grantStackedItem(recipient, prepared, dropSource);
             case EQUIPMENT, RUNE -> grantPreparedInstance(recipient, prepared);
         };
         if (dropped > 0) {
@@ -288,12 +302,12 @@ public final class MobDropPresentationService {
         }
     }
 
-    private int grantStackedItem(@NotNull AstPlayer recipient, @NotNull PreparedDropGrant prepared) {
+    private int grantStackedItem(@NotNull AstPlayer recipient, @NotNull PreparedDropGrant prepared, @NotNull String dropSource) {
         int granted = inventoryService.addItemToNormalInventory(
             recipient,
             prepared.item().model(),
             prepared.item().amount(),
-            DROP_SOURCE
+            dropSource
         );
         int overflow = prepared.item().amount() - granted;
         if (overflow <= 0) {

@@ -4,6 +4,10 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.command.ReloadCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountTabCompleter;
+import io.github.maaasu.astralRecord.feature.gathering.command.GatheringCommand;
+import io.github.maaasu.astralRecord.feature.gathering.command.GatheringTabCompleter;
+import io.github.maaasu.astralRecord.feature.gathering.service.GatheringService;
+import io.github.maaasu.astralRecord.feature.gathering.spawner.service.GatheringSpawnerService;
 import io.github.maaasu.astralRecord.shared.gui.debug.command.PagingDebugCommand;
 import io.github.maaasu.astralRecord.feature.inventory.command.InventoryCommand;
 import io.github.maaasu.astralRecord.feature.inventory.command.InventoryTabCompleter;
@@ -67,6 +71,8 @@ public class CommandRegister {
     private final NpcPlacementService npcPlacementService;
     private final WorldService worldService;
     private final SkillTreeService skillTreeService;
+    private final GatheringService gatheringService;
+    private final GatheringSpawnerService gatheringSpawnerService;
 
     public CommandRegister(
             ItemService itemService,
@@ -75,7 +81,9 @@ public class CommandRegister {
             MobSpawnerService spawnerService,
             NpcPlacementService npcPlacementService,
             WorldService worldService,
-            SkillTreeService skillTreeService
+            SkillTreeService skillTreeService,
+            GatheringService gatheringService,
+            GatheringSpawnerService gatheringSpawnerService
     ) {
         this.itemService = itemService;
         this.itemStackFactory = itemStackFactory;
@@ -84,6 +92,8 @@ public class CommandRegister {
         this.npcPlacementService = npcPlacementService;
         this.worldService = worldService;
         this.skillTreeService = skillTreeService;
+        this.gatheringService = gatheringService;
+        this.gatheringSpawnerService = gatheringSpawnerService;
         registerCommand();
     }
 
@@ -102,6 +112,7 @@ public class CommandRegister {
         cm.registerCommand("pagingdummy", new PagingDebugCommand());
         cm.registerCommand("item", new ItemCommand(itemService), new ItemTabCompleter(itemService));
         cm.registerCommand("mob", new MobCommand(mobService, spawnerService, npcPlacementService), new MobTabCompleter(mobService, spawnerService));
+        cm.registerCommand("gathering", new GatheringCommand(gatheringService, gatheringSpawnerService), new GatheringTabCompleter(gatheringService, gatheringSpawnerService));
         cm.registerCommand("world", new WorldCommand(worldService), new WorldTabCompleter(worldService));
         cm.registerCommand("user", new UserCommand(), new UserTabCompleter());
         cm.registerCommand("account", new AccountCommand(), new AccountTabCompleter());
