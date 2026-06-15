@@ -165,7 +165,7 @@ public class MobAiService {
 
         if (template.category() == MobCategory.NPC && template.idle().behavior() == IdleBehavior.STATIONARY) {
             mobService.stopPathfinding(instance);
-            mobService.stopHorizontalMovement(instance);
+            mobService.holdPosition(instance, instance.wanderAnchor());
             Player nearestPlayer = findNearestStationaryLookTarget(instance.currentLocation());
             if (nearestPlayer != null) {
                 mobService.lookAt(instance, nearestPlayer.getEyeLocation());

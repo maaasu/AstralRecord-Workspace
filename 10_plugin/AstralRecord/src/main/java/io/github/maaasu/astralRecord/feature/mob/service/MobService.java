@@ -436,6 +436,10 @@ public class MobService {
      * @param instance 対象インスタンス
      * @param target   視線を向ける位置
      */
+    public void holdPosition(@NotNull MobInstance instance, @NotNull Location anchor) {
+        entityController.holdPosition(instance, anchor);
+    }
+
     public void lookAt(@NotNull MobInstance instance, @NotNull Location target) {
         entityController.lookAt(instance, target);
     }

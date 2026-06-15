@@ -233,6 +233,34 @@ public class MobEntityController {
      * @param instance 対象インスタンス
      * @param velocity 加算する速度
      */
+    public void holdPosition(@NotNull MobInstance instance, @NotNull Location anchor) {
+        Mob mob = getMob(instance);
+        if (mob == null || mob.getWorld() != anchor.getWorld()) {
+            return;
+        }
+
+        Location current = mob.getLocation();
+        Vector currentVelocity = mob.getVelocity();
+        boolean drifted = current.distanceSquared(anchor) > 1.0E-4D;
+        boolean moving = currentVelocity.lengthSquared() > 1.0E-4D;
+        if (!drifted && !moving) {
+            instance.currentLocation(current);
+            return;
+        }
+
+        mob.setVelocity(new Vector(0.0D, 0.0D, 0.0D));
+        if (drifted) {
+            Location anchored = anchor.clone();
+            anchored.setYaw(current.getYaw());
+            anchored.setPitch(current.getPitch());
+            mob.teleport(anchored);
+            instance.currentLocation(anchored);
+            return;
+        }
+
+        instance.currentLocation(mob.getLocation());
+    }
+
     public void addVelocity(@NotNull MobInstance instance, @NotNull Vector velocity) {
         Mob mob = getMob(instance);
         if (mob == null) {
