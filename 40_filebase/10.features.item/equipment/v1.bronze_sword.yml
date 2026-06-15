@@ -31,6 +31,56 @@ equipment:
   durability:
     max: 120
     consume: 1
+  enhance:
+    maxLevel: 3
+    levels:
+      - level: 1
+        statIncrease:
+          - status: ATTACK
+            type: FLAT
+            value: 2
+          - status: CRITICAL_RATE
+            type: FLAT
+            value: 1.0
+        durabilityBonus: 6
+        requiredMaterials:
+          - itemId: iron_ingot
+            amount: 1
+        requiredCurrency: 80
+        successRate: 1.0
+        failAction: NONE
+      - level: 2
+        statIncrease:
+          - status: ATTACK
+            type: FLAT
+            value: 2
+          - status: ACCURACY
+            type: FLAT
+            value: 2
+        durabilityBonus: 8
+        requiredMaterials:
+          - itemId: iron_ingot
+            amount: 2
+        requiredCurrency: 150
+        successRate: 0.95
+        failAction: NONE
+      - level: 3
+        statIncrease:
+          - status: ATTACK
+            type: FLAT
+            value: 3
+          - status: CRITICAL_RATE
+            type: FLAT
+            value: 1.0
+        durabilityBonus: 10
+        requiredMaterials:
+          - itemId: iron_ingot
+            amount: 3
+          - itemId: magic_crystal
+            amount: 1
+        requiredCurrency: 300
+        successRate: 0.85
+        failAction: DOWNGRADE
   enchant:
     maxSlots: 2
     pools:

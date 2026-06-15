@@ -28,4 +28,54 @@ equipment:
   durability:
     max: 80
     consume: 1
+  enhance:
+    maxLevel: 3
+    levels:
+      - level: 1
+        statIncrease:
+          - status: MOVEMENT_SPEED
+            type: FLAT
+            value: 0.5
+          - status: AGILITY
+            type: FLAT
+            value: 1
+        durabilityBonus: 6
+        requiredMaterials:
+          - itemId: iron_ingot
+            amount: 1
+        requiredCurrency: 90
+        successRate: 1.0
+        failAction: NONE
+      - level: 2
+        statIncrease:
+          - status: DEFENSE
+            type: FLAT
+            value: 1
+          - status: MOVEMENT_SPEED
+            type: FLAT
+            value: 0.5
+        durabilityBonus: 8
+        requiredMaterials:
+          - itemId: iron_ingot
+            amount: 2
+        requiredCurrency: 180
+        successRate: 0.95
+        failAction: NONE
+      - level: 3
+        statIncrease:
+          - status: AGILITY
+            type: FLAT
+            value: 2
+          - status: MOVEMENT_SPEED
+            type: FLAT
+            value: 1.0
+        durabilityBonus: 10
+        requiredMaterials:
+          - itemId: iron_ingot
+            amount: 3
+          - itemId: magic_crystal
+            amount: 1
+        requiredCurrency: 320
+        successRate: 0.85
+        failAction: DOWNGRADE
 

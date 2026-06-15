@@ -29,3 +29,55 @@ equipment:
   durability:
     max: 180
     consume: 1
+  enhance:
+    maxLevel: 3
+    levels:
+      - level: 1
+        statIncrease:
+          - status: DEFENSE
+            type: FLAT
+            value: 2
+          - status: HP_REGEN
+            type: FLAT
+            value: 0.5
+        durabilityBonus: 8
+        requiredMaterials:
+          - itemId: iron_ingot
+            amount: 2
+        requiredCurrency: 160
+        successRate: 1.0
+        failAction: NONE
+      - level: 2
+        statIncrease:
+          - status: DEFENSE
+            type: FLAT
+            value: 2
+          - status: MAX_HEALTH
+            type: FLAT
+            value: 6
+        durabilityBonus: 10
+        requiredMaterials:
+          - itemId: iron_ingot
+            amount: 4
+          - itemId: magic_crystal
+            amount: 1
+        requiredCurrency: 320
+        successRate: 0.9
+        failAction: NONE
+      - level: 3
+        statIncrease:
+          - status: DEFENSE
+            type: FLAT
+            value: 3
+          - status: HP_REGEN
+            type: FLAT
+            value: 1.0
+        durabilityBonus: 14
+        requiredMaterials:
+          - itemId: iron_ingot
+            amount: 6
+          - itemId: magic_crystal
+            amount: 2
+        requiredCurrency: 600
+        successRate: 0.8
+        failAction: DOWNGRADE
