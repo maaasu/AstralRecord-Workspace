@@ -26,6 +26,8 @@ equipment:
 baseStats:
   - status: MAX_HEALTH
     value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
 
 ai:
   idle:
