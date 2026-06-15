@@ -10,9 +10,12 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * ワールドロード時に配置済み NPC をスポーンするイベントハンドラです。
+ * ワールドロード後に遅延付きで NPC 配置スポーンを再試行するイベントハンドラです。
  */
 public final class NpcPlacementWorldEventHandler extends AbstractEventHandler {
+
+    private static final long WORLD_LOAD_SPAWN_DELAY_TICKS = 20L;
+    private static final int WORLD_LOAD_SPAWN_MAX_ATTEMPTS = 5;
 
     private final Plugin plugin;
     private final NpcPlacementService placementService;
@@ -32,19 +35,37 @@ public final class NpcPlacementWorldEventHandler extends AbstractEventHandler {
     }
 
     /**
-     * ワールドロード後に対象ワールド分の NPC 配置を次 tick でスポーンします。
+     * ワールドロード後に `/mob npc reload` と同じスポーン処理を遅延実行し、
+     * 未スポーン配置が残る間だけ再試行します。
      *
      * @param event ワールドロードイベント
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onWorldLoad(@NotNull WorldLoadEvent event) {
         runSafely(
-                () -> plugin.getServer().getScheduler().runTask(
-                        plugin,
-                        () -> placementService.spawnForWorld(event.getWorld())
-                ),
+                () -> scheduleSpawnRetry(WORLD_LOAD_SPAWN_MAX_ATTEMPTS),
                 LogId.E_5702,
                 event.getWorld().getName()
         );
+    }
+
+    private void scheduleSpawnRetry(int remainingAttempts) {
+        plugin.getServer().getScheduler().runTaskLater(
+                plugin,
+                () -> runSafely(
+                        () -> attemptSpawnRetry(remainingAttempts),
+                        LogId.E_5702,
+                        "world-load-retry:" + remainingAttempts
+                ),
+                WORLD_LOAD_SPAWN_DELAY_TICKS
+        );
+    }
+
+    private void attemptSpawnRetry(int remainingAttempts) {
+        placementService.spawnLoadedWorlds();
+        if (remainingAttempts <= 1 || !placementService.hasPendingPlacements()) {
+            return;
+        }
+        scheduleSpawnRetry(remainingAttempts - 1);
     }
 }

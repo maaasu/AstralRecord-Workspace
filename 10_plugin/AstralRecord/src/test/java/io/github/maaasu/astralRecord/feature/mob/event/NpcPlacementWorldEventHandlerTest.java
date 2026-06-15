@@ -18,13 +18,14 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class NpcPlacementWorldEventHandlerTest extends MockBukkitTestBase {
 
     @Test
-    void worldLoadDefersNpcSpawnUntilNextTick() {
+    void worldLoadDefersSpawnLoadedWorldsByConfiguredDelay() {
         var world = server().addSimpleWorld("npc_world");
         PluginMock plugin = PluginMock.builder()
                 .withPluginName("AstralRecordTest")
@@ -35,11 +36,35 @@ class NpcPlacementWorldEventHandlerTest extends MockBukkitTestBase {
 
         handler.onWorldLoad(new WorldLoadEvent(world));
 
-        verify(placementService, never()).spawnForWorld(world);
+        verify(placementService, never()).spawnLoadedWorlds();
+
+        server().getScheduler().performTicks(19);
+
+        verify(placementService, never()).spawnLoadedWorlds();
 
         server().getScheduler().performTicks(1);
 
-        verify(placementService).spawnForWorld(world);
+        verify(placementService).spawnLoadedWorlds();
+    }
+
+    @Test
+    void worldLoadRetriesWhilePendingPlacementsRemain() {
+        var world = server().addSimpleWorld("npc_world");
+        PluginMock plugin = PluginMock.builder()
+                .withPluginName("AstralRecordTest")
+                .withPluginVersion("1.0.0")
+                .build();
+        NpcPlacementService placementService = mock(NpcPlacementService.class);
+        NpcPlacementWorldEventHandler handler = new NpcPlacementWorldEventHandler(plugin, placementService);
+
+        when(placementService.hasPendingPlacements()).thenReturn(true, true, false);
+
+        handler.onWorldLoad(new WorldLoadEvent(world));
+
+        server().getScheduler().performTicks(60);
+
+        verify(placementService, times(3)).spawnLoadedWorlds();
+        verify(placementService, times(3)).hasPendingPlacements();
     }
 
     @Test
@@ -62,7 +87,7 @@ class NpcPlacementWorldEventHandlerTest extends MockBukkitTestBase {
         placementService.loadAll();
         handler.onWorldLoad(new WorldLoadEvent(world));
 
-        server().getScheduler().performTicks(1);
+        server().getScheduler().performTicks(100);
 
         verify(mobService, never()).spawn(anyString(), any(Location.class));
     }
@@ -91,7 +116,7 @@ class NpcPlacementWorldEventHandlerTest extends MockBukkitTestBase {
         handler.onWorldLoad(new WorldLoadEvent(server().getWorld("startup_world")));
         verify(mobService, never()).spawn(anyString(), any(Location.class));
 
-        server().getScheduler().performTicks(1);
+        server().getScheduler().performTicks(20);
 
         verify(mobService).spawn(anyString(), argThat(location ->
                 location.getWorld() != null

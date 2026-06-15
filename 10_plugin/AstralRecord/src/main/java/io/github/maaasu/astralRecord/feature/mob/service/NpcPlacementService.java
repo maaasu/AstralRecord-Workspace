@@ -75,6 +75,21 @@ public final class NpcPlacementService {
     }
 
     /**
+     * 未スポーンの NPC 配置が残っているかを返します。
+     *
+     * @return 1 件以上の未スポーン配置がある場合は {@code true}
+     */
+    public boolean hasPendingPlacements() {
+        for (NpcPlacement placement : placements.values()) {
+            UUID instanceId = spawnedByLocation.get(placement.locationKey());
+            if (instanceId == null || mobService.getInstance(instanceId) == null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * NPC 配置を登録して即時スポーンします。
      *
      * @param npcId    NPC マスタ ID
