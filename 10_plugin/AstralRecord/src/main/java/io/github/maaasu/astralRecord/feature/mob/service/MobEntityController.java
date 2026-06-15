@@ -1,8 +1,12 @@
 package io.github.maaasu.astralRecord.feature.mob.service;
 
+import io.github.maaasu.astralRecord.feature.mob.model.IdleBehavior;
+import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.papermc.paper.entity.LookAnchor;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -111,6 +115,7 @@ public class MobEntityController {
         mob.getPathfinder().setCanOpenDoors(false);
         mob.getPathfinder().setCanPassDoors(true);
         mob.getPathfinder().setCanFloat(true);
+        applyStationaryNpcAttributes(template, mob);
     }
 
     /**
@@ -333,6 +338,22 @@ public class MobEntityController {
         equipment.setChestplateDropChance(0.0F);
         equipment.setLeggingsDropChance(0.0F);
         equipment.setBootsDropChance(0.0F);
+    }
+
+    void applyStationaryNpcAttributes(@NotNull MobTemplate template, @NotNull Mob mob) {
+        if (template.category() != MobCategory.NPC || template.idle().behavior() != IdleBehavior.STATIONARY) {
+            return;
+        }
+
+        zeroAttribute(mob.getAttribute(Attribute.MOVEMENT_SPEED));
+        zeroAttribute(mob.getAttribute(Attribute.JUMP_STRENGTH));
+    }
+
+    private void zeroAttribute(@Nullable AttributeInstance attribute) {
+        if (attribute == null) {
+            return;
+        }
+        attribute.setBaseValue(0.0D);
     }
 
     private boolean hasTargetDrifted(@NotNull MobInstance instance, @NotNull Location target) {

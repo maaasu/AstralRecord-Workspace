@@ -7,6 +7,8 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Mob;
 import org.bukkit.util.Vector;
@@ -21,6 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class MobEntityControllerTest extends MockBukkitTestBase {
@@ -95,5 +99,87 @@ class MobEntityControllerTest extends MockBukkitTestBase {
         assertEquals(anchor.getX(), instance.currentLocation().getX(), 0.0001D);
         assertEquals(anchor.getY(), instance.currentLocation().getY(), 0.0001D);
         assertEquals(anchor.getZ(), instance.currentLocation().getZ(), 0.0001D);
+    }
+
+    @Test
+    void applyStationaryNpcAttributesZerosMovementAndJump() {
+        PluginMock plugin = PluginMock.builder()
+                .withPluginName("AstralRecordTest")
+                .withPluginVersion("1.0.0")
+                .build();
+        MobEntityController controller = new MobEntityController(plugin);
+        Mob mob = mock(Mob.class);
+        AttributeInstance movementSpeed = mock(AttributeInstance.class);
+        AttributeInstance jumpStrength = mock(AttributeInstance.class);
+        MobTemplate template = new MobTemplate(
+                1,
+                "npc_shopkeeper",
+                MobCategory.NPC,
+                "Shopkeeper",
+                null,
+                1,
+                EntityType.VILLAGER,
+                false,
+                null,
+                List.of(),
+                List.of(),
+                null,
+                null,
+                List.of(),
+                new MobIdleConfig(IdleBehavior.STATIONARY, 0.0D, 1.0D),
+                true,
+                null,
+                null,
+                null,
+                null
+        );
+
+        when(mob.getAttribute(Attribute.MOVEMENT_SPEED)).thenReturn(movementSpeed);
+        when(mob.getAttribute(Attribute.JUMP_STRENGTH)).thenReturn(jumpStrength);
+
+        controller.applyStationaryNpcAttributes(template, mob);
+
+        verify(movementSpeed).setBaseValue(0.0D);
+        verify(jumpStrength).setBaseValue(0.0D);
+    }
+
+    @Test
+    void applyStationaryNpcAttributesSkipsNonStationaryNpc() {
+        PluginMock plugin = PluginMock.builder()
+                .withPluginName("AstralRecordTest")
+                .withPluginVersion("1.0.0")
+                .build();
+        MobEntityController controller = new MobEntityController(plugin);
+        Mob mob = mock(Mob.class);
+        AttributeInstance movementSpeed = mock(AttributeInstance.class);
+        MobTemplate template = new MobTemplate(
+                1,
+                "npc_shopkeeper",
+                MobCategory.NPC,
+                "Shopkeeper",
+                null,
+                1,
+                EntityType.VILLAGER,
+                false,
+                null,
+                List.of(),
+                List.of(),
+                null,
+                null,
+                List.of(),
+                new MobIdleConfig(IdleBehavior.WANDER, 4.0D, 1.0D),
+                true,
+                null,
+                null,
+                null,
+                null
+        );
+
+        when(mob.getAttribute(Attribute.MOVEMENT_SPEED)).thenReturn(movementSpeed);
+
+        controller.applyStationaryNpcAttributes(template, mob);
+
+        verify(movementSpeed, never()).setBaseValue(0.0D);
+        verify(mob, never()).getAttribute(Attribute.JUMP_STRENGTH);
     }
 }

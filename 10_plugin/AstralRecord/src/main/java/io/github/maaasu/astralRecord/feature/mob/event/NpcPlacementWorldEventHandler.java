@@ -5,13 +5,12 @@ import io.github.maaasu.astralRecord.feature.mob.service.NpcPlacementService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
-import org.bukkit.event.server.ServerLoadEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * ワールドロード時に管理 YAML 上の NPC をスポーンするイベントハンドラです。
+ * ワールドロード時に配置済み NPC をスポーンするイベントハンドラです。
  */
 public final class NpcPlacementWorldEventHandler extends AbstractEventHandler {
 
@@ -33,7 +32,7 @@ public final class NpcPlacementWorldEventHandler extends AbstractEventHandler {
     }
 
     /**
-     * ワールドロード後に対象ワールドの NPC 配置を次 tick でスポーンします。
+     * ワールドロード後に対象ワールド分の NPC 配置を次 tick でスポーンします。
      *
      * @param event ワールドロードイベント
      */
@@ -46,23 +45,6 @@ public final class NpcPlacementWorldEventHandler extends AbstractEventHandler {
                 ),
                 LogId.E_5702,
                 event.getWorld().getName()
-        );
-    }
-
-    /**
-     * サーバ起動完了後に、ロード済みワールド全体の NPC 配置を再試行します。
-     *
-     * @param event サーバロード完了イベント
-     */
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onServerLoad(@NotNull ServerLoadEvent event) {
-        runSafely(
-                () -> plugin.getServer().getScheduler().runTask(
-                        plugin,
-                        placementService::spawnLoadedWorlds
-                ),
-                LogId.E_5702,
-                "server-load:" + event.getType().name()
         );
     }
 }

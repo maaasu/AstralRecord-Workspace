@@ -7,7 +7,6 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.mob.service.NpcPlacementService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
-import org.bukkit.event.server.ServerLoadEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.plugin.PluginMock;
@@ -44,25 +43,32 @@ class NpcPlacementWorldEventHandlerTest extends MockBukkitTestBase {
     }
 
     @Test
-    void serverLoadDefersSpawnLoadedWorldsUntilNextTick() {
+    void worldLoadDoesNotRespawnOtherWorldPlacements() {
+        var world = server().addSimpleWorld("npc_world");
         PluginMock plugin = PluginMock.builder()
                 .withPluginName("AstralRecordTest")
                 .withPluginVersion("1.0.0")
                 .build();
-        NpcPlacementService placementService = mock(NpcPlacementService.class);
+        MobService mobService = mock(MobService.class);
+        NpcPlacementRepository repository = mock(NpcPlacementRepository.class);
+        NpcPlacementService placementService = new NpcPlacementService(mobService, repository);
         NpcPlacementWorldEventHandler handler = new NpcPlacementWorldEventHandler(plugin, placementService);
 
-        handler.onServerLoad(new ServerLoadEvent(ServerLoadEvent.LoadType.STARTUP));
+        when(mobService.spawn(anyString(), any(Location.class))).thenReturn(mock(MobInstance.class));
+        when(repository.loadAll()).thenReturn(List.of(
+                new NpcPlacement("npc_shopkeeper", "other_world", 10.5D, 64.0D, -3.0D, 90.0F, 0.0F)
+        ));
 
-        verify(placementService, never()).spawnLoadedWorlds();
+        placementService.loadAll();
+        handler.onWorldLoad(new WorldLoadEvent(world));
 
         server().getScheduler().performTicks(1);
 
-        verify(placementService).spawnLoadedWorlds();
+        verify(mobService, never()).spawn(anyString(), any(Location.class));
     }
 
     @Test
-    void serverLoadSpawnsStartupPlacementsAfterWorldsBecomeAvailable() {
+    void worldLoadSpawnsStartupPlacementsAfterWorldBecomesAvailable() {
         PluginMock plugin = PluginMock.builder()
                 .withPluginName("AstralRecordTest")
                 .withPluginVersion("1.0.0")
@@ -82,7 +88,7 @@ class NpcPlacementWorldEventHandlerTest extends MockBukkitTestBase {
 
         server().addSimpleWorld("startup_world");
 
-        handler.onServerLoad(new ServerLoadEvent(ServerLoadEvent.LoadType.STARTUP));
+        handler.onWorldLoad(new WorldLoadEvent(server().getWorld("startup_world")));
         verify(mobService, never()).spawn(anyString(), any(Location.class));
 
         server().getScheduler().performTicks(1);

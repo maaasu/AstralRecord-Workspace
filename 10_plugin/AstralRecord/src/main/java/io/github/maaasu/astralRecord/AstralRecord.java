@@ -312,6 +312,11 @@ public final class AstralRecord extends JavaPlugin {
         }
 
         // 3. feature を初期化
+        eventManager = new EventManager(this);
+        eventManager.registerHandler(
+            new NpcPlacementWorldEventHandler(this, npcPlacementService),
+            getServer().getPluginManager()
+        );
         setupFeature();
 
         // 4. イベントとコマンドを登録
@@ -643,13 +648,13 @@ public final class AstralRecord extends JavaPlugin {
 
         // mob
         mobService.loadAll();
+        npcPlacementService.loadAll();
         mobSpawnerService.loadAll();
         gatheringService.loadAll();
         gatheringSpawnerService.loadAll();
 
         // world
         worldService.loadAll();
-        npcPlacementService.loadAll();
         mobAiService = new MobAiService(mobService);
         mobAiService.start();
         skillTreeService.loadAll();
@@ -659,8 +664,6 @@ public final class AstralRecord extends JavaPlugin {
         ItemStackPacketAdapter packetAdapter = new ItemStackPacketAdapter(this);
         packetAdapter.register();
 
-        // event manager
-        eventManager = new EventManager(this);
     }
 
     /**
@@ -839,10 +842,6 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new NpcPlacementWorldEventHandler(this, npcPlacementService),
-            getServer().getPluginManager()
-        );
-        eventManager.registerHandler(
             new SkillTreeEventHandler(skillTreeService),
             getServer().getPluginManager()
         );
@@ -862,7 +861,6 @@ public final class AstralRecord extends JavaPlugin {
             new PartyQuitEventHandler(partyService),
             getServer().getPluginManager()
         );
-        getServer().getScheduler().runTask(this, npcPlacementService::spawnLoadedWorlds);
         playerHudService.start(this);
         statusRegenTask.start(this);
         displayTextService.start(this);
