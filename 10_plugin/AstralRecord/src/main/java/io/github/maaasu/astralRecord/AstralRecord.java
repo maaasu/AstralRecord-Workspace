@@ -253,7 +253,7 @@ public final class AstralRecord extends JavaPlugin {
         lootService = new LootService();
         itemStackFactory = new ItemStackFactory(lootService, itemService);
         mobService = new MobService(this, new MobRepository());
-        npcPlacementService = new NpcPlacementService(mobService, new NpcPlacementRepository(this));
+        npcPlacementService = new NpcPlacementService(this, mobService, new NpcPlacementRepository(this));
         mobSpawnerService = new MobSpawnerService(
                 this,
                 mobService,

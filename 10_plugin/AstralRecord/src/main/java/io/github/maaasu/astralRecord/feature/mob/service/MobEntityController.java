@@ -18,6 +18,7 @@ import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -67,19 +68,30 @@ public class MobEntityController {
             return null;
         }
 
-        Entity entity;
+        Class<? extends Entity> entityClass = instance.template().entityType().getEntityClass();
+        if (entityClass == null || !Mob.class.isAssignableFrom(entityClass)) {
+            return null;
+        }
+
+        Class<? extends Mob> mobClass = entityClass.asSubclass(Mob.class);
+        Mob mob;
         try {
-            entity = world.spawnEntity(location, instance.template().entityType());
+            mob = world.spawn(
+                    location,
+                    mobClass,
+                    CreatureSpawnEvent.SpawnReason.CUSTOM,
+                    false,
+                    spawned -> configure(instance, spawned)
+            );
         } catch (RuntimeException ex) {
             return null;
         }
-        if (!(entity instanceof Mob mob)) {
-            entity.remove();
+
+        if (mob.isDead() || !mob.isValid()) {
             return null;
         }
 
         try {
-            configure(instance, mob);
             instance.bindEntity(mob.getUniqueId(), mob.getEntityId(), mob.getLocation());
             return mob;
         } catch (RuntimeException ex) {

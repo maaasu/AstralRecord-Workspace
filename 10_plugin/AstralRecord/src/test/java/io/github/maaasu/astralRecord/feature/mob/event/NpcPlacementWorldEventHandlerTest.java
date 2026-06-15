@@ -76,7 +76,7 @@ class NpcPlacementWorldEventHandlerTest extends MockBukkitTestBase {
                 .build();
         MobService mobService = mock(MobService.class);
         NpcPlacementRepository repository = mock(NpcPlacementRepository.class);
-        NpcPlacementService placementService = new NpcPlacementService(mobService, repository);
+        NpcPlacementService placementService = new NpcPlacementService(plugin, mobService, repository);
         NpcPlacementWorldEventHandler handler = new NpcPlacementWorldEventHandler(plugin, placementService);
 
         when(mobService.spawn(anyString(), any(Location.class))).thenReturn(mock(MobInstance.class));
@@ -100,7 +100,7 @@ class NpcPlacementWorldEventHandlerTest extends MockBukkitTestBase {
                 .build();
         MobService mobService = mock(MobService.class);
         NpcPlacementRepository repository = mock(NpcPlacementRepository.class);
-        NpcPlacementService placementService = new NpcPlacementService(mobService, repository);
+        NpcPlacementService placementService = new NpcPlacementService(plugin, mobService, repository);
         NpcPlacementWorldEventHandler handler = new NpcPlacementWorldEventHandler(plugin, placementService);
 
         when(mobService.spawn(anyString(), any(Location.class))).thenReturn(mock(MobInstance.class));

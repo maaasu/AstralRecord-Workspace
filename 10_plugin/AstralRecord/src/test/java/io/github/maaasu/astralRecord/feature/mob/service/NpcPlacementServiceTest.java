@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.mob.repository.NpcPlacementReposito
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
 import org.junit.jupiter.api.Test;
+import org.mockbukkit.mockbukkit.plugin.PluginMock;
 
 import java.util.List;
 
@@ -24,9 +25,10 @@ class NpcPlacementServiceTest extends MockBukkitTestBase {
     @Test
     void loadAllSpawnsPlacementsInAlreadyLoadedWorlds() {
         server().addSimpleWorld("spawn_world");
+        PluginMock plugin = testPlugin();
         MobService mobService = mock(MobService.class);
         NpcPlacementRepository repository = mock(NpcPlacementRepository.class);
-        NpcPlacementService service = new NpcPlacementService(mobService, repository);
+        NpcPlacementService service = new NpcPlacementService(plugin, mobService, repository);
 
         when(mobService.spawn(anyString(), any(Location.class))).thenReturn(mock(MobInstance.class));
         when(repository.loadAll()).thenReturn(List.of(
@@ -49,9 +51,10 @@ class NpcPlacementServiceTest extends MockBukkitTestBase {
 
     @Test
     void spawnLoadedWorldsRespawnsPlacementsWhenWorldBecomesAvailableLater() {
+        PluginMock plugin = testPlugin();
         MobService mobService = mock(MobService.class);
         NpcPlacementRepository repository = mock(NpcPlacementRepository.class);
-        NpcPlacementService service = new NpcPlacementService(mobService, repository);
+        NpcPlacementService service = new NpcPlacementService(plugin, mobService, repository);
 
         when(mobService.spawn(anyString(), any(Location.class))).thenReturn(mock(MobInstance.class));
         when(repository.loadAll()).thenReturn(List.of(
@@ -73,5 +76,12 @@ class NpcPlacementServiceTest extends MockBukkitTestBase {
                         && location.getY() == 70.0D
                         && location.getZ() == 8.0D
         ));
+    }
+
+    private PluginMock testPlugin() {
+        return PluginMock.builder()
+                .withPluginName("AstralRecordTest")
+                .withPluginVersion("1.0.0")
+                .build();
     }
 }

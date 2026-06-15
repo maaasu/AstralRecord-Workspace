@@ -5,8 +5,11 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.model.NpcPlacement;
 import io.github.maaasu.astralRecord.feature.mob.repository.NpcPlacementRepository;
+import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -22,10 +25,13 @@ import java.util.UUID;
  */
 public final class NpcPlacementService {
 
+    private final Plugin plugin;
     private final MobService mobService;
     private final NpcPlacementRepository repository;
     private final Map<String, NpcPlacement> placements = new LinkedHashMap<>();
     private final Map<String, UUID> spawnedByLocation = new LinkedHashMap<>();
+    private final Map<String, ChunkTicket> chunkTicketByLocation = new LinkedHashMap<>();
+    private final Map<ChunkTicket, Integer> chunkTicketRefs = new LinkedHashMap<>();
     private boolean dirty;
 
     /**
@@ -35,9 +41,11 @@ public final class NpcPlacementService {
      * @param repository NPC 配置リポジトリ
      */
     public NpcPlacementService(
+            @NotNull Plugin plugin,
             @NotNull MobService mobService,
             @NotNull NpcPlacementRepository repository
     ) {
+        this.plugin = plugin;
         this.mobService = mobService;
         this.repository = repository;
     }
@@ -49,6 +57,7 @@ public final class NpcPlacementService {
      */
     public int loadAll() {
         destroySpawnedNpcs();
+        releaseAllChunkTickets();
         placements.clear();
         spawnedByLocation.clear();
         for (NpcPlacement placement : repository.loadAll()) {
@@ -159,6 +168,7 @@ public final class NpcPlacementService {
                 return mobService.getInstance(currentId);
             }
             spawnedByLocation.remove(placement.locationKey());
+            releaseChunkTicket(placement.locationKey());
         }
 
         Location location = prepareSpawnLocation(placement);
@@ -166,9 +176,15 @@ public final class NpcPlacementService {
             return null;
         }
 
+        if (!retainChunkTicket(placement.locationKey(), location)) {
+            return null;
+        }
+
         MobInstance instance = mobService.spawn(placement.npcId(), location);
         if (instance != null) {
             spawnedByLocation.put(placement.locationKey(), instance.instanceId());
+        } else {
+            releaseChunkTicket(placement.locationKey());
         }
         return instance;
     }
@@ -198,5 +214,64 @@ public final class NpcPlacementService {
         if (instanceId != null) {
             mobService.destroy(instanceId);
         }
+        releaseChunkTicket(locationKey);
+    }
+
+    private boolean retainChunkTicket(@NotNull String locationKey, @NotNull Location location) {
+        Chunk chunk = location.getChunk();
+        ChunkTicket ticket = new ChunkTicket(chunk.getWorld().getName(), chunk.getX(), chunk.getZ());
+        ChunkTicket currentTicket = chunkTicketByLocation.get(locationKey);
+        if (ticket.equals(currentTicket)) {
+            return true;
+        }
+        if (currentTicket != null) {
+            releaseChunkTicket(locationKey);
+        }
+
+        int refs = chunkTicketRefs.getOrDefault(ticket, 0);
+        if (refs == 0) {
+            try {
+                chunk.addPluginChunkTicket(plugin);
+            } catch (RuntimeException ex) {
+                return true;
+            }
+        }
+
+        chunkTicketByLocation.put(locationKey, ticket);
+        chunkTicketRefs.put(ticket, refs + 1);
+        return true;
+    }
+
+    private void releaseChunkTicket(@NotNull String locationKey) {
+        ChunkTicket ticket = chunkTicketByLocation.remove(locationKey);
+        if (ticket == null) {
+            return;
+        }
+
+        int refs = chunkTicketRefs.getOrDefault(ticket, 0) - 1;
+        if (refs > 0) {
+            chunkTicketRefs.put(ticket, refs);
+            return;
+        }
+
+        chunkTicketRefs.remove(ticket);
+        World world = Bukkit.getWorld(ticket.worldName());
+        if (world != null) {
+            world.getChunkAt(ticket.x(), ticket.z()).removePluginChunkTicket(plugin);
+        }
+    }
+
+    private void releaseAllChunkTickets() {
+        for (ChunkTicket ticket : List.copyOf(chunkTicketRefs.keySet())) {
+            World world = Bukkit.getWorld(ticket.worldName());
+            if (world != null) {
+                world.getChunkAt(ticket.x(), ticket.z()).removePluginChunkTicket(plugin);
+            }
+        }
+        chunkTicketByLocation.clear();
+        chunkTicketRefs.clear();
+    }
+
+    private record ChunkTicket(@NotNull String worldName, int x, int z) {
     }
 }
