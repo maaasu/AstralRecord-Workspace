@@ -21,6 +21,7 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -96,7 +97,7 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
             List.of(
                 noItalic(Component.text("名前: " + target.getBukkit().getName(), NamedTextColor.WHITE)),
                 noItalic(Component.text("UUID: " + target.getBukkit().getUniqueId(), NamedTextColor.GRAY)),
-                noItalic(Component.text("ワールド: " + target.getBukkit().getWorld().getName(), NamedTextColor.GRAY)),
+                noItalic(Component.text("ワールド: " + displayWorldName(target.getBukkit()), NamedTextColor.GRAY)),
                 noItalic(Component.text("権限: " + target.getUser().getPermission(), NamedTextColor.YELLOW))
             )
         ));
@@ -169,6 +170,14 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
 
     protected @NotNull Component noItalic(@NotNull Component component) {
         return component.decoration(TextDecoration.ITALIC, false);
+    }
+
+    private @NotNull String displayWorldName(@NotNull Player target) {
+        String normalizedName = target.getWorld().getName()
+            .replace('\\', '/')
+            .replaceAll("/{2,}", "/");
+        String leafName = new File(normalizedName).getName();
+        return leafName.isBlank() ? normalizedName : leafName;
     }
 
     private double totalValue(@NotNull StatusSnapshot snapshot, @NotNull StatusType type) {

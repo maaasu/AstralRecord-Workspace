@@ -19,6 +19,7 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -151,7 +152,7 @@ public final class PlayerListGui {
         Player target = Bukkit.getPlayer(playerId);
         AstPlayer astTarget = target == null ? null : AstPlayerCache.get(target);
         List<Component> lore = new ArrayList<>();
-        lore.add(noItalic(Component.text("ワールド: " + (target == null ? "Unknown" : target.getWorld().getName()), NamedTextColor.GRAY)));
+        lore.add(noItalic(Component.text("ワールド: " + displayWorldName(target), NamedTextColor.GRAY)));
         if (astTarget != null) {
             lore.add(noItalic(Component.text("モード: " + astTarget.getAccount().getMode().getDisplayName(), NamedTextColor.GRAY)));
             lore.add(noItalic(Component.text("Lv: " + astTarget.getAccount().getLevel(), NamedTextColor.YELLOW)));
@@ -176,6 +177,18 @@ public final class PlayerListGui {
         }
         OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerId);
         return offlinePlayer.getName() == null ? playerId.toString() : offlinePlayer.getName();
+    }
+
+    private @NotNull String displayWorldName(@Nullable Player target) {
+        if (target == null) {
+            return "Unknown";
+        }
+
+        String normalizedName = target.getWorld().getName()
+            .replace('\\', '/')
+            .replaceAll("/{2,}", "/");
+        String leafName = new File(normalizedName).getName();
+        return leafName.isBlank() ? normalizedName : leafName;
     }
 
     private @NotNull Component noItalic(@NotNull Component component) {
