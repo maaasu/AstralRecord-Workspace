@@ -15,7 +15,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class SellConfirmScreenView extends BaseMenuScreenView {
     public static final Component CONFIRM_MESSAGE =
@@ -66,8 +68,11 @@ public final class SellConfirmScreenView extends BaseMenuScreenView {
         lore.add(Component.text("\u58f2\u5374\u5bfe\u8c61: " + items.size() + " \u4ef6", NamedTextColor.GRAY));
         lore.add(Component.text("\u5408\u8a08\u58f2\u5374\u984d: " + totalSaleValue(items) + GOLD_SUFFIX, NamedTextColor.GOLD));
         lore.add(Component.text("\u58f2\u5374\u3059\u308b\u30a2\u30a4\u30c6\u30e0:", NamedTextColor.YELLOW));
-        for (ItemStack itemStack : items) {
-            lore.add(Component.text("\u30fb ", NamedTextColor.GRAY).append(displayName(itemStack)));
+        for (AggregatedSellItem aggregatedItem : aggregateSellItems(items)) {
+            lore.add(Component.text("\u30fb ", NamedTextColor.GRAY)
+                .append(displayName(aggregatedItem.itemStack()))
+                .append(Component.text(" \u00d7" + aggregatedItem.amount(), NamedTextColor.GRAY))
+                .append(Component.text(" (" + aggregatedItem.totalSaleValue() + GOLD_SUFFIX + ")", NamedTextColor.GOLD)));
         }
         return createItem(
             Material.GOLD_INGOT,
@@ -92,6 +97,38 @@ public final class SellConfirmScreenView extends BaseMenuScreenView {
         return Math.max(0, model.getSaleValue());
     }
 
+    private @NotNull List<AggregatedSellItem> aggregateSellItems(@NotNull List<ItemStack> items) {
+        Map<ItemStack, AggregatedSellItem> aggregated = new LinkedHashMap<>();
+        for (ItemStack itemStack : items) {
+            if (itemStack == null || itemStack.getType() == Material.AIR) {
+                continue;
+            }
+            ItemStack comparable = itemStack.clone();
+            comparable.setAmount(1);
+
+            Map.Entry<ItemStack, AggregatedSellItem> existingEntry = aggregated.entrySet().stream()
+                .filter(entry -> entry.getKey().isSimilar(comparable))
+                .findFirst()
+                .orElse(null);
+            if (existingEntry == null) {
+                aggregated.put(comparable, new AggregatedSellItem(
+                    itemStack.clone(),
+                    Math.max(1, itemStack.getAmount()),
+                    (long) unitSaleValue(itemStack) * Math.max(1, itemStack.getAmount())
+                ));
+                continue;
+            }
+
+            AggregatedSellItem existing = existingEntry.getValue();
+            aggregated.put(existingEntry.getKey(), new AggregatedSellItem(
+                existing.itemStack(),
+                existing.amount() + Math.max(1, itemStack.getAmount()),
+                existing.totalSaleValue() + (long) unitSaleValue(itemStack) * Math.max(1, itemStack.getAmount())
+            ));
+        }
+        return new ArrayList<>(aggregated.values());
+    }
+
     private long totalSaleValue(@NotNull List<ItemStack> items) {
         long total = 0L;
         for (ItemStack itemStack : items) {
@@ -113,5 +150,8 @@ public final class SellConfirmScreenView extends BaseMenuScreenView {
         for (int slot = 0; slot < inventory.getSize(); slot++) {
             inventory.setItem(slot, itemStack);
         }
+    }
+
+    private record AggregatedSellItem(@NotNull ItemStack itemStack, int amount, long totalSaleValue) {
     }
 }
