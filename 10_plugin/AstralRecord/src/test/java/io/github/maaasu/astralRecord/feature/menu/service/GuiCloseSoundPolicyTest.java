@@ -1,24 +1,24 @@
 package io.github.maaasu.astralRecord.feature.menu.service;
 
-import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
-import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class GuiCloseSoundPolicyTest extends MockBukkitTestBase {
+class GuiCloseSoundPolicyTest {
     private static final Path MAIN_JAVA_ROOT = Path.of("src/main/java");
     private static final String CENTRAL_CLOSE_HANDLER =
         "io/github/maaasu/astralRecord/feature/menu/event/MenuOpenEventHandler.java";
@@ -30,7 +30,7 @@ class GuiCloseSoundPolicyTest extends MockBukkitTestBase {
 
     @Test
     void suppressedCloseSoundIsConsumedOnceByCentralState() throws Exception {
-        PlayerMock player = server().addPlayer();
+        Player player = playerWithId(UUID.randomUUID());
         Method consume = MenuGuiTransitionService.class.getDeclaredMethod("consumeSuppressedCloseSound", Player.class);
         consume.setAccessible(true);
 
@@ -80,6 +80,20 @@ class GuiCloseSoundPolicyTest extends MockBukkitTestBase {
     private static boolean invokeConsume(Method method, Player player)
         throws InvocationTargetException, IllegalAccessException {
         return (boolean) method.invoke(null, player);
+    }
+
+    private static Player playerWithId(UUID uniqueId) {
+        return (Player) Proxy.newProxyInstance(
+            Player.class.getClassLoader(),
+            new Class<?>[] { Player.class },
+            (proxy, method, args) -> switch (method.getName()) {
+                case "getUniqueId" -> uniqueId;
+                case "toString" -> "PlayerProxy(" + uniqueId + ")";
+                case "hashCode" -> uniqueId.hashCode();
+                case "equals" -> proxy == args[0];
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
     }
 
     private static List<Path> javaFiles() throws IOException {
