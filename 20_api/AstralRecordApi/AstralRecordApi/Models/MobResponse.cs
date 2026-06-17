@@ -35,6 +35,8 @@ public class MobResponse
 
     public IReadOnlyList<MobBaseStatResponse> BaseStats { get; init; } = [];
 
+    public MobShieldResponse? Shield { get; init; }
+
     public MobAiResponse? Ai { get; init; }
 
     public MobInteractionsResponse? Interactions { get; init; }
@@ -90,6 +92,14 @@ public class MobBaseStatResponse
     public required string Status { get; init; }
 
     public required double Value { get; init; }
+}
+
+/// <summary>Mob のシールド設定。</summary>
+public class MobShieldResponse
+{
+    public bool Enabled { get; init; }
+
+    public double Max { get; init; }
 }
 
 /// <summary>Mob の AI 設定。</summary>
