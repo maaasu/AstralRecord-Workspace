@@ -16,6 +16,8 @@ public final class TradeSession {
     private final String playerBName;
     private List<ItemStack> playerAItems;
     private List<ItemStack> playerBItems;
+    private long playerAGoldAmount;
+    private long playerBGoldAmount;
     private boolean playerAReady;
     private boolean playerBReady;
     private TradeSessionStatus status;
@@ -73,6 +75,14 @@ public final class TradeSession {
         return getItems(getPartnerUuid(playerUuid));
     }
 
+    public long getGoldAmount(@NotNull UUID playerUuid) {
+        return playerAUuid.equals(playerUuid) ? playerAGoldAmount : playerBGoldAmount;
+    }
+
+    public long getPartnerGoldAmount(@NotNull UUID playerUuid) {
+        return getGoldAmount(getPartnerUuid(playerUuid));
+    }
+
     public void setItems(@NotNull UUID playerUuid, @NotNull List<ItemStack> items) {
         List<ItemStack> clones = cloneItems(items);
         List<ItemStack> current = playerAUuid.equals(playerUuid) ? playerAItems : playerBItems;
@@ -83,6 +93,24 @@ public final class TradeSession {
             playerAItems = clones;
         } else {
             playerBItems = clones;
+        }
+        playerAReady = false;
+        playerBReady = false;
+        touch();
+    }
+
+    public void setGoldAmount(@NotNull UUID playerUuid, long amount) {
+        long normalized = Math.max(0L, amount);
+        if (playerAUuid.equals(playerUuid)) {
+            if (playerAGoldAmount == normalized) {
+                return;
+            }
+            playerAGoldAmount = normalized;
+        } else {
+            if (playerBGoldAmount == normalized) {
+                return;
+            }
+            playerBGoldAmount = normalized;
         }
         playerAReady = false;
         playerBReady = false;

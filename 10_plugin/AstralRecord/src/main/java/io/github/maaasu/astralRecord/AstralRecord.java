@@ -136,6 +136,7 @@ import io.github.maaasu.astralRecord.feature.trade.event.TradeGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeCancelConfirmGui;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeGui;
 import io.github.maaasu.astralRecord.feature.trade.service.TradeService;
+import io.github.maaasu.astralRecord.shared.gui.gold.GoldAmountSettingGui;
 import io.github.maaasu.astralRecord.feature.user.event.UserLoginEventHandler;
 import io.github.maaasu.astralRecord.feature.user.repository.UserRepository;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
@@ -244,6 +245,7 @@ public final class AstralRecord extends JavaPlugin {
     private TradeService tradeService;
     private TradeGui tradeGui;
     private TradeCancelConfirmGui tradeCancelConfirmGui;
+    private GoldAmountSettingGui goldAmountSettingGui;
     private String joinSpawnWorldId;
 
     @Override
@@ -609,11 +611,14 @@ public final class AstralRecord extends JavaPlugin {
         shopGuiEventHandler = new ShopGuiEventHandler(shopGui, shopService, inventoryService);
         tradeGui = new TradeGui();
         tradeCancelConfirmGui = new TradeCancelConfirmGui();
+        goldAmountSettingGui = new GoldAmountSettingGui();
         tradeService = new TradeService(
             this,
             tradeGui,
             tradeCancelConfirmGui,
+            goldAmountSettingGui,
             inventoryService,
+            currencyService,
             playerMessageService,
             itemService
         );
@@ -743,6 +748,7 @@ public final class AstralRecord extends JavaPlugin {
                 this,
                 tradeGui,
                 tradeCancelConfirmGui,
+                goldAmountSettingGui,
                 tradeService,
                 inventoryService,
                 playerMessageService

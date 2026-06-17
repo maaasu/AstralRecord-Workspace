@@ -66,6 +66,10 @@ public final class TradeGui {
         for (int slot : TradeGuiLayout.DIVIDER_SLOTS) {
             inventory.setItem(slot, actionItem(Material.BLACK_STAINED_GLASS_PANE, Component.text(" ", NamedTextColor.DARK_GRAY), List.of()));
         }
+        inventory.setItem(TradeGuiLayout.GOLD_SLOT, goldItem(
+            session.getGoldAmount(viewerUuid),
+            session.getPartnerGoldAmount(viewerUuid)
+        ));
         inventory.setItem(TradeGuiLayout.READY_SLOT, readyItem(session.isReady(viewerUuid), session.isPartnerReady(viewerUuid)));
     }
 
@@ -101,6 +105,18 @@ public final class TradeGui {
             Material.LIME_CONCRETE,
             Component.text("準備完了", NamedTextColor.GREEN, TextDecoration.BOLD),
             List.of(Component.text("相手の準備完了を待ちます。", NamedTextColor.GRAY))
+        );
+    }
+
+    private @NotNull ItemStack goldItem(long viewerGold, long partnerGold) {
+        return actionItem(
+            Material.GOLD_INGOT,
+            Component.text("Gold", NamedTextColor.GOLD, TextDecoration.BOLD),
+            List.of(
+                Component.text("Your offer: " + viewerGold + " Gold", NamedTextColor.YELLOW),
+                Component.text("Partner offer: " + partnerGold + " Gold", NamedTextColor.GRAY),
+                Component.text("Click to set your Gold offer.", NamedTextColor.GREEN)
+            )
         );
     }
 

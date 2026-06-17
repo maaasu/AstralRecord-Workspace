@@ -5,6 +5,7 @@ import java.util.Set;
 
 public final class TradeGuiLayout {
     public static final int SIZE = 54;
+    public static final int GOLD_SLOT = 22;
     public static final int READY_SLOT = 49;
     public static final List<Integer> OWN_SLOT_LIST = List.of(
         0, 1, 2, 3,
@@ -24,7 +25,7 @@ public final class TradeGuiLayout {
     );
     public static final Set<Integer> OWN_SLOTS = Set.copyOf(OWN_SLOT_LIST);
     public static final Set<Integer> PARTNER_SLOTS = Set.copyOf(PARTNER_SLOT_LIST);
-    public static final Set<Integer> DIVIDER_SLOTS = Set.of(4, 13, 22, 31, 40);
+    public static final Set<Integer> DIVIDER_SLOTS = Set.of(4, 13, 31, 40);
 
     private TradeGuiLayout() {
     }

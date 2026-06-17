@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.trade.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
@@ -18,6 +19,7 @@ import io.github.maaasu.astralRecord.feature.trade.model.TradeSession;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeSessionStatus;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.shared.gui.gold.GoldAmountSettingGui;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.Bukkit;
@@ -38,11 +40,14 @@ import java.util.UUID;
 
 public final class TradeService {
     private static final Duration REQUEST_TTL = Duration.ofSeconds(60);
+    public static final String GOLD_AMOUNT_SOURCE_KEY = "trade";
 
     private final AstralRecord plugin;
     private final TradeGui tradeGui;
     private final TradeCancelConfirmGui cancelConfirmGui;
+    private final GoldAmountSettingGui goldAmountSettingGui;
     private final InventoryService inventoryService;
+    private final CurrencyService currencyService;
     private final PlayerMessageService messageService;
     private final ItemReferenceResolver itemReferenceResolver;
     private final Map<UUID, TradeRequest> requests = new HashMap<>();
@@ -54,14 +59,18 @@ public final class TradeService {
         @NotNull AstralRecord plugin,
         @NotNull TradeGui tradeGui,
         @NotNull TradeCancelConfirmGui cancelConfirmGui,
+        @NotNull GoldAmountSettingGui goldAmountSettingGui,
         @NotNull InventoryService inventoryService,
+        @NotNull CurrencyService currencyService,
         @NotNull PlayerMessageService messageService,
         @NotNull ItemService itemService
     ) {
         this.plugin = plugin;
         this.tradeGui = tradeGui;
         this.cancelConfirmGui = cancelConfirmGui;
+        this.goldAmountSettingGui = goldAmountSettingGui;
         this.inventoryService = inventoryService;
+        this.currencyService = currencyService;
         this.messageService = messageService;
         this.itemReferenceResolver = new ItemReferenceResolver(itemService);
     }
@@ -172,6 +181,24 @@ public final class TradeService {
      * @param player 表示対象プレイヤー
      */
     public void openCancelConfirm(@NotNull Player player) {
+        openCancelConfirm(player, true);
+    }
+
+    /**
+     * トレード GUI が手動で閉じられたあとに中止確認 GUI を開きます。
+     *
+     * @param player 表示対象プレイヤー
+     */
+    public void openCancelConfirmAfterClose(@NotNull Player player) {
+        openCancelConfirm(player, false);
+    }
+
+    /**
+     * Gold 金額設定 GUI を開きます。
+     *
+     * @param player 表示対象プレイヤー
+     */
+    public void openGoldAmountSetting(@NotNull Player player) {
         TradeSession session = getOpenSession(player.getUniqueId());
         if (session == null) {
             return;
@@ -179,7 +206,36 @@ public final class TradeService {
         captureOpenInventory(player, session);
         suppressNextClose(player);
         clearTopInventory(player);
-        cancelConfirmGui.open(player, session.getSessionId());
+        long ownedGold = currencyService.getGoldAmount(player);
+        long currentAmount = session.getGoldAmount(player.getUniqueId());
+        goldAmountSettingGui.open(
+            player,
+            GOLD_AMOUNT_SOURCE_KEY,
+            session.getSessionId(),
+            currentAmount,
+            Math.max(ownedGold, currentAmount)
+        );
+    }
+
+    /**
+     * Gold 金額設定 GUI の確定結果をトレードセッションへ反映します。
+     *
+     * @param player 操作プレイヤー
+     * @param sessionId 対象セッション ID
+     * @param amount 確定金額
+     */
+    public void applyGoldAmount(@NotNull Player player, @NotNull UUID sessionId, long amount) {
+        TradeSession session = getOpenSession(player.getUniqueId());
+        if (session == null || !session.getSessionId().equals(sessionId)) {
+            return;
+        }
+        long maxAmount = currencyService.getGoldAmount(player);
+        session.setGoldAmount(player.getUniqueId(), Math.min(Math.max(0L, amount), maxAmount));
+        reopenTrade(player);
+        Player partner = Bukkit.getPlayer(session.getPartnerUuid(player.getUniqueId()));
+        if (partner != null && partner.isOnline()) {
+            reopenTrade(partner);
+        }
     }
 
     /**
@@ -193,6 +249,19 @@ public final class TradeService {
             return;
         }
         openTrade(player, session);
+    }
+
+    /**
+     * サブ GUI が手動で閉じられたあとに、suppress フラグを残さず取引 GUI を再表示します。
+     *
+     * @param player 表示対象プレイヤー
+     */
+    public void reopenTradeAfterClose(@NotNull Player player) {
+        TradeSession session = getOpenSession(player.getUniqueId());
+        if (session == null) {
+            return;
+        }
+        openTrade(player, session, false);
     }
 
     /**
@@ -266,10 +335,22 @@ public final class TradeService {
     private void completeTrade(@NotNull TradeSession session) {
         try {
             captureBoth(session);
+            if (!hasAnyOffer(session)) {
+                cancelTrade(session);
+                return;
+            }
             if (!session.isPlayerAReady() || !session.isPlayerBReady()
                 || !allTradeable(session.getItems(session.getPlayerAUuid()))
                 || !allTradeable(session.getItems(session.getPlayerBUuid()))) {
                 session.resetReady();
+                refreshBoth(session);
+                return;
+            }
+            if (!hasGold(session.getPlayerAUuid(), session.getGoldAmount(session.getPlayerAUuid()))
+                || !hasGold(session.getPlayerBUuid(), session.getGoldAmount(session.getPlayerBUuid()))) {
+                session.resetReady();
+                sendIfOnline(session.getPlayerAUuid(), PlayerMsgId.P_6203);
+                sendIfOnline(session.getPlayerBUuid(), PlayerMsgId.P_6203);
                 refreshBoth(session);
                 return;
             }
@@ -280,6 +361,13 @@ public final class TradeService {
                 session.resetReady();
                 sendIfOnline(session.getPlayerAUuid(), PlayerMsgId.P_6209);
                 sendIfOnline(session.getPlayerBUuid(), PlayerMsgId.P_6209);
+                refreshBoth(session);
+                return;
+            }
+            if (!transferGold(session)) {
+                session.resetReady();
+                sendIfOnline(session.getPlayerAUuid(), PlayerMsgId.P_6203);
+                sendIfOnline(session.getPlayerBUuid(), PlayerMsgId.P_6203);
                 refreshBoth(session);
                 return;
             }
@@ -306,7 +394,13 @@ public final class TradeService {
     }
 
     private void openTrade(@NotNull Player player, @NotNull TradeSession session) {
-        suppressNextClose(player);
+        openTrade(player, session, true);
+    }
+
+    private void openTrade(@NotNull Player player, @NotNull TradeSession session, boolean suppressCurrentClose) {
+        if (suppressCurrentClose) {
+            suppressNextClose(player);
+        }
         clearTopInventory(player);
         tradeGui.open(player, session);
     }
@@ -370,6 +464,66 @@ public final class TradeService {
         return items.stream().allMatch(this::isTradeable);
     }
 
+    private boolean hasAnyOffer(@NotNull TradeSession session) {
+        return !session.getItems(session.getPlayerAUuid()).isEmpty()
+            || !session.getItems(session.getPlayerBUuid()).isEmpty()
+            || session.getGoldAmount(session.getPlayerAUuid()) > 0L
+            || session.getGoldAmount(session.getPlayerBUuid()) > 0L;
+    }
+
+    private boolean hasGold(@NotNull UUID playerUuid, long amount) {
+        if (amount <= 0L) {
+            return true;
+        }
+        return currencyService.getGoldAmount(playerUuid) >= amount;
+    }
+
+    private boolean transferGold(@NotNull TradeSession session) {
+        long playerAGold = session.getGoldAmount(session.getPlayerAUuid());
+        long playerBGold = session.getGoldAmount(session.getPlayerBUuid());
+        if (playerAGold <= 0L && playerBGold <= 0L) {
+            return true;
+        }
+        boolean consumedA = consumeGold(session.getPlayerAUuid(), playerAGold);
+        boolean consumedB = consumeGold(session.getPlayerBUuid(), playerBGold);
+        if (!consumedA || !consumedB) {
+            if (consumedA) {
+                rollbackGold(session.getPlayerAUuid(), playerAGold);
+            }
+            if (consumedB) {
+                rollbackGold(session.getPlayerBUuid(), playerBGold);
+            }
+            return false;
+        }
+        boolean addedToB = addGold(session.getPlayerBUuid(), playerAGold);
+        boolean addedToA = addGold(session.getPlayerAUuid(), playerBGold);
+        if (!addedToA || !addedToB) {
+            rollbackGold(session.getPlayerAUuid(), playerAGold);
+            rollbackGold(session.getPlayerBUuid(), playerBGold);
+            return false;
+        }
+        return true;
+    }
+
+    private boolean consumeGold(@NotNull UUID playerUuid, long amount) {
+        return amount <= 0L || inventoryService.consumeGold(playerUuid, amount);
+    }
+
+    private boolean addGold(@NotNull UUID playerUuid, long amount) {
+        if (amount <= 0L) {
+            return true;
+        }
+        Player player = Bukkit.getPlayer(playerUuid);
+        AstPlayer astPlayer = player == null ? null : AstPlayerCache.get(player);
+        return astPlayer != null && inventoryService.addGold(astPlayer, amount);
+    }
+
+    private void rollbackGold(@NotNull UUID playerUuid, long amount) {
+        if (amount > 0L) {
+            addGold(playerUuid, amount);
+        }
+    }
+
     private void closeParticipants(@NotNull TradeSession session) {
         closeIfOnline(session.getPlayerAUuid());
         closeIfOnline(session.getPlayerBUuid());
@@ -429,5 +583,18 @@ public final class TradeService {
 
     private void suppressNextClose(@NotNull Player player) {
         suppressedClosePlayers.add(player.getUniqueId());
+    }
+
+    private void openCancelConfirm(@NotNull Player player, boolean suppressCurrentClose) {
+        TradeSession session = getOpenSession(player.getUniqueId());
+        if (session == null) {
+            return;
+        }
+        captureOpenInventory(player, session);
+        if (suppressCurrentClose) {
+            suppressNextClose(player);
+        }
+        clearTopInventory(player);
+        cancelConfirmGui.open(player, session.getSessionId());
     }
 }
