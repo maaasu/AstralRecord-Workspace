@@ -5,7 +5,6 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.TextDisplay;
@@ -34,6 +33,8 @@ public final class DisplayTextService {
 
     private static final long UPDATE_INTERVAL_TICKS = 1L;
     private static final int MAX_DAMAGE_DISPLAYS = 80;
+    private static final int DAMAGE_ANIMATION_FRAMES = 12;
+    private static final long DAMAGE_ANIMATION_FRAME_TICKS = 2L;
 
     private final ConcurrentHashMap<UUID, ManagedDisplayState> displays = new ConcurrentHashMap<>();
     private final AtomicLong displaySequence = new AtomicLong();
@@ -116,49 +117,36 @@ public final class DisplayTextService {
 
     private @NotNull ManagedTextDisplay spawnFloatingDamageNumber(@NotNull Location origin, double amount, @NotNull String prefix) {
         String text = prefix + String.format(java.util.Locale.ROOT, "%.0f", Math.max(0.0D, amount));
-        ArmorStand carrier = spawnDamageCarrier(origin);
         ManagedTextDisplay display = create(
-                carrier == null ? DisplayAnchor.fixed(origin) : DisplayAnchor.entity(carrier, new Vector(0.0D, 0.35D, 0.0D)),
+                DisplayAnchor.fixed(origin),
                 DisplayTextOptions.damage(text),
                 true
         );
 
-        double xDrift = ThreadLocalRandom.current().nextDouble(-0.18D, 0.18D);
-        double zDrift = ThreadLocalRandom.current().nextDouble(-0.18D, 0.18D);
-        if (carrier != null && plugin != null) {
-            carrier.setVelocity(new Vector(xDrift, 0.28D, zDrift));
-            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                display.destroy();
-                if (carrier.isValid()) {
-                    carrier.remove();
-                }
-            }, 18L);
-            return display;
-        }
-
-        List<DisplayAnimationFrame> frames = new ArrayList<>();
-        for (int index = 0; index < 8; index++) {
-            double yOffset = 0.2D + (index * 0.12D);
-            frames.add(new DisplayAnimationFrame(text, new Vector(xDrift, yOffset, zDrift), 2L));
-        }
-        display.playAnimation(frames, false, true);
+        double xDrift = ThreadLocalRandom.current().nextDouble(-0.32D, 0.32D);
+        double zDrift = ThreadLocalRandom.current().nextDouble(-0.22D, 0.22D);
+        display.playAnimation(damageAnimationFrames(text, xDrift, zDrift), false, true);
         return display;
     }
 
-    private @Nullable ArmorStand spawnDamageCarrier(@NotNull Location origin) {
-        World world = origin.getWorld();
-        if (world == null) {
-            return null;
+    static @NotNull List<DisplayAnimationFrame> damageAnimationFrames(
+            @NotNull String text,
+            double xDrift,
+            double zDrift
+    ) {
+        List<DisplayAnimationFrame> frames = new ArrayList<>(DAMAGE_ANIMATION_FRAMES);
+        for (int index = 0; index < DAMAGE_ANIMATION_FRAMES; index++) {
+            double progress = index / (double) (DAMAGE_ANIMATION_FRAMES - 1);
+            double easedRise = 1.0D - Math.pow(1.0D - progress, 2.0D);
+            double lateralEase = 1.0D - Math.pow(1.0D - progress, 3.0D);
+            double pop = Math.sin(progress * Math.PI) * 0.16D;
+            frames.add(new DisplayAnimationFrame(
+                    text,
+                    new Vector(xDrift * lateralEase, 0.08D + easedRise * 0.88D + pop, zDrift * lateralEase),
+                    DAMAGE_ANIMATION_FRAME_TICKS
+            ));
         }
-        return world.spawn(origin, ArmorStand.class, stand -> {
-            stand.setVisible(false);
-            stand.setMarker(true);
-            stand.setSmall(true);
-            stand.setInvulnerable(true);
-            stand.setSilent(true);
-            stand.setPersistent(false);
-            stand.setGravity(false);
-        });
+        return List.copyOf(frames);
     }
 
     private void pruneDamageDisplays() {
