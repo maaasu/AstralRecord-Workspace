@@ -29,6 +29,10 @@ baseStats:
   - status: MOVEMENT_SPEED
     value: 100
 
+shield:
+  enabled: true
+  max: 10
+
 ai:
   idle:
     behavior: WANDER
