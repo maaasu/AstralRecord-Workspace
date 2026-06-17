@@ -83,6 +83,12 @@ public class MenuView {
     public static final int TRASH_CONFIRM_DISPOSE_SLOT = TrashConfirmScreenView.DISPOSE_SLOT;
     public static final int TRASH_CONFIRM_RETURN_SLOT = TrashConfirmScreenView.RETURN_TO_TRASH_SLOT;
     public static final int TRASH_CONFIRM_NEXT_SLOT = TrashConfirmScreenView.NEXT_SLOT;
+    public static final int SELL_PREVIOUS_SLOT = SellScreenView.PREVIOUS_SLOT;
+    public static final int SELL_GUIDE_SLOT = SellScreenView.GUIDE_SLOT;
+    public static final int SELL_CONFIRM_SLOT = SellScreenView.CONFIRM_SLOT;
+    public static final int SELL_NEXT_SLOT = SellScreenView.NEXT_SLOT;
+    public static final int SELL_CONFIRM_RETURN_SLOT = SellConfirmScreenView.RETURN_TO_SELL_SLOT;
+    public static final int SELL_CONFIRM_SELL_SLOT = SellConfirmScreenView.SELL_SLOT;
     public static final int STORAGE_PREVIOUS_SLOT = StorageScreenView.PREVIOUS_SLOT;
     public static final int STORAGE_CATEGORY_FILTER_SLOT = StorageScreenView.CATEGORY_FILTER_SLOT;
     public static final int STORAGE_RARITY_FILTER_SLOT = StorageScreenView.RARITY_FILTER_SLOT;
@@ -135,7 +141,7 @@ public class MenuView {
         this.trashScreenView = new TrashScreenView(trashPlaceholderKey);
         this.trashConfirmScreenView = new TrashConfirmScreenView(trashPlaceholderKey);
         this.sellScreenView = new SellScreenView(sellPlaceholderKey, itemService);
-        this.sellConfirmScreenView = new SellConfirmScreenView(sellPlaceholderKey);
+        this.sellConfirmScreenView = new SellConfirmScreenView(sellPlaceholderKey, itemService);
         this.storageScreenView = new StorageScreenView(storagePlaceholderKey, storageEntryIdKey);
         this.craftShortcutView = new CraftShortcutView(craftShortcutKey, craftActionKey);
     }

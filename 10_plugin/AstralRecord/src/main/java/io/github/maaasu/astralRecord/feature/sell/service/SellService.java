@@ -223,8 +223,10 @@ public final class SellService {
         }
         sellItemsByPlayer.put(player.getUniqueId(), normalized);
         suppressSellConfirmOnClose.add(player.getUniqueId());
-        menuView.openSellConfirm(player, normalized, pageIndex);
-        menuGuiTransitionService.fillPlayerInventoryDummy(player);
+        menuGuiTransitionService.switchGuiWithoutInventoryReload(player, () -> {
+            menuView.openSellConfirm(player, normalized, pageIndex);
+            menuGuiTransitionService.fillPlayerInventoryDummy(player);
+        });
     }
 
     private void handleSellClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
@@ -238,12 +240,7 @@ public final class SellService {
             return;
         }
 
-        if (rawSlot == MenuView.BACK_SLOT) {
-            GuiSound.SELECT.play(player);
-            player.closeInventory();
-            return;
-        }
-        if (rawSlot == MenuView.TRASH_CLOSE_SLOT) {
+        if (rawSlot == MenuView.SELL_CONFIRM_SLOT) {
             if (currentSellItems.isEmpty()) {
                 discard(player);
                 suppressSellConfirmOnClose.add(player.getUniqueId());
@@ -253,7 +250,7 @@ public final class SellService {
             openSellConfirm(player, currentSellItems, 0);
             return;
         }
-        if (rawSlot == MenuView.TRASH_PREVIOUS_SLOT) {
+        if (rawSlot == MenuView.SELL_PREVIOUS_SLOT) {
             int pageIndex = menuView.getPageIndex(topInventory);
             if (menuView.hasPreviousSellPage(pageIndex)) {
                 GuiSound.SELECT.play(player);
@@ -263,7 +260,7 @@ public final class SellService {
             }
             return;
         }
-        if (rawSlot == MenuView.TRASH_NEXT_SLOT) {
+        if (rawSlot == MenuView.SELL_NEXT_SLOT) {
             int pageIndex = menuView.getPageIndex(topInventory);
             if (menuView.hasNextSellPage(currentSellItems, pageIndex)) {
                 GuiSound.SELECT.play(player);
@@ -293,7 +290,7 @@ public final class SellService {
             return;
         }
 
-        if (rawSlot == MenuView.TRASH_CONFIRM_DISPOSE_SLOT) {
+        if (rawSlot == MenuView.SELL_CONFIRM_SELL_SLOT) {
             List<ItemStack> soldItems = normalizeSellItems(currentSellItems);
             long totalSaleValue = totalSaleValue(soldItems);
             AstPlayer astPlayer = AstPlayerCache.get(player);
@@ -310,12 +307,11 @@ public final class SellService {
             player.closeInventory();
             return;
         }
-        if (rawSlot == MenuView.TRASH_CONFIRM_RETURN_SLOT) {
+        if (rawSlot == MenuView.SELL_CONFIRM_RETURN_SLOT) {
             GuiSound.SELECT.play(player);
             suppressSellConfirmOnClose.add(player.getUniqueId());
             suppressSellConfirmRestoreOnClose.add(player.getUniqueId());
-            open(player, currentSellItems, 0);
-            menuGuiTransitionService.restorePlayerInventory(player);
+            menuGuiTransitionService.switchGuiWithInventoryRestore(player, () -> open(player, currentSellItems, 0));
             return;
         }
         GuiSound.DENY.play(player);
@@ -744,11 +740,10 @@ public final class SellService {
     }
 
     private boolean isSellControlSlot(int rawSlot) {
-        return rawSlot == MenuView.TRASH_PREVIOUS_SLOT
-            || rawSlot == MenuView.TRASH_GUIDE_SLOT
-            || rawSlot == MenuView.BACK_SLOT
-            || rawSlot == MenuView.TRASH_CLOSE_SLOT
-            || rawSlot == MenuView.TRASH_NEXT_SLOT;
+        return rawSlot == MenuView.SELL_PREVIOUS_SLOT
+            || rawSlot == MenuView.SELL_GUIDE_SLOT
+            || rawSlot == MenuView.SELL_CONFIRM_SLOT
+            || rawSlot == MenuView.SELL_NEXT_SLOT;
     }
 
     private void discard(@NotNull Player player) {

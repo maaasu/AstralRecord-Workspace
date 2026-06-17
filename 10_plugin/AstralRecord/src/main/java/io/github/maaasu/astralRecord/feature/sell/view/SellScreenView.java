@@ -22,8 +22,8 @@ public final class SellScreenView extends BaseMenuScreenView {
     public static final int CONTENT_SLOT_COUNT = 45;
     public static final int PREVIOUS_SLOT = 45;
     public static final int GUIDE_SLOT = 46;
-    public static final int NEXT_SLOT = 52;
-    public static final int CLOSE_SLOT = 53;
+    public static final int CONFIRM_SLOT = 49;
+    public static final int NEXT_SLOT = 53;
     public static final String UNIT_PRICE_LORE_PREFIX = "売値: ";
     public static final String TOTAL_PRICE_LORE_PREFIX = "合計売値: ";
 
@@ -110,8 +110,7 @@ public final class SellScreenView extends BaseMenuScreenView {
                 Component.text("中央の確認ボタンで売却確認を開きます", NamedTextColor.GRAY)
             )
         ));
-        inventory.setItem(BACK_SLOT, backItem());
-        inventory.setItem(CLOSE_SLOT, createItem(
+        inventory.setItem(CONFIRM_SLOT, createItem(
             Material.GOLD_INGOT,
             Component.text("確認へ", NamedTextColor.GOLD),
             List.of(Component.text("売却前の確認画面を開きます", NamedTextColor.GRAY))
