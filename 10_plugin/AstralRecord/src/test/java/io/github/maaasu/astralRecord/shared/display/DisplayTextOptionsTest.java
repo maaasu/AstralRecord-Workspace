@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class DisplayTextOptionsTest {
@@ -65,5 +66,11 @@ class DisplayTextOptionsTest {
                         null
                 )
         );
+    }
+
+    @Test
+    void helperFactoriesKeepTextDisplaysOccludedByBlocks() {
+        assertFalse(DisplayTextOptions.overhead("label").seeThrough());
+        assertFalse(DisplayTextOptions.damage("label").seeThrough());
     }
 }

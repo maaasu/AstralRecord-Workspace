@@ -104,7 +104,6 @@ final class MobSpawnerVisualizer {
             display.setSilent(true);
             display.setVisibleByDefault(false);
             display.setBillboard(Display.Billboard.CENTER);
-            display.setSeeThrough(true);
             display.setShadowed(true);
             display.text(LegacyComponentSerializer.legacySection().deserialize(
                     ColorCodeUtil.translateAlternateColorCodes("&dSpawner&7: &f" + spawnerLocation.spawnerId())

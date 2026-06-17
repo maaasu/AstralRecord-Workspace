@@ -49,7 +49,7 @@ final class GatheringPacketDisplay {
     private static final int TEXT_DISPLAY_BACKGROUND_INDEX = 25;
     private static final int TEXT_DISPLAY_TEXT_OPACITY_INDEX = 26;
     private static final int TEXT_DISPLAY_FLAGS_INDEX = 27;
-    private static final byte TEXT_DISPLAY_SHADOW_AND_SEE_THROUGH = 0x03;
+    private static final byte TEXT_DISPLAY_SHADOWED = 0x01;
 
     private final ProtocolManager protocolManager = ProtocolLibrary.getProtocolManager();
 
@@ -73,7 +73,7 @@ final class GatheringPacketDisplay {
         metadata.add(value(TEXT_DISPLAY_LINE_WIDTH_INDEX, serializer(Integer.class), 180));
         metadata.add(value(TEXT_DISPLAY_BACKGROUND_INDEX, serializer(Integer.class), 0));
         metadata.add(value(TEXT_DISPLAY_TEXT_OPACITY_INDEX, serializer(Byte.class), (byte) -1));
-        metadata.add(value(TEXT_DISPLAY_FLAGS_INDEX, serializer(Byte.class), TEXT_DISPLAY_SHADOW_AND_SEE_THROUGH));
+        metadata.add(value(TEXT_DISPLAY_FLAGS_INDEX, serializer(Byte.class), TEXT_DISPLAY_SHADOWED));
         return new PacketEntity(EntityType.TEXT_DISPLAY, location, metadata);
     }
 

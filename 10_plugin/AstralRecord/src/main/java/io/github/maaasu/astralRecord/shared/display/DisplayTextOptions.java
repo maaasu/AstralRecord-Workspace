@@ -94,7 +94,7 @@ public record DisplayTextOptions(
      * @return 頭上表示向けオプション
      */
     public static @NotNull DisplayTextOptions overhead(@NotNull String text) {
-        return defaults(text).withSeeThrough(true).withShadowed(true).withViewRange(64.0F);
+        return defaults(text).withShadowed(true).withViewRange(64.0F);
     }
 
     /**
@@ -105,7 +105,6 @@ public record DisplayTextOptions(
      */
     public static @NotNull DisplayTextOptions damage(@NotNull String text) {
         return defaults(text)
-                .withSeeThrough(true)
                 .withShadowed(true)
                 .withViewRange(48.0F)
                 .withInterpolationDuration(1)

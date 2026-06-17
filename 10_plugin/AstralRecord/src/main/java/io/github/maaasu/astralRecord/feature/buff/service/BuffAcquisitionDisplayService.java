@@ -61,7 +61,6 @@ public final class BuffAcquisitionDisplayService {
             .withBillboard(Display.Billboard.CENTER)
             .withLineWidth(220)
             .withViewRange(24.0F)
-            .withSeeThrough(true)
             .withShadowed(true)
             .withInterpolationDuration(1)
             .withTeleportDuration(1);

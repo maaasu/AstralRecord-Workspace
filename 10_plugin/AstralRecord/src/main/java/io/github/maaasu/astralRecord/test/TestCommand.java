@@ -122,7 +122,6 @@ public final class TestCommand extends AstCommand {
             display.setViewRange(VIEW_RANGE);
             display.setVisibleByDefault(false);
             display.setLineWidth(160);
-            display.setSeeThrough(true);
             display.setShadowed(true);
             display.setDefaultBackground(false);
             display.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));

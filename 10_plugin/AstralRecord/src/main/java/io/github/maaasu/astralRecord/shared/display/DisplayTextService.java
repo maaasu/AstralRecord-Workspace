@@ -141,7 +141,6 @@ public final class DisplayTextService {
         ManagedTextDisplay display = create(
                 DisplayAnchor.fixed(origin),
                 DisplayTextOptions.defaults(text)
-                        .withSeeThrough(true)
                         .withShadowed(true)
                         .withLineWidth(260)
                         .withViewRange(48.0F)

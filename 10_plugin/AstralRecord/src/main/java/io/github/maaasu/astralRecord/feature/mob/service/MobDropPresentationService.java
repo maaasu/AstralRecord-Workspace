@@ -148,7 +148,6 @@ public final class MobDropPresentationService {
             text.setSilent(true);
             text.setVisibleByDefault(false);
             text.setBillboard(Display.Billboard.CENTER);
-            text.setSeeThrough(true);
             text.setShadowed(true);
             text.setLineWidth(280);
             text.setViewRange(48.0F);

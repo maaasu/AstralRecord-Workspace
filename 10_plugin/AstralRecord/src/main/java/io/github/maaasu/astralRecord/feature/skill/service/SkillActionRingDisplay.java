@@ -165,7 +165,6 @@ final class SkillActionRingDisplay {
             return world.spawn(location, TextDisplay.class, display -> {
                 applyDisplayBase(display);
                 display.setLineWidth(TEXT_LINE_WIDTH);
-                display.setSeeThrough(true);
                 display.setShadowed(true);
                 display.setDefaultBackground(false);
                 display.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
