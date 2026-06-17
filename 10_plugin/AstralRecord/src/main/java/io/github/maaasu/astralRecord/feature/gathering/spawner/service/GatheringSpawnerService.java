@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.gathering.service.GatheringService;
 import io.github.maaasu.astralRecord.feature.gathering.spawner.model.GatheringSpawnerDefinition;
 import io.github.maaasu.astralRecord.feature.gathering.spawner.model.GatheringSpawnerEntry;
 import io.github.maaasu.astralRecord.feature.gathering.spawner.model.GatheringSpawnerLocation;
+import io.github.maaasu.astralRecord.feature.gathering.spawner.model.GatheringSpawnerTimeWindow;
 import io.github.maaasu.astralRecord.feature.gathering.spawner.repository.GatheringSpawnerDefinitionRepository;
 import io.github.maaasu.astralRecord.feature.gathering.spawner.repository.GatheringSpawnerLocationRepository;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -33,6 +34,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -106,6 +108,15 @@ public class GatheringSpawnerService {
         saveIfDirty();
     }
 
+    /**
+     * 管理者用の採集スポナー設置アイテムを作成します。
+     * lore には定義 ID、採集対象、時間帯、半径、判定間隔、上限値、足元ブロック条件など、
+     * 設置前に確認できるスポナー情報を日本語で表示します。
+     *
+     * @param spawnerId スポナー ID
+     * @param amount    作成個数。1 未満の場合は 1 として扱います。
+     * @return スポナー設置用 ItemStack。定義が存在しない場合は null
+     */
     public @Nullable ItemStack createSpawnerItem(@NotNull String spawnerId, int amount) {
         GatheringSpawnerDefinition definition = definitions.get(spawnerId);
         if (definition == null) {
@@ -114,16 +125,78 @@ public class GatheringSpawnerService {
         ItemStack itemStack = new ItemStack(definition.itemMaterial(), Math.max(1, amount));
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(Component.text(ColorCodeUtil.translateAlternateColorCodes("&bGathering Spawner: &f" + spawnerId)));
-            meta.lore(List.of(
-                    Component.text(ColorCodeUtil.translateAlternateColorCodes("&7Gathering spawner placement item")),
-                    Component.text(ColorCodeUtil.translateAlternateColorCodes("&7id: &f" + spawnerId))
-            ));
+            meta.displayName(Component.text(ColorCodeUtil.translateAlternateColorCodes("&b採集スポナー: &f" + spawnerId)));
+            meta.lore(buildSpawnerLore(definition));
             meta.addItemFlags(ItemFlag.values());
             meta.getPersistentDataContainer().set(spawnerIdKey, PersistentDataType.STRING, spawnerId);
             itemStack.setItemMeta(meta);
         }
         return itemStack;
+    }
+
+    private @NotNull List<Component> buildSpawnerLore(@NotNull GatheringSpawnerDefinition definition) {
+        List<String> lore = new ArrayList<>();
+        lore.add("&7採集スポナー設置アイテム");
+        lore.add("");
+        lore.add("&e基本情報");
+        lore.add("&7ID: &f" + definition.id());
+        lore.add("&7種別: &f採集スポナー");
+        lore.add("&7表示ブロック: &f" + definition.itemMaterial().name());
+        lore.add("");
+        lore.add("&eスポーン条件");
+        lore.add("&7半径: &f" + formatMeters(definition.radiusMeters()));
+        lore.add("&7判定間隔: &f" + formatTicks(definition.spawnIntervalTicks()));
+        lore.add("&7時間帯: &f" + formatTimeWindows(definition.timeWindows()));
+        lore.add("&7足元ブロック: &f" + formatRequiredBaseBlocks(definition.requiredBaseBlocks()));
+        lore.add("");
+        lore.add("&e出現対象");
+        if (definition.spawnGatherings().isEmpty()) {
+            lore.add("&7 - なし");
+        } else {
+            for (GatheringSpawnerEntry entry : definition.spawnGatherings()) {
+                lore.add("&7 - &f" + entry.gatheringId() + " &7(重み " + entry.weight() + ")");
+            }
+        }
+        lore.add("");
+        lore.add("&e上限");
+        lore.add("&7スポナー単位: &f" + definition.maxAlivePerSpawner() + " 個");
+        lore.add("&7周辺採集物: &f" + definition.maxNearbyGatherings() + " 個");
+        lore.add("&7プレイヤーあたり: &f" + definition.spawnPerPlayer() + " 個");
+        return lore.stream()
+                .<Component>map(line -> Component.text(ColorCodeUtil.translateAlternateColorCodes(line)))
+                .toList();
+    }
+
+    private @NotNull String formatMeters(double meters) {
+        return String.format(Locale.ROOT, "%.1fm", meters);
+    }
+
+    private @NotNull String formatTicks(long ticks) {
+        double seconds = ticks / 20.0D;
+        return String.format(Locale.ROOT, "%d tick / %.1f秒", ticks, seconds);
+    }
+
+    private @NotNull String formatTimeWindows(@NotNull List<GatheringSpawnerTimeWindow> windows) {
+        List<String> formatted = new ArrayList<>();
+        for (GatheringSpawnerTimeWindow window : windows) {
+            if (window.startTick() == 0L && window.endTick() == 23999L) {
+                formatted.add("終日");
+            } else {
+                formatted.add(window.startTick() + "-" + window.endTick() + " tick");
+            }
+        }
+        return String.join(", ", formatted);
+    }
+
+    private @NotNull String formatRequiredBaseBlocks(@NotNull List<Material> materials) {
+        if (materials.isEmpty()) {
+            return "指定なし";
+        }
+        List<String> names = new ArrayList<>();
+        for (Material material : materials) {
+            names.add(material.name());
+        }
+        return String.join(", ", names);
     }
 
     public @Nullable String readSpawnerId(@Nullable ItemStack itemStack) {

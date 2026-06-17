@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.spawner.model.MobSpawnerDefinition;
 import io.github.maaasu.astralRecord.feature.spawner.model.MobSpawnerEntry;
 import io.github.maaasu.astralRecord.feature.spawner.model.MobSpawnerLocation;
+import io.github.maaasu.astralRecord.feature.spawner.model.MobSpawnerTimeWindow;
 import io.github.maaasu.astralRecord.feature.spawner.repository.MobSpawnerDefinitionRepository;
 import io.github.maaasu.astralRecord.feature.spawner.repository.MobSpawnerLocationRepository;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -34,6 +35,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -150,11 +152,13 @@ public class MobSpawnerService {
     }
 
     /**
-     * 管理者用スポナーアイテムを作成します。
+     * 管理者用の Mob スポナー設置アイテムを作成します。
+     * lore には定義 ID、スポーン対象、時間帯、半径、判定間隔、上限値など、設置前に確認できる
+     * スポナー情報を日本語で表示します。
      *
      * @param spawnerId スポナー ID
-     * @param amount    個数
-     * @return ItemStack。定義がない場合は null
+     * @param amount    作成個数。1 未満の場合は 1 として扱います。
+     * @return スポナー設置用 ItemStack。定義が存在しない場合は null
      */
     @Nullable
     public ItemStack createSpawnerItem(@NotNull String spawnerId, int amount) {
@@ -165,16 +169,70 @@ public class MobSpawnerService {
         ItemStack itemStack = new ItemStack(definition.itemMaterial(), Math.max(1, amount));
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(Component.text(ColorCodeUtil.translateAlternateColorCodes("&dSpawner: &f" + spawnerId)));
-            meta.lore(List.of(
-                    Component.text(ColorCodeUtil.translateAlternateColorCodes("&7Mob spawner placement item")),
-                    Component.text(ColorCodeUtil.translateAlternateColorCodes("&7id: &f" + spawnerId))
-            ));
+            meta.displayName(Component.text(ColorCodeUtil.translateAlternateColorCodes("&dMobスポナー: &f" + spawnerId)));
+            meta.lore(buildSpawnerLore(definition));
             meta.addItemFlags(ItemFlag.values());
             meta.getPersistentDataContainer().set(spawnerIdKey, PersistentDataType.STRING, spawnerId);
             itemStack.setItemMeta(meta);
         }
         return itemStack;
+    }
+
+    @NotNull
+    private List<Component> buildSpawnerLore(@NotNull MobSpawnerDefinition definition) {
+        List<String> lore = new ArrayList<>();
+        lore.add("&7Mobスポナー設置アイテム");
+        lore.add("");
+        lore.add("&e基本情報");
+        lore.add("&7ID: &f" + definition.id());
+        lore.add("&7種別: &fMobスポナー");
+        lore.add("&7表示ブロック: &f" + definition.itemMaterial().name());
+        lore.add("");
+        lore.add("&eスポーン条件");
+        lore.add("&7半径: &f" + formatMeters(definition.radiusMeters()));
+        lore.add("&7判定間隔: &f" + formatTicks(definition.spawnIntervalTicks()));
+        lore.add("&7時間帯: &f" + formatTimeWindows(definition.timeWindows()));
+        lore.add("");
+        lore.add("&e出現対象");
+        if (definition.spawnMobs().isEmpty()) {
+            lore.add("&7 - なし");
+        } else {
+            for (MobSpawnerEntry entry : definition.spawnMobs()) {
+                lore.add("&7 - &f" + entry.mobId() + " &7(重み " + entry.weight() + ")");
+            }
+        }
+        lore.add("");
+        lore.add("&e上限");
+        lore.add("&7スポナー単位: &f" + definition.maxAlivePerSpawner() + " 体");
+        lore.add("&7周辺 Mob: &f" + definition.maxNearbyMobs() + " 体");
+        lore.add("&7プレイヤーあたり: &f" + definition.spawnPerPlayer() + " 体");
+        return lore.stream()
+                .<Component>map(line -> Component.text(ColorCodeUtil.translateAlternateColorCodes(line)))
+                .toList();
+    }
+
+    @NotNull
+    private String formatMeters(double meters) {
+        return String.format(Locale.ROOT, "%.1fm", meters);
+    }
+
+    @NotNull
+    private String formatTicks(long ticks) {
+        double seconds = ticks / 20.0D;
+        return String.format(Locale.ROOT, "%d tick / %.1f秒", ticks, seconds);
+    }
+
+    @NotNull
+    private String formatTimeWindows(@NotNull List<MobSpawnerTimeWindow> windows) {
+        List<String> formatted = new ArrayList<>();
+        for (MobSpawnerTimeWindow window : windows) {
+            if (window.startTick() == 0L && window.endTick() == 23999L) {
+                formatted.add("終日");
+            } else {
+                formatted.add(window.startTick() + "-" + window.endTick() + " tick");
+            }
+        }
+        return String.join(", ", formatted);
     }
 
     /**
