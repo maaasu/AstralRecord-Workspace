@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.playersetting.event;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
@@ -140,6 +141,7 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
         if (rawSlot == PlayerSettingGui.BACK_TO_MENU_SLOT) {
             secretClickCounts.remove(player.getUniqueId());
             GuiSound.SELECT.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
             menuView.open(player);
             return;
         }

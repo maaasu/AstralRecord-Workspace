@@ -238,7 +238,7 @@ public final class TrashService {
         if (rawSlot == MenuView.BACK_SLOT) {
             suppressTrashConfirmOnClose.add(player.getUniqueId());
             GuiSound.SELECT.play(player);
-            menuView.open(player);
+            menuGuiTransitionService.switchGuiWithInventoryRestore(player, () -> menuView.open(player));
             return;
         }
         if (rawSlot == MenuView.TRASH_CLOSE_SLOT) {

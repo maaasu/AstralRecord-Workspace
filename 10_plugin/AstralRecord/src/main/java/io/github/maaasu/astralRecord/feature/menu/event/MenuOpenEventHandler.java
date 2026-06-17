@@ -559,7 +559,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     private void handleClassClick(@NotNull Player player, @Nullable ItemStack clickedItem, int rawSlot) {
         if (rawSlot == MenuView.BACK_SLOT) {
             GuiSound.SELECT.play(player);
-            menuView.open(player);
+            switchGuiWithoutInventoryReload(player, () -> menuView.open(player));
             return;
         }
         AstPlayer astPlayer = AstPlayerCache.get(player);

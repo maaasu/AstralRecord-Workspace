@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.menu.player;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
+import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.party.model.Party;
@@ -145,10 +146,12 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         int returnPage = playerDetailGui.getReturnPage(inventory);
         if (backTarget == PlayerListBackTarget.PARTY) {
             GuiSound.SELECT.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
             back(player, backTarget);
             return;
         }
         GuiSound.SELECT.play(player);
+        MenuOpenEventHandler.suppressNextCloseSound(player);
         openInfoList(player, returnPage);
     }
 
@@ -166,6 +169,7 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         } else {
             GuiSound.DENY.play(player);
         }
+        MenuOpenEventHandler.suppressNextCloseSound(player);
         openInviteList(player, pageIndex);
     }
 
@@ -180,10 +184,12 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         if (target == null) {
             PlayerMessageService.getInstance().send(viewer, PlayerMsgId.P_5603, playerName(targetId));
             GuiSound.DENY.play(viewer);
+            MenuOpenEventHandler.suppressNextCloseSound(viewer);
             openInfoList(viewer, pageIndex);
             return;
         }
         GuiSound.SELECT.play(viewer);
+        MenuOpenEventHandler.suppressNextCloseSound(viewer);
         playerDetailGui.open(
             viewer,
             target,
@@ -194,6 +200,7 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
     }
 
     private void reopenList(@NotNull Player player, @NotNull org.bukkit.inventory.Inventory inventory, int pageIndex) {
+        MenuOpenEventHandler.suppressNextCloseSound(player);
         PlayerListPurpose purpose = playerListGui.getPurpose(inventory);
         if (purpose == PlayerListPurpose.PARTY_INVITE) {
             openInviteList(player, pageIndex);
@@ -253,10 +260,12 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         if (backTarget == PlayerListBackTarget.PARTY) {
             var partyGui = plugin.getPartyGui();
             if (partyGui != null) {
+                MenuOpenEventHandler.suppressNextCloseSound(player);
                 partyGui.open(player);
                 return;
             }
         }
+        MenuOpenEventHandler.suppressNextCloseSound(player);
         menuView.open(player);
     }
 
