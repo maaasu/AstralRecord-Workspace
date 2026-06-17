@@ -344,37 +344,46 @@ public final class EquipmentEnhancementService {
         view.render(
             inventory,
             session.selectedEquipment == null ? null : session.selectedEquipment.clone(),
-            createMaterialItems(requirements),
+            createMaterialSummaryItem(selection.state(), requirements),
             createGuideItem(),
             createInfoItem(player, selection),
             createExecuteItem(player, selection, requirements)
         );
     }
 
-    private @NotNull List<ItemStack> createMaterialItems(@NotNull List<MaterialRequirement> requirements) {
-        List<ItemStack> items = new ArrayList<>();
-        for (MaterialRequirement requirement : requirements) {
-            ItemStack item = requirement.model != null
-                ? itemStackFactory.createDisplay(requirement.model, requirement.amount)
-                : new ItemStack(Material.BARRIER);
-            ItemMeta meta = item.getItemMeta();
-            if (meta != null) {
-                List<Component> lore = meta.hasLore() && meta.lore() != null
-                    ? new ArrayList<>(meta.lore())
-                    : new ArrayList<>();
-                lore.add(Component.empty());
-                lore.add(Component.text("必要数: " + requirement.amount, NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
-                lore.add(Component.text(
-                    "所持数: " + requirement.ownedAmount,
-                    requirement.enough() ? NamedTextColor.GREEN : NamedTextColor.RED
-                ).decoration(TextDecoration.ITALIC, false));
-                meta.lore(lore);
-                meta.addItemFlags(ItemFlag.values());
-                item.setItemMeta(meta);
+    private @NotNull ItemStack createMaterialSummaryItem(
+        @NotNull SelectionState state,
+        @NotNull List<MaterialRequirement> requirements
+    ) {
+        List<Component> lore = new ArrayList<>();
+        if (requirements.isEmpty()) {
+            if (state == SelectionState.READY) {
+                lore.add(Component.text("この強化段階で消費するアイテムはありません。", NamedTextColor.GRAY));
+                lore.add(Component.text("必要ゴールドは強化情報を確認してください。", NamedTextColor.GRAY));
+            } else {
+                lore.add(Component.text("装備をセットすると消費アイテムを一覧表示します。", NamedTextColor.GRAY));
+                lore.add(Component.text("必要ゴールドは強化情報に表示されます。", NamedTextColor.GRAY));
             }
-            items.add(item);
+        } else {
+            lore.add(Component.text("強化実行時に消費されるアイテムです。", NamedTextColor.GRAY));
+            lore.add(Component.empty());
+            for (MaterialRequirement requirement : requirements) {
+                lore.add(Component.text(
+                    materialRequirementLine(requirement),
+                    requirement.enough() ? NamedTextColor.GREEN : NamedTextColor.RED
+                ));
+            }
         }
-        return items;
+        return createItem(
+            Material.CHEST,
+            Component.text("消費アイテム", NamedTextColor.YELLOW, TextDecoration.BOLD),
+            lore
+        );
+    }
+
+    private @NotNull String materialRequirementLine(@NotNull MaterialRequirement requirement) {
+        String name = requirement.model == null ? requirement.itemId : displayName(requirement.model);
+        return name + ": " + requirement.amount + " / 所持 " + requirement.ownedAmount;
     }
 
     private @NotNull ItemStack createGuideItem() {
