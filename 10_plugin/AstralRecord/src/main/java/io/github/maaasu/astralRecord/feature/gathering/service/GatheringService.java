@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.gathering.service;
 
 import io.github.maaasu.astralRecord.feature.gathering.model.GatheringDefinition;
+import io.github.maaasu.astralRecord.feature.gathering.model.GatheringDefinition.GatheringSound;
 import io.github.maaasu.astralRecord.feature.gathering.model.GatheringInstance;
 import io.github.maaasu.astralRecord.feature.gathering.repository.GatheringDefinitionRepository;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
@@ -11,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -198,9 +200,11 @@ public class GatheringService {
         instance.damage(1);
         player.swingMainHand();
         if (instance.currentHealth() > 0) {
+            playSound(instance.location(), instance.definition().sounds().hit());
             return;
         }
 
+        playSound(instance.location(), instance.definition().sounds().breakSound());
         AstPlayer recipient = AstPlayerCache.get(player);
         if (recipient != null && dropPresentationService != null) {
             MobDropResult result = dropService.roll(instance.definition().drops(), recipient);
@@ -215,6 +219,13 @@ public class GatheringService {
         UUID instanceId = instance.instanceId();
         stopSessionByPlayer(player.getUniqueId(), false);
         destroy(instanceId);
+    }
+
+    private void playSound(@NotNull Location location, @Nullable GatheringSound sound) {
+        if (sound == null || location.getWorld() == null) {
+            return;
+        }
+        location.getWorld().playSound(location, sound.soundKey(), SoundCategory.BLOCKS, sound.volume(), sound.pitch());
     }
 
     private void stopSessionByPlayer(@NotNull UUID playerId, boolean resetHealth) {

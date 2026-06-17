@@ -26,6 +26,12 @@
 | `displayScale.y` | Double | ○ | - | Y 軸スケール |
 | `displayScale.z` | Double | ○ | - | Z 軸スケール |
 | `requiredToolTags[]` | List<String> | ○ | - | 破壊可能な装備タグ。`PICKAXE` / `HOE` など |
+| `sounds.hit.sound` | String | 任意 | null | 採集 HP を削ったときに鳴らす Bukkit sound key |
+| `sounds.hit.volume` | Double | 任意 | `1.0` | `sounds.hit.sound` の音量 |
+| `sounds.hit.pitch` | Double | 任意 | `1.0` | `sounds.hit.sound` のピッチ |
+| `sounds.break.sound` | String | 任意 | null | 採集オブジェクト破壊時に鳴らす Bukkit sound key |
+| `sounds.break.volume` | Double | 任意 | `1.0` | `sounds.break.sound` の音量 |
+| `sounds.break.pitch` | Double | 任意 | `1.0` | `sounds.break.sound` のピッチ |
 
 ## requiredToolTags
 
@@ -56,6 +62,15 @@ displayScale:
   z: 1.0
 requiredToolTags:
   - PICKAXE
+sounds:
+  hit:
+    sound: block.stone.hit
+    volume: 0.8
+    pitch: 0.9
+  break:
+    sound: block.stone.break
+    volume: 0.9
+    pitch: 0.85
 ```
 
 ## drops

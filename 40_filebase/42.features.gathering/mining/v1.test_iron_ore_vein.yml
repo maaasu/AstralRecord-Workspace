@@ -11,6 +11,15 @@ displayScale:
   z: 1.0
 requiredToolTags:
   - PICKAXE
+sounds:
+  hit:
+    sound: block.stone.hit
+    volume: 0.8
+    pitch: 0.9
+  break:
+    sound: block.stone.break
+    volume: 0.9
+    pitch: 0.85
 drops:
   exp: 0
   items:

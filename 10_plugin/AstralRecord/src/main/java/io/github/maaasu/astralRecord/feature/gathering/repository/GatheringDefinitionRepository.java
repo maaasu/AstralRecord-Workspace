@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.gathering.repository;
 
 import io.github.maaasu.astralRecord.feature.gathering.model.GatheringDefinition;
+import io.github.maaasu.astralRecord.feature.gathering.model.GatheringDefinition.GatheringSound;
+import io.github.maaasu.astralRecord.feature.gathering.model.GatheringDefinition.GatheringSoundConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropItem;
 import io.github.maaasu.astralRecord.feature.mob.model.MobMoneyDrop;
@@ -78,7 +80,8 @@ public class GatheringDefinitionRepository {
                         .map(value -> value.trim().toUpperCase(Locale.ROOT))
                         .filter(value -> !value.isBlank())
                         .toList(),
-                parseDrops(yaml)
+                parseDrops(yaml),
+                parseSounds(yaml)
         );
     }
 
@@ -113,6 +116,25 @@ public class GatheringDefinitionRepository {
         return new MobDropConfig(exp, money, items, stripPrefix(yaml.getString("drops.lootTable")));
     }
 
+    private @NotNull GatheringSoundConfig parseSounds(@NotNull YamlConfiguration yaml) {
+        return new GatheringSoundConfig(
+                parseSound(yaml, "sounds.hit"),
+                parseSound(yaml, "sounds.break")
+        );
+    }
+
+    private @Nullable GatheringSound parseSound(@NotNull YamlConfiguration yaml, @NotNull String path) {
+        String soundKey = trimToNull(yaml.getString(path + ".sound"));
+        if (soundKey == null) {
+            return null;
+        }
+        return new GatheringSound(
+                soundKey,
+                (float) yaml.getDouble(path + ".volume", 1.0D),
+                (float) yaml.getDouble(path + ".pitch", 1.0D)
+        );
+    }
+
     private @NotNull Material resolveMaterial(@Nullable String raw, @NotNull Material fallback) {
         if (raw == null || raw.isBlank()) {
             return fallback;
@@ -130,6 +152,14 @@ public class GatheringDefinitionRepository {
         }
         int index = raw.indexOf(':');
         return (index < 0 ? raw : raw.substring(index + 1)).trim();
+    }
+
+    private @Nullable String trimToNull(@Nullable String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String normalized = raw.trim();
+        return normalized.isEmpty() ? null : normalized;
     }
 
     private double doubleValue(@Nullable Object value, double fallback) {

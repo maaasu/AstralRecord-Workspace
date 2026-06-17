@@ -11,6 +11,15 @@ displayScale:
   z: 0.9
 requiredToolTags:
   - HOE
+sounds:
+  hit:
+    sound: block.grass.hit
+    volume: 0.7
+    pitch: 1.15
+  break:
+    sound: block.grass.break
+    volume: 0.8
+    pitch: 1.0
 drops:
   exp: 0
   items:

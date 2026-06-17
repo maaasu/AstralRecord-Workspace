@@ -19,6 +19,8 @@ public class GatheringResponse
 
     public IReadOnlyList<string> RequiredToolTags { get; init; } = [];
 
+    public GatheringSoundSetResponse Sounds { get; init; } = new();
+
     public GatheringDropsResponse Drops { get; init; } = new();
 }
 
@@ -46,6 +48,24 @@ public class GatheringDisplayScaleResponse
     public double Y { get; init; }
 
     public double Z { get; init; }
+}
+
+/// <summary>Gathering sound configuration.</summary>
+public class GatheringSoundSetResponse
+{
+    public GatheringSoundResponse? Hit { get; init; }
+
+    public GatheringSoundResponse? Break { get; init; }
+}
+
+/// <summary>Single gathering sound effect.</summary>
+public class GatheringSoundResponse
+{
+    public required string Sound { get; init; }
+
+    public double Volume { get; init; } = 1.0;
+
+    public double Pitch { get; init; } = 1.0;
 }
 
 /// <summary>Gathering drop configuration.</summary>
