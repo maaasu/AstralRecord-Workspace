@@ -66,3 +66,4 @@
 - 見た目の更新は dirty になった閲覧者と変更座標だけに限定する。
 - 2026-06-09: `skilltree` は独立実装を持つが、docs では skill feature の拡張範囲として扱う。スキル定義・スキル実行・スキルツリー進行状態の境界は本 README と `00_docs/20_API設計書/feature/20-skilltree/` を正本とする。
 - 2026-06-09: class / playerclass は `starterSkills` / `levelSkills[].skill` の参照元であり、職業マスタや `/class` GUI の正本は本 feature ではない。
+- `skill_tree` ワールド滞在中は、対象プレイヤーから見える他プレイヤーを AstralRecord 側で非表示にする。`skill_tree` 以外へ移動した時点で可視状態を通常へ戻す。

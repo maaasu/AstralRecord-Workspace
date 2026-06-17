@@ -234,6 +234,7 @@ public class SkillTreeService {
         if (feedbackTask == null) {
             feedbackTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tickPlayerFeedbacks, 1L, FEEDBACK_INTERVAL_TICKS);
         }
+        refreshAllPlayerVisibility();
         markAllViewerContextsDirty();
     }
 
@@ -253,6 +254,7 @@ public class SkillTreeService {
         for (Player player : Bukkit.getOnlinePlayers()) {
             restoreHotbar(player);
         }
+        restoreAllPlayerVisibility();
         clearAllLoadingBossBars();
         saveDirty();
     }
@@ -307,6 +309,54 @@ public class SkillTreeService {
     public boolean isSkillTreeWorld(@NotNull World world) {
         WorldMasterData current = worldService.findByBukkitWorld(world);
         return current != null && SKILL_TREE_WORLD_ID.equals(current.id());
+    }
+
+    /**
+     * 指定プレイヤー視点の他プレイヤー可視状態を、現在ワールドに応じて同期します。
+     *
+     * @param player 可視状態を同期するプレイヤー
+     */
+    public void refreshPlayerVisibility(@NotNull Player player) {
+        for (Player other : Bukkit.getOnlinePlayers()) {
+            if (player.equals(other)) {
+                continue;
+            }
+            updateVisibility(player, other);
+            updateVisibility(other, player);
+        }
+    }
+
+    /**
+     * 全オンラインプレイヤー間の可視状態を同期します。
+     */
+    public void refreshAllPlayerVisibility() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            refreshPlayerVisibility(player);
+        }
+    }
+
+    /**
+     * 指定プレイヤーに関する可視制御を解除します。
+     *
+     * @param player 可視制御を解除するプレイヤー
+     */
+    public void restorePlayerVisibility(@NotNull Player player) {
+        for (Player other : Bukkit.getOnlinePlayers()) {
+            if (player.equals(other)) {
+                continue;
+            }
+            player.showPlayer(plugin, other);
+            other.showPlayer(plugin, player);
+        }
+    }
+
+    /**
+     * 全オンラインプレイヤー間の可視制御を解除します。
+     */
+    public void restoreAllPlayerVisibility() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            restorePlayerVisibility(player);
+        }
     }
 
     public boolean isPlayerModeSkillTree(@NotNull Player player) {
@@ -415,6 +465,14 @@ public class SkillTreeService {
     private boolean hasSetupItemInHands(@NotNull Player player) {
         return isSkillTreeSetupItem(player.getInventory().getItemInMainHand())
                 || isSkillTreeSetupItem(player.getInventory().getItemInOffHand());
+    }
+
+    private void updateVisibility(@NotNull Player viewer, @NotNull Player target) {
+        if (isSkillTreeWorld(viewer.getWorld())) {
+            viewer.hidePlayer(plugin, target);
+            return;
+        }
+        viewer.showPlayer(plugin, target);
     }
 
     private boolean hasSetupItemInHotbar(@NotNull Player player) {

@@ -279,6 +279,66 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
         assertFalse(service.isAdminMode(privilegedPlayerMode));
     }
 
+    @Test
+    void playersAreHiddenOnlyWhileViewerIsInSkillTreeWorld() {
+        WorldService worldService = mock(WorldService.class);
+        SkillTreeService service = new SkillTreeService(
+                PluginMock.builder()
+                        .withPluginName("AstralRecordTest")
+                        .withPluginVersion("1.0.0")
+                        .build(),
+                worldService,
+                mock(InventoryService.class),
+                mock(SkillTreeNodeRepository.class),
+                mock(SkillTreeStructureRepository.class),
+                mock(SkillTreePlayerStateRepository.class)
+        );
+        Player viewer = server().addPlayer("viewer");
+        Player other = server().addPlayer("other");
+        org.bukkit.World skillTreeWorld = server().addSimpleWorld("skill-tree");
+
+        when(worldService.findByBukkitWorld(skillTreeWorld)).thenReturn(new WorldMasterData(
+                1,
+                SkillTreeService.SKILL_TREE_WORLD_ID,
+                "skill_tree",
+                WorldType.DUNGEON,
+                "skill-tree",
+                "instance",
+                false,
+                false,
+                0,
+                false,
+                false,
+                false,
+                WorldSpawnLocation.defaultLocation(),
+                "test"
+        ));
+
+        service.refreshAllPlayerVisibility();
+        assertTrue(viewer.canSee(other));
+        assertTrue(other.canSee(viewer));
+
+        viewer.teleport(new Location(skillTreeWorld, 0.0D, 64.0D, 0.0D));
+        service.refreshPlayerVisibility(viewer);
+        assertFalse(viewer.canSee(other));
+        assertTrue(other.canSee(viewer));
+
+        other.teleport(new Location(skillTreeWorld, 2.0D, 64.0D, 0.0D));
+        service.refreshPlayerVisibility(other);
+        assertFalse(viewer.canSee(other));
+        assertFalse(other.canSee(viewer));
+
+        viewer.teleport(new Location(server().getWorlds().get(0), 0.0D, 64.0D, 0.0D));
+        service.refreshPlayerVisibility(viewer);
+        assertTrue(viewer.canSee(other));
+        assertFalse(other.canSee(viewer));
+
+        other.teleport(new Location(server().getWorlds().get(0), 2.0D, 64.0D, 0.0D));
+        service.refreshPlayerVisibility(other);
+        assertTrue(viewer.canSee(other));
+        assertTrue(other.canSee(viewer));
+    }
+
     private SkillTreeService newService(
             SkillTreeNodeRepository nodeRepository,
             SkillTreeStructureRepository structureRepository,

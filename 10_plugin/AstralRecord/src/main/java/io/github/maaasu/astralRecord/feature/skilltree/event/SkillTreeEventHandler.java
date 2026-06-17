@@ -25,6 +25,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
@@ -201,7 +202,13 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerJoin(@NotNull PlayerJoinEvent event) {
+        service.refreshPlayerVisibility(event.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onWorldChange(@NotNull PlayerChangedWorldEvent event) {
+        service.refreshPlayerVisibility(event.getPlayer());
         if (service.isPlayerModeSkillTree(event.getPlayer())) {
             service.markViewerContextDirty(event.getPlayer());
             return;
@@ -228,11 +235,13 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerTeleport(@NotNull PlayerTeleportEvent event) {
+        service.refreshPlayerVisibility(event.getPlayer());
         service.markViewerContextDirty(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
+        service.restorePlayerVisibility(event.getPlayer());
         service.restoreHotbar(event.getPlayer());
     }
 
