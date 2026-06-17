@@ -578,7 +578,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             return;
         }
         if (!classService.canChangeClass(astPlayer, classId)) {
-            GuiSound.DENY.play(player);
             return;
         }
 
@@ -588,10 +587,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         String newDisplayName = classService.getDisplayName(classId);
         PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5812, oldDisplayName, newDisplayName);
         GuiSound.SELECT.play(player);
-        switchGuiWithoutInventoryReload(
-            player,
-            () -> menuView.openClass(player, astPlayer, classService.getClassViewEntries(astPlayer))
-        );
+        player.closeInventory();
     }
 
     private void executeShortcutAction(@NotNull Player player, @NotNull MenuShortcutAction action, int shortcutIndex) {
