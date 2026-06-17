@@ -26,8 +26,8 @@ public final class PartyMemberActionGui extends BaseMenuScreenView {
     public static final int HEAD_SLOT = 4;
     public static final int PROMOTE_SLOT = 11;
     public static final int KICK_SLOT = 15;
-    public static final int BACK_TO_PARTY_SLOT = 21;
-    public static final int CLOSE_SLOT = 22;
+    public static final int BACK_TO_PARTY_SLOT = 22;
+    public static final int CLOSE_SLOT = 23;
     public static final int SIZE = 27;
 
     public void open(@NotNull org.bukkit.entity.Player viewer, @NotNull UUID targetId) {
