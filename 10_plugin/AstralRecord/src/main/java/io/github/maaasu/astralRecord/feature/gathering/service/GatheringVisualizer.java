@@ -9,6 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
+import org.joml.Vector3f;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -22,6 +23,7 @@ final class GatheringVisualizer {
     private static final double LABEL_VIEW_DISTANCE = 8.0D;
     private static final double LABEL_Y_OFFSET = 1.25D;
     private static final float LABEL_SCALE = 0.82F;
+    private static final float BLOCK_SCALE_MULTIPLIER = 0.75F;
 
     private final Plugin plugin;
     private final GatheringService service;
@@ -103,7 +105,8 @@ final class GatheringVisualizer {
 
         private ObjectVisual(@NotNull GatheringInstance instance) {
             Location base = instance.location();
-            this.block = packetDisplay.block(base, instance.definition().displayBlock(), instance.definition().displayScale());
+            Vector3f displayScale = new Vector3f(instance.definition().displayScale()).mul(BLOCK_SCALE_MULTIPLIER);
+            this.block = packetDisplay.block(base, instance.definition().displayBlock(), displayScale);
             this.label = packetDisplay.text(base.clone().add(0.0D, LABEL_Y_OFFSET, 0.0D), component(instance.definition().name()), LABEL_SCALE);
         }
 

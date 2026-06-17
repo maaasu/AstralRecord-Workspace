@@ -1,0 +1,23 @@
+schemaVersion: 1
+id: test_herb_hoe
+category: equipment
+name: "&fTest Herb Hoe"
+icon: IRON_HOE
+rarity: COMMON
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7Tool for test harvesting gathering objects."
+unTradeable: false
+unSellable: false
+
+equipment:
+  slot: TOOL
+  tag: HOE
+  stats:
+    - status: MINING_SPEED
+      type: FLAT
+      value: 4
+  durability:
+    max: 180
+    consume: 1
