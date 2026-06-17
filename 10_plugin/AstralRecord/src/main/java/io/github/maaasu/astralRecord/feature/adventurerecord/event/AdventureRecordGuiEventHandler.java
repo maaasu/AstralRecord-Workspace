@@ -112,9 +112,6 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
             }
             if (event.getPlayer() instanceof Player player) {
                 setHotbarShortcutMode(player, false);
-                if (!MenuOpenEventHandler.consumeSuppressedCloseSound(player)) {
-                    GuiSound.CLOSE.play(player);
-                }
             }
         }, LogId.E_5600, event.getPlayer().getName(), "adventure_record_gui_close");
     }

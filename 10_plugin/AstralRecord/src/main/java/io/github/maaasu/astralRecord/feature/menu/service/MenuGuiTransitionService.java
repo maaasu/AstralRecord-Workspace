@@ -112,8 +112,8 @@ public final class MenuGuiTransitionService {
      * @param player 対象プレイヤー
      * @return 効果音抑制が存在した場合は true
      */
-    public boolean consumeSuppressedCloseSound(@NotNull Player player) {
-        return consumeSuppressedCloseSoundStatic(player);
+    public boolean shouldPlayCloseSoundOnClose(@NotNull Player player) {
+        return !consumeSuppressedCloseSound(player);
     }
 
     /**
@@ -131,7 +131,7 @@ public final class MenuGuiTransitionService {
      * @param player 対象プレイヤー
      * @return 効果音抑制が存在した場合は true
      */
-    public static boolean consumeSuppressedCloseSoundStatic(@NotNull Player player) {
+    private static boolean consumeSuppressedCloseSound(@NotNull Player player) {
         return SUPPRESSED_CLOSE_SOUND_ON_CLOSE.remove(player.getUniqueId());
     }
 

@@ -166,7 +166,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             }
             if (event.getPlayer() instanceof Player player) {
                 boolean shouldPlayCloseSound = isHotbarShortcutGui(event.getInventory())
-                    && !menuGuiTransitionService.consumeSuppressedCloseSound(player);
+                    && menuGuiTransitionService.shouldPlayCloseSoundOnClose(player);
                 trashService.handleClose(event.getInventory(), player);
                 sellService.handleClose(event.getInventory(), player);
                 storageService.handleClose(event);
@@ -838,10 +838,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
 
     public static void suppressNextCloseSound(@NotNull Player player) {
         MenuGuiTransitionService.suppressNextCloseSound(player);
-    }
-
-    public static boolean consumeSuppressedCloseSound(@NotNull Player player) {
-        return MenuGuiTransitionService.consumeSuppressedCloseSoundStatic(player);
     }
 
     private record CachedAccounts(@NotNull List<AccountModel> accounts, long loadedAtMillis) {
