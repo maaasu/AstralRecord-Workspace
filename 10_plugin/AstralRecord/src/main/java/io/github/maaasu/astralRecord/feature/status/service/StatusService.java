@@ -19,6 +19,7 @@ import io.github.maaasu.astralRecord.feature.item.model.SetEffectStat;
 import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
@@ -53,6 +54,7 @@ public class StatusService {
     private final ItemReferenceResolver itemReferenceResolver;
     private SkillTreeService skillTreeService;
     private PassiveSkillService passiveSkillService;
+    private PlayerClassService playerClassService;
 
     public StatusService() {
         this(null, null);
@@ -78,6 +80,10 @@ public class StatusService {
 
     public void setPassiveSkillService(@Nullable PassiveSkillService passiveSkillService) {
         this.passiveSkillService = passiveSkillService;
+    }
+
+    public void setPlayerClassService(@Nullable PlayerClassService playerClassService) {
+        this.playerClassService = playerClassService;
     }
 
     /**
@@ -112,7 +118,12 @@ public class StatusService {
             merged = restoreAllInternal(refreshed);
         } else {
             // 再計算時は現在値を維持しつつ、新しい最大値へクランプ
-            merged = refreshed.withCurrentValues(previous.getCurrentHp(), previous.getCurrentMp(), previous.getCurrentEnergy());
+            merged = refreshed.withCurrentValues(
+                previous.getCurrentHp(),
+                previous.getCurrentMp(),
+                previous.getCurrentEnergy(),
+                previous.getCurrentShield()
+            );
         }
 
         player.setStatusSnapshot(merged);
@@ -174,6 +185,24 @@ public class StatusService {
     }
 
     /**
+     * 現在シールド値を減少させます。
+     *
+     * @param player 対象プレイヤー
+     * @param amount 減少量
+     * @return 更新後のステータススナップショット
+     */
+    public @NotNull StatusSnapshot consumeShield(@NotNull AstPlayer player, double amount) {
+        StatusSnapshot snapshot = getStatus(player);
+        if (amount <= 0.0D) {
+            return snapshot;
+        }
+
+        StatusSnapshot updated = snapshot.withCurrentShield(snapshot.getCurrentShield() - amount);
+        player.setStatusSnapshot(updated);
+        return updated;
+    }
+
+    /**
      * 現在MPを減少させます。
      *
      * @param player 対象プレイヤー
@@ -205,6 +234,24 @@ public class StatusService {
         }
 
         StatusSnapshot updated = snapshot.withCurrentValues(snapshot.getCurrentHp() + amount, snapshot.getCurrentMp());
+        player.setStatusSnapshot(updated);
+        return updated;
+    }
+
+    /**
+     * 現在シールド値を回復します。
+     *
+     * @param player 対象プレイヤー
+     * @param amount 回復量
+     * @return 更新後のステータススナップショット
+     */
+    public @NotNull StatusSnapshot recoverShield(@NotNull AstPlayer player, double amount) {
+        StatusSnapshot snapshot = getStatus(player);
+        if (amount <= 0.0D || snapshot.getMaxValue(StatusType.MAX_SHIELD) <= 0.0D) {
+            return snapshot;
+        }
+
+        StatusSnapshot updated = snapshot.withCurrentShield(snapshot.getCurrentShield() + amount);
         player.setStatusSnapshot(updated);
         return updated;
     }
@@ -325,14 +372,15 @@ public class StatusService {
             values.put(type, new StatusValue(baseValue, bonusValue));
         }
 
-        return new StatusSnapshot(values, 0.0D, 0.0D, 0.0D, LocalDateTime.now());
+        return new StatusSnapshot(values, 0.0D, 0.0D, 0.0D, 0.0D, System.currentTimeMillis(), LocalDateTime.now());
     }
 
     private @NotNull StatusSnapshot restoreAllInternal(@NotNull StatusSnapshot snapshot) {
         double maxHp = snapshot.getMaxValue(StatusType.MAX_HEALTH);
         double maxMp = snapshot.getMaxValue(StatusType.MAX_MANA);
         double maxEnergy = snapshot.getMaxValue(StatusType.MAX_ENERGY);
-        return snapshot.withCurrentValues(maxHp, maxMp, maxEnergy);
+        double maxShield = snapshot.getMaxValue(StatusType.MAX_SHIELD);
+        return snapshot.withCurrentValues(maxHp, maxMp, maxEnergy, maxShield);
     }
 
     private double getBaseValue(@NotNull StatusType type) {
@@ -341,6 +389,7 @@ public class StatusService {
             case MAX_HEALTH -> 20.0D;
             case MAX_MANA -> 10.0D;
             case MAX_ENERGY -> 100.0D;
+            case MAX_SHIELD -> 0.0D;
             // 基本能力値
             case STRENGTH -> 5.0D;
             case DEXTERITY -> 5.0D;
@@ -361,6 +410,7 @@ public class StatusService {
             case FINAL_DAMAGE_MULTIPLIER -> 130.0D;
             case ACCURACY -> 95.0D;
             case ATTACK_SPEED -> 100.0D;
+            case SHIELD_BREAK -> 0.0D;
             // 防御系
             case DEFENSE -> 5.0D;
             case MAGIC_DEFENSE -> 3.0D;
@@ -371,6 +421,8 @@ public class StatusService {
             case ENERGY_REGEN -> 5.0D;
             case MOVEMENT_SPEED -> 100.0D;
             case COOLDOWN_REDUCTION -> 0.0D;
+            case SHIELD_RECHARGE_REDUCTION -> 0.0D;
+            case SHIELD_RECHARGE_RATE -> 0.0D;
         };
     }
 
@@ -382,6 +434,7 @@ public class StatusService {
     ) {
         double nonBuffBonus = getAccountModeBonus(player.getAccount().getMode(), type);
         nonBuffBonus += getPermissionBonus(player.getUser().getPermission(), type);
+        nonBuffBonus += getClassShieldBonus(player, type);
         nonBuffBonus += getEquipmentBonus(equipmentBonus, type, baseValue + nonBuffBonus);
         nonBuffBonus += getSkillTreeBonus(player, type, baseValue + nonBuffBonus);
         nonBuffBonus += getPassiveSkillBonus(player, type, baseValue + nonBuffBonus);
@@ -397,6 +450,20 @@ public class StatusService {
 
     private double getPassiveSkillBonus(@NotNull AstPlayer player, @NotNull StatusType type, double baseValue) {
         return passiveSkillService == null ? 0.0D : passiveSkillService.getStatusBonus(player, type, baseValue);
+    }
+
+    private double getClassShieldBonus(@NotNull AstPlayer player, @NotNull StatusType type) {
+        if (playerClassService == null || !isShieldStatus(type)) {
+            return 0.0D;
+        }
+        return playerClassService.getStatusBonus(player, type);
+    }
+
+    private boolean isShieldStatus(@NotNull StatusType type) {
+        return type == StatusType.MAX_SHIELD
+            || type == StatusType.SHIELD_BREAK
+            || type == StatusType.SHIELD_RECHARGE_REDUCTION
+            || type == StatusType.SHIELD_RECHARGE_RATE;
     }
 
     private double getEquipmentBonus(@NotNull EquipmentBonus bonus, @NotNull StatusType type, double baseValue) {
@@ -683,6 +750,7 @@ public class StatusService {
                 case MAX_HEALTH -> 0.0D;
                 case MAX_MANA -> 4.0D;
                 case MAX_ENERGY -> 0.0D;
+                case MAX_SHIELD -> 0.0D;
                 case STRENGTH -> 0.0D;
                 case DEXTERITY -> 0.0D;
                 case INTELLIGENCE -> 0.0D;
@@ -701,6 +769,7 @@ public class StatusService {
                 case FINAL_DAMAGE_MULTIPLIER -> 0.0D;
                 case ACCURACY -> 0.0D;
                 case ATTACK_SPEED -> 0.0D;
+                case SHIELD_BREAK -> 0.0D;
                 case DEFENSE -> 3.0D;
                 case MAGIC_DEFENSE -> 2.0D;
                 case EVASION -> 0.0D;
@@ -709,11 +778,14 @@ public class StatusService {
                 case ENERGY_REGEN -> 0.0D;
                 case MOVEMENT_SPEED -> 5.0D;
                 case COOLDOWN_REDUCTION -> 0.0D;
+                case SHIELD_RECHARGE_REDUCTION -> 0.0D;
+                case SHIELD_RECHARGE_RATE -> 0.0D;
             };
             case ADMIN -> switch (type) {
                 case MAX_HEALTH -> 10.0D;
                 case MAX_MANA -> 10.0D;
                 case MAX_ENERGY -> 50.0D;
+                case MAX_SHIELD -> 0.0D;
                 case STRENGTH -> 5.0D;
                 case DEXTERITY -> 5.0D;
                 case INTELLIGENCE -> 5.0D;
@@ -732,6 +804,7 @@ public class StatusService {
                 case FINAL_DAMAGE_MULTIPLIER -> 10.0D;
                 case ACCURACY -> 5.0D;
                 case ATTACK_SPEED -> 10.0D;
+                case SHIELD_BREAK -> 0.0D;
                 case DEFENSE -> 6.0D;
                 case MAGIC_DEFENSE -> 6.0D;
                 case EVASION -> 5.0D;
@@ -740,6 +813,8 @@ public class StatusService {
                 case ENERGY_REGEN -> 3.0D;
                 case MOVEMENT_SPEED -> 10.0D;
                 case COOLDOWN_REDUCTION -> 5.0D;
+                case SHIELD_RECHARGE_REDUCTION -> 0.0D;
+                case SHIELD_RECHARGE_RATE -> 0.0D;
             };
         };
     }
@@ -750,6 +825,7 @@ public class StatusService {
                 case MAX_HEALTH -> 5.0D;
                 case MAX_MANA -> 5.0D;
                 case MAX_ENERGY -> 20.0D;
+                case MAX_SHIELD -> 0.0D;
                 case STRENGTH -> 3.0D;
                 case DEXTERITY -> 3.0D;
                 case INTELLIGENCE -> 3.0D;
@@ -768,6 +844,7 @@ public class StatusService {
                 case FINAL_DAMAGE_MULTIPLIER -> 5.0D;
                 case ACCURACY -> 2.0D;
                 case ATTACK_SPEED -> 5.0D;
+                case SHIELD_BREAK -> 0.0D;
                 case DEFENSE -> 4.0D;
                 case MAGIC_DEFENSE -> 4.0D;
                 case EVASION -> 2.0D;
@@ -776,6 +853,8 @@ public class StatusService {
                 case ENERGY_REGEN -> 2.0D;
                 case MOVEMENT_SPEED -> 0.0D;
                 case COOLDOWN_REDUCTION -> 2.0D;
+                case SHIELD_RECHARGE_REDUCTION -> 0.0D;
+                case SHIELD_RECHARGE_RATE -> 0.0D;
             };
         }
 
@@ -784,6 +863,7 @@ public class StatusService {
                 case MAX_HEALTH -> 0.0D;
                 case MAX_MANA -> 2.0D;
                 case MAX_ENERGY -> 10.0D;
+                case MAX_SHIELD -> 0.0D;
                 case STRENGTH -> 1.0D;
                 case DEXTERITY -> 1.0D;
                 case INTELLIGENCE -> 1.0D;
@@ -802,6 +882,7 @@ public class StatusService {
                 case FINAL_DAMAGE_MULTIPLIER -> 0.0D;
                 case ACCURACY -> 1.0D;
                 case ATTACK_SPEED -> 0.0D;
+                case SHIELD_BREAK -> 0.0D;
                 case DEFENSE -> 1.0D;
                 case MAGIC_DEFENSE -> 1.0D;
                 case EVASION -> 0.5D;
@@ -810,6 +891,8 @@ public class StatusService {
                 case ENERGY_REGEN -> 0.0D;
                 case MOVEMENT_SPEED -> 0.0D;
                 case COOLDOWN_REDUCTION -> 0.0D;
+                case SHIELD_RECHARGE_REDUCTION -> 0.0D;
+                case SHIELD_RECHARGE_RATE -> 0.0D;
             };
         }
 

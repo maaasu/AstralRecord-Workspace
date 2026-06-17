@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.IdleBehavior;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobIdleConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
+import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
@@ -49,6 +50,7 @@ class MobAiServiceTest extends MockBukkitTestBase {
                         null,
                         null,
                         List.of(),
+                        MobShieldConfig.EMPTY,
                         new MobIdleConfig(IdleBehavior.STATIONARY, 0.0D, 1.0D),
                         true,
                         null,

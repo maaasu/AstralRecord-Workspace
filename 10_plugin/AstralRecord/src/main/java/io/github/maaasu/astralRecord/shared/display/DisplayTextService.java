@@ -5,6 +5,7 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.TextDisplay;
@@ -36,6 +37,7 @@ public final class DisplayTextService {
 
     private final ConcurrentHashMap<UUID, ManagedDisplayState> displays = new ConcurrentHashMap<>();
     private final AtomicLong displaySequence = new AtomicLong();
+    private Plugin plugin;
     private BukkitTask task;
 
     /**
@@ -47,6 +49,7 @@ public final class DisplayTextService {
         if (task != null) {
             return;
         }
+        this.plugin = plugin;
         task = plugin.getServer().getScheduler().runTaskTimer(plugin, (Runnable) this::tick, 1L, UPDATE_INTERVAL_TICKS);
     }
 
@@ -58,6 +61,7 @@ public final class DisplayTextService {
             task.cancel();
             task = null;
         }
+        plugin = null;
         for (ManagedDisplayState state : displays.values()) {
             destroyEntity(state);
         }
@@ -95,12 +99,43 @@ public final class DisplayTextService {
      */
     public @NotNull ManagedTextDisplay spawnDamageNumber(@NotNull Location origin, double amount, boolean critical) {
         pruneDamageDisplays();
-        String prefix = critical ? "&e✦ " : "&c";
+        return spawnFloatingDamageNumber(origin, amount, critical ? "&e✦ " : "&c");
+    }
+
+    /**
+     * シールドダメージ向けの水色ダメージ数値を表示します。
+     *
+     * @param origin 表示起点
+     * @param amount 表示するシールドダメージ量
+     * @return 管理ハンドル
+     */
+    public @NotNull ManagedTextDisplay spawnShieldDamageNumber(@NotNull Location origin, double amount) {
+        pruneDamageDisplays();
+        return spawnFloatingDamageNumber(origin, amount, "&b");
+    }
+
+    private @NotNull ManagedTextDisplay spawnFloatingDamageNumber(@NotNull Location origin, double amount, @NotNull String prefix) {
         String text = prefix + String.format(java.util.Locale.ROOT, "%.0f", Math.max(0.0D, amount));
-        ManagedTextDisplay display = create(DisplayAnchor.fixed(origin), DisplayTextOptions.damage(text), true);
+        ArmorStand carrier = spawnDamageCarrier(origin);
+        ManagedTextDisplay display = create(
+                carrier == null ? DisplayAnchor.fixed(origin) : DisplayAnchor.entity(carrier, new Vector(0.0D, 0.35D, 0.0D)),
+                DisplayTextOptions.damage(text),
+                true
+        );
 
         double xDrift = ThreadLocalRandom.current().nextDouble(-0.18D, 0.18D);
         double zDrift = ThreadLocalRandom.current().nextDouble(-0.18D, 0.18D);
+        if (carrier != null && plugin != null) {
+            carrier.setVelocity(new Vector(xDrift, 0.28D, zDrift));
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                display.destroy();
+                if (carrier.isValid()) {
+                    carrier.remove();
+                }
+            }, 18L);
+            return display;
+        }
+
         List<DisplayAnimationFrame> frames = new ArrayList<>();
         for (int index = 0; index < 8; index++) {
             double yOffset = 0.2D + (index * 0.12D);
@@ -108,6 +143,22 @@ public final class DisplayTextService {
         }
         display.playAnimation(frames, false, true);
         return display;
+    }
+
+    private @Nullable ArmorStand spawnDamageCarrier(@NotNull Location origin) {
+        World world = origin.getWorld();
+        if (world == null) {
+            return null;
+        }
+        return world.spawn(origin, ArmorStand.class, stand -> {
+            stand.setVisible(false);
+            stand.setMarker(true);
+            stand.setSmall(true);
+            stand.setInvulnerable(true);
+            stand.setSilent(true);
+            stand.setPersistent(false);
+            stand.setGravity(false);
+        });
     }
 
     private void pruneDamageDisplays() {

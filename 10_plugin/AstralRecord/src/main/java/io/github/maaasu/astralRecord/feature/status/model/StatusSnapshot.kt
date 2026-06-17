@@ -16,6 +16,8 @@ data class StatusSnapshot(
     val currentHp: Double,
     val currentMp: Double,
     val currentEnergy: Double,
+    val currentShield: Double,
+    val shieldChangedAtMs: Long,
     val calculatedAt: LocalDateTime,
 ) {
     /**
@@ -43,10 +45,12 @@ data class StatusSnapshot(
         val maxHp = getMaxValue(StatusType.MAX_HEALTH)
         val maxMp = getMaxValue(StatusType.MAX_MANA)
         val maxEnergy = getMaxValue(StatusType.MAX_ENERGY)
+        val maxShield = getMaxValue(StatusType.MAX_SHIELD)
         return copy(
             currentHp = currentHp.coerceIn(0.0, maxHp),
             currentMp = currentMp.coerceIn(0.0, maxMp),
             currentEnergy = currentEnergy.coerceIn(0.0, maxEnergy),
+            currentShield = currentShield.coerceIn(0.0, maxShield),
         )
     }
 
@@ -63,8 +67,21 @@ data class StatusSnapshot(
         hp: Double,
         mp: Double,
         energy: Double = currentEnergy,
+        shield: Double = currentShield,
     ): StatusSnapshot {
-        return copy(currentHp = hp, currentMp = mp, currentEnergy = energy).clampCurrentValues()
+        val clamped = copy(currentHp = hp, currentMp = mp, currentEnergy = energy, currentShield = shield).clampCurrentValues()
+        val shieldChangedAt = if (clamped.currentShield != currentShield) System.currentTimeMillis() else shieldChangedAtMs
+        return clamped.copy(shieldChangedAtMs = shieldChangedAt)
+    }
+
+    /**
+     * 現在シールド値だけを更新した新しいスナップショットを返します。
+     *
+     * @param shield 新しい現在シールド値
+     * @return 上限下限へクランプ済みの [StatusSnapshot]
+     */
+    fun withCurrentShield(shield: Double): StatusSnapshot {
+        return withCurrentValues(currentHp, currentMp, currentEnergy, shield)
     }
 
     companion object {
@@ -74,6 +91,6 @@ data class StatusSnapshot(
          * @return 空の [StatusSnapshot]
          */
         @JvmStatic
-        fun empty(): StatusSnapshot = StatusSnapshot(emptyMap(), 0.0, 0.0, 0.0, LocalDateTime.MIN)
+        fun empty(): StatusSnapshot = StatusSnapshot(emptyMap(), 0.0, 0.0, 0.0, 0.0, 0L, LocalDateTime.MIN)
     }
 }

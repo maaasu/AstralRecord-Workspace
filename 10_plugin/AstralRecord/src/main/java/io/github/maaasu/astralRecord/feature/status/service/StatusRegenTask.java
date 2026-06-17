@@ -22,6 +22,7 @@ public class StatusRegenTask {
 
     /** {@link StatusType#HP_REGEN} などが「5秒あたり」の値として定義されているための分母 */
     private static final double REGEN_PERIOD_SECONDS = 5.0D;
+    private static final long SHIELD_RECHARGE_BASE_DELAY_MS = 10_000L;
 
     private final StatusService statusService;
     private BukkitTask task;
@@ -83,5 +84,20 @@ public class StatusRegenTask {
         if (energyRegenPerSecond > 0.0D && snapshot.getCurrentEnergy() < snapshot.getMaxValue(StatusType.MAX_ENERGY)) {
             statusService.recoverEnergy(astPlayer, energyRegenPerSecond);
         }
+        if (shouldRechargeShield(snapshot)) {
+            double amount = 1.0D + snapshot.getMaxValue(StatusType.SHIELD_RECHARGE_RATE);
+            statusService.recoverShield(astPlayer, amount);
+        }
+    }
+
+    private boolean shouldRechargeShield(@NotNull StatusSnapshot snapshot) {
+        double maxShield = snapshot.getMaxValue(StatusType.MAX_SHIELD);
+        if (maxShield <= 0.0D || snapshot.getCurrentShield() >= maxShield) {
+            return false;
+        }
+        double reduction = Math.clamp(snapshot.getMaxValue(StatusType.SHIELD_RECHARGE_REDUCTION), 0.0D, 95.0D);
+        long delayMs = Math.max(500L, Math.round(SHIELD_RECHARGE_BASE_DELAY_MS * (1.0D - reduction / 100.0D)));
+        long changedAt = snapshot.getShieldChangedAtMs();
+        return changedAt > 0L && System.currentTimeMillis() - changedAt >= delayMs;
     }
 }

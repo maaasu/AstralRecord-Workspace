@@ -46,6 +46,7 @@ public record MobTemplate(
         @Nullable MobSkin skin,
         @NotNull MobEquipmentConfig equipment,
         @NotNull List<MobBaseStat> baseStats,
+        @NotNull MobShieldConfig shield,
         @NotNull MobIdleConfig idle,
         boolean damageImmune,
         @NotNull MobInteractionsConfig interactions,
@@ -60,6 +61,11 @@ public record MobTemplate(
         baseStats = baseStats == null ? List.of() : List.copyOf(baseStats);
         if (equipment == null) {
             equipment = MobEquipmentConfig.EMPTY;
+        }
+        if (shield == null) {
+            shield = MobShieldConfig.EMPTY;
+        } else {
+            shield = shield.normalized();
         }
         if (idle == null) {
             idle = MobIdleConfig.defaults();

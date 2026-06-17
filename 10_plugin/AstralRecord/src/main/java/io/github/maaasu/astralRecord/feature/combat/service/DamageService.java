@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobCombatService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
@@ -201,10 +202,33 @@ public final class DamageService {
         ensureStatusLoaded(victim);
 
         DamageContext context = new DamageContext(attacker, victim, baseDamage, attackType, damageType, scaling);
-        DamageResult result = damageCalculator.calculate(context);
+        DamageResult result = applyShieldDamage(attacker, victim, damageCalculator.calculate(context));
         applyDamageResult(attacker, victim, result);
         spawnDamageDisplay(attacker, victim, result);
         return result;
+    }
+
+    private @NotNull DamageResult applyShieldDamage(
+            @Nullable AstEntity attacker,
+            @NotNull AstEntity victim,
+            @NotNull DamageResult result
+    ) {
+        if (result.finalDamage() <= 0.0D || !hasActiveShield(victim)) {
+            return result;
+        }
+
+        double shieldBreak = attacker == null ? 0.0D : Math.max(0.0D, attacker.statValue(StatusType.SHIELD_BREAK));
+        double baseShieldDamage = Math.floor(result.finalDamage() / Math.max(1.0D, victim.maxHealth() * 0.1D));
+        double calculatedShieldDamage = baseShieldDamage + shieldBreak;
+        if (calculatedShieldDamage < 1.0D) {
+            return DamageResult.shield(0.0D, false);
+        }
+
+        double currentShield = currentShield(victim);
+        double shieldDamage = Math.min(currentShield, calculatedShieldDamage);
+        boolean shieldBroken = currentShield > 0.0D && currentShield - shieldDamage <= 0.0D;
+        consumeShield(victim, shieldDamage);
+        return DamageResult.shield(shieldDamage, shieldBroken);
     }
 
     private void applyDamageResult(
@@ -212,6 +236,11 @@ public final class DamageService {
             @NotNull AstEntity victim,
             @NotNull DamageResult result
     ) {
+        if (result.shieldDamage() > 0.0D) {
+            applyShieldThreat(attacker, victim, result.shieldDamage());
+            playShieldEffect(victim, result.shieldBroken());
+        }
+
         if (result.finalDamage() <= 0.0D) {
             return;
         }
@@ -246,6 +275,19 @@ public final class DamageService {
         }
     }
 
+    private void applyShieldThreat(@Nullable AstEntity attacker, @NotNull AstEntity victim, double shieldDamage) {
+        if (attacker == null || !attacker.isPlayer() || !victim.isMob() || victim.mob() == null) {
+            return;
+        }
+        var mob = victim.mob();
+        mob.threatTable().add(attacker.id(), shieldDamage);
+        mob.lastAttackerUuid(attacker.id());
+        if (mob.state() == MobState.IDLE) {
+            mob.state(MobState.AGGRO);
+            mob.targetId(attacker.id());
+        }
+    }
+
     private void ensureStatusLoaded(@Nullable AstEntity entity) {
         if (entity != null && entity.isPlayer()) {
             statusService.getStatus(entity.player());
@@ -257,6 +299,13 @@ public final class DamageService {
             @NotNull AstEntity victim,
             @NotNull DamageResult result
     ) {
+        if (result.shieldDamage() > 0.0D) {
+            if (!shouldDisplayDamage(attacker, victim)) {
+                return;
+            }
+            displayTextService.spawnShieldDamageNumber(victim.location().clone().add(0.0D, 1.2D, 0.0D), result.shieldDamage());
+            return;
+        }
         if (result.finalDamage() <= 0.0D) {
             return;
         }
@@ -264,6 +313,43 @@ public final class DamageService {
             return;
         }
         displayTextService.spawnDamageNumber(victim.location().clone().add(0.0D, 1.2D, 0.0D), result.finalDamage(), false);
+    }
+
+    private boolean hasActiveShield(@NotNull AstEntity victim) {
+        return maxShield(victim) > 0.0D && currentShield(victim) > 0.0D;
+    }
+
+    private double currentShield(@NotNull AstEntity victim) {
+        if (victim.isPlayer() && victim.player() != null) {
+            return statusService.getStatus(victim.player()).getCurrentShield();
+        }
+        if (victim.isMob() && victim.mob() != null) {
+            return victim.mob().currentShield();
+        }
+        return 0.0D;
+    }
+
+    private double maxShield(@NotNull AstEntity victim) {
+        if (victim.isPlayer() && victim.player() != null) {
+            return statusService.getStatus(victim.player()).getMaxValue(StatusType.MAX_SHIELD);
+        }
+        if (victim.isMob() && victim.mob() != null && victim.mob().template().shield().active()) {
+            return victim.mob().template().shield().max();
+        }
+        return 0.0D;
+    }
+
+    private void consumeShield(@NotNull AstEntity victim, double amount) {
+        if (amount <= 0.0D) {
+            return;
+        }
+        if (victim.isPlayer() && victim.player() != null) {
+            statusService.consumeShield(victim.player(), amount);
+            return;
+        }
+        if (victim.isMob() && victim.mob() != null) {
+            victim.mob().currentShield(victim.mob().currentShield() - amount, System.currentTimeMillis());
+        }
     }
 
     private boolean shouldDisplayDamage(@Nullable AstEntity attacker, @NotNull AstEntity victim) {
@@ -297,6 +383,39 @@ public final class DamageService {
             SharedParticleDefinitions.MOB_DEATH_CRIT
         );
         world.playSound(location, Sound.ENTITY_GENERIC_DEATH, 0.8F, 1.1F);
+    }
+
+    private void playShieldEffect(@NotNull AstEntity victim, boolean broken) {
+        Entity entity = victim.isPlayer() && victim.player() != null
+                ? victim.player().getBukkit()
+                : victim.isMob() && victim.mob() != null
+                    ? resolveBukkitEntity(victim.mob().bukkitEntityId())
+                    : victim.bukkitEntity();
+        Location location = victim.location();
+        World world = location.getWorld();
+        if (world == null) {
+            return;
+        }
+
+        double height = entity == null ? 1.8D : Math.max(0.8D, entity.getHeight());
+        double width = entity == null ? 0.6D : Math.max(0.6D, entity.getWidth());
+        double radius = Math.max(width, height * 0.5D) * 0.65D + 0.25D;
+        Location center = location.clone().add(0.0D, height * 0.5D, 0.0D);
+        for (int i = 0; i < 18; i++) {
+            double yaw = Math.toRadians(i * 20.0D);
+            double pitch = Math.toRadians((i % 6 - 2.5D) * 18.0D);
+            double cosPitch = Math.cos(pitch);
+            Location point = center.clone().add(
+                    Math.cos(yaw) * cosPitch * radius,
+                    Math.sin(pitch) * radius,
+                    Math.sin(yaw) * cosPitch * radius
+            );
+            particleDisplayService.spawnForNearbyViewers(
+                    point,
+                    broken ? SharedParticleDefinitions.SHIELD_BREAK_DUST : SharedParticleDefinitions.SHIELD_HIT_DUST
+            );
+        }
+        world.playSound(location, broken ? Sound.ITEM_SHIELD_BREAK : Sound.ITEM_SHIELD_BLOCK, 0.85F, broken ? 0.8F : 1.2F);
     }
 
     private void spawnMobDeathResult(

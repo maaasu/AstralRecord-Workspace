@@ -15,6 +15,7 @@
 | RESOURCE | `MAX_HEALTH`              | 最大HP     |                                   |
 | RESOURCE | `MAX_MANA`                | 最大MP     |                                   |
 | RESOURCE | `MAX_ENERGY`              | 最大EN     | スキル発動・ダッシュ・回避行動等に消費               |
+| RESOURCE | `MAX_SHIELD`              | シールド最大値 | HPより先に消費されるシールドの最大値 |
 | PRIMARY  | `STRENGTH`                | 筋力       | 近接攻撃のダメージスケーリングに影響                |
 | PRIMARY  | `DEXTERITY`               | 器用さ      | 間接攻撃（弓・投擲等）のダメージスケーリングに影響         |
 | PRIMARY  | `INTELLIGENCE`            | 知力       | 魔法攻撃スケーリング・最大MP・MP回復に影響           |
@@ -33,6 +34,7 @@
 | OFFENSE  | `FINAL_DAMAGE_MULTIPLIER` | 最終ダメージ倍率 | 追加ダメージ発動時の倍率（%）                   |
 | OFFENSE  | `ACCURACY`                | 命中率      | 攻撃がヒットする確率（%）。EVASIONとの対抗判定       |
 | OFFENSE  | `ATTACK_SPEED`            | 攻撃速度     | 攻撃のクールダウン短縮割合（%）                  |
+| OFFENSE  | `SHIELD_BREAK`            | シールドブレイク | シールドダメージへ加算する値 |
 | DEFENSE  | `DEFENSE`                 | 物理防御力    | 近接・間接攻撃による物理ダメージを軽減               |
 | DEFENSE  | `MAGIC_DEFENSE`           | 魔法防御力    | 魔法攻撃によるダメージを軽減                    |
 | DEFENSE  | `EVASION`                 | 回避率      | 攻撃を完全に回避する確率（%）                   |
@@ -41,3 +43,5 @@
 | UTILITY  | `ENERGY_REGEN`            | EN回復力    | エネルギー自然回復量（0秒あたり）                 |
 | UTILITY  | `MOVEMENT_SPEED`          | 移動速度     | 100% が標準速度（%）                     |
 | UTILITY  | `COOLDOWN_REDUCTION`      | CD短縮     | クールダウン短縮率（%）                      |
+| UTILITY  | `SHIELD_RECHARGE_REDUCTION` | シールドリチャージ短縮率 | シールド回復開始までの待機時間を短縮する割合（%） |
+| UTILITY  | `SHIELD_RECHARGE_RATE`    | シールドリチャージレート | シールド回復時に基本回復値へ加算する値 |

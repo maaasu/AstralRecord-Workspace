@@ -28,7 +28,8 @@ public class PlayerHudView {
             .append(Component.text("  ", NamedTextColor.DARK_GRAY))
             .append(statText("MP", snapshot.getCurrentMp(), maxMp, NamedTextColor.AQUA))
             .append(Component.text("  ", NamedTextColor.DARK_GRAY))
-            .append(statText("ENG", snapshot.getCurrentEnergy(), maxEnergy, NamedTextColor.YELLOW)));
+            .append(statText("ENG", snapshot.getCurrentEnergy(), maxEnergy, NamedTextColor.YELLOW))
+            .append(shieldActionText(snapshot)));
     }
 
     /**
@@ -56,6 +57,7 @@ public class PlayerHudView {
         player.setFoodLevel((int) Math.round(ratio(snapshot.getCurrentEnergy(), snapshot.getMaxValue(StatusType.MAX_ENERGY)) * 20.0D));
         player.setSaturation(0.0F);
         player.setExp((float) ratio(snapshot.getCurrentMp(), snapshot.getMaxValue(StatusType.MAX_MANA)));
+        setArmorBar(player, ratio(snapshot.getCurrentShield(), snapshot.getMaxValue(StatusType.MAX_SHIELD)));
     }
 
     /**
@@ -140,6 +142,13 @@ public class PlayerHudView {
         }
     }
 
+    private void setArmorBar(Player player, double ratio) {
+        var armor = player.getAttribute(Attribute.ARMOR);
+        if (armor != null) {
+            armor.setBaseValue(Math.clamp(ratio, 0.0D, 1.0D) * 20.0D);
+        }
+    }
+
     private void clearSidebar(Scoreboard scoreboard) {
         for (String entry : scoreboard.getEntries()) {
             scoreboard.resetScores(entry);
@@ -201,6 +210,15 @@ public class PlayerHudView {
             .append(Component.text(String.format("%.0f", current), NamedTextColor.WHITE))
             .append(Component.text("/", NamedTextColor.DARK_GRAY))
             .append(Component.text(String.format("%.0f", max), NamedTextColor.GRAY));
+    }
+
+    private Component shieldActionText(StatusSnapshot snapshot) {
+        double maxShield = snapshot.getMaxValue(StatusType.MAX_SHIELD);
+        if (maxShield <= 0.0D) {
+            return Component.empty();
+        }
+        return Component.text("  ", NamedTextColor.DARK_GRAY)
+            .append(statText("SH", snapshot.getCurrentShield(), maxShield, NamedTextColor.BLUE));
     }
 
     private void renderTransientActionBar(Player player, String label, double progressRemaining, NamedTextColor labelColor, NamedTextColor fillColor) {

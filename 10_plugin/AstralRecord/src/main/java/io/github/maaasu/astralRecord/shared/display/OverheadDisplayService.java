@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -33,13 +34,15 @@ import java.util.concurrent.ConcurrentHashMap;
 public class OverheadDisplayService {
 
     private static final long UPDATE_INTERVAL_TICKS = 5L;
-    private static final double PLAYER_TEXT_OFFSET = -1.50D;
-    private static final double MOB_TEXT_OFFSET = -1.50D;
+    private static final double PLAYER_TEXT_OFFSET = -1.65D;
+    private static final double MOB_TEXT_OFFSET = -1.65D;
+    private static final int BAR_LENGTH = 12;
     private static final String HIDDEN_NAME_TEAM = "ar_hidden_names";
 
     private final DisplayTextService displayService;
     private final StatusService statusService;
     private final MobService mobService;
+    private final PlayerClassService playerClassService;
     private final Map<UUID, DisplayTextService.ManagedTextDisplay> playerDisplays = new HashMap<>();
     private final Map<UUID, DisplayTextService.ManagedTextDisplay> mobDisplays = new HashMap<>();
     private final Set<UUID> suspendedPlayerDisplays = ConcurrentHashMap.newKeySet();
@@ -56,11 +59,13 @@ public class OverheadDisplayService {
     public OverheadDisplayService(
             @NotNull DisplayTextService displayService,
             @NotNull StatusService statusService,
-            @NotNull MobService mobService
+            @NotNull MobService mobService,
+            @NotNull PlayerClassService playerClassService
     ) {
         this.displayService = displayService;
         this.statusService = statusService;
         this.mobService = mobService;
+        this.playerClassService = playerClassService;
     }
 
     /**
@@ -251,29 +256,51 @@ public class OverheadDisplayService {
         }
 
         StatusSnapshot snapshot = statusService.getStatus(astPlayer);
+        String className = playerClassService.getDisplayName(astPlayer.getClassId());
+        String shield = shieldIconLine(snapshot.getCurrentShield(), snapshot.getMaxValue(StatusType.MAX_SHIELD));
         return String.format(
                 Locale.ROOT,
-                "&f%s\n&cHP %s/%s &9MP %s/%s &eEN %s/%s",
+                "&7[%s&7] &f%s\n%s\n%s%s",
+                className,
                 player.getName(),
-                number(snapshot.getCurrentHp()),
-                number(snapshot.getMaxValue(StatusType.MAX_HEALTH)),
-                number(snapshot.getCurrentMp()),
-                number(snapshot.getMaxValue(StatusType.MAX_MANA)),
-                number(snapshot.getCurrentEnergy()),
-                number(snapshot.getMaxValue(StatusType.MAX_ENERGY))
+                bar("HP", snapshot.getCurrentHp(), snapshot.getMaxValue(StatusType.MAX_HEALTH), "&c"),
+                bar("MP", snapshot.getCurrentMp(), snapshot.getMaxValue(StatusType.MAX_MANA), "&9"),
+                shield
         );
     }
 
     @NotNull
     private String mobText(@NotNull MobInstance instance) {
         double maxHealth = instance.template().statValue(StatusType.MAX_HEALTH.name(), 1.0D);
+        String shield = instance.template().shield().active()
+                ? "\n" + bar("SH", instance.currentShield(), instance.template().shield().max(), "&b")
+                : "";
         return String.format(
                 Locale.ROOT,
-                "%s\n&cHP %s/%s",
+                "%s\n%s%s",
                 instance.template().displayName(),
-                number(instance.currentHealth()),
-                number(maxHealth)
+                bar("HP", instance.currentHealth(), maxHealth, "&c"),
+                shield
         );
+    }
+
+    private @NotNull String bar(@NotNull String label, double current, double max, @NotNull String color) {
+        double ratio = max <= 0.0D ? 0.0D : Math.clamp(current / max, 0.0D, 1.0D);
+        int filled = (int) Math.round(ratio * BAR_LENGTH);
+        StringBuilder builder = new StringBuilder();
+        builder.append(color).append(label).append(" [").append(color);
+        builder.repeat("|", Math.max(0, filled));
+        builder.append("&8");
+        builder.repeat("|", Math.max(0, BAR_LENGTH - filled));
+        builder.append(color).append("] &f").append(number(current)).append("&7/&f").append(number(max));
+        return builder.toString();
+    }
+
+    private @NotNull String shieldIconLine(double current, double max) {
+        if (max <= 0.0D) {
+            return "";
+        }
+        return String.format(Locale.ROOT, "\n&b◆ &7x &f%s", number(current));
     }
 
     private String number(double value) {

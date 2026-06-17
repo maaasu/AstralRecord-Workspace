@@ -27,6 +27,13 @@ class PlayerClassService {
 
     fun getLoadedClasses(): List<ClassModel> = classService.getLoadedClasses()
 
+    fun getStatusBonus(astPlayer: AstPlayer, statusType: StatusType): Double {
+        val model = classService.getLoadedClass(astPlayer.classId) ?: return 0.0
+        val base = classStatValue(model.baseStats, statusType)
+        val growth = classStatValue(model.growthPerLevel, statusType) * (astPlayer.classLevel.coerceAtLeast(1) - 1)
+        return base + growth
+    }
+
     fun getClassViewEntries(astPlayer: AstPlayer): List<ClassViewEntry> {
         val skillRegistry = AstralRecord.getInstance().skillService?.registry()
         return classService.getLoadedClasses().map { model ->
@@ -157,6 +164,14 @@ class PlayerClassService {
         } catch (_: IllegalArgumentException) {
             null
         }
+
+    private fun classStatValue(stats: List<ClassStat>, statusType: StatusType): Double =
+        stats.firstOrNull { stat ->
+            normalizeStatusKey(stat.status) == statusType.name
+        }?.value ?: 0.0
+
+    private fun normalizeStatusKey(status: String): String =
+        status.trim().replace(' ', '_').replace('-', '_').uppercase(Locale.ROOT)
 
     private fun normalizeLookupValue(value: String): String {
         val translated = ColorCodeUtil.translateAlternateColorCodes(value)

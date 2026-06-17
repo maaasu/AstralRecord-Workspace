@@ -25,6 +25,8 @@ public final class MobInstance {
     private int entityId = -1;
     private Location currentLocation;
     private double currentHealth;
+    private double currentShield;
+    private long lastShieldChangedAtMs;
     private MobState state = MobState.IDLE;
     private UUID targetId;
     private UUID lastAttackerUuid;
@@ -69,6 +71,7 @@ public final class MobInstance {
         this.wanderAnchor = spawnLocation.clone();
         this.currentLocation = spawnLocation.clone();
         this.currentHealth = template.statValue("MAX_HEALTH", 1.0);
+        this.currentShield = template.shield().active() ? template.shield().max() : 0.0D;
     }
 
     /** インスタンス ID を返します。 */
@@ -146,6 +149,31 @@ public final class MobInstance {
      */
     public void currentHealth(double value) {
         this.currentHealth = value;
+    }
+
+    /** 現在シールド値を返します。 */
+    public double currentShield() {
+        return currentShield;
+    }
+
+    /**
+     * 現在シールド値を更新します。
+     *
+     * @param value 新しいシールド値
+     * @param currentTick 更新時点の Mob AI tick
+     */
+    public void currentShield(double value, long currentTimeMs) {
+        double max = template.shield().active() ? template.shield().max() : 0.0D;
+        double clamped = Math.max(0.0D, Math.min(value, max));
+        if (Double.compare(currentShield, clamped) != 0) {
+            lastShieldChangedAtMs = currentTimeMs;
+        }
+        this.currentShield = clamped;
+    }
+
+    /** 最後にシールド値が変動した Mob AI tick を返します。 */
+    public long lastShieldChangedAtMs() {
+        return lastShieldChangedAtMs;
     }
 
     /** 状態を返します。 */

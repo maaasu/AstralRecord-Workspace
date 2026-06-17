@@ -33,6 +33,7 @@ AI（行動ロジック）もプラグイン独自実装であり、本スキー
 | `icon`          | String       | ×  | Null      | UI/図鑑表示用アイコン（Bukkit Material名）                          |
 | `lore`          | List<String> | ×  | emptyList | 説明文（§ または & の色コード利用可能）                                  |
 | `tags`          | List<String> | ×  | emptyList | 検索・分類用タグ（例: `undead`, `humanoid`, `fire`）               |
+| `shield`        | Map          | ×  | Null      | シールド定義。未定義または `enabled: false` の場合は従来どおりシールドなし。      |
 
 ### skin（外見設定）
 
@@ -42,6 +43,15 @@ AI（行動ロジック）もプラグイン独自実装であり、本スキー
 |:-----------------|:-------|:--:|:------|:------------------------|
 | `skin.texture`   | String | ×  | Null  | Base60エンコードされたスキンテクスチャ値 |
 | `skin.signature` | String | ×  | Null  | テクスチャの署名値               |
+
+### shield（シールド設定）
+
+Mob に HP より先に消費されるシールドを持たせる場合だけ定義します。シールドダメージは、Mob の最大 HP の 10% を 1 として換算します。
+
+| キー               | 型      | 必須 | デフォルト | 説明                       |
+|:-----------------|:-------|:--:|:------|:-------------------------|
+| `shield.enabled` | Boolean | ×  | false | シールドを有効化するか。           |
+| `shield.max`     | Double  | ×  | 0     | 最大シールド値。`enabled: true` の場合に使用。 |
 
 ### equipment（装備設定）
 
@@ -110,6 +120,10 @@ lore:
 tags:
   - humanoid
   - goblin
+
+shield:
+  enabled: true
+  max: 3
 
 equipment:
   mainHand:

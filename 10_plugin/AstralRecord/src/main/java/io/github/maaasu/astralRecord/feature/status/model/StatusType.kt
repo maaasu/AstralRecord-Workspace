@@ -33,6 +33,9 @@ enum class StatusType(
 
     /** 最大エネルギー — スキル発動・ダッシュ・回避行動等に消費するリソース */
     MAX_ENERGY("最大EN", Category.RESOURCE),
+
+    /** 最大シールド */
+    MAX_SHIELD("最大シールド", Category.RESOURCE),
     // endregion
 
     // region 基本能力値
@@ -115,6 +118,9 @@ enum class StatusType(
 
     /** 攻撃速度 — 攻撃のクールダウン短縮割合。100% が標準速度 */
     ATTACK_SPEED("攻撃速度", Category.OFFENSE, "%", 0),
+
+    /** シールドブレイク — シールドダメージに加算する値 */
+    SHIELD_BREAK("シールドブレイク", Category.OFFENSE),
     // endregion
 
     // region 防御系
@@ -143,6 +149,12 @@ enum class StatusType(
 
     /** クールダウン短縮率 */
     COOLDOWN_REDUCTION("CD短縮", Category.UTILITY, "%", 1),
+
+    /** シールドリチャージ短縮率 */
+    SHIELD_RECHARGE_REDUCTION("シールドリチャージ短縮", Category.UTILITY, "%", 1),
+
+    /** シールドリチャージレート */
+    SHIELD_RECHARGE_RATE("シールドリチャージ", Category.UTILITY),
     ;
 
     /**

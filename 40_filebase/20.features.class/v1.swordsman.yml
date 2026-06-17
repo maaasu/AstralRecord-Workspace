@@ -16,6 +16,8 @@ baseStats:
     value: 30
   - status: MAX_ENERGY
     value: 100
+  - status: MAX_SHIELD
+    value: 5
   - status: STRENGTH
     value: 8
   - status: DEXTERITY

@@ -26,6 +26,28 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("mob_death_poof", Particle.POOF, 28, 0.45D, 0.35D, 0.45D, 0.02D);
     public static final SharedParticleDefinition MOB_DEATH_CRIT =
         new SharedParticleDefinition("mob_death_crit", Particle.CRIT, 18, 0.35D, 0.3D, 0.35D, 0.1D);
+    public static final SharedParticleDefinition SHIELD_HIT_DUST =
+        new SharedParticleDefinition(
+            "shield_hit_dust",
+            Particle.DUST,
+            2,
+            0.02D,
+            0.02D,
+            0.02D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(80, 190, 255), 1.2F)
+        );
+    public static final SharedParticleDefinition SHIELD_BREAK_DUST =
+        new SharedParticleDefinition(
+            "shield_break_dust",
+            Particle.DUST,
+            3,
+            0.03D,
+            0.03D,
+            0.03D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(150, 235, 255), 1.45F)
+        );
     public static final SharedParticleDefinition SPAWNER_VISUAL_ENCHANT =
         new SharedParticleDefinition("spawner_visual_enchant", Particle.ENCHANT, 3, 0.35D, 0.35D, 0.35D, 0.0D);
     public static final SharedParticleDefinition ITEM_DROP_LAND_CRIT =

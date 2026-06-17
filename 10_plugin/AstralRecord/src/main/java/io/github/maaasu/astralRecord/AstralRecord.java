@@ -501,13 +501,14 @@ public final class AstralRecord extends JavaPlugin {
 
         // status
         statusService = new StatusService(itemService, inventoryService);
+        statusService.setPlayerClassService(playerClassService);
         statusService.setSkillTreeService(skillTreeService);
         buffAcquisitionDisplayService = new BuffAcquisitionDisplayService(displayTextService);
         potionUseService = new PotionUseService(inventoryService, statusService, buffAcquisitionDisplayService, particleDisplayService);
         statusRegenTask = new StatusRegenTask(statusService);
         playerHudService = new PlayerHudService(statusService, playerClassService, accountService);
         skillTreeService.setPlayerHudService(playerHudService);
-        overheadDisplayService = new OverheadDisplayService(displayTextService, statusService, mobService);
+        overheadDisplayService = new OverheadDisplayService(displayTextService, statusService, mobService, playerClassService);
 
         // combat
         mobDropPresentationService = new MobDropPresentationService(

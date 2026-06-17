@@ -16,6 +16,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobIdleConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionActionConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionsConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobMoneyDrop;
+import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkin;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTargetingConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
@@ -152,6 +153,7 @@ public class MobRepository {
                 parseSkin(getObject(obj, "skin")),
                 parseEquipment(getObject(obj, "equipment")),
                 parseBaseStats(obj.getAsJsonArray("baseStats"), id),
+                parseShield(getObject(obj, "shield")),
                 parseIdle(getObject(getObject(obj, "ai"), "idle")),
                 obj.has("damageImmune") ? obj.get("damageImmune").getAsBoolean() : category == MobCategory.NPC,
                 category == MobCategory.NPC ? parseInteractions(getObject(obj, "interactions")) : MobInteractionsConfig.EMPTY,
@@ -196,6 +198,16 @@ public class MobRepository {
                 stripPrefix(optionalString(obj, "leggings")),
                 stripPrefix(optionalString(obj, "boots"))
         );
+    }
+
+    @NotNull
+    private MobShieldConfig parseShield(@Nullable JsonObject obj) {
+        if (obj == null) return MobShieldConfig.EMPTY;
+        boolean enabled = obj.has("enabled") && obj.get("enabled").getAsBoolean();
+        double max = obj.has("max") && !obj.get("max").isJsonNull()
+                ? obj.get("max").getAsDouble()
+                : 0.0D;
+        return new MobShieldConfig(enabled, max).normalized();
     }
 
     @NotNull
