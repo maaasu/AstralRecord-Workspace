@@ -21,11 +21,11 @@ import java.util.List;
 import java.util.Locale;
 
 public final class ClassScreenView extends BaseMenuScreenView {
-    private static final int ADVENTURER_SLOT = 0;
-    private static final int SWORDSMAN_SLOT = 2;
-    private static final int HUNTER_SLOT = 4;
-    private static final int MAGE_SLOT = 6;
-    private static final int ACOLYTE_SLOT = 8;
+    private static final int ADVENTURER_SLOT = 10;
+    private static final int SWORDSMAN_SLOT = 12;
+    private static final int HUNTER_SLOT = 13;
+    private static final int MAGE_SLOT = 14;
+    private static final int ACOLYTE_SLOT = 15;
 
     private static final String LABEL_ROLE_AND_TYPE =
         "\u30ed\u30fc\u30eb: %s / \u7a2e\u5225: %s";
