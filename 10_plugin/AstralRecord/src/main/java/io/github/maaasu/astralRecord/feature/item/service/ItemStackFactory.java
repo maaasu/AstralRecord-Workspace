@@ -555,7 +555,7 @@ public class ItemStackFactory {
             for (ItemEquipmentStat stat : equipment.getStats()) {
                 String prefix = stat.getType().name().equals("SCALAR") ? "×" : "+";
                 StatusType statusType = resolveStatusTypeOrNull(stat.getStatus());
-                String statColor = statusCategoryColor(statusType);
+                String statColor = statusCategoryColor(stat.getStatus(), statusType);
                 String displayName = resolveStatusDisplayName(stat.getStatus(), statusType);
                 lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
                         + statColor + displayName
@@ -792,7 +792,7 @@ public class ItemStackFactory {
                             : "";
 
                     StatusType statusType = resolveStatusTypeOrNull(roll.getStatus());
-                    String statColor = statusCategoryColor(statusType);
+                    String statColor = statusCategoryColor(roll.getStatus(), statusType);
                     String displayName = resolveStatusDisplayName(roll.getStatus(), statusType);
                     lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
                             + statColor + displayName
@@ -820,7 +820,7 @@ public class ItemStackFactory {
                             : prefix + formatStatValue(enhAdd[0]) + "~" + formatStatValue(enhAdd[1]);
 
                     StatusType statusType = resolveStatusTypeOrNull(status);
-                    String statColor = statusCategoryColor(statusType);
+                    String statColor = statusCategoryColor(status, statusType);
                     String displayName = resolveStatusDisplayName(status, statusType);
                     lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
                             + statColor + displayName
@@ -843,7 +843,7 @@ public class ItemStackFactory {
                     for (EquipmentEnchant enchant : instance.getEnchants()) {
                         String prefix = "SCALAR".equals(enchant.getType()) ? "×" : "+";
                         StatusType statusType = resolveStatusTypeOrNull(enchant.getStatus());
-                        String statColor = statusCategoryColor(statusType);
+                        String statColor = statusCategoryColor(enchant.getStatus(), statusType);
                         String displayName = resolveStatusDisplayName(enchant.getStatus(), statusType);
                         String valueStr = formatStatValue(enchant.getValue());
                         lore.add(ColorCodeUtil.DARK_GRAY + " [" + (enchant.getSlotIndex() + 1) + "] "
@@ -924,7 +924,7 @@ public class ItemStackFactory {
             for (var roll : instance.getStatRolls()) {
                 String prefix = "SCALAR".equals(roll.getType()) ? "×" : "+";
                 StatusType statusType = resolveStatusTypeOrNull(roll.getStatus());
-                String statColor = statusCategoryColor(statusType);
+                String statColor = statusCategoryColor(roll.getStatus(), statusType);
                 String displayName = resolveStatusDisplayName(roll.getStatus(), statusType);
                 lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
                         + statColor + displayName
@@ -1042,9 +1042,12 @@ public class ItemStackFactory {
             return type.getDisplayName();
         }
 
-        String normalized = rawStatus.trim();
+        String normalized = normalizeStatusKey(rawStatus);
         if (normalized.isEmpty()) {
             return rawStatus;
+        }
+        if ("MINING_SPEED".equals(normalized)) {
+            return "採集速度";
         }
         return normalized;
     }
@@ -1053,17 +1056,12 @@ public class ItemStackFactory {
      * APIから取得したステータス識別子を、可能な限りStatusTypeに解決します。
      */
     private @Nullable StatusType resolveStatusTypeOrNull(@NotNull String rawStatus) {
-        String normalized = rawStatus.trim();
+        String normalized = normalizeStatusKey(rawStatus);
         if (normalized.isEmpty()) {
             return null;
         }
-
-        String enumName = normalized
-                .replace(' ', '_')
-                .replace('-', '_')
-                .toUpperCase(Locale.ROOT);
         try {
-            return StatusType.valueOf(enumName);
+            return StatusType.valueOf(normalized);
         } catch (IllegalArgumentException ignored) {
             return null;
         }
@@ -1072,11 +1070,21 @@ public class ItemStackFactory {
     /**
      * StatusTypeカテゴリに応じてLoreのステータス値カラーを返します。
      */
-    private @NotNull String statusCategoryColor(@Nullable StatusType type) {
+    private @NotNull String statusCategoryColor(@NotNull String rawStatus, @Nullable StatusType type) {
         if (type == null) {
+            if ("MINING_SPEED".equals(normalizeStatusKey(rawStatus))) {
+                return ColorCodeUtil.YELLOW;
+            }
             return ColorCodeUtil.AQUA;
         }
         return type.legacyColor();
+    }
+
+    private @NotNull String normalizeStatusKey(@NotNull String rawStatus) {
+        return rawStatus.trim()
+                .replace(' ', '_')
+                .replace('-', '_')
+                .toUpperCase(Locale.ROOT);
     }
 
     /**
