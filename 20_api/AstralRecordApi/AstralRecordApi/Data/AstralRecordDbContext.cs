@@ -24,6 +24,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<AccountMobRecordEntity> AccountMobRecords => Set<AccountMobRecordEntity>();
     public DbSet<AccountSkillTreeStateEntity> AccountSkillTreeStates => Set<AccountSkillTreeStateEntity>();
     public DbSet<AccountSkillTreeUnlockedNodeEntity> AccountSkillTreeUnlockedNodes => Set<AccountSkillTreeUnlockedNodeEntity>();
+    public DbSet<AccountWaystoneUnlockEntity> AccountWaystoneUnlocks => Set<AccountWaystoneUnlockEntity>();
     public DbSet<MarketAccountStateEntity> MarketAccountStates => Set<MarketAccountStateEntity>();
     public DbSet<MarketListingEntity> MarketListings => Set<MarketListingEntity>();
     public DbSet<MarketTransactionEntity> MarketTransactions => Set<MarketTransactionEntity>();
@@ -198,6 +199,27 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.HasIndex(node => new { node.AccountSkillTreeStateId, node.NodeId })
                 .IsUnique()
                 .HasDatabaseName("UX_account_skilltree_unlocked_node_state_node");
+        });
+
+        modelBuilder.Entity<AccountWaystoneUnlockEntity>(entity =>
+        {
+            entity.ToTable("account_waystone_unlock", "dbo");
+            entity.HasKey(unlock => unlock.AccountWaystoneUnlockId);
+
+            entity.Property(unlock => unlock.AccountWaystoneUnlockId).HasColumnName("account_waystone_unlock_id");
+            entity.Property(unlock => unlock.AccountId).HasColumnName("account_id");
+            entity.Property(unlock => unlock.WaystoneId).HasColumnName("waystone_id").HasMaxLength(100);
+            entity.Property(unlock => unlock.UnlockedAt).HasColumnName("unlocked_at");
+            entity.Property(unlock => unlock.CreatedAt).HasColumnName("created_at");
+            entity.Property(unlock => unlock.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(unlock => unlock.CreatedBy).HasColumnName("created_by");
+            entity.Property(unlock => unlock.UpdatedBy).HasColumnName("updated_by");
+            entity.Property(unlock => unlock.IsDeleted).HasColumnName("is_deleted");
+            entity.HasIndex(unlock => new { unlock.AccountId, unlock.WaystoneId })
+                .IsUnique()
+                .HasDatabaseName("UX_account_waystone_unlock_account_waystone");
+            entity.HasIndex(unlock => unlock.WaystoneId)
+                .HasDatabaseName("IX_account_waystone_unlock_waystone_id");
         });
 
         modelBuilder.Entity<SkillBindPresetEntity>(entity =>

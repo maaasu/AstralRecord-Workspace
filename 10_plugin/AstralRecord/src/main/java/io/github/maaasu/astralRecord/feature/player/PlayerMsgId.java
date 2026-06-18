@@ -714,6 +714,17 @@ public enum PlayerMsgId {
     P_6402(6402),
     // endregion
 
+    // region /feature/waystone 6500-6509
+    P_6500(6500),
+    P_6501(6501),
+    P_6502(6502),
+    P_6503(6503),
+    P_6504(6504),
+    P_6505(6505),
+    P_6506(6506),
+    P_6507(6507),
+    // endregion
+
     // region /feature/player/service/PlayerMessageService.java 5940-5949
     P_5940(5940),
     P_5941(5941),

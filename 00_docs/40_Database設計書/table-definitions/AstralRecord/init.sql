@@ -323,6 +323,43 @@ CREATE NONCLUSTERED INDEX [IX_account_skilltree_unlocked_node_node_id]
 GO
 
 -- ============================================================
+-- AstralRecord\dbo.account_waystone_unlock.md
+-- ============================================================
+
+CREATE TABLE [dbo].[account_waystone_unlock] (
+    [account_waystone_unlock_id] UNIQUEIDENTIFIER NOT NULL,
+    [account_id]                 UNIQUEIDENTIFIER NOT NULL,
+    [waystone_id]                NVARCHAR(100)    NOT NULL,
+    [unlocked_at]                DATETIME2(3)     NOT NULL,
+    [created_at]                 DATETIME2(3)     NOT NULL,
+    [updated_at]                 DATETIME2(3)     NOT NULL,
+    [created_by]                 UNIQUEIDENTIFIER NOT NULL,
+    [updated_by]                 UNIQUEIDENTIFIER NOT NULL,
+    [is_deleted]                 BIT              NOT NULL CONSTRAINT [DF_account_waystone_unlock_is_deleted] DEFAULT (0),
+
+    CONSTRAINT [PK_account_waystone_unlock] PRIMARY KEY CLUSTERED ([account_waystone_unlock_id]),
+    CONSTRAINT [FK_account_waystone_unlock_account] FOREIGN KEY ([account_id])
+        REFERENCES [dbo].[account] ([uuid])
+        ON DELETE NO ACTION
+        ON UPDATE NO ACTION,
+    CONSTRAINT [CK_account_waystone_unlock_waystone_id_not_blank] CHECK (LEN(LTRIM(RTRIM([waystone_id]))) > 0)
+);
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [UX_account_waystone_unlock_account_waystone]
+    ON [dbo].[account_waystone_unlock] ([account_id], [waystone_id])
+    WHERE [is_deleted] = 0;
+GO
+
+CREATE NONCLUSTERED INDEX [IX_account_waystone_unlock_waystone_id]
+    ON [dbo].[account_waystone_unlock] ([waystone_id]);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_account_waystone_unlock_is_deleted]
+    ON [dbo].[account_waystone_unlock] ([is_deleted]);
+GO
+
+-- ============================================================
 -- AstralRecord\dbo.inventory.md
 -- ============================================================
 

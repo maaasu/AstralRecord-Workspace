@@ -48,6 +48,8 @@ import io.github.maaasu.astralRecord.feature.trade.command.TradeCommand;
 import io.github.maaasu.astralRecord.feature.trade.command.TradeTabCompleter;
 import io.github.maaasu.astralRecord.feature.user.command.UserCommand;
 import io.github.maaasu.astralRecord.feature.user.command.UserTabCompleter;
+import io.github.maaasu.astralRecord.feature.waystone.command.WaystoneCommand;
+import io.github.maaasu.astralRecord.feature.waystone.service.WaystoneService;
 import io.github.maaasu.astralRecord.feature.webauth.command.WebAuthCommand;
 import io.github.maaasu.astralRecord.feature.webauth.repository.WebAuthRepository;
 import io.github.maaasu.astralRecord.feature.webauth.service.WebAuthService;
@@ -71,6 +73,7 @@ public class CommandRegister {
     private final NpcPlacementService npcPlacementService;
     private final WorldService worldService;
     private final SkillTreeService skillTreeService;
+    private final WaystoneService waystoneService;
     private final GatheringService gatheringService;
     private final GatheringSpawnerService gatheringSpawnerService;
 
@@ -82,6 +85,7 @@ public class CommandRegister {
             NpcPlacementService npcPlacementService,
             WorldService worldService,
             SkillTreeService skillTreeService,
+            WaystoneService waystoneService,
             GatheringService gatheringService,
             GatheringSpawnerService gatheringSpawnerService
     ) {
@@ -92,6 +96,7 @@ public class CommandRegister {
         this.npcPlacementService = npcPlacementService;
         this.worldService = worldService;
         this.skillTreeService = skillTreeService;
+        this.waystoneService = waystoneService;
         this.gatheringService = gatheringService;
         this.gatheringSpawnerService = gatheringSpawnerService;
         registerCommand();
@@ -121,6 +126,7 @@ public class CommandRegister {
         cm.registerCommand("class", new ClassCommand(), new ClassTabCompleter());
         cm.registerCommand("skill", new SkillCommand());
         cm.registerCommand("skilltree", new SkillTreeCommand(skillTreeService), new SkillTreeTabCompleter(skillTreeService));
+        cm.registerCommand("waystone", new WaystoneCommand(waystoneService));
         cm.registerCommand("party", new PartyCommand(), new PartyTabCompleter());
         cm.registerCommand("trade", new TradeCommand(), new TradeTabCompleter());
         cm.registerCommand("shop", new ShopCommand(), new ShopTabCompleter());
