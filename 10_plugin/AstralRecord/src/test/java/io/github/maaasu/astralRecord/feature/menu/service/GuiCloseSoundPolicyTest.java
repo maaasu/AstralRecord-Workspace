@@ -1,11 +1,11 @@
 package io.github.maaasu.astralRecord.feature.menu.service;
 
+import io.github.maaasu.astralRecord.shared.gui.sound.GuiCloseSoundPolicy;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,22 +22,35 @@ class GuiCloseSoundPolicyTest {
     private static final Path MAIN_JAVA_ROOT = Path.of("src/main/java");
     private static final String CENTRAL_CLOSE_HANDLER =
         "io/github/maaasu/astralRecord/feature/menu/event/MenuOpenEventHandler.java";
-    private static final String TRANSITION_SERVICE =
-        "io/github/maaasu/astralRecord/feature/menu/service/MenuGuiTransitionService.java";
+    private static final String CLOSE_SOUND_POLICY =
+        "io/github/maaasu/astralRecord/shared/gui/sound/GuiCloseSoundPolicy.java";
+    private static final String SELL_SERVICE =
+        "io/github/maaasu/astralRecord/feature/sell/service/SellService.java";
     private static final Pattern INVENTORY_CLOSE_METHOD = Pattern.compile(
         "\\bvoid\\s+\\w+\\s*\\([^)]*InventoryCloseEvent[^)]*\\)"
     );
 
     @Test
-    void suppressedCloseSoundIsConsumedOnceByCentralState() throws Exception {
+    void suppressedCloseSoundIsConsumedOnceByCentralState() {
         Player player = playerWithId(UUID.randomUUID());
-        Method consume = MenuGuiTransitionService.class.getDeclaredMethod("consumeSuppressedCloseSound", Player.class);
-        consume.setAccessible(true);
+        Inventory inventory = inventory();
 
-        MenuGuiTransitionService.suppressNextCloseSound(player);
+        GuiCloseSoundPolicy.suppressNextCloseSound(player, inventory);
 
-        assertTrue(invokeConsume(consume, player));
-        assertFalse(invokeConsume(consume, player));
+        assertFalse(GuiCloseSoundPolicy.shouldPlayCloseSound(player, inventory));
+        assertTrue(GuiCloseSoundPolicy.shouldPlayCloseSound(player, inventory));
+    }
+
+    @Test
+    void staleSuppressionDoesNotMuteDifferentInventoryClose() {
+        Player player = playerWithId(UUID.randomUUID());
+        Inventory first = inventory();
+        Inventory second = inventory();
+
+        GuiCloseSoundPolicy.suppressNextCloseSound(player, first);
+
+        assertTrue(GuiCloseSoundPolicy.shouldPlayCloseSound(player, second));
+        assertTrue(GuiCloseSoundPolicy.shouldPlayCloseSound(player, first));
     }
 
     @Test
@@ -61,11 +74,11 @@ class GuiCloseSoundPolicyTest {
     }
 
     @Test
-    void suppressedCloseSoundIsConsumedOnlyInsideTransitionService() throws IOException {
+    void suppressedCloseSoundIsConsumedOnlyInsideDedicatedPolicy() throws IOException {
         List<String> offenders = new ArrayList<>();
         for (Path file : javaFiles()) {
             String relativePath = relativePath(file);
-            if (TRANSITION_SERVICE.equals(relativePath)) {
+            if (CLOSE_SOUND_POLICY.equals(relativePath)) {
                 continue;
             }
             String content = Files.readString(file);
@@ -74,12 +87,16 @@ class GuiCloseSoundPolicyTest {
             }
         }
 
-        assertTrue(offenders.isEmpty(), "Close sound suppression consumption must stay inside MenuGuiTransitionService: " + offenders);
+        assertTrue(offenders.isEmpty(), "Close sound suppression consumption must stay inside GuiCloseSoundPolicy: " + offenders);
     }
 
-    private static boolean invokeConsume(Method method, Player player)
-        throws InvocationTargetException, IllegalAccessException {
-        return (boolean) method.invoke(null, player);
+    @Test
+    void sellRerenderDoesNotReopenInventory() throws IOException {
+        String content = Files.readString(MAIN_JAVA_ROOT.resolve(SELL_SERVICE));
+        for (String method : methodsNamed(content, "rerenderSellInventory")) {
+            assertFalse(method.contains("openSell("), "Sell rerender must not reopen inventory: " + method);
+            assertFalse(method.contains("openInventory("), "Sell rerender must not reopen inventory: " + method);
+        }
     }
 
     private static Player playerWithId(UUID uniqueId) {
@@ -90,6 +107,19 @@ class GuiCloseSoundPolicyTest {
                 case "getUniqueId" -> uniqueId;
                 case "toString" -> "PlayerProxy(" + uniqueId + ")";
                 case "hashCode" -> uniqueId.hashCode();
+                case "equals" -> proxy == args[0];
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+    }
+
+    private static Inventory inventory() {
+        return (Inventory) Proxy.newProxyInstance(
+            Inventory.class.getClassLoader(),
+            new Class<?>[] { Inventory.class },
+            (proxy, method, args) -> switch (method.getName()) {
+                case "toString" -> "InventoryProxy(" + System.identityHashCode(proxy) + ")";
+                case "hashCode" -> System.identityHashCode(proxy);
                 case "equals" -> proxy == args[0];
                 default -> throw new UnsupportedOperationException(method.getName());
             }
@@ -109,8 +139,16 @@ class GuiCloseSoundPolicyTest {
     }
 
     private static List<String> inventoryCloseMethods(String content) {
+        return methodsMatching(content, INVENTORY_CLOSE_METHOD);
+    }
+
+    private static List<String> methodsNamed(String content, String methodName) {
+        return methodsMatching(content, Pattern.compile("\\bvoid\\s+" + methodName + "\\s*\\([^)]*\\)"));
+    }
+
+    private static List<String> methodsMatching(String content, Pattern pattern) {
         List<String> methods = new ArrayList<>();
-        Matcher matcher = INVENTORY_CLOSE_METHOD.matcher(content);
+        Matcher matcher = pattern.matcher(content);
         while (matcher.find()) {
             int bodyStart = content.indexOf('{', matcher.end());
             if (bodyStart < 0) {

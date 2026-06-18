@@ -46,6 +46,7 @@ public final class SellService {
     private final MenuGuiTransitionService menuGuiTransitionService;
     private final ItemReferenceResolver transferItemResolver;
     private final ConcurrentHashMap<UUID, List<ItemStack>> sellItemsByPlayer = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UUID, Integer> sellPageByPlayer = new ConcurrentHashMap<>();
     private final Set<UUID> suppressSellConfirmOnClose = ConcurrentHashMap.newKeySet();
     private final Set<UUID> suppressSellConfirmRestoreOnClose = ConcurrentHashMap.newKeySet();
 
@@ -204,15 +205,17 @@ public final class SellService {
         int pageIndex,
         boolean restoreAfterOpen
     ) {
+        int normalizedPage = normalizeSellPage(pageIndex, sellItems.size());
         sellItemsByPlayer.put(player.getUniqueId(), sellItems);
+        sellPageByPlayer.put(player.getUniqueId(), normalizedPage);
         if (restoreAfterOpen) {
             menuGuiTransitionService.switchGuiWithInventoryRestore(
                 player,
-                () -> menuView.openSell(player, sellItems, pageIndex)
+                () -> menuView.openSell(player, sellItems, normalizedPage)
             );
             return;
         }
-        menuView.openSell(player, sellItems, pageIndex);
+        menuView.openSell(player, sellItems, normalizedPage);
     }
 
     private void openSellConfirm(@NotNull Player player, @NotNull List<ItemStack> currentItems, int pageIndex) {
@@ -233,7 +236,7 @@ public final class SellService {
         event.setCancelled(true);
         int rawSlot = event.getRawSlot();
         Inventory topInventory = event.getView().getTopInventory();
-        List<ItemStack> currentSellItems = snapshotSellItems(topInventory);
+        List<ItemStack> currentSellItems = collectAllSellItems(topInventory, player.getUniqueId());
 
         if (rawSlot >= topInventory.getSize()) {
             handleSellPlayerInventoryClick(event, player, topInventory);
@@ -251,20 +254,20 @@ public final class SellService {
             return;
         }
         if (rawSlot == MenuView.SELL_PREVIOUS_SLOT) {
-            int pageIndex = menuView.getPageIndex(topInventory);
+            int pageIndex = currentSellPage(player.getUniqueId(), topInventory);
             if (menuView.hasPreviousSellPage(pageIndex)) {
                 GuiSound.SELECT.play(player);
-                open(player, pageIndex - 1);
+                rerenderSellInventory(player, topInventory, pageIndex - 1);
             } else {
                 GuiSound.DENY.play(player);
             }
             return;
         }
         if (rawSlot == MenuView.SELL_NEXT_SLOT) {
-            int pageIndex = menuView.getPageIndex(topInventory);
+            int pageIndex = currentSellPage(player.getUniqueId(), topInventory);
             if (menuView.hasNextSellPage(currentSellItems, pageIndex)) {
                 GuiSound.SELECT.play(player);
-                open(player, pageIndex + 1);
+                rerenderSellInventory(player, topInventory, pageIndex + 1);
             } else {
                 GuiSound.DENY.play(player);
             }
@@ -422,15 +425,19 @@ public final class SellService {
     }
 
     private void rerenderSellInventory(@NotNull Player player, @NotNull Inventory topInventory) {
-        int pageIndex = menuView.getPageIndex(topInventory);
-        List<ItemStack> currentItems = snapshotSellItems(topInventory);
+        rerenderSellInventory(player, topInventory, currentSellPage(player.getUniqueId(), topInventory));
+    }
+
+    private void rerenderSellInventory(@NotNull Player player, @NotNull Inventory topInventory, int pageIndex) {
+        List<ItemStack> currentItems = collectAllSellItems(topInventory, player.getUniqueId());
+        int normalizedPage = normalizeSellPage(pageIndex, currentItems.size());
         sellItemsByPlayer.put(player.getUniqueId(), currentItems);
-        suppressSellConfirmOnClose.add(player.getUniqueId());
-        menuView.openSell(player, currentItems, pageIndex);
+        sellPageByPlayer.put(player.getUniqueId(), normalizedPage);
+        menuView.renderSell(topInventory, currentItems, normalizedPage);
     }
 
     private @NotNull List<ItemStack> collectAllSellItems(@NotNull Inventory inventory, @NotNull UUID playerId) {
-        int pageIndex = menuView.getPageIndex(inventory);
+        int pageIndex = currentSellPage(playerId, inventory);
         int pageStart = pageIndex * SellScreenView.CONTENT_SLOT_COUNT;
         int pageEnd = pageStart + SellScreenView.CONTENT_SLOT_COUNT;
         List<ItemStack> currentPage = snapshotSellItems(inventory);
@@ -444,6 +451,18 @@ public final class SellService {
             merged.add(existing.get(index));
         }
         return normalizeSellItems(merged);
+    }
+
+    private int currentSellPage(@NotNull UUID playerId, @NotNull Inventory inventory) {
+        return sellPageByPlayer.getOrDefault(playerId, menuView.getPageIndex(inventory));
+    }
+
+    private int normalizeSellPage(int pageIndex, int itemCount) {
+        int totalPages = Math.max(
+            1,
+            (int) Math.ceil(itemCount / (double) SellScreenView.CONTENT_SLOT_COUNT)
+        );
+        return Math.max(0, Math.min(pageIndex, totalPages - 1));
     }
 
     private boolean returnSellItemsToInventory(@NotNull Player player, @NotNull List<ItemStack> items) {
@@ -748,5 +767,6 @@ public final class SellService {
 
     private void discard(@NotNull Player player) {
         sellItemsByPlayer.remove(player.getUniqueId());
+        sellPageByPlayer.remove(player.getUniqueId());
     }
 }

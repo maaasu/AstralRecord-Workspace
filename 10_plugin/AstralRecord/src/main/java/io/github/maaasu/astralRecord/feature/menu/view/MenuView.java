@@ -242,6 +242,17 @@ public class MenuView {
         player.openInventory(inventory);
     }
 
+    /**
+     * 売却 GUI の内容を既存 inventory に再描画します。
+     *
+     * @param inventory 再描画対象の売却 GUI inventory
+     * @param sellItems 表示する売却候補アイテム
+     * @param pageIndex 表示ページ番号
+     */
+    public void renderSell(@NotNull Inventory inventory, @NotNull List<ItemStack> sellItems, int pageIndex) {
+        sellScreenView.render(inventory, sellItems, pageIndex);
+    }
+
     public void openSellConfirm(@NotNull Player player, @NotNull List<ItemStack> sellItems, int pageIndex) {
         Inventory inventory = Bukkit.createInventory(
             new MenuInventoryHolder(MenuScreen.SELL_CONFIRM, -1, 0),

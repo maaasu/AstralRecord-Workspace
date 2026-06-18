@@ -166,7 +166,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             }
             if (event.getPlayer() instanceof Player player) {
                 boolean shouldPlayCloseSound = isHotbarShortcutGui(event.getInventory())
-                    && menuGuiTransitionService.shouldPlayCloseSoundOnClose(player);
+                    && menuGuiTransitionService.shouldPlayCloseSoundOnClose(player, event.getInventory());
                 trashService.handleClose(event.getInventory(), player);
                 sellService.handleClose(event.getInventory(), player);
                 storageService.handleClose(event);

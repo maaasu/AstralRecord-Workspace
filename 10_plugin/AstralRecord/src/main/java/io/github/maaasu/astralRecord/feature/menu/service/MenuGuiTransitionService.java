@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.gui.PlayerSettingGui;
+import io.github.maaasu.astralRecord.shared.gui.sound.GuiCloseSoundPolicy;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -24,7 +25,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * メニュー系 GUI の切替時に必要なインベントリ復元と効果音抑制を管理するサービスです。
  */
 public final class MenuGuiTransitionService {
-    private static final Set<UUID> SUPPRESSED_CLOSE_SOUND_ON_CLOSE = ConcurrentHashMap.newKeySet();
     private final AstralRecord plugin;
     private final MenuView menuView;
     private final InventoryService inventoryService;
@@ -110,10 +110,11 @@ public final class MenuGuiTransitionService {
      * GUI クローズ時の効果音抑制を消費します。
      *
      * @param player 対象プレイヤー
-     * @return 効果音抑制が存在した場合は true
+     * @param closingInventory 閉じられた GUI inventory
+     * @return close 音を再生する場合は true
      */
-    public boolean shouldPlayCloseSoundOnClose(@NotNull Player player) {
-        return !consumeSuppressedCloseSound(player);
+    public boolean shouldPlayCloseSoundOnClose(@NotNull Player player, @NotNull Inventory closingInventory) {
+        return GuiCloseSoundPolicy.shouldPlayCloseSound(player, closingInventory);
     }
 
     /**
@@ -122,17 +123,7 @@ public final class MenuGuiTransitionService {
      * @param player 対象プレイヤー
      */
     public static void suppressNextCloseSound(@NotNull Player player) {
-        SUPPRESSED_CLOSE_SOUND_ON_CLOSE.add(player.getUniqueId());
-    }
-
-    /**
-     * 次回 GUI クローズ時の効果音抑制を消費します。
-     *
-     * @param player 対象プレイヤー
-     * @return 効果音抑制が存在した場合は true
-     */
-    private static boolean consumeSuppressedCloseSound(@NotNull Player player) {
-        return SUPPRESSED_CLOSE_SOUND_ON_CLOSE.remove(player.getUniqueId());
+        GuiCloseSoundPolicy.suppressNextCloseSound(player);
     }
 
     /**
