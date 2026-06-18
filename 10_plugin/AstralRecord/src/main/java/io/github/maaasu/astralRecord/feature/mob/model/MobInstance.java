@@ -31,6 +31,11 @@ public final class MobInstance {
     private UUID targetId;
     private UUID lastAttackerUuid;
     private long lastAttackTick;
+    private int nextCombatSkillIndex;
+    private String castingSkillName;
+    private long castingStartedAtMs;
+    private long castingDurationTicks;
+    private long castingRemainingTicks;
 
     // ナビゲーション状態
     /** 現在の経路ウェイポイントリスト。null の場合は未計算。 */
@@ -233,6 +238,76 @@ public final class MobInstance {
      */
     public void lastAttackTick(long tick) {
         this.lastAttackTick = tick;
+    }
+
+    /** 次に発動する戦闘スキルのインデックスを返します。 */
+    public int nextCombatSkillIndex() {
+        return nextCombatSkillIndex;
+    }
+
+    /**
+     * 次に発動する戦闘スキルのインデックスを更新します。
+     *
+     * @param index 新しいインデックス
+     */
+    public void nextCombatSkillIndex(int index) {
+        this.nextCombatSkillIndex = Math.max(0, index);
+    }
+
+    /** 詠唱中かどうかを返します。 */
+    public boolean isSkillCasting() {
+        return castingSkillName != null && castingDurationTicks > 0L && castingRemainingTicks > 0L;
+    }
+
+    /** 詠唱中スキル名を返します。詠唱中でなければ {@code null}。 */
+    @Nullable
+    public String castingSkillName() {
+        return castingSkillName;
+    }
+
+    /** 詠唱開始時刻（ミリ秒）を返します。 */
+    public long castingStartedAtMs() {
+        return castingStartedAtMs;
+    }
+
+    /** 詠唱総 tick 数を返します。 */
+    public long castingDurationTicks() {
+        return castingDurationTicks;
+    }
+
+    /** 詠唱残り tick 数を返します。 */
+    public long castingRemainingTicks() {
+        return castingRemainingTicks;
+    }
+
+    /**
+     * Mob の詠唱表示状態を開始します。
+     *
+     * @param skillName     表示するスキル名
+     * @param durationTicks 詠唱総 tick 数
+     */
+    public void startSkillCasting(@NotNull String skillName, long durationTicks) {
+        this.castingSkillName = skillName;
+        this.castingStartedAtMs = System.currentTimeMillis();
+        this.castingDurationTicks = Math.max(0L, durationTicks);
+        this.castingRemainingTicks = this.castingDurationTicks;
+    }
+
+    /**
+     * Mob の詠唱残り tick 数を更新します。
+     *
+     * @param remainingTicks 残り tick 数
+     */
+    public void updateSkillCastingRemaining(long remainingTicks) {
+        this.castingRemainingTicks = Math.max(0L, remainingTicks);
+    }
+
+    /** Mob の詠唱表示状態を解除します。 */
+    public void clearSkillCasting() {
+        this.castingSkillName = null;
+        this.castingStartedAtMs = 0L;
+        this.castingDurationTicks = 0L;
+        this.castingRemainingTicks = 0L;
     }
 
     /** 脅威値テーブルを返します。 */

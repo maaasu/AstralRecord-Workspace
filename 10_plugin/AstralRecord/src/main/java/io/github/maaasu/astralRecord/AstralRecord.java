@@ -684,7 +684,7 @@ public final class AstralRecord extends JavaPlugin {
 
         // world
         worldService.loadAll();
-        mobAiService = new MobAiService(mobService);
+        mobAiService = new MobAiService(mobService, mobCombatService, skillService);
         mobAiService.start();
         skillTreeService.loadAll();
         worldSpawnParticleTask = new WorldSpawnParticleTask(this, worldService, particleDisplayService);

@@ -1,0 +1,60 @@
+schemaVersion: 1
+id: skeleton_archer
+type: MOB
+category: ENEMY
+name: "&fスケルトンアーチャー"
+level: 4
+entityType: SKELETON
+icon: SKELETON_SKULL
+lore:
+  - "&7一定距離を保ちながら弓で攻撃するスケルトン。"
+tags:
+  - undead
+  - skeleton
+  - ranged
+
+equipment:
+  mainHand:
+    ref: item:hunters_bow
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 80
+  - status: ATTACK
+    value: 14
+  - status: DEXTERITY
+    value: 18
+  - status: DEFENSE
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 105
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 8
+    speed: 0.9
+  targeting:
+    strategy: NEAREST
+    aggroRange: 18
+    deaggroRange: 28
+    leashRange: 32
+  combat:
+    style: RANGED
+    preferredRange: 7.0
+    attackIntervalTicks: 30
+    skills:
+      - ref: skill:mob_skeleton_bow_shot
+
+drops:
+  exp: 24
+  money:
+    min: 2
+    max: 8
+  items:
+    - itemId:
+        ref: item:bone_fragment
+      rate: 60.0
+      amount: 1
+      luckAffected: true
+      hidden: false

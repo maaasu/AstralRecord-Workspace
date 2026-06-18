@@ -1,0 +1,46 @@
+schemaVersion: 1
+id: mob_skeleton_bow_shot
+type: SKILL
+implementationId: normal_attack
+name: "&fスケルトンショット"
+description: "&7Mob AI が使用する弓の通常攻撃。"
+icon: BOW
+cooldownTicks: 30
+manaCost: 0
+castTimeTicks: 18
+requiredLevel: 1
+params:
+  resourceType: ENERGY
+  resourceCost: 0
+  attackType: RANGED
+  damageType: PHYSICAL
+  particle: CRIT
+  particleCount: 12
+  spreadX: 0.18
+  spreadY: 0.18
+  spreadZ: 0.18
+  extra: 0.02
+  forwardOffset: 1.2
+  upwardOffset: -0.1
+  hitRange: 10.5
+  hitRadius: 0.75
+  hitStepDistance: 0.9
+  maxTargets: 1
+  sound: entity.arrow.shoot
+  soundVolume: 1.0
+  soundPitch: 1.15
+  trailSteps: 0
+  trailIntervalTicks: 1
+  trailStepDistance: 0.9
+  trailParticleCount: 4
+  trailSpreadX: 0.02
+  trailSpreadY: 0.02
+  trailSpreadZ: 0.02
+  trailExtra: 0.0
+  projectileSpeed: 1.35
+  projectileGravity: 0.04
+tags:
+  - mob
+  - active
+  - ranged
+  - bow

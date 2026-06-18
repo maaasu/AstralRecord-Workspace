@@ -48,4 +48,4 @@ ai:
     preferredRange: 1.0
     attackIntervalTicks: 20
     skills:
-      - ref: skill:iron_will
+      - ref: skill:mob_goblin_slash

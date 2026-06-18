@@ -1,0 +1,43 @@
+schemaVersion: 1
+id: mob_goblin_slash
+type: SKILL
+implementationId: normal_attack
+name: "&cゴブリンスラッシュ"
+description: "&7Mob AI が使用する近接攻撃。"
+icon: IRON_SWORD
+cooldownTicks: 20
+manaCost: 0
+castTimeTicks: 12
+requiredLevel: 1
+params:
+  resourceType: ENERGY
+  resourceCost: 0
+  attackType: MELEE
+  damageType: PHYSICAL
+  particle: SWEEP_ATTACK
+  particleCount: 3
+  spreadX: 0.0
+  spreadY: 0.0
+  spreadZ: 0.0
+  extra: 0.0
+  forwardOffset: 1.0
+  upwardOffset: -0.1
+  hitRange: 2.6
+  hitRadius: 1.0
+  hitStepDistance: 0.65
+  maxTargets: 1
+  trailSteps: 2
+  trailIntervalTicks: 1
+  trailStepDistance: 0.7
+  trailParticleCount: 2
+  trailSpreadX: 0.03
+  trailSpreadY: 0.03
+  trailSpreadZ: 0.03
+  trailExtra: 0.0
+  sound: entity.player.attack.sweep
+  soundVolume: 0.9
+  soundPitch: 0.9
+tags:
+  - mob
+  - active
+  - melee
