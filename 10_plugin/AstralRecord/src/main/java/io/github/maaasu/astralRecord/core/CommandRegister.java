@@ -49,6 +49,7 @@ import io.github.maaasu.astralRecord.feature.trade.command.TradeTabCompleter;
 import io.github.maaasu.astralRecord.feature.user.command.UserCommand;
 import io.github.maaasu.astralRecord.feature.user.command.UserTabCompleter;
 import io.github.maaasu.astralRecord.feature.waystone.command.WaystoneCommand;
+import io.github.maaasu.astralRecord.feature.waystone.command.WaystoneTabCompleter;
 import io.github.maaasu.astralRecord.feature.waystone.service.WaystoneService;
 import io.github.maaasu.astralRecord.feature.webauth.command.WebAuthCommand;
 import io.github.maaasu.astralRecord.feature.webauth.repository.WebAuthRepository;
@@ -126,7 +127,7 @@ public class CommandRegister {
         cm.registerCommand("class", new ClassCommand(), new ClassTabCompleter());
         cm.registerCommand("skill", new SkillCommand());
         cm.registerCommand("skilltree", new SkillTreeCommand(skillTreeService), new SkillTreeTabCompleter(skillTreeService));
-        cm.registerCommand("waystone", new WaystoneCommand(waystoneService));
+        cm.registerCommand("waystone", new WaystoneCommand(waystoneService), new WaystoneTabCompleter());
         cm.registerCommand("party", new PartyCommand(), new PartyTabCompleter());
         cm.registerCommand("trade", new TradeCommand(), new TradeTabCompleter());
         cm.registerCommand("shop", new ShopCommand(), new ShopTabCompleter());

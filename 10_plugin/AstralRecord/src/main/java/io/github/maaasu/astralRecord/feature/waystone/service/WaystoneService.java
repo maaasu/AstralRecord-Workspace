@@ -279,7 +279,7 @@ public final class WaystoneService {
             .toList();
         Map<Integer, String> idsBySlot = new HashMap<>();
         WaystoneGuiHolder holder = new WaystoneGuiHolder(idsBySlot);
-        var inventory = Bukkit.createInventory(holder, GUI_SIZE, GUI_TITLE);
+        var inventory = Bukkit.createInventory(holder, GUI_SIZE, Component.text(GUI_TITLE));
         int slot = 0;
         for (WaystoneDefinition definition : candidates) {
             if (slot >= GUI_SIZE) {
