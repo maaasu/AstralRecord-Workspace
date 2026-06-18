@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.service.MobCombatService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
@@ -46,6 +47,7 @@ public final class DamageService {
     private final DisplayTextService displayTextService;
     private final PlayerSettingService playerSettingService;
     private final ParticleDisplayService particleDisplayService;
+    private final PlayerDeathService playerDeathService;
 
     /**
      * サービスを構築します。
@@ -61,6 +63,25 @@ public final class DamageService {
             @NotNull PlayerSettingService playerSettingService,
             @NotNull ParticleDisplayService particleDisplayService
     ) {
+        this(statusService, mobService, mobCombatService, displayTextService, playerSettingService, particleDisplayService, null);
+    }
+
+    /**
+     * サービスを構築します。
+     *
+     * @param statusService プレイヤー HP 反映に使うサービス
+     * @param mobService    Bukkit Entity から custom mob を解決するサービス
+     * @param playerDeathService プレイヤー死亡状態管理サービス。未設定時は死亡状態判定を行いません
+     */
+    public DamageService(
+            @NotNull StatusService statusService,
+            @NotNull MobService mobService,
+            @NotNull MobCombatService mobCombatService,
+            @NotNull DisplayTextService displayTextService,
+            @NotNull PlayerSettingService playerSettingService,
+            @NotNull ParticleDisplayService particleDisplayService,
+            @Nullable PlayerDeathService playerDeathService
+    ) {
         this.statusService = statusService;
         this.mobService = mobService;
         this.mobCombatService = mobCombatService;
@@ -68,6 +89,7 @@ public final class DamageService {
         this.displayTextService = displayTextService;
         this.playerSettingService = playerSettingService;
         this.particleDisplayService = particleDisplayService;
+        this.playerDeathService = playerDeathService;
     }
 
     /**
@@ -172,6 +194,9 @@ public final class DamageService {
         }
 
         if (entity instanceof Player player) {
+            if (isPlayerDead(player.getUniqueId())) {
+                return AstEntity.bukkit(player);
+            }
             AstPlayer astPlayer = AstPlayerCache.get(player);
             if (astPlayer != null) {
                 return AstEntity.player(astPlayer);
@@ -194,6 +219,12 @@ public final class DamageService {
             @NotNull DamageType damageType,
             @NotNull DamageScaling scaling
     ) {
+        if (attacker != null && attacker.isPlayer() && isPlayerDead(attacker.id())) {
+            return new DamageResult(0.0D);
+        }
+        if (victim.isPlayer() && isPlayerDead(victim.id())) {
+            return new DamageResult(0.0D);
+        }
         if (victim.isMob() && victim.mob() != null && victim.mob().template().damageImmune()) {
             return new DamageResult(0.0D);
         }
@@ -246,8 +277,12 @@ public final class DamageService {
         }
 
         if (victim.isPlayer()) {
-            if (victim.player() != null)
-                statusService.consumeHp(victim.player(), result.finalDamage());
+            if (victim.player() != null) {
+                var updated = statusService.consumeHp(victim.player(), result.finalDamage());
+                if (updated.getCurrentHp() <= 0.0D && playerDeathService != null) {
+                    playerDeathService.startDeath(victim.player(), victim.location());
+                }
+            }
             return;
         }
 
@@ -260,6 +295,9 @@ public final class DamageService {
         mob.currentHealth(Math.max(0.0D, mob.currentHealth() - result.finalDamage()));
         playMobHurtEffect(mob.bukkitEntityId());
         if (attacker != null && attacker.isPlayer()) {
+            if (isPlayerDead(attacker.id())) {
+                return;
+            }
             mob.threatTable().add(attacker.id(), result.finalDamage());
             mob.lastAttackerUuid(attacker.id());
             if (mob.state() == MobState.IDLE) {
@@ -277,6 +315,9 @@ public final class DamageService {
 
     private void applyShieldThreat(@Nullable AstEntity attacker, @NotNull AstEntity victim, double shieldDamage) {
         if (attacker == null || !attacker.isPlayer() || !victim.isMob() || victim.mob() == null) {
+            return;
+        }
+        if (isPlayerDead(attacker.id())) {
             return;
         }
         var mob = victim.mob();
@@ -448,5 +489,9 @@ public final class DamageService {
 
     private @Nullable Entity resolveBukkitEntity(@Nullable UUID entityId) {
         return entityId == null ? null : Bukkit.getEntity(entityId);
+    }
+
+    private boolean isPlayerDead(@NotNull UUID playerId) {
+        return playerDeathService != null && playerDeathService.isDead(playerId);
     }
 }

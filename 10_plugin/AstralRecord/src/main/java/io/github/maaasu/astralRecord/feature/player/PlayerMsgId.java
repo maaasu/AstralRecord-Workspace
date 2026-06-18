@@ -61,6 +61,21 @@ public enum PlayerMsgId {
     P_5072(5072),
     // endregion
 
+    // region /feature/player/death 5080-5089
+    /**
+     * 死亡しました
+     */
+    P_5080(5080),
+    /**
+     * リスポーンまで {0} 秒
+     */
+    P_5081(5081),
+    /**
+     * {0} は死亡しました
+     */
+    P_5082(5082),
+    // endregion
+
     // region /infrastructure/command/AstCommand.java 5060-5069
     /**
      * このコマンドはプレイヤーのみ使用できます。

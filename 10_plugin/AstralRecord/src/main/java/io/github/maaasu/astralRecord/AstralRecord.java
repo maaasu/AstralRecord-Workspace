@@ -87,6 +87,8 @@ import io.github.maaasu.astralRecord.feature.player.event.PlayerModeEventHandler
 import io.github.maaasu.astralRecord.feature.player.event.PlayerInputEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerSneakEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerVanillaDamageBlockEventHandler;
+import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathEventHandler;
+import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.save.PlayerSaveCoordinator;
 import io.github.maaasu.astralRecord.feature.player.service.AirActionService;
 import io.github.maaasu.astralRecord.feature.player.service.DodgeService;
@@ -191,6 +193,7 @@ public final class AstralRecord extends JavaPlugin {
     private DodgeService dodgeService;
     private AirActionService airActionService;
     private PlayerHudService playerHudService;
+    private PlayerDeathService playerDeathService;
     private ResourcePackService resourcePackService;
     private MenuView menuView;
     private MenuOpenEventHandler menuOpenEventHandler;
@@ -366,6 +369,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (overheadDisplayService != null) {
             overheadDisplayService.stop();
+        }
+        if (playerDeathService != null) {
+            playerDeathService.stop();
         }
         if (displayTextService != null) {
             displayTextService.stop();
@@ -554,13 +560,24 @@ public final class AstralRecord extends JavaPlugin {
                 skillTreeService,
                 particleDisplayService
         );
+        playerDeathService = new PlayerDeathService(
+            this,
+            accountService,
+            statusService,
+            mobService,
+            worldService,
+            displayTextService,
+            joinSpawnWorldId
+        );
+        mobCombatService.setPlayerDeathService(playerDeathService);
         damageService = new DamageService(
             statusService,
             mobService,
             mobCombatService,
             displayTextService,
             playerSettingService,
-            particleDisplayService
+            particleDisplayService,
+            playerDeathService
         );
 
         // dodge
@@ -860,6 +877,10 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
+            new PlayerDeathEventHandler(playerDeathService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
             new CombatDamageEventHandler(damageService, skillActionRingService),
             getServer().getPluginManager()
         );
@@ -903,6 +924,7 @@ public final class AstralRecord extends JavaPlugin {
         statusRegenTask.start(this);
         displayTextService.start(this);
         overheadDisplayService.start(this);
+        playerDeathService.start();
         worldSpawnParticleTask.start();
         mobSpawnerService.start();
         gatheringService.start();
