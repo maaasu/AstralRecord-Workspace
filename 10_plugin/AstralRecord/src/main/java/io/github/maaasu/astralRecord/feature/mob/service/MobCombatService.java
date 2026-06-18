@@ -17,6 +17,7 @@ import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
@@ -62,6 +63,7 @@ public class MobCombatService {
     private final StatusService statusService;
     private final SkillTreeService skillTreeService;
     private final ParticleDisplayService particleDisplayService;
+    private PlayerDeathService playerDeathService;
 
     /**
      * コンストラクタ。
@@ -96,6 +98,15 @@ public class MobCombatService {
     }
 
     /**
+     * 死亡中プレイヤーの戦闘除外判定に使うサービスを設定します。
+     *
+     * @param playerDeathService プレイヤー死亡状態管理サービス
+     */
+    public void setPlayerDeathService(@Nullable PlayerDeathService playerDeathService) {
+        this.playerDeathService = playerDeathService;
+    }
+
+    /**
      * Mob のターゲットを選定して {@link MobInstance#targetId(UUID)} に設定します。
      *
      * @param instance 対象 Mob
@@ -115,6 +126,7 @@ public class MobCombatService {
         List<Player> candidates = new ArrayList<>();
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.getWorld() != loc.getWorld()) continue;
+            if (isPlayerDead(player)) continue;
             if (player.getLocation().distanceSquared(loc) > aggroSq) continue;
             candidates.add(player);
         }
@@ -151,7 +163,7 @@ public class MobCombatService {
             return;
         }
         Player target = Bukkit.getPlayer(targetId);
-        if (target == null || !target.isOnline()) {
+        if (target == null || !target.isOnline() || isPlayerDead(target)) {
             instance.targetId(null);
             instance.state(MobState.AGGRO);
             return;
@@ -259,6 +271,7 @@ public class MobCombatService {
             double damage,
             @NotNull DamageType type) {
         if (instance.state() == MobState.DEAD) return 0.0;
+        if (isPlayerDead(attacker.getBukkit())) return 0.0;
 
         MobTemplate template = instance.template();
         double defenseStat = type == DamageType.PHYSICAL
@@ -360,7 +373,7 @@ public class MobCombatService {
     }
 
     private void addRecipient(@NotNull Map<UUID, AstPlayer> recipients, @Nullable Player player) {
-        if (player == null || !player.isOnline()) {
+        if (player == null || !player.isOnline() || isPlayerDead(player)) {
             return;
         }
         AstPlayer astPlayer = AstPlayerCache.get(player);
@@ -451,6 +464,10 @@ public class MobCombatService {
 
     private DamageType damageTypeOf(@NotNull CombatStyle style) {
         return style == CombatStyle.MAGIC ? DamageType.MAGIC : DamageType.PHYSICAL;
+    }
+
+    private boolean isPlayerDead(@NotNull Player player) {
+        return playerDeathService != null && playerDeathService.isDead(player.getUniqueId());
     }
 
     private void applyDamageToPlayer(@NotNull Player target, double damage, @NotNull DamageType type) {

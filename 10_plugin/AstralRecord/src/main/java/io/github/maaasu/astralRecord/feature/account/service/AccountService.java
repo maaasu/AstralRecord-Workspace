@@ -17,6 +17,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -209,6 +210,44 @@ public class AccountService {
         }
         long levelProgress = Math.max(0L, totalExperience - currentLevelRequiredExperience);
         return Math.clamp((double) levelProgress / (double) levelRange, 0.0D, 1.0D);
+    }
+
+    /**
+     * 現在レベル内で獲得済みの経験値から指定割合を減算します。
+     * レベル開始時点の総経験値を下限にするため、レベルダウンは発生しません。
+     *
+     * @param currentAccount 現在のアカウント状態
+     * @param percent 減算割合。0 以下は無視し、100 を上限に扱います
+     * @param updatedBy 更新者 UUID
+     * @return 進捗が変化した場合の更新後アカウント
+     */
+    public @NotNull Optional<AccountModel> loseCurrentLevelExperiencePercentCached(
+        @NotNull AccountModel currentAccount,
+        int percent,
+        @NotNull UUID updatedBy
+    ) {
+        AccountModel previous = overlayPendingExperience(currentAccount);
+        int normalizedPercent = Math.clamp(percent, 0, 100);
+        if (normalizedPercent <= 0) {
+            return Optional.empty();
+        }
+
+        int level = Math.max(1, previous.getLevel());
+        long currentLevelRequiredExperience = totalRequiredExperienceForLevel(previous.getUuid(), level);
+        long levelProgress = Math.max(0L, previous.getTotalExperience() - currentLevelRequiredExperience);
+        if (levelProgress <= 0L) {
+            return Optional.empty();
+        }
+
+        long lostExperience = Math.max(1L, (levelProgress * normalizedPercent) / 100L);
+        long totalExperience = Math.max(currentLevelRequiredExperience, previous.getTotalExperience() - lostExperience);
+        if (totalExperience == previous.getTotalExperience()) {
+            return Optional.empty();
+        }
+
+        AccountModel updated = withProgress(previous, level, totalExperience, updatedBy);
+        pendingExperienceUpdates.put(updated.getUuid(), new PendingExperienceUpdate(updated, updatedBy));
+        return Optional.of(updated);
     }
 
     public void stop() {
