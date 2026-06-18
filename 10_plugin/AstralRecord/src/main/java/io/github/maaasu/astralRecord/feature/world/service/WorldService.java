@@ -1,22 +1,27 @@
 package io.github.maaasu.astralRecord.feature.world.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.repository.WorldRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.display.OverheadDisplayService;
+import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.GameRules;
 import org.bukkit.Location;
 import org.bukkit.WorldCreator;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -34,6 +39,8 @@ import java.util.stream.Collectors;
 public class WorldService {
     private static final long TELEPORT_PREPARE_DELAY_TICKS = 2L;
     private static final long TELEPORT_RESUME_DELAY_TICKS = 10L;
+    private static final Title.Times WORLD_CHANGE_TITLE_TIMES =
+            Title.Times.times(Duration.ofMillis(150L), Duration.ofMillis(1800L), Duration.ofMillis(250L));
 
     private final WorldRepository repository;
     private final Map<String, WorldMasterData> loadedWorlds = new LinkedHashMap<>();
@@ -83,6 +90,19 @@ public class WorldService {
     @NotNull
     public synchronized Collection<WorldMasterData> getAll() {
         return List.copyOf(loadedWorlds.values());
+    }
+
+    /**
+     * 現在ワールドの表示名をタイトル表示します。
+     *
+     * @param player タイトル表示対象のプレイヤー
+     */
+    public void showWorldChangeTitle(@NotNull Player player) {
+        player.showTitle(Title.title(
+                PlayerMsgResource.formatComponent(PlayerMsgId.P_5767.getId(), resolveDisplayName(player.getWorld())),
+                PlayerMsgResource.getComponent(PlayerMsgId.P_5768.getId()),
+                WORLD_CHANGE_TITLE_TIMES
+        ));
     }
 
     /**
@@ -314,6 +334,15 @@ public class WorldService {
                 .map(entity -> entity.getType().name())
                 .collect(Collectors.joining(","));
         Logger.log(LogId.I_5754, player.getName(), vehicle, passengers);
+    }
+
+    @NotNull
+    private String resolveDisplayName(@NotNull org.bukkit.World world) {
+        WorldMasterData worldData = findByBukkitWorld(world);
+        if (worldData != null && !worldData.displayName().isBlank()) {
+            return worldData.displayName();
+        }
+        return world.getName();
     }
 
     private void loadRegisteredBukkitWorlds(@NotNull Collection<WorldMasterData> worlds) {
