@@ -119,6 +119,23 @@ public final class SharedParticleDefinitions {
             0.0D,
             new Particle.DustOptions(Color.fromRGB(170, 70, 255), 1.2F)
         );
+    public static final SharedParticleDefinition CLASS_LEVEL_UP_DUST =
+        new SharedParticleDefinition(
+            "class_level_up_dust",
+            Particle.DUST,
+            28,
+            0.45D,
+            0.85D,
+            0.45D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(80, 220, 255), 1.25F)
+        );
+    public static final SharedParticleDefinition CLASS_LEVEL_UP_ENCHANT =
+        new SharedParticleDefinition("class_level_up_enchant", Particle.ENCHANT, 24, 0.55D, 0.95D, 0.55D, 0.06D);
+    public static final SharedParticleDefinition PLAYER_LEVEL_UP_TOTEM =
+        new SharedParticleDefinition("player_level_up_totem", Particle.TOTEM_OF_UNDYING, 54, 0.7D, 1.1D, 0.7D, 0.08D);
+    public static final SharedParticleDefinition PLAYER_LEVEL_UP_END_ROD =
+        new SharedParticleDefinition("player_level_up_end_rod", Particle.END_ROD, 36, 0.55D, 1.0D, 0.55D, 0.04D);
 
     private static final Map<String, Particle> PARTICLES = buildParticleMap();
 

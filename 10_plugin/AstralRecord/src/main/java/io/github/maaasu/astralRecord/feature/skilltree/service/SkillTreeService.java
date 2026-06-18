@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeEdge;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefinition;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeStatusDefinition;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePlayerState;
+import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePosition;
 import io.github.maaasu.astralRecord.feature.status.model.StatusModifierType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -111,6 +112,7 @@ public class SkillTreeService {
     private final Map<String, NodeLabelSet> blockedNodeFieldLabels = new LinkedHashMap<>();
     private final Map<String, NodeLabelSet> availableNodeFieldLabels = new LinkedHashMap<>();
     private final Map<String, NodeLabelSet> unlockedNodeFieldLabels = new LinkedHashMap<>();
+    private final Map<String, NodeLabelSet> inactiveNodeFieldLabels = new LinkedHashMap<>();
     private final Map<UUID, SkillTreePlayerState> playerStates = new HashMap<>();
     private final Map<UUID, DerivedPlayerState> derivedPlayerStates = new HashMap<>();
     private final Map<UUID, SkillTreeViewOptions> playerViewOptions = new HashMap<>();
@@ -187,6 +189,7 @@ public class SkillTreeService {
         blockedNodeFieldLabels.clear();
         availableNodeFieldLabels.clear();
         unlockedNodeFieldLabels.clear();
+        inactiveNodeFieldLabels.clear();
         for (SkillTreeNodeDefinition node : nodeRepository.findAll()) {
             nodesById.put(node.id(), node);
             nodesByPositionId.put(node.positionId(), node);
@@ -205,7 +208,7 @@ public class SkillTreeService {
             }
         }
         structureDirty = false;
-        derivedPlayerStates.replaceAll((accountId, ignored) -> rebuildDerivedState(playerStates.get(accountId)));
+        derivedPlayerStates.clear();
         if (visualizer != null) {
             visualizer.markStructureDirty();
         }
@@ -398,24 +401,33 @@ public class SkillTreeService {
     }
 
     /**
-     * プレイヤーがノード解放用の SP を持っているかを返します。
+     * プレイヤーがノード解放用の CP または PP を持っているかを返します。
      *
      * @param astPlayer 対象プレイヤー
-     * @return 1 以上の SP を持つなら {@code true}
+     * @return 1 以上の CP または PP を持つなら {@code true}
      */
-    public boolean hasSkillPoints(@NotNull AstPlayer astPlayer) {
-        return state(astPlayer).skillPoints() > 0;
+    public boolean hasAvailableUnlockPoint(@NotNull AstPlayer astPlayer) {
+        return availablePoints(astPlayer, SkillTreePointType.CLASS_POINT) > 0
+                || availablePoints(astPlayer, SkillTreePointType.PASSIVE_POINT) > 0;
+    }
+
+    public int availableClassPoints(@NotNull AstPlayer astPlayer) {
+        return availablePoints(astPlayer, SkillTreePointType.CLASS_POINT);
+    }
+
+    public int availablePassivePoints(@NotNull AstPlayer astPlayer) {
+        return availablePoints(astPlayer, SkillTreePointType.PASSIVE_POINT);
     }
 
     public boolean canUnlockNode(@NotNull AstPlayer astPlayer, @NotNull SkillTreeNodeDefinition node) {
         SkillTreePlayerState state = state(astPlayer);
-        if (state.isUnlocked(node.id()) || state.skillPoints() <= 0) {
+        if (state.isUnlocked(node.id()) || availablePoints(astPlayer, node.pointType()) < node.pointCost()) {
             return false;
         }
         if (state.unlockedNodeIds().isEmpty()) {
             return hasTag(node, ROOT_TAG);
         }
-        return isAdjacentToUnlockedNode(state, node.positionId());
+        return isAdjacentToActiveNode(astPlayer, state, node.positionId());
     }
 
     /**
@@ -630,7 +642,7 @@ public class SkillTreeService {
             return state;
         }
         failedPlayerStateLoads.remove(accountId);
-        SkillTreePlayerState fallback = new SkillTreePlayerState(accountId, 0, Set.of());
+        SkillTreePlayerState fallback = new SkillTreePlayerState(accountId, Set.of());
         playerStates.put(accountId, fallback);
         loadStateAsync(accountId);
         return fallback;
@@ -650,7 +662,7 @@ public class SkillTreeService {
             return;
         }
         failedPlayerStateLoads.remove(accountId);
-        playerStates.put(accountId, new SkillTreePlayerState(accountId, 0, Set.of()));
+        playerStates.put(accountId, new SkillTreePlayerState(accountId, Set.of()));
         loadStateAsync(accountId);
     }
 
@@ -692,7 +704,6 @@ public class SkillTreeService {
                 failedPlayerStateLoads.remove(accountId);
                 if (!dirtyPlayerStates.contains(accountId)) {
                     playerStates.put(accountId, loadedState);
-                    derivedPlayerStates.put(accountId, rebuildDerivedState(loadedState));
                     refreshDerivedState(accountId);
                     markViewerContextDirty(accountId);
                 }
@@ -705,17 +716,34 @@ public class SkillTreeService {
         dirtyPlayerStateDueAtMillis.put(state.accountId(), System.currentTimeMillis() + SAVE_DEBOUNCE_MILLIS);
     }
 
-    private @NotNull DerivedPlayerState derivedState(@NotNull UUID accountId, @NotNull SkillTreePlayerState state) {
-        return derivedPlayerStates.computeIfAbsent(accountId, ignored -> rebuildDerivedState(state));
+    /**
+     * レベル由来ポイントの変化に合わせてスキルツリー効果と表示を再計算します。
+     *
+     * @param astPlayer 対象プレイヤー
+     */
+    public void refreshProgressDerivedState(@NotNull AstPlayer astPlayer) {
+        SkillTreePlayerState state = state(astPlayer);
+        Set<String> previousSkillIds = derivedState(astPlayer, state).unlockedSkillIds();
+        DerivedPlayerState nextDerivedState = rebuildDerivedState(astPlayer, state);
+        derivedPlayerStates.put(state.accountId(), nextDerivedState);
+        refreshDerivedState(astPlayer, previousSkillIds, nextDerivedState.unlockedSkillIds(), true);
+        markViewerContextDirty(astPlayer.getBukkit());
     }
 
-    private @NotNull DerivedPlayerState rebuildDerivedState(@Nullable SkillTreePlayerState state) {
+    private @NotNull DerivedPlayerState derivedState(@NotNull AstPlayer astPlayer, @NotNull SkillTreePlayerState state) {
+        return derivedPlayerStates.computeIfAbsent(state.accountId(), ignored -> rebuildDerivedState(astPlayer, state));
+    }
+
+    private @NotNull DerivedPlayerState rebuildDerivedState(@NotNull AstPlayer astPlayer, @Nullable SkillTreePlayerState state) {
         if (state == null) {
             return DerivedPlayerState.EMPTY;
         }
+        Set<String> activeNodeIds = activeUnlockedNodeIds(astPlayer, state);
+        Set<String> inactiveNodeIds = new LinkedHashSet<>(state.unlockedNodeIds());
+        inactiveNodeIds.removeAll(activeNodeIds);
         Set<String> unlockedSkillIds = new LinkedHashSet<>();
         Map<StatusType, StatusBonusTotals> statusBonuses = new java.util.EnumMap<>(StatusType.class);
-        for (String nodeId : state.unlockedNodeIds()) {
+        for (String nodeId : activeNodeIds) {
             SkillTreeNodeDefinition node = nodesById.get(nodeId);
             if (node == null) {
                 continue;
@@ -735,7 +763,79 @@ public class SkillTreeService {
                 );
             }
         }
-        return new DerivedPlayerState(Set.copyOf(unlockedSkillIds), Map.copyOf(statusBonuses));
+        return new DerivedPlayerState(Set.copyOf(unlockedSkillIds), Map.copyOf(statusBonuses), Set.copyOf(inactiveNodeIds));
+    }
+
+    private @NotNull Set<String> activeUnlockedNodeIds(
+            @NotNull AstPlayer astPlayer,
+            @NotNull SkillTreePlayerState state
+    ) {
+        Set<String> activeNodeIds = new LinkedHashSet<>();
+        for (String nodeId : state.unlockedNodeIds()) {
+            if (nodesById.containsKey(nodeId)) {
+                activeNodeIds.add(nodeId);
+            }
+        }
+
+        Map<SkillTreePointType, Integer> spent = spentPoints(activeNodeIds);
+        Map<SkillTreePointType, Integer> earned = earnedPoints(astPlayer);
+        List<String> descendingNodeIds = new ArrayList<>(activeNodeIds);
+        descendingNodeIds.sort(this::compareNodeIdDescending);
+        for (String nodeId : descendingNodeIds) {
+            SkillTreeNodeDefinition node = nodesById.get(nodeId);
+            if (node == null) {
+                continue;
+            }
+            SkillTreePointType pointType = node.pointType();
+            if (spent.getOrDefault(pointType, 0) <= earned.getOrDefault(pointType, 0)) {
+                continue;
+            }
+            activeNodeIds.remove(nodeId);
+            spent.put(pointType, spent.getOrDefault(pointType, 0) - node.pointCost());
+        }
+        return activeNodeIds;
+    }
+
+    private int availablePoints(@NotNull AstPlayer astPlayer, @NotNull SkillTreePointType pointType) {
+        SkillTreePlayerState state = state(astPlayer);
+        Set<String> activeNodeIds = activeUnlockedNodeIds(astPlayer, state);
+        return Math.max(0, earnedPoints(astPlayer).getOrDefault(pointType, 0) - spentPoints(activeNodeIds).getOrDefault(pointType, 0));
+    }
+
+    private @NotNull Map<SkillTreePointType, Integer> earnedPoints(@NotNull AstPlayer astPlayer) {
+        Map<SkillTreePointType, Integer> earned = new java.util.EnumMap<>(SkillTreePointType.class);
+        earned.put(SkillTreePointType.CLASS_POINT, Math.max(0, astPlayer.getClassLevel() - 1));
+        earned.put(SkillTreePointType.PASSIVE_POINT, Math.max(0, astPlayer.getAccount().getLevel() - 1));
+        return earned;
+    }
+
+    private @NotNull Map<SkillTreePointType, Integer> spentPoints(@NotNull Set<String> nodeIds) {
+        Map<SkillTreePointType, Integer> spent = new java.util.EnumMap<>(SkillTreePointType.class);
+        for (String nodeId : nodeIds) {
+            SkillTreeNodeDefinition node = nodesById.get(nodeId);
+            if (node == null || node.pointCost() <= 0) {
+                continue;
+            }
+            spent.merge(node.pointType(), node.pointCost(), Integer::sum);
+        }
+        return spent;
+    }
+
+    private int compareNodeIdDescending(@NotNull String left, @NotNull String right) {
+        int numeric = Long.compare(nodeIdSortValue(right), nodeIdSortValue(left));
+        return numeric != 0 ? numeric : right.compareTo(left);
+    }
+
+    private long nodeIdSortValue(@NotNull String nodeId) {
+        String digits = nodeId.replaceAll("\\D+", "");
+        if (digits.isBlank()) {
+            return Long.MIN_VALUE;
+        }
+        try {
+            return Long.parseLong(digits);
+        } catch (NumberFormatException ignored) {
+            return Long.MAX_VALUE;
+        }
     }
 
     private void markNodeStateChanged(
@@ -754,6 +854,7 @@ public class SkillTreeService {
                     astPlayer.getBukkit().getUniqueId(),
                     affectedPositionIds(changedNode.positionId())
             );
+            visualizer.markViewerDirty(astPlayer.getBukkit().getUniqueId());
         }
     }
 
@@ -803,7 +904,7 @@ public class SkillTreeService {
      */
     public @NotNull Set<String> getUnlockedSkillIds(@NotNull AstPlayer astPlayer) {
         SkillTreePlayerState state = state(astPlayer);
-        return derivedState(state.accountId(), state).unlockedSkillIds();
+        return derivedState(astPlayer, state).unlockedSkillIds();
     }
 
     /**
@@ -815,7 +916,7 @@ public class SkillTreeService {
         double baseValue
     ) {
         SkillTreePlayerState state = state(astPlayer);
-        StatusBonusTotals totals = derivedState(state.accountId(), state).statusBonuses()
+        StatusBonusTotals totals = derivedState(astPlayer, state).statusBonuses()
                 .getOrDefault(statusType, StatusBonusTotals.ZERO);
         return totals.flat() + (baseValue * totals.scalar());
     }
@@ -825,10 +926,10 @@ public class SkillTreeService {
             return false;
         }
         SkillTreePlayerState state = state(astPlayer);
-        Set<String> previousSkillIds = derivedState(state.accountId(), state).unlockedSkillIds();
+        Set<String> previousSkillIds = derivedState(astPlayer, state).unlockedSkillIds();
         boolean changed = state.unlock(node.id());
         if (changed) {
-            DerivedPlayerState nextDerivedState = rebuildDerivedState(state);
+            DerivedPlayerState nextDerivedState = rebuildDerivedState(astPlayer, state);
             derivedPlayerStates.put(state.accountId(), nextDerivedState);
             markDirty(state);
             markNodeStateChanged(astPlayer, node, previousSkillIds, nextDerivedState.unlockedSkillIds());
@@ -844,29 +945,15 @@ public class SkillTreeService {
             return false;
         }
         SkillTreePlayerState state = state(astPlayer);
-        Set<String> previousSkillIds = derivedState(state.accountId(), state).unlockedSkillIds();
+        Set<String> previousSkillIds = derivedState(astPlayer, state).unlockedSkillIds();
         boolean changed = state.relock(node.id());
         if (changed) {
-            DerivedPlayerState nextDerivedState = rebuildDerivedState(state);
+            DerivedPlayerState nextDerivedState = rebuildDerivedState(astPlayer, state);
             derivedPlayerStates.put(state.accountId(), nextDerivedState);
             markDirty(state);
             markNodeStateChanged(astPlayer, node, previousSkillIds, nextDerivedState.unlockedSkillIds());
         }
         return changed;
-    }
-
-    public void setSkillPoints(@NotNull AstPlayer astPlayer, int points) {
-        SkillTreePlayerState state = state(astPlayer);
-        state.setSkillPoints(points);
-        markDirty(state);
-        markViewerContextDirty(astPlayer.getBukkit());
-    }
-
-    public void addSkillPoints(@NotNull AstPlayer astPlayer, int points) {
-        SkillTreePlayerState state = state(astPlayer);
-        state.addSkillPoints(points);
-        markDirty(state);
-        markViewerContextDirty(astPlayer.getBukkit());
     }
 
     public boolean canRelockNode(@NotNull AstPlayer astPlayer, @NotNull SkillTreeNodeDefinition node) {
@@ -1109,6 +1196,7 @@ public class SkillTreeService {
             case BLOCKED -> blockedNodeFieldLabels.getOrDefault(node.id(), NodeLabelSet.EMPTY).component(labelDetail);
             case AVAILABLE -> availableNodeFieldLabels.getOrDefault(node.id(), NodeLabelSet.EMPTY).component(labelDetail);
             case UNLOCKED -> unlockedNodeFieldLabels.getOrDefault(node.id(), NodeLabelSet.EMPTY).component(labelDetail);
+            case INACTIVE -> inactiveNodeFieldLabels.getOrDefault(node.id(), NodeLabelSet.EMPTY).component(labelDetail);
         };
     }
 
@@ -1120,8 +1208,9 @@ public class SkillTreeService {
         SkillTreeNodeDefinition left = nodesByPositionId.get(edge.leftPositionId());
         SkillTreeNodeDefinition right = nodesByPositionId.get(edge.rightPositionId());
         SkillTreePlayerState state = state(astPlayer);
-        boolean leftUnlocked = left != null && state.isUnlocked(left.id());
-        boolean rightUnlocked = right != null && state.isUnlocked(right.id());
+        Set<String> activeNodeIds = activeUnlockedNodeIds(astPlayer, state);
+        boolean leftUnlocked = left != null && activeNodeIds.contains(left.id());
+        boolean rightUnlocked = right != null && activeNodeIds.contains(right.id());
         if (leftUnlocked && rightUnlocked) {
             return 2;
         }
@@ -1173,7 +1262,7 @@ public class SkillTreeService {
             }
             SkillTreePlayerState state = playerStates.get(accountId);
             if (state != null) {
-                snapshots.add(new SkillTreePlayerState(state.accountId(), state.skillPoints(), state.unlockedNodeIds()));
+                snapshots.add(new SkillTreePlayerState(state.accountId(), state.unlockedNodeIds()));
             }
             dirtyPlayerStates.remove(accountId);
             dirtyPlayerStateDueAtMillis.remove(accountId);
@@ -1216,6 +1305,7 @@ public class SkillTreeService {
     private ItemStack createNodeHotbarItem(@NotNull AstPlayer astPlayer, @NotNull SkillTreeNodeDefinition node) {
         SkillTreePlayerState state = state(astPlayer);
         boolean unlocked = state.isUnlocked(node.id());
+        boolean inactive = unlocked && derivedState(astPlayer, state).inactiveUnlockedNodeIds().contains(node.id());
         boolean canUnlock = canUnlockNode(astPlayer, node);
         ItemStack itemStack = createNodeDisplayItem(node, unlocked);
         ItemMeta meta = itemStack.getItemMeta();
@@ -1227,13 +1317,18 @@ public class SkillTreeService {
                 lore.add(component(""));
             }
             lore.add(component(unlocked
-                    ? "&8State: &fUnlocked"
+                    ? inactive ? "&8State: &cUnlocked / Inactive" : "&8State: &fUnlocked"
                     : canUnlock
                     ? "&8State: &aConnected"
                     : "&8State: &cNeed adjacent unlocked node"));
             lore.add(component("&8ID: &f" + node.id()));
             lore.add(component("&8位置ID: &f" + node.positionId()));
-            lore.add(component("&8所持SP: &f" + state.skillPoints()));
+            lore.add(component("&8Cost: &f" + node.pointType().displayName() + " " + node.pointCost()));
+            lore.add(component("&8CP: &f" + availablePoints(astPlayer, SkillTreePointType.CLASS_POINT)
+                    + " &8/ PP: &f" + availablePoints(astPlayer, SkillTreePointType.PASSIVE_POINT)));
+            if (inactive) {
+                lore.add(component("&cCP/PP 不足により効果停止中"));
+            }
             lore.add(component(unlocked ? "&6◆ 解放済みノード ◆" : "&7◆ 未解放ノード ◆"));
             lore.add(component("&e左クリック&7でノードを解放"));
             lore.add(component("&6右クリック&7でノードを解除 &8(100G)"));
@@ -1438,6 +1533,7 @@ public class SkillTreeService {
         blockedNodeFieldLabels.put(node.id(), createNodeLabelSet(node, NodePresentationState.BLOCKED));
         availableNodeFieldLabels.put(node.id(), createNodeLabelSet(node, NodePresentationState.AVAILABLE));
         unlockedNodeFieldLabels.put(node.id(), createNodeLabelSet(node, NodePresentationState.UNLOCKED));
+        inactiveNodeFieldLabels.put(node.id(), createNodeLabelSet(node, NodePresentationState.INACTIVE));
     }
 
     private @NotNull ItemStack createCachedNodeDisplayItem(@NotNull SkillTreeNodeDefinition node, boolean unlocked) {
@@ -1467,8 +1563,14 @@ public class SkillTreeService {
             @NotNull NodeLabelDetail labelDetail
     ) {
         List<String> lines = new ArrayList<>();
-        boolean emphasized = presentationState != NodePresentationState.BLOCKED;
+        boolean emphasized = presentationState == NodePresentationState.AVAILABLE || presentationState == NodePresentationState.UNLOCKED;
         lines.add(resolveNodeDisplayName(node, presentationState == NodePresentationState.UNLOCKED));
+        if (presentationState == NodePresentationState.INACTIVE && labelDetail == NodeLabelDetail.DETAILED) {
+            lines.add("&c効果停止中: CP/PP 不足");
+        }
+        if (labelDetail == NodeLabelDetail.DETAILED && node.pointCost() > 0) {
+            lines.add("&8Cost: &f" + node.pointType().displayName() + " " + node.pointCost());
+        }
         if (labelDetail == NodeLabelDetail.DETAILED) {
             appendNodeFieldStatusLines(lines, node, emphasized);
             appendNodeFieldPassiveLines(lines, node, emphasized);
@@ -1559,6 +1661,21 @@ public class SkillTreeService {
         return false;
     }
 
+    private boolean isAdjacentToActiveNode(
+            @NotNull AstPlayer astPlayer,
+            @NotNull SkillTreePlayerState state,
+            @NotNull String positionId
+    ) {
+        Set<String> activeNodeIds = activeUnlockedNodeIds(astPlayer, state);
+        for (String adjacentPositionId : adjacentPositionIds(positionId)) {
+            SkillTreeNodeDefinition adjacent = nodesByPositionId.get(adjacentPositionId);
+            if (adjacent != null && activeNodeIds.contains(adjacent.id())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private @NotNull Set<String> adjacentPositionIds(@NotNull String positionId) {
         Set<String> result = new LinkedHashSet<>();
         for (SkillTreeEdge edge : edgesByKey.values()) {
@@ -1591,7 +1708,9 @@ public class SkillTreeService {
     ) {
         SkillTreePlayerState state = state(astPlayer);
         if (state.isUnlocked(node.id())) {
-            return NodePresentationState.UNLOCKED;
+            return derivedState(astPlayer, state).inactiveUnlockedNodeIds().contains(node.id())
+                    ? NodePresentationState.INACTIVE
+                    : NodePresentationState.UNLOCKED;
         }
         return canUnlockNode(astPlayer, node) ? NodePresentationState.AVAILABLE : NodePresentationState.BLOCKED;
     }
@@ -1599,7 +1718,8 @@ public class SkillTreeService {
     public enum NodePresentationState {
         BLOCKED,
         AVAILABLE,
-        UNLOCKED
+        UNLOCKED,
+        INACTIVE
     }
 
     public enum NodeLabelDetail {
@@ -1665,9 +1785,10 @@ public class SkillTreeService {
 
     private record DerivedPlayerState(
             @NotNull Set<String> unlockedSkillIds,
-            @NotNull Map<StatusType, StatusBonusTotals> statusBonuses
+            @NotNull Map<StatusType, StatusBonusTotals> statusBonuses,
+            @NotNull Set<String> inactiveUnlockedNodeIds
     ) {
-        private static final DerivedPlayerState EMPTY = new DerivedPlayerState(Set.of(), Map.of());
+        private static final DerivedPlayerState EMPTY = new DerivedPlayerState(Set.of(), Map.of(), Set.of());
     }
 
     private record StatusBonusTotals(double flat, double scalar) {

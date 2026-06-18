@@ -3,6 +3,8 @@ id: 1001
 positionId: 1001
 name: "&d武骨鍛錬"
 icon: AMETHYST_SHARD
+pointType: CP
+pointCost: 1
 lore:
   - "&7前線寄りの土台。耐久を先に固めたいときの入口。"
 statuses:

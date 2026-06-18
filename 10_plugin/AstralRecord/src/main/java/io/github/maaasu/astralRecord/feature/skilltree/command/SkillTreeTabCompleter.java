@@ -23,7 +23,7 @@ public class SkillTreeTabCompleter extends AstTabCompleter {
         boolean adminMode = service.isAdminMode(player);
         if (args.length == 1) {
             return adminMode
-                    ? List.of("back", "reload", "position-item", "connector-item", "points", "option")
+                    ? List.of("back", "reload", "position-item", "connector-item", "option")
                     : List.of("back", "option");
         }
         if (!adminMode && isAdminSubCommand(args[0])) {
@@ -31,9 +31,6 @@ public class SkillTreeTabCompleter extends AstTabCompleter {
         }
         if (args.length == 2 && "position-item".equalsIgnoreCase(args[0])) {
             return service.getDefinedPositionIds().stream().sorted().toList();
-        }
-        if (args.length == 2 && "points".equalsIgnoreCase(args[0])) {
-            return List.of("set", "add");
         }
         if (args.length == 2 && "option".equalsIgnoreCase(args[0])) {
             return List.of("view-distance", "edge-display", "reset");
@@ -56,7 +53,6 @@ public class SkillTreeTabCompleter extends AstTabCompleter {
     private boolean isAdminSubCommand(@NotNull String subCommand) {
         return "reload".equalsIgnoreCase(subCommand)
                 || "position-item".equalsIgnoreCase(subCommand)
-                || "connector-item".equalsIgnoreCase(subCommand)
-                || "points".equalsIgnoreCase(subCommand);
+                || "connector-item".equalsIgnoreCase(subCommand);
     }
 }

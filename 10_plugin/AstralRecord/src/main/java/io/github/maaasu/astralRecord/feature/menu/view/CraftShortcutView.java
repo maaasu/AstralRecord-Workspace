@@ -56,7 +56,8 @@ final class CraftShortcutView {
         @Nullable InventoryType selectedType,
         @Nullable StatusSnapshot snapshot,
         @NotNull AccountModel selectedAccount,
-        int skillPoints,
+        int classPoints,
+        int passivePoints,
         @NotNull List<AccountModel> accounts
     ) {
         if (!(player.getOpenInventory().getTopInventory() instanceof CraftingInventory inventory)) {
@@ -80,7 +81,8 @@ final class CraftShortcutView {
                 selectedType,
                 snapshot,
                 selectedAccount,
-                skillPoints,
+                classPoints,
+                passivePoints,
                 accounts
             );
             ItemStack existing = slot < currentMatrix.length ? currentMatrix[slot] : null;
@@ -151,14 +153,15 @@ final class CraftShortcutView {
         @Nullable InventoryType selectedType,
         @Nullable StatusSnapshot snapshot,
         @NotNull AccountModel selectedAccount,
-        int skillPoints,
+        int classPoints,
+        int passivePoints,
         @NotNull List<AccountModel> accounts
     ) {
         if (action == MenuShortcutAction.INVENTORY_CYCLE) {
             return createUserInfoDummyIcon(player, shortcutSlotIndex, selectedType, selectedAccount, accounts);
         }
         if (action == MenuShortcutAction.STATUS) {
-            return createStatusShortcutIcon(shortcutSlotIndex, snapshot, selectedAccount, skillPoints);
+            return createStatusShortcutIcon(shortcutSlotIndex, snapshot, selectedAccount, classPoints, passivePoints);
         }
         if (action.isCurrencyAction()) {
             return createCurrencyShortcutIcon(player, shortcutSlotIndex, action);
@@ -182,7 +185,8 @@ final class CraftShortcutView {
         int shortcutSlotIndex,
         @Nullable StatusSnapshot snapshot,
         @NotNull AccountModel selectedAccount,
-        int skillPoints
+        int classPoints,
+        int passivePoints
     ) {
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text("選択中のアカウント", NamedTextColor.DARK_GRAY));
@@ -196,8 +200,10 @@ final class CraftShortcutView {
             .append(Component.text(selectedAccount.getMode().getDisplayName(), NamedTextColor.LIGHT_PURPLE)));
         lore.add(Component.text("累計経験値: ", NamedTextColor.GRAY)
             .append(Component.text(String.valueOf(selectedAccount.getTotalExperience()), NamedTextColor.GREEN)));
-        lore.add(Component.text("所持SP: ", NamedTextColor.GRAY)
-            .append(Component.text(String.valueOf(skillPoints), NamedTextColor.AQUA)));
+        lore.add(Component.text("CP: ", NamedTextColor.GRAY)
+            .append(Component.text(String.valueOf(classPoints), NamedTextColor.AQUA))
+            .append(Component.text(" / PP: ", NamedTextColor.GRAY))
+            .append(Component.text(String.valueOf(passivePoints), NamedTextColor.AQUA)));
         lore.add(Component.text("━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
         if (snapshot != null && !snapshot.getValues().isEmpty()) {
             addStatusLine(lore, snapshot, StatusType.ATTACK);

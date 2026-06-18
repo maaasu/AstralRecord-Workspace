@@ -165,13 +165,15 @@ public class PlayerHudService {
                     astPlayer.getAccount().getTotalExperience()
                 );
                 String className = playerClassService.getDisplayName(astPlayer.getClassId());
+                double classExperienceProgress = playerClassService.classExperienceProgress(astPlayer);
                 playerHudView.renderSidebar(
                     player,
                     mspt,
                     astPlayer.getAccount().getLevel(),
                     experienceProgress,
                     astPlayer.getClassLevel(),
-                    className
+                    className,
+                    classExperienceProgress
                 );
             }
             playerHudView.renderBars(player, snapshot);

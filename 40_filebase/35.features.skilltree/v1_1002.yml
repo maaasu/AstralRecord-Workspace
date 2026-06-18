@@ -3,6 +3,8 @@ id: 1002
 positionId: 1002
 name: "&d闘気収束"
 icon: AMETHYST_SHARD
+pointType: PP
+pointCost: 1
 lore:
   - "&7近接でも射撃でも、手数を増やす起点。"
 statuses:

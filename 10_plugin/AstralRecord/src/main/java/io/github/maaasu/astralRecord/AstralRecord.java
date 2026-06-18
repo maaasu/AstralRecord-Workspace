@@ -530,8 +530,10 @@ public final class AstralRecord extends JavaPlugin {
                 partyService,
                 adventureRecordService,
                 accountService,
+                playerClassService,
                 statusService,
-                skillTreeService
+                skillTreeService,
+                particleDisplayService
         );
         damageService = new DamageService(
             statusService,

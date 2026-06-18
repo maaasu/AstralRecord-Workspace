@@ -43,6 +43,9 @@ data class AstPlayer(
     /** 現在の職業レベル。 */
     var classLevel: Int = 1
 
+    /** 現在クラスで獲得した累計クラス経験値。 */
+    var classExperience: Long = 0L
+
     /**
      * しゃがみ開始時刻（System.currentTimeMillis ベース）。
      * しゃがみ開始 → 短時間以内に解除でドッジ判定に使用します。

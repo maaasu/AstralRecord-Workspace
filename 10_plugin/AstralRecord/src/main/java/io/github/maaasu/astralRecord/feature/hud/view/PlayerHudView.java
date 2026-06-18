@@ -69,6 +69,7 @@ public class PlayerHudView {
      * @param experienceProgress 現在レベル内の経験値進捗（0.0-1.0）
      * @param classLevel 現在のクラスレベル
      * @param className 現在のクラス表示名
+     * @param classExperienceProgress 現在クラスレベル内の経験値進捗（0.0-1.0）
      */
     public void renderSidebar(
         Player player,
@@ -76,7 +77,8 @@ public class PlayerHudView {
         int playerLevel,
         double experienceProgress,
         int classLevel,
-        String className
+        String className,
+        double classExperienceProgress
     ) {
         Scoreboard scoreboard = player.getScoreboard();
         if (scoreboard == Bukkit.getScoreboardManager().getMainScoreboard()) {
@@ -106,8 +108,7 @@ public class PlayerHudView {
         objective.getScore(buildSeparator("class")).setScore(5);
         objective.getScore(ColorCodeUtil.DARK_AQUA + "Class" + ColorCodeUtil.GRAY + ": " + className).setScore(4);
         objective.getScore(ColorCodeUtil.YELLOW + "Class Lv." + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.YELLOW + classLevel).setScore(3);
-        objective.getScore(buildExperienceBar("CEXP", 0.0D, ColorCodeUtil.AQUA)).setScore(2);
-        objective.getScore(ColorCodeUtil.DARK_GRAY + "クラスEXP 準備中").setScore(1);
+        objective.getScore(buildExperienceBar("CEXP", classExperienceProgress, ColorCodeUtil.AQUA)).setScore(2);
     }
 
     /**

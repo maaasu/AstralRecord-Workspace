@@ -3,6 +3,8 @@ id: 1000
 positionId: 1000
 name: "&d星図の起点"
 icon: NETHER_STAR
+pointType: PP
+pointCost: 0
 lore:
   - "&7すべてのビルドがここから始まる共通起点。"
 statuses:

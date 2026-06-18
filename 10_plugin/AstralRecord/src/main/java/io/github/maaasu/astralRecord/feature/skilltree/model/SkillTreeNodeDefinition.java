@@ -15,7 +15,12 @@ public record SkillTreeNodeDefinition(
         @NotNull Material icon,
         @NotNull List<String> lore,
         @NotNull List<String> tags,
+        @NotNull SkillTreePointType pointType,
+        int pointCost,
         @NotNull List<String> skillIds,
         @NotNull List<SkillTreeNodeStatusDefinition> statuses
 ) {
+    public SkillTreeNodeDefinition {
+        pointCost = Math.max(0, pointCost);
+    }
 }

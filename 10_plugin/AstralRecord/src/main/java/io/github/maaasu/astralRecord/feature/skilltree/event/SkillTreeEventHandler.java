@@ -118,7 +118,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
                 PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5838);
                 return;
             }
-            if (!service.hasSkillPoints(astPlayer)) {
+            if (!service.hasAvailableUnlockPoint(astPlayer)) {
                 playDenied(event.getPlayer(), 0.65F);
                 PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5839);
                 return;

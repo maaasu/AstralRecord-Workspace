@@ -18,7 +18,7 @@ public class SkillTreeCommand extends AstCommand {
     private final SkillTreeService service;
 
     public SkillTreeCommand(@NotNull SkillTreeService service) {
-        super("skilltree", "Open and manage the skill tree.", "/skilltree [back|reload|position-item|connector-item|points|option]", true);
+        super("skilltree", "Open and manage the skill tree.", "/skilltree [back|reload|position-item|connector-item|option]", true);
         this.service = service;
     }
 
@@ -33,7 +33,6 @@ public class SkillTreeCommand extends AstCommand {
             case "reload" -> handleReload(player);
             case "position-item" -> handlePositionItem(player, args);
             case "connector-item" -> handleConnectorItem(player, args);
-            case "points" -> handlePoints(player, args);
             case "option" -> handleOption(player, args);
             default -> sendUsage(player.getBukkit());
         }
@@ -113,36 +112,6 @@ public class SkillTreeCommand extends AstCommand {
             return;
         }
         sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5817.getId(), amount));
-    }
-
-    private void handlePoints(@NotNull AstPlayer player, @NotNull String[] args) {
-        if (!service.isAdminMode(player)) {
-            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5707.getId()));
-            return;
-        }
-        if (args.length < 3) {
-            sendUsage(player.getBukkit());
-            return;
-        }
-        AstPlayer target = player;
-        if (args.length >= 4) {
-            var bukkitTarget = Bukkit.getPlayerExact(args[3]);
-            target = bukkitTarget == null ? null : getAstPlayer(bukkitTarget);
-            if (target == null) {
-                sendError(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5814.getId(), args[3]));
-                return;
-            }
-        }
-        int points = parseInt(args[2], 0);
-        if ("set".equalsIgnoreCase(args[1])) {
-            service.setSkillPoints(target, points);
-        } else if ("add".equalsIgnoreCase(args[1])) {
-            service.addSkillPoints(target, points);
-        } else {
-            sendUsage(player.getBukkit());
-            return;
-        }
-        sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5818.getId(), target.getBukkit().getName(), service.state(target).skillPoints()));
     }
 
     private void handleOption(@NotNull AstPlayer player, @NotNull String[] args) {

@@ -296,7 +296,8 @@ public class MenuView {
         @Nullable InventoryType selectedType,
         @Nullable StatusSnapshot snapshot,
         @NotNull AccountModel selectedAccount,
-        int skillPoints,
+        int classPoints,
+        int passivePoints,
         @NotNull List<AccountModel> accounts
     ) {
         craftShortcutView.renderCraftShortcuts(
@@ -305,7 +306,8 @@ public class MenuView {
             selectedType,
             snapshot,
             selectedAccount,
-            skillPoints,
+            classPoints,
+            passivePoints,
             accounts
         );
     }

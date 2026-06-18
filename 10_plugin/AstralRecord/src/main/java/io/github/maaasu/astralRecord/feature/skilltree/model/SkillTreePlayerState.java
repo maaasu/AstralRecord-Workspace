@@ -11,12 +11,10 @@ import java.util.UUID;
  */
 public final class SkillTreePlayerState {
     private final UUID accountId;
-    private int skillPoints;
     private final Set<String> unlockedNodeIds;
 
-    public SkillTreePlayerState(@NotNull UUID accountId, int skillPoints, @NotNull Set<String> unlockedNodeIds) {
+    public SkillTreePlayerState(@NotNull UUID accountId, @NotNull Set<String> unlockedNodeIds) {
         this.accountId = accountId;
-        this.skillPoints = Math.max(0, skillPoints);
         this.unlockedNodeIds = new LinkedHashSet<>(unlockedNodeIds);
     }
 
@@ -25,36 +23,16 @@ public final class SkillTreePlayerState {
         return accountId;
     }
 
-    public int skillPoints() {
-        return skillPoints;
-    }
-
-    public void setSkillPoints(int skillPoints) {
-        this.skillPoints = Math.max(0, skillPoints);
-    }
-
-    public void addSkillPoints(int delta) {
-        setSkillPoints(skillPoints + delta);
-    }
-
     public boolean isUnlocked(@NotNull String nodeId) {
         return unlockedNodeIds.contains(nodeId);
     }
 
     public boolean unlock(@NotNull String nodeId) {
-        if (skillPoints <= 0 || !unlockedNodeIds.add(nodeId)) {
-            return false;
-        }
-        skillPoints--;
-        return true;
+        return unlockedNodeIds.add(nodeId);
     }
 
     public boolean relock(@NotNull String nodeId) {
-        if (!unlockedNodeIds.remove(nodeId)) {
-            return false;
-        }
-        skillPoints++;
-        return true;
+        return unlockedNodeIds.remove(nodeId);
     }
 
     @NotNull

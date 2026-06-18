@@ -569,6 +569,8 @@ final class SkillTreeVisualizer {
             registerLabel(location, node, SkillTreeService.NodePresentationState.AVAILABLE, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
             registerLabel(location, node, SkillTreeService.NodePresentationState.UNLOCKED, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
             registerLabel(location, node, SkillTreeService.NodePresentationState.UNLOCKED, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
+            registerLabel(location, node, SkillTreeService.NodePresentationState.INACTIVE, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
+            registerLabel(location, node, SkillTreeService.NodePresentationState.INACTIVE, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
             Logger.log(
                     LogId.I_9002,
                     "node",

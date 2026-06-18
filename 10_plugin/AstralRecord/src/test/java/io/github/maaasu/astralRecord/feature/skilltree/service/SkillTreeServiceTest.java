@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeEdge;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefinition;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeStatusDefinition;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePlayerState;
+import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePosition;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreeNodeRepository;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreePlayerStateRepository;
@@ -85,6 +86,8 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
                 Material.STONE,
                 List.of(),
                 List.of("root"),
+                SkillTreePointType.PASSIVE_POINT,
+                0,
                 List.of("skill.root"),
                 List.of(new SkillTreeNodeStatusDefinition(StatusType.MAX_HEALTH, StatusModifierType.FLAT, 10.0D))
         );
@@ -95,6 +98,8 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
                 Material.DIAMOND,
                 List.of(),
                 List.of(),
+                SkillTreePointType.PASSIVE_POINT,
+                1,
                 List.of("skill.child"),
                 List.of(new SkillTreeNodeStatusDefinition(StatusType.ATTACK, StatusModifierType.SCALAR, 0.10D))
         );
@@ -112,11 +117,11 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
 
         AstPlayer astPlayer = mock(AstPlayer.class);
         Player bukkitPlayer = mock(Player.class);
-        AccountModel account = accountModel(AccountMode.PLAYER);
+        AccountModel account = accountModel(AccountMode.PLAYER, 2);
         when(astPlayer.getAccount()).thenReturn(account);
         when(astPlayer.getBukkit()).thenReturn(bukkitPlayer);
 
-        SkillTreePlayerState state = new SkillTreePlayerState(account.getUuid(), 1, Set.of("root-node"));
+        SkillTreePlayerState state = new SkillTreePlayerState(account.getUuid(), Set.of("root-node"));
         stateField(service).put(account.getUuid(), state);
 
         assertTrue(service.unlockNode(astPlayer, child));
@@ -127,6 +132,79 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
     }
 
     @Test
+    void unlockedNodesAboveEarnedPointBudgetBecomeInactiveByDescendingNodeId() {
+        SkillTreeNodeRepository nodeRepository = mock(SkillTreeNodeRepository.class);
+        SkillTreeStructureRepository structureRepository = mock(SkillTreeStructureRepository.class);
+        SkillTreePlayerStateRepository playerStateRepository = mock(SkillTreePlayerStateRepository.class);
+        SkillTreeService service = newService(nodeRepository, structureRepository, playerStateRepository);
+
+        SkillTreeNodeDefinition root = new SkillTreeNodeDefinition(
+                "1000",
+                "root-pos",
+                "Root",
+                Material.STONE,
+                List.of(),
+                List.of("root"),
+                SkillTreePointType.PASSIVE_POINT,
+                0,
+                List.of("skill.root"),
+                List.of()
+        );
+        SkillTreeNodeDefinition low = new SkillTreeNodeDefinition(
+                "1001",
+                "low-pos",
+                "Low",
+                Material.IRON_INGOT,
+                List.of(),
+                List.of(),
+                SkillTreePointType.PASSIVE_POINT,
+                1,
+                List.of("skill.low"),
+                List.of(new SkillTreeNodeStatusDefinition(StatusType.ATTACK, StatusModifierType.FLAT, 10.0D))
+        );
+        SkillTreeNodeDefinition high = new SkillTreeNodeDefinition(
+                "1002",
+                "high-pos",
+                "High",
+                Material.DIAMOND,
+                List.of(),
+                List.of(),
+                SkillTreePointType.PASSIVE_POINT,
+                1,
+                List.of("skill.high"),
+                List.of(new SkillTreeNodeStatusDefinition(StatusType.DEFENSE, StatusModifierType.FLAT, 15.0D))
+        );
+
+        when(nodeRepository.findAll()).thenReturn(List.of(root, low, high));
+        when(structureRepository.load()).thenReturn(new SkillTreeStructureRepository.StructureSnapshot(
+                List.of(
+                        new SkillTreePosition("root-pos", "world", 0, 64, 0),
+                        new SkillTreePosition("low-pos", "world", 1, 64, 0),
+                        new SkillTreePosition("high-pos", "world", 2, 64, 0)
+                ),
+                List.of(
+                        new SkillTreeEdge("root-pos", "low-pos"),
+                        new SkillTreeEdge("low-pos", "high-pos")
+                )
+        ));
+
+        assertEquals(3, service.loadAll());
+
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        AccountModel account = accountModel(AccountMode.PLAYER, 2);
+        when(astPlayer.getAccount()).thenReturn(account);
+
+        SkillTreePlayerState state = new SkillTreePlayerState(account.getUuid(), Set.of("1000", "1001", "1002"));
+        stateField(service).put(account.getUuid(), state);
+
+        assertEquals(Set.of("skill.root", "skill.low"), service.getUnlockedSkillIds(astPlayer));
+        assertEquals(10.0D, service.getStatusBonus(astPlayer, StatusType.ATTACK, 100.0D));
+        assertEquals(0.0D, service.getStatusBonus(astPlayer, StatusType.DEFENSE, 100.0D));
+        assertEquals(SkillTreeService.NodePresentationState.UNLOCKED, service.nodePresentationState(astPlayer, low));
+        assertEquals(SkillTreeService.NodePresentationState.INACTIVE, service.nodePresentationState(astPlayer, high));
+    }
+
+    @Test
     void saveDirtyAsyncDebouncesRepositorySaveUntilDueTime() throws Exception {
         SkillTreeNodeRepository nodeRepository = mock(SkillTreeNodeRepository.class);
         SkillTreeStructureRepository structureRepository = mock(SkillTreeStructureRepository.class);
@@ -134,7 +212,7 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
         SkillTreeService service = newService(nodeRepository, structureRepository, playerStateRepository);
 
         UUID accountId = UUID.randomUUID();
-        SkillTreePlayerState state = new SkillTreePlayerState(accountId, 2, Set.of("node-a"));
+        SkillTreePlayerState state = new SkillTreePlayerState(accountId, Set.of("node-a"));
         stateField(service).put(accountId, state);
 
         service.markDirty(state);
@@ -150,7 +228,6 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
         server().getScheduler().waitAsyncTasksFinished();
         verify(playerStateRepository, times(1)).save(argThat(saved ->
                 saved.accountId().equals(accountId)
-                        && saved.skillPoints() == 2
                         && saved.unlockedNodeIds().equals(Set.of("node-a"))
         ));
     }
@@ -379,6 +456,10 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
     }
 
     private AccountModel accountModel(AccountMode mode) {
+        return accountModel(mode, 1);
+    }
+
+    private AccountModel accountModel(AccountMode mode, int level) {
         return new AccountModel(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
@@ -392,7 +473,7 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 false,
-                1,
+                level,
                 0L
         );
     }

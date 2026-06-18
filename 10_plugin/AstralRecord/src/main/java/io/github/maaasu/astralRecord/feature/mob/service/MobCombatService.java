@@ -19,13 +19,19 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
+import io.github.maaasu.astralRecord.feature.playerclass.model.ClassExperienceResult;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -52,8 +58,10 @@ public class MobCombatService {
     private final PartyService partyService;
     private final AdventureRecordService adventureRecordService;
     private final AccountService accountService;
+    private final PlayerClassService playerClassService;
     private final StatusService statusService;
     private final SkillTreeService skillTreeService;
+    private final ParticleDisplayService particleDisplayService;
 
     /**
      * コンストラクタ。
@@ -70,8 +78,10 @@ public class MobCombatService {
             @NotNull PartyService partyService,
             @NotNull AdventureRecordService adventureRecordService,
             @NotNull AccountService accountService,
+            @NotNull PlayerClassService playerClassService,
             @NotNull StatusService statusService,
-            @NotNull SkillTreeService skillTreeService) {
+            @NotNull SkillTreeService skillTreeService,
+            @NotNull ParticleDisplayService particleDisplayService) {
         this.mobService = mobService;
         this.knockbackService = knockbackService;
         this.dropService = dropService;
@@ -79,8 +89,10 @@ public class MobCombatService {
         this.partyService = partyService;
         this.adventureRecordService = adventureRecordService;
         this.accountService = accountService;
+        this.playerClassService = playerClassService;
         this.statusService = statusService;
         this.skillTreeService = skillTreeService;
+        this.particleDisplayService = particleDisplayService;
     }
 
     /**
@@ -368,7 +380,8 @@ public class MobCombatService {
                 result.exp(),
                 recipient.getUser().getUuid()
             );
-            applyExperienceAndSkillPointsResult(recipient, progress);
+            ClassExperienceResult classProgress = playerClassService.grantClassExperience(recipient, result.exp());
+            applyExperienceAndSkillPointsResult(recipient, progress, classProgress);
         } catch (RuntimeException ex) {
             Logger.error(LogId.E_5155, ex, recipient.getAccount().getUuid(), result.exp());
         }
@@ -376,7 +389,8 @@ public class MobCombatService {
 
     private void applyExperienceAndSkillPointsResult(
             @NotNull AstPlayer recipient,
-            @NotNull AccountExperienceResult progress
+            @NotNull AccountExperienceResult progress,
+            @NotNull ClassExperienceResult classProgress
     ) {
         recipient.setAccount(progress.updatedAccount());
         if (!recipient.getBukkit().isOnline()) {
@@ -384,7 +398,6 @@ public class MobCombatService {
         }
 
         if (progress.leveledUp()) {
-            skillTreeService.addSkillPoints(recipient, progress.levelUps());
             PlayerMessageService.getInstance().send(
                 recipient,
                 PlayerMsgId.P_5835,
@@ -392,8 +405,40 @@ public class MobCombatService {
                 progress.grantedExperience(),
                 progress.levelUps()
             );
+            playPlayerLevelUp(recipient.getBukkit());
+            skillTreeService.refreshProgressDerivedState(recipient);
+        }
+        if (classProgress.getLeveledUp()) {
+            PlayerMessageService.getInstance().send(
+                recipient,
+                PlayerMsgId.P_5847,
+                recipient.getClassLevel(),
+                classProgress.getGrantedExperience(),
+                classProgress.getClassPointGains()
+            );
+            playClassLevelUp(recipient.getBukkit());
+            skillTreeService.refreshProgressDerivedState(recipient);
+        }
+        if (progress.leveledUp() || classProgress.getLeveledUp()) {
             statusService.refreshStatus(recipient);
         }
+    }
+
+    private void playPlayerLevelUp(@NotNull Player player) {
+        Location location = player.getLocation().add(0.0D, 1.0D, 0.0D);
+        player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.9F, 0.85F);
+        player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 0.7F, 1.05F);
+        player.playSound(player.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, SoundCategory.PLAYERS, 0.45F, 1.35F);
+        particleDisplayService.spawnForNearbyViewers(location, SharedParticleDefinitions.PLAYER_LEVEL_UP_TOTEM);
+        particleDisplayService.spawnForNearbyViewers(location, SharedParticleDefinitions.PLAYER_LEVEL_UP_END_ROD);
+    }
+
+    private void playClassLevelUp(@NotNull Player player) {
+        Location location = player.getLocation().add(0.0D, 0.9D, 0.0D);
+        player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.45F, 1.45F);
+        player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.PLAYERS, 0.4F, 1.75F);
+        particleDisplayService.spawnForNearbyViewers(location, SharedParticleDefinitions.CLASS_LEVEL_UP_DUST);
+        particleDisplayService.spawnForNearbyViewers(location, SharedParticleDefinitions.CLASS_LEVEL_UP_ENCHANT);
     }
 
     private double resolvePlayerDefense(@NotNull Player target, @NotNull DamageType type) {

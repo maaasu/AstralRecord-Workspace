@@ -1,7 +1,7 @@
 # dbo.account_skilltree_state
 
 アカウント単位のスキルツリー進行状態を保持するテーブル。
-スキルポイント残量と、解放済みノード集合の親レコードを 1 アカウント 1 行で管理する。
+解放済みノード集合の親レコードを 1 アカウント 1 行で管理する。`skill_points` は旧スキルポイント互換カラムとして残す。
 
 ## カラム
 
@@ -9,7 +9,7 @@
 |:--|:--|:--|:--|:--|
 | `account_skilltree_state_id` | UNIQUEIDENTIFIER | 不可 | - | スキルツリー進行状態 ID |
 | `account_id` | UNIQUEIDENTIFIER | 不可 | - | `dbo.account.uuid` |
-| `skill_points` | INT | 不可 | `0` | 未使用スキルポイント |
+| `skill_points` | INT | 不可 | `0` | 旧スキルポイント互換値。現在のpluginはCP/PPをこのカラムへ保存しない |
 | `version` | INT | 不可 | `1` | 更新バージョン |
 | `created_at` | DATETIME2(3) | 不可 | - | 作成日時 |
 | `updated_at` | DATETIME2(3) | 不可 | - | 更新日時 |
@@ -22,7 +22,7 @@
 - 主キー: `PK_account_skilltree_state (account_skilltree_state_id)`
 - 外部キー: `FK_account_skilltree_state_account (account_id)` -> `dbo.account(uuid)`
 - 一意制約: `UX_account_skilltree_state_account (account_id)` で 1 アカウント 1 レコード
-- `skill_points` は `0` 以上
+- `skill_points` は互換用途として `0` 以上。CP/PPの正本ではない
 - `version` は `1` 以上
 
 ## 運用メモ

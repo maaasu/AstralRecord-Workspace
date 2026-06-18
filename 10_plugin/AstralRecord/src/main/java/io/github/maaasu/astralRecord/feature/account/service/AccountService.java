@@ -28,6 +28,7 @@ public class AccountService {
 
     private static final long EXPERIENCE_FLUSH_INTERVAL_TICKS = 40L;
     private static final int MAX_STOP_FLUSH_ATTEMPTS = 3;
+    public static final int MAX_PLAYER_LEVEL = 100;
 
     private final Plugin plugin;
     private final AccountRepository accountRepository;
@@ -181,7 +182,7 @@ public class AccountService {
 
         long totalExperience = previous.getTotalExperience() + experience;
         int level = Math.max(1, previous.getLevel());
-        while (totalExperience >= totalRequiredExperienceForLevel(previous.getUuid(), level + 1)) {
+        while (level < MAX_PLAYER_LEVEL && totalExperience >= totalRequiredExperienceForLevel(previous.getUuid(), level + 1)) {
             level++;
         }
 
@@ -197,6 +198,9 @@ public class AccountService {
 
     public double experienceProgress(UUID accountUuid, int level, long totalExperience) {
         int normalizedLevel = Math.max(1, level);
+        if (normalizedLevel >= MAX_PLAYER_LEVEL) {
+            return 1.0D;
+        }
         long currentLevelRequiredExperience = totalRequiredExperienceForLevel(accountUuid, normalizedLevel);
         long nextLevelRequiredExperience = totalRequiredExperienceForLevel(accountUuid, normalizedLevel + 1);
         long levelRange = nextLevelRequiredExperience - currentLevelRequiredExperience;
@@ -303,12 +307,12 @@ public class AccountService {
     }
 
     private int requiredExperienceForNextLevel(UUID accountUuid, int currentLevel) {
-        int base = 60 + (currentLevel * currentLevel * 5);
-        int tierBonus = (currentLevel / 10) * 25;
-        int[] wavePattern = {0, 8, 3, 13, 5, 17, 9, 21};
+        int base = 500 + (currentLevel * currentLevel * 120);
+        int tierBonus = (currentLevel / 10) * 850;
+        int[] wavePattern = {0, 90, 35, 140, 60, 185, 95, 230};
         int waveBonus = wavePattern[Math.floorMod(currentLevel - 1, wavePattern.length)];
-        int milestoneBonus = currentLevel % 5 == 0 ? 18 + (currentLevel * 2) : 0;
-        int hashModulo = 6 + (currentLevel / 8);
+        int milestoneBonus = currentLevel % 5 == 0 ? 600 + (currentLevel * 80) : 0;
+        int hashModulo = 90 + (currentLevel * 4);
         int hashBonus = stableHash(accountUuid, currentLevel) % hashModulo;
         return base + tierBonus + waveBonus + milestoneBonus + hashBonus;
     }

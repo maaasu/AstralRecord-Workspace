@@ -38,7 +38,7 @@
 - `status`
   - ログイン時は [[07_3.02-サービス]].ステータス再計算、ドッジ時は [[07_3.02-サービス]].EN消費 で連携する。
 - `class` / `playerclass`
-  - [[03_1.00-モデル定義]].プレイヤーセッション の `classId` / `classLevel` を保持する。職業マスタ、職業 GUI、職業コマンドの正本は本 feature ではなく class / playerclass 側とする。
+  - [[03_1.00-モデル定義]].プレイヤーセッション の `classId` / `classLevel` / `classExperience` を保持する。職業マスタ、職業 GUI、職業コマンドの正本は本 feature ではなく class / playerclass 側とする。
 
 ## 実装メモ
 

@@ -33,7 +33,7 @@ public class SkillTreePlayerStateRepository {
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
                 return switch (response.statusCode()) {
                     case 200 -> parse(accountId, JsonParser.parseString(response.body()).getAsJsonObject());
-                    case 404 -> new SkillTreePlayerState(accountId, 0, Set.of());
+                    case 404 -> new SkillTreePlayerState(accountId, Set.of());
                     default -> throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
                 };
             }
@@ -48,7 +48,7 @@ public class SkillTreePlayerStateRepository {
     public void save(@NotNull SkillTreePlayerState state) {
         String path = "/api/account-skilltree/" + state.accountId();
         JsonObject body = new JsonObject();
-        body.addProperty("skillPoints", state.skillPoints());
+        body.addProperty("skillPoints", 0);
         JsonArray unlockedNodeIds = new JsonArray();
         state.unlockedNodeIds().stream()
                 .sorted()
@@ -78,9 +78,6 @@ public class SkillTreePlayerStateRepository {
         UUID accountId = obj.has("accountId") && !obj.get("accountId").isJsonNull()
                 ? UUID.fromString(obj.get("accountId").getAsString())
                 : fallbackAccountId;
-        int skillPoints = obj.has("skillPoints") && !obj.get("skillPoints").isJsonNull()
-                ? obj.get("skillPoints").getAsInt()
-                : 0;
         Set<String> unlockedNodeIds = new LinkedHashSet<>();
         if (obj.has("unlockedNodeIds") && obj.get("unlockedNodeIds").isJsonArray()) {
             for (var element : obj.getAsJsonArray("unlockedNodeIds")) {
@@ -92,6 +89,6 @@ public class SkillTreePlayerStateRepository {
                 }
             }
         }
-        return new SkillTreePlayerState(accountId, skillPoints, unlockedNodeIds);
+        return new SkillTreePlayerState(accountId, unlockedNodeIds);
     }
 }

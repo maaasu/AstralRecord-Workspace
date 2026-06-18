@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.skilltree.repository;
 
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefinition;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeStatusDefinition;
+import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusModifierType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.database.file.FileDatabaseManager;
@@ -51,16 +52,28 @@ public class SkillTreeNodeRepository {
         if (id == null || id.isBlank() || positionId == null || positionId.isBlank()) {
             return null;
         }
+        List<String> tags = yaml.getStringList("tags");
         return new SkillTreeNodeDefinition(
                 id.trim(),
                 positionId.trim(),
                 yaml.getString("name", id).trim(),
                 resolveMaterial(yaml.getString("icon")),
                 yaml.getStringList("lore"),
-                yaml.getStringList("tags"),
+                tags,
+                SkillTreePointType.fromRaw(yaml.getString("pointType")),
+                yaml.contains("pointCost") ? Math.max(0, yaml.getInt("pointCost", 1)) : defaultPointCost(tags),
                 yaml.getStringList("skillIds"),
                 parseStatuses(yaml)
         );
+    }
+
+    private int defaultPointCost(@NotNull List<String> tags) {
+        for (String tag : tags) {
+            if ("root".equalsIgnoreCase(tag == null ? "" : tag.trim())) {
+                return 0;
+            }
+        }
+        return 1;
     }
 
     private @NotNull List<SkillTreeNodeStatusDefinition> parseStatuses(@NotNull YamlConfiguration yaml) {

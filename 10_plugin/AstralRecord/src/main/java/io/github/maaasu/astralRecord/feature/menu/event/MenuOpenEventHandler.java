@@ -738,7 +738,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 ? inventoryService.getDisplayedInventoryType(astPlayer.getAccount().getUuid())
                 : null;
             var snapshot = statusService.getStatus(astPlayer);
-            int skillPoints = skillTreeService.state(astPlayer).skillPoints();
+            int classPoints = skillTreeService.availableClassPoints(astPlayer);
+            int passivePoints = skillTreeService.availablePassivePoints(astPlayer);
             List<AccountModel> accounts = getCachedAccounts(astPlayer.getUser().getUuid());
             menuView.renderCraftShortcuts(
                 player,
@@ -746,7 +747,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 displayedType,
                 snapshot,
                 astPlayer.getAccount(),
-                skillPoints,
+                classPoints,
+                passivePoints,
                 accounts
             );
         } finally {

@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefinition;
+import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Material;
@@ -65,6 +66,8 @@ class SkillTreeEventHandlerTest extends MockBukkitTestBase {
                 Material.DIAMOND,
                 List.of(),
                 List.of("root"),
+                SkillTreePointType.PASSIVE_POINT,
+                0,
                 List.of("skill.one"),
                 List.of()
         );
