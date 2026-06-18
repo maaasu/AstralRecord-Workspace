@@ -275,13 +275,31 @@ public class OverheadDisplayService {
         String shield = instance.template().shield().active()
                 ? "\n" + bar("SH", instance.currentShield(), instance.template().shield().max(), "&b")
                 : "";
+        String cast = instance.isSkillCasting()
+                ? "\n" + castBar(instance)
+                : "";
         return String.format(
                 Locale.ROOT,
-                "%s\n%s%s",
+                "%s\n%s%s%s",
                 instance.template().displayName(),
                 bar("HP", instance.currentHealth(), maxHealth, "&c"),
-                shield
+                shield,
+                cast
         );
+    }
+
+    private @NotNull String castBar(@NotNull MobInstance instance) {
+        long duration = Math.max(1L, instance.castingDurationTicks());
+        double elapsed = duration - Math.max(0L, instance.castingRemainingTicks());
+        double ratio = Math.clamp(elapsed / duration, 0.0D, 1.0D);
+        int filled = (int) Math.round(ratio * BAR_LENGTH);
+        StringBuilder builder = new StringBuilder();
+        builder.append("&eCAST [").append("&e");
+        builder.repeat("|", Math.max(0, filled));
+        builder.append("&8");
+        builder.repeat("|", Math.max(0, BAR_LENGTH - filled));
+        builder.append("&e] &f").append(instance.castingSkillName() == null ? "" : instance.castingSkillName());
+        return builder.toString();
     }
 
     private @NotNull String bar(@NotNull String label, double current, double max, @NotNull String color) {

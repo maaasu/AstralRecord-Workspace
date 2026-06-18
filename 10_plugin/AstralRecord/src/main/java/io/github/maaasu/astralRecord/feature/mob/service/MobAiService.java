@@ -8,6 +8,10 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTargetingConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
+import io.github.maaasu.astralRecord.feature.skill.model.MobSkillCaster;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -67,6 +71,8 @@ public class MobAiService {
     private static final long SHIELD_RECHARGE_BASE_DELAY_MS = 10_000L;
 
     private final MobService mobService;
+    private final MobCombatService mobCombatService;
+    private final SkillService skillService;
 
     private BukkitTask task;
     private long internalTick;
@@ -74,10 +80,17 @@ public class MobAiService {
     /**
      * コンストラクタ。
      *
-     * @param mobService Mob サービス
+     * @param mobService       Mob サービス
+     * @param mobCombatService Mob 戦闘サービス
+     * @param skillService     スキルサービス
      */
-    public MobAiService(@NotNull MobService mobService) {
+    public MobAiService(
+            @NotNull MobService mobService,
+            @NotNull MobCombatService mobCombatService,
+            @NotNull SkillService skillService) {
         this.mobService = mobService;
+        this.mobCombatService = mobCombatService;
+        this.skillService = skillService;
     }
 
     /**
@@ -309,6 +322,39 @@ public class MobAiService {
             return;
         }
         strafeOrStop(instance, currentLoc, targetLoc, horizontalSq, preferredRange);
+        castCombatSkill(instance, target);
+    }
+
+    private void castCombatSkill(@NotNull MobInstance instance, @NotNull Player target) {
+        MobCombatConfig combat = instance.template().combat();
+        if (combat == null) {
+            return;
+        }
+        if (combat.skills().isEmpty()) {
+            mobCombatService.tickCombat(instance, internalTick);
+            return;
+        }
+        if (instance.isSkillCasting()) {
+            return;
+        }
+        if (internalTick - instance.lastAttackTick() < combat.attackIntervalTicks()) {
+            return;
+        }
+
+        int index = Math.floorMod(instance.nextCombatSkillIndex(), combat.skills().size());
+        String skillId = combat.skills().get(index);
+        SkillCastResult result = skillService.castSkill(
+                new MobSkillCaster(instance),
+                skillId,
+                SkillCastTrigger.MOB_AI,
+                instance.currentLocation(),
+                target,
+                List.of(target)
+        );
+        if (result.success()) {
+            instance.lastAttackTick(internalTick);
+            instance.nextCombatSkillIndex(index + 1);
+        }
     }
 
     /**

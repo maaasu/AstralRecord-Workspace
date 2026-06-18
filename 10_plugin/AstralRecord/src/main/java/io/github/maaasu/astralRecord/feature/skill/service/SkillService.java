@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.model.MobSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
@@ -353,7 +354,15 @@ public class SkillService {
             @Nullable LivingEntity primaryTarget,
             @NotNull List<LivingEntity> targets
     ) {
-        if (!(caster instanceof PlayerSkillCaster playerCaster) || plugin == null) {
+        if (plugin == null) {
+            return executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets);
+        }
+
+        if (caster instanceof MobSkillCaster mobCaster) {
+            return beginMobCast(mobCaster, definition, trigger, castLocation, primaryTarget, targets);
+        }
+
+        if (!(caster instanceof PlayerSkillCaster playerCaster)) {
             return executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets);
         }
 
@@ -391,6 +400,62 @@ public class SkillService {
         BukkitTask task = runnable.runTaskTimer(plugin, 0L, 1L);
         castingSessions.put(player.getUniqueId(), new CastingSession(task, originalWalkSpeed));
         return SkillCastResult.success(0.0D, 0L);
+    }
+
+    private @NotNull SkillCastResult beginMobCast(
+            @NotNull MobSkillCaster caster,
+            @NotNull SkillDefinition definition,
+            @NotNull SkillCastTrigger trigger,
+            @NotNull Location castLocation,
+            @Nullable LivingEntity primaryTarget,
+            @NotNull List<LivingEntity> targets
+    ) {
+        if (caster.mob().isSkillCasting() || castingSessions.containsKey(caster.casterId())) {
+            return SkillCastResult.failure(PlayerMsgId.P_5810);
+        }
+
+        long castTimeTicks = definition.getCastTimeTicks();
+        caster.mob().startSkillCasting(definition.getName(), castTimeTicks);
+
+        BukkitRunnable runnable = new BukkitRunnable() {
+            private long elapsedTicks = 0L;
+
+            @Override
+            public void run() {
+                if (caster.mob().state() == io.github.maaasu.astralRecord.feature.mob.model.MobState.DEAD) {
+                    finishMobCast(caster, false, definition, trigger, castLocation, primaryTarget, targets);
+                    cancel();
+                    return;
+                }
+
+                long remainingTicks = Math.max(0L, castTimeTicks - elapsedTicks);
+                caster.mob().updateSkillCastingRemaining(remainingTicks);
+                elapsedTicks++;
+                if (elapsedTicks >= castTimeTicks) {
+                    finishMobCast(caster, true, definition, trigger, castLocation, primaryTarget, targets);
+                    cancel();
+                }
+            }
+        };
+        BukkitTask task = runnable.runTaskTimer(plugin, 0L, 1L);
+        castingSessions.put(caster.casterId(), new CastingSession(task, null));
+        return SkillCastResult.success(0.0D, 0L);
+    }
+
+    private void finishMobCast(
+            @NotNull MobSkillCaster caster,
+            boolean execute,
+            @NotNull SkillDefinition definition,
+            @NotNull SkillCastTrigger trigger,
+            @NotNull Location castLocation,
+            @Nullable LivingEntity primaryTarget,
+            @NotNull List<LivingEntity> targets
+    ) {
+        castingSessions.remove(caster.casterId());
+        caster.mob().clearSkillCasting();
+        if (execute) {
+            executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets);
+        }
     }
 
     private void finishCast(
@@ -481,7 +546,7 @@ public class SkillService {
             entry.getValue().task().cancel();
             if (plugin != null) {
                 Player player = plugin.getServer().getPlayer(entry.getKey());
-                if (player != null) {
+                if (player != null && entry.getValue().originalWalkSpeed() != null) {
                     player.setWalkSpeed(entry.getValue().originalWalkSpeed());
                 }
             }
@@ -568,6 +633,6 @@ public class SkillService {
         );
     }
 
-    private record CastingSession(@NotNull BukkitTask task, float originalWalkSpeed) {
+    private record CastingSession(@NotNull BukkitTask task, @Nullable Float originalWalkSpeed) {
     }
 }
