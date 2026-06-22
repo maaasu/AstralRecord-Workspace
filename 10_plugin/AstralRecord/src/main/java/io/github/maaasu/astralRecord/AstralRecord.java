@@ -134,6 +134,9 @@ import io.github.maaasu.astralRecord.feature.status.service.StatusRegenTask;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.storage.service.StorageService;
 import io.github.maaasu.astralRecord.feature.status.event.PlayerHeldItemStatusEventHandler;
+import io.github.maaasu.astralRecord.feature.textdisplay.event.TextDisplayPlacementWorldEventHandler;
+import io.github.maaasu.astralRecord.feature.textdisplay.repository.TextDisplayPlacementRepository;
+import io.github.maaasu.astralRecord.feature.textdisplay.service.TextDisplayPlacementService;
 import io.github.maaasu.astralRecord.feature.trade.event.TradeGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeCancelConfirmGui;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeGui;
@@ -216,6 +219,7 @@ public final class AstralRecord extends JavaPlugin {
     private EventManager eventManager;
     private ParticleDisplayService particleDisplayService;
     private DisplayTextService displayTextService;
+    private TextDisplayPlacementService textDisplayPlacementService;
     private OverheadDisplayService overheadDisplayService;
     private PlayerSettingService playerSettingService;
     private PlayerSettingGui playerSettingGui;
@@ -267,6 +271,7 @@ public final class AstralRecord extends JavaPlugin {
         itemStackFactory = new ItemStackFactory(lootService, itemService);
         mobService = new MobService(this, new MobRepository());
         npcPlacementService = new NpcPlacementService(this, mobService, new NpcPlacementRepository(this));
+        textDisplayPlacementService = new TextDisplayPlacementService(this, new TextDisplayPlacementRepository(this));
         mobSpawnerService = new MobSpawnerService(
                 this,
                 mobService,
@@ -314,7 +319,8 @@ public final class AstralRecord extends JavaPlugin {
                 skillTreeService,
                 waystoneService,
                 gatheringService,
-                gatheringSpawnerService
+                gatheringSpawnerService,
+                textDisplayPlacementService
         );
         CommandManager.getInstance().initialize(this);
     }
@@ -336,6 +342,10 @@ public final class AstralRecord extends JavaPlugin {
         eventManager = new EventManager(this);
         eventManager.registerHandler(
             new NpcPlacementWorldEventHandler(this, npcPlacementService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new TextDisplayPlacementWorldEventHandler(this, textDisplayPlacementService),
             getServer().getPluginManager()
         );
         setupFeature();
@@ -372,6 +382,10 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (playerDeathService != null) {
             playerDeathService.stop();
+        }
+        if (textDisplayPlacementService != null) {
+            textDisplayPlacementService.saveIfDirty();
+            textDisplayPlacementService.stop();
         }
         if (displayTextService != null) {
             displayTextService.stop();
@@ -511,6 +525,7 @@ public final class AstralRecord extends JavaPlugin {
         particleDisplayService = new ParticleDisplayService(playerSettingService);
         mobSpawnerService.setParticleDisplayService(particleDisplayService);
         displayTextService = new DisplayTextService();
+        textDisplayPlacementService.setDisplayTextService(displayTextService);
         bundleUseEffectService = new BundleUseEffectService();
         itemDropAnimationService = new ItemDropAnimationService(this, itemStackFactory, particleDisplayService);
         bundleUseService = new BundleUseService(
@@ -694,6 +709,7 @@ public final class AstralRecord extends JavaPlugin {
         // mob
         mobService.loadAll();
         npcPlacementService.loadAll();
+        textDisplayPlacementService.loadAll();
         mobSpawnerService.loadAll();
         gatheringService.loadAll();
         gatheringSpawnerService.loadAll();

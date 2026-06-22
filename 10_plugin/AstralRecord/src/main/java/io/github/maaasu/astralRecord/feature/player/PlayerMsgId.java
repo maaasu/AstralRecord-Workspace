@@ -554,6 +554,37 @@ public enum PlayerMsgId {
     P_5718(5718),
     // endregion
 
+    // region /feature/textdisplay/command/TextDisplayCommand.java 5770-5779
+    /**
+     * 固定 TextDisplay を配置しました: {0} world={1} x={2} y={3} z={4}
+     */
+    P_5770(5770),
+    /**
+     * 固定 TextDisplay を削除しました: {0}
+     */
+    P_5771(5771),
+    /**
+     * 固定 TextDisplay: {0}件 {1}
+     */
+    P_5772(5772),
+    /**
+     * 固定 TextDisplay 配置をロードしました: {0}件
+     */
+    P_5773(5773),
+    /**
+     * ID は半角英数字、アンダースコア、ハイフンのみ使用できます。
+     */
+    P_5774(5774),
+    /**
+     * 固定 TextDisplay が見つかりません: {0}
+     */
+    P_5775(5775),
+    /**
+     * 固定 TextDisplay は登録されていません。
+     */
+    P_5776(5776),
+    // endregion
+
     // region /feature/world/command/WorldCommand.java 5750-5769
     P_5751(5751),
     P_5752(5752),

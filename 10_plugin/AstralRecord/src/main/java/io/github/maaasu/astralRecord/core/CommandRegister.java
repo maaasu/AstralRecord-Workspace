@@ -44,6 +44,9 @@ import io.github.maaasu.astralRecord.feature.shop.command.ShopTabCompleter;
 import io.github.maaasu.astralRecord.feature.storage.command.StorageCommand;
 import io.github.maaasu.astralRecord.feature.status.command.StatusCommand;
 import io.github.maaasu.astralRecord.feature.status.command.StatusTabCompleter;
+import io.github.maaasu.astralRecord.feature.textdisplay.command.TextDisplayCommand;
+import io.github.maaasu.astralRecord.feature.textdisplay.command.TextDisplayTabCompleter;
+import io.github.maaasu.astralRecord.feature.textdisplay.service.TextDisplayPlacementService;
 import io.github.maaasu.astralRecord.feature.trade.command.TradeCommand;
 import io.github.maaasu.astralRecord.feature.trade.command.TradeTabCompleter;
 import io.github.maaasu.astralRecord.feature.user.command.UserCommand;
@@ -77,6 +80,7 @@ public class CommandRegister {
     private final WaystoneService waystoneService;
     private final GatheringService gatheringService;
     private final GatheringSpawnerService gatheringSpawnerService;
+    private final TextDisplayPlacementService textDisplayPlacementService;
 
     public CommandRegister(
             ItemService itemService,
@@ -88,7 +92,8 @@ public class CommandRegister {
             SkillTreeService skillTreeService,
             WaystoneService waystoneService,
             GatheringService gatheringService,
-            GatheringSpawnerService gatheringSpawnerService
+            GatheringSpawnerService gatheringSpawnerService,
+            TextDisplayPlacementService textDisplayPlacementService
     ) {
         this.itemService = itemService;
         this.itemStackFactory = itemStackFactory;
@@ -100,6 +105,7 @@ public class CommandRegister {
         this.waystoneService = waystoneService;
         this.gatheringService = gatheringService;
         this.gatheringSpawnerService = gatheringSpawnerService;
+        this.textDisplayPlacementService = textDisplayPlacementService;
         registerCommand();
     }
 
@@ -132,6 +138,7 @@ public class CommandRegister {
         cm.registerCommand("trade", new TradeCommand(), new TradeTabCompleter());
         cm.registerCommand("shop", new ShopCommand(), new ShopTabCompleter());
         cm.registerCommand("web", new WebAuthCommand(new WebAuthService(new WebAuthRepository())));
+        cm.registerCommand("textdisplay", new TextDisplayCommand(textDisplayPlacementService), new TextDisplayTabCompleter(textDisplayPlacementService));
         cm.registerCommand("test", new TestCommand(AstralRecord.getInstance()), new TestTabCompleter());
         cm.registerCommand("testskilltree", new SkillTreeSpawnCheckCommand(), new SkillTreeSpawnCheckTabCompleter());
         cm.registerCommand("astreload", new ReloadCommand());

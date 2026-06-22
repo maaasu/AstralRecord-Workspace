@@ -10,6 +10,7 @@
 - `src/main/java/io/github/maaasu/astralRecord/feature/mob/repository/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/mob/service/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/spawner/*`
+- `src/main/java/io/github/maaasu/astralRecord/feature/textdisplay/*`
 
 ## ドキュメント一覧（推奨順）
 
@@ -71,3 +72,4 @@
 
 - 2026-06-09: スポナー設計の正本対象実装パスは `feature/spawner/*` に統一する。旧 `feature/mob/spawner/*` は、残存している場合も本 feature docs の対象外とし、コード側の棚卸しは別タスクで扱う。
 - 2026-06-09: 撃破時の金銭払い出しは `currency` feature 依存として扱い、「未実装ならログのみ」の暫定前提は外す。
+- 2026-06-22: NPC と同様にワールド上へ滞在する固定 TextDisplay 配置は `feature/textdisplay/*` で扱う。配置データはプラグインデータフォルダ配下の `text_displays.yml` に保存し、起動時とワールドロード後に復元する。
