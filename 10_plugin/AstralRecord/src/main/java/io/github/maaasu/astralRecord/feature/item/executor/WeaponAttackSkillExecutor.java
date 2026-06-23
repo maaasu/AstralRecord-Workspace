@@ -511,11 +511,11 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             return new CastOrigin(location, location.getDirection().normalize(), AstEntity.player(caster.player()));
         }
         if (context.caster() instanceof MobSkillCaster caster) {
-            Entity entity = resolveBukkitEntity(AstEntity.mob(caster.mob()));
-            Location location = entity instanceof LivingEntity livingEntity
-                    ? livingEntity.getEyeLocation().clone()
-                    : caster.mob().currentLocation().add(0.0D, 1.0D, 0.0D);
-            Vector direction = resolveMobDirection(location, context.primaryTarget());
+            Location location = context.castLocation().clone();
+            Vector direction = location.getDirection();
+            if (direction.lengthSquared() <= 1.0E-6D) {
+                direction = resolveMobDirection(location, context.primaryTarget());
+            }
             return new CastOrigin(location, direction, AstEntity.mob(caster.mob()));
         }
         return null;

@@ -23,6 +23,7 @@ import java.util.List;
  * @param lore          説明文
  * @param tags          検索・分類用タグ
  * @param skin          外見スキン設定（任意）
+ * @param variant       見た目上の個体差を固定する設定
  * @param equipment     表示装備設定
  * @param baseStats     ベースステータス（StatusType ベース）
  * @param idle          待機行動設定
@@ -44,6 +45,7 @@ public record MobTemplate(
         @NotNull List<String> lore,
         @NotNull List<String> tags,
         @Nullable MobSkin skin,
+        @NotNull MobVariantConfig variant,
         @NotNull MobEquipmentConfig equipment,
         @NotNull List<MobBaseStat> baseStats,
         @NotNull MobShieldConfig shield,
@@ -55,10 +57,62 @@ public record MobTemplate(
         @Nullable MobDropConfig drops
 ) {
 
+    public MobTemplate(
+            int schemaVersion,
+            @NotNull String id,
+            @NotNull MobCategory category,
+            @NotNull String displayName,
+            @Nullable String title,
+            int level,
+            @NotNull EntityType entityType,
+            boolean nameVisible,
+            @Nullable String icon,
+            @NotNull List<String> lore,
+            @NotNull List<String> tags,
+            @Nullable MobSkin skin,
+            @NotNull MobEquipmentConfig equipment,
+            @NotNull List<MobBaseStat> baseStats,
+            @NotNull MobShieldConfig shield,
+            @NotNull MobIdleConfig idle,
+            boolean damageImmune,
+            @NotNull MobInteractionsConfig interactions,
+            @Nullable MobTargetingConfig targeting,
+            @Nullable MobCombatConfig combat,
+            @Nullable MobDropConfig drops
+    ) {
+        this(
+                schemaVersion,
+                id,
+                category,
+                displayName,
+                title,
+                level,
+                entityType,
+                nameVisible,
+                icon,
+                lore,
+                tags,
+                skin,
+                MobVariantConfig.DEFAULT,
+                equipment,
+                baseStats,
+                shield,
+                idle,
+                damageImmune,
+                interactions,
+                targeting,
+                combat,
+                drops
+        );
+    }
+
     public MobTemplate {
         lore = lore == null ? List.of() : List.copyOf(lore);
         tags = tags == null ? List.of() : List.copyOf(tags);
         baseStats = baseStats == null ? List.of() : List.copyOf(baseStats);
+        if (variant == null) {
+            variant = MobVariantConfig.DEFAULT;
+        }
         if (equipment == null) {
             equipment = MobEquipmentConfig.EMPTY;
         }

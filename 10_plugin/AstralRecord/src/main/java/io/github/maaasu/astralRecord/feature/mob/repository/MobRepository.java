@@ -20,6 +20,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkin;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTargetingConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
+import io.github.maaasu.astralRecord.feature.mob.model.MobVariantConfig;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -151,6 +152,7 @@ public class MobRepository {
                 parseStringArray(obj.getAsJsonArray("lore")),
                 parseStringArray(obj.getAsJsonArray("tags")),
                 parseSkin(getObject(obj, "skin")),
+                parseVariant(getObject(obj, "variant")),
                 parseEquipment(getObject(obj, "equipment")),
                 parseBaseStats(obj.getAsJsonArray("baseStats"), id),
                 parseShield(getObject(obj, "shield")),
@@ -185,6 +187,12 @@ public class MobRepository {
     private MobSkin parseSkin(@Nullable JsonObject obj) {
         if (obj == null) return null;
         return new MobSkin(optionalString(obj, "texture"), optionalString(obj, "signature"));
+    }
+
+    @NotNull
+    private MobVariantConfig parseVariant(@Nullable JsonObject obj) {
+        if (obj == null) return MobVariantConfig.DEFAULT;
+        return MobVariantConfig.fromRawAge(optionalString(obj, "age"));
     }
 
     @NotNull

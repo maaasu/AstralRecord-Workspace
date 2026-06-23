@@ -347,7 +347,7 @@ public class MobAiService {
                 new MobSkillCaster(instance),
                 skillId,
                 SkillCastTrigger.MOB_AI,
-                instance.currentLocation(),
+                castOrigin(instance, target),
                 target,
                 List.of(target)
         );
@@ -591,6 +591,19 @@ public class MobAiService {
         double dx = a.getX() - b.getX();
         double dz = a.getZ() - b.getZ();
         return dx * dx + dz * dz;
+    }
+
+    private @NotNull Location castOrigin(@NotNull MobInstance instance, @NotNull Player target) {
+        Location origin = instance.currentLocation().add(0.0D, 1.0D, 0.0D);
+        Vector direction = target.getEyeLocation().toVector().subtract(origin.toVector());
+        if (direction.lengthSquared() <= 1.0E-6D) {
+            direction = origin.getDirection();
+        }
+        if (direction.lengthSquared() <= 1.0E-6D) {
+            direction = new Vector(0.0D, 0.0D, 1.0D);
+        }
+        origin.setDirection(direction.normalize());
+        return origin;
     }
 
     @Nullable

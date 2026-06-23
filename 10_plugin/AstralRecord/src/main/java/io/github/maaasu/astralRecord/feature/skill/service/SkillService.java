@@ -416,6 +416,7 @@ public class SkillService {
 
         long castTimeTicks = definition.getCastTimeTicks();
         caster.mob().startSkillCasting(definition.getName(), castTimeTicks);
+        playMobCastStartSound(castLocation, definition);
 
         BukkitRunnable runnable = new BukkitRunnable() {
             private long elapsedTicks = 0L;
@@ -571,6 +572,27 @@ public class SkillService {
         // YAML 上は "entity.player.attack.sweep" のようなドット区切りで指定されるため
         // String オーバーロード経由でそのまま渡し、サウンドキー解決はサーバー側に委ねる。
         location.getWorld().playSound(location, soundKey, 1.0f, 1.0f);
+    }
+
+    private void playMobCastStartSound(@NotNull Location location, @NotNull SkillDefinition definition) {
+        Object raw = definition.getParams().get("castSound");
+        if (!(raw instanceof String soundKey) || soundKey.isBlank()) {
+            return;
+        }
+        if (location.getWorld() == null) {
+            return;
+        }
+        float volume = floatParam(definition, "castSoundVolume", 1.0F);
+        float pitch = floatParam(definition, "castSoundPitch", 1.0F);
+        location.getWorld().playSound(location, soundKey.trim(), volume, pitch);
+    }
+
+    private float floatParam(@NotNull SkillDefinition definition, @NotNull String key, float defaultValue) {
+        Object raw = definition.getParams().get(key);
+        if (raw instanceof Number number) {
+            return number.floatValue();
+        }
+        return defaultValue;
     }
 
     private @NotNull String normalize(@NotNull String value) {

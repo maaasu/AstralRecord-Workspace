@@ -29,6 +29,7 @@ AI（行動ロジック）もプラグイン独自実装であり、本スキー
 | `level`         | Integer      | ○  | -         | Mobのレベル                                                 |
 | `entityType`    | String       | ○  | -         | Bukkit EntityType（ProtocolLib表示用。例: `ZOMBIE`）           |
 | `skin`          | Map          | ×  | Null      | エンティティの外見設定（後述。entityType が `PLAYER` の場合に主に使用）          |
+| `variant`       | Map          | ×  | `age: ADULT` | 同一マスタから生まれる実体 Mob の見た目差分を固定する設定 |
 | `nameVisible`   | Boolean      | ×  | true      | ネームタグ表示の有無                                              |
 | `icon`          | String       | ×  | Null      | UI/図鑑表示用アイコン（Bukkit Material名）                          |
 | `lore`          | List<String> | ×  | emptyList | 説明文（§ または & の色コード利用可能）                                  |
@@ -52,6 +53,14 @@ Mob に HP より先に消費されるシールドを持たせる場合だけ定
 |:-----------------|:-------|:--:|:------|:-------------------------|
 | `shield.enabled` | Boolean | ×  | false | シールドを有効化するか。           |
 | `shield.max`     | Double  | ×  | 0     | 最大シールド値。`enabled: true` の場合に使用。 |
+
+### variant（見た目差分固定設定）
+
+同一マスタの Mob がランダムな見た目差分を持たないようにするための設定です。未指定時は `age: ADULT` として扱います。
+
+| キー | 型 | 必須 | 既定値 | 説明 |
+|:--|:--|:--:|:--|:--|
+| `variant.age` | String | × | `ADULT` | 年齢表現。`ADULT` / `BABY` |
 
 ### equipment（装備設定）
 

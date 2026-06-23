@@ -2,14 +2,17 @@ package io.github.maaasu.astralRecord.feature.mob.service;
 
 import io.github.maaasu.astralRecord.feature.mob.model.IdleBehavior;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
+import io.github.maaasu.astralRecord.feature.mob.model.MobEquipmentConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobIdleConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
+import io.github.maaasu.astralRecord.feature.mob.model.MobVariantConfig;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.entity.Ageable;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Mob;
 import org.bukkit.util.Vector;
@@ -27,6 +30,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 class MobEntityControllerTest extends MockBukkitTestBase {
 
@@ -185,5 +189,86 @@ class MobEntityControllerTest extends MockBukkitTestBase {
 
         verify(movementSpeed, never()).setBaseValue(0.0D);
         verify(mob, never()).getAttribute(Attribute.JUMP_STRENGTH);
+    }
+
+    @Test
+    void applyVariantLocksDefaultAdultAge() {
+        PluginMock plugin = PluginMock.builder()
+                .withPluginName("AstralRecordTest")
+                .withPluginVersion("1.0.0")
+                .build();
+        MobEntityController controller = new MobEntityController(plugin);
+        Mob mob = mock(Mob.class, withSettings().extraInterfaces(Ageable.class));
+        Ageable ageable = (Ageable) mob;
+        MobTemplate template = new MobTemplate(
+                1,
+                "zombie",
+                MobCategory.ENEMY,
+                "Zombie",
+                null,
+                1,
+                EntityType.ZOMBIE,
+                true,
+                null,
+                List.of(),
+                List.of(),
+                null,
+                MobEquipmentConfig.EMPTY,
+                List.of(),
+                MobShieldConfig.EMPTY,
+                MobIdleConfig.defaults(),
+                false,
+                null,
+                null,
+                null,
+                null
+        );
+
+        controller.applyVariant(template, mob);
+
+        verify(ageable).setAdult();
+        verify(ageable).setAgeLock(true);
+        verify(ageable, never()).setBaby();
+    }
+
+    @Test
+    void applyVariantCanLockBabyAgeFromTemplate() {
+        PluginMock plugin = PluginMock.builder()
+                .withPluginName("AstralRecordTest")
+                .withPluginVersion("1.0.0")
+                .build();
+        MobEntityController controller = new MobEntityController(plugin);
+        Mob mob = mock(Mob.class, withSettings().extraInterfaces(Ageable.class));
+        Ageable ageable = (Ageable) mob;
+        MobTemplate template = new MobTemplate(
+                1,
+                "baby_zombie",
+                MobCategory.ENEMY,
+                "Baby Zombie",
+                null,
+                1,
+                EntityType.ZOMBIE,
+                true,
+                null,
+                List.of(),
+                List.of(),
+                null,
+                new MobVariantConfig(MobVariantConfig.Age.BABY),
+                MobEquipmentConfig.EMPTY,
+                List.of(),
+                MobShieldConfig.EMPTY,
+                MobIdleConfig.defaults(),
+                false,
+                null,
+                null,
+                null,
+                null
+        );
+
+        controller.applyVariant(template, mob);
+
+        verify(ageable).setBaby();
+        verify(ageable).setAgeLock(true);
+        verify(ageable, never()).setAdult();
     }
 }

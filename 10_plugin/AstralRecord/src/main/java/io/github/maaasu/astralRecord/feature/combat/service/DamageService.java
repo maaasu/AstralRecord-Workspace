@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageType;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.service.MobCombatService;
+import io.github.maaasu.astralRecord.feature.mob.service.MobKnockbackService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
@@ -43,6 +44,7 @@ public final class DamageService {
     private final StatusService statusService;
     private final MobService mobService;
     private final MobCombatService mobCombatService;
+    private final MobKnockbackService knockbackService;
     private final DamageCalculator damageCalculator;
     private final DisplayTextService displayTextService;
     private final PlayerSettingService playerSettingService;
@@ -59,11 +61,12 @@ public final class DamageService {
             @NotNull StatusService statusService,
             @NotNull MobService mobService,
             @NotNull MobCombatService mobCombatService,
+            @NotNull MobKnockbackService knockbackService,
             @NotNull DisplayTextService displayTextService,
             @NotNull PlayerSettingService playerSettingService,
             @NotNull ParticleDisplayService particleDisplayService
     ) {
-        this(statusService, mobService, mobCombatService, displayTextService, playerSettingService, particleDisplayService, null);
+        this(statusService, mobService, mobCombatService, knockbackService, displayTextService, playerSettingService, particleDisplayService, null);
     }
 
     /**
@@ -77,6 +80,7 @@ public final class DamageService {
             @NotNull StatusService statusService,
             @NotNull MobService mobService,
             @NotNull MobCombatService mobCombatService,
+            @NotNull MobKnockbackService knockbackService,
             @NotNull DisplayTextService displayTextService,
             @NotNull PlayerSettingService playerSettingService,
             @NotNull ParticleDisplayService particleDisplayService,
@@ -85,6 +89,7 @@ public final class DamageService {
         this.statusService = statusService;
         this.mobService = mobService;
         this.mobCombatService = mobCombatService;
+        this.knockbackService = knockbackService;
         this.damageCalculator = new DamageCalculator();
         this.displayTextService = displayTextService;
         this.playerSettingService = playerSettingService;
@@ -106,12 +111,17 @@ public final class DamageService {
         }
 
         event.setDamage(0.0D);
+        event.setCancelled(true);
 
         if (!victim.isManaged()) {
             return;
         }
 
         if (victim.isMob() && victim.mob() != null && victim.mob().template().damageImmune()) {
+            return;
+        }
+
+        if (attacker.isMob() && victim.isPlayer()) {
             return;
         }
 
@@ -273,12 +283,17 @@ public final class DamageService {
         }
 
         if (result.finalDamage() <= 0.0D) {
+            if (result.shieldDamage() > 0.0D) {
+                applyDamageKnockback(attacker, victim);
+            }
             return;
         }
 
         if (victim.isPlayer()) {
             if (victim.player() != null) {
                 var updated = statusService.consumeHp(victim.player(), result.finalDamage());
+                playPlayerHurtEffect(victim.player().getBukkit());
+                applyDamageKnockback(attacker, victim);
                 if (updated.getCurrentHp() <= 0.0D && playerDeathService != null) {
                     playerDeathService.startDeath(victim.player(), victim.location());
                 }
@@ -294,6 +309,7 @@ public final class DamageService {
         if (mob == null) return;
         mob.currentHealth(Math.max(0.0D, mob.currentHealth() - result.finalDamage()));
         playMobHurtEffect(mob.bukkitEntityId());
+        applyDamageKnockback(attacker, victim);
         if (attacker != null && attacker.isPlayer()) {
             if (isPlayerDead(attacker.id())) {
                 return;
@@ -407,6 +423,18 @@ public final class DamageService {
             livingEntity.playHurtAnimation(0.0F);
             livingEntity.setNoDamageTicks(0);
         }
+    }
+
+    private void playPlayerHurtEffect(@NotNull Player player) {
+        player.playHurtAnimation(0.0F);
+        player.setNoDamageTicks(0);
+    }
+
+    private void applyDamageKnockback(@Nullable AstEntity attacker, @NotNull AstEntity victim) {
+        if (attacker == null || !attacker.isManaged() || !victim.isManaged()) {
+            return;
+        }
+        knockbackService.apply(attacker, victim, 1.0D);
     }
 
     private void playMobDeathEffect(@Nullable UUID entityId, @NotNull Location location) {

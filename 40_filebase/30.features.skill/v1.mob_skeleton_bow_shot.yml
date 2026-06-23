@@ -7,7 +7,7 @@ description: "&7Mob AI が使用する弓の通常攻撃。"
 icon: BOW
 cooldownTicks: 30
 manaCost: 0
-castTimeTicks: 18
+castTimeTicks: 34
 requiredLevel: 1
 params:
   resourceType: ENERGY
@@ -26,6 +26,9 @@ params:
   hitRadius: 0.75
   hitStepDistance: 0.9
   maxTargets: 1
+  castSound: entity.skeleton.ambient
+  castSoundVolume: 0.7
+  castSoundPitch: 1.35
   sound: entity.arrow.shoot
   soundVolume: 1.0
   soundPitch: 1.15
@@ -37,7 +40,7 @@ params:
   trailSpreadY: 0.02
   trailSpreadZ: 0.02
   trailExtra: 0.0
-  projectileSpeed: 1.35
+  projectileSpeed: 0.75
   projectileGravity: 0.04
 tags:
   - mob

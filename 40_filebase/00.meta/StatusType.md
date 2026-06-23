@@ -38,6 +38,7 @@
 | DEFENSE  | `DEFENSE`                 | 物理防御力    | 近接・間接攻撃による物理ダメージを軽減               |
 | DEFENSE  | `MAGIC_DEFENSE`           | 魔法防御力    | 魔法攻撃によるダメージを軽減                    |
 | DEFENSE  | `EVASION`                 | 回避率      | 攻撃を完全に回避する確率（%）                   |
+| DEFENSE  | `KNOCKBACK_RESISTANCE`    | ノックバック耐性 | 受けるノックバック量を割合で軽減する |
 | UTILITY  | `HP_REGEN`                | HP回復力    | HP自然回復量（0秒あたり）                    |
 | UTILITY  | `MP_REGEN`                | MP回復力    | MP自然回復量（0秒あたり）                    |
 | UTILITY  | `ENERGY_REGEN`            | EN回復力    | エネルギー自然回復量（0秒あたり）                 |

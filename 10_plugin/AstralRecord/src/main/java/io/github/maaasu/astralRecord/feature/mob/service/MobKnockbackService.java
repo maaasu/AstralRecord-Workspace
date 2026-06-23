@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.mob.service;
 
+import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -9,8 +11,8 @@ import org.jetbrains.annotations.NotNull;
 /**
  * 攻撃方向に対するノックバックベクトルを算出し、対象（プレイヤー / Mob）へ送出する。
  *
- * <p>ノックバック耐性は {@code StatusType.KNOCKBACK_RESISTANCE} が未定義のため、
- * 現状は一律の基本量で適用する（[[12_9.00-未決事項]] 参照）。</p>
+ * <p>ノックバック量は {@code StatusType.KNOCKBACK_RESISTANCE} で軽減し、
+ * ダメージ処理後の共通経路から適用する。</p>
  */
 public class MobKnockbackService {
 
@@ -29,6 +31,27 @@ public class MobKnockbackService {
      */
     public MobKnockbackService(@NotNull MobService mobService) {
         this.mobService = mobService;
+    }
+
+    /**
+     * ダメージ処理から呼び出す共通ノックバックを適用します。
+     *
+     * @param source     攻撃元
+     * @param target     被弾対象
+     * @param multiplier ノックバック倍率
+     */
+    public void apply(@NotNull AstEntity source, @NotNull AstEntity target, double multiplier) {
+        double effectiveMultiplier = multiplier * resistanceScale(target);
+        if (effectiveMultiplier <= 0.0D) {
+            return;
+        }
+        if (target.isPlayer() && target.player() != null) {
+            applyToPlayer(source.location(), target.player().getBukkit(), effectiveMultiplier);
+            return;
+        }
+        if (target.isMob() && target.mob() != null) {
+            applyToMob(source.location(), target.mob(), effectiveMultiplier);
+        }
     }
 
     /**
@@ -78,5 +101,10 @@ public class MobKnockbackService {
         double vz = dz * inv * DEFAULT_HORIZONTAL * multiplier;
         double vy = DEFAULT_VERTICAL * multiplier;
         return new Vector(vx, vy, vz);
+    }
+
+    private double resistanceScale(@NotNull AstEntity target) {
+        double resistance = Math.clamp(target.statValue(StatusType.KNOCKBACK_RESISTANCE), 0.0D, 100.0D);
+        return 1.0D - resistance / 100.0D;
     }
 }

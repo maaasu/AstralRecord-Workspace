@@ -28,6 +28,16 @@ filebase 側では、パッシブスキルだった場合に `passive.bindRequir
 | `params` | Map<String, Any> | 任意 | `{}` | 実装側パラメータ |
 | `tags` | List<String> | 任意 | `[]` | 任意タグ |
 
+### normal_attack 共通 params
+
+`implementationId: normal_attack` の Mob 攻撃では、詠唱開始時の予兆音として以下を指定できます。
+
+| キー | 型 | 必須 | 既定値 | 説明 |
+| --- | --- | --- | --- | --- |
+| `castSound` | String | 任意 | `null` | 詠唱開始時に再生する sound key |
+| `castSoundVolume` | Double | 任意 | `1.0` | 詠唱開始音の音量 |
+| `castSoundPitch` | Double | 任意 | `1.0` | 詠唱開始音のピッチ |
+
 ## 補足
 
 - 発動系スキルかパッシブスキルかは `implementationId` に対応する plugin 実装で決まります。

@@ -53,7 +53,6 @@ import java.util.concurrent.ThreadLocalRandom;
 public class MobCombatService {
 
     private final MobService mobService;
-    private final MobKnockbackService knockbackService;
     private final MobDropService dropService;
     private final MobDropPresentationService dropPresentationService;
     private final PartyService partyService;
@@ -69,12 +68,10 @@ public class MobCombatService {
      * コンストラクタ。
      *
      * @param mobService       Mob サービス
-     * @param knockbackService ノックバックサービス
      * @param dropService      ドロップ抽選サービス
      */
     public MobCombatService(
             @NotNull MobService mobService,
-            @NotNull MobKnockbackService knockbackService,
             @NotNull MobDropService dropService,
             @NotNull MobDropPresentationService dropPresentationService,
             @NotNull PartyService partyService,
@@ -85,7 +82,6 @@ public class MobCombatService {
             @NotNull SkillTreeService skillTreeService,
             @NotNull ParticleDisplayService particleDisplayService) {
         this.mobService = mobService;
-        this.knockbackService = knockbackService;
         this.dropService = dropService;
         this.dropPresentationService = dropPresentationService;
         this.partyService = partyService;
@@ -202,7 +198,6 @@ public class MobCombatService {
         double finalDamage = applyCriticalMultiplier(instance, baseDamage);
 
         applyDamageToPlayer(target, finalDamage, damageTypeOf(combat.style()));
-        knockbackService.applyToPlayer(instance.currentLocation(), target, 1.0);
         instance.lastAttackTick(serverTick);
     }
 
@@ -282,8 +277,6 @@ public class MobCombatService {
         instance.currentHealth(instance.currentHealth() - effective);
         instance.threatTable().add(attacker.getBukkit().getUniqueId(), effective);
         instance.lastAttackerUuid(attacker.getBukkit().getUniqueId());
-
-        knockbackService.applyToMob(attacker.getBukkit().getLocation(), instance, 1.0);
 
         if (instance.state() == MobState.IDLE) {
             instance.state(MobState.AGGRO);

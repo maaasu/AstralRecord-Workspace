@@ -5,9 +5,9 @@ implementationId: normal_attack
 name: "&cゴブリンスラッシュ"
 description: "&7Mob AI が使用する近接攻撃。"
 icon: IRON_SWORD
-cooldownTicks: 20
+cooldownTicks: 30
 manaCost: 0
-castTimeTicks: 12
+castTimeTicks: 28
 requiredLevel: 1
 params:
   resourceType: ENERGY
@@ -20,11 +20,11 @@ params:
   spreadY: 0.0
   spreadZ: 0.0
   extra: 0.0
-  forwardOffset: 1.0
+  forwardOffset: 0.6
   upwardOffset: -0.1
-  hitRange: 2.6
-  hitRadius: 1.0
-  hitStepDistance: 0.65
+  hitRange: 1.4
+  hitRadius: 0.55
+  hitStepDistance: 0.35
   maxTargets: 1
   trailSteps: 2
   trailIntervalTicks: 1
@@ -34,6 +34,9 @@ params:
   trailSpreadY: 0.03
   trailSpreadZ: 0.03
   trailExtra: 0.0
+  castSound: entity.evoker.prepare_attack
+  castSoundVolume: 0.8
+  castSoundPitch: 1.2
   sound: entity.player.attack.sweep
   soundVolume: 0.9
   soundPitch: 0.9

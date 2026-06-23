@@ -5,6 +5,8 @@ category: ENEMY
 name: "&cゴブリンウォリアー"
 level: 5
 entityType: ZOMBIE
+variant:
+  age: ADULT
 icon: ZOMBIE_HEAD
 lore:
   - "&7森に生息する好戦的なゴブリン。"
@@ -45,7 +47,7 @@ ai:
     leashRange: 30
   combat:
     style: MELEE
-    preferredRange: 1.0
-    attackIntervalTicks: 20
+    preferredRange: 1.5
+    attackIntervalTicks: 30
     skills:
       - ref: skill:mob_goblin_slash

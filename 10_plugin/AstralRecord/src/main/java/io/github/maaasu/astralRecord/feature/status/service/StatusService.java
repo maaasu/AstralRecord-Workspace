@@ -415,6 +415,7 @@ public class StatusService {
             case DEFENSE -> 5.0D;
             case MAGIC_DEFENSE -> 3.0D;
             case EVASION -> 3.0D;
+            case KNOCKBACK_RESISTANCE -> 0.0D;
             // 回復・ユーティリティ系
             case HP_REGEN -> 1.0D;
             case MP_REGEN -> 0.5D;
@@ -773,6 +774,7 @@ public class StatusService {
                 case DEFENSE -> 3.0D;
                 case MAGIC_DEFENSE -> 2.0D;
                 case EVASION -> 0.0D;
+                case KNOCKBACK_RESISTANCE -> 0.0D;
                 case HP_REGEN -> 0.0D;
                 case MP_REGEN -> 0.0D;
                 case ENERGY_REGEN -> 0.0D;
@@ -808,6 +810,7 @@ public class StatusService {
                 case DEFENSE -> 6.0D;
                 case MAGIC_DEFENSE -> 6.0D;
                 case EVASION -> 5.0D;
+                case KNOCKBACK_RESISTANCE -> 0.0D;
                 case HP_REGEN -> 2.0D;
                 case MP_REGEN -> 2.0D;
                 case ENERGY_REGEN -> 3.0D;
@@ -848,6 +851,7 @@ public class StatusService {
                 case DEFENSE -> 4.0D;
                 case MAGIC_DEFENSE -> 4.0D;
                 case EVASION -> 2.0D;
+                case KNOCKBACK_RESISTANCE -> 0.0D;
                 case HP_REGEN -> 1.0D;
                 case MP_REGEN -> 1.0D;
                 case ENERGY_REGEN -> 2.0D;
@@ -886,6 +890,7 @@ public class StatusService {
                 case DEFENSE -> 1.0D;
                 case MAGIC_DEFENSE -> 1.0D;
                 case EVASION -> 0.5D;
+                case KNOCKBACK_RESISTANCE -> 0.0D;
                 case HP_REGEN -> 0.0D;
                 case MP_REGEN -> 0.0D;
                 case ENERGY_REGEN -> 0.0D;

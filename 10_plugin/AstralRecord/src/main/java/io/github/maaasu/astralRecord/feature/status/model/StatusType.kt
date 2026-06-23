@@ -130,8 +130,11 @@ enum class StatusType(
     /** 魔法防御力 — 魔法攻撃によるダメージを軽減 */
     MAGIC_DEFENSE("魔法防御力", Category.DEFENSE),
 
-    /** 回避率 — 攻撃を完全に回避する確率 */
+    /** 回避率 - 攻撃を完全に回避する確率 */
     EVASION("回避率", Category.DEFENSE, "%", 1),
+
+    /** ノックバック耐性 - 受けるノックバック量を割合で軽減する */
+    KNOCKBACK_RESISTANCE("ノックバック耐性", Category.DEFENSE, "%", 1),
     // endregion
 
     // region 回復・ユーティリティ系

@@ -12,6 +12,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
+import org.bukkit.entity.Ageable;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Mob;
 import org.bukkit.inventory.EntityEquipment;
@@ -120,6 +121,7 @@ public class MobEntityController {
         mob.setSilent(true);
         mob.customName(null);
         mob.setCustomNameVisible(false);
+        applyVariant(template, mob);
         clearEquipment(mob.getEquipment());
 
         mob.getPersistentDataContainer().set(instanceIdKey, PersistentDataType.STRING, instance.instanceId().toString());
@@ -128,6 +130,18 @@ public class MobEntityController {
         mob.getPathfinder().setCanPassDoors(true);
         mob.getPathfinder().setCanFloat(true);
         applyStationaryNpcAttributes(template, mob);
+    }
+
+    void applyVariant(@NotNull MobTemplate template, @NotNull Mob mob) {
+        if (!(mob instanceof Ageable ageable)) {
+            return;
+        }
+
+        switch (template.variant().age()) {
+            case BABY -> ageable.setBaby();
+            case ADULT -> ageable.setAdult();
+        }
+        ageable.setAgeLock(true);
     }
 
     /**
