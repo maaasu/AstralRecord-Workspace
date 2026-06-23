@@ -57,7 +57,6 @@ public final class ClassScreenView extends BaseMenuScreenView {
         @NotNull List<ClassViewEntry> classes
     ) {
         fill(inventory);
-        inventory.setItem(BACK_SLOT, backItem());
         for (ClassViewEntry entry : classes) {
             int slot = slotFor(entry.getId());
             if (slot >= 0) {

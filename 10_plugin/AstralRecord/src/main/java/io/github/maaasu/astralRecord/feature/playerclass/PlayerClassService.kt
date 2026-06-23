@@ -89,7 +89,7 @@ class PlayerClassService {
     fun getClassViewEntries(astPlayer: AstPlayer): List<ClassViewEntry> {
         val skillRegistry = AstralRecord.getInstance().skillService?.registry()
         return classService.getLoadedClasses().map { model ->
-            val changeAvailability = evaluateChangeAvailability(astPlayer, model)
+            val changeAvailability = evaluateChangeRequirements(astPlayer, model)
             ClassViewEntry(
                 id = model.id,
                 typeDisplay = resolveTypeDisplay(model.type),
@@ -97,7 +97,7 @@ class PlayerClassService {
                 description = model.description?.let { ColorCodeUtil.toLegacyText(it, "") },
                 icon = model.icon,
                 roleDisplay = resolveRoleDisplay(model.role),
-                unlockConditions = buildUnlockConditionLines(model),
+                unlockConditions = buildUnlockConditionLines(astPlayer, model),
                 changeAvailable = changeAvailability.available,
                 changeBlockedReasons = changeAvailability.blockedReasons,
                 baseStats = model.baseStats.map { formatStatLine(it, false) },
@@ -118,7 +118,7 @@ class PlayerClassService {
 
     fun canChangeClass(astPlayer: AstPlayer, classId: String): Boolean {
         val model = classService.getLoadedClass(classId) ?: return false
-        return evaluateChangeAvailability(astPlayer, model).available
+        return astPlayer.hasAdminPermission() || evaluateChangeRequirements(astPlayer, model).available
     }
 
     fun getClassSuggestions(): List<String> {
@@ -152,11 +152,7 @@ class PlayerClassService {
 
     fun clearCache() = classService.clearCache()
 
-    private fun evaluateChangeAvailability(astPlayer: AstPlayer, model: ClassModel): ChangeAvailability {
-        if (astPlayer.hasAdminPermission()) {
-            return ChangeAvailability(true, emptyList())
-        }
-
+    private fun evaluateChangeRequirements(astPlayer: AstPlayer, model: ClassModel): ChangeAvailability {
         val blockedReasons = mutableListOf<String>()
         if (model.unlockLevel > 1 && astPlayer.account.level < model.unlockLevel) {
             blockedReasons += "&e\u30d7\u30ec\u30a4\u30e4\u30fcLv.${model.unlockLevel}&7 \u304c\u5fc5\u8981\u3067\u3059"
@@ -174,13 +170,20 @@ class PlayerClassService {
         return ChangeAvailability(blockedReasons.isEmpty(), blockedReasons)
     }
 
-    private fun buildUnlockConditionLines(model: ClassModel): List<String> {
+    private fun buildUnlockConditionLines(astPlayer: AstPlayer, model: ClassModel): List<String> {
         val lines = mutableListOf<String>()
         if (model.unlockLevel > 1) {
             lines += "&e\u30d7\u30ec\u30a4\u30e4\u30fcLv.${model.unlockLevel}"
         }
         for (requirement in model.unlockClassLevel) {
-            lines += "${getDisplayName(requirement.classId)} &7Lv.${requirement.level}"
+            val sameClass = astPlayer.classId.equals(requirement.classId, ignoreCase = true)
+            val enoughLevel = astPlayer.classLevel >= requirement.level
+            val displayName = if (!sameClass || !enoughLevel) {
+                "&c${ColorCodeUtil.toPlainText(getDisplayName(requirement.classId), requirement.classId)}"
+            } else {
+                getDisplayName(requirement.classId)
+            }
+            lines += "$displayName &7Lv.${requirement.level}"
         }
         return lines
     }
