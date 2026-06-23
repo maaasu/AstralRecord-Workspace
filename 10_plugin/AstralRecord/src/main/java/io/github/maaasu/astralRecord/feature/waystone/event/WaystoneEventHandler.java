@@ -7,10 +7,12 @@ import io.github.maaasu.astralRecord.feature.waystone.service.WaystoneVisualizer
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -32,14 +34,22 @@ public final class WaystoneEventHandler extends AbstractEventHandler {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    public void onInteractEntity(@NotNull PlayerInteractEntityEvent event) {
+        handleEntityInteract(event.getPlayer(), event.getRightClicked(), event);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onInteractDisplay(@NotNull PlayerInteractAtEntityEvent event) {
-        Entity entity = event.getRightClicked();
+        handleEntityInteract(event.getPlayer(), event.getRightClicked(), event);
+    }
+
+    private void handleEntityInteract(@NotNull Player player, @NotNull Entity entity, @NotNull Cancellable event) {
         String waystoneId = visualizer.readWaystoneId(entity);
         if (waystoneId == null) {
             return;
         }
         event.setCancelled(true);
-        service.handleInteract(event.getPlayer(), waystoneId);
+        service.handleInteract(player, waystoneId);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)

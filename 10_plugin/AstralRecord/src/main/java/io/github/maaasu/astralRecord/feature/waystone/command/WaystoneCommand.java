@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.waystone.command;
 
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
@@ -14,7 +15,6 @@ import java.io.IOException;
  * /waystone コマンドです。
  */
 public final class WaystoneCommand extends AstCommand {
-    private static final int ADMIN_PERMISSION = 99;
     private final WaystoneService service;
 
     /**
@@ -23,12 +23,16 @@ public final class WaystoneCommand extends AstCommand {
      * @param service ウェイストーンサービス
      */
     public WaystoneCommand(@NotNull WaystoneService service) {
-        super("waystone", "Create a waystone.", "/waystone <name> [alwaysUnlocked] [unlockGoldCost]", true, ADMIN_PERMISSION);
+        super("waystone", "Create a waystone.", "/waystone <name> [alwaysUnlocked] [unlockGoldCost]", true);
         this.service = service;
     }
 
     @Override
     protected void executePlayerCommand(@NotNull AstPlayer player, @NotNull String[] args) {
+        if (player.getAccount().getMode() != AccountMode.ADMIN) {
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5707);
+            return;
+        }
         if (args.length < 1) {
             sendUsage(player.getBukkit());
             return;

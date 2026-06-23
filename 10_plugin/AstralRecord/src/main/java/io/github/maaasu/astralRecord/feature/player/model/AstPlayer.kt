@@ -176,6 +176,9 @@ data class AstPlayer(
     fun applyAccountMode(newAccount: AccountModel) {
         account = newAccount
         if (newAccount.mode != AccountMode.PLAYER) {
+            if (bukkit.gameMode == GameMode.ADVENTURE) {
+                bukkit.gameMode = GameMode.SURVIVAL
+            }
             applyReach(Attribute.ENTITY_INTERACTION_RANGE, 3.0)
             applyReach(Attribute.BLOCK_INTERACTION_RANGE, 4.5)
             return

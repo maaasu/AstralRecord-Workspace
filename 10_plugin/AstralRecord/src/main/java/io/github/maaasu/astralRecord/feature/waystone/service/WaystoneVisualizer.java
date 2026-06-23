@@ -10,6 +10,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.persistence.PersistentDataType;
@@ -31,6 +32,8 @@ public final class WaystoneVisualizer {
     private static final long INTERVAL_TICKS = 20L;
     private static final double VIEW_DISTANCE_SQ = 64.0D * 64.0D;
     private static final double LABEL_Y_OFFSET = 1.65D;
+    private static final float INTERACTION_WIDTH = 1.2F;
+    private static final float INTERACTION_HEIGHT = 1.8F;
 
     private final Plugin plugin;
     private final WaystoneService service;
@@ -113,7 +116,8 @@ public final class WaystoneVisualizer {
             "&b" + definition.name());
         TextDisplay lockedText = spawnText(location.clone().add(0.0D, LABEL_Y_OFFSET, 0.0D), definition.id(),
             "&7未開放");
-        return new WaystoneVisual(unlockedBlock, lockedBlock, unlockedText, lockedText);
+        Interaction interaction = spawnInteraction(location, definition.id());
+        return new WaystoneVisual(unlockedBlock, lockedBlock, unlockedText, lockedText, interaction);
     }
 
     private @NotNull BlockDisplay spawnBlock(
@@ -137,6 +141,15 @@ public final class WaystoneVisualizer {
             display.setBillboard(Display.Billboard.CENTER);
             display.setShadowed(true);
             display.text(component(text));
+        });
+    }
+
+    private @NotNull Interaction spawnInteraction(@NotNull Location location, @NotNull String waystoneId) {
+        return location.getWorld().spawn(location, Interaction.class, interaction -> {
+            applyCommon(interaction, waystoneId);
+            interaction.setInteractionWidth(INTERACTION_WIDTH);
+            interaction.setInteractionHeight(INTERACTION_HEIGHT);
+            interaction.setResponsive(true);
         });
     }
 
@@ -174,18 +187,21 @@ public final class WaystoneVisualizer {
         @NotNull BlockDisplay unlockedBlock,
         @NotNull BlockDisplay lockedBlock,
         @NotNull TextDisplay unlockedText,
-        @NotNull TextDisplay lockedText
+        @NotNull TextDisplay lockedText,
+        @NotNull Interaction interaction
     ) {
         private void teleport(@NotNull Location location) {
             unlockedBlock.teleport(location.clone().add(-0.35D, 0.08D, -0.35D));
             lockedBlock.teleport(location.clone().add(-0.35D, 0.08D, -0.35D));
             unlockedText.teleport(location.clone().add(0.0D, LABEL_Y_OFFSET, 0.0D));
             lockedText.teleport(location.clone().add(0.0D, LABEL_Y_OFFSET, 0.0D));
+            interaction.teleport(location);
         }
 
         private void showUnlocked(@NotNull Plugin plugin, @NotNull Player player) {
             player.showEntity(plugin, unlockedBlock);
             player.showEntity(plugin, unlockedText);
+            player.showEntity(plugin, interaction);
             player.hideEntity(plugin, lockedBlock);
             player.hideEntity(plugin, lockedText);
         }
@@ -193,6 +209,7 @@ public final class WaystoneVisualizer {
         private void showLocked(@NotNull Plugin plugin, @NotNull Player player) {
             player.showEntity(plugin, lockedBlock);
             player.showEntity(plugin, lockedText);
+            player.showEntity(plugin, interaction);
             player.hideEntity(plugin, unlockedBlock);
             player.hideEntity(plugin, unlockedText);
         }
@@ -212,7 +229,7 @@ public final class WaystoneVisualizer {
         }
 
         private Entity[] entities() {
-            return new Entity[]{unlockedBlock, lockedBlock, unlockedText, lockedText};
+            return new Entity[]{unlockedBlock, lockedBlock, unlockedText, lockedText, interaction};
         }
     }
 }
