@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -34,5 +35,13 @@ class ItemStackFactoryTest {
 
         assertEquals("採集速度", displayName);
         assertEquals(ColorCodeUtil.YELLOW, color);
+    }
+
+    @Test
+    void statusValueColorIsUnifiedAcrossStatusCategories() throws Exception {
+        Field valueColorField = ItemStackFactory.class.getDeclaredField("STATUS_VALUE_COLOR");
+        valueColorField.setAccessible(true);
+
+        assertEquals(ColorCodeUtil.WHITE, valueColorField.get(null));
     }
 }
