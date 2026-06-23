@@ -138,6 +138,15 @@ import io.github.maaasu.astralRecord.feature.status.event.PlayerHeldItemStatusEv
 import io.github.maaasu.astralRecord.feature.textdisplay.event.TextDisplayPlacementWorldEventHandler;
 import io.github.maaasu.astralRecord.feature.textdisplay.repository.TextDisplayPlacementRepository;
 import io.github.maaasu.astralRecord.feature.textdisplay.service.TextDisplayPlacementService;
+import io.github.maaasu.astralRecord.feature.teleporter.event.TeleporterGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.teleporter.event.TeleporterInteractEventHandler;
+import io.github.maaasu.astralRecord.feature.teleporter.event.TeleporterPlayerEventHandler;
+import io.github.maaasu.astralRecord.feature.teleporter.gui.TeleporterGui;
+import io.github.maaasu.astralRecord.feature.teleporter.repository.AccountWaystoneRepository;
+import io.github.maaasu.astralRecord.feature.teleporter.repository.WaystoneDefinitionRepository;
+import io.github.maaasu.astralRecord.feature.teleporter.service.TeleporterService;
+import io.github.maaasu.astralRecord.feature.teleporter.service.WaystoneHitBoxResolver;
+import io.github.maaasu.astralRecord.feature.teleporter.view.WaystonePacketView;
 import io.github.maaasu.astralRecord.feature.trade.event.TradeGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeCancelConfirmGui;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeGui;
@@ -216,6 +225,11 @@ public final class AstralRecord extends JavaPlugin {
     private ParticleDisplayService particleDisplayService;
     private DisplayTextService displayTextService;
     private TextDisplayPlacementService textDisplayPlacementService;
+    private TeleporterService teleporterService;
+    private TeleporterGui teleporterGui;
+    private TeleporterGuiEventHandler teleporterGuiEventHandler;
+    private WaystonePacketView waystonePacketView;
+    private WaystoneHitBoxResolver waystoneHitBoxResolver;
     private OverheadDisplayService overheadDisplayService;
     private PlayerSettingService playerSettingService;
     private PlayerSettingGui playerSettingGui;
@@ -267,6 +281,7 @@ public final class AstralRecord extends JavaPlugin {
         mobService = new MobService(this, new MobRepository());
         npcPlacementService = new NpcPlacementService(this, mobService, new NpcPlacementRepository(this));
         textDisplayPlacementService = new TextDisplayPlacementService(this, new TextDisplayPlacementRepository(this));
+        teleporterService = new TeleporterService(this, new WaystoneDefinitionRepository(this), new AccountWaystoneRepository());
         mobSpawnerService = new MobSpawnerService(
                 this,
                 mobService,
@@ -307,7 +322,8 @@ public final class AstralRecord extends JavaPlugin {
                 skillTreeService,
                 gatheringService,
                 gatheringSpawnerService,
-                textDisplayPlacementService
+                textDisplayPlacementService,
+                teleporterService
         );
         CommandManager.getInstance().initialize(this);
     }
@@ -373,6 +389,9 @@ public final class AstralRecord extends JavaPlugin {
         if (textDisplayPlacementService != null) {
             textDisplayPlacementService.saveIfDirty();
             textDisplayPlacementService.stop();
+        }
+        if (teleporterService != null) {
+            teleporterService.stop();
         }
         if (displayTextService != null) {
             displayTextService.stop();
@@ -509,6 +528,11 @@ public final class AstralRecord extends JavaPlugin {
         mobSpawnerService.setParticleDisplayService(particleDisplayService);
         displayTextService = new DisplayTextService();
         textDisplayPlacementService.setDisplayTextService(displayTextService);
+        waystonePacketView = new WaystonePacketView(teleporterService);
+        teleporterGui = new TeleporterGui(teleporterService);
+        teleporterGuiEventHandler = new TeleporterGuiEventHandler(teleporterGui, teleporterService, inventoryService);
+        waystoneHitBoxResolver = new WaystoneHitBoxResolver(teleporterService);
+        teleporterService.setRuntimeServices(inventoryService, worldService, waystonePacketView, teleporterGui, teleporterGuiEventHandler);
         movementCancelableWaitService = new MovementCancelableWaitService(this);
         bundleUseEffectService = new BundleUseEffectService();
         itemDropAnimationService = new ItemDropAnimationService(this, itemStackFactory, particleDisplayService);
@@ -705,6 +729,7 @@ public final class AstralRecord extends JavaPlugin {
         mobSpawnerService.loadAll();
         gatheringService.loadAll();
         gatheringSpawnerService.loadAll();
+        teleporterService.loadAll();
         // world
         worldService.loadAll();
         mobAiService = new MobAiService(mobService, mobCombatService, skillService, playerDeathService, particleDisplayService);
@@ -846,6 +871,18 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             adventureRecordGuiEventHandler,
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            teleporterGuiEventHandler,
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new TeleporterInteractEventHandler(teleporterService, waystoneHitBoxResolver),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new TeleporterPlayerEventHandler(this, teleporterService),
             getServer().getPluginManager()
         );
         skillBindGuiEventHandler = new SkillBindGuiEventHandler(

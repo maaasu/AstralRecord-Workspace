@@ -822,6 +822,12 @@ public enum LogId {
      * 戦闘ダメージ処理に失敗しました: %s
      */
     E_5900(5900),
+    I_5950(5950),
+    E_5950(5950),
+    E_5951(5951),
+    E_5952(5952),
+    E_5953(5953),
+    E_5954(5954),
     // endregion
 
     // region /feature/equipment/event/EquipmentAttackEventHandler.java 6000-6099

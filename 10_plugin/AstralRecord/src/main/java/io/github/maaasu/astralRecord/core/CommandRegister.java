@@ -47,6 +47,9 @@ import io.github.maaasu.astralRecord.feature.status.command.StatusTabCompleter;
 import io.github.maaasu.astralRecord.feature.textdisplay.command.TextDisplayCommand;
 import io.github.maaasu.astralRecord.feature.textdisplay.command.TextDisplayTabCompleter;
 import io.github.maaasu.astralRecord.feature.textdisplay.service.TextDisplayPlacementService;
+import io.github.maaasu.astralRecord.feature.teleporter.command.TeleporterCommand;
+import io.github.maaasu.astralRecord.feature.teleporter.command.TeleporterTabCompleter;
+import io.github.maaasu.astralRecord.feature.teleporter.service.TeleporterService;
 import io.github.maaasu.astralRecord.feature.trade.command.TradeCommand;
 import io.github.maaasu.astralRecord.feature.trade.command.TradeTabCompleter;
 import io.github.maaasu.astralRecord.feature.user.command.UserCommand;
@@ -77,6 +80,7 @@ public class CommandRegister {
     private final GatheringService gatheringService;
     private final GatheringSpawnerService gatheringSpawnerService;
     private final TextDisplayPlacementService textDisplayPlacementService;
+    private final TeleporterService teleporterService;
 
     public CommandRegister(
             ItemService itemService,
@@ -88,7 +92,8 @@ public class CommandRegister {
             SkillTreeService skillTreeService,
             GatheringService gatheringService,
             GatheringSpawnerService gatheringSpawnerService,
-            TextDisplayPlacementService textDisplayPlacementService
+            TextDisplayPlacementService textDisplayPlacementService,
+            TeleporterService teleporterService
     ) {
         this.itemService = itemService;
         this.itemStackFactory = itemStackFactory;
@@ -100,6 +105,7 @@ public class CommandRegister {
         this.gatheringService = gatheringService;
         this.gatheringSpawnerService = gatheringSpawnerService;
         this.textDisplayPlacementService = textDisplayPlacementService;
+        this.teleporterService = teleporterService;
         registerCommand();
     }
 
@@ -132,6 +138,7 @@ public class CommandRegister {
         cm.registerCommand("shop", new ShopCommand(), new ShopTabCompleter());
         cm.registerCommand("web", new WebAuthCommand(new WebAuthService(new WebAuthRepository())));
         cm.registerCommand("textdisplay", new TextDisplayCommand(textDisplayPlacementService), new TextDisplayTabCompleter(textDisplayPlacementService));
+        cm.registerCommand("teleporter", new TeleporterCommand(teleporterService), new TeleporterTabCompleter(teleporterService));
         cm.registerCommand("test", new TestCommand(AstralRecord.getInstance()), new TestTabCompleter());
         cm.registerCommand("testskilltree", new SkillTreeSpawnCheckCommand(), new SkillTreeSpawnCheckTabCompleter());
         cm.registerCommand("astreload", new ReloadCommand());

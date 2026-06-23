@@ -1,0 +1,97 @@
+package io.github.maaasu.astralRecord.feature.teleporter.command;
+
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.teleporter.model.WaystoneDefinition;
+import io.github.maaasu.astralRecord.feature.teleporter.service.TeleporterService;
+import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
+import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.Locale;
+
+/**
+ * /teleporter 管理コマンドです。
+ */
+public final class TeleporterCommand extends AstCommand {
+    private final TeleporterService teleporterService;
+
+    public TeleporterCommand(@NotNull TeleporterService teleporterService) {
+        super("teleporter", "Manage waystone teleporters.", "/teleporter <set|remove|list|reload> ...", true, UserPermission.ADMIN.getValue());
+        this.teleporterService = teleporterService;
+    }
+
+    @Override
+    protected void executePlayerCommand(@NotNull AstPlayer player, @NotNull String[] args) {
+        if (args.length == 0) {
+            sendUsage(player.getBukkit());
+            return;
+        }
+        switch (args[0].toLowerCase(Locale.ROOT)) {
+            case "set" -> handleSet(player, args);
+            case "remove" -> handleRemove(player, args);
+            case "list" -> handleList(player);
+            case "reload" -> handleReload(player);
+            default -> sendUsage(player.getBukkit());
+        }
+    }
+
+    private void handleSet(@NotNull AstPlayer player, @NotNull String[] args) {
+        if (args.length != 4) {
+            sendUsage(player.getBukkit());
+            return;
+        }
+        String name = args[1].trim();
+        if (name.isBlank()) {
+            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5950.getId()));
+            return;
+        }
+        boolean lockEnabled;
+        if ("true".equalsIgnoreCase(args[2]) || "false".equalsIgnoreCase(args[2])) {
+            lockEnabled = Boolean.parseBoolean(args[2]);
+        } else {
+            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5951.getId()));
+            return;
+        }
+        long unlockGold;
+        try {
+            unlockGold = Long.parseLong(args[3]);
+        } catch (NumberFormatException e) {
+            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5951.getId()));
+            return;
+        }
+        if (unlockGold < 0L) {
+            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5951.getId()));
+            return;
+        }
+        WaystoneDefinition definition = teleporterService.createWaystone(player, name, lockEnabled, unlockGold);
+        sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5959.getId(), definition.id(), definition.name()));
+    }
+
+    private void handleRemove(@NotNull AstPlayer player, @NotNull String[] args) {
+        if (args.length != 2) {
+            sendUsage(player.getBukkit());
+            return;
+        }
+        if (!teleporterService.removeWaystone(args[1])) {
+            sendError(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5954.getId(), args[1]));
+            return;
+        }
+        sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5959.getId(), args[1], "removed"));
+    }
+
+    private void handleList(@NotNull AstPlayer player) {
+        var definitions = teleporterService.getAll();
+        sendInfo(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5958.getId(), definitions.size()));
+        for (WaystoneDefinition definition : definitions) {
+            sendInfo(player.getBukkit(), definition.id() + " | " + definition.name() + " | " + definition.worldName()
+                    + " | lock=" + definition.lockEnabled() + " | gold=" + definition.unlockGold());
+        }
+    }
+
+    private void handleReload(@NotNull AstPlayer player) {
+        int count = teleporterService.reload();
+        sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5958.getId(), count));
+    }
+}
