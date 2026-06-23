@@ -1,0 +1,29 @@
+schemaVersion: 1
+id: starter_sword
+category: equipment
+name: "&f初期ソード"
+icon: WOODEN_SWORD
+rarity: COMMON
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7扱いやすさを優先した初心者向けの片手剣。"
+unTradeable: true
+unSellable: true
+
+equipment:
+  slot: WEAPON
+  handType: ONE
+  requiredLevel: 0
+  stats:
+    - status: ATTACK
+      type: FLAT
+      value: 4~6
+  onUse:
+    leftClickCooldownTicks: 10
+    leftClickSkillId: normal_attack_melee
+    rightClickCooldownTicks: 30
+    rightClickSkillId: special_attack_melee
+  durability:
+    max: 70
+    consume: 1

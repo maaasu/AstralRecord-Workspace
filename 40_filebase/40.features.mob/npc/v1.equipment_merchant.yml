@@ -1,0 +1,38 @@
+schemaVersion: 1
+id: equipment_merchant
+type: MOB
+category: NPC
+name: "&6装備商人ダレン"
+title: "&7Starter Equipment"
+level: 1
+entityType: PLAYER
+nameVisible: true
+damageImmune: true
+icon: EMERALD
+lore:
+  - "&7旅立ちに必要な初期装備を扱う商人。"
+  - "&7無料の支給品と有料ポーションを取り揃える。"
+tags:
+  - npc
+  - shop
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&6装備商人ダレン&7: 出発前の支度を整えていきな。"
+  rightClick:
+    - id: gui
+      params:
+        type: SHOP
+        shopId: starter_equipment_shop

@@ -1,0 +1,35 @@
+schemaVersion: 1
+id: starter_staff
+category: equipment
+name: "&f初期スタッフ"
+icon: STICK
+rarity: COMMON
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7魔力の流れを整えやすい練習用の杖。"
+unTradeable: true
+unSellable: true
+
+equipment:
+  slot: WEAPON
+  handType: TWO
+  requiredLevel: 0
+  stats:
+    - status: ATTACK
+      type: FLAT
+      value: 5~7
+    - status: INTELLIGENCE
+      type: FLAT
+      value: 3
+    - status: MP_REGEN
+      type: FLAT
+      value: 1.0
+  onUse:
+    leftClickCooldownTicks: 10
+    leftClickSkillId: normal_attack_magic
+    rightClickCooldownTicks: 30
+    rightClickSkillId: special_attack_magic
+  durability:
+    max: 70
+    consume: 1

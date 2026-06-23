@@ -1,0 +1,25 @@
+schemaVersion: 1
+id: starter_herb_hoe
+category: equipment
+name: "&f初期ハーブクワ"
+icon: STONE_HOE
+rarity: COMMON
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7薬草採集を始めるための軽いクワ。"
+  - "&7柔らかな土を掘り返すのに向いている。"
+unTradeable: true
+unSellable: true
+
+equipment:
+  slot: TOOL
+  tag: HOE
+  requiredLevel: 0
+  stats:
+    - status: MINING_SPEED
+      type: FLAT
+      value: 2
+  durability:
+    max: 120
+    consume: 1

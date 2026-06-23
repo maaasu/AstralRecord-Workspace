@@ -52,12 +52,12 @@
 
 - 2026-05-30: クラフトスロットの `STATUS` は `アカウント情報` として、選択中アカウント名、Lv、スロット、モード、累計経験値、主要ステータスを装飾付き lore で表示する。
 - 2026-05-30: `STATUS` ショートカットの lore は current HP / MP / EN を表示せず、`ATTACK` / `MELEE_ATTACK` / `RANGED_ATTACK` / `MAGIC_ATTACK` / `DEFENSE` / `MAGIC_DEFENSE` を表示する。
-- 2026-05-30: メインメニュー slot 33 は職業 GUI ではなくパーティー GUI を開く。職業 GUI は ADMIN の `/class gui` からのみ開く。
+- 2026-05-30: メインメニュー slot 33 は職業 GUI ではなくパーティー GUI を開く。職業 GUI は通常メニューからは開かず、ADMIN の `/class gui` または mob feature の NPC interaction (`type=CLASS`) から開く。
 - 2026-05-30: 通常メニュー系 GUI 表示中は下部プレイヤーインベントリをダミーで埋める。装備 GUI、ゴミ箱 GUI、スキル選択など実アイテム操作が必要な画面は対象外。
 - 2026-05-30: パーティー GUI は menu 系の戻る仕様に揃え、slot 49 でメインメニューへ戻る。パーティー離脱/解散は slot 51 に配置し、メンバー/招待はプレイヤーヘッドで表示する。
 - 2026-06-09: `sell` は独立実装を持つが、docs では menu の売却 GUI として吸収する。`/sell`、売却 GUI、売却確定は本 feature の対象実装パスに含める。
 - 2026-06-09: `party` / `currency` / `shop` / `adventurerecord` はそれぞれ独立 feature を正本とし、menu はメインメニューや戻る操作などの導線のみを担当する。
-- 2026-06-09: 職業 GUI は class / playerclass 側を正本とし、menu は通常プレイヤー向けメインメニュー導線を持たない。ADMIN の `/class gui` は class / playerclass 側で扱う。
+- 2026-06-09: 職業 GUI は class / playerclass 側を正本とし、menu は通常プレイヤー向けメインメニュー導線を持たない。ADMIN の `/class gui` と mob feature の NPC interaction (`type=CLASS`) は class / playerclass 側で扱う。
 - 2026-06-13: 装備強化 GUI は menu からの導線と inventory GUI 上の操作フローを担当し、必要素材・成功率・失敗時挙動の定義自体は item master / equipment schema を正本とする。
 - 2026-06-13: 装備強化 GUI は装備を一旦セット可能とし、強化不可理由は実行アイコンへ表示する。閉じる操作はホットバー共通ボタンを正本とし、GUI 内専用の閉じるボタンは置かない。
 

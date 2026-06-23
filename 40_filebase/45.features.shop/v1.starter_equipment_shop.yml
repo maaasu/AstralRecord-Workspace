@@ -1,0 +1,36 @@
+schemaVersion: 1
+id: starter_equipment_shop
+type: SHOP
+name: "&6初期装備商店"
+items:
+  - id: starter_gathering_tools_bundle
+    itemId:
+      ref: item:starter_gathering_tools_bundle
+    category: bundle
+    amount: 1
+    slot: 1
+    priceGold: 0
+
+  - id: starter_armor_bundle
+    itemId:
+      ref: item:starter_armor_bundle
+    category: bundle
+    amount: 1
+    slot: 3
+    priceGold: 0
+
+  - id: starter_weapon_bundle
+    itemId:
+      ref: item:starter_weapon_bundle
+    category: bundle
+    amount: 1
+    slot: 5
+    priceGold: 0
+
+  - id: starter_potion
+    itemId:
+      ref: item:starter_potion
+    category: consumable
+    amount: 1
+    slot: 7
+    priceGold: 30

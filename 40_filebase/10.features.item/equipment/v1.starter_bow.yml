@@ -1,0 +1,35 @@
+schemaVersion: 1
+id: starter_bow
+category: equipment
+name: "&f初期ボウ"
+icon: BOW
+rarity: COMMON
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7遠距離戦に慣れるための訓練用の弓。"
+unTradeable: true
+unSellable: true
+
+equipment:
+  slot: WEAPON
+  handType: TWO
+  requiredLevel: 0
+  stats:
+    - status: ATTACK
+      type: FLAT
+      value: 5
+    - status: DEXTERITY
+      type: FLAT
+      value: 2
+    - status: ACCURACY
+      type: FLAT
+      value: 2.0
+  onUse:
+    leftClickCooldownTicks: 12
+    leftClickSkillId: normal_attack_bow
+    rightClickCooldownTicks: 36
+    rightClickSkillId: special_attack_bow
+  durability:
+    max: 70
+    consume: 1

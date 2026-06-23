@@ -1,0 +1,19 @@
+schemaVersion: 1
+id: starter_gathering_tools_bundle
+category: bundle
+name: "&e初期ギャザリングツール箱"
+icon: CHEST
+rarity: COMMON
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7採掘と採取を始めるための基本セット。"
+unTradeable: true
+unSellable: true
+
+bundle:
+  lootTableId:
+    ref: loot_table:starter_gathering_tools_table
+  onUse:
+    sound: bundle_chest_open
+    particle: bundle_chest_totem

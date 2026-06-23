@@ -7,6 +7,9 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionActionConfig;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.shop.event.ShopGuiEventHandler;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -36,6 +39,7 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
     private final MobService mobService;
     private final ShopGuiEventHandler shopGuiEventHandler;
     private final MenuView menuView;
+    private final PlayerClassService playerClassService;
 
     /**
      * ハンドラを生成します。
@@ -47,10 +51,12 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
     public MobInteractionEventHandler(
             @NotNull MobService mobService,
             @NotNull ShopGuiEventHandler shopGuiEventHandler,
-            @NotNull MenuView menuView) {
+            @NotNull MenuView menuView,
+            @NotNull PlayerClassService playerClassService) {
         this.mobService = mobService;
         this.shopGuiEventHandler = shopGuiEventHandler;
         this.menuView = menuView;
+        this.playerClassService = playerClassService;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -166,6 +172,7 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
                 menuView.openSell(player, List.of(), 0);
                 GuiSound.OPEN.play(player);
             }
+            case "CLASS" -> openClass(player);
             default -> GuiSound.DENY.play(player);
         }
     }
@@ -178,5 +185,16 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
         }
         MenuGuiTransitionService.suppressNextCloseSound(player);
         shopGuiEventHandler.open(player, shopId);
+    }
+
+    private void openClass(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        MenuGuiTransitionService.suppressNextCloseSound(player);
+        menuView.openClass(player, astPlayer, playerClassService.getClassViewEntries(astPlayer));
+        GuiSound.OPEN.play(player);
     }
 }

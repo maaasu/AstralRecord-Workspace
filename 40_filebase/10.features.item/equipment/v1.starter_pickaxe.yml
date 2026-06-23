@@ -1,0 +1,25 @@
+schemaVersion: 1
+id: starter_pickaxe
+category: equipment
+name: "&f初期ピッケル"
+icon: STONE_PICKAXE
+rarity: COMMON
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7冒険を始めた採集者向けの簡素なピッケル。"
+  - "&7鉱石採集の基礎を支える一本。"
+unTradeable: true
+unSellable: true
+
+equipment:
+  slot: TOOL
+  tag: PICKAXE
+  requiredLevel: 0
+  stats:
+    - status: MINING_SPEED
+      type: FLAT
+      value: 2
+  durability:
+    max: 120
+    consume: 1

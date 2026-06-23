@@ -922,7 +922,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new MobInteractionEventHandler(mobService, shopGuiEventHandler, menuView),
+            new MobInteractionEventHandler(mobService, shopGuiEventHandler, menuView, playerClassService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

@@ -1,0 +1,26 @@
+schemaVersion: 1
+id: starter_boots
+category: equipment
+name: "&f初期ブーツ"
+icon: LEATHER_BOOTS
+rarity: COMMON
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7長い旅路の一歩目を支える軽いブーツ。"
+unTradeable: true
+unSellable: true
+
+equipment:
+  slot: FEET
+  requiredLevel: 0
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 1
+    - status: MOVEMENT_SPEED
+      type: FLAT
+      value: 1.0
+  durability:
+    max: 80
+    consume: 1

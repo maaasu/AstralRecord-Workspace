@@ -1,0 +1,26 @@
+schemaVersion: 1
+id: starter_leggings
+category: equipment
+name: "&f初期レギンス"
+icon: LEATHER_LEGGINGS
+rarity: COMMON
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7駆け出しの探索を支える丈夫な脚甲。"
+unTradeable: true
+unSellable: true
+
+equipment:
+  slot: LEGS
+  requiredLevel: 0
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 2
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 6
+  durability:
+    max: 90
+    consume: 1

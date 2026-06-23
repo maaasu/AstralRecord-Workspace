@@ -1,0 +1,37 @@
+schemaVersion: 1
+id: class_guide
+type: MOB
+category: NPC
+name: "&b職業案内人ミラ"
+title: "&7Class Guide"
+level: 1
+entityType: PLAYER
+nameVisible: true
+damageImmune: true
+icon: BOOK
+lore:
+  - "&7職業の特徴と転向条件を案内する。"
+  - "&7右クリックで職業選択 GUI を開ける。"
+tags:
+  - npc
+  - class_guide
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&b職業案内人ミラ&7: 進みたい道を選んでみて。"
+  rightClick:
+    - id: gui
+      params:
+        type: CLASS

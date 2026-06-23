@@ -1,0 +1,26 @@
+schemaVersion: 1
+id: starter_helmet
+category: equipment
+name: "&f初期ヘルム"
+icon: LEATHER_HELMET
+rarity: COMMON
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7旅立ちの冒険者向けに仕立てた軽装の兜。"
+unTradeable: true
+unSellable: true
+
+equipment:
+  slot: HEAD
+  requiredLevel: 0
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 1
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 4
+  durability:
+    max: 80
+    consume: 1

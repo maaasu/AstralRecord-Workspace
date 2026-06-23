@@ -1,0 +1,19 @@
+schemaVersion: 1
+id: starter_armor_bundle
+category: bundle
+name: "&e初期防具箱"
+icon: CHEST
+rarity: COMMON
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7冒険の最初期を支える軽装セット。"
+unTradeable: true
+unSellable: true
+
+bundle:
+  lootTableId:
+    ref: loot_table:starter_armor_table
+  onUse:
+    sound: bundle_chest_open
+    particle: bundle_chest_totem
