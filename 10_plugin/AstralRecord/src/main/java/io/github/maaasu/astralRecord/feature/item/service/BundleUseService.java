@@ -1,6 +1,5 @@
 package io.github.maaasu.astralRecord.feature.item.service;
 
-import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemBundle;
@@ -17,6 +16,10 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWait;
+import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWaitCallbacks;
+import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWaitCancelReason;
+import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWaitService;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
@@ -28,7 +31,6 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -48,9 +50,8 @@ public class BundleUseService {
 
     private static final String SOURCE_BUNDLE_USE = "bundle_use";
     private static final long OPEN_DURATION_TICKS = 60L;
-    private static final double MOVE_CANCEL_DISTANCE_SQUARED = 0.0001d;
 
-    private final AstralRecord plugin;
+    private final MovementCancelableWaitService movementCancelableWaitService;
     private final ItemService itemService;
     private final LootService lootService;
     private final InventoryService inventoryService;
@@ -63,7 +64,7 @@ public class BundleUseService {
     /**
      * bundle 使用サービスを構築します。
      *
-     * @param plugin プラグインインスタンス
+     * @param movementCancelableWaitService 移動キャンセル付き待機サービス
      * @param itemService アイテム解決サービス
      * @param lootService loot 解決サービス
      * @param inventoryService インベントリ操作サービス
@@ -72,7 +73,7 @@ public class BundleUseService {
      * @param bundleUseEffectService bundle 演出マスタ解決サービス
      */
     public BundleUseService(
-        @NotNull AstralRecord plugin,
+        @NotNull MovementCancelableWaitService movementCancelableWaitService,
         @NotNull ItemService itemService,
         @NotNull LootService lootService,
         @NotNull InventoryService inventoryService,
@@ -81,7 +82,7 @@ public class BundleUseService {
         @NotNull BundleUseEffectService bundleUseEffectService,
         @NotNull ParticleDisplayService particleDisplayService
     ) {
-        this.plugin = plugin;
+        this.movementCancelableWaitService = movementCancelableWaitService;
         this.itemService = itemService;
         this.lootService = lootService;
         this.inventoryService = inventoryService;
@@ -139,14 +140,27 @@ public class BundleUseService {
             bossBar
         );
 
-        BukkitTask task = plugin.getServer().getScheduler().runTaskTimer(
-            plugin,
-            () -> tickPendingUse(player.getUniqueId()),
-            1L,
-            1L
-        );
-        pending.setTask(task);
         pendingUses.put(player.getUniqueId(), pending);
+        pending.setWait(movementCancelableWaitService.begin(
+            player,
+            OPEN_DURATION_TICKS,
+            new MovementCancelableWaitCallbacks() {
+                @Override
+                public void onTick(long elapsedTicks, double progress) {
+                    tickPendingUse(player.getUniqueId(), pending, progress);
+                }
+
+                @Override
+                public void onComplete() {
+                    completePendingUse(player.getUniqueId(), pending);
+                }
+
+                @Override
+                public void onCancel(@NotNull MovementCancelableWaitCancelReason reason) {
+                    cancelPendingOpen(player.getUniqueId(), pending, shouldNotifyCancel(reason));
+                }
+            }
+        ));
         PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5246, displayName);
         return true;
     }
@@ -173,21 +187,23 @@ public class BundleUseService {
     }
 
     private boolean cancelPendingOpen(@NotNull UUID playerId, boolean notify) {
-        PendingBundleUse pending = pendingUses.remove(playerId);
+        PendingBundleUse pending = pendingUses.get(playerId);
         if (pending == null) {
             return false;
         }
-
-        cleanupPendingUse(pending);
-        if (notify) {
-            PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5247);
+        MovementCancelableWaitCancelReason reason = notify
+            ? MovementCancelableWaitCancelReason.HELD_ITEM_CHANGED
+            : MovementCancelableWaitCancelReason.MANUAL;
+        if (pending.waitHandle() != null) {
+            return pending.waitHandle().cancel(reason);
         }
+
+        cancelPendingOpen(playerId, pending, notify);
         return true;
     }
 
-    private void tickPendingUse(@NotNull UUID playerId) {
-        PendingBundleUse pending = pendingUses.get(playerId);
-        if (pending == null) {
+    private void tickPendingUse(@NotNull UUID playerId, @NotNull PendingBundleUse pending, double progress) {
+        if (pendingUses.get(playerId) != pending) {
             return;
         }
 
@@ -196,17 +212,17 @@ public class BundleUseService {
             cancelPendingOpen(playerId, false);
             return;
         }
-        if (hasMoved(pending, player)) {
-            cancelPendingOpen(playerId, true);
+        pending.bossBar().setProgress(progress);
+    }
+
+    private void cancelPendingOpen(@NotNull UUID playerId, @NotNull PendingBundleUse pending, boolean notify) {
+        if (!pendingUses.remove(playerId, pending)) {
             return;
         }
 
-        long elapsedTicks = pending.incrementElapsedTicks();
-        double progress = Math.min(1.0d, (double) elapsedTicks / (double) OPEN_DURATION_TICKS);
-        pending.bossBar().setProgress(progress);
-
-        if (elapsedTicks >= OPEN_DURATION_TICKS) {
-            completePendingUse(playerId, pending);
+        cleanupPendingUse(pending);
+        if (notify && pending.astPlayer().getBukkit().isOnline()) {
+            PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5247);
         }
     }
 
@@ -288,21 +304,9 @@ public class BundleUseService {
     }
 
     private void cleanupPendingUse(@NotNull PendingBundleUse pending) {
-        if (pending.task() != null) {
-            pending.task().cancel();
-        }
         pending.astPlayer().getBukkit().resetTitle();
         pending.bossBar().removeAll();
         pending.bossBar().setVisible(false);
-    }
-
-    private boolean hasMoved(@NotNull PendingBundleUse pending, @NotNull Player player) {
-        Location current = player.getLocation();
-        Location start = pending.startLocation();
-        if (current.getWorld() == null || start.getWorld() == null || current.getWorld() != start.getWorld()) {
-            return true;
-        }
-        return current.distanceSquared(start) > MOVE_CANCEL_DISTANCE_SQUARED;
     }
 
     static @NotNull Map<String, Integer> rollRewards(@NotNull LootModel lootModel) {
@@ -499,6 +503,11 @@ public class BundleUseService {
         ));
     }
 
+    private static boolean shouldNotifyCancel(@NotNull MovementCancelableWaitCancelReason reason) {
+        return reason == MovementCancelableWaitCancelReason.MOVED
+            || reason == MovementCancelableWaitCancelReason.HELD_ITEM_CHANGED;
+    }
+
     private static final class PendingBundleUse {
         private final AstPlayer astPlayer;
         private final EquipmentSlot hand;
@@ -506,9 +515,7 @@ public class BundleUseService {
         private final ItemBundle bundle;
         private final LootModel lootModel;
         private final BossBar bossBar;
-        private final Location startLocation;
-        private long elapsedTicks;
-        private BukkitTask task;
+        private MovementCancelableWait wait;
 
         private PendingBundleUse(
             @NotNull AstPlayer astPlayer,
@@ -524,7 +531,6 @@ public class BundleUseService {
             this.bundle = bundle;
             this.lootModel = lootModel;
             this.bossBar = bossBar;
-            this.startLocation = astPlayer.getBukkit().getLocation().clone();
         }
 
         private @NotNull AstPlayer astPlayer() {
@@ -551,21 +557,12 @@ public class BundleUseService {
             return bossBar;
         }
 
-        private @NotNull Location startLocation() {
-            return startLocation;
+        private @Nullable MovementCancelableWait waitHandle() {
+            return wait;
         }
 
-        private long incrementElapsedTicks() {
-            elapsedTicks++;
-            return elapsedTicks;
-        }
-
-        private @Nullable BukkitTask task() {
-            return task;
-        }
-
-        private void setTask(@NotNull BukkitTask task) {
-            this.task = task;
+        private void setWait(@NotNull MovementCancelableWait wait) {
+            this.wait = wait;
         }
     }
 

@@ -648,6 +648,8 @@ class ItemRepository {
                 sound = onUseObj.get("sound")?.takeIf { !it.isJsonNull }?.asString,
                 effect = onUseObj.get("effect")?.takeIf { !it.isJsonNull }?.asString,
                 amount = onUseObj.get("amount")?.asInt ?: 1,
+                useTimeTicks = onUseObj.get("useTimeTicks")?.takeIf { !it.isJsonNull }?.asLong ?: 40L,
+                cooldownTicks = onUseObj.get("cooldownTicks")?.takeIf { !it.isJsonNull }?.asLong ?: 40L,
             )
         } else {
             null

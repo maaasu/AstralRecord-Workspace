@@ -17,6 +17,8 @@ consumable:
     sound: entity.generic.drink
     effect: heart
     amount: 1
+    useTimeTicks: 40
+    cooldownTicks: 40
   effects:
     - type: HEAL
       status: HP

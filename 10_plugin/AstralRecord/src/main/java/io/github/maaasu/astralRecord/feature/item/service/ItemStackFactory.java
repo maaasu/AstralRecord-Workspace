@@ -1,8 +1,13 @@
 package io.github.maaasu.astralRecord.feature.item.service;
 
+import io.github.maaasu.astralRecord.feature.buff.model.BuffType;
+import io.github.maaasu.astralRecord.feature.buff.repository.BuffRepository;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentEnchant;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentRune;
+import io.github.maaasu.astralRecord.feature.item.model.ItemConsumable;
+import io.github.maaasu.astralRecord.feature.item.model.ItemConsumableEffect;
+import io.github.maaasu.astralRecord.feature.item.model.ItemConsumableEffectType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceStatIncrease;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentHandType;
@@ -118,6 +123,8 @@ public class ItemStackFactory {
 
     /** ルート内アイテム名の日本語表示解決に使用します。 */
     private final ItemService itemService;
+    private final BuffRepository buffRepository = new BuffRepository();
+    private final Map<String, String> buffDisplayNameCache = new ConcurrentHashMap<>();
     private SkillService skillService;
 
     /**
@@ -502,6 +509,9 @@ public class ItemStackFactory {
         if (model.getEquipment() != null) {
             appendEquipmentLore(lore, model.getEquipment());
         }
+        if (model.getConsumable() != null) {
+            appendConsumableLore(lore, model.getConsumable());
+        }
 
         appendSaleValueLore(lore, model);
 
@@ -591,6 +601,106 @@ public class ItemStackFactory {
 
     private boolean isCurrencyItem(@NotNull ItemModel model) {
         return ItemCategory.fromApiValue(model.getCategory()) == ItemCategory.CURRENCY;
+    }
+
+    private void appendConsumableLore(@NotNull List<String> lore, @NotNull ItemConsumable consumable) {
+        lore.add(ColorCodeUtil.AQUA + "❖ 使用情報");
+        lore.add(ColorCodeUtil.GRAY + " ▸ 待機時間: "
+                + ColorCodeUtil.WHITE + formatTicksAsSeconds(resolveConsumableUseTimeTicks(consumable)));
+        lore.add(ColorCodeUtil.GRAY + " ▸ クールタイム: "
+                + ColorCodeUtil.WHITE + formatTicksAsSeconds(resolveConsumableCooldownTicks(consumable)));
+        int consumeAmount = consumable.getOnUse() == null ? 1 : Math.max(1, consumable.getOnUse().getAmount());
+        lore.add(ColorCodeUtil.GRAY + " ▸ 消費数: " + ColorCodeUtil.WHITE + consumeAmount);
+
+        if (!consumable.getEffects().isEmpty()) {
+            lore.add("");
+            lore.add(ColorCodeUtil.GREEN + " ▸ 効果");
+            for (ItemConsumableEffect effect : consumable.getEffects()) {
+                appendConsumableEffectLore(lore, effect);
+            }
+        }
+        lore.add("");
+    }
+
+    private void appendConsumableEffectLore(
+            @NotNull List<String> lore,
+            @NotNull ItemConsumableEffect effect) {
+        if (effect.getType() == ItemConsumableEffectType.RECOVER) {
+            lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
+                    + ColorCodeUtil.GREEN + resolveConsumableStatusDisplayName(effect.getStatus())
+                    + ColorCodeUtil.DARK_GRAY + " : "
+                    + ColorCodeUtil.WHITE + formatConsumableEffectValue(effect));
+            return;
+        }
+        if (effect.getType() == ItemConsumableEffectType.BUFF) {
+            lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
+                    + ColorCodeUtil.YELLOW + resolveBuffDisplayName(effect.getBuffId())
+                    + ColorCodeUtil.DARK_GRAY + " : "
+                    + ColorCodeUtil.WHITE + formatRate(effect.getRate()));
+            return;
+        }
+        lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
+                + ColorCodeUtil.GRAY + "未対応効果");
+    }
+
+    private @NotNull String resolveConsumableStatusDisplayName(@Nullable String rawStatus) {
+        if (rawStatus == null || rawStatus.isBlank()) {
+            return "回復";
+        }
+        String normalized = normalizeStatusKey(rawStatus);
+        return switch (normalized) {
+            case "HP", "HEALTH", "MAX_HEALTH" -> "HP";
+            case "MP", "MANA", "MAX_MANA" -> "MP";
+            case "EN", "ENERGY", "MAX_ENERGY" -> "EN";
+            default -> {
+                StatusType statusType = resolveStatusTypeOrNull(rawStatus);
+                yield statusType == null ? "回復" : statusType.getDisplayName();
+            }
+        };
+    }
+
+    private @NotNull String formatConsumableEffectValue(@NotNull ItemConsumableEffect effect) {
+        double value = effect.getValue() == null ? 0.0D : effect.getValue();
+        if (effect.isPercent()) {
+            return formatSkillDecimal(value * 100.0D) + "%回復";
+        }
+        return formatSkillDecimal(value) + "回復";
+    }
+
+    private @NotNull String formatRate(double rate) {
+        if (rate >= 100.0D) {
+            return "100%";
+        }
+        return formatSkillDecimal(Math.max(0.0D, rate)) + "%";
+    }
+
+    private long resolveConsumableUseTimeTicks(@NotNull ItemConsumable consumable) {
+        return consumable.getOnUse() == null ? 40L : Math.max(1L, consumable.getOnUse().getUseTimeTicks());
+    }
+
+    private long resolveConsumableCooldownTicks(@NotNull ItemConsumable consumable) {
+        return consumable.getOnUse() == null ? 40L : Math.max(0L, consumable.getOnUse().getCooldownTicks());
+    }
+
+    private @NotNull String formatTicksAsSeconds(long ticks) {
+        double seconds = Math.max(0L, ticks) / 20.0D;
+        if (seconds == Math.rint(seconds)) {
+            return String.format(Locale.ROOT, "%.0f秒", seconds);
+        }
+        return String.format(Locale.ROOT, "%.1f秒", seconds);
+    }
+
+    private @NotNull String resolveBuffDisplayName(@Nullable String buffId) {
+        if (buffId == null || buffId.isBlank()) {
+            return "バフ";
+        }
+        return buffDisplayNameCache.computeIfAbsent(buffId, id -> {
+            BuffType buffType = buffRepository.findById(id);
+            if (buffType == null || buffType.getDisplayName() == null || buffType.getDisplayName().isBlank()) {
+                return "バフ";
+            }
+            return ColorCodeUtil.toLegacyText(buffType.getDisplayName(), id);
+        });
     }
 
     /**

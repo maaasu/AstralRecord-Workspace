@@ -10,6 +10,8 @@
 | `consumable[].onUse[].sound`       | String  | ×  | Null  | 使用時に流れるサウンド（SoundKey想定。例: `entity.player.levelup`）              |
 | `consumable[].onUse[].effect`      | String  | ×  | Null  | 使用時のパーティクル（実装側で解釈。例: `happy_villager`）                          |
 | `consumable[].onUse[].amount`      | Integer | ×  | 1     | 消費する個数（スタックから減る数）                                               |
+| `consumable[].onUse[].useTimeTicks` | Long    | ×  | 40    | 使用完了まで静止する必要がある時間（tick 単位。20 tick = 1 秒）                        |
+| `consumable[].onUse[].cooldownTicks` | Long    | ×  | 40    | 使用成功後のクールタイム（tick 単位。20 tick = 1 秒）                                |
 | `consumable[].effects[]`           | List    | ○  | -     | 使用時に適用する効果のリスト（後述）                                              |
 | `consumable[].effects[].type`      | String  | ○  | -     | 効果種別（`RECOVER` / `BUFF`）                                        |
 | `consumable[].effects[].rate`      | Double  | ×  | 100   | 発動確率（0〜100）                                                     |
@@ -22,6 +24,7 @@
 ### consumable.effects[].type
 以下のいずれかの値を指定します。
 - `RECOVER` : HP/MPなどの回復
+- `HEAL` : `RECOVER` と同じ回復効果（互換エイリアス）
 - `BUFF` : Buffの付与
 
 ### consumable.effects[].status
@@ -47,6 +50,8 @@ consumable:
     sound: entity.player.levelup
     effect: happy_villager
     amount: 1
+    useTimeTicks: 40
+    cooldownTicks: 40
   effects:
     - type: RECOVER
       status: HP

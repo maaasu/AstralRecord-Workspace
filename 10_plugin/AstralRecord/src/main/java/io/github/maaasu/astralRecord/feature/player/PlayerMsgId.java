@@ -216,6 +216,8 @@ public enum PlayerMsgId {
     P_5260(5260),
     P_5261(5261),
     P_5262(5262),
+    P_5263(5263),
+    P_5264(5264),
     /**
      * 同一IDが複数カテゴリに存在します。カテゴリを指定してください: {0}
      */
@@ -306,6 +308,7 @@ public enum PlayerMsgId {
     P_5246(5246),
     P_5247(5247),
     P_5248(5248),
+    P_5249(5249),
     // endregion
 
     // region /feature/user/command/UserPermissionCommand.java 5300-5309

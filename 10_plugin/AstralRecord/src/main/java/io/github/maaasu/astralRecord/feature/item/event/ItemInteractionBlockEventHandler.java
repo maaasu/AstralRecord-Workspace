@@ -22,7 +22,6 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
-import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.jetbrains.annotations.NotNull;
@@ -168,33 +167,16 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler {
                 return;
             }
             bundleUseService.cancelPendingOpen(astPlayer, true);
-        }, LogId.E_5200, event.getPlayer().getName());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onPlayerMove(PlayerMoveEvent event) {
-        runSafely(() -> {
-            if (event.getTo() == null) {
-                return;
-            }
-            if (event.getFrom().getX() == event.getTo().getX()
-                && event.getFrom().getY() == event.getTo().getY()
-                && event.getFrom().getZ() == event.getTo().getZ()) {
-                return;
-            }
-
-            var astPlayer = AstPlayerCache.get(event.getPlayer());
-            if (astPlayer == null) {
-                return;
-            }
-            bundleUseService.cancelPendingOpen(astPlayer, true);
+            potionUseService.cancelPendingUse(astPlayer, true);
         }, LogId.E_5200, event.getPlayer().getName());
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
-        runSafely(() -> bundleUseService.cancelPendingOpen(event.getPlayer().getUniqueId()),
-            LogId.E_5200, event.getPlayer().getName());
+        runSafely(() -> {
+            bundleUseService.cancelPendingOpen(event.getPlayer().getUniqueId());
+            potionUseService.cancelPendingUse(event.getPlayer().getUniqueId());
+        }, LogId.E_5200, event.getPlayer().getName());
     }
 
     private static boolean isBundleUseAction(@NotNull Action action) {

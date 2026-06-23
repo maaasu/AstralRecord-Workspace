@@ -21,6 +21,7 @@ import io.github.maaasu.astralRecord.feature.gathering.spawner.repository.Gather
 import io.github.maaasu.astralRecord.feature.gathering.spawner.service.GatheringSpawnerService;
 import io.github.maaasu.astralRecord.shared.gui.debug.PagingDebugGui;
 import io.github.maaasu.astralRecord.shared.gui.debug.event.PagingDebugGuiEventHandler;
+import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWaitService;
 import io.github.maaasu.astralRecord.shared.gui.event.GuiClickCooldownEventHandler;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.item.event.ItemInteractionBlockEventHandler;
@@ -230,6 +231,7 @@ public final class AstralRecord extends JavaPlugin {
     private BundleUseService bundleUseService;
     private BundleUseEffectService bundleUseEffectService;
     private ItemDropAnimationService itemDropAnimationService;
+    private MovementCancelableWaitService movementCancelableWaitService;
     private BuffAcquisitionDisplayService buffAcquisitionDisplayService;
     private PotionUseService potionUseService;
     private PlayerClassService playerClassService;
@@ -507,10 +509,11 @@ public final class AstralRecord extends JavaPlugin {
         mobSpawnerService.setParticleDisplayService(particleDisplayService);
         displayTextService = new DisplayTextService();
         textDisplayPlacementService.setDisplayTextService(displayTextService);
+        movementCancelableWaitService = new MovementCancelableWaitService(this);
         bundleUseEffectService = new BundleUseEffectService();
         itemDropAnimationService = new ItemDropAnimationService(this, itemStackFactory, particleDisplayService);
         bundleUseService = new BundleUseService(
-            this,
+            movementCancelableWaitService,
             itemService,
             lootService,
             inventoryService,
@@ -528,7 +531,13 @@ public final class AstralRecord extends JavaPlugin {
         statusService.setPlayerClassService(playerClassService);
         statusService.setSkillTreeService(skillTreeService);
         buffAcquisitionDisplayService = new BuffAcquisitionDisplayService(displayTextService);
-        potionUseService = new PotionUseService(inventoryService, statusService, buffAcquisitionDisplayService, particleDisplayService);
+        potionUseService = new PotionUseService(
+            movementCancelableWaitService,
+            inventoryService,
+            statusService,
+            buffAcquisitionDisplayService,
+            particleDisplayService
+        );
         statusRegenTask = new StatusRegenTask(statusService);
         playerHudService = new PlayerHudService(statusService, playerClassService, accountService);
         skillTreeService.setPlayerHudService(playerHudService);
@@ -597,6 +606,7 @@ public final class AstralRecord extends JavaPlugin {
         playerMessageService = new PlayerMessageService();
         returnToBaseService = new ReturnToBaseService(
             this,
+            movementCancelableWaitService,
             worldService,
             inventoryService,
             particleDisplayService,

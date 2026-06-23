@@ -19,8 +19,13 @@ enum class ItemConsumableEffectType {
                 return UNKNOWN
             }
 
+            val normalized = value.trim().uppercase()
+            if (normalized == "HEAL") {
+                return RECOVER
+            }
+
             return try {
-                valueOf(value.trim().uppercase())
+                valueOf(normalized)
             } catch (_: IllegalArgumentException) {
                 UNKNOWN
             }

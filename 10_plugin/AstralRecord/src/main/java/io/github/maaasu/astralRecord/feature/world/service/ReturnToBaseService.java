@@ -10,6 +10,10 @@ import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
+import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWait;
+import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWaitCallbacks;
+import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWaitCancelReason;
+import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWaitService;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -19,7 +23,6 @@ import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -35,7 +38,6 @@ public final class ReturnToBaseService {
     private static final long BASE_GOLD_COST = 100L;
     private static final long RETURN_DELAY_TICKS = 60L;
     private static final long EFFECT_PERIOD_TICKS = 5L;
-    private static final double MOVE_CANCEL_DISTANCE_SQUARED = 0.0001D;
     private static final int RING_POINTS = 10;
     private static final Title.Times COUNTDOWN_TITLE_TIMES =
         Title.Times.times(Duration.ZERO, Duration.ofMillis(1100L), Duration.ofMillis(150L));
@@ -43,6 +45,7 @@ public final class ReturnToBaseService {
         Title.Times.times(Duration.ZERO, Duration.ofSeconds(2L), Duration.ofMillis(250L));
 
     private final AstralRecord plugin;
+    private final MovementCancelableWaitService movementCancelableWaitService;
     private final WorldService worldService;
     private final InventoryService inventoryService;
     private final ParticleDisplayService particleDisplayService;
@@ -53,6 +56,7 @@ public final class ReturnToBaseService {
      * サービスを初期化します。
      *
      * @param plugin プラグイン本体
+     * @param movementCancelableWaitService 移動キャンセル付き待機サービス
      * @param worldService ワールドサービス
      * @param inventoryService インベントリサービス
      * @param particleDisplayService パーティクル表示サービス
@@ -60,12 +64,14 @@ public final class ReturnToBaseService {
      */
     public ReturnToBaseService(
         @NotNull AstralRecord plugin,
+        @NotNull MovementCancelableWaitService movementCancelableWaitService,
         @NotNull WorldService worldService,
         @NotNull InventoryService inventoryService,
         @NotNull ParticleDisplayService particleDisplayService,
         @NotNull String joinSpawnWorldId
     ) {
         this.plugin = plugin;
+        this.movementCancelableWaitService = movementCancelableWaitService;
         this.worldService = worldService;
         this.inventoryService = inventoryService;
         this.particleDisplayService = particleDisplayService;
@@ -127,14 +133,27 @@ public final class ReturnToBaseService {
         playStartEffects(player);
         PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5607, goldCost);
 
-        BukkitTask task = plugin.getServer().getScheduler().runTaskTimer(
-            plugin,
-            () -> tickPendingReturn(player.getUniqueId()),
-            1L,
-            1L
-        );
-        pending.setTask(task);
         pendingReturns.put(player.getUniqueId(), pending);
+        pending.setWait(movementCancelableWaitService.begin(
+            player,
+            RETURN_DELAY_TICKS,
+            new MovementCancelableWaitCallbacks() {
+                @Override
+                public void onTick(long elapsedTicks, double progress) {
+                    tickPendingReturn(player.getUniqueId(), pending, elapsedTicks, progress);
+                }
+
+                @Override
+                public void onComplete() {
+                    completeReturn(player.getUniqueId(), pending);
+                }
+
+                @Override
+                public void onCancel(@NotNull MovementCancelableWaitCancelReason reason) {
+                    cancelPending(player.getUniqueId(), pending, reason);
+                }
+            }
+        ));
         return true;
     }
 
@@ -147,9 +166,13 @@ public final class ReturnToBaseService {
         }
     }
 
-    private void tickPendingReturn(@NotNull UUID playerId) {
-        PendingReturn pending = pendingReturns.get(playerId);
-        if (pending == null) {
+    private void tickPendingReturn(
+        @NotNull UUID playerId,
+        @NotNull PendingReturn pending,
+        long elapsedTicks,
+        double progress
+    ) {
+        if (pendingReturns.get(playerId) != pending) {
             return;
         }
 
@@ -158,13 +181,8 @@ public final class ReturnToBaseService {
             cancelPending(playerId, false);
             return;
         }
-        if (hasMoved(player, pending.startLocation())) {
-            cancelPending(playerId, true);
-            return;
-        }
 
-        long elapsedTicks = pending.incrementElapsedTicks();
-        pending.bossBar().setProgress(Math.min(1.0D, (double) elapsedTicks / (double) RETURN_DELAY_TICKS));
+        pending.bossBar().setProgress(progress);
 
         int remainingSeconds = secondsRemaining(elapsedTicks);
         if (remainingSeconds != pending.lastDisplayedSeconds()) {
@@ -173,8 +191,23 @@ public final class ReturnToBaseService {
         if (elapsedTicks % EFFECT_PERIOD_TICKS == 0L) {
             playChargeEffects(player, elapsedTicks);
         }
-        if (elapsedTicks >= RETURN_DELAY_TICKS) {
-            completeReturn(playerId, pending);
+    }
+
+    private void cancelPending(
+        @NotNull UUID playerId,
+        @NotNull PendingReturn pending,
+        @NotNull MovementCancelableWaitCancelReason reason
+    ) {
+        if (!pendingReturns.remove(playerId, pending)) {
+            return;
+        }
+
+        Player player = pending.astPlayer().getBukkit();
+        cleanupPending(pending);
+        if (reason == MovementCancelableWaitCancelReason.MOVED && player.isOnline()) {
+            PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5608);
+            showResultTitle(player, PlayerMsgId.P_5615, PlayerMsgId.P_5616);
+            player.playSound(player.getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, SoundCategory.PLAYERS, 0.8F, 0.85F);
         }
     }
 
@@ -219,25 +252,22 @@ public final class ReturnToBaseService {
     }
 
     private boolean cancelPending(@NotNull UUID playerId, boolean notify) {
-        PendingReturn pending = pendingReturns.remove(playerId);
+        PendingReturn pending = pendingReturns.get(playerId);
         if (pending == null) {
             return false;
         }
-
-        Player player = pending.astPlayer().getBukkit();
-        cleanupPending(pending);
-        if (notify && player.isOnline()) {
-            PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5608);
-            showResultTitle(player, PlayerMsgId.P_5615, PlayerMsgId.P_5616);
-            player.playSound(player.getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, SoundCategory.PLAYERS, 0.8F, 0.85F);
+        MovementCancelableWaitCancelReason reason = notify
+            ? MovementCancelableWaitCancelReason.MOVED
+            : MovementCancelableWaitCancelReason.MANUAL;
+        if (pending.waitHandle() != null) {
+            return pending.waitHandle().cancel(reason);
         }
+
+        cancelPending(playerId, pending, reason);
         return true;
     }
 
     private void cleanupPending(@NotNull PendingReturn pending) {
-        if (pending.task() != null) {
-            pending.task().cancel();
-        }
         pending.astPlayer().getBukkit().resetTitle();
         pending.bossBar().removeAll();
         pending.bossBar().setVisible(false);
@@ -312,14 +342,6 @@ public final class ReturnToBaseService {
         player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, SoundCategory.PLAYERS, 0.9F, 1.05F);
     }
 
-    private boolean hasMoved(@NotNull Player player, @NotNull Location startLocation) {
-        Location current = player.getLocation();
-        if (current.getWorld() == null || startLocation.getWorld() == null || current.getWorld() != startLocation.getWorld()) {
-            return true;
-        }
-        return current.distanceSquared(startLocation) > MOVE_CANCEL_DISTANCE_SQUARED;
-    }
-
     private static int secondsRemaining(long elapsedTicks) {
         long remainingTicks = Math.max(0L, RETURN_DELAY_TICKS - elapsedTicks);
         return Math.max(1, (int) Math.ceil(remainingTicks / 20.0D));
@@ -330,10 +352,8 @@ public final class ReturnToBaseService {
         private final WorldMasterData baseWorld;
         private final long goldCost;
         private final BossBar bossBar;
-        private final Location startLocation;
-        private long elapsedTicks;
         private int lastDisplayedSeconds = -1;
-        private BukkitTask task;
+        private MovementCancelableWait wait;
 
         private PendingReturn(
             @NotNull AstPlayer astPlayer,
@@ -345,7 +365,6 @@ public final class ReturnToBaseService {
             this.baseWorld = baseWorld;
             this.goldCost = goldCost;
             this.bossBar = bossBar;
-            this.startLocation = astPlayer.getBukkit().getLocation().clone();
         }
 
         private @NotNull AstPlayer astPlayer() {
@@ -364,15 +383,6 @@ public final class ReturnToBaseService {
             return bossBar;
         }
 
-        private @NotNull Location startLocation() {
-            return startLocation;
-        }
-
-        private long incrementElapsedTicks() {
-            elapsedTicks++;
-            return elapsedTicks;
-        }
-
         private int lastDisplayedSeconds() {
             return lastDisplayedSeconds;
         }
@@ -381,12 +391,12 @@ public final class ReturnToBaseService {
             this.lastDisplayedSeconds = lastDisplayedSeconds;
         }
 
-        private @Nullable BukkitTask task() {
-            return task;
+        private @Nullable MovementCancelableWait waitHandle() {
+            return wait;
         }
 
-        private void setTask(@NotNull BukkitTask task) {
-            this.task = task;
+        private void setWait(@NotNull MovementCancelableWait wait) {
+            this.wait = wait;
         }
     }
 }

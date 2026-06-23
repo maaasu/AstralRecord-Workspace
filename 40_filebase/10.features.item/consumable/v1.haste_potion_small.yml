@@ -1,13 +1,14 @@
 schemaVersion: 1
 id: haste_potion_small
-name: &e迅速ポーション(小)
+category: consumable
+name: "&e迅速ポーション(小)"
 icon: POTION
 rarity: COMMON
 maxStack: 64
 saleValue: 20
 lore:
-  - &7飲むと一定時間、移動速度が上昇する。
-  - &7素早さが10%上昇する。
+  - "&7飲むと一定時間、移動速度が上昇する。"
+  - "&7素早さが10%上昇する。"
 unTradeable: false
 unSellable: false
 
@@ -16,6 +17,8 @@ consumable:
     sound: entity.generic.drink
     effect: happy_villager
     amount: 1
+    useTimeTicks: 40
+    cooldownTicks: 40
   effects:
     - type: BUFF
       buffId: haste_small

@@ -7,5 +7,7 @@ data class ItemConsumableOnUse(
     val sound: String?,
     val effect: String?,
     val amount: Int = 1,
+    val useTimeTicks: Long = 40,
+    val cooldownTicks: Long = 40,
 )
 
