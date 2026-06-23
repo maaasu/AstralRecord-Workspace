@@ -141,7 +141,7 @@ public class MobCommand extends AstCommand {
 
     private void handleSpawnerItem(@NotNull AstPlayer player, @NotNull String[] args) {
         if (!spawnerService.isAdminMode(player)) {
-            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5707.getId()));
+            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5719.getId()));
             return;
         }
         if (args.length < 3) {
@@ -187,7 +187,7 @@ public class MobCommand extends AstCommand {
 
     private void handleNpcPlace(@NotNull AstPlayer player, @NotNull String[] args) {
         if (!spawnerService.isAdminMode(player)) {
-            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5707.getId()));
+            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5719.getId()));
             return;
         }
         if (args.length < 3) {

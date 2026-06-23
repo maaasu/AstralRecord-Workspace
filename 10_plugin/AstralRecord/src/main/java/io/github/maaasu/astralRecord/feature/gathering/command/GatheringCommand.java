@@ -3,6 +3,8 @@ package io.github.maaasu.astralRecord.feature.gathering.command;
 import io.github.maaasu.astralRecord.feature.gathering.model.GatheringInstance;
 import io.github.maaasu.astralRecord.feature.gathering.service.GatheringService;
 import io.github.maaasu.astralRecord.feature.gathering.spawner.service.GatheringSpawnerService;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
@@ -74,7 +76,7 @@ public class GatheringCommand extends AstCommand {
 
     private void handleSpawnerItem(@NotNull AstPlayer player, @NotNull String[] args) {
         if (!spawnerService.isAdminMode(player)) {
-            sendError(player.getBukkit(), "Admin mode is required.");
+            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5719.getId()));
             return;
         }
         if (args.length < 3) {

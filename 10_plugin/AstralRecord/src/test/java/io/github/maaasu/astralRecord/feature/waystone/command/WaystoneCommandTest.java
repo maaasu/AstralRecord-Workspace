@@ -17,6 +17,9 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -48,6 +51,24 @@ class WaystoneCommandTest extends MockBukkitTestBase {
     }
 
     @Test
+    void userPermissionAdminCanCreateWaystoneWithoutAdminAccountMode() throws IOException {
+        WaystoneService service = mock(WaystoneService.class);
+        when(service.create(eq("base"), any(Location.class), eq(false), eq(100L)))
+            .thenReturn(new WaystoneDefinition("waystone-1", "base", "world", 0.0D, 64.0D, 0.0D, 0.0F, 0.0F, false, 100L));
+        WaystoneCommand command = new WaystoneCommand(service);
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        when(astPlayer.getBukkit()).thenReturn(player);
+        when(astPlayer.getAccount()).thenReturn(accountModel(AccountMode.PLAYER));
+        when(astPlayer.hasAdminPermission()).thenReturn(true);
+        AstPlayerCache.put(astPlayer);
+
+        command.onCommand(player, null, "waystone", new String[]{"base"});
+
+        verify(service).create(eq("base"), any(Location.class), anyBoolean(), anyLong());
+    }
+
+    @Test
     void playerAccountModeCannotCreateWaystone() throws IOException {
         WaystoneService service = mock(WaystoneService.class);
         WaystoneCommand command = new WaystoneCommand(service);
@@ -57,6 +78,11 @@ class WaystoneCommandTest extends MockBukkitTestBase {
         command.onCommand(player, null, "waystone", new String[]{"base"});
 
         verify(service, never()).create(any(), any(), anyBoolean(), anyLong());
+        String message = player.nextMessage();
+        assertNotNull(message);
+        assertTrue(message.contains("user.permission 99"));
+        assertTrue(message.contains("account mode ADMIN"));
+        assertFalse(message.contains("のみ使用できます"));
     }
 
     private AstPlayer astPlayer(PlayerMock player, AccountMode mode, int permission) {

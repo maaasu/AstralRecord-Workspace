@@ -66,7 +66,7 @@ public class SkillTreeCommand extends AstCommand {
 
     private void handleReload(@NotNull AstPlayer player) {
         if (!service.isAdminMode(player)) {
-            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5707.getId()));
+            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5719.getId()));
             return;
         }
         int count = service.loadAll();
@@ -75,7 +75,7 @@ public class SkillTreeCommand extends AstCommand {
 
     private void handlePositionItem(@NotNull AstPlayer player, @NotNull String[] args) {
         if (!service.isAdminMode(player)) {
-            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5707.getId()));
+            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5719.getId()));
             return;
         }
         if (args.length < 2) {
@@ -102,7 +102,7 @@ public class SkillTreeCommand extends AstCommand {
 
     private void handleConnectorItem(@NotNull AstPlayer player, @NotNull String[] args) {
         if (!service.isAdminMode(player)) {
-            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5707.getId()));
+            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5719.getId()));
             return;
         }
         int amount = args.length >= 2 ? parseInt(args[1], 1) : 1;

@@ -65,7 +65,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
 
         AstPlayer astPlayer = AstPlayerCache.get(event.getPlayer());
         if (!service.isAdminMode(astPlayer)) {
-            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5707);
+            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5719);
             return;
         }
         if (positionId != null) {

@@ -29,8 +29,8 @@ public final class WaystoneCommand extends AstCommand {
 
     @Override
     protected void executePlayerCommand(@NotNull AstPlayer player, @NotNull String[] args) {
-        if (player.getAccount().getMode() != AccountMode.ADMIN) {
-            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5707);
+        if (!canManageWaystone(player)) {
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_6508);
             return;
         }
         if (args.length < 1) {
@@ -54,5 +54,9 @@ public final class WaystoneCommand extends AstCommand {
         } catch (NumberFormatException ignored) {
             return fallback;
         }
+    }
+
+    private boolean canManageWaystone(@NotNull AstPlayer player) {
+        return player.hasAdminPermission() || player.getAccount().getMode() == AccountMode.ADMIN;
     }
 }

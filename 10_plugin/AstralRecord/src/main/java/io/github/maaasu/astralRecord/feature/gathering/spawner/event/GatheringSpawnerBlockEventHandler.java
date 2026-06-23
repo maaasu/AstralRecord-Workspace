@@ -33,7 +33,7 @@ public class GatheringSpawnerBlockEventHandler extends AbstractEventHandler {
 
         AstPlayer astPlayer = AstPlayerCache.get(event.getPlayer());
         if (!spawnerService.isAdminMode(astPlayer)) {
-            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5707);
+            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5719);
             return;
         }
         if (!spawnerService.registerLocation(spawnerId, event.getBlockPlaced().getLocation())) {
@@ -54,7 +54,7 @@ public class GatheringSpawnerBlockEventHandler extends AbstractEventHandler {
         AstPlayer astPlayer = AstPlayerCache.get(event.getPlayer());
         if (!spawnerService.isAdminMode(astPlayer)) {
             event.setCancelled(true);
-            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5707);
+            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5719);
             return;
         }
         if (spawnerService.removeLocation(event.getBlock().getLocation())) {

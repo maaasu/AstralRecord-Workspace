@@ -552,6 +552,10 @@ public enum PlayerMsgId {
      * NPC を配置しました: {0} world={1} x={2} y={3} z={4}
      */
     P_5718(5718),
+    /**
+     * account mode ADMIN のプレイヤーのみ使用できます。
+     */
+    P_5719(5719),
     // endregion
 
     // region /feature/textdisplay/command/TextDisplayCommand.java 5770-5779
@@ -769,6 +773,7 @@ public enum PlayerMsgId {
     P_6505(6505),
     P_6506(6506),
     P_6507(6507),
+    P_6508(6508),
     // endregion
 
     // region /feature/player/service/PlayerMessageService.java 5940-5949
