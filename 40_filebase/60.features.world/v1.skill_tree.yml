@@ -10,6 +10,7 @@ maxPlayers: 8
 allowBlockBreak: false
 allowBlockPlace: false
 allowMobSpawn: false
+showSpawnParticle: false
 spawnLocation:
   x: 1000.5
   y: 68.0

@@ -57,6 +57,9 @@ public class WorldSpawnParticleTask {
     private void tick() {
         double baseAngle = frame * 0.22D;
         for (var worldData : worldService.getAll()) {
+            if (!worldData.showSpawnParticle()) {
+                continue;
+            }
             Location spawn = worldService.resolveSpawnLocation(worldData);
             if (spawn == null) {
                 continue;

@@ -27,6 +27,8 @@ public class WorldResponse
 
     public bool AllowMobSpawn { get; init; }
 
+    public bool ShowSpawnParticle { get; init; }
+
     public required WorldSpawnLocationResponse SpawnLocation { get; init; }
 
     public required string Description { get; init; }

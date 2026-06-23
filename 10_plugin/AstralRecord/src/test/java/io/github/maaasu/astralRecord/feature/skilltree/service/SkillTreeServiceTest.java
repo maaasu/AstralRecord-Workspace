@@ -331,6 +331,7 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
                 false,
                 false,
                 false,
+                true,
                 WorldSpawnLocation.defaultLocation(),
                 "test"
         ));
@@ -387,6 +388,7 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
                 false,
                 false,
                 false,
+                true,
                 WorldSpawnLocation.defaultLocation(),
                 "test"
         ));

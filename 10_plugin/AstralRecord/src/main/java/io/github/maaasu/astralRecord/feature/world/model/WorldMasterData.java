@@ -33,6 +33,7 @@ public record WorldMasterData(
         boolean allowBlockBreak,
         boolean allowBlockPlace,
         boolean allowMobSpawn,
+        boolean showSpawnParticle,
         @NotNull WorldSpawnLocation spawnLocation,
         @NotNull String description
 ) {

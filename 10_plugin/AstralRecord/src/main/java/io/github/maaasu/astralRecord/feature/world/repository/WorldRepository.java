@@ -153,6 +153,7 @@ public class WorldRepository {
                 obj.has("allowBlockBreak") && obj.get("allowBlockBreak").getAsBoolean(),
                 obj.has("allowBlockPlace") && obj.get("allowBlockPlace").getAsBoolean(),
                 obj.has("allowMobSpawn") && obj.get("allowMobSpawn").getAsBoolean(),
+                !obj.has("showSpawnParticle") || obj.get("showSpawnParticle").getAsBoolean(),
                 parseSpawnLocation(obj),
                 optionalString(obj, "description", "")
         );

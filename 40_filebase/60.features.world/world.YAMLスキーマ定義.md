@@ -1,6 +1,6 @@
 # WorldMasterData YAML スキーマ定義
 
-World システムで参照する filebase マスタです。Plugin は API 経由でこの定義を取得し、`spawnLocation` を参加時スポーンと `/world tp` に利用します。
+World システムで参照する filebase マスタです。Plugin は API 経由でこの定義を取得し、`spawnLocation` を参加時スポーンと `/world tp` に利用し、`showSpawnParticle` でスポーン地点リング演出の表示有無を制御します。
 
 ```yaml
 schemaVersion: 1
@@ -15,6 +15,7 @@ maxPlayers: integer
 allowBlockBreak: boolean
 allowBlockPlace: boolean
 allowMobSpawn: boolean
+showSpawnParticle: boolean
 spawnLocation:
   x: number
   y: number
@@ -28,17 +29,18 @@ description: string
 
 | Key | Required | Description |
 |---|---:|---|
-| `schemaVersion` | yes | YAML スキーマバージョン。現時点では `1`。 |
-| `id` | yes | ワールド定義 ID。 |
+| `schemaVersion` | yes | YAML スキーマバージョン。現行は `1`。 |
+| `id` | yes | ワールドマスタ ID。 |
 | `displayName` | yes | 表示名。 |
 | `worldType` | yes | ワールド種別。 |
-| `baseWorldPath` | yes | 元となるワールドフォルダのパス。 |
+| `baseWorldPath` | yes | 元になるワールドフォルダのパス。 |
 | `instanceRootPath` | yes | インスタンス生成先ルート。 |
 | `autoLoad` | yes | 起動時と `/world reload` 時の自動ロード対象か。 |
 | `instanceEnabled` | yes | インスタンス対応フラグ。 |
-| `maxPlayers` | yes | 想定最大プレイヤー数。 |
+| `maxPlayers` | yes | 許容最大プレイヤー数。 |
 | `allowBlockBreak` | yes | ブロック破壊許可。 |
 | `allowBlockPlace` | yes | ブロック設置許可。 |
 | `allowMobSpawn` | yes | 互換用フィールド。Plugin は RPG マップ保護を優先し、管理ワールドでは値にかかわらずバニラ Mob スポーンを抑止し、AstralRecord が生成した Mob 以外の Bukkit `Mob` を削除する。 |
+| `showSpawnParticle` | yes | ワールドスポーン地点の常時リングパーティクルを表示するか。`false` の場合も `spawnLocation` 自体は維持し、演出のみ非表示にする。 |
 | `spawnLocation` | yes | 既定スポーン地点。`x` `y` `z` `yaw` `pitch` を持つ。 |
 | `description` | yes | 説明。 |
