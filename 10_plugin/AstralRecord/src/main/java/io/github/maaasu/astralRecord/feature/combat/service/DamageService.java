@@ -267,14 +267,14 @@ public final class DamageService {
         double baseShieldDamage = Math.floor(result.finalDamage() / Math.max(1.0D, victim.maxHealth() * 0.1D));
         double calculatedShieldDamage = baseShieldDamage + shieldBreak;
         if (calculatedShieldDamage < 1.0D) {
-            return DamageResult.shield(0.0D, false);
+            return DamageResult.shield(0.0D, false, result.critical());
         }
 
         double currentShield = currentShield(victim);
         double shieldDamage = Math.min(currentShield, calculatedShieldDamage);
         boolean shieldBroken = currentShield > 0.0D && currentShield - shieldDamage <= 0.0D;
         consumeShield(victim, shieldDamage);
-        return DamageResult.shield(shieldDamage, shieldBroken);
+        return DamageResult.shield(shieldDamage, shieldBroken, result.critical());
     }
 
     private void applyDamageResult(
@@ -295,7 +295,7 @@ public final class DamageService {
         if (victim.isPlayer()) {
             if (victim.player() != null) {
                 var updated = statusService.consumeHp(victim.player(), result.finalDamage());
-                playPlayerHurtEffect(victim.player().getBukkit());
+                playPlayerHurtEffect(victim.player().getBukkit(), result.critical());
                 applyDamageKnockback(attacker, victim, attackType);
                 if (updated.getCurrentHp() <= 0.0D && playerDeathService != null) {
                     playerDeathService.startDeath(victim.player(), victim.location());
@@ -311,7 +311,7 @@ public final class DamageService {
         var mob = victim.mob();
         if (mob == null) return;
         mob.currentHealth(Math.max(0.0D, mob.currentHealth() - result.finalDamage()));
-        playMobHurtEffect(mob.bukkitEntityId());
+        playMobHurtEffect(mob.bukkitEntityId(), result.critical());
         applyDamageKnockback(attacker, victim, attackType);
         if (attacker != null && attacker.isPlayer()) {
             if (isPlayerDead(attacker.id())) {
@@ -372,7 +372,7 @@ public final class DamageService {
         if (!shouldDisplayDamage(attacker, victim)) {
             return;
         }
-        displayTextService.spawnDamageNumber(victim.location().clone().add(0.0D, 1.2D, 0.0D), result.finalDamage(), false);
+        displayTextService.spawnDamageNumber(victim.location().clone().add(0.0D, 1.2D, 0.0D), result.finalDamage(), result.critical());
     }
 
     private boolean hasActiveShield(@NotNull AstEntity victim) {
@@ -420,7 +420,7 @@ public final class DamageService {
         return !victim.isPlayer() || playerSettingService.isDamageLogDisplayEnabled(victim.player().getUser().getUuid());
     }
 
-    private void playMobHurtEffect(@Nullable UUID entityId) {
+    private void playMobHurtEffect(@Nullable UUID entityId, boolean critical) {
         Entity entity = resolveBukkitEntity(entityId);
         if (entity instanceof LivingEntity livingEntity) {
             livingEntity.playHurtAnimation(0.0F);
@@ -432,12 +432,12 @@ public final class DamageService {
                         location.clone().add(0.0D, Math.max(0.6D, livingEntity.getHeight() * 0.5D), 0.0D),
                         SharedParticleDefinitions.DAMAGE_HIT_INDICATOR
                 );
-                world.playSound(location, Sound.ENTITY_PLAYER_ATTACK_STRONG, SoundCategory.PLAYERS, 0.65F, 1.15F);
+                world.playSound(location, Sound.ENTITY_PLAYER_HURT, SoundCategory.PLAYERS, 0.75F, critical ? 1.55F : 1.0F);
             }
         }
     }
 
-    private void playPlayerHurtEffect(@NotNull Player player) {
+    private void playPlayerHurtEffect(@NotNull Player player, boolean critical) {
         player.playHurtAnimation(0.0F);
         player.setNoDamageTicks(0);
         Location location = player.getLocation();
@@ -445,7 +445,7 @@ public final class DamageService {
                 location.clone().add(0.0D, Math.max(0.6D, player.getHeight() * 0.5D), 0.0D),
                 SharedParticleDefinitions.DAMAGE_HIT_INDICATOR
         );
-        player.getWorld().playSound(location, Sound.ENTITY_PLAYER_HURT, SoundCategory.PLAYERS, 0.75F, 1.0F);
+        player.getWorld().playSound(location, Sound.ENTITY_PLAYER_HURT, SoundCategory.PLAYERS, 0.75F, critical ? 1.55F : 1.0F);
     }
 
     private void applyDamageKnockback(
@@ -481,7 +481,7 @@ public final class DamageService {
             location.clone().add(0.0D, 0.9D, 0.0D),
             SharedParticleDefinitions.MOB_DEATH_CRIT
         );
-        world.playSound(location, Sound.ENTITY_GENERIC_DEATH, 0.8F, 1.1F);
+        world.playSound(location, Sound.ENTITY_ARROW_HIT_PLAYER, SoundCategory.PLAYERS, 0.8F, 1.65F);
     }
 
     private void playShieldEffect(@NotNull AstEntity victim, boolean broken) {

@@ -6,6 +6,10 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.DoubleSupplier;
+
 /**
  * ダメージ計算の純粋ロジックを担うクラスです。
  * <p>
@@ -14,6 +18,22 @@ import org.jetbrains.annotations.NotNull;
  * 将来この実装内で拡張する想定で、現状は下限クランプのみを行います。
  */
 public final class DamageCalculator {
+
+    private static final double DEFAULT_CRITICAL_DAMAGE = 150.0D;
+    private static final double DEFAULT_SUPER_CRITICAL_DAMAGE = 100.0D;
+
+    private final DoubleSupplier criticalRollSupplier;
+
+    /**
+     * サーバー標準の乱数を使うダメージ計算器を作成します。
+     */
+    public DamageCalculator() {
+        this(() -> ThreadLocalRandom.current().nextDouble(0.0D, 100.0D));
+    }
+
+    DamageCalculator(@NotNull DoubleSupplier criticalRollSupplier) {
+        this.criticalRollSupplier = Objects.requireNonNull(criticalRollSupplier, "criticalRollSupplier");
+    }
 
     /**
      * ダメージを計算し、結果を返します。
@@ -26,6 +46,11 @@ public final class DamageCalculator {
      */
     public @NotNull DamageResult calculate(@NotNull DamageContext context) {
         double damage = resolveBaseDamage(context);
+        boolean critical = false;
+
+        CriticalDamage criticalDamage = applyCriticalDamage(context, damage);
+        damage = criticalDamage.damage();
+        critical = criticalDamage.critical();
 
         if (context.damageType() != DamageType.TRUE && context.victim().isManaged()) {
             double defense = defensePower(context);
@@ -34,7 +59,34 @@ public final class DamageCalculator {
 
         damage = Math.max(0.0D, damage);
 
-        return new DamageResult(damage);
+        return new DamageResult(damage, critical);
+    }
+
+    private @NotNull CriticalDamage applyCriticalDamage(@NotNull DamageContext context, double damage) {
+        if (context.attacker() == null || !context.attacker().isManaged() || damage <= 0.0D) {
+            return new CriticalDamage(damage, false);
+        }
+
+        double criticalRate = Math.max(0.0D, context.attacker().statValue(StatusType.CRITICAL_RATE));
+        if (criticalRate <= 0.0D || criticalRollSupplier.getAsDouble() >= criticalRate) {
+            return new CriticalDamage(damage, false);
+        }
+
+        double criticalDamage = context.attacker().statValue(StatusType.CRITICAL_DAMAGE);
+        if (criticalDamage <= 0.0D) {
+            criticalDamage = DEFAULT_CRITICAL_DAMAGE;
+        }
+        damage *= criticalDamage / 100.0D;
+
+        double superCriticalRate = Math.max(0.0D, context.attacker().statValue(StatusType.SUPER_CRITICAL_RATE));
+        if (superCriticalRate > 0.0D && criticalRollSupplier.getAsDouble() < superCriticalRate) {
+            double superCriticalDamage = context.attacker().statValue(StatusType.SUPER_CRITICAL_DAMAGE);
+            if (superCriticalDamage <= 0.0D) {
+                superCriticalDamage = DEFAULT_SUPER_CRITICAL_DAMAGE;
+            }
+            damage *= superCriticalDamage / 100.0D;
+        }
+        return new CriticalDamage(damage, true);
     }
 
     private double resolveBaseDamage(@NotNull DamageContext context) {
@@ -76,5 +128,8 @@ public final class DamageCalculator {
             case RANGED -> StatusType.DEXTERITY;
             case MAGIC -> StatusType.INTELLIGENCE;
         };
+    }
+
+    private record CriticalDamage(double damage, boolean critical) {
     }
 }

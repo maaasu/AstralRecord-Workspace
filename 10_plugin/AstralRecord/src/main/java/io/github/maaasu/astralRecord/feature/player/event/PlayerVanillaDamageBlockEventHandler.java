@@ -3,6 +3,8 @@ package io.github.maaasu.astralRecord.feature.player.event;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -29,6 +31,10 @@ public class PlayerVanillaDamageBlockEventHandler extends AbstractEventHandler {
                 return;
             }
 
+            if (event.getDamage() > 0.0D) {
+                player.playHurtAnimation(0.0F);
+                player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_HURT, SoundCategory.PLAYERS, 0.75F, 1.0F);
+            }
             event.setDamage(0.0D);
             event.setCancelled(true);
         }, LogId.E_5600, event.getEntity().getName());
