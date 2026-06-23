@@ -309,7 +309,7 @@ public class BundleUseService {
         return current.distanceSquared(start) > MOVE_CANCEL_DISTANCE_SQUARED;
     }
 
-    private @NotNull Map<String, Integer> rollRewards(@NotNull LootModel lootModel) {
+    static @NotNull Map<String, Integer> rollRewards(@NotNull LootModel lootModel) {
         Map<String, Integer> rewards = new LinkedHashMap<>();
         ThreadLocalRandom random = ThreadLocalRandom.current();
 
@@ -317,11 +317,14 @@ public class BundleUseService {
         for (int rollIndex = 0; rollIndex < rolls; rollIndex++) {
             for (LootPoolModel pool : lootModel.getPools()) {
                 int picks = Math.max(1, pool.getPick());
-                for (int pickIndex = 0; pickIndex < picks; pickIndex++) {
-                    LootContent content = selectContent(pool.getContents(), random);
+                List<LootContent> availableContents = new ArrayList<>(pool.getContents());
+                for (int pickIndex = 0; pickIndex < picks && !availableContents.isEmpty(); pickIndex++) {
+                    LootContent content = selectContent(availableContents, random);
                     if (content == null) {
-                        continue;
+                        break;
                     }
+                    availableContents.remove(content);
+
                     int amount = rollAmount(content, random);
                     if (amount <= 0) {
                         continue;
@@ -333,7 +336,7 @@ public class BundleUseService {
         return rewards;
     }
 
-    private @Nullable LootContent selectContent(
+    private static @Nullable LootContent selectContent(
         @NotNull List<LootContent> contents,
         @NotNull ThreadLocalRandom random
     ) {
@@ -361,7 +364,7 @@ public class BundleUseService {
         return candidates.get(candidates.size() - 1);
     }
 
-    private int rollAmount(@NotNull LootContent content, @NotNull ThreadLocalRandom random) {
+    private static int rollAmount(@NotNull LootContent content, @NotNull ThreadLocalRandom random) {
         int minAmount = Math.min(content.getMinAmount(), content.getMaxAmount());
         int maxAmount = Math.max(content.getMinAmount(), content.getMaxAmount());
         if (maxAmount <= 0) {
