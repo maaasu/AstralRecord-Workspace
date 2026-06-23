@@ -452,7 +452,7 @@ public class MenuView {
             return List.of();
         }
         return plugin.getStatusService().getActiveBuffs(astPlayer).stream()
-            .map(buff -> ColorCodeUtil.stripColor(ColorCodeUtil.translateAlternateColorCodes(buff.getType().getDisplayName())))
+            .map(buff -> ColorCodeUtil.toPlainText(buff.getType().getDisplayName(), buff.getType().getId()))
             .filter(name -> name != null && !name.isBlank())
             .distinct()
             .limit(5)

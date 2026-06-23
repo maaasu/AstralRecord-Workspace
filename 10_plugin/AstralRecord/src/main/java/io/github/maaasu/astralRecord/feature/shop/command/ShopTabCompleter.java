@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.shop.command;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.shop.repository.ShopRepository;
 import io.github.maaasu.astralRecord.infrastructure.command.AstTabCompleter;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -19,14 +20,10 @@ public final class ShopTabCompleter extends AstTabCompleter {
     protected List<String> getPlayerCompletions(@NotNull AstPlayer player, @NotNull String[] args) {
         if (args.length == 1) {
             return shopRepository.findAll().stream()
-                .flatMap(shop -> Stream.of(shop.id(), stripColor(shop.name())))
+                .flatMap(shop -> Stream.of(shop.id(), ColorCodeUtil.toPlainText(shop.name(), shop.id())))
                 .distinct()
                 .toList();
         }
         return List.of();
-    }
-
-    private String stripColor(@NotNull String value) {
-        return value.replaceAll("(?i)&[0-9a-fk-or]", "").trim();
     }
 }

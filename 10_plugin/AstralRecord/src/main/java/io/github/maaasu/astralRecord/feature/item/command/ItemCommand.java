@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Locale;
@@ -67,7 +68,13 @@ public class ItemCommand extends AstCommand {
             return;
         }
 
-        PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5209, loaded.getCategory(), loaded.getId(), loaded.getName());
+        PlayerMessageService.getInstance().send(
+            player,
+            PlayerMsgId.P_5209,
+            loaded.getCategory(),
+            loaded.getId(),
+            ColorCodeUtil.toLegacyText(loaded.getName(), loaded.getId())
+        );
     }
 
     private void handleGet(@NotNull AstPlayer player, @NotNull String[] args) {
@@ -102,7 +109,12 @@ public class ItemCommand extends AstCommand {
         if (inventoryType != InventoryType.CURRENCY) {
             inventoryService.applyInventoryToGui(player, inventoryType);
         }
-        PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5240, model.getName(), granted);
+        PlayerMessageService.getInstance().send(
+            player,
+            PlayerMsgId.P_5240,
+            ColorCodeUtil.toLegacyText(model.getName(), model.getId()),
+            granted
+        );
     }
 
     private int parsePositiveInt(@NotNull String[] args, int index, int defaultValue) {

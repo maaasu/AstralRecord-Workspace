@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobDropPresentationServ
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.SoundCategory;
@@ -211,7 +212,7 @@ public class GatheringService {
             dropPresentationService.presentAndGrant(
                     recipient,
                     instance.location(),
-                    instance.definition().name(),
+                    ColorCodeUtil.toLegacyText(instance.definition().name(), instance.definition().id()),
                     result,
                     DROP_SOURCE
             );

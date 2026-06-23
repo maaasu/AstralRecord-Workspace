@@ -94,7 +94,6 @@ public final class BuffScreenView extends BaseMenuScreenView {
     }
 
     private @NotNull String sanitizeDisplayName(@NotNull String displayName) {
-        String sanitized = ColorCodeUtil.stripColor(ColorCodeUtil.translateAlternateColorCodes(displayName));
-        return sanitized == null || sanitized.isBlank() ? displayName : sanitized;
+        return ColorCodeUtil.toPlainText(displayName, displayName);
     }
 }

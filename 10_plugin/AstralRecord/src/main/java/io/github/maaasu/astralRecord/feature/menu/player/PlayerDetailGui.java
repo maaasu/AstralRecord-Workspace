@@ -160,8 +160,9 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         }
         List<Component> lore = new ArrayList<>();
         for (var activeBuff : target.getActiveBuffs()) {
-            String displayName = ColorCodeUtil.stripColor(
-                ColorCodeUtil.translateAlternateColorCodes(activeBuff.getType().getDisplayName())
+            String displayName = ColorCodeUtil.toPlainText(
+                activeBuff.getType().getDisplayName(),
+                activeBuff.getType().getId()
             );
             lore.add(noItalic(Component.text("- " + displayName, NamedTextColor.WHITE)));
         }

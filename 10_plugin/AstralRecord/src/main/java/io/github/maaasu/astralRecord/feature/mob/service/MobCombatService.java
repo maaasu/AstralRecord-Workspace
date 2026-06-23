@@ -27,6 +27,7 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Bukkit;
@@ -321,7 +322,12 @@ public class MobCombatService {
             results.add(result);
             applyExperienceAndSkillPoints(recipient, result);
             adventureRecordService.recordDefeatAsync(recipient, template);
-            dropPresentationService.presentAndGrant(recipient, instance.currentLocation(), template.displayName(), result);
+            dropPresentationService.presentAndGrant(
+                    recipient,
+                    instance.currentLocation(),
+                    ColorCodeUtil.toLegacyText(template.displayName(), template.id()),
+                    result
+            );
         }
 
         mobService.destroy(instance.instanceId());

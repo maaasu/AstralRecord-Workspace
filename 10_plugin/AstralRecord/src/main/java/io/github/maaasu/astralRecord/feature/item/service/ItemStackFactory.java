@@ -221,7 +221,7 @@ public class ItemStackFactory {
 
         // --- アイテム名: transcendence オーバーライド → enhance +N サフィックス ---
         String baseName = resolveEquipmentDisplayName(model, instance);
-        var decoratedName = ColorCodeUtil.translateAlternateColorCodes(baseName);
+        var decoratedName = ColorCodeUtil.toLegacyText(baseName, model.getId());
         String enhanceSuffix = instance.getEnhanceLevel() > 0
                 ? " §f+" + instance.getEnhanceLevel()
                 : "";
@@ -278,7 +278,7 @@ public class ItemStackFactory {
         }
 
         var rarityColor = rarityToColor(model.getRarity());
-        var decoratedName = ColorCodeUtil.translateAlternateColorCodes(model.getName());
+        var decoratedName = ColorCodeUtil.toLegacyText(model.getName(), model.getId());
         meta.displayName(LEGACY_SERIALIZER.deserialize(rarityColor + decoratedName + ColorCodeUtil.RESET));
 
         var loreStrings = buildLoreForRuneInstance(model, instance);
@@ -431,7 +431,7 @@ public class ItemStackFactory {
 
         // --- 表示名 ---
         var rarityColor = rarityToColor(model.getRarity());
-        var decoratedName = ColorCodeUtil.translateAlternateColorCodes(model.getName());
+        var decoratedName = ColorCodeUtil.toLegacyText(model.getName(), model.getId());
         meta.displayName(LEGACY_SERIALIZER.deserialize(
                 rarityColor + decoratedName + ColorCodeUtil.RESET));
 
@@ -477,7 +477,7 @@ public class ItemStackFactory {
     private @NotNull List<String> buildLore(@NotNull ItemModel model) {
         List<String> lore = new ArrayList<>();
         String rarityColor = rarityToColor(model.getRarity());
-        String decoratedName = ColorCodeUtil.translateAlternateColorCodes(model.getName());
+        String decoratedName = ColorCodeUtil.toLegacyText(model.getName(), model.getId());
 
         // ヘッダー
         lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
@@ -687,7 +687,7 @@ public class ItemStackFactory {
         if (rewardModel == null || rewardModel.getName() == null || rewardModel.getName().isBlank()) {
             return itemId;
         }
-        return ColorCodeUtil.translateAlternateColorCodes(rewardModel.getName());
+        return ColorCodeUtil.toLegacyText(rewardModel.getName(), rewardModel.getId());
     }
 
     /**
@@ -698,8 +698,7 @@ public class ItemStackFactory {
             @NotNull ItemModel model, @NotNull EquipmentInstance instance) {
         List<String> lore = new ArrayList<>();
         String rarityColor = rarityToColor(model.getRarity());
-        String decoratedName = ColorCodeUtil.translateAlternateColorCodes(
-                resolveEquipmentDisplayName(model, instance));
+        String decoratedName = ColorCodeUtil.toLegacyText(resolveEquipmentDisplayName(model, instance), model.getId());
 
         lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
         lore.add(rarityColor + "◆ " + decoratedName);
@@ -901,7 +900,7 @@ public class ItemStackFactory {
             @NotNull ItemModel model, @NotNull RuneInstance instance) {
         List<String> lore = new ArrayList<>();
         String rarityColor = rarityToColor(model.getRarity());
-        String decoratedName = ColorCodeUtil.translateAlternateColorCodes(model.getName());
+        String decoratedName = ColorCodeUtil.toLegacyText(model.getName(), model.getId());
 
         lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
         lore.add(rarityColor + "◆ " + decoratedName);

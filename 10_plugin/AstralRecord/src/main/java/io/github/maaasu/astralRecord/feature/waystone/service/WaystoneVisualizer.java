@@ -113,7 +113,7 @@ public final class WaystoneVisualizer {
         BlockDisplay unlockedBlock = spawnBlock(location, definition.id(), Material.LODESTONE, 0.0D, 0.08D, 0.0D);
         BlockDisplay lockedBlock = spawnBlock(location, definition.id(), Material.CRYING_OBSIDIAN, 0.0D, 0.08D, 0.0D);
         TextDisplay unlockedText = spawnText(location.clone().add(0.0D, LABEL_Y_OFFSET, 0.0D), definition.id(),
-            "&b" + definition.name());
+            "&b" + ColorCodeUtil.toLegacyText(definition.name(), definition.id()));
         TextDisplay lockedText = spawnText(location.clone().add(0.0D, LABEL_Y_OFFSET, 0.0D), definition.id(),
             "&7未開放");
         Interaction interaction = spawnInteraction(location, definition.id());

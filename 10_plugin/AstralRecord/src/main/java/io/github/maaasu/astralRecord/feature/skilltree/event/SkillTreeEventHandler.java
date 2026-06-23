@@ -130,7 +130,11 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
             }
             if (service.unlockNode(astPlayer, node)) {
                 playUnlock(event.getPlayer());
-                PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5824, ColorCodeUtil.translateAlternateColorCodes(node.name()));
+                PlayerMessageService.getInstance().send(
+                    event.getPlayer(),
+                    PlayerMsgId.P_5824,
+                    ColorCodeUtil.toLegacyText(node.name(), node.id())
+                );
             } else {
                 playDenied(event.getPlayer(), 0.75F);
                 PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5825);
@@ -149,7 +153,11 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
         }
         if (service.relockNode(astPlayer, node)) {
             playRelock(event.getPlayer());
-            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5826, node.name());
+            PlayerMessageService.getInstance().send(
+                event.getPlayer(),
+                PlayerMsgId.P_5826,
+                ColorCodeUtil.toLegacyText(node.name(), node.id())
+            );
         } else {
             playDenied(event.getPlayer(), 0.75F);
             PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5827);

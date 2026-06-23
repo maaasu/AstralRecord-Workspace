@@ -62,7 +62,7 @@ public final class ShopGui {
         Inventory inventory = Bukkit.createInventory(
             new ListHolder(shop.id()),
             LIST_SIZE,
-            LEGACY_SERIALIZER.deserialize(ColorCodeUtil.translateAlternateColorCodes(shop.name()))
+            LEGACY_SERIALIZER.deserialize(ColorCodeUtil.toLegacyText(shop.name(), shop.id()))
         );
         fillFrame(inventory);
         for (ShopEntry entry : shop.entries()) {
@@ -89,7 +89,8 @@ public final class ShopGui {
         Inventory inventory = Bukkit.createInventory(
             new ConfirmHolder(shop.id(), entry.id(), preview.quantity()),
             CONFIRM_SIZE,
-            LEGACY_SERIALIZER.deserialize(ColorCodeUtil.translateAlternateColorCodes(shop.name() + " &7/ 購入確認"))
+            LEGACY_SERIALIZER.deserialize(ColorCodeUtil.toLegacyText(shop.name(), shop.id())
+                + " " + ColorCodeUtil.GRAY + "/ 購入確認")
         );
         fill(inventory, Material.GRAY_STAINED_GLASS_PANE);
         ItemModel model = shopService.resolveItem(entry);

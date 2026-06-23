@@ -426,7 +426,7 @@ public final class SkillBindGui {
         if (skill == null || skill.getName().isBlank()) {
             return Component.text("未定義スキル", owned ? NamedTextColor.WHITE : NamedTextColor.GRAY);
         }
-        return legacyComponent(skill.getName());
+        return legacyComponent(SkillPresentationUtil.legacyName(skill, fallback));
     }
 
     private void addSkillLore(@NotNull List<Component> lore, @NotNull SkillDefinition skill, boolean owned) {

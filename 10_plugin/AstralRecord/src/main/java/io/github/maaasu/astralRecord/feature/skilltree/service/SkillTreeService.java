@@ -1479,11 +1479,13 @@ public class SkillTreeService {
     }
 
     private @NotNull String stripLegacy(@NotNull String text) {
-        return text.replaceAll("(?i)&[0-9A-FK-OR]", "");
+        return ColorCodeUtil.toPlainText(text, text);
     }
 
     private @NotNull String resolveNodeDisplayName(@NotNull SkillTreeNodeDefinition node, boolean unlocked) {
-        return unlocked ? node.name() : "&7" + stripLegacy(node.name());
+        return unlocked
+                ? ColorCodeUtil.toLegacyText(node.name(), node.id())
+                : "&7" + stripLegacy(node.name());
     }
 
     private @NotNull String formatStatusValue(double value) {

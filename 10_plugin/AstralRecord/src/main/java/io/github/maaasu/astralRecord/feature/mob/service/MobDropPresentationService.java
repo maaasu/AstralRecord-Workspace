@@ -179,7 +179,8 @@ public final class MobDropPresentationService {
                 text.append("&7, &f");
             }
             ResolvedDropItem item = items.get(index);
-            text.append(item.model().getName()).append(" x").append(item.amount());
+            text.append(ColorCodeUtil.toLegacyText(item.model().getName(), item.model().getId()))
+                .append(" x").append(item.amount());
         }
         int hiddenItems = items.size() - shownItems;
         if (hiddenItems > 0) {

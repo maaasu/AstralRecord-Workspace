@@ -415,7 +415,7 @@ public class SkillService {
         }
 
         long castTimeTicks = definition.getCastTimeTicks();
-        caster.mob().startSkillCasting(definition.getName(), castTimeTicks);
+        caster.mob().startSkillCasting(SkillPresentationUtil.legacyName(definition, definition.getId()), castTimeTicks);
         playMobCastStartSound(castLocation, definition);
 
         BukkitRunnable runnable = new BukkitRunnable() {
@@ -484,7 +484,7 @@ public class SkillService {
         double seconds = Math.max(0.0D, remainingTicks / 20.0D);
         String message = PlayerMsgResource.format(
                 PlayerMsgId.P_5811.getId(),
-                definition.getName(),
+                SkillPresentationUtil.legacyName(definition, definition.getId()),
                 String.format(Locale.ROOT, "%.1f", seconds)
         );
         Component component = LegacyComponentSerializer.legacySection().deserialize(message);

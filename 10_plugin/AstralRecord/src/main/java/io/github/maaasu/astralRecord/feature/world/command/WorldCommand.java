@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
 
@@ -64,7 +65,7 @@ public class WorldCommand extends AstCommand {
             sendInfo(player.getBukkit(), PlayerMsgResource.format(
                     PlayerMsgId.P_5753.getId(),
                     world.id(),
-                    world.displayName(),
+                    ColorCodeUtil.toLegacyText(world.displayName(), world.id()),
                     world.worldType().name(),
                     world.instanceEnabled()
             ));
@@ -85,7 +86,7 @@ public class WorldCommand extends AstCommand {
         sendInfo(player.getBukkit(), PlayerMsgResource.format(
                 PlayerMsgId.P_5755.getId(),
                 world.id(),
-                world.displayName()
+                ColorCodeUtil.toLegacyText(world.displayName(), world.id())
         ));
         sendInfo(player.getBukkit(), PlayerMsgResource.format(
                 PlayerMsgId.P_5756.getId(),

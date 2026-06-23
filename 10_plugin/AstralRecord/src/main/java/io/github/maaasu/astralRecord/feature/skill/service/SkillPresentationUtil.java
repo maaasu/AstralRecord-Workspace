@@ -30,8 +30,7 @@ public final class SkillPresentationUtil {
             return fallback;
         }
 
-        String sanitized = ColorCodeUtil.stripColor(ColorCodeUtil.translateAlternateColorCodes(name));
-        return sanitized == null || sanitized.isBlank() ? fallback : sanitized;
+        return ColorCodeUtil.toPlainText(name, fallback);
     }
 
     /**
@@ -51,6 +50,6 @@ public final class SkillPresentationUtil {
             return fallback;
         }
 
-        return ColorCodeUtil.translateAlternateColorCodes(name);
+        return ColorCodeUtil.toLegacyText(name, fallback);
     }
 }

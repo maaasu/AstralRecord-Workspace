@@ -251,12 +251,12 @@ public class AdventureRecordGui {
         if (!template.lore().isEmpty()) {
             lore.add(Component.text("説明", NamedTextColor.AQUA));
             template.lore().stream().limit(4)
-                .map(line -> ColorCodeUtil.stripColor(ColorCodeUtil.translateAlternateColorCodes(line)))
+                .map(line -> ColorCodeUtil.toPlainText(line, line))
                 .forEach(line -> lore.add(Component.text("- " + line, NamedTextColor.WHITE)));
         }
         appendDrops(lore, template.drops());
         return createItem(resolveMaterial(template.icon(), Material.ZOMBIE_HEAD), Component.text(
-            ColorCodeUtil.stripColor(ColorCodeUtil.translateAlternateColorCodes(template.displayName())),
+            ColorCodeUtil.toPlainText(template.displayName(), template.id()),
             NamedTextColor.WHITE
         ), lore);
     }
@@ -288,7 +288,7 @@ public class AdventureRecordGui {
 
     private @NotNull String itemName(@NotNull String itemId) {
         ItemModel item = itemService.findLoadedById(itemId);
-        return item == null ? itemId : ColorCodeUtil.stripColor(ColorCodeUtil.translateAlternateColorCodes(item.getName()));
+        return item == null ? itemId : ColorCodeUtil.toPlainText(item.getName(), itemId);
     }
 
     private @NotNull Set<String> selectedItemIds(@NotNull List<ItemStack> items) {

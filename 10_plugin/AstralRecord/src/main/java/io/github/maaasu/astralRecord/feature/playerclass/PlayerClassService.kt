@@ -27,7 +27,7 @@ class PlayerClassService {
 
     fun getDisplayName(classId: String): String {
         val model = classService.getLoadedClass(classId) ?: return classId
-        return ColorCodeUtil.translateAlternateColorCodes(model.name)
+        return ColorCodeUtil.toLegacyText(model.name, classId)
     }
 
     fun getLoadedClasses(): List<ClassModel> = classService.getLoadedClasses()
@@ -93,8 +93,8 @@ class PlayerClassService {
             ClassViewEntry(
                 id = model.id,
                 typeDisplay = resolveTypeDisplay(model.type),
-                name = ColorCodeUtil.translateAlternateColorCodes(model.name),
-                description = model.description?.let(ColorCodeUtil::translateAlternateColorCodes),
+                name = ColorCodeUtil.toLegacyText(model.name, model.id),
+                description = model.description?.let { ColorCodeUtil.toLegacyText(it, "") },
                 icon = model.icon,
                 roleDisplay = resolveRoleDisplay(model.role),
                 unlockConditions = buildUnlockConditionLines(model),
@@ -126,10 +126,8 @@ class PlayerClassService {
         for (model in classService.getLoadedClasses()) {
             suggestions.add(model.id)
 
-            val displayName = ColorCodeUtil.stripColor(
-                ColorCodeUtil.translateAlternateColorCodes(model.name)
-            )
-            if (!displayName.isNullOrBlank()) {
+            val displayName = ColorCodeUtil.toPlainText(model.name, model.id)
+            if (displayName.isNotBlank()) {
                 suggestions.add(displayName)
             }
         }
@@ -242,9 +240,7 @@ class PlayerClassService {
         status.trim().replace(' ', '_').replace('-', '_').uppercase(Locale.ROOT)
 
     private fun normalizeLookupValue(value: String): String {
-        val translated = ColorCodeUtil.translateAlternateColorCodes(value)
-        val stripped = ColorCodeUtil.stripColor(translated)
-        return stripped?.trim()?.lowercase(Locale.ROOT).orEmpty()
+        return ColorCodeUtil.toPlainText(value, value).trim().lowercase(Locale.ROOT)
     }
 
     private fun formatClassStat(value: Double): String {

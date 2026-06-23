@@ -227,7 +227,11 @@ public final class WaystoneService {
         Location target = destination.toLocation().clone().add(0.0D, 0.1D, 0.0D);
         player.teleport(target);
         player.playSound(target, Sound.ENTITY_ENDERMAN_TELEPORT, SoundCategory.PLAYERS, 0.55F, 1.25F);
-        PlayerMessageService.getInstance().send(player, PlayerMsgId.P_6504, destination.name());
+        PlayerMessageService.getInstance().send(
+            player,
+            PlayerMsgId.P_6504,
+            ColorCodeUtil.toLegacyText(destination.name(), destination.id())
+        );
     }
 
     private void unlockFirstTime(
@@ -259,7 +263,11 @@ public final class WaystoneService {
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.5F, 1.35F);
                     player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.PLAYERS, 0.45F, 1.7F);
-                    PlayerMessageService.getInstance().send(player, PlayerMsgId.P_6501, source.name());
+                    PlayerMessageService.getInstance().send(
+                        player,
+                        PlayerMsgId.P_6501,
+                        ColorCodeUtil.toLegacyText(source.name(), source.id())
+                    );
                 });
             } catch (IOException e) {
                 Bukkit.getScheduler().runTask(plugin, () -> {
@@ -296,7 +304,7 @@ public final class WaystoneService {
     private @NotNull ItemStack guiItem(@NotNull WaystoneDefinition definition, boolean current) {
         ItemStack item = new ItemStack(current ? Material.RESPAWN_ANCHOR : Material.LODESTONE);
         ItemMeta meta = item.getItemMeta();
-        meta.displayName(component((current ? "&b" : "&e") + definition.name()));
+        meta.displayName(component((current ? "&b" : "&e") + ColorCodeUtil.toLegacyText(definition.name(), definition.id())));
         List<Component> lore = new ArrayList<>();
         lore.add(component("&7world: &f" + definition.worldName()));
         lore.add(component(current ? "&7現在地" : "&aクリックでテレポート"));

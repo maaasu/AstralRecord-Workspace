@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.repository.WorldRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.display.OverheadDisplayService;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
@@ -340,7 +341,7 @@ public class WorldService {
     private String resolveDisplayName(@NotNull org.bukkit.World world) {
         WorldMasterData worldData = findByBukkitWorld(world);
         if (worldData != null && !worldData.displayName().isBlank()) {
-            return worldData.displayName();
+            return ColorCodeUtil.toLegacyText(worldData.displayName(), worldData.id());
         }
         return world.getName();
     }

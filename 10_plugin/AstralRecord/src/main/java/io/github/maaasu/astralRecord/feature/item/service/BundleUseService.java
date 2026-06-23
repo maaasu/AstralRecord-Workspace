@@ -119,15 +119,16 @@ public class BundleUseService {
         cancelPendingOpen(astPlayer.getBukkit().getUniqueId(), false);
 
         Player player = astPlayer.getBukkit();
+        String displayName = ColorCodeUtil.toLegacyText(model.getName(), model.getId());
         BossBar bossBar = Bukkit.createBossBar(
-            ColorCodeUtil.translateAlternateColorCodes("&6使用中 &7" + model.getName()),
+            ColorCodeUtil.translateAlternateColorCodes("&6使用中 &7" + displayName),
             BarColor.YELLOW,
             BarStyle.SOLID
         );
         bossBar.setVisible(true);
         bossBar.setProgress(0.0d);
         bossBar.addPlayer(player);
-        showUsingSubtitle(player, model.getName());
+        showUsingSubtitle(player, displayName);
 
         PendingBundleUse pending = new PendingBundleUse(
             astPlayer,
@@ -146,7 +147,7 @@ public class BundleUseService {
         );
         pending.setTask(task);
         pendingUses.put(player.getUniqueId(), pending);
-        PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5246, model.getName());
+        PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5246, displayName);
         return true;
     }
 
@@ -274,13 +275,8 @@ public class BundleUseService {
     }
 
     private @NotNull String buildRewardSummary(@NotNull ItemModel rewardModel, int amount) {
-        String displayName = rewardModel.getName();
-        if (displayName == null || displayName.isBlank()) {
-            displayName = rewardModel.getId();
-        } else {
-            displayName = ColorCodeUtil.translateAlternateColorCodes(displayName);
-        }
-        return displayName + ColorCodeUtil.GRAY + " x" + amount;
+        return ColorCodeUtil.toLegacyText(rewardModel.getName(), rewardModel.getId())
+            + ColorCodeUtil.GRAY + " x" + amount;
     }
 
     private boolean isStillHoldingBundle(@NotNull PendingBundleUse pending) {

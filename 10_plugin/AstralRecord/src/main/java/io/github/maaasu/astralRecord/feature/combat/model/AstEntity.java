@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusValue;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Damageable;
@@ -128,7 +129,7 @@ public final class AstEntity {
     public @NotNull String name() {
         return switch (type) {
             case PLAYER -> player.getBukkit().getName();
-            case MOB -> mob.template().displayName();
+            case MOB -> ColorCodeUtil.toLegacyText(mob.template().displayName(), mob.template().id());
             case BUKKIT -> bukkitEntity.getName();
         };
     }

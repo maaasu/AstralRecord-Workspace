@@ -107,7 +107,11 @@ final class GatheringVisualizer {
             Location base = instance.location();
             Vector3f displayScale = new Vector3f(instance.definition().displayScale()).mul(BLOCK_SCALE_MULTIPLIER);
             this.block = packetDisplay.block(base, instance.definition().displayBlock(), displayScale);
-            this.label = packetDisplay.text(base.clone().add(0.0D, LABEL_Y_OFFSET, 0.0D), component(instance.definition().name()), LABEL_SCALE);
+            this.label = packetDisplay.text(
+                    base.clone().add(0.0D, LABEL_Y_OFFSET, 0.0D),
+                    component(ColorCodeUtil.toLegacyText(instance.definition().name(), instance.definition().id())),
+                    LABEL_SCALE
+            );
         }
 
         private void update(@NotNull GatheringInstance instance) {
@@ -145,7 +149,7 @@ final class GatheringVisualizer {
 
             String text = service.isMining(player, instance.instanceId())
                     ? gauge(instance)
-                    : instance.definition().name();
+                    : ColorCodeUtil.toLegacyText(instance.definition().name(), instance.definition().id());
             if (labelViewers.add(viewerId)) {
                 label.spawn(player);
                 lastLabels.put(viewerId, text);

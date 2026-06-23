@@ -655,9 +655,7 @@ public final class EquipmentEnhancementService {
     }
 
     private @NotNull String displayName(@NotNull ItemModel model) {
-        String translated = ColorCodeUtil.translateAlternateColorCodes(model.getName());
-        String stripped = ColorCodeUtil.stripColor(translated);
-        return stripped == null || stripped.isBlank() ? model.getId() : stripped;
+        return ColorCodeUtil.toPlainText(model.getName(), model.getId());
     }
 
     private @NotNull ItemStack createItem(

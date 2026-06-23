@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService
 import io.github.maaasu.astralRecord.feature.waystone.model.WaystoneDefinition;
 import io.github.maaasu.astralRecord.feature.waystone.service.WaystoneService;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -42,7 +43,12 @@ public final class WaystoneCommand extends AstCommand {
         long goldCost = args.length >= 3 ? parseLong(args[2], 100L) : 100L;
         try {
             WaystoneDefinition definition = service.create(name, player.getBukkit().getLocation(), alwaysUnlocked, goldCost);
-            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_6500, definition.name(), definition.id());
+            PlayerMessageService.getInstance().send(
+                player,
+                PlayerMsgId.P_6500,
+                ColorCodeUtil.toLegacyText(definition.name(), definition.id()),
+                definition.id()
+            );
         } catch (IOException e) {
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_6507);
         }

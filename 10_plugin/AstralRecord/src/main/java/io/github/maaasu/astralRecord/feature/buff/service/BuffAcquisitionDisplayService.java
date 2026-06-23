@@ -100,10 +100,10 @@ public final class BuffAcquisitionDisplayService {
     }
 
     private @NotNull String buildText(@NotNull ActiveBuff buff) {
-        String displayName = buff.getType().getDisplayName();
-        if (displayName.isBlank()) {
-            displayName = buff.getType().getId();
-        }
+        String displayName = ColorCodeUtil.toLegacyText(
+            buff.getType().getDisplayName(),
+            buff.getType().getId()
+        );
 
         StringBuilder builder = new StringBuilder();
         builder.append(ColorCodeUtil.DARK_GRAY)

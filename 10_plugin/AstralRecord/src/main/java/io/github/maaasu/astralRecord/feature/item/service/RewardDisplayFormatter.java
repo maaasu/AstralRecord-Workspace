@@ -52,8 +52,7 @@ public final class RewardDisplayFormatter {
     }
 
     private static @NotNull Component displayName(@Nullable ItemModel model, @NotNull String fallback) {
-        String name = resolveName(model, fallback);
-        String translated = ColorCodeUtil.translateAlternateColorCodes(name);
+        String translated = ColorCodeUtil.toLegacyText(resolveName(model, fallback), fallback);
         return LEGACY.deserialize(translated).decoration(TextDecoration.ITALIC, false);
     }
 

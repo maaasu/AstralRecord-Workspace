@@ -61,6 +61,37 @@ public class ColorCodeUtil {
     }
 
     /**
+     * マスタデータ由来の表示文字列を legacy color 適用済み文字列へ変換します。
+     *
+     * @param text     表示文字列
+     * @param fallback 未設定時の代替表示
+     * @return legacy color 適用済み表示文字列
+     */
+    public static @NonNull String toLegacyText(String text, String fallback) {
+        String source = text == null || text.isBlank() ? fallback : text;
+        if (source == null) {
+            return "";
+        }
+        String translated = translateAlternateColorCodes(source);
+        return translated == null ? "" : translated;
+    }
+
+    /**
+     * マスタデータ由来の表示文字列をカラーなしのプレーン文字列へ変換します。
+     *
+     * @param text     表示文字列
+     * @param fallback 未設定時の代替表示
+     * @return カラーコードを除去した表示文字列
+     */
+    public static @NonNull String toPlainText(String text, String fallback) {
+        String stripped = stripColor(toLegacyText(text, fallback));
+        if (stripped == null || stripped.isBlank()) {
+            return fallback == null ? "" : fallback;
+        }
+        return stripped;
+    }
+
+    /**
      * カラーコードを除去します。
      *
      * @param text カラーコードを含むテキスト
@@ -70,6 +101,6 @@ public class ColorCodeUtil {
         if (text == null) {
             return null;
         }
-        return text.replaceAll("§[0-9a-fk-or]", "");
+        return text.replaceAll("(?i)§[0-9A-FK-OR]", "");
     }
 }
