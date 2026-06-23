@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.shop.model.ShopPurchasePreview;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopRecipeCost;
 import io.github.maaasu.astralRecord.feature.shop.repository.ShopRecipeRepository;
 import io.github.maaasu.astralRecord.feature.shop.repository.ShopRepository;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -68,6 +69,30 @@ public final class ShopService {
     public @Nullable ItemModel resolveItem(@NotNull ShopEntry entry) {
         ItemModel model = itemService.findLoadedById(entry.itemId());
         return model != null ? model : itemService.loadItem(entry.itemId(), entry.category());
+    }
+
+    /**
+     * ショップ購入品の表示名を解決します。
+     *
+     * @param entry ショップ商品定義
+     * @return アイテム表示名。解決できない場合は itemId
+     */
+    public @NotNull String resolveItemDisplayName(@NotNull ShopEntry entry) {
+        return displayNameOrId(resolveItem(entry), entry.itemId());
+    }
+
+    /**
+     * ショップ必要素材の表示名を解決します。
+     *
+     * @param cost 必要素材定義
+     * @return アイテム表示名。解決できない場合は itemId
+     */
+    public @NotNull String resolveItemDisplayName(@NotNull ShopCostItem cost) {
+        ItemModel model = itemService.findLoadedById(cost.itemId());
+        if (model == null) {
+            model = itemService.loadItem(cost.itemId(), cost.category());
+        }
+        return displayNameOrId(model, cost.itemId());
     }
 
     public @NotNull ShopPurchasePreview preview(
@@ -172,6 +197,14 @@ public final class ShopService {
             }
             target.put(key, new ShopCostItem(existing.itemId(), existing.category(), existing.amount() + cost.amount()));
         }
+    }
+
+    private @NotNull String displayNameOrId(@Nullable ItemModel model, @NotNull String fallbackItemId) {
+        if (model == null || model.getName() == null || model.getName().isBlank()) {
+            return fallbackItemId;
+        }
+        String displayName = ColorCodeUtil.stripColor(ColorCodeUtil.translateAlternateColorCodes(model.getName()));
+        return displayName == null || displayName.isBlank() ? fallbackItemId : displayName;
     }
 
     private @NotNull String normalizeShopLookup(@NotNull String value) {

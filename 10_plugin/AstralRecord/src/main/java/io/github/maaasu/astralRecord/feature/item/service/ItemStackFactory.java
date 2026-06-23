@@ -111,6 +111,8 @@ public class ItemStackFactory {
             BuiltInWeaponAttackDefinitions.SPECIAL_ATTACK_MAGIC
     );
 
+    private static final String STATUS_VALUE_COLOR = ColorCodeUtil.WHITE;
+
     /** ルートテーブル参照用（nullable: 未初期化時は Lore に含めない） */
     private final LootService lootService;
 
@@ -560,7 +562,7 @@ public class ItemStackFactory {
                 lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
                         + statColor + displayName
                         + ColorCodeUtil.DARK_GRAY + " : "
-                        + statColor + prefix + stat.displayValue());
+                        + STATUS_VALUE_COLOR + prefix + stat.displayValue());
             }
         }
 
@@ -796,7 +798,7 @@ public class ItemStackFactory {
                     lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
                             + statColor + displayName
                             + ColorCodeUtil.DARK_GRAY + " : "
-                            + statColor + displayValue
+                            + STATUS_VALUE_COLOR + displayValue
                             + enhanceNote);
                 }
 
@@ -824,7 +826,7 @@ public class ItemStackFactory {
                     lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
                             + statColor + displayName
                             + ColorCodeUtil.DARK_GRAY + " : "
-                            + statColor + displayValue
+                            + STATUS_VALUE_COLOR + displayValue
                             + ColorCodeUtil.YELLOW + " [強化]");
                 }
             }
@@ -848,7 +850,7 @@ public class ItemStackFactory {
                         lore.add(ColorCodeUtil.DARK_GRAY + " [" + (enchant.getSlotIndex() + 1) + "] "
                                 + statColor + displayName
                                 + ColorCodeUtil.DARK_GRAY + " : "
-                                + statColor + prefix + valueStr);
+                                + STATUS_VALUE_COLOR + prefix + valueStr);
                     }
                 }
             }
@@ -928,7 +930,7 @@ public class ItemStackFactory {
                 lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
                         + statColor + displayName
                         + ColorCodeUtil.DARK_GRAY + " : "
-                        + statColor + prefix + roll.getValue());
+                        + STATUS_VALUE_COLOR + prefix + roll.getValue());
             }
             lore.add("");
         }

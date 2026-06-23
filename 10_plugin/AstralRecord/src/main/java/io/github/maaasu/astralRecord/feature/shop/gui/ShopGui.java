@@ -193,7 +193,7 @@ public final class ShopGui {
         lore.add(Component.text("◆ 購入確認 ◆", NamedTextColor.GOLD, TextDecoration.BOLD)
             .decoration(TextDecoration.ITALIC, false));
         lore.add(Component.text("購入品: ", NamedTextColor.GRAY)
-            .append(Component.text(entry.itemId(), NamedTextColor.WHITE))
+            .append(Component.text(shopService.resolveItemDisplayName(entry), NamedTextColor.WHITE))
             .append(Component.text(" x" + (Math.max(1, entry.amount()) * preview.quantity()), NamedTextColor.AQUA))
             .decoration(TextDecoration.ITALIC, false));
         lore.add(Component.text("購入数量: ", NamedTextColor.GRAY)
@@ -305,7 +305,7 @@ public final class ShopGui {
         }
         for (ShopCostItem material : materials) {
             lore.add(Component.text("• ", accentColor)
-                .append(Component.text(material.itemId(), NamedTextColor.WHITE))
+                .append(Component.text(shopService.resolveItemDisplayName(material), NamedTextColor.WHITE))
                 .append(Component.text(" x" + material.amount(), accentColor))
                 .decoration(TextDecoration.ITALIC, false));
         }
