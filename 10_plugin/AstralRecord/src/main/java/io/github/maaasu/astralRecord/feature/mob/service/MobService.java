@@ -11,6 +11,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.RayTraceResult;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -208,9 +209,10 @@ public class MobService {
                 entity -> entity != player && getNpcInstanceByEntity(entity.getUniqueId()) != null
         );
         if (result == null || result.getHitEntity() == null) {
-            return null;
+            return findTargetedBlockNpc(player, distance);
         }
-        return getNpcInstanceByEntity(Objects.requireNonNull(result.getHitEntity()).getUniqueId());
+        MobInstance entityTarget = getNpcInstanceByEntity(Objects.requireNonNull(result.getHitEntity()).getUniqueId());
+        return entityTarget != null ? entityTarget : findTargetedBlockNpc(player, distance);
     }
 
     /**
@@ -230,14 +232,14 @@ public class MobService {
 
         UUID instanceId = UUID.randomUUID();
         MobInstance instance = new MobInstance(instanceId, template, location);
-        var mob = entityController.spawn(instance, location);
-        if (mob == null) {
+        var entity = entityController.spawn(instance, location);
+        if (entity == null) {
             Logger.log(LogId.W_5705, template.entityType().name(), template.id());
             return null;
         }
 
         instances.put(instanceId, instance);
-        instanceByEntity.put(mob.getUniqueId(), instanceId);
+        instanceByEntity.put(entity.getUniqueId(), instanceId);
         viewers.put(instanceId, new HashSet<>());
         updateViewers(instance);
 
@@ -486,5 +488,82 @@ public class MobService {
             }
         }
         return false;
+    }
+
+    @Nullable
+    private MobInstance findTargetedBlockNpc(@NotNull Player player, double distance) {
+        Location eye = player.getEyeLocation();
+        Vector direction = eye.getDirection();
+        if (direction.lengthSquared() <= 1.0E-6D) {
+            return null;
+        }
+        direction.normalize();
+
+        MobInstance nearest = null;
+        double nearestDistance = distance;
+        for (MobInstance instance : instances.values()) {
+            if (instance.template().category() != MobCategory.NPC || instance.template().blockMaterial() == null) {
+                continue;
+            }
+            Location blockLocation = instance.currentLocation();
+            if (blockLocation.getWorld() != player.getWorld()) {
+                continue;
+            }
+            Double hitDistance = intersectBlockBox(eye.toVector(), direction, blockLocation);
+            if (hitDistance == null || hitDistance < 0.0D || hitDistance > nearestDistance) {
+                continue;
+            }
+            nearestDistance = hitDistance;
+            nearest = instance;
+        }
+        return nearest;
+    }
+
+    @Nullable
+    private Double intersectBlockBox(
+            @NotNull Vector origin,
+            @NotNull Vector direction,
+            @NotNull Location blockLocation
+    ) {
+        double minX = blockLocation.getX();
+        double minY = blockLocation.getY();
+        double minZ = blockLocation.getZ();
+        double maxX = minX + 1.0D;
+        double maxY = minY + 1.0D;
+        double maxZ = minZ + 1.0D;
+
+        double tMin = 0.0D;
+        double tMax = Double.POSITIVE_INFINITY;
+
+        double[] originValues = {origin.getX(), origin.getY(), origin.getZ()};
+        double[] directionValues = {direction.getX(), direction.getY(), direction.getZ()};
+        double[] minValues = {minX, minY, minZ};
+        double[] maxValues = {maxX, maxY, maxZ};
+
+        for (int axis = 0; axis < 3; axis++) {
+            double axisOrigin = originValues[axis];
+            double axisDirection = directionValues[axis];
+            if (Math.abs(axisDirection) < 1.0E-8D) {
+                if (axisOrigin < minValues[axis] || axisOrigin > maxValues[axis]) {
+                    return null;
+                }
+                continue;
+            }
+
+            double inv = 1.0D / axisDirection;
+            double t1 = (minValues[axis] - axisOrigin) * inv;
+            double t2 = (maxValues[axis] - axisOrigin) * inv;
+            if (t1 > t2) {
+                double swap = t1;
+                t1 = t2;
+                t2 = swap;
+            }
+            tMin = Math.max(tMin, t1);
+            tMax = Math.min(tMax, t2);
+            if (tMin > tMax) {
+                return null;
+            }
+        }
+        return tMin;
     }
 }

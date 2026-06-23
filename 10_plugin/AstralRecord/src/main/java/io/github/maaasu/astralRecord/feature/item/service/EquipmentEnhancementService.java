@@ -12,7 +12,6 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceMate
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentTranscendence;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
-import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuInventoryHolder;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
@@ -113,13 +112,6 @@ public final class EquipmentEnhancementService {
             ignored -> new EnhancementSession(inventoryService.getDisplayedInventoryType(astPlayer.getAccount().getUuid()))
         );
 
-        if (rawSlot == BaseMenuScreenView.BACK_SLOT) {
-            releaseSession(astPlayer, true);
-            GuiSound.SELECT.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
-            openEquipmentMenu(player, astPlayer);
-            return;
-        }
         if (rawSlot == EquipmentEnhancementMenuScreenView.TARGET_SLOT) {
             if (!returnSelectedEquipment(astPlayer, session)) {
                 GuiSound.DENY.play(player);
@@ -604,22 +596,6 @@ public final class EquipmentEnhancementService {
         if (restoreDisplayedInventory && session.previousDisplayedType != null) {
             inventoryService.applyInventoryToGui(astPlayer, session.previousDisplayedType);
         }
-    }
-
-    private void openEquipmentMenu(@NotNull Player player, @NotNull AstPlayer astPlayer) {
-        menuView.openEquipmentGui(
-            player,
-            new ItemStack[] {
-                null,
-                inventoryService.getAccessorySnapshotItem(astPlayer, 1),
-                inventoryService.getAccessorySnapshotItem(astPlayer, 2),
-                inventoryService.getAccessorySnapshotItem(astPlayer, 3),
-                inventoryService.getAccessorySnapshotItem(astPlayer, 4),
-                inventoryService.getAccessorySnapshotItem(astPlayer, 5),
-                inventoryService.getAccessorySnapshotItem(astPlayer, 6),
-                inventoryService.getAccessorySnapshotItem(astPlayer, 7)
-            }
-        );
     }
 
     private void playSuccessEffects(@NotNull Player player) {

@@ -16,6 +16,8 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -54,6 +56,7 @@ public class MobAiService {
 
     /** 頭上 packet display 用 viewer キャッシュ更新間隔。 */
     private static final long VIEWER_UPDATE_INTERVAL_TICKS = 5L;
+    private static final long BLOCK_NPC_PARTICLE_INTERVAL_TICKS = 20L;
 
     /** WANDER 行動で同一ターゲットを追い続ける最大 tick 数（スタック防止）。 */
     private static final long WANDER_TARGET_MAX_TICKS = 100L;
@@ -75,6 +78,7 @@ public class MobAiService {
     private final MobCombatService mobCombatService;
     private final SkillService skillService;
     private final PlayerDeathService playerDeathService;
+    private final ParticleDisplayService particleDisplayService;
 
     private BukkitTask task;
     private long internalTick;
@@ -90,7 +94,7 @@ public class MobAiService {
             @NotNull MobService mobService,
             @NotNull MobCombatService mobCombatService,
             @NotNull SkillService skillService) {
-        this(mobService, mobCombatService, skillService, null);
+        this(mobService, mobCombatService, skillService, null, null);
     }
 
     /**
@@ -106,10 +110,20 @@ public class MobAiService {
             @NotNull MobCombatService mobCombatService,
             @NotNull SkillService skillService,
             @Nullable PlayerDeathService playerDeathService) {
+        this(mobService, mobCombatService, skillService, playerDeathService, null);
+    }
+
+    public MobAiService(
+            @NotNull MobService mobService,
+            @NotNull MobCombatService mobCombatService,
+            @NotNull SkillService skillService,
+            @Nullable PlayerDeathService playerDeathService,
+            @Nullable ParticleDisplayService particleDisplayService) {
         this.mobService = mobService;
         this.mobCombatService = mobCombatService;
         this.skillService = skillService;
         this.playerDeathService = playerDeathService;
+        this.particleDisplayService = particleDisplayService;
     }
 
     /**
@@ -145,6 +159,7 @@ public class MobAiService {
                         mobService.destroy(instance.instanceId());
                         continue;
                     }
+                    spawnBlockNpcParticles(instance);
 
                     if (internalTick % THREAT_DECAY_INTERVAL_TICKS == 0L) {
                         instance.threatTable().decay(THREAT_DECAY_PER_TICK);
@@ -600,6 +615,22 @@ public class MobAiService {
         }
         double amount = 1.0D + instance.template().statValue(StatusType.SHIELD_RECHARGE_RATE.name(), 0.0D);
         instance.currentShield(instance.currentShield() + amount, nowMs);
+    }
+
+    private void spawnBlockNpcParticles(@NotNull MobInstance instance) {
+        if (particleDisplayService == null
+                || instance.template().blockMaterial() == null
+                || internalTick % BLOCK_NPC_PARTICLE_INTERVAL_TICKS != 0L) {
+            return;
+        }
+        Location location = instance.currentLocation().add(0.5D, 0.65D, 0.5D);
+        if (location.getWorld() == null) {
+            return;
+        }
+        particleDisplayService.spawnForNearbyViewers(
+                location,
+                SharedParticleDefinitions.NPC_BLOCK_AMBIENT_ENCHANT
+        );
     }
 
     private long randomWanderPauseTicks() {

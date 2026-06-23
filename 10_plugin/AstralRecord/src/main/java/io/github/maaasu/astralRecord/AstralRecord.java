@@ -707,7 +707,7 @@ public final class AstralRecord extends JavaPlugin {
         gatheringSpawnerService.loadAll();
         // world
         worldService.loadAll();
-        mobAiService = new MobAiService(mobService, mobCombatService, skillService, playerDeathService);
+        mobAiService = new MobAiService(mobService, mobCombatService, skillService, playerDeathService, particleDisplayService);
         mobAiService.start();
         skillTreeService.loadAll();
         worldSpawnParticleTask = new WorldSpawnParticleTask(this, worldService, particleDisplayService);
@@ -907,7 +907,14 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new MobInteractionEventHandler(mobService, shopGuiEventHandler, menuView, playerClassService),
+            new MobInteractionEventHandler(
+                mobService,
+                shopGuiEventHandler,
+                menuView,
+                playerClassService,
+                storageService,
+                equipmentEnhancementService
+            ),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

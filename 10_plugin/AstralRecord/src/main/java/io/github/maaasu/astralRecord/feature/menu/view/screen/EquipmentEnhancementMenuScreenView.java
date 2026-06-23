@@ -41,7 +41,6 @@ public final class EquipmentEnhancementMenuScreenView extends BaseMenuScreenView
         inventory.setItem(TARGET_SLOT, selectedEquipment != null ? selectedEquipment : targetPlaceholder());
         inventory.setItem(MATERIAL_SLOT, materialItem);
         inventory.setItem(EXECUTE_SLOT, executeItem);
-        inventory.setItem(BACK_SLOT, backItem());
     }
 
     private @NotNull ItemStack targetPlaceholder() {

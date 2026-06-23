@@ -1,0 +1,36 @@
+schemaVersion: 1
+id: equipment_enhance
+type: MOB
+category: NPC
+name: "&6装備強化"
+title: "&7Equipment Enhance"
+level: 1
+entityType: ANVIL
+nameVisible: true
+damageImmune: true
+icon: ANVIL
+lore:
+  - "&7装備の強化を行う金床。"
+tags:
+  - npc
+  - equipment_enhance
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&6装備強化&7: 右クリックで装備強化を開けます。"
+  rightClick:
+    - id: gui
+      params:
+        type: EQUIPMENT_ENHANCE

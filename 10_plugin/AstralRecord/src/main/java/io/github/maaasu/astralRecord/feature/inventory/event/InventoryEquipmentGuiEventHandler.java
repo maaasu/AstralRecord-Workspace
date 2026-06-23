@@ -151,13 +151,6 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             menuView.open(player);
             return true;
         }
-        if (rawSlot == EquipmentMenuScreenView.ENHANCEMENT_SLOT) {
-            saveEquipmentMenuSnapshot(player, topInventory);
-            GuiSound.OPEN.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
-            equipmentEnhancementService.open(player);
-            return true;
-        }
         return false;
     }
 

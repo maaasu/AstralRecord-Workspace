@@ -7,6 +7,9 @@ NPC 用の filebase YAML 定義です。
 
 NPC は戦闘を行わないため、`ai.targeting`, `ai.combat`, `drops` は定義しません。
 
+`entityType` には Bukkit EntityType に加えて Bukkit block Material（例: `CHEST`, `ANVIL`）を指定できます。
+block Material の場合は `BlockDisplay` による fakeblock として表示し、通常 NPC と同じ display text、ambient particle、左クリック/右クリック interaction を扱います。
+
 ---
 
 ## 追加キー
@@ -29,7 +32,7 @@ NPC は戦闘を行わないため、`ai.targeting`, `ai.combat`, `drops` は定
 | `id` | `params` | 説明 |
 |:--|:--|:--|
 | `message` | `message` | チャットメッセージを送信する |
-| `gui` | `type`, `shopId` | GUI を開く。`SHOP` は `shopId` 必須、`SELL` は売却 GUI、`CLASS` は職業選択 GUI |
+| `gui` | `type`, `shopId` | GUI を開く。`SHOP` は `shopId` 必須、`SELL` は売却 GUI、`CLASS` は職業選択 GUI、`STORAGE` はストレージ GUI、`EQUIPMENT_ENHANCE` は装備強化 GUI |
 
 ---
 

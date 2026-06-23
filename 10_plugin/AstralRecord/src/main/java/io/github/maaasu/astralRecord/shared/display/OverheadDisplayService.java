@@ -162,11 +162,11 @@ public class OverheadDisplayService {
             DisplayTextService.ManagedTextDisplay display = mobDisplays.computeIfAbsent(
                     instanceId,
                     ignored -> displayService.create(
-                            DisplayAnchor.entity(entity, overheadOffset(entity, MOB_TEXT_OFFSET)),
+                            mobDisplayAnchor(instance, entity),
                             DisplayTextOptions.overhead(mobText(instance))
                     )
             );
-            display.setAnchor(DisplayAnchor.entity(entity, overheadOffset(entity, MOB_TEXT_OFFSET)));
+            display.setAnchor(mobDisplayAnchor(instance, entity));
             display.setText(mobText(instance));
         }
 
@@ -196,6 +196,13 @@ public class OverheadDisplayService {
 
     private @NotNull Vector overheadOffset(@NotNull Entity entity, double offset) {
         return new Vector(0.0D, entity.getHeight() + offset, 0.0D);
+    }
+
+    private @NotNull DisplayAnchor mobDisplayAnchor(@NotNull MobInstance instance, @NotNull Entity entity) {
+        if (instance.template().blockMaterial() == null) {
+            return DisplayAnchor.entity(entity, overheadOffset(entity, MOB_TEXT_OFFSET));
+        }
+        return DisplayAnchor.fixed(instance.currentLocation().add(0.5D, 1.35D, 0.5D));
     }
 
     private Entity resolveMobEntity(@NotNull MobInstance instance) {

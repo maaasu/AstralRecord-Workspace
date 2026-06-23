@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.mob.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
+import io.github.maaasu.astralRecord.feature.item.service.EquipmentEnhancementService;
 import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
@@ -12,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.shop.event.ShopGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.storage.service.StorageService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
@@ -40,6 +42,8 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
     private final ShopGuiEventHandler shopGuiEventHandler;
     private final MenuView menuView;
     private final PlayerClassService playerClassService;
+    private final StorageService storageService;
+    private final EquipmentEnhancementService equipmentEnhancementService;
 
     /**
      * ハンドラを生成します。
@@ -52,11 +56,15 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
             @NotNull MobService mobService,
             @NotNull ShopGuiEventHandler shopGuiEventHandler,
             @NotNull MenuView menuView,
-            @NotNull PlayerClassService playerClassService) {
+            @NotNull PlayerClassService playerClassService,
+            @NotNull StorageService storageService,
+            @NotNull EquipmentEnhancementService equipmentEnhancementService) {
         this.mobService = mobService;
         this.shopGuiEventHandler = shopGuiEventHandler;
         this.menuView = menuView;
         this.playerClassService = playerClassService;
+        this.storageService = storageService;
+        this.equipmentEnhancementService = equipmentEnhancementService;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -173,6 +181,8 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
                 GuiSound.OPEN.play(player);
             }
             case "CLASS" -> openClass(player);
+            case "STORAGE" -> openStorage(player);
+            case "EQUIPMENT_ENHANCE", "ENHANCE" -> openEquipmentEnhance(player);
             default -> GuiSound.DENY.play(player);
         }
     }
@@ -195,6 +205,18 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
         }
         MenuGuiTransitionService.suppressNextCloseSound(player);
         menuView.openClass(player, astPlayer, playerClassService.getClassViewEntries(astPlayer));
+        GuiSound.OPEN.play(player);
+    }
+
+    private void openStorage(@NotNull Player player) {
+        MenuGuiTransitionService.suppressNextCloseSound(player);
+        storageService.open(player);
+        GuiSound.OPEN.play(player);
+    }
+
+    private void openEquipmentEnhance(@NotNull Player player) {
+        MenuGuiTransitionService.suppressNextCloseSound(player);
+        equipmentEnhancementService.open(player);
         GuiSound.OPEN.play(player);
     }
 }

@@ -13,6 +13,8 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.Ageable;
+import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Mob;
 import org.bukkit.inventory.EntityEquipment;
@@ -63,10 +65,13 @@ public class MobEntityController {
      * @return 生成した Bukkit Mob。生成できない場合は {@code null}
      */
     @Nullable
-    public Mob spawn(@NotNull MobInstance instance, @NotNull Location location) {
+    public Entity spawn(@NotNull MobInstance instance, @NotNull Location location) {
         World world = location.getWorld();
         if (world == null) {
             return null;
+        }
+        if (instance.template().blockMaterial() != null) {
+            return spawnBlockDisplay(instance, location);
         }
 
         Class<? extends Entity> entityClass = instance.template().entityType().getEntityClass();
@@ -99,6 +104,48 @@ public class MobEntityController {
             mob.remove();
             return null;
         }
+    }
+
+    @Nullable
+    private BlockDisplay spawnBlockDisplay(@NotNull MobInstance instance, @NotNull Location location) {
+        World world = location.getWorld();
+        if (world == null || instance.template().blockMaterial() == null) {
+            return null;
+        }
+
+        Location blockLocation = alignedBlockLocation(location);
+        BlockDisplay display;
+        try {
+            display = world.spawn(blockLocation, BlockDisplay.class, spawned -> configureBlockDisplay(instance, spawned));
+        } catch (RuntimeException ex) {
+            return null;
+        }
+
+        if (display.isDead() || !display.isValid()) {
+            return null;
+        }
+
+        try {
+            instance.bindEntity(display.getUniqueId(), display.getEntityId(), display.getLocation());
+            return display;
+        } catch (RuntimeException ex) {
+            display.remove();
+            return null;
+        }
+    }
+
+    private void configureBlockDisplay(@NotNull MobInstance instance, @NotNull BlockDisplay display) {
+        MobTemplate template = instance.template();
+        display.setPersistent(false);
+        display.setGravity(false);
+        display.setInvulnerable(template.damageImmune());
+        display.setSilent(true);
+        display.customName(null);
+        display.setCustomNameVisible(false);
+        display.setBillboard(Display.Billboard.FIXED);
+        display.setBlock(template.blockMaterial().createBlockData());
+        display.getPersistentDataContainer().set(instanceIdKey, PersistentDataType.STRING, instance.instanceId().toString());
+        display.getPersistentDataContainer().set(templateIdKey, PersistentDataType.STRING, template.id());
     }
 
     /**
@@ -152,12 +199,24 @@ public class MobEntityController {
      */
     @Nullable
     public Mob getMob(@NotNull MobInstance instance) {
+        Entity entity = getEntity(instance);
+        return entity instanceof Mob mob ? mob : null;
+    }
+
+    /**
+     * 管理対象 Entity を取得します。
+     *
+     * @param instance 取得対象インスタンス
+     * @return 有効な Bukkit Entity。存在しない場合は {@code null}
+     */
+    @Nullable
+    public Entity getEntity(@NotNull MobInstance instance) {
         UUID entityUuid = instance.bukkitEntityId();
         if (entityUuid == null) {
             return null;
         }
         Entity entity = Bukkit.getEntity(entityUuid);
-        return entity instanceof Mob mob && !mob.isDead() && mob.isValid() ? mob : null;
+        return entity != null && !entity.isDead() && entity.isValid() ? entity : null;
     }
 
     /**
@@ -167,11 +226,11 @@ public class MobEntityController {
      * @return 実体が有効なら {@code true}
      */
     public boolean syncLocation(@NotNull MobInstance instance) {
-        Mob mob = getMob(instance);
-        if (mob == null) {
+        Entity entity = getEntity(instance);
+        if (entity == null) {
             return false;
         }
-        instance.currentLocation(mob.getLocation());
+        instance.currentLocation(entity.getLocation());
         return true;
     }
 
@@ -321,10 +380,21 @@ public class MobEntityController {
      * @param instance 対象インスタンス
      */
     public void remove(@NotNull MobInstance instance) {
-        Mob mob = getMob(instance);
-        if (mob != null) {
-            mob.remove();
+        Entity entity = getEntity(instance);
+        if (entity != null) {
+            entity.remove();
         }
+    }
+
+    private @NotNull Location alignedBlockLocation(@NotNull Location location) {
+        return new Location(
+                location.getWorld(),
+                location.getBlockX(),
+                location.getBlockY(),
+                location.getBlockZ(),
+                location.getYaw(),
+                location.getPitch()
+        );
     }
 
     /**

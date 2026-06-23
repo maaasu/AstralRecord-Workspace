@@ -17,7 +17,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public final class EquipmentMenuScreenView extends BaseMenuScreenView {
-    public static final int ENHANCEMENT_SLOT = 15;
     public static final int EQUIPMENT_HEAD_SLOT = 11;
     public static final int EQUIPMENT_CHEST_SLOT = 20;
     public static final int EQUIPMENT_LEGS_SLOT = 29;
@@ -63,14 +62,6 @@ public final class EquipmentMenuScreenView extends BaseMenuScreenView {
         inventory.setItem(EQUIPMENT_ACCESSORY_5_SLOT, itemOrPlaceholderForSlot(accessoryAt(accessories, 5), EQUIPMENT_ACCESSORY_5_SLOT));
         inventory.setItem(EQUIPMENT_ACCESSORY_6_SLOT, itemOrPlaceholderForSlot(accessoryAt(accessories, 6), EQUIPMENT_ACCESSORY_6_SLOT));
         inventory.setItem(EQUIPMENT_ACCESSORY_7_SLOT, itemOrPlaceholderForSlot(accessoryAt(accessories, 7), EQUIPMENT_ACCESSORY_7_SLOT));
-        inventory.setItem(ENHANCEMENT_SLOT, createItem(
-            Material.ANVIL,
-            Component.text("装備強化", NamedTextColor.GOLD),
-            List.of(
-                Component.text("装備の強化を行うGUIを開きます。", NamedTextColor.GRAY),
-                Component.text("下部インベントリは装備一覧に切り替わります。", NamedTextColor.GRAY)
-            )
-        ));
         inventory.setItem(BACK_SLOT, backItem());
     }
 
@@ -146,12 +137,6 @@ public final class EquipmentMenuScreenView extends BaseMenuScreenView {
         return meta != null && meta.getPersistentDataContainer().has(equipmentPlaceholderKey, PersistentDataType.INTEGER);
     }
 
-    /**
-     * 指定スロットの装備種別に対応するプレースホルダー ItemStack を返します。
-     *
-     * @param slot 装備 GUI スロット番号
-     * @return プレースホルダー。対象外スロットなら null
-     */
     public @Nullable ItemStack createPlaceholderForSlot(int slot) {
         return switch (slot) {
             case EQUIPMENT_HEAD_SLOT -> placeholder("頭", "頭防具スロット");
@@ -159,12 +144,12 @@ public final class EquipmentMenuScreenView extends BaseMenuScreenView {
             case EQUIPMENT_LEGS_SLOT -> placeholder("脚", "脚防具スロット");
             case EQUIPMENT_FEET_SLOT -> placeholder("足", "足防具スロット");
             case EQUIPMENT_OFF_HAND_SLOT -> placeholder("オフハンド", "盾またはアクセサリ");
-            case EQUIPMENT_ACCESSORY_2_SLOT -> placeholder("首飾り", "アクセサリスロット");
-            case EQUIPMENT_ACCESSORY_3_SLOT -> placeholder("指輪", "アクセサリスロット");
-            case EQUIPMENT_ACCESSORY_4_SLOT -> placeholder("耳飾り", "アクセサリスロット");
-            case EQUIPMENT_ACCESSORY_5_SLOT -> placeholder("腕輪", "アクセサリスロット");
-            case EQUIPMENT_ACCESSORY_6_SLOT -> placeholder("ベルト", "アクセサリスロット");
-            case EQUIPMENT_ACCESSORY_7_SLOT -> placeholder("護符", "アクセサリスロット");
+            case EQUIPMENT_ACCESSORY_2_SLOT,
+                 EQUIPMENT_ACCESSORY_3_SLOT,
+                 EQUIPMENT_ACCESSORY_4_SLOT,
+                 EQUIPMENT_ACCESSORY_5_SLOT,
+                 EQUIPMENT_ACCESSORY_6_SLOT,
+                 EQUIPMENT_ACCESSORY_7_SLOT -> placeholder("アクセサリ", "アクセサリスロット");
             default -> null;
         };
     }

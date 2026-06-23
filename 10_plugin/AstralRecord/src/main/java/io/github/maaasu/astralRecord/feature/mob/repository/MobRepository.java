@@ -25,6 +25,7 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
+import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -133,6 +134,10 @@ public class MobRepository {
         MobCategory category = MobCategory.from(optionalString(obj, "category"));
         String entityTypeName = optionalString(obj, "entityType");
         EntityType entityType = resolveEntityType(entityTypeName, category);
+        Material blockMaterial = entityType == null ? resolveBlockMaterial(entityTypeName) : null;
+        if (blockMaterial != null) {
+            entityType = EntityType.BLOCK_DISPLAY;
+        }
         if (entityType == null) {
             Logger.log(LogId.W_5705, entityTypeName, id);
             return null;
@@ -147,6 +152,7 @@ public class MobRepository {
                 optionalString(obj, "title"),
                 obj.has("level") ? obj.get("level").getAsInt() : 1,
                 entityType,
+                blockMaterial,
                 obj.has("nameVisible") ? obj.get("nameVisible").getAsBoolean() : true,
                 optionalString(obj, "icon"),
                 parseStringArray(obj.getAsJsonArray("lore")),
@@ -178,6 +184,20 @@ public class MobRepository {
 
         try {
             return EntityType.valueOf(normalized);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    @Nullable
+    private Material resolveBlockMaterial(@Nullable String entityTypeName) {
+        if (entityTypeName == null || entityTypeName.isBlank()) {
+            return null;
+        }
+
+        try {
+            Material material = Material.valueOf(entityTypeName.trim().toUpperCase());
+            return material.isBlock() ? material : null;
         } catch (IllegalArgumentException ex) {
             return null;
         }

@@ -57,4 +57,4 @@
 
 - 2026-06-09: spawner の正本実装は `feature/spawner/*` にあり、mob docs では関連挙動のみ扱う。
 - 2026-06-22: NPC と同時に配置する固定 TextDisplay は `feature/textdisplay/*` で扱い、配置データは `text_displays.yml` に保存する。
-- 2026-06-23: NPC interaction の `gui.type` は `SHOP` / `SELL` / `CLASS` を扱い、`CLASS` は職業選択 GUI を開く。
+- 2026-06-23: NPC interaction の `gui.type` は `SHOP` / `SELL` / `CLASS` / `STORAGE` / `EQUIPMENT_ENHANCE` を扱う。NPC `entityType` は Bukkit EntityType に加えて Bukkit block Material も指定でき、block 指定時は `BlockDisplay` fakeblock に通常 NPC と同じ display text、ambient particle、左クリック/右クリック interaction を付与する。

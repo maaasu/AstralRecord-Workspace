@@ -1,0 +1,36 @@
+schemaVersion: 1
+id: storage
+type: MOB
+category: NPC
+name: "&6ストレージ"
+title: "&7Storage"
+level: 1
+entityType: CHEST
+nameVisible: true
+damageImmune: true
+icon: CHEST
+lore:
+  - "&7保管中のアイテムを出し入れできるストレージ。"
+tags:
+  - npc
+  - storage
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&6ストレージ&7: 右クリックでストレージを開けます。"
+  rightClick:
+    - id: gui
+      params:
+        type: STORAGE

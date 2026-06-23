@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.mob.model;
 
+import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -40,6 +41,7 @@ public record MobTemplate(
         @Nullable String title,
         int level,
         @NotNull EntityType entityType,
+        @Nullable Material blockMaterial,
         boolean nameVisible,
         @Nullable String icon,
         @NotNull List<String> lore,
@@ -88,12 +90,64 @@ public record MobTemplate(
                 title,
                 level,
                 entityType,
+                null,
                 nameVisible,
                 icon,
                 lore,
                 tags,
                 skin,
                 MobVariantConfig.DEFAULT,
+                equipment,
+                baseStats,
+                shield,
+                idle,
+                damageImmune,
+                interactions,
+                targeting,
+                combat,
+                drops
+        );
+    }
+
+    public MobTemplate(
+            int schemaVersion,
+            @NotNull String id,
+            @NotNull MobCategory category,
+            @NotNull String displayName,
+            @Nullable String title,
+            int level,
+            @NotNull EntityType entityType,
+            boolean nameVisible,
+            @Nullable String icon,
+            @NotNull List<String> lore,
+            @NotNull List<String> tags,
+            @Nullable MobSkin skin,
+            @NotNull MobVariantConfig variant,
+            @NotNull MobEquipmentConfig equipment,
+            @NotNull List<MobBaseStat> baseStats,
+            @NotNull MobShieldConfig shield,
+            @NotNull MobIdleConfig idle,
+            boolean damageImmune,
+            @NotNull MobInteractionsConfig interactions,
+            @Nullable MobTargetingConfig targeting,
+            @Nullable MobCombatConfig combat,
+            @Nullable MobDropConfig drops
+    ) {
+        this(
+                schemaVersion,
+                id,
+                category,
+                displayName,
+                title,
+                level,
+                entityType,
+                null,
+                nameVisible,
+                icon,
+                lore,
+                tags,
+                skin,
+                variant,
                 equipment,
                 baseStats,
                 shield,

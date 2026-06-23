@@ -52,6 +52,8 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("damage_hit_indicator", Particle.DAMAGE_INDICATOR, 6, 0.18D, 0.25D, 0.18D, 0.0D);
     public static final SharedParticleDefinition SPAWNER_VISUAL_ENCHANT =
         new SharedParticleDefinition("spawner_visual_enchant", Particle.ENCHANT, 3, 0.35D, 0.35D, 0.35D, 0.0D);
+    public static final SharedParticleDefinition NPC_BLOCK_AMBIENT_ENCHANT =
+        new SharedParticleDefinition("npc_block_ambient_enchant", Particle.ENCHANT, 5, 0.45D, 0.45D, 0.45D, 0.0D);
     public static final SharedParticleDefinition ITEM_DROP_LAND_CRIT =
         new SharedParticleDefinition("item_drop_land_crit", Particle.CRIT, 10, 0.18D, 0.04D, 0.18D, 0.03D);
     public static final SharedParticleDefinition ITEM_DROP_COLLECT_END_ROD =
