@@ -8,9 +8,11 @@ import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefini
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -85,5 +87,22 @@ class SkillTreeEventHandlerTest extends MockBukkitTestBase {
 
         verify(service).relockNode(astPlayer, node);
         verify(service, never()).unlockNode(any(), any());
+    }
+
+    @Test
+    void adminMoveRefreshesSkillTreeVisuals() {
+        SkillTreeService service = mock(SkillTreeService.class);
+        SkillTreeEventHandler handler = new SkillTreeEventHandler(service);
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        when(astPlayer.getBukkit()).thenReturn(player);
+        AstPlayerCache.put(astPlayer);
+        when(service.isAdminMode(astPlayer)).thenReturn(true);
+
+        Location from = new Location(player.getWorld(), 0.0D, 64.0D, 0.0D);
+        Location to = new Location(player.getWorld(), 1.0D, 64.0D, 0.0D);
+        handler.onPlayerMove(new PlayerMoveEvent(player, from, to));
+
+        verify(service).markViewerContextDirty(player);
     }
 }

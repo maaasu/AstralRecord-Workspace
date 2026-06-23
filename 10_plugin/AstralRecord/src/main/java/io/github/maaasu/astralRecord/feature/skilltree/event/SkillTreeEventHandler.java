@@ -15,6 +15,7 @@ import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Event;
@@ -226,7 +227,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerMove(@NotNull PlayerMoveEvent event) {
-        if (!service.isPlayerModeSkillTree(event.getPlayer()) || event.getTo() == null) {
+        if (!shouldRefreshSkillTreeVisuals(event.getPlayer()) || event.getTo() == null) {
             return;
         }
         Location from = event.getFrom();
@@ -309,6 +310,11 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
 
     private void playDenied(@NotNull org.bukkit.entity.Player player, float pitch) {
         player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, SoundCategory.PLAYERS, 0.45F, pitch);
+    }
+
+    private boolean shouldRefreshSkillTreeVisuals(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        return service.isAdminMode(astPlayer) || service.isPlayerModeSkillTree(player);
     }
 
     private boolean isLeftClickSuppressed(@NotNull UUID playerId) {
