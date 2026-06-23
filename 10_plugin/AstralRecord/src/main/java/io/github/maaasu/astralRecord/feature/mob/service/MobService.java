@@ -335,6 +335,7 @@ public class MobService {
      * @return 視認可能なら {@code true}
      */
     public boolean canSee(@NotNull Player player, @NotNull Location loc) {
+        if (player.isDead() || !player.isOnline()) return false;
         if (player.getWorld() != loc.getWorld()) return false;
         return player.getLocation().distanceSquared(loc) <= DEFAULT_VIEW_DISTANCE_SQ;
     }

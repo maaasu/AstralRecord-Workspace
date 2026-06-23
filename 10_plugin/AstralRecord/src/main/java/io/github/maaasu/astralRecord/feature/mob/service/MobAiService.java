@@ -394,6 +394,7 @@ public class MobAiService {
         Location loc = instance.currentLocation();
         List<Player> candidates = new ArrayList<>();
         for (Player player : Bukkit.getOnlinePlayers()) {
+            if (!isActiveTargetPlayer(player)) continue;
             if (player.getWorld() != loc.getWorld()) continue;
             if (player.getLocation().distanceSquared(loc) > aggroSq) continue;
             candidates.add(player);
@@ -433,7 +434,7 @@ public class MobAiService {
         UUID targetId = instance.targetId();
         if (targeting != null && targetId != null) {
             Player current = Bukkit.getPlayer(targetId);
-            if (current != null && current.isOnline() && current.getWorld() == instance.currentLocation().getWorld()) {
+            if (current != null && isActiveTargetPlayer(current) && current.getWorld() == instance.currentLocation().getWorld()) {
                 double deaggroSq = targeting.deaggroRange() * targeting.deaggroRange();
                 if (current.getLocation().distanceSquared(instance.currentLocation()) <= deaggroSq) {
                     return current;
@@ -611,6 +612,9 @@ public class MobAiService {
         Player best = null;
         double bestSq = STATIONARY_LOOK_RANGE_SQ;
         for (Player player : Bukkit.getOnlinePlayers()) {
+            if (!isActiveTargetPlayer(player)) {
+                continue;
+            }
             if (player.getWorld() != origin.getWorld()) {
                 continue;
             }
@@ -624,6 +628,10 @@ public class MobAiService {
             best = player;
         }
         return best;
+    }
+
+    private boolean isActiveTargetPlayer(@NotNull Player player) {
+        return player.isOnline() && !player.isDead();
     }
 
     @Nullable

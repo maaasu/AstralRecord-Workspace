@@ -25,6 +25,7 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -127,6 +128,31 @@ class MobAiServiceTest extends MockBukkitTestBase {
                 eq(target),
                 argThat(targets -> targets != null && targets.size() == 1 && targets.contains(target))
         );
+    }
+
+    @Test
+    void selectTargetIgnoresDeadPlayers() throws Exception {
+        var world = server().addSimpleWorld("dead_target_world");
+        PlayerMock deadPlayer = server().addPlayer();
+        deadPlayer.teleport(new Location(world, 1.0D, 64.0D, 0.0D));
+        deadPlayer.setHealth(0.0D);
+        PlayerMock livingPlayer = server().addPlayer();
+        livingPlayer.teleport(new Location(world, 3.0D, 64.0D, 0.0D));
+
+        MobService mobService = mock(MobService.class);
+        MobAiService service = new MobAiService(mobService, mock(MobCombatService.class), mock(SkillService.class));
+        MobInstance instance = new MobInstance(
+                UUID.randomUUID(),
+                combatTemplate(),
+                new Location(world, 0.0D, 64.0D, 0.0D)
+        );
+
+        Method selectTarget = MobAiService.class.getDeclaredMethod("selectTarget", MobInstance.class);
+        selectTarget.setAccessible(true);
+        Object selected = selectTarget.invoke(service, instance);
+
+        assertEquals(livingPlayer, selected);
+        assertEquals(livingPlayer.getUniqueId(), instance.targetId());
     }
 
     private MobTemplate combatTemplate() {
