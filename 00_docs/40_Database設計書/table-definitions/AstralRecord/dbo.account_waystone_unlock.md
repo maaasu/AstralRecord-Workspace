@@ -29,3 +29,4 @@
 - ウェイストーンの座標・表示名・常時開放フラグ・開放コストは plugin data folder の `waystones.yml` を正本とする。
 - 常時開放ウェイストーンは、このテーブルに行がなくても開放済みとして扱う。
 - plugin は DB へ直接接続せず、AstralRecord API `/api/account-waystone` 経由で読み書きする。
+- 2026-06-23 時点で `10_plugin/AstralRecord` の `feature/waystone` 実装は削除済み。テーブル定義は将来の再実装用に残す。

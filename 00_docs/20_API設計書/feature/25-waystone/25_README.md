@@ -14,4 +14,4 @@
 
 - API: `AccountWaystoneController` / `AccountWaystoneRepository` / `AccountWaystoneModels`
 - DB: `dbo.account_waystone_unlock`
-- Plugin: `feature/waystone`
+- Plugin: 2026-06-23 に `10_plugin/AstralRecord` から `feature/waystone` 実装を削除済み。再実装時に接続先を再定義する。

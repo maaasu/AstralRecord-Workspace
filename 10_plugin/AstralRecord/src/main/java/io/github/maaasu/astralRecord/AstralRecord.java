@@ -145,11 +145,6 @@ import io.github.maaasu.astralRecord.shared.gui.gold.GoldAmountSettingGui;
 import io.github.maaasu.astralRecord.feature.user.event.UserLoginEventHandler;
 import io.github.maaasu.astralRecord.feature.user.repository.UserRepository;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
-import io.github.maaasu.astralRecord.feature.waystone.event.WaystoneEventHandler;
-import io.github.maaasu.astralRecord.feature.waystone.repository.WaystoneDefinitionRepository;
-import io.github.maaasu.astralRecord.feature.waystone.repository.WaystoneUnlockRepository;
-import io.github.maaasu.astralRecord.feature.waystone.service.WaystoneService;
-import io.github.maaasu.astralRecord.feature.waystone.service.WaystoneVisualizer;
 import io.github.maaasu.astralRecord.feature.world.config.PluginJoinSpawnWorldConfig;
 import io.github.maaasu.astralRecord.feature.world.event.WorldChangeTitleEventHandler;
 import io.github.maaasu.astralRecord.feature.world.event.WorldNaturalSpawnBlockEventHandler;
@@ -259,8 +254,6 @@ public final class AstralRecord extends JavaPlugin {
     private TradeGui tradeGui;
     private TradeCancelConfirmGui tradeCancelConfirmGui;
     private GoldAmountSettingGui goldAmountSettingGui;
-    private WaystoneService waystoneService;
-    private WaystoneVisualizer waystoneVisualizer;
     private String joinSpawnWorldId;
 
     @Override
@@ -299,13 +292,6 @@ public final class AstralRecord extends JavaPlugin {
                 new SkillTreeStructureRepository(this),
                 new SkillTreePlayerStateRepository(this)
         );
-        waystoneService = new WaystoneService(
-            this,
-            new WaystoneDefinitionRepository(this),
-            new WaystoneUnlockRepository()
-        );
-        waystoneVisualizer = new WaystoneVisualizer(this, waystoneService);
-        waystoneService.setVisualizer(waystoneVisualizer);
         joinSpawnWorldId = PluginJoinSpawnWorldConfig.load(this);
         // CommandManager は Paper Lifecycle API の制約に合わせて
         // onLoad() で初期化し、コマンド登録クラスを先に生成する。
@@ -317,7 +303,6 @@ public final class AstralRecord extends JavaPlugin {
                 npcPlacementService,
                 worldService,
                 skillTreeService,
-                waystoneService,
                 gatheringService,
                 gatheringSpawnerService,
                 textDisplayPlacementService
@@ -426,9 +411,6 @@ public final class AstralRecord extends JavaPlugin {
         if (skillTreeService != null) {
             skillTreeService.stop();
         }
-        if (waystoneService != null) {
-            waystoneService.stop();
-        }
         if (skillService != null) {
             skillService.stop();
         }
@@ -510,7 +492,6 @@ public final class AstralRecord extends JavaPlugin {
         skillTreeService.setInventoryService(inventoryService);
         inventoryAutoSaveTask = new InventoryAutoSaveTask(inventoryPersistence, inventoryStateRegistry);
         currencyService = new CurrencyService(inventoryService);
-        waystoneService.setInventoryService(inventoryService);
         playerSettingService = new PlayerSettingService(
             new PlayerSettingRepository(),
             new PlayerSettingDefaults(),
@@ -714,8 +695,6 @@ public final class AstralRecord extends JavaPlugin {
         mobSpawnerService.loadAll();
         gatheringService.loadAll();
         gatheringSpawnerService.loadAll();
-        waystoneService.loadAll();
-
         // world
         worldService.loadAll();
         mobAiService = new MobAiService(mobService, mobCombatService, skillService);
@@ -918,10 +897,6 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new WaystoneEventHandler(waystoneService, waystoneVisualizer),
-            getServer().getPluginManager()
-        );
-        eventManager.registerHandler(
             new MobInteractionEventHandler(mobService, shopGuiEventHandler, menuView, playerClassService),
             getServer().getPluginManager()
         );
@@ -948,7 +923,6 @@ public final class AstralRecord extends JavaPlugin {
         gatheringSpawnerService.start();
         passiveSkillService.start();
         skillTreeService.start();
-        waystoneService.start();
         // 繧､繝ｳ繝吶Φ繝医Μ繧ｪ繝ｼ繝医そ繝ｼ繝・(60s) 繧帝幕蟋・
         inventoryAutoSaveTask.start(this, InventoryAutoSaveTask.DEFAULT_INTERVAL_TICKS);
     }
