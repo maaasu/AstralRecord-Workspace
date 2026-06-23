@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.combat.service;
 
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
+import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageType;
 import io.github.maaasu.astralRecord.feature.mob.model.MobBaseStat;
@@ -28,8 +29,10 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 class DamageServiceTest {
@@ -110,7 +113,43 @@ class DamageServiceTest {
     }
 
     @Test
-    void damagingManagedEntityAppliesCommonKnockback() {
+    void meleeDamageKeepsCurrentKnockbackAmount() {
+        MobKnockbackService knockbackService = mock(MobKnockbackService.class);
+        DamageService damageService = damageService(knockbackService);
+        MobInstance attacker = shieldedMob(100.0D, 0.0D);
+        MobInstance victim = shieldedMob(100.0D, 0.0D);
+
+        damageService.applyDamage(
+                AstEntity.mob(attacker),
+                AstEntity.mob(victim),
+                20.0D,
+                AttackType.MELEE,
+                DamageType.PHYSICAL
+        );
+
+        verify(knockbackService).apply(any(AstEntity.class), any(AstEntity.class), eq(1.0D));
+    }
+
+    @Test
+    void rangedDamageUsesReducedKnockback() {
+        MobKnockbackService knockbackService = mock(MobKnockbackService.class);
+        DamageService damageService = damageService(knockbackService);
+        MobInstance attacker = shieldedMob(100.0D, 0.0D);
+        MobInstance victim = shieldedMob(100.0D, 0.0D);
+
+        damageService.applyDamage(
+                AstEntity.mob(attacker),
+                AstEntity.mob(victim),
+                20.0D,
+                AttackType.RANGED,
+                DamageType.PHYSICAL
+        );
+
+        verify(knockbackService).apply(any(AstEntity.class), any(AstEntity.class), eq(0.55D));
+    }
+
+    @Test
+    void magicDamageUsesReducedKnockback() {
         MobKnockbackService knockbackService = mock(MobKnockbackService.class);
         DamageService damageService = damageService(knockbackService);
         MobInstance attacker = shieldedMob(100.0D, 0.0D);
@@ -118,7 +157,25 @@ class DamageServiceTest {
 
         damageService.applyEffectDamage(AstEntity.mob(attacker), AstEntity.mob(victim), 20.0D, DamageType.PHYSICAL);
 
-        verify(knockbackService).apply(any(AstEntity.class), any(AstEntity.class), eq(1.0D));
+        verify(knockbackService).apply(any(AstEntity.class), any(AstEntity.class), eq(0.4D));
+    }
+
+    @Test
+    void shieldOnlyDamageDoesNotApplyKnockback() {
+        MobKnockbackService knockbackService = mock(MobKnockbackService.class);
+        DamageService damageService = damageService(knockbackService);
+        MobInstance attacker = shieldedMob(100.0D, 0.0D);
+        MobInstance victim = shieldedMob(100.0D, 5.0D);
+
+        damageService.applyDamage(
+                AstEntity.mob(attacker),
+                AstEntity.mob(victim),
+                20.0D,
+                AttackType.MELEE,
+                DamageType.PHYSICAL
+        );
+
+        verify(knockbackService, never()).apply(any(AstEntity.class), any(AstEntity.class), anyDouble());
     }
 
     private DamageService damageService() {

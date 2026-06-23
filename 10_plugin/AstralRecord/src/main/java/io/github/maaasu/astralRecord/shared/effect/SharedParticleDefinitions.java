@@ -48,6 +48,8 @@ public final class SharedParticleDefinitions {
             0.0D,
             new Particle.DustOptions(Color.fromRGB(150, 235, 255), 1.45F)
         );
+    public static final SharedParticleDefinition DAMAGE_HIT_INDICATOR =
+        new SharedParticleDefinition("damage_hit_indicator", Particle.DAMAGE_INDICATOR, 6, 0.18D, 0.25D, 0.18D, 0.0D);
     public static final SharedParticleDefinition SPAWNER_VISUAL_ENCHANT =
         new SharedParticleDefinition("spawner_visual_enchant", Particle.ENCHANT, 3, 0.35D, 0.35D, 0.35D, 0.0D);
     public static final SharedParticleDefinition ITEM_DROP_LAND_CRIT =

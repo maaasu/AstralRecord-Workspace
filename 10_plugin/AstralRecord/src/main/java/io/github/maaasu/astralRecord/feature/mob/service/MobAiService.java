@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTargetingConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
+import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.skill.model.MobSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
@@ -73,6 +74,7 @@ public class MobAiService {
     private final MobService mobService;
     private final MobCombatService mobCombatService;
     private final SkillService skillService;
+    private final PlayerDeathService playerDeathService;
 
     private BukkitTask task;
     private long internalTick;
@@ -88,9 +90,26 @@ public class MobAiService {
             @NotNull MobService mobService,
             @NotNull MobCombatService mobCombatService,
             @NotNull SkillService skillService) {
+        this(mobService, mobCombatService, skillService, null);
+    }
+
+    /**
+     * コンストラクタ。実サーバーでは custom 死亡状態を AI ターゲット判定に反映します。
+     *
+     * @param mobService         Mob サービス
+     * @param mobCombatService   Mob 戦闘サービス
+     * @param skillService       スキルサービス
+     * @param playerDeathService プレイヤー死亡状態管理サービス。未設定時は Bukkit 死亡状態だけで判定します
+     */
+    public MobAiService(
+            @NotNull MobService mobService,
+            @NotNull MobCombatService mobCombatService,
+            @NotNull SkillService skillService,
+            @Nullable PlayerDeathService playerDeathService) {
         this.mobService = mobService;
         this.mobCombatService = mobCombatService;
         this.skillService = skillService;
+        this.playerDeathService = playerDeathService;
     }
 
     /**
@@ -644,7 +663,9 @@ public class MobAiService {
     }
 
     private boolean isActiveTargetPlayer(@NotNull Player player) {
-        return player.isOnline() && !player.isDead();
+        return player.isOnline()
+                && !player.isDead()
+                && (playerDeathService == null || !playerDeathService.isDead(player.getUniqueId()));
     }
 
     @Nullable

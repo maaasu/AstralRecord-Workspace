@@ -23,6 +23,7 @@ import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -40,6 +41,10 @@ import java.util.UUID;
  * custom combat のダメージ適用を一元化するサービスです。
  */
 public final class DamageService {
+
+    private static final double MELEE_KNOCKBACK_MULTIPLIER = 1.0D;
+    private static final double RANGED_KNOCKBACK_MULTIPLIER = 0.55D;
+    private static final double MAGIC_KNOCKBACK_MULTIPLIER = 0.4D;
 
     private final StatusService statusService;
     private final MobService mobService;
@@ -244,7 +249,7 @@ public final class DamageService {
 
         DamageContext context = new DamageContext(attacker, victim, baseDamage, attackType, damageType, scaling);
         DamageResult result = applyShieldDamage(attacker, victim, damageCalculator.calculate(context));
-        applyDamageResult(attacker, victim, result);
+        applyDamageResult(attacker, victim, result, attackType);
         spawnDamageDisplay(attacker, victim, result);
         return result;
     }
@@ -275,7 +280,8 @@ public final class DamageService {
     private void applyDamageResult(
             @Nullable AstEntity attacker,
             @NotNull AstEntity victim,
-            @NotNull DamageResult result
+            @NotNull DamageResult result,
+            @NotNull AttackType attackType
     ) {
         if (result.shieldDamage() > 0.0D) {
             applyShieldThreat(attacker, victim, result.shieldDamage());
@@ -283,9 +289,6 @@ public final class DamageService {
         }
 
         if (result.finalDamage() <= 0.0D) {
-            if (result.shieldDamage() > 0.0D) {
-                applyDamageKnockback(attacker, victim);
-            }
             return;
         }
 
@@ -293,7 +296,7 @@ public final class DamageService {
             if (victim.player() != null) {
                 var updated = statusService.consumeHp(victim.player(), result.finalDamage());
                 playPlayerHurtEffect(victim.player().getBukkit());
-                applyDamageKnockback(attacker, victim);
+                applyDamageKnockback(attacker, victim, attackType);
                 if (updated.getCurrentHp() <= 0.0D && playerDeathService != null) {
                     playerDeathService.startDeath(victim.player(), victim.location());
                 }
@@ -309,7 +312,7 @@ public final class DamageService {
         if (mob == null) return;
         mob.currentHealth(Math.max(0.0D, mob.currentHealth() - result.finalDamage()));
         playMobHurtEffect(mob.bukkitEntityId());
-        applyDamageKnockback(attacker, victim);
+        applyDamageKnockback(attacker, victim, attackType);
         if (attacker != null && attacker.isPlayer()) {
             if (isPlayerDead(attacker.id())) {
                 return;
@@ -422,19 +425,46 @@ public final class DamageService {
         if (entity instanceof LivingEntity livingEntity) {
             livingEntity.playHurtAnimation(0.0F);
             livingEntity.setNoDamageTicks(0);
+            Location location = livingEntity.getLocation();
+            World world = location.getWorld();
+            if (world != null) {
+                particleDisplayService.spawnForNearbyViewers(
+                        location.clone().add(0.0D, Math.max(0.6D, livingEntity.getHeight() * 0.5D), 0.0D),
+                        SharedParticleDefinitions.DAMAGE_HIT_INDICATOR
+                );
+                world.playSound(location, Sound.ENTITY_PLAYER_ATTACK_STRONG, SoundCategory.PLAYERS, 0.65F, 1.15F);
+            }
         }
     }
 
     private void playPlayerHurtEffect(@NotNull Player player) {
         player.playHurtAnimation(0.0F);
         player.setNoDamageTicks(0);
+        Location location = player.getLocation();
+        particleDisplayService.spawnForNearbyViewers(
+                location.clone().add(0.0D, Math.max(0.6D, player.getHeight() * 0.5D), 0.0D),
+                SharedParticleDefinitions.DAMAGE_HIT_INDICATOR
+        );
+        player.getWorld().playSound(location, Sound.ENTITY_PLAYER_HURT, SoundCategory.PLAYERS, 0.75F, 1.0F);
     }
 
-    private void applyDamageKnockback(@Nullable AstEntity attacker, @NotNull AstEntity victim) {
+    private void applyDamageKnockback(
+            @Nullable AstEntity attacker,
+            @NotNull AstEntity victim,
+            @NotNull AttackType attackType
+    ) {
         if (attacker == null || !attacker.isManaged() || !victim.isManaged()) {
             return;
         }
-        knockbackService.apply(attacker, victim, 1.0D);
+        knockbackService.apply(attacker, victim, knockbackMultiplier(attackType));
+    }
+
+    private double knockbackMultiplier(@NotNull AttackType attackType) {
+        return switch (attackType) {
+            case MELEE -> MELEE_KNOCKBACK_MULTIPLIER;
+            case RANGED -> RANGED_KNOCKBACK_MULTIPLIER;
+            case MAGIC -> MAGIC_KNOCKBACK_MULTIPLIER;
+        };
     }
 
     private void playMobDeathEffect(@Nullable UUID entityId, @NotNull Location location) {

@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTargetingConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.model.TargetStrategy;
+import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.skill.model.MobSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
@@ -141,6 +142,37 @@ class MobAiServiceTest extends MockBukkitTestBase {
 
         MobService mobService = mock(MobService.class);
         MobAiService service = new MobAiService(mobService, mock(MobCombatService.class), mock(SkillService.class));
+        MobInstance instance = new MobInstance(
+                UUID.randomUUID(),
+                combatTemplate(),
+                new Location(world, 0.0D, 64.0D, 0.0D)
+        );
+
+        Method selectTarget = MobAiService.class.getDeclaredMethod("selectTarget", MobInstance.class);
+        selectTarget.setAccessible(true);
+        Object selected = selectTarget.invoke(service, instance);
+
+        assertEquals(livingPlayer, selected);
+        assertEquals(livingPlayer.getUniqueId(), instance.targetId());
+    }
+
+    @Test
+    void selectTargetIgnoresCustomDeadPlayers() throws Exception {
+        var world = server().addSimpleWorld("custom_dead_target_world");
+        PlayerMock customDeadPlayer = server().addPlayer();
+        customDeadPlayer.teleport(new Location(world, 1.0D, 64.0D, 0.0D));
+        PlayerMock livingPlayer = server().addPlayer();
+        livingPlayer.teleport(new Location(world, 3.0D, 64.0D, 0.0D));
+
+        MobService mobService = mock(MobService.class);
+        PlayerDeathService playerDeathService = mock(PlayerDeathService.class);
+        when(playerDeathService.isDead(customDeadPlayer.getUniqueId())).thenReturn(true);
+        MobAiService service = new MobAiService(
+                mobService,
+                mock(MobCombatService.class),
+                mock(SkillService.class),
+                playerDeathService
+        );
         MobInstance instance = new MobInstance(
                 UUID.randomUUID(),
                 combatTemplate(),
