@@ -64,6 +64,7 @@ public class GatheringService {
     }
 
     public int loadAll() {
+        clearInstances();
         definitions.clear();
         for (GatheringDefinition definition : definitionRepository.findAll()) {
             definitions.put(definition.id(), definition);
@@ -105,6 +106,24 @@ public class GatheringService {
         if (removed != null && visualizer != null) {
             visualizer.remove(instanceId);
         }
+    }
+
+    /**
+     * 現在出現している採集オブジェクトと採集中セッションをすべて破棄します。
+     * 定義やスポナーを再読み込みする前に呼び出すことで、旧 tracking の採集オブジェクトが
+     * reload 後のスポナー上限判定に残らないようにします。
+     */
+    public void clearInstances() {
+        for (MiningSession session : List.copyOf(sessions.values())) {
+            session.cancel();
+        }
+        sessions.clear();
+        if (visualizer != null) {
+            for (UUID instanceId : List.copyOf(instances.keySet())) {
+                visualizer.remove(instanceId);
+            }
+        }
+        instances.clear();
     }
 
     public boolean hasDefinition(@NotNull String gatheringId) {

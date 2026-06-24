@@ -148,7 +148,7 @@ final class GatheringPacketDisplay {
         try {
             protocolManager.sendServerPacket(player, packet);
         } catch (RuntimeException exception) {
-            Logger.log(LogId.W_9000, "gathering_packet:" + packet.getType().name(), player.getWorld().getName(), exception.getClass().getSimpleName());
+            Logger.log(LogId.W_9010, exception, packet.getType().name(), player.getWorld().getName());
         }
     }
 

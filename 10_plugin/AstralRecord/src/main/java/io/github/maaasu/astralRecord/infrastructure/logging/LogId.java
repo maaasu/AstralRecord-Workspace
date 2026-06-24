@@ -871,6 +871,10 @@ public enum LogId {
     W_9003(9003),
     // endregion
 
+    // region /feature/gathering/ 9010-9019
+    W_9010(9010),
+    // endregion
+
     ;
     private final String id;
 

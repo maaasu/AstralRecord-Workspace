@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
@@ -35,11 +36,13 @@ public class GatheringCommand extends AstCommand {
             case "load" -> {
                 int gatheringCount = gatheringService.loadAll();
                 int spawnerCount = spawnerService.loadAll();
-                sendSuccess(player.getBukkit(), "Gathering loaded: " + gatheringCount + " objects / " + spawnerCount + " spawners");
+                sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5720.getId(), gatheringCount, spawnerCount));
             }
-            case "list" -> sendInfo(player.getBukkit(), "Gathering: "
-                    + String.join(", ", gatheringService.getLoadedGatheringIds())
-                    + " / active=" + gatheringService.getInstances().size());
+            case "list" -> sendInfo(player.getBukkit(), PlayerMsgResource.format(
+                    PlayerMsgId.P_5721.getId(),
+                    String.join(", ", gatheringService.getLoadedGatheringIds()),
+                    gatheringService.getInstances().size()
+            ));
             case "spawn" -> handleSpawn(player, args);
             case "spawner" -> handleSpawner(player, args);
             default -> sendUsage(player.getBukkit());
@@ -53,10 +56,14 @@ public class GatheringCommand extends AstCommand {
         }
         GatheringInstance instance = gatheringService.spawn(args[1], player.getBukkit().getLocation());
         if (instance == null) {
-            sendError(player.getBukkit(), "Gathering definition not found: " + args[1]);
+            sendError(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5722.getId(), args[1]));
             return;
         }
-        sendSuccess(player.getBukkit(), "Gathering spawned: " + instance.definition().id() + " / " + instance.instanceId());
+        sendSuccess(player.getBukkit(), PlayerMsgResource.format(
+                PlayerMsgId.P_5723.getId(),
+                instance.definition().id(),
+                instance.instanceId()
+        ));
     }
 
     private void handleSpawner(@NotNull AstPlayer player, @NotNull String[] args) {
@@ -65,10 +72,15 @@ public class GatheringCommand extends AstCommand {
             return;
         }
         switch (args[1].toLowerCase(Locale.ROOT)) {
-            case "reload" -> sendSuccess(player.getBukkit(), "Gathering spawners loaded: " + spawnerService.loadAll());
-            case "list" -> sendInfo(player.getBukkit(), "Gathering spawners: "
-                    + String.join(", ", spawnerService.getLoadedSpawnerIds())
-                    + " / placed=" + spawnerService.getLocations().size());
+            case "reload" -> {
+                gatheringService.clearInstances();
+                sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5724.getId(), spawnerService.loadAll()));
+            }
+            case "list" -> sendInfo(player.getBukkit(), PlayerMsgResource.format(
+                    PlayerMsgId.P_5725.getId(),
+                    String.join(", ", spawnerService.getLoadedSpawnerIds()),
+                    spawnerService.getLocations().size()
+            ));
             case "item" -> handleSpawnerItem(player, args);
             default -> sendUsage(player.getBukkit());
         }
@@ -87,15 +99,19 @@ public class GatheringCommand extends AstCommand {
         int amount = args.length >= 4 ? parseAmount(args[3]) : 1;
         ItemStack itemStack = spawnerService.createSpawnerItem(args[2], amount);
         if (itemStack == null) {
-            sendError(player.getBukkit(), "Gathering spawner definition not found: " + args[2]);
+            sendError(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5708.getId(), args[2]));
+            return;
+        }
+        if (!canFitItem(player.getBukkit().getInventory(), itemStack)) {
+            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5241.getId()));
             return;
         }
         var leftover = player.getBukkit().getInventory().addItem(itemStack);
         if (!leftover.isEmpty()) {
-            sendError(player.getBukkit(), "Inventory is full.");
+            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5241.getId()));
             return;
         }
-        sendSuccess(player.getBukkit(), "Gathering spawner item granted: " + args[2] + " x" + amount);
+        sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5714.getId(), args[2], amount));
     }
 
     private int parseAmount(@NotNull String value) {
@@ -104,5 +120,21 @@ public class GatheringCommand extends AstCommand {
         } catch (NumberFormatException ignored) {
             return 1;
         }
+    }
+
+    private boolean canFitItem(@NotNull Inventory inventory, @NotNull ItemStack itemStack) {
+        int remaining = itemStack.getAmount();
+        int maxStackSize = Math.min(inventory.getMaxStackSize(), itemStack.getMaxStackSize());
+        for (ItemStack current : inventory.getStorageContents()) {
+            if (current == null || current.getType().isAir()) {
+                remaining -= maxStackSize;
+            } else if (current.isSimilar(itemStack)) {
+                remaining -= Math.max(0, maxStackSize - current.getAmount());
+            }
+            if (remaining <= 0) {
+                return true;
+            }
+        }
+        return false;
     }
 }
