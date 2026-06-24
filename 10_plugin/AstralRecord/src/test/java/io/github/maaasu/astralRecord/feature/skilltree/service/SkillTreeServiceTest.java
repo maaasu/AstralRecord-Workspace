@@ -71,6 +71,24 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
     }
 
     @Test
+    void applyInitialPlayerStateCachesLoadedStateBeforeStatusRefresh() {
+        SkillTreeNodeRepository nodeRepository = mock(SkillTreeNodeRepository.class);
+        SkillTreeStructureRepository structureRepository = mock(SkillTreeStructureRepository.class);
+        SkillTreePlayerStateRepository playerStateRepository = mock(SkillTreePlayerStateRepository.class);
+        SkillTreeService service = newService(nodeRepository, structureRepository, playerStateRepository);
+
+        UUID accountId = UUID.randomUUID();
+        SkillTreePlayerState loadedState = new SkillTreePlayerState(accountId, Set.of("root-node"));
+        when(playerStateRepository.load(accountId)).thenReturn(loadedState);
+
+        SkillTreePlayerState result = service.loadInitialPlayerState(accountId);
+        service.applyInitialPlayerState(result);
+
+        assertEquals(loadedState, stateField(service).get(accountId));
+        verify(playerStateRepository).load(accountId);
+    }
+
+    @Test
     void unlockNodeRefreshesDerivedStateByDelta() {
         SkillTreeNodeRepository nodeRepository = mock(SkillTreeNodeRepository.class);
         SkillTreeStructureRepository structureRepository = mock(SkillTreeStructureRepository.class);

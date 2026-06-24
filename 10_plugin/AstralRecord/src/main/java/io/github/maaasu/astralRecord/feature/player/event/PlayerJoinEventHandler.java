@@ -5,22 +5,36 @@ import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.loginbonus.service.LoginBonusService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
+import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePlayerState;
+import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import net.kyori.adventure.title.Title;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.scheduler.BukkitTask;
+import org.jetbrains.annotations.Nullable;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -40,21 +54,26 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     private static final long NANOS_PER_TICK = 50_000_000L;
     private static final long JOIN_START_SPACING_TICKS = 20L;
     private static final long JOIN_STEP_DELAY_TICKS = 10L;
+    private static final long JOIN_LOADING_TITLE_INTERVAL_TICKS = 100L;
+    private static final long JOIN_LOADING_RETRY_MILLIS = 500L;
 
     private final PlayerService playerService;
+    private final SkillTreeService skillTreeService;
     private final LoginBonusService loginBonusService;
     private final AstralRecord plugin;
     private final Set<UUID> loadingPlayers = ConcurrentHashMap.newKeySet();
-    private final Map<UUID, Location> movementLocks = new ConcurrentHashMap<>();
+    private final Map<UUID, LoadingControl> loadingControls = new ConcurrentHashMap<>();
     private final AtomicLong nextJoinStartNanos = new AtomicLong();
 
     public PlayerJoinEventHandler(
         AstralRecord plugin,
         PlayerService playerService,
+        SkillTreeService skillTreeService,
         LoginBonusService loginBonusService
     ) {
         this.plugin = plugin;
         this.playerService = playerService;
+        this.skillTreeService = skillTreeService;
         this.loginBonusService = loginBonusService;
     }
 
@@ -75,23 +94,62 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             return;
         }
 
-        Location lockLocation = movementLocks.get(playerUuid);
+        LoadingControl loadingControl = loadingControls.get(playerUuid);
+        Location lockLocation = loadingControl == null ? null : loadingControl.lockLocation();
         Location to = event.getTo();
         if (lockLocation == null || to == null) {
             return;
         }
         if (event instanceof PlayerTeleportEvent) {
-            movementLocks.put(playerUuid, to.clone());
+            loadingControls.put(playerUuid, loadingControl.withLockLocation(to.clone()));
             return;
         }
-        if (!hasPositionChanged(lockLocation, to)) {
+        if (!hasPositionChanged(lockLocation, to) && !hasViewChanged(lockLocation, to)) {
             return;
         }
 
-        Location corrected = lockLocation.clone();
-        corrected.setYaw(to.getYaw());
-        corrected.setPitch(to.getPitch());
-        event.setTo(corrected);
+        event.setTo(lockLocation.clone());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    public void onPlayerInteract(PlayerInteractEvent event) {
+        if (loadingPlayers.contains(event.getPlayer().getUniqueId())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    public void onPlayerItemHeld(PlayerItemHeldEvent event) {
+        if (loadingPlayers.contains(event.getPlayer().getUniqueId())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    public void onBlockBreak(BlockBreakEvent event) {
+        if (loadingPlayers.contains(event.getPlayer().getUniqueId())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    public void onBlockPlace(BlockPlaceEvent event) {
+        if (loadingPlayers.contains(event.getPlayer().getUniqueId())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
+        if (event.getDamager() instanceof Player player && loadingPlayers.contains(player.getUniqueId())) {
+            event.setDamage(0.0D);
+            event.setCancelled(true);
+            return;
+        }
+        if (event.getEntity() instanceof Player player && loadingPlayers.contains(player.getUniqueId())) {
+            event.setDamage(0.0D);
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
@@ -146,20 +204,30 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             }
 
             playerService.loadPlayerJoinInventoryState(account);
+            SkillTreePlayerState skillTreeState = loadInitialSkillTreeState(playerUuid, playerName, account.getUuid());
             plugin.getServer().getScheduler().runTask(plugin, () ->
-                applyJoinData(playerUuid, playerName, new PlayerService.PlayerJoinData(user, account))
+                applyJoinData(playerUuid, playerName, new PlayerService.PlayerJoinData(user, account), skillTreeState)
             );
         });
     }
 
-    private void applyJoinData(UUID playerUuid, String playerName, PlayerService.PlayerJoinData joinData) {
+    private void applyJoinData(
+        UUID playerUuid,
+        String playerName,
+        PlayerService.PlayerJoinData joinData,
+        @Nullable SkillTreePlayerState skillTreeState
+    ) {
         runSafely(() -> {
             Player player = plugin.getServer().getPlayer(playerUuid);
             if (player == null || !player.isOnline() || !isJoinLoading(playerUuid)) {
                 finishJoinLoading(playerUuid, false);
                 return;
             }
+            if (skillTreeState == null) {
+                return;
+            }
 
+            skillTreeService.applyInitialPlayerState(skillTreeState);
             playerService.applyPlayerJoin(player, joinData);
             loginBonusService.openAfterDataLoaded(player);
             finishJoinLoading(playerUuid, true);
@@ -173,7 +241,23 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     private void startJoinLoading(Player player) {
         UUID playerUuid = player.getUniqueId();
         loadingPlayers.add(playerUuid);
-        movementLocks.put(playerUuid, player.getLocation().clone());
+        LoadingControl previous = loadingControls.remove(playerUuid);
+        restoreLoadingControl(player, previous);
+        BukkitTask titleTask = plugin.getServer().getScheduler().runTaskTimer(
+            plugin,
+            () -> showJoinLoadingTitle(player),
+            0L,
+            JOIN_LOADING_TITLE_INTERVAL_TICKS
+        );
+        loadingControls.put(
+            playerUuid,
+            new LoadingControl(
+                player.getLocation().clone(),
+                setAttributeBaseValue(player, Attribute.MOVEMENT_SPEED, 0.0D),
+                setAttributeBaseValue(player, Attribute.JUMP_STRENGTH, 0.0D),
+                titleTask
+            )
+        );
         PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5071);
     }
 
@@ -184,12 +268,41 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         }
 
         loadingPlayers.remove(playerUuid);
-        movementLocks.remove(playerUuid);
+        LoadingControl loadingControl = loadingControls.remove(playerUuid);
 
         Player player = plugin.getServer().getPlayer(playerUuid);
-        if (notifyComplete && player != null && player.isOnline()) {
-            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5072);
+        if (player != null && player.isOnline()) {
+            restoreLoadingControl(player, loadingControl);
+            player.clearTitle();
+            if (notifyComplete) {
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5072);
+            }
+        } else if (loadingControl != null && loadingControl.titleTask() != null) {
+            loadingControl.titleTask().cancel();
         }
+    }
+
+    @Nullable
+    private SkillTreePlayerState loadInitialSkillTreeState(UUID playerUuid, String playerName, UUID accountId) {
+        boolean loggedFailure = false;
+        while (isJoinLoading(playerUuid)) {
+            try {
+                return skillTreeService.loadInitialPlayerState(accountId);
+            } catch (RuntimeException e) {
+                if (!loggedFailure) {
+                    Logger.log(LogId.W_9002, accountId, e.getMessage());
+                    loggedFailure = true;
+                }
+                try {
+                    Thread.sleep(JOIN_LOADING_RETRY_MILLIS);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    Logger.log(LogId.E_5070, interrupted, playerName);
+                    return null;
+                }
+            }
+        }
+        return null;
     }
 
     private void runJoinStep(UUID playerUuid, String playerName, Runnable action) {
@@ -207,6 +320,49 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
 
     private boolean isJoinLoading(UUID playerUuid) {
         return loadingPlayers.contains(playerUuid);
+    }
+
+    private void showJoinLoadingTitle(Player player) {
+        if (!player.isOnline() || !loadingPlayers.contains(player.getUniqueId())) {
+            return;
+        }
+        player.showTitle(Title.title(
+            PlayerMsgResource.formatComponent(PlayerMsgId.P_5073.getId()),
+            PlayerMsgResource.formatComponent(PlayerMsgId.P_5071.getId()),
+            Title.Times.times(Duration.ZERO, Duration.ofSeconds(6), Duration.ofMillis(500))
+        ));
+    }
+
+    @Nullable
+    private Double setAttributeBaseValue(Player player, Attribute attribute, double value) {
+        AttributeInstance instance = player.getAttribute(attribute);
+        if (instance == null) {
+            return null;
+        }
+        double previousValue = instance.getBaseValue();
+        instance.setBaseValue(value);
+        return previousValue;
+    }
+
+    private void restoreAttributeBaseValue(Player player, Attribute attribute, @Nullable Double value) {
+        if (value == null) {
+            return;
+        }
+        AttributeInstance instance = player.getAttribute(attribute);
+        if (instance != null) {
+            instance.setBaseValue(value);
+        }
+    }
+
+    private void restoreLoadingControl(Player player, @Nullable LoadingControl loadingControl) {
+        if (loadingControl == null) {
+            return;
+        }
+        if (loadingControl.titleTask() != null) {
+            loadingControl.titleTask().cancel();
+        }
+        restoreAttributeBaseValue(player, Attribute.MOVEMENT_SPEED, loadingControl.movementSpeed());
+        restoreAttributeBaseValue(player, Attribute.JUMP_STRENGTH, loadingControl.jumpStrength());
     }
 
     private long reserveJoinStartDelayTicks() {
@@ -229,6 +385,22 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         return from.getX() != to.getX()
             || from.getY() != to.getY()
             || from.getZ() != to.getZ();
+    }
+
+    private boolean hasViewChanged(Location from, Location to) {
+        return from.getYaw() != to.getYaw()
+            || from.getPitch() != to.getPitch();
+    }
+
+    private record LoadingControl(
+        Location lockLocation,
+        @Nullable Double movementSpeed,
+        @Nullable Double jumpStrength,
+        @Nullable BukkitTask titleTask
+    ) {
+        private LoadingControl withLockLocation(Location updatedLockLocation) {
+            return new LoadingControl(updatedLockLocation, movementSpeed, jumpStrength, titleTask);
+        }
     }
 }
 

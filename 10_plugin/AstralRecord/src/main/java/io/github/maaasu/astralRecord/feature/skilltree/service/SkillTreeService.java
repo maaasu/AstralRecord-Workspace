@@ -667,6 +667,34 @@ public class SkillTreeService {
     }
 
     /**
+     * 初回ログイン処理で使用するスキルツリー状態を読み込みます。
+     * <p>
+     * 呼び出し元は Bukkit メインスレッド外で実行し、戻り値は
+     * {@link #applyInitialPlayerState(SkillTreePlayerState)} でメインスレッドから反映してください。
+     *
+     * @param accountId 読み込み対象アカウント UUID
+     * @return API / DB から読み込んだスキルツリー状態
+     * @throws RuntimeException 読み込みに失敗した場合
+     */
+    public @NotNull SkillTreePlayerState loadInitialPlayerState(@NotNull UUID accountId) {
+        return playerStateRepository.load(accountId);
+    }
+
+    /**
+     * 初回ログイン処理で読み込んだスキルツリー状態をサービス内キャッシュへ反映します。
+     * <p>
+     * {@link AstPlayer} 登録前に呼び出すことで、初回ステータス計算が空のスキルツリー状態を参照しないようにします。
+     *
+     * @param state 反映するスキルツリー状態
+     */
+    public void applyInitialPlayerState(@NotNull SkillTreePlayerState state) {
+        loadingPlayerStates.remove(state.accountId());
+        failedPlayerStateLoads.remove(state.accountId());
+        playerStates.put(state.accountId(), state);
+        derivedPlayerStates.remove(state.accountId());
+    }
+
+    /**
      * スキルツリー状態を通信待ちなしで利用できるかを返します。
      *
      * @param astPlayer 対象プレイヤー

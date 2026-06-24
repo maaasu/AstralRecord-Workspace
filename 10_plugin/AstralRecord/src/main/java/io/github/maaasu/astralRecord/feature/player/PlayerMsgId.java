@@ -59,6 +59,10 @@ public enum PlayerMsgId {
      * プレイヤーデータのロードが完了しました。
      */
     P_5072(5072),
+    /**
+     * プレイヤーデータロード中の title 表示です。
+     */
+    P_5073(5073),
     // endregion
 
     // region /feature/player/death 5080-5089

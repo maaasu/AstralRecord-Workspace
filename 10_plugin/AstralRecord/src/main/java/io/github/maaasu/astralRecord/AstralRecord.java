@@ -781,7 +781,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new PlayerJoinEventHandler(this, playerService, loginBonusService),
+            new PlayerJoinEventHandler(this, playerService, skillTreeService, loginBonusService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
