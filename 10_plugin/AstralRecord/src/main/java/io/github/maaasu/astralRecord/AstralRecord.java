@@ -657,6 +657,7 @@ public final class AstralRecord extends JavaPlugin {
             partyService,
             playerMessageService,
             bossFieldInstanceService,
+            displayTextService,
             bossHubWorldId
         );
         damageService.setBossChallengeService(bossChallengeService);

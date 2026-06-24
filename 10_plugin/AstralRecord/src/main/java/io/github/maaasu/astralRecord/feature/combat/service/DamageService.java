@@ -330,6 +330,9 @@ public final class DamageService {
             }
             mob.threatTable().add(attacker.id(), result.finalDamage());
             mob.lastAttackerUuid(attacker.id());
+            if (bossChallengeService != null && bossChallengeService.isBossMob(mob.instanceId())) {
+                bossChallengeService.recordBossDamage(mob.instanceId(), attacker.id(), result.finalDamage());
+            }
             if (mob.state() == MobState.IDLE) {
                 mob.state(MobState.AGGRO);
                 mob.targetId(attacker.id());
@@ -342,7 +345,7 @@ public final class DamageService {
             boolean bossMob = bossChallengeService != null && bossChallengeService.isBossMob(mob.instanceId());
             mobCombatService.handleDeath(mob);
             if (bossMob) {
-                bossChallengeService.handleBossDefeated(mob.instanceId());
+                bossChallengeService.handleBossDefeated(mob.instanceId(), deathLocation);
             }
         }
     }

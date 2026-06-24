@@ -1,11 +1,15 @@
 package io.github.maaasu.astralRecord.feature.boss.model;
 
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
+import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
+import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Runtime state for a single boss challenge.
@@ -18,10 +22,14 @@ public final class BossChallengeInstance {
     private final BossChallengeConfig config;
     private final List<UUID> participantIds;
     private final long createdAtMs;
+    private final Map<UUID, Double> damageByPlayerId = new ConcurrentHashMap<>();
     private BossChallengeState state = BossChallengeState.PREPARING;
     private BossFieldInstance field;
     private UUID bossMobInstanceId;
     private long startedAtMs;
+    private long resultWaitEndsAtMs;
+    private BukkitTask resultWaitTask;
+    private DisplayTextService.ManagedTextDisplay resultDisplay;
 
     public BossChallengeInstance(
             @NotNull UUID challengeId,
@@ -99,5 +107,46 @@ public final class BossChallengeInstance {
     public void markStarted() {
         this.startedAtMs = System.currentTimeMillis();
         this.state = BossChallengeState.IN_PROGRESS;
+    }
+
+    /**
+     * Adds effective boss damage dealt by a participant.
+     *
+     * @param playerId participant player UUID
+     * @param amount damage amount
+     */
+    public void addDamage(@NotNull UUID playerId, double amount) {
+        if (amount <= 0.0D) {
+            return;
+        }
+        damageByPlayerId.merge(playerId, amount, Double::sum);
+    }
+
+    public @NotNull Map<UUID, Double> damageSnapshot() {
+        return Map.copyOf(damageByPlayerId);
+    }
+
+    public long resultWaitEndsAtMs() {
+        return resultWaitEndsAtMs;
+    }
+
+    public void resultWaitEndsAtMs(long resultWaitEndsAtMs) {
+        this.resultWaitEndsAtMs = resultWaitEndsAtMs;
+    }
+
+    public @Nullable BukkitTask resultWaitTask() {
+        return resultWaitTask;
+    }
+
+    public void resultWaitTask(@Nullable BukkitTask resultWaitTask) {
+        this.resultWaitTask = resultWaitTask;
+    }
+
+    public @Nullable DisplayTextService.ManagedTextDisplay resultDisplay() {
+        return resultDisplay;
+    }
+
+    public void resultDisplay(@Nullable DisplayTextService.ManagedTextDisplay resultDisplay) {
+        this.resultDisplay = resultDisplay;
     }
 }

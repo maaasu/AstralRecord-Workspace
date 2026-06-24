@@ -21,6 +21,9 @@ import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.shared.display.DisplayAnchor;
+import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
+import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -32,6 +35,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -43,6 +47,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class BossChallengeService {
     private static final long FIELD_START_DELAY_TICKS = 40L;
+    private static final long DEFEATED_RESULT_WAIT_TICKS = 15L * 20L;
 
     private final AstralRecord plugin;
     private final MobService mobService;
@@ -50,6 +55,7 @@ public final class BossChallengeService {
     private final PartyService partyService;
     private final PlayerMessageService messageService;
     private final BossFieldInstanceService fieldInstanceService;
+    private final DisplayTextService displayTextService;
     private final String hubWorldId;
     private final Map<UUID, BossChallengeInstance> challengesById = new ConcurrentHashMap<>();
     private final Map<String, UUID> challengeIdByPartyKey = new ConcurrentHashMap<>();
@@ -63,6 +69,7 @@ public final class BossChallengeService {
             @NotNull PartyService partyService,
             @NotNull PlayerMessageService messageService,
             @NotNull BossFieldInstanceService fieldInstanceService,
+            @NotNull DisplayTextService displayTextService,
             @NotNull String hubWorldId
     ) {
         this.plugin = plugin;
@@ -71,6 +78,7 @@ public final class BossChallengeService {
         this.partyService = partyService;
         this.messageService = messageService;
         this.fieldInstanceService = fieldInstanceService;
+        this.displayTextService = displayTextService;
         this.hubWorldId = hubWorldId;
     }
 
@@ -222,18 +230,41 @@ public final class BossChallengeService {
     }
 
     /**
+     * Records effective damage dealt to a boss by a challenge participant.
+     *
+     * @param mobInstanceId boss mob instance ID
+     * @param playerId attacker player UUID
+     * @param amount effective damage amount
+     */
+    public void recordBossDamage(@NotNull UUID mobInstanceId, @NotNull UUID playerId, double amount) {
+        UUID challengeId = challengeIdByBossMob.get(mobInstanceId);
+        if (challengeId == null || amount <= 0.0D) {
+            return;
+        }
+        BossChallengeInstance challenge = challengesById.get(challengeId);
+        if (challenge == null || challenge.state() != BossChallengeState.IN_PROGRESS) {
+            return;
+        }
+        if (!challenge.participantIds().contains(playerId)) {
+            return;
+        }
+        challenge.addDamage(playerId, amount);
+    }
+
+    /**
      * Handles defeat of an active boss mob.
      *
      * @param mobInstanceId defeated mob instance ID
+     * @param deathLocation boss death location
      */
-    public void handleBossDefeated(@NotNull UUID mobInstanceId) {
+    public void handleBossDefeated(@NotNull UUID mobInstanceId, @NotNull Location deathLocation) {
         UUID challengeId = challengeIdByBossMob.get(mobInstanceId);
         if (challengeId == null) {
             return;
         }
         BossChallengeInstance challenge = challengesById.get(challengeId);
         if (challenge != null) {
-            endChallenge(challenge, BossChallengeEndReason.DEFEATED);
+            beginDefeatedResultWait(challenge, deathLocation);
         }
     }
 
@@ -359,8 +390,55 @@ public final class BossChallengeService {
         if (challenge.state() == BossChallengeState.ENDED) {
             return;
         }
+        if (reason == BossChallengeEndReason.DEFEATED) {
+            BossFieldInstance field = challenge.field();
+            Location resultLocation = field == null
+                    ? Bukkit.getWorlds().get(0).getSpawnLocation()
+                    : challenge.config().bossSpawnLocation().toLocation(field.world());
+            beginDefeatedResultWait(challenge, resultLocation);
+            return;
+        }
+        completeChallenge(challenge, reason);
+    }
+
+    private void beginDefeatedResultWait(@NotNull BossChallengeInstance challenge, @NotNull Location deathLocation) {
+        if (challenge.state() == BossChallengeState.ENDED || challenge.state() == BossChallengeState.RESULT_WAITING) {
+            return;
+        }
+        challenge.state(BossChallengeState.RESULT_WAITING);
+        challenge.resultWaitEndsAtMs(System.currentTimeMillis() + DEFEATED_RESULT_WAIT_TICKS * 50L);
+        Logger.log(LogId.I_6502, challenge.challengeId(), challenge.bossTemplate().id(), BossChallengeEndReason.DEFEATED.name());
+
+        UUID bossMobId = challenge.bossMobInstanceId();
+        if (bossMobId != null) {
+            challengeIdByBossMob.remove(bossMobId);
+        }
+
+        notifyParticipants(challenge, PlayerMsgId.P_6511, challenge.bossTemplate().displayName());
+        showDamageResult(challenge, deathLocation);
+        BukkitTask task = Bukkit.getScheduler().runTaskLater(
+                plugin,
+                () -> completeChallenge(challenge, BossChallengeEndReason.DEFEATED),
+                DEFEATED_RESULT_WAIT_TICKS
+        );
+        challenge.resultWaitTask(task);
+    }
+
+    private void completeChallenge(@NotNull BossChallengeInstance challenge, @NotNull BossChallengeEndReason reason) {
+        if (challenge.state() == BossChallengeState.ENDED) {
+            return;
+        }
         challenge.state(BossChallengeState.ENDED);
-        Logger.log(LogId.I_6502, challenge.challengeId(), challenge.bossTemplate().id(), reason.name());
+        if (!reason.success()) {
+            Logger.log(LogId.I_6502, challenge.challengeId(), challenge.bossTemplate().id(), reason.name());
+        }
+
+        BukkitTask resultWaitTask = challenge.resultWaitTask();
+        if (resultWaitTask != null) {
+            resultWaitTask.cancel();
+            challenge.resultWaitTask(null);
+        }
+        destroyDamageResult(challenge);
 
         UUID bossMobId = challenge.bossMobInstanceId();
         if (bossMobId != null) {
@@ -371,7 +449,7 @@ public final class BossChallengeService {
         }
 
         if (reason.success()) {
-            notifyParticipants(challenge, PlayerMsgId.P_6511, challenge.bossTemplate().displayName());
+            // Success was already announced before the 15 second result wait.
         } else if (reason == BossChallengeEndReason.TIME_LIMIT) {
             notifyParticipants(challenge, PlayerMsgId.P_6513, challenge.bossTemplate().displayName());
         } else if (reason == BossChallengeEndReason.NO_PARTICIPANTS) {
@@ -391,6 +469,71 @@ public final class BossChallengeService {
         }
         challengeIdByPartyKey.remove(challenge.partyKey());
         challengesById.remove(challenge.challengeId());
+    }
+
+    private void showDamageResult(@NotNull BossChallengeInstance challenge, @NotNull Location deathLocation) {
+        Location displayLocation = deathLocation.clone().add(0.0D, 2.4D, 0.0D);
+        DisplayTextService.ManagedTextDisplay display = displayTextService.create(
+                DisplayAnchor.fixed(displayLocation),
+                DisplayTextOptions.defaults(formatDamageResult(challenge))
+                        .withShadowed(true)
+                        .withLineWidth(360)
+                        .withViewRange(64.0F)
+        );
+        display.setDynamicText(() -> formatDamageResult(challenge));
+        challenge.resultDisplay(display);
+    }
+
+    private void destroyDamageResult(@NotNull BossChallengeInstance challenge) {
+        DisplayTextService.ManagedTextDisplay display = challenge.resultDisplay();
+        if (display != null) {
+            display.destroy();
+            challenge.resultDisplay(null);
+        }
+    }
+
+    private @NotNull String formatDamageResult(@NotNull BossChallengeInstance challenge) {
+        Map<UUID, Double> damage = challenge.damageSnapshot();
+        double total = damage.values().stream().mapToDouble(Double::doubleValue).sum();
+        long remainingSeconds = Math.max(0L, (challenge.resultWaitEndsAtMs() - System.currentTimeMillis() + 999L) / 1000L);
+        StringBuilder text = new StringBuilder("&6&lBOSS CLEAR &f")
+                .append(challenge.bossTemplate().displayName())
+                .append("\n&7Returning to hub in &e")
+                .append(remainingSeconds)
+                .append("s")
+                .append("\n&d&lDamage Ranking &7Total &f")
+                .append(formatDamage(total));
+
+        List<DamageLine> lines = challenge.participantIds().stream()
+                .map(playerId -> new DamageLine(playerId, damage.getOrDefault(playerId, 0.0D)))
+                .sorted(Comparator.comparingDouble(DamageLine::damage).reversed())
+                .toList();
+        for (int index = 0; index < lines.size(); index++) {
+            DamageLine line = lines.get(index);
+            double rate = total <= 0.0D ? 0.0D : line.damage() * 100.0D / total;
+            text.append('\n')
+                    .append("&e")
+                    .append(index + 1)
+                    .append(". &f")
+                    .append(playerName(line.playerId()))
+                    .append(" &a")
+                    .append(formatDamage(line.damage()))
+                    .append(" &7")
+                    .append(String.format(Locale.ROOT, "%.1f%%", rate));
+        }
+        return text.toString();
+    }
+
+    private @NotNull String formatDamage(double damage) {
+        return String.format(Locale.ROOT, "%.0f", Math.max(0.0D, damage));
+    }
+
+    private @NotNull String playerName(@NotNull UUID playerId) {
+        Player player = Bukkit.getPlayer(playerId);
+        if (player != null) {
+            return player.getName();
+        }
+        return playerId.toString().substring(0, 8);
     }
 
     private boolean isInsideEntry(@NotNull Player player, @NotNull BossChallengeConfig config) {
@@ -461,5 +604,8 @@ public final class BossChallengeService {
         for (Player player : onlinePlayers(challenge.participantIds())) {
             messageService.send(player, msgId, args);
         }
+    }
+
+    private record DamageLine(@NotNull UUID playerId, double damage) {
     }
 }

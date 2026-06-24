@@ -6,5 +6,6 @@ package io.github.maaasu.astralRecord.feature.boss.model;
 public enum BossChallengeState {
     PREPARING,
     IN_PROGRESS,
+    RESULT_WAITING,
     ENDED
 }
