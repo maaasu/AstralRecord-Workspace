@@ -13,6 +13,7 @@ import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Ageable;
+import org.bukkit.entity.Breedable;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Mob;
 import org.bukkit.util.Vector;
@@ -198,8 +199,9 @@ class MobEntityControllerTest extends MockBukkitTestBase {
                 .withPluginVersion("1.0.0")
                 .build();
         MobEntityController controller = new MobEntityController(plugin);
-        Mob mob = mock(Mob.class, withSettings().extraInterfaces(Ageable.class));
+        Mob mob = mock(Mob.class, withSettings().extraInterfaces(Ageable.class, Breedable.class));
         Ageable ageable = (Ageable) mob;
+        Breedable breedable = (Breedable) mob;
         MobTemplate template = new MobTemplate(
                 1,
                 "zombie",
@@ -227,7 +229,7 @@ class MobEntityControllerTest extends MockBukkitTestBase {
         controller.applyVariant(template, mob);
 
         verify(ageable).setAdult();
-        verify(ageable).setAgeLock(true);
+        verify(breedable).setAgeLock(true);
         verify(ageable, never()).setBaby();
     }
 
@@ -238,8 +240,9 @@ class MobEntityControllerTest extends MockBukkitTestBase {
                 .withPluginVersion("1.0.0")
                 .build();
         MobEntityController controller = new MobEntityController(plugin);
-        Mob mob = mock(Mob.class, withSettings().extraInterfaces(Ageable.class));
+        Mob mob = mock(Mob.class, withSettings().extraInterfaces(Ageable.class, Breedable.class));
         Ageable ageable = (Ageable) mob;
+        Breedable breedable = (Breedable) mob;
         MobTemplate template = new MobTemplate(
                 1,
                 "baby_zombie",
@@ -268,7 +271,7 @@ class MobEntityControllerTest extends MockBukkitTestBase {
         controller.applyVariant(template, mob);
 
         verify(ageable).setBaby();
-        verify(ageable).setAgeLock(true);
+        verify(breedable).setAgeLock(true);
         verify(ageable, never()).setAdult();
     }
 }
