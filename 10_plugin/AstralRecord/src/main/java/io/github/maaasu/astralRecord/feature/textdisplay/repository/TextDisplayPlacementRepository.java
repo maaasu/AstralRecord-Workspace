@@ -73,7 +73,7 @@ public final class TextDisplayPlacementRepository {
      */
     public void saveAll(@NotNull Iterable<TextDisplayPlacement> placements) {
         YamlConfiguration yaml = new YamlConfiguration();
-        yaml.options().header("AstralRecord fixed TextDisplay placements. Legacy color codes using & are supported.");
+        yaml.options().setHeader(List.of("AstralRecord fixed TextDisplay placements. Legacy color codes using & are supported."));
         List<Map<String, Object>> rows = new ArrayList<>();
         for (TextDisplayPlacement placement : placements) {
             Map<String, Object> row = new LinkedHashMap<>();

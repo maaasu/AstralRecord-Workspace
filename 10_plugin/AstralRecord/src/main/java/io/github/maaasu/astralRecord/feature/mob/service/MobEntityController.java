@@ -14,6 +14,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.Ageable;
 import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Breedable;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Mob;
@@ -188,7 +189,9 @@ public class MobEntityController {
             case BABY -> ageable.setBaby();
             case ADULT -> ageable.setAdult();
         }
-        ageable.setAgeLock(true);
+        if (ageable instanceof Breedable breedable) {
+            breedable.setAgeLock(true);
+        }
     }
 
     /**

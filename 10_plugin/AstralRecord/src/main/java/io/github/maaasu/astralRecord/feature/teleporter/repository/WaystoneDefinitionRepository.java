@@ -77,7 +77,7 @@ public final class WaystoneDefinitionRepository {
      */
     public void saveAll(@NotNull Iterable<WaystoneDefinition> definitions) {
         YamlConfiguration yaml = new YamlConfiguration();
-        yaml.options().header("AstralRecord waystone master data. Do not change id values manually.");
+        yaml.options().setHeader(List.of("AstralRecord waystone master data. Do not change id values manually."));
         yaml.set("version", 1);
         List<Map<String, Object>> rows = new ArrayList<>();
         for (WaystoneDefinition definition : definitions) {
