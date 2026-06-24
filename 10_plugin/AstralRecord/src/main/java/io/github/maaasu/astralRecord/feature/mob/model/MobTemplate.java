@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.mob.model;
 
+import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeConfig;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.jetbrains.annotations.NotNull;
@@ -32,6 +33,7 @@ import java.util.List;
  * @param targeting     ターゲット選定設定（NPC では {@code null}）
  * @param combat        戦闘設定（NPC では {@code null}）
  * @param drops         ドロップ設定（NPC では {@code null}）
+ * @param challenge     ボス挑戦設定（BOSS 以外では {@code null}）
  */
 public record MobTemplate(
         int schemaVersion,
@@ -56,7 +58,8 @@ public record MobTemplate(
         @NotNull MobInteractionsConfig interactions,
         @Nullable MobTargetingConfig targeting,
         @Nullable MobCombatConfig combat,
-        @Nullable MobDropConfig drops
+        @Nullable MobDropConfig drops,
+        @Nullable BossChallengeConfig challenge
 ) {
 
     public MobTemplate(
@@ -105,7 +108,8 @@ public record MobTemplate(
                 interactions,
                 targeting,
                 combat,
-                drops
+                drops,
+                null
         );
     }
 
@@ -156,7 +160,8 @@ public record MobTemplate(
                 interactions,
                 targeting,
                 combat,
-                drops
+                drops,
+                null
         );
     }
 

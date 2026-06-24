@@ -4,6 +4,9 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeConfig;
+import io.github.maaasu.astralRecord.feature.boss.model.BossLocation;
+import io.github.maaasu.astralRecord.feature.boss.model.BossScalingConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.CombatStyle;
 import io.github.maaasu.astralRecord.feature.mob.model.IdleBehavior;
 import io.github.maaasu.astralRecord.feature.mob.model.MobBaseStat;
@@ -167,7 +170,8 @@ public class MobRepository {
                 category == MobCategory.NPC ? parseInteractions(getObject(obj, "interactions")) : MobInteractionsConfig.EMPTY,
                 category == MobCategory.NPC ? null : parseTargeting(getObject(getObject(obj, "ai"), "targeting")),
                 category == MobCategory.NPC ? null : parseCombat(getObject(getObject(obj, "ai"), "combat")),
-                category == MobCategory.NPC ? null : parseDrops(getObject(obj, "drops"))
+                category == MobCategory.NPC ? null : parseDrops(getObject(obj, "drops")),
+                category == MobCategory.BOSS ? parseChallenge(getObject(obj, "challenge")) : null
         );
     }
 
@@ -301,6 +305,51 @@ public class MobRepository {
                 obj.has("preferredRange") ? obj.get("preferredRange").getAsDouble() : 1.0,
                 obj.has("attackIntervalTicks") ? obj.get("attackIntervalTicks").getAsLong() : 20L,
                 skills
+        );
+    }
+
+    @Nullable
+    private BossChallengeConfig parseChallenge(@Nullable JsonObject obj) {
+        if (obj == null) return null;
+        String fieldWorldId = optionalString(obj, "fieldWorldId");
+        if (fieldWorldId == null || fieldWorldId.isBlank()) {
+            return null;
+        }
+        return new BossChallengeConfig(
+                fieldWorldId,
+                parseBossLocation(getObject(obj, "entryLocation")),
+                obj.has("entryRadius") ? obj.get("entryRadius").getAsDouble() : 3.0D,
+                parseBossLocation(getObject(obj, "playerSpawnLocation")),
+                parseBossLocation(getObject(obj, "bossSpawnLocation")),
+                obj.has("partyMin") ? obj.get("partyMin").getAsInt() : 1,
+                obj.has("partyMax") ? obj.get("partyMax").getAsInt() : 6,
+                obj.has("timeLimitSeconds") ? obj.get("timeLimitSeconds").getAsLong() : 600L,
+                parseBossScaling(getObject(obj, "scaling"))
+        );
+    }
+
+    @NotNull
+    private BossLocation parseBossLocation(@Nullable JsonObject obj) {
+        if (obj == null) {
+            return new BossLocation(null, 0.5D, 64.0D, 0.5D, 0.0F, 0.0F);
+        }
+        return new BossLocation(
+                optionalString(obj, "worldId"),
+                obj.has("x") ? obj.get("x").getAsDouble() : 0.5D,
+                obj.has("y") ? obj.get("y").getAsDouble() : 64.0D,
+                obj.has("z") ? obj.get("z").getAsDouble() : 0.5D,
+                obj.has("yaw") ? obj.get("yaw").getAsFloat() : 0.0F,
+                obj.has("pitch") ? obj.get("pitch").getAsFloat() : 0.0F
+        );
+    }
+
+    @NotNull
+    private BossScalingConfig parseBossScaling(@Nullable JsonObject obj) {
+        if (obj == null) return BossScalingConfig.EMPTY;
+        return new BossScalingConfig(
+                obj.has("enabled") && obj.get("enabled").getAsBoolean(),
+                obj.has("healthPerExtraPlayer") ? obj.get("healthPerExtraPlayer").getAsDouble() : 0.0D,
+                obj.has("attackPerExtraPlayer") ? obj.get("attackPerExtraPlayer").getAsDouble() : 0.0D
         );
     }
 

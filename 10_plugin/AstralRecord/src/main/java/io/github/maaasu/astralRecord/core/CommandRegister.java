@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.command.ReloadCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountTabCompleter;
+import io.github.maaasu.astralRecord.feature.boss.command.BossCommand;
 import io.github.maaasu.astralRecord.feature.gathering.command.GatheringCommand;
 import io.github.maaasu.astralRecord.feature.gathering.command.GatheringTabCompleter;
 import io.github.maaasu.astralRecord.feature.gathering.service.GatheringService;
@@ -126,6 +127,7 @@ public class CommandRegister {
         cm.registerCommand("mob", new MobCommand(mobService, spawnerService, npcPlacementService), new MobTabCompleter(mobService, spawnerService));
         cm.registerCommand("gathering", new GatheringCommand(gatheringService, gatheringSpawnerService), new GatheringTabCompleter(gatheringService, gatheringSpawnerService));
         cm.registerCommand("world", new WorldCommand(worldService), new WorldTabCompleter(worldService));
+        cm.registerCommand("boss", new BossCommand());
         cm.registerCommand("user", new UserCommand(), new UserTabCompleter());
         cm.registerCommand("account", new AccountCommand(), new AccountTabCompleter());
         cm.registerCommand("setting", new PlayerSettingCommand(), new PlayerSettingTabCompleter());

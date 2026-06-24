@@ -851,6 +851,16 @@ public enum LogId {
     W_6202(6202),
     // endregion
 
+    // region /feature/boss/ 6500-6529
+    I_6500(6500),
+    I_6501(6501),
+    I_6502(6502),
+    W_6501(6501),
+    E_6500(6500),
+    E_6501(6501),
+    E_6502(6502),
+    // endregion
+
     // region /feature/skilltree/ 9000-9009
     I_9000(9000),
     I_9001(9001),

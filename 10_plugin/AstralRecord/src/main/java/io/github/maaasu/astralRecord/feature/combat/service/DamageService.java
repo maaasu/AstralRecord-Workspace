@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageContext;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageScaling;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageType;
+import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.service.MobCombatService;
@@ -55,6 +56,7 @@ public final class DamageService {
     private final PlayerSettingService playerSettingService;
     private final ParticleDisplayService particleDisplayService;
     private final PlayerDeathService playerDeathService;
+    private BossChallengeService bossChallengeService;
 
     /**
      * サービスを構築します。
@@ -100,6 +102,15 @@ public final class DamageService {
         this.playerSettingService = playerSettingService;
         this.particleDisplayService = particleDisplayService;
         this.playerDeathService = playerDeathService;
+    }
+
+    /**
+     * Sets the boss challenge service used to detect boss defeat.
+     *
+     * @param bossChallengeService boss challenge service, or null to disable the hook
+     */
+    public void setBossChallengeService(@Nullable BossChallengeService bossChallengeService) {
+        this.bossChallengeService = bossChallengeService;
     }
 
     /**
@@ -328,7 +339,11 @@ public final class DamageService {
             mob.state(MobState.DEAD);
             Location deathLocation = mob.currentLocation();
             playMobDeathEffect(mob.bukkitEntityId(), deathLocation);
+            boolean bossMob = bossChallengeService != null && bossChallengeService.isBossMob(mob.instanceId());
             mobCombatService.handleDeath(mob);
+            if (bossMob) {
+                bossChallengeService.handleBossDefeated(mob.instanceId());
+            }
         }
     }
 

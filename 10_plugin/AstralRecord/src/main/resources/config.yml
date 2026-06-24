@@ -4,6 +4,9 @@ plugin:
   joinSpawn:
     world: "world"
 
+boss:
+  hubWorldId: "boss_hub"
+
 # Database Settings
 database:
   # SQL Server Settings

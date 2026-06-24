@@ -8,6 +8,10 @@ import io.github.maaasu.astralRecord.feature.adventurerecord.repository.Adventur
 import io.github.maaasu.astralRecord.feature.adventurerecord.service.AdventureRecordService;
 import io.github.maaasu.astralRecord.feature.account.repository.AccountRepository;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
+import io.github.maaasu.astralRecord.feature.boss.event.BossEntryEventHandler;
+import io.github.maaasu.astralRecord.feature.boss.event.BossPlayerEventHandler;
+import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
+import io.github.maaasu.astralRecord.feature.boss.service.BossFieldInstanceService;
 import io.github.maaasu.astralRecord.feature.combat.event.CombatDamageEventHandler;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
@@ -270,6 +274,8 @@ public final class AstralRecord extends JavaPlugin {
     private TradeGui tradeGui;
     private TradeCancelConfirmGui tradeCancelConfirmGui;
     private GoldAmountSettingGui goldAmountSettingGui;
+    private BossFieldInstanceService bossFieldInstanceService;
+    private BossChallengeService bossChallengeService;
     private String joinSpawnWorldId;
 
     @Override
@@ -422,6 +428,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (returnToBaseService != null) {
             returnToBaseService.cancelAll();
+        }
+        if (bossChallengeService != null) {
+            bossChallengeService.stop();
         }
         if (skillActionRingService != null) {
             skillActionRingService.stop();
@@ -636,6 +645,21 @@ public final class AstralRecord extends JavaPlugin {
             particleDisplayService,
             joinSpawnWorldId
         );
+        bossFieldInstanceService = new BossFieldInstanceService(this, worldService);
+        String bossHubWorldId = getConfig().getString(
+            "boss.hubWorldId",
+            getConfig().getString("plugin.boss.hubWorldId", "boss_hub")
+        );
+        bossChallengeService = new BossChallengeService(
+            this,
+            mobService,
+            worldService,
+            partyService,
+            playerMessageService,
+            bossFieldInstanceService,
+            bossHubWorldId
+        );
+        damageService.setBossChallengeService(bossChallengeService);
 
         // resource pack
         resourcePackService = new ResourcePackService(ConfigProperties.getInstance());
@@ -777,6 +801,14 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             new WorldNaturalSpawnBlockEventHandler(this, worldService, mobService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new BossEntryEventHandler(bossChallengeService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new BossPlayerEventHandler(bossChallengeService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
@@ -975,6 +1007,7 @@ public final class AstralRecord extends JavaPlugin {
         mobSpawnerService.start();
         gatheringService.start();
         gatheringSpawnerService.start();
+        bossChallengeService.start();
         passiveSkillService.start();
         skillTreeService.start();
         // 繧､繝ｳ繝吶Φ繝医Μ繧ｪ繝ｼ繝医そ繝ｼ繝・(60s) 繧帝幕蟋・
@@ -1185,6 +1218,10 @@ public final class AstralRecord extends JavaPlugin {
      */
     public WorldService getWorldService() {
         return worldService;
+    }
+
+    public BossChallengeService getBossChallengeService() {
+        return bossChallengeService;
     }
 
     public PartyService getPartyService() {

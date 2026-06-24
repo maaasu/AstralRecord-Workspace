@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: twilight_colossus_field
+displayName: "Twilight Colossus Field"
+worldType: BOSS_FIELD
+baseWorldPath: "plugins/AstralRecord/worlds/boss/twilight_colossus_field"
+instanceRootPath: "plugins/AstralRecord/_world_instances/boss/twilight_colossus_field"
+autoLoad: false
+instanceEnabled: true
+maxPlayers: 6
+allowBlockBreak: false
+allowBlockPlace: false
+allowMobSpawn: false
+showSpawnParticle: false
+spawnLocation:
+  x: 0.5
+  y: 64.0
+  z: 0.5
+  yaw: 0.0
+  pitch: 0.0
+description: "Instanced boss arena for the Twilight Colossus."

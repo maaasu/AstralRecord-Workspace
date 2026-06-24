@@ -42,6 +42,8 @@ public class MobResponse
     public MobInteractionsResponse? Interactions { get; init; }
 
     public MobDropsResponse? Drops { get; init; }
+
+    public MobChallengeResponse? Challenge { get; init; }
 }
 
 /// <summary>Mob 一覧レスポンス要素。主要項目のみ。</summary>
@@ -194,4 +196,52 @@ public class MobDropItemResponse
     public bool LuckAffected { get; init; } = true;
 
     public bool Hidden { get; init; }
+}
+
+/// <summary>Boss challenge settings attached to a BOSS mob.</summary>
+public class MobChallengeResponse
+{
+    public required string FieldWorldId { get; init; }
+
+    public required MobChallengeLocationResponse EntryLocation { get; init; }
+
+    public double EntryRadius { get; init; } = 3.0D;
+
+    public required MobChallengeLocationResponse PlayerSpawnLocation { get; init; }
+
+    public required MobChallengeLocationResponse BossSpawnLocation { get; init; }
+
+    public int PartyMin { get; init; } = 1;
+
+    public int PartyMax { get; init; } = 6;
+
+    public long TimeLimitSeconds { get; init; } = 600;
+
+    public MobChallengeScalingResponse? Scaling { get; init; }
+}
+
+/// <summary>Boss challenge location definition.</summary>
+public class MobChallengeLocationResponse
+{
+    public string? WorldId { get; init; }
+
+    public required double X { get; init; }
+
+    public required double Y { get; init; }
+
+    public required double Z { get; init; }
+
+    public double Yaw { get; init; }
+
+    public double Pitch { get; init; }
+}
+
+/// <summary>Boss challenge participant scaling settings.</summary>
+public class MobChallengeScalingResponse
+{
+    public bool Enabled { get; init; }
+
+    public double HealthPerExtraPlayer { get; init; }
+
+    public double AttackPerExtraPlayer { get; init; }
 }

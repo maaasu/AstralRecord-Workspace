@@ -1,0 +1,98 @@
+schemaVersion: 1
+id: twilight_colossus
+type: MOB
+category: BOSS
+name: "&5&lTwilight Colossus"
+title: "&8-- Guardian of the Broken Gate --"
+level: 45
+entityType: IRON_GOLEM
+icon: CRYING_OBSIDIAN
+nameVisible: true
+lore:
+  - "&7A giant construct guarding a collapsed twilight gate."
+  - "&7Designed as the first playable boss challenge master."
+tags:
+  - boss
+  - golem
+  - twilight
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 18000
+  - status: ATTACK
+    value: 120
+  - status: DEFENSE
+    value: 55
+  - status: MAGIC_DEFENSE
+    value: 45
+  - status: MOVEMENT_SPEED
+    value: 80
+  - status: CRITICAL_RATE
+    value: 5.0
+  - status: CRITICAL_DAMAGE
+    value: 160.0
+
+shield:
+  enabled: true
+  max: 30
+
+ai:
+  idle:
+    behavior: STATIONARY
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 30
+    deaggroRange: 48
+    leashRange: 64
+  combat:
+    style: MELEE
+    preferredRange: 4
+    attackIntervalTicks: 32
+    skills:
+      - skill:iron_will
+      - skill:sw_active_guard_break
+
+drops:
+  exp: 1200
+  money:
+    min: 200
+    max: 350
+  items:
+    - itemId: item:magic_crystal
+      rate: 0.65
+      amount: "2-4"
+      luckAffected: true
+    - itemId: item:dark_essence
+      rate: 0.25
+      amount: "1"
+      luckAffected: true
+
+challenge:
+  fieldWorldId: twilight_colossus_field
+  entryLocation:
+    worldId: boss_hub
+    x: 0.5
+    y: 64.0
+    z: 4.5
+    yaw: 180.0
+    pitch: 0.0
+  entryRadius: 3.0
+  playerSpawnLocation:
+    x: 0.5
+    y: 64.0
+    z: -8.5
+    yaw: 0.0
+    pitch: 0.0
+  bossSpawnLocation:
+    x: 0.5
+    y: 64.0
+    z: 8.5
+    yaw: 180.0
+    pitch: 0.0
+  partyMin: 1
+  partyMax: 6
+  timeLimitSeconds: 600
+  scaling:
+    enabled: true
+    healthPerExtraPlayer: 35.0
+    attackPerExtraPlayer: 10.0
