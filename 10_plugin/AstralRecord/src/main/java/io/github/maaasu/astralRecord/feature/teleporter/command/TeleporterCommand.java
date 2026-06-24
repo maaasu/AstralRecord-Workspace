@@ -75,7 +75,7 @@ public final class TeleporterCommand extends AstCommand {
             return;
         }
         if (!teleporterService.removeWaystone(args[1])) {
-            sendError(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5954.getId(), args[1]));
+            sendError(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5960.getId(), args[1]));
             return;
         }
         sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5959.getId(), args[1], "removed"));
@@ -85,8 +85,14 @@ public final class TeleporterCommand extends AstCommand {
         var definitions = teleporterService.getAll();
         sendInfo(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5958.getId(), definitions.size()));
         for (WaystoneDefinition definition : definitions) {
-            sendInfo(player.getBukkit(), definition.id() + " | " + definition.name() + " | " + definition.worldName()
-                    + " | lock=" + definition.lockEnabled() + " | gold=" + definition.unlockGold());
+            sendInfo(player.getBukkit(), PlayerMsgResource.format(
+                    PlayerMsgId.P_5961.getId(),
+                    definition.id(),
+                    definition.name(),
+                    definition.worldName(),
+                    definition.lockEnabled(),
+                    definition.unlockGold()
+            ));
         }
     }
 

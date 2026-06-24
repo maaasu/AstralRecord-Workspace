@@ -45,7 +45,10 @@ public final class WaystoneDefinitionRepository {
         for (Map<?, ?> map : yaml.getMapList(ROOT_KEY)) {
             String id = stringValue(map.get("id"));
             String name = stringValue(map.get("name"));
-            String world = stringValue(map.get("world"));
+            String world = stringValue(map.get("worldName"));
+            if (world == null || world.isBlank()) {
+                world = stringValue(map.get("world"));
+            }
             if (id == null || id.isBlank() || name == null || name.isBlank() || world == null || world.isBlank()) {
                 continue;
             }
@@ -81,7 +84,7 @@ public final class WaystoneDefinitionRepository {
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("id", definition.id());
             row.put("name", definition.name());
-            row.put("world", definition.worldName());
+            row.put("worldName", definition.worldName());
             row.put("x", definition.x());
             row.put("y", definition.y());
             row.put("z", definition.z());

@@ -1,6 +1,5 @@
 package io.github.maaasu.astralRecord.feature.teleporter.service;
 
-import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -35,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * ウェイストーンのマスタ、解除状態、GUI、テレポート処理を統括します。
@@ -47,6 +47,7 @@ public final class TeleporterService {
     private final AccountWaystoneRepository accountWaystoneRepository;
     private final Map<String, WaystoneDefinition> definitionsById = new LinkedHashMap<>();
     private final Map<UUID, WaystoneUnlockState> unlockStatesByAccount = new LinkedHashMap<>();
+    private final Set<UnlockKey> unlocksInProgress = ConcurrentHashMap.newKeySet();
 
     private @Nullable InventoryService inventoryService;
     private @Nullable WorldService worldService;
@@ -257,25 +258,39 @@ public final class TeleporterService {
         }
         long cost = Math.max(0L, definition.unlockGold());
         UUID accountId = astPlayer.getAccount().getUuid();
-        if (!inventory.consumeGold(accountId, cost)) {
-            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5955, cost);
+        UnlockKey unlockKey = new UnlockKey(accountId, definition.id());
+        if (!unlocksInProgress.add(unlockKey)) {
             return;
         }
-        inventory.saveNow(accountId);
+        try {
+            if (!inventory.consumeGold(accountId, cost)) {
+                unlocksInProgress.remove(unlockKey);
+                PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5955, cost);
+                return;
+            }
+            inventory.saveNow(accountId);
+        } catch (RuntimeException e) {
+            unlocksInProgress.remove(unlockKey);
+            throw e;
+        }
         CompletableFuture.runAsync(() -> accountWaystoneRepository.unlock(accountId, definition.id()))
                 .whenComplete((ignored, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
-                    if (throwable != null) {
-                        if (!inventory.addGold(astPlayer, cost)) {
-                            Logger.log(LogId.E_5952, player.getName(), definition.id(), cost);
+                    try {
+                        if (throwable != null) {
+                            if (!inventory.addGold(astPlayer, cost)) {
+                                Logger.log(LogId.E_5952, player.getName(), definition.id(), cost);
+                            }
+                            inventory.saveNow(accountId);
+                            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5957);
+                            return;
                         }
-                        inventory.saveNow(accountId);
-                        PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5957);
-                        return;
+                        WaystoneUnlockState current = unlockStatesByAccount.getOrDefault(accountId, new WaystoneUnlockState(accountId, Set.of()));
+                        unlockStatesByAccount.put(accountId, current.withUnlocked(definition.id()));
+                        PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5952, definition.name());
+                        syncView(player);
+                    } finally {
+                        unlocksInProgress.remove(unlockKey);
                     }
-                    WaystoneUnlockState current = unlockStatesByAccount.getOrDefault(accountId, new WaystoneUnlockState(accountId, Set.of()));
-                    unlockStatesByAccount.put(accountId, current.withUnlocked(definition.id()));
-                    PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5952, definition.name());
-                    syncView(player);
                 }));
     }
 
@@ -341,6 +356,7 @@ public final class TeleporterService {
         AstPlayer astPlayer = io.github.maaasu.astralRecord.feature.player.AstPlayerCache.get(player);
         if (astPlayer != null) {
             unlockStatesByAccount.remove(astPlayer.getAccount().getUuid());
+            unlocksInProgress.removeIf(key -> key.accountId().equals(astPlayer.getAccount().getUuid()));
         }
         WaystonePacketView view = packetView;
         if (view != null) {
@@ -357,6 +373,7 @@ public final class TeleporterService {
             view.clearAll();
         }
         unlockStatesByAccount.clear();
+        unlocksInProgress.clear();
     }
 
     private void saveAll() {
@@ -365,6 +382,9 @@ public final class TeleporterService {
 
     private boolean isUnlockStateLoaded(@NotNull AstPlayer astPlayer) {
         return unlockStatesByAccount.containsKey(astPlayer.getAccount().getUuid());
+    }
+
+    private record UnlockKey(@NotNull UUID accountId, @NotNull String waystoneId) {
     }
 
     @NotNull

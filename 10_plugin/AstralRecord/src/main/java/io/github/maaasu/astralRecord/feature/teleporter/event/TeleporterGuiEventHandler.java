@@ -4,7 +4,9 @@ import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.teleporter.gui.TeleporterGui;
 import io.github.maaasu.astralRecord.feature.teleporter.model.WaystoneDefinition;
 import io.github.maaasu.astralRecord.feature.teleporter.service.TeleporterService;
@@ -134,6 +136,12 @@ public final class TeleporterGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
+        if (!teleporterService.isUnlocked(astPlayer, target)) {
+            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5962);
+            GuiSound.DENY.play(player);
+            return;
+        }
+        GuiSound.SELECT.play(player);
         teleporterService.teleportToWaystone(player, astPlayer, source, target);
     }
 
