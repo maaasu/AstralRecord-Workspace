@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
 import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
+import io.github.maaasu.astralRecord.feature.item.service.ItemTransferSupport;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
@@ -12,21 +13,18 @@ import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
-import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.sell.view.SellScreenView;
+import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -375,7 +373,7 @@ public final class SellService {
             sendSellMessage(player, PlayerMsgId.P_5605);
             return;
         }
-        int requested = resolveTransferAmount(event.getClick(), clicked.getAmount());
+        int requested = ItemTransferSupport.resolveTransferAmount(event.getClick(), clicked.getAmount());
         if (requested <= 0) {
             GuiSound.DENY.play(player);
             return;
@@ -424,7 +422,7 @@ public final class SellService {
             GuiSound.DENY.play(player);
             return;
         }
-        int requested = resolveTransferAmount(event.getClick(), current.getAmount());
+        int requested = ItemTransferSupport.resolveTransferAmount(event.getClick(), current.getAmount());
         if (requested <= 0) {
             GuiSound.DENY.play(player);
             return;
@@ -464,19 +462,14 @@ public final class SellService {
 
     private @NotNull List<ItemStack> collectAllSellItems(@NotNull Inventory inventory, @NotNull UUID playerId) {
         int pageIndex = currentSellPage(playerId, inventory);
-        int pageStart = pageIndex * SellScreenView.CONTENT_SLOT_COUNT;
-        int pageEnd = pageStart + SellScreenView.CONTENT_SLOT_COUNT;
         List<ItemStack> currentPage = snapshotSellItems(inventory);
         List<ItemStack> existing = sellItemsByPlayer.getOrDefault(playerId, List.of());
-        List<ItemStack> merged = new ArrayList<>();
-        for (int index = 0; index < Math.min(pageStart, existing.size()); index++) {
-            merged.add(existing.get(index));
-        }
-        merged.addAll(currentPage);
-        for (int index = pageEnd; index < existing.size(); index++) {
-            merged.add(existing.get(index));
-        }
-        return normalizeSellItems(merged);
+        return normalizeSellItems(ItemTransferSupport.mergePagedItems(
+            pageIndex,
+            SellScreenView.CONTENT_SLOT_COUNT,
+            existing,
+            currentPage
+        ));
     }
 
     private int currentSellPage(@NotNull UUID playerId, @NotNull Inventory inventory) {
@@ -484,11 +477,7 @@ public final class SellService {
     }
 
     private int normalizeSellPage(int pageIndex, int itemCount) {
-        int totalPages = Math.max(
-            1,
-            (int) Math.ceil(itemCount / (double) SellScreenView.CONTENT_SLOT_COUNT)
-        );
-        return Math.max(0, Math.min(pageIndex, totalPages - 1));
+        return GuiPagination.normalizePage(pageIndex, itemCount, SellScreenView.CONTENT_SLOT_COUNT);
     }
 
     private @NotNull ReturnSellItemsResult returnSellItemsToInventory(
@@ -539,14 +528,7 @@ public final class SellService {
     }
 
     private int countSellItemStacks(@NotNull List<ItemStack> items) {
-        int count = 0;
-        for (ItemStack itemStack : items) {
-            if (isSellEmptyItem(null, itemStack)) {
-                continue;
-            }
-            count++;
-        }
-        return count;
+        return ItemTransferSupport.countStacks(items, this::isSellEmptyItem);
     }
 
     private void sendSellMessage(@NotNull Player player, @NotNull PlayerMsgId msgId, Object... args) {
@@ -554,71 +536,21 @@ public final class SellService {
     }
 
     private @NotNull List<ItemStack> snapshotSellItems(@NotNull Inventory inventory) {
-        List<ItemStack> items = new ArrayList<>();
-        int maxSlot = Math.min(SellScreenView.CONTENT_SLOT_COUNT, inventory.getSize());
-        for (int slot = 0; slot < maxSlot; slot++) {
-            ItemStack itemStack = inventory.getItem(slot);
-            if (isSellEmptyItem(inventory, itemStack)) {
-                continue;
-            }
-            items.add(stripTransferDisplayLore(itemStack));
-        }
-        return normalizeSellItems(items);
+        return normalizeSellItems(ItemTransferSupport.snapshotContent(
+            inventory,
+            SellScreenView.CONTENT_SLOT_COUNT,
+            this::isSellEmptyItem,
+            this::stripTransferDisplayLore
+        ));
     }
 
     private @NotNull List<ItemStack> normalizeSellItems(@NotNull List<ItemStack> items) {
-        List<ItemStack> normalized = new ArrayList<>();
-        for (ItemStack itemStack : items) {
-            if (isSellEmptyItem(null, itemStack)) {
-                continue;
-            }
-            ItemStack candidate = stripTransferDisplayLore(itemStack);
-            if (candidate.getMaxStackSize() <= 1) {
-                normalized.add(candidate);
-                continue;
-            }
-
-            boolean merged = false;
-            for (int index = 0; index < normalized.size(); index++) {
-                ItemStack existing = normalized.get(index);
-                if (!canMergeTransferItems(existing, candidate)) {
-                    continue;
-                }
-                int available = Math.max(0, existing.getMaxStackSize() - existing.getAmount());
-                if (available <= 0) {
-                    continue;
-                }
-                int transfer = Math.min(candidate.getAmount(), available);
-                ItemStack updated = existing.clone();
-                updated.setAmount(existing.getAmount() + transfer);
-                normalized.set(index, updated);
-                candidate.setAmount(candidate.getAmount() - transfer);
-                if (candidate.getAmount() <= 0) {
-                    merged = true;
-                    break;
-                }
-            }
-            while (!merged && candidate.getAmount() > 0) {
-                ItemStack split = candidate.clone();
-                int transfer = Math.min(candidate.getAmount(), split.getMaxStackSize());
-                split.setAmount(transfer);
-                normalized.add(split);
-                candidate.setAmount(candidate.getAmount() - transfer);
-            }
-        }
-        return normalized;
-    }
-
-    private int resolveTransferAmount(@NotNull ClickType clickType, int sourceAmount) {
-        if (sourceAmount <= 0) {
-            return 0;
-        }
-        return switch (clickType) {
-            case LEFT -> 1;
-            case SHIFT_LEFT -> sourceAmount;
-            case RIGHT -> Math.max(1, (sourceAmount + 1) / 2);
-            default -> 0;
-        };
+        return ItemTransferSupport.normalize(
+            items,
+            this::isSellEmptyItem,
+            this::stripTransferDisplayLore,
+            this::resolveTransferReference
+        );
     }
 
     private int countSellPlacementCapacity(
@@ -626,77 +558,24 @@ public final class SellService {
         @NotNull ItemStack template,
         int desired
     ) {
-        ItemStack cleanTemplate = stripTransferDisplayLore(template);
-        int capacity = 0;
-        for (int slot = 0; slot < SellScreenView.CONTENT_SLOT_COUNT; slot++) {
-            ItemStack existing = topInventory.getItem(slot);
-            if (isSellEmptyItem(topInventory, existing)) {
-                capacity += cleanTemplate.getMaxStackSize();
-            } else if (existing != null) {
-                ItemStack comparableExisting = stripTransferDisplayLore(existing);
-                if (comparableExisting.isSimilar(cleanTemplate)) {
-                    capacity += Math.max(0, comparableExisting.getMaxStackSize() - comparableExisting.getAmount());
-                }
-            }
-            if (capacity >= desired) {
-                return desired;
-            }
-        }
-        return Math.max(0, Math.min(desired, capacity));
+        return ItemTransferSupport.countPlacementCapacity(
+            topInventory,
+            SellScreenView.CONTENT_SLOT_COUNT,
+            template,
+            desired,
+            this::isSellEmptyItem,
+            this::stripTransferDisplayLore
+        );
     }
 
     private void placeItemsIntoSell(@NotNull Inventory topInventory, @NotNull ItemStack moved) {
-        ItemStack cleanMoved = stripTransferDisplayLore(moved);
-        int remaining = cleanMoved.getAmount();
-        for (int slot = 0; slot < SellScreenView.CONTENT_SLOT_COUNT && remaining > 0; slot++) {
-            ItemStack existing = topInventory.getItem(slot);
-            if (isSellEmptyItem(topInventory, existing)) {
-                continue;
-            }
-            ItemStack cleanExisting = stripTransferDisplayLore(existing);
-            if (!cleanExisting.isSimilar(cleanMoved)) {
-                continue;
-            }
-            int available = Math.max(0, cleanExisting.getMaxStackSize() - cleanExisting.getAmount());
-            if (available <= 0) {
-                continue;
-            }
-            int transfer = Math.min(remaining, available);
-            ItemStack updated = cleanExisting.clone();
-            updated.setAmount(cleanExisting.getAmount() + transfer);
-            topInventory.setItem(slot, updated);
-            remaining -= transfer;
-        }
-        for (int slot = 0; slot < SellScreenView.CONTENT_SLOT_COUNT && remaining > 0; slot++) {
-            ItemStack existing = topInventory.getItem(slot);
-            if (!isSellEmptyItem(topInventory, existing)) {
-                continue;
-            }
-            ItemStack newStack = cleanMoved.clone();
-            int transfer = Math.min(remaining, newStack.getMaxStackSize());
-            newStack.setAmount(transfer);
-            topInventory.setItem(slot, newStack);
-            remaining -= transfer;
-        }
-    }
-
-    private boolean canMergeTransferItems(@NotNull ItemStack existing, @NotNull ItemStack candidate) {
-        if (existing.getMaxStackSize() <= 1 || candidate.getMaxStackSize() <= 1) {
-            return false;
-        }
-        ItemReference existingReference = resolveTransferReference(existing);
-        ItemReference candidateReference = resolveTransferReference(candidate);
-        if (existingReference == null || candidateReference == null) {
-            return false;
-        }
-        if (existingReference.hasEquipmentInstanceId()
-            || candidateReference.hasEquipmentInstanceId()
-            || existingReference.hasRuneInstanceId()
-            || candidateReference.hasRuneInstanceId()) {
-            return false;
-        }
-        return existingReference.itemId().equals(candidateReference.itemId())
-            && existingReference.category().equals(candidateReference.category());
+        ItemTransferSupport.placeIntoContent(
+            topInventory,
+            SellScreenView.CONTENT_SLOT_COUNT,
+            moved,
+            this::isSellEmptyItem,
+            this::stripTransferDisplayLore
+        );
     }
 
     private long totalSaleValue(@NotNull List<ItemStack> items) {
@@ -726,28 +605,12 @@ public final class SellService {
     }
 
     private @NotNull ItemStack stripTransferDisplayLore(@NotNull ItemStack itemStack) {
-        ItemStack cleaned = itemStack.clone();
-        ItemMeta meta = cleaned.getItemMeta();
-        if (meta == null || !meta.hasLore() || meta.lore() == null) {
-            return cleaned;
-        }
-
-        List<Component> lore = new ArrayList<>(meta.lore());
-        boolean removed = lore.removeIf(line ->
-            isTransferDisplayLoreLine(PlainTextComponentSerializer.plainText().serialize(line))
+        return ItemTransferSupport.stripDisplayLore(
+            itemStack,
+            BaseMenuScreenView.DISPLAY_AMOUNT_LORE_PREFIX,
+            SellScreenView.UNIT_PRICE_LORE_PREFIX,
+            SellScreenView.TOTAL_PRICE_LORE_PREFIX
         );
-        if (!removed) {
-            return cleaned;
-        }
-        meta.lore(lore);
-        cleaned.setItemMeta(meta);
-        return cleaned;
-    }
-
-    private boolean isTransferDisplayLoreLine(@NotNull String line) {
-        return line.startsWith(BaseMenuScreenView.DISPLAY_AMOUNT_LORE_PREFIX)
-            || line.startsWith(SellScreenView.UNIT_PRICE_LORE_PREFIX)
-            || line.startsWith(SellScreenView.TOTAL_PRICE_LORE_PREFIX);
     }
 
     private boolean isSellEmptyItem(@Nullable Inventory inventory, @Nullable ItemStack itemStack) {
@@ -773,7 +636,7 @@ public final class SellService {
     }
 
     private boolean isSellContentSlot(int rawSlot) {
-        return rawSlot >= 0 && rawSlot < SellScreenView.CONTENT_SLOT_COUNT;
+        return ItemTransferSupport.isContentSlot(rawSlot, SellScreenView.CONTENT_SLOT_COUNT);
     }
 
     private boolean isSellControlSlot(int rawSlot) {

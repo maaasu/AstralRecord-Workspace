@@ -2,18 +2,16 @@ package io.github.maaasu.astralRecord.feature.loginbonus.view;
 
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.RewardDisplayFormatter;
+import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -233,25 +231,18 @@ public final class LoginBonusGui {
         int amount,
         boolean enchanted
     ) {
-        var itemStack = new ItemStack(material);
+        var itemStack = GuiItems.create(material, name, lore);
         if (material != Material.AIR) {
             itemStack.setAmount(Math.clamp(amount, 1, MAX_ITEM_AMOUNT));
         }
         var meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(noItalic(name));
-            meta.lore(lore.stream().map(this::noItalic).toList());
-            meta.addItemFlags(ItemFlag.values());
             if (enchanted) {
                 meta.addEnchant(Enchantment.UNBREAKING, 1, true);
             }
             itemStack.setItemMeta(meta);
         }
         return itemStack;
-    }
-
-    private @NotNull Component noItalic(@NotNull Component component) {
-        return component.decoration(TextDecoration.ITALIC, false);
     }
 
     private boolean isHolidayBonusDate(@NotNull LocalDate date) {

@@ -3,6 +3,8 @@ package io.github.maaasu.astralRecord.feature.teleporter.gui;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.teleporter.model.WaystoneDefinition;
 import io.github.maaasu.astralRecord.feature.teleporter.service.TeleporterService;
+import io.github.maaasu.astralRecord.shared.gui.GuiItems;
+import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -11,9 +13,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -81,27 +81,27 @@ public final class TeleporterGui {
     }
 
     public boolean hasPreviousPage(int pageIndex) {
-        return pageIndex > 0;
+        return GuiPagination.hasPreviousPage(pageIndex);
     }
 
     public boolean hasNextPage(int pageIndex, int itemCount) {
-        return pageIndex + 1 < totalPages(itemCount);
+        return GuiPagination.hasNextPage(pageIndex, itemCount, CONTENT_SLOT_COUNT);
     }
 
     public int totalPages(int itemCount) {
-        return Math.max(1, (int) Math.ceil(itemCount / (double) CONTENT_SLOT_COUNT));
+        return GuiPagination.totalPages(itemCount, CONTENT_SLOT_COUNT);
     }
 
     public int normalizePage(int pageIndex, int itemCount) {
-        return Math.clamp(pageIndex, 0, totalPages(itemCount) - 1);
+        return GuiPagination.normalizePage(pageIndex, itemCount, CONTENT_SLOT_COUNT);
     }
 
     private void render(@NotNull Inventory inventory, @NotNull List<Entry> entries, int pageIndex) {
         for (int slot = 0; slot < SIZE; slot++) {
             inventory.setItem(slot, new ItemStack(Material.AIR));
         }
-        int start = pageIndex * CONTENT_SLOT_COUNT;
-        int end = Math.min(start + CONTENT_SLOT_COUNT, entries.size());
+        int start = GuiPagination.pageStart(pageIndex, CONTENT_SLOT_COUNT);
+        int end = GuiPagination.pageEnd(pageIndex, entries.size(), CONTENT_SLOT_COUNT);
         for (int i = start; i < end; i++) {
             inventory.setItem(i - start, entryItem(entries.get(i)));
         }
@@ -142,8 +142,8 @@ public final class TeleporterGui {
     @NotNull
     private List<String> visibleIds(@NotNull List<Entry> entries, int pageIndex) {
         List<String> ids = new ArrayList<>();
-        int start = pageIndex * CONTENT_SLOT_COUNT;
-        int end = Math.min(start + CONTENT_SLOT_COUNT, entries.size());
+        int start = GuiPagination.pageStart(pageIndex, CONTENT_SLOT_COUNT);
+        int end = GuiPagination.pageEnd(pageIndex, entries.size(), CONTENT_SLOT_COUNT);
         for (int i = start; i < end; i++) {
             ids.add(entries.get(i).definition().id());
         }
@@ -152,15 +152,7 @@ public final class TeleporterGui {
 
     @NotNull
     private ItemStack createItem(@NotNull Material material, @NotNull Component name, @NotNull List<Component> lore) {
-        ItemStack itemStack = new ItemStack(material);
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(name.decoration(TextDecoration.ITALIC, false));
-            meta.lore(lore.stream().map(line -> line.decoration(TextDecoration.ITALIC, false)).toList());
-            meta.addItemFlags(ItemFlag.values());
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
+        return GuiItems.create(material, name, lore);
     }
 
     public record Entry(@NotNull WaystoneDefinition definition, boolean unlocked) {

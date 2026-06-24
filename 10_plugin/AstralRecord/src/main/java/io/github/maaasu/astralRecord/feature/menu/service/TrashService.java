@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
 import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
+import io.github.maaasu.astralRecord.feature.item.service.ItemTransferSupport;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
@@ -13,17 +14,13 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -330,7 +327,7 @@ public final class TrashService {
             GuiSound.DENY.play(player);
             return;
         }
-        int requested = resolveTransferAmount(event.getClick(), clicked.getAmount());
+        int requested = ItemTransferSupport.resolveTransferAmount(event.getClick(), clicked.getAmount());
         if (requested <= 0) {
             GuiSound.DENY.play(player);
             return;
@@ -376,7 +373,7 @@ public final class TrashService {
             GuiSound.DENY.play(player);
             return;
         }
-        int requested = resolveTransferAmount(event.getClick(), current.getAmount());
+        int requested = ItemTransferSupport.resolveTransferAmount(event.getClick(), current.getAmount());
         if (requested <= 0) {
             GuiSound.DENY.play(player);
             return;
@@ -422,19 +419,14 @@ public final class TrashService {
 
     private @NotNull List<ItemStack> collectAllTrashItems(@NotNull Inventory inventory, @NotNull UUID playerId) {
         int pageIndex = menuView.getPageIndex(inventory);
-        int pageStart = pageIndex * TrashScreenView.CONTENT_SLOT_COUNT;
-        int pageEnd = pageStart + TrashScreenView.CONTENT_SLOT_COUNT;
         List<ItemStack> currentPage = snapshotTrashItems(inventory);
         List<ItemStack> existing = trashItemsByPlayer.getOrDefault(playerId, List.of());
-        List<ItemStack> merged = new ArrayList<>();
-        for (int index = 0; index < Math.min(pageStart, existing.size()); index++) {
-            merged.add(existing.get(index));
-        }
-        merged.addAll(currentPage);
-        for (int index = pageEnd; index < existing.size(); index++) {
-            merged.add(existing.get(index));
-        }
-        return normalizeTrashItems(merged);
+        return normalizeTrashItems(ItemTransferSupport.mergePagedItems(
+            pageIndex,
+            TrashScreenView.CONTENT_SLOT_COUNT,
+            existing,
+            currentPage
+        ));
     }
 
     private boolean returnTrashItemsToInventory(@NotNull Player player, @NotNull List<ItemStack> items) {
@@ -472,14 +464,7 @@ public final class TrashService {
     }
 
     private int countTrashItemStacks(@NotNull List<ItemStack> items) {
-        int count = 0;
-        for (ItemStack itemStack : items) {
-            if (isTrashEmptyItem(null, itemStack)) {
-                continue;
-            }
-            count++;
-        }
-        return count;
+        return ItemTransferSupport.countStacks(items, this::isTrashEmptyItem);
     }
 
     private void sendTrashMessage(@NotNull Player player, @NotNull PlayerMsgId msgId, Object... args) {
@@ -487,90 +472,21 @@ public final class TrashService {
     }
 
     private @NotNull List<ItemStack> snapshotTrashItems(@NotNull Inventory inventory) {
-        List<ItemStack> items = new ArrayList<>();
-        int maxSlot = Math.min(TrashScreenView.CONTENT_SLOT_COUNT, inventory.getSize());
-        for (int slot = 0; slot < maxSlot; slot++) {
-            ItemStack itemStack = inventory.getItem(slot);
-            if (isTrashEmptyItem(inventory, itemStack)) {
-                continue;
-            }
-            items.add(stripTrashDisplayAmountLore(itemStack));
-        }
-        return normalizeTrashItems(items);
+        return normalizeTrashItems(ItemTransferSupport.snapshotContent(
+            inventory,
+            TrashScreenView.CONTENT_SLOT_COUNT,
+            this::isTrashEmptyItem,
+            this::stripTrashDisplayAmountLore
+        ));
     }
 
     private @NotNull List<ItemStack> normalizeTrashItems(@NotNull List<ItemStack> items) {
-        List<ItemStack> normalized = new ArrayList<>();
-        for (ItemStack itemStack : items) {
-            if (isTrashEmptyItem(null, itemStack)) {
-                continue;
-            }
-            ItemStack candidate = stripTransferDisplayLore(itemStack);
-            if (candidate.getMaxStackSize() <= 1) {
-                normalized.add(candidate);
-                continue;
-            }
-
-            boolean merged = false;
-            for (int index = 0; index < normalized.size(); index++) {
-                ItemStack existing = normalized.get(index);
-                if (!canMergeTransferItems(existing, candidate)) {
-                    continue;
-                }
-                int available = Math.max(0, existing.getMaxStackSize() - existing.getAmount());
-                if (available <= 0) {
-                    continue;
-                }
-                int transfer = Math.min(candidate.getAmount(), available);
-                ItemStack updated = existing.clone();
-                updated.setAmount(existing.getAmount() + transfer);
-                normalized.set(index, updated);
-                candidate.setAmount(candidate.getAmount() - transfer);
-                if (candidate.getAmount() <= 0) {
-                    merged = true;
-                    break;
-                }
-            }
-            while (!merged && candidate.getAmount() > 0) {
-                ItemStack split = candidate.clone();
-                int transfer = Math.min(candidate.getAmount(), split.getMaxStackSize());
-                split.setAmount(transfer);
-                normalized.add(split);
-                candidate.setAmount(candidate.getAmount() - transfer);
-            }
-        }
-        return normalized;
-    }
-
-    private int resolveTransferAmount(@NotNull ClickType clickType, int sourceAmount) {
-        if (sourceAmount <= 0) {
-            return 0;
-        }
-        return switch (clickType) {
-            case LEFT -> 1;
-            case SHIFT_LEFT -> sourceAmount;
-            case RIGHT -> Math.max(1, (sourceAmount + 1) / 2);
-            default -> 0;
-        };
-    }
-
-    private boolean canMergeTransferItems(@NotNull ItemStack existing, @NotNull ItemStack candidate) {
-        if (existing.getMaxStackSize() <= 1 || candidate.getMaxStackSize() <= 1) {
-            return false;
-        }
-        ItemReference existingReference = resolveTransferReference(existing);
-        ItemReference candidateReference = resolveTransferReference(candidate);
-        if (existingReference == null || candidateReference == null) {
-            return false;
-        }
-        if (existingReference.hasEquipmentInstanceId()
-            || candidateReference.hasEquipmentInstanceId()
-            || existingReference.hasRuneInstanceId()
-            || candidateReference.hasRuneInstanceId()) {
-            return false;
-        }
-        return existingReference.itemId().equals(candidateReference.itemId())
-            && existingReference.category().equals(candidateReference.category());
+        return ItemTransferSupport.normalize(
+            items,
+            this::isTrashEmptyItem,
+            this::stripTransferDisplayLore,
+            this::resolveTransferReference
+        );
     }
 
     private @Nullable ItemReference resolveTransferReference(@Nullable ItemStack itemStack) {
@@ -585,26 +501,7 @@ public final class TrashService {
     }
 
     private @NotNull ItemStack stripTransferDisplayLore(@NotNull ItemStack itemStack) {
-        ItemStack cleaned = itemStack.clone();
-        ItemMeta meta = cleaned.getItemMeta();
-        if (meta == null || !meta.hasLore() || meta.lore() == null) {
-            return cleaned;
-        }
-
-        List<Component> lore = new ArrayList<>(meta.lore());
-        boolean removed = lore.removeIf(line ->
-            isTransferDisplayLoreLine(PlainTextComponentSerializer.plainText().serialize(line))
-        );
-        if (!removed) {
-            return cleaned;
-        }
-        meta.lore(lore);
-        cleaned.setItemMeta(meta);
-        return cleaned;
-    }
-
-    private boolean isTransferDisplayLoreLine(@NotNull String line) {
-        return line.startsWith(BaseMenuScreenView.DISPLAY_AMOUNT_LORE_PREFIX);
+        return ItemTransferSupport.stripDisplayLore(itemStack, BaseMenuScreenView.DISPLAY_AMOUNT_LORE_PREFIX);
     }
 
     private boolean isTrashEmptyItem(@Nullable Inventory inventory, @Nullable ItemStack itemStack) {
@@ -630,7 +527,7 @@ public final class TrashService {
     }
 
     private boolean isTrashContentSlot(int rawSlot) {
-        return rawSlot >= 0 && rawSlot < TrashScreenView.CONTENT_SLOT_COUNT;
+        return ItemTransferSupport.isContentSlot(rawSlot, TrashScreenView.CONTENT_SLOT_COUNT);
     }
 
     private boolean isTrashControlSlot(int rawSlot) {

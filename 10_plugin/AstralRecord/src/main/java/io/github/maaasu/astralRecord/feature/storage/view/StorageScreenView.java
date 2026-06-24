@@ -3,6 +3,8 @@ package io.github.maaasu.astralRecord.feature.storage.view;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewEntry;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewOptions;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
+import io.github.maaasu.astralRecord.shared.gui.GuiItems;
+import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
@@ -52,27 +54,23 @@ public final class StorageScreenView extends BaseMenuScreenView {
     }
 
     public int normalizePage(int pageIndex, int itemCount) {
-        return Math.clamp(pageIndex, 0, totalPages(itemCount) - 1);
+        return GuiPagination.normalizePage(pageIndex, itemCount, CONTENT_SLOT_COUNT);
     }
 
     public int totalPages(int itemCount) {
-        return Math.max(1, (int) Math.ceil(itemCount / (double) CONTENT_SLOT_COUNT));
+        return GuiPagination.totalPages(itemCount, CONTENT_SLOT_COUNT);
     }
 
     public boolean hasPreviousPage(int pageIndex) {
-        return pageIndex > 0;
+        return GuiPagination.hasPreviousPage(pageIndex);
     }
 
     public boolean hasNextPage(int pageIndex, int itemCount) {
-        return pageIndex + 1 < totalPages(itemCount);
+        return GuiPagination.hasNextPage(pageIndex, itemCount, CONTENT_SLOT_COUNT);
     }
 
     public boolean isContentPlaceholder(@Nullable ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType() != Material.GRAY_STAINED_GLASS_PANE || !itemStack.hasItemMeta()) {
-            return false;
-        }
-        ItemMeta meta = itemStack.getItemMeta();
-        return meta != null && meta.getPersistentDataContainer().has(contentPlaceholderKey, PersistentDataType.INTEGER);
+        return GuiItems.hasMarker(itemStack, Material.GRAY_STAINED_GLASS_PANE, contentPlaceholderKey);
     }
 
     public @Nullable UUID getEntryId(@Nullable ItemStack itemStack) {
@@ -105,8 +103,8 @@ public final class StorageScreenView extends BaseMenuScreenView {
     }
 
     private void renderEntries(@NotNull Inventory inventory, @NotNull List<StorageViewEntry> entries, int pageIndex) {
-        int start = pageIndex * CONTENT_SLOT_COUNT;
-        int end = Math.min(start + CONTENT_SLOT_COUNT, entries.size());
+        int start = GuiPagination.pageStart(pageIndex, CONTENT_SLOT_COUNT);
+        int end = GuiPagination.pageEnd(pageIndex, entries.size(), CONTENT_SLOT_COUNT);
         for (int index = start; index < end; index++) {
             inventory.setItem(index - start, createEntryIcon(entries.get(index)));
         }
@@ -200,12 +198,6 @@ public final class StorageScreenView extends BaseMenuScreenView {
     }
 
     private @NotNull ItemStack createContentPlaceholder() {
-        ItemStack itemStack = createItem(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of());
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.getPersistentDataContainer().set(contentPlaceholderKey, PersistentDataType.INTEGER, 1);
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
+        return GuiItems.placeholder(contentPlaceholderKey);
     }
 }

@@ -1,13 +1,13 @@
 package io.github.maaasu.astralRecord.feature.menu.view.screen;
 
+import io.github.maaasu.astralRecord.shared.gui.GuiItems;
+import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,27 +34,23 @@ public final class TrashScreenView extends BaseMenuScreenView {
     }
 
     public int normalizePage(int pageIndex, int itemCount) {
-        return Math.clamp(pageIndex, 0, totalPages(itemCount) - 1);
+        return GuiPagination.normalizePage(pageIndex, itemCount, CONTENT_SLOT_COUNT);
     }
 
     public int totalPages(int itemCount) {
-        return Math.max(1, (int) Math.ceil(itemCount / (double) CONTENT_SLOT_COUNT));
+        return GuiPagination.totalPages(itemCount, CONTENT_SLOT_COUNT);
     }
 
     public boolean hasPreviousPage(int pageIndex) {
-        return pageIndex > 0;
+        return GuiPagination.hasPreviousPage(pageIndex);
     }
 
     public boolean hasNextPage(int pageIndex, int itemCount) {
-        return pageIndex + 1 < totalPages(itemCount);
+        return GuiPagination.hasNextPage(pageIndex, itemCount, CONTENT_SLOT_COUNT);
     }
 
     public boolean isContentPlaceholder(@Nullable ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType() != Material.GRAY_STAINED_GLASS_PANE || !itemStack.hasItemMeta()) {
-            return false;
-        }
-        ItemMeta meta = itemStack.getItemMeta();
-        return meta != null && meta.getPersistentDataContainer().has(contentPlaceholderKey, PersistentDataType.INTEGER);
+        return GuiItems.hasMarker(itemStack, Material.GRAY_STAINED_GLASS_PANE, contentPlaceholderKey);
     }
 
     private void clear(@NotNull Inventory inventory) {
@@ -67,8 +63,8 @@ public final class TrashScreenView extends BaseMenuScreenView {
     }
 
     private void renderItems(@NotNull Inventory inventory, @NotNull List<ItemStack> items, int pageIndex) {
-        int start = pageIndex * CONTENT_SLOT_COUNT;
-        int end = Math.min(start + CONTENT_SLOT_COUNT, items.size());
+        int start = GuiPagination.pageStart(pageIndex, CONTENT_SLOT_COUNT);
+        int end = GuiPagination.pageEnd(pageIndex, items.size(), CONTENT_SLOT_COUNT);
         for (int i = start; i < end; i++) {
             ItemStack itemStack = items.get(i);
             if (itemStack != null && itemStack.getType() != Material.AIR) {
@@ -117,12 +113,6 @@ public final class TrashScreenView extends BaseMenuScreenView {
     }
 
     private @NotNull ItemStack createContentPlaceholder() {
-        ItemStack itemStack = createItem(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of());
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.getPersistentDataContainer().set(contentPlaceholderKey, PersistentDataType.INTEGER, 1);
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
+        return GuiItems.placeholder(contentPlaceholderKey);
     }
 }

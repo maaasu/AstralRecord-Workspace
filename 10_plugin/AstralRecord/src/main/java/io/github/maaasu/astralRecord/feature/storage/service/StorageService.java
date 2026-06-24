@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.storage.service;
 
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
+import io.github.maaasu.astralRecord.feature.item.service.ItemTransferSupport;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
@@ -11,10 +12,10 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewEntry;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewOptions;
 import io.github.maaasu.astralRecord.feature.storage.view.StorageScreenView;
+import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -79,10 +80,11 @@ public final class StorageService {
         }
         StorageViewOptions options = storageOptions(player);
         List<StorageViewEntry> entries = refreshStorageEntries(player, options);
-        storagePageByPlayer.put(player.getUniqueId(), normalizeStoragePage(pageIndex, entries.size()));
+        int normalizedPage = normalizeStoragePage(pageIndex, entries.size());
+        storagePageByPlayer.put(player.getUniqueId(), normalizedPage);
         menuGuiTransitionService.switchGuiWithInventoryRestore(
             player,
-            () -> menuView.openStorage(player, entries, options, pageIndex)
+            () -> menuView.openStorage(player, entries, options, normalizedPage)
         );
     }
 
@@ -257,7 +259,7 @@ public final class StorageService {
             GuiSound.DENY.play(player);
             return;
         }
-        int requested = resolveTransferAmount(event.getClick(), clicked.getAmount());
+        int requested = ItemTransferSupport.resolveTransferAmount(event.getClick(), clicked.getAmount());
         if (requested <= 0) {
             GuiSound.DENY.play(player);
             return;
@@ -301,7 +303,7 @@ public final class StorageService {
             .findFirst()
             .map(entry -> (int) Math.clamp(entry.entry().getQuantity(), 0L, Integer.MAX_VALUE))
             .orElse(current.getAmount());
-        int requested = resolveTransferAmount(event.getClick(), sourceAmount);
+        int requested = ItemTransferSupport.resolveTransferAmount(event.getClick(), sourceAmount);
         if (requested <= 0) {
             GuiSound.DENY.play(player);
             return;
@@ -336,27 +338,11 @@ public final class StorageService {
     }
 
     private int normalizeStoragePage(int pageIndex, int itemCount) {
-        int totalPages = Math.max(
-            1,
-            (int) Math.ceil(itemCount / (double) StorageScreenView.CONTENT_SLOT_COUNT)
-        );
-        return Math.max(0, Math.min(pageIndex, totalPages - 1));
-    }
-
-    private int resolveTransferAmount(@NotNull ClickType clickType, int sourceAmount) {
-        if (sourceAmount <= 0) {
-            return 0;
-        }
-        return switch (clickType) {
-            case LEFT -> 1;
-            case SHIFT_LEFT -> sourceAmount;
-            case RIGHT -> Math.max(1, (sourceAmount + 1) / 2);
-            default -> 0;
-        };
+        return GuiPagination.normalizePage(pageIndex, itemCount, StorageScreenView.CONTENT_SLOT_COUNT);
     }
 
     private boolean isStorageContentSlot(int rawSlot) {
-        return rawSlot >= 0 && rawSlot < StorageScreenView.CONTENT_SLOT_COUNT;
+        return ItemTransferSupport.isContentSlot(rawSlot, StorageScreenView.CONTENT_SLOT_COUNT);
     }
 
     private boolean isStorageControlSlot(int rawSlot) {

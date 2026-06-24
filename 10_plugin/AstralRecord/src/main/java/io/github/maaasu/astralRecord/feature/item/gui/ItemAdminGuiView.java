@@ -4,6 +4,8 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.item.model.ItemAdminViewOptions;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
+import io.github.maaasu.astralRecord.shared.gui.GuiItems;
+import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -13,10 +15,8 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -113,7 +113,7 @@ public final class ItemAdminGuiView {
      * @return 補正後ページ
      */
     public int normalizePage(int pageIndex, int itemCount) {
-        return Math.clamp(pageIndex, 0, totalPages(itemCount) - 1);
+        return GuiPagination.normalizePage(pageIndex, itemCount, CONTENT_SLOT_COUNT);
     }
 
     /**
@@ -123,7 +123,7 @@ public final class ItemAdminGuiView {
      * @return 総ページ数
      */
     public int totalPages(int itemCount) {
-        return Math.max(1, (int) Math.ceil(itemCount / (double) CONTENT_SLOT_COUNT));
+        return GuiPagination.totalPages(itemCount, CONTENT_SLOT_COUNT);
     }
 
     /**
@@ -133,7 +133,7 @@ public final class ItemAdminGuiView {
      * @return 前ページがあれば true
      */
     public boolean hasPreviousPage(int pageIndex) {
-        return pageIndex > 0;
+        return GuiPagination.hasPreviousPage(pageIndex);
     }
 
     /**
@@ -144,7 +144,7 @@ public final class ItemAdminGuiView {
      * @return 次ページがあれば true
      */
     public boolean hasNextPage(int pageIndex, int itemCount) {
-        return pageIndex + 1 < totalPages(itemCount);
+        return GuiPagination.hasNextPage(pageIndex, itemCount, CONTENT_SLOT_COUNT);
     }
 
     /**
@@ -154,11 +154,7 @@ public final class ItemAdminGuiView {
      * @return プレースホルダーなら true
      */
     public boolean isContentPlaceholder(@Nullable ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType() != Material.GRAY_STAINED_GLASS_PANE || !itemStack.hasItemMeta()) {
-            return false;
-        }
-        ItemMeta meta = itemStack.getItemMeta();
-        return meta != null && meta.getPersistentDataContainer().has(contentPlaceholderKey, PersistentDataType.INTEGER);
+        return GuiItems.hasMarker(itemStack, Material.GRAY_STAINED_GLASS_PANE, contentPlaceholderKey);
     }
 
     private void clear(@NotNull Inventory inventory) {
@@ -172,8 +168,8 @@ public final class ItemAdminGuiView {
     }
 
     private void renderEntries(@NotNull Inventory inventory, @NotNull List<ItemModel> items, int pageIndex) {
-        int start = pageIndex * CONTENT_SLOT_COUNT;
-        int end = Math.min(start + CONTENT_SLOT_COUNT, items.size());
+        int start = GuiPagination.pageStart(pageIndex, CONTENT_SLOT_COUNT);
+        int end = GuiPagination.pageEnd(pageIndex, items.size(), CONTENT_SLOT_COUNT);
         for (int index = start; index < end; index++) {
             inventory.setItem(index - start, createEntryIcon(items.get(index)));
         }
@@ -264,13 +260,7 @@ public final class ItemAdminGuiView {
     }
 
     private @NotNull ItemStack createContentPlaceholder() {
-        ItemStack itemStack = createItem(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of());
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.getPersistentDataContainer().set(contentPlaceholderKey, PersistentDataType.INTEGER, 1);
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
+        return GuiItems.placeholder(contentPlaceholderKey);
     }
 
     private @NotNull ItemStack createItem(
@@ -278,15 +268,7 @@ public final class ItemAdminGuiView {
         @NotNull Component name,
         @NotNull List<Component> lore
     ) {
-        ItemStack itemStack = new ItemStack(material);
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(name.decoration(TextDecoration.ITALIC, false));
-            meta.lore(lore.stream().map(line -> line.decoration(TextDecoration.ITALIC, false)).toList());
-            meta.addItemFlags(ItemFlag.values());
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
+        return GuiItems.create(material, name, lore);
     }
 
     private record Holder() implements InventoryHolder {

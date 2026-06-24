@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.shop.model.ShopEntry;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopPurchasePreview;
 import io.github.maaasu.astralRecord.feature.shop.service.ShopService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -19,7 +20,6 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -262,15 +262,7 @@ public final class ShopGui {
     }
 
     private @NotNull ItemStack actionItem(@NotNull Material material, @NotNull Component name, @NotNull List<? extends Component> lore) {
-        ItemStack itemStack = new ItemStack(material);
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(name);
-            meta.lore(new ArrayList<>(lore));
-            meta.addItemFlags(ItemFlag.values());
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
+        return GuiItems.create(material, name, new ArrayList<>(lore));
     }
 
     private @NotNull Component quantityAdjustName(@NotNull String label, @NotNull String amount, @NotNull NamedTextColor accentColor) {

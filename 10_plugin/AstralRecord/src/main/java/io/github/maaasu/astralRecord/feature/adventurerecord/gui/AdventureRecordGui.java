@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobDropItem;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -18,9 +19,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -341,19 +340,7 @@ public class AdventureRecordGui {
         @NotNull Component name,
         @NotNull List<Component> lore
     ) {
-        ItemStack itemStack = new ItemStack(material);
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(noItalic(name));
-            meta.lore(lore.stream().map(this::noItalic).toList());
-            meta.addItemFlags(ItemFlag.values());
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
-    }
-
-    private @NotNull Component noItalic(@NotNull Component component) {
-        return component.decoration(TextDecoration.ITALIC, false);
+        return GuiItems.create(material, name, lore);
     }
 
     private @NotNull Material resolveMaterial(@Nullable String icon, @NotNull Material fallback) {

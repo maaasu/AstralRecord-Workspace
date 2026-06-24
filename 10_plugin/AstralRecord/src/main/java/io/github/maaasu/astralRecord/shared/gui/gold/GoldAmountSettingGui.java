@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.shared.gui.gold;
 
+import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -8,9 +9,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -139,15 +138,7 @@ public final class GoldAmountSettingGui {
         @NotNull Component name,
         @NotNull List<Component> lore
     ) {
-        ItemStack itemStack = new ItemStack(material);
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(name.decoration(TextDecoration.ITALIC, false));
-            meta.lore(lore.stream().map(line -> line.decoration(TextDecoration.ITALIC, false)).toList());
-            meta.addItemFlags(ItemFlag.values());
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
+        return GuiItems.create(material, name, lore);
     }
 
     public static final class GoldAmountHolder implements InventoryHolder {

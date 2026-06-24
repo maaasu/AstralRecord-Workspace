@@ -10,6 +10,8 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.confirm.ConfirmDialogView;
+import io.github.maaasu.astralRecord.shared.gui.GuiItems;
+import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -152,26 +154,19 @@ public final class SkillBindGui {
     }
 
     public int normalizePage(int pageIndex, int itemCount) {
-        int maxPage = totalPages(itemCount) - 1;
-        if (pageIndex < 0) {
-            return 0;
-        }
-        if (pageIndex > maxPage) {
-            return maxPage;
-        }
-        return pageIndex;
+        return GuiPagination.normalizePage(pageIndex, itemCount, CONTENT_SLOT_COUNT);
     }
 
     public int totalPages(int itemCount) {
-        return Math.max(1, (int) Math.ceil(itemCount / (double) CONTENT_SLOT_COUNT));
+        return GuiPagination.totalPages(itemCount, CONTENT_SLOT_COUNT);
     }
 
     public boolean hasPreviousPage(int pageIndex) {
-        return pageIndex > 0;
+        return GuiPagination.hasPreviousPage(pageIndex);
     }
 
     public boolean hasNextPage(int pageIndex, int itemCount) {
-        return pageIndex + 1 < totalPages(itemCount);
+        return GuiPagination.hasNextPage(pageIndex, itemCount, CONTENT_SLOT_COUNT);
     }
 
     public @NotNull List<SkillDefinition> sortedSkills(@NotNull Iterable<SkillDefinition> definitions) {
@@ -191,8 +186,8 @@ public final class SkillBindGui {
     ) {
         clearInventory(inventory, SIZE);
 
-        int start = pageIndex * CONTENT_SLOT_COUNT;
-        int end = Math.min(start + CONTENT_SLOT_COUNT, skills.size());
+        int start = GuiPagination.pageStart(pageIndex, CONTENT_SLOT_COUNT);
+        int end = GuiPagination.pageEnd(pageIndex, skills.size(), CONTENT_SLOT_COUNT);
         for (int index = start; index < end; index++) {
             SkillDefinition skill = skills.get(index);
             boolean owned = ownedSkillIds.contains(skill.getId());
@@ -512,13 +507,7 @@ public final class SkillBindGui {
     }
 
     private @NotNull ItemStack createDummy() {
-        ItemStack itemStack = createItem(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of());
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.getPersistentDataContainer().set(dummyKey, PersistentDataType.INTEGER, 1);
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
+        return GuiItems.placeholder(dummyKey);
     }
 
     private @NotNull ItemStack createItem(
@@ -526,15 +515,7 @@ public final class SkillBindGui {
         @NotNull Component name,
         @NotNull List<Component> lore
     ) {
-        ItemStack itemStack = new ItemStack(material);
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(name);
-            meta.lore(lore);
-            meta.addItemFlags(ItemFlag.values());
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
+        return GuiItems.create(material, name, lore);
     }
 
     private @NotNull Material parseMaterial(@Nullable String value, @NotNull Material fallback) {

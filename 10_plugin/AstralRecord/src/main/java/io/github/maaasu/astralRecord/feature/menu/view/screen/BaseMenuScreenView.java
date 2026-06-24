@@ -1,11 +1,11 @@
 package io.github.maaasu.astralRecord.feature.menu.view.screen;
 
+import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
@@ -55,15 +55,7 @@ public abstract class BaseMenuScreenView {
         @NotNull Component name,
         @NotNull List<Component> lore
     ) {
-        ItemStack itemStack = new ItemStack(material);
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(noItalic(name));
-            meta.lore(lore.stream().map(this::noItalic).toList());
-            meta.addItemFlags(ItemFlag.values());
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
+        return GuiItems.create(material, name, lore);
     }
 
     protected @NotNull ItemStack cloneWithAmountLore(@NotNull ItemStack itemStack) {
@@ -81,12 +73,8 @@ public abstract class BaseMenuScreenView {
             ? new ArrayList<>(meta.lore())
             : new ArrayList<>();
         lore.add(Component.text(DISPLAY_AMOUNT_LORE_PREFIX + displayItem.getAmount(), NamedTextColor.GRAY));
-        meta.lore(lore.stream().map(this::noItalic).toList());
+        meta.lore(lore.stream().map(GuiItems::noItalic).toList());
         displayItem.setItemMeta(meta);
         return displayItem;
-    }
-
-    private @NotNull Component noItalic(@NotNull Component component) {
-        return component.decoration(TextDecoration.ITALIC, false);
     }
 }
