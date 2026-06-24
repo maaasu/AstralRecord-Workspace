@@ -11,10 +11,20 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 /**
  * プレイヤーへのバニラダメージを抑止するイベントハンドラ。
  */
 public class PlayerVanillaDamageBlockEventHandler extends AbstractEventHandler {
+
+    private static final Set<EntityDamageEvent.DamageCause> SILENT_DAMAGE_CAUSES =
+        EnumSet.of(
+            EntityDamageEvent.DamageCause.FALL,
+            EntityDamageEvent.DamageCause.FIRE,
+            EntityDamageEvent.DamageCause.FIRE_TICK
+        );
 
     /**
      * プレイヤーへの EntityDamageEvent を常時キャンセルし、バニラの被ダメージモーションを抑止する。
@@ -31,7 +41,7 @@ public class PlayerVanillaDamageBlockEventHandler extends AbstractEventHandler {
                 return;
             }
 
-            if (event.getDamage() > 0.0D) {
+            if (event.getDamage() > 0.0D && !SILENT_DAMAGE_CAUSES.contains(event.getCause())) {
                 player.playHurtAnimation(0.0F);
                 player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_HURT, SoundCategory.PLAYERS, 0.75F, 1.0F);
             }
