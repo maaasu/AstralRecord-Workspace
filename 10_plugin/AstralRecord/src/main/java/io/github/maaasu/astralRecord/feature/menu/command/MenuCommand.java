@@ -23,6 +23,9 @@ public final class MenuCommand extends AstCommand {
 
     @Override
     protected void executePlayerCommand(@NotNull AstPlayer player, @NotNull String[] args) {
+        if (!requireGameplayMode(player)) {
+            return;
+        }
         MenuView menuView = AstralRecord.getInstance().getMenuView();
         if (args.length == 0) {
             GuiSound.OPEN.play(player.getBukkit());

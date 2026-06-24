@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
@@ -83,6 +84,10 @@ public final class TradeService {
      */
     public void requestTrade(@NotNull Player sender, @NotNull Player target) {
         expireRequests();
+        if (!AccountModeGuard.isGameplayPlayer(sender) || !AccountModeGuard.isGameplayPlayer(target)) {
+            messageService.send(sender, PlayerMsgId.P_5065);
+            return;
+        }
         if (sender.getUniqueId().equals(target.getUniqueId()) || !target.isOnline()
             || isTrading(sender.getUniqueId()) || isTrading(target.getUniqueId())) {
             messageService.send(sender, PlayerMsgId.P_6203);
@@ -121,12 +126,21 @@ public final class TradeService {
      */
     public void acceptTrade(@NotNull Player accepter) {
         expireRequests();
+        if (!AccountModeGuard.isGameplayPlayer(accepter)) {
+            messageService.send(accepter, PlayerMsgId.P_5065);
+            return;
+        }
         TradeRequest request = findLatestIncoming(accepter.getUniqueId());
         if (request == null) {
             messageService.send(accepter, PlayerMsgId.P_6202);
             return;
         }
         Player sender = Bukkit.getPlayer(request.getSenderUuid());
+        if (sender != null && !AccountModeGuard.isGameplayPlayer(sender)) {
+            request.setStatus(TradeRequestStatus.CANCELLED);
+            messageService.send(accepter, PlayerMsgId.P_5065);
+            return;
+        }
         if (sender == null || !sender.isOnline() || isTrading(sender.getUniqueId()) || isTrading(accepter.getUniqueId())) {
             request.setStatus(TradeRequestStatus.CANCELLED);
             messageService.send(accepter, PlayerMsgId.P_6203);
@@ -154,6 +168,10 @@ public final class TradeService {
      * @param player 操作したプレイヤー
      */
     public void toggleReady(@NotNull Player player) {
+        if (!AccountModeGuard.isGameplayPlayer(player)) {
+            messageService.send(player, PlayerMsgId.P_5065);
+            return;
+        }
         TradeSession session = getOpenSession(player.getUniqueId());
         if (session == null) {
             return;
@@ -199,6 +217,10 @@ public final class TradeService {
      * @param player 表示対象プレイヤー
      */
     public void openGoldAmountSetting(@NotNull Player player) {
+        if (!AccountModeGuard.isGameplayPlayer(player)) {
+            messageService.send(player, PlayerMsgId.P_5065);
+            return;
+        }
         TradeSession session = getOpenSession(player.getUniqueId());
         if (session == null) {
             return;
@@ -225,6 +247,10 @@ public final class TradeService {
      * @param amount 確定金額
      */
     public void applyGoldAmount(@NotNull Player player, @NotNull UUID sessionId, long amount) {
+        if (!AccountModeGuard.isGameplayPlayer(player)) {
+            messageService.send(player, PlayerMsgId.P_5065);
+            return;
+        }
         TradeSession session = getOpenSession(player.getUniqueId());
         if (session == null || !session.getSessionId().equals(sessionId)) {
             return;
@@ -244,6 +270,10 @@ public final class TradeService {
      * @param player 表示対象プレイヤー
      */
     public void reopenTrade(@NotNull Player player) {
+        if (!AccountModeGuard.isGameplayPlayer(player)) {
+            messageService.send(player, PlayerMsgId.P_5065);
+            return;
+        }
         TradeSession session = getOpenSession(player.getUniqueId());
         if (session == null) {
             return;
@@ -257,6 +287,10 @@ public final class TradeService {
      * @param player 表示対象プレイヤー
      */
     public void reopenTradeAfterClose(@NotNull Player player) {
+        if (!AccountModeGuard.isGameplayPlayer(player)) {
+            messageService.send(player, PlayerMsgId.P_5065);
+            return;
+        }
         TradeSession session = getOpenSession(player.getUniqueId());
         if (session == null) {
             return;
@@ -335,6 +369,12 @@ public final class TradeService {
     private void completeTrade(@NotNull TradeSession session) {
         try {
             captureBoth(session);
+            Player playerA = Bukkit.getPlayer(session.getPlayerAUuid());
+            Player playerB = Bukkit.getPlayer(session.getPlayerBUuid());
+            if (!AccountModeGuard.isGameplayPlayer(playerA) || !AccountModeGuard.isGameplayPlayer(playerB)) {
+                cancelTrade(session);
+                return;
+            }
             if (!hasAnyOffer(session)) {
                 cancelTrade(session);
                 return;
@@ -398,6 +438,10 @@ public final class TradeService {
     }
 
     private void openTrade(@NotNull Player player, @NotNull TradeSession session, boolean suppressCurrentClose) {
+        if (!AccountModeGuard.isGameplayPlayer(player)) {
+            messageService.send(player, PlayerMsgId.P_5065);
+            return;
+        }
         if (suppressCurrentClose) {
             suppressNextClose(player);
         }

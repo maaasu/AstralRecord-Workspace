@@ -17,6 +17,9 @@ public final class StorageCommand extends AstCommand {
 
     @Override
     protected void executePlayerCommand(@NotNull AstPlayer player, @NotNull String[] args) {
+        if (!requireGameplayMode(player)) {
+            return;
+        }
         StorageService storageService = AstralRecord.getInstance().getStorageService();
         if (storageService != null) {
             storageService.open(player.getBukkit());

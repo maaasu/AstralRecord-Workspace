@@ -4,6 +4,8 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.model.PartyActionResult;
 import io.github.maaasu.astralRecord.feature.party.model.PartyInvite;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
@@ -52,6 +54,9 @@ public final class PartyService {
      * @return 操作結果
      */
     public synchronized @NotNull PartyActionResult createParty(@NotNull AstPlayer leader) {
+        if (!AccountModeGuard.isGameplayPlayer(leader)) {
+            return PartyActionResult.failure(PlayerMsgId.P_5065);
+        }
         UUID leaderId = leader.getBukkit().getUniqueId();
         if (partyIdByMember.containsKey(leaderId)) {
             return PartyActionResult.failure(PlayerMsgId.P_5901);
@@ -72,6 +77,9 @@ public final class PartyService {
      * @return 操作結果
      */
     public synchronized @NotNull PartyActionResult invite(@NotNull AstPlayer inviter, @NotNull Player target) {
+        if (!AccountModeGuard.isGameplayPlayer(inviter) || !AccountModeGuard.isGameplayPlayer(AstPlayerCache.get(target))) {
+            return PartyActionResult.failure(PlayerMsgId.P_5065);
+        }
         UUID inviterId = inviter.getBukkit().getUniqueId();
         UUID targetId = target.getUniqueId();
         if (inviterId.equals(targetId)) {
@@ -115,7 +123,13 @@ public final class PartyService {
      * @return 操作結果
      */
     public synchronized @NotNull PartyActionResult acceptInvite(@NotNull AstPlayer player, @NotNull String leaderName) {
+        if (!AccountModeGuard.isGameplayPlayer(player)) {
+            return PartyActionResult.failure(PlayerMsgId.P_5065);
+        }
         Player leader = Bukkit.getPlayerExact(leaderName);
+        if (leader != null && !AccountModeGuard.isGameplayPlayer(AstPlayerCache.get(leader))) {
+            return PartyActionResult.failure(PlayerMsgId.P_5065);
+        }
         if (leader == null) {
             return PartyActionResult.failure(PlayerMsgId.P_5905, leaderName);
         }
@@ -157,6 +171,9 @@ public final class PartyService {
      * @return 操作結果
      */
     public synchronized @NotNull PartyActionResult declineInvite(@NotNull AstPlayer player, @NotNull String leaderName) {
+        if (!AccountModeGuard.isGameplayPlayer(player)) {
+            return PartyActionResult.failure(PlayerMsgId.P_5065);
+        }
         Player leader = Bukkit.getPlayerExact(leaderName);
         if (leader == null) {
             return PartyActionResult.failure(PlayerMsgId.P_5905, leaderName);
@@ -181,6 +198,9 @@ public final class PartyService {
      * @return 操作結果
      */
     public synchronized @NotNull PartyActionResult leave(@NotNull AstPlayer player) {
+        if (!AccountModeGuard.isGameplayPlayer(player)) {
+            return PartyActionResult.failure(PlayerMsgId.P_5065);
+        }
         boolean left = leaveInternal(player.getBukkit().getUniqueId(), player.getBukkit().getName(), "PARTY_LEFT", true);
         return left
             ? PartyActionResult.success(PlayerMsgId.P_5916)
@@ -205,6 +225,9 @@ public final class PartyService {
      * @return 操作結果
      */
     public synchronized @NotNull PartyActionResult disband(@NotNull AstPlayer leader) {
+        if (!AccountModeGuard.isGameplayPlayer(leader)) {
+            return PartyActionResult.failure(PlayerMsgId.P_5065);
+        }
         Party party = findParty(leader.getBukkit().getUniqueId());
         if (party == null) {
             return PartyActionResult.failure(PlayerMsgId.P_5902);
@@ -235,6 +258,9 @@ public final class PartyService {
      * @return 操作結果
      */
     public synchronized @NotNull PartyActionResult kick(@NotNull AstPlayer leader, @NotNull Player target) {
+        if (!AccountModeGuard.isGameplayPlayer(leader) || !AccountModeGuard.isGameplayPlayer(AstPlayerCache.get(target))) {
+            return PartyActionResult.failure(PlayerMsgId.P_5065);
+        }
         UUID leaderId = leader.getBukkit().getUniqueId();
         UUID targetId = target.getUniqueId();
         if (leaderId.equals(targetId)) {
@@ -270,6 +296,9 @@ public final class PartyService {
      * @return 操作結果
      */
     public synchronized @NotNull PartyActionResult promote(@NotNull AstPlayer leader, @NotNull Player target) {
+        if (!AccountModeGuard.isGameplayPlayer(leader) || !AccountModeGuard.isGameplayPlayer(AstPlayerCache.get(target))) {
+            return PartyActionResult.failure(PlayerMsgId.P_5065);
+        }
         UUID leaderId = leader.getBukkit().getUniqueId();
         UUID targetId = target.getUniqueId();
         Party party = findParty(leaderId);

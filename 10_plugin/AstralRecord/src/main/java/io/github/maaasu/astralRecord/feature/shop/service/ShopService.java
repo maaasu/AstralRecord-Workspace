@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopCostItem;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopDefinition;
@@ -101,6 +102,9 @@ public final class ShopService {
         int quantity
     ) {
         int safeQuantity = Math.max(1, quantity);
+        if (!AccountModeGuard.isGameplayPlayer(player)) {
+            return new ShopPurchasePreview(safeQuantity, 0L, 0L, List.of(), List.of(), false);
+        }
         UUID accountId = player.getAccount().getUuid();
         long ownedGold = currencyService.getGoldAmount(accountId);
         long requiredGold = (long) resolveGoldCost(entry) * safeQuantity;
@@ -128,6 +132,9 @@ public final class ShopService {
     }
 
     public boolean purchase(@NotNull AstPlayer player, @NotNull ShopEntry entry, int quantity) {
+        if (!AccountModeGuard.isGameplayPlayer(player)) {
+            return false;
+        }
         ItemModel model = resolveItem(entry);
         if (model == null) {
             return false;

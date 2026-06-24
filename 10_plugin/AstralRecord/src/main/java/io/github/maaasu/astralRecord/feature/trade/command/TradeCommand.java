@@ -21,6 +21,9 @@ public final class TradeCommand extends AstCommand {
 
     @Override
     protected void executePlayerCommand(@NotNull AstPlayer player, @NotNull String[] args) {
+        if (!requireGameplayMode(player)) {
+            return;
+        }
         TradeService tradeService = AstralRecord.getInstance().getTradeService();
         if (tradeService == null) {
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_6203);

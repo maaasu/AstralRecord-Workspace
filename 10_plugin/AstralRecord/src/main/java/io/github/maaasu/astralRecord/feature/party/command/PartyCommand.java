@@ -30,6 +30,9 @@ public final class PartyCommand extends AstCommand {
 
     @Override
     protected void executePlayerCommand(@NotNull AstPlayer player, @NotNull String[] args) {
+        if (!requireGameplayMode(player)) {
+            return;
+        }
         PartyService partyService = AstralRecord.getInstance().getPartyService();
         if (partyService == null) {
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5919);

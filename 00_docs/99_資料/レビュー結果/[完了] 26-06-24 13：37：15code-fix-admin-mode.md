@@ -213,3 +213,24 @@ ADMIN mode のゲームモード・インベントリ保存/復元、および�
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/teleporter/event/TeleporterInteractEventHandler.java`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/gathering/service/GatheringService.java`
 - `00_docs/40_Database設計書/table-definitions/AstralRecord/dbo.inventory.md`
+
+## 修正対応結果（2026-06-24）
+
+### ユーザー判断の反映
+
+- `/storage`、`/sell`、`/class gui` は `user.permission = ADMIN` を要求するコマンドだが、account mode が `ADMIN` の場合は通常プレイ GUI を開かない。管理者が通常プレイ導線をデバッグする場合は、`user.permission = ADMIN` かつ `AccountMode.PLAYER` で実行する。
+- ADMIN mode で NPC をクリックした場合、event は cancel し、通常 GUI や通常プレイ処理は実行しない。
+- autosave は `BUILDER` / `ADMIN` の tool inventory snapshot を保存対象に含める。
+
+### 指摘別ステータス
+
+- AR-CODE-001: 修正済み。`PlayerInventoryState` で metadata dirty inventory を追跡し、`InventoryPersistence.save(...)` で `InventoryRepository.updateMetadata(...)` を呼び出す。
+- AR-CODE-002: 修正済み。autosave 実行前にメインスレッドで `BUILDER` / `ADMIN` の Bukkit inventory と game mode を snapshot capture し、その後の永続化を非同期で実行する。
+- AR-CODE-003: 修正済み。NPC interaction は `AccountMode.PLAYER` のみ action を実行し、`ADMIN` / `BUILDER` では event cancel 後に無反応とする。
+- AR-CODE-004: 修正済み。通常プレイ command と `/storage`、`/sell`、`/class gui` は account mode gate を通過した場合のみ GUI / gameplay 処理へ進む。
+- AR-CODE-005: 修正済み。shop / storage / sell / enhancement / party / trade の GUI event と service mutation path に account mode gate を追加した。
+
+### 追加同期
+
+- account mode と user permission の責務分離を account 設計書へ追記した。
+- NPC / menu / shop / party / trade / inventory の設計書へ、通常プレイ導線は `AccountMode.PLAYER` のみ処理する契約を追記した。

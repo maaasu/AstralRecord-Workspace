@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewEntry;
@@ -72,6 +73,10 @@ public final class StorageService {
      * @param pageIndex 表示ページ
      */
     public void open(@NotNull Player player, int pageIndex) {
+        if (!AccountModeGuard.isGameplayPlayer(player)) {
+            GuiSound.DENY.play(player);
+            return;
+        }
         StorageViewOptions options = storageOptions(player);
         List<StorageViewEntry> entries = refreshStorageEntries(player, options);
         storagePageByPlayer.put(player.getUniqueId(), normalizeStoragePage(pageIndex, entries.size()));
@@ -94,6 +99,10 @@ public final class StorageService {
             return;
         }
         event.setCancelled(true);
+        if (!AccountModeGuard.isGameplayPlayer(player)) {
+            player.closeInventory();
+            return;
+        }
         int rawSlot = event.getRawSlot();
         Inventory topInventory = event.getView().getTopInventory();
 
@@ -173,6 +182,10 @@ public final class StorageService {
         }
         event.setCancelled(true);
         if (event.getWhoClicked() instanceof Player player) {
+            if (!AccountModeGuard.isGameplayPlayer(player)) {
+                player.closeInventory();
+                return;
+            }
             GuiSound.DENY.play(player);
         }
     }
@@ -217,7 +230,7 @@ public final class StorageService {
         @NotNull StorageViewOptions options
     ) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) {
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
             storageEntriesByPlayer.remove(player.getUniqueId());
             return List.of();
         }
@@ -235,7 +248,7 @@ public final class StorageService {
             return;
         }
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) {
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
             GuiSound.DENY.play(player);
             return;
         }
@@ -279,7 +292,7 @@ public final class StorageService {
             return;
         }
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) {
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
             GuiSound.DENY.play(player);
             return;
         }

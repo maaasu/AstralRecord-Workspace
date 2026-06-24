@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
@@ -124,6 +125,11 @@ public final class SellService {
         if (!(event.getWhoClicked() instanceof Player player)) {
             return;
         }
+        if (!AccountModeGuard.isGameplayPlayer(player)) {
+            event.setCancelled(true);
+            player.closeInventory();
+            return;
+        }
         MenuScreen screen = menuView.getMenuScreen(event.getView().getTopInventory());
         if (screen == MenuScreen.SELL) {
             handleSellClick(event, player);
@@ -141,6 +147,12 @@ public final class SellService {
      */
     public void handleDrag(@NotNull InventoryDragEvent event) {
         MenuScreen screen = menuView.getMenuScreen(event.getView().getTopInventory());
+        if (event.getWhoClicked() instanceof Player player
+            && !AccountModeGuard.isGameplayPlayer(player)) {
+            event.setCancelled(true);
+            player.closeInventory();
+            return;
+        }
         if (screen == MenuScreen.SELL) {
             if (event.getRawSlots().stream().anyMatch(this::isSellControlSlot)) {
                 event.setCancelled(true);
@@ -205,6 +217,10 @@ public final class SellService {
         int pageIndex,
         boolean restoreAfterOpen
     ) {
+        if (!AccountModeGuard.isGameplayPlayer(player)) {
+            GuiSound.DENY.play(player);
+            return;
+        }
         int normalizedPage = normalizeSellPage(pageIndex, sellItems.size());
         sellItemsByPlayer.put(player.getUniqueId(), sellItems);
         sellPageByPlayer.put(player.getUniqueId(), normalizedPage);
@@ -297,7 +313,7 @@ public final class SellService {
             List<ItemStack> soldItems = normalizeSellItems(currentSellItems);
             long totalSaleValue = totalSaleValue(soldItems);
             AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (astPlayer == null || !creditGold(astPlayer, totalSaleValue)) {
+            if (!AccountModeGuard.isGameplayPlayer(astPlayer) || !creditGold(astPlayer, totalSaleValue)) {
                 GuiSound.DENY.play(player);
                 player.updateInventory();
                 return;
@@ -329,7 +345,7 @@ public final class SellService {
             return;
         }
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) {
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
             GuiSound.DENY.play(player);
             return;
         }
@@ -394,7 +410,7 @@ public final class SellService {
         }
 
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) {
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
             GuiSound.DENY.play(player);
             return;
         }

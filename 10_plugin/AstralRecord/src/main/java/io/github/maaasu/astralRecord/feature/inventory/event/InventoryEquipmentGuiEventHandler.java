@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.EquipmentMenuScreenView;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -75,10 +76,22 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         runSafely(() -> {
             var topInventory = event.getView().getTopInventory();
             if (isEquipmentMenu(topInventory)) {
+                if (event.getWhoClicked() instanceof Player player
+                    && !AccountModeGuard.isGameplayPlayer(player)) {
+                    event.setCancelled(true);
+                    player.closeInventory();
+                    return;
+                }
                 handleEquipmentMenuClick(event, topInventory);
                 return;
             }
             if (equipmentEnhancementService.isEnhancementMenu(topInventory)) {
+                if (event.getWhoClicked() instanceof Player player
+                    && !AccountModeGuard.isGameplayPlayer(player)) {
+                    event.setCancelled(true);
+                    player.closeInventory();
+                    return;
+                }
                 handleEnhancementMenuClick(event, topInventory);
                 return;
             }

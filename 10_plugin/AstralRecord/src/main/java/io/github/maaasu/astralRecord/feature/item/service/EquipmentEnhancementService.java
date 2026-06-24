@@ -17,6 +17,7 @@ import io.github.maaasu.astralRecord.feature.menu.view.MenuInventoryHolder;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.EquipmentEnhancementMenuScreenView;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -80,7 +81,8 @@ public final class EquipmentEnhancementService {
 
     public void open(@NotNull Player player) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) {
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
+            GuiSound.DENY.play(player);
             return;
         }
 
@@ -104,7 +106,8 @@ public final class EquipmentEnhancementService {
 
     public void handleTopClick(@NotNull Player player, int rawSlot) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) {
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
+            player.closeInventory();
             return;
         }
         EnhancementSession session = sessions.computeIfAbsent(
@@ -130,7 +133,8 @@ public final class EquipmentEnhancementService {
 
     public void handlePlayerInventoryClick(@NotNull Player player, int bukkitSlot) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) {
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
+            player.closeInventory();
             GuiSound.DENY.play(player);
             return;
         }
@@ -392,7 +396,7 @@ public final class EquipmentEnhancementService {
 
     private @NotNull ItemStack createInfoItem(@NotNull Player player, @NotNull SelectionResult selection) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) {
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
             return createItem(
                 Material.BOOK,
                 Component.text("強化情報", NamedTextColor.YELLOW),
@@ -449,7 +453,7 @@ public final class EquipmentEnhancementService {
         @NotNull List<MaterialRequirement> requirements
     ) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) {
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
             return createItem(
                 Material.BARRIER,
                 Component.text("強化実行", NamedTextColor.RED, TextDecoration.BOLD),

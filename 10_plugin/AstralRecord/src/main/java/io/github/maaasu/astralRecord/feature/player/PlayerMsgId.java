@@ -97,6 +97,10 @@ public enum PlayerMsgId {
      * 使用方法: {0}
      */
     P_5064(5064),
+    /**
+     * 現在の account mode ではこのコマンドを使用できません。
+     */
+    P_5065(5065),
     // endregion
 
     // region /infrastructure/command/ReloadCommand.java 5090-5099

@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
@@ -60,6 +61,12 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
         runSafely(() -> {
             Inventory top = event.getView().getTopInventory();
             if (tradeGui.isTradeInventory(top)) {
+                if (event.getWhoClicked() instanceof Player player
+                    && !AccountModeGuard.isGameplayPlayer(player)) {
+                    event.setCancelled(true);
+                    player.closeInventory();
+                    return;
+                }
                 handleTradeClick(event);
                 return;
             }
@@ -68,6 +75,12 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             if (goldAmountSettingGui.isGoldAmountInventory(top)) {
+                if (event.getWhoClicked() instanceof Player player
+                    && !AccountModeGuard.isGameplayPlayer(player)) {
+                    event.setCancelled(true);
+                    player.closeInventory();
+                    return;
+                }
                 handleGoldAmountClick(event);
             }
         }, LogId.E_6200, event.getWhoClicked().getName());
@@ -80,6 +93,12 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
             if (!tradeGui.isTradeInventory(top)
                 && !cancelConfirmGui.isCancelInventory(top)
                 && !goldAmountSettingGui.isGoldAmountInventory(top)) {
+                return;
+            }
+            if (event.getWhoClicked() instanceof Player player
+                && !AccountModeGuard.isGameplayPlayer(player)) {
+                event.setCancelled(true);
+                player.closeInventory();
                 return;
             }
             if (cancelConfirmGui.isCancelInventory(top) || goldAmountSettingGui.isGoldAmountInventory(top)) {

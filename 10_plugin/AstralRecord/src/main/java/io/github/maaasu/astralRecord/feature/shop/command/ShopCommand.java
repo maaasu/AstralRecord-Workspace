@@ -14,6 +14,9 @@ public final class ShopCommand extends AstCommand {
 
     @Override
     protected void executePlayerCommand(@NotNull AstPlayer player, @NotNull String[] args) {
+        if (!requireGameplayMode(player)) {
+            return;
+        }
         if (args.length < 1) {
             sendUsage(player.getBukkit());
             return;

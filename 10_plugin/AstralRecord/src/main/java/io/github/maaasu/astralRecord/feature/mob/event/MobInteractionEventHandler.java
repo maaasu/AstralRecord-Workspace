@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionActionConfig;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
@@ -77,11 +78,13 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
             if (instance == null) {
                 return;
             }
-            if (!isWithinInteractionDistance(event.getPlayer(), event.getRightClicked())) {
-                event.setCancelled(true);
+            event.setCancelled(true);
+            if (!AccountModeGuard.isGameplayPlayer(event.getPlayer())) {
                 return;
             }
-            event.setCancelled(true);
+            if (!isWithinInteractionDistance(event.getPlayer(), event.getRightClicked())) {
+                return;
+            }
             execute(event.getPlayer(), instance.template().interactions().rightClick());
         }, LogId.E_5702, event.getPlayer().getName());
     }
@@ -110,6 +113,9 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
             }
 
             event.setCancelled(true);
+            if (!AccountModeGuard.isGameplayPlayer(event.getPlayer())) {
+                return;
+            }
             execute(event.getPlayer(), leftClick
                     ? instance.template().interactions().leftClick()
                     : instance.template().interactions().rightClick());
@@ -126,11 +132,13 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
             if (instance == null) {
                 return;
             }
-            if (!isWithinInteractionDistance(player, event.getEntity())) {
-                event.setCancelled(true);
+            event.setCancelled(true);
+            if (!AccountModeGuard.isGameplayPlayer(player)) {
                 return;
             }
-            event.setCancelled(true);
+            if (!isWithinInteractionDistance(player, event.getEntity())) {
+                return;
+            }
             execute(player, instance.template().interactions().leftClick());
         }, LogId.E_5702, event.getDamager().getName());
     }
@@ -141,6 +149,9 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
     }
 
     private void execute(@NotNull Player player, @NotNull List<MobInteractionActionConfig> actions) {
+        if (!AccountModeGuard.isGameplayPlayer(player)) {
+            return;
+        }
         if (actions.isEmpty()) {
             GuiSound.DENY.play(player);
             return;

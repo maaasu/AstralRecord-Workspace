@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.menu.player.PlayerBrowserGuiEventHa
 import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
 import io.github.maaasu.astralRecord.feature.menu.service.TrashService;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -201,6 +202,12 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             if (menuView.isMenuInventory(event.getView().getTopInventory())) {
                 MenuScreen menuScreen = menuView.getMenuScreen(event.getView().getTopInventory());
                 if (event.getWhoClicked() instanceof Player player
+                    && !AccountModeGuard.isGameplayPlayer(player)) {
+                    event.setCancelled(true);
+                    player.closeInventory();
+                    return;
+                }
+                if (event.getWhoClicked() instanceof Player player
                     && handleMenuHotbarShortcutClick(event, player)) {
                     return;
                 }
@@ -278,6 +285,12 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         runSafely(() -> {
             if (menuView.isMenuInventory(event.getView().getTopInventory())) {
                 MenuScreen menuScreen = menuView.getMenuScreen(event.getView().getTopInventory());
+                if (event.getWhoClicked() instanceof Player player
+                    && !AccountModeGuard.isGameplayPlayer(player)) {
+                    event.setCancelled(true);
+                    player.closeInventory();
+                    return;
+                }
                 if (menuScreen == MenuScreen.TRASH || menuScreen == MenuScreen.TRASH_CONFIRM) {
                     trashService.handleDrag(event);
                     return;

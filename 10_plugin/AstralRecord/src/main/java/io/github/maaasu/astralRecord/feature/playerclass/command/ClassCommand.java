@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.playerclass.command;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
@@ -86,6 +87,10 @@ public final class ClassCommand extends AstCommand {
         PlayerClassService classService = AstralRecord.getInstance().getPlayerClassService();
         if (astPlayer == null || classService == null) {
             sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5814.getId(), player.getName()));
+            return;
+        }
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
+            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5065);
             return;
         }
         AstralRecord.getInstance().getMenuView().openClass(player, astPlayer, classService.getClassViewEntries(astPlayer));

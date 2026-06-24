@@ -17,6 +17,9 @@ public final class SellCommand extends AstCommand {
 
     @Override
     protected void executePlayerCommand(@NotNull AstPlayer player, @NotNull String[] args) {
+        if (!requireGameplayMode(player)) {
+            return;
+        }
         SellService sellService = AstralRecord.getInstance().getSellService();
         if (sellService != null) {
             sellService.open(player.getBukkit());

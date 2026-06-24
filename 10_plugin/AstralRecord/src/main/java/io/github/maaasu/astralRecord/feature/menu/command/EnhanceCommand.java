@@ -21,6 +21,9 @@ public final class EnhanceCommand extends AstCommand {
 
     @Override
     protected void executePlayerCommand(@NotNull AstPlayer player, @NotNull String[] args) {
+        if (!requireGameplayMode(player)) {
+            return;
+        }
         if (args.length > 0) {
             sendUsage(player.getBukkit());
             return;

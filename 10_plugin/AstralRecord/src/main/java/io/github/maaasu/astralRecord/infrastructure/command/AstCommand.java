@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.infrastructure.command;
 
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
@@ -228,6 +229,20 @@ public abstract class AstCommand implements CommandExecutor {
             return false;
         }
         return true;
+    }
+
+    /**
+     * 通常プレイ専用コマンドを実行できる account mode かを確認します。
+     *
+     * @param player コマンド実行者
+     * @return 通常プレイ mode の場合は true
+     */
+    protected boolean requireGameplayMode(@NotNull AstPlayer player) {
+        if (AccountModeGuard.isGameplayPlayer(player)) {
+            return true;
+        }
+        PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5065);
+        return false;
     }
 
     /**

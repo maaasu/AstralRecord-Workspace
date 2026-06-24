@@ -1,9 +1,12 @@
 package io.github.maaasu.astralRecord.feature.inventory.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.inventory.state.InventoryPersistence;
 import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryState;
 import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStateRegistry;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.scheduler.BukkitTask;
@@ -20,6 +23,7 @@ public final class InventoryAutoSaveTask {
     /** 1 tick = 50ms。60 秒は 1200 tick。 */
     public static final long DEFAULT_INTERVAL_TICKS = 60L * 20L;
 
+    private final InventoryService inventoryService;
     private final InventoryPersistence persistence;
     private final PlayerInventoryStateRegistry registry;
     private @org.jetbrains.annotations.Nullable BukkitTask task;
@@ -31,9 +35,11 @@ public final class InventoryAutoSaveTask {
      * @param registry プレイヤー state レジストリ
      */
     public InventoryAutoSaveTask(
+        @NotNull InventoryService inventoryService,
         @NotNull InventoryPersistence persistence,
         @NotNull PlayerInventoryStateRegistry registry
     ) {
+        this.inventoryService = inventoryService;
         this.persistence = persistence;
         this.registry = registry;
     }
@@ -48,9 +54,12 @@ public final class InventoryAutoSaveTask {
         if (task != null) {
             return;
         }
-        task = plugin.getServer().getScheduler().runTaskTimerAsynchronously(
+        task = plugin.getServer().getScheduler().runTaskTimer(
             plugin,
-            this::runSaveAll,
+            () -> {
+                captureToolInventorySnapshots();
+                plugin.getServer().getScheduler().runTaskAsynchronously(plugin, this::runSaveAll);
+            },
             intervalTicks,
             intervalTicks
         );
@@ -79,5 +88,21 @@ public final class InventoryAutoSaveTask {
                 Logger.warn(LogId.W_5252, state.getAccountId(), e.getMessage());
             }
         }
+    }
+
+    private void captureToolInventorySnapshots() {
+        for (AstPlayer astPlayer : AstPlayerCache.getAll()) {
+            try {
+                if (isToolInventoryMode(astPlayer.getAccount().getMode())) {
+                    inventoryService.saveToolInventorySnapshot(astPlayer);
+                }
+            } catch (RuntimeException e) {
+                Logger.warn(LogId.W_5252, astPlayer.getAccount().getUuid(), e.getMessage());
+            }
+        }
+    }
+
+    private boolean isToolInventoryMode(@NotNull AccountMode mode) {
+        return mode == AccountMode.BUILDER || mode == AccountMode.ADMIN;
     }
 }

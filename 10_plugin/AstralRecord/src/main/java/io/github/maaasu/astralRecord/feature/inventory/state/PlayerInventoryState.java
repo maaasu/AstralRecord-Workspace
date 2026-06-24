@@ -12,8 +12,10 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -36,6 +38,8 @@ public final class PlayerInventoryState {
     private final Map<UUID, List<InventoryEntryModel>> entriesByInventoryId = new HashMap<>();
     /** 装備ロードアウト一覧（active 1 件 + 非アクティブ）。 */
     private final List<EquipmentLoadoutModel> loadouts = new ArrayList<>();
+    /** metadataJson の API 保存が必要な inventoryId。 */
+    private final Set<UUID> dirtyMetadataInventoryIds = new HashSet<>();
 
     /** GUI 表示中のインベントリ種別。非永続。 */
     private @NotNull InventoryType displayedType = InventoryType.NORMAL;
@@ -182,10 +186,38 @@ public final class PlayerInventoryState {
                 cached.isDeleted()
             );
             inventories.set(i, updated);
+            dirtyMetadataInventoryIds.add(inventoryId);
             markDirty();
             return updated;
         }
         return null;
+    }
+
+    /**
+     * metadataJson の保存が必要な inventory のスナップショットを返します。
+     *
+     * @return metadataJson が未保存の inventory 一覧
+     */
+    public synchronized @NotNull List<InventoryModel> snapshotDirtyMetadataInventories() {
+        if (dirtyMetadataInventoryIds.isEmpty()) {
+            return List.of();
+        }
+        List<InventoryModel> result = new ArrayList<>();
+        for (InventoryModel inventory : inventories) {
+            if (dirtyMetadataInventoryIds.contains(inventory.getInventoryId())) {
+                result.add(inventory);
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    /**
+     * 指定 inventory の metadataJson dirty 状態を解除します。
+     *
+     * @param inventoryId 保存済みとして扱う inventoryId
+     */
+    public synchronized void clearMetadataDirty(@NotNull UUID inventoryId) {
+        dirtyMetadataInventoryIds.remove(inventoryId);
     }
 
     // ---------------------------------------------------------------

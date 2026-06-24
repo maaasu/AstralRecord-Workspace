@@ -110,6 +110,24 @@ public final class InventoryPersistence {
         boolean allOk = true;
         UUID accountId = state.getAccountId();
         try {
+            for (InventoryModel inventory : state.snapshotDirtyMetadataInventories()) {
+                if (!inventory.isEnabled() || inventory.isDeleted()) {
+                    continue;
+                }
+                try {
+                    InventoryModel updated = inventoryRepository.updateMetadata(
+                        inventory.getInventoryId(),
+                        inventory.getMetadataJson(),
+                        accountId
+                    );
+                    state.putInventory(updated);
+                    state.clearMetadataDirty(inventory.getInventoryId());
+                } catch (RuntimeException e) {
+                    Logger.warn(LogId.W_5252, inventory.getInventoryId(), e.getMessage());
+                    allOk = false;
+                }
+            }
+
             // インベントリ entries 一括置換
             for (InventoryModel inventory : state.snapshotInventories()) {
                 if (!inventory.isEnabled() || inventory.isDeleted()) {

@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.shop.gui.ShopGui;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopDefinition;
@@ -35,6 +36,10 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
     }
 
     public void open(@NotNull Player player, @NotNull String shopId) {
+        if (!AccountModeGuard.isGameplayPlayer(player)) {
+            GuiSound.DENY.play(player);
+            return;
+        }
         ShopDefinition shop = shopService.findById(shopId);
         if (shop == null) {
             GuiSound.DENY.play(player);
@@ -50,6 +55,10 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
             if (shopGui.isListInventory(event.getView().getTopInventory())) {
                 event.setCancelled(true);
                 if (event.getWhoClicked() instanceof Player player) {
+                    if (!AccountModeGuard.isGameplayPlayer(player)) {
+                        player.closeInventory();
+                        return;
+                    }
                     handleListClick(event, player);
                 }
                 return;
@@ -57,6 +66,10 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
             if (shopGui.isConfirmInventory(event.getView().getTopInventory())) {
                 event.setCancelled(true);
                 if (event.getWhoClicked() instanceof Player player) {
+                    if (!AccountModeGuard.isGameplayPlayer(player)) {
+                        player.closeInventory();
+                        return;
+                    }
                     handleConfirmClick(event, player);
                 }
             }
@@ -69,6 +82,10 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
             if (shopGui.isListInventory(event.getView().getTopInventory())
                 || shopGui.isConfirmInventory(event.getView().getTopInventory())) {
                 event.setCancelled(true);
+                if (event.getWhoClicked() instanceof Player player
+                    && !AccountModeGuard.isGameplayPlayer(player)) {
+                    player.closeInventory();
+                }
             }
         }, LogId.E_5200, event.getWhoClicked().getName());
     }

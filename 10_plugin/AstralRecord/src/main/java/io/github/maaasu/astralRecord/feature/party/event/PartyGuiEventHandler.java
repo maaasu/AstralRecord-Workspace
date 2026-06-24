@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.party.gui.PartyMemberActionGui;
 import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.model.PartyActionResult;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
@@ -60,6 +61,10 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
             if (!(event.getWhoClicked() instanceof Player player)) {
                 return;
             }
+            if (!AccountModeGuard.isGameplayPlayer(player)) {
+                player.closeInventory();
+                return;
+            }
             if (isMemberActionGui) {
                 handleMemberActionClick(player, event.getRawSlot());
                 return;
@@ -77,6 +82,10 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
             }
             event.setCancelled(true);
             if (event.getWhoClicked() instanceof Player player) {
+                if (!AccountModeGuard.isGameplayPlayer(player)) {
+                    player.closeInventory();
+                    return;
+                }
                 GuiSound.DENY.play(player);
             }
         }, LogId.E_6100, event.getWhoClicked().getName(), "party_gui_drag");
