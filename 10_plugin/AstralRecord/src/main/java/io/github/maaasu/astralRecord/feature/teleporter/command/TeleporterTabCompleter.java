@@ -30,8 +30,14 @@ public final class TeleporterTabCompleter extends AstTabCompleter {
         if (args.length == 3 && "set".equalsIgnoreCase(args[0])) {
             return List.of("true", "false");
         }
+        if (args.length == 4 && "set".equalsIgnoreCase(args[0])) {
+            return List.of("0", "100", "500", "1000");
+        }
         if (args.length == 2 && "remove".equalsIgnoreCase(args[0])) {
-            return teleporterService.getAll().stream().map(WaystoneDefinition::id).toList();
+            return teleporterService.getAll().stream()
+                    .map(WaystoneDefinition::id)
+                    .sorted(String.CASE_INSENSITIVE_ORDER)
+                    .toList();
         }
         return List.of();
     }

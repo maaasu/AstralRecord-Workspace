@@ -784,7 +784,7 @@ public enum PlayerMsgId {
     P_5947(5947),
     // endregion
 
-    // region /feature/teleporter 5950-5959
+    // region /feature/teleporter 5950-5969
     P_5950(5950),
     P_5951(5951),
     P_5952(5952),
@@ -795,6 +795,9 @@ public enum PlayerMsgId {
     P_5957(5957),
     P_5958(5958),
     P_5959(5959),
+    P_5960(5960),
+    P_5961(5961),
+    P_5962(5962),
     // endregion
 
     ;

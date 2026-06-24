@@ -105,17 +105,14 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <!-- 萓晏ｭ倥Λ繧､繝悶Λ繝ｪ霎ｼ縺ｿ縺ｮJar繧・Paper 繧ｵ繝ｼ繝舌・縺ｮ plugins 繝輔か繝ｫ繝縺ｸ逶ｴ謗･蜃ｺ蜉・-->
                             <outputFile>E:\AstralRecord-Workspace\10_plugin\AstralRecord\dist\${project.artifactId}-${project.version}.jar</outputFile>
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>
                                     <excludes>
-                                        <!-- module-info 縺ｨ MRJAR 縺ｮ蜀・ｮｹ縺ｯ蠑ｷ繧ｫ繝励そ繝ｫ蛹悶ｒ螢翫☆縺溘ａ髯､螟・-->
                                         <exclude>module-info.class</exclude>
                                         <exclude>META-INF/versions/**</exclude>
 
-                                        <!-- 驥崎､・鄂ｲ蜷埼未騾｣縺ｮ META-INF 縺ｯ髯､螟厄ｼ・ber-Jar縺ｧ辟｡諢丞袖 or 遶ｶ蜷医・蜈・ｼ・-->
                                         <exclude>META-INF/MANIFEST.MF</exclude>
                                         <exclude>META-INF/INDEX.LIST</exclude>
                                         <exclude>META-INF/DEPENDENCIES</exclude>
