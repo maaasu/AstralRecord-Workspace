@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemConsumableOnUse;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
@@ -24,14 +25,22 @@ import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWait;
 import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWaitCallbacks;
 import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWaitCancelReason;
 import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWaitService;
+import net.kyori.adventure.title.Title;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
+import org.bukkit.boss.BarColor;
+import org.bukkit.boss.BarStyle;
+import org.bukkit.boss.BossBar;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.time.Duration;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -54,6 +63,12 @@ public final class PotionUseService {
     private static final long DEFAULT_USE_TIME_TICKS = 40L;
     private static final long DEFAULT_COOLDOWN_TICKS = 40L;
     private static final long MILLIS_PER_TICK = 50L;
+    private static final long EFFECT_PERIOD_TICKS = 5L;
+    private static final int RING_POINTS = 8;
+    private static final Title.Times COUNTDOWN_TITLE_TIMES =
+        Title.Times.times(Duration.ZERO, Duration.ofMillis(900L), Duration.ofMillis(120L));
+    private static final Title.Times RESULT_TITLE_TIMES =
+        Title.Times.times(Duration.ZERO, Duration.ofMillis(1400L), Duration.ofMillis(200L));
 
     private final MovementCancelableWaitService movementCancelableWaitService;
     private final InventoryService inventoryService;
@@ -116,12 +131,29 @@ public final class PotionUseService {
             return false;
         }
 
-        PendingPotionUse pending = new PendingPotionUse(astPlayer, hand, model, consumable);
+        long useTimeTicks = resolveUseTimeTicks(consumable);
+        BossBar bossBar = Bukkit.createBossBar(
+            PlayerMsgResource.format(PlayerMsgId.P_5267.getId(), displayItemName(model), secondsRemaining(useTimeTicks, 0L)),
+            BarColor.GREEN,
+            BarStyle.SEGMENTED_20
+        );
+        bossBar.setVisible(true);
+        bossBar.setProgress(0.0D);
+        bossBar.addPlayer(astPlayer.getBukkit());
+
+        PendingPotionUse pending = new PendingPotionUse(astPlayer, hand, model, consumable, useTimeTicks, bossBar);
+        updateUseDisplay(pending, secondsRemaining(useTimeTicks, 0L));
+        playUseStartEffects(astPlayer.getBukkit());
         pendingUses.put(playerId, pending);
         pending.setWait(movementCancelableWaitService.begin(
             astPlayer.getBukkit(),
-            resolveUseTimeTicks(consumable),
+            useTimeTicks,
             new MovementCancelableWaitCallbacks() {
+                @Override
+                public void onTick(long elapsedTicks, double progress) {
+                    tickPendingUse(playerId, pending, elapsedTicks, progress);
+                }
+
                 @Override
                 public void onComplete() {
                     completePendingUse(playerId, pending);
@@ -137,7 +169,7 @@ public final class PotionUseService {
             astPlayer,
             PlayerMsgId.P_5249,
             displayItemName(model),
-            formatTicksAsSeconds(resolveUseTimeTicks(consumable))
+            formatTicksAsSeconds(useTimeTicks)
         );
         return true;
     }
@@ -183,8 +215,17 @@ public final class PotionUseService {
         if (!pendingUses.remove(playerId, pending)) {
             return;
         }
+        cleanupPending(pending);
         if (notify && pending.astPlayer().getBukkit().isOnline()) {
             PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5263);
+            showResultTitle(pending.astPlayer().getBukkit(), PlayerMsgId.P_5270, PlayerMsgId.P_5263);
+            pending.astPlayer().getBukkit().playSound(
+                pending.astPlayer().getBukkit().getLocation(),
+                Sound.BLOCK_BEACON_DEACTIVATE,
+                SoundCategory.PLAYERS,
+                0.55F,
+                1.35F
+            );
         }
     }
 
@@ -192,13 +233,114 @@ public final class PotionUseService {
         if (!pendingUses.remove(playerId, pending)) {
             return;
         }
+        cleanupPending(pending);
         if (!pending.astPlayer().getBukkit().isOnline() || !isStillHolding(pending)) {
             return;
         }
         if (!applyAndConsume(pending)) {
             return;
         }
+        showResultTitle(
+            pending.astPlayer().getBukkit(),
+            PlayerMsgId.P_5268,
+            PlayerMsgId.P_5269,
+            displayItemName(pending.model())
+        );
         startCooldown(playerId, pending.model().getId(), resolveCooldownTicks(pending.consumable()));
+    }
+
+    private void tickPendingUse(
+        @NotNull UUID playerId,
+        @NotNull PendingPotionUse pending,
+        long elapsedTicks,
+        double progress
+    ) {
+        if (pendingUses.get(playerId) != pending) {
+            return;
+        }
+
+        Player player = pending.astPlayer().getBukkit();
+        if (!player.isOnline()) {
+            cancelPendingUse(playerId, false);
+            return;
+        }
+
+        pending.bossBar().setProgress(progress);
+
+        int remainingSeconds = secondsRemaining(pending.useTimeTicks(), elapsedTicks);
+        if (remainingSeconds != pending.lastDisplayedSeconds()) {
+            updateUseDisplay(pending, remainingSeconds);
+        }
+        if (elapsedTicks % EFFECT_PERIOD_TICKS == 0L) {
+            playUseChargeEffects(player, elapsedTicks, progress);
+        }
+    }
+
+    private void cleanupPending(@NotNull PendingPotionUse pending) {
+        pending.astPlayer().getBukkit().resetTitle();
+        pending.bossBar().removeAll();
+        pending.bossBar().setVisible(false);
+    }
+
+    private void updateUseDisplay(@NotNull PendingPotionUse pending, int remainingSeconds) {
+        pending.setLastDisplayedSeconds(remainingSeconds);
+        Player player = pending.astPlayer().getBukkit();
+        player.showTitle(Title.title(
+            PlayerMsgResource.getComponent(PlayerMsgId.P_5265.getId()),
+            PlayerMsgResource.formatComponent(PlayerMsgId.P_5266.getId(), displayItemName(pending.model()), remainingSeconds),
+            COUNTDOWN_TITLE_TIMES
+        ));
+        pending.bossBar().setTitle(PlayerMsgResource.format(
+            PlayerMsgId.P_5267.getId(),
+            displayItemName(pending.model()),
+            remainingSeconds
+        ));
+    }
+
+    private void showResultTitle(
+        @NotNull Player player,
+        @NotNull PlayerMsgId titleId,
+        @NotNull PlayerMsgId subtitleId,
+        Object... args
+    ) {
+        player.showTitle(Title.title(
+            PlayerMsgResource.getComponent(titleId.getId()),
+            PlayerMsgResource.formatComponent(subtitleId.getId(), args),
+            RESULT_TITLE_TIMES
+        ));
+    }
+
+    private void playUseStartEffects(@NotNull Player player) {
+        player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_DRINK, SoundCategory.PLAYERS, 0.7F, 1.0F);
+        playUseChargeEffects(player, 0L, 0.0D);
+    }
+
+    private void playUseChargeEffects(@NotNull Player player, long elapsedTicks, double progress) {
+        Location base = player.getLocation().clone();
+        double radius = 0.55D + (progress * 0.25D) + (Math.sin(elapsedTicks * 0.22D) * 0.04D);
+        for (int index = 0; index < RING_POINTS; index++) {
+            double angle = (elapsedTicks * 0.24D) + ((Math.PI * 2.0D * index) / RING_POINTS);
+            double x = Math.cos(angle) * radius;
+            double z = Math.sin(angle) * radius;
+            double y = 0.85D + (Math.sin(angle + (elapsedTicks * 0.10D)) * 0.12D);
+            particleDisplayService.spawnForNearbyViewers(
+                base.clone().add(x, y, z),
+                SharedParticleDefinitions.POTION_USE_RING_DUST
+            );
+        }
+        particleDisplayService.spawnForNearbyViewers(
+            base.clone().add(0.0D, 1.05D, 0.0D),
+            SharedParticleDefinitions.POTION_USE_ENCHANT
+        );
+        if (elapsedTicks % 10L == 0L) {
+            player.playSound(
+                player.getLocation(),
+                Sound.ENTITY_GENERIC_DRINK,
+                SoundCategory.PLAYERS,
+                0.35F,
+                (float) (1.18D + (progress * 0.24D))
+            );
+        }
     }
 
     private boolean applyAndConsume(@NotNull PendingPotionUse pending) {
@@ -404,23 +546,35 @@ public final class PotionUseService {
         return String.format(Locale.ROOT, "%.1f秒", seconds);
     }
 
+    private static int secondsRemaining(long durationTicks, long elapsedTicks) {
+        long remainingTicks = Math.max(0L, durationTicks - elapsedTicks);
+        return Math.max(1, (int) Math.ceil(remainingTicks / 20.0D));
+    }
+
     private static final class PendingPotionUse {
         private final AstPlayer astPlayer;
         private final EquipmentSlot hand;
         private final ItemModel model;
         private final ItemConsumable consumable;
+        private final long useTimeTicks;
+        private final BossBar bossBar;
+        private int lastDisplayedSeconds = -1;
         private MovementCancelableWait wait;
 
         private PendingPotionUse(
             @NotNull AstPlayer astPlayer,
             @NotNull EquipmentSlot hand,
             @NotNull ItemModel model,
-            @NotNull ItemConsumable consumable
+            @NotNull ItemConsumable consumable,
+            long useTimeTicks,
+            @NotNull BossBar bossBar
         ) {
             this.astPlayer = astPlayer;
             this.hand = hand;
             this.model = model;
             this.consumable = consumable;
+            this.useTimeTicks = useTimeTicks;
+            this.bossBar = bossBar;
         }
 
         private @NotNull AstPlayer astPlayer() {
@@ -437,6 +591,22 @@ public final class PotionUseService {
 
         private @NotNull ItemConsumable consumable() {
             return consumable;
+        }
+
+        private long useTimeTicks() {
+            return useTimeTicks;
+        }
+
+        private @NotNull BossBar bossBar() {
+            return bossBar;
+        }
+
+        private int lastDisplayedSeconds() {
+            return lastDisplayedSeconds;
+        }
+
+        private void setLastDisplayedSeconds(int lastDisplayedSeconds) {
+            this.lastDisplayedSeconds = lastDisplayedSeconds;
         }
 
         private @Nullable MovementCancelableWait waitHandle() {

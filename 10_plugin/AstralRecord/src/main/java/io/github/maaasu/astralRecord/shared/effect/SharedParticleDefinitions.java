@@ -64,6 +64,19 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("base_return_ring_end_rod", Particle.END_ROD, 1, 0.0D, 0.0D, 0.0D, 0.0D);
     public static final SharedParticleDefinition BASE_RETURN_PORTAL =
         new SharedParticleDefinition("base_return_portal", Particle.PORTAL, 10, 0.30D, 0.45D, 0.30D, 0.10D);
+    public static final SharedParticleDefinition POTION_USE_RING_DUST =
+        new SharedParticleDefinition(
+            "potion_use_ring_dust",
+            Particle.DUST,
+            1,
+            0.01D,
+            0.01D,
+            0.01D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(120, 255, 190), 0.85F)
+        );
+    public static final SharedParticleDefinition POTION_USE_ENCHANT =
+        new SharedParticleDefinition("potion_use_enchant", Particle.ENCHANT, 3, 0.24D, 0.28D, 0.24D, 0.02D);
     public static final SharedParticleDefinition SKILLTREE_TARGET_ENCHANT =
         new SharedParticleDefinition("skilltree_target_enchant", Particle.ENCHANT, 2, 0.10D, 0.10D, 0.10D, 0.01D);
     public static final SharedParticleDefinition SKILLTREE_TARGET_LOCKED_DUST =
