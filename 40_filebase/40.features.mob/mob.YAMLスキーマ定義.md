@@ -27,7 +27,7 @@ AI（行動ロジック）もプラグイン独自実装であり、本スキー
 | `name`          | String       | ○  | -         | ゲーム内に表示される名前（色コード利用可能）                                  |
 | `title`         | String       | ×  | Null      | 二つ名・称号（例: `"&0闇の支配者"`）                                  |
 | `level`         | Integer      | ○  | -         | Mobのレベル                                                 |
-| `entityType`    | String       | ○  | -         | Bukkit EntityType（例: `ZOMBIE`）。NPC は Bukkit block Material（例: `CHEST`, `ANVIL`）も指定でき、その場合は fakeblock として表示する |
+| `entityType`    | String       | ○  | -         | Bukkit EntityType（例: `ZOMBIE`）。NPC は Bukkit block Material（例: `BARREL`, `ANVIL`）も指定でき、その場合は配置座標を中心にした fakeblock として表示する。`CHEST` 系は表示用に `BARREL` へ正規化する |
 | `skin`          | Map          | ×  | Null      | エンティティの外見設定（後述。entityType が `PLAYER` の場合に主に使用）          |
 | `variant`       | Map          | ×  | `age: ADULT` | 同一マスタから生まれる実体 Mob の見た目差分を固定する設定 |
 | `nameVisible`   | Boolean      | ×  | true      | ネームタグ表示の有無                                              |

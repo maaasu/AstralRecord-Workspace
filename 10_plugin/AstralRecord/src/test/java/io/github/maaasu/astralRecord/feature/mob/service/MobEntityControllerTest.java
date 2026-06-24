@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.model.MobVariantConfig;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Ageable;
@@ -25,6 +26,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -34,6 +36,39 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 class MobEntityControllerTest extends MockBukkitTestBase {
+
+    @Test
+    void blockDisplayLocationUsesPlacementAsBlockCenter() {
+        var world = server().addSimpleWorld("block_display_world");
+        PluginMock plugin = PluginMock.builder()
+                .withPluginName("AstralRecordTest")
+                .withPluginVersion("1.0.0")
+                .build();
+        MobEntityController controller = new MobEntityController(plugin);
+        Location placement = new Location(world, 10.75D, 64.0D, -3.25D, 90.0F, 0.0F);
+
+        Location displayLocation = controller.blockDisplayLocation(placement);
+
+        assertNotSame(placement, displayLocation);
+        assertEquals(10.25D, displayLocation.getX(), 0.0001D);
+        assertEquals(64.0D, displayLocation.getY(), 0.0001D);
+        assertEquals(-3.75D, displayLocation.getZ(), 0.0001D);
+        assertEquals(90.0F, displayLocation.getYaw(), 0.0001F);
+    }
+
+    @Test
+    void displayBlockMaterialFallsBackForChestFamily() {
+        PluginMock plugin = PluginMock.builder()
+                .withPluginName("AstralRecordTest")
+                .withPluginVersion("1.0.0")
+                .build();
+        MobEntityController controller = new MobEntityController(plugin);
+
+        assertEquals(Material.BARREL, controller.displayBlockMaterial(Material.CHEST));
+        assertEquals(Material.BARREL, controller.displayBlockMaterial(Material.TRAPPED_CHEST));
+        assertEquals(Material.BARREL, controller.displayBlockMaterial(Material.ENDER_CHEST));
+        assertEquals(Material.ANVIL, controller.displayBlockMaterial(Material.ANVIL));
+    }
 
     @Test
     void holdPositionKeepsAnchorWhilePreservingLookDirection() {

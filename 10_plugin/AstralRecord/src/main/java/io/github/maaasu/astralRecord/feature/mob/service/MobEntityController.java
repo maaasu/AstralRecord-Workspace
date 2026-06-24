@@ -44,6 +44,7 @@ public class MobEntityController {
     private static final double PATH_TARGET_DRIFT_DISTANCE_SQ = 2.25D;
     private static final double PATH_STOP_DISTANCE_SQ = 0.36D;
     private static final long PATH_RECOMPUTE_INTERVAL_TICKS = 10L;
+    private static final float BLOCK_DISPLAY_VIEW_RANGE = 64.0F;
 
     private final NamespacedKey instanceIdKey;
     private final NamespacedKey templateIdKey;
@@ -114,7 +115,7 @@ public class MobEntityController {
             return null;
         }
 
-        Location blockLocation = alignedBlockLocation(location);
+        Location blockLocation = blockDisplayLocation(location);
         BlockDisplay display;
         try {
             display = world.spawn(blockLocation, BlockDisplay.class, spawned -> configureBlockDisplay(instance, spawned));
@@ -144,7 +145,11 @@ public class MobEntityController {
         display.customName(null);
         display.setCustomNameVisible(false);
         display.setBillboard(Display.Billboard.FIXED);
-        display.setBlock(template.blockMaterial().createBlockData());
+        display.setViewRange(BLOCK_DISPLAY_VIEW_RANGE);
+        display.setDisplayWidth(1.0F);
+        display.setDisplayHeight(1.0F);
+        display.setBrightness(new Display.Brightness(15, 15));
+        display.setBlock(displayBlockMaterial(template.blockMaterial()).createBlockData());
         display.getPersistentDataContainer().set(instanceIdKey, PersistentDataType.STRING, instance.instanceId().toString());
         display.getPersistentDataContainer().set(templateIdKey, PersistentDataType.STRING, template.id());
     }
@@ -389,15 +394,24 @@ public class MobEntityController {
         }
     }
 
-    private @NotNull Location alignedBlockLocation(@NotNull Location location) {
+    @NotNull
+    Location blockDisplayLocation(@NotNull Location location) {
         return new Location(
                 location.getWorld(),
-                location.getBlockX(),
-                location.getBlockY(),
-                location.getBlockZ(),
+                location.getX() - 0.5D,
+                location.getY(),
+                location.getZ() - 0.5D,
                 location.getYaw(),
                 location.getPitch()
         );
+    }
+
+    @NotNull
+    Material displayBlockMaterial(@NotNull Material material) {
+        return switch (material) {
+            case CHEST, TRAPPED_CHEST, ENDER_CHEST -> Material.BARREL;
+            default -> material;
+        };
     }
 
     /**
