@@ -8,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -79,12 +80,13 @@ public class SkillTreeStructureRepository {
 
         File file = file();
         File parent = file.getParentFile();
-        if (parent != null && !parent.exists()) {
-            parent.mkdirs();
+        if (parent != null && !parent.exists() && !parent.mkdirs()) {
+            throw new IllegalStateException("Failed to create directory: " + parent.getAbsolutePath());
         }
         try {
             yaml.save(file);
-        } catch (IOException ignored) {
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to save " + file.getAbsolutePath(), e);
         }
     }
 

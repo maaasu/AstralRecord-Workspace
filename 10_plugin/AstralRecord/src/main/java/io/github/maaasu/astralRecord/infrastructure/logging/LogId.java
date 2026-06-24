@@ -869,6 +869,7 @@ public enum LogId {
     W_9001(9001),
     W_9002(9002),
     W_9003(9003),
+    E_9004(9004),
     // endregion
 
     // region /feature/gathering/ 9010-9019

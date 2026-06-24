@@ -222,7 +222,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
             service.markViewerContextDirty(event.getPlayer());
             return;
         }
-        service.restoreHotbar(event.getPlayer());
+        service.clearPlayerPresentation(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -251,7 +251,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
         service.restorePlayerVisibility(event.getPlayer());
-        service.restoreHotbar(event.getPlayer());
+        service.clearPlayerPresentation(event.getPlayer());
     }
 
     private void handlePositionItem(@NotNull PlayerInteractEvent event, @NotNull String positionId) {

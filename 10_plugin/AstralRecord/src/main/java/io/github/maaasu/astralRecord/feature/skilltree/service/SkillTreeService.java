@@ -255,7 +255,7 @@ public class SkillTreeService {
             feedbackTask = null;
         }
         for (Player player : Bukkit.getOnlinePlayers()) {
-            restoreHotbar(player);
+            clearPlayerPresentation(player);
         }
         restoreAllPlayerVisibility();
         clearAllLoadingBossBars();
@@ -1020,13 +1020,12 @@ public class SkillTreeService {
         return findTargetedPosition(player).map(position -> nodesByPositionId.get(position.positionId()));
     }
 
-    public void applySkillTreeHotbar(@NotNull Player player) {
-    }
-
-    public void renderSkillTreeHotbar(@NotNull Player player) {
-    }
-
-    public void restoreHotbar(@NotNull Player player) {
+    /**
+     * スキルツリー表示中に使う一時的なプレイヤー表示状態を解除します。
+     *
+     * @param player 表示状態を解除するプレイヤー
+     */
+    public void clearPlayerPresentation(@NotNull Player player) {
         visualReadyAtMillis.remove(player.getUniqueId());
         stopLoadingPresentation(player);
     }
@@ -1043,20 +1042,6 @@ public class SkillTreeService {
                 stopLoadingPresentation(player);
             }
         }
-    }
-
-    /**
-     * スキルツリー中に専用 HOTBAR を使うか判定します。
-     */
-    public boolean shouldUseSkillTreeHotbar(@NotNull Player player) {
-        return false;
-    }
-
-    /**
-     * 専用 HOTBAR の操作を処理します。
-     */
-    public boolean handleSkillTreeHotbarControl(@NotNull Player player, int slot) {
-        return false;
     }
 
     /**
@@ -1221,10 +1206,7 @@ public class SkillTreeService {
     }
 
     public void saveDirty() {
-        if (structureDirty) {
-            structureRepository.save(positionsById.values(), edgesByKey.values());
-            structureDirty = false;
-        }
+        flushStructureDirty();
         for (UUID accountId : List.copyOf(dirtyPlayerStates)) {
             SkillTreePlayerState state = playerStates.get(accountId);
             if (state != null) {
@@ -1241,11 +1223,20 @@ public class SkillTreeService {
      * Bukkit API には触れず、メインスレッドでは保存対象のスナップショット作成だけを行います。
      */
     public void saveDirtyAsync() {
-        if (structureDirty) {
+        flushStructureDirty();
+        flushDirtyPlayerStatesAsync();
+    }
+
+    private void flushStructureDirty() {
+        if (!structureDirty) {
+            return;
+        }
+        try {
             structureRepository.save(positionsById.values(), edgesByKey.values());
             structureDirty = false;
+        } catch (RuntimeException e) {
+            Logger.log(LogId.E_9004, e, e.getMessage());
         }
-        flushDirtyPlayerStatesAsync();
     }
 
     private void flushDirtyPlayerStatesAsync() {

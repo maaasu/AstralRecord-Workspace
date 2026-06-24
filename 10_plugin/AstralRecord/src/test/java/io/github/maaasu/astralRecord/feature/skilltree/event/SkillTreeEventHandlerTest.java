@@ -75,7 +75,6 @@ class SkillTreeEventHandlerTest extends MockBukkitTestBase {
         );
 
         when(service.isPlayerModeSkillTree(player)).thenReturn(true);
-        when(service.shouldUseSkillTreeHotbar(player)).thenReturn(true);
         when(service.isStateReady(astPlayer)).thenReturn(true);
         when(service.findTargetedNode(player)).thenReturn(java.util.Optional.of(node));
         when(service.isNodeUnlocked(astPlayer, node)).thenReturn(true, false);
