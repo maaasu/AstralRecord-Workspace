@@ -23,9 +23,12 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 import java.util.UUID;
 
@@ -45,6 +48,7 @@ public class MobEntityController {
     private static final double PATH_STOP_DISTANCE_SQ = 0.36D;
     private static final long PATH_RECOMPUTE_INTERVAL_TICKS = 10L;
     private static final float BLOCK_DISPLAY_VIEW_RANGE = 64.0F;
+    private static final float BLOCK_DISPLAY_RENDER_Y_OFFSET = 0.35F;
 
     private final NamespacedKey instanceIdKey;
     private final NamespacedKey templateIdKey;
@@ -150,6 +154,7 @@ public class MobEntityController {
         display.setDisplayHeight(1.0F);
         display.setBrightness(new Display.Brightness(15, 15));
         display.setBlock(displayBlockMaterial(template.blockMaterial()).createBlockData());
+        display.setTransformation(blockDisplayTransformation());
         display.getPersistentDataContainer().set(instanceIdKey, PersistentDataType.STRING, instance.instanceId().toString());
         display.getPersistentDataContainer().set(templateIdKey, PersistentDataType.STRING, template.id());
     }
@@ -412,6 +417,16 @@ public class MobEntityController {
             case CHEST, TRAPPED_CHEST, ENDER_CHEST -> Material.BARREL;
             default -> material;
         };
+    }
+
+    @NotNull
+    Transformation blockDisplayTransformation() {
+        return new Transformation(
+                new Vector3f(0.0F, BLOCK_DISPLAY_RENDER_Y_OFFSET, 0.0F),
+                new Quaternionf(),
+                new Vector3f(1.0F, 1.0F, 1.0F),
+                new Quaternionf()
+        );
     }
 
     /**

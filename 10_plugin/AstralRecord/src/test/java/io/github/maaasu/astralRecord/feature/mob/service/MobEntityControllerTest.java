@@ -17,6 +17,7 @@ import org.bukkit.entity.Ageable;
 import org.bukkit.entity.Breedable;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Mob;
+import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.plugin.PluginMock;
@@ -68,6 +69,24 @@ class MobEntityControllerTest extends MockBukkitTestBase {
         assertEquals(Material.BARREL, controller.displayBlockMaterial(Material.TRAPPED_CHEST));
         assertEquals(Material.BARREL, controller.displayBlockMaterial(Material.ENDER_CHEST));
         assertEquals(Material.ANVIL, controller.displayBlockMaterial(Material.ANVIL));
+    }
+
+    @Test
+    void blockDisplayTransformationFitsBlockBelowTextDisplay() {
+        PluginMock plugin = PluginMock.builder()
+                .withPluginName("AstralRecordTest")
+                .withPluginVersion("1.0.0")
+                .build();
+        MobEntityController controller = new MobEntityController(plugin);
+
+        Transformation transformation = controller.blockDisplayTransformation();
+
+        assertEquals(0.0F, transformation.getTranslation().x, 0.0001F);
+        assertEquals(0.35F, transformation.getTranslation().y, 0.0001F);
+        assertEquals(0.0F, transformation.getTranslation().z, 0.0001F);
+        assertEquals(1.0F, transformation.getScale().x, 0.0001F);
+        assertEquals(1.0F, transformation.getScale().y, 0.0001F);
+        assertEquals(1.0F, transformation.getScale().z, 0.0001F);
     }
 
     @Test
