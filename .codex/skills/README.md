@@ -272,6 +272,38 @@ Use $astralrecord-git-worktree-develop to finalize the current task worktree for
 - plugin を触る task でも、`pom.xml` の版番号更新は実装中ではなく finalize 時に行う。
 - rebase / merge conflict が起きた場合は停止し、branch / worktree を残したまま報告する。
 
+## `$astralrecord-merge-codex-branches-develop`
+
+AstralRecord workspace の local `codex/*` branch を監査し、fast-forward 可能な branch だけを `develop` に順次マージする git 運用 skill。
+
+### 使う場面
+
+- 複数の Codex task branch をまとめて local `develop` へ取り込みたい。
+- まず dry-run で、どの `codex/*` branch が merge 可能か確認したい。
+- remote fetch / pull / push を行わず、local branch だけを対象にしたい。
+- 非 fast-forward branch は merge commit にせず、個別 rebase / finalize 対象として残したい。
+
+### 実行例
+
+```text
+Use $astralrecord-merge-codex-branches-develop to audit local codex/* branches for E:\AstralRecord-Workspace and report the result.
+```
+
+```text
+Use $astralrecord-merge-codex-branches-develop to merge all fast-forwardable local codex/* branches into develop for E:\AstralRecord-Workspace and report the result.
+```
+
+```text
+Use $astralrecord-merge-codex-branches-develop to merge fast-forwardable local codex/* branches into develop and delete only successfully merged branches for E:\AstralRecord-Workspace.
+```
+
+### 注意点
+
+- 既定は dry-run。実 merge はユーザーが明示した場合だけ行う。
+- `origin/codex/*` は対象外。remote 状態の更新も行わない。
+- merge commit は既定で作らず、fast-forward できない branch があれば停止または skip 対象として報告する。
+- cleanup は明示指示がある場合だけ行い、成功した local branch だけを削除する。
+
 ## `$astralrecord-plugin-version`
 
 AstralRecord Plugin (`10_plugin/AstralRecord`) の版番号を更新する skill。`pom.xml` の `<version>` を正本として、SemVer ベースの開発版・リリース版・RC/alpha/beta へ更新する。通常の task 運用では、最新版 local `develop` に rebase 済みの finalize 直前 worktree でだけ使う。
