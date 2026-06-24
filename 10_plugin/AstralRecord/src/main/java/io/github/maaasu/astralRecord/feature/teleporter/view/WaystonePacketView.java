@@ -106,8 +106,8 @@ public final class WaystonePacketView {
         Location origin = base.clone().add(0.5D, 0.0D, 0.5D);
         entities.add(packetDisplay.block(origin, Material.DEEPSLATE_BRICKS, new Vector3f(-0.45F, 0.0F, -0.45F), new Vector3f(0.9F, 0.28F, 0.9F)));
         entities.add(packetDisplay.block(origin.clone().add(0.0D, 0.28D, 0.0D), Material.STONE_BRICKS, new Vector3f(-0.35F, 0.0F, -0.35F), new Vector3f(0.7F, 0.9F, 0.7F)));
-        entities.add(packetDisplay.block(origin.clone().add(0.0D, 1.05D, 0.0D), unlocked ? Material.AMETHYST_BLOCK : Material.COPPER_BLOCK, new Vector3f(-0.28F, 0.0F, -0.28F), new Vector3f(0.56F, 0.42F, 0.56F)));
-        entities.add(packetDisplay.block(origin.clone().add(0.0D, 1.45D, 0.0D), unlocked ? Material.SEA_LANTERN : Material.IRON_BARS, new Vector3f(-0.18F, 0.0F, -0.18F), new Vector3f(0.36F, 0.36F, 0.36F)));
+        entities.add(packetDisplay.block(origin.clone().add(0.0D, 1.05D, 0.0D), Material.POLISHED_ANDESITE, new Vector3f(-0.28F, 0.0F, -0.28F), new Vector3f(0.56F, 0.42F, 0.56F)));
+        entities.add(packetDisplay.block(origin.clone().add(0.0D, 1.45D, 0.0D), unlocked ? Material.SEA_LANTERN : Material.REDSTONE_LAMP, new Vector3f(-0.18F, 0.0F, -0.18F), new Vector3f(0.36F, 0.36F, 0.36F)));
         entities.add(packetDisplay.text(origin.clone().add(0.0D, 2.15D, 0.0D), label(definition, unlocked), 0.85F));
         return entities;
     }

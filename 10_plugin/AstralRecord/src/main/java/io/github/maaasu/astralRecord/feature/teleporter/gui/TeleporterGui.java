@@ -27,7 +27,6 @@ public final class TeleporterGui {
     public static final int SIZE = 54;
     public static final int CONTENT_SLOT_COUNT = 45;
     public static final int PREVIOUS_SLOT = 45;
-    public static final int CLOSE_SLOT = 49;
     public static final int NEXT_SLOT = 53;
 
     private final TeleporterService teleporterService;
@@ -51,7 +50,7 @@ public final class TeleporterGui {
         Inventory inventory = Bukkit.createInventory(
                 new Holder(source.id(), normalizedPage, visibleIds),
                 SIZE,
-                Component.text("Teleporter: " + source.name(), NamedTextColor.AQUA)
+                Component.text(source.name(), NamedTextColor.AQUA)
         );
         render(inventory, entries, normalizedPage);
         player.openInventory(inventory);
@@ -113,7 +112,6 @@ public final class TeleporterGui {
         if (hasPreviousPage(pageIndex)) {
             inventory.setItem(PREVIOUS_SLOT, createItem(Material.MAP, Component.text("前のページ", NamedTextColor.WHITE, TextDecoration.BOLD), List.of()));
         }
-        inventory.setItem(CLOSE_SLOT, createItem(Material.BARRIER, Component.text("閉じる", NamedTextColor.RED, TextDecoration.BOLD), List.of()));
         if (hasNextPage(pageIndex, entries.size())) {
             inventory.setItem(NEXT_SLOT, createItem(Material.MAP, Component.text("次のページ", NamedTextColor.WHITE, TextDecoration.BOLD), List.of()));
         }
@@ -127,7 +125,6 @@ public final class TeleporterGui {
                     Material.BEACON,
                     Component.text(definition.name(), NamedTextColor.AQUA),
                     List.of(
-                            Component.text(definition.worldName(), NamedTextColor.GRAY),
                             Component.text("クリックでテレポート", NamedTextColor.GREEN)
                     )
             );

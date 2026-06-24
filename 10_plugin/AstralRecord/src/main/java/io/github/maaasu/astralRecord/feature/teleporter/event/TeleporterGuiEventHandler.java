@@ -111,11 +111,6 @@ public final class TeleporterGuiEventHandler extends AbstractEventHandler {
             return;
         }
         int itemCount = teleporterService.listGuiEntries(astPlayer, source).size();
-        if (rawSlot == TeleporterGui.CLOSE_SLOT) {
-            GuiSound.SELECT.play(player);
-            player.closeInventory();
-            return;
-        }
         if (rawSlot == TeleporterGui.PREVIOUS_SLOT && gui.hasPreviousPage(holder.pageIndex())) {
             GuiSound.SELECT.play(player);
             open(player, astPlayer, source, holder.pageIndex() - 1);
