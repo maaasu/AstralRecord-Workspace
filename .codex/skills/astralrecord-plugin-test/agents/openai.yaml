@@ -1,4 +1,4 @@
 interface:
-  display_name: "AstralRecord Plugin Test"
-  short_description: "Add plugin tests and integration dev-server scaffolding"
-  default_prompt: "Use $astralrecord-plugin-test to add tests, dev server scaffolding, or a live-server-clone integration environment for E:\\AstralRecord-Workspace\\10_plugin\\AstralRecord and report the result."
+  display_name: "AstralRecord プラグインテスト整備"
+  short_description: "プラグインのテスト、検証サーバー、再現基盤を整備する"
+  default_prompt: "$astralrecord-plugin-test を使って、E:\\AstralRecord-Workspace\\10_plugin\\AstralRecord のテストまたは検証基盤を整備し、結果を報告してください。"

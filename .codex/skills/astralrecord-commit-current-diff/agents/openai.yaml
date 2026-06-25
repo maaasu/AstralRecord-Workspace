@@ -1,4 +1,4 @@
 interface:
-  display_name: "AstralRecord Commit Current Diff"
+  display_name: "AstralRecord 現在差分コミット"
   short_description: "現在の branch/worktree の未コミット差分を選別して安全に commit する"
-  default_prompt: "Use $astralrecord-commit-current-diff to commit the current skill changes for E:\\AstralRecord-Workspace\\.codex\\skills and report the result."
+  default_prompt: "$astralrecord-commit-current-diff を使って、E:\\AstralRecord-Workspace\\.codex\\skills の現在差分から今回の作業分だけを commit し、結果を報告してください。"

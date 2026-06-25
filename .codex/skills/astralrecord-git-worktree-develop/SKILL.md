@@ -1,6 +1,6 @@
 ---
 name: astralrecord-git-worktree-develop
-description: AstralRecord workspace で task ごとに専用 branch と git worktree を作成し、そこでの差分を選別して commit し、develop へ rebase / fast-forward merge して、成功時に branch と worktree を片付ける git 運用 skill。plugin 変更がある場合の `pom.xml` 版番号更新は finalize 時に最新 develop へ rebase した後でだけ行う。
+description: AstralRecord workspace で task ごとに専用 branch と git worktree を作成し、そこでの差分を選別して commit し、develop へ rebase / fast-forward merge して、成功時に branch と worktree を片付ける git 運用スキル。プラグイン変更がある場合の `pom.xml` 版番号更新は、finalize 時に最新 develop へ rebase した後でだけ行う。
 ---
 
 # AstralRecord Git Worktree Develop
@@ -126,19 +126,19 @@ Keep the branch and worktree when:
 ## Example Prompts
 
 ```text
-Use $astralrecord-git-worktree-develop to prepare a task branch and worktree for skill changes under E:\AstralRecord-Workspace\.codex\skills and report the branch name and worktree path.
+$astralrecord-git-worktree-develop を使って、E:\AstralRecord-Workspace\.codex\skills の変更用 task branch / worktree を作成し、branch 名と worktree パスを報告してください。
 ```
 
 ```text
-Use $astralrecord-git-worktree-develop to finalize the current task worktree for E:\AstralRecord-Workspace\10_plugin\AstralRecord, merge it into develop, and clean up the task branch and worktree if successful.
+$astralrecord-git-worktree-develop を使って、E:\AstralRecord-Workspace\10_plugin\AstralRecord の現在の task worktree を finalize し、develop へ merge して、成功時は task branch / worktree を cleanup してください。
 ```
 
 ```text
-Use $astralrecord-git-worktree-develop to finalize the current task worktree for E:\AstralRecord-Workspace\.codex\skills, keep the branch and worktree if merge fails, and report the result.
+$astralrecord-git-worktree-develop を使って、E:\AstralRecord-Workspace\.codex\skills の現在の task worktree を finalize し、merge 失敗時は branch / worktree を保持して結果を報告してください。
 ```
 
 ```text
-Use $astralrecord-git-worktree-develop to finalize the current task worktree for E:\AstralRecord-Workspace\10_plugin\AstralRecord after parallel implementation, update the plugin version only after rebasing to develop, and report the result.
+$astralrecord-git-worktree-develop を使って、並列実装後の E:\AstralRecord-Workspace\10_plugin\AstralRecord の task worktree を finalize し、develop へ rebase した後にだけプラグイン版番号を更新して結果を報告してください。
 ```
 
 ## Report Format

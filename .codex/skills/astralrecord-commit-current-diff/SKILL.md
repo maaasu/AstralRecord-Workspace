@@ -1,6 +1,6 @@
 ---
 name: astralrecord-commit-current-diff
-description: AstralRecord workspace の現在の branch / worktree にある未コミット差分を確認し、今回の作業に関係するファイルだけを stage して commit する skill。すでに作業場所が決まっていて branch 作成・worktree 作成・develop への merge ではなく、今いる場所の差分整理とコミットだけを安全に行いたいときに使う。`.codex/skills`、plugin、API、docs、filebase などの差分から不要ファイルやローカル設定を除外して commit したい場合に使う。`develop` 直コミットは明示指示がない限り停止する。
+description: AstralRecord workspace の現在の branch / worktree にある未コミット差分を確認し、今回の作業に関係するファイルだけを stage して commit する。すでに作業場所が決まっており、branch 作成・worktree 作成・develop 反映ではなく、今いる場所の差分整理とコミットだけを安全に行いたい場合に使う。`develop` 直コミットは明示指示がない限り停止する。
 ---
 
 # AstralRecord Commit Current Diff
@@ -69,15 +69,15 @@ Stop before committing if any of the following is true:
 ## Example Prompts
 
 ```text
-Use $astralrecord-commit-current-diff to commit the current skill changes for E:\AstralRecord-Workspace\.codex\skills and report the result.
+$astralrecord-commit-current-diff を使って、E:\AstralRecord-Workspace\.codex\skills の現在の skill 変更だけを commit し、結果を報告してください。
 ```
 
 ```text
-Use $astralrecord-commit-current-diff to commit the current plugin changes for E:\AstralRecord-Workspace\10_plugin\AstralRecord from the current task branch and report the result.
+$astralrecord-commit-current-diff を使って、現在の task branch から E:\AstralRecord-Workspace\10_plugin\AstralRecord の plugin 変更だけを commit し、結果を報告してください。
 ```
 
 ```text
-Use $astralrecord-commit-current-diff to commit the current review-fix changes for E:\AstralRecord-Workspace\00_docs\99_資料\レビュー結果 and report the result.
+$astralrecord-commit-current-diff を使って、E:\AstralRecord-Workspace\00_docs\99_資料\レビュー結果 のレビュー修正差分だけを commit し、結果を報告してください。
 ```
 
 ## Report Format

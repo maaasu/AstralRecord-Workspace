@@ -1,6 +1,6 @@
 ---
 name: astralrecord-code
-description: AstralRecord モノレポ全体のコード変更を実装し、関連する設計書を実装内容と同期する。設計書パスからの実装、docs/spec の実装への移行、plugin/API/Web/database/filebase/resourcepack の挙動変更、実装変更の docs への反映、アイテム ID 変更などの個別実装指示を、ルートガイド・プロジェクト README/AGENTS.md・skill references に従って行いたい場合に使う。
+description: AstralRecord モノレポ全体の実装変更を行い、必要に応じて関連する設計書を実装内容と同期する。設計書パスを入力にした実装、プラグイン/API/Web/DB/filebase/resourcepack の挙動変更、アイテム ID 変更などの個別実装指示を、ルートガイド・各プロジェクトのルール・skill 参照に従って進めたい場合に使う。
 ---
 
 # AstralRecord Code

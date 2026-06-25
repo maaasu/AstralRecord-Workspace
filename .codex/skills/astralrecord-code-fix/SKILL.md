@@ -1,6 +1,6 @@
 ---
 name: astralrecord-code-fix
-description: astralrecord-code-review のレビュー結果に基づき AstralRecord モノレポのソースコードを修正する。code レビュー指摘の修正、レビュー結果の実装への反映、AR-CODE 指摘 ID からのコード更新、plugin/API/Web/database/filebase/resourcepack の指摘解決を、レビュー結果を権威として最小修正で行いたい場合に使う。
+description: astralrecord-code-review のレビュー結果に基づき AstralRecord モノレポのソースコードを修正する。コードレビュー指摘の反映、AR-CODE 指摘 ID からの修正、プラグイン/API/Web/DB/filebase/resourcepack の指摘解決を、レビュー結果を正として最小変更で行いたい場合に使う。
 ---
 
 # AstralRecord Code Fix

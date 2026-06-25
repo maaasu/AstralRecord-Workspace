@@ -1,6 +1,6 @@
 ---
 name: astralrecord-plugin-version
-description: AstralRecord の Minecraft プラグイン `10_plugin/AstralRecord` のバージョン番号を更新する。`pom.xml` の版番号を正本として、機能追加・不具合修正・リリース準備・開発版採番のたびに、一貫した版番号へ更新したい場合に使う。並列 task 運用では、最新版の local develop へ rebase 済みの task worktree で finalize 直前にだけ実行する。
+description: AstralRecord の Minecraft プラグイン `10_plugin/AstralRecord` のバージョン番号を更新する。`pom.xml` の版番号を正本として、機能追加・不具合修正・リリース準備・開発版採番のたびに一貫した版番号へ更新したい場合に使う。並列 task 運用では、最新版の local develop へ rebase 済みの task worktree で finalize 直前にだけ実行する。
 ---
 
 # AstralRecord Plugin Version

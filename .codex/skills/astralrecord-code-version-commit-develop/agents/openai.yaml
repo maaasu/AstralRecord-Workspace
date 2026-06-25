@@ -1,3 +1,4 @@
 interface:
-  display_name: "AstralRecord Code Version Commit Develop"
-  short_description: "Prepare a task worktree, run AstralRecord implementation, and finalize through develop with late plugin versioning"
+  display_name: "AstralRecord 実装から develop 反映"
+  short_description: "task worktree を作成し、実装から develop 反映までを進める"
+  default_prompt: "$astralrecord-code-version-commit-develop を使って、E:\\AstralRecord-Workspace\\<target-path> の変更を task worktree 上で実装し、develop への merge まで行って結果を報告してください。"

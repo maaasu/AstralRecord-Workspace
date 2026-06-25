@@ -1,4 +1,4 @@
 interface:
-  display_name: "AstralRecord Code Review"
+  display_name: "AstralRecord コードレビュー"
   short_description: "AstralRecord のソースコードをレビューする"
-  default_prompt: "Use $astralrecord-code-review to review code for E:\\AstralRecord-Workspace\\10_plugin\\AstralRecord and report the result."
+  default_prompt: "$astralrecord-code-review を使って、E:\\AstralRecord-Workspace\\10_plugin\\AstralRecord のコードをレビューし、結果を報告してください。"

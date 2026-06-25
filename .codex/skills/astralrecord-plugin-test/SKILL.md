@@ -1,6 +1,6 @@
 ---
 name: astralrecord-plugin-test
-description: AstralRecord の Minecraft プラグイン `10_plugin/AstralRecord` 向けに、JUnit / MockBukkit のテスト雛形追加、既存手動確認のテスト化、一時 Purpur/Paper サーバー起動スクリプト整備、実サーバー一式 clone を使う integration 検証基盤整備、AI デバッグ用の最小再現手順作成を行う skill。プラグイン本体の仕様変更ではなく、テスト・検証・再現基盤の整備をしたいときに使う。
+description: AstralRecord の Minecraft プラグイン `10_plugin/AstralRecord` 向けに、JUnit / MockBukkit のテスト雛形追加、既存手動確認のテスト化、一時 Purpur/Paper サーバー起動スクリプト整備、実サーバー一式 clone を使う integration 検証基盤整備、AI デバッグ用の最小再現手順作成を行う。プラグイン本体の仕様変更ではなく、テスト・検証・再現基盤の整備をしたいときに使う。
 ---
 
 # AstralRecord Plugin Test
@@ -129,19 +129,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -File E:\AstralRecord-Workspace\10
 ## Example Prompts
 
 ```text
-Use $astralrecord-plugin-test to add a JUnit and MockBukkit test scaffold for E:\AstralRecord-Workspace\10_plugin\AstralRecord and report the result.
+$astralrecord-plugin-test を使って、E:\AstralRecord-Workspace\10_plugin\AstralRecord に JUnit / MockBukkit のテスト雛形を追加し、結果を報告してください。
 ```
 
 ```text
-Use $astralrecord-plugin-test to turn the manual verification steps for E:\AstralRecord-Workspace\10_plugin\AstralRecord into tests and a temporary Purpur server script, then report the result.
+$astralrecord-plugin-test を使って、E:\AstralRecord-Workspace\10_plugin\AstralRecord の手動確認手順をテストと一時 Purpur サーバースクリプトへ落とし込み、結果を報告してください。
 ```
 
 ```text
-Use $astralrecord-plugin-test to add a MockBukkit test for the inventory feature under E:\AstralRecord-Workspace\10_plugin\AstralRecord and report the result.
+$astralrecord-plugin-test を使って、E:\AstralRecord-Workspace\10_plugin\AstralRecord の inventory feature 向け MockBukkit テストを追加し、結果を報告してください。
 ```
 
 ```text
-Use $astralrecord-plugin-test to prepare an integration dev server by cloning the configured live server package for E:\AstralRecord-Workspace\10_plugin\AstralRecord and report the result.
+$astralrecord-plugin-test を使って、E:\AstralRecord-Workspace\10_plugin\AstralRecord の設定済み動作サーバー一式を clone して integration dev server を準備し、結果を報告してください。
 ```
 
 ## Report Format

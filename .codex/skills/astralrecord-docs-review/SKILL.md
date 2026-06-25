@@ -1,6 +1,6 @@
 ---
 name: astralrecord-docs-review
-description: AstralRecord の設計書をソースコードを読まずにレビューする。docs レビュー、設計仕様レビュー、feature 設計書、Markdown 設計ファイル、Obsidian 形式 docs、00_docs 配下 (10_プラグイン設計書 等) のレビューを行い、設計整合性・不適切なロジック・意図不足・未決事項・文書間矛盾・命名/フォーマットルール・レビュー報告をチェックしたい場合に使う。
+description: AstralRecord の設計書をソースコードを読まずにレビューする。設計仕様、feature 設計書、Markdown 設計ファイル、Obsidian 形式 docs、00_docs 配下の文書について、設計整合性・不適切なロジック・意図不足・未決事項・文書間矛盾・命名/フォーマットルールを確認したい場合に使う。
 ---
 
 # AstralRecord Docs Review

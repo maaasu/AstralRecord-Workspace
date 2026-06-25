@@ -1,3 +1,4 @@
 interface:
-  display_name: "AstralRecord Plugin Version"
-  short_description: "Update the AstralRecord plugin version in pom.xml during rebased finalize or explicit release work"
+  display_name: "AstralRecord プラグイン版番号更新"
+  short_description: "rebase 済み finalize 直前または明示的なリリース作業で pom.xml の版番号を更新する"
+  default_prompt: "$astralrecord-plugin-version を使って、E:\\AstralRecord-Workspace\\10_plugin\\AstralRecord のプラグイン版番号を更新し、結果を報告してください。"

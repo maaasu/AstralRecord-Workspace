@@ -1,6 +1,6 @@
 ---
 name: astralrecord-merge-codex-branches-develop
-description: Git operations skill for AstralRecord workspace that audits and merges local `codex/*` branches into local `develop` one by one. Use when the user wants to batch-merge multiple Codex task branches, inspect which branches are fast-forwardable, execute only explicit safe merges, optionally delete successfully merged local branches, and avoid fetch, pull, push, remote-tracking branches, or default merge commits.
+description: AstralRecord workspace の local `codex/*` branch を監査し、fast-forward 可能な branch だけを local `develop` へ順次 merge する。複数の Codex task branch をまとめて確認・取り込みしたい場合、実行前に merge 可能性を確認したい場合、成功した local branch だけを任意で削除したい場合に使う。fetch / pull / push / remote-tracking branch / 既定の merge commit は扱わない。
 ---
 
 # AstralRecord Merge Codex Branches Develop

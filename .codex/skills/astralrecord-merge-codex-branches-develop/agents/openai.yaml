@@ -1,4 +1,4 @@
 interface:
-  display_name: "Merge Codex Branches"
-  short_description: "Merge all codex branches into develop safely"
-  default_prompt: "Use $astralrecord-merge-codex-branches-develop to audit and merge local codex/* branches into develop for E:\\AstralRecord-Workspace and report the result."
+  display_name: "AstralRecord codex branch 一括反映"
+  short_description: "local codex/* branch を監査し、可能なものだけ develop へ反映する"
+  default_prompt: "$astralrecord-merge-codex-branches-develop を使って、E:\\AstralRecord-Workspace の local codex/* branch を監査し、結果を報告してください。"

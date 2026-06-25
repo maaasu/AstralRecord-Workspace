@@ -1,6 +1,6 @@
 ---
 name: astralrecord-code-version-commit-develop
-description: AstralRecord の実装作業を task ごとの branch / git worktree 上で進め、`$astralrecord-code` で実装し、必要に応じて最後に `$astralrecord-git-worktree-develop` で commit・develop への merge・cleanup まで行う統合スキル。plugin 版番号更新が必要な場合は、最新版 develop へ rebase 済みの finalize 時にだけ実施する。
+description: AstralRecord の実装作業を task ごとの branch / git worktree 上で進め、`$astralrecord-code` による実装と `$astralrecord-git-worktree-develop` による commit・develop 反映・cleanup をつなぐ統合スキル。プラグイン版番号更新が必要な場合は、最新版 develop へ rebase 済みの finalize 時にだけ実施する。
 ---
 
 # AstralRecord Code Version Commit Develop
@@ -51,15 +51,15 @@ If both plugin and non-plugin projects changed in one task, run the plugin versi
 Use prompts equivalent to the following:
 
 ```text
-Use $astralrecord-git-worktree-develop to prepare a task branch and worktree for <absolute-path> and report the branch name and worktree path.
+$astralrecord-git-worktree-develop を使って、<absolute-path> 用の task branch / worktree を作成し、branch 名と worktree パスを報告してください。
 ```
 
 ```text
-Use $astralrecord-code to <implementation task> for <worktree-absolute-path> and report the result.
+$astralrecord-code を使って、<worktree-absolute-path> に対して <implementation task> を行い、結果を報告してください。
 ```
 
 ```text
-Use $astralrecord-git-worktree-develop to finalize the current task worktree for <worktree-absolute-path>, merge it into develop, and clean up the task branch and worktree if successful.
+$astralrecord-git-worktree-develop を使って、<worktree-absolute-path> の現在の task worktree を finalize し、develop へ merge して、成功時は task branch / worktree を cleanup してください。
 ```
 
 When the user did not provide a path but the project is still clear, keep the project context explicit in all steps.
@@ -67,7 +67,7 @@ When the user did not provide a path but the project is still clear, keep the pr
 For delayed merge after parallel work, use a prompt equivalent to:
 
 ```text
-Use $astralrecord-git-worktree-develop to finalize the current task worktree for <worktree-absolute-path> after parallel implementation, update the plugin version only if the rebased branch still changes the plugin deliverable, and report the result.
+$astralrecord-git-worktree-develop を使って、並列実装後の <worktree-absolute-path> の task worktree を finalize し、rebase 後もプラグイン成果物に変更がある場合だけプラグイン版番号を更新して結果を報告してください。
 ```
 
 ## Report Format
@@ -84,13 +84,13 @@ Write the final result in Japanese and merge all executed steps into one report.
 ## Example
 
 ```text
-Use $astralrecord-code-version-commit-develop to implement the requested plugin behavior for E:\AstralRecord-Workspace\10_plugin\AstralRecord and merge the resulting files back into develop through a task worktree with late plugin versioning during finalize.
+$astralrecord-code-version-commit-develop を使って、E:\AstralRecord-Workspace\10_plugin\AstralRecord の依頼されたプラグイン挙動を task worktree 上で実装し、finalize 時のプラグイン版番号更新を含めて develop へ merge してください。
 ```
 
 ```text
-Use $astralrecord-code-version-commit-develop to implement the requested skill change for E:\AstralRecord-Workspace\.codex\skills, skip plugin versioning if the plugin was not touched, and merge the resulting files back into develop through a task worktree.
+$astralrecord-code-version-commit-develop を使って、E:\AstralRecord-Workspace\.codex\skills の依頼された skill 変更を task worktree 上で実装し、プラグイン未変更なら版番号更新を行わず develop へ merge してください。
 ```
 
 ```text
-Use $astralrecord-code-version-commit-develop to implement the requested plugin behavior for E:\AstralRecord-Workspace\10_plugin\AstralRecord in a dedicated task worktree, stop before finalize for parallel execution, and report the branch name and worktree path for later merge.
+$astralrecord-code-version-commit-develop を使って、E:\AstralRecord-Workspace\10_plugin\AstralRecord の依頼されたプラグイン挙動を専用 task worktree で実装し、並列実行のため finalize 前で停止して、後続 merge 用の branch 名と worktree パスを報告してください。
 ```
