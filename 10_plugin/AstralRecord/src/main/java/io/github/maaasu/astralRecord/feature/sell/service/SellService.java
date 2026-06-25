@@ -5,7 +5,6 @@ import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
 import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
-import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
@@ -189,10 +188,21 @@ public final class SellService {
                 return;
             }
             List<ItemStack> allItems = collectAllSellItems(inventory, playerId);
-            boolean returned = returnSellItemsToInventory(player, allItems);
-            discard(player);
-            if (returned) {
-                notifySellReturned(player, allItems);
+            ReturnSellItemsResult result = returnSellItemsToInventory(player, allItems);
+            if (result.failedItems().isEmpty()) {
+                discard(player);
+            } else {
+                List<ItemStack> failedItems = normalizeSellItems(result.failedItems());
+                sellItemsByPlayer.put(playerId, failedItems);
+                sellPageByPlayer.put(playerId, normalizeSellPage(0, failedItems.size()));
+                plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    if (player.isOnline()) {
+                        open(player, 0);
+                    }
+                });
+            }
+            if (!result.returnedItems().isEmpty()) {
+                notifySellReturned(player, result.returnedItems());
             }
             return;
         }
@@ -313,7 +323,7 @@ public final class SellService {
             List<ItemStack> soldItems = normalizeSellItems(currentSellItems);
             long totalSaleValue = totalSaleValue(soldItems);
             AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (!AccountModeGuard.isGameplayPlayer(astPlayer) || !creditGold(astPlayer, totalSaleValue)) {
+            if (!AccountModeGuard.isGameplayPlayer(astPlayer) || !inventoryService.addGold(astPlayer, totalSaleValue)) {
                 GuiSound.DENY.play(player);
                 player.updateInventory();
                 return;
@@ -481,21 +491,34 @@ public final class SellService {
         return Math.max(0, Math.min(pageIndex, totalPages - 1));
     }
 
-    private boolean returnSellItemsToInventory(@NotNull Player player, @NotNull List<ItemStack> items) {
+    private @NotNull ReturnSellItemsResult returnSellItemsToInventory(
+        @NotNull Player player,
+        @NotNull List<ItemStack> items
+    ) {
         if (items.isEmpty()) {
-            return false;
+            return ReturnSellItemsResult.empty();
         }
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) {
-            return false;
+            return new ReturnSellItemsResult(List.of(), new ArrayList<>(items));
         }
+        List<ItemStack> returnedItems = new ArrayList<>();
+        List<ItemStack> failedItems = new ArrayList<>();
         for (ItemStack itemStack : items) {
             if (itemStack == null || itemStack.getType() == Material.AIR) {
                 continue;
             }
-            inventoryService.returnItemToOwnedInventory(astPlayer, itemStack.clone());
+            ItemStack cleanItem = stripTransferDisplayLore(itemStack);
+            ItemModel model = resolveTransferItemModel(cleanItem);
+            if (model == null
+                || !inventoryService.canAddItemToNormalInventory(astPlayer, model, Math.max(1, cleanItem.getAmount()))
+                || inventoryService.returnItemToOwnedInventory(astPlayer, cleanItem.clone()) == null) {
+                failedItems.add(cleanItem);
+                continue;
+            }
+            returnedItems.add(cleanItem);
         }
-        return true;
+        return new ReturnSellItemsResult(returnedItems, failedItems);
     }
 
     private void notifySellCompleted(@NotNull Player player, @NotNull List<ItemStack> items, long totalSaleValue) {
@@ -702,27 +725,6 @@ public final class SellService {
         return transferItemResolver.resolveItemModel(resolveTransferReference(itemStack));
     }
 
-    private boolean creditGold(@NotNull AstPlayer astPlayer, long amount) {
-        if (amount <= 0L) {
-            return true;
-        }
-        ItemModel gold = plugin.getItemService().loadItem(ItemService.DEFAULT_CURRENCY_ITEM_ID);
-        if (gold == null) {
-            return false;
-        }
-        long remaining = amount;
-        while (remaining > 0L) {
-            int chunk = (int) Math.min(Integer.MAX_VALUE, remaining);
-            ItemStack goldStack = plugin.getItemStackFactory().create(gold);
-            goldStack.setAmount(chunk);
-            if (inventoryService.returnItemToOwnedInventory(astPlayer, goldStack) == null) {
-                return false;
-            }
-            remaining -= chunk;
-        }
-        return true;
-    }
-
     private @NotNull ItemStack stripTransferDisplayLore(@NotNull ItemStack itemStack) {
         ItemStack cleaned = itemStack.clone();
         ItemMeta meta = cleaned.getItemMeta();
@@ -784,5 +786,14 @@ public final class SellService {
     private void discard(@NotNull Player player) {
         sellItemsByPlayer.remove(player.getUniqueId());
         sellPageByPlayer.remove(player.getUniqueId());
+    }
+
+    private record ReturnSellItemsResult(
+        @NotNull List<ItemStack> returnedItems,
+        @NotNull List<ItemStack> failedItems
+    ) {
+        private static @NotNull ReturnSellItemsResult empty() {
+            return new ReturnSellItemsResult(List.of(), List.of());
+        }
     }
 }
