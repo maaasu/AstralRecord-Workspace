@@ -97,3 +97,6 @@ For direct requests such as `表示アイテムを apple から iron_ingot に�
 2. Do not call World#spawnParticle(...) or Player#spawnParticle(...) directly in feature code.
 3. Shared particle species, aliases, and default visual parameters must be defined in io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions.
 4. Do not duplicate Particle.valueOf(...) parsing in feature code; use the shared resolver.
+5. Recurring particle tasks must have bounded cadence, point count, and viewer scans. Avoid per-tick or near-per-tick always-on effects unless there is an explicit profiling-backed reason.
+6. When a recurring effect renders multiple points for the same center, batch nearby-viewer resolution through ParticleDisplayService instead of calling spawnForNearbyViewers once per point.
+7. Skip recurring particle work for worlds or centers that have no possible viewers, and keep packet count proportional to visible players rather than loaded worlds.

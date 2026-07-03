@@ -8,13 +8,16 @@ import org.bukkit.World;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * 各ワールドの既定スポーン地点に END_ROD の周回パーティクルを表示するタスクです。
  */
 public class WorldSpawnParticleTask {
 
-    private static final long PERIOD_TICKS = 2L;
-    private static final int RING_POINTS = 10;
+    private static final long PERIOD_TICKS = 10L;
+    private static final int RING_POINTS = 6;
 
     private final AstralRecord plugin;
     private final WorldService worldService;
@@ -71,21 +74,24 @@ public class WorldSpawnParticleTask {
 
     private void renderSpawnAnimation(@NotNull Location spawn, double baseAngle) {
         World world = spawn.getWorld();
-        if (world == null) {
+        if (world == null || world.getPlayers().isEmpty()) {
             return;
         }
 
         double pulse = 1.5D + (Math.sin(baseAngle * 0.65D) * 0.12D);
+        List<Location> ringLocations = new ArrayList<>(RING_POINTS);
         for (int i = 0; i < RING_POINTS; i++) {
             double angle = baseAngle + ((Math.PI * 2.0D * i) / RING_POINTS);
             double x = Math.cos(angle) * pulse;
             double z = Math.sin(angle) * pulse;
             double y = 1.15D + (Math.sin((baseAngle * 1.4D) + (i * 0.45D)) * 0.25D);
 
-            particleDisplayService.spawnForNearbyViewers(
-                spawn.clone().add(x, y, z),
-                SharedParticleDefinitions.WORLD_SPAWN_RING_END_ROD
-            );
+            ringLocations.add(spawn.clone().add(x, y, z));
         }
+        particleDisplayService.spawnForNearbyViewers(
+            spawn,
+            ringLocations,
+            SharedParticleDefinitions.WORLD_SPAWN_RING_END_ROD
+        );
     }
 }

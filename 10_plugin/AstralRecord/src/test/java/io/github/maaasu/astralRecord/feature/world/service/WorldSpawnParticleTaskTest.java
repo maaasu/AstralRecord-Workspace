@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.model.WorldSpawnLocation;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
 import org.junit.jupiter.api.Test;
@@ -12,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.Method;
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -63,8 +64,10 @@ class WorldSpawnParticleTaskTest extends MockBukkitTestBase {
                 "hidden"
         );
 
-        Location visibleSpawn = new Location(server().addSimpleWorld("visible-world"), 0.5D, 64.0D, 0.5D);
+        var visibleBukkitWorld = server().addSimpleWorld("visible-world");
+        Location visibleSpawn = new Location(visibleBukkitWorld, 0.5D, 64.0D, 0.5D);
         Location hiddenSpawn = new Location(server().addSimpleWorld("hidden-world"), 10.5D, 70.0D, 10.5D);
+        server().addPlayer().teleport(visibleSpawn);
         when(worldService.getAll()).thenReturn(List.of(visibleWorld, hiddenWorld));
         when(worldService.resolveSpawnLocation(visibleWorld)).thenReturn(visibleSpawn);
         when(worldService.resolveSpawnLocation(hiddenWorld)).thenReturn(hiddenSpawn);
@@ -76,6 +79,10 @@ class WorldSpawnParticleTaskTest extends MockBukkitTestBase {
 
         verify(worldService).resolveSpawnLocation(eq(visibleWorld));
         verify(worldService, never()).resolveSpawnLocation(eq(hiddenWorld));
-        verify(particleDisplayService, times(10)).spawnForNearbyViewers(any(Location.class), any());
+        verify(particleDisplayService, times(1)).spawnForNearbyViewers(
+                eq(visibleSpawn),
+                argThat(locations -> locations.size() == 6),
+                eq(SharedParticleDefinitions.WORLD_SPAWN_RING_END_ROD)
+        );
     }
 }

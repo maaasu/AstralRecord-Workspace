@@ -11,6 +11,8 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collection;
+
 /**
  * パーティクル表示の共通サービスです。
  */
@@ -279,10 +281,7 @@ public class ParticleDisplayService {
         @Nullable T data
     ) {
         int count = resolveCount(baseCount, playerDensityScale);
-        if (count <= 0) {
-            return;
-        }
-        viewer.spawnParticle(particle, location, count, offsetX, offsetY, offsetZ, extra, data);
+        spawnForViewerResolvedCount(viewer, location, particle, count, offsetX, offsetY, offsetZ, extra, data);
     }
 
     public void spawnForNearbyViewers(
@@ -336,6 +335,67 @@ public class ParticleDisplayService {
         }
     }
 
+    /**
+     * 複数地点のパーティクルを 1 回の近傍判定で表示します。
+     *
+     * @param center 近傍判定の中心
+     * @param locations 表示対象地点
+     * @param definition 表示するパーティクル定義
+     */
+    public void spawnForNearbyViewers(
+        @NotNull Location center,
+        @NotNull Collection<Location> locations,
+        @NotNull SharedParticleDefinition definition
+    ) {
+        if (locations.isEmpty()) {
+            return;
+        }
+        spawnForNearbyViewers(
+            center,
+            locations,
+            definition.particle(),
+            definition.count(),
+            definition.offsetX(),
+            definition.offsetY(),
+            definition.offsetZ(),
+            definition.extra(),
+            definition.data()
+        );
+    }
+
+    private <T> void spawnForNearbyViewers(
+        @NotNull Location center,
+        @NotNull Collection<Location> locations,
+        @NotNull Particle particle,
+        int baseCount,
+        double offsetX,
+        double offsetY,
+        double offsetZ,
+        double extra,
+        @Nullable T data
+    ) {
+        if (locations.isEmpty()) {
+            return;
+        }
+        World world = center.getWorld();
+        if (world == null) {
+            return;
+        }
+
+        for (Player viewer : world.getPlayers()) {
+            if (viewer.getLocation().distanceSquared(center) > DEFAULT_VIEWER_DISTANCE_SQUARED) {
+                continue;
+            }
+            int count = resolveCount(baseCount, resolvePlayerDensityScale(viewer));
+            if (count <= 0) {
+                continue;
+            }
+            for (Location location : locations) {
+                spawnForViewerResolvedCount(viewer, location, particle, count, offsetX, offsetY, offsetZ, extra, data);
+            }
+        }
+    }
+
     private double resolvePlayerDensityScale(@NotNull AstPlayer astPlayer) {
         if (playerSettingService == null) {
             return ParticleDensity.NORMAL.getDensityScale();
@@ -358,5 +418,22 @@ public class ParticleDisplayService {
         double pluginDensity = Math.max(0.0D, PLUGIN_PARTICLE_DENSITY_SCALE);
         double effectiveDensity = pluginDensity * Math.max(0.0D, playerDensityScale);
         return Math.max(0, (int) Math.round(baseCount * effectiveDensity));
+    }
+
+    private <T> void spawnForViewerResolvedCount(
+        @NotNull Player viewer,
+        @NotNull Location location,
+        @NotNull Particle particle,
+        int count,
+        double offsetX,
+        double offsetY,
+        double offsetZ,
+        double extra,
+        @Nullable T data
+    ) {
+        if (count <= 0) {
+            return;
+        }
+        viewer.spawnParticle(particle, location, count, offsetX, offsetY, offsetZ, extra, data);
     }
 }
