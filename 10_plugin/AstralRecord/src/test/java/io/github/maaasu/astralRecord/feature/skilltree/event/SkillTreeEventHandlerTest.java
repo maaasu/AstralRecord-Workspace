@@ -104,4 +104,21 @@ class SkillTreeEventHandlerTest extends MockBukkitTestBase {
 
         verify(service).markViewerContextDirty(player);
     }
+
+    @Test
+    void adminRotationOnlyDoesNotRefreshSkillTreeVisuals() {
+        SkillTreeService service = mock(SkillTreeService.class);
+        SkillTreeEventHandler handler = new SkillTreeEventHandler(service);
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        when(astPlayer.getBukkit()).thenReturn(player);
+        AstPlayerCache.put(astPlayer);
+        when(service.isAdminMode(astPlayer)).thenReturn(true);
+
+        Location from = new Location(player.getWorld(), 0.0D, 64.0D, 0.0D, 0.0F, 0.0F);
+        Location to = new Location(player.getWorld(), 0.0D, 64.0D, 0.0D, 90.0F, 20.0F);
+        handler.onPlayerMove(new PlayerMoveEvent(player, from, to));
+
+        verify(service, never()).markViewerContextDirty(player);
+    }
 }

@@ -31,6 +31,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -45,6 +46,8 @@ public class WorldService {
 
     private final WorldRepository repository;
     private final Map<String, WorldMasterData> loadedWorlds = new LinkedHashMap<>();
+    private final Map<String, org.bukkit.World> resolvedBukkitWorldsById = new LinkedHashMap<>();
+    private final Map<UUID, WorldMasterData> worldDataByBukkitWorldId = new LinkedHashMap<>();
 
     /**
      * WorldService を初期化します。
@@ -65,6 +68,7 @@ public class WorldService {
                 .sorted(Comparator.comparing(WorldMasterData::id))
                 .toList();
         loadedWorlds.clear();
+        clearWorldResolutionCaches();
         for (WorldMasterData world : worlds) {
             loadedWorlds.put(world.id(), world);
         }
@@ -124,10 +128,22 @@ public class WorldService {
      * @return ロード済みワールド。未ロード時は {@code null}
      */
     @Nullable
-    public org.bukkit.World resolveLoadedWorld(@NotNull WorldMasterData data) {
+    public synchronized org.bukkit.World resolveLoadedWorld(@NotNull WorldMasterData data) {
+        org.bukkit.World cached = resolvedBukkitWorldsById.get(data.id());
+        if (cached != null) {
+            org.bukkit.World stillLoaded = Bukkit.getWorld(cached.getUID());
+            if (stillLoaded != null) {
+                cacheResolvedWorld(data, stillLoaded);
+                return stillLoaded;
+            }
+            resolvedBukkitWorldsById.remove(data.id());
+            worldDataByBukkitWorldId.remove(cached.getUID());
+        }
+
         for (String candidate : baseWorldNameCandidates(data)) {
             org.bukkit.World world = Bukkit.getWorld(candidate);
             if (world != null) {
+                cacheResolvedWorld(data, world);
                 return world;
             }
         }
@@ -135,11 +151,16 @@ public class WorldService {
         for (File baseWorldFolder : resolveWorldFolderCandidates(normalizeWorldPath(data.baseWorldPath()))) {
             for (org.bukkit.World world : Bukkit.getWorlds()) {
                 if (sameFile(world.getWorldFolder(), baseWorldFolder)) {
+                    cacheResolvedWorld(data, world);
                     return world;
                 }
             }
         }
-        return Bukkit.getWorld(data.id());
+        org.bukkit.World world = Bukkit.getWorld(data.id());
+        if (world != null) {
+            cacheResolvedWorld(data, world);
+        }
+        return world;
     }
 
     /**
@@ -150,13 +171,29 @@ public class WorldService {
      */
     @Nullable
     public synchronized WorldMasterData findByBukkitWorld(@NotNull org.bukkit.World world) {
+        WorldMasterData cached = worldDataByBukkitWorldId.get(world.getUID());
+        if (cached != null && loadedWorlds.containsKey(cached.id())) {
+            return cached;
+        }
+
         for (WorldMasterData data : loadedWorlds.values()) {
             org.bukkit.World loaded = resolveLoadedWorld(data);
             if (loaded != null && loaded.getUID().equals(world.getUID())) {
+                cacheResolvedWorld(data, loaded);
                 return data;
             }
         }
         return null;
+    }
+
+    private void cacheResolvedWorld(@NotNull WorldMasterData data, @NotNull org.bukkit.World world) {
+        resolvedBukkitWorldsById.put(data.id(), world);
+        worldDataByBukkitWorldId.put(world.getUID(), data);
+    }
+
+    private void clearWorldResolutionCaches() {
+        resolvedBukkitWorldsById.clear();
+        worldDataByBukkitWorldId.clear();
     }
 
     /**

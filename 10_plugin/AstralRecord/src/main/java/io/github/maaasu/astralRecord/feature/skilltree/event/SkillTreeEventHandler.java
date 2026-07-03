@@ -235,9 +235,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
         if (from.getWorld() != to.getWorld()
                 || Double.compare(from.getX(), to.getX()) != 0
                 || Double.compare(from.getY(), to.getY()) != 0
-                || Double.compare(from.getZ(), to.getZ()) != 0
-                || Float.compare(from.getYaw(), to.getYaw()) != 0
-                || Float.compare(from.getPitch(), to.getPitch()) != 0) {
+                || Double.compare(from.getZ(), to.getZ()) != 0) {
             service.markViewerContextDirty(event.getPlayer());
         }
     }
