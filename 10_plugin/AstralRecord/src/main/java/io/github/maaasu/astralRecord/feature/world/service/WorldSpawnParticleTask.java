@@ -16,7 +16,7 @@ import java.util.List;
  */
 public class WorldSpawnParticleTask {
 
-    private static final long PERIOD_TICKS = 10L;
+    private static final long PERIOD_TICKS = 5L;
     private static final int RING_POINTS = 6;
 
     private final AstralRecord plugin;
