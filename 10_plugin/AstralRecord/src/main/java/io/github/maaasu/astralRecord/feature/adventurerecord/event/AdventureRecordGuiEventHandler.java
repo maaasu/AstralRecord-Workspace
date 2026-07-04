@@ -4,7 +4,6 @@ import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.adventurerecord.gui.AdventureRecordGui;
 import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureRecordListType;
 import io.github.maaasu.astralRecord.feature.adventurerecord.service.AdventureRecordService;
-import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
@@ -12,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.Material;
@@ -203,22 +203,8 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
         if (!(event.getClickedInventory() instanceof PlayerInventory)) {
             return false;
         }
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) {
-            GuiSound.DENY.play(player);
-            return true;
-        }
         int slot = event.getSlot();
-        if (slot >= 0 && slot <= 8
-            && inventoryService.getClickGuard().tryAcquire(astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.HOTBAR_SHORTCUT)) {
-            boolean handled = inventoryService.handleHotbarShortcutClick(astPlayer, slot);
-            if (handled) {
-                if (slot != 4) {
-                    GuiSound.SELECT.play(player);
-                }
-            } else {
-                GuiSound.DENY.play(player);
-            }
+        if (slot >= 0 && slot <= 8 && HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
             return true;
         }
         if (gui.getScreen(topInventory) != AdventureRecordGui.Screen.SEARCH) {

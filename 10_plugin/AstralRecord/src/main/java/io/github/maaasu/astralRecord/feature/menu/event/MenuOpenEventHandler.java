@@ -27,6 +27,8 @@ import io.github.maaasu.astralRecord.feature.storage.service.StorageService;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.world.service.ReturnToBaseService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -40,7 +42,6 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -351,32 +352,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     }
 
     private boolean handleMenuHotbarShortcutClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
-        if (!(event.getClickedInventory() instanceof PlayerInventory)) {
-            return false;
-        }
-        int slot = event.getSlot();
-        if (slot < 0 || slot > 8) {
-            return false;
-        }
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null || !inventoryService.isHotbarShortcutMode(astPlayer)) {
-            return false;
-        }
-
-        event.setCancelled(true);
-        if (!inventoryService.getClickGuard().tryAcquire(
-                astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.HOTBAR_SHORTCUT)) {
-            return true;
-        }
-        boolean handled = inventoryService.handleHotbarShortcutClick(astPlayer, slot);
-        if (handled) {
-            if (slot != 4) {
-                GuiSound.SELECT.play(player);
-            }
-        } else {
-            GuiSound.DENY.play(player);
-        }
-        return true;
+        return HotbarShortcutClickSupport.handle(event, player, inventoryService);
     }
 
     private void handleMainMenuClick(@NotNull Player player, int rawSlot) {
@@ -807,35 +783,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     }
 
     private boolean isHotbarShortcutGui(@NotNull Inventory openedInventory) {
-        if (menuView.isMenuInventory(openedInventory)) {
-            return true;
-        }
-        PlayerSettingGui playerSettingGui = plugin.getPlayerSettingGui();
-        if (playerSettingGui != null && playerSettingGui.isInventory(openedInventory)) {
-            return true;
-        }
-        var partyGui = plugin.getPartyGui();
-        if (partyGui != null && partyGui.isInventory(openedInventory)) {
-            return true;
-        }
-        var playerListGui = plugin.getPlayerListGui();
-        if (playerListGui != null && playerListGui.isInventory(openedInventory)) {
-            return true;
-        }
-        var playerDetailGui = plugin.getPlayerDetailGui();
-        if (playerDetailGui != null && playerDetailGui.isInventory(openedInventory)) {
-            return true;
-        }
-        var mailGuiEventHandler = plugin.getMailGuiEventHandler();
-        if (mailGuiEventHandler != null && mailGuiEventHandler.isInventory(openedInventory)) {
-            return true;
-        }
-        var adventureRecordGuiEventHandler = plugin.getAdventureRecordGuiEventHandler();
-        if (adventureRecordGuiEventHandler != null && adventureRecordGuiEventHandler.isInventory(openedInventory)) {
-            return true;
-        }
-        var loginBonusService = plugin.getLoginBonusService();
-        return loginBonusService != null && loginBonusService.getGui().isLoginBonusInventory(openedInventory);
+        return HotbarShortcutGuiSupport.isManagedGui(openedInventory);
     }
 
     private void switchGuiWithoutInventoryReload(@NotNull Player player, @NotNull Runnable opener) {

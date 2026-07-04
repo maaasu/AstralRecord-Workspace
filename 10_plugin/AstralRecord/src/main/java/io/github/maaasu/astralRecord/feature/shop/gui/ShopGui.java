@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.shop.model.ShopPurchasePreview;
 import io.github.maaasu.astralRecord.feature.shop.service.ShopService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -303,14 +304,14 @@ public final class ShopGui {
         }
     }
 
-    public record ListHolder(@NotNull String shopId) implements InventoryHolder {
+    public record ListHolder(@NotNull String shopId) implements HotbarShortcutGuiHolder {
         @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, LIST_SIZE);
         }
     }
 
-    public record ConfirmHolder(@NotNull String shopId, @NotNull String entryId, int quantity) implements InventoryHolder {
+    public record ConfirmHolder(@NotNull String shopId, @NotNull String entryId, int quantity) implements HotbarShortcutGuiHolder {
         @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, CONFIRM_SIZE);

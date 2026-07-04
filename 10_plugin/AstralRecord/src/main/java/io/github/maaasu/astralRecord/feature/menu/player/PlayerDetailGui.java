@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -190,7 +191,7 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         @NotNull UUID targetId,
         @NotNull PlayerListBackTarget backTarget,
         int returnPage
-    ) implements InventoryHolder {
+    ) implements HotbarShortcutGuiHolder {
         @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, SIZE);

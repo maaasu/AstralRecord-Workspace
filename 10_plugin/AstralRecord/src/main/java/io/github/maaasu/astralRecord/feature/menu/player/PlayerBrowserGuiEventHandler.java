@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.menu.player;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
@@ -14,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -38,6 +40,7 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
     private final PartyService partyService;
     private final StatusService statusService;
     private final MenuView menuView;
+    private final InventoryService inventoryService;
 
     public PlayerBrowserGuiEventHandler(
         @NotNull AstralRecord plugin,
@@ -45,7 +48,8 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         @NotNull PlayerDetailGui playerDetailGui,
         @NotNull PartyService partyService,
         @NotNull StatusService statusService,
-        @NotNull MenuView menuView
+        @NotNull MenuView menuView,
+        @NotNull InventoryService inventoryService
     ) {
         this.plugin = plugin;
         this.playerListGui = playerListGui;
@@ -53,6 +57,7 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         this.partyService = partyService;
         this.statusService = statusService;
         this.menuView = menuView;
+        this.inventoryService = inventoryService;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -61,6 +66,9 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
             if (playerListGui.isInventory(event.getView().getTopInventory())) {
                 event.setCancelled(true);
                 if (event.getWhoClicked() instanceof Player player) {
+                    if (HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
+                        return;
+                    }
                     handlePlayerListClick(player, event.getRawSlot(), event.getView().getTopInventory());
                 }
                 return;
@@ -70,6 +78,9 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
             }
             event.setCancelled(true);
             if (event.getWhoClicked() instanceof Player player) {
+                if (HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
+                    return;
+                }
                 handlePlayerDetailClick(player, event.getRawSlot(), event.getView().getTopInventory());
             }
         }, LogId.E_5600, event.getWhoClicked().getName(), "player_browser_gui_click");

@@ -1,15 +1,15 @@
 package io.github.maaasu.astralRecord.feature.menu.view;
 
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Bukkit インベントリをメニュー画面として識別するための Holder。
  */
-public record MenuInventoryHolder(MenuScreen screen, int shortcutSlotIndex, int pageIndex) implements InventoryHolder {
+public record MenuInventoryHolder(MenuScreen screen, int shortcutSlotIndex, int pageIndex) implements HotbarShortcutGuiHolder {
     MenuInventoryHolder(@NotNull MenuScreen screen) {
         this(screen, -1, 0);
     }

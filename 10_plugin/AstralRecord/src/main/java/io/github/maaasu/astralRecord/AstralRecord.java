@@ -25,8 +25,8 @@ import io.github.maaasu.astralRecord.feature.gathering.spawner.repository.Gather
 import io.github.maaasu.astralRecord.feature.gathering.spawner.service.GatheringSpawnerService;
 import io.github.maaasu.astralRecord.shared.gui.debug.PagingDebugGui;
 import io.github.maaasu.astralRecord.shared.gui.debug.event.PagingDebugGuiEventHandler;
-import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWaitService;
 import io.github.maaasu.astralRecord.shared.gui.event.GuiClickCooldownEventHandler;
+import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWaitService;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.item.event.ItemInteractionBlockEventHandler;
 import io.github.maaasu.astralRecord.feature.item.event.ItemAdminGuiEventHandler;
@@ -892,7 +892,8 @@ public final class AstralRecord extends JavaPlugin {
             playerDetailGui,
             partyService,
             statusService,
-            menuView
+            menuView,
+            inventoryService
         );
         eventManager.registerHandler(
             playerBrowserGuiEventHandler,
@@ -1015,7 +1016,14 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new PartyGuiEventHandler(partyGui, partyMemberActionGui, partyService, menuView, playerBrowserGuiEventHandler),
+            new PartyGuiEventHandler(
+                partyGui,
+                partyMemberActionGui,
+                partyService,
+                menuView,
+                playerBrowserGuiEventHandler,
+                inventoryService
+            ),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

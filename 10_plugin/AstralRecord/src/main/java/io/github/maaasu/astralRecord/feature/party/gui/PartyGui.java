@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView
 import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.model.PartyInvite;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -229,7 +230,7 @@ public final class PartyGui extends BaseMenuScreenView {
         @NotNull UUID viewerId,
         @NotNull List<UUID> inviteLeaderIds,
         @NotNull List<UUID> partyMembers
-    ) implements InventoryHolder {
+    ) implements HotbarShortcutGuiHolder {
         private Holder {
             inviteLeaderIds = List.copyOf(inviteLeaderIds);
             partyMembers = List.copyOf(partyMembers);

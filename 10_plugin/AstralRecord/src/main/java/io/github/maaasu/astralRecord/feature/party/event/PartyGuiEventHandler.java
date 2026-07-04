@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.party.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.player.PlayerBrowserGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
@@ -14,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -34,19 +36,22 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
     private final PartyService partyService;
     private final MenuView menuView;
     private final PlayerBrowserGuiEventHandler playerBrowserGuiEventHandler;
+    private final InventoryService inventoryService;
 
     public PartyGuiEventHandler(
         @NotNull PartyGui gui,
         @NotNull PartyMemberActionGui memberActionGui,
         @NotNull PartyService partyService,
         @NotNull MenuView menuView,
-        @NotNull PlayerBrowserGuiEventHandler playerBrowserGuiEventHandler
+        @NotNull PlayerBrowserGuiEventHandler playerBrowserGuiEventHandler,
+        @NotNull InventoryService inventoryService
     ) {
         this.gui = gui;
         this.memberActionGui = memberActionGui;
         this.partyService = partyService;
         this.menuView = menuView;
         this.playerBrowserGuiEventHandler = playerBrowserGuiEventHandler;
+        this.inventoryService = inventoryService;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -63,6 +68,9 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
             }
             if (!AccountModeGuard.isGameplayPlayer(player)) {
                 player.closeInventory();
+                return;
+            }
+            if (HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
                 return;
             }
             if (isMemberActionGui) {

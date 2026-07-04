@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.loginbonus.view;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.RewardDisplayFormatter;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -253,7 +254,7 @@ public final class LoginBonusGui {
         return JAPANESE_WEEKDAYS[dayOfWeek.getValue() - 1];
     }
 
-    public record Holder(@NotNull YearMonth displayMonth) implements InventoryHolder {
+    public record Holder(@NotNull YearMonth displayMonth) implements HotbarShortcutGuiHolder {
         @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, SIZE);

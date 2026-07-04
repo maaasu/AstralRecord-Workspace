@@ -1,7 +1,6 @@
 package io.github.maaasu.astralRecord.feature.shop.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
-import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
@@ -11,13 +10,13 @@ import io.github.maaasu.astralRecord.feature.shop.model.ShopDefinition;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopEntry;
 import io.github.maaasu.astralRecord.feature.shop.service.ShopService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.NotNull;
 
 public final class ShopGuiEventHandler extends AbstractEventHandler {
@@ -161,31 +160,6 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
     }
 
     private boolean handleHotbarShortcutClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
-        if (!(event.getClickedInventory() instanceof PlayerInventory)) {
-            return false;
-        }
-        int slot = event.getSlot();
-        if (slot < 0 || slot > 8) {
-            return false;
-        }
-        var astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null || !inventoryService.isHotbarShortcutMode(astPlayer)) {
-            return false;
-        }
-        if (!inventoryService.getClickGuard().tryAcquire(
-            astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.HOTBAR_SHORTCUT)) {
-            return true;
-        }
-        boolean handled = inventoryService.handleHotbarShortcutClick(astPlayer, slot);
-        if (handled) {
-            if (slot == 4) {
-                GuiSound.CLOSE.play(player);
-            } else {
-                GuiSound.SELECT.play(player);
-            }
-        } else {
-            GuiSound.DENY.play(player);
-        }
-        return true;
+        return HotbarShortcutClickSupport.handle(event, player, inventoryService);
     }
 }

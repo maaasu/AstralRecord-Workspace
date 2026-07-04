@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.party.gui;
 
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -92,7 +93,7 @@ public final class PartyMemberActionGui extends BaseMenuScreenView {
         return itemStack;
     }
 
-    private record Holder(@NotNull UUID targetId) implements InventoryHolder {
+    private record Holder(@NotNull UUID targetId) implements HotbarShortcutGuiHolder {
         @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, SIZE);

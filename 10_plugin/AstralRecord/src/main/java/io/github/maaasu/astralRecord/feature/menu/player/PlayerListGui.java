@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.menu.player;
 
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -200,7 +201,7 @@ public final class PlayerListGui {
         @NotNull PlayerListBackTarget backTarget,
         int pageIndex,
         @NotNull List<UUID> playerIds
-    ) implements InventoryHolder {
+    ) implements HotbarShortcutGuiHolder {
         private Holder {
             playerIds = List.copyOf(playerIds);
         }

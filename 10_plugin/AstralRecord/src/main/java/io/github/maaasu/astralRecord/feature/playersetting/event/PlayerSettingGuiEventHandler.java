@@ -1,11 +1,9 @@
 package io.github.maaasu.astralRecord.feature.playersetting.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
-import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
-import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -16,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingCh
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKey;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -24,7 +23,6 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.EnumMap;
@@ -104,37 +102,7 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
     }
 
     private boolean handleHotbarShortcutClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
-        if (!(event.getClickedInventory() instanceof PlayerInventory)) {
-            return false;
-        }
-        int slot = event.getSlot();
-        if (slot < 0 || slot > 8) {
-            return false;
-        }
-
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null || !inventoryService.isHotbarShortcutMode(astPlayer)) {
-            return false;
-        }
-
-        event.setCancelled(true);
-        if (!inventoryService.getClickGuard().tryAcquire(
-            astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.HOTBAR_SHORTCUT
-        )) {
-            return true;
-        }
-
-        boolean handled = inventoryService.handleHotbarShortcutClick(astPlayer, slot);
-        if (handled) {
-            if (slot == 4) {
-                GuiSound.CLOSE.play(player);
-            } else {
-                GuiSound.SELECT.play(player);
-            }
-        } else {
-            GuiSound.DENY.play(player);
-        }
-        return true;
+        return HotbarShortcutClickSupport.handle(event, player, inventoryService);
     }
 
     private void handleClick(@NotNull Player player, int rawSlot) {

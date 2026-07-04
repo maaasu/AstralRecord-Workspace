@@ -21,6 +21,7 @@ After applying README rules, verify:
 8. Logs and player messages are not written inline; use the specialized rules below when touching them.
 9. Public externally-called methods include Japanese JavaDoc/KDoc covering arguments, return value, exceptions, and preconditions.
 10. Legacy color code handling must use the plugin shared definition `io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil`; do not use `org.bukkit.ChatColor` in plugin code.
+11. GUI の共通挙動は各 GUI に重複実装せず shared 側へ寄せる。ホットバーの閉じるアイコン / インベントリ切替を使う GUI は `io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder` と `HotbarShortcutClickSupport` を使い、GUI ごとの個別 open/click/close 分岐を増やさない。
 
 ## Language Selection
 

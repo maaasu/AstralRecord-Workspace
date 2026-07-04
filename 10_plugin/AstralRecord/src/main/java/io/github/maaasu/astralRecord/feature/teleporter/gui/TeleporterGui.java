@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.teleporter.model.WaystoneDefinition
 import io.github.maaasu.astralRecord.feature.teleporter.service.TeleporterService;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -158,7 +159,7 @@ public final class TeleporterGui {
     public record Entry(@NotNull WaystoneDefinition definition, boolean unlocked) {
     }
 
-    public record Holder(@NotNull String sourceWaystoneId, int pageIndex, @NotNull List<String> visibleWaystoneIds) implements InventoryHolder {
+    public record Holder(@NotNull String sourceWaystoneId, int pageIndex, @NotNull List<String> visibleWaystoneIds) implements HotbarShortcutGuiHolder {
         @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, SIZE);

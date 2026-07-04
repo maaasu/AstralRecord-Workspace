@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.playersetting.model.ParticleDensity
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKey;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingSnapshot;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -138,7 +139,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
         );
     }
 
-    private record Holder(@NotNull UUID userId) implements InventoryHolder {
+    private record Holder(@NotNull UUID userId) implements HotbarShortcutGuiHolder {
         @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, SIZE);
