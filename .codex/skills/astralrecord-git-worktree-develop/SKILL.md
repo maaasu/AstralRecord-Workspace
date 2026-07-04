@@ -20,6 +20,8 @@ This skill supports two modes.
 - Prepare mode: create a task branch and a dedicated worktree from local `develop`, then report the branch name and worktree path for follow-up work.
 - Finalize mode: from an existing task worktree, inspect the diff, commit the implementation changes, rebase onto `develop`, run plugin versioning only when needed on the rebased worktree, fast-forward merge into `develop`, and remove the task worktree and branch when safe.
 
+This skill manages one requested task branch/worktree at a time. For historical cleanup of already merged `codex/*` branches, stale worktree metadata, or leftover task worktrees outside the current finalize target, hand off to `$astralrecord-prune-codex-worktrees`.
+
 If the request is ambiguous, infer the mode from the wording:
 
 - `prepare`, `start`, `create branch`, `create worktree` -> Prepare mode
@@ -72,6 +74,7 @@ If the request is ambiguous, infer the mode from the wording:
    - Stop immediately.
    - Do not delete the branch or worktree.
    - Report the failure and keep the rebased worktree for follow-up.
+9. After a successful finalize, if the user also asked to prune older merged `codex/*` branches or leftover task worktrees, run `$astralrecord-prune-codex-worktrees` as a separate follow-up cleanup step.
 
 ## Safety Checks
 
@@ -123,6 +126,8 @@ Keep the branch and worktree when:
 - The user asked to keep the task workspace for review or later edits.
 - The post-rebase plugin version update could not be completed cleanly.
 
+This skill's own cleanup scope ends at the current task branch/worktree. Use `$astralrecord-prune-codex-worktrees` for accumulated cross-task cleanup.
+
 ## Example Prompts
 
 ```text
@@ -139,6 +144,10 @@ $astralrecord-git-worktree-develop を使って、E:\AstralRecord-Workspace\.cod
 
 ```text
 $astralrecord-git-worktree-develop を使って、並列実装後の E:\AstralRecord-Workspace\10_plugin\AstralRecord の task worktree を finalize し、develop へ rebase した後にだけプラグイン版番号を更新して結果を報告してください。
+```
+
+```text
+$astralrecord-git-worktree-develop を使って、E:\AstralRecord-Workspace\.codex\skills の現在の task worktree を finalize し、その後に不要な codex/* branch / task worktree の掃除が必要なら $astralrecord-prune-codex-worktrees に引き継いでください。
 ```
 
 ## Report Format

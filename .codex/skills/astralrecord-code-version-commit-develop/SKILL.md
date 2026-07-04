@@ -18,6 +18,7 @@ Do not redefine implementation, plugin versioning, or git workflow rules in this
 5. If the user wants parallel execution, stop after implementation and hand off the prepared worktree to a later `$astralrecord-git-worktree-develop` finalize call.
 6. Keep the commit scope limited to the files changed by the implementation and, when finalize later adds it, the version-update file.
 7. Keep the commit message format from `E:\AstralRecord-Workspace\COMMIT_RULES.md`.
+8. If the user also wants accumulated merged `codex/*` residues cleaned after finalize, delegate that last step to `$astralrecord-prune-codex-worktrees` instead of extending `$astralrecord-git-worktree-develop` beyond the current task.
 
 ## Workflow
 
@@ -33,6 +34,7 @@ Do not redefine implementation, plugin versioning, or git workflow rules in this
    - Parallel flow or delayed merge: stop here and report the branch / worktree for later finalize.
 7. In either execution style, do not invoke `$astralrecord-plugin-version` from this skill before the rebase. If plugin files changed, `$astralrecord-git-worktree-develop` will decide and run the version step during finalize.
 8. If Prepare mode cannot create the worktree, or Finalize mode stops because of dirty `develop`, branch collision, or rebase / merge conflicts, stop there and report that condition instead of inventing a different flow.
+9. If finalize succeeds and the user requested broader cleanup of old merged task branches/worktrees, run `$astralrecord-prune-codex-worktrees` as the final optional maintenance step.
 
 ## Version Update Decision
 
@@ -64,6 +66,10 @@ $astralrecord-code を使って、<worktree-absolute-path> に対して <impleme
 
 ```text
 $astralrecord-git-worktree-develop を使って、<worktree-absolute-path> の現在の task worktree を finalize し、develop へ merge して、成功時は task branch / worktree を cleanup してください。
+```
+
+```text
+$astralrecord-prune-codex-worktrees を使って、E:\AstralRecord-Workspace の不要な codex/* branch と task worktree を dry-run 監査し、必要なら execute で掃除してください。
 ```
 
 When the user did not provide a path but the project is still clear, keep the project context explicit in all steps.

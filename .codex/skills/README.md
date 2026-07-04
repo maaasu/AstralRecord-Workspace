@@ -23,6 +23,7 @@
 3. 作業が終わったら `$astralrecord-git-worktree-develop` で commit、rebase、develop への fast-forward merge、cleanup を行う。
 4. 複数 task を並列で進めた場合は、最後に 1 件ずつ finalize する。
 5. プラグインの版番号更新は並列作業中に行わず、finalize 時に最新 `develop` へ rebase した後だけ行う。
+6. merged 済み `codex/*` branch や不要な task worktree が溜まったら、`$astralrecord-prune-codex-worktrees` で dry-run 監査してから掃除する。
 
 1 回の依頼で worktree 作成から develop への merge まで進めたい場合は、統合入口として `$astralrecord-code-version-commit-develop` を使います。
 
@@ -49,6 +50,7 @@ $<skill-name> を使って、<absolute-path> に対して <task> を行い、結
 | 設計書レビュー指摘の修正 | `$astralrecord-docs-fix` | docs だけを編集する |
 | 現在の branch/worktree の差分だけ commit | `$astralrecord-commit-current-diff` | branch 作成や merge はしない |
 | 複数の `codex/*` branch をまとめて監査・merge | `$astralrecord-merge-codex-branches-develop` | 既定は dry-run |
+| merged 済み `codex/*` branch / task worktree を掃除 | `$astralrecord-prune-codex-worktrees` | 既定は dry-run、未登録ディレクトリは手動確認 |
 | 本番向け filebase マスタ追加 | `$astralrecord-master-data-author` | コンセプト・ステータス・命名方針と YAML スキーマに沿って追加 |
 | プラグインのテスト・検証基盤整備 | `$astralrecord-plugin-test` | 機能仕様変更は `$astralrecord-code` を使う |
 | プラグイン版番号更新 | `$astralrecord-plugin-version` | finalize 直前の rebased worktree で使う |
@@ -148,6 +150,16 @@ local の `codex/*` branch を監査し、fast-forward 可能な branch だけ�
 - 複数の Codex task branch をまとめて local `develop` へ取り込みたい。
 - まず dry-run で merge 可能性を確認したい。
 - fast-forward できない branch を個別 rebase / finalize 対象として残したい。
+
+### `$astralrecord-prune-codex-worktrees`
+
+local `develop` へ取り込み済みの `codex/*` branch、不要になった task worktree、stale worktree metadata を dry-run 既定で監査し、安全な候補だけを掃除します。
+
+使う場面:
+
+- 複数 task の finalize 後に、merged 済み branch / worktree の残骸を整理したい。
+- `git worktree list` に残っている欠損パスや stale metadata を prune したい。
+- 削除前に、dirty worktree や未 merge branch を保持したまま安全な削除候補だけ見たい。
 
 ## 専用補助 Skill
 
