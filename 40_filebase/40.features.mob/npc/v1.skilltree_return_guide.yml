@@ -1,0 +1,38 @@
+schemaVersion: 1
+id: skilltree_return_guide
+type: MOB
+category: NPC
+name: "&d帰還案内人"
+title: "&7Return Guide"
+level: 1
+entityType: PLAYER
+nameVisible: true
+damageImmune: true
+icon: ENDER_PEARL
+lore:
+  - "&7星の拠点へ戻るための案内 NPC。"
+  - "&7右クリックでスキルツリーから帰還できる。"
+tags:
+  - npc
+  - skilltree
+  - return
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&d帰還案内人&7: 右クリックで星の拠点へ戻れます。"
+  rightClick:
+    - id: command
+      params:
+        command: "skilltree back"

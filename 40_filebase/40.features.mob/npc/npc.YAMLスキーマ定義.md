@@ -25,7 +25,7 @@ block Material の場合は `BlockDisplay` による fakeblock として表示�
 
 | キー | 型 | 必須 | 説明 |
 |:--|:--|:--:|:--|
-| `id` | String | yes | アクション ID。現在は `message` / `gui` をサポート |
+| `id` | String | yes | アクション ID。現在は `message` / `gui` / `command` をサポート |
 | `params` | Map<String, String> | - | アクションごとの追加パラメータ |
 
 ### サポートされるアクション
@@ -34,6 +34,7 @@ block Material の場合は `BlockDisplay` による fakeblock として表示�
 |:--|:--|:--|
 | `message` | `message` | チャットメッセージを送信する |
 | `gui` | `type`, `shopId` | GUI を開く。`SHOP` は `shopId` 必須、`SELL` は売却 GUI、`CLASS` は職業選択 GUI、`STORAGE` はストレージ GUI、`EQUIPMENT_ENHANCE` は装備強化 GUI |
+| `command` | `command` | プレイヤーとしてコマンドを実行する。先頭の `/` はあってもなくてもよい |
 
 ---
 

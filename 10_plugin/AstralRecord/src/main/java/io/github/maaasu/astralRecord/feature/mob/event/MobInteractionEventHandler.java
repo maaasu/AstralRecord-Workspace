@@ -165,6 +165,7 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
         switch (action.id().toLowerCase(Locale.ROOT)) {
             case "message" -> sendMessage(player, action);
             case "gui" -> openGui(player, action);
+            case "command" -> executeCommand(player, action);
             default -> GuiSound.DENY.play(player);
         }
     }
@@ -229,5 +230,21 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
         MenuGuiTransitionService.suppressNextCloseSound(player);
         equipmentEnhancementService.open(player);
         GuiSound.OPEN.play(player);
+    }
+
+    private void executeCommand(@NotNull Player player, @NotNull MobInteractionActionConfig action) {
+        String command = action.params().get("command");
+        if (command == null || command.isBlank()) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+
+        String normalized = command.trim();
+        if (normalized.startsWith("/")) {
+            normalized = normalized.substring(1).trim();
+        }
+        if (normalized.isEmpty() || !player.performCommand(normalized)) {
+            GuiSound.DENY.play(player);
+        }
     }
 }
