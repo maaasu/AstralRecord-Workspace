@@ -153,6 +153,21 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("player_level_up_totem", Particle.TOTEM_OF_UNDYING, 54, 0.7D, 1.1D, 0.7D, 0.08D);
     public static final SharedParticleDefinition PLAYER_LEVEL_UP_END_ROD =
         new SharedParticleDefinition("player_level_up_end_rod", Particle.END_ROD, 36, 0.55D, 1.0D, 0.55D, 0.04D);
+    public static final SharedParticleDefinition TELEPORTER_UNLOCK_RING_END_ROD =
+        new SharedParticleDefinition("teleporter_unlock_ring_end_rod", Particle.END_ROD, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+    public static final SharedParticleDefinition TELEPORTER_UNLOCK_ENCHANT =
+        new SharedParticleDefinition("teleporter_unlock_enchant", Particle.ENCHANT, 18, 0.34D, 0.42D, 0.34D, 0.04D);
+    public static final SharedParticleDefinition TELEPORTER_UNLOCK_DUST =
+        new SharedParticleDefinition(
+            "teleporter_unlock_dust",
+            Particle.DUST,
+            14,
+            0.24D,
+            0.32D,
+            0.24D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(110, 240, 255), 0.95F)
+        );
 
     private static final Map<String, Particle> PARTICLES = buildParticleMap();
 

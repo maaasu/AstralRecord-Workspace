@@ -548,7 +548,7 @@ public final class AstralRecord extends JavaPlugin {
         teleporterGui = new TeleporterGui(teleporterService);
         teleporterGuiEventHandler = new TeleporterGuiEventHandler(teleporterGui, teleporterService, inventoryService);
         waystoneHitBoxResolver = new WaystoneHitBoxResolver(teleporterService);
-        teleporterService.setRuntimeServices(inventoryService, worldService, waystonePacketView, teleporterGui, teleporterGuiEventHandler);
+        teleporterService.setRuntimeServices(inventoryService, worldService, waystonePacketView, teleporterGui, teleporterGuiEventHandler, particleDisplayService);
         overworldTeleportService = new OverworldTeleportService(this, worldService);
         overworldTeleportGui = new OverworldTeleportGui();
         overworldTeleportGuiEventHandler = new OverworldTeleportGuiEventHandler(this, overworldTeleportGui, overworldTeleportService);

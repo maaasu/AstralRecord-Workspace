@@ -13,8 +13,12 @@ import io.github.maaasu.astralRecord.feature.teleporter.view.WaystonePacketView;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -41,6 +45,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class TeleporterService {
     private static final DateTimeFormatter ID_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss").withZone(ZoneOffset.UTC);
+    private static final int UNLOCK_RING_POINTS = 10;
+    private static final double UNLOCK_RING_RADIUS = 0.85D;
 
     private final Plugin plugin;
     private final WaystoneDefinitionRepository definitionRepository;
@@ -54,6 +60,7 @@ public final class TeleporterService {
     private @Nullable WaystonePacketView packetView;
     private @Nullable TeleporterGui gui;
     private @Nullable io.github.maaasu.astralRecord.feature.teleporter.event.TeleporterGuiEventHandler guiEventHandler;
+    private @Nullable ParticleDisplayService particleDisplayService;
 
     public TeleporterService(
             @NotNull Plugin plugin,
@@ -67,19 +74,28 @@ public final class TeleporterService {
 
     /**
      * 実行時依存サービスを設定します。
+     *
+     * @param inventoryService 所持金消費と保存に使うインベントリサービス
+     * @param worldService テレポート処理に使うワールドサービス
+     * @param packetView ウェイストーン packet 表示同期ビュー
+     * @param gui テレポーター GUI
+     * @param guiEventHandler GUI の開閉とクリック処理を担当するイベントハンドラ
+     * @param particleDisplayService 解除成功演出の共通パーティクル表示サービス
      */
     public void setRuntimeServices(
             @NotNull InventoryService inventoryService,
             @NotNull WorldService worldService,
             @NotNull WaystonePacketView packetView,
             @NotNull TeleporterGui gui,
-            @NotNull io.github.maaasu.astralRecord.feature.teleporter.event.TeleporterGuiEventHandler guiEventHandler
+            @NotNull io.github.maaasu.astralRecord.feature.teleporter.event.TeleporterGuiEventHandler guiEventHandler,
+            @NotNull ParticleDisplayService particleDisplayService
     ) {
         this.inventoryService = inventoryService;
         this.worldService = worldService;
         this.packetView = packetView;
         this.gui = gui;
         this.guiEventHandler = guiEventHandler;
+        this.particleDisplayService = particleDisplayService;
     }
 
     /**
@@ -288,6 +304,7 @@ public final class TeleporterService {
                         unlockStatesByAccount.put(accountId, current.withUnlocked(definition.id()));
                         PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5952, definition.name());
                         syncView(player);
+                        playUnlockEffects(player, definition);
                     } finally {
                         unlocksInProgress.remove(unlockKey);
                     }
@@ -382,6 +399,38 @@ public final class TeleporterService {
 
     private boolean isUnlockStateLoaded(@NotNull AstPlayer astPlayer) {
         return unlockStatesByAccount.containsKey(astPlayer.getAccount().getUuid());
+    }
+
+    private void playUnlockEffects(@NotNull Player player, @NotNull WaystoneDefinition definition) {
+        Location center = definition.centerLocation();
+        if (center == null || center.getWorld() == null) {
+            playUnlockSounds(player.getLocation());
+            return;
+        }
+
+        ParticleDisplayService particleService = particleDisplayService;
+        if (particleService != null) {
+            List<Location> ringLocations = new ArrayList<>(UNLOCK_RING_POINTS);
+            for (int index = 0; index < UNLOCK_RING_POINTS; index++) {
+                double angle = (Math.PI * 2.0D * index) / UNLOCK_RING_POINTS;
+                double x = Math.cos(angle) * UNLOCK_RING_RADIUS;
+                double z = Math.sin(angle) * UNLOCK_RING_RADIUS;
+                ringLocations.add(center.clone().add(x, -0.55D, z));
+            }
+            particleService.spawnForNearbyViewers(center, ringLocations, SharedParticleDefinitions.TELEPORTER_UNLOCK_RING_END_ROD);
+            particleService.spawnForNearbyViewers(center.clone().add(0.0D, 0.2D, 0.0D), SharedParticleDefinitions.TELEPORTER_UNLOCK_ENCHANT);
+            particleService.spawnForNearbyViewers(center.clone().add(0.0D, 0.05D, 0.0D), SharedParticleDefinitions.TELEPORTER_UNLOCK_DUST);
+        }
+
+        playUnlockSounds(center);
+    }
+
+    private void playUnlockSounds(@NotNull Location location) {
+        if (location.getWorld() == null) {
+            return;
+        }
+        location.getWorld().playSound(location, Sound.BLOCK_BEACON_ACTIVATE, SoundCategory.PLAYERS, 0.65F, 1.18F);
+        location.getWorld().playSound(location, Sound.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.PLAYERS, 0.55F, 1.7F);
     }
 
     private record UnlockKey(@NotNull UUID accountId, @NotNull String waystoneId) {
