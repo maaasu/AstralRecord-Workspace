@@ -623,7 +623,7 @@ public class MobAiService {
                 || internalTick % BLOCK_NPC_PARTICLE_INTERVAL_TICKS != 0L) {
             return;
         }
-        Location location = instance.currentLocation().add(0.5D, 0.65D, 0.5D);
+        Location location = instance.currentLocation().add(0.0D, 0.65D, 0.0D);
         if (location.getWorld() == null) {
             return;
         }

@@ -611,11 +611,19 @@ public class MobService {
         }
         for (int i = 0; i < input.length(); i++) {
             char ch = input.charAt(i);
-            if (!Character.isLetterOrDigit(ch) && ch != '_' && ch != '-') {
+            if (!isAsciiTemplateIdChar(ch)) {
                 return false;
             }
         }
         return true;
+    }
+
+    private boolean isAsciiTemplateIdChar(char ch) {
+        return (ch >= 'a' && ch <= 'z')
+                || (ch >= 'A' && ch <= 'Z')
+                || (ch >= '0' && ch <= '9')
+                || ch == '_'
+                || ch == '-';
     }
 
     @Nullable
@@ -653,12 +661,12 @@ public class MobService {
             @NotNull Vector direction,
             @NotNull Location blockLocation
     ) {
-        double minX = blockLocation.getX();
+        double minX = blockLocation.getX() - 0.5D;
         double minY = blockLocation.getY();
-        double minZ = blockLocation.getZ();
-        double maxX = minX + 1.0D;
+        double minZ = blockLocation.getZ() - 0.5D;
+        double maxX = blockLocation.getX() + 0.5D;
         double maxY = minY + 1.0D;
-        double maxZ = minZ + 1.0D;
+        double maxZ = blockLocation.getZ() + 0.5D;
 
         double tMin = 0.0D;
         double tMax = Double.POSITIVE_INFINITY;

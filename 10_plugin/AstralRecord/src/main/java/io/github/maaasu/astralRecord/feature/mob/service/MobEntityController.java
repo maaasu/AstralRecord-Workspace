@@ -48,7 +48,7 @@ public class MobEntityController {
     private static final double PATH_STOP_DISTANCE_SQ = 0.36D;
     private static final long PATH_RECOMPUTE_INTERVAL_TICKS = 10L;
     private static final float BLOCK_DISPLAY_VIEW_RANGE = 64.0F;
-    private static final float BLOCK_DISPLAY_RENDER_Y_OFFSET = 0.35F;
+    private static final float BLOCK_DISPLAY_RENDER_XZ_OFFSET = -0.5F;
 
     private final NamespacedKey instanceIdKey;
     private final NamespacedKey templateIdKey;
@@ -401,14 +401,7 @@ public class MobEntityController {
 
     @NotNull
     Location blockDisplayLocation(@NotNull Location location) {
-        return new Location(
-                location.getWorld(),
-                location.getX() - 0.5D,
-                location.getY(),
-                location.getZ() - 0.5D,
-                location.getYaw(),
-                location.getPitch()
-        );
+        return location.clone();
     }
 
     @NotNull
@@ -422,7 +415,7 @@ public class MobEntityController {
     @NotNull
     Transformation blockDisplayTransformation() {
         return new Transformation(
-                new Vector3f(0.0F, BLOCK_DISPLAY_RENDER_Y_OFFSET, 0.0F),
+                new Vector3f(BLOCK_DISPLAY_RENDER_XZ_OFFSET, 0.0F, BLOCK_DISPLAY_RENDER_XZ_OFFSET),
                 new Quaternionf(),
                 new Vector3f(1.0F, 1.0F, 1.0F),
                 new Quaternionf()

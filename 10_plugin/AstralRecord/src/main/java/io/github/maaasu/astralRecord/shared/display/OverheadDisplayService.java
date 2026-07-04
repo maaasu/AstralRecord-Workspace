@@ -202,7 +202,7 @@ public class OverheadDisplayService {
         if (instance.template().blockMaterial() == null) {
             return DisplayAnchor.entity(entity, overheadOffset(entity, MOB_TEXT_OFFSET));
         }
-        return DisplayAnchor.fixed(instance.currentLocation().add(0.5D, 1.35D, 0.5D));
+        return DisplayAnchor.fixed(instance.currentLocation().add(0.0D, 1.35D, 0.0D));
     }
 
     private Entity resolveMobEntity(@NotNull MobInstance instance) {
