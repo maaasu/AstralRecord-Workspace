@@ -330,7 +330,10 @@ public class MobService {
         }
 
         instances.put(instanceId, instance);
-        instanceByEntity.put(entity.getUniqueId(), instanceId);
+        trackEntity(instance.instanceId(), entity.getUniqueId());
+        if (instance.displayEntityId() != null) {
+            trackEntity(instance.instanceId(), instance.displayEntityId());
+        }
         viewers.put(instanceId, new HashSet<>());
         updateViewers(instance);
 
@@ -350,9 +353,8 @@ public class MobService {
 
         playerSkinPacketService.remove(instance);
         viewers.remove(instanceId);
-        if (instance.bukkitEntityId() != null) {
-            instanceByEntity.remove(instance.bukkitEntityId());
-        }
+        untrackEntity(instance.bukkitEntityId());
+        untrackEntity(instance.displayEntityId());
         entityController.remove(instance);
         Logger.log(LogId.D_5702, instanceId);
         return true;
@@ -670,7 +672,7 @@ public class MobService {
         double minX = blockLocation.getX() - 0.5D;
         double minY = blockLocation.getY();
         double minZ = blockLocation.getZ() - 0.5D;
-        double maxX = blockLocation.getX() + 0.5D;
+        double maxX = minX + 1.0D;
         double maxY = minY + 1.0D;
         double maxZ = blockLocation.getZ() + 0.5D;
 
@@ -707,5 +709,17 @@ public class MobService {
             }
         }
         return tMin;
+    }
+
+    private void trackEntity(@NotNull UUID instanceId, @Nullable UUID entityId) {
+        if (entityId != null) {
+            instanceByEntity.put(entityId, instanceId);
+        }
+    }
+
+    private void untrackEntity(@Nullable UUID entityId) {
+        if (entityId != null) {
+            instanceByEntity.remove(entityId);
+        }
     }
 }

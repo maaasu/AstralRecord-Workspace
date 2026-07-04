@@ -23,6 +23,8 @@ public final class MobInstance {
 
     private UUID bukkitEntityId;
     private int entityId = -1;
+    private UUID displayEntityId;
+    private int displayEntityNumericId = -1;
     private Location currentLocation;
     private double currentHealth;
     private double currentShield;
@@ -107,6 +109,28 @@ public final class MobInstance {
         this.bukkitEntityId = bukkitEntityId;
         this.entityId = entityId;
         this.currentLocation = location.clone();
+    }
+
+    /** BlockDisplay などの補助 Entity UUID を返します。未使用時は {@code null} です。 */
+    @Nullable
+    public UUID displayEntityId() {
+        return displayEntityId;
+    }
+
+    /** BlockDisplay などの補助 Entity ID を返します。未使用時は {@code -1} です。 */
+    public int displayEntityNumericId() {
+        return displayEntityNumericId;
+    }
+
+    /**
+     * 補助表示 Entity を紐付けます。
+     *
+     * @param displayEntityId      補助 Entity UUID
+     * @param displayEntityNumericId 補助 Entity ID
+     */
+    public void bindDisplayEntity(@NotNull UUID displayEntityId, int displayEntityNumericId) {
+        this.displayEntityId = displayEntityId;
+        this.displayEntityNumericId = displayEntityNumericId;
     }
 
     /** 元テンプレートを返します。 */

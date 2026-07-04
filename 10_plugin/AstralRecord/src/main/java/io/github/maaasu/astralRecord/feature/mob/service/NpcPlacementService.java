@@ -112,7 +112,12 @@ public final class NpcPlacementService {
             return null;
         }
 
-        NpcPlacement placement = NpcPlacement.from(npcId, location);
+        Location placementLocation = location.clone();
+        if (template.blockMaterial() != null) {
+            placementLocation.setPitch(0.0F);
+        }
+
+        NpcPlacement placement = NpcPlacement.from(npcId, placementLocation);
         removeSpawned(placement.locationKey());
         placements.put(placement.locationKey(), placement);
         dirty = true;
@@ -235,6 +240,11 @@ public final class NpcPlacementService {
         Location location = placement.toLocation();
         if (location == null || location.getWorld() == null) {
             return null;
+        }
+
+        MobTemplate template = mobService.findTemplate(placement.npcId());
+        if (template != null && template.blockMaterial() != null) {
+            location.setPitch(0.0F);
         }
 
         var chunk = location.getChunk();

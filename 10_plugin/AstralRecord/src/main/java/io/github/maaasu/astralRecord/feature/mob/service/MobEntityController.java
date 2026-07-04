@@ -17,6 +17,7 @@ import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Breedable;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Mob;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
@@ -49,6 +50,9 @@ public class MobEntityController {
     private static final long PATH_RECOMPUTE_INTERVAL_TICKS = 10L;
     private static final float BLOCK_DISPLAY_VIEW_RANGE = 64.0F;
     private static final float BLOCK_DISPLAY_RENDER_XZ_OFFSET = -0.5F;
+    private static final float BLOCK_DISPLAY_RENDER_Y_OFFSET = 0.35F;
+    private static final float BLOCK_INTERACTION_WIDTH = 1.0F;
+    private static final float BLOCK_INTERACTION_HEIGHT = 1.0F;
 
     private final NamespacedKey instanceIdKey;
     private final NamespacedKey templateIdKey;
@@ -68,7 +72,7 @@ public class MobEntityController {
      *
      * @param instance 紐付ける Mob インスタンス
      * @param location スポーン位置
-     * @return 生成した Bukkit Mob。生成できない場合は {@code null}
+     * @return 生成した Bukkit Entity。生成できない場合は {@code null}
      */
     @Nullable
     public Entity spawn(@NotNull MobInstance instance, @NotNull Location location) {
@@ -113,31 +117,64 @@ public class MobEntityController {
     }
 
     @Nullable
-    private BlockDisplay spawnBlockDisplay(@NotNull MobInstance instance, @NotNull Location location) {
+    private Entity spawnBlockDisplay(@NotNull MobInstance instance, @NotNull Location location) {
         World world = location.getWorld();
         if (world == null || instance.template().blockMaterial() == null) {
             return null;
         }
 
-        Location blockLocation = blockDisplayLocation(location);
+        Location interactionLocation = blockInteractionLocation(location);
+        Interaction interaction;
+        try {
+            interaction = world.spawn(interactionLocation, Interaction.class, spawned -> configureBlockInteraction(instance, spawned));
+        } catch (RuntimeException ex) {
+            return null;
+        }
+
+        if (interaction.isDead() || !interaction.isValid()) {
+            return null;
+        }
+
+        Location blockLocation = blockDisplayLocation(interactionLocation);
         BlockDisplay display;
         try {
             display = world.spawn(blockLocation, BlockDisplay.class, spawned -> configureBlockDisplay(instance, spawned));
         } catch (RuntimeException ex) {
+            interaction.remove();
             return null;
         }
 
         if (display.isDead() || !display.isValid()) {
+            interaction.remove();
             return null;
         }
 
         try {
-            instance.bindEntity(display.getUniqueId(), display.getEntityId(), display.getLocation());
-            return display;
+            instance.bindEntity(interaction.getUniqueId(), interaction.getEntityId(), interaction.getLocation());
+            instance.bindDisplayEntity(display.getUniqueId(), display.getEntityId());
+            instance.headYaw(interactionLocation.getYaw());
+            instance.headPitch(0.0F);
+            return interaction;
         } catch (RuntimeException ex) {
             display.remove();
+            interaction.remove();
             return null;
         }
+    }
+
+    private void configureBlockInteraction(@NotNull MobInstance instance, @NotNull Interaction interaction) {
+        MobTemplate template = instance.template();
+        interaction.setPersistent(false);
+        interaction.setGravity(false);
+        interaction.setInvulnerable(template.damageImmune());
+        interaction.setSilent(true);
+        interaction.customName(null);
+        interaction.setCustomNameVisible(false);
+        interaction.setResponsive(true);
+        interaction.setInteractionWidth(BLOCK_INTERACTION_WIDTH);
+        interaction.setInteractionHeight(BLOCK_INTERACTION_HEIGHT);
+        interaction.getPersistentDataContainer().set(instanceIdKey, PersistentDataType.STRING, instance.instanceId().toString());
+        interaction.getPersistentDataContainer().set(templateIdKey, PersistentDataType.STRING, template.id());
     }
 
     private void configureBlockDisplay(@NotNull MobInstance instance, @NotNull BlockDisplay display) {
@@ -152,6 +189,7 @@ public class MobEntityController {
         display.setViewRange(BLOCK_DISPLAY_VIEW_RANGE);
         display.setDisplayWidth(1.0F);
         display.setDisplayHeight(1.0F);
+        display.setTeleportDuration(1);
         display.setBrightness(new Display.Brightness(15, 15));
         display.setBlock(displayBlockMaterial(template.blockMaterial()).createBlockData());
         display.setTransformation(blockDisplayTransformation());
@@ -208,7 +246,7 @@ public class MobEntityController {
      * 実体 Mob を取得します。
      *
      * @param instance 取得対象インスタンス
-     * @return 紐付く Bukkit Mob。存在しない、または別ワールドで解決できない場合は {@code null}
+     * @return 紐付く Bukkit Mob。補助表示 Entity しか持たない場合や解決できない場合は {@code null}
      */
     @Nullable
     public Mob getMob(@NotNull MobInstance instance) {
@@ -337,6 +375,10 @@ public class MobEntityController {
      * @param velocity 加算する速度
      */
     public void holdPosition(@NotNull MobInstance instance, @NotNull Location anchor) {
+        if (instance.template().blockMaterial() != null) {
+            holdBlockNpcPosition(instance, anchor);
+            return;
+        }
         Mob mob = getMob(instance);
         if (mob == null || mob.getWorld() != anchor.getWorld()) {
             return;
@@ -380,6 +422,10 @@ public class MobEntityController {
      * @param target   視線を向ける位置
      */
     public void lookAt(@NotNull MobInstance instance, @NotNull Location target) {
+        if (instance.template().blockMaterial() != null) {
+            lookBlockNpcAt(instance, target);
+            return;
+        }
         Mob mob = getMob(instance);
         if (mob == null || mob.getWorld() != target.getWorld()) {
             return;
@@ -397,11 +443,24 @@ public class MobEntityController {
         if (entity != null) {
             entity.remove();
         }
+        Entity displayEntity = getDisplayEntity(instance);
+        if (displayEntity != null) {
+            displayEntity.remove();
+        }
     }
 
     @NotNull
     Location blockDisplayLocation(@NotNull Location location) {
-        return location.clone();
+        Location displayLocation = location.clone();
+        displayLocation.setPitch(0.0F);
+        return displayLocation;
+    }
+
+    @NotNull
+    Location blockInteractionLocation(@NotNull Location location) {
+        Location interactionLocation = location.clone();
+        interactionLocation.setPitch(0.0F);
+        return interactionLocation;
     }
 
     @NotNull
@@ -415,11 +474,93 @@ public class MobEntityController {
     @NotNull
     Transformation blockDisplayTransformation() {
         return new Transformation(
-                new Vector3f(BLOCK_DISPLAY_RENDER_XZ_OFFSET, 0.0F, BLOCK_DISPLAY_RENDER_XZ_OFFSET),
+                new Vector3f(BLOCK_DISPLAY_RENDER_XZ_OFFSET, BLOCK_DISPLAY_RENDER_Y_OFFSET, BLOCK_DISPLAY_RENDER_XZ_OFFSET),
                 new Quaternionf(),
                 new Vector3f(1.0F, 1.0F, 1.0F),
                 new Quaternionf()
         );
+    }
+
+    @Nullable
+    private Entity getDisplayEntity(@NotNull MobInstance instance) {
+        UUID entityUuid = instance.displayEntityId();
+        if (entityUuid == null) {
+            return null;
+        }
+        Entity entity = Bukkit.getEntity(entityUuid);
+        return entity != null && !entity.isDead() && entity.isValid() ? entity : null;
+    }
+
+    private void holdBlockNpcPosition(@NotNull MobInstance instance, @NotNull Location anchor) {
+        Entity interaction = getEntity(instance);
+        if (interaction == null || interaction.getWorld() != anchor.getWorld()) {
+            return;
+        }
+
+        Location current = interaction.getLocation();
+        if (current.distanceSquared(anchor) <= 1.0E-4D) {
+            instance.currentLocation(current);
+            return;
+        }
+
+        Location anchored = blockInteractionLocation(anchor);
+        anchored.setYaw(current.getYaw());
+        teleportBlockNpc(instance, anchored);
+    }
+
+    private void lookBlockNpcAt(@NotNull MobInstance instance, @NotNull Location target) {
+        Entity interaction = getEntity(instance);
+        if (interaction == null || interaction.getWorld() != target.getWorld()) {
+            return;
+        }
+
+        Location current = interaction.getLocation();
+        float yaw = yawToward(current, target);
+        if (Math.abs(angleDifference(current.getYaw(), yaw)) <= 0.5F) {
+            instance.headYaw(current.getYaw());
+            instance.headPitch(0.0F);
+            return;
+        }
+
+        Location rotated = current.clone();
+        rotated.setYaw(yaw);
+        rotated.setPitch(0.0F);
+        teleportBlockNpc(instance, rotated);
+    }
+
+    private void teleportBlockNpc(@NotNull MobInstance instance, @NotNull Location interactionLocation) {
+        Location pose = blockInteractionLocation(interactionLocation);
+        Entity interaction = getEntity(instance);
+        if (interaction != null) {
+            interaction.teleport(pose);
+        }
+        Entity displayEntity = getDisplayEntity(instance);
+        if (displayEntity != null) {
+            displayEntity.teleport(blockDisplayLocation(pose));
+        }
+        instance.currentLocation(pose);
+        instance.headYaw(pose.getYaw());
+        instance.headPitch(0.0F);
+    }
+
+    private float yawToward(@NotNull Location origin, @NotNull Location target) {
+        double dx = target.getX() - origin.getX();
+        double dz = target.getZ() - origin.getZ();
+        if (dx * dx + dz * dz <= 1.0E-8D) {
+            return origin.getYaw();
+        }
+        return (float) Math.toDegrees(Math.atan2(-dx, dz));
+    }
+
+    private float angleDifference(float current, float target) {
+        float difference = target - current;
+        while (difference <= -180.0F) {
+            difference += 360.0F;
+        }
+        while (difference > 180.0F) {
+            difference -= 360.0F;
+        }
+        return difference;
     }
 
     /**

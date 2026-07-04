@@ -8,8 +8,14 @@ NPC 用の filebase YAML 定義です。
 NPC は戦闘を行わないため、`ai.targeting`, `ai.combat`, `drops` は定義しません。
 
 `entityType` には Bukkit EntityType に加えて Bukkit block Material（例: `BARREL`, `ANVIL`）を指定できます。
-block Material の場合は `BlockDisplay` による fakeblock として表示し、通常 NPC と同じ display text、ambient particle、左クリック/右クリック interaction を扱います。
-配置座標は fakeblock の中心として扱います。`CHEST` / `TRAPPED_CHEST` / `ENDER_CHEST` は BlockDisplay で描画されないため、表示用 block Material は `BARREL` に正規化されます。
+block Material の場合は `Interaction` entity を当たり判定に、`BlockDisplay` を見た目に使う構成で表示し、通常 NPC と同じ display text、ambient particle、左クリック/右クリック interaction を扱います。
+配置座標は block NPC の中心として扱います。block Material NPC の pitch は `0` として扱います。`CHEST` / `TRAPPED_CHEST` / `ENDER_CHEST` は BlockDisplay で描画されないため、表示用 block Material は `BARREL` に正規化されます。
+
+補足:
+
+- block Material NPC は `Interaction` entity を当たり判定に、`BlockDisplay` を見た目に使います。
+- 配置座標は block NPC の中心として扱います。
+- block Material NPC の pitch は `0` として扱います。
 
 ---
 

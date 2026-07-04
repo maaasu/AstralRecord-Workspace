@@ -39,7 +39,7 @@ import static org.mockito.Mockito.withSettings;
 class MobEntityControllerTest extends MockBukkitTestBase {
 
     @Test
-    void blockDisplayLocationKeepsPlacementCoordinates() {
+    void blockDisplayLocationKeepsPlacementAtDisplayOrigin() {
         var world = server().addSimpleWorld("block_display_world");
         PluginMock plugin = PluginMock.builder()
                 .withPluginName("AstralRecordTest")
@@ -55,6 +55,7 @@ class MobEntityControllerTest extends MockBukkitTestBase {
         assertEquals(64.0D, displayLocation.getY(), 0.0001D);
         assertEquals(-3.25D, displayLocation.getZ(), 0.0001D);
         assertEquals(90.0F, displayLocation.getYaw(), 0.0001F);
+        assertEquals(0.0F, displayLocation.getPitch(), 0.0001F);
     }
 
     @Test
@@ -72,7 +73,7 @@ class MobEntityControllerTest extends MockBukkitTestBase {
     }
 
     @Test
-    void blockDisplayTransformationCentersBlockAtPlacementCoordinates() {
+    void blockDisplayTransformationOffsetsCenteredPlacementToBlockCorner() {
         PluginMock plugin = PluginMock.builder()
                 .withPluginName("AstralRecordTest")
                 .withPluginVersion("1.0.0")
@@ -82,7 +83,7 @@ class MobEntityControllerTest extends MockBukkitTestBase {
         Transformation transformation = controller.blockDisplayTransformation();
 
         assertEquals(-0.5F, transformation.getTranslation().x, 0.0001F);
-        assertEquals(0.0F, transformation.getTranslation().y, 0.0001F);
+        assertEquals(0.35F, transformation.getTranslation().y, 0.0001F);
         assertEquals(-0.5F, transformation.getTranslation().z, 0.0001F);
         assertEquals(1.0F, transformation.getScale().x, 0.0001F);
         assertEquals(1.0F, transformation.getScale().y, 0.0001F);
