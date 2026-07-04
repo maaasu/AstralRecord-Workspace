@@ -1,0 +1,27 @@
+schemaVersion: 1
+id: traveler_boots
+category: equipment
+name: "&f旅人の靴"
+icon: LEATHER_BOOTS
+rarity: COMMON
+maxStack: 1
+saleValue: 20
+lore:
+  - "&7草地と木道の両方を歩きやすいよう調整された靴。"
+  - "&7わずかに足取りを軽くしてくれる。"
+unTradeable: false
+unSellable: false
+
+equipment:
+  slot: FEET
+  requiredLevel: 1
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 2
+    - status: MOVEMENT_SPEED
+      type: FLAT
+      value: 2.0
+  durability:
+    max: 85
+    consume: 1

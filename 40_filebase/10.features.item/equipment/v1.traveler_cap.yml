@@ -1,0 +1,27 @@
+schemaVersion: 1
+id: traveler_cap
+category: equipment
+name: "&f旅人の帽子"
+icon: LEATHER_HELMET
+rarity: COMMON
+maxStack: 1
+saleValue: 18
+lore:
+  - "&7風草の繊維で内張りした軽い帽子。"
+  - "&7草原歩きの最初の守りになる。"
+unTradeable: false
+unSellable: false
+
+equipment:
+  slot: HEAD
+  requiredLevel: 1
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 2
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 5
+  durability:
+    max: 85
+    consume: 1

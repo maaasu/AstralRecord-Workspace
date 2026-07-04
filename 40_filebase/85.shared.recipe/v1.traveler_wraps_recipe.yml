@@ -1,0 +1,26 @@
+schemaVersion: 1
+id: traveler_wraps_recipe
+type: RECIPE
+category: CRAFT
+name: "&f旅人の脚絆のレシピ"
+lore:
+  - "&7段差の多い木道を歩くための脚装備を整える。"
+tags:
+  - craft
+  - armor
+  - windwait
+result:
+  itemId:
+    ref: item:traveler_wraps
+  amount: 1
+ingredients:
+  - itemId:
+      ref: item:skygrass_fiber
+    amount: 5
+  - itemId:
+      ref: item:old_plank_chip
+    amount: 2
+requiredLevel: 2
+requiredCurrency: 0
+successRate: 100.0
+failAction: NONE

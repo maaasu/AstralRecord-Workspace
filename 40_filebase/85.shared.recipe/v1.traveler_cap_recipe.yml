@@ -1,0 +1,26 @@
+schemaVersion: 1
+id: traveler_cap_recipe
+type: RECIPE
+category: CRAFT
+name: "&f旅人の帽子のレシピ"
+lore:
+  - "&7軽い帽子を仕立て、草原探索の守りを整える。"
+tags:
+  - craft
+  - armor
+  - windwait
+result:
+  itemId:
+    ref: item:traveler_cap
+  amount: 1
+ingredients:
+  - itemId:
+      ref: item:skygrass_fiber
+    amount: 3
+  - itemId:
+      ref: item:old_plank_chip
+    amount: 1
+requiredLevel: 1
+requiredCurrency: 0
+successRate: 100.0
+failAction: NONE

@@ -1,0 +1,17 @@
+schemaVersion: 1
+id: windwait_field_pool
+type: LOOT_POOL
+pick: 1
+contents:
+  - itemId:
+      ref: item:skygrass_fiber
+    rate: 82
+    amount: 1~2
+  - itemId:
+      ref: item:old_plank_chip
+    rate: 68
+    amount: 1~2
+  - itemId:
+      ref: item:healing_potion_small
+    rate: 10
+    amount: 1

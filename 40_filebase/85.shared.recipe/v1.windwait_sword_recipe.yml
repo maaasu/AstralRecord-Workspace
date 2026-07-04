@@ -1,0 +1,29 @@
+schemaVersion: 1
+id: windwait_sword_recipe
+type: RECIPE
+category: CRAFT
+name: "&f風待ちの剣のレシピ"
+lore:
+  - "&7草原で集めた素材から序盤向けの剣を仕立てる。"
+tags:
+  - craft
+  - weapon
+  - windwait
+result:
+  itemId:
+    ref: item:windwait_sword
+  amount: 1
+ingredients:
+  - itemId:
+      ref: item:old_plank_chip
+    amount: 5
+  - itemId:
+      ref: item:skygrass_fiber
+    amount: 3
+  - itemId:
+      ref: item:glowstone_shard
+    amount: 1
+requiredLevel: 2
+requiredCurrency: 0
+successRate: 100.0
+failAction: NONE

@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: windwait_field_spawner
+type: MOB_SPAWNER
+radiusMeters: 20
+
+spawnMobs:
+  - mobId: mob:windwait_stray
+    weight: 100
+
+spawnTimes:
+  - startTick: 0
+    endTick: 23999
+
+itemMaterial: SPAWNER
+spawnIntervalTicks: 120
+
+spawnLimit:
+  maxAlivePerSpawner: 10
+  maxNearbyMobs: 18
+  spawnPerPlayer: 2

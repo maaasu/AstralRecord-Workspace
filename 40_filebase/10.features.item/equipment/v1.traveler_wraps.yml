@@ -1,0 +1,27 @@
+schemaVersion: 1
+id: traveler_wraps
+category: equipment
+name: "&f旅人の脚絆"
+icon: LEATHER_LEGGINGS
+rarity: COMMON
+maxStack: 1
+saleValue: 24
+lore:
+  - "&7段差や木道を歩きやすくする脚まわりの装備。"
+  - "&7序盤の探索で扱いやすい軽装。"
+unTradeable: false
+unSellable: false
+
+equipment:
+  slot: LEGS
+  requiredLevel: 2
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 3
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 8
+  durability:
+    max: 95
+    consume: 1

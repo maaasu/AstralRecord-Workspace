@@ -1,0 +1,13 @@
+schemaVersion: 1
+id: glowstone_shard
+category: material
+name: "&b青灯石の欠片"
+icon: GLOWSTONE_DUST
+rarity: COMMON
+maxStack: 64
+saleValue: 8
+lore:
+  - "&7夜道を照らす青灯石が砕けたもの。"
+  - "&7護符や簡易な加工品の芯材になる。"
+unTradeable: false
+unSellable: false

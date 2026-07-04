@@ -1,0 +1,31 @@
+schemaVersion: 1
+id: windwait_sword
+category: equipment
+name: "&f風待ちの剣"
+icon: STONE_SWORD
+rarity: COMMON
+maxStack: 1
+saleValue: 36
+lore:
+  - "&7木片と草紐で握りを補強した序盤向けの片手剣。"
+  - "&7町の外で得た素材だけでも整えやすい。"
+unTradeable: false
+unSellable: false
+
+equipment:
+  slot: WEAPON
+  handType: ONE
+  tag: SWORD
+  requiredLevel: 2
+  stats:
+    - status: ATTACK
+      type: FLAT
+      value: 9~12
+  onUse:
+    leftClickCooldownTicks: 10
+    leftClickSkillId: normal_attack_melee
+    rightClickCooldownTicks: 30
+    rightClickSkillId: special_attack_melee
+  durability:
+    max: 90
+    consume: 1

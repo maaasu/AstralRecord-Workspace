@@ -1,0 +1,26 @@
+schemaVersion: 1
+id: traveler_tunic_recipe
+type: RECIPE
+category: CRAFT
+name: "&f旅人の服のレシピ"
+lore:
+  - "&7草地で集めた繊維と木片から基本の旅装を作る。"
+tags:
+  - craft
+  - armor
+  - windwait
+result:
+  itemId:
+    ref: item:traveler_tunic
+  amount: 1
+ingredients:
+  - itemId:
+      ref: item:skygrass_fiber
+    amount: 6
+  - itemId:
+      ref: item:old_plank_chip
+    amount: 2
+requiredLevel: 2
+requiredCurrency: 0
+successRate: 100.0
+failAction: NONE

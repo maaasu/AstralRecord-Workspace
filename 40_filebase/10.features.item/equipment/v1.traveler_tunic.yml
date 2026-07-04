@@ -1,0 +1,27 @@
+schemaVersion: 1
+id: traveler_tunic
+category: equipment
+name: "&f旅人の服"
+icon: LEATHER_CHESTPLATE
+rarity: COMMON
+maxStack: 1
+saleValue: 28
+lore:
+  - "&7動きやすさを優先して仕立てた旅装。"
+  - "&7古木の補強で最低限の守りを確保している。"
+unTradeable: false
+unSellable: false
+
+equipment:
+  slot: CHEST
+  requiredLevel: 2
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 5
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 12
+  durability:
+    max: 110
+    consume: 1

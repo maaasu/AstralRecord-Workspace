@@ -1,0 +1,13 @@
+schemaVersion: 1
+id: astral_dust
+category: material
+name: "&d星屑片"
+icon: AMETHYST_SHARD
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 14
+lore:
+  - "&7空島の外縁でときどき見つかる細かな星界の欠片。"
+  - "&7軽い加護を宿す装身具の素材になる。"
+unTradeable: false
+unSellable: false

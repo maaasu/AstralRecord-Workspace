@@ -1,0 +1,13 @@
+schemaVersion: 1
+id: skygrass_fiber
+category: material
+name: "&f風草の繊維"
+icon: STRING
+rarity: COMMON
+maxStack: 64
+saleValue: 4
+lore:
+  - "&7風待ち草原に自生する草から採れる繊維。"
+  - "&7軽装や旅装の仕立て直しに使われる。"
+unTradeable: false
+unSellable: false
