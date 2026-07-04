@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.world.model;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * API から取得する WorldMasterData です。
@@ -35,6 +36,8 @@ public record WorldMasterData(
         boolean allowMobSpawn,
         boolean showSpawnParticle,
         @NotNull WorldSpawnLocation spawnLocation,
-        @NotNull String description
+        @NotNull String description,
+        @Nullable String guiIconMaterial,
+        @Nullable WorldAdventureGuide adventureGuide
 ) {
 }

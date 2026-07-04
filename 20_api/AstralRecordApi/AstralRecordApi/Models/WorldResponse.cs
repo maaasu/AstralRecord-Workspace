@@ -32,6 +32,10 @@ public class WorldResponse
     public required WorldSpawnLocationResponse SpawnLocation { get; init; }
 
     public required string Description { get; init; }
+
+    public string? GuiIconMaterial { get; init; }
+
+    public WorldAdventureGuideResponse? AdventureGuide { get; init; }
 }
 
 /// <summary>World のスポーン地点座標です。</summary>
@@ -46,6 +50,20 @@ public class WorldSpawnLocationResponse
     public float Yaw { get; init; }
 
     public float Pitch { get; init; }
+}
+
+/// <summary>ワールド選択 GUI に表示する冒険ガイド情報です。</summary>
+public class WorldAdventureGuideResponse
+{
+    public int? RecommendedLevelMin { get; init; }
+
+    public int? RecommendedLevelMax { get; init; }
+
+    public int? RecommendedPartySizeMin { get; init; }
+
+    public int? RecommendedPartySizeMax { get; init; }
+
+    public IReadOnlyList<string>? Notes { get; init; }
 }
 
 /// <summary>World マスタ一覧レスポンス要約です。</summary>

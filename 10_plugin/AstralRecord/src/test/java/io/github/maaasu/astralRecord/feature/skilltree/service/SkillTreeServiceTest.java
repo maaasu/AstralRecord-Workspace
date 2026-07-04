@@ -351,7 +351,9 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
                 false,
                 true,
                 WorldSpawnLocation.defaultLocation(),
-                "test"
+                "test",
+                null,
+                null
         ));
 
         assertTrue(service.isPlayerModeSkillTree(player));
@@ -408,7 +410,9 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
                 false,
                 true,
                 WorldSpawnLocation.defaultLocation(),
-                "test"
+                "test",
+                null,
+                null
         ));
 
         service.refreshAllPlayerVisibility();

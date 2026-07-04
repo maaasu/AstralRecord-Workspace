@@ -776,6 +776,8 @@ public enum LogId {
     E_5751(5751),
     E_5752(5752),
     E_5753(5753),
+    E_5754(5754),
+    E_5755(5755),
     // endregion
 
     // region /feature/skill/ 5800-5899

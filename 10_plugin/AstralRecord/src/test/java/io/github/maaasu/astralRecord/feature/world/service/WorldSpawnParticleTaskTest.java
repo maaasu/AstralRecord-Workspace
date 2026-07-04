@@ -44,7 +44,9 @@ class WorldSpawnParticleTaskTest extends MockBukkitTestBase {
                 false,
                 true,
                 WorldSpawnLocation.defaultLocation(),
-                "visible"
+                "visible",
+                null,
+                null
         );
         WorldMasterData hiddenWorld = new WorldMasterData(
                 1,
@@ -61,7 +63,9 @@ class WorldSpawnParticleTaskTest extends MockBukkitTestBase {
                 false,
                 false,
                 WorldSpawnLocation.defaultLocation(),
-                "hidden"
+                "hidden",
+                null,
+                null
         );
 
         var visibleBukkitWorld = server().addSimpleWorld("visible-world");

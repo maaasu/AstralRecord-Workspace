@@ -1,7 +1,7 @@
 schemaVersion: 1
 id: greenfall_fields
 displayName: "Wild Overworld"
-worldType: 翠風の原野
+worldType: OVERWORLD
 baseWorldPath: "plugins/AstralRecord/worlds/overworld/greenfall_fields"
 instanceRootPath: "plugins/AstralRecord/_world_instances/greenfall_fields"
 autoLoad: false
@@ -17,4 +17,13 @@ spawnLocation:
   z: -597.5
   yaw: 0.0
   pitch: 0.0
-description: "星影の街ノクスを出た冒険者が最初に足を踏み入れる、穏やかな草原と森のフィールド。"
+description: "星の拠点の奥に広がる、最初の冒険先となる草原フィールド。"
+guiIconMaterial: GRASS_BLOCK
+adventureGuide:
+  recommendedLevelMin: 1
+  recommendedLevelMax: 10
+  recommendedPartySizeMin: 1
+  recommendedPartySizeMax: 4
+  notes:
+    - "草原と浅い谷が中心の入門向けフィールド"
+    - "夜間は敵の数が増えるため、帰還導線の確保を推奨"

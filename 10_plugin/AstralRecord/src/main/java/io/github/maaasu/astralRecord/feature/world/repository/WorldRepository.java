@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import io.github.maaasu.astralRecord.feature.world.model.WorldAdventureGuide;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.model.WorldSpawnLocation;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
@@ -155,7 +156,9 @@ public class WorldRepository {
                 obj.has("allowMobSpawn") && obj.get("allowMobSpawn").getAsBoolean(),
                 !obj.has("showSpawnParticle") || obj.get("showSpawnParticle").getAsBoolean(),
                 parseSpawnLocation(obj),
-                optionalString(obj, "description", "")
+                optionalString(obj, "description", ""),
+                optionalString(obj, "guiIconMaterial"),
+                parseAdventureGuide(obj)
         );
     }
 
@@ -173,6 +176,27 @@ public class WorldRepository {
                 (float) optionalDouble(spawn, "yaw", 0.0D),
                 (float) optionalDouble(spawn, "pitch", 0.0D)
         );
+    }
+
+    @Nullable
+    private static WorldAdventureGuide parseAdventureGuide(@NotNull JsonObject obj) {
+        JsonObject guide = optionalObject(obj, "adventureGuide");
+        if (guide == null) {
+            return null;
+        }
+
+        Integer levelMin = optionalInteger(guide, "recommendedLevelMin");
+        Integer levelMax = optionalInteger(guide, "recommendedLevelMax");
+        Integer partySizeMin = optionalInteger(guide, "recommendedPartySizeMin");
+        Integer partySizeMax = optionalInteger(guide, "recommendedPartySizeMax");
+        List<String> notes = optionalStringList(guide, "notes");
+        if (levelMin == null && levelMax == null
+                && partySizeMin == null && partySizeMax == null
+                && notes.isEmpty()) {
+            return null;
+        }
+
+        return new WorldAdventureGuide(levelMin, levelMax, partySizeMin, partySizeMax, notes);
     }
 
     @Nullable
@@ -206,5 +230,32 @@ public class WorldRepository {
         return element.isJsonPrimitive() && element.getAsJsonPrimitive().isNumber()
                 ? element.getAsDouble()
                 : fallback;
+    }
+
+    @Nullable
+    private static Integer optionalInteger(@NotNull JsonObject obj, @NotNull String key) {
+        if (!obj.has(key) || obj.get(key).isJsonNull()) {
+            return null;
+        }
+        JsonElement element = obj.get(key);
+        return element.isJsonPrimitive() && element.getAsJsonPrimitive().isNumber()
+                ? element.getAsInt()
+                : null;
+    }
+
+    @NotNull
+    private static List<String> optionalStringList(@NotNull JsonObject obj, @NotNull String key) {
+        JsonElement element = obj.get(key);
+        if (element == null || element.isJsonNull() || !element.isJsonArray()) {
+            return List.of();
+        }
+
+        List<String> values = new ArrayList<>();
+        for (JsonElement child : element.getAsJsonArray()) {
+            if (child != null && child.isJsonPrimitive()) {
+                values.add(child.getAsString());
+            }
+        }
+        return List.copyOf(values);
     }
 }
