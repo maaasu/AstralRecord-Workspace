@@ -100,9 +100,8 @@ public final class ReturnToBaseService {
             return false;
         }
 
-        WorldMasterData baseWorld = worldService.getById(joinSpawnWorldId);
-        Location spawnLocation = baseWorld == null ? null : worldService.resolveSpawnLocation(baseWorld);
-        if (baseWorld == null || spawnLocation == null || spawnLocation.getWorld() == null) {
+        WorldMasterData baseWorld = resolveBaseWorld();
+        if (baseWorld == null) {
             PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5611);
             showResultTitle(player, PlayerMsgId.P_5615, PlayerMsgId.P_5611);
             return false;
@@ -154,6 +153,47 @@ public final class ReturnToBaseService {
                 }
             }
         ));
+        return true;
+    }
+
+    /**
+     * ゴールド消費と待機なしで拠点へ即時帰還を開始します。
+     *
+     * @param astPlayer 帰還対象プレイヤー
+     * @return 帰還開始条件を満たした場合は {@code true}
+     */
+    public boolean beginImmediateReturn(@NotNull AstPlayer astPlayer) {
+        Player player = astPlayer.getBukkit();
+        if (!player.isOnline()) {
+            return false;
+        }
+
+        WorldMasterData baseWorld = resolveBaseWorld();
+        if (baseWorld == null) {
+            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5611);
+            showResultTitle(player, PlayerMsgId.P_5615, PlayerMsgId.P_5611);
+            return false;
+        }
+
+        cancelPending(player.getUniqueId(), false);
+        player.playSound(player.getLocation(), Sound.ITEM_CHORUS_FRUIT_TELEPORT, SoundCategory.PLAYERS, 0.9F, 1.05F);
+        worldService.teleportToSpawnAsync(player, baseWorld).whenComplete((success, throwable) ->
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (!player.isOnline()) {
+                    return;
+                }
+                if (throwable != null || !Boolean.TRUE.equals(success)) {
+                    PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5611);
+                    showResultTitle(player, PlayerMsgId.P_5615, PlayerMsgId.P_5611);
+                    player.playSound(player.getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, SoundCategory.PLAYERS, 0.8F, 0.85F);
+                    return;
+                }
+
+                PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5619);
+                showResultTitle(player, PlayerMsgId.P_5617, PlayerMsgId.P_5618);
+                playArrivalEffects(player);
+            })
+        );
         return true;
     }
 
@@ -271,6 +311,15 @@ public final class ReturnToBaseService {
         pending.astPlayer().getBukkit().resetTitle();
         pending.bossBar().removeAll();
         pending.bossBar().setVisible(false);
+    }
+
+    private @Nullable WorldMasterData resolveBaseWorld() {
+        WorldMasterData baseWorld = worldService.getById(joinSpawnWorldId);
+        Location spawnLocation = baseWorld == null ? null : worldService.resolveSpawnLocation(baseWorld);
+        if (baseWorld == null || spawnLocation == null || spawnLocation.getWorld() == null) {
+            return null;
+        }
+        return baseWorld;
     }
 
     private void updateCountdownDisplay(@NotNull PendingReturn pending, int remainingSeconds) {

@@ -162,9 +162,10 @@ import io.github.maaasu.astralRecord.feature.user.service.UserService;
 import io.github.maaasu.astralRecord.feature.world.config.PluginJoinSpawnWorldConfig;
 import io.github.maaasu.astralRecord.feature.world.event.BaseWorldGatewayEventHandler;
 import io.github.maaasu.astralRecord.feature.world.event.OverworldTeleportGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.world.event.OverworldSpawnReturnEventHandler;
 import io.github.maaasu.astralRecord.feature.world.event.WorldChangeTitleEventHandler;
-import io.github.maaasu.astralRecord.feature.world.event.WorldNaturalSpawnBlockEventHandler;
 import io.github.maaasu.astralRecord.feature.world.event.WorldJoinSpawnEventHandler;
+import io.github.maaasu.astralRecord.feature.world.event.WorldNaturalSpawnBlockEventHandler;
 import io.github.maaasu.astralRecord.feature.world.gui.OverworldTeleportGui;
 import io.github.maaasu.astralRecord.feature.world.repository.WorldRepository;
 import io.github.maaasu.astralRecord.feature.world.service.OverworldTeleportService;
@@ -820,6 +821,10 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             new BaseWorldGatewayEventHandler(this, overworldTeleportService, overworldTeleportGuiEventHandler),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new OverworldSpawnReturnEventHandler(worldService, returnToBaseService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
