@@ -597,6 +597,14 @@ public enum PlayerMsgId {
      * 採集スポナー定義: {0} / 登録座標: {1}件
      */
     P_5725(5725),
+    /**
+     * NPC配置を削除しました: {0} / {1}件
+     */
+    P_5726(5726),
+    /**
+     * 削除対象のNPC配置が見つかりません: {0}
+     */
+    P_5727(5727),
     // endregion
 
     // region /feature/textdisplay/command/TextDisplayCommand.java 5770-5779

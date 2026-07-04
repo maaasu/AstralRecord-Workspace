@@ -16,12 +16,19 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 /**
  * /mob コマンドです。
  */
 public class MobCommand extends AstCommand {
     private static final List<MobCategory> SPAWNABLE_MOB_CATEGORIES = List.of(MobCategory.ENEMY, MobCategory.BOSS);
+    private static final List<MobCategory> NPC_MOB_CATEGORIES = List.of(MobCategory.NPC);
+    private static final List<MobCategory> DELETABLE_MOB_CATEGORIES = List.of(
+            MobCategory.ENEMY,
+            MobCategory.BOSS,
+            MobCategory.NPC
+    );
 
 
     private final MobService mobService;
@@ -108,7 +115,15 @@ public class MobCommand extends AstCommand {
             return;
         }
 
-        int count = mobService.destroyById(args[1]);
+        String targetId = args[1];
+        if (!isUuid(targetId)) {
+            String resolvedTemplateId = mobService.resolveTemplateId(targetId, DELETABLE_MOB_CATEGORIES);
+            if (resolvedTemplateId != null) {
+                targetId = resolvedTemplateId;
+            }
+        }
+
+        int count = mobService.destroyById(targetId);
         if (count <= 0) {
             sendError(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5705.getId(), args[1]));
             return;
@@ -173,6 +188,7 @@ public class MobCommand extends AstCommand {
         String action = args[1].toLowerCase(Locale.ROOT);
         switch (action) {
             case "place" -> handleNpcPlace(player, args);
+            case "remove" -> handleNpcRemove(player, args);
             case "reload" -> {
                 int count = npcPlacementService.loadAll();
                 sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5715.getId(), count));
@@ -198,7 +214,8 @@ public class MobCommand extends AstCommand {
             sendUsage(player.getBukkit());
             return;
         }
-        if (!mobService.matchesTemplateCategory(args[2], List.of(MobCategory.NPC))) {
+        String npcId = mobService.resolveTemplateId(args[2], NPC_MOB_CATEGORIES);
+        if (npcId == null) {
             sendError(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5703.getId(), args[2]));
             return;
         }
@@ -216,7 +233,7 @@ public class MobCommand extends AstCommand {
             }
         }
 
-        MobInstance instance = npcPlacementService.place(args[2], location);
+        MobInstance instance = npcPlacementService.place(npcId, location);
         if (instance == null) {
             sendError(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5703.getId(), args[2]));
             return;
@@ -232,11 +249,45 @@ public class MobCommand extends AstCommand {
         ));
     }
 
+    private void handleNpcRemove(@NotNull AstPlayer player, @NotNull String[] args) {
+        if (!spawnerService.isAdminMode(player)) {
+            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5719.getId()));
+            return;
+        }
+        if (args.length < 3) {
+            sendUsage(player.getBukkit());
+            return;
+        }
+
+        String npcId = mobService.resolveTemplateId(args[2], NPC_MOB_CATEGORIES);
+        if (npcId == null) {
+            sendError(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5703.getId(), args[2]));
+            return;
+        }
+
+        int count = npcPlacementService.removeByNpcId(npcId);
+        if (count <= 0) {
+            sendError(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5727.getId(), npcId));
+            return;
+        }
+
+        sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5726.getId(), npcId, count));
+    }
+
     private int parseAmount(@NotNull String value) {
         try {
             return Math.max(1, Integer.parseInt(value));
         } catch (NumberFormatException ignored) {
             return 1;
+        }
+    }
+
+    private boolean isUuid(@NotNull String value) {
+        try {
+            UUID.fromString(value);
+            return true;
+        } catch (IllegalArgumentException ignored) {
+            return false;
         }
     }
 }

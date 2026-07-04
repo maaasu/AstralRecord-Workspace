@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.repository.MobRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -18,8 +19,10 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -119,6 +122,49 @@ public class MobService {
     }
 
     /**
+     * 指定カテゴリに一致するロード済みテンプレートの補完候補を返します。
+     *
+     * <p>候補にはテンプレート ID、表示名、`id（表示名）` 形式の装飾候補を含めます。</p>
+     *
+     * @param categories 取得対象カテゴリ
+     * @return 補完候補一覧
+     */
+    @NotNull
+    public Collection<String> getLoadedMobSelectorsByCategory(@NotNull Collection<MobCategory> categories) {
+        Set<MobCategory> allowed = Set.copyOf(categories);
+        LinkedHashSet<String> suggestions = new LinkedHashSet<>();
+        for (MobTemplate template : templates.values()) {
+            if (!allowed.contains(template.category())) {
+                continue;
+            }
+            addTemplateSelectors(suggestions, template);
+        }
+        return List.copyOf(suggestions);
+    }
+
+    /**
+     * 指定テンプレート ID 群に対応する補完候補を返します。
+     *
+     * <p>ロード済みテンプレートは表示名付き候補に展開し、未ロード ID はそのまま返します。</p>
+     *
+     * @param templateIds テンプレート ID 群
+     * @return 補完候補一覧
+     */
+    @NotNull
+    public Collection<String> getLoadedMobSelectors(@NotNull Collection<String> templateIds) {
+        LinkedHashSet<String> suggestions = new LinkedHashSet<>();
+        for (String templateId : templateIds) {
+            MobTemplate template = templates.get(templateId);
+            if (template == null) {
+                suggestions.add(templateId);
+                continue;
+            }
+            addTemplateSelectors(suggestions, template);
+        }
+        return List.copyOf(suggestions);
+    }
+
+    /**
      * 全インスタンスを取得します。
      *
      * @return Mob インスタンスのコレクション（変更不可）
@@ -189,6 +235,49 @@ public class MobService {
     ) {
         MobTemplate template = findTemplate(templateId);
         return template != null && categories.contains(template.category());
+    }
+
+    /**
+     * テンプレート ID・表示名・装飾付き補完候補からカテゴリ一致するテンプレート ID を解決します。
+     *
+     * <p>未ロードテンプレートは ID 完全一致のときだけ遅延ロードで解決し、表示名解決はロード済みテンプレートに対して行います。</p>
+     *
+     * @param input      解決対象入力
+     * @param categories 許可カテゴリ
+     * @return 解決できたテンプレート ID。見つからない場合は {@code null}
+     */
+    @Nullable
+    public String resolveTemplateId(@NotNull String input, @NotNull Collection<MobCategory> categories) {
+        Set<MobCategory> allowed = Set.copyOf(categories);
+        MobTemplate cached = templates.get(input);
+        if (cached != null && allowed.contains(cached.category())) {
+            return cached.id();
+        }
+
+        if (isLikelyTemplateId(input)) {
+            MobTemplate exact = findTemplate(input);
+            if (exact != null && allowed.contains(exact.category())) {
+                return exact.id();
+            }
+        }
+
+        String normalizedInput = normalizeLookupValue(input);
+        if (normalizedInput.isEmpty()) {
+            return null;
+        }
+
+        for (MobTemplate template : templates.values()) {
+            if (!allowed.contains(template.category())) {
+                continue;
+            }
+            if (normalizeLookupValue(template.id()).equals(normalizedInput)
+                    || normalizeLookupValue(templateDisplayName(template)).equals(normalizedInput)
+                    || normalizeLookupValue(buildTemplateSelector(template)).equals(normalizedInput)
+                    || normalizeLookupValue(buildAsciiTemplateSelector(template)).equals(normalizedInput)) {
+                return template.id();
+            }
+        }
+        return null;
     }
 
     /**
@@ -488,6 +577,45 @@ public class MobService {
             }
         }
         return false;
+    }
+
+    private void addTemplateSelectors(@NotNull Set<String> suggestions, @NotNull MobTemplate template) {
+        suggestions.add(template.id());
+        String displayName = templateDisplayName(template);
+        if (displayName.isBlank() || displayName.equalsIgnoreCase(template.id())) {
+            return;
+        }
+        suggestions.add(displayName);
+        suggestions.add(buildTemplateSelector(template));
+    }
+
+    private @NotNull String templateDisplayName(@NotNull MobTemplate template) {
+        return ColorCodeUtil.toPlainText(template.displayName(), template.id());
+    }
+
+    private @NotNull String buildTemplateSelector(@NotNull MobTemplate template) {
+        return template.id() + "（" + templateDisplayName(template) + "）";
+    }
+
+    private @NotNull String buildAsciiTemplateSelector(@NotNull MobTemplate template) {
+        return template.id() + "(" + templateDisplayName(template) + ")";
+    }
+
+    private @NotNull String normalizeLookupValue(@NotNull String value) {
+        return ColorCodeUtil.toPlainText(value, value).trim().toLowerCase(Locale.ROOT);
+    }
+
+    private boolean isLikelyTemplateId(@NotNull String input) {
+        if (input.isBlank()) {
+            return false;
+        }
+        for (int i = 0; i < input.length(); i++) {
+            char ch = input.charAt(i);
+            if (!Character.isLetterOrDigit(ch) && ch != '_' && ch != '-') {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Nullable

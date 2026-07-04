@@ -15,6 +15,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyIterable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -76,6 +77,40 @@ class NpcPlacementServiceTest extends MockBukkitTestBase {
                         && location.getY() == 70.0D
                         && location.getZ() == 8.0D
         ));
+    }
+
+    @Test
+    void removeByNpcIdDeletesAllPlacedEntriesAndUpdatesRepository() {
+        server().addSimpleWorld("spawn_world");
+        PluginMock plugin = testPlugin();
+        MobService mobService = mock(MobService.class);
+        NpcPlacementRepository repository = mock(NpcPlacementRepository.class);
+        NpcPlacementService service = new NpcPlacementService(plugin, mobService, repository);
+
+        MobInstance first = mock(MobInstance.class);
+        when(first.instanceId()).thenReturn(java.util.UUID.randomUUID());
+        MobInstance second = mock(MobInstance.class);
+        when(second.instanceId()).thenReturn(java.util.UUID.randomUUID());
+        when(mobService.spawn(anyString(), any(Location.class))).thenReturn(first, second);
+        when(repository.loadAll()).thenReturn(List.of(
+                new NpcPlacement("starter_shopkeeper", "spawn_world", 10.5D, 64.0D, -3.0D, 90.0F, 0.0F),
+                new NpcPlacement("starter_shopkeeper", "spawn_world", 12.5D, 64.0D, -3.0D, 90.0F, 0.0F),
+                new NpcPlacement("equipment_merchant", "spawn_world", 15.0D, 64.0D, -3.0D, 90.0F, 0.0F)
+        ));
+
+        service.loadAll();
+
+        int removed = service.removeByNpcId("starter_shopkeeper");
+
+        assertEquals(2, removed);
+        assertEquals(List.of("equipment_merchant"), service.getPlacedNpcIds().stream().toList());
+        verify(mobService).destroy(first.instanceId());
+        verify(mobService).destroy(second.instanceId());
+        verify(repository).saveAll(argThat(placements -> {
+            List<NpcPlacement> saved = new java.util.ArrayList<>();
+            placements.forEach(saved::add);
+            return saved.size() == 1 && "equipment_merchant".equals(saved.get(0).npcId());
+        }));
     }
 
     private PluginMock testPlugin() {

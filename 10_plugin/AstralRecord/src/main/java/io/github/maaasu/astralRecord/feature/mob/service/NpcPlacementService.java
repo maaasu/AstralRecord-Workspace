@@ -121,6 +121,34 @@ public final class NpcPlacementService {
     }
 
     /**
+     * 指定 NPC テンプレート ID に一致する配置をすべて削除します。
+     *
+     * @param npcId 削除対象 NPC テンプレート ID
+     * @return 削除した配置件数
+     */
+    public int removeByNpcId(@NotNull String npcId) {
+        List<String> targetKeys = placements.values().stream()
+                .filter(placement -> placement.npcId().equals(npcId))
+                .map(NpcPlacement::locationKey)
+                .toList();
+
+        int count = 0;
+        for (String locationKey : targetKeys) {
+            if (placements.remove(locationKey) == null) {
+                continue;
+            }
+            removeSpawned(locationKey);
+            count++;
+        }
+
+        if (count > 0) {
+            dirty = true;
+            saveIfDirty();
+        }
+        return count;
+    }
+
+    /**
      * 指定ワールドに紐づく NPC 配置をスポーンします。
      *
      * @param world ロードされたワールド
@@ -147,6 +175,19 @@ public final class NpcPlacementService {
     @NotNull
     public Collection<NpcPlacement> getPlacements() {
         return List.copyOf(placements.values());
+    }
+
+    /**
+     * 登録済み NPC 配置に含まれるテンプレート ID 一覧を返します。
+     *
+     * @return テンプレート ID 一覧
+     */
+    @NotNull
+    public Collection<String> getPlacedNpcIds() {
+        return placements.values().stream()
+                .map(NpcPlacement::npcId)
+                .distinct()
+                .toList();
     }
 
     /**

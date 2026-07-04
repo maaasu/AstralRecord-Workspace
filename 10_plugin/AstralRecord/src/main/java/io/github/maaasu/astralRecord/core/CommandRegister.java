@@ -124,7 +124,7 @@ public class CommandRegister {
         cm.registerCommand("storage", new StorageCommand());
         cm.registerCommand("pagingdummy", new PagingDebugCommand());
         cm.registerCommand("item", new ItemCommand(itemService), new ItemTabCompleter(itemService));
-        cm.registerCommand("mob", new MobCommand(mobService, spawnerService, npcPlacementService), new MobTabCompleter(mobService, spawnerService));
+        cm.registerCommand("mob", new MobCommand(mobService, spawnerService, npcPlacementService), new MobTabCompleter(mobService, spawnerService, npcPlacementService));
         cm.registerCommand("gathering", new GatheringCommand(gatheringService, gatheringSpawnerService), new GatheringTabCompleter(gatheringService, gatheringSpawnerService));
         cm.registerCommand("world", new WorldCommand(worldService), new WorldTabCompleter(worldService));
         cm.registerCommand("boss", new BossCommand());

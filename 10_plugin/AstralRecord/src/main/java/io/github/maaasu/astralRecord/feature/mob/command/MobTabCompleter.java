@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.mob.command;
 
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.mob.service.NpcPlacementService;
 import io.github.maaasu.astralRecord.feature.spawner.service.MobSpawnerService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.command.AstTabCompleter;
@@ -19,6 +20,7 @@ public class MobTabCompleter extends AstTabCompleter {
 
     private final MobService mobService;
     private final MobSpawnerService spawnerService;
+    private final NpcPlacementService npcPlacementService;
 
     /**
      * MobTabCompleter を初期化します。
@@ -26,10 +28,15 @@ public class MobTabCompleter extends AstTabCompleter {
      * @param mobService Mob サービス
      * @param spawnerService Mob スポナーサービス
      */
-    public MobTabCompleter(@NotNull MobService mobService, @NotNull MobSpawnerService spawnerService) {
+    public MobTabCompleter(
+            @NotNull MobService mobService,
+            @NotNull MobSpawnerService spawnerService,
+            @NotNull NpcPlacementService npcPlacementService
+    ) {
         super(true);
         this.mobService = mobService;
         this.spawnerService = spawnerService;
+        this.npcPlacementService = npcPlacementService;
     }
 
     @Override
@@ -41,7 +48,7 @@ public class MobTabCompleter extends AstTabCompleter {
             return List.copyOf(mobService.getLoadedMobIdsByCategory(SPAWNABLE_MOB_CATEGORIES));
         }
         if (args.length == 2 && "delete".equalsIgnoreCase(args[0])) {
-            List<String> completions = new ArrayList<>(mobService.getLoadedMobIds());
+            List<String> completions = new ArrayList<>(mobService.getLoadedMobSelectors(mobService.getLoadedMobIds()));
             mobService.getInstanceIds().forEach(id -> completions.add(id.toString()));
             return completions;
         }
@@ -52,10 +59,13 @@ public class MobTabCompleter extends AstTabCompleter {
             return List.copyOf(spawnerService.getLoadedSpawnerIds());
         }
         if (args.length == 2 && "npc".equalsIgnoreCase(args[0])) {
-            return List.of("place", "list", "reload");
+            return List.of("place", "remove", "list", "reload");
         }
         if (args.length == 3 && "npc".equalsIgnoreCase(args[0]) && "place".equalsIgnoreCase(args[1])) {
-            return List.copyOf(mobService.getLoadedMobIdsByCategory(List.of(MobCategory.NPC)));
+            return List.copyOf(mobService.getLoadedMobSelectorsByCategory(List.of(MobCategory.NPC)));
+        }
+        if (args.length == 3 && "npc".equalsIgnoreCase(args[0]) && "remove".equalsIgnoreCase(args[1])) {
+            return List.copyOf(mobService.getLoadedMobSelectors(npcPlacementService.getPlacedNpcIds()));
         }
         return List.of();
     }
