@@ -65,7 +65,7 @@ If the request is ambiguous, infer the mode from the wording:
      - Plugin build files under `10_plugin/AstralRecord/`
    - If the rebased branch still contains plugin deliverable changes, invoke `$astralrecord-plugin-version` in that rebased worktree and create a separate scoped commit for `10_plugin/AstralRecord/pom.xml`.
    - If rebase succeeds and any required version-bump commit completes, fast-forward merge the task branch into `develop`.
-   - Remove the task worktree and delete the task branch only after merge success and only when the user did not request retention.
+   - After a successful fast-forward merge, always remove the task worktree and delete the task branch before reporting completion, unless the user explicitly requested retention. Do not leave completed task worktrees for later cleanup.
 7. If any merge or rebase conflict occurs:
    - Stop immediately.
    - Do not delete the branch or worktree.
@@ -112,12 +112,14 @@ E:\AstralRecord-Workspace\<relative-path>
 
 ## Cleanup Rules
 
-Remove the task worktree and delete the task branch only when all of the following are true:
+Successful finalize includes cleanup. Remove the task worktree and delete the task branch in the same turn as the successful `develop` merge when all of the following are true:
 
 - The task branch was committed successfully.
 - Rebase onto `develop` succeeded.
 - `develop` fast-forward merge succeeded.
-- The user did not request to keep the branch or worktree.
+- The user did not explicitly request to keep the branch or worktree.
+
+Do not report a finalize as fully complete while the completed task worktree or merged task branch still exists. If cleanup fails after a successful merge, report the merge as successful but the finalize as cleanup-blocked, including the exact worktree and branch that still need removal.
 
 Keep the branch and worktree when:
 
