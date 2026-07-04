@@ -1,4 +1,4 @@
 interface:
   display_name: "AstralRecord 実装から develop 反映"
-  short_description: "task worktree を作成し、実装から develop 反映までを進める"
-  default_prompt: "$astralrecord-code-version-commit-develop を使って、E:\\AstralRecord-Workspace\\<target-path> の変更を task worktree 上で実装し、develop への merge まで行って結果を報告してください。"
+  short_description: "task worktree を作成し、実装や filebase 作成から develop 反映まで進める"
+  default_prompt: "$astralrecord-code-version-commit-develop を使って、E:\\AstralRecord-Workspace\\<target-path> の変更や filebase マスタ作成を task worktree 上で行い、develop への merge まで進めて結果を報告してください。"

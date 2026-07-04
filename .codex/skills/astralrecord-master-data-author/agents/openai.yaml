@@ -1,0 +1,4 @@
+interface:
+  display_name: "AstralRecord マスタ作成"
+  short_description: "本番向け filebase マスタを設計方針に沿って追加する"
+  default_prompt: "$astralrecord-master-data-author を使って、E:\\AstralRecord-Workspace\\40_filebase に最初のオーバーワールド向けマスタを追加し、結果を報告してください。"

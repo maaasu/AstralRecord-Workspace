@@ -1,6 +1,6 @@
 ---
 name: astralrecord-code-version-commit-develop
-description: AstralRecord の実装作業を task ごとの branch / git worktree 上で進め、`$astralrecord-code` による実装と `$astralrecord-git-worktree-develop` による commit・develop 反映・cleanup をつなぐ統合スキル。プラグイン版番号更新が必要な場合は、最新版 develop へ rebase 済みの finalize 時にだけ実施する。
+description: AstralRecord の実装作業や本番向け filebase マスタ作成を task ごとの branch / git worktree 上で進め、`$astralrecord-code` または `$astralrecord-master-data-author` による作業と `$astralrecord-git-worktree-develop` による commit・develop 反映・cleanup をつなぐ統合スキル。プラグイン版番号更新が必要な場合は、最新版 develop へ rebase 済みの finalize 時にだけ実施する。
 ---
 
 # AstralRecord Code Version Commit Develop
@@ -10,7 +10,9 @@ description: AstralRecord の実装作業を task ごとの branch / git worktre
 Do not redefine implementation, plugin versioning, or git workflow rules in this skill. Use the existing skills as the source of truth and connect them in order.
 
 1. First, use `$astralrecord-git-worktree-develop` to prepare a task branch and worktree from local `develop`.
-2. Run `$astralrecord-code` inside that prepared worktree.
+2. Run the appropriate worker skill inside that prepared worktree:
+   - `$astralrecord-code` for plugin, API, web, docs-linked implementation, database docs, resourcepack, or mixed implementation tasks.
+   - `$astralrecord-master-data-author` for production-oriented filebase master creation under `40_filebase`.
 3. Do not run `$astralrecord-plugin-version` during the parallel implementation phase. Plugin versioning belongs to the rebased finalize step handled by `$astralrecord-git-worktree-develop`.
 4. If the user wants a serial end-to-end run, use `$astralrecord-git-worktree-develop` again to finalize the task worktree back into `develop`.
 5. If the user wants parallel execution, stop after implementation and hand off the prepared worktree to a later `$astralrecord-git-worktree-develop` finalize call.
@@ -20,9 +22,11 @@ Do not redefine implementation, plugin versioning, or git workflow rules in this
 ## Workflow
 
 1. Read `E:\AstralRecord-Workspace\AGENTS.md`.
-2. Identify the target project exactly as `$astralrecord-code` would.
+2. Identify the target project and choose the worker skill:
+   - `40_filebase` master creation -> `$astralrecord-master-data-author`
+   - other implementation tasks -> `$astralrecord-code`
 3. Invoke `$astralrecord-git-worktree-develop` in Prepare mode and create a task branch / worktree for the request.
-4. Map the requested absolute path from `E:\AstralRecord-Workspace\...` to the returned worktree root and invoke `$astralrecord-code` there. Finish the requested implementation, including docs sync and verification required by that skill.
+4. Map the requested absolute path from `E:\AstralRecord-Workspace\...` to the returned worktree root and invoke the selected worker skill there. Finish the requested implementation or master creation, including docs sync and verification required by that skill.
 5. Inspect the resulting changed files in the task worktree.
 6. Determine which execution style the user requested:
    - Serial single-task flow: immediately invoke `$astralrecord-git-worktree-develop` in Finalize mode.
@@ -74,7 +78,7 @@ $astralrecord-git-worktree-develop を使って、並列実装後の <worktree-a
 
 Write the final result in Japanese and merge all executed steps into one report.
 
-- `実装結果`: `$astralrecord-code` の要点
+- `実装結果`: 実行した worker skill の要点
 - `Branch / Worktree`: 準備した branch 名と worktree パス
 - `バージョン更新結果`: finalize 実施時のみ要点。未実施なら理由を明記
 - `Git結果`: `$astralrecord-git-worktree-develop` の要点
@@ -89,6 +93,10 @@ $astralrecord-code-version-commit-develop を使って、E:\AstralRecord-Workspa
 
 ```text
 $astralrecord-code-version-commit-develop を使って、E:\AstralRecord-Workspace\.codex\skills の依頼された skill 変更を task worktree 上で実装し、プラグイン未変更なら版番号更新を行わず develop へ merge してください。
+```
+
+```text
+$astralrecord-code-version-commit-develop を使って、E:\AstralRecord-Workspace\40_filebase の最初のオーバーワールド向け本番マスタを task worktree 上で作成し、develop へ merge してください。
 ```
 
 ```text

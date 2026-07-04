@@ -49,6 +49,7 @@ $<skill-name> を使って、<absolute-path> に対して <task> を行い、結
 | 設計書レビュー指摘の修正 | `$astralrecord-docs-fix` | docs だけを編集する |
 | 現在の branch/worktree の差分だけ commit | `$astralrecord-commit-current-diff` | branch 作成や merge はしない |
 | 複数の `codex/*` branch をまとめて監査・merge | `$astralrecord-merge-codex-branches-develop` | 既定は dry-run |
+| 本番向け filebase マスタ追加 | `$astralrecord-master-data-author` | コンセプト・ステータス・命名方針と YAML スキーマに沿って追加 |
 | プラグインのテスト・検証基盤整備 | `$astralrecord-plugin-test` | 機能仕様変更は `$astralrecord-code` を使う |
 | プラグイン版番号更新 | `$astralrecord-plugin-version` | finalize 直前の rebased worktree で使う |
 | player/logger プロパティの未使用削除 | `$astralrecord-unused-properties-prune` | 専用スクリプトの結果を根拠にする |
@@ -119,11 +120,12 @@ task ごとに branch と git worktree を作り、作業後の commit、rebase�
 
 ### `$astralrecord-code-version-commit-develop`
 
-`$astralrecord-git-worktree-develop` と `$astralrecord-code` をつなぐ統合入口です。実装から develop への merge まで 1 回の依頼で進めたいときに使います。
+`$astralrecord-git-worktree-develop` と `$astralrecord-code` / `$astralrecord-master-data-author` をつなぐ統合入口です。実装や本番向け filebase マスタ作成から develop への merge まで 1 回の依頼で進めたいときに使います。
 
 使う場面:
 
 - worktree 作成、実装、commit、develop merge、cleanup まで任せたい。
+- `40_filebase` の本番向けマスタ作成を task worktree 上で行い、そのまま develop へ反映したい。
 - プラグイン版番号更新を finalize 時まで遅らせたい。
 - 並列作業では prepare + 実装で止め、後から finalize したい。
 
@@ -148,6 +150,21 @@ local の `codex/*` branch を監査し、fast-forward 可能な branch だけ�
 - fast-forward できない branch を個別 rebase / finalize 対象として残したい。
 
 ## 専用補助 Skill
+
+### `$astralrecord-master-data-author`
+
+AstralRecord のゲームコンセプト、ステータス設計、命名方針、初期オーバーワールド制作ブリーフ、filebase YAML スキーマを読み、本番向けの filebase マスタを追加します。
+
+使う場面:
+
+- `40_filebase` に本番向け item / equipment / material / consumable / mob / spawner / loot / shop / world マスタを追加したい。
+- 最初のオーバーワールド向けに、敵・素材・初期装備・loot pool/table・spawner を一式作りたい。
+- 強制ストーリーではなく、軽い世界観と命名方針に沿ってマスタの統一感を出したい。
+
+`$astralrecord-code` との使い分け:
+
+- filebase マスタ追加だけなら `$astralrecord-master-data-author` を使う。
+- Plugin/API/Web/Resource Pack の実装変更も必要なら `$astralrecord-code` を使う。
 
 ### `$astralrecord-plugin-test`
 
