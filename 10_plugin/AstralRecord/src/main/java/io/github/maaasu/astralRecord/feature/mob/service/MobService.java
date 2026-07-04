@@ -45,6 +45,7 @@ public class MobService {
     private final Plugin plugin;
     private final MobRepository repository;
     private final MobEntityController entityController;
+    private final NpcPlayerSkinPacketService playerSkinPacketService;
 
     private final Map<String, MobTemplate> templates = new LinkedHashMap<>();
     private final Map<UUID, MobInstance> instances = new LinkedHashMap<>();
@@ -62,6 +63,7 @@ public class MobService {
         this.plugin = plugin;
         this.repository = repository;
         this.entityController = new MobEntityController(plugin);
+        this.playerSkinPacketService = new NpcPlayerSkinPacketService(plugin, this.entityController);
     }
 
     /**
@@ -346,6 +348,7 @@ public class MobService {
         MobInstance instance = instances.remove(instanceId);
         if (instance == null) return false;
 
+        playerSkinPacketService.remove(instance);
         viewers.remove(instanceId);
         if (instance.bukkitEntityId() != null) {
             instanceByEntity.remove(instance.bukkitEntityId());
@@ -400,11 +403,13 @@ public class MobService {
     public int destroyAll() {
         int count = instances.size();
         for (MobInstance instance : instances.values()) {
+            playerSkinPacketService.remove(instance);
             entityController.remove(instance);
         }
         instances.clear();
         instanceByEntity.clear();
         viewers.clear();
+        playerSkinPacketService.removeAll();
         Logger.log(LogId.I_5701, count);
         return count;
     }
@@ -567,6 +572,7 @@ public class MobService {
         }
 
         currentViewers.removeIf(id -> Bukkit.getPlayer(id) == null);
+        playerSkinPacketService.sync(instance, currentViewers);
     }
 
     private boolean hasViewerInRange(@NotNull MobInstance instance) {

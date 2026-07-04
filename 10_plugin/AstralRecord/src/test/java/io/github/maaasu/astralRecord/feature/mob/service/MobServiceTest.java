@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.mob.service;
 
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobSkin;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.repository.MobRepository;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
@@ -94,5 +95,95 @@ class MobServiceTest extends MockBukkitTestBase {
         Field templatesField = MobService.class.getDeclaredField("templates");
         templatesField.setAccessible(true);
         return (Map<String, MobTemplate>) templatesField.get(service);
+    }
+    @Test
+    void playerSkinPacketViewRequiresPlayerRequestAndSignedTexture() {
+        MobTemplate playerSkinTemplate = new MobTemplate(
+                1,
+                "village_elder",
+                MobCategory.NPC,
+                "Village Elder",
+                null,
+                1,
+                EntityType.VILLAGER,
+                "player",
+                null,
+                false,
+                null,
+                List.of(),
+                List.of(),
+                new MobSkin("texture", "signature"),
+                null,
+                null,
+                List.of(),
+                MobShieldConfig.EMPTY,
+                null,
+                true,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+        MobTemplate villagerTemplate = new MobTemplate(
+                1,
+                "villager",
+                MobCategory.NPC,
+                "Villager",
+                null,
+                1,
+                EntityType.VILLAGER,
+                "villager",
+                null,
+                false,
+                null,
+                List.of(),
+                List.of(),
+                new MobSkin("texture", "signature"),
+                null,
+                null,
+                List.of(),
+                MobShieldConfig.EMPTY,
+                null,
+                true,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+        MobTemplate unsignedPlayerSkinTemplate = new MobTemplate(
+                1,
+                "unsigned_player",
+                MobCategory.NPC,
+                "Unsigned Player",
+                null,
+                1,
+                EntityType.VILLAGER,
+                "PLAYER",
+                null,
+                false,
+                null,
+                List.of(),
+                List.of(),
+                new MobSkin("texture", null),
+                null,
+                null,
+                List.of(),
+                MobShieldConfig.EMPTY,
+                null,
+                true,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        assertTrue(playerSkinTemplate.requestedPlayerEntity());
+        assertTrue(playerSkinTemplate.usesPlayerSkinPacketView());
+        assertFalse(villagerTemplate.requestedPlayerEntity());
+        assertFalse(villagerTemplate.usesPlayerSkinPacketView());
+        assertFalse(unsignedPlayerSkinTemplate.usesPlayerSkinPacketView());
     }
 }

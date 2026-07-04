@@ -7,4 +7,11 @@ package io.github.maaasu.astralRecord.feature.mob.model;
  * @param signature テクスチャの署名値
  */
 public record MobSkin(String texture, String signature) {
+
+    public boolean hasSignedTexture() {
+        return texture != null
+                && !texture.isBlank()
+                && signature != null
+                && !signature.isBlank();
+    }
 }

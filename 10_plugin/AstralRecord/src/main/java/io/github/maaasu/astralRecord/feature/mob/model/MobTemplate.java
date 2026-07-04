@@ -43,6 +43,7 @@ public record MobTemplate(
         @Nullable String title,
         int level,
         @NotNull EntityType entityType,
+        @Nullable String requestedEntityType,
         @Nullable Material blockMaterial,
         boolean nameVisible,
         @Nullable String icon,
@@ -93,6 +94,7 @@ public record MobTemplate(
                 title,
                 level,
                 entityType,
+                null,
                 null,
                 nameVisible,
                 icon,
@@ -146,6 +148,7 @@ public record MobTemplate(
                 level,
                 entityType,
                 null,
+                null,
                 nameVisible,
                 icon,
                 lore,
@@ -169,6 +172,9 @@ public record MobTemplate(
         lore = lore == null ? List.of() : List.copyOf(lore);
         tags = tags == null ? List.of() : List.copyOf(tags);
         baseStats = baseStats == null ? List.of() : List.copyOf(baseStats);
+        if (requestedEntityType != null) {
+            requestedEntityType = requestedEntityType.trim().toUpperCase();
+        }
         if (variant == null) {
             variant = MobVariantConfig.DEFAULT;
         }
@@ -202,5 +208,16 @@ public record MobTemplate(
             }
         }
         return defaultValue;
+    }
+
+    public boolean requestedPlayerEntity() {
+        return "PLAYER".equals(requestedEntityType);
+    }
+
+    public boolean usesPlayerSkinPacketView() {
+        return category == MobCategory.NPC
+                && requestedPlayerEntity()
+                && skin != null
+                && skin.hasSignedTexture();
     }
 }

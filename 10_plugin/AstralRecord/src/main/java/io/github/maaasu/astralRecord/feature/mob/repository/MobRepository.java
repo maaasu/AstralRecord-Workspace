@@ -155,6 +155,7 @@ public class MobRepository {
                 optionalString(obj, "title"),
                 obj.has("level") ? obj.get("level").getAsInt() : 1,
                 entityType,
+                entityTypeName,
                 blockMaterial,
                 obj.has("nameVisible") ? obj.get("nameVisible").getAsBoolean() : true,
                 optionalString(obj, "icon"),
