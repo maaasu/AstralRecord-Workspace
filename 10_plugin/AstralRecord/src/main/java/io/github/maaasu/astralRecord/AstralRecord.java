@@ -551,7 +551,7 @@ public final class AstralRecord extends JavaPlugin {
         teleporterService.setRuntimeServices(inventoryService, worldService, waystonePacketView, teleporterGui, teleporterGuiEventHandler);
         overworldTeleportService = new OverworldTeleportService(this, worldService);
         overworldTeleportGui = new OverworldTeleportGui();
-        overworldTeleportGuiEventHandler = new OverworldTeleportGuiEventHandler(overworldTeleportGui, overworldTeleportService);
+        overworldTeleportGuiEventHandler = new OverworldTeleportGuiEventHandler(this, overworldTeleportGui, overworldTeleportService);
         movementCancelableWaitService = new MovementCancelableWaitService(this);
         bundleUseEffectService = new BundleUseEffectService();
         itemDropAnimationService = new ItemDropAnimationService(this, itemStackFactory, particleDisplayService);
@@ -819,7 +819,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new BaseWorldGatewayEventHandler(overworldTeleportService, overworldTeleportGuiEventHandler),
+            new BaseWorldGatewayEventHandler(this, overworldTeleportService, overworldTeleportGuiEventHandler),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

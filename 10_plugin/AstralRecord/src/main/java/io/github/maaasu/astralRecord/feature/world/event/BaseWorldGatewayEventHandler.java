@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.world.event;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.world.service.OverworldTeleportService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -11,6 +12,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,18 +36,26 @@ public final class BaseWorldGatewayEventHandler extends AbstractEventHandler {
             PlayerTeleportEvent.TeleportCause.NETHER_PORTAL
     );
 
+    private final Plugin plugin;
     private final OverworldTeleportService teleportService;
     private final OverworldTeleportGuiEventHandler guiEventHandler;
     private final Set<UUID> awaitingGatewayExit = new HashSet<>();
 
     public BaseWorldGatewayEventHandler(
+            @NotNull Plugin plugin,
             @NotNull OverworldTeleportService teleportService,
             @NotNull OverworldTeleportGuiEventHandler guiEventHandler
     ) {
+        this.plugin = plugin;
         this.teleportService = teleportService;
         this.guiEventHandler = guiEventHandler;
     }
 
+    /**
+     * 拠点ワールドのゲートウェイブロックへ入った瞬間に GUI 起動処理を開始します。
+     *
+     * @param event プレイヤー移動イベント
+     */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlayerMove(@NotNull PlayerMoveEvent event) {
         runSafely(() -> {
@@ -64,6 +74,11 @@ public final class BaseWorldGatewayEventHandler extends AbstractEventHandler {
         }, LogId.E_5754, event.getPlayer().getName(), "move");
     }
 
+    /**
+     * 拠点ワールドで発生したバニラのゲートウェイ系テレポートをキャンセルします。
+     *
+     * @param event プレイヤーテレポートイベント
+     */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onPlayerTeleport(@NotNull PlayerTeleportEvent event) {
         runSafely(() -> {
@@ -79,16 +94,36 @@ public final class BaseWorldGatewayEventHandler extends AbstractEventHandler {
         }, LogId.E_5754, event.getPlayer().getName(), "teleport");
     }
 
+    /**
+     * 切断したプレイヤーのゲートウェイ再オープン抑止状態を破棄します。
+     *
+     * @param event プレイヤー切断イベント
+     */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
         runSafely(() -> awaitingGatewayExit.remove(event.getPlayer().getUniqueId()), LogId.E_5754, event.getPlayer().getName(), "quit");
     }
 
     private void openGui(@NotNull Player player) {
-        awaitingGatewayExit.add(player.getUniqueId());
-        if (!guiEventHandler.open(player)) {
+        UUID playerId = player.getUniqueId();
+        awaitingGatewayExit.add(playerId);
+
+        Location spawnLocation = player.getWorld().getSpawnLocation();
+        boolean teleported = player.teleport(spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN);
+        if (!teleported && isGatewayBlock(player.getLocation())) {
             return;
         }
+
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (!player.isOnline()) {
+                awaitingGatewayExit.remove(playerId);
+                return;
+            }
+            guiEventHandler.open(player);
+            if (!isGatewayBlock(player.getLocation())) {
+                awaitingGatewayExit.remove(playerId);
+            }
+        });
     }
 
     private boolean isGatewayBlock(@Nullable Location location) {
