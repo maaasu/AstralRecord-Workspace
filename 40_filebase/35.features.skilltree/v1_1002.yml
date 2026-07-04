@@ -1,20 +1,21 @@
 schemaVersion: 1
 id: 1002
 positionId: 1002
-name: "&d闘気収束"
-icon: AMETHYST_SHARD
-pointType: PP
+name: "&d狩人の歩法"
+icon: BOW
+pointType: CP
 pointCost: 1
 lore:
-  - "&7近接でも射撃でも、手数を増やす起点。"
+  - "&7間合いを保ちながら狙いを定める足運びを身につける。"
 statuses:
-  - status: ATTACK
+  - status: ACCURACY
+    type: FLAT
+    value: 4
+  - status: MOVEMENT_SPEED
     type: FLAT
     value: 2
-  - status: ENERGY_REGEN
-    type: FLAT
-    value: 1
 tags:
-  - shared
   - status
-  - hybrid
+  - ranged
+  - branch
+  - early

@@ -1,12 +1,12 @@
 schemaVersion: 1
 id: 1000
 positionId: 1000
-name: "&d星図の起点"
+name: "&d旅立ちの記録"
 icon: NETHER_STAR
 pointType: PP
 pointCost: 0
 lore:
-  - "&7すべてのビルドがここから始まる共通起点。"
+  - "&7序盤を戦い抜くための基礎を整える。"
 statuses:
   - status: MAX_HEALTH
     type: FLAT
@@ -20,5 +20,5 @@ statuses:
 tags:
   - root
   - shared
-  - status
   - core
+  - early

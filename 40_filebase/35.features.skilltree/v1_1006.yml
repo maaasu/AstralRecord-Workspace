@@ -1,18 +1,15 @@
 schemaVersion: 1
 id: 1006
 positionId: 1006
-name: "&d霊装障壁"
-icon: AMETHYST_SHARD
+name: "&c&l鉄身"
+icon: IRON_CHESTPLATE
+pointType: PP
+pointCost: 1
 lore:
-  - "&7魔防と回復効率を支える防護の節点。"
-statuses:
-  - status: MAGIC_DEFENSE
-    type: FLAT
-    value: 3
-  - status: MP_REGEN
-    type: FLAT
-    value: 1
+  - "&7装備の重さに慣れ、耐久を底上げする。"
+skillIds:
+  - sw_passive_iron_body
 tags:
-  - shared
-  - status
-  - hybrid
+  - passive
+  - melee
+  - early

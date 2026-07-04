@@ -1,14 +1,15 @@
 schemaVersion: 1
 id: 1012
 positionId: 1012
-name: "&c&l闘志充填"
-icon: BLAZE_POWDER
+name: "&e&l護りの盾"
+icon: SHIELD
+pointType: PP
+pointCost: 1
 lore:
-  - "&7前線継戦と基礎火力の両立に向く。"
-  - "&7継戦補正。"
+  - "&7魔法防御を固め、支援役の安定感を底上げする。"
 skillIds:
-  - sw_passive_focus
+  - ac_passive_shield
 tags:
   - passive
-  - melee
-  - mid
+  - support
+  - early

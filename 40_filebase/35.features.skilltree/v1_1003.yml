@@ -1,18 +1,21 @@
 schemaVersion: 1
 id: 1003
 positionId: 1003
-name: "&d精密照準"
-icon: AMETHYST_SHARD
+name: "&d魔導の呼吸"
+icon: BOOK
+pointType: CP
+pointCost: 1
 lore:
-  - "&7命中と会心を伸ばす射撃寄りの基礎。"
+  - "&7魔力の巡りを整え、呪文を扱うための余裕を広げる。"
 statuses:
-  - status: ACCURACY
-    type: FLAT
-    value: 6
-  - status: CRITICAL_RATE
+  - status: MAGIC_ATTACK
     type: FLAT
     value: 2
+  - status: MAX_MANA
+    type: FLAT
+    value: 10
 tags:
-  - shared
   - status
-  - ranged
+  - magic
+  - branch
+  - early

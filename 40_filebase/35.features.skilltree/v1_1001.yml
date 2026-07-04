@@ -1,20 +1,21 @@
 schemaVersion: 1
 id: 1001
 positionId: 1001
-name: "&d武骨鍛錬"
-icon: AMETHYST_SHARD
+name: "&d剣士の構え"
+icon: IRON_SWORD
 pointType: CP
 pointCost: 1
 lore:
-  - "&7前線寄りの土台。耐久を先に固めたいときの入口。"
+  - "&7前線で戦うための踏み込みと受けの基礎を磨く。"
 statuses:
-  - status: MAX_HEALTH
+  - status: ATTACK
     type: FLAT
-    value: 8
+    value: 2
   - status: DEFENSE
     type: FLAT
     value: 2
 tags:
-  - shared
   - status
   - melee
+  - branch
+  - early

@@ -1,18 +1,21 @@
 schemaVersion: 1
 id: 1004
 positionId: 1004
-name: "&d軽身歩法"
-icon: AMETHYST_SHARD
+name: "&d祈りの備え"
+icon: SHIELD
+pointType: CP
+pointCost: 1
 lore:
-  - "&7機動と回避で立ち回るビルドの足場。"
+  - "&7仲間と自分を支えるための耐久と加護を整える。"
 statuses:
-  - status: MOVEMENT_SPEED
+  - status: MAX_HEALTH
     type: FLAT
-    value: 3
-  - status: EVASION
+    value: 8
+  - status: MAGIC_DEFENSE
     type: FLAT
-    value: 4
+    value: 2
 tags:
-  - shared
   - status
-  - hybrid
+  - support
+  - branch
+  - early

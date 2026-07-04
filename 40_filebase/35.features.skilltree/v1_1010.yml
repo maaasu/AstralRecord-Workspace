@@ -1,14 +1,15 @@
 schemaVersion: 1
 id: 1010
 positionId: 1010
-name: "&c&l鉄身"
-icon: IRON_CHESTPLATE
+name: "&b&l魔泉"
+icon: WATER_BUCKET
+pointType: PP
+pointCost: 1
 lore:
-  - "&7前衛の耐久を厚くしたいときに有力。"
-  - "&7全身強化。"
+  - "&7深い魔力を汲み上げ、最大マナを押し広げる。"
 skillIds:
-  - sw_passive_iron_body
+  - mg_passive_mana_well
 tags:
   - passive
-  - melee
-  - mid
+  - magic
+  - early

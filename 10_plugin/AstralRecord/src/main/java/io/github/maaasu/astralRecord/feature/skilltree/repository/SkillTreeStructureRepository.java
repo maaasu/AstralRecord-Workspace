@@ -26,9 +26,20 @@ public class SkillTreeStructureRepository {
         this.plugin = plugin;
     }
 
+    /**
+     * スキルツリー構造定義を読み込みます。
+     *
+     * <p>plugin data folder に構造ファイルが存在しない場合は、
+     * 同梱した既定レイアウトを初回だけ展開してから読み込みます。</p>
+     *
+     * @return 構造定義スナップショット
+     */
     @NotNull
     public StructureSnapshot load() {
         File file = file();
+        if (!file.exists()) {
+            ensureDefaultFile(file);
+        }
         if (!file.exists()) {
             return new StructureSnapshot(List.of(), List.of());
         }
@@ -55,6 +66,12 @@ public class SkillTreeStructureRepository {
         return new StructureSnapshot(positions, edges);
     }
 
+    /**
+     * スキルツリー構造定義を保存します。
+     *
+     * @param positions 保存する座標一覧
+     * @param edges 保存する接続一覧
+     */
     public void save(@NotNull Iterable<SkillTreePosition> positions, @NotNull Iterable<SkillTreeEdge> edges) {
         YamlConfiguration yaml = new YamlConfiguration();
         List<Map<String, Object>> positionRows = new ArrayList<>();
@@ -108,6 +125,17 @@ public class SkillTreeStructureRepository {
         } catch (NumberFormatException ignored) {
             return 0;
         }
+    }
+
+    private void ensureDefaultFile(@NotNull File file) {
+        if (plugin.getResource(FILE_NAME) == null) {
+            return;
+        }
+        File parent = file.getParentFile();
+        if (parent != null && !parent.exists() && !parent.mkdirs()) {
+            throw new IllegalStateException("Failed to create directory: " + parent.getAbsolutePath());
+        }
+        plugin.saveResource(FILE_NAME, false);
     }
 
     public record StructureSnapshot(

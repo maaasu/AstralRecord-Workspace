@@ -260,7 +260,7 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
         Player player = server().addPlayer();
 
         assertEquals(48, service.viewOptions(player).viewDistance());
-        assertEquals(SkillTreeService.SkillTreeEdgeDisplayMode.CONNECTED, service.viewOptions(player).edgeDisplayMode());
+        assertEquals(SkillTreeService.SkillTreeEdgeDisplayMode.ALL, service.viewOptions(player).edgeDisplayMode());
 
         service.updateViewDistance(player, 32);
         service.updateEdgeDisplayMode(player, SkillTreeService.SkillTreeEdgeDisplayMode.ALL);
@@ -270,7 +270,7 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
 
         service.resetViewOptions(player);
         assertEquals(48, service.viewOptions(player).viewDistance());
-        assertEquals(SkillTreeService.SkillTreeEdgeDisplayMode.CONNECTED, service.viewOptions(player).edgeDisplayMode());
+        assertEquals(SkillTreeService.SkillTreeEdgeDisplayMode.ALL, service.viewOptions(player).edgeDisplayMode());
     }
 
     @Test

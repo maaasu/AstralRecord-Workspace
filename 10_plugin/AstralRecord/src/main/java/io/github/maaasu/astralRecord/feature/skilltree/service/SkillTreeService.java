@@ -1781,7 +1781,7 @@ public class SkillTreeService {
             @NotNull SkillTreeEdgeDisplayMode edgeDisplayMode
     ) {
         public static final SkillTreeViewOptions DEFAULT =
-                new SkillTreeViewOptions(DEFAULT_VIEW_DISTANCE, SkillTreeEdgeDisplayMode.CONNECTED);
+                new SkillTreeViewOptions(DEFAULT_VIEW_DISTANCE, SkillTreeEdgeDisplayMode.ALL);
 
         public @NotNull SkillTreeViewOptions withViewDistance(int updatedViewDistance) {
             return new SkillTreeViewOptions(updatedViewDistance, edgeDisplayMode);

@@ -1,18 +1,15 @@
 schemaVersion: 1
 id: 1008
 positionId: 1008
-name: "&d連撃素養"
-icon: AMETHYST_SHARD
+name: "&a&lすり抜け"
+icon: FEATHER
+pointType: PP
+pointCost: 1
 lore:
-  - "&7近接ハイブリッドや手数型のビルド向け。"
-statuses:
-  - status: ATTACK_SPEED
-    type: FLAT
-    value: 4
-  - status: MELEE_ATTACK
-    type: FLAT
-    value: 2
+  - "&7身のこなしを洗練させ、回避と機動力を高める。"
+skillIds:
+  - ht_passive_dodge
 tags:
-  - shared
-  - status
-  - hybrid
+  - passive
+  - ranged
+  - early

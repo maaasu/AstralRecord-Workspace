@@ -1,14 +1,15 @@
 schemaVersion: 1
 id: 1009
 positionId: 1009
-name: "&c&l鉄壁"
-icon: IRON_BLOCK
+name: "&b&l瞑想"
+icon: BOOK
+pointType: PP
+pointCost: 1
 lore:
-  - "&7防御寄りの近接や壁役で強い。"
-  - "&7防御補強。"
+  - "&7魔力を静かに巡らせ、継戦力を高める。"
 skillIds:
-  - sw_passive_wall
+  - mg_passive_meditation
 tags:
   - passive
-  - melee
-  - mid
+  - magic
+  - early

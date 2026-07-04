@@ -1,18 +1,15 @@
 schemaVersion: 1
 id: 1005
 positionId: 1005
-name: "&d魔力循環"
-icon: AMETHYST_SHARD
+name: "&c&l壁の構え"
+icon: IRON_BLOCK
+pointType: PP
+pointCost: 1
 lore:
-  - "&7魔力リソースを伸ばす魔導寄りの基礎。"
-statuses:
-  - status: MAX_MANA
-    type: FLAT
-    value: 15
-  - status: MAGIC_ATTACK
-    type: FLAT
-    value: 2
+  - "&7防御を固め、前線で踏みとどまるための受けを習得する。"
+skillIds:
+  - sw_passive_wall
 tags:
-  - shared
-  - status
-  - magic
+  - passive
+  - melee
+  - early

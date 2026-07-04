@@ -1,14 +1,15 @@
 schemaVersion: 1
 id: 1011
 positionId: 1011
-name: "&c&l受け流し"
-icon: SHIELD
+name: "&e&l祈り"
+icon: BREAD
+pointType: PP
+pointCost: 1
 lore:
-  - "&7近接命中と受け性能を両立したい構成向け。"
-  - "&7構え精度。"
+  - "&7再生の祈りで、自身と味方を支える土台を築く。"
 skillIds:
-  - sw_passive_parry
+  - ac_passive_prayer
 tags:
   - passive
-  - melee
-  - mid
+  - support
+  - early

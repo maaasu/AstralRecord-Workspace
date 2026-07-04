@@ -11,10 +11,12 @@
 - プレイヤー単位の動的進行状態（解放済み `nodeId` 一覧）は plugin ローカル YAML には保持せず、`account-skilltree` API と AstralRecord DB を正本とする。CP/PP はクラスレベル・プレイヤーレベルから算出する
 - `positionId` の参照先である `skilltree_structure.yml` は `skill_tree` ワールド上の座標配置を表す plugin データファイルであり、サーバローカルで管理する
 - 現行 plugin は `skilltree_structure.yml` の `edges[]` を参照し、`root` tag を起点に隣接ノードを解放する単一連結ツリーとして扱う
+- `skilltree_structure.yml` が plugin data folder に存在しない場合は、plugin jar に同梱した序盤用の既定レイアウトを初回起動時に展開する
 
 `skilltree_structure.yml` の契約:
 
 - 配置場所: plugin data folder 直下の `skilltree_structure.yml`
+- 初回配布元: `10_plugin/AstralRecord/src/main/resources/skilltree_structure.yml`
 - 管理対象: `positions[]` と `edges[]`
 - `positions[]`: `{ id, world, x, y, z }`
 - `edges[]`: `{ left, right }`
