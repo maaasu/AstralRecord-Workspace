@@ -1,4 +1,4 @@
 interface:
   display_name: "AstralRecord codex 掃除"
-  short_description: "merged codex branch/worktree を安全に掃除する"
+  short_description: "merged codex branch/worktree を監査し管理ファイルを更新する"
   default_prompt: "$astralrecord-prune-codex-worktrees を使って、E:\\\\AstralRecord-Workspace の不要な codex/* branch と task worktree を dry-run 監査し、結果を報告してください。"

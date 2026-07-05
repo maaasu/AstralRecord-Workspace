@@ -1,4 +1,4 @@
 interface:
   display_name: "AstralRecord worktree 運用"
-  short_description: "task branch/worktree の作成または finalize を行い develop へ反映する"
+  short_description: "task branch/worktree の作成・finalize・管理ファイル更新を行う"
   default_prompt: "$astralrecord-git-worktree-develop を使って、E:\\AstralRecord-Workspace\\.codex\\skills の変更用 task branch/worktree を作成し、branch 名と worktree パスを報告してください。"

@@ -23,7 +23,8 @@
 3. 作業が終わったら `$astralrecord-git-worktree-develop` で commit、rebase、develop への fast-forward merge、cleanup を行う。
 4. 複数 task を並列で進めた場合は、最後に 1 件ずつ finalize する。
 5. プラグインの版番号更新は並列作業中に行わず、finalize 時に最新 `develop` へ rebase した後だけ行う。
-6. merged 済み `codex/*` branch や不要な task worktree が溜まったら、`$astralrecord-prune-codex-worktrees` で dry-run 監査してから掃除する。
+6. worktree の作成・finalize・掃除のたびに `E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md` を更新し、残った worktree が消し忘れか未完了か分かる状態にする。
+7. merged 済み `codex/*` branch や不要な task worktree が溜まったら、`$astralrecord-prune-codex-worktrees` で dry-run 監査してから掃除する。
 
 1 回の依頼で worktree 作成から develop への merge まで進めたい場合は、統合入口として `$astralrecord-code-version-commit-develop` を使います。
 
@@ -41,7 +42,7 @@ $<skill-name> を使って、<absolute-path> に対して <task> を行い、結
 
 | 目的 | 使う skill | 補足 |
 |:--|:--|:--|
-| task worktree を作る | `$astralrecord-git-worktree-develop` | prepare と finalize の両方を担当する |
+| task worktree を作る | `$astralrecord-git-worktree-develop` | prepare と finalize の両方を担当し、worktree 管理ファイルを更新する |
 | 新規実装・仕様反映 | `$astralrecord-code` | 実装と関連設計書の同期を扱う |
 | 実装から develop merge まで一気通貫 | `$astralrecord-code-version-commit-develop` | worktree first の統合入口 |
 | コードレビュー | `$astralrecord-code-review` | ソースを編集しない |
@@ -49,8 +50,8 @@ $<skill-name> を使って、<absolute-path> に対して <task> を行い、結
 | 設計書レビュー | `$astralrecord-docs-review` | ソースコードを読まない |
 | 設計書レビュー指摘の修正 | `$astralrecord-docs-fix` | docs だけを編集する |
 | 現在の branch/worktree の差分だけ commit | `$astralrecord-commit-current-diff` | branch 作成や merge はしない |
-| 複数の `codex/*` branch をまとめて監査・merge | `$astralrecord-merge-codex-branches-develop` | 既定は dry-run |
-| merged 済み `codex/*` branch / task worktree を掃除 | `$astralrecord-prune-codex-worktrees` | 既定は dry-run、未登録ディレクトリは手動確認 |
+| 複数の `codex/*` branch をまとめて監査・merge | `$astralrecord-merge-codex-branches-develop` | 既定は dry-run、監査後に worktree 管理ファイルを更新 |
+| merged 済み `codex/*` branch / task worktree を掃除 | `$astralrecord-prune-codex-worktrees` | 既定は dry-run、管理ファイル作成、未登録ディレクトリは手動確認 |
 | 本番向け filebase マスタ追加 | `$astralrecord-master-data-author` | コンセプト・ステータス・命名方針と YAML スキーマに沿って追加 |
 | プラグインのテスト・検証基盤整備 | `$astralrecord-plugin-test` | 機能仕様変更は `$astralrecord-code` を使う |
 | プラグイン版番号更新 | `$astralrecord-plugin-version` | finalize 直前の rebased worktree で使う |
@@ -122,7 +123,7 @@ task ごとに branch と git worktree を作り、作業後の commit、rebase�
 
 ### `$astralrecord-code-version-commit-develop`
 
-`$astralrecord-git-worktree-develop` と `$astralrecord-code` / `$astralrecord-master-data-author` をつなぐ統合入口です。実装や本番向け filebase マスタ作成から develop への merge まで 1 回の依頼で進めたいときに使います。
+`$astralrecord-git-worktree-develop` と `$astralrecord-code` / `$astralrecord-master-data-author` をつなぐ統合入口です。実装や本番向け filebase マスタ作成から develop への merge まで 1 回の依頼で進めたいときに使います。並列作業で worktree を残す場合も管理ファイルを更新します。
 
 使う場面:
 
@@ -143,7 +144,7 @@ task ごとに branch と git worktree を作り、作業後の commit、rebase�
 
 ### `$astralrecord-merge-codex-branches-develop`
 
-local の `codex/*` branch を監査し、fast-forward 可能な branch だけを `develop` に順次 merge します。
+local の `codex/*` branch を監査し、fast-forward 可能な branch だけを `develop` に順次 merge します。監査・merge 後に worktree 管理ファイルを更新します。
 
 使う場面:
 
@@ -153,7 +154,7 @@ local の `codex/*` branch を監査し、fast-forward 可能な branch だけ�
 
 ### `$astralrecord-prune-codex-worktrees`
 
-local `develop` へ取り込み済みの `codex/*` branch、不要になった task worktree、stale worktree metadata を dry-run 既定で監査し、安全な候補だけを掃除します。
+local `develop` へ取り込み済みの `codex/*` branch、不要になった task worktree、stale worktree metadata を dry-run 既定で監査し、安全な候補だけを掃除します。`E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md` を作成・更新して、残った worktree の理由を分類します。
 
 使う場面:
 
