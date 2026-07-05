@@ -12,7 +12,7 @@ Do not fetch, pull, push, create manual commits, or merge remote-tracking branch
 
 Default to a dry-run audit. Perform an actual merge only when the user explicitly asks to execute or apply the merge after seeing the candidate list.
 
-Use `E:\AstralRecord-Workspace\.codex\skills\astralrecord-git-worktree-develop\references\worktree-management.md` as the source of truth for the local worktree management file and status categories.
+worktree 管理ファイルと状態分類は `E:\AstralRecord-Workspace\.codex\skills\astralrecord-git-worktree-develop\references\worktree-management.md` を正本として扱う。
 
 ## Scope
 

@@ -1,73 +1,73 @@
-# Worktree Management Content
+# Worktree 管理コンテンツ
 
-Use this reference when a skill creates, finalizes, merges, audits, or prunes AstralRecord task worktrees.
+AstralRecord の task worktree を作成、finalize、merge、監査、削除するときは、この参照を使う。
 
-## Management File
+## 管理ファイル
 
-Default local management file:
+既定のローカル管理ファイル:
 
 ```text
 E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md
 ```
 
-This file is local operational content, not a source artifact to commit. It records the current state of task worktrees so a leftover directory can be understood as one of these cases:
+このファイルはローカル運用コンテンツであり、通常はコミット対象ではない。残っている worktree を次のどれとして扱うべきか判断できるようにする。
 
-- already merged and safe to remove
-- already merged but dirty and needing manual inspection
-- unmerged and still active
-- unmerged and blocked
-- detached because a rebase, conflict, or manual checkout stopped midway
-- unregistered or non-git directory that needs manual review
+- develop 取り込み済みで削除してよい
+- develop 取り込み済みだが dirty なので手動確認が必要
+- develop 未取り込みで作業中
+- develop 未取り込みで停止中
+- rebase、競合、手動 checkout などで detached になっている
+- Git worktree 未登録、または Git worktree ではないため手動確認が必要
 
-## Required Update Points
+## 更新タイミング
 
-Update or regenerate the management file whenever a worktree-related skill performs one of these actions:
+worktree 関連 skill が次の操作を行ったら、管理ファイルを更新または再生成する。
 
-- Prepare creates a new `codex/*` branch and task worktree.
-- Finalize succeeds, fails, or intentionally retains a task worktree.
-- A batch merge audit or execute changes the status of one or more `codex/*` branches.
-- A prune audit or execute discovers, removes, or intentionally keeps worktrees/branches.
+- Prepare で新しい `codex/*` branch と task worktree を作成した。
+- Finalize が成功、失敗、または意図的な保持で終わった。
+- 一括 merge の dry-run または execute で `codex/*` branch の状態が変わった。
+- prune の dry-run または execute で worktree / branch の検出、削除、保持が発生した。
 
-Use the prune script as the default generator:
+既定の生成コマンド:
 
 ```powershell
 python E:\AstralRecord-Workspace\.codex\skills\astralrecord-prune-codex-worktrees\scripts\prune_codex_worktrees.py --repo E:\AstralRecord-Workspace --worktree-root E:\AstralRecord-Worktrees --write-management
 ```
 
-In execute cleanup mode, include `--execute --write-management`.
+実削除する場合は `--execute --write-management` を使う。
 
-## Status Categories
+## 状態分類
 
-Use these category meanings in reports and follow-up decisions:
+レポートと後続判断では次の分類を使う。
 
-| Category | Meaning | Default action |
+| 分類 | 意味 | 既定の扱い |
 |:--|:--|:--|
-| `REMOVABLE_WORKTREE` | Branch is already in `develop` and the worktree is clean. | Remove during explicit execute cleanup. |
-| `REMOVABLE_BRANCH` | Branch is already in `develop` and no worktree is attached. | Delete during explicit execute cleanup. |
-| `STALE_METADATA` | Git has worktree metadata for a missing path. | Run `git worktree prune` during execute cleanup. |
-| `UNREGISTERED_PATH` | Directory under worktree root looks like a Git checkout but is not registered. | Inspect manually before deletion. |
-| `NON_GIT_DIRECTORY` | Directory under worktree root is not a Git worktree. | Inspect manually before deletion. |
-| `DIRTY_WORKTREE` | Branch is already in `develop`, but local changes remain in the worktree. | Inspect, preserve, or discard local changes manually. |
-| `UNMERGED_WORKTREE` | Branch tip is not in `develop` and a registered worktree exists. | Finalize/rebase individually or explicitly abandon. |
-| `UNMERGED_BRANCH` | Branch tip is not in `develop` and no registered worktree is attached. | Locate/recreate worktree, finalize/rebase, or abandon. |
-| `DETACHED_WORKTREE` | Registered worktree is detached. | Inspect for rebase/conflict/manual checkout state. |
-| `DETACHED_HEAD_BRANCH` | Merged branch tip is still held by a detached worktree. | Inspect detached worktree before branch deletion. |
-| `NON_CODEX_WORKTREE` | Registered worktree uses a branch outside `codex/*`. | Leave it to its owning workflow. |
+| `REMOVABLE_WORKTREE` | branch は develop 取り込み済みで worktree は clean。 | 明示的な execute cleanup で削除する。 |
+| `REMOVABLE_BRANCH` | branch は develop 取り込み済みで worktree 未接続。 | 明示的な execute cleanup で branch を削除する。 |
+| `STALE_METADATA` | Git に存在しない path の worktree metadata が残っている。 | execute cleanup で `git worktree prune` する。 |
+| `UNREGISTERED_PATH` | worktree root 配下に Git checkout らしい未登録ディレクトリがある。 | 削除前に手動確認する。 |
+| `NON_GIT_DIRECTORY` | worktree root 配下に Git worktree ではないディレクトリがある。 | 削除前に手動確認する。 |
+| `DIRTY_WORKTREE` | branch は develop 取り込み済みだが、worktree に未コミット差分が残っている。 | 内容を確認して保存、破棄、別 commit を判断する。 |
+| `UNMERGED_WORKTREE` | branch 先端が develop 未取り込みで、登録 worktree がある。 | 個別 finalize / rebase するか、明示的に破棄判断する。 |
+| `UNMERGED_BRANCH` | branch 先端が develop 未取り込みで、登録 worktree がない。 | worktree 再作成、個別 finalize、破棄を判断する。 |
+| `DETACHED_WORKTREE` | 登録 worktree が detached HEAD。 | 競合、rebase 中断、手動 checkout 状態を確認する。 |
+| `DETACHED_HEAD_BRANCH` | merged branch の先端を detached worktree が保持している。 | branch 削除前に detached worktree を確認する。 |
+| `NON_CODEX_WORKTREE` | `codex/*` 以外の branch を使う登録 worktree。 | この掃除対象から外す。 |
 
-## Manual Notes
+## 手動メモ
 
-The generator preserves the `## Manual Notes` section when rewriting the management file. Put human decisions there, such as:
+生成処理は `## 手動メモ` セクションを保持して書き換える。人間の判断はここに残す。
 
 ```markdown
-- `codex/example-task`: keep until visual QA is complete. Owner: Codex. Next review: 2026-07-06.
-- `E:\AstralRecord-Worktrees\old-task`: confirmed disposable after backup; delete on next cleanup.
+- `codex/example-task`: visual QA 完了まで保持。担当: Codex。次回確認: 2026-07-06。
+- `E:\AstralRecord-Worktrees\old-task`: backup 後に削除してよいことを確認済み。次回 cleanup で削除。
 ```
 
-Do not rely on branch names alone when a worktree is `DIRTY_WORKTREE`, `DETACHED_WORKTREE`, `UNREGISTERED_PATH`, or `NON_GIT_DIRECTORY`. Inspect the path and report the concrete reason it is kept.
+`DIRTY_WORKTREE`、`DETACHED_WORKTREE`、`UNREGISTERED_PATH`、`NON_GIT_DIRECTORY` は branch 名だけで判断しない。path を確認し、保持理由を具体的に報告する。
 
-## Reporting
+## 報告
 
-When a worktree-related skill reports results, include a short management line:
+worktree 関連 skill の結果には、短い管理行を含める。
 
 ```markdown
 ## Worktree管理

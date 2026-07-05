@@ -24,7 +24,7 @@ Keep anything that is still risky or ambiguous:
 
 This skill does not fetch, pull, push, rebase, merge, or create commits.
 
-This skill may write the local management snapshot `E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md`. That file is operational content, not a repository commit target.
+この skill はローカル管理スナップショット `E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md` を作成・更新する。このファイルは運用コンテンツであり、通常はコミット対象ではない。
 
 ## Scope
 
@@ -91,7 +91,7 @@ python E:\AstralRecord-Workspace\.codex\skills\astralrecord-prune-codex-worktree
    - run `git worktree prune --verbose` only when stale metadata exists
    - remove only merged and clean task worktrees
    - delete only merged `codex/*` branches that are no longer attached anywhere
-8. If dirty worktrees, unmerged branches, detached worktrees, unregistered directories, or non-git directories remain, stop there and report them for manual follow-up instead of forcing deletion.
+8. dirty worktree、未 merge branch、detached worktree、未登録ディレクトリ、非 Git ディレクトリが残る場合は、強制削除せず手動確認項目として報告する。
 
 ## Safety Checks
 
@@ -123,11 +123,11 @@ Keep candidates for manual review when:
 
 ## Worktree Management Content
 
-The dry-run audit should refresh `E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md` even when no cleanup is applied. The file is the durable answer to "why is this worktree still here?"
+dry-run 監査でも、cleanup を適用しない場合でも `E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md` を更新する。このファイルは「なぜこの worktree が残っているのか」に答えるための台帳である。
 
-Treat these categories as cleanup-safe only in execute mode: `REMOVABLE_WORKTREE`, `REMOVABLE_BRANCH`, `STALE_METADATA`.
+execute mode のみで cleanup 可能な分類: `REMOVABLE_WORKTREE`, `REMOVABLE_BRANCH`, `STALE_METADATA`。
 
-Treat these categories as manual follow-up: `DIRTY_WORKTREE`, `UNMERGED_WORKTREE`, `UNMERGED_BRANCH`, `DETACHED_WORKTREE`, `DETACHED_HEAD_BRANCH`, `UNREGISTERED_PATH`, `NON_GIT_DIRECTORY`, `NON_CODEX_WORKTREE`.
+手動確認項目として扱う分類: `DIRTY_WORKTREE`, `UNMERGED_WORKTREE`, `UNMERGED_BRANCH`, `DETACHED_WORKTREE`, `DETACHED_HEAD_BRANCH`, `UNREGISTERED_PATH`, `NON_GIT_DIRECTORY`, `NON_CODEX_WORKTREE`。
 
 ## Example Prompts
 

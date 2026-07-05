@@ -13,7 +13,7 @@ When a task changes the plugin deliverable under `10_plugin/AstralRecord`, do no
 
 Use `E:\AstralRecord-Workspace\COMMIT_RULES.md` as the source of truth for commit message format.
 
-Use `E:\AstralRecord-Workspace\.codex\skills\astralrecord-git-worktree-develop\references\worktree-management.md` as the source of truth for the local worktree management file and status categories.
+worktree 管理ファイルと状態分類は `E:\AstralRecord-Workspace\.codex\skills\astralrecord-git-worktree-develop\references\worktree-management.md` を正本として扱う。
 
 ## Supported Modes
 
@@ -146,7 +146,7 @@ Create or refresh `E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md` during Prep
 python E:\AstralRecord-Workspace\.codex\skills\astralrecord-prune-codex-worktrees\scripts\prune_codex_worktrees.py --repo E:\AstralRecord-Workspace --worktree-root E:\AstralRecord-Worktrees --write-management
 ```
 
-Do this even when finalize stops early because the point of the file is to explain why a worktree remains. Preserve the generated file's `## Manual Notes` section for human decisions.
+finalize が途中停止した場合も更新する。管理ファイルの目的は、worktree が残っている理由を説明できるようにすること。生成ファイルの `## 手動メモ` セクションは人間の判断欄として保持する。
 
 If the management file shows `DIRTY_WORKTREE`, `UNMERGED_WORKTREE`, `UNMERGED_BRANCH`, `DETACHED_WORKTREE`, `UNREGISTERED_PATH`, or `NON_GIT_DIRECTORY`, include those items in the final report instead of saying cleanup is complete.
 
