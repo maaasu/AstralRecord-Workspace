@@ -1,13 +1,13 @@
 schemaVersion: 1
-id: mob_goblin_slash
+id: mob_field_heavy_slash
 type: SKILL
 implementationId: normal_attack
-name: "&cゴブリンスラッシュ"
-description: "&7Mob AI が使用する近接攻撃。"
+name: "&6フィールドヘビースラッシュ"
+description: "&7Mob AI が使用する少し広い近接薙ぎ払い。"
 icon: IRON_SWORD
-cooldownTicks: 24
+cooldownTicks: 34
 manaCost: 0
-castTimeTicks: 10
+castTimeTicks: 16
 requiredLevel: 1
 params:
   resourceType: ENERGY
@@ -15,32 +15,33 @@ params:
   attackType: MELEE
   damageType: PHYSICAL
   particle: SWEEP_ATTACK
-  particleCount: 5
+  particleCount: 6
   spreadX: 0.0
   spreadY: 0.0
   spreadZ: 0.0
   extra: 0.0
-  forwardOffset: 0.95
+  forwardOffset: 1.05
   upwardOffset: -0.1
-  hitRange: 2.65
-  hitRadius: 1.05
-  hitStepDistance: 0.55
-  maxTargets: 2
-  trailSteps: 3
+  hitRange: 3.1
+  hitRadius: 1.25
+  hitStepDistance: 0.6
+  maxTargets: 3
+  trailSteps: 4
   trailIntervalTicks: 1
   trailStepDistance: 0.8
   trailParticleCount: 3
-  trailSpreadX: 0.03
-  trailSpreadY: 0.03
-  trailSpreadZ: 0.03
+  trailSpreadX: 0.04
+  trailSpreadY: 0.04
+  trailSpreadZ: 0.04
   trailExtra: 0.0
   castSound: entity.evoker.prepare_attack
-  castSoundVolume: 0.8
-  castSoundPitch: 1.2
+  castSoundVolume: 0.85
+  castSoundPitch: 0.95
   sound: entity.player.attack.sweep
-  soundVolume: 0.9
-  soundPitch: 0.9
+  soundVolume: 1.0
+  soundPitch: 0.75
 tags:
   - mob
   - active
   - melee
+  - field

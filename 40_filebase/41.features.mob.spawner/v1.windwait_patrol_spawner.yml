@@ -1,0 +1,24 @@
+schemaVersion: 1
+id: windwait_patrol_spawner
+type: MOB_SPAWNER
+radiusMeters: 22
+
+spawnMobs:
+  - mobId: mob:windwait_stray
+    weight: 55
+  - mobId: mob:skyline_archer
+    weight: 30
+  - mobId: mob:windwait_raider
+    weight: 15
+
+spawnTimes:
+  - startTick: 0
+    endTick: 23999
+
+itemMaterial: SPAWNER
+spawnIntervalTicks: 120
+
+spawnLimit:
+  maxAlivePerSpawner: 12
+  maxNearbyMobs: 24
+  spawnPerPlayer: 2

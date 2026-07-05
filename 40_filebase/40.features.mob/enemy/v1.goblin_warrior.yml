@@ -42,12 +42,12 @@ ai:
     speed: 0.8
   targeting:
     strategy: NEAREST
-    aggroRange: 12
-    deaggroRange: 20
+    aggroRange: 14
+    deaggroRange: 22
     leashRange: 30
   combat:
     style: MELEE
-    preferredRange: 1.5
-    attackIntervalTicks: 30
+    preferredRange: 2.3
+    attackIntervalTicks: 26
     skills:
       - ref: skill:mob_goblin_slash
