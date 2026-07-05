@@ -68,6 +68,7 @@ import io.github.maaasu.astralRecord.feature.menu.player.PlayerListGui;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.mob.repository.MobRepository;
 import io.github.maaasu.astralRecord.feature.mob.event.MobInteractionEventHandler;
+import io.github.maaasu.astralRecord.feature.mob.event.MobVanillaDamageBlockEventHandler;
 import io.github.maaasu.astralRecord.feature.mob.event.NpcPlacementWorldEventHandler;
 import io.github.maaasu.astralRecord.feature.mob.repository.NpcPlacementRepository;
 import io.github.maaasu.astralRecord.feature.mob.service.MobAiService;
@@ -76,6 +77,7 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobDropPresentationServ
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobKnockbackService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.mob.service.MobVanillaEffectProtectionService;
 import io.github.maaasu.astralRecord.feature.mob.service.NpcPlacementService;
 import io.github.maaasu.astralRecord.feature.spawner.event.MobSpawnerBlockEventHandler;
 import io.github.maaasu.astralRecord.feature.spawner.repository.MobSpawnerDefinitionRepository;
@@ -229,6 +231,7 @@ public final class AstralRecord extends JavaPlugin {
     private NpcPlacementService npcPlacementService;
     private MobAiService mobAiService;
     private MobCombatService mobCombatService;
+    private MobVanillaEffectProtectionService mobVanillaEffectProtectionService;
     private MobDropPresentationService mobDropPresentationService;
     private EventManager eventManager;
     private ParticleDisplayService particleDisplayService;
@@ -597,6 +600,7 @@ public final class AstralRecord extends JavaPlugin {
         );
         gatheringService.setDropPresentationService(mobDropPresentationService);
         var mobKnockbackService = new MobKnockbackService(mobService);
+        mobVanillaEffectProtectionService = new MobVanillaEffectProtectionService();
         mobCombatService = new MobCombatService(
                 mobService,
                 new MobDropService(),
@@ -985,6 +989,10 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
+            new MobVanillaDamageBlockEventHandler(mobService, mobVanillaEffectProtectionService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
             new MobSpawnerBlockEventHandler(mobSpawnerService),
             getServer().getPluginManager()
         );
@@ -1179,6 +1187,15 @@ public final class AstralRecord extends JavaPlugin {
 
     public MobService getMobService() {
         return mobService;
+    }
+
+    /**
+     * Mob のバニラ由来可視状態保護サービスを取得します。
+     *
+     * @return Mob バニラ可視状態保護サービス
+     */
+    public MobVanillaEffectProtectionService getMobVanillaEffectProtectionService() {
+        return mobVanillaEffectProtectionService;
     }
 
     /**
