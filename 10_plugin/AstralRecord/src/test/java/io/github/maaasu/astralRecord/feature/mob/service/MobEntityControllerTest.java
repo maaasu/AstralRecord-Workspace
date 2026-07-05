@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.IdleBehavior;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobEquipmentConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobIdleConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionsConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
@@ -15,6 +16,7 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Ageable;
 import org.bukkit.entity.Breedable;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Mob;
 import org.bukkit.util.Transformation;
@@ -82,12 +84,68 @@ class MobEntityControllerTest extends MockBukkitTestBase {
 
         Transformation transformation = controller.blockDisplayTransformation();
 
-        assertEquals(-0.5F, transformation.getTranslation().x, 0.0001F);
-        assertEquals(0.35F, transformation.getTranslation().y, 0.0001F);
-        assertEquals(-0.5F, transformation.getTranslation().z, 0.0001F);
-        assertEquals(1.0F, transformation.getScale().x, 0.0001F);
-        assertEquals(1.0F, transformation.getScale().y, 0.0001F);
-        assertEquals(1.0F, transformation.getScale().z, 0.0001F);
+        assertEquals(-0.375F, transformation.getTranslation().x, 0.0001F);
+        assertEquals(0.0F, transformation.getTranslation().y, 0.0001F);
+        assertEquals(-0.375F, transformation.getTranslation().z, 0.0001F);
+        assertEquals(0.75F, transformation.getScale().x, 0.0001F);
+        assertEquals(0.75F, transformation.getScale().y, 0.0001F);
+        assertEquals(0.75F, transformation.getScale().z, 0.0001F);
+    }
+
+    @Test
+    void lookAtDoesNotRotateBlockNpcDisplay() {
+        var world = server().addSimpleWorld("block_npc_look_world");
+        PluginMock plugin = PluginMock.builder()
+                .withPluginName("AstralRecordTest")
+                .withPluginVersion("1.0.0")
+                .build();
+        Location anchor = new Location(world, 0.0D, 64.0D, 0.0D, 30.0F, 0.0F);
+        MobInstance instance = new MobInstance(
+                UUID.randomUUID(),
+                new MobTemplate(
+                        1,
+                        "npc_block",
+                        MobCategory.NPC,
+                        "Block NPC",
+                        null,
+                        1,
+                        EntityType.INTERACTION,
+                        "STONE",
+                        Material.STONE,
+                        false,
+                        null,
+                        List.of(),
+                        List.of(),
+                        null,
+                        MobVariantConfig.DEFAULT,
+                        MobEquipmentConfig.EMPTY,
+                        List.of(),
+                        MobShieldConfig.EMPTY,
+                        new MobIdleConfig(IdleBehavior.STATIONARY, 0.0D, 1.0D),
+                        true,
+                        MobInteractionsConfig.EMPTY,
+                        null,
+                        null,
+                        null,
+                        null
+                ),
+                anchor
+        );
+        Entity interaction = mock(Entity.class);
+        when(interaction.getWorld()).thenReturn(world);
+        when(interaction.getLocation()).thenReturn(anchor.clone());
+        MobEntityController controller = new MobEntityController(plugin) {
+            @Override
+            public Entity getEntity(MobInstance ignored) {
+                return interaction;
+            }
+        };
+
+        controller.lookAt(instance, new Location(world, 10.0D, 65.0D, 0.0D));
+
+        verify(interaction, never()).teleport(any(Location.class));
+        assertEquals(30.0F, instance.currentLocation().getYaw(), 0.0001F);
+        assertEquals(0.0F, instance.currentLocation().getPitch(), 0.0001F);
     }
 
     @Test

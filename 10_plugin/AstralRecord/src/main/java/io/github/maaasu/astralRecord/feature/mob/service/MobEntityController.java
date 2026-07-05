@@ -49,8 +49,9 @@ public class MobEntityController {
     private static final double PATH_STOP_DISTANCE_SQ = 0.36D;
     private static final long PATH_RECOMPUTE_INTERVAL_TICKS = 10L;
     private static final float BLOCK_DISPLAY_VIEW_RANGE = 64.0F;
-    private static final float BLOCK_DISPLAY_RENDER_XZ_OFFSET = -0.5F;
-    private static final float BLOCK_DISPLAY_RENDER_Y_OFFSET = 0.35F;
+    private static final float BLOCK_DISPLAY_RENDER_SCALE = 0.75F;
+    private static final float BLOCK_DISPLAY_RENDER_XZ_OFFSET = -BLOCK_DISPLAY_RENDER_SCALE / 2.0F;
+    private static final float BLOCK_DISPLAY_RENDER_Y_OFFSET = 0.0F;
     private static final float BLOCK_INTERACTION_WIDTH = 1.0F;
     private static final float BLOCK_INTERACTION_HEIGHT = 1.0F;
 
@@ -423,7 +424,6 @@ public class MobEntityController {
      */
     public void lookAt(@NotNull MobInstance instance, @NotNull Location target) {
         if (instance.template().blockMaterial() != null) {
-            lookBlockNpcAt(instance, target);
             return;
         }
         Mob mob = getMob(instance);
@@ -476,7 +476,7 @@ public class MobEntityController {
         return new Transformation(
                 new Vector3f(BLOCK_DISPLAY_RENDER_XZ_OFFSET, BLOCK_DISPLAY_RENDER_Y_OFFSET, BLOCK_DISPLAY_RENDER_XZ_OFFSET),
                 new Quaternionf(),
-                new Vector3f(1.0F, 1.0F, 1.0F),
+                new Vector3f(BLOCK_DISPLAY_RENDER_SCALE, BLOCK_DISPLAY_RENDER_SCALE, BLOCK_DISPLAY_RENDER_SCALE),
                 new Quaternionf()
         );
     }
@@ -508,26 +508,6 @@ public class MobEntityController {
         teleportBlockNpc(instance, anchored);
     }
 
-    private void lookBlockNpcAt(@NotNull MobInstance instance, @NotNull Location target) {
-        Entity interaction = getEntity(instance);
-        if (interaction == null || interaction.getWorld() != target.getWorld()) {
-            return;
-        }
-
-        Location current = interaction.getLocation();
-        float yaw = yawToward(current, target);
-        if (Math.abs(angleDifference(current.getYaw(), yaw)) <= 0.5F) {
-            instance.headYaw(current.getYaw());
-            instance.headPitch(0.0F);
-            return;
-        }
-
-        Location rotated = current.clone();
-        rotated.setYaw(yaw);
-        rotated.setPitch(0.0F);
-        teleportBlockNpc(instance, rotated);
-    }
-
     private void teleportBlockNpc(@NotNull MobInstance instance, @NotNull Location interactionLocation) {
         Location pose = blockInteractionLocation(interactionLocation);
         Entity interaction = getEntity(instance);
@@ -541,26 +521,6 @@ public class MobEntityController {
         instance.currentLocation(pose);
         instance.headYaw(pose.getYaw());
         instance.headPitch(0.0F);
-    }
-
-    private float yawToward(@NotNull Location origin, @NotNull Location target) {
-        double dx = target.getX() - origin.getX();
-        double dz = target.getZ() - origin.getZ();
-        if (dx * dx + dz * dz <= 1.0E-8D) {
-            return origin.getYaw();
-        }
-        return (float) Math.toDegrees(Math.atan2(-dx, dz));
-    }
-
-    private float angleDifference(float current, float target) {
-        float difference = target - current;
-        while (difference <= -180.0F) {
-            difference += 360.0F;
-        }
-        while (difference > 180.0F) {
-            difference -= 360.0F;
-        }
-        return difference;
     }
 
     /**
