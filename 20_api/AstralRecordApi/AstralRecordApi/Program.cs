@@ -66,6 +66,7 @@ builder.Services.AddScoped<IPlayerSettingRepository, PlayerSettingRepository>();
 builder.Services.AddScoped<IAdventureRecordRepository, AdventureRecordRepository>();
 builder.Services.AddScoped<IAccountSkillTreeStateRepository, AccountSkillTreeStateRepository>();
 builder.Services.AddScoped<IAccountWaystoneRepository, AccountWaystoneRepository>();
+builder.Services.AddScoped<ILoginBonusClaimRepository, LoginBonusClaimRepository>();
 builder.Services.AddScoped<ISkillBindPresetRepository, SkillBindPresetRepository>();
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();

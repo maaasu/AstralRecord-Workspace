@@ -25,6 +25,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<AccountSkillTreeStateEntity> AccountSkillTreeStates => Set<AccountSkillTreeStateEntity>();
     public DbSet<AccountSkillTreeUnlockedNodeEntity> AccountSkillTreeUnlockedNodes => Set<AccountSkillTreeUnlockedNodeEntity>();
     public DbSet<AccountWaystoneUnlockEntity> AccountWaystoneUnlocks => Set<AccountWaystoneUnlockEntity>();
+    public DbSet<LoginBonusClaimEntity> LoginBonusClaims => Set<LoginBonusClaimEntity>();
     public DbSet<MarketAccountStateEntity> MarketAccountStates => Set<MarketAccountStateEntity>();
     public DbSet<MarketListingEntity> MarketListings => Set<MarketListingEntity>();
     public DbSet<MarketTransactionEntity> MarketTransactions => Set<MarketTransactionEntity>();
@@ -223,6 +224,28 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
                 .HasDatabaseName("UX_account_waystone_unlock_account_waystone");
             entity.HasIndex(unlock => unlock.WaystoneId)
                 .HasDatabaseName("IX_account_waystone_unlock_waystone_id");
+        });
+
+        modelBuilder.Entity<LoginBonusClaimEntity>(entity =>
+        {
+            entity.ToTable("login_bonus_claim", "dbo");
+            entity.HasKey(claim => claim.LoginBonusClaimId);
+
+            entity.Property(claim => claim.LoginBonusClaimId).HasColumnName("login_bonus_claim_id");
+            entity.Property(claim => claim.AccountId).HasColumnName("account_id");
+            entity.Property(claim => claim.ClaimDate).HasColumnName("claim_date").HasColumnType("date");
+            entity.Property(claim => claim.ClaimedAt).HasColumnName("claimed_at");
+            entity.Property(claim => claim.CreatedAt).HasColumnName("created_at");
+            entity.Property(claim => claim.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(claim => claim.CreatedBy).HasColumnName("created_by");
+            entity.Property(claim => claim.UpdatedBy).HasColumnName("updated_by");
+            entity.Property(claim => claim.IsDeleted).HasColumnName("is_deleted");
+            entity.HasIndex(claim => new { claim.AccountId, claim.ClaimDate })
+                .IsUnique()
+                .HasFilter("[is_deleted] = 0")
+                .HasDatabaseName("UX_login_bonus_claim_account_date");
+            entity.HasIndex(claim => new { claim.AccountId, claim.ClaimedAt })
+                .HasDatabaseName("IX_login_bonus_claim_account_claimed_at");
         });
 
         modelBuilder.Entity<SkillBindPresetEntity>(entity =>

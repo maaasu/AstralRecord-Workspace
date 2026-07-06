@@ -29,6 +29,7 @@
 | `dbo.account` | `AstralRecord/dbo.account.md` |
 | `dbo.account_skilltree_state` | `AstralRecord/dbo.account_skilltree_state.md` |
 | `dbo.account_skilltree_unlocked_node` | `AstralRecord/dbo.account_skilltree_unlocked_node.md` |
+| `dbo.login_bonus_claim` | `AstralRecord/dbo.login_bonus_claim.md` |
 | `dbo.skill_bind_preset` | `AstralRecord/dbo.skill_bind_preset.md` |
 | `dbo.inventory` | `AstralRecord/dbo.inventory.md` |
 | `dbo.inventory_entry` | `AstralRecord/dbo.inventory_entry.md` |

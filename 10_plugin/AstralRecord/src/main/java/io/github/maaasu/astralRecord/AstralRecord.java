@@ -53,6 +53,7 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.item.view.ItemStackPacketAdapter;
 import io.github.maaasu.astralRecord.feature.loginbonus.event.LoginBonusGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.loginbonus.repository.LoginBonusClaimRepository;
 import io.github.maaasu.astralRecord.feature.loginbonus.service.LoginBonusService;
 import io.github.maaasu.astralRecord.feature.loginbonus.view.LoginBonusGui;
 import io.github.maaasu.astralRecord.feature.loot.service.LootService;
@@ -708,7 +709,12 @@ public final class AstralRecord extends JavaPlugin {
             adventureRecordService,
             inventoryService
         );
-        loginBonusService = new LoginBonusService(new LoginBonusGui(), inventoryService, itemService);
+        loginBonusService = new LoginBonusService(
+            new LoginBonusGui(),
+            inventoryService,
+            itemService,
+            new LoginBonusClaimRepository()
+        );
         partyMemberActionGui = new PartyMemberActionGui();
         mailService = new MailService(new MailRepository(), itemService, inventoryService);
         shopService = new ShopService(

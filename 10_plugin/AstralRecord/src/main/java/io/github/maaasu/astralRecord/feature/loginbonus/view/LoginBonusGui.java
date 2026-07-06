@@ -8,7 +8,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -203,6 +202,9 @@ public final class LoginBonusGui {
         if (date.isBefore(today)) {
             return Material.GRAY_TERRACOTTA;
         }
+        if (date.equals(today)) {
+            return Material.CLOCK;
+        }
         if (isHolidayBonusDate(date)) {
             return Material.MAP;
         }
@@ -235,13 +237,6 @@ public final class LoginBonusGui {
         var itemStack = GuiItems.create(material, name, lore);
         if (material != Material.AIR) {
             itemStack.setAmount(Math.clamp(amount, 1, MAX_ITEM_AMOUNT));
-        }
-        var meta = itemStack.getItemMeta();
-        if (meta != null) {
-            if (enchanted) {
-                meta.addEnchant(Enchantment.UNBREAKING, 1, true);
-            }
-            itemStack.setItemMeta(meta);
         }
         return itemStack;
     }

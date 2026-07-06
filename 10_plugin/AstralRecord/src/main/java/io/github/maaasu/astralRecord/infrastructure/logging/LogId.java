@@ -347,6 +347,10 @@ public enum LogId {
      * プレイヤーログイン処理に失敗しました: %s
      */
     E_5070(5070),
+    /**
+     * ログインボーナス API の呼び出しに失敗しました: %s
+     */
+    E_5071(5071),
     // endregion
 
     // region /feature/player/event/PlayerModeEventHandler.java

@@ -366,6 +366,43 @@ CREATE NONCLUSTERED INDEX [IX_account_waystone_unlock_is_deleted]
 GO
 
 -- ============================================================
+-- AstralRecord\dbo.login_bonus_claim.md
+-- ============================================================
+
+CREATE TABLE [dbo].[login_bonus_claim] (
+    [login_bonus_claim_id] UNIQUEIDENTIFIER NOT NULL,
+    [account_id]           UNIQUEIDENTIFIER NOT NULL,
+    [claim_date]           DATE             NOT NULL,
+    [claimed_at]           DATETIME2(3)     NOT NULL,
+    [created_at]           DATETIME2(3)     NOT NULL,
+    [updated_at]           DATETIME2(3)     NOT NULL,
+    [created_by]           UNIQUEIDENTIFIER NOT NULL,
+    [updated_by]           UNIQUEIDENTIFIER NOT NULL,
+    [is_deleted]           BIT              NOT NULL CONSTRAINT [DF_login_bonus_claim_is_deleted] DEFAULT (0),
+
+    CONSTRAINT [PK_login_bonus_claim] PRIMARY KEY CLUSTERED ([login_bonus_claim_id]),
+    CONSTRAINT [FK_login_bonus_claim_account] FOREIGN KEY ([account_id])
+        REFERENCES [dbo].[account] ([uuid])
+        ON DELETE NO ACTION
+        ON UPDATE NO ACTION,
+    CONSTRAINT [CK_login_bonus_claim_date] CHECK ([claim_date] >= CONVERT(date, '2000-01-01'))
+);
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [UX_login_bonus_claim_account_date]
+    ON [dbo].[login_bonus_claim] ([account_id], [claim_date])
+    WHERE [is_deleted] = 0;
+GO
+
+CREATE NONCLUSTERED INDEX [IX_login_bonus_claim_account_claimed_at]
+    ON [dbo].[login_bonus_claim] ([account_id], [claimed_at]);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_login_bonus_claim_is_deleted]
+    ON [dbo].[login_bonus_claim] ([is_deleted]);
+GO
+
+-- ============================================================
 -- AstralRecord\dbo.inventory.md
 -- ============================================================
 

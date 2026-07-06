@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.loginbonus.service;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.loginbonus.repository.LoginBonusClaimRepository;
 import io.github.maaasu.astralRecord.feature.loginbonus.view.LoginBonusGui;
 import io.github.maaasu.astralRecord.feature.loginbonus.view.LoginBonusHoliday;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -13,11 +14,7 @@ import org.jetbrains.annotations.NotNull;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * ログイン報酬の日次受け取り状態と GUI 表示を管理します。
@@ -31,7 +28,7 @@ public final class LoginBonusService {
     private final LoginBonusGui gui;
     private final InventoryService inventoryService;
     private final ItemService itemService;
-    private final Map<UUID, Set<LocalDate>> receivedDates = new ConcurrentHashMap<>();
+    private final LoginBonusClaimRepository claimRepository;
 
     /**
      * ログイン報酬サービスを構築します。
@@ -39,15 +36,18 @@ public final class LoginBonusService {
      * @param gui 表示に使用する GUI
      * @param inventoryService インベントリ操作サービス
      * @param itemService アイテム定義サービス
+     * @param claimRepository ログインボーナス受取履歴 repository
      */
     public LoginBonusService(
         @NotNull LoginBonusGui gui,
         @NotNull InventoryService inventoryService,
-        @NotNull ItemService itemService
+        @NotNull ItemService itemService,
+        @NotNull LoginBonusClaimRepository claimRepository
     ) {
         this.gui = gui;
         this.inventoryService = inventoryService;
         this.itemService = itemService;
+        this.claimRepository = claimRepository;
     }
 
     /**
@@ -75,7 +75,7 @@ public final class LoginBonusService {
             player,
             displayMonth,
             LocalDate.now(DATE_ZONE),
-            receivedDates.getOrDefault(accountId, Collections.emptySet()),
+            claimRepository.loadClaimDates(accountId, displayMonth),
             resolveGoldRewardModel(),
             resolveAstraldRewardModel()
         );
@@ -98,15 +98,10 @@ public final class LoginBonusService {
             return false;
         }
         UUID accountId = astPlayer.getAccount().getUuid();
-        Set<LocalDate> dates = receivedDates.computeIfAbsent(accountId, ignored -> ConcurrentHashMap.newKeySet());
-        if (!dates.add(today)) {
+        if (!claimRepository.tryClaim(accountId, today)) {
             return false;
         }
-        if (!grantDailyLoginBonus(astPlayer, today)) {
-            dates.remove(today);
-            return false;
-        }
-        return true;
+        return grantDailyLoginBonus(astPlayer, today);
     }
 
     /**
