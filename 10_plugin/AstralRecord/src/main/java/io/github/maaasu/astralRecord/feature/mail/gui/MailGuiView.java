@@ -160,7 +160,7 @@ public final class MailGuiView {
         }
         lore.add(Component.empty());
         lore.add(Component.text("左クリック: 既読/受け取り", NamedTextColor.GREEN));
-        lore.add(Component.text("右クリック: 一覧から削除", NamedTextColor.RED));
+        lore.add(Component.text("Shift+右クリック: 一覧から削除", NamedTextColor.RED));
         return lore;
     }
 

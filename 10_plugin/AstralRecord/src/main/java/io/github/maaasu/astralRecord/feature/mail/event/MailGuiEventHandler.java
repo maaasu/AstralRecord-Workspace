@@ -145,7 +145,7 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
             return;
         }
         switch (event.getClick()) {
-            case RIGHT, SHIFT_RIGHT -> {
+            case SHIFT_RIGHT -> {
                 if (mailService.delete(astPlayer, mailId)) {
                     GuiSound.SELECT.play(player);
                     MenuOpenEventHandler.suppressNextCloseSound(player);
