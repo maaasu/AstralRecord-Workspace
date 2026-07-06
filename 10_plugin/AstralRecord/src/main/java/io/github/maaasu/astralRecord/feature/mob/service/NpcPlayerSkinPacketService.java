@@ -18,11 +18,13 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobSkin;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -208,7 +210,7 @@ public final class NpcPlayerSkinPacketService {
     ) {
         viewer.hideEntity(plugin, realEntity);
         sendPacket(viewer, createPlayerInfoPacket(state));
-        sendPacket(viewer, createNamedEntitySpawnPacket(state, location));
+        sendPacket(viewer, createPlayerSpawnPacket(state, location));
         sendPacket(viewer, createEntityMetadataPacket(state));
         sendPacket(viewer, createEntityHeadRotationPacket(state.fakeEntityId(), location.getYaw()));
     }
@@ -252,18 +254,20 @@ public final class NpcPlayerSkinPacketService {
         return packet;
     }
 
-    private @NotNull PacketContainer createNamedEntitySpawnPacket(
+    private @NotNull PacketContainer createPlayerSpawnPacket(
             @NotNull SkinViewState state,
             @NotNull Location location
     ) {
-        PacketContainer packet = protocolManager.createPacket(PacketType.Play.Server.NAMED_ENTITY_SPAWN);
-        packet.getIntegers().write(0, state.fakeEntityId());
-        packet.getUUIDs().write(0, state.profileUuid());
-        packet.getDoubles().write(0, location.getX());
-        packet.getDoubles().write(1, location.getY());
-        packet.getDoubles().write(2, location.getZ());
-        packet.getBytes().write(0, angleToByte(location.getYaw()));
-        packet.getBytes().write(1, angleToByte(location.getPitch()));
+        PacketContainer packet = protocolManager.createPacket(PacketType.Play.Server.SPAWN_ENTITY);
+        packet.getIntegers().writeSafely(0, state.fakeEntityId());
+        packet.getUUIDs().writeSafely(0, state.profileUuid());
+        packet.getEntityTypeModifier().writeSafely(0, EntityType.PLAYER);
+        packet.getDoubles().writeSafely(0, location.getX());
+        packet.getDoubles().writeSafely(1, location.getY());
+        packet.getDoubles().writeSafely(2, location.getZ());
+        packet.getBytes().writeSafely(0, angleToByte(location.getPitch()));
+        packet.getBytes().writeSafely(1, angleToByte(location.getYaw()));
+        packet.getBytes().writeSafely(2, angleToByte(location.getYaw()));
         return packet;
     }
 
@@ -273,11 +277,15 @@ public final class NpcPlayerSkinPacketService {
         packet.getDataValueCollectionModifier().write(
                 0,
                 List.of(
-                        new WrappedDataValue(0, WrappedDataWatcher.Registry.get(Byte.class), (byte) 0),
-                        new WrappedDataValue(17, WrappedDataWatcher.Registry.get(Byte.class), PLAYER_SKIN_PARTS_ALL)
+                        metadataValue(0, Byte.class, (byte) 0),
+                        metadataValue(17, Byte.class, PLAYER_SKIN_PARTS_ALL)
                 )
         );
         return packet;
+    }
+
+    private @NotNull WrappedDataValue metadataValue(int index, @NotNull Type type, @Nullable Object value) {
+        return WrappedDataValue.fromWrappedValue(index, WrappedDataWatcher.Registry.get(type), value);
     }
 
     private @NotNull PacketContainer createEntityTeleportPacket(int fakeEntityId, @NotNull Location location) {
