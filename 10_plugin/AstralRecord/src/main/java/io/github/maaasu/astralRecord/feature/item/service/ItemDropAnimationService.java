@@ -31,6 +31,8 @@ public final class ItemDropAnimationService {
     private static final long COLLECT_TICKS = 10L;
     private static final double START_HEIGHT = 1.85D;
     private static final double LAND_HEIGHT = 0.18D;
+    private static final ItemDisplay.ItemDisplayTransform DROP_DISPLAY_TRANSFORM =
+            ItemDisplay.ItemDisplayTransform.GROUND;
 
     private final Plugin plugin;
     private final ItemStackFactory itemStackFactory;
@@ -106,6 +108,7 @@ public final class ItemDropAnimationService {
 
         ItemDisplay display = world.spawn(start, ItemDisplay.class, entity -> {
             entity.setItemStack(itemStackFactory.createDisplay(model, Math.min(amount, model.getMaxStack())));
+            entity.setItemDisplayTransform(DROP_DISPLAY_TRANSFORM);
             entity.setPersistent(false);
             entity.setGravity(false);
             entity.setInvulnerable(true);
