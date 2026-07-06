@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
@@ -104,12 +105,15 @@ public final class SkillActionRingService {
             return;
         }
 
+        PlayerSkillCaster caster = new PlayerSkillCaster(astPlayer);
         RingSession session = RingSession.create(
             player,
-            resolveSlots(astPlayer),
+            resolveSlots(astPlayer, caster),
             actionRingDisplay,
             actionRingMoveSpeedModifierKey,
-            actionRingJumpStrengthModifierKey
+            actionRingJumpStrengthModifierKey,
+            skillService,
+            caster
         );
         sessions.put(playerId, session);
         GuiSound.RING_OPEN.play(player);
@@ -140,12 +144,15 @@ public final class SkillActionRingService {
             return;
         }
 
+        PlayerSkillCaster caster = new PlayerSkillCaster(astPlayer);
         RingSession session = RingSession.create(
             player,
-            resolveSlots(astPlayer),
+            resolveSlots(astPlayer, caster),
             actionRingDisplay,
             actionRingMoveSpeedModifierKey,
-            actionRingJumpStrengthModifierKey
+            actionRingJumpStrengthModifierKey,
+            skillService,
+            caster
         );
         sessions.put(playerId, session);
         swapCloseSuppressedUntil.put(playerId, now + SWAP_CLOSE_DEBOUNCE_MILLIS);
@@ -307,7 +314,7 @@ public final class SkillActionRingService {
         }
     }
 
-    private @NotNull List<SlotView> resolveSlots(@NotNull AstPlayer astPlayer) {
+    private @NotNull List<SlotView> resolveSlots(@NotNull AstPlayer astPlayer, @NotNull PlayerSkillCaster caster) {
         List<SlotView> slots = new ArrayList<>(SLOT_COUNT);
         UUID accountId = astPlayer.getAccount().getUuid();
         int selectedPresetIndex = presetService.selectedPresetIndex(accountId);
@@ -321,12 +328,12 @@ public final class SkillActionRingService {
         for (int index = 0; index < SLOT_COUNT; index++) {
             String skillId = index < activeSlots.size() ? activeSlots.get(index) : null;
             if (skillId == null || skillId.isBlank()) {
-                slots.add(new SlotView(null, "未設定", Material.BARRIER, false));
+                slots.add(new SlotView(null, null, "未設定", Material.BARRIER, false, SlotAvailability.UNAVAILABLE));
                 continue;
             }
             SkillDefinition definition = skillService.registry().getDefinition(skillId);
             if (definition != null && definition.getKind() != SkillKind.ACTIVE) {
-                slots.add(new SlotView(skillId, "設定不可", Material.BARRIER, false));
+                slots.add(new SlotView(skillId, definition, "設定不可", Material.BARRIER, false, SlotAvailability.UNAVAILABLE));
                 continue;
             }
             String displayName = definition == null
@@ -334,9 +341,29 @@ public final class SkillActionRingService {
                     : SkillPresentationUtil.legacyName(definition, "未定義スキル");
             boolean owned = ownedSkillIds.contains(skillId);
             Material material = owned ? parseMaterial(definition == null ? null : definition.getIcon(), Material.BARRIER) : Material.BARRIER;
-            slots.add(new SlotView(skillId, displayName, material, owned));
+            SlotAvailability availability = definition == null || !owned
+                ? SlotAvailability.UNAVAILABLE
+                : availabilityFor(skillService.canCast(caster, definition));
+            slots.add(new SlotView(skillId, definition, displayName, material, owned, availability));
         }
         return slots;
+    }
+
+    private static @NotNull SlotAvailability availabilityFor(@NotNull SkillCastResult result) {
+        if (result.success()) {
+            return SlotAvailability.AVAILABLE;
+        }
+        PlayerMsgId messageId = result.messageId();
+        if (messageId == PlayerMsgId.P_5802) {
+            return SlotAvailability.COOLDOWN;
+        }
+        if (messageId == PlayerMsgId.P_5801) {
+            return SlotAvailability.MANA;
+        }
+        if (messageId == PlayerMsgId.P_5806) {
+            return SlotAvailability.ENERGY;
+        }
+        return SlotAvailability.BLOCKED;
     }
 
     private @NotNull Material parseMaterial(String value, @NotNull Material fallback) {
@@ -347,7 +374,70 @@ public final class SkillActionRingService {
         return material == null ? fallback : material;
     }
 
-    private record SlotView(String skillId, @NotNull String name, @NotNull Material material, boolean selectable) {
+    private record SlotView(
+        String skillId,
+        SkillDefinition definition,
+        @NotNull String name,
+        @NotNull Material material,
+        boolean owned,
+        @NotNull SlotAvailability availability
+    ) {
+        private boolean selectable() {
+            return availability == SlotAvailability.AVAILABLE;
+        }
+
+        private @NotNull SlotView refreshAvailability(
+            @NotNull SkillService skillService,
+            @NotNull PlayerSkillCaster caster
+        ) {
+            if (!owned || definition == null || definition.getKind() != SkillKind.ACTIVE) {
+                return this;
+            }
+            SlotAvailability nextAvailability = availabilityFor(skillService.canCast(caster, definition));
+            return new SlotView(skillId, definition, name, material, true, nextAvailability);
+        }
+
+        private @NotNull String label() {
+            if (availability.label().isBlank()) {
+                return name;
+            }
+            return name + "\n" + availability.label();
+        }
+
+        private @NotNull String color(boolean selected) {
+            if (selected) {
+                return ColorCodeUtil.YELLOW;
+            }
+            if (availability.temporarilyUnavailable()) {
+                return ColorCodeUtil.RED;
+            }
+            return selectable() ? ColorCodeUtil.GRAY : ColorCodeUtil.DARK_GRAY;
+        }
+    }
+
+    private enum SlotAvailability {
+        AVAILABLE("", false),
+        COOLDOWN("CD", true),
+        MANA("MP", true),
+        ENERGY("ENG", true),
+        BLOCKED("NG", true),
+        UNAVAILABLE("", false);
+
+        private final String label;
+        private final boolean temporarilyUnavailable;
+
+        SlotAvailability(@NotNull String label, boolean temporarilyUnavailable) {
+            this.label = label;
+            this.temporarilyUnavailable = temporarilyUnavailable;
+        }
+
+        private @NotNull String label() {
+            return label;
+        }
+
+        private boolean temporarilyUnavailable() {
+            return temporarilyUnavailable;
+        }
     }
 
     private static @NotNull Component legacyComponent(@NotNull String text) {
@@ -370,6 +460,8 @@ public final class SkillActionRingService {
         private final List<SlotView> slots;
         private final Player viewer;
         private final SkillActionRingDisplay actionRingDisplay;
+        private final SkillService skillService;
+        private final PlayerSkillCaster caster;
         private final List<SkillActionRingDisplay.DisplayEntity> icons = new ArrayList<>(SLOT_COUNT);
         private final List<SkillActionRingDisplay.DisplayEntity> labels = new ArrayList<>(SLOT_COUNT);
         private final List<SkillActionRingDisplay.DisplayEntity> circleDots = new ArrayList<>(CIRCLE_DISPLAY_POINTS);
@@ -397,6 +489,8 @@ public final class SkillActionRingService {
             @NotNull List<SlotView> slots,
             @NotNull Player viewer,
             @NotNull SkillActionRingDisplay actionRingDisplay,
+            @NotNull SkillService skillService,
+            @NotNull PlayerSkillCaster caster,
             AttributeInstance blockBreakSpeedAttribute,
             Double originalBlockBreakSpeed,
             AttributeInstance movementSpeedAttribute,
@@ -412,6 +506,8 @@ public final class SkillActionRingService {
             this.slots = slots;
             this.viewer = viewer;
             this.actionRingDisplay = actionRingDisplay;
+            this.skillService = skillService;
+            this.caster = caster;
             this.blockBreakSpeedAttribute = blockBreakSpeedAttribute;
             this.originalBlockBreakSpeed = originalBlockBreakSpeed;
             this.movementSpeedAttribute = movementSpeedAttribute;
@@ -426,7 +522,9 @@ public final class SkillActionRingService {
             @NotNull List<SlotView> slots,
             @NotNull SkillActionRingDisplay actionRingDisplay,
             @NotNull NamespacedKey moveSpeedModifierKey,
-            @NotNull NamespacedKey jumpStrengthModifierKey
+            @NotNull NamespacedKey jumpStrengthModifierKey,
+            @NotNull SkillService skillService,
+            @NotNull PlayerSkillCaster caster
         ) {
             Location eye = player.getEyeLocation();
             Vector normal = eye.getDirection().normalize();
@@ -455,6 +553,8 @@ public final class SkillActionRingService {
                 slots,
                 player,
                 actionRingDisplay,
+                skillService,
+                caster,
                 blockBreakSpeed,
                 originalBlockBreakSpeed,
                 movementSpeed,
@@ -515,6 +615,7 @@ public final class SkillActionRingService {
             }
 
             if (phase == RingPhase.SELECTING) {
+                refreshSlotAvailability();
                 int nextSelectedIndex = resolveSelectedIndex(player);
                 if (nextSelectedIndex != selectedIndex) {
                     selectedIndex = nextSelectedIndex;
@@ -543,11 +644,10 @@ public final class SkillActionRingService {
                     selected && !hiddenByConfirmedSelection
                 );
                 label.teleport(player, labelLocation);
-                String color = selected ? ColorCodeUtil.YELLOW : slot.selectable() ? ColorCodeUtil.GRAY : ColorCodeUtil.DARK_GRAY;
                 actionRingDisplay.updateText(
                     player,
                     label,
-                    hiddenByConfirmedSelection ? Component.empty() : legacyComponent(color + slot.name()),
+                    hiddenByConfirmedSelection ? Component.empty() : legacyComponent(slot.color(selected) + slot.label()),
                     0.60F
                 );
             }
@@ -565,6 +665,15 @@ public final class SkillActionRingService {
                 || selectedIndex >= 0
                 && selectedIndex < slots.size()
                 && slots.get(selectedIndex).selectable();
+        }
+
+        private void refreshSlotAvailability() {
+            for (int index = 0; index < slots.size(); index++) {
+                slots.set(index, slots.get(index).refreshAvailability(skillService, caster));
+            }
+            if (selectedIndex >= 0 && selectedIndex < slots.size() && !slots.get(selectedIndex).selectable()) {
+                selectedIndex = firstSelectableSlot(slots);
+            }
         }
 
         private boolean isCloseSelected() {
