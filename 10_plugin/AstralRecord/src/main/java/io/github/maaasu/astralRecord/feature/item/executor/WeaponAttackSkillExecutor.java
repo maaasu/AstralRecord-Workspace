@@ -133,6 +133,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         requireNonNegativeDouble(skill, "trailSpreadY");
         requireNonNegativeDouble(skill, "trailSpreadZ");
         requireNonNegativeDouble(skill, "trailExtra");
+        requireNonNegativeDouble(skill, "activationRange");
         requireNonNegativeDouble(skill, "hitRange");
         requireNonNegativeDouble(skill, "hitRadius");
         requireNonNegativeDouble(skill, "hitStepDistance");

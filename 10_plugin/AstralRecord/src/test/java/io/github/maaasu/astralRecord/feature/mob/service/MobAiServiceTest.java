@@ -15,6 +15,8 @@ import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.skill.model.MobSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
+import io.github.maaasu.astralRecord.feature.skill.registry.SkillRegistry;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
@@ -24,10 +26,12 @@ import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -132,6 +136,84 @@ class MobAiServiceTest extends MockBukkitTestBase {
     }
 
     @Test
+    void combatMobCastsConfiguredSkillInsideSkillRangeBeforePreferredRange() throws Exception {
+        var world = server().addSimpleWorld("combat_skill_range_world");
+        PlayerMock target = server().addPlayer();
+        target.teleport(new Location(world, 9.0D, 64.0D, 0.0D));
+
+        MobService mobService = mock(MobService.class);
+        SkillService skillService = mockSkillServiceWithDefinition("mob_test_shot", 10.5D);
+        when(skillService.castSkill(
+                any(MobSkillCaster.class),
+                eq("mob_test_shot"),
+                eq(SkillCastTrigger.MOB_AI),
+                any(Location.class),
+                eq(target),
+                argThat(targets -> targets != null && targets.size() == 1 && targets.contains(target))
+        )).thenReturn(SkillCastResult.success(0.0D, 20L));
+        MobAiService service = new MobAiService(mobService, mock(MobCombatService.class), skillService);
+        MobInstance instance = new MobInstance(
+                UUID.randomUUID(),
+                combatTemplate(CombatStyle.RANGED, 7.0D, "mob_test_shot"),
+                new Location(world, 0.0D, 64.0D, 0.0D)
+        );
+        instance.targetId(target.getUniqueId());
+
+        Method tickCombatHold = MobAiService.class.getDeclaredMethod("tickCombatHold", MobInstance.class);
+        tickCombatHold.setAccessible(true);
+        tickCombatHold.invoke(service, instance);
+
+        verify(skillService).castSkill(
+                any(MobSkillCaster.class),
+                eq("mob_test_shot"),
+                eq(SkillCastTrigger.MOB_AI),
+                any(Location.class),
+                eq(target),
+                argThat(targets -> targets != null && targets.size() == 1 && targets.contains(target))
+        );
+    }
+
+    @Test
+    void rangedCombatMobCastsConfiguredSkillWhileRetreatingWhenTargetIsTooClose() throws Exception {
+        var world = server().addSimpleWorld("combat_skill_close_world");
+        PlayerMock target = server().addPlayer();
+        target.teleport(new Location(world, 1.0D, 64.0D, 0.0D));
+
+        MobService mobService = mock(MobService.class);
+        when(mobService.entityController()).thenReturn(mock(MobEntityController.class));
+        SkillService skillService = mockSkillServiceWithDefinition("mob_test_shot", 10.5D);
+        when(skillService.castSkill(
+                any(MobSkillCaster.class),
+                eq("mob_test_shot"),
+                eq(SkillCastTrigger.MOB_AI),
+                any(Location.class),
+                eq(target),
+                argThat(targets -> targets != null && targets.size() == 1 && targets.contains(target))
+        )).thenReturn(SkillCastResult.success(0.0D, 20L));
+        MobAiService service = new MobAiService(mobService, mock(MobCombatService.class), skillService);
+        MobInstance instance = new MobInstance(
+                UUID.randomUUID(),
+                combatTemplate(CombatStyle.RANGED, 7.0D, "mob_test_shot"),
+                new Location(world, 0.0D, 64.0D, 0.0D)
+        );
+        instance.targetId(target.getUniqueId());
+
+        Method tickCombatHold = MobAiService.class.getDeclaredMethod("tickCombatHold", MobInstance.class);
+        tickCombatHold.setAccessible(true);
+        tickCombatHold.invoke(service, instance);
+
+        verify(skillService).castSkill(
+                any(MobSkillCaster.class),
+                eq("mob_test_shot"),
+                eq(SkillCastTrigger.MOB_AI),
+                any(Location.class),
+                eq(target),
+                argThat(targets -> targets != null && targets.size() == 1 && targets.contains(target))
+        );
+        verify(mobService).moveToward(eq(instance), any(Location.class), eq(1.0D), anyLong());
+    }
+
+    @Test
     void selectTargetIgnoresDeadPlayers() throws Exception {
         var world = server().addSimpleWorld("dead_target_world");
         PlayerMock deadPlayer = server().addPlayer();
@@ -188,6 +270,10 @@ class MobAiServiceTest extends MockBukkitTestBase {
     }
 
     private MobTemplate combatTemplate() {
+        return combatTemplate(CombatStyle.MELEE, 1.5D, "mob_test_slash");
+    }
+
+    private MobTemplate combatTemplate(CombatStyle style, double preferredRange, String skillId) {
         return new MobTemplate(
                 1,
                 "mob_skill_test",
@@ -211,8 +297,30 @@ class MobAiServiceTest extends MockBukkitTestBase {
                 false,
                 null,
                 new MobTargetingConfig(TargetStrategy.NEAREST, 10.0D, 20.0D, 30.0D),
-                new MobCombatConfig(CombatStyle.MELEE, 1.5D, 0L, List.of("mob_test_slash")),
+                new MobCombatConfig(style, preferredRange, 0L, List.of(skillId)),
                 null
         );
+    }
+
+    private SkillService mockSkillServiceWithDefinition(String skillId, double hitRange) {
+        SkillRegistry registry = new SkillRegistry();
+        registry.replaceDefinitions(Map.of(skillId, new SkillDefinition(
+                skillId,
+                "normal_attack",
+                "Test Shot",
+                null,
+                null,
+                List.of(),
+                0L,
+                0.0D,
+                0L,
+                1,
+                null,
+                Map.of("hitRange", hitRange),
+                List.of()
+        )));
+        SkillService skillService = mock(SkillService.class);
+        when(skillService.registry()).thenReturn(registry);
+        return skillService;
     }
 }

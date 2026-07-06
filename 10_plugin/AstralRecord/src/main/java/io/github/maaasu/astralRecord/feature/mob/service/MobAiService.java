@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.skill.model.MobSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -73,6 +74,8 @@ public class MobAiService {
     private static final long STRAFE_DIRECTION_INTERVAL_TICKS = 40L;
     private static final double STATIONARY_LOOK_RANGE_SQ = 64.0D * 64.0D;
     private static final long SHIELD_RECHARGE_BASE_DELAY_MS = 10_000L;
+    private static final String PARAM_ACTIVATION_RANGE = "activationRange";
+    private static final String PARAM_HIT_RANGE = "hitRange";
 
     private final MobService mobService;
     private final MobCombatService mobCombatService;
@@ -305,6 +308,7 @@ public class MobAiService {
         double preferredRange = instance.template().combat() == null
                 ? 1.0D
                 : instance.template().combat().preferredRange();
+        double activationRange = resolveCurrentSkillActivationRange(instance, preferredRange + COMBAT_RANGE_BUFFER);
         Location targetLoc = target.getLocation();
         Location currentLoc = instance.currentLocation();
         double horizontalSq = horizontalDistanceSquared(currentLoc, targetLoc);
@@ -313,7 +317,7 @@ public class MobAiService {
                 && shouldRetreat(instance, horizontalSq, preferredRange)) {
             instance.state(MobState.COMBAT);
             moveAway(instance, targetLoc, preferredRange);
-        } else if (isWithinCombatRange(horizontalSq, preferredRange)
+        } else if (isWithinActivationRange(horizontalSq, activationRange)
                 && verticalDiff <= COMBAT_VERTICAL_TOLERANCE) {
             instance.state(MobState.COMBAT);
             strafeOrStop(instance, currentLoc, targetLoc, horizontalSq, preferredRange);
@@ -340,16 +344,22 @@ public class MobAiService {
         double preferredRange = instance.template().combat() == null
                 ? 1.0D
                 : instance.template().combat().preferredRange();
+        double activationRange = resolveCurrentSkillActivationRange(instance, preferredRange + COMBAT_RANGE_BUFFER);
         Location targetLoc = target.getLocation();
         Location currentLoc = instance.currentLocation();
         double horizontalSq = horizontalDistanceSquared(currentLoc, targetLoc);
         double verticalDiff = Math.abs(targetLoc.getY() - currentLoc.getY());
+        boolean canCastFromCurrentRange = verticalDiff <= COMBAT_VERTICAL_TOLERANCE
+                && isWithinActivationRange(horizontalSq, activationRange);
         if (verticalDiff <= COMBAT_VERTICAL_TOLERANCE
                 && shouldRetreat(instance, horizontalSq, preferredRange)) {
+            if (canCastFromCurrentRange) {
+                castCombatSkill(instance, target);
+            }
             moveAway(instance, targetLoc, preferredRange);
             return;
         }
-        if (!isWithinCombatRange(horizontalSq, preferredRange)
+        if (!canCastFromCurrentRange
                 || verticalDiff > COMBAT_VERTICAL_TOLERANCE) {
             mobService.stopPathfinding(instance);
             instance.state(MobState.AGGRO);
@@ -580,9 +590,43 @@ public class MobAiService {
         mobService.entityController().addVelocity(instance, new Vector(x / length * velocity, 0.0D, z / length * velocity));
     }
 
-    private boolean isWithinCombatRange(double horizontalSq, double preferredRange) {
-        double threshold = preferredRange + COMBAT_RANGE_BUFFER;
-        return horizontalSq <= threshold * threshold;
+    private boolean isWithinActivationRange(double horizontalSq, double activationRange) {
+        return horizontalSq <= activationRange * activationRange;
+    }
+
+    private double resolveCurrentSkillActivationRange(@NotNull MobInstance instance, double fallbackRange) {
+        MobCombatConfig combat = instance.template().combat();
+        if (combat == null || combat.skills().isEmpty()) {
+            return Math.max(0.0D, fallbackRange);
+        }
+
+        int index = Math.floorMod(instance.nextCombatSkillIndex(), combat.skills().size());
+        SkillDefinition definition = resolveSkillDefinition(combat.skills().get(index));
+        if (definition == null) {
+            return Math.max(0.0D, fallbackRange);
+        }
+
+        Double activationRange = numberParam(definition, PARAM_ACTIVATION_RANGE);
+        if (activationRange != null && activationRange >= 0.0D) {
+            return activationRange;
+        }
+        Double hitRange = numberParam(definition, PARAM_HIT_RANGE);
+        if (hitRange != null && hitRange >= 0.0D) {
+            return hitRange;
+        }
+        return Math.max(0.0D, fallbackRange);
+    }
+
+    @Nullable
+    private SkillDefinition resolveSkillDefinition(@NotNull String skillId) {
+        var registry = skillService.registry();
+        return registry == null ? null : registry.getDefinition(skillId);
+    }
+
+    @Nullable
+    private Double numberParam(@NotNull SkillDefinition definition, @NotNull String key) {
+        Object raw = definition.getParams().get(key);
+        return raw instanceof Number number ? number.doubleValue() : null;
     }
 
     private boolean isRangedStyle(@Nullable MobCombatConfig combat) {

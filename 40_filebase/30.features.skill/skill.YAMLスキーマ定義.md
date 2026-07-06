@@ -30,10 +30,11 @@ filebase 側では、パッシブスキルだった場合に `passive.bindRequir
 
 ### normal_attack 共通 params
 
-`implementationId: normal_attack` の Mob 攻撃では、詠唱開始時の予兆音として以下を指定できます。
+`implementationId: normal_attack` の Mob 攻撃では、Mob AI の発動距離と詠唱開始時の予兆音として以下を指定できます。
 
 | キー | 型 | 必須 | 既定値 | 説明 |
 | --- | --- | --- | --- | --- |
+| `activationRange` | Double | 任意 | `hitRange` | Mob AI がこのスキルを発動し始める最大距離。未指定時は `hitRange`、それも未指定なら Mob の `preferredRange` にフォールバックします |
 | `castSound` | String | 任意 | `null` | 詠唱開始時に再生する sound key |
 | `castSoundVolume` | Double | 任意 | `1.0` | 詠唱開始音の音量 |
 | `castSoundPitch` | Double | 任意 | `1.0` | 詠唱開始音のピッチ |
