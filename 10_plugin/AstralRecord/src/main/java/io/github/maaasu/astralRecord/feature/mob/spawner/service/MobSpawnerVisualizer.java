@@ -27,6 +27,7 @@ import java.util.Set;
 final class MobSpawnerVisualizer {
 
     private static final long INTERVAL_TICKS = 40L;
+    private static final float DISPLAY_VIEW_RANGE = 64.0F;
     private static final double VIEW_DISTANCE_SQ = 64.0D * 64.0D;
 
     private final Plugin plugin;
@@ -95,6 +96,10 @@ final class MobSpawnerVisualizer {
             display.setSilent(true);
             display.setVisibleByDefault(false);
             display.setBillboard(Display.Billboard.FIXED);
+            display.setViewRange(DISPLAY_VIEW_RANGE);
+            display.setDisplayWidth(1.0F);
+            display.setDisplayHeight(1.0F);
+            display.setBrightness(new Display.Brightness(15, 15));
             display.setBlock(spawnerService.getDisplayMaterial(spawnerLocation.spawnerId()).createBlockData());
         });
         TextDisplay text = location.getWorld().spawn(location.clone().add(0.0D, 1.45D, 0.0D), TextDisplay.class, display -> {
@@ -104,6 +109,8 @@ final class MobSpawnerVisualizer {
             display.setSilent(true);
             display.setVisibleByDefault(false);
             display.setBillboard(Display.Billboard.CENTER);
+            display.setViewRange(DISPLAY_VIEW_RANGE);
+            display.setLineWidth(160);
             display.setShadowed(true);
             display.text(LegacyComponentSerializer.legacySection().deserialize(
                     ColorCodeUtil.translateAlternateColorCodes("&dSpawner&7: &f" + spawnerLocation.spawnerId())

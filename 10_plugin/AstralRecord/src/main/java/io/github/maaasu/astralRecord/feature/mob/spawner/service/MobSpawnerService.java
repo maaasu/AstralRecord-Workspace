@@ -253,10 +253,10 @@ public class MobSpawnerService {
      * スポナー表示を見せるアカウントモードか判定します。
      *
      * @param astPlayer 対象プレイヤー
-     * @return PLAYER モード以外なら true
+     * @return ADMIN モードなら true
      */
     public boolean canViewSpawnerVisual(@Nullable AstPlayer astPlayer) {
-        return astPlayer != null && astPlayer.getAccount().getMode() != AccountMode.PLAYER;
+        return astPlayer != null && astPlayer.getAccount().getMode() == AccountMode.ADMIN;
     }
 
     /**
