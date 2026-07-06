@@ -1,0 +1,33 @@
+schemaVersion: 1
+id: boneguard_shortblade_recipe
+type: RECIPE
+category: CRAFT
+name: "&f骨守りの短剣のレシピ"
+lore:
+  - "&7配置済みの序盤MOBから得た素材で短剣を仕立てる。"
+tags:
+  - craft
+  - weapon
+  - windwait
+result:
+  itemId:
+    ref: item:boneguard_shortblade
+  amount: 1
+ingredients:
+  - itemId:
+      ref: item:bone_fragment
+    amount: 4
+  - itemId:
+      ref: item:old_plank_chip
+    amount: 3
+  - itemId:
+      ref: item:iron_ingot
+    amount: 1
+requiredLevel: 4
+requiredCurrency: 30
+stationId: blacksmith_station
+successRate: 100.0
+failAction: NONE
+onSuccess:
+  sound: block.anvil.use
+  particle: crit

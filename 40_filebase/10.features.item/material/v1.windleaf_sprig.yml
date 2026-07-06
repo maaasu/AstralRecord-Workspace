@@ -1,0 +1,13 @@
+schemaVersion: 1
+id: windleaf_sprig
+category: material
+name: "&f風待ち若葉"
+icon: FERN
+rarity: COMMON
+maxStack: 64
+saleValue: 4
+lore:
+  - "&7風待ち草地で摘める軽い若葉。"
+  - "&7序盤の調合素材として扱いやすい。"
+unTradeable: false
+unSellable: false

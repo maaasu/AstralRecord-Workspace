@@ -1,0 +1,35 @@
+schemaVersion: 1
+id: glimmercap_cluster
+type: GATHERING
+category: HARVESTING
+name: "&e灯茸の群生"
+maxHealth: 24
+displayBlock: BROWN_MUSHROOM_BLOCK
+displayScale:
+  x: 0.75
+  y: 0.65
+  z: 0.75
+requiredToolTags:
+  - HOE
+sounds:
+  hit:
+    sound: block.fungus.hit
+    volume: 0.65
+    pitch: 1.1
+  break:
+    sound: block.fungus.break
+    volume: 0.8
+    pitch: 1.0
+drops:
+  exp: 1
+  items:
+    - itemId: item:glimmercap_spore
+      rate: 100.0
+      amount: "1"
+      luckAffected: false
+      hidden: false
+    - itemId: item:glowstone_shard
+      rate: 18.0
+      amount: "1"
+      luckAffected: true
+      hidden: false

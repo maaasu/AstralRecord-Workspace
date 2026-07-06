@@ -1,0 +1,13 @@
+schemaVersion: 1
+id: glimmercap_spore
+category: material
+name: "&f灯茸の胞子"
+icon: BROWN_MUSHROOM
+rarity: COMMON
+maxStack: 64
+saleValue: 5
+lore:
+  - "&7ほのかに光る小さな茸から採れる胞子。"
+  - "&7回復薬の効きを安定させる調合素材。"
+unTradeable: false
+unSellable: false

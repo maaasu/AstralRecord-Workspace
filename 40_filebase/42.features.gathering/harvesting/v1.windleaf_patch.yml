@@ -1,0 +1,35 @@
+schemaVersion: 1
+id: windleaf_patch
+type: GATHERING
+category: HARVESTING
+name: "&a風待ち若葉"
+maxHealth: 18
+displayBlock: FERN
+displayScale:
+  x: 0.85
+  y: 0.85
+  z: 0.85
+requiredToolTags:
+  - HOE
+sounds:
+  hit:
+    sound: block.grass.hit
+    volume: 0.65
+    pitch: 1.15
+  break:
+    sound: block.grass.break
+    volume: 0.8
+    pitch: 1.05
+drops:
+  exp: 1
+  items:
+    - itemId: item:windleaf_sprig
+      rate: 100.0
+      amount: "1~2"
+      luckAffected: false
+      hidden: false
+    - itemId: item:skygrass_fiber
+      rate: 25.0
+      amount: "1"
+      luckAffected: true
+      hidden: false
