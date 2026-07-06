@@ -1,0 +1,40 @@
+schemaVersion: 1
+id: av_active_anchor_burst
+type: SKILL
+implementationId: adventurer_starter_attack
+name: "&fアンカーバースト"
+description: "&7足元を固めて踏み込み、前方に小さな衝撃を放つ。"
+icon: IRON_INGOT
+cooldownTicks: 60
+manaCost: 0
+castTimeTicks: 0
+requiredLevel: 2
+params:
+  starterStyle: ANCHOR_BURST
+  resourceType: ENERGY
+  resourceCost: 12
+  attackType: MELEE
+  damageType: PHYSICAL
+  particle: CRIT
+  particleCount: 12
+  spreadX: 0.22
+  spreadY: 0.18
+  spreadZ: 0.22
+  extra: 0.08
+  forwardOffset: 1.0
+  hitRange: 3.0
+  hitRadius: 0.95
+  hitStepDistance: 0.55
+  maxTargets: 4
+  trailSteps: 3
+  trailStepDistance: 0.55
+  trailParticleCount: 4
+  sound: entity.player.attack.knockback
+  soundVolume: 0.8
+  soundPitch: 1.15
+tags:
+  - adventurer
+  - starter
+  - active
+  - melee
+  - impact

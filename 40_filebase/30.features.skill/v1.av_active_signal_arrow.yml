@@ -1,0 +1,41 @@
+schemaVersion: 1
+id: av_active_signal_arrow
+type: SKILL
+implementationId: adventurer_starter_attack
+name: "&aシグナルアロー"
+description: "&7発光する目印を乗せた矢筋で、狙った敵を射抜く。"
+icon: ARROW
+cooldownTicks: 70
+manaCost: 0
+castTimeTicks: 0
+requiredLevel: 3
+params:
+  starterStyle: SIGNAL_ARROW
+  resourceType: ENERGY
+  resourceCost: 14
+  attackType: RANGED
+  damageType: PHYSICAL
+  particle: FIREWORK
+  particleCount: 8
+  spreadX: 0.08
+  spreadY: 0.08
+  spreadZ: 0.08
+  extra: 0.02
+  forwardOffset: 0.9
+  hitRange: 10.0
+  hitRadius: 0.55
+  projectileSpeed: 1.25
+  projectileGravity: 0.025
+  trailParticleCount: 3
+  trailSpreadX: 0.03
+  trailSpreadY: 0.03
+  trailSpreadZ: 0.03
+  sound: entity.arrow.shoot
+  soundVolume: 0.75
+  soundPitch: 1.4
+tags:
+  - adventurer
+  - starter
+  - active
+  - ranged
+  - bow

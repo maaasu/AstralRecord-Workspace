@@ -1,0 +1,44 @@
+schemaVersion: 1
+id: av_active_mana_spark
+type: SKILL
+implementationId: adventurer_starter_attack
+name: "&bマナスパーク"
+description: "&7小さく収束した魔力の火花を飛ばし、敵へ弾けさせる。"
+icon: AMETHYST_SHARD
+cooldownTicks: 80
+manaCost: 10
+castTimeTicks: 8
+requiredLevel: 4
+onCast:
+  sound: block.amethyst_block.chime
+params:
+  starterStyle: MANA_SPARK
+  resourceType: MANA
+  resourceCost: 10
+  attackType: MAGIC
+  damageType: MAGIC
+  particle: ENCHANT
+  particleCount: 12
+  spreadX: 0.12
+  spreadY: 0.12
+  spreadZ: 0.12
+  extra: 0.08
+  forwardOffset: 0.8
+  hitRange: 9.0
+  hitRadius: 0.65
+  projectileSpeed: 0.85
+  homingStrength: 0.16
+  homingRange: 4.0
+  trailParticleCount: 6
+  trailSpreadX: 0.04
+  trailSpreadY: 0.04
+  trailSpreadZ: 0.04
+  sound: entity.evoker.cast_spell
+  soundVolume: 0.75
+  soundPitch: 1.35
+tags:
+  - adventurer
+  - starter
+  - active
+  - magic
+  - spark

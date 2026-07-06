@@ -39,6 +39,16 @@ filebase 側では、パッシブスキルだった場合に `passive.bindRequir
 | `castSoundVolume` | Double | 任意 | `1.0` | 詠唱開始音の音量 |
 | `castSoundPitch` | Double | 任意 | `1.0` | 詠唱開始音のピッチ |
 
+### adventurer_starter_attack params
+
+`implementationId: adventurer_starter_attack` は冒険者の序盤発動スキル向けの攻撃 executor です。
+ダメージ処理は `normal_attack` と同じ custom combat 経路を使い、`starterStyle` に応じて通常攻撃と区別できる発動演出を追加します。
+`attackType`、`damageType`、`particle`、`hitRange` などの攻撃パラメータは `normal_attack` と同じキーを使用します。
+
+| キー | 型 | 必須 | 既定値 | 説明 |
+| --- | --- | --- | --- | --- |
+| `starterStyle` | String | 必須 | - | 発動演出の種類。`ANCHOR_BURST` / `SIGNAL_ARROW` / `MANA_SPARK` |
+
 ## 補足
 
 - 発動系スキルかパッシブスキルかは `implementationId` に対応する plugin 実装で決まります。

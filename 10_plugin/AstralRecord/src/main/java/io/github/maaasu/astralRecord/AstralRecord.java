@@ -117,6 +117,7 @@ import io.github.maaasu.astralRecord.feature.sell.service.SellService;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillActionRingEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillBindGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.skill.executor.AdventurerStarterSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.FireBoostSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.IronWillSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
@@ -745,6 +746,7 @@ public final class AstralRecord extends JavaPlugin {
         skillService.registerExecutor(new IronWillSkillExecutor());
         skillService.registerExecutor(new StatusPassiveSkillExecutor());
         skillService.registerExecutor(new WeaponAttackSkillExecutor(particleDisplayService, damageService));
+        skillService.registerExecutor(new AdventurerStarterSkillExecutor(particleDisplayService, damageService));
         skillService.registerBuiltInDefinitions(BuiltInWeaponAttackDefinitions.definitions());
         itemStackFactory.setSkillService(skillService);
         skillOwnershipService = new SkillOwnershipService(playerClassService, inventoryService, itemService, skillTreeService);
