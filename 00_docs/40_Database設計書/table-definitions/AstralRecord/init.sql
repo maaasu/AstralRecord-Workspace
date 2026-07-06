@@ -152,6 +152,9 @@ CREATE TABLE [dbo].[account] (
     [menu_shortcuts_json] NVARCHAR(MAX) NOT NULL  CONSTRAINT [DF_account_menu_shortcuts_json] DEFAULT (N'["INVENTORY_NORMAL","INVENTORY_EQUIPMENT","INVENTORY_RUNE","INVENTORY_CURRENCY"]'),
     [level]          INT               NOT NULL  CONSTRAINT [DF_account_level]        DEFAULT (1),
     [total_experience] BIGINT          NOT NULL  CONSTRAINT [DF_account_total_experience] DEFAULT (0),
+    [class_id]       NVARCHAR(100)     NOT NULL  CONSTRAINT [DF_account_class_id]      DEFAULT (N'adventurer'),
+    [class_level]    INT               NOT NULL  CONSTRAINT [DF_account_class_level]   DEFAULT (1),
+    [class_experience] BIGINT          NOT NULL  CONSTRAINT [DF_account_class_experience] DEFAULT (0),
     [created_at]     DATETIME2(3)      NOT NULL,
     [updated_at]     DATETIME2(3)      NOT NULL,
     [created_by]     UNIQUEIDENTIFIER  NOT NULL,
@@ -167,7 +170,10 @@ CREATE TABLE [dbo].[account] (
     CONSTRAINT [CK_account_mode] CHECK ([mode] IN (0, 1, 2)),
     CONSTRAINT [CK_account_menu_shortcuts_json] CHECK (ISJSON([menu_shortcuts_json]) = 1),
     CONSTRAINT [CK_account_level] CHECK ([level] >= 1),
-    CONSTRAINT [CK_account_total_experience] CHECK ([total_experience] >= 0)
+    CONSTRAINT [CK_account_total_experience] CHECK ([total_experience] >= 0),
+    CONSTRAINT [CK_account_class_id_not_blank] CHECK (LEN(LTRIM(RTRIM([class_id]))) > 0),
+    CONSTRAINT [CK_account_class_level] CHECK ([class_level] >= 1),
+    CONSTRAINT [CK_account_class_experience] CHECK ([class_experience] >= 0)
 );
 GO
 

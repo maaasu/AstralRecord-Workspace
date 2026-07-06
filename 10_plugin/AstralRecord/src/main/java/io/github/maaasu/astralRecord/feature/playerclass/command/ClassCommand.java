@@ -60,8 +60,7 @@ public final class ClassCommand extends AstCommand {
 
         String oldClassId = target.getClassId();
         String newClassId = resolvedClassId;
-        target.setClassId(newClassId);
-        target.setClassLevel(Math.max(1, target.getClassLevel()));
+        classService.changeClass(target, newClassId);
         String oldDisplayName = classService.getDisplayName(oldClassId);
         String newDisplayName = classService.getDisplayName(newClassId);
         sendSuccess(sender, PlayerMsgResource.format(PlayerMsgId.P_5812.getId(), oldDisplayName, newDisplayName));

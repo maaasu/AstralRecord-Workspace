@@ -233,6 +233,48 @@ class AccountRepository {
         }
     }
 
+    /**
+     * account.classId / classLevel / classExperience 繧呈峩譁ｰ縺励∪縺吶・
+     * PUT /api/account/{targetUuid}
+     */
+    fun updateClassProgress(
+        targetUuid: UUID,
+        classId: String,
+        classLevel: Int,
+        classExperience: Long,
+        updatedBy: UUID
+    ): AccountModel {
+        val path = "/api/account/$targetUuid"
+        val body = buildAccountUpdateJson(
+            isActive = null,
+            mode = null,
+            updatedBy = updatedBy,
+            classId = classId,
+            classLevel = classLevel,
+            classExperience = classExperience
+        )
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val request = ApiRequestUtil.buildRequestBuilder(path)
+                    .PUT(HttpRequest.BodyPublishers.ofString(body))
+                    .build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                if (response.statusCode() !in 200..299) {
+                    Logger.log(LogId.E_5155, "HTTP ${response.statusCode()} for PUT $path")
+                    throw IOException("Unexpected status ${response.statusCode()} for PUT $path")
+                }
+                return parseAccountModel(response.body())
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            Logger.log(LogId.E_5155, e)
+            throw RuntimeException(e)
+        } catch (e: IOException) {
+            Logger.log(LogId.E_5155, e)
+            throw e
+        }
+    }
+
     // -------------------------------------------------------
     // JSON マッピング
     // -------------------------------------------------------
@@ -256,7 +298,10 @@ class AccountRepository {
         mode: AccountMode?,
         updatedBy: UUID,
         level: Int? = null,
-        totalExperience: Long? = null
+        totalExperience: Long? = null,
+        classId: String? = null,
+        classLevel: Int? = null,
+        classExperience: Long? = null
     ): String {
         return ApiRequestUtil.buildJsonBody {
             addProperty("accountName", null as String?)
@@ -280,6 +325,21 @@ class AccountRepository {
                 addProperty("totalExperience", totalExperience)
             } else {
                 addProperty("totalExperience", null as Number?)
+            }
+            if (classId != null) {
+                addProperty("classId", classId)
+            } else {
+                addProperty("classId", null as String?)
+            }
+            if (classLevel != null) {
+                addProperty("classLevel", classLevel)
+            } else {
+                addProperty("classLevel", null as Number?)
+            }
+            if (classExperience != null) {
+                addProperty("classExperience", classExperience)
+            } else {
+                addProperty("classExperience", null as Number?)
             }
             addProperty("updatedBy", updatedBy.toString())
         }
@@ -322,5 +382,8 @@ class AccountRepository {
         isDeleted   = get("isDeleted").asBoolean,
         level        = get("level")?.takeIf { !it.isJsonNull }?.asInt ?: 1,
         totalExperience = get("totalExperience")?.takeIf { !it.isJsonNull }?.asLong ?: 0L,
+        classId      = get("classId")?.takeIf { !it.isJsonNull }?.asString ?: "adventurer",
+        classLevel   = get("classLevel")?.takeIf { !it.isJsonNull }?.asInt ?: 1,
+        classExperience = get("classExperience")?.takeIf { !it.isJsonNull }?.asLong ?: 0L,
     )
 }

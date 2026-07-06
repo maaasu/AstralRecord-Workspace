@@ -38,13 +38,13 @@ data class AstPlayer(
     val activeBuffs: MutableList<ActiveBuff> = mutableListOf()
 
     /** 現在の職業 ID。未設定の場合はデフォルト職業 "adventurer"。 */
-    var classId: String = "adventurer"
+    var classId: String = account.classId.ifBlank { "adventurer" }
 
     /** 現在の職業レベル。 */
-    var classLevel: Int = 1
+    var classLevel: Int = account.classLevel.coerceAtLeast(1)
 
     /** 現在クラスで獲得した累計クラス経験値。 */
-    var classExperience: Long = 0L
+    var classExperience: Long = account.classExperience.coerceAtLeast(0L)
 
     /**
      * しゃがみ開始時刻（System.currentTimeMillis ベース）。

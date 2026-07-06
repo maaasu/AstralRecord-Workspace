@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountExperienceResu
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.account.repository.AccountRepository;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.plugin.Plugin;
@@ -34,6 +35,7 @@ public class AccountService {
     private final Plugin plugin;
     private final AccountRepository accountRepository;
     private final Map<UUID, PendingExperienceUpdate> pendingExperienceUpdates = new ConcurrentHashMap<>();
+    private final Map<UUID, PendingClassProgressUpdate> pendingClassProgressUpdates = new ConcurrentHashMap<>();
     private final BukkitTask flushTask;
 
     public AccountService(@NotNull Plugin plugin, @NotNull AccountRepository accountRepository) {
@@ -55,7 +57,7 @@ public class AccountService {
      */
     public List<AccountModel> getAccounts(UUID userId) {
         return accountRepository.findByUserId(userId).stream()
-            .map(this::overlayPendingExperience)
+            .map(this::overlayPendingProgress)
             .toList();
     }
 
@@ -92,11 +94,8 @@ public class AccountService {
      * @return アカウントモデル。存在しない場合は null
      */
     public AccountModel getAccount(UUID accountUuid) {
-        PendingExperienceUpdate pending = pendingExperienceUpdates.get(accountUuid);
-        if (pending != null) {
-            return pending.account();
-        }
-        return accountRepository.findByUuid(accountUuid);
+        AccountModel account = accountRepository.findByUuid(accountUuid);
+        return account == null ? null : overlayPendingProgress(account);
     }
 
     /**
@@ -176,7 +175,7 @@ public class AccountService {
         int experience,
         @NotNull UUID updatedBy
     ) {
-        AccountModel previous = overlayPendingExperience(currentAccount);
+        AccountModel previous = overlayPendingProgress(currentAccount);
         if (experience <= 0) {
             return new AccountExperienceResult(previous, previous, 0, 0);
         }
@@ -226,7 +225,7 @@ public class AccountService {
         int percent,
         @NotNull UUID updatedBy
     ) {
-        AccountModel previous = overlayPendingExperience(currentAccount);
+        AccountModel previous = overlayPendingProgress(currentAccount);
         int normalizedPercent = Math.clamp(percent, 0, 100);
         if (normalizedPercent <= 0) {
             return Optional.empty();
@@ -253,28 +252,38 @@ public class AccountService {
     public void stop() {
         flushTask.cancel();
         for (int attempt = 0; attempt < MAX_STOP_FLUSH_ATTEMPTS; attempt++) {
-            if (pendingExperienceUpdates.isEmpty()) {
+            if (pendingExperienceUpdates.isEmpty() && pendingClassProgressUpdates.isEmpty()) {
                 return;
             }
             flushPendingExperienceNow();
+            flushPendingClassProgressNow();
         }
-        if (!pendingExperienceUpdates.isEmpty()) {
+        if (!pendingExperienceUpdates.isEmpty() || !pendingClassProgressUpdates.isEmpty()) {
             Logger.log(LogId.E_5155, "experience flush unfinished", pendingExperienceUpdates.size());
         }
     }
 
     private void flushPendingExperienceAsync() {
-        if (pendingExperienceUpdates.isEmpty()) {
+        if (pendingExperienceUpdates.isEmpty() && pendingClassProgressUpdates.isEmpty()) {
             return;
         }
         for (Map.Entry<UUID, PendingExperienceUpdate> entry : List.copyOf(pendingExperienceUpdates.entrySet())) {
             flushPendingExperience(entry.getKey(), entry.getValue());
+        }
+        for (Map.Entry<UUID, PendingClassProgressUpdate> entry : List.copyOf(pendingClassProgressUpdates.entrySet())) {
+            flushPendingClassProgress(entry.getKey(), entry.getValue());
         }
     }
 
     private void flushPendingExperienceNow() {
         for (Map.Entry<UUID, PendingExperienceUpdate> entry : List.copyOf(pendingExperienceUpdates.entrySet())) {
             flushPendingExperience(entry.getKey(), entry.getValue());
+        }
+    }
+
+    private void flushPendingClassProgressNow() {
+        for (Map.Entry<UUID, PendingClassProgressUpdate> entry : List.copyOf(pendingClassProgressUpdates.entrySet())) {
+            flushPendingClassProgress(entry.getKey(), entry.getValue());
         }
     }
 
@@ -308,9 +317,85 @@ public class AccountService {
             && current.updatedBy().equals(snapshot.updatedBy());
     }
 
-    private @NotNull AccountModel overlayPendingExperience(@NotNull AccountModel account) {
+    /**
+     * クラス進行度を定期 flush 対象として登録します。
+     *
+     * @param currentAccount 現在のアカウント状態
+     * @param classId 現在のクラス ID
+     * @param classLevel 現在のクラスレベル
+     * @param classExperience 現在クラスの累計経験値
+     * @param updatedBy 更新者 UUID
+     * @return pending を反映したアカウント状態
+     */
+    public @NotNull AccountModel updateClassProgressCached(
+        @NotNull AccountModel currentAccount,
+        @NotNull String classId,
+        int classLevel,
+        long classExperience,
+        @NotNull UUID updatedBy
+    ) {
+        AccountModel previous = overlayPendingProgress(currentAccount);
+        AccountModel updated = withClassProgress(previous, classId, classLevel, classExperience, updatedBy);
+        pendingClassProgressUpdates.put(updated.getUuid(), new PendingClassProgressUpdate(updated, updatedBy));
+        return updated;
+    }
+
+    /**
+     * プレイヤーの現在クラス進行度を即時に API へ保存します。
+     *
+     * @param player 保存対象プレイヤー
+     */
+    public void saveClassProgressNow(@NotNull AstPlayer player) {
+        AccountModel pending = updateClassProgressCached(
+            player.getAccount(),
+            player.getClassId(),
+            player.getClassLevel(),
+            player.getClassExperience(),
+            player.getUser().getUuid()
+        );
+        flushPendingClassProgress(pending.getUuid(), pendingClassProgressUpdates.get(pending.getUuid()));
+    }
+
+    private void flushPendingClassProgress(@NotNull UUID accountUuid, @Nullable PendingClassProgressUpdate snapshot) {
+        if (snapshot == null) {
+            return;
+        }
+        try {
+            accountRepository.updateClassProgress(
+                accountUuid,
+                snapshot.account().getClassId(),
+                snapshot.account().getClassLevel(),
+                snapshot.account().getClassExperience(),
+                snapshot.updatedBy()
+            );
+            pendingClassProgressUpdates.computeIfPresent(accountUuid, (ignored, current) ->
+                sameClassProgressSnapshot(current, snapshot) ? null : current
+            );
+        } catch (RuntimeException ex) {
+            Logger.error(
+                LogId.E_5155,
+                ex,
+                accountUuid,
+                snapshot.account().getClassId(),
+                snapshot.account().getClassLevel(),
+                snapshot.account().getClassExperience()
+            );
+        }
+    }
+
+    private boolean sameClassProgressSnapshot(
+        @NotNull PendingClassProgressUpdate current,
+        @NotNull PendingClassProgressUpdate snapshot
+    ) {
+        return current.account().equals(snapshot.account())
+            && current.updatedBy().equals(snapshot.updatedBy());
+    }
+
+    private @NotNull AccountModel overlayPendingProgress(@NotNull AccountModel account) {
         PendingExperienceUpdate pending = pendingExperienceUpdates.get(account.getUuid());
-        return pending == null ? account : pending.account();
+        AccountModel overlaid = pending == null ? account : pending.account();
+        PendingClassProgressUpdate classPending = pendingClassProgressUpdates.get(account.getUuid());
+        return classPending == null ? overlaid : classPending.account();
     }
 
     private @NotNull AccountModel withProgress(
@@ -333,7 +418,39 @@ public class AccountService {
             updatedBy,
             account.isDeleted(),
             level,
-            totalExperience
+            totalExperience,
+            account.getClassId(),
+            account.getClassLevel(),
+            account.getClassExperience()
+        );
+    }
+
+    private @NotNull AccountModel withClassProgress(
+        @NotNull AccountModel account,
+        @NotNull String classId,
+        int classLevel,
+        long classExperience,
+        @NotNull UUID updatedBy
+    ) {
+        String normalizedClassId = classId.isBlank() ? "adventurer" : classId.trim();
+        return new AccountModel(
+            account.getUuid(),
+            account.getUserId(),
+            account.getAccountName(),
+            account.getSlotIndex(),
+            account.isActive(),
+            account.getMode(),
+            account.getMenuShortcutsJson(),
+            account.getCreatedAt(),
+            LocalDateTime.now(),
+            account.getCreatedBy(),
+            updatedBy,
+            account.isDeleted(),
+            account.getLevel(),
+            account.getTotalExperience(),
+            normalizedClassId,
+            Math.max(1, classLevel),
+            Math.max(0L, classExperience)
         );
     }
 
@@ -371,5 +488,8 @@ public class AccountService {
     }
 
     private record PendingExperienceUpdate(@NotNull AccountModel account, @NotNull UUID updatedBy) {
+    }
+
+    private record PendingClassProgressUpdate(@NotNull AccountModel account, @NotNull UUID updatedBy) {
     }
 }

@@ -11,6 +11,9 @@ public class AccountResponse
     public string MenuShortcutsJson { get; set; } = string.Empty;
     public int Level { get; set; }
     public long TotalExperience { get; set; }
+    public string ClassId { get; set; } = string.Empty;
+    public int ClassLevel { get; set; }
+    public long ClassExperience { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public Guid CreatedBy { get; set; }

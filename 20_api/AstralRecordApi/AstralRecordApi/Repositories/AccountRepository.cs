@@ -40,6 +40,9 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
             IsActive = true,
             Level = 1,
             TotalExperience = 0,
+            ClassId = "adventurer",
+            ClassLevel = 1,
+            ClassExperience = 0,
             CreatedAt = now,
             UpdatedAt = now,
             CreatedBy = request.CreatedBy,
@@ -82,6 +85,23 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
             account.TotalExperience = Math.Max(0, request.TotalExperience.Value);
         }
 
+        if (request.ClassId is not null)
+        {
+            var classId = request.ClassId.Trim();
+            if (classId.Length == 0)
+                throw new ArgumentException("classId must not be blank.");
+            account.ClassId = classId;
+        }
+
+        if (request.ClassLevel.HasValue != request.ClassExperience.HasValue)
+            throw new ArgumentException("classLevel and classExperience must be provided together.");
+
+        if (request.ClassLevel.HasValue && request.ClassExperience.HasValue)
+        {
+            account.ClassLevel = Math.Max(1, request.ClassLevel.Value);
+            account.ClassExperience = Math.Max(0, request.ClassExperience.Value);
+        }
+
         account.UpdatedAt = DateTime.UtcNow;
         account.UpdatedBy = request.UpdatedBy;
 
@@ -101,6 +121,9 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
         MenuShortcutsJson = account.MenuShortcutsJson,
         Level = account.Level,
         TotalExperience = account.TotalExperience,
+        ClassId = account.ClassId,
+        ClassLevel = account.ClassLevel,
+        ClassExperience = account.ClassExperience,
         CreatedAt = account.CreatedAt,
         UpdatedAt = account.UpdatedAt,
         CreatedBy = account.CreatedBy,

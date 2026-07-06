@@ -76,5 +76,8 @@ data class AccountModel @JvmOverloads constructor(
     val isDeleted: Boolean,
     val level: Int = 1,
     val totalExperience: Long = 0L,
+    val classId: String = "adventurer",
+    val classLevel: Int = 1,
+    val classExperience: Long = 0L,
 )
 

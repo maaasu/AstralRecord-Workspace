@@ -11,6 +11,9 @@ public class AccountEntity
     public string MenuShortcutsJson { get; set; } = """["INVENTORY_NORMAL","INVENTORY_EQUIPMENT","INVENTORY_RUNE","INVENTORY_CURRENCY"]""";
     public int Level { get; set; } = 1;
     public long TotalExperience { get; set; }
+    public string ClassId { get; set; } = "adventurer";
+    public int ClassLevel { get; set; } = 1;
+    public long ClassExperience { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public Guid CreatedBy { get; set; }

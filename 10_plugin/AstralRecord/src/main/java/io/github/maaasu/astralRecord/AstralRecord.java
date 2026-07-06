@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.adventurerecord.gui.AdventureRecord
 import io.github.maaasu.astralRecord.feature.adventurerecord.repository.AdventureRecordRepository;
 import io.github.maaasu.astralRecord.feature.adventurerecord.service.AdventureRecordService;
 import io.github.maaasu.astralRecord.feature.account.repository.AccountRepository;
+import io.github.maaasu.astralRecord.feature.account.service.AccountClassProgressSaveTask;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.boss.event.BossEntryEventHandler;
 import io.github.maaasu.astralRecord.feature.boss.event.BossPlayerEventHandler;
@@ -572,7 +573,7 @@ public final class AstralRecord extends JavaPlugin {
         );
 
         // class
-        playerClassService = new PlayerClassService();
+        playerClassService = new PlayerClassService(accountService);
 
         // status
         statusService = new StatusService(itemService, inventoryService);
@@ -640,7 +641,10 @@ public final class AstralRecord extends JavaPlugin {
         airActionService = new AirActionService(this, playerHudService, particleDisplayService);
 
         var playerSaveCoordinator = new PlayerSaveCoordinator(
-            java.util.List.of(new InventorySaveTask(inventoryService, inventoryStateRegistry, inventoryPersistence))
+            java.util.List.of(
+                new AccountClassProgressSaveTask(accountService),
+                new InventorySaveTask(inventoryService, inventoryStateRegistry, inventoryPersistence)
+            )
         );
         // player
         playerService = new PlayerService(

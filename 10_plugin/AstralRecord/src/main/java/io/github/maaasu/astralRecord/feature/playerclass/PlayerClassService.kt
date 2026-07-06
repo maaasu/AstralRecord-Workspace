@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.playerclass
 
 import io.github.maaasu.astralRecord.AstralRecord
+import io.github.maaasu.astralRecord.feature.account.service.AccountService
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassModel
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassStat
 import io.github.maaasu.astralRecord.feature.`class`.service.ClassService
@@ -14,7 +15,9 @@ import java.util.LinkedHashSet
 import java.util.Locale
 import kotlin.math.roundToLong
 
-class PlayerClassService {
+class PlayerClassService @JvmOverloads constructor(
+    private val accountService: AccountService? = null,
+) {
     companion object {
         const val MAX_CLASS_LEVEL = 100
     }
@@ -61,7 +64,20 @@ class PlayerClassService {
         }
         astPlayer.classExperience = totalExperience
         astPlayer.classLevel = level
+        persistClassProgress(astPlayer)
         return ClassExperienceResult(previousLevel, level, experience, (level - previousLevel).coerceAtLeast(0))
+    }
+
+    /**
+     * プレイヤーの現在クラスを変更し、クラス進行度の保存を予約します。
+     *
+     * @param astPlayer 変更対象プレイヤー
+     * @param classId 変更後のクラス ID
+     */
+    fun changeClass(astPlayer: AstPlayer, classId: String) {
+        astPlayer.classId = classId
+        astPlayer.classLevel = astPlayer.classLevel.coerceAtLeast(1)
+        persistClassProgress(astPlayer)
     }
 
     /**
@@ -257,6 +273,17 @@ class PlayerClassService {
 
     private fun formatSignedClassStat(value: Double): String =
         (if (value > 0.0) "+" else "") + formatClassStat(value)
+
+    private fun persistClassProgress(astPlayer: AstPlayer) {
+        val updated = accountService?.updateClassProgressCached(
+            astPlayer.account,
+            astPlayer.classId,
+            astPlayer.classLevel,
+            astPlayer.classExperience,
+            astPlayer.user.uuid,
+        ) ?: return
+        astPlayer.account = updated
+    }
 
     private data class ChangeAvailability(
         val available: Boolean,

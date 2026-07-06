@@ -8,5 +8,8 @@ public class AccountUpdateRequest
     public string? MenuShortcutsJson { get; set; }
     public int? Level { get; set; }
     public long? TotalExperience { get; set; }
+    public string? ClassId { get; set; }
+    public int? ClassLevel { get; set; }
+    public long? ClassExperience { get; set; }
     public Guid UpdatedBy { get; set; }
 }

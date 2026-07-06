@@ -37,6 +37,9 @@ public class AccountRepositoryTests
                     menu_shortcuts_json TEXT NOT NULL,
                     level INTEGER NOT NULL,
                     total_experience INTEGER NOT NULL,
+                    class_id TEXT NOT NULL,
+                    class_level INTEGER NOT NULL,
+                    class_experience INTEGER NOT NULL,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
                     created_by TEXT NOT NULL,
@@ -80,6 +83,80 @@ public class AccountRepositoryTests
     }
 
     [Fact]
+    public async Task UpdateAsync_UpdatesClassProgress()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        var accountId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+
+        await using (var setupContext = new AstralRecordDbContext(options))
+        {
+            await setupContext.Database.ExecuteSqlRawAsync(@"
+                CREATE TABLE account (
+                    uuid TEXT NOT NULL PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    account_name TEXT NOT NULL,
+                    slot_index INTEGER NOT NULL,
+                    is_active INTEGER NOT NULL,
+                    mode INTEGER NOT NULL,
+                    menu_shortcuts_json TEXT NOT NULL,
+                    level INTEGER NOT NULL,
+                    total_experience INTEGER NOT NULL,
+                    class_id TEXT NOT NULL,
+                    class_level INTEGER NOT NULL,
+                    class_experience INTEGER NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    created_by TEXT NOT NULL,
+                    updated_by TEXT NOT NULL,
+                    is_deleted INTEGER NOT NULL
+                );");
+
+            setupContext.Accounts.Add(new AccountEntity
+            {
+                Uuid = accountId,
+                UserId = userId,
+                AccountName = "tester",
+                SlotIndex = 0,
+                IsActive = true,
+                Mode = 0,
+                MenuShortcutsJson = "{}",
+                Level = 1,
+                TotalExperience = 0,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = userId,
+                UpdatedBy = userId,
+                IsDeleted = false
+            });
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var dbContext = new AstralRecordDbContext(options);
+        var repository = new AccountRepository(dbContext);
+
+        var updated = await repository.UpdateAsync(accountId, new AccountUpdateRequest
+        {
+            ClassId = "warrior",
+            ClassLevel = 7,
+            ClassExperience = 3210,
+            UpdatedBy = userId
+        });
+
+        Assert.NotNull(updated);
+        Assert.Equal("warrior", updated!.ClassId);
+        Assert.Equal(7, updated.ClassLevel);
+        Assert.Equal(3210, updated.ClassExperience);
+    }
+
+    [Fact]
     public async Task UpdateAsync_Throws_WhenOnlyLevelIsProvided()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
@@ -106,6 +183,9 @@ public class AccountRepositoryTests
                     menu_shortcuts_json TEXT NOT NULL,
                     level INTEGER NOT NULL,
                     total_experience INTEGER NOT NULL,
+                    class_id TEXT NOT NULL,
+                    class_level INTEGER NOT NULL,
+                    class_experience INTEGER NOT NULL,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
                     created_by TEXT NOT NULL,

@@ -566,8 +566,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
 
         String oldDisplayName = classService.getDisplayName(astPlayer.getClassId());
-        astPlayer.setClassId(classId);
-        astPlayer.setClassLevel(Math.max(1, astPlayer.getClassLevel()));
+        classService.changeClass(astPlayer, classId);
         String newDisplayName = classService.getDisplayName(classId);
         PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5812, oldDisplayName, newDisplayName);
         GuiSound.SELECT.play(player);
