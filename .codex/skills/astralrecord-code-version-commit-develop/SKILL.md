@@ -1,6 +1,6 @@
 ---
 name: astralrecord-code-version-commit-develop
-description: AstralRecord の実装作業や本番向け filebase マスタ作成を task ごとの branch / git worktree 上で進め、`$astralrecord-code` または `$astralrecord-master-data-author` による作業と `$astralrecord-git-worktree-develop` による commit・develop 反映・cleanup をつなぐ統合スキル。並列作業や finalize 待ちで残る worktree は管理コンテンツへ記録し、消し忘れか未完了作業か分かるようにする。プラグイン版番号更新が必要な場合は、最新版 develop へ rebase 済みの finalize 時にだけ実施する。
+description: AstralRecord でユーザーが skill 名を明示していなくても、実装修正・コード修正・設計書反映・本番向け filebase マスタ作成など未コミット差分が発生する作業だと判断できる場合に優先して使う統合入口。task ごとの branch / git worktree 作成から、`$astralrecord-code` または `$astralrecord-master-data-author` による作業、commit、必要に応じた develop rebase / fast-forward merge / cleanup までをつなぐ。プラグイン版番号更新は最新版 develop へ rebase 済みの finalize 時にだけ実施する。
 ---
 
 # AstralRecord Code Version Commit Develop

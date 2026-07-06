@@ -49,12 +49,20 @@
 本モノレポで skill を使う場合は、`E:\AstralRecord-Workspace\.codex\skills\README.md` を正本として扱うこと。  
 以下は、テンプレート実行時に迷わないための最小手順です。
 
+### 自動選択ルール
+
+ユーザーが skill 名を明示していない場合でも、実装修正・コード修正・設計書反映・filebase マスタ作成など、未コミット差分が発生する作業が必要だと判断できるときは、統合入口として `$astralrecord-code-version-commit-develop` を優先して使う。
+この統合入口は task worktree 作成、対象 worker skill 実行、commit、必要に応じた develop 反映までをつなぐための既定ルートとする。
+
+すでに task worktree が用意されており、現在の差分を commit するだけなら `$astralrecord-commit-current-diff` を使う。branch / worktree 作成、finalize、develop merge、cleanup など git 運用そのものが明示されている場合は `$astralrecord-git-worktree-develop` を使う。
+
 ### 実行前チェック
 
 1. 対象プロジェクトを先に判定する（本ファイルの「対象判定ルール」を使用）。
 2. 対象が `10_plugin/AstralRecord` の場合、ルート `PLUGIN_GUIDE.md` と `$astralrecord-code` を使う。
 3. 対象が `20_api/AstralRecordApi` の場合、ルート `API_GUIDE.md` と `$astralrecord-code` の API 参照を使う。
 4. 使う skill は `E:\AstralRecord-Workspace\.codex\skills\README.md` の正本ルールに従って判定する。
+5. 実装差分が発生する作業では、個別 worker skill を直接使う前に `$astralrecord-code-version-commit-develop` を入口にできるか確認する。
 
 ### テンプレート実行手順
 
@@ -68,7 +76,8 @@
 1. `E:\AstralRecord-Workspace\.codex\skills\` 配下のサブディレクトリを skill 候補として扱う。
 2. `<skill-directory>\SKILL.md` が存在するものを有効 skill として扱う。
 3. 利用時は `SKILL.md` の frontmatter（`name` / `description`）を正として解釈する。
-4. 新しい skill 追加時は、この `AGENTS.md` に個別追記しない。配置要件（`<skill-directory>\SKILL.md`）を満たせば参照対象とする。
+4. `description` は自動選択の主要な判断材料として扱い、実装差分が出る依頼では統合入口 `$astralrecord-code-version-commit-develop` の説明を優先して照合する。
+5. 新しい skill 追加時は、この `AGENTS.md` に個別追記しない。配置要件（`<skill-directory>\SKILL.md`）を満たせば参照対象とする。
 
 ### 汎用実行テンプレート
 

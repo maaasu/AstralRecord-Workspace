@@ -1,6 +1,6 @@
 ---
 name: astralrecord-git-worktree-develop
-description: AstralRecord workspace で task ごとに専用 branch と git worktree を作成し、そこでの差分を選別して commit し、develop へ rebase / fast-forward merge して、成功時に branch と worktree を片付ける git 運用スキル。作成・finalize・保持時は worktree 管理コンテンツを更新し、残った worktree が merged 済みの消し忘れか未完了作業か分かるようにする。プラグイン変更がある場合の `pom.xml` 版番号更新は、finalize 時に最新 develop へ rebase した後でだけ行う。
+description: AstralRecord workspace の git 運用専用スキル。branch / git worktree 作成、task worktree の commit、develop への rebase / fast-forward merge、成功時の branch / worktree cleanup、worktree 管理コンテンツ更新が明示された場合に使う。実装修正や filebase 作成を含む通常依頼は、まず統合入口 `$astralrecord-code-version-commit-develop` を優先し、このスキルはその prepare / finalize 下位手順として使う。プラグイン変更時の `pom.xml` 版番号更新は finalize で最新 develop へ rebase した後だけ行う。
 ---
 
 # AstralRecord Git Worktree Develop

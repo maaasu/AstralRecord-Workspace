@@ -1,6 +1,6 @@
 ---
 name: astralrecord-code
-description: AstralRecord モノレポ全体の実装変更を行い、必要に応じて関連する設計書を実装内容と同期する。設計書パスを入力にした実装、プラグイン/API/Web/DB/filebase/resourcepack の挙動変更、アイテム ID 変更などの個別実装指示を、ルートガイド・各プロジェクトのルール・skill 参照に従って進めたい場合に使う。
+description: AstralRecord モノレポ全体の実装 worker。準備済み task worktree の中で、設計書パスを入力にした実装、プラグイン/API/Web/DB/filebase/resourcepack の挙動変更、アイテム ID 変更などを行い、必要に応じて関連設計書を同期する。ユーザーが通常の実装修正を依頼し、worktree 作成や commit / develop 反映も必要になり得る場合は、直接この worker ではなく統合入口 `$astralrecord-code-version-commit-develop` を優先する。
 ---
 
 # AstralRecord Code

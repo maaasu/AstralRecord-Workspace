@@ -1,6 +1,6 @@
 ---
 name: astralrecord-master-data-author
-description: AstralRecord の filebase マスタデータを本番向けに追加・拡張する。ゲームコンセプト、ステータス設計、命名方針、初期オーバーワールド制作ブリーフ、既存 YAML スキーマを読み、item/equipment/material/consumable/class/skill/mob/spawner/world/loot/shop などの 40_filebase 定義を整合させて作成したい場合に使う。
+description: AstralRecord の filebase マスタデータ作成 worker。準備済み task worktree の中で、ゲームコンセプト、ステータス設計、命名方針、初期オーバーワールド制作ブリーフ、既存 YAML スキーマを読み、item/equipment/material/consumable/class/skill/mob/spawner/world/loot/shop などの 40_filebase 定義を本番向けに整合させて追加・拡張する。通常依頼で worktree 作成や commit / develop 反映も必要になり得る場合は、統合入口 `$astralrecord-code-version-commit-develop` を優先する。
 ---
 
 # AstralRecord Master Data Author
