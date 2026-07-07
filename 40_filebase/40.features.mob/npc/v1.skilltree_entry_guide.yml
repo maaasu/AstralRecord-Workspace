@@ -1,0 +1,38 @@
+schemaVersion: 1
+id: skilltree_entry_guide
+type: MOB
+category: NPC
+name: "&d星図案内人"
+title: "&7スキルツリー案内"
+level: 1
+entityType: PLAYER
+nameVisible: true
+damageImmune: true
+icon: NETHER_STAR
+lore:
+  - "&7スキルツリーへ向かうための案内 NPC。"
+  - "&7右クリックでスキルツリーワールドへ移動できる。"
+tags:
+  - npc
+  - skilltree
+  - entry
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&d星図案内人&7: 右クリックでスキルツリーへ移動できます。"
+  rightClick:
+    - id: command
+      params:
+        command: "skilltree"

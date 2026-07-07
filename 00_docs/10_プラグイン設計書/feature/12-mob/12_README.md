@@ -59,3 +59,4 @@
 - 2026-06-22: NPC と同時に配置する固定 TextDisplay は `feature/textdisplay/*` で扱い、配置データは `text_displays.yml` に保存する。
 - 2026-06-23: NPC interaction の `gui.type` は `SHOP` / `SELL` / `CLASS` / `STORAGE` / `EQUIPMENT_ENHANCE` を扱う。NPC `entityType` は Bukkit EntityType に加えて Bukkit block Material も指定でき、block 指定時は配置座標を水平中心にした `Interaction` + `BlockDisplay` fakeblock に通常 NPC と同じ display text、ambient particle、左クリック/右クリック interaction を付与する。fakeblock の描画はプレイヤー方向へ回転させず、下端を配置 Y 座標に接地させた `0.75` 倍の固定表示とする。`CHEST` / `TRAPPED_CHEST` / `ENDER_CHEST` は BlockDisplay で描画されないため、表示用 Material は `BARREL` に正規化する。
 - 2026-07-04: NPC interaction に `command` アクションを追加し、プレイヤーとしてコマンドを実行できるようにした。`skill_tree` ワールドの帰還 NPC は `skilltree back` を呼び出して `BASE` ワールドへ戻す。
+- 2026-07-07: スキルツリー入口 NPC `skilltree_entry_guide` は `skilltree` を呼び出して `skill_tree` ワールドへ移動する。帰還 NPC `skilltree_return_guide` と対になる導線として扱う。
