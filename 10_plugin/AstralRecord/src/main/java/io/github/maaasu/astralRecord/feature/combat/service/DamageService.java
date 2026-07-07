@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.service.MobCombatService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobKnockbackService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.item.service.EquipmentDurabilityService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -61,6 +62,7 @@ public final class DamageService {
     private final PlayerDeathService playerDeathService;
     private BossChallengeService bossChallengeService;
     private ConditionService conditionService;
+    private EquipmentDurabilityService equipmentDurabilityService;
 
     /**
      * サービスを構築します。
@@ -124,6 +126,10 @@ public final class DamageService {
      */
     public void setConditionService(@Nullable ConditionService conditionService) {
         this.conditionService = conditionService;
+    }
+
+    public void setEquipmentDurabilityService(@Nullable EquipmentDurabilityService equipmentDurabilityService) {
+        this.equipmentDurabilityService = equipmentDurabilityService;
     }
 
     /**
@@ -327,8 +333,21 @@ public final class DamageService {
         }
         DamageResult result = applyShieldDamage(attacker, victim, calculated);
         applyDamageResult(attacker, victim, result, attackType);
+        applyDurabilityWear(attacker, victim, result);
         spawnDamageDisplay(attacker, victim, result);
         return result;
+    }
+
+    private void applyDurabilityWear(
+            @Nullable AstEntity attacker,
+            @NotNull AstEntity victim,
+            @NotNull DamageResult result
+    ) {
+        if (equipmentDurabilityService == null) {
+            return;
+        }
+        equipmentDurabilityService.consumeOnAttackHit(attacker, result);
+        equipmentDurabilityService.consumeOnDamageTaken(victim, result);
     }
 
     private @NotNull DamageResult applyShieldDamage(

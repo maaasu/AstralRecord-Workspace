@@ -197,6 +197,73 @@ public class EquipmentServiceTests
         Assert.Null(result);
     }
 
+    [Fact]
+    public async Task UpdateDurabilityAsync_ClampsValue_ToDurabilityMax()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        var accountId = Guid.NewGuid();
+        var actorId = Guid.NewGuid();
+
+        await using (var setupContext = new AstralRecordDbContext(options))
+        {
+            await CreateEquipmentTestSchemaAsync(setupContext);
+
+            setupContext.Accounts.Add(new AstralRecordApi.Data.Entities.AccountEntity
+            {
+                Uuid = accountId,
+                UserId = Guid.NewGuid(),
+                AccountName = "tester",
+                SlotIndex = 0,
+                IsActive = true,
+                Mode = 0,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                CreatedBy = actorId,
+                UpdatedBy = actorId,
+                IsDeleted = false,
+            });
+
+            await setupContext.SaveChangesAsync();
+            await setupContext.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = ON;");
+        }
+
+        var itemRepository = await CreateItemRepositoryFromFilebaseAsync();
+
+        await using var dbContext = new AstralRecordDbContext(options);
+        var equipmentRepository = new EquipmentRepository(dbContext);
+        var accountRepository = new AccountRepository(dbContext);
+        var runeRepository = new RuneRepository(dbContext);
+        var service = new EquipmentService(itemRepository, equipmentRepository, runeRepository, accountRepository);
+
+        var created = await service.CreateAsync(new EquipmentCreateRequest
+        {
+            EquipmentId = "sample_sword",
+            AccountId = accountId,
+            Source = "test",
+            CreatedBy = actorId
+        });
+
+        Assert.NotNull(created);
+        Assert.True(created!.DurabilityMax > 0);
+        var durabilityMax = created.DurabilityMax!.Value;
+
+        var updated = await service.UpdateDurabilityAsync(new EquipmentDurabilityUpdateRequest
+        {
+            EquipmentInstanceId = created.EquipmentInstanceId,
+            DurabilityValue = durabilityMax + 100,
+            UpdatedBy = actorId
+        });
+
+        Assert.NotNull(updated);
+        Assert.Equal(durabilityMax, updated!.DurabilityValue);
+    }
+
     private static async Task<ItemRepository> CreateItemRepositoryFromFilebaseAsync()
     {
         var masterDbConnection = new SqliteConnection("Data Source=:memory:");

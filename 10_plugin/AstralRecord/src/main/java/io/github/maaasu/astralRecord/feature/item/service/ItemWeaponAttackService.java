@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import org.bukkit.Location;
 import org.bukkit.inventory.EquipmentSlot;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -22,6 +23,7 @@ public final class ItemWeaponAttackService {
 
     private final InventoryService inventoryService;
     private final SkillService skillService;
+    private EquipmentDurabilityService equipmentDurabilityService;
 
     public ItemWeaponAttackService(
             @NotNull InventoryService inventoryService,
@@ -29,6 +31,10 @@ public final class ItemWeaponAttackService {
     ) {
         this.inventoryService = inventoryService;
         this.skillService = skillService;
+    }
+
+    public void setEquipmentDurabilityService(@Nullable EquipmentDurabilityService equipmentDurabilityService) {
+        this.equipmentDurabilityService = equipmentDurabilityService;
     }
 
     public void handleLeftClick(
@@ -57,6 +63,9 @@ public final class ItemWeaponAttackService {
 
         ItemEquipment equipment = itemModel.getEquipment();
         if (equipment.getSlot() != ItemEquipmentSlot.WEAPON) {
+            return;
+        }
+        if (equipmentDurabilityService != null && !equipmentDurabilityService.canUseMainHandWeapon(player)) {
             return;
         }
 

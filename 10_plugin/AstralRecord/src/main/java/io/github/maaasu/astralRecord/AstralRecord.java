@@ -44,7 +44,9 @@ import io.github.maaasu.astralRecord.feature.item.executor.WeaponAttackSkillExec
 import io.github.maaasu.astralRecord.feature.item.service.BuiltInWeaponAttackDefinitions;
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseEffectService;
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseService;
+import io.github.maaasu.astralRecord.feature.item.service.EquipmentDurabilityService;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentEnhancementService;
+import io.github.maaasu.astralRecord.feature.item.service.EquipmentRepairService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemDropAnimationService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemWeaponAttackService;
 import io.github.maaasu.astralRecord.feature.item.service.PotionUseService;
@@ -284,7 +286,9 @@ public final class AstralRecord extends JavaPlugin {
     private PotionUseService potionUseService;
     private PlayerClassService playerClassService;
     private ItemWeaponAttackService itemWeaponAttackService;
+    private EquipmentDurabilityService equipmentDurabilityService;
     private EquipmentEnhancementService equipmentEnhancementService;
+    private EquipmentRepairService equipmentRepairService;
     private WorldService worldService;
     private OverworldTeleportService overworldTeleportService;
     private OverworldTeleportGui overworldTeleportGui;
@@ -741,6 +745,16 @@ public final class AstralRecord extends JavaPlugin {
             itemService,
             itemStackFactory
         );
+        equipmentRepairService = new EquipmentRepairService(
+            menuView,
+            inventoryService,
+            itemService,
+            itemStackFactory
+        );
+        equipmentRepairService.setStatusService(statusService);
+        equipmentDurabilityService = new EquipmentDurabilityService(inventoryService, itemService);
+        equipmentDurabilityService.setStatusService(statusService);
+        damageService.setEquipmentDurabilityService(equipmentDurabilityService);
         playerListGui = new PlayerListGui();
         playerDetailGui = new PlayerDetailGui();
         pagingDebugGui = new PagingDebugGui();
@@ -821,8 +835,10 @@ public final class AstralRecord extends JavaPlugin {
         skillTreeService.setSkillService(skillService);
         skillTreeService.setPassiveSkillService(passiveSkillService);
         skillActionRingService = new SkillActionRingService(this, skillBindPresetService, skillService, skillOwnershipService);
+        skillActionRingService.setEquipmentDurabilityService(equipmentDurabilityService);
         skillBindGui = new SkillBindGui(this);
         itemWeaponAttackService = new ItemWeaponAttackService(inventoryService, skillService);
+        itemWeaponAttackService.setEquipmentDurabilityService(equipmentDurabilityService);
 
         // item, loot, skill, class・医・繧ｹ繧ｿ繝・・繧ｿ髱槫酔譛溘Ο繝ｼ繝会ｼ・
         getServer().getScheduler().runTaskAsynchronously(this, () -> {
@@ -992,7 +1008,8 @@ public final class AstralRecord extends JavaPlugin {
                 currencyService,
                 statusService,
                 passiveSkillService,
-                equipmentEnhancementService
+                equipmentEnhancementService,
+                equipmentRepairService
             ),
             getServer().getPluginManager()
         );
@@ -1223,6 +1240,14 @@ public final class AstralRecord extends JavaPlugin {
      */
     public EquipmentEnhancementService getEquipmentEnhancementService() {
         return equipmentEnhancementService;
+    }
+
+    public EquipmentRepairService getEquipmentRepairService() {
+        return equipmentRepairService;
+    }
+
+    public EquipmentDurabilityService getEquipmentDurabilityService() {
+        return equipmentDurabilityService;
     }
 
     public StorageService getStorageService() {

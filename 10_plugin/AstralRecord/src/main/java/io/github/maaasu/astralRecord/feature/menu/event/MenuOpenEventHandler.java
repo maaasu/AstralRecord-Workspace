@@ -296,7 +296,9 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                     storageService.handleClick(event);
                     return;
                 }
-                if (menuScreen == MenuScreen.EQUIPMENT_GUI || menuScreen == MenuScreen.EQUIPMENT_ENHANCE) {
+                if (menuScreen == MenuScreen.EQUIPMENT_GUI
+                    || menuScreen == MenuScreen.EQUIPMENT_ENHANCE
+                    || menuScreen == MenuScreen.EQUIPMENT_REPAIR) {
                     return;
                 }
                 handleMenuClick(event);
@@ -415,6 +417,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             case EQUIPMENT_GUI -> {
             }
             case EQUIPMENT_ENHANCE -> {
+            }
+            case EQUIPMENT_REPAIR -> {
             }
             case CURRENCY -> handleCurrencyClick(event, player);
             case GUIDE -> handleGuideClick(player, event.getRawSlot());
@@ -546,6 +550,16 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             }
             GuiSound.SELECT.play(player);
             switchGuiWithoutInventoryReload(player, () -> playerBrowserGuiEventHandler.openInfoList(player, 0));
+            return;
+        }
+        if (rawSlot == MenuView.EQUIPMENT_REPAIR_SLOT) {
+            var repairService = plugin.getEquipmentRepairService();
+            if (repairService == null) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.SELECT.play(player);
+            switchGuiWithoutInventoryReload(player, () -> repairService.open(player));
             return;
         }
         GuiSound.DENY.play(player);

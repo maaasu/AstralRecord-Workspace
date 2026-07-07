@@ -526,6 +526,9 @@ public class StatusService {
         if (instance == null) {
             return;
         }
+        if (instance.getDurabilityMax() > 0 && instance.getDurabilityValue() <= 0) {
+            return;
+        }
         ItemModel model = resolveItemModel(instance.getItemId());
         if (model == null || model.getEquipment() == null) {
             return;

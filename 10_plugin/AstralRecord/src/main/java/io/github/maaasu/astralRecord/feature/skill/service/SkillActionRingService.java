@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.item.service.EquipmentDurabilityService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
@@ -26,6 +27,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -66,6 +68,7 @@ public final class SkillActionRingService {
     private final Map<UUID, RingSession> sessions = new ConcurrentHashMap<>();
     private final Map<UUID, Long> swapCloseSuppressedUntil = new ConcurrentHashMap<>();
     private final Set<UUID> suppressedAttackPlayers = ConcurrentHashMap.newKeySet();
+    private EquipmentDurabilityService equipmentDurabilityService;
     private BukkitTask task;
 
     /**
@@ -89,6 +92,10 @@ public final class SkillActionRingService {
         this.actionRingJumpStrengthModifierKey = new NamespacedKey(plugin, "action_ring_jump_strength");
     }
 
+    public void setEquipmentDurabilityService(@Nullable EquipmentDurabilityService equipmentDurabilityService) {
+        this.equipmentDurabilityService = equipmentDurabilityService;
+    }
+
     /**
      * プレイヤーのアクションリング表示状態を切り替えます。
      *
@@ -102,6 +109,10 @@ public final class SkillActionRingService {
             swapCloseSuppressedUntil.remove(playerId);
             current.destroy();
             GuiSound.CLOSE.play(player);
+            return;
+        }
+        if (equipmentDurabilityService != null && !equipmentDurabilityService.canUseMainHandWeapon(astPlayer)) {
+            GuiSound.DENY.play(player);
             return;
         }
 
@@ -141,6 +152,10 @@ public final class SkillActionRingService {
             swapCloseSuppressedUntil.remove(playerId);
             current.destroy();
             GuiSound.CLOSE.play(player);
+            return;
+        }
+        if (equipmentDurabilityService != null && !equipmentDurabilityService.canUseMainHandWeapon(astPlayer)) {
+            GuiSound.DENY.play(player);
             return;
         }
 

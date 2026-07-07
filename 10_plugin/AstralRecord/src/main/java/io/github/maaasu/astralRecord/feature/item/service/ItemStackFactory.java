@@ -37,6 +37,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ItemFlag;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
@@ -101,6 +102,12 @@ public class ItemStackFactory {
     /** PDC キー: 装備インスタンス ID */
     private static final NamespacedKey KEY_EQUIPMENT_INSTANCE_ID =
             new NamespacedKey("astralrecord", "equipment_instance_id");
+
+    private static final NamespacedKey KEY_DURABILITY_MAX =
+            new NamespacedKey("astralrecord", "durability_max");
+
+    private static final NamespacedKey KEY_DURABILITY_VALUE =
+            new NamespacedKey("astralrecord", "durability_value");
 
     /** PDC キー: ルーンインスタンス ID */
     private static final NamespacedKey KEY_RUNE_INSTANCE_ID =
@@ -220,7 +227,32 @@ public class ItemStackFactory {
                 ? item.clone()
                 : item.withType(iconMaterial);
         applyAppearance(replaced);
+        applyDurabilityVisual(replaced);
         return replaced;
+    }
+
+    public static boolean applyDurabilityVisual(@NotNull ItemStack item) {
+        if (!item.hasItemMeta() || item.getType().getMaxDurability() <= 0) {
+            return false;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (!(meta instanceof Damageable damageable)) {
+            return false;
+        }
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        Integer max = pdc.get(KEY_DURABILITY_MAX, PersistentDataType.INTEGER);
+        Integer value = pdc.get(KEY_DURABILITY_VALUE, PersistentDataType.INTEGER);
+        if (max == null || value == null || max <= 0) {
+            return false;
+        }
+        double remainingRate = Math.clamp((double) value / max, 0.0D, 1.0D);
+        int visualMax = Math.max(1, item.getType().getMaxDurability());
+        int visualDamage = (int) Math.round(visualMax * (1.0D - remainingRate));
+        damageable.setDamage(Math.clamp(visualDamage, 0, Math.max(0, visualMax - 1)));
+        meta.setUnbreakable(true);
+        meta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE);
+        item.setItemMeta(meta);
+        return true;
     }
 
     /**
@@ -270,6 +302,8 @@ public class ItemStackFactory {
         writeCommonPersistentData(meta.getPersistentDataContainer(), model);
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
         pdc.set(KEY_EQUIPMENT_INSTANCE_ID, PersistentDataType.STRING, instance.getEquipmentInstanceId());
+        pdc.set(KEY_DURABILITY_MAX, PersistentDataType.INTEGER, instance.getDurabilityMax());
+        pdc.set(KEY_DURABILITY_VALUE, PersistentDataType.INTEGER, instance.getDurabilityValue());
 
         item.setItemMeta(meta);
         item.setAmount(Math.clamp(amount, 1, model.getMaxStack()));

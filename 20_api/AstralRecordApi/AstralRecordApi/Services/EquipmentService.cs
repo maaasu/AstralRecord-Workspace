@@ -180,6 +180,20 @@ public class EquipmentService(IItemRepository itemRepository, IEquipmentReposito
         return await GetByInstanceIdAsync(instance.EquipmentInstanceId);
     }
 
+    public async Task<EquipmentInstanceResponse?> UpdateDurabilityAsync(EquipmentDurabilityUpdateRequest request)
+    {
+        var instance = await equipmentRepository.FindInstanceAsync(request.EquipmentInstanceId);
+        if (instance is null || !instance.DurabilityMax.HasValue || !instance.DurabilityValue.HasValue)
+            return null;
+
+        instance.DurabilityValue = Math.Clamp(request.DurabilityValue, 0, instance.DurabilityMax.Value);
+        instance.UpdatedAt = DateTime.UtcNow;
+        instance.UpdatedBy = request.UpdatedBy;
+
+        await equipmentRepository.UpdateInstanceAsync(instance);
+        return await GetByInstanceIdAsync(instance.EquipmentInstanceId);
+    }
+
     public async Task<bool> DeleteAsync(Guid instanceId)
         => await equipmentRepository.SoftDeleteInstanceAsync(instanceId);
 

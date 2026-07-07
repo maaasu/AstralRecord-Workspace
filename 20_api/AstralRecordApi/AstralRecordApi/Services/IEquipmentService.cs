@@ -21,6 +21,8 @@ public interface IEquipmentService
 
     Task<EquipmentInstanceResponse?> EnhanceAsync(EquipmentEnhanceRequest request);
 
+    Task<EquipmentInstanceResponse?> UpdateDurabilityAsync(EquipmentDurabilityUpdateRequest request);
+
     Task<bool> DeleteAsync(Guid instanceId);
 
     Task<EquipmentInstanceResponse?> TranscendAsync(EquipmentTranscendenceRequest request);

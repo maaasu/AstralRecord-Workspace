@@ -83,6 +83,18 @@ public class EquipmentController(IEquipmentService equipmentService) : Controlle
         return Ok(instance);
     }
 
+    [HttpPost("durability")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateDurability([FromBody] EquipmentDurabilityUpdateRequest request)
+    {
+        var instance = await equipmentService.UpdateDurabilityAsync(request);
+        if (instance is null)
+            return NotFound();
+
+        return Ok(instance);
+    }
+
     [HttpDelete("instances/{instanceId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

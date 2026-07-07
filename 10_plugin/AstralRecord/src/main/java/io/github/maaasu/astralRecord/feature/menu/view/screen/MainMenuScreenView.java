@@ -29,6 +29,7 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
     public static final int CURRENCY_SLOT = 32;
     public static final int PARTY_SLOT = 33;
     public static final int PLAYER_INFO_SLOT = 34;
+    public static final int EQUIPMENT_REPAIR_SLOT = 35;
     public static final int ADVENTURE_RECORD_SLOT = 28;
     public static final int MAIL_SLOT = 29;
 
@@ -101,6 +102,11 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
             Material.SPYGLASS,
             Component.text("プレイヤー一覧", NamedTextColor.YELLOW),
             List.of(Component.text("参加中プレイヤーの基本情報を確認", NamedTextColor.GRAY))
+        ));
+        inventory.setItem(EQUIPMENT_REPAIR_SLOT, createItem(
+            Material.ANVIL,
+            Component.text("装備修理", NamedTextColor.GOLD),
+            List.of(Component.text("ゴールドを消費して耐久値を回復", NamedTextColor.GRAY))
         ));
     }
 

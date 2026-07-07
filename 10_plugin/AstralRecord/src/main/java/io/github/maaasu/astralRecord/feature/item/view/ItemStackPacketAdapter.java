@@ -189,6 +189,9 @@ public class ItemStackPacketAdapter {
         if (ItemStackFactory.applyAppearance(replaced)) {
             modified = true;
         }
+        if (ItemStackFactory.applyDurabilityVisual(replaced)) {
+            modified = true;
+        }
 
         return modified ? replaced : null;
     }

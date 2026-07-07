@@ -20,6 +20,13 @@ public class EquipmentEnhanceRequest
     public Guid UpdatedBy { get; set; }
 }
 
+public class EquipmentDurabilityUpdateRequest
+{
+    public Guid EquipmentInstanceId { get; set; }
+    public int DurabilityValue { get; set; }
+    public Guid UpdatedBy { get; set; }
+}
+
 public class EquipmentTranscendenceRequest
 {
     public Guid EquipmentInstanceId { get; set; }

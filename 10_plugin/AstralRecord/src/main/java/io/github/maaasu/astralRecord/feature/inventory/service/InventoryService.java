@@ -81,6 +81,7 @@ public class InventoryService {
     private final InventoryRepository inventoryRepository;
     private final EquipmentLoadoutRepository equipmentLoadoutRepository;
     private final ItemService itemService;
+    private final ItemStackFactory itemStackFactory;
     private final ItemReferenceResolver itemReferenceResolver;
     private final InventoryItemStackResolver itemStackResolver;
     private final InventorySnapshotCodec snapshotCodec;
@@ -110,6 +111,7 @@ public class InventoryService {
         this.inventoryRepository = inventoryRepository;
         this.equipmentLoadoutRepository = equipmentLoadoutRepository;
         this.itemService = itemService;
+        this.itemStackFactory = itemStackFactory;
         this.itemReferenceResolver = new ItemReferenceResolver(itemService);
         this.itemStackResolver = new InventoryItemStackResolver(itemService, itemStackFactory);
         this.snapshotCodec = new InventorySnapshotCodec();
@@ -1486,6 +1488,12 @@ public class InventoryService {
         return itemOrAir(expected).getType() == itemOrAir(current).getType();
     }
 
+    private boolean isSameEquipmentInstance(@Nullable ItemStack itemStack, @NotNull String instanceId) {
+        UUID expectedInstanceId = parseUuidOrNull(instanceId);
+        UUID currentInstanceId = readEquipmentInstanceId(itemStack);
+        return expectedInstanceId != null && expectedInstanceId.equals(currentInstanceId);
+    }
+
     // ---------------------------------------------------------------
     // EQUIP_SLOT
     // ---------------------------------------------------------------
@@ -2275,6 +2283,54 @@ public class InventoryService {
             return item;
         }
         return null;
+    }
+
+    public @NotNull List<ItemStack> getEquippedAccessorySnapshotItems(@NotNull AstPlayer astPlayer) {
+        List<ItemStack> items = new ArrayList<>();
+        for (int slot = AccessorySlotLayout.SLOT_OFF_HAND; slot <= AccessorySlotLayout.SLOT_CHARM; slot++) {
+            ItemStack item = getAccessorySnapshotItem(astPlayer, slot);
+            if (item != null && item.getType() != Material.AIR) {
+                items.add(item);
+            }
+        }
+        return items;
+    }
+
+    public void refreshEquipmentInstanceDisplay(
+        @NotNull AstPlayer astPlayer,
+        @NotNull EquipmentInstance instance
+    ) {
+        ItemModel model = itemService.findLoadedById(instance.getItemId());
+        if (model == null) {
+            model = itemService.loadItem(instance.getItemId());
+        }
+        if (model == null) {
+            return;
+        }
+        ItemStack updated = itemStackFactory.create(model, instance, 1);
+        String instanceId = instance.getEquipmentInstanceId();
+        PlayerInventory inventory = astPlayer.getBukkit().getInventory();
+        for (int slot = 0; slot < inventory.getSize(); slot++) {
+            if (isSameEquipmentInstance(inventory.getItem(slot), instanceId)) {
+                inventory.setItem(slot, updated.clone());
+            }
+        }
+        if (isSameEquipmentInstance(inventory.getHelmet(), instanceId)) {
+            inventory.setHelmet(updated.clone());
+        }
+        if (isSameEquipmentInstance(inventory.getChestplate(), instanceId)) {
+            inventory.setChestplate(updated.clone());
+        }
+        if (isSameEquipmentInstance(inventory.getLeggings(), instanceId)) {
+            inventory.setLeggings(updated.clone());
+        }
+        if (isSameEquipmentInstance(inventory.getBoots(), instanceId)) {
+            inventory.setBoots(updated.clone());
+        }
+        if (isSameEquipmentInstance(inventory.getItemInOffHand(), instanceId)) {
+            inventory.setItemInOffHand(updated.clone());
+        }
+        astPlayer.getBukkit().updateInventory();
     }
 
     public void moveToAccessorySlot(

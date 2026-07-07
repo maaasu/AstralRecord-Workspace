@@ -228,6 +228,42 @@ class ItemRepository {
         }
     }
 
+    fun updateEquipmentDurability(
+        instanceId: String,
+        durabilityValue: Int,
+        updatedBy: String,
+    ): EquipmentInstance? {
+        val path = "/api/equipment/durability"
+        val body = ApiRequestUtil.buildJsonBody {
+            addProperty("equipmentInstanceId", instanceId)
+            addProperty("durabilityValue", durabilityValue)
+            addProperty("updatedBy", updatedBy)
+        }
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val request = ApiRequestUtil.buildRequestBuilder(path)
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                return when (response.statusCode()) {
+                    200 -> parseEquipmentInstance(response.body())
+                    404 -> null
+                    else -> {
+                        Logger.log(LogId.E_5200, "HTTP ${response.statusCode()} for POST $path")
+                        throw IOException("Unexpected status ${response.statusCode()} for POST $path")
+                    }
+                }
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            Logger.log(LogId.E_5200, e)
+            throw RuntimeException(e)
+        } catch (e: IOException) {
+            Logger.log(LogId.E_5200, e)
+            throw e
+        }
+    }
+
     fun deleteEquipmentInstance(instanceId: String): Boolean {
         val path = "/api/equipment/instances/$instanceId"
         try {

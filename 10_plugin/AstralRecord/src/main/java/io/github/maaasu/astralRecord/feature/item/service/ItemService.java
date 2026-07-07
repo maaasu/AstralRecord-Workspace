@@ -391,6 +391,23 @@ public class ItemService {
         }
     }
 
+    public @Nullable EquipmentInstance updateEquipmentDurability(
+        @NotNull String instanceId,
+        int durabilityValue,
+        @NotNull String updatedBy
+    ) {
+        try {
+            EquipmentInstance instance = itemRepository.updateEquipmentDurability(instanceId, durabilityValue, updatedBy);
+            if (instance != null) {
+                loadedEquipmentInstances.put(normalize(instance.getEquipmentInstanceId()), instance);
+            }
+            return instance;
+        } catch (Exception e) {
+            Logger.log(LogId.E_5202, e, instanceId);
+            return null;
+        }
+    }
+
     public boolean deleteEquipmentInstance(@NotNull String instanceId) {
         String normalizedId = normalize(instanceId);
         if (normalizedId.isBlank()) {
