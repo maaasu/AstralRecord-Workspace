@@ -102,10 +102,10 @@ public class PlayerHudView {
                 + Bukkit.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers()).setScore(11);
         objective.getScore(msptLegacyColor(mspt) + "MSPT" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + String.format("%.1f", mspt)).setScore(10);
         objective.getScore(pingLegacyColor(ping) + "Ping" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + ping + "ms").setScore(9);
-        objective.getScore(buildSeparator("プレイヤー")).setScore(8);
+        objective.getScore(buildSeparator("player")).setScore(8);
         objective.getScore(ColorCodeUtil.GOLD + "レベル" + ColorCodeUtil.GRAY + ": " + "Lv." + ColorCodeUtil.YELLOW + playerLevel).setScore(7);
         objective.getScore(buildExperienceBar("EXP", experienceProgress, ColorCodeUtil.GREEN)).setScore(6);
-        objective.getScore(buildSeparator("クラス")).setScore(5);
+        objective.getScore(buildSeparator("class")).setScore(5);
         objective.getScore(ColorCodeUtil.DARK_AQUA + "クラス" + ColorCodeUtil.GRAY + ": " + className).setScore(4);
         objective.getScore(ColorCodeUtil.YELLOW + "レベル" + ColorCodeUtil.GRAY + ": " + "Lv." + ColorCodeUtil.YELLOW + classLevel).setScore(3);
         objective.getScore(buildExperienceBar("CEXP", classExperienceProgress, ColorCodeUtil.AQUA)).setScore(2);
