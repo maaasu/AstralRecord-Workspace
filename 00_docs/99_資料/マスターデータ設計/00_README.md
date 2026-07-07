@@ -20,6 +20,7 @@
 | `04_命名規則と世界観メモ.md` | 命名、説明文、モチーフの軽いガイド |
 | `05_初期オーバーワールド制作ブリーフ.md` | 最初のオーバーワールド向けにすぐ作れる制作指示 |
 | `06_AI追加チェックリスト.md` | AI がマスタを追加する前後に確認する項目 |
+| `07_コンテンツ拡張手順書.md` | 進行時間を伸ばすための追加順、作業単位、完了条件 |
 
 ## AI への標準依頼
 
@@ -32,3 +33,5 @@ $astralrecord-master-data-author を使って、E:\AstralRecord-Workspace\40_fil
 ```text
 $astralrecord-master-data-author を使って、E:\AstralRecord-Workspace\40_filebase に level 1-8 の通常敵3体、素材4個、初期装備6個、対応する loot pool/table と spawner を追加し、結果を報告してください。
 ```
+
+継続的に進行帯を増やす場合は、先に `07_コンテンツ拡張手順書.md` で対象 phase と追加単位を決めます。
