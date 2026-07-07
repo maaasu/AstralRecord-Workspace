@@ -14,12 +14,27 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStat;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStatType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
+import io.github.maaasu.astralRecord.feature.mob.model.MobBaseStat;
+import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
+import io.github.maaasu.astralRecord.feature.mob.model.MobEquipmentConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobIdleConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
+import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionsConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
+import io.github.maaasu.astralRecord.feature.status.model.StatusValue;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
+import org.bukkit.Location;
+import org.bukkit.entity.EntityType;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
 import java.time.LocalDateTime;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -188,5 +203,51 @@ public final class DesignTestFixtures {
             now,
             List.of()
         );
+    }
+
+    public static StatusSnapshot statusSnapshot(Map<StatusType, Double> values, double hp, double mp, double energy) {
+        EnumMap<StatusType, StatusValue> snapshotValues = new EnumMap<>(StatusType.class);
+        values.forEach((type, value) -> snapshotValues.put(type, new StatusValue(value, 0.0D)));
+        return new StatusSnapshot(snapshotValues, hp, mp, energy, 0.0D, 0L, LocalDateTime.now());
+    }
+
+    public static MobInstance mobInstance(double maxHealth, double defense, double magicDefense) {
+        return mobInstance(maxHealth, defense, magicDefense, MobShieldConfig.EMPTY);
+    }
+
+    public static MobInstance mobInstance(
+        double maxHealth,
+        double defense,
+        double magicDefense,
+        MobShieldConfig shield
+    ) {
+        MobTemplate template = new MobTemplate(
+            1,
+            "test_mob",
+            MobCategory.ENEMY,
+            "Test Mob",
+            null,
+            1,
+            EntityType.ZOMBIE,
+            false,
+            "ZOMBIE_HEAD",
+            List.of(),
+            List.of(),
+            null,
+            MobEquipmentConfig.EMPTY,
+            List.of(
+                new MobBaseStat(StatusType.MAX_HEALTH.name(), maxHealth),
+                new MobBaseStat(StatusType.DEFENSE.name(), defense),
+                new MobBaseStat(StatusType.MAGIC_DEFENSE.name(), magicDefense)
+            ),
+            shield,
+            MobIdleConfig.defaults(),
+            false,
+            MobInteractionsConfig.EMPTY,
+            null,
+            null,
+            null
+        );
+        return new MobInstance(UUID.randomUUID(), template, new Location(null, 0.0D, 0.0D, 0.0D));
     }
 }
