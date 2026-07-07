@@ -54,6 +54,8 @@ public class MobEntityController {
     private static final float BLOCK_DISPLAY_RENDER_SCALE = 0.75F;
     private static final float BLOCK_DISPLAY_RENDER_XZ_OFFSET = -BLOCK_DISPLAY_RENDER_SCALE / 2.0F;
     private static final float BLOCK_DISPLAY_RENDER_Y_OFFSET = 0.0F;
+    private static final float ITEM_DISPLAY_RENDER_SCALE = BLOCK_DISPLAY_RENDER_SCALE;
+    private static final float ITEM_DISPLAY_RENDER_Y_OFFSET = ITEM_DISPLAY_RENDER_SCALE / 2.0F;
     private static final float BLOCK_INTERACTION_WIDTH = 1.0F;
     private static final float BLOCK_INTERACTION_HEIGHT = 1.0F;
 
@@ -229,8 +231,8 @@ public class MobEntityController {
         display.setTeleportDuration(1);
         display.setBrightness(new Display.Brightness(15, 15));
         display.setItemStack(new ItemStack(material));
-        display.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.FIXED);
-        display.setTransformation(blockDisplayTransformation());
+        display.setItemDisplayTransform(itemDisplayTransform());
+        display.setTransformation(itemDisplayTransformation());
         display.getPersistentDataContainer().set(instanceIdKey, PersistentDataType.STRING, instance.instanceId().toString());
         display.getPersistentDataContainer().set(templateIdKey, PersistentDataType.STRING, template.id());
     }
@@ -588,12 +590,25 @@ public class MobEntityController {
         };
     }
 
+    static @NotNull ItemDisplay.ItemDisplayTransform itemDisplayTransform() {
+        return ItemDisplay.ItemDisplayTransform.NONE;
+    }
+
     @NotNull
     Transformation blockDisplayTransformation() {
         return new Transformation(
                 new Vector3f(BLOCK_DISPLAY_RENDER_XZ_OFFSET, BLOCK_DISPLAY_RENDER_Y_OFFSET, BLOCK_DISPLAY_RENDER_XZ_OFFSET),
                 new Quaternionf(),
                 new Vector3f(BLOCK_DISPLAY_RENDER_SCALE, BLOCK_DISPLAY_RENDER_SCALE, BLOCK_DISPLAY_RENDER_SCALE),
+                new Quaternionf()
+        );
+    }
+
+    static @NotNull Transformation itemDisplayTransformation() {
+        return new Transformation(
+                new Vector3f(0.0F, ITEM_DISPLAY_RENDER_Y_OFFSET, 0.0F),
+                new Quaternionf(),
+                new Vector3f(ITEM_DISPLAY_RENDER_SCALE, ITEM_DISPLAY_RENDER_SCALE, ITEM_DISPLAY_RENDER_SCALE),
                 new Quaternionf()
         );
     }
