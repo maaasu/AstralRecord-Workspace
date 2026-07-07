@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.menu.player;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
+import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
@@ -13,7 +14,9 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
+import io.github.maaasu.astralRecord.feature.trade.service.TradeService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
@@ -41,6 +44,9 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
     private final StatusService statusService;
     private final MenuView menuView;
     private final InventoryService inventoryService;
+    private final TradeService tradeService;
+    private final CurrencyService currencyService;
+    private final PlayerClassService playerClassService;
 
     public PlayerBrowserGuiEventHandler(
         @NotNull AstralRecord plugin,
@@ -51,6 +57,32 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         @NotNull MenuView menuView,
         @NotNull InventoryService inventoryService
     ) {
+        this(
+            plugin,
+            playerListGui,
+            playerDetailGui,
+            partyService,
+            statusService,
+            menuView,
+            inventoryService,
+            null,
+            null,
+            null
+        );
+    }
+
+    public PlayerBrowserGuiEventHandler(
+        @NotNull AstralRecord plugin,
+        @NotNull PlayerListGui playerListGui,
+        @NotNull PlayerDetailGui playerDetailGui,
+        @NotNull PartyService partyService,
+        @NotNull StatusService statusService,
+        @NotNull MenuView menuView,
+        @NotNull InventoryService inventoryService,
+        @Nullable TradeService tradeService,
+        @Nullable CurrencyService currencyService,
+        @Nullable PlayerClassService playerClassService
+    ) {
         this.plugin = plugin;
         this.playerListGui = playerListGui;
         this.playerDetailGui = playerDetailGui;
@@ -58,6 +90,9 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         this.statusService = statusService;
         this.menuView = menuView;
         this.inventoryService = inventoryService;
+        this.tradeService = tradeService;
+        this.currencyService = currencyService;
+        this.playerClassService = playerClassService;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -148,22 +183,30 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
             player.closeInventory();
             return;
         }
-        if (rawSlot != BaseMenuScreenView.BACK_SLOT) {
-            GuiSound.DENY.play(player);
+        if (rawSlot == PlayerDetailGui.TRADE_SLOT) {
+            handleTradeRequest(player, inventory);
+            return;
+        }
+        if (rawSlot == PlayerDetailGui.PARTY_INVITE_SLOT) {
+            handleDetailInvite(player, inventory);
+            return;
+        }
+        if (rawSlot == BaseMenuScreenView.BACK_SLOT) {
+            PlayerListBackTarget backTarget = playerDetailGui.getBackTarget(inventory);
+            int returnPage = playerDetailGui.getReturnPage(inventory);
+            if (backTarget == PlayerListBackTarget.PARTY) {
+                GuiSound.SELECT.play(player);
+                MenuOpenEventHandler.suppressNextCloseSound(player);
+                back(player, backTarget);
+                return;
+            }
+            GuiSound.SELECT.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
+            openInfoList(player, returnPage);
             return;
         }
 
-        PlayerListBackTarget backTarget = playerDetailGui.getBackTarget(inventory);
-        int returnPage = playerDetailGui.getReturnPage(inventory);
-        if (backTarget == PlayerListBackTarget.PARTY) {
-            GuiSound.SELECT.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
-            back(player, backTarget);
-            return;
-        }
-        GuiSound.SELECT.play(player);
-        MenuOpenEventHandler.suppressNextCloseSound(player);
-        openInfoList(player, returnPage);
+        GuiSound.DENY.play(player);
     }
 
     private void handleInvite(@NotNull Player player, @NotNull UUID targetId, int pageIndex) {
@@ -201,13 +244,45 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         }
         GuiSound.SELECT.play(viewer);
         MenuOpenEventHandler.suppressNextCloseSound(viewer);
-        playerDetailGui.open(
-            viewer,
-            target,
-            statusService.refreshStatus(target),
-            backTarget == null ? PlayerListBackTarget.MENU : backTarget,
-            pageIndex
-        );
+        openTargetDetail(viewer, target, backTarget == null ? PlayerListBackTarget.MENU : backTarget, pageIndex);
+    }
+
+    private void handleTradeRequest(@NotNull Player player, @NotNull org.bukkit.inventory.Inventory inventory) {
+        UUID targetId = playerDetailGui.getTargetId(inventory);
+        Player target = targetId == null ? null : Bukkit.getPlayer(targetId);
+        if (target == null) {
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5603, targetId == null ? "unknown" : playerName(targetId));
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (player.getUniqueId().equals(target.getUniqueId()) || tradeService == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        tradeService.requestTrade(player, target);
+        GuiSound.SELECT.play(player);
+    }
+
+    private void handleDetailInvite(@NotNull Player player, @NotNull org.bukkit.inventory.Inventory inventory) {
+        UUID targetId = playerDetailGui.getTargetId(inventory);
+        Player target = targetId == null ? null : Bukkit.getPlayer(targetId);
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (target == null || astPlayer == null) {
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5603, targetId == null ? "unknown" : playerName(targetId));
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (player.getUniqueId().equals(target.getUniqueId())) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        PartyActionResult result = partyService.invite(astPlayer, target);
+        PlayerMessageService.getInstance().send(player, result.messageId(), result.args());
+        if (result.success()) {
+            GuiSound.SELECT.play(player);
+        } else {
+            GuiSound.DENY.play(player);
+        }
     }
 
     private void reopenList(@NotNull Player player, @NotNull org.bukkit.inventory.Inventory inventory, int pageIndex) {
@@ -264,7 +339,34 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
             return;
         }
         GuiSound.OPEN.play(viewer);
-        playerDetailGui.open(viewer, target, statusService.refreshStatus(target), PlayerListBackTarget.MENU, 0);
+        openTargetDetail(viewer, target, PlayerListBackTarget.MENU, 0);
+    }
+
+    private void openTargetDetail(
+        @NotNull Player viewer,
+        @NotNull AstPlayer target,
+        @NotNull PlayerListBackTarget backTarget,
+        int pageIndex
+    ) {
+        long goldAmount = currencyService == null
+            ? 0L
+            : currencyService.getGoldAmount(target.getAccount().getUuid());
+        String classDisplayName = playerClassService == null
+            ? target.getClassId()
+            : playerClassService.getDisplayName(target.getClassId());
+        double classExperienceProgress = playerClassService == null
+            ? 0.0
+            : playerClassService.classExperienceProgress(target);
+        playerDetailGui.open(
+            viewer,
+            target,
+            statusService.refreshStatus(target),
+            goldAmount,
+            classDisplayName,
+            classExperienceProgress,
+            backTarget,
+            pageIndex
+        );
     }
 
     private void back(@NotNull Player player, @Nullable PlayerListBackTarget backTarget) {

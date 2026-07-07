@@ -914,7 +914,10 @@ public final class AstralRecord extends JavaPlugin {
             partyService,
             statusService,
             menuView,
-            inventoryService
+            inventoryService,
+            tradeService,
+            currencyService,
+            playerClassService
         );
         eventManager.registerHandler(
             playerBrowserGuiEventHandler,
