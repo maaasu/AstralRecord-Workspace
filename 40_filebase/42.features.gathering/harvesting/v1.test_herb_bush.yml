@@ -2,7 +2,7 @@ schemaVersion: 1
 id: test_herb_bush
 type: GATHERING
 category: HARVESTING
-name: "&aTest Herb Bush"
+name: "&a検証用の薬草茂み"
 maxHealth: 5
 displayBlock: OAK_LEAVES
 displayScale:

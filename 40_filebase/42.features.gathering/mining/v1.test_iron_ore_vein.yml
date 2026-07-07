@@ -2,7 +2,7 @@ schemaVersion: 1
 id: test_iron_ore_vein
 type: GATHERING
 category: MINING
-name: "&7Test Iron Ore Vein"
+name: "&7検証用の鉄鉱脈"
 maxHealth: 8
 displayBlock: IRON_ORE
 displayScale:

@@ -9,7 +9,7 @@ nameVisible: true
 damageImmune: true
 icon: VILLAGER_SPAWN_EGG
 lore:
-  - "&7STATIONARY の確認用 NPC。"
+  - "&7その場で待機する動作の確認用NPC。"
 tags:
   - test
   - ai

@@ -2,9 +2,9 @@ schemaVersion: 1
 id: starter_shop_skill_lab_blade
 type: RECIPE
 category: SHOP
-name: "&dSkill Lab Blade Shop Cost"
+name: "&dスキル検証剣の商店素材"
 lore:
-  - "&7Additional material cost for the starter shop."
+  - "&7始まりの商店で必要な追加素材。"
 tags:
   - shop
   - starter

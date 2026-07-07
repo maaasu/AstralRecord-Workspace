@@ -1,7 +1,7 @@
 schemaVersion: 1
 id: armor_shop
 type: SHOP
-name: "&6Armor Shop"
+name: "&6防具屋"
 items:
   - id: starter_helmet
     itemId:

@@ -3,7 +3,7 @@ id: equipment_enhance
 type: MOB
 category: NPC
 name: "&6装備強化"
-title: "&7Equipment Enhance"
+title: "&7装備強化"
 level: 1
 entityType: ANVIL
 nameVisible: true

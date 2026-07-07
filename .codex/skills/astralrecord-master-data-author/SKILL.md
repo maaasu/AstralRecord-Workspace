@@ -60,6 +60,8 @@ Use these defaults when the user asks for the first overworld and does not provi
 ## Quality Bar
 
 - Every created master must have a concrete gameplay purpose.
+- Player-facing strings in master data must be written in Japanese for Japanese MMORPG users. This includes `name`, `displayName`, `title`, `label`, `description`, `lore`, mail `body`, NPC interaction `message`, shop names, quest text, and other text that can be shown or sent to players.
+- Keep technical IDs, Bukkit Material names, enum values, reference prefixes, tags, and implementation identifiers in the existing English / uppercase formats required by the schema and plugin.
 - Names and lore should feel consistent with AstralRecord's sky, record, town, exploration, and astral motifs without becoming ornate.
 - Avoid debug names such as `test`, `sample`, `lab`, or `starter` for production additions unless the user explicitly requests a starter bundle.
 - Do not alter plugin/API/web/resourcepack files unless the user requests implementation support or the schema requires a resource reference to exist.

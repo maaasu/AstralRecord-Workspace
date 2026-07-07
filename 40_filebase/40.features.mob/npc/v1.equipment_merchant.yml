@@ -2,16 +2,16 @@ schemaVersion: 1
 id: equipment_merchant
 type: MOB
 category: NPC
-name: "&6Armor Merchant Daren"
-title: "&7Armor Shop"
+name: "&6防具商人ダレン"
+title: "&7防具屋"
 level: 1
 entityType: PLAYER
 nameVisible: true
 damageImmune: true
 icon: IRON_CHESTPLATE
 lore:
-  - "&7A merchant who keeps armor for new and returning adventurers."
-  - "&7Right-click to open the armor shop."
+  - "&7新米と復帰した冒険者のために防具を揃える商人。"
+  - "&7右クリックで防具屋を開ける。"
 tags:
   - npc
   - shop
@@ -31,7 +31,7 @@ interactions:
   leftClick:
     - id: message
       params:
-        message: "&6Armor Merchant Daren&7: Right-click to browse armor."
+        message: "&6防具商人ダレン&7: 右クリックで防具を見られます。"
   rightClick:
     - id: gui
       params:

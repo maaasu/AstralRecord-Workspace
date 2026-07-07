@@ -3,7 +3,7 @@ id: class_guide
 type: MOB
 category: NPC
 name: "&b職業案内人ミラ"
-title: "&7Class Guide"
+title: "&7職業案内"
 level: 1
 entityType: PLAYER
 nameVisible: true

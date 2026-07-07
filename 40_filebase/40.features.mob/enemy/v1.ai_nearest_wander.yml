@@ -7,7 +7,7 @@ level: 1
 entityType: ZOMBIE
 icon: ZOMBIE_HEAD
 lore:
-  - "&7WANDER + NEAREST + MELEE の確認用。"
+  - "&7徘徊しながら、最も近い相手へ近接攻撃する確認用。"
 tags:
   - test
   - ai

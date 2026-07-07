@@ -7,7 +7,7 @@ level: 1
 entityType: SKELETON
 icon: SKELETON_SKULL
 lore:
-  - "&7STATIONARY + RANDOM + RANGED の確認用。"
+  - "&7その場から、ランダムな相手へ遠距離攻撃する確認用。"
 tags:
   - test
   - ai

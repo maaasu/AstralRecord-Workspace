@@ -3,7 +3,7 @@ id: starter_shopkeeper
 type: MOB
 category: NPC
 name: "&6始まりの商人"
-title: "&7Starter Shop"
+title: "&7始まりの商店"
 level: 1
 entityType: PLAYER
 nameVisible: true

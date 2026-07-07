@@ -1,13 +1,13 @@
 schemaVersion: 1
 id: test_iron_pickaxe
 category: equipment
-name: "&fTest Iron Pickaxe"
+name: "&f検証用の鉄ピッケル"
 icon: IRON_PICKAXE
 rarity: COMMON
 maxStack: 1
 saleValue: 0
 lore:
-  - "&7Tool for test mining gathering objects."
+  - "&7採掘オブジェクトの検証に使う道具。"
 unTradeable: false
 unSellable: false
 

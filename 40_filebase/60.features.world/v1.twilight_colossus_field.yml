@@ -1,6 +1,6 @@
 schemaVersion: 1
 id: twilight_colossus_field
-displayName: "Twilight Colossus Field"
+displayName: "黄昏の巨像フィールド"
 worldType: BOSS_FIELD
 baseWorldPath: "plugins/AstralRecord/worlds/boss/twilight_colossus_field"
 instanceRootPath: "plugins/AstralRecord/_world_instances/boss/twilight_colossus_field"
@@ -17,4 +17,4 @@ spawnLocation:
   z: 0.5
   yaw: 0.0
   pitch: 0.0
-description: "Instanced boss arena for the Twilight Colossus."
+description: "黄昏の巨像と戦うインスタンス式のボス闘技場。"

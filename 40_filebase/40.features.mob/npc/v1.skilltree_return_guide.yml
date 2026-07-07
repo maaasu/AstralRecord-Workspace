@@ -3,7 +3,7 @@ id: skilltree_return_guide
 type: MOB
 category: NPC
 name: "&d帰還案内人"
-title: "&7Return Guide"
+title: "&7帰還案内"
 level: 1
 entityType: PLAYER
 nameVisible: true

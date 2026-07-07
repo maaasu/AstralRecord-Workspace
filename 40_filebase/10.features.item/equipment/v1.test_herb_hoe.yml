@@ -1,13 +1,13 @@
 schemaVersion: 1
 id: test_herb_hoe
 category: equipment
-name: "&fTest Herb Hoe"
+name: "&f検証用の薬草鍬"
 icon: IRON_HOE
 rarity: COMMON
 maxStack: 1
 saleValue: 0
 lore:
-  - "&7Tool for test harvesting gathering objects."
+  - "&7採集オブジェクトの収穫検証に使う道具。"
 unTradeable: false
 unSellable: false
 

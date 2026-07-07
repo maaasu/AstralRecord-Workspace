@@ -2,15 +2,15 @@ schemaVersion: 1
 id: twilight_colossus
 type: MOB
 category: BOSS
-name: "&5&lTwilight Colossus"
-title: "&8-- Guardian of the Broken Gate --"
+name: "&5&l黄昏の巨像"
+title: "&8-- 崩れた門の守護者 --"
 level: 45
 entityType: IRON_GOLEM
 icon: CRYING_OBSIDIAN
 nameVisible: true
 lore:
-  - "&7A giant construct guarding a collapsed twilight gate."
-  - "&7Designed as the first playable boss challenge master."
+  - "&7崩れた黄昏の門を守る巨大な構造体。"
+  - "&7最初のボス挑戦として設計された強敵。"
 tags:
   - boss
   - golem

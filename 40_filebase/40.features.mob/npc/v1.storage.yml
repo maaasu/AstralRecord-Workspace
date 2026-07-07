@@ -3,7 +3,7 @@ id: storage
 type: MOB
 category: NPC
 name: "&6ストレージ"
-title: "&7Storage"
+title: "&7保管庫"
 level: 1
 entityType: CHEST
 nameVisible: true

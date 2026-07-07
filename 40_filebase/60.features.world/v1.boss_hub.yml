@@ -1,6 +1,6 @@
 schemaVersion: 1
 id: boss_hub
-displayName: "Boss Hub"
+displayName: "ボス待機拠点"
 worldType: HUB
 baseWorldPath: "plugins/AstralRecord/worlds/hub/boss_hub"
 instanceRootPath: "plugins/AstralRecord/_world_instances/boss_hub"
@@ -17,4 +17,4 @@ spawnLocation:
   z: 0.5
   yaw: 0.0
   pitch: 0.0
-description: "Boss challenge waiting hub."
+description: "ボス挑戦前に準備するための待機拠点。"

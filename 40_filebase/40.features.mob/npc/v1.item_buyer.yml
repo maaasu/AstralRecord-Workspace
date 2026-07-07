@@ -3,7 +3,7 @@ id: item_buyer
 type: MOB
 category: NPC
 name: "&e買取係"
-title: "&7Item Buyer"
+title: "&7買取"
 level: 1
 entityType: PLAYER
 nameVisible: true
