@@ -1,5 +1,7 @@
 package io.github.maaasu.astralRecord.feature.mob.service;
 
+import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
+import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
@@ -46,6 +48,7 @@ public class MobService {
     private final MobRepository repository;
     private final MobEntityController entityController;
     private final NpcPlayerSkinPacketService playerSkinPacketService;
+    private ConditionService conditionService;
 
     private final Map<String, MobTemplate> templates = new LinkedHashMap<>();
     private final Map<UUID, MobInstance> instances = new LinkedHashMap<>();
@@ -64,6 +67,15 @@ public class MobService {
         this.repository = repository;
         this.entityController = new MobEntityController(plugin);
         this.playerSkinPacketService = new NpcPlayerSkinPacketService(plugin, this.entityController);
+    }
+
+    /**
+     * 状態異常サービスを設定します。
+     *
+     * @param conditionService 状態異常サービス
+     */
+    public void setConditionService(@NotNull ConditionService conditionService) {
+        this.conditionService = conditionService;
     }
 
     /**
@@ -351,6 +363,9 @@ public class MobService {
         MobInstance instance = instances.remove(instanceId);
         if (instance == null) return false;
 
+        if (conditionService != null) {
+            conditionService.clearAll(AstEntity.mob(instance));
+        }
         playerSkinPacketService.remove(instance);
         viewers.remove(instanceId);
         untrackEntity(instance.bukkitEntityId());
@@ -405,6 +420,9 @@ public class MobService {
     public int destroyAll() {
         int count = instances.size();
         for (MobInstance instance : instances.values()) {
+            if (conditionService != null) {
+                conditionService.clearAll(AstEntity.mob(instance));
+            }
             playerSkinPacketService.remove(instance);
             entityController.remove(instance);
         }

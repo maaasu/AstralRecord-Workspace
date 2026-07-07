@@ -3,10 +3,13 @@ package io.github.maaasu.astralRecord.feature.combat.service;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageContext;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageScaling;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageType;
 import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
+import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
+import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.service.MobCombatService;
@@ -57,6 +60,7 @@ public final class DamageService {
     private final ParticleDisplayService particleDisplayService;
     private final PlayerDeathService playerDeathService;
     private BossChallengeService bossChallengeService;
+    private ConditionService conditionService;
 
     /**
      * サービスを構築します。
@@ -114,6 +118,15 @@ public final class DamageService {
     }
 
     /**
+     * 状態異常サービスを設定します。
+     *
+     * @param conditionService 状態異常サービス。null の場合は状態異常補正なし
+     */
+    public void setConditionService(@Nullable ConditionService conditionService) {
+        this.conditionService = conditionService;
+    }
+
+    /**
      * Bukkit の近接ダメージイベントを custom combat へ変換します。
      *
      * @param event Bukkit ダメージイベント
@@ -164,7 +177,27 @@ public final class DamageService {
             @NotNull AttackType attackType,
             @NotNull DamageType damageType
     ) {
-        return applyDamage(attacker, victim, 0.0D, attackType, damageType, DamageScaling.ATTACKER_STATUS);
+        return attack(attacker, victim, attackType, damageType, DamageElement.NEUTRAL);
+    }
+
+    /**
+     * 謾ｻ謦・・せ繝・・繧ｿ繧ｹ繧剃ｽｿ縺｣縺ｦ螻樊ｧ莉倥″謾ｻ謦・ム繝｡繝ｼ繧ｸ繧帝←逕ｨ縺励∪縺吶・
+     *
+     * @param attacker   謾ｻ謦・・
+     * @param victim     陲ｫ蠑ｾ閠・
+     * @param attackType 謾ｻ謦・ｨｮ蛻･
+     * @param damageType 繝繝｡繝ｼ繧ｸ遞ｮ蛻･
+     * @param damageElement 繝繝｡繝ｼ繧ｸ螻樊ｧ
+     * @return 繝繝｡繝ｼ繧ｸ邨先棡
+     */
+    public @NotNull DamageResult attack(
+            @NotNull AstEntity attacker,
+            @NotNull AstEntity victim,
+            @NotNull AttackType attackType,
+            @NotNull DamageType damageType,
+            @NotNull DamageElement damageElement
+    ) {
+        return applyDamage(attacker, victim, 0.0D, attackType, damageType, damageElement, DamageScaling.ATTACKER_STATUS);
     }
 
     /**
@@ -184,7 +217,7 @@ public final class DamageService {
             @NotNull AttackType attackType,
             @NotNull DamageType damageType
     ) {
-        return applyDamage(attacker, victim, baseDamage, attackType, damageType, DamageScaling.FIXED);
+        return applyDamage(attacker, victim, baseDamage, attackType, damageType, DamageElement.NEUTRAL, DamageScaling.FIXED);
     }
 
     /**
@@ -202,7 +235,29 @@ public final class DamageService {
             double baseDamage,
             @NotNull DamageType damageType
     ) {
-        return applyDamage(attacker, victim, baseDamage, AttackType.MAGIC, damageType, DamageScaling.FIXED);
+        return applyDamage(attacker, victim, baseDamage, AttackType.MAGIC, damageType, DamageElement.NEUTRAL, DamageScaling.FIXED);
+    }
+
+    /**
+     * 状態異常由来のダメージを custom combat 経路へ流します。
+     *
+     * @param attacker 付与元。環境由来なら null
+     * @param victim 対象
+     * @param baseDamage 基礎ダメージ
+     * @param damageType ダメージ種別
+     * @param damageElement ダメージ属性
+     * @param conditionType 状態異常種別
+     * @return ダメージ結果
+     */
+    public @NotNull DamageResult applyConditionDamage(
+            @Nullable AstEntity attacker,
+            @NotNull AstEntity victim,
+            double baseDamage,
+            @NotNull DamageType damageType,
+            @NotNull DamageElement damageElement,
+            @NotNull ConditionType conditionType
+    ) {
+        return applyDamage(attacker, victim, baseDamage, AttackType.MAGIC, damageType, damageElement, DamageScaling.FIXED);
     }
 
     /**
@@ -243,6 +298,7 @@ public final class DamageService {
             double baseDamage,
             @NotNull AttackType attackType,
             @NotNull DamageType damageType,
+            @NotNull DamageElement damageElement,
             @NotNull DamageScaling scaling
     ) {
         if (attacker != null && attacker.isPlayer() && isPlayerDead(attacker.id())) {
@@ -254,12 +310,22 @@ public final class DamageService {
         if (victim.isMob() && victim.mob() != null && victim.mob().template().damageImmune()) {
             return new DamageResult(0.0D);
         }
+        if (conditionService != null && conditionService.isDamageImmune(victim)) {
+            return new DamageResult(0.0D);
+        }
 
         ensureStatusLoaded(attacker);
         ensureStatusLoaded(victim);
 
-        DamageContext context = new DamageContext(attacker, victim, baseDamage, attackType, damageType, scaling);
-        DamageResult result = applyShieldDamage(attacker, victim, damageCalculator.calculate(context));
+        DamageContext context = new DamageContext(attacker, victim, baseDamage, attackType, damageType, damageElement, scaling);
+        DamageResult calculated = damageCalculator.calculate(context);
+        if (conditionService != null && calculated.finalDamage() > 0.0D) {
+            calculated = new DamageResult(
+                    calculated.finalDamage() * conditionService.damageTakenMultiplier(victim),
+                    calculated.critical()
+            );
+        }
+        DamageResult result = applyShieldDamage(attacker, victim, calculated);
         applyDamageResult(attacker, victim, result, attackType);
         spawnDamageDisplay(attacker, victim, result);
         return result;

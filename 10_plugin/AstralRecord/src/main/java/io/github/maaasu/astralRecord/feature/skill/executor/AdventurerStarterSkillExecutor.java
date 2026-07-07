@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.skill.executor;
 
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
+import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.item.executor.WeaponAttackSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.MobSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
@@ -49,8 +50,16 @@ public final class AdventurerStarterSkillExecutor implements SkillExecutor {
             @NotNull ParticleDisplayService particleDisplayService,
             @NotNull DamageService damageService
     ) {
+        this(particleDisplayService, damageService, null);
+    }
+
+    public AdventurerStarterSkillExecutor(
+            @NotNull ParticleDisplayService particleDisplayService,
+            @NotNull DamageService damageService,
+            @Nullable ConditionService conditionService
+    ) {
         this.particleDisplayService = particleDisplayService;
-        this.attackExecutor = new WeaponAttackSkillExecutor(particleDisplayService, damageService);
+        this.attackExecutor = new WeaponAttackSkillExecutor(particleDisplayService, damageService, conditionService);
     }
 
     @Override

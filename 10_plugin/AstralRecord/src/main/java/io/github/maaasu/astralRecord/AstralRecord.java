@@ -15,6 +15,13 @@ import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
 import io.github.maaasu.astralRecord.feature.boss.service.BossFieldInstanceService;
 import io.github.maaasu.astralRecord.feature.combat.event.CombatDamageEventHandler;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
+import io.github.maaasu.astralRecord.feature.condition.display.ConditionDisplayService;
+import io.github.maaasu.astralRecord.feature.condition.event.ConditionPlayerEventHandler;
+import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
+import io.github.maaasu.astralRecord.feature.condition.service.ConditionTickService;
+import io.github.maaasu.astralRecord.feature.condition.task.ConditionCleanupTask;
+import io.github.maaasu.astralRecord.feature.condition.task.ConditionDisplayTask;
+import io.github.maaasu.astralRecord.feature.condition.task.ConditionTickTask;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.buff.service.BuffAcquisitionDisplayService;
 import io.github.maaasu.astralRecord.feature.gathering.event.GatheringInteractionEventHandler;
@@ -264,6 +271,11 @@ public final class AstralRecord extends JavaPlugin {
     private SkillBindGui skillBindGui;
     private SkillBindGuiEventHandler skillBindGuiEventHandler;
     private DamageService damageService;
+    private ConditionService conditionService;
+    private ConditionDisplayService conditionDisplayService;
+    private ConditionTickTask conditionTickTask;
+    private ConditionDisplayTask conditionDisplayTask;
+    private ConditionCleanupTask conditionCleanupTask;
     private BundleUseService bundleUseService;
     private BundleUseEffectService bundleUseEffectService;
     private ItemDropAnimationService itemDropAnimationService;
@@ -415,6 +427,18 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (playerDeathService != null) {
             playerDeathService.stop();
+        }
+        if (conditionTickTask != null) {
+            conditionTickTask.stop();
+        }
+        if (conditionDisplayTask != null) {
+            conditionDisplayTask.stop();
+        }
+        if (conditionCleanupTask != null) {
+            conditionCleanupTask.stop();
+        }
+        if (conditionService != null) {
+            conditionService.clearAllRuntimeState();
         }
         if (textDisplayPlacementService != null) {
             textDisplayPlacementService.saveIfDirty();
@@ -646,6 +670,14 @@ public final class AstralRecord extends JavaPlugin {
             particleDisplayService,
             playerDeathService
         );
+        conditionDisplayService = new ConditionDisplayService(particleDisplayService, mobVanillaEffectProtectionService);
+        conditionService = new ConditionService(conditionDisplayService, playerDeathService);
+        var conditionTickService = new ConditionTickService(conditionService, damageService);
+        conditionTickTask = new ConditionTickTask(conditionService, conditionTickService);
+        conditionDisplayTask = new ConditionDisplayTask(conditionService, conditionDisplayService);
+        conditionCleanupTask = new ConditionCleanupTask(conditionService);
+        damageService.setConditionService(conditionService);
+        mobService.setConditionService(conditionService);
 
         // dodge
         dodgeService = new DodgeService(this, statusService, playerHudService, particleDisplayService);
@@ -772,11 +804,12 @@ public final class AstralRecord extends JavaPlugin {
         // skill
         skillService = new SkillService(new SkillRepository(), new SkillRegistry(), this);
         skillBindPresetService = new SkillBindPresetService(new SkillBindPresetRepository());
+        skillService.setConditionService(conditionService);
         skillService.registerExecutor(new FireBoostSkillExecutor(particleDisplayService));
         skillService.registerExecutor(new IronWillSkillExecutor());
         skillService.registerExecutor(new StatusPassiveSkillExecutor());
-        skillService.registerExecutor(new WeaponAttackSkillExecutor(particleDisplayService, damageService));
-        skillService.registerExecutor(new AdventurerStarterSkillExecutor(particleDisplayService, damageService));
+        skillService.registerExecutor(new WeaponAttackSkillExecutor(particleDisplayService, damageService, conditionService));
+        skillService.registerExecutor(new AdventurerStarterSkillExecutor(particleDisplayService, damageService, conditionService));
         skillService.registerBuiltInDefinitions(BuiltInWeaponAttackDefinitions.definitions());
         itemStackFactory.setSkillService(skillService);
         skillOwnershipService = new SkillOwnershipService(playerClassService, inventoryService, itemService, skillTreeService);
@@ -810,7 +843,7 @@ public final class AstralRecord extends JavaPlugin {
         teleporterService.loadAll();
         // world
         worldService.loadAll();
-        mobAiService = new MobAiService(mobService, mobCombatService, skillService, playerDeathService, particleDisplayService);
+        mobAiService = new MobAiService(mobService, mobCombatService, skillService, playerDeathService, particleDisplayService, conditionService);
         mobAiService.start();
         skillTreeService.loadAll();
         worldSpawnParticleTask = new WorldSpawnParticleTask(this, worldService, particleDisplayService);
@@ -1034,6 +1067,10 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
+            new ConditionPlayerEventHandler(conditionService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
             new CombatDamageEventHandler(damageService, skillActionRingService),
             getServer().getPluginManager()
         );
@@ -1070,7 +1107,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new ItemWeaponAttackEventHandler(itemWeaponAttackService, skillActionRingService, skillTreeService, mobService),
+            new ItemWeaponAttackEventHandler(itemWeaponAttackService, skillActionRingService, skillTreeService, mobService, conditionService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
@@ -1093,6 +1130,9 @@ public final class AstralRecord extends JavaPlugin {
         displayTextService.start(this);
         overheadDisplayService.start(this);
         playerDeathService.start();
+        conditionTickTask.start(this);
+        conditionDisplayTask.start(this);
+        conditionCleanupTask.start(this);
         worldSpawnParticleTask.start();
         mobSpawnerService.start();
         gatheringService.start();

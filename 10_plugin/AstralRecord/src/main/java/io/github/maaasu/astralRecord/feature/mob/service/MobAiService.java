@@ -1,5 +1,7 @@
 package io.github.maaasu.astralRecord.feature.mob.service;
 
+import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
+import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.mob.model.CombatStyle;
 import io.github.maaasu.astralRecord.feature.mob.model.IdleBehavior;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
@@ -82,6 +84,7 @@ public class MobAiService {
     private final SkillService skillService;
     private final PlayerDeathService playerDeathService;
     private final ParticleDisplayService particleDisplayService;
+    private final ConditionService conditionService;
 
     private BukkitTask task;
     private long internalTick;
@@ -122,11 +125,22 @@ public class MobAiService {
             @NotNull SkillService skillService,
             @Nullable PlayerDeathService playerDeathService,
             @Nullable ParticleDisplayService particleDisplayService) {
+        this(mobService, mobCombatService, skillService, playerDeathService, particleDisplayService, null);
+    }
+
+    public MobAiService(
+            @NotNull MobService mobService,
+            @NotNull MobCombatService mobCombatService,
+            @NotNull SkillService skillService,
+            @Nullable PlayerDeathService playerDeathService,
+            @Nullable ParticleDisplayService particleDisplayService,
+            @Nullable ConditionService conditionService) {
         this.mobService = mobService;
         this.mobCombatService = mobCombatService;
         this.skillService = skillService;
         this.playerDeathService = playerDeathService;
         this.particleDisplayService = particleDisplayService;
+        this.conditionService = conditionService;
     }
 
     /**
@@ -160,6 +174,12 @@ public class MobAiService {
                 try {
                     if (!mobService.syncLocation(instance)) {
                         mobService.destroy(instance.instanceId());
+                        continue;
+                    }
+                    if (conditionService != null
+                            && (!conditionService.canMove(AstEntity.mob(instance))
+                            || !conditionService.canRunAi(AstEntity.mob(instance)))) {
+                        mobService.stopPathfinding(instance);
                         continue;
                     }
                     spawnBlockNpcParticles(instance);
@@ -370,6 +390,12 @@ public class MobAiService {
     }
 
     private void castCombatSkill(@NotNull MobInstance instance, @NotNull Player target) {
+        if (conditionService != null) {
+            AstEntity caster = AstEntity.mob(instance);
+            if (!conditionService.canAttack(caster) || !conditionService.canCastSkill(caster)) {
+                return;
+            }
+        }
         MobCombatConfig combat = instance.template().combat();
         if (combat == null) {
             return;

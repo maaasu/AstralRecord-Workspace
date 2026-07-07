@@ -2,6 +2,8 @@ package io.github.maaasu.astralRecord.feature.item.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
+import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemWeaponAttackService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -23,6 +25,7 @@ public final class ItemWeaponAttackEventHandler extends AbstractEventHandler {
     private final SkillActionRingService actionRingService;
     private final SkillTreeService skillTreeService;
     private final MobService mobService;
+    private final ConditionService conditionService;
 
     public ItemWeaponAttackEventHandler(
         @NotNull ItemWeaponAttackService itemWeaponAttackService,
@@ -30,10 +33,21 @@ public final class ItemWeaponAttackEventHandler extends AbstractEventHandler {
         @NotNull SkillTreeService skillTreeService,
         @NotNull MobService mobService
     ) {
+        this(itemWeaponAttackService, actionRingService, skillTreeService, mobService, null);
+    }
+
+    public ItemWeaponAttackEventHandler(
+        @NotNull ItemWeaponAttackService itemWeaponAttackService,
+        @NotNull SkillActionRingService actionRingService,
+        @NotNull SkillTreeService skillTreeService,
+        @NotNull MobService mobService,
+        ConditionService conditionService
+    ) {
         this.itemWeaponAttackService = itemWeaponAttackService;
         this.actionRingService = actionRingService;
         this.skillTreeService = skillTreeService;
         this.mobService = mobService;
+        this.conditionService = conditionService;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -70,6 +84,10 @@ public final class ItemWeaponAttackEventHandler extends AbstractEventHandler {
 
             var astPlayer = AstPlayerCache.get(event.getPlayer());
             if (astPlayer == null || astPlayer.getAccount().getMode() != AccountMode.PLAYER) {
+                return;
+            }
+            if (conditionService != null && !conditionService.canAttack(AstEntity.player(astPlayer))) {
+                event.setCancelled(true);
                 return;
             }
 

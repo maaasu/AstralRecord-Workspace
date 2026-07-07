@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
+import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
@@ -55,6 +57,7 @@ public class SkillService {
     private final SkillRegistry registry;
     private final AstralRecord plugin;
     private SkillOwnershipService ownershipService;
+    private ConditionService conditionService;
     private final Map<String, SkillDefinition> builtInDefinitions = new ConcurrentHashMap<>();
 
     /** 発動者ごと・スキルごとの cooldown 終了予定時刻（{@link System#currentTimeMillis()} 基準）。 */
@@ -98,6 +101,15 @@ public class SkillService {
      */
     public void setOwnershipService(@NotNull SkillOwnershipService ownershipService) {
         this.ownershipService = ownershipService;
+    }
+
+    /**
+     * 状態異常サービスを設定します。
+     *
+     * @param conditionService 状態異常サービス
+     */
+    public void setConditionService(@NotNull ConditionService conditionService) {
+        this.conditionService = conditionService;
     }
 
     /**
@@ -232,6 +244,10 @@ public class SkillService {
         if (skill.getKind() == SkillKind.PASSIVE) {
             return SkillCastResult.failure(PlayerMsgId.P_5805);
         }
+        AstEntity conditionTarget = toAstEntity(caster);
+        if (conditionService != null && conditionTarget != null && !conditionService.canCastSkill(conditionTarget)) {
+            return SkillCastResult.failure(PlayerMsgId.P_5805);
+        }
         if (caster.level() < skill.getRequiredLevel()) {
             return SkillCastResult.failure(PlayerMsgId.P_5800);
         }
@@ -244,6 +260,16 @@ public class SkillService {
             return SkillCastResult.failure(PlayerMsgId.P_5802);
         }
         return SkillCastResult.success(requiredCost, skill.getCooldownTicks());
+    }
+
+    private @Nullable AstEntity toAstEntity(@NotNull SkillCaster caster) {
+        if (caster instanceof PlayerSkillCaster playerCaster) {
+            return AstEntity.player(playerCaster.player());
+        }
+        if (caster instanceof MobSkillCaster mobCaster) {
+            return AstEntity.mob(mobCaster.mob());
+        }
+        return null;
     }
 
     /**

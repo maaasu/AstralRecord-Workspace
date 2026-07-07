@@ -24,8 +24,20 @@ public record DamageContext(
         double baseDamage,
         @NotNull AttackType attackType,
         @NotNull DamageType damageType,
+        @NotNull DamageElement damageElement,
         @NotNull DamageScaling scaling
 ) {
+
+    public DamageContext(
+            @Nullable AstEntity attacker,
+            @NotNull AstEntity victim,
+            double baseDamage,
+            @NotNull AttackType attackType,
+            @NotNull DamageType damageType,
+            @NotNull DamageScaling scaling
+    ) {
+        this(attacker, victim, baseDamage, attackType, damageType, DamageElement.NEUTRAL, scaling);
+    }
 
     /**
      * {@link EntityDamageByEntityEvent} からコンテキストを構築します。
@@ -43,6 +55,7 @@ public record DamageContext(
                 event.getDamage(),
                 AttackType.MELEE,
                 DamageType.PHYSICAL,
+                DamageElement.NEUTRAL,
                 DamageScaling.ATTACKER_STATUS
         );
     }
