@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.display.OverheadDisplayService;
+import io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.GameRules;
@@ -232,7 +233,7 @@ public class WorldService {
             detachTextDisplayPassengers(player);
             // 異世界移動前に対象チャンクを明示ロードして teleport() の失敗を減らす
             spawnLocation.getChunk().load();
-            return player.teleport(spawnLocation);
+            return PlayerTeleportService.teleport(player, spawnLocation);
         } finally {
             resumeOverheadDisplay(overheadDisplayService, player);
         }
@@ -306,7 +307,7 @@ public class WorldService {
                 }
 
                 detachTextDisplayPassengers(player);
-                player.teleportAsync(targetLocation).whenComplete((success, teleportThrowable) ->
+                PlayerTeleportService.teleportAsync(player, targetLocation).whenComplete((success, teleportThrowable) ->
                         Bukkit.getScheduler().runTask(plugin, () -> {
                             boolean teleported = teleportThrowable == null && Boolean.TRUE.equals(success);
                             if (teleported && onSuccess != null) {

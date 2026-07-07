@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.shared.display.DisplayAnchor;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
+import io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -206,9 +207,9 @@ public final class PlayerDeathService {
 
     private void attachOnlinePlayer(@NotNull Player player, @NotNull DeathState state) {
         if (player.getWorld() != state.deathLocation().getWorld()) {
-            player.teleport(state.deathLocation());
+            PlayerTeleportService.teleport(player, state.deathLocation());
         } else if (player.getLocation().distanceSquared(state.deathLocation()) > 0.01D) {
-            player.teleport(state.deathLocation());
+            PlayerTeleportService.teleport(player, state.deathLocation());
         }
         player.setInvulnerable(true);
         hideFromOtherPlayers(player);

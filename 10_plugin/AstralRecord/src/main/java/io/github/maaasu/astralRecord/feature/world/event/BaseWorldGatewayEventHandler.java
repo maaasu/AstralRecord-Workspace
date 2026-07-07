@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.world.event;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.world.service.OverworldTeleportService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -109,7 +110,7 @@ public final class BaseWorldGatewayEventHandler extends AbstractEventHandler {
         awaitingGatewayExit.add(playerId);
 
         Location spawnLocation = player.getWorld().getSpawnLocation();
-        boolean teleported = player.teleport(spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN);
+        boolean teleported = PlayerTeleportService.teleport(player, spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN);
         if (!teleported && isGatewayBlock(player.getLocation())) {
             return;
         }

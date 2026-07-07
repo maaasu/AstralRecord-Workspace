@@ -101,3 +101,10 @@ For direct requests such as `表示アイテムを apple から iron_ingot に�
 5. Recurring particle tasks must have bounded cadence, point count, and viewer scans. Avoid per-tick or near-per-tick always-on effects unless there is an explicit profiling-backed reason.
 6. When a recurring effect renders multiple points for the same center, batch nearby-viewer resolution through ParticleDisplayService instead of calling spawnForNearbyViewers once per point.
 7. Skip recurring particle work for worlds or centers that have no possible viewers, and keep packet count proportional to visible players rather than loaded worlds.
+
+## Player Teleport Rules
+
+1. Player teleport behavior must preserve the player's yaw / pitch from immediately before teleporting.
+2. New player teleport features must use `io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService` or an existing service method that delegates to it, such as `WorldService#teleportPlayerAsync(...)`.
+3. Do not call `Player#teleport(...)` or `Player#teleportAsync(...)` directly for plugin-managed player movement unless the feature explicitly requires target-defined yaw / pitch and documents that exception.
+4. Entity, display, packet, or visual-only movement is outside this rule and may keep using its existing movement API.
