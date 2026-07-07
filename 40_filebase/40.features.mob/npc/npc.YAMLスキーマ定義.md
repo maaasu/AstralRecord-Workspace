@@ -9,7 +9,7 @@ NPC は戦闘を行わないため、`ai.targeting`, `ai.combat`, `drops` は定
 
 `entityType` には Bukkit EntityType に加えて Bukkit block Material（例: `BARREL`, `ANVIL`）を指定できます。
 block Material の場合は `Interaction` entity を当たり判定に、`BlockDisplay` を見た目に使う構成で表示し、通常 NPC と同じ display text、ambient particle、左クリック/右クリック interaction を扱います。
-配置座標は block NPC の中心として扱います。block Material NPC の pitch は `0` として扱います。`CHEST` / `TRAPPED_CHEST` / `ENDER_CHEST` は BlockDisplay で描画されないため、表示用 block Material は `BARREL` に正規化されます。
+配置座標は block NPC の中心として扱います。block Material NPC の pitch は `0` として扱います。`CHEST` / `TRAPPED_CHEST` / `ENDER_CHEST` は BlockDisplay で描画されないため、表示用には `ItemDisplay` を使い、指定されたチェスト系 Material の見た目を維持します。
 
 補足:
 

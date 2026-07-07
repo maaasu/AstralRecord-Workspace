@@ -18,6 +18,7 @@ import org.bukkit.entity.Breedable;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Interaction;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Mob;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
@@ -137,9 +138,9 @@ public class MobEntityController {
         }
 
         Location blockLocation = blockDisplayLocation(interactionLocation);
-        BlockDisplay display;
+        Entity display;
         try {
-            display = world.spawn(blockLocation, BlockDisplay.class, spawned -> configureBlockDisplay(instance, spawned));
+            display = spawnBlockDisplayEntity(world, instance, blockLocation);
         } catch (RuntimeException ex) {
             interaction.remove();
             return null;
@@ -163,6 +164,18 @@ public class MobEntityController {
         }
     }
 
+    private @NotNull Entity spawnBlockDisplayEntity(
+            @NotNull World world,
+            @NotNull MobInstance instance,
+            @NotNull Location location
+    ) {
+        Material material = instance.template().blockMaterial();
+        if (material != null && usesItemDisplayBlockMaterial(material)) {
+            return world.spawn(location, ItemDisplay.class, spawned -> configureItemDisplay(instance, spawned));
+        }
+        return world.spawn(location, BlockDisplay.class, spawned -> configureBlockDisplay(instance, spawned));
+    }
+
     private void configureBlockInteraction(@NotNull MobInstance instance, @NotNull Interaction interaction) {
         MobTemplate template = instance.template();
         interaction.setPersistent(false);
@@ -180,6 +193,7 @@ public class MobEntityController {
 
     private void configureBlockDisplay(@NotNull MobInstance instance, @NotNull BlockDisplay display) {
         MobTemplate template = instance.template();
+        Material material = java.util.Objects.requireNonNull(template.blockMaterial(), "blockMaterial");
         display.setPersistent(false);
         display.setGravity(false);
         display.setInvulnerable(template.damageImmune());
@@ -192,7 +206,29 @@ public class MobEntityController {
         display.setDisplayHeight(1.0F);
         display.setTeleportDuration(1);
         display.setBrightness(new Display.Brightness(15, 15));
-        display.setBlock(displayBlockMaterial(template.blockMaterial()).createBlockData());
+        display.setBlock(material.createBlockData());
+        display.setTransformation(blockDisplayTransformation());
+        display.getPersistentDataContainer().set(instanceIdKey, PersistentDataType.STRING, instance.instanceId().toString());
+        display.getPersistentDataContainer().set(templateIdKey, PersistentDataType.STRING, template.id());
+    }
+
+    private void configureItemDisplay(@NotNull MobInstance instance, @NotNull ItemDisplay display) {
+        MobTemplate template = instance.template();
+        Material material = java.util.Objects.requireNonNull(template.blockMaterial(), "blockMaterial");
+        display.setPersistent(false);
+        display.setGravity(false);
+        display.setInvulnerable(template.damageImmune());
+        display.setSilent(true);
+        display.customName(null);
+        display.setCustomNameVisible(false);
+        display.setBillboard(Display.Billboard.FIXED);
+        display.setViewRange(BLOCK_DISPLAY_VIEW_RANGE);
+        display.setDisplayWidth(1.0F);
+        display.setDisplayHeight(1.0F);
+        display.setTeleportDuration(1);
+        display.setBrightness(new Display.Brightness(15, 15));
+        display.setItemStack(new ItemStack(material));
+        display.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.FIXED);
         display.setTransformation(blockDisplayTransformation());
         display.getPersistentDataContainer().set(instanceIdKey, PersistentDataType.STRING, instance.instanceId().toString());
         display.getPersistentDataContainer().set(templateIdKey, PersistentDataType.STRING, template.id());
@@ -463,11 +499,10 @@ public class MobEntityController {
         return interactionLocation;
     }
 
-    @NotNull
-    Material displayBlockMaterial(@NotNull Material material) {
+    static boolean usesItemDisplayBlockMaterial(@NotNull Material material) {
         return switch (material) {
-            case CHEST, TRAPPED_CHEST, ENDER_CHEST -> Material.BARREL;
-            default -> material;
+            case CHEST, TRAPPED_CHEST, ENDER_CHEST -> true;
+            default -> false;
         };
     }
 
