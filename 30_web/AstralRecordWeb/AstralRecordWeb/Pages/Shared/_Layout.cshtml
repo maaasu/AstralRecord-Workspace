@@ -41,6 +41,14 @@
                     </li>
                     @if (User.Identity?.IsAuthenticated == true)
                     {
+                        var hasAdminPermission = int.TryParse(User.FindFirst("permission")?.Value, out var permission)
+                            && permission >= 99;
+                        if (hasAdminPermission)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link ar-nav-link" asp-area="" asp-page="/Admin/Items">アイテム</a>
+                            </li>
+                        }
                         <li class="nav-item">
                             <a class="nav-link ar-nav-link" asp-area="" asp-page="/MyPage">マイページ</a>
                         </li>

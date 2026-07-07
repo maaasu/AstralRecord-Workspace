@@ -1,0 +1,190 @@
+@page
+@model AstralRecordWeb.Pages.Admin.ItemsModel
+@{
+    ViewData["Title"] = "アイテムマスタ";
+}
+
+<section class="ar-page-hero ar-admin-hero" style="background-image: url('/images/bg-town.png');">
+    <div class="ar-section-overlay"></div>
+    <div class="container position-relative">
+        <p class="ar-kicker">Master Data</p>
+        <h1 class="ar-page-hero-title">アイテムマスタ</h1>
+        <p class="ar-page-hero-sub">filebase で定義されたアイテム情報を確認します。</p>
+    </div>
+</section>
+
+<section class="ar-section ar-section-dark ar-items-page">
+    <div class="container">
+        <form method="get" class="ar-item-filter" role="search">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-lg-4">
+                    <label asp-for="Query" class="form-label">キーワード</label>
+                    <input asp-for="Query" class="form-control ar-input" placeholder="ID / 名前 / lore / material" />
+                </div>
+                <div class="col-6 col-lg-2">
+                    <label asp-for="Category" class="form-label">カテゴリ</label>
+                    <select asp-for="Category" class="form-select ar-input">
+                        <option value="">すべて</option>
+                        @foreach (var category in Model.Categories)
+                        {
+                            <option value="@category">@category</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <label asp-for="Rarity" class="form-label">レアリティ</label>
+                    <select asp-for="Rarity" class="form-select ar-input">
+                        <option value="">すべて</option>
+                        @foreach (var rarity in Model.Rarities)
+                        {
+                            <option value="@rarity">@rarity</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <label asp-for="Slot" class="form-label">スロット</label>
+                    <select asp-for="Slot" class="form-select ar-input">
+                        <option value="">すべて</option>
+                        @foreach (var slot in Model.Slots)
+                        {
+                            <option value="@slot">@slot</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <button type="submit" class="btn ar-btn-primary w-100">検索</button>
+                </div>
+                <div class="col-12">
+                    <div class="ar-filter-checks">
+                        <label class="form-check">
+                            <input asp-for="TradableOnly" class="form-check-input" />
+                            <span class="form-check-label">取引可能のみ</span>
+                        </label>
+                        <label class="form-check">
+                            <input asp-for="SellableOnly" class="form-check-input" />
+                            <span class="form-check-label">売却可能のみ</span>
+                        </label>
+                        <a asp-page="/Admin/Items" class="ar-link ms-auto">条件をクリア</a>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div class="ar-alert mt-4">@Model.ErrorMessage</div>
+        }
+        else
+        {
+            <div class="ar-item-summary">
+                <span>@Model.Items.Count 件</span>
+                <span>管理者 permission 99 以上のみ表示</span>
+            </div>
+
+            <div class="ar-item-grid">
+                @foreach (var item in Model.Items)
+                {
+                    <article class="ar-item-card @Model.RarityClass(item.Rarity)">
+                        <header class="ar-item-head">
+                            <div class="ar-item-icon" title="@item.Icon">
+                                <img src="@Model.IconUrl(item)" alt="@item.Icon" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';" />
+                                <span>@item.Icon.Replace("_", " ")</span>
+                            </div>
+                            <div class="ar-item-title-block">
+                                <h2 class="ar-item-name">@Html.Raw(Model.FormatMinecraftText(item.Name))</h2>
+                                <p class="ar-item-id">@item.Id</p>
+                            </div>
+                        </header>
+
+                        <div class="ar-item-tags">
+                            <span class="ar-rarity">@item.Rarity</span>
+                            <span>@item.Category</span>
+                            <span>@item.Icon</span>
+                            @if (item.Equipment is not null)
+                            {
+                                <span>@item.Equipment.Slot</span>
+                            }
+                        </div>
+
+                        @if (item.Lore.Count > 0)
+                        {
+                            <ul class="ar-item-lore">
+                                @foreach (var line in item.Lore)
+                                {
+                                    <li>@Html.Raw(Model.FormatMinecraftText(line))</li>
+                                }
+                            </ul>
+                        }
+
+                        <dl class="ar-item-data">
+                            <dt>Max Stack</dt>
+                            <dd>@item.MaxStack</dd>
+                            <dt>Sale</dt>
+                            <dd>@(item.UnSellable ? "不可" : item.SaleValue)</dd>
+                            <dt>Trade</dt>
+                            <dd>@(item.UnTradeable ? "不可" : "可")</dd>
+                            @if (item.CustomModelData is not null)
+                            {
+                                <dt>Model</dt>
+                                <dd>@item.CustomModelData</dd>
+                            }
+                        </dl>
+
+                        @if (item.Equipment?.Stats.Count > 0)
+                        {
+                            <div class="ar-item-block">
+                                <h3>Stats</h3>
+                                <ul>
+                                    @foreach (var stat in item.Equipment.Stats)
+                                    {
+                                        <li><span>@stat.Status</span><strong>@ItemsModel.StatValueText(stat.Value)</strong><em>@stat.Type</em></li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+
+                        @if (item.Equipment?.Durability is not null || item.Equipment?.Enhance is not null || item.Equipment?.Enchant is not null || item.Equipment?.Rune is not null)
+                        {
+                            <div class="ar-item-extra">
+                                @if (item.Equipment.Durability is not null)
+                                {
+                                    <span>耐久 @item.Equipment.Durability.Max</span>
+                                }
+                                @if (item.Equipment.Enhance is not null)
+                                {
+                                    <span>強化 +@item.Equipment.Enhance.MaxLevel</span>
+                                }
+                                @if (item.Equipment.Enchant is not null)
+                                {
+                                    <span>Enchant @item.Equipment.Enchant.MaxSlots</span>
+                                }
+                                @if (item.Equipment.Rune is not null)
+                                {
+                                    <span>Rune @item.Equipment.Rune.MaxSlots</span>
+                                }
+                            </div>
+                        }
+
+                        @if (item.Consumable?.Effects.Count > 0)
+                        {
+                            <div class="ar-item-block">
+                                <h3>Effects</h3>
+                                <ul>
+                                    @foreach (var effect in item.Consumable.Effects)
+                                    {
+                                        <li><span>@effect.Type</span><strong>@(effect.IsPercent ? $"{effect.Value:P0}" : effect.Value)</strong><em>@effect.Status</em></li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                    </article>
+                }
+            </div>
+
+            @if (Model.Items.Count == 0)
+            {
+                <div class="ar-empty">条件に一致するアイテムはありません。</div>
+            }
+        }
+    </div>
+</section>
