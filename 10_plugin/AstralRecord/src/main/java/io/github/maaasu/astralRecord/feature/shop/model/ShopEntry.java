@@ -10,6 +10,7 @@ public record ShopEntry(
     @NotNull String itemId,
     @NotNull String category,
     int amount,
+    int page,
     @Nullable Integer slot,
     @Nullable Integer row,
     @Nullable Integer column,

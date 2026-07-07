@@ -15,14 +15,3 @@ items:
           ref: item:magic_crystal
         category: material
         amount: 1
-
-  - id: skill_lab_blade_recipe
-    itemId:
-      ref: item:skill_lab_blade
-    category: equipment
-    amount: 1
-    row: 2
-    column: 3
-    priceGold: 250
-    recipeId:
-      ref: recipe:starter_shop_skill_lab_blade

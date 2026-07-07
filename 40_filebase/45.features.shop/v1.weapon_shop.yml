@@ -1,0 +1,110 @@
+schemaVersion: 1
+id: weapon_shop
+type: SHOP
+name: "&6Weapon Shop"
+items:
+  - id: starter_sword
+    itemId:
+      ref: item:starter_sword
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 0
+    priceGold: 0
+
+  - id: starter_bow
+    itemId:
+      ref: item:starter_bow
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 1
+    priceGold: 0
+
+  - id: starter_staff
+    itemId:
+      ref: item:starter_staff
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 2
+    priceGold: 0
+
+  - id: rusty_sword
+    itemId:
+      ref: item:rusty_sword
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 3
+    priceGold: 20
+
+  - id: bronze_sword
+    itemId:
+      ref: item:bronze_sword
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 4
+    priceGold: 90
+
+  - id: windwait_sword
+    itemId:
+      ref: item:windwait_sword
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 5
+    priceGold: 110
+
+  - id: boneguard_shortblade
+    itemId:
+      ref: item:boneguard_shortblade
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 6
+    priceGold: 140
+    requiredItems:
+      - itemId:
+          ref: item:bone_fragment
+        category: material
+        amount: 2
+
+  - id: apprentice_staff
+    itemId:
+      ref: item:apprentice_staff
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 7
+    priceGold: 180
+
+  - id: hunters_bow
+    itemId:
+      ref: item:hunters_bow
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 8
+    priceGold: 180
+
+  - id: skill_lab_blade
+    itemId:
+      ref: item:skill_lab_blade
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 9
+    priceGold: 250
+    recipeId:
+      ref: recipe:starter_shop_skill_lab_blade
+
+  - id: status_lab_blade
+    itemId:
+      ref: item:status_lab_blade
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 10
+    priceGold: 360

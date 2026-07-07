@@ -60,8 +60,8 @@ class HotbarShortcutGuiIntegrationMockBukkitTest extends MockBukkitTestBase {
         PartyGui partyGui = new PartyGui(partyService);
         PlayerListGui playerListGui = new PlayerListGui();
 
-        Inventory shopList = new ShopGui.ListHolder("test_shop").getInventory();
-        Inventory shopConfirm = new ShopGui.ConfirmHolder("test_shop", "entry", 1).getInventory();
+        Inventory shopList = new ShopGui.ListHolder("test_shop", 0).getInventory();
+        Inventory shopConfirm = new ShopGui.ConfirmHolder("test_shop", "entry", 1, 0).getInventory();
         partyGui.open(player);
         Inventory partyInventory = player.getOpenInventory().getTopInventory();
         playerListGui.open(
@@ -85,7 +85,7 @@ class HotbarShortcutGuiIntegrationMockBukkitTest extends MockBukkitTestBase {
         PlayerMock player = playerWithAstPlayer();
         InventoryService inventoryService = inventoryServiceForHotbarMode(AstPlayerCache.get(player));
         ShopGui shopGui = mock(ShopGui.class);
-        Inventory inventory = Bukkit.createInventory(new ShopGui.ListHolder("test_shop"), ShopGui.LIST_SIZE);
+        Inventory inventory = Bukkit.createInventory(new ShopGui.ListHolder("test_shop", 0), ShopGui.LIST_SIZE);
         player.openInventory(inventory);
         when(shopGui.isListInventory(inventory)).thenReturn(true);
         ShopGuiEventHandler handler = new ShopGuiEventHandler(shopGui, mock(ShopService.class), inventoryService);

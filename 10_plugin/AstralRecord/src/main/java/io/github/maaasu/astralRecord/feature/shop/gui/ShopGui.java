@@ -20,7 +20,6 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -28,6 +27,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public final class ShopGui {
@@ -37,6 +37,8 @@ public final class ShopGui {
     public static final int LIST_SIZE = 54;
     public static final int CONFIRM_SIZE = 27;
     public static final int MAX_LOGICAL_SLOT = 27;
+    public static final int PREVIOUS_PAGE_SLOT = 45;
+    public static final int NEXT_PAGE_SLOT = 53;
     public static final int ITEM_PREVIEW_SLOT = 13;
     public static final int QUANTITY_MINUS_10_SLOT = 9;
     public static final int QUANTITY_MINUS_1_SLOT = 10;
@@ -59,27 +61,58 @@ public final class ShopGui {
         this.entryIdKey = new NamespacedKey(plugin, "shop_entry_id");
     }
 
+    /**
+     * ショップの商品一覧 GUI の先頭ページを開きます。
+     *
+     * @param player 表示対象プレイヤー
+     * @param shop 表示するショップ定義
+     */
     public void openList(@NotNull Player player, @NotNull ShopDefinition shop) {
+        openList(player, shop, 0);
+    }
+
+    /**
+     * ショップの商品一覧 GUI の指定ページを開きます。
+     *
+     * @param player 表示対象プレイヤー
+     * @param shop 表示するショップ定義
+     * @param pageIndex 表示ページ。0-based で、範囲外の場合は有効範囲に丸める
+     */
+    public void openList(@NotNull Player player, @NotNull ShopDefinition shop, int pageIndex) {
+        int normalizedPage = normalizePage(pageIndex, shop);
         Inventory inventory = Bukkit.createInventory(
-            new ListHolder(shop.id()),
+            new ListHolder(shop.id(), normalizedPage),
             LIST_SIZE,
-            LEGACY_SERIALIZER.deserialize(ColorCodeUtil.toLegacyText(shop.name(), shop.id()))
+            LEGACY_SERIALIZER.deserialize(ColorCodeUtil.toLegacyText(shop.name(), shop.id()) + pageSuffix(shop, normalizedPage))
         );
         fillFrame(inventory);
-        for (ShopEntry entry : shop.entries()) {
-            int guiSlot = toGuiSlot(entry);
-            if (guiSlot < 0) {
-                continue;
-            }
-            ItemModel model = shopService.resolveItem(entry);
-            if (model == null) {
-                continue;
-            }
-            inventory.setItem(guiSlot, createShopItem(model, entry));
-        }
+        shop.entries().stream()
+            .filter(entry -> toPageIndex(entry) == normalizedPage)
+            .sorted(Comparator.comparingInt(this::entrySortSlot))
+            .forEach(entry -> {
+                int guiSlot = toGuiSlot(entry);
+                if (guiSlot < 0) {
+                    return;
+                }
+                ItemModel model = shopService.resolveItem(entry);
+                if (model == null) {
+                    return;
+                }
+                inventory.setItem(guiSlot, createShopItem(model, entry));
+            });
+        renderPagination(inventory, shop, normalizedPage);
         player.openInventory(inventory);
     }
 
+    /**
+     * ショップ購入確認 GUI を先頭ページへ戻る前提で開きます。
+     *
+     * @param player 表示対象プレイヤー
+     * @param shop 表示元ショップ定義
+     * @param entry 購入対象の商品定義
+     * @param quantity 購入数
+     * @param preview 購入条件のプレビュー結果
+     */
     public void openConfirm(
         @NotNull Player player,
         @NotNull ShopDefinition shop,
@@ -87,8 +120,29 @@ public final class ShopGui {
         int quantity,
         @NotNull ShopPurchasePreview preview
     ) {
+        openConfirm(player, shop, entry, quantity, preview, 0);
+    }
+
+    /**
+     * 一覧へ戻るページを保持してショップ購入確認 GUI を開きます。
+     *
+     * @param player 表示対象プレイヤー
+     * @param shop 表示元ショップ定義
+     * @param entry 購入対象の商品定義
+     * @param quantity 購入数
+     * @param preview 購入条件のプレビュー結果
+     * @param returnPageIndex 戻る操作で開き直す商品一覧ページ。0-based
+     */
+    public void openConfirm(
+        @NotNull Player player,
+        @NotNull ShopDefinition shop,
+        @NotNull ShopEntry entry,
+        int quantity,
+        @NotNull ShopPurchasePreview preview,
+        int returnPageIndex
+    ) {
         Inventory inventory = Bukkit.createInventory(
-            new ConfirmHolder(shop.id(), entry.id(), preview.quantity()),
+            new ConfirmHolder(shop.id(), entry.id(), preview.quantity(), normalizePage(returnPageIndex, shop)),
             CONFIRM_SIZE,
             LEGACY_SERIALIZER.deserialize(ColorCodeUtil.toLegacyText(shop.name(), shop.id())
                 + " " + ColorCodeUtil.GRAY + "/ 購入確認")
@@ -156,6 +210,25 @@ public final class ShopGui {
             return holder.quantity();
         }
         return 1;
+    }
+
+    /**
+     * 商品一覧または購入確認 GUI から保持中の商品一覧ページを取得します。
+     *
+     * @param inventory 取得対象 inventory
+     * @return 商品一覧ページ。対象外または未保持の場合は `0`
+     */
+    public int getPageIndex(@Nullable Inventory inventory) {
+        if (inventory == null) {
+            return 0;
+        }
+        if (inventory.getHolder() instanceof ListHolder holder) {
+            return holder.pageIndex();
+        }
+        if (inventory.getHolder() instanceof ConfirmHolder holder) {
+            return holder.returnPageIndex();
+        }
+        return 0;
     }
 
     public @Nullable String getEntryId(@Nullable ItemStack itemStack) {
@@ -239,6 +312,84 @@ public final class ShopGui {
         return (row + 1) * 9 + column + 1;
     }
 
+    /**
+     * 指定ページの前ページが存在するかを返します。
+     *
+     * @param pageIndex 現在の 0-based ページ
+     * @return 前ページが存在する場合は true
+     */
+    public boolean hasPreviousPage(int pageIndex) {
+        return pageIndex > 0;
+    }
+
+    /**
+     * 指定ショップで現在ページの次ページが存在するかを返します。
+     *
+     * @param shop 判定対象ショップ
+     * @param pageIndex 現在の 0-based ページ
+     * @return 次ページが存在する場合は true
+     */
+    public boolean hasNextPage(@NotNull ShopDefinition shop, int pageIndex) {
+        return pageIndex + 1 < totalPages(shop);
+    }
+
+    /**
+     * 指定ページをショップの有効ページ範囲へ丸めます。
+     *
+     * @param pageIndex 補正前の 0-based ページ
+     * @param shop 判定対象ショップ
+     * @return 有効範囲に丸めた 0-based ページ
+     */
+    public int normalizePage(int pageIndex, @NotNull ShopDefinition shop) {
+        return Math.max(0, Math.min(pageIndex, totalPages(shop) - 1));
+    }
+
+    private int totalPages(@NotNull ShopDefinition shop) {
+        return Math.max(1, shop.entries().stream()
+            .mapToInt(ShopGui::toPageIndex)
+            .max()
+            .orElse(0) + 1);
+    }
+
+    private static int toPageIndex(@NotNull ShopEntry entry) {
+        return Math.max(0, entry.page() - 1);
+    }
+
+    private int entrySortSlot(@NotNull ShopEntry entry) {
+        int guiSlot = toGuiSlot(entry);
+        return guiSlot < 0 ? Integer.MAX_VALUE : guiSlot;
+    }
+
+    private @NotNull String pageSuffix(@NotNull ShopDefinition shop, int pageIndex) {
+        int totalPages = totalPages(shop);
+        if (totalPages <= 1) {
+            return "";
+        }
+        return " " + ColorCodeUtil.GRAY + "(" + (pageIndex + 1) + "/" + totalPages + ")";
+    }
+
+    private void renderPagination(@NotNull Inventory inventory, @NotNull ShopDefinition shop, int pageIndex) {
+        int totalPages = totalPages(shop);
+        if (hasPreviousPage(pageIndex)) {
+            inventory.setItem(PREVIOUS_PAGE_SLOT, actionItem(
+                Material.MAP,
+                Component.text("前のページ", NamedTextColor.WHITE, TextDecoration.BOLD)
+                    .decoration(TextDecoration.ITALIC, false),
+                List.of(Component.text(pageIndex + " / " + totalPages, NamedTextColor.GRAY)
+                    .decoration(TextDecoration.ITALIC, false))
+            ));
+        }
+        if (hasNextPage(shop, pageIndex)) {
+            inventory.setItem(NEXT_PAGE_SLOT, actionItem(
+                Material.MAP,
+                Component.text("次のページ", NamedTextColor.WHITE, TextDecoration.BOLD)
+                    .decoration(TextDecoration.ITALIC, false),
+                List.of(Component.text((pageIndex + 2) + " / " + totalPages, NamedTextColor.GRAY)
+                    .decoration(TextDecoration.ITALIC, false))
+            ));
+        }
+    }
+
     private void fillFrame(@NotNull Inventory inventory) {
         fill(inventory, Material.BLACK_STAINED_GLASS_PANE);
         for (int logical = 0; logical <= MAX_LOGICAL_SLOT; logical++) {
@@ -304,14 +455,19 @@ public final class ShopGui {
         }
     }
 
-    public record ListHolder(@NotNull String shopId) implements HotbarShortcutGuiHolder {
+    public record ListHolder(@NotNull String shopId, int pageIndex) implements HotbarShortcutGuiHolder {
         @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, LIST_SIZE);
         }
     }
 
-    public record ConfirmHolder(@NotNull String shopId, @NotNull String entryId, int quantity) implements HotbarShortcutGuiHolder {
+    public record ConfirmHolder(
+        @NotNull String shopId,
+        @NotNull String entryId,
+        int quantity,
+        int returnPageIndex
+    ) implements HotbarShortcutGuiHolder {
         @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, CONFIRM_SIZE);

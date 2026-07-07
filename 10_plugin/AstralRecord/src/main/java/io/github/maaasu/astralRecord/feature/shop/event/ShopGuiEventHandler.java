@@ -94,20 +94,41 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
             return;
         }
         String shopId = shopGui.getShopId(event.getView().getTopInventory());
-        String entryId = shopGui.getEntryId(event.getCurrentItem());
-        if (shopId == null || entryId == null) {
+        if (shopId == null) {
             GuiSound.DENY.play(player);
             return;
         }
         ShopDefinition shop = shopService.findById(shopId);
-        ShopEntry entry = shop == null ? null : shop.findEntry(entryId);
+        int pageIndex = shopGui.getPageIndex(event.getView().getTopInventory());
+        if (shop == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (event.getRawSlot() == ShopGui.PREVIOUS_PAGE_SLOT && shopGui.hasPreviousPage(pageIndex)) {
+            MenuOpenEventHandler.suppressNextCloseSound(player);
+            shopGui.openList(player, shop, pageIndex - 1);
+            GuiSound.SELECT.play(player);
+            return;
+        }
+        if (event.getRawSlot() == ShopGui.NEXT_PAGE_SLOT && shopGui.hasNextPage(shop, pageIndex)) {
+            MenuOpenEventHandler.suppressNextCloseSound(player);
+            shopGui.openList(player, shop, pageIndex + 1);
+            GuiSound.SELECT.play(player);
+            return;
+        }
+        String entryId = shopGui.getEntryId(event.getCurrentItem());
+        if (entryId == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        ShopEntry entry = shop.findEntry(entryId);
         var astPlayer = AstPlayerCache.get(player);
-        if (shop == null || entry == null || astPlayer == null) {
+        if (entry == null || astPlayer == null) {
             GuiSound.DENY.play(player);
             return;
         }
         MenuOpenEventHandler.suppressNextCloseSound(player);
-        shopGui.openConfirm(player, shop, entry, 1, shopService.preview(astPlayer, entry, 1));
+        shopGui.openConfirm(player, shop, entry, 1, shopService.preview(astPlayer, entry, 1), pageIndex);
         GuiSound.SELECT.play(player);
     }
 
@@ -125,9 +146,10 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
             return;
         }
         int quantity = shopGui.getQuantity(event.getView().getTopInventory());
+        int pageIndex = shopGui.getPageIndex(event.getView().getTopInventory());
         if (event.getRawSlot() == ShopGui.CONFIRM_BACK_SLOT) {
             MenuOpenEventHandler.suppressNextCloseSound(player);
-            shopGui.openList(player, shop);
+            shopGui.openList(player, shop, pageIndex);
             GuiSound.SELECT.play(player);
             return;
         }
@@ -140,7 +162,7 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
         };
         if (nextQuantity != quantity) {
             MenuOpenEventHandler.suppressNextCloseSound(player);
-            shopGui.openConfirm(player, shop, entry, nextQuantity, shopService.preview(astPlayer, entry, nextQuantity));
+            shopGui.openConfirm(player, shop, entry, nextQuantity, shopService.preview(astPlayer, entry, nextQuantity), pageIndex);
             GuiSound.SELECT.play(player);
             return;
         }
@@ -150,12 +172,12 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
         }
         if (!shopService.purchase(astPlayer, entry, quantity)) {
             MenuOpenEventHandler.suppressNextCloseSound(player);
-            shopGui.openConfirm(player, shop, entry, quantity, shopService.preview(astPlayer, entry, quantity));
+            shopGui.openConfirm(player, shop, entry, quantity, shopService.preview(astPlayer, entry, quantity), pageIndex);
             GuiSound.DENY.play(player);
             return;
         }
         MenuOpenEventHandler.suppressNextCloseSound(player);
-        shopGui.openConfirm(player, shop, entry, quantity, shopService.preview(astPlayer, entry, quantity));
+        shopGui.openConfirm(player, shop, entry, quantity, shopService.preview(astPlayer, entry, quantity), pageIndex);
         GuiSound.SELECT.play(player);
     }
 

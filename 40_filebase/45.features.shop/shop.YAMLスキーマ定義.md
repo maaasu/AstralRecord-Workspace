@@ -15,7 +15,8 @@ Shop master data defines a named shop and the item entries shown by the plugin s
 | `items[].itemId` | String or `{ ref }` | yes | Sold item ID. `ref: item:<id>` is allowed. |
 | `items[].category` | String | yes | Item category used when loading the item. |
 | `items[].amount` | Integer | no | Amount received per purchase unit. Default `1`. |
-| `items[].slot` | Integer | no | Logical sale slot. Valid range is `0` to `26`. |
+| `items[].page` | Integer | no | 1-based GUI page number. Default `1`. |
+| `items[].slot` | Integer | no | Logical sale slot. Valid range is `0` to `27`. |
 | `items[].row` | Integer | no | 1-based row in the sale area. Used with `column` when `slot` is absent. |
 | `items[].column` | Integer | no | 1-based column in the sale area. Used with `row` when `slot` is absent. |
 | `items[].priceGold` | Integer | no | Gold cost per purchase unit. Default `0`. |
@@ -27,7 +28,9 @@ Shop master data defines a named shop and the item entries shown by the plugin s
 
 ## Slot rule
 
-The plugin uses a 54-slot inventory and does not place sale items in edge columns. Logical slot `0` maps to row 1, column 1 of the inner sale area. Logical slots `0` to `26` are accepted. Row/column input is 1-based and converted to the same logical range.
+The plugin uses a 54-slot inventory and does not place sale items in edge columns. Logical slot `0` maps to row 1, column 1 of the inner sale area. Logical slots `0` to `27` are accepted. Row/column input is 1-based and converted to the same logical range.
+
+`items[].page` is 1-based. When omitted, the entry is placed on page `1`. The GUI shows entries whose `page` matches the current page and uses slot `45` as the previous-page button and slot `53` as the next-page button.
 
 ## Example
 
@@ -42,6 +45,7 @@ items:
       ref: item:healing_potion_small
     category: consumable
     slot: 2
+    page: 1
     priceGold: 100
     requiredItems:
       - itemId:

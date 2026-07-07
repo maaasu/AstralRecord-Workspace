@@ -64,6 +64,7 @@ public final class ShopRepository {
                 itemId,
                 valueOrDefault(asString(map.get("category")), "material"),
                 parseInt(map.get("amount"), 1),
+                Math.max(1, parseInt(map.get("page"), 1)),
                 parseOptionalInt(map.get("slot")),
                 parseOptionalInt(map.get("row")),
                 parseOptionalInt(map.get("column")),
