@@ -1,0 +1,162 @@
+package io.github.maaasu.astralRecord.feature.shop.service;
+
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
+import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.shop.model.ShopCostItem;
+import io.github.maaasu.astralRecord.feature.shop.model.ShopEntry;
+import io.github.maaasu.astralRecord.feature.shop.model.ShopPurchasePreview;
+import io.github.maaasu.astralRecord.feature.shop.model.ShopRecipeCost;
+import io.github.maaasu.astralRecord.feature.shop.repository.ShopRecipeRepository;
+import io.github.maaasu.astralRecord.feature.shop.repository.ShopRepository;
+import io.github.maaasu.astralRecord.support.DesignTestFixtures;
+import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
+import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+class ShopServiceDesignTest extends MockBukkitTestBase {
+
+    @Test
+    void previewCombinesEntryAndRecipeCostsBeforePurchaseCheck() {
+        ShopHarness harness = shopHarness(new ShopRecipeCost(
+            "starter_recipe",
+            3,
+            List.of(
+                new ShopCostItem("herb", "material", 1),
+                new ShopCostItem("crystal", "material", 4)
+            )
+        ));
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        ShopEntry entry = shopEntry("potion", 1, 5, List.of(new ShopCostItem("herb", "material", 2)), "starter_recipe");
+        when(harness.currencyService.getGoldAmount(player.getAccount().getUuid())).thenReturn(20L);
+        when(harness.inventoryService.getNormalItemAmount(player.getAccount().getUuid(), "herb")).thenReturn(6L);
+        when(harness.inventoryService.getNormalItemAmount(player.getAccount().getUuid(), "crystal")).thenReturn(7L);
+
+        ShopPurchasePreview preview = harness.service.preview(player, entry, 2);
+
+        assertEquals(2, preview.quantity());
+        assertEquals(16L, preview.requiredGold());
+        assertEquals(20L, preview.ownedGold());
+        assertEquals(2, preview.requiredItems().size());
+        assertEquals(6, preview.requiredItems().stream().filter(cost -> cost.itemId().equals("herb")).findFirst().orElseThrow().amount());
+        assertEquals(8, preview.requiredItems().stream().filter(cost -> cost.itemId().equals("crystal")).findFirst().orElseThrow().amount());
+        assertFalse(preview.canPurchase());
+        assertEquals("crystal", preview.missingItems().get(0).itemId());
+        assertEquals(1, preview.missingItems().get(0).amount());
+    }
+
+    @Test
+    void purchasePaysGoldAndMaterialsBeforeGrantingItemsThenRefreshesInventory() {
+        ShopHarness harness = shopHarness(new ShopRecipeCost(
+            "starter_recipe",
+            1,
+            List.of(new ShopCostItem("herb", "material", 2))
+        ));
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        ItemModel potion = DesignTestFixtures.item("potion", ItemCategory.CONSUMABLE, 16);
+        ShopEntry entry = shopEntry("potion", 2, 4, List.of(), "starter_recipe");
+        when(harness.itemService.findLoadedById("potion")).thenReturn(potion);
+        when(harness.currencyService.getGoldAmount(player.getAccount().getUuid())).thenReturn(20L);
+        when(harness.inventoryService.getNormalItemAmount(player.getAccount().getUuid(), "herb")).thenReturn(6L);
+        when(harness.inventoryService.canAddItemToNormalInventory(player, potion, 6)).thenReturn(true);
+        when(harness.inventoryService.consumeGold(player.getAccount().getUuid(), 15L)).thenReturn(true);
+        when(harness.inventoryService.consumeNormalItem(player.getAccount().getUuid(), "herb", 6)).thenReturn(true);
+        when(harness.inventoryService.addItemToNormalInventory(player, potion, 6, "shop")).thenReturn(6);
+        when(harness.inventoryService.resolveInventoryType(potion)).thenReturn(InventoryType.NORMAL);
+
+        boolean purchased = harness.service.purchase(player, entry, 3);
+
+        assertTrue(purchased);
+        InOrder order = inOrder(harness.inventoryService);
+        order.verify(harness.inventoryService).canAddItemToNormalInventory(player, potion, 6);
+        order.verify(harness.inventoryService).consumeGold(player.getAccount().getUuid(), 15L);
+        order.verify(harness.inventoryService).consumeNormalItem(player.getAccount().getUuid(), "herb", 6);
+        order.verify(harness.inventoryService).addItemToNormalInventory(player, potion, 6, "shop");
+        order.verify(harness.inventoryService).applyInventoryToGui(player, InventoryType.NORMAL);
+        order.verify(harness.inventoryService).saveNow(player.getAccount().getUuid());
+    }
+
+    @Test
+    void purchaseDoesNotGrantItemsWhenPaymentFails() {
+        ShopHarness harness = shopHarness(null);
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        ItemModel potion = DesignTestFixtures.item("potion", ItemCategory.CONSUMABLE, 16);
+        ShopEntry entry = shopEntry("potion", 1, 4, List.of(), null);
+        when(harness.itemService.findLoadedById("potion")).thenReturn(potion);
+        when(harness.currencyService.getGoldAmount(player.getAccount().getUuid())).thenReturn(10L);
+        when(harness.inventoryService.canAddItemToNormalInventory(player, potion, 1)).thenReturn(true);
+        when(harness.inventoryService.consumeGold(player.getAccount().getUuid(), 4L)).thenReturn(false);
+
+        boolean purchased = harness.service.purchase(player, entry, 1);
+
+        assertFalse(purchased);
+        verify(harness.inventoryService, never()).addItemToNormalInventory(player, potion, 1, "shop");
+        verify(harness.inventoryService, never()).applyInventoryToGui(player, InventoryType.NORMAL);
+        verify(harness.inventoryService, never()).saveNow(player.getAccount().getUuid());
+    }
+
+    private ShopEntry shopEntry(
+        String itemId,
+        int amount,
+        int priceGold,
+        List<ShopCostItem> requiredItems,
+        String recipeId
+    ) {
+        return new ShopEntry(
+            itemId,
+            itemId,
+            "material",
+            amount,
+            1,
+            null,
+            null,
+            null,
+            priceGold,
+            requiredItems,
+            recipeId
+        );
+    }
+
+    private ShopHarness shopHarness(ShopRecipeCost recipe) {
+        ShopRepository shopRepository = mock(ShopRepository.class);
+        ShopRecipeRepository recipeRepository = mock(ShopRecipeRepository.class);
+        ItemService itemService = mock(ItemService.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        CurrencyService currencyService = mock(CurrencyService.class);
+        if (recipe != null) {
+            when(recipeRepository.findShopRecipeById(recipe.recipeId())).thenReturn(recipe);
+        }
+        ShopService service = new ShopService(
+            shopRepository,
+            recipeRepository,
+            itemService,
+            inventoryService,
+            currencyService
+        );
+        return new ShopHarness(itemService, inventoryService, currencyService, service);
+    }
+
+    private record ShopHarness(
+        ItemService itemService,
+        InventoryService inventoryService,
+        CurrencyService currencyService,
+        ShopService service
+    ) {
+    }
+}
