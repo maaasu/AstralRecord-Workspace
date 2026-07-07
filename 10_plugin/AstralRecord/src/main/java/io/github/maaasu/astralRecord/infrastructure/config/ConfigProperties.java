@@ -3,7 +3,11 @@ package io.github.maaasu.astralRecord.infrastructure.config;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 public class ConfigProperties {
 
@@ -11,6 +15,7 @@ public class ConfigProperties {
 
     // Plugin 関連
     private boolean pluginDebugMode;
+    private Set<UUID> pluginDebugUsers = Collections.emptySet();
 
     // SQL Server 関連
     private boolean sqlserverEnabled;
@@ -75,6 +80,9 @@ public class ConfigProperties {
 
         // Plugin 関連
         this.pluginDebugMode = configManager.getConfig().getBoolean(ConfigKeys.PLUGIN_DEBUG_MODE);
+        this.pluginDebugUsers = parseDebugUsers(
+                configManager.getConfig().getStringList(ConfigKeys.PLUGIN_DEBUG_USERS)
+        );
 
         // SQL Server 関連
         this.sqlserverEnabled = configManager.getConfig().getBoolean(ConfigKeys.SQLSERVER_ENABLED, true);
@@ -139,6 +147,16 @@ public class ConfigProperties {
     // Plugin 関連のゲッター
     public boolean isPluginDebugMode() {
         return pluginDebugMode;
+    }
+
+    /**
+     * 指定されたプレイヤー UUID がデバッグユーザーとして設定されているかを返します。
+     *
+     * @param uuid 判定対象のプレイヤー UUID
+     * @return `plugin.debugUsers` に完全一致する UUID が含まれていれば true
+     */
+    public boolean isDebugUser(UUID uuid) {
+        return uuid != null && pluginDebugUsers.contains(uuid);
     }
 
     // SQL Server 関連のゲッター
@@ -291,5 +309,24 @@ public class ConfigProperties {
 
     public List<String> getResourcePackBedrockNamePrefixes() {
         return resourcePackBedrockNamePrefixes;
+    }
+
+    private Set<UUID> parseDebugUsers(List<String> configuredUsers) {
+        if (configuredUsers == null || configuredUsers.isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        Set<UUID> parsedUsers = new HashSet<>();
+        for (String configuredUser : configuredUsers) {
+            if (configuredUser == null || configuredUser.isBlank()) {
+                continue;
+            }
+            try {
+                parsedUsers.add(UUID.fromString(configuredUser.trim()));
+            } catch (IllegalArgumentException ignored) {
+                // Invalid entries are ignored so a typo cannot grant access.
+            }
+        }
+        return Collections.unmodifiableSet(parsedUsers);
     }
 }

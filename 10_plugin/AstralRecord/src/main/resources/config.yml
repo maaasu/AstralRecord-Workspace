@@ -1,6 +1,8 @@
 # Plugin Settings
 plugin:
   debugMode: false
+  # UUIDs allowed to use only /user permission without permission 99.
+  debugUsers: []
   joinSpawn:
     world: "world"
 

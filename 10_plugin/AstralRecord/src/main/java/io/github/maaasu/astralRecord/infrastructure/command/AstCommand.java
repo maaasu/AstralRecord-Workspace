@@ -173,7 +173,22 @@ public abstract class AstCommand implements CommandExecutor {
         }
 
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        return astPlayer != null && astPlayer.hasPermissionLevel(requiredPermissionLevel);
+        if (astPlayer != null && astPlayer.hasPermissionLevel(requiredPermissionLevel)) {
+            return true;
+        }
+        return hasPermissionOverride(sender);
+    }
+
+    /**
+     * 通常の permission レベル不足時に、コマンド固有の例外許可を判定します。
+     * <p>
+     * 既定では例外を許可しません。使用する場合は、対象コマンド内で許可範囲を明確に限定してください。
+     *
+     * @param sender コマンド送信者
+     * @return コマンド固有の例外で実行を許可する場合は true
+     */
+    protected boolean hasPermissionOverride(@NotNull CommandSender sender) {
+        return false;
     }
 
     /**

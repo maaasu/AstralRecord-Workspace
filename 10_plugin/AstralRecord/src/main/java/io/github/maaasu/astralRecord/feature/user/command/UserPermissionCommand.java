@@ -26,17 +26,14 @@ public class UserPermissionCommand extends AstCommand {
 
     public UserPermissionCommand() {
         super("userpermission", "Set user permission.",
-                "/user permission <permission> [<player|uuid>]", false, 99);
+                "/user permission <permission> [<player|uuid>]", false, UserPermission.ADMIN.getValue());
     }
 
     @Override
     protected void executeCommand(@NotNull CommandSender sender, @NotNull String[] args) {
-        if (sender instanceof Player player) {
-            var astPlayer = AstPlayerCache.get(player);
-            if (astPlayer == null || !astPlayer.hasAdminPermission()) {
-                sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5061.getId()));
-                return;
-            }
+        if (!UserPermissionCommandAccess.canExecute(sender)) {
+            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5061.getId()));
+            return;
         }
 
         if (args.length < 1) {
@@ -89,6 +86,11 @@ public class UserPermissionCommand extends AstCommand {
         }
 
         sendSuccess(sender, PlayerMsgResource.format(PlayerMsgId.P_5304.getId(), updated.getMcid(), updated.getPermission()));
+    }
+
+    @Override
+    protected boolean hasPermissionOverride(@NotNull CommandSender sender) {
+        return UserPermissionCommandAccess.isDebugUser(sender);
     }
 
     /**

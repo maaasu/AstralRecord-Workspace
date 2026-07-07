@@ -12,6 +12,7 @@ public final class ConfigKeys {
 
     // Plugin 関連
     public static final String PLUGIN_DEBUG_MODE = "plugin.debugMode";
+    public static final String PLUGIN_DEBUG_USERS = "plugin.debugUsers";
 
     // SQL Server 関連
     public static final String SQLSERVER_ENABLED = "database.sqlserver.enabled";

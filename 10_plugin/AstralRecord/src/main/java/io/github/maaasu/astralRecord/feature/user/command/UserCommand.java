@@ -41,4 +41,9 @@ public class UserCommand extends AstCommand {
 
         sendUsage(sender);
     }
+
+    @Override
+    protected boolean hasPermissionOverride(@NotNull CommandSender sender) {
+        return UserPermissionCommandAccess.isDebugUser(sender);
+    }
 }
