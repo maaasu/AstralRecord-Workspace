@@ -1,0 +1,43 @@
+schemaVersion: 1
+id: mob_glowlamp_bolt
+type: SKILL
+implementationId: normal_attack
+name: "&b青灯ボルト"
+description: "&7Mob AI が使用する短射程の魔法弾。"
+icon: GLOWSTONE_DUST
+cooldownTicks: 38
+manaCost: 0
+castTimeTicks: 18
+requiredLevel: 1
+params:
+  resourceType: MANA
+  resourceCost: 0
+  attackType: MAGIC
+  damageType: MAGIC
+  damageElement: LIGHTNING
+  particle: END_ROD
+  particleCount: 12
+  spreadX: 0.12
+  spreadY: 0.12
+  spreadZ: 0.12
+  extra: 0.01
+  forwardOffset: 1.0
+  upwardOffset: 0.0
+  hitRange: 8.5
+  activationRange: 8.5
+  hitRadius: 0.9
+  hitStepDistance: 0.8
+  maxTargets: 1
+  castSound: block.amethyst_block.chime
+  castSoundVolume: 0.7
+  castSoundPitch: 1.3
+  sound: entity.evoker.cast_spell
+  soundVolume: 0.85
+  soundPitch: 1.35
+  projectileSpeed: 1.05
+  projectileGravity: 0.0
+tags:
+  - mob
+  - active
+  - magic
+  - windwait

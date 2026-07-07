@@ -11,3 +11,7 @@ quests:
       ref: quest:windleaf_gathering
     page: 1
     slot: 12
+  - questId:
+      ref: quest:windwait_outer_patrol
+    page: 1
+    slot: 14

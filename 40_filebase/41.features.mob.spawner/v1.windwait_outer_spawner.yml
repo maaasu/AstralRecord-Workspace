@@ -1,0 +1,22 @@
+schemaVersion: 1
+id: windwait_outer_spawner
+type: MOB_SPAWNER
+radiusMeters: 22
+
+spawnMobs:
+  - mobId: mob:skyway_guard
+    weight: 62
+  - mobId: mob:glowlamp_watcher
+    weight: 38
+
+spawnTimes:
+  - startTick: 12000
+    endTick: 23999
+
+itemMaterial: SPAWNER
+spawnIntervalTicks: 140
+
+spawnLimit:
+  maxAlivePerSpawner: 10
+  maxNearbyMobs: 22
+  spawnPerPlayer: 2

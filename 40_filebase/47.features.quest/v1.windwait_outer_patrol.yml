@@ -1,0 +1,41 @@
+schemaVersion: 1
+id: windwait_outer_patrol
+type: QUEST
+name: "&a風待ち外縁の巡回"
+description:
+  - "&7草原外縁の強敵を退け、次の探索に備える依頼。"
+icon: MAP
+repeat:
+  mode: COOLDOWN
+  cooldownSeconds: 7200
+completion:
+  mode: NPC
+  turnInNpcId:
+    ref: mob:village_elder
+objectives:
+  - id: defeat_skyway_guard
+    type: KILL_MOB
+    targetId:
+      ref: mob:skyway_guard
+    label: "航路番"
+    amount: 2
+  - id: defeat_glowlamp_watcher
+    type: KILL_MOB
+    targetId:
+      ref: mob:glowlamp_watcher
+    label: "青灯の見張り"
+    amount: 1
+acceptRequirements:
+  items: []
+rewards:
+  exp: 220
+  gold: 120
+  items:
+    - itemId:
+        ref: item:route_clasp
+      category: material
+      amount: 2
+    - itemId:
+        ref: item:glowlamp_core
+      category: material
+      amount: 1

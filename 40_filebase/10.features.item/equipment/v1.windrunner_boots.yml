@@ -1,0 +1,27 @@
+schemaVersion: 1
+id: windrunner_boots
+category: equipment
+name: "&a風渡りの靴"
+icon: LEATHER_BOOTS
+rarity: UNCOMMON
+maxStack: 1
+saleValue: 64
+lore:
+  - "&7木道と草地を素早く歩けるよう仕立てた靴。"
+  - "&7外縁部から町へ戻る足取りを軽くする。"
+unTradeable: false
+unSellable: false
+
+equipment:
+  slot: FEET
+  requiredLevel: 7
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 4
+    - status: MOVEMENT_SPEED
+      type: FLAT
+      value: 3.0
+  durability:
+    max: 105
+    consume: 1

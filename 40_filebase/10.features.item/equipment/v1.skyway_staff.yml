@@ -1,0 +1,37 @@
+schemaVersion: 1
+id: skyway_staff
+category: equipment
+name: "&a航路の杖"
+icon: BLAZE_ROD
+rarity: UNCOMMON
+maxStack: 1
+saleValue: 88
+lore:
+  - "&7青灯の芯片を先端に収めた見習い向けの杖。"
+  - "&7MP と魔法寄りの火力を少し補う。"
+unTradeable: false
+unSellable: false
+
+equipment:
+  slot: WEAPON
+  handType: TWO
+  tag: STAFF
+  requiredLevel: 7
+  stats:
+    - status: ATTACK
+      type: FLAT
+      value: 8~11
+    - status: MAX_MANA
+      type: FLAT
+      value: 18
+    - status: INTELLIGENCE
+      type: FLAT
+      value: 2
+  onUse:
+    leftClickCooldownTicks: 14
+    leftClickSkillId: normal_attack_magic
+    rightClickCooldownTicks: 38
+    rightClickSkillId: special_attack_magic
+  durability:
+    max: 110
+    consume: 1

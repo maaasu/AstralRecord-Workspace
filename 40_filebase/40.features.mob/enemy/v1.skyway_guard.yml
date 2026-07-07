@@ -1,0 +1,84 @@
+schemaVersion: 1
+id: skyway_guard
+type: MOB
+category: ENEMY
+name: "&a航路番"
+level: 7
+entityType: ZOMBIE
+variant:
+  age: ADULT
+icon: ZOMBIE_HEAD
+lore:
+  - "&7古い木道の周辺を巡る、外縁部の近接型の敵。"
+  - "&7補強材や航路の金具を持ち歩いている。"
+tags:
+  - humanoid
+  - windwait
+  - outer
+  - melee
+
+equipment:
+  mainHand:
+    ref: item:skyway_saber
+  chestplate:
+    ref: item:pathfinder_jerkin
+  boots:
+    ref: item:windrunner_boots
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 185
+  - status: ATTACK
+    value: 24
+  - status: DEFENSE
+    value: 10
+  - status: MOVEMENT_SPEED
+    value: 103
+
+shield:
+  enabled: true
+  max: 14
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 12
+    speed: 0.85
+  targeting:
+    strategy: NEAREST
+    aggroRange: 16
+    deaggroRange: 25
+    leashRange: 34
+  combat:
+    style: MELEE
+    preferredRange: 2.4
+    attackIntervalTicks: 32
+    skills:
+      - ref: skill:mob_skyway_guard_slash
+
+drops:
+  exp: 72
+  money:
+    min: 12
+    max: 32
+  items:
+    - itemId:
+        ref: item:sky_iron_rivet
+      rate: 58.0
+      amount: 1~2
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:route_clasp
+      rate: 44.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:astral_dust
+      rate: 9.0
+      amount: 1
+      luckAffected: false
+      hidden: false
+  lootTable:
+    ref: loot_table:windwait_outer_table
