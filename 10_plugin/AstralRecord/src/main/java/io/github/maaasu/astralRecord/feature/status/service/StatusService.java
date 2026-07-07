@@ -424,6 +424,7 @@ public class StatusService {
             case COOLDOWN_REDUCTION -> 0.0D;
             case SHIELD_RECHARGE_REDUCTION -> 0.0D;
             case SHIELD_RECHARGE_RATE -> 0.0D;
+            case QUEST_LIMIT -> 3.0D;
         };
     }
 
@@ -782,6 +783,7 @@ public class StatusService {
                 case COOLDOWN_REDUCTION -> 0.0D;
                 case SHIELD_RECHARGE_REDUCTION -> 0.0D;
                 case SHIELD_RECHARGE_RATE -> 0.0D;
+                case QUEST_LIMIT -> 0.0D;
             };
             case ADMIN -> switch (type) {
                 case MAX_HEALTH -> 10.0D;
@@ -818,6 +820,7 @@ public class StatusService {
                 case COOLDOWN_REDUCTION -> 5.0D;
                 case SHIELD_RECHARGE_REDUCTION -> 0.0D;
                 case SHIELD_RECHARGE_RATE -> 0.0D;
+                case QUEST_LIMIT -> 0.0D;
             };
         };
     }
@@ -859,6 +862,7 @@ public class StatusService {
                 case COOLDOWN_REDUCTION -> 2.0D;
                 case SHIELD_RECHARGE_REDUCTION -> 0.0D;
                 case SHIELD_RECHARGE_RATE -> 0.0D;
+                case QUEST_LIMIT -> 0.0D;
             };
         }
 
@@ -898,6 +902,7 @@ public class StatusService {
                 case COOLDOWN_REDUCTION -> 0.0D;
                 case SHIELD_RECHARGE_REDUCTION -> 0.0D;
                 case SHIELD_RECHARGE_RATE -> 0.0D;
+                case QUEST_LIMIT -> 0.0D;
             };
         }
 

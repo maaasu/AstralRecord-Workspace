@@ -842,6 +842,18 @@ public enum PlayerMsgId {
     P_6520(6520),
     // endregion
 
+    // region /feature/quest 6600-6619
+    P_6600(6600),
+    P_6601(6601),
+    P_6602(6602),
+    P_6603(6603),
+    P_6604(6604),
+    P_6605(6605),
+    P_6606(6606),
+    P_6607(6607),
+    P_6608(6608),
+    // endregion
+
     // region /feature/player/service/PlayerMessageService.java 5940-5949
     P_5940(5940),
     P_5941(5941),

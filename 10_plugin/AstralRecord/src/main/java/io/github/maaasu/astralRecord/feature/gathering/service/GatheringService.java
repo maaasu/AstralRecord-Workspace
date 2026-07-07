@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobDropPresentationServ
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -42,6 +43,7 @@ public class GatheringService {
     private final GatheringDefinitionRepository definitionRepository;
     private final MobDropService dropService;
     private MobDropPresentationService dropPresentationService;
+    private QuestService questService;
     private final Map<String, GatheringDefinition> definitions = new LinkedHashMap<>();
     private final Map<UUID, GatheringInstance> instances = new LinkedHashMap<>();
     private final Map<UUID, MiningSession> sessions = new HashMap<>();
@@ -61,6 +63,10 @@ public class GatheringService {
 
     public void setDropPresentationService(@NotNull MobDropPresentationService dropPresentationService) {
         this.dropPresentationService = dropPresentationService;
+    }
+
+    public void setQuestService(@NotNull QuestService questService) {
+        this.questService = questService;
     }
 
     public int loadAll() {
@@ -235,6 +241,9 @@ public class GatheringService {
                     result,
                     DROP_SOURCE
             );
+            if (questService != null) {
+                questService.recordGathering(recipient, instance.definition().id());
+            }
         }
         UUID instanceId = instance.instanceId();
         stopSessionByPlayer(player.getUniqueId(), false);

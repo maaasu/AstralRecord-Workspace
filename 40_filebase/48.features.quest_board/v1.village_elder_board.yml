@@ -1,0 +1,13 @@
+schemaVersion: 1
+id: village_elder_board
+type: QUEST_BOARD
+name: "&2村長の依頼"
+quests:
+  - questId:
+      ref: quest:goblin_training
+    page: 1
+    slot: 10
+  - questId:
+      ref: quest:windleaf_gathering
+    page: 1
+    slot: 12

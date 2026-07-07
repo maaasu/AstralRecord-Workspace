@@ -104,6 +104,12 @@ import io.github.maaasu.astralRecord.feature.player.service.DodgeService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
+import io.github.maaasu.astralRecord.feature.quest.event.QuestGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.quest.gui.QuestGui;
+import io.github.maaasu.astralRecord.feature.quest.repository.QuestBoardRepository;
+import io.github.maaasu.astralRecord.feature.quest.repository.QuestDefinitionRepository;
+import io.github.maaasu.astralRecord.feature.quest.repository.QuestPlayerStateRepository;
+import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
 import io.github.maaasu.astralRecord.feature.playersetting.cache.PlayerSettingCache;
 import io.github.maaasu.astralRecord.feature.playersetting.event.PlayerSettingGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.playersetting.event.PlayerSettingJoinEventHandler;
@@ -285,6 +291,9 @@ public final class AstralRecord extends JavaPlugin {
     private ShopService shopService;
     private ShopGui shopGui;
     private ShopGuiEventHandler shopGuiEventHandler;
+    private QuestService questService;
+    private QuestGui questGui;
+    private QuestGuiEventHandler questGuiEventHandler;
     private TradeService tradeService;
     private TradeGui tradeGui;
     private TradeCancelConfirmGui tradeCancelConfirmGui;
@@ -731,6 +740,21 @@ public final class AstralRecord extends JavaPlugin {
         );
         shopGui = new ShopGui(this, shopService, itemStackFactory);
         shopGuiEventHandler = new ShopGuiEventHandler(shopGui, shopService, inventoryService);
+        questService = new QuestService(
+            new QuestDefinitionRepository(),
+            new QuestBoardRepository(),
+            new QuestPlayerStateRepository(this),
+            itemService,
+            inventoryService,
+            accountService,
+            playerClassService,
+            statusService,
+            particleDisplayService
+        );
+        questGui = new QuestGui(this, questService);
+        questGuiEventHandler = new QuestGuiEventHandler(questGui, questService, inventoryService);
+        mobCombatService.setQuestService(questService);
+        gatheringService.setQuestService(questService);
         tradeGui = new TradeGui();
         tradeCancelConfirmGui = new TradeCancelConfirmGui();
         goldAmountSettingGui = new GoldAmountSettingGui();
@@ -782,6 +806,7 @@ public final class AstralRecord extends JavaPlugin {
         mobSpawnerService.loadAll();
         gatheringService.loadAll();
         gatheringSpawnerService.loadAll();
+        questService.loadAll();
         teleporterService.loadAll();
         // world
         worldService.loadAll();
@@ -893,6 +918,10 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             shopGuiEventHandler,
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            questGuiEventHandler,
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
@@ -1035,7 +1064,8 @@ public final class AstralRecord extends JavaPlugin {
                 menuView,
                 playerClassService,
                 storageService,
-                equipmentEnhancementService
+                equipmentEnhancementService,
+                questGuiEventHandler
             ),
             getServer().getPluginManager()
         );
@@ -1332,6 +1362,10 @@ public final class AstralRecord extends JavaPlugin {
 
     public ShopGuiEventHandler getShopGuiEventHandler() {
         return shopGuiEventHandler;
+    }
+
+    public QuestGuiEventHandler getQuestGuiEventHandler() {
+        return questGuiEventHandler;
     }
 
     /**

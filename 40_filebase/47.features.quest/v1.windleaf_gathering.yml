@@ -1,0 +1,33 @@
+schemaVersion: 1
+id: windleaf_gathering
+type: QUEST
+name: "&a風待ち草の採取"
+description:
+  - "&7採取ポイントから風待ち草を集める依頼。"
+icon: PAPER
+repeat:
+  mode: REPEATABLE
+completion:
+  mode: AUTO
+objectives:
+  - id: gather_windleaf
+    type: GATHERING
+    targetId:
+      ref: gathering:windleaf_patch
+    label: "風待ち草"
+    amount: 2
+acceptRequirements:
+  items:
+    - itemId:
+        ref: item:windleaf_sprig
+      category: material
+      amount: 1
+      consume: false
+rewards:
+  exp: 60
+  gold: 30
+  items:
+    - itemId:
+        ref: item:skygrass_fiber
+      category: material
+      amount: 1

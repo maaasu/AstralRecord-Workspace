@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.quest.event.QuestGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.shop.event.ShopGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.storage.service.StorageService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -45,6 +46,7 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
     private final PlayerClassService playerClassService;
     private final StorageService storageService;
     private final EquipmentEnhancementService equipmentEnhancementService;
+    private final QuestGuiEventHandler questGuiEventHandler;
 
     /**
      * ハンドラを生成します。
@@ -59,13 +61,15 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
             @NotNull MenuView menuView,
             @NotNull PlayerClassService playerClassService,
             @NotNull StorageService storageService,
-            @NotNull EquipmentEnhancementService equipmentEnhancementService) {
+            @NotNull EquipmentEnhancementService equipmentEnhancementService,
+            @NotNull QuestGuiEventHandler questGuiEventHandler) {
         this.mobService = mobService;
         this.shopGuiEventHandler = shopGuiEventHandler;
         this.menuView = menuView;
         this.playerClassService = playerClassService;
         this.storageService = storageService;
         this.equipmentEnhancementService = equipmentEnhancementService;
+        this.questGuiEventHandler = questGuiEventHandler;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -85,7 +89,7 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
             if (!isWithinInteractionDistance(event.getPlayer(), event.getRightClicked())) {
                 return;
             }
-            execute(event.getPlayer(), instance.template().interactions().rightClick());
+            execute(event.getPlayer(), instance, instance.template().interactions().rightClick());
         }, LogId.E_5702, event.getPlayer().getName());
     }
 
@@ -116,7 +120,7 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
             if (!AccountModeGuard.isGameplayPlayer(event.getPlayer())) {
                 return;
             }
-            execute(event.getPlayer(), leftClick
+            execute(event.getPlayer(), instance, leftClick
                     ? instance.template().interactions().leftClick()
                     : instance.template().interactions().rightClick());
         }, LogId.E_5702, event.getPlayer().getName());
@@ -139,7 +143,7 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
             if (!isWithinInteractionDistance(player, event.getEntity())) {
                 return;
             }
-            execute(player, instance.template().interactions().leftClick());
+            execute(player, instance, instance.template().interactions().leftClick());
         }, LogId.E_5702, event.getDamager().getName());
     }
 
@@ -148,7 +152,7 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
         return distanceSq <= MobService.NPC_INTERACTION_DISTANCE * MobService.NPC_INTERACTION_DISTANCE;
     }
 
-    private void execute(@NotNull Player player, @NotNull List<MobInteractionActionConfig> actions) {
+    private void execute(@NotNull Player player, @NotNull MobInstance instance, @NotNull List<MobInteractionActionConfig> actions) {
         if (!AccountModeGuard.isGameplayPlayer(player)) {
             return;
         }
@@ -157,14 +161,14 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
             return;
         }
         for (MobInteractionActionConfig action : actions) {
-            execute(player, action);
+            execute(player, instance, action);
         }
     }
 
-    private void execute(@NotNull Player player, @NotNull MobInteractionActionConfig action) {
+    private void execute(@NotNull Player player, @NotNull MobInstance instance, @NotNull MobInteractionActionConfig action) {
         switch (action.id().toLowerCase(Locale.ROOT)) {
             case "message" -> sendMessage(player, action);
-            case "gui" -> openGui(player, action);
+            case "gui" -> openGui(player, instance, action);
             case "command" -> executeCommand(player, action);
             default -> GuiSound.DENY.play(player);
         }
@@ -182,11 +186,12 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
         );
     }
 
-    private void openGui(@NotNull Player player, @NotNull MobInteractionActionConfig action) {
+    private void openGui(@NotNull Player player, @NotNull MobInstance instance, @NotNull MobInteractionActionConfig action) {
         String rawType = action.params().get("type");
         String type = rawType == null ? "" : rawType.trim().toUpperCase(Locale.ROOT);
         switch (type) {
             case "SHOP" -> openShop(player, action);
+            case "QUEST", "QUEST_BOARD" -> openQuestBoard(player, instance, action);
             case "SELL" -> {
                 MenuGuiTransitionService.suppressNextCloseSound(player);
                 menuView.openSell(player, List.of(), 0);
@@ -207,6 +212,19 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
         }
         MenuGuiTransitionService.suppressNextCloseSound(player);
         shopGuiEventHandler.open(player, shopId);
+    }
+
+    private void openQuestBoard(@NotNull Player player, @NotNull MobInstance instance, @NotNull MobInteractionActionConfig action) {
+        String boardId = action.params().get("boardId");
+        if (boardId == null || boardId.isBlank()) {
+            boardId = action.params().get("questBoardId");
+        }
+        if (boardId == null || boardId.isBlank()) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        MenuGuiTransitionService.suppressNextCloseSound(player);
+        questGuiEventHandler.openBoard(player, boardId, instance.template().id());
     }
 
     private void openClass(@NotNull Player player) {

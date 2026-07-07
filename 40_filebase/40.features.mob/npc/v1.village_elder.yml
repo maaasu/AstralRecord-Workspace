@@ -42,3 +42,4 @@ interactions:
     - id: gui
       params:
         type: QUEST
+        boardId: village_elder_board

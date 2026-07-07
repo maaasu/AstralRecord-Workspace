@@ -158,6 +158,8 @@ enum class StatusType(
 
     /** シールドリチャージレート */
     SHIELD_RECHARGE_RATE("シールドリチャージ", Category.UTILITY),
+    /** クエストを同時に受領できる最大数 */
+    QUEST_LIMIT("クエスト受領上限", Category.UTILITY),
     ;
 
     /**

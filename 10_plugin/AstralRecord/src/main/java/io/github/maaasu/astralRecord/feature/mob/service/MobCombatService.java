@@ -22,6 +22,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.playerclass.model.ClassExperienceResult;
+import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -64,6 +65,7 @@ public class MobCombatService {
     private final SkillTreeService skillTreeService;
     private final ParticleDisplayService particleDisplayService;
     private PlayerDeathService playerDeathService;
+    private QuestService questService;
 
     /**
      * コンストラクタ。
@@ -101,6 +103,10 @@ public class MobCombatService {
      */
     public void setPlayerDeathService(@Nullable PlayerDeathService playerDeathService) {
         this.playerDeathService = playerDeathService;
+    }
+
+    public void setQuestService(@Nullable QuestService questService) {
+        this.questService = questService;
     }
 
     /**
@@ -320,6 +326,9 @@ public class MobCombatService {
                 result = new MobDropResult(List.of(), 0, 0);
             }
             results.add(result);
+            if (questService != null) {
+                questService.recordMobKill(recipient, template.id());
+            }
             applyExperienceAndSkillPoints(recipient, result);
             adventureRecordService.recordDefeatAsync(recipient, template);
             dropPresentationService.presentAndGrant(
