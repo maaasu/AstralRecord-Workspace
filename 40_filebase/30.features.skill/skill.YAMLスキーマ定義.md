@@ -35,15 +35,34 @@ filebase 側では、パッシブスキルだった場合に `passive.bindRequir
 | キー | 型 | 必須 | 既定値 | 説明 |
 | --- | --- | --- | --- | --- |
 | `activationRange` | Double | 任意 | `hitRange` | Mob AI がこのスキルを発動し始める最大距離。未指定時は `hitRange`、それも未指定なら Mob の `preferredRange` にフォールバックします |
+| `damageElement` | String | 任意 | `NEUTRAL` | 属性種別。`NEUTRAL` / `FIRE` / `ICE` / `POISON` / `LIGHTNING` / `HOLY` / `DARK` |
+| `conditions[]` | List | 任意 | `[]` | 命中時に付与する状態異常定義。詳細は後述 |
 | `castSound` | String | 任意 | `null` | 詠唱開始時に再生する sound key |
 | `castSoundVolume` | Double | 任意 | `1.0` | 詠唱開始音の音量 |
 | `castSoundPitch` | Double | 任意 | `1.0` | 詠唱開始音のピッチ |
+
+### normal_attack conditions[] params
+
+`conditions[]` は攻撃が命中した対象へ状態異常を付与するための設定です。
+状態異常の正本仕様は `00_docs/10_プラグイン設計書/feature/27-condition/` を参照してください。
+
+| キー | 型 | 必須 | 既定値 | 説明 |
+| --- | --- | --- | --- | --- |
+| `conditions[].type` | String | 必須 | - | 状態異常種別。`BURNING` / `POISON` / `BLEEDING` / `CHILLED` / `FROZEN` / `STUNNED` / `SILENCED` / `ATTACK_DISABLED` / `INVULNERABLE` / `VULNERABLE` |
+| `conditions[].chance` | Double | 任意 | `100` | 付与確率。0-100 |
+| `conditions[].durationTicks` | Int | 必須 | - | 効果時間 tick |
+| `conditions[].stack` | Int | 任意 | `1` | 付与スタック数 |
+| `conditions[].basePower` | Double | 任意 | 種別既定 | 固定効果値 |
+| `conditions[].powerCoefficient` | Double | 任意 | 種別既定 | 付与元攻撃力に対する係数 |
+| `conditions[].tickIntervalTicks` | Int | 任意 | 種別既定 | DoT / periodic effect 間隔。0 以下なら periodic effect なし |
+| `conditions[].damageType` | String | 任意 | 種別既定 | DoT の防御種別。`PHYSICAL` / `MAGIC` / `TRUE` |
+| `conditions[].damageElement` | String | 任意 | 種別既定 | DoT の属性種別 |
 
 ### adventurer_starter_attack params
 
 `implementationId: adventurer_starter_attack` は冒険者の序盤発動スキル向けの攻撃 executor です。
 ダメージ処理は `normal_attack` と同じ custom combat 経路を使い、`starterStyle` に応じて通常攻撃と区別できる発動演出を追加します。
-`attackType`、`damageType`、`particle`、`hitRange` などの攻撃パラメータは `normal_attack` と同じキーを使用します。
+`attackType`、`damageType`、`damageElement`、`conditions[]`、`particle`、`hitRange` などの攻撃パラメータは `normal_attack` と同じキーを使用します。
 
 | キー | 型 | 必須 | 既定値 | 説明 |
 | --- | --- | --- | --- | --- |
@@ -75,6 +94,36 @@ requiredLevel: 1
 params:
   strengthDurationTicks: 400
   strengthAmplifier: 1
+tags:
+  - active
+  - fire
+```
+
+### 属性攻撃 + 状態異常付与
+
+```yaml
+schemaVersion: 1
+id: mg_active_ember_lance
+type: SKILL
+implementationId: normal_attack
+name: "&cエンバーランス"
+icon: BLAZE_ROD
+cooldownTicks: 80
+manaCost: 8
+params:
+  attackType: MAGIC
+  damageType: MAGIC
+  damageElement: FIRE
+  hitRange: 8
+  conditions:
+    - type: BURNING
+      chance: 35
+      durationTicks: 100
+      basePower: 2.0
+      powerCoefficient: 0.25
+      tickIntervalTicks: 20
+      damageType: MAGIC
+      damageElement: FIRE
 tags:
   - active
   - fire
