@@ -324,6 +324,16 @@ public class MenuView {
         craftShortcutView.removeCraftShortcutItems(player);
     }
 
+    /**
+     * プレイヤークラフト欄に表示するメニューショートカット用ダミーアイテムかを判定します。
+     *
+     * @param itemStack 判定対象の ItemStack。null または AIR の場合は false
+     * @return メニューショートカット用ダミーアイテムであれば true
+     */
+    public boolean isCraftShortcutItem(@Nullable ItemStack itemStack) {
+        return craftShortcutView.isCraftShortcutIcon(itemStack);
+    }
+
     public boolean isMenuInventory(@Nullable Inventory inventory) {
         return inventory != null && inventory.getHolder() instanceof MenuInventoryHolder;
     }

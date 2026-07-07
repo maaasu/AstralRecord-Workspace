@@ -30,18 +30,25 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -52,6 +59,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MenuOpenEventHandler extends AbstractEventHandler {
     private static final long BUFF_GUI_REFRESH_INTERVAL_TICKS = 20L;
+    private static final long CRAFT_SHORTCUT_DROP_CLEANUP_INTERVAL_TICKS = 20L * 60L;
     private static final long ACCOUNTS_CACHE_TTL_MILLIS = 5_000L;
 
     private final AstralRecord plugin;
@@ -67,6 +75,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     private final ReturnToBaseService returnToBaseService;
     private final Set<UUID> craftRenderSuppressed = ConcurrentHashMap.newKeySet();
     private final ConcurrentHashMap<UUID, CachedAccounts> cachedAccountsByUserId = new ConcurrentHashMap<>();
+    private final BukkitTask buffGuiRefreshTask;
+    private final BukkitTask craftShortcutDropCleanupTask;
 
     /**
      * メニュー GUI 全体のイベント振り分けを行うハンドラを初期化します。
@@ -106,12 +116,25 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         this.storageService = storageService;
         this.skillTreeService = skillTreeService;
         this.returnToBaseService = returnToBaseService;
-        plugin.getServer().getScheduler().runTaskTimer(
+        this.buffGuiRefreshTask = plugin.getServer().getScheduler().runTaskTimer(
             plugin,
             (Runnable) this::refreshOpenBuffMenus,
             BUFF_GUI_REFRESH_INTERVAL_TICKS,
             BUFF_GUI_REFRESH_INTERVAL_TICKS
         );
+        this.craftShortcutDropCleanupTask = plugin.getServer().getScheduler().runTaskTimer(
+            plugin,
+            (Runnable) this::removeDroppedCraftShortcutItems,
+            CRAFT_SHORTCUT_DROP_CLEANUP_INTERVAL_TICKS,
+            CRAFT_SHORTCUT_DROP_CLEANUP_INTERVAL_TICKS
+        );
+    }
+
+    @Override
+    public void cleanup() {
+        super.cleanup();
+        buffGuiRefreshTask.cancel();
+        craftShortcutDropCleanupTask.cancel();
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -190,11 +213,60 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerJoin(PlayerJoinEvent event) {
-        runSafely(() -> plugin.getServer().getScheduler().runTaskLater(
-            plugin,
-            () -> scheduleCraftShortcutRender(event.getPlayer()),
-            2L
-        ), LogId.E_5600, event.getPlayer().getName());
+        runSafely(() -> {
+            cleanupCraftShortcuts(event.getPlayer(), true);
+            plugin.getServer().getScheduler().runTaskLater(
+                plugin,
+                () -> {
+                    cleanupCraftShortcuts(event.getPlayer(), true);
+                    scheduleCraftShortcutRender(event.getPlayer());
+                },
+                2L
+            );
+        }, LogId.E_5600, event.getPlayer().getName());
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        runSafely(() -> cleanupCraftShortcuts(event.getPlayer(), false), LogId.E_5600, event.getPlayer().getName());
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onPlayerChangedWorld(PlayerChangedWorldEvent event) {
+        runSafely(() -> cleanupCraftShortcuts(event.getPlayer(), true), LogId.E_5600, event.getPlayer().getName());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPlayerDropItem(PlayerDropItemEvent event) {
+        runSafely(() -> {
+            if (!menuView.isCraftShortcutItem(event.getItemDrop().getItemStack())) {
+                return;
+            }
+            event.setCancelled(true);
+            event.getItemDrop().remove();
+            cleanupCraftShortcuts(event.getPlayer(), true);
+        }, LogId.E_5600, event.getPlayer().getName());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onItemSpawn(ItemSpawnEvent event) {
+        runSafely(() -> {
+            if (!menuView.isCraftShortcutItem(event.getEntity().getItemStack())) {
+                return;
+            }
+            event.setCancelled(true);
+        }, LogId.E_5600, event.getEntity().getWorld().getName());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onEntityPickupItem(EntityPickupItemEvent event) {
+        runSafely(() -> {
+            if (!menuView.isCraftShortcutItem(event.getItem().getItemStack())) {
+                return;
+            }
+            event.setCancelled(true);
+            event.getItem().remove();
+        }, LogId.E_5600, event.getItem().getWorld().getName());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -746,6 +818,34 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     private void resumeCraftRendering(@NotNull Player player) {
         craftRenderSuppressed.remove(player.getUniqueId());
         scheduleCraftShortcutRender(player);
+    }
+
+    private void cleanupCraftShortcuts(@NotNull Player player, boolean updateInventory) {
+        craftRenderSuppressed.add(player.getUniqueId());
+        try {
+            menuView.clearCraftShortcuts(player);
+            menuView.removeCraftShortcutItems(player);
+            removeDroppedCraftShortcutItems(player.getWorld());
+            if (updateInventory) {
+                player.updateInventory();
+            }
+        } finally {
+            craftRenderSuppressed.remove(player.getUniqueId());
+        }
+    }
+
+    private void removeDroppedCraftShortcutItems() {
+        for (World world : plugin.getServer().getWorlds()) {
+            removeDroppedCraftShortcutItems(world);
+        }
+    }
+
+    private void removeDroppedCraftShortcutItems(@NotNull World world) {
+        for (org.bukkit.entity.Item item : world.getEntitiesByClass(org.bukkit.entity.Item.class)) {
+            if (menuView.isCraftShortcutItem(item.getItemStack())) {
+                item.remove();
+            }
+        }
     }
 
     private @NotNull List<AccountModel> getCachedAccounts(@NotNull UUID userId) {
