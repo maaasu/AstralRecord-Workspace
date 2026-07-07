@@ -138,7 +138,7 @@ public final class QuestGui {
         if (meta == null) {
             return item;
         }
-        meta.displayName(Component.text(quest.name(), color(state), TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false));
+        meta.displayName(questDisplayName(quest, state));
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text("状態: " + stateLabel(state), color(state)).decoration(TextDecoration.ITALIC, false));
         for (String line : quest.description()) {
@@ -233,6 +233,22 @@ public final class QuestGui {
             case COMPLETED -> NamedTextColor.DARK_GRAY;
             case COOLDOWN -> NamedTextColor.YELLOW;
             case LOCKED -> NamedTextColor.RED;
+        };
+    }
+
+    private @NotNull Component questDisplayName(@NotNull QuestDefinition quest, @NotNull QuestDisplayState state) {
+        String text = ColorCodeUtil.BOLD + colorCode(state) + ColorCodeUtil.toLegacyText(quest.name(), quest.id());
+        return LEGACY.deserialize(text).decoration(TextDecoration.ITALIC, false);
+    }
+
+    private @NotNull String colorCode(@NotNull QuestDisplayState state) {
+        return switch (state) {
+            case AVAILABLE -> ColorCodeUtil.GREEN;
+            case IN_PROGRESS -> ColorCodeUtil.AQUA;
+            case READY_TO_TURN_IN -> ColorCodeUtil.GOLD;
+            case COMPLETED -> ColorCodeUtil.DARK_GRAY;
+            case COOLDOWN -> ColorCodeUtil.YELLOW;
+            case LOCKED -> ColorCodeUtil.RED;
         };
     }
 

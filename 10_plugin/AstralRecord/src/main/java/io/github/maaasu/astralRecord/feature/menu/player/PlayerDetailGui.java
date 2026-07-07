@@ -143,7 +143,6 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         boolean self = viewer.getUniqueId().equals(target.getBukkit().getUniqueId());
         fill(inventory);
         inventory.setItem(BACK_SLOT, backItem());
-        inventory.setItem(CLOSE_SLOT, closeItem());
         inventory.setItem(HEAD_SLOT, playerHead(target, classDisplayName));
         inventory.setItem(USER_SLOT, profileItem(target));
         inventory.setItem(ACCOUNT_SLOT, accountItem(target));

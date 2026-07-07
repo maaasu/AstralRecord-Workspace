@@ -178,11 +178,6 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
     }
 
     private void handlePlayerDetailClick(@NotNull Player player, int rawSlot, @NotNull org.bukkit.inventory.Inventory inventory) {
-        if (rawSlot == BaseMenuScreenView.CLOSE_SLOT) {
-            GuiSound.CLOSE.play(player);
-            player.closeInventory();
-            return;
-        }
         if (rawSlot == PlayerDetailGui.TRADE_SLOT) {
             handleTradeRequest(player, inventory);
             return;
