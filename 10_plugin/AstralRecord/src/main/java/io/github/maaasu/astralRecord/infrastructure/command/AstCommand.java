@@ -351,4 +351,13 @@ public abstract class AstCommand implements CommandExecutor {
     public String getUsage() { return usage; }
     public int getRequiredPermissionLevel() { return requiredPermissionLevel; }
     public boolean isPlayerOnly() { return playerOnly; }
+
+    /**
+     * 使用方法の定義から、このコマンドが引数を受け取る可能性があるかを返します。
+     *
+     * @return 使用方法にコマンド名以外のトークンがある場合は true
+     */
+    final boolean acceptsArguments() {
+        return usage.trim().indexOf(' ') >= 0;
+    }
 }

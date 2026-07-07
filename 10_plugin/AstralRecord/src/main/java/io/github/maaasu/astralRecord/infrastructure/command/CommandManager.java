@@ -28,6 +28,7 @@ import java.util.*;
 public class CommandManager {
 
     private static CommandManager instance;
+    private static final String ARGUMENTS_NODE_NAME = "args";
 
     /** 登録されたコマンドのマップ */
     private final Map<String, AstCommand> registeredCommands = new HashMap<>();
@@ -127,40 +128,40 @@ public class CommandManager {
             var literalBuilder = Commands.literal(commandName)
                     .requires(stack -> command.canUse(stack.getSender()));
 
-            com.mojang.brigadier.Command<io.papermc.paper.command.brigadier.CommandSourceStack> executor = ctx -> {
-                String input = ctx.getInput();
-                String[] allParts = input.split(" ");
-                String[] args = allParts.length > 1
-                        ? Arrays.copyOfRange(allParts, 1, allParts.length)
-                        : new String[0];
-                command.onCommand(ctx.getSource().getSender(), null, commandName, args);
-                return com.mojang.brigadier.Command.SINGLE_SUCCESS;
-            };
+            literalBuilder.executes(ctx -> executeRegisteredCommand(ctx, commandName, command, new String[0]));
 
-            literalBuilder.executes(executor);
-
+            var argumentBuilder = Commands.argument(ARGUMENTS_NODE_NAME,
+                            com.mojang.brigadier.arguments.StringArgumentType.greedyString())
+                    .executes(ctx -> executeRegisteredCommand(
+                            ctx,
+                            commandName,
+                            command,
+                            splitArguments(com.mojang.brigadier.arguments.StringArgumentType.getString(
+                                    ctx,
+                                    ARGUMENTS_NODE_NAME
+                            ))
+                    ));
             if (tabCompleter != null) {
-                literalBuilder.then(
-                        Commands.argument("args",
-                                com.mojang.brigadier.arguments.StringArgumentType.greedyString())
-                                .suggests((ctx, builder) -> {
-                                    String input = ctx.getInput();
-                                    String[] allParts = input.split(" ", -1);
-                                    String[] args = allParts.length > 1
-                                            ? Arrays.copyOfRange(allParts, 1, allParts.length)
-                                            : new String[0];
+                argumentBuilder.suggests((ctx, builder) -> {
+                    String input = ctx.getInput();
+                    String[] allParts = input.split(" ", -1);
+                    String[] args = allParts.length > 1
+                            ? Arrays.copyOfRange(allParts, 1, allParts.length)
+                            : new String[0];
 
-                                    List<String> suggestions = tabCompleter.onTabComplete(
-                                            ctx.getSource().getSender(), null, commandName, args);
-                                    int currentArgumentStart = input.lastIndexOf(' ') + 1;
-                                    var argumentBuilder = builder.createOffset(currentArgumentStart);
+                    List<String> suggestions = tabCompleter.onTabComplete(
+                            ctx.getSource().getSender(), null, commandName, args);
+                    int currentArgumentStart = input.lastIndexOf(' ') + 1;
+                    var suggestionBuilder = builder.createOffset(currentArgumentStart);
 
-                                    suggestions.stream()
-                                            .forEach(argumentBuilder::suggest);
-                                    return argumentBuilder.buildFuture();
-                                })
-                                .executes(executor)
-                );
+                    suggestions.stream()
+                            .forEach(suggestionBuilder::suggest);
+                    return suggestionBuilder.buildFuture();
+                });
+            }
+
+            if (command.acceptsArguments()) {
+                literalBuilder.then(argumentBuilder);
             }
 
             commands.register(literalBuilder.build(), command.getDescription(),
@@ -170,6 +171,39 @@ public class CommandManager {
         } catch (Exception e) {
             Logger.log(LogId.E_1500, e, commandName);
         }
+    }
+
+    /**
+     * Brigadier の実行コンテキストから既存の AstCommand 実装へ処理を委譲します。
+     *
+     * @param ctx Brigadier 実行コンテキスト
+     * @param commandName 登録コマンド名
+     * @param command 実行対象のコマンド
+     * @param args コマンド引数
+     * @return Brigadier の成功ステータス
+     */
+    private int executeRegisteredCommand(
+            @NotNull com.mojang.brigadier.context.CommandContext<io.papermc.paper.command.brigadier.CommandSourceStack> ctx,
+            @NotNull String commandName,
+            @NotNull AstCommand command,
+            @NotNull String[] args
+    ) {
+        command.onCommand(ctx.getSource().getSender(), null, commandName, args);
+        return com.mojang.brigadier.Command.SINGLE_SUCCESS;
+    }
+
+    /**
+     * Brigadier の greedyString で受け取った引数文字列を AstCommand 向けの配列へ分割します。
+     *
+     * @param argumentText コマンド名を除いた引数文字列
+     * @return 空白区切りの引数配列。空文字または空白のみの場合は空配列
+     */
+    private @NotNull String[] splitArguments(@NotNull String argumentText) {
+        String trimmed = argumentText.trim();
+        if (trimmed.isEmpty()) {
+            return new String[0];
+        }
+        return trimmed.split("\\s+");
     }
 
     /**
