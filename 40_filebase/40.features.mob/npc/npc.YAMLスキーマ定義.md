@@ -133,5 +133,5 @@ interactions:
     - id: gui
       params:
         type: SHOP
-        shopId: starter_equipment_shop
+        shopId: armor_shop
 ```

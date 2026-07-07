@@ -1,21 +1,21 @@
 schemaVersion: 1
-id: equipment_merchant
+id: weapon_shopkeeper
 type: MOB
 category: NPC
-name: "&6Armor Merchant Daren"
-title: "&7Armor Shop"
+name: "&6Weapon Merchant Rook"
+title: "&7Weapon Shop"
 level: 1
 entityType: PLAYER
 nameVisible: true
 damageImmune: true
-icon: IRON_CHESTPLATE
+icon: IRON_SWORD
 lore:
-  - "&7A merchant who keeps armor for new and returning adventurers."
-  - "&7Right-click to open the armor shop."
+  - "&7A merchant who gathers blades, bows, and staves for adventurers."
+  - "&7Right-click to open the weapon shop."
 tags:
   - npc
   - shop
-  - armor_shop
+  - weapon_shop
 
 baseStats:
   - status: MAX_HEALTH
@@ -31,9 +31,9 @@ interactions:
   leftClick:
     - id: message
       params:
-        message: "&6Armor Merchant Daren&7: Right-click to browse armor."
+        message: "&6Weapon Merchant Rook&7: Right-click to browse weapons."
   rightClick:
     - id: gui
       params:
         type: SHOP
-        shopId: armor_shop
+        shopId: weapon_shop
