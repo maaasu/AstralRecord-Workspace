@@ -41,6 +41,9 @@ id: temple_consumable
 name: &bテンプレ消耗品
 icon: potion
 rarity: COMMON
+appearance:
+  color: "#E84D4D"
+  potionType: HEALING
 lore:
   - &7テストポーション
 untradeable: false

@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.item.model.RuneInstance
 import io.github.maaasu.astralRecord.feature.item.model.RuneStatRoll
 import io.github.maaasu.astralRecord.feature.item.model.ItemBundle
 import io.github.maaasu.astralRecord.feature.item.model.ItemBundleOnUse
+import io.github.maaasu.astralRecord.feature.item.model.ItemAppearance
 import io.github.maaasu.astralRecord.feature.item.model.ItemConsumable
 import io.github.maaasu.astralRecord.feature.item.model.ItemConsumableEffect
 import io.github.maaasu.astralRecord.feature.item.model.ItemConsumableEffectType
@@ -401,6 +402,7 @@ class ItemRepository {
             } else {
                 null
             },
+            appearance = parseAppearance(obj),
             lore = parseLore(obj.getAsJsonArray("lore")),
             unTradeable = obj.get("unTradeable")?.asBoolean ?: false,
             unSellable = obj.get("unSellable")?.asBoolean ?: false,
@@ -410,6 +412,16 @@ class ItemRepository {
             rune = parseRune(obj),
             consumable = parseConsumable(obj),
         )
+    }
+
+    private fun parseAppearance(obj: JsonObject): ItemAppearance? {
+        val appearanceObj = parseObjectOrNull(obj, "appearance") ?: return null
+        val color = parseStringOrNull(appearanceObj, "color")
+        val potionType = parseStringOrNull(appearanceObj, "potionType")
+        if (color == null && potionType == null) {
+            return null
+        }
+        return ItemAppearance(color = color, potionType = potionType)
     }
 
     private fun parseBundle(obj: JsonObject): ItemBundle? {

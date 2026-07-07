@@ -86,6 +86,37 @@ public class MobRepositoryPayloadTests
         Assert.Equal(35.0D, mob.Challenge.Scaling.HealthPerExtraPlayer);
     }
 
+    [Fact]
+    public void DeserializeLiteralJson_PopulatesVariant()
+    {
+        var json = """
+            {
+              "schemaVersion": 1,
+              "id": "village_elder",
+              "category": "NPC",
+              "name": "Village Elder",
+              "level": 1,
+              "entityType": "VILLAGER",
+              "variant": {
+                "age": "ADULT",
+                "villagerType": "PLAINS",
+                "profession": "LIBRARIAN",
+                "villagerLevel": 3
+              },
+              "baseStats": []
+            }
+            """;
+
+        var mob = JsonSerializer.Deserialize<MobResponse>(json, MasterDataJsonOptions());
+
+        Assert.NotNull(mob);
+        Assert.NotNull(mob!.Variant);
+        Assert.Equal("ADULT", mob.Variant!.Age);
+        Assert.Equal("PLAINS", mob.Variant.VillagerType);
+        Assert.Equal("LIBRARIAN", mob.Variant.Profession);
+        Assert.Equal(3, mob.Variant.VillagerLevel);
+    }
+
     private static JsonSerializerOptions MasterDataJsonOptions()
     {
         var payloadType = typeof(MobRepository)

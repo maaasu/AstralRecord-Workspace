@@ -61,6 +61,36 @@ Mob に HP より先に消費されるシールドを持たせる場合だけ定
 | キー | 型 | 必須 | 既定値 | 説明 |
 |:--|:--|:--:|:--|:--|
 | `variant.age` | String | × | `ADULT` | 年齢表現。`ADULT` / `BABY` |
+| `variant.kind` | String | × | Null | エンティティ固有の種類。Cat/Rabbit/Fox/Frog/Axolotl/Parrot/Mooshroom など、Bukkit 側の variant/type setter に渡す enum 名 |
+| `variant.color` | String | × | Null | エンティティ固有の色。Sheep/Horse/Llama など、Bukkit 側の color setter に渡す enum 名 |
+| `variant.style` | String | × | Null | Horse などの模様。Bukkit 側の style setter に渡す enum 名 |
+| `variant.profession` | String | × | Null | Villager / ZombieVillager の職業。Bukkit `Villager.Profession` 名 |
+| `variant.villagerType` | String | × | Null | Villager のバイオーム種別。Bukkit `Villager.Type` 名 |
+| `variant.villagerLevel` | Integer | × | Null | Villager の取引レベル。`1` - `5` に丸めて適用する |
+| `variant.pattern` | String | × | Null | TropicalFish などの模様。Bukkit 側の pattern setter に渡す enum 名 |
+| `variant.bodyColor` | String | × | Null | TropicalFish などの体色。Bukkit `DyeColor` 名 |
+| `variant.patternColor` | String | × | Null | TropicalFish などの模様色。Bukkit `DyeColor` 名 |
+| `variant.mainGene` | String | × | Null | Panda の主遺伝子。Bukkit `Panda.Gene` 名 |
+| `variant.hiddenGene` | String | × | Null | Panda の隠し遺伝子。Bukkit `Panda.Gene` 名 |
+
+未対応の `entityType` に指定された variant キーは無視されます。enum 名は大文字・小文字、ハイフン、空白の揺れを吸収して扱います。
+
+```yaml
+entityType: VILLAGER
+variant:
+  age: ADULT
+  villagerType: PLAINS
+  profession: LIBRARIAN
+  villagerLevel: 3
+```
+
+```yaml
+entityType: TROPICAL_FISH
+variant:
+  pattern: KOB
+  bodyColor: BLUE
+  patternColor: YELLOW
+```
 
 ### equipment（装備設定）
 

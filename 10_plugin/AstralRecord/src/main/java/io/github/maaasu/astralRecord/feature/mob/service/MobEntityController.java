@@ -32,6 +32,7 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import java.lang.reflect.Method;
 import java.util.UUID;
 
 /**
@@ -266,16 +267,97 @@ public class MobEntityController {
     }
 
     void applyVariant(@NotNull MobTemplate template, @NotNull Mob mob) {
-        if (!(mob instanceof Ageable ageable)) {
+        if (mob instanceof Ageable ageable) {
+            switch (template.variant().age()) {
+                case BABY -> ageable.setBaby();
+                case ADULT -> ageable.setAdult();
+            }
+            if (ageable instanceof Breedable breedable) {
+                breedable.setAgeLock(true);
+            }
+        }
+
+        var variant = template.variant();
+        applyEnumVariant(mob, "setVariant", variant.kind());
+        applyEnumVariant(mob, "setCatType", variant.kind());
+        applyEnumVariant(mob, "setRabbitType", variant.kind());
+        applyEnumVariant(mob, "setFoxType", variant.kind());
+        applyEnumVariant(mob, "setColor", variant.color());
+        applyEnumVariant(mob, "setStyle", variant.style());
+        applyEnumVariant(mob, "setProfession", variant.profession());
+        applyEnumVariant(mob, "setVillagerProfession", variant.profession());
+        applyEnumVariant(mob, "setVillagerType", variant.villagerType());
+        applyIntVariant(mob, "setVillagerLevel", variant.villagerLevel(), 1, 5);
+        applyEnumVariant(mob, "setPattern", variant.pattern());
+        applyEnumVariant(mob, "setBodyColor", variant.bodyColor());
+        applyEnumVariant(mob, "setPatternColor", variant.patternColor());
+        applyEnumVariant(mob, "setMainGene", variant.mainGene());
+        applyEnumVariant(mob, "setHiddenGene", variant.hiddenGene());
+    }
+
+    private void applyEnumVariant(@NotNull Entity entity, @NotNull String methodName, @Nullable String rawValue) {
+        if (rawValue == null || rawValue.isBlank()) {
             return;
         }
 
-        switch (template.variant().age()) {
-            case BABY -> ageable.setBaby();
-            case ADULT -> ageable.setAdult();
+        for (Method method : entity.getClass().getMethods()) {
+            if (!method.getName().equals(methodName) || method.getParameterCount() != 1) {
+                continue;
+            }
+            Class<?> parameterType = method.getParameterTypes()[0];
+            if (!parameterType.isEnum()) {
+                continue;
+            }
+            Object enumValue = resolveEnumValue(parameterType, rawValue);
+            if (enumValue == null) {
+                continue;
+            }
+            try {
+                method.invoke(entity, enumValue);
+            } catch (ReflectiveOperationException | RuntimeException ignored) {
+                // EntityType と setter の組み合わせが合わない場合は外見差分を無視する。
+            }
+            return;
         }
-        if (ageable instanceof Breedable breedable) {
-            breedable.setAgeLock(true);
+    }
+
+    @Nullable
+    private Object resolveEnumValue(@NotNull Class<?> enumType, @NotNull String rawValue) {
+        for (Object candidate : enumType.getEnumConstants()) {
+            if (candidate instanceof Enum<?> enumCandidate
+                    && enumCandidate.name().equalsIgnoreCase(rawValue)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    private void applyIntVariant(
+            @NotNull Entity entity,
+            @NotNull String methodName,
+            @Nullable Integer rawValue,
+            int min,
+            int max
+    ) {
+        if (rawValue == null) {
+            return;
+        }
+
+        int value = Math.clamp(rawValue, min, max);
+        for (Method method : entity.getClass().getMethods()) {
+            if (!method.getName().equals(methodName) || method.getParameterCount() != 1) {
+                continue;
+            }
+            Class<?> parameterType = method.getParameterTypes()[0];
+            if (parameterType != int.class && parameterType != Integer.class) {
+                continue;
+            }
+            try {
+                method.invoke(entity, value);
+            } catch (ReflectiveOperationException | RuntimeException ignored) {
+                // EntityType と setter の組み合わせが合わない場合は外見差分を無視する。
+            }
+            return;
         }
     }
 

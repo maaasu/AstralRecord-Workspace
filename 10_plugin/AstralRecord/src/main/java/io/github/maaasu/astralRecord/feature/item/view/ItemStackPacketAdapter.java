@@ -156,8 +156,10 @@ public class ItemStackPacketAdapter {
     private ItemStack replaceIcon(@NotNull ItemStack original) {
         var iconName = ItemStackFactory.getIconName(original);
         var customModelData = ItemStackFactory.getCustomModelData(original);
+        var appearanceColor = ItemStackFactory.getAppearanceColor(original);
+        var potionType = ItemStackFactory.getPotionType(original);
 
-        if (iconName == null && customModelData == null) {
+        if (iconName == null && customModelData == null && appearanceColor == null && potionType == null) {
             return null;
         }
 
@@ -182,6 +184,10 @@ public class ItemStackPacketAdapter {
                     modified = true;
                 }
             }
+        }
+
+        if (ItemStackFactory.applyAppearance(replaced)) {
+            modified = true;
         }
 
         return modified ? replaced : null;

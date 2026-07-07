@@ -128,6 +128,44 @@ public class ItemRepositoryEnhanceMasterTests
         Assert.Single(item.Equipment.Enhance.Levels);
     }
 
+    [Fact]
+    public void DeserializeLiteralJson_PopulatesAppearance()
+    {
+        var payloadType = typeof(ItemRepository)
+            .Assembly
+            .GetType("AstralRecordApi.Repositories.MasterDataPayloadJson", throwOnError: true)!;
+        var options = (System.Text.Json.JsonSerializerOptions)payloadType
+            .GetField("Options", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)!
+            .GetValue(null)!;
+
+        var json = """
+            {
+              "schemaVersion": 1,
+              "id": "starter_chestplate",
+              "category": "equipment",
+              "name": "starter chestplate",
+              "icon": "LEATHER_CHESTPLATE",
+              "rarity": "COMMON",
+              "appearance": {
+                "color": "#7A5A3A",
+                "potionType": "HEALING"
+              },
+              "equipment": {
+                "slot": "CHEST",
+                "requiredLevel": 0,
+                "stats": []
+              }
+            }
+            """;
+
+        var item = System.Text.Json.JsonSerializer.Deserialize<ItemResponse>(json, options);
+
+        Assert.NotNull(item);
+        Assert.NotNull(item!.Appearance);
+        Assert.Equal("#7A5A3A", item.Appearance!.Color);
+        Assert.Equal("HEALING", item.Appearance.PotionType);
+    }
+
     private static async Task<MasterDataDbContext> CreateSeededMasterDataDbContextAsync()
     {
         var connection = new SqliteConnection("Data Source=:memory:");

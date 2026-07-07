@@ -31,6 +31,8 @@ public class MobResponse
 
     public MobSkinResponse? Skin { get; init; }
 
+    public MobVariantResponse? Variant { get; init; }
+
     public MobEquipmentResponse? Equipment { get; init; }
 
     public IReadOnlyList<MobBaseStatResponse> BaseStats { get; init; } = [];
@@ -70,6 +72,34 @@ public class MobSkinResponse
     public string? Texture { get; init; }
 
     public string? Signature { get; init; }
+}
+
+/// <summary>Mob のバニラ外見差分を固定する設定。</summary>
+public class MobVariantResponse
+{
+    public string? Age { get; init; }
+
+    public string? Kind { get; init; }
+
+    public string? Color { get; init; }
+
+    public string? Style { get; init; }
+
+    public string? Profession { get; init; }
+
+    public string? VillagerType { get; init; }
+
+    public int? VillagerLevel { get; init; }
+
+    public string? Pattern { get; init; }
+
+    public string? BodyColor { get; init; }
+
+    public string? PatternColor { get; init; }
+
+    public string? MainGene { get; init; }
+
+    public string? HiddenGene { get; init; }
 }
 
 /// <summary>Mob 装備設定（表示のみ。ダメージ計算には影響しない）。</summary>

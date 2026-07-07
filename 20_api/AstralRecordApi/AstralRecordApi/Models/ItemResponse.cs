@@ -18,6 +18,8 @@ public class ItemResponse
 
     public int? CustomModelData { get; init; }
 
+    public ItemAppearanceResponse? Appearance { get; init; }
+
     public int MaxStack { get; init; } = 64;
 
     public IReadOnlyList<string> Lore { get; init; } = [];
@@ -35,6 +37,13 @@ public class ItemResponse
     public ItemBundleResponse? Bundle { get; init; }
 
     public ItemRuneResponse? Rune { get; init; }
+}
+
+public class ItemAppearanceResponse
+{
+    public string? Color { get; init; }
+
+    public string? PotionType { get; init; }
 }
 
 public class ItemSummaryResponse

@@ -217,7 +217,24 @@ public class MobRepository {
     @NotNull
     private MobVariantConfig parseVariant(@Nullable JsonObject obj) {
         if (obj == null) return MobVariantConfig.DEFAULT;
-        return MobVariantConfig.fromRawAge(optionalString(obj, "age"));
+        Integer villagerLevel = null;
+        if (obj.has("villagerLevel") && !obj.get("villagerLevel").isJsonNull() && obj.get("villagerLevel").isJsonPrimitive()) {
+            villagerLevel = obj.get("villagerLevel").getAsInt();
+        }
+        return new MobVariantConfig(
+                MobVariantConfig.Age.fromRaw(optionalString(obj, "age")),
+                optionalString(obj, "kind"),
+                optionalString(obj, "color"),
+                optionalString(obj, "style"),
+                optionalString(obj, "profession"),
+                optionalString(obj, "villagerType"),
+                villagerLevel,
+                optionalString(obj, "pattern"),
+                optionalString(obj, "bodyColor"),
+                optionalString(obj, "patternColor"),
+                optionalString(obj, "mainGene"),
+                optionalString(obj, "hiddenGene")
+        );
     }
 
     @NotNull

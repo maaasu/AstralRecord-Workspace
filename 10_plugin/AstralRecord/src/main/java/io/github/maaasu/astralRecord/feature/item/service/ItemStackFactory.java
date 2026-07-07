@@ -31,14 +31,18 @@ import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.infrastructure.util.CustomModelDataComponentUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ItemFlag;
+import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.potion.PotionType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -77,6 +81,14 @@ public class ItemStackFactory {
     /** PDC キー: カスタムモデルデータ */
     private static final NamespacedKey KEY_CUSTOM_MODEL_DATA =
             new NamespacedKey("astralrecord", "custom_model_data");
+
+    /** PDC キー: バニラ外見色 */
+    private static final NamespacedKey KEY_APPEARANCE_COLOR =
+            new NamespacedKey("astralrecord", "appearance_color");
+
+    /** PDC キー: ポーション種別 */
+    private static final NamespacedKey KEY_POTION_TYPE =
+            new NamespacedKey("astralrecord", "potion_type");
 
     /** PDC キー: カテゴリ */
     private static final NamespacedKey KEY_CATEGORY =
@@ -204,10 +216,11 @@ public class ItemStackFactory {
         }
 
         Material iconMaterial = resolveIconMaterial(iconName);
-        if (iconMaterial == null || iconMaterial == item.getType()) {
-            return item.clone();
-        }
-        return item.withType(iconMaterial);
+        ItemStack replaced = iconMaterial == null || iconMaterial == item.getType()
+                ? item.clone()
+                : item.withType(iconMaterial);
+        applyAppearance(replaced);
+        return replaced;
     }
 
     /**
@@ -254,14 +267,8 @@ public class ItemStackFactory {
             meta.addEnchant(Enchantment.UNBREAKING, 1, true);
         }
 
+        writeCommonPersistentData(meta.getPersistentDataContainer(), model);
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
-        pdc.set(KEY_ITEM_ID, PersistentDataType.STRING, model.getId());
-        pdc.set(KEY_ICON, PersistentDataType.STRING, model.getIcon().toUpperCase(Locale.ROOT));
-        if (model.getCustomModelData() != null) {
-            pdc.set(KEY_CUSTOM_MODEL_DATA, PersistentDataType.INTEGER, model.getCustomModelData());
-        }
-        pdc.set(KEY_CATEGORY, PersistentDataType.STRING, model.getCategory());
-        pdc.set(KEY_RARITY, PersistentDataType.STRING, model.getRarity());
         pdc.set(KEY_EQUIPMENT_INSTANCE_ID, PersistentDataType.STRING, instance.getEquipmentInstanceId());
 
         item.setItemMeta(meta);
@@ -302,14 +309,8 @@ public class ItemStackFactory {
         }
         applyVanillaHideFlags(meta);
 
+        writeCommonPersistentData(meta.getPersistentDataContainer(), model);
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
-        pdc.set(KEY_ITEM_ID, PersistentDataType.STRING, model.getId());
-        pdc.set(KEY_ICON, PersistentDataType.STRING, model.getIcon().toUpperCase(Locale.ROOT));
-        if (model.getCustomModelData() != null) {
-            pdc.set(KEY_CUSTOM_MODEL_DATA, PersistentDataType.INTEGER, model.getCustomModelData());
-        }
-        pdc.set(KEY_CATEGORY, PersistentDataType.STRING, model.getCategory());
-        pdc.set(KEY_RARITY, PersistentDataType.STRING, model.getRarity());
         pdc.set(KEY_RUNE_INSTANCE_ID, PersistentDataType.STRING, instance.getRuneInstanceId());
 
         item.setItemMeta(meta);
@@ -380,6 +381,73 @@ public class ItemStackFactory {
         }
         return item.getItemMeta().getPersistentDataContainer()
                 .get(KEY_CUSTOM_MODEL_DATA, PersistentDataType.INTEGER);
+    }
+
+    /**
+     * ItemStack に埋め込まれた外見色を取得します。
+     *
+     * @param item 判定対象
+     * @return 色指定。未設定なら {@code null}
+     */
+    public static @Nullable String getAppearanceColor(@NotNull ItemStack item) {
+        if (!item.hasItemMeta()) {
+            return null;
+        }
+        return item.getItemMeta().getPersistentDataContainer()
+                .get(KEY_APPEARANCE_COLOR, PersistentDataType.STRING);
+    }
+
+    /**
+     * ItemStack に埋め込まれたポーション種別を取得します。
+     *
+     * @param item 判定対象
+     * @return PotionType 名。未設定なら {@code null}
+     */
+    public static @Nullable String getPotionType(@NotNull ItemStack item) {
+        if (!item.hasItemMeta()) {
+            return null;
+        }
+        return item.getItemMeta().getPersistentDataContainer()
+                .get(KEY_POTION_TYPE, PersistentDataType.STRING);
+    }
+
+    /**
+     * 表示用 ItemStack にバニラ外見差分を適用します。
+     *
+     * @param item 適用対象 ItemStack
+     * @return ItemMeta を更新した場合は {@code true}
+     */
+    public static boolean applyAppearance(@NotNull ItemStack item) {
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return false;
+        }
+
+        String colorText = meta.getPersistentDataContainer()
+                .get(KEY_APPEARANCE_COLOR, PersistentDataType.STRING);
+        String potionTypeText = meta.getPersistentDataContainer()
+                .get(KEY_POTION_TYPE, PersistentDataType.STRING);
+        boolean modified = false;
+
+        Color color = parseColor(colorText);
+        if (color != null && meta instanceof LeatherArmorMeta leatherArmorMeta) {
+            leatherArmorMeta.setColor(color);
+            modified = true;
+        }
+        if (color != null && meta instanceof PotionMeta potionMeta) {
+            potionMeta.setColor(color);
+            modified = true;
+        }
+        PotionType potionType = parsePotionType(potionTypeText);
+        if (potionType != null && meta instanceof PotionMeta potionMeta) {
+            potionMeta.setBasePotionType(potionType);
+            modified = true;
+        }
+
+        if (modified) {
+            item.setItemMeta(meta);
+        }
+        return modified;
     }
 
     /**
@@ -461,14 +529,7 @@ public class ItemStackFactory {
         applyVanillaHideFlags(meta);
 
         // --- PDC にメタ情報を格納 ---
-        PersistentDataContainer pdc = meta.getPersistentDataContainer();
-        pdc.set(KEY_ITEM_ID, PersistentDataType.STRING, model.getId());
-        pdc.set(KEY_ICON, PersistentDataType.STRING, model.getIcon().toUpperCase(Locale.ROOT));
-        if (model.getCustomModelData() != null) {
-            pdc.set(KEY_CUSTOM_MODEL_DATA, PersistentDataType.INTEGER, model.getCustomModelData());
-        }
-        pdc.set(KEY_CATEGORY, PersistentDataType.STRING, model.getCategory());
-        pdc.set(KEY_RARITY, PersistentDataType.STRING, model.getRarity());
+        writeCommonPersistentData(meta.getPersistentDataContainer(), model);
 
         item.setItemMeta(meta);
 
@@ -1301,6 +1362,74 @@ public class ItemStackFactory {
 
     private static void applyCustomModelData(@NotNull ItemMeta meta, int customModelData) {
         CustomModelDataComponentUtil.writeFromInt(meta, customModelData);
+    }
+
+    private static void writeCommonPersistentData(
+            @NotNull PersistentDataContainer pdc,
+            @NotNull ItemModel model
+    ) {
+        pdc.set(KEY_ITEM_ID, PersistentDataType.STRING, model.getId());
+        pdc.set(KEY_ICON, PersistentDataType.STRING, model.getIcon().toUpperCase(Locale.ROOT));
+        if (model.getCustomModelData() != null) {
+            pdc.set(KEY_CUSTOM_MODEL_DATA, PersistentDataType.INTEGER, model.getCustomModelData());
+        }
+        if (model.getAppearance() != null) {
+            if (model.getAppearance().getColor() != null && !model.getAppearance().getColor().isBlank()) {
+                pdc.set(KEY_APPEARANCE_COLOR, PersistentDataType.STRING, model.getAppearance().getColor().trim());
+            }
+            if (model.getAppearance().getPotionType() != null && !model.getAppearance().getPotionType().isBlank()) {
+                pdc.set(KEY_POTION_TYPE, PersistentDataType.STRING, model.getAppearance().getPotionType().trim());
+            }
+        }
+        pdc.set(KEY_CATEGORY, PersistentDataType.STRING, model.getCategory());
+        pdc.set(KEY_RARITY, PersistentDataType.STRING, model.getRarity());
+    }
+
+    private static @Nullable Color parseColor(@Nullable String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String normalized = raw.trim();
+        if (normalized.startsWith("#")) {
+            normalized = normalized.substring(1);
+        }
+        if (normalized.length() == 6) {
+            try {
+                int rgb = Integer.parseInt(normalized, 16);
+                return Color.fromRGB((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF);
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+
+        String[] parts = normalized.split(",");
+        if (parts.length != 3) {
+            return null;
+        }
+        try {
+            return Color.fromRGB(
+                    clampColor(Integer.parseInt(parts[0].trim())),
+                    clampColor(Integer.parseInt(parts[1].trim())),
+                    clampColor(Integer.parseInt(parts[2].trim()))
+            );
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private static int clampColor(int value) {
+        return Math.clamp(value, 0, 255);
+    }
+
+    private static @Nullable PotionType parsePotionType(@Nullable String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            return PotionType.valueOf(raw.trim().replace('-', '_').replace(' ', '_').toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
     }
 
     // endregion

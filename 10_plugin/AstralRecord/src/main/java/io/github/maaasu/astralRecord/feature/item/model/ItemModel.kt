@@ -13,6 +13,7 @@ data class ItemModel(
     val maxStack: Int = 64,
     val saleValue: Int,
     val customModelData: Int?,
+    val appearance: ItemAppearance?,
     val lore: List<String> = emptyList(),
     val unTradeable: Boolean,
     val unSellable: Boolean,

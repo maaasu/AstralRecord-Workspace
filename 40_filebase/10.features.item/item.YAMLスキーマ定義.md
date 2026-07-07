@@ -14,6 +14,7 @@ ITEMの基本的なスキーマ定義。
 | `rarity`          | String       | ○  | -         | rarityヘッダ参照                                            |
 | `saleValue`       | Integer      | ×  | 0         | 売却した際に得られるお金                                           |
 | `customModelData` | Integer      | ×  | Null      | クライアント側リソースパック用のモデルデータID (未実装予定)                       |
+| `appearance`      | Map          | ×  | Null      | 同じ `icon` Material 内のバニラ外見差分を固定する設定。革装備色、ポーション色/種別などに使用する |
 | `lore`            | List<String> | ×  | emptyList | アイテムの説明文（§または、&を使用した色コード利用可能）                          |
 | `unTradeable`     | Boolean      | ×  | false     | trueでトレード不可                                            |
 | `unSellable`      | Boolean      | ×  | false     | trueで売却不可                                              |
@@ -27,6 +28,15 @@ ITEMの基本的なスキーマ定義。
 - LEGENDARY (L, l, 0)
 - MYTHIC (M, m, 0)
 
+#### appearance
+
+`appearance` は Bukkit `Material` だけでは表せないバニラの細分化を指定します。未対応の Material に指定されたキーは無視されます。
+
+| キー | 型 | 必須 | デフォルト | 説明 |
+|:--|:--|:--:|:--|:--|
+| `appearance.color` | String | × | Null | 色指定。`#RRGGBB` または `R,G,B`。`LEATHER_*` 装備と `POTION` / `SPLASH_POTION` / `LINGERING_POTION` / `TIPPED_ARROW` の表示色に使用する |
+| `appearance.potionType` | String | × | Null | Bukkit `PotionType` 名。`HEALING`, `STRONG_HEALING`, `SWIFTNESS` など。PotionMeta を持つ Material に使用する |
+
 
 ## YAML 例
 
@@ -37,6 +47,8 @@ name: &b魔法の鉄鉱石
 icon: IRON_INGOT
 rarity: UNCOMMON
 customModelData: 10001
+appearance:
+  color: "#7A5A3A"
 lore:
   - &7魔力を帯びた珍しい鉄。
   - &7武器の強化に使用できる。
