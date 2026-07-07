@@ -10,7 +10,7 @@ items:
     amount: 1
     page: 1
     slot: 0
-    priceGold: 0
+    priceGold: 15
 
   - id: starter_chestplate
     itemId:
@@ -19,7 +19,7 @@ items:
     amount: 1
     page: 1
     slot: 1
-    priceGold: 0
+    priceGold: 30
 
   - id: starter_leggings
     itemId:
@@ -28,7 +28,7 @@ items:
     amount: 1
     page: 1
     slot: 2
-    priceGold: 0
+    priceGold: 25
 
   - id: starter_boots
     itemId:
@@ -37,7 +37,7 @@ items:
     amount: 1
     page: 1
     slot: 3
-    priceGold: 0
+    priceGold: 15
 
   - id: traveler_cap
     itemId:
@@ -47,6 +47,15 @@ items:
     page: 1
     slot: 4
     priceGold: 55
+    requiredItems:
+      - itemId:
+          ref: item:skygrass_fiber
+        category: material
+        amount: 3
+      - itemId:
+          ref: item:old_plank_chip
+        category: material
+        amount: 1
 
   - id: traveler_tunic
     itemId:
@@ -56,6 +65,15 @@ items:
     page: 1
     slot: 5
     priceGold: 85
+    requiredItems:
+      - itemId:
+          ref: item:skygrass_fiber
+        category: material
+        amount: 6
+      - itemId:
+          ref: item:old_plank_chip
+        category: material
+        amount: 2
 
   - id: traveler_wraps
     itemId:
@@ -65,6 +83,15 @@ items:
     page: 1
     slot: 6
     priceGold: 75
+    requiredItems:
+      - itemId:
+          ref: item:skygrass_fiber
+        category: material
+        amount: 5
+      - itemId:
+          ref: item:old_plank_chip
+        category: material
+        amount: 2
 
   - id: traveler_boots
     itemId:
@@ -74,15 +101,19 @@ items:
     page: 1
     slot: 7
     priceGold: 60
-
-  - id: leather_boots
-    itemId:
-      ref: item:leather_boots
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 8
-    priceGold: 60
+    requiredItems:
+      - itemId:
+          ref: item:skygrass_fiber
+        category: material
+        amount: 4
+      - itemId:
+          ref: item:old_plank_chip
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:glowstone_shard
+        category: material
+        amount: 1
 
   - id: fieldguard_jerkin
     itemId:
@@ -90,91 +121,18 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 9
+    slot: 8
     priceGold: 130
     requiredItems:
       - itemId:
           ref: item:skygrass_fiber
         category: material
+        amount: 5
+      - itemId:
+          ref: item:bone_fragment
+        category: material
         amount: 3
-
-  - id: iron_chestplate
-    itemId:
-      ref: item:iron_chestplate
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 10
-    priceGold: 300
-
-  - id: skill_lab_helm
-    itemId:
-      ref: item:skill_lab_helm
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 11
-    priceGold: 250
-
-  - id: skill_lab_armor
-    itemId:
-      ref: item:skill_lab_armor
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 12
-    priceGold: 250
-
-  - id: skill_lab_leggings
-    itemId:
-      ref: item:skill_lab_leggings
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 13
-    priceGold: 250
-
-  - id: skill_lab_boots
-    itemId:
-      ref: item:skill_lab_boots
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 14
-    priceGold: 250
-
-  - id: status_lab_helm
-    itemId:
-      ref: item:status_lab_helm
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 15
-    priceGold: 270
-
-  - id: status_lab_armor
-    itemId:
-      ref: item:status_lab_armor
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 16
-    priceGold: 420
-
-  - id: status_lab_leggings
-    itemId:
-      ref: item:status_lab_leggings
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 17
-    priceGold: 330
-
-  - id: status_lab_boots
-    itemId:
-      ref: item:status_lab_boots
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 18
-    priceGold: 285
+      - itemId:
+          ref: item:old_plank_chip
+        category: material
+        amount: 2

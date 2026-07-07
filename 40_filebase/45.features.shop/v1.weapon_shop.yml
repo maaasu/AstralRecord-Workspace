@@ -88,23 +88,3 @@ items:
     page: 1
     slot: 8
     priceGold: 180
-
-  - id: skill_lab_blade
-    itemId:
-      ref: item:skill_lab_blade
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 9
-    priceGold: 250
-    recipeId:
-      ref: recipe:starter_shop_skill_lab_blade
-
-  - id: status_lab_blade
-    itemId:
-      ref: item:status_lab_blade
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 10
-    priceGold: 360
