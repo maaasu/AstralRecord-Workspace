@@ -2,8 +2,8 @@ schemaVersion: 1
 id: twilight_colossus_field
 displayName: "黄昏の巨像フィールド"
 worldType: BOSS_FIELD
-baseWorldPath: "plugins/AstralRecord/worlds/boss/twilight_colossus_field"
-instanceRootPath: "plugins/AstralRecord/_world_instances/boss/twilight_colossus_field"
+baseWorldPath: "plugins/AstralRecord/worlds/boss_field/twilight_colossus_field"
+instanceRootPath: "plugins/AstralRecord/_world_instances/boss_field/twilight_colossus_field"
 autoLoad: false
 instanceEnabled: true
 maxPlayers: 6
