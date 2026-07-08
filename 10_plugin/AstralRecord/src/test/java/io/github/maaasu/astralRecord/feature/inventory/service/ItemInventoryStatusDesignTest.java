@@ -169,7 +169,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
                 itemService,
                 new ItemStackFactory(mock(LootService.class), itemService),
                 stateRegistry,
-                new InventoryPersistence(inventoryRepository, equipmentLoadoutRepository)
+                new InventoryPersistence(inventoryRepository, equipmentLoadoutRepository, itemService)
             )
         );
     }
