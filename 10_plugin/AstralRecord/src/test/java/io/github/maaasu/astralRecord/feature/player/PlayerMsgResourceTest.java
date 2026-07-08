@@ -1,0 +1,31 @@
+package io.github.maaasu.astralRecord.feature.player;
+
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class PlayerMsgResourceTest {
+
+    @Test
+    void formatTranslatesColorCodesInMessageArguments() {
+        String formatted = PlayerMsgResource.format(PlayerMsgId.P_6608.getId(), "&eColored Quest");
+
+        assertTrue(formatted.contains("\u00a7eColored Quest"));
+        assertFalse(formatted.contains("&eColored Quest"));
+    }
+
+    @Test
+    void formatComponentDoesNotLeaveAmpersandColorCodesInPlainText() {
+        Component component = PlayerMsgResource.formatComponent(PlayerMsgId.P_6608.getId(), "&eColored Quest");
+        String legacyText = LegacyComponentSerializer.legacySection().serialize(component);
+        String plainText = PlainTextComponentSerializer.plainText().serialize(component);
+
+        assertTrue(legacyText.contains("\u00a7eColored Quest"));
+        assertTrue(plainText.contains("Colored Quest"));
+        assertFalse(plainText.contains("&e"));
+    }
+}

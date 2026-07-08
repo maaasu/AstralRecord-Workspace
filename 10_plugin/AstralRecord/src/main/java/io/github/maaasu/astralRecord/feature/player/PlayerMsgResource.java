@@ -91,7 +91,7 @@ public final class PlayerMsgResource {
      * @return フォーマットされたメッセージ文字列
      */
     public static String format(String key, Object... args) {
-        return MessageFormatUtil.format(getMessage(key), args);
+        return ColorCodeUtil.translateAlternateColorCodes(MessageFormatUtil.format(getMessage(key), args));
     }
 
     /**
@@ -136,8 +136,12 @@ public final class PlayerMsgResource {
             if (arg == null) {
                 continue;
             }
-            String value = ColorCodeUtil.stripColor(String.valueOf(arg));
+            String rawValue = String.valueOf(arg);
+            String value = ColorCodeUtil.stripColor(ColorCodeUtil.translateAlternateColorCodes(rawValue));
             if (value == null || value.isBlank()) {
+                continue;
+            }
+            if (!value.equals(rawValue)) {
                 continue;
             }
             component = component.replaceText(builder -> builder

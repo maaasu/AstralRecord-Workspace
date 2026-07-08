@@ -52,6 +52,7 @@ Use these rules when adding or changing player-facing messages, `MsgId`, or `pla
 6. Do not pass string literals directly to `sendInfo`, `sendSuccess`, `sendError`, `sendMessage`, or new player-message helper methods unless the API is explicitly for managed chat formatting.
 7. Check color codes, placeholders, and existing wording style.
 8. Avoid changing an existing message's meaning without checking all call sites.
+9. When a player-facing message includes filebase/master-data display strings such as `name`, `title`, `description`, or lore text, route the value through `PlayerMsgResource` / `PlayerMessageService` formatting or explicitly normalize it with `ColorCodeUtil`; raw `&` color codes from master data must never be displayed to players.
 
 ## Database, API, and Filebase Contracts
 
