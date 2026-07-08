@@ -1,0 +1,29 @@
+schemaVersion: 1
+id: starreach_wilds
+displayName: "星渡り原野"
+worldType: OVERWORLD
+baseWorldPath: "plugins/AstralRecord/worlds/overworld/Sulfuria - 4000(1.21.5)"
+instanceRootPath: "plugins/AstralRecord/_world_instances/starreach_wilds"
+autoLoad: false
+instanceEnabled: true
+maxPlayers: 80
+allowBlockBreak: false
+allowBlockPlace: false
+allowMobSpawn: true
+showSpawnParticle: true
+spawnLocation:
+  x: 0.5
+  y: 79.0
+  z: 0.5
+  yaw: 0.0
+  pitch: 0.0
+description: "通常の世界より広く幻想的な地形が続く、二つ目のオーバーワールド「星渡り原野」。"
+guiIconMaterial: MAP
+adventureGuide:
+  recommendedLevelMin: 8
+  recommendedLevelMax: 30
+  recommendedPartySizeMin: 1
+  recommendedPartySizeMax: 6
+  notes:
+    - "広大な地形を長く探索するための中盤向けフィールド"
+    - "ファンタジー寄りの自然地形が続くため、遠征前の補給を推奨"
