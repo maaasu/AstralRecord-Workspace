@@ -67,6 +67,7 @@ Use these rules when adding or changing plugin-side DB access, features that dep
 8. If file master structure changes are involved, check whether `40_filebase` needs a matching update.
 9. Do not finish API and Plugin contract changes on only one side.
 10. Avoid hard-coding DB names or YAML paths without checking Database/Filebase definitions.
+11. For player-owned runtime state such as inventory and equipment durability, treat the Plugin-side loaded state as authoritative during gameplay. Avoid blocking API writes in combat or hot paths; durability and similarly low-criticality state should be marked dirty and flushed through the same save boundaries as player inventory (autosave, logout, plugin disable, or explicit save), prioritizing server performance over immediate API consistency.
 
 ## Plugin Docs
 

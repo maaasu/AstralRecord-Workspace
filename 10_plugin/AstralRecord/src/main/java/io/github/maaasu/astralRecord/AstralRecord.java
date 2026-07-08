@@ -562,7 +562,7 @@ public final class AstralRecord extends JavaPlugin {
         var inventoryRepository = new InventoryRepository();
         var equipmentLoadoutRepository = new EquipmentLoadoutRepository();
         inventoryStateRegistry = new PlayerInventoryStateRegistry();
-        inventoryPersistence = new InventoryPersistence(inventoryRepository, equipmentLoadoutRepository);
+        inventoryPersistence = new InventoryPersistence(inventoryRepository, equipmentLoadoutRepository, itemService);
         inventoryService = new InventoryService(
             inventoryRepository,
             equipmentLoadoutRepository,
@@ -749,7 +749,8 @@ public final class AstralRecord extends JavaPlugin {
             menuView,
             inventoryService,
             itemService,
-            itemStackFactory
+            itemStackFactory,
+            particleDisplayService
         );
         equipmentRepairService.setStatusService(statusService);
         equipmentDurabilityService = new EquipmentDurabilityService(inventoryService, itemService);

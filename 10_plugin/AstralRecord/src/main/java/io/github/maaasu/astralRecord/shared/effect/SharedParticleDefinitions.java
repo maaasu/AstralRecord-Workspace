@@ -77,6 +77,8 @@ public final class SharedParticleDefinitions {
         );
     public static final SharedParticleDefinition POTION_USE_ENCHANT =
         new SharedParticleDefinition("potion_use_enchant", Particle.ENCHANT, 3, 0.24D, 0.28D, 0.24D, 0.02D);
+    public static final SharedParticleDefinition EQUIPMENT_REPAIR_ENCHANT =
+        new SharedParticleDefinition("equipment_repair_enchant", Particle.ENCHANT, 24, 0.30D, 0.35D, 0.30D, 0.0D);
     public static final SharedParticleDefinition SKILLTREE_TARGET_ENCHANT =
         new SharedParticleDefinition("skilltree_target_enchant", Particle.ENCHANT, 2, 0.10D, 0.10D, 0.10D, 0.01D);
     public static final SharedParticleDefinition SKILLTREE_TARGET_LOCKED_DUST =

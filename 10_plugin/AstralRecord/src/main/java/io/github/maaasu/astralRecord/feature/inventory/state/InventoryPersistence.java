@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.inventory.model.InventoryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryProfile;
 import io.github.maaasu.astralRecord.feature.inventory.repository.EquipmentLoadoutRepository;
 import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryRepository;
+import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -40,21 +41,25 @@ public final class InventoryPersistence {
 
     private final InventoryRepository inventoryRepository;
     private final EquipmentLoadoutRepository equipmentLoadoutRepository;
+    private final ItemService itemService;
     /** アカウントID → 直前に保存済みの装備ロードアウトスロット (キー: SlotKey, 値: 装備インスタンスID)。 */
     private final Map<UUID, Map<SlotKey, UUID>> lastPersistedLoadoutSlots = new ConcurrentHashMap<>();
 
     /**
-     * 永続層との橋渡しを構築します。
+     * 永続層との同期処理を構築します。
      *
-     * @param inventoryRepository インベントリ Repository
-     * @param equipmentLoadoutRepository 装備ロードアウト Repository
+     * @param inventoryRepository インベントリ repository
+     * @param equipmentLoadoutRepository 装備ロードアウト repository
+     * @param itemService 装備耐久値の dirty flush に使うアイテムサービス
      */
     public InventoryPersistence(
         @NotNull InventoryRepository inventoryRepository,
-        @NotNull EquipmentLoadoutRepository equipmentLoadoutRepository
+        @NotNull EquipmentLoadoutRepository equipmentLoadoutRepository,
+        @NotNull ItemService itemService
     ) {
         this.inventoryRepository = inventoryRepository;
         this.equipmentLoadoutRepository = equipmentLoadoutRepository;
+        this.itemService = itemService;
     }
 
     // ---------------------------------------------------------------
@@ -104,66 +109,78 @@ public final class InventoryPersistence {
      * @return 実際に save 処理を走らせた場合 true
      */
     public boolean save(@NotNull PlayerInventoryState state, @NotNull SaveTrigger trigger) {
-        if (!state.takeAndClearDirty()) {
+        UUID accountId = state.getAccountId();
+        boolean inventoryDirty = state.takeAndClearDirty();
+        boolean durabilityDirty = itemService.hasDirtyEquipmentDurability(accountId);
+        if (!inventoryDirty && !durabilityDirty) {
             return false;
         }
         boolean allOk = true;
-        UUID accountId = state.getAccountId();
         try {
-            for (InventoryModel inventory : state.snapshotDirtyMetadataInventories()) {
-                if (!inventory.isEnabled() || inventory.isDeleted()) {
-                    continue;
+            if (inventoryDirty) {
+                for (InventoryModel inventory : state.snapshotDirtyMetadataInventories()) {
+                    if (!inventory.isEnabled() || inventory.isDeleted()) {
+                        continue;
+                    }
+                    try {
+                        InventoryModel updated = inventoryRepository.updateMetadata(
+                            inventory.getInventoryId(),
+                            inventory.getMetadataJson(),
+                            accountId
+                        );
+                        state.putInventory(updated);
+                        state.clearMetadataDirty(inventory.getInventoryId());
+                    } catch (RuntimeException e) {
+                        Logger.warn(LogId.W_5252, inventory.getInventoryId(), e.getMessage());
+                        allOk = false;
+                    }
                 }
+
+                for (InventoryModel inventory : state.snapshotInventories()) {
+                    if (!inventory.isEnabled() || inventory.isDeleted()) {
+                        continue;
+                    }
+                    List<InventoryEntryModel> entries = state.snapshotEntries(inventory.getInventoryId());
+                    List<InventoryEntryDraft> drafts = entries.stream()
+                        .filter(e -> !e.isDeleted())
+                        .map(InventoryPersistence::toDraft)
+                        .toList();
+                    try {
+                        inventoryRepository.replaceEntries(inventory.getInventoryId(), drafts, accountId);
+                    } catch (RuntimeException e) {
+                        Logger.warn(LogId.W_5252, inventory.getInventoryId(), e.getMessage());
+                        allOk = false;
+                    }
+                }
+
                 try {
-                    InventoryModel updated = inventoryRepository.updateMetadata(
-                        inventory.getInventoryId(),
-                        inventory.getMetadataJson(),
-                        accountId
-                    );
-                    state.putInventory(updated);
-                    state.clearMetadataDirty(inventory.getInventoryId());
+                    saveLoadoutSlotsDiff(state);
                 } catch (RuntimeException e) {
-                    Logger.warn(LogId.W_5252, inventory.getInventoryId(), e.getMessage());
+                    Logger.warn(LogId.W_5253, accountId, e.getMessage());
                     allOk = false;
                 }
             }
 
-            // インベントリ entries 一括置換
-            for (InventoryModel inventory : state.snapshotInventories()) {
-                if (!inventory.isEnabled() || inventory.isDeleted()) {
-                    continue;
-                }
-                List<InventoryEntryModel> entries = state.snapshotEntries(inventory.getInventoryId());
-                List<InventoryEntryDraft> drafts = entries.stream()
-                    .filter(e -> !e.isDeleted())
-                    .map(InventoryPersistence::toDraft)
-                    .toList();
+            if (durabilityDirty) {
                 try {
-                    inventoryRepository.replaceEntries(inventory.getInventoryId(), drafts, accountId);
+                    if (!itemService.flushDirtyEquipmentDurability(accountId)) {
+                        allOk = false;
+                    }
                 } catch (RuntimeException e) {
-                    Logger.warn(LogId.W_5252, inventory.getInventoryId(), e.getMessage());
+                    Logger.warn(LogId.W_5252, accountId, e.getMessage());
                     allOk = false;
                 }
-            }
-
-            // 装備ロードアウトスロットの差分 upsert / delete
-            try {
-                saveLoadoutSlotsDiff(state);
-            } catch (RuntimeException e) {
-                Logger.warn(LogId.W_5253, accountId, e.getMessage());
-                allOk = false;
             }
         } catch (RuntimeException e) {
             Logger.warn(LogId.W_5252, accountId, e.getMessage());
             allOk = false;
         }
 
-        if (!allOk) {
+        if (!allOk && inventoryDirty) {
             state.restoreDirty();
         }
         return true;
     }
-
     /**
      * マーケット成立など、即時整合性が必要な場面で同期的に保存します。
      * <p>
@@ -263,6 +280,7 @@ public final class InventoryPersistence {
      */
     public void clearAccount(@NotNull UUID accountId) {
         lastPersistedLoadoutSlots.remove(accountId);
+        itemService.clearDirtyEquipmentDurability(accountId);
     }
 
     /**

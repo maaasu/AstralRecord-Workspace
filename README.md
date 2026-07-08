@@ -26,6 +26,7 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 - `GET /api/gathering/{gatheringId}`
 - `GET /api/gathering-spawner`
 - `GET /api/gathering-spawner/{spawnerId}`
+- `POST /api/equipment/durability`
 
 ## AstralRecord Plugin
 

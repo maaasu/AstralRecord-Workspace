@@ -83,6 +83,10 @@ public class EquipmentController(IEquipmentService equipmentService) : Controlle
         return Ok(instance);
     }
 
+    /// <summary>装備インスタンス耐久値更新</summary>
+    /// <param name="request">耐久値更新リクエスト</param>
+    /// <response code="200">耐久値更新成功</response>
+    /// <response code="404">対象装備インスタンスまたは対象アカウントが存在しない</response>
     [HttpPost("durability")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

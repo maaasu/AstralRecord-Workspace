@@ -13,9 +13,14 @@ import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView
 import io.github.maaasu.astralRecord.feature.menu.view.screen.EquipmentRepairMenuScreenView;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
@@ -23,7 +28,6 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
@@ -44,33 +48,62 @@ public final class EquipmentRepairService {
     private final InventoryService inventoryService;
     private final ItemService itemService;
     private final ItemStackFactory itemStackFactory;
+    private final ParticleDisplayService particleDisplayService;
     private final ItemReferenceResolver itemReferenceResolver;
     private final EquipmentRepairMenuScreenView view = new EquipmentRepairMenuScreenView();
     private final Map<UUID, RepairSession> sessions = new ConcurrentHashMap<>();
     private StatusService statusService;
 
+    /**
+     * 装備修理 GUI の操作サービスを初期化します。
+     *
+     * @param menuView メニュー GUI の描画・判定サービス
+     * @param inventoryService プレイヤーインベントリ操作サービス
+     * @param itemService 装備インスタンス更新に使うアイテムサービス
+     * @param itemStackFactory 更新後の装備 ItemStack 生成サービス
+     * @param particleDisplayService 修理成功時の共通パーティクル表示サービス
+     */
     public EquipmentRepairService(
         @NotNull MenuView menuView,
         @NotNull InventoryService inventoryService,
         @NotNull ItemService itemService,
-        @NotNull ItemStackFactory itemStackFactory
+        @NotNull ItemStackFactory itemStackFactory,
+        @NotNull ParticleDisplayService particleDisplayService
     ) {
         this.menuView = menuView;
         this.inventoryService = inventoryService;
         this.itemService = itemService;
         this.itemStackFactory = itemStackFactory;
+        this.particleDisplayService = particleDisplayService;
         this.itemReferenceResolver = new ItemReferenceResolver(itemService);
     }
 
+    /**
+     * 修理で破損状態から復帰したときに再計算するステータスサービスを設定します。
+     *
+     * @param statusService ステータス再計算サービス。未設定の場合は再計算を行いません。
+     */
     public void setStatusService(@Nullable StatusService statusService) {
         this.statusService = statusService;
     }
 
+    /**
+     * 指定 inventory が装備修理 GUI かを判定します。
+     *
+     * @param inventory 判定対象 inventory
+     * @return 装備修理 GUI の場合は {@code true}
+     */
     public boolean isRepairMenu(@Nullable Inventory inventory) {
         return menuView.isMenuInventory(inventory)
             && menuView.getMenuScreen(inventory) == MenuScreen.EQUIPMENT_REPAIR;
     }
 
+    /**
+     * プレイヤーに装備修理 GUI を開きます。
+     * 前提として gameplay player のみ操作可能で、開く際に装備 inventory 表示へ切り替えます。
+     *
+     * @param player GUI を開く Bukkit プレイヤー
+     */
     public void open(@NotNull Player player) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
@@ -93,6 +126,13 @@ public final class EquipmentRepairService {
         player.openInventory(inventory);
     }
 
+    /**
+     * 装備修理 GUI 上部 inventory のクリックを処理します。
+     * 対象 slot の装備返却、修理実行、GUI 再描画を副作用として行います。
+     *
+     * @param player 操作したプレイヤー
+     * @param rawSlot クリックされた raw slot
+     */
     public void handleTopClick(@NotNull Player player, int rawSlot) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
@@ -119,6 +159,13 @@ public final class EquipmentRepairService {
         GuiSound.DENY.play(player);
     }
 
+    /**
+     * プレイヤー inventory 側のクリックから修理対象装備を選択します。
+     * 選択中の装備がある場合は元の inventory へ返却し、失敗時は選択状態を戻します。
+     *
+     * @param player 操作したプレイヤー
+     * @param bukkitSlot クリックされた Bukkit inventory slot
+     */
     public void handlePlayerInventoryClick(@NotNull Player player, int bukkitSlot) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
@@ -161,6 +208,11 @@ public final class EquipmentRepairService {
         GuiSound.SELECT.play(player);
     }
 
+    /**
+     * 装備修理 GUI の close 時に選択中装備を返却し、必要に応じて元の表示 inventory へ戻します。
+     *
+     * @param player GUI を閉じたプレイヤー
+     */
     public void handleClose(@NotNull Player player) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) {
@@ -170,6 +222,14 @@ public final class EquipmentRepairService {
         releaseSession(astPlayer, true);
     }
 
+    /**
+     * 修理費用を計算します。
+     * 耐久値が高い装備ほど軽い倍率を乗せ、欠損耐久 1 につき最低 1 Gold を要求します。
+     *
+     * @param durabilityMax 装備の最大耐久値
+     * @param missingDurability 欠損している耐久値
+     * @return 修理に必要な Gold。修理不要な場合は {@code 0}
+     */
     public static long calculateRepairCost(int durabilityMax, int missingDurability) {
         if (durabilityMax <= 0 || missingDurability <= 0) {
             return 0L;
@@ -187,24 +247,29 @@ public final class EquipmentRepairService {
         RepairContext context = selection.context();
         if (context == null) {
             GuiSound.DENY.play(player);
-            player.sendMessage(Component.text(selection.state().message(), NamedTextColor.RED));
+            PlayerMessageService.getInstance().send(player, selection.state().messageId());
             return;
         }
         long ownedGold = ownedGold(astPlayer.getAccount().getUuid());
         if (ownedGold < context.cost()) {
             GuiSound.DENY.play(player);
-            player.sendMessage(Component.text("ゴールドが不足しています。", NamedTextColor.RED));
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5276);
             return;
         }
         boolean wasBroken = context.instance().getDurabilityValue() <= 0;
+        if (!inventoryService.consumeGold(astPlayer.getAccount().getUuid(), context.cost())) {
+            GuiSound.DENY.play(player);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5277);
+            return;
+        }
         EquipmentInstance updated = itemService.updateEquipmentDurability(
             context.instance().getEquipmentInstanceId(),
             context.instance().getDurabilityMax(),
             astPlayer.getAccount().getUuid().toString()
         );
-        if (updated == null || !inventoryService.consumeGold(astPlayer.getAccount().getUuid(), context.cost())) {
+        if (updated == null) {
             GuiSound.DENY.play(player);
-            player.sendMessage(Component.text("修理に失敗しました。", NamedTextColor.RED));
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5277);
             return;
         }
         session.selectedEquipment = itemStackFactory.create(context.model(), updated, 1);
@@ -212,12 +277,12 @@ public final class EquipmentRepairService {
         if (wasBroken && statusService != null) {
             statusService.refreshStatus(astPlayer);
         }
-        player.sendMessage(Component.text(
-            displayName(context.model()) + " の耐久値を回復しました。 -" + context.cost() + " Gold",
-            NamedTextColor.GREEN
-        ));
+        PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5278, displayName(context.model()), context.cost());
         player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, SoundCategory.PLAYERS, 0.8f, 1.2f);
-        player.spawnParticle(Particle.ENCHANT, player.getLocation().add(0.0, 1.0, 0.0), 24, 0.3, 0.35, 0.3, 0.0);
+        particleDisplayService.spawnForNearbyViewers(
+            player.getLocation().add(0.0, 1.0, 0.0),
+            SharedParticleDefinitions.EQUIPMENT_REPAIR_ENCHANT
+        );
         render(player, player.getOpenInventory().getTopInventory(), session);
     }
 
@@ -398,20 +463,24 @@ public final class EquipmentRepairService {
     }
 
     private enum SelectionState {
-        NONE_SELECTED("修理する装備を選択してください。"),
-        INVALID_TARGET("修理できる装備を選択してください。"),
-        NO_DURABILITY("この装備には耐久値がありません。"),
-        ALREADY_FULL("耐久値はすでに最大です。"),
-        READY("修理できます。");
+        NONE_SELECTED(PlayerMsgId.P_5271),
+        INVALID_TARGET(PlayerMsgId.P_5272),
+        NO_DURABILITY(PlayerMsgId.P_5273),
+        ALREADY_FULL(PlayerMsgId.P_5274),
+        READY(PlayerMsgId.P_5275);
 
-        private final String message;
+        private final PlayerMsgId messageId;
 
-        SelectionState(@NotNull String message) {
-            this.message = message;
+        SelectionState(@NotNull PlayerMsgId messageId) {
+            this.messageId = messageId;
         }
 
         private @NotNull String message() {
-            return message;
+            return ColorCodeUtil.toPlainText(PlayerMsgResource.getMessage(messageId.getId()), messageId.getId());
+        }
+
+        private @NotNull PlayerMsgId messageId() {
+            return messageId;
         }
     }
 }

@@ -14,11 +14,13 @@ import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -36,6 +38,7 @@ public class ItemService {
     private final Map<String, SetEffect> loadedSetEffects;
     private final Map<String, EquipmentInstance> loadedEquipmentInstances;
     private final Map<String, RuneInstance> loadedRuneInstances;
+    private final Map<String, PendingDurabilityUpdate> dirtyEquipmentDurability;
 
     public ItemService() {
         this.itemRepository = new ItemRepository();
@@ -44,6 +47,7 @@ public class ItemService {
         this.loadedSetEffects = new ConcurrentHashMap<>();
         this.loadedEquipmentInstances = new ConcurrentHashMap<>();
         this.loadedRuneInstances = new ConcurrentHashMap<>();
+        this.dirtyEquipmentDurability = new ConcurrentHashMap<>();
     }
 
     /**
@@ -391,21 +395,119 @@ public class ItemService {
         }
     }
 
+    /**
+     * 装備耐久値を plugin 側キャッシュへ即時反映し、次回保存時の API flush 対象として記録します。
+     * 戦闘中の同期 HTTP を避けるため、このメソッド自体は API を呼びません。
+     *
+     * @param instanceId 装備インスタンス ID
+     * @param durabilityValue 反映する現在耐久値
+     * @param updatedBy 更新者アカウント ID
+     * @return 更新後のキャッシュ上装備インスタンス。対象が見つからない場合は {@code null}
+     */
     public @Nullable EquipmentInstance updateEquipmentDurability(
         @NotNull String instanceId,
         int durabilityValue,
         @NotNull String updatedBy
     ) {
-        try {
-            EquipmentInstance instance = itemRepository.updateEquipmentDurability(instanceId, durabilityValue, updatedBy);
-            if (instance != null) {
-                loadedEquipmentInstances.put(normalize(instance.getEquipmentInstanceId()), instance);
-            }
-            return instance;
-        } catch (Exception e) {
-            Logger.log(LogId.E_5202, e, instanceId);
+        String normalizedId = normalize(instanceId);
+        if (normalizedId.isBlank()) {
             return null;
         }
+        EquipmentInstance current = findEquipmentInstanceById(instanceId);
+        if (current == null) {
+            return null;
+        }
+        int clampedValue = Math.max(0, Math.min(current.getDurabilityMax(), durabilityValue));
+        EquipmentInstance updated = new EquipmentInstance(
+            current.getEquipmentInstanceId(),
+            current.getAccountId(),
+            current.getItemId(),
+            current.getEnhanceLevel(),
+            current.getRuneMaxSlots(),
+            current.getTranscendenceRank(),
+            current.getDurabilityMax(),
+            clampedValue,
+            current.getCreatedAt(),
+            LocalDateTime.now().toString(),
+            current.getStatRolls(),
+            current.getEnchants(),
+            current.getRunes(),
+            current.getEnchantPools()
+        );
+        loadedEquipmentInstances.put(normalizedId, updated);
+        dirtyEquipmentDurability.put(
+            normalizedId,
+            new PendingDurabilityUpdate(updated.getEquipmentInstanceId(), updated.getAccountId(), clampedValue, updatedBy)
+        );
+        return updated;
+    }
+
+    /**
+     * 対象アカウントに未保存の装備耐久値変更があるかを判定します。
+     *
+     * @param accountId 対象アカウント ID
+     * @return 未保存の耐久値変更がある場合は {@code true}
+     */
+    public boolean hasDirtyEquipmentDurability(@NotNull UUID accountId) {
+        String targetAccountId = accountId.toString();
+        return dirtyEquipmentDurability.values().stream()
+            .anyMatch(update -> update.accountId().equalsIgnoreCase(targetAccountId));
+    }
+
+    /**
+     * 対象アカウントの未保存装備耐久値を API へ反映します。
+     * 失敗した更新は dirty に残し、次回保存で再試行できる状態にします。
+     *
+     * @param accountId 対象アカウント ID
+     * @return 対象の dirty 更新をすべて反映できた場合は {@code true}
+     */
+    public boolean flushDirtyEquipmentDurability(@NotNull UUID accountId) {
+        String targetAccountId = accountId.toString();
+        boolean allOk = true;
+        for (Map.Entry<String, PendingDurabilityUpdate> entry : dirtyEquipmentDurability.entrySet()) {
+            PendingDurabilityUpdate pending = entry.getValue();
+            if (!pending.accountId().equalsIgnoreCase(targetAccountId)) {
+                continue;
+            }
+            EquipmentInstance cached = loadedEquipmentInstances.get(entry.getKey());
+            int durabilityValue = cached == null ? pending.durabilityValue() : cached.getDurabilityValue();
+            try {
+                EquipmentInstance persisted = itemRepository.updateEquipmentDurability(
+                    pending.instanceId(),
+                    durabilityValue,
+                    pending.updatedBy()
+                );
+                if (persisted != null) {
+                    loadedEquipmentInstances.put(entry.getKey(), persisted);
+                    dirtyEquipmentDurability.remove(entry.getKey(), pending);
+                } else {
+                    allOk = false;
+                }
+            } catch (RuntimeException e) {
+                Logger.warn(LogId.W_5252, pending.instanceId(), e.getMessage());
+                allOk = false;
+            }
+        }
+        return allOk;
+    }
+
+    /**
+     * 対象アカウントの未保存装備耐久値を破棄します。
+     * ログアウト後の state 破棄と同じ境界で呼び出します。
+     *
+     * @param accountId 対象アカウント ID
+     */
+    public void clearDirtyEquipmentDurability(@NotNull UUID accountId) {
+        String targetAccountId = accountId.toString();
+        dirtyEquipmentDurability.entrySet().removeIf(entry -> entry.getValue().accountId().equalsIgnoreCase(targetAccountId));
+    }
+
+    private record PendingDurabilityUpdate(
+        @NotNull String instanceId,
+        @NotNull String accountId,
+        int durabilityValue,
+        @NotNull String updatedBy
+    ) {
     }
 
     public boolean deleteEquipmentInstance(@NotNull String instanceId) {

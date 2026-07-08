@@ -34,6 +34,12 @@ public final class EquipmentDurabilityService {
     private final ItemReferenceResolver itemReferenceResolver;
     private StatusService statusService;
 
+    /**
+     * 装備耐久値の判定・減少サービスを初期化します。
+     *
+     * @param inventoryService 装備中アイテムと表示更新に使うインベントリサービス
+     * @param itemService 装備インスタンスの耐久値更新に使うアイテムサービス
+     */
     public EquipmentDurabilityService(
         @NotNull InventoryService inventoryService,
         @NotNull ItemService itemService
@@ -43,10 +49,22 @@ public final class EquipmentDurabilityService {
         this.itemReferenceResolver = new ItemReferenceResolver(itemService);
     }
 
+    /**
+     * 耐久値が 0 になったときにステータス再計算するサービスを設定します。
+     *
+     * @param statusService ステータス再計算サービス。未設定の場合は再計算を行いません。
+     */
     public void setStatusService(@Nullable StatusService statusService) {
         this.statusService = statusService;
     }
 
+    /**
+     * メインハンドの武器が使用可能な耐久値を持つか判定します。
+     * 装備インスタンスでないアイテム、武器でない装備、耐久値を持たない武器は使用可能として扱います。
+     *
+     * @param player 判定対象プレイヤー
+     * @return 武器攻撃に使用できる場合は {@code true}
+     */
     public boolean canUseMainHandWeapon(@NotNull AstPlayer player) {
         ItemReference reference = inventoryService.getItemReferenceInHand(player, EquipmentSlot.HAND);
         if (reference == null || !reference.hasEquipmentInstanceId()) {
@@ -60,6 +78,13 @@ public final class EquipmentDurabilityService {
         return !isBroken(instance);
     }
 
+    /**
+     * 攻撃命中時に、武器と攻撃寄与アクセサリーの耐久値を確率で減少させます。
+     * 実ダメージまたはシールドダメージが発生していない場合は何もしません。
+     *
+     * @param attacker 攻撃者。プレイヤー以外の場合は処理しません。
+     * @param result ダメージ計算結果
+     */
     public void consumeOnAttackHit(@Nullable AstEntity attacker, @NotNull DamageResult result) {
         if (!isEffectiveHit(result) || attacker == null || !attacker.isPlayer() || attacker.player() == null) {
             return;
@@ -76,6 +101,13 @@ public final class EquipmentDurabilityService {
         consumeAccessories(player, ACCESSORY_HIT_CONSUME_CHANCE, consumed);
     }
 
+    /**
+     * 被ダメージ時に、防具と被ダメージ反応アクセサリーの耐久値を確率で減少させます。
+     * 実ダメージまたはシールドダメージが発生していない場合は何もしません。
+     *
+     * @param victim 被ダメージ側エンティティ。プレイヤー以外の場合は処理しません。
+     * @param result ダメージ計算結果
+     */
     public void consumeOnDamageTaken(@NotNull AstEntity victim, @NotNull DamageResult result) {
         if (!isEffectiveHit(result) || !victim.isPlayer() || victim.player() == null) {
             return;
@@ -94,6 +126,12 @@ public final class EquipmentDurabilityService {
         consumeAccessories(player, ACCESSORY_DAMAGE_TAKEN_CONSUME_CHANCE, consumed);
     }
 
+    /**
+     * 装備インスタンスが耐久値切れかを判定します。
+     *
+     * @param instance 判定対象の装備インスタンス
+     * @return 最大耐久値を持ち、現在耐久値が 0 以下の場合は {@code true}
+     */
     public boolean isBroken(@Nullable EquipmentInstance instance) {
         return instance != null && instance.getDurabilityMax() > 0 && instance.getDurabilityValue() <= 0;
     }
@@ -175,7 +213,6 @@ public final class EquipmentDurabilityService {
             return;
         }
         inventoryService.refreshEquipmentInstanceDisplay(player, updated);
-        inventoryService.saveNow(player.getAccount().getUuid());
         if (nextValue <= 0 && statusService != null) {
             statusService.refreshStatus(player);
         }
