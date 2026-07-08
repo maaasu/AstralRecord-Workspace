@@ -53,12 +53,11 @@ public final class BossFieldInstanceService {
         }
 
         Path source = resolvePath(worldData.baseWorldPath());
-        if (Files.exists(source)) {
-            copyDirectory(source, target);
-        } else {
+        if (!Files.isDirectory(source) || !Files.isRegularFile(source.resolve("level.dat"))) {
             Logger.log(LogId.W_6501, worldData.id(), source.toString());
-            Files.createDirectories(target);
+            throw new IOException("Boss field base world folder is missing or invalid: " + source);
         }
+        copyDirectory(source, target);
 
         World world = Bukkit.createWorld(new WorldCreator(worldCreatorName(target)));
         if (world == null) {

@@ -28,6 +28,7 @@ public final class MobInstance {
     private Location currentLocation;
     private double currentHealth;
     private double currentShield;
+    private double outgoingDamageMultiplier = 1.0D;
     private long lastShieldChangedAtMs;
     private MobState state = MobState.IDLE;
     private UUID targetId;
@@ -178,6 +179,24 @@ public final class MobInstance {
      */
     public void currentHealth(double value) {
         this.currentHealth = value;
+    }
+
+    /**
+     * 攻撃側ダメージ倍率を返します。
+     *
+     * @return 攻撃側ダメージ倍率
+     */
+    public double outgoingDamageMultiplier() {
+        return outgoingDamageMultiplier;
+    }
+
+    /**
+     * 攻撃側ダメージ倍率を更新します。
+     *
+     * @param value 新しい倍率。0 未満は 0 に丸める
+     */
+    public void outgoingDamageMultiplier(double value) {
+        this.outgoingDamageMultiplier = Math.max(0.0D, value);
     }
 
     /** 現在シールド値を返します。 */

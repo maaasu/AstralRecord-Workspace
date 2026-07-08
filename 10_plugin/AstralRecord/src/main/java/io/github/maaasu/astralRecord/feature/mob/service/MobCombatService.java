@@ -218,7 +218,7 @@ public class MobCombatService {
      */
     public double computeDamage(@NotNull MobInstance instance, @NotNull Player target) {
         MobTemplate template = instance.template();
-        double attack = template.statValue("ATTACK", 1.0);
+        double attack = template.statValue("ATTACK", 1.0) * instance.outgoingDamageMultiplier();
         CombatStyle style = template.combat() == null ? CombatStyle.MELEE : template.combat().style();
         double scaling = switch (style) {
             case MELEE -> template.statValue("STRENGTH", 0.0);

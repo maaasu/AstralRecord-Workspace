@@ -872,6 +872,8 @@ public enum PlayerMsgId {
     P_6518(6518),
     P_6519(6519),
     P_6520(6520),
+    P_6521(6521),
+    P_6522(6522),
     // endregion
 
     // region /feature/quest 6600-6619

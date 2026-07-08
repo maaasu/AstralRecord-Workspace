@@ -8,6 +8,7 @@ public enum BossChallengeEndReason {
     TIME_LIMIT(false),
     NO_PARTICIPANTS(false),
     FIELD_PREPARE_FAILED(false),
+    TRANSFER_FAILED(false),
     BOSS_SPAWN_FAILED(false),
     ADMIN_STOP(false),
     PLUGIN_SHUTDOWN(false);

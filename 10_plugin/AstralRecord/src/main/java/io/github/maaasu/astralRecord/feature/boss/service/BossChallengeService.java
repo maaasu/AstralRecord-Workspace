@@ -18,6 +18,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
+import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -40,6 +41,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -192,6 +194,11 @@ public final class BossChallengeService {
             messageService.send(player, PlayerMsgId.P_6507, config.fieldWorldId());
             return;
         }
+        if (fieldData.worldType() != WorldType.BOSS_FIELD || !fieldData.instanceEnabled()) {
+            Logger.log(LogId.W_6502, fieldData.id(), fieldData.worldType().name(), fieldData.instanceEnabled());
+            messageService.send(player, PlayerMsgId.P_6522, config.fieldWorldId());
+            return;
+        }
 
         BossChallengeInstance challenge = new BossChallengeInstance(
                 UUID.randomUUID(),
@@ -341,8 +348,36 @@ public final class BossChallengeService {
         }
 
         Location playerSpawn = challenge.config().playerSpawnLocation().toLocation(field.world());
+        List<CompletableFuture<Boolean>> transferResults = new ArrayList<>();
         for (Player participant : online) {
-            worldService.teleportPlayerAsync(participant, playerSpawn.clone(), null);
+            transferResults.add(worldService.teleportPlayerAsync(participant, playerSpawn.clone(), null));
+        }
+
+        CompletableFuture.allOf(transferResults.toArray(CompletableFuture[]::new))
+                .whenComplete((ignored, throwable) -> Bukkit.getScheduler().runTask(
+                        plugin,
+                        () -> finishFieldStartAfterTransfers(challengeId, transferResults, throwable)
+                ));
+    }
+
+    private void finishFieldStartAfterTransfers(
+            @NotNull UUID challengeId,
+            @NotNull List<CompletableFuture<Boolean>> transferResults,
+            @Nullable Throwable throwable
+    ) {
+        BossChallengeInstance challenge = challengesById.get(challengeId);
+        if (challenge == null || challenge.state() != BossChallengeState.PREPARING) {
+            return;
+        }
+        BossFieldInstance field = challenge.field();
+        if (field == null) {
+            endChallenge(challenge, BossChallengeEndReason.FIELD_PREPARE_FAILED);
+            return;
+        }
+        if (throwable != null || transferResults.stream().anyMatch(future -> !Boolean.TRUE.equals(future.getNow(false)))) {
+            notifyParticipants(challenge, PlayerMsgId.P_6521, challenge.bossTemplate().displayName());
+            endChallenge(challenge, BossChallengeEndReason.TRANSFER_FAILED);
+            return;
         }
 
         Location bossSpawn = challenge.config().bossSpawnLocation().toLocation(field.world());
@@ -351,7 +386,7 @@ public final class BossChallengeService {
             endChallenge(challenge, BossChallengeEndReason.BOSS_SPAWN_FAILED);
             return;
         }
-        applyHealthScaling(challenge, boss);
+        applyParticipantScaling(challenge, boss);
 
         challenge.bossMobInstanceId(boss.instanceId());
         challengeIdByBossMob.put(boss.instanceId(), challenge.challengeId());
@@ -360,13 +395,15 @@ public final class BossChallengeService {
         notifyParticipants(challenge, PlayerMsgId.P_6510, challenge.bossTemplate().displayName(), challenge.config().timeLimitSeconds());
     }
 
-    private void applyHealthScaling(@NotNull BossChallengeInstance challenge, @NotNull MobInstance boss) {
+    private void applyParticipantScaling(@NotNull BossChallengeInstance challenge, @NotNull MobInstance boss) {
         if (!challenge.config().scaling().enabled()) {
             return;
         }
         int extraPlayers = Math.max(0, challenge.participantIds().size() - 1);
-        double multiplier = 1.0D + extraPlayers * Math.max(0.0D, challenge.config().scaling().healthPerExtraPlayer()) / 100.0D;
-        boss.currentHealth(boss.currentHealth() * multiplier);
+        double healthMultiplier = 1.0D + extraPlayers * Math.max(0.0D, challenge.config().scaling().healthPerExtraPlayer()) / 100.0D;
+        double attackMultiplier = 1.0D + extraPlayers * Math.max(0.0D, challenge.config().scaling().attackPerExtraPlayer()) / 100.0D;
+        boss.currentHealth(boss.currentHealth() * healthMultiplier);
+        boss.outgoingDamageMultiplier(attackMultiplier);
     }
 
     private void tick() {
