@@ -2,7 +2,7 @@ schemaVersion: 1
 id: starreach_wilds
 displayName: "星渡り原野"
 worldType: OVERWORLD
-baseWorldPath: "plugins/AstralRecord/worlds/overworld/Sulfuria - 4000(1.21.5)"
+baseWorldPath: "plugins/AstralRecord/worlds/overworld/starreach_wilds"
 instanceRootPath: "plugins/AstralRecord/_world_instances/starreach_wilds"
 autoLoad: false
 instanceEnabled: true
