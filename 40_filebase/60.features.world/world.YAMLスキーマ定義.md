@@ -1,6 +1,6 @@
 # WorldMasterData YAMLスキーマ定義
 
-World システムで参照する filebase マスタです。Plugin は API 経由でこの定義を取得し、`spawnLocation` を参加時スポーンと `/world tp` に利用し、`showSpawnParticle` でスポーン地点リング演出の表示有無を制御します。拠点ワールドからオーバーワールドへ移動する GUI では、`displayName` / `description` / `guiIconMaterial` / `adventureGuide` を表示に利用します。
+World システムで参照する filebase マスタです。Plugin は API 経由でこの定義を取得し、`spawnLocation` を参加時スポーンと `/world tp` に利用し、`showSpawnParticle` でスポーン地点リング演出とスニーク導線 TextDisplay の表示有無を制御します。拠点ワールドからオーバーワールドへ移動する GUI では、`displayName` / `description` / `guiIconMaterial` / `adventureGuide` を表示に利用します。
 
 ```yaml
 schemaVersion: 1
@@ -49,7 +49,7 @@ adventureGuide:
 | `allowBlockBreak` | yes | ブロック破壊許可。 |
 | `allowBlockPlace` | yes | ブロック設置許可。 |
 | `allowMobSpawn` | yes | 互換用フィールド。Plugin は RPG マップ保護を優先し、管理ワールドでは値にかかわらずバニラ Mob スポーンを抑止し、AstralRecord が生成した Mob 以外の Bukkit `Mob` を削除する。 |
-| `showSpawnParticle` | yes | ワールドスポーン地点の常時リングパーティクルを表示するか。`false` の場合も `spawnLocation` 自体は維持し、演出のみ非表示にする。 |
+| `showSpawnParticle` | yes | ワールドスポーン地点の常時リングパーティクルとスニーク導線 TextDisplay を表示するか。`false` の場合も `spawnLocation` 自体は維持し、演出のみ非表示にする。 |
 | `spawnLocation` | yes | ワールド既定スポーン地点。`x` `y` `z` `yaw` `pitch` を持つ。 |
 | `description` | yes | 説明。 |
 | `guiIconMaterial` | no | オーバーワールド転送 GUI に表示する `Material` 名。未指定または不正な場合は `GRASS_BLOCK` を使う。 |

@@ -868,7 +868,7 @@ public final class AstralRecord extends JavaPlugin {
         mobAiService = new MobAiService(mobService, mobCombatService, skillService, playerDeathService, particleDisplayService, conditionService);
         mobAiService.start();
         skillTreeService.loadAll();
-        worldSpawnParticleTask = new WorldSpawnParticleTask(this, worldService, particleDisplayService);
+        worldSpawnParticleTask = new WorldSpawnParticleTask(this, worldService, particleDisplayService, displayTextService);
 
         // item: ProtocolLib 繝代こ繝・ヨ繧｢繝繝励ち・・con 蟾ｮ縺玲崛縺茨ｼ臥匳骭ｲ
         ItemStackPacketAdapter packetAdapter = new ItemStackPacketAdapter(this);
