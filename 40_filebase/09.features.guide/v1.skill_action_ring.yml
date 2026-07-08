@@ -1,0 +1,12 @@
+schemaVersion: 1
+id: skill_action_ring
+category: skill
+displayOrder: 30
+title: "&bスキルとアクションリング"
+iconMaterial: ENCHANTED_BOOK
+summary: "&7スキル設定と発動操作。"
+lines:
+  - "&fメニューから {menu:skill_bind} を開き、発動スキルをスロットに設定します。"
+  - "&fオフハンド切替キーでアクションリングを表示します。"
+  - "&fリング上で使いたいスキルを選択すると、そのスキルを発動します。"
+  - "&fスキルを覚えた後は、必要に応じて {menu:skill_bind} で割り当てを更新してください。"

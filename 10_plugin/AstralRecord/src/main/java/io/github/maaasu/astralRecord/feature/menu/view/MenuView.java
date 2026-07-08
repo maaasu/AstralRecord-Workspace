@@ -4,6 +4,8 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.currency.view.CurrencyGuiView;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
+import io.github.maaasu.astralRecord.feature.guide.model.GuideEntry;
+import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
@@ -120,9 +122,11 @@ public class MenuView {
     private final StorageScreenView storageScreenView;
     private final CraftShortcutView craftShortcutView;
     private final AstralRecord plugin;
+    private final GuideService guideService;
 
-    public MenuView(@NotNull AstralRecord plugin) {
+    public MenuView(@NotNull AstralRecord plugin, @NotNull GuideService guideService) {
         this.plugin = plugin;
+        this.guideService = guideService;
         NamespacedKey craftShortcutKey = new NamespacedKey(plugin, "menu_shortcut_slot");
         NamespacedKey craftActionKey = new NamespacedKey(plugin, "menu_shortcut_action");
         NamespacedKey equipmentPlaceholderKey = new NamespacedKey(plugin, "equipment_placeholder");
@@ -205,8 +209,30 @@ public class MenuView {
     }
 
     public void openGuide(@NotNull Player player) {
-        Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.GUIDE), SIZE, Component.text("ガイド", NamedTextColor.LIGHT_PURPLE));
-        guideScreenView.render(inventory);
+        openGuide(player, 0);
+    }
+
+    public void openGuide(@NotNull Player player, int pageIndex) {
+        List<GuideEntry> guides = guideService.getAll();
+        int normalizedPage = guideScreenView.normalizePage(pageIndex, guides.size());
+        int totalPages = guideScreenView.totalPages(guides.size());
+        Component title = Component.text("ガイド " + (normalizedPage + 1) + "/" + totalPages, NamedTextColor.LIGHT_PURPLE);
+        Inventory inventory = Bukkit.createInventory(
+            new MenuInventoryHolder(MenuScreen.GUIDE, -1, normalizedPage, null),
+            SIZE,
+            title
+        );
+        guideScreenView.renderList(inventory, guides, normalizedPage, guideService);
+        player.openInventory(inventory);
+    }
+
+    public void openGuideDetail(@NotNull Player player, @NotNull GuideEntry guide, int returnPageIndex) {
+        Inventory inventory = Bukkit.createInventory(
+            new MenuInventoryHolder(MenuScreen.GUIDE, -1, returnPageIndex, guide.id()),
+            SIZE,
+            Component.text("ガイド", NamedTextColor.LIGHT_PURPLE)
+        );
+        guideScreenView.renderDetail(inventory, guide, guideService);
         player.openInventory(inventory);
     }
 
@@ -353,6 +379,13 @@ public class MenuView {
         return 0;
     }
 
+    public @Nullable String getContentId(@Nullable Inventory inventory) {
+        if (inventory != null && inventory.getHolder() instanceof MenuInventoryHolder holder) {
+            return holder.contentId();
+        }
+        return null;
+    }
+
     public @Nullable EquipmentType getEquipmentTypeAtSlot(int rawSlot) {
         return equipmentMenuScreenView.getEquipmentTypeAtSlot(rawSlot);
     }
@@ -395,6 +428,23 @@ public class MenuView {
 
     public boolean hasNextCurrencyPage(@NotNull List<ItemStack> currencyItems, int pageIndex) {
         return currencyGuiView.hasNextPage(pageIndex, currencyItems.size());
+    }
+
+    public boolean hasPreviousGuidePage(int pageIndex) {
+        return guideScreenView.hasPreviousPage(pageIndex);
+    }
+
+    public boolean hasNextGuidePage(int pageIndex) {
+        return guideScreenView.hasNextPage(pageIndex, guideService.getAll().size());
+    }
+
+    public @Nullable GuideEntry getGuideAtSlot(int rawSlot, int pageIndex) {
+        if (!guideScreenView.isContentSlot(rawSlot)) {
+            return null;
+        }
+        List<GuideEntry> guides = guideService.getAll();
+        int index = guideScreenView.normalizePage(pageIndex, guides.size()) * GuideScreenView.CONTENT_SLOT_COUNT + rawSlot;
+        return index >= 0 && index < guides.size() ? guides.get(index) : null;
     }
 
     public boolean hasPreviousTrashPage(int pageIndex) {

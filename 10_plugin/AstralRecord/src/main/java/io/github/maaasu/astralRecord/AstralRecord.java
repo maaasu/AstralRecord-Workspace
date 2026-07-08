@@ -31,6 +31,8 @@ import io.github.maaasu.astralRecord.feature.gathering.spawner.event.GatheringSp
 import io.github.maaasu.astralRecord.feature.gathering.spawner.repository.GatheringSpawnerDefinitionRepository;
 import io.github.maaasu.astralRecord.feature.gathering.spawner.repository.GatheringSpawnerLocationRepository;
 import io.github.maaasu.astralRecord.feature.gathering.spawner.service.GatheringSpawnerService;
+import io.github.maaasu.astralRecord.feature.guide.repository.GuideRepository;
+import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
 import io.github.maaasu.astralRecord.shared.gui.debug.PagingDebugGui;
 import io.github.maaasu.astralRecord.shared.gui.debug.event.PagingDebugGuiEventHandler;
 import io.github.maaasu.astralRecord.shared.gui.event.GuiClickCooldownEventHandler;
@@ -233,6 +235,7 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerHudService playerHudService;
     private PlayerDeathService playerDeathService;
     private ResourcePackService resourcePackService;
+    private GuideService guideService;
     private MenuView menuView;
     private MenuOpenEventHandler menuOpenEventHandler;
     private MenuGuiTransitionService menuGuiTransitionService;
@@ -731,9 +734,10 @@ public final class AstralRecord extends JavaPlugin {
 
         // resource pack
         resourcePackService = new ResourcePackService(ConfigProperties.getInstance());
+        guideService = new GuideService(new GuideRepository(), itemService, playerClassService, worldService);
 
         // menu
-        menuView = new MenuView(this);
+        menuView = new MenuView(this, guideService);
         menuGuiTransitionService =
             new MenuGuiTransitionService(this, menuView, inventoryService);
         trashService = new TrashService(this, menuView, inventoryService, menuGuiTransitionService);
@@ -847,6 +851,7 @@ public final class AstralRecord extends JavaPlugin {
             itemService.loadAll();
             skillService.reloadDefinitions();
             playerClassService.loadAll();
+            guideService.loadAll();
         });
 
         // mob
@@ -1224,6 +1229,10 @@ public final class AstralRecord extends JavaPlugin {
 
     public MenuOpenEventHandler getMenuOpenEventHandler() {
         return menuOpenEventHandler;
+    }
+
+    public GuideService getGuideService() {
+        return guideService;
     }
 
     public TrashService getTrashService() {

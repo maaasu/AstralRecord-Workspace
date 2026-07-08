@@ -61,6 +61,7 @@ builder.Services.AddScoped<IGatheringRepository, GatheringRepository>();
 builder.Services.AddScoped<IGatheringSpawnerRepository, GatheringSpawnerRepository>();
 builder.Services.AddScoped<IWorldRepository, WorldRepository>();
 builder.Services.AddScoped<IMailRepository, MailRepository>();
+builder.Services.AddScoped<IGuideRepository, GuideRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IPlayerSettingRepository, PlayerSettingRepository>();
 builder.Services.AddScoped<IAdventureRecordRepository, AdventureRecordRepository>();

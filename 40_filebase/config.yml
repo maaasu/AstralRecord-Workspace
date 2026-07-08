@@ -21,6 +21,8 @@ database:
     path: 65.features.dungeon
   - name: mail
     path: 05.features.mail
+  - name: guide
+    path: 09.features.guide
   - name: shop
     path: 45.features.shop
 
@@ -80,3 +82,6 @@ referenceResolver:
   - prefix: "mail:"
     database: mail
     aliases: ["ml"]
+  - prefix: "guide:"
+    database: guide
+    aliases: ["gd"]

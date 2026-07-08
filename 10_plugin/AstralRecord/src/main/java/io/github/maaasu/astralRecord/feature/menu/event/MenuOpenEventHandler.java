@@ -421,7 +421,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             case EQUIPMENT_REPAIR -> {
             }
             case CURRENCY -> handleCurrencyClick(event, player);
-            case GUIDE -> handleGuideClick(player, event.getRawSlot());
+            case GUIDE -> handleGuideClick(event, player);
             case TRASH, TRASH_CONFIRM -> GuiSound.DENY.play(player);
             default -> GuiSound.DENY.play(player);
         }
@@ -565,12 +565,47 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         GuiSound.DENY.play(player);
     }
 
-    private void handleGuideClick(@NotNull Player player, int rawSlot) {
-        if (rawSlot == MenuView.BACK_SLOT) {
+    private void handleGuideClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
+        int rawSlot = event.getRawSlot();
+        Inventory inventory = event.getView().getTopInventory();
+        int pageIndex = menuView.getPageIndex(inventory);
+        String contentId = menuView.getContentId(inventory);
+
+        if (rawSlot == MenuView.PAGING_BACK_SLOT || rawSlot == MenuView.BACK_SLOT) {
             GuiSound.SELECT.play(player);
-            switchGuiWithoutInventoryReload(player, () -> menuView.open(player));
+            switchGuiWithoutInventoryReload(player, () -> {
+                if (contentId == null) {
+                    menuView.open(player);
+                } else {
+                    menuView.openGuide(player, pageIndex);
+                }
+            });
             return;
         }
+
+        if (contentId != null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+
+        if (rawSlot == MenuView.PAGING_PREVIOUS_SLOT && menuView.hasPreviousGuidePage(pageIndex)) {
+            GuiSound.SELECT.play(player);
+            switchGuiWithoutInventoryReload(player, () -> menuView.openGuide(player, pageIndex - 1));
+            return;
+        }
+        if (rawSlot == MenuView.PAGING_NEXT_SLOT && menuView.hasNextGuidePage(pageIndex)) {
+            GuiSound.SELECT.play(player);
+            switchGuiWithoutInventoryReload(player, () -> menuView.openGuide(player, pageIndex + 1));
+            return;
+        }
+
+        var guide = menuView.getGuideAtSlot(rawSlot, pageIndex);
+        if (guide != null) {
+            GuiSound.SELECT.play(player);
+            switchGuiWithoutInventoryReload(player, () -> menuView.openGuideDetail(player, guide, pageIndex));
+            return;
+        }
+
         GuiSound.DENY.play(player);
     }
 

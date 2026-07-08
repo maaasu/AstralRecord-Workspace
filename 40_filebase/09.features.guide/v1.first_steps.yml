@@ -1,0 +1,12 @@
+schemaVersion: 1
+id: first_steps
+category: beginner
+displayOrder: 10
+title: "&dはじめに"
+iconMaterial: COMPASS
+summary: "&7初参加時に最初に確認する手順。"
+lines:
+  - "&fまずメニューを開き、&dガイド&fを確認してください。"
+  - "&f支給品から {item:starter_weapon_bundle} と {item:starter_armor_bundle} を開封します。"
+  - "&f武器と防具を装備したら、{menu:skill_bind} でスキルを設定します。"
+  - "&f準備ができたら拠点からオーバーワールドへ移動し、低レベルの敵で操作を確認します。"
