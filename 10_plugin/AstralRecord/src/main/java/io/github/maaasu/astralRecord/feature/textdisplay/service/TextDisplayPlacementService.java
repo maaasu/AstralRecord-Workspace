@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.textdisplay.service;
 
 import io.github.maaasu.astralRecord.feature.textdisplay.model.TextDisplayPlacement;
 import io.github.maaasu.astralRecord.feature.textdisplay.repository.TextDisplayPlacementRepository;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.display.DisplayAnchor;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
@@ -209,7 +210,7 @@ public final class TextDisplayPlacementService {
                 placement.id(),
                 service.create(
                         DisplayAnchor.fixed(location),
-                        DisplayTextOptions.defaults(placement.text())
+                        DisplayTextOptions.defaults(ColorCodeUtil.toLegacyText(placement.text(), placement.id()))
                                 .withLineWidth(320)
                                 .withViewRange(96.0F)
                                 .withShadowed(true)
