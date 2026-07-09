@@ -223,6 +223,8 @@ public final class BossFieldInstanceService {
     }
 
     private static final class FieldCopyException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
         private FieldCopyException(@NotNull IOException cause) {
             super(cause);
         }
