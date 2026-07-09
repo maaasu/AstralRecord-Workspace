@@ -18,7 +18,7 @@
                         <div asp-validation-summary="ModelOnly" class="text-danger"></div>
                         <div>
                             <label asp-for="LoginCode" class="form-label">ログインコード</label>
-                            <input asp-for="LoginCode" class="form-control form-control-lg text-uppercase" autocomplete="one-time-code" placeholder="ABCD-EFGH" />
+                            <input asp-for="LoginCode" class="form-control form-control-lg text-uppercase" autocomplete="one-time-code" placeholder="ABCD-EFGH または ABCDEFGH" />
                             <span asp-validation-for="LoginCode" class="text-danger"></span>
                         </div>
                         <button type="submit" class="btn ar-btn-primary">ログイン</button>

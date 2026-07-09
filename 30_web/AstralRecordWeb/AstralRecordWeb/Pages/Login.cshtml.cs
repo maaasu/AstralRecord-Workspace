@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using AstralRecordWeb.Models;
 using AstralRecordWeb.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -26,8 +27,15 @@ public class LoginModel(WebAuthApiClient webAuthApiClient) : PageModel
         if (!ModelState.IsValid)
             return Page();
 
-        var consumed = await webAuthApiClient.ConsumeAsync(LoginCode, cancellationToken);
-        if (consumed is null)
+        var consumeResult = await webAuthApiClient.ConsumeAsync(LoginCode, cancellationToken);
+        if (consumeResult.Status == WebLoginChallengeConsumeStatus.ServiceUnavailable)
+        {
+            ModelState.AddModelError(string.Empty, "認証APIに接続できませんでした。しばらくしてからもう一度お試しください。");
+            return Page();
+        }
+
+        var consumed = consumeResult.Response;
+        if (consumeResult.Status != WebLoginChallengeConsumeStatus.Success || consumed is null)
         {
             ModelState.AddModelError(string.Empty, "ログインコードが無効、期限切れ、または使用済みです。");
             return Page();

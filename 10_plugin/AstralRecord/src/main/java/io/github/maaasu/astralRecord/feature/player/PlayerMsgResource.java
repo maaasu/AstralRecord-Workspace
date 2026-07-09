@@ -152,6 +152,12 @@ public final class PlayerMsgResource {
     }
 
     private static Component interactiveArgument(String value) {
+        if (isWebLoginCode(value)) {
+            return Component.text(value)
+                .clickEvent(ClickEvent.copyToClipboard(value))
+                .hoverEvent(HoverEvent.showText(Component.text("クリックでログインコードをコピー")));
+        }
+
         Player player = Bukkit.getPlayerExact(value);
         if (player != null) {
             return Component.text(value)
@@ -160,5 +166,9 @@ public final class PlayerMsgResource {
         }
         return Component.text(value)
             .hoverEvent(HoverEvent.showText(Component.text(value)));
+    }
+
+    private static boolean isWebLoginCode(String value) {
+        return value.matches("[A-HJ-NP-Z2-9]{4}-?[A-HJ-NP-Z2-9]{4}");
     }
 }
