@@ -876,7 +876,10 @@ public class SkillTreeService {
         addedSkillIds.removeAll(previousSkillIds);
         Set<String> removedSkillIds = new LinkedHashSet<>(previousSkillIds);
         removedSkillIds.removeAll(currentSkillIds);
-        refreshDerivedState(astPlayer, addedSkillIds, removedSkillIds, !changedNode.statuses().isEmpty());
+        boolean statusAffected = !changedNode.statuses().isEmpty()
+                || !addedSkillIds.isEmpty()
+                || !removedSkillIds.isEmpty();
+        refreshDerivedState(astPlayer, addedSkillIds, removedSkillIds, statusAffected);
         if (visualizer != null) {
             visualizer.markNodeStateDirty(
                     astPlayer.getBukkit().getUniqueId(),
