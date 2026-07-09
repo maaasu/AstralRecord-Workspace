@@ -70,23 +70,23 @@ drops:
 challenge:
   fieldWorldId: twilight_colossus_field
   entryLocation:
-    worldId: boss_hub
-    x: 0.5
-    y: 64.0
-    z: 4.5
-    yaw: 180.0
+    worldId: greenfall_fields
+    x: -410.5
+    y: 17.0
+    z: -366.5
+    yaw: 0.0
     pitch: 0.0
-  entryRadius: 3.0
+  entryRadius: 2
   playerSpawnLocation:
-    x: 0.5
-    y: 64.0
-    z: -8.5
+    x: -10.5
+    y: 118.0
+    z: 17.5
     yaw: 0.0
     pitch: 0.0
   bossSpawnLocation:
-    x: 0.5
-    y: 64.0
-    z: 8.5
+    x: -11.5
+    y: 121.0
+    z: 7.5
     yaw: 180.0
     pitch: 0.0
   partyMin: 1

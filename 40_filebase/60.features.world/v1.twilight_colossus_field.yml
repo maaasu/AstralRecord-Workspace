@@ -12,9 +12,9 @@ allowBlockPlace: false
 allowMobSpawn: false
 showSpawnParticle: false
 spawnLocation:
-  x: 0.5
-  y: 64.0
-  z: 0.5
+  x: -10.5
+  y: 118.0
+  z: 17.5
   yaw: 0.0
   pitch: 0.0
 description: "黄昏の巨像と戦うインスタンス式のボス闘技場。"
