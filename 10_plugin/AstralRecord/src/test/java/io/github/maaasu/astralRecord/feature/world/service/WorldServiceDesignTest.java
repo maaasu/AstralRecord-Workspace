@@ -90,6 +90,28 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
         assertNull(service.resolveSpawnLocation(missing));
     }
 
+    @Test
+    void loadAllDoesNotApplyGameRulesToAutoLoadDisabledWorld() {
+        WorldRepository repository = mock(WorldRepository.class);
+        WorldService service = new WorldService(repository);
+        World loadedWorld = server().addSimpleWorld("manual_field");
+        WorldMasterData manual = world(
+            "manual_field",
+            "Manual Field",
+            WorldType.BOSS_FIELD,
+            "manual_field",
+            WorldSpawnLocation.defaultLocation(),
+            false
+        );
+        when(repository.findAll()).thenReturn(List.of(manual));
+
+        withPluginLogger(service::loadAll);
+
+        assertEquals(List.of(manual), service.getAll());
+        assertTrue(loadedWorld.getGameRuleValue(GameRules.SPAWN_MOBS));
+        assertTrue(loadedWorld.getGameRuleValue(GameRules.MOB_GRIEFING));
+    }
+
     private int withPluginLogger(IntSupplier action) {
         try (MockedStatic<AstralRecord> astralRecord = Mockito.mockStatic(AstralRecord.class)) {
             AstralRecord plugin = mock(AstralRecord.class);
@@ -106,6 +128,17 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
         String baseWorldPath,
         WorldSpawnLocation spawnLocation
     ) {
+        return world(id, displayName, worldType, baseWorldPath, spawnLocation, true);
+    }
+
+    private WorldMasterData world(
+        String id,
+        String displayName,
+        WorldType worldType,
+        String baseWorldPath,
+        WorldSpawnLocation spawnLocation,
+        boolean autoLoad
+    ) {
         return new WorldMasterData(
             1,
             id,
@@ -113,7 +146,7 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
             worldType,
             baseWorldPath,
             "world_instances",
-            false,
+            autoLoad,
             false,
             0,
             false,

@@ -60,9 +60,9 @@ public class WorldService {
     }
 
     /**
-     * WorldMasterData を API から全件ロードします。
+     * WorldMasterData を API から全件ロードし、autoLoad が有効なワールドだけ Bukkit ワールドとして読み込みます。
      *
-     * @return ロード件数
+     * @return WorldMasterData のロード件数
      */
     public synchronized int loadAll() {
         List<WorldMasterData> worlds = repository.findAll().stream()
@@ -387,6 +387,9 @@ public class WorldService {
     private void loadRegisteredBukkitWorlds(@NotNull Collection<WorldMasterData> worlds) {
         int loadedCount = 0;
         for (WorldMasterData world : worlds) {
+            if (!world.autoLoad()) {
+                continue;
+            }
             org.bukkit.World loaded = loadBukkitWorld(world);
             if (loaded != null) {
                 loadedCount++;

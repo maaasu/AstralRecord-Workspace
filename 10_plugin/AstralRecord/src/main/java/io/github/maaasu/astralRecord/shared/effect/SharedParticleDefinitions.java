@@ -60,6 +60,19 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("item_drop_collect_end_rod", Particle.END_ROD, 8, 0.16D, 0.22D, 0.16D, 0.01D);
     public static final SharedParticleDefinition WORLD_SPAWN_RING_END_ROD =
         new SharedParticleDefinition("world_spawn_ring_end_rod", Particle.END_ROD, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+    public static final SharedParticleDefinition BOSS_ENTRY_RING_DUST =
+        new SharedParticleDefinition(
+            "boss_entry_ring_dust",
+            Particle.DUST,
+            1,
+            0.01D,
+            0.01D,
+            0.01D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 82, 146), 1.05F)
+        );
+    public static final SharedParticleDefinition BOSS_ENTRY_SOUL_FIRE =
+        new SharedParticleDefinition("boss_entry_soul_fire", Particle.SOUL_FIRE_FLAME, 3, 0.16D, 0.12D, 0.16D, 0.01D);
     public static final SharedParticleDefinition BASE_RETURN_RING_END_ROD =
         new SharedParticleDefinition("base_return_ring_end_rod", Particle.END_ROD, 1, 0.0D, 0.0D, 0.0D, 0.0D);
     public static final SharedParticleDefinition BASE_RETURN_PORTAL =

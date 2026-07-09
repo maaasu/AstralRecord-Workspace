@@ -25,6 +25,8 @@ import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.display.DisplayAnchor;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -33,13 +35,15 @@ import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -50,6 +54,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class BossChallengeService {
     private static final long FIELD_START_DELAY_TICKS = 40L;
     private static final long DEFEATED_RESULT_WAIT_TICKS = 15L * 20L;
+    private static final long ENTRY_VISUAL_PERIOD_TICKS = 10L;
+    private static final int ENTRY_RING_POINTS = 10;
+    private static final double ENTRY_PROMPT_Y_OFFSET = 2.35D;
+    private static final double ENTRY_VIEWER_DISTANCE_SQUARED = 64.0D * 64.0D;
 
     private final AstralRecord plugin;
     private final MobService mobService;
@@ -57,12 +65,16 @@ public final class BossChallengeService {
     private final PartyService partyService;
     private final PlayerMessageService messageService;
     private final BossFieldInstanceService fieldInstanceService;
+    private final ParticleDisplayService particleDisplayService;
     private final DisplayTextService displayTextService;
     private final String hubWorldId;
     private final Map<UUID, BossChallengeInstance> challengesById = new ConcurrentHashMap<>();
     private final Map<String, UUID> challengeIdByPartyKey = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> challengeIdByBossMob = new ConcurrentHashMap<>();
+    private final Map<String, EntryPromptDisplay> entryPromptDisplays = new HashMap<>();
     private BukkitTask tickTask;
+    private BukkitTask entryVisualTask;
+    private long entryVisualFrame;
 
     public BossChallengeService(
             @NotNull AstralRecord plugin,
@@ -71,6 +83,7 @@ public final class BossChallengeService {
             @NotNull PartyService partyService,
             @NotNull PlayerMessageService messageService,
             @NotNull BossFieldInstanceService fieldInstanceService,
+            @NotNull ParticleDisplayService particleDisplayService,
             @NotNull DisplayTextService displayTextService,
             @NotNull String hubWorldId
     ) {
@@ -80,28 +93,37 @@ public final class BossChallengeService {
         this.partyService = partyService;
         this.messageService = messageService;
         this.fieldInstanceService = fieldInstanceService;
+        this.particleDisplayService = particleDisplayService;
         this.displayTextService = displayTextService;
         this.hubWorldId = hubWorldId;
     }
 
     /**
-     * Starts the challenge watchdog.
+     * ボス挑戦の監視と入口演出の定期処理を開始します。
      */
     public void start() {
-        if (tickTask != null) {
-            return;
+        if (tickTask == null) {
+            tickTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 20L, 20L);
         }
-        tickTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 20L, 20L);
+        if (entryVisualTask == null) {
+            entryVisualFrame = 0L;
+            entryVisualTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tickEntryVisuals, 0L, ENTRY_VISUAL_PERIOD_TICKS);
+        }
     }
 
     /**
-     * Stops all active challenges and the watchdog.
+     * 入口演出を停止し、進行中のボス挑戦をすべて終了します。
      */
     public void stop() {
         if (tickTask != null) {
             tickTask.cancel();
             tickTask = null;
         }
+        if (entryVisualTask != null) {
+            entryVisualTask.cancel();
+            entryVisualTask = null;
+        }
+        clearEntryPromptDisplays();
         for (BossChallengeInstance challenge : List.copyOf(challengesById.values())) {
             endChallenge(challenge, BossChallengeEndReason.PLUGIN_SHUTDOWN);
         }
@@ -212,18 +234,9 @@ public final class BossChallengeService {
         challengeIdByPartyKey.put(partyKey, challenge.challengeId());
         Logger.log(LogId.I_6500, challenge.challengeId(), template.id(), partyKey);
 
-        try {
-            challenge.field(fieldInstanceService.createField(challenge, fieldData));
-        } catch (IOException ex) {
-            Logger.log(LogId.E_6500, ex, template.id(), config.fieldWorldId());
-            messageService.send(player, PlayerMsgId.P_6509, config.fieldWorldId());
-            endChallenge(challenge, BossChallengeEndReason.FIELD_PREPARE_FAILED);
-            return;
-        }
-
         notifyParticipants(challenge, PlayerMsgId.P_6508, template.displayName());
-        teleportParticipantsToHub(challenge, hubData);
-        Bukkit.getScheduler().runTaskLater(plugin, () -> startField(challenge.challengeId()), FIELD_START_DELAY_TICKS);
+        teleportParticipantsToHubAsync(challenge, hubData).whenComplete((results, throwable) ->
+                Bukkit.getScheduler().runTask(plugin, () -> finishHubTransfer(challenge.challengeId(), fieldData, results, throwable)));
     }
 
     /**
@@ -328,6 +341,52 @@ public final class BossChallengeService {
         }
         endChallenge(challenge, BossChallengeEndReason.ADMIN_STOP);
         return true;
+    }
+
+    private void finishHubTransfer(
+            @NotNull UUID challengeId,
+            @NotNull WorldMasterData fieldData,
+            @Nullable List<Boolean> results,
+            @Nullable Throwable throwable
+    ) {
+        BossChallengeInstance challenge = challengesById.get(challengeId);
+        if (challenge == null || challenge.state() != BossChallengeState.PREPARING) {
+            return;
+        }
+        if (throwable != null || results == null || results.isEmpty() || results.stream().anyMatch(result -> !Boolean.TRUE.equals(result))) {
+            notifyParticipants(challenge, PlayerMsgId.P_6521, challenge.bossTemplate().displayName());
+            endChallenge(challenge, BossChallengeEndReason.TRANSFER_FAILED);
+            return;
+        }
+        beginFieldPreparation(challenge, fieldData);
+    }
+
+    private void beginFieldPreparation(@NotNull BossChallengeInstance challenge, @NotNull WorldMasterData fieldData) {
+        fieldInstanceService.createFieldAsync(challenge, fieldData).whenComplete((field, throwable) ->
+                Bukkit.getScheduler().runTask(plugin, () -> finishFieldPreparation(challenge.challengeId(), field, throwable)));
+    }
+
+    private void finishFieldPreparation(
+            @NotNull UUID challengeId,
+            @Nullable BossFieldInstance field,
+            @Nullable Throwable throwable
+    ) {
+        BossChallengeInstance challenge = challengesById.get(challengeId);
+        if (challenge == null || challenge.state() != BossChallengeState.PREPARING) {
+            if (field != null) {
+                fieldInstanceService.destroyField(field);
+            }
+            return;
+        }
+        if (throwable != null || field == null) {
+            Logger.log(LogId.E_6500, throwable, challenge.bossTemplate().id(), challenge.config().fieldWorldId());
+            notifyParticipants(challenge, PlayerMsgId.P_6509, challenge.config().fieldWorldId());
+            endChallenge(challenge, BossChallengeEndReason.FIELD_PREPARE_FAILED);
+            return;
+        }
+
+        challenge.field(field);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> startField(challenge.challengeId()), FIELD_START_DELAY_TICKS);
     }
 
     private void startField(@NotNull UUID challengeId) {
@@ -631,6 +690,143 @@ public final class BossChallengeService {
         return false;
     }
 
+    private void tickEntryVisuals() {
+        double baseAngle = entryVisualFrame * 0.28D;
+        Set<String> activePromptIds = new HashSet<>();
+        for (String bossId : mobService.getLoadedMobIdsByCategory(List.of(MobCategory.BOSS))) {
+            MobTemplate template = mobService.findTemplate(bossId);
+            if (template == null || template.challenge() == null) {
+                continue;
+            }
+
+            World entryWorld = resolveLocationWorld(template.challenge().entryLocation());
+            if (entryWorld == null) {
+                continue;
+            }
+            Location entry = template.challenge().entryLocation().toLocation(entryWorld);
+            if (!renderEntryAnimation(entry, template.challenge().entryRadius(), baseAngle)) {
+                continue;
+            }
+            updateEntryPrompt(template, entry);
+            activePromptIds.add(template.id());
+        }
+        removeInactiveEntryPrompts(activePromptIds);
+        entryVisualFrame++;
+    }
+
+    private boolean renderEntryAnimation(@NotNull Location entry, double radius, double baseAngle) {
+        World world = entry.getWorld();
+        if (world == null || !hasNearbyViewer(entry, world)) {
+            return false;
+        }
+
+        double visualRadius = Math.max(0.75D, radius);
+        List<Location> ringLocations = new ArrayList<>(ENTRY_RING_POINTS);
+        for (int i = 0; i < ENTRY_RING_POINTS; i++) {
+            double angle = baseAngle + ((Math.PI * 2.0D * i) / ENTRY_RING_POINTS);
+            double x = Math.cos(angle) * visualRadius;
+            double z = Math.sin(angle) * visualRadius;
+            double y = 0.18D + (Math.sin((baseAngle * 1.2D) + (i * 0.5D)) * 0.12D);
+            ringLocations.add(entry.clone().add(x, y, z));
+        }
+        particleDisplayService.spawnForNearbyViewers(
+                entry,
+                ringLocations,
+                SharedParticleDefinitions.BOSS_ENTRY_RING_DUST
+        );
+        particleDisplayService.spawnForNearbyViewers(
+                entry.clone().add(0.0D, 0.95D, 0.0D),
+                SharedParticleDefinitions.BOSS_ENTRY_SOUL_FIRE
+        );
+        return true;
+    }
+
+    private boolean hasNearbyViewer(@NotNull Location center, @NotNull World world) {
+        for (Player player : world.getPlayers()) {
+            if (player.getLocation().distanceSquared(center) <= ENTRY_VIEWER_DISTANCE_SQUARED) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void updateEntryPrompt(@NotNull MobTemplate template, @NotNull Location entry) {
+        String text = "&c&lボス挑戦 &f" + template.displayName() + "\n&eスニーク&fで挑戦";
+        Location promptLocation = entry.clone().add(0.0D, ENTRY_PROMPT_Y_OFFSET, 0.0D);
+        EntryPromptDisplay current = entryPromptDisplays.get(template.id());
+        try {
+            if (current == null) {
+                entryPromptDisplays.put(template.id(), createEntryPromptDisplay(promptLocation, text));
+            } else {
+                current.display().setAnchor(DisplayAnchor.fixed(promptLocation));
+                if (!current.text().equals(text)) {
+                    current.display().setText(text);
+                    entryPromptDisplays.put(template.id(), new EntryPromptDisplay(current.display(), text));
+                }
+            }
+        } catch (IllegalStateException ignored) {
+            entryPromptDisplays.put(template.id(), createEntryPromptDisplay(promptLocation, text));
+        }
+    }
+
+    private @NotNull EntryPromptDisplay createEntryPromptDisplay(@NotNull Location location, @NotNull String text) {
+        return new EntryPromptDisplay(
+                displayTextService.create(
+                        DisplayAnchor.fixed(location),
+                        DisplayTextOptions.defaults(text)
+                                .withLineWidth(300)
+                                .withViewRange(48.0F)
+                                .withShadowed(true)
+                ),
+                text
+        );
+    }
+
+    private void removeInactiveEntryPrompts(@NotNull Set<String> activePromptIds) {
+        for (String id : List.copyOf(entryPromptDisplays.keySet())) {
+            if (!activePromptIds.contains(id)) {
+                removeEntryPrompt(id);
+            }
+        }
+    }
+
+    private void clearEntryPromptDisplays() {
+        for (String id : List.copyOf(entryPromptDisplays.keySet())) {
+            removeEntryPrompt(id);
+        }
+    }
+
+    private void removeEntryPrompt(@NotNull String id) {
+        EntryPromptDisplay display = entryPromptDisplays.remove(id);
+        if (display == null) {
+            return;
+        }
+        try {
+            display.display().destroy();
+        } catch (IllegalStateException ignored) {
+            // DisplayTextService 側ですでに破棄済みの場合は同期だけ済ませます。
+        }
+    }
+
+    private @NotNull CompletableFuture<List<Boolean>> teleportParticipantsToHubAsync(
+            @NotNull BossChallengeInstance challenge,
+            @NotNull WorldMasterData hubData
+    ) {
+        List<Player> players = onlinePlayers(challenge.participantIds());
+        if (players.isEmpty()) {
+            return CompletableFuture.completedFuture(List.of());
+        }
+
+        List<CompletableFuture<Boolean>> transfers = new ArrayList<>(players.size());
+        for (Player player : players) {
+            transfers.add(worldService.teleportToSpawnAsync(player, hubData));
+        }
+        return CompletableFuture.allOf(transfers.toArray(CompletableFuture[]::new))
+                .thenApply(ignored -> transfers.stream()
+                        .map(future -> Boolean.TRUE.equals(future.getNow(false)))
+                        .toList());
+    }
+
     private void teleportParticipantsToHub(@NotNull BossChallengeInstance challenge, @NotNull WorldMasterData hubData) {
         for (Player player : onlinePlayers(challenge.participantIds())) {
             worldService.teleportToSpawn(player, hubData);
@@ -644,5 +840,11 @@ public final class BossChallengeService {
     }
 
     private record DamageLine(@NotNull UUID playerId, double damage) {
+    }
+
+    private record EntryPromptDisplay(
+            @NotNull DisplayTextService.ManagedTextDisplay display,
+            @NotNull String text
+    ) {
     }
 }

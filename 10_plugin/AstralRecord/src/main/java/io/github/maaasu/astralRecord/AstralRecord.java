@@ -727,6 +727,7 @@ public final class AstralRecord extends JavaPlugin {
             partyService,
             playerMessageService,
             bossFieldInstanceService,
+            particleDisplayService,
             displayTextService,
             bossHubWorldId
         );

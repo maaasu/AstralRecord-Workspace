@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
 /**
@@ -43,6 +44,56 @@ public final class BossFieldInstanceService {
             @NotNull BossChallengeInstance challenge,
             @NotNull WorldMasterData worldData
     ) throws IOException {
+        PreparedField prepared = prepareField(challenge, worldData);
+        copyDirectory(prepared.source(), prepared.target());
+        return loadPreparedField(challenge, prepared.target());
+    }
+
+    /**
+     * ボスフィールドのフォルダコピーを非同期で行い、Bukkit ワールドロードだけメインスレッドへ戻します。
+     *
+     * @param challenge challenge runtime state
+     * @param worldData field world master data
+     * @return loaded field instance を返す Future
+     */
+    public @NotNull CompletableFuture<BossFieldInstance> createFieldAsync(
+            @NotNull BossChallengeInstance challenge,
+            @NotNull WorldMasterData worldData
+    ) {
+        PreparedField prepared;
+        try {
+            prepared = prepareField(challenge, worldData);
+        } catch (IOException ex) {
+            CompletableFuture<BossFieldInstance> failed = new CompletableFuture<>();
+            failed.completeExceptionally(ex);
+            return failed;
+        }
+
+        CompletableFuture<BossFieldInstance> result = new CompletableFuture<>();
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                copyDirectory(prepared.source(), prepared.target());
+            } catch (Throwable ex) {
+                tryDeletePreparedTarget(prepared.target());
+                result.completeExceptionally(ex);
+                return;
+            }
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                try {
+                    result.complete(loadPreparedField(challenge, prepared.target()));
+                } catch (Throwable ex) {
+                    tryDeletePreparedTarget(prepared.target());
+                    result.completeExceptionally(ex);
+                }
+            });
+        });
+        return result;
+    }
+
+    private @NotNull PreparedField prepareField(
+            @NotNull BossChallengeInstance challenge,
+            @NotNull WorldMasterData worldData
+    ) throws IOException {
         Path root = resolvePath(worldData.instanceRootPath());
         Files.createDirectories(root);
 
@@ -51,14 +102,22 @@ public final class BossFieldInstanceService {
         if (!target.startsWith(root.normalize())) {
             throw new IOException("Boss field target escaped instance root: " + target);
         }
+        if (Files.exists(target)) {
+            throw new IOException("Boss field target already exists: " + target);
+        }
 
         Path source = resolvePath(worldData.baseWorldPath());
         if (!Files.isDirectory(source) || !Files.isRegularFile(source.resolve("level.dat"))) {
             Logger.log(LogId.W_6501, worldData.id(), source.toString());
             throw new IOException("Boss field base world folder is missing or invalid: " + source);
         }
-        copyDirectory(source, target);
+        return new PreparedField(source, target);
+    }
 
+    private @NotNull BossFieldInstance loadPreparedField(
+            @NotNull BossChallengeInstance challenge,
+            @NotNull Path target
+    ) throws IOException {
         World world = Bukkit.createWorld(new WorldCreator(worldCreatorName(target)));
         if (world == null) {
             throw new IOException("Bukkit could not load boss field world: " + target);
@@ -129,6 +188,14 @@ public final class BossFieldInstanceService {
         return "uid.dat".equalsIgnoreCase(name) || "session.lock".equalsIgnoreCase(name);
     }
 
+    private void tryDeletePreparedTarget(@NotNull Path target) {
+        try {
+            deleteDirectory(target);
+        } catch (IOException ex) {
+            Logger.log(LogId.E_6502, ex, target.toString());
+        }
+    }
+
     private void deleteDirectory(@NotNull Path target) throws IOException {
         Path normalized = target.toAbsolutePath().normalize();
         if (!Files.exists(normalized)) {
@@ -139,5 +206,8 @@ public final class BossFieldInstanceService {
                 Files.deleteIfExists(path);
             }
         }
+    }
+
+    private record PreparedField(@NotNull Path source, @NotNull Path target) {
     }
 }
