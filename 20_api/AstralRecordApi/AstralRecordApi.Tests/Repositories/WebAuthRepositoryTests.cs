@@ -67,7 +67,7 @@ public class WebAuthRepositoryTests
         await using var dbContext = new AstralRecordDbContext(options);
         var repository = new WebAuthRepository(
             dbContext,
-            Options.Create(new WebAuthOptions { ChallengeMinutes = 5, LoginUrl = "https://example.com/Login" }));
+            Microsoft.Extensions.Options.Options.Create(new WebAuthOptions { ChallengeMinutes = 5, LoginUrl = "https://example.com/Login" }));
 
         var created = await repository.CreateChallengeAsync(new WebLoginChallengeCreateRequest
         {

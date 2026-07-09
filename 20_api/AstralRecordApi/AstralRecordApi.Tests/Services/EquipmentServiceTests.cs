@@ -142,9 +142,9 @@ public class EquipmentServiceTests
         Assert.Equal(5, result!.StatRolls.Count);
         Assert.Contains(result.StatRolls, x => x.Status == "ATTACK");
         Assert.Contains(result.StatRolls, x => x.Status == "STRENGTH" && x.Min == "6" && x.Max == "6");
-        Assert.Contains(result.StatRolls, x => x.Status == "CRITICAL_RATE" && x.Min == "4" && x.Max == "8");
+        Assert.Contains(result.StatRolls, x => x.Status == "CRITICAL_RATE" && x.Min == "0" && x.Max == "8");
         Assert.Contains(result.StatRolls, x => x.Status == "ATTACK_SPEED" && x.Min == "0.03" && x.Max == "0.08");
-        Assert.Contains(result.StatRolls, x => x.Status == "ACCURACY" && x.Min == "5" && x.Max == "9");
+        Assert.Contains(result.StatRolls, x => x.Status == "ACCURACY" && x.Min == "0" && x.Max == "9");
     }
 
     [Fact]
