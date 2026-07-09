@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.mob.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentEnhancementService;
+import io.github.maaasu.astralRecord.feature.item.service.EquipmentRepairService;
 import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
@@ -47,6 +48,7 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
     private final PlayerClassService playerClassService;
     private final StorageService storageService;
     private final EquipmentEnhancementService equipmentEnhancementService;
+    private final EquipmentRepairService equipmentRepairService;
     private final QuestGuiEventHandler questGuiEventHandler;
     private final PlayerInteractionConsumeService interactionConsumeService;
 
@@ -56,6 +58,11 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
      * @param mobService          Mob 管理サービス
      * @param shopGuiEventHandler ショップ GUI ハンドラ
      * @param menuView            メニュー GUI ビュー
+     * @param playerClassService  職業表示用サービス
+     * @param storageService      ストレージ GUI サービス
+     * @param equipmentEnhancementService 装備強化 GUI サービス
+     * @param equipmentRepairService 装備修理 GUI サービス
+     * @param questGuiEventHandler クエストボード GUI ハンドラ
      * @param interactionConsumeService コンテンツが消費したインタラクトの共有サービス
      */
     public MobInteractionEventHandler(
@@ -65,6 +72,7 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
             @NotNull PlayerClassService playerClassService,
             @NotNull StorageService storageService,
             @NotNull EquipmentEnhancementService equipmentEnhancementService,
+            @NotNull EquipmentRepairService equipmentRepairService,
             @NotNull QuestGuiEventHandler questGuiEventHandler,
             @NotNull PlayerInteractionConsumeService interactionConsumeService) {
         this.mobService = mobService;
@@ -73,6 +81,7 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
         this.playerClassService = playerClassService;
         this.storageService = storageService;
         this.equipmentEnhancementService = equipmentEnhancementService;
+        this.equipmentRepairService = equipmentRepairService;
         this.questGuiEventHandler = questGuiEventHandler;
         this.interactionConsumeService = interactionConsumeService;
     }
@@ -205,6 +214,7 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
             case "CLASS" -> openClass(player);
             case "STORAGE" -> openStorage(player);
             case "EQUIPMENT_ENHANCE", "ENHANCE" -> openEquipmentEnhance(player);
+            case "EQUIPMENT_REPAIR", "REPAIR" -> openEquipmentRepair(player);
             default -> GuiSound.DENY.play(player);
         }
     }
@@ -252,6 +262,12 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
     private void openEquipmentEnhance(@NotNull Player player) {
         MenuGuiTransitionService.suppressNextCloseSound(player);
         equipmentEnhancementService.open(player);
+        GuiSound.OPEN.play(player);
+    }
+
+    private void openEquipmentRepair(@NotNull Player player) {
+        MenuGuiTransitionService.suppressNextCloseSound(player);
+        equipmentRepairService.open(player);
         GuiSound.OPEN.play(player);
     }
 

@@ -552,16 +552,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             switchGuiWithoutInventoryReload(player, () -> playerBrowserGuiEventHandler.openInfoList(player, 0));
             return;
         }
-        if (rawSlot == MenuView.EQUIPMENT_REPAIR_SLOT) {
-            var repairService = plugin.getEquipmentRepairService();
-            if (repairService == null) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            GuiSound.SELECT.play(player);
-            switchGuiWithoutInventoryReload(player, () -> repairService.open(player));
-            return;
-        }
         GuiSound.DENY.play(player);
     }
 

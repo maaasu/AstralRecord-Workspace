@@ -60,7 +60,6 @@ public class MenuView {
     public static final int CURRENCY_SLOT = MainMenuScreenView.CURRENCY_SLOT;
     public static final int PARTY_SLOT = MainMenuScreenView.PARTY_SLOT;
     public static final int PLAYER_INFO_SLOT = MainMenuScreenView.PLAYER_INFO_SLOT;
-    public static final int EQUIPMENT_REPAIR_SLOT = MainMenuScreenView.EQUIPMENT_REPAIR_SLOT;
     public static final int ADVENTURE_RECORD_SLOT = MainMenuScreenView.ADVENTURE_RECORD_SLOT;
     public static final int MAIL_SLOT = MainMenuScreenView.MAIL_SLOT;
     public static final int EQUIPMENT_HEAD_SLOT = EquipmentMenuScreenView.EQUIPMENT_HEAD_SLOT;

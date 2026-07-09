@@ -1129,6 +1129,7 @@ public final class AstralRecord extends JavaPlugin {
                 playerClassService,
                 storageService,
                 equipmentEnhancementService,
+                equipmentRepairService,
                 questGuiEventHandler,
                 playerInteractionConsumeService
             ),

@@ -1,0 +1,36 @@
+schemaVersion: 1
+id: equipment_repair
+type: MOB
+category: NPC
+name: "&6装備修理"
+title: "&7装備修理"
+level: 1
+entityType: GRINDSTONE
+nameVisible: true
+damageImmune: true
+icon: GRINDSTONE
+lore:
+  - "&7ゴールドを消費して装備の耐久値を回復する修理台。"
+tags:
+  - npc
+  - equipment_repair
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&6装備修理&7: 右クリックで装備修理を開けます。"
+  rightClick:
+    - id: gui
+      params:
+        type: EQUIPMENT_REPAIR
