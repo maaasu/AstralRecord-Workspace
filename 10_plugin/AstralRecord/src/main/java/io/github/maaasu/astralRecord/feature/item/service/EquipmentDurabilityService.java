@@ -9,9 +9,14 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.bukkit.Material;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -213,9 +218,24 @@ public final class EquipmentDurabilityService {
             return;
         }
         inventoryService.refreshEquipmentInstanceDisplay(player, updated);
-        if (nextValue <= 0 && statusService != null) {
-            statusService.refreshStatus(player);
+        if (nextValue <= 0) {
+            notifyEquipmentBroken(player, model);
+            if (statusService != null) {
+                statusService.refreshStatus(player);
+            }
         }
+    }
+
+    private void notifyEquipmentBroken(@NotNull AstPlayer player, @NotNull ItemModel model) {
+        String displayName = ColorCodeUtil.toLegacyText(model.getName(), model.getId());
+        PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5279, displayName);
+        player.getBukkit().playSound(
+            player.getBukkit().getLocation(),
+            Sound.ENTITY_ITEM_BREAK,
+            SoundCategory.PLAYERS,
+            0.9F,
+            0.75F
+        );
     }
 
     private boolean isEffectiveHit(@NotNull DamageResult result) {

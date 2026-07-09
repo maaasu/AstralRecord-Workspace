@@ -355,6 +355,10 @@ public enum PlayerMsgId {
      * {0} の耐久値を回復しました。-{1} Gold
      */
     P_5278(5278),
+    /**
+     * 装備の耐久値が 0 になり、使用できなくなりました: {0}
+     */
+    P_5279(5279),
     // endregion
 
     // region /feature/user/command/UserPermissionCommand.java 5300-5309

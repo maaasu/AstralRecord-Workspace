@@ -35,6 +35,8 @@
 - `status`
   - 装備/ルーンの Lore 表示で `StatusType` を解決し、表示名・カラー分類に使用する。
   - ステータス表示名は `StatusType` のカテゴリ色を使用し、ステータス値はカテゴリにかかわらず共通色で表示する。
+  - ステータス範囲値は半角 `~` ではなく全角 `～` で表示し、値自体は太字の共通色で表示する。
+  - アイテムカテゴリの保存・API 値は英語 ID のままとし、プレイヤー向け表示では `ItemCategory.displayNameJa` の日本語名を使用する。
 - `currency`
   - `currency` カテゴリの item 表現は本 feature が保持するが、所持通貨の取得・加算・表示用 ItemStack 一覧の正本は currency feature とする。
 

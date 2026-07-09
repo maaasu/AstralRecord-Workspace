@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.item.command;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
@@ -71,7 +72,7 @@ public class ItemCommand extends AstCommand {
         PlayerMessageService.getInstance().send(
             player,
             PlayerMsgId.P_5209,
-            loaded.getCategory(),
+            ItemCategory.displayNameJa(loaded.getCategory()),
             loaded.getId(),
             ColorCodeUtil.toLegacyText(loaded.getName(), loaded.getId())
         );

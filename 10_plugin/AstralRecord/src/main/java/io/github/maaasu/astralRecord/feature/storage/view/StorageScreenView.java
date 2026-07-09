@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.storage.view;
 
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewEntry;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewOptions;
+import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
@@ -126,7 +127,7 @@ public final class StorageScreenView extends BaseMenuScreenView {
         inventory.setItem(CATEGORY_FILTER_SLOT, createItem(
             Material.HOPPER,
             Component.text("カテゴリフィルター", NamedTextColor.AQUA),
-            filterLore("CATEGORY", filterLabel(options.categoryFilter()))
+            filterLore("CATEGORY", categoryFilterLabel(options.categoryFilter()))
         ));
         inventory.setItem(RARITY_FILTER_SLOT, createItem(
             Material.NETHER_STAR,
@@ -171,7 +172,7 @@ public final class StorageScreenView extends BaseMenuScreenView {
         List<Component> lore = meta.hasLore() && meta.lore() != null
             ? new ArrayList<>(meta.lore())
             : new ArrayList<>();
-        lore.add(Component.text("カテゴリ: " + entry.itemModel().getCategory(), NamedTextColor.GRAY));
+        lore.add(Component.text("カテゴリ: " + ItemCategory.displayNameJa(entry.itemModel().getCategory()), NamedTextColor.GRAY));
         lore.add(Component.text("レア度: " + entry.itemModel().getRarity(), NamedTextColor.GRAY));
         lore.add(Component.text("売値: " + Math.max(0, entry.itemModel().getSaleValue()), NamedTextColor.GOLD));
         lore.add(Component.text("獲得: " + DATE_TIME_FORMATTER.format(entry.acquiredAt()), NamedTextColor.DARK_GRAY));
@@ -187,6 +188,10 @@ public final class StorageScreenView extends BaseMenuScreenView {
 
     private @NotNull String filterLabel(@Nullable String value) {
         return value == null || value.isBlank() ? "すべて" : value;
+    }
+
+    private @NotNull String categoryFilterLabel(@Nullable String value) {
+        return value == null || value.isBlank() ? "すべて" : ItemCategory.displayNameJa(value);
     }
 
     private @NotNull List<Component> filterLore(@NotNull String label, @NotNull String value) {

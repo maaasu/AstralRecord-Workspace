@@ -135,7 +135,7 @@ public class ItemStackFactory {
             BuiltInWeaponAttackDefinitions.SPECIAL_ATTACK_MAGIC
     );
 
-    private static final String STATUS_VALUE_COLOR = ColorCodeUtil.WHITE;
+    private static final String STATUS_VALUE_COLOR = ColorCodeUtil.WHITE + ColorCodeUtil.BOLD;
 
     /** ルートテーブル参照用（nullable: 未初期化時は Lore に含めない） */
     private final LootService lootService;
@@ -276,11 +276,15 @@ public class ItemStackFactory {
         // --- アイテム名: transcendence オーバーライド → enhance +N サフィックス ---
         String baseName = resolveEquipmentDisplayName(model, instance);
         var decoratedName = ColorCodeUtil.toLegacyText(baseName, model.getId());
+        boolean broken = isBroken(instance);
+        String visibleName = broken
+                ? ColorCodeUtil.DARK_RED + "[破損] " + rarityColor + decoratedName
+                : rarityColor + decoratedName;
         String enhanceSuffix = instance.getEnhanceLevel() > 0
                 ? " §f+" + instance.getEnhanceLevel()
                 : "";
         meta.displayName(LEGACY_SERIALIZER.deserialize(
-                rarityColor + decoratedName + enhanceSuffix + ColorCodeUtil.RESET));
+                visibleName + enhanceSuffix + ColorCodeUtil.RESET));
 
         var loreStrings = buildLoreForEquipmentInstance(model, instance);
         meta.lore(loreStrings.stream()
@@ -588,7 +592,7 @@ public class ItemStackFactory {
         lore.add(rarityColor + "◆ " + decoratedName);
         lore.add(rarityStars(model.getRarity())
                 + ColorCodeUtil.DARK_GRAY + "  " + rarityDisplayName(model.getRarity())
-                + ColorCodeUtil.DARK_GRAY + " │ " + ColorCodeUtil.GRAY + model.getCategory());
+                + ColorCodeUtil.DARK_GRAY + " │ " + ColorCodeUtil.GRAY + displayCategoryName(model.getCategory()));
         lore.add("");
 
         // ユーザー定義 lore（フレーバーテキスト: イタリック）
@@ -667,14 +671,15 @@ public class ItemStackFactory {
                 lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
                         + statColor + displayName
                         + ColorCodeUtil.DARK_GRAY + " : "
-                        + STATUS_VALUE_COLOR + prefix + stat.displayValue());
+                        + formatStatValueWithPrefix(prefix, stat.displayValue()));
             }
         }
 
         // 耐久値
         if (equipment.getDurability() != null) {
-            lore.add(ColorCodeUtil.GRAY + " ▸ 耐久値: " + ColorCodeUtil.WHITE
-                    + equipment.getDurability().getMax());
+            lore.add(ColorCodeUtil.GRAY + " ▸ 耐久値: "
+                    + ColorCodeUtil.DARK_GRAY + "最大 "
+                    + ColorCodeUtil.AQUA + ColorCodeUtil.BOLD + equipment.getDurability().getMax());
         }
 
         appendEquipmentSkillLore(lore, equipment);
@@ -813,7 +818,7 @@ public class ItemStackFactory {
         for (LootEntry entry : lootModel.flattenedEntries()) {
             String amountText = entry.getMinAmount() == entry.getMaxAmount()
                     ? String.valueOf(entry.getMinAmount())
-                    : entry.getMinAmount() + "~" + entry.getMaxAmount();
+                    : entry.getMinAmount() + "～" + entry.getMaxAmount();
             String weightText = entry.getWeight() >= 100.0
                     ? ""
                     : ColorCodeUtil.DARK_GRAY + " / " + String.format("%.1f%%", entry.getWeight());
@@ -906,12 +911,15 @@ public class ItemStackFactory {
         List<String> lore = new ArrayList<>();
         String rarityColor = rarityToColor(model.getRarity());
         String decoratedName = ColorCodeUtil.toLegacyText(resolveEquipmentDisplayName(model, instance), model.getId());
+        if (isBroken(instance)) {
+            decoratedName = ColorCodeUtil.DARK_RED + "[破損] " + rarityColor + decoratedName;
+        }
 
         lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
         lore.add(rarityColor + "◆ " + decoratedName);
         lore.add(rarityStars(model.getRarity())
                 + ColorCodeUtil.DARK_GRAY + "  " + rarityDisplayName(model.getRarity())
-                + ColorCodeUtil.DARK_GRAY + " │ " + ColorCodeUtil.GRAY + model.getCategory());
+                + ColorCodeUtil.DARK_GRAY + " │ " + ColorCodeUtil.GRAY + displayCategoryName(model.getCategory()));
         lore.add("");
 
         if (!model.getLore().isEmpty()) {
@@ -988,13 +996,13 @@ public class ItemStackFactory {
 
                     String prefix = rollType == ItemEquipmentStatType.SCALAR ? "×" : "+";
                     String displayValue = totalMin == totalMax
-                            ? prefix + formatStatValue(totalMin)
-                            : prefix + formatStatValue(totalMin) + "~" + formatStatValue(totalMax);
+                            ? formatStatValueWithPrefix(prefix, totalMin)
+                            : formatStatRange(prefix, totalMin, totalMax);
 
                     // enhance 加算分の表示注釈
                     String enhanceNote = (enhAdd[0] != 0.0 || enhAdd[1] != 0.0)
                             ? ColorCodeUtil.YELLOW + " [強化+" + formatStatValue(enhAdd[0])
-                                    + (enhAdd[0] != enhAdd[1] ? "~" + formatStatValue(enhAdd[1]) : "") + "]"
+                                    + (enhAdd[0] != enhAdd[1] ? " ～ " + formatStatValue(enhAdd[1]) : "") + "]"
                             : "";
 
                     StatusType statusType = resolveStatusTypeOrNull(roll.getStatus());
@@ -1003,7 +1011,7 @@ public class ItemStackFactory {
                     lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
                             + statColor + displayName
                             + ColorCodeUtil.DARK_GRAY + " : "
-                            + STATUS_VALUE_COLOR + displayValue
+                            + displayValue
                             + enhanceNote);
                 }
 
@@ -1022,8 +1030,8 @@ public class ItemStackFactory {
                     double[] enhAdd = entry.getValue();
                     String prefix = type == ItemEquipmentStatType.SCALAR ? "×" : "+";
                     String displayValue = enhAdd[0] == enhAdd[1]
-                            ? prefix + formatStatValue(enhAdd[0])
-                            : prefix + formatStatValue(enhAdd[0]) + "~" + formatStatValue(enhAdd[1]);
+                            ? formatStatValueWithPrefix(prefix, enhAdd[0])
+                            : formatStatRange(prefix, enhAdd[0], enhAdd[1]);
 
                     StatusType statusType = resolveStatusTypeOrNull(status);
                     String statColor = statusCategoryColor(status, statusType);
@@ -1031,7 +1039,7 @@ public class ItemStackFactory {
                     lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
                             + statColor + displayName
                             + ColorCodeUtil.DARK_GRAY + " : "
-                            + STATUS_VALUE_COLOR + displayValue
+                            + displayValue
                             + ColorCodeUtil.YELLOW + " [強化]");
                 }
             }
@@ -1055,7 +1063,7 @@ public class ItemStackFactory {
                         lore.add(ColorCodeUtil.DARK_GRAY + " [" + (enchant.getSlotIndex() + 1) + "] "
                                 + statColor + displayName
                                 + ColorCodeUtil.DARK_GRAY + " : "
-                                + STATUS_VALUE_COLOR + prefix + valueStr);
+                                + formatStatValueWithPrefix(prefix, valueStr));
                     }
                 }
             }
@@ -1083,8 +1091,10 @@ public class ItemStackFactory {
 
             // --- 耐久値 ---
             if (instance.getDurabilityMax() > 0) {
-                lore.add(ColorCodeUtil.GRAY + " ▸ 耐久値: " + ColorCodeUtil.WHITE
-                        + instance.getDurabilityValue() + "/" + instance.getDurabilityMax());
+                lore.add(formatDurabilityLore(instance));
+                if (isBroken(instance)) {
+                    lore.add(ColorCodeUtil.RED + ColorCodeUtil.BOLD + "   使用不可: 耐久値が 0 のため修理が必要です");
+                }
             }
             appendEquipmentSkillLore(lore, eq);
             lore.add("");
@@ -1113,7 +1123,7 @@ public class ItemStackFactory {
         lore.add(rarityColor + "◆ " + decoratedName);
         lore.add(rarityStars(model.getRarity())
                 + ColorCodeUtil.DARK_GRAY + "  " + rarityDisplayName(model.getRarity())
-                + ColorCodeUtil.DARK_GRAY + " │ " + ColorCodeUtil.GRAY + model.getCategory());
+                + ColorCodeUtil.DARK_GRAY + " │ " + ColorCodeUtil.GRAY + displayCategoryName(model.getCategory()));
         lore.add("");
 
         if (!model.getLore().isEmpty()) {
@@ -1135,7 +1145,7 @@ public class ItemStackFactory {
                 lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
                         + statColor + displayName
                         + ColorCodeUtil.DARK_GRAY + " : "
-                        + STATUS_VALUE_COLOR + prefix + roll.getValue());
+                        + formatStatValueWithPrefix(prefix, roll.getValue()));
             }
             lore.add("");
         }
@@ -1226,7 +1236,7 @@ public class ItemStackFactory {
      */
     private double parseStatDouble(@NotNull String value) {
         try {
-            return Double.parseDouble(value.trim().split("~")[0].trim());
+            return Double.parseDouble(value.trim().split("[~～]")[0].trim());
         } catch (NumberFormatException ignored) {
             return 0.0;
         }
@@ -1238,6 +1248,51 @@ public class ItemStackFactory {
      */
     private @NotNull String formatStatValue(double value) {
         return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
+    }
+
+    private @NotNull String formatStatValueWithPrefix(@NotNull String prefix, double value) {
+        return formatStatValueWithPrefix(prefix, formatStatValue(value));
+    }
+
+    private @NotNull String formatStatValueWithPrefix(@NotNull String prefix, @NotNull String value) {
+        String normalized = value.trim();
+        if (normalized.contains("~") || normalized.contains("～")) {
+            String[] parts = normalized.split("[~～]", 2);
+            if (parts.length == 2) {
+                return STATUS_VALUE_COLOR + prefix + parts[0].trim()
+                        + ColorCodeUtil.DARK_GRAY + " ～ "
+                        + STATUS_VALUE_COLOR + prefix + parts[1].trim();
+            }
+        }
+        return STATUS_VALUE_COLOR + prefix + normalized;
+    }
+
+    private @NotNull String formatStatRange(@NotNull String prefix, double min, double max) {
+        return formatStatValueWithPrefix(prefix, min)
+                + ColorCodeUtil.DARK_GRAY + " ～ "
+                + formatStatValueWithPrefix(prefix, max);
+    }
+
+    private @NotNull String formatDurabilityLore(@NotNull EquipmentInstance instance) {
+        boolean broken = isBroken(instance);
+        String currentColor = broken
+                ? ColorCodeUtil.RED + ColorCodeUtil.BOLD
+                : ColorCodeUtil.AQUA + ColorCodeUtil.BOLD;
+        String state = broken ? ColorCodeUtil.RED + " 破損" : ColorCodeUtil.GREEN + " 使用可能";
+        return ColorCodeUtil.GRAY + " ▸ 耐久値: "
+                + ColorCodeUtil.DARK_GRAY + "現在 "
+                + currentColor + instance.getDurabilityValue()
+                + ColorCodeUtil.DARK_GRAY + " / 最大 "
+                + ColorCodeUtil.WHITE + instance.getDurabilityMax()
+                + state;
+    }
+
+    private boolean isBroken(@NotNull EquipmentInstance instance) {
+        return instance.getDurabilityMax() > 0 && instance.getDurabilityValue() <= 0;
+    }
+
+    private @NotNull String displayCategoryName(@NotNull String category) {
+        return ItemCategory.displayNameJa(category);
     }
 
     /**

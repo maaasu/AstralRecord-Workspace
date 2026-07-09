@@ -5,14 +5,14 @@ import java.util.Locale
 /**
  * アイテムカテゴリ。
  */
-enum class ItemCategory(val apiValue: String) {
-    BUNDLE("bundle"),
-    CURRENCY("currency"),
-    EQUIPMENT("equipment"),
-    MATERIAL("material"),
-    CONSUMABLE("consumable"),
-    RUNE("rune"),
-    UNKNOWN("unknown"),
+enum class ItemCategory(val apiValue: String, val displayNameJa: String) {
+    BUNDLE("bundle", "バンドル"),
+    CURRENCY("currency", "通貨"),
+    EQUIPMENT("equipment", "装備"),
+    MATERIAL("material", "素材"),
+    CONSUMABLE("consumable", "消耗品"),
+    RUNE("rune", "ルーン"),
+    UNKNOWN("unknown", "不明"),
     ;
 
     companion object {
@@ -46,6 +46,14 @@ enum class ItemCategory(val apiValue: String) {
             return entries
                 .filter { it != UNKNOWN }
                 .map(ItemCategory::apiValue)
+        }
+
+        /**
+         * API値からプレイヤー表示向けの日本語カテゴリ名を返します。
+         */
+        @JvmStatic
+        fun displayNameJa(value: String?): String {
+            return fromApiValue(value).displayNameJa
         }
     }
 }

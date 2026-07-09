@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.item.gui;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.item.model.ItemAdminViewOptions;
+import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
@@ -191,7 +192,7 @@ public final class ItemAdminGuiView {
         inventory.setItem(CATEGORY_FILTER_SLOT, createItem(
             Material.HOPPER,
             Component.text("カテゴリ", NamedTextColor.AQUA, TextDecoration.BOLD),
-            filterLore(filterLabel(options.categoryFilter()))
+            filterLore(categoryFilterLabel(options.categoryFilter()))
         ));
         inventory.setItem(RARITY_FILTER_SLOT, createItem(
             Material.NETHER_STAR,
@@ -231,7 +232,7 @@ public final class ItemAdminGuiView {
         List<Component> lore = meta.lore() == null ? new ArrayList<>() : new ArrayList<>(meta.lore());
         lore.add(Component.empty());
         lore.add(Component.text("管理者配布", NamedTextColor.GOLD, TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.text("カテゴリ: " + normalizeLabel(model.getCategory()), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("カテゴリ: " + ItemCategory.displayNameJa(model.getCategory()), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
         lore.add(Component.text("レア度: " + normalizeLabel(model.getRarity()), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
         lore.add(Component.text("左=1個 / 右=半スタック / Shift+左=1スタック", NamedTextColor.GREEN)
             .decoration(TextDecoration.ITALIC, false));
@@ -246,6 +247,10 @@ public final class ItemAdminGuiView {
 
     private @NotNull String filterLabel(@Nullable String value) {
         return value == null || value.isBlank() ? "すべて" : normalizeLabel(value);
+    }
+
+    private @NotNull String categoryFilterLabel(@Nullable String value) {
+        return value == null || value.isBlank() ? "すべて" : ItemCategory.displayNameJa(value);
     }
 
     private @NotNull String normalizeLabel(@NotNull String value) {
