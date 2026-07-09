@@ -19,6 +19,7 @@ import io.github.maaasu.astralRecord.feature.storage.service.StorageService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionConsumeService;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -47,6 +48,7 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
     private final StorageService storageService;
     private final EquipmentEnhancementService equipmentEnhancementService;
     private final QuestGuiEventHandler questGuiEventHandler;
+    private final PlayerInteractionConsumeService interactionConsumeService;
 
     /**
      * ハンドラを生成します。
@@ -54,6 +56,7 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
      * @param mobService          Mob 管理サービス
      * @param shopGuiEventHandler ショップ GUI ハンドラ
      * @param menuView            メニュー GUI ビュー
+     * @param interactionConsumeService コンテンツが消費したインタラクトの共有サービス
      */
     public MobInteractionEventHandler(
             @NotNull MobService mobService,
@@ -62,7 +65,8 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
             @NotNull PlayerClassService playerClassService,
             @NotNull StorageService storageService,
             @NotNull EquipmentEnhancementService equipmentEnhancementService,
-            @NotNull QuestGuiEventHandler questGuiEventHandler) {
+            @NotNull QuestGuiEventHandler questGuiEventHandler,
+            @NotNull PlayerInteractionConsumeService interactionConsumeService) {
         this.mobService = mobService;
         this.shopGuiEventHandler = shopGuiEventHandler;
         this.menuView = menuView;
@@ -70,6 +74,7 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
         this.storageService = storageService;
         this.equipmentEnhancementService = equipmentEnhancementService;
         this.questGuiEventHandler = questGuiEventHandler;
+        this.interactionConsumeService = interactionConsumeService;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -116,7 +121,7 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
                 return;
             }
 
-            event.setCancelled(true);
+            interactionConsumeService.consume(event);
             if (!AccountModeGuard.isGameplayPlayer(event.getPlayer())) {
                 return;
             }

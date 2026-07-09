@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.teleporter.model.WaystoneDefinition
 import io.github.maaasu.astralRecord.feature.teleporter.service.TeleporterService;
 import io.github.maaasu.astralRecord.feature.teleporter.service.WaystoneHitBoxResolver;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionConsumeService;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -29,14 +30,24 @@ public final class TeleporterInteractEventHandler extends AbstractEventHandler {
 
     private final TeleporterService teleporterService;
     private final WaystoneHitBoxResolver hitBoxResolver;
+    private final PlayerInteractionConsumeService interactionConsumeService;
     private final Map<UUID, Long> lastHandledClickNanosByPlayer = new ConcurrentHashMap<>();
 
+    /**
+     * テレポーターのワールド上クリック処理ハンドラを生成します。
+     *
+     * @param teleporterService テレポーター操作サービス
+     * @param hitBoxResolver ウェイストーン当たり判定の解決サービス
+     * @param interactionConsumeService コンテンツが消費したインタラクトの共有サービス
+     */
     public TeleporterInteractEventHandler(
             @NotNull TeleporterService teleporterService,
-            @NotNull WaystoneHitBoxResolver hitBoxResolver
+            @NotNull WaystoneHitBoxResolver hitBoxResolver,
+            @NotNull PlayerInteractionConsumeService interactionConsumeService
     ) {
         this.teleporterService = teleporterService;
         this.hitBoxResolver = hitBoxResolver;
+        this.interactionConsumeService = interactionConsumeService;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -52,7 +63,7 @@ public final class TeleporterInteractEventHandler extends AbstractEventHandler {
                 return;
             }
             if (handleClick(event.getPlayer(), rightClick)) {
-                event.setCancelled(true);
+                interactionConsumeService.consume(event);
             }
         }, LogId.E_5950, event.getPlayer().getName(), "-");
     }

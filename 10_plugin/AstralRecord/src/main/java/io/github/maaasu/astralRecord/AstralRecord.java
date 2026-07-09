@@ -209,6 +209,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.display.OverheadDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionConsumeService;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class AstralRecord extends JavaPlugin {
@@ -264,6 +265,7 @@ public final class AstralRecord extends JavaPlugin {
     private TeleporterGuiEventHandler teleporterGuiEventHandler;
     private WaystonePacketView waystonePacketView;
     private WaystoneHitBoxResolver waystoneHitBoxResolver;
+    private PlayerInteractionConsumeService playerInteractionConsumeService;
     private OverheadDisplayService overheadDisplayService;
     private PlayerSettingService playerSettingService;
     private PlayerSettingGui playerSettingGui;
@@ -595,6 +597,7 @@ public final class AstralRecord extends JavaPlugin {
         waystonePacketView = new WaystonePacketView(teleporterService);
         teleporterGui = new TeleporterGui(teleporterService);
         teleporterGuiEventHandler = new TeleporterGuiEventHandler(teleporterGui, teleporterService, inventoryService);
+        playerInteractionConsumeService = new PlayerInteractionConsumeService();
         waystoneHitBoxResolver = new WaystoneHitBoxResolver(teleporterService);
         teleporterService.setRuntimeServices(inventoryService, worldService, waystonePacketView, teleporterGui, teleporterGuiEventHandler, particleDisplayService);
         overworldTeleportService = new OverworldTeleportService(this, worldService);
@@ -1045,7 +1048,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new TeleporterInteractEventHandler(teleporterService, waystoneHitBoxResolver),
+            new TeleporterInteractEventHandler(teleporterService, waystoneHitBoxResolver, playerInteractionConsumeService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
@@ -1126,12 +1129,19 @@ public final class AstralRecord extends JavaPlugin {
                 playerClassService,
                 storageService,
                 equipmentEnhancementService,
-                questGuiEventHandler
+                questGuiEventHandler,
+                playerInteractionConsumeService
             ),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new ItemWeaponAttackEventHandler(itemWeaponAttackService, skillActionRingService, skillTreeService, mobService, conditionService),
+            new ItemWeaponAttackEventHandler(
+                itemWeaponAttackService,
+                skillActionRingService,
+                skillTreeService,
+                playerInteractionConsumeService,
+                conditionService
+            ),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

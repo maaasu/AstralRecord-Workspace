@@ -5,11 +5,11 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemWeaponAttackService;
-import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionConsumeService;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.Action;
@@ -24,29 +24,46 @@ public final class ItemWeaponAttackEventHandler extends AbstractEventHandler {
     private final ItemWeaponAttackService itemWeaponAttackService;
     private final SkillActionRingService actionRingService;
     private final SkillTreeService skillTreeService;
-    private final MobService mobService;
+    private final PlayerInteractionConsumeService interactionConsumeService;
     private final ConditionService conditionService;
 
+    /**
+     * 武器クリック入力のイベントハンドラを生成します。
+     *
+     * @param itemWeaponAttackService 武器クリック攻撃サービス
+     * @param actionRingService アクションリングサービス
+     * @param skillTreeService スキルツリーサービス
+     * @param interactionConsumeService コンテンツが消費したインタラクトの共有サービス
+     */
     public ItemWeaponAttackEventHandler(
         @NotNull ItemWeaponAttackService itemWeaponAttackService,
         @NotNull SkillActionRingService actionRingService,
         @NotNull SkillTreeService skillTreeService,
-        @NotNull MobService mobService
+        @NotNull PlayerInteractionConsumeService interactionConsumeService
     ) {
-        this(itemWeaponAttackService, actionRingService, skillTreeService, mobService, null);
+        this(itemWeaponAttackService, actionRingService, skillTreeService, interactionConsumeService, null);
     }
 
+    /**
+     * 武器クリック入力のイベントハンドラを生成します。
+     *
+     * @param itemWeaponAttackService 武器クリック攻撃サービス
+     * @param actionRingService アクションリングサービス
+     * @param skillTreeService スキルツリーサービス
+     * @param interactionConsumeService コンテンツが消費したインタラクトの共有サービス
+     * @param conditionService 状態異常による攻撃可否判定サービス
+     */
     public ItemWeaponAttackEventHandler(
         @NotNull ItemWeaponAttackService itemWeaponAttackService,
         @NotNull SkillActionRingService actionRingService,
         @NotNull SkillTreeService skillTreeService,
-        @NotNull MobService mobService,
+        @NotNull PlayerInteractionConsumeService interactionConsumeService,
         ConditionService conditionService
     ) {
         this.itemWeaponAttackService = itemWeaponAttackService;
         this.actionRingService = actionRingService;
         this.skillTreeService = skillTreeService;
-        this.mobService = mobService;
+        this.interactionConsumeService = interactionConsumeService;
         this.conditionService = conditionService;
     }
 
@@ -63,12 +80,7 @@ public final class ItemWeaponAttackEventHandler extends AbstractEventHandler {
             if (!isLeftClick && !isRightClick) {
                 return;
             }
-            if (mobService.findTargetedNpc(
-                    event.getPlayer(),
-                    MobService.NPC_INTERACTION_DISTANCE,
-                    MobService.NPC_INTERACTION_RAY_SIZE
-            ) != null) {
-                event.setCancelled(true);
+            if (interactionConsumeService.isConsumed(event)) {
                 return;
             }
             if (skillTreeService.isSkillTreeEditing(event.getPlayer())) {
