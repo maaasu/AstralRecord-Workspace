@@ -133,8 +133,9 @@ public final class BossFieldInstanceService {
      */
     public void destroyField(@NotNull BossFieldInstance field) {
         World loaded = Bukkit.getWorld(field.world().getUID());
-        if (loaded != null) {
-            Bukkit.unloadWorld(loaded, false);
+        if (loaded != null && !Bukkit.unloadWorld(loaded, false)) {
+            Logger.log(LogId.E_6503, field.worldName(), field.worldFolder().toString());
+            return;
         }
 
         try {
@@ -167,19 +168,29 @@ public final class BossFieldInstanceService {
 
     private void copyDirectory(@NotNull Path source, @NotNull Path target) throws IOException {
         try (Stream<Path> stream = Files.walk(source)) {
-            for (Path current : stream.toList()) {
-                Path relative = source.relativize(current);
-                Path destination = target.resolve(relative).normalize();
-                if (Files.isDirectory(current)) {
-                    Files.createDirectories(destination);
-                    continue;
-                }
-                if (isRuntimeWorldFile(current)) {
-                    continue;
-                }
-                Files.createDirectories(destination.getParent());
-                Files.copy(current, destination);
+            try {
+                stream.forEach(current -> copyPath(source, target, current));
+            } catch (FieldCopyException ex) {
+                throw ex.ioCause();
             }
+        }
+    }
+
+    private void copyPath(@NotNull Path source, @NotNull Path target, @NotNull Path current) {
+        try {
+            Path relative = source.relativize(current);
+            Path destination = target.resolve(relative).normalize();
+            if (Files.isDirectory(current)) {
+                Files.createDirectories(destination);
+                return;
+            }
+            if (isRuntimeWorldFile(current)) {
+                return;
+            }
+            Files.createDirectories(destination.getParent());
+            Files.copy(current, destination);
+        } catch (IOException ex) {
+            throw new FieldCopyException(ex);
         }
     }
 
@@ -209,5 +220,15 @@ public final class BossFieldInstanceService {
     }
 
     private record PreparedField(@NotNull Path source, @NotNull Path target) {
+    }
+
+    private static final class FieldCopyException extends RuntimeException {
+        private FieldCopyException(@NotNull IOException cause) {
+            super(cause);
+        }
+
+        private @NotNull IOException ioCause() {
+            return (IOException) super.getCause();
+        }
     }
 }

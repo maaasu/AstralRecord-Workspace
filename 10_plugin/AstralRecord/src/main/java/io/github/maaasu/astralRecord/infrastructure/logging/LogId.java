@@ -867,6 +867,7 @@ public enum LogId {
     E_6500(6500),
     E_6501(6501),
     E_6502(6502),
+    E_6503(6503),
     // endregion
 
     // region /feature/skilltree/ 9000-9009
