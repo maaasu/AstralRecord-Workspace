@@ -165,6 +165,21 @@ public class WorldService {
     }
 
     /**
+     * 定義に対応する Bukkit ワールドを解決し、未ロードであれば baseWorldPath からロードします。
+     *
+     * @param data WorldMasterData
+     * @return ロード済みまたはロードできたワールド。ワールドフォルダが存在しない場合は {@code null}
+     */
+    @Nullable
+    public synchronized org.bukkit.World resolveOrLoadWorld(@NotNull WorldMasterData data) {
+        org.bukkit.World loaded = resolveLoadedWorld(data);
+        if (loaded != null) {
+            return loaded;
+        }
+        return loadBukkitWorld(data);
+    }
+
+    /**
      * Bukkit ワールドから対応する WorldMasterData を解決します。
      *
      * @param world Bukkit ワールド
@@ -215,6 +230,24 @@ public class WorldService {
     }
 
     /**
+     * WorldMasterData のスポーン地点を Bukkit Location に変換します。
+     * 対応する Bukkit ワールドが未ロードの場合は、baseWorldPath からオンデマンドでロードします。
+     *
+     * @param data WorldMasterData
+     * @return スポーン地点。ワールドをロードできない場合は {@code null}
+     */
+    @Nullable
+    public Location resolveOrLoadSpawnLocation(@NotNull WorldMasterData data) {
+        org.bukkit.World world = resolveOrLoadWorld(data);
+        if (world == null) {
+            return null;
+        }
+
+        var spawn = data.spawnLocation();
+        return new Location(world, spawn.x(), spawn.y(), spawn.z(), spawn.yaw(), spawn.pitch());
+    }
+
+    /**
      * WorldMasterData のスポーン地点へプレイヤーを移動します。
      *
      * @param player 移動対象プレイヤー
@@ -222,7 +255,7 @@ public class WorldService {
      * @return 移動に成功した場合は {@code true}
      */
     public boolean teleportToSpawn(@NotNull org.bukkit.entity.Player player, @NotNull WorldMasterData data) {
-        Location spawnLocation = resolveSpawnLocation(data);
+        Location spawnLocation = resolveOrLoadSpawnLocation(data);
         if (spawnLocation == null || spawnLocation.getWorld() == null) {
             return false;
         }
@@ -260,7 +293,7 @@ public class WorldService {
             @NotNull WorldMasterData data,
             @Nullable Runnable onSuccess
     ) {
-        Location spawnLocation = resolveSpawnLocation(data);
+        Location spawnLocation = resolveOrLoadSpawnLocation(data);
         if (spawnLocation == null || spawnLocation.getWorld() == null) {
             return CompletableFuture.completedFuture(false);
         }
@@ -425,6 +458,7 @@ public class WorldService {
                 Logger.log(LogId.W_5752, data.id(), worldName);
                 return null;
             }
+            cacheResolvedWorld(data, created);
             applyRpgGameRules(created);
             Logger.log(LogId.D_5751, data.id(), created.getName());
             return created;

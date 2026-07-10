@@ -120,7 +120,7 @@ public class WorldCommand extends AstCommand {
             return;
         }
 
-        var spawnLocation = worldService.resolveSpawnLocation(data);
+        var spawnLocation = worldService.resolveOrLoadSpawnLocation(data);
         if (spawnLocation == null || spawnLocation.getWorld() == null) {
             sendError(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5760.getId(), data.id()));
             return;

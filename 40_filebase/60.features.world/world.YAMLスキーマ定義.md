@@ -43,7 +43,7 @@ adventureGuide:
 | `worldType` | yes | ワールド種別。 |
 | `baseWorldPath` | yes | 元になるワールドフォルダのパス。 |
 | `instanceRootPath` | yes | インスタンス生成先ルート。 |
-| `autoLoad` | yes | 起動時と `/world reload` 時の自動ロード対象か。 |
+| `autoLoad` | yes | 起動時と `/world reload` 時の自動ロード対象か。`false` の場合も、テレポート時は `baseWorldPath` からオンデマンドでロードされる。 |
 | `instanceEnabled` | yes | インスタンス対応フラグ。 |
 | `maxPlayers` | yes | 最大プレイヤー数。 |
 | `allowBlockBreak` | yes | ブロック破壊許可。 |
