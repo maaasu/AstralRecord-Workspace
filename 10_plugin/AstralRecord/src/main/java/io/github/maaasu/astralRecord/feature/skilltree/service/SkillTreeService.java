@@ -1820,7 +1820,7 @@ public class SkillTreeService {
     }
 
     /**
-     * 譌ｧ螳溯｣・〒菫晏ｭ倥＆繧後※縺励∪縺｣縺溘せ繧ｭ繝ｫ繝・Μ繝ｼ蜿ｯ隕門喧 entity 繧呈祉髯､縺励∪縺吶・     */
+     * 旧実装で保存されてしまったスキルツリー可視化 entity を掃除します。 */
     private void purgeSkillTreeVisualEntities() {
         WorldMasterData data = worldService.getById(SKILL_TREE_WORLD_ID);
         if (data == null) {

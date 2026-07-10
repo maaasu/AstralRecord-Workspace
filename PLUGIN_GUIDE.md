@@ -1,4 +1,4 @@
-﻿# AstralRecord Plugin
+# AstralRecord Plugin
 
 `10_plugin/AstralRecord/` は Minecraft MMO RPG「AstralRecord」のサーバープラグインです。コード追加・修正全般は `$astralrecord-code` を使い、実装時の詳細ルールは `.codex/skills/astralrecord-code/references/plugin-code.md` を正本として扱います。
 
@@ -74,11 +74,11 @@
 
 ステータスの詳細仕様は本ガイドに重複記載せず、正本は `E:\AstralRecord-Workspace\00_docs\10_プラグイン設計書\feature\07-status` とします。攻撃・防御・魔法の 3 種別で構成され、武器には攻撃力（ATTACK）のみをステータスとして持たせ、職業ごとに内部でダメージ計算を行います。
 
-## ???????????
+## パーティクル表示共通ルール
 
-- ??????? `io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService` ????????
-- feature ?? `World#spawnParticle(...)` / `Player#spawnParticle(...)` ????????
-- ???????????????? `io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions` ??????
+- パーティクル表示は `io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService` を経由する。
+- feature 側で `World#spawnParticle(...)` / `Player#spawnParticle(...)` を直接呼び出さない。
+- 共通のパーティクル種別・別名・既定値は `io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions` に定義する。
 
 ## メッセージ管理共通ルール
 

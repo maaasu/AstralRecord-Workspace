@@ -192,14 +192,14 @@ public final class DamageService {
     }
 
     /**
-     * 謾ｻ謦・・せ繝・・繧ｿ繧ｹ繧剃ｽｿ縺｣縺ｦ螻樊ｧ莉倥″謾ｻ謦・ム繝｡繝ｼ繧ｸ繧帝←逕ｨ縺励∪縺吶・
+     * 攻撃者のステータスを使って属性付き攻撃ダメージを適用します。
      *
-     * @param attacker   謾ｻ謦・・
-     * @param victim     陲ｫ蠑ｾ閠・
-     * @param attackType 謾ｻ謦・ｨｮ蛻･
-     * @param damageType 繝繝｡繝ｼ繧ｸ遞ｮ蛻･
-     * @param damageElement 繝繝｡繝ｼ繧ｸ螻樊ｧ
-     * @return 繝繝｡繝ｼ繧ｸ邨先棡
+     * @param attacker      攻撃者
+     * @param victim        被弾者
+     * @param attackType    攻撃種別
+     * @param damageType   ダメージ種別
+     * @param damageElement ダメージ属性
+     * @return ダメージ結果
      */
     public @NotNull DamageResult attack(
             @NotNull AstEntity attacker,

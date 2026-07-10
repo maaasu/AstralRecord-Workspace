@@ -234,7 +234,7 @@ class AccountRepository {
     }
 
     /**
-     * account.classId / classLevel / classExperience 繧呈峩譁ｰ縺励∪縺吶・
+     * account.classId / classLevel / classExperience を更新します。
      * PUT /api/account/{targetUuid}
      */
     fun updateClassProgress(

@@ -4,14 +4,18 @@
 from __future__ import annotations
 
 import argparse
+import re
 import subprocess
 from pathlib import Path
 
 
 SUSPICIOUS_TOKENS = (
     "\ufffd",
-    "繝ｻ・ｽ",
+    "\u7e67\uff7b\u30fb\uff7d",
+    "\u00e3\u0081",
 )
+
+SUSPICIOUS_PATTERN = re.compile(r"[\u0080-\u009f\uff61-\uff9f]|\?{4,}")
 
 TEXT_EXTENSIONS = {
     ".md",
@@ -51,7 +55,7 @@ def has_mojibake(path: Path) -> bool:
         content = path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
         return True
-    return any(token in content for token in SUSPICIOUS_TOKENS)
+    return any(token in content for token in SUSPICIOUS_TOKENS) or bool(SUSPICIOUS_PATTERN.search(content))
 
 
 def main() -> int:

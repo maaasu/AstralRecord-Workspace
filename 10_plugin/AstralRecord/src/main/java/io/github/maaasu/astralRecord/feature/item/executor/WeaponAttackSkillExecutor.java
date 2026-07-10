@@ -39,7 +39,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * implementationId {@code normal_attack} 縺ｮ邨・∩霎ｼ縺ｿ豁ｦ蝎ｨ謾ｻ謦・executor 縺ｧ縺吶・ */
+ * implementationId {@code normal_attack} の組み込み武器攻撃 executor です。 */
 public final class WeaponAttackSkillExecutor implements SkillExecutor {
 
     private static final String IMPLEMENTATION_ID = "normal_attack";
@@ -51,9 +51,9 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
     private final ConditionService conditionService;
 
     /**
-     * executor 繧呈ｧ狗ｯ峨＠縺ｾ縺吶・     *
-     * @param particleDisplayService 繝代・繝・ぅ繧ｯ繝ｫ陦ｨ遉ｺ繧ｵ繝ｼ繝薙せ
-     * @param damageService          custom damage 驕ｩ逕ｨ繧ｵ繝ｼ繝薙せ
+     * executor を構築します。
+     * @param particleDisplayService パーティクル表示サービス
+     * @param damageService          custom damage 適用サービス
      */
     public WeaponAttackSkillExecutor(
             @NotNull ParticleDisplayService particleDisplayService,
@@ -334,10 +334,10 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
     private void requireParticle(@NotNull SkillDefinition skill, @NotNull String key) {
         Object raw = skill.getParams().get(key);
         if (!(raw instanceof String value) || value.isBlank()) {
-            throw new SkillParameterException(key, "Particle 繧定ｨｭ螳壹＠縺ｦ縺上□縺輔＞");
+            throw new SkillParameterException(key, "Particle を設定してください");
         }
         if (!SharedParticleDefinitions.isSupportedParticle(value)) {
-            throw new SkillParameterException(key, "譛牙柑縺ｪ Particle 蜷阪〒縺ｯ縺ゅｊ縺ｾ縺帙ｓ");
+            throw new SkillParameterException(key, "有効な Particle 名ではありません");
         }
     }
 
@@ -347,10 +347,10 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             return;
         }
         if (!(raw instanceof Number number)) {
-            throw new SkillParameterException(key, "number 繧定ｨｭ螳壹＠縺ｦ縺上□縺輔＞");
+            throw new SkillParameterException(key, "number を設定してください");
         }
         if (number.intValue() < 0) {
-            throw new SkillParameterException(key, "0 莉･荳翫ｒ險ｭ螳壹＠縺ｦ縺上□縺輔＞");
+            throw new SkillParameterException(key, "0 以上を設定してください");
         }
     }
 
@@ -360,10 +360,10 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             return;
         }
         if (!(raw instanceof Number number)) {
-            throw new SkillParameterException(key, "number 繧定ｨｭ螳壹＠縺ｦ縺上□縺輔＞");
+            throw new SkillParameterException(key, "number を設定してください");
         }
         if (number.doubleValue() < 0.0D) {
-            throw new SkillParameterException(key, "0 莉･荳翫ｒ險ｭ螳壹＠縺ｦ縺上□縺輔＞");
+            throw new SkillParameterException(key, "0 以上を設定してください");
         }
     }
 
