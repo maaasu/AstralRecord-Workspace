@@ -9,10 +9,13 @@ import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
 import io.github.maaasu.astralRecord.feature.item.service.ItemDropAnimationService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
+import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
+import io.github.maaasu.astralRecord.feature.mob.model.MobDropResultItem;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
@@ -32,9 +35,9 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -48,44 +51,116 @@ public final class MobDropPresentationService {
     private static final int MAX_RESULT_TEXT_ITEMS = 5;
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
     private static final String DROP_SOURCE = "mob_drop";
+    private static final double ENEMY_RARE_DROP_MAX_RATE = 0.1D;
+    private static final double BOSS_RARE_DROP_MAX_RATE = 5.0D;
 
     private final Plugin plugin;
     private final ItemService itemService;
     private final InventoryService inventoryService;
     private final ItemStackFactory itemStackFactory;
     private final ItemDropAnimationService itemDropAnimationService;
+    private final PlayerSettingService playerSettingService;
     private final Executor asyncExecutor;
 
+    /**
+     * Mob ドロップの表示・付与サービスを構築します。
+     *
+     * @param plugin Plugin インスタンス
+     * @param itemService アイテム参照サービス
+     * @param inventoryService インベントリ操作サービス
+     * @param itemStackFactory ItemStack 生成サービス
+     * @param itemDropAnimationService ドロップ回収演出サービス
+     * @param playerSettingService 通知受信設定の参照サービス
+     */
     public MobDropPresentationService(
         @NotNull Plugin plugin,
         @NotNull ItemService itemService,
         @NotNull InventoryService inventoryService,
         @NotNull ItemStackFactory itemStackFactory,
-        @NotNull ItemDropAnimationService itemDropAnimationService
+        @NotNull ItemDropAnimationService itemDropAnimationService,
+        @NotNull PlayerSettingService playerSettingService
     ) {
         this.plugin = plugin;
         this.itemService = itemService;
         this.inventoryService = inventoryService;
         this.itemStackFactory = itemStackFactory;
         this.itemDropAnimationService = itemDropAnimationService;
+        this.playerSettingService = playerSettingService;
         this.asyncExecutor = command -> plugin.getServer().getScheduler().runTaskAsynchronously(plugin, command);
     }
 
+    /**
+     * Mob 以外の共通 drops 利用元について、結果表示と報酬付与を行います。
+     *
+     * @param recipient 受取プレイヤー
+     * @param deathLocation ドロップ発生位置
+     * @param mobName 表示名
+     * @param result 抽選結果
+     */
     public void presentAndGrant(
         @NotNull AstPlayer recipient,
         @NotNull Location deathLocation,
         @NotNull String mobName,
         @NotNull MobDropResult result
     ) {
-        presentAndGrant(recipient, deathLocation, mobName, result, DROP_SOURCE);
+        presentAndGrant(recipient, deathLocation, mobName, result, DROP_SOURCE, null);
     }
 
+    /**
+     * Mob のカテゴリを考慮し、結果表示、報酬付与、レアドロップ通知を行います。
+     *
+     * @param recipient 受取プレイヤー
+     * @param deathLocation Mob の死亡位置
+     * @param mobName Mob 表示名
+     * @param result 抽選結果
+     * @param mobCategory Mob カテゴリ
+     */
+    public void presentAndGrant(
+        @NotNull AstPlayer recipient,
+        @NotNull Location deathLocation,
+        @NotNull String mobName,
+        @NotNull MobDropResult result,
+        @NotNull MobCategory mobCategory
+    ) {
+        presentAndGrant(recipient, deathLocation, mobName, result, DROP_SOURCE, mobCategory);
+    }
+
+    /**
+     * 任意のドロップ取得元について、結果表示と報酬付与を行います。
+     *
+     * @param recipient 受取プレイヤー
+     * @param deathLocation ドロップ発生位置
+     * @param sourceName 取得元表示名
+     * @param result 抽選結果
+     * @param dropSource インベントリ履歴用取得元
+     */
     public void presentAndGrant(
         @NotNull AstPlayer recipient,
         @NotNull Location deathLocation,
         @NotNull String sourceName,
         @NotNull MobDropResult result,
         @NotNull String dropSource
+    ) {
+        presentAndGrant(recipient, deathLocation, sourceName, result, dropSource, null);
+    }
+
+    /**
+     * 結果表示、任意のレア通知、付与用アイテム展開と回収処理をまとめて実行します。
+     *
+     * @param recipient 受取プレイヤー
+     * @param deathLocation ドロップ発生位置
+     * @param sourceName 取得元表示名
+     * @param result 抽選結果
+     * @param dropSource インベントリ履歴用取得元
+     * @param mobCategory レア判定対象の Mob カテゴリ。Mob 以外は {@code null}
+     */
+    private void presentAndGrant(
+        @NotNull AstPlayer recipient,
+        @NotNull Location deathLocation,
+        @NotNull String sourceName,
+        @NotNull MobDropResult result,
+        @NotNull String dropSource,
+        @Nullable MobCategory mobCategory
     ) {
         Player player = recipient.getBukkit();
         if (!player.isOnline()) {
@@ -94,8 +169,12 @@ public final class MobDropPresentationService {
 
         List<ResolvedDropItem> resolvedItems = resolveItems(result);
         spawnResultText(player, deathLocation, sourceName, result, resolvedItems);
-        for (int index = 0; index < resolvedItems.size(); index++) {
-            ResolvedDropItem item = resolvedItems.get(index);
+        if (mobCategory != null) {
+            announceRareDrops(recipient, mobCategory, resolvedItems);
+        }
+        List<ResolvedDropItem> grantItems = expandInstanceItems(resolvedItems);
+        for (int index = 0; index < grantItems.size(); index++) {
+            ResolvedDropItem item = grantItems.get(index);
             if (index < MAX_ANIMATED_ITEMS_PER_DEFEAT) {
                 spawnCollectingItem(recipient, deathLocation, item, index, dropSource);
                 continue;
@@ -104,28 +183,48 @@ public final class MobDropPresentationService {
         }
     }
 
+    /**
+     * 当選 item ID をロード済みアイテムモデルへ解決します。
+     *
+     * @param result ドロップ抽選結果
+     * @return 解決できた当選アイテム一覧
+     */
     private @NotNull List<ResolvedDropItem> resolveItems(@NotNull MobDropResult result) {
         List<ResolvedDropItem> resolved = new ArrayList<>();
-        for (Map.Entry<String, Integer> entry : result.items()) {
-            ItemModel model = itemService.findLoadedById(entry.getKey());
+        for (MobDropResultItem entry : result.items()) {
+            ItemModel model = itemService.findLoadedById(entry.itemId());
             if (model == null) {
-                model = itemService.loadItem(entry.getKey());
+                model = itemService.loadItem(entry.itemId());
             }
             if (model == null) {
                 continue;
             }
 
-            int amount = Math.max(1, entry.getValue());
-            ItemCategory category = ItemCategory.fromApiValue(model.getCategory());
+            int amount = Math.max(1, entry.amount());
+            resolved.add(new ResolvedDropItem(model, amount, entry.dropRate()));
+        }
+        return resolved;
+    }
+
+    /**
+     * 装備・ルーンの複数個ドロップを、インスタンス生成単位の 1 個ずつに展開します。
+     *
+     * @param items 解決済みドロップ一覧
+     * @return 付与単位へ展開した一覧
+     */
+    private @NotNull List<ResolvedDropItem> expandInstanceItems(@NotNull List<ResolvedDropItem> items) {
+        List<ResolvedDropItem> expanded = new ArrayList<>();
+        for (ResolvedDropItem item : items) {
+            ItemCategory category = ItemCategory.fromApiValue(item.model().getCategory());
             if (category == ItemCategory.EQUIPMENT || category == ItemCategory.RUNE) {
-                for (int index = 0; index < amount; index++) {
-                    resolved.add(new ResolvedDropItem(model, 1));
+                for (int index = 0; index < item.amount(); index++) {
+                    expanded.add(new ResolvedDropItem(item.model(), 1, item.dropRate()));
                 }
                 continue;
             }
-            resolved.add(new ResolvedDropItem(model, amount));
+            expanded.add(item);
         }
-        return resolved;
+        return expanded;
     }
 
     private void spawnResultText(
@@ -160,6 +259,14 @@ public final class MobDropPresentationService {
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> removeIfValid(display), 86L);
     }
 
+    /**
+     * ドロップ結果を、アイテム名・数量・設定上の確率を含む TextDisplay 用文字列へ整形します。
+     *
+     * @param mobName Mob または取得元の表示名
+     * @param result 経験値・金銭を含む抽選結果
+     * @param items 解決済み当選アイテム
+     * @return legacy color code を含むリザルト文字列
+     */
     private @NotNull String formatResultText(
         @NotNull String mobName,
         @NotNull MobDropResult result,
@@ -180,13 +287,70 @@ public final class MobDropPresentationService {
             }
             ResolvedDropItem item = items.get(index);
             text.append(ColorCodeUtil.toLegacyText(item.model().getName(), item.model().getId()))
-                .append(" x").append(item.amount());
+                .append(" x").append(item.amount())
+                .append(" &7(").append(formatDropRate(item.dropRate())).append("%)&f");
         }
         int hiddenItems = items.size() - shownItems;
         if (hiddenItems > 0) {
             text.append("&7, &f+").append(hiddenItems).append(" more");
         }
         return text.toString();
+    }
+
+    /**
+     * 当選したレアドロップを、表示設定が有効なオンラインプレイヤーへ通知します。
+     *
+     * @param recipient ドロップ受取プレイヤー
+     * @param mobCategory 撃破 Mob カテゴリ
+     * @param items 解決済み当選アイテム
+     */
+    private void announceRareDrops(
+        @NotNull AstPlayer recipient,
+        @NotNull MobCategory mobCategory,
+        @NotNull List<ResolvedDropItem> items
+    ) {
+        for (ResolvedDropItem item : items) {
+            if (!isRareDrop(mobCategory, item.dropRate())) {
+                continue;
+            }
+            String itemName = ColorCodeUtil.toLegacyText(item.model().getName(), item.model().getId());
+            for (Player viewer : plugin.getServer().getOnlinePlayers()) {
+                if (playerSettingService.isDropLogDisplayEnabled(viewer.getUniqueId())) {
+                    PlayerMessageService.getInstance().send(
+                        viewer,
+                        PlayerMsgId.P_5728,
+                        recipient.getBukkit().getName(),
+                        itemName,
+                        item.amount(),
+                        formatDropRate(item.dropRate())
+                    );
+                }
+            }
+        }
+    }
+
+    /**
+     * Mob カテゴリ別の閾値に基づいてレアドロップかを判定します。
+     *
+     * @param mobCategory Mob カテゴリ
+     * @param dropRate 設定上のドロップ確率（%）
+     * @return レアドロップなら {@code true}
+     */
+    static boolean isRareDrop(@NotNull MobCategory mobCategory, double dropRate) {
+        double threshold = mobCategory == MobCategory.BOSS
+            ? BOSS_RARE_DROP_MAX_RATE
+            : ENEMY_RARE_DROP_MAX_RATE;
+        return dropRate >= 0.0D && dropRate <= threshold;
+    }
+
+    /**
+     * ドロップ確率を不要な末尾ゼロを除いた表示へ整形します。
+     *
+     * @param dropRate ドロップ確率（%）
+     * @return パーセント記号を含まない表示文字列
+     */
+    public static @NotNull String formatDropRate(double dropRate) {
+        return BigDecimal.valueOf(dropRate).stripTrailingZeros().toPlainString();
     }
 
     private void spawnCollectingItem(
@@ -436,9 +600,17 @@ public final class MobDropPresentationService {
         RUNE
     }
 
-    private record ResolvedDropItem(@NotNull ItemModel model, int amount) {
+    /**
+     * 表示名を解決済みのドロップアイテム。
+     *
+     * @param model アイテムモデル
+     * @param amount 数量
+     * @param dropRate 設定上のドロップ確率（%）
+     */
+    private record ResolvedDropItem(@NotNull ItemModel model, int amount, double dropRate) {
         private ResolvedDropItem {
             amount = Math.max(1, amount);
+            dropRate = Math.max(0.0D, Math.min(100.0D, dropRate));
         }
     }
 

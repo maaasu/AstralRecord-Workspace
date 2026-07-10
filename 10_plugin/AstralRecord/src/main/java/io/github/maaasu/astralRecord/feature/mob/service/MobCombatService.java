@@ -335,7 +335,8 @@ public class MobCombatService {
                     recipient,
                     instance.currentLocation(),
                     ColorCodeUtil.toLegacyText(template.displayName(), template.id()),
-                    result
+                    result,
+                    template.category()
             );
         }
 

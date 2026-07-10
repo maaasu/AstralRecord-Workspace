@@ -532,7 +532,7 @@ public enum PlayerMsgId {
     P_5623(5623),
     // endregion
 
-    // region /feature/mob/command/MobCommand.java 5700-5714
+    // region /feature/mob 5700-5728
     /**
      * Mob テンプレートをロードしました: {0}件
      */
@@ -645,6 +645,10 @@ public enum PlayerMsgId {
      * 削除対象のNPC配置が見つかりません: {0}
      */
     P_5727(5727),
+    /**
+     * レアドロップ全体通知。
+     */
+    P_5728(5728),
     // endregion
 
     // region /feature/textdisplay/command/TextDisplayCommand.java 5770-5779

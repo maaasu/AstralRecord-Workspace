@@ -109,6 +109,22 @@ public final class PlayerSettingService {
         return value instanceof Boolean enabled ? enabled : (Boolean) PlayerSettingKey.DAMAGE_LOG_DISPLAY.getDefaultValue();
     }
 
+    /**
+     * 指定プレイヤーでレアドロップログ表示が有効かを返します。
+     *
+     * @param userId 判定対象ユーザー ID
+     * @return レアドロップログ表示が有効な場合は {@code true}
+     */
+    public boolean isDropLogDisplayEnabled(@NotNull UUID userId) {
+        PlayerSettingSnapshot snapshot = cache.find(userId);
+        if (snapshot == null) {
+            return (Boolean) PlayerSettingKey.DROP_LOG_DISPLAY.getDefaultValue();
+        }
+        PlayerSettingEntry entry = snapshot.getEntry(PlayerSettingKey.DROP_LOG_DISPLAY);
+        Object value = entry == null ? null : entry.getValue();
+        return value instanceof Boolean enabled ? enabled : (Boolean) PlayerSettingKey.DROP_LOG_DISPLAY.getDefaultValue();
+    }
+
     public @NotNull UpdateResult updatePlayerSetting(@NotNull PlayerSettingChangeRequest request) {
         PlayerSettingSnapshot snapshot = cache.find(request.userId());
         if (snapshot == null) {

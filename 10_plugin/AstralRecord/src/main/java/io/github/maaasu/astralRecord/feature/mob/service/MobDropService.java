@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.mob.service;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropItem;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
+import io.github.maaasu.astralRecord.feature.mob.model.MobDropResultItem;
 import io.github.maaasu.astralRecord.feature.mob.model.MobMoneyDrop;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -10,10 +11,8 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -29,7 +28,7 @@ public class MobDropService {
      *
      * @param template 撃破された Mob テンプレート
      * @param killer   キラー（{@code null} 可）
-     * @return ドロップ確定結果
+     * @return 当選元の設定確率を含むドロップ確定結果
      */
     @NotNull
     public MobDropResult roll(@NotNull MobTemplate template, @Nullable AstPlayer killer) {
@@ -42,7 +41,7 @@ public class MobDropService {
      *
      * @param drops  drops 定義
      * @param killer 取得者
-     * @return ドロップ確定結果
+     * @return 当選元の設定確率を含むドロップ確定結果
      */
     @NotNull
     public MobDropResult roll(@Nullable MobDropConfig drops, @Nullable AstPlayer killer) {
@@ -53,7 +52,7 @@ public class MobDropService {
         ThreadLocalRandom rng = ThreadLocalRandom.current();
         double luckBonus = killer == null ? 0.0 : resolveLuck(killer) * 0.05;
 
-        List<Map.Entry<String, Integer>> items = new ArrayList<>();
+        List<MobDropResultItem> items = new ArrayList<>();
         for (MobDropItem item : drops.items()) {
             double effectiveRate = item.rate() + (item.luckAffected() ? luckBonus : 0.0);
             if (rng.nextDouble(0.0, 100.0) >= effectiveRate) continue;
@@ -61,7 +60,7 @@ public class MobDropService {
             int amount = parseAmount(item.amount(), rng);
             if (amount <= 0) continue;
 
-            items.add(new AbstractMap.SimpleImmutableEntry<>(item.itemId(), amount));
+            items.add(new MobDropResultItem(item.itemId(), amount, item.rate()));
         }
 
         int money = 0;

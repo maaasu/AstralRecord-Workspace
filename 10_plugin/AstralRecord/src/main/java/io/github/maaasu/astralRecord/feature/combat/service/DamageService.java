@@ -11,8 +11,10 @@ import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
+import io.github.maaasu.astralRecord.feature.mob.model.MobDropResultItem;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.service.MobCombatService;
+import io.github.maaasu.astralRecord.feature.mob.service.MobDropPresentationService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobKnockbackService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentDurabilityService;
@@ -628,6 +630,13 @@ public final class DamageService {
         displayTextService.spawnResultText(deathLocation.clone().add(0.0D, 1.8D, 0.0D), formatMobDeathResult(mobName, result));
     }
 
+    /**
+     * Mob 討伐結果をアイテム数量と設定上のドロップ確率を含む文字列へ整形します。
+     *
+     * @param mobName Mob 表示名
+     * @param result ドロップ結果
+     * @return legacy color code を含むリザルト文字列
+     */
     private @NotNull String formatMobDeathResult(@NotNull String mobName, @NotNull MobDropResult result) {
         StringBuilder text = new StringBuilder("&6&l討伐: &f").append(mobName);
         text.append("\n&eEXP &f+").append(result.exp());
@@ -638,11 +647,12 @@ public final class DamageService {
             return text.toString();
         }
         boolean first = true;
-        for (Map.Entry<String, Integer> item : result.items()) {
+        for (MobDropResultItem item : result.items()) {
             if (!first) {
                 text.append("&7, &f");
             }
-            text.append(item.getKey()).append(" x").append(item.getValue());
+            text.append(item.itemId()).append(" x").append(item.amount())
+                    .append(" &7(").append(MobDropPresentationService.formatDropRate(item.dropRate())).append("%)&f");
             first = false;
         }
         return text.toString();

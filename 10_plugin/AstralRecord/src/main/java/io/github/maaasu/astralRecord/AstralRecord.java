@@ -643,7 +643,8 @@ public final class AstralRecord extends JavaPlugin {
                 itemService,
                 inventoryService,
                 itemStackFactory,
-                itemDropAnimationService
+                itemDropAnimationService,
+                playerSettingService
         );
         gatheringService.setDropPresentationService(mobDropPresentationService);
         var mobKnockbackService = new MobKnockbackService(mobService);
