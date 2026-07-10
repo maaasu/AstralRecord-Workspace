@@ -678,8 +678,7 @@ public class ItemStackFactory {
         // 耐久値
         if (equipment.getDurability() != null) {
             lore.add(ColorCodeUtil.GRAY + " ▸ 耐久値: "
-                    + ColorCodeUtil.DARK_GRAY + "最大 "
-                    + ColorCodeUtil.AQUA + ColorCodeUtil.BOLD + equipment.getDurability().getMax());
+                    + ColorCodeUtil.GRAY + equipment.getDurability().getMax());
         }
 
         appendEquipmentSkillLore(lore, equipment);
@@ -1092,9 +1091,6 @@ public class ItemStackFactory {
             // --- 耐久値 ---
             if (instance.getDurabilityMax() > 0) {
                 lore.add(formatDurabilityLore(instance));
-                if (isBroken(instance)) {
-                    lore.add(ColorCodeUtil.RED + ColorCodeUtil.BOLD + "   使用不可: 耐久値が 0 のため修理が必要です");
-                }
             }
             appendEquipmentSkillLore(lore, eq);
             lore.add("");
@@ -1274,17 +1270,10 @@ public class ItemStackFactory {
     }
 
     private @NotNull String formatDurabilityLore(@NotNull EquipmentInstance instance) {
-        boolean broken = isBroken(instance);
-        String currentColor = broken
-                ? ColorCodeUtil.RED + ColorCodeUtil.BOLD
-                : ColorCodeUtil.AQUA + ColorCodeUtil.BOLD;
-        String state = broken ? ColorCodeUtil.RED + " 破損" : ColorCodeUtil.GREEN + " 使用可能";
         return ColorCodeUtil.GRAY + " ▸ 耐久値: "
-                + ColorCodeUtil.DARK_GRAY + "現在 "
-                + currentColor + instance.getDurabilityValue()
-                + ColorCodeUtil.DARK_GRAY + " / 最大 "
-                + ColorCodeUtil.WHITE + instance.getDurabilityMax()
-                + state;
+                + ColorCodeUtil.WHITE + instance.getDurabilityValue()
+                + ColorCodeUtil.DARK_GRAY + " / "
+                + ColorCodeUtil.GRAY + instance.getDurabilityMax();
     }
 
     private boolean isBroken(@NotNull EquipmentInstance instance) {
