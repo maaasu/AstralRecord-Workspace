@@ -660,7 +660,9 @@ public final class AstralRecord extends JavaPlugin {
                 playerClassService,
                 statusService,
                 skillTreeService,
-                particleDisplayService
+                particleDisplayService,
+                displayTextService,
+                playerSettingService
         );
         playerDeathService = new PlayerDeathService(
             this,

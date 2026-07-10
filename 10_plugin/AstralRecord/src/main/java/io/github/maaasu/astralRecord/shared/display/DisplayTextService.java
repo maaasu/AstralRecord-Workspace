@@ -33,8 +33,8 @@ public final class DisplayTextService {
 
     private static final long UPDATE_INTERVAL_TICKS = 1L;
     private static final int MAX_DAMAGE_DISPLAYS = 80;
-    private static final int DAMAGE_ANIMATION_FRAMES = 12;
-    private static final long DAMAGE_ANIMATION_FRAME_TICKS = 2L;
+    private static final int DAMAGE_ANIMATION_FRAMES = 6;
+    private static final long DAMAGE_ANIMATION_FRAME_TICKS = 4L;
 
     private final ConcurrentHashMap<UUID, ManagedDisplayState> displays = new ConcurrentHashMap<>();
     private final AtomicLong displaySequence = new AtomicLong();
@@ -115,8 +115,30 @@ public final class DisplayTextService {
         return spawnFloatingDamageNumber(origin, amount, "&b");
     }
 
+    /**
+     * 回避成立時の浮遊表示を生成します。
+     *
+     * @param origin 表示起点
+     * @return 管理ハンドル
+     */
+    public @NotNull ManagedTextDisplay spawnEvadedText(@NotNull Location origin) {
+        pruneDamageDisplays();
+        return spawnFloatingText(origin, "&f&l回避");
+    }
+
     private @NotNull ManagedTextDisplay spawnFloatingDamageNumber(@NotNull Location origin, double amount, @NotNull String prefix) {
         String text = prefix + String.format(java.util.Locale.ROOT, "%.0f", Math.max(0.0D, amount));
+        return spawnFloatingText(origin, text);
+    }
+
+    /**
+     * TextDisplay 1 体だけを使う浮遊テキストを生成します。
+     *
+     * @param origin 表示起点
+     * @param text 表示文字列
+     * @return 管理ハンドル
+     */
+    private @NotNull ManagedTextDisplay spawnFloatingText(@NotNull Location origin, @NotNull String text) {
         ManagedTextDisplay display = create(
                 DisplayAnchor.fixed(origin),
                 DisplayTextOptions.damage(text),
@@ -125,7 +147,7 @@ public final class DisplayTextService {
 
         double xDrift = ThreadLocalRandom.current().nextDouble(-0.32D, 0.32D);
         double zDrift = ThreadLocalRandom.current().nextDouble(-0.22D, 0.22D);
-        display.playAnimation(damageAnimationFrames(text, xDrift, zDrift), false, true);
+        display.playTransformAnimation(damageAnimationFrames(text, xDrift, zDrift), false, true);
         return display;
     }
 
@@ -218,18 +240,26 @@ public final class DisplayTextService {
         Vector attachedOffset = resolveAttachedOffset(state, frame);
         Location targetLocation = attachment != null
                 ? attachment.getLocation()
-                : anchorLocation.clone().add(state.options.offset()).add(frame.offset());
+                : anchorLocation.clone()
+                        .add(state.options.offset())
+                        .add(state.transformAnimation ? new Vector() : frame.offset());
         TextDisplay entity = ensureEntity(state, targetLocation);
         if (entity == null) {
             return;
         }
 
-        applyOptions(entity, state.options);
+        applyOptionsIfNeeded(entity, state);
         applyFrame(entity, state, frame);
         if (attachment != null) {
             attachIfNeeded(entity, state, attachment, attachedOffset);
         } else {
-            detachIfNeeded(entity, state);
+            detachIfNeeded(entity);
+            applyTranslationTransform(
+                    entity,
+                    state,
+                    state.transformAnimation ? frame.offset() : new Vector(),
+                    state.transformAnimation ? frame.durationTicks() : state.options.interpolationDuration()
+            );
             teleportIfNeeded(entity, state, targetLocation);
         }
 
@@ -261,10 +291,25 @@ public final class DisplayTextService {
             display.setInvulnerable(true);
             display.setSilent(true);
         });
-        state.lastLocation = null;
+        state.lastLocation = location.clone();
         state.lastText = null;
-        state.lastAttachmentOffset = null;
+        state.lastTransformOffset = null;
+        state.lastAppliedOptions = null;
         return state.entity;
+    }
+
+    /**
+     * 表示オプションが変化した場合だけ Bukkit 実体へ反映します。
+     *
+     * @param entity TextDisplay 実体
+     * @param state 管理状態
+     */
+    private void applyOptionsIfNeeded(@NotNull TextDisplay entity, @NotNull ManagedDisplayState state) {
+        if (state.options.equals(state.lastAppliedOptions)) {
+            return;
+        }
+        applyOptions(entity, state.options);
+        state.lastAppliedOptions = state.options;
     }
 
     private void refreshDynamicText(@NotNull ManagedDisplayState state) {
@@ -361,11 +406,10 @@ public final class DisplayTextService {
         state.lastLocation = null;
     }
 
-    private void detachIfNeeded(@NotNull TextDisplay entity, @NotNull ManagedDisplayState state) {
+    private void detachIfNeeded(@NotNull TextDisplay entity) {
         if (entity.isInsideVehicle()) {
             entity.leaveVehicle();
         }
-        applyAttachmentTransform(entity, state, new Vector());
     }
 
     private void applyAttachmentTransform(
@@ -373,16 +417,35 @@ public final class DisplayTextService {
             @NotNull ManagedDisplayState state,
             @NotNull Vector offset
     ) {
-        if (state.lastAttachmentOffset != null && state.lastAttachmentOffset.equals(offset)) {
+        applyTranslationTransform(entity, state, offset, state.options.interpolationDuration());
+    }
+
+    /**
+     * ローカル平行移動をクライアント補間付きで反映します。
+     *
+     * @param entity TextDisplay 実体
+     * @param state 管理状態
+     * @param offset ローカル移動量
+     * @param durationTicks 補間時間
+     */
+    private void applyTranslationTransform(
+            @NotNull TextDisplay entity,
+            @NotNull ManagedDisplayState state,
+            @NotNull Vector offset,
+            long durationTicks
+    ) {
+        if (state.lastTransformOffset != null && state.lastTransformOffset.equals(offset)) {
             return;
         }
+        entity.setInterpolationDelay(0);
+        entity.setInterpolationDuration((int) Math.max(0L, Math.min(59L, durationTicks)));
         entity.setTransformation(new Transformation(
                 new Vector3f((float) offset.getX(), (float) offset.getY(), (float) offset.getZ()),
                 new Quaternionf(),
                 new Vector3f(1.0F, 1.0F, 1.0F),
                 new Quaternionf()
         ));
-        state.lastAttachmentOffset = offset.clone();
+        state.lastTransformOffset = offset.clone();
     }
 
     private @NotNull DisplayAnimationFrame resolveFrame(@NotNull ManagedDisplayState state) {
@@ -422,6 +485,8 @@ public final class DisplayTextService {
         state.entity = null;
         state.lastLocation = null;
         state.lastText = null;
+        state.lastTransformOffset = null;
+        state.lastAppliedOptions = null;
     }
 
     private boolean isSameLocation(@NotNull Location current, @NotNull Location target) {
@@ -457,6 +522,7 @@ public final class DisplayTextService {
             state.animationAge = 0L;
             state.destroyAfterAnimation = false;
             state.textSupplier = null;
+            state.transformAnimation = false;
         }
 
         /**
@@ -506,6 +572,27 @@ public final class DisplayTextService {
             state.animationAge = 0L;
             state.loopAnimation = loopAnimation;
             state.destroyAfterAnimation = destroyAfterAnimation;
+            state.transformAnimation = false;
+        }
+
+        /**
+         * 座標 teleport を使わず、TextDisplay のローカル変換をクライアント補間して再生します。
+         *
+         * @param frames フレーム列
+         * @param loopAnimation ループ再生するか
+         * @param destroyAfterAnimation 再生完了後に破棄するか
+         */
+        public void playTransformAnimation(
+                @NotNull List<DisplayAnimationFrame> frames,
+                boolean loopAnimation,
+                boolean destroyAfterAnimation
+        ) {
+            ManagedDisplayState state = requireState();
+            state.frames = List.copyOf(frames);
+            state.animationAge = 0L;
+            state.loopAnimation = loopAnimation;
+            state.destroyAfterAnimation = destroyAfterAnimation;
+            state.transformAnimation = true;
         }
 
         /**
@@ -538,12 +625,14 @@ public final class DisplayTextService {
         private List<DisplayAnimationFrame> frames = List.of();
         private boolean loopAnimation;
         private boolean destroyAfterAnimation;
+        private boolean transformAnimation;
         private long animationAge;
         private boolean destroyed;
         private @Nullable TextDisplay entity;
         private @Nullable String lastText;
         private @Nullable Location lastLocation;
-        private @Nullable Vector lastAttachmentOffset;
+        private @Nullable Vector lastTransformOffset;
+        private @Nullable DisplayTextOptions lastAppliedOptions;
         private @Nullable Supplier<String> textSupplier;
 
         private ManagedDisplayState(

@@ -19,8 +19,10 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobKnockbackService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentDurabilityService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -41,6 +43,7 @@ import org.bukkit.projectiles.ProjectileSource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -327,16 +330,16 @@ public final class DamageService {
 
         DamageContext context = new DamageContext(attacker, victim, baseDamage, attackType, damageType, damageElement, scaling);
         DamageResult calculated = damageCalculator.calculate(context);
-        if (conditionService != null && calculated.finalDamage() > 0.0D) {
-            calculated = new DamageResult(
-                    calculated.finalDamage() * conditionService.damageTakenMultiplier(victim),
-                    calculated.critical()
+        if (!calculated.evaded() && conditionService != null && calculated.finalDamage() > 0.0D) {
+            calculated = calculated.withFinalDamage(
+                    calculated.finalDamage() * conditionService.damageTakenMultiplier(victim)
             );
         }
         DamageResult result = applyShieldDamage(attacker, victim, calculated);
         applyDamageResult(attacker, victim, result, attackType);
         applyDurabilityWear(attacker, victim, result);
         spawnDamageDisplay(attacker, victim, result);
+        sendDamageLog(attacker, victim, result, context);
         return result;
     }
 
@@ -365,14 +368,14 @@ public final class DamageService {
         double baseShieldDamage = Math.floor(result.finalDamage() / Math.max(1.0D, victim.maxHealth() * 0.1D));
         double calculatedShieldDamage = baseShieldDamage + shieldBreak;
         if (calculatedShieldDamage < 1.0D) {
-            return DamageResult.shield(0.0D, false, result.critical());
+            return DamageResult.shield(0.0D, false, result);
         }
 
         double currentShield = currentShield(victim);
         double shieldDamage = Math.min(currentShield, calculatedShieldDamage);
         boolean shieldBroken = currentShield > 0.0D && currentShield - shieldDamage <= 0.0D;
         consumeShield(victim, shieldDamage);
-        return DamageResult.shield(shieldDamage, shieldBroken, result.critical());
+        return DamageResult.shield(shieldDamage, shieldBroken, result);
     }
 
     private void applyDamageResult(
@@ -464,6 +467,12 @@ public final class DamageService {
             @NotNull AstEntity victim,
             @NotNull DamageResult result
     ) {
+        if (result.evaded()) {
+            if (shouldDisplayDamage(attacker, victim)) {
+                displayTextService.spawnEvadedText(victim.location().clone().add(0.0D, 1.2D, 0.0D));
+            }
+            return;
+        }
         if (result.shieldDamage() > 0.0D) {
             if (!shouldDisplayDamage(attacker, victim)) {
                 return;
@@ -478,6 +487,134 @@ public final class DamageService {
             return;
         }
         displayTextService.spawnDamageNumber(victim.location().clone().add(0.0D, 1.2D, 0.0D), result.finalDamage(), result.critical());
+    }
+
+    /**
+     * 攻撃者・被弾者それぞれの設定に従って詳細ダメージログを送信します。
+     *
+     * @param attacker 攻撃者。環境ダメージでは null
+     * @param victim 被弾者
+     * @param result ダメージ結果
+     * @param context ダメージ計算コンテキスト
+     */
+    private void sendDamageLog(
+            @Nullable AstEntity attacker,
+            @NotNull AstEntity victim,
+            @NotNull DamageResult result,
+            @NotNull DamageContext context
+    ) {
+        if (attacker != null && attacker.isPlayer() && attacker.player() != null
+                && playerSettingService.isDamageLogMessageEnabled(attacker.player().getUser().getUuid())) {
+            sendDamageLogMessage(attacker.player(), victim.name(), result, context, true);
+        }
+
+        if (victim.isPlayer() && victim.player() != null
+                && (attacker == null || !attacker.id().equals(victim.id()))
+                && playerSettingService.isDamageLogMessageEnabled(victim.player().getUser().getUuid())) {
+            String sourceName = attacker == null ? "環境" : attacker.name();
+            sendDamageLogMessage(victim.player(), sourceName, result, context, false);
+        }
+    }
+
+    /**
+     * 与ダメージまたは被ダメージの詳細メッセージを送信します。
+     *
+     * @param recipient 送信先
+     * @param counterpartName 相手側の表示名
+     * @param result ダメージ結果
+     * @param context ダメージ計算コンテキスト
+     * @param outgoing 与ダメージログなら true
+     */
+    private void sendDamageLogMessage(
+            @NotNull AstPlayer recipient,
+            @NotNull String counterpartName,
+            @NotNull DamageResult result,
+            @NotNull DamageContext context,
+            boolean outgoing
+    ) {
+        PlayerMessageService messages = PlayerMessageService.getInstance();
+        if (result.evaded()) {
+            messages.send(
+                    recipient,
+                    outgoing ? PlayerMsgId.P_5351 : PlayerMsgId.P_5353,
+                    counterpartName,
+                    formatOneDecimal(result.hitChance()),
+                    formatOneDecimal(result.accuracy()),
+                    formatOneDecimal(result.evasion())
+            );
+            return;
+        }
+
+        messages.send(
+                recipient,
+                outgoing ? PlayerMsgId.P_5350 : PlayerMsgId.P_5352,
+                counterpartName,
+                formatOneDecimal(result.finalDamage()),
+                formatOneDecimal(result.shieldDamage()),
+                attackTypeName(context.attackType()),
+                damageTypeName(context.damageType()),
+                damageElementName(context.damageElement()),
+                formatOneDecimal(result.hitChance()),
+                formatOneDecimal(result.accuracy()),
+                formatOneDecimal(result.evasion()),
+                result.critical() ? " &eCRITICAL" : ""
+        );
+    }
+
+    /**
+     * 攻撃種別のプレイヤー向け表示名を返します。
+     *
+     * @param attackType 攻撃種別
+     * @return 日本語表示名
+     */
+    private @NotNull String attackTypeName(@NotNull AttackType attackType) {
+        return switch (attackType) {
+            case MELEE -> "近接";
+            case RANGED -> "遠隔";
+            case MAGIC -> "魔法";
+        };
+    }
+
+    /**
+     * ダメージ種別のプレイヤー向け表示名を返します。
+     *
+     * @param damageType ダメージ種別
+     * @return 日本語表示名
+     */
+    private @NotNull String damageTypeName(@NotNull DamageType damageType) {
+        return switch (damageType) {
+            case PHYSICAL -> "物理";
+            case MAGIC -> "魔法";
+            case TRUE -> "純粋";
+        };
+    }
+
+    /**
+     * ダメージ属性のプレイヤー向け表示名を返します。
+     *
+     * @param element ダメージ属性
+     * @return 日本語表示名
+     */
+    private @NotNull String damageElementName(@NotNull DamageElement element) {
+        return switch (element) {
+            case FIRE -> "火";
+            case ICE -> "氷";
+            case POISON -> "毒";
+            case LIGHTNING -> "雷";
+            case HOLY -> "聖";
+            case DARK -> "闇";
+            case NEUTRAL -> "無属性";
+        };
+    }
+
+    /**
+     * 数値を小数第1位で表示します。
+     *
+     * @param value 表示する値
+     * @return 小数第1位の文字列
+     */
+    private @NotNull String formatOneDecimal(double value) {
+        return String.format(Locale.ROOT, "%.1f", value);
     }
 
     private boolean hasActiveShield(@NotNull AstEntity victim) {

@@ -27,6 +27,7 @@ import java.util.UUID;
 public final class PlayerSettingGui extends BaseMenuScreenView {
     public static final int SIZE = BaseMenuScreenView.SIZE;
     public static final int DAMAGE_LOG_SLOT = 20;
+    public static final int DAMAGE_LOG_MESSAGE_SLOT = 21;
     public static final int PARTICLE_DENSITY_SLOT = 22;
     public static final int DROP_LOG_SLOT = 24;
     public static final int SUPER_MODE_SECRET_SLOT = 53;
@@ -66,6 +67,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
     public @Nullable PlayerSettingKey getKeyAtSlot(int rawSlot) {
         return switch (rawSlot) {
             case DAMAGE_LOG_SLOT -> PlayerSettingKey.DAMAGE_LOG_DISPLAY;
+            case DAMAGE_LOG_MESSAGE_SLOT -> PlayerSettingKey.DAMAGE_LOG_MESSAGE;
             case PARTICLE_DENSITY_SLOT -> PlayerSettingKey.PARTICLE_DENSITY;
             case DROP_LOG_SLOT -> PlayerSettingKey.DROP_LOG_DISPLAY;
             default -> null;
@@ -90,6 +92,11 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             Material.REDSTONE,
             PlayerSettingKey.DAMAGE_LOG_DISPLAY,
             (Boolean) resolveValue(userId, PlayerSettingKey.DAMAGE_LOG_DISPLAY, draftValues)
+        ));
+        inventory.setItem(DAMAGE_LOG_MESSAGE_SLOT, createBooleanItem(
+            Material.PAPER,
+            PlayerSettingKey.DAMAGE_LOG_MESSAGE,
+            (Boolean) resolveValue(userId, PlayerSettingKey.DAMAGE_LOG_MESSAGE, draftValues)
         ));
         inventory.setItem(PARTICLE_DENSITY_SLOT, createParticleItem(
             (ParticleDensity) resolveValue(userId, PlayerSettingKey.PARTICLE_DENSITY, draftValues)

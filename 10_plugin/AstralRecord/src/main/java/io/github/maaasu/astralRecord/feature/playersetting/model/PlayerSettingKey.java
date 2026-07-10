@@ -12,7 +12,8 @@ import java.util.stream.Collectors;
  * プレイヤー設定キーです。
  */
 public enum PlayerSettingKey {
-    DAMAGE_LOG_DISPLAY("DAMAGE_LOG_DISPLAY", "ダメージログ表示", true),
+    DAMAGE_LOG_DISPLAY("DAMAGE_LOG_DISPLAY", "ダメージ数値表示", true),
+    DAMAGE_LOG_MESSAGE("DAMAGE_LOG_MESSAGE", "ダメージ詳細メッセージ", false),
     PARTICLE_DENSITY("PARTICLE_DENSITY", "パーティクル密度", ParticleDensity.NORMAL),
     DROP_LOG_DISPLAY("DROP_LOG_DISPLAY", "レアドロップログ表示", true),
     TEMP_DROP_DISPLAY("TEMP_DROP_DISPLAY", "Temp ドロップ表示", true),

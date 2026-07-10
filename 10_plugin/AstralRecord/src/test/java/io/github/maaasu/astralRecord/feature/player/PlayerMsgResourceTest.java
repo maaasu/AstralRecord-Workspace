@@ -28,4 +28,26 @@ class PlayerMsgResourceTest {
         assertTrue(plainText.contains("Colored Quest"));
         assertFalse(plainText.contains("&e"));
     }
+
+    @Test
+    void damageDetailMessageFormatsHitChanceAndCriticalMarker() {
+        String formatted = PlayerMsgResource.format(
+                PlayerMsgId.P_5350.getId(),
+                "Test Mob",
+                "25.0",
+                "0.0",
+                "近接",
+                "物理",
+                "無属性",
+                "92.0",
+                "95.0",
+                "3.0",
+                " &eCRITICAL"
+        );
+
+        assertTrue(formatted.contains("Test Mob"));
+        assertTrue(formatted.contains("92.0%"));
+        assertTrue(formatted.contains("命中 95.0 - 回避 3.0"));
+        assertTrue(formatted.contains("\u00a7eCRITICAL"));
+    }
 }

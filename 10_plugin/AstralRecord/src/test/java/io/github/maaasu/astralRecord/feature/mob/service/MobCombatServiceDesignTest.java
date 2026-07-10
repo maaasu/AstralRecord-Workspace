@@ -13,10 +13,12 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionsConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
+import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
+import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
@@ -54,7 +56,9 @@ class MobCombatServiceDesignTest extends MockBukkitTestBase {
                 mock(PlayerClassService.class),
                 mock(StatusService.class),
                 mock(SkillTreeService.class),
-                mock(ParticleDisplayService.class)
+                mock(ParticleDisplayService.class),
+                mock(DisplayTextService.class),
+                mock(PlayerSettingService.class)
         );
     }
 

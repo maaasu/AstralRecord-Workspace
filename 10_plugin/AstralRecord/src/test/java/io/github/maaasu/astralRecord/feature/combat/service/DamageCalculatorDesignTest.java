@@ -28,7 +28,8 @@ class DamageCalculatorDesignTest extends MockBukkitTestBase {
         attacker.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
             StatusType.ATTACK, 20.0D,
             StatusType.STRENGTH, 50.0D,
-            StatusType.MELEE_ATTACK, 5.0D
+            StatusType.MELEE_ATTACK, 5.0D,
+            StatusType.ACCURACY, 100.0D
         ), 100.0D, 0.0D, 0.0D));
         MobInstance victim = DesignTestFixtures.mobInstance(100.0D, 8.0D, 0.0D);
 
@@ -53,7 +54,8 @@ class DamageCalculatorDesignTest extends MockBukkitTestBase {
             StatusType.CRITICAL_RATE, 100.0D,
             StatusType.CRITICAL_DAMAGE, 200.0D,
             StatusType.SUPER_CRITICAL_RATE, 100.0D,
-            StatusType.SUPER_CRITICAL_DAMAGE, 150.0D
+            StatusType.SUPER_CRITICAL_DAMAGE, 150.0D,
+            StatusType.ACCURACY, 100.0D
         ), 100.0D, 0.0D, 0.0D));
         MobInstance victim = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D);
 
@@ -85,5 +87,60 @@ class DamageCalculatorDesignTest extends MockBukkitTestBase {
         ));
 
         assertEquals(12.0D, result.finalDamage(), 0.0001D);
+    }
+
+    @Test
+    void accuracyMinusEvasionCanProduceEvadedResult() {
+        DamageCalculator calculator = new DamageCalculator(() -> 90.0D, () -> 100.0D);
+        AstPlayer attacker = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
+        attacker.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.ATTACK, 10.0D,
+            StatusType.ACCURACY, 95.0D
+        ), 100.0D, 0.0D, 0.0D));
+        AstPlayer victim = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
+        victim.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.EVASION, 10.0D
+        ), 100.0D, 0.0D, 0.0D));
+
+        var result = calculator.calculate(new DamageContext(
+            AstEntity.player(attacker),
+            AstEntity.player(victim),
+            0.0D,
+            AttackType.MELEE,
+            DamageType.PHYSICAL,
+            DamageScaling.ATTACKER_STATUS
+        ));
+
+        assertTrue(result.evaded());
+        assertEquals(0.0D, result.finalDamage(), 0.0001D);
+        assertEquals(85.0D, result.hitChance(), 0.0001D);
+        assertEquals(95.0D, result.accuracy(), 0.0001D);
+        assertEquals(10.0D, result.evasion(), 0.0001D);
+    }
+
+    @Test
+    void fixedDamageDoesNotRunEvasionCheck() {
+        DamageCalculator calculator = new DamageCalculator(() -> 99.0D, () -> 100.0D);
+        AstPlayer attacker = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
+        attacker.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.ACCURACY, 1.0D
+        ), 100.0D, 0.0D, 0.0D));
+        AstPlayer victim = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
+        victim.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.EVASION, 100.0D
+        ), 100.0D, 0.0D, 0.0D));
+
+        var result = calculator.calculate(new DamageContext(
+            AstEntity.player(attacker),
+            AstEntity.player(victim),
+            12.0D,
+            AttackType.MAGIC,
+            DamageType.TRUE,
+            DamageScaling.FIXED
+        ));
+
+        assertFalse(result.evaded());
+        assertEquals(12.0D, result.finalDamage(), 0.0001D);
+        assertEquals(100.0D, result.hitChance(), 0.0001D);
     }
 }

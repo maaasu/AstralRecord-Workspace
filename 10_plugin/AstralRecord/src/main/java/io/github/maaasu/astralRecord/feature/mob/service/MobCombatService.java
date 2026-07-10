@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.mob.service;
 import io.github.maaasu.astralRecord.feature.adventurerecord.service.AdventureRecordService;
 import io.github.maaasu.astralRecord.feature.account.model.AccountExperienceResult;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
+import io.github.maaasu.astralRecord.feature.combat.service.DamageCalculator;
 import io.github.maaasu.astralRecord.feature.mob.model.CombatStyle;
 import io.github.maaasu.astralRecord.feature.mob.model.DamageType;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
@@ -20,6 +21,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.playerclass.model.ClassExperienceResult;
 import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
@@ -29,6 +31,7 @@ import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Bukkit;
@@ -64,14 +67,26 @@ public class MobCombatService {
     private final StatusService statusService;
     private final SkillTreeService skillTreeService;
     private final ParticleDisplayService particleDisplayService;
+    private final DisplayTextService displayTextService;
+    private final PlayerSettingService playerSettingService;
     private PlayerDeathService playerDeathService;
     private QuestService questService;
 
     /**
      * コンストラクタ。
      *
-     * @param mobService       Mob サービス
-     * @param dropService      ドロップ抽選サービス
+     * @param mobService Mob サービス
+     * @param dropService ドロップ抽選サービス
+     * @param dropPresentationService ドロップ表示サービス
+     * @param partyService パーティーサービス
+     * @param adventureRecordService 冒険記録サービス
+     * @param accountService アカウントサービス
+     * @param playerClassService プレイヤークラスサービス
+     * @param statusService ステータスサービス
+     * @param skillTreeService スキルツリーサービス
+     * @param particleDisplayService パーティクル表示サービス
+     * @param displayTextService TextDisplay 表示サービス
+     * @param playerSettingService プレイヤー設定サービス
      */
     public MobCombatService(
             @NotNull MobService mobService,
@@ -83,7 +98,9 @@ public class MobCombatService {
             @NotNull PlayerClassService playerClassService,
             @NotNull StatusService statusService,
             @NotNull SkillTreeService skillTreeService,
-            @NotNull ParticleDisplayService particleDisplayService) {
+            @NotNull ParticleDisplayService particleDisplayService,
+            @NotNull DisplayTextService displayTextService,
+            @NotNull PlayerSettingService playerSettingService) {
         this.mobService = mobService;
         this.dropService = dropService;
         this.dropPresentationService = dropPresentationService;
@@ -94,6 +111,8 @@ public class MobCombatService {
         this.statusService = statusService;
         this.skillTreeService = skillTreeService;
         this.particleDisplayService = particleDisplayService;
+        this.displayTextService = displayTextService;
+        this.playerSettingService = playerSettingService;
     }
 
     /**
@@ -191,11 +210,11 @@ public class MobCombatService {
             return;
         }
 
-        // 命中判定
-        double accuracy = 100.0; // 命中率は Mob 側のデフォルト
-        double evasion = 0.0;    // プレイヤー側 EVASION は将来 statusSnapshot から取得
-        if (ThreadLocalRandom.current().nextDouble(0.0, 100.0) >= accuracy - evasion) {
-            // 不命中
+        double accuracy = Math.max(0.0D, instance.template().statValue(StatusType.ACCURACY.name(), 100.0D));
+        double evasion = resolvePlayerEvasion(target);
+        double hitChance = DamageCalculator.calculateHitChance(accuracy, evasion);
+        if (ThreadLocalRandom.current().nextDouble(0.0D, 100.0D) >= hitChance) {
+            showMobAttackFeedback(instance, target, 0.0D, false, true, accuracy, evasion, hitChance);
             instance.lastAttackTick(serverTick);
             return;
         }
@@ -205,7 +224,124 @@ public class MobCombatService {
         double finalDamage = applyCriticalMultiplier(instance, baseDamage);
 
         applyDamageToPlayer(target, finalDamage, damageTypeOf(combat.style()));
+        showMobAttackFeedback(
+                instance,
+                target,
+                finalDamage,
+                finalDamage > baseDamage,
+                false,
+                accuracy,
+                evasion,
+                hitChance
+        );
         instance.lastAttackTick(serverTick);
+    }
+
+    /**
+     * プレイヤーの現在回避率をキャッシュ済みステータスから取得します。
+     *
+     * @param target 対象プレイヤー
+     * @return 回避率。未ロードの場合は 0
+     */
+    private double resolvePlayerEvasion(@NotNull Player target) {
+        AstPlayer astPlayer = AstPlayerCache.get(target);
+        if (astPlayer == null) {
+            return 0.0D;
+        }
+        var value = statusService.getStatus(astPlayer).getValue(StatusType.EVASION);
+        return value == null ? 0.0D : Math.max(0.0D, value.getTotalValue());
+    }
+
+    /**
+     * Mob 攻撃の TextDisplay と被ダメージ詳細メッセージを設定に従って表示します。
+     *
+     * @param instance 攻撃した Mob
+     * @param target 被弾プレイヤー
+     * @param damage 最終ダメージ
+     * @param critical 会心が成立したか
+     * @param evaded 回避されたか
+     * @param accuracy Mob の命中率
+     * @param evasion プレイヤーの回避率
+     * @param hitChance 最終命中率
+     */
+    private void showMobAttackFeedback(
+            @NotNull MobInstance instance,
+            @NotNull Player target,
+            double damage,
+            boolean critical,
+            boolean evaded,
+            double accuracy,
+            double evasion,
+            double hitChance
+    ) {
+        UUID userId = target.getUniqueId();
+        if (playerSettingService.isDamageLogDisplayEnabled(userId)) {
+            Location origin = target.getLocation().add(0.0D, 1.2D, 0.0D);
+            if (evaded) {
+                displayTextService.spawnEvadedText(origin);
+            } else {
+                displayTextService.spawnDamageNumber(origin, damage, critical);
+            }
+        }
+
+        if (!playerSettingService.isDamageLogMessageEnabled(userId)) {
+            return;
+        }
+
+        String mobName = ColorCodeUtil.toLegacyText(instance.template().displayName(), instance.template().id());
+        if (evaded) {
+            PlayerMessageService.getInstance().send(
+                    target,
+                    PlayerMsgId.P_5353,
+                    mobName,
+                    formatOneDecimal(hitChance),
+                    formatOneDecimal(accuracy),
+                    formatOneDecimal(evasion)
+            );
+            return;
+        }
+
+        CombatStyle style = instance.template().combat() == null
+                ? CombatStyle.MELEE
+                : instance.template().combat().style();
+        PlayerMessageService.getInstance().send(
+                target,
+                PlayerMsgId.P_5352,
+                mobName,
+                formatOneDecimal(damage),
+                "0.0",
+                combatStyleName(style),
+                damageTypeOf(style) == DamageType.MAGIC ? "魔法" : "物理",
+                "無属性",
+                formatOneDecimal(hitChance),
+                formatOneDecimal(accuracy),
+                formatOneDecimal(evasion),
+                critical ? " &eCRITICAL" : ""
+        );
+    }
+
+    /**
+     * Mob 戦闘スタイルのプレイヤー向け表示名を返します。
+     *
+     * @param style 戦闘スタイル
+     * @return 日本語表示名
+     */
+    private @NotNull String combatStyleName(@NotNull CombatStyle style) {
+        return switch (style) {
+            case MELEE -> "近接";
+            case RANGED -> "遠隔";
+            case MAGIC -> "魔法";
+        };
+    }
+
+    /**
+     * 数値を小数第1位で表示します。
+     *
+     * @param value 表示値
+     * @return 小数第1位の文字列
+     */
+    private @NotNull String formatOneDecimal(double value) {
+        return String.format(java.util.Locale.ROOT, "%.1f", value);
     }
 
     /**

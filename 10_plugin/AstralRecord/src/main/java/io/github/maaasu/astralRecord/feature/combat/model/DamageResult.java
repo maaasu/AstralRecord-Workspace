@@ -7,8 +7,21 @@ package io.github.maaasu.astralRecord.feature.combat.model;
  * @param shieldDamage シールドに適用するダメージ
  * @param shieldBroken この結果でシールドを破壊したか
  * @param critical     会心または超会心が成立したか
+ * @param evaded       命中判定で回避されたか
+ * @param hitChance    命中判定に使用した最終命中率（%）
+ * @param accuracy     攻撃者の命中率（%）
+ * @param evasion      被弾者の回避率（%）
  */
-public record DamageResult(double finalDamage, double shieldDamage, boolean shieldBroken, boolean critical) {
+public record DamageResult(
+        double finalDamage,
+        double shieldDamage,
+        boolean shieldBroken,
+        boolean critical,
+        boolean evaded,
+        double hitChance,
+        double accuracy,
+        double evasion
+) {
 
     public DamageResult(double finalDamage) {
         this(finalDamage, false);
@@ -21,7 +34,38 @@ public record DamageResult(double finalDamage, double shieldDamage, boolean shie
      * @param critical    会心または超会心が成立したか
      */
     public DamageResult(double finalDamage, boolean critical) {
-        this(finalDamage, 0.0D, false, critical);
+        this(finalDamage, 0.0D, false, critical, false, 100.0D, 100.0D, 0.0D);
+    }
+
+    /**
+     * 命中情報を含む HP ダメージ結果を作成します。
+     *
+     * @param finalDamage HP に適用する最終ダメージ
+     * @param critical    会心または超会心が成立したか
+     * @param hitChance   最終命中率
+     * @param accuracy    攻撃者の命中率
+     * @param evasion     被弾者の回避率
+     */
+    public DamageResult(
+            double finalDamage,
+            boolean critical,
+            double hitChance,
+            double accuracy,
+            double evasion
+    ) {
+        this(finalDamage, 0.0D, false, critical, false, hitChance, accuracy, evasion);
+    }
+
+    /**
+     * 回避されたダメージ結果を作成します。
+     *
+     * @param hitChance 最終命中率
+     * @param accuracy  攻撃者の命中率
+     * @param evasion   被弾者の回避率
+     * @return 回避結果
+     */
+    public static DamageResult evaded(double hitChance, double accuracy, double evasion) {
+        return new DamageResult(0.0D, 0.0D, false, false, true, hitChance, accuracy, evasion);
     }
 
     /**
@@ -44,6 +88,46 @@ public record DamageResult(double finalDamage, double shieldDamage, boolean shie
      * @return シールドダメージ結果
      */
     public static DamageResult shield(double shieldDamage, boolean shieldBroken, boolean critical) {
-        return new DamageResult(0.0D, shieldDamage, shieldBroken, critical);
+        return new DamageResult(0.0D, shieldDamage, shieldBroken, critical, false, 100.0D, 100.0D, 0.0D);
+    }
+
+    /**
+     * 元の命中・会心情報を保持したシールドダメージ結果を作成します。
+     *
+     * @param shieldDamage シールドに適用するダメージ
+     * @param shieldBroken この結果でシールドを破壊したか
+     * @param source       シールド適用前のダメージ結果
+     * @return シールドダメージ結果
+     */
+    public static DamageResult shield(double shieldDamage, boolean shieldBroken, DamageResult source) {
+        return new DamageResult(
+                0.0D,
+                shieldDamage,
+                shieldBroken,
+                source.critical(),
+                source.evaded(),
+                source.hitChance(),
+                source.accuracy(),
+                source.evasion()
+        );
+    }
+
+    /**
+     * 命中情報を保ったまま最終 HP ダメージを差し替えます。
+     *
+     * @param newFinalDamage 差し替える最終ダメージ
+     * @return 差し替え後の結果
+     */
+    public DamageResult withFinalDamage(double newFinalDamage) {
+        return new DamageResult(
+                newFinalDamage,
+                shieldDamage,
+                shieldBroken,
+                critical,
+                evaded,
+                hitChance,
+                accuracy,
+                evasion
+        );
     }
 }
