@@ -23,6 +23,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -33,6 +34,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -159,9 +161,9 @@ public class SkillService {
      * {@link LogId#W_5801} を出力する。{@code validateParams} で例外が発生した場合も同様に
      * スキップする。失敗分は隔離し、有効分のみが新マップとしてスワップされる。
      *
-     * @return 反映できた定義の件数
+     * @return 検証を通過した immutable な定義スナップショット
      */
-    public int reloadDefinitions() {
+    public @NotNull Map<String, SkillDefinition> loadDefinitions() {
         List<SkillSummary> summaries = List.of();
         try {
             summaries = repository.findAll();
@@ -227,9 +229,36 @@ public class SkillService {
             next.put(definition.getId(), withResolvedKind(definition, executor));
         }
 
-        registry.replaceDefinitions(next);
-        Logger.log(LogId.I_5800, next.size());
+        return Collections.unmodifiableMap(new LinkedHashMap<>(next));
+    }
+
+    /**
+     * API から定義を読み込み、レジストリ交換をメインスレッド上で順序付けます。
+     *
+     * @return 読み込みと検証を通過した定義件数
+     */
+    public int reloadDefinitions() {
+        Map<String, SkillDefinition> next = loadDefinitions();
+        if (plugin != null && !Bukkit.isPrimaryThread()) {
+            plugin.getServer().getScheduler().runTask(plugin, () -> replaceDefinitions(next));
+        } else {
+            replaceDefinitions(next);
+        }
         return next.size();
+    }
+
+    /**
+     * 検証済み定義スナップショットをレジストリへ公開します。
+     * Bukkit 実行環境ではメインスレッドから呼び出してください。
+     *
+     * @param definitions 検証済み定義
+     */
+    public void replaceDefinitions(@NotNull Map<String, SkillDefinition> definitions) {
+        if (plugin != null && !Bukkit.isPrimaryThread()) {
+            throw new IllegalStateException("Skill definitions must be published on the primary thread");
+        }
+        registry.replaceDefinitions(definitions);
+        Logger.log(LogId.I_5800, definitions.size());
     }
 
     /**

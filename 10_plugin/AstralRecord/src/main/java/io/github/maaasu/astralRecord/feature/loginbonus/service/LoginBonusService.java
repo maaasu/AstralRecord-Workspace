@@ -8,13 +8,22 @@ import io.github.maaasu.astralRecord.feature.loginbonus.view.LoginBonusGui;
 import io.github.maaasu.astralRecord.feature.loginbonus.view.LoginBonusHoliday;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 /**
  * ログイン報酬の日次受け取り状態と GUI 表示を管理します。
@@ -25,25 +34,31 @@ public final class LoginBonusService {
     private static final int HOLIDAY_LOGIN_BONUS_ASTRALD = 10;
     private static final String REWARD_SOURCE = "daily_login_bonus";
 
+    private final Plugin plugin;
     private final LoginBonusGui gui;
     private final InventoryService inventoryService;
     private final ItemService itemService;
     private final LoginBonusClaimRepository claimRepository;
+    private final Set<UUID> claimInFlight = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, UUID> openRequestIds = new ConcurrentHashMap<>();
 
     /**
      * ログイン報酬サービスを構築します。
      *
+     * @param plugin 非同期 API 通信とメインスレッド反映を管理するプラグイン
      * @param gui 表示に使用する GUI
      * @param inventoryService インベントリ操作サービス
      * @param itemService アイテム定義サービス
      * @param claimRepository ログインボーナス受取履歴 repository
      */
     public LoginBonusService(
+        @NotNull Plugin plugin,
         @NotNull LoginBonusGui gui,
         @NotNull InventoryService inventoryService,
         @NotNull ItemService itemService,
         @NotNull LoginBonusClaimRepository claimRepository
     ) {
+        this.plugin = plugin;
         this.gui = gui;
         this.inventoryService = inventoryService;
         this.itemService = itemService;
@@ -70,15 +85,42 @@ public final class LoginBonusService {
         if (astPlayer == null || !player.isOnline()) {
             return;
         }
+        UUID playerId = player.getUniqueId();
         UUID accountId = astPlayer.getAccount().getUuid();
-        gui.open(
-            player,
-            displayMonth,
-            LocalDate.now(DATE_ZONE),
-            claimRepository.loadClaimDates(accountId, displayMonth),
-            resolveGoldRewardModel(),
-            resolveAstraldRewardModel()
-        );
+        UUID requestId = UUID.randomUUID();
+        openRequestIds.put(playerId, requestId);
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                var claimDates = claimRepository.loadClaimDates(accountId, displayMonth);
+                ItemModel goldModel = resolveGoldRewardModel();
+                ItemModel astraldModel = resolveAstraldRewardModel();
+                plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    if (!openRequestIds.remove(playerId, requestId)) {
+                        return;
+                    }
+                    Player online = plugin.getServer().getPlayer(playerId);
+                    AstPlayer current = online == null ? null : AstPlayerCache.get(online);
+                    if (online == null || !online.isOnline() || current == null
+                        || !current.getAccount().getUuid().equals(accountId)) {
+                        return;
+                    }
+                    gui.open(
+                        online,
+                        displayMonth,
+                        LocalDate.now(DATE_ZONE),
+                        claimDates,
+                        goldModel,
+                        astraldModel
+                    );
+                });
+            } catch (RuntimeException e) {
+                plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    if (openRequestIds.remove(playerId, requestId) && player.isOnline()) {
+                        PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5074);
+                    }
+                });
+            }
+        });
     }
 
     /**
@@ -86,22 +128,43 @@ public final class LoginBonusService {
      *
      * @param player 対象プレイヤー
      * @param targetDate クリックされた日付
-     * @return 受け取りに成功した場合は true
+     * @param completion メインスレッド上で呼ばれる完了通知
      */
-    public boolean claim(@NotNull Player player, @NotNull LocalDate targetDate) {
+    public void claim(
+        @NotNull Player player,
+        @NotNull LocalDate targetDate,
+        @NotNull Consumer<Boolean> completion
+    ) {
         var astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null || !player.isOnline()) {
-            return false;
+            completion.accept(false);
+            return;
         }
         LocalDate today = LocalDate.now(DATE_ZONE);
         if (!targetDate.equals(today)) {
-            return false;
+            completion.accept(false);
+            return;
+        }
+        UUID playerId = player.getUniqueId();
+        if (!claimInFlight.add(playerId)) {
+            completion.accept(false);
+            return;
         }
         UUID accountId = astPlayer.getAccount().getUuid();
-        if (!claimRepository.tryClaim(accountId, today)) {
-            return false;
-        }
-        return grantDailyLoginBonus(astPlayer, today);
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            ItemModel goldModel;
+            ItemModel astraldModel;
+            try {
+                goldModel = resolveGoldRewardModel();
+                astraldModel = LoginBonusHoliday.isHolidayBonusDate(today) ? resolveAstraldRewardModel() : null;
+            } catch (RuntimeException e) {
+                finishClaim(playerId, false, completion);
+                return;
+            }
+            plugin.getServer().getScheduler().runTask(plugin, () ->
+                prepareClaim(playerId, accountId, today, goldModel, astraldModel, completion)
+            );
+        });
     }
 
     /**
@@ -122,10 +185,60 @@ public final class LoginBonusService {
         return inventoryService;
     }
 
-    private boolean grantDailyLoginBonus(@NotNull AstPlayer astPlayer, @NotNull LocalDate date) {
-        ItemModel goldModel = resolveGoldRewardModel();
-        if (goldModel == null) {
-            return false;
+    private void prepareClaim(
+        @NotNull UUID playerId,
+        @NotNull UUID accountId,
+        @NotNull LocalDate date,
+        ItemModel goldModel,
+        ItemModel astraldModel,
+        @NotNull Consumer<Boolean> completion
+    ) {
+        Player player = plugin.getServer().getPlayer(playerId);
+        AstPlayer astPlayer = player == null ? null : AstPlayerCache.get(player);
+        boolean holiday = LoginBonusHoliday.isHolidayBonusDate(date);
+        if (player == null || !player.isOnline() || astPlayer == null
+            || !astPlayer.getAccount().getUuid().equals(accountId)
+            || goldModel == null || holiday && astraldModel == null
+            || !inventoryService.canAddItemToNormalInventory(astPlayer, goldModel, DAILY_LOGIN_BONUS_GOLD)
+            || holiday && !inventoryService.canAddItemToNormalInventory(
+                astPlayer, astraldModel, HOLIDAY_LOGIN_BONUS_ASTRALD
+            )) {
+            finishClaim(playerId, false, completion);
+            return;
+        }
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            boolean claimed;
+            try {
+                claimed = claimRepository.tryClaim(accountId, date);
+            } catch (RuntimeException e) {
+                claimed = false;
+            }
+            boolean result = claimed;
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                if (!result) {
+                    finishClaim(playerId, false, completion);
+                    return;
+                }
+                grantClaimedReward(playerId, accountId, date, goldModel, astraldModel, completion);
+            });
+        });
+    }
+
+    private void grantClaimedReward(
+        @NotNull UUID playerId,
+        @NotNull UUID accountId,
+        @NotNull LocalDate date,
+        @NotNull ItemModel goldModel,
+        ItemModel astraldModel,
+        @NotNull Consumer<Boolean> completion
+    ) {
+        Player player = plugin.getServer().getPlayer(playerId);
+        AstPlayer astPlayer = player == null ? null : AstPlayerCache.get(player);
+        InventoryService.InventoryStateSnapshot snapshot = inventoryService.snapshotState(accountId);
+        if (player == null || !player.isOnline() || astPlayer == null
+            || !astPlayer.getAccount().getUuid().equals(accountId) || snapshot == null) {
+            cancelFailedClaim(playerId, accountId, date, completion);
+            return;
         }
         int grantedGold = inventoryService.addItemToNormalInventory(
             astPlayer,
@@ -133,23 +246,55 @@ public final class LoginBonusService {
             DAILY_LOGIN_BONUS_GOLD,
             REWARD_SOURCE
         );
-        if (grantedGold <= 0) {
-            return false;
+        int grantedAstrald = LoginBonusHoliday.isHolidayBonusDate(date)
+            ? inventoryService.addItemToNormalInventory(
+                astPlayer,
+                astraldModel,
+                HOLIDAY_LOGIN_BONUS_ASTRALD,
+                REWARD_SOURCE
+            )
+            : HOLIDAY_LOGIN_BONUS_ASTRALD;
+        if (grantedGold != DAILY_LOGIN_BONUS_GOLD || grantedAstrald != HOLIDAY_LOGIN_BONUS_ASTRALD) {
+            if (inventoryService.restoreState(snapshot)) {
+                cancelFailedClaim(playerId, accountId, date, completion);
+            } else {
+                Logger.log(LogId.W_5203, "login_bonus_grant", accountId);
+                finishClaim(playerId, false, completion);
+            }
+            return;
         }
-        if (!LoginBonusHoliday.isHolidayBonusDate(date)) {
-            return true;
-        }
-        ItemModel astraldModel = resolveAstraldRewardModel();
-        if (astraldModel == null) {
-            return false;
-        }
-        int grantedAstrald = inventoryService.addItemToNormalInventory(
-            astPlayer,
-            astraldModel,
-            HOLIDAY_LOGIN_BONUS_ASTRALD,
-            REWARD_SOURCE
-        );
-        return grantedAstrald > 0;
+        finishClaim(playerId, true, completion);
+    }
+
+    private void cancelFailedClaim(
+        @NotNull UUID playerId,
+        @NotNull UUID accountId,
+        @NotNull LocalDate date,
+        @NotNull Consumer<Boolean> completion
+    ) {
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                claimRepository.cancelClaim(accountId, date);
+            } catch (RuntimeException ignored) {
+                // repository 側で Throwable 付きログを記録する。
+            }
+            finishClaim(playerId, false, completion);
+        });
+    }
+
+    private void finishClaim(
+        @NotNull UUID playerId,
+        boolean success,
+        @NotNull Consumer<Boolean> completion
+    ) {
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            claimInFlight.remove(playerId);
+            Player player = plugin.getServer().getPlayer(playerId);
+            if (!success && player != null && player.isOnline()) {
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5074);
+            }
+            completion.accept(success);
+        });
     }
 
     private ItemModel resolveGoldRewardModel() {

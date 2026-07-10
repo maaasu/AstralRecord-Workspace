@@ -343,6 +343,7 @@ public final class AstralRecord extends JavaPlugin {
                 this,
                 new GatheringDefinitionRepository(),
                 new MobDropService(),
+                itemService,
                 null
         );
         gatheringSpawnerService = new GatheringSpawnerService(
@@ -775,6 +776,7 @@ public final class AstralRecord extends JavaPlugin {
             inventoryService
         );
         loginBonusService = new LoginBonusService(
+            this,
             new LoginBonusGui(),
             inventoryService,
             itemService,
@@ -854,9 +856,13 @@ public final class AstralRecord extends JavaPlugin {
         getServer().getScheduler().runTaskAsynchronously(this, () -> {
             lootService.loadAll();
             itemService.loadAll();
-            skillService.reloadDefinitions();
+            var skillDefinitions = skillService.loadDefinitions();
             playerClassService.loadAll();
             guideService.loadAll();
+            getServer().getScheduler().runTask(this, () -> {
+                skillService.replaceDefinitions(skillDefinitions);
+                skillTreeService.loadAll();
+            });
         });
 
         // mob
@@ -872,7 +878,6 @@ public final class AstralRecord extends JavaPlugin {
         worldService.loadAll();
         mobAiService = new MobAiService(mobService, mobCombatService, skillService, playerDeathService, particleDisplayService, conditionService);
         mobAiService.start();
-        skillTreeService.loadAll();
         worldSpawnParticleTask = new WorldSpawnParticleTask(this, worldService, particleDisplayService, displayTextService);
 
         // item: ProtocolLib 繝代こ繝・ヨ繧｢繝繝励ち・・con 蟾ｮ縺玲崛縺茨ｼ臥匳骭ｲ

@@ -196,6 +196,10 @@ public enum LogId {
      * コマンドの登録中にエラーが発生しました: %s
      */
     E_1500(1500),
+    /**
+     * コマンド実行中に例外が発生しました: command=%s, sender=%s, argCount=%d
+     */
+    E_1501(1501),
     // endregion
 
     // region /infrastructure/command/ReloadCommand.java
@@ -522,6 +526,10 @@ public enum LogId {
      * カテゴリのアイテム一括ロードに失敗しました (Service): category=%s
      */
     E_5202(5202),
+    /**
+     * インベントリ補償に失敗しました: operation=%s, accountId=%s
+     */
+    W_5203(5203),
     // endregion
 
     // region /feature/item/service/ItemStackFactory.java /feature/item/view/ItemStackPacketAdapter.java 5210-5219
@@ -856,6 +864,13 @@ public enum LogId {
     E_6200(6200),
     E_6201(6201),
     W_6202(6202),
+    // endregion
+
+    // region /feature/shop/ 6300-6399
+    /**
+     * ショップ購入失敗を補償しました: player=%s, shopId=%s, itemId=%s, amount=%d, reason=%s
+     */
+    W_6300(6300),
     // endregion
 
     // region /feature/boss/ 6500-6529

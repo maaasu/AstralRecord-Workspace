@@ -83,13 +83,18 @@ public final class LoginBonusGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        if (loginBonusService.claim(player, clickedDate)) {
-            GuiSound.LOGIN_BONUS_REWARD.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
-            loginBonusService.open(player, displayMonth);
-        } else {
+        loginBonusService.claim(player, clickedDate, success -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            if (success) {
+                GuiSound.LOGIN_BONUS_REWARD.play(player);
+                MenuOpenEventHandler.suppressNextCloseSound(player);
+                loginBonusService.open(player, displayMonth);
+                return;
+            }
             GuiSound.DENY.play(player);
-        }
+        });
     }
 
     private boolean handlePlayerInventoryClick(@NotNull InventoryClickEvent event, @NotNull Player player) {

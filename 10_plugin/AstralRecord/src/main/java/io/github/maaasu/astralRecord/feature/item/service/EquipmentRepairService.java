@@ -18,6 +18,8 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
@@ -257,7 +259,10 @@ public final class EquipmentRepairService {
             return;
         }
         boolean wasBroken = context.instance().getDurabilityValue() <= 0;
-        if (!inventoryService.consumeGold(astPlayer.getAccount().getUuid(), context.cost())) {
+        UUID accountId = astPlayer.getAccount().getUuid();
+        InventoryService.InventoryStateSnapshot paymentSnapshot = inventoryService.snapshotState(accountId);
+        if (paymentSnapshot == null || !inventoryService.consumeGold(accountId, context.cost())) {
+            restorePayment(paymentSnapshot, accountId, "repair_consume");
             GuiSound.DENY.play(player);
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5277);
             return;
@@ -268,12 +273,13 @@ public final class EquipmentRepairService {
             astPlayer.getAccount().getUuid().toString()
         );
         if (updated == null) {
+            restorePayment(paymentSnapshot, accountId, "repair_api");
             GuiSound.DENY.play(player);
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5277);
             return;
         }
         session.selectedEquipment = itemStackFactory.create(context.model(), updated, 1);
-        inventoryService.saveNow(astPlayer.getAccount().getUuid());
+        inventoryService.saveNow(accountId);
         if (wasBroken && statusService != null) {
             statusService.refreshStatus(astPlayer);
         }
@@ -284,6 +290,16 @@ public final class EquipmentRepairService {
             SharedParticleDefinitions.EQUIPMENT_REPAIR_ENCHANT
         );
         render(player, player.getOpenInventory().getTopInventory(), session);
+    }
+
+    private void restorePayment(
+        @Nullable InventoryService.InventoryStateSnapshot snapshot,
+        @NotNull UUID accountId,
+        @NotNull String operation
+    ) {
+        if (!inventoryService.restoreState(snapshot)) {
+            Logger.log(LogId.W_5203, operation, accountId);
+        }
     }
 
     private void render(

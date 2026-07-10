@@ -61,6 +61,13 @@ public class LoginBonusClaimRepositoryTests
         Assert.True(created.WasCreated);
         Assert.False(duplicate.WasCreated);
         Assert.Equal(created.LoginBonusClaimId, duplicate.LoginBonusClaimId);
+
+        Assert.True(await repository.CancelAsync(accountId, request.ClaimDate, accountId));
+        Assert.False(await repository.CancelAsync(accountId, request.ClaimDate, accountId));
+
+        var retried = await repository.ClaimAsync(accountId, request);
+        Assert.True(retried.WasCreated);
+        Assert.NotEqual(created.LoginBonusClaimId, retried.LoginBonusClaimId);
     }
 
     [Fact]

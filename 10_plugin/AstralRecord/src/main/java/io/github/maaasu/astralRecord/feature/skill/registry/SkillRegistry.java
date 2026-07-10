@@ -23,7 +23,7 @@ import java.util.Map;
 public final class SkillRegistry {
 
     private final Map<String, SkillExecutor> executors = new LinkedHashMap<>();
-    private Map<String, SkillDefinition> definitionsById = new LinkedHashMap<>();
+    private volatile Map<String, SkillDefinition> definitionsById = Map.of();
 
     /**
      * 実行クラスを登録します。
@@ -71,7 +71,7 @@ public final class SkillRegistry {
      * @param newDefinitions 検証済みの新しい定義一覧（{@code skillId} → 定義）
      */
     public void replaceDefinitions(@NotNull Map<String, SkillDefinition> newDefinitions) {
-        this.definitionsById = new LinkedHashMap<>(newDefinitions);
+        this.definitionsById = Collections.unmodifiableMap(new LinkedHashMap<>(newDefinitions));
         Logger.log(LogId.D_5801, definitionsById.size());
     }
 

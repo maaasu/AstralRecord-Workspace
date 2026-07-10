@@ -134,6 +134,7 @@ public final class DesignTestFixtures {
         ItemEquipment equipment = new ItemEquipment(
             ItemEquipmentSlot.WEAPON,
             io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentHandType.ONE,
+            null,
             0,
             List.of(),
             null,

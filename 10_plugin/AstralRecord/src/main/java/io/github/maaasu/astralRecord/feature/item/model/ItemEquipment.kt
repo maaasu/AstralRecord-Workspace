@@ -10,6 +10,8 @@ import kotlin.math.nextUp
 data class ItemEquipment(
     val slot: ItemEquipmentSlot?,
     val handType: ItemEquipmentHandType = ItemEquipmentHandType.ONE,
+    /** 採集ツール種別など equipment master が定義する用途タグ。 */
+    val tag: String? = null,
     val requiredLevel: Int = 0,
     val requiredClasses: List<String> = emptyList(),
     val setId: String? = null,

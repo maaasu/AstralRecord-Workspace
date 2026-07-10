@@ -93,6 +93,38 @@ public final class LoginBonusClaimRepository {
         }
     }
 
+    /**
+     * 報酬付与に失敗した日の受取登録を取り消します。
+     *
+     * @param accountId 対象アカウントID
+     * @param claimDate 取消対象日
+     * @return API が取消を受理した場合は {@code true}
+     */
+    public boolean cancelClaim(@NotNull UUID accountId, @NotNull LocalDate claimDate) {
+        String path = "/api/login-bonus/accounts/" + accountId + "/claims/" + claimDate;
+        try {
+            try (var client = ApiRequestUtil.buildClient()) {
+                HttpRequest request = ApiRequestUtil.buildRequestBuilder(path)
+                    .DELETE()
+                    .build();
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() == 404) {
+                    return false;
+                }
+                if (response.statusCode() != 204) {
+                    throw new IOException("Unexpected status " + response.statusCode() + " for DELETE " + path);
+                }
+                return true;
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        } catch (IOException | RuntimeException e) {
+            Logger.log(LogId.E_5071, e, path);
+            throw new RuntimeException(e);
+        }
+    }
+
     private @NotNull Set<LocalDate> parseClaimDates(@NotNull JsonArray array) {
         Set<LocalDate> dates = new LinkedHashSet<>();
         for (var element : array) {

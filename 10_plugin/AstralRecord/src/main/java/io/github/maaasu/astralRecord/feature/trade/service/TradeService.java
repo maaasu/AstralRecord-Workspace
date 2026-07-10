@@ -367,6 +367,7 @@ public final class TradeService {
     }
 
     private void completeTrade(@NotNull TradeSession session) {
+        TradeRollbackSnapshot rollbackSnapshot = null;
         try {
             captureBoth(session);
             Player playerA = Bukkit.getPlayer(session.getPlayerAUuid());
@@ -394,21 +395,30 @@ public final class TradeService {
                 refreshBoth(session);
                 return;
             }
-            boolean deliveredA = returnItems(session.getPlayerBUuid(), session.getItems(session.getPlayerAUuid()));
-            boolean deliveredB = returnItems(session.getPlayerAUuid(), session.getItems(session.getPlayerBUuid()));
-            if (!deliveredA || !deliveredB) {
-                Logger.log(LogId.E_6201, "inventory");
+            if (!canReceiveItems(session.getPlayerBUuid(), session.getItems(session.getPlayerAUuid()))
+                || !canReceiveItems(session.getPlayerAUuid(), session.getItems(session.getPlayerBUuid()))) {
                 session.resetReady();
                 sendIfOnline(session.getPlayerAUuid(), PlayerMsgId.P_6209);
                 sendIfOnline(session.getPlayerBUuid(), PlayerMsgId.P_6209);
                 refreshBoth(session);
                 return;
             }
-            if (!transferGold(session)) {
+            rollbackSnapshot = captureRollbackSnapshot(session);
+            if (rollbackSnapshot == null) {
                 session.resetReady();
-                sendIfOnline(session.getPlayerAUuid(), PlayerMsgId.P_6203);
-                sendIfOnline(session.getPlayerBUuid(), PlayerMsgId.P_6203);
                 refreshBoth(session);
+                return;
+            }
+            session.setStatus(TradeSessionStatus.COMMITTING);
+            boolean deliveredA = returnItems(session.getPlayerBUuid(), session.getItems(session.getPlayerAUuid()));
+            boolean deliveredB = returnItems(session.getPlayerAUuid(), session.getItems(session.getPlayerBUuid()));
+            if (!deliveredA || !deliveredB) {
+                Logger.log(LogId.E_6201, "inventory");
+                rollbackCommittedTrade(session, rollbackSnapshot, PlayerMsgId.P_6209);
+                return;
+            }
+            if (!transferGold(session)) {
+                rollbackCommittedTrade(session, rollbackSnapshot, PlayerMsgId.P_6203);
                 return;
             }
             session.setStatus(TradeSessionStatus.COMPLETED);
@@ -418,7 +428,11 @@ public final class TradeService {
             sendIfOnline(session.getPlayerBUuid(), PlayerMsgId.P_6207);
         } catch (Exception e) {
             Logger.log(LogId.E_6201, e, session.getSessionId());
-            cancelTrade(session);
+            if (rollbackSnapshot != null) {
+                rollbackCommittedTrade(session, rollbackSnapshot, PlayerMsgId.P_6209);
+            } else {
+                cancelTrade(session);
+            }
         }
     }
 
@@ -477,6 +491,14 @@ public final class TradeService {
     }
 
     private boolean returnItems(@NotNull UUID ownerUuid, @NotNull List<ItemStack> items) {
+        return returnItems(ownerUuid, items, true);
+    }
+
+    private boolean returnItems(
+        @NotNull UUID ownerUuid,
+        @NotNull List<ItemStack> items,
+        boolean logFailure
+    ) {
         Player player = Bukkit.getPlayer(ownerUuid);
         if (player == null || !player.isOnline()) {
             return false;
@@ -490,18 +512,45 @@ public final class TradeService {
             ItemStack clone = item.clone();
             if (itemReferenceResolver.resolve(clone) != null && astPlayer != null) {
                 if (inventoryService.returnItemToOwnedInventory(astPlayer, clone) == null) {
-                    Logger.log(LogId.W_6202, player.getName());
+                    if (logFailure) {
+                        Logger.log(LogId.W_6202, player.getName());
+                    }
                     success = false;
                 }
                 continue;
             }
             Map<Integer, ItemStack> overflow = player.getInventory().addItem(clone);
             if (!overflow.isEmpty()) {
-                Logger.log(LogId.W_6202, player.getName());
+                if (logFailure) {
+                    Logger.log(LogId.W_6202, player.getName());
+                }
                 success = false;
             }
         }
         return success;
+    }
+
+    private boolean canReceiveItems(@NotNull UUID playerUuid, @NotNull List<ItemStack> items) {
+        Player player = Bukkit.getPlayer(playerUuid);
+        AstPlayer astPlayer = player == null ? null : AstPlayerCache.get(player);
+        if (player == null || !player.isOnline() || astPlayer == null) {
+            return false;
+        }
+        InventoryService.InventoryStateSnapshot stateSnapshot =
+            inventoryService.snapshotState(astPlayer.getAccount().getUuid());
+        if (stateSnapshot == null) {
+            return false;
+        }
+        ItemStack[] storageContents = cloneContents(player.getInventory().getStorageContents());
+        boolean receivable;
+        boolean restored;
+        try {
+            receivable = returnItems(playerUuid, items, false);
+        } finally {
+            restored = inventoryService.restoreState(stateSnapshot);
+            player.getInventory().setStorageContents(storageContents);
+        }
+        return restored && receivable;
     }
 
     private boolean allTradeable(@NotNull List<ItemStack> items) {
@@ -519,7 +568,8 @@ public final class TradeService {
         if (amount <= 0L) {
             return true;
         }
-        return currencyService.getGoldAmount(playerUuid) >= amount;
+        UUID accountId = resolveAccountId(playerUuid);
+        return accountId != null && currencyService.getGoldAmount(accountId) >= amount;
     }
 
     private boolean transferGold(@NotNull TradeSession session) {
@@ -531,26 +581,16 @@ public final class TradeService {
         boolean consumedA = consumeGold(session.getPlayerAUuid(), playerAGold);
         boolean consumedB = consumeGold(session.getPlayerBUuid(), playerBGold);
         if (!consumedA || !consumedB) {
-            if (consumedA) {
-                rollbackGold(session.getPlayerAUuid(), playerAGold);
-            }
-            if (consumedB) {
-                rollbackGold(session.getPlayerBUuid(), playerBGold);
-            }
             return false;
         }
         boolean addedToB = addGold(session.getPlayerBUuid(), playerAGold);
         boolean addedToA = addGold(session.getPlayerAUuid(), playerBGold);
-        if (!addedToA || !addedToB) {
-            rollbackGold(session.getPlayerAUuid(), playerAGold);
-            rollbackGold(session.getPlayerBUuid(), playerBGold);
-            return false;
-        }
-        return true;
+        return addedToA && addedToB;
     }
 
     private boolean consumeGold(@NotNull UUID playerUuid, long amount) {
-        return amount <= 0L || inventoryService.consumeGold(playerUuid, amount);
+        UUID accountId = resolveAccountId(playerUuid);
+        return amount <= 0L || accountId != null && inventoryService.consumeGold(accountId, amount);
     }
 
     private boolean addGold(@NotNull UUID playerUuid, long amount) {
@@ -562,10 +602,71 @@ public final class TradeService {
         return astPlayer != null && inventoryService.addGold(astPlayer, amount);
     }
 
-    private void rollbackGold(@NotNull UUID playerUuid, long amount) {
-        if (amount > 0L) {
-            addGold(playerUuid, amount);
+    private @Nullable TradeRollbackSnapshot captureRollbackSnapshot(@NotNull TradeSession session) {
+        Player playerA = Bukkit.getPlayer(session.getPlayerAUuid());
+        Player playerB = Bukkit.getPlayer(session.getPlayerBUuid());
+        AstPlayer astPlayerA = playerA == null ? null : AstPlayerCache.get(playerA);
+        AstPlayer astPlayerB = playerB == null ? null : AstPlayerCache.get(playerB);
+        if (playerA == null || playerB == null || astPlayerA == null || astPlayerB == null) {
+            return null;
         }
+        InventoryService.InventoryStateSnapshot stateA =
+            inventoryService.snapshotState(astPlayerA.getAccount().getUuid());
+        InventoryService.InventoryStateSnapshot stateB =
+            inventoryService.snapshotState(astPlayerB.getAccount().getUuid());
+        if (stateA == null || stateB == null) {
+            return null;
+        }
+        return new TradeRollbackSnapshot(
+            stateA,
+            stateB,
+            cloneContents(playerA.getInventory().getStorageContents()),
+            cloneContents(playerB.getInventory().getStorageContents())
+        );
+    }
+
+    private void rollbackCommittedTrade(
+        @NotNull TradeSession session,
+        @NotNull TradeRollbackSnapshot snapshot,
+        @NotNull PlayerMsgId messageId
+    ) {
+        Player playerA = Bukkit.getPlayer(session.getPlayerAUuid());
+        Player playerB = Bukkit.getPlayer(session.getPlayerBUuid());
+        boolean restoredA = inventoryService.restoreState(snapshot.playerAState());
+        boolean restoredB = inventoryService.restoreState(snapshot.playerBState());
+        boolean restored = restoredA && restoredB && playerA != null && playerB != null;
+        if (playerA != null) {
+            playerA.getInventory().setStorageContents(cloneContents(snapshot.playerAStorage()));
+        }
+        if (playerB != null) {
+            playerB.getInventory().setStorageContents(cloneContents(snapshot.playerBStorage()));
+        }
+        sendIfOnline(session.getPlayerAUuid(), messageId);
+        sendIfOnline(session.getPlayerBUuid(), messageId);
+        if (!restored) {
+            Logger.log(LogId.E_6201, "rollback:" + session.getSessionId());
+            session.setStatus(TradeSessionStatus.CANCELLED);
+            closeParticipants(session);
+            clearSession(session);
+            return;
+        }
+        session.setStatus(TradeSessionStatus.OPEN);
+        session.resetReady();
+        refreshBoth(session);
+    }
+
+    private @NotNull ItemStack[] cloneContents(@NotNull ItemStack[] contents) {
+        ItemStack[] cloned = new ItemStack[contents.length];
+        for (int index = 0; index < contents.length; index++) {
+            cloned[index] = contents[index] == null ? null : contents[index].clone();
+        }
+        return cloned;
+    }
+
+    private @Nullable UUID resolveAccountId(@NotNull UUID playerUuid) {
+        Player player = Bukkit.getPlayer(playerUuid);
+        AstPlayer astPlayer = player == null ? null : AstPlayerCache.get(player);
+        return astPlayer == null ? null : astPlayer.getAccount().getUuid();
     }
 
     private void closeParticipants(@NotNull TradeSession session) {
@@ -640,5 +741,13 @@ public final class TradeService {
         }
         clearTopInventory(player);
         cancelConfirmGui.open(player, session.getSessionId());
+    }
+
+    private record TradeRollbackSnapshot(
+        @NotNull InventoryService.InventoryStateSnapshot playerAState,
+        @NotNull InventoryService.InventoryStateSnapshot playerBState,
+        @NotNull ItemStack[] playerAStorage,
+        @NotNull ItemStack[] playerBStorage
+    ) {
     }
 }

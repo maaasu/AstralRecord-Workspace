@@ -22,6 +22,8 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
@@ -209,19 +211,24 @@ public final class EquipmentEnhancementService {
 
         double successRate = normalizeSuccessRate(context.nextLevel.getSuccessRate());
         boolean success = Math.random() < successRate;
-        EnhancementResult result = applyEnhancementResult(astPlayer, context, success);
-        if (result == null) {
+        UUID accountId = astPlayer.getAccount().getUuid();
+        InventoryService.InventoryStateSnapshot paymentSnapshot = inventoryService.snapshotState(accountId);
+        if (paymentSnapshot == null
+            || !consumeRequirements(astPlayer, requirements, context.nextLevel.getRequiredCurrency())) {
+            restorePayment(paymentSnapshot, accountId, "enhancement_consume");
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5262);
             GuiSound.DENY.play(player);
             return;
         }
 
-        if (!consumeRequirements(astPlayer, requirements, context.nextLevel.getRequiredCurrency())) {
+        EnhancementResult result = applyEnhancementResult(astPlayer, context, success);
+        if (result == null) {
+            restorePayment(paymentSnapshot, accountId, "enhancement_api");
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5262);
             GuiSound.DENY.play(player);
             return;
         }
-        inventoryService.saveNow(astPlayer.getAccount().getUuid());
+        inventoryService.saveNow(accountId);
 
         switch (result.type) {
             case SUCCESS -> {
@@ -262,6 +269,16 @@ public final class EquipmentEnhancementService {
         }
 
         render(player, player.getOpenInventory().getTopInventory(), session);
+    }
+
+    private void restorePayment(
+        @Nullable InventoryService.InventoryStateSnapshot snapshot,
+        @NotNull UUID accountId,
+        @NotNull String operation
+    ) {
+        if (!inventoryService.restoreState(snapshot)) {
+            Logger.log(LogId.W_5203, operation, accountId);
+        }
     }
 
     private @Nullable EnhancementResult applyEnhancementResult(

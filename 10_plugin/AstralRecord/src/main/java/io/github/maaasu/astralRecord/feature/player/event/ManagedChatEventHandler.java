@@ -67,14 +67,18 @@ public final class ManagedChatEventHandler extends AbstractEventHandler {
         }, LogId.E_3000, handlerName);
     }
 
-    private boolean isVanillaDirectMessageCommand(@NotNull String raw) {
-        return raw.equals("/msg")
-            || raw.startsWith("/msg ")
-            || raw.equals("/tell")
-            || raw.startsWith("/tell ")
-            || raw.equals("/w")
-            || raw.startsWith("/w ")
-            || raw.equals("/whisper")
-            || raw.startsWith("/whisper ");
+    static boolean isVanillaDirectMessageCommand(@NotNull String raw) {
+        String commandToken = raw.split("\\s+", 2)[0];
+        if (commandToken.startsWith("/")) {
+            commandToken = commandToken.substring(1);
+        }
+        int namespaceSeparator = commandToken.lastIndexOf(':');
+        if (namespaceSeparator >= 0) {
+            commandToken = commandToken.substring(namespaceSeparator + 1);
+        }
+        return commandToken.equals("msg")
+            || commandToken.equals("tell")
+            || commandToken.equals("w")
+            || commandToken.equals("whisper");
     }
 }

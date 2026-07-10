@@ -14,6 +14,8 @@ import io.github.maaasu.astralRecord.feature.shop.model.ShopPurchasePreview;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopRecipeCost;
 import io.github.maaasu.astralRecord.feature.shop.repository.ShopRecipeRepository;
 import io.github.maaasu.astralRecord.feature.shop.repository.ShopRepository;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -148,16 +150,23 @@ public final class ShopService {
         if (!inventoryService.canAddItemToNormalInventory(player, model, amount)) {
             return false;
         }
+        InventoryService.InventoryStateSnapshot snapshot = inventoryService.snapshotState(accountId);
+        if (snapshot == null) {
+            return false;
+        }
         if (!inventoryService.consumeGold(accountId, preview.requiredGold())) {
+            restorePurchase(snapshot, player, entry, amount, "gold_consume_failed");
             return false;
         }
         for (ShopCostItem cost : preview.requiredItems()) {
             if (!inventoryService.consumeNormalItem(accountId, cost.itemId(), cost.amount())) {
+                restorePurchase(snapshot, player, entry, amount, "material_consume_failed:" + cost.itemId());
                 return false;
             }
         }
         int granted = inventoryService.addItemToNormalInventory(player, model, amount, PURCHASE_SOURCE);
-        if (granted <= 0) {
+        if (granted != amount) {
+            restorePurchase(snapshot, player, entry, amount, "item_grant_failed:" + granted);
             return false;
         }
         InventoryType type = inventoryService.resolveInventoryType(model);
@@ -166,6 +175,24 @@ public final class ShopService {
         }
         inventoryService.saveNow(accountId);
         return true;
+    }
+
+    private void restorePurchase(
+        @NotNull InventoryService.InventoryStateSnapshot snapshot,
+        @NotNull AstPlayer player,
+        @NotNull ShopEntry entry,
+        int amount,
+        @NotNull String reason
+    ) {
+        boolean restored = inventoryService.restoreState(snapshot);
+        Logger.log(
+            LogId.W_6300,
+            player.getBukkit().getName(),
+            entry.id(),
+            entry.itemId(),
+            amount,
+            restored ? reason : reason + ":rollback_failed"
+        );
     }
 
     public int resolveGoldCost(@NotNull ShopEntry entry) {

@@ -5,6 +5,8 @@ import io.github.maaasu.astralRecord.feature.gathering.model.GatheringDefinition
 import io.github.maaasu.astralRecord.feature.gathering.model.GatheringInstance;
 import io.github.maaasu.astralRecord.feature.gathering.repository.GatheringDefinitionRepository;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropPresentationService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
@@ -42,6 +44,7 @@ public class GatheringService {
     private final Plugin plugin;
     private final GatheringDefinitionRepository definitionRepository;
     private final MobDropService dropService;
+    private final ItemService itemService;
     private MobDropPresentationService dropPresentationService;
     private QuestService questService;
     private final Map<String, GatheringDefinition> definitions = new LinkedHashMap<>();
@@ -53,11 +56,13 @@ public class GatheringService {
             @NotNull Plugin plugin,
             @NotNull GatheringDefinitionRepository definitionRepository,
             @NotNull MobDropService dropService,
+            @NotNull ItemService itemService,
             @Nullable MobDropPresentationService dropPresentationService
     ) {
         this.plugin = plugin;
         this.definitionRepository = definitionRepository;
         this.dropService = dropService;
+        this.itemService = itemService;
         this.dropPresentationService = dropPresentationService;
     }
 
@@ -290,25 +295,12 @@ public class GatheringService {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return Set.of();
         }
-        String iconName = ItemStackFactory.getIconName(itemStack);
-        Material material = resolveMaterial(iconName, itemStack.getType());
-        String name = material.name();
-        if (name.endsWith("_PICKAXE")) {
-            return Set.of("PICKAXE");
-        }
-        if (name.endsWith("_HOE")) {
-            return Set.of("HOE");
-        }
-        if (name.endsWith("_AXE")) {
-            return Set.of("AXE");
-        }
-        if (name.endsWith("_SHOVEL")) {
-            return Set.of("SHOVEL");
-        }
-        if (material == Material.SHEARS) {
-            return Set.of("SHEARS");
-        }
-        return Set.of();
+        String itemId = ItemStackFactory.getAstralItemId(itemStack);
+        ItemModel model = itemId == null ? null : itemService.findLoadedById(itemId);
+        String tag = model == null || model.getEquipment() == null ? null : model.getEquipment().getTag();
+        return tag == null || tag.isBlank()
+            ? Set.of()
+            : Set.of(tag.trim().toUpperCase(Locale.ROOT));
     }
 
     private @NotNull String currentToolSignature(@NotNull Player player) {
@@ -323,17 +315,6 @@ public class GatheringService {
                 + "|" + (astralId == null ? "" : astralId)
                 + "|" + (equipmentInstanceId == null ? "" : equipmentInstanceId)
                 + "|" + (iconName == null ? "" : iconName);
-    }
-
-    private @NotNull Material resolveMaterial(@Nullable String raw, @NotNull Material fallback) {
-        if (raw == null || raw.isBlank()) {
-            return fallback;
-        }
-        try {
-            return Material.valueOf(raw.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException ignored) {
-            return fallback;
-        }
     }
 
     private boolean isTargeted(@NotNull Vector origin, @NotNull Vector direction, @NotNull Location target) {

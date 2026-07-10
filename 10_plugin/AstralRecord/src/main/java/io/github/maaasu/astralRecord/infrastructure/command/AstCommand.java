@@ -6,6 +6,8 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -145,7 +147,8 @@ public abstract class AstCommand implements CommandExecutor {
             }
 
         } catch (Exception e) {
-            sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5062.getId(), e.getMessage()));
+            Logger.log(LogId.E_1501, e, commandName, sender.getName(), args.length);
+            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5062.getId()));
         }
 
         return true;

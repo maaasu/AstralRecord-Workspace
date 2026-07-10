@@ -69,6 +69,25 @@ public class LoginBonusClaimRepository(AstralRecordDbContext dbContext) : ILogin
         return Map(entity, true);
     }
 
+    public async Task<bool> CancelAsync(Guid accountId, DateOnly claimDate, Guid updatedBy)
+    {
+        await EnsureAccountExists(accountId);
+        if (claimDate == default)
+            throw new ArgumentException("ClaimDate is required.", nameof(claimDate));
+        if (updatedBy == Guid.Empty)
+            throw new ArgumentException("UpdatedBy is required.", nameof(updatedBy));
+
+        var existing = await FindActiveClaim(accountId, claimDate);
+        if (existing is null)
+            return false;
+
+        existing.IsDeleted = true;
+        existing.UpdatedAt = DateTime.UtcNow;
+        existing.UpdatedBy = updatedBy;
+        await dbContext.SaveChangesAsync();
+        return true;
+    }
+
     private Task<LoginBonusClaimEntity?> FindActiveClaim(Guid accountId, DateOnly claimDate)
     {
         return dbContext.LoginBonusClaims

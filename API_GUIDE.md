@@ -50,6 +50,7 @@
 | POST `/api/account-waystone/{accountId}/unlock` | ウェイストーン開放登録 | `00_docs/20_API設計書/feature/25-waystone/3-エンドポイント仕様/25_3.00-索引.md` |
 | GET `/api/login-bonus/claims?account_id={account_id}&from={from}&to={to}` | ログインボーナス受取履歴取得 | `00_docs/20_API設計書/feature/26-login-bonus/3-エンドポイント仕様/26_3.00-索引.md` |
 | POST `/api/login-bonus/accounts/{accountId}/claims` | ログインボーナス受取済み日登録 | `00_docs/20_API設計書/feature/26-login-bonus/3-エンドポイント仕様/26_3.00-索引.md` |
+| DELETE `/api/login-bonus/accounts/{accountId}/claims/{claimDate}` | 報酬付与失敗時のログインボーナス受取登録取消 | `00_docs/20_API設計書/feature/26-login-bonus/3-エンドポイント仕様/26_3.00-索引.md` |
 | POST `/api/web-auth/challenges` | Web ログインチャレンジ発行 | `00_docs/20_API設計書/feature/24-web-auth/3-エンドポイント仕様/24_3.00-索引.md` |
 | POST `/api/web-auth/challenges/consume` | Web ログインチャレンジ消費 | `00_docs/20_API設計書/feature/24-web-auth/3-エンドポイント仕様/24_3.00-索引.md` |
 | GET `/api/market/listings` | マーケット出品一覧取得 | `00_docs/20_API設計書/feature/23-market/3-エンドポイント仕様/23_3.00-索引.md` |

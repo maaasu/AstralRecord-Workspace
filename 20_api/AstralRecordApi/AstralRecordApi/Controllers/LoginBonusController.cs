@@ -58,4 +58,31 @@ public class LoginBonusController(ILoginBonusClaimRepository loginBonusClaimRepo
             return NotFound();
         }
     }
+
+    /// <summary>報酬付与に失敗したログインボーナス受取登録を取り消します。</summary>
+    /// <param name="accountId">アカウントID</param>
+    /// <param name="claimDate">取消対象日</param>
+    /// <response code="204">取消成功、または既に取消済み</response>
+    /// <response code="400">リクエストが不正</response>
+    /// <response code="404">アカウントが存在しない</response>
+    [HttpDelete("accounts/{accountId:guid}/claims/{claimDate}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Cancel(Guid accountId, DateOnly claimDate)
+    {
+        try
+        {
+            await loginBonusClaimRepository.CancelAsync(accountId, claimDate, accountId);
+            return NoContent();
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
 }

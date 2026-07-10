@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.shop.service;
 
+import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
@@ -18,8 +19,11 @@ import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -75,6 +79,7 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         when(harness.currencyService.getGoldAmount(player.getAccount().getUuid())).thenReturn(20L);
         when(harness.inventoryService.getNormalItemAmount(player.getAccount().getUuid(), "herb")).thenReturn(6L);
         when(harness.inventoryService.canAddItemToNormalInventory(player, potion, 6)).thenReturn(true);
+        when(harness.inventoryService.snapshotState(player.getAccount().getUuid())).thenReturn(snapshot(player));
         when(harness.inventoryService.consumeGold(player.getAccount().getUuid(), 15L)).thenReturn(true);
         when(harness.inventoryService.consumeNormalItem(player.getAccount().getUuid(), "herb", 6)).thenReturn(true);
         when(harness.inventoryService.addItemToNormalInventory(player, potion, 6, "shop")).thenReturn(6);
@@ -101,13 +106,43 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         when(harness.itemService.findLoadedById("potion")).thenReturn(potion);
         when(harness.currencyService.getGoldAmount(player.getAccount().getUuid())).thenReturn(10L);
         when(harness.inventoryService.canAddItemToNormalInventory(player, potion, 1)).thenReturn(true);
+        InventoryService.InventoryStateSnapshot snapshot = snapshot(player);
+        when(harness.inventoryService.snapshotState(player.getAccount().getUuid())).thenReturn(snapshot);
         when(harness.inventoryService.consumeGold(player.getAccount().getUuid(), 4L)).thenReturn(false);
+        when(harness.inventoryService.restoreState(snapshot)).thenReturn(true);
 
-        boolean purchased = harness.service.purchase(player, entry, 1);
+        boolean purchased;
+        try (MockedStatic<AstralRecord> ignored = mockPluginLogger()) {
+            purchased = harness.service.purchase(player, entry, 1);
+        }
 
         assertFalse(purchased);
         verify(harness.inventoryService, never()).addItemToNormalInventory(player, potion, 1, "shop");
         verify(harness.inventoryService, never()).applyInventoryToGui(player, InventoryType.NORMAL);
+        verify(harness.inventoryService, never()).saveNow(player.getAccount().getUuid());
+        verify(harness.inventoryService).restoreState(snapshot);
+    }
+
+    @Test
+    void purchaseRestoresPaymentWhenItemGrantIsPartial() {
+        ShopHarness harness = shopHarness(null);
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        ItemModel potion = DesignTestFixtures.item("potion", ItemCategory.CONSUMABLE, 16);
+        ShopEntry entry = shopEntry("potion", 2, 4, List.of(), null);
+        InventoryService.InventoryStateSnapshot snapshot = snapshot(player);
+        when(harness.itemService.findLoadedById("potion")).thenReturn(potion);
+        when(harness.currencyService.getGoldAmount(player.getAccount().getUuid())).thenReturn(10L);
+        when(harness.inventoryService.canAddItemToNormalInventory(player, potion, 2)).thenReturn(true);
+        when(harness.inventoryService.snapshotState(player.getAccount().getUuid())).thenReturn(snapshot);
+        when(harness.inventoryService.consumeGold(player.getAccount().getUuid(), 4L)).thenReturn(true);
+        when(harness.inventoryService.addItemToNormalInventory(player, potion, 2, "shop")).thenReturn(1);
+        when(harness.inventoryService.restoreState(snapshot)).thenReturn(true);
+
+        try (MockedStatic<AstralRecord> ignored = mockPluginLogger()) {
+            assertFalse(harness.service.purchase(player, entry, 1));
+        }
+
+        verify(harness.inventoryService).restoreState(snapshot);
         verify(harness.inventoryService, never()).saveNow(player.getAccount().getUuid());
     }
 
@@ -150,6 +185,23 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
             currencyService
         );
         return new ShopHarness(itemService, inventoryService, currencyService, service);
+    }
+
+    private InventoryService.InventoryStateSnapshot snapshot(AstPlayer player) {
+        return new InventoryService.InventoryStateSnapshot(
+            player.getAccount().getUuid(),
+            Map.of(),
+            InventoryType.NORMAL,
+            false
+        );
+    }
+
+    private MockedStatic<AstralRecord> mockPluginLogger() {
+        MockedStatic<AstralRecord> mocked = Mockito.mockStatic(AstralRecord.class);
+        AstralRecord plugin = mock(AstralRecord.class);
+        when(plugin.getLogger()).thenReturn(java.util.logging.Logger.getAnonymousLogger());
+        mocked.when(AstralRecord::getInstance).thenReturn(plugin);
+        return mocked;
     }
 
     private record ShopHarness(

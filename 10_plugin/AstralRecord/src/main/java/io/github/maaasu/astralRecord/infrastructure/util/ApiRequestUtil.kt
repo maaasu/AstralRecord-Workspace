@@ -43,6 +43,7 @@ object ApiRequestUtil {
     @JvmStatic
     fun buildClient(): HttpClient {
         val props = ConfigProperties.getInstance()
+        validateTransportSecurity(props)
         val timeoutMs = props.apiTimeout.toLong()
         val builder = HttpClient.newBuilder()
             .connectTimeout(Duration.ofMillis(timeoutMs))
@@ -64,6 +65,7 @@ object ApiRequestUtil {
     @JvmStatic
     fun buildRequestBuilder(path: String): HttpRequest.Builder {
         val props = ConfigProperties.getInstance()
+        validateTransportSecurity(props)
         val url = buildUrl(props.apiBaseUrl, path)
         val builder = HttpRequest.newBuilder()
             .uri(URI.create(url))
@@ -95,6 +97,47 @@ object ApiRequestUtil {
         }
 
         return normalizedBase + adjustedPath
+    }
+
+    /**
+     * API キーを含む通信で証明書検証を無効化できる環境を開発用途へ限定します。
+     * 公開 endpoint では debug mode でない限り、安全でない TLS / 平文 HTTP 設定を拒否します。
+     */
+    private fun validateTransportSecurity(props: ConfigProperties) {
+        val baseUri = try {
+            URI.create(props.apiBaseUrl)
+        } catch (exception: IllegalArgumentException) {
+            throw IllegalStateException("api.baseUrl is invalid", exception)
+        }
+        val host = baseUri.host?.lowercase().orEmpty()
+        val developmentEndpoint = isLocalOrPrivateHost(host)
+        val debugAllowed = props.isPluginDebugMode
+        if (!props.isApiSslVerifyEnabled && !debugAllowed && !developmentEndpoint) {
+            throw IllegalStateException(
+                "api.ssl.verifyEnabled=false is allowed only in debug mode or for local/private endpoints"
+            )
+        }
+        val apiKeyConfigured = !props.apiAuthApiKey.isNullOrBlank()
+        if (apiKeyConfigured && baseUri.scheme.equals("http", ignoreCase = true)
+            && !debugAllowed && !developmentEndpoint
+        ) {
+            throw IllegalStateException("API keys cannot be sent over public plain HTTP endpoints")
+        }
+    }
+
+    private fun isLocalOrPrivateHost(host: String): Boolean {
+        if (host == "localhost" || host.endsWith(".localhost") || host == "::1") {
+            return true
+        }
+        val parts = host.split('.')
+        if (parts.size != 4) {
+            return false
+        }
+        val octets = parts.map { it.toIntOrNull() ?: return false }
+        return octets[0] == 10
+            || octets[0] == 127
+            || octets[0] == 192 && octets[1] == 168
+            || octets[0] == 172 && octets[1] in 16..31
     }
 
     /**

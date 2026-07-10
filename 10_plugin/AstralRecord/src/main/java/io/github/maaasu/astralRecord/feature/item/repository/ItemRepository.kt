@@ -549,6 +549,7 @@ class ItemRepository {
         return ItemEquipment(
             slot = ItemEquipmentSlot.fromApiValue(parseStringOrNull(equipmentObj, "slot")),
             handType = ItemEquipmentHandType.fromApiValue(parseStringOrNull(equipmentObj, "handType")),
+            tag = parseStringOrNull(equipmentObj, "tag"),
             requiredLevel = equipmentObj.get("requiredLevel")?.asInt ?: 0,
             requiredClasses = parseStringList(equipmentObj.getAsJsonArray("requiredClasses")),
             setId = parseStringOrNull(equipmentObj, "setId"),

@@ -951,6 +951,59 @@ public class InventoryService {
             + getItemAmount(state, InventoryType.HOTBAR, normalizedItemId);
     }
 
+    /**
+     * 補償可能な複合操作の開始時点として、アカウント配下の全 inventory entry を取得します。
+     * スナップショット自体は state を変更せず、同一アカウントへだけ復元できます。
+     *
+     * @param accountId 対象アカウントID
+     * @return 現在のスナップショット。state 未ロードの場合は {@code null}
+     */
+    public @Nullable InventoryStateSnapshot snapshotState(@NotNull UUID accountId) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return null;
+        }
+        synchronized (state) {
+            Map<UUID, List<InventoryEntryModel>> entries = new LinkedHashMap<>();
+            for (InventoryModel inventory : state.snapshotInventories()) {
+                entries.put(inventory.getInventoryId(), state.snapshotEntries(inventory.getInventoryId()));
+            }
+            return new InventoryStateSnapshot(accountId, entries, state.getDisplayedType(), state.isDirty());
+        }
+    }
+
+    /**
+     * 複合操作に失敗した state を取得時点へ戻します。
+     * 復元後の内容を後続 autosave の対象にするため dirty 状態は維持します。
+     *
+     * @param snapshot {@link #snapshotState(UUID)} で取得したスナップショット
+     * @return 同一アカウントのロード済み state へ復元できた場合は {@code true}
+     */
+    public boolean restoreState(@Nullable InventoryStateSnapshot snapshot) {
+        if (snapshot == null) {
+            return false;
+        }
+        PlayerInventoryState state = getState(snapshot.accountId());
+        if (state == null) {
+            return false;
+        }
+        synchronized (state) {
+            for (InventoryModel inventory : state.snapshotInventories()) {
+                state.replaceEntries(
+                    inventory.getInventoryId(),
+                    snapshot.entriesByInventoryId().getOrDefault(inventory.getInventoryId(), List.of())
+                );
+            }
+            state.setDisplayedType(snapshot.displayedType());
+            if (snapshot.dirty()) {
+                state.restoreDirty();
+            } else {
+                state.takeAndClearDirty();
+            }
+        }
+        return true;
+    }
+
     public boolean consumeGold(@NotNull UUID accountId, long amount) {
         if (amount <= 0L) {
             return true;
@@ -3427,5 +3480,28 @@ public class InventoryService {
             return null;
         }
         return inventoryType.isSlotted() ? NormalInventoryLayout.CAPACITY : null;
+    }
+
+    /**
+     * inventory entry の補償用スナップショットです。
+     *
+     * @param accountId 対象アカウントID
+     * @param entriesByInventoryId inventoryId ごとの entry 一覧
+     * @param displayedType 取得時点の表示 inventory 種別
+     * @param dirty 取得時点の未保存状態
+     */
+    public record InventoryStateSnapshot(
+        @NotNull UUID accountId,
+        @NotNull Map<UUID, List<InventoryEntryModel>> entriesByInventoryId,
+        @NotNull InventoryType displayedType,
+        boolean dirty
+    ) {
+        public InventoryStateSnapshot {
+            Map<UUID, List<InventoryEntryModel>> immutableEntries = new LinkedHashMap<>();
+            entriesByInventoryId.forEach((inventoryId, entries) ->
+                immutableEntries.put(inventoryId, List.copyOf(entries))
+            );
+            entriesByInventoryId = Map.copyOf(immutableEntries);
+        }
     }
 }
