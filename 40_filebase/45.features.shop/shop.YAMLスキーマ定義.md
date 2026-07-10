@@ -2,7 +2,7 @@
 
 Shop master data defines a named shop and the item entries shown by the plugin shop GUI.
 
-## Schema
+## スキーマ定義
 
 | Key | Type | Required | Description |
 |:--|:--|:--:|:--|
@@ -32,7 +32,7 @@ The plugin uses a 54-slot inventory and does not place sale items in edge column
 
 `items[].page` is 1-based. When omitted, the entry is placed on page `1`. The GUI shows entries whose `page` matches the current page and uses slot `45` as the previous-page button and slot `53` as the next-page button.
 
-## Example
+## YAML 例
 
 ```yaml
 schemaVersion: 1

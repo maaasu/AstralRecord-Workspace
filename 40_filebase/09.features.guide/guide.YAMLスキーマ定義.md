@@ -2,6 +2,8 @@
 
 ゲーム内ガイド GUI に表示する読み物を定義します。ガイド本文はマスター定義に置き、GUI の物理スロット配置やページングは Plugin 側で制御します。
 
+## スキーマ定義
+
 ```yaml
 schemaVersion: 1
 id: string
@@ -13,8 +15,6 @@ summary: string
 lines:
   - string
 ```
-
-## 項目
 
 | Key | Required | Description |
 |---|---:|---|

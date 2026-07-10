@@ -5,7 +5,7 @@
 スキルの種別は plugin 側の `SkillExecutor.kind()` が正本です。
 filebase 側では、パッシブスキルだった場合に `passive.bindRequired` でバインド必要可否を定義します。
 
-## 項目
+## スキーマ定義
 
 | キー | 型 | 必須 | 既定値 | 説明 |
 | --- | --- | --- | --- | --- |
@@ -75,7 +75,7 @@ filebase 側では、パッシブスキルだった場合に `passive.bindRequir
 - `passive.bindRequired: false` のパッシブスキルは、スキル設定 GUI のバインド一覧には表示しません。
 - `params` の解釈は各 executor に委ねます。
 
-## 例
+## YAML 例
 
 ### 発動系スキル
 

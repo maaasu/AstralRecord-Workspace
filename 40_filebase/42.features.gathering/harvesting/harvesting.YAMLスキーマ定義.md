@@ -3,7 +3,9 @@
 採取カテゴリの採集オブジェクト定義です。
 共通キーは [../gathering.YAMLスキーマ定義.md](../gathering.YAMLスキーマ定義.md) を参照してください。
 
-## 追加ルール
+## スキーマ定義
+
+### 追加ルール
 
 - `category` は `HARVESTING` 固定
 - `requiredToolTags[]` には `HOE` など採取用タグを定義する

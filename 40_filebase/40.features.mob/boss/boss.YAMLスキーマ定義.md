@@ -71,6 +71,26 @@ Enemy と同一仕様です。
 - **専用ギミック** : 戦闘エリアの制限・特殊オブジェクト・QTEなどはプラグイン側で実装。
 - **スキルローテーション** : `ai.combat.skills` にスキルIDを列挙し、使用順序・条件分岐はプラグイン側で制御。
 
+## challenge
+
+ボス挑戦を有効にする場合、BOSS マスタに `challenge` を定義する。
+
+| キー | 型 | 必須 | 説明 |
+|:--|:--|:--:|:--|
+| `challenge.fieldWorldId` | String | ○ | `WorldType.BOSS_FIELD` の WorldMasterData ID |
+| `challenge.entryLocation.worldId` | String | ○ | 挑戦受付地点の WorldMasterData ID または Bukkit world 名 |
+| `challenge.entryLocation.x/y/z` | Double | ○ | 挑戦受付地点 |
+| `challenge.entryLocation.yaw/pitch` | Double | × | 受付地点の向き |
+| `challenge.entryRadius` | Double | × | スニーク受付半径。未指定時 3.0 |
+| `challenge.playerSpawnLocation.x/y/z` | Double | ○ | フィールド内の参加者転送先 |
+| `challenge.bossSpawnLocation.x/y/z` | Double | ○ | フィールド内のボススポーン地点 |
+| `challenge.partyMin` | Integer | × | 最小参加人数。未指定時 1 |
+| `challenge.partyMax` | Integer | × | 最大参加人数。未指定時 6 |
+| `challenge.timeLimitSeconds` | Long | × | 制限時間。未指定時 600 |
+| `challenge.scaling.enabled` | Boolean | × | 参加人数補正の有効化 |
+| `challenge.scaling.healthPerExtraPlayer` | Double | × | 2人目以降1人あたりの HP 増加率 (%) |
+| `challenge.scaling.attackPerExtraPlayer` | Double | × | 2人目以降1人あたりの攻撃力増加率 (%)。初回実装では読み込みのみ |
+
 ---
 
 ## YAML 例
@@ -153,23 +173,3 @@ drops:
   lootTable:
     ref: loot_table:boss_common_drop
 ```
-
-# challenge
-
-ボス挑戦を有効にする場合、BOSS マスタに `challenge` を定義する。
-
-| キー | 型 | 必須 | 説明 |
-|:--|:--|:--:|:--|
-| `challenge.fieldWorldId` | String | ○ | `WorldType.BOSS_FIELD` の WorldMasterData ID |
-| `challenge.entryLocation.worldId` | String | ○ | 挑戦受付地点の WorldMasterData ID または Bukkit world 名 |
-| `challenge.entryLocation.x/y/z` | Double | ○ | 挑戦受付地点 |
-| `challenge.entryLocation.yaw/pitch` | Double | × | 受付地点の向き |
-| `challenge.entryRadius` | Double | × | スニーク受付半径。未指定時 3.0 |
-| `challenge.playerSpawnLocation.x/y/z` | Double | ○ | フィールド内の参加者転送先 |
-| `challenge.bossSpawnLocation.x/y/z` | Double | ○ | フィールド内のボススポーン地点 |
-| `challenge.partyMin` | Integer | × | 最小参加人数。未指定時 1 |
-| `challenge.partyMax` | Integer | × | 最大参加人数。未指定時 6 |
-| `challenge.timeLimitSeconds` | Long | × | 制限時間。未指定時 600 |
-| `challenge.scaling.enabled` | Boolean | × | 参加人数補正の有効化 |
-| `challenge.scaling.healthPerExtraPlayer` | Double | × | 2人目以降1人あたりの HP 増加率 (%) |
-| `challenge.scaling.attackPerExtraPlayer` | Double | × | 2人目以降1人あたりの攻撃力増加率 (%)。初回実装では読み込みのみ |

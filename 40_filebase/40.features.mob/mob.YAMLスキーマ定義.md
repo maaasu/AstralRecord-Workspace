@@ -75,23 +75,6 @@ Mob に HP より先に消費されるシールドを持たせる場合だけ定
 
 未対応の `entityType` に指定された variant キーは無視されます。enum 名は大文字・小文字、ハイフン、空白の揺れを吸収して扱います。
 
-```yaml
-entityType: VILLAGER
-variant:
-  age: ADULT
-  villagerType: PLAINS
-  profession: LIBRARIAN
-  villagerLevel: 3
-```
-
-```yaml
-entityType: TROPICAL_FISH
-variant:
-  pattern: KOB
-  bodyColor: BLUE
-  patternColor: YELLOW
-```
-
 ### equipment（装備設定）
 
 Mobが表示上装備するアイテムを指定します。すべて任意項目です。
@@ -184,4 +167,23 @@ ai:
     wanderRadius: 8
     speed: 0.8
   # ... カテゴリ固有のAI設定が続く（各スキーマ定義を参照）
+```
+
+### variant の補足例
+
+```yaml
+entityType: VILLAGER
+variant:
+  age: ADULT
+  villagerType: PLAINS
+  profession: LIBRARIAN
+  villagerLevel: 3
+```
+
+```yaml
+entityType: TROPICAL_FISH
+variant:
+  pattern: KOB
+  bodyColor: BLUE
+  patternColor: YELLOW
 ```

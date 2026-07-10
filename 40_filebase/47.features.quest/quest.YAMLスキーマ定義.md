@@ -2,7 +2,7 @@
 
 クエスト単体のマスターデータです。プレイヤーはNPCのクエストボードから受領し、条件達成後に `completion.mode` に応じて自動報酬またはNPC報告で完了します。
 
-## フィールド
+## スキーマ定義
 
 | Field | Type | Required | Description |
 |:--|:--|:--|:--|
@@ -22,7 +22,7 @@
 | `rewards.gold` | number | no | 既存Gold通貨 |
 | `rewards.items` | object[] | no | 報酬アイテム |
 
-## objectives
+### objectives
 
 | Field | Type | Required | Description |
 |:--|:--|:--|:--|
@@ -32,7 +32,7 @@
 | `label` | string | no | GUI表示名 |
 | `amount` | number | yes | 必要数 |
 
-## item
+### item
 
 | Field | Type | Required | Description |
 |:--|:--|:--|:--|

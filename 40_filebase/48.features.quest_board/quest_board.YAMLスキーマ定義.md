@@ -2,7 +2,7 @@
 
 NPC右クリック時に開くクエスト受領GUIのマスターデータです。NPC側の interaction では `type: QUEST` と `boardId` を指定します。
 
-## フィールド
+## スキーマ定義
 
 | Field | Type | Required | Description |
 |:--|:--|:--|:--|
@@ -12,7 +12,7 @@ NPC右クリック時に開くクエスト受領GUIのマスターデータで�
 | `name` | string | yes | GUIタイトル |
 | `quests` | object[] | yes | 表示するクエスト |
 
-## quests
+### quests
 
 | Field | Type | Required | Description |
 |:--|:--|:--|:--|

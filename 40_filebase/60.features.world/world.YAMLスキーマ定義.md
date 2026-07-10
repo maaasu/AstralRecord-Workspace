@@ -2,6 +2,8 @@
 
 World システムで参照する filebase マスタです。Plugin は API 経由でこの定義を取得し、`spawnLocation` を参加時スポーンと `/world tp` に利用し、`showSpawnParticle` でスポーン地点リング演出とスニーク導線 TextDisplay の表示有無を制御します。拠点ワールドからオーバーワールドへ移動する GUI では、`displayName` / `description` / `guiIconMaterial` / `adventureGuide` を表示に利用します。
 
+## スキーマ定義
+
 ```yaml
 schemaVersion: 1
 id: string
@@ -32,8 +34,6 @@ adventureGuide:
   notes:
     - string
 ```
-
-## 項目
 
 | Key | Required | Description |
 |---|---:|---|

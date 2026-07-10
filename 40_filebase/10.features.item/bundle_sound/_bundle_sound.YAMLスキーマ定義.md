@@ -2,6 +2,8 @@
 
 bundle 使用時サウンドの実体定義です。`bundle.onUse.sound` にはこの ID を指定します。
 
+## スキーマ定義
+
 | キー | 型 | 必須 | 既定値 | 説明 |
 |:--|:--|:--:|:--|:--|
 | `schemaVersion` | Integer | ○ | 1 | スキーマバージョン |
@@ -9,6 +11,8 @@ bundle 使用時サウンドの実体定義です。`bundle.onUse.sound` には�
 | `sound` | String | ○ | - | 再生する Minecraft sound key |
 | `volume` | Double | × | 1.0 | 再生音量 |
 | `pitch` | Double | × | 1.0 | 再生ピッチ |
+
+## YAML 例
 
 ```yaml
 schemaVersion: 1

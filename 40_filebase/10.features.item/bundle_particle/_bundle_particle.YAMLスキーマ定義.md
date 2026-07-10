@@ -2,6 +2,8 @@
 
 bundle 使用時パーティクルの実体定義です。`bundle.onUse.particle` にはこの ID を指定します。
 
+## スキーマ定義
+
 | キー | 型 | 必須 | 既定値 | 説明 |
 |:--|:--|:--:|:--|:--|
 | `schemaVersion` | Integer | ○ | 1 | スキーマバージョン |
@@ -15,6 +17,8 @@ bundle 使用時パーティクルの実体定義です。`bundle.onUse.particle
 | `offsetY` | Double | × | 0.5 | 拡散 Y |
 | `offsetZ` | Double | × | 0.4 | 拡散 Z |
 | `extra` | Double | × | 0.0 | `spawnParticle` の extra |
+
+## YAML 例
 
 ```yaml
 schemaVersion: 1
