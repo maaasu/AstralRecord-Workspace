@@ -175,7 +175,7 @@ challenge:
 
 ```yaml
 boss:
-  hubWorldId: "v1.boss_hub"
+  hubWorldId: "skyhaven_isle"
 ```
 
 ## 8. 報酬仕様

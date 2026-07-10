@@ -723,7 +723,7 @@ public final class AstralRecord extends JavaPlugin {
         bossFieldInstanceService = new BossFieldInstanceService(this, worldService);
         String bossHubWorldId = getConfig().getString(
             "boss.hubWorldId",
-            getConfig().getString("plugin.boss.hubWorldId", "boss_hub")
+            getConfig().getString("plugin.boss.hubWorldId", "skyhaven_isle")
         );
         bossChallengeService = new BossChallengeService(
             this,

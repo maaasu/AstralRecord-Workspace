@@ -212,6 +212,10 @@ public final class BossChallengeService {
             messageService.send(player, PlayerMsgId.P_6506, hubWorldId);
             return;
         }
+        if (worldService.resolveOrLoadWorld(hubData) == null) {
+            messageService.send(player, PlayerMsgId.P_6523, hubWorldId);
+            return;
+        }
         if (fieldData == null) {
             messageService.send(player, PlayerMsgId.P_6507, config.fieldWorldId());
             return;

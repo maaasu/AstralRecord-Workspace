@@ -7,7 +7,7 @@ plugin:
     world: "world"
 
 boss:
-  hubWorldId: "boss_hub"
+  hubWorldId: "skyhaven_isle"
 
 # Database Settings
 database:
