@@ -17,7 +17,7 @@ import java.util.Locale;
  */
 public final class BossCommand extends AstCommand {
     public BossCommand() {
-        super("boss", "Manage boss challenges.", "/boss <list|stop> [challengeId|partyKey]",
+        super("boss", "Manage boss challenges.", "/boss <instances|stop> [partyId|challengeId]",
                 false, UserPermission.ADMIN.getValue());
     }
 
@@ -37,7 +37,7 @@ public final class BossCommand extends AstCommand {
 
         String action = args[0].toLowerCase(Locale.ROOT);
         switch (action) {
-            case "list" -> handleList(sender, service);
+            case "instances", "list" -> handleList(sender, service);
             case "stop" -> handleStop(sender, service, args);
             default -> sendUsage(sender);
         }

@@ -437,6 +437,9 @@ public final class AstralRecord extends JavaPlugin {
         if (overheadDisplayService != null) {
             overheadDisplayService.stop();
         }
+        if (bossChallengeService != null) {
+            bossChallengeService.stop();
+        }
         if (playerDeathService != null) {
             playerDeathService.stop();
         }
@@ -488,9 +491,6 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (returnToBaseService != null) {
             returnToBaseService.cancelAll();
-        }
-        if (bossChallengeService != null) {
-            bossChallengeService.stop();
         }
         if (skillActionRingService != null) {
             skillActionRingService.stop();
@@ -739,6 +739,7 @@ public final class AstralRecord extends JavaPlugin {
             bossFieldInstanceService,
             particleDisplayService,
             displayTextService,
+            playerDeathService,
             bossHubWorldId
         );
         damageService.setBossChallengeService(bossChallengeService);

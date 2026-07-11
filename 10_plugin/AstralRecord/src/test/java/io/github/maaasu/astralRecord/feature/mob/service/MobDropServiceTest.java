@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MobDropServiceTest {
 
@@ -26,5 +27,21 @@ class MobDropServiceTest {
         assertEquals("rare_item", result.items().getFirst().itemId());
         assertEquals(2, result.items().getFirst().amount());
         assertEquals(100.0D, result.items().getFirst().dropRate());
+    }
+
+    @Test
+    void rollAcceptsDocumentedTildeAmountRange() {
+        MobDropConfig drops = new MobDropConfig(
+            0,
+            null,
+            List.of(new MobDropItem("boss_material", 100.0D, "2~4", false, false)),
+            null
+        );
+
+        MobDropResult result = new MobDropService().roll(drops, null);
+
+        assertEquals(1, result.items().size());
+        assertTrue(result.items().getFirst().amount() >= 2);
+        assertTrue(result.items().getFirst().amount() <= 4);
     }
 }

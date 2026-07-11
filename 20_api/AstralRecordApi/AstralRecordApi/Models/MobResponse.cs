@@ -247,6 +247,10 @@ public class MobChallengeResponse
 
     public long TimeLimitSeconds { get; init; } = 600;
 
+    public int DeathLimit { get; init; } = 5;
+
+    public long ReviveDelaySeconds { get; init; } = 5;
+
     public MobChallengeScalingResponse? Scaling { get; init; }
 }
 

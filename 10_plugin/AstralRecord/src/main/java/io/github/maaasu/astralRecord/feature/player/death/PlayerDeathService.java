@@ -113,6 +113,26 @@ public final class PlayerDeathService {
      * @return 新しく死亡状態へ遷移した場合は {@code true}
      */
     public boolean startDeath(@NotNull AstPlayer astPlayer, @NotNull Location deathLocation) {
+        return startDeath(astPlayer, deathLocation, DEATH_DURATION_MILLIS, true, null);
+    }
+
+    /**
+     * 復帰時間と復帰後処理を指定してプレイヤーを死亡状態にします。
+     *
+     * @param astPlayer 死亡したプレイヤー
+     * @param deathLocation 死亡地点
+     * @param durationMillis 死亡状態を維持するミリ秒
+     * @param applyExperiencePenalty 現在レベル経験値の死亡ペナルティを適用する場合は {@code true}
+     * @param recoveryAction 全回復後に実行する復帰処理。{@code null} の場合は通常スポーンへ戻す
+     * @return 新しく死亡状態へ遷移した場合は {@code true}
+     */
+    public boolean startDeath(
+        @NotNull AstPlayer astPlayer,
+        @NotNull Location deathLocation,
+        long durationMillis,
+        boolean applyExperiencePenalty,
+        @Nullable Runnable recoveryAction
+    ) {
         Player player = astPlayer.getBukkit();
         UUID playerId = player.getUniqueId();
         if (deaths.containsKey(playerId)) {
@@ -120,12 +140,14 @@ public final class PlayerDeathService {
         }
 
         Location lockLocation = deathLocation.clone();
-        long expiresAtMillis = System.currentTimeMillis() + DEATH_DURATION_MILLIS;
-        DeathState state = new DeathState(playerId, lockLocation, expiresAtMillis);
+        long expiresAtMillis = System.currentTimeMillis() + Math.max(1_000L, durationMillis);
+        DeathState state = new DeathState(playerId, lockLocation, expiresAtMillis, recoveryAction);
         deaths.put(playerId, state);
 
-        accountService.loseCurrentLevelExperiencePercentCached(astPlayer.getAccount(), 10, astPlayer.getUser().getUuid())
-            .ifPresent(astPlayer::setAccount);
+        if (applyExperiencePenalty) {
+            accountService.loseCurrentLevelExperiencePercentCached(astPlayer.getAccount(), 10, astPlayer.getUser().getUuid())
+                .ifPresent(astPlayer::setAccount);
+        }
         statusService.consumeHp(astPlayer, statusService.getStatus(astPlayer).getCurrentHp());
         removeFromMobCombat(playerId);
         attachOnlinePlayer(player, state);
@@ -140,6 +162,29 @@ public final class PlayerDeathService {
      */
     public boolean isDead(@NotNull UUID playerId) {
         return deaths.containsKey(playerId);
+    }
+
+    /**
+     * オンラインの指定プレイヤーは死亡状態を直ちに解除して全リソースを回復します。
+     * オフラインの場合は次回ログイン時の通常復帰へ切り替えます。
+     * オンライン時は通常スポーンへの転送や登録済み復帰処理を実行しません。
+     *
+     * @param playerId 死亡状態を解除するプレイヤー UUID
+     * @return 死亡状態を解除した場合は {@code true}
+     */
+    public boolean recoverNow(@NotNull UUID playerId) {
+        DeathState state = deaths.get(playerId);
+        if (state == null) {
+            return false;
+        }
+        Player player = Bukkit.getPlayer(playerId);
+        if (player == null || !player.isOnline()) {
+            state.deferDefaultRecovery();
+            destroyVisuals(state);
+            return true;
+        }
+        completeDeath(player, state, false);
+        return true;
     }
 
     /**
@@ -218,17 +263,31 @@ public final class PlayerDeathService {
     }
 
     private void finishDeath(@NotNull Player player, @NotNull DeathState state) {
+        completeDeath(player, state, true);
+    }
+
+    private void completeDeath(@NotNull Player player, @NotNull DeathState state, boolean runRecovery) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) {
             return;
         }
-        deaths.remove(player.getUniqueId(), state);
+        if (!deaths.remove(player.getUniqueId(), state)) {
+            return;
+        }
         destroyVisuals(state);
         player.setInvulnerable(false);
         statusService.restoreAll(astPlayer);
         showToOtherPlayers(player);
         player.resetTitle();
-        teleportToJoinSpawn(player);
+        if (!runRecovery) {
+            return;
+        }
+        Runnable recoveryAction = state.recoveryAction();
+        if (recoveryAction != null) {
+            recoveryAction.run();
+        } else {
+            teleportToJoinSpawn(player);
+        }
     }
 
     private void teleportToJoinSpawn(@NotNull Player player) {
@@ -332,14 +391,21 @@ public final class PlayerDeathService {
     private static final class DeathState {
         private final UUID playerId;
         private final Location deathLocation;
-        private final long expiresAtMillis;
+        private long expiresAtMillis;
+        private @Nullable Runnable recoveryAction;
         private @Nullable ItemDisplay headDisplay;
         private @Nullable DisplayTextService.ManagedTextDisplay textDisplay;
 
-        private DeathState(@NotNull UUID playerId, @NotNull Location deathLocation, long expiresAtMillis) {
+        private DeathState(
+            @NotNull UUID playerId,
+            @NotNull Location deathLocation,
+            long expiresAtMillis,
+            @Nullable Runnable recoveryAction
+        ) {
             this.playerId = playerId;
             this.deathLocation = deathLocation;
             this.expiresAtMillis = expiresAtMillis;
+            this.recoveryAction = recoveryAction;
         }
 
         private UUID playerId() {
@@ -356,6 +422,15 @@ public final class PlayerDeathService {
 
         private long remainingSeconds(long nowMillis) {
             return Math.max(0L, (expiresAtMillis - nowMillis + 999L) / 1000L);
+        }
+
+        private @Nullable Runnable recoveryAction() {
+            return recoveryAction;
+        }
+
+        private void deferDefaultRecovery() {
+            expiresAtMillis = 0L;
+            recoveryAction = null;
         }
 
         private @Nullable ItemDisplay headDisplay() {

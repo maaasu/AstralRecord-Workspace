@@ -16,6 +16,8 @@ import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
@@ -58,6 +60,7 @@ public final class BossChallengeService {
     private static final int ENTRY_RING_POINTS = 10;
     private static final double ENTRY_PROMPT_Y_OFFSET = 2.35D;
     private static final double ENTRY_VIEWER_DISTANCE_SQUARED = 64.0D * 64.0D;
+    private static final long END_RETRY_DELAY_TICKS = 5L * 20L;
 
     private final AstralRecord plugin;
     private final MobService mobService;
@@ -67,6 +70,7 @@ public final class BossChallengeService {
     private final BossFieldInstanceService fieldInstanceService;
     private final ParticleDisplayService particleDisplayService;
     private final DisplayTextService displayTextService;
+    private final PlayerDeathService playerDeathService;
     private final String hubWorldId;
     private final Map<UUID, BossChallengeInstance> challengesById = new ConcurrentHashMap<>();
     private final Map<String, UUID> challengeIdByPartyKey = new ConcurrentHashMap<>();
@@ -75,6 +79,7 @@ public final class BossChallengeService {
     private BukkitTask tickTask;
     private BukkitTask entryVisualTask;
     private long entryVisualFrame;
+    private boolean startupCleanupStarted;
 
     public BossChallengeService(
             @NotNull AstralRecord plugin,
@@ -85,6 +90,7 @@ public final class BossChallengeService {
             @NotNull BossFieldInstanceService fieldInstanceService,
             @NotNull ParticleDisplayService particleDisplayService,
             @NotNull DisplayTextService displayTextService,
+            @NotNull PlayerDeathService playerDeathService,
             @NotNull String hubWorldId
     ) {
         this.plugin = plugin;
@@ -95,6 +101,7 @@ public final class BossChallengeService {
         this.fieldInstanceService = fieldInstanceService;
         this.particleDisplayService = particleDisplayService;
         this.displayTextService = displayTextService;
+        this.playerDeathService = playerDeathService;
         this.hubWorldId = hubWorldId;
     }
 
@@ -108,6 +115,10 @@ public final class BossChallengeService {
         if (entryVisualTask == null) {
             entryVisualFrame = 0L;
             entryVisualTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tickEntryVisuals, 0L, ENTRY_VISUAL_PERIOD_TICKS);
+        }
+        if (!startupCleanupStarted) {
+            startupCleanupStarted = true;
+            fieldInstanceService.cleanupStaleFieldsAsync();
         }
     }
 
@@ -124,9 +135,13 @@ public final class BossChallengeService {
             entryVisualTask = null;
         }
         clearEntryPromptDisplays();
+        fieldInstanceService.cancelPendingCreations();
         for (BossChallengeInstance challenge : List.copyOf(challengesById.values())) {
-            endChallenge(challenge, BossChallengeEndReason.PLUGIN_SHUTDOWN);
+            forceShutdownChallenge(challenge);
         }
+        challengesById.clear();
+        challengeIdByPartyKey.clear();
+        challengeIdByBossMob.clear();
     }
 
     /**
@@ -240,7 +255,7 @@ public final class BossChallengeService {
 
         notifyParticipants(challenge, PlayerMsgId.P_6508, template.displayName());
         teleportParticipantsToHubAsync(challenge, hubData).whenComplete((results, throwable) ->
-                Bukkit.getScheduler().runTask(plugin, () -> finishHubTransfer(challenge.challengeId(), fieldData, results, throwable)));
+                runSync(() -> finishHubTransfer(challenge.challengeId(), fieldData, results, throwable)));
     }
 
     /**
@@ -273,6 +288,79 @@ public final class BossChallengeService {
             return;
         }
         challenge.addDamage(playerId, amount);
+    }
+
+    /**
+     * 討伐時点で報酬を受け取れる固定参加者を返します。
+     * 復帰待ち中の死亡参加者も、オンラインかつ同一フィールドにいる場合は対象に含めます。
+     *
+     * @param mobInstanceId 討伐されたボス Mob インスタンス ID
+     * @return 報酬対象のゲームプレイヤー一覧
+     */
+    public @NotNull List<AstPlayer> resolveRewardRecipients(@NotNull UUID mobInstanceId) {
+        UUID challengeId = challengeIdByBossMob.get(mobInstanceId);
+        BossChallengeInstance challenge = challengeId == null ? null : challengesById.get(challengeId);
+        if (challenge == null || challenge.state() != BossChallengeState.IN_PROGRESS || challenge.field() == null) {
+            return List.of();
+        }
+        UUID fieldWorldId = challenge.field().world().getUID();
+        List<AstPlayer> recipients = new ArrayList<>();
+        for (UUID participantId : challenge.participantIds()) {
+            Player player = Bukkit.getPlayer(participantId);
+            if (player == null || !player.isOnline() || !player.getWorld().getUID().equals(fieldWorldId)) {
+                continue;
+            }
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer != null) {
+                recipients.add(astPlayer);
+            }
+        }
+        return List.copyOf(recipients);
+    }
+
+    /**
+     * ボスフィールド参加者の死亡を記録し、上限未満なら指定秒後のフィールド復帰を開始します。
+     *
+     * @param astPlayer 死亡した参加者
+     * @param deathLocation 死亡地点
+     * @return ボス挑戦の死亡として処理した場合は {@code true}
+     */
+    public boolean handleParticipantDeath(@NotNull AstPlayer astPlayer, @NotNull Location deathLocation) {
+        UUID playerId = astPlayer.getBukkit().getUniqueId();
+        BossChallengeInstance challenge = findInProgressChallengeByParticipant(playerId);
+        if (challenge == null || challenge.field() == null
+                || deathLocation.getWorld() == null
+                || !deathLocation.getWorld().getUID().equals(challenge.field().world().getUID())) {
+            return false;
+        }
+        if (playerDeathService.isDead(playerId)) {
+            return true;
+        }
+
+        int deathCount = challenge.recordDeath(playerId);
+        boolean started = playerDeathService.startDeath(
+                astPlayer,
+                deathLocation,
+                challenge.config().reviveDelaySeconds() * 1_000L,
+                false,
+                () -> reviveParticipant(challenge.challengeId(), playerId)
+        );
+        if (!started) {
+            return true;
+        }
+        if (deathCount >= challenge.config().deathLimit()) {
+            notifyParticipants(challenge, PlayerMsgId.P_6525, deathCount, challenge.config().deathLimit());
+            endChallenge(challenge, BossChallengeEndReason.DEATH_LIMIT);
+        } else {
+            messageService.send(
+                    astPlayer,
+                    PlayerMsgId.P_6524,
+                    challenge.config().reviveDelaySeconds(),
+                    deathCount,
+                    challenge.config().deathLimit()
+            );
+        }
+        return true;
     }
 
     /**
@@ -310,14 +398,21 @@ public final class BossChallengeService {
         List<String> lines = new ArrayList<>();
         for (BossChallengeInstance challenge : challengesById.values()) {
             long elapsed = challenge.startedAtMs() <= 0L ? 0L : (System.currentTimeMillis() - challenge.startedAtMs()) / 1000L;
+            long remaining = challenge.startedAtMs() <= 0L
+                    ? challenge.config().timeLimitSeconds()
+                    : Math.max(0L, challenge.config().timeLimitSeconds() - elapsed);
+            String worldName = challenge.field() == null ? "-" : challenge.field().worldName();
             lines.add(String.format(
                     Locale.ROOT,
-                    "%s | %s | %s | members=%d | elapsed=%ds",
+                    "%s | party=%s | boss=%s | state=%s | members=%d | world=%s | elapsed=%ds | remaining=%ds",
                     challenge.challengeId(),
+                    challenge.partyKey(),
                     challenge.bossTemplate().id(),
                     challenge.state(),
-                    challenge.participantIds().size(),
-                    elapsed
+                    displayParticipantIds(challenge).size(),
+                    worldName,
+                    elapsed,
+                    remaining
             ));
         }
         return lines;
@@ -331,6 +426,9 @@ public final class BossChallengeService {
      */
     public boolean stopChallenge(@NotNull String key) {
         UUID mappedChallengeId = challengeIdByPartyKey.get(key);
+        if (mappedChallengeId == null && !key.startsWith("party:") && !key.startsWith("solo:")) {
+            mappedChallengeId = challengeIdByPartyKey.get("party:" + key);
+        }
         BossChallengeInstance challenge = mappedChallengeId == null ? null : challengesById.get(mappedChallengeId);
         if (challenge == null) {
             for (BossChallengeInstance candidate : challengesById.values()) {
@@ -357,9 +455,19 @@ public final class BossChallengeService {
         if (challenge == null || challenge.state() != BossChallengeState.PREPARING) {
             return;
         }
-        if (throwable != null || results == null || results.isEmpty() || results.stream().anyMatch(result -> !Boolean.TRUE.equals(result))) {
-            notifyParticipants(challenge, PlayerMsgId.P_6521, challenge.bossTemplate().displayName());
-            endChallenge(challenge, BossChallengeEndReason.TRANSFER_FAILED);
+        int readyCount = eligibleParticipantsForEntry(challenge).size();
+        if (readyCount < challenge.config().partyMin()) {
+            challenge.confirmParticipants(
+                    eligibleParticipantsForEntry(challenge).stream().map(Player::getUniqueId).toList()
+            );
+            notifyExpectedParticipants(
+                    challenge,
+                    PlayerMsgId.P_6504,
+                    challenge.config().partyMin(),
+                    challenge.config().partyMax(),
+                    readyCount
+            );
+            endChallenge(challenge, BossChallengeEndReason.PARTICIPANT_REQUIREMENT_NOT_MET);
             return;
         }
         beginFieldPreparation(challenge, fieldData);
@@ -367,7 +475,7 @@ public final class BossChallengeService {
 
     private void beginFieldPreparation(@NotNull BossChallengeInstance challenge, @NotNull WorldMasterData fieldData) {
         fieldInstanceService.createFieldAsync(challenge, fieldData).whenComplete((field, throwable) ->
-                Bukkit.getScheduler().runTask(plugin, () -> finishFieldPreparation(challenge.challengeId(), field, throwable)));
+                runSync(() -> finishFieldPreparation(challenge.challengeId(), field, throwable)));
     }
 
     private void finishFieldPreparation(
@@ -378,7 +486,7 @@ public final class BossChallengeService {
         BossChallengeInstance challenge = challengesById.get(challengeId);
         if (challenge == null || challenge.state() != BossChallengeState.PREPARING) {
             if (field != null) {
-                fieldInstanceService.destroyField(field);
+                fieldInstanceService.destroyFieldAsync(field);
             }
             return;
         }
@@ -404,23 +512,29 @@ public final class BossChallengeService {
             return;
         }
 
-        List<Player> online = onlinePlayers(challenge.participantIds());
-        if (online.isEmpty()) {
-            endChallenge(challenge, BossChallengeEndReason.NO_PARTICIPANTS);
+        List<Player> entrants = eligibleParticipantsForEntry(challenge);
+        challenge.confirmParticipants(entrants.stream().map(Player::getUniqueId).toList());
+        if (entrants.size() < challenge.config().partyMin()) {
+            notifyExpectedParticipants(
+                    challenge,
+                    PlayerMsgId.P_6504,
+                    challenge.config().partyMin(),
+                    challenge.config().partyMax(),
+                    entrants.size()
+            );
+            endChallenge(challenge, BossChallengeEndReason.PARTICIPANT_REQUIREMENT_NOT_MET);
             return;
         }
 
         Location playerSpawn = challenge.config().playerSpawnLocation().toLocation(field.world());
         List<CompletableFuture<Boolean>> transferResults = new ArrayList<>();
-        for (Player participant : online) {
+        for (Player participant : entrants) {
             transferResults.add(worldService.teleportPlayerAsync(participant, playerSpawn.clone(), null));
         }
 
         CompletableFuture.allOf(transferResults.toArray(CompletableFuture[]::new))
-                .whenComplete((ignored, throwable) -> Bukkit.getScheduler().runTask(
-                        plugin,
-                        () -> finishFieldStartAfterTransfers(challengeId, transferResults, throwable)
-                ));
+                .whenComplete((ignored, throwable) ->
+                        runSync(() -> finishFieldStartAfterTransfers(challengeId, transferResults, throwable)));
     }
 
     private void finishFieldStartAfterTransfers(
@@ -487,7 +601,7 @@ public final class BossChallengeService {
     }
 
     private void endChallenge(@NotNull BossChallengeInstance challenge, @NotNull BossChallengeEndReason reason) {
-        if (challenge.state() == BossChallengeState.ENDED) {
+        if (challenge.state() == BossChallengeState.ENDING || challenge.state() == BossChallengeState.ENDED) {
             return;
         }
         if (reason == BossChallengeEndReason.DEFEATED) {
@@ -498,11 +612,11 @@ public final class BossChallengeService {
             beginDefeatedResultWait(challenge, resultLocation);
             return;
         }
-        completeChallenge(challenge, reason);
+        beginChallengeCompletion(challenge, reason);
     }
 
     private void beginDefeatedResultWait(@NotNull BossChallengeInstance challenge, @NotNull Location deathLocation) {
-        if (challenge.state() == BossChallengeState.ENDED || challenge.state() == BossChallengeState.RESULT_WAITING) {
+        if (challenge.state() != BossChallengeState.IN_PROGRESS) {
             return;
         }
         challenge.state(BossChallengeState.RESULT_WAITING);
@@ -518,17 +632,25 @@ public final class BossChallengeService {
         showDamageResult(challenge, deathLocation);
         BukkitTask task = Bukkit.getScheduler().runTaskLater(
                 plugin,
-                () -> completeChallenge(challenge, BossChallengeEndReason.DEFEATED),
+                () -> beginChallengeCompletion(challenge, BossChallengeEndReason.DEFEATED),
                 DEFEATED_RESULT_WAIT_TICKS
         );
         challenge.resultWaitTask(task);
     }
 
-    private void completeChallenge(@NotNull BossChallengeInstance challenge, @NotNull BossChallengeEndReason reason) {
-        if (challenge.state() == BossChallengeState.ENDED) {
+    private void beginChallengeCompletion(
+            @NotNull BossChallengeInstance challenge,
+            @NotNull BossChallengeEndReason reason
+    ) {
+        if (challenge.state() == BossChallengeState.ENDING || challenge.state() == BossChallengeState.ENDED) {
             return;
         }
-        challenge.state(BossChallengeState.ENDED);
+        challenge.state(BossChallengeState.ENDING);
+        if (!challenge.participantsConfirmed()) {
+            challenge.confirmParticipants(
+                    eligibleParticipantsForEntry(challenge).stream().map(Player::getUniqueId).toList()
+            );
+        }
         if (!reason.success()) {
             Logger.log(LogId.I_6502, challenge.challengeId(), challenge.bossTemplate().id(), reason.name());
         }
@@ -554,21 +676,69 @@ public final class BossChallengeService {
             notifyParticipants(challenge, PlayerMsgId.P_6513, challenge.bossTemplate().displayName());
         } else if (reason == BossChallengeEndReason.NO_PARTICIPANTS) {
             notifyParticipants(challenge, PlayerMsgId.P_6514, challenge.bossTemplate().displayName());
+        } else if (reason == BossChallengeEndReason.DEATH_LIMIT
+                || reason == BossChallengeEndReason.PARTICIPANT_REQUIREMENT_NOT_MET) {
+            // The specific reason was already announced when the condition was detected.
         } else {
             notifyParticipants(challenge, PlayerMsgId.P_6512, challenge.bossTemplate().displayName(), reason.name());
         }
 
-        WorldMasterData hubData = worldService.getById(hubWorldId);
-        if (hubData != null) {
-            teleportParticipantsToHub(challenge, hubData);
+        for (UUID participantId : exitParticipantIds(challenge)) {
+            playerDeathService.recoverNow(participantId);
         }
+        exitParticipantsAndCleanup(challenge);
+    }
 
+    private void exitParticipantsAndCleanup(@NotNull BossChallengeInstance challenge) {
+        teleportParticipantsOutAsync(challenge).whenComplete((success, throwable) ->
+                runSync(() -> {
+                    if (!isEnding(challenge)) {
+                        return;
+                    }
+                    if (throwable != null || !Boolean.TRUE.equals(success)) {
+                        Bukkit.getScheduler().runTaskLater(
+                                plugin,
+                                () -> exitParticipantsAndCleanup(challenge),
+                                END_RETRY_DELAY_TICKS
+                        );
+                        return;
+                    }
+                    cleanupFieldAndFinish(challenge);
+                }));
+    }
+
+    private void cleanupFieldAndFinish(@NotNull BossChallengeInstance challenge) {
         BossFieldInstance field = challenge.field();
-        if (field != null) {
-            fieldInstanceService.destroyField(field);
+        if (field == null) {
+            finishChallengeRemoval(challenge);
+            return;
         }
+        fieldInstanceService.destroyFieldAsync(field).whenComplete((success, throwable) ->
+                runSync(() -> {
+                    if (!isEnding(challenge)) {
+                        return;
+                    }
+                    if (throwable != null || !Boolean.TRUE.equals(success)) {
+                        Bukkit.getScheduler().runTaskLater(
+                                plugin,
+                                () -> cleanupFieldAndFinish(challenge),
+                                END_RETRY_DELAY_TICKS
+                        );
+                        return;
+                    }
+                    finishChallengeRemoval(challenge);
+                }));
+    }
+
+    private void finishChallengeRemoval(@NotNull BossChallengeInstance challenge) {
+        challenge.state(BossChallengeState.ENDED);
         challengeIdByPartyKey.remove(challenge.partyKey());
         challengesById.remove(challenge.challengeId());
+    }
+
+    private boolean isEnding(@NotNull BossChallengeInstance challenge) {
+        return challenge.state() == BossChallengeState.ENDING
+                && challengesById.get(challenge.challengeId()) == challenge;
     }
 
     private void showDamageResult(@NotNull BossChallengeInstance challenge, @NotNull Location deathLocation) {
@@ -619,7 +789,9 @@ public final class BossChallengeService {
                     .append(" &a")
                     .append(formatDamage(line.damage()))
                     .append(" &7")
-                    .append(String.format(Locale.ROOT, "%.1f%%", rate));
+                    .append(String.format(Locale.ROOT, "%.1f%%", rate))
+                    .append(" &cDeaths ")
+                    .append(challenge.playerDeathCount(line.playerId()));
         }
         return text.toString();
     }
@@ -670,6 +842,37 @@ public final class BossChallengeService {
         return result;
     }
 
+    private @NotNull List<Player> eligibleParticipantsForEntry(@NotNull BossChallengeInstance challenge) {
+        WorldMasterData hubData = worldService.getById(hubWorldId);
+        World hubWorld = hubData == null ? null : worldService.resolveLoadedWorld(hubData);
+        if (hubWorld == null) {
+            return List.of();
+        }
+        List<Player> entrants = new ArrayList<>();
+        for (UUID playerId : challenge.expectedParticipantIds()) {
+            Player player = Bukkit.getPlayer(playerId);
+            if (player == null || !player.isOnline() || !player.getWorld().getUID().equals(hubWorld.getUID())) {
+                continue;
+            }
+            if (!stillBelongsToAcceptedParty(challenge, playerId)) {
+                continue;
+            }
+            entrants.add(player);
+        }
+        return entrants;
+    }
+
+    private boolean stillBelongsToAcceptedParty(
+            @NotNull BossChallengeInstance challenge,
+            @NotNull UUID playerId
+    ) {
+        if (challenge.partyKey().startsWith("solo:")) {
+            return challenge.initiatorId().equals(playerId);
+        }
+        Party currentParty = partyService.findParty(playerId);
+        return currentParty != null && challenge.partyKey().equals("party:" + currentParty.getPartyId());
+    }
+
     private @NotNull List<Player> onlinePlayers(@NotNull Collection<UUID> playerIds) {
         List<Player> result = new ArrayList<>();
         for (UUID playerId : playerIds) {
@@ -692,6 +895,32 @@ public final class BossChallengeService {
             }
         }
         return false;
+    }
+
+    private @Nullable BossChallengeInstance findInProgressChallengeByParticipant(@NotNull UUID playerId) {
+        for (BossChallengeInstance challenge : challengesById.values()) {
+            if (challenge.state() == BossChallengeState.IN_PROGRESS && challenge.participantIds().contains(playerId)) {
+                return challenge;
+            }
+        }
+        return null;
+    }
+
+    private void reviveParticipant(@NotNull UUID challengeId, @NotNull UUID playerId) {
+        BossChallengeInstance challenge = challengesById.get(challengeId);
+        Player player = Bukkit.getPlayer(playerId);
+        if (challenge == null || challenge.state() != BossChallengeState.IN_PROGRESS
+                || challenge.field() == null || player == null || !player.isOnline()) {
+            return;
+        }
+        Location spawn = challenge.config().playerSpawnLocation().toLocation(challenge.field().world());
+        worldService.teleportPlayerAsync(player, spawn, null).whenComplete((success, throwable) ->
+                runSync(() -> {
+                    if (challenge.state() == BossChallengeState.IN_PROGRESS
+                            && (throwable != null || !Boolean.TRUE.equals(success))) {
+                        endChallenge(challenge, BossChallengeEndReason.TRANSFER_FAILED);
+                    }
+                }));
     }
 
     private void tickEntryVisuals() {
@@ -812,11 +1041,84 @@ public final class BossChallengeService {
         }
     }
 
+    private @NotNull CompletableFuture<Boolean> teleportParticipantsOutAsync(
+            @NotNull BossChallengeInstance challenge
+    ) {
+        List<Player> players = onlinePlayers(exitParticipantIds(challenge));
+        if (players.isEmpty()) {
+            return CompletableFuture.completedFuture(true);
+        }
+        List<CompletableFuture<Boolean>> transfers = players.stream()
+                .map(player -> teleportParticipantOutAsync(challenge, player))
+                .toList();
+        return CompletableFuture.allOf(transfers.toArray(CompletableFuture[]::new))
+                .handle((ignored, throwable) -> throwable == null
+                        && transfers.stream().allMatch(future -> Boolean.TRUE.equals(future.getNow(false))));
+    }
+
+    private @NotNull CompletableFuture<Boolean> teleportParticipantOutAsync(
+            @NotNull BossChallengeInstance challenge,
+            @NotNull Player player
+    ) {
+        WorldMasterData hubData = worldService.getById(hubWorldId);
+        CompletableFuture<Boolean> hubTransfer = hubData == null
+                ? CompletableFuture.completedFuture(false)
+                : worldService.teleportToSpawnAsync(player, hubData);
+        return hubTransfer.handle((success, throwable) -> throwable == null && Boolean.TRUE.equals(success))
+                .thenCompose(success -> {
+                    if (success) {
+                        return CompletableFuture.completedFuture(true);
+                    }
+                    BossFieldInstance field = challenge.field();
+                    World fallbackWorld = Bukkit.getWorlds().stream()
+                            .filter(world -> field == null || !world.getUID().equals(field.world().getUID()))
+                            .findFirst()
+                            .orElse(null);
+                    if (fallbackWorld == null) {
+                        return CompletableFuture.completedFuture(false);
+                    }
+                    return worldService.teleportPlayerAsync(player, fallbackWorld.getSpawnLocation(), null)
+                            .handle((fallbackSuccess, fallbackThrowable) ->
+                                    fallbackThrowable == null && Boolean.TRUE.equals(fallbackSuccess));
+                });
+    }
+
+    private void forceShutdownChallenge(@NotNull BossChallengeInstance challenge) {
+        challenge.state(BossChallengeState.ENDING);
+        if (!challenge.participantsConfirmed()) {
+            challenge.confirmParticipants(
+                    eligibleParticipantsForEntry(challenge).stream().map(Player::getUniqueId).toList()
+            );
+        }
+        BukkitTask resultWaitTask = challenge.resultWaitTask();
+        if (resultWaitTask != null) {
+            resultWaitTask.cancel();
+            challenge.resultWaitTask(null);
+        }
+        destroyDamageResult(challenge);
+        UUID bossMobId = challenge.bossMobInstanceId();
+        if (bossMobId != null) {
+            challengeIdByBossMob.remove(bossMobId);
+            mobService.destroy(bossMobId);
+        }
+        for (UUID participantId : exitParticipantIds(challenge)) {
+            playerDeathService.recoverNow(participantId);
+        }
+        WorldMasterData hubData = worldService.getById(hubWorldId);
+        if (hubData != null) {
+            teleportParticipantsToHub(challenge, hubData);
+        }
+        if (challenge.field() != null) {
+            fieldInstanceService.destroyField(challenge.field());
+        }
+        challenge.state(BossChallengeState.ENDED);
+    }
+
     private @NotNull CompletableFuture<List<Boolean>> teleportParticipantsToHubAsync(
             @NotNull BossChallengeInstance challenge,
             @NotNull WorldMasterData hubData
     ) {
-        List<Player> players = onlinePlayers(challenge.participantIds());
+        List<Player> players = onlinePlayers(challenge.expectedParticipantIds());
         if (players.isEmpty()) {
             return CompletableFuture.completedFuture(List.of());
         }
@@ -832,14 +1134,45 @@ public final class BossChallengeService {
     }
 
     private void teleportParticipantsToHub(@NotNull BossChallengeInstance challenge, @NotNull WorldMasterData hubData) {
-        for (Player player : onlinePlayers(challenge.participantIds())) {
+        for (Player player : onlinePlayers(exitParticipantIds(challenge))) {
             worldService.teleportToSpawn(player, hubData);
         }
     }
 
     private void notifyParticipants(@NotNull BossChallengeInstance challenge, @NotNull PlayerMsgId msgId, Object... args) {
-        for (Player player : onlinePlayers(challenge.participantIds())) {
+        for (Player player : onlinePlayers(displayParticipantIds(challenge))) {
             messageService.send(player, msgId, args);
+        }
+    }
+
+    private void notifyExpectedParticipants(
+            @NotNull BossChallengeInstance challenge,
+            @NotNull PlayerMsgId msgId,
+            Object... args
+    ) {
+        for (Player player : onlinePlayers(challenge.expectedParticipantIds())) {
+            messageService.send(player, msgId, args);
+        }
+    }
+
+    private @NotNull List<UUID> displayParticipantIds(@NotNull BossChallengeInstance challenge) {
+        return challenge.participantsConfirmed()
+                ? challenge.participantIds()
+                : challenge.expectedParticipantIds();
+    }
+
+    private @NotNull List<UUID> exitParticipantIds(@NotNull BossChallengeInstance challenge) {
+        return displayParticipantIds(challenge);
+    }
+
+    private void runSync(@NotNull Runnable action) {
+        if (!plugin.isEnabled()) {
+            return;
+        }
+        try {
+            Bukkit.getScheduler().runTask(plugin, action);
+        } catch (RuntimeException ignored) {
+            // Plugin disable と競合した非同期完了は stop() 側の同期回収に委ねます。
         }
     }
 

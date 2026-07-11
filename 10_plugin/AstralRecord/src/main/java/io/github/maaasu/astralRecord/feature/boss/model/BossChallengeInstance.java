@@ -20,9 +20,13 @@ public final class BossChallengeInstance {
     private final UUID initiatorId;
     private final MobTemplate bossTemplate;
     private final BossChallengeConfig config;
-    private final List<UUID> participantIds;
+    private final List<UUID> expectedParticipantIds;
     private final long createdAtMs;
     private final Map<UUID, Double> damageByPlayerId = new ConcurrentHashMap<>();
+    private final Map<UUID, Integer> deathsByPlayerId = new ConcurrentHashMap<>();
+    private volatile List<UUID> participantIds = List.of();
+    private boolean participantsConfirmed;
+    private int deathCount;
     private BossChallengeState state = BossChallengeState.PREPARING;
     private BossFieldInstance field;
     private UUID bossMobInstanceId;
@@ -44,7 +48,7 @@ public final class BossChallengeInstance {
         this.initiatorId = initiatorId;
         this.bossTemplate = bossTemplate;
         this.config = config;
-        this.participantIds = List.copyOf(participantIds);
+        this.expectedParticipantIds = List.copyOf(participantIds);
         this.createdAtMs = System.currentTimeMillis();
     }
 
@@ -68,8 +72,26 @@ public final class BossChallengeInstance {
         return config;
     }
 
+    public @NotNull List<UUID> expectedParticipantIds() {
+        return expectedParticipantIds;
+    }
+
     public @NotNull List<UUID> participantIds() {
         return participantIds;
+    }
+
+    /**
+     * ボスフィールドへ実際に入場する参加者を確定します。
+     *
+     * @param participantIds 入場時点で条件を満たしたプレイヤー UUID
+     */
+    public void confirmParticipants(@NotNull List<UUID> participantIds) {
+        this.participantIds = List.copyOf(participantIds);
+        this.participantsConfirmed = true;
+    }
+
+    public boolean participantsConfirmed() {
+        return participantsConfirmed;
     }
 
     public long createdAtMs() {
@@ -124,6 +146,29 @@ public final class BossChallengeInstance {
 
     public @NotNull Map<UUID, Double> damageSnapshot() {
         return Map.copyOf(damageByPlayerId);
+    }
+
+    /**
+     * 参加者の死亡回数を加算します。
+     *
+     * @param playerId 死亡した参加者 UUID
+     * @return パーティー共有の累計死亡回数
+     */
+    public int recordDeath(@NotNull UUID playerId) {
+        deathsByPlayerId.merge(playerId, 1, Integer::sum);
+        return ++deathCount;
+    }
+
+    public int deathCount() {
+        return deathCount;
+    }
+
+    public int playerDeathCount(@NotNull UUID playerId) {
+        return deathsByPlayerId.getOrDefault(playerId, 0);
+    }
+
+    public @NotNull Map<UUID, Integer> deathSnapshot() {
+        return Map.copyOf(deathsByPlayerId);
     }
 
     public long resultWaitEndsAtMs() {

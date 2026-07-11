@@ -439,15 +439,42 @@ public class MobCombatService {
      */
     @NotNull
     public List<MobDropResult> handleDeath(@NotNull MobInstance instance) {
-        MobTemplate template = instance.template();
         UUID killerId = instance.lastAttackerUuid();
         if (killerId == null) {
             killerId = instance.threatTable().top();
         }
         Player killer = killerId == null ? null : Bukkit.getPlayer(killerId);
-        Logger.log(LogId.D_5703, template.id(), killerId);
+        Logger.log(LogId.D_5703, instance.template().id(), killerId);
+        return handleDeathWithRecipients(instance, resolveDropRecipients(instance, killer));
+    }
 
-        List<AstPlayer> recipients = resolveDropRecipients(instance, killer);
+    /**
+     * 呼び出し元が確定した受取人へ Mob 撃破報酬を配布します。
+     * ボス挑戦など、通常のヘイト・現在パーティー判定を使用しない場合に利用します。
+     *
+     * @param instance 死亡 Mob
+     * @param recipients 固定済みの報酬受取人
+     * @return 配布対象プレイヤーごとのドロップ結果
+     */
+    public @NotNull List<MobDropResult> handleDeath(
+            @NotNull MobInstance instance,
+            @NotNull List<AstPlayer> recipients
+    ) {
+        Logger.log(LogId.D_5703, instance.template().id(), instance.lastAttackerUuid());
+        Map<UUID, AstPlayer> uniqueRecipients = new LinkedHashMap<>();
+        for (AstPlayer recipient : recipients) {
+            if (recipient != null && recipient.getBukkit().isOnline()) {
+                uniqueRecipients.putIfAbsent(recipient.getBukkit().getUniqueId(), recipient);
+            }
+        }
+        return handleDeathWithRecipients(instance, List.copyOf(uniqueRecipients.values()));
+    }
+
+    private @NotNull List<MobDropResult> handleDeathWithRecipients(
+            @NotNull MobInstance instance,
+            @NotNull List<AstPlayer> recipients
+    ) {
+        MobTemplate template = instance.template();
         if (recipients.isEmpty()) {
             Logger.log(LogId.W_5703, template.id());
         }

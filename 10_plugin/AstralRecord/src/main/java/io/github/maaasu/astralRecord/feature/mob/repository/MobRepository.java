@@ -342,6 +342,8 @@ public class MobRepository {
                 obj.has("partyMin") ? obj.get("partyMin").getAsInt() : 1,
                 obj.has("partyMax") ? obj.get("partyMax").getAsInt() : 6,
                 obj.has("timeLimitSeconds") ? obj.get("timeLimitSeconds").getAsLong() : 600L,
+                obj.has("deathLimit") ? obj.get("deathLimit").getAsInt() : 5,
+                obj.has("reviveDelaySeconds") ? obj.get("reviveDelaySeconds").getAsLong() : 5L,
                 parseBossScaling(getObject(obj, "scaling"))
         );
     }

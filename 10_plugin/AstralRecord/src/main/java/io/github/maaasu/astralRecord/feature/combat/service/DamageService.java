@@ -399,7 +399,11 @@ public final class DamageService {
                 playPlayerHurtEffect(victim.player().getBukkit(), result.critical());
                 applyDamageKnockback(attacker, victim, attackType);
                 if (updated.getCurrentHp() <= 0.0D && playerDeathService != null) {
-                    playerDeathService.startDeath(victim.player(), victim.location());
+                    boolean handledByBoss = bossChallengeService != null
+                            && bossChallengeService.handleParticipantDeath(victim.player(), victim.location());
+                    if (!handledByBoss) {
+                        playerDeathService.startDeath(victim.player(), victim.location());
+                    }
                 }
             }
             return;
@@ -411,7 +415,9 @@ public final class DamageService {
 
         var mob = victim.mob();
         if (mob == null) return;
-        mob.currentHealth(Math.max(0.0D, mob.currentHealth() - result.finalDamage()));
+        double healthBefore = mob.currentHealth();
+        double effectiveHealthDamage = Math.min(healthBefore, result.finalDamage());
+        mob.currentHealth(Math.max(0.0D, healthBefore - result.finalDamage()));
         playMobHurtEffect(mob.bukkitEntityId(), result.critical());
         applyDamageKnockback(attacker, victim, attackType);
         if (attacker != null && attacker.isPlayer()) {
@@ -421,7 +427,11 @@ public final class DamageService {
             mob.threatTable().add(attacker.id(), result.finalDamage());
             mob.lastAttackerUuid(attacker.id());
             if (bossChallengeService != null && bossChallengeService.isBossMob(mob.instanceId())) {
-                bossChallengeService.recordBossDamage(mob.instanceId(), attacker.id(), result.finalDamage());
+                bossChallengeService.recordBossDamage(
+                        mob.instanceId(),
+                        attacker.id(),
+                        effectiveHealthDamage + result.shieldDamage()
+                );
             }
             if (mob.state() == MobState.IDLE) {
                 mob.state(MobState.AGGRO);
@@ -433,9 +443,11 @@ public final class DamageService {
             Location deathLocation = mob.currentLocation();
             playMobDeathEffect(mob.bukkitEntityId(), deathLocation);
             boolean bossMob = bossChallengeService != null && bossChallengeService.isBossMob(mob.instanceId());
-            mobCombatService.handleDeath(mob);
             if (bossMob) {
+                mobCombatService.handleDeath(mob, bossChallengeService.resolveRewardRecipients(mob.instanceId()));
                 bossChallengeService.handleBossDefeated(mob.instanceId(), deathLocation);
+            } else {
+                mobCombatService.handleDeath(mob);
             }
         }
     }

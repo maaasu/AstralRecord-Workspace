@@ -60,7 +60,7 @@ drops:
   items:
     - itemId: item:magic_crystal
       rate: 0.65
-      amount: "2-4"
+      amount: "2~4"
       luckAffected: true
     - itemId: item:dark_essence
       rate: 0.25
@@ -92,6 +92,8 @@ challenge:
   partyMin: 1
   partyMax: 6
   timeLimitSeconds: 600
+  deathLimit: 5
+  reviveDelaySeconds: 5
   scaling:
     enabled: true
     healthPerExtraPlayer: 35.0

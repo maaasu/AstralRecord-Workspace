@@ -65,6 +65,8 @@ public class MobRepositoryPayloadTests
                 "partyMin": 1,
                 "partyMax": 6,
                 "timeLimitSeconds": 600,
+                "deathLimit": 5,
+                "reviveDelaySeconds": 5,
                 "scaling": {
                   "enabled": true,
                   "healthPerExtraPlayer": 35.0,
@@ -81,6 +83,8 @@ public class MobRepositoryPayloadTests
         Assert.Equal("twilight_colossus_field", mob.Challenge!.FieldWorldId);
         Assert.Equal("boss_hub", mob.Challenge.EntryLocation.WorldId);
         Assert.Equal(6, mob.Challenge.PartyMax);
+        Assert.Equal(5, mob.Challenge.DeathLimit);
+        Assert.Equal(5, mob.Challenge.ReviveDelaySeconds);
         Assert.NotNull(mob.Challenge.Scaling);
         Assert.True(mob.Challenge.Scaling!.Enabled);
         Assert.Equal(35.0D, mob.Challenge.Scaling.HealthPerExtraPlayer);

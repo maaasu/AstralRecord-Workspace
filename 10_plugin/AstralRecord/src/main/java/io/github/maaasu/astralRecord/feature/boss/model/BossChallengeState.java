@@ -7,5 +7,6 @@ public enum BossChallengeState {
     PREPARING,
     IN_PROGRESS,
     RESULT_WAITING,
+    ENDING,
     ENDED
 }
