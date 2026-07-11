@@ -34,8 +34,6 @@ import io.github.maaasu.astralRecord.feature.gathering.spawner.repository.Gather
 import io.github.maaasu.astralRecord.feature.gathering.spawner.service.GatheringSpawnerService;
 import io.github.maaasu.astralRecord.feature.guide.repository.GuideRepository;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
-import io.github.maaasu.astralRecord.shared.gui.debug.PagingDebugGui;
-import io.github.maaasu.astralRecord.shared.gui.debug.event.PagingDebugGuiEventHandler;
 import io.github.maaasu.astralRecord.shared.gui.event.GuiClickCooldownEventHandler;
 import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWaitService;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
@@ -248,7 +246,6 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerListGui playerListGui;
     private PlayerDetailGui playerDetailGui;
     private PlayerBrowserGuiEventHandler playerBrowserGuiEventHandler;
-    private PagingDebugGui pagingDebugGui;
     private MobService mobService;
     private MobSpawnerService mobSpawnerService;
     private GatheringService gatheringService;
@@ -774,7 +771,6 @@ public final class AstralRecord extends JavaPlugin {
         damageService.setEquipmentDurabilityService(equipmentDurabilityService);
         playerListGui = new PlayerListGui();
         playerDetailGui = new PlayerDetailGui();
-        pagingDebugGui = new PagingDebugGui();
         playerSettingGui = new PlayerSettingGui(playerSettingService);
         adventureRecordGuiEventHandler = new AdventureRecordGuiEventHandler(
             new AdventureRecordGui(itemService),
@@ -1040,10 +1036,6 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new PagingDebugGuiEventHandler(pagingDebugGui, menuView),
-            getServer().getPluginManager()
-        );
-        eventManager.registerHandler(
             new PlayerSettingJoinEventHandler(this, playerSettingService),
             getServer().getPluginManager()
         );
@@ -1298,15 +1290,6 @@ public final class AstralRecord extends JavaPlugin {
 
     public PlayerBrowserGuiEventHandler getPlayerBrowserGuiEventHandler() {
         return playerBrowserGuiEventHandler;
-    }
-
-    /**
-     * ページング確認用のダミー GUI を取得します。
-     *
-     * @return ページング確認用 GUI
-     */
-    public PagingDebugGui getPagingDebugGui() {
-        return pagingDebugGui;
     }
 
     public UserService getUserService() {

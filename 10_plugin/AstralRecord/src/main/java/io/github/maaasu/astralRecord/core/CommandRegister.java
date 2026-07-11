@@ -11,7 +11,6 @@ import io.github.maaasu.astralRecord.feature.gathering.command.GatheringCommand;
 import io.github.maaasu.astralRecord.feature.gathering.command.GatheringTabCompleter;
 import io.github.maaasu.astralRecord.feature.gathering.service.GatheringService;
 import io.github.maaasu.astralRecord.feature.gathering.spawner.service.GatheringSpawnerService;
-import io.github.maaasu.astralRecord.shared.gui.debug.command.PagingDebugCommand;
 import io.github.maaasu.astralRecord.feature.inventory.command.InventoryCommand;
 import io.github.maaasu.astralRecord.feature.inventory.command.InventoryTabCompleter;
 import io.github.maaasu.astralRecord.feature.item.command.ItemCommand;
@@ -129,7 +128,6 @@ public class CommandRegister {
         cm.registerCommand("trash", new TrashCommand());
         cm.registerCommand("sell", new SellCommand());
         cm.registerCommand("storage", new StorageCommand());
-        cm.registerCommand("pagingdummy", new PagingDebugCommand());
         cm.registerCommand("item", new ItemCommand(itemService), new ItemTabCompleter(itemService));
         cm.registerCommand("mob", new MobCommand(mobService, spawnerService, npcPlacementService), new MobTabCompleter(mobService, spawnerService, npcPlacementService));
         cm.registerCommand("gathering", new GatheringCommand(gatheringService, gatheringSpawnerService), new GatheringTabCompleter(gatheringService, gatheringSpawnerService));
