@@ -117,12 +117,6 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
             handleSuperModeSecretClick(player);
             return;
         }
-        if (rawSlot == PlayerSettingGui.CLOSE_SLOT) {
-            GuiSound.CLOSE.play(player);
-            player.closeInventory();
-            return;
-        }
-
         PlayerSettingKey key = gui.getKeyAtSlot(rawSlot);
         if (key == null) {
             secretClickCounts.remove(player.getUniqueId());

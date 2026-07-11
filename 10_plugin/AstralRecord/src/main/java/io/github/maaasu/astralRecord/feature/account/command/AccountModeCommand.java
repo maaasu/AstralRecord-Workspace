@@ -51,13 +51,13 @@ public class AccountModeCommand extends AstCommand {
         var userService = AstralRecord.getInstance().getUserService();
         var accountModeApplicationService = AstralRecord.getInstance().getAccountModeApplicationService();
         if (accountService == null || userService == null || accountModeApplicationService == null) {
-            sendError(sender, "AccountService/UserService が初期化されていません。");
+            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5330.getId()));
             return;
         }
 
         AccountMode mode = AccountMode.Companion.parse(args[0]);
         if (mode == null) {
-            sendError(sender, "mode は名称（PLAYER/BUILDER/ADMIN）または 0, 1, 2 のいずれかで指定してください。");
+            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5331.getId()));
             return;
         }
 
@@ -67,7 +67,11 @@ public class AccountModeCommand extends AstCommand {
         }
 
         AccountModel updated = accountModeApplicationService.changeMode(accountUuid, mode, getUpdatedBy(sender));
-        sendSuccess(sender, "account mode を更新しました: " + updated.getAccountName() + " = " + updated.getMode().name());
+        sendSuccess(sender, PlayerMsgResource.format(
+            PlayerMsgId.P_5332.getId(),
+            updated.getAccountName(),
+            updated.getMode().name()
+        ));
     }
 
     /**
@@ -86,7 +90,7 @@ public class AccountModeCommand extends AstCommand {
             if (sender instanceof Player player) {
                 var astPlayer = AstPlayerCache.get(player);
                 if (astPlayer == null) {
-                    sendError(sender, "対象アカウントが見つかりません: " + player.getName());
+                    sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5333.getId(), player.getName()));
                     return null;
                 }
                 return astPlayer.getAccount().getUuid();
@@ -97,7 +101,7 @@ public class AccountModeCommand extends AstCommand {
 
         UUID resolved = resolveAccountUuid(args[1]);
         if (resolved == null) {
-            sendError(sender, "対象アカウントが見つかりません: " + args[1]);
+            sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5333.getId(), args[1]));
         }
         return resolved;
     }

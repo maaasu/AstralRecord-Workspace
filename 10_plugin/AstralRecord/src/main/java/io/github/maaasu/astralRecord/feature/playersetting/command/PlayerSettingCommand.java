@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.playersetting.command;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.PlayerSettingMsgId;
 import io.github.maaasu.astralRecord.feature.playersetting.gui.PlayerSettingGui;
@@ -23,7 +24,7 @@ public final class PlayerSettingCommand extends AstCommand {
     protected void executePlayerCommand(@NotNull AstPlayer player, @NotNull String[] args) {
         PlayerSettingService service = AstralRecord.getInstance().getPlayerSettingService();
         if (service == null) {
-            sendError(player.getBukkit(), "PlayerSettingService is unavailable.");
+            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerSettingMsgId.P_5325.getId()));
             return;
         }
 

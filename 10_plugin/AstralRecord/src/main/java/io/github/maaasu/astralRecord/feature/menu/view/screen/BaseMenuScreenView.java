@@ -16,7 +16,6 @@ import java.util.List;
 public abstract class BaseMenuScreenView {
     public static final int SIZE = 54;
     public static final int BACK_SLOT = 49;
-    public static final int CLOSE_SLOT = 50;
     public static final String DISPLAY_AMOUNT_LORE_PREFIX = "スタック: ";
 
     protected void fill(@NotNull Inventory inventory) {
@@ -35,17 +34,6 @@ public abstract class BaseMenuScreenView {
             List.of(
                 Component.text("前の画面へ戻ります", NamedTextColor.GRAY),
                 Component.text("navigation", NamedTextColor.DARK_GRAY)
-            )
-        );
-    }
-
-    protected @NotNull ItemStack closeItem() {
-        return createItem(
-            Material.BARRIER,
-            Component.text("閉じる", NamedTextColor.RED, TextDecoration.BOLD),
-            List.of(
-                Component.text("この GUI を閉じます", NamedTextColor.GRAY),
-                Component.text("close", NamedTextColor.DARK_GRAY)
             )
         );
     }

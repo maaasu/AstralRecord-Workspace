@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.test;
 
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.bukkit.Bukkit;
@@ -44,7 +46,7 @@ public final class SkillTreeSpawnCheckCommand extends AstCommand {
         String worldHint = args.length >= 1 ? args[0] : DEFAULT_WORLD_HINT;
         World world = resolveWorld(worldHint);
         if (world == null) {
-            sendError(sender, "world not found: " + worldHint);
+            sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5052.getId(), worldHint));
             return;
         }
 
@@ -84,9 +86,21 @@ public final class SkillTreeSpawnCheckCommand extends AstCommand {
             }
         }
 
-        sendInfo(sender, "world=" + world.getName());
-        sendInfo(sender, "entities=" + totalEntities + ", displays=" + totalDisplays + ", itemDisplays=" + totalItemDisplays + ", textDisplays=" + totalTextDisplays);
-        sendInfo(sender, "skilltreeDisplays=" + skillTreeDisplays + ", admin=" + adminDisplays + ", node=" + nodeDisplays + ", edge=" + edgeDisplays);
+        sendInfo(sender, PlayerMsgResource.format(PlayerMsgId.P_5053.getId(), world.getName()));
+        sendInfo(sender, PlayerMsgResource.format(
+            PlayerMsgId.P_5054.getId(),
+            totalEntities,
+            totalDisplays,
+            totalItemDisplays,
+            totalTextDisplays
+        ));
+        sendInfo(sender, PlayerMsgResource.format(
+            PlayerMsgId.P_5055.getId(),
+            skillTreeDisplays,
+            adminDisplays,
+            nodeDisplays,
+            edgeDisplays
+        ));
     }
 
     @Nullable

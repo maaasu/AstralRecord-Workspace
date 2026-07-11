@@ -43,7 +43,6 @@ public class AdventureRecordGui {
     public static final int BOND_RECORD_SLOT = 31;
     public static final int SEARCH_BUTTON_SLOT = 53;
     public static final int SEARCH_BACK_SLOT = BaseMenuScreenView.BACK_SLOT;
-    public static final int SEARCH_CLOSE_SLOT = BaseMenuScreenView.CLOSE_SLOT;
     public static final int[] SEARCH_ITEM_SLOTS = {
         10, 11, 12, 13, 14, 15, 16,
         19, 20, 21, 22, 23, 24, 25,
@@ -330,10 +329,6 @@ public class AdventureRecordGui {
                 Component.text("navigation", NamedTextColor.DARK_GRAY)
             )
         );
-    }
-
-    private @NotNull ItemStack closeItem() {
-        return createItem(Material.BARRIER, Component.text("閉じる", NamedTextColor.RED), List.of());
     }
 
     private @NotNull ItemStack createItem(

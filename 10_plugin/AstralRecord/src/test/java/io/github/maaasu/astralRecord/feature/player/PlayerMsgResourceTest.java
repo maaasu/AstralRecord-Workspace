@@ -50,4 +50,15 @@ class PlayerMsgResourceTest {
         assertTrue(formatted.contains("命中 95.0 - 回避 3.0"));
         assertTrue(formatted.contains("\u00a7eCRITICAL"));
     }
+
+    @Test
+    void displayAndCommandMessagesAreLoadedFromPlayerProperties() {
+        String accountMode = PlayerMsgResource.format(PlayerMsgId.P_5332.getId(), "Alice", "PLAYER");
+        String displayAudit = PlayerMsgResource.format(PlayerMsgId.P_5055.getId(), 4, 3, 2, 1);
+
+        assertTrue(accountMode.contains("Alice"));
+        assertTrue(accountMode.contains("PLAYER"));
+        assertTrue(displayAudit.contains("skilltreeDisplays="));
+        assertTrue(PlayerMsgResource.getMessage(PlayerMsgId.P_5325.getId()).contains("PlayerSettingService"));
+    }
 }

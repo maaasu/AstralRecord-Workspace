@@ -34,7 +34,6 @@ public final class PlayerListGui {
     public static final int CONTENT_SLOT_COUNT = PagedGuiView.CONTENT_SLOT_COUNT;
     public static final int PREVIOUS_SLOT = PagedGuiView.PREVIOUS_SLOT;
     public static final int BACK_SLOT = PagedGuiView.BACK_SLOT;
-    public static final int CLOSE_SLOT = PagedGuiView.CLOSE_SLOT;
     public static final int NEXT_SLOT = PagedGuiView.NEXT_SLOT;
 
     private final PagedGuiView pagedGuiView = new PagedGuiView();

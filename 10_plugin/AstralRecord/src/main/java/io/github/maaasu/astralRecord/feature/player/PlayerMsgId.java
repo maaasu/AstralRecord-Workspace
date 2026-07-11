@@ -27,11 +27,29 @@ public enum PlayerMsgId {
 
     // region /temp/command/TestCommand.java 5050-5059
     /**
-     * [TEST] プレイヤー情報: 名前={0}, UUID={1}
+     * 表示したい Material を指定してください。例: /test diamond 5 Test
      */
+    P_5050(5050),
     /**
-     * [TEST] ユーザー権限レベル: {0}
+     * テスト表示を {0} 秒間表示します。
      */
+    P_5051(5051),
+    /**
+     * world not found: {0}
+     */
+    P_5052(5052),
+    /**
+     * world={0}
+     */
+    P_5053(5053),
+    /**
+     * entities={0}, displays={1}, itemDisplays={2}, textDisplays={3}
+     */
+    P_5054(5054),
+    /**
+     * skilltreeDisplays={0}, admin={1}, node={2}, edge={3}
+     */
+    P_5055(5055),
     // endregion
 
     // region /temp/command/TempCommand.java 5080-5089
@@ -398,6 +416,14 @@ public enum PlayerMsgId {
     P_5322(5322),
     P_5323(5323),
     P_5324(5324),
+    P_5325(5325),
+    // endregion
+
+    // region /feature/account/command/AccountModeCommand.java 5330-5339
+    P_5330(5330),
+    P_5331(5331),
+    P_5332(5332),
+    P_5333(5333),
     // endregion
 
     // region /feature/combat 5350-5359

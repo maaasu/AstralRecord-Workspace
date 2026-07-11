@@ -34,7 +34,6 @@ public final class PartyGui extends BaseMenuScreenView {
     public static final int INVITE_SLOT = 15;
     public static final int LEAVE_OR_DISBAND_SLOT = 51;
     public static final int BACK_SLOT = BaseMenuScreenView.BACK_SLOT;
-    public static final int CLOSE_SLOT = BaseMenuScreenView.CLOSE_SLOT;
     private static final int INFO_SLOT = 4;
     private static final int LEADER_SLOT = 13;
     private static final int[] MEMBER_SLOTS = {31, 30, 32, 29, 33};

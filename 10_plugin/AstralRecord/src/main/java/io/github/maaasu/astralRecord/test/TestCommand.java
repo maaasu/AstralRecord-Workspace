@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.test;
 
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
@@ -51,7 +53,7 @@ public final class TestCommand extends AstCommand {
 
         Material material = Material.matchMaterial(args[0]);
         if (material == null || !material.isItem()) {
-            sendError(player.getBukkit(), "表示したい Material を指定してください。例: /test diamond 5 Test");
+            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5050.getId()));
             return;
         }
 
@@ -61,7 +63,7 @@ public final class TestCommand extends AstCommand {
                 : "&eTEST &f" + material.name();
 
         showTemporaryDisplay(player.getBukkit(), material, label, seconds);
-        sendSuccess(player.getBukkit(), "テスト表示を " + seconds + " 秒間表示します。");
+        sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5051.getId(), seconds));
     }
 
     private void showTemporaryDisplay(

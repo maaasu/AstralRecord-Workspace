@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.shared.gui.paging;
 
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiSupport;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -81,6 +82,13 @@ public final class PagedGuiView {
             Component.text("戻る", NamedTextColor.WHITE, TextDecoration.BOLD),
             List.of(Component.text("前の画面へ戻ります", NamedTextColor.GRAY))
         ));
+        if (!HotbarShortcutGuiSupport.isManagedGui(inventory)) {
+            inventory.setItem(CLOSE_SLOT, createItem(
+                Material.BARRIER,
+                Component.text("閉じる", NamedTextColor.RED, TextDecoration.BOLD),
+                List.of(Component.text("この GUI を閉じます", NamedTextColor.GRAY))
+            ));
+        }
         if (hasNextPage(pageIndex, itemCount)) {
             inventory.setItem(NEXT_SLOT, createItem(
                 Material.MAP,

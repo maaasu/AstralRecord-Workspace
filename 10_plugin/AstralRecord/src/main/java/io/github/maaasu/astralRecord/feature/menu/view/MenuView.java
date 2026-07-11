@@ -47,7 +47,6 @@ import java.util.UUID;
 
 public class MenuView {
     public static final int SIZE = BaseMenuScreenView.SIZE;
-    public static final int CLOSE_SLOT = BaseMenuScreenView.CLOSE_SLOT;
     public static final int BACK_SLOT = BaseMenuScreenView.BACK_SLOT;
     public static final int STATUS_SLOT = MainMenuScreenView.STATUS_SLOT;
     public static final int PLAYER_SETTING_SLOT = MainMenuScreenView.PLAYER_SETTING_SLOT;
@@ -75,7 +74,6 @@ public class MenuView {
     public static final int EQUIPMENT_ACCESSORY_7_SLOT = EquipmentMenuScreenView.EQUIPMENT_ACCESSORY_7_SLOT;
     public static final int PAGING_PREVIOUS_SLOT = PagedGuiView.PREVIOUS_SLOT;
     public static final int PAGING_BACK_SLOT = PagedGuiView.BACK_SLOT;
-    public static final int PAGING_CLOSE_SLOT = PagedGuiView.CLOSE_SLOT;
     public static final int PAGING_NEXT_SLOT = PagedGuiView.NEXT_SLOT;
     public static final int TRASH_PREVIOUS_SLOT = TrashScreenView.PREVIOUS_SLOT;
     public static final int TRASH_GUIDE_SLOT = TrashScreenView.GUIDE_SLOT;

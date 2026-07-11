@@ -136,11 +136,6 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
     }
 
     private void handlePlayerListClick(@NotNull Player player, int rawSlot, @NotNull org.bukkit.inventory.Inventory inventory) {
-        if (rawSlot == PlayerListGui.CLOSE_SLOT) {
-            GuiSound.CLOSE.play(player);
-            player.closeInventory();
-            return;
-        }
         if (rawSlot == PlayerListGui.BACK_SLOT) {
             GuiSound.SELECT.play(player);
             back(player, playerListGui.getBackTarget(inventory));
