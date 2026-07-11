@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.account.service.AccountModeApplicationService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.GameModeChangeGuard;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.GameMode;
 import org.bukkit.inventory.Inventory;
@@ -87,6 +88,9 @@ public class PlayerModeEventHandler extends AbstractEventHandler {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onGameModeChange(PlayerGameModeChangeEvent event) {
         runSafely(() -> {
+            if (GameModeChangeGuard.isManagedChange(event.getPlayer())) {
+                return;
+            }
             var astPlayer = AstPlayerCache.get(event.getPlayer());
             if (astPlayer == null) {
                 return;
@@ -110,7 +114,7 @@ public class PlayerModeEventHandler extends AbstractEventHandler {
                 return;
             }
             event.setCancelled(true);
-            event.getPlayer().setGameMode(GameMode.ADVENTURE);
+            GameModeChangeGuard.setGameMode(event.getPlayer(), GameMode.ADVENTURE);
         }, LogId.E_5072, event.getPlayer().getName());
     }
 

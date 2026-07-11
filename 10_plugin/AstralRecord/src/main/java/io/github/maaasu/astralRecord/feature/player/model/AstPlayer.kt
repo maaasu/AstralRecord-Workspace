@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountModel
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId
+import io.github.maaasu.astralRecord.feature.player.GameModeChangeGuard
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot
 import io.github.maaasu.astralRecord.feature.user.model.UserModel
@@ -177,14 +178,14 @@ data class AstPlayer(
         account = newAccount
         if (newAccount.mode != AccountMode.PLAYER) {
             if (bukkit.gameMode == GameMode.ADVENTURE) {
-                bukkit.gameMode = GameMode.SURVIVAL
+                GameModeChangeGuard.setGameMode(bukkit, GameMode.SURVIVAL)
             }
             applyReach(Attribute.ENTITY_INTERACTION_RANGE, 3.0)
             applyReach(Attribute.BLOCK_INTERACTION_RANGE, 4.5)
             return
         }
 
-        bukkit.gameMode = GameMode.ADVENTURE
+        GameModeChangeGuard.setGameMode(bukkit, GameMode.ADVENTURE)
         applyReach(Attribute.ENTITY_INTERACTION_RANGE, 0.0)
         applyReach(Attribute.BLOCK_INTERACTION_RANGE, 0.0)
     }

@@ -27,6 +27,7 @@ import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
 import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
+import io.github.maaasu.astralRecord.feature.player.GameModeChangeGuard;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageSortDirection;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageSortKey;
@@ -498,7 +499,7 @@ public class InventoryService {
         }
         astPlayer.getBukkit().getInventory().setContents(snapshot.contents());
         if (snapshot.gameMode() != null) {
-            astPlayer.getBukkit().setGameMode(snapshot.gameMode());
+            GameModeChangeGuard.setGameMode(astPlayer.getBukkit(), snapshot.gameMode());
         }
         astPlayer.getBukkit().updateInventory();
     }
