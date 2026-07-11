@@ -19,8 +19,17 @@ import java.util.UUID;
 public class AccountModeCommand extends AstCommand {
 
     public AccountModeCommand() {
-        super("accountmode", "Set account mode.",
-                "/account mode <mode> [<player|accountUuid>]", false, 99);
+        this("accountmode", "/account mode <mode> [<player|accountUuid>]");
+    }
+
+    /**
+     * 指定したルート名と使用方法でアカウントモード変更コマンドを初期化します。
+     *
+     * @param commandName 登録するコマンド名
+     * @param usage 表示する使用方法
+     */
+    public AccountModeCommand(@NotNull String commandName, @NotNull String usage) {
+        super(commandName, "Set account mode.", usage, false, 99);
     }
 
     @Override
@@ -40,7 +49,8 @@ public class AccountModeCommand extends AstCommand {
 
         var accountService = AstralRecord.getInstance().getAccountService();
         var userService = AstralRecord.getInstance().getUserService();
-        if (accountService == null || userService == null) {
+        var accountModeApplicationService = AstralRecord.getInstance().getAccountModeApplicationService();
+        if (accountService == null || userService == null || accountModeApplicationService == null) {
             sendError(sender, "AccountService/UserService が初期化されていません。");
             return;
         }
@@ -56,8 +66,7 @@ public class AccountModeCommand extends AstCommand {
             return;
         }
 
-        AccountModel updated = accountService.setMode(accountUuid, mode, getUpdatedBy(sender));
-        applyOnlineAccountMode(updated);
+        AccountModel updated = accountModeApplicationService.changeMode(accountUuid, mode, getUpdatedBy(sender));
         sendSuccess(sender, "account mode を更新しました: " + updated.getAccountName() + " = " + updated.getMode().name());
     }
 
@@ -120,40 +129,6 @@ public class AccountModeCommand extends AstCommand {
             return null;
         }
         return null;
-    }
-
-    private void applyOnlineAccountMode(@NotNull AccountModel updated) {
-        for (var astPlayer : AstPlayerCache.getAll()) {
-            if (!astPlayer.getAccount().getUuid().equals(updated.getUuid())) {
-                continue;
-            }
-            var previousMode = astPlayer.getAccount().getMode();
-            var inventoryService = AstralRecord.getInstance().getInventoryService();
-            if (inventoryService != null
-                    && isToolInventoryMode(previousMode)
-                    && previousMode != updated.getMode()) {
-                inventoryService.saveToolInventorySnapshot(astPlayer);
-            }
-            astPlayer.applyAccountMode(updated);
-            if (inventoryService == null) {
-                continue;
-            }
-            if (updated.getMode().shouldReflectInventoryToGui()) {
-                if (isToolInventoryMode(previousMode) && previousMode != updated.getMode()) {
-                    inventoryService.applyInventoriesToGuiForModeSwitch(astPlayer);
-                } else {
-                    inventoryService.applyInventoriesToGui(astPlayer);
-                }
-            } else if (isToolInventoryMode(updated.getMode())) {
-                inventoryService.applyToolInventoryToGui(astPlayer);
-            } else {
-                inventoryService.clearGuiInventory(astPlayer);
-            }
-        }
-    }
-
-    private boolean isToolInventoryMode(@NotNull AccountMode mode) {
-        return mode == AccountMode.BUILDER || mode == AccountMode.ADMIN;
     }
 
     private UUID getUpdatedBy(@NotNull CommandSender sender) {

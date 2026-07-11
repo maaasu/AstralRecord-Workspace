@@ -171,6 +171,16 @@ public class WorldCommand extends AstCommand {
         );
     }
 
+    /**
+     * 指定ワールドのスポーン地点へ実行者を移動します。
+     *
+     * @param player 移動対象プレイヤー
+     * @param args ワールド ID を先頭に持つ引数
+     */
+    public void teleport(@NotNull AstPlayer player, @NotNull String[] args) {
+        handleTeleport(player, args);
+    }
+
     private void handleLoaded(@NotNull AstPlayer player) {
         String loaded = Bukkit.getWorlds().stream()
                 .map(org.bukkit.World::getName)

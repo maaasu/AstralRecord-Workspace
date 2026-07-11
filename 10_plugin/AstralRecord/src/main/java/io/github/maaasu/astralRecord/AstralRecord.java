@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.adventurerecord.repository.Adventur
 import io.github.maaasu.astralRecord.feature.adventurerecord.service.AdventureRecordService;
 import io.github.maaasu.astralRecord.feature.account.repository.AccountRepository;
 import io.github.maaasu.astralRecord.feature.account.service.AccountClassProgressSaveTask;
+import io.github.maaasu.astralRecord.feature.account.service.AccountModeApplicationService;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.boss.event.BossEntryEventHandler;
 import io.github.maaasu.astralRecord.feature.boss.event.BossPlayerEventHandler;
@@ -221,6 +222,7 @@ public final class AstralRecord extends JavaPlugin {
     private LootService lootService;
     private ItemStackFactory itemStackFactory;
     private AccountService accountService;
+    private AccountModeApplicationService accountModeApplicationService;
     private UserService userService;
     private PlayerService playerService;
     private PlayerMessageService playerMessageService;
@@ -577,6 +579,7 @@ public final class AstralRecord extends JavaPlugin {
             inventoryStateRegistry,
             inventoryPersistence
         );
+        accountModeApplicationService = new AccountModeApplicationService(accountService, inventoryService);
         skillTreeService.setInventoryService(inventoryService);
         inventoryAutoSaveTask = new InventoryAutoSaveTask(inventoryService, inventoryPersistence, inventoryStateRegistry);
         currencyService = new CurrencyService(inventoryService);
@@ -1082,7 +1085,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new PlayerModeEventHandler(),
+            new PlayerModeEventHandler(accountModeApplicationService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
@@ -1311,6 +1314,10 @@ public final class AstralRecord extends JavaPlugin {
 
     public AccountService getAccountService() {
         return accountService;
+    }
+
+    public AccountModeApplicationService getAccountModeApplicationService() {
+        return accountModeApplicationService;
     }
 
     public StatusService getStatusService() {

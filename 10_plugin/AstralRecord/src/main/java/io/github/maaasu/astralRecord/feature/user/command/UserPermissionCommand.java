@@ -25,8 +25,17 @@ public class UserPermissionCommand extends AstCommand {
     private static final String SOURCE_CONSOLE = "CONSOLE";
 
     public UserPermissionCommand() {
-        super("userpermission", "Set user permission.",
-                "/user permission <permission> [<player|uuid>]", false, UserPermission.ADMIN.getValue());
+        this("userpermission", "/user permission <permission> [<player|uuid>]");
+    }
+
+    /**
+     * 指定したルート名と使用方法で権限変更コマンドを初期化します。
+     *
+     * @param commandName 登録するコマンド名
+     * @param usage 表示する使用方法
+     */
+    public UserPermissionCommand(@NotNull String commandName, @NotNull String usage) {
+        super(commandName, "Set user permission.", usage, false, UserPermission.ADMIN.getValue());
     }
 
     @Override
