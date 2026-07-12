@@ -113,6 +113,18 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
         assertTrue(loadedWorld.getGameRuleValue(GameRules.MOB_GRIEFING));
     }
 
+    @Test
+    void runtimeWorldUsesRegisteredJapaneseDisplayNameInsteadOfInternalPath() {
+        WorldService service = new WorldService(mock(WorldRepository.class));
+        World runtimeWorld = server().addSimpleWorld(
+                "plugins/AstralRecord/_world_instances/boss_field/twilight_colossus_field/instance"
+        );
+
+        service.registerRuntimeDisplayName(runtimeWorld, "黄昏の巨像フィールド");
+
+        assertEquals("黄昏の巨像フィールド", service.resolveDisplayName(runtimeWorld));
+    }
+
     private int withPluginLogger(IntSupplier action) {
         try (MockedStatic<AstralRecord> astralRecord = Mockito.mockStatic(AstralRecord.class)) {
             AstralRecord plugin = mock(AstralRecord.class);

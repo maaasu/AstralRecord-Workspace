@@ -89,7 +89,7 @@ public final class BossFieldInstanceService {
                         return;
                     }
                     try {
-                        result.complete(loadPreparedField(challenge, prepared.target()));
+                        result.complete(loadPreparedField(challenge, worldData, prepared.target()));
                     } catch (Throwable ex) {
                         deletePreparedTargetAsync(prepared.target());
                         result.completeExceptionally(ex);
@@ -200,6 +200,7 @@ public final class BossFieldInstanceService {
 
     private @NotNull BossFieldInstance loadPreparedField(
             @NotNull BossChallengeInstance challenge,
+            @NotNull WorldMasterData worldData,
             @NotNull Path target
     ) throws IOException {
         World world = Bukkit.createWorld(new WorldCreator(worldCreatorName(target)));
@@ -207,6 +208,7 @@ public final class BossFieldInstanceService {
             throw new IOException("Bukkit could not load boss field world: " + target);
         }
         worldService.applyRpgGameRules(world);
+        worldService.registerRuntimeDisplayName(world, worldData.displayName());
         return new BossFieldInstance(challenge.challengeId(), world.getName(), target, world);
     }
 
@@ -261,6 +263,7 @@ public final class BossFieldInstanceService {
             Logger.log(LogId.E_6503, field.worldName(), field.worldFolder().toString());
             return false;
         }
+        worldService.unregisterRuntimeDisplayName(field.world());
         return true;
     }
 

@@ -52,6 +52,7 @@ public class WorldService {
     private final Map<String, WorldMasterData> loadedWorlds = new LinkedHashMap<>();
     private final Map<String, org.bukkit.World> resolvedBukkitWorldsById = new LinkedHashMap<>();
     private final Map<UUID, WorldMasterData> worldDataByBukkitWorldId = new LinkedHashMap<>();
+    private final Map<UUID, String> runtimeDisplayNamesByBukkitWorldId = new LinkedHashMap<>();
 
     /**
      * WorldService を初期化します。
@@ -220,6 +221,32 @@ public class WorldService {
             }
         }
         return null;
+    }
+
+    /**
+     * 一時生成された Bukkit ワールドへプレイヤー向け表示名を登録します。
+     *
+     * @param world 表示名を関連付ける Bukkit ワールド
+     * @param displayName タイトルなどへ表示する名称
+     */
+    public synchronized void registerRuntimeDisplayName(
+            @NotNull org.bukkit.World world,
+            @NotNull String displayName
+    ) {
+        if (displayName.isBlank()) {
+            runtimeDisplayNamesByBukkitWorldId.remove(world.getUID());
+            return;
+        }
+        runtimeDisplayNamesByBukkitWorldId.put(world.getUID(), displayName);
+    }
+
+    /**
+     * 一時生成された Bukkit ワールドのプレイヤー向け表示名を解除します。
+     *
+     * @param world 表示名の関連付けを解除する Bukkit ワールド
+     */
+    public synchronized void unregisterRuntimeDisplayName(@NotNull org.bukkit.World world) {
+        runtimeDisplayNamesByBukkitWorldId.remove(world.getUID());
     }
 
     private void cacheResolvedWorld(@NotNull WorldMasterData data, @NotNull org.bukkit.World world) {
@@ -429,7 +456,11 @@ public class WorldService {
     }
 
     @NotNull
-    private String resolveDisplayName(@NotNull org.bukkit.World world) {
+    String resolveDisplayName(@NotNull org.bukkit.World world) {
+        String runtimeDisplayName = runtimeDisplayNamesByBukkitWorldId.get(world.getUID());
+        if (runtimeDisplayName != null && !runtimeDisplayName.isBlank()) {
+            return ColorCodeUtil.toLegacyText(runtimeDisplayName, "");
+        }
         WorldMasterData worldData = findByBukkitWorld(world);
         if (worldData != null && !worldData.displayName().isBlank()) {
             return ColorCodeUtil.toLegacyText(worldData.displayName(), worldData.id());
