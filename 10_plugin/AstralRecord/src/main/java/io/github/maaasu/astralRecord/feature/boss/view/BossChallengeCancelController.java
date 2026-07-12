@@ -1,5 +1,8 @@
 package io.github.maaasu.astralRecord.feature.boss.view;
 
+import io.github.maaasu.astralRecord.shared.display.DisplayAnchor;
+import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
+import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.BlockDisplay;
@@ -25,19 +28,22 @@ public final class BossChallengeCancelController {
     private final BlockDisplay baseDisplay;
     private final BlockDisplay topDisplay;
     private final Interaction interaction;
+    private final DisplayTextService.ManagedTextDisplay promptDisplay;
 
     private BossChallengeCancelController(
             @NotNull UUID challengeId,
             @NotNull Location center,
             @NotNull BlockDisplay baseDisplay,
             @NotNull BlockDisplay topDisplay,
-            @NotNull Interaction interaction
+            @NotNull Interaction interaction,
+            @NotNull DisplayTextService.ManagedTextDisplay promptDisplay
     ) {
         this.challengeId = challengeId;
         this.center = center.clone();
         this.baseDisplay = baseDisplay;
         this.topDisplay = topDisplay;
         this.interaction = interaction;
+        this.promptDisplay = promptDisplay;
     }
 
     /**
@@ -45,11 +51,13 @@ public final class BossChallengeCancelController {
      *
      * @param challengeId 挑戦 ID
      * @param location 装置の中心座標
+     * @param displayTextService テキストディスプレイ管理サービス
      * @return 生成した操作装置
      */
     public static @NotNull BossChallengeCancelController spawn(
             @NotNull UUID challengeId,
-            @NotNull Location location
+            @NotNull Location location,
+            @NotNull DisplayTextService displayTextService
     ) {
         Location center = location.clone();
         BlockDisplay base = center.getWorld().spawn(center, BlockDisplay.class);
@@ -73,7 +81,14 @@ public final class BossChallengeCancelController {
         Interaction interaction = center.getWorld().spawn(center.clone().add(0.0D, 0.35D, 0.0D), Interaction.class);
         interaction.setInteractionWidth(1.8F);
         interaction.setInteractionHeight(1.8F);
-        return new BossChallengeCancelController(challengeId, center, base, top, interaction);
+        DisplayTextService.ManagedTextDisplay promptDisplay = displayTextService.create(
+                DisplayAnchor.fixed(center.clone().add(0.0D, 2.25D, 0.0D)),
+                DisplayTextOptions.defaults("&cボス挑戦操作\n&eドロップ&fで中止GUIを開く")
+                        .withLineWidth(260)
+                        .withViewRange(48.0F)
+                        .withShadowed(true)
+        );
+        return new BossChallengeCancelController(challengeId, center, base, top, interaction, promptDisplay);
     }
 
     /**
@@ -109,6 +124,7 @@ public final class BossChallengeCancelController {
      * 装置のエンティティを破棄します。
      */
     public void destroy() {
+        promptDisplay.destroy();
         for (Entity entity : List.of(baseDisplay, topDisplay, interaction)) {
             if (!entity.isDead()) {
                 entity.remove();
