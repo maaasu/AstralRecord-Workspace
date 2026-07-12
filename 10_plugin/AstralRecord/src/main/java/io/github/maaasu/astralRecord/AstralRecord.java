@@ -694,10 +694,6 @@ public final class AstralRecord extends JavaPlugin {
         damageService.setConditionService(conditionService);
         mobService.setConditionService(conditionService);
 
-        // dodge
-        dodgeService = new DodgeService(this, statusService, playerHudService, particleDisplayService);
-        airActionService = new AirActionService(this, playerHudService, particleDisplayService);
-
         var playerSaveCoordinator = new PlayerSaveCoordinator(
             java.util.List.of(
                 new AccountClassProgressSaveTask(accountService),
@@ -750,6 +746,10 @@ public final class AstralRecord extends JavaPlugin {
             bossChallengeService
         );
         skillTreeService.setPlayerHudService(playerHudService);
+
+        // dodge
+        dodgeService = new DodgeService(this, statusService, playerHudService, particleDisplayService);
+        airActionService = new AirActionService(this, playerHudService, particleDisplayService);
 
         // resource pack
         resourcePackService = new ResourcePackService(ConfigProperties.getInstance());

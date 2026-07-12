@@ -702,6 +702,16 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             );
             return;
         }
+        if (action == MenuShortcutAction.RETURN_TO_BASE) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer == null || !returnToBaseService.beginReturn(astPlayer)) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.SELECT.play(player);
+            player.closeInventory();
+            return;
+        }
         if (action == MenuShortcutAction.EQUIPMENT_GUI) {
             GuiSound.OPEN.play(player);
             openEquipmentGui(player);

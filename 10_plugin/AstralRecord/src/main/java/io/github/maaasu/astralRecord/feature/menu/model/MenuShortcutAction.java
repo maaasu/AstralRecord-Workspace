@@ -12,6 +12,7 @@ public enum MenuShortcutAction {
     NONE("NONE", "未設定", Material.GRAY_DYE, NamedTextColor.GRAY, false),
     MAIN_MENU("MAIN_MENU", "メニュー", Material.NETHER_STAR, NamedTextColor.AQUA, false),
     STATUS("STATUS", "ステータス", Material.PLAYER_HEAD, NamedTextColor.GREEN, false),
+    RETURN_TO_BASE("RETURN_TO_BASE", MenuIconDefinition.RETURN_TO_BASE.getDisplayNameJa(), MenuIconDefinition.RETURN_TO_BASE.getMaterial(), MenuIconDefinition.RETURN_TO_BASE.getColor(), false),
     INVENTORY_CURRENCY("INVENTORY_CURRENCY", MenuIconDefinition.CURRENCY.getDisplayNameJa(), MenuIconDefinition.CURRENCY.getMaterial(), MenuIconDefinition.CURRENCY.getColor(), true),
     EQUIPMENT_GUI("EQUIPMENT_GUI", MenuIconDefinition.EQUIPMENT.getDisplayNameJa(), MenuIconDefinition.EQUIPMENT.getMaterial(), MenuIconDefinition.EQUIPMENT.getColor(), false);
 
@@ -70,7 +71,7 @@ public enum MenuShortcutAction {
     public static @NotNull MenuShortcutAction defaultForSlot(int slotIndex) {
         return switch (slotIndex) {
             case 0 -> STATUS;
-            case 1 -> NONE;
+            case 1 -> RETURN_TO_BASE;
             case 2 -> INVENTORY_CURRENCY;
             case 3 -> EQUIPMENT_GUI;
             default -> NONE;

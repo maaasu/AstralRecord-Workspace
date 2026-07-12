@@ -194,12 +194,9 @@ final class CraftShortcutView {
             .append(Component.text(String.valueOf(passivePoints), NamedTextColor.AQUA)));
         lore.add(Component.text("━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
         if (snapshot != null && !snapshot.getValues().isEmpty()) {
-            addStatusLine(lore, snapshot, StatusType.ATTACK);
-            addStatusLine(lore, snapshot, StatusType.MELEE_ATTACK);
-            addStatusLine(lore, snapshot, StatusType.RANGED_ATTACK);
-            addStatusLine(lore, snapshot, StatusType.MAGIC_ATTACK);
-            addStatusLine(lore, snapshot, StatusType.DEFENSE);
-            addStatusLine(lore, snapshot, StatusType.MAGIC_DEFENSE);
+            for (StatusType statusType : StatusType.values()) {
+                addStatusLine(lore, snapshot, statusType);
+            }
         } else {
             lore.add(Component.text("ステータス未取得", NamedTextColor.DARK_GRAY));
         }
@@ -276,9 +273,6 @@ final class CraftShortcutView {
         @NotNull StatusSnapshot snapshot,
         @NotNull StatusType statusType
     ) {
-        if (snapshot.getValue(statusType) == null) {
-            return;
-        }
         lore.add(Component.text(statusType.getDisplayName() + ": ", statusType.namedColor())
             .append(Component.text(statusType.formatValue(snapshot.getMaxValue(statusType)), NamedTextColor.WHITE)));
     }
