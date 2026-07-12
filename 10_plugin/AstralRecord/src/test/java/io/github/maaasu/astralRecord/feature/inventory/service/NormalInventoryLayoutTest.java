@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.inventory.service;
 
+import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
@@ -48,5 +49,13 @@ class NormalInventoryLayoutTest {
         assertNull(NormalInventoryLayout.findNextFreeSlot(used, 40));
         assertTrue(NormalInventoryLayout.isManagedSlot(40, 40));
         assertFalse(NormalInventoryLayout.isManagedSlot(41, 40));
+    }
+
+    @Test
+    void legacyBagCapacityIsRaisedToCurrentDefault() {
+        assertEquals(32, NormalInventoryLayout.effectiveCapacity(InventoryType.BAG, 24));
+        assertEquals(32, NormalInventoryLayout.effectiveCapacity(InventoryType.BAG, null));
+        assertEquals(40, NormalInventoryLayout.effectiveCapacity(InventoryType.BAG, 40));
+        assertEquals(24, NormalInventoryLayout.effectiveCapacity(InventoryType.EQUIP_SLOT, 24));
     }
 }

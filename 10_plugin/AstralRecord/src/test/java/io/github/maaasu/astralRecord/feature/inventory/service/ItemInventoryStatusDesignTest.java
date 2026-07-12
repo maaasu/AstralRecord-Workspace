@@ -111,12 +111,12 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
     }
 
     @Test
-    void bagRejectsItemWhenConfiguredCapacityIsFull() {
+    void legacyBagCapacityIsRaisedBeforeRejectingItems() {
         InventoryHarness harness = inventoryHarness();
         PlayerMock bukkitPlayer = server().addPlayer();
         AstPlayer astPlayer = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.ADMIN);
         PlayerInventoryState state = harness.registerState(astPlayer);
-        InventoryModel bagInventory = harness.addInventory(state, InventoryType.BAG);
+        InventoryModel bagInventory = harness.addInventory(state, InventoryType.BAG, 24);
         ItemModel singleStackItem = DesignTestFixtures.item("capacity_test", ItemCategory.MATERIAL, 1);
 
         for (int slot = 1; slot <= 32; slot++) {
@@ -227,6 +227,15 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
 
         private InventoryModel addInventory(PlayerInventoryState state, InventoryType type) {
             InventoryModel inventory = DesignTestFixtures.inventory(state.getAccountId(), type);
+            return addInventory(state, inventory);
+        }
+
+        private InventoryModel addInventory(PlayerInventoryState state, InventoryType type, Integer slotCapacity) {
+            InventoryModel inventory = DesignTestFixtures.inventory(state.getAccountId(), type, slotCapacity);
+            return addInventory(state, inventory);
+        }
+
+        private InventoryModel addInventory(PlayerInventoryState state, InventoryModel inventory) {
             state.putInventory(inventory);
             state.replaceEntriesFromLoad(inventory.getInventoryId(), List.of());
             return inventory;

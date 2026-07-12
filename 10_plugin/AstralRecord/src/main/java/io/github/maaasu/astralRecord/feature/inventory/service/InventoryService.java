@@ -3712,8 +3712,8 @@ public class InventoryService {
     }
 
     private int inventoryCapacity(@NotNull InventoryModel inventory) {
-        Integer configured = inventory.getSlotCapacity();
-        return configured == null ? NormalInventoryLayout.DEFAULT_CAPACITY : Math.max(0, configured);
+        return NormalInventoryLayout.effectiveCapacity(
+            inventory.getInventoryType(), inventory.getSlotCapacity());
     }
 
     /**

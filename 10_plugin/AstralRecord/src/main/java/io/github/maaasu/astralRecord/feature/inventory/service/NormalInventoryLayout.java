@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.inventory.service;
 
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
+import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -27,6 +28,14 @@ final class NormalInventoryLayout {
     static final int SCROLL_UP_GUI_SLOT = 17;
     static final int INFO_GUI_SLOT = 26;
     static final int SCROLL_DOWN_GUI_SLOT = 35;
+
+    static int effectiveCapacity(@NotNull InventoryType inventoryType, @Nullable Integer configuredCapacity) {
+        int capacity = configuredCapacity == null ? DEFAULT_CAPACITY : Math.max(0, configuredCapacity);
+        if (inventoryType == InventoryType.BAG) {
+            return Math.max(DEFAULT_CAPACITY, capacity);
+        }
+        return capacity;
+    }
 
     private NormalInventoryLayout() {
     }
