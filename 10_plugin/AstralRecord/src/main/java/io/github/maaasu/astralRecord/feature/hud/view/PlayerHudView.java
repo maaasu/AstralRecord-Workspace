@@ -18,7 +18,8 @@ import org.bukkit.scoreboard.Scoreboard;
 public class PlayerHudView {
     private static final String OBJECTIVE_NAME = "astral_info";
     private static final int TRANSIENT_BAR_LENGTH = 28;
-    private static final int SIDEBAR_BAR_LENGTH = 50;
+    private static final int SIDEBAR_BAR_LENGTH = 40;
+    private static final String SIDEBAR_BAR_CHAR = "╷";
 
     public void renderActionBar(Player player, StatusSnapshot snapshot) {
         double maxHp = snapshot.getMaxValue(StatusType.MAX_HEALTH);
@@ -182,9 +183,9 @@ public class PlayerHudView {
         StringBuilder bar = new StringBuilder();
         bar.append(ColorCodeUtil.DARK_GRAY).append(label).append(" ");
         bar.append(fillColor);
-        bar.repeat("|", Math.max(0, filledLength));
+        bar.repeat(SIDEBAR_BAR_CHAR, Math.max(0, filledLength));
         bar.append(ColorCodeUtil.DARK_GRAY);
-        bar.repeat("|", Math.max(0, SIDEBAR_BAR_LENGTH - filledLength));
+        bar.repeat(SIDEBAR_BAR_CHAR, Math.max(0, SIDEBAR_BAR_LENGTH - filledLength));
         bar.append(ColorCodeUtil.WHITE).append(" ").append(progressPercent).append("%");
 
         return bar.toString();

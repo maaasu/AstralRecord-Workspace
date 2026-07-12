@@ -163,7 +163,7 @@ public final class StorageScreenView extends BaseMenuScreenView {
     }
 
     private @NotNull ItemStack createEntryIcon(@NotNull StorageViewEntry entry) {
-        ItemStack itemStack = cloneWithAmountLore(entry.itemStack());
+        ItemStack itemStack = cloneWithStorageAmountLore(entry.itemStack());
         ItemMeta meta = itemStack.getItemMeta();
         if (meta == null) {
             return itemStack;
@@ -172,9 +172,6 @@ public final class StorageScreenView extends BaseMenuScreenView {
         List<Component> lore = meta.hasLore() && meta.lore() != null
             ? new ArrayList<>(meta.lore())
             : new ArrayList<>();
-        lore.add(Component.text("カテゴリ: " + ItemCategory.displayNameJa(entry.itemModel().getCategory()), NamedTextColor.GRAY));
-        lore.add(Component.text("レア度: " + entry.itemModel().getRarity(), NamedTextColor.GRAY));
-        lore.add(Component.text("売値: " + Math.max(0, entry.itemModel().getSaleValue()), NamedTextColor.GOLD));
         lore.add(Component.text("獲得: " + DATE_TIME_FORMATTER.format(entry.acquiredAt()), NamedTextColor.DARK_GRAY));
         meta.lore(lore);
         meta.getPersistentDataContainer().set(
@@ -184,6 +181,22 @@ public final class StorageScreenView extends BaseMenuScreenView {
         );
         itemStack.setItemMeta(meta);
         return itemStack;
+    }
+
+    private @NotNull ItemStack cloneWithStorageAmountLore(@NotNull ItemStack itemStack) {
+        ItemStack displayItem = itemStack.clone();
+        ItemMeta meta = displayItem.getItemMeta();
+        if (meta == null) {
+            return displayItem;
+        }
+
+        List<Component> lore = meta.hasLore() && meta.lore() != null
+            ? new ArrayList<>(meta.lore())
+            : new ArrayList<>();
+        lore.add(Component.text(DISPLAY_AMOUNT_LORE_PREFIX + displayItem.getAmount(), NamedTextColor.GRAY));
+        meta.lore(lore.stream().map(GuiItems::noItalic).toList());
+        displayItem.setItemMeta(meta);
+        return displayItem;
     }
 
     private @NotNull String filterLabel(@Nullable String value) {

@@ -136,6 +136,8 @@ public class ItemStackFactory {
     );
 
     private static final String STATUS_VALUE_COLOR = ColorCodeUtil.WHITE + ColorCodeUtil.BOLD;
+    private static final int DURABILITY_BAR_LENGTH = 20;
+    private static final String DURABILITY_BAR_CHAR = "╷";
 
     /** ルートテーブル参照用（nullable: 未初期化時は Lore に含めない） */
     private final LootService lootService;
@@ -677,8 +679,8 @@ public class ItemStackFactory {
 
         // 耐久値
         if (equipment.getDurability() != null) {
-            lore.add(ColorCodeUtil.GRAY + " ▸ 耐久値: "
-                    + ColorCodeUtil.GRAY + equipment.getDurability().getMax());
+            int durabilityMax = equipment.getDurability().getMax();
+            lore.add(formatDurabilityBarLore(durabilityMax, durabilityMax));
         }
 
         appendEquipmentSkillLore(lore, equipment);
@@ -1270,10 +1272,19 @@ public class ItemStackFactory {
     }
 
     private @NotNull String formatDurabilityLore(@NotNull EquipmentInstance instance) {
-        return ColorCodeUtil.GRAY + " ▸ 耐久値: "
-                + ColorCodeUtil.WHITE + instance.getDurabilityValue()
-                + ColorCodeUtil.DARK_GRAY + " / "
-                + ColorCodeUtil.GRAY + instance.getDurabilityMax();
+        return formatDurabilityBarLore(instance.getDurabilityValue(), instance.getDurabilityMax());
+    }
+
+    private @NotNull String formatDurabilityBarLore(int value, int max) {
+        int filledLength = max <= 0
+                ? 0
+                : (int) Math.round(Math.clamp((double) value / max, 0.0D, 1.0D) * DURABILITY_BAR_LENGTH);
+        StringBuilder bar = new StringBuilder(DURABILITY_BAR_LENGTH + 16);
+        bar.append(ColorCodeUtil.WHITE);
+        bar.repeat(DURABILITY_BAR_CHAR, filledLength);
+        bar.append(ColorCodeUtil.GRAY);
+        bar.repeat(DURABILITY_BAR_CHAR, DURABILITY_BAR_LENGTH - filledLength);
+        return ColorCodeUtil.GRAY + " ▸ 耐久値: " + bar;
     }
 
     private boolean isBroken(@NotNull EquipmentInstance instance) {
