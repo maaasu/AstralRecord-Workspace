@@ -110,9 +110,8 @@ public class PlayerHudView {
         objective.getScore(buildSeparator("player")).setScore(8);
         objective.getScore(ColorCodeUtil.GOLD + "レベル" + ColorCodeUtil.GRAY + ": " + "Lv." + ColorCodeUtil.YELLOW + playerLevel).setScore(7);
         objective.getScore(buildExperienceBar("EXP", experienceProgress, ColorCodeUtil.GREEN)).setScore(6);
-        objective.getScore(buildSeparator("class")).setScore(5);
         objective.getScore(ColorCodeUtil.DARK_AQUA + "クラス" + ColorCodeUtil.GRAY + ": " + className
-                + ColorCodeUtil.GRAY + " Lv." + ColorCodeUtil.YELLOW + classLevel).setScore(4);
+                + ColorCodeUtil.GRAY + " Lv." + ColorCodeUtil.YELLOW + classLevel).setScore(5);
         if (bossInfo != null) {
             renderBossInfo(objective, bossInfo);
         }
@@ -141,15 +140,15 @@ public class PlayerHudView {
     }
 
     private void renderBossInfo(Objective objective, BossChallengeSidebarInfo info) {
-        objective.getScore(buildSeparator("boss")).setScore(3);
+        objective.getScore(buildSeparator("boss")).setScore(4);
         objective.getScore(ColorCodeUtil.RED + "ボス" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.toLegacyText(info.bossDisplayName(), "Boss")).setScore(2);
+                + ColorCodeUtil.toLegacyText(info.bossDisplayName(), "Boss")).setScore(3);
         objective.getScore(ColorCodeUtil.RED + "デス" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.WHITE + info.deathCount() + "/" + info.deathLimit()).setScore(1);
+                + ColorCodeUtil.WHITE + info.deathCount() + "/" + info.deathLimit()).setScore(2);
         objective.getScore(ColorCodeUtil.GOLD + "時間" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.WHITE + info.elapsedSeconds() + "/" + info.timeLimitSeconds() + "s").setScore(0);
+                + ColorCodeUtil.WHITE + info.elapsedSeconds() + "/" + info.timeLimitSeconds() + "s").setScore(1);
         objective.getScore(ColorCodeUtil.LIGHT_PURPLE + "参加者" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.WHITE + String.join("、", info.participantNames())).setScore(-1);
+                + ColorCodeUtil.WHITE + String.join("、", info.participantNames())).setScore(0);
     }
 
     private void setHealthBar(Player player, double ratio) {
