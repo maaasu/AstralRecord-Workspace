@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * スキルバインドプリセットの取得と保存を扱います。
  */
 public final class SkillBindPresetService {
-    private static final int PRESET_COUNT = 9;
+    private static final int PRESET_COUNT = 6;
 
     private final SkillBindPresetRepository repository;
     private final Map<UUID, Integer> selectedPresetIndexes = new ConcurrentHashMap<>();
@@ -28,7 +28,7 @@ public final class SkillBindPresetService {
      * アカウントのプリセット一覧を取得します。
      *
      * @param accountId アカウント ID
-     * @return 1 から 9 までのプリセット一覧
+     * @return 1 から 6 までのプリセット一覧
      */
     public @NotNull List<SkillBindPreset> getPresets(@NotNull UUID accountId) {
         List<SkillBindPreset> cached = presetsByAccount.get(accountId);

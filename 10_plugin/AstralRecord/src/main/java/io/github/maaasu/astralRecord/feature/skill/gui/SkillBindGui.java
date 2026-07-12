@@ -24,7 +24,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
@@ -42,18 +41,13 @@ import java.util.Set;
  */
 public final class SkillBindGui {
     public static final int SIZE = 54;
-    public static final int CONTENT_SLOT_COUNT = 45;
+    public static final int CONTENT_SLOT_COUNT = 36;
     public static final int PREVIOUS_SLOT = 45;
     public static final int BACK_SLOT = 49;
     public static final int NEXT_SLOT = 53;
-    public static final int SAVE_SLOT = 8;
-
-    public static final int PRESET_SLOT_START = 9;
-    public static final int PRESET_SLOT_END = 17;
-    public static final int ACTIVE_BIND_SLOT_START = 18;
-    public static final int ACTIVE_CLEAR_SLOT = 26;
-    public static final int PASSIVE_BIND_SLOT_START = 27;
-    public static final int PASSIVE_CLEAR_SLOT = 35;
+    public static final int ACTIVE_BIND_SLOT_START = 36;
+    public static final int SAVE_SLOT = 44;
+    public static final int PRESET_COUNT = 6;
 
     private static final Material DEFAULT_SKILL_ICON = Material.AMETHYST_SHARD;
     private static final String DUMMY_KEY_VALUE = "skill_bind_dummy";
@@ -87,11 +81,9 @@ public final class SkillBindGui {
             Component.text("スキル設定 " + (normalizedPage + 1) + "/" + totalPages, NamedTextColor.AQUA)
         );
 
-        renderTopInventory(inventory, skills, ownedSkillIds, normalizedPage);
+        renderTopInventory(inventory, session, skills, bindSkillMap, ownedSkillIds, normalizedPage);
         player.openInventory(inventory);
 
-        renderPlayerInventoryControls(player.getInventory(), session, ownedSkillIds, bindSkillMap);
-        player.updateInventory();
     }
 
     /**
@@ -117,8 +109,6 @@ public final class SkillBindGui {
         );
 
         player.openInventory(inventory);
-        fillPlayerInventoryDummy(player.getInventory());
-        player.updateInventory();
     }
 
     public boolean isInventory(@Nullable Inventory inventory) {
@@ -178,7 +168,9 @@ public final class SkillBindGui {
 
     private void renderTopInventory(
         @NotNull Inventory inventory,
+        @NotNull SkillBindSession session,
         @NotNull List<SkillDefinition> skills,
+        @NotNull Map<String, SkillDefinition> skillMap,
         @NotNull Set<String> ownedSkillIds,
         int pageIndex
     ) {
@@ -192,9 +184,40 @@ public final class SkillBindGui {
             inventory.setItem(index - start, createSkillItem(skill, owned));
         }
 
-        ItemStack spacer = createItem(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of());
-        for (int slot = CONTENT_SLOT_COUNT; slot < SIZE; slot++) {
-            inventory.setItem(slot, spacer);
+        ItemStack dummy = createDummy();
+        for (int slot = 0; slot < SIZE; slot++) {
+            if (inventory.getItem(slot) == null || inventory.getItem(slot).getType() == Material.AIR) {
+                inventory.setItem(slot, dummy.clone());
+            }
+        }
+
+        for (int index = 0; index < SkillBindPreset.SLOT_COUNT; index++) {
+            inventory.setItem(
+                ACTIVE_BIND_SLOT_START + index,
+                createBindSlotItem(
+                    SkillBindType.ACTIVE,
+                    index,
+                    session.activeDraft().get(index),
+                    ownedSkillIds,
+                    session.isSelectedBindSlot(SkillBindType.ACTIVE, index),
+                    skillMap
+                )
+            );
+        }
+
+        inventory.setItem(
+            SAVE_SLOT,
+            createItem(
+                Material.EMERALD,
+                Component.text("保存", NamedTextColor.GREEN),
+                List.of(Component.text("プリセット " + session.selectedPresetIndex() + " に保存", NamedTextColor.GRAY))
+            )
+        );
+
+        for (int presetIndex = 1; presetIndex <= PRESET_COUNT; presetIndex++) {
+            SkillBindPreset preset = session.presets().get(presetIndex - 1);
+            boolean selected = preset.getPresetIndex() == session.selectedPresetIndex();
+            inventory.setItem(presetSlot(presetIndex), createPresetItem(preset, selected));
         }
 
         if (hasPreviousPage(pageIndex)) {
@@ -217,86 +240,39 @@ public final class SkillBindGui {
         }
     }
 
-    private void renderPlayerInventoryControls(
-        @NotNull PlayerInventory inventory,
-        @NotNull SkillBindSession session,
-        @NotNull Set<String> ownedSkillIds,
-        @NotNull Map<String, SkillDefinition> skillMap
-    ) {
-        fillManagedPlayerSlots(inventory);
-
-        for (int index = 0; index < session.presets().size(); index++) {
-            SkillBindPreset preset = session.presets().get(index);
-            boolean selected = preset.getPresetIndex() == session.selectedPresetIndex();
-            inventory.setItem(PRESET_SLOT_START + index, createPresetItem(preset, selected));
-        }
-
-        for (int index = 0; index < SkillBindPreset.SLOT_COUNT; index++) {
-            inventory.setItem(
-                ACTIVE_BIND_SLOT_START + index,
-                createBindSlotItem(
-                    SkillBindType.ACTIVE,
-                    index,
-                    session.activeDraft().get(index),
-                    ownedSkillIds,
-                    session.isSelectedBindSlot(SkillBindType.ACTIVE, index),
-                    skillMap
-                )
-            );
-            inventory.setItem(
-                PASSIVE_BIND_SLOT_START + index,
-                createBindSlotItem(
-                    SkillBindType.PASSIVE,
-                    index,
-                    session.passiveDraft().get(index),
-                    ownedSkillIds,
-                    session.isSelectedBindSlot(SkillBindType.PASSIVE, index),
-                    skillMap
-                )
-            );
-        }
-
-        inventory.setItem(
-            ACTIVE_CLEAR_SLOT,
-            createItem(Material.BARRIER, Component.text("アクティブ解除", NamedTextColor.RED), List.of())
-        );
-        inventory.setItem(
-            PASSIVE_CLEAR_SLOT,
-            createItem(Material.BARRIER, Component.text("パッシブ解除", NamedTextColor.RED), List.of())
-        );
-        inventory.setItem(
-            SAVE_SLOT,
-            createItem(
-                Material.EMERALD,
-                Component.text("保存", NamedTextColor.GREEN),
-                List.of(
-                    Component.text(
-                        "プリセット " + session.selectedPresetIndex() + " に保存",
-                        NamedTextColor.GRAY
-                    )
-                )
-            )
-        );
-    }
-
     private void clearInventory(@NotNull Inventory inventory, int size) {
         for (int slot = 0; slot < size; slot++) {
             inventory.setItem(slot, new ItemStack(Material.AIR));
         }
     }
 
-    private void fillManagedPlayerSlots(@NotNull PlayerInventory inventory) {
-        ItemStack dummy = createDummy();
-        for (int slot = 0; slot < 36; slot++) {
-            inventory.setItem(slot, dummy);
+    /**
+     * プリセット番号に対応する最下段のスロット番号を返します。
+     *
+     * @param presetIndex 1 から 6 のプリセット番号
+     * @return 対応する GUI スロット番号。範囲外の場合は {@code -1}
+     */
+    public static int presetSlot(int presetIndex) {
+        if (presetIndex < 1 || presetIndex > PRESET_COUNT) {
+            return -1;
         }
+        return presetIndex <= 3 ? 45 + presetIndex : 46 + presetIndex;
     }
 
-    private void fillPlayerInventoryDummy(@NotNull PlayerInventory inventory) {
-        ItemStack dummy = createDummy();
-        for (int slot = 0; slot < 36; slot++) {
-            inventory.setItem(slot, dummy);
+    /**
+     * 最下段のプリセットスロットからプリセット番号を返します。
+     *
+     * @param slot GUI スロット番号
+     * @return プリセット番号。プリセット以外のスロットの場合は {@code -1}
+     */
+    public static int presetIndexAtSlot(int slot) {
+        if (slot >= 46 && slot <= 48) {
+            return slot - 45;
         }
+        if (slot >= 50 && slot <= 52) {
+            return slot - 46;
+        }
+        return -1;
     }
 
     private @NotNull ItemStack createPresetItem(@NotNull SkillBindPreset preset, boolean selected) {
@@ -388,12 +364,13 @@ public final class SkillBindGui {
         List<Component> lore = new ArrayList<>();
         addSkillLore(lore, skill, owned);
         lore.add(Component.empty());
-        lore.add(
-            Component.text(
-                owned ? "クリックで選択中スロットに設定します。" : "未習得のため設定できません。",
-                owned ? NamedTextColor.YELLOW : NamedTextColor.RED
-            )
-        );
+        if (!owned) {
+            lore.add(Component.text("未習得のため設定できません。", NamedTextColor.RED));
+        } else if (skill.getKind().isPassive()) {
+            lore.add(Component.text("パッシブスキルは情報のみ表示します。", NamedTextColor.GRAY));
+        } else {
+            lore.add(Component.text("クリックで選択中のアクティブ枠に設定します。", NamedTextColor.YELLOW));
+        }
 
         ItemStack itemStack = createItem(material, skillName(skill, skill.getId(), owned), lore);
         ItemMeta meta = itemStack.getItemMeta();

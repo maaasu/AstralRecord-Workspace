@@ -1,8 +1,8 @@
 package io.github.maaasu.astralRecord.feature.skill.model;
 
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -14,7 +14,7 @@ public record SkillBindInventoryHolder(
     int pageIndex,
     @NotNull String action,
     int pendingPresetIndex
-) implements InventoryHolder {
+) implements HotbarShortcutGuiHolder {
     public SkillBindInventoryHolder(@NotNull SkillBindScreen screen, int selectedPresetIndex, int pageIndex) {
         this(screen, selectedPresetIndex, pageIndex, "", -1);
     }

@@ -22,6 +22,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.confirm.ConfirmDialogView;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -110,6 +111,14 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             if (holder == null) {
                 return;
             }
+            if (event.getClickedInventory() instanceof PlayerInventory) {
+                if (HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
+                    return;
+                }
+                event.setCancelled(true);
+                GuiSound.DENY.play(player);
+                return;
+            }
             event.setCancelled(true);
             if (holder.screen() == SkillBindScreen.CONFIRM) {
                 handleConfirmClick(player, holder, event.getRawSlot());
@@ -118,10 +127,6 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             SkillBindSession session = sessions.get(player.getUniqueId());
             if (session == null) {
                 GuiSound.DENY.play(player);
-                return;
-            }
-            if (event.getClickedInventory() instanceof PlayerInventory) {
-                handlePlayerInventoryClick(player, session, event.getSlot(), holder.pageIndex());
                 return;
             }
             handleTopClick(player, session, event.getRawSlot(), holder.pageIndex(), event.getCurrentItem());
@@ -173,6 +178,10 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         int pageIndex,
         org.bukkit.inventory.ItemStack currentItem
     ) {
+        if (rawSlot == SkillBindGui.SAVE_SLOT) {
+            saveCurrentPreset(player, session, pageIndex);
+            return;
+        }
         if (rawSlot == SkillBindGui.BACK_SLOT) {
             GuiSound.SELECT.play(player);
             if (session.isDirty()) {
@@ -204,6 +213,23 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             }
             return;
         }
+        int presetIndex = SkillBindGui.presetIndexAtSlot(rawSlot);
+        if (presetIndex > 0) {
+            handlePresetClick(player, session, presetIndex, pageIndex);
+            return;
+        }
+        if (rawSlot >= SkillBindGui.ACTIVE_BIND_SLOT_START
+            && rawSlot < SkillBindGui.ACTIVE_BIND_SLOT_START + SkillBindPreset.SLOT_COUNT) {
+            handleBindSlotClick(
+                player,
+                session,
+                SkillBindType.ACTIVE,
+                rawSlot - SkillBindGui.ACTIVE_BIND_SLOT_START,
+                pageIndex
+            );
+            return;
+        }
+
         String skillId = gui.skillId(currentItem);
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (skillId == null || astPlayer == null || !ownershipService.owns(astPlayer, skillId)) {
@@ -211,7 +237,9 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             return;
         }
         SkillDefinition definition = skillService.registry().getDefinition(skillId);
-        if (definition == null || !session.assignSelectedOrNextSlot(skillId, definition.getKind())) {
+        if (definition == null
+            || definition.getKind().isPassive()
+            || !session.assignSelectedOrNextSlot(skillId, definition.getKind())) {
             GuiSound.DENY.play(player);
             openMain(player, session, pageIndex);
             return;
@@ -220,62 +248,39 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         openMain(player, session, pageIndex);
     }
 
-    private void handlePlayerInventoryClick(
+    private void handlePresetClick(
         @NotNull Player player,
         @NotNull SkillBindSession session,
-        int slot,
+        int presetIndex,
         int pageIndex
     ) {
-        if (slot == SkillBindGui.SAVE_SLOT) {
-            saveCurrentPreset(player, session, pageIndex);
+        if (!session.presets().get(presetIndex - 1).isUnlocked()) {
+            GuiSound.DENY.play(player);
             return;
         }
-        if (slot >= SkillBindGui.PRESET_SLOT_START && slot <= SkillBindGui.PRESET_SLOT_END) {
-            int presetIndex = slot - SkillBindGui.PRESET_SLOT_START + 1;
-            if (!session.presets().get(presetIndex - 1).isUnlocked()) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            if (presetIndex == session.selectedPresetIndex()) {
-                GuiSound.SELECT.play(player);
-                return;
-            }
-            if (session.isDirty()) {
-                openConfirm(player, session, ACTION_SWITCH_PRESET, presetIndex, Component.text("変更を破棄して切り替えますか", NamedTextColor.YELLOW));
-                return;
-            }
-            session.loadPreset(presetIndex);
-            AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (astPlayer != null) {
-                presetService.selectPreset(astPlayer.getAccount().getUuid(), presetIndex);
-                passiveSkillService.reconcileNow(astPlayer);
-                PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5808, presetIndex);
-            }
+        if (presetIndex == session.selectedPresetIndex()) {
             GuiSound.SELECT.play(player);
-            openMain(player, session, 0);
             return;
         }
-        if (slot >= SkillBindGui.ACTIVE_BIND_SLOT_START && slot < SkillBindGui.ACTIVE_BIND_SLOT_START + SkillBindPreset.SLOT_COUNT) {
-            handleBindSlotClick(player, session, SkillBindType.ACTIVE, slot - SkillBindGui.ACTIVE_BIND_SLOT_START, pageIndex);
+        if (session.isDirty()) {
+            openConfirm(
+                player,
+                session,
+                ACTION_SWITCH_PRESET,
+                presetIndex,
+                Component.text("変更を破棄して切り替えますか", NamedTextColor.YELLOW)
+            );
             return;
         }
-        if (slot == SkillBindGui.ACTIVE_CLEAR_SLOT) {
-            session.clear(SkillBindType.ACTIVE);
-            GuiSound.SELECT.play(player);
-            openMain(player, session, pageIndex);
-            return;
+        session.loadPreset(presetIndex);
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer != null) {
+            presetService.selectPreset(astPlayer.getAccount().getUuid(), presetIndex);
+            passiveSkillService.reconcileNow(astPlayer);
+            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5808, presetIndex);
         }
-        if (slot >= SkillBindGui.PASSIVE_BIND_SLOT_START && slot < SkillBindGui.PASSIVE_BIND_SLOT_START + SkillBindPreset.SLOT_COUNT) {
-            handleBindSlotClick(player, session, SkillBindType.PASSIVE, slot - SkillBindGui.PASSIVE_BIND_SLOT_START, pageIndex);
-            return;
-        }
-        if (slot == SkillBindGui.PASSIVE_CLEAR_SLOT) {
-            session.clear(SkillBindType.PASSIVE);
-            GuiSound.SELECT.play(player);
-            openMain(player, session, pageIndex);
-            return;
-        }
-        GuiSound.DENY.play(player);
+        GuiSound.SELECT.play(player);
+        openMain(player, session, pageIndex);
     }
 
     private void handleBindSlotClick(
