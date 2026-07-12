@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.service.ItemTransferSupport;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutAction;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;
@@ -25,6 +26,7 @@ import io.github.maaasu.astralRecord.feature.sell.service.SellService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.storage.service.StorageService;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
+import io.github.maaasu.astralRecord.feature.trade.gui.TradeGui;
 import io.github.maaasu.astralRecord.feature.world.service.ReturnToBaseService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
@@ -48,6 +50,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -271,10 +274,22 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
         runSafely(() -> {
+            if (!(event.getWhoClicked() instanceof Player player)) {
+                return;
+            }
+
+            MenuScreen menuScreen = menuView.getMenuScreen(event.getView().getTopInventory());
+            if (menuScreen == MenuScreen.CURRENCY) {
+                event.setCancelled(true);
+                handleCurrencyClick(event, player);
+                return;
+            }
+            if (handleCurrencyItemClick(event, player)) {
+                return;
+            }
+
             if (menuView.isMenuInventory(event.getView().getTopInventory())) {
-                MenuScreen menuScreen = menuView.getMenuScreen(event.getView().getTopInventory());
-                if (event.getWhoClicked() instanceof Player player
-                    && !AccountModeGuard.isGameplayPlayer(player)) {
+                if (!AccountModeGuard.isGameplayPlayer(player)) {
                     event.setCancelled(true);
                     player.closeInventory();
                     return;
@@ -296,15 +311,14 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                     || menuScreen == MenuScreen.EQUIPMENT_REPAIR) {
                     return;
                 }
-                if (event.getWhoClicked() instanceof Player player
-                    && handleMenuHotbarShortcutClick(event, player)) {
+                if (handleMenuHotbarShortcutClick(event, player)) {
                     return;
                 }
                 handleMenuClick(event);
                 return;
             }
 
-            if (!(event.getWhoClicked() instanceof Player player) || !isPlayerMode(player)) {
+            if (!isPlayerMode(player)) {
                 return;
             }
 
@@ -600,6 +614,11 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
 
     private void handleCurrencyClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
         int rawSlot = event.getRawSlot();
+        Inventory topInventory = event.getView().getTopInventory();
+        if (rawSlot >= topInventory.getSize()) {
+            handleCurrencyPlayerInventoryClick(event, player, topInventory);
+            return;
+        }
         if (rawSlot == MenuView.PAGING_BACK_SLOT) {
             GuiSound.SELECT.play(player);
             switchGuiWithoutInventoryReload(player, () -> menuView.open(player));
@@ -619,7 +638,81 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             return;
         }
 
+        if (rawSlot >= 0 && rawSlot < MenuView.PAGING_PREVIOUS_SLOT) {
+            ItemStack currencyItem = topInventory.getItem(rawSlot);
+            String currencyItemId = currencyService.getCurrencyItemId(currencyItem);
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (currencyItemId != null && astPlayer != null) {
+                long ownedAmount = currencyService.getCurrencyAmount(
+                    astPlayer.getAccount().getUuid(),
+                    currencyItemId
+                );
+                int requested = ItemTransferSupport.resolveTransferAmount(
+                    event.getClick(),
+                    (int) Math.min(Integer.MAX_VALUE, ownedAmount)
+                );
+                int moved = inventoryService.withdrawCurrencyToNormalInventory(astPlayer, currencyItem, requested);
+                if (moved > 0) {
+                    GuiSound.SELECT.play(player);
+                    switchGuiWithoutInventoryReload(
+                        player,
+                        () -> menuView.openCurrency(
+                            player,
+                            currencyItems(player),
+                            pageIndex
+                        )
+                    );
+                    return;
+                }
+            }
+        }
+
         GuiSound.DENY.play(player);
+    }
+
+    private void handleCurrencyPlayerInventoryClick(
+        @NotNull InventoryClickEvent event,
+        @NotNull Player player,
+        @NotNull Inventory topInventory
+    ) {
+        if (!(event.getClickedInventory() instanceof PlayerInventory)) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        ItemStack current = event.getCurrentItem();
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null || !currencyService.isCurrencyItem(current)) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        int requested = ItemTransferSupport.resolveTransferAmount(event.getClick(), current.getAmount());
+        int moved = inventoryService.moveOwnedCurrencyToCurrency(astPlayer, event.getSlot(), requested);
+        if (moved <= 0) {
+            GuiSound.DENY.play(player);
+            player.updateInventory();
+            return;
+        }
+        GuiSound.SELECT.play(player);
+        switchGuiWithoutInventoryReload(
+            player,
+            () -> menuView.openCurrency(player, currencyItems(player), menuView.getPageIndex(topInventory))
+        );
+    }
+
+    private boolean handleCurrencyItemClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
+        if (!(event.getClickedInventory() instanceof PlayerInventory)
+            || !currencyService.isCurrencyItem(event.getCurrentItem())
+            || event.getView().getTopInventory().getHolder() instanceof TradeGui.TradeHolder) {
+            return false;
+        }
+        event.setCancelled(true);
+        if (!AccountModeGuard.isGameplayPlayer(player)) {
+            player.closeInventory();
+            return true;
+        }
+        GuiSound.OPEN.play(player);
+        openCurrency(player, 0);
+        return true;
     }
 
     private void handleStatusClick(@NotNull Player player, int rawSlot) {

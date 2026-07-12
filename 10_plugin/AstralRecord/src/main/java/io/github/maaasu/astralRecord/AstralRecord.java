@@ -582,7 +582,7 @@ public final class AstralRecord extends JavaPlugin {
         accountModeApplicationService = new AccountModeApplicationService(accountService, inventoryService);
         skillTreeService.setInventoryService(inventoryService);
         inventoryAutoSaveTask = new InventoryAutoSaveTask(inventoryService, inventoryPersistence, inventoryStateRegistry);
-        currencyService = new CurrencyService(inventoryService);
+        currencyService = new CurrencyService(inventoryService, itemService);
         playerSettingService = new PlayerSettingService(
             new PlayerSettingRepository(),
             new PlayerSettingDefaults(),

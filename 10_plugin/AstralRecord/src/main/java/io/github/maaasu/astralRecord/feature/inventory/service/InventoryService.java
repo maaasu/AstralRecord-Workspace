@@ -994,6 +994,102 @@ public class InventoryService {
             .sum();
     }
 
+    /**
+     * 通貨 GUI の通貨を通常 BAG へ取り出します。
+     * <p>
+     * 通貨は通常の報酬付与時には CURRENCY へ直接保存されますが、GUI 操作による取り出しだけは
+     * プレイヤーが交換に使える通常アイテムとして BAG へ移します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param currencyItem 通貨 GUI 上の通貨 ItemStack
+     * @param amount 取り出す数量
+     * @return 実際に取り出せた数量
+     */
+    public int withdrawCurrencyToNormalInventory(
+        @NotNull AstPlayer astPlayer,
+        @Nullable ItemStack currencyItem,
+        int amount
+    ) {
+        ItemReference reference = resolveItemReference(currencyItem);
+        if (reference == null || ItemCategory.fromApiValue(reference.category()) != ItemCategory.CURRENCY) {
+            return 0;
+        }
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) {
+            return 0;
+        }
+        InventoryModel currencyInventory = state.findInventory(DEFAULT_PROFILE, InventoryType.CURRENCY);
+        if (currencyInventory == null || !currencyInventory.isEnabled()) {
+            return 0;
+        }
+        long available = getCurrencyAmount(astPlayer.getAccount().getUuid(), reference.itemId());
+        int requested = Math.max(0, amount);
+        int desired = (int) Math.min(available, Math.min(Integer.MAX_VALUE, requested));
+        if (desired <= 0) {
+            return 0;
+        }
+
+        ItemModel model = itemReferenceResolver.resolveItemModel(reference);
+        if (model == null) {
+            return 0;
+        }
+        InventoryStateSnapshot snapshot = snapshotState(astPlayer.getAccount().getUuid());
+        InventoryModel bagInventory = ensureInventory(state, InventoryType.BAG);
+        int added = addStackedItems(state, bagInventory, model, desired, collectUsedSlots(state, bagInventory));
+        if (added <= 0) {
+            return 0;
+        }
+
+        long consumed = consumeItemAmountFromInventory(state, currencyInventory, reference.itemId(), added);
+        if (consumed != added) {
+            restoreState(snapshot);
+            return 0;
+        }
+        compactInventoryEntries(currencyInventory.getInventoryId(), state.getAccountId());
+        requestManagedInventoryUiRefresh(astPlayer, false);
+        return added;
+    }
+
+    /**
+     * 通常 BAG またはホットバーの通貨アイテムを通貨インベントリへ戻します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param sourceBukkitSlot 移動元の Bukkit プレイヤーインベントリスロット
+     * @param amount 移動数量。0 以下は全量
+     * @return 実際に戻せた数量
+     */
+    public int moveOwnedCurrencyToCurrency(
+        @NotNull AstPlayer astPlayer,
+        int sourceBukkitSlot,
+        int amount
+    ) {
+        InventoryEntryModel sourceEntry = getOwnedEntryAtBukkitSlot(astPlayer, sourceBukkitSlot);
+        if (sourceEntry == null || ItemCategory.fromApiValue(sourceEntry.getItemCategory()) != ItemCategory.CURRENCY) {
+            return 0;
+        }
+        ItemStack sourceItem = itemStackResolver.resolve(sourceEntry);
+        if (sourceItem == null || sourceItem.getType() == Material.AIR) {
+            return 0;
+        }
+        int requested = amount <= 0 ? sourceItem.getAmount() : Math.min(amount, sourceItem.getAmount());
+        if (requested <= 0) {
+            return 0;
+        }
+
+        InventoryStateSnapshot snapshot = snapshotState(astPlayer.getAccount().getUuid());
+        ItemStack moved = takeOwnedItemAmount(astPlayer, sourceBukkitSlot, requested);
+        if (moved == null) {
+            return 0;
+        }
+        InventoryType targetType = returnItemToOwnedInventory(astPlayer, moved);
+        if (targetType != InventoryType.CURRENCY) {
+            restoreState(snapshot);
+            requestManagedInventoryUiRefresh(astPlayer, sourceBukkitSlot <= 8);
+            return 0;
+        }
+        return moved.getAmount();
+    }
+
     public long getNormalItemAmount(@NotNull UUID accountId, @NotNull String itemId) {
         PlayerInventoryState state = getState(accountId);
         if (state == null) {
