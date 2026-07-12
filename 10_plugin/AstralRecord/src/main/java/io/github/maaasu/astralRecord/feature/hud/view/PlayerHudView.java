@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.hud.view;
 
+import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeSidebarInfo;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
@@ -69,7 +70,8 @@ public class PlayerHudView {
      * @param experienceProgress 現在レベル内の経験値進捗（0.0-1.0）
      * @param classLevel 現在のクラスレベル
      * @param className 現在のクラス表示名
-     * @param classExperienceProgress 現在クラスレベル内の経験値進捗（0.0-1.0）
+     * @param showPerformanceInfo MSPT・Ping を表示するか
+     * @param bossInfo 挑戦中ボス情報。挑戦していない場合は null
      */
     public void renderSidebar(
         Player player,
@@ -78,7 +80,8 @@ public class PlayerHudView {
         double experienceProgress,
         int classLevel,
         String className,
-        double classExperienceProgress
+        boolean showPerformanceInfo,
+        BossChallengeSidebarInfo bossInfo
     ) {
         Scoreboard scoreboard = player.getScoreboard();
         if (scoreboard == Bukkit.getScoreboardManager().getMainScoreboard()) {
@@ -100,15 +103,19 @@ public class PlayerHudView {
         clearSidebar(scoreboard);
         objective.getScore(ColorCodeUtil.AQUA + "オンライン" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
                 + Bukkit.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers()).setScore(11);
-        objective.getScore(msptLegacyColor(mspt) + "MSPT" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + String.format("%.1f", mspt)).setScore(10);
-        objective.getScore(pingLegacyColor(ping) + "Ping" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + ping + "ms").setScore(9);
+        if (showPerformanceInfo) {
+            objective.getScore(msptLegacyColor(mspt) + "MSPT" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + String.format("%.1f", mspt)).setScore(10);
+            objective.getScore(pingLegacyColor(ping) + "Ping" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + ping + "ms").setScore(9);
+        }
         objective.getScore(buildSeparator("player")).setScore(8);
         objective.getScore(ColorCodeUtil.GOLD + "レベル" + ColorCodeUtil.GRAY + ": " + "Lv." + ColorCodeUtil.YELLOW + playerLevel).setScore(7);
         objective.getScore(buildExperienceBar("EXP", experienceProgress, ColorCodeUtil.GREEN)).setScore(6);
         objective.getScore(buildSeparator("class")).setScore(5);
-        objective.getScore(ColorCodeUtil.DARK_AQUA + "クラス" + ColorCodeUtil.GRAY + ": " + className).setScore(4);
-        objective.getScore(ColorCodeUtil.YELLOW + "レベル" + ColorCodeUtil.GRAY + ": " + "Lv." + ColorCodeUtil.YELLOW + classLevel).setScore(3);
-        objective.getScore(buildExperienceBar("CEXP", classExperienceProgress, ColorCodeUtil.AQUA)).setScore(2);
+        objective.getScore(ColorCodeUtil.DARK_AQUA + "クラス" + ColorCodeUtil.GRAY + ": " + className
+                + ColorCodeUtil.GRAY + " Lv." + ColorCodeUtil.YELLOW + classLevel).setScore(4);
+        if (bossInfo != null) {
+            renderBossInfo(objective, bossInfo);
+        }
     }
 
     /**
@@ -117,19 +124,32 @@ public class PlayerHudView {
      * @param player 対象プレイヤー
      * @param mspt 現在のサーバーMSPT（平均値）
      */
-    public void renderTabList(Player player, double mspt) {
+    public void renderTabList(Player player, double mspt, boolean showPerformanceInfo) {
         int ping = player.getPing();
         Component header = Component.text()
             .append(Component.text("ASTRAL RECORD", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD))
-            .append(Component.newline())
-            .append(Component.text("MSPT ", NamedTextColor.GRAY))
-            .append(Component.text(String.format("%.1f", mspt), msptTextColor(mspt)))
+            .append(showPerformanceInfo
+                ? Component.newline().append(Component.text("MSPT ", NamedTextColor.GRAY))
+                    .append(Component.text(String.format("%.1f", mspt), msptTextColor(mspt)))
+                : Component.empty())
             .build();
-        Component footer = Component.text()
-            .append(Component.text("Ping ", NamedTextColor.GRAY))
-            .append(Component.text(ping + "ms", pingTextColor(ping)))
-            .build();
+        Component footer = showPerformanceInfo
+            ? Component.text().append(Component.text("Ping ", NamedTextColor.GRAY))
+                .append(Component.text(ping + "ms", pingTextColor(ping))).build()
+            : Component.empty();
         player.sendPlayerListHeaderAndFooter(header, footer);
+    }
+
+    private void renderBossInfo(Objective objective, BossChallengeSidebarInfo info) {
+        objective.getScore(buildSeparator("boss")).setScore(3);
+        objective.getScore(ColorCodeUtil.RED + "ボス" + ColorCodeUtil.GRAY + ": "
+                + ColorCodeUtil.toLegacyText(info.bossDisplayName(), "Boss")).setScore(2);
+        objective.getScore(ColorCodeUtil.RED + "デス" + ColorCodeUtil.GRAY + ": "
+                + ColorCodeUtil.WHITE + info.deathCount() + "/" + info.deathLimit()).setScore(1);
+        objective.getScore(ColorCodeUtil.GOLD + "時間" + ColorCodeUtil.GRAY + ": "
+                + ColorCodeUtil.WHITE + info.elapsedSeconds() + "/" + info.timeLimitSeconds() + "s").setScore(0);
+        objective.getScore(ColorCodeUtil.LIGHT_PURPLE + "参加者" + ColorCodeUtil.GRAY + ": "
+                + ColorCodeUtil.WHITE + String.join("、", info.participantNames())).setScore(-1);
     }
 
     private void setHealthBar(Player player, double ratio) {

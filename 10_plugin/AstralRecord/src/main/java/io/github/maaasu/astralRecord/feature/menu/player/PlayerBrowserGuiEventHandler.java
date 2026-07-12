@@ -347,6 +347,9 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         double classExperienceProgress = playerClassService == null
             ? 0.0
             : playerClassService.classExperienceProgress(target);
+        long classExperienceRemaining = playerClassService == null
+            ? 0L
+            : playerClassService.classExperienceRemainingToNextLevel(target);
         playerDetailGui.open(
             viewer,
             target,
@@ -354,6 +357,7 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
             goldAmount,
             classDisplayName,
             classExperienceProgress,
+            classExperienceRemaining,
             backTarget,
             pageIndex
         );

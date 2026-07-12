@@ -102,6 +102,23 @@ class PlayerClassService @JvmOverloads constructor(
             .coerceIn(0.0, 1.0)
     }
 
+    /**
+     * 現在クラスレベルから次のクラスレベルまでに必要な残り経験値を返します。
+     * 最大レベル到達済みの場合は 0 を返します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @return 次のレベルまでの残り累計クラス経験値
+     */
+    fun classExperienceRemainingToNextLevel(astPlayer: AstPlayer): Long {
+        val model = classService.getLoadedClass(astPlayer.classId) ?: return 0L
+        val level = astPlayer.classLevel.coerceIn(1, MAX_CLASS_LEVEL)
+        if (level >= MAX_CLASS_LEVEL) {
+            return 0L
+        }
+        val nextRequired = totalRequiredClassExperienceForLevel(model, level + 1)
+        return (nextRequired - astPlayer.classExperience).coerceAtLeast(0L)
+    }
+
     fun getClassViewEntries(astPlayer: AstPlayer): List<ClassViewEntry> {
         val skillRegistry = AstralRecord.getInstance().skillService?.registry()
         return classService.getLoadedClasses().map { model ->

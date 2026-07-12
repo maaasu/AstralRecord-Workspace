@@ -29,6 +29,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
     public static final int DAMAGE_LOG_SLOT = 20;
     public static final int DAMAGE_LOG_MESSAGE_SLOT = 21;
     public static final int PARTICLE_DENSITY_SLOT = 22;
+    public static final int PERFORMANCE_INFO_SLOT = 23;
     public static final int DROP_LOG_SLOT = 24;
     public static final int SUPER_MODE_SECRET_SLOT = 53;
     public static final int BACK_TO_MENU_SLOT = BaseMenuScreenView.BACK_SLOT;
@@ -68,6 +69,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             case DAMAGE_LOG_SLOT -> PlayerSettingKey.DAMAGE_LOG_DISPLAY;
             case DAMAGE_LOG_MESSAGE_SLOT -> PlayerSettingKey.DAMAGE_LOG_MESSAGE;
             case PARTICLE_DENSITY_SLOT -> PlayerSettingKey.PARTICLE_DENSITY;
+            case PERFORMANCE_INFO_SLOT -> PlayerSettingKey.PERFORMANCE_INFO_DISPLAY;
             case DROP_LOG_SLOT -> PlayerSettingKey.DROP_LOG_DISPLAY;
             default -> null;
         };
@@ -104,6 +106,11 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             Material.CHEST,
             PlayerSettingKey.DROP_LOG_DISPLAY,
             (Boolean) resolveValue(userId, PlayerSettingKey.DROP_LOG_DISPLAY, draftValues)
+        ));
+        inventory.setItem(PERFORMANCE_INFO_SLOT, createBooleanItem(
+            Material.CLOCK,
+            PlayerSettingKey.PERFORMANCE_INFO_DISPLAY,
+            (Boolean) resolveValue(userId, PlayerSettingKey.PERFORMANCE_INFO_DISPLAY, draftValues)
         ));
         inventory.setItem(BACK_TO_MENU_SLOT, backItem());
     }

@@ -11,7 +11,9 @@ import io.github.maaasu.astralRecord.feature.account.service.AccountClassProgres
 import io.github.maaasu.astralRecord.feature.account.service.AccountModeApplicationService;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.boss.event.BossEntryEventHandler;
+import io.github.maaasu.astralRecord.feature.boss.event.BossChallengeCancelEventHandler;
 import io.github.maaasu.astralRecord.feature.boss.event.BossPlayerEventHandler;
+import io.github.maaasu.astralRecord.feature.boss.gui.BossChallengeCancelGui;
 import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
 import io.github.maaasu.astralRecord.feature.boss.service.BossFieldInstanceService;
 import io.github.maaasu.astralRecord.feature.combat.event.CombatDamageEventHandler;
@@ -320,6 +322,7 @@ public final class AstralRecord extends JavaPlugin {
     private GoldAmountSettingGui goldAmountSettingGui;
     private BossFieldInstanceService bossFieldInstanceService;
     private BossChallengeService bossChallengeService;
+    private BossChallengeCancelGui bossChallengeCancelGui;
     private String joinSpawnWorldId;
 
     @Override
@@ -634,8 +637,6 @@ public final class AstralRecord extends JavaPlugin {
             particleDisplayService
         );
         statusRegenTask = new StatusRegenTask(statusService);
-        playerHudService = new PlayerHudService(statusService, playerClassService, accountService);
-        skillTreeService.setPlayerHudService(playerHudService);
         overheadDisplayService = new OverheadDisplayService(displayTextService, statusService, mobService, playerClassService);
 
         // combat
@@ -740,6 +741,15 @@ public final class AstralRecord extends JavaPlugin {
             bossHubWorldId
         );
         damageService.setBossChallengeService(bossChallengeService);
+        bossChallengeCancelGui = new BossChallengeCancelGui();
+        playerHudService = new PlayerHudService(
+            statusService,
+            playerClassService,
+            accountService,
+            playerSettingService,
+            bossChallengeService
+        );
+        skillTreeService.setPlayerHudService(playerHudService);
 
         // resource pack
         resourcePackService = new ResourcePackService(ConfigProperties.getInstance());
@@ -946,6 +956,10 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             new BossPlayerEventHandler(bossChallengeService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new BossChallengeCancelEventHandler(bossChallengeService, bossChallengeCancelGui),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

@@ -72,7 +72,7 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         @NotNull PlayerListBackTarget backTarget,
         int returnPage
     ) {
-        open(viewer, target, snapshot, 0L, target.getClassId(), 0.0, backTarget, returnPage);
+        open(viewer, target, snapshot, 0L, target.getClassId(), 0.0, 0L, backTarget, returnPage);
     }
 
     /**
@@ -84,6 +84,7 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
      * @param goldAmount              対象アカウントの所持 Gold
      * @param classDisplayName        対象クラスの表示名
      * @param classExperienceProgress 現在クラスレベル内の経験値進捗率
+     * @param classExperienceRemaining 次のクラスレベルまでの残り経験値
      * @param backTarget              戻り先
      * @param returnPage              戻り先一覧ページ
      */
@@ -94,6 +95,7 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         long goldAmount,
         @NotNull String classDisplayName,
         double classExperienceProgress,
+        long classExperienceRemaining,
         @NotNull PlayerListBackTarget backTarget,
         int returnPage
     ) {
@@ -102,7 +104,7 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
             SIZE,
             Component.text("プロフィール: " + target.getBukkit().getName(), NamedTextColor.GOLD)
         );
-        render(inventory, viewer, target, snapshot, goldAmount, classDisplayName, classExperienceProgress);
+        render(inventory, viewer, target, snapshot, goldAmount, classDisplayName, classExperienceProgress, classExperienceRemaining);
         viewer.openInventory(inventory);
     }
 
@@ -138,7 +140,8 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         @NotNull StatusSnapshot snapshot,
         long goldAmount,
         @NotNull String classDisplayName,
-        double classExperienceProgress
+        double classExperienceProgress,
+        long classExperienceRemaining
     ) {
         boolean self = viewer.getUniqueId().equals(target.getBukkit().getUniqueId());
         fill(inventory);
@@ -146,7 +149,7 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         inventory.setItem(HEAD_SLOT, playerHead(target, classDisplayName));
         inventory.setItem(USER_SLOT, profileItem(target));
         inventory.setItem(ACCOUNT_SLOT, accountItem(target));
-        inventory.setItem(CLASS_SLOT, classItem(target, classDisplayName, classExperienceProgress));
+        inventory.setItem(CLASS_SLOT, classItem(target, classDisplayName, classExperienceProgress, classExperienceRemaining));
         inventory.setItem(ECONOMY_SLOT, economyItem(target, goldAmount));
         inventory.setItem(RESOURCE_SLOT, categoryItem(Material.GOLDEN_APPLE, "◆", StatusType.Category.RESOURCE, NamedTextColor.GOLD, snapshot));
         inventory.setItem(PRIMARY_SLOT, categoryItem(Material.DIAMOND, "◇", StatusType.Category.PRIMARY, NamedTextColor.YELLOW, snapshot));
@@ -232,7 +235,8 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
     private @NotNull ItemStack classItem(
         @NotNull AstPlayer target,
         @NotNull String classDisplayName,
-        double classExperienceProgress
+        double classExperienceProgress,
+        long classExperienceRemaining
     ) {
         List<Component> lore = new ArrayList<>();
         lore.add(separatorLine());
@@ -241,6 +245,10 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         lore.add(noItalic(Component.text("クラス Lv: " + target.getClassLevel(), NamedTextColor.AQUA)));
         lore.add(noItalic(Component.text("クラス累計 EXP: " + formatInt(target.getClassExperience()), NamedTextColor.YELLOW)));
         lore.add(noItalic(Component.text("現在 Lv 進捗: " + formatPercent(classExperienceProgress), NamedTextColor.GREEN)));
+        lore.add(noItalic(Component.text(
+            classExperienceRemaining <= 0 ? "次のクラス Lv: 最大レベル" : "次のクラス Lv まで: " + formatInt(classExperienceRemaining) + " EXP",
+            NamedTextColor.AQUA
+        )));
         lore.add(separatorLine());
         return createItem(
             Material.COMPASS,

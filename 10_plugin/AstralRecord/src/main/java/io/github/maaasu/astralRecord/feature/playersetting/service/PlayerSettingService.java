@@ -136,6 +136,19 @@ public final class PlayerSettingService {
         return value instanceof Boolean enabled ? enabled : (Boolean) PlayerSettingKey.DAMAGE_LOG_MESSAGE.getDefaultValue();
     }
 
+    /**
+     * 指定プレイヤーで MSPT・Ping の診断表示が有効かを返します。
+     *
+     * @param userId 判定対象ユーザー ID
+     * @return 診断表示が有効な場合は {@code true}
+     */
+    public boolean isPerformanceInfoDisplayEnabled(@NotNull UUID userId) {
+        Object value = getPlayerSetting(userId, PlayerSettingKey.PERFORMANCE_INFO_DISPLAY);
+        return value instanceof Boolean enabled
+                ? enabled
+                : (Boolean) PlayerSettingKey.PERFORMANCE_INFO_DISPLAY.getDefaultValue();
+    }
+
     public @NotNull UpdateResult updatePlayerSetting(@NotNull PlayerSettingChangeRequest request) {
         PlayerSettingSnapshot snapshot = cache.find(request.userId());
         if (snapshot == null) {

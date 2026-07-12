@@ -4,9 +4,11 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeConfig;
 import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeEndReason;
 import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeInstance;
+import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeSidebarInfo;
 import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeState;
 import io.github.maaasu.astralRecord.feature.boss.model.BossFieldInstance;
 import io.github.maaasu.astralRecord.feature.boss.model.BossLocation;
+import io.github.maaasu.astralRecord.feature.boss.view.BossChallengeCancelController;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
@@ -75,6 +77,8 @@ public final class BossChallengeService {
     private final Map<UUID, BossChallengeInstance> challengesById = new ConcurrentHashMap<>();
     private final Map<String, UUID> challengeIdByPartyKey = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> challengeIdByBossMob = new ConcurrentHashMap<>();
+    private final Map<UUID, BossChallengeCancelController> cancelControllersByChallengeId = new ConcurrentHashMap<>();
+    private final Map<UUID, UUID> challengeIdByCancelInteraction = new ConcurrentHashMap<>();
     private final Map<String, EntryPromptDisplay> entryPromptDisplays = new HashMap<>();
     private BukkitTask tickTask;
     private BukkitTask entryVisualTask;
@@ -142,6 +146,8 @@ public final class BossChallengeService {
         challengesById.clear();
         challengeIdByPartyKey.clear();
         challengeIdByBossMob.clear();
+        cancelControllersByChallengeId.clear();
+        challengeIdByCancelInteraction.clear();
     }
 
     /**
@@ -390,6 +396,121 @@ public final class BossChallengeService {
     }
 
     /**
+     * プレイヤーが参加している進行中の挑戦情報をサイドバー用に返します。
+     *
+     * @param playerId プレイヤー UUID
+     * @return 挑戦中なら表示情報、それ以外は null
+     */
+    public @Nullable BossChallengeSidebarInfo findSidebarInfo(@NotNull UUID playerId) {
+        for (BossChallengeInstance challenge : challengesById.values()) {
+            if ((challenge.state() != BossChallengeState.PREPARING
+                    && challenge.state() != BossChallengeState.IN_PROGRESS)
+                    || !displayParticipantIds(challenge).contains(playerId)) {
+                continue;
+            }
+            long elapsed = challenge.startedAtMs() <= 0L
+                    ? 0L
+                    : Math.max(0L, (System.currentTimeMillis() - challenge.startedAtMs()) / 1000L);
+            return new BossChallengeSidebarInfo(
+                    challenge.bossTemplate().displayName(),
+                    challenge.deathCount(),
+                    challenge.config().deathLimit(),
+                    elapsed,
+                    challenge.config().timeLimitSeconds(),
+                    displayParticipantIds(challenge).stream().map(this::playerName).toList()
+            );
+        }
+        return null;
+    }
+
+    /**
+     * プレイヤーが中止操作を開ける挑戦 ID を返します。
+     *
+     * @param playerId プレイヤー UUID
+     * @return 中止可能な挑戦 ID。存在しない場合は null
+     */
+    public @Nullable UUID findCancelableChallengeId(@NotNull UUID playerId) {
+        for (BossChallengeInstance challenge : challengesById.values()) {
+            if (isCancelable(challenge) && displayParticipantIds(challenge).contains(playerId)) {
+                return challenge.challengeId();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 指定された挑戦のパーティーリーダーか判定します。
+     *
+     * @param playerId 判定対象プレイヤー UUID
+     * @param challengeId 挑戦 ID
+     * @return 挑戦中のパーティーリーダーなら true
+     */
+    public boolean isChallengeLeader(@NotNull UUID playerId, @NotNull UUID challengeId) {
+        BossChallengeInstance challenge = challengesById.get(challengeId);
+        if (challenge == null || !isCancelable(challenge)) {
+            return false;
+        }
+        if (challenge.partyKey().startsWith("solo:")) {
+            return challenge.initiatorId().equals(playerId);
+        }
+        Party party = partyService.findParty(playerId);
+        return party != null
+                && party.isLeader(playerId)
+                && challenge.partyKey().equals("party:" + party.getPartyId());
+    }
+
+    /**
+     * パーティーリーダーによるボス挑戦中止を実行します。
+     *
+     * @param playerId 操作プレイヤー UUID
+     * @param challengeId GUI から操作する挑戦 ID。null の場合はプレイヤーの挑戦を検索する
+     * @return 中止結果
+     */
+    public @NotNull PlayerCancelResult stopChallengeForLeader(
+            @NotNull UUID playerId,
+            @Nullable UUID challengeId
+    ) {
+        UUID resolvedId = challengeId == null ? findCancelableChallengeId(playerId) : challengeId;
+        if (resolvedId == null) {
+            return PlayerCancelResult.NO_CHALLENGE;
+        }
+        if (!isChallengeLeader(playerId, resolvedId)) {
+            return PlayerCancelResult.NOT_LEADER;
+        }
+        BossChallengeInstance challenge = challengesById.get(resolvedId);
+        if (challenge == null) {
+            return PlayerCancelResult.NO_CHALLENGE;
+        }
+        endChallenge(challenge, BossChallengeEndReason.ADMIN_STOP);
+        return PlayerCancelResult.STOPPED;
+    }
+
+    /**
+     * 中止操作エンティティに紐づく挑戦 ID を返します。
+     *
+     * @param entity 判定対象エンティティ
+     * @return 挑戦 ID。対象外なら null
+     */
+    public @Nullable UUID resolveCancelInteraction(@NotNull org.bukkit.entity.Entity entity) {
+        return challengeIdByCancelInteraction.get(entity.getUniqueId());
+    }
+
+    /**
+     * 指定プレイヤーの近くにある中止操作装置の挑戦 ID を返します。
+     *
+     * @param player 判定対象プレイヤー
+     * @return 挑戦 ID。対象外なら null
+     */
+    public @Nullable UUID findNearbyCancelController(@NotNull Player player) {
+        for (BossChallengeCancelController controller : cancelControllersByChallengeId.values()) {
+            if (controller.isNear(player)) {
+                return controller.challengeId();
+            }
+        }
+        return null;
+    }
+
+    /**
      * Returns active challenge descriptions for admin commands.
      *
      * @return description lines
@@ -569,6 +690,12 @@ public final class BossChallengeService {
 
             challenge.bossMobInstanceId(boss.instanceId());
             challengeIdByBossMob.put(boss.instanceId(), challenge.challengeId());
+            BossChallengeCancelController controller = BossChallengeCancelController.spawn(
+                    challenge.challengeId(),
+                    bossSpawn
+            );
+            cancelControllersByChallengeId.put(challenge.challengeId(), controller);
+            challengeIdByCancelInteraction.put(controller.interaction().getUniqueId(), challenge.challengeId());
             challenge.markStarted();
             Logger.log(LogId.I_6501, challenge.challengeId(), challenge.bossTemplate().id(), field.worldName());
             notifyParticipants(challenge, PlayerMsgId.P_6510, challenge.bossTemplate().displayName(), challenge.config().timeLimitSeconds());
@@ -658,6 +785,7 @@ public final class BossChallengeService {
         }
         fieldInstanceService.cancelPendingCreation(challenge.challengeId());
         challenge.state(BossChallengeState.ENDING);
+        destroyCancelController(challenge.challengeId());
         if (!challenge.participantsConfirmed()) {
             challenge.confirmParticipants(
                     eligibleParticipantsForEntry(challenge).stream().map(Player::getUniqueId).toList()
@@ -746,6 +874,20 @@ public final class BossChallengeService {
         challenge.state(BossChallengeState.ENDED);
         challengeIdByPartyKey.remove(challenge.partyKey());
         challengesById.remove(challenge.challengeId());
+    }
+
+    private boolean isCancelable(@NotNull BossChallengeInstance challenge) {
+        return challenge.state() == BossChallengeState.PREPARING
+                || challenge.state() == BossChallengeState.IN_PROGRESS;
+    }
+
+    private void destroyCancelController(@NotNull UUID challengeId) {
+        BossChallengeCancelController controller = cancelControllersByChallengeId.remove(challengeId);
+        if (controller == null) {
+            return;
+        }
+        challengeIdByCancelInteraction.remove(controller.interaction().getUniqueId());
+        controller.destroy();
     }
 
     private boolean isEnding(@NotNull BossChallengeInstance challenge) {
@@ -1097,6 +1239,7 @@ public final class BossChallengeService {
 
     private void forceShutdownChallenge(@NotNull BossChallengeInstance challenge) {
         challenge.state(BossChallengeState.ENDING);
+        destroyCancelController(challenge.challengeId());
         if (!challenge.participantsConfirmed()) {
             challenge.confirmParticipants(
                     eligibleParticipantsForEntry(challenge).stream().map(Player::getUniqueId).toList()
@@ -1195,5 +1338,12 @@ public final class BossChallengeService {
             @NotNull DisplayTextService.ManagedTextDisplay display,
             @NotNull String text
     ) {
+    }
+
+    /** プレイヤーによる挑戦中止の結果です。 */
+    public enum PlayerCancelResult {
+        STOPPED,
+        NO_CHALLENGE,
+        NOT_LEADER
     }
 }

@@ -2,23 +2,25 @@ package io.github.maaasu.astralRecord.feature.boss.command;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Locale;
 
 /**
- * Admin command for active boss challenges.
+ * ボス挑戦の管理者操作と、パーティーリーダー向け中止操作を提供します。
  */
 public final class BossCommand extends AstCommand {
     public BossCommand() {
-        super("boss", "Manage boss challenges.", "/boss <instances|stop> [partyId|challengeId]",
-                false, UserPermission.ADMIN.getValue());
+        super("boss", "Manage boss challenges.", "/boss <instances|stop|cancel> [partyId|challengeId]",
+                false);
     }
 
     @Override
@@ -36,11 +38,46 @@ public final class BossCommand extends AstCommand {
         }
 
         String action = args[0].toLowerCase(Locale.ROOT);
+        if (action.equals("cancel")) {
+            handlePlayerCancel(sender, service);
+            return;
+        }
+        if (!isAdmin(sender)) {
+            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5061.getId()));
+            return;
+        }
         switch (action) {
             case "instances", "list" -> handleList(sender, service);
             case "stop" -> handleStop(sender, service, args);
             default -> sendUsage(sender);
         }
+    }
+
+    private void handlePlayerCancel(
+            @NotNull CommandSender sender,
+            @NotNull BossChallengeService service
+    ) {
+        if (!(sender instanceof Player player)) {
+            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5060.getId()));
+            return;
+        }
+        BossChallengeService.PlayerCancelResult result = service.stopChallengeForLeader(
+                player.getUniqueId(),
+                null
+        );
+        switch (result) {
+            case STOPPED -> sendSuccess(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_6528.getId()));
+            case NOT_LEADER -> sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_6526.getId()));
+            case NO_CHALLENGE -> sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_6527.getId()));
+        }
+    }
+
+    private boolean isAdmin(@NotNull CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            return true;
+        }
+        var astPlayer = AstPlayerCache.get(player);
+        return astPlayer != null && astPlayer.hasPermissionLevel(UserPermission.ADMIN.getValue());
     }
 
     private void handleList(@NotNull CommandSender sender, @NotNull BossChallengeService service) {

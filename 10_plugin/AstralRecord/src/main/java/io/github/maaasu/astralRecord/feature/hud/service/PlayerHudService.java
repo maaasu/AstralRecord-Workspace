@@ -5,7 +5,9 @@ import io.github.maaasu.astralRecord.feature.hud.view.PlayerHudView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
+import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
+import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import org.bukkit.Bukkit;
@@ -25,6 +27,8 @@ public class PlayerHudService {
     private final StatusService statusService;
     private final PlayerClassService playerClassService;
     private final AccountService accountService;
+    private final PlayerSettingService playerSettingService;
+    private final BossChallengeService bossChallengeService;
     private final PlayerHudView playerHudView;
     private final Map<UUID, BukkitTask> actionBarOverrideTasks = new HashMap<>();
     private final Map<UUID, Function<AstPlayer, Component>> primaryActionBarRenderers = new HashMap<>();
@@ -36,15 +40,22 @@ public class PlayerHudService {
      *
      * @param statusService       ステータスサービス
      * @param playerClassService  職業サービス（サイドバーの職業名・レベル表示に使用）
+     * @param accountService      アカウント経験値サービス
+     * @param playerSettingService プレイヤー設定サービス
+     * @param bossChallengeService ボス挑戦サービス
      */
     public PlayerHudService(
         StatusService statusService,
         PlayerClassService playerClassService,
-        AccountService accountService
+        AccountService accountService,
+        PlayerSettingService playerSettingService,
+        BossChallengeService bossChallengeService
     ) {
         this.statusService = statusService;
         this.playerClassService = playerClassService;
         this.accountService = accountService;
+        this.playerSettingService = playerSettingService;
+        this.bossChallengeService = bossChallengeService;
         this.playerHudView = new PlayerHudView();
     }
 
@@ -165,7 +176,9 @@ public class PlayerHudService {
                     astPlayer.getAccount().getTotalExperience()
                 );
                 String className = playerClassService.getDisplayName(astPlayer.getClassId());
-                double classExperienceProgress = playerClassService.classExperienceProgress(astPlayer);
+                boolean showPerformanceInfo = playerSettingService.isPerformanceInfoDisplayEnabled(
+                    astPlayer.getUser().getUuid()
+                );
                 playerHudView.renderSidebar(
                     player,
                     mspt,
@@ -173,11 +186,16 @@ public class PlayerHudService {
                     experienceProgress,
                     astPlayer.getClassLevel(),
                     className,
-                    classExperienceProgress
+                    showPerformanceInfo,
+                    bossChallengeService.findSidebarInfo(player.getUniqueId())
                 );
             }
             playerHudView.renderBars(player, snapshot);
-            playerHudView.renderTabList(player, mspt);
+            playerHudView.renderTabList(
+                player,
+                mspt,
+                playerSettingService.isPerformanceInfoDisplayEnabled(astPlayer.getUser().getUuid())
+            );
         }
     }
 
