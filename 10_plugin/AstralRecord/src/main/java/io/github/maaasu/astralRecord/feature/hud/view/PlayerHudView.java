@@ -19,7 +19,7 @@ public class PlayerHudView {
     private static final String OBJECTIVE_NAME = "astral_info";
     private static final int TRANSIENT_BAR_LENGTH = 28;
     private static final int SIDEBAR_BAR_LENGTH = 40;
-    private static final String SIDEBAR_BAR_CHAR = "╵";
+    private static final String SIDEBAR_BAR_CHAR = "╎";
 
     public void renderActionBar(Player player, StatusSnapshot snapshot) {
         double maxHp = snapshot.getMaxValue(StatusType.MAX_HEALTH);

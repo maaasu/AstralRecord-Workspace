@@ -137,7 +137,7 @@ public class ItemStackFactory {
 
     private static final String STATUS_VALUE_COLOR = ColorCodeUtil.WHITE + ColorCodeUtil.BOLD;
     private static final int DURABILITY_BAR_LENGTH = 20;
-    private static final String DURABILITY_BAR_CHAR = "╵";
+    private static final String DURABILITY_BAR_CHAR = "╎";
 
     /** ルートテーブル参照用（nullable: 未初期化時は Lore に含めない） */
     private final LootService lootService;
