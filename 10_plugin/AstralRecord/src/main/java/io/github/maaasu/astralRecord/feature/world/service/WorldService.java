@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -46,6 +47,8 @@ public class WorldService {
             Title.Times.times(Duration.ofMillis(150L), Duration.ofMillis(1800L), Duration.ofMillis(250L));
 
     private final WorldRepository repository;
+    private final Supplier<File> worldContainerSupplier;
+    private final Supplier<Collection<org.bukkit.World>> bukkitWorldsSupplier;
     private final Map<String, WorldMasterData> loadedWorlds = new LinkedHashMap<>();
     private final Map<String, org.bukkit.World> resolvedBukkitWorldsById = new LinkedHashMap<>();
     private final Map<UUID, WorldMasterData> worldDataByBukkitWorldId = new LinkedHashMap<>();
@@ -56,7 +59,24 @@ public class WorldService {
      * @param repository WorldMasterData リポジトリ
      */
     public WorldService(@NotNull WorldRepository repository) {
+        this(repository, Bukkit::getWorldContainer, Bukkit::getWorlds);
+    }
+
+    WorldService(
+            @NotNull WorldRepository repository,
+            @NotNull Supplier<File> worldContainerSupplier
+    ) {
+        this(repository, worldContainerSupplier, List::of);
+    }
+
+    private WorldService(
+            @NotNull WorldRepository repository,
+            @NotNull Supplier<File> worldContainerSupplier,
+            @NotNull Supplier<Collection<org.bukkit.World>> bukkitWorldsSupplier
+    ) {
         this.repository = repository;
+        this.worldContainerSupplier = worldContainerSupplier;
+        this.bukkitWorldsSupplier = bukkitWorldsSupplier;
     }
 
     /**
@@ -150,7 +170,7 @@ public class WorldService {
         }
 
         for (File baseWorldFolder : resolveWorldFolderCandidates(normalizeWorldPath(data.baseWorldPath()))) {
-            for (org.bukkit.World world : Bukkit.getWorlds()) {
+            for (org.bukkit.World world : bukkitWorldsSupplier.get()) {
                 if (sameFile(world.getWorldFolder(), baseWorldFolder)) {
                     cacheResolvedWorld(data, world);
                     return world;
@@ -492,7 +512,7 @@ public class WorldService {
     }
 
     @NotNull
-    private static List<File> resolveWorldFolderCandidates(@NotNull String worldName) {
+    private List<File> resolveWorldFolderCandidates(@NotNull String worldName) {
         Set<File> candidates = new LinkedHashSet<>();
         File folder = new File(worldName);
         if (folder.isAbsolute()) {
@@ -504,7 +524,7 @@ public class WorldService {
             candidates.add(new File(searchRoot, worldName));
         }
 
-        File worldContainer = Bukkit.getWorldContainer();
+        File worldContainer = worldContainerSupplier.get();
         String normalizedContainer = normalizeWorldPath(worldContainer.getPath());
         String normalizedName = normalizeWorldPath(worldName);
         if (!normalizedContainer.isBlank()
@@ -523,13 +543,13 @@ public class WorldService {
     }
 
     @NotNull
-    private static List<File> worldSearchRoots() {
+    private List<File> worldSearchRoots() {
         Set<File> roots = new LinkedHashSet<>();
-        File worldContainer = Bukkit.getWorldContainer();
+        File worldContainer = worldContainerSupplier.get();
         roots.add(worldContainer);
         roots.add(new File(worldContainer, "worlds"));
 
-        for (org.bukkit.World loadedWorld : Bukkit.getWorlds()) {
+        for (org.bukkit.World loadedWorld : bukkitWorldsSupplier.get()) {
             File cursor = loadedWorld.getWorldFolder();
             int depth = 0;
             while (cursor != null && depth < 4) {
@@ -546,7 +566,7 @@ public class WorldService {
     }
 
     @Nullable
-    private static File resolveExistingWorldFolder(@NotNull String worldName) {
+    private File resolveExistingWorldFolder(@NotNull String worldName) {
         for (File candidate : resolveWorldFolderCandidates(worldName)) {
             if (new File(candidate, "level.dat").isFile()) {
                 return candidate;

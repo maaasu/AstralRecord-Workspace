@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import java.io.File;
 import java.util.List;
 import java.util.function.IntSupplier;
 import java.util.logging.Logger;
@@ -30,7 +31,7 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
     @Test
     void loadAllSortsMasterDataResolvesBukkitWorldAndAppliesRpgGameRules() {
         WorldRepository repository = mock(WorldRepository.class);
-        WorldService service = new WorldService(repository);
+        WorldService service = new WorldService(repository, () -> new File("target/test-world-container"));
         World loadedWorld = server().addSimpleWorld("amber_field");
         WorldMasterData amber = world(
             "z_amber",
@@ -73,7 +74,7 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
     @Test
     void resolveSpawnLocationReturnsNullWhenWorldIsNotLoaded() {
         WorldRepository repository = mock(WorldRepository.class);
-        WorldService service = new WorldService(repository);
+        WorldService service = new WorldService(repository, () -> new File("target/test-world-container"));
         WorldMasterData missing = world(
             "missing_world",
             "Missing World",
@@ -93,7 +94,7 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
     @Test
     void loadAllDoesNotApplyGameRulesToAutoLoadDisabledWorld() {
         WorldRepository repository = mock(WorldRepository.class);
-        WorldService service = new WorldService(repository);
+        WorldService service = new WorldService(repository, () -> new File("target/test-world-container"));
         World loadedWorld = server().addSimpleWorld("manual_field");
         WorldMasterData manual = world(
             "manual_field",
