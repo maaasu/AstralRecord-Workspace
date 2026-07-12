@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
+import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.feature.world.repository.WorldRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -22,7 +23,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
-import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,6 +41,8 @@ import java.util.stream.Collectors;
  * WorldMasterData をロードし、Plugin 内で保持するサービスです。
  */
 public class WorldService {
+    private static final String DEFAULT_BOSS_FIELD_DISPLAY_NAME = "ボスフィールド";
+
     private static final long TELEPORT_PREPARE_DELAY_TICKS = 2L;
     private static final long TELEPORT_RESUME_DELAY_TICKS = 10L;
     private static final Title.Times WORLD_CHANGE_TITLE_TIMES =
@@ -51,8 +53,9 @@ public class WorldService {
     private final Supplier<Collection<org.bukkit.World>> bukkitWorldsSupplier;
     private final Map<String, WorldMasterData> loadedWorlds = new LinkedHashMap<>();
     private final Map<String, org.bukkit.World> resolvedBukkitWorldsById = new LinkedHashMap<>();
-    private final Map<UUID, WorldMasterData> worldDataByBukkitWorldId = new LinkedHashMap<>();
-    private final Map<UUID, String> runtimeDisplayNamesByBukkitWorldId = new LinkedHashMap<>();
+    private final Map<UUID, String> worldIdByBukkitWorldId = new LinkedHashMap<>();
+    private final Map<UUID, RuntimeWorldRegistration> runtimeWorldByBukkitWorldId = new LinkedHashMap<>();
+    private final Map<String, RuntimeWorldRegistration> pendingWorldByName = new LinkedHashMap<>();
 
     /**
      * WorldService を初期化します。
@@ -159,7 +162,7 @@ public class WorldService {
                 return stillLoaded;
             }
             resolvedBukkitWorldsById.remove(data.id());
-            worldDataByBukkitWorldId.remove(cached.getUID());
+            worldIdByBukkitWorldId.remove(cached.getUID());
         }
 
         for (String candidate : baseWorldNameCandidates(data)) {
@@ -172,7 +175,7 @@ public class WorldService {
 
         for (File baseWorldFolder : resolveWorldFolderCandidates(normalizeWorldPath(data.baseWorldPath()))) {
             for (org.bukkit.World world : bukkitWorldsSupplier.get()) {
-                if (sameFile(world.getWorldFolder(), baseWorldFolder)) {
+                if (sameNormalizedPath(world.getWorldFolder(), baseWorldFolder)) {
                     cacheResolvedWorld(data, world);
                     return world;
                 }
@@ -208,55 +211,109 @@ public class WorldService {
      */
     @Nullable
     public synchronized WorldMasterData findByBukkitWorld(@NotNull org.bukkit.World world) {
-        WorldMasterData cached = worldDataByBukkitWorldId.get(world.getUID());
-        if (cached != null && loadedWorlds.containsKey(cached.id())) {
-            return cached;
+        RuntimeWorldRegistration runtimeRegistration = runtimeWorldByBukkitWorldId.get(world.getUID());
+        String worldId = worldIdByBukkitWorldId.get(world.getUID());
+        if (worldId == null && runtimeRegistration != null) {
+            worldId = runtimeRegistration.worldId();
+        }
+        if (worldId == null) {
+            RuntimeWorldRegistration pendingRegistration = pendingWorldByName.get(
+                    normalizeWorldPath(world.getName())
+            );
+            worldId = pendingRegistration == null ? null : pendingRegistration.worldId();
         }
 
-        for (WorldMasterData data : loadedWorlds.values()) {
-            org.bukkit.World loaded = resolveLoadedWorld(data);
-            if (loaded != null && loaded.getUID().equals(world.getUID())) {
-                cacheResolvedWorld(data, loaded);
-                return data;
-            }
+        WorldMasterData worldData = worldId == null ? null : loadedWorlds.get(worldId);
+        if (worldData != null) {
+            return worldData;
+        }
+        worldIdByBukkitWorldId.remove(world.getUID());
+        if (runtimeRegistration == null) {
+            runtimeWorldByBukkitWorldId.remove(world.getUID());
         }
         return null;
     }
 
     /**
-     * 一時生成された Bukkit ワールドへプレイヤー向け表示名を登録します。
+     * 管理ワールドのロード予定名を登録します。
+     * {@link Bukkit#createWorld(WorldCreator)} 中にワールドイベントが発生しても、
+     * ファイル探索を行わず対応するマスタを解決できるようにします。
      *
-     * @param world 表示名を関連付ける Bukkit ワールド
-     * @param displayName タイトルなどへ表示する名称
+     * @param worldName Bukkit へ渡す一時ワールド名
+     * @param worldData 対応する WorldMasterData
+     * @throws IllegalStateException 同名ワールドのロード準備が既に進行中の場合
      */
-    public synchronized void registerRuntimeDisplayName(
-            @NotNull org.bukkit.World world,
-            @NotNull String displayName
+    public synchronized void prepareWorldLoad(
+            @NotNull String worldName,
+            @NotNull WorldMasterData worldData
     ) {
-        if (displayName.isBlank()) {
-            runtimeDisplayNamesByBukkitWorldId.remove(world.getUID());
-            return;
+        String normalizedName = normalizeWorldPath(worldName);
+        RuntimeWorldRegistration registration = RuntimeWorldRegistration.from(worldData);
+        RuntimeWorldRegistration existingRegistration = pendingWorldByName.putIfAbsent(
+                normalizedName,
+                registration
+        );
+        if (existingRegistration != null) {
+            throw new IllegalStateException("World load is already pending: " + normalizedName);
         }
-        runtimeDisplayNamesByBukkitWorldId.put(world.getUID(), displayName);
     }
 
     /**
-     * 一時生成された Bukkit ワールドのプレイヤー向け表示名を解除します。
+     * ロードに成功した一時生成ワールドを UUID で登録します。
      *
-     * @param world 表示名の関連付けを解除する Bukkit ワールド
+     * @param world 一時生成された Bukkit ワールド
+     * @param worldData 対応する WorldMasterData
      */
-    public synchronized void unregisterRuntimeDisplayName(@NotNull org.bukkit.World world) {
-        runtimeDisplayNamesByBukkitWorldId.remove(world.getUID());
+    public synchronized void registerRuntimeWorld(
+            @NotNull org.bukkit.World world,
+            @NotNull WorldMasterData worldData
+    ) {
+        RuntimeWorldRegistration registration = RuntimeWorldRegistration.from(worldData);
+        runtimeWorldByBukkitWorldId.put(world.getUID(), registration);
+        removePendingWorldRegistration(world.getName(), registration.worldId());
+    }
+
+    /**
+     * 一時生成ワールドのロード予定名を解除します。
+     *
+     * @param worldName Bukkit へ渡した一時ワールド名
+     * @param worldData 対応する WorldMasterData
+     */
+    public synchronized void cancelWorldLoad(
+            @NotNull String worldName,
+            @NotNull WorldMasterData worldData
+    ) {
+        removePendingWorldRegistration(worldName, worldData.id());
+    }
+
+    /**
+     * 一時生成ワールドの UUID 登録と残存するロード予定名を解除します。
+     *
+     * @param world 破棄する一時生成ワールド
+     */
+    public synchronized void unregisterRuntimeWorld(@NotNull org.bukkit.World world) {
+        RuntimeWorldRegistration registration = runtimeWorldByBukkitWorldId.remove(world.getUID());
+        if (registration != null) {
+            removePendingWorldRegistration(world.getName(), registration.worldId());
+        }
+    }
+
+    private void removePendingWorldRegistration(@NotNull String worldName, @NotNull String worldId) {
+        String normalizedName = normalizeWorldPath(worldName);
+        RuntimeWorldRegistration registration = pendingWorldByName.get(normalizedName);
+        if (registration != null && registration.worldId().equals(worldId)) {
+            pendingWorldByName.remove(normalizedName);
+        }
     }
 
     private void cacheResolvedWorld(@NotNull WorldMasterData data, @NotNull org.bukkit.World world) {
         resolvedBukkitWorldsById.put(data.id(), world);
-        worldDataByBukkitWorldId.put(world.getUID(), data);
+        worldIdByBukkitWorldId.put(world.getUID(), data.id());
     }
 
     private void clearWorldResolutionCaches() {
         resolvedBukkitWorldsById.clear();
-        worldDataByBukkitWorldId.clear();
+        worldIdByBukkitWorldId.clear();
     }
 
     /**
@@ -353,6 +410,16 @@ public class WorldService {
         return teleportPlayerAsync(player, spawnLocation, onSuccess);
     }
 
+    /**
+     * 指定 Location へプレイヤーを非同期転送します。
+     * 転送先チャンクが準備済みなら重複先読みを省略し、未準備の場合だけ緊急先読みを行います。
+     * Bukkit API のスレッド制約に従い、メインスレッドから呼び出すことを前提とします。
+     *
+     * @param player 転送対象プレイヤー
+     * @param targetLocation 転送先
+     * @param onSuccess 転送成功後に実行する処理。不要な場合は {@code null}
+     * @return 転送結果を返す Future
+     */
     @NotNull
     public CompletableFuture<Boolean> teleportPlayerAsync(
             @NotNull org.bukkit.entity.Player player,
@@ -371,8 +438,15 @@ public class WorldService {
         OverheadDisplayService overheadDisplayService = suspendOverheadDisplay(player);
         detachTextDisplayPassengers(player);
 
+        org.bukkit.World targetWorld = targetLocation.getWorld();
+        int chunkX = targetLocation.getBlockX() >> 4;
+        int chunkZ = targetLocation.getBlockZ() >> 4;
+        CompletableFuture<?> chunkPreparation = targetWorld.isChunkLoaded(chunkX, chunkZ)
+                ? CompletableFuture.completedFuture(null)
+                : targetWorld.getChunkAtAsyncUrgently(targetLocation, true);
+
         CompletableFuture<Boolean> result = new CompletableFuture<>();
-        targetLocation.getWorld().getChunkAtAsyncUrgently(targetLocation, true).whenComplete((chunk, chunkThrowable) -> {
+        chunkPreparation.whenComplete((chunk, chunkThrowable) -> {
             if (chunkThrowable != null) {
                 scheduleOverheadResume(plugin, overheadDisplayService, player);
                 result.complete(false);
@@ -456,14 +530,23 @@ public class WorldService {
     }
 
     @NotNull
-    String resolveDisplayName(@NotNull org.bukkit.World world) {
-        String runtimeDisplayName = runtimeDisplayNamesByBukkitWorldId.get(world.getUID());
-        if (runtimeDisplayName != null && !runtimeDisplayName.isBlank()) {
-            return ColorCodeUtil.toLegacyText(runtimeDisplayName, "");
-        }
+    synchronized String resolveDisplayName(@NotNull org.bukkit.World world) {
         WorldMasterData worldData = findByBukkitWorld(world);
         if (worldData != null && !worldData.displayName().isBlank()) {
             return ColorCodeUtil.toLegacyText(worldData.displayName(), worldData.id());
+        }
+
+        RuntimeWorldRegistration registration = runtimeWorldByBukkitWorldId.get(world.getUID());
+        if (registration == null) {
+            registration = pendingWorldByName.get(normalizeWorldPath(world.getName()));
+        }
+        if (registration != null) {
+            if (!registration.displayName().isBlank()) {
+                return ColorCodeUtil.toLegacyText(registration.displayName(), registration.worldId());
+            }
+            if (registration.worldType() == WorldType.BOSS_FIELD) {
+                return DEFAULT_BOSS_FIELD_DISPLAY_NAME;
+            }
         }
         return world.getName();
     }
@@ -472,6 +555,7 @@ public class WorldService {
         int loadedCount = 0;
         for (WorldMasterData world : worlds) {
             if (!world.autoLoad()) {
+                resolveLoadedWorld(world);
                 continue;
             }
             org.bukkit.World loaded = loadBukkitWorld(world);
@@ -503,7 +587,10 @@ public class WorldService {
             return null;
         }
 
+        boolean pendingRegistered = false;
         try {
+            prepareWorldLoad(worldName, data);
+            pendingRegistered = true;
             org.bukkit.World created = Bukkit.createWorld(new WorldCreator(worldName));
             if (created == null) {
                 Logger.log(LogId.W_5752, data.id(), worldName);
@@ -516,6 +603,10 @@ public class WorldService {
         } catch (RuntimeException e) {
             Logger.log(LogId.E_5753, e, data.id() + " path=" + worldName);
             return null;
+        } finally {
+            if (pendingRegistered) {
+                cancelWorldLoad(worldName, data);
+            }
         }
     }
 
@@ -606,11 +697,29 @@ public class WorldService {
         return null;
     }
 
-    private static boolean sameFile(@NotNull File left, @NotNull File right) {
-        try {
-            return left.getCanonicalFile().equals(right.getCanonicalFile());
-        } catch (IOException e) {
-            return left.getAbsoluteFile().equals(right.getAbsoluteFile());
+    /**
+     * ファイルシステムへアクセスせず、絶対正規化パスとして一致するかを返します。
+     *
+     * @param left 比較元
+     * @param right 比較先
+     * @return 字句的に同じ絶対パスの場合は {@code true}
+     */
+    private static boolean sameNormalizedPath(@NotNull File left, @NotNull File right) {
+        return left.toPath().toAbsolutePath().normalize()
+                .equals(right.toPath().toAbsolutePath().normalize());
+    }
+
+    private record RuntimeWorldRegistration(
+            @NotNull String worldId,
+            @NotNull String displayName,
+            @NotNull WorldType worldType
+    ) {
+        private static @NotNull RuntimeWorldRegistration from(@NotNull WorldMasterData worldData) {
+            return new RuntimeWorldRegistration(
+                    worldData.id(),
+                    worldData.displayName(),
+                    worldData.worldType()
+            );
         }
     }
 

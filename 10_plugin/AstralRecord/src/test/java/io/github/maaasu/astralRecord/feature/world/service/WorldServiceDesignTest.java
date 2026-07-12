@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -109,20 +110,111 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
         withPluginLogger(service::loadAll);
 
         assertEquals(List.of(manual), service.getAll());
+        assertSame(manual, service.findByBukkitWorld(loadedWorld));
         assertTrue(loadedWorld.getGameRuleValue(GameRules.SPAWN_MOBS));
         assertTrue(loadedWorld.getGameRuleValue(GameRules.MOB_GRIEFING));
     }
 
     @Test
-    void runtimeWorldUsesRegisteredJapaneseDisplayNameInsteadOfInternalPath() {
-        WorldService service = new WorldService(mock(WorldRepository.class));
-        World runtimeWorld = server().addSimpleWorld(
-                "plugins/AstralRecord/_world_instances/boss_field/twilight_colossus_field/instance"
+    void pendingRuntimeWorldIsManagedBeforeUuidRegistrationWithoutFileLookup() {
+        WorldRepository repository = mock(WorldRepository.class);
+        WorldService service = new WorldService(repository, () -> new File("target/test-world-container"));
+        WorldMasterData fieldData = world(
+                "twilight_colossus_field",
+                "黄昏の巨像フィールド",
+                WorldType.BOSS_FIELD,
+                "boss_template",
+                WorldSpawnLocation.defaultLocation(),
+                false
         );
+        World runtimeWorld = server().addSimpleWorld("runtime_pending");
+        when(repository.findAll()).thenReturn(List.of(fieldData));
+        withPluginLogger(service::loadAll);
 
-        service.registerRuntimeDisplayName(runtimeWorld, "黄昏の巨像フィールド");
+        service.prepareWorldLoad(runtimeWorld.getName(), fieldData);
 
+        assertSame(fieldData, service.findByBukkitWorld(runtimeWorld));
         assertEquals("黄昏の巨像フィールド", service.resolveDisplayName(runtimeWorld));
+        assertThrows(IllegalStateException.class, () -> service.prepareWorldLoad(runtimeWorld.getName(), fieldData));
+
+        service.cancelWorldLoad(runtimeWorld.getName(), fieldData);
+
+        assertNull(service.findByBukkitWorld(runtimeWorld));
+    }
+
+    @Test
+    void runtimeWorldRegistrationsSupportParallelInstancesAndSurviveMasterReload() {
+        WorldRepository repository = mock(WorldRepository.class);
+        WorldService service = new WorldService(repository, () -> new File("target/test-world-container"));
+        WorldMasterData fieldData = world(
+                "twilight_colossus_field",
+                "黄昏の巨像フィールド",
+                WorldType.BOSS_FIELD,
+                "boss_template",
+                WorldSpawnLocation.defaultLocation(),
+                false
+        );
+        WorldMasterData reloadedFieldData = world(
+                "twilight_colossus_field",
+                "黄昏の巨像フィールド・再読込",
+                WorldType.BOSS_FIELD,
+                "boss_template",
+                WorldSpawnLocation.defaultLocation(),
+                false
+        );
+        World firstRuntimeWorld = server().addSimpleWorld("runtime_first");
+        World secondRuntimeWorld = server().addSimpleWorld("runtime_second");
+        var repositoryResults = when(repository.findAll()).thenReturn(List.of(fieldData));
+        repositoryResults.thenReturn(List.of());
+        repositoryResults.thenReturn(List.of(reloadedFieldData));
+        withPluginLogger(service::loadAll);
+
+        service.registerRuntimeWorld(firstRuntimeWorld, fieldData);
+        service.registerRuntimeWorld(secondRuntimeWorld, fieldData);
+
+        assertSame(fieldData, service.findByBukkitWorld(firstRuntimeWorld));
+        assertSame(fieldData, service.findByBukkitWorld(secondRuntimeWorld));
+        assertEquals("黄昏の巨像フィールド", service.resolveDisplayName(firstRuntimeWorld));
+
+        withPluginLogger(service::loadAll);
+
+        assertNull(service.findByBukkitWorld(firstRuntimeWorld));
+        assertNull(service.findByBukkitWorld(secondRuntimeWorld));
+        assertEquals("黄昏の巨像フィールド", service.resolveDisplayName(firstRuntimeWorld));
+
+        withPluginLogger(service::loadAll);
+
+        assertSame(reloadedFieldData, service.findByBukkitWorld(firstRuntimeWorld));
+        assertSame(reloadedFieldData, service.findByBukkitWorld(secondRuntimeWorld));
+        assertEquals("黄昏の巨像フィールド・再読込", service.resolveDisplayName(firstRuntimeWorld));
+
+        service.unregisterRuntimeWorld(firstRuntimeWorld);
+
+        assertNull(service.findByBukkitWorld(firstRuntimeWorld));
+        assertSame(reloadedFieldData, service.findByBukkitWorld(secondRuntimeWorld));
+    }
+
+    @Test
+    void runtimeBossWorldWithBlankMasterNameUsesJapaneseFallbackInsteadOfInternalName() {
+        WorldRepository repository = mock(WorldRepository.class);
+        WorldService service = new WorldService(repository, () -> new File("target/test-world-container"));
+        WorldMasterData fieldData = world(
+                "blank_boss_field",
+                "",
+                WorldType.BOSS_FIELD,
+                "boss_template",
+                WorldSpawnLocation.defaultLocation(),
+                false
+        );
+        World runtimeWorld = server().addSimpleWorld(
+                "plugins/AstralRecord/_world_instances/boss_field/internal-path"
+        );
+        when(repository.findAll()).thenReturn(List.of(fieldData));
+        withPluginLogger(service::loadAll);
+
+        service.registerRuntimeWorld(runtimeWorld, fieldData);
+
+        assertEquals("ボスフィールド", service.resolveDisplayName(runtimeWorld));
     }
 
     private int withPluginLogger(IntSupplier action) {

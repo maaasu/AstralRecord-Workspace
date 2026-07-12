@@ -9,6 +9,8 @@ import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.jetbrains.annotations.NotNull;
@@ -20,6 +22,9 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -27,6 +32,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
@@ -35,9 +41,14 @@ import java.util.stream.Stream;
  * Creates and destroys per-challenge boss field worlds.
  */
 public final class BossFieldInstanceService {
+    private static final long FAILED_FIELD_CLEANUP_RETRY_TICKS = 20L;
+    private static final long WORLD_LOAD_SLOT_RELEASE_DELAY_TICKS = 1L;
+
     private final AstralRecord plugin;
     private final WorldService worldService;
     private final Map<UUID, PendingFieldCreation> pendingCreations = new ConcurrentHashMap<>();
+    private final Map<UUID, List<Chunk>> startupChunkTicketsByChallengeId = new ConcurrentHashMap<>();
+    private final AtomicBoolean worldLoadSlotInUse = new AtomicBoolean(false);
 
     public BossFieldInstanceService(@NotNull AstralRecord plugin, @NotNull WorldService worldService) {
         this.plugin = plugin;
@@ -45,7 +56,8 @@ public final class BossFieldInstanceService {
     }
 
     /**
-     * ボスフィールドのフォルダコピーを非同期で行い、Bukkit ワールドロードだけメインスレッドへ戻します。
+     * パス検証・ディレクトリ作成・ボスフィールドコピーを非同期で行い、
+     * Bukkit ワールドロードだけメインスレッドへ戻した後、必要チャンクを非同期準備します。
      *
      * @param challenge challenge runtime state
      * @param worldData field world master data
@@ -55,24 +67,20 @@ public final class BossFieldInstanceService {
             @NotNull BossChallengeInstance challenge,
             @NotNull WorldMasterData worldData
     ) {
-        PreparedField prepared;
-        try {
-            prepared = prepareField(challenge, worldData);
-        } catch (IOException ex) {
-            CompletableFuture<BossFieldInstance> failed = new CompletableFuture<>();
-            failed.completeExceptionally(ex);
-            return failed;
-        }
-
         CompletableFuture<BossFieldInstance> result = new CompletableFuture<>();
         PendingFieldCreation pending = new PendingFieldCreation(new AtomicBoolean(false));
+        Path worldContainer = Bukkit.getWorldContainer().toPath().toAbsolutePath().normalize();
         pendingCreations.put(challenge.challengeId(), pending);
         result.whenComplete((ignored, throwable) -> pendingCreations.remove(challenge.challengeId(), pending));
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            PreparedField prepared = null;
             try {
+                prepared = prepareField(challenge, worldData, worldContainer);
                 copyDirectory(prepared.source(), prepared.target(), pending.cancelled());
             } catch (Throwable ex) {
-                tryDeletePreparedTarget(prepared.target());
+                if (prepared != null) {
+                    tryDeletePreparedTarget(prepared.target());
+                }
                 result.completeExceptionally(ex);
                 return;
             }
@@ -82,19 +90,11 @@ public final class BossFieldInstanceService {
                 return;
             }
             try {
-                Bukkit.getScheduler().runTask(plugin, () -> {
-                    if (pending.cancelled().get()) {
-                        deletePreparedTargetAsync(prepared.target());
-                        result.completeExceptionally(new CancellationException("Boss field creation was cancelled"));
-                        return;
-                    }
-                    try {
-                        result.complete(loadPreparedField(challenge, worldData, prepared.target()));
-                    } catch (Throwable ex) {
-                        deletePreparedTargetAsync(prepared.target());
-                        result.completeExceptionally(ex);
-                    }
-                });
+                PreparedField completedPreparation = prepared;
+                Bukkit.getScheduler().runTask(
+                        plugin,
+                        () -> loadPreparedFieldWhenSafe(challenge, worldData, completedPreparation, pending, result)
+                );
             } catch (RuntimeException ex) {
                 tryDeletePreparedTarget(prepared.target());
                 result.completeExceptionally(ex);
@@ -108,6 +108,19 @@ public final class BossFieldInstanceService {
      */
     public void cancelPendingCreations() {
         for (PendingFieldCreation pending : pendingCreations.values()) {
+            pending.cancelled().set(true);
+        }
+    }
+
+    /**
+     * 指定した挑戦のフィールド準備をキャンセルします。
+     * コピー中の場合はファイル単位で停止し、ロード後の場合は準備完了時に回収します。
+     *
+     * @param challengeId キャンセルする挑戦 ID
+     */
+    public void cancelPendingCreation(@NotNull UUID challengeId) {
+        PendingFieldCreation pending = pendingCreations.get(challengeId);
+        if (pending != null) {
             pending.cancelled().set(true);
         }
     }
@@ -174,14 +187,24 @@ public final class BossFieldInstanceService {
         return result;
     }
 
+    /**
+     * 非同期タスク上でコピー元とコピー先を検証し、コピー先ディレクトリを準備します。
+     *
+     * @param challenge 対象挑戦
+     * @param worldData ボスフィールドのマスタ
+     * @param worldContainer 呼び出し元メインスレッドで取得済みのワールドコンテナ
+     * @return 検証済みのコピー元・コピー先
+     * @throws IOException パス検証またはディレクトリ作成に失敗した場合
+     */
     private @NotNull PreparedField prepareField(
             @NotNull BossChallengeInstance challenge,
-            @NotNull WorldMasterData worldData
+            @NotNull WorldMasterData worldData,
+            @NotNull Path worldContainer
     ) throws IOException {
-        Path root = resolvePath(worldData.instanceRootPath());
+        Path root = resolvePath(worldData.instanceRootPath(), worldContainer);
         Files.createDirectories(root);
 
-        String worldName = sanitize(worldData.id()) + "_" + challenge.challengeId().toString().substring(0, 8);
+        String worldName = sanitize(worldData.id()) + "_" + challenge.challengeId();
         Path target = root.resolve(worldName).normalize();
         if (!target.startsWith(root.normalize())) {
             throw new IOException("Boss field target escaped instance root: " + target);
@@ -190,7 +213,7 @@ public final class BossFieldInstanceService {
             throw new IOException("Boss field target already exists: " + target);
         }
 
-        Path source = resolvePath(worldData.baseWorldPath());
+        Path source = resolvePath(worldData.baseWorldPath(), worldContainer);
         if (!Files.isDirectory(source) || !Files.isRegularFile(source.resolve("level.dat"))) {
             Logger.log(LogId.W_6501, worldData.id(), source.toString());
             throw new IOException("Boss field base world folder is missing or invalid: " + source);
@@ -198,35 +221,323 @@ public final class BossFieldInstanceService {
         return new PreparedField(source, target);
     }
 
+    /**
+     * ワールド tick 外のメインスレッドで一時ワールドをロードし、必要チャンク準備へ進めます。
+     *
+     * @param challenge 対象挑戦
+     * @param worldData ボスフィールドのマスタ
+     * @param prepared コピー済みフィールド情報
+     * @param pending キャンセル状態
+     * @param result フィールド準備結果
+     */
+    private void loadPreparedFieldWhenSafe(
+            @NotNull BossChallengeInstance challenge,
+            @NotNull WorldMasterData worldData,
+            @NotNull PreparedField prepared,
+            @NotNull PendingFieldCreation pending,
+            @NotNull CompletableFuture<BossFieldInstance> result
+    ) {
+        if (pending.cancelled().get() || !plugin.isEnabled()) {
+            deletePreparedTargetAsync(prepared.target());
+            result.completeExceptionally(new CancellationException("Boss field creation was cancelled"));
+            return;
+        }
+        if (Bukkit.isTickingWorlds() || !worldLoadSlotInUse.compareAndSet(false, true)) {
+            try {
+                Bukkit.getScheduler().runTask(
+                        plugin,
+                        () -> loadPreparedFieldWhenSafe(challenge, worldData, prepared, pending, result)
+                );
+            } catch (RuntimeException ex) {
+                deletePreparedTargetAsync(prepared.target());
+                result.completeExceptionally(ex);
+            }
+            return;
+        }
+
+        BossFieldInstance field;
+        try {
+            field = loadPreparedField(challenge, worldData, prepared.target());
+        } catch (Throwable ex) {
+            if (ex instanceof LoadedWorldRetainedException retainedException) {
+                cleanupFailedPreparedFieldUntilDone(retainedException.field(), ex, result);
+            } else {
+                deletePreparedTargetAsync(prepared.target());
+                result.completeExceptionally(ex);
+            }
+            return;
+        } finally {
+            releaseWorldLoadSlotNextTick();
+        }
+
+        List<Location> requiredLocations = List.of(
+                challenge.config().playerSpawnLocation().toLocation(field.world()),
+                challenge.config().bossSpawnLocation().toLocation(field.world())
+        );
+        prepareRequiredChunksAsync(
+                challenge.challengeId(),
+                field.world(),
+                requiredLocations,
+                pending.cancelled()
+        ).whenComplete((ignored, throwable) -> {
+            Runnable completion = () -> {
+                if (throwable == null && !pending.cancelled().get() && plugin.isEnabled()) {
+                    result.complete(field);
+                    return;
+                }
+
+                Throwable failure = throwable == null
+                        ? new CancellationException("Boss field creation was cancelled")
+                        : throwable;
+                releaseStartupChunkTickets(challenge.challengeId());
+                cleanupFailedPreparedFieldUntilDone(field, failure, result);
+            };
+            if (!runOnMainThread(completion)) {
+                result.completeExceptionally(throwable == null
+                        ? new CancellationException("Boss field creation was cancelled")
+                        : throwable);
+            }
+        });
+    }
+
+    /**
+     * 準備失敗後のロード済みフィールドを、アンロードとフォルダ削除が完了するまで保持して再試行します。
+     *
+     * @param field 回収対象フィールド
+     * @param failure 元の準備失敗
+     * @param result フィールド作成結果
+     */
+    private void cleanupFailedPreparedFieldUntilDone(
+            @NotNull BossFieldInstance field,
+            @NotNull Throwable failure,
+            @NotNull CompletableFuture<BossFieldInstance> result
+    ) {
+        destroyFieldAsync(field).whenComplete((destroyed, destroyThrowable) -> {
+            if (Boolean.TRUE.equals(destroyed)) {
+                result.completeExceptionally(failure);
+                return;
+            }
+            if (!plugin.isEnabled()) {
+                result.completeExceptionally(failure);
+                return;
+            }
+            try {
+                Bukkit.getScheduler().runTaskLater(
+                        plugin,
+                        () -> cleanupFailedPreparedFieldUntilDone(field, failure, result),
+                        FAILED_FIELD_CLEANUP_RETRY_TICKS
+                );
+            } catch (RuntimeException ex) {
+                result.completeExceptionally(failure);
+            }
+        });
+    }
+
+    /**
+     * 一時ワールド名を予約登録したうえで Bukkit ワールドをロードし、UUID 登録と gamerule 適用を行います。
+     *
+     * @param challenge 対象挑戦
+     * @param worldData ボスフィールドのマスタ
+     * @param target コピー済みワールドフォルダ
+     * @return ロード済みフィールド
+     * @throws IOException Bukkit ワールドをロードできない場合
+     */
     private @NotNull BossFieldInstance loadPreparedField(
             @NotNull BossChallengeInstance challenge,
             @NotNull WorldMasterData worldData,
             @NotNull Path target
     ) throws IOException {
-        World world = Bukkit.createWorld(new WorldCreator(worldCreatorName(target)));
-        if (world == null) {
-            throw new IOException("Bukkit could not load boss field world: " + target);
+        String worldName = worldCreatorName(target);
+        boolean pendingRegistered = false;
+        World world = null;
+        try {
+            worldService.prepareWorldLoad(worldName, worldData);
+            pendingRegistered = true;
+            world = Bukkit.createWorld(new WorldCreator(worldName));
+            if (world == null) {
+                throw new IOException("Bukkit could not load boss field world: " + target);
+            }
+            worldService.registerRuntimeWorld(world, worldData);
+            worldService.applyRpgGameRules(world);
+            return new BossFieldInstance(challenge.challengeId(), world.getName(), target, world);
+        } catch (Throwable ex) {
+            if (world != null) {
+                BossFieldInstance retainedField = new BossFieldInstance(
+                        challenge.challengeId(),
+                        world.getName(),
+                        target,
+                        world
+                );
+                try {
+                    if (Bukkit.unloadWorld(world, false)) {
+                        worldService.unregisterRuntimeWorld(world);
+                    } else {
+                        Logger.log(LogId.E_6503, world.getName(), target.toString());
+                        throw new LoadedWorldRetainedException(retainedField, ex);
+                    }
+                } catch (LoadedWorldRetainedException retainedException) {
+                    throw retainedException;
+                } catch (RuntimeException unloadException) {
+                    Logger.log(LogId.E_6503, unloadException, world.getName(), target.toString());
+                    if (unloadException != ex) {
+                        unloadException.addSuppressed(ex);
+                    }
+                    throw new LoadedWorldRetainedException(retainedField, unloadException);
+                }
+            }
+            if (ex instanceof IOException ioException) {
+                throw ioException;
+            }
+            if (ex instanceof RuntimeException runtimeException) {
+                throw runtimeException;
+            }
+            if (ex instanceof Error error) {
+                throw error;
+            }
+            throw new IOException("Unexpected boss field load failure", ex);
+        } finally {
+            if (pendingRegistered) {
+                worldService.cancelWorldLoad(worldName, worldData);
+            }
         }
-        worldService.applyRpgGameRules(world);
-        worldService.registerRuntimeDisplayName(world, worldData.displayName());
-        return new BossFieldInstance(challenge.challengeId(), world.getName(), target, world);
     }
 
     /**
-     * Unloads and removes the generated field world.
+     * 指定地点が属する一意なチャンクを非緊急 Future で準備し、開始完了までチケットを保持します。
+     * テストおよび同一パッケージ内の準備処理から利用します。
      *
-     * @param field field instance
+     * @param challengeId 対象挑戦 ID
+     * @param world 対象ワールド
+     * @param requiredLocations 準備対象地点
+     * @return 全チャンクの準備とチケット保持が完了した Future
      */
-    public void destroyField(@NotNull BossFieldInstance field) {
-        if (!unloadField(field)) {
-            return;
+    @NotNull
+    CompletableFuture<Void> prepareRequiredChunksAsync(
+            @NotNull UUID challengeId,
+            @NotNull World world,
+            @NotNull Collection<Location> requiredLocations
+    ) {
+        return prepareRequiredChunksAsync(challengeId, world, requiredLocations, new AtomicBoolean(false));
+    }
+
+    /**
+     * キャンセル状態を監視しながら必要チャンクを準備します。
+     *
+     * @param challengeId 対象挑戦 ID
+     * @param world 対象ワールド
+     * @param requiredLocations 準備対象地点
+     * @param cancelled キャンセル状態
+     * @return 全チャンク準備結果
+     */
+    private @NotNull CompletableFuture<Void> prepareRequiredChunksAsync(
+            @NotNull UUID challengeId,
+            @NotNull World world,
+            @NotNull Collection<Location> requiredLocations,
+            @NotNull AtomicBoolean cancelled
+    ) {
+        Map<ChunkCoordinate, CompletableFuture<Chunk>> futuresByCoordinate = new LinkedHashMap<>();
+        try {
+            for (Location location : requiredLocations) {
+                if (location.getWorld() == null || !location.getWorld().getUID().equals(world.getUID())) {
+                    return CompletableFuture.failedFuture(
+                            new IllegalArgumentException("Boss field chunk location belongs to another world")
+                    );
+                }
+                int chunkX = location.getBlockX() >> 4;
+                int chunkZ = location.getBlockZ() >> 4;
+                ChunkCoordinate coordinate = new ChunkCoordinate(world.getUID(), chunkX, chunkZ);
+                if (futuresByCoordinate.containsKey(coordinate)) {
+                    continue;
+                }
+                CompletableFuture<Chunk> future = world.isChunkLoaded(chunkX, chunkZ)
+                        ? CompletableFuture.completedFuture(world.getChunkAt(chunkX, chunkZ))
+                        : world.getChunkAtAsync(chunkX, chunkZ, true, false);
+                futuresByCoordinate.put(coordinate, future);
+            }
+        } catch (RuntimeException ex) {
+            return CompletableFuture.failedFuture(ex);
         }
 
-        try {
-            deleteDirectory(field.worldFolder());
-        } catch (IOException ex) {
-            Logger.log(LogId.E_6502, ex, field.worldFolder().toString());
+        List<Chunk> retainedChunks = Collections.synchronizedList(new ArrayList<>());
+        List<CompletableFuture<Void>> ticketFutures = new ArrayList<>(futuresByCoordinate.size());
+        for (CompletableFuture<Chunk> future : futuresByCoordinate.values()) {
+            ticketFutures.add(future.thenAccept(chunk -> {
+                if (cancelled.get()) {
+                    throw new CancellationException("Boss field chunk preparation was cancelled");
+                }
+                if (chunk == null) {
+                    throw new IllegalStateException("Boss field chunk preparation completed without a chunk");
+                }
+                if (chunk.addPluginChunkTicket(plugin)) {
+                    retainedChunks.add(chunk);
+                }
+            }));
         }
+
+        CompletableFuture<Void> allPreparedAndTicketed = CompletableFuture.allOf(
+                ticketFutures.toArray(CompletableFuture[]::new)
+        );
+        return allPreparedAndTicketed.handle((ignored, throwable) -> {
+            List<Chunk> retainedSnapshot = List.copyOf(retainedChunks);
+            if (throwable != null) {
+                removeStartupChunkTickets(retainedSnapshot);
+                Throwable cause = throwable instanceof CompletionException && throwable.getCause() != null
+                        ? throwable.getCause()
+                        : throwable;
+                throw new CompletionException(cause);
+            }
+
+            List<Chunk> existing = startupChunkTicketsByChallengeId.putIfAbsent(
+                    challengeId,
+                    retainedSnapshot
+            );
+            if (existing != null) {
+                removeStartupChunkTickets(retainedSnapshot);
+                throw new IllegalStateException("Boss field startup chunks are already retained: " + challengeId);
+            }
+            return null;
+        });
+    }
+
+    /**
+     * フィールド開始準備中だけ保持していたチャンクチケットを解除します。
+     *
+     * @param challengeId 対象の挑戦 ID
+     */
+    public void releaseStartupChunkTickets(@NotNull UUID challengeId) {
+        List<Chunk> retainedChunks = startupChunkTicketsByChallengeId.remove(challengeId);
+        if (retainedChunks == null) {
+            return;
+        }
+        removeStartupChunkTickets(retainedChunks);
+    }
+
+    private void removeStartupChunkTickets(@NotNull Collection<Chunk> retainedChunks) {
+        for (Chunk chunk : retainedChunks) {
+            chunk.removePluginChunkTicket(plugin);
+        }
+    }
+
+    private void releaseWorldLoadSlotNextTick() {
+        try {
+            Bukkit.getScheduler().runTaskLater(
+                    plugin,
+                    () -> worldLoadSlotInUse.set(false),
+                    WORLD_LOAD_SLOT_RELEASE_DELAY_TICKS
+            );
+        } catch (RuntimeException ex) {
+            worldLoadSlotInUse.set(false);
+        }
+    }
+
+    /**
+     * 生成済みフィールドの安全なアンロードと非同期フォルダ削除を要求します。
+     * plugin 停止中に削除を予約できない場合は次回起動時掃除へ残します。
+     *
+     * @param field 破棄対象フィールド
+     */
+    public void destroyField(@NotNull BossFieldInstance field) {
+        destroyFieldAsync(field);
     }
 
     /**
@@ -236,10 +547,61 @@ public final class BossFieldInstanceService {
      * @return フォルダ削除まで成功した場合に {@code true} を返す Future
      */
     public @NotNull CompletableFuture<Boolean> destroyFieldAsync(@NotNull BossFieldInstance field) {
-        if (!unloadField(field)) {
-            return CompletableFuture.completedFuture(false);
-        }
         CompletableFuture<Boolean> result = new CompletableFuture<>();
+        destroyFieldWhenSafe(field, result);
+        return result;
+    }
+
+    /**
+     * world tick 外のメインスレッドへフィールド破棄を接続します。
+     *
+     * @param field 破棄対象フィールド
+     * @param result 破棄結果
+     */
+    private void destroyFieldWhenSafe(
+            @NotNull BossFieldInstance field,
+            @NotNull CompletableFuture<Boolean> result
+    ) {
+        if (Bukkit.isPrimaryThread() && !Bukkit.isTickingWorlds()) {
+            unloadAndDeleteFieldAsync(field, result);
+            return;
+        }
+        if (!plugin.isEnabled()) {
+            result.complete(false);
+            return;
+        }
+        try {
+            Bukkit.getScheduler().runTask(plugin, () -> destroyFieldWhenSafe(field, result));
+        } catch (RuntimeException ex) {
+            result.complete(false);
+        }
+    }
+
+    /**
+     * world tick 外でフィールドをアンロードし、成功後にフォルダ削除を非同期実行します。
+     *
+     * @param field 破棄対象フィールド
+     * @param result 破棄結果
+     */
+    private void unloadAndDeleteFieldAsync(
+            @NotNull BossFieldInstance field,
+            @NotNull CompletableFuture<Boolean> result
+    ) {
+        try {
+            if (!unloadField(field)) {
+                result.complete(false);
+                return;
+            }
+        } catch (RuntimeException ex) {
+            Logger.log(LogId.E_6503, ex, field.worldName(), field.worldFolder().toString());
+            result.complete(false);
+            return;
+        }
+
+        if (!plugin.isEnabled()) {
+            result.complete(false);
+            return;
+        }
         try {
             Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
                 try {
@@ -254,25 +616,43 @@ public final class BossFieldInstanceService {
             Logger.log(LogId.E_6502, ex, field.worldFolder().toString());
             result.complete(false);
         }
-        return result;
     }
 
+    /**
+     * 開始準備用チケットを解除してから一時ワールドをアンロードします。
+     * アンロード失敗時は runtime 登録を保持します。
+     *
+     * @param field 破棄対象フィールド
+     * @return アンロード済み、または既に未ロードなら {@code true}
+     */
     private boolean unloadField(@NotNull BossFieldInstance field) {
+        releaseStartupChunkTickets(field.challengeId());
         World loaded = Bukkit.getWorld(field.world().getUID());
         if (loaded != null && !Bukkit.unloadWorld(loaded, false)) {
             Logger.log(LogId.E_6503, field.worldName(), field.worldFolder().toString());
             return false;
         }
-        worldService.unregisterRuntimeDisplayName(field.world());
+        worldService.unregisterRuntimeWorld(field.world());
         return true;
     }
 
     private @NotNull Path resolvePath(@NotNull String rawPath) {
+        return resolvePath(rawPath, Bukkit.getWorldContainer().toPath());
+    }
+
+    /**
+     * 指定済みワールドコンテナを基準に相対パスを解決します。
+     *
+     * @param rawPath 解決対象パス
+     * @param worldContainer ワールドコンテナ
+     * @return 正規化済みパス
+     */
+    private @NotNull Path resolvePath(@NotNull String rawPath, @NotNull Path worldContainer) {
         Path path = Path.of(rawPath);
         if (path.isAbsolute()) {
             return path.normalize();
         }
-        return Bukkit.getWorldContainer().toPath().resolve(path).normalize();
+        return worldContainer.resolve(path).normalize();
     }
 
     private @NotNull String worldCreatorName(@NotNull Path worldFolder) {
@@ -342,7 +722,7 @@ public final class BossFieldInstanceService {
         try {
             Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> tryDeletePreparedTarget(target));
         } catch (RuntimeException ex) {
-            tryDeletePreparedTarget(target);
+            Logger.log(LogId.E_6502, ex, target.toString());
         }
     }
 
@@ -375,6 +755,31 @@ public final class BossFieldInstanceService {
     private record PendingFieldCreation(@NotNull AtomicBoolean cancelled) {
     }
 
+    private record ChunkCoordinate(@NotNull UUID worldId, int x, int z) {
+    }
+
+    /**
+     * 処理をメインスレッドで実行します。
+     *
+     * @param action 実行処理
+     * @return 実行または予約に成功した場合は {@code true}
+     */
+    private boolean runOnMainThread(@NotNull Runnable action) {
+        if (Bukkit.isPrimaryThread()) {
+            action.run();
+            return true;
+        }
+        if (!plugin.isEnabled()) {
+            return false;
+        }
+        try {
+            Bukkit.getScheduler().runTask(plugin, action);
+            return true;
+        } catch (RuntimeException ex) {
+            return false;
+        }
+    }
+
     private static final class FieldCopyException extends RuntimeException {
         private static final long serialVersionUID = 1L;
 
@@ -384,6 +789,20 @@ public final class BossFieldInstanceService {
 
         private @NotNull IOException ioCause() {
             return (IOException) super.getCause();
+        }
+    }
+
+    private static final class LoadedWorldRetainedException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+        private final transient BossFieldInstance field;
+
+        private LoadedWorldRetainedException(@NotNull BossFieldInstance field, @NotNull Throwable cause) {
+            super(cause);
+            this.field = field;
+        }
+
+        private @NotNull BossFieldInstance field() {
+            return field;
         }
     }
 }

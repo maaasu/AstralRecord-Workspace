@@ -558,18 +558,29 @@ public final class BossChallengeService {
         }
 
         Location bossSpawn = challenge.config().bossSpawnLocation().toLocation(field.world());
-        MobInstance boss = mobService.spawn(challenge.bossTemplate().id(), bossSpawn);
-        if (boss == null) {
-            endChallenge(challenge, BossChallengeEndReason.BOSS_SPAWN_FAILED);
-            return;
-        }
-        applyParticipantScaling(challenge, boss);
+        MobInstance boss = null;
+        try {
+            boss = mobService.spawn(challenge.bossTemplate().id(), bossSpawn);
+            if (boss == null) {
+                endChallenge(challenge, BossChallengeEndReason.BOSS_SPAWN_FAILED);
+                return;
+            }
+            applyParticipantScaling(challenge, boss);
 
-        challenge.bossMobInstanceId(boss.instanceId());
-        challengeIdByBossMob.put(boss.instanceId(), challenge.challengeId());
-        challenge.markStarted();
-        Logger.log(LogId.I_6501, challenge.challengeId(), challenge.bossTemplate().id(), field.worldName());
-        notifyParticipants(challenge, PlayerMsgId.P_6510, challenge.bossTemplate().displayName(), challenge.config().timeLimitSeconds());
+            challenge.bossMobInstanceId(boss.instanceId());
+            challengeIdByBossMob.put(boss.instanceId(), challenge.challengeId());
+            challenge.markStarted();
+            Logger.log(LogId.I_6501, challenge.challengeId(), challenge.bossTemplate().id(), field.worldName());
+            notifyParticipants(challenge, PlayerMsgId.P_6510, challenge.bossTemplate().displayName(), challenge.config().timeLimitSeconds());
+        } catch (RuntimeException ex) {
+            Logger.log(LogId.E_6500, ex, challenge.bossTemplate().id(), challenge.config().fieldWorldId());
+            if (boss != null && challenge.bossMobInstanceId() == null) {
+                mobService.destroy(boss.instanceId());
+            }
+            endChallenge(challenge, BossChallengeEndReason.BOSS_SPAWN_FAILED);
+        } finally {
+            fieldInstanceService.releaseStartupChunkTickets(challenge.challengeId());
+        }
     }
 
     private void applyParticipantScaling(@NotNull BossChallengeInstance challenge, @NotNull MobInstance boss) {
@@ -645,6 +656,7 @@ public final class BossChallengeService {
         if (challenge.state() == BossChallengeState.ENDING || challenge.state() == BossChallengeState.ENDED) {
             return;
         }
+        fieldInstanceService.cancelPendingCreation(challenge.challengeId());
         challenge.state(BossChallengeState.ENDING);
         if (!challenge.participantsConfirmed()) {
             challenge.confirmParticipants(
@@ -721,7 +733,7 @@ public final class BossChallengeService {
                     if (throwable != null || !Boolean.TRUE.equals(success)) {
                         Bukkit.getScheduler().runTaskLater(
                                 plugin,
-                                () -> cleanupFieldAndFinish(challenge),
+                                () -> exitParticipantsAndCleanup(challenge),
                                 END_RETRY_DELAY_TICKS
                         );
                         return;
