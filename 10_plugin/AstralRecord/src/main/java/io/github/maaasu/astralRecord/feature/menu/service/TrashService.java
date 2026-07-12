@@ -238,7 +238,7 @@ public final class TrashService {
             menuGuiTransitionService.switchGuiWithInventoryRestore(player, () -> menuView.open(player));
             return;
         }
-        if (rawSlot == MenuView.TRASH_CLOSE_SLOT) {
+        if (rawSlot == MenuView.TRASH_CONFIRM_SLOT) {
             if (currentTrashItems.isEmpty()) {
                 discard(player);
                 suppressTrashConfirmOnClose.add(player.getUniqueId());
@@ -534,7 +534,7 @@ public final class TrashService {
         return rawSlot == MenuView.TRASH_PREVIOUS_SLOT
             || rawSlot == MenuView.TRASH_GUIDE_SLOT
             || rawSlot == MenuView.BACK_SLOT
-            || rawSlot == MenuView.TRASH_CLOSE_SLOT
+            || rawSlot == MenuView.TRASH_CONFIRM_SLOT
             || rawSlot == MenuView.TRASH_NEXT_SLOT;
     }
 

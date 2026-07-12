@@ -31,7 +31,7 @@
 - `account`: ウェイストーン解除状態のアカウント単位管理
 - `currency`: ロック解除時のゴールド残高確認と消費
 - `world`: 同一ワールド判定と共通テレポート処理
-- `menu`: GUI 共通のホットバー閉じるボタン仕様
+- `menu`: GUI 共通のインベントリ終了仕様
 - API `account-waystone`: `00_docs/20_API設計書/feature/25-waystone`
 - DB `dbo.account_waystone_unlock`: `00_docs/40_Database設計書/table-definitions/AstralRecord/dbo.account_waystone_unlock.md`
 

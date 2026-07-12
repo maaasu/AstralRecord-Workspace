@@ -18,7 +18,7 @@ public final class TrashScreenView extends BaseMenuScreenView {
     public static final int PREVIOUS_SLOT = 45;
     public static final int GUIDE_SLOT = 46;
     public static final int NEXT_SLOT = 52;
-    public static final int CLOSE_SLOT = 53;
+    public static final int CONFIRM_SLOT = 53;
 
     private final NamespacedKey contentPlaceholderKey;
 
@@ -94,11 +94,11 @@ public final class TrashScreenView extends BaseMenuScreenView {
                 Component.text("Shift+左クリック: まとめてゴミ箱へ移動", NamedTextColor.GRAY),
                 Component.text("右クリック: 分割してゴミ箱へ移動", NamedTextColor.GRAY),
                 Component.text("空きスロットは灰色ガラスで表示されます", NamedTextColor.GRAY),
-                Component.text("中央の閉じるボタンで確認画面を開きます", NamedTextColor.GRAY)
+                Component.text("廃棄確認アイコンで確認画面を開きます", NamedTextColor.GRAY)
             )
         ));
         inventory.setItem(BACK_SLOT, backItem());
-        inventory.setItem(CLOSE_SLOT, createItem(
+        inventory.setItem(CONFIRM_SLOT, createItem(
             Material.LAVA_BUCKET,
             Component.text("確認へ", NamedTextColor.RED),
             List.of(Component.text("廃棄前の確認画面を開きます", NamedTextColor.GRAY))

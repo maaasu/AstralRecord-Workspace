@@ -230,11 +230,6 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             saveCurrentPreset(player, session, pageIndex);
             return;
         }
-        if (slot == SkillBindGui.PLAYER_CLOSE_SLOT) {
-            GuiSound.CLOSE.play(player);
-            restoreAndClose(player);
-            return;
-        }
         if (slot >= SkillBindGui.PRESET_SLOT_START && slot <= SkillBindGui.PRESET_SLOT_END) {
             int presetIndex = slot - SkillBindGui.PRESET_SLOT_START + 1;
             if (!session.presets().get(presetIndex - 1).isUnlocked()) {

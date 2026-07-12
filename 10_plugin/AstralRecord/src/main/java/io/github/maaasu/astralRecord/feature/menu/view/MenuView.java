@@ -77,7 +77,7 @@ public class MenuView {
     public static final int PAGING_NEXT_SLOT = PagedGuiView.NEXT_SLOT;
     public static final int TRASH_PREVIOUS_SLOT = TrashScreenView.PREVIOUS_SLOT;
     public static final int TRASH_GUIDE_SLOT = TrashScreenView.GUIDE_SLOT;
-    public static final int TRASH_CLOSE_SLOT = TrashScreenView.CLOSE_SLOT;
+    public static final int TRASH_CONFIRM_SLOT = TrashScreenView.CONFIRM_SLOT;
     public static final int TRASH_NEXT_SLOT = TrashScreenView.NEXT_SLOT;
     public static final int TRASH_CONFIRM_PREVIOUS_SLOT = TrashConfirmScreenView.PREVIOUS_SLOT;
     public static final int TRASH_CONFIRM_DISPOSE_SLOT = TrashConfirmScreenView.DISPOSE_SLOT;

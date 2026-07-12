@@ -46,7 +46,6 @@ public final class SkillBindGui {
     public static final int PREVIOUS_SLOT = 45;
     public static final int BACK_SLOT = 49;
     public static final int NEXT_SLOT = 53;
-    public static final int PLAYER_CLOSE_SLOT = 4;
     public static final int SAVE_SLOT = 8;
 
     public static final int PRESET_SLOT_START = 9;
@@ -277,10 +276,6 @@ public final class SkillBindGui {
                     )
                 )
             )
-        );
-        inventory.setItem(
-            PLAYER_CLOSE_SLOT,
-            createItem(Material.BARRIER, Component.text("閉じる", NamedTextColor.RED), List.of())
         );
     }
 

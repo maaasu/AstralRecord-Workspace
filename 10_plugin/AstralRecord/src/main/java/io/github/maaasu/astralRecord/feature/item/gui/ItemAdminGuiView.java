@@ -35,7 +35,6 @@ public final class ItemAdminGuiView {
     public static final int CATEGORY_FILTER_SLOT = 46;
     public static final int RARITY_FILTER_SLOT = 47;
     public static final int GUIDE_SLOT = 49;
-    public static final int CLOSE_SLOT = 50;
     public static final int NEXT_SLOT = 53;
 
     private static final Component TITLE = Component.text("管理アイテム一覧", NamedTextColor.GOLD);
@@ -207,11 +206,6 @@ public final class ItemAdminGuiView {
                 Component.text("右クリック: 半スタック", NamedTextColor.GRAY),
                 Component.text("Shift+左クリック: 1スタック", NamedTextColor.GRAY)
             )
-        ));
-        inventory.setItem(CLOSE_SLOT, createItem(
-            Material.BARRIER,
-            Component.text("閉じる", NamedTextColor.RED, TextDecoration.BOLD),
-            List.of(Component.text("GUI を閉じます", NamedTextColor.GRAY))
         ));
         if (hasNextPage(pageIndex, itemCount)) {
             inventory.setItem(NEXT_SLOT, createItem(

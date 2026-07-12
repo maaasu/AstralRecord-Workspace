@@ -131,11 +131,6 @@ public final class ItemAdminGuiEventHandler extends AbstractEventHandler {
         @NotNull Inventory topInventory
     ) {
         int rawSlot = event.getRawSlot();
-        if (rawSlot == ItemAdminGuiView.CLOSE_SLOT) {
-            GuiSound.CLOSE.play(player);
-            player.closeInventory();
-            return;
-        }
         if (rawSlot >= topInventory.getSize()) {
             GuiSound.DENY.play(player);
             return;

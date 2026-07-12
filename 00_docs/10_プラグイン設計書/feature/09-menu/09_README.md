@@ -59,8 +59,8 @@
 - 2026-06-09: `party` / `currency` / `shop` / `adventurerecord` はそれぞれ独立 feature を正本とし、menu はメインメニューや戻る操作などの導線のみを担当する。
 - 2026-06-09: 職業 GUI は class / playerclass 側を正本とし、menu は通常プレイヤー向けメインメニュー導線を持たない。ADMIN の `/class gui` と mob feature の NPC interaction (`type=CLASS`) は class / playerclass 側で扱う。
 - 2026-06-13: 装備強化 GUI は menu からの導線と inventory GUI 上の操作フローを担当し、必要素材・成功率・失敗時挙動の定義自体は item master / equipment schema を正本とする。
-- 2026-06-13: 装備強化 GUI は装備を一旦セット可能とし、強化不可理由は実行アイコンへ表示する。閉じる操作はホットバー共通ボタンを正本とし、GUI 内専用の閉じるボタンは置かない。
-- 2026-07-12: `HotbarShortcutGuiHolder` 対象 GUI の閉じる操作はプレイヤーインベントリの BAG 制御列中央 `slot 26` を正本とする。ホットバー9枠はカスタムGUI中も割当アイテムを表示する。
+- 2026-06-13: 装備強化 GUI は装備を一旦セット可能とし、強化不可理由は実行アイコンへ表示する。GUI 内専用の閉じるボタンは置かない。
+- 2026-07-12: `HotbarShortcutGuiHolder` 対象 GUI はプレイヤーインベントリの BAG 制御列中央 `slot 26` をインベントリ情報表示として維持し、専用の閉じるボタンを配置しない。ホットバー9枠はカスタムGUI中も割当アイテムを表示する。
 
 ## 追記（ゴミ箱GUI）
 - ゴミ箱GUI追加に伴い、[[09_1.00-モデル定義]]・[[09_3.01-イベント]]・[[09_3.07-GUI・View]]・[[09_4.00-統合フロー]] を更新。

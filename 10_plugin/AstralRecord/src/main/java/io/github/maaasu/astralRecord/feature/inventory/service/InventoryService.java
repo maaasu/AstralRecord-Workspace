@@ -709,9 +709,7 @@ public class InventoryService {
         setStorageItemIfChanged(playerInventory, NormalInventoryLayout.SCROLL_UP_GUI_SLOT,
             createScrollIcon(true, scrollRow > 0));
         setStorageItemIfChanged(playerInventory, NormalInventoryLayout.INFO_GUI_SLOT,
-            state.isHotbarShortcutMode()
-                ? createCloseControlIcon()
-                : createInventoryInfoIcon(entries, capacity, scrollRow));
+            createInventoryInfoIcon(entries, capacity, scrollRow));
         setStorageItemIfChanged(playerInventory, NormalInventoryLayout.SCROLL_DOWN_GUI_SLOT,
             createScrollIcon(false, scrollRow < NormalInventoryLayout.maxScrollRow(capacity)));
     }
@@ -721,7 +719,7 @@ public class InventoryService {
     }
 
     /**
-     * BAG 右端列のスクロール・情報・閉じる操作を処理します。
+     * BAG 右端列のスクロール・情報操作を処理します。
      *
      * @param astPlayer 操作したプレイヤー
      * @param bukkitSlot Bukkit PlayerInventory のスロット番号
@@ -738,9 +736,6 @@ public class InventoryService {
             return true;
         }
         if (bukkitSlot == NormalInventoryLayout.INFO_GUI_SLOT) {
-            if (state.isHotbarShortcutMode()) {
-                astPlayer.getBukkit().closeInventory();
-            }
             return true;
         }
         InventoryModel bag = state.findInventory(DEFAULT_PROFILE, InventoryType.BAG);
@@ -3426,18 +3421,6 @@ public class InventoryService {
                 Component.text("表示行: " + firstRow + " - " + lastRow + " / " + totalRows,
                     NamedTextColor.GRAY)
             ));
-            meta.addItemFlags(ItemFlag.values());
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
-    }
-
-    private @NotNull ItemStack createCloseControlIcon() {
-        ItemStack itemStack = new ItemStack(Material.BARRIER);
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(Component.text("閉じる", NamedTextColor.RED));
-            meta.lore(List.of(Component.text("クリックして GUI を閉じる", NamedTextColor.GRAY)));
             meta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(meta);
         }
