@@ -91,12 +91,18 @@ public final class DesignTestFixtures {
     public static InventoryModel inventory(UUID accountId, InventoryType type) {
         LocalDateTime now = LocalDateTime.now();
         UUID actor = UUID.randomUUID();
+        Integer slotCapacity = null;
+        if (type == InventoryType.BAG) {
+            slotCapacity = 32;
+        } else if (type.isSlotted()) {
+            slotCapacity = 27;
+        }
         return new InventoryModel(
             UUID.randomUUID(),
             accountId,
             type,
             InventoryProfile.GAME.getCode(),
-            type == InventoryType.BAG ? 24 : type.isSlotted() ? 27 : null,
+            slotCapacity,
             true,
             null,
             now,

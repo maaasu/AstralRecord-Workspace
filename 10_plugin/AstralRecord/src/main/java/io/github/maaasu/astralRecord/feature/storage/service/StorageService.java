@@ -264,7 +264,7 @@ public final class StorageService {
             GuiSound.DENY.play(player);
             return;
         }
-        int moved = inventoryService.moveDisplayedItemToStorage(astPlayer, event.getSlot(), requested);
+        int moved = inventoryService.moveOwnedItemToStorage(astPlayer, event.getSlot(), requested);
         if (moved <= 0) {
             GuiSound.DENY.play(player);
             player.updateInventory();

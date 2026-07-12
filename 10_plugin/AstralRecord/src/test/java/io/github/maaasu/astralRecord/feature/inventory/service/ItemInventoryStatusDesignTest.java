@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -118,14 +119,36 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         InventoryModel bagInventory = harness.addInventory(state, InventoryType.BAG);
         ItemModel singleStackItem = DesignTestFixtures.item("capacity_test", ItemCategory.MATERIAL, 1);
 
-        for (int slot = 1; slot <= 24; slot++) {
+        for (int slot = 1; slot <= 32; slot++) {
             assertEquals(1, harness.inventoryService.addItemToNormalInventory(
                 astPlayer, singleStackItem, 1, "test"));
         }
 
         assertEquals(0, harness.inventoryService.addItemToNormalInventory(
             astPlayer, singleStackItem, 1, "test"));
-        assertEquals(24, state.snapshotEntries(bagInventory.getInventoryId()).size());
+        assertEquals(32, state.snapshotEntries(bagInventory.getInventoryId()).size());
+    }
+
+    @Test
+    void storageTransferTakesPriorityForItemAssignedToHotbar() {
+        InventoryHarness harness = inventoryHarness();
+        PlayerMock bukkitPlayer = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.ADMIN);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        harness.addInventory(state, InventoryType.BAG);
+        harness.addInventory(state, InventoryType.HOTBAR);
+        InventoryModel storage = harness.addInventory(state, InventoryType.STORAGE);
+        ItemModel consumable = DesignTestFixtures.item("storage_priority_test", ItemCategory.CONSUMABLE, 16);
+        when(harness.itemService.findLoadedById(consumable.getId())).thenReturn(consumable);
+
+        assertEquals(1, harness.inventoryService.addItemToNormalInventory(astPlayer, consumable, 1, "test"));
+        assertTrue(harness.inventoryService.equipOrAssignClickedItem(astPlayer, 9));
+        assertTrue(harness.inventoryService.hasHotbarEntry(astPlayer, 1));
+
+        assertEquals(1, harness.inventoryService.moveOwnedItemToStorage(astPlayer, 0, 1));
+
+        assertFalse(harness.inventoryService.hasHotbarEntry(astPlayer, 1));
+        assertEquals(1, state.snapshotEntries(storage.getInventoryId()).size());
     }
 
     @Test

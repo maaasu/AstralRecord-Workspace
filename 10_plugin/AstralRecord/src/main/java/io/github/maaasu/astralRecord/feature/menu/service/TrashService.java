@@ -332,7 +332,7 @@ public final class TrashService {
             GuiSound.DENY.play(player);
             return;
         }
-        ItemStack moved = inventoryService.takeDisplayedItemAmount(astPlayer, event.getSlot(), requested);
+        ItemStack moved = inventoryService.takeOwnedItemAmount(astPlayer, event.getSlot(), requested);
         if (moved == null || moved.getType() == Material.AIR) {
             GuiSound.DENY.play(player);
             player.updateInventory();

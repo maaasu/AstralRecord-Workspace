@@ -357,7 +357,7 @@ public final class SellService {
             GuiSound.DENY.play(player);
             return;
         }
-        ItemModel sourceModel = inventoryService.getDisplayedItemModelAtBukkitSlot(astPlayer, event.getSlot());
+        ItemModel sourceModel = inventoryService.getOwnedItemModelAtBukkitSlot(astPlayer, event.getSlot());
         if (sourceModel == null) {
             GuiSound.DENY.play(player);
             player.updateInventory();
@@ -384,7 +384,7 @@ public final class SellService {
             player.updateInventory();
             return;
         }
-        ItemStack moved = inventoryService.takeDisplayedItemAmount(astPlayer, event.getSlot(), capacity);
+        ItemStack moved = inventoryService.takeOwnedItemAmount(astPlayer, event.getSlot(), capacity);
         if (moved == null || moved.getType() == Material.AIR) {
             GuiSound.DENY.play(player);
             player.updateInventory();

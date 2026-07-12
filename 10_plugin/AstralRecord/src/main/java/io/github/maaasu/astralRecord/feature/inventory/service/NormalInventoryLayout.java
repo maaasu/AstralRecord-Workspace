@@ -18,9 +18,10 @@ import java.util.Set;
 final class NormalInventoryLayout {
     static final int CONTENT_COLUMNS = 8;
     static final int VISIBLE_ROWS = 3;
-    static final int CAPACITY = CONTENT_COLUMNS * VISIBLE_ROWS;
+    static final int VISIBLE_CAPACITY = CONTENT_COLUMNS * VISIBLE_ROWS;
+    static final int DEFAULT_CAPACITY = CONTENT_COLUMNS * 4;
     static final int DB_SLOT_START = 1;
-    static final int DB_SLOT_END = CAPACITY;
+    static final int DB_SLOT_END = DEFAULT_CAPACITY;
     static final int GUI_SLOT_START = 9;
     static final int GUI_SLOT_END = 35;
     static final int SCROLL_UP_GUI_SLOT = 17;
@@ -59,7 +60,7 @@ final class NormalInventoryLayout {
      * @return 使用済みスロット集合
      */
     static @NotNull Set<Integer> collectUsedSlots(@NotNull List<InventoryEntryModel> entries) {
-        return collectUsedSlots(entries, CAPACITY);
+        return collectUsedSlots(entries, DEFAULT_CAPACITY);
     }
 
     static @NotNull Set<Integer> collectUsedSlots(
@@ -107,7 +108,7 @@ final class NormalInventoryLayout {
      * @return 空きスロット。存在しない場合は null
      */
     static @Nullable Integer findNextFreeSlot(@NotNull Set<Integer> usedSlots) {
-        return findNextFreeSlot(usedSlots, CAPACITY);
+        return findNextFreeSlot(usedSlots, DEFAULT_CAPACITY);
     }
 
     static @Nullable Integer findNextFreeSlot(@NotNull Set<Integer> usedSlots, int capacity) {
@@ -125,7 +126,7 @@ final class NormalInventoryLayout {
 
     static int toGuiSlotIndex(int dbSlot, int scrollRow) {
         int visibleIndex = dbSlot - DB_SLOT_START - Math.max(0, scrollRow) * CONTENT_COLUMNS;
-        if (visibleIndex < 0 || visibleIndex >= CAPACITY) {
+        if (visibleIndex < 0 || visibleIndex >= VISIBLE_CAPACITY) {
             return -1;
         }
         int row = visibleIndex / CONTENT_COLUMNS;

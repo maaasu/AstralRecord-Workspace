@@ -279,10 +279,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                     player.closeInventory();
                     return;
                 }
-                if (event.getWhoClicked() instanceof Player player
-                    && handleMenuHotbarShortcutClick(event, player)) {
-                    return;
-                }
                 if (menuScreen == MenuScreen.TRASH || menuScreen == MenuScreen.TRASH_CONFIRM) {
                     trashService.handleClick(event);
                     return;
@@ -298,6 +294,10 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 if (menuScreen == MenuScreen.EQUIPMENT_GUI
                     || menuScreen == MenuScreen.EQUIPMENT_ENHANCE
                     || menuScreen == MenuScreen.EQUIPMENT_REPAIR) {
+                    return;
+                }
+                if (event.getWhoClicked() instanceof Player player
+                    && handleMenuHotbarShortcutClick(event, player)) {
                     return;
                 }
                 handleMenuClick(event);

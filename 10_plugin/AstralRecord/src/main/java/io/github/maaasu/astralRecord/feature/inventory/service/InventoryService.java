@@ -744,7 +744,7 @@ public class InventoryService {
             return true;
         }
         InventoryModel bag = state.findInventory(DEFAULT_PROFILE, InventoryType.BAG);
-        int capacity = bag == null ? NormalInventoryLayout.CAPACITY : inventoryCapacity(bag);
+        int capacity = bag == null ? NormalInventoryLayout.DEFAULT_CAPACITY : inventoryCapacity(bag);
         int current = Math.min(state.getBagScrollRow(), NormalInventoryLayout.maxScrollRow(capacity));
         int next = bukkitSlot == NormalInventoryLayout.SCROLL_UP_GUI_SLOT
             ? Math.max(0, current - 1)
@@ -842,14 +842,14 @@ public class InventoryService {
     }
 
     /**
-     * 表示中インベントリのアイテムをストレージへ収納します。
+     * BAG またはホットバーのアイテムをストレージへ収納します。
      *
      * @param astPlayer 対象プレイヤー
-     * @param sourceBukkitSlot 表示中インベントリの Bukkit スロット
+     * @param sourceBukkitSlot Bukkit PlayerInventory のスロット番号
      * @param amount 収納数。0 以下は全数扱い
      * @return 実際に収納した個数
      */
-    public int moveDisplayedItemToStorage(
+    public int moveOwnedItemToStorage(
         @NotNull AstPlayer astPlayer,
         int sourceBukkitSlot,
         int amount
@@ -858,7 +858,10 @@ public class InventoryService {
         if (state == null) {
             return 0;
         }
-        InventoryEntryModel sourceEntry = findDisplayedEntryAtBukkitSlot(state, sourceBukkitSlot);
+        boolean hotbarSlot = sourceBukkitSlot >= 0 && sourceBukkitSlot <= 8;
+        InventoryEntryModel sourceEntry = hotbarSlot
+            ? findHotbarEntryBySlot(state, sourceBukkitSlot + 1)
+            : findDisplayedEntryAtBukkitSlot(state, sourceBukkitSlot);
         if (sourceEntry == null) {
             return 0;
         }
@@ -894,11 +897,15 @@ public class InventoryService {
         state.replaceEntries(storageInventory.getInventoryId(), storageEntries);
 
         if (takeAll) {
-            removeDisplayedEntryAfterMove(state, sourceEntry);
+            if (hotbarSlot) {
+                removeHotbarEntryAfterMove(state, sourceEntry);
+            } else {
+                removeDisplayedEntryAfterMove(state, sourceEntry);
+            }
         } else {
             reduceDisplayedEntryQuantity(state, sourceEntry, sourceEntry.getQuantity() - movedAmount);
         }
-        requestManagedInventoryUiRefresh(astPlayer, true);
+        requestManagedInventoryUiRefresh(astPlayer, hotbarSlot);
         return movedAmount;
     }
 
@@ -2089,6 +2096,22 @@ public class InventoryService {
      * @return 取り出した ItemStack。対象がなければ null
      */
     public @Nullable ItemStack takeOwnedItem(@NotNull AstPlayer astPlayer, int sourceBukkitSlot) {
+        return takeOwnedItemAmount(astPlayer, sourceBukkitSlot, 0);
+    }
+
+    /**
+     * BAG またはホットバーから指定数量のアイテムを取り出します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param sourceBukkitSlot Bukkit PlayerInventory のスロット番号
+     * @param amount 取り出す数量。0以下または所持数以上なら全量
+     * @return 取り出した ItemStack。対象がなければ null
+     */
+    public @Nullable ItemStack takeOwnedItemAmount(
+        @NotNull AstPlayer astPlayer,
+        int sourceBukkitSlot,
+        int amount
+    ) {
         PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
         if (state == null) {
             return null;
@@ -2104,18 +2127,22 @@ public class InventoryService {
         if (sourceItem == null || sourceItem.getType() == Material.AIR) {
             return null;
         }
-        if (hotbarSlot) {
-            List<InventoryEntryModel> remaining = state.snapshotEntries(sourceEntry.getInventoryId()).stream()
-                .filter(entry -> !entry.isDeleted())
-                .filter(entry -> !entry.getInventoryEntryId().equals(sourceEntry.getInventoryEntryId()))
-                .toList();
-            state.replaceEntries(sourceEntry.getInventoryId(), remaining);
-            state.setSelectedHotbarSlot(null);
-        } else {
+        int totalAmount = sourceItem.getAmount();
+        boolean takeAll = amount <= 0
+            || amount >= totalAmount
+            || sourceEntry.getInstanceType() != null;
+        int takeAmount = takeAll ? totalAmount : amount;
+        if (takeAll && hotbarSlot) {
+            removeHotbarEntryAfterMove(state, sourceEntry);
+        } else if (takeAll) {
             removeDisplayedEntryAfterMove(state, sourceEntry);
+        } else {
+            reduceDisplayedEntryQuantity(state, sourceEntry, sourceEntry.getQuantity() - takeAmount);
         }
         requestManagedInventoryUiRefresh(astPlayer, hotbarSlot);
-        return sourceItem.clone();
+        ItemStack result = sourceItem.clone();
+        result.setAmount(takeAmount);
+        return result;
     }
 
     /**
@@ -2177,6 +2204,18 @@ public class InventoryService {
             state.replaceEntries(sourceEntry.getInventoryId(), entries);
             return;
         }
+    }
+
+    private void removeHotbarEntryAfterMove(
+        @NotNull PlayerInventoryState state,
+        @NotNull InventoryEntryModel sourceEntry
+    ) {
+        List<InventoryEntryModel> remaining = state.snapshotEntries(sourceEntry.getInventoryId()).stream()
+            .filter(entry -> !entry.isDeleted())
+            .filter(entry -> !entry.getInventoryEntryId().equals(sourceEntry.getInventoryEntryId()))
+            .toList();
+        state.replaceEntries(sourceEntry.getInventoryId(), remaining);
+        state.setSelectedHotbarSlot(null);
     }
 
     private void removeDisplayedEntryAfterMove(
@@ -3589,13 +3628,13 @@ public class InventoryService {
         if (inventoryType == InventoryType.CURRENCY) {
             return null;
         }
-        return inventoryType == InventoryType.BAG ? NormalInventoryLayout.CAPACITY
-            : inventoryType.isSlotted() ? NormalInventoryLayout.CAPACITY : null;
+        return inventoryType == InventoryType.BAG ? NormalInventoryLayout.DEFAULT_CAPACITY
+            : inventoryType.isSlotted() ? NormalInventoryLayout.DEFAULT_CAPACITY : null;
     }
 
     private int inventoryCapacity(@NotNull InventoryModel inventory) {
         Integer configured = inventory.getSlotCapacity();
-        return configured == null ? NormalInventoryLayout.CAPACITY : Math.max(0, configured);
+        return configured == null ? NormalInventoryLayout.DEFAULT_CAPACITY : Math.max(0, configured);
     }
 
     /**

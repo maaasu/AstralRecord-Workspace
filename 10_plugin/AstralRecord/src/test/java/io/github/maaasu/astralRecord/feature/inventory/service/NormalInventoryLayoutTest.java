@@ -14,6 +14,8 @@ class NormalInventoryLayoutTest {
 
     @Test
     void mapsTwentyFourVisibleItemsAroundRightControlColumn() {
+        assertEquals(24, NormalInventoryLayout.VISIBLE_CAPACITY);
+        assertEquals(32, NormalInventoryLayout.DEFAULT_CAPACITY);
         assertEquals(9, NormalInventoryLayout.toGuiSlotIndex(1, 0));
         assertEquals(16, NormalInventoryLayout.toGuiSlotIndex(8, 0));
         assertEquals(18, NormalInventoryLayout.toGuiSlotIndex(9, 0));
@@ -21,6 +23,7 @@ class NormalInventoryLayoutTest {
         assertFalse(NormalInventoryLayout.isManagedGuiSlot(17));
         assertFalse(NormalInventoryLayout.isManagedGuiSlot(26));
         assertFalse(NormalInventoryLayout.isManagedGuiSlot(35));
+        assertEquals(1, NormalInventoryLayout.maxScrollRow(NormalInventoryLayout.DEFAULT_CAPACITY));
     }
 
     @Test
