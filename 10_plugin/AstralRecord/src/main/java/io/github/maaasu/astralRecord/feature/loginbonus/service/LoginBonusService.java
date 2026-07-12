@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.loginbonus.repository.LoginBonusClaimRepository;
+import io.github.maaasu.astralRecord.feature.loginbonus.repository.LoginBonusClaimResult;
 import io.github.maaasu.astralRecord.feature.loginbonus.view.LoginBonusGui;
 import io.github.maaasu.astralRecord.feature.loginbonus.view.LoginBonusHoliday;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -158,7 +159,7 @@ public final class LoginBonusService {
                 goldModel = resolveGoldRewardModel();
                 astraldModel = LoginBonusHoliday.isHolidayBonusDate(today) ? resolveAstraldRewardModel() : null;
             } catch (RuntimeException e) {
-                finishClaim(playerId, false, completion);
+                finishClaim(playerId, LoginBonusClaimResult.FAILED, completion);
                 return;
             }
             plugin.getServer().getScheduler().runTask(plugin, () ->
@@ -203,20 +204,20 @@ public final class LoginBonusService {
             || holiday && !inventoryService.canAddItemToNormalInventory(
                 astPlayer, astraldModel, HOLIDAY_LOGIN_BONUS_ASTRALD
             )) {
-            finishClaim(playerId, false, completion);
+            finishClaim(playerId, LoginBonusClaimResult.FAILED, completion);
             return;
         }
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            boolean claimed;
+            LoginBonusClaimResult claimResult;
             try {
-                claimed = claimRepository.tryClaim(accountId, date);
+                claimResult = claimRepository.tryClaim(accountId, date);
             } catch (RuntimeException e) {
-                claimed = false;
+                claimResult = LoginBonusClaimResult.FAILED;
             }
-            boolean result = claimed;
+            LoginBonusClaimResult result = claimResult;
             plugin.getServer().getScheduler().runTask(plugin, () -> {
-                if (!result) {
-                    finishClaim(playerId, false, completion);
+                if (result != LoginBonusClaimResult.CREATED) {
+                    finishClaim(playerId, result, completion);
                     return;
                 }
                 grantClaimedReward(playerId, accountId, date, goldModel, astraldModel, completion);
@@ -259,11 +260,11 @@ public final class LoginBonusService {
                 cancelFailedClaim(playerId, accountId, date, completion);
             } else {
                 Logger.log(LogId.W_5203, "login_bonus_grant", accountId);
-                finishClaim(playerId, false, completion);
+                finishClaim(playerId, LoginBonusClaimResult.FAILED, completion);
             }
             return;
         }
-        finishClaim(playerId, true, completion);
+        finishClaim(playerId, LoginBonusClaimResult.CREATED, completion);
     }
 
     private void cancelFailedClaim(
@@ -278,22 +279,27 @@ public final class LoginBonusService {
             } catch (RuntimeException ignored) {
                 // repository 側で Throwable 付きログを記録する。
             }
-            finishClaim(playerId, false, completion);
+            finishClaim(playerId, LoginBonusClaimResult.FAILED, completion);
         });
     }
 
     private void finishClaim(
         @NotNull UUID playerId,
-        boolean success,
+        @NotNull LoginBonusClaimResult result,
         @NotNull Consumer<Boolean> completion
     ) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             claimInFlight.remove(playerId);
             Player player = plugin.getServer().getPlayer(playerId);
-            if (!success && player != null && player.isOnline()) {
-                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5074);
+            if (result != LoginBonusClaimResult.CREATED && player != null && player.isOnline()) {
+                PlayerMessageService.getInstance().send(
+                    player,
+                    result == LoginBonusClaimResult.ALREADY_CLAIMED
+                        ? PlayerMsgId.P_5075
+                        : PlayerMsgId.P_5074
+                );
             }
-            completion.accept(success);
+            completion.accept(result == LoginBonusClaimResult.CREATED);
         });
     }
 

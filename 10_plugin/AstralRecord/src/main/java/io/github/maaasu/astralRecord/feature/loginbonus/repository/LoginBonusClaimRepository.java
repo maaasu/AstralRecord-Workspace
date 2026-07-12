@@ -62,9 +62,9 @@ public final class LoginBonusClaimRepository {
      *
      * @param accountId 対象アカウントID
      * @param claimDate 受取日
-     * @return 新規登録できた場合は true、登録済みまたはアカウント未存在の場合は false
+     * @return 新規登録、受け取り済み、登録失敗のいずれか
      */
-    public boolean tryClaim(@NotNull UUID accountId, @NotNull LocalDate claimDate) {
+    public @NotNull LoginBonusClaimResult tryClaim(@NotNull UUID accountId, @NotNull LocalDate claimDate) {
         String path = "/api/login-bonus/accounts/" + accountId + "/claims";
         JsonObject body = new JsonObject();
         body.addProperty("claimDate", claimDate.toString());
@@ -76,20 +76,25 @@ public final class LoginBonusClaimRepository {
                     .build();
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
                 if (response.statusCode() == 404) {
-                    return false;
+                    return LoginBonusClaimResult.FAILED;
                 }
                 if (response.statusCode() != 200) {
                     throw new IOException("Unexpected status " + response.statusCode() + " for POST " + path);
                 }
                 JsonObject responseBody = JsonParser.parseString(response.body()).getAsJsonObject();
-                return responseBody.has("wasCreated") && responseBody.get("wasCreated").getAsBoolean();
+                if (!responseBody.has("wasCreated")) {
+                    return LoginBonusClaimResult.FAILED;
+                }
+                return responseBody.get("wasCreated").getAsBoolean()
+                    ? LoginBonusClaimResult.CREATED
+                    : LoginBonusClaimResult.ALREADY_CLAIMED;
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
         } catch (IOException | RuntimeException e) {
             Logger.log(LogId.E_5071, e, path);
-            throw new RuntimeException(e);
+            return LoginBonusClaimResult.FAILED;
         }
     }
 
