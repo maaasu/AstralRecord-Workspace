@@ -174,8 +174,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         if (astPlayer == null || !astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
             return;
         }
-        if (isHotbarShortcutGui(openedInventory)
-            || viewType == org.bukkit.event.inventory.InventoryType.CRAFTING) {
+        if (isHotbarShortcutGui(openedInventory)) {
             inventoryService.setHotbarShortcutMode(astPlayer, true);
         }
     }
@@ -703,15 +702,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             );
             return;
         }
-        if (action == MenuShortcutAction.INVENTORY_CYCLE) {
-            var next = nextInventoryType(player);
-            if (next == null) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            applyInventoryShortcut(player, next);
-            return;
-        }
         if (action == MenuShortcutAction.EQUIPMENT_GUI) {
             GuiSound.OPEN.play(player);
             openEquipmentGui(player);
@@ -722,45 +712,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             openCurrency(player, 0);
             return;
         }
-        if (action.getInventoryType() != null) {
-            applyInventoryShortcut(player, action.getInventoryType());
-            return;
-        }
         GuiSound.DENY.play(player);
-    }
-
-    private @Nullable InventoryType nextInventoryType(@NotNull Player player) {
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null || !astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
-            return null;
-        }
-        return inventoryService.findNextSwitchableInventoryType(astPlayer.getAccount().getUuid());
-    }
-
-    private void applyInventoryShortcut(@NotNull Player player, @NotNull InventoryType inventoryType) {
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null || !astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
-            GuiSound.DENY.play(player);
-            return;
-        }
-        if (inventoryService.getDisplayedInventoryType(astPlayer.getAccount().getUuid()) == inventoryType) {
-            GuiSound.SELECT.play(player);
-            return;
-        }
-        if (!inventoryService.canSwitchToInventory(astPlayer.getAccount().getUuid(), inventoryType)) {
-            GuiSound.DENY.play(player);
-            return;
-        }
-        if (!inventoryService.getClickGuard().tryAcquire(
-                astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.INVENTORY_SWITCH)) {
-            return;
-        }
-
-        GuiSound.SELECT.play(player);
-        suppressCraftRendering(player);
-        menuView.clearCraftShortcuts(player);
-        inventoryService.applyInventoryToGui(astPlayer, inventoryType);
-        plugin.getServer().getScheduler().runTask(plugin, () -> resumeCraftRendering(player));
     }
 
     private void openMainMenu(@NotNull Player player) {

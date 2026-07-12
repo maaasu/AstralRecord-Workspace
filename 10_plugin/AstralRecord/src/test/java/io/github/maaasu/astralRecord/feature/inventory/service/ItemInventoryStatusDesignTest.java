@@ -45,7 +45,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         PlayerMock bukkitPlayer = server().addPlayer();
         AstPlayer astPlayer = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.ADMIN);
         PlayerInventoryState state = harness.registerState(astPlayer);
-        InventoryModel normalInventory = harness.addInventory(state, InventoryType.NORMAL);
+        InventoryModel normalInventory = harness.addInventory(state, InventoryType.BAG);
         ItemModel iron = DesignTestFixtures.item("iron_ingot", ItemCategory.MATERIAL, 64);
 
         int granted = harness.inventoryService.addItemToNormalInventory(astPlayer, iron, 3, "command");
@@ -61,13 +61,12 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
     }
 
     @Test
-    void itemGetFlowRoutesEquipmentAndRuneToInstanceBackedInventories() {
+    void itemGetFlowStoresEquipmentAndRuneTogetherInBag() {
         InventoryHarness harness = inventoryHarness();
         PlayerMock bukkitPlayer = server().addPlayer();
         AstPlayer astPlayer = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.ADMIN);
         PlayerInventoryState state = harness.registerState(astPlayer);
-        InventoryModel equipmentInventory = harness.addInventory(state, InventoryType.EQUIPMENT);
-        InventoryModel runeInventory = harness.addInventory(state, InventoryType.RUNE);
+        InventoryModel bagInventory = harness.addInventory(state, InventoryType.BAG);
         UUID equipmentInstanceId = UUID.randomUUID();
         UUID runeInstanceId = UUID.randomUUID();
         when(harness.itemService.createEquipmentInstance("bronze_sword", astPlayer.getAccount().getUuid().toString(), "command", astPlayer.getAccount().getUuid().toString()))
@@ -99,14 +98,34 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
             "command"
         );
 
-        InventoryEntryModel equipmentEntry = state.snapshotEntries(equipmentInventory.getInventoryId()).get(0);
-        InventoryEntryModel runeEntry = state.snapshotEntries(runeInventory.getInventoryId()).get(0);
+        List<InventoryEntryModel> bagEntries = state.snapshotEntries(bagInventory.getInventoryId());
+        InventoryEntryModel equipmentEntry = bagEntries.get(0);
+        InventoryEntryModel runeEntry = bagEntries.get(1);
         assertEquals(1, grantedEquipment);
         assertEquals(InventoryInstanceType.EQUIPMENT.getCode(), equipmentEntry.getInstanceType());
         assertEquals(equipmentInstanceId, equipmentEntry.getInstanceId());
         assertEquals(1, grantedRune);
         assertEquals(InventoryInstanceType.RUNE.getCode(), runeEntry.getInstanceType());
         assertEquals(runeInstanceId, runeEntry.getInstanceId());
+    }
+
+    @Test
+    void bagRejectsItemWhenConfiguredCapacityIsFull() {
+        InventoryHarness harness = inventoryHarness();
+        PlayerMock bukkitPlayer = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.ADMIN);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bagInventory = harness.addInventory(state, InventoryType.BAG);
+        ItemModel singleStackItem = DesignTestFixtures.item("capacity_test", ItemCategory.MATERIAL, 1);
+
+        for (int slot = 1; slot <= 24; slot++) {
+            assertEquals(1, harness.inventoryService.addItemToNormalInventory(
+                astPlayer, singleStackItem, 1, "test"));
+        }
+
+        assertEquals(0, harness.inventoryService.addItemToNormalInventory(
+            astPlayer, singleStackItem, 1, "test"));
+        assertEquals(24, state.snapshotEntries(bagInventory.getInventoryId()).size());
     }
 
     @Test
@@ -141,18 +160,16 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
     }
 
     @Test
-    void hotbarShortcutRenderingKeepsSlotsZeroToSevenForActionsAndSlotEightForInventoryCycle() {
+    void hotbarRenderingKeepsAllNineSlotsAsNormalHotbarSlots() {
         PlayerMock player = server().addPlayer();
         AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
         HotbarRenderer renderer = new HotbarRenderer(mock(InventoryItemStackResolver.class));
 
-        renderer.renderShortcutIcons(astPlayer, InventoryType.NORMAL, Map.of(InventoryType.NORMAL, 3L), 7);
+        renderer.renderHotbarInventory(astPlayer, Map.of(), null);
 
-        assertEquals(Material.LIGHT_GRAY_STAINED_GLASS_PANE, player.getInventory().getItem(0).getType());
-        assertEquals(Material.BARRIER, player.getInventory().getItem(HotbarRenderer.SHORTCUT_CLOSE_SLOT).getType());
-        assertEquals(Material.CHEST, player.getInventory().getItem(HotbarRenderer.SHORTCUT_INVENTORY_CYCLE_SLOT).getType());
-        assertEquals(8, HotbarRenderer.SHORTCUT_INVENTORY_CYCLE_SLOT);
-        assertEquals(7, player.getInventory().getItem(HotbarRenderer.SHORTCUT_INVENTORY_CYCLE_SLOT).getAmount());
+        assertEquals(Material.GRAY_STAINED_GLASS_PANE, player.getInventory().getItem(0).getType());
+        assertEquals(Material.GRAY_STAINED_GLASS_PANE, player.getInventory().getItem(4).getType());
+        assertEquals(Material.GRAY_STAINED_GLASS_PANE, player.getInventory().getItem(8).getType());
     }
 
     private static InventoryHarness inventoryHarness() {

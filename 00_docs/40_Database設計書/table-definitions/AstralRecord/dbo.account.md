@@ -27,7 +27,7 @@
 | `slot_index`   | `INT`              |    |    ○    |        | アカウントスロット番号（0 始まり）                                      |
 | `is_active`    | `BIT`              |    |    ○    |  `0`   | 現在選択中フラグ（`1`: 選択中 / `0`: 未選択）                           |
 | `mode`         | `TINYINT`          |    |    ○    |  `0`   | 権限モード（`0`: プレイヤー / `1`: ビルダー / `2`: 管理者）                |
-| `menu_shortcuts_json` | `NVARCHAR(MAX)` |    |    ○    | `["INVENTORY_NORMAL","INVENTORY_EQUIPMENT","INVENTORY_RUNE","INVENTORY_CURRENCY"]` | 2x2 craft shortcut settings JSON array |
+| `menu_shortcuts_json` | `NVARCHAR(MAX)` |    |    ○    | `["STATUS","NONE","INVENTORY_CURRENCY","EQUIPMENT_GUI"]` | 2x2 craft shortcut settings JSON array |
 | `level`        | `INT`              |    |    ○    |  `1`   | プレイヤーレベル。初期値は `1`、最小値も `1`                             |
 | `total_experience` | `BIGINT`       |    |    ○    |  `0`   | 累計経験値。加算専用で負数不可                                           |
 | `class_id`     | `NVARCHAR(100)`    |    |    ○    | `adventurer` | 現在クラス ID |
@@ -88,7 +88,7 @@
 | `DF_account_mode`                | `mode`                | `0`                                                                                |
 | `DF_account_is_active`           | `is_active`           | `0`                                                                                |
 | `DF_account_is_deleted`          | `is_deleted`          | `0`                                                                                |
-| `DF_account_menu_shortcuts_json` | `menu_shortcuts_json` | `["INVENTORY_NORMAL","INVENTORY_EQUIPMENT","INVENTORY_RUNE","INVENTORY_CURRENCY"]` |
+| `DF_account_menu_shortcuts_json` | `menu_shortcuts_json` | `["STATUS","NONE","INVENTORY_CURRENCY","EQUIPMENT_GUI"]` |
 | `DF_account_level`               | `level`               | `1`                                                                                |
 | `DF_account_total_experience`    | `total_experience`    | `0`                                                                                |
 | `DF_account_class_id`            | `class_id`            | `adventurer`                                                                       |
@@ -117,7 +117,7 @@ CREATE TABLE [dbo].[account] (
     [slot_index]     INT               NOT NULL,
     [is_active]      BIT               NOT NULL  CONSTRAINT [DF_account_is_active]   DEFAULT (0),
     [mode]           TINYINT           NOT NULL  CONSTRAINT [DF_account_mode]         DEFAULT (0),
-    [menu_shortcuts_json] NVARCHAR(MAX) NOT NULL  CONSTRAINT [DF_account_menu_shortcuts_json] DEFAULT (N'["INVENTORY_NORMAL","INVENTORY_EQUIPMENT","INVENTORY_RUNE","INVENTORY_CURRENCY"]'),
+    [menu_shortcuts_json] NVARCHAR(MAX) NOT NULL  CONSTRAINT [DF_account_menu_shortcuts_json] DEFAULT (N'["STATUS","NONE","INVENTORY_CURRENCY","EQUIPMENT_GUI"]'),
     [level]          INT               NOT NULL  CONSTRAINT [DF_account_level]        DEFAULT (1),
     [total_experience] BIGINT          NOT NULL  CONSTRAINT [DF_account_total_experience] DEFAULT (0),
     [class_id]       NVARCHAR(100)     NOT NULL  CONSTRAINT [DF_account_class_id]      DEFAULT (N'adventurer'),

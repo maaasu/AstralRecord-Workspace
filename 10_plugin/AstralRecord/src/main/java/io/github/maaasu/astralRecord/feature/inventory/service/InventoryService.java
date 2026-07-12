@@ -36,6 +36,7 @@ import io.github.maaasu.astralRecord.feature.storage.model.StorageViewOptions;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
@@ -448,7 +449,7 @@ public class InventoryService {
         }
         InventoryModel inventory = ensureInventory(
             state,
-            InventoryType.NORMAL,
+            InventoryType.BAG,
             null,
             state.getAccountId(),
             InventoryProfile.BUILDER
@@ -474,7 +475,7 @@ public class InventoryService {
         resetGuiInteractionState(state);
         clearClickGuard(state.getAccountId());
         clearGuiInventory(astPlayer.getBukkit());
-        InventoryModel inventory = state.findInventory(InventoryProfile.BUILDER, InventoryType.NORMAL);
+        InventoryModel inventory = state.findInventory(InventoryProfile.BUILDER, InventoryType.BAG);
         if (inventory != null) {
             applyToolSnapshot(astPlayer, inventory.getMetadataJson(), astPlayer.getAccount().getMode());
         }
@@ -567,7 +568,7 @@ public class InventoryService {
     // ---------------------------------------------------------------
 
     public void applyInventoriesToGui(@NotNull AstPlayer astPlayer) {
-        applyInventoryToGuiInternal(astPlayer, InventoryType.NORMAL, true);
+        applyInventoryToGuiInternal(astPlayer, InventoryType.BAG, true);
         if (!applyActiveEquipmentLoadoutToGui(astPlayer)) {
             applyEquipSlotInventoryToGui(astPlayer);
             applyAccessorySlotInventoryToGui(astPlayer);
@@ -604,7 +605,7 @@ public class InventoryService {
     public void applyInventoriesToGuiOnJoin(@NotNull AstPlayer astPlayer) {
         // Join 直後は以前のセッションで残った見た目 ItemStack を全消去してから正本を反映する。
         clearGuiInventory(astPlayer.getBukkit());
-        applyInventoryToGuiInternal(astPlayer, InventoryType.NORMAL, false);
+        applyInventoryToGuiInternal(astPlayer, InventoryType.BAG, false);
         if (!applyActiveEquipmentLoadoutToGui(astPlayer)) {
             applyEquipSlotInventoryToGui(astPlayer);
             applyAccessorySlotInventoryToGui(astPlayer);
@@ -639,9 +640,9 @@ public class InventoryService {
             saveAccessorySlotSnapshot(astPlayer);
             syncCurrentEquipmentState(astPlayer);
         }
-        state.setDisplayedType(inventoryType);
+        state.setDisplayedType(InventoryType.BAG);
 
-        InventoryModel selectedInventory = state.findInventory(DEFAULT_PROFILE, inventoryType);
+        InventoryModel selectedInventory = state.findInventory(DEFAULT_PROFILE, InventoryType.BAG);
         applyInventoryToBukkit(astPlayer.getBukkit(), state, selectedInventory);
 
         if (!applyActiveEquipmentLoadoutToGui(astPlayer)) {
@@ -678,13 +679,16 @@ public class InventoryService {
         PlayerInventory playerInventory = bukkitPlayer.getInventory();
         Map<Integer, ItemStack> itemByGuiSlot = new HashMap<>();
         ItemStack filler = createManagedSlotFiller();
+        int capacity = inventoryCapacity(inventory);
+        int scrollRow = Math.min(state.getBagScrollRow(), NormalInventoryLayout.maxScrollRow(capacity));
+        state.setBagScrollRow(scrollRow);
 
         for (InventoryEntryModel entry : entries) {
             Integer slotIndex = entry.getSlotIndex();
-            if (slotIndex == null || !NormalInventoryLayout.isManagedSlot(slotIndex) || entry.isDeleted()) {
+            if (slotIndex == null || !NormalInventoryLayout.isManagedSlot(slotIndex, capacity) || entry.isDeleted()) {
                 continue;
             }
-            int guiSlotIndex = NormalInventoryLayout.toGuiSlotIndex(slotIndex);
+            int guiSlotIndex = NormalInventoryLayout.toGuiSlotIndex(slotIndex, scrollRow);
             if (guiSlotIndex < 0 || guiSlotIndex >= playerInventory.getStorageContents().length) {
                 continue;
             }
@@ -694,15 +698,64 @@ public class InventoryService {
             }
             itemByGuiSlot.put(guiSlotIndex, itemStack);
         }
-        for (int dbSlot = NormalInventoryLayout.DB_SLOT_START; dbSlot <= NormalInventoryLayout.DB_SLOT_END; dbSlot++) {
-            int guiSlot = NormalInventoryLayout.toGuiSlotIndex(dbSlot);
+        for (int guiSlot = NormalInventoryLayout.GUI_SLOT_START;
+             guiSlot <= NormalInventoryLayout.GUI_SLOT_END;
+             guiSlot++) {
+            if (!NormalInventoryLayout.isManagedGuiSlot(guiSlot)) {
+                continue;
+            }
             setStorageItemIfChanged(playerInventory, guiSlot, itemByGuiSlot.getOrDefault(guiSlot, filler));
         }
+        setStorageItemIfChanged(playerInventory, NormalInventoryLayout.SCROLL_UP_GUI_SLOT,
+            createScrollIcon(true, scrollRow > 0));
+        setStorageItemIfChanged(playerInventory, NormalInventoryLayout.INFO_GUI_SLOT,
+            state.isHotbarShortcutMode()
+                ? createCloseControlIcon()
+                : createInventoryInfoIcon(entries, capacity, scrollRow));
+        setStorageItemIfChanged(playerInventory, NormalInventoryLayout.SCROLL_DOWN_GUI_SLOT,
+            createScrollIcon(false, scrollRow < NormalInventoryLayout.maxScrollRow(capacity)));
     }
 
     public @NotNull InventoryType getDisplayedInventoryType(@NotNull UUID accountId) {
-        PlayerInventoryState state = getState(accountId);
-        return state == null ? InventoryType.NORMAL : state.getDisplayedType();
+        return InventoryType.BAG;
+    }
+
+    /**
+     * BAG 右端列のスクロール・情報・閉じる操作を処理します。
+     *
+     * @param astPlayer 操作したプレイヤー
+     * @param bukkitSlot Bukkit PlayerInventory のスロット番号
+     * @return 制御スロットとして処理した場合 true
+     */
+    public boolean handleInventoryControlClick(@NotNull AstPlayer astPlayer, int bukkitSlot) {
+        if (bukkitSlot != NormalInventoryLayout.SCROLL_UP_GUI_SLOT
+            && bukkitSlot != NormalInventoryLayout.INFO_GUI_SLOT
+            && bukkitSlot != NormalInventoryLayout.SCROLL_DOWN_GUI_SLOT) {
+            return false;
+        }
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) {
+            return true;
+        }
+        if (bukkitSlot == NormalInventoryLayout.INFO_GUI_SLOT) {
+            if (state.isHotbarShortcutMode()) {
+                astPlayer.getBukkit().closeInventory();
+            }
+            return true;
+        }
+        InventoryModel bag = state.findInventory(DEFAULT_PROFILE, InventoryType.BAG);
+        int capacity = bag == null ? NormalInventoryLayout.CAPACITY : inventoryCapacity(bag);
+        int current = Math.min(state.getBagScrollRow(), NormalInventoryLayout.maxScrollRow(capacity));
+        int next = bukkitSlot == NormalInventoryLayout.SCROLL_UP_GUI_SLOT
+            ? Math.max(0, current - 1)
+            : Math.min(NormalInventoryLayout.maxScrollRow(capacity), current + 1);
+        if (next != current
+            && clickGuard.tryAcquire(state.getAccountId(), InventoryClickGuard.ClickAction.INVENTORY_SWITCH)) {
+            state.setBagScrollRow(next);
+            applyDisplayedInventoryToGui(astPlayer);
+            astPlayer.getBukkit().updateInventory();
+        }
+        return true;
     }
 
     public void clearGuiInventory(@NotNull AstPlayer astPlayer) {
@@ -948,7 +1001,7 @@ public class InventoryService {
         if (normalizedItemId.isBlank()) {
             return 0L;
         }
-        return getItemAmount(state, InventoryType.NORMAL, normalizedItemId)
+        return getItemAmount(state, InventoryType.BAG, normalizedItemId)
             + getItemAmount(state, InventoryType.HOTBAR, normalizedItemId);
     }
 
@@ -1071,7 +1124,7 @@ public class InventoryService {
             return false;
         }
         long remaining = amount;
-        InventoryModel normalInventory = state.findInventory(DEFAULT_PROFILE, InventoryType.NORMAL);
+        InventoryModel normalInventory = state.findInventory(DEFAULT_PROFILE, InventoryType.BAG);
         if (normalInventory != null && normalInventory.isEnabled()) {
             remaining -= consumeItemAmountFromInventory(state, normalInventory, itemId, remaining);
         }
@@ -1085,47 +1138,6 @@ public class InventoryService {
     public boolean saveNow(@NotNull UUID accountId) {
         PlayerInventoryState state = getState(accountId);
         return state != null && persistence.saveNow(state);
-    }
-
-    public long countOwnedItems(@NotNull UUID accountId, @NotNull InventoryType inventoryType) {
-        PlayerInventoryState state = getState(accountId);
-        return state == null ? 0L : countOwnedItems(state, inventoryType);
-    }
-
-    public int countUsedSlots(@NotNull UUID accountId, @NotNull InventoryType inventoryType) {
-        PlayerInventoryState state = getState(accountId);
-        return state == null ? 0 : countUsedSlots(state, inventoryType);
-    }
-
-    public boolean canSwitchToInventory(@NotNull UUID accountId, @NotNull InventoryType inventoryType) {
-        return countOwnedItems(accountId, inventoryType) > 0L;
-    }
-
-    public @Nullable InventoryType findNextSwitchableInventoryType(@NotNull UUID accountId) {
-        PlayerInventoryState state = getState(accountId);
-        if (state == null) {
-            return null;
-        }
-        List<InventoryType> ordered = InventoryType.commandSwitchableEntries();
-        List<InventoryType> available = ordered.stream()
-            .filter(type -> countOwnedItems(state, type) > 0L)
-            .toList();
-        if (available.isEmpty()) {
-            return null;
-        }
-
-        InventoryType current = state.getDisplayedType();
-        int startIndex = ordered.indexOf(current);
-        if (startIndex < 0) {
-            startIndex = 0;
-        }
-        for (int offset = 1; offset <= ordered.size(); offset++) {
-            InventoryType candidate = ordered.get((startIndex + offset) % ordered.size());
-            if (candidate != current && available.contains(candidate)) {
-                return candidate;
-            }
-        }
-        return available.contains(current) ? null : available.get(0);
     }
 
     public InventoryType resolveInventoryType(@NotNull ItemModel model) {
@@ -1181,17 +1193,6 @@ public class InventoryService {
         return capacity >= safeAmount;
     }
 
-    private long countOwnedItems(@NotNull PlayerInventoryState state, @NotNull InventoryType inventoryType) {
-        InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, inventoryType);
-        if (inventory == null || !inventory.isEnabled()) {
-            return 0L;
-        }
-        return state.snapshotEntries(inventory.getInventoryId()).stream()
-            .filter(entry -> !entry.isDeleted())
-            .mapToLong(InventoryEntryModel::getQuantity)
-            .sum();
-    }
-
     private long getItemAmount(
         @NotNull PlayerInventoryState state,
         @NotNull InventoryType inventoryType,
@@ -1206,24 +1207,6 @@ public class InventoryService {
             .filter(entry -> entry.getItemId() != null && entry.getItemId().equalsIgnoreCase(itemId))
             .mapToLong(InventoryEntryModel::getQuantity)
             .sum();
-    }
-
-    private int countUsedSlots(@NotNull PlayerInventoryState state, @NotNull InventoryType inventoryType) {
-        InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, inventoryType);
-        if (inventory == null || !inventory.isEnabled()) {
-            return 0;
-        }
-        return (int) state.snapshotEntries(inventory.getInventoryId()).stream()
-            .filter(entry -> !entry.isDeleted())
-            .count();
-    }
-
-    private @NotNull Map<InventoryType, Long> buildOwnedItemCounts(@NotNull PlayerInventoryState state) {
-        Map<InventoryType, Long> counts = new HashMap<>();
-        for (InventoryType type : InventoryType.commandSwitchableEntries()) {
-            counts.put(type, (long) countUsedSlots(state, type));
-        }
-        return counts;
     }
 
     // ---------------------------------------------------------------
@@ -1785,8 +1768,10 @@ public class InventoryService {
         ItemCategory category = ItemCategory.fromApiValue(hotbarEntry.getItemCategory());
         if (category == ItemCategory.EQUIPMENT || category == ItemCategory.RUNE) {
             List<InventoryEntryModel> targetEntries = state.snapshotEntries(targetInventory.getInventoryId());
-            Set<Integer> usedSlots = NormalInventoryLayout.collectUsedSlots(targetEntries);
-            Integer targetSlot = NormalInventoryLayout.findNextFreeSlot(usedSlots);
+            Set<Integer> usedSlots = NormalInventoryLayout.collectUsedSlots(
+                targetEntries, inventoryCapacity(targetInventory));
+            Integer targetSlot = NormalInventoryLayout.findNextFreeSlot(
+                usedSlots, inventoryCapacity(targetInventory));
             if (targetSlot == null) {
                 return false;
             }
@@ -1866,12 +1851,6 @@ public class InventoryService {
         if (state == null) {
             return;
         }
-        Map<InventoryType, Long> ownedCounts = buildOwnedItemCounts(state);
-        int usedSlots = Math.max(1, countUsedSlots(state, state.getDisplayedType()));
-        if (state.isHotbarShortcutMode()) {
-            hotbarRenderer.renderShortcutIcons(astPlayer, state.getDisplayedType(), ownedCounts, usedSlots);
-            return;
-        }
         InventoryModel hotbarInventory = state.findInventory(DEFAULT_PROFILE, InventoryType.HOTBAR);
         Map<Integer, InventoryEntryModel> bySlot = new HashMap<>();
         if (hotbarInventory != null) {
@@ -1885,9 +1864,6 @@ public class InventoryService {
         hotbarRenderer.renderHotbarInventory(
             astPlayer,
             bySlot,
-            state.getDisplayedType(),
-            ownedCounts,
-            usedSlots,
             state.getSelectedHotbarSlot()
         );
     }
@@ -1898,6 +1874,7 @@ public class InventoryService {
             return;
         }
         if (state.setHotbarShortcutMode(on)) {
+            applyDisplayedInventoryToGui(astPlayer);
             renderHotbarInventory(astPlayer);
         }
     }
@@ -1910,25 +1887,6 @@ public class InventoryService {
     public boolean hasHotbarEntry(@NotNull AstPlayer astPlayer, int hotbarSlotIndex) {
         PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
         return state != null && findHotbarEntryBySlot(state, hotbarSlotIndex) != null;
-    }
-
-    public boolean handleHotbarShortcutClick(@NotNull AstPlayer astPlayer, int bukkitSlot) {
-        if (bukkitSlot == HotbarRenderer.SHORTCUT_INVENTORY_CYCLE_SLOT) {
-            InventoryType target = findNextSwitchableInventoryType(astPlayer.getAccount().getUuid());
-            if (target == null) {
-                return false;
-            }
-            applyInventoryToGui(astPlayer, target);
-            return true;
-        }
-        if (!isHotbarShortcutMode(astPlayer)) {
-            return false;
-        }
-        if (bukkitSlot == HotbarRenderer.SHORTCUT_CLOSE_SLOT) {
-            astPlayer.getBukkit().closeInventory();
-            return true;
-        }
-        return false;
     }
 
     // ---------------------------------------------------------------
@@ -2064,7 +2022,15 @@ public class InventoryService {
         return true;
     }
 
-    public boolean moveDisplayedItemToEquipmentGui(
+    /**
+     * BAG またはホットバーのアイテムを装備 GUI へ移動します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param sourceBukkitSlot Bukkit PlayerInventory のスロット番号
+     * @param replacedItem GUI 側で置き換えられる既存アイテム
+     * @return 移動できた場合 true
+     */
+    public boolean moveOwnedItemToEquipmentGui(
         @NotNull AstPlayer astPlayer,
         int sourceBukkitSlot,
         @Nullable ItemStack replacedItem
@@ -2073,19 +2039,38 @@ public class InventoryService {
         if (state == null) {
             return false;
         }
+        boolean hotbarSlot = sourceBukkitSlot >= 0 && sourceBukkitSlot <= 8;
+        InventoryEntryModel sourceEntry = hotbarSlot
+            ? findHotbarEntryBySlot(state, sourceBukkitSlot + 1)
+            : findDisplayedEntryAtBukkitSlot(state, sourceBukkitSlot);
+        if (sourceEntry == null) {
+            return false;
+        }
         boolean hasReplacedItem = replacedItem != null && replacedItem.getType() != Material.AIR;
         if (hasReplacedItem && itemReferenceResolver.resolve(replacedItem) == null) {
             return false;
         }
-        InventoryEntryModel sourceEntry = findDisplayedEntryAtBukkitSlot(state, sourceBukkitSlot);
-        if (sourceEntry == null) {
-            return false;
+        List<InventoryEntryModel> sourceInventoryEntries = hotbarSlot
+            ? state.snapshotEntries(sourceEntry.getInventoryId())
+            : List.of();
+        if (hotbarSlot) {
+            List<InventoryEntryModel> remaining = state.snapshotEntries(sourceEntry.getInventoryId()).stream()
+                .filter(entry -> !entry.isDeleted())
+                .filter(entry -> !entry.getInventoryEntryId().equals(sourceEntry.getInventoryEntryId()))
+                .toList();
+            state.replaceEntries(sourceEntry.getInventoryId(), remaining);
+            state.setSelectedHotbarSlot(null);
+        } else {
+            removeDisplayedEntryAfterMove(state, sourceEntry);
         }
-        removeDisplayedEntryAfterMove(state, sourceEntry);
         if (hasReplacedItem && returnItemToOwnedInventory(astPlayer, replacedItem.clone()) == null) {
+            if (hotbarSlot) {
+                state.replaceEntries(sourceEntry.getInventoryId(), sourceInventoryEntries);
+                requestManagedInventoryUiRefresh(astPlayer, true);
+            }
             return false;
         }
-        requestManagedInventoryUiRefresh(astPlayer, false);
+        requestManagedInventoryUiRefresh(astPlayer, hotbarSlot);
         return true;
     }
 
@@ -2094,6 +2079,43 @@ public class InventoryService {
         int sourceBukkitSlot
     ) {
         return takeDisplayedItemAmount(astPlayer, sourceBukkitSlot, 0);
+    }
+
+    /**
+     * BAG またはホットバーからアイテムを1エントリ取り出します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param sourceBukkitSlot Bukkit PlayerInventory のスロット番号
+     * @return 取り出した ItemStack。対象がなければ null
+     */
+    public @Nullable ItemStack takeOwnedItem(@NotNull AstPlayer astPlayer, int sourceBukkitSlot) {
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) {
+            return null;
+        }
+        boolean hotbarSlot = sourceBukkitSlot >= 0 && sourceBukkitSlot <= 8;
+        InventoryEntryModel sourceEntry = hotbarSlot
+            ? findHotbarEntryBySlot(state, sourceBukkitSlot + 1)
+            : findDisplayedEntryAtBukkitSlot(state, sourceBukkitSlot);
+        if (sourceEntry == null) {
+            return null;
+        }
+        ItemStack sourceItem = itemStackResolver.resolve(sourceEntry);
+        if (sourceItem == null || sourceItem.getType() == Material.AIR) {
+            return null;
+        }
+        if (hotbarSlot) {
+            List<InventoryEntryModel> remaining = state.snapshotEntries(sourceEntry.getInventoryId()).stream()
+                .filter(entry -> !entry.isDeleted())
+                .filter(entry -> !entry.getInventoryEntryId().equals(sourceEntry.getInventoryEntryId()))
+                .toList();
+            state.replaceEntries(sourceEntry.getInventoryId(), remaining);
+            state.setSelectedHotbarSlot(null);
+        } else {
+            removeDisplayedEntryAfterMove(state, sourceEntry);
+        }
+        requestManagedInventoryUiRefresh(astPlayer, hotbarSlot);
+        return sourceItem.clone();
     }
 
     /**
@@ -2215,12 +2237,7 @@ public class InventoryService {
         if (state == null) {
             return;
         }
-        InventoryType displayedType = state.getDisplayedType();
-        if (displayedType == InventoryType.CURRENCY) {
-            clearManagedStorageSlots(astPlayer.getBukkit());
-            return;
-        }
-        InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, displayedType);
+        InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, InventoryType.BAG);
         applyInventoryToBukkit(astPlayer.getBukkit(), state, inventory);
     }
 
@@ -2243,6 +2260,26 @@ public class InventoryService {
     }
 
     /**
+     * BAG またはホットバーの Bukkit スロットに対応する正本 entry を返します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param sourceBukkitSlot Bukkit PlayerInventory のスロット番号
+     * @return 対応する entry。対象がなければ null
+     */
+    public @Nullable InventoryEntryModel getOwnedEntryAtBukkitSlot(
+        @NotNull AstPlayer astPlayer,
+        int sourceBukkitSlot
+    ) {
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) {
+            return null;
+        }
+        return sourceBukkitSlot >= 0 && sourceBukkitSlot <= 8
+            ? findHotbarEntryBySlot(state, sourceBukkitSlot + 1)
+            : findDisplayedEntryAtBukkitSlot(state, sourceBukkitSlot);
+    }
+
+    /**
      * 表示中インベントリ上の Bukkit スロットに対応する正本 entry からアイテムモデルを返します。
      *
      * @param astPlayer 対象プレイヤー
@@ -2256,6 +2293,27 @@ public class InventoryService {
         return resolveItemModel(getDisplayedEntryAtBukkitSlot(astPlayer, sourceBukkitSlot));
     }
 
+    /**
+     * BAG またはホットバーの Bukkit スロットにあるアイテムモデルを返します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param sourceBukkitSlot Bukkit PlayerInventory のスロット番号
+     * @return 対応するモデル。対象がなければ null
+     */
+    public @Nullable ItemModel getOwnedItemModelAtBukkitSlot(
+        @NotNull AstPlayer astPlayer,
+        int sourceBukkitSlot
+    ) {
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) {
+            return null;
+        }
+        InventoryEntryModel entry = sourceBukkitSlot >= 0 && sourceBukkitSlot <= 8
+            ? findHotbarEntryBySlot(state, sourceBukkitSlot + 1)
+            : findDisplayedEntryAtBukkitSlot(state, sourceBukkitSlot);
+        return resolveItemModel(entry);
+    }
+
     private @Nullable InventoryEntryModel findDisplayedEntryAtBukkitSlot(
         @NotNull PlayerInventoryState state,
         int sourceBukkitSlot
@@ -2263,12 +2321,11 @@ public class InventoryService {
         if (!NormalInventoryLayout.isManagedGuiSlot(sourceBukkitSlot)) {
             return null;
         }
-        InventoryType displayedType = state.getDisplayedType();
-        int dbSlot = NormalInventoryLayout.toDbSlotIndex(sourceBukkitSlot);
-        InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, displayedType);
+        InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, InventoryType.BAG);
         if (inventory == null) {
             return null;
         }
+        int dbSlot = NormalInventoryLayout.toDbSlotIndex(sourceBukkitSlot, state.getBagScrollRow());
         for (InventoryEntryModel entry : state.snapshotEntries(inventory.getInventoryId())) {
             if (entry.isDeleted()) {
                 continue;
@@ -2679,7 +2736,7 @@ public class InventoryService {
         List<InventoryEntryModel> compacted = new ArrayList<>();
         boolean changed = false;
         for (InventoryEntryModel entry : entries) {
-            if (!unlimitedSlots && next > NormalInventoryLayout.DB_SLOT_END) {
+            if (!unlimitedSlots && inventory != null && next > inventoryCapacity(inventory)) {
                 break;
             }
             Integer current = entry.getSlotIndex();
@@ -2781,8 +2838,10 @@ public class InventoryService {
 
     private void clearManagedStorageSlots(@NotNull Player bukkitPlayer) {
         PlayerInventory inventory = bukkitPlayer.getInventory();
-        for (int dbSlot = NormalInventoryLayout.DB_SLOT_START; dbSlot <= NormalInventoryLayout.DB_SLOT_END; dbSlot++) {
-            setStorageItemIfChanged(inventory, NormalInventoryLayout.toGuiSlotIndex(dbSlot), null);
+        for (int guiSlot = NormalInventoryLayout.GUI_SLOT_START;
+             guiSlot <= NormalInventoryLayout.GUI_SLOT_END;
+             guiSlot++) {
+            setStorageItemIfChanged(inventory, guiSlot, null);
         }
     }
 
@@ -2790,8 +2849,10 @@ public class InventoryService {
         PlayerInventory inventory = astPlayer.getBukkit().getInventory();
         boolean changed = false;
 
-        for (int dbSlot = NormalInventoryLayout.DB_SLOT_START; dbSlot <= NormalInventoryLayout.DB_SLOT_END; dbSlot++) {
-            changed |= purgeUnknownAstralItemAtStorageSlot(inventory, NormalInventoryLayout.toGuiSlotIndex(dbSlot));
+        for (int guiSlot = NormalInventoryLayout.GUI_SLOT_START;
+             guiSlot <= NormalInventoryLayout.GUI_SLOT_END;
+             guiSlot++) {
+            changed |= purgeUnknownAstralItemAtStorageSlot(inventory, guiSlot);
         }
         for (int dbSlot = HotbarLayout.DB_SLOT_START; dbSlot <= HotbarLayout.DB_SLOT_END; dbSlot++) {
             changed |= purgeUnknownAstralItemAtStorageSlot(inventory, HotbarLayout.toBukkitSlot(dbSlot));
@@ -3292,6 +3353,58 @@ public class InventoryService {
         return itemStack;
     }
 
+    private @NotNull ItemStack createScrollIcon(boolean up, boolean enabled) {
+        ItemStack itemStack = new ItemStack(enabled ? Material.ARROW : Material.GRAY_DYE);
+        ItemMeta meta = itemStack.getItemMeta();
+        if (meta != null) {
+            meta.displayName(Component.text(up ? "上へスクロール" : "下へスクロール",
+                enabled ? NamedTextColor.YELLOW : NamedTextColor.DARK_GRAY));
+            meta.lore(List.of(Component.text(
+                enabled ? "クリックで1行移動" : "これ以上スクロールできません",
+                enabled ? NamedTextColor.GRAY : NamedTextColor.DARK_GRAY
+            )));
+            meta.addItemFlags(ItemFlag.values());
+            itemStack.setItemMeta(meta);
+        }
+        return itemStack;
+    }
+
+    private @NotNull ItemStack createInventoryInfoIcon(
+        @NotNull List<InventoryEntryModel> entries,
+        int capacity,
+        int scrollRow
+    ) {
+        long used = entries.stream().filter(entry -> !entry.isDeleted()).count();
+        int totalRows = NormalInventoryLayout.totalRows(capacity);
+        int firstRow = scrollRow + 1;
+        int lastRow = Math.min(totalRows, scrollRow + NormalInventoryLayout.VISIBLE_ROWS);
+        ItemStack itemStack = new ItemStack(Material.CHEST);
+        ItemMeta meta = itemStack.getItemMeta();
+        if (meta != null) {
+            meta.displayName(Component.text("インベントリ情報", NamedTextColor.GOLD));
+            meta.lore(List.of(
+                Component.text("使用: " + used + " / " + capacity, NamedTextColor.GRAY),
+                Component.text("表示行: " + firstRow + " - " + lastRow + " / " + totalRows,
+                    NamedTextColor.GRAY)
+            ));
+            meta.addItemFlags(ItemFlag.values());
+            itemStack.setItemMeta(meta);
+        }
+        return itemStack;
+    }
+
+    private @NotNull ItemStack createCloseControlIcon() {
+        ItemStack itemStack = new ItemStack(Material.BARRIER);
+        ItemMeta meta = itemStack.getItemMeta();
+        if (meta != null) {
+            meta.displayName(Component.text("閉じる", NamedTextColor.RED));
+            meta.lore(List.of(Component.text("クリックして GUI を閉じる", NamedTextColor.GRAY)));
+            meta.addItemFlags(ItemFlag.values());
+            itemStack.setItemMeta(meta);
+        }
+        return itemStack;
+    }
+
     private @NotNull ItemStack itemOrAir(@Nullable ItemStack itemStack) {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return new ItemStack(Material.AIR);
@@ -3428,19 +3541,15 @@ public class InventoryService {
 
     private @NotNull InventoryType resolveTargetInventoryType(@NotNull ItemModel model) {
         return switch (ItemCategory.fromApiValue(model.getCategory())) {
-            case EQUIPMENT -> InventoryType.EQUIPMENT;
-            case RUNE -> InventoryType.RUNE;
             case CURRENCY -> InventoryType.CURRENCY;
-            default -> InventoryType.NORMAL;
+            default -> InventoryType.BAG;
         };
     }
 
     private @NotNull InventoryType resolveTargetInventoryType(@NotNull InventoryEntryModel entry) {
         return switch (ItemCategory.fromApiValue(entry.getItemCategory())) {
-            case EQUIPMENT -> InventoryType.EQUIPMENT;
-            case RUNE -> InventoryType.RUNE;
             case CURRENCY -> InventoryType.CURRENCY;
-            default -> InventoryType.NORMAL;
+            default -> InventoryType.BAG;
         };
     }
 
@@ -3450,7 +3559,7 @@ public class InventoryService {
     ) {
         List<InventoryEntryModel> entries = state.snapshotEntries(inventory.getInventoryId());
         if (inventory.getInventoryType() != InventoryType.CURRENCY) {
-            return NormalInventoryLayout.collectUsedSlots(entries);
+            return NormalInventoryLayout.collectUsedSlots(entries, inventoryCapacity(inventory));
         }
         Set<Integer> usedSlots = new HashSet<>();
         for (InventoryEntryModel entry : entries) {
@@ -3464,7 +3573,7 @@ public class InventoryService {
 
     private @Nullable Integer findNextFreeSlot(@NotNull InventoryModel inventory, @NotNull Set<Integer> usedSlots) {
         if (inventory.getInventoryType() != InventoryType.CURRENCY) {
-            return NormalInventoryLayout.findNextFreeSlot(usedSlots);
+            return NormalInventoryLayout.findNextFreeSlot(usedSlots, inventoryCapacity(inventory));
         }
         int candidate = NormalInventoryLayout.DB_SLOT_START;
         while (candidate > 0) {
@@ -3480,7 +3589,13 @@ public class InventoryService {
         if (inventoryType == InventoryType.CURRENCY) {
             return null;
         }
-        return inventoryType.isSlotted() ? NormalInventoryLayout.CAPACITY : null;
+        return inventoryType == InventoryType.BAG ? NormalInventoryLayout.CAPACITY
+            : inventoryType.isSlotted() ? NormalInventoryLayout.CAPACITY : null;
+    }
+
+    private int inventoryCapacity(@NotNull InventoryModel inventory) {
+        Integer configured = inventory.getSlotCapacity();
+        return configured == null ? NormalInventoryLayout.CAPACITY : Math.max(0, configured);
     }
 
     /**

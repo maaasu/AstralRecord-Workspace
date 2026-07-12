@@ -343,7 +343,6 @@ public enum PlayerMsgId {
     P_5241(5241),
     P_5242(5242),
     P_5243(5243),
-    P_5244(5244),
     P_5245(5245),
     P_5246(5246),
     P_5247(5247),
@@ -449,7 +448,6 @@ public enum PlayerMsgId {
     /**
      * 無効なインベントリタイプです。指定可能: {0}
      */
-    P_5251(5251),
     /**
      * InventoryService が初期化されていません。
      */
@@ -457,7 +455,6 @@ public enum PlayerMsgId {
     /**
      * インベントリを切り替えました: {0}
      */
-    P_5253(5253),
     // endregion
 
     // region /feature/resourcepack/service/ResourcePackService.java 5550-5599

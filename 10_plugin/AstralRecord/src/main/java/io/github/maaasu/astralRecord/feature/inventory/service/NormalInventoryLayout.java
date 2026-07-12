@@ -16,11 +16,16 @@ import java.util.Set;
  * 通常インベントリのスロット範囲と空きスロット探索を扱います。
  */
 final class NormalInventoryLayout {
-    static final int CAPACITY = 27;
+    static final int CONTENT_COLUMNS = 8;
+    static final int VISIBLE_ROWS = 3;
+    static final int CAPACITY = CONTENT_COLUMNS * VISIBLE_ROWS;
     static final int DB_SLOT_START = 1;
-    static final int DB_SLOT_END = 27;
+    static final int DB_SLOT_END = CAPACITY;
     static final int GUI_SLOT_START = 9;
     static final int GUI_SLOT_END = 35;
+    static final int SCROLL_UP_GUI_SLOT = 17;
+    static final int INFO_GUI_SLOT = 26;
+    static final int SCROLL_DOWN_GUI_SLOT = 35;
 
     private NormalInventoryLayout() {
     }
@@ -35,8 +40,16 @@ final class NormalInventoryLayout {
         return slotIndex >= DB_SLOT_START && slotIndex <= DB_SLOT_END;
     }
 
+    static boolean isManagedSlot(int slotIndex, int capacity) {
+        return slotIndex >= DB_SLOT_START && slotIndex <= Math.max(0, capacity);
+    }
+
     static boolean isManagedGuiSlot(int guiSlot) {
-        return guiSlot >= GUI_SLOT_START && guiSlot <= GUI_SLOT_END;
+        return guiSlot >= GUI_SLOT_START
+            && guiSlot <= GUI_SLOT_END
+            && guiSlot != SCROLL_UP_GUI_SLOT
+            && guiSlot != INFO_GUI_SLOT
+            && guiSlot != SCROLL_DOWN_GUI_SLOT;
     }
 
     /**
@@ -46,10 +59,17 @@ final class NormalInventoryLayout {
      * @return 使用済みスロット集合
      */
     static @NotNull Set<Integer> collectUsedSlots(@NotNull List<InventoryEntryModel> entries) {
+        return collectUsedSlots(entries, CAPACITY);
+    }
+
+    static @NotNull Set<Integer> collectUsedSlots(
+        @NotNull List<InventoryEntryModel> entries,
+        int capacity
+    ) {
         Set<Integer> usedSlots = new HashSet<>();
         for (InventoryEntryModel entry : entries) {
             Integer slotIndex = entry.getSlotIndex();
-            if (slotIndex != null && isManagedSlot(slotIndex)) {
+            if (slotIndex != null && isManagedSlot(slotIndex, capacity) && !entry.isDeleted()) {
                 usedSlots.add(slotIndex);
             }
         }
@@ -66,6 +86,9 @@ final class NormalInventoryLayout {
         Set<Integer> usedSlots = new HashSet<>();
         int maxSlot = Math.min(GUI_SLOT_END, contents.length - 1);
         for (int guiSlot = GUI_SLOT_START; guiSlot <= maxSlot; guiSlot++) {
+            if (!isManagedGuiSlot(guiSlot)) {
+                continue;
+            }
             ItemStack itemStack = contents[guiSlot];
             if (itemStack != null && itemStack.getType() != Material.AIR) {
                 int dbSlot = toDbSlotIndex(guiSlot);
@@ -84,7 +107,11 @@ final class NormalInventoryLayout {
      * @return 空きスロット。存在しない場合は null
      */
     static @Nullable Integer findNextFreeSlot(@NotNull Set<Integer> usedSlots) {
-        for (int slot = DB_SLOT_START; slot <= DB_SLOT_END; slot++) {
+        return findNextFreeSlot(usedSlots, CAPACITY);
+    }
+
+    static @Nullable Integer findNextFreeSlot(@NotNull Set<Integer> usedSlots, int capacity) {
+        for (int slot = DB_SLOT_START; slot <= Math.max(0, capacity); slot++) {
             if (!usedSlots.contains(slot)) {
                 return slot;
             }
@@ -96,8 +123,35 @@ final class NormalInventoryLayout {
         return GUI_SLOT_START + (dbSlot - DB_SLOT_START);
     }
 
+    static int toGuiSlotIndex(int dbSlot, int scrollRow) {
+        int visibleIndex = dbSlot - DB_SLOT_START - Math.max(0, scrollRow) * CONTENT_COLUMNS;
+        if (visibleIndex < 0 || visibleIndex >= CAPACITY) {
+            return -1;
+        }
+        int row = visibleIndex / CONTENT_COLUMNS;
+        int column = visibleIndex % CONTENT_COLUMNS;
+        return GUI_SLOT_START + row * 9 + column;
+    }
+
     static int toDbSlotIndex(int guiSlot) {
         return DB_SLOT_START + (guiSlot - GUI_SLOT_START);
+    }
+
+    static int toDbSlotIndex(int guiSlot, int scrollRow) {
+        if (!isManagedGuiSlot(guiSlot)) {
+            return -1;
+        }
+        int relative = guiSlot - GUI_SLOT_START;
+        int visibleIndex = (relative / 9) * CONTENT_COLUMNS + relative % 9;
+        return DB_SLOT_START + Math.max(0, scrollRow) * CONTENT_COLUMNS + visibleIndex;
+    }
+
+    static int totalRows(int capacity) {
+        return Math.max(1, (Math.max(0, capacity) + CONTENT_COLUMNS - 1) / CONTENT_COLUMNS);
+    }
+
+    static int maxScrollRow(int capacity) {
+        return Math.max(0, totalRows(capacity) - VISIBLE_ROWS);
     }
 
     /**
@@ -110,7 +164,11 @@ final class NormalInventoryLayout {
         ItemStack[] source = player.getInventory().getStorageContents();
         ItemStack[] snapshot = new ItemStack[source.length];
         int maxSlot = Math.min(GUI_SLOT_END, source.length - 1);
-        if (maxSlot - 8 >= 0) System.arraycopy(source, GUI_SLOT_START, snapshot, GUI_SLOT_START, maxSlot - 8);
+        for (int guiSlot = GUI_SLOT_START; guiSlot <= maxSlot; guiSlot++) {
+            if (isManagedGuiSlot(guiSlot)) {
+                snapshot[guiSlot] = source[guiSlot];
+            }
+        }
         return snapshot;
     }
 
@@ -123,7 +181,11 @@ final class NormalInventoryLayout {
     static void applyManagedStorageSnapshot(@NotNull Player player, @NotNull ItemStack[] snapshot) {
         ItemStack[] storage = player.getInventory().getStorageContents();
         int maxSlot = Math.min(Math.min(GUI_SLOT_END, storage.length - 1), snapshot.length - 1);
-        if (maxSlot - 8 >= 0) System.arraycopy(snapshot, GUI_SLOT_START, storage, GUI_SLOT_START, maxSlot - 8);
+        for (int guiSlot = GUI_SLOT_START; guiSlot <= maxSlot; guiSlot++) {
+            if (isManagedGuiSlot(guiSlot)) {
+                storage[guiSlot] = snapshot[guiSlot];
+            }
+        }
         player.getInventory().setStorageContents(storage);
     }
 }

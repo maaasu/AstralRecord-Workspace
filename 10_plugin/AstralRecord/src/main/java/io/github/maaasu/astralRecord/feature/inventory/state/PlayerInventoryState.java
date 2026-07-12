@@ -41,8 +41,10 @@ public final class PlayerInventoryState {
     /** metadataJson の API 保存が必要な inventoryId。 */
     private final Set<UUID> dirtyMetadataInventoryIds = new HashSet<>();
 
-    /** GUI 表示中のインベントリ種別。非永続。 */
-    private @NotNull InventoryType displayedType = InventoryType.NORMAL;
+    /** GUI 表示中のインベントリ種別。所持品統合後は BAG 固定。非永続。 */
+    private @NotNull InventoryType displayedType = InventoryType.BAG;
+    /** BAG 表示の先頭行（0 始まり）。非永続。 */
+    private int bagScrollRow;
     /** ホットバー選択中スロット（DB slot_index 1〜9 / オフハンド 10）。非永続。 */
     private @Nullable Integer selectedHotbarSlot;
     /** ホットバーショートカット表示モード。非永続。 */
@@ -411,6 +413,19 @@ public final class PlayerInventoryState {
 
     public synchronized void setDisplayedType(@NotNull InventoryType displayedType) {
         this.displayedType = displayedType;
+    }
+
+    public synchronized int getBagScrollRow() {
+        return bagScrollRow;
+    }
+
+    public synchronized boolean setBagScrollRow(int bagScrollRow) {
+        int normalized = Math.max(0, bagScrollRow);
+        if (this.bagScrollRow == normalized) {
+            return false;
+        }
+        this.bagScrollRow = normalized;
+        return true;
     }
 
     public synchronized @Nullable Integer getSelectedHotbarSlot() {

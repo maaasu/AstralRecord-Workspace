@@ -1,12 +1,9 @@
 package io.github.maaasu.astralRecord.feature.inventory.service;
 
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
-import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
@@ -16,17 +13,13 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 /**
- * HOTBAR 表示と GUI 中ショートカット表示を描画します。
+ * HOTBAR の割当アイテムを描画します。
  */
 final class HotbarRenderer {
-    static final int SHORTCUT_CLOSE_SLOT = 4;
-    static final int SHORTCUT_INVENTORY_CYCLE_SLOT = 8;
-
     private final InventoryItemStackResolver itemStackResolver;
 
     HotbarRenderer(@NotNull InventoryItemStackResolver itemStackResolver) {
@@ -36,9 +29,6 @@ final class HotbarRenderer {
     void renderHotbarInventory(
         @NotNull AstPlayer astPlayer,
         @NotNull Map<Integer, InventoryEntryModel> entries,
-        @NotNull InventoryType displayedType,
-        @NotNull Map<InventoryType, Long> ownedCounts,
-        int usedSlots,
         @Nullable Integer selectedSlot
     ) {
         PlayerInventory inventory = astPlayer.getBukkit().getInventory();
@@ -54,9 +44,6 @@ final class HotbarRenderer {
             }
             changed |= setStorageItemIfChanged(inventory, HotbarLayout.toBukkitSlot(dbSlot), itemStack);
         }
-        changed |= setStorageItemIfChanged(inventory, SHORTCUT_INVENTORY_CYCLE_SLOT,
-            createInventoryCycleShortcutIcon(displayedType, ownedCounts, usedSlots));
-
         InventoryEntryModel offhandEntry = entries.get(HotbarLayout.DB_SLOT_OFFHAND);
         ItemStack offhandStack = offhandEntry == null
             ? createHotbarDummyItem(HotbarLayout.DB_SLOT_OFFHAND)
@@ -74,103 +61,6 @@ final class HotbarRenderer {
         if (changed) {
             astPlayer.getBukkit().updateInventory();
         }
-    }
-
-    void renderShortcutIcons(
-        @NotNull AstPlayer astPlayer,
-        @NotNull InventoryType displayed,
-        @NotNull Map<InventoryType, Long> ownedCounts,
-        int usedSlots
-    ) {
-        PlayerInventory inventory = astPlayer.getBukkit().getInventory();
-        boolean changed = false;
-
-        for (int i = 0; i <= 8; i++) {
-            if (i == SHORTCUT_CLOSE_SLOT) {
-                changed |= setStorageItemIfChanged(inventory, i, createCloseShortcutIcon());
-                continue;
-            }
-            if (i == SHORTCUT_INVENTORY_CYCLE_SLOT) {
-                changed |= setStorageItemIfChanged(inventory, i, createInventoryCycleShortcutIcon(displayed, ownedCounts, usedSlots));
-                continue;
-            }
-            changed |= setStorageItemIfChanged(inventory, i, createHotbarSpacerIcon());
-        }
-
-        ItemStack offhandDummy = createHotbarDummyItem(HotbarLayout.DB_SLOT_OFFHAND);
-        if (!isSameItemStack(inventory.getItemInOffHand(), offhandDummy)) {
-            inventory.setItemInOffHand(offhandDummy);
-            changed = true;
-        }
-        if (changed) {
-            astPlayer.getBukkit().updateInventory();
-        }
-    }
-
-    private @NotNull ItemStack createInventoryCycleShortcutIcon(
-        @NotNull InventoryType currentDisplayed,
-        @NotNull Map<InventoryType, Long> ownedCounts,
-        int usedSlots
-    ) {
-        Material material = switch (currentDisplayed) {
-            case EQUIPMENT -> Material.IRON_CHESTPLATE;
-            case RUNE -> Material.AMETHYST_SHARD;
-            default -> Material.CHEST;
-        };
-        ItemStack itemStack = new ItemStack(material);
-        itemStack.setAmount(Math.max(1, Math.min(usedSlots, 64)));
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(Component.text("インベントリ切替", NamedTextColor.YELLOW));
-            List<Component> lore = new ArrayList<>();
-            lore.add(createInventoryCycleLine(InventoryType.NORMAL, currentDisplayed, ownedCounts));
-            lore.add(createInventoryCycleLine(InventoryType.EQUIPMENT, currentDisplayed, ownedCounts));
-            lore.add(createInventoryCycleLine(InventoryType.RUNE, currentDisplayed, ownedCounts));
-            meta.lore(lore);
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
-    }
-
-    private @NotNull Component createInventoryCycleLine(
-        @NotNull InventoryType inventoryType,
-        @NotNull InventoryType currentDisplayed,
-        @NotNull Map<InventoryType, Long> ownedCounts
-    ) {
-        long count = ownedCounts.getOrDefault(inventoryType, 0L);
-        Component line = Component.text(
-            "→ " + inventoryType.getDisplayNameJa() + "[" + count + "]",
-            NamedTextColor.GRAY
-        );
-        if (currentDisplayed == inventoryType) {
-            line = line.decorate(TextDecoration.BOLD)
-                .append(Component.text(" (選択中)", NamedTextColor.YELLOW));
-        }
-        return line;
-    }
-
-    private @NotNull ItemStack createHotbarSpacerIcon() {
-        ItemStack itemStack = new ItemStack(Material.LIGHT_GRAY_STAINED_GLASS_PANE);
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(Component.text(" "));
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
-    }
-
-    private @NotNull ItemStack createCloseShortcutIcon() {
-        ItemStack itemStack = new ItemStack(Material.BARRIER);
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(Component.text(ColorCodeUtil.RED + "閉じる"));
-            meta.lore(List.of(Component.text(ColorCodeUtil.GRAY + "GUI を閉じる")));
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
     }
 
     private @NotNull ItemStack createHotbarDummyItem(int dbSlot) {

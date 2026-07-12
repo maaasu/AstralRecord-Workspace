@@ -1,12 +1,10 @@
 package io.github.maaasu.astralRecord.feature.item.service;
 
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
-import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemBundle;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
-import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
 import io.github.maaasu.astralRecord.feature.loot.model.LootContent;
 import io.github.maaasu.astralRecord.feature.loot.model.LootModel;
 import io.github.maaasu.astralRecord.feature.loot.model.LootPoolModel;
@@ -30,7 +28,6 @@ import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -249,7 +246,6 @@ public class BundleUseService {
 
         int rewardKinds = 0;
         int totalGranted = 0;
-        int totalDropped = 0;
         List<String> rewardSummaries = new ArrayList<>();
         List<ResolvedReward> resolvedRewards = new ArrayList<>();
         for (Map.Entry<String, Integer> reward : rewards.entrySet()) {
@@ -265,18 +261,16 @@ public class BundleUseService {
                 continue;
             }
 
-            rewardKinds++;
             int requestedAmount = reward.getValue();
-            resolvedRewards.add(new ResolvedReward(rewardModel, requestedAmount));
-            rewardSummaries.add(buildRewardSummary(rewardModel, requestedAmount));
             int granted = inventoryService.addItemToNormalInventory(
                 pending.astPlayer(), rewardModel, requestedAmount, SOURCE_BUNDLE_USE);
             totalGranted += granted;
-
-            int overflow = requestedAmount - granted;
-            if (overflow > 0) {
-                totalDropped += dropOverflow(pending.astPlayer(), rewardModel, overflow);
+            if (granted > 0) {
+                rewardKinds++;
+                resolvedRewards.add(new ResolvedReward(rewardModel, granted));
+                rewardSummaries.add(buildRewardSummary(rewardModel, granted));
             }
+
         }
 
         playUseEffects(pending.astPlayer(), pending.bundle());
@@ -284,9 +278,6 @@ public class BundleUseService {
         PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5243, rewardKinds, totalGranted);
         for (String rewardSummary : rewardSummaries) {
             PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5248, rewardSummary);
-        }
-        if (totalDropped > 0) {
-            PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5244, totalDropped);
         }
     }
 
@@ -371,68 +362,6 @@ public class BundleUseService {
             return 0;
         }
         return minAmount == maxAmount ? minAmount : random.nextInt(minAmount, maxAmount + 1);
-    }
-
-    private int dropOverflow(
-        @NotNull AstPlayer astPlayer,
-        @NotNull ItemModel rewardModel,
-        int amount
-    ) {
-        World world = astPlayer.getBukkit().getWorld();
-        Location location = astPlayer.getBukkit().getLocation();
-        if (world == null) {
-            return 0;
-        }
-
-        int dropped = 0;
-        ItemCategory category = ItemCategory.fromApiValue(rewardModel.getCategory());
-        switch (category) {
-            case EQUIPMENT -> {
-                for (int i = 0; i < amount; i++) {
-                    EquipmentInstance instance = itemService.createEquipmentInstance(
-                        rewardModel.getId(),
-                        astPlayer.getAccount().getUuid().toString(),
-                        SOURCE_BUNDLE_USE,
-                        astPlayer.getAccount().getUuid().toString()
-                    );
-                    if (instance == null) {
-                        continue;
-                    }
-                    ItemStack stack = itemStackFactory.create(rewardModel, instance, 1);
-                    world.dropItemNaturally(location, itemStackFactory.asDisplayStack(stack));
-                    dropped++;
-                }
-            }
-            case RUNE -> {
-                for (int i = 0; i < amount; i++) {
-                    RuneInstance instance = itemService.createRuneInstance(
-                        rewardModel.getId(),
-                        astPlayer.getAccount().getUuid().toString(),
-                        SOURCE_BUNDLE_USE,
-                        astPlayer.getAccount().getUuid().toString()
-                    );
-                    if (instance == null) {
-                        continue;
-                    }
-                    ItemStack stack = itemStackFactory.create(rewardModel, instance, 1);
-                    world.dropItemNaturally(location, itemStackFactory.asDisplayStack(stack));
-                    dropped++;
-                }
-            }
-            default -> {
-                int remaining = amount;
-                int maxStack = Math.max(1, rewardModel.getMaxStack());
-                while (remaining > 0) {
-                    int stackAmount = Math.min(maxStack, remaining);
-                    ItemStack stack = itemStackFactory.create(rewardModel, stackAmount);
-                    world.dropItemNaturally(location, itemStackFactory.asDisplayStack(stack));
-                    dropped += stackAmount;
-                    remaining -= stackAmount;
-                }
-            }
-        }
-
-        return dropped;
     }
 
     private void playRewardDropAnimations(

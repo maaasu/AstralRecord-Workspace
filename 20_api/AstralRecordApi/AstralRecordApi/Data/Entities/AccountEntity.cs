@@ -8,7 +8,7 @@ public class AccountEntity
     public int SlotIndex { get; set; }
     public bool IsActive { get; set; }
     public byte Mode { get; set; }
-    public string MenuShortcutsJson { get; set; } = """["INVENTORY_NORMAL","INVENTORY_EQUIPMENT","INVENTORY_RUNE","INVENTORY_CURRENCY"]""";
+    public string MenuShortcutsJson { get; set; } = """["STATUS","NONE","INVENTORY_CURRENCY","EQUIPMENT_GUI"]""";
     public int Level { get; set; } = 1;
     public long TotalExperience { get; set; }
     public string ClassId { get; set; } = "adventurer";

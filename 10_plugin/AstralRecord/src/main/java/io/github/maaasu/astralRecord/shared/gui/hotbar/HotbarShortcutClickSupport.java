@@ -10,13 +10,11 @@ import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Plugin GUI 上でプレイヤーインベントリ側ホットバーショートカットのクリック処理を共通化します。
+ * Plugin GUI 上でプレイヤーインベントリ側の通常操作と BAG 制御を共通化します。
  */
 public final class HotbarShortcutClickSupport {
     private static final int HOTBAR_MIN_SLOT = 0;
     private static final int HOTBAR_MAX_SLOT = 8;
-    private static final int HOTBAR_CLOSE_SLOT = 4;
-
     private HotbarShortcutClickSupport() {
         // utility class
     }
@@ -30,31 +28,39 @@ public final class HotbarShortcutClickSupport {
             return false;
         }
         int slot = event.getSlot();
-        if (slot < HOTBAR_MIN_SLOT || slot > HOTBAR_MAX_SLOT) {
+        var astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null || !inventoryService.isHotbarShortcutMode(astPlayer)) {
             return false;
         }
 
-        event.setCancelled(true);
-        var astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null || !inventoryService.isHotbarShortcutMode(astPlayer)) {
-            GuiSound.DENY.play(player);
-            return true;
-        }
-        if (!inventoryService.getClickGuard().tryAcquire(
-            astPlayer.getAccount().getUuid(),
-            InventoryClickGuard.ClickAction.HOTBAR_SHORTCUT
-        )) {
+        if (inventoryService.handleInventoryControlClick(astPlayer, slot)) {
+            event.setCancelled(true);
+            GuiSound.SELECT.play(player);
             return true;
         }
 
-        boolean handled = inventoryService.handleHotbarShortcutClick(astPlayer, slot);
-        if (!handled) {
-            GuiSound.DENY.play(player);
+        if (slot >= HOTBAR_MIN_SLOT && slot <= HOTBAR_MAX_SLOT) {
+            event.setCancelled(true);
+            if (!inventoryService.getClickGuard().tryAcquire(
+                astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.HOTBAR_SLOT)) {
+                return true;
+            }
+            boolean handled = inventoryService.handleHotbarSlotClick(astPlayer, slot + 1);
+            (handled ? GuiSound.SELECT : GuiSound.DENY).play(player);
             return true;
         }
-        if (slot != HOTBAR_CLOSE_SLOT) {
-            GuiSound.SELECT.play(player);
+
+        if (slot >= 9 && slot <= 35
+            && inventoryService.getDisplayedEntryAtBukkitSlot(astPlayer, slot) != null) {
+            event.setCancelled(true);
+            if (!inventoryService.getClickGuard().tryAcquire(
+                astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.DISPLAYED_ITEM)) {
+                return true;
+            }
+            boolean handled = inventoryService.equipOrAssignClickedItem(astPlayer, slot);
+            (handled ? GuiSound.SELECT : GuiSound.DENY).play(player);
+            return true;
         }
-        return true;
+        return false;
     }
 }

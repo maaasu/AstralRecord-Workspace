@@ -149,7 +149,7 @@ CREATE TABLE [dbo].[account] (
     [slot_index]     INT               NOT NULL,
     [is_active]      BIT               NOT NULL  CONSTRAINT [DF_account_is_active]   DEFAULT (0),
     [mode]           TINYINT           NOT NULL  CONSTRAINT [DF_account_mode]         DEFAULT (0),
-    [menu_shortcuts_json] NVARCHAR(MAX) NOT NULL  CONSTRAINT [DF_account_menu_shortcuts_json] DEFAULT (N'["INVENTORY_NORMAL","INVENTORY_EQUIPMENT","INVENTORY_RUNE","INVENTORY_CURRENCY"]'),
+    [menu_shortcuts_json] NVARCHAR(MAX) NOT NULL  CONSTRAINT [DF_account_menu_shortcuts_json] DEFAULT (N'["STATUS","NONE","INVENTORY_CURRENCY","EQUIPMENT_GUI"]'),
     [level]          INT               NOT NULL  CONSTRAINT [DF_account_level]        DEFAULT (1),
     [total_experience] BIGINT          NOT NULL  CONSTRAINT [DF_account_total_experience] DEFAULT (0),
     [class_id]       NVARCHAR(100)     NOT NULL  CONSTRAINT [DF_account_class_id]      DEFAULT (N'adventurer'),

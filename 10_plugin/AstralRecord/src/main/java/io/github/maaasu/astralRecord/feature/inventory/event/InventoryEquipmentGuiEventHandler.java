@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.EquipmentMenuScreenView;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -200,18 +201,16 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
                 GuiSound.DENY.play(player);
                 return;
             }
-            if (handleEnhancementMenuHotbarShortcutClick(event, player, astPlayer)) {
-                return;
-            }
-            if (!inventoryService.getClickGuard().tryAcquire(
-                    astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.DISPLAYED_ITEM)) {
-                return;
-            }
             if (event.getCursor().getType() != Material.AIR) {
                 GuiSound.DENY.play(player);
                 return;
             }
-            equipmentEnhancementService.handlePlayerInventoryClick(player, event.getSlot());
+            if (equipmentEnhancementService.handlePlayerInventoryClick(player, event.getSlot())) {
+                return;
+            }
+            if (!HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
+                GuiSound.DENY.play(player);
+            }
             return;
         }
 
@@ -234,46 +233,20 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
                 GuiSound.DENY.play(player);
                 return;
             }
-            if (handleEnhancementMenuHotbarShortcutClick(event, player, astPlayer)) {
-                return;
-            }
-            if (!inventoryService.getClickGuard().tryAcquire(
-                    astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.DISPLAYED_ITEM)) {
-                return;
-            }
             if (event.getCursor().getType() != Material.AIR) {
                 GuiSound.DENY.play(player);
                 return;
             }
-            equipmentRepairService.handlePlayerInventoryClick(player, event.getSlot());
+            if (equipmentRepairService.handlePlayerInventoryClick(player, event.getSlot())) {
+                return;
+            }
+            if (!HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
+                GuiSound.DENY.play(player);
+            }
             return;
         }
 
         equipmentRepairService.handleTopClick(player, event.getRawSlot());
-    }
-
-    private boolean handleEnhancementMenuHotbarShortcutClick(
-        @NotNull InventoryClickEvent event,
-        @NotNull Player player,
-        @NotNull AstPlayer astPlayer
-    ) {
-        int slot = event.getSlot();
-        if (slot < 0 || slot > 8 || !inventoryService.isHotbarShortcutMode(astPlayer)) {
-            return false;
-        }
-        if (!inventoryService.getClickGuard().tryAcquire(
-                astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.HOTBAR_SHORTCUT)) {
-            return true;
-        }
-        boolean handled = inventoryService.handleHotbarShortcutClick(astPlayer, slot);
-        if (handled) {
-            if (slot != 4) {
-                GuiSound.SELECT.play(player);
-            }
-        } else {
-            GuiSound.DENY.play(player);
-        }
-        return true;
     }
 
     private void handleEquipmentMenuSlotClick(
@@ -360,21 +333,8 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         }
 
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer != null
-            && inventoryService.isHotbarShortcutMode(astPlayer)
-            && event.getSlot() >= 0
-            && event.getSlot() <= 8) {
-            handleHotbarShortcutClick(astPlayer, player, event.getSlot());
-            return;
-        }
-
         if (astPlayer == null) {
             GuiSound.DENY.play(player);
-            return;
-        }
-
-        if (!inventoryService.getClickGuard().tryAcquire(
-                astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.DISPLAYED_ITEM)) {
             return;
         }
 
@@ -390,13 +350,25 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             return;
         }
 
-        var sourceEntry = inventoryService.getDisplayedEntryAtBukkitSlot(astPlayer, event.getSlot());
+        var sourceEntry = inventoryService.getOwnedEntryAtBukkitSlot(astPlayer, event.getSlot());
         if (sourceEntry == null) {
-            GuiSound.DENY.play(player);
+            if (!HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
+                GuiSound.DENY.play(player);
+            }
             return;
         }
 
         EquipmentType equipmentType = inventoryService.getEquipmentTypeForEntry(sourceEntry);
+        if (equipmentType == EquipmentType.UNSUPPORTED) {
+            if (!HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
+                GuiSound.DENY.play(player);
+            }
+            return;
+        }
+        if (!inventoryService.getClickGuard().tryAcquire(
+                astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.DISPLAYED_ITEM)) {
+            return;
+        }
         int targetSlot = equipmentType == EquipmentType.OFF_HAND
             ? menuView.firstEmptyAccessorySlot(topInventory)
             : menuView.getSlotForEquipmentType(equipmentType);
@@ -413,7 +385,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         }
 
         ItemStack previous = menuView.getEquipmentGuiItem(topInventory, targetSlot);
-        if (!inventoryService.moveDisplayedItemToEquipmentGui(astPlayer, event.getSlot(), previous)) {
+        if (!inventoryService.moveOwnedItemToEquipmentGui(astPlayer, event.getSlot(), previous)) {
             GuiSound.DENY.play(player);
             return;
         }
@@ -465,6 +437,11 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         }
 
         int slot = event.getSlot();
+        if (inventoryService.handleInventoryControlClick(astPlayer, slot)) {
+            event.setCancelled(true);
+            GuiSound.SELECT.play(player);
+            return;
+        }
         if (slot >= 0 && slot <= 8) {
             handleHotbarClick(event, astPlayer, player, slot);
             return;
@@ -489,16 +466,6 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         @NotNull Player player,
         int slot
     ) {
-        if (slot == 8) {
-            event.setCancelled(true);
-            handleHotbarShortcutClick(astPlayer, player, slot);
-            return;
-        }
-        if (inventoryService.isHotbarShortcutMode(astPlayer)) {
-            event.setCancelled(true);
-            handleHotbarShortcutClick(astPlayer, player, slot);
-            return;
-        }
         if (!inventoryService.getClickGuard().tryAcquire(
                 astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.HOTBAR_SLOT)) {
             event.setCancelled(true);
@@ -510,36 +477,6 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             refreshStatusAfterEquipmentChange(astPlayer);
         }
         playResultSound(player, handled, equipAction);
-    }
-
-    private void handleHotbarShortcutClick(
-        @NotNull AstPlayer astPlayer,
-        @NotNull Player player,
-        int slot
-    ) {
-        if (!inventoryService.getClickGuard().tryAcquire(
-                astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.HOTBAR_SHORTCUT)) {
-            return;
-        }
-        boolean handled = inventoryService.handleHotbarShortcutClick(astPlayer, slot);
-        if (handled) {
-            if (slot != 4) {
-                GuiSound.SELECT.play(player);
-            }
-            return;
-        }
-        GuiSound.DENY.play(player);
-    }
-
-    private void handleHotbarShortcutClick(
-        @NotNull AstPlayer astPlayer,
-        @NotNull Player player,
-        @NotNull Inventory topInventory,
-        int slot
-    ) {
-        // 装備GUIを閉じずに切り替える場合でも、GUI上の最新装備状態を保存してから遷移する。
-        saveEquipmentMenuSnapshot(player, topInventory);
-        handleHotbarShortcutClick(astPlayer, player, slot);
     }
 
     private void handleOffhandHotbarClick(
@@ -658,8 +595,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
 
         if (!hasCursor) {
             // カーソル空クリック = 装備解除。
-            // 共通メソッドで EQUIPMENT/RUNE インベントリへ entry を再生成し、
-            // スロット詰め＋表示インベントリ自動切替を実施する。
+            // 共通メソッドで BAG へ entry を再生成し、スロット詰めと再描画を実施する。
             if (inventoryService.returnItemToOwnedInventory(astPlayer, current.clone()) == null) {
                 return false;
             }

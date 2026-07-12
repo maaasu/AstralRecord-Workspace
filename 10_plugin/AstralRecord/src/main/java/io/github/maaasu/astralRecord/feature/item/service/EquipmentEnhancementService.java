@@ -92,10 +92,6 @@ public final class EquipmentEnhancementService {
             ignored -> new EnhancementSession(inventoryService.getDisplayedInventoryType(astPlayer.getAccount().getUuid()))
         );
 
-        if (inventoryService.canSwitchToInventory(astPlayer.getAccount().getUuid(), InventoryType.EQUIPMENT)) {
-            inventoryService.applyInventoryToGui(astPlayer, InventoryType.EQUIPMENT);
-        }
-
         Inventory inventory = Bukkit.createInventory(
             new MenuInventoryHolder(MenuScreen.EQUIPMENT_ENHANCE, -1, 0),
             BaseMenuScreenView.SIZE,
@@ -132,35 +128,41 @@ public final class EquipmentEnhancementService {
         GuiSound.DENY.play(player);
     }
 
-    public void handlePlayerInventoryClick(@NotNull Player player, int bukkitSlot) {
+    /**
+     * BAG またはホットバーの装備を強化対象へ移動します。
+     *
+     * @param player 操作したプレイヤー
+     * @param bukkitSlot クリックされた Bukkit PlayerInventory スロット
+     * @return 強化対象として処理した場合 true。対象外アイテムの場合 false
+     */
+    public boolean handlePlayerInventoryClick(@NotNull Player player, int bukkitSlot) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
             player.closeInventory();
             GuiSound.DENY.play(player);
-            return;
+            return true;
         }
         EnhancementSession session = sessions.computeIfAbsent(
             player.getUniqueId(),
             ignored -> new EnhancementSession(inventoryService.getDisplayedInventoryType(astPlayer.getAccount().getUuid()))
         );
 
-        ItemModel clickedModel = inventoryService.getDisplayedItemModelAtBukkitSlot(astPlayer, bukkitSlot);
+        ItemModel clickedModel = inventoryService.getOwnedItemModelAtBukkitSlot(astPlayer, bukkitSlot);
         if (!isEquipmentModel(clickedModel)) {
-            GuiSound.DENY.play(player);
-            return;
+            return false;
         }
 
-        ItemStack selected = inventoryService.takeDisplayedItem(astPlayer, bukkitSlot);
+        ItemStack selected = inventoryService.takeOwnedItem(astPlayer, bukkitSlot);
         if (selected == null || selected.getType() == Material.AIR) {
             GuiSound.DENY.play(player);
-            return;
+            return true;
         }
 
         SelectionResult selection = resolveSelection(selected);
         if (selection.state() == SelectionState.INVALID_TARGET) {
             inventoryService.returnItemToOwnedInventory(astPlayer, selected);
             GuiSound.DENY.play(player);
-            return;
+            return true;
         }
 
         ItemStack previous = session.selectedEquipment;
@@ -170,12 +172,13 @@ public final class EquipmentEnhancementService {
                 inventoryService.returnItemToOwnedInventory(astPlayer, selected.clone());
                 session.selectedEquipment = previous;
                 GuiSound.DENY.play(player);
-                return;
+                return true;
             }
         }
 
         render(player, player.getOpenInventory().getTopInventory(), session);
         GuiSound.SELECT.play(player);
+        return true;
     }
 
     public void handleClose(@NotNull Player player) {

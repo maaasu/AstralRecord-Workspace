@@ -140,8 +140,7 @@ GO
 |:---|:---|
 | スタックインベントリ | `slot_index` と `item_id` でスタックアイテムを管理 |
 | 流動インベントリ | `slot_index = NULL`、`item_id` + `quantity` で無限定な管理 |
-| 装備インベントリ | `instance_type = 'EQUIPMENT'` と `instance_id` で装備実体を管理 |
-| ルーンインベントリ | `instance_type = 'RUNE'` と `instance_id` でルーン実体を管理 |
+| 統合所持品 | 通常アイテム・未装着装備・未装着ルーンを `BAG` に格納し、装備は `instance_type = 'EQUIPMENT'`、ルーンは `instance_type = 'RUNE'` と `instance_id` で実体を管理 |
 | ストレージインベントリ | `STORAGE` 種別で収納アイテムを管理。`slot_index` は収納順を表す連番、`metadata_json.acquiredAt` は収納元 entry の作成日時で獲得順ソートに使用 |
 | 装備スロットインベントリ | `instance_type = 'EQUIPMENT'` と `instance_id` で装着中の装備スロット（`EQUIP_SLOT`）を管理。`slot_index` は装備部位（1=メインハンド, 2=頭, 3=胴, 4=脚, 5=足） |
 | ホットバーインベントリ | `HOTBAR` 種別で `slot_index` 1〜9 を Bukkit ホットバー 0〜8 に対応させて保存。`metadata_json` は互換用スナップショット |

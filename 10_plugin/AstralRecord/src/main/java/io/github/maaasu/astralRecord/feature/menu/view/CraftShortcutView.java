@@ -19,14 +19,12 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 final class CraftShortcutView {
     static final int CRAFT_RESULT_RAW_SLOT = 0;
@@ -72,18 +70,14 @@ final class CraftShortcutView {
         boolean matrixChanged = false;
         for (int slot = 0; slot < MenuShortcutSettings.SLOT_COUNT; slot++) {
             MenuShortcutAction action = settings.getAction(slot);
-            boolean selected = action.getInventoryType() != null && action.getInventoryType() == selectedType;
             newMatrix[slot] = createCraftShortcutIcon(
                 player,
                 slot,
                 action,
-                selected,
-                selectedType,
                 snapshot,
                 selectedAccount,
                 classPoints,
-                passivePoints,
-                accounts
+                passivePoints
             );
             ItemStack existing = slot < currentMatrix.length ? currentMatrix[slot] : null;
             if (!isSameDisplayItem(existing, newMatrix[slot])) {
@@ -149,16 +143,13 @@ final class CraftShortcutView {
         @NotNull Player player,
         int shortcutSlotIndex,
         @NotNull MenuShortcutAction action,
-        boolean selected,
-        @Nullable InventoryType selectedType,
         @Nullable StatusSnapshot snapshot,
         @NotNull AccountModel selectedAccount,
         int classPoints,
-        int passivePoints,
-        @NotNull List<AccountModel> accounts
+        int passivePoints
     ) {
-        if (action == MenuShortcutAction.INVENTORY_CYCLE) {
-            return createUserInfoDummyIcon(player, shortcutSlotIndex, selectedType, selectedAccount, accounts);
+        if (action == MenuShortcutAction.NONE) {
+            return new ItemStack(Material.AIR);
         }
         if (action == MenuShortcutAction.STATUS) {
             return createStatusShortcutIcon(shortcutSlotIndex, snapshot, selectedAccount, classPoints, passivePoints);
@@ -175,9 +166,6 @@ final class CraftShortcutView {
             List.of(Component.text("クリックして実行", NamedTextColor.GRAY))
         );
         markCraftShortcutIcon(itemStack, shortcutSlotIndex, action);
-        if (selected) {
-            applySelectionGlow(itemStack);
-        }
         return itemStack;
     }
 
@@ -293,43 +281,6 @@ final class CraftShortcutView {
         }
         lore.add(Component.text(statusType.getDisplayName() + ": ", statusType.namedColor())
             .append(Component.text(statusType.formatValue(snapshot.getMaxValue(statusType)), NamedTextColor.WHITE)));
-    }
-
-    private @NotNull ItemStack createUserInfoDummyIcon(
-        @NotNull Player player,
-        int shortcutSlotIndex,
-        @Nullable InventoryType selectedType,
-        @NotNull AccountModel selectedAccount,
-        @NotNull List<AccountModel> accounts
-    ) {
-        String currentLabel = selectedType != null ? selectedType.getDisplayNameJa() : InventoryType.NORMAL.getDisplayNameJa();
-        String unselectedNames = accounts.stream()
-            .filter(account -> !account.getUuid().equals(selectedAccount.getUuid()))
-            .map(AccountModel::getAccountName)
-            .collect(Collectors.joining(", "));
-        if (unselectedNames.isBlank()) {
-            unselectedNames = "なし";
-        }
-
-        ItemStack itemStack = createItem(
-            MenuIconDefinition.ACCOUNT_INFO.getMaterial(),
-            Component.text("ユーザ情報", NamedTextColor.YELLOW),
-            List.of(
-                Component.text("現在: ", NamedTextColor.GRAY).append(Component.text(currentLabel, NamedTextColor.WHITE)),
-                Component.text("選択中アカウント: ", NamedTextColor.GRAY)
-                    .append(Component.text(selectedAccount.getAccountName(), NamedTextColor.GOLD)),
-                Component.text("未選択アカウント: ", NamedTextColor.GRAY)
-                    .append(Component.text(unselectedNames, NamedTextColor.WHITE)),
-                Component.text("左クリックでインベントリ切替", NamedTextColor.GRAY)
-            )
-        );
-        ItemMeta rawMeta = itemStack.getItemMeta();
-        if (rawMeta instanceof SkullMeta skullMeta) {
-            skullMeta.setOwningPlayer(player);
-            itemStack.setItemMeta(skullMeta);
-        }
-        markCraftShortcutIcon(itemStack, shortcutSlotIndex, MenuShortcutAction.NONE);
-        return itemStack;
     }
 
     private void markCraftShortcutIcon(

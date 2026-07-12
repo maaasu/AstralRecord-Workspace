@@ -19,7 +19,7 @@ import java.util.List;
 public final class HotbarLayout {
 
     public static final int DB_SLOT_START = 1;
-    public static final int DB_SLOT_END = 8;
+    public static final int DB_SLOT_END = 9;
     /** オフハンドをホットバーの拡張スロットとして扱うための DB slot_index */
     public static final int DB_SLOT_OFFHAND = 10;
     public static final int BUKKIT_SLOT_START = 0;

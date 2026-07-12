@@ -96,7 +96,7 @@ public final class DesignTestFixtures {
             accountId,
             type,
             InventoryProfile.GAME.getCode(),
-            type.isSlotted() ? 27 : null,
+            type == InventoryType.BAG ? 24 : type.isSlotted() ? 27 : null,
             true,
             null,
             now,

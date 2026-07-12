@@ -116,9 +116,6 @@ public final class EquipmentRepairService {
             player.getUniqueId(),
             ignored -> new RepairSession(inventoryService.getDisplayedInventoryType(astPlayer.getAccount().getUuid()))
         );
-        if (inventoryService.canSwitchToInventory(astPlayer.getAccount().getUuid(), InventoryType.EQUIPMENT)) {
-            inventoryService.applyInventoryToGui(astPlayer, InventoryType.EQUIPMENT);
-        }
         Inventory inventory = Bukkit.createInventory(
             new MenuInventoryHolder(MenuScreen.EQUIPMENT_REPAIR, -1, 0),
             BaseMenuScreenView.SIZE,
@@ -162,34 +159,34 @@ public final class EquipmentRepairService {
     }
 
     /**
-     * プレイヤー inventory 側のクリックから修理対象装備を選択します。
+     * BAG またはホットバーのクリックから修理対象装備を選択します。
      * 選択中の装備がある場合は元の inventory へ返却し、失敗時は選択状態を戻します。
      *
      * @param player 操作したプレイヤー
      * @param bukkitSlot クリックされた Bukkit inventory slot
+     * @return 修理対象として処理した場合 true。対象外アイテムの場合 false
      */
-    public void handlePlayerInventoryClick(@NotNull Player player, int bukkitSlot) {
+    public boolean handlePlayerInventoryClick(@NotNull Player player, int bukkitSlot) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
             player.closeInventory();
             GuiSound.DENY.play(player);
-            return;
+            return true;
         }
-        ItemModel clickedModel = inventoryService.getDisplayedItemModelAtBukkitSlot(astPlayer, bukkitSlot);
+        ItemModel clickedModel = inventoryService.getOwnedItemModelAtBukkitSlot(astPlayer, bukkitSlot);
         if (clickedModel == null || clickedModel.getEquipment() == null) {
-            GuiSound.DENY.play(player);
-            return;
+            return false;
         }
-        ItemStack selected = inventoryService.takeDisplayedItem(astPlayer, bukkitSlot);
+        ItemStack selected = inventoryService.takeOwnedItem(astPlayer, bukkitSlot);
         if (selected == null || selected.getType() == Material.AIR) {
             GuiSound.DENY.play(player);
-            return;
+            return true;
         }
         SelectionResult selection = resolveSelection(selected);
         if (selection.state() == SelectionState.INVALID_TARGET) {
             inventoryService.returnItemToOwnedInventory(astPlayer, selected);
             GuiSound.DENY.play(player);
-            return;
+            return true;
         }
 
         RepairSession session = sessions.computeIfAbsent(
@@ -203,11 +200,12 @@ public final class EquipmentRepairService {
                 inventoryService.returnItemToOwnedInventory(astPlayer, selected.clone());
                 session.selectedEquipment = previous;
                 GuiSound.DENY.play(player);
-                return;
+                return true;
             }
         }
         render(player, player.getOpenInventory().getTopInventory(), session);
         GuiSound.SELECT.play(player);
+        return true;
     }
 
     /**
