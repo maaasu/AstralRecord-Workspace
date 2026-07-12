@@ -18,19 +18,13 @@ public final class BossEntryEventHandler extends AbstractEventHandler {
         this.bossChallengeService = bossChallengeService;
     }
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onPlayerToggleSneak(@NotNull PlayerToggleSneakEvent event) {
         if (!event.isSneaking()) {
             return;
         }
         runSafely(
-                () -> {
-                    if (bossChallengeService.returnToChallengeFromHub(event.getPlayer())) {
-                        event.setCancelled(true);
-                        return;
-                    }
-                    bossChallengeService.acceptNearestChallenge(event.getPlayer(), false);
-                },
+                () -> bossChallengeService.acceptNearestChallenge(event.getPlayer(), false),
                 LogId.E_6501,
                 event.getPlayer().getName()
         );

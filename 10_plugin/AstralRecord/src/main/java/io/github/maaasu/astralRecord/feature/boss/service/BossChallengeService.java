@@ -61,9 +61,6 @@ public final class BossChallengeService {
     private static final long ENTRY_VISUAL_PERIOD_TICKS = 10L;
     private static final int ENTRY_RING_POINTS = 10;
     private static final double ENTRY_PROMPT_Y_OFFSET = 2.35D;
-    private static final double HUB_RETURN_TRIGGER_RADIUS = 2.0D;
-    private static final double HUB_RETURN_TRIGGER_RADIUS_SQUARED = HUB_RETURN_TRIGGER_RADIUS * HUB_RETURN_TRIGGER_RADIUS;
-    private static final double HUB_RETURN_PROMPT_Y_OFFSET = 2.35D;
     private static final double ENTRY_VIEWER_DISTANCE_SQUARED = 64.0D * 64.0D;
     private static final long END_RETRY_DELAY_TICKS = 5L * 20L;
 
@@ -83,7 +80,6 @@ public final class BossChallengeService {
     private final Map<UUID, BossChallengeCancelController> cancelControllersByChallengeId = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> challengeIdByCancelInteraction = new ConcurrentHashMap<>();
     private final Map<String, EntryPromptDisplay> entryPromptDisplays = new HashMap<>();
-    private @Nullable HubReturnPromptDisplay hubReturnPromptDisplay;
     private BukkitTask tickTask;
     private BukkitTask entryVisualTask;
     private long entryVisualFrame;
@@ -143,7 +139,6 @@ public final class BossChallengeService {
             entryVisualTask = null;
         }
         clearEntryPromptDisplays();
-        clearHubReturnPromptDisplay();
         fieldInstanceService.cancelPendingCreations();
         for (BossChallengeInstance challenge : List.copyOf(challengesById.values())) {
             forceShutdownChallenge(challenge);
@@ -398,32 +393,6 @@ public final class BossChallengeService {
      */
     public void handleQuit(@NotNull UUID playerId) {
         tick();
-    }
-
-    /**
-     * ボス挑戦中の参加者がハブスポーン地点でスニークした場合、挑戦地点へ戻します。
-     *
-     * @param player 操作プレイヤー
-     * @return この処理で対象を検出した場合は true
-     */
-    public boolean returnToChallengeFromHub(@NotNull Player player) {
-        BossChallengeInstance challenge = findChallengeAtHubSpawn(player);
-        if (challenge == null || challenge.field() == null) {
-            return false;
-        }
-
-        Location target = challenge.config().playerSpawnLocation().toLocation(challenge.field().world());
-        worldService.teleportPlayerAsync(player, target, null).whenComplete((success, throwable) ->
-                runSync(() -> {
-                    if ((throwable != null || !Boolean.TRUE.equals(success))
-                            && player.isOnline()
-                            && challengesById.get(challenge.challengeId()) == challenge
-                            && (challenge.state() == BossChallengeState.PREPARING
-                            || challenge.state() == BossChallengeState.IN_PROGRESS)) {
-                        messageService.send(player, PlayerMsgId.P_6530);
-                    }
-                }));
-        return true;
     }
 
     /**
@@ -954,7 +923,7 @@ public final class BossChallengeService {
         long remainingSeconds = Math.max(0L, (challenge.resultWaitEndsAtMs() - System.currentTimeMillis() + 999L) / 1000L);
         StringBuilder text = new StringBuilder("&6&lBOSS CLEAR &f")
                 .append(challenge.bossTemplate().displayName())
-                .append("\n&7Returning to hub in &e")
+                .append("\n&7Returning to challenge location in &e")
                 .append(remainingSeconds)
                 .append("s")
                 .append("\n&d&lDamage Ranking &7Total &f")
@@ -1113,7 +1082,6 @@ public final class BossChallengeService {
     }
 
     private void tickEntryVisuals() {
-        updateHubReturnPrompt();
         double baseAngle = entryVisualFrame * 0.28D;
         Set<String> activePromptIds = new HashSet<>();
         for (String bossId : mobService.getLoadedMobIdsByCategory(List.of(MobCategory.BOSS))) {
@@ -1219,96 +1187,6 @@ public final class BossChallengeService {
         }
     }
 
-    private void updateHubReturnPrompt() {
-        boolean activeChallengeExists = challengesById.values().stream()
-                .anyMatch(challenge -> challenge.state() == BossChallengeState.PREPARING
-                        || challenge.state() == BossChallengeState.IN_PROGRESS);
-        WorldMasterData hubData = worldService.getById(hubWorldId);
-        World hubWorld = hubData == null ? null : worldService.resolveLoadedWorld(hubData);
-        Location spawn = hubData == null || hubWorld == null
-                ? null
-                : worldService.resolveSpawnLocation(hubData);
-        if (!activeChallengeExists || spawn == null || spawn.getWorld() == null) {
-            clearHubReturnPromptDisplay();
-            return;
-        }
-
-        Location promptLocation = spawn.clone().add(0.0D, HUB_RETURN_PROMPT_Y_OFFSET, 0.0D);
-        String text = "&cボス挑戦中\n&eスニーク&fで挑戦地点へ戻る";
-        try {
-            if (hubReturnPromptDisplay == null) {
-                hubReturnPromptDisplay = new HubReturnPromptDisplay(
-                        displayTextService.create(
-                                DisplayAnchor.fixed(promptLocation),
-                                DisplayTextOptions.defaults(text)
-                                        .withLineWidth(300)
-                                        .withViewRange(48.0F)
-                                        .withShadowed(true)
-                        ),
-                        text
-                );
-            } else {
-                hubReturnPromptDisplay.display().setAnchor(DisplayAnchor.fixed(promptLocation));
-                if (!hubReturnPromptDisplay.text().equals(text)) {
-                    hubReturnPromptDisplay.display().setText(text);
-                    hubReturnPromptDisplay = new HubReturnPromptDisplay(hubReturnPromptDisplay.display(), text);
-                }
-            }
-        } catch (IllegalStateException ignored) {
-            hubReturnPromptDisplay = new HubReturnPromptDisplay(
-                    displayTextService.create(
-                            DisplayAnchor.fixed(promptLocation),
-                            DisplayTextOptions.defaults(text)
-                                    .withLineWidth(300)
-                                    .withViewRange(48.0F)
-                                    .withShadowed(true)
-                    ),
-                    text
-            );
-        }
-    }
-
-    private void clearHubReturnPromptDisplay() {
-        if (hubReturnPromptDisplay == null) {
-            return;
-        }
-        try {
-            hubReturnPromptDisplay.display().destroy();
-        } catch (IllegalStateException ignored) {
-            // DisplayTextService 側ですでに破棄済みの場合は参照だけ破棄します。
-        }
-        hubReturnPromptDisplay = null;
-    }
-
-    private @Nullable BossChallengeInstance findChallengeAtHubSpawn(@NotNull Player player) {
-        WorldMasterData hubData = worldService.getById(hubWorldId);
-        World hubWorld = hubData == null ? null : worldService.resolveLoadedWorld(hubData);
-        Location spawn = hubData == null || hubWorld == null
-                ? null
-                : worldService.resolveSpawnLocation(hubData);
-        if (spawn == null || !isInsideHubSpawn(player, spawn)) {
-            return null;
-        }
-        for (BossChallengeInstance challenge : challengesById.values()) {
-            if ((challenge.state() == BossChallengeState.PREPARING
-                    || challenge.state() == BossChallengeState.IN_PROGRESS)
-                    && displayParticipantIds(challenge).contains(player.getUniqueId())) {
-                return challenge;
-            }
-        }
-        return null;
-    }
-
-    private boolean isInsideHubSpawn(@NotNull Player player, @NotNull Location spawn) {
-        if (spawn.getWorld() == null || player.getWorld() == null
-                || !spawn.getWorld().getUID().equals(player.getWorld().getUID())) {
-            return false;
-        }
-        double dx = player.getLocation().getX() - spawn.getX();
-        double dz = player.getLocation().getZ() - spawn.getZ();
-        return dx * dx + dz * dz <= HUB_RETURN_TRIGGER_RADIUS_SQUARED;
-    }
-
     private void removeEntryPrompt(@NotNull String id) {
         EntryPromptDisplay display = entryPromptDisplays.remove(id);
         if (display == null) {
@@ -1340,18 +1218,24 @@ public final class BossChallengeService {
             @NotNull BossChallengeInstance challenge,
             @NotNull Player player
     ) {
-        WorldMasterData hubData = worldService.getById(hubWorldId);
-        CompletableFuture<Boolean> hubTransfer = hubData == null
+        World entryWorld = resolveLocationWorld(challenge.config().entryLocation());
+        Location entryLocation = entryWorld == null
+                ? null
+                : challenge.config().entryLocation().toLocation(entryWorld);
+        CompletableFuture<Boolean> entryTransfer = entryLocation == null
                 ? CompletableFuture.completedFuture(false)
-                : worldService.teleportToSpawnAsync(player, hubData);
-        return hubTransfer.handle((success, throwable) -> throwable == null && Boolean.TRUE.equals(success))
+                : worldService.teleportPlayerAsync(player, entryLocation, null);
+        return entryTransfer.handle((success, throwable) -> throwable == null && Boolean.TRUE.equals(success))
                 .thenCompose(success -> {
                     if (success) {
                         return CompletableFuture.completedFuture(true);
                     }
                     BossFieldInstance field = challenge.field();
+                    WorldMasterData hubData = worldService.getById(hubWorldId);
+                    World hubWorld = hubData == null ? null : worldService.resolveLoadedWorld(hubData);
                     World fallbackWorld = Bukkit.getWorlds().stream()
                             .filter(world -> field == null || !world.getUID().equals(field.world().getUID()))
+                            .filter(world -> hubWorld == null || !world.getUID().equals(hubWorld.getUID()))
                             .findFirst()
                             .orElse(null);
                     if (fallbackWorld == null) {
@@ -1385,10 +1269,7 @@ public final class BossChallengeService {
         for (UUID participantId : exitParticipantIds(challenge)) {
             playerDeathService.recoverNow(participantId);
         }
-        WorldMasterData hubData = worldService.getById(hubWorldId);
-        if (hubData != null) {
-            teleportParticipantsToHub(challenge, hubData);
-        }
+        teleportParticipantsOutAsync(challenge);
         if (challenge.field() != null) {
             fieldInstanceService.destroyField(challenge.field());
         }
@@ -1412,12 +1293,6 @@ public final class BossChallengeService {
                 .thenApply(ignored -> transfers.stream()
                         .map(future -> Boolean.TRUE.equals(future.getNow(false)))
                         .toList());
-    }
-
-    private void teleportParticipantsToHub(@NotNull BossChallengeInstance challenge, @NotNull WorldMasterData hubData) {
-        for (Player player : onlinePlayers(exitParticipantIds(challenge))) {
-            worldService.teleportToSpawn(player, hubData);
-        }
     }
 
     private void notifyParticipants(@NotNull BossChallengeInstance challenge, @NotNull PlayerMsgId msgId, Object... args) {
@@ -1461,12 +1336,6 @@ public final class BossChallengeService {
     }
 
     private record EntryPromptDisplay(
-            @NotNull DisplayTextService.ManagedTextDisplay display,
-            @NotNull String text
-    ) {
-    }
-
-    private record HubReturnPromptDisplay(
             @NotNull DisplayTextService.ManagedTextDisplay display,
             @NotNull String text
     ) {
