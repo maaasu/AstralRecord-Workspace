@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.inventory.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
+import io.github.maaasu.astralRecord.feature.inventory.model.AccessorySlotType;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
 import io.github.maaasu.astralRecord.feature.inventory.service.HotbarLayout;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
@@ -28,6 +29,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -138,6 +140,26 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         }, LogId.E_5600, event.getPlayer().getName());
     }
 
+    /**
+     * 装備 GUI 表示中にホットバー選択が変わった場合、メインスロット表示を更新します。
+     *
+     * @param event Bukkit のホットバー選択変更イベント
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerItemHeld(PlayerItemHeldEvent event) {
+        runSafely(() -> {
+            Player player = event.getPlayer();
+            Inventory topInventory = player.getOpenInventory().getTopInventory();
+            if (!isEquipmentMenu(topInventory)) {
+                return;
+            }
+            menuView.updateEquipmentMainHandItem(
+                topInventory,
+                player.getInventory().getItem(event.getNewSlot())
+            );
+        }, LogId.E_5600, event.getPlayer().getName());
+    }
+
     private boolean isEquipmentMenu(@NotNull Inventory inventory) {
         return menuView.isMenuInventory(inventory)
             && menuView.getMenuScreen(inventory) == MenuScreen.EQUIPMENT_GUI;
@@ -175,11 +197,23 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         @NotNull Player player
     ) {
         int rawSlot = event.getRawSlot();
-        if (rawSlot == MenuView.BACK_SLOT) {
+        if (rawSlot == MenuView.EQUIPMENT_BACK_SLOT) {
             saveEquipmentMenuSnapshot(player, topInventory);
             GuiSound.SELECT.play(player);
             MenuOpenEventHandler.suppressNextCloseSound(player);
             menuView.open(player);
+            return true;
+        }
+        if (rawSlot == MenuView.EQUIPMENT_PLAYER_STATUS_SLOT) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer == null) {
+                GuiSound.DENY.play(player);
+                return true;
+            }
+            saveEquipmentMenuSnapshot(player, topInventory);
+            GuiSound.SELECT.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
+            menuView.openStatus(player, astPlayer, statusService.refreshStatus(astPlayer));
             return true;
         }
         return false;
@@ -264,8 +298,8 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         ItemStack cursor = event.getCursor();
         int rawSlot = event.getRawSlot();
         EquipmentType equipmentType = menuView.getEquipmentTypeAtSlot(rawSlot);
-        boolean extendedAccessory = menuView.isExtendedAccessorySlot(rawSlot);
-        if (!inventoryService.canPlaceInEquipmentGuiSlot(cursor, equipmentType, extendedAccessory)) {
+        AccessorySlotType accessorySlotType = menuView.getAccessorySlotTypeAtSlot(rawSlot);
+        if (!inventoryService.canPlaceInEquipmentGuiSlot(cursor, equipmentType, accessorySlotType)) {
             GuiSound.DENY.play(player);
             return;
         }
@@ -359,7 +393,8 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         }
 
         EquipmentType equipmentType = inventoryService.getEquipmentTypeForEntry(sourceEntry);
-        if (equipmentType == EquipmentType.UNSUPPORTED) {
+        AccessorySlotType accessorySlotType = inventoryService.getAccessorySlotTypeForEntry(sourceEntry);
+        if (equipmentType == EquipmentType.UNSUPPORTED && accessorySlotType == null) {
             if (!HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
                 GuiSound.DENY.play(player);
             }
@@ -369,17 +404,17 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
                 astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.DISPLAYED_ITEM)) {
             return;
         }
-        int targetSlot = equipmentType == EquipmentType.OFF_HAND
-            ? menuView.firstEmptyAccessorySlot(topInventory)
+        int targetSlot = accessorySlotType != null
+            ? menuView.firstEmptyAccessorySlot(topInventory, accessorySlotType)
             : menuView.getSlotForEquipmentType(equipmentType);
         if (targetSlot < 0) {
             GuiSound.DENY.play(player);
             return;
         }
 
-        boolean extendedAccessory = menuView.isExtendedAccessorySlot(targetSlot);
+        AccessorySlotType targetAccessorySlotType = menuView.getAccessorySlotTypeAtSlot(targetSlot);
         EquipmentType targetEquipmentType = menuView.getEquipmentTypeAtSlot(targetSlot);
-        if (!inventoryService.canPlaceInEquipmentGuiSlot(sourceEntry, targetEquipmentType, extendedAccessory)) {
+        if (!inventoryService.canPlaceInEquipmentGuiSlot(sourceEntry, targetEquipmentType, targetAccessorySlotType)) {
             GuiSound.DENY.play(player);
             return;
         }
@@ -405,13 +440,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             menuView.getEquipmentGuiItem(inventory, MenuView.EQUIPMENT_CHEST_SLOT),
             menuView.getEquipmentGuiItem(inventory, MenuView.EQUIPMENT_LEGS_SLOT),
             menuView.getEquipmentGuiItem(inventory, MenuView.EQUIPMENT_FEET_SLOT),
-            accessories[1],
-            accessories[2],
-            accessories[3],
-            accessories[4],
-            accessories[5],
-            accessories[6],
-            accessories[7]
+            accessories
         );
         if (changed) {
             refreshStatusAfterEquipmentChange(astPlayer);
@@ -608,7 +637,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             return true;
         }
 
-        if (!inventoryService.canPlaceInEquipmentGuiSlot(cursor, equipmentType, false)) {
+        if (!inventoryService.canPlaceInEquipmentGuiSlot(cursor, equipmentType, null)) {
             return false;
         }
 

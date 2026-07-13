@@ -10,7 +10,7 @@
 |:----------------------------------------------------------|:--------------|:--:|:------|:-----------------------------------------------------------------------------------------------------------------------------------------------|
 | `equipment[].slot`                                        | String        | ○  | -     | 装備スロット種別（後述）。                                                                                                                                  |
 | `equipment[].handType`                                    | String        | ×  | ONE   | 手持ち装備の手数。`slot=WEAPON` の場合に使用（`ONE` / `TWO`）。                                                                                                  |
-| `equipment[].tag`                                         | String        | ×  | -     | Toolの「ツルハシ」、「斧」、アクセサリの「ネックレス」など作成したいequipment特有の補助情報                                                                                           |
+| `equipment[].tag`                                         | String        | ×  | -     | equipment固有の補助情報。`slot=ACCESSORY` では必須とし、`AMULET` / `TALISMAN` / `CHARM` / `CORE` / `RELIC` のいずれかを指定する。Toolでは「ツルハシ」「斧」などの分類にも使用する |
 | `equipment[].requiredLevel`                               | Integer       | ×  | 0     | 装備に必要なプレイヤーレベル。`0` で制限なし。                                                                                                                      |
 | `equipment[].requiredClasses[]`                           | List<String>  | ×  | -     | 装備可能クラスIDのリスト（任意）。未指定時は全クラス装備可。                                                                                                                |
 | `equipment[].setId`                                       | String        | ×  | -     | このアイテムが属するセット効果ID（架空例: `example_guardian_set`）。セット効果定義は `set_effect/_set_effect.YAMLスキーマ定義.md` を参照。                                                  |
@@ -83,6 +83,18 @@
 
 ### equipment[].handType
 `slot=WEAPON` のときに指定します。
+
+### equipment[].tag（アクセサリ）
+
+`equipment[].slot=ACCESSORY` のときは、配置可能な種類別アクセサリ枠を次の値で指定します。同じ tag の複数枠はゲーム側が空き枠を選択します。
+
+| 値 | 装備可能数 | GUI 空枠素材 |
+|:--|--:|:--|
+| `AMULET` | 1 | チェスト付きトロッコ |
+| `TALISMAN` | 2 | かまど付きトロッコ |
+| `CHARM` | 3 | トロッコ |
+| `CORE` | 1 | ホッパー付きトロッコ |
+| `RELIC` | 2 | TNT付きトロッコ |
 
 - `ONE` : 片手装備
 - `TWO` : 両手装備
@@ -252,18 +264,18 @@ equipment:
 
 ```yaml
 schemaVersion: 1
-id: silver_necklace
+id: silver_amulet
 category: EQUIPMENT
-name: "&fシルバーネックレス"
+name: "&fシルバーアミュレット"
 icon: DIAMOND
 rarity: UNCOMMON
 lore:
-  - "&7魔力を高める銀製のネックレス。"
+  - "&7魔力を高める銀製のアミュレット。"
 
 maxStack: 1
 equipment:
   slot: ACCESSORY
-  tag: NECKLACE
+  tag: AMULET
   stats:
     - status: MAGIC_ATTACK
       type: FLAT

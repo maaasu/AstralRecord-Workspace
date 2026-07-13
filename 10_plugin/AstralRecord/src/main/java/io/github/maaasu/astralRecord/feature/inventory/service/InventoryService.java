@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.inventory.model.AccessorySlotType;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentLoadoutModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentLoadoutSlotModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
@@ -1489,18 +1490,15 @@ public class InventoryService {
             return;
         }
         PlayerInventory inventory = astPlayer.getBukkit().getInventory();
-        applyLoadoutDiff(state,
+        ItemStack[] accessories = getAccessorySnapshotItems(astPlayer);
+        accessories[AccessorySlotLayout.SLOT_OFF_HAND] = inventory.getItemInOffHand();
+        applyLoadoutDiff(
+            state,
             inventory.getHelmet(),
             inventory.getChestplate(),
             inventory.getLeggings(),
             inventory.getBoots(),
-            inventory.getItemInOffHand(),
-            getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_NECKLACE),
-            getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_RING),
-            getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_EARRING),
-            getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_BRACELET),
-            getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_BELT),
-            getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_CHARM)
+            accessories
         );
     }
 
@@ -1510,13 +1508,7 @@ public class InventoryService {
         @Nullable ItemStack chest,
         @Nullable ItemStack legs,
         @Nullable ItemStack feet,
-        @Nullable ItemStack offHand,
-        @Nullable ItemStack accessory2,
-        @Nullable ItemStack accessory3,
-        @Nullable ItemStack accessory4,
-        @Nullable ItemStack accessory5,
-        @Nullable ItemStack accessory6,
-        @Nullable ItemStack accessory7
+        @NotNull ItemStack[] accessories
     ) {
         if (ensureActiveEquipmentLoadout(state.getAccountId()) == null) {
             return;
@@ -1526,17 +1518,28 @@ public class InventoryService {
         state.upsertActiveLoadoutSlot(DEFAULT_PROFILE, SLOT_TYPE_CHEST, 0, readEquipmentInstanceId(chest), actor);
         state.upsertActiveLoadoutSlot(DEFAULT_PROFILE, SLOT_TYPE_LEGS, 0, readEquipmentInstanceId(legs), actor);
         state.upsertActiveLoadoutSlot(DEFAULT_PROFILE, SLOT_TYPE_FEET, 0, readEquipmentInstanceId(feet), actor);
-        state.upsertActiveLoadoutSlot(DEFAULT_PROFILE, SLOT_TYPE_ACCESSORY, 0, readEquipmentInstanceId(offHand), actor);
-        state.upsertActiveLoadoutSlot(DEFAULT_PROFILE, SLOT_TYPE_ACCESSORY, 1, readEquipmentInstanceId(accessory2), actor);
-        state.upsertActiveLoadoutSlot(DEFAULT_PROFILE, SLOT_TYPE_ACCESSORY, 2, readEquipmentInstanceId(accessory3), actor);
-        state.upsertActiveLoadoutSlot(DEFAULT_PROFILE, SLOT_TYPE_ACCESSORY, 3, readEquipmentInstanceId(accessory4), actor);
-        state.upsertActiveLoadoutSlot(DEFAULT_PROFILE, SLOT_TYPE_ACCESSORY, 4, readEquipmentInstanceId(accessory5), actor);
-        state.upsertActiveLoadoutSlot(DEFAULT_PROFILE, SLOT_TYPE_ACCESSORY, 5, readEquipmentInstanceId(accessory6), actor);
-        state.upsertActiveLoadoutSlot(DEFAULT_PROFILE, SLOT_TYPE_ACCESSORY, 6, readEquipmentInstanceId(accessory7), actor);
+        for (int slotIndex = AccessorySlotLayout.SLOT_MIN; slotIndex <= AccessorySlotLayout.SLOT_MAX; slotIndex++) {
+            ItemStack itemStack = accessories.length > slotIndex ? accessories[slotIndex] : null;
+            state.upsertActiveLoadoutSlot(
+                DEFAULT_PROFILE,
+                SLOT_TYPE_ACCESSORY,
+                toAccessoryLoadoutSlotIndex(slotIndex),
+                readEquipmentInstanceId(itemStack),
+                actor
+            );
+        }
     }
 
     /**
      * 装備 GUI の内容を Bukkit 装備欄と state へ反映します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param head 頭装備
+     * @param chest 胴装備
+     * @param legs 脚装備
+     * @param feet 足装備
+     * @param accessories slotIndex と配列 index が一致するオフハンド・アクセサリ一覧
+     * @return 装備状態が変更された場合 true
      */
     public boolean saveEquipmentGui(
         @NotNull AstPlayer astPlayer,
@@ -1544,30 +1547,21 @@ public class InventoryService {
         @Nullable ItemStack chest,
         @Nullable ItemStack legs,
         @Nullable ItemStack feet,
-        @Nullable ItemStack offHand,
-        @Nullable ItemStack accessory2,
-        @Nullable ItemStack accessory3,
-        @Nullable ItemStack accessory4,
-        @Nullable ItemStack accessory5,
-        @Nullable ItemStack accessory6,
-        @Nullable ItemStack accessory7
+        @NotNull ItemStack[] accessories
     ) {
         PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
         if (state == null) {
             return false;
         }
         PlayerInventory bukkitInventory = astPlayer.getBukkit().getInventory();
-        if (!hasEquipmentGuiChanges(
-            astPlayer, bukkitInventory, head, chest, legs, feet, offHand,
-            accessory2, accessory3, accessory4, accessory5, accessory6, accessory7
-        )) {
+        if (!hasEquipmentGuiChanges(astPlayer, bukkitInventory, head, chest, legs, feet, accessories)) {
             return false;
         }
         bukkitInventory.setHelmet(itemOrAir(head));
         bukkitInventory.setChestplate(itemOrAir(chest));
         bukkitInventory.setLeggings(itemOrAir(legs));
         bukkitInventory.setBoots(itemOrAir(feet));
-        bukkitInventory.setItemInOffHand(itemOrAir(offHand));
+        bukkitInventory.setItemInOffHand(itemOrAir(accessoryAt(accessories, AccessorySlotLayout.SLOT_OFF_HAND)));
 
         ItemStack[] equipSnapshot = new ItemStack[EquipSlotLayout.SLOT_MAX + 1];
         equipSnapshot[EquipSlotLayout.SLOT_HEAD] = itemOrAir(head);
@@ -1579,8 +1573,7 @@ public class InventoryService {
         state.updateInventoryMetadata(equipInventory.getInventoryId(),
             snapshotCodec.encode(equipSnapshot), state.getAccountId());
 
-        applyLoadoutDiff(state, head, chest, legs, feet, offHand,
-            accessory2, accessory3, accessory4, accessory5, accessory6, accessory7);
+        applyLoadoutDiff(state, head, chest, legs, feet, accessories);
 
         astPlayer.getBukkit().updateInventory();
         return true;
@@ -1593,25 +1586,31 @@ public class InventoryService {
         @Nullable ItemStack chest,
         @Nullable ItemStack legs,
         @Nullable ItemStack feet,
-        @Nullable ItemStack offHand,
-        @Nullable ItemStack accessory2,
-        @Nullable ItemStack accessory3,
-        @Nullable ItemStack accessory4,
-        @Nullable ItemStack accessory5,
-        @Nullable ItemStack accessory6,
-        @Nullable ItemStack accessory7
+        @NotNull ItemStack[] accessories
     ) {
-        return !isSameEquipmentItem(head, bukkitInventory.getHelmet())
+        if (!isSameEquipmentItem(head, bukkitInventory.getHelmet())
             || !isSameEquipmentItem(chest, bukkitInventory.getChestplate())
             || !isSameEquipmentItem(legs, bukkitInventory.getLeggings())
             || !isSameEquipmentItem(feet, bukkitInventory.getBoots())
-            || !isSameEquipmentItem(offHand, bukkitInventory.getItemInOffHand())
-            || !isSameEquipmentItem(accessory2, getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_NECKLACE))
-            || !isSameEquipmentItem(accessory3, getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_RING))
-            || !isSameEquipmentItem(accessory4, getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_EARRING))
-            || !isSameEquipmentItem(accessory5, getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_BRACELET))
-            || !isSameEquipmentItem(accessory6, getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_BELT))
-            || !isSameEquipmentItem(accessory7, getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_CHARM));
+            || !isSameEquipmentItem(
+                accessoryAt(accessories, AccessorySlotLayout.SLOT_OFF_HAND),
+                bukkitInventory.getItemInOffHand()
+            )) {
+            return true;
+        }
+        for (int slotIndex = AccessorySlotLayout.SLOT_AMULET; slotIndex <= AccessorySlotLayout.SLOT_MAX; slotIndex++) {
+            if (!isSameEquipmentItem(
+                accessoryAt(accessories, slotIndex),
+                getAccessorySnapshotItem(astPlayer, slotIndex)
+            )) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private @Nullable ItemStack accessoryAt(@NotNull ItemStack[] accessories, int slotIndex) {
+        return accessories.length > slotIndex ? accessories[slotIndex] : null;
     }
 
     private boolean isSameEquipmentItem(@Nullable ItemStack expected, @Nullable ItemStack current) {
@@ -2026,7 +2025,8 @@ public class InventoryService {
             }
             ItemEquipmentSlot itemSlot = model.getEquipment().getSlot();
             if (itemSlot == ItemEquipmentSlot.HEAD || itemSlot == ItemEquipmentSlot.CHEST
-                || itemSlot == ItemEquipmentSlot.LEGS || itemSlot == ItemEquipmentSlot.FEET) {
+                || itemSlot == ItemEquipmentSlot.LEGS || itemSlot == ItemEquipmentSlot.FEET
+                || itemSlot == ItemEquipmentSlot.SUBWEAPON) {
                 return equipArmorItem(astPlayer, state, sourceEntry, sourceItem, sourceBukkitSlot,
                     EquipmentType.fromItemEquipmentSlot(itemSlot));
             }
@@ -2075,27 +2075,20 @@ public class InventoryService {
         @NotNull ItemStack clickedItem,
         int sourceBukkitSlot
     ) {
-        int accessorySlot = findAccessoryTargetSlot(astPlayer);
-        if (!AccessorySlotLayout.isManagedSlot(accessorySlot)) {
+        ItemModel model = resolveItemModel(sourceEntry);
+        if (model == null || model.getEquipment() == null) {
+            return false;
+        }
+        int accessorySlot = findAccessoryTargetSlot(astPlayer, model.getEquipment().getTag());
+        if (!AccessorySlotLayout.isManagedSlot(accessorySlot)
+            || accessorySlot == AccessorySlotLayout.SLOT_OFF_HAND
+            || getAccessorySnapshotItem(astPlayer, accessorySlot) != null) {
             return false;
         }
         PlayerInventory inventory = astPlayer.getBukkit().getInventory();
-        if (accessorySlot == AccessorySlotLayout.SLOT_OFF_HAND) {
-            ItemStack previous = inventory.getItemInOffHand();
-            inventory.setItemInOffHand(clickedItem.clone());
-            inventory.setItem(sourceBukkitSlot, emptyToAir(previous));
-            saveAccessorySlotSnapshot(astPlayer);
-        } else {
-            if (getAccessorySnapshotItem(astPlayer, accessorySlot) != null) {
-                return false;
-            }
-            inventory.setItem(sourceBukkitSlot, new ItemStack(Material.AIR));
-            updateAccessorySnapshotSlot(state, accessorySlot, clickedItem.clone());
-        }
+        inventory.setItem(sourceBukkitSlot, new ItemStack(Material.AIR));
+        updateAccessorySnapshotSlot(state, accessorySlot, clickedItem.clone());
         removeDisplayedEntryAfterMove(state, sourceEntry);
-        if (accessorySlot == AccessorySlotLayout.SLOT_OFF_HAND) {
-            returnReplacedItemToOwnedInventory(astPlayer, inventory.getItem(sourceBukkitSlot));
-        }
         syncCurrentEquipmentState(astPlayer);
         requestManagedInventoryUiRefresh(astPlayer, false);
         return true;
@@ -2478,12 +2471,6 @@ public class InventoryService {
         Player bukkitPlayer = astPlayer.getBukkit();
         ItemStack[] snapshot = new ItemStack[AccessorySlotLayout.SLOT_MAX + 1];
         snapshot[AccessorySlotLayout.SLOT_OFF_HAND] = itemOrAir(getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_OFF_HAND));
-        snapshot[AccessorySlotLayout.SLOT_NECKLACE] = itemOrAir(getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_NECKLACE));
-        snapshot[AccessorySlotLayout.SLOT_RING] = itemOrAir(getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_RING));
-        snapshot[AccessorySlotLayout.SLOT_EARRING] = itemOrAir(getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_EARRING));
-        snapshot[AccessorySlotLayout.SLOT_BRACELET] = itemOrAir(getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_BRACELET));
-        snapshot[AccessorySlotLayout.SLOT_BELT] = itemOrAir(getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_BELT));
-        snapshot[AccessorySlotLayout.SLOT_CHARM] = itemOrAir(getAccessorySnapshotItem(astPlayer, AccessorySlotLayout.SLOT_CHARM));
         AccessorySlotLayout.applySnapshot(bukkitPlayer, snapshot);
         bukkitPlayer.updateInventory();
     }
@@ -2526,9 +2513,23 @@ public class InventoryService {
         return null;
     }
 
+    /**
+     * オフハンドを含む全アクセサリスロットのスナップショットを返します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @return slotIndex と配列 index が一致するスナップショット
+     */
+    public @NotNull ItemStack[] getAccessorySnapshotItems(@NotNull AstPlayer astPlayer) {
+        ItemStack[] items = new ItemStack[AccessorySlotLayout.SLOT_MAX + 1];
+        for (int slotIndex = AccessorySlotLayout.SLOT_MIN; slotIndex <= AccessorySlotLayout.SLOT_MAX; slotIndex++) {
+            items[slotIndex] = getAccessorySnapshotItem(astPlayer, slotIndex);
+        }
+        return items;
+    }
+
     public @NotNull List<ItemStack> getEquippedAccessorySnapshotItems(@NotNull AstPlayer astPlayer) {
         List<ItemStack> items = new ArrayList<>();
-        for (int slot = AccessorySlotLayout.SLOT_OFF_HAND; slot <= AccessorySlotLayout.SLOT_CHARM; slot++) {
+        for (int slot = AccessorySlotLayout.SLOT_OFF_HAND; slot <= AccessorySlotLayout.SLOT_MAX; slot++) {
             ItemStack item = getAccessorySnapshotItem(astPlayer, slot);
             if (item != null && item.getType() != Material.AIR) {
                 items.add(item);
@@ -2579,7 +2580,10 @@ public class InventoryService {
         @NotNull InventoryEntryModel entry,
         int slotIndex
     ) {
-        if (!AccessorySlotLayout.isManagedSlot(slotIndex)) {
+        AccessorySlotType slotType = AccessorySlotType.fromSlotIndex(slotIndex);
+        ItemModel model = resolveItemModel(entry);
+        if (slotType == null || !slotType.isAccessory() || model == null || model.getEquipment() == null
+            || !slotType.matchesEquipmentTag(model.getEquipment().getTag())) {
             return;
         }
         PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
@@ -2617,24 +2621,16 @@ public class InventoryService {
     }
 
     private int toAccessoryLoadoutSlotIndex(int accessorySlot) {
-        if (accessorySlot == AccessorySlotLayout.SLOT_OFF_HAND) return 0;
-        if (accessorySlot == AccessorySlotLayout.SLOT_NECKLACE) return 1;
-        if (accessorySlot == AccessorySlotLayout.SLOT_RING) return 2;
-        if (accessorySlot == AccessorySlotLayout.SLOT_EARRING) return 3;
-        if (accessorySlot == AccessorySlotLayout.SLOT_BRACELET) return 4;
-        if (accessorySlot == AccessorySlotLayout.SLOT_BELT) return 5;
-        if (accessorySlot == AccessorySlotLayout.SLOT_CHARM) return 6;
-        return -1;
+        return AccessorySlotLayout.isManagedSlot(accessorySlot) ? accessorySlot - 1 : -1;
     }
 
-    private int findAccessoryTargetSlot(@NotNull AstPlayer astPlayer) {
-        ItemStack offhand = astPlayer.getBukkit().getInventory().getItemInOffHand();
-        if (offhand.getType() == Material.AIR) {
-            return AccessorySlotLayout.SLOT_OFF_HAND;
-        }
-        for (int slot = AccessorySlotLayout.SLOT_NECKLACE; slot <= AccessorySlotLayout.SLOT_RING; slot++) {
-            if (getAccessorySnapshotItem(astPlayer, slot) == null) {
-                return slot;
+    private int findAccessoryTargetSlot(@NotNull AstPlayer astPlayer, @Nullable String equipmentTag) {
+        for (AccessorySlotType type : AccessorySlotType.values()) {
+            if (!type.matchesEquipmentTag(equipmentTag)) {
+                continue;
+            }
+            if (getAccessorySnapshotItem(astPlayer, type.getSlotIndex()) == null) {
+                return type.getSlotIndex();
             }
         }
         return -1;
@@ -2647,12 +2643,12 @@ public class InventoryService {
     public boolean canPlaceInEquipmentGuiSlot(
         @Nullable ItemStack itemStack,
         @Nullable EquipmentType equipmentType,
-        boolean extendedAccessory
+        @Nullable AccessorySlotType accessorySlotType
     ) {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return true;
         }
-        return canPlaceInEquipmentGuiSlot(itemReferenceResolver.resolve(itemStack), equipmentType, extendedAccessory);
+        return canPlaceInEquipmentGuiSlot(itemReferenceResolver.resolve(itemStack), equipmentType, accessorySlotType);
     }
 
     /**
@@ -2660,24 +2656,24 @@ public class InventoryService {
      *
      * @param entry 判定対象 entry
      * @param equipmentType 対象装備種別
-     * @param extendedAccessory 拡張アクセサリ枠かどうか
+     * @param accessorySlotType 種類別アクセサリ枠。防具・オフハンドの場合は null
      * @return 配置可能な場合 true
      */
     public boolean canPlaceInEquipmentGuiSlot(
         @Nullable InventoryEntryModel entry,
         @Nullable EquipmentType equipmentType,
-        boolean extendedAccessory
+        @Nullable AccessorySlotType accessorySlotType
     ) {
         if (entry == null) {
             return true;
         }
-        return canPlaceInEquipmentGuiSlot(resolveItemReference(entry), equipmentType, extendedAccessory);
+        return canPlaceInEquipmentGuiSlot(resolveItemReference(entry), equipmentType, accessorySlotType);
     }
 
     private boolean canPlaceInEquipmentGuiSlot(
         @Nullable ItemReference reference,
         @Nullable EquipmentType equipmentType,
-        boolean extendedAccessory
+        @Nullable AccessorySlotType accessorySlotType
     ) {
         if (reference == null || ItemCategory.fromApiValue(reference.category()) != ItemCategory.EQUIPMENT) {
             return false;
@@ -2687,10 +2683,29 @@ public class InventoryService {
             return false;
         }
         ItemEquipmentSlot itemSlot = model.getEquipment().getSlot();
-        if (extendedAccessory) {
-            return itemSlot == ItemEquipmentSlot.ACCESSORY;
+        if (accessorySlotType != null) {
+            return itemSlot == ItemEquipmentSlot.ACCESSORY
+                && accessorySlotType.matchesEquipmentTag(model.getEquipment().getTag());
         }
         return EquipmentType.fromItemEquipmentSlot(itemSlot) == equipmentType;
+    }
+
+    /**
+     * inventory entry の equipment tag からアクセサリ種別を解決します。
+     *
+     * @param entry 解決対象 entry
+     * @return 対応するアクセサリ種別。アクセサリでない場合や tag 未対応の場合は null
+     */
+    public @Nullable AccessorySlotType getAccessorySlotTypeForEntry(@Nullable InventoryEntryModel entry) {
+        if (entry == null) {
+            return null;
+        }
+        ItemModel model = resolveItemModel(entry);
+        if (model == null || model.getEquipment() == null
+            || model.getEquipment().getSlot() != ItemEquipmentSlot.ACCESSORY) {
+            return null;
+        }
+        return AccessorySlotType.fromEquipmentTag(model.getEquipment().getTag());
     }
 
     public @NotNull EquipmentType getEquipmentTypeForItem(@Nullable ItemStack itemStack) {

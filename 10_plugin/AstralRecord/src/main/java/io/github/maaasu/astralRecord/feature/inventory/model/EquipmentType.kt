@@ -31,11 +31,12 @@ enum class EquipmentType {
         fun fromItemEquipmentSlot(slot: ItemEquipmentSlot?): EquipmentType =
             when (slot) {
                 ItemEquipmentSlot.WEAPON -> MAIN_HAND
+                ItemEquipmentSlot.SUBWEAPON -> OFF_HAND
                 ItemEquipmentSlot.HEAD -> HEAD
                 ItemEquipmentSlot.CHEST -> CHEST
                 ItemEquipmentSlot.LEGS -> LEGS
                 ItemEquipmentSlot.FEET -> FEET
-                ItemEquipmentSlot.ACCESSORY -> OFF_HAND
+                ItemEquipmentSlot.ACCESSORY -> UNSUPPORTED
                 else -> UNSUPPORTED
             }
 
@@ -56,7 +57,7 @@ enum class EquipmentType {
 
         /**
          * ACCESSORY_SLOT インベントリの slot_index から EquipmentType へ変換します。
-         * 1=オフハンド, 2〜7=拡張スロット（Bukkit 対応なし）
+         * 1=オフハンド, 2〜10=種類別アクセサリスロット（Bukkit 対応なし）
          */
         @JvmStatic
         fun fromAccessorySlotIndex(slotIndex: Int): EquipmentType =

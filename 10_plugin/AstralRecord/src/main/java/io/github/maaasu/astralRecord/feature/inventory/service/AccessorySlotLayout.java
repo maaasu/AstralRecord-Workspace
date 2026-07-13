@@ -18,20 +18,23 @@ import java.util.List;
  * <p>slot_index 対応表:
  * <ul>
  *   <li>1 = オフハンド (OFF_HAND)</li>
- *   <li>2〜7 = 拡張アクセサリスロット（Bukkit 非対応、DB 管理のみ）</li>
+ *   <li>2〜10 = 種類別アクセサリスロット（Bukkit 非対応、DB 管理のみ）</li>
  * </ul>
  */
 final class AccessorySlotLayout {
 
     static final int SLOT_OFF_HAND = AccessorySlotType.OFF_HAND.getSlotIndex();
-    static final int SLOT_NECKLACE = AccessorySlotType.NECKLACE.getSlotIndex();
-    static final int SLOT_RING = AccessorySlotType.RING.getSlotIndex();
-    static final int SLOT_EARRING = AccessorySlotType.EARRING.getSlotIndex();
-    static final int SLOT_BRACELET = AccessorySlotType.BRACELET.getSlotIndex();
-    static final int SLOT_BELT = AccessorySlotType.BELT.getSlotIndex();
-    static final int SLOT_CHARM = AccessorySlotType.CHARM.getSlotIndex();
+    static final int SLOT_AMULET = AccessorySlotType.AMULET.getSlotIndex();
+    static final int SLOT_TALISMAN_1 = AccessorySlotType.TALISMAN_1.getSlotIndex();
+    static final int SLOT_TALISMAN_2 = AccessorySlotType.TALISMAN_2.getSlotIndex();
+    static final int SLOT_CHARM_1 = AccessorySlotType.CHARM_1.getSlotIndex();
+    static final int SLOT_CHARM_2 = AccessorySlotType.CHARM_2.getSlotIndex();
+    static final int SLOT_CHARM_3 = AccessorySlotType.CHARM_3.getSlotIndex();
+    static final int SLOT_CORE = AccessorySlotType.CORE.getSlotIndex();
+    static final int SLOT_RELIC_1 = AccessorySlotType.RELIC_1.getSlotIndex();
+    static final int SLOT_RELIC_2 = AccessorySlotType.RELIC_2.getSlotIndex();
     static final int SLOT_MIN = SLOT_OFF_HAND;
-    static final int SLOT_MAX = SLOT_CHARM;
+    static final int SLOT_MAX = SLOT_RELIC_2;
     static final int CAPACITY = SLOT_MAX;
 
     private AccessorySlotLayout() {

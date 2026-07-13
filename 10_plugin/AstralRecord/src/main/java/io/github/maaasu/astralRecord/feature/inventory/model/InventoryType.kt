@@ -14,7 +14,7 @@ enum class InventoryType(
     EQUIP_SLOT("EQUIP_SLOT", "装備スロット", true, true, "equipslot", "装備スロット"),
     /** ホットバースロット（slot_index 1〜9 が Bukkit スロット 0〜8 に対応）スナップショット保存 */
     HOTBAR("HOTBAR", "ホットバー", true, false, "hotbar", "ホットバー"),
-    /** アクセサリスロット（slot_index 1=オフハンド, 2〜7=拡張スロット） */
+    /** アクセサリスロット（slot_index 1=オフハンド, 2〜10=種類別アクセサリ） */
     ACCESSORY_SLOT("ACCESSORY_SLOT", "アクセサリスロット", true, true, "accessory", "アクセサリ"),
     ;
 

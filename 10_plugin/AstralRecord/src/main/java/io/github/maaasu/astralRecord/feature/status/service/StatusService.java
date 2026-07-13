@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.status.service;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.buff.service.BuffService;
+import io.github.maaasu.astralRecord.feature.inventory.model.AccessorySlotType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentEnchant;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
@@ -638,7 +639,9 @@ public class StatusService {
         items.add(inventory.getItemInOffHand());
         items.add(inventory.getItemInMainHand());
         if (inventoryService != null) {
-            for (int slotIndex = 2; slotIndex <= 7; slotIndex++) {
+            for (int slotIndex = AccessorySlotType.AMULET.getSlotIndex();
+                 slotIndex <= AccessorySlotType.RELIC_2.getSlotIndex();
+                 slotIndex++) {
                 items.add(inventoryService.getAccessorySnapshotItem(player, slotIndex));
             }
         }

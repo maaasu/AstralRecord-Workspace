@@ -31,6 +31,7 @@ data class ItemEquipment(
 
 enum class ItemEquipmentSlot(val displayName: String) {
     WEAPON("武器"),
+    SUBWEAPON("サブ武器"),
     HEAD("頭"),
     CHEST("胴"),
     LEGS("脚"),

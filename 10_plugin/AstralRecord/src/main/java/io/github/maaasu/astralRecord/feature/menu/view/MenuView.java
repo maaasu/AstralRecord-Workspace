@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideEntry;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
+import io.github.maaasu.astralRecord.feature.inventory.model.AccessorySlotType;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
@@ -61,17 +62,23 @@ public class MenuView {
     public static final int PLAYER_INFO_SLOT = MainMenuScreenView.PLAYER_INFO_SLOT;
     public static final int ADVENTURE_RECORD_SLOT = MainMenuScreenView.ADVENTURE_RECORD_SLOT;
     public static final int MAIL_SLOT = MainMenuScreenView.MAIL_SLOT;
+    public static final int EQUIPMENT_PLAYER_STATUS_SLOT = EquipmentMenuScreenView.PLAYER_STATUS_SLOT;
+    public static final int EQUIPMENT_BACK_SLOT = EquipmentMenuScreenView.EQUIPMENT_BACK_SLOT;
+    public static final int EQUIPMENT_MAIN_HAND_SLOT = EquipmentMenuScreenView.EQUIPMENT_MAIN_HAND_SLOT;
     public static final int EQUIPMENT_HEAD_SLOT = EquipmentMenuScreenView.EQUIPMENT_HEAD_SLOT;
     public static final int EQUIPMENT_CHEST_SLOT = EquipmentMenuScreenView.EQUIPMENT_CHEST_SLOT;
     public static final int EQUIPMENT_LEGS_SLOT = EquipmentMenuScreenView.EQUIPMENT_LEGS_SLOT;
     public static final int EQUIPMENT_FEET_SLOT = EquipmentMenuScreenView.EQUIPMENT_FEET_SLOT;
     public static final int EQUIPMENT_OFF_HAND_SLOT = EquipmentMenuScreenView.EQUIPMENT_OFF_HAND_SLOT;
-    public static final int EQUIPMENT_ACCESSORY_2_SLOT = EquipmentMenuScreenView.EQUIPMENT_ACCESSORY_2_SLOT;
-    public static final int EQUIPMENT_ACCESSORY_3_SLOT = EquipmentMenuScreenView.EQUIPMENT_ACCESSORY_3_SLOT;
-    public static final int EQUIPMENT_ACCESSORY_4_SLOT = EquipmentMenuScreenView.EQUIPMENT_ACCESSORY_4_SLOT;
-    public static final int EQUIPMENT_ACCESSORY_5_SLOT = EquipmentMenuScreenView.EQUIPMENT_ACCESSORY_5_SLOT;
-    public static final int EQUIPMENT_ACCESSORY_6_SLOT = EquipmentMenuScreenView.EQUIPMENT_ACCESSORY_6_SLOT;
-    public static final int EQUIPMENT_ACCESSORY_7_SLOT = EquipmentMenuScreenView.EQUIPMENT_ACCESSORY_7_SLOT;
+    public static final int EQUIPMENT_AMULET_SLOT = EquipmentMenuScreenView.EQUIPMENT_AMULET_SLOT;
+    public static final int EQUIPMENT_TALISMAN_1_SLOT = EquipmentMenuScreenView.EQUIPMENT_TALISMAN_1_SLOT;
+    public static final int EQUIPMENT_TALISMAN_2_SLOT = EquipmentMenuScreenView.EQUIPMENT_TALISMAN_2_SLOT;
+    public static final int EQUIPMENT_CHARM_1_SLOT = EquipmentMenuScreenView.EQUIPMENT_CHARM_1_SLOT;
+    public static final int EQUIPMENT_CHARM_2_SLOT = EquipmentMenuScreenView.EQUIPMENT_CHARM_2_SLOT;
+    public static final int EQUIPMENT_CHARM_3_SLOT = EquipmentMenuScreenView.EQUIPMENT_CHARM_3_SLOT;
+    public static final int EQUIPMENT_CORE_SLOT = EquipmentMenuScreenView.EQUIPMENT_CORE_SLOT;
+    public static final int EQUIPMENT_RELIC_1_SLOT = EquipmentMenuScreenView.EQUIPMENT_RELIC_1_SLOT;
+    public static final int EQUIPMENT_RELIC_2_SLOT = EquipmentMenuScreenView.EQUIPMENT_RELIC_2_SLOT;
     public static final int PAGING_PREVIOUS_SLOT = PagedGuiView.PREVIOUS_SLOT;
     public static final int PAGING_BACK_SLOT = PagedGuiView.BACK_SLOT;
     public static final int PAGING_NEXT_SLOT = PagedGuiView.NEXT_SLOT;
@@ -391,6 +398,16 @@ public class MenuView {
         return equipmentMenuScreenView.isExtendedAccessorySlot(rawSlot);
     }
 
+    /**
+     * 装備 GUI の物理スロットから種類別アクセサリ種別を解決します。
+     *
+     * @param rawSlot GUI の物理スロット
+     * @return 対応する種別。対象外の場合は null
+     */
+    public @Nullable AccessorySlotType getAccessorySlotTypeAtSlot(int rawSlot) {
+        return equipmentMenuScreenView.getAccessorySlotTypeAtSlot(rawSlot);
+    }
+
     public boolean isEquipmentItemSlot(int rawSlot) {
         return equipmentMenuScreenView.isEquipmentItemSlot(rawSlot);
     }
@@ -407,12 +424,32 @@ public class MenuView {
         return equipmentMenuScreenView.getSlotForEquipmentType(equipmentType);
     }
 
-    public int firstEmptyAccessorySlot(@NotNull Inventory inventory) {
-        return equipmentMenuScreenView.firstEmptyAccessorySlot(inventory);
+    /**
+     * 指定した種類のアクセサリを配置できる最初の空き枠を返します。
+     *
+     * @param inventory 装備 GUI
+     * @param accessoryType 配置するアクセサリ種別
+     * @return 空き GUI スロット。空きがない場合は -1
+     */
+    public int firstEmptyAccessorySlot(
+        @NotNull Inventory inventory,
+        @NotNull AccessorySlotType accessoryType
+    ) {
+        return equipmentMenuScreenView.firstEmptyAccessorySlot(inventory, accessoryType);
     }
 
     public @NotNull ItemStack[] getAccessoryItems(@NotNull Inventory inventory) {
         return equipmentMenuScreenView.getAccessoryItems(inventory);
+    }
+
+    /**
+     * 開いている装備 GUI のメインスロット表示を更新します。
+     *
+     * @param inventory 装備 GUI
+     * @param itemStack 選択中ホットバーのアイテム
+     */
+    public void updateEquipmentMainHandItem(@NotNull Inventory inventory, @Nullable ItemStack itemStack) {
+        equipmentMenuScreenView.updateMainHandItem(inventory, itemStack);
     }
 
     public int getCraftShortcutIndex(int rawSlot) {

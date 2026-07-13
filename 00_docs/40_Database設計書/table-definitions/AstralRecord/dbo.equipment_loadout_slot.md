@@ -24,7 +24,7 @@
 | `equipment_loadout_slot_id` | `UNIQUEIDENTIFIER` | ○ | ○ |  | 装備プリセットスロット ID |
 | `equipment_loadout_id` | `UNIQUEIDENTIFIER` |  | ○ |  | 装備プリセット ID |
 | `slot_type` | `NVARCHAR(30)` |  | ○ |  | 装備スロット種別。例: `WEAPON`, `HEAD`, `CHEST`, `ACCESSORY` |
-| `slot_index` | `INT` |  | ○ | `0` | 同一スロット種別内の番号。アクセサリ複数枠などで使用 |
+| `slot_index` | `INT` |  | ○ | `0` | 同一スロット種別内の番号。`ACCESSORY` は 0 = オフハンド、1 = アミュレット、2〜3 = タリスマン、4〜6 = チャーム、7 = コア、8〜9 = レリック |
 | `equipment_instance_id` | `UNIQUEIDENTIFIER` |  | ○ |  | 装備個体 ID |
 | `created_at` | `DATETIME2(3)` |  | ○ |  | 作成日時 |
 | `updated_at` | `DATETIME2(3)` |  | ○ |  | 更新日時 |
@@ -118,6 +118,6 @@ GO
 | 用途 | 説明 |
 |:---|:---|
 | 装備スロット割当 | `slot_type` と `slot_index` でプリセット内の装備位置を表します。 |
-| アクセサリ複数枠 | `slot_type = 'ACCESSORY'`, `slot_index = 0, 1, 2...` のように扱います。 |
+| アクセサリ複数枠 | `slot_type = 'ACCESSORY'` の `slot_index 0..9` を使用し、0 = オフハンド、1 = アミュレット、2〜3 = タリスマン、4〜6 = チャーム、7 = コア、8〜9 = レリックとして扱います。 |
 | プリセット共有 | 同じ `equipment_instance_id` は複数プリセットへ登録できます。同一プリセット内では重複登録できません。 |
 

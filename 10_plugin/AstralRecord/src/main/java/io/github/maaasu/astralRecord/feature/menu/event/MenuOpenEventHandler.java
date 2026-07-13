@@ -846,16 +846,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             player,
             () -> menuView.openEquipmentGui(
                 player,
-                new ItemStack[] {
-                    null,
-                    inventoryService.getAccessorySnapshotItem(astPlayer, 1),
-                    inventoryService.getAccessorySnapshotItem(astPlayer, 2),
-                    inventoryService.getAccessorySnapshotItem(astPlayer, 3),
-                    inventoryService.getAccessorySnapshotItem(astPlayer, 4),
-                    inventoryService.getAccessorySnapshotItem(astPlayer, 5),
-                    inventoryService.getAccessorySnapshotItem(astPlayer, 6),
-                    inventoryService.getAccessorySnapshotItem(astPlayer, 7)
-                }
+                inventoryService.getAccessorySnapshotItems(astPlayer)
             )
         );
     }
