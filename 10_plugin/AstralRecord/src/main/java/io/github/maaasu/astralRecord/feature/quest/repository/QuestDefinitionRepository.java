@@ -44,7 +44,7 @@ public final class QuestDefinitionRepository {
         return result;
     }
 
-    private @Nullable QuestDefinition parse(@NotNull YamlConfiguration yaml) {
+    @Nullable QuestDefinition parse(@NotNull YamlConfiguration yaml) {
         String id = yaml.getString("id");
         if (id == null || id.isBlank()) {
             return null;
@@ -61,7 +61,7 @@ public final class QuestDefinitionRepository {
             QuestRepeatMode.from(yaml.getString("repeat.mode")),
             yaml.getLong("repeat.cooldownSeconds", 0L),
             QuestCompletionMode.from(yaml.getString("completion.mode")),
-            stripPrefix(yaml.getString("completion.turnInNpcId")),
+            stripPrefix(readReference(yaml.get("completion.turnInNpcId"))),
             objectives,
             parseRequirements(yaml),
             parseRewards(yaml.getConfigurationSection("rewards"))
