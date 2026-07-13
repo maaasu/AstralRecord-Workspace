@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
@@ -12,6 +13,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
@@ -20,8 +22,11 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public final class EquipmentMenuScreenView extends BaseMenuScreenView {
+    private static final Color EMPTY_ARMOR_COLOR = Color.fromRGB(48, 48, 48);
+
     public static final int PLAYER_STATUS_SLOT = 0;
-    public static final int EQUIPMENT_BACK_SLOT = 16;
+    public static final int PET_SLOT = 16;
+    public static final int EQUIPMENT_BACK_SLOT = BACK_SLOT;
     public static final int EQUIPMENT_MAIN_HAND_SLOT = 19;
     public static final int EQUIPMENT_HEAD_SLOT = 11;
     public static final int EQUIPMENT_CHEST_SLOT = 20;
@@ -82,7 +87,8 @@ public final class EquipmentMenuScreenView extends BaseMenuScreenView {
         inventory.setItem(GAUGE_LARGE_SLOT, futureSlot(Material.SPAWNER, "ラージゲージ"));
         inventory.setItem(GAUGE_MEDIUM_SLOT, futureSlot(Material.SPAWNER, "ミディアムゲージ"));
         inventory.setItem(GAUGE_SMALL_SLOT, futureSlot(Material.SPAWNER, "スモールゲージ"));
-        inventory.setItem(EQUIPMENT_BACK_SLOT, equipmentBackItem());
+        inventory.setItem(PET_SLOT, futureSlot(Material.SADDLE, "ペットスロット"));
+        inventory.setItem(EQUIPMENT_BACK_SLOT, backItem());
     }
 
     /**
@@ -98,11 +104,7 @@ public final class EquipmentMenuScreenView extends BaseMenuScreenView {
         }
         inventory.setItem(
             EQUIPMENT_MAIN_HAND_SLOT,
-            createItem(
-                Material.WOODEN_SWORD,
-                Component.text("メインスロット", NamedTextColor.DARK_GRAY),
-                List.of(Component.text("選択中のホットバーアイテム", NamedTextColor.GRAY))
-            )
+            equipmentPlaceholder(Material.ITEM_FRAME, "メインハンド", "選択中のホットバーアイテム")
         );
     }
 
@@ -219,7 +221,7 @@ public final class EquipmentMenuScreenView extends BaseMenuScreenView {
             case EQUIPMENT_CHEST_SLOT -> equipmentPlaceholder(Material.LEATHER_CHESTPLATE, "胴", "胴防具スロット");
             case EQUIPMENT_LEGS_SLOT -> equipmentPlaceholder(Material.LEATHER_LEGGINGS, "脚", "脚防具スロット");
             case EQUIPMENT_FEET_SLOT -> equipmentPlaceholder(Material.LEATHER_BOOTS, "足", "足防具スロット");
-            case EQUIPMENT_OFF_HAND_SLOT -> equipmentPlaceholder(Material.SHIELD, "オフハンド", "サブ武器スロット");
+            case EQUIPMENT_OFF_HAND_SLOT -> equipmentPlaceholder(Material.GLOW_ITEM_FRAME, "オフハンド", "サブ武器スロット");
             case EQUIPMENT_AMULET_SLOT -> equipmentPlaceholder(Material.CHEST_MINECART, "アミュレット", "アミュレットスロット");
             case EQUIPMENT_TALISMAN_1_SLOT -> equipmentPlaceholder(Material.FURNACE_MINECART, "タリスマン 1", "タリスマンスロット 1/2");
             case EQUIPMENT_TALISMAN_2_SLOT -> equipmentPlaceholder(Material.FURNACE_MINECART, "タリスマン 2", "タリスマンスロット 2/2");
@@ -272,6 +274,9 @@ public final class EquipmentMenuScreenView extends BaseMenuScreenView {
         );
         ItemMeta meta = placeholder.getItemMeta();
         if (meta != null) {
+            if (meta instanceof LeatherArmorMeta leatherArmorMeta) {
+                leatherArmorMeta.setColor(EMPTY_ARMOR_COLOR);
+            }
             meta.getPersistentDataContainer().set(equipmentPlaceholderKey, PersistentDataType.INTEGER, 1);
             placeholder.setItemMeta(meta);
         }
@@ -299,11 +304,4 @@ public final class EquipmentMenuScreenView extends BaseMenuScreenView {
         );
     }
 
-    private @NotNull ItemStack equipmentBackItem() {
-        return createItem(
-            Material.SADDLE,
-            Component.text("戻る", NamedTextColor.WHITE, TextDecoration.BOLD),
-            List.of(Component.text("前の画面へ戻ります", NamedTextColor.GRAY))
-        );
-    }
 }

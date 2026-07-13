@@ -7,6 +7,7 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -27,13 +28,18 @@ class EquipmentMenuScreenViewTest extends MockBukkitTestBase {
         view.render(inventory, player, new ItemStack[AccessorySlotType.RELIC_2.getSlotIndex() + 1]);
 
         assertMaterial(inventory, EquipmentMenuScreenView.PLAYER_STATUS_SLOT, Material.PLAYER_HEAD);
-        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_BACK_SLOT, Material.SADDLE);
+        assertMaterial(inventory, EquipmentMenuScreenView.PET_SLOT, Material.SADDLE);
+        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_BACK_SLOT, Material.SPECTRAL_ARROW);
         assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_MAIN_HAND_SLOT, Material.WOODEN_SWORD);
         assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_HEAD_SLOT, Material.LEATHER_HELMET);
         assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_CHEST_SLOT, Material.LEATHER_CHESTPLATE);
         assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_LEGS_SLOT, Material.LEATHER_LEGGINGS);
         assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_FEET_SLOT, Material.LEATHER_BOOTS);
-        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_OFF_HAND_SLOT, Material.SHIELD);
+        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_OFF_HAND_SLOT, Material.GLOW_ITEM_FRAME);
+        assertDarkGrayLeatherArmor(inventory, EquipmentMenuScreenView.EQUIPMENT_HEAD_SLOT);
+        assertDarkGrayLeatherArmor(inventory, EquipmentMenuScreenView.EQUIPMENT_CHEST_SLOT);
+        assertDarkGrayLeatherArmor(inventory, EquipmentMenuScreenView.EQUIPMENT_LEGS_SLOT);
+        assertDarkGrayLeatherArmor(inventory, EquipmentMenuScreenView.EQUIPMENT_FEET_SLOT);
         assertMaterial(inventory, EquipmentMenuScreenView.MEMORY_1_SLOT, Material.HOPPER);
         assertMaterial(inventory, EquipmentMenuScreenView.MEMORY_2_SLOT, Material.HOPPER);
         assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_AMULET_SLOT, Material.CHEST_MINECART);
@@ -48,6 +54,23 @@ class EquipmentMenuScreenViewTest extends MockBukkitTestBase {
         assertMaterial(inventory, EquipmentMenuScreenView.GAUGE_LARGE_SLOT, Material.SPAWNER);
         assertMaterial(inventory, EquipmentMenuScreenView.GAUGE_MEDIUM_SLOT, Material.SPAWNER);
         assertMaterial(inventory, EquipmentMenuScreenView.GAUGE_SMALL_SLOT, Material.SPAWNER);
+    }
+
+    @Test
+    void usesDedicatedEmptyMarkersForMainAndOffHandSlots() {
+        var player = server().addPlayer();
+        Inventory inventory = Bukkit.createInventory(null, BaseMenuScreenView.SIZE);
+        EquipmentMenuScreenView view = new EquipmentMenuScreenView(
+            new NamespacedKey("astralrecord", "equipment_placeholder_hand_test")
+        );
+
+        view.render(inventory, player, new ItemStack[AccessorySlotType.RELIC_2.getSlotIndex() + 1]);
+
+        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_MAIN_HAND_SLOT, Material.ITEM_FRAME);
+        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_OFF_HAND_SLOT, Material.GLOW_ITEM_FRAME);
+        player.getInventory().setItemInOffHand(new ItemStack(Material.SHIELD));
+        view.render(inventory, player, new ItemStack[AccessorySlotType.RELIC_2.getSlotIndex() + 1]);
+        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_OFF_HAND_SLOT, Material.SHIELD);
     }
 
     @Test
@@ -95,5 +118,12 @@ class EquipmentMenuScreenViewTest extends MockBukkitTestBase {
 
     private static void assertMaterial(Inventory inventory, int slot, Material expected) {
         assertEquals(expected, inventory.getItem(slot).getType());
+    }
+
+    private static void assertDarkGrayLeatherArmor(Inventory inventory, int slot) {
+        LeatherArmorMeta meta = (LeatherArmorMeta) inventory.getItem(slot).getItemMeta();
+        assertEquals(48, meta.getColor().getRed());
+        assertEquals(48, meta.getColor().getGreen());
+        assertEquals(48, meta.getColor().getBlue());
     }
 }
