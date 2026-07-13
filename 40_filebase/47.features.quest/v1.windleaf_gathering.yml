@@ -1,9 +1,9 @@
 schemaVersion: 1
 id: windleaf_gathering
 type: QUEST
-name: "&a風待ち草の採取"
+name: "&aウィンドリーフ採取依頼"
 description:
-  - "&7採取ポイントから風待ち草を集める依頼。"
+  - "&7ハーベストポイントで風待ち若葉を採取する依頼。"
 icon: PAPER
 repeat:
   mode: REPEATABLE
@@ -14,15 +14,8 @@ objectives:
     type: GATHERING
     targetId:
       ref: gathering:windleaf_patch
-    label: "風待ち草"
+    label: "風待ち若葉"
     amount: 2
-acceptRequirements:
-  items:
-    - itemId:
-        ref: item:windleaf_sprig
-      category: material
-      amount: 1
-      consume: false
 rewards:
   exp: 60
   gold: 30

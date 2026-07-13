@@ -344,7 +344,7 @@ public final class AstralRecord extends JavaPlugin {
         gatheringService = new GatheringService(
                 this,
                 new GatheringDefinitionRepository(),
-                new MobDropService(),
+                new MobDropService(lootService),
                 itemService,
                 null
         );
@@ -653,7 +653,7 @@ public final class AstralRecord extends JavaPlugin {
         mobVanillaEffectProtectionService = new MobVanillaEffectProtectionService();
         mobCombatService = new MobCombatService(
                 mobService,
-                new MobDropService(),
+                new MobDropService(lootService),
                 mobDropPresentationService,
                 partyService,
                 adventureRecordService,

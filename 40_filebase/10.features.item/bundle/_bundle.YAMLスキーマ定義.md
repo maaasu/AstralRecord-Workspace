@@ -41,38 +41,37 @@ Bundle の中身の指定方法は 2 系統あります。
 
 ## YAML 例
 
+以下の Bundle ID は新規定義を示す架空例です。LootTable と Item の参照には現行マスタの実在 ID を使用しています。
+
 ### LootTable 参照
 
 ```yaml
 schemaVersion: 1
-id: magic_iron_ingot_bundle
+id: example_windwait_loot_bundle
 category: BUNDLE
-name: "&b魔鉄のパケット"
+name: "&bウィンドウェイトパケット"
 icon: CHEST
 rarity: UNCOMMON
 lore:
-  - "&7魔鉄を詰め込んだ簡易パケット。"
+  - "&7風待ち草原の報酬をまとめた簡易パケット。"
 unTradeable: false
 bundle:
   lootTableId:
-    ref: loot_table:magic_iron_ingot
-  onUse:
-    sound: bundle_chest_open
-    particle: bundle_chest_totem
+    ref: loot_table:windwait_field_table
 ```
 
 ### 報酬アイテム直接定義
 
 ```yaml
 schemaVersion: 1
-id: starter_bundle
+id: example_adventure_supply_bundle
 category: BUNDLE
-name: "&e初期支給パック"
+name: "&e冒険補給パック"
 icon: CHEST
 rarity: COMMON
 maxStack: 1
 lore:
-  - "&7これから冒険を始める人への贈り物。"
+  - "&7冒険に必要な消耗品をまとめた補給物資。"
 unTradeable: true
 unSellable: true
 bundle:
@@ -87,21 +86,18 @@ bundle:
         ref: item:bronze_sword
       amount: 1
     - itemId:
-        ref: item:rare_gem
+        ref: item:astral_dust
       amount: 1
       rate: 10.0
       luckAffected: true
       hidden: true
-  onUse:
-    sound: bundle_chest_open
-    particle: bundle_chest_totem
 ```
 
 ### LootTable と直接定義の併用
 
 ```yaml
 schemaVersion: 1
-id: adventurer_bundle
+id: example_mixed_reward_bundle
 category: BUNDLE
 name: "&6冒険者の支援箱"
 icon: CHEST
@@ -112,11 +108,11 @@ lore:
 unTradeable: true
 bundle:
   lootTableId:
-    ref: loot_table:adventurer_common
+    ref: loot_table:windwait_outer_table
   items:
     - itemId:
-        ref: item:dungeon_medal
+        ref: item:healing_potion_small
       amount: 1
-  onUse:
-    sound: bundle_chest_open
 ```
+
+> 現行の `bundle_sound` / `bundle_particle` マスタは未定義です。`bundle.onUse` を利用する場合は、先に各マスタを作成してから、その実在 ID を指定してください。

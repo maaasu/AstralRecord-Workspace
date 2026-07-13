@@ -5,17 +5,17 @@ pick: 1
 contents:
   - itemId:
       ref: item:skyway_saber
-    rate: 4
+    rate: 1.5
     amount: 1
   - itemId:
       ref: item:skyway_staff
-    rate: 4
+    rate: 1.5
     amount: 1
   - itemId:
       ref: item:pathfinder_jerkin
-    rate: 3
+    rate: 1
     amount: 1
   - itemId:
       ref: item:windrunner_boots
-    rate: 3
+    rate: 1
     amount: 1

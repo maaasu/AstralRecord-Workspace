@@ -68,35 +68,33 @@ Mob撃破時のドロップを定義します。
 
 ```yaml
 schemaVersion: 1
-id: goblin_warrior
+id: windwait_stray
 type: MOB
 category: ENEMY
-name: "&cゴブリンウォリアー"
-level: 5
+name: "&6風待ちのはぐれ者"
+level: 2
 entityType: ZOMBIE
 icon: ZOMBIE_HEAD
 lore:
-  - "&7森に生息する好戦的なゴブリン。"
-  - "&7粗末な武器を持って襲い掛かる。"
+  - "&7風待ち草原の外れをうろつく流れ者。"
+  - "&7木道の残材を武器にして襲い掛かる。"
 tags:
   - humanoid
-  - goblin
+  - windwait
 
 equipment:
   mainHand:
     ref: item:rusty_sword
-  helmet:
-    ref: item:leather_cap
 
 baseStats:
   - status: MAX_HEALTH
-    value: 100
+    value: 55
   - status: ATTACK
-    value: 18
+    value: 7
   - status: DEFENSE
-    value: 5
+    value: 1
   - status: MOVEMENT_SPEED
-    value: 100
+    value: 102
 
 ai:
   idle:
@@ -105,40 +103,36 @@ ai:
     speed: 0.8
   targeting:
     strategy: NEAREST
-    aggroRange: 12
-    deaggroRange: 20
-    leashRange: 30
+    aggroRange: 14
+    deaggroRange: 22
+    leashRange: 28
   combat:
     style: MELEE
-    preferredRange: 1.0
-    attackIntervalTicks: 20
+    preferredRange: 2.2
+    attackIntervalTicks: 24
     skills:
-      - ref: skill:slash
+      - ref: skill:mob_goblin_slash
 
 drops:
-  exp: 30
+  exp: 16
   money:
-    min: 0
-    max: 10
+    min: 1
+    max: 4
   items:
     - itemId:
-        ref: item:goblin_ear
-      rate: 80.0
+        ref: item:glowstone_shard
+      rate: 18.0
       amount: 1
       luckAffected: true
       hidden: false
     - itemId:
-        ref: item:rusty_sword
-      rate: 5.00
-      amount: 1
-      luckAffected: true
-      hidden: false
-    - itemId:
-        ref: item:goblin_kings_seal
-      rate: 0.10
+        ref: item:astral_dust
+      rate: 4.5
       amount: 1
       luckAffected: false
-      hidden: true
+      hidden: false
+  lootTable:
+    ref: loot_table:windwait_field_table
 ```
 
 ### 例2: 遠距離型エネミー（魔法）

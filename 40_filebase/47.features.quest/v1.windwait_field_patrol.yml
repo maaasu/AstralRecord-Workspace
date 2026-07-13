@@ -1,0 +1,31 @@
+schemaVersion: 1
+id: windwait_field_patrol
+type: QUEST
+name: "&aウィンドウェイト・パトロール"
+description:
+  - "&7風待ち草原を巡回し、はぐれ者を退ける序盤任務。"
+icon: COMPASS
+repeat:
+  mode: COOLDOWN
+  cooldownSeconds: 3600
+completion:
+  mode: NPC
+  turnInNpcId:
+    ref: mob:village_elder
+objectives:
+  - id: defeat_windwait_stray
+    type: KILL_MOB
+    targetId:
+      ref: mob:windwait_stray
+    label: "風待ちのはぐれ者"
+    amount: 3
+acceptRequirements:
+  items: []
+rewards:
+  exp: 90
+  gold: 45
+  items:
+    - itemId:
+        ref: item:healing_potion_small
+      category: consumable
+      amount: 2

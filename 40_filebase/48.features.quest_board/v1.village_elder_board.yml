@@ -4,14 +4,10 @@ type: QUEST_BOARD
 name: "&2村長の依頼"
 quests:
   - questId:
-      ref: quest:goblin_training
+      ref: quest:windwait_field_patrol
     page: 1
     slot: 10
   - questId:
       ref: quest:windleaf_gathering
     page: 1
     slot: 12
-  - questId:
-      ref: quest:windwait_outer_patrol
-    page: 1
-    slot: 14

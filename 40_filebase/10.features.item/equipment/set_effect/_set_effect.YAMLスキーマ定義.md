@@ -9,7 +9,7 @@ Equipment 側の `setId` でこのファイルの `id` を参照することで�
 
 | キー                        | 型            | 必須 | デフォルト | 説明                                                                        |
 |:--------------------------|:-------------|:--:|:------|:--------------------------------------------------------------------------|
-| `id`                      | String       | ○  | -     | セット効果ID。Equipment の `setId` から参照される（例: `iron_warrior_set`）。カテゴリ関係なく同ID禁止。 |
+| `id`                      | String       | ○  | -     | セット効果ID。Equipment の `setId` から参照される（架空例: `example_guardian_set`）。カテゴリ関係なく同ID禁止。 |
 | `name`                    | String       | ○  | -     | セット名称。ゲーム内UIに表示される（例: `"&6鉄の戦士セット"`）。                                     |
 | `pieces[]`                | List         | ○  | -     | セット装着数ごとの効果定義リスト。`count` の昇順で定義することを推奨。                                   |
 | `pieces[].count`          | Integer      | ○  | -     | この効果が発動するために必要な同セット装備の装着数（例: `2` / `4`）。同一セット内で一意である必要がある。                |
@@ -37,15 +37,17 @@ Equipment 側の `setId` でこのファイルの `id` を参照することで�
 
 Equipment 側からセット効果を参照する場合は `setId` に ID を直接文字列で指定します。
 
-- 例: `setId: iron_warrior_set`
+- 架空例: `setId: example_guardian_set`
 
 ## YAML 例
 
-### 例1: 2段階のセット効果を持つ鉄の戦士セット
+以下のセット効果 ID は書式説明用の架空例です。スキル参照には現行マスタの実在 ID を使用しています。
+
+### 例1: 2段階のセット効果を持つ架空のガーディアンセット
 
 ```yaml
-id: iron_warrior_set
-name: "&6鉄の戦士セット"
+id: example_guardian_set
+name: "&6ガーディアンセット例"
 pieces:
   - count: 2
     stats:
@@ -73,8 +75,8 @@ pieces:
 ### 例2: スキル付き3段階セット効果
 
 ```yaml
-id: shadow_assassin_set
-name: "&5影の暗殺者セット"
+id: example_shadow_set
+name: "&5シャドウセット例"
 pieces:
   - count: 2
     stats:
@@ -90,7 +92,7 @@ pieces:
         type: FLAT
         value: 20
     skills:
-      - ref: skill:shadow_step
+      - ref: skill:sw_passive_parry
   - count: 6
     stats:
       - status: ATTACK
@@ -100,34 +102,37 @@ pieces:
         type: FLAT
         value: 12
     skills:
-      - ref: skill:shadow_step
-      - ref: skill:death_mark
+      - ref: skill:sw_passive_parry
+      - ref: skill:sw_passive_execution
 ```
 
 ---
 
 ### Equipment 側の記述例
 
-同セット装備の `setId` に同じIDを指定することでセットを構成します。
+同セット装備の `setId` に同じIDを指定することでセットを構成します。以下は新規ファイルを作る場合の架空の記述例であり、既存ファイルへの追記例ではありません。
 
 ```yaml
-# v1.iron_helmet.yml
-id: iron_helmet
+# v1.example_guardian_helmet.yml（架空の記述例）
+id: example_guardian_helmet
 category: equipment
 # ...共通フィールド省略...
 equipment:
   slot: HEAD
-  setId: iron_warrior_set
+  setId: example_guardian_set
   stats:
     - status: DEFENSE
       type: FLAT
       value: 8
 
 ---
-# v1.iron_chestplate.yml（既存ファイルへの追記例）
+# v1.example_guardian_chestplate.yml（架空の記述例）
+id: example_guardian_chestplate
+category: equipment
+# ...共通フィールド省略...
 equipment:
   slot: CHEST
-  setId: iron_warrior_set
+  setId: example_guardian_set
   stats:
     - status: DEFENSE
       type: FLAT

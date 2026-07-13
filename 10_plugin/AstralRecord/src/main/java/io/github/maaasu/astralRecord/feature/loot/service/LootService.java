@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -15,21 +16,29 @@ import java.util.Map;
 /**
  * ルートテーブルのキャッシュ管理サービス。
  * <p>
- * 起動時に API から一括取得してメモリに保持し、
- * bundle の lootTableId 解決時にはキャッシュから即時返却します。
+ * 起動時に API から一括取得し、構築済みの不変 Map を原子的に公開します。
+ * bundle・Mob・採集の lootTableId 解決時にはキャッシュから即時返却します。
  */
 public class LootService {
 
     private final LootRepository lootRepository;
-    private final Map<String, LootModel> loadedLoots;
+    private final Object cacheLock = new Object();
+    private volatile Map<String, LootModel> loadedLoots;
 
+    /**
+     * API リポジトリを使用するキャッシュサービスを構築します。
+     */
     public LootService() {
-        this.lootRepository = new LootRepository();
-        this.loadedLoots = new LinkedHashMap<>();
+        this(new LootRepository());
+    }
+
+    LootService(@NotNull LootRepository lootRepository) {
+        this.lootRepository = lootRepository;
+        this.loadedLoots = Map.of();
     }
 
     /**
-     * 全ルートテーブルを API から一括取得してキャッシュへ登録します。
+     * 全ルートテーブルを API から一括取得し、全件構築後のスナップショットを公開します。
      * 起動時の非同期初期ロードに使用します。
      *
      * @return ロードしたルートテーブルの件数
@@ -37,8 +46,13 @@ public class LootService {
     public int loadAll() {
         try {
             List<LootModel> loots = lootRepository.findAll();
+            Map<String, LootModel> nextLoots = new LinkedHashMap<>();
             for (LootModel loot : loots) {
-                cacheLoot(loot);
+                nextLoots.put(normalize(loot.getId()), loot);
+                Logger.log(LogId.D_5301, loot);
+            }
+            synchronized (cacheLock) {
+                loadedLoots = immutableSnapshot(nextLoots);
             }
             Logger.log(LogId.I_5300, loots.size());
             return loots.size();
@@ -88,14 +102,17 @@ public class LootService {
      * @return ロード済み全 LootModel
      */
     public @NotNull List<LootModel> getLoadedLoots() {
-        return List.copyOf(loadedLoots.values());
+        Map<String, LootModel> snapshot = loadedLoots;
+        return List.copyOf(snapshot.values());
     }
 
     /**
-     * キャッシュをクリアします。
+     * キャッシュを空の不変スナップショットへ差し替えます。
      */
     public void clearCache() {
-        loadedLoots.clear();
+        synchronized (cacheLock) {
+            loadedLoots = Map.of();
+        }
     }
 
     /**
@@ -104,8 +121,18 @@ public class LootService {
      * @param loot 登録するルートテーブル
      */
     private void cacheLoot(@NotNull LootModel loot) {
-        loadedLoots.put(normalize(loot.getId()), loot);
+        synchronized (cacheLock) {
+            Map<String, LootModel> nextLoots = new LinkedHashMap<>(loadedLoots);
+            nextLoots.put(normalize(loot.getId()), loot);
+            loadedLoots = immutableSnapshot(nextLoots);
+        }
         Logger.log(LogId.D_5301, loot);
+    }
+
+    private @NotNull Map<String, LootModel> immutableSnapshot(
+        @NotNull Map<String, LootModel> source
+    ) {
+        return Collections.unmodifiableMap(new LinkedHashMap<>(source));
     }
 
     private @NotNull String normalize(@NotNull String value) {

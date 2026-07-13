@@ -1,7 +1,7 @@
 schemaVersion: 1
 id: weapon_shop
 type: SHOP
-name: "&6武器屋"
+name: "&6武器・ツールショップ"
 items:
   - id: starter_sword
     itemId:
@@ -88,3 +88,93 @@ items:
     page: 1
     slot: 8
     priceGold: 180
+
+  - id: starter_pickaxe
+    itemId:
+      ref: item:starter_pickaxe
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 9
+    priceGold: 0
+
+  - id: starter_herb_hoe
+    itemId:
+      ref: item:starter_herb_hoe
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 10
+    priceGold: 0
+
+  - id: healing_potion_small
+    itemId:
+      ref: item:healing_potion_small
+    category: consumable
+    amount: 1
+    page: 1
+    slot: 11
+    priceGold: 15
+
+  - id: mana_potion_small
+    itemId:
+      ref: item:mana_potion_small
+    category: consumable
+    amount: 1
+    page: 1
+    slot: 12
+    priceGold: 30
+
+  - id: windleaf_recovery_potion
+    itemId:
+      ref: item:windleaf_recovery_potion
+    category: consumable
+    amount: 2
+    page: 1
+    slot: 13
+    priceGold: 10
+    requiredItems:
+      - itemId:
+          ref: item:windleaf_sprig
+        category: material
+        amount: 3
+      - itemId:
+          ref: item:glimmercap_spore
+        category: material
+        amount: 1
+
+  - id: haste_potion_small
+    itemId:
+      ref: item:haste_potion_small
+    category: consumable
+    amount: 1
+    page: 1
+    slot: 14
+    priceGold: 60
+
+  - id: strength_potion
+    itemId:
+      ref: item:strength_potion
+    category: consumable
+    amount: 1
+    page: 1
+    slot: 15
+    priceGold: 120
+
+  - id: iron_ingot
+    itemId:
+      ref: item:iron_ingot
+    category: material
+    amount: 1
+    page: 1
+    slot: 16
+    priceGold: 20
+
+  - id: magic_crystal
+    itemId:
+      ref: item:magic_crystal
+    category: material
+    amount: 1
+    page: 1
+    slot: 17
+    priceGold: 150

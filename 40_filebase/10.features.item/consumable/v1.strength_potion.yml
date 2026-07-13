@@ -1,14 +1,14 @@
 schemaVersion: 1
 id: strength_potion
 category: consumable
-name: "&c剛力の薬"
+name: "&cストレングスポーション"
 icon: POTION
 rarity: UNCOMMON
 maxStack: 64
 saleValue: 80
 lore:
   - "&7飲むと一定時間、攻撃力が上昇する。"
-  - "&7攻撃力が10%上昇する。"
+  - "&7近接戦のバーストを支える強化薬。"
 unTradeable: false
 unSellable: false
 

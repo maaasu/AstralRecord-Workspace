@@ -136,3 +136,25 @@ items:
           ref: item:old_plank_chip
         category: material
         amount: 2
+
+  - id: glowlamp_charm
+    itemId:
+      ref: item:glowlamp_charm
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 9
+    priceGold: 75
+    requiredItems:
+      - itemId:
+          ref: item:glowstone_shard
+        category: material
+        amount: 2
+      - itemId:
+          ref: item:astral_dust
+        category: material
+        amount: 2
+      - itemId:
+          ref: item:skygrass_fiber
+        category: material
+        amount: 2

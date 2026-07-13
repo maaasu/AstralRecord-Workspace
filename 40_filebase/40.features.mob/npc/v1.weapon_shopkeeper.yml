@@ -2,16 +2,16 @@ schemaVersion: 1
 id: weapon_shopkeeper
 type: MOB
 category: NPC
-name: "&6武器商人ルーク"
-title: "&7武器屋"
+name: "&6武器・道具商人ルーク"
+title: "&7武器・ツールショップ"
 level: 1
 entityType: PLAYER
 nameVisible: true
 damageImmune: true
 icon: IRON_SWORD
 lore:
-  - "&7剣、弓、杖を扱う冒険者向けの商人。"
-  - "&7右クリックで武器屋を開ける。"
+  - "&7武器、採集ツール、回復アイテムを扱う商人。"
+  - "&7右クリックで武器・ツールショップを開ける。"
 tags:
   - npc
   - shop
@@ -31,7 +31,7 @@ interactions:
   leftClick:
     - id: message
       params:
-        message: "&6武器商人ルーク&7: 右クリックで武器を見られます。"
+        message: "&6武器・道具商人ルーク&7: 武器や採集ツールを見ていきな。"
   rightClick:
     - id: gui
       params:

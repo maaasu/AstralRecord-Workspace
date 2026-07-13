@@ -18,8 +18,8 @@ YAML マスタ読み取り専用 API。LootPool / LootTable の 2 種類のリ�
 
 ## マスタデータの所在
 
-- `50_filebase/80.shared.loot/pool/`
-- `50_filebase/80.shared.loot/table/`
+- `40_filebase/80.shared.loot/pool/`
+- `40_filebase/80.shared.loot/table/`
 
 ## ドキュメント一覧
 
@@ -30,5 +30,5 @@ YAML マスタ読み取り専用 API。LootPool / LootTable の 2 種類のリ�
 
 ## 更新ルール
 
-- YAML スキーマ変更: [[06_1.00-モデル定義]] + `50_filebase/80.shared.loot/`
+- YAML スキーマ変更: [[06_1.00-モデル定義]] + `40_filebase/80.shared.loot/`
 - エンドポイント追加・削除: [[06_3.00-索引]]

@@ -32,15 +32,15 @@ Mob スポナーの静的マスタ定義です。
 
 ```yaml
 schemaVersion: 1
-id: goblin_training_spawner
+id: windwait_patrol_spawner
 type: MOB_SPAWNER
 radiusMeters: 18
 
 spawnMobs:
-  - mobId: mob:goblin_warrior
-    weight: 80
-  - mobId: mob:ai_nearest_wander
-    weight: 20
+  - mobId: mob:windwait_stray
+    weight: 70
+  - mobId: mob:skyline_archer
+    weight: 30
 
 spawnTimes:
   - startTick: 0

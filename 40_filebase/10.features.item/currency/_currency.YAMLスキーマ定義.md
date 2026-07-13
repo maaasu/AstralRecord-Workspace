@@ -24,15 +24,17 @@
 Currency はアイテムテンプレートの一種です。
 他DBから Currency を参照する場合は、アイテム共通の参照規約に従い `item:` prefix を使用します。
 
-- 例: `ref: item:dungeon_medal`
+- 架空例: `ref: item:example_dungeon_medal`
 
 ## YAML 例
+
+以下は Currency の書式を示す架空例です。現行マスタに定義された ID ではありません。
 
 ### 例1: 最小構成（Currency固有キーなし）
 
 ```yaml
 schemaVersion: 1
-id: dungeon_medal
+id: example_dungeon_medal
 category: CURRENCY
 name: "&6ダンジョンメダル"
 icon: GOLD_NUGGET
@@ -48,7 +50,7 @@ unSellable: true
 
 ```yaml
 schemaVersion: 1
-id: boss_proof_golem
+id: example_boss_proof_golem
 category: CURRENCY
 name: "&dゴーレム討伐の証"
 icon: AMETHYST_SHARD

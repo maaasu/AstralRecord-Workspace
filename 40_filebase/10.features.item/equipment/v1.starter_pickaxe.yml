@@ -1,14 +1,14 @@
 schemaVersion: 1
 id: starter_pickaxe
 category: equipment
-name: "&f初期ピッケル"
+name: "&fスターターピッケル"
 icon: STONE_PICKAXE
 rarity: COMMON
 maxStack: 1
 saleValue: 0
 lore:
-  - "&7冒険を始めた採集者向けの簡素なピッケル。"
-  - "&7鉱石採集の基礎を支える一本。"
+  - "&7採掘を始める冒険者向けのベーシックツール。"
+  - "&7鉱脈の採集に必要なピッケル。"
 unTradeable: true
 unSellable: true
 

@@ -36,20 +36,15 @@ The plugin uses a 54-slot inventory and does not place sale items in edge column
 
 ```yaml
 schemaVersion: 1
-id: starter_shop
+id: weapon_shop
 type: SHOP
-name: "&6Starter Shop"
+name: "&6武器・ツールショップ"
 items:
-  - id: apple_entry
+  - id: starter_pickaxe
     itemId:
-      ref: item:healing_potion_small
-    category: consumable
+      ref: item:starter_pickaxe
+    category: equipment
     slot: 2
     page: 1
-    priceGold: 100
-    requiredItems:
-      - itemId:
-          ref: item:magic_crystal
-        category: material
-        amount: 1
+    priceGold: 0
 ```

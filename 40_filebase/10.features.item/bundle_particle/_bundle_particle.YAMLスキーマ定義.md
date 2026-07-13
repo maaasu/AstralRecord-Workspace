@@ -20,9 +20,11 @@ bundle 使用時パーティクルの実体定義です。`bundle.onUse.particle
 
 ## YAML 例
 
+以下は架空の記述例であり、現行マスタに定義された ID ではありません。利用時は `bundle_particle` マスタを作成し、その実在 ID を Bundle 側から参照してください。
+
 ```yaml
 schemaVersion: 1
-id: bundle_chest_totem
+id: example_bundle_particle
 particle: totem_of_undying
 count: 24
 originOffsetY: 1.0

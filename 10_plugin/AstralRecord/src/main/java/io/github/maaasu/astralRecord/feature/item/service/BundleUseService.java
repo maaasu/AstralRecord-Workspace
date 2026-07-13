@@ -5,9 +5,9 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemBundle;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
-import io.github.maaasu.astralRecord.feature.loot.model.LootContent;
 import io.github.maaasu.astralRecord.feature.loot.model.LootModel;
-import io.github.maaasu.astralRecord.feature.loot.model.LootPoolModel;
+import io.github.maaasu.astralRecord.feature.loot.model.LootRollResult;
+import io.github.maaasu.astralRecord.feature.loot.service.LootRollService;
 import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -38,7 +38,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * bundle アイテムの右クリック開封処理を担当します。
@@ -51,6 +50,7 @@ public class BundleUseService {
     private final MovementCancelableWaitService movementCancelableWaitService;
     private final ItemService itemService;
     private final LootService lootService;
+    private final LootRollService lootRollService;
     private final InventoryService inventoryService;
     private final ItemStackFactory itemStackFactory;
     private final ItemDropAnimationService itemDropAnimationService;
@@ -82,6 +82,7 @@ public class BundleUseService {
         this.movementCancelableWaitService = movementCancelableWaitService;
         this.itemService = itemService;
         this.lootService = lootService;
+        this.lootRollService = new LootRollService();
         this.inventoryService = inventoryService;
         this.itemStackFactory = itemStackFactory;
         this.itemDropAnimationService = itemDropAnimationService;
@@ -300,68 +301,12 @@ public class BundleUseService {
         pending.bossBar().setVisible(false);
     }
 
-    static @NotNull Map<String, Integer> rollRewards(@NotNull LootModel lootModel) {
+    private @NotNull Map<String, Integer> rollRewards(@NotNull LootModel lootModel) {
         Map<String, Integer> rewards = new LinkedHashMap<>();
-        ThreadLocalRandom random = ThreadLocalRandom.current();
-
-        int rolls = Math.max(1, lootModel.getRolls());
-        for (int rollIndex = 0; rollIndex < rolls; rollIndex++) {
-            for (LootPoolModel pool : lootModel.getPools()) {
-                int picks = Math.max(1, pool.getPick());
-                List<LootContent> availableContents = new ArrayList<>(pool.getContents());
-                for (int pickIndex = 0; pickIndex < picks && !availableContents.isEmpty(); pickIndex++) {
-                    LootContent content = selectContent(availableContents, random);
-                    if (content == null) {
-                        break;
-                    }
-                    availableContents.remove(content);
-
-                    int amount = rollAmount(content, random);
-                    if (amount <= 0) {
-                        continue;
-                    }
-                    rewards.merge(content.getItemId(), amount, Integer::sum);
-                }
-            }
+        for (LootRollResult reward : lootRollService.roll(lootModel)) {
+            rewards.merge(reward.getItemId(), reward.getAmount(), Integer::sum);
         }
         return rewards;
-    }
-
-    private static @Nullable LootContent selectContent(
-        @NotNull List<LootContent> contents,
-        @NotNull ThreadLocalRandom random
-    ) {
-        List<LootContent> candidates = new ArrayList<>();
-        double totalWeight = 0.0;
-        for (LootContent content : contents) {
-            if (content.getRate() <= 0.0) {
-                continue;
-            }
-            candidates.add(content);
-            totalWeight += content.getRate();
-        }
-        if (candidates.isEmpty() || totalWeight <= 0.0) {
-            return null;
-        }
-
-        double target = random.nextDouble(totalWeight);
-        double accum = 0.0;
-        for (LootContent candidate : candidates) {
-            accum += candidate.getRate();
-            if (target < accum) {
-                return candidate;
-            }
-        }
-        return candidates.get(candidates.size() - 1);
-    }
-
-    private static int rollAmount(@NotNull LootContent content, @NotNull ThreadLocalRandom random) {
-        int minAmount = Math.min(content.getMinAmount(), content.getMaxAmount());
-        int maxAmount = Math.max(content.getMinAmount(), content.getMaxAmount());
-        if (maxAmount <= 0) {
-            return 0;
-        }
-        return minAmount == maxAmount ? minAmount : random.nextInt(minAmount, maxAmount + 1);
     }
 
     private void playRewardDropAnimations(

@@ -13,7 +13,7 @@
 | `equipment[].tag`                                         | String        | ×  | -     | Toolの「ツルハシ」、「斧」、アクセサリの「ネックレス」など作成したいequipment特有の補助情報                                                                                           |
 | `equipment[].requiredLevel`                               | Integer       | ×  | 0     | 装備に必要なプレイヤーレベル。`0` で制限なし。                                                                                                                      |
 | `equipment[].requiredClasses[]`                           | List<String>  | ×  | -     | 装備可能クラスIDのリスト（任意）。未指定時は全クラス装備可。                                                                                                                |
-| `equipment[].setId`                                       | String        | ×  | -     | このアイテムが属するセット効果ID（例: `iron_warrior_set`）。セット効果定義は `set_effect/_set_effect.YAMLスキーマ定義.md` を参照。                                                  |
+| `equipment[].setId`                                       | String        | ×  | -     | このアイテムが属するセット効果ID（架空例: `example_guardian_set`）。セット効果定義は `set_effect/_set_effect.YAMLスキーマ定義.md` を参照。                                                  |
 | `equipment[].stats[]`                                     | List          | ×  | -     | 装備中に適用される基礎ステータス補正のリスト（後述）。                                                                                                                    |
 | `equipment[].stats[].status`                              | String        | ×  | -     | 対象ステータス（`StatusType`）。例: `ATTACK` / `DEFENSE` / `MOVEMENT_SPEED`。                                                                              |
 | `equipment[].stats[].type`                                | String        | ×  | -     | 補正方式（`FLAT` / `SCALAR`）。`FLAT` は加算、`SCALAR` は乗算係数。                                                                                             |
@@ -185,7 +185,7 @@ Equipment の追加効果で Buff を参照する場合は `buff:` prefix を使
 
 セット効果を参照する場合は `set:` prefix を使用します（aliases: `st`）。セット効果スキーマの詳細は `set_effect/_set_effect.YAMLスキーマ定義.md` を参照。
 
-- 例: `set:iron_warrior_set`
+- 架空例: `set:example_guardian_set`
 
 ## YAML 例
 
@@ -345,9 +345,11 @@ equipment:
 
 ### 例5: エンチャント対応装備
 
+以下は架空の装備マスタを新規作成する場合の記述例です。既存ファイルへの追記例ではありません。
+
 ```yaml
 schemaVersion: 1
-id: iron_chestplate
+id: example_enchanted_chestplate
 category: EQUIPMENT
 name: "&f鉄の胸当て"
 icon: IRON_CHESTPLATE
@@ -391,7 +393,7 @@ equipment:
             value: 2~5
             weight: 5
       - requiredMaterial:
-          itemId: gold_ingot
+          itemId: astral_dust
           amount: 3
         requiredCurrency: 500
         entries:

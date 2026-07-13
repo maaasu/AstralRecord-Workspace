@@ -157,10 +157,16 @@ class LootRepository {
 
     private fun parseTableObject(obj: JsonObject): LootTableDto {
         val pools = parseStringList(obj.getAsJsonArray("pools"))
+        val (minRolls, maxRolls) = parseAmountRange(
+            obj.get("rolls")?.takeIf { !it.isJsonNull }?.asString,
+            1,
+            1,
+        )
         return LootTableDto(
             schemaVersion = obj.get("schemaVersion")?.asInt ?: 1,
             id = obj.get("id")?.asString ?: "",
-            rolls = parseAmountRangeUpperBound(obj, "rolls"),
+            minRolls = minRolls,
+            maxRolls = maxRolls,
             poolRefs = pools,
         )
     }
@@ -172,7 +178,7 @@ class LootRepository {
             val content = element.asJsonObject
             val itemId = content.get("itemId")?.takeIf { !it.isJsonNull }?.asString ?: return@mapNotNull null
             val amountText = content.get("amount")?.takeIf { !it.isJsonNull }?.asString ?: "1"
-            val (minAmount, maxAmount) = parseAmountRange(amountText)
+            val (minAmount, maxAmount) = parseAmountRange(amountText, 1, 1)
             LootContent(
                 itemId = normalizeId(itemId),
                 minAmount = minAmount,
@@ -181,9 +187,16 @@ class LootRepository {
             )
         }
 
+        val defaultPick = contents.size
+        val (parsedMinPick, parsedMaxPick) = parseAmountRange(
+            obj.get("pick")?.takeIf { !it.isJsonNull }?.asString,
+            defaultPick,
+            defaultPick,
+        )
         return LootPoolModel(
             id = obj.get("id")?.asString ?: "",
-            pick = parseAmountRangeUpperBound(obj, "pick").coerceAtLeast(1),
+            minPick = parsedMinPick.coerceIn(0, contents.size),
+            maxPick = parsedMaxPick.coerceIn(0, contents.size),
             contents = contents,
         )
     }
@@ -197,7 +210,8 @@ class LootRepository {
             schemaVersion = table.schemaVersion,
             id = table.id,
             name = table.id,
-            rolls = table.rolls.coerceAtLeast(1),
+            minRolls = table.minRolls,
+            maxRolls = table.maxRolls,
             pools = pools,
         )
     }
@@ -212,29 +226,21 @@ class LootRepository {
         }
     }
 
-    private fun parseAmountRangeUpperBound(obj: JsonObject, key: String): Int {
-        val element = obj.get(key) ?: return 1
-        if (element.isJsonNull) {
-            return 1
-        }
-        val raw = element.asString.trim()
-        val (parsedMin, parsedMax) = parseAmountRange(raw)
-        return max(parsedMin, parsedMax).coerceAtLeast(1)
-    }
-
-    private fun parseAmountRange(raw: String): Pair<Int, Int> {
-        val trimmed = raw.trim()
+    private fun parseAmountRange(raw: String?, defaultMin: Int, defaultMax: Int): Pair<Int, Int> {
+        val fallbackMin = min(defaultMin, defaultMax).coerceAtLeast(0)
+        val fallbackMax = max(defaultMin, defaultMax).coerceAtLeast(0)
+        val trimmed = raw?.trim().orEmpty()
         if (trimmed.isBlank()) {
-            return 1 to 1
+            return fallbackMin to fallbackMax
         }
 
         val parts = trimmed.split("~", limit = 2)
         return try {
-            val first = parts.first().trim().toInt()
-            val second = if (parts.size >= 2) parts[1].trim().toInt() else first
+            val first = parts.first().trim().toInt().coerceAtLeast(0)
+            val second = if (parts.size >= 2) parts[1].trim().toInt().coerceAtLeast(0) else first
             min(first, second) to max(first, second)
         } catch (_: NumberFormatException) {
-            1 to 1
+            fallbackMin to fallbackMax
         }
     }
 
@@ -251,7 +257,8 @@ class LootRepository {
     private data class LootTableDto(
         val schemaVersion: Int,
         val id: String,
-        val rolls: Int,
+        val minRolls: Int,
+        val maxRolls: Int,
         val poolRefs: List<String>,
     )
 }

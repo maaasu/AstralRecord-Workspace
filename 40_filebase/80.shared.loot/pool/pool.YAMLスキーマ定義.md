@@ -9,10 +9,10 @@ LootPoolのスキーマ定義。
 | `schemaVersion`     | Integer | ○  | -            | スキーマのバージョン（2026-01-18時点は `1`）                   |
 | `id`                | String  | ○  | -            | lootのテンプレートID。（例: `coin_small`）                 |
 | `type`              | String  | ○  | -            | Loot種別（LOOT_POOL(lp)）                           |
-| `pick`              | Integer | ×  | contentsの要素数 | 固定値、範囲（例: `1` `1~0`）※範囲の最大値はcontentsの要素数を超えないこと |
+| `pick`              | String  | ×  | contentsの要素数 | 1 roll 内の最大採用件数。固定値、範囲（例: `1` `1~0`）。範囲は実行ごとに閉区間で抽選し、降順指定は min/max を正規化する。空 contents の既定値は `0` |
 | `contents[]`        | List    | ○  | -            | コンテンツの設定リスト（後述）                                 |
 | `contents[].itemId` | String  | ○  | -            | ドロップするアイテムのID （例: item:iron_ingot ） ※参照値        |
-| `contents[].rate`   | Double  | ○  | -            | 固定値（0 ~ 100） #小数あり                              |
+| `contents[].rate`   | Double  | ○  | -            | content ごとの独立ドロップ率（0〜100%、小数可）。`0` は必ず空振り、`100` は必ず成功 |
 | `contents[].amount` | String  | ×  | 1            | 固定値、範囲（例: `1` `1~0`）                            |
 
 
@@ -27,11 +27,16 @@ contents:
   - itemId: 
       ref: item:iron_ingot
     rate: 100
-    amount: 
-      min: 1
-      max: 0
+    amount: 1~0
   - itemId:
-      ref: item:gold_ingot
-    rate: 00
+      ref: item:magic_crystal
+    rate: 10
     amount: 1~3
 ```
+
+## 抽選規則
+
+1. 1 roll ごとに各 `contents[]` を `rate`% で独立判定する。全件失敗する空振りを許容する。
+2. `pick` の固定値または範囲を実行時に確定し、その値を最大採用件数とする。
+3. 成功候補が最大採用件数を超えた場合だけ、成功候補から無作為に `pick` 件へ絞る。
+4. `pick` 未指定または null は `contents` の要素数とし、成功候補を件数で絞らない。

@@ -1,5 +1,9 @@
 package io.github.maaasu.astralRecord.feature.mob.service;
 
+import io.github.maaasu.astralRecord.feature.loot.model.LootModel;
+import io.github.maaasu.astralRecord.feature.loot.model.LootRollResult;
+import io.github.maaasu.astralRecord.feature.loot.service.LootRollService;
+import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropItem;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
@@ -7,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobDropResultItem;
 import io.github.maaasu.astralRecord.feature.mob.model.MobMoneyDrop;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -18,10 +23,29 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * Mob 撃破時のドロップ抽選を担うサービス。
  *
- * <p>{@code drops.items} は確率抽選、{@code drops.lootTable} は別途 loot feature の参照解決を行う想定。
- * 本実装ではまず {@code drops.items} のみを抽選し、{@code lootTable} は将来統合する。</p>
+ * <p>{@code drops.items} の確率抽選と、{@code drops.lootTable} の独立確率抽選を結合します。</p>
  */
 public class MobDropService {
+
+    private final LootService lootService;
+    private final LootRollService lootRollService;
+
+    /**
+     * LootTable 参照を使用しない互換用サービスを構築します。
+     */
+    public MobDropService() {
+        this(null);
+    }
+
+    /**
+     * Mob・採集ドロップ用サービスを構築します。
+     *
+     * @param lootService 起動時ロード済み LootTable の参照サービス。未指定時は直接ドロップのみ抽選
+     */
+    public MobDropService(@Nullable LootService lootService) {
+        this.lootService = lootService;
+        this.lootRollService = new LootRollService();
+    }
 
     /**
      * Mob テンプレートとキラーからドロップを確定します。
@@ -54,7 +78,7 @@ public class MobDropService {
 
         List<MobDropResultItem> items = new ArrayList<>();
         for (MobDropItem item : drops.items()) {
-            double effectiveRate = item.rate() + (item.luckAffected() ? luckBonus : 0.0);
+            double effectiveRate = clampRate(item.rate() + (item.luckAffected() ? luckBonus : 0.0D));
             if (rng.nextDouble(0.0, 100.0) >= effectiveRate) continue;
 
             int amount = parseAmount(item.amount(), rng);
@@ -62,6 +86,7 @@ public class MobDropService {
 
             items.add(new MobDropResultItem(item.itemId(), amount, item.rate()));
         }
+        appendLootTableDrops(items, drops.lootTable());
 
         int money = 0;
         MobMoneyDrop moneyConfig = drops.money();
@@ -74,19 +99,39 @@ public class MobDropService {
         return new MobDropResult(items, drops.exp(), money);
     }
 
+    private void appendLootTableDrops(
+        @NotNull List<MobDropResultItem> items,
+        @Nullable String lootTableId
+    ) {
+        if (lootService == null || lootTableId == null || lootTableId.isBlank()) {
+            return;
+        }
+        LootModel lootModel = lootService.getLoaded(lootTableId);
+        if (lootModel == null) {
+            return;
+        }
+        for (LootRollResult reward : lootRollService.roll(lootModel)) {
+            items.add(new MobDropResultItem(
+                reward.getItemId(),
+                reward.getAmount(),
+                reward.getConfiguredRate()
+            ));
+        }
+    }
+
     /**
-     * キラーの幸運ステータスを解決します。{@link AstPlayer} 側に対応 API が無ければ 0 を返します。
-     * 将来的に {@code StatusService.getValue(killer, StatusType.LUCK)} を呼ぶ想定です。
+     * キラーの最新ステータススナップショットから幸運値を解決します。
      *
      * @param killer プレイヤー
-     * @return LUCK ステータス値（現状は常に 0.0）
+     * @return 0 以上の LUCK ステータス値
      */
-    @SuppressWarnings("unused")
     private double resolveLuck(@NotNull AstPlayer killer) {
-        // AstPlayer 側のステータスサービスが揃うまでは 0 で固定。
-        // StatusType.LUCK への将来参照を意図的に維持する。
-        StatusType ignored = StatusType.LUCK;
-        return 0.0;
+        StatusSnapshot snapshot = killer.getStatusSnapshot();
+        return snapshot == null ? 0.0D : Math.max(0.0D, snapshot.getMaxValue(StatusType.LUCK));
+    }
+
+    private double clampRate(double rate) {
+        return Math.max(0.0D, Math.min(100.0D, rate));
     }
 
     /**

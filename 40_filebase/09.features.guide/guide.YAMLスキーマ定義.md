@@ -52,5 +52,5 @@ iconMaterial: COMPASS
 summary: "&7初参加時に最初に確認する手順。"
 lines:
   - "&fまずメニューを開き、ガイドを確認してください。"
-  - "&f支給品から {item:starter_weapon_bundle} と {item:starter_armor_bundle} を開封します。"
+  - "&f武器・ツールショップで {item:starter_sword} と必要な採集ツールを受け取ります。"
 ```

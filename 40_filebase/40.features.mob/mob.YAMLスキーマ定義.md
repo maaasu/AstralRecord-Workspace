@@ -21,7 +21,7 @@ AI（行動ロジック）もプラグイン独自実装であり、本スキー
 | キー              | 型            | 必須 | デフォルト     | 説明                                                      |
 |:----------------|:-------------|:--:|:----------|:--------------------------------------------------------|
 | `schemaVersion` | Integer      | ○  | -         | スキーマのバージョン（2026-00-01時点は `1`）                           |
-| `id`            | String       | ○  | -         | mobのテンプレートID（例: `goblin_warrior`）                       |
+| `id`            | String       | ○  | -         | mobのテンプレートID（例: `windwait_stray`）                       |
 | `type`          | String       | ○  | -         | 種別（MOB(mob)）                                            |
 | `category`      | String       | ○  | -         | カテゴリ（`ENEMY` / `BOSS` / `NPC`）。ファイルが適切なフォルダに配置されているかの確認 |
 | `name`          | String       | ○  | -         | ゲーム内に表示される名前（色コード利用可能）                                  |
@@ -130,18 +130,18 @@ StatusType の一覧は [`00.meta/StatusType.md`](../../00.meta/StatusType.md) �
 
 ```yaml
 schemaVersion: 1
-id: goblin_warrior
+id: windwait_stray
 type: MOB
 category: ENEMY
-name: "&cゴブリンウォリアー"
-level: 0
+name: "&6風待ちのはぐれ者"
+level: 2
 entityType: ZOMBIE
 icon: ZOMBIE_HEAD
 lore:
-  - "&7森に生息する好戦的なゴブリン。"
+  - "&7風待ち草原の外れをうろつく流れ者。"
 tags:
   - humanoid
-  - goblin
+  - windwait
 
 shield:
   enabled: true
