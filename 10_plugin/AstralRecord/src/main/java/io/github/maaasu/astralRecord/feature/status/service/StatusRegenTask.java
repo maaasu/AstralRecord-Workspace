@@ -71,9 +71,9 @@ public class StatusRegenTask {
     private void applyRegen(@NotNull AstPlayer astPlayer) {
         StatusSnapshot snapshot = statusService.getStatus(astPlayer);
 
-        double hpRegenPerSecond = snapshot.getMaxValue(StatusType.HP_REGEN) / REGEN_PERIOD_SECONDS;
-        double mpRegenPerSecond = snapshot.getMaxValue(StatusType.MP_REGEN) / REGEN_PERIOD_SECONDS;
-        double energyRegenPerSecond = snapshot.getMaxValue(StatusType.ENERGY_REGEN) / REGEN_PERIOD_SECONDS;
+        double hpRegenPerSecond = snapshot.rollValue(StatusType.HP_REGEN) / REGEN_PERIOD_SECONDS;
+        double mpRegenPerSecond = snapshot.rollValue(StatusType.MP_REGEN) / REGEN_PERIOD_SECONDS;
+        double energyRegenPerSecond = snapshot.rollValue(StatusType.ENERGY_REGEN) / REGEN_PERIOD_SECONDS;
 
         if (hpRegenPerSecond > 0.0D && snapshot.getCurrentHp() < snapshot.getMaxValue(StatusType.MAX_HEALTH)) {
             statusService.recoverHp(astPlayer, hpRegenPerSecond);
@@ -85,7 +85,7 @@ public class StatusRegenTask {
             statusService.recoverEnergy(astPlayer, energyRegenPerSecond);
         }
         if (shouldRechargeShield(snapshot)) {
-            double amount = 1.0D + snapshot.getMaxValue(StatusType.SHIELD_RECHARGE_RATE);
+            double amount = 1.0D + snapshot.rollValue(StatusType.SHIELD_RECHARGE_RATE);
             statusService.recoverShield(astPlayer, amount);
         }
     }
@@ -95,7 +95,7 @@ public class StatusRegenTask {
         if (maxShield <= 0.0D || snapshot.getCurrentShield() >= maxShield) {
             return false;
         }
-        double reduction = Math.clamp(snapshot.getMaxValue(StatusType.SHIELD_RECHARGE_REDUCTION), 0.0D, 95.0D);
+        double reduction = Math.clamp(snapshot.rollValue(StatusType.SHIELD_RECHARGE_REDUCTION), 0.0D, 95.0D);
         long delayMs = Math.max(500L, Math.round(SHIELD_RECHARGE_BASE_DELAY_MS * (1.0D - reduction / 100.0D)));
         long changedAt = snapshot.getShieldChangedAtMs();
         return changedAt > 0L && System.currentTimeMillis() - changedAt >= delayMs;

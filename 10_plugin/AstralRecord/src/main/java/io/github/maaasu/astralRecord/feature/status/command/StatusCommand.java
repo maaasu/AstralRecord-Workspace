@@ -89,9 +89,9 @@ public class StatusCommand extends AstCommand {
                     player,
                     PlayerMsgId.P_5103,
                     type.legacyColor() + type.getDisplayName(),
-                    type.formatValue(value.getBaseValue()),
-                    type.formatSignedValue(value.getBonusValue()),
-                    type.formatValue(value.getTotalValue())
+                    type.formatRange(value.getBaseMinValue(), value.getBaseMaxValue()),
+                    type.formatSignedRange(value.getBonusMinValue(), value.getBonusMaxValue()),
+                    type.formatRange(value.getMinValue(), value.getMaxValue())
                 );
                 continue;
             }
@@ -100,7 +100,7 @@ public class StatusCommand extends AstCommand {
                 player,
                 PlayerMsgId.P_5101,
                 type.legacyColor() + type.getDisplayName(),
-                type.formatValue(value.getTotalValue())
+                type.formatRange(value.getMinValue(), value.getMaxValue())
             );
         }
         if (detail) {

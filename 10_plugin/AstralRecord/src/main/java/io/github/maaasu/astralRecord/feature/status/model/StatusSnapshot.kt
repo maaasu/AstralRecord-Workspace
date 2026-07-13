@@ -29,12 +29,21 @@ data class StatusSnapshot(
     fun getValue(type: StatusType): StatusValue? = values[type]
 
     /**
+     * 指定したステータスを参照時に確定します。
+     * 範囲値は下限以上・上限以下からランダム取得し、単一値はそのまま返します。
+     *
+     * @param type 参照するステータス種別
+     * @return 確定した値。未定義の場合は0.0
+     */
+    fun rollValue(type: StatusType): Double = values[type]?.rollValue() ?: 0.0
+
+    /**
      * 指定した種別の最大値（totalValue）を返します。
      *
      * @param type ステータス種別
      * @return 最大値。未定義なら 0.0
      */
-    fun getMaxValue(type: StatusType): Double = values[type]?.totalValue ?: 0.0
+    fun getMaxValue(type: StatusType): Double = values[type]?.maxValue ?: 0.0
 
     /**
      * 現在HP/MP/エネルギーを上限範囲へクランプした新しいスナップショットを返します。

@@ -140,7 +140,7 @@ public class MobDropService {
      */
     private double resolveLuck(@NotNull AstPlayer killer) {
         StatusSnapshot snapshot = killer.getStatusSnapshot();
-        return snapshot == null ? 0.0D : Math.max(0.0D, snapshot.getMaxValue(StatusType.LUCK));
+        return snapshot == null ? 0.0D : Math.max(0.0D, snapshot.rollValue(StatusType.LUCK));
     }
 
     private double clampRate(double rate) {

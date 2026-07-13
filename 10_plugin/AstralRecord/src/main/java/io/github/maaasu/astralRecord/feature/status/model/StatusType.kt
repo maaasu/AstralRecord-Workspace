@@ -17,25 +17,27 @@ import java.util.Locale
  * @property category    ステータスのカテゴリ
  * @property suffix      表示用の単位サフィックス
  * @property decimalPlaces 表示時の小数桁数
+ * @property supportsRange 最小値・最大値による範囲保持を許可するか
  */
 enum class StatusType(
     val displayName: String,
     val category: Category,
     private val suffix: String = "",
     private val decimalPlaces: Int = 0,
+    val supportsRange: Boolean = true,
 ) {
     // region リソース系
     /** 最大HP */
-    MAX_HEALTH("最大HP", Category.RESOURCE),
+    MAX_HEALTH("最大HP", Category.RESOURCE, supportsRange = false),
 
     /** 最大MP */
-    MAX_MANA("最大MP", Category.RESOURCE),
+    MAX_MANA("最大MP", Category.RESOURCE, supportsRange = false),
 
     /** 最大エネルギー — スキル発動・ダッシュ・回避行動等に消費するリソース */
-    MAX_ENERGY("最大EN", Category.RESOURCE),
+    MAX_ENERGY("最大EN", Category.RESOURCE, supportsRange = false),
 
     /** 最大シールド */
-    MAX_SHIELD("最大シールド", Category.RESOURCE),
+    MAX_SHIELD("最大シールド", Category.RESOURCE, supportsRange = false),
     // endregion
 
     // region 基本能力値
@@ -158,8 +160,12 @@ enum class StatusType(
 
     /** シールドリチャージレート */
     SHIELD_RECHARGE_RATE("シールドリチャージ", Category.UTILITY),
+
+    /** 採集速度 — 採集オブジェクトへ1回の採集判定で与える破壊力 */
+    MINING_SPEED("採集速度", Category.UTILITY),
+
     /** クエストを同時に受領できる最大数 */
-    QUEST_LIMIT("クエスト受領上限", Category.UTILITY),
+    QUEST_LIMIT("クエスト受領上限", Category.UTILITY, supportsRange = false),
     ;
 
     /**
@@ -206,6 +212,29 @@ enum class StatusType(
         val sign = if (value > 0.0) "+" else ""
         return sign + formatValue(value)
     }
+
+    /**
+     * 最小値・最大値を表示用文字列へ変換します。
+     * 同値の場合は単一値として表示します。
+     *
+     * @param minValue 表示する下限
+     * @param maxValue 表示する上限
+     * @return 単一値または `下限 ～ 上限` 形式の文字列
+     */
+    fun formatRange(minValue: Double, maxValue: Double): String =
+        if (minValue == maxValue) formatValue(minValue) else "${formatValue(minValue)} ～ ${formatValue(maxValue)}"
+
+    /**
+     * 最小補正値・最大補正値を符号付き表示用文字列へ変換します。
+     * 同値の場合は単一値として表示します。
+     *
+     * @param minValue 表示する補正下限
+     * @param maxValue 表示する補正上限
+     * @return 符号付きの単一値または範囲文字列
+     */
+    fun formatSignedRange(minValue: Double, maxValue: Double): String =
+        if (minValue == maxValue) formatSignedValue(minValue)
+        else "${formatSignedValue(minValue)} ～ ${formatSignedValue(maxValue)}"
 
     /**
      * ステータス名の共通表示色を返します。

@@ -145,19 +145,29 @@ public final class StatusScreenView extends BaseMenuScreenView {
             .append(Component.text(" ▸ ", accent))
             .append(Component.text(type.getDisplayName(), type.namedColor()))
             .append(Component.text(" ", NamedTextColor.DARK_GRAY))
-            .append(Component.text(type.formatValue(value.getTotalValue()), NamedTextColor.WHITE, TextDecoration.BOLD));
+            .append(Component.text(
+                type.formatRange(value.getMinValue(), value.getMaxValue()),
+                NamedTextColor.WHITE,
+                TextDecoration.BOLD
+            ));
 
         if (SHOW_BASE_BONUS_STATS) {
             line = line
                 .append(Component.text("  base ", NamedTextColor.DARK_GRAY))
-                .append(Component.text(type.formatValue(value.getBaseValue()), NamedTextColor.GRAY));
+                .append(Component.text(
+                    type.formatRange(value.getBaseMinValue(), value.getBaseMaxValue()),
+                    NamedTextColor.GRAY
+                ));
 
-            double bonus = value.getBonusValue();
-            if (bonus != 0.0) {
-                NamedTextColor bonusColor = bonus > 0.0 ? NamedTextColor.GREEN : NamedTextColor.RED;
+            double bonusMin = value.getBonusMinValue();
+            double bonusMax = value.getBonusMaxValue();
+            if (bonusMin != 0.0 || bonusMax != 0.0) {
+                NamedTextColor bonusColor = bonusMin >= 0.0 && bonusMax >= 0.0
+                    ? NamedTextColor.GREEN
+                    : NamedTextColor.RED;
                 line = line
                     .append(Component.text(" bonus ", NamedTextColor.DARK_GRAY))
-                    .append(Component.text(type.formatSignedValue(bonus), bonusColor));
+                    .append(Component.text(type.formatSignedRange(bonusMin, bonusMax), bonusColor));
             }
         }
         return noItalic(line);

@@ -176,7 +176,8 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
 
         StatusSnapshot snapshot = new StatusService(itemService, inventoryService).refreshStatus(astPlayer);
 
-        assertEquals(13.0D, snapshot.getMaxValue(StatusType.ATTACK), 0.0001D);
+        assertEquals(12.0D, snapshot.getValue(StatusType.ATTACK).getMinValue(), 0.0001D);
+        assertEquals(14.0D, snapshot.getValue(StatusType.ATTACK).getMaxValue(), 0.0001D);
         assertEquals(snapshot.getMaxValue(StatusType.MAX_HEALTH), snapshot.getCurrentHp(), 0.0001D);
         assertEquals(snapshot.getMaxValue(StatusType.MAX_MANA), snapshot.getCurrentMp(), 0.0001D);
         assertEquals(snapshot.getMaxValue(StatusType.MAX_ENERGY), snapshot.getCurrentEnergy(), 0.0001D);

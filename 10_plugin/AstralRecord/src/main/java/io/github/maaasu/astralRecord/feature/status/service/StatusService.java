@@ -368,8 +368,13 @@ public class StatusService {
 
         for (StatusType type : StatusType.values()) {
             double baseValue = getBaseValue(type);
-            double bonusValue = getBonusValue(player, type, baseValue, equipmentBonus);
-            values.put(type, new StatusValue(baseValue, bonusValue));
+            StatusRange bonusRange = getBonusRange(player, type, baseValue, equipmentBonus);
+            values.put(type, new StatusValue(
+                baseValue,
+                baseValue,
+                bonusRange.min(),
+                bonusRange.max()
+            ));
         }
 
         return new StatusSnapshot(values, 0.0D, 0.0D, 0.0D, 0.0D, System.currentTimeMillis(), LocalDateTime.now());
@@ -424,20 +429,37 @@ public class StatusService {
             case COOLDOWN_REDUCTION -> 0.0D;
             case SHIELD_RECHARGE_REDUCTION -> 0.0D;
             case SHIELD_RECHARGE_RATE -> 0.0D;
+            case MINING_SPEED -> 1.0D;
             case QUEST_LIMIT -> 3.0D;
         };
+    }
+
+    private @NotNull StatusRange getBonusRange(
+        @NotNull AstPlayer player,
+        @NotNull StatusType type,
+        double baseValue,
+        @NotNull EquipmentBonus equipmentBonus
+    ) {
+        if (!type.getSupportsRange()) {
+            double value = getBonusValue(player, type, baseValue, equipmentBonus, RangeEndpoint.AVERAGE);
+            return new StatusRange(value, value);
+        }
+        double lower = getBonusValue(player, type, baseValue, equipmentBonus, RangeEndpoint.MIN);
+        double upper = getBonusValue(player, type, baseValue, equipmentBonus, RangeEndpoint.MAX);
+        return new StatusRange(Math.min(lower, upper), Math.max(lower, upper));
     }
 
     private double getBonusValue(
         @NotNull AstPlayer player,
         @NotNull StatusType type,
         double baseValue,
-        @NotNull EquipmentBonus equipmentBonus
+        @NotNull EquipmentBonus equipmentBonus,
+        @NotNull RangeEndpoint endpoint
     ) {
         double nonBuffBonus = getAccountModeBonus(player.getAccount().getMode(), type);
         nonBuffBonus += getPermissionBonus(player.getUser().getPermission(), type);
         nonBuffBonus += getClassShieldBonus(player, type);
-        nonBuffBonus += getEquipmentBonus(equipmentBonus, type, baseValue + nonBuffBonus);
+        nonBuffBonus += getEquipmentBonus(equipmentBonus, type, baseValue + nonBuffBonus, endpoint);
         nonBuffBonus += getSkillTreeBonus(player, type, baseValue + nonBuffBonus);
         nonBuffBonus += getPassiveSkillBonus(player, type, baseValue + nonBuffBonus);
 
@@ -468,9 +490,14 @@ public class StatusService {
             || type == StatusType.SHIELD_RECHARGE_RATE;
     }
 
-    private double getEquipmentBonus(@NotNull EquipmentBonus bonus, @NotNull StatusType type, double baseValue) {
-        double flat = bonus.flatValues.getOrDefault(type, 0.0D);
-        double scalar = bonus.scalarValues.getOrDefault(type, 0.0D);
+    private double getEquipmentBonus(
+        @NotNull EquipmentBonus bonus,
+        @NotNull StatusType type,
+        double baseValue,
+        @NotNull RangeEndpoint endpoint
+    ) {
+        double flat = endpoint.select(bonus.flatValues.get(type));
+        double scalar = endpoint.select(bonus.scalarValues.get(type));
         return flat + (baseValue * scalar);
     }
 
@@ -553,12 +580,18 @@ public class StatusService {
                 normalizeStatusKey(roll.getStatus()),
                 ItemEquipmentStatType.FLAT
             );
-            addBonus(bonus, statusType, statType, averageStatValue(roll.getMin(), roll.getMax()));
+            addBonus(
+                bonus,
+                statusType,
+                statType,
+                parseStatDouble(roll.getMin()),
+                parseStatDouble(roll.getMax())
+            );
         }
 
         for (Map.Entry<String, EquipmentStatAmount> entry : calculateEnhanceStats(equipment, instance.getEnhanceLevel()).entrySet()) {
             EquipmentStatAmount amount = entry.getValue();
-            addBonus(bonus, amount.statusType, amount.type, amount.average());
+            addBonus(bonus, amount.statusType, amount.type, amount.min, amount.max);
         }
 
         for (EquipmentEnchant enchant : instance.getEnchants()) {
@@ -566,7 +599,13 @@ public class StatusService {
             if (statusType == null) {
                 continue;
             }
-            addBonus(bonus, statusType, ItemEquipmentStatType.fromApiValue(enchant.getType()), enchant.getValue());
+            addBonus(
+                bonus,
+                statusType,
+                ItemEquipmentStatType.fromApiValue(enchant.getType()),
+                enchant.getValue(),
+                enchant.getValue()
+            );
         }
     }
 
@@ -625,7 +664,8 @@ public class StatusService {
                     if (statusType == null) {
                         continue;
                     }
-                    addBonus(bonus, statusType, stat.getType(), parseStatDouble(stat.getValue()));
+                    double value = parseStatDouble(stat.getValue());
+                    addBonus(bonus, statusType, stat.getType(), value, value);
                 }
             }
         }
@@ -643,12 +683,13 @@ public class StatusService {
         @NotNull EquipmentBonus bonus,
         @NotNull StatusType statusType,
         @NotNull ItemEquipmentStatType statType,
-        double value
+        double min,
+        double max
     ) {
-        Map<StatusType, Double> target = statType == ItemEquipmentStatType.SCALAR
+        Map<StatusType, StatusRangeAccumulator> target = statType == ItemEquipmentStatType.SCALAR
             ? bonus.scalarValues
             : bonus.flatValues;
-        target.merge(statusType, value, Double::sum);
+        target.computeIfAbsent(statusType, ignored -> new StatusRangeAccumulator()).add(min, max);
     }
 
     private @NotNull Map<String, EquipmentStatAmount> calculateEnhanceStats(
@@ -679,10 +720,6 @@ public class StatusService {
         return amounts;
     }
 
-    private double averageStatValue(@NotNull String min, @NotNull String max) {
-        return (parseStatDouble(min) + parseStatDouble(max)) / 2.0D;
-    }
-
     private double parseStatDouble(@NotNull String value) {
         try {
             return Double.parseDouble(value.trim().split("~")[0].trim());
@@ -708,12 +745,46 @@ public class StatusService {
     }
 
     private static final class EquipmentBonus {
-        private final Map<StatusType, Double> flatValues = new EnumMap<>(StatusType.class);
-        private final Map<StatusType, Double> scalarValues = new EnumMap<>(StatusType.class);
+        private final Map<StatusType, StatusRangeAccumulator> flatValues = new EnumMap<>(StatusType.class);
+        private final Map<StatusType, StatusRangeAccumulator> scalarValues = new EnumMap<>(StatusType.class);
 
         private static @NotNull EquipmentBonus empty() {
             return new EquipmentBonus();
         }
+    }
+
+    private static final class StatusRangeAccumulator {
+        private double min;
+        private double max;
+
+        private void add(double first, double second) {
+            min += Math.min(first, second);
+            max += Math.max(first, second);
+        }
+
+        private double average() {
+            return (min + max) / 2.0D;
+        }
+    }
+
+    private enum RangeEndpoint {
+        MIN,
+        MAX,
+        AVERAGE;
+
+        private double select(@Nullable StatusRangeAccumulator value) {
+            if (value == null) {
+                return 0.0D;
+            }
+            return switch (this) {
+                case MIN -> value.min;
+                case MAX -> value.max;
+                case AVERAGE -> value.average();
+            };
+        }
+    }
+
+    private record StatusRange(double min, double max) {
     }
 
     private static final class EquipmentStatAmount {
@@ -786,6 +857,7 @@ public class StatusService {
                 case COOLDOWN_REDUCTION -> 0.0D;
                 case SHIELD_RECHARGE_REDUCTION -> 0.0D;
                 case SHIELD_RECHARGE_RATE -> 0.0D;
+                case MINING_SPEED -> 0.0D;
                 case QUEST_LIMIT -> 0.0D;
             };
             case ADMIN -> switch (type) {
@@ -823,6 +895,7 @@ public class StatusService {
                 case COOLDOWN_REDUCTION -> 5.0D;
                 case SHIELD_RECHARGE_REDUCTION -> 0.0D;
                 case SHIELD_RECHARGE_RATE -> 0.0D;
+                case MINING_SPEED -> 0.0D;
                 case QUEST_LIMIT -> 0.0D;
             };
         };
@@ -865,6 +938,7 @@ public class StatusService {
                 case COOLDOWN_REDUCTION -> 2.0D;
                 case SHIELD_RECHARGE_REDUCTION -> 0.0D;
                 case SHIELD_RECHARGE_RATE -> 0.0D;
+                case MINING_SPEED -> 0.0D;
                 case QUEST_LIMIT -> 0.0D;
             };
         }
@@ -905,6 +979,7 @@ public class StatusService {
                 case COOLDOWN_REDUCTION -> 0.0D;
                 case SHIELD_RECHARGE_REDUCTION -> 0.0D;
                 case SHIELD_RECHARGE_RATE -> 0.0D;
+                case MINING_SPEED -> 0.0D;
                 case QUEST_LIMIT -> 0.0D;
             };
         }

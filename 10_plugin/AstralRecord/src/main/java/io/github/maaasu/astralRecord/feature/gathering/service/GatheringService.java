@@ -13,6 +13,8 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
+import io.github.maaasu.astralRecord.feature.status.model.StatusValue;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -228,7 +230,9 @@ public class GatheringService {
     }
 
     private void applyMiningDamage(@NotNull Player player, @NotNull GatheringInstance instance) {
-        instance.damage(1);
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        int miningDamage = astPlayer == null ? 1 : resolveMiningDamage(astPlayer);
+        instance.damage(miningDamage);
         player.swingMainHand();
         if (instance.currentHealth() > 0) {
             playSound(instance.location(), instance.definition().sounds().hit());
@@ -236,7 +240,7 @@ public class GatheringService {
         }
 
         playSound(instance.location(), instance.definition().sounds().breakSound());
-        AstPlayer recipient = AstPlayerCache.get(player);
+        AstPlayer recipient = astPlayer;
         if (recipient != null && dropPresentationService != null) {
             MobDropResult result = dropService.roll(instance.definition().drops(), recipient);
             dropPresentationService.presentAndGrant(
@@ -253,6 +257,30 @@ public class GatheringService {
         UUID instanceId = instance.instanceId();
         stopSessionByPlayer(player.getUniqueId(), false);
         destroy(instanceId);
+    }
+
+    /**
+     * プレイヤーの採集速度を参照し、1回の採集判定で与える破壊ダメージへ変換します。
+     * 範囲ステータスの場合は参照時に抽選し、最低破壊ダメージは1とします。
+     *
+     * @param player 採集を行うプレイヤー
+     * @return 1以上の採集オブジェクト破壊ダメージ
+     */
+    int resolveMiningDamage(@NotNull AstPlayer player) {
+        return resolveMiningDamage(player.getStatusSnapshot().getValue(StatusType.MINING_SPEED));
+    }
+
+    /**
+     * 採集速度の確定値を整数の破壊ダメージへ変換します。
+     *
+     * @param value 採集速度。未計算の場合はnull
+     * @return 1以上の採集オブジェクト破壊ダメージ
+     */
+    static int resolveMiningDamage(@Nullable StatusValue value) {
+        if (value == null) {
+            return 1;
+        }
+        return Math.max(1, (int) Math.round(value.rollValue()));
     }
 
     private void playSound(@NotNull Location location, @Nullable GatheringSound sound) {

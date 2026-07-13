@@ -307,15 +307,25 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
             .append(Component.text(" ▸ ", accent))
             .append(Component.text(type.getDisplayName(), type.namedColor()))
             .append(Component.text("  "))
-            .append(Component.text(type.formatValue(value.getTotalValue()), NamedTextColor.WHITE, TextDecoration.BOLD));
-        double bonus = value.getBonusValue();
-        if (bonus != 0.0) {
-            NamedTextColor bonusColor = bonus > 0.0 ? NamedTextColor.GREEN : NamedTextColor.RED;
+            .append(Component.text(
+                type.formatRange(value.getMinValue(), value.getMaxValue()),
+                NamedTextColor.WHITE,
+                TextDecoration.BOLD
+            ));
+        double bonusMin = value.getBonusMinValue();
+        double bonusMax = value.getBonusMaxValue();
+        if (bonusMin != 0.0 || bonusMax != 0.0) {
+            NamedTextColor bonusColor = bonusMin >= 0.0 && bonusMax >= 0.0
+                ? NamedTextColor.GREEN
+                : NamedTextColor.RED;
             line = line
                 .append(Component.text("  基礎 ", NamedTextColor.DARK_GRAY))
-                .append(Component.text(type.formatValue(value.getBaseValue()), NamedTextColor.GRAY))
+                .append(Component.text(
+                    type.formatRange(value.getBaseMinValue(), value.getBaseMaxValue()),
+                    NamedTextColor.GRAY
+                ))
                 .append(Component.text(" / 補正 ", NamedTextColor.DARK_GRAY))
-                .append(Component.text(type.formatSignedValue(bonus), bonusColor));
+                .append(Component.text(type.formatSignedRange(bonusMin, bonusMax), bonusColor));
         }
         return noItalic(line);
     }

@@ -3,7 +3,6 @@ package io.github.maaasu.astralRecord.feature.combat.model;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
-import io.github.maaasu.astralRecord.feature.status.model.StatusValue;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
@@ -169,8 +168,7 @@ public final class AstEntity {
     public double statValue(@NotNull StatusType statusType) {
         return switch (type) {
             case PLAYER -> {
-                StatusValue value = player.getStatusSnapshot().getValue(statusType);
-                yield value == null ? 0.0D : value.getTotalValue();
+                yield player.getStatusSnapshot().rollValue(statusType);
             }
             case MOB -> mob.template().statValue(statusType.name(), 0.0D);
             case BUKKIT -> 0.0D;

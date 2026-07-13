@@ -249,8 +249,7 @@ public class MobCombatService {
         if (astPlayer == null) {
             return 0.0D;
         }
-        var value = statusService.getStatus(astPlayer).getValue(StatusType.EVASION);
-        return value == null ? 0.0D : Math.max(0.0D, value.getTotalValue());
+        return Math.max(0.0D, statusService.getStatus(astPlayer).rollValue(StatusType.EVASION));
     }
 
     /**
