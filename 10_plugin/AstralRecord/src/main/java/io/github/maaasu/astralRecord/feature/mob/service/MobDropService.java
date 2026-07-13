@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.mob.service;
 
+import io.github.maaasu.astralRecord.feature.combat.service.LevelDifferenceCalculator;
 import io.github.maaasu.astralRecord.feature.loot.model.LootModel;
 import io.github.maaasu.astralRecord.feature.loot.model.LootRollResult;
 import io.github.maaasu.astralRecord.feature.loot.service.LootRollService;
@@ -57,7 +58,19 @@ public class MobDropService {
     @NotNull
     public MobDropResult roll(@NotNull MobTemplate template, @Nullable AstPlayer killer) {
         MobDropConfig drops = template.drops();
-        return roll(drops, killer);
+        MobDropResult result = roll(drops, killer);
+        if (killer == null) {
+            return result;
+        }
+        return new MobDropResult(
+                result.items(),
+                LevelDifferenceCalculator.scaleExperience(
+                        result.exp(),
+                        killer.getAccount().getLevel(),
+                        template.level()
+                ),
+                result.money()
+        );
     }
 
     /**

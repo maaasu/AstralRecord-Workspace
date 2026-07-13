@@ -169,6 +169,7 @@ public record MobTemplate(
     }
 
     public MobTemplate {
+        level = Math.max(1, level);
         lore = lore == null ? List.of() : List.copyOf(lore);
         tags = tags == null ? List.of() : List.copyOf(tags);
         baseStats = baseStats == null ? List.of() : List.copyOf(baseStats);

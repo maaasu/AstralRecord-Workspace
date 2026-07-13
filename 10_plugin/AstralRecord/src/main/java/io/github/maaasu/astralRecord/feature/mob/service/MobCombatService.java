@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.adventurerecord.service.AdventureRe
 import io.github.maaasu.astralRecord.feature.account.model.AccountExperienceResult;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageCalculator;
+import io.github.maaasu.astralRecord.feature.combat.service.LevelDifferenceCalculator;
 import io.github.maaasu.astralRecord.feature.mob.model.CombatStyle;
 import io.github.maaasu.astralRecord.feature.mob.model.DamageType;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
@@ -363,7 +364,10 @@ public class MobCombatService {
         };
         double offensive = attack * (1.0 + scaling / 100.0);
         double defense = resolvePlayerDefense(target, damageTypeOf(style));
-        return Math.max(1.0, offensive - defense * 0.5);
+        double damage = Math.max(1.0, offensive - defense * 0.5);
+        AstPlayer astTarget = AstPlayerCache.get(target);
+        int playerLevel = astTarget == null ? 1 : astTarget.getAccount().getLevel();
+        return damage * LevelDifferenceCalculator.damageMultiplier(template.level(), playerLevel);
     }
 
     /**

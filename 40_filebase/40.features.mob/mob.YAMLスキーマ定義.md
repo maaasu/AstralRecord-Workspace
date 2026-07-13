@@ -26,7 +26,7 @@ AI（行動ロジック）もプラグイン独自実装であり、本スキー
 | `category`      | String       | ○  | -         | カテゴリ（`ENEMY` / `BOSS` / `NPC`）。ファイルが適切なフォルダに配置されているかの確認 |
 | `name`          | String       | ○  | -         | ゲーム内に表示される名前（色コード利用可能）                                  |
 | `title`         | String       | ×  | Null      | 二つ名・称号（例: `"&0闇の支配者"`）                                  |
-| `level`         | Integer      | ○  | -         | Mobのレベル                                                 |
+| `level`         | Integer      | ○  | -         | Mobの固定戦闘レベル（1以上）。プレイヤーとのレベル差によるダメージ・撃破経験値補正と頭上表示に使用する |
 | `entityType`    | String       | ○  | -         | Bukkit EntityType（例: `ZOMBIE`）。NPC は Bukkit block Material（例: `BARREL`, `ANVIL`）も指定でき、その場合は配置座標を中心にした `Interaction + BlockDisplay` 構成で表示・クリック判定を行う。`CHEST` 系は `Interaction + ItemDisplay` 構成で、指定されたチェスト系 Material の見た目を維持する |
 | `skin`          | Map          | ×  | Null      | エンティティの外見設定（後述。entityType が `PLAYER` の場合に主に使用）          |
 | `variant`       | Map          | ×  | `age: ADULT` | 同一マスタから生まれる実体 Mob の見た目差分を固定する設定 |

@@ -287,7 +287,8 @@ public class OverheadDisplayService {
                 : "";
         return String.format(
                 Locale.ROOT,
-                "%s\n%s%s%s",
+                "&7Lv.%d %s\n%s%s%s",
+                instance.template().level(),
                 instance.template().displayName(),
                 bar("HP", instance.currentHealth(), maxHealth, "&c"),
                 shield,

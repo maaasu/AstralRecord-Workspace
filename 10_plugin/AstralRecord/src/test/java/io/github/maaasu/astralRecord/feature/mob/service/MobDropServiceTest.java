@@ -1,5 +1,7 @@
 package io.github.maaasu.astralRecord.feature.mob.service;
 
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.loot.model.LootContent;
 import io.github.maaasu.astralRecord.feature.loot.model.LootModel;
 import io.github.maaasu.astralRecord.feature.loot.model.LootPoolModel;
@@ -7,15 +9,23 @@ import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropItem;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
+import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
+import io.github.maaasu.astralRecord.feature.mob.model.MobEquipmentConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobIdleConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionsConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusValue;
 import org.junit.jupiter.api.Test;
+import org.bukkit.entity.EntityType;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -107,5 +117,59 @@ class MobDropServiceTest {
 
         assertEquals(1, result.items().size());
         assertEquals("affected", result.items().getFirst().itemId());
+    }
+
+    @Test
+    void rollTemplateReducesExperienceByPlayerAndMobLevelDifference() {
+        LocalDateTime now = LocalDateTime.now();
+        UUID userId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
+        UUID systemId = UUID.randomUUID();
+        AccountModel account = new AccountModel(
+            accountId,
+            userId,
+            "test-account",
+            0,
+            true,
+            AccountMode.PLAYER,
+            "{}",
+            now,
+            now,
+            systemId,
+            systemId,
+            false,
+            20
+        );
+        AstPlayer killer = mock(AstPlayer.class);
+        when(killer.getAccount()).thenReturn(account);
+
+        MobDropConfig drops = new MobDropConfig(100, null, List.of(), null);
+        MobTemplate template = new MobTemplate(
+            1,
+            "test_mob",
+            MobCategory.ENEMY,
+            "Test Mob",
+            null,
+            10,
+            EntityType.ZOMBIE,
+            false,
+            "ZOMBIE_HEAD",
+            List.of(),
+            List.of(),
+            null,
+            MobEquipmentConfig.EMPTY,
+            List.of(),
+            MobShieldConfig.EMPTY,
+            MobIdleConfig.defaults(),
+            false,
+            MobInteractionsConfig.EMPTY,
+            null,
+            null,
+            drops
+        );
+
+        MobDropResult result = new MobDropService().roll(template, killer);
+
+        assertEquals(50, result.exp());
     }
 }

@@ -225,10 +225,20 @@ public final class DesignTestFixtures {
     }
 
     public static MobInstance mobInstance(double maxHealth, double defense, double magicDefense) {
-        return mobInstance(maxHealth, defense, magicDefense, MobShieldConfig.EMPTY);
+        return mobInstance(1, maxHealth, defense, magicDefense, MobShieldConfig.EMPTY);
     }
 
     public static MobInstance mobInstance(
+        double maxHealth,
+        double defense,
+        double magicDefense,
+        MobShieldConfig shield
+    ) {
+        return mobInstance(1, maxHealth, defense, magicDefense, shield);
+    }
+
+    public static MobInstance mobInstance(
+        int level,
         double maxHealth,
         double defense,
         double magicDefense,
@@ -240,7 +250,7 @@ public final class DesignTestFixtures {
             MobCategory.ENEMY,
             "Test Mob",
             null,
-            1,
+            level,
             EntityType.ZOMBIE,
             false,
             "ZOMBIE_HEAD",

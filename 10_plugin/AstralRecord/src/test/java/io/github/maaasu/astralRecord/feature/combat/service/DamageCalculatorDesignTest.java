@@ -143,7 +143,43 @@ class DamageCalculatorDesignTest {
         assertEquals(100.0D, result.hitChance(), 0.0001D);
     }
 
+    @Test
+    void levelDifferenceScalesDamageAndClampsAtConfiguredBounds() {
+        DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
+        AstPlayer lowLevelAttacker = player(Map.of(), 1);
+        MobInstance highLevelVictim = DesignTestFixtures.mobInstance(11, 100.0D, 0.0D, 0.0D, null);
+
+        var lowResult = calculator.calculate(new DamageContext(
+            AstEntity.player(lowLevelAttacker),
+            AstEntity.mob(highLevelVictim),
+            100.0D,
+            AttackType.MELEE,
+            DamageType.TRUE,
+            DamageScaling.FIXED
+        ));
+
+        AstPlayer highLevelAttacker = player(Map.of(), 11);
+        MobInstance lowLevelVictim = DesignTestFixtures.mobInstance(1, 100.0D, 0.0D, 0.0D, null);
+        var highResult = calculator.calculate(new DamageContext(
+            AstEntity.player(highLevelAttacker),
+            AstEntity.mob(lowLevelVictim),
+            100.0D,
+            AttackType.MELEE,
+            DamageType.TRUE,
+            DamageScaling.FIXED
+        ));
+
+        assertEquals(70.0D, lowResult.finalDamage(), 0.0001D);
+        assertEquals(130.0D, highResult.finalDamage(), 0.0001D);
+        assertEquals(0.70D, LevelDifferenceCalculator.damageMultiplier(1, 100), 0.0001D);
+        assertEquals(1.30D, LevelDifferenceCalculator.damageMultiplier(100, 1), 0.0001D);
+    }
+
     private AstPlayer player(Map<StatusType, Double> statuses) {
+        return player(statuses, 1);
+    }
+
+    private AstPlayer player(Map<StatusType, Double> statuses, int level) {
         UUID userId = UUID.randomUUID();
         UUID accountId = UUID.randomUUID();
         UUID systemId = UUID.randomUUID();
@@ -177,7 +213,8 @@ class DamageCalculatorDesignTest {
             now,
             systemId,
             systemId,
-            false
+            false,
+            level
         );
         AstPlayer player = new AstPlayer(bukkitPlayer(), user, account);
         player.setStatusSnapshot(DesignTestFixtures.statusSnapshot(statuses, 100.0D, 0.0D, 0.0D));
