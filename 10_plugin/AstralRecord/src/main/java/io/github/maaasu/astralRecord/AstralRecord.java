@@ -903,7 +903,7 @@ public final class AstralRecord extends JavaPlugin {
      */
     private void registerPluginFeatures() {
         eventManager.registerHandler(
-            new GuiClickCooldownEventHandler(),
+            new GuiClickCooldownEventHandler(inventoryService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

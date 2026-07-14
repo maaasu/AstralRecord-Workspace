@@ -2,7 +2,9 @@ package io.github.maaasu.astralRecord.shared.gui.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -20,6 +22,16 @@ public final class GuiClickCooldownEventHandler extends AbstractEventHandler {
     private static final String PLUGIN_PACKAGE_PREFIX = "io.github.maaasu.astralRecord.";
 
     private final InventoryClickGuard clickGuard = new InventoryClickGuard();
+    private final InventoryService inventoryService;
+
+    /**
+     * GUI 共通クリック処理を構築します。
+     *
+     * @param inventoryService インベントリサービス
+     */
+    public GuiClickCooldownEventHandler(@NotNull InventoryService inventoryService) {
+        this.inventoryService = inventoryService;
+    }
 
     /**
      * プラグイン GUI への連続クリックを 5tick 相当だけ抑止します。
@@ -33,6 +45,9 @@ public final class GuiClickCooldownEventHandler extends AbstractEventHandler {
                 return;
             }
             if (!isPluginGui(event.getView().getTopInventory())) {
+                return;
+            }
+            if (HotbarShortcutClickSupport.handleInventoryControlClick(event, player, inventoryService)) {
                 return;
             }
             if (clickGuard.tryAcquire(

@@ -15,8 +15,41 @@ import org.jetbrains.annotations.NotNull;
 public final class HotbarShortcutClickSupport {
     private static final int HOTBAR_MIN_SLOT = 0;
     private static final int HOTBAR_MAX_SLOT = 8;
+    private static final int SCROLL_UP_SLOT = 17;
+    private static final int SCROLL_DOWN_SLOT = 35;
     private HotbarShortcutClickSupport() {
         // utility class
+    }
+
+    /**
+     * GUI 表示中のプレイヤーインベントリにある上下スクロールを共通処理します。
+     *
+     * @param event クリックイベント
+     * @param player 操作したプレイヤー
+     * @param inventoryService インベントリサービス
+     * @return スクロール制御スロットを処理した場合は true
+     */
+    public static boolean handleInventoryControlClick(
+        @NotNull InventoryClickEvent event,
+        @NotNull Player player,
+        @NotNull InventoryService inventoryService
+    ) {
+        if (!(event.getClickedInventory() instanceof PlayerInventory)) {
+            return false;
+        }
+        int slot = event.getSlot();
+        if (slot != SCROLL_UP_SLOT && slot != SCROLL_DOWN_SLOT) {
+            return false;
+        }
+        var astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null || !inventoryService.isHotbarShortcutMode(astPlayer)) {
+            return false;
+        }
+
+        event.setCancelled(true);
+        inventoryService.handleInventoryControlClick(astPlayer, slot);
+        GuiSound.SELECT.play(player);
+        return true;
     }
 
     public static boolean handle(
