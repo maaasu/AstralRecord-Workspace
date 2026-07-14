@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.plugin.PluginMock;
@@ -27,6 +28,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.eq;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -63,6 +66,26 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
         );
     }
 
+    @Test
+    void setupItemInUnselectedHotbarDoesNotSuppressControls() {
+        SkillTreeService service = newService(null);
+        Player player = server().addPlayer();
+        player.getInventory().setItem(0, service.createPositionItem("position-test", 1));
+        player.getInventory().setItem(1, new ItemStack(Material.STONE));
+        player.getInventory().setHeldItemSlot(1);
+
+        assertFalse(service.shouldSuppressSkillTreeSetupControls(player));
+    }
+
+    @Test
+    void setupItemInActiveHandSuppressesControls() {
+        SkillTreeService service = newService(null);
+        Player player = server().addPlayer();
+        player.getInventory().setItemInMainHand(service.createPositionItem("position-test", 1));
+
+        assertTrue(service.shouldSuppressSkillTreeSetupControls(player));
+    }
+
     private SkillTreeService newService(SkillTreeNodeDefinition node) {
         SkillTreeNodeRepository nodeRepository = mock(SkillTreeNodeRepository.class);
         SkillTreeStructureRepository structureRepository = mock(SkillTreeStructureRepository.class);
@@ -80,7 +103,9 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
                 structureRepository,
                 stateRepository
         );
-        putNode(service, node);
+        if (node != null) {
+            putNode(service, node);
+        }
         return service;
     }
 

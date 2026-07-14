@@ -451,17 +451,14 @@ public class SkillTreeService {
     }
 
     /**
-     * スキルツリー設定中として通常戦闘系入力を抑止すべきかを判定します。
+     * スキルツリー設定アイテムを現在の手で操作中かを判定します。
+     * インベントリや未選択のホットバースロットに設定アイテムがあるだけでは、通常操作を抑止しません。
      *
      * @param player 判定対象プレイヤー
-     * @return 設定アイテム操作中、または管理者が skill_tree ワールドにいる場合は true
+     * @return メインハンドまたはオフハンドに設定アイテムを持っている場合は true
      */
     public boolean shouldSuppressSkillTreeSetupControls(@NotNull Player player) {
-        boolean inSkillTreeWorld = isSkillTreeWorld(player.getWorld());
-        if (!inSkillTreeWorld) {
-            return hasSetupItemInHands(player);
-        }
-        return hasSetupItemInHotbar(player);
+        return hasSetupItemInHands(player);
     }
 
     /**
@@ -485,15 +482,6 @@ public class SkillTreeService {
             return;
         }
         viewer.showPlayer(plugin, target);
-    }
-
-    private boolean hasSetupItemInHotbar(@NotNull Player player) {
-        for (int slot = 0; slot <= 8; slot++) {
-            if (isSkillTreeSetupItem(player.getInventory().getItem(slot))) {
-                return true;
-            }
-        }
-        return isSkillTreeSetupItem(player.getInventory().getItemInOffHand());
     }
 
     @Nullable
