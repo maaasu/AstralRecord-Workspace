@@ -1,5 +1,21 @@
 # Debug Deploy Tool
 
+## Master data reload
+
+`master-data-reload.bat` は、コードやプラグインをデプロイせず、次の処理だけを行います。
+
+1. `40_filebase` を開発サーバーの FileDatabase へ同期
+2. `POST /api/master-data/seed?mode=diff` を実行して MasterDataDB を更新
+
+事前に `master-data-reload.config.json` の接続先を確認し、API キーを環境変数へ設定してください。
+
+```powershell
+$env:ASTRALRECORD_API_KEY = 'your-api-key'
+E:\AstralRecord-Workspace\60_tool\master-data-reload.bat
+```
+
+バッチ完了後、Minecraft 内で `/masterdata reload` を実行します。これにより NPC 定義・NPC 配置・Mob・Item・Loot・Skill・Class・Guide・Gathering・Spawner・Quest・Waystone・World が再ロードされます。ショップはリクエスト時に MasterDataDB を参照するため、ショップ画面を開き直せば更新されます。
+
 `E:\AstralRecord-Workspace\60_tool\deploy-debug.bat` を実行すると、API / WEB / プラグインのビルドと配置をまとめて実行します。  
 `E:\AstralRecord-Workspace\60_tool\deploy-debug-plugin-only.bat` を実行すると、プラグインだけをビルドして配置します。
 
