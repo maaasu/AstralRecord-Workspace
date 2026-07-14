@@ -18,7 +18,7 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 1
+    slot: 7
     priceGold: 30
 
   - id: starter_leggings
@@ -27,7 +27,7 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 2
+    slot: 14
     priceGold: 25
 
   - id: starter_boots
@@ -36,7 +36,7 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 3
+    slot: 21
     priceGold: 15
 
   - id: traveler_cap
@@ -45,7 +45,7 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 4
+    slot: 1
     priceGold: 55
     requiredItems:
       - itemId:
@@ -63,7 +63,7 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 5
+    slot: 8
     priceGold: 85
     requiredItems:
       - itemId:
@@ -81,7 +81,7 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 6
+    slot: 15
     priceGold: 75
     requiredItems:
       - itemId:
@@ -99,7 +99,7 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 7
+    slot: 22
     priceGold: 60
     requiredItems:
       - itemId:
@@ -121,7 +121,7 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 8
+    slot: 2
     priceGold: 130
     requiredItems:
       - itemId:
@@ -143,7 +143,7 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 9
+    slot: 3
     priceGold: 75
     requiredItems:
       - itemId:
