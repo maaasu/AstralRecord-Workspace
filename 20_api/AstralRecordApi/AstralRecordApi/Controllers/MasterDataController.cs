@@ -10,8 +10,24 @@ namespace AstralRecordApi.Controllers;
 [Route("api/master-data")]
 public class MasterDataController(
     IMasterDataSeeder seeder,
-    IMasterDataRepository repository) : ControllerBase
+    IMasterDataRepository repository,
+    IMasterDataFileService files) : ControllerBase
 {
+    [HttpGet("files")]
+    public ActionResult<IReadOnlyList<MasterDataFileSummaryResponse>> ListFiles([FromQuery] string? directory)
+        => Ok(files.List(directory));
+
+    [HttpGet("files/{*relativePath}")]
+    public ActionResult<MasterDataFileResponse> GetFile(string relativePath)
+        => files.Get(relativePath) is { } file ? Ok(file) : NotFound();
+
+    [HttpPut("files/{*relativePath}")]
+    public ActionResult<MasterDataFileResponse> PutFile(string relativePath, [FromBody] MasterDataFileWriteRequest request)
+        => Ok(files.Put(relativePath, request.Content));
+
+    [HttpDelete("files/{*relativePath}")]
+    public IActionResult DeleteFile(string relativePath)
+        => files.Delete(relativePath) ? NoContent() : NotFound();
     /// <summary>filebase から MasterDataDB を同期する</summary>
     /// <remarks>
     /// filebase の YAML を走査し、差分を MasterDataDB へ反映します。

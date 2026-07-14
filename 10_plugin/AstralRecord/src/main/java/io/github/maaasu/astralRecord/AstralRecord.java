@@ -1419,6 +1419,36 @@ public final class AstralRecord extends JavaPlugin {
         return worldService;
     }
 
+    /**
+     * Re-reads all runtime master-data caches from the API/filebase-backed repositories.
+     * This deliberately preserves player, inventory, and runtime world instance state.
+     */
+    public synchronized int reloadMasterData() {
+        FileDatabaseManager.getInstance().reload();
+        YamlDbConfigUtil.INSTANCE.reload();
+
+        lootService.clearCache();
+        int loaded = lootService.loadAll();
+        itemService.clearMasterDataCache();
+        itemStackFactory.clearCache();
+        loaded += itemService.loadAll();
+        var skillDefinitions = skillService.loadDefinitions();
+        skillService.replaceDefinitions(skillDefinitions);
+        loaded += skillDefinitions.size();
+        loaded += playerClassService.loadAll();
+        loaded += guideService.loadAll();
+
+        loaded += mobService.loadAll();
+        loaded += npcPlacementService.loadAll();
+        loaded += mobSpawnerService.loadAll();
+        loaded += gatheringService.loadAll();
+        loaded += gatheringSpawnerService.loadAll();
+        loaded += questService.loadAll();
+        loaded += teleporterService.loadAll();
+        loaded += worldService.loadAll();
+        return loaded;
+    }
+
     public BossChallengeService getBossChallengeService() {
         return bossChallengeService;
     }

@@ -86,6 +86,12 @@ public class ItemService {
         return total;
     }
 
+    /** Reloads only filebase/API-backed item caches; runtime equipment state is preserved. */
+    public void clearMasterDataCache() {
+        loadedItems.clear();
+        loadedSetEffects.clear();
+    }
+
     /**
      * 指定カテゴリのアイテムを API から一括取得してキャッシュへ登録します。
      *

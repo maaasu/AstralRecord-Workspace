@@ -45,3 +45,23 @@ public class MasterDataHealthResponse
     public string? LastSeedRunStatus { get; init; }
     public DateTime? LastSucceededAt { get; init; }
 }
+
+public sealed class MasterDataFileResponse
+{
+    public string Path { get; init; } = string.Empty;
+    public string Content { get; init; } = string.Empty;
+    public DateTime LastWriteTimeUtc { get; init; }
+    public long Length { get; init; }
+}
+
+public sealed class MasterDataFileSummaryResponse
+{
+    public string Path { get; init; } = string.Empty;
+    public DateTime LastWriteTimeUtc { get; init; }
+    public long Length { get; init; }
+}
+
+public sealed class MasterDataFileWriteRequest
+{
+    public string Content { get; init; } = string.Empty;
+}

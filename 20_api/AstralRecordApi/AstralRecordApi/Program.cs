@@ -82,6 +82,7 @@ builder.Services.AddScoped<IMarketPriceService, MarketPriceService>();
 builder.Services.AddScoped<IMarketListingLimitService, MarketListingLimitService>();
 builder.Services.AddScoped<IMasterDataRepository, MasterDataRepository>();
 builder.Services.AddScoped<IMasterDataSeeder, MasterDataSeeder>();
+builder.Services.AddSingleton<IMasterDataFileService, MasterDataFileService>();
 builder.Services.AddHostedService<MasterDataSeedHostedService>();
 
 builder.Services.AddAuthentication(ApiKeyAuthenticationHandler.SchemeName)

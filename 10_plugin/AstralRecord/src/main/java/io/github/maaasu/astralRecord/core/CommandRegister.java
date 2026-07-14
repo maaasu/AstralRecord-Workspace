@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.core;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.command.ReloadCommand;
+import io.github.maaasu.astralRecord.core.command.MasterDataCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountModeCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountModeTabCompleter;
@@ -154,5 +155,6 @@ public class CommandRegister {
         cm.registerCommand("test", new TestCommand(AstralRecord.getInstance()), new TestTabCompleter());
         cm.registerCommand("testskilltree", new SkillTreeSpawnCheckCommand(), new SkillTreeSpawnCheckTabCompleter());
         cm.registerCommand("astreload", new ReloadCommand());
+        cm.registerCommand("masterdata", new MasterDataCommand(AstralRecord.getInstance()));
     }
 }
