@@ -81,8 +81,8 @@ class EquipmentMenuScreenViewTest extends MockBukkitTestBase {
 
         assertSame(AccessorySlotType.AMULET, view.getAccessorySlotTypeAtSlot(23));
         assertSame(AccessorySlotType.TALISMAN_1, view.getAccessorySlotTypeAtSlot(31));
-        assertSame(AccessorySlotType.TALISMAN_2, view.getAccessorySlotTypeAtSlot(32));
-        assertSame(AccessorySlotType.CORE, view.getAccessorySlotTypeAtSlot(33));
+        assertSame(AccessorySlotType.CORE, view.getAccessorySlotTypeAtSlot(32));
+        assertSame(AccessorySlotType.TALISMAN_2, view.getAccessorySlotTypeAtSlot(33));
         assertSame(AccessorySlotType.RELIC_1, view.getAccessorySlotTypeAtSlot(39));
         assertSame(AccessorySlotType.CHARM_1, view.getAccessorySlotTypeAtSlot(40));
         assertSame(AccessorySlotType.CHARM_2, view.getAccessorySlotTypeAtSlot(41));

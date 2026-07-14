@@ -37,8 +37,8 @@ public final class EquipmentMenuScreenView extends BaseMenuScreenView {
     public static final int MEMORY_2_SLOT = 36;
     public static final int EQUIPMENT_AMULET_SLOT = 23;
     public static final int EQUIPMENT_TALISMAN_1_SLOT = 31;
-    public static final int EQUIPMENT_TALISMAN_2_SLOT = 32;
-    public static final int EQUIPMENT_CORE_SLOT = 33;
+    public static final int EQUIPMENT_TALISMAN_2_SLOT = 33;
+    public static final int EQUIPMENT_CORE_SLOT = 32;
     public static final int EQUIPMENT_RELIC_1_SLOT = 39;
     public static final int EQUIPMENT_CHARM_1_SLOT = 40;
     public static final int EQUIPMENT_CHARM_2_SLOT = 41;

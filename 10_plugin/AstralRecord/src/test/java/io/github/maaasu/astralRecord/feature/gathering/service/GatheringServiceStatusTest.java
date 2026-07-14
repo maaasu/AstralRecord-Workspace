@@ -19,6 +19,11 @@ class GatheringServiceStatusTest {
     }
 
     @Test
+    void toolMiningSpeedIsUsedAsSingleGatheringDamage() {
+        assertEquals(2, GatheringService.resolveMiningDamage(new StatusValue(0.0D, 2.0D)));
+    }
+
+    @Test
     void rangedMiningSpeedRollsDamageWithinBounds() {
         StatusValue value = new StatusValue(0.0D, 0.0D, 2.0D, 10.0D);
 

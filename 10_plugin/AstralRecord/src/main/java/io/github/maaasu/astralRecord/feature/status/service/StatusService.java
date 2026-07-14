@@ -430,7 +430,8 @@ public class StatusService {
             case COOLDOWN_REDUCTION -> 0.0D;
             case SHIELD_RECHARGE_REDUCTION -> 0.0D;
             case SHIELD_RECHARGE_RATE -> 0.0D;
-            case MINING_SPEED -> 1.0D;
+            // 採集速度は装備値をそのまま1回分の破壊力として扱う。装備なしは GatheringService 側で1に補正する。
+            case MINING_SPEED -> 0.0D;
             case QUEST_LIMIT -> 3.0D;
         };
     }

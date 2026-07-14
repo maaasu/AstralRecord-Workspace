@@ -22,7 +22,6 @@ import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -40,7 +39,6 @@ import java.util.UUID;
 public class GatheringService {
     private static final double TARGET_DISTANCE = 5.5D;
     private static final double TARGET_RADIUS_SQ = 0.85D * 0.85D;
-    private static final long AUTO_CLICK_INTERVAL_TICKS = 8L;
     private static final String DROP_SOURCE = "gathering_drop";
 
     private final Plugin plugin;
@@ -93,9 +91,6 @@ public class GatheringService {
     }
 
     public void stop() {
-        for (MiningSession session : List.copyOf(sessions.values())) {
-            session.cancel();
-        }
         sessions.clear();
         if (visualizer != null) {
             visualizer.stop();
@@ -127,9 +122,6 @@ public class GatheringService {
      * reload 後のスポナー上限判定に残らないようにします。
      */
     public void clearInstances() {
-        for (MiningSession session : List.copyOf(sessions.values())) {
-            session.cancel();
-        }
         sessions.clear();
         if (visualizer != null) {
             for (UUID instanceId : List.copyOf(instances.keySet())) {
@@ -171,10 +163,7 @@ public class GatheringService {
             return false;
         }
 
-        MiningSession existing = sessions.remove(player.getUniqueId());
-        if (existing != null) {
-            existing.cancel();
-        }
+        sessions.remove(player.getUniqueId());
         if (target.activePlayerId() != null && !target.activePlayerId().equals(player.getUniqueId())) {
             target.resetHealth();
         }
@@ -187,12 +176,6 @@ public class GatheringService {
 
         MiningSession session = new MiningSession(player.getUniqueId(), target.instanceId(), currentToolSignature(player));
         sessions.put(player.getUniqueId(), session);
-        session.task = plugin.getServer().getScheduler().runTaskTimer(
-                plugin,
-                () -> continueMining(session),
-                AUTO_CLICK_INTERVAL_TICKS,
-                AUTO_CLICK_INTERVAL_TICKS
-        );
         return true;
     }
 
@@ -205,28 +188,6 @@ public class GatheringService {
                 .filter(instance -> isTargeted(origin, direction, instance.location().clone().add(0.0D, 0.55D, 0.0D)))
                 .min(Comparator.comparingDouble(instance -> instance.location().distanceSquared(eye)))
                 .orElse(null);
-    }
-
-    private void continueMining(@NotNull MiningSession session) {
-        Player player = plugin.getServer().getPlayer(session.playerId);
-        GatheringInstance instance = instances.get(session.instanceId);
-        if (player == null || !player.isOnline() || instance == null) {
-            stopSession(session, false);
-            return;
-        }
-        if (!session.toolSignature.equals(currentToolSignature(player))) {
-            stopSession(session, true);
-            return;
-        }
-        if (!instance.instanceId().equals(session.instanceId) || findTargeted(player) != instance) {
-            stopSession(session, true);
-            return;
-        }
-        if (!canUseCurrentTool(player, instance.definition())) {
-            stopSession(session, true);
-            return;
-        }
-        applyMiningDamage(player, instance);
     }
 
     private void applyMiningDamage(@NotNull Player player, @NotNull GatheringInstance instance) {
@@ -299,7 +260,6 @@ public class GatheringService {
 
     private void stopSession(@NotNull MiningSession session, boolean resetHealth) {
         sessions.remove(session.playerId);
-        session.cancel();
         GatheringInstance instance = instances.get(session.instanceId);
         if (instance != null && session.playerId.equals(instance.activePlayerId())) {
             if (resetHealth) {
@@ -373,19 +333,11 @@ public class GatheringService {
         private final UUID playerId;
         private final UUID instanceId;
         private final String toolSignature;
-        private BukkitTask task;
-
         private MiningSession(@NotNull UUID playerId, @NotNull UUID instanceId, @NotNull String toolSignature) {
             this.playerId = playerId;
             this.instanceId = instanceId;
             this.toolSignature = toolSignature;
         }
 
-        private void cancel() {
-            if (task != null) {
-                task.cancel();
-                task = null;
-            }
-        }
     }
 }
