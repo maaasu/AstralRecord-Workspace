@@ -47,6 +47,10 @@ import java.util.concurrent.Executor;
  */
 public final class MobDropPresentationService {
     private static final double RESULT_HEIGHT = 1.9D;
+    private static final double RESULT_ANIMATION_START_HEIGHT = 1.55D;
+    private static final long RESULT_ANIMATION_DELAY_TICKS = 1L;
+    private static final int RESULT_ANIMATION_INTERPOLATION_TICKS = 8;
+    private static final long RESULT_DISPLAY_DURATION_TICKS = 86L;
     private static final int MAX_ANIMATED_ITEMS_PER_DEFEAT = 3;
     private static final int MAX_RESULT_TEXT_ITEMS = 5;
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
@@ -239,7 +243,8 @@ public final class MobDropPresentationService {
             return;
         }
 
-        Location location = deathLocation.clone().add(0.0D, RESULT_HEIGHT, 0.0D);
+        Location location = deathLocation.clone().add(0.0D, RESULT_ANIMATION_START_HEIGHT, 0.0D);
+        Location finalLocation = deathLocation.clone().add(0.0D, RESULT_HEIGHT, 0.0D);
         TextDisplay display = world.spawn(location, TextDisplay.class, text -> {
             text.setPersistent(false);
             text.setGravity(false);
@@ -248,19 +253,29 @@ public final class MobDropPresentationService {
             text.setVisibleByDefault(false);
             text.setBillboard(Display.Billboard.CENTER);
             text.setShadowed(true);
-            text.setLineWidth(280);
+            text.setLineWidth(220);
             text.setViewRange(48.0F);
             text.setDefaultBackground(false);
             text.setBackgroundColor(Color.fromARGB(128, 8, 4, 18));
             text.text(LEGACY.deserialize(ColorCodeUtil.translateAlternateColorCodes(formatResultText(mobName, result, items))));
-            text.setTransformation(scale(0.8F));
+            text.setInterpolationDelay(0);
+            text.setInterpolationDuration(RESULT_ANIMATION_INTERPOLATION_TICKS);
+            text.setTeleportDuration(RESULT_ANIMATION_INTERPOLATION_TICKS);
+            text.setTransformation(scale(0.65F));
         });
         viewer.showEntity(plugin, display);
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> removeIfValid(display), 86L);
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (!display.isValid()) {
+                return;
+            }
+            display.teleport(finalLocation);
+            display.setTransformation(scale(0.8F));
+        }, RESULT_ANIMATION_DELAY_TICKS);
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> removeIfValid(display), RESULT_DISPLAY_DURATION_TICKS);
     }
 
     /**
-     * ドロップ結果を、アイテム名・数量・設定上の確率を含む TextDisplay 用文字列へ整形します。
+     * ドロップ結果を、日本語の縦並びで TextDisplay 用文字列へ整形します。
      *
      * @param mobName Mob または取得元の表示名
      * @param result 経験値・金銭を含む抽選結果
@@ -272,27 +287,27 @@ public final class MobDropPresentationService {
         @NotNull MobDropResult result,
         @NotNull List<ResolvedDropItem> items
     ) {
-        StringBuilder text = new StringBuilder("&6&lRESULT &f").append(mobName);
-        text.append("\n&eEXP &f+").append(result.exp());
-        text.append("  &6Money &f+").append(result.money());
-        text.append("\n&aDrop &f");
+        StringBuilder text = new StringBuilder("&6&l◆ 討伐報酬 ◆");
+        text.append("\n&f").append(mobName);
+        text.append("\n&8────────────");
+        text.append("\n&e経験値 &f+").append(result.exp());
+        text.append("\n&6ゴールド &f+").append(result.money());
+        text.append("\n&a獲得アイテム");
         if (items.isEmpty()) {
-            text.append("none");
+            text.append("\n&7・なし");
             return text.toString();
         }
         int shownItems = Math.min(items.size(), MAX_RESULT_TEXT_ITEMS);
         for (int index = 0; index < shownItems; index++) {
-            if (index > 0) {
-                text.append("&7, &f");
-            }
             ResolvedDropItem item = items.get(index);
-            text.append(ColorCodeUtil.toLegacyText(item.model().getName(), item.model().getId()))
+            text.append("\n&7・ &f")
+                .append(ColorCodeUtil.toLegacyText(item.model().getName(), item.model().getId()))
                 .append(" x").append(item.amount())
-                .append(" &7(").append(formatDropRate(item.dropRate())).append("%)&f");
+                .append(" &8(").append(formatDropRate(item.dropRate())).append("%)");
         }
         int hiddenItems = items.size() - shownItems;
         if (hiddenItems > 0) {
-            text.append("&7, &f+").append(hiddenItems).append(" more");
+            text.append("\n&7・ほか ").append(hiddenItems).append(" 件");
         }
         return text.toString();
     }
