@@ -1,0 +1,45 @@
+---
+name: astralrecord-master-data-create-direct
+description: AstralRecord の 40_filebase に、ユーザーが指定した item・equipment・material・consumable・class・skill・mob・spawner・world・loot・shop などのマスターデータを高速に作成・更新し、対象ファイルだけを develop に直接コミットする。マスターデータ制作、filebase YAML の追加、指定 YAML の修正、ショップや装備などのマスター定義変更を依頼されたときに使用する。ワークツリー作成やソースコード実装を行わない。
+---
+
+# AstralRecord Master Data Create Direct
+
+指定された `40_filebase` のマスターデータだけを、現在の `develop` で作成・更新してコミットする。通常の実装作業で使う worktree 作成系スキルは呼び出さない。
+
+## Scope
+
+- 対象は `E:\AstralRecord-Workspace\40_filebase` 配下の YAML と、必要最小限のマスターデータ文書のみ。
+- Plugin/API/Web/Resource Pack のソース変更、設計書の大規模修正、branch/worktree 操作は行わない。
+- ユーザーが明示した対象パスと変更内容を優先し、不要なマスターや関連機能を増やさない。
+- 作業完了時は、依頼に関係するファイルだけを stage して commit する。
+
+## Fast workflow
+
+1. 対象を確定する。ユーザーが絶対パスを指定した場合はその配下だけを対象にする。パスがない場合は `40_filebase` 内のカテゴリと ID を検索して候補を絞る。
+2. `AGENTS.md`、`40_filebase\AGENTS.md`、対象カテゴリの YAML スキーマ、近隣の既存 YAML を読む。新規データのバランス・命名・世界観を判断する必要がある場合だけ、関連する `00_docs\99_資料\マスターデータ設計` を追加で読む。
+3. 既存 ID を `40_filebase/**/*.yml` で検索する。新規 ID は既存規則に合わせた lowercase snake_case とし、参照先 ID・category・schemaVersion・ファイル名を既存例に合わせる。
+4. 依頼された範囲だけを編集する。既存ファイルの記載順・コメント・フォーマットを保ち、参照は `ref: item:<id>` など対象スキーマの形式にする。未対応の実装機能を YAML だけで発明しない。
+5. 変更後に YAML を再読込して、ID 重複・必須キー・参照先・slot/row/column など対象スキーマ固有の制約を確認する。可能なら Python の `yaml.safe_load`、必ず `git diff --check` を使う。
+6. `git status --short --branch` と差分を確認する。`git add .` / `git add -A` は使わず、依頼対象の絶対パスまたは明示的な相対パスだけを stage する。staged diff を確認してから commit する。
+
+## Git rules
+
+- develop で直接作業する。branch 作成、worktree 作成・切替、rebase、merge、cleanup は行わない。
+- 既存の無関係な差分を消去・上書き・stash しない。対象が混在して安全に分離できない場合は、対象ファイルの差分を保ったまま停止して報告する。
+- コミットメッセージは `E:\AstralRecord-Workspace\COMMIT_RULES.md` に従う。新規マスターは `feat: ...`、既存マスターの不具合・定義修正は `fix: ...` を基本とする。
+- コミット後に `git status --short --branch` を確認し、残った差分が今回の依頼外であることを報告する。
+
+## Quality bar
+
+- プレイヤー表示文は日本語、技術 ID・enum・Bukkit Material 名は既存の英語形式にする。
+- 新規マスターは具体的な gameplay purpose を持たせ、参照切れ・重複 ID・未定義カテゴリを残さない。
+- 変更は最小限にし、設計書や実装を推測で同期しない。必要な制約が確認できない場合は作業を止めて報告する。
+
+## Handoff conditions
+
+次の場合はこのスキルの範囲外として、実装・worktree 用スキルを使う判断を報告する。
+
+- Plugin/API/Web のコード変更が必要。
+- マスターデータ以外の複数プロジェクト変更が必要。
+- ユーザーが branch、worktree、develop への merge 方式を指定した。

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Master Data Direct Creator"
+  short_description: "指定マスターデータを高速作成して直接コミット"
+  default_prompt: "Use $astralrecord-master-data-create-direct to create the specified AstralRecord master data directly on develop and commit only the requested files."
+policy:
+  allow_implicit_invocation: true
