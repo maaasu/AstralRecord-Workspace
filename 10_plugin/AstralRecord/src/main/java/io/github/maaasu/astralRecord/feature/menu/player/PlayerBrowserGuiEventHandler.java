@@ -6,7 +6,6 @@ import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
-import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.model.PartyActionResult;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
@@ -42,7 +41,6 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
     private final PlayerDetailGui playerDetailGui;
     private final PartyService partyService;
     private final StatusService statusService;
-    private final MenuView menuView;
     private final InventoryService inventoryService;
     private final TradeService tradeService;
     private final CurrencyService currencyService;
@@ -54,7 +52,6 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         @NotNull PlayerDetailGui playerDetailGui,
         @NotNull PartyService partyService,
         @NotNull StatusService statusService,
-        @NotNull MenuView menuView,
         @NotNull InventoryService inventoryService
     ) {
         this(
@@ -63,7 +60,6 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
             playerDetailGui,
             partyService,
             statusService,
-            menuView,
             inventoryService,
             null,
             null,
@@ -77,7 +73,6 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         @NotNull PlayerDetailGui playerDetailGui,
         @NotNull PartyService partyService,
         @NotNull StatusService statusService,
-        @NotNull MenuView menuView,
         @NotNull InventoryService inventoryService,
         @Nullable TradeService tradeService,
         @Nullable CurrencyService currencyService,
@@ -88,7 +83,6 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         this.playerDetailGui = playerDetailGui;
         this.partyService = partyService;
         this.statusService = statusService;
-        this.menuView = menuView;
         this.inventoryService = inventoryService;
         this.tradeService = tradeService;
         this.currencyService = currencyService;
@@ -138,7 +132,7 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
     private void handlePlayerListClick(@NotNull Player player, int rawSlot, @NotNull org.bukkit.inventory.Inventory inventory) {
         if (rawSlot == PlayerListGui.BACK_SLOT) {
             GuiSound.SELECT.play(player);
-            back(player, playerListGui.getBackTarget(inventory));
+            plugin.getGuiNavigationService().openPrevious(player);
             return;
         }
 
@@ -166,7 +160,7 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (purpose == PlayerListPurpose.PLAYER_INFO) {
-            handleOpenDetail(player, targetId, pageIndex, playerListGui.getBackTarget(inventory));
+            handleOpenDetail(player, targetId, pageIndex);
             return;
         }
         GuiSound.DENY.play(player);
@@ -182,17 +176,8 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (rawSlot == BaseMenuScreenView.BACK_SLOT) {
-            PlayerListBackTarget backTarget = playerDetailGui.getBackTarget(inventory);
-            int returnPage = playerDetailGui.getReturnPage(inventory);
-            if (backTarget == PlayerListBackTarget.PARTY) {
-                GuiSound.SELECT.play(player);
-                MenuOpenEventHandler.suppressNextCloseSound(player);
-                back(player, backTarget);
-                return;
-            }
             GuiSound.SELECT.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
-            openInfoList(player, returnPage);
+            plugin.getGuiNavigationService().openPrevious(player);
             return;
         }
 
@@ -220,8 +205,7 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
     private void handleOpenDetail(
         @NotNull Player viewer,
         @NotNull UUID targetId,
-        int pageIndex,
-        @Nullable PlayerListBackTarget backTarget
+        int pageIndex
     ) {
         Player targetPlayer = Bukkit.getPlayer(targetId);
         AstPlayer target = targetPlayer == null ? null : AstPlayerCache.get(targetPlayer);
@@ -234,7 +218,7 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         }
         GuiSound.SELECT.play(viewer);
         MenuOpenEventHandler.suppressNextCloseSound(viewer);
-        openTargetDetail(viewer, target, backTarget == null ? PlayerListBackTarget.MENU : backTarget, pageIndex);
+        openTargetDetail(viewer, target);
     }
 
     private void handleTradeRequest(@NotNull Player player, @NotNull org.bukkit.inventory.Inventory inventory) {
@@ -292,7 +276,6 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         playerListGui.open(
             player,
             PlayerListPurpose.PLAYER_INFO,
-            PlayerListBackTarget.MENU,
             "プレイヤー一覧",
             candidateIds,
             pageIndex
@@ -314,7 +297,6 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         playerListGui.open(
             player,
             PlayerListPurpose.PARTY_INVITE,
-            PlayerListBackTarget.PARTY,
             "招待プレイヤー",
             candidateIds,
             pageIndex
@@ -329,14 +311,26 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
             return;
         }
         GuiSound.OPEN.play(viewer);
-        openTargetDetail(viewer, target, PlayerListBackTarget.MENU, 0);
+        openTargetDetail(viewer, target);
+    }
+
+    /**
+     * 閲覧者自身の統合プレイヤー情報 GUI を開きます。
+     *
+     * @param viewer 表示対象プレイヤー
+     */
+    public void openSelfDetail(@NotNull Player viewer) {
+        AstPlayer target = AstPlayerCache.get(viewer);
+        if (target == null) {
+            GuiSound.DENY.play(viewer);
+            return;
+        }
+        openTargetDetail(viewer, target);
     }
 
     private void openTargetDetail(
         @NotNull Player viewer,
-        @NotNull AstPlayer target,
-        @NotNull PlayerListBackTarget backTarget,
-        int pageIndex
+        @NotNull AstPlayer target
     ) {
         long goldAmount = currencyService == null
             ? 0L
@@ -357,23 +351,8 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
             goldAmount,
             classDisplayName,
             classExperienceProgress,
-            classExperienceRemaining,
-            backTarget,
-            pageIndex
+            classExperienceRemaining
         );
-    }
-
-    private void back(@NotNull Player player, @Nullable PlayerListBackTarget backTarget) {
-        if (backTarget == PlayerListBackTarget.PARTY) {
-            var partyGui = plugin.getPartyGui();
-            if (partyGui != null) {
-                MenuOpenEventHandler.suppressNextCloseSound(player);
-                partyGui.open(player);
-                return;
-            }
-        }
-        MenuOpenEventHandler.suppressNextCloseSound(player);
-        menuView.open(player);
     }
 
     private @NotNull String playerName(@NotNull UUID playerId) {

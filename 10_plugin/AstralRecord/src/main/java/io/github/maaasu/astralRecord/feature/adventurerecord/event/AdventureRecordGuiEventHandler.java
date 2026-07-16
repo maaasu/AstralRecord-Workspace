@@ -119,8 +119,7 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
     private void handleMainClick(@NotNull Player player, int rawSlot) {
         if (rawSlot == BaseMenuScreenView.BACK_SLOT) {
             GuiSound.SELECT.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
-            io.github.maaasu.astralRecord.AstralRecord.getInstance().getMenuView().open(player);
+            io.github.maaasu.astralRecord.AstralRecord.getInstance().getGuiNavigationService().openPrevious(player);
             return;
         }
         if (rawSlot == AdventureRecordGui.ENEMY_RECORD_SLOT) {
@@ -152,12 +151,7 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
         }
         if (rawSlot == PagedGuiView.BACK_SLOT) {
             GuiSound.SELECT.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
-            if (listType == AdventureRecordListType.SEARCH) {
-                gui.openSearch(player, List.of());
-                return;
-            }
-            gui.openMain(player);
+            io.github.maaasu.astralRecord.AstralRecord.getInstance().getGuiNavigationService().openPrevious(player);
             return;
         }
         int pageIndex = gui.getPageIndex(inventory);
@@ -177,8 +171,7 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
     private void handleSearchClick(@NotNull Player player, @NotNull Inventory inventory, int rawSlot) {
         if (rawSlot == AdventureRecordGui.SEARCH_BACK_SLOT) {
             GuiSound.SELECT.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
-            gui.openMain(player);
+            io.github.maaasu.astralRecord.AstralRecord.getInstance().getGuiNavigationService().openPrevious(player);
             return;
         }
         if (rawSlot == AdventureRecordGui.SEARCH_BUTTON_SLOT) {

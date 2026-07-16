@@ -424,7 +424,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
 
         switch (screen) {
             case MAIN -> handleMainMenuClick(player, event.getRawSlot());
-            case STATUS -> handleStatusClick(player, event.getRawSlot());
             case BUFF -> handleBuffClick(player, event.getRawSlot());
             case CLASS -> handleClassClick(player, event.getCurrentItem(), event.getRawSlot());
             case EQUIPMENT_GUI -> {
@@ -446,15 +445,15 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
 
     private void handleMainMenuClick(@NotNull Player player, int rawSlot) {
         if (rawSlot == MenuView.STATUS_SLOT) {
-            AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (astPlayer == null) {
+            PlayerBrowserGuiEventHandler playerBrowserGuiEventHandler = plugin.getPlayerBrowserGuiEventHandler();
+            if (playerBrowserGuiEventHandler == null) {
                 GuiSound.DENY.play(player);
                 return;
             }
             GuiSound.SELECT.play(player);
             switchGuiWithoutInventoryReload(
                 player,
-                () -> menuView.openStatus(player, astPlayer, statusService.refreshStatus(astPlayer))
+                () -> playerBrowserGuiEventHandler.openSelfDetail(player)
             );
             return;
         }
@@ -575,14 +574,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         String contentId = menuView.getContentId(inventory);
 
         if (rawSlot == MenuView.PAGING_BACK_SLOT || rawSlot == MenuView.BACK_SLOT) {
-            GuiSound.SELECT.play(player);
-            switchGuiWithoutInventoryReload(player, () -> {
-                if (contentId == null) {
-                    menuView.open(player);
-                } else {
-                    menuView.openGuide(player, pageIndex);
-                }
-            });
+            navigateBack(player);
             return;
         }
 
@@ -620,8 +612,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             return;
         }
         if (rawSlot == MenuView.PAGING_BACK_SLOT) {
-            GuiSound.SELECT.play(player);
-            switchGuiWithoutInventoryReload(player, () -> menuView.open(player));
+            navigateBack(player);
             return;
         }
 
@@ -715,22 +706,20 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         return true;
     }
 
-    private void handleStatusClick(@NotNull Player player, int rawSlot) {
+    private void handleBuffClick(@NotNull Player player, int rawSlot) {
         if (rawSlot == MenuView.BACK_SLOT) {
-            GuiSound.SELECT.play(player);
-            switchGuiWithoutInventoryReload(player, () -> menuView.open(player));
+            navigateBack(player);
             return;
         }
         GuiSound.DENY.play(player);
     }
 
-    private void handleBuffClick(@NotNull Player player, int rawSlot) {
-        if (rawSlot == MenuView.BACK_SLOT) {
-            GuiSound.SELECT.play(player);
-            switchGuiWithoutInventoryReload(player, () -> menuView.open(player));
-            return;
-        }
-        GuiSound.DENY.play(player);
+    private void navigateBack(@NotNull Player player) {
+        GuiSound.SELECT.play(player);
+        switchGuiWithoutInventoryReload(
+            player,
+            () -> plugin.getGuiNavigationService().openPrevious(player)
+        );
     }
 
     private void refreshOpenBuffMenus() {
@@ -783,15 +772,15 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             return;
         }
         if (action == MenuShortcutAction.STATUS) {
-            AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (astPlayer == null) {
+            PlayerBrowserGuiEventHandler playerBrowserGuiEventHandler = plugin.getPlayerBrowserGuiEventHandler();
+            if (playerBrowserGuiEventHandler == null) {
                 GuiSound.DENY.play(player);
                 return;
             }
             GuiSound.SELECT.play(player);
             switchGuiWithoutInventoryReload(
                 player,
-                () -> menuView.openStatus(player, astPlayer, statusService.refreshStatus(astPlayer))
+                () -> playerBrowserGuiEventHandler.openSelfDetail(player)
             );
             return;
         }

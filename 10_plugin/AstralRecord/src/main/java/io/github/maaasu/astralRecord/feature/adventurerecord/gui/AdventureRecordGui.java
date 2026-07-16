@@ -363,6 +363,17 @@ public class AdventureRecordGui {
         @NotNull Set<String> searchItemIds
     ) implements HotbarShortcutGuiHolder {
         @Override
+        public @NotNull String getNavigationId() {
+            String type = listType == null ? "" : ":" + listType.name();
+            return "adventure-record:" + screen.name() + type;
+        }
+
+        @Override
+        public int getBackSlot() {
+            return BaseMenuScreenView.BACK_SLOT;
+        }
+
+        @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, SIZE);
         }

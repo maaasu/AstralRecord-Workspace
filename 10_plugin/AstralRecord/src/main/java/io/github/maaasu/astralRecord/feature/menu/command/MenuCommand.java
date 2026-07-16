@@ -1,10 +1,9 @@
 package io.github.maaasu.astralRecord.feature.menu.command;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.menu.player.PlayerBrowserGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
-import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
-import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.jetbrains.annotations.NotNull;
@@ -33,9 +32,12 @@ public final class MenuCommand extends AstCommand {
             return;
         }
         if (args[0].equalsIgnoreCase("status")) {
-            StatusSnapshot snapshot = AstralRecord.getInstance().getStatusService().refreshStatus(player);
+            PlayerBrowserGuiEventHandler handler = AstralRecord.getInstance().getPlayerBrowserGuiEventHandler();
+            if (handler == null) {
+                return;
+            }
             GuiSound.OPEN.play(player.getBukkit());
-            menuView.openStatus(player.getBukkit(), player, snapshot);
+            handler.openSelfDetail(player.getBukkit());
             return;
         }
         if (args[0].equalsIgnoreCase("guide")) {

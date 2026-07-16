@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.mail.event;
 
+import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.mail.gui.MailGuiView;
 import io.github.maaasu.astralRecord.feature.mail.model.MailEntry;
@@ -7,7 +8,6 @@ import io.github.maaasu.astralRecord.feature.mail.model.MailFilter;
 import io.github.maaasu.astralRecord.feature.mail.service.MailService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
-import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
@@ -27,18 +27,15 @@ import java.util.List;
 public final class MailGuiEventHandler extends AbstractEventHandler {
     private final MailGuiView mailGuiView;
     private final MailService mailService;
-    private final MenuView menuView;
     private final InventoryService inventoryService;
 
     public MailGuiEventHandler(
         @NotNull MailGuiView mailGuiView,
         @NotNull MailService mailService,
-        @NotNull MenuView menuView,
         @NotNull InventoryService inventoryService
     ) {
         this.mailGuiView = mailGuiView;
         this.mailService = mailService;
-        this.menuView = menuView;
         this.inventoryService = inventoryService;
     }
 
@@ -96,8 +93,7 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
         }
         if (event.getRawSlot() == MailGuiView.BACK_SLOT) {
             GuiSound.SELECT.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
-            menuView.open(player);
+            AstralRecord.getInstance().getGuiNavigationService().openPrevious(player);
             return;
         }
         if (event.getRawSlot() == MailGuiView.FILTER_SLOT) {
@@ -145,7 +141,7 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
             return;
         }
         switch (event.getClick()) {
-            case SHIFT_RIGHT -> {
+            case DROP, CONTROL_DROP -> {
                 if (mailService.delete(astPlayer, mailId)) {
                     GuiSound.SELECT.play(player);
                     MenuOpenEventHandler.suppressNextCloseSound(player);

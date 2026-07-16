@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusValue;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
+import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import net.kyori.adventure.text.Component;
@@ -18,7 +19,6 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.Statistic;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -26,7 +26,6 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -39,16 +38,12 @@ import java.util.UUID;
  */
 public final class PlayerDetailGui extends BaseMenuScreenView {
     public static final int HEAD_SLOT = 4;
-    public static final int USER_SLOT = 10;
-    public static final int ACCOUNT_SLOT = 12;
-    public static final int CLASS_SLOT = 14;
-    public static final int ECONOMY_SLOT = 16;
-    public static final int RESOURCE_SLOT = 28;
-    public static final int PRIMARY_SLOT = 29;
-    public static final int OFFENSE_SLOT = 30;
-    public static final int DEFENSE_SLOT = 31;
-    public static final int UTILITY_SLOT = 32;
-    public static final int BUFF_SLOT = 34;
+    public static final int RESOURCE_SLOT = 10;
+    public static final int PRIMARY_SLOT = 11;
+    public static final int OFFENSE_SLOT = 12;
+    public static final int DEFENSE_SLOT = 13;
+    public static final int UTILITY_SLOT = 14;
+    public static final int BUFF_SLOT = 16;
     public static final int TRADE_SLOT = 38;
     public static final int PARTY_INVITE_SLOT = 42;
 
@@ -56,23 +51,30 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
+    private final WorldService worldService;
+
+    /**
+     * プレイヤー詳細 GUI を生成します。
+     *
+     * @param worldService Bukkit ワールドからプレイヤー向け表示名を解決するサービス
+     */
+    public PlayerDetailGui(@NotNull WorldService worldService) {
+        this.worldService = worldService;
+    }
+
     /**
      * 詳細 GUI を開きます。
      *
      * @param viewer      閲覧者
      * @param target      表示対象
      * @param snapshot    表示用ステータス
-     * @param backTarget  戻り先
-     * @param returnPage  戻り先一覧ページ
      */
     public void open(
         @NotNull Player viewer,
         @NotNull AstPlayer target,
-        @NotNull StatusSnapshot snapshot,
-        @NotNull PlayerListBackTarget backTarget,
-        int returnPage
+        @NotNull StatusSnapshot snapshot
     ) {
-        open(viewer, target, snapshot, 0L, target.getClassId(), 0.0, 0L, backTarget, returnPage);
+        open(viewer, target, snapshot, 0L, target.getClassId(), 0.0, 0L);
     }
 
     /**
@@ -85,8 +87,6 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
      * @param classDisplayName        対象クラスの表示名
      * @param classExperienceProgress 現在クラスレベル内の経験値進捗率
      * @param classExperienceRemaining 次のクラスレベルまでの残り経験値
-     * @param backTarget              戻り先
-     * @param returnPage              戻り先一覧ページ
      */
     public void open(
         @NotNull Player viewer,
@@ -95,14 +95,12 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         long goldAmount,
         @NotNull String classDisplayName,
         double classExperienceProgress,
-        long classExperienceRemaining,
-        @NotNull PlayerListBackTarget backTarget,
-        int returnPage
+        long classExperienceRemaining
     ) {
         Inventory inventory = Bukkit.createInventory(
-            new Holder(target.getBukkit().getUniqueId(), backTarget, Math.max(0, returnPage)),
+            new Holder(target.getBukkit().getUniqueId()),
             SIZE,
-            Component.text("プロフィール: " + target.getBukkit().getName(), NamedTextColor.GOLD)
+            Component.text("プレイヤー情報: " + target.getBukkit().getName(), NamedTextColor.GOLD)
         );
         render(inventory, viewer, target, snapshot, goldAmount, classDisplayName, classExperienceProgress, classExperienceRemaining);
         viewer.openInventory(inventory);
@@ -119,20 +117,6 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         return null;
     }
 
-    public @Nullable PlayerListBackTarget getBackTarget(@Nullable Inventory inventory) {
-        if (inventory != null && inventory.getHolder() instanceof Holder holder) {
-            return holder.backTarget();
-        }
-        return null;
-    }
-
-    public int getReturnPage(@Nullable Inventory inventory) {
-        if (inventory != null && inventory.getHolder() instanceof Holder holder) {
-            return holder.returnPage();
-        }
-        return 0;
-    }
-
     private void render(
         @NotNull Inventory inventory,
         @NotNull Player viewer,
@@ -146,11 +130,13 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         boolean self = viewer.getUniqueId().equals(target.getBukkit().getUniqueId());
         fill(inventory);
         inventory.setItem(BACK_SLOT, backItem());
-        inventory.setItem(HEAD_SLOT, playerHead(target, classDisplayName));
-        inventory.setItem(USER_SLOT, profileItem(target));
-        inventory.setItem(ACCOUNT_SLOT, accountItem(target));
-        inventory.setItem(CLASS_SLOT, classItem(target, classDisplayName, classExperienceProgress, classExperienceRemaining));
-        inventory.setItem(ECONOMY_SLOT, economyItem(target, goldAmount));
+        inventory.setItem(HEAD_SLOT, playerHead(
+            target,
+            goldAmount,
+            classDisplayName,
+            classExperienceProgress,
+            classExperienceRemaining
+        ));
         inventory.setItem(RESOURCE_SLOT, categoryItem(Material.GOLDEN_APPLE, "◆", StatusType.Category.RESOURCE, NamedTextColor.GOLD, snapshot));
         inventory.setItem(PRIMARY_SLOT, categoryItem(Material.DIAMOND, "◇", StatusType.Category.PRIMARY, NamedTextColor.YELLOW, snapshot));
         inventory.setItem(OFFENSE_SLOT, categoryItem(Material.NETHERITE_SWORD, "⚔", StatusType.Category.OFFENSE, NamedTextColor.RED, snapshot));
@@ -177,98 +163,45 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         ));
     }
 
-    private @NotNull ItemStack playerHead(@NotNull AstPlayer target, @NotNull String classDisplayName) {
+    private @NotNull ItemStack playerHead(
+        @NotNull AstPlayer target,
+        long goldAmount,
+        @NotNull String classDisplayName,
+        double classExperienceProgress,
+        long classExperienceRemaining
+    ) {
         ItemStack itemStack = new ItemStack(Material.PLAYER_HEAD);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta instanceof SkullMeta skullMeta) {
             OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(target.getBukkit().getUniqueId());
             skullMeta.setOwningPlayer(offlinePlayer);
             skullMeta.displayName(noItalic(Component.text(target.getBukkit().getName(), NamedTextColor.WHITE, TextDecoration.BOLD)));
-            skullMeta.lore(List.of(
-                noItalic(Component.text("Lv." + target.getAccount().getLevel(), NamedTextColor.YELLOW)
-                    .append(Component.text(" / ", NamedTextColor.DARK_GRAY))
-                    .append(Component.text("Class Lv." + target.getClassLevel(), NamedTextColor.AQUA))),
-                noItalic(Component.text("クラス: ", NamedTextColor.GRAY).append(legacy(classDisplayName)))
-            ));
+            List<Component> lore = new ArrayList<>();
+            lore.add(noItalic(Component.text("Lv." + target.getAccount().getLevel(), NamedTextColor.YELLOW)
+                .append(Component.text(" / ", NamedTextColor.DARK_GRAY))
+                .append(Component.text("Class Lv." + target.getClassLevel(), NamedTextColor.AQUA))));
+            lore.add(noItalic(Component.text("クラス: ", NamedTextColor.GRAY).append(legacy(classDisplayName))));
+            lore.add(noItalic(Component.text("アカウント: " + target.getAccount().getAccountName(), NamedTextColor.WHITE)));
+            lore.add(noItalic(Component.text("モード: " + target.getAccount().getMode().getDisplayName(), NamedTextColor.GRAY)));
+            lore.add(noItalic(Component.text("累計 EXP: " + formatInt(target.getAccount().getTotalExperience()), NamedTextColor.YELLOW)));
+            lore.add(Component.empty());
+            lore.add(noItalic(Component.text("クラス累計 EXP: " + formatInt(target.getClassExperience()), NamedTextColor.YELLOW)));
+            lore.add(noItalic(Component.text("現在 Lv 進捗: " + formatPercent(classExperienceProgress), NamedTextColor.GREEN)));
+            lore.add(noItalic(Component.text(
+                classExperienceRemaining <= 0 ? "次のクラス Lv: 最大レベル" : "次のクラス Lv まで: " + formatInt(classExperienceRemaining) + " EXP",
+                NamedTextColor.AQUA
+            )));
+            lore.add(Component.empty());
+            lore.add(noItalic(Component.text("所持 Gold: " + formatInt(goldAmount), NamedTextColor.GOLD, TextDecoration.BOLD)));
+            lore.add(noItalic(Component.text("プレイ時間: " + formatPlayTime(target), NamedTextColor.YELLOW)));
+            lore.add(noItalic(Component.text("現在地: " + displayWorldName(target.getBukkit()), NamedTextColor.GRAY)));
+            lore.add(noItalic(Component.text("初ログイン: " + formatDateTime(target.getUser().getJoinDate()), NamedTextColor.GRAY)));
+            lore.add(noItalic(Component.text("最終ログイン: " + formatDateTime(target.getUser().getLastJoinDate()), NamedTextColor.GRAY)));
+            skullMeta.lore(lore);
             skullMeta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(skullMeta);
         }
         return itemStack;
-    }
-
-    private @NotNull ItemStack profileItem(@NotNull AstPlayer target) {
-        List<Component> lore = new ArrayList<>();
-        lore.add(separatorLine());
-        lore.add(noItalic(Component.text("名前: " + target.getBukkit().getName(), NamedTextColor.WHITE)));
-        lore.add(noItalic(Component.text("UUID: " + target.getBukkit().getUniqueId(), NamedTextColor.DARK_GRAY)));
-        lore.add(noItalic(Component.text("ワールド: " + displayWorldName(target.getBukkit()), NamedTextColor.GRAY)));
-        lore.add(noItalic(Component.text("ゲームモード: " + target.getBukkit().getGameMode().name(), NamedTextColor.GRAY)));
-        lore.add(noItalic(Component.text("権限: " + target.getUser().getPermission(), NamedTextColor.YELLOW)));
-        lore.add(separatorLine());
-        return createItem(
-            Material.NAME_TAG,
-            noItalic(Component.text("基本情報", NamedTextColor.AQUA, TextDecoration.BOLD)),
-            lore
-        );
-    }
-
-    private @NotNull ItemStack accountItem(@NotNull AstPlayer target) {
-        List<Component> lore = new ArrayList<>();
-        lore.add(separatorLine());
-        lore.add(noItalic(Component.text("アカウント名: " + target.getAccount().getAccountName(), NamedTextColor.WHITE)));
-        lore.add(noItalic(Component.text("スロット: " + target.getAccount().getSlotIndex(), NamedTextColor.GRAY)));
-        lore.add(noItalic(Component.text("モード: " + target.getAccount().getMode().getDisplayName(), NamedTextColor.GRAY)));
-        lore.add(noItalic(Component.text("プレイヤー Lv: " + target.getAccount().getLevel(), NamedTextColor.YELLOW)));
-        lore.add(noItalic(Component.text("累計 EXP: " + formatInt(target.getAccount().getTotalExperience()), NamedTextColor.YELLOW)));
-        lore.add(Component.empty());
-        lore.add(noItalic(Component.text("初ログイン: " + formatDateTime(target.getUser().getJoinDate()), NamedTextColor.GRAY)));
-        lore.add(noItalic(Component.text("最終ログイン: " + formatDateTime(target.getUser().getLastJoinDate()), NamedTextColor.GRAY)));
-        lore.add(noItalic(Component.text("作成日: " + formatDateTime(target.getAccount().getCreatedAt()), NamedTextColor.DARK_GRAY)));
-        lore.add(separatorLine());
-        return createItem(
-            Material.BOOK,
-            noItalic(Component.text("アカウント", NamedTextColor.GREEN, TextDecoration.BOLD)),
-            lore
-        );
-    }
-
-    private @NotNull ItemStack classItem(
-        @NotNull AstPlayer target,
-        @NotNull String classDisplayName,
-        double classExperienceProgress,
-        long classExperienceRemaining
-    ) {
-        List<Component> lore = new ArrayList<>();
-        lore.add(separatorLine());
-        lore.add(noItalic(Component.text("クラス: ", NamedTextColor.GRAY).append(legacy(classDisplayName))));
-        lore.add(noItalic(Component.text("classId: " + target.getClassId(), NamedTextColor.DARK_GRAY)));
-        lore.add(noItalic(Component.text("クラス Lv: " + target.getClassLevel(), NamedTextColor.AQUA)));
-        lore.add(noItalic(Component.text("クラス累計 EXP: " + formatInt(target.getClassExperience()), NamedTextColor.YELLOW)));
-        lore.add(noItalic(Component.text("現在 Lv 進捗: " + formatPercent(classExperienceProgress), NamedTextColor.GREEN)));
-        lore.add(noItalic(Component.text(
-            classExperienceRemaining <= 0 ? "次のクラス Lv: 最大レベル" : "次のクラス Lv まで: " + formatInt(classExperienceRemaining) + " EXP",
-            NamedTextColor.AQUA
-        )));
-        lore.add(separatorLine());
-        return createItem(
-            Material.COMPASS,
-            noItalic(Component.text("クラス詳細", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD)),
-            lore
-        );
-    }
-
-    private @NotNull ItemStack economyItem(@NotNull AstPlayer target, long goldAmount) {
-        List<Component> lore = new ArrayList<>();
-        lore.add(separatorLine());
-        lore.add(noItalic(Component.text("所持 Gold: " + formatInt(goldAmount), NamedTextColor.GOLD, TextDecoration.BOLD)));
-        lore.add(noItalic(Component.text("プレイ時間: " + formatPlayTime(target), NamedTextColor.YELLOW)));
-        lore.add(noItalic(Component.text("現在位置: " + formatLocation(target.getBukkit()), NamedTextColor.GRAY)));
-        lore.add(separatorLine());
-        return createItem(
-            Material.RAW_GOLD,
-            noItalic(Component.text("資産と活動", NamedTextColor.GOLD, TextDecoration.BOLD)),
-            lore
-        );
     }
 
     private @NotNull ItemStack categoryItem(
@@ -314,19 +247,17 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
             ));
         double bonusMin = value.getBonusMinValue();
         double bonusMax = value.getBonusMaxValue();
-        if (bonusMin != 0.0 || bonusMax != 0.0) {
-            NamedTextColor bonusColor = bonusMin >= 0.0 && bonusMax >= 0.0
-                ? NamedTextColor.GREEN
-                : NamedTextColor.RED;
-            line = line
-                .append(Component.text("  基礎 ", NamedTextColor.DARK_GRAY))
-                .append(Component.text(
-                    type.formatRange(value.getBaseMinValue(), value.getBaseMaxValue()),
-                    NamedTextColor.GRAY
-                ))
-                .append(Component.text(" / 補正 ", NamedTextColor.DARK_GRAY))
-                .append(Component.text(type.formatSignedRange(bonusMin, bonusMax), bonusColor));
-        }
+        NamedTextColor bonusColor = bonusMin >= 0.0 && bonusMax >= 0.0
+            ? NamedTextColor.GREEN
+            : NamedTextColor.RED;
+        line = line
+            .append(Component.text("  ", NamedTextColor.DARK_GRAY))
+            .append(Component.text(
+                type.formatRange(value.getBaseMinValue(), value.getBaseMaxValue()),
+                NamedTextColor.GRAY
+            ))
+            .append(Component.text("  ", NamedTextColor.DARK_GRAY))
+            .append(Component.text(type.formatSignedRange(bonusMin, bonusMax), bonusColor));
         return noItalic(line);
     }
 
@@ -374,22 +305,11 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
     }
 
     private @NotNull String displayWorldName(@NotNull Player target) {
-        String normalizedName = target.getWorld().getName()
-            .replace('\\', '/')
-            .replaceAll("/{2,}", "/");
-        String leafName = new File(normalizedName).getName();
-        return leafName.isBlank() ? normalizedName : leafName;
-    }
-
-    private @NotNull String formatLocation(@NotNull Player target) {
-        return String.format(
-            Locale.US,
-            "%s  %.1f, %.1f, %.1f",
-            displayWorldName(target),
-            target.getLocation().getX(),
-            target.getLocation().getY(),
-            target.getLocation().getZ()
-        );
+        var world = worldService.findByBukkitWorld(target.getWorld());
+        if (world == null) {
+            return "名称未設定";
+        }
+        return ColorCodeUtil.toPlainText(world.displayName(), "名称未設定");
     }
 
     private @NotNull String formatDateTime(@NotNull LocalDateTime value) {
@@ -419,15 +339,17 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         return String.format(Locale.US, "%,d", value);
     }
 
-    private @NotNull String formatInt(double value) {
-        return String.format(Locale.US, "%,d", Math.round(value));
-    }
+    private record Holder(@NotNull UUID targetId) implements HotbarShortcutGuiHolder {
+        @Override
+        public @NotNull String getNavigationId() {
+            return "player-detail:" + targetId;
+        }
 
-    private record Holder(
-        @NotNull UUID targetId,
-        @NotNull PlayerListBackTarget backTarget,
-        int returnPage
-    ) implements HotbarShortcutGuiHolder {
+        @Override
+        public int getBackSlot() {
+            return BACK_SLOT;
+        }
+
         @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, SIZE);

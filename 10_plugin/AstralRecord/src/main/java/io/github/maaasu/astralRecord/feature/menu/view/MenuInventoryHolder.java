@@ -42,6 +42,30 @@ public record MenuInventoryHolder(
     }
 
     @Override
+    public @NotNull String getNavigationId() {
+        String detailId = contentId == null ? "" : ":" + contentId;
+        return "menu:" + screen.name() + detailId;
+    }
+
+    @Override
+    public int getBackSlot() {
+        return switch (screen) {
+            case MAIN, CLASS, EQUIPMENT_ENHANCE, EQUIPMENT_REPAIR, SELL, STORAGE -> -1;
+            case TRASH_CONFIRM -> 14;
+            case SELL_CONFIRM -> 22;
+            default -> MenuView.BACK_SLOT;
+        };
+    }
+
+    @Override
+    public boolean isDirectBackNavigation() {
+        return switch (screen) {
+            case EQUIPMENT_GUI, TRASH, TRASH_CONFIRM, SELL_CONFIRM -> false;
+            default -> true;
+        };
+    }
+
+    @Override
     public @NotNull Inventory getInventory() {
         return Bukkit.createInventory(this, MenuView.SIZE);
     }

@@ -499,6 +499,11 @@ public final class ShopGui {
         int returnPageIndex
     ) implements HotbarShortcutGuiHolder {
         @Override
+        public int getBackSlot() {
+            return CONFIRM_BACK_SLOT;
+        }
+
+        @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, CONFIRM_SIZE);
         }

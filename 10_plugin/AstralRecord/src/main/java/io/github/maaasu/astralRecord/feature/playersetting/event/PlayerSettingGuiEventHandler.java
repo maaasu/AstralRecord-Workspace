@@ -1,9 +1,8 @@
 package io.github.maaasu.astralRecord.feature.playersetting.event;
 
+import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
-import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
-import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -39,20 +38,17 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
     private final PlayerSettingGui gui;
     private final PlayerSettingService playerSettingService;
     private final InventoryService inventoryService;
-    private final MenuView menuView;
     private final ConcurrentHashMap<UUID, Integer> secretClickCounts = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, EnumMap<PlayerSettingKey, Object>> draftValues = new ConcurrentHashMap<>();
 
     public PlayerSettingGuiEventHandler(
         @NotNull PlayerSettingGui gui,
         @NotNull PlayerSettingService playerSettingService,
-        @NotNull InventoryService inventoryService,
-        @NotNull MenuView menuView
+        @NotNull InventoryService inventoryService
     ) {
         this.gui = gui;
         this.playerSettingService = playerSettingService;
         this.inventoryService = inventoryService;
-        this.menuView = menuView;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -109,8 +105,7 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
         if (rawSlot == PlayerSettingGui.BACK_TO_MENU_SLOT) {
             secretClickCounts.remove(player.getUniqueId());
             GuiSound.SELECT.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
-            menuView.open(player);
+            AstralRecord.getInstance().getGuiNavigationService().openPrevious(player);
             return;
         }
         if (rawSlot == PlayerSettingGui.SUPER_MODE_SECRET_SLOT) {

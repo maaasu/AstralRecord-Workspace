@@ -2,7 +2,6 @@ package io.github.maaasu.astralRecord.feature.skill.event;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
-import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -57,7 +56,6 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     private final SkillOwnershipService ownershipService;
     private final PassiveSkillService passiveSkillService;
     private final InventoryService inventoryService;
-    private final MenuView menuView;
     private final Map<UUID, SkillBindSession> sessions = new ConcurrentHashMap<>();
     private final Set<UUID> suppressClose = ConcurrentHashMap.newKeySet();
 
@@ -68,8 +66,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         @NotNull SkillBindPresetService presetService,
         @NotNull SkillOwnershipService ownershipService,
         @NotNull PassiveSkillService passiveSkillService,
-        @NotNull InventoryService inventoryService,
-        @NotNull MenuView menuView
+        @NotNull InventoryService inventoryService
     ) {
         this.plugin = plugin;
         this.gui = gui;
@@ -78,7 +75,6 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         this.ownershipService = ownershipService;
         this.passiveSkillService = passiveSkillService;
         this.inventoryService = inventoryService;
-        this.menuView = menuView;
     }
 
     /**
@@ -187,10 +183,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             if (session.isDirty()) {
                 openConfirm(player, session, ACTION_BACK, -1, Component.text("スキル設定を閉じて戻りますか", NamedTextColor.YELLOW));
             } else {
-                sessions.remove(player.getUniqueId());
-                restorePlayerInventory(player);
-                suppressClose.add(player.getUniqueId());
-                menuView.open(player);
+                returnToPrevious(player);
             }
             return;
         }
@@ -331,13 +324,19 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 openMain(player, session, 0);
             }
             case ACTION_BACK -> {
-                sessions.remove(player.getUniqueId());
-                restorePlayerInventory(player);
-                suppressClose.add(player.getUniqueId());
-                menuView.open(player);
+                returnToPrevious(player);
             }
             case ACTION_CLOSE -> restoreAndClose(player);
             default -> openMain(player, session, 0);
+        }
+    }
+
+    private void returnToPrevious(@NotNull Player player) {
+        sessions.remove(player.getUniqueId());
+        restorePlayerInventory(player);
+        suppressClose.add(player.getUniqueId());
+        if (!plugin.getGuiNavigationService().openPrevious(player)) {
+            player.closeInventory();
         }
     }
 

@@ -235,7 +235,10 @@ public final class TrashService {
         if (rawSlot == MenuView.BACK_SLOT) {
             suppressTrashConfirmOnClose.add(player.getUniqueId());
             GuiSound.SELECT.play(player);
-            menuGuiTransitionService.switchGuiWithInventoryRestore(player, () -> menuView.open(player));
+            menuGuiTransitionService.switchGuiWithInventoryRestore(
+                player,
+                () -> plugin.getGuiNavigationService().openPrevious(player)
+            );
             return;
         }
         if (rawSlot == MenuView.TRASH_CONFIRM_SLOT) {
@@ -302,8 +305,10 @@ public final class TrashService {
             GuiSound.SELECT.play(player);
             suppressTrashConfirmOnClose.add(player.getUniqueId());
             suppressTrashConfirmRestoreOnClose.add(player.getUniqueId());
-            open(player, currentTrashItems, 0);
-            menuGuiTransitionService.restorePlayerInventory(player);
+            menuGuiTransitionService.switchGuiWithInventoryRestore(
+                player,
+                () -> plugin.getGuiNavigationService().openPrevious(player)
+            );
             return;
         }
         GuiSound.DENY.play(player);

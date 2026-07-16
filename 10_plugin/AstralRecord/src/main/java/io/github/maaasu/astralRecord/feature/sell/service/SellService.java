@@ -338,7 +338,10 @@ public final class SellService {
             GuiSound.SELECT.play(player);
             suppressSellConfirmOnClose.add(player.getUniqueId());
             suppressSellConfirmRestoreOnClose.add(player.getUniqueId());
-            menuGuiTransitionService.switchGuiWithInventoryRestore(player, () -> open(player, currentSellItems, 0));
+            menuGuiTransitionService.switchGuiWithInventoryRestore(
+                player,
+                () -> plugin.getGuiNavigationService().openPrevious(player)
+            );
             return;
         }
         GuiSound.DENY.play(player);

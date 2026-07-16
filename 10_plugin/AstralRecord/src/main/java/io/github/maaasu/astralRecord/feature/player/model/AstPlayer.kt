@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.user.model.UserModel
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationState
 import org.bukkit.GameMode
 import org.bukkit.Location
 import org.bukkit.attribute.Attribute
@@ -37,6 +38,9 @@ data class AstPlayer(
 ) {
     var statusSnapshot: StatusSnapshot = StatusSnapshot.empty()
     val activeBuffs: MutableList<ActiveBuff> = mutableListOf()
+
+    /** GUI を閉じずに遷移した現在画面と戻り先のセッション履歴。 */
+    val guiNavigationState: GuiNavigationState = GuiNavigationState()
 
     /** 現在の職業 ID。未設定の場合はデフォルト職業 "adventurer"。 */
     var classId: String = account.classId.ifBlank { "adventurer" }

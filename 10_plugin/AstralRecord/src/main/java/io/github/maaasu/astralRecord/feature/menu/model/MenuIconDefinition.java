@@ -8,7 +8,7 @@ import org.jetbrains.annotations.NotNull;
  * メニュー系 UI で共通利用するアイコン定義です。
  */
 public enum MenuIconDefinition {
-    ACCOUNT_INFO(Material.PLAYER_HEAD, "アカウント情報", NamedTextColor.GOLD),
+    ACCOUNT_INFO(Material.PLAYER_HEAD, "プレイヤー情報", NamedTextColor.GOLD),
     CURRENCY(Material.EMERALD, "通貨", NamedTextColor.GOLD),
     EQUIPMENT(Material.NETHERITE_CHESTPLATE, "装備", NamedTextColor.GOLD),
     RETURN_TO_BASE(Material.BEACON, "帰還", NamedTextColor.AQUA);

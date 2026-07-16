@@ -159,7 +159,7 @@ public final class MailGuiView {
         }
         lore.add(Component.empty());
         lore.add(Component.text("左クリック: 既読/受け取り", NamedTextColor.GREEN));
-        lore.add(Component.text("Shift+右クリック: 一覧から削除", NamedTextColor.RED));
+        lore.add(Component.text("ドロップキー: 一覧から削除", NamedTextColor.RED));
         return lore;
     }
 
@@ -176,6 +176,11 @@ public final class MailGuiView {
     }
 
     public record Holder(int pageIndex, @NotNull MailFilter filter) implements HotbarShortcutGuiHolder {
+        @Override
+        public int getBackSlot() {
+            return BACK_SLOT;
+        }
+
         @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, SIZE);

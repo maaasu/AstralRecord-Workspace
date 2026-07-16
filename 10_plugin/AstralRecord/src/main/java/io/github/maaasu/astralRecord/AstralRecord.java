@@ -38,6 +38,8 @@ import io.github.maaasu.astralRecord.feature.guide.repository.GuideRepository;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideReminderTask;
 import io.github.maaasu.astralRecord.shared.gui.event.GuiClickCooldownEventHandler;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationEventHandler;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationService;
 import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWaitService;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.item.event.ItemInteractionBlockEventHandler;
@@ -244,6 +246,7 @@ public final class AstralRecord extends JavaPlugin {
     private MenuView menuView;
     private MenuOpenEventHandler menuOpenEventHandler;
     private MenuGuiTransitionService menuGuiTransitionService;
+    private GuiNavigationService guiNavigationService;
     private TrashService trashService;
     private SellService sellService;
     private StorageService storageService;
@@ -768,6 +771,7 @@ public final class AstralRecord extends JavaPlugin {
         guideReminderTask = new GuideReminderTask(playerMessageService);
 
         // menu
+        guiNavigationService = new GuiNavigationService(this);
         menuView = new MenuView(this, guideService);
         menuGuiTransitionService =
             new MenuGuiTransitionService(this, menuView, inventoryService);
@@ -791,8 +795,8 @@ public final class AstralRecord extends JavaPlugin {
         equipmentDurabilityService = new EquipmentDurabilityService(inventoryService, itemService);
         equipmentDurabilityService.setStatusService(statusService);
         damageService.setEquipmentDurabilityService(equipmentDurabilityService);
-        playerListGui = new PlayerListGui();
-        playerDetailGui = new PlayerDetailGui();
+        playerListGui = new PlayerListGui(worldService);
+        playerDetailGui = new PlayerDetailGui(worldService);
         playerSettingGui = new PlayerSettingGui(playerSettingService);
         adventureRecordGuiEventHandler = new AdventureRecordGuiEventHandler(
             new AdventureRecordGui(itemService),
@@ -919,6 +923,10 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
+            new GuiNavigationEventHandler(guiNavigationService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
             new UserLoginEventHandler(userService),
             getServer().getPluginManager()
         );
@@ -1000,7 +1008,7 @@ public final class AstralRecord extends JavaPlugin {
             returnToBaseService
         );
         eventManager.registerHandler(menuOpenEventHandler, getServer().getPluginManager());
-        mailGuiEventHandler = new MailGuiEventHandler(new MailGuiView(this, itemService), mailService, menuView, inventoryService);
+        mailGuiEventHandler = new MailGuiEventHandler(new MailGuiView(this, itemService), mailService, inventoryService);
         eventManager.registerHandler(
             mailGuiEventHandler,
             getServer().getPluginManager()
@@ -1035,7 +1043,6 @@ public final class AstralRecord extends JavaPlugin {
             playerDetailGui,
             partyService,
             statusService,
-            menuView,
             inventoryService,
             tradeService,
             currencyService,
@@ -1066,7 +1073,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new PlayerSettingGuiEventHandler(playerSettingGui, playerSettingService, inventoryService, menuView),
+            new PlayerSettingGuiEventHandler(playerSettingGui, playerSettingService, inventoryService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
@@ -1092,8 +1099,7 @@ public final class AstralRecord extends JavaPlugin {
             skillBindPresetService,
             skillOwnershipService,
             passiveSkillService,
-            inventoryService,
-            menuView
+            inventoryService
         );
         eventManager.registerHandler(
             skillBindGuiEventHandler,
@@ -1180,7 +1186,6 @@ public final class AstralRecord extends JavaPlugin {
                 partyGui,
                 partyMemberActionGui,
                 partyService,
-                menuView,
                 playerBrowserGuiEventHandler,
                 inventoryService
             ),
@@ -1317,6 +1322,15 @@ public final class AstralRecord extends JavaPlugin {
 
     public PlayerBrowserGuiEventHandler getPlayerBrowserGuiEventHandler() {
         return playerBrowserGuiEventHandler;
+    }
+
+    /**
+     * GUI セッション履歴サービスを取得します。
+     *
+     * @return GUI セッション履歴サービス
+     */
+    public GuiNavigationService getGuiNavigationService() {
+        return guiNavigationService;
     }
 
     public UserService getUserService() {

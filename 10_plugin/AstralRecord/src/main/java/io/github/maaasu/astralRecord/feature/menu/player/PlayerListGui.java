@@ -2,6 +2,8 @@ package io.github.maaasu.astralRecord.feature.menu.player;
 
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.world.service.WorldService;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import net.kyori.adventure.text.Component;
@@ -12,7 +14,6 @@ import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -20,7 +21,6 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -37,13 +37,22 @@ public final class PlayerListGui {
     public static final int NEXT_SLOT = PagedGuiView.NEXT_SLOT;
 
     private final PagedGuiView pagedGuiView = new PagedGuiView();
+    private final WorldService worldService;
+
+    /**
+     * プレイヤー一覧 GUI を生成します。
+     *
+     * @param worldService Bukkit ワールドからプレイヤー向け表示名を解決するサービス
+     */
+    public PlayerListGui(@NotNull WorldService worldService) {
+        this.worldService = worldService;
+    }
 
     /**
      * 指定条件のプレイヤー一覧を開きます。
      *
      * @param viewer      閲覧プレイヤー
      * @param purpose     一覧の用途
-     * @param backTarget  戻り先
      * @param title       画面タイトル
      * @param candidateIds 表示対象プレイヤー UUID 一覧
      * @param pageIndex   0 始まりのページ番号
@@ -51,7 +60,6 @@ public final class PlayerListGui {
     public void open(
         @NotNull Player viewer,
         @NotNull PlayerListPurpose purpose,
-        @NotNull PlayerListBackTarget backTarget,
         @NotNull String title,
         @NotNull List<UUID> candidateIds,
         int pageIndex
@@ -63,7 +71,7 @@ public final class PlayerListGui {
         int normalizedPage = pagedGuiView.normalizePage(pageIndex, sortedIds.size());
         int totalPages = pagedGuiView.totalPages(sortedIds.size());
         Inventory inventory = Bukkit.createInventory(
-            new Holder(purpose, backTarget, normalizedPage, sortedIds),
+            new Holder(purpose, normalizedPage, sortedIds),
             SIZE,
             Component.text(title + " " + (normalizedPage + 1) + "/" + totalPages, NamedTextColor.AQUA)
         );
@@ -81,13 +89,6 @@ public final class PlayerListGui {
     public @Nullable PlayerListPurpose getPurpose(@Nullable Inventory inventory) {
         if (inventory != null && inventory.getHolder() instanceof Holder holder) {
             return holder.purpose();
-        }
-        return null;
-    }
-
-    public @Nullable PlayerListBackTarget getBackTarget(@Nullable Inventory inventory) {
-        if (inventory != null && inventory.getHolder() instanceof Holder holder) {
-            return holder.backTarget();
         }
         return null;
     }
@@ -181,14 +182,13 @@ public final class PlayerListGui {
 
     private @NotNull String displayWorldName(@Nullable Player target) {
         if (target == null) {
-            return "Unknown";
+            return "不明";
         }
-
-        String normalizedName = target.getWorld().getName()
-            .replace('\\', '/')
-            .replaceAll("/{2,}", "/");
-        String leafName = new File(normalizedName).getName();
-        return leafName.isBlank() ? normalizedName : leafName;
+        var world = worldService.findByBukkitWorld(target.getWorld());
+        if (world == null) {
+            return "名称未設定";
+        }
+        return ColorCodeUtil.toPlainText(world.displayName(), "名称未設定");
     }
 
     private @NotNull Component noItalic(@NotNull Component component) {
@@ -197,12 +197,21 @@ public final class PlayerListGui {
 
     private record Holder(
         @NotNull PlayerListPurpose purpose,
-        @NotNull PlayerListBackTarget backTarget,
         int pageIndex,
         @NotNull List<UUID> playerIds
     ) implements HotbarShortcutGuiHolder {
         private Holder {
             playerIds = List.copyOf(playerIds);
+        }
+
+        @Override
+        public @NotNull String getNavigationId() {
+            return "player-list:" + purpose.name();
+        }
+
+        @Override
+        public int getBackSlot() {
+            return BACK_SLOT;
         }
 
         @Override

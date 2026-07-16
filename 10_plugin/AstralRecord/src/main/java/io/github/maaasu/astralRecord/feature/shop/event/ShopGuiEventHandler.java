@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.shop.event;
 
+import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
@@ -178,8 +179,7 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
         int quantity = shopGui.getQuantity(event.getView().getTopInventory());
         int pageIndex = shopGui.getPageIndex(event.getView().getTopInventory());
         if (event.getRawSlot() == ShopGui.CONFIRM_BACK_SLOT) {
-            MenuOpenEventHandler.suppressNextCloseSound(player);
-            shopGui.openList(player, shop, pageIndex);
+            AstralRecord.getInstance().getGuiNavigationService().openPrevious(player);
             GuiSound.SELECT.play(player);
             return;
         }

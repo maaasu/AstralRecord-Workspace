@@ -236,6 +236,11 @@ public final class PartyGui extends BaseMenuScreenView {
         }
 
         @Override
+        public int getBackSlot() {
+            return BACK_SLOT;
+        }
+
+        @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, SIZE);
         }

@@ -20,16 +20,15 @@ import io.github.maaasu.astralRecord.feature.menu.view.screen.EquipmentMenuScree
 import io.github.maaasu.astralRecord.feature.menu.view.screen.GuideScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.MainMenuScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.SellConfirmScreenView;
-import io.github.maaasu.astralRecord.feature.menu.view.screen.StatusScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.TrashConfirmScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.TrashScreenView;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playerclass.model.ClassViewEntry;
 import io.github.maaasu.astralRecord.feature.sell.view.SellScreenView;
-import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewEntry;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewOptions;
 import io.github.maaasu.astralRecord.feature.storage.view.StorageScreenView;
+import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import net.kyori.adventure.text.Component;
@@ -107,13 +106,11 @@ public class MenuView {
     public static final int CRAFT_SHORTCUT_RAW_SLOT_START = CraftShortcutView.CRAFT_SHORTCUT_RAW_SLOT_START;
 
     private static final Component MAIN_TITLE = Component.text("AstralRecord メニュー", NamedTextColor.DARK_AQUA);
-    private static final Component ACCOUNT_INFO_TITLE = Component.text("アカウント情報", NamedTextColor.GOLD);
     private static final Component EQUIPMENT_TITLE = Component.text("装備", NamedTextColor.GOLD);
     private static final Component BUFF_TITLE = Component.text("バフ", NamedTextColor.AQUA);
     private static final String CURRENCY_TITLE = "通貨";
 
     private final MainMenuScreenView mainMenuScreenView;
-    private final StatusScreenView statusScreenView;
     private final EquipmentMenuScreenView equipmentMenuScreenView;
     private final BuffScreenView buffScreenView;
     private final ClassScreenView classScreenView;
@@ -141,7 +138,6 @@ public class MenuView {
         NamespacedKey storageEntryIdKey = new NamespacedKey(plugin, "storage_entry_id");
         ItemService itemService = plugin.getItemService();
         this.mainMenuScreenView = new MainMenuScreenView();
-        this.statusScreenView = new StatusScreenView();
         this.equipmentMenuScreenView = new EquipmentMenuScreenView(equipmentPlaceholderKey);
         this.buffScreenView = new BuffScreenView();
         this.classScreenView = new ClassScreenView(classIdKey);
@@ -158,12 +154,6 @@ public class MenuView {
     public void open(@NotNull Player player) {
         Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.MAIN), SIZE, MAIN_TITLE);
         mainMenuScreenView.render(inventory, player, plugin.getCurrencyService().getGoldAmount(player), activeBuffNames(player));
-        player.openInventory(inventory);
-    }
-
-    public void openStatus(@NotNull Player player, @NotNull AstPlayer astPlayer, @NotNull StatusSnapshot snapshot) {
-        Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.STATUS), SIZE, ACCOUNT_INFO_TITLE);
-        statusScreenView.render(inventory, astPlayer, snapshot);
         player.openInventory(inventory);
     }
 

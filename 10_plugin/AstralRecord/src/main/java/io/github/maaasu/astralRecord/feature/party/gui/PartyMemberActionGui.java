@@ -94,6 +94,11 @@ public final class PartyMemberActionGui extends BaseMenuScreenView {
 
     private record Holder(@NotNull UUID targetId) implements HotbarShortcutGuiHolder {
         @Override
+        public int getBackSlot() {
+            return BACK_TO_PARTY_SLOT;
+        }
+
+        @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, SIZE);
         }

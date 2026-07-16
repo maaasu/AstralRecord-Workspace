@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.inventory.event;
 
+import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.inventory.model.AccessorySlotType;
@@ -200,8 +201,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         if (rawSlot == MenuView.EQUIPMENT_BACK_SLOT) {
             saveEquipmentMenuSnapshot(player, topInventory);
             GuiSound.SELECT.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
-            menuView.open(player);
+            AstralRecord.getInstance().getGuiNavigationService().openPrevious(player);
             return true;
         }
         if (rawSlot == MenuView.EQUIPMENT_PLAYER_STATUS_SLOT) {
@@ -213,7 +213,12 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             saveEquipmentMenuSnapshot(player, topInventory);
             GuiSound.SELECT.play(player);
             MenuOpenEventHandler.suppressNextCloseSound(player);
-            menuView.openStatus(player, astPlayer, statusService.refreshStatus(astPlayer));
+            var handler = AstralRecord.getInstance().getPlayerBrowserGuiEventHandler();
+            if (handler == null) {
+                GuiSound.DENY.play(player);
+                return true;
+            }
+            handler.openSelfDetail(player);
             return true;
         }
         return false;

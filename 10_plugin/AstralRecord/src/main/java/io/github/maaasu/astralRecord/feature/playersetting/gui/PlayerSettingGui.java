@@ -161,6 +161,11 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
 
     private record Holder(@NotNull UUID userId) implements HotbarShortcutGuiHolder {
         @Override
+        public int getBackSlot() {
+            return BACK_TO_MENU_SLOT;
+        }
+
+        @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, SIZE);
         }

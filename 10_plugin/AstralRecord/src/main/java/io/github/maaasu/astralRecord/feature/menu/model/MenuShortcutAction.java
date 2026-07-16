@@ -11,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
 public enum MenuShortcutAction {
     NONE("NONE", "未設定", Material.GRAY_DYE, NamedTextColor.GRAY, false),
     MAIN_MENU("MAIN_MENU", "メニュー", Material.NETHER_STAR, NamedTextColor.AQUA, false),
-    STATUS("STATUS", "ステータス", Material.PLAYER_HEAD, NamedTextColor.GREEN, false),
+    STATUS("STATUS", "プレイヤー情報", Material.PLAYER_HEAD, NamedTextColor.GREEN, false),
     RETURN_TO_BASE("RETURN_TO_BASE", MenuIconDefinition.RETURN_TO_BASE.getDisplayNameJa(), MenuIconDefinition.RETURN_TO_BASE.getMaterial(), MenuIconDefinition.RETURN_TO_BASE.getColor(), false),
     INVENTORY_CURRENCY("INVENTORY_CURRENCY", MenuIconDefinition.CURRENCY.getDisplayNameJa(), MenuIconDefinition.CURRENCY.getMaterial(), MenuIconDefinition.CURRENCY.getColor(), true),
     EQUIPMENT_GUI("EQUIPMENT_GUI", MenuIconDefinition.EQUIPMENT.getDisplayNameJa(), MenuIconDefinition.EQUIPMENT.getMaterial(), MenuIconDefinition.EQUIPMENT.getColor(), false);

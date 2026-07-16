@@ -19,25 +19,25 @@ import java.util.List;
 
 public final class MainMenuScreenView extends BaseMenuScreenView {
     public static final int STATUS_SLOT = 20;
-    public static final int PLAYER_SETTING_SLOT = 21;
-    public static final int EQUIPMENT_GUI_SLOT = 22;
-    public static final int TRASH_SLOT = 23;
-    public static final int GUIDE_SLOT = 24;
-    public static final int RETURN_TO_BASE_SLOT = 25;
-    public static final int BUFF_SLOT = 30;
-    public static final int SKILL_BIND_SLOT = 31;
-    public static final int CURRENCY_SLOT = 32;
-    public static final int PARTY_SLOT = 33;
-    public static final int PLAYER_INFO_SLOT = 34;
-    public static final int ADVENTURE_RECORD_SLOT = 28;
-    public static final int MAIL_SLOT = 29;
+    public static final int EQUIPMENT_GUI_SLOT = 21;
+    public static final int SKILL_BIND_SLOT = 22;
+    public static final int BUFF_SLOT = 23;
+    public static final int PLAYER_SETTING_SLOT = 24;
+    public static final int ADVENTURE_RECORD_SLOT = 29;
+    public static final int MAIL_SLOT = 30;
+    public static final int PARTY_SLOT = 31;
+    public static final int PLAYER_INFO_SLOT = 32;
+    public static final int CURRENCY_SLOT = 38;
+    public static final int GUIDE_SLOT = 39;
+    public static final int RETURN_TO_BASE_SLOT = 40;
+    public static final int TRASH_SLOT = 41;
 
     public void render(@NotNull Inventory inventory, @NotNull Player player, long goldAmount, @NotNull List<String> activeBuffNames) {
         fill(inventory);
         inventory.setItem(STATUS_SLOT, createItem(
-            MenuIconDefinition.ACCOUNT_INFO.getMaterial(),
-            Component.text(MenuIconDefinition.ACCOUNT_INFO.getDisplayNameJa(), MenuIconDefinition.ACCOUNT_INFO.getColor()),
-            List.of(Component.text("アカウント統計とステータスを確認", NamedTextColor.GRAY))
+            Material.PLAYER_HEAD,
+            Component.text("プレイヤー情報", NamedTextColor.GOLD),
+            List.of(Component.text("プロフィールとステータスを確認", NamedTextColor.GRAY))
         ));
         inventory.setItem(PLAYER_SETTING_SLOT, createItem(
             Material.COMPARATOR,

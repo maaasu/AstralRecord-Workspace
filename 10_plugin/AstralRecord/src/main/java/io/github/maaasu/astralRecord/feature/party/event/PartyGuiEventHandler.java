@@ -1,10 +1,10 @@
 package io.github.maaasu.astralRecord.feature.party.event;
 
+import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.player.PlayerBrowserGuiEventHandler;
-import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.party.gui.PartyGui;
 import io.github.maaasu.astralRecord.feature.party.gui.PartyMemberActionGui;
 import io.github.maaasu.astralRecord.feature.party.model.Party;
@@ -34,7 +34,6 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
     private final PartyGui gui;
     private final PartyMemberActionGui memberActionGui;
     private final PartyService partyService;
-    private final MenuView menuView;
     private final PlayerBrowserGuiEventHandler playerBrowserGuiEventHandler;
     private final InventoryService inventoryService;
 
@@ -42,14 +41,12 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
         @NotNull PartyGui gui,
         @NotNull PartyMemberActionGui memberActionGui,
         @NotNull PartyService partyService,
-        @NotNull MenuView menuView,
         @NotNull PlayerBrowserGuiEventHandler playerBrowserGuiEventHandler,
         @NotNull InventoryService inventoryService
     ) {
         this.gui = gui;
         this.memberActionGui = memberActionGui;
         this.partyService = partyService;
-        this.menuView = menuView;
         this.playerBrowserGuiEventHandler = playerBrowserGuiEventHandler;
         this.inventoryService = inventoryService;
     }
@@ -102,8 +99,7 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
     private void handleClick(@NotNull Player player, int rawSlot) {
         if (rawSlot == PartyGui.BACK_SLOT) {
             GuiSound.SELECT.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
-            menuView.open(player);
+            AstralRecord.getInstance().getGuiNavigationService().openPrevious(player);
             return;
         }
 
@@ -178,8 +174,7 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
     private void handleMemberActionClick(@NotNull Player player, int rawSlot) {
         if (rawSlot == PartyMemberActionGui.BACK_TO_PARTY_SLOT) {
             GuiSound.SELECT.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
-            gui.open(player);
+            AstralRecord.getInstance().getGuiNavigationService().openPrevious(player);
             return;
         }
 

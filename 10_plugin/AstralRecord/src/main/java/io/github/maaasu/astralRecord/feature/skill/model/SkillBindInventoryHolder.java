@@ -24,6 +24,21 @@ public record SkillBindInventoryHolder(
     }
 
     @Override
+    public @NotNull String getNavigationId() {
+        return "skill-bind";
+    }
+
+    @Override
+    public int getBackSlot() {
+        return screen == SkillBindScreen.MAIN ? 49 : -1;
+    }
+
+    @Override
+    public boolean isDirectBackNavigation() {
+        return false;
+    }
+
+    @Override
     public @NotNull Inventory getInventory() {
         return Bukkit.createInventory(this, 54);
     }
