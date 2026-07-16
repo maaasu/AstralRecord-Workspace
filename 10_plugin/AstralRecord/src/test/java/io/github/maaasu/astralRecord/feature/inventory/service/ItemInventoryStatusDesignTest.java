@@ -25,6 +25,7 @@ import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Material;
+import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
@@ -149,6 +150,83 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
 
         assertFalse(harness.inventoryService.hasHotbarEntry(astPlayer, 1));
         assertEquals(1, state.snapshotEntries(storage.getInventoryId()).size());
+    }
+
+    @Test
+    void storageBulkTransferMovesAndWithdrawsAllMatchingStacks() {
+        InventoryHarness harness = inventoryHarness();
+        PlayerMock bukkitPlayer = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.ADMIN);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        harness.addInventory(state, InventoryType.HOTBAR);
+        InventoryModel storage = harness.addInventory(state, InventoryType.STORAGE);
+        ItemModel material = DesignTestFixtures.item("bulk_storage_test", ItemCategory.CONSUMABLE, 64);
+        when(harness.itemService.findLoadedById(material.getId())).thenReturn(material);
+        when(harness.itemService.loadItem(material.getId())).thenReturn(material);
+
+        assertEquals(130, harness.inventoryService.addItemToNormalInventory(astPlayer, material, 130, "test"));
+        assertTrue(harness.inventoryService.equipOrAssignClickedItem(astPlayer, 9));
+        assertTrue(harness.inventoryService.hasHotbarEntry(astPlayer, 1));
+        assertEquals(2, state.snapshotEntries(bag.getInventoryId()).size());
+
+        assertEquals(130, harness.inventoryService.moveAllOwnedMatchingItemsToStorage(astPlayer, 0));
+
+        assertTrue(state.snapshotEntries(bag.getInventoryId()).isEmpty());
+        assertFalse(harness.inventoryService.hasHotbarEntry(astPlayer, 1));
+        List<InventoryEntryModel> stored = state.snapshotEntries(storage.getInventoryId());
+        assertEquals(1, stored.size());
+        assertEquals(130L, stored.get(0).getQuantity());
+
+        assertEquals(130, harness.inventoryService.withdrawStorageEntry(
+            astPlayer,
+            stored.get(0).getInventoryEntryId(),
+            130
+        ));
+
+        assertTrue(state.snapshotEntries(storage.getInventoryId()).isEmpty());
+        assertEquals(130L, state.snapshotEntries(bag.getInventoryId()).stream()
+            .mapToLong(InventoryEntryModel::getQuantity)
+            .sum());
+        assertEquals(3, state.snapshotEntries(bag.getInventoryId()).size());
+    }
+
+    @Test
+    void currencyBulkTransferMovesAllNormalStacksBackToCurrency() {
+        InventoryHarness harness = inventoryHarness();
+        PlayerMock bukkitPlayer = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.ADMIN);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        harness.addInventory(state, InventoryType.HOTBAR);
+        harness.addInventory(state, InventoryType.CURRENCY);
+        ItemModel currency = DesignTestFixtures.item("bulk_currency_test", ItemCategory.CURRENCY, 64);
+        when(harness.itemService.findLoadedById(currency.getId())).thenReturn(currency);
+        when(harness.itemService.loadItem(currency.getId())).thenReturn(currency);
+
+        assertEquals(130, harness.inventoryService.addItemToNormalInventory(astPlayer, currency, 130, "test"));
+        ItemStack currencyDisplay = harness.inventoryService.getInventoryItemStacks(
+            astPlayer.getAccount().getUuid(),
+            InventoryType.CURRENCY
+        ).get(0);
+        assertEquals(130, harness.inventoryService.withdrawCurrencyToNormalInventory(
+            astPlayer,
+            currencyDisplay,
+            130
+        ));
+        assertEquals(3, state.snapshotEntries(bag.getInventoryId()).size());
+        assertEquals(0L, harness.inventoryService.getCurrencyAmount(
+            astPlayer.getAccount().getUuid(),
+            currency.getId()
+        ));
+
+        assertEquals(130, harness.inventoryService.moveAllOwnedMatchingCurrencyToCurrency(astPlayer, 9));
+
+        assertTrue(state.snapshotEntries(bag.getInventoryId()).isEmpty());
+        assertEquals(130L, harness.inventoryService.getCurrencyAmount(
+            astPlayer.getAccount().getUuid(),
+            currency.getId()
+        ));
     }
 
     @Test

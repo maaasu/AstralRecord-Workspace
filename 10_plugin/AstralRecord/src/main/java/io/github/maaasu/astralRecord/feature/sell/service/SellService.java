@@ -376,7 +376,11 @@ public final class SellService {
             sendSellMessage(player, PlayerMsgId.P_5605);
             return;
         }
-        int requested = ItemTransferSupport.resolveTransferAmount(event.getClick(), clicked.getAmount());
+        int requested = ItemTransferSupport.resolveTransferAmount(
+            event.getClick(),
+            clicked.getAmount(),
+            clicked.getMaxStackSize()
+        );
         if (requested <= 0) {
             GuiSound.DENY.play(player);
             return;
@@ -425,7 +429,11 @@ public final class SellService {
             GuiSound.DENY.play(player);
             return;
         }
-        int requested = ItemTransferSupport.resolveTransferAmount(event.getClick(), current.getAmount());
+        int requested = ItemTransferSupport.resolveTransferAmount(
+            event.getClick(),
+            current.getAmount(),
+            current.getMaxStackSize()
+        );
         if (requested <= 0) {
             GuiSound.DENY.play(player);
             return;

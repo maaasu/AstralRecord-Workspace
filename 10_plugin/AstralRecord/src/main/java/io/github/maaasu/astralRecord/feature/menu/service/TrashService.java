@@ -332,7 +332,11 @@ public final class TrashService {
             GuiSound.DENY.play(player);
             return;
         }
-        int requested = ItemTransferSupport.resolveTransferAmount(event.getClick(), clicked.getAmount());
+        int requested = ItemTransferSupport.resolveTransferAmount(
+            event.getClick(),
+            clicked.getAmount(),
+            clicked.getMaxStackSize()
+        );
         if (requested <= 0) {
             GuiSound.DENY.play(player);
             return;
@@ -378,7 +382,11 @@ public final class TrashService {
             GuiSound.DENY.play(player);
             return;
         }
-        int requested = ItemTransferSupport.resolveTransferAmount(event.getClick(), current.getAmount());
+        int requested = ItemTransferSupport.resolveTransferAmount(
+            event.getClick(),
+            current.getAmount(),
+            current.getMaxStackSize()
+        );
         if (requested <= 0) {
             GuiSound.DENY.play(player);
             return;

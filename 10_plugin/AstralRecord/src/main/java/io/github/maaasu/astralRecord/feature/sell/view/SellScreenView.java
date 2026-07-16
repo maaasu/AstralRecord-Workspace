@@ -101,7 +101,8 @@ public final class SellScreenView extends BaseMenuScreenView {
             Component.text("売却ガイド", NamedTextColor.YELLOW),
             List.of(
                 Component.text("左クリック: 1 個を売却枠へ移動", NamedTextColor.GRAY),
-                Component.text("Shift+左クリック: まとめて売却枠へ移動", NamedTextColor.GRAY),
+                Component.text("Shift+左クリック: 1スタックを売却枠へ移動", NamedTextColor.GRAY),
+                Component.text("Shift+右クリック: 対象スタックすべてを移動", NamedTextColor.GRAY),
                 Component.text("右クリック: 分割して売却枠へ移動", NamedTextColor.GRAY),
                 Component.text("合計売値: " + totalSaleValue + " ゴールド", NamedTextColor.GOLD),
                 Component.text("中央の確認ボタンで売却確認を開きます", NamedTextColor.GRAY)

@@ -91,7 +91,8 @@ public final class TrashScreenView extends BaseMenuScreenView {
             Component.text("ゴミ箱ガイド", NamedTextColor.YELLOW),
             List.of(
                 Component.text("左クリック: 1 個をゴミ箱へ移動", NamedTextColor.GRAY),
-                Component.text("Shift+左クリック: まとめてゴミ箱へ移動", NamedTextColor.GRAY),
+                Component.text("Shift+左クリック: 1スタックをゴミ箱へ移動", NamedTextColor.GRAY),
+                Component.text("Shift+右クリック: 対象スタックすべてを移動", NamedTextColor.GRAY),
                 Component.text("右クリック: 分割してゴミ箱へ移動", NamedTextColor.GRAY),
                 Component.text("空きスロットは灰色ガラスで表示されます", NamedTextColor.GRAY),
                 Component.text("廃棄確認アイコンで確認画面を開きます", NamedTextColor.GRAY)

@@ -259,12 +259,21 @@ public final class StorageService {
             GuiSound.DENY.play(player);
             return;
         }
-        int requested = ItemTransferSupport.resolveTransferAmount(event.getClick(), clicked.getAmount());
-        if (requested <= 0) {
-            GuiSound.DENY.play(player);
-            return;
+        int moved;
+        if (ItemTransferSupport.isAllStacksTransfer(event.getClick())) {
+            moved = inventoryService.moveAllOwnedMatchingItemsToStorage(astPlayer, event.getSlot());
+        } else {
+            int requested = ItemTransferSupport.resolveTransferAmount(
+                event.getClick(),
+                clicked.getAmount(),
+                clicked.getMaxStackSize()
+            );
+            if (requested <= 0) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            moved = inventoryService.moveOwnedItemToStorage(astPlayer, event.getSlot(), requested);
         }
-        int moved = inventoryService.moveOwnedItemToStorage(astPlayer, event.getSlot(), requested);
         if (moved <= 0) {
             GuiSound.DENY.play(player);
             player.updateInventory();
@@ -298,12 +307,21 @@ public final class StorageService {
             GuiSound.DENY.play(player);
             return;
         }
-        int sourceAmount = currentStorageEntries(player, storageOptions(player)).stream()
+        StorageViewEntry sourceEntry = currentStorageEntries(player, storageOptions(player)).stream()
             .filter(entry -> entry.entry().getInventoryEntryId().equals(storageEntryId))
             .findFirst()
-            .map(entry -> (int) Math.clamp(entry.entry().getQuantity(), 0L, Integer.MAX_VALUE))
-            .orElse(current.getAmount());
-        int requested = ItemTransferSupport.resolveTransferAmount(event.getClick(), sourceAmount);
+            .orElse(null);
+        int sourceAmount = sourceEntry == null
+            ? current.getAmount()
+            : (int) Math.clamp(sourceEntry.entry().getQuantity(), 0L, Integer.MAX_VALUE);
+        int maxStackSize = sourceEntry == null
+            ? current.getMaxStackSize()
+            : Math.max(1, sourceEntry.itemModel().getMaxStack());
+        int requested = ItemTransferSupport.resolveTransferAmount(
+            event.getClick(),
+            sourceAmount,
+            maxStackSize
+        );
         if (requested <= 0) {
             GuiSound.DENY.play(player);
             return;

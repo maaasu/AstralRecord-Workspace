@@ -640,7 +640,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 );
                 int requested = ItemTransferSupport.resolveTransferAmount(
                     event.getClick(),
-                    (int) Math.min(Integer.MAX_VALUE, ownedAmount)
+                    (int) Math.min(Integer.MAX_VALUE, ownedAmount),
+                    currencyService.getCurrencyMaxStackSize(currencyItem)
                 );
                 int moved = inventoryService.withdrawCurrencyToNormalInventory(astPlayer, currencyItem, requested);
                 if (moved > 0) {
@@ -676,8 +677,17 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        int requested = ItemTransferSupport.resolveTransferAmount(event.getClick(), current.getAmount());
-        int moved = inventoryService.moveOwnedCurrencyToCurrency(astPlayer, event.getSlot(), requested);
+        int moved;
+        if (ItemTransferSupport.isAllStacksTransfer(event.getClick())) {
+            moved = inventoryService.moveAllOwnedMatchingCurrencyToCurrency(astPlayer, event.getSlot());
+        } else {
+            int requested = ItemTransferSupport.resolveTransferAmount(
+                event.getClick(),
+                current.getAmount(),
+                current.getMaxStackSize()
+            );
+            moved = inventoryService.moveOwnedCurrencyToCurrency(astPlayer, event.getSlot(), requested);
+        }
         if (moved <= 0) {
             GuiSound.DENY.play(player);
             player.updateInventory();

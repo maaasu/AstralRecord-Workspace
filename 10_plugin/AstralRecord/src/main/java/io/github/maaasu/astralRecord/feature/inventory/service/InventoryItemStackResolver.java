@@ -94,6 +94,7 @@ final class InventoryItemStackResolver {
             .decorate(TextDecoration.BOLD));
         updatedLore.add(Component.text("  " + formattedQuantity, NamedTextColor.YELLOW)
             .decorate(TextDecoration.BOLD));
+        updatedLore.add(Component.text("Shift+左: 1スタック / Shift+右: 全量", NamedTextColor.GRAY));
         meta.lore(updatedLore);
         itemStack.setItemMeta(meta);
     }

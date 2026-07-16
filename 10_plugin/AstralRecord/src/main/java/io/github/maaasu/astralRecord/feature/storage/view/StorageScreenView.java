@@ -150,7 +150,8 @@ public final class StorageScreenView extends BaseMenuScreenView {
             List.of(
                 Component.text("下の所持品クリックで収納", NamedTextColor.GRAY),
                 Component.text("上の一覧クリックで取り出し", NamedTextColor.GRAY),
-                Component.text("左: 1個 / 右: 半分 / Shift: 全部", NamedTextColor.GRAY)
+                Component.text("左: 1個 / 右: 半分", NamedTextColor.GRAY),
+                Component.text("Shift+左: 1スタック / Shift+右: 全部", NamedTextColor.GRAY)
             )
         ));
         if (hasNextPage(pageIndex, itemCount)) {

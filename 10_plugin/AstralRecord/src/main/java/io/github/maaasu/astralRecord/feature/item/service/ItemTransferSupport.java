@@ -56,19 +56,36 @@ public final class ItemTransferSupport {
      * クリック種別から移動要求数を解決します。
      *
      * @param clickType クリック種別
-     * @param sourceAmount 移動元スタック数
+     * @param sourceAmount 移動元の総数量
+     * @param maxStackSize 対象アイテムの1スタック上限
      * @return 移動要求数。未対応クリックまたは移動元が空なら 0
      */
-    public static int resolveTransferAmount(@NotNull ClickType clickType, int sourceAmount) {
+    public static int resolveTransferAmount(
+        @NotNull ClickType clickType,
+        int sourceAmount,
+        int maxStackSize
+    ) {
         if (sourceAmount <= 0) {
             return 0;
         }
+        int normalizedMaxStackSize = Math.max(1, maxStackSize);
         return switch (clickType) {
             case LEFT -> 1;
-            case SHIFT_LEFT -> sourceAmount;
             case RIGHT -> Math.max(1, (sourceAmount + 1) / 2);
+            case SHIFT_LEFT -> Math.min(sourceAmount, normalizedMaxStackSize);
+            case SHIFT_RIGHT -> sourceAmount;
             default -> 0;
         };
+    }
+
+    /**
+     * 同一アイテムの全スタックを対象にするクリックか判定します。
+     *
+     * @param clickType クリック種別
+     * @return Shift+右クリックの場合 true
+     */
+    public static boolean isAllStacksTransfer(@NotNull ClickType clickType) {
+        return clickType == ClickType.SHIFT_RIGHT;
     }
 
     /**
