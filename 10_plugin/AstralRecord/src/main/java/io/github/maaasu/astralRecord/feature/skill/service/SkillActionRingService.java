@@ -132,50 +132,6 @@ public final class SkillActionRingService {
     }
 
     /**
-     * オフハンド切替入力からアクションリング表示状態を切り替えます。
-     * <p>
-     * クライアントが同じ切替入力を短時間に複数送る場合があるため、開いた直後の close 側トグルだけを抑止します。
-     *
-     * @param astPlayer 対象プレイヤー
-     */
-    public void toggleBySwapInput(@NotNull AstPlayer astPlayer) {
-        var player = astPlayer.getBukkit();
-        var playerId = player.getUniqueId();
-        long now = System.currentTimeMillis();
-        var current = sessions.get(playerId);
-        if (current != null) {
-            Long suppressedUntil = swapCloseSuppressedUntil.get(playerId);
-            if (suppressedUntil != null && now <= suppressedUntil) {
-                return;
-            }
-            sessions.remove(playerId);
-            swapCloseSuppressedUntil.remove(playerId);
-            current.destroy();
-            GuiSound.CLOSE.play(player);
-            return;
-        }
-        if (equipmentDurabilityService != null && !equipmentDurabilityService.canUseMainHandWeapon(astPlayer)) {
-            GuiSound.DENY.play(player);
-            return;
-        }
-
-        PlayerSkillCaster caster = new PlayerSkillCaster(astPlayer);
-        RingSession session = RingSession.create(
-            player,
-            resolveSlots(astPlayer, caster),
-            actionRingDisplay,
-            actionRingMoveSpeedModifierKey,
-            actionRingJumpStrengthModifierKey,
-            skillService,
-            caster
-        );
-        sessions.put(playerId, session);
-        swapCloseSuppressedUntil.put(playerId, now + SWAP_CLOSE_DEBOUNCE_MILLIS);
-        GuiSound.RING_OPEN.play(player);
-        ensureTask();
-    }
-
-    /**
      * プレイヤーがアクションリング表示中かを返します。
      *
      * @param player 対象プレイヤー

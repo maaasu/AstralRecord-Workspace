@@ -24,8 +24,6 @@ equipment:
   onUse:
     leftClickCooldownTicks: 10
     leftClickSkillId: normal_attack_melee
-    rightClickCooldownTicks: 30
-    rightClickSkillId: special_attack_melee
   durability:
     max: 105
     consume: 1

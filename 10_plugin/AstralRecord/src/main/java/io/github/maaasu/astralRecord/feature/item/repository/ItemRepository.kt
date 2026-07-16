@@ -567,10 +567,6 @@ class ItemRepository {
             ItemEquipmentOnUse(
                 leftClickCooldownTicks = parseIntOrNull(onUseObj, "leftClickCooldownTicks"),
                 leftClickSkillId = parseStringOrNull(onUseObj, "leftClickSkillId"),
-                rightClickCooldownTicks = parseIntOrNull(onUseObj, "rightClickCooldownTicks")
-                    ?: parseIntOrNull(onUseObj, "RightClickCooldownTicks"),
-                rightClickSkillId = parseStringOrNull(onUseObj, "rightClickSkillId")
-                    ?: parseStringOrNull(onUseObj, "RightClickSkillId"),
             )
         } else {
             null

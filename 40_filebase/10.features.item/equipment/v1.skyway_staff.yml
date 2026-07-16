@@ -30,8 +30,6 @@ equipment:
   onUse:
     leftClickCooldownTicks: 14
     leftClickSkillId: normal_attack_magic
-    rightClickCooldownTicks: 38
-    rightClickSkillId: special_attack_magic
   durability:
     max: 110
     consume: 1

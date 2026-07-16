@@ -17,7 +17,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 /**
- * weapon equipment の左クリック攻撃と右クリック攻撃を処理します。
+ * weapon equipment の左クリック攻撃を処理します。
  */
 public final class ItemWeaponAttackService {
 
@@ -41,20 +41,12 @@ public final class ItemWeaponAttackService {
             @NotNull AstPlayer player,
             @NotNull Location castLocation
     ) {
-        handleAttack(player, castLocation, true);
-    }
-
-    public void handleRightClick(
-            @NotNull AstPlayer player,
-            @NotNull Location castLocation
-    ) {
-        handleAttack(player, castLocation, false);
+        handleAttack(player, castLocation);
     }
 
     private void handleAttack(
             @NotNull AstPlayer player,
-            @NotNull Location castLocation,
-            boolean leftClick
+            @NotNull Location castLocation
     ) {
         ItemModel itemModel = inventoryService.getItemModelInHand(player, EquipmentSlot.HAND);
         if (itemModel == null || itemModel.getEquipment() == null) {
@@ -74,13 +66,13 @@ public final class ItemWeaponAttackService {
             return;
         }
 
-        var rawSkillId = leftClick ? onUse.getLeftClickSkillId() : onUse.getRightClickSkillId();
+        var rawSkillId = onUse.getLeftClickSkillId();
         if (rawSkillId == null || rawSkillId.isBlank()) {
             return;
         }
 
         var skillId = rawSkillId.trim();
-        var cooldownTicks = leftClick ? onUse.getLeftClickCooldownTicks() : onUse.getRightClickCooldownTicks();
+        var cooldownTicks = onUse.getLeftClickCooldownTicks();
         var caster = new PlayerSkillCaster(player);
         if (cooldownTicks != null && cooldownTicks > 0 && skillService.isOnCooldown(caster, skillId)) {
             return;

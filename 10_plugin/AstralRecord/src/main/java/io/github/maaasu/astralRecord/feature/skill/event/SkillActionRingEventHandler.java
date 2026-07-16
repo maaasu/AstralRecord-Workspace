@@ -11,7 +11,6 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
-import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -21,12 +20,11 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * オフハンド切替入力をアクションリング表示へ差し替えるイベントハンドラです。
+ * 右クリック入力をアクションリング表示へ差し替えるイベントハンドラです。
  */
 public final class SkillActionRingEventHandler extends AbstractEventHandler {
     private final SkillActionRingService actionRingService;
@@ -49,33 +47,6 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
-    public void onSwapHandItems(@NotNull PlayerSwapHandItemsEvent event) {
-        runSafely(() -> {
-            event.setCancelled(true);
-            var player = event.getPlayer();
-            if (skillTreeService.shouldSuppressSkillTreeSetupControls(player)) {
-                actionRingService.close(player);
-                return;
-            }
-            if (skillTreeService.isSkillTreeEditing(player))
-                return;
-            var astPlayer = AstPlayerCache.get(player);
-            if (!isPlayerMode(astPlayer)) {
-                return;
-            }
-            if (actionRingService.isOpen(player)) {
-                actionRingService.toggleBySwapInput(astPlayer);
-                return;
-            }
-            if (!isWeapon(astPlayer)) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            actionRingService.toggleBySwapInput(astPlayer);
-        }, LogId.E_5802, event.getPlayer().getName(), "skill_action_ring_swap");
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onPlayerInteract(@NotNull PlayerInteractEvent event) {
         runSafely(() -> {
             Player player = event.getPlayer();
@@ -93,6 +64,16 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
                 event.setCancelled(true);
                 return;
             }
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (!actionRingService.isOpen(player)
+                && event.getHand() == EquipmentSlot.HAND
+                && isRightClick
+                && isPlayerMode(astPlayer)
+                && isWeapon(astPlayer)) {
+                event.setCancelled(true);
+                actionRingService.toggle(astPlayer);
+                return;
+            }
             if (!actionRingService.isOpen(player)) {
                 return;
             }
@@ -105,7 +86,6 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
                 return;
             }
             actionRingService.suppressAttack(player);
-            AstPlayer astPlayer = AstPlayerCache.get(player);
             if (isPlayerMode(astPlayer)) {
                 actionRingService.activateSelected(astPlayer);
             }

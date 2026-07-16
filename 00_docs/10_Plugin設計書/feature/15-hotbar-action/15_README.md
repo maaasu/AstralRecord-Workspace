@@ -21,7 +21,7 @@
 | feature | 依存内容 |
 |:--|:--|
 | [[03_README\|03-player]] | AstPlayer 取得、リソースステータス参照 |
-| [[04_README\|04-item]] | `equipment.onUse.leftClickSkillId` / `leftClickCooldownTicks` / `rightClickSkillId` / `rightClickCooldownTicks` |
+| [[04_README\|04-item]] | `equipment.onUse.leftClickSkillId` / `leftClickCooldownTicks` |
 | [[08_README\|08-inventory]] | メインハンド装備参照 |
 | [[13_README\|13-skill]] | built-in 通常攻撃発動、リソース消費、クールダウン |
 

@@ -141,8 +141,6 @@ data class ItemEquipmentDurability(
 data class ItemEquipmentOnUse(
     val leftClickCooldownTicks: Int?,
     val leftClickSkillId: String?,
-    val rightClickCooldownTicks: Int?,
-    val rightClickSkillId: String?,
 )
 
 /**

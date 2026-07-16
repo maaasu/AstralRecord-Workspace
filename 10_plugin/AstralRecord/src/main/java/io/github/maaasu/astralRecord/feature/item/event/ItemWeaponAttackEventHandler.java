@@ -76,8 +76,7 @@ public final class ItemWeaponAttackEventHandler extends AbstractEventHandler {
 
             Action action = event.getAction();
             boolean isLeftClick = action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK;
-            boolean isRightClick = action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
-            if (!isLeftClick && !isRightClick) {
+            if (!isLeftClick) {
                 return;
             }
             if (interactionConsumeService.isConsumed(event)) {
@@ -103,12 +102,7 @@ public final class ItemWeaponAttackEventHandler extends AbstractEventHandler {
                 return;
             }
 
-            if (isLeftClick) {
-                itemWeaponAttackService.handleLeftClick(astPlayer, event.getPlayer().getEyeLocation());
-                return;
-            }
-
-            itemWeaponAttackService.handleRightClick(astPlayer, event.getPlayer().getEyeLocation());
+            itemWeaponAttackService.handleLeftClick(astPlayer, event.getPlayer().getEyeLocation());
         }, LogId.E_6000, event.getPlayer().getName());
     }
 }
