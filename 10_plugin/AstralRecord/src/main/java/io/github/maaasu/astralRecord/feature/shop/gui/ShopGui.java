@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopCostItem;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopDefinition;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopEntry;
+import io.github.maaasu.astralRecord.feature.shop.model.ShopMode;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopPurchasePreview;
 import io.github.maaasu.astralRecord.feature.shop.service.ShopService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
@@ -98,7 +99,7 @@ public final class ShopGui {
                 if (model == null) {
                     return;
                 }
-                inventory.setItem(guiSlot, createShopItem(model, entry));
+                inventory.setItem(guiSlot, createShopItem(model, shop, entry));
             });
         renderPagination(inventory, shop, normalizedPage);
         player.openInventory(inventory);
@@ -145,7 +146,7 @@ public final class ShopGui {
             new ConfirmHolder(shop.id(), entry.id(), preview.quantity(), normalizePage(returnPageIndex, shop)),
             CONFIRM_SIZE,
             LEGACY_SERIALIZER.deserialize(ColorCodeUtil.toLegacyText(shop.name(), shop.id())
-                + " " + ColorCodeUtil.GRAY + "/ 購入確認")
+                + " " + ColorCodeUtil.GRAY + (isExchange(shop) ? "/ 両替確認" : "/ 購入確認"))
         );
         fill(inventory, Material.GRAY_STAINED_GLASS_PANE);
         ItemModel model = shopService.resolveItem(entry);
@@ -172,8 +173,12 @@ public final class ShopGui {
             quantityAdjustName("数量 ", "+10", NamedTextColor.GREEN),
             List.of(quantityLore(preview.quantity()))
         ));
-        inventory.setItem(CONFIRM_BACK_SLOT, actionItem(Material.SPECTRAL_ARROW, "商品一覧へ戻る", List.of("ショップの商品一覧を開きます")));
-        inventory.setItem(BUY_SLOT, buyItem(entry, preview));
+        inventory.setItem(CONFIRM_BACK_SLOT, actionItem(
+            Material.SPECTRAL_ARROW,
+            isExchange(shop) ? "両替一覧へ戻る" : "商品一覧へ戻る",
+            List.of(isExchange(shop) ? "両替する額面の一覧を開きます" : "ショップの商品一覧を開きます")
+        ));
+        inventory.setItem(BUY_SLOT, buyItem(shop, entry, preview));
         player.openInventory(inventory);
     }
 
@@ -238,7 +243,11 @@ public final class ShopGui {
         return itemStack.getItemMeta().getPersistentDataContainer().get(entryIdKey, PersistentDataType.STRING);
     }
 
-    private @NotNull ItemStack createShopItem(@NotNull ItemModel model, @NotNull ShopEntry entry) {
+    private @NotNull ItemStack createShopItem(
+        @NotNull ItemModel model,
+        @NotNull ShopDefinition shop,
+        @NotNull ShopEntry entry
+    ) {
         ItemStack itemStack = itemStackFactory.createShopDisplay(model, Math.max(1, entry.amount()));
         ItemMeta meta = itemStack.getItemMeta();
         if (meta == null) {
@@ -246,14 +255,17 @@ public final class ShopGui {
         }
         List<Component> lore = meta.lore() == null ? new ArrayList<>() : new ArrayList<>(meta.lore());
         lore.add(Component.empty());
-        lore.add(Component.text("◆ 販売情報 ◆", NamedTextColor.GOLD, TextDecoration.BOLD)
+        boolean exchange = isExchange(shop);
+        lore.add(Component.text(exchange ? "◆ 両替情報 ◆" : "◆ 販売情報 ◆", NamedTextColor.GOLD, TextDecoration.BOLD)
             .decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.text("価格: " + shopService.resolveGoldCost(entry) + " ゴールド", NamedTextColor.YELLOW)
-            .decoration(TextDecoration.ITALIC, false));
-        lore.add(sectionHeader("必要素材"));
+        if (!exchange || shopService.resolveGoldCost(entry) > 0) {
+            lore.add(Component.text("価格: " + shopService.resolveGoldCost(entry) + " ゴールド", NamedTextColor.YELLOW)
+                .decoration(TextDecoration.ITALIC, false));
+        }
+        lore.add(sectionHeader(exchange ? "交換元通貨" : "必要素材"));
         appendMaterialList(lore, shopService.resolveRequiredItems(entry), "なし", NamedTextColor.AQUA);
         lore.add(Component.empty());
-        lore.add(Component.text("クリックで購入確認へ", NamedTextColor.GREEN, TextDecoration.BOLD)
+        lore.add(Component.text(exchange ? "クリックで両替確認へ" : "クリックで購入確認へ", NamedTextColor.GREEN, TextDecoration.BOLD)
             .decoration(TextDecoration.ITALIC, false));
         meta.lore(lore);
         meta.getPersistentDataContainer().set(entryIdKey, PersistentDataType.STRING, entry.id());
@@ -261,39 +273,53 @@ public final class ShopGui {
         return itemStack;
     }
 
-    private @NotNull ItemStack buyItem(@NotNull ShopEntry entry, @NotNull ShopPurchasePreview preview) {
+    private @NotNull ItemStack buyItem(
+        @NotNull ShopDefinition shop,
+        @NotNull ShopEntry entry,
+        @NotNull ShopPurchasePreview preview
+    ) {
+        boolean exchange = isExchange(shop);
         Material material = preview.canPurchase() ? Material.GREEN_TERRACOTTA : Material.RED_TERRACOTTA;
         List<Component> lore = new ArrayList<>();
-        lore.add(Component.text("◆ 購入確認 ◆", NamedTextColor.GOLD, TextDecoration.BOLD)
+        lore.add(Component.text(exchange ? "◆ 両替確認 ◆" : "◆ 購入確認 ◆", NamedTextColor.GOLD, TextDecoration.BOLD)
             .decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.text("購入品: ", NamedTextColor.GRAY)
+        lore.add(Component.text(exchange ? "受取通貨: " : "購入品: ", NamedTextColor.GRAY)
             .append(Component.text(shopService.resolveItemDisplayName(entry), NamedTextColor.WHITE))
             .append(Component.text(" x" + (Math.max(1, entry.amount()) * preview.quantity()), NamedTextColor.AQUA))
             .decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.text("購入数量: ", NamedTextColor.GRAY)
+        lore.add(Component.text(exchange ? "両替口数: " : "購入数量: ", NamedTextColor.GRAY)
             .append(Component.text(String.valueOf(preview.quantity()), NamedTextColor.YELLOW))
             .decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.text("ゴールド: ", NamedTextColor.GRAY)
-            .append(Component.text("必要 " + preview.requiredGold(), NamedTextColor.GOLD))
-            .append(Component.text(" / ", NamedTextColor.DARK_GRAY))
-            .append(Component.text("所持 " + preview.ownedGold(), NamedTextColor.YELLOW))
-            .decoration(TextDecoration.ITALIC, false));
-        lore.add(sectionHeader("必要素材"));
+        if (!exchange || preview.requiredGold() > 0) {
+            lore.add(Component.text("ゴールド: ", NamedTextColor.GRAY)
+                .append(Component.text("必要 " + preview.requiredGold(), NamedTextColor.GOLD))
+                .append(Component.text(" / ", NamedTextColor.DARK_GRAY))
+                .append(Component.text("所持 " + preview.ownedGold(), NamedTextColor.YELLOW))
+                .decoration(TextDecoration.ITALIC, false));
+        }
+        lore.add(sectionHeader(exchange ? "交換元通貨" : "必要素材"));
         appendMaterialList(lore, preview.requiredItems(), "なし", NamedTextColor.AQUA);
         if (!preview.canPurchase()) {
-            lore.add(sectionHeader("不足素材"));
+            lore.add(sectionHeader(exchange ? "不足通貨" : "不足素材"));
             appendMaterialList(lore, preview.missingItems(), "不足なし", NamedTextColor.RED);
         } else {
-            lore.add(sectionHeader("購入可能"));
-            lore.add(Component.text("• 素材とゴールドを消費して購入します", NamedTextColor.GREEN)
+            lore.add(sectionHeader(exchange ? "両替可能" : "購入可能"));
+            lore.add(Component.text(
+                    exchange ? "• 交換元通貨を消費して等価交換します" : "• 素材とゴールドを消費して購入します",
+                    NamedTextColor.GREEN
+                )
                 .decoration(TextDecoration.ITALIC, false));
         }
         lore.add(Component.empty());
-        lore.add(Component.text(preview.canPurchase() ? "◆ クリックして購入する ◆" : "◆ 素材不足で購入できません ◆",
+        lore.add(Component.text(preview.canPurchase()
+                ? exchange ? "◆ クリックして両替する ◆" : "◆ クリックして購入する ◆"
+                : exchange ? "◆ 通貨不足で両替できません ◆" : "◆ 素材不足で購入できません ◆",
                 preview.canPurchase() ? NamedTextColor.GREEN : NamedTextColor.RED,
                 TextDecoration.BOLD)
             .decoration(TextDecoration.ITALIC, false));
-        return actionItem(material, Component.text(preview.canPurchase() ? "購入する" : "素材が不足しています",
+        return actionItem(material, Component.text(preview.canPurchase()
+                ? exchange ? "両替する" : "購入する"
+                : exchange ? "通貨が不足しています" : "素材が不足しています",
                 preview.canPurchase() ? NamedTextColor.GREEN : NamedTextColor.RED,
                 TextDecoration.BOLD)
             .decoration(TextDecoration.ITALIC, false), lore);
@@ -453,6 +479,10 @@ public final class ShopGui {
                 .append(Component.text(" x" + material.amount(), accentColor))
                 .decoration(TextDecoration.ITALIC, false));
         }
+    }
+
+    private boolean isExchange(@NotNull ShopDefinition shop) {
+        return shop.mode() == ShopMode.EXCHANGE;
     }
 
     public record ListHolder(@NotNull String shopId, int pageIndex) implements HotbarShortcutGuiHolder {

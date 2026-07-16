@@ -20,6 +20,7 @@ public final class ShopTabCompleter extends AstTabCompleter {
     protected List<String> getPlayerCompletions(@NotNull AstPlayer player, @NotNull String[] args) {
         if (args.length == 1) {
             return shopRepository.findAll().stream()
+                .filter(shop -> shop.access().isCommandAccessible())
                 .flatMap(shop -> Stream.of(shop.id(), ColorCodeUtil.toPlainText(shop.name(), shop.id())))
                 .distinct()
                 .toList();

@@ -7,6 +7,8 @@ import java.util.List;
 public record ShopDefinition(
     @NotNull String id,
     @NotNull String name,
+    @NotNull ShopMode mode,
+    @NotNull ShopAccess access,
     @NotNull List<ShopEntry> entries
 ) {
     public ShopEntry findEntry(@NotNull String entryId) {

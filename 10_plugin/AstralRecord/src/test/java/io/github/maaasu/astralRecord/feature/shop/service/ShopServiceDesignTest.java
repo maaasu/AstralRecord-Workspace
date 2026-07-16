@@ -10,7 +10,10 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopCostItem;
+import io.github.maaasu.astralRecord.feature.shop.model.ShopAccess;
+import io.github.maaasu.astralRecord.feature.shop.model.ShopDefinition;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopEntry;
+import io.github.maaasu.astralRecord.feature.shop.model.ShopMode;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopPurchasePreview;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopRecipeCost;
 import io.github.maaasu.astralRecord.feature.shop.repository.ShopRecipeRepository;
@@ -27,6 +30,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -146,6 +150,84 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         verify(harness.inventoryService, never()).saveNow(player.getAccount().getUuid());
     }
 
+    @Test
+    void previewChecksCurrencyCostsAgainstCurrencyInventory() {
+        ShopHarness harness = shopHarness(null);
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        ShopEntry entry = new ShopEntry(
+            "gold_to_coin",
+            "gold_coin",
+            "currency",
+            1,
+            1,
+            null,
+            null,
+            null,
+            0,
+            List.of(new ShopCostItem("gold", "currency", 10)),
+            null
+        );
+        when(harness.currencyService.getGoldAmount(player.getAccount().getUuid())).thenReturn(25L);
+
+        ShopPurchasePreview preview = harness.service.preview(player, entry, 2);
+
+        assertTrue(preview.canPurchase());
+        assertEquals(20, preview.requiredItems().get(0).amount());
+        verify(harness.inventoryService, never()).getNormalItemAmount(player.getAccount().getUuid(), "gold");
+    }
+
+    @Test
+    void purchaseConsumesCurrencyCostAndGrantsCurrencyAtomically() {
+        ShopHarness harness = shopHarness(null);
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        ItemModel goldCoin = DesignTestFixtures.item("gold_coin", ItemCategory.CURRENCY, 64);
+        ShopEntry entry = new ShopEntry(
+            "gold_to_coin",
+            "gold_coin",
+            "currency",
+            1,
+            1,
+            null,
+            null,
+            null,
+            0,
+            List.of(new ShopCostItem("gold", "currency", 10)),
+            null
+        );
+        InventoryService.InventoryStateSnapshot snapshot = snapshot(player);
+        when(harness.itemService.findLoadedById("gold_coin")).thenReturn(goldCoin);
+        when(harness.currencyService.getGoldAmount(player.getAccount().getUuid())).thenReturn(10L);
+        when(harness.inventoryService.canAddItemToNormalInventory(player, goldCoin, 1)).thenReturn(true);
+        when(harness.inventoryService.snapshotState(player.getAccount().getUuid())).thenReturn(snapshot);
+        when(harness.inventoryService.consumeCurrency(player.getAccount().getUuid(), "gold", 10L)).thenReturn(true);
+        when(harness.inventoryService.addItemToNormalInventory(player, goldCoin, 1, "shop")).thenReturn(1);
+        when(harness.inventoryService.resolveInventoryType(goldCoin)).thenReturn(InventoryType.CURRENCY);
+
+        assertTrue(harness.service.purchase(player, entry, 1));
+
+        InOrder order = inOrder(harness.inventoryService);
+        order.verify(harness.inventoryService).consumeCurrency(player.getAccount().getUuid(), "gold", 10L);
+        order.verify(harness.inventoryService).addItemToNormalInventory(player, goldCoin, 1, "shop");
+        order.verify(harness.inventoryService).saveNow(player.getAccount().getUuid());
+        verify(harness.inventoryService, never()).applyInventoryToGui(player, InventoryType.CURRENCY);
+    }
+
+    @Test
+    void commandLookupExcludesNpcOnlyShop() {
+        ShopHarness harness = shopHarness(null);
+        ShopDefinition exchange = new ShopDefinition(
+            "currency_exchange",
+            "ゴールド両替所",
+            ShopMode.EXCHANGE,
+            ShopAccess.NPC_ONLY,
+            List.of()
+        );
+        when(harness.shopRepository.findAll()).thenReturn(List.of(exchange));
+
+        assertEquals(exchange, harness.service.findByIdOrName("currency_exchange"));
+        assertNull(harness.service.findCommandAccessibleByIdOrName("currency_exchange"));
+    }
+
     private ShopEntry shopEntry(
         String itemId,
         int amount,
@@ -184,7 +266,7 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
             inventoryService,
             currencyService
         );
-        return new ShopHarness(itemService, inventoryService, currencyService, service);
+        return new ShopHarness(shopRepository, itemService, inventoryService, currencyService, service);
     }
 
     private InventoryService.InventoryStateSnapshot snapshot(AstPlayer player) {
@@ -205,6 +287,7 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
     }
 
     private record ShopHarness(
+        ShopRepository shopRepository,
         ItemService itemService,
         InventoryService inventoryService,
         CurrencyService currencyService,

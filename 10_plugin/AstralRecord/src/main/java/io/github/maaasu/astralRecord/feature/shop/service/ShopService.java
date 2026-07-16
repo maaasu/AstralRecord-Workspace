@@ -69,6 +69,17 @@ public final class ShopService {
             .orElse(null);
     }
 
+    /**
+     * コマンドから開けるショップだけを ID または表示名で検索します。
+     *
+     * @param value ショップ ID または表示名
+     * @return コマンド導線を許可するショップ。見つからない場合は {@code null}
+     */
+    public @Nullable ShopDefinition findCommandAccessibleByIdOrName(@NotNull String value) {
+        ShopDefinition shop = findByIdOrName(value);
+        return shop != null && shop.access().isCommandAccessible() ? shop : null;
+    }
+
     public @Nullable ItemModel resolveItem(@NotNull ShopEntry entry) {
         ItemModel model = itemService.findLoadedById(entry.itemId());
         return model != null ? model : itemService.loadItem(entry.itemId(), entry.category());
@@ -118,9 +129,13 @@ public final class ShopService {
             missingItems.add(new ShopCostItem(ItemService.DEFAULT_CURRENCY_ITEM_ID, "currency", (int) (requiredGold - ownedGold)));
         }
         for (ShopCostItem cost : requiredItems) {
-            long owned = inventoryService.getNormalItemAmount(accountId, cost.itemId());
+            long owned = getOwnedCostAmount(accountId, cost);
             if (owned < cost.amount()) {
-                missingItems.add(new ShopCostItem(cost.itemId(), cost.category(), (int) (cost.amount() - owned)));
+                missingItems.add(new ShopCostItem(
+                    cost.itemId(),
+                    cost.category(),
+                    toIntAmount(cost.amount() - owned)
+                ));
             }
         }
         return new ShopPurchasePreview(
@@ -154,13 +169,13 @@ public final class ShopService {
         if (snapshot == null) {
             return false;
         }
-        if (!inventoryService.consumeGold(accountId, preview.requiredGold())) {
+        if (preview.requiredGold() > 0L && !inventoryService.consumeGold(accountId, preview.requiredGold())) {
             restorePurchase(snapshot, player, entry, amount, "gold_consume_failed");
             return false;
         }
         for (ShopCostItem cost : preview.requiredItems()) {
-            if (!inventoryService.consumeNormalItem(accountId, cost.itemId(), cost.amount())) {
-                restorePurchase(snapshot, player, entry, amount, "material_consume_failed:" + cost.itemId());
+            if (!consumeCost(accountId, cost)) {
+                restorePurchase(snapshot, player, entry, amount, "cost_consume_failed:" + cost.itemId());
                 return false;
             }
         }
@@ -247,5 +262,30 @@ public final class ShopService {
             .trim()
             .replaceAll("\\s+", " ")
             .toLowerCase(java.util.Locale.ROOT);
+    }
+
+    private long getOwnedCostAmount(@NotNull UUID accountId, @NotNull ShopCostItem cost) {
+        if (isCurrencyCost(cost)) {
+            if (ItemService.DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(cost.itemId())) {
+                return currencyService.getGoldAmount(accountId);
+            }
+            return currencyService.getCurrencyAmount(accountId, cost.itemId());
+        }
+        return inventoryService.getNormalItemAmount(accountId, cost.itemId());
+    }
+
+    private boolean consumeCost(@NotNull UUID accountId, @NotNull ShopCostItem cost) {
+        if (isCurrencyCost(cost)) {
+            return inventoryService.consumeCurrency(accountId, cost.itemId(), cost.amount());
+        }
+        return inventoryService.consumeNormalItem(accountId, cost.itemId(), cost.amount());
+    }
+
+    private boolean isCurrencyCost(@NotNull ShopCostItem cost) {
+        return "currency".equalsIgnoreCase(cost.category());
+    }
+
+    private int toIntAmount(long amount) {
+        return (int) Math.min(Integer.MAX_VALUE, Math.max(0L, amount));
     }
 }

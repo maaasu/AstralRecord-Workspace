@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.item.service;
 
+import io.github.maaasu.astralRecord.feature.currency.model.GoldDenomination;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCurrency;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
@@ -220,8 +221,12 @@ public class ItemService {
     }
 
     private @Nullable ItemModel resolveBuiltinItem(@NotNull String normalizedId) {
-        if (DEFAULT_CURRENCY_ITEM_ID.equals(normalizedId) || LEGACY_DEFAULT_CURRENCY_ITEM_ID.equals(normalizedId)) {
-            return createGoldCurrencyItem(normalizedId);
+        GoldDenomination denomination = GoldDenomination.findByItemId(normalizedId);
+        if (denomination != null) {
+            return createGoldCurrencyItem(denomination, normalizedId);
+        }
+        if (LEGACY_DEFAULT_CURRENCY_ITEM_ID.equals(normalizedId)) {
+            return createGoldCurrencyItem(GoldDenomination.GOLD, normalizedId);
         }
         if (ASTRALD_CURRENCY_ITEM_ID.equals(normalizedId)) {
             return createAstraldCurrencyItem();
@@ -230,32 +235,37 @@ public class ItemService {
     }
 
     private int cacheBuiltInItems(@NotNull Map<String, Integer> categoryCounts) {
-        ItemModel gold = createGoldCurrencyItem(DEFAULT_CURRENCY_ITEM_ID);
-        cacheItem(gold);
-        categoryCounts.merge(gold.getCategory().toLowerCase(Locale.ROOT), 1, Integer::sum);
+        for (GoldDenomination denomination : GoldDenomination.values()) {
+            ItemModel currency = createGoldCurrencyItem(denomination, denomination.itemId());
+            cacheItem(currency);
+            categoryCounts.merge(currency.getCategory().toLowerCase(Locale.ROOT), 1, Integer::sum);
+        }
         ItemModel astrald = createAstraldCurrencyItem();
         cacheItem(astrald);
         categoryCounts.merge(astrald.getCategory().toLowerCase(Locale.ROOT), 1, Integer::sum);
-        return 2;
+        return GoldDenomination.values().length + 1;
     }
 
-    private @NotNull ItemModel createGoldCurrencyItem(@NotNull String itemId) {
+    private @NotNull ItemModel createGoldCurrencyItem(
+        @NotNull GoldDenomination denomination,
+        @NotNull String itemId
+    ) {
         return new ItemModel(
             1,
             itemId,
             ItemCategory.CURRENCY.getApiValue(),
-            "ゴールド",
-            "GOLD_NUGGET",
+            denomination.displayName(),
+            denomination.icon(),
             "common",
             64,
             0,
             null,
             null,
-            List.of("冒険や取引で使う基本通貨です。"),
+            List.of(denomination.goldValue() + "ゴールド相当の取引通貨です。"),
             false,
             true,
             null,
-            new ItemCurrency("gold", "default", null),
+            new ItemCurrency("gold", "denomination", null),
             null,
             null,
             null

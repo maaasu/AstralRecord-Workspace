@@ -1,8 +1,10 @@
 package io.github.maaasu.astralRecord.feature.shop.repository;
 
 import io.github.maaasu.astralRecord.feature.shop.model.ShopCostItem;
+import io.github.maaasu.astralRecord.feature.shop.model.ShopAccess;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopDefinition;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopEntry;
+import io.github.maaasu.astralRecord.feature.shop.model.ShopMode;
 import io.github.maaasu.astralRecord.infrastructure.database.file.FileDatabaseManager;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -48,7 +50,13 @@ public final class ShopRepository {
         if (id == null || id.isBlank()) {
             return null;
         }
-        return new ShopDefinition(id, yaml.getString("name", id), parseEntries(yaml));
+        return new ShopDefinition(
+            id,
+            yaml.getString("name", id),
+            ShopMode.fromValue(yaml.getString("mode")),
+            ShopAccess.fromValue(yaml.getString("access")),
+            parseEntries(yaml)
+        );
     }
 
     private @NotNull List<ShopEntry> parseEntries(@NotNull YamlConfiguration yaml) {

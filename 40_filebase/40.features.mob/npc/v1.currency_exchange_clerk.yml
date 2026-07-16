@@ -1,0 +1,39 @@
+schemaVersion: 1
+id: currency_exchange_clerk
+type: MOB
+category: NPC
+name: "&6両替商ノア"
+title: "&7ゴールド両替所"
+level: 1
+entityType: PLAYER
+nameVisible: true
+damageImmune: true
+icon: GOLD_BLOCK
+lore:
+  - "&7ゴールド系通貨を等価交換する両替商。"
+  - "&7右クリックでゴールド両替所を開ける。"
+tags:
+  - npc
+  - shop
+  - currency_exchange
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&6両替商ノア&7: 小銭も大口も、価値を変えずに両替するよ。"
+  rightClick:
+    - id: gui
+      params:
+        type: SHOP
+        shopId: currency_exchange

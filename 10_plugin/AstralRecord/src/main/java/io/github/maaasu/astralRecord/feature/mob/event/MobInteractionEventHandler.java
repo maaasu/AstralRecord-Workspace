@@ -226,7 +226,7 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
             return;
         }
         MenuGuiTransitionService.suppressNextCloseSound(player);
-        shopGuiEventHandler.open(player, shopId);
+        shopGuiEventHandler.openFromNpc(player, shopId);
     }
 
     private void openQuestBoard(@NotNull Player player, @NotNull MobInstance instance, @NotNull MobInteractionActionConfig action) {

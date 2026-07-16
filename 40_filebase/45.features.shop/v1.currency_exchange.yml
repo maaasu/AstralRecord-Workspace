@@ -1,0 +1,84 @@
+schemaVersion: 1
+id: currency_exchange
+type: SHOP
+mode: EXCHANGE
+access: NPC_ONLY
+name: "&6ゴールド両替所"
+items:
+  - id: gold_to_coin
+    itemId:
+      ref: item:gold_coin
+    category: currency
+    amount: 1
+    page: 1
+    slot: 8
+    requiredItems:
+      - itemId:
+          ref: item:gold
+        category: currency
+        amount: 10
+
+  - id: coin_to_gold
+    itemId:
+      ref: item:gold
+    category: currency
+    amount: 10
+    page: 1
+    slot: 9
+    requiredItems:
+      - itemId:
+          ref: item:gold_coin
+        category: currency
+        amount: 1
+
+  - id: coin_to_ingot
+    itemId:
+      ref: item:gold_ingot
+    category: currency
+    amount: 1
+    page: 1
+    slot: 10
+    requiredItems:
+      - itemId:
+          ref: item:gold_coin
+        category: currency
+        amount: 10
+
+  - id: ingot_to_coin
+    itemId:
+      ref: item:gold_coin
+    category: currency
+    amount: 10
+    page: 1
+    slot: 17
+    requiredItems:
+      - itemId:
+          ref: item:gold_ingot
+        category: currency
+        amount: 1
+
+  - id: ingot_to_block
+    itemId:
+      ref: item:gold_block
+    category: currency
+    amount: 1
+    page: 1
+    slot: 18
+    requiredItems:
+      - itemId:
+          ref: item:gold_ingot
+        category: currency
+        amount: 10
+
+  - id: block_to_ingot
+    itemId:
+      ref: item:gold_ingot
+    category: currency
+    amount: 10
+    page: 1
+    slot: 19
+    requiredItems:
+      - itemId:
+          ref: item:gold_block
+        category: currency
+        amount: 1

@@ -10,6 +10,8 @@ Shop master data defines a named shop and the item entries shown by the plugin s
 | `id` | String | yes | Shop ID. |
 | `type` | String | yes | Resource type. Use `SHOP`. |
 | `name` | String | yes | GUI title. Color code `&` is allowed. |
+| `mode` | String | no | `SHOP` / `EXCHANGE`. Default `SHOP`. `EXCHANGE` uses exchange wording in the shared shop GUI. |
+| `access` | String | no | `PUBLIC` / `NPC_ONLY`. Default `PUBLIC`. `NPC_ONLY` is excluded from `/shop` lookup and tab completion. |
 | `items[]` | List | yes | Sale item definitions. |
 | `items[].id` | String | yes | Entry ID inside the shop. |
 | `items[].itemId` | String or `{ ref }` | yes | Sold item ID. `ref: item:<id>` is allowed. |
@@ -20,9 +22,9 @@ Shop master data defines a named shop and the item entries shown by the plugin s
 | `items[].row` | Integer | no | 1-based row in the sale area. Used with `column` when `slot` is absent. |
 | `items[].column` | Integer | no | 1-based column in the sale area. Used with `row` when `slot` is absent. |
 | `items[].priceGold` | Integer | no | Gold cost per purchase unit. Default `0`. |
-| `items[].requiredItems[]` | List | no | Direct material cost per purchase unit. |
+| `items[].requiredItems[]` | List | no | Direct item or currency cost per purchase unit. |
 | `items[].requiredItems[].itemId` | String or `{ ref }` | yes | Required item ID. |
-| `items[].requiredItems[].category` | String | no | Required item category. Default `material`. |
+| `items[].requiredItems[].category` | String | no | Required item category. Default `material`. `currency` consumes the matching CURRENCY balance. |
 | `items[].requiredItems[].amount` | Integer | yes | Required amount per purchase unit. |
 | `items[].recipeId` | String or `{ ref }` | no | Additional cost source. A `recipe` with `category: SHOP` may be referenced. |
 
@@ -48,3 +50,7 @@ items:
     page: 1
     priceGold: 0
 ```
+
+## NPC 専用両替所
+
+`mode: EXCHANGE` と `access: NPC_ONLY` を組み合わせると、ショップ GUI の操作系を再利用しつつ、NPC interaction からだけ開ける両替所を定義できます。交換元通貨は `requiredItems[].category: currency` で指定し、交換先通貨を通常の商品と同じ `itemId` / `amount` で定義します。

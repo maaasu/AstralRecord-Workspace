@@ -1182,6 +1182,42 @@ public class InventoryService {
     }
 
     /**
+     * 指定した通貨を通貨インベントリから減算します。
+     * <p>
+     * 基本通貨 {@code gold} は互換 ID {@code ast_gold} の残高も合算して消費します。
+     *
+     * @param accountId 対象アカウント ID
+     * @param itemId 通貨アイテム ID
+     * @param amount 消費数量
+     * @return 全量を消費できた場合 {@code true}
+     */
+    public boolean consumeCurrency(
+        @NotNull UUID accountId,
+        @NotNull String itemId,
+        long amount
+    ) {
+        if (amount <= 0L) {
+            return true;
+        }
+        String normalizedItemId = itemId.trim();
+        if (normalizedItemId.isBlank()) {
+            return false;
+        }
+        if (ItemService.DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(normalizedItemId)) {
+            return consumeGold(accountId, amount);
+        }
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return false;
+        }
+        InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, InventoryType.CURRENCY);
+        if (inventory == null || !inventory.isEnabled() || getCurrencyAmount(accountId, normalizedItemId) < amount) {
+            return false;
+        }
+        return consumeItemAmountFromInventory(state, inventory, normalizedItemId, amount) == amount;
+    }
+
+    /**
      * 指定プレイヤーの通貨インベントリへゴールドを加算します。
      *
      * @param astPlayer 加算対象プレイヤー

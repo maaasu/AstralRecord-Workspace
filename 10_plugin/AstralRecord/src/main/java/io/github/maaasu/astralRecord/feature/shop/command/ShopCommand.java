@@ -29,11 +29,11 @@ public final class ShopCommand extends AstCommand {
             return;
         }
         String shopInput = joinArgs(args, 0);
-        var shop = shopService.findByIdOrName(shopInput);
+        var shop = shopService.findCommandAccessibleByIdOrName(shopInput);
         if (shop == null) {
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5930, shopInput);
             return;
         }
-        shopGuiEventHandler.open(player.getBukkit(), shop.id());
+        shopGuiEventHandler.openFromCommand(player.getBukkit(), shop.id());
     }
 }

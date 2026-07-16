@@ -34,13 +34,43 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
         this.inventoryService = inventoryService;
     }
 
+    /**
+     * コマンド導線としてショップを開きます。
+     *
+     * @param player 表示対象プレイヤー
+     * @param shopId ショップ ID
+     */
     public void open(@NotNull Player player, @NotNull String shopId) {
+        openFromCommand(player, shopId);
+    }
+
+    /**
+     * コマンド導線としてショップを開きます。NPC 専用ショップは拒否します。
+     *
+     * @param player 表示対象プレイヤー
+     * @param shopId ショップ ID
+     */
+    public void openFromCommand(@NotNull Player player, @NotNull String shopId) {
+        open(player, shopId, false);
+    }
+
+    /**
+     * NPC interaction 導線としてショップを開きます。
+     *
+     * @param player 表示対象プレイヤー
+     * @param shopId ショップ ID
+     */
+    public void openFromNpc(@NotNull Player player, @NotNull String shopId) {
+        open(player, shopId, true);
+    }
+
+    private void open(@NotNull Player player, @NotNull String shopId, boolean npcInteraction) {
         if (!AccountModeGuard.isGameplayPlayer(player)) {
             GuiSound.DENY.play(player);
             return;
         }
         ShopDefinition shop = shopService.findById(shopId);
-        if (shop == null) {
+        if (shop == null || !npcInteraction && !shop.access().isCommandAccessible()) {
             GuiSound.DENY.play(player);
             return;
         }
