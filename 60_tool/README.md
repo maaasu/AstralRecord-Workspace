@@ -1,125 +1,55 @@
-# Debug Deploy Tool
+# 60_tool
 
-## Master data reload
+実行入口となる bat は、このディレクトリ直下に採番して配置しています。
 
-`master-data-reload.bat` は、コードやプラグインをデプロイせず、次の処理だけを行います。
+## 実行入口
 
-1. `40_filebase` を開発サーバーの FileDatabase へ同期
-2. `POST /api/master-data/seed?mode=diff` を実行して MasterDataDB を更新
+| 番号 | bat | 用途 |
+| --- | --- | --- |
+| 01 | `01-deploy-debug.bat` | API / Web / Plugin / FileDatabase のデバッグデプロイ |
+| 02 | `02-deploy-debug-plugin-only.bat` | Plugin のみデバッグデプロイ |
+| 03 | `03-master-data-reload.bat` | Filebase 同期と MasterDataDB seed |
+| 04 | `04-db-rebuild.bat` | AstralRecord / MasterDataDB / HistoryDB の再構築 |
 
-事前に `master-data-reload.config.json` の接続先を確認し、API キーを環境変数へ設定してください。
+bat はどのカレントディレクトリから実行しても動作するよう、内部で専用ディレクトリのスクリプトを絶対パス解決します。
+
+## ディレクトリ構成
+
+```text
+60_tool/
+├─ 01-deploy-debug.bat
+├─ 02-deploy-debug-plugin-only.bat
+├─ 03-master-data-reload.bat
+├─ 04-db-rebuild.bat
+├─ deploy-debug/
+│  ├─ deploy-debug.ps1
+│  ├─ deploy-debug.config.json
+│  └─ normalize-source-encoding.ps1
+├─ master-data-reload/
+│  ├─ master-data-reload.ps1
+│  └─ master-data-reload.config.json
+└─ db-rebuild/
+   ├─ DbRebuildTool.csproj
+   ├─ Program.cs
+   ├─ db-rebuild.config.json
+   └─ README.md
+```
+
+## 使用方法
+
+1. 必要に応じて各専用ディレクトリの config を確認します。
+2. 直下の番号付き bat を実行します。
+3. DB 再構築は既存データを保持しないため、`04-db-rebuild.bat` は内容を確認してから実行してください。
+
+Master data reload の実行前には `ASTRALRECORD_API_KEY` を設定してください。
 
 ```powershell
 $env:ASTRALRECORD_API_KEY = 'your-api-key'
-E:\AstralRecord-Workspace\60_tool\master-data-reload.bat
+E:\AstralRecord-Workspace\60_tool\03-master-data-reload.bat
 ```
 
-バッチ完了後、Minecraft 内で `/masterdata reload` を実行します。これにより NPC 定義・NPC 配置・Mob・Item・Loot・Skill・Class・Guide・Gathering・Spawner・Quest・Waystone・World が再ロードされます。ショップはリクエスト時に MasterDataDB を参照するため、ショップ画面を開き直せば更新されます。
+DB 再構築で確認を省略する場合は次のように実行します。
 
-`E:\AstralRecord-Workspace\60_tool\deploy-debug.bat` を実行すると、API / WEB / プラグインのビルドと配置をまとめて実行します。  
-`E:\AstralRecord-Workspace\60_tool\deploy-debug-plugin-only.bat` を実行すると、プラグインだけをビルドして配置します。
-
-## できること
-
-- API を `dotnet publish` でビルド
-- WEB を `dotnet publish` でビルド
-- プラグインを `mvn clean package` でビルド
-- API / WEB の現在配置内容を `bak` に退避
-- API / WEB を共有フォルダへ反映
-- プラグイン jar を実行環境へコピー
-- FileDatabase を共有フォルダへ反映
-- 設定で有効な場合だけ `192.168.0.88` の IIS を停止してから反映し、最後に起動
-
-## ファイル構成
-
-- [deploy-debug.bat](/E:/AstralRecord-Workspace/60_tool/deploy-debug.bat:1)
-  - ダブルクリック実行用の入口
-- [deploy-debug-plugin-only.bat](/E:/AstralRecord-Workspace/60_tool/deploy-debug-plugin-only.bat:1)
-  - プラグインのみ実行するダブルクリック用の入口
-- [deploy-debug.ps1](/E:/AstralRecord-Workspace/60_tool/deploy-debug.ps1:1)
-  - 本体の PowerShell スクリプト
-- [deploy-debug.config.json](/E:/AstralRecord-Workspace/60_tool/deploy-debug.config.json:1)
-  - パスや設定ファイル保護ルールを持つ設定ファイル
-
-## 使い方
-
-1. `E:\AstralRecord-Workspace\60_tool\deploy-debug.config.json` の値を確認します。
-2. 次のどちらかを実行します。
-   - 全体実行: `E:\AstralRecord-Workspace\60_tool\deploy-debug.bat`
-   - プラグインのみ: `E:\AstralRecord-Workspace\60_tool\deploy-debug-plugin-only.bat`
-3. コンソールに `Deployment completed successfully` が出れば完了です。
-
-## 設定ファイルの扱い
-
-API / WEB は `preserveFilePatterns` に指定したファイルを上書きしません。  
-また、`preserveDirectories` に指定したディレクトリは削除しません。
-
-初期設定では以下を保護しています。
-
-- `appsettings*.json`
-- API の `logs`
-- WEB の `logs`
-
-このため、実行環境側にある `appsettings.json` や `appsettings.Development.json` はデプロイ後もそのまま残ります。
-
-一方で、`bak` はデプロイ直前の実行環境の内容を退避するためのフォルダです。`bak` 内の設定ファイルは、次回実行時に「その時点の実行環境内容」で更新されます。
-
-もし `web.config` も保護したい場合は、対象の `preserveFilePatterns` に次を追加してください。
-
-```json
-"preserveFilePatterns": [
-  "appsettings*.json",
-  "web.config"
-]
+```powershell
+E:\AstralRecord-Workspace\60_tool\04-db-rebuild.bat --yes
 ```
-
-## アプリ停止と IIS 制御
-
-API / WEB は配置直前に `app_offline.htm` を配置先へ一時作成し、ASP.NET Core アプリを停止してから反映します。  
-反映後は `app_offline.htm` を削除します。
-
-初期状態では `iis.enabled` は `false` です。
-
-```json
-"iis": {
-  "enabled": false,
-  "host": "192.168.0.88",
-  "executablePath": ""
-}
-```
-
-- `false`: IIS の停止と起動を行わず、そのまま配置します。
-- `true`: `iisreset.exe` を使って IIS を停止してから反映し、最後に起動します。
-
-この端末に `iisreset.exe` が入っていない場合は、次のどちらかにしてください。
-
-- `iis.enabled` を `false` のまま使う
-- `iis.executablePath` に `iisreset.exe` のフルパスを設定する
-
-## 現在の対象
-
-- API
-  - プロジェクト: `E:\AstralRecord-Workspace\20_api\AstralRecordApi\AstralRecordApi\AstralRecordApi.csproj`
-  - publish 出力: `E:\AstralRecord-Workspace\20_api\AstralRecordApi\AstralRecordApi\bin\Release\net10.0\publish`
-  - 配置先: `\\192.168.0.88\server\AstralRecordApi`
-- WEB
-  - プロジェクト: `E:\AstralRecord-Workspace\30_web\AstralRecordWeb\AstralRecordWeb\AstralRecordWeb.csproj`
-  - publish 出力: `E:\AstralRecord-Workspace\30_web\AstralRecordWeb\AstralRecordWeb\bin\Release\net10.0\publish`
-  - 配置先: `\\192.168.0.88\server\AstralRecordWeb`
-- プラグイン
-  - プロジェクト: `E:\AstralRecord-Workspace\10_plugin\AstralRecord`
-  - ビルド成果物: `E:\AstralRecord-Workspace\10_plugin\AstralRecord\dist`
-  - 配置先: `\\192.168.0.88\server\CraftyController\crafty-__saas-windows-medium-amd64__-_03629d64\servers\5bf4f70b-2c02-4a6b-b23f-8453237d2d97\plugins`
-  - 配置ファイル名: `AstralRecord.jar`
-- FileDatabase
-  - 開発環境: `E:\AstralRecord-Workspace\40_filebase`
-  - 配置先: `\\192.168.0.88\server\FileDatabase\file`
-  - 保持ディレクトリ: `99.work`
-
-## 注意点
-
-- 実行には `dotnet`、`mvn`、`robocopy`、`iisreset` が必要です。
-- `iisreset` のリモート実行権限がない場合は IIS の停止と起動に失敗します。
-- プラグインは配置前に `AstralRecord.jar` と `AstralRecord-*.jar` を削除し、最新ビルドを `AstralRecord.jar` として 1 つだけ配置します。
-- FileDatabase はフォルダ同期で反映します。初期設定では実行環境の `99.work` は削除しません。
-- `bak` は履歴を複数世代で持つ仕組みではありません。毎回上書きされます。

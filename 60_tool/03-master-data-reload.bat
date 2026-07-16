@@ -1,23 +1,21 @@
 @echo off
 setlocal
 
-set "SCRIPT_DIR=%~dp0"
-powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%deploy-debug.ps1" %*
+set "SCRIPT_DIR=%~dp0master-data-reload"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%\master-data-reload.ps1" %*
 set "EXIT_CODE=%ERRORLEVEL%"
 
 echo.
 if "%EXIT_CODE%"=="0" (
     echo ========================================
-    echo Deployment succeeded.
+    echo Master data reload completed.
+    echo Next: run /masterdata reload in Minecraft.
     echo ========================================
 ) else (
     echo ========================================
-    echo Deployment failed.
-    echo Exit code: %EXIT_CODE%
-    echo Check the message above for the cause.
+    echo Master data reload failed. Exit code: %EXIT_CODE%
     echo ========================================
 )
 
 pause
-
 exit /b %EXIT_CODE%

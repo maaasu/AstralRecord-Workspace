@@ -1,18 +1,18 @@
 @echo off
 setlocal
 
-set "SCRIPT_DIR=%~dp0"
-dotnet run --project "%SCRIPT_DIR%DbRebuildTool.csproj" -- %*
+set "SCRIPT_DIR=%~dp0deploy-debug"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%\deploy-debug.ps1" -PluginOnly %*
 set "EXIT_CODE=%ERRORLEVEL%"
 
 echo.
 if "%EXIT_CODE%"=="0" (
     echo ========================================
-    echo DB rebuild completed successfully.
+    echo Plugin deployment succeeded.
     echo ========================================
 ) else (
     echo ========================================
-    echo DB rebuild failed.
+    echo Plugin deployment failed.
     echo Exit code: %EXIT_CODE%
     echo Check the message above for the cause.
     echo ========================================
