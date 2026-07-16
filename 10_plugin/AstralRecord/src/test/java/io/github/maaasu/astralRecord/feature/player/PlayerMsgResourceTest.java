@@ -60,5 +60,8 @@ class PlayerMsgResourceTest {
         assertTrue(accountMode.contains("PLAYER"));
         assertTrue(displayAudit.contains("skilltreeDisplays="));
         assertTrue(PlayerMsgResource.getMessage(PlayerMsgId.P_5325.getId()).contains("PlayerSettingService"));
+        assertTrue(PlayerMsgResource.getMessage(PlayerMsgId.P_5280.getId()).contains("オートセーブ"));
+        assertTrue(PlayerMsgResource.getMessage(PlayerMsgId.P_5600.getId()).contains("ガイド"));
+        assertTrue(PlayerMsgResource.format(PlayerMsgId.P_5624.getId(), 3).contains("3"));
     }
 }

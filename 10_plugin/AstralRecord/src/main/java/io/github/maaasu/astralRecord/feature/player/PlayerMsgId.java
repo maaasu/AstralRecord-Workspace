@@ -452,6 +452,13 @@ public enum PlayerMsgId {
      * InventoryService が初期化されていません。
      */
     P_5252(5252),
+    // endregion
+
+    // region /feature/inventory/service/InventoryAutoSaveTask.java 5280-5289
+    /** オートセーブ開始通知。 */
+    P_5280(5280),
+    /** オートセーブ正常終了通知。 */
+    P_5281(5281),
     /**
      * インベントリを切り替えました: {0}
      */
@@ -477,6 +484,8 @@ public enum PlayerMsgId {
     // endregion
 
     // region /feature/menu 5600-5609
+    /** 定期ガイド誘導メッセージ。 */
+    P_5600(5600),
     /**
      * ショートカット設定の保存に失敗しました。設定を初期化しました。
      */
@@ -572,6 +581,8 @@ public enum PlayerMsgId {
      * メール「{0}」の報酬を受け取れませんでした。
      */
     P_5623(5623),
+    /** 参加時の未読メール件数通知。 */
+    P_5624(5624),
     // endregion
 
     // region /feature/mob 5700-5728

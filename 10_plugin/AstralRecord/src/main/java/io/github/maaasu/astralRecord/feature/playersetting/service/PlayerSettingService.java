@@ -149,6 +149,24 @@ public final class PlayerSettingService {
                 : (Boolean) PlayerSettingKey.PERFORMANCE_INFO_DISPLAY.getDefaultValue();
     }
 
+    /**
+     * 指定プレイヤーでオートセーブメッセージが有効かを返します。
+     *
+     * @param userId 判定対象ユーザー ID
+     * @return オートセーブメッセージが有効な場合は {@code true}
+     */
+    public boolean isAutoSaveMessageEnabled(@NotNull UUID userId) {
+        PlayerSettingSnapshot snapshot = cache.find(userId);
+        if (snapshot == null) {
+            return (Boolean) PlayerSettingKey.AUTO_SAVE_MESSAGE.getDefaultValue();
+        }
+        PlayerSettingEntry entry = snapshot.getEntry(PlayerSettingKey.AUTO_SAVE_MESSAGE);
+        Object value = entry == null ? null : entry.getValue();
+        return value instanceof Boolean enabled
+                ? enabled
+                : (Boolean) PlayerSettingKey.AUTO_SAVE_MESSAGE.getDefaultValue();
+    }
+
     public @NotNull UpdateResult updatePlayerSetting(@NotNull PlayerSettingChangeRequest request) {
         PlayerSettingSnapshot snapshot = cache.find(request.userId());
         if (snapshot == null) {

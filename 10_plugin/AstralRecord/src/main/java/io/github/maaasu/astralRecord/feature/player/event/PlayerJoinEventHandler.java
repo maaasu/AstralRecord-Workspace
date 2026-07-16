@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.loginbonus.service.LoginBonusService;
+import io.github.maaasu.astralRecord.feature.mail.service.MailService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -60,6 +61,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     private final PlayerService playerService;
     private final SkillTreeService skillTreeService;
     private final LoginBonusService loginBonusService;
+    private final MailService mailService;
     private final AstralRecord plugin;
     private final Set<UUID> loadingPlayers = ConcurrentHashMap.newKeySet();
     private final Map<UUID, LoadingControl> loadingControls = new ConcurrentHashMap<>();
@@ -69,12 +71,14 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         AstralRecord plugin,
         PlayerService playerService,
         SkillTreeService skillTreeService,
-        LoginBonusService loginBonusService
+        LoginBonusService loginBonusService,
+        MailService mailService
     ) {
         this.plugin = plugin;
         this.playerService = playerService;
         this.skillTreeService = skillTreeService;
         this.loginBonusService = loginBonusService;
+        this.mailService = mailService;
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
@@ -231,11 +235,34 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             playerService.applyPlayerJoin(player, joinData);
             loginBonusService.openAfterDataLoaded(player);
             finishJoinLoading(playerUuid, true);
+            notifyUnreadMailAsync(playerUuid, playerName);
             scheduleAsync(
                 () -> runSafely(() -> playerService.recordLoginHistory(playerUuid, playerName), LogId.E_5070, playerName),
                 JOIN_STEP_DELAY_TICKS
             );
         }, LogId.E_5070, playerName);
+    }
+
+    private void notifyUnreadMailAsync(UUID playerUuid, String playerName) {
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () ->
+            runSafely(() -> {
+                int unreadCount = mailService.countUnread(playerUuid);
+                if (unreadCount <= 0) {
+                    return;
+                }
+                plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    Player player = plugin.getServer().getPlayer(playerUuid);
+                    if (player != null && player.isOnline()) {
+                        PlayerMessageService.getInstance().sendClickable(
+                            player,
+                            PlayerMsgId.P_5624,
+                            "/menu mail",
+                            unreadCount
+                        );
+                    }
+                });
+            }, LogId.E_5600, playerName)
+        );
     }
 
     private void startJoinLoading(Player player) {

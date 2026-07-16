@@ -42,4 +42,32 @@ class PlayerSettingServiceDropLogTest {
 
         assertTrue(service.isDropLogDisplayEnabled(UUID.randomUUID()));
     }
+
+    @Test
+    void autoSaveMessageUsesCachedPlayerChoice() {
+        UUID userId = UUID.randomUUID();
+        PlayerSettingCache cache = new PlayerSettingCache();
+        cache.put(new PlayerSettingSnapshot(userId, Map.of(
+            PlayerSettingKey.AUTO_SAVE_MESSAGE,
+            new PlayerSettingEntry(null, PlayerSettingKey.AUTO_SAVE_MESSAGE, false, null)
+        )));
+        PlayerSettingService service = new PlayerSettingService(
+            new PlayerSettingRepository(),
+            new PlayerSettingDefaults(),
+            cache
+        );
+
+        assertFalse(service.isAutoSaveMessageEnabled(userId));
+    }
+
+    @Test
+    void autoSaveMessageDefaultsToEnabledWithoutCachedSnapshot() {
+        PlayerSettingService service = new PlayerSettingService(
+            new PlayerSettingRepository(),
+            new PlayerSettingDefaults(),
+            new PlayerSettingCache()
+        );
+
+        assertTrue(service.isAutoSaveMessageEnabled(UUID.randomUUID()));
+    }
 }

@@ -18,7 +18,7 @@ public final class MenuCommand extends AstCommand {
      * /menu コマンドを生成します。
      */
     public MenuCommand() {
-        super("menu", "Open AstralRecord menu.", "/menu [status]", true);
+        super("menu", "Open AstralRecord menu.", "/menu [status|guide|mail]", true);
     }
 
     @Override
@@ -37,6 +37,19 @@ public final class MenuCommand extends AstCommand {
             GuiSound.OPEN.play(player.getBukkit());
             menuView.openStatus(player.getBukkit(), player, snapshot);
             return;
+        }
+        if (args[0].equalsIgnoreCase("guide")) {
+            GuiSound.OPEN.play(player.getBukkit());
+            menuView.openGuide(player.getBukkit());
+            return;
+        }
+        if (args[0].equalsIgnoreCase("mail")) {
+            var mailGuiEventHandler = AstralRecord.getInstance().getMailGuiEventHandler();
+            if (mailGuiEventHandler != null) {
+                GuiSound.OPEN.play(player.getBukkit());
+                mailGuiEventHandler.open(player.getBukkit());
+                return;
+            }
         }
         sendUsage(player.getBukkit());
     }

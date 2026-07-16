@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -119,6 +120,27 @@ public final class PlayerMessageService {
     }
 
     /**
+     * クリック時に指定コマンドを実行するシステムメッセージを送信する。
+     *
+     * @param player 送信先プレイヤー
+     * @param msgId メッセージ ID
+     * @param command クリック時に実行するスラッシュ付きコマンド
+     * @param args 置換引数
+     */
+    public void sendClickable(
+        @NotNull Player player,
+        @NotNull PlayerMsgId msgId,
+        @NotNull String command,
+        Object... args
+    ) {
+        sendComponent(
+            player,
+            PlayerMsgResource.formatComponent(msgId.getId(), args)
+                .clickEvent(ClickEvent.runCommand(command))
+        );
+    }
+
+    /**
      * 全体チャットをオンラインプレイヤー全員へ配信する。
      *
      * @param senderName 発言者名
@@ -178,6 +200,6 @@ public final class PlayerMessageService {
     }
 
     private @NotNull Component systemPrefix() {
-        return PlayerMsgResource.getComponent(PlayerMsgId.P_5940.getId());
+        return PlayerMsgResource.getComponent(PlayerMsgId.P_5940.getId()).append(Component.space());
     }
 }

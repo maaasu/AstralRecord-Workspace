@@ -31,6 +31,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
     public static final int PARTICLE_DENSITY_SLOT = 22;
     public static final int PERFORMANCE_INFO_SLOT = 23;
     public static final int DROP_LOG_SLOT = 24;
+    public static final int AUTO_SAVE_MESSAGE_SLOT = 25;
     public static final int SUPER_MODE_SECRET_SLOT = 53;
     public static final int BACK_TO_MENU_SLOT = BaseMenuScreenView.BACK_SLOT;
 
@@ -71,6 +72,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             case PARTICLE_DENSITY_SLOT -> PlayerSettingKey.PARTICLE_DENSITY;
             case PERFORMANCE_INFO_SLOT -> PlayerSettingKey.PERFORMANCE_INFO_DISPLAY;
             case DROP_LOG_SLOT -> PlayerSettingKey.DROP_LOG_DISPLAY;
+            case AUTO_SAVE_MESSAGE_SLOT -> PlayerSettingKey.AUTO_SAVE_MESSAGE;
             default -> null;
         };
     }
@@ -111,6 +113,11 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             Material.CLOCK,
             PlayerSettingKey.PERFORMANCE_INFO_DISPLAY,
             (Boolean) resolveValue(userId, PlayerSettingKey.PERFORMANCE_INFO_DISPLAY, draftValues)
+        ));
+        inventory.setItem(AUTO_SAVE_MESSAGE_SLOT, createBooleanItem(
+            Material.WRITABLE_BOOK,
+            PlayerSettingKey.AUTO_SAVE_MESSAGE,
+            (Boolean) resolveValue(userId, PlayerSettingKey.AUTO_SAVE_MESSAGE, draftValues)
         ));
         inventory.setItem(BACK_TO_MENU_SLOT, backItem());
     }

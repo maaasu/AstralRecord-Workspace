@@ -19,6 +19,7 @@ public enum PlayerSettingKey {
     TEMP_DROP_DISPLAY("TEMP_DROP_DISPLAY", "Temp ドロップ表示", true),
     TEMP_BLOCK_DISPLAY("TEMP_BLOCK_DISPLAY", "Temp BlockDisplay 表示", true),
     PERFORMANCE_INFO_DISPLAY("PERFORMANCE_INFO_DISPLAY", "MSPT・Ping表示", false),
+    AUTO_SAVE_MESSAGE("AUTO_SAVE_MESSAGE", "オートセーブメッセージ", true),
     ADVENTURE_RECORD_SUPER_MODE("ADVENTURE_RECORD_SUPER_MODE", "冒険記録スーパーモード", false);
 
     private final String code;

@@ -181,6 +181,17 @@ public final class InventoryPersistence {
         }
         return true;
     }
+
+    /**
+     * 次回保存へ持ち越されたインベントリまたは装備耐久度の変更があるかを返します。
+     *
+     * @param state 判定対象 state
+     * @return 未保存変更が残っている場合は {@code true}
+     */
+    public boolean hasPendingChanges(@NotNull PlayerInventoryState state) {
+        return state.isDirty() || itemService.hasDirtyEquipmentDurability(state.getAccountId());
+    }
+
     /**
      * マーケット成立など、即時整合性が必要な場面で同期的に保存します。
      * <p>

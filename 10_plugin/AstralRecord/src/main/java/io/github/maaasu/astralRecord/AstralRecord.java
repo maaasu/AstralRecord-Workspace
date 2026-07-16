@@ -36,6 +36,7 @@ import io.github.maaasu.astralRecord.feature.gathering.spawner.repository.Gather
 import io.github.maaasu.astralRecord.feature.gathering.spawner.service.GatheringSpawnerService;
 import io.github.maaasu.astralRecord.feature.guide.repository.GuideRepository;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
+import io.github.maaasu.astralRecord.feature.guide.service.GuideReminderTask;
 import io.github.maaasu.astralRecord.shared.gui.event.GuiClickCooldownEventHandler;
 import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWaitService;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
@@ -239,6 +240,7 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerDeathService playerDeathService;
     private ResourcePackService resourcePackService;
     private GuideService guideService;
+    private GuideReminderTask guideReminderTask;
     private MenuView menuView;
     private MenuOpenEventHandler menuOpenEventHandler;
     private MenuGuiTransitionService menuGuiTransitionService;
@@ -416,6 +418,9 @@ public final class AstralRecord extends JavaPlugin {
         if (inventoryAutoSaveTask != null) {
             inventoryAutoSaveTask.stop();
         }
+        if (guideReminderTask != null) {
+            guideReminderTask.stop();
+        }
         if (accountService != null) {
             accountService.stop();
         }
@@ -581,12 +586,19 @@ public final class AstralRecord extends JavaPlugin {
         );
         accountModeApplicationService = new AccountModeApplicationService(accountService, inventoryService);
         skillTreeService.setInventoryService(inventoryService);
-        inventoryAutoSaveTask = new InventoryAutoSaveTask(inventoryService, inventoryPersistence, inventoryStateRegistry);
         currencyService = new CurrencyService(inventoryService, itemService);
         playerSettingService = new PlayerSettingService(
             new PlayerSettingRepository(),
             new PlayerSettingDefaults(),
             new PlayerSettingCache()
+        );
+        playerMessageService = new PlayerMessageService();
+        inventoryAutoSaveTask = new InventoryAutoSaveTask(
+            inventoryService,
+            inventoryPersistence,
+            inventoryStateRegistry,
+            playerSettingService,
+            playerMessageService
         );
         adventureRecordService = new AdventureRecordService(
             this,
@@ -710,7 +722,6 @@ public final class AstralRecord extends JavaPlugin {
             statusService,
             playerSaveCoordinator
         );
-        playerMessageService = new PlayerMessageService();
         returnToBaseService = new ReturnToBaseService(
             this,
             movementCancelableWaitService,
@@ -754,6 +765,7 @@ public final class AstralRecord extends JavaPlugin {
         // resource pack
         resourcePackService = new ResourcePackService(ConfigProperties.getInstance());
         guideService = new GuideService(new GuideRepository(), itemService, playerClassService, worldService);
+        guideReminderTask = new GuideReminderTask(playerMessageService);
 
         // menu
         menuView = new MenuView(this, guideService);
@@ -911,7 +923,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new PlayerJoinEventHandler(this, playerService, skillTreeService, loginBonusService),
+            new PlayerJoinEventHandler(this, playerService, skillTreeService, loginBonusService, mailService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
@@ -1195,6 +1207,7 @@ public final class AstralRecord extends JavaPlugin {
         skillTreeService.start();
         // インベントリオートセーブ（60 秒）を開始
         inventoryAutoSaveTask.start(this, InventoryAutoSaveTask.DEFAULT_INTERVAL_TICKS);
+        guideReminderTask.start(this, GuideReminderTask.DEFAULT_INTERVAL_TICKS);
     }
     /**
      * AstralRecord のインスタンスを取得します。

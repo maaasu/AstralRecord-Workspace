@@ -47,6 +47,16 @@ public final class MailService {
     }
 
     /**
+     * 表示可能な未読メール件数を返します。
+     *
+     * @param userId 対象ユーザー ID
+     * @return 未読メール件数
+     */
+    public int countUnread(@NotNull UUID userId) {
+        return list(userId, MailFilter.UNREAD).size();
+    }
+
+    /**
      * メールを既読化し、未読メールであれば報酬を付与します。
      *
      * @param astPlayer 対象プレイヤー
