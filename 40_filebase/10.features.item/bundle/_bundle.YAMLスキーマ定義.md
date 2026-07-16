@@ -22,8 +22,28 @@ Bundle の中身の指定方法は 2 系統あります。
 | `maxStack` | Integer | × | 64 | アイテムの最大スタック数 |
 | `bundle.lootTableId` | String | × | Null | LootTableId の参照先 ID |
 | `bundle.items[]` | List | × | Null | 報酬アイテムの直接定義 |
-| `bundle.onUse.sound` | String | × | Null | bundle 用カスタム Sound ID。実体は `10.features.item/bundle_sound/` で定義 |
-| `bundle.onUse.particle` | String | × | Null | bundle 用カスタム Particle ID。実体は `10.features.item/bundle_particle/` で定義 |
+| `bundle.onUse.sound` | String / Map | × | 既定値 | 文字列なら従来の `bundle_sound` ID、Map なら bundle 内に Sound 実体を定義 |
+| `bundle.onUse.particle` | String / Map | × | 既定値 | 文字列なら従来の `bundle_particle` ID、Map なら bundle 内に Particle 実体を定義 |
+
+`sound` と `particle` は bundle の `onUse` 内に直接定義できます。未指定、または参照先が解決できない場合は、プラグインの bundle 既定値（`block.chest.open` / `TOTEM_OF_UNDYING`）を使用します。
+
+```yaml
+bundle:
+  lootTableId:
+    ref: loot_table:example_table
+  onUse:
+    sound:
+      sound: block.chest.open
+      volume: 0.6
+      pitch: 1.28
+    particle:
+      particle: TOTEM_OF_UNDYING
+      count: 24
+      originOffsetY: 1.0
+      offsetX: 0.4
+      offsetY: 0.5
+      offsetZ: 0.4
+```
 
 ### bundle.items[]
 
@@ -115,4 +135,4 @@ bundle:
       amount: 1
 ```
 
-> 現行の `bundle_sound` / `bundle_particle` マスタは未定義です。`bundle.onUse` を利用する場合は、先に各マスタを作成してから、その実在 ID を指定してください。
+> `bundle_sound` / `bundle_particle` の ID 参照は後方互換のため引き続き利用できます。新規定義では `bundle.onUse` 内の Map 形式を推奨します。

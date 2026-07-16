@@ -329,10 +329,6 @@ public class BundleUseService {
     }
 
     private void playUseEffects(@NotNull AstPlayer astPlayer, @NotNull ItemBundle bundle) {
-        if (bundle.getOnUse() == null) {
-            return;
-        }
-
         Location location = astPlayer.getBukkit().getLocation();
         World world = astPlayer.getBukkit().getWorld();
         if (world == null) {
@@ -340,7 +336,7 @@ public class BundleUseService {
         }
 
         BundleUseEffectService.BundleUseSound soundDefinition =
-            bundleUseEffectService.findSound(bundle.getOnUse().getSound());
+            bundleUseEffectService.findSound(bundle.getOnUse() == null ? null : bundle.getOnUse().getSound());
         if (soundDefinition != null) {
             astPlayer.getBukkit().playSound(
                 location,
@@ -351,7 +347,7 @@ public class BundleUseService {
         }
 
         BundleUseEffectService.BundleUseParticle particleDefinition =
-            bundleUseEffectService.findParticle(bundle.getOnUse().getParticle());
+            bundleUseEffectService.findParticle(bundle.getOnUse() == null ? null : bundle.getOnUse().getParticle());
         if (particleDefinition != null) {
             particleDisplayService.spawnForNearbyViewers(
                 location.clone().add(

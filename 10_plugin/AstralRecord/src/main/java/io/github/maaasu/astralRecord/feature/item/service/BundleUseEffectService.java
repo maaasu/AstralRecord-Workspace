@@ -1,5 +1,7 @@
 package io.github.maaasu.astralRecord.feature.item.service;
 
+import io.github.maaasu.astralRecord.feature.item.model.ItemBundleParticle;
+import io.github.maaasu.astralRecord.feature.item.model.ItemBundleSound;
 import io.github.maaasu.astralRecord.infrastructure.database.file.FileDatabaseManager;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Particle;
@@ -18,6 +20,10 @@ public class BundleUseEffectService {
 
     private static final String SOUND_DIRECTORY = "10.features.item/bundle_sound";
     private static final String PARTICLE_DIRECTORY = "10.features.item/bundle_particle";
+    public static final BundleUseSound DEFAULT_SOUND =
+        new BundleUseSound("default", "block.chest.open", 0.6f, 1.28f);
+    public static final BundleUseParticle DEFAULT_PARTICLE =
+        new BundleUseParticle("default", Particle.TOTEM_OF_UNDYING, 24, 0.0d, 1.0d, 0.0d, 0.4d, 0.5d, 0.4d, 0.0d);
 
     private final FileDatabaseManager fileDatabaseManager;
     private final Map<String, BundleUseSound> soundCache = new ConcurrentHashMap<>();
@@ -31,7 +37,28 @@ public class BundleUseEffectService {
         this.fileDatabaseManager = fileDatabaseManager;
     }
 
-    public @Nullable BundleUseSound findSound(@Nullable String soundId) {
+    public @NotNull BundleUseSound findSound(@Nullable ItemBundleSound definition) {
+        if (definition == null) {
+            return DEFAULT_SOUND;
+        }
+        if (trimToNull(definition.getSound()) != null) {
+            return new BundleUseSound(
+                "inline",
+                definition.getSound().trim(),
+                (float) (definition.getVolume() == null ? 1.0d : definition.getVolume()),
+                (float) (definition.getPitch() == null ? 1.0d : definition.getPitch())
+            );
+        }
+        BundleUseSound resolved = findConfiguredSound(definition.getId());
+        return resolved == null ? DEFAULT_SOUND : resolved;
+    }
+
+    public @NotNull BundleUseSound findSound(@Nullable String soundId) {
+        BundleUseSound resolved = findConfiguredSound(soundId);
+        return resolved == null ? DEFAULT_SOUND : resolved;
+    }
+
+    private @Nullable BundleUseSound findConfiguredSound(@Nullable String soundId) {
         String normalizedId = normalizeId(soundId);
         if (normalizedId == null) {
             return null;
@@ -58,7 +85,34 @@ public class BundleUseEffectService {
         return resolved;
     }
 
-    public @Nullable BundleUseParticle findParticle(@Nullable String particleId) {
+    public @NotNull BundleUseParticle findParticle(@Nullable ItemBundleParticle definition) {
+        if (definition == null) {
+            return DEFAULT_PARTICLE;
+        }
+        if (parseParticle(definition.getParticle()) != null) {
+            return new BundleUseParticle(
+                "inline",
+                parseParticle(definition.getParticle()),
+                Math.max(1, definition.getCount() == null ? 24 : definition.getCount()),
+                valueOrDefault(definition.getOriginOffsetX(), 0.0d),
+                valueOrDefault(definition.getOriginOffsetY(), 1.0d),
+                valueOrDefault(definition.getOriginOffsetZ(), 0.0d),
+                valueOrDefault(definition.getOffsetX(), 0.4d),
+                valueOrDefault(definition.getOffsetY(), 0.5d),
+                valueOrDefault(definition.getOffsetZ(), 0.4d),
+                valueOrDefault(definition.getExtra(), 0.0d)
+            );
+        }
+        BundleUseParticle resolved = findConfiguredParticle(definition.getId());
+        return resolved == null ? DEFAULT_PARTICLE : resolved;
+    }
+
+    public @NotNull BundleUseParticle findParticle(@Nullable String particleId) {
+        BundleUseParticle resolved = findConfiguredParticle(particleId);
+        return resolved == null ? DEFAULT_PARTICLE : resolved;
+    }
+
+    private @Nullable BundleUseParticle findConfiguredParticle(@Nullable String particleId) {
         String normalizedId = normalizeId(particleId);
         if (normalizedId == null) {
             return null;
@@ -106,6 +160,10 @@ public class BundleUseEffectService {
 
     private @Nullable Particle parseParticle(@Nullable String raw) {
         return SharedParticleDefinitions.resolveParticle(raw);
+    }
+
+    private double valueOrDefault(@Nullable Double value, double defaultValue) {
+        return value == null ? defaultValue : value;
     }
 
     public record BundleUseSound(

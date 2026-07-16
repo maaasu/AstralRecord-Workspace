@@ -12,8 +12,28 @@ data class ItemBundle(
  * bundle 使用時の演出定義。
  */
 data class ItemBundleOnUse(
-    val sound: String?,
+    val sound: ItemBundleSound?,
     val effect: String?,
+    val particle: ItemBundleParticle?,
+)
+
+data class ItemBundleSound(
+    val id: String?,
+    val sound: String?,
+    val volume: Double?,
+    val pitch: Double?,
+)
+
+data class ItemBundleParticle(
+    val id: String?,
     val particle: String?,
+    val count: Int?,
+    val originOffsetX: Double?,
+    val originOffsetY: Double?,
+    val originOffsetZ: Double?,
+    val offsetX: Double?,
+    val offsetY: Double?,
+    val offsetZ: Double?,
+    val extra: Double?,
 )
 

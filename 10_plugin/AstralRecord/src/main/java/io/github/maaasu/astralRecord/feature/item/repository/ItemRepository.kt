@@ -12,6 +12,8 @@ import io.github.maaasu.astralRecord.feature.item.model.RuneInstance
 import io.github.maaasu.astralRecord.feature.item.model.RuneStatRoll
 import io.github.maaasu.astralRecord.feature.item.model.ItemBundle
 import io.github.maaasu.astralRecord.feature.item.model.ItemBundleOnUse
+import io.github.maaasu.astralRecord.feature.item.model.ItemBundleParticle
+import io.github.maaasu.astralRecord.feature.item.model.ItemBundleSound
 import io.github.maaasu.astralRecord.feature.item.model.ItemAppearance
 import io.github.maaasu.astralRecord.feature.item.model.ItemConsumable
 import io.github.maaasu.astralRecord.feature.item.model.ItemConsumableEffect
@@ -468,13 +470,47 @@ class ItemRepository {
             lootTableId = parseStringOrNull(bundleObj, "lootTableId"),
             onUse = if (onUseObj != null) {
                 ItemBundleOnUse(
-                    sound = parseStringOrNull(onUseObj, "sound"),
+                    sound = parseBundleSound(onUseObj),
                     effect = parseStringOrNull(onUseObj, "effect"),
-                    particle = parseStringOrNull(onUseObj, "particle"),
+                    particle = parseBundleParticle(onUseObj),
                 )
             } else {
                 null
             },
+        )
+    }
+
+    private fun parseBundleSound(obj: JsonObject): ItemBundleSound? {
+        val value = obj.get("sound") ?: return null
+        if (value.isJsonPrimitive) return ItemBundleSound(value.asString, null, null, null)
+        if (!value.isJsonObject) return null
+        val soundObj = value.asJsonObject
+        return ItemBundleSound(
+            id = parseStringOrNull(soundObj, "id"),
+            sound = parseStringOrNull(soundObj, "sound"),
+            volume = parseDoubleOrNull(soundObj, "volume"),
+            pitch = parseDoubleOrNull(soundObj, "pitch"),
+        )
+    }
+
+    private fun parseBundleParticle(obj: JsonObject): ItemBundleParticle? {
+        val value = obj.get("particle") ?: return null
+        if (value.isJsonPrimitive) {
+            return ItemBundleParticle(value.asString, null, null, null, null, null, null, null, null, null)
+        }
+        if (!value.isJsonObject) return null
+        val particleObj = value.asJsonObject
+        return ItemBundleParticle(
+            id = parseStringOrNull(particleObj, "id"),
+            particle = parseStringOrNull(particleObj, "particle"),
+            count = parseIntOrNull(particleObj, "count"),
+            originOffsetX = parseDoubleOrNull(particleObj, "originOffsetX"),
+            originOffsetY = parseDoubleOrNull(particleObj, "originOffsetY"),
+            originOffsetZ = parseDoubleOrNull(particleObj, "originOffsetZ"),
+            offsetX = parseDoubleOrNull(particleObj, "offsetX"),
+            offsetY = parseDoubleOrNull(particleObj, "offsetY"),
+            offsetZ = parseDoubleOrNull(particleObj, "offsetZ"),
+            extra = parseDoubleOrNull(particleObj, "extra"),
         )
     }
 
