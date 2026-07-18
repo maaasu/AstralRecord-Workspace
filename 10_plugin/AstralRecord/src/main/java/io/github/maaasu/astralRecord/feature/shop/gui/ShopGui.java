@@ -102,7 +102,7 @@ public final class ShopGui {
                 inventory.setItem(guiSlot, createShopItem(model, shop, entry));
             });
         renderPagination(inventory, shop, normalizedPage);
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     /**
@@ -179,7 +179,7 @@ public final class ShopGui {
             List.of(isExchange(shop) ? "両替する額面の一覧を開きます" : "ショップの商品一覧を開きます")
         ));
         inventory.setItem(BUY_SLOT, buyItem(shop, entry, preview));
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     public boolean isListInventory(@Nullable Inventory inventory) {

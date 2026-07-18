@@ -154,7 +154,7 @@ public class MenuView {
     public void open(@NotNull Player player) {
         Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.MAIN), SIZE, MAIN_TITLE);
         mainMenuScreenView.render(inventory, player, plugin.getCurrencyService().getGoldAmount(player), activeBuffNames(player));
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     public void openEquipmentGui(@NotNull Player player) {
@@ -164,13 +164,13 @@ public class MenuView {
     public void openEquipmentGui(@NotNull Player player, @NotNull ItemStack[] accessories) {
         Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.EQUIPMENT_GUI), SIZE, EQUIPMENT_TITLE);
         equipmentMenuScreenView.render(inventory, player, accessories);
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     public void openBuff(@NotNull Player player, @NotNull List<ActiveBuff> activeBuffs) {
         Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.BUFF), SIZE, BUFF_TITLE);
         buffScreenView.render(inventory, activeBuffs);
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     /**
@@ -190,7 +190,7 @@ public class MenuView {
             Component.text("クラス", NamedTextColor.YELLOW)
         );
         classScreenView.render(inventory, astPlayer, classes);
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     public void openCurrency(@NotNull Player player, @NotNull List<ItemStack> currencyItems, int pageIndex) {
@@ -199,7 +199,7 @@ public class MenuView {
         Component title = Component.text(CURRENCY_TITLE + " " + (normalizedPage + 1) + "/" + totalPages, NamedTextColor.GOLD);
         Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.CURRENCY, -1, normalizedPage), PagedGuiView.SIZE, title);
         currencyGuiView.render(inventory, currencyItems, normalizedPage);
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     public void openGuide(@NotNull Player player) {
@@ -217,7 +217,7 @@ public class MenuView {
             title
         );
         guideScreenView.renderList(inventory, guides, normalizedPage, guideService);
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     public void openGuideDetail(@NotNull Player player, @NotNull GuideEntry guide, int returnPageIndex) {
@@ -227,7 +227,7 @@ public class MenuView {
             Component.text("ガイド", NamedTextColor.LIGHT_PURPLE)
         );
         guideScreenView.renderDetail(inventory, guide, guideService);
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     public void openTrash(@NotNull Player player, @NotNull List<ItemStack> trashItems, int pageIndex) {
@@ -236,7 +236,7 @@ public class MenuView {
         Component title = Component.text("ゴミ箱 " + (normalizedPage + 1) + "/" + totalPages, NamedTextColor.RED);
         Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.TRASH, -1, normalizedPage), SIZE, title);
         trashScreenView.render(inventory, trashItems, normalizedPage);
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     public void renderTrash(@NotNull Inventory inventory, @NotNull List<ItemStack> trashItems, int pageIndex) {
@@ -251,7 +251,7 @@ public class MenuView {
             title
         );
         trashConfirmScreenView.render(inventory, trashItems, 0);
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     public void openSell(@NotNull Player player, @NotNull List<ItemStack> sellItems, int pageIndex) {
@@ -260,7 +260,7 @@ public class MenuView {
         Component title = Component.text("売却 " + (normalizedPage + 1) + "/" + totalPages, NamedTextColor.GOLD);
         Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.SELL, -1, normalizedPage), SIZE, title);
         sellScreenView.render(inventory, sellItems, normalizedPage);
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     /**
@@ -281,7 +281,7 @@ public class MenuView {
             SellConfirmScreenView.CONFIRM_MESSAGE
         );
         sellConfirmScreenView.render(inventory, sellItems, 0);
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     public void openStorage(
@@ -295,7 +295,7 @@ public class MenuView {
         Component title = Component.text("ストレージ " + (normalizedPage + 1) + "/" + totalPages, NamedTextColor.GOLD);
         Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.STORAGE, -1, normalizedPage), SIZE, title);
         storageScreenView.render(inventory, storageItems, options, normalizedPage);
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     public void renderStorage(

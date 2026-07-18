@@ -103,7 +103,7 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
             Component.text("プレイヤー情報: " + target.getBukkit().getName(), NamedTextColor.GOLD)
         );
         render(inventory, viewer, target, snapshot, goldAmount, classDisplayName, classExperienceProgress, classExperienceRemaining);
-        viewer.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory);
     }
 
     public boolean isInventory(@Nullable Inventory inventory) {
@@ -251,13 +251,14 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
             ? NamedTextColor.GREEN
             : NamedTextColor.RED;
         line = line
-            .append(Component.text("  ", NamedTextColor.DARK_GRAY))
+            .append(Component.text("  (", NamedTextColor.DARK_GRAY))
             .append(Component.text(
                 type.formatRange(value.getBaseMinValue(), value.getBaseMaxValue()),
                 NamedTextColor.GRAY
             ))
-            .append(Component.text("  ", NamedTextColor.DARK_GRAY))
-            .append(Component.text(type.formatSignedRange(bonusMin, bonusMax), bonusColor));
+            .append(Component.text(" ", NamedTextColor.DARK_GRAY))
+            .append(Component.text(type.formatSignedRange(bonusMin, bonusMax), bonusColor))
+            .append(Component.text(")", NamedTextColor.DARK_GRAY));
         return noItalic(line);
     }
 

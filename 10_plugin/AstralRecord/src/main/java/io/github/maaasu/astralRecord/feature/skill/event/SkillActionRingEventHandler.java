@@ -11,7 +11,9 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionConsumeService;
 import org.bukkit.entity.Player;
+import org.bukkit.block.BlockType;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.Action;
@@ -30,20 +32,24 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
     private final SkillActionRingService actionRingService;
     private final InventoryService inventoryService;
     private final SkillTreeService skillTreeService;
+    private final PlayerInteractionConsumeService interactionConsumeService;
 
     /**
      * ハンドラを生成します。
      *
      * @param actionRingService アクションリング表示サービス
+     * @param interactionConsumeService コンテンツインタラクトの優先状態
      */
     public SkillActionRingEventHandler(
         @NotNull SkillActionRingService actionRingService,
         @NotNull InventoryService inventoryService,
-        @NotNull SkillTreeService skillTreeService
+        @NotNull SkillTreeService skillTreeService,
+        @NotNull PlayerInteractionConsumeService interactionConsumeService
     ) {
         this.actionRingService = actionRingService;
         this.inventoryService = inventoryService;
         this.skillTreeService = skillTreeService;
+        this.interactionConsumeService = interactionConsumeService;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -65,6 +71,10 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
                 return;
             }
             AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (isRightClick && (interactionConsumeService.isConsumed(event) || hasInteractableBlock(event))) {
+                actionRingService.close(player);
+                return;
+            }
             if (!actionRingService.isOpen(player)
                 && event.getHand() == EquipmentSlot.HAND
                 && isRightClick
@@ -79,7 +89,11 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
             }
             event.setCancelled(true);
             if (isRightClick) {
-                actionRingService.returnToSelecting(player);
+                if (isPlayerMode(astPlayer)) {
+                    actionRingService.toggle(astPlayer);
+                } else {
+                    actionRingService.close(player);
+                }
                 return;
             }
             if (!isLeftClick) {
@@ -173,6 +187,14 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
 
     private boolean isPlayerMode(AstPlayer astPlayer) {
         return astPlayer != null && astPlayer.getAccount().getMode() == AccountMode.PLAYER;
+    }
+
+    private boolean hasInteractableBlock(@NotNull PlayerInteractEvent event) {
+        if (event.getClickedBlock() == null) {
+            return false;
+        }
+        BlockType blockType = event.getClickedBlock().getType().asBlockType();
+        return blockType != null && blockType.isInteractable();
     }
 
     private boolean isWeapon(@NotNull AstPlayer astPlayer) {

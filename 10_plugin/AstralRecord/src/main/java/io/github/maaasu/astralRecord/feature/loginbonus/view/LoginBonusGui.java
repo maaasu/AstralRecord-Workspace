@@ -64,7 +64,7 @@ public final class LoginBonusGui {
         fill(inventory);
         renderCalendar(inventory, displayMonth, today, receivedDates, goldRewardModel, astraldRewardModel);
         renderControls(inventory);
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     /**

@@ -27,7 +27,7 @@ class GuiNavigationServiceTest extends MockBukkitTestBase {
     }
 
     @Test
-    void hidesBackWithoutHistoryAndOpensTheRecordedPreviousGui() {
+    void showsCloseWithoutHistoryAndOpensTheRecordedPreviousGui() {
         var player = server().addPlayer();
         AstPlayerCache.put(DesignTestFixtures.astPlayer(player, AccountMode.PLAYER));
         GuiNavigationService service = new GuiNavigationService(mock(AstralRecord.class));
@@ -36,7 +36,7 @@ class GuiNavigationServiceTest extends MockBukkitTestBase {
 
         service.registerOpen(player, menu);
 
-        assertEquals(Material.AIR, menu.getItem(49).getType());
+        assertEquals(Material.BARRIER, menu.getItem(49).getType());
         assertFalse(service.hasPrevious(player));
 
         service.registerOpen(player, detail);
@@ -50,8 +50,30 @@ class GuiNavigationServiceTest extends MockBukkitTestBase {
         assertFalse(service.hasPrevious(player));
     }
 
+    @Test
+    void alwaysCloseNavigationDoesNotExposeHistoryAsBackAction() {
+        var player = server().addPlayer();
+        AstPlayerCache.put(DesignTestFixtures.astPlayer(player, AccountMode.PLAYER));
+        GuiNavigationService service = new GuiNavigationService(mock(AstralRecord.class));
+        Inventory previous = inventory("previous");
+        Inventory main = alwaysCloseInventory("main");
+
+        service.registerOpen(player, previous);
+        service.registerOpen(player, main);
+
+        assertTrue(service.hasPrevious(player));
+        assertTrue(service.isCloseNavigation(player, main));
+        assertEquals(Material.BARRIER, main.getItem(49).getType());
+    }
+
     private static Inventory inventory(String navigationId) {
         Inventory inventory = Bukkit.createInventory(new Holder(navigationId), 54);
+        inventory.setItem(49, new ItemStack(Material.SPECTRAL_ARROW));
+        return inventory;
+    }
+
+    private static Inventory alwaysCloseInventory(String navigationId) {
+        Inventory inventory = Bukkit.createInventory(new AlwaysCloseHolder(navigationId), 54);
         inventory.setItem(49, new ItemStack(Material.SPECTRAL_ARROW));
         return inventory;
     }
@@ -65,6 +87,29 @@ class GuiNavigationServiceTest extends MockBukkitTestBase {
         @Override
         public int getBackSlot() {
             return 49;
+        }
+
+        @Override
+        public @NotNull Inventory getInventory() {
+            return Bukkit.createInventory(this, 54);
+        }
+    }
+
+
+    private record AlwaysCloseHolder(String navigationId) implements GuiNavigationHolder {
+        @Override
+        public @NotNull String getNavigationId() {
+            return navigationId;
+        }
+
+        @Override
+        public int getBackSlot() {
+            return 49;
+        }
+
+        @Override
+        public boolean isAlwaysCloseNavigation() {
+            return true;
         }
 
         @Override

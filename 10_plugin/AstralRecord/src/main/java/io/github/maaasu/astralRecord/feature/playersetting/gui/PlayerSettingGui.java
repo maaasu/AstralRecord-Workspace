@@ -50,7 +50,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             Component.text("プレイヤー設定", NamedTextColor.AQUA)
         );
         render(inventory, snapshot.getUserId(), null);
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     public void refresh(

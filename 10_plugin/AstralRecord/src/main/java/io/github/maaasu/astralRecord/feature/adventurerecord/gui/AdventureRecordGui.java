@@ -93,7 +93,7 @@ public class AdventureRecordGui {
             List.of(Component.text("未実装", NamedTextColor.DARK_GRAY))
         ));
         inventory.setItem(BaseMenuScreenView.BACK_SLOT, backItem());
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     /**
@@ -125,7 +125,7 @@ public class AdventureRecordGui {
             Component.text(listType.getTitle() + " " + (normalizedPage + 1) + "/" + totalPages, NamedTextColor.GOLD)
         );
         pagedGuiView.render(inventory, icons, normalizedPage);
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     /**
@@ -152,7 +152,7 @@ public class AdventureRecordGui {
             Component.text("検索", NamedTextColor.GREEN),
             List.of(Component.text("指定アイテムをドロップするモブを表示", NamedTextColor.GRAY))
         ));
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     public boolean isInventory(@Nullable Inventory inventory) {

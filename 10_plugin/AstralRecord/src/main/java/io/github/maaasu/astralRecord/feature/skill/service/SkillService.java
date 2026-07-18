@@ -595,6 +595,31 @@ public class SkillService {
     }
 
     /**
+     * 発動者・スキルに残っている cooldown を tick 単位で返します。
+     *
+     * @param caster 発動者
+     * @param skillId スキル ID
+     * @return 残り cooldown tick。cooldown 外は {@code 0}
+     */
+    public long getRemainingCooldownTicks(@NotNull SkillCaster caster, @NotNull String skillId) {
+        Map<String, Long> byCaster = cooldownExpiryByCaster.get(caster.casterId());
+        if (byCaster == null) {
+            return 0L;
+        }
+        String normalizedSkillId = normalize(skillId);
+        Long expiry = byCaster.get(normalizedSkillId);
+        if (expiry == null) {
+            return 0L;
+        }
+        long remainingMillis = expiry - System.currentTimeMillis();
+        if (remainingMillis <= 0L) {
+            byCaster.remove(normalizedSkillId);
+            return 0L;
+        }
+        return Math.max(1L, (remainingMillis + MS_PER_TICK - 1L) / MS_PER_TICK);
+    }
+
+    /**
      * 進行中の詠唱を停止し、詠唱中に変更した歩行速度を戻します。
      */
     public void stop() {

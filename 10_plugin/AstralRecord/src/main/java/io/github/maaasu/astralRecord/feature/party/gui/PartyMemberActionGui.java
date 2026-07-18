@@ -37,7 +37,7 @@ public final class PartyMemberActionGui extends BaseMenuScreenView {
             Component.text("パーティーメンバー操作", NamedTextColor.RED)
         );
         render(inventory, targetId);
-        viewer.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory);
     }
 
     public boolean isInventory(@Nullable Inventory inventory) {

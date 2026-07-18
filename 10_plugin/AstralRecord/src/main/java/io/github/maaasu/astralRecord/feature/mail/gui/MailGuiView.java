@@ -64,7 +64,7 @@ public final class MailGuiView {
             Component.text("メール " + (normalizedPage + 1) + "/" + totalPages, NamedTextColor.AQUA)
         );
         render(inventory, mails, filter, normalizedPage);
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     public boolean isInventory(@Nullable Inventory inventory) {

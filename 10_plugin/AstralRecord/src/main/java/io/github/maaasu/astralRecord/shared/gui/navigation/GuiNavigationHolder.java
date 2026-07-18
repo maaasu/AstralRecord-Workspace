@@ -34,4 +34,13 @@ public interface GuiNavigationHolder extends InventoryHolder {
     default boolean isDirectBackNavigation() {
         return true;
     }
+
+    /**
+     * 履歴の有無にかかわらずナビゲーションスロットを閉じる操作にするか返します。
+     *
+     * @return 常に閉じる操作にする場合は {@code true}
+     */
+    default boolean isAlwaysCloseNavigation() {
+        return false;
+    }
 }

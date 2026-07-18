@@ -72,7 +72,7 @@ public final class ItemAdminGuiView {
     ) {
         Inventory inventory = Bukkit.createInventory(new Holder(), SIZE, TITLE);
         render(inventory, items, options, pageIndex);
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     /**

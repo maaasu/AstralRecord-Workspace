@@ -72,7 +72,7 @@ public final class QuestGui {
                 }
             });
         renderPagination(inventory, page, totalBoardPages(board));
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     public void openList(@NotNull Player player, @NotNull AstPlayer astPlayer) {
@@ -93,7 +93,7 @@ public final class QuestGui {
             Component.text("受領枠", NamedTextColor.WHITE, TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false),
             List.of(Component.text(active.size() + " / " + questService.maxActiveQuests(astPlayer), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false))
         ));
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     public boolean isBoardInventory(@Nullable Inventory inventory) {

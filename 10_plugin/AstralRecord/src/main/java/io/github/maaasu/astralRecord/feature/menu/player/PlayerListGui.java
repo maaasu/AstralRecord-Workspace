@@ -79,7 +79,7 @@ public final class PlayerListGui {
             .map(playerId -> createPlayerItem(viewer, purpose, playerId))
             .toList();
         pagedGuiView.render(inventory, items, normalizedPage);
-        viewer.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory);
     }
 
     public boolean isInventory(@Nullable Inventory inventory) {

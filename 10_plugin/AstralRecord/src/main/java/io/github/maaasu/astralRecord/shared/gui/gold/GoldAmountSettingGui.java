@@ -55,7 +55,7 @@ public final class GoldAmountSettingGui {
             Component.text("Gold Amount", NamedTextColor.GOLD)
         );
         render(inventory, normalizedAmount, normalizedMax);
-        viewer.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory);
     }
 
     public boolean isGoldAmountInventory(@Nullable Inventory inventory) {

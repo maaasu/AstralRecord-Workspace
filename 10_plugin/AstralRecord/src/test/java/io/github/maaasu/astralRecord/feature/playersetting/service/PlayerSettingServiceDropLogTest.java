@@ -61,13 +61,13 @@ class PlayerSettingServiceDropLogTest {
     }
 
     @Test
-    void autoSaveMessageDefaultsToEnabledWithoutCachedSnapshot() {
+    void autoSaveMessageDefaultsToDisabledWithoutCachedSnapshot() {
         PlayerSettingService service = new PlayerSettingService(
             new PlayerSettingRepository(),
             new PlayerSettingDefaults(),
             new PlayerSettingCache()
         );
 
-        assertTrue(service.isAutoSaveMessageEnabled(UUID.randomUUID()));
+        assertFalse(service.isAutoSaveMessageEnabled(UUID.randomUUID()));
     }
 }

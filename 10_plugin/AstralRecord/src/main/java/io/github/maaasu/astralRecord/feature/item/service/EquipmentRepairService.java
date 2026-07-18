@@ -122,7 +122,7 @@ public final class EquipmentRepairService {
             TITLE
         );
         render(player, inventory, session);
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     /**

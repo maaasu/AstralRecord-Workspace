@@ -62,7 +62,7 @@ public final class PartyGui extends BaseMenuScreenView {
         } else {
             renderParty(inventory, party, player.getUniqueId());
         }
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     public boolean isInventory(@Nullable Inventory inventory) {

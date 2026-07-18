@@ -34,6 +34,7 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
 
     public void render(@NotNull Inventory inventory, @NotNull Player player, long goldAmount, @NotNull List<String> activeBuffNames) {
         fill(inventory);
+        inventory.setItem(BACK_SLOT, io.github.maaasu.astralRecord.shared.gui.GuiItems.closeButton());
         inventory.setItem(STATUS_SLOT, createItem(
             Material.PLAYER_HEAD,
             Component.text("プレイヤー情報", NamedTextColor.GOLD),

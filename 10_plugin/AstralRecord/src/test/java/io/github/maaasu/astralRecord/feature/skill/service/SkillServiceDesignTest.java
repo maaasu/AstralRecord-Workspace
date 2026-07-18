@@ -93,6 +93,8 @@ class SkillServiceDesignTest {
         assertEquals(40L, result.startedCooldownTicks());
         assertEquals(15.0D, caster.currentMana(), 0.0001D);
         assertTrue(service.isOnCooldown(caster, definition.getId()));
+        assertTrue(service.getRemainingCooldownTicks(caster, definition.getId()) > 0L);
+        assertTrue(service.getRemainingCooldownTicks(caster, definition.getId()) <= 40L);
         assertSame(definition, executor.lastContext.skill());
         assertEquals(SkillCastTrigger.SYSTEM, executor.lastContext.trigger());
     }

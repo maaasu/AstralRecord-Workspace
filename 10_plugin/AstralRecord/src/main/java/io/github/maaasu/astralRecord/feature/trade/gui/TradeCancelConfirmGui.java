@@ -38,7 +38,7 @@ public final class TradeCancelConfirmGui {
             Component.text("トレードへ戻る", NamedTextColor.GREEN, TextDecoration.BOLD),
             List.of(Component.text("取引 GUI へ戻ります。", NamedTextColor.GRAY))
         ));
-        viewer.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory);
     }
 
     public boolean isCancelInventory(@Nullable Inventory inventory) {

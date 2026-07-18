@@ -214,6 +214,7 @@ import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.display.OverheadDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionConsumeService;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionPriorityEventHandler;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class AstralRecord extends JavaPlugin {
@@ -617,6 +618,10 @@ public final class AstralRecord extends JavaPlugin {
         teleporterGui = new TeleporterGui(teleporterService);
         teleporterGuiEventHandler = new TeleporterGuiEventHandler(teleporterGui, teleporterService, inventoryService);
         playerInteractionConsumeService = new PlayerInteractionConsumeService();
+        eventManager.registerHandler(
+            new PlayerInteractionPriorityEventHandler(playerInteractionConsumeService),
+            getServer().getPluginManager()
+        );
         waystoneHitBoxResolver = new WaystoneHitBoxResolver(teleporterService);
         teleporterService.setRuntimeServices(inventoryService, worldService, waystonePacketView, teleporterGui, teleporterGuiEventHandler, particleDisplayService);
         overworldTeleportService = new OverworldTeleportService(this, worldService);
@@ -1106,7 +1111,12 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new SkillActionRingEventHandler(skillActionRingService, inventoryService, skillTreeService),
+            new SkillActionRingEventHandler(
+                skillActionRingService,
+                inventoryService,
+                skillTreeService,
+                playerInteractionConsumeService
+            ),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

@@ -54,7 +54,7 @@ public final class TeleporterGui {
                 Component.text(source.name(), NamedTextColor.AQUA)
         );
         render(inventory, entries, normalizedPage);
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     /**

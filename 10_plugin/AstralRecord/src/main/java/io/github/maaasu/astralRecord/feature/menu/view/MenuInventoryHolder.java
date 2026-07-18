@@ -50,7 +50,8 @@ public record MenuInventoryHolder(
     @Override
     public int getBackSlot() {
         return switch (screen) {
-            case MAIN, CLASS, EQUIPMENT_ENHANCE, EQUIPMENT_REPAIR, SELL, STORAGE -> -1;
+            case MAIN -> MenuView.BACK_SLOT;
+            case CLASS, EQUIPMENT_ENHANCE, EQUIPMENT_REPAIR, SELL, STORAGE -> -1;
             case TRASH_CONFIRM -> 14;
             case SELL_CONFIRM -> 22;
             default -> MenuView.BACK_SLOT;
@@ -63,6 +64,11 @@ public record MenuInventoryHolder(
             case EQUIPMENT_GUI, TRASH, TRASH_CONFIRM, SELL_CONFIRM -> false;
             default -> true;
         };
+    }
+
+    @Override
+    public boolean isAlwaysCloseNavigation() {
+        return screen == MenuScreen.MAIN;
     }
 
     @Override

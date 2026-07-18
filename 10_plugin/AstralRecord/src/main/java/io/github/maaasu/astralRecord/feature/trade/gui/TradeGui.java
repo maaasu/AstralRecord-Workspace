@@ -27,7 +27,7 @@ public final class TradeGui {
             Component.text(session.getPartnerName(viewer.getUniqueId()) + "とのトレード", NamedTextColor.WHITE)
         );
         render(inventory, viewer.getUniqueId(), session);
-        viewer.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory);
     }
 
     public boolean isTradeInventory(@Nullable Inventory inventory) {

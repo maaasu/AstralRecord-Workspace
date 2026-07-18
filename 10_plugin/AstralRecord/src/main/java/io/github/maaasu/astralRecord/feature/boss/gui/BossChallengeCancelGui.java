@@ -44,7 +44,7 @@ public final class BossChallengeCancelGui {
                 Component.text("ボス挑戦を中止", NamedTextColor.RED),
                 java.util.List.of(Component.text("クリックで挑戦を中止します", NamedTextColor.GRAY))
         ));
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     /**

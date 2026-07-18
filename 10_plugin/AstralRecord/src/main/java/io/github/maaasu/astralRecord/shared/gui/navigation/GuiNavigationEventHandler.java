@@ -54,8 +54,10 @@ public final class GuiNavigationEventHandler extends AbstractEventHandler {
                 event.setCancelled(true);
                 return;
             }
-            if (!navigationService.hasPrevious(player)) {
+            if (navigationService.isCloseNavigation(player, event.getView().getTopInventory())) {
                 event.setCancelled(true);
+                player.closeInventory();
+                GuiSound.CLOSE.play(player);
                 return;
             }
             if (!navigationService.isDirectBackClick(event.getView().getTopInventory(), event.getRawSlot())) {

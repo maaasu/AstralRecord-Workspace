@@ -58,6 +58,7 @@ class PlayerDetailGuiTest extends MockBukkitTestBase {
         assertTrue(statusLore.contains("105"));
         assertTrue(statusLore.contains("100"));
         assertTrue(statusLore.contains("+5"));
+        assertTrue(statusLore.contains("105  (100 +5)"));
         assertFalse(statusLore.contains("基礎"));
         assertFalse(statusLore.contains("補正"));
     }

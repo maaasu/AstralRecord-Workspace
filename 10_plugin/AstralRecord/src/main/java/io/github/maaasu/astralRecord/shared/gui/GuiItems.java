@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.shared.gui;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemFlag;
@@ -58,6 +59,19 @@ public final class GuiItems {
             itemStack.setItemMeta(meta);
         }
         return itemStack;
+    }
+
+    /**
+     * 戻り先が存在しない GUI に表示する共通の閉じるボタンを生成します。
+     *
+     * @return 閉じるボタン ItemStack
+     */
+    public static @NotNull ItemStack closeButton() {
+        return create(
+            Material.BARRIER,
+            Component.text("閉じる", NamedTextColor.RED, TextDecoration.BOLD),
+            List.of(Component.text("画面を閉じます", NamedTextColor.GRAY))
+        );
     }
 
     /**

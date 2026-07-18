@@ -49,7 +49,7 @@ public final class OverworldTeleportGui {
                 Component.text("オーバーワールド転送", NamedTextColor.AQUA, TextDecoration.BOLD)
         );
         render(inventory, destinations, normalizedPage);
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     /**

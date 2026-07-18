@@ -107,7 +107,7 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
         }, LogId.E_5702, event.getPlayer().getName());
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = false)
     public void onPlayerInteract(@NotNull PlayerInteractEvent event) {
         runSafely(() -> {
             if (event.getHand() != null && event.getHand() != EquipmentSlot.HAND) {

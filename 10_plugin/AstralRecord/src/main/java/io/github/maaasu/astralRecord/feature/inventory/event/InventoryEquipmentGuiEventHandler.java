@@ -31,6 +31,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerItemHeldEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -159,6 +160,16 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
                 player.getInventory().getItem(event.getNewSlot())
             );
         }, LogId.E_5600, event.getPlayer().getName());
+    }
+
+    /**
+     * Bukkit 標準のメインハンド・オフハンド入れ替えを拒否し、管理中 inventory との不整合を防ぎます。
+     *
+     * @param event オフハンド切替イベント
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
+    public void onPlayerSwapHandItems(@NotNull PlayerSwapHandItemsEvent event) {
+        event.setCancelled(true);
     }
 
     private boolean isEquipmentMenu(@NotNull Inventory inventory) {

@@ -4,7 +4,8 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiCloseSoundPolicy;
-import org.bukkit.Material;
+import io.github.maaasu.astralRecord.shared.gui.GuiItems;
+import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -45,7 +46,7 @@ public final class GuiNavigationService {
                 && navigationId(current).equals(holder.getNavigationId());
             state.recordOpen(inventory, replaceCurrent);
         }
-        updateBackButton(inventory, holder, state.getPreviousGui() != null);
+        updateNavigationButton(inventory, holder, state.getPreviousGui() != null);
     }
 
     /**
@@ -88,7 +89,7 @@ public final class GuiNavigationService {
             return false;
         }
         GuiCloseSoundPolicy.suppressNextCloseSound(player);
-        player.openInventory(previous);
+        GuiOpenSupport.open(player, previous);
         return true;
     }
 
@@ -129,14 +130,29 @@ public final class GuiNavigationService {
             && isBackClick(inventory, rawSlot);
     }
 
-    private void updateBackButton(
+    /**
+     * 指定 GUI のナビゲーションスロットが閉じる操作か返します。
+     *
+     * @param player 対象プレイヤー
+     * @param inventory クリック対象 GUI
+     * @return 閉じる操作の場合は {@code true}
+     */
+    public boolean isCloseNavigation(@NotNull Player player, @NotNull Inventory inventory) {
+        GuiNavigationHolder holder = navigationHolder(inventory);
+        return holder != null && (holder.isAlwaysCloseNavigation() || !hasPrevious(player));
+    }
+
+    private void updateNavigationButton(
         @NotNull Inventory inventory,
         @NotNull GuiNavigationHolder holder,
         boolean hasPrevious
     ) {
         int backSlot = holder.getBackSlot();
-        if (!hasPrevious && backSlot >= 0 && backSlot < inventory.getSize()) {
-            inventory.setItem(backSlot, new org.bukkit.inventory.ItemStack(Material.AIR));
+        if (backSlot < 0 || backSlot >= inventory.getSize()) {
+            return;
+        }
+        if (holder.isAlwaysCloseNavigation() || !hasPrevious) {
+            inventory.setItem(backSlot, GuiItems.closeButton());
         }
     }
 

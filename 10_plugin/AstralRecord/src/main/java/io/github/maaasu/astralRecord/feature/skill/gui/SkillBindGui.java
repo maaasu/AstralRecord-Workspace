@@ -82,7 +82,7 @@ public final class SkillBindGui {
         );
 
         renderTopInventory(inventory, session, skills, bindSkillMap, ownedSkillIds, normalizedPage);
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
 
     }
 
@@ -108,7 +108,7 @@ public final class SkillBindGui {
             Component.text("キャンセル", NamedTextColor.RED)
         );
 
-        player.openInventory(inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     public boolean isInventory(@Nullable Inventory inventory) {
