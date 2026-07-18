@@ -34,8 +34,8 @@
   - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/combat/service/DamageService.java:342`
   - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/service/MobCombatService.java:308`
   - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/service/MobCombatService.java:337`
-  - `00_docs/10_プラグイン設計書/feature/26-boss/2-ユースケース/26_2.00-ユースケース.md:92`
-  - `00_docs/10_プラグイン設計書/feature/26-boss/3-メソッド仕様/26_3.02-サービス.md:102`
+  - `00_docs/10_Plugin設計書/feature/26-boss/2-ユースケース/26_2.00-ユースケース.md:92`
+  - `00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3.02-サービス.md:102`
 - 内容:
   - 設計では、ボス報酬は「ボス挑戦インスタンスに参加しているパーティーメンバーだけ」「討伐時に同じワールドにいる参加者」に限定する。
   - 実装ではボス死亡時も通常 Mob の `MobCombatService.handleDeath` をそのまま呼び、報酬対象は threat table と killer の現在パーティー・距離で決まる。
@@ -55,7 +55,7 @@
   - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/boss/service/BossChallengeService.java:200`
   - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/boss/service/BossFieldInstanceService.java:55`
   - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/boss/service/BossFieldInstanceService.java:110`
-  - `00_docs/10_プラグイン設計書/feature/26-boss/3-メソッド仕様/26_3.02-サービス.md:32`
+  - `00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3.02-サービス.md:32`
 - 内容:
   - `PlayerToggleSneakEvent` から `acceptNearestChallenge` が呼ばれ、そのまま `fieldInstanceService.createField` に入り、`Files.walk` / `Files.copy` によるテンプレートワールドコピーと `Bukkit.createWorld` を実行している。
   - 設計では `COPYING` 状態を持ち、可能な限り非同期でテンプレートワールドをコピーし、コピー完了後にメインスレッドで Bukkit ワールドをロードする流れになっている。
@@ -74,7 +74,7 @@
   - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/boss/service/BossChallengeService.java:317`
   - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/world/service/WorldService.java:239`
   - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/world/service/WorldService.java:256`
-  - `00_docs/10_プラグイン設計書/feature/26-boss/3-メソッド仕様/26_3.02-サービス.md:48`
+  - `00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3.02-サービス.md:48`
 - 内容:
   - `BossChallengeService.startField` は各参加者へ `worldService.teleportPlayerAsync(...)` を投げるが、返却される `CompletableFuture<Boolean>` を保存も待機もしていない。
   - 直後にボスを spawn し、`markStarted()` で戦闘開始状態にする。
@@ -94,7 +94,7 @@
   - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/boss/service/BossFieldInstanceService.java:55`
   - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/boss/service/BossFieldInstanceService.java:59`
   - `40_filebase/60.features.world/v1.twilight_colossus_field.yml:4`
-  - `00_docs/10_プラグイン設計書/feature/26-boss/5-例外・ログ・運用/26_5.00-例外・ログ・運用.md:11`
+  - `00_docs/10_Plugin設計書/feature/26-boss/5-例外・ログ・運用/26_5.00-例外・ログ・運用.md:11`
 - 内容:
   - 設計では `worldType = BOSS_FIELD` かつ `instanceEnabled = true` を必須とし、テンプレートコピー失敗は `FIELD_CREATE_FAILED` として終了する。
   - 実装は `worldService.getById(config.fieldWorldId())` の存在確認だけで、`worldType` / `instanceEnabled` を検証していない。

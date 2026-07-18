@@ -14,7 +14,7 @@ YAML マスタ読み取り専用 API。
 
 ## 対応プラグイン feature
 
-- プラグイン側の `buff`: `00_docs/10_プラグイン設計書/feature/05-buff/`
+- プラグイン側の `buff`: `00_docs/10_Plugin設計書/feature/05-buff/`
 
 ## マスタデータの所在
 

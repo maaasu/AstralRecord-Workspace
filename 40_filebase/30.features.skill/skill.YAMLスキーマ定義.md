@@ -44,7 +44,7 @@ filebase 側では、パッシブスキルだった場合に `passive.bindRequir
 ### normal_attack conditions[] params
 
 `conditions[]` は攻撃が命中した対象へ状態異常を付与するための設定です。
-状態異常の正本仕様は `00_docs/10_プラグイン設計書/feature/27-condition/` を参照してください。
+状態異常の正本仕様は `00_docs/10_Plugin設計書/feature/27-condition/` を参照してください。
 
 | キー | 型 | 必須 | 既定値 | 説明 |
 | --- | --- | --- | --- | --- |

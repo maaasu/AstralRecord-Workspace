@@ -11,7 +11,7 @@
 - 修正状態: 修正済み
 - 種別: `バグ/アルゴリズム`
 - 対象: `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/boss/service/BossFieldInstanceService.java:134`
-- 関連箇所: `00_docs/10_プラグイン設計書/feature/26-boss/5-例外・ログ・運用/26_5.00-例外・ログ・運用.md`
+- 関連箇所: `00_docs/10_Plugin設計書/feature/26-boss/5-例外・ログ・運用/26_5.00-例外・ログ・運用.md`
 - 根拠: 設計書は「ワールドアンロード失敗時はログを残し、フォルダ削除を試みない」と定義している。
 - 問題: `Bukkit.unloadWorld(...)` の戻り値を確認せず、失敗時も `deleteDirectory(...)` に進んでいた。
 - 影響: アンロードできていないボスフィールドのワールドフォルダを削除し、ワールド破損や残存参照を発生させる可能性がある。
@@ -43,7 +43,7 @@
 
 ## 確認した範囲
 - 対象プロジェクト: `10_plugin/AstralRecord`
-- 読んだ設計書/ルール: `AGENTS.md`, `PLUGIN_GUIDE.md`, `.codex/skills/astralrecord-code/references/plugin-code.md`, `00_docs/10_プラグイン設計書/feature/26-boss/3-メソッド仕様/26_3.02-サービス.md`, `00_docs/10_プラグイン設計書/feature/26-boss/4-統合フロー/26_4.00-統合フロー.md`, `00_docs/10_プラグイン設計書/feature/26-boss/5-例外・ログ・運用/26_5.00-例外・ログ・運用.md`
+- 読んだ設計書/ルール: `AGENTS.md`, `PLUGIN_GUIDE.md`, `.codex/skills/astralrecord-code/references/plugin-code.md`, `00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3.02-サービス.md`, `00_docs/10_Plugin設計書/feature/26-boss/4-統合フロー/26_4.00-統合フロー.md`, `00_docs/10_Plugin設計書/feature/26-boss/5-例外・ログ・運用/26_5.00-例外・ログ・運用.md`
 - 読んだソース: `feature/boss/**`, `LogId.java`, `logger.properties`
 - 実行した検査: `mvn -q -DskipTests compile`, `mvn -q test`
 

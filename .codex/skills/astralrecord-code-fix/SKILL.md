@@ -62,7 +62,7 @@ If no review result or finding detail is available, ask for the review result be
    - Unrelated behavior — no opportunistic refactors.
 6. After editing code, identify design documents that describe the changed behavior:
    - Start from paths named in each finding's `関連箇所` / `根拠`.
-   - Also check `00_docs/10_プラグイン設計書/feature/` (plugin), `00_docs/20_API設計書/` (API), and the relevant area docs for the target project.
+   - Also check `00_docs/10_Plugin設計書/feature/` (plugin), `00_docs/20_API設計書/` (API), and the relevant area docs for the target project.
    - For each affected doc, apply the minimal edit that keeps it consistent with the fixed code: update method signatures, behavior descriptions, field definitions, or state diagrams as needed.
    - Do not restructure documents beyond what the fix requires.
 7. After editing, re-read changed snippets and verify that each fixed finding is addressed.

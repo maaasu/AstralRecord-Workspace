@@ -14,7 +14,7 @@ YAML マスタ読み取り専用 API。LootPool / LootTable の 2 種類のリ�
 
 ## 対応プラグイン feature
 
-- プラグイン側の `loot`: `00_docs/10_プラグイン設計書/feature/06-loot/`
+- プラグイン側の `loot`: `00_docs/10_Plugin設計書/feature/06-loot/`
 
 ## マスタデータの所在
 

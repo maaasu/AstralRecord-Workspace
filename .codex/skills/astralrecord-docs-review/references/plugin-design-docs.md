@@ -1,12 +1,12 @@
 # Plugin Design Docs Reference
 
-Use this reference for paths under `E:\AstralRecord-Workspace\00_docs\10_プラグイン設計書`.
+Use this reference for paths under `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書`.
 
 ## Required Context
 
 Before reviewing a feature, read:
 
-- `00_docs/10_プラグイン設計書/README.md`
+- `00_docs/10_Plugin設計書/README.md`
 - the target feature README, such as `feature/01-user/01_README.md`
 - `0-概要`
 - `1-モデル定義`

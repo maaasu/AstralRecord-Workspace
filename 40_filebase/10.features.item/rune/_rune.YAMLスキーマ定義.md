@@ -3,7 +3,7 @@
 装備のスロットに嵌め込むことでステータス補正やスキルを付与する「ルーン」アイテムを表現します。
 通常のアイテム共通項目（`schemaVersion` / `id` / `category` / `name` など）は `item.YAMLスキーマ定義.md` を参照し、本書では Rune 固有項目のみ定義します。
 
-> **StatusType について**: `status` フィールドに使用できるステータス名の一覧は [`file/00.meta/StatusType.md`](../../00.meta/StatusType.md) を参照してください。
+> **StatusType について**: `status` フィールドに使用できるステータス名は、プラグイン側の [`StatusType.kt`](../../../10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/status/model/StatusType.kt) を参照してください。
 
 ## スキーマ定義
 

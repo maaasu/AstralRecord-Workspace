@@ -72,10 +72,10 @@ Use these rules when adding or changing plugin-side DB access, features that dep
 
 ## Plugin Docs
 
-Use these rules only when the user asks to create or modify plugin design docs under `E:\AstralRecord-Workspace\00_docs\10_プラグイン設計書\`.
+Use these rules only when the user asks to create or modify plugin design docs under `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書\`.
 
-1. Read `E:\AstralRecord-Workspace\00_docs\10_プラグイン設計書\README.md`.
-2. If a feature is identified, read `E:\AstralRecord-Workspace\00_docs\10_プラグイン設計書\feature\<feature>\NN_README.md`.
+1. Read `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書\README.md`.
+2. If a feature is identified, read `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書\feature\<feature>\NN_README.md`.
 3. Read corresponding implementation code to avoid speculative descriptions.
 4. Prefer the root docs numbering categories `0/1/2/3/4/5/9`.
 5. Keep categories directory-based and use `[機能番号] カテゴリ番号.詳細番号-名称.md` naming.

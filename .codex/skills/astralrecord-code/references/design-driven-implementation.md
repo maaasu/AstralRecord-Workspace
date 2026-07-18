@@ -6,7 +6,7 @@ Use this reference when a user asks to implement from a design document, spec, d
 
 1. Normalize all given paths to absolute paths.
 2. Identify the implementation project implied by the docs path:
-   - `00_docs/10_プラグイン設計書`: usually `10_plugin/AstralRecord`.
+   - `00_docs/10_Plugin設計書`: usually `10_plugin/AstralRecord`.
    - API/Web docs, when added later: map to the matching project named by the docs tree or user request.
 3. Read the docs root README, target feature README, and directly referenced docs that define behavior or contracts.
 4. Treat implementation path names in docs as intended locations, but still verify the real project layout before editing.

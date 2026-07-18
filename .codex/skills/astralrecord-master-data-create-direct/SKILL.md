@@ -17,7 +17,7 @@ description: AstralRecord の 40_filebase に、ユーザーが指定した item
 ## Fast workflow
 
 1. 対象を確定する。ユーザーが絶対パスを指定した場合はその配下だけを対象にする。パスがない場合は `40_filebase` 内のカテゴリと ID を検索して候補を絞る。
-2. `AGENTS.md`、`40_filebase\AGENTS.md`、対象カテゴリの YAML スキーマ、近隣の既存 YAML を読む。新規データのバランス・命名・世界観を判断する必要がある場合だけ、関連する `00_docs\99_資料\マスターデータ設計` を追加で読む。
+2. `AGENTS.md`、`40_filebase\AGENTS.md`、`00_docs\50_Filebase設計書\README.md`、対象カテゴリの `feature\<category>.md`、YAML スキーマ、近隣の既存 YAML を読む。新規データでは `モチーフ選定ガイド.md` と `作成時チェックリスト.md` も読む。
 3. 既存 ID を `40_filebase/**/*.yml` で検索する。新規 ID は既存規則に合わせた lowercase snake_case とし、参照先 ID・category・schemaVersion・ファイル名を既存例に合わせる。
 4. 依頼された範囲だけを編集する。既存ファイルの記載順・コメント・フォーマットを保ち、参照は `ref: item:<id>` など対象スキーマの形式にする。未対応の実装機能を YAML だけで発明しない。
 5. 変更後に YAML を再読込して、ID 重複・必須キー・参照先・slot/row/column など対象スキーマ固有の制約を確認する。可能なら Python の `yaml.safe_load`、必ず `git diff --check` を使う。

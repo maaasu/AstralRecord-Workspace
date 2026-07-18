@@ -40,7 +40,7 @@
 
 ## 確認した範囲
 - 対象プロジェクト: `10_plugin/AstralRecord`
-- 読んだ設計書/ルール: `AGENTS.md`, `README.md`, `PLUGIN_GUIDE.md`, `.codex/skills/astralrecord-code/references/plugin-code.md`, `.codex/skills/astralrecord-code-fix/SKILL.md`, `00_docs/10_プラグイン設計書/feature/13-skill/5-例外・ログ・運用/13_5.00-例外・ログ・運用.md`
+- 読んだ設計書/ルール: `AGENTS.md`, `README.md`, `PLUGIN_GUIDE.md`, `.codex/skills/astralrecord-code/references/plugin-code.md`, `.codex/skills/astralrecord-code-fix/SKILL.md`, `00_docs/10_Plugin設計書/feature/13-skill/5-例外・ログ・運用/13_5.00-例外・ログ・運用.md`
 - 実行した検証: 差分確認、API 名確認。Maven / Maven Wrapper が環境内に存在しないため Maven テストは未実行。
 
 ## 対象外

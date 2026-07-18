@@ -14,10 +14,10 @@ If a judgment depends on the designer's intent, gather intent from docs first: r
 ## Workflow
 
 1. Identify the target design area from the absolute path.
-   - `00_docs/10_プラグイン設計書`: read `references/plugin-design-docs.md`.
+   - `00_docs/10_Plugin設計書`: read `references/plugin-design-docs.md`.
    - Future API/Web docs: use this generic workflow, then look for an added reference file such as `references/api-design-docs.md` or `references/web-design-docs.md`. If no domain reference exists, review only general design quality and documented local rules.
 2. Read documented rules before judging: the nearest docs README, feature README, and any local rule files inside the target docs tree.
-3. Run `scripts/docs_structure_audit.py <absolute-docs-path>` only when reviewing `00_docs/10_プラグイン設計書`. Use its output as evidence for format and structure findings, not as the whole review. For other docs areas, write `未実行（理由: docs_structure_audit.py は 10_プラグイン設計書 専用）` in the checked-scope section unless a matching domain audit script has been added.
+3. Run `scripts/docs_structure_audit.py <absolute-docs-path>` only when reviewing `00_docs/10_Plugin設計書`. Use its output as evidence for format and structure findings, not as the whole review. For other docs areas, write `未実行（理由: docs_structure_audit.py は 10_Plugin設計書 専用）` in the checked-scope section unless a matching domain audit script has been added.
 4. Read the minimum related design docs needed to understand the feature intent and cross-document contracts. Follow Wiki links to docs when they define terms, models, methods, flows, dependencies, or unresolved items.
 5. Review for design defects:
    - Contradictions between overview, model, use case, method spec, integration flow, operation/logging, and unresolved issues.
@@ -100,7 +100,7 @@ The saved file must keep the normal report sections and include:
 
 Keep domain rules in one-level reference files:
 
-- `references/plugin-design-docs.md` for `10_プラグイン設計書`.
+- `references/plugin-design-docs.md` for `10_Plugin設計書`.
 - Add `references/api-design-docs.md` for future API design docs.
 - Add `references/web-design-docs.md` for future Web design docs.
 

@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-PLUGIN_DOC_ROOT_NAME = "10_プラグイン設計書"
+PLUGIN_DOC_ROOT_NAME = "10_Plugin設計書"
 
 
 @dataclass

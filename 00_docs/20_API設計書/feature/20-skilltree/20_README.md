@@ -14,8 +14,8 @@
 
 ## 関連 feature
 
-- plugin 側の skilltree: `00_docs/10_プラグイン設計書/feature/13-skill/`
-- account レベル進行: `00_docs/10_プラグイン設計書/feature/02-account/`
+- plugin 側の skilltree: `00_docs/10_Plugin設計書/feature/13-skill/`
+- account レベル進行: `00_docs/10_Plugin設計書/feature/02-account/`
 - DB テーブル: `00_docs/40_Database設計書/table-definitions/AstralRecord/`
 
 ## ドキュメント

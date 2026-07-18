@@ -11,7 +11,7 @@
 | `20_api/AstralRecordApi/` | REST API | ASP.NET Core, C#, SQL Server | `API_GUIDE.md` / `$astralrecord-code` |
 | `30_web/AstralRecordWeb/` | Web Site | ASP.NET Core Razor Pages | `30_web/AstralRecordWeb/AGENTS.md` |
 | `00_docs/40_Database設計書/` | SQL Server schema / table docs | SQL Server, Markdown | `00_docs/40_Database設計書/README.md` |
-| `40_filebase/` | File-based master data | YAML, Markdown | `40_filebase/AGENTS.md` |
+| `40_filebase/` | File-based master data | YAML, Markdown | `00_docs/50_Filebase設計書/README.md` / `40_filebase/AGENTS.md` |
 | `50_resourcepack/` | Minecraft Resource Pack | JSON, PNG, PowerShell | `50_resourcepack/AGENTS.md` |
 
 実行環境や配置先の確認が必要な場合は、`E:\AstralRecord-Workspace` に加えて `\\DEVICE_SERVER\server` も確認対象に含めてください。
@@ -42,7 +42,7 @@
 - まず対象プロジェクトを特定してから作業する。
 - 実装ルールは対象プロジェクトの `Read Next` を優先する。
 - ソースコードだけで運用ルールを推測しない。文書化された `AGENTS.md`、`README.md`、skill 参照を優先する。
-- SQL Server の DB / テーブル定義は `00_docs/40_Database設計書/`、file 系マスタデータは `40_filebase/` に分けて扱う。
+- SQL Server の DB / テーブル定義は `00_docs/40_Database設計書/`、file 系マスタデータは `40_filebase/`、filebase の設計方針は `00_docs/50_Filebase設計書/` に分けて扱う。
 
 ## Skills 実行ガイド（E:\AstralRecord-Workspace）
 
@@ -69,7 +69,7 @@
 1. README の「汎用テンプレート」をベースに依頼文を作る。
 2. `<...>` は必ず実パスに置換してから実行する。
 3. skill 名は必ず `$skill-name` 形式で明示する（例: `$astralrecord-docs-review`）。
-4. パスは曖昧語ではなく絶対パスで指定する（例: `E:\AstralRecord-Workspace\00_docs\10_プラグイン設計書\feature\07-status`）。
+4. パスは曖昧語ではなく絶対パスで指定する（例: `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書\feature\07-status`）。
 
 ### Skill 判定ルール（追加追記不要）
 

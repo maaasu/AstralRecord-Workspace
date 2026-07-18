@@ -1,6 +1,6 @@
-﻿# docs-review result
+# docs-review result
 
-- レビュー対象: `E:\AstralRecord-Workspace\00_docs\10_プラグイン設計書\feature\02-account`
+- レビュー対象: `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書\feature\02-account`
 - skill: `$docs-review`
 - 指摘修正数 / 指摘数: `1 / 1`
 - 完了状態: `完了`
@@ -9,13 +9,13 @@
 
 ### AR-DOC-001 [中] モード更新ログが切替ログ文言のまま
 - 種別: `運用リスク`
-- 対象: `00_docs/10_プラグイン設計書/feature/02-account/3-メソッド仕様/02_3.01-サービス.md:123`
-- 関連箇所: `00_docs/10_プラグイン設計書/feature/02-account/5-例外・ログ・運用/02_5.00-例外・ログ・運用.md:20`
+- 対象: `00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3.01-サービス.md:123`
+- 関連箇所: `00_docs/10_Plugin設計書/feature/02-account/5-例外・ログ・運用/02_5.00-例外・ログ・運用.md:20`
 - 根拠: `アカウントモード更新` で `LogId.I_5101` と `アカウントを切り替えました` テンプレートを使う設計になっており、運用章でも切替とモード更新の共用が明記されている。
 - 問題: モード更新とアカウント切替をログ上で識別しづらく、障害調査時に誤認しやすい。
 - 影響: 運用ログから「アカウント切替が発生した」のか「モード更新が発生した」のかを正確に判断できない。
 - 修正方針: モード更新専用の LogId / テンプレートを定義するか、共用を正式仕様として文言を汎用化する。
-- 修正対象候補: `00_docs/10_プラグイン設計書/feature/02-account/3-メソッド仕様/02_3.01-サービス.md`, `00_docs/10_プラグイン設計書/feature/02-account/5-例外・ログ・運用/02_5.00-例外・ログ・運用.md`, `00_docs/10_プラグイン設計書/feature/02-account/9-未決事項/02_9.00-未決事項.md`
+- 修正対象候補: `00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3.01-サービス.md`, `00_docs/10_Plugin設計書/feature/02-account/5-例外・ログ・運用/02_5.00-例外・ログ・運用.md`, `00_docs/10_Plugin設計書/feature/02-account/9-未決事項/02_9.00-未決事項.md`
 - 修正可否: `要確認`
 - 修正状態: `修正済み`
 
@@ -32,12 +32,12 @@
 - 自動修正候補: `なし`
 - 要確認: `なし`
 - 推奨修正順: `なし`
-- 対象範囲: `E:\AstralRecord-Workspace\00_docs\10_プラグイン設計書\feature\02-account`
+- 対象範囲: `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書\feature\02-account`
 
 ## 確認した範囲
 
-- 読んだ設計書: `00_docs/10_プラグイン設計書/README.md`, `feature/02-account/02_README.md`, `feature/02-account/0-概要/02_0.00-概要.md`, `feature/02-account/1-モデル定義/02_1.00-モデル定義.md`, `feature/02-account/2-ユースケース/02_2.00-ユースケース.md`, `feature/02-account/3-メソッド仕様/02_3.00-索引.md`, `feature/02-account/3-メソッド仕様/02_3.01-サービス.md`, `feature/02-account/3-メソッド仕様/02_3.02-コマンド.md`, `feature/02-account/3-メソッド仕様/02_3.03-リポジトリ.md`, `feature/02-account/4-統合フロー/02_4.00-統合フロー.md`, `feature/02-account/5-例外・ログ・運用/02_5.00-例外・ログ・運用.md`, `feature/02-account/9-未決事項/02_9.00-未決事項.md`, `feature/01-user` の関連設計書
-- 実行した検査: `docs_structure_audit.py E:\AstralRecord-Workspace\00_docs\10_プラグイン設計書\feature\02-account`
+- 読んだ設計書: `00_docs/10_Plugin設計書/README.md`, `feature/02-account/02_README.md`, `feature/02-account/0-概要/02_0.00-概要.md`, `feature/02-account/1-モデル定義/02_1.00-モデル定義.md`, `feature/02-account/2-ユースケース/02_2.00-ユースケース.md`, `feature/02-account/3-メソッド仕様/02_3.00-索引.md`, `feature/02-account/3-メソッド仕様/02_3.01-サービス.md`, `feature/02-account/3-メソッド仕様/02_3.02-コマンド.md`, `feature/02-account/3-メソッド仕様/02_3.03-リポジトリ.md`, `feature/02-account/4-統合フロー/02_4.00-統合フロー.md`, `feature/02-account/5-例外・ログ・運用/02_5.00-例外・ログ・運用.md`, `feature/02-account/9-未決事項/02_9.00-未決事項.md`, `feature/01-user` の関連設計書
+- 実行した検査: `docs_structure_audit.py E:\AstralRecord-Workspace\00_docs\10_Plugin設計書\feature\02-account`
 - 検査結果: 構造監査の指摘なし
 
 ## ソース参照

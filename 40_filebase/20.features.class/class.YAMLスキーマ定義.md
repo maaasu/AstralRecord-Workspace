@@ -5,7 +5,7 @@ Class（職業）のスキーマ定義。
 本定義は、プレイヤーの職業テンプレート（成長方針・初期ステータス・進行解放要件）を管理するためのものです。
 ステータスの種別はプラグイン側で定義されるため、本スキーマではステータス名（`status`）と値（`value`）のペアのみを指定します。
 
-> **StatusType について**: 使用可能なステータス名の一覧は [`file/00.meta/StatusType.md`](../00.meta/StatusType.md) を参照してください。
+> **StatusType について**: 使用可能なステータス名は、プラグイン側の [`StatusType.kt`](../../10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/status/model/StatusType.kt) を参照してください。
 
 ## スキーマ定義
 
@@ -44,7 +44,7 @@ Class（職業）のスキーマ定義。
 
 ### baseStats[].status / growthPerLevel[].status（StatusType）
 
-プラグイン側で定義されるステータス名を指定します。使用可能な値の一覧は [`file/00.meta/StatusType.md`](../00.meta/StatusType.md) を参照してください。
+プラグイン側で定義されるステータス名を指定します。使用可能な値は [`StatusType.kt`](../../10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/status/model/StatusType.kt) を参照してください。
 
 ### 参照（ref）
 他DBからclassを参照する場合は `class:` prefix を使用します（aliases: `cls`）。

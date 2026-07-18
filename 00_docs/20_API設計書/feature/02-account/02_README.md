@@ -15,7 +15,7 @@
 
 ## 対応プラグイン feature
 
-- プラグイン側の `account`: `00_docs/10_プラグイン設計書/feature/02-account/`
+- プラグイン側の `account`: `00_docs/10_Plugin設計書/feature/02-account/`
   - プラグインの `AccountRepository` がここで定義されるエンドポイントを呼び出す。
 
 ## ドキュメント一覧（推奨順）

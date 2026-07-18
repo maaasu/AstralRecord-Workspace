@@ -1,4 +1,4 @@
 interface:
   display_name: "AstralRecord 設計書レビュー"
   short_description: "AstralRecord の設計書をレビューする"
-  default_prompt: "$astralrecord-docs-review を使って、E:\\AstralRecord-Workspace\\00_docs\\10_プラグイン設計書\\feature\\07-status の設計書をレビューし、結果を報告してください。"
+  default_prompt: "$astralrecord-docs-review を使って、E:\\AstralRecord-Workspace\\00_docs\\10_Plugin設計書\\feature\\07-status の設計書をレビューし、結果を報告してください。"

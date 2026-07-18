@@ -104,7 +104,7 @@ Mobが表示上装備するアイテムを指定します。すべて任意項�
 
 プラグイン側（`io.github.maaasu.astralRecord.feature.status.model.StatusType`）で定義されるステータス名を指定します。（class / buff / equipment と同一の体系）
 
-StatusType の一覧は [`00.meta/StatusType.md`](../../00.meta/StatusType.md) を参照してください。
+StatusType の定義は、プラグイン側の [`StatusType.kt`](../../10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/status/model/StatusType.kt) を参照してください。
 
 ### ai.idle（非接敵時行動）— 全カテゴリ共通
 

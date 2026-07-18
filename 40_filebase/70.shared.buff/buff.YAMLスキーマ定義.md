@@ -5,7 +5,7 @@ Buff（一定時間付与される効果）のスキーマ定義。
 本定義は、AstralRecordの独自ステータスシステム（`io.github.maaasu.astralRecord.feature.status.model`）に基づきます。
 バニラのステータスシステムやポーション効果（PotionEffect等）は考慮しません。
 
-> **StatusType について**: 使用可能なステータス名の一覧は [`file/00.meta/StatusType.md`](../00.meta/StatusType.md) を参照してください。
+> **StatusType について**: 使用可能なステータス名は、プラグイン側の [`StatusType.kt`](../../10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/status/model/StatusType.kt) を参照してください。
 
 ## スキーマ定義
 
@@ -29,7 +29,7 @@ Buff（一定時間付与される効果）のスキーマ定義。
 
 ### modifiers[].status（StatusType）
 
-プラグイン側で定義されるステータス名を指定します。使用可能な値の一覧は [`file/00.meta/StatusType.md`](../00.meta/StatusType.md) を参照してください。
+プラグイン側で定義されるステータス名を指定します。使用可能な値は [`StatusType.kt`](../../10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/status/model/StatusType.kt) を参照してください。
 
 ### modifiers[].type（ModifierType）
 

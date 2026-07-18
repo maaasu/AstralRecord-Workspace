@@ -34,5 +34,5 @@ Web ログインチャレンジのハッシュ、状態、有効期限を管理�
 ## 関連設計書
 
 - `00_docs/20_API設計書/feature/24-web-auth`
-- `00_docs/10_プラグイン設計書/feature/24-web-auth`
+- `00_docs/10_Plugin設計書/feature/24-web-auth`
 - `00_docs/30_WEB設計書/feature/01-web-auth`

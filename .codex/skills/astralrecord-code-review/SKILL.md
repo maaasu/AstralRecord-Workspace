@@ -35,7 +35,7 @@ Base every judgment on documented rules first (root guide, project README/AGENTS
    - File set: explicit path(s), feature directory, recent diff range, or a named module.
    - Review depth: quick scan vs. deep review. Default is deep review when a single feature/path is given.
 2. Map code to design:
-   - For features under `00_docs/10_プラグイン設計書` or `00_docs/20_API設計書`, identify the corresponding code modules from the feature README `対象実装パス` or from naming conventions.
+   - For features under `00_docs/10_Plugin設計書` or `00_docs/20_API設計書`, identify the corresponding code modules from the feature README `対象実装パス` or from naming conventions.
    - For custom-instruction scope (e.g. "ホットバー周り"), use grep/glob to enumerate the affected files.
 3. Read the minimum necessary code:
    - Entry points, public APIs/commands/endpoints/events, service/repository boundaries, data models, and call sites of the changed symbols.
