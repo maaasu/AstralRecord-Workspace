@@ -66,29 +66,42 @@
 
 ## 5. 文書構成
 
+feature 設計書の先頭番号は、原則として `40_filebase` のディレクトリ番号に合わせます。番号を持たない下位カテゴリは、親カテゴリの後に独立した番号を割り当てます。item 配下は `10-item` に続く `11` から連番にします。mob 配下は既存の上位カテゴリ番号との衝突を避け、空いている `44`、`46`、`49` を順に使用します。
+
 ```text
 50_Filebase設計書/
 ├─ README.md
 ├─ feature/
-│  ├─ item.md
-│  ├─ material.md
-│  ├─ consumable.md
-│  ├─ equipment.md
-│  ├─ class.md
-│  ├─ skill.md
-│  ├─ skilltree.md
-│  ├─ mob.md
-│  ├─ boss.md
-│  ├─ npc.md
-│  ├─ gathering.md
-│  ├─ spawner.md
-│  ├─ loot.md
-│  ├─ recipe.md
-│  ├─ shop.md
-│  ├─ quest.md
-│  ├─ quest_board.md
-│  ├─ world.md
-│  └─ dungeon.md
+│  ├─ 05-mail.md
+│  ├─ 09-guide.md
+│  ├─ 10-item.md
+│  ├─ 11-bundle.md
+│  ├─ 12-bundle_particle.md
+│  ├─ 13-bundle_sound.md
+│  ├─ 14-consumable.md
+│  ├─ 15-currency.md
+│  ├─ 16-equipment.md
+│  ├─ 17-material.md
+│  ├─ 18-rune.md
+│  ├─ 19-set_effect.md
+│  ├─ 20-class.md
+│  ├─ 30-skill.md
+│  ├─ 35-skilltree.md
+│  ├─ 40-mob.md
+│  ├─ 41-mob_spawner.md
+│  ├─ 42-gathering.md
+│  ├─ 43-gathering_spawner.md
+│  ├─ 44-boss.md
+│  ├─ 45-shop.md
+│  ├─ 46-enemy.md
+│  ├─ 47-quest.md
+│  ├─ 48-quest_board.md
+│  ├─ 49-npc.md
+│  ├─ 60-world.md
+│  ├─ 65-dungeon.md
+│  ├─ 70-buff.md
+│  ├─ 80-loot.md
+│  └─ 85-recipe.md
 ├─ モチーフ選定ガイド.md
 └─ 作成時チェックリスト.md
 ```
@@ -96,7 +109,7 @@
 ## 6. 作成時の読み順
 
 1. 本 README
-2. 対象カテゴリの `feature/<category>.md`
+2. 対象カテゴリの `feature/<number>-<category>.md`
 3. 対象カテゴリの `YAMLスキーマ定義.md`
 4. feature 文書に記載された Plugin ソースまたは Plugin 設計書
 5. `モチーフ選定ガイド.md`

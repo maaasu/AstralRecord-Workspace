@@ -1,14 +1,14 @@
-# Spawner 設計
+# Mob Spawner 設計
 
 ## 役割
 
-Spawner は、mob または gathering を、ワールド内の指定条件で出現・再出現させる定義です。
+Mob Spawner は、mob をワールド内の指定条件で出現・再出現させる定義です。
 
 ## 設計方針
 
 - 出現対象、範囲、上限、間隔、再出現条件を組み合わせて密度を制御します。
 - spawner 自体で対象マスタの役割や強さを変更しません。
-- 複数対象を混ぜる場合、同じ進行帯とプレイ目的に揃えます。
+- 複数の mob を混ぜる場合、同じ進行帯と戦闘目的に揃えます。
 - world の配置条件が決まっていない spawner を先行して量産しません。
 
 ## progression
@@ -18,4 +18,3 @@ Spawner は、mob または gathering を、ワールド内の指定条件で出
 ## 正本参照
 
 - mob spawner YAML: `E:\AstralRecord-Workspace\40_filebase\41.features.mob.spawner\spawner.YAMLスキーマ定義.md`
-- gathering spawner YAML: `E:\AstralRecord-Workspace\40_filebase\43.features.gathering.spawner\spawner.YAMLスキーマ定義.md`
