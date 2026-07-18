@@ -482,11 +482,9 @@ class ItemRepository {
 
     private fun parseBundleSound(obj: JsonObject): ItemBundleSound? {
         val value = obj.get("sound") ?: return null
-        if (value.isJsonPrimitive) return ItemBundleSound(value.asString, null, null, null)
         if (!value.isJsonObject) return null
         val soundObj = value.asJsonObject
         return ItemBundleSound(
-            id = parseStringOrNull(soundObj, "id"),
             sound = parseStringOrNull(soundObj, "sound"),
             volume = parseDoubleOrNull(soundObj, "volume"),
             pitch = parseDoubleOrNull(soundObj, "pitch"),
@@ -495,13 +493,9 @@ class ItemRepository {
 
     private fun parseBundleParticle(obj: JsonObject): ItemBundleParticle? {
         val value = obj.get("particle") ?: return null
-        if (value.isJsonPrimitive) {
-            return ItemBundleParticle(value.asString, null, null, null, null, null, null, null, null, null)
-        }
         if (!value.isJsonObject) return null
         val particleObj = value.asJsonObject
         return ItemBundleParticle(
-            id = parseStringOrNull(particleObj, "id"),
             particle = parseStringOrNull(particleObj, "particle"),
             count = parseIntOrNull(particleObj, "count"),
             originOffsetX = parseDoubleOrNull(particleObj, "originOffsetX"),

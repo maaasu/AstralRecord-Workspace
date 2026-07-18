@@ -18,14 +18,12 @@ data class ItemBundleOnUse(
 )
 
 data class ItemBundleSound(
-    val id: String?,
     val sound: String?,
     val volume: Double?,
     val pitch: Double?,
 )
 
 data class ItemBundleParticle(
-    val id: String?,
     val particle: String?,
     val count: Int?,
     val originOffsetX: Double?,

@@ -22,10 +22,10 @@ Bundle の中身の指定方法は 2 系統あります。
 | `maxStack` | Integer | × | 64 | アイテムの最大スタック数 |
 | `bundle.lootTableId` | String | × | Null | LootTableId の参照先 ID |
 | `bundle.items[]` | List | × | Null | 報酬アイテムの直接定義 |
-| `bundle.onUse.sound` | String / Map | × | 既定値 | 文字列なら従来の `bundle_sound` ID、Map なら bundle 内に Sound 実体を定義 |
-| `bundle.onUse.particle` | String / Map | × | 既定値 | 文字列なら従来の `bundle_particle` ID、Map なら bundle 内に Particle 実体を定義 |
+| `bundle.onUse.sound` | Map | × | 既定値 | bundle 内に Sound 実体を定義 |
+| `bundle.onUse.particle` | Map | × | 既定値 | bundle 内に Particle 実体を定義 |
 
-`sound` と `particle` は bundle の `onUse` 内に直接定義できます。未指定、または参照先が解決できない場合は、プラグインの bundle 既定値（`block.chest.open` / `TOTEM_OF_UNDYING`）を使用します。
+`sound` と `particle` は bundle の `onUse` 内に直接定義します。未指定、または内容を解決できない場合は、プラグインの bundle 既定値（`block.chest.open` / `TOTEM_OF_UNDYING`）を使用します。
 
 ```yaml
 bundle:
@@ -135,4 +135,4 @@ bundle:
       amount: 1
 ```
 
-> `bundle_sound` / `bundle_particle` の ID 参照は後方互換のため引き続き利用できます。新規定義では `bundle.onUse` 内の Map 形式を推奨します。
+> Sound / Particle 専用マスタは設けません。演出定義は `bundle.onUse` 内に記述してください。
