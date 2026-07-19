@@ -1,6 +1,9 @@
+# design:
+#   motif: "北欧神話 / 世界樹"
+#   progression: 1
 schemaVersion: 1
 id: greenfall_fields
-displayName: "風待ち草原"
+displayName: "ミズガルズの緑野"
 worldType: OVERWORLD
 baseWorldPath: "plugins/AstralRecord/worlds/overworld/greenfall_fields"
 instanceRootPath: "plugins/AstralRecord/_world_instances/greenfall_fields"
@@ -9,7 +12,7 @@ instanceEnabled: true
 maxPlayers: 40
 allowBlockBreak: false
 allowBlockPlace: false
-allowMobSpawn: true
+allowMobSpawn: false
 showSpawnParticle: true
 spawnLocation:
   x: -446.5
@@ -17,7 +20,7 @@ spawnLocation:
   z: -597.5
   yaw: 0.0
   pitch: 0.0
-description: "星の拠点の奥に広がる、最初の冒険先となる草原フィールド「風待ち草原」。"
+description: "海に囲まれた緑の大地と、北東の岩山が連なる探索ワールド。世界樹の枝葉を思わせる森と草原を巡り、ミズガルズの辺境を開拓する。"
 guiIconMaterial: GRASS_BLOCK
 adventureGuide:
   recommendedLevelMin: 1
@@ -25,7 +28,7 @@ adventureGuide:
   recommendedPartySizeMin: 1
   recommendedPartySizeMax: 4
   notes:
-    - "草原と浅い谷が広がる入門向けフィールド"
-    - "夜間は敵の数が増えるため、帰還導線の確保を推奨"
+    - "草原・森林・岩山が一つの島に連なる、序盤の探索拠点"
+    - "海岸線を起点に島を巡り、地形の変化と景観を楽しめる"
 overworldTeleportGui:
   slot: 20
