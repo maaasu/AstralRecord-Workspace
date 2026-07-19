@@ -4,7 +4,7 @@ type: SKILL
 implementationId: status_passive
 name: "&b連鎖理論"
 description: "&7術式連鎖。"
-icon: CHAIN
+icon: IRON_CHAIN
 cooldownTicks: 0
 manaCost: 0
 castTimeTicks: 0

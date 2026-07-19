@@ -74,14 +74,7 @@ public class WorldRepository {
                 }
 
                 JsonArray array = JsonParser.parseString(response.body()).getAsJsonArray();
-                List<WorldMasterData> result = new ArrayList<>();
-                for (JsonElement element : array) {
-                    if (!element.isJsonObject()) {
-                        continue;
-                    }
-                    result.add(parse(element.getAsJsonObject()));
-                }
-                return result;
+                return resolveListPayload(array);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -89,6 +82,43 @@ public class WorldRepository {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * World 一覧レスポンスを完全なマスタデータへ展開します。
+     * 一覧 API は要約 DTO を返すため、詳細項目を含まない行は ID ごとの詳細 API で補完します。
+     *
+     * @param array World 一覧レスポンス
+     * @return 完全な WorldMasterData 一覧
+     */
+    @NotNull
+    List<WorldMasterData> resolveListPayload(@NotNull JsonArray array) {
+        List<WorldMasterData> result = new ArrayList<>();
+        for (JsonElement element : array) {
+            if (!element.isJsonObject()) {
+                continue;
+            }
+
+            JsonObject obj = element.getAsJsonObject();
+            WorldMasterData world;
+            if (obj.has("baseWorldPath") && !obj.get("baseWorldPath").isJsonNull()) {
+                world = parse(obj);
+            } else {
+                String worldId = optionalString(obj, "id");
+                if (worldId == null) {
+                    continue;
+                }
+                world = findById(worldId);
+                if (world == null) {
+                    throw new IllegalStateException("World detail not found: " + worldId);
+                }
+            }
+
+            if (world != null) {
+                result.add(world);
+            }
+        }
+        return List.copyOf(result);
     }
 
     /**

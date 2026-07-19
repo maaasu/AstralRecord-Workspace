@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -308,7 +309,7 @@ public final class SkillActionRingService {
         if (value == null || value.isBlank()) {
             return fallback;
         }
-        Material material = Material.matchMaterial(value.trim());
+        Material material = MaterialNameResolver.match(value);
         return material == null ? fallback : material;
     }
 

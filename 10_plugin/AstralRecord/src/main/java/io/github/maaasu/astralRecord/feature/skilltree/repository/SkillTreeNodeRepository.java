@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusModifierType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.database.file.FileDatabaseManager;
+import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.jetbrains.annotations.NotNull;
@@ -111,7 +112,7 @@ public class SkillTreeNodeRepository {
         if (raw == null || raw.isBlank()) {
             return Material.NETHER_STAR;
         }
-        Material material = Material.matchMaterial(raw.trim().toUpperCase(Locale.ROOT));
+        Material material = MaterialNameResolver.match(raw);
         return material == null || material == Material.AIR || !material.isItem() ? Material.NETHER_STAR : material;
     }
 

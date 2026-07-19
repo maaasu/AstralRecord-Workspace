@@ -4,7 +4,7 @@ type: SKILL
 implementationId: status_passive
 name: "&e連祷"
 description: "&7支援回転。"
-icon: CHAIN
+icon: IRON_CHAIN
 cooldownTicks: 0
 manaCost: 0
 castTimeTicks: 0

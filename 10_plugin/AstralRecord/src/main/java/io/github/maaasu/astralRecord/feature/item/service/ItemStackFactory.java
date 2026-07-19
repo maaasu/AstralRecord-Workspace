@@ -30,6 +30,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.infrastructure.util.CustomModelDataComponentUtil;
+import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Color;
@@ -1413,7 +1414,7 @@ public class ItemStackFactory {
     }
 
     private static @Nullable Material resolveIconMaterial(@NotNull String iconName) {
-        Material material = Material.matchMaterial(iconName.trim().toUpperCase(Locale.ROOT));
+        Material material = MaterialNameResolver.match(iconName);
         if (material == null || material == Material.AIR || !material.isItem()) {
             Logger.log(LogId.W_5210, iconName);
             return null;

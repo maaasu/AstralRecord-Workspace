@@ -3,7 +3,7 @@ schemaVersion: 1
 id: route_clasp
 category: material
 name: "&f航路の留め具"
-icon: CHAIN
+icon: IRON_CHAIN
 rarity: COMMON
 maxStack: 64
 saleValue: 9

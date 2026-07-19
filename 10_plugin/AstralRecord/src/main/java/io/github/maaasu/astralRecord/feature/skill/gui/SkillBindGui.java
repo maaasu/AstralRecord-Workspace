@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillBindType;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.shared.gui.confirm.ConfirmDialogView;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
@@ -491,7 +492,7 @@ public final class SkillBindGui {
             return fallback;
         }
 
-        Material material = Material.matchMaterial(value.trim());
+        Material material = MaterialNameResolver.match(value);
         return material == null ? fallback : material;
     }
 }

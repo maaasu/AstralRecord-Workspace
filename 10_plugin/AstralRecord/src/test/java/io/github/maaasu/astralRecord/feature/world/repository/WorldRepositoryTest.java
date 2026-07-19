@@ -1,64 +1,113 @@
 package io.github.maaasu.astralRecord.feature.world.repository;
 
+import com.google.gson.JsonParser;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
+import io.github.maaasu.astralRecord.feature.world.model.WorldSpawnLocation;
+import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
-import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 class WorldRepositoryTest {
 
     @Test
-    void parsesEveryWorldFromSingleListRequest() throws Exception {
-        HttpClient client = mock(HttpClient.class);
-        HttpRequest.Builder builder = mock(HttpRequest.Builder.class);
-        HttpRequest request = mock(HttpRequest.class);
-        @SuppressWarnings("unchecked")
-        HttpResponse<String> response = mock(HttpResponse.class);
-        when(builder.GET()).thenReturn(builder);
-        when(builder.build()).thenReturn(request);
-        when(response.statusCode()).thenReturn(200);
-        when(response.body()).thenReturn("""
-            [
-              {"id":"hub_lobby","displayName":"ロビー","worldType":"HUB"},
-              {"id":"skill_tree","displayName":"スキルツリー","worldType":"SKILL_TREE"}
-            ]
-            """);
-        when(client.send(
-            eq(request),
-            org.mockito.ArgumentMatchers.<HttpResponse.BodyHandler<String>>any()
-        )).thenReturn(response);
+    void summaryListRowsAreHydratedThroughDetailEndpoint() {
+        WorldMasterData skillTree = world("skill_tree", WorldType.HUB);
+        WorldMasterData base = world("starlit_nox", WorldType.BASE);
+        Map<String, WorldMasterData> details = new LinkedHashMap<>();
+        details.put("skill_tree", skillTree);
+        details.put("starlit_nox", base);
+        WorldRepository repository = new StubWorldRepository(details);
 
-        List<WorldMasterData> worlds;
-        try (MockedStatic<ApiRequestUtil> api = mockStatic(ApiRequestUtil.class);
-             MockedStatic<Logger> logger = mockStatic(Logger.class)) {
-            api.when(ApiRequestUtil::buildClient).thenReturn(client);
-            api.when(() -> ApiRequestUtil.buildRequestBuilder("/api/world")).thenReturn(builder);
+        var result = repository.resolveListPayload(JsonParser.parseString("""
+                [
+                  {"id":"skill_tree","displayName":"Skill Tree","autoLoad":true},
+                  {"id":"starlit_nox","displayName":"Base","autoLoad":true}
+                ]
+                """).getAsJsonArray());
 
-            worlds = new WorldRepository().findAll();
+        assertEquals(2, result.size());
+        assertSame(skillTree, result.get(0));
+        assertSame(base, result.get(1));
+    }
 
-            api.verify(ApiRequestUtil::buildClient, times(1));
-            api.verify(() -> ApiRequestUtil.buildRequestBuilder("/api/world"), times(1));
+    @Test
+    void missingDetailFailsInsteadOfPublishingIncompleteWorld() {
+        WorldRepository repository = new StubWorldRepository(Map.of());
+
+        var summaries = JsonParser.parseString("[{\"id\":\"skill_tree\",\"autoLoad\":true}]")
+                .getAsJsonArray();
+
+        assertThrows(IllegalStateException.class, () -> repository.resolveListPayload(summaries));
+    }
+
+    @Test
+    void detailedListRowsRemainBackwardCompatible() {
+        WorldRepository repository = new StubWorldRepository(Map.of());
+        var detailed = JsonParser.parseString("""
+                [{
+                  "schemaVersion":1,
+                  "id":"skill_tree",
+                  "displayName":"Skill Tree",
+                  "worldType":"HUB",
+                  "baseWorldPath":"plugins/AstralRecord/worlds/hub/skill_tree",
+                  "instanceRootPath":"plugins/AstralRecord/_world_instances/skill_tree",
+                  "autoLoad":true,
+                  "instanceEnabled":false,
+                  "maxPlayers":8,
+                  "spawnLocation":{"x":1000.5,"y":68.0,"z":1000.5,"yaw":0.0,"pitch":90.0},
+                  "description":"Skill Tree"
+                }]
+                """).getAsJsonArray();
+
+        try (MockedStatic<Logger> logger = mockStatic(Logger.class)) {
+            var result = repository.resolveListPayload(detailed);
+            assertEquals(1, result.size());
+            assertEquals("plugins/AstralRecord/worlds/hub/skill_tree", result.getFirst().baseWorldPath());
+        }
+    }
+
+    private static final class StubWorldRepository extends WorldRepository {
+        private final Map<String, WorldMasterData> details;
+
+        private StubWorldRepository(Map<String, WorldMasterData> details) {
+            this.details = details;
         }
 
-        assertEquals(List.of("hub_lobby", "skill_tree"), worlds.stream().map(WorldMasterData::id).toList());
-        verify(client, times(1)).send(
-            eq(request),
-            org.mockito.ArgumentMatchers.<HttpResponse.BodyHandler<String>>any()
+        @Override
+        public WorldMasterData findById(String worldId) {
+            return details.get(worldId);
+        }
+    }
+
+    private static WorldMasterData world(String id, WorldType type) {
+        return new WorldMasterData(
+                1,
+                id,
+                id,
+                type,
+                "plugins/AstralRecord/worlds/" + id,
+                "plugins/AstralRecord/_world_instances/" + id,
+                true,
+                false,
+                8,
+                false,
+                false,
+                false,
+                true,
+                WorldSpawnLocation.defaultLocation(),
+                id,
+                null,
+                null,
+                null
         );
     }
 }

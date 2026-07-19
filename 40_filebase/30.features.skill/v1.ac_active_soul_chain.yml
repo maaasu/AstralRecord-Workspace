@@ -4,7 +4,7 @@ type: SKILL
 implementationId: normal_attack
 name: "&eソウルチェイン"
 description: "&7魂連結。"
-icon: CHAIN
+icon: IRON_CHAIN
 cooldownTicks: 100
 manaCost: 12
 castTimeTicks: 0

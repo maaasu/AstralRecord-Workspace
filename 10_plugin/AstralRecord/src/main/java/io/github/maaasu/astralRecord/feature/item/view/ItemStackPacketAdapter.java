@@ -8,6 +8,7 @@ import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.PacketEvent;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
+import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.CustomModelDataComponentUtil;
@@ -211,7 +212,7 @@ public class ItemStackPacketAdapter {
     private static Material resolveMaterial(@NotNull String name) {
         var upper = name.toUpperCase(Locale.ROOT);
         return MATERIAL_CACHE.computeIfAbsent(upper, k -> {
-            var mat = Material.matchMaterial(k);
+            var mat = MaterialNameResolver.match(k);
             if (mat == null) {
                 Logger.log(LogId.W_5210, k);
             }

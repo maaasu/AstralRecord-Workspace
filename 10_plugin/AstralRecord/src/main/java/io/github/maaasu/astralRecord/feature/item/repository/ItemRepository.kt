@@ -768,7 +768,7 @@ class ItemRepository {
             return null
         }
         val element = obj.get(key)
-        if (element == null || element.isJsonNull) {
+        if (element == null || element.isJsonNull || !element.isJsonPrimitive) {
             return null
         }
         return element.asString
@@ -792,10 +792,22 @@ class ItemRepository {
             return null
         }
         val element = obj.get(key)
-        if (element == null || element.isJsonNull) {
+        if (element == null || element.isJsonNull || !element.isJsonPrimitive) {
             return null
         }
-        return element.asInt
+        return runCatching { element.asInt }.getOrNull()
+    }
+
+    private fun parseArrayOrNull(obj: JsonObject, key: String): JsonArray? {
+        if (!obj.has(key)) {
+            return null
+        }
+        val element = obj.get(key)
+        return if (element == null || element.isJsonNull || !element.isJsonArray) {
+            null
+        } else {
+            element.asJsonArray
+        }
     }
 
     private fun parseDoubleOrNull(obj: JsonObject, key: String): Double? {
@@ -852,17 +864,17 @@ class ItemRepository {
             equipmentInstanceId = obj.get("equipmentInstanceId").asString,
             accountId = obj.get("accountId").asString,
             itemId = obj.get("itemId").asString,
-            enhanceLevel = obj.get("enhanceLevel")?.asInt ?: 0,
-            runeMaxSlots = obj.get("runeMaxSlots")?.asInt ?: 0,
-            transcendenceRank = obj.get("transcendenceRank")?.asInt ?: 0,
-            durabilityMax = obj.get("durabilityMax")?.asInt ?: 0,
-            durabilityValue = obj.get("durabilityValue")?.asInt ?: 0,
-            createdAt = obj.get("createdAt")?.asString ?: "",
-            updatedAt = obj.get("updatedAt")?.asString ?: "",
-            statRolls = parseStatRolls(obj.getAsJsonArray("statRolls")),
-            enchants = parseEnchants(obj.getAsJsonArray("enchants")),
-            runes = parseRunes(obj.getAsJsonArray("runes")),
-            enchantPools = parseEnchantPools(obj.getAsJsonArray("enchantPools")),
+            enhanceLevel = parseIntOrNull(obj, "enhanceLevel") ?: 0,
+            runeMaxSlots = parseIntOrNull(obj, "runeMaxSlots") ?: 0,
+            transcendenceRank = parseIntOrNull(obj, "transcendenceRank") ?: 0,
+            durabilityMax = parseIntOrNull(obj, "durabilityMax") ?: 0,
+            durabilityValue = parseIntOrNull(obj, "durabilityValue") ?: 0,
+            createdAt = parseStringOrNull(obj, "createdAt") ?: "",
+            updatedAt = parseStringOrNull(obj, "updatedAt") ?: "",
+            statRolls = parseStatRolls(parseArrayOrNull(obj, "statRolls")),
+            enchants = parseEnchants(parseArrayOrNull(obj, "enchants")),
+            runes = parseRunes(parseArrayOrNull(obj, "runes")),
+            enchantPools = parseEnchantPools(parseArrayOrNull(obj, "enchantPools")),
         )
     }
 
@@ -872,11 +884,11 @@ class ItemRepository {
             if (!element.isJsonObject) return@mapNotNull null
             val obj = element.asJsonObject
             EquipmentStatRoll(
-                statRollId = obj.get("statRollId")?.asString ?: return@mapNotNull null,
-                status = obj.get("status")?.asString ?: return@mapNotNull null,
-                min = obj.get("min")?.asString ?: "0",
-                max = obj.get("max")?.asString ?: "0",
-                sortOrder = obj.get("sortOrder")?.asInt ?: 0,
+                statRollId = parseStringOrNull(obj, "statRollId") ?: return@mapNotNull null,
+                status = parseStringOrNull(obj, "status") ?: return@mapNotNull null,
+                min = parseStringOrNull(obj, "min") ?: "0",
+                max = parseStringOrNull(obj, "max") ?: "0",
+                sortOrder = parseIntOrNull(obj, "sortOrder") ?: 0,
             )
         }
     }
@@ -887,12 +899,12 @@ class ItemRepository {
             if (!element.isJsonObject) return@mapNotNull null
             val obj = element.asJsonObject
             EquipmentEnchant(
-                enchantId = obj.get("enchantId")?.asString ?: return@mapNotNull null,
-                equipmentInstanceId = obj.get("equipmentInstanceId")?.asString ?: return@mapNotNull null,
-                slotIndex = obj.get("slotIndex")?.asInt ?: 0,
-                poolIndex = obj.get("poolIndex")?.asInt ?: 0,
-                status = obj.get("status")?.asString ?: return@mapNotNull null,
-                type = obj.get("type")?.asString ?: return@mapNotNull null,
+                enchantId = parseStringOrNull(obj, "enchantId") ?: return@mapNotNull null,
+                equipmentInstanceId = parseStringOrNull(obj, "equipmentInstanceId") ?: return@mapNotNull null,
+                slotIndex = parseIntOrNull(obj, "slotIndex") ?: 0,
+                poolIndex = parseIntOrNull(obj, "poolIndex") ?: 0,
+                status = parseStringOrNull(obj, "status") ?: return@mapNotNull null,
+                type = parseStringOrNull(obj, "type") ?: return@mapNotNull null,
                 value = obj.get("value")?.takeIf { !it.isJsonNull }?.asDouble ?: 0.0,
             )
         }
@@ -904,10 +916,10 @@ class ItemRepository {
             if (!element.isJsonObject) return@mapNotNull null
             val obj = element.asJsonObject
             EquipmentRune(
-                runeId = obj.get("runeId")?.asString ?: return@mapNotNull null,
-                equipmentInstanceId = obj.get("equipmentInstanceId")?.asString ?: return@mapNotNull null,
-                slotIndex = obj.get("slotIndex")?.asInt ?: 0,
-                itemId = obj.get("itemId")?.asString ?: return@mapNotNull null,
+                runeId = parseStringOrNull(obj, "runeId") ?: return@mapNotNull null,
+                equipmentInstanceId = parseStringOrNull(obj, "equipmentInstanceId") ?: return@mapNotNull null,
+                slotIndex = parseIntOrNull(obj, "slotIndex") ?: 0,
+                itemId = parseStringOrNull(obj, "itemId") ?: return@mapNotNull null,
             )
         }
     }
@@ -918,11 +930,11 @@ class ItemRepository {
             if (!element.isJsonObject) return@mapNotNull null
             val obj = element.asJsonObject
             EquipmentEnchantPool(
-                poolIndex = obj.get("poolIndex")?.asInt ?: return@mapNotNull null,
+                poolIndex = parseIntOrNull(obj, "poolIndex") ?: return@mapNotNull null,
                 recipeId = parseStringOrNull(obj, "recipeId"),
-                requiredMaterialItemId = obj.get("requiredMaterialItemId")?.asString ?: return@mapNotNull null,
-                requiredMaterialAmount = obj.get("requiredMaterialAmount")?.asInt ?: 0,
-                requiredCurrency = obj.get("requiredCurrency")?.asInt ?: 0,
+                requiredMaterialItemId = parseStringOrNull(obj, "requiredMaterialItemId") ?: return@mapNotNull null,
+                requiredMaterialAmount = parseIntOrNull(obj, "requiredMaterialAmount") ?: 0,
+                requiredCurrency = parseIntOrNull(obj, "requiredCurrency") ?: 0,
             )
         }
     }
@@ -937,9 +949,9 @@ class ItemRepository {
             runeInstanceId = obj.get("runeInstanceId").asString,
             accountId = obj.get("accountId").asString,
             itemId = obj.get("itemId").asString,
-            createdAt = obj.get("createdAt")?.asString ?: "",
-            updatedAt = obj.get("updatedAt")?.asString ?: "",
-            statRolls = parseRuneStatRolls(obj.getAsJsonArray("statRolls")),
+            createdAt = parseStringOrNull(obj, "createdAt") ?: "",
+            updatedAt = parseStringOrNull(obj, "updatedAt") ?: "",
+            statRolls = parseRuneStatRolls(parseArrayOrNull(obj, "statRolls")),
         )
     }
 
@@ -949,11 +961,11 @@ class ItemRepository {
             if (!element.isJsonObject) return@mapNotNull null
             val obj = element.asJsonObject
             RuneStatRoll(
-                statRollId = obj.get("statRollId")?.asString ?: return@mapNotNull null,
-                status = obj.get("status")?.asString ?: return@mapNotNull null,
-                type = obj.get("type")?.asString ?: return@mapNotNull null,
+                statRollId = parseStringOrNull(obj, "statRollId") ?: return@mapNotNull null,
+                status = parseStringOrNull(obj, "status") ?: return@mapNotNull null,
+                type = parseStringOrNull(obj, "type") ?: return@mapNotNull null,
                 value = obj.get("value")?.takeIf { !it.isJsonNull }?.asString ?: return@mapNotNull null,
-                sortOrder = obj.get("sortOrder")?.asInt ?: 0,
+                sortOrder = parseIntOrNull(obj, "sortOrder") ?: 0,
             )
         }
     }
