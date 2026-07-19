@@ -44,7 +44,7 @@ import java.util.TreeSet;
 /**
  * ステータス機能のビジネスロジックを担うサービスクラスです。
  * <p>
- * 現時点ではプレイヤーの {@code account mode} と {@code permission} から簡易的なステータスを計算します。
+ * 現時点ではプレイヤーの {@code account mode} とレベルから簡易的なステータスを計算します。
  * 将来的にレベル・装備・バフ補正を追加する際も、このサービスへ集約する想定です。
  */
 public class StatusService {
@@ -459,7 +459,6 @@ public class StatusService {
         @NotNull RangeEndpoint endpoint
     ) {
         double nonBuffBonus = getAccountModeBonus(player.getAccount().getMode(), type);
-        nonBuffBonus += getPermissionBonus(player.getUser().getPermission(), type);
         nonBuffBonus += getClassShieldBonus(player, type);
         nonBuffBonus += getEquipmentBonus(equipmentBonus, type, baseValue + nonBuffBonus, endpoint);
         nonBuffBonus += getSkillTreeBonus(player, type, baseValue + nonBuffBonus);
@@ -905,89 +904,4 @@ public class StatusService {
         };
     }
 
-    private double getPermissionBonus(int permission, @NotNull StatusType type) {
-        if (permission >= AstPlayer.OP_PERMISSION_THRESHOLD) {
-            return switch (type) {
-                case MAX_HEALTH -> 5.0D;
-                case MAX_MANA -> 5.0D;
-                case MAX_ENERGY -> 20.0D;
-                case MAX_SHIELD -> 0.0D;
-                case STRENGTH -> 3.0D;
-                case DEXTERITY -> 3.0D;
-                case INTELLIGENCE -> 3.0D;
-                case VITALITY -> 3.0D;
-                case AGILITY -> 3.0D;
-                case LUCK -> 3.0D;
-                case ATTACK -> 4.0D;
-                case MELEE_ATTACK -> 0.0D;
-                case RANGED_ATTACK -> 0.0D;
-                case MAGIC_ATTACK -> 0.0D;
-                case CRITICAL_RATE -> 2.5D;
-                case CRITICAL_DAMAGE -> 10.0D;
-                case SUPER_CRITICAL_RATE -> 2.0D;
-                case SUPER_CRITICAL_DAMAGE -> 10.0D;
-                case FINAL_DAMAGE_RATE -> 2.0D;
-                case FINAL_DAMAGE_MULTIPLIER -> 5.0D;
-                case ACCURACY -> 2.0D;
-                case ATTACK_SPEED -> 5.0D;
-                case SHIELD_BREAK -> 0.0D;
-                case DEFENSE -> 4.0D;
-                case MAGIC_DEFENSE -> 4.0D;
-                case EVASION -> 2.0D;
-                case KNOCKBACK_RESISTANCE -> 0.0D;
-                case HP_REGEN -> 1.0D;
-                case MP_REGEN -> 1.0D;
-                case ENERGY_REGEN -> 2.0D;
-                case MOVEMENT_SPEED -> 0.0D;
-                case COOLDOWN_REDUCTION -> 2.0D;
-                case SHIELD_RECHARGE_REDUCTION -> 0.0D;
-                case SHIELD_RECHARGE_RATE -> 0.0D;
-                case MINING_SPEED -> 0.0D;
-                case QUEST_LIMIT -> 0.0D;
-            };
-        }
-
-        if (permission >= 10) {
-            return switch (type) {
-                case MAX_HEALTH -> 0.0D;
-                case MAX_MANA -> 2.0D;
-                case MAX_ENERGY -> 10.0D;
-                case MAX_SHIELD -> 0.0D;
-                case STRENGTH -> 1.0D;
-                case DEXTERITY -> 1.0D;
-                case INTELLIGENCE -> 1.0D;
-                case VITALITY -> 1.0D;
-                case AGILITY -> 1.0D;
-                case LUCK -> 1.0D;
-                case ATTACK -> 1.0D;
-                case MELEE_ATTACK -> 0.0D;
-                case RANGED_ATTACK -> 0.0D;
-                case MAGIC_ATTACK -> 0.0D;
-                case CRITICAL_RATE -> 0.5D;
-                case CRITICAL_DAMAGE -> 5.0D;
-                case SUPER_CRITICAL_RATE -> 0.0D;
-                case SUPER_CRITICAL_DAMAGE -> 0.0D;
-                case FINAL_DAMAGE_RATE -> 0.0D;
-                case FINAL_DAMAGE_MULTIPLIER -> 0.0D;
-                case ACCURACY -> 1.0D;
-                case ATTACK_SPEED -> 0.0D;
-                case SHIELD_BREAK -> 0.0D;
-                case DEFENSE -> 1.0D;
-                case MAGIC_DEFENSE -> 1.0D;
-                case EVASION -> 0.5D;
-                case KNOCKBACK_RESISTANCE -> 0.0D;
-                case HP_REGEN -> 0.0D;
-                case MP_REGEN -> 0.0D;
-                case ENERGY_REGEN -> 0.0D;
-                case MOVEMENT_SPEED -> 0.0D;
-                case COOLDOWN_REDUCTION -> 0.0D;
-                case SHIELD_RECHARGE_REDUCTION -> 0.0D;
-                case SHIELD_RECHARGE_RATE -> 0.0D;
-                case MINING_SPEED -> 0.0D;
-                case QUEST_LIMIT -> 0.0D;
-            };
-        }
-
-        return 0.0D;
-    }
 }

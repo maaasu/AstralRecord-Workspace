@@ -8,8 +8,8 @@ import kotlin.math.nextUp
  *
  * @property baseMinValue  ベース値の下限
  * @property baseMaxValue  ベース値の上限
- * @property bonusMinValue 装備・権限・モードなどによる補正値の下限
- * @property bonusMaxValue 装備・権限・モードなどによる補正値の上限
+ * @property bonusMinValue 装備・モードなどによる補正値の下限
+ * @property bonusMaxValue 装備・モードなどによる補正値の上限
  */
 data class StatusValue(
     val baseMinValue: Double,
