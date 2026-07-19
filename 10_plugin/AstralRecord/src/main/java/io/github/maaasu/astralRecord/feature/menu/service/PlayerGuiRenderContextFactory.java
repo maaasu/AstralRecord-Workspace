@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.menu.service;
 
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
+import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.menu.model.CurrencyDisplayEntry;
 import io.github.maaasu.astralRecord.feature.menu.model.PlayerEquipmentSnapshot;
 import io.github.maaasu.astralRecord.feature.menu.model.PlayerGuiRenderContext;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -15,6 +17,10 @@ import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 /**
  * {@link AstPlayer} と各 feature の現在値から GUI 描画コンテキストを生成します。
@@ -50,15 +56,53 @@ public final class PlayerGuiRenderContextFactory {
     public @NotNull PlayerGuiRenderContext create(@NotNull AstPlayer astPlayer) {
         var account = astPlayer.getAccount();
         int accountLevel = Math.max(1, account.getLevel());
+        long goldAmount = currencyService.getGoldAmount(account.getUuid());
         return new PlayerGuiRenderContext(
             account,
             statusService.getStatus(astPlayer),
             skillTreeService.availableClassPoints(astPlayer),
             skillTreeService.availablePassivePoints(astPlayer),
-            currencyService.getGoldAmount(account.getUuid()),
+            goldAmount,
             ReturnToBaseService.calculateGoldCost(accountLevel),
-            captureEquipment(astPlayer.getBukkit().getInventory())
+            captureEquipment(astPlayer.getBukkit().getInventory()),
+            captureCurrencyBalances(account.getUuid(), goldAmount)
         );
+    }
+
+    private @NotNull List<CurrencyDisplayEntry> captureCurrencyBalances(
+        @NotNull UUID accountId,
+        long goldAmount
+    ) {
+        List<CurrencyDisplayEntry> balances = new ArrayList<>();
+        balances.add(new CurrencyDisplayEntry(
+            ItemService.DEFAULT_CURRENCY_ITEM_ID,
+            Component.text("ゴールド", NamedTextColor.GOLD),
+            goldAmount
+        ));
+
+        for (ItemStack itemStack : currencyService.getCurrencyItemStacks(accountId)) {
+            String currencyId = currencyService.getCurrencyItemId(itemStack);
+            if (currencyId == null
+                || ItemService.DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(currencyId)
+                || ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(currencyId)) {
+                continue;
+            }
+
+            long amount = currencyService.getCurrencyAmount(accountId, currencyId);
+            if (amount <= 0L) {
+                continue;
+            }
+            balances.add(new CurrencyDisplayEntry(currencyId, displayName(itemStack), amount));
+        }
+        return balances;
+    }
+
+    private @NotNull Component displayName(@NotNull ItemStack itemStack) {
+        ItemMeta meta = itemStack.getItemMeta();
+        if (meta != null && meta.hasDisplayName() && meta.displayName() != null) {
+            return meta.displayName();
+        }
+        return Component.text(itemStack.getType().name(), NamedTextColor.WHITE);
     }
 
     private @NotNull PlayerEquipmentSnapshot captureEquipment(@NotNull PlayerInventory inventory) {

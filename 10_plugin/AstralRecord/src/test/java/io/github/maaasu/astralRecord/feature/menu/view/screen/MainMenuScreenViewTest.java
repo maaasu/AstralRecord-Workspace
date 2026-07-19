@@ -50,13 +50,13 @@ class MainMenuScreenViewTest extends MockBukkitTestBase {
         assertMaterial(inventory, MainMenuScreenView.PARTY_SLOT, Material.PLAYER_HEAD);
         assertMaterial(inventory, MainMenuScreenView.PLAYER_INFO_SLOT, Material.SPYGLASS);
 
-        assertMaterial(inventory, MainMenuScreenView.CURRENCY_SLOT, Material.EMERALD);
+        assertMaterial(inventory, MainMenuScreenView.CURRENCY_SLOT, Material.BUNDLE);
         assertMaterial(inventory, MainMenuScreenView.GUIDE_SLOT, Material.BOOK);
         assertMaterial(inventory, MainMenuScreenView.RETURN_TO_BASE_SLOT, Material.BEACON);
         assertMaterial(inventory, MainMenuScreenView.TRASH_SLOT, Material.LAVA_BUCKET);
 
         assertLoreContains(inventory, MainMenuScreenView.EQUIPMENT_GUI_SLOT, "星頭巾");
-        assertLoreContains(inventory, MainMenuScreenView.CURRENCY_SLOT, "ゴールド: 123");
+        assertLoreContains(inventory, MainMenuScreenView.CURRENCY_SLOT, "ゴールド: 123G");
         assertLoreContains(inventory, MainMenuScreenView.RETURN_TO_BASE_SLOT, "必要ゴールド 100");
     }
 

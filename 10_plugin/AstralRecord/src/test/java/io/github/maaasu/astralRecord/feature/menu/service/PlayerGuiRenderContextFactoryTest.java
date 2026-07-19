@@ -13,6 +13,8 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.mock;
@@ -36,6 +38,13 @@ class PlayerGuiRenderContextFactoryTest extends MockBukkitTestBase {
         StatusService statusService = mock(StatusService.class);
         SkillTreeService skillTreeService = mock(SkillTreeService.class);
         when(currencyService.getGoldAmount(astPlayer.getAccount().getUuid())).thenReturn(456L);
+        ItemStack astrald = new ItemStack(Material.DIAMOND);
+        var astraldMeta = astrald.getItemMeta();
+        astraldMeta.displayName(Component.text("アストラルド"));
+        astrald.setItemMeta(astraldMeta);
+        when(currencyService.getCurrencyItemStacks(astPlayer.getAccount().getUuid())).thenReturn(List.of(astrald));
+        when(currencyService.getCurrencyItemId(astrald)).thenReturn("astrald");
+        when(currencyService.getCurrencyAmount(astPlayer.getAccount().getUuid(), "astrald")).thenReturn(12L);
         when(statusService.getStatus(astPlayer)).thenReturn(snapshot);
         when(skillTreeService.availableClassPoints(astPlayer)).thenReturn(7);
         when(skillTreeService.availablePassivePoints(astPlayer)).thenReturn(8);
@@ -48,11 +57,19 @@ class PlayerGuiRenderContextFactoryTest extends MockBukkitTestBase {
         assertEquals(7, context.availableClassPoints());
         assertEquals(8, context.availablePassivePoints());
         assertEquals(456L, context.goldAmount());
+        assertEquals(2, context.currencyBalances().size());
+        assertEquals("ゴールド", plain(context.currencyBalances().get(0).displayName()));
+        assertEquals(456L, context.currencyBalances().get(0).amount());
+        assertEquals("アストラルド", plain(context.currencyBalances().get(1).displayName()));
+        assertEquals(12L, context.currencyBalances().get(1).amount());
         assertEquals(100L, context.returnToBaseGoldCost());
         assertEquals("星頭巾", plain(context.equipment().helmet()));
         assertEquals("なし", plain(context.equipment().chestplate()));
 
         verify(currencyService).getGoldAmount(astPlayer.getAccount().getUuid());
+        verify(currencyService).getCurrencyItemStacks(astPlayer.getAccount().getUuid());
+        verify(currencyService).getCurrencyItemId(astrald);
+        verify(currencyService).getCurrencyAmount(astPlayer.getAccount().getUuid(), "astrald");
         verify(statusService).getStatus(astPlayer);
         verify(skillTreeService).availableClassPoints(astPlayer);
         verify(skillTreeService).availablePassivePoints(astPlayer);

@@ -69,10 +69,10 @@ class CraftShortcutViewTest extends MockBukkitTestBase {
         ItemStack[] matrix = matrixCaptor.getValue();
         assertEquals(Material.PLAYER_HEAD, matrix[0].getType());
         assertEquals(Material.BEACON, matrix[1].getType());
-        assertEquals(Material.EMERALD, matrix[2].getType());
+        assertEquals(Material.BUNDLE, matrix[2].getType());
         assertEquals(Material.NETHERITE_CHESTPLATE, matrix[3].getType());
         assertTrue(view.isCraftShortcutIcon(matrix[0]));
-        assertLoreContains(matrix[2].getItemMeta().lore(), "ゴールド: 789");
+        assertLoreContains(matrix[2].getItemMeta().lore(), "ゴールド: 789G");
         assertLoreContains(matrix[3].getItemMeta().lore(), "星頭巾");
     }
 

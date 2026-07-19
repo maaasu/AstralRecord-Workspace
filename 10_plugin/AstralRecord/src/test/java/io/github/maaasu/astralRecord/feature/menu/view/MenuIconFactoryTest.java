@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.menu.view;
 
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.menu.model.CurrencyDisplayEntry;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuIconDefinition;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutAction;
 import io.github.maaasu.astralRecord.feature.menu.model.PlayerEquipmentSnapshot;
@@ -34,14 +35,57 @@ class MenuIconFactoryTest extends MockBukkitTestBase {
         );
 
         assertNotSame(first, second);
-        assertEquals(Material.EMERALD, first.getType());
-        assertEquals("通貨", plain(first.getItemMeta().displayName()));
-        assertEquals(List.of("所持通貨を確認", "ゴールド: 321"), first.getItemMeta().lore().stream()
+        assertEquals(Material.BUNDLE, first.getType());
+        assertEquals("カレンシー", plain(first.getItemMeta().displayName()));
+        assertEquals(List.of("所持通貨を確認", "ゴールド: 321G"), first.getItemMeta().lore().stream()
             .map(MenuIconFactoryTest::plain)
             .toList());
 
         first.setAmount(2);
         assertEquals(1, second.getAmount());
+    }
+
+    @Test
+    void limitsCurrencyDetailsToTenEntriesAndAddsEllipsis() {
+        PlayerGuiRenderContext base = context();
+        List<CurrencyDisplayEntry> balances = new java.util.ArrayList<>();
+        balances.add(new CurrencyDisplayEntry("gold", Component.text("ゴールド"), 321L));
+        for (int index = 1; index <= 10; index++) {
+            balances.add(new CurrencyDisplayEntry(
+                "currency_" + index,
+                Component.text("通貨" + index),
+                index
+            ));
+        }
+        PlayerGuiRenderContext manyCurrencies = new PlayerGuiRenderContext(
+            base.account(),
+            base.statusSnapshot(),
+            base.availableClassPoints(),
+            base.availablePassivePoints(),
+            base.goldAmount(),
+            base.returnToBaseGoldCost(),
+            base.equipment(),
+            balances
+        );
+
+        assertEquals(
+            List.of(
+                "ゴールド: 321G",
+                "通貨1: 1",
+                "通貨2: 2",
+                "通貨3: 3",
+                "通貨4: 4",
+                "通貨5: 5",
+                "通貨6: 6",
+                "通貨7: 7",
+                "通貨8: 8",
+                "通貨9: 9",
+                "…"
+            ),
+            MenuIconFactory.currencyDetails(manyCurrencies).stream()
+                .map(MenuIconFactoryTest::plain)
+                .toList()
+        );
     }
 
     @Test
