@@ -22,6 +22,7 @@ import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -39,6 +40,7 @@ import java.util.UUID;
 public class GatheringService {
     private static final double TARGET_DISTANCE = 5.5D;
     private static final double TARGET_RADIUS_SQ = 0.85D * 0.85D;
+    private static final long AUTO_CLICK_INTERVAL_TICKS = 8L;
     private static final String DROP_SOURCE = "gathering_drop";
 
     private final Plugin plugin;
@@ -91,6 +93,9 @@ public class GatheringService {
     }
 
     public void stop() {
+        for (MiningSession session : List.copyOf(sessions.values())) {
+            session.cancel();
+        }
         sessions.clear();
         if (visualizer != null) {
             visualizer.stop();
@@ -122,6 +127,9 @@ public class GatheringService {
      * reload 後のスポナー上限判定に残らないようにします。
      */
     public void clearInstances() {
+        for (MiningSession session : List.copyOf(sessions.values())) {
+            session.cancel();
+        }
         sessions.clear();
         if (visualizer != null) {
             for (UUID instanceId : List.copyOf(instances.keySet())) {
@@ -152,30 +160,57 @@ public class GatheringService {
         return session != null && session.instanceId.equals(instanceId);
     }
 
+    /**
+     * プレイヤーが視線を合わせている採集オブジェクトの採集を開始します。
+     * 最初の左クリックで即時に1回採集し、その後は一定間隔で自動採集を継続します。
+     * 同じ採集セッション中の追加クリックはクールタイムを迂回するダメージとして扱いません。
+     *
+     * @param player 採集を開始するプレイヤー
+     * @return 採集入力を受理した場合は {@code true}
+     */
     public boolean startMining(@NotNull Player player) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null || !astPlayer.getAccount().getMode().shouldProcessGameplay()) {
             return false;
         }
 
+        UUID playerId = player.getUniqueId();
+        MiningSession existing = sessions.get(playerId);
         GatheringInstance target = findTargeted(player);
         if (target == null || !canUseCurrentTool(player, target.definition())) {
+            if (existing != null) {
+                stopSession(existing, true);
+            }
             return false;
         }
 
-        sessions.remove(player.getUniqueId());
+        String toolSignature = currentToolSignature(player);
+        if (existing != null
+                && existing.instanceId.equals(target.instanceId())
+                && existing.toolSignature.equals(toolSignature)) {
+            return true;
+        }
+        if (existing != null) {
+            stopSession(existing, true);
+        }
         if (target.activePlayerId() != null && !target.activePlayerId().equals(player.getUniqueId())) {
-            target.resetHealth();
+            stopSessionByPlayer(target.activePlayerId(), true);
         }
 
-        target.activePlayerId(player.getUniqueId());
+        target.activePlayerId(playerId);
         applyMiningDamage(player, target);
         if (!instances.containsKey(target.instanceId())) {
             return true;
         }
 
-        MiningSession session = new MiningSession(player.getUniqueId(), target.instanceId(), currentToolSignature(player));
-        sessions.put(player.getUniqueId(), session);
+        MiningSession session = new MiningSession(playerId, target.instanceId(), toolSignature);
+        sessions.put(playerId, session);
+        session.task = plugin.getServer().getScheduler().runTaskTimer(
+                plugin,
+                () -> continueMining(session),
+                AUTO_CLICK_INTERVAL_TICKS,
+                AUTO_CLICK_INTERVAL_TICKS
+        );
         return true;
     }
 
@@ -188,6 +223,32 @@ public class GatheringService {
                 .filter(instance -> isTargeted(origin, direction, instance.location().clone().add(0.0D, 0.55D, 0.0D)))
                 .min(Comparator.comparingDouble(instance -> instance.location().distanceSquared(eye)))
                 .orElse(null);
+    }
+
+    private void continueMining(@NotNull MiningSession session) {
+        Player player = plugin.getServer().getPlayer(session.playerId);
+        GatheringInstance instance = instances.get(session.instanceId);
+        if (player == null || !player.isOnline() || instance == null) {
+            stopSession(session, false);
+            return;
+        }
+        if (!session.playerId.equals(instance.activePlayerId())) {
+            stopSession(session, false);
+            return;
+        }
+        if (!session.toolSignature.equals(currentToolSignature(player))) {
+            stopSession(session, true);
+            return;
+        }
+        if (findTargeted(player) != instance) {
+            stopSession(session, true);
+            return;
+        }
+        if (!canUseCurrentTool(player, instance.definition())) {
+            stopSession(session, true);
+            return;
+        }
+        applyMiningDamage(player, instance);
     }
 
     private void applyMiningDamage(@NotNull Player player, @NotNull GatheringInstance instance) {
@@ -260,6 +321,7 @@ public class GatheringService {
 
     private void stopSession(@NotNull MiningSession session, boolean resetHealth) {
         sessions.remove(session.playerId);
+        session.cancel();
         GatheringInstance instance = instances.get(session.instanceId);
         if (instance != null && session.playerId.equals(instance.activePlayerId())) {
             if (resetHealth) {
@@ -333,11 +395,19 @@ public class GatheringService {
         private final UUID playerId;
         private final UUID instanceId;
         private final String toolSignature;
+        private BukkitTask task;
+
         private MiningSession(@NotNull UUID playerId, @NotNull UUID instanceId, @NotNull String toolSignature) {
             this.playerId = playerId;
             this.instanceId = instanceId;
             this.toolSignature = toolSignature;
         }
 
+        private void cancel() {
+            if (task != null) {
+                task.cancel();
+                task = null;
+            }
+        }
     }
 }
