@@ -15,9 +15,9 @@ allowBlockPlace: false
 allowMobSpawn: true
 showSpawnParticle: true
 spawnLocation:
-  x: 0.5
-  y: 79
-  z: 0.5
+  x: -1149.5
+  y: 107.0
+  z: 1480.5
   yaw: 0.0
   pitch: 0.0
 description: "広大な探索域を備え、冒険の中心となる大規模オープンワールド「ヴァナヘイム超大陸（Vanaheim Supercontinent）」。"
