@@ -6,8 +6,6 @@ import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class MainMenuScreenViewTest extends MockBukkitTestBase {
@@ -17,12 +15,12 @@ class MainMenuScreenViewTest extends MockBukkitTestBase {
         var player = server().addPlayer();
         Inventory inventory = Bukkit.createInventory(null, BaseMenuScreenView.SIZE);
 
-        new MainMenuScreenView().render(inventory, player, 123L, List.of());
+        new MainMenuScreenView().render(inventory, player, 123L);
 
         assertMaterial(inventory, MainMenuScreenView.STATUS_SLOT, Material.PLAYER_HEAD);
         assertMaterial(inventory, MainMenuScreenView.EQUIPMENT_GUI_SLOT, Material.NETHERITE_CHESTPLATE);
         assertMaterial(inventory, MainMenuScreenView.SKILL_BIND_SLOT, Material.ENCHANTED_BOOK);
-        assertMaterial(inventory, MainMenuScreenView.BUFF_SLOT, Material.POTION);
+        assertMaterial(inventory, 23, Material.GRAY_STAINED_GLASS_PANE);
         assertMaterial(inventory, MainMenuScreenView.PLAYER_SETTING_SLOT, Material.COMPARATOR);
 
         assertMaterial(inventory, MainMenuScreenView.ADVENTURE_RECORD_SLOT, Material.WRITTEN_BOOK);

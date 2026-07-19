@@ -21,7 +21,6 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
     public static final int STATUS_SLOT = 20;
     public static final int EQUIPMENT_GUI_SLOT = 21;
     public static final int SKILL_BIND_SLOT = 22;
-    public static final int BUFF_SLOT = 23;
     public static final int PLAYER_SETTING_SLOT = 24;
     public static final int ADVENTURE_RECORD_SLOT = 29;
     public static final int MAIL_SLOT = 30;
@@ -32,7 +31,14 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
     public static final int RETURN_TO_BASE_SLOT = 40;
     public static final int TRASH_SLOT = 41;
 
-    public void render(@NotNull Inventory inventory, @NotNull Player player, long goldAmount, @NotNull List<String> activeBuffNames) {
+    /**
+     * メインメニューを描画します。
+     *
+     * @param inventory 描画先インベントリ
+     * @param player 対象プレイヤー
+     * @param goldAmount 所持ゴールド
+     */
+    public void render(@NotNull Inventory inventory, @NotNull Player player, long goldAmount) {
         fill(inventory);
         inventory.setItem(BACK_SLOT, io.github.maaasu.astralRecord.shared.gui.GuiItems.closeButton());
         inventory.setItem(STATUS_SLOT, createItem(
@@ -64,11 +70,6 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
             MenuIconDefinition.RETURN_TO_BASE.getMaterial(),
             Component.text(MenuIconDefinition.RETURN_TO_BASE.getDisplayNameJa(), MenuIconDefinition.RETURN_TO_BASE.getColor()),
             createReturnToBaseLore(player)
-        ));
-        inventory.setItem(BUFF_SLOT, createItem(
-            Material.POTION,
-            Component.text("バフ", NamedTextColor.AQUA),
-            createBuffLore(activeBuffNames)
         ));
         inventory.setItem(ADVENTURE_RECORD_SLOT, createItem(
             Material.WRITTEN_BOOK,
@@ -103,20 +104,6 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
             Component.text("プレイヤー一覧", NamedTextColor.YELLOW),
             List.of(Component.text("参加中プレイヤーの基本情報を確認", NamedTextColor.GRAY))
         ));
-    }
-
-    private @NotNull List<Component> createBuffLore(@NotNull List<String> activeBuffNames) {
-        List<Component> lore = new ArrayList<>();
-        lore.add(Component.text("現在のバフを確認", NamedTextColor.GRAY));
-        if (activeBuffNames.isEmpty()) {
-            lore.add(Component.text("現在獲得中: なし", NamedTextColor.DARK_GRAY));
-            return lore;
-        }
-        lore.add(Component.text("現在獲得中:", NamedTextColor.YELLOW));
-        for (String buffName : activeBuffNames) {
-            lore.add(Component.text("- " + buffName, NamedTextColor.WHITE));
-        }
-        return lore;
     }
 
     private @NotNull List<Component> createEquipmentLore(@NotNull Player player) {

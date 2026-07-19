@@ -51,6 +51,7 @@ class PlayerDetailGuiTest extends MockBukkitTestBase {
         Inventory inventory = player.getOpenInventory().getTopInventory();
         String headLore = plainLore(inventory.getItem(PlayerDetailGui.HEAD_SLOT));
         String statusLore = plainLore(inventory.getItem(PlayerDetailGui.RESOURCE_SLOT));
+        String buffLore = plainLore(inventory.getItem(PlayerDetailGui.BUFF_SLOT));
 
         assertTrue(headLore.contains("Greenfall Fields"));
         assertFalse(headLore.contains("internal_greenfall"));
@@ -61,6 +62,7 @@ class PlayerDetailGuiTest extends MockBukkitTestBase {
         assertTrue(statusLore.contains("105  (100 +5)"));
         assertFalse(statusLore.contains("基礎"));
         assertFalse(statusLore.contains("補正"));
+        assertTrue(buffLore.contains("クリックで詳細を表示"));
     }
 
     private static String plainLore(ItemStack itemStack) {

@@ -496,19 +496,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
             player.closeInventory();
             return;
         }
-        if (rawSlot == MenuView.BUFF_SLOT) {
-            AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (astPlayer == null) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            GuiSound.SELECT.play(player);
-            switchGuiWithoutInventoryReload(
-                player,
-                () -> menuView.openBuff(player, statusService.getActiveBuffs(astPlayer))
-            );
-            return;
-        }
         if (rawSlot == MenuView.SKILL_BIND_SLOT) {
             var skillBindHandler = plugin.getSkillBindGuiEventHandler();
             if (skillBindHandler == null) {
@@ -739,11 +726,19 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
                 continue;
             }
 
-            AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (astPlayer == null) {
+            String contentId = menuView.getContentId(inventory);
+            UUID targetId;
+            try {
+                targetId = contentId == null ? null : UUID.fromString(contentId);
+            } catch (IllegalArgumentException exception) {
+                targetId = null;
+            }
+            Player targetPlayer = targetId == null ? null : plugin.getServer().getPlayer(targetId);
+            AstPlayer target = targetPlayer == null ? null : AstPlayerCache.get(targetPlayer);
+            if (target == null) {
                 continue;
             }
-            menuView.renderBuff(inventory, statusService.getActiveBuffs(astPlayer));
+            menuView.renderBuff(inventory, statusService.getActiveBuffs(target));
         }
     }
 

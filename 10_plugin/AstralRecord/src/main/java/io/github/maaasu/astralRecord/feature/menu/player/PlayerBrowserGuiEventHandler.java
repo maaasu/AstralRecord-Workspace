@@ -167,6 +167,24 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
     }
 
     private void handlePlayerDetailClick(@NotNull Player player, int rawSlot, @NotNull org.bukkit.inventory.Inventory inventory) {
+        if (rawSlot == PlayerDetailGui.BUFF_SLOT) {
+            UUID targetId = playerDetailGui.getTargetId(inventory);
+            Player targetPlayer = targetId == null ? null : Bukkit.getPlayer(targetId);
+            AstPlayer target = targetPlayer == null ? null : AstPlayerCache.get(targetPlayer);
+            if (target == null) {
+                PlayerMessageService.getInstance().send(
+                    player,
+                    PlayerMsgId.P_5603,
+                    targetId == null ? "unknown" : playerName(targetId)
+                );
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.SELECT.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
+            plugin.getMenuView().openBuff(player, targetId, statusService.getActiveBuffs(target));
+            return;
+        }
         if (rawSlot == PlayerDetailGui.TRADE_SLOT) {
             handleTradeRequest(player, inventory);
             return;

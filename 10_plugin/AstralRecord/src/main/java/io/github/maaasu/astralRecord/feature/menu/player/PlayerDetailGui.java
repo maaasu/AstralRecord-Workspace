@@ -279,17 +279,20 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
     }
 
     private @NotNull List<Component> buildBuffLore(@NotNull AstPlayer target) {
-        if (target.getActiveBuffs().isEmpty()) {
-            return List.of(noItalic(Component.text("現在有効なバフはありません", NamedTextColor.GRAY)));
-        }
         List<Component> lore = new ArrayList<>();
-        for (var activeBuff : target.getActiveBuffs()) {
-            String displayName = ColorCodeUtil.toPlainText(
-                activeBuff.getType().getDisplayName(),
-                activeBuff.getType().getId()
-            );
-            lore.add(noItalic(Component.text("- " + displayName, NamedTextColor.WHITE)));
+        if (target.getActiveBuffs().isEmpty()) {
+            lore.add(noItalic(Component.text("現在有効なバフはありません", NamedTextColor.GRAY)));
+        } else {
+            for (var activeBuff : target.getActiveBuffs()) {
+                String displayName = ColorCodeUtil.toPlainText(
+                    activeBuff.getType().getDisplayName(),
+                    activeBuff.getType().getId()
+                );
+                lore.add(noItalic(Component.text("- " + displayName, NamedTextColor.WHITE)));
+            }
         }
+        lore.add(Component.empty());
+        lore.add(noItalic(Component.text("クリックで詳細を表示", NamedTextColor.YELLOW)));
         return lore;
     }
 

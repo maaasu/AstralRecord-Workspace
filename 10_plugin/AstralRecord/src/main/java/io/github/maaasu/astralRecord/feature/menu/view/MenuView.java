@@ -10,7 +10,6 @@ import io.github.maaasu.astralRecord.feature.inventory.model.AccessorySlotType;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
-import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
@@ -29,7 +28,6 @@ import io.github.maaasu.astralRecord.feature.storage.model.StorageViewEntry;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewOptions;
 import io.github.maaasu.astralRecord.feature.storage.view.StorageScreenView;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
-import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -54,7 +52,6 @@ public class MenuView {
     public static final int TRASH_SLOT = MainMenuScreenView.TRASH_SLOT;
     public static final int GUIDE_SLOT = MainMenuScreenView.GUIDE_SLOT;
     public static final int RETURN_TO_BASE_SLOT = MainMenuScreenView.RETURN_TO_BASE_SLOT;
-    public static final int BUFF_SLOT = MainMenuScreenView.BUFF_SLOT;
     public static final int SKILL_BIND_SLOT = MainMenuScreenView.SKILL_BIND_SLOT;
     public static final int CURRENCY_SLOT = MainMenuScreenView.CURRENCY_SLOT;
     public static final int PARTY_SLOT = MainMenuScreenView.PARTY_SLOT;
@@ -153,7 +150,7 @@ public class MenuView {
 
     public void open(@NotNull Player player) {
         Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.MAIN), SIZE, MAIN_TITLE);
-        mainMenuScreenView.render(inventory, player, plugin.getCurrencyService().getGoldAmount(player), activeBuffNames(player));
+        mainMenuScreenView.render(inventory, player, plugin.getCurrencyService().getGoldAmount(player));
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
@@ -167,10 +164,25 @@ public class MenuView {
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
-    public void openBuff(@NotNull Player player, @NotNull List<ActiveBuff> activeBuffs) {
-        Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.BUFF), SIZE, BUFF_TITLE);
+    /**
+     * 指定プレイヤーのバフ一覧 GUI を開きます。
+     *
+     * @param viewer 閲覧者
+     * @param targetId バフの表示対象プレイヤーID
+     * @param activeBuffs 現在有効なバフ一覧
+     */
+    public void openBuff(
+        @NotNull Player viewer,
+        @NotNull UUID targetId,
+        @NotNull List<ActiveBuff> activeBuffs
+    ) {
+        Inventory inventory = Bukkit.createInventory(
+            new MenuInventoryHolder(MenuScreen.BUFF, -1, 0, targetId.toString()),
+            SIZE,
+            BUFF_TITLE
+        );
         buffScreenView.render(inventory, activeBuffs);
-        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory);
     }
 
     /**
@@ -531,17 +543,5 @@ public class MenuView {
         return classScreenView.getClassId(itemStack);
     }
 
-    private @NotNull List<String> activeBuffNames(@NotNull Player player) {
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) {
-            return List.of();
-        }
-        return plugin.getStatusService().getActiveBuffs(astPlayer).stream()
-            .map(buff -> ColorCodeUtil.toPlainText(buff.getType().getDisplayName(), buff.getType().getId()))
-            .filter(name -> name != null && !name.isBlank())
-            .distinct()
-            .limit(5)
-            .toList();
-    }
 }
 
