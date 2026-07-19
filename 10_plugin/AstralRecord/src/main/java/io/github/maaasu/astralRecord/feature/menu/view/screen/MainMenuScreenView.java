@@ -1,21 +1,11 @@
 package io.github.maaasu.astralRecord.feature.menu.view.screen;
 
 import io.github.maaasu.astralRecord.feature.menu.model.MenuIconDefinition;
-import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
-import io.github.maaasu.astralRecord.feature.world.service.ReturnToBaseService;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.Material;
-import org.bukkit.entity.Player;
+import io.github.maaasu.astralRecord.feature.menu.model.PlayerGuiRenderContext;
+import io.github.maaasu.astralRecord.feature.menu.view.MenuIconFactory;
+import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public final class MainMenuScreenView extends BaseMenuScreenView {
     public static final int STATUS_SLOT = 20;
@@ -35,114 +25,31 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
      * メインメニューを描画します。
      *
      * @param inventory 描画先インベントリ
-     * @param player 対象プレイヤー
-     * @param goldAmount 所持ゴールド
+     * @param context プレイヤー依存の GUI 描画コンテキスト
      */
-    public void render(@NotNull Inventory inventory, @NotNull Player player, long goldAmount) {
+    public void render(@NotNull Inventory inventory, @NotNull PlayerGuiRenderContext context) {
         fill(inventory);
-        inventory.setItem(BACK_SLOT, io.github.maaasu.astralRecord.shared.gui.GuiItems.closeButton());
-        inventory.setItem(STATUS_SLOT, createItem(
-            Material.PLAYER_HEAD,
-            Component.text("プレイヤー情報", NamedTextColor.GOLD),
-            List.of(Component.text("プロフィールとステータスを確認", NamedTextColor.GRAY))
+        inventory.setItem(BACK_SLOT, GuiItems.closeButton());
+        inventory.setItem(STATUS_SLOT, MenuIconFactory.create(MenuIconDefinition.ACCOUNT_INFO));
+        inventory.setItem(PLAYER_SETTING_SLOT, MenuIconFactory.create(MenuIconDefinition.PLAYER_SETTING));
+        inventory.setItem(EQUIPMENT_GUI_SLOT, MenuIconFactory.create(
+            MenuIconDefinition.EQUIPMENT,
+            MenuIconFactory.equipmentDetails(context)
         ));
-        inventory.setItem(PLAYER_SETTING_SLOT, createItem(
-            Material.COMPARATOR,
-            Component.text("プレイヤー設定", NamedTextColor.AQUA),
-            List.of(Component.text("表示設定を変更", NamedTextColor.GRAY))
+        inventory.setItem(TRASH_SLOT, MenuIconFactory.create(MenuIconDefinition.TRASH));
+        inventory.setItem(GUIDE_SLOT, MenuIconFactory.create(MenuIconDefinition.GUIDE));
+        inventory.setItem(RETURN_TO_BASE_SLOT, MenuIconFactory.create(
+            MenuIconDefinition.RETURN_TO_BASE,
+            MenuIconFactory.returnToBaseDetails(context)
         ));
-        inventory.setItem(EQUIPMENT_GUI_SLOT, createItem(
-            MenuIconDefinition.EQUIPMENT.getMaterial(),
-            Component.text(MenuIconDefinition.EQUIPMENT.getDisplayNameJa(), MenuIconDefinition.EQUIPMENT.getColor()),
-            createEquipmentLore(player)
+        inventory.setItem(ADVENTURE_RECORD_SLOT, MenuIconFactory.create(MenuIconDefinition.ADVENTURE_RECORD));
+        inventory.setItem(MAIL_SLOT, MenuIconFactory.create(MenuIconDefinition.MAIL));
+        inventory.setItem(SKILL_BIND_SLOT, MenuIconFactory.create(MenuIconDefinition.SKILL_BIND));
+        inventory.setItem(CURRENCY_SLOT, MenuIconFactory.create(
+            MenuIconDefinition.CURRENCY,
+            MenuIconFactory.currencyDetails(context)
         ));
-        inventory.setItem(TRASH_SLOT, createItem(
-            Material.LAVA_BUCKET,
-            Component.text("ゴミ箱", NamedTextColor.RED),
-            List.of(Component.text("アイテムを破棄する", NamedTextColor.GRAY))
-        ));
-        inventory.setItem(GUIDE_SLOT, createItem(
-            Material.BOOK,
-            Component.text("ガイド", NamedTextColor.LIGHT_PURPLE),
-            List.of(Component.text("ヘルプを開く", NamedTextColor.GRAY))
-        ));
-        inventory.setItem(RETURN_TO_BASE_SLOT, createItem(
-            MenuIconDefinition.RETURN_TO_BASE.getMaterial(),
-            Component.text(MenuIconDefinition.RETURN_TO_BASE.getDisplayNameJa(), MenuIconDefinition.RETURN_TO_BASE.getColor()),
-            createReturnToBaseLore(player)
-        ));
-        inventory.setItem(ADVENTURE_RECORD_SLOT, createItem(
-            Material.WRITTEN_BOOK,
-            Component.text("冒険記録", NamedTextColor.GOLD),
-            List.of(Component.text("魔物録・厄災録・モブ検索を開く", NamedTextColor.GRAY))
-        ));
-        inventory.setItem(MAIL_SLOT, createItem(
-            Material.WRITABLE_BOOK,
-            Component.text("メール", NamedTextColor.GOLD),
-            List.of(Component.text("お知らせと報酬を確認", NamedTextColor.GRAY))
-        ));
-        inventory.setItem(SKILL_BIND_SLOT, createItem(
-            Material.ENCHANTED_BOOK,
-            Component.text("スキル設定", NamedTextColor.AQUA),
-            List.of(Component.text("スキルプリセットを設定", NamedTextColor.GRAY))
-        ));
-        inventory.setItem(CURRENCY_SLOT, createItem(
-            MenuIconDefinition.CURRENCY.getMaterial(),
-            Component.text(MenuIconDefinition.CURRENCY.getDisplayNameJa(), MenuIconDefinition.CURRENCY.getColor()),
-            List.of(
-                Component.text("所持通貨を確認", NamedTextColor.GRAY),
-                Component.text("ゴールド " + goldAmount, NamedTextColor.YELLOW)
-            )
-        ));
-        inventory.setItem(PARTY_SLOT, createItem(
-            Material.PLAYER_HEAD,
-            Component.text("パーティー", NamedTextColor.AQUA),
-            List.of(Component.text("作成・招待・参加状況を確認", NamedTextColor.GRAY))
-        ));
-        inventory.setItem(PLAYER_INFO_SLOT, createItem(
-            Material.SPYGLASS,
-            Component.text("プレイヤー一覧", NamedTextColor.YELLOW),
-            List.of(Component.text("参加中プレイヤーの基本情報を確認", NamedTextColor.GRAY))
-        ));
-    }
-
-    private @NotNull List<Component> createEquipmentLore(@NotNull Player player) {
-        PlayerInventory inventory = player.getInventory();
-        List<Component> lore = new ArrayList<>();
-        lore.add(Component.text("現在装備中の防具", NamedTextColor.GRAY));
-        lore.add(equipmentLine("頭", inventory.getHelmet()));
-        lore.add(equipmentLine("胴", inventory.getChestplate()));
-        lore.add(equipmentLine("脚", inventory.getLeggings()));
-        lore.add(equipmentLine("足", inventory.getBoots()));
-        return lore;
-    }
-
-    private @NotNull List<Component> createReturnToBaseLore(@NotNull Player player) {
-        int level = 1;
-        var astPlayer = AstPlayerCache.get(player);
-        if (astPlayer != null) {
-            level = Math.max(1, astPlayer.getAccount().getLevel());
-        }
-        long cost = ReturnToBaseService.calculateGoldCost(level);
-        return List.of(
-            Component.text("3秒間移動しなければ拠点へ帰還", NamedTextColor.GRAY),
-            Component.text("必要ゴールド " + cost + " (100 x Lv." + level + ")", NamedTextColor.YELLOW)
-        );
-    }
-
-    private @NotNull Component equipmentLine(@NotNull String label, @Nullable ItemStack itemStack) {
-        return Component.text(label + ": ", NamedTextColor.GRAY)
-            .append(itemName(itemStack));
-    }
-
-    private @NotNull Component itemName(@Nullable ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType() == Material.AIR) {
-            return Component.text("なし", NamedTextColor.DARK_GRAY);
-        }
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null && meta.hasDisplayName() && meta.displayName() != null) {
-            return meta.displayName();
-        }
-        return Component.text(itemStack.getType().name(), NamedTextColor.WHITE);
+        inventory.setItem(PARTY_SLOT, MenuIconFactory.create(MenuIconDefinition.PARTY));
+        inventory.setItem(PLAYER_INFO_SLOT, MenuIconFactory.create(MenuIconDefinition.PLAYER_LIST));
     }
 }

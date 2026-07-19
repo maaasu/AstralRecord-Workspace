@@ -1,21 +1,18 @@
 package io.github.maaasu.astralRecord.feature.menu.view;
 
-import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
-import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuIconDefinition;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutAction;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;
+import io.github.maaasu.astralRecord.feature.menu.model.PlayerGuiRenderContext;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -39,11 +36,7 @@ final class CraftShortcutView {
     }
 
     @NotNull ItemStack createCraftResultIcon() {
-        ItemStack itemStack = createItem(
-            Material.KNOWLEDGE_BOOK,
-            Component.text("メニュー", NamedTextColor.GREEN),
-            List.of(Component.text("クリックしてメニューを開く", NamedTextColor.GRAY))
-        );
+        ItemStack itemStack = MenuIconFactory.create(MenuIconDefinition.MAIN_MENU);
         markCraftShortcutIcon(itemStack, -1, MenuShortcutAction.MAIN_MENU);
         return itemStack;
     }
@@ -51,12 +44,7 @@ final class CraftShortcutView {
     void renderCraftShortcuts(
         @NotNull Player player,
         @NotNull MenuShortcutSettings settings,
-        @Nullable InventoryType selectedType,
-        @Nullable StatusSnapshot snapshot,
-        @NotNull AccountModel selectedAccount,
-        int classPoints,
-        int passivePoints,
-        @NotNull List<AccountModel> accounts
+        @NotNull PlayerGuiRenderContext context
     ) {
         if (!(player.getOpenInventory().getTopInventory() instanceof CraftingInventory inventory)) {
             return;
@@ -71,13 +59,9 @@ final class CraftShortcutView {
         for (int slot = 0; slot < MenuShortcutSettings.SLOT_COUNT; slot++) {
             MenuShortcutAction action = settings.getAction(slot);
             newMatrix[slot] = createCraftShortcutIcon(
-                player,
                 slot,
                 action,
-                snapshot,
-                selectedAccount,
-                classPoints,
-                passivePoints
+                context
             );
             ItemStack existing = slot < currentMatrix.length ? currentMatrix[slot] : null;
             if (!isSameDisplayItem(existing, newMatrix[slot])) {
@@ -140,42 +124,40 @@ final class CraftShortcutView {
     }
 
     private @NotNull ItemStack createCraftShortcutIcon(
-        @NotNull Player player,
         int shortcutSlotIndex,
         @NotNull MenuShortcutAction action,
-        @Nullable StatusSnapshot snapshot,
-        @NotNull AccountModel selectedAccount,
-        int classPoints,
-        int passivePoints
+        @NotNull PlayerGuiRenderContext context
     ) {
         if (action == MenuShortcutAction.NONE) {
             return new ItemStack(Material.AIR);
         }
         if (action == MenuShortcutAction.STATUS) {
-            return createStatusShortcutIcon(shortcutSlotIndex, snapshot, selectedAccount, classPoints, passivePoints);
+            return createStatusShortcutIcon(shortcutSlotIndex, context);
         }
         if (action.isCurrencyAction()) {
-            return createCurrencyShortcutIcon(player, shortcutSlotIndex, action);
+            return createCurrencyShortcutIcon(shortcutSlotIndex, action, context);
         }
         if (action == MenuShortcutAction.EQUIPMENT_GUI) {
-            return createEquipmentShortcutIcon(player, shortcutSlotIndex, action);
+            return createEquipmentShortcutIcon(shortcutSlotIndex, action, context);
         }
-        ItemStack itemStack = createItem(
-            action.getMaterial(),
-            Component.text(action.getDisplayNameJa(), action.getColor()),
-            List.of(Component.text("クリックして実行", NamedTextColor.GRAY))
-        );
+        List<Component> lore = new ArrayList<>();
+        if (action == MenuShortcutAction.RETURN_TO_BASE) {
+            lore.addAll(MenuIconFactory.returnToBaseDetails(context));
+        }
+        lore.add(action == MenuShortcutAction.MAIN_MENU
+            ? MenuIconFactory.openHint()
+            : MenuIconFactory.executeHint());
+        ItemStack itemStack = MenuIconFactory.create(action.getIconDefinition(), lore);
         markCraftShortcutIcon(itemStack, shortcutSlotIndex, action);
         return itemStack;
     }
 
     private @NotNull ItemStack createStatusShortcutIcon(
         int shortcutSlotIndex,
-        @Nullable StatusSnapshot snapshot,
-        @NotNull AccountModel selectedAccount,
-        int classPoints,
-        int passivePoints
+        @NotNull PlayerGuiRenderContext context
     ) {
+        var selectedAccount = context.account();
+        StatusSnapshot snapshot = context.statusSnapshot();
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text("選択中のアカウント", NamedTextColor.DARK_GRAY));
         lore.add(Component.text(selectedAccount.getAccountName(), NamedTextColor.GOLD)
@@ -189,11 +171,11 @@ final class CraftShortcutView {
         lore.add(Component.text("累計経験値: ", NamedTextColor.GRAY)
             .append(Component.text(String.valueOf(selectedAccount.getTotalExperience()), NamedTextColor.GREEN)));
         lore.add(Component.text("CP: ", NamedTextColor.GRAY)
-            .append(Component.text(String.valueOf(classPoints), NamedTextColor.AQUA))
+            .append(Component.text(String.valueOf(context.availableClassPoints()), NamedTextColor.AQUA))
             .append(Component.text(" / PP: ", NamedTextColor.GRAY))
-            .append(Component.text(String.valueOf(passivePoints), NamedTextColor.AQUA)));
+            .append(Component.text(String.valueOf(context.availablePassivePoints()), NamedTextColor.AQUA)));
         lore.add(Component.text("━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
-        if (snapshot != null && !snapshot.getValues().isEmpty()) {
+        if (!snapshot.getValues().isEmpty()) {
             for (StatusType statusType : StatusType.values()) {
                 addStatusLine(lore, snapshot, statusType);
             }
@@ -201,71 +183,34 @@ final class CraftShortcutView {
             lore.add(Component.text("ステータス未取得", NamedTextColor.DARK_GRAY));
         }
         lore.add(Component.text("━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
-        lore.add(Component.text("クリックして開く", NamedTextColor.YELLOW));
-        ItemStack itemStack = createItem(
-            MenuIconDefinition.ACCOUNT_INFO.getMaterial(),
-            Component.text(MenuIconDefinition.ACCOUNT_INFO.getDisplayNameJa(), MenuIconDefinition.ACCOUNT_INFO.getColor()),
-            lore
-        );
-        applySelectionGlow(itemStack);
+        lore.add(MenuIconFactory.openHint());
+        ItemStack itemStack = MenuIconFactory.create(MenuIconDefinition.ACCOUNT_INFO, lore);
         markCraftShortcutIcon(itemStack, shortcutSlotIndex, MenuShortcutAction.STATUS);
         return itemStack;
     }
 
     private @NotNull ItemStack createCurrencyShortcutIcon(
-        @NotNull Player player,
         int shortcutSlotIndex,
-        @NotNull MenuShortcutAction action
+        @NotNull MenuShortcutAction action,
+        @NotNull PlayerGuiRenderContext context
     ) {
-        long gold = io.github.maaasu.astralRecord.AstralRecord.getInstance().getCurrencyService().getGoldAmount(player);
-        ItemStack itemStack = createItem(
-            action.getMaterial(),
-            Component.text(action.getDisplayNameJa(), action.getColor()),
-            List.of(
-                Component.text("クリックして開く", NamedTextColor.YELLOW),
-                Component.text("ゴールド: " + gold, NamedTextColor.GOLD)
-            )
-        );
+        List<Component> lore = new ArrayList<>(MenuIconFactory.currencyDetails(context));
+        lore.add(MenuIconFactory.openHint());
+        ItemStack itemStack = MenuIconFactory.create(action.getIconDefinition(), lore);
         markCraftShortcutIcon(itemStack, shortcutSlotIndex, action);
         return itemStack;
     }
 
     private @NotNull ItemStack createEquipmentShortcutIcon(
-        @NotNull Player player,
         int shortcutSlotIndex,
-        @NotNull MenuShortcutAction action
+        @NotNull MenuShortcutAction action,
+        @NotNull PlayerGuiRenderContext context
     ) {
-        PlayerInventory inventory = player.getInventory();
-        List<Component> lore = new ArrayList<>();
-        lore.add(Component.text("現在装備中の防具", NamedTextColor.GRAY));
-        lore.add(equipmentLine("頭", inventory.getHelmet()));
-        lore.add(equipmentLine("胴", inventory.getChestplate()));
-        lore.add(equipmentLine("脚", inventory.getLeggings()));
-        lore.add(equipmentLine("足", inventory.getBoots()));
-        lore.add(Component.text("クリックして開く", NamedTextColor.YELLOW));
-        ItemStack itemStack = createItem(
-            action.getMaterial(),
-            Component.text(action.getDisplayNameJa(), action.getColor()),
-            lore
-        );
+        List<Component> lore = new ArrayList<>(MenuIconFactory.equipmentDetails(context));
+        lore.add(MenuIconFactory.openHint());
+        ItemStack itemStack = MenuIconFactory.create(action.getIconDefinition(), lore);
         markCraftShortcutIcon(itemStack, shortcutSlotIndex, action);
         return itemStack;
-    }
-
-    private @NotNull Component equipmentLine(@NotNull String label, @Nullable ItemStack itemStack) {
-        return Component.text(label + ": ", NamedTextColor.GRAY)
-            .append(itemName(itemStack));
-    }
-
-    private @NotNull Component itemName(@Nullable ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType() == Material.AIR) {
-            return Component.text("なし", NamedTextColor.DARK_GRAY);
-        }
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null && meta.hasDisplayName() && meta.displayName() != null) {
-            return meta.displayName();
-        }
-        return Component.text(itemStack.getType().name(), NamedTextColor.WHITE);
     }
 
     private void addStatusLine(
@@ -286,15 +231,6 @@ final class CraftShortcutView {
         if (meta != null) {
             meta.getPersistentDataContainer().set(craftShortcutKey, PersistentDataType.INTEGER, shortcutSlotIndex);
             meta.getPersistentDataContainer().set(craftActionKey, PersistentDataType.STRING, action.getCode());
-            itemStack.setItemMeta(meta);
-        }
-    }
-
-    private void applySelectionGlow(@NotNull ItemStack itemStack) {
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.addEnchant(Enchantment.UNBREAKING, 1, true);
-            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
             itemStack.setItemMeta(meta);
         }
     }
@@ -334,19 +270,4 @@ final class CraftShortcutView {
         return current.getAmount() == next.getAmount() && current.isSimilar(next);
     }
 
-    private @NotNull ItemStack createItem(
-        @NotNull Material material,
-        @NotNull Component name,
-        @NotNull List<Component> lore
-    ) {
-        ItemStack itemStack = new ItemStack(material);
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(name);
-            meta.lore(lore);
-            meta.addItemFlags(ItemFlag.values());
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
-    }
 }

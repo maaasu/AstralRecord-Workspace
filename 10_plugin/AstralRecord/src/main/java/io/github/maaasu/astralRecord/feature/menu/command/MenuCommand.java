@@ -25,10 +25,11 @@ public final class MenuCommand extends AstCommand {
         if (!requireGameplayMode(player)) {
             return;
         }
-        MenuView menuView = AstralRecord.getInstance().getMenuView();
+        AstralRecord plugin = AstralRecord.getInstance();
+        MenuView menuView = plugin.getMenuView();
         if (args.length == 0) {
             GuiSound.OPEN.play(player.getBukkit());
-            menuView.open(player.getBukkit());
+            menuView.open(player, plugin.getPlayerGuiRenderContextFactory().create(player));
             return;
         }
         if (args[0].equalsIgnoreCase("status")) {

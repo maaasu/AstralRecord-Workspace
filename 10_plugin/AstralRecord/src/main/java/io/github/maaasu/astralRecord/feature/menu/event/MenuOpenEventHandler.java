@@ -3,9 +3,7 @@ package io.github.maaasu.astralRecord.feature.menu.event;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
-import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
-import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemTransferSupport;
@@ -14,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutAction;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;
 import io.github.maaasu.astralRecord.feature.menu.player.PlayerBrowserGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
+import io.github.maaasu.astralRecord.feature.menu.service.PlayerGuiRenderContextFactory;
 import io.github.maaasu.astralRecord.feature.menu.service.TrashService;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
@@ -25,7 +24,6 @@ import io.github.maaasu.astralRecord.feature.playersetting.gui.PlayerSettingGui;
 import io.github.maaasu.astralRecord.feature.sell.service.SellService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.storage.service.StorageService;
-import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeGui;
 import io.github.maaasu.astralRecord.feature.world.service.ReturnToBaseService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -63,21 +61,19 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MenuOpenEventHandler extends AbstractEventHandler {
     private static final long BUFF_GUI_REFRESH_INTERVAL_TICKS = 20L;
     private static final long CRAFT_SHORTCUT_DROP_CLEANUP_INTERVAL_TICKS = 20L * 60L;
-    private static final long ACCOUNTS_CACHE_TTL_MILLIS = 5_000L;
 
     private final AstralRecord plugin;
     private final MenuView menuView;
     private final InventoryService inventoryService;
     private final CurrencyService currencyService;
     private final StatusService statusService;
+    private final PlayerGuiRenderContextFactory playerGuiRenderContextFactory;
     private final MenuGuiTransitionService menuGuiTransitionService;
     private final TrashService trashService;
     private final SellService sellService;
     private final StorageService storageService;
-    private final SkillTreeService skillTreeService;
     private final ReturnToBaseService returnToBaseService;
     private final Set<UUID> craftRenderSuppressed = ConcurrentHashMap.newKeySet();
-    private final ConcurrentHashMap<UUID, CachedAccounts> cachedAccountsByUserId = new ConcurrentHashMap<>();
     private final BukkitTask buffGuiRefreshTask;
     private final BukkitTask craftShortcutDropCleanupTask;
 
@@ -89,6 +85,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
      * @param inventoryService インベントリサービス
      * @param currencyService 通貨サービス
      * @param statusService ステータスサービス
+     * @param playerGuiRenderContextFactory GUI 描画コンテキスト生成ファクトリ
      * @param menuGuiTransitionService GUI 切替サービス
      * @param trashService ゴミ箱 GUI サービス
      * @param sellService 売却 GUI サービス
@@ -101,11 +98,11 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         @NotNull InventoryService inventoryService,
         @NotNull CurrencyService currencyService,
         @NotNull StatusService statusService,
+        @NotNull PlayerGuiRenderContextFactory playerGuiRenderContextFactory,
         @NotNull MenuGuiTransitionService menuGuiTransitionService,
         @NotNull TrashService trashService,
         @NotNull SellService sellService,
         @NotNull StorageService storageService,
-        @NotNull SkillTreeService skillTreeService,
         @NotNull ReturnToBaseService returnToBaseService
     ) {
         this.plugin = plugin;
@@ -113,11 +110,11 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         this.inventoryService = inventoryService;
         this.currencyService = currencyService;
         this.statusService = statusService;
+        this.playerGuiRenderContextFactory = playerGuiRenderContextFactory;
         this.menuGuiTransitionService = menuGuiTransitionService;
         this.trashService = trashService;
         this.sellService = sellService;
         this.storageService = storageService;
-        this.skillTreeService = skillTreeService;
         this.returnToBaseService = returnToBaseService;
         this.buffGuiRefreshTask = plugin.getServer().getScheduler().runTaskTimer(
             plugin,
@@ -816,8 +813,17 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         suppressCraftRendering(player);
         menuView.clearCraftShortcuts(player);
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            switchGuiWithoutInventoryReload(player, () -> menuView.open(player));
-            resumeCraftRendering(player);
+            try {
+                AstPlayer astPlayer = AstPlayerCache.get(player);
+                if (astPlayer == null) {
+                    GuiSound.DENY.play(player);
+                    return;
+                }
+                var context = playerGuiRenderContextFactory.create(astPlayer);
+                switchGuiWithoutInventoryReload(player, () -> menuView.open(astPlayer, context));
+            } finally {
+                resumeCraftRendering(player);
+            }
         });
     }
 
@@ -868,22 +874,11 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
         craftRenderSuppressed.add(playerId);
         try {
-            InventoryType displayedType = astPlayer.getAccount().getMode().shouldReflectInventoryToGui()
-                ? inventoryService.getDisplayedInventoryType(astPlayer.getAccount().getUuid())
-                : null;
-            var snapshot = statusService.getStatus(astPlayer);
-            int classPoints = skillTreeService.availableClassPoints(astPlayer);
-            int passivePoints = skillTreeService.availablePassivePoints(astPlayer);
-            List<AccountModel> accounts = getCachedAccounts(astPlayer.getUser().getUuid());
+            var context = playerGuiRenderContextFactory.create(astPlayer);
             menuView.renderCraftShortcuts(
-                player,
+                astPlayer,
                 MenuShortcutSettings.defaults(),
-                displayedType,
-                snapshot,
-                astPlayer.getAccount(),
-                classPoints,
-                passivePoints,
-                accounts
+                context
             );
         } finally {
             craftRenderSuppressed.remove(playerId);
@@ -927,17 +922,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         }
     }
 
-    private @NotNull List<AccountModel> getCachedAccounts(@NotNull UUID userId) {
-        long now = System.currentTimeMillis();
-        CachedAccounts cached = cachedAccountsByUserId.get(userId);
-        if (cached != null && now - cached.loadedAtMillis() <= ACCOUNTS_CACHE_TTL_MILLIS) {
-            return cached.accounts();
-        }
-        List<AccountModel> accounts = plugin.getAccountService().getAccounts(userId);
-        cachedAccountsByUserId.put(userId, new CachedAccounts(accounts, now));
-        return accounts;
-    }
-
     private boolean isCraftMenuClick(@NotNull InventoryClickEvent event) {
         return event.getView().getType() == org.bukkit.event.inventory.InventoryType.CRAFTING
             && event.getRawSlot() >= MenuView.CRAFT_RESULT_RAW_SLOT
@@ -976,6 +960,4 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         MenuGuiTransitionService.suppressNextCloseSound(player);
     }
 
-    private record CachedAccounts(@NotNull List<AccountModel> accounts, long loadedAtMillis) {
-    }
 }

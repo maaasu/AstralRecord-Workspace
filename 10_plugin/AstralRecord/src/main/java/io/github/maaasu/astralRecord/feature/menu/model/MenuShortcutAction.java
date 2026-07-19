@@ -1,7 +1,5 @@
 package io.github.maaasu.astralRecord.feature.menu.model;
 
-import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -9,30 +7,24 @@ import org.jetbrains.annotations.Nullable;
  * Craft slot actions shown in the player's crafting grid.
  */
 public enum MenuShortcutAction {
-    NONE("NONE", "未設定", Material.GRAY_DYE, NamedTextColor.GRAY, false),
-    MAIN_MENU("MAIN_MENU", "メニュー", Material.NETHER_STAR, NamedTextColor.AQUA, false),
-    STATUS("STATUS", "プレイヤー情報", Material.PLAYER_HEAD, NamedTextColor.GREEN, false),
-    RETURN_TO_BASE("RETURN_TO_BASE", MenuIconDefinition.RETURN_TO_BASE.getDisplayNameJa(), MenuIconDefinition.RETURN_TO_BASE.getMaterial(), MenuIconDefinition.RETURN_TO_BASE.getColor(), false),
-    INVENTORY_CURRENCY("INVENTORY_CURRENCY", MenuIconDefinition.CURRENCY.getDisplayNameJa(), MenuIconDefinition.CURRENCY.getMaterial(), MenuIconDefinition.CURRENCY.getColor(), true),
-    EQUIPMENT_GUI("EQUIPMENT_GUI", MenuIconDefinition.EQUIPMENT.getDisplayNameJa(), MenuIconDefinition.EQUIPMENT.getMaterial(), MenuIconDefinition.EQUIPMENT.getColor(), false);
+    NONE("NONE", MenuIconDefinition.UNSET, false),
+    MAIN_MENU("MAIN_MENU", MenuIconDefinition.MAIN_MENU, false),
+    STATUS("STATUS", MenuIconDefinition.ACCOUNT_INFO, false),
+    RETURN_TO_BASE("RETURN_TO_BASE", MenuIconDefinition.RETURN_TO_BASE, false),
+    INVENTORY_CURRENCY("INVENTORY_CURRENCY", MenuIconDefinition.CURRENCY, true),
+    EQUIPMENT_GUI("EQUIPMENT_GUI", MenuIconDefinition.EQUIPMENT, false);
 
     private final String code;
-    private final String displayNameJa;
-    private final Material material;
-    private final NamedTextColor color;
+    private final MenuIconDefinition iconDefinition;
     private final boolean currencyAction;
 
     MenuShortcutAction(
         @NotNull String code,
-        @NotNull String displayNameJa,
-        @NotNull Material material,
-        @NotNull NamedTextColor color,
+        @NotNull MenuIconDefinition iconDefinition,
         boolean currencyAction
     ) {
         this.code = code;
-        this.displayNameJa = displayNameJa;
-        this.material = material;
-        this.color = color;
+        this.iconDefinition = iconDefinition;
         this.currencyAction = currencyAction;
     }
 
@@ -40,16 +32,8 @@ public enum MenuShortcutAction {
         return code;
     }
 
-    public @NotNull String getDisplayNameJa() {
-        return displayNameJa;
-    }
-
-    public @NotNull Material getMaterial() {
-        return material;
-    }
-
-    public @NotNull NamedTextColor getColor() {
-        return color;
+    public @NotNull MenuIconDefinition getIconDefinition() {
+        return iconDefinition;
     }
 
     public boolean isCurrencyAction() {

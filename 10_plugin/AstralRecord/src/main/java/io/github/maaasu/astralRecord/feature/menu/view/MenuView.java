@@ -2,16 +2,15 @@ package io.github.maaasu.astralRecord.feature.menu.view;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.currency.view.CurrencyGuiView;
-import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideEntry;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
 import io.github.maaasu.astralRecord.feature.inventory.model.AccessorySlotType;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
-import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;
+import io.github.maaasu.astralRecord.feature.menu.model.PlayerGuiRenderContext;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BuffScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.ClassScreenView;
@@ -27,7 +26,6 @@ import io.github.maaasu.astralRecord.feature.sell.view.SellScreenView;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewEntry;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewOptions;
 import io.github.maaasu.astralRecord.feature.storage.view.StorageScreenView;
-import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -119,11 +117,9 @@ public class MenuView {
     private final SellConfirmScreenView sellConfirmScreenView;
     private final StorageScreenView storageScreenView;
     private final CraftShortcutView craftShortcutView;
-    private final AstralRecord plugin;
     private final GuideService guideService;
 
     public MenuView(@NotNull AstralRecord plugin, @NotNull GuideService guideService) {
-        this.plugin = plugin;
         this.guideService = guideService;
         NamespacedKey craftShortcutKey = new NamespacedKey(plugin, "menu_shortcut_slot");
         NamespacedKey craftActionKey = new NamespacedKey(plugin, "menu_shortcut_action");
@@ -148,10 +144,16 @@ public class MenuView {
         this.craftShortcutView = new CraftShortcutView(craftShortcutKey, craftActionKey);
     }
 
-    public void open(@NotNull Player player) {
+    /**
+     * 指定プレイヤーのメインメニューを、取得済みの同一描画コンテキストで開きます。
+     *
+     * @param astPlayer 表示対象プレイヤー
+     * @param context GUI 描画コンテキスト
+     */
+    public void open(@NotNull AstPlayer astPlayer, @NotNull PlayerGuiRenderContext context) {
         Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.MAIN), SIZE, MAIN_TITLE);
-        mainMenuScreenView.render(inventory, player, plugin.getCurrencyService().getGoldAmount(player));
-        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
+        mainMenuScreenView.render(inventory, context);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(astPlayer.getBukkit(), inventory);
     }
 
     public void openEquipmentGui(@NotNull Player player) {
@@ -324,24 +326,14 @@ public class MenuView {
     }
 
     public void renderCraftShortcuts(
-        @NotNull Player player,
+        @NotNull AstPlayer astPlayer,
         @NotNull MenuShortcutSettings settings,
-        @Nullable InventoryType selectedType,
-        @Nullable StatusSnapshot snapshot,
-        @NotNull AccountModel selectedAccount,
-        int classPoints,
-        int passivePoints,
-        @NotNull List<AccountModel> accounts
+        @NotNull PlayerGuiRenderContext context
     ) {
         craftShortcutView.renderCraftShortcuts(
-            player,
+            astPlayer.getBukkit(),
             settings,
-            selectedType,
-            snapshot,
-            selectedAccount,
-            classPoints,
-            passivePoints,
-            accounts
+            context
         );
     }
 

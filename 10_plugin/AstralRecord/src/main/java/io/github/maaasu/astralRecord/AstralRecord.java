@@ -78,6 +78,7 @@ import io.github.maaasu.astralRecord.feature.mail.repository.MailRepository;
 import io.github.maaasu.astralRecord.feature.mail.service.MailService;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
+import io.github.maaasu.astralRecord.feature.menu.service.PlayerGuiRenderContextFactory;
 import io.github.maaasu.astralRecord.feature.menu.service.TrashService;
 import io.github.maaasu.astralRecord.feature.menu.player.PlayerBrowserGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.player.PlayerDetailGui;
@@ -244,6 +245,7 @@ public final class AstralRecord extends JavaPlugin {
     private ResourcePackService resourcePackService;
     private GuideService guideService;
     private GuideReminderTask guideReminderTask;
+    private PlayerGuiRenderContextFactory playerGuiRenderContextFactory;
     private MenuView menuView;
     private MenuOpenEventHandler menuOpenEventHandler;
     private MenuGuiTransitionService menuGuiTransitionService;
@@ -777,6 +779,11 @@ public final class AstralRecord extends JavaPlugin {
 
         // menu
         guiNavigationService = new GuiNavigationService(this);
+        playerGuiRenderContextFactory = new PlayerGuiRenderContextFactory(
+            currencyService,
+            statusService,
+            skillTreeService
+        );
         menuView = new MenuView(this, guideService);
         menuGuiTransitionService =
             new MenuGuiTransitionService(this, menuView, inventoryService);
@@ -1005,11 +1012,11 @@ public final class AstralRecord extends JavaPlugin {
             inventoryService,
             currencyService,
             statusService,
+            playerGuiRenderContextFactory,
             menuGuiTransitionService,
             trashService,
             sellService,
             storageService,
-            skillTreeService,
             returnToBaseService
         );
         eventManager.registerHandler(menuOpenEventHandler, getServer().getPluginManager());
@@ -1283,6 +1290,15 @@ public final class AstralRecord extends JavaPlugin {
      */
     public MenuView getMenuView() {
         return menuView;
+    }
+
+    /**
+     * プレイヤー依存 GUI の描画コンテキスト生成ファクトリを取得します。
+     *
+     * @return GUI 描画コンテキスト生成ファクトリ
+     */
+    public PlayerGuiRenderContextFactory getPlayerGuiRenderContextFactory() {
+        return playerGuiRenderContextFactory;
     }
 
     public MenuOpenEventHandler getMenuOpenEventHandler() {
