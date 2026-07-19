@@ -1,3 +1,4 @@
+# NOTE: 現在実装されているマスタデータはすべてデバッグ用の仮設定です。正式なゲームバランス・報酬・入手設計として扱わないでください。
 schemaVersion: 1
 id: starter_pickaxe
 category: equipment
