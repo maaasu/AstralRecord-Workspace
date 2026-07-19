@@ -63,6 +63,12 @@ If the request is ambiguous, infer the mode from the wording:
      - `python E:\AstralRecord-Workspace\.codex\skills\astralrecord-git-worktree-develop\scripts\staged_mojibake_check.py <worktree-root>`
    - Commit the implementation diff with a Japanese summary that follows `COMMIT_RULES.md`.
    - Rebase the task branch onto local `develop`.
+   - If the rebased branch changes `40_filebase` YAML, run post-rebase filebase validation before merge:
+     - Parse every changed YAML again with the applicable schema or the repository's available YAML validation command.
+     - Scan all `40_filebase/**/*.yml` on the rebased tree for duplicate master IDs, including duplicates introduced in different files that Git would not report as conflicts.
+     - Resolve every reference introduced or changed by the task against the rebased tree, including item, skill, buff, mob, loot, shop, spawner, and world references applicable to the changed categories.
+     - Re-read the changed YAML against `00_docs/50_Filebase設計書/作成時チェックリスト.md` and the relevant category schema.
+     - Stop and retain the branch/worktree if validation fails or if a duplicate/reference result cannot be resolved safely. Do not merge first and repair later.
    - After the rebase, determine whether the branch materially changes the plugin deliverable:
      - Plugin source under `10_plugin/AstralRecord/src/`
      - Plugin resources such as `plugin.yml`, `config.yml`, message resources, logger resources
@@ -94,6 +100,7 @@ Stop before mutating git state if:
 - The selected files mix unrelated work that cannot be separated safely.
 - The commit would be empty.
 - Rebase or merge produces conflicts.
+- Post-rebase filebase validation finds duplicate IDs, unresolved changed references, invalid YAML/schema content, or an ambiguous result.
 - A plugin version update is required but cannot be completed cleanly after the rebase.
 
 ## Worktree Conventions
@@ -186,6 +193,11 @@ Write the result in Japanese.
 
 ## Commit結果
 - `<commit-hash>`: <要点> / 未実施
+
+## Filebase再検証結果
+- 対象: なし / <変更 category・path>
+- YAML・schema: 成功 / 失敗 / 未実施
+- 全体 ID 重複・変更参照: 成功 / 失敗 / 未実施
 
 ## バージョン更新結果
 - 実施: はい / いいえ

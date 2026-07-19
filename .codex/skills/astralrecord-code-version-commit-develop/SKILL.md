@@ -21,6 +21,17 @@ Do not redefine implementation, plugin versioning, or git workflow rules in this
 8. If the user also wants accumulated merged `codex/*` residues cleaned after finalize, delegate that last step to `$astralrecord-prune-codex-worktrees` instead of extending `$astralrecord-git-worktree-develop` beyond the current task.
 9. Use `E:\AstralRecord-Workspace\.codex\skills\astralrecord-git-worktree-develop\references\worktree-management.md` for worktree management content. Ensure the management snapshot is refreshed whenever this integrated flow leaves a worktree for later finalize.
 
+## Parallel Filebase Flow
+
+For parallel `40_filebase` creation, this integrated skill handles one coherent package per invocation.
+
+1. Group related masters into an independently verifiable area / combat / economy package instead of creating one worktree per YAML file.
+2. Before Prepare, define the package name, owned paths, reserved IDs or ID prefixes, shared-file owner, dependencies, and intended finalize order.
+3. Create one task branch and dedicated worktree for that package. Branches without separate worktrees do not isolate parallel writers in the same workspace.
+4. Stop after implementation, preserve the package worktree, and report its ownership information for later finalize.
+5. Finalize packages one at a time in dependency order. Each finalize must rebase onto the current local `develop` and complete the post-rebase filebase validation required by `$astralrecord-git-worktree-develop` before merge.
+6. If worktrees are intentionally avoided, parallel tasks may only produce read-only YAML proposals and ID/reference manifests. A single integration task may then use `$astralrecord-master-data-create-direct` to apply and commit them serially on `develop`.
+
 ## Workflow
 
 1. Read `E:\AstralRecord-Workspace\AGENTS.md`.
@@ -28,15 +39,16 @@ Do not redefine implementation, plugin versioning, or git workflow rules in this
 3. Identify the target project and choose the worker skill:
    - `40_filebase` master creation -> `$astralrecord-master-data-author`
    - other implementation tasks -> `$astralrecord-code`
-4. Invoke `$astralrecord-git-worktree-develop` in Prepare mode and create a task branch / worktree for the request. The prepare step must refresh `E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md`.
-5. Map the requested absolute path from `E:\AstralRecord-Workspace\...` to the returned worktree root and invoke the selected worker skill there. Finish the requested implementation or master creation, including docs sync and verification required by that skill.
-6. Inspect the resulting changed files in the task worktree.
-7. Determine which execution style the user requested:
+4. For parallel `40_filebase` work, define and report the coherent package ownership fields from `Parallel Filebase Flow` before creating the worktree.
+5. Invoke `$astralrecord-git-worktree-develop` in Prepare mode and create a task branch / worktree for the request. The prepare step must refresh `E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md`.
+6. Map the requested absolute path from `E:\AstralRecord-Workspace\...` to the returned worktree root and invoke the selected worker skill there. Finish the requested implementation or master creation, including docs sync and verification required by that skill.
+7. Inspect the resulting changed files in the task worktree.
+8. Determine which execution style the user requested:
    - Serial single-task flow: immediately invoke `$astralrecord-git-worktree-develop` in Finalize mode.
    - Parallel flow or delayed merge: refresh the management snapshot, stop here, and report the branch / worktree for later finalize.
-8. In either execution style, do not invoke `$astralrecord-plugin-version` from this skill before the rebase. If plugin files changed, `$astralrecord-git-worktree-develop` will decide and run the version step during finalize.
-9. If Prepare mode cannot create the worktree, or Finalize mode stops because of dirty `develop`, branch collision, or rebase / merge conflicts, stop there and report that condition instead of inventing a different flow. Refresh the management snapshot when a branch/worktree remains.
-10. If finalize succeeds and the user requested broader cleanup of old merged task branches/worktrees, run `$astralrecord-prune-codex-worktrees` as the final optional maintenance step.
+9. In either execution style, do not invoke `$astralrecord-plugin-version` from this skill before the rebase. If plugin files changed, `$astralrecord-git-worktree-develop` will decide and run the version step during finalize.
+10. If Prepare mode cannot create the worktree, or Finalize mode stops because of dirty `develop`, branch collision, rebase / merge conflicts, or post-rebase filebase validation failure, stop there and report that condition instead of inventing a different flow. Refresh the management snapshot when a branch/worktree remains.
+11. If finalize succeeds and the user requested broader cleanup of old merged task branches/worktrees, run `$astralrecord-prune-codex-worktrees` as the final optional maintenance step.
 
 ## Version Update Decision
 
@@ -94,6 +106,7 @@ Write the final result in Japanese and merge all executed steps into one report.
 
 - `実装結果`: 実行した worker skill の要点
 - `Branch / Worktree`: 準備した branch 名と worktree パス
+- `並列所有情報`: filebase parallel package の owned paths、reserved IDs、dependencies、finalize order。単独作業なら不要
 - `バージョン更新結果`: finalize 実施時のみ要点。未実施なら理由を明記
 - `Git結果`: `$astralrecord-git-worktree-develop` の要点
 - `Worktree管理`: `E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md` の更新有無と残った確認項目

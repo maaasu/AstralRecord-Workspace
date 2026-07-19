@@ -22,6 +22,16 @@ Create production-oriented filebase master data from the design sources, not fro
 5. Read each target YAML schema before editing or adding a master file.
 6. Inspect nearby existing YAML files for local formatting, reference style, ID style, rarity naming, and value scale.
 
+## Parallel Package Rule
+
+When multiple workers create filebase masters in parallel, divide the work by the smallest coherent playable package, not by individual YAML files or by technical layers that depend on each other.
+
+- Give each package its own task branch and dedicated worktree. Never let parallel writers share a writable worktree, Git index, or checked-out branch.
+- Before editing, record the package name, owned paths, reserved IDs or ID prefixes, shared-file owner, dependencies on other packages, and intended finalize order.
+- Prefer independent area / combat / economy packages whose references can be validated inside one worktree. Avoid splitting a mob, its material, and its loot chain across workers unless the dependency and merge order are explicit.
+- Do not edit a shared registry, schema, design document, or common YAML from multiple packages. Assign one owner or defer that edit to a later integration task.
+- Treat duplicate IDs as a semantic conflict even when Git reports a clean merge. After rebasing onto the latest `develop`, re-scan all `40_filebase/**/*.yml` for duplicate master IDs and revalidate every reference introduced or changed by the package before merge.
+
 ## Workflow
 
 1. Classify the requested content by target group:
@@ -40,6 +50,7 @@ Create production-oriented filebase master data from the design sources, not fro
    - If a loot table references a new pool, create the pool first.
 6. Add the stable `motif` and relative `progression` design comments defined by the Filebase README, then derive values from the category role, progression, rarity, and acquisition difficulty.
 7. Re-read all changed YAML and `作成時チェックリスト.md` before reporting.
+8. For a parallel package, include the owned paths, reserved IDs, dependencies, shared-file decisions, and intended finalize order in the report so the later finalizer can revalidate them.
 
 ## Quality Bar
 
@@ -58,6 +69,11 @@ Write the result in Japanese.
 ```markdown
 ## 作成結果
 - <追加した playable loop / master group の概要>
+
+## 並列所有情報
+- package: <単独作業なら不要 / package 名>
+- owned paths / reserved IDs: <対象>
+- dependencies / finalize order: <なし / 内容>
 
 ## 追加・変更ファイル
 - `<path>`: <内容>

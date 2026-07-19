@@ -28,6 +28,14 @@
 
 1 回の依頼で worktree 作成から develop への merge まで進めたい場合は、統合入口として `$astralrecord-code-version-commit-develop` を使います。
 
+## Filebase マスタの並列・直接作成
+
+`$astralrecord-master-data-create-direct` は、小規模な `40_filebase` 変更を現在の `develop` へ直接 commit するための例外ルートです。このルートは直列・単一ライター専用とし、複数 task が同じ main workspace の作業ツリー、Git index、HEAD を共有して同時に編集・stage・commit してはいけません。
+
+複数 task が実際に YAML を並列編集する場合は、YAML 1 ファイルごとではなく、独立した area / combat / economy などの coherent package ごとに task branch / worktree を作ります。各 package では、所有 path、予約 ID または ID prefix、共通ファイル担当、他 package への依存を作業前に明示し、並列実装後は依存順に 1 件ずつ finalize します。finalize では最新 `develop` へ rebase した後、filebase 全体の ID 重複と変更マスタの参照解決を再検証してから merge します。
+
+worktree を増やさずに案出しだけを並列化する場合、並列 task は読み取り専用で YAML 案と ID 一覧を返し、1 つの統合 task だけが `$astralrecord-master-data-create-direct` を使って順次反映・commit します。
+
 ## 依頼文の書き方
 
 skill 名、作業内容、対象の絶対パスを指定します。
@@ -53,7 +61,7 @@ $<skill-name> を使って、<absolute-path> に対して <task> を行い、結
 | 複数の `codex/*` branch をまとめて監査・merge | `$astralrecord-merge-codex-branches-develop` | 既定は dry-run、監査後に worktree 管理ファイルを更新 |
 | merged 済み `codex/*` branch / task worktree を掃除 | `$astralrecord-prune-codex-worktrees` | 既定は dry-run、管理ファイル作成、未登録ディレクトリは手動確認 |
 | 本番向け filebase マスタ追加 | `$astralrecord-master-data-author` | コンセプト・ステータス・命名方針と YAML スキーマに沿って追加 |
-| 指定 filebase マスタの高速作成・直接 commit | `$astralrecord-master-data-create-direct` | develop で対象ファイルだけを作成・更新し、worktree を使わず commit |
+| 指定 filebase マスタの高速作成・直接 commit | `$astralrecord-master-data-create-direct` | 単一ライターで develop の対象ファイルだけを作成・更新し、worktree を使わず直列 commit |
 | プラグインのテスト・検証基盤整備 | `$astralrecord-plugin-test` | 機能仕様変更は `$astralrecord-code` を使う |
 | プラグイン版番号更新 | `$astralrecord-plugin-version` | finalize 直前の rebased worktree で使う |
 | player/logger プロパティの未使用削除 | `$astralrecord-unused-properties-prune` | 専用スクリプトの結果を根拠にする |
