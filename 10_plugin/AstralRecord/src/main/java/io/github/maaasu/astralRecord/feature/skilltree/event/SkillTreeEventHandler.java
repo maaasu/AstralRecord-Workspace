@@ -97,6 +97,9 @@ public class SkillTreeEventHandler extends AbstractEventHandler
         if (!service.isPlayerModeSkillTree(snapshot.player())) {
             return List.of();
         }
+        if (hit == null) {
+            return List.of();
+        }
         return List.of(new PlayerInputCandidate(
             "skill-tree-player-control",
             InteractionTier.EXCLUSIVE_CONTEXT,
