@@ -28,6 +28,7 @@ import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionRayTrace;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
@@ -52,7 +53,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
-import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -66,6 +66,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -80,7 +81,7 @@ public class SkillTreeService {
     public static final long RELOCK_GOLD_COST = 100L;
     private static final String ROOT_TAG = "root";
     private static final double TARGET_DISTANCE = 8.0D;
-    private static final double TARGET_RADIUS_SQ = 0.9D * 0.9D;
+    private static final double TARGET_RADIUS = 0.9D;
     private static final long SAVE_INTERVAL_TICKS = 20L;
     private static final long FEEDBACK_INTERVAL_TICKS = 5L;
     private static final long VISUAL_DELAY_MILLIS = 1_500L;
@@ -90,6 +91,27 @@ public class SkillTreeService {
     private static final int MAX_VIEW_DISTANCE = 96;
     private static final double DETAILED_LABEL_DISTANCE = 14.0D;
     private static final double COMPACT_LABEL_DISTANCE = 28.0D;
+
+    /**
+     * 視線上で命中したスキルツリー位置とhitbox入口距離です。
+     *
+     * @param position 命中したスキルツリー位置
+     * @param hitDistance プレイヤー視点からhitbox入口までの有限な非負距離
+     */
+    public record SkillTreePositionHit(@NotNull SkillTreePosition position, double hitDistance) {
+        /**
+         * 命中結果を生成し、距離契約を検証します。
+         *
+         * @throws NullPointerException スキルツリー位置がnullの場合
+         * @throws IllegalArgumentException 距離が非有限または負数の場合
+         */
+        public SkillTreePositionHit {
+            Objects.requireNonNull(position, "position");
+            if (!Double.isFinite(hitDistance) || hitDistance < 0.0D) {
+                throw new IllegalArgumentException("hitDistance must be finite and zero or greater");
+            }
+        }
+    }
 
     private final Plugin plugin;
     private final WorldService worldService;
@@ -1021,17 +1043,53 @@ public class SkillTreeService {
         return reachableUnlocked.containsAll(remainingUnlocked);
     }
 
+    /**
+     * プレイヤー視線上で最も入口距離が近いスキルツリー位置を返します。
+     *
+     * @param player 判定対象プレイヤー
+     * @return 命中したスキルツリー位置
+     */
     @NotNull
     public Optional<SkillTreePosition> findTargetedPosition(@NotNull Player player) {
+        return findTargetedPositionHit(player).map(SkillTreePositionHit::position);
+    }
+
+    /**
+     * プレイヤー視線上で最も入口距離が近いスキルツリー位置を返します。
+     * 候補解決だけを行い、ノード状態や表示状態を変更しません。
+     *
+     * @param player 判定対象プレイヤー
+     * @return 命中したスキルツリー位置と入口距離
+     */
+    @NotNull
+    public Optional<SkillTreePositionHit> findTargetedPositionHit(@NotNull Player player) {
         Location eye = player.getEyeLocation();
-        Vector origin = eye.toVector();
-        Vector direction = eye.getDirection().normalize();
-        return positionsById.values().stream()
-                .map(position -> Map.entry(position, position.toLocation()))
-                .filter(entry -> entry.getValue() != null && entry.getValue().getWorld() == player.getWorld())
-                .filter(entry -> isTargeted(origin, direction, entry.getValue().clone().add(0.0D, 0.6D, 0.0D)))
-                .min((left, right) -> Double.compare(left.getValue().distanceSquared(eye), right.getValue().distanceSquared(eye)))
-                .map(Map.Entry::getKey);
+        PlayerInteractionRayTrace ray = PlayerInteractionRayTrace.create(
+                eye.toVector(),
+                eye.getDirection(),
+                TARGET_DISTANCE
+        );
+        if (ray == null) {
+            return Optional.empty();
+        }
+
+        SkillTreePositionHit nearest = null;
+        for (SkillTreePosition position : positionsById.values()) {
+            Location location = position.toLocation();
+            if (location == null || location.getWorld() != player.getWorld()) {
+                continue;
+            }
+            Location center = location.clone().add(0.0D, 0.6D, 0.0D);
+            Double hitDistance = ray.sphereEntryDistance(center.toVector(), TARGET_RADIUS);
+            if (hitDistance == null || (nearest != null
+                    && (hitDistance > nearest.hitDistance()
+                    || (Double.compare(hitDistance, nearest.hitDistance()) == 0
+                    && position.positionId().compareTo(nearest.position().positionId()) >= 0)))) {
+                continue;
+            }
+            nearest = new SkillTreePositionHit(position, hitDistance);
+        }
+        return Optional.ofNullable(nearest);
     }
 
     @NotNull
@@ -1299,16 +1357,6 @@ public class SkillTreeService {
                 playerStateSaveInProgress = false;
             });
         });
-    }
-
-    private boolean isTargeted(@NotNull Vector origin, @NotNull Vector direction, @NotNull Location target) {
-        Vector toTarget = target.toVector().subtract(origin);
-        double projection = toTarget.dot(direction);
-        if (projection < 0.0D || projection > TARGET_DISTANCE) {
-            return false;
-        }
-        Vector closest = origin.clone().add(direction.clone().multiply(projection));
-        return closest.distanceSquared(target.toVector()) <= TARGET_RADIUS_SQ;
     }
 
     @NotNull

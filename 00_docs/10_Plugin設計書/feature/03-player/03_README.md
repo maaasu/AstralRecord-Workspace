@@ -12,6 +12,7 @@
 - `src/main/java/io/github/maaasu/astralRecord/feature/player/save/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/player/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/loginbonus/*`
+- `src/main/java/io/github/maaasu/astralRecord/shared/interaction/*`
 
 ## ドキュメント一覧（推奨順）
 
@@ -39,6 +40,8 @@
   - ログイン時は [[07_3.02-サービス]].ステータス再計算、ドッジ時は [[07_3.02-サービス]].EN消費 で連携する。
 - `class` / `playerclass`
   - [[03_1.00-モデル定義]].プレイヤーセッション の `classId` とクラス ID ごとの独立した `classLevel` / `classExperience` を保持する。職業マスタ、職業 GUI、職業コマンドの正本は本 feature ではなく class / playerclass 側とする。
+- `player-interaction`
+  - 右クリック、左クリック、block mutation、item drop、hotbar slot変更、sneak変更の共通入口と候補仲裁は[[28_README]]を正本とする。共通gatewayは`shared/interaction`へ配置し、player featureは入力ロック、player-mode drop guard、wall-cling / dodge fallback、プレイヤー状態、退出ライフサイクルを提供する。
 
 ## 実装メモ
 
@@ -61,3 +64,8 @@
   - [[03_3.01-イベント]]
   - [[03_3.02-サービス]]
   - [[03_4.00-統合フロー]]
+- 共通入力ingress、入力token相関、player側DROP_ITEM / SNEAK候補、退出時のpending入力破棄を変更:
+  - [[03_3.01-イベント]]
+  - [[03_4.00-統合フロー]]
+  - [[28_3.01-イベント]]
+  - [[28_4.00-統合フロー]]

@@ -9,12 +9,12 @@ import io.github.maaasu.astralRecord.feature.mob.repository.MobRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionRayTrace;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.util.RayTraceResult;
-import org.bukkit.util.Vector;
+import org.bukkit.util.BoundingBox;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,6 +43,27 @@ public class MobService {
     private static final double DEFAULT_VIEW_DISTANCE_SQ = DEFAULT_VIEW_DISTANCE * DEFAULT_VIEW_DISTANCE;
     public static final double NPC_INTERACTION_DISTANCE = 3.0D;
     public static final double NPC_INTERACTION_RAY_SIZE = 0.75D;
+
+    /**
+     * 視線上で命中したNPCとhitbox入口距離です。
+     *
+     * @param instance 命中したNPCインスタンス
+     * @param hitDistance プレイヤー視点からhitbox入口までの有限な非負距離
+     */
+    public record MobInteractionHit(@NotNull MobInstance instance, double hitDistance) {
+        /**
+         * 命中結果を生成し、距離契約を検証します。
+         *
+         * @throws NullPointerException NPCインスタンスがnullの場合
+         * @throws IllegalArgumentException 距離が非有限または負数の場合
+         */
+        public MobInteractionHit {
+            Objects.requireNonNull(instance, "instance");
+            if (!Double.isFinite(hitDistance) || hitDistance < 0.0D) {
+                throw new IllegalArgumentException("hitDistance must be finite and zero or greater");
+            }
+        }
+    }
 
     private final Plugin plugin;
     private final MobRepository repository;
@@ -304,18 +325,44 @@ public class MobService {
      */
     @Nullable
     public MobInstance findTargetedNpc(@NotNull Player player, double distance, double raySize) {
-        RayTraceResult result = player.getWorld().rayTraceEntities(
-                player.getEyeLocation(),
-                player.getEyeLocation().getDirection(),
-                distance,
-                raySize,
-                entity -> entity != player && getNpcInstanceByEntity(entity.getUniqueId()) != null
+        MobInteractionHit hit = findTargetedNpcHit(player, distance, raySize);
+        return hit == null ? null : hit.instance();
+    }
+
+    /**
+     * プレイヤー視線上で最も入口距離が近いNPCを返します。
+     * Bukkit Entityとblock NPCの双方でAABB入口を距離尺度に使用します。
+     * 候補解決だけを行い、NPC actionは実行しません。
+     *
+     * @param player 判定対象プレイヤー
+     * @param distance 判定する最大距離。0以上の有限値
+     * @param raySize Entity判定に加えるrayの太さ。0以上の有限値
+     * @return 命中したNPCと入口距離。見つからない、または引数が不正な場合はnull
+     */
+    @Nullable
+    public MobInteractionHit findTargetedNpcHit(@NotNull Player player, double distance, double raySize) {
+        Location eye = player.getEyeLocation();
+        PlayerInteractionRayTrace ray = PlayerInteractionRayTrace.create(
+                eye.toVector(),
+                eye.getDirection(),
+                distance
         );
-        if (result == null || result.getHitEntity() == null) {
-            return findTargetedBlockNpc(player, distance);
+        if (ray == null || !Double.isFinite(raySize) || raySize < 0.0D) {
+            return null;
         }
-        MobInstance entityTarget = getNpcInstanceByEntity(Objects.requireNonNull(result.getHitEntity()).getUniqueId());
-        return entityTarget != null ? entityTarget : findTargetedBlockNpc(player, distance);
+
+        MobInteractionHit entityHit = findTargetedEntityNpcHit(player, ray, raySize);
+        MobInteractionHit blockHit = findTargetedBlockNpcHit(player, ray);
+        if (entityHit == null) {
+            return blockHit;
+        }
+        if (blockHit == null
+                || entityHit.hitDistance() < blockHit.hitDistance()
+                || (Double.compare(entityHit.hitDistance(), blockHit.hitDistance()) == 0
+                && entityHit.instance().instanceId().compareTo(blockHit.instance().instanceId()) <= 0)) {
+            return entityHit;
+        }
+        return blockHit;
     }
 
     /**
@@ -653,16 +700,42 @@ public class MobService {
     }
 
     @Nullable
-    private MobInstance findTargetedBlockNpc(@NotNull Player player, double distance) {
-        Location eye = player.getEyeLocation();
-        Vector direction = eye.getDirection();
-        if (direction.lengthSquared() <= 1.0E-6D) {
-            return null;
+    private MobInteractionHit findTargetedEntityNpcHit(
+            @NotNull Player player,
+            @NotNull PlayerInteractionRayTrace ray,
+            double raySize
+    ) {
+        MobInteractionHit nearest = null;
+        for (MobInstance instance : instances.values()) {
+            if (instance.template().category() != MobCategory.NPC || instance.bukkitEntityId() == null) {
+                continue;
+            }
+            org.bukkit.entity.Entity entity = player.getWorld().getEntity(instance.bukkitEntityId());
+            if (entity == null || entity == player || entity.getWorld() != player.getWorld()) {
+                continue;
+            }
+            BoundingBox hitBox = entity.getBoundingBox();
+            if (raySize > 0.0D) {
+                hitBox.expand(raySize);
+            }
+            Double hitDistance = ray.aabbEntryDistance(hitBox);
+            if (hitDistance == null || (nearest != null
+                    && (hitDistance > nearest.hitDistance()
+                    || (Double.compare(hitDistance, nearest.hitDistance()) == 0
+                    && instance.instanceId().compareTo(nearest.instance().instanceId()) >= 0)))) {
+                continue;
+            }
+            nearest = new MobInteractionHit(instance, hitDistance);
         }
-        direction.normalize();
+        return nearest;
+    }
 
-        MobInstance nearest = null;
-        double nearestDistance = distance;
+    @Nullable
+    private MobInteractionHit findTargetedBlockNpcHit(
+            @NotNull Player player,
+            @NotNull PlayerInteractionRayTrace ray
+    ) {
+        MobInteractionHit nearest = null;
         for (MobInstance instance : instances.values()) {
             if (instance.template().category() != MobCategory.NPC || instance.template().blockMaterial() == null) {
                 continue;
@@ -671,62 +744,24 @@ public class MobService {
             if (blockLocation.getWorld() != player.getWorld()) {
                 continue;
             }
-            Double hitDistance = intersectBlockBox(eye.toVector(), direction, blockLocation);
-            if (hitDistance == null || hitDistance < 0.0D || hitDistance > nearestDistance) {
+            BoundingBox hitBox = new BoundingBox(
+                    blockLocation.getX() - 0.5D,
+                    blockLocation.getY(),
+                    blockLocation.getZ() - 0.5D,
+                    blockLocation.getX() + 0.5D,
+                    blockLocation.getY() + 1.0D,
+                    blockLocation.getZ() + 0.5D
+            );
+            Double hitDistance = ray.aabbEntryDistance(hitBox);
+            if (hitDistance == null || (nearest != null
+                    && (hitDistance > nearest.hitDistance()
+                    || (Double.compare(hitDistance, nearest.hitDistance()) == 0
+                    && instance.instanceId().compareTo(nearest.instance().instanceId()) >= 0)))) {
                 continue;
             }
-            nearestDistance = hitDistance;
-            nearest = instance;
+            nearest = new MobInteractionHit(instance, hitDistance);
         }
         return nearest;
-    }
-
-    @Nullable
-    private Double intersectBlockBox(
-            @NotNull Vector origin,
-            @NotNull Vector direction,
-            @NotNull Location blockLocation
-    ) {
-        double minX = blockLocation.getX() - 0.5D;
-        double minY = blockLocation.getY();
-        double minZ = blockLocation.getZ() - 0.5D;
-        double maxX = minX + 1.0D;
-        double maxY = minY + 1.0D;
-        double maxZ = blockLocation.getZ() + 0.5D;
-
-        double tMin = 0.0D;
-        double tMax = Double.POSITIVE_INFINITY;
-
-        double[] originValues = {origin.getX(), origin.getY(), origin.getZ()};
-        double[] directionValues = {direction.getX(), direction.getY(), direction.getZ()};
-        double[] minValues = {minX, minY, minZ};
-        double[] maxValues = {maxX, maxY, maxZ};
-
-        for (int axis = 0; axis < 3; axis++) {
-            double axisOrigin = originValues[axis];
-            double axisDirection = directionValues[axis];
-            if (Math.abs(axisDirection) < 1.0E-8D) {
-                if (axisOrigin < minValues[axis] || axisOrigin > maxValues[axis]) {
-                    return null;
-                }
-                continue;
-            }
-
-            double inv = 1.0D / axisDirection;
-            double t1 = (minValues[axis] - axisOrigin) * inv;
-            double t2 = (maxValues[axis] - axisOrigin) * inv;
-            if (t1 > t2) {
-                double swap = t1;
-                t1 = t2;
-                t2 = swap;
-            }
-            tMin = Math.max(tMin, t1);
-            tMax = Math.min(tMax, t2);
-            if (tMin > tMax) {
-                return null;
-            }
-        }
-        return tMin;
     }
 
     private void trackEntity(@NotNull UUID instanceId, @Nullable UUID entityId) {

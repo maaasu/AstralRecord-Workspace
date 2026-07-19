@@ -44,6 +44,26 @@ public final class ItemWeaponAttackService {
         handleAttack(player, castLocation);
     }
 
+    /**
+     * メインハンド装備が左クリック武器アクションを定義しているか判定します。
+     * クールダウンや耐久値は実行時に再検証し、候補探索中にはゲーム状態を変更しません。
+     *
+     * @param player 判定対象プレイヤー
+     * @return 左クリック武器アクションを持つ場合は true
+     */
+    public boolean hasLeftClickAction(@NotNull AstPlayer player) {
+        ItemModel itemModel = inventoryService.getItemModelInHand(player, EquipmentSlot.HAND);
+        if (itemModel == null || itemModel.getEquipment() == null) {
+            return false;
+        }
+        ItemEquipment equipment = itemModel.getEquipment();
+        if (equipment.getSlot() != ItemEquipmentSlot.WEAPON || equipment.getOnUse() == null) {
+            return false;
+        }
+        String skillId = equipment.getOnUse().getLeftClickSkillId();
+        return skillId != null && !skillId.isBlank();
+    }
+
     private void handleAttack(
             @NotNull AstPlayer player,
             @NotNull Location castLocation

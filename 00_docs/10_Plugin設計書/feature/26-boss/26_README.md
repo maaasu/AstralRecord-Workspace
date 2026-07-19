@@ -61,6 +61,7 @@
 - `combat`: `DamageService` による有効ダメージ反映とダメージ集計。
 - `status`: `MAX_HEALTH` / `ATTACK` などのボス基礎ステータス。
 - `loot` / `item` / `currency`: ボス討伐成功時の報酬確定と付与。
+- `player-interaction`: `SNEAK`の入口候補と`DROP_ITEM`の中止controller候補を共通調停する。
 - filebase `40_filebase/40.features.mob/boss/*.yml`: ボスマスター。
 - filebase `40_filebase/60.features.world/*.yml`: ボスフィールド生成元。
 
@@ -85,6 +86,11 @@
   - [[26_3.02-サービス]]
   - [[26_4.00-統合フロー]]
   - mob / combat / loot / currency の関連設計書
+- ボス入口SNEAK、近傍中止controllerのDROP_ITEM、候補距離・priority・claim方針を変更した場合:
+  - [[26_3.01-イベント]]
+  - [[26_4.00-統合フロー]]
+  - [[28_3.01-イベント]]
+  - [[28_4.00-統合フロー]]
 
 ## 実装メモ
 

@@ -6,6 +6,14 @@ import io.github.maaasu.astralRecord.feature.account.service.AccountModeApplicat
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.GameModeChangeGuard;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.shared.interaction.InputClaimPolicy;
+import io.github.maaasu.astralRecord.shared.interaction.InputFamily;
+import io.github.maaasu.astralRecord.shared.interaction.InteractionCandidateOrder;
+import io.github.maaasu.astralRecord.shared.interaction.InteractionTier;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputCandidate;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputResolver;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
 import org.bukkit.GameMode;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -15,10 +23,13 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerGameModeChangeEvent;
-import org.bukkit.event.player.PlayerDropItemEvent;
 import org.jetbrains.annotations.NotNull;
 
-public class PlayerModeEventHandler extends AbstractEventHandler {
+import java.util.Collection;
+import java.util.List;
+
+public class PlayerModeEventHandler extends AbstractEventHandler
+    implements PlayerInputResolver<PlayerInteractionSnapshot> {
     private static final String PLUGIN_PACKAGE_PREFIX = "io.github.maaasu.astralRecord.";
     private final AccountModeApplicationService accountModeApplicationService;
 
@@ -75,14 +86,24 @@ public class PlayerModeEventHandler extends AbstractEventHandler {
      *
      * @param event ドロップイベント
      */
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onPlayerDropItem(PlayerDropItemEvent event) {
-        runSafely(() -> {
-            if (!isPlayerMode(event.getPlayer())) {
-                return;
+    @Override
+    public @NotNull Collection<PlayerInputCandidate> resolve(
+        @NotNull PlayerInputContext<PlayerInteractionSnapshot> context
+    ) {
+        if (context.family() != InputFamily.DROP_ITEM
+            || !isPlayerMode(context.inputSnapshot().player())) {
+            return List.of();
+        }
+        return List.of(new PlayerInputCandidate(
+            "player-mode-drop-guard",
+            InteractionTier.FALLBACK,
+            0.0D,
+            InteractionCandidateOrder.PLAYER_CONTROL,
+            context.playerId().toString(),
+            InputClaimPolicy.CLAIM_AND_CANCEL,
+            () -> {
             }
-            event.setCancelled(true);
-        }, LogId.E_5072, event.getPlayer().getName());
+        ));
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)

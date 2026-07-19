@@ -1,132 +1,183 @@
 package io.github.maaasu.astralRecord.feature.spawner.event;
 
-import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
-import io.github.maaasu.astralRecord.feature.spawner.service.MobSpawnerService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
-import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.spawner.service.MobSpawnerService;
+import io.github.maaasu.astralRecord.shared.interaction.InputClaimPolicy;
+import io.github.maaasu.astralRecord.shared.interaction.InputFamily;
+import io.github.maaasu.astralRecord.shared.interaction.InputSource;
+import io.github.maaasu.astralRecord.shared.interaction.InteractionCandidateOrder;
+import io.github.maaasu.astralRecord.shared.interaction.InteractionTier;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputCandidate;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputResolver;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
-import org.bukkit.event.block.Action;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
 import java.util.Comparator;
-import java.util.Optional;
+import java.util.List;
 
 /**
- * スポナーアイテムの設置・破壊からスポナー座標を更新します。
+ * Mob spawner の設置・破壊・視線左クリックを共通入力候補として提供します。
  */
-public class MobSpawnerBlockEventHandler extends AbstractEventHandler {
-
+public final class MobSpawnerBlockEventHandler
+    implements PlayerInputResolver<PlayerInteractionSnapshot> {
     private static final double TARGET_DISTANCE = 6.0D;
-    private static final double TARGET_RADIUS_SQ = 0.9D * 0.9D;
+    private static final double TARGET_RADIUS = 0.9D;
 
     private final MobSpawnerService spawnerService;
 
-    /**
-     * ハンドラを初期化します。
-     *
-     * @param spawnerService スポナーサービス
-     */
     public MobSpawnerBlockEventHandler(@NotNull MobSpawnerService spawnerService) {
         this.spawnerService = spawnerService;
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onBlockPlace(@NotNull BlockPlaceEvent event) {
-        String spawnerId = spawnerService.readSpawnerId(event.getItemInHand());
-        if (spawnerId == null) {
-            return;
+    @Override
+    public @NotNull Collection<PlayerInputCandidate> resolve(
+        @NotNull PlayerInputContext<PlayerInteractionSnapshot> context
+    ) {
+        if (context.family() == InputFamily.BLOCK_MUTATION) {
+            return resolveBlockMutation(context);
         }
-        event.setCancelled(true);
+        if (context.family() != InputFamily.LEFT_CLICK || !context.inputSnapshot().isMainHandInput()) {
+            return List.of();
+        }
+        PlayerInteractionSnapshot snapshot = context.inputSnapshot();
+        AstPlayer astPlayer = AstPlayerCache.get(snapshot.player());
+        if (!spawnerService.canViewSpawnerVisual(astPlayer)) {
+            return List.of();
+        }
+        SpawnerHit hit = findTargetedSpawner(snapshot);
+        if (hit == null || !snapshot.isVisible(hit.hitDistance())) {
+            return List.of();
+        }
+        return List.of(new PlayerInputCandidate(
+            "mob-spawner-left-interaction",
+            InteractionTier.WORLD_INTERACTION,
+            hit.hitDistance(),
+            InteractionCandidateOrder.MOB_SPAWNER,
+            locationKey(hit.location()),
+            InputClaimPolicy.CLAIM_AND_CANCEL,
+            () -> {
+                PlayerInteractionSnapshot currentSnapshot = snapshot.refresh();
+                SpawnerHit current = findTargetedSpawner(currentSnapshot);
+                return current != null
+                    && locationKey(current.location()).equals(locationKey(hit.location()))
+                    && currentSnapshot.isVisible(current.hitDistance());
+            },
+            () -> removeTargetedSpawner(snapshot.player(), hit.location())
+        ));
+    }
 
+    private Collection<PlayerInputCandidate> resolveBlockMutation(
+        PlayerInputContext<PlayerInteractionSnapshot> context
+    ) {
+        PlayerInteractionSnapshot snapshot = context.inputSnapshot();
+        if (context.source() == InputSource.BLOCK_PLACE
+            && snapshot.event() instanceof BlockPlaceEvent event) {
+            String spawnerId = spawnerService.readSpawnerId(event.getItemInHand());
+            if (spawnerId == null) {
+                return List.of();
+            }
+            return List.of(new PlayerInputCandidate(
+                "mob-spawner-place",
+                InteractionTier.WORLD_INTERACTION,
+                0.0D,
+                InteractionCandidateOrder.MOB_SPAWNER,
+                locationKey(event.getBlockPlaced().getLocation()),
+                InputClaimPolicy.CLAIM_AND_CANCEL,
+                () -> placeSpawner(event, spawnerId)
+            ));
+        }
+        if (context.source() == InputSource.BLOCK_BREAK
+            && snapshot.event() instanceof BlockBreakEvent event
+            && spawnerService.hasLocation(event.getBlock().getLocation())) {
+            return List.of(new PlayerInputCandidate(
+                "mob-spawner-break",
+                InteractionTier.WORLD_INTERACTION,
+                0.0D,
+                InteractionCandidateOrder.MOB_SPAWNER,
+                locationKey(event.getBlock().getLocation()),
+                InputClaimPolicy.CLAIM,
+                () -> breakSpawner(event)
+            ));
+        }
+        return List.of();
+    }
+
+    private void placeSpawner(BlockPlaceEvent event, String spawnerId) {
         AstPlayer astPlayer = AstPlayerCache.get(event.getPlayer());
         if (!spawnerService.isAdminMode(astPlayer)) {
             PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5719);
             return;
         }
-
         if (!spawnerService.registerLocation(spawnerId, event.getBlockPlaced().getLocation())) {
             PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5711, spawnerId);
             return;
         }
-
         consumePlacedItem(event.getPlayer(), event.getHand());
         PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5709, spawnerId);
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onBlockBreak(@NotNull BlockBreakEvent event) {
-        if (!spawnerService.hasLocation(event.getBlock().getLocation())) {
-            return;
-        }
-
+    private void breakSpawner(BlockBreakEvent event) {
         AstPlayer astPlayer = AstPlayerCache.get(event.getPlayer());
         if (!spawnerService.isAdminMode(astPlayer)) {
             event.setCancelled(true);
             PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5719);
             return;
         }
-
         if (spawnerService.removeLocation(event.getBlock().getLocation())) {
             PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5710);
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
-    public void onLeftClick(@NotNull PlayerInteractEvent event) {
-        Action action = event.getAction();
-        if (action != Action.LEFT_CLICK_AIR && action != Action.LEFT_CLICK_BLOCK) {
-            return;
-        }
-        if (event.getHand() != null && event.getHand() != EquipmentSlot.HAND) {
-            return;
-        }
-
-        AstPlayer astPlayer = AstPlayerCache.get(event.getPlayer());
-        if (!spawnerService.canViewSpawnerVisual(astPlayer)) {
-            return;
-        }
-
-        Optional<Location> target = resolveTargetedSpawner(event);
-        if (target.isEmpty()) {
-            return;
-        }
-
-        event.setCancelled(true);
+    private void removeTargetedSpawner(Player player, Location target) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
         if (!spawnerService.isAdminMode(astPlayer)) {
-            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5719);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5719);
             return;
         }
-
-        if (spawnerService.removeLocation(target.get())) {
-            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5710);
+        if (spawnerService.removeLocation(target)) {
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5710);
         }
     }
 
-    @NotNull
-    private Optional<Location> resolveTargetedSpawner(@NotNull PlayerInteractEvent event) {
-        if (event.getAction() == Action.LEFT_CLICK_BLOCK && event.getClickedBlock() != null) {
-            Location clickedLocation = event.getClickedBlock().getLocation();
-            if (spawnerService.hasLocation(clickedLocation)) {
-                return Optional.of(clickedLocation);
-            }
-            return Optional.empty();
+    private SpawnerHit findTargetedSpawner(PlayerInteractionSnapshot snapshot) {
+        if (snapshot.clickedBlock() != null
+            && spawnerService.hasLocation(snapshot.clickedBlock().getLocation())) {
+            Double hitDistance = snapshot.hitDistance(snapshot.clickedBlock());
+            return hitDistance == null
+                ? null
+                : new SpawnerHit(snapshot.clickedBlock().getLocation(), hitDistance);
         }
-        return findTargetedSpawner(event.getPlayer());
+        return spawnerService.getLocations().stream()
+            .map(location -> location.toLocation())
+            .filter(location -> location != null && location.getWorld() == snapshot.player().getWorld())
+            .map(location -> {
+                Double hitDistance = snapshot.ray().sphereEntryDistance(
+                    location.clone().add(0.0D, 0.75D, 0.0D).toVector(),
+                    TARGET_RADIUS
+                );
+                return hitDistance == null || hitDistance > TARGET_DISTANCE
+                    ? null
+                    : new SpawnerHit(location, hitDistance);
+            })
+            .filter(hit -> hit != null)
+            .min(Comparator.comparingDouble(SpawnerHit::hitDistance)
+                .thenComparing(hit -> locationKey(hit.location())))
+            .orElse(null);
     }
 
-    private void consumePlacedItem(@NotNull Player player, @NotNull EquipmentSlot hand) {
+    private void consumePlacedItem(Player player, EquipmentSlot hand) {
         if (player.getGameMode() == GameMode.CREATIVE) {
             return;
         }
@@ -142,26 +193,13 @@ public class MobSpawnerBlockEventHandler extends AbstractEventHandler {
         player.getInventory().setItem(hand, itemStack);
     }
 
-    @NotNull
-    private Optional<Location> findTargetedSpawner(@NotNull Player player) {
-        Location eye = player.getEyeLocation();
-        Vector origin = eye.toVector();
-        Vector direction = eye.getDirection().normalize();
-
-        return spawnerService.getLocations().stream()
-                .map(location -> location.toLocation())
-                .filter(location -> location != null && location.getWorld() == player.getWorld())
-                .filter(location -> isTargeted(origin, direction, location.clone().add(0.0D, 0.75D, 0.0D)))
-                .min(Comparator.comparingDouble(location -> location.distanceSquared(eye)));
+    private String locationKey(Location location) {
+        return location.getWorld().getUID() + ":"
+            + location.getBlockX() + ":"
+            + location.getBlockY() + ":"
+            + location.getBlockZ();
     }
 
-    private boolean isTargeted(@NotNull Vector origin, @NotNull Vector direction, @NotNull Location target) {
-        Vector toTarget = target.toVector().subtract(origin);
-        double projection = toTarget.dot(direction);
-        if (projection < 0.0D || projection > TARGET_DISTANCE) {
-            return false;
-        }
-        Vector closest = origin.clone().add(direction.clone().multiply(projection));
-        return closest.distanceSquared(target.toVector()) <= TARGET_RADIUS_SQ;
+    private record SpawnerHit(Location location, double hitDistance) {
     }
 }

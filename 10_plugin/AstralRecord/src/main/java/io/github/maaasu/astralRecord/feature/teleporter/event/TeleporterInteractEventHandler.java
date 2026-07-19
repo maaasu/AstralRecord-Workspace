@@ -1,104 +1,83 @@
 package io.github.maaasu.astralRecord.feature.teleporter.event;
 
-import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
-import io.github.maaasu.astralRecord.feature.teleporter.model.WaystoneDefinition;
 import io.github.maaasu.astralRecord.feature.teleporter.service.TeleporterService;
 import io.github.maaasu.astralRecord.feature.teleporter.service.WaystoneHitBoxResolver;
-import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
-import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionConsumeService;
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
-import org.bukkit.event.block.Action;
-import org.bukkit.event.player.PlayerAnimationEvent;
-import org.bukkit.event.player.PlayerAnimationType;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.inventory.EquipmentSlot;
+import io.github.maaasu.astralRecord.shared.interaction.InputClaimPolicy;
+import io.github.maaasu.astralRecord.shared.interaction.InputFamily;
+import io.github.maaasu.astralRecord.shared.interaction.InteractionCandidateOrder;
+import io.github.maaasu.astralRecord.shared.interaction.InteractionTier;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputCandidate;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputResolver;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Collection;
+import java.util.List;
 
 /**
- * ワールド上のウェイストーン左/右クリックを処理します。
+ * ウェイストーンの左右クリック候補を副作用なしで解決します。
+ * 実際のウェイストーン処理は共通 gateway が本候補を勝者に選んだ場合だけ実行します。
  */
-public final class TeleporterInteractEventHandler extends AbstractEventHandler {
-    private static final long CLICK_DEBOUNCE_NANOS = 120_000_000L;
-
+public final class TeleporterInteractEventHandler
+    implements PlayerInputResolver<PlayerInteractionSnapshot> {
     private final TeleporterService teleporterService;
     private final WaystoneHitBoxResolver hitBoxResolver;
-    private final PlayerInteractionConsumeService interactionConsumeService;
-    private final Map<UUID, Long> lastHandledClickNanosByPlayer = new ConcurrentHashMap<>();
 
     /**
-     * テレポーターのワールド上クリック処理ハンドラを生成します。
+     * ウェイストーン候補 resolver を生成します。
      *
-     * @param teleporterService テレポーター操作サービス
-     * @param hitBoxResolver ウェイストーン当たり判定の解決サービス
-     * @param interactionConsumeService コンテンツが消費したインタラクトの共有サービス
+     * @param teleporterService ウェイストーン操作サービス
+     * @param hitBoxResolver 視線 hitbox resolver
      */
     public TeleporterInteractEventHandler(
-            @NotNull TeleporterService teleporterService,
-            @NotNull WaystoneHitBoxResolver hitBoxResolver,
-            @NotNull PlayerInteractionConsumeService interactionConsumeService
+        @NotNull TeleporterService teleporterService,
+        @NotNull WaystoneHitBoxResolver hitBoxResolver
     ) {
         this.teleporterService = teleporterService;
         this.hitBoxResolver = hitBoxResolver;
-        this.interactionConsumeService = interactionConsumeService;
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
-    public void onPlayerInteract(@NotNull PlayerInteractEvent event) {
-        runSafely(() -> {
-            if (event.getHand() != EquipmentSlot.HAND) {
-                return;
-            }
-            Action action = event.getAction();
-            boolean rightClick = action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
-            boolean leftClick = action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK;
-            if (!rightClick && !leftClick) {
-                return;
-            }
-            if (handleClick(event.getPlayer(), rightClick)) {
-                interactionConsumeService.consume(event);
-            }
-        }, LogId.E_5950, event.getPlayer().getName(), "-");
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
-    public void onPlayerAnimation(@NotNull PlayerAnimationEvent event) {
-        runSafely(() -> {
-            if (event.getAnimationType() != PlayerAnimationType.ARM_SWING) {
-                return;
-            }
-            if (handleClick(event.getPlayer(), false)) {
-                event.setCancelled(true);
-            }
-        }, LogId.E_5950, event.getPlayer().getName(), "animation");
-    }
-
-    private boolean handleClick(@NotNull Player player, boolean rightClick) {
-        AstPlayer astPlayer = AstPlayerCache.get(player);
+    @Override
+    public @NotNull Collection<PlayerInputCandidate> resolve(
+        @NotNull PlayerInputContext<PlayerInteractionSnapshot> context
+    ) {
+        if ((context.family() != InputFamily.RIGHT_CLICK && context.family() != InputFamily.LEFT_CLICK)
+            || !context.inputSnapshot().isMainHandInput()) {
+            return List.of();
+        }
+        PlayerInteractionSnapshot snapshot = context.inputSnapshot();
+        AstPlayer astPlayer = AstPlayerCache.get(snapshot.player());
         if (astPlayer == null || !astPlayer.getAccount().getMode().shouldProcessGameplay()) {
-            return false;
+            return List.of();
         }
-        WaystoneDefinition definition = hitBoxResolver.resolve(player);
-        if (definition == null) {
-            return false;
+        WaystoneHitBoxResolver.WaystoneHit hit = hitBoxResolver.resolveHit(snapshot.player());
+        if (hit == null || !snapshot.isVisible(hit.hitDistance())) {
+            return List.of();
         }
-        if (isDuplicateClick(player.getUniqueId())) {
-            return true;
-        }
-        teleporterService.handleWaystoneClick(player, astPlayer, definition, rightClick);
-        return true;
-    }
-
-    private boolean isDuplicateClick(@NotNull UUID playerId) {
-        long now = System.nanoTime();
-        Long lastHandledAt = lastHandledClickNanosByPlayer.put(playerId, now);
-        return lastHandledAt != null && now - lastHandledAt < CLICK_DEBOUNCE_NANOS;
+        boolean rightClick = context.family() == InputFamily.RIGHT_CLICK;
+        return List.of(new PlayerInputCandidate(
+            "waystone-interaction",
+            InteractionTier.WORLD_INTERACTION,
+            hit.hitDistance(),
+            InteractionCandidateOrder.WAYSTONE,
+            hit.definition().id(),
+            InputClaimPolicy.CLAIM_AND_CANCEL,
+            () -> {
+                PlayerInteractionSnapshot currentSnapshot = snapshot.refresh();
+                WaystoneHitBoxResolver.WaystoneHit current = hitBoxResolver.resolveHit(snapshot.player());
+                return current != null
+                    && current.definition().id().equals(hit.definition().id())
+                    && currentSnapshot.isVisible(current.hitDistance());
+            },
+            () -> teleporterService.handleWaystoneClick(
+                snapshot.player(),
+                astPlayer,
+                hit.definition(),
+                rightClick
+            )
+        ));
     }
 }

@@ -32,6 +32,7 @@
 - `currency`: ロック解除時のゴールド残高確認と消費
 - `world`: 同一ワールド判定と共通テレポート処理
 - `menu`: GUI 共通のインベントリ終了仕様
+- `player-interaction`: ウェイストーン左右クリック候補、距離比較、勝者一件実行は[[28_README]]を正本とする
 - API `account-waystone`: `00_docs/20_API設計書/feature/25-waystone`
 - DB `dbo.account_waystone_unlock`: `00_docs/40_Database設計書/table-definitions/AstralRecord/dbo.account_waystone_unlock.md`
 
@@ -51,6 +52,7 @@
   - [[25_3.01-イベント]]
   - [[25_3.07-GUI・View]]
   - [[25_4.00-統合フロー]]
+  - [[28_3.02-サービス]]
 - テレポーター GUI の表示内容、ページング、クリック動作の変更:
   - [[25_2.00-ユースケース]]
   - [[25_3.07-GUI・View]]

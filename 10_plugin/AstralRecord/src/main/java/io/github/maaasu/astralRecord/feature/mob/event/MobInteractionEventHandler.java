@@ -1,11 +1,9 @@
 package io.github.maaasu.astralRecord.feature.mob.event;
 
-import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentEnhancementService;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentRepairService;
 import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
-import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionActionConfig;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
@@ -17,29 +15,29 @@ import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService
 import io.github.maaasu.astralRecord.feature.quest.event.QuestGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.shop.event.ShopGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.storage.service.StorageService;
-import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
-import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionConsumeService;
+import io.github.maaasu.astralRecord.shared.interaction.InputClaimPolicy;
+import io.github.maaasu.astralRecord.shared.interaction.InputFamily;
+import io.github.maaasu.astralRecord.shared.interaction.InteractionCandidateOrder;
+import io.github.maaasu.astralRecord.shared.interaction.InteractionTier;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputCandidate;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputResolver;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
-import org.bukkit.event.block.Action;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerInteractEntityEvent;
-import org.bukkit.inventory.EquipmentSlot;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 
 /**
  * NPC クリックアクションを実行するイベントハンドラです。
  */
-public final class MobInteractionEventHandler extends AbstractEventHandler {
+public final class MobInteractionEventHandler
+    implements PlayerInputResolver<PlayerInteractionSnapshot> {
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
     private final MobService mobService;
@@ -50,7 +48,6 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
     private final EquipmentEnhancementService equipmentEnhancementService;
     private final EquipmentRepairService equipmentRepairService;
     private final QuestGuiEventHandler questGuiEventHandler;
-    private final PlayerInteractionConsumeService interactionConsumeService;
 
     /**
      * ハンドラを生成します。
@@ -63,7 +60,6 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
      * @param equipmentEnhancementService 装備強化 GUI サービス
      * @param equipmentRepairService 装備修理 GUI サービス
      * @param questGuiEventHandler クエストボード GUI ハンドラ
-     * @param interactionConsumeService コンテンツが消費したインタラクトの共有サービス
      */
     public MobInteractionEventHandler(
             @NotNull MobService mobService,
@@ -73,8 +69,7 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
             @NotNull StorageService storageService,
             @NotNull EquipmentEnhancementService equipmentEnhancementService,
             @NotNull EquipmentRepairService equipmentRepairService,
-            @NotNull QuestGuiEventHandler questGuiEventHandler,
-            @NotNull PlayerInteractionConsumeService interactionConsumeService) {
+            @NotNull QuestGuiEventHandler questGuiEventHandler) {
         this.mobService = mobService;
         this.shopGuiEventHandler = shopGuiEventHandler;
         this.menuView = menuView;
@@ -83,87 +78,65 @@ public final class MobInteractionEventHandler extends AbstractEventHandler {
         this.equipmentEnhancementService = equipmentEnhancementService;
         this.equipmentRepairService = equipmentRepairService;
         this.questGuiEventHandler = questGuiEventHandler;
-        this.interactionConsumeService = interactionConsumeService;
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
-    public void onPlayerInteractEntity(@NotNull PlayerInteractEntityEvent event) {
-        runSafely(() -> {
-            if (event.getHand() != EquipmentSlot.HAND) {
-                return;
+    @Override
+    public @NotNull Collection<PlayerInputCandidate> resolve(
+        @NotNull PlayerInputContext<PlayerInteractionSnapshot> context
+    ) {
+        PlayerInteractionSnapshot snapshot = context.inputSnapshot();
+        if ((context.family() != InputFamily.RIGHT_CLICK && context.family() != InputFamily.LEFT_CLICK)
+            || !snapshot.isMainHandInput()) {
+            return List.of();
+        }
+
+        MobService.MobInteractionHit hit = resolveHit(snapshot);
+        if (hit == null || !snapshot.isVisible(hit.hitDistance())) {
+            return List.of();
+        }
+        MobInstance instance = hit.instance();
+        List<MobInteractionActionConfig> actions = context.family() == InputFamily.LEFT_CLICK
+            ? instance.template().interactions().leftClick()
+            : instance.template().interactions().rightClick();
+        return List.of(new PlayerInputCandidate(
+            "npc-interaction",
+            InteractionTier.WORLD_INTERACTION,
+            hit.hitDistance(),
+            InteractionCandidateOrder.NPC,
+            instance.instanceId().toString(),
+            InputClaimPolicy.CLAIM_AND_CANCEL,
+            () -> {
+                PlayerInteractionSnapshot currentSnapshot = snapshot.refresh();
+                MobService.MobInteractionHit current = resolveHit(currentSnapshot);
+                return current != null
+                    && current.instance().instanceId().equals(instance.instanceId())
+                    && currentSnapshot.isVisible(current.hitDistance());
+            },
+            () -> {
+                if (AccountModeGuard.isGameplayPlayer(snapshot.player())) {
+                    execute(snapshot.player(), instance, actions);
+                }
             }
-            MobInstance instance = mobService.getNpcInstanceByEntity(event.getRightClicked().getUniqueId());
-            if (instance == null) {
-                return;
-            }
-            event.setCancelled(true);
-            if (!AccountModeGuard.isGameplayPlayer(event.getPlayer())) {
-                return;
-            }
-            if (!isWithinInteractionDistance(event.getPlayer(), event.getRightClicked())) {
-                return;
-            }
-            execute(event.getPlayer(), instance, instance.template().interactions().rightClick());
-        }, LogId.E_5702, event.getPlayer().getName());
+        ));
     }
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = false)
-    public void onPlayerInteract(@NotNull PlayerInteractEvent event) {
-        runSafely(() -> {
-            if (event.getHand() != null && event.getHand() != EquipmentSlot.HAND) {
-                return;
-            }
-
-            Action action = event.getAction();
-            boolean leftClick = action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK;
-            boolean rightClick = action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
-            if (!leftClick && !rightClick) {
-                return;
-            }
-
-            MobInstance instance = mobService.findTargetedNpc(
-                    event.getPlayer(),
-                    MobService.NPC_INTERACTION_DISTANCE,
-                    MobService.NPC_INTERACTION_RAY_SIZE
+    private MobService.MobInteractionHit resolveHit(PlayerInteractionSnapshot snapshot) {
+        if (snapshot.targetEntity() != null) {
+            MobInstance direct = mobService.getNpcInstanceByEntity(snapshot.targetEntity().getUniqueId());
+            Double hitDistance = snapshot.hitDistance(
+                snapshot.targetEntity(),
+                MobService.NPC_INTERACTION_RAY_SIZE
             );
-            if (instance == null) {
-                return;
+            if (direct != null && hitDistance != null
+                && hitDistance <= MobService.NPC_INTERACTION_DISTANCE) {
+                return new MobService.MobInteractionHit(direct, hitDistance);
             }
-
-            interactionConsumeService.consume(event);
-            if (!AccountModeGuard.isGameplayPlayer(event.getPlayer())) {
-                return;
-            }
-            execute(event.getPlayer(), instance, leftClick
-                    ? instance.template().interactions().leftClick()
-                    : instance.template().interactions().rightClick());
-        }, LogId.E_5702, event.getPlayer().getName());
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
-    public void onEntityDamageByEntity(@NotNull EntityDamageByEntityEvent event) {
-        runSafely(() -> {
-            if (!(event.getDamager() instanceof Player player)) {
-                return;
-            }
-            MobInstance instance = mobService.getNpcInstanceByEntity(event.getEntity().getUniqueId());
-            if (instance == null) {
-                return;
-            }
-            event.setCancelled(true);
-            if (!AccountModeGuard.isGameplayPlayer(player)) {
-                return;
-            }
-            if (!isWithinInteractionDistance(player, event.getEntity())) {
-                return;
-            }
-            execute(player, instance, instance.template().interactions().leftClick());
-        }, LogId.E_5702, event.getDamager().getName());
-    }
-
-    private boolean isWithinInteractionDistance(@NotNull Player player, @NotNull Entity entity) {
-        double distanceSq = player.getLocation().distanceSquared(entity.getLocation());
-        return distanceSq <= MobService.NPC_INTERACTION_DISTANCE * MobService.NPC_INTERACTION_DISTANCE;
+        }
+        return mobService.findTargetedNpcHit(
+            snapshot.player(),
+            MobService.NPC_INTERACTION_DISTANCE,
+            MobService.NPC_INTERACTION_RAY_SIZE
+        );
     }
 
     private void execute(@NotNull Player player, @NotNull MobInstance instance, @NotNull List<MobInteractionActionConfig> actions) {

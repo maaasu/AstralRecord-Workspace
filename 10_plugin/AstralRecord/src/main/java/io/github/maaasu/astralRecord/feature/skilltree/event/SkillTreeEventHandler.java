@@ -9,6 +9,15 @@ import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefini
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePosition;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.interaction.InputClaimPolicy;
+import io.github.maaasu.astralRecord.shared.interaction.InputFamily;
+import io.github.maaasu.astralRecord.shared.interaction.InputSource;
+import io.github.maaasu.astralRecord.shared.interaction.InteractionCandidateOrder;
+import io.github.maaasu.astralRecord.shared.interaction.InteractionTier;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputCandidate;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputResolver;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -18,179 +27,246 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
-import org.bukkit.event.Event;
-import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
-import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 /**
  * スキルツリー管理アイテムとプレイヤー操作のイベントを扱います。
  */
-public class SkillTreeEventHandler extends AbstractEventHandler {
-    private static final long RIGHT_CLICK_LEFT_SUPPRESS_MILLIS = 250L;
-
+public class SkillTreeEventHandler extends AbstractEventHandler
+    implements PlayerInputResolver<PlayerInteractionSnapshot> {
     private final SkillTreeService service;
-    private final Map<UUID, Long> suppressLeftClickUntilMillis = new HashMap<>();
 
     public SkillTreeEventHandler(@NotNull SkillTreeService service) {
         this.service = service;
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
-    public void onAdminInteract(@NotNull PlayerInteractEvent event) {
-        if (event.getHand() != null && event.getHand() != EquipmentSlot.HAND) {
-            return;
+    @Override
+    public @NotNull Collection<PlayerInputCandidate> resolve(
+        @NotNull PlayerInputContext<PlayerInteractionSnapshot> context
+    ) {
+        if (context.family() == InputFamily.HOTBAR_SLOT) {
+            return resolveHotbarSlot(context);
         }
-        ItemStack itemStack = event.getItem();
-        String positionId = service.readPositionItemId(itemStack);
-        boolean connector = service.isConnectorItem(itemStack);
-        if (positionId == null && !connector) {
-            return;
+        if (context.family() == InputFamily.BLOCK_MUTATION) {
+            return resolveBlockMutation(context);
         }
-        event.setCancelled(true);
+        if ((context.family() != InputFamily.LEFT_CLICK && context.family() != InputFamily.RIGHT_CLICK)
+            || !context.inputSnapshot().isMainHandInput()) {
+            return List.of();
+        }
 
-        AstPlayer astPlayer = AstPlayerCache.get(event.getPlayer());
+        PlayerInteractionSnapshot snapshot = context.inputSnapshot();
+        ItemStack held = snapshot.player().getInventory().getItemInMainHand();
+        String positionId = service.readPositionItemId(held);
+        boolean connector = service.isConnectorItem(held);
+        SkillTreeService.SkillTreePositionHit hit = service.findTargetedPositionHit(snapshot.player()).orElse(null);
+        double hitDistance = hit == null ? 0.0D : hit.hitDistance();
+        String targetKey = hit == null
+            ? snapshot.player().getUniqueId().toString()
+            : hit.position().positionId();
+
+        if (positionId != null || connector) {
+            String candidateTargetKey = positionId == null ? "connector:" + targetKey : "position:" + positionId;
+            return List.of(new PlayerInputCandidate(
+                "skill-tree-setup-control",
+                InteractionTier.EXCLUSIVE_CONTEXT,
+                hitDistance,
+                InteractionCandidateOrder.SKILL_TREE,
+                candidateTargetKey,
+                InputClaimPolicy.CLAIM_AND_CANCEL,
+                () -> isSameTarget(snapshot, hit),
+                () -> handleAdminInteraction(snapshot, context.family(), positionId, connector)
+            ));
+        }
+        if (!service.isPlayerModeSkillTree(snapshot.player())) {
+            return List.of();
+        }
+        return List.of(new PlayerInputCandidate(
+            "skill-tree-player-control",
+            InteractionTier.EXCLUSIVE_CONTEXT,
+            hitDistance,
+            InteractionCandidateOrder.SKILL_TREE,
+            targetKey,
+            InputClaimPolicy.CLAIM_AND_CANCEL,
+            () -> isSameTarget(snapshot, hit),
+            () -> handlePlayerModeInteraction(snapshot.player(), context.family())
+        ));
+    }
+
+    private boolean isSameTarget(
+        PlayerInteractionSnapshot snapshot,
+        SkillTreeService.SkillTreePositionHit expected
+    ) {
+        PlayerInteractionSnapshot currentSnapshot = snapshot.refresh();
+        SkillTreeService.SkillTreePositionHit current = service.findTargetedPositionHit(snapshot.player()).orElse(null);
+        if (expected == null) {
+            return current == null;
+        }
+        return current != null
+            && current.position().positionId().equals(expected.position().positionId())
+            && currentSnapshot.isVisible(current.hitDistance());
+    }
+
+    private Collection<PlayerInputCandidate> resolveHotbarSlot(
+        PlayerInputContext<PlayerInteractionSnapshot> context
+    ) {
+        PlayerInteractionSnapshot snapshot = context.inputSnapshot();
+        if (!(snapshot.event() instanceof PlayerItemHeldEvent event)
+            || !service.shouldSuppressSkillTreeSetupControls(snapshot.player())) {
+            return List.of();
+        }
+        return List.of(new PlayerInputCandidate(
+            "skill-tree-setup-hotbar-guard",
+            InteractionTier.EXCLUSIVE_CONTEXT,
+            0.0D,
+            InteractionCandidateOrder.SKILL_TREE,
+            context.playerId().toString(),
+            InputClaimPolicy.CLAIM_AND_CANCEL,
+            () -> org.bukkit.Bukkit.getScheduler().runTask(
+                io.github.maaasu.astralRecord.AstralRecord.getInstance(),
+                () -> event.getPlayer().getInventory().setHeldItemSlot(event.getPreviousSlot())
+            )
+        ));
+    }
+
+    private Collection<PlayerInputCandidate> resolveBlockMutation(
+        PlayerInputContext<PlayerInteractionSnapshot> context
+    ) {
+        PlayerInteractionSnapshot snapshot = context.inputSnapshot();
+        boolean setupMutation = context.source() == InputSource.BLOCK_PLACE
+            && snapshot.event() instanceof BlockPlaceEvent placeEvent
+            && service.isSkillTreeSetupItem(placeEvent.getItemInHand());
+        if (!setupMutation && context.source() == InputSource.BLOCK_BREAK) {
+            setupMutation = snapshot.event() instanceof BlockBreakEvent
+                && service.isSkillTreeSetupItem(snapshot.player().getInventory().getItemInMainHand());
+        }
+        if (!setupMutation) {
+            return List.of();
+        }
+        return List.of(new PlayerInputCandidate(
+            "skill-tree-setup-block-guard",
+            InteractionTier.EXCLUSIVE_CONTEXT,
+            0.0D,
+            InteractionCandidateOrder.SKILL_TREE,
+            snapshot.directTargetKey(),
+            InputClaimPolicy.CLAIM_AND_CANCEL,
+            () -> {
+            }
+        ));
+    }
+
+    private void handleAdminInteraction(
+        PlayerInteractionSnapshot snapshot,
+        InputFamily family,
+        String positionId,
+        boolean connector
+    ) {
+        AstPlayer astPlayer = AstPlayerCache.get(snapshot.player());
         if (!service.isAdminMode(astPlayer)) {
-            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5719);
+            PlayerMessageService.getInstance().send(snapshot.player(), PlayerMsgId.P_5719);
             return;
         }
         if (positionId != null) {
-            handlePositionItem(event, positionId);
-            return;
+            handlePositionItem(snapshot, family, positionId);
+        } else if (connector) {
+            handleConnectorItem(snapshot.player(), family);
         }
-        handleConnectorItem(event);
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
-    public void onPlayerInteract(@NotNull PlayerInteractEvent event) {
-        if (event.getHand() != null && event.getHand() != EquipmentSlot.HAND) {
-            return;
-        }
-        if (!service.isPlayerModeSkillTree(event.getPlayer())) {
-            return;
-        }
-        Action action = event.getAction();
-        if (action != Action.LEFT_CLICK_AIR && action != Action.LEFT_CLICK_BLOCK
-                && action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) {
-            return;
-        }
-        event.setCancelled(true);
-        event.setUseItemInHand(Event.Result.DENY);
-        event.setUseInteractedBlock(Event.Result.DENY);
-
-        AstPlayer astPlayer = AstPlayerCache.get(event.getPlayer());
+    private void handlePlayerModeInteraction(Player player, InputFamily family) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) {
             return;
         }
         service.preloadState(astPlayer);
         if (!service.isStateReady(astPlayer)) {
-            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5836);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5836);
             return;
         }
-        UUID playerId = event.getPlayer().getUniqueId();
-        if ((action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK)
-                && isLeftClickSuppressed(playerId)) {
-            return;
-        }
-        SkillTreeNodeDefinition node = service.findTargetedNode(event.getPlayer()).orElse(null);
+        SkillTreeNodeDefinition node = service.findTargetedNode(player).orElse(null);
         if (node == null) {
-            playDenied(event.getPlayer(), 0.85F);
-            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5828);
+            playDenied(player, 0.85F);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5828);
             return;
         }
-        if (action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK) {
-            if (service.isNodeUnlocked(astPlayer, node)) {
-                playDenied(event.getPlayer(), 1.15F);
-                PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5838);
-                return;
-            }
-            if (!service.hasAvailableUnlockPoint(astPlayer)) {
-                playDenied(event.getPlayer(), 0.65F);
-                PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5839);
-                return;
-            }
-            if (!service.canUnlockNode(astPlayer, node)) {
-                playDenied(event.getPlayer(), 0.75F);
-                PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5825);
-                return;
-            }
-            if (service.unlockNode(astPlayer, node)) {
-                playUnlock(event.getPlayer());
-                PlayerMessageService.getInstance().send(
-                    event.getPlayer(),
-                    PlayerMsgId.P_5824,
-                    ColorCodeUtil.toLegacyText(node.name(), node.id())
-                );
-            } else {
-                playDenied(event.getPlayer(), 0.75F);
-                PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5825);
-            }
+        if (family == InputFamily.LEFT_CLICK) {
+            unlockNode(player, astPlayer, node);
             return;
         }
+        relockNode(player, astPlayer, node);
+    }
+
+    private void unlockNode(Player player, AstPlayer astPlayer, SkillTreeNodeDefinition node) {
+        if (service.isNodeUnlocked(astPlayer, node)) {
+            playDenied(player, 1.15F);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5838);
+            return;
+        }
+        if (!service.hasAvailableUnlockPoint(astPlayer)) {
+            playDenied(player, 0.65F);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5839);
+            return;
+        }
+        if (!service.canUnlockNode(astPlayer, node)) {
+            playDenied(player, 0.75F);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5825);
+            return;
+        }
+        if (service.unlockNode(astPlayer, node)) {
+            playUnlock(player);
+            PlayerMessageService.getInstance().send(
+                player,
+                PlayerMsgId.P_5824,
+                ColorCodeUtil.toLegacyText(node.name(), node.id())
+            );
+        } else {
+            playDenied(player, 0.75F);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5825);
+        }
+    }
+
+    private void relockNode(Player player, AstPlayer astPlayer, SkillTreeNodeDefinition node) {
         if (!service.isNodeUnlocked(astPlayer, node)) {
-            playDenied(event.getPlayer(), 1.0F);
-            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5840);
+            playDenied(player, 1.0F);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5840);
             return;
         }
         if (!service.canAffordRelock(astPlayer)) {
-            playDenied(event.getPlayer(), 0.6F);
-            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5841);
+            playDenied(player, 0.6F);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5841);
             return;
         }
         if (service.relockNode(astPlayer, node)) {
-            playRelock(event.getPlayer());
+            playRelock(player);
             PlayerMessageService.getInstance().send(
-                event.getPlayer(),
+                player,
                 PlayerMsgId.P_5826,
                 ColorCodeUtil.toLegacyText(node.name(), node.id())
             );
         } else {
-            playDenied(event.getPlayer(), 0.75F);
-            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5827);
-        }
-        suppressLeftClickUntilMillis.put(playerId, System.currentTimeMillis() + RIGHT_CLICK_LEFT_SUPPRESS_MILLIS);
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
-    public void onBlockPlace(@NotNull BlockPlaceEvent event) {
-        if (service.isSkillTreeSetupItem(event.getItemInHand())) {
-            event.setCancelled(true);
+            playDenied(player, 0.75F);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5827);
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
-    public void onBlockBreak(@NotNull BlockBreakEvent event) {
-        ItemStack held = event.getPlayer().getInventory().getItemInMainHand();
-        if (service.isSkillTreeSetupItem(held)) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onHeldSlotChange(@NotNull PlayerItemHeldEvent event) {
-        if (service.shouldSuppressSkillTreeSetupControls(event.getPlayer())) {
-            event.setCancelled(true);
-            org.bukkit.Bukkit.getScheduler().runTask(
-                    io.github.maaasu.astralRecord.AstralRecord.getInstance(),
-                    () -> event.getPlayer().getInventory().setHeldItemSlot(event.getPreviousSlot())
-            );
-            return;
-        }
         if (!service.isPlayerModeSkillTree(event.getPlayer())) {
             return;
         }
@@ -252,42 +328,46 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
         service.clearPlayerPresentation(event.getPlayer());
     }
 
-    private void handlePositionItem(@NotNull PlayerInteractEvent event, @NotNull String positionId) {
-        Action action = event.getAction();
-        if (action == Action.RIGHT_CLICK_BLOCK && event.getClickedBlock() != null) {
-            Location location = placementLocation(event.getClickedBlock(), event.getBlockFace());
+    private void handlePositionItem(
+        @NotNull PlayerInteractionSnapshot snapshot,
+        @NotNull InputFamily family,
+        @NotNull String positionId
+    ) {
+        Player player = snapshot.player();
+        if (family == InputFamily.RIGHT_CLICK && snapshot.clickedBlock() != null) {
+            BlockFace face = snapshot.blockFace() == null ? BlockFace.UP : snapshot.blockFace();
+            Location location = placementLocation(snapshot.clickedBlock(), face);
             service.registerPosition(positionId, location);
-            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5821, positionId);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5821, positionId);
             return;
         }
-        if (action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK) {
-            SkillTreePosition target = service.findTargetedPosition(event.getPlayer()).orElse(null);
+        if (family == InputFamily.LEFT_CLICK) {
+            SkillTreePosition target = service.findTargetedPosition(player).orElse(null);
             if (target != null && service.removePosition(target.positionId())) {
-                PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5822, target.positionId());
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5822, target.positionId());
             }
         }
     }
 
-    private void handleConnectorItem(@NotNull PlayerInteractEvent event) {
-        SkillTreePosition target = service.findTargetedPosition(event.getPlayer()).orElse(null);
+    private void handleConnectorItem(@NotNull Player player, @NotNull InputFamily family) {
+        SkillTreePosition target = service.findTargetedPosition(player).orElse(null);
         if (target == null) {
-            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5823);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5823);
             return;
         }
-        Action action = event.getAction();
-        if (action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK) {
-            service.selectConnectorLeft(event.getPlayer().getUniqueId(), target.positionId());
-            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5830, target.positionId());
+        if (family == InputFamily.LEFT_CLICK) {
+            service.selectConnectorLeft(player.getUniqueId(), target.positionId());
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5830, target.positionId());
             return;
         }
-        if (action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK) {
-            String left = service.consumeConnectorLeft(event.getPlayer().getUniqueId());
+        if (family == InputFamily.RIGHT_CLICK) {
+            String left = service.consumeConnectorLeft(player.getUniqueId());
             if (left == null) {
-                PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5831);
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5831);
                 return;
             }
             if (service.toggleConnection(left, target.positionId())) {
-                PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5832, left, target.positionId());
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5832, left, target.positionId());
             }
         }
     }
@@ -315,15 +395,4 @@ public class SkillTreeEventHandler extends AbstractEventHandler {
         return service.isAdminMode(astPlayer) || service.isPlayerModeSkillTree(player);
     }
 
-    private boolean isLeftClickSuppressed(@NotNull UUID playerId) {
-        Long until = suppressLeftClickUntilMillis.get(playerId);
-        if (until == null) {
-            return false;
-        }
-        if (System.currentTimeMillis() <= until) {
-            return true;
-        }
-        suppressLeftClickUntilMillis.remove(playerId);
-        return false;
-    }
 }

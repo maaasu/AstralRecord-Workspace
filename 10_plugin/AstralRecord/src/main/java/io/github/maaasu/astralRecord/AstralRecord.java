@@ -215,8 +215,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.display.OverheadDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
-import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionConsumeService;
-import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionPriorityEventHandler;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionGatewayEventHandler;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class AstralRecord extends JavaPlugin {
@@ -276,7 +275,6 @@ public final class AstralRecord extends JavaPlugin {
     private TeleporterGuiEventHandler teleporterGuiEventHandler;
     private WaystonePacketView waystonePacketView;
     private WaystoneHitBoxResolver waystoneHitBoxResolver;
-    private PlayerInteractionConsumeService playerInteractionConsumeService;
     private OverheadDisplayService overheadDisplayService;
     private PlayerSettingService playerSettingService;
     private PlayerSettingGui playerSettingGui;
@@ -623,11 +621,6 @@ public final class AstralRecord extends JavaPlugin {
         waystonePacketView = new WaystonePacketView(teleporterService);
         teleporterGui = new TeleporterGui(teleporterService);
         teleporterGuiEventHandler = new TeleporterGuiEventHandler(teleporterGui, teleporterService, inventoryService);
-        playerInteractionConsumeService = new PlayerInteractionConsumeService();
-        eventManager.registerHandler(
-            new PlayerInteractionPriorityEventHandler(playerInteractionConsumeService),
-            getServer().getPluginManager()
-        );
         waystoneHitBoxResolver = new WaystoneHitBoxResolver(teleporterService);
         teleporterService.setRuntimeServices(inventoryService, worldService, waystonePacketView, teleporterGui, teleporterGuiEventHandler, particleDisplayService);
         overworldTeleportService = new OverworldTeleportService(this, worldService);
@@ -948,10 +941,14 @@ public final class AstralRecord extends JavaPlugin {
             new UserLoginEventHandler(userService),
             getServer().getPluginManager()
         );
-        eventManager.registerHandler(
-            new PlayerJoinEventHandler(this, playerService, skillTreeService, loginBonusService, mailService),
-            getServer().getPluginManager()
+        var playerJoinEventHandler = new PlayerJoinEventHandler(
+            this,
+            playerService,
+            skillTreeService,
+            loginBonusService,
+            mailService
         );
+        eventManager.registerHandler(playerJoinEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(
             new ManagedChatEventHandler(this),
             getServer().getPluginManager()
@@ -980,26 +977,25 @@ public final class AstralRecord extends JavaPlugin {
             new BaseWorldGatewayEventHandler(this, overworldTeleportService, overworldTeleportGuiEventHandler),
             getServer().getPluginManager()
         );
-        eventManager.registerHandler(
-            new BaseWorldSpawnTeleportEventHandler(worldService, overworldTeleportService, overworldTeleportGuiEventHandler),
-            getServer().getPluginManager()
+        var baseWorldSpawnTeleportEventHandler = new BaseWorldSpawnTeleportEventHandler(
+            worldService,
+            overworldTeleportService,
+            overworldTeleportGuiEventHandler
         );
-        eventManager.registerHandler(
-            new OverworldSpawnReturnEventHandler(worldService, returnToBaseService),
-            getServer().getPluginManager()
+        var overworldSpawnReturnEventHandler = new OverworldSpawnReturnEventHandler(
+            worldService,
+            returnToBaseService
         );
-        eventManager.registerHandler(
-            new BossEntryEventHandler(bossChallengeService),
-            getServer().getPluginManager()
-        );
+        var bossEntryEventHandler = new BossEntryEventHandler(bossChallengeService);
         eventManager.registerHandler(
             new BossPlayerEventHandler(bossChallengeService),
             getServer().getPluginManager()
         );
-        eventManager.registerHandler(
-            new BossChallengeCancelEventHandler(bossChallengeService, bossChallengeCancelGui),
-            getServer().getPluginManager()
+        var bossChallengeCancelEventHandler = new BossChallengeCancelEventHandler(
+            bossChallengeService,
+            bossChallengeCancelGui
         );
+        eventManager.registerHandler(bossChallengeCancelEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(
             new ResourcePackJoinEventHandler(resourcePackService),
             getServer().getPluginManager()
@@ -1008,10 +1004,12 @@ public final class AstralRecord extends JavaPlugin {
             new ResourcePackStatusEventHandler(resourcePackService),
             getServer().getPluginManager()
         );
-        eventManager.registerHandler(
-            new ItemInteractionBlockEventHandler(inventoryService, bundleUseService, potionUseService),
-            getServer().getPluginManager()
+        var itemInteractionBlockEventHandler = new ItemInteractionBlockEventHandler(
+            inventoryService,
+            bundleUseService,
+            potionUseService
         );
+        eventManager.registerHandler(itemInteractionBlockEventHandler, getServer().getPluginManager());
         menuOpenEventHandler = new MenuOpenEventHandler(
             this,
             menuView,
@@ -1102,9 +1100,9 @@ public final class AstralRecord extends JavaPlugin {
             teleporterGuiEventHandler,
             getServer().getPluginManager()
         );
-        eventManager.registerHandler(
-            new TeleporterInteractEventHandler(teleporterService, waystoneHitBoxResolver, playerInteractionConsumeService),
-            getServer().getPluginManager()
+        var teleporterInteractEventHandler = new TeleporterInteractEventHandler(
+            teleporterService,
+            waystoneHitBoxResolver
         );
         eventManager.registerHandler(
             new TeleporterPlayerEventHandler(this, teleporterService),
@@ -1123,27 +1121,18 @@ public final class AstralRecord extends JavaPlugin {
             skillBindGuiEventHandler,
             getServer().getPluginManager()
         );
-        eventManager.registerHandler(
-            new SkillActionRingEventHandler(
-                skillActionRingService,
-                inventoryService,
-                skillTreeService,
-                playerInteractionConsumeService
-            ),
-            getServer().getPluginManager()
+        var skillActionRingEventHandler = new SkillActionRingEventHandler(
+            skillActionRingService,
+            inventoryService
         );
-        eventManager.registerHandler(
-            new PlayerModeEventHandler(accountModeApplicationService),
-            getServer().getPluginManager()
-        );
+        eventManager.registerHandler(skillActionRingEventHandler, getServer().getPluginManager());
+        var playerModeEventHandler = new PlayerModeEventHandler(accountModeApplicationService);
+        eventManager.registerHandler(playerModeEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(
             new PlayerInputEventHandler(airActionService),
             getServer().getPluginManager()
         );
-        eventManager.registerHandler(
-            new PlayerSneakEventHandler(airActionService, dodgeService),
-            getServer().getPluginManager()
-        );
+        var playerSneakEventHandler = new PlayerSneakEventHandler(airActionService, dodgeService);
         eventManager.registerHandler(
             new PlayerVanillaDamageBlockEventHandler(),
             getServer().getPluginManager()
@@ -1164,43 +1153,51 @@ public final class AstralRecord extends JavaPlugin {
             new MobVanillaDamageBlockEventHandler(mobService, mobVanillaEffectProtectionService),
             getServer().getPluginManager()
         );
-        eventManager.registerHandler(
-            new MobSpawnerBlockEventHandler(mobSpawnerService),
-            getServer().getPluginManager()
+        var mobSpawnerBlockEventHandler = new MobSpawnerBlockEventHandler(mobSpawnerService);
+        var gatheringSpawnerBlockEventHandler = new GatheringSpawnerBlockEventHandler(gatheringSpawnerService);
+        var gatheringInteractionEventHandler = new GatheringInteractionEventHandler(gatheringService);
+        var skillTreeEventHandler = new SkillTreeEventHandler(skillTreeService);
+        eventManager.registerHandler(skillTreeEventHandler, getServer().getPluginManager());
+        var mobInteractionEventHandler = new MobInteractionEventHandler(
+            mobService,
+            shopGuiEventHandler,
+            menuView,
+            playerClassService,
+            storageService,
+            equipmentEnhancementService,
+            equipmentRepairService,
+            questGuiEventHandler
+        );
+        var itemWeaponAttackEventHandler = new ItemWeaponAttackEventHandler(
+            itemWeaponAttackService,
+            skillActionRingService,
+            skillTreeService,
+            conditionService
         );
         eventManager.registerHandler(
-            new GatheringSpawnerBlockEventHandler(gatheringSpawnerService),
-            getServer().getPluginManager()
-        );
-        eventManager.registerHandler(
-            new GatheringInteractionEventHandler(gatheringService),
-            getServer().getPluginManager()
-        );
-        eventManager.registerHandler(
-            new SkillTreeEventHandler(skillTreeService),
-            getServer().getPluginManager()
-        );
-        eventManager.registerHandler(
-            new MobInteractionEventHandler(
-                mobService,
-                shopGuiEventHandler,
-                menuView,
-                playerClassService,
-                storageService,
-                equipmentEnhancementService,
-                equipmentRepairService,
-                questGuiEventHandler,
-                playerInteractionConsumeService
-            ),
-            getServer().getPluginManager()
-        );
-        eventManager.registerHandler(
-            new ItemWeaponAttackEventHandler(
-                itemWeaponAttackService,
-                skillActionRingService,
-                skillTreeService,
-                playerInteractionConsumeService,
-                conditionService
+            new PlayerInteractionGatewayEventHandler(
+                this,
+                java.util.List.of(
+                    bossChallengeCancelEventHandler,
+                    bossEntryEventHandler,
+                    baseWorldSpawnTeleportEventHandler,
+                    overworldSpawnReturnEventHandler,
+                    itemInteractionBlockEventHandler,
+                    menuOpenEventHandler,
+                    teleporterInteractEventHandler,
+                    skillActionRingEventHandler,
+                    playerModeEventHandler,
+                    playerSneakEventHandler,
+                    mobSpawnerBlockEventHandler,
+                    gatheringSpawnerBlockEventHandler,
+                    gatheringInteractionEventHandler,
+                    skillTreeEventHandler,
+                    mobInteractionEventHandler,
+                    itemWeaponAttackEventHandler
+                ),
+                playerJoinEventHandler::isLoading,
+                skillActionRingService::isOpen,
+                skillActionRingService::close
             ),
             getServer().getPluginManager()
         );

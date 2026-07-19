@@ -23,12 +23,8 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
@@ -113,34 +109,6 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         }
 
         event.setTo(lockLocation.clone());
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
-    public void onPlayerInteract(PlayerInteractEvent event) {
-        if (loadingPlayers.contains(event.getPlayer().getUniqueId())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
-    public void onPlayerItemHeld(PlayerItemHeldEvent event) {
-        if (loadingPlayers.contains(event.getPlayer().getUniqueId())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
-    public void onBlockBreak(BlockBreakEvent event) {
-        if (loadingPlayers.contains(event.getPlayer().getUniqueId())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
-    public void onBlockPlace(BlockPlaceEvent event) {
-        if (loadingPlayers.contains(event.getPlayer().getUniqueId())) {
-            event.setCancelled(true);
-        }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -347,6 +315,16 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
 
     private boolean isJoinLoading(UUID playerUuid) {
         return loadingPlayers.contains(playerUuid);
+    }
+
+    /**
+     * プレイヤーがログインデータ読込中で、ゲーム入力を受け付けない状態か判定します。
+     *
+     * @param player 判定対象プレイヤー
+     * @return 読込中なら true
+     */
+    public boolean isLoading(Player player) {
+        return loadingPlayers.contains(player.getUniqueId());
     }
 
     private void showJoinLoadingTitle(Player player) {

@@ -56,6 +56,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * Coordinates boss challenge acceptance, field entry, and completion.
  */
 public final class BossChallengeService {
+    /** ボス入口円内の候補と、プレイヤーから入口中心までの距離です。 */
+    public record BossEntryHit(@NotNull String bossId, double hitDistance) {
+    }
+
     private static final long FIELD_START_DELAY_TICKS = 40L;
     private static final long DEFEATED_RESULT_WAIT_TICKS = 15L * 20L;
     private static final long ENTRY_VISUAL_PERIOD_TICKS = 10L;
@@ -168,20 +172,50 @@ public final class BossChallengeService {
      * @return true when a challenge was accepted or an error was sent
      */
     public boolean acceptNearestChallenge(@NotNull Player player, boolean notifyMissing) {
-        for (String bossId : mobService.getLoadedMobIdsByCategory(List.of(MobCategory.BOSS))) {
-            MobTemplate template = mobService.findTemplate(bossId);
-            if (template == null || template.challenge() == null) {
-                continue;
-            }
-            if (isInsideEntry(player, template.challenge())) {
-                acceptChallenge(player, bossId);
-                return true;
-            }
+        BossEntryHit hit = findNearestChallengeEntry(player);
+        if (hit != null) {
+            acceptChallenge(player, hit.bossId());
+            return true;
         }
         if (notifyMissing) {
             messageService.send(player, PlayerMsgId.P_6500);
         }
         return false;
+    }
+
+    /**
+     * プレイヤーを含むボス入口円のうち、入口中心が最も近い候補を返します。
+     * 候補探索だけを行い、挑戦開始などの副作用は発生させません。
+     *
+     * @param player 判定対象プレイヤー
+     * @return 最寄り入口。入口円外なら null
+     */
+    public @Nullable BossEntryHit findNearestChallengeEntry(@NotNull Player player) {
+        BossEntryHit nearest = null;
+        for (String bossId : mobService.getLoadedMobIdsByCategory(List.of(MobCategory.BOSS))) {
+            MobTemplate template = mobService.findTemplate(bossId);
+            if (template == null || template.challenge() == null) {
+                continue;
+            }
+            BossChallengeConfig config = template.challenge();
+            World entryWorld = resolveLocationWorld(config.entryLocation());
+            if (entryWorld == null || !entryWorld.getUID().equals(player.getWorld().getUID())) {
+                continue;
+            }
+            Location entry = config.entryLocation().toLocation(entryWorld);
+            double distanceSquared = player.getLocation().distanceSquared(entry);
+            if (distanceSquared > config.entryRadius() * config.entryRadius()) {
+                continue;
+            }
+            BossEntryHit current = new BossEntryHit(bossId, Math.sqrt(distanceSquared));
+            if (nearest == null
+                || current.hitDistance() < nearest.hitDistance()
+                || (Double.compare(current.hitDistance(), nearest.hitDistance()) == 0
+                && current.bossId().compareTo(nearest.bossId()) < 0)) {
+                nearest = current;
+            }
+        }
+        return nearest;
     }
 
     /**

@@ -32,6 +32,8 @@
   - 発動者・対象者の `AstPlayer` と状態をスキル実行コンテキストへ渡す。
 - `status`
   - `manaCost` / `requiredLevel` / `params` 内のステータス依存ロジックの評価に利用する。
+- `player-interaction`
+  - skilltree操作、表示中action ring、weapon入力、新規action ring表示、`HOTBAR_SLOT`のskilltree setup / 表示中ring guardの排他制御は[[28_README]]を正本とする。
 - API
   - `00_docs/20_API設計書/feature/11-skill/` を参照し、`/api/skill` から定義を取得する。
 
@@ -53,6 +55,11 @@
 - スキルツリー進行状態のロード・保存・TPS 負荷対策の変更:
   - [[13_5.00-例外・ログ・運用]]
   - `00_docs/20_API設計書/feature/20-skilltree/`
+- skilltreeクリック・setup中hotbar guard、action ring開閉・発動・表示中hotbar guard、新規表示条件の変更:
+  - [[13_3.02-サービス]]
+  - [[13_4.00-統合フロー]]
+  - [[28_3.02-サービス]]
+  - [[28_4.00-統合フロー]]
 
 ## 2026-06 skilltree パフォーマンス更新
 

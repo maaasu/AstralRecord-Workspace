@@ -6,21 +6,30 @@ import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.shared.interaction.InputClaimPolicy;
+import io.github.maaasu.astralRecord.shared.interaction.InputFamily;
+import io.github.maaasu.astralRecord.shared.interaction.InputSource;
+import io.github.maaasu.astralRecord.shared.interaction.InteractionCandidateOrder;
+import io.github.maaasu.astralRecord.shared.interaction.InteractionTier;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputCandidate;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputResolver;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.player.PlayerDropItemEvent;
-import org.bukkit.event.player.PlayerInteractEntityEvent;
-import org.bukkit.inventory.EquipmentSlot;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 /**
  * ボス挑戦中止装置のインタラクト、ドロップ操作、GUI 操作を処理します。
  */
-public final class BossChallengeCancelEventHandler extends AbstractEventHandler {
+public final class BossChallengeCancelEventHandler extends AbstractEventHandler
+    implements PlayerInputResolver<PlayerInteractionSnapshot> {
     private final BossChallengeService service;
     private final BossChallengeCancelGui gui;
 
@@ -32,35 +41,56 @@ public final class BossChallengeCancelEventHandler extends AbstractEventHandler 
         this.gui = gui;
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
-    public void onPlayerInteractEntity(@NotNull PlayerInteractEntityEvent event) {
-        if (event.getHand() != EquipmentSlot.HAND || !event.getPlayer().isSneaking()) {
-            return;
+    @Override
+    public @NotNull Collection<PlayerInputCandidate> resolve(
+        @NotNull PlayerInputContext<PlayerInteractionSnapshot> context
+    ) {
+        PlayerInteractionSnapshot snapshot = context.inputSnapshot();
+        if (context.family() == InputFamily.DROP_ITEM) {
+            UUID challengeId = service.findNearbyCancelController(snapshot.player());
+            if (challengeId == null) {
+                return List.of();
+            }
+            return List.of(new PlayerInputCandidate(
+                "boss-cancel-drop",
+                InteractionTier.WORLD_INTERACTION,
+                0.0D,
+                InteractionCandidateOrder.BOSS_CONTROLLER,
+                challengeId.toString(),
+                InputClaimPolicy.CLAIM_AND_CANCEL,
+                () -> runSafely(
+                    () -> openForLeader(snapshot.player(), challengeId),
+                    LogId.E_6501,
+                    snapshot.player().getName()
+                )
+            ));
         }
-        UUID challengeId = service.resolveCancelInteraction(event.getRightClicked());
-        if (challengeId == null) {
-            return;
+        if (context.family() != InputFamily.RIGHT_CLICK
+            || (context.source() != InputSource.PLAYER_INTERACT_ENTITY
+            && context.source() != InputSource.PLAYER_INTERACT_AT_ENTITY)
+            || !snapshot.isMainHandInput()
+            || !snapshot.player().isSneaking()
+            || snapshot.targetEntity() == null) {
+            return List.of();
         }
-        event.setCancelled(true);
-        runSafely(
-                () -> openForLeader(event.getPlayer(), challengeId),
+        UUID challengeId = service.resolveCancelInteraction(snapshot.targetEntity());
+        Double hitDistance = snapshot.hitDistance(snapshot.targetEntity());
+        if (challengeId == null || hitDistance == null || !snapshot.isVisible(hitDistance)) {
+            return List.of();
+        }
+        return List.of(new PlayerInputCandidate(
+            "boss-cancel-controller",
+            InteractionTier.WORLD_INTERACTION,
+            hitDistance,
+            InteractionCandidateOrder.BOSS_CONTROLLER,
+            challengeId.toString(),
+            InputClaimPolicy.CLAIM_AND_CANCEL,
+            () -> runSafely(
+                () -> openForLeader(snapshot.player(), challengeId),
                 LogId.E_6501,
-                event.getPlayer().getName()
-        );
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
-    public void onPlayerDropItem(@NotNull PlayerDropItemEvent event) {
-        UUID challengeId = service.findNearbyCancelController(event.getPlayer());
-        if (challengeId == null) {
-            return;
-        }
-        event.setCancelled(true);
-        runSafely(
-                () -> openForLeader(event.getPlayer(), challengeId),
-                LogId.E_6501,
-                event.getPlayer().getName()
-        );
+                snapshot.player().getName()
+            )
+        ));
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)

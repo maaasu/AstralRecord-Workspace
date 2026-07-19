@@ -6,6 +6,7 @@
 ## 対象実装パス
 
 - `src/main/java/io/github/maaasu/astralRecord/feature/status/command/*`
+- `src/main/java/io/github/maaasu/astralRecord/feature/status/event/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/status/service/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/status/model/*`
 - `src/main/resources/player.properties`（`P_5100` から `P_5106`）
@@ -33,6 +34,8 @@
 - `hud`
   - HUD 表示は status の現在 HP/MP/EN を参照する。
   - HUD 側の責務分離（`service` / `view`）は [[10_0.00-概要]], [[10_3.00-索引]] を参照する。
+- `player-interaction`
+  - `HOTBAR_SLOT`の入力所有権は[[28_README]]を正本とし、status側の再計算は非競合observerとして扱う。
 
 ## 更新ルール（変更時に必ず更新する章）
 
@@ -49,3 +52,6 @@
 - スナップショット項目追加・削除:
   - [[07_1.00-モデル定義]]
   - [[07_3.09-モデル操作]]
+- `PlayerItemHeldEvent`後のステータス再計算、または`HOTBAR_SLOT`調停との境界変更:
+  - [[07_4.00-統合フロー]]
+  - [[28_3.01-イベント]]

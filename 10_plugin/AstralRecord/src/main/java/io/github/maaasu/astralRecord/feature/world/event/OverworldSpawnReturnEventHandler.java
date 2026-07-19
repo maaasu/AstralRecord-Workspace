@@ -8,19 +8,29 @@ import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.feature.world.service.ReturnToBaseService;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.shared.interaction.InputClaimPolicy;
+import io.github.maaasu.astralRecord.shared.interaction.InputFamily;
+import io.github.maaasu.astralRecord.shared.interaction.InteractionCandidateOrder;
+import io.github.maaasu.astralRecord.shared.interaction.InteractionTier;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputCandidate;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputResolver;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collection;
+import java.util.List;
+
 /**
- * オーバーワールドのスポーン円内でスニークしたプレイヤーを拠点へ即時帰還させます。
+ * オーバーワールドスポーン円のスニーク入力を、拠点帰還候補として提供します。
  */
-public final class OverworldSpawnReturnEventHandler extends AbstractEventHandler {
+public final class OverworldSpawnReturnEventHandler extends AbstractEventHandler
+    implements PlayerInputResolver<PlayerInteractionSnapshot> {
     private static final double RETURN_TRIGGER_RADIUS = 2.0D;
     private static final double RETURN_TRIGGER_RADIUS_SQUARED = RETURN_TRIGGER_RADIUS * RETURN_TRIGGER_RADIUS;
 
@@ -28,39 +38,53 @@ public final class OverworldSpawnReturnEventHandler extends AbstractEventHandler
     private final ReturnToBaseService returnToBaseService;
 
     public OverworldSpawnReturnEventHandler(
-            @NotNull WorldService worldService,
-            @NotNull ReturnToBaseService returnToBaseService
+        @NotNull WorldService worldService,
+        @NotNull ReturnToBaseService returnToBaseService
     ) {
         this.worldService = worldService;
         this.returnToBaseService = returnToBaseService;
     }
 
-    /**
-     * スニーク押下の瞬間だけスポーン円帰還を判定します。
-     *
-     * @param event プレイヤースニーク切替イベント
-     */
-    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
-    public void onPlayerToggleSneak(@NotNull PlayerToggleSneakEvent event) {
-        if (!event.isSneaking()) {
-            return;
+    @Override
+    public @NotNull Collection<PlayerInputCandidate> resolve(
+        @NotNull PlayerInputContext<PlayerInteractionSnapshot> context
+    ) {
+        PlayerInteractionSnapshot snapshot = context.inputSnapshot();
+        if (context.family() != InputFamily.SNEAK
+            || !(snapshot.event() instanceof PlayerToggleSneakEvent event)
+            || !event.isSneaking()) {
+            return List.of();
         }
-
-        runSafely(() -> {
-            AstPlayer astPlayer = AstPlayerCache.get(event.getPlayer());
-            if (astPlayer == null || !isInsideReturnTrigger(event.getPlayer())) {
-                return;
-            }
-            returnToBaseService.beginImmediateReturn(astPlayer);
-        }, LogId.E_5756, event.getPlayer().getName(), "sneak");
+        AstPlayer astPlayer = AstPlayerCache.get(snapshot.player());
+        Double distance = triggerDistance(snapshot.player());
+        if (astPlayer == null || distance == null) {
+            return List.of();
+        }
+        return List.of(new PlayerInputCandidate(
+            "overworld-spawn-return",
+            InteractionTier.WORLD_INTERACTION,
+            distance,
+            InteractionCandidateOrder.WORLD_SPAWN_ACTION,
+            snapshot.player().getWorld().getUID() + ":overworld-spawn",
+            InputClaimPolicy.CLAIM,
+            () -> runSafely(
+                () -> returnToBaseService.beginImmediateReturn(astPlayer),
+                LogId.E_5756,
+                snapshot.player().getName(),
+                "sneak"
+            )
+        ));
     }
 
-    private boolean isInsideReturnTrigger(@NotNull Player player) {
+    private @Nullable Double triggerDistance(@NotNull Player player) {
         Location triggerCenter = resolveTriggerCenter(player);
         if (triggerCenter == null || triggerCenter.getWorld() == null) {
-            return false;
+            return null;
         }
-        return horizontalDistanceSquared(player.getLocation(), triggerCenter) <= RETURN_TRIGGER_RADIUS_SQUARED;
+        double distanceSquared = horizontalDistanceSquared(player.getLocation(), triggerCenter);
+        return distanceSquared <= RETURN_TRIGGER_RADIUS_SQUARED
+            ? player.getLocation().distance(triggerCenter)
+            : null;
     }
 
     private @Nullable Location resolveTriggerCenter(@NotNull Player player) {
@@ -83,7 +107,6 @@ public final class OverworldSpawnReturnEventHandler extends AbstractEventHandler
         if (from.getWorld() == null || to.getWorld() == null || !from.getWorld().getUID().equals(to.getWorld().getUID())) {
             return Double.POSITIVE_INFINITY;
         }
-
         double deltaX = from.getX() - to.getX();
         double deltaZ = from.getZ() - to.getZ();
         return (deltaX * deltaX) + (deltaZ * deltaZ);

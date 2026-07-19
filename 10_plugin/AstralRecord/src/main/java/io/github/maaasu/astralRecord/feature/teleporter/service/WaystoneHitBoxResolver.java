@@ -1,21 +1,42 @@
 package io.github.maaasu.astralRecord.feature.teleporter.service;
 
 import io.github.maaasu.astralRecord.feature.teleporter.model.WaystoneDefinition;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionRayTrace;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Comparator;
+import java.util.Objects;
 
 /**
  * packet-only 表示に対する視線ベースの当たり判定を解決します。
  */
 public final class WaystoneHitBoxResolver {
     private static final double MAX_DISTANCE = 5.0D;
-    private static final double RADIUS_SQUARED = 0.85D * 0.85D;
+    private static final double HIT_RADIUS = 0.85D;
+
+    /**
+     * 視線上で命中したウェイストーンとhitbox入口距離です。
+     *
+     * @param definition 命中したウェイストーン定義
+     * @param hitDistance プレイヤー視点からhitbox入口までの有限な非負距離
+     */
+    public record WaystoneHit(@NotNull WaystoneDefinition definition, double hitDistance) {
+        /**
+         * 命中結果を生成し、距離契約を検証します。
+         *
+         * @throws NullPointerException ウェイストーン定義がnullの場合
+         * @throws IllegalArgumentException 距離が非有限または負数の場合
+         */
+        public WaystoneHit {
+            Objects.requireNonNull(definition, "definition");
+            if (!Double.isFinite(hitDistance) || hitDistance < 0.0D) {
+                throw new IllegalArgumentException("hitDistance must be finite and zero or greater");
+            }
+        }
+    }
 
     private final TeleporterService teleporterService;
 
@@ -31,34 +52,48 @@ public final class WaystoneHitBoxResolver {
      */
     @Nullable
     public WaystoneDefinition resolve(@NotNull Player player) {
+        WaystoneHit hit = resolveHit(player);
+        return hit == null ? null : hit.definition();
+    }
+
+    /**
+     * プレイヤー視線上の最も入口距離が近いウェイストーンを返します。
+     * 候補解決だけを行い、解除・GUI表示などの副作用は発生させません。
+     *
+     * @param player 判定対象プレイヤー
+     * @return 命中したウェイストーンと入口距離。見つからない場合はnull
+     */
+    @Nullable
+    public WaystoneHit resolveHit(@NotNull Player player) {
         World world = player.getWorld();
         Location eye = player.getEyeLocation();
-        Vector origin = eye.toVector();
-        Vector direction = eye.getDirection().normalize();
-        return teleporterService.getAll().stream()
-                .filter(definition -> definition.worldName().equals(world.getName()))
-                .filter(definition -> intersects(origin, direction, definition))
-                .min(Comparator.comparingDouble(definition -> distanceSquared(origin, definition)))
-                .orElse(null);
-    }
-
-    private boolean intersects(@NotNull Vector origin, @NotNull Vector direction, @NotNull WaystoneDefinition definition) {
-        Location centerLocation = definition.centerLocation();
-        if (centerLocation == null) {
-            return false;
+        PlayerInteractionRayTrace ray = PlayerInteractionRayTrace.create(
+                eye.toVector(),
+                eye.getDirection(),
+                MAX_DISTANCE
+        );
+        if (ray == null) {
+            return null;
         }
-        Vector target = centerLocation.toVector();
-        Vector relative = target.clone().subtract(origin);
-        double projection = relative.dot(direction);
-        if (projection < 0.0D || projection > MAX_DISTANCE) {
-            return false;
-        }
-        Vector closest = origin.clone().add(direction.clone().multiply(projection));
-        return closest.distanceSquared(target) <= RADIUS_SQUARED;
-    }
 
-    private double distanceSquared(@NotNull Vector origin, @NotNull WaystoneDefinition definition) {
-        Location center = definition.centerLocation();
-        return center == null ? Double.MAX_VALUE : origin.distanceSquared(center.toVector());
+        WaystoneHit nearest = null;
+        for (WaystoneDefinition definition : teleporterService.getAll()) {
+            if (!definition.worldName().equals(world.getName())) {
+                continue;
+            }
+            Location center = definition.centerLocation();
+            if (center == null || center.getWorld() != world) {
+                continue;
+            }
+            Double hitDistance = ray.sphereEntryDistance(center.toVector(), HIT_RADIUS);
+            if (hitDistance == null || (nearest != null
+                    && (hitDistance > nearest.hitDistance()
+                    || (Double.compare(hitDistance, nearest.hitDistance()) == 0
+                    && definition.id().compareTo(nearest.definition().id()) >= 0)))) {
+                continue;
+            }
+            nearest = new WaystoneHit(definition, hitDistance);
+        }
+        return nearest;
     }
 }

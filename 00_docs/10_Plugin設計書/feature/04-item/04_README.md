@@ -39,6 +39,8 @@
   - アイテムカテゴリの保存・API 値は英語 ID のままとし、プレイヤー向け表示では `ItemCategory.displayNameJa` の日本語名を使用する。
 - `currency`
   - `currency` カテゴリの item 表現は本 feature が保持するが、所持通貨の取得・加算・表示用 ItemStack 一覧の正本は currency feature とする。
+- `player-interaction`
+  - クリック入力の候補収集、優先順位、勝者一件実行は[[28_README]]を正本とし、本featureはitem useとweapon / combat候補を提供する。`HOTBAR_SLOT`後の使用待機解除は非競合observerとして扱う。
 
 ## 更新ルール（変更時に必ず更新する章）
 
@@ -64,10 +66,19 @@
 - ログIDや障害対応手順の変更:
   - [[04_5.00-例外・ログ・運用]]
   - [[04_9.00-未決事項]]（未確定事項がある場合）
+- item use・武器候補の成立条件やクリック抑止方針の変更:
+  - [[04_2.00-ユースケース]]
+  - [[04_3.01-イベント]]
+  - [[04_4.00-統合フロー]]
+  - [[28_3.02-サービス]]
+- `PlayerItemHeldEvent`によるbundle / potion使用待機解除、または`HOTBAR_SLOT`調停との境界変更:
+  - [[04_3.01-イベント]]
+  - [[04_4.00-統合フロー]]
+  - [[28_3.01-イベント]]
 
 ## 2026-05-27 実装反映
 
-- bundle アイテムは `ItemInteractionBlockEventHandler` で右クリック時に `BundleUseService` を起動し、開封処理を行う。
+- bundleアイテムは右クリックのitem use候補が勝者になった場合だけ`BundleUseService`を起動し、開封処理を行う。
 - バンドル開封後も vanilla 側の使用・設置・消費は抑止する。
 - 開封完了後はサマリーメッセージに加えて、獲得した各アイテム名と個数をプレイヤーへ表示する。
 - bundle の loot 参照は `loot_table:` 接頭辞付き ID を許容し、plugin 側で table / pool 構造を解決する。
@@ -75,7 +86,9 @@
 - 追加メモ: [[04_90.01-bundle開封実装メモ]]
 - 2026-06-09: 武器クリック攻撃の起点は旧 `15-hotbar-action` から移行済みとして本 feature 側で扱う。built-in skill の実行正本は `skill`、ホットバー保存・ショートカット表示は `inventory` とする。
 
-## 追記（2026-07-09）インタラクト消費済みイベントの武器入力抑止
+## クリック入力の共通仲裁
 
-- 武器クリック攻撃は `PlayerInteractionConsumeService` で消費済みの `PlayerInteractEvent` では発動しない。
-- テレポーター、NPC、将来追加する右クリックインタラクト系コンテンツは、処理した event を同サービスで消費して、右クリック武器スキルとの同時発火を避ける。
+- item useは`ITEM_USE`としてworld interactionより下位、`FALLBACK`のaction ringより上位の候補を返す。
+- weapon / combatは`FALLBACK`とし、`stableOrder`で表示中action ringより後、新規action ring表示より前の候補とする。
+- NPC、テレポーター、vanilla操作対象などのworld interactionが成立した入力ではitem use・weapon・新規action ringを実行しない。
+- eventの経過時間を記録するconsume/debounce方式は使用せず、`PlayerInputSequenceLedger`のtick tokenと`PlayerInputDispatcher`の勝者結果で重複実行を防ぐ。詳細は[[28_0.00-概要]]を参照する。

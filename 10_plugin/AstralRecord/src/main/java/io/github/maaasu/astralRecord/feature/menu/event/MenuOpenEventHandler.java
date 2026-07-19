@@ -30,6 +30,14 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
+import io.github.maaasu.astralRecord.shared.interaction.InputClaimPolicy;
+import io.github.maaasu.astralRecord.shared.interaction.InputFamily;
+import io.github.maaasu.astralRecord.shared.interaction.InteractionCandidateOrder;
+import io.github.maaasu.astralRecord.shared.interaction.InteractionTier;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputCandidate;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputResolver;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -58,7 +66,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class MenuOpenEventHandler extends AbstractEventHandler {
+public class MenuOpenEventHandler extends AbstractEventHandler
+    implements PlayerInputResolver<PlayerInteractionSnapshot> {
     private static final long BUFF_GUI_REFRESH_INTERVAL_TICKS = 20L;
     private static final long CRAFT_SHORTCUT_DROP_CLEANUP_INTERVAL_TICKS = 20L * 60L;
 
@@ -135,6 +144,29 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
         super.cleanup();
         buffGuiRefreshTask.cancel();
         craftShortcutDropCleanupTask.cancel();
+    }
+
+    @Override
+    public @NotNull List<PlayerInputCandidate> resolve(
+        @NotNull PlayerInputContext<PlayerInteractionSnapshot> context
+    ) {
+        if (context.family() != InputFamily.DROP_ITEM
+            || !(context.inputSnapshot().event() instanceof PlayerDropItemEvent event)
+            || !menuView.isCraftShortcutItem(event.getItemDrop().getItemStack())) {
+            return List.of();
+        }
+        return List.of(new PlayerInputCandidate(
+            "menu-craft-shortcut-drop",
+            InteractionTier.ITEM_USE,
+            0.0D,
+            InteractionCandidateOrder.MENU_SHORTCUT,
+            event.getItemDrop().getUniqueId().toString(),
+            InputClaimPolicy.CLAIM_AND_CANCEL,
+            () -> runSafely(() -> {
+                event.getItemDrop().remove();
+                cleanupCraftShortcuts(event.getPlayer(), true);
+            }, LogId.E_5600, event.getPlayer().getName())
+        ));
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -233,18 +265,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerChangedWorld(PlayerChangedWorldEvent event) {
         runSafely(() -> cleanupCraftShortcuts(event.getPlayer(), true), LogId.E_5600, event.getPlayer().getName());
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST)
-    public void onPlayerDropItem(PlayerDropItemEvent event) {
-        runSafely(() -> {
-            if (!menuView.isCraftShortcutItem(event.getItemDrop().getItemStack())) {
-                return;
-            }
-            event.setCancelled(true);
-            event.getItemDrop().remove();
-            cleanupCraftShortcuts(event.getPlayer(), true);
-        }, LogId.E_5600, event.getPlayer().getName());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)

@@ -16,6 +16,7 @@ import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusValue;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionRayTrace;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.SoundCategory;
@@ -23,25 +24,45 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
-import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
 public class GatheringService {
     private static final double TARGET_DISTANCE = 5.5D;
-    private static final double TARGET_RADIUS_SQ = 0.85D * 0.85D;
+    private static final double TARGET_RADIUS = 0.85D;
     private static final long AUTO_CLICK_INTERVAL_TICKS = 8L;
     private static final String DROP_SOURCE = "gathering_drop";
+
+    /**
+     * 視線上で命中した採集オブジェクトとhitbox入口距離です。
+     *
+     * @param instance 命中した採集インスタンス
+     * @param hitDistance プレイヤー視点からhitbox入口までの有限な非負距離
+     */
+    public record GatheringHit(@NotNull GatheringInstance instance, double hitDistance) {
+        /**
+         * 命中結果を生成し、距離契約を検証します。
+         *
+         * @throws NullPointerException 採集インスタンスがnullの場合
+         * @throws IllegalArgumentException 距離が非有限または負数の場合
+         */
+        public GatheringHit {
+            Objects.requireNonNull(instance, "instance");
+            if (!Double.isFinite(hitDistance) || hitDistance < 0.0D) {
+                throw new IllegalArgumentException("hitDistance must be finite and zero or greater");
+            }
+        }
+    }
 
     private final Plugin plugin;
     private final GatheringDefinitionRepository definitionRepository;
@@ -214,15 +235,51 @@ public class GatheringService {
         return true;
     }
 
+    /**
+     * プレイヤー視線上で最も入口距離が近い採集オブジェクトを返します。
+     *
+     * @param player 判定対象プレイヤー
+     * @return 命中した採集インスタンス。見つからない場合はnull
+     */
     public @Nullable GatheringInstance findTargeted(@NotNull Player player) {
+        GatheringHit hit = findTargetedHit(player);
+        return hit == null ? null : hit.instance();
+    }
+
+    /**
+     * プレイヤー視線上で最も入口距離が近い採集オブジェクトを返します。
+     * 候補解決だけを行い、採集sessionや耐久値を変更しません。
+     *
+     * @param player 判定対象プレイヤー
+     * @return 命中した採集インスタンスと入口距離。見つからない場合はnull
+     */
+    public @Nullable GatheringHit findTargetedHit(@NotNull Player player) {
         Location eye = player.getEyeLocation();
-        Vector origin = eye.toVector();
-        Vector direction = eye.getDirection().normalize();
-        return instances.values().stream()
-                .filter(instance -> instance.location().getWorld() == player.getWorld())
-                .filter(instance -> isTargeted(origin, direction, instance.location().clone().add(0.0D, 0.55D, 0.0D)))
-                .min(Comparator.comparingDouble(instance -> instance.location().distanceSquared(eye)))
-                .orElse(null);
+        PlayerInteractionRayTrace ray = PlayerInteractionRayTrace.create(
+                eye.toVector(),
+                eye.getDirection(),
+                TARGET_DISTANCE
+        );
+        if (ray == null) {
+            return null;
+        }
+
+        GatheringHit nearest = null;
+        for (GatheringInstance instance : instances.values()) {
+            if (instance.location().getWorld() != player.getWorld()) {
+                continue;
+            }
+            Location center = instance.location().clone().add(0.0D, 0.55D, 0.0D);
+            Double hitDistance = ray.sphereEntryDistance(center.toVector(), TARGET_RADIUS);
+            if (hitDistance == null || (nearest != null
+                    && (hitDistance > nearest.hitDistance()
+                    || (Double.compare(hitDistance, nearest.hitDistance()) == 0
+                    && instance.instanceId().compareTo(nearest.instance().instanceId()) >= 0)))) {
+                continue;
+            }
+            nearest = new GatheringHit(instance, hitDistance);
+        }
+        return nearest;
     }
 
     private void continueMining(@NotNull MiningSession session) {
@@ -365,16 +422,6 @@ public class GatheringService {
                 + "|" + (astralId == null ? "" : astralId)
                 + "|" + (equipmentInstanceId == null ? "" : equipmentInstanceId)
                 + "|" + (iconName == null ? "" : iconName);
-    }
-
-    private boolean isTargeted(@NotNull Vector origin, @NotNull Vector direction, @NotNull Location target) {
-        Vector toTarget = target.toVector().subtract(origin);
-        double projection = toTarget.dot(direction);
-        if (projection < 0.0D || projection > TARGET_DISTANCE) {
-            return false;
-        }
-        Vector closest = origin.clone().add(direction.clone().multiply(projection));
-        return closest.distanceSquared(target.toVector()) <= TARGET_RADIUS_SQ;
     }
 
     private @NotNull Location blockCenter(@NotNull Location location) {
