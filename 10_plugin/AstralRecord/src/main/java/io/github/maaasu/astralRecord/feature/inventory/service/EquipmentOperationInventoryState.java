@@ -152,10 +152,14 @@ public final class EquipmentOperationInventoryState {
         @Nullable InventoryModel original
     ) {
         List<InventoryModel> candidates = new ArrayList<>();
-        if (original != null && original.isEnabled() && !original.isDeleted()) {
+        // 装備操作 GUI から戻す装備は、元がホットバーでも BAG を優先する。
+        addCandidate(state, candidates, InventoryType.BAG);
+        if (original != null
+            && original.getInventoryType() != InventoryType.HOTBAR
+            && original.isEnabled()
+            && !original.isDeleted()) {
             candidates.add(original);
         }
-        addCandidate(state, candidates, InventoryType.BAG);
         addCandidate(state, candidates, InventoryType.HOTBAR);
         return candidates;
     }

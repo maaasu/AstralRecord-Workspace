@@ -58,6 +58,24 @@ class EquipmentOperationInventoryStateTest {
     }
 
     @Test
+    void restoresHeldEntryFromHotbarToBagInsteadOfHotbar() {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        InventoryModel bag = DesignTestFixtures.inventory(accountId, InventoryType.BAG, 32);
+        InventoryModel hotbar = DesignTestFixtures.inventory(accountId, InventoryType.HOTBAR, 9);
+        state.putInventory(bag);
+        state.putInventory(hotbar);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of());
+        state.replaceEntriesFromLoad(hotbar.getInventoryId(), List.of());
+        InventoryEntryModel held = equipmentEntry(accountId, hotbar.getInventoryId(), 1, UUID.randomUUID());
+
+        assertTrue(EquipmentOperationInventoryState.restoreEntry(state, held));
+        assertEquals(1, state.snapshotEntries(bag.getInventoryId()).size());
+        assertEquals(1, state.snapshotEntries(bag.getInventoryId()).getFirst().getSlotIndex());
+        assertTrue(state.snapshotEntries(hotbar.getInventoryId()).isEmpty());
+    }
+
+    @Test
     void restoresPaymentSnapshotThenCanRestoreOrRemoveHeldEquipment() {
         UUID accountId = UUID.randomUUID();
         PlayerInventoryState state = new PlayerInventoryState(accountId);

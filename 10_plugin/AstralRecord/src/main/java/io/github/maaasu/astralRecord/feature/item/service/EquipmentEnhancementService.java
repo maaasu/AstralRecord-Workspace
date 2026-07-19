@@ -159,6 +159,7 @@ public final class EquipmentEnhancementService {
                 GuiSound.DENY.play(player);
                 return;
             }
+            inventoryService.applyInventoryToGui(astPlayer, InventoryType.BAG);
             render(player, player.getOpenInventory().getTopInventory(), session);
             GuiSound.SELECT.play(player);
             return;

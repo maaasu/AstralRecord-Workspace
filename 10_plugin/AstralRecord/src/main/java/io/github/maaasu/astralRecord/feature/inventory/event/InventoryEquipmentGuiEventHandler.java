@@ -12,7 +12,7 @@ import io.github.maaasu.astralRecord.feature.item.service.EquipmentEnhancementSe
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentRepairService;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
-import io.github.maaasu.astralRecord.feature.menu.view.screen.EquipmentMenuScreenView;
+import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
@@ -48,6 +48,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
     private final PassiveSkillService passiveSkillService;
     private final EquipmentEnhancementService equipmentEnhancementService;
     private final EquipmentRepairService equipmentRepairService;
+    private final MenuGuiTransitionService menuGuiTransitionService;
 
     /**
      * 装備 GUI とプレイヤーインベントリ上の装備操作を処理するイベントハンドラーを生成します。
@@ -65,7 +66,8 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         @NotNull StatusService statusService,
         @NotNull PassiveSkillService passiveSkillService,
         @NotNull EquipmentEnhancementService equipmentEnhancementService,
-        @NotNull EquipmentRepairService equipmentRepairService
+        @NotNull EquipmentRepairService equipmentRepairService,
+        @NotNull MenuGuiTransitionService menuGuiTransitionService
     ) {
         this.menuView = menuView;
         this.inventoryService = inventoryService;
@@ -74,6 +76,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         this.passiveSkillService = passiveSkillService;
         this.equipmentEnhancementService = equipmentEnhancementService;
         this.equipmentRepairService = equipmentRepairService;
+        this.menuGuiTransitionService = menuGuiTransitionService;
     }
 
     /**
@@ -586,9 +589,11 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         if (clickedItem == null || clickedItem.getType() == Material.AIR) {
             return;
         }
-        if (inventoryService.getDisplayedEntryAtBukkitSlot(astPlayer, slot) == null) {
+        var displayedEntry = inventoryService.getDisplayedEntryAtBukkitSlot(astPlayer, slot);
+        if (displayedEntry == null) {
             return;
         }
+        boolean accessoryClick = inventoryService.getAccessorySlotTypeForEntry(displayedEntry) != null;
 
         event.setCancelled(true);
         if (!inventoryService.getClickGuard().tryAcquire(
@@ -598,6 +603,15 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         boolean handled = inventoryService.equipOrAssignClickedItem(astPlayer, slot);
         if (handled) {
             refreshStatusAfterEquipmentChange(astPlayer);
+            if (accessoryClick) {
+                menuGuiTransitionService.switchGuiWithInventoryRestore(
+                    player,
+                    () -> menuView.openEquipmentGui(
+                        player,
+                        inventoryService.getAccessorySnapshotItems(astPlayer)
+                    )
+                );
+            }
         }
         playResultSound(player, handled, true);
     }

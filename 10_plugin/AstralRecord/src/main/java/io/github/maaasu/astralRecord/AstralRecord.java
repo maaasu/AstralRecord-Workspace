@@ -1132,7 +1132,8 @@ public final class AstralRecord extends JavaPlugin {
                 statusService,
                 passiveSkillService,
                 equipmentEnhancementService,
-                equipmentRepairService
+                equipmentRepairService,
+                menuGuiTransitionService
             ),
             getServer().getPluginManager()
         );

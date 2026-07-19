@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentEnhancementService;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentRepairService;
+import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -25,7 +26,8 @@ class InventoryEquipmentGuiEventHandlerTest {
             mock(StatusService.class),
             mock(PassiveSkillService.class),
             mock(EquipmentEnhancementService.class),
-            mock(EquipmentRepairService.class)
+            mock(EquipmentRepairService.class),
+            mock(MenuGuiTransitionService.class)
         );
 
         handler.onPlayerSwapHandItems(event);
