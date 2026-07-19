@@ -64,6 +64,12 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler {
                 actionRingService.close(player);
                 return;
             }
+            if (event.getHand() == EquipmentSlot.OFF_HAND) {
+                if (actionRingService.isOpen(player)) {
+                    event.setCancelled(true);
+                }
+                return;
+            }
             if (event.getHand() == EquipmentSlot.HAND
                 && (isLeftClick || isRightClick)
                 && player.getInventory().getHeldItemSlot() == 8) {
