@@ -17,4 +17,4 @@ Mail は、公開期間を持つ告知と、既読時に受け取る報酬をプ
 
 ## 正本参照
 
-- YAML: `E:\AstralRecord-Workspace\40_filebase\05.features.mail\mail.YAMLスキーマ定義.md`
+- YAML: `E:\AstralRecord-Workspace\40_filebase\05.features.mail\docs.mail.YAMLスキーマ定義.md`

@@ -17,4 +17,4 @@ Recipe は、material などの入力を equipment、consumable、別素材へ�
 
 ## 正本参照
 
-- YAML: `E:\AstralRecord-Workspace\40_filebase\85.shared.recipe\recipe.YAMLスキーマ定義.md`
+- YAML: `E:\AstralRecord-Workspace\40_filebase\85.shared.recipe\docs.recipe.YAMLスキーマ定義.md`

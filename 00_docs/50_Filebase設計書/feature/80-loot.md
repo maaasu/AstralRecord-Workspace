@@ -19,5 +19,5 @@ Loot は、mob、gathering、boss、quest などから得られる報酬候補�
 
 ## 正本参照
 
-- pool YAML: `E:\AstralRecord-Workspace\40_filebase\80.shared.loot\pool\pool.YAMLスキーマ定義.md`
-- table YAML: `E:\AstralRecord-Workspace\40_filebase\80.shared.loot\table\table.YAMLスキーマ定義.md`
+- pool YAML: `E:\AstralRecord-Workspace\40_filebase\80.shared.loot\pool\docs.pool.YAMLスキーマ定義.md`
+- table YAML: `E:\AstralRecord-Workspace\40_filebase\80.shared.loot\table\docs.table.YAMLスキーマ定義.md`

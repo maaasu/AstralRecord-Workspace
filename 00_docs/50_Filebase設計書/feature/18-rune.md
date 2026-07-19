@@ -17,5 +17,5 @@ Rune は、対応する equipment へステータスまたは skill を追加す
 
 ## 正本参照
 
-- YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\rune\_rune.YAMLスキーマ定義.md`
+- YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\rune\docs.rune.YAMLスキーマ定義.md`
 - status: `E:\AstralRecord-Workspace\10_plugin\AstralRecord\src\main\java\io\github\maaasu\astralRecord\feature\status\model\StatusType.kt`

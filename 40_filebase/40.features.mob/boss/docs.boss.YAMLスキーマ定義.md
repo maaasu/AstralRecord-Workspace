@@ -1,17 +1,20 @@
-# Enemy YAML スキーマ定義
+# Boss YAML スキーマ定義
 
-Enemy（通常エネミー）の固有フィールド定義。
+Boss（ボスMob）の固有フィールド定義。
 
 共通フィールド（`schemaVersion`, `id`, `type`, `category`, `name`, `entityType`, `baseStats`, `equipment`, `ai.idle` 等）は
-[mob.YAMLスキーマ定義.md](../mob.YAMLスキーマ定義.md) を参照してください。
+[docs.mob.YAMLスキーマ定義.md](../docs.mob.YAMLスキーマ定義.md) を参照してください。
 
-本スキーマでは Enemy に必要な **ターゲット選択・戦闘AI・ドロップ** を定義します。
+ボスの基本的な戦闘AIとドロップ構造は Enemy と同一です。
+固有のフェーズ遷移・スキルギミック・演出はプラグイン側で実装するため、本スキーマでは宣言しません。
 
 ---
 
 ## スキーマ定義
 
 ### ai.targeting（ターゲット選択）
+
+Enemy と同一仕様です。
 
 | キー                          | 型      | 必須 | デフォルト          | 説明                             |
 |:----------------------------|:-------|:--:|:---------------|:-------------------------------|
@@ -28,12 +31,14 @@ Enemy（通常エネミー）の固有フィールド定義。
 
 ### ai.combat（戦闘行動）
 
+Enemy と同一仕様です。ボス固有のスキルローテーションやフェーズ遷移はプラグイン側で制御します。
+
 | キー                              | 型            | 必須 | デフォルト     | 説明                                                  |
 |:--------------------------------|:-------------|:--:|:----------|:----------------------------------------------------|
 | `ai.combat.style`               | String       | ○  | -         | 戦闘スタイル（後述 `CombatStyle`）                            |
 | `ai.combat.preferredRange`      | Double       | ×  | 1.0       | 戦闘時の理想距離（ブロック単位）。`MELEE` は接近、`RANGED`/`MAGIC` は距離確保 |
 | `ai.combat.attackIntervalTicks` | Long         | ×  | 20        | 通常攻撃の間隔（tick）。20 tick = 1 秒                         |
-| `ai.combat.skills`              | List<String> | ×  | emptyList | 使用するスキルのID一覧（※参照値。例: `ref: skill:fire_bolt`）        |
+| `ai.combat.skills`              | List<String> | ×  | emptyList | 使用するスキルのID一覧（※参照値。例: `ref: skill:dragon_breath`）    |
 
 #### CombatStyle
 - `MELEE` : 近接戦闘。ターゲットに接近して攻撃
@@ -42,7 +47,7 @@ Enemy（通常エネミー）の固有フィールド定義。
 
 ### drops（ドロップ設定）
 
-Mob撃破時のドロップを定義します。
+Enemy と同一仕様です。
 
 | キー                           | 型       | 必須 | デフォルト     | 説明                                                           |
 |:-----------------------------|:--------|:--:|:----------|:-------------------------------------------------------------|
@@ -60,143 +65,113 @@ Mob撃破時のドロップを定義します。
 
 > `drops.items[]` と `drops.lootTable` は併用可能です。両方指定された場合、双方の抽選がそれぞれ実行されます。
 
+### ボス固有の補足事項
+
+- **フェーズ遷移** : HP 閾値によるフェーズ切り替えはプラグイン側で実装。本スキーマでは定義しない。
+- **専用ギミック** : 戦闘エリアの制限・特殊オブジェクト・QTEなどはプラグイン側で実装。
+- **スキルローテーション** : `ai.combat.skills` にスキルIDを列挙し、使用順序・条件分岐はプラグイン側で制御。
+
+## challenge
+
+ボス挑戦を有効にする場合、BOSS マスタに `challenge` を定義する。
+
+| キー | 型 | 必須 | 説明 |
+|:--|:--|:--:|:--|
+| `challenge.fieldWorldId` | String | ○ | `WorldType.BOSS_FIELD` の WorldMasterData ID |
+| `challenge.entryLocation.worldId` | String | ○ | 挑戦受付地点の WorldMasterData ID または Bukkit world 名 |
+| `challenge.entryLocation.x/y/z` | Double | ○ | 挑戦受付地点 |
+| `challenge.entryLocation.yaw/pitch` | Double | × | 受付地点の向き |
+| `challenge.entryRadius` | Double | × | スニーク受付半径。未指定時 3.0 |
+| `challenge.playerSpawnLocation.x/y/z` | Double | ○ | フィールド内の参加者転送先 |
+| `challenge.bossSpawnLocation.x/y/z` | Double | ○ | フィールド内のボススポーン地点 |
+| `challenge.partyMin` | Integer | × | 最小参加人数。未指定時 1 |
+| `challenge.partyMax` | Integer | × | 最大参加人数。未指定時 6 |
+| `challenge.timeLimitSeconds` | Long | × | 制限時間。未指定時 600 |
+| `challenge.deathLimit` | Integer | × | パーティー共有の死亡上限。未指定時 5 |
+| `challenge.reviveDelaySeconds` | Long | × | 上限未満の死亡時にフィールドへ復帰するまでの秒数。未指定時 5 |
+| `challenge.scaling.enabled` | Boolean | × | 参加人数補正の有効化 |
+| `challenge.scaling.healthPerExtraPlayer` | Double | × | 2人目以降1人あたりの HP 増加率 (%) |
+| `challenge.scaling.attackPerExtraPlayer` | Double | × | 2人目以降1人あたりの攻撃力増加率 (%)。初回実装では読み込みのみ |
+
 ---
 
 ## YAML 例
 
-### 例1: 近接型エネミー
-
 ```yaml
 schemaVersion: 1
-id: windwait_stray
+id: dark_dragon
 type: MOB
-category: ENEMY
-name: "&6風待ちのはぐれ者"
-level: 2
-entityType: ZOMBIE
-icon: ZOMBIE_HEAD
+category: BOSS
+name: "&0&l暗黒竜ヴァルザード"
+title: "&8―― 深淵の支配者 ――"
+level: 80
+entityType: ENDER_DRAGON
+icon: DRAGON_HEAD
 lore:
-  - "&7風待ち草原の外れをうろつく流れ者。"
-  - "&7木道の残材を武器にして襲い掛かる。"
+  - "&7古より封印されし暗黒竜。"
+  - "&7強大な力を持ち、挑戦者を待ち受ける。"
 tags:
-  - humanoid
-  - windwait
-
-equipment:
-  mainHand:
-    ref: item:rusty_sword
+  - dragon
+  - boss
+  - fire
 
 baseStats:
   - status: MAX_HEALTH
-    value: 55
+    value: 50000
   - status: ATTACK
-    value: 7
+    value: 200
   - status: DEFENSE
-    value: 1
-  - status: MOVEMENT_SPEED
-    value: 102
-
-ai:
-  idle:
-    behavior: WANDER
-    wanderRadius: 8
-    speed: 0.8
-  targeting:
-    strategy: NEAREST
-    aggroRange: 14
-    deaggroRange: 22
-    leashRange: 28
-  combat:
-    style: MELEE
-    preferredRange: 2.2
-    attackIntervalTicks: 24
-    skills:
-      - ref: skill:mob_goblin_slash
-
-drops:
-  exp: 16
-  money:
-    min: 1
-    max: 4
-  items:
-    - itemId:
-        ref: item:glowstone_shard
-      rate: 18.0
-      amount: 1
-      luckAffected: true
-      hidden: false
-    - itemId:
-        ref: item:astral_dust
-      rate: 4.5
-      amount: 1
-      luckAffected: false
-      hidden: false
-  lootTable:
-    ref: loot_table:windwait_field_table
-```
-
-### 例2: 遠距離型エネミー（魔法）
-
-```yaml
-schemaVersion: 1
-id: skeleton_mage
-type: MOB
-category: ENEMY
-name: "&0スケルトンメイジ"
-level: 12
-entityType: SKELETON
-icon: SKELETON_SKULL
-lore:
-  - "&7暗黒魔法を操るスケルトン。"
-  - "&7距離を取りながら魔法で攻撃する。"
-tags:
-  - undead
-  - magic
-
-equipment:
-  mainHand:
-    ref: item:dark_staff
-
-baseStats:
-  - status: MAX_HEALTH
-    value: 180
-  - status: ATTACK
-    value: 30
-  - status: DEFENSE
-    value: 3
+    value: 80
   - status: MAGIC_DEFENSE
-    value: 8
+    value: 80
   - status: MOVEMENT_SPEED
-    value: 90
+    value: 100
+  - status: CRITICAL_RATE
+    value: 10.0
+  - status: CRITICAL_DAMAGE
+    value: 200.0
 
 ai:
   idle:
     behavior: STATIONARY
   targeting:
-    strategy: LOWEST_HP
-    aggroRange: 18
+    strategy: HIGHEST_THREAT
+    aggroRange: 40
+    deaggroRange: 60
+    leashRange: 80
   combat:
     style: MAGIC
-    preferredRange: 12
+    preferredRange: 8
     attackIntervalTicks: 40
     skills:
-      - ref: skill:dark_bolt
-      - ref: skill:shadow_curse
+      - ref: skill:dragon_breath
+      - ref: skill:dark_nova
+      - ref: skill:tail_sweep
 
 drops:
-  exp: 60
+  exp: 5000
   money:
-    min: 10
-    max: 40
+    min: 500
+    max: 1000
   items:
     - itemId:
-        ref: item:bone_fragment
-      rate: 70.0
-      amount: 1~3
+        ref: item:dragon_scale
+      rate: 100.0
+      amount: 3~5
+      luckAffected: false
+      hidden: false
     - itemId:
-        ref: item:dark_essence
-      rate: 12.0
+        ref: item:dark_dragon_fang
+      rate: 30.0
       amount: 1
       luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:varzard_soul_fragment
+      rate: 1.00
+      amount: 1
+      luckAffected: false
+      hidden: true
+  lootTable:
+    ref: loot_table:boss_common_drop
 ```
-

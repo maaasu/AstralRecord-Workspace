@@ -21,5 +21,5 @@ Mob は、戦闘対象、案内役、商業・機能提供者など、ワール�
 
 ## 正本参照
 
-- YAML: `E:\AstralRecord-Workspace\40_filebase\40.features.mob\mob.YAMLスキーマ定義.md`
+- YAML: `E:\AstralRecord-Workspace\40_filebase\40.features.mob\docs.mob.YAMLスキーマ定義.md`
 - status: `E:\AstralRecord-Workspace\10_plugin\AstralRecord\src\main\java\io\github\maaasu\astralRecord\feature\status\model\StatusType.kt`

@@ -78,8 +78,8 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 
 ### スキーマ定義ファイルの配置
 
-- 各フォルダ直下のスキーマ定義 Markdown は `_<name>.YAMLスキーマ定義.md` のように、アンダースコア `_` を先頭に付けて配置する（例: `bundle/_bundle.YAMLスキーマ定義.md`）。
-- Obsidian で表示可能にしつつ、フォルダ先頭にソートさせるための慣習です。
+- 各フォルダ直下のスキーマ定義 Markdown は `docs.<name>.YAMLスキーマ定義.md` の形式で配置する（例: `bundle/docs.bundle.YAMLスキーマ定義.md`）。
+- ファイル名の先頭に `docs.` を付け、スキーマ定義であることを明示する慣習です。
 - `.` 先頭は Obsidian で非表示となるため使用しない。
 
 ## AstralRecord Resource Pack

@@ -18,5 +18,5 @@ Boss は、準備、戦闘理解、協力、周回などを確認する節目の
 
 ## 正本参照
 
-- 共通 YAML: `E:\AstralRecord-Workspace\40_filebase\40.features.mob\mob.YAMLスキーマ定義.md`
-- boss YAML: `E:\AstralRecord-Workspace\40_filebase\40.features.mob\boss\boss.YAMLスキーマ定義.md`
+- 共通 YAML: `E:\AstralRecord-Workspace\40_filebase\40.features.mob\docs.mob.YAMLスキーマ定義.md`
+- boss YAML: `E:\AstralRecord-Workspace\40_filebase\40.features.mob\boss\docs.boss.YAMLスキーマ定義.md`

@@ -2,7 +2,7 @@
 
 パッケージアイテムの基本スキーマ定義です。
 
-共通のアイテムフィールド `schemaVersion` / `id` / `category` / `name` などは `item.YAMLスキーマ定義.md` を参照してください。ここでは Bundle 固有フィールドのみを定義します。
+共通のアイテムフィールド `schemaVersion` / `id` / `category` / `name` などは `docs.item.YAMLスキーマ定義.md` を参照してください。ここでは Bundle 固有フィールドのみを定義します。
 
 Bundle の中身の指定方法は 2 系統あります。
 

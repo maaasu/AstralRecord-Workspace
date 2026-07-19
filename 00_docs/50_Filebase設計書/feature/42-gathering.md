@@ -17,6 +17,6 @@ Gathering は、採取・採掘など、ワールド上の採集対象と報酬�
 
 ## 正本参照
 
-- 共通 YAML: `E:\AstralRecord-Workspace\40_filebase\42.features.gathering\gathering.YAMLスキーマ定義.md`
-- harvesting YAML: `E:\AstralRecord-Workspace\40_filebase\42.features.gathering\harvesting\harvesting.YAMLスキーマ定義.md`
-- mining YAML: `E:\AstralRecord-Workspace\40_filebase\42.features.gathering\mining\mining.YAMLスキーマ定義.md`
+- 共通 YAML: `E:\AstralRecord-Workspace\40_filebase\42.features.gathering\docs.gathering.YAMLスキーマ定義.md`
+- harvesting YAML: `E:\AstralRecord-Workspace\40_filebase\42.features.gathering\harvesting\docs.harvesting.YAMLスキーマ定義.md`
+- mining YAML: `E:\AstralRecord-Workspace\40_filebase\42.features.gathering\mining\docs.mining.YAMLスキーマ定義.md`

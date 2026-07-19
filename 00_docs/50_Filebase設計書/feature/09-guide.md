@@ -17,4 +17,4 @@ Guide は、ゲーム内 GUI で機能、操作、進行上の判断材料を説
 
 ## 正本参照
 
-- YAML: `E:\AstralRecord-Workspace\40_filebase\09.features.guide\guide.YAMLスキーマ定義.md`
+- YAML: `E:\AstralRecord-Workspace\40_filebase\09.features.guide\docs.guide.YAMLスキーマ定義.md`

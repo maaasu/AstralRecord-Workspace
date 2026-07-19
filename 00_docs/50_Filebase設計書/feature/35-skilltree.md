@@ -17,6 +17,6 @@ Skilltree は、skill や能力解放の順序、前提関係、選択分岐を�
 
 ## 正本参照
 
-- YAML: `E:\AstralRecord-Workspace\40_filebase\35.features.skilltree\skilltree.YAMLスキーマ定義.md`
+- YAML: `E:\AstralRecord-Workspace\40_filebase\35.features.skilltree\docs.skilltree.YAMLスキーマ定義.md`
 - Plugin 設計: `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書\feature\13-skill`
 - API 設計: `E:\AstralRecord-Workspace\00_docs\20_API設計書\feature\20-skilltree`

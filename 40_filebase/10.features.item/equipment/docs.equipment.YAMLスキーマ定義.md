@@ -1,7 +1,7 @@
 # EQUIPMENT (装備) YAML スキーマ定義
 
 武器、防具、アクセサリー、ツールなどの「装備して性能を変化させるアイテム」を表現します。
-通常のアイテム共通項目（`schemaVersion` / `id` / `category` / `name` など）は `item.YAMLスキーマ定義.md` を参照し、本書では Equipment 固有項目のみ定義します。
+通常のアイテム共通項目（`schemaVersion` / `id` / `category` / `name` など）は `docs.item.YAMLスキーマ定義.md` を参照し、本書では Equipment 固有項目のみ定義します。
 
 > **StatusType について**: `status` フィールドに使用できるステータス名は、プラグイン側の [`StatusType.kt`](../../../10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/status/model/StatusType.kt) を参照してください。
 
@@ -13,7 +13,7 @@
 | `equipment[].tag`                                         | String        | ×  | -     | equipment固有の補助情報。`slot=ACCESSORY` では必須とし、`AMULET` / `TALISMAN` / `CHARM` / `CORE` / `RELIC` のいずれかを指定する。Toolでは「ツルハシ」「斧」などの分類にも使用する |
 | `equipment[].requiredLevel`                               | Integer       | ×  | 0     | 装備に必要なプレイヤーレベル。`0` で制限なし。                                                                                                                      |
 | `equipment[].requiredClasses[]`                           | List<String>  | ×  | -     | 装備可能クラスIDのリスト（任意）。未指定時は全クラス装備可。                                                                                                                |
-| `equipment[].setId`                                       | String        | ×  | -     | このアイテムが属するセット効果ID（架空例: `example_guardian_set`）。セット効果定義は `set_effect/_set_effect.YAMLスキーマ定義.md` を参照。                                                  |
+| `equipment[].setId`                                       | String        | ×  | -     | このアイテムが属するセット効果ID（架空例: `example_guardian_set`）。セット効果定義は `set_effect/docs.set_effect.YAMLスキーマ定義.md` を参照。                                                  |
 | `equipment[].stats[]`                                     | List          | ×  | -     | 装備中に適用される基礎ステータス補正のリスト（後述）。                                                                                                                    |
 | `equipment[].stats[].status`                              | String        | ×  | -     | 対象ステータス（`StatusType`）。例: `ATTACK` / `DEFENSE` / `MOVEMENT_SPEED`。                                                                              |
 | `equipment[].stats[].type`                                | String        | ×  | -     | 補正方式（`FLAT` / `SCALAR`）。`FLAT` は加算、`SCALAR` は乗算係数。                                                                                             |
@@ -193,7 +193,7 @@ Equipment の追加効果で Buff を参照する場合は `buff:` prefix を使
 
 - 例: `ref: rune:rune_attack_small`
 
-セット効果を参照する場合は `set:` prefix を使用します（aliases: `st`）。セット効果スキーマの詳細は `set_effect/_set_effect.YAMLスキーマ定義.md` を参照。
+セット効果を参照する場合は `set:` prefix を使用します（aliases: `st`）。セット効果スキーマの詳細は `set_effect/docs.set_effect.YAMLスキーマ定義.md` を参照。
 
 - 架空例: `set:example_guardian_set`
 

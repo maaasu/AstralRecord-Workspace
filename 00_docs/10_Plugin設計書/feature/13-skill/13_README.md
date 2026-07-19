@@ -39,7 +39,7 @@
 
 - YAML スキーマ項目の増減:
   - [[13_1.00-モデル定義]]
-  - `40_filebase/30.features.skill/skill.YAMLスキーマ定義.md`
+  - `40_filebase/30.features.skill/docs.skill.YAMLスキーマ定義.md`
 - `implementationId` 解決方式・レジストリ責務の変更:
   - [[13_0.00-概要]]
   - [[13_3.02-サービス]]

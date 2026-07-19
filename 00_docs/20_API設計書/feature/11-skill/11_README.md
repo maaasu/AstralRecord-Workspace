@@ -13,7 +13,7 @@
 ## マスタデータの所在
 
 - `40_filebase/30.features.skill/`
-- `40_filebase/30.features.skill/skill.YAMLスキーマ定義.md`
+- `40_filebase/30.features.skill/docs.skill.YAMLスキーマ定義.md`
 
 ## ドキュメント一覧
 

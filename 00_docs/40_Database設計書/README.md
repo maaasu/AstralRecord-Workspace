@@ -30,4 +30,4 @@
 
 - DB / テーブルを追加・変更した場合は `table-definitions/<DB>/` と `<DB>/init.sql` を更新する。
 - API の DTO / Entity / Repository を変更した場合は `00_docs/20_API設計書/` の対象 feature を更新する。
-- filebase YAML スキーマを変更した場合は `40_filebase/` 配下の `_*.YAMLスキーマ定義.md` と Seeder の変換仕様を更新する。
+- filebase YAML スキーマを変更した場合は `40_filebase/` 配下の `docs.*.YAMLスキーマ定義.md` と Seeder の変換仕様を更新する。

@@ -17,5 +17,5 @@ NPC の機能を標準的に利用可能になる段階を記載します。外�
 
 ## 正本参照
 
-- 共通 YAML: `E:\AstralRecord-Workspace\40_filebase\40.features.mob\mob.YAMLスキーマ定義.md`
-- NPC YAML: `E:\AstralRecord-Workspace\40_filebase\40.features.mob\npc\npc.YAMLスキーマ定義.md`
+- 共通 YAML: `E:\AstralRecord-Workspace\40_filebase\40.features.mob\docs.mob.YAMLスキーマ定義.md`
+- NPC YAML: `E:\AstralRecord-Workspace\40_filebase\40.features.mob\npc\docs.npc.YAMLスキーマ定義.md`

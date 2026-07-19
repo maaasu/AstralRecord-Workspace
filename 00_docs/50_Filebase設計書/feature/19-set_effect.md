@@ -17,5 +17,5 @@ Set Effect は、同じ set ID の equipment を一定数装備したときに�
 
 ## 正本参照
 
-- YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\equipment\set_effect\_set_effect.YAMLスキーマ定義.md`
+- YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\equipment\set_effect\docs.set_effect.YAMLスキーマ定義.md`
 - status: `E:\AstralRecord-Workspace\10_plugin\AstralRecord\src\main\java\io\github\maaasu\astralRecord\feature\status\model\StatusType.kt`

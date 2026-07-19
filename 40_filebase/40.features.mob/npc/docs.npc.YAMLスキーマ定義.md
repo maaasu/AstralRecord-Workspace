@@ -3,7 +3,7 @@
 NPC 用の filebase YAML 定義です。
 
 共通キーの `schemaVersion`, `id`, `type`, `category`, `name`, `entityType`, `baseStats`, `equipment`, `ai.idle` は
-[../mob.YAMLスキーマ定義.md](../mob.YAMLスキーマ定義.md) を参照してください。
+[../docs.mob.YAMLスキーマ定義.md](../docs.mob.YAMLスキーマ定義.md) を参照してください。
 
 NPC は戦闘を行わないため、`ai.targeting`, `ai.combat`, `drops` は定義しません。
 

@@ -1,7 +1,7 @@
 # Harvesting YAML スキーマ定義
 
 採取カテゴリの採集オブジェクト定義です。
-共通キーは [../gathering.YAMLスキーマ定義.md](../gathering.YAMLスキーマ定義.md) を参照してください。
+共通キーは [../docs.gathering.YAMLスキーマ定義.md](../docs.gathering.YAMLスキーマ定義.md) を参照してください。
 
 ## スキーマ定義
 

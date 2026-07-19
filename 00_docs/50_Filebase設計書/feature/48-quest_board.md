@@ -17,4 +17,4 @@ Quest Board は、複数の quest をプレイヤーへ提示し、選択・受�
 
 ## 正本参照
 
-- YAML: `E:\AstralRecord-Workspace\40_filebase\48.features.quest_board\quest_board.YAMLスキーマ定義.md`
+- YAML: `E:\AstralRecord-Workspace\40_filebase\48.features.quest_board\docs.quest_board.YAMLスキーマ定義.md`

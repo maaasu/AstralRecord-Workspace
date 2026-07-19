@@ -19,4 +19,4 @@ Material は、敵、採集、報酬などから入手し、recipe、強化、�
 
 ## 正本参照
 
-- YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\material\_material.YAMLスキーマ定義.md`
+- YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\material\docs.material.YAMLスキーマ定義.md`

@@ -17,4 +17,4 @@ Quest は、既存の戦闘、採集、探索、制作へ目的と報酬を与�
 
 ## 正本参照
 
-- YAML: `E:\AstralRecord-Workspace\40_filebase\47.features.quest\quest.YAMLスキーマ定義.md`
+- YAML: `E:\AstralRecord-Workspace\40_filebase\47.features.quest\docs.quest.YAMLスキーマ定義.md`

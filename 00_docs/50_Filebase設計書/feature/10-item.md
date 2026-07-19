@@ -17,4 +17,4 @@ Item は、プレイヤーが所持・移動・参照できるマスタの共通
 
 ## 正本参照
 
-- YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\item.YAMLスキーマ定義.md`
+- YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\docs.item.YAMLスキーマ定義.md`

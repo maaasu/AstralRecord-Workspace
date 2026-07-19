@@ -17,5 +17,5 @@ Class は、プレイヤーの戦闘上の役割、成長傾向、利用でき�
 
 ## 正本参照
 
-- YAML: `E:\AstralRecord-Workspace\40_filebase\20.features.class\class.YAMLスキーマ定義.md`
+- YAML: `E:\AstralRecord-Workspace\40_filebase\20.features.class\docs.class.YAMLスキーマ定義.md`
 - status: `E:\AstralRecord-Workspace\10_plugin\AstralRecord\src\main\java\io\github\maaasu\astralRecord\feature\status\model\StatusType.kt`

@@ -19,4 +19,4 @@ Mob Spawner は、mob をワールド内の指定条件で出現・再出現さ�
 
 ## 正本参照
 
-- mob spawner YAML: `E:\AstralRecord-Workspace\40_filebase\41.features.mob.spawner\spawner.YAMLスキーマ定義.md`
+- mob spawner YAML: `E:\AstralRecord-Workspace\40_filebase\41.features.mob.spawner\docs.spawner.YAMLスキーマ定義.md`

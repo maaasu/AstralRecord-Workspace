@@ -17,4 +17,4 @@ shop を最初に利用可能になる段階を記載します。商品ごとの
 
 ## 正本参照
 
-- YAML: `E:\AstralRecord-Workspace\40_filebase\45.features.shop\shop.YAMLスキーマ定義.md`
+- YAML: `E:\AstralRecord-Workspace\40_filebase\45.features.shop\docs.shop.YAMLスキーマ定義.md`

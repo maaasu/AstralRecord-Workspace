@@ -17,7 +17,7 @@ Bundle は、複数の item または loot table を1回の開封単位として
 
 ## 正本参照
 
-- YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\bundle\_bundle.YAMLスキーマ定義.md`
+- YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\bundle\docs.bundle.YAMLスキーマ定義.md`
 
 ## 使用時演出
 

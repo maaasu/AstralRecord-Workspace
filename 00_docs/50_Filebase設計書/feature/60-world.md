@@ -17,4 +17,4 @@ World は、プレイヤーの移動先、環境、配置コンテンツ、接�
 
 ## 正本参照
 
-- YAML: `E:\AstralRecord-Workspace\40_filebase\60.features.world\world.YAMLスキーマ定義.md`
+- YAML: `E:\AstralRecord-Workspace\40_filebase\60.features.world\docs.world.YAMLスキーマ定義.md`

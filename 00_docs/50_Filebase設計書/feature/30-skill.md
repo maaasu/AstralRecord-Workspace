@@ -17,5 +17,5 @@ Skill は、プレイヤー、mob、装備などが実行する能動・受動�
 
 ## 正本参照
 
-- YAML: `E:\AstralRecord-Workspace\40_filebase\30.features.skill\skill.YAMLスキーマ定義.md`
+- YAML: `E:\AstralRecord-Workspace\40_filebase\30.features.skill\docs.skill.YAMLスキーマ定義.md`
 - Plugin 設計: `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書\feature\13-skill`

@@ -10,7 +10,7 @@
 
 | 対象 | 正本 |
 |:--|:--|
-| YAML の構造、必須項目、参照形式 | `E:\AstralRecord-Workspace\40_filebase` 配下の各 `YAMLスキーマ定義.md` |
+| YAML の構造、必須項目、参照形式 | `E:\AstralRecord-Workspace\40_filebase` 配下の各 `docs.<項目名>.YAMLスキーマ定義.md` |
 | Plugin が解釈する列挙値や動作 | `E:\AstralRecord-Workspace\10_plugin\AstralRecord\src\main` 配下のソースコード |
 | Plugin の機能仕様 | `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書` |
 | マスタカテゴリの設計方針 | 本設計書の `feature` 配下 |
@@ -108,7 +108,7 @@ feature 設計書の先頭番号は、原則として `40_filebase` のディレ
 
 1. 本 README
 2. 対象カテゴリの `feature/<number>-<category>.md`
-3. 対象カテゴリの `YAMLスキーマ定義.md`
+3. 対象カテゴリの `docs.<項目名>.YAMLスキーマ定義.md`
 4. feature 文書に記載された Plugin ソースまたは Plugin 設計書
 5. `モチーフ選定ガイド.md`
 6. 近い既存 YAML

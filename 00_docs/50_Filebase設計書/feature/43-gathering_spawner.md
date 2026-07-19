@@ -17,4 +17,4 @@ Gathering Spawner は、gathering をワールド内の指定条件で出現・�
 
 ## 正本参照
 
-- YAML: `E:\AstralRecord-Workspace\40_filebase\43.features.gathering.spawner\spawner.YAMLスキーマ定義.md`
+- YAML: `E:\AstralRecord-Workspace\40_filebase\43.features.gathering.spawner\docs.spawner.YAMLスキーマ定義.md`

@@ -1,7 +1,7 @@
 # RUNE (ルーン) YAML スキーマ定義
 
 装備のスロットに嵌め込むことでステータス補正やスキルを付与する「ルーン」アイテムを表現します。
-通常のアイテム共通項目（`schemaVersion` / `id` / `category` / `name` など）は `item.YAMLスキーマ定義.md` を参照し、本書では Rune 固有項目のみ定義します。
+通常のアイテム共通項目（`schemaVersion` / `id` / `category` / `name` など）は `docs.item.YAMLスキーマ定義.md` を参照し、本書では Rune 固有項目のみ定義します。
 
 > **StatusType について**: `status` フィールドに使用できるステータス名は、プラグイン側の [`StatusType.kt`](../../../10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/status/model/StatusType.kt) を参照してください。
 

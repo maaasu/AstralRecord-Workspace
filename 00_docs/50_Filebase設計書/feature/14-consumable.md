@@ -18,4 +18,4 @@ Consumable は、使用時に回復、補助、移動などの即時または一
 
 ## 正本参照
 
-- YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\consumable\_consumable.YAMLスキーマ定義.md`
+- YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\consumable\docs.consumable.YAMLスキーマ定義.md`

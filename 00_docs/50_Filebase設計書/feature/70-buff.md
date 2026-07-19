@@ -17,5 +17,5 @@ buff 自体ではなく、最も早い標準付与元の段階を基準にしま
 
 ## 正本参照
 
-- YAML: `E:\AstralRecord-Workspace\40_filebase\70.shared.buff\buff.YAMLスキーマ定義.md`
+- YAML: `E:\AstralRecord-Workspace\40_filebase\70.shared.buff\docs.buff.YAMLスキーマ定義.md`
 - status: `E:\AstralRecord-Workspace\10_plugin\AstralRecord\src\main\java\io\github\maaasu\astralRecord\feature\status\model\StatusType.kt`

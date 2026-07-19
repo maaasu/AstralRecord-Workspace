@@ -17,5 +17,5 @@ Enemy は、通常の探索・移動・採集に戦闘上の判断と報酬を�
 
 ## 正本参照
 
-- 共通 YAML: `E:\AstralRecord-Workspace\40_filebase\40.features.mob\mob.YAMLスキーマ定義.md`
-- enemy YAML: `E:\AstralRecord-Workspace\40_filebase\40.features.mob\enemy\enemy.YAMLスキーマ定義.md`
+- 共通 YAML: `E:\AstralRecord-Workspace\40_filebase\40.features.mob\docs.mob.YAMLスキーマ定義.md`
+- enemy YAML: `E:\AstralRecord-Workspace\40_filebase\40.features.mob\enemy\docs.enemy.YAMLスキーマ定義.md`
