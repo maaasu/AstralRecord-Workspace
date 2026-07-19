@@ -35,7 +35,20 @@ public class PlayerService {
     private final PlayerInventoryStateRegistry inventoryStateRegistry;
     private final StatusService statusService;
     private final PlayerSaveCoordinator playerSaveCoordinator;
+    private final PlayerRegionService playerRegionService;
 
+    /**
+     * プレイヤーサービスを構築します。
+     *
+     * @param userService ユーザーサービス
+     * @param accountService アカウントサービス
+     * @param inventoryService インベントリサービス
+     * @param inventoryPersistence インベントリ永続化
+     * @param inventoryStateRegistry インベントリ状態レジストリ
+     * @param statusService ステータスサービス
+     * @param playerSaveCoordinator プレイヤー保存コーディネーター
+     * @param playerRegionService プレイヤー地域サービス
+     */
     public PlayerService(
         UserService userService,
         AccountService accountService,
@@ -43,7 +56,8 @@ public class PlayerService {
         InventoryPersistence inventoryPersistence,
         PlayerInventoryStateRegistry inventoryStateRegistry,
         StatusService statusService,
-        PlayerSaveCoordinator playerSaveCoordinator
+        PlayerSaveCoordinator playerSaveCoordinator,
+        PlayerRegionService playerRegionService
     ) {
         this.userService = userService;
         this.accountService = accountService;
@@ -52,6 +66,7 @@ public class PlayerService {
         this.inventoryStateRegistry = inventoryStateRegistry;
         this.statusService = statusService;
         this.playerSaveCoordinator = playerSaveCoordinator;
+        this.playerRegionService = playerRegionService;
     }
 
     /**
@@ -145,6 +160,7 @@ public class PlayerService {
 
         var astPlayer = new AstPlayer(player, joinData.user(), joinData.account());
         AstPlayerCache.put(astPlayer);
+        playerRegionService.initializeRegion(astPlayer);
         // AstPlayerCache 登録後にコマンドツリーを再送し、permission 反映後の公開条件で同期する。
         player.updateCommands();
         if (joinData.account().getMode().shouldReflectInventoryToGui()) {
@@ -164,6 +180,7 @@ public class PlayerService {
     public void onPlayerQuit(Player player) {
         var astPlayer = AstPlayerCache.get(player);
         if (astPlayer != null) {
+            playerRegionService.clearPlayer(player.getUniqueId());
             // ログアウト時にだけ API へ反映。失敗時は warn ログのみ残しデータロスを許容する。
             playerSaveCoordinator.save(astPlayer, PlayerSaveTrigger.LOGOUT);
             inventoryService.clearClickGuard(astPlayer.getAccount().getUuid());

@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.spawner.model;
 
 import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -9,6 +10,7 @@ import java.util.List;
  * filebase から読み込む Mob スポナーの静的定義です。
  *
  * @param id                   スポナー ID
+ * @param region               このスポナー範囲を表す地域名。未設定時は地域判定に使用しません
  * @param radiusMeters         スポーン地点からの有効半径
  * @param spawnMobs            スポーン対象 Mob の重み付き一覧
  * @param timeWindows          スポーン可能時間帯
@@ -20,6 +22,7 @@ import java.util.List;
  */
 public record MobSpawnerDefinition(
         @NotNull String id,
+        @Nullable String region,
         double radiusMeters,
         @NotNull List<MobSpawnerEntry> spawnMobs,
         @NotNull List<MobSpawnerTimeWindow> timeWindows,
@@ -33,6 +36,7 @@ public record MobSpawnerDefinition(
     private static final int MAX_PLAYER_SCALE = 6;
 
     public MobSpawnerDefinition {
+        region = region == null || region.isBlank() ? null : region.trim();
         radiusMeters = Math.max(1.0D, radiusMeters);
         spawnMobs = spawnMobs == null ? List.of() : List.copyOf(spawnMobs);
         timeWindows = timeWindows == null || timeWindows.isEmpty()

@@ -235,6 +235,26 @@ public class WorldService {
     }
 
     /**
+     * Bukkit ワールドに対応するワールド種別を返します。
+     * 一時ワールドのマスタが再読込中に欠落している場合は、実行時登録の種別を使用します。
+     *
+     * @param world Bukkit ワールド
+     * @return 対応するワールド種別。管理対象外の場合は {@code null}
+     */
+    @Nullable
+    public synchronized WorldType resolveWorldType(@NotNull org.bukkit.World world) {
+        WorldMasterData worldData = findByBukkitWorld(world);
+        if (worldData != null) {
+            return worldData.worldType();
+        }
+        RuntimeWorldRegistration registration = runtimeWorldByBukkitWorldId.get(world.getUID());
+        if (registration == null) {
+            registration = pendingWorldByName.get(normalizeWorldPath(world.getName()));
+        }
+        return registration == null ? null : registration.worldType();
+    }
+
+    /**
      * 管理ワールドのロード予定名を登録します。
      * {@link Bukkit#createWorld(WorldCreator)} 中にワールドイベントが発生しても、
      * ファイル探索を行わず対応するマスタを解決できるようにします。

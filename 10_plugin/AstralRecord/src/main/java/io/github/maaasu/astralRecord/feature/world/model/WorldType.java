@@ -8,15 +8,36 @@ import org.jetbrains.annotations.Nullable;
  */
 public enum WorldType {
     /** ダンジョンやボス挑戦前の待機所、マイスペース。 */
-    HUB,
+    HUB("ハブ"),
     /** NPC や他プレイヤーと交流する拠点。 */
-    BASE,
+    BASE("拠点"),
     /** 敵が湧く通常探索ワールド。 */
-    OVERWORLD,
+    OVERWORLD("オーバーワールド"),
     /** 特定の敵が特定数湧くダンジョン。 */
-    DUNGEON,
+    DUNGEON("ダンジョン"),
     /** 特定ボスが湧くボス戦フィールド。 */
-    BOSS_FIELD;
+    BOSS_FIELD("ボスフィールド");
+
+    private final String regionDisplayName;
+
+    /**
+     * ワールド種別へ地域既定表示名を関連付けます。
+     *
+     * @param regionDisplayName 地域既定表示名
+     */
+    WorldType(@NotNull String regionDisplayName) {
+        this.regionDisplayName = regionDisplayName;
+    }
+
+    /**
+     * このワールド種別を地域として扱う場合の表示名を返します。
+     *
+     * @return 地域表示名
+     */
+    @NotNull
+    public String getRegionDisplayName() {
+        return regionDisplayName;
+    }
 
     /**
      * 文字列から WorldType を解決します。

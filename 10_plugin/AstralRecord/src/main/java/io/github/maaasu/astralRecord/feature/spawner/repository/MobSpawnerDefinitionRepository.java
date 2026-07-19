@@ -48,6 +48,12 @@ public class MobSpawnerDefinitionRepository {
         return result;
     }
 
+    /**
+     * YAML からスポナー定義を構築します。地域は任意項目として読み込みます。
+     *
+     * @param yaml 読み込み対象 YAML
+     * @return スポナー定義。ID がない場合は {@code null}
+     */
     @Nullable
     private MobSpawnerDefinition parse(@NotNull YamlConfiguration yaml) {
         String id = yaml.getString("id");
@@ -57,6 +63,7 @@ public class MobSpawnerDefinitionRepository {
 
         return new MobSpawnerDefinition(
                 id,
+                yaml.getString("region"),
                 yaml.getDouble("radiusMeters", 16.0D),
                 parseSpawnMobs(yaml),
                 parseTimeWindows(yaml),

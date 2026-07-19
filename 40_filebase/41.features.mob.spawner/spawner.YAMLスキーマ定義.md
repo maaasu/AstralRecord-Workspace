@@ -13,6 +13,7 @@ Mob スポナーの静的マスタ定義です。
 | `schemaVersion` | Integer | ○ | - | スキーマバージョン |
 | `id` | String | ○ | - | スポナー ID |
 | `type` | String | × | `MOB_SPAWNER` | マスタ種別 |
+| `region` | String | × | 未設定 | スポナー範囲の地域表示名。未設定の場合はプレイヤー地域の判定に使用しません |
 | `radiusMeters` | Double | ○ | - | 登録座標から半径何 m を水平スポーン範囲にするか。上方向の高さ上限にも使う |
 | `spawnMobs[]` | List | ○ | - | スポーン対象 Mob と抽選重み |
 | `spawnMobs[].mobId` | String | ○ | - | スポーン対象 Mob ID（`mob:` 参照） |
@@ -34,6 +35,7 @@ Mob スポナーの静的マスタ定義です。
 schemaVersion: 1
 id: windwait_patrol_spawner
 type: MOB_SPAWNER
+region: "風待ち草原"
 radiusMeters: 18
 
 spawnMobs:

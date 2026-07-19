@@ -735,6 +735,17 @@ public enum PlayerMsgId {
     P_5776(5776),
     // endregion
 
+    // region /feature/player/service/PlayerRegionService.java 5780-5789
+    /**
+     * 地域切り替えタイトル: {0}
+     */
+    P_5780(5780),
+    /**
+     * 地域移動
+     */
+    P_5781(5781),
+    // endregion
+
     // region /feature/world/command/WorldCommand.java 5750-5769
     P_5751(5751),
     P_5752(5752),

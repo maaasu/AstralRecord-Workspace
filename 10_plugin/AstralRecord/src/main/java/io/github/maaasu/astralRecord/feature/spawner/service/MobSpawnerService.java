@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.spawner.repository.MobSpawnerLocati
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerRegionService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import net.kyori.adventure.text.Component;
@@ -56,6 +57,7 @@ public class MobSpawnerService {
 
     private final Plugin plugin;
     private final MobService mobService;
+    private final PlayerRegionService playerRegionService;
     private final MobSpawnerDefinitionRepository definitionRepository;
     private final MobSpawnerLocationRepository locationRepository;
     private final NamespacedKey spawnerIdKey;
@@ -76,17 +78,20 @@ public class MobSpawnerService {
      *
      * @param plugin               プラグイン本体
      * @param mobService           Mob サービス
+     * @param playerRegionService  プレイヤー地域サービス
      * @param definitionRepository スポナーマスタリポジトリ
      * @param locationRepository   スポナー座標リポジトリ
      */
     public MobSpawnerService(
             @NotNull Plugin plugin,
             @NotNull MobService mobService,
+            @NotNull PlayerRegionService playerRegionService,
             @NotNull MobSpawnerDefinitionRepository definitionRepository,
             @NotNull MobSpawnerLocationRepository locationRepository
     ) {
         this.plugin = plugin;
         this.mobService = mobService;
+        this.playerRegionService = playerRegionService;
         this.definitionRepository = definitionRepository;
         this.locationRepository = locationRepository;
         this.spawnerIdKey = new NamespacedKey(plugin, "mob_spawner_id");
@@ -187,6 +192,7 @@ public class MobSpawnerService {
         lore.add("&e基本情報");
         lore.add("&7ID: &f" + definition.id());
         lore.add("&7種別: &fMobスポナー");
+        lore.add("&7地域: &f" + (definition.region() == null ? "未設定" : definition.region()));
         lore.add("&7表示ブロック: &f" + definition.itemMaterial().name());
         lore.add("");
         lore.add("&eスポーン条件");
@@ -349,10 +355,60 @@ public class MobSpawnerService {
         return List.copyOf(locations.values());
     }
 
+    /**
+     * 地域判定と各スポナーのスポーン判定を1秒周期で実行します。
+     */
     private void tick() {
         tick += TICK_INTERVAL;
+        updateNearbyPlayerRegions();
         for (MobSpawnerLocation spawnerLocation : List.copyOf(locations.values())) {
             processSpawner(spawnerLocation);
+        }
+    }
+
+    /**
+     * 各オーバーワールドプレイヤーについて、範囲内で最も近い地域付きスポナーを地域として反映します。
+     * 範囲内に地域付きスポナーがない場合は「オーバーワールド」へ戻します。
+     */
+    private void updateNearbyPlayerRegions() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer == null
+                    || !astPlayer.getAccount().getMode().shouldProcessGameplay()
+                    || !playerRegionService.isSpawnerRegionWorld(player.getWorld())) {
+                continue;
+            }
+
+            PlayerRegionCandidate nearest = null;
+            for (MobSpawnerLocation spawnerLocation : locations.values()) {
+                MobSpawnerDefinition definition = definitions.get(spawnerLocation.spawnerId());
+                if (definition == null || definition.region() == null) {
+                    continue;
+                }
+                Location origin = spawnerLocation.toLocation();
+                if (origin == null || origin.getWorld() != player.getWorld()) {
+                    continue;
+                }
+                double distanceSquared = player.getLocation().distanceSquared(origin);
+                double radiusSquared = definition.radiusMeters() * definition.radiusMeters();
+                if (distanceSquared > radiusSquared) {
+                    continue;
+                }
+                PlayerRegionCandidate candidate = new PlayerRegionCandidate(
+                        definition.region(),
+                        distanceSquared,
+                        spawnerLocation.locationKey()
+                );
+                if (nearest == null || candidate.isPreferredTo(nearest)) {
+                    nearest = candidate;
+                }
+            }
+
+            if (nearest == null) {
+                playerRegionService.resetOverworldRegion(astPlayer);
+            } else {
+                playerRegionService.updateRegionFromSpawner(astPlayer, nearest.region());
+            }
         }
     }
 
@@ -558,5 +614,23 @@ public class MobSpawnerService {
         }
         locationRepository.saveAll(new ArrayList<>(locations.values()));
         dirty = false;
+    }
+
+    private record PlayerRegionCandidate(
+            @NotNull String region,
+            double distanceSquared,
+            @NotNull String locationKey
+    ) {
+        /**
+         * 距離を優先し、同距離では配置キー順で決定的に候補を選びます。
+         *
+         * @param other 比較対象候補
+         * @return この候補を優先する場合は {@code true}
+         */
+        private boolean isPreferredTo(@NotNull PlayerRegionCandidate other) {
+            int distanceComparison = Double.compare(distanceSquared, other.distanceSquared);
+            return distanceComparison < 0
+                    || (distanceComparison == 0 && locationKey.compareTo(other.locationKey) < 0);
+        }
     }
 }

@@ -118,6 +118,7 @@ import io.github.maaasu.astralRecord.feature.player.save.PlayerSaveCoordinator;
 import io.github.maaasu.astralRecord.feature.player.service.AirActionService;
 import io.github.maaasu.astralRecord.feature.player.service.DodgeService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerRegionService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.quest.event.QuestGuiEventHandler;
@@ -231,6 +232,7 @@ public final class AstralRecord extends JavaPlugin {
     private UserService userService;
     private PlayerService playerService;
     private PlayerMessageService playerMessageService;
+    private PlayerRegionService playerRegionService;
     private InventoryService inventoryService;
     private InventoryPersistence inventoryPersistence;
     private PlayerInventoryStateRegistry inventoryStateRegistry;
@@ -343,9 +345,12 @@ public final class AstralRecord extends JavaPlugin {
         npcPlacementService = new NpcPlacementService(this, mobService, new NpcPlacementRepository(this));
         textDisplayPlacementService = new TextDisplayPlacementService(this, new TextDisplayPlacementRepository(this));
         teleporterService = new TeleporterService(this, new WaystoneDefinitionRepository(this), new AccountWaystoneRepository());
+        worldService = new WorldService(new WorldRepository());
+        playerRegionService = new PlayerRegionService(this, worldService);
         mobSpawnerService = new MobSpawnerService(
                 this,
                 mobService,
+                playerRegionService,
                 new MobSpawnerDefinitionRepository(),
                 new MobSpawnerLocationRepository(this)
         );
@@ -362,7 +367,6 @@ public final class AstralRecord extends JavaPlugin {
                 new GatheringSpawnerDefinitionRepository(),
                 new GatheringSpawnerLocationRepository(this)
         );
-        worldService = new WorldService(new WorldRepository());
         skillTreeService = new SkillTreeService(
                 this,
                 worldService,
@@ -730,7 +734,8 @@ public final class AstralRecord extends JavaPlugin {
             inventoryPersistence,
             inventoryStateRegistry,
             statusService,
-            playerSaveCoordinator
+            playerSaveCoordinator,
+            playerRegionService
         );
         returnToBaseService = new ReturnToBaseService(
             this,
@@ -959,7 +964,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new WorldChangeTitleEventHandler(worldService),
+            new WorldChangeTitleEventHandler(worldService, playerRegionService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

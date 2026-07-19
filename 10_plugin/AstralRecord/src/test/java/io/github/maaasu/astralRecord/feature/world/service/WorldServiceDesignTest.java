@@ -174,12 +174,14 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
 
         assertSame(fieldData, service.findByBukkitWorld(firstRuntimeWorld));
         assertSame(fieldData, service.findByBukkitWorld(secondRuntimeWorld));
+        assertEquals(WorldType.BOSS_FIELD, service.resolveWorldType(firstRuntimeWorld));
         assertEquals("黄昏の巨像フィールド", service.resolveDisplayName(firstRuntimeWorld));
 
         withPluginLogger(service::loadAll);
 
         assertNull(service.findByBukkitWorld(firstRuntimeWorld));
         assertNull(service.findByBukkitWorld(secondRuntimeWorld));
+        assertEquals(WorldType.BOSS_FIELD, service.resolveWorldType(firstRuntimeWorld));
         assertEquals("黄昏の巨像フィールド", service.resolveDisplayName(firstRuntimeWorld));
 
         withPluginLogger(service::loadAll);

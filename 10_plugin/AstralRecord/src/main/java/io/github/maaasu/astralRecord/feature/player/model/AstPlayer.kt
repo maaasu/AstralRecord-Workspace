@@ -60,6 +60,12 @@ data class AstPlayer(
         set(value) = updateClassProgress(classId, classLevel, value)
 
     /**
+     * 現在いる地域の表示名。
+     * ワールド移動時はワールド種別の既定地域、オーバーワールド内では近接 Mob スポナーの地域を保持します。
+     */
+    var currentRegion: String? = null
+
+    /**
      * しゃがみ開始時刻（System.currentTimeMillis ベース）。
      * しゃがみ開始 → 短時間以内に解除でドッジ判定に使用します。
      */
