@@ -170,7 +170,7 @@ public class GatheringSpawnerService {
         ItemStack itemStack = new ItemStack(definition.itemMaterial(), Math.max(1, amount));
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(Component.text(ColorCodeUtil.translateAlternateColorCodes("&b採集スポナー: &f" + spawnerId)));
+            meta.displayName(ColorCodeUtil.toComponent("&b採集スポナー: &f" + spawnerId, spawnerId));
             meta.lore(buildSpawnerLore(definition));
             meta.addItemFlags(ItemFlag.values());
             meta.getPersistentDataContainer().set(spawnerIdKey, PersistentDataType.STRING, spawnerId);
@@ -208,7 +208,7 @@ public class GatheringSpawnerService {
         lore.add("&7周辺採集物: &f" + definition.maxNearbyGatherings() + " 個");
         lore.add("&7プレイヤーあたり: &f" + definition.spawnPerPlayer() + " 個");
         return lore.stream()
-                .<Component>map(line -> Component.text(ColorCodeUtil.translateAlternateColorCodes(line)))
+                .map(line -> ColorCodeUtil.toComponent(line, ""))
                 .toList();
     }
 

@@ -1,9 +1,15 @@
 package io.github.maaasu.astralRecord.infrastructure.util;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.jetbrains.annotations.Contract;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 public class ColorCodeUtil {
+    private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacySection();
+
     private ColorCodeUtil() {
         // utility class
     }
@@ -74,6 +80,30 @@ public class ColorCodeUtil {
         }
         String translated = translateAlternateColorCodes(source);
         return translated == null ? "" : translated;
+    }
+
+    /**
+     * ファイルベースの表示文字列を legacy カラーコード対応の Component に変換します。
+     *
+     * @param text          表示文字列
+     * @param fallback      未設定時の代替表示文字列
+     * @param fallbackColor カラーコード未指定部分に適用する色。未指定の場合は {@code null}
+     * @return カラーコードを反映した Component
+     */
+    public static @NonNull Component toComponent(String text, String fallback, @Nullable TextColor fallbackColor) {
+        Component component = LEGACY_SERIALIZER.deserialize(toLegacyText(text, fallback));
+        return fallbackColor == null ? component : component.colorIfAbsent(fallbackColor);
+    }
+
+    /**
+     * ファイルベースの表示文字列を legacy カラーコード対応の Component に変換します。
+     *
+     * @param text     表示文字列
+     * @param fallback 未設定時の代替表示文字列
+     * @return カラーコードを反映した Component
+     */
+    public static @NonNull Component toComponent(String text, String fallback) {
+        return LEGACY_SERIALIZER.deserialize(toLegacyText(text, fallback));
     }
 
     /**

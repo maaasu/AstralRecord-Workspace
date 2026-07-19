@@ -368,7 +368,7 @@ public class BundleUseService {
     private void showUsingSubtitle(@NotNull Player player, @NotNull String itemName) {
         player.showTitle(Title.title(
             Component.empty(),
-            Component.text(ColorCodeUtil.translateAlternateColorCodes("&6使用中... &f" + itemName)),
+            ColorCodeUtil.toComponent("&6使用中... &f" + itemName, itemName),
             Title.Times.times(Duration.ZERO, Duration.ofSeconds(4), Duration.ofMillis(250))
         ));
     }

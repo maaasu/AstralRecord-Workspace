@@ -255,7 +255,7 @@ public class MobSpawnerService {
         lore.add("&7周辺 Mob: &f" + definition.maxNearbyMobs() + " 体");
         lore.add("&7プレイヤーあたり: &f" + definition.spawnPerPlayer() + " 体");
         return lore.stream()
-                .<Component>map(line -> Component.text(ColorCodeUtil.translateAlternateColorCodes(line)))
+                .map(line -> ColorCodeUtil.toComponent(line, ""))
                 .toList();
     }
 

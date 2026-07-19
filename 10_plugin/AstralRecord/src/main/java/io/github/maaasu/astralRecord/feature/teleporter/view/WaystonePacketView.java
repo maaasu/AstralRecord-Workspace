@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.teleporter.model.WaystoneDefinition;
 import io.github.maaasu.astralRecord.feature.teleporter.service.TeleporterService;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -115,9 +116,10 @@ public final class WaystonePacketView {
     @NotNull
     private Component label(@NotNull WaystoneDefinition definition, boolean unlocked) {
         if (unlocked) {
-            return Component.text(definition.name(), NamedTextColor.AQUA);
+            return ColorCodeUtil.toComponent(definition.name(), definition.id(), NamedTextColor.AQUA);
         }
-        return Component.text("未解除: " + definition.name(), NamedTextColor.RED)
+        return Component.text("未解除: ", NamedTextColor.RED)
+                .append(ColorCodeUtil.toComponent(definition.name(), definition.id(), NamedTextColor.RED))
                 .append(Component.newline())
                 .append(Component.text(definition.unlockGold() + " ゴールド", NamedTextColor.GOLD));
     }

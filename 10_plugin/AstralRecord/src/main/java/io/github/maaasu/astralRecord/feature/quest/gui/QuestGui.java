@@ -142,7 +142,7 @@ public final class QuestGui {
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text("状態: " + stateLabel(state), color(state)).decoration(TextDecoration.ITALIC, false));
         for (String line : quest.description()) {
-            lore.add(Component.text(line, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+            lore.add(ColorCodeUtil.toComponent(line, "", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
         }
         lore.add(Component.empty());
         appendObjectives(lore, player, quest);
@@ -168,7 +168,11 @@ public final class QuestGui {
         lore.add(Component.text("目標", NamedTextColor.GOLD, TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false));
         for (QuestObjectiveDefinition objective : quest.objectives()) {
             int current = progress == null ? 0 : progress.progress(objective.id());
-            lore.add(Component.text("- " + objective.type().displayName() + ": " + objective.label() + " " + current + " / " + objective.amount(), NamedTextColor.WHITE)
+            lore.add(ColorCodeUtil.toComponent(
+                "- " + objective.type().displayName() + ": " + objective.label() + " " + current + " / " + objective.amount(),
+                "",
+                NamedTextColor.WHITE
+            )
                 .decoration(TextDecoration.ITALIC, false));
         }
     }

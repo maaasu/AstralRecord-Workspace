@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.teleporter.gui;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.teleporter.model.WaystoneDefinition;
 import io.github.maaasu.astralRecord.feature.teleporter.service.TeleporterService;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
@@ -51,7 +52,7 @@ public final class TeleporterGui {
         Inventory inventory = Bukkit.createInventory(
                 new Holder(source.id(), normalizedPage, visibleIds),
                 SIZE,
-                Component.text(source.name(), NamedTextColor.AQUA)
+                ColorCodeUtil.toComponent(source.name(), source.id(), NamedTextColor.AQUA)
         );
         render(inventory, entries, normalizedPage);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
@@ -124,7 +125,7 @@ public final class TeleporterGui {
         if (entry.unlocked()) {
             return createItem(
                     Material.BEACON,
-                    Component.text(definition.name(), NamedTextColor.AQUA),
+                    ColorCodeUtil.toComponent(definition.name(), definition.id(), NamedTextColor.AQUA),
                     List.of(
                             Component.text("クリックでテレポート", NamedTextColor.GREEN)
                     )
@@ -132,7 +133,7 @@ public final class TeleporterGui {
         }
         return createItem(
                 Material.IRON_BARS,
-                Component.text(definition.name(), NamedTextColor.DARK_GRAY),
+                ColorCodeUtil.toComponent(definition.name(), definition.id(), NamedTextColor.DARK_GRAY),
                 List.of(
                         Component.text("未解除のウェイストーンです", NamedTextColor.RED),
                         Component.text("必要ゴールド: " + definition.unlockGold(), NamedTextColor.GOLD)
