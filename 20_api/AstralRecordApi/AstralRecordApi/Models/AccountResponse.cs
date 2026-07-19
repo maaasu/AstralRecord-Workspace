@@ -14,9 +14,17 @@ public class AccountResponse
     public string ClassId { get; set; } = string.Empty;
     public int ClassLevel { get; set; }
     public long ClassExperience { get; set; }
+    public IReadOnlyList<AccountClassProgressResponse> ClassProgresses { get; set; } = [];
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public Guid CreatedBy { get; set; }
     public Guid UpdatedBy { get; set; }
     public bool IsDeleted { get; set; }
+}
+
+public class AccountClassProgressResponse
+{
+    public string ClassId { get; set; } = string.Empty;
+    public int Level { get; set; }
+    public long Experience { get; set; }
 }

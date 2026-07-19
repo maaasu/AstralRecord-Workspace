@@ -27,6 +27,7 @@
 | `dbo.player_mail_state` | `AstralRecord/dbo.player_mail_state.md` |
 | `dbo.account_mob_record` | `AstralRecord/dbo.account_mob_record.md` |
 | `dbo.account` | `AstralRecord/dbo.account.md` |
+| `dbo.account_class_progress` | `AstralRecord/dbo.account_class_progress.md` |
 | `dbo.account_skilltree_state` | `AstralRecord/dbo.account_skilltree_state.md` |
 | `dbo.account_skilltree_unlocked_node` | `AstralRecord/dbo.account_skilltree_unlocked_node.md` |
 | `dbo.login_bonus_claim` | `AstralRecord/dbo.login_bonus_claim.md` |

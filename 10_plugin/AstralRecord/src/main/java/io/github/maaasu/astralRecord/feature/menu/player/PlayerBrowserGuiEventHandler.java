@@ -356,20 +356,16 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         String classDisplayName = playerClassService == null
             ? target.getClassId()
             : playerClassService.getDisplayName(target.getClassId());
-        double classExperienceProgress = playerClassService == null
-            ? 0.0
-            : playerClassService.classExperienceProgress(target);
-        long classExperienceRemaining = playerClassService == null
-            ? 0L
-            : playerClassService.classExperienceRemainingToNextLevel(target);
+        var classProgresses = playerClassService == null
+            ? List.<io.github.maaasu.astralRecord.feature.playerclass.model.ClassProgressViewEntry>of()
+            : playerClassService.getClassProgressViewEntries(target);
         playerDetailGui.open(
             viewer,
             target,
             statusService.refreshStatus(target),
             goldAmount,
             classDisplayName,
-            classExperienceProgress,
-            classExperienceRemaining
+            classProgresses
         );
     }
 

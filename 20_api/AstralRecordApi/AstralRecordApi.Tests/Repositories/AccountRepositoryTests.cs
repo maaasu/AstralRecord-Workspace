@@ -45,6 +45,15 @@ public class AccountRepositoryTests
                     created_by TEXT NOT NULL,
                     updated_by TEXT NOT NULL,
                     is_deleted INTEGER NOT NULL
+                );
+                CREATE TABLE account_class_progress (
+                    account_id TEXT NOT NULL,
+                    class_id TEXT NOT NULL,
+                    level INTEGER NOT NULL,
+                    experience INTEGER NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    updated_by TEXT NOT NULL,
+                    PRIMARY KEY (account_id, class_id)
                 );");
 
             setupContext.Accounts.Add(new AccountEntity
@@ -83,7 +92,7 @@ public class AccountRepositoryTests
     }
 
     [Fact]
-    public async Task UpdateAsync_UpdatesClassProgress()
+    public async Task UpdateAsync_PreservesProgressForEachClassWhenSwitching()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
@@ -117,6 +126,15 @@ public class AccountRepositoryTests
                     created_by TEXT NOT NULL,
                     updated_by TEXT NOT NULL,
                     is_deleted INTEGER NOT NULL
+                );
+                CREATE TABLE account_class_progress (
+                    account_id TEXT NOT NULL,
+                    class_id TEXT NOT NULL,
+                    level INTEGER NOT NULL,
+                    experience INTEGER NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    updated_by TEXT NOT NULL,
+                    PRIMARY KEY (account_id, class_id)
                 );");
 
             setupContext.Accounts.Add(new AccountEntity
@@ -142,11 +160,34 @@ public class AccountRepositoryTests
         await using var dbContext = new AstralRecordDbContext(options);
         var repository = new AccountRepository(dbContext);
 
+        await repository.UpdateAsync(accountId, new AccountUpdateRequest
+        {
+            ClassId = "adventurer",
+            ClassLevel = 10,
+            ClassExperience = 4000,
+            UpdatedBy = userId
+        });
+
         var updated = await repository.UpdateAsync(accountId, new AccountUpdateRequest
         {
             ClassId = "warrior",
             ClassLevel = 7,
             ClassExperience = 3210,
+            ClassProgresses =
+            [
+                new AccountClassProgressUpdateRequest
+                {
+                    ClassId = "adventurer",
+                    Level = 10,
+                    Experience = 4000,
+                },
+                new AccountClassProgressUpdateRequest
+                {
+                    ClassId = "warrior",
+                    Level = 7,
+                    Experience = 3210,
+                },
+            ],
             UpdatedBy = userId
         });
 
@@ -154,6 +195,21 @@ public class AccountRepositoryTests
         Assert.Equal("warrior", updated!.ClassId);
         Assert.Equal(7, updated.ClassLevel);
         Assert.Equal(3210, updated.ClassExperience);
+        Assert.Contains(updated.ClassProgresses, progress =>
+            progress.ClassId == "warrior" && progress.Level == 7 && progress.Experience == 3210);
+        Assert.Contains(updated.ClassProgresses, progress =>
+            progress.ClassId == "adventurer" && progress.Level == 10 && progress.Experience == 4000);
+
+        var switchedBack = await repository.UpdateAsync(accountId, new AccountUpdateRequest
+        {
+            ClassId = "adventurer",
+            UpdatedBy = userId
+        });
+
+        Assert.NotNull(switchedBack);
+        Assert.Equal("adventurer", switchedBack!.ClassId);
+        Assert.Equal(10, switchedBack.ClassLevel);
+        Assert.Equal(4000, switchedBack.ClassExperience);
     }
 
     [Fact]
@@ -191,6 +247,15 @@ public class AccountRepositoryTests
                     created_by TEXT NOT NULL,
                     updated_by TEXT NOT NULL,
                     is_deleted INTEGER NOT NULL
+                );
+                CREATE TABLE account_class_progress (
+                    account_id TEXT NOT NULL,
+                    class_id TEXT NOT NULL,
+                    level INTEGER NOT NULL,
+                    experience INTEGER NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    updated_by TEXT NOT NULL,
+                    PRIMARY KEY (account_id, class_id)
                 );");
 
             setupContext.Accounts.Add(new AccountEntity

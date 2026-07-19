@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.player.model
 
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode
+import io.github.maaasu.astralRecord.feature.account.model.ClassProgressModel
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId
 import io.github.maaasu.astralRecord.feature.player.GameModeChangeGuard
@@ -43,13 +44,20 @@ data class AstPlayer(
     val guiNavigationState: GuiNavigationState = GuiNavigationState()
 
     /** 現在の職業 ID。未設定の場合はデフォルト職業 "adventurer"。 */
-    var classId: String = account.classId.ifBlank { "adventurer" }
+    private val classProgressById: MutableMap<String, ClassProgressModel> = linkedMapOf()
+
+    var classId: String = normalizeClassId(account.classId)
+        private set
 
     /** 現在の職業レベル。 */
-    var classLevel: Int = account.classLevel.coerceAtLeast(1)
+    var classLevel: Int
+        get() = getClassProgress(classId).level
+        set(value) = updateClassProgress(classId, value, classExperience)
 
     /** 現在クラスで獲得した累計クラス経験値。 */
-    var classExperience: Long = account.classExperience.coerceAtLeast(0L)
+    var classExperience: Long
+        get() = getClassProgress(classId).experience
+        set(value) = updateClassProgress(classId, classLevel, value)
 
     /**
      * しゃがみ開始時刻（System.currentTimeMillis ベース）。
@@ -115,9 +123,63 @@ data class AstPlayer(
     var skillCastingUntilMs: Long = 0L
 
     init {
+        account.classProgresses.forEach { progress ->
+            updateClassProgress(progress.classId, progress.level, progress.experience)
+        }
+        if (classProgressById.keys.none { it.equals(classId, ignoreCase = true) }) {
+            updateClassProgress(classId, account.classLevel, account.classExperience)
+        }
         applyPermission(user)
         applyAccountMode(account)
     }
+
+    /**
+     * 指定クラスを現在クラスに切り替えます。未経験のクラスは Lv.1 / EXP 0 で開始します。
+     *
+     * @param newClassId 切り替え先クラス ID
+     */
+    fun selectClass(newClassId: String) {
+        classId = normalizeClassId(newClassId)
+        getClassProgress(classId)
+    }
+
+    /**
+     * 指定クラスの進行度を返します。未経験のクラスは Lv.1 / EXP 0 として登録します。
+     *
+     * @param targetClassId 参照するクラス ID
+     * @return クラス進行度
+     */
+    fun getClassProgress(targetClassId: String): ClassProgressModel {
+        val normalized = normalizeClassId(targetClassId)
+        val existingKey = classProgressById.keys.firstOrNull { it.equals(normalized, ignoreCase = true) }
+        if (existingKey != null) {
+            return classProgressById.getValue(existingKey)
+        }
+        return ClassProgressModel(normalized).also { classProgressById[normalized] = it }
+    }
+
+    /**
+     * 保持している全クラス進行度を返します。
+     *
+     * @return クラス ID 順の進行度一覧
+     */
+    fun getAllClassProgresses(): List<ClassProgressModel> =
+        classProgressById.values.sortedBy { it.classId }
+
+    private fun updateClassProgress(targetClassId: String, level: Int, experience: Long) {
+        val normalized = normalizeClassId(targetClassId)
+        val existingKey = classProgressById.keys.firstOrNull { it.equals(normalized, ignoreCase = true) }
+        if (existingKey != null && existingKey != normalized) {
+            classProgressById.remove(existingKey)
+        }
+        classProgressById[normalized] = ClassProgressModel(
+            classId = normalized,
+            level = level.coerceAtLeast(1),
+            experience = experience.coerceAtLeast(0L),
+        )
+    }
+
+    private fun normalizeClassId(value: String): String = value.trim().ifBlank { "adventurer" }
 
     companion object {
         /** この値以上の permission を持つプレイヤーに Minecraft OP 権限を付与する */

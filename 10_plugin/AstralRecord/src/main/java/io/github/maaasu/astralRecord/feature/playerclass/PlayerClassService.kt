@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.`class`.model.ClassStat
 import io.github.maaasu.astralRecord.feature.`class`.service.ClassService
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer
 import io.github.maaasu.astralRecord.feature.playerclass.model.ClassExperienceResult
+import io.github.maaasu.astralRecord.feature.playerclass.model.ClassProgressViewEntry
 import io.github.maaasu.astralRecord.feature.playerclass.model.ClassViewEntry
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil
 import io.github.maaasu.astralRecord.feature.status.model.StatusType
@@ -75,8 +76,7 @@ class PlayerClassService @JvmOverloads constructor(
      * @param classId 変更後のクラス ID
      */
     fun changeClass(astPlayer: AstPlayer, classId: String) {
-        astPlayer.classId = classId
-        astPlayer.classLevel = astPlayer.classLevel.coerceAtLeast(1)
+        astPlayer.selectClass(classId)
         persistClassProgress(astPlayer)
     }
 
@@ -88,7 +88,11 @@ class PlayerClassService @JvmOverloads constructor(
      */
     fun classExperienceProgress(astPlayer: AstPlayer): Double {
         val model = classService.getLoadedClass(astPlayer.classId) ?: return 0.0
-        val level = astPlayer.classLevel.coerceIn(1, MAX_CLASS_LEVEL)
+        return classExperienceProgress(model, astPlayer.classLevel, astPlayer.classExperience)
+    }
+
+    private fun classExperienceProgress(model: ClassModel, classLevel: Int, classExperience: Long): Double {
+        val level = classLevel.coerceIn(1, MAX_CLASS_LEVEL)
         if (level >= MAX_CLASS_LEVEL) {
             return 1.0
         }
@@ -98,7 +102,7 @@ class PlayerClassService @JvmOverloads constructor(
         if (range <= 0L) {
             return 0.0
         }
-        return ((astPlayer.classExperience - current).coerceAtLeast(0L).toDouble() / range.toDouble())
+        return ((classExperience - current).coerceAtLeast(0L).toDouble() / range.toDouble())
             .coerceIn(0.0, 1.0)
     }
 
@@ -111,13 +115,42 @@ class PlayerClassService @JvmOverloads constructor(
      */
     fun classExperienceRemainingToNextLevel(astPlayer: AstPlayer): Long {
         val model = classService.getLoadedClass(astPlayer.classId) ?: return 0L
-        val level = astPlayer.classLevel.coerceIn(1, MAX_CLASS_LEVEL)
+        return classExperienceRemainingToNextLevel(model, astPlayer.classLevel, astPlayer.classExperience)
+    }
+
+    private fun classExperienceRemainingToNextLevel(
+        model: ClassModel,
+        classLevel: Int,
+        classExperience: Long,
+    ): Long {
+        val level = classLevel.coerceIn(1, MAX_CLASS_LEVEL)
         if (level >= MAX_CLASS_LEVEL) {
             return 0L
         }
         val nextRequired = totalRequiredClassExperienceForLevel(model, level + 1)
-        return (nextRequired - astPlayer.classExperience).coerceAtLeast(0L)
+        return (nextRequired - classExperience).coerceAtLeast(0L)
     }
+
+    /**
+     * プレイヤー情報 GUI 向けに、読み込み済み全クラスの独立した進行度を返します。
+     *
+     * @param astPlayer 表示対象プレイヤー
+     * @return クラスマスタ順の進行度一覧
+     */
+    fun getClassProgressViewEntries(astPlayer: AstPlayer): List<ClassProgressViewEntry> =
+        classService.getLoadedClasses().map { model ->
+            val progress = astPlayer.getClassProgress(model.id)
+            ClassProgressViewEntry(
+                id = model.id,
+                name = ColorCodeUtil.toLegacyText(model.name, model.id),
+                icon = model.icon,
+                level = progress.level,
+                experience = progress.experience,
+                experienceProgress = classExperienceProgress(model, progress.level, progress.experience),
+                experienceRemaining = classExperienceRemainingToNextLevel(model, progress.level, progress.experience),
+                current = model.id.equals(astPlayer.classId, ignoreCase = true),
+            )
+        }
 
     fun getClassViewEntries(astPlayer: AstPlayer): List<ClassViewEntry> {
         val skillRegistry = AstralRecord.getInstance().skillService?.registry()
@@ -192,9 +225,8 @@ class PlayerClassService @JvmOverloads constructor(
         }
 
         for (requirement in model.unlockClassLevel) {
-            val sameClass = astPlayer.classId.equals(requirement.classId, ignoreCase = true)
-            val enoughLevel = astPlayer.classLevel >= requirement.level
-            if (!sameClass || !enoughLevel) {
+            val enoughLevel = astPlayer.getClassProgress(requirement.classId).level >= requirement.level
+            if (!enoughLevel) {
                 blockedReasons +=
                     "${getDisplayName(requirement.classId)} &7Lv.${requirement.level} \u304c\u5fc5\u8981\u3067\u3059"
             }
@@ -209,9 +241,8 @@ class PlayerClassService @JvmOverloads constructor(
             lines += "&e\u30d7\u30ec\u30a4\u30e4\u30fcLv.${model.unlockLevel}"
         }
         for (requirement in model.unlockClassLevel) {
-            val sameClass = astPlayer.classId.equals(requirement.classId, ignoreCase = true)
-            val enoughLevel = astPlayer.classLevel >= requirement.level
-            val displayName = if (!sameClass || !enoughLevel) {
+            val enoughLevel = astPlayer.getClassProgress(requirement.classId).level >= requirement.level
+            val displayName = if (!enoughLevel) {
                 "&c${ColorCodeUtil.toPlainText(getDisplayName(requirement.classId), requirement.classId)}"
             } else {
                 getDisplayName(requirement.classId)

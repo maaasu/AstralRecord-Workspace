@@ -19,4 +19,5 @@ public class AccountEntity
     public Guid CreatedBy { get; set; }
     public Guid UpdatedBy { get; set; }
     public bool IsDeleted { get; set; }
+    public ICollection<AccountClassProgressEntity> ClassProgresses { get; set; } = [];
 }

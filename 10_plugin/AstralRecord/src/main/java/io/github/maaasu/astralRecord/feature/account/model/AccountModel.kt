@@ -79,5 +79,6 @@ data class AccountModel @JvmOverloads constructor(
     val classId: String = "adventurer",
     val classLevel: Int = 1,
     val classExperience: Long = 0L,
+    val classProgresses: List<ClassProgressModel> = emptyList(),
 )
 

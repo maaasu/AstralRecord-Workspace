@@ -186,6 +186,43 @@ CREATE NONCLUSTERED INDEX [IX_account_is_deleted]
 GO
 
 -- ============================================================
+-- AstralRecord\dbo.account_class_progress.md
+-- ============================================================
+
+CREATE TABLE [dbo].[account_class_progress] (
+    [account_id] UNIQUEIDENTIFIER NOT NULL,
+    [class_id]   NVARCHAR(100)    NOT NULL,
+    [level]      INT              NOT NULL CONSTRAINT [DF_account_class_progress_level] DEFAULT (1),
+    [experience] BIGINT           NOT NULL CONSTRAINT [DF_account_class_progress_experience] DEFAULT (0),
+    [updated_at] DATETIME2(3)     NOT NULL,
+    [updated_by] UNIQUEIDENTIFIER NOT NULL,
+
+    CONSTRAINT [PK_account_class_progress] PRIMARY KEY CLUSTERED ([account_id], [class_id]),
+    CONSTRAINT [FK_account_class_progress_account] FOREIGN KEY ([account_id])
+        REFERENCES [dbo].[account] ([uuid])
+        ON DELETE NO ACTION
+        ON UPDATE NO ACTION,
+    CONSTRAINT [CK_account_class_progress_class_id_not_blank]
+        CHECK (LEN(LTRIM(RTRIM([class_id]))) > 0),
+    CONSTRAINT [CK_account_class_progress_level] CHECK ([level] >= 1),
+    CONSTRAINT [CK_account_class_progress_experience] CHECK ([experience] >= 0)
+);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_account_class_progress_class_id]
+    ON [dbo].[account_class_progress] ([class_id]);
+GO
+
+-- 既存 account の現在クラス進行度をクラス別進行度の初期値として引き継ぐ。
+INSERT INTO [dbo].[account_class_progress] (
+    [account_id], [class_id], [level], [experience], [updated_at], [updated_by]
+)
+SELECT
+    [uuid], [class_id], [class_level], [class_experience], [updated_at], [updated_by]
+FROM [dbo].[account];
+GO
+
+-- ============================================================
 -- AstralRecord\dbo.web_login_challenge.md
 -- ============================================================
 

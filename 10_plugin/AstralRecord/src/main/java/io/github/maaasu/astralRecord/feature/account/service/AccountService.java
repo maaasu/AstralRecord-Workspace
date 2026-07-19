@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.account.service;
 import io.github.maaasu.astralRecord.feature.account.model.AccountExperienceResult;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
+import io.github.maaasu.astralRecord.feature.account.model.ClassProgressModel;
 import io.github.maaasu.astralRecord.feature.account.repository.AccountRepository;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -16,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -366,6 +368,7 @@ public class AccountService {
                 snapshot.account().getClassId(),
                 snapshot.account().getClassLevel(),
                 snapshot.account().getClassExperience(),
+                snapshot.account().getClassProgresses(),
                 snapshot.updatedBy()
             );
             pendingClassProgressUpdates.computeIfPresent(accountUuid, (ignored, current) ->
@@ -421,7 +424,8 @@ public class AccountService {
             totalExperience,
             account.getClassId(),
             account.getClassLevel(),
-            account.getClassExperience()
+            account.getClassExperience(),
+            account.getClassProgresses()
         );
     }
 
@@ -433,6 +437,13 @@ public class AccountService {
         @NotNull UUID updatedBy
     ) {
         String normalizedClassId = classId.isBlank() ? "adventurer" : classId.trim();
+        List<ClassProgressModel> classProgresses = new ArrayList<>(account.getClassProgresses());
+        classProgresses.removeIf(progress -> progress.getClassId().equalsIgnoreCase(normalizedClassId));
+        classProgresses.add(new ClassProgressModel(
+            normalizedClassId,
+            Math.max(1, classLevel),
+            Math.max(0L, classExperience)
+        ));
         return new AccountModel(
             account.getUuid(),
             account.getUserId(),
@@ -450,7 +461,8 @@ public class AccountService {
             account.getTotalExperience(),
             normalizedClassId,
             Math.max(1, classLevel),
-            Math.max(0L, classExperience)
+            Math.max(0L, classExperience),
+            classProgresses
         );
     }
 

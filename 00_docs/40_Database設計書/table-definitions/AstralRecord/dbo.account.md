@@ -31,8 +31,8 @@
 | `level`        | `INT`              |    |    ○    |  `1`   | プレイヤーレベル。初期値は `1`、最小値も `1`                             |
 | `total_experience` | `BIGINT`       |    |    ○    |  `0`   | 累計経験値。加算専用で負数不可                                           |
 | `class_id`     | `NVARCHAR(100)`    |    |    ○    | `adventurer` | 現在クラス ID |
-| `class_level`  | `INT`              |    |    ○    |  `1`   | 現在クラスレベル。最小値は `1` |
-| `class_experience` | `BIGINT`      |    |    ○    |  `0`   | 現在クラスの累計経験値。負数不可 |
+| `class_level`  | `INT`              |    |    ○    |  `1`   | 現在クラスレベルの互換ミラー。正本は `dbo.account_class_progress` |
+| `class_experience` | `BIGINT`      |    |    ○    |  `0`   | 現在クラス累計経験値の互換ミラー。正本は `dbo.account_class_progress` |
 | `created_at`   | `DATETIME2(3)`     |    |    ○    |        | レコード作成日時                                                |
 | `updated_at`   | `DATETIME2(3)`     |    |    ○    |        | レコード最終更新日時                                              |
 | `created_by`   | `UNIQUEIDENTIFIER` |    |    ○    |        | 作成者の UUID                                               |
@@ -165,7 +165,7 @@ GO
 | アクティブアカウント管理 | `is_active` フラグにより、プレイヤーが現在使用中のアカウントを識別する         |
 | 権限モード管理      | `mode` により、アカウントの権限レベル（管理者、プレイヤー、ビルダー）を管理する       |
 | プレイヤーレベル管理  | `level` と `total_experience` により、アカウント単位の進行度を永続化する     |
-| クラス進行度管理 | `class_id`、`class_level`、`class_experience` により、アカウント単位の現在クラス進行度を永続化する |
+| クラス進行度管理 | `class_id` で現在クラスを保持し、クラス別レベル・経験値の正本は `dbo.account_class_progress` に永続化する。`class_level` / `class_experience` は現在クラスの互換ミラーとする |
 | 論理削除         | `is_deleted` フラグにより、キャラクターの削除を物理削除せず論理削除として管理する   |
 
 ---

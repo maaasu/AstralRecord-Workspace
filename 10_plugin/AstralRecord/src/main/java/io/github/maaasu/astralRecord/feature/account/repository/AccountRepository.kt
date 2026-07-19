@@ -1,10 +1,12 @@
 package io.github.maaasu.astralRecord.feature.account.repository
 
 import com.google.gson.JsonArray
+import com.google.gson.JsonNull
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel
+import io.github.maaasu.astralRecord.feature.account.model.ClassProgressModel
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil
@@ -242,6 +244,7 @@ class AccountRepository {
         classId: String,
         classLevel: Int,
         classExperience: Long,
+        classProgresses: List<ClassProgressModel>,
         updatedBy: UUID
     ): AccountModel {
         val path = "/api/account/$targetUuid"
@@ -251,7 +254,8 @@ class AccountRepository {
             updatedBy = updatedBy,
             classId = classId,
             classLevel = classLevel,
-            classExperience = classExperience
+            classExperience = classExperience,
+            classProgresses = classProgresses
         )
         try {
             ApiRequestUtil.buildClient().use { client ->
@@ -301,7 +305,8 @@ class AccountRepository {
         totalExperience: Long? = null,
         classId: String? = null,
         classLevel: Int? = null,
-        classExperience: Long? = null
+        classExperience: Long? = null,
+        classProgresses: List<ClassProgressModel>? = null
     ): String {
         return ApiRequestUtil.buildJsonBody {
             addProperty("accountName", null as String?)
@@ -340,6 +345,19 @@ class AccountRepository {
                 addProperty("classExperience", classExperience)
             } else {
                 addProperty("classExperience", null as Number?)
+            }
+            if (classProgresses != null) {
+                add("classProgresses", JsonArray().apply {
+                    classProgresses.forEach { progress ->
+                        add(JsonObject().apply {
+                            addProperty("classId", progress.classId)
+                            addProperty("level", progress.level)
+                            addProperty("experience", progress.experience)
+                        })
+                    }
+                })
+            } else {
+                add("classProgresses", JsonNull.INSTANCE)
             }
             addProperty("updatedBy", updatedBy.toString())
         }
@@ -385,5 +403,22 @@ class AccountRepository {
         classId      = get("classId")?.takeIf { !it.isJsonNull }?.asString ?: "adventurer",
         classLevel   = get("classLevel")?.takeIf { !it.isJsonNull }?.asInt ?: 1,
         classExperience = get("classExperience")?.takeIf { !it.isJsonNull }?.asLong ?: 0L,
+        classProgresses = getAsJsonArray("classProgresses")
+            ?.map { element ->
+                val progress = element.asJsonObject
+                ClassProgressModel(
+                    classId = progress.get("classId").asString,
+                    level = progress.get("level")?.takeIf { !it.isJsonNull }?.asInt ?: 1,
+                    experience = progress.get("experience")?.takeIf { !it.isJsonNull }?.asLong ?: 0L,
+                )
+            }
+            ?.takeIf { it.isNotEmpty() }
+            ?: listOf(
+                ClassProgressModel(
+                    classId = get("classId")?.takeIf { !it.isJsonNull }?.asString ?: "adventurer",
+                    level = get("classLevel")?.takeIf { !it.isJsonNull }?.asInt ?: 1,
+                    experience = get("classExperience")?.takeIf { !it.isJsonNull }?.asLong ?: 0L,
+                )
+            ),
     )
 }

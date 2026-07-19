@@ -9,6 +9,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<PlayerSettingEntity> PlayerSettings => Set<PlayerSettingEntity>();
     public DbSet<SkillBindPresetEntity> SkillBindPresets => Set<SkillBindPresetEntity>();
     public DbSet<AccountEntity> Accounts => Set<AccountEntity>();
+    public DbSet<AccountClassProgressEntity> AccountClassProgresses => Set<AccountClassProgressEntity>();
     public DbSet<InventoryEntity> Inventories => Set<InventoryEntity>();
     public DbSet<InventoryEntryEntity> InventoryEntries => Set<InventoryEntryEntity>();
     public DbSet<EquipmentInstanceEntity> EquipmentInstances => Set<EquipmentInstanceEntity>();
@@ -78,6 +79,25 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(account => account.CreatedBy).HasColumnName("created_by");
             entity.Property(account => account.UpdatedBy).HasColumnName("updated_by");
             entity.Property(account => account.IsDeleted).HasColumnName("is_deleted");
+        });
+
+        modelBuilder.Entity<AccountClassProgressEntity>(entity =>
+        {
+            entity.ToTable("account_class_progress", "dbo");
+            entity.HasKey(progress => new { progress.AccountId, progress.ClassId });
+
+            entity.Property(progress => progress.AccountId).HasColumnName("account_id");
+            entity.Property(progress => progress.ClassId).HasColumnName("class_id").HasMaxLength(100);
+            entity.Property(progress => progress.Level).HasColumnName("level");
+            entity.Property(progress => progress.Experience).HasColumnName("experience");
+            entity.Property(progress => progress.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(progress => progress.UpdatedBy).HasColumnName("updated_by");
+            entity.HasOne(progress => progress.Account)
+                .WithMany(account => account.ClassProgresses)
+                .HasForeignKey(progress => progress.AccountId)
+                .OnDelete(DeleteBehavior.NoAction);
+            entity.HasIndex(progress => progress.ClassId)
+                .HasDatabaseName("IX_account_class_progress_class_id");
         });
 
         modelBuilder.Entity<WebLoginChallengeEntity>(entity =>

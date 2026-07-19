@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.menu.player;
 
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.playerclass.model.ClassProgressViewEntry;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusValue;
@@ -43,6 +44,7 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
     public static final int OFFENSE_SLOT = 12;
     public static final int DEFENSE_SLOT = 13;
     public static final int UTILITY_SLOT = 14;
+    public static final int CLASS_SLOT = 15;
     public static final int BUFF_SLOT = 16;
     public static final int TRADE_SLOT = 38;
     public static final int PARTY_INVITE_SLOT = 42;
@@ -74,7 +76,7 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         @NotNull AstPlayer target,
         @NotNull StatusSnapshot snapshot
     ) {
-        open(viewer, target, snapshot, 0L, target.getClassId(), 0.0, 0L);
+        open(viewer, target, snapshot, 0L, target.getClassId(), List.of());
     }
 
     /**
@@ -85,8 +87,7 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
      * @param snapshot                表示用ステータス
      * @param goldAmount              対象アカウントの所持 Gold
      * @param classDisplayName        対象クラスの表示名
-     * @param classExperienceProgress 現在クラスレベル内の経験値進捗率
-     * @param classExperienceRemaining 次のクラスレベルまでの残り経験値
+     * @param classProgresses          全クラスの独立した進行度
      */
     public void open(
         @NotNull Player viewer,
@@ -94,15 +95,14 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         @NotNull StatusSnapshot snapshot,
         long goldAmount,
         @NotNull String classDisplayName,
-        double classExperienceProgress,
-        long classExperienceRemaining
+        @NotNull List<ClassProgressViewEntry> classProgresses
     ) {
         Inventory inventory = Bukkit.createInventory(
             new Holder(target.getBukkit().getUniqueId()),
             SIZE,
             Component.text("プレイヤー情報: " + target.getBukkit().getName(), NamedTextColor.GOLD)
         );
-        render(inventory, viewer, target, snapshot, goldAmount, classDisplayName, classExperienceProgress, classExperienceRemaining);
+        render(inventory, viewer, target, snapshot, goldAmount, classDisplayName, classProgresses);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory);
     }
 
@@ -124,8 +124,7 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         @NotNull StatusSnapshot snapshot,
         long goldAmount,
         @NotNull String classDisplayName,
-        double classExperienceProgress,
-        long classExperienceRemaining
+        @NotNull List<ClassProgressViewEntry> classProgresses
     ) {
         boolean self = viewer.getUniqueId().equals(target.getBukkit().getUniqueId());
         fill(inventory);
@@ -133,15 +132,14 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         inventory.setItem(HEAD_SLOT, playerHead(
             target,
             goldAmount,
-            classDisplayName,
-            classExperienceProgress,
-            classExperienceRemaining
+            classDisplayName
         ));
         inventory.setItem(RESOURCE_SLOT, categoryItem(Material.GOLDEN_APPLE, "◆", StatusType.Category.RESOURCE, NamedTextColor.GOLD, snapshot));
         inventory.setItem(PRIMARY_SLOT, categoryItem(Material.DIAMOND, "◇", StatusType.Category.PRIMARY, NamedTextColor.YELLOW, snapshot));
         inventory.setItem(OFFENSE_SLOT, categoryItem(Material.NETHERITE_SWORD, "⚔", StatusType.Category.OFFENSE, NamedTextColor.RED, snapshot));
         inventory.setItem(DEFENSE_SLOT, categoryItem(Material.SHIELD, "✚", StatusType.Category.DEFENSE, NamedTextColor.BLUE, snapshot));
         inventory.setItem(UTILITY_SLOT, categoryItem(Material.FEATHER, "✦", StatusType.Category.UTILITY, NamedTextColor.GREEN, snapshot));
+        inventory.setItem(CLASS_SLOT, classProgressItem(classProgresses));
         inventory.setItem(BUFF_SLOT, createItem(
             Material.POTION,
             noItalic(Component.text("現在のバフ", NamedTextColor.AQUA)),
@@ -166,9 +164,7 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
     private @NotNull ItemStack playerHead(
         @NotNull AstPlayer target,
         long goldAmount,
-        @NotNull String classDisplayName,
-        double classExperienceProgress,
-        long classExperienceRemaining
+        @NotNull String classDisplayName
     ) {
         ItemStack itemStack = new ItemStack(Material.PLAYER_HEAD);
         ItemMeta meta = itemStack.getItemMeta();
@@ -177,20 +173,11 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
             skullMeta.setOwningPlayer(offlinePlayer);
             skullMeta.displayName(noItalic(Component.text(target.getBukkit().getName(), NamedTextColor.WHITE, TextDecoration.BOLD)));
             List<Component> lore = new ArrayList<>();
-            lore.add(noItalic(Component.text("Lv." + target.getAccount().getLevel(), NamedTextColor.YELLOW)
-                .append(Component.text(" / ", NamedTextColor.DARK_GRAY))
-                .append(Component.text("Class Lv." + target.getClassLevel(), NamedTextColor.AQUA))));
-            lore.add(noItalic(Component.text("クラス: ", NamedTextColor.GRAY).append(legacy(classDisplayName))));
+            lore.add(noItalic(Component.text("プレイヤー Lv." + target.getAccount().getLevel(), NamedTextColor.YELLOW)));
+            lore.add(noItalic(Component.text("現在のクラス: ", NamedTextColor.GRAY).append(legacy(classDisplayName))));
             lore.add(noItalic(Component.text("アカウント: " + target.getAccount().getAccountName(), NamedTextColor.WHITE)));
             lore.add(noItalic(Component.text("モード: " + target.getAccount().getMode().getDisplayName(), NamedTextColor.GRAY)));
             lore.add(noItalic(Component.text("累計 EXP: " + formatInt(target.getAccount().getTotalExperience()), NamedTextColor.YELLOW)));
-            lore.add(Component.empty());
-            lore.add(noItalic(Component.text("クラス累計 EXP: " + formatInt(target.getClassExperience()), NamedTextColor.YELLOW)));
-            lore.add(noItalic(Component.text("現在 Lv 進捗: " + formatPercent(classExperienceProgress), NamedTextColor.GREEN)));
-            lore.add(noItalic(Component.text(
-                classExperienceRemaining <= 0 ? "次のクラス Lv: 最大レベル" : "次のクラス Lv まで: " + formatInt(classExperienceRemaining) + " EXP",
-                NamedTextColor.AQUA
-            )));
             lore.add(Component.empty());
             lore.add(noItalic(Component.text("所持 Gold: " + formatInt(goldAmount), NamedTextColor.GOLD, TextDecoration.BOLD)));
             lore.add(noItalic(Component.text("プレイ時間: " + formatPlayTime(target), NamedTextColor.YELLOW)));
@@ -202,6 +189,67 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
             itemStack.setItemMeta(skullMeta);
         }
         return itemStack;
+    }
+
+    private @NotNull ItemStack classProgressItem(@NotNull List<ClassProgressViewEntry> classProgresses) {
+        ClassProgressViewEntry current = classProgresses.stream()
+            .filter(ClassProgressViewEntry::getCurrent)
+            .findFirst()
+            .orElse(classProgresses.isEmpty() ? null : classProgresses.get(0));
+        Material material = current == null
+            ? Material.EXPERIENCE_BOTTLE
+            : parseMaterial(current.getIcon(), Material.EXPERIENCE_BOTTLE);
+        List<Component> lore = new ArrayList<>();
+
+        if (current == null) {
+            lore.add(noItalic(Component.text("クラス情報を取得できません", NamedTextColor.GRAY)));
+        } else {
+            lore.add(noItalic(Component.text("現在: ", NamedTextColor.GRAY)
+                .append(legacy(current.getName()))
+                .append(Component.text(" Lv." + current.getLevel(), NamedTextColor.AQUA, TextDecoration.BOLD))));
+            lore.add(noItalic(Component.text("累計 CEXP: " + formatInt(current.getExperience()), NamedTextColor.YELLOW)));
+            lore.add(classExperienceBar(current.getExperienceProgress()));
+            lore.add(noItalic(Component.text(
+                current.getExperienceRemaining() <= 0
+                    ? "次のクラス Lv: 最大レベル"
+                    : "次のクラス Lv まで: " + formatInt(current.getExperienceRemaining()) + " CEXP",
+                NamedTextColor.AQUA
+            )));
+            lore.add(Component.empty());
+            lore.add(noItalic(Component.text("全クラスレベル", NamedTextColor.GOLD, TextDecoration.BOLD)));
+            for (ClassProgressViewEntry progress : classProgresses) {
+                Component marker = Component.text(
+                    progress.getCurrent() ? "● " : "・ ",
+                    progress.getCurrent() ? NamedTextColor.GREEN : NamedTextColor.DARK_GRAY
+                );
+                lore.add(noItalic(marker
+                    .append(legacy(progress.getName()))
+                    .append(Component.text(" Lv." + progress.getLevel(), NamedTextColor.WHITE))));
+            }
+        }
+        return createItem(
+            material,
+            noItalic(Component.text("クラス情報", NamedTextColor.AQUA, TextDecoration.BOLD)),
+            lore
+        );
+    }
+
+    private @NotNull Component classExperienceBar(double progress) {
+        int width = 20;
+        double normalized = Math.max(0.0, Math.min(1.0, progress));
+        int completed = (int) Math.floor(normalized * width);
+        return noItalic(Component.text("CEXP ", NamedTextColor.GRAY)
+            .append(Component.text("|".repeat(completed), NamedTextColor.GREEN))
+            .append(Component.text("|".repeat(width - completed), NamedTextColor.DARK_GRAY))
+            .append(Component.text(" " + formatPercent(normalized), NamedTextColor.WHITE)));
+    }
+
+    private @NotNull Material parseMaterial(@Nullable String value, @NotNull Material fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        Material material = Material.matchMaterial(value.trim().toUpperCase(Locale.ROOT));
+        return material == null ? fallback : material;
     }
 
     private @NotNull ItemStack categoryItem(

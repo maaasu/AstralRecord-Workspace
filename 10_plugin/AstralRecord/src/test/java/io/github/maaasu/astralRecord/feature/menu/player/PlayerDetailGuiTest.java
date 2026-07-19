@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.menu.player;
 
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
+import io.github.maaasu.astralRecord.feature.playerclass.model.ClassProgressViewEntry;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusValue;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
@@ -44,14 +45,17 @@ class PlayerDetailGuiTest extends MockBukkitTestBase {
             snapshot,
             250L,
             "Adventurer",
-            0.5D,
-            100L
+            List.of(
+                new ClassProgressViewEntry("adventurer", "Adventurer", "WOODEN_SWORD", 10, 4000L, 0.5D, 100L, true),
+                new ClassProgressViewEntry("mage", "Mage", "BLAZE_ROD", 4, 900L, 0.25D, 300L, false)
+            )
         );
 
         Inventory inventory = player.getOpenInventory().getTopInventory();
         String headLore = plainLore(inventory.getItem(PlayerDetailGui.HEAD_SLOT));
         String statusLore = plainLore(inventory.getItem(PlayerDetailGui.RESOURCE_SLOT));
         String buffLore = plainLore(inventory.getItem(PlayerDetailGui.BUFF_SLOT));
+        String classLore = plainLore(inventory.getItem(PlayerDetailGui.CLASS_SLOT));
 
         assertTrue(headLore.contains("Greenfall Fields"));
         assertFalse(headLore.contains("internal_greenfall"));
@@ -63,6 +67,10 @@ class PlayerDetailGuiTest extends MockBukkitTestBase {
         assertFalse(statusLore.contains("基礎"));
         assertFalse(statusLore.contains("補正"));
         assertTrue(buffLore.contains("クリックで詳細を表示"));
+        assertTrue(classLore.contains("Adventurer Lv.10"));
+        assertTrue(classLore.contains("Mage Lv.4"));
+        assertTrue(classLore.contains("CEXP"));
+        assertFalse(headLore.contains("Class Lv."));
     }
 
     private static String plainLore(ItemStack itemStack) {
