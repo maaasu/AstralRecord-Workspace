@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.shared.interaction;
 
-import org.bukkit.block.BlockType;
+import org.bukkit.event.Event;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
@@ -78,8 +79,8 @@ public final class VanillaInteractionResolver implements PlayerInputResolver<Pla
         if (context.source() != InputSource.PLAYER_INTERACT || snapshot.clickedBlock() == null) {
             return null;
         }
-        BlockType blockType = snapshot.clickedBlock().getType().asBlockType();
-        if (blockType == null || !blockType.isInteractable()) {
+        if (!(snapshot.event() instanceof PlayerInteractEvent interactEvent)
+            || interactEvent.useInteractedBlock() == Event.Result.DENY) {
             return null;
         }
         Double hitDistance = snapshot.hitDistance(snapshot.clickedBlock());

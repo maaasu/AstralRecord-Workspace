@@ -448,11 +448,10 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         InventoryService.InventoryStateSnapshot inventorySnapshot = inventorySnapshot(player);
         when(harness.inventoryService.snapshotState(player.getAccount().getUuid())).thenReturn(inventorySnapshot);
         when(harness.inventoryService.addGold(player, 5L)).thenReturn(true);
-        when(harness.inventoryService.saveNow(player.getAccount().getUuid())).thenReturn(
-            CompletableFuture.completedFuture(false),
-            CompletableFuture.completedFuture(true),
-            CompletableFuture.completedFuture(true)
-        );
+        when(harness.inventoryService.saveNow(player.getAccount().getUuid()))
+            .thenReturn(CompletableFuture.completedFuture(false))
+            .thenReturn(CompletableFuture.completedFuture(true))
+            .thenReturn(CompletableFuture.completedFuture(true));
 
         assertTrue(harness.service.turnIn(player, quest, null));
 

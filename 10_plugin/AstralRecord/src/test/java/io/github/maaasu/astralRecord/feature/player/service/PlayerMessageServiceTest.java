@@ -13,6 +13,7 @@ import org.mockito.MockedStatic;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -64,7 +65,11 @@ class PlayerMessageServiceTest {
     private boolean hasRunCommand(Component component, String command) {
         ClickEvent clickEvent = component.clickEvent();
         if (clickEvent != null && clickEvent.action() == ClickEvent.Action.RUN_COMMAND) {
-            assertEquals(command, clickEvent.value());
+            ClickEvent.Payload.Text payload = assertInstanceOf(
+                ClickEvent.Payload.Text.class,
+                clickEvent.payload()
+            );
+            assertEquals(command, payload.value());
             return true;
         }
         return component.children().stream().anyMatch(child -> hasRunCommand(child, command));

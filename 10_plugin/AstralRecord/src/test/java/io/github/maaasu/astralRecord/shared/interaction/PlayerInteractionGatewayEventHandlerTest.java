@@ -252,13 +252,25 @@ class PlayerInteractionGatewayEventHandlerTest {
         verify(semantic).setCancelled(true);
     }
 
-    @SafeVarargs
-    private final PlayerInteractionGatewayEventHandler gateway(
-        PlayerInputResolver<PlayerInteractionSnapshot>... resolvers
+    private PlayerInteractionGatewayEventHandler gateway(
+        PlayerInputResolver<PlayerInteractionSnapshot> resolver
+    ) {
+        return gateway(List.of(resolver));
+    }
+
+    private PlayerInteractionGatewayEventHandler gateway(
+        PlayerInputResolver<PlayerInteractionSnapshot> first,
+        PlayerInputResolver<PlayerInteractionSnapshot> second
+    ) {
+        return gateway(List.of(first, second));
+    }
+
+    private PlayerInteractionGatewayEventHandler gateway(
+        List<PlayerInputResolver<PlayerInteractionSnapshot>> resolvers
     ) {
         return new PlayerInteractionGatewayEventHandler(
             plugin,
-            List.of(resolvers),
+            resolvers,
             ignored -> false,
             ignored -> false,
             ignored -> {

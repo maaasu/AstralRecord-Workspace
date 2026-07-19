@@ -78,6 +78,7 @@
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
+                    <proc>full</proc>
                     <encoding>UTF-8</encoding>
                     <compilerArgs>
                         <arg>-Xlint:all,-processing,-try</arg>

@@ -52,7 +52,9 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
                 WorldSpawnLocation.defaultLocation(),
                 false
         );
-        when(repository.findAll()).thenReturn(List.of(current), List.of(prepared));
+        when(repository.findAll())
+            .thenReturn(List.of(current))
+            .thenReturn(List.of(prepared));
         withPluginLogger(service::loadAll);
 
         WorldService.DefinitionSnapshot snapshot = service.loadDefinitionSnapshot();
