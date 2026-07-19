@@ -2,11 +2,11 @@
 #   motif: "北欧神話 / ヴァナヘイム"
 #   progression: 1
 schemaVersion: 1
-id: starreach_wilds
+id: vanaheim_supercontinent
 displayName: "ヴァナヘイム超大陸"
 worldType: OVERWORLD
-baseWorldPath: "plugins/AstralRecord/worlds/overworld/starreach_wilds"
-instanceRootPath: "plugins/AstralRecord/_world_instances/starreach_wilds"
+baseWorldPath: "plugins/AstralRecord/worlds/overworld/vanaheim_supercontinent"
+instanceRootPath: "plugins/AstralRecord/_world_instances/vanaheim_supercontinent"
 autoLoad: false
 instanceEnabled: false
 maxPlayers: 100
