@@ -649,8 +649,10 @@ public class ItemStackFactory {
             lore.add(ColorCodeUtil.GRAY + " ▸ スロット: " + ColorCodeUtil.WHITE
                     + toEquipmentSlotLabel(equipment.getSlot()));
         }
-        lore.add(ColorCodeUtil.GRAY + " ▸ ハンド: " + ColorCodeUtil.WHITE
-                + toHandTypeLabel(equipment.getHandType()));
+        if (shouldShowHandType(equipment.getSlot())) {
+            lore.add(ColorCodeUtil.GRAY + " ▸ ハンド: " + ColorCodeUtil.WHITE
+                    + toHandTypeLabel(equipment.getHandType()));
+        }
 
         // 装備条件
         if (equipment.getRequiredLevel() > 0) {
@@ -939,8 +941,10 @@ public class ItemStackFactory {
                 lore.add(ColorCodeUtil.GRAY + " ▸ スロット: " + ColorCodeUtil.WHITE
                         + toEquipmentSlotLabel(eq.getSlot()));
             }
-            lore.add(ColorCodeUtil.GRAY + " ▸ ハンド: " + ColorCodeUtil.WHITE
-                    + toHandTypeLabel(eq.getHandType()));
+            if (shouldShowHandType(eq.getSlot())) {
+                lore.add(ColorCodeUtil.GRAY + " ▸ ハンド: " + ColorCodeUtil.WHITE
+                        + toHandTypeLabel(eq.getHandType()));
+            }
             if (eq.getRequiredLevel() > 0) {
                 lore.add(ColorCodeUtil.GRAY + " ▸ 必要Lv: " + ColorCodeUtil.YELLOW + eq.getRequiredLevel());
             }
@@ -1360,6 +1364,10 @@ public class ItemStackFactory {
      */
     private @NotNull String toHandTypeLabel(@Nullable ItemEquipmentHandType handType) {
         return Objects.requireNonNullElse(handType, ItemEquipmentHandType.ONE).getDisplayName();
+    }
+
+    private boolean shouldShowHandType(@Nullable ItemEquipmentSlot slot) {
+        return slot == ItemEquipmentSlot.WEAPON || slot == ItemEquipmentSlot.TOOL;
     }
 
     // endregion
