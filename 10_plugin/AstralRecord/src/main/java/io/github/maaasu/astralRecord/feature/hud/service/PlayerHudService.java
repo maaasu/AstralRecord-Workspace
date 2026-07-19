@@ -6,10 +6,13 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
+import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeSidebarInfo;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
+import io.github.maaasu.astralRecord.feature.world.model.WorldType;
+import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
@@ -29,6 +32,7 @@ public class PlayerHudService {
     private final AccountService accountService;
     private final PlayerSettingService playerSettingService;
     private final BossChallengeService bossChallengeService;
+    private final WorldService worldService;
     private final PlayerHudView playerHudView;
     private final Map<UUID, BukkitTask> actionBarOverrideTasks = new HashMap<>();
     private final Map<UUID, Function<AstPlayer, Component>> primaryActionBarRenderers = new HashMap<>();
@@ -43,19 +47,22 @@ public class PlayerHudService {
      * @param accountService      アカウント経験値サービス
      * @param playerSettingService プレイヤー設定サービス
      * @param bossChallengeService ボス挑戦サービス
+     * @param worldService ワールド表示名・種別の解決サービス
      */
     public PlayerHudService(
         StatusService statusService,
         PlayerClassService playerClassService,
         AccountService accountService,
         PlayerSettingService playerSettingService,
-        BossChallengeService bossChallengeService
+        BossChallengeService bossChallengeService,
+        WorldService worldService
     ) {
         this.statusService = statusService;
         this.playerClassService = playerClassService;
         this.accountService = accountService;
         this.playerSettingService = playerSettingService;
         this.bossChallengeService = bossChallengeService;
+        this.worldService = worldService;
         this.playerHudView = new PlayerHudView();
     }
 
@@ -179,6 +186,14 @@ public class PlayerHudService {
                 boolean showPerformanceInfo = playerSettingService.isPerformanceInfoDisplayEnabled(
                     astPlayer.getUser().getUuid()
                 );
+                BossChallengeSidebarInfo bossInfo = bossChallengeService.findSidebarInfo(player.getUniqueId());
+                WorldType worldType = worldService.resolveWorldType(player.getWorld());
+                String regionName = astPlayer.getCurrentRegion();
+                if (regionName == null || regionName.isBlank()) {
+                    regionName = worldType == null
+                            ? player.getWorld().getName()
+                            : worldType.getRegionDisplayName();
+                }
                 playerHudView.renderSidebar(
                     player,
                     mspt,
@@ -186,8 +201,11 @@ public class PlayerHudService {
                     experienceProgress,
                     astPlayer.getClassLevel(),
                     className,
+                    worldService.resolveDisplayName(player.getWorld()),
+                    regionName,
+                    resolveRegionLevel(astPlayer, worldType, bossInfo),
                     showPerformanceInfo,
-                    bossChallengeService.findSidebarInfo(player.getUniqueId())
+                    bossInfo
                 );
             }
             playerHudView.renderBars(player, snapshot);
@@ -197,6 +215,29 @@ public class PlayerHudService {
                 playerSettingService.isPerformanceInfoDisplayEnabled(astPlayer.getUser().getUuid())
             );
         }
+    }
+
+    /**
+     * サイドバーに表示する地域レベルを現在ワールド種別から解決します。
+     * 拠点は 0、ボスフィールドは挑戦中ボスのレベル、その他はプレイヤー地域状態を使用します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param worldType 現在ワールド種別。管理対象外の場合は {@code null}
+     * @param bossInfo 挑戦中ボス情報。挑戦していない場合は {@code null}
+     * @return 表示する地域レベル
+     */
+    private int resolveRegionLevel(
+            @NotNull AstPlayer astPlayer,
+            @Nullable WorldType worldType,
+            @Nullable BossChallengeSidebarInfo bossInfo
+    ) {
+        if (worldType == WorldType.BASE) {
+            return 0;
+        }
+        if (worldType == WorldType.BOSS_FIELD) {
+            return bossInfo == null ? 0 : bossInfo.bossLevel();
+        }
+        return Math.max(0, astPlayer.getCurrentRegionLevel());
     }
 
     private void renderStatusActionBar(AstPlayer astPlayer) {

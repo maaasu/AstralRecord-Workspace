@@ -71,6 +71,7 @@ public final class PlayerRegionService {
     public void initializeRegion(@NotNull AstPlayer astPlayer) {
         cancelPendingTitle(astPlayer.getBukkit().getUniqueId());
         astPlayer.setCurrentRegion(resolveDefaultRegion(astPlayer.getBukkit().getWorld()));
+        astPlayer.setCurrentRegionLevel(0);
     }
 
     /**
@@ -84,6 +85,7 @@ public final class PlayerRegionService {
         UUID playerId = astPlayer.getBukkit().getUniqueId();
         cancelPendingTitle(playerId);
         String region = resolveDefaultRegion(astPlayer.getBukkit().getWorld());
+        astPlayer.setCurrentRegionLevel(0);
         if (!setCurrentRegion(astPlayer, region)) {
             return;
         }
@@ -105,14 +107,21 @@ public final class PlayerRegionService {
      *
      * @param astPlayer 対象プレイヤー
      * @param region スポナーに定義された地域名
+     * @param regionLevel 地域スポナーから出現する Mob の平均レベル
      * @return 地域が実際に切り替わった場合は {@code true}
      */
-    public boolean updateRegionFromSpawner(@NotNull AstPlayer astPlayer, @Nullable String region) {
+    public boolean updateRegionFromSpawner(
+            @NotNull AstPlayer astPlayer,
+            @Nullable String region,
+            int regionLevel
+    ) {
         if (region == null || region.isBlank() || resolveWorldType(astPlayer.getBukkit().getWorld()) != WorldType.OVERWORLD) {
             return false;
         }
         String normalized = region.trim();
-        if (!setCurrentRegion(astPlayer, normalized)) {
+        boolean regionChanged = setCurrentRegion(astPlayer, normalized);
+        astPlayer.setCurrentRegionLevel(Math.max(0, regionLevel));
+        if (!regionChanged) {
             return false;
         }
         if (!pendingWorldChangeTitles.containsKey(astPlayer.getBukkit().getUniqueId())) {
@@ -128,7 +137,7 @@ public final class PlayerRegionService {
      * @return 地域が実際に切り替わった場合は {@code true}
      */
     public boolean resetOverworldRegion(@NotNull AstPlayer astPlayer) {
-        return updateRegionFromSpawner(astPlayer, WorldType.OVERWORLD.getRegionDisplayName());
+        return updateRegionFromSpawner(astPlayer, WorldType.OVERWORLD.getRegionDisplayName(), 0);
     }
 
     /**

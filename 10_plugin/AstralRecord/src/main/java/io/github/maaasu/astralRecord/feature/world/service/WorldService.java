@@ -549,8 +549,15 @@ public class WorldService {
         Logger.log(LogId.I_5754, player.getName(), vehicle, passengers);
     }
 
+    /**
+     * Bukkit ワールドのプレイヤー向け表示名を解決します。
+     * マスタ未解決時は実行時登録、最後に Bukkit ワールド名を使用します。
+     *
+     * @param world 表示名を解決する Bukkit ワールド
+     * @return カラーコードを正規化したワールド表示名
+     */
     @NotNull
-    synchronized String resolveDisplayName(@NotNull org.bukkit.World world) {
+    public synchronized String resolveDisplayName(@NotNull org.bukkit.World world) {
         WorldMasterData worldData = findByBukkitWorld(world);
         if (worldData != null && !worldData.displayName().isBlank()) {
             return ColorCodeUtil.toLegacyText(worldData.displayName(), worldData.id());

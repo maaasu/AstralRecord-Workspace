@@ -42,6 +42,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
 
 /**
  * Mob スポナー定義・配置座標・スポーン制御を集約するサービスです。
@@ -63,6 +64,7 @@ public class MobSpawnerService {
     private final NamespacedKey spawnerIdKey;
 
     private final Map<String, MobSpawnerDefinition> definitions = new LinkedHashMap<>();
+    private final Map<String, Integer> regionLevelByName = new HashMap<>();
     private final Map<String, MobSpawnerLocation> locations = new LinkedHashMap<>();
     private final Map<String, Set<UUID>> spawnedByLocation = new HashMap<>();
 
@@ -98,7 +100,7 @@ public class MobSpawnerService {
     }
 
     /**
-     * マスタ定義と座標ファイルを一括ロードします。
+     * マスタ定義と座標ファイルを一括ロードし、地域ごとの出現 Mob 平均レベルを再計算します。
      *
      * @return ロードしたスポナー定義数
      */
@@ -107,6 +109,14 @@ public class MobSpawnerService {
         for (MobSpawnerDefinition definition : definitionRepository.findAll()) {
             definitions.put(definition.id(), definition);
         }
+        regionLevelByName.clear();
+        regionLevelByName.putAll(calculateRegionLevels(
+                definitions.values(),
+                mobId -> {
+                    var template = mobService.findTemplate(mobId);
+                    return template == null ? null : template.level();
+                }
+        ));
 
         locations.clear();
         spawnedByLocation.clear();
@@ -396,6 +406,7 @@ public class MobSpawnerService {
                 }
                 PlayerRegionCandidate candidate = new PlayerRegionCandidate(
                         definition.region(),
+                        regionLevelByName.getOrDefault(definition.region(), 0),
                         distanceSquared,
                         spawnerLocation.locationKey()
                 );
@@ -407,9 +418,47 @@ public class MobSpawnerService {
             if (nearest == null) {
                 playerRegionService.resetOverworldRegion(astPlayer);
             } else {
-                playerRegionService.updateRegionFromSpawner(astPlayer, nearest.region());
+                playerRegionService.updateRegionFromSpawner(astPlayer, nearest.region(), nearest.regionLevel());
             }
         }
+    }
+
+    /**
+     * 地域ごとに、所属スポナーの出現 Mob を抽選重みで加重した平均レベルを算出します。
+     * 解決できない Mob は集計から除外し、有効な Mob がない地域はレベル 0 とします。
+     *
+     * @param definitions 集計対象スポナー定義
+     * @param levelResolver Mob ID からレベルを返す解決処理。未解決時は {@code null}
+     * @return 地域名をキーとする平均レベル
+     */
+    @NotNull
+    static Map<String, Integer> calculateRegionLevels(
+            @NotNull Collection<MobSpawnerDefinition> definitions,
+            @NotNull Function<String, Integer> levelResolver
+    ) {
+        Map<String, long[]> totalsByRegion = new HashMap<>();
+        for (MobSpawnerDefinition definition : definitions) {
+            if (definition.region() == null) {
+                continue;
+            }
+            long[] totals = totalsByRegion.computeIfAbsent(definition.region(), ignored -> new long[2]);
+            for (MobSpawnerEntry entry : definition.spawnMobs()) {
+                Integer level = levelResolver.apply(entry.mobId());
+                if (level == null) {
+                    continue;
+                }
+                int weight = Math.max(1, entry.weight());
+                totals[0] += (long) Math.max(0, level) * weight;
+                totals[1] += weight;
+            }
+        }
+
+        Map<String, Integer> levels = new HashMap<>();
+        totalsByRegion.forEach((region, totals) -> levels.put(
+                region,
+                totals[1] == 0L ? 0 : (int) Math.round((double) totals[0] / totals[1])
+        ));
+        return Map.copyOf(levels);
     }
 
     private void processSpawner(@NotNull MobSpawnerLocation spawnerLocation) {
@@ -618,6 +667,7 @@ public class MobSpawnerService {
 
     private record PlayerRegionCandidate(
             @NotNull String region,
+            int regionLevel,
             double distanceSquared,
             @NotNull String locationKey
     ) {

@@ -71,6 +71,9 @@ public class PlayerHudView {
      * @param experienceProgress 現在レベル内の経験値進捗（0.0-1.0）
      * @param classLevel 現在のクラスレベル
      * @param className 現在のクラス表示名
+     * @param worldName 現在のワールド表示名
+     * @param regionName 現在の地域表示名
+     * @param regionLevel 現在の地域レベル
      * @param showPerformanceInfo MSPT・Ping を表示するか
      * @param bossInfo 挑戦中ボス情報。挑戦していない場合は null
      */
@@ -81,6 +84,9 @@ public class PlayerHudView {
         double experienceProgress,
         int classLevel,
         String className,
+        String worldName,
+        String regionName,
+        int regionLevel,
         boolean showPerformanceInfo,
         BossChallengeSidebarInfo bossInfo
     ) {
@@ -103,11 +109,17 @@ public class PlayerHudView {
         int ping = player.getPing();
         clearSidebar(scoreboard);
         objective.getScore(ColorCodeUtil.AQUA + "オンライン" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
-                + Bukkit.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers()).setScore(11);
+                + Bukkit.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers()).setScore(14);
         if (showPerformanceInfo) {
-            objective.getScore(msptLegacyColor(mspt) + "MSPT" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + String.format("%.1f", mspt)).setScore(10);
-            objective.getScore(pingLegacyColor(ping) + "Ping" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + ping + "ms").setScore(9);
+            objective.getScore(msptLegacyColor(mspt) + "MSPT" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + String.format("%.1f", mspt)).setScore(13);
+            objective.getScore(pingLegacyColor(ping) + "Ping" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + ping + "ms").setScore(12);
         }
+        objective.getScore(ColorCodeUtil.BLUE + "ワールド" + ColorCodeUtil.GRAY + ": "
+                + ColorCodeUtil.toLegacyText(worldName, "Unknown")).setScore(11);
+        objective.getScore(ColorCodeUtil.GREEN + "地域" + ColorCodeUtil.GRAY + ": "
+                + ColorCodeUtil.toLegacyText(regionName, "Unknown")).setScore(10);
+        objective.getScore(ColorCodeUtil.GOLD + "地域レベル" + ColorCodeUtil.GRAY + ": "
+                + "Lv." + ColorCodeUtil.YELLOW + Math.max(0, regionLevel)).setScore(9);
         objective.getScore(buildSeparator("player")).setScore(8);
         objective.getScore(ColorCodeUtil.GOLD + "レベル" + ColorCodeUtil.GRAY + ": " + "Lv." + ColorCodeUtil.YELLOW + playerLevel).setScore(7);
         objective.getScore(buildExperienceBar("EXP", experienceProgress, ColorCodeUtil.GREEN)).setScore(6);

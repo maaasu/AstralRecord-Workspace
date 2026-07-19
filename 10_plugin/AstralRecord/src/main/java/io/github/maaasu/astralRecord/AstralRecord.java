@@ -769,7 +769,8 @@ public final class AstralRecord extends JavaPlugin {
             playerClassService,
             accountService,
             playerSettingService,
-            bossChallengeService
+            bossChallengeService,
+            worldService
         );
         skillTreeService.setPlayerHudService(playerHudService);
 

@@ -37,10 +37,11 @@ class PlayerRegionServiceTest extends MockBukkitTestBase {
         service.initializeRegion(astPlayer);
         assertEquals("オーバーワールド", astPlayer.getCurrentRegion());
 
-        assertTrue(service.updateRegionFromSpawner(astPlayer, "風待ち草原"));
-        assertFalse(service.updateRegionFromSpawner(astPlayer, "風待ち草原"));
+        assertTrue(service.updateRegionFromSpawner(astPlayer, "風待ち草原", 12));
+        assertFalse(service.updateRegionFromSpawner(astPlayer, "風待ち草原", 14));
 
         assertEquals("風待ち草原", astPlayer.getCurrentRegion());
+        assertEquals(14, astPlayer.getCurrentRegionLevel());
         assertEquals(List.of("風待ち草原"), displayedRegions);
     }
 
@@ -60,8 +61,9 @@ class PlayerRegionServiceTest extends MockBukkitTestBase {
         service.initializeRegion(astPlayer);
 
         assertEquals("ボスフィールド", astPlayer.getCurrentRegion());
-        assertFalse(service.updateRegionFromSpawner(astPlayer, "誤った地域"));
+        assertFalse(service.updateRegionFromSpawner(astPlayer, "誤った地域", 99));
         assertEquals("ボスフィールド", astPlayer.getCurrentRegion());
+        assertEquals(0, astPlayer.getCurrentRegionLevel());
         assertTrue(displayedRegions.isEmpty());
     }
 
@@ -78,11 +80,13 @@ class PlayerRegionServiceTest extends MockBukkitTestBase {
                 (target, region) -> displayedRegions.add(region)
         );
         astPlayer.setCurrentRegion("風待ち草原");
+        astPlayer.setCurrentRegionLevel(12);
 
         assertTrue(service.resetOverworldRegion(astPlayer));
         assertFalse(service.resetOverworldRegion(astPlayer));
 
         assertEquals("オーバーワールド", astPlayer.getCurrentRegion());
+        assertEquals(0, astPlayer.getCurrentRegionLevel());
         assertEquals(List.of("オーバーワールド"), displayedRegions);
     }
 }

@@ -413,6 +413,7 @@ public final class BossChallengeService {
                     : Math.max(0L, (System.currentTimeMillis() - challenge.startedAtMs()) / 1000L);
             return new BossChallengeSidebarInfo(
                     challenge.bossTemplate().displayName(),
+                    challenge.bossTemplate().level(),
                     challenge.deathCount(),
                     challenge.config().deathLimit(),
                     elapsed,

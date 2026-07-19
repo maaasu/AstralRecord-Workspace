@@ -66,6 +66,12 @@ data class AstPlayer(
     var currentRegion: String? = null
 
     /**
+     * 現在地域の推奨レベル。
+     * オーバーワールドでは地域スポナーの出現 Mob 平均レベルを保持し、その他のワールドでは 0 を既定値とします。
+     */
+    var currentRegionLevel: Int = 0
+
+    /**
      * しゃがみ開始時刻（System.currentTimeMillis ベース）。
      * しゃがみ開始 → 短時間以内に解除でドッジ判定に使用します。
      */
