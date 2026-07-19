@@ -9,6 +9,9 @@ import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingCh
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKey;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -17,7 +20,7 @@ import org.jetbrains.annotations.NotNull;
 public final class PlayerSettingCommand extends AstCommand {
 
     public PlayerSettingCommand() {
-        super("setting", "Show or update player settings.", "/setting [gui|<key> <value>]", true);
+        super("setting", "プレイヤー設定を表示または更新します。", "/setting [gui|<key> <value>]", true);
     }
 
     @Override
@@ -72,27 +75,40 @@ public final class PlayerSettingCommand extends AstCommand {
             return;
         }
 
-        PlayerSettingService.UpdateResult result = service.updatePlayerSetting(
-            new PlayerSettingChangeRequest(
-                player.getUser().getUuid(),
-                key,
-                parsedValue,
-                player.getUser().getUuid()
-            )
+        var plugin = AstralRecord.getInstance();
+        var request = new PlayerSettingChangeRequest(
+            player.getUser().getUuid(),
+            key,
+            parsedValue,
+            player.getUser().getUuid()
         );
-        if (result.conflict()) {
-            sendError(player.getBukkit(), result.message());
-            return;
-        }
-
-        sendSuccess(
-            player.getBukkit(),
-            io.github.maaasu.astralRecord.feature.player.PlayerMsgResource.format(
-                PlayerSettingMsgId.P_5321.getId(),
-                key.getDisplayNameJa(),
-                key.formatValue(parsedValue)
-            )
-        );
+        long sessionToken = service.captureSessionToken(request.userId());
+        AsyncTaskUtil.supplyAsync(plugin, () -> service.updatePlayerSetting(request, sessionToken))
+            .whenComplete((result, throwable) -> AsyncTaskUtil.runSync(plugin, () -> {
+                if (!player.getBukkit().isOnline()) {
+                    return;
+                }
+                if (throwable != null) {
+                    Logger.log(LogId.E_5312, throwable, key.getCode());
+                    sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerSettingMsgId.P_5326.getId()));
+                    return;
+                }
+                if (result.staleSession()) {
+                    return;
+                }
+                if (result.conflict()) {
+                    sendError(player.getBukkit(), result.message());
+                    return;
+                }
+                sendSuccess(
+                    player.getBukkit(),
+                    PlayerMsgResource.format(
+                        PlayerSettingMsgId.P_5321.getId(),
+                        key.getDisplayNameJa(),
+                        key.formatValue(parsedValue)
+                    )
+                );
+            }));
     }
 
     private void showCurrentSettings(@NotNull AstPlayer player, @NotNull PlayerSettingService service) {

@@ -56,16 +56,43 @@ public final class NpcPlacementService {
      * @return 読み込んだ配置数
      */
     public int loadAll() {
-        destroySpawnedNpcs();
-        releaseAllChunkTickets();
+        List<NpcPlacement> snapshot = loadPlacementSnapshot();
+        replacePlacementSnapshot(snapshot);
+        activatePlacementSnapshot();
+        return placements.size();
+    }
+
+    /**
+     * NPC 配置 YAML を読み込み、公開前のスナップショットを作成します。
+     *
+     * @return NPC 配置スナップショット
+     */
+    public @NotNull List<NpcPlacement> loadPlacementSnapshot() {
+        return List.copyOf(repository.loadAll());
+    }
+
+    /**
+     * 準備済み NPC 配置を実行時キャッシュへ反映します。
+     *
+     * @param snapshot NPC 配置スナップショット
+     */
+    public void replacePlacementSnapshot(@NotNull List<NpcPlacement> snapshot) {
         placements.clear();
-        spawnedByLocation.clear();
-        for (NpcPlacement placement : repository.loadAll()) {
+        for (NpcPlacement placement : snapshot) {
             placements.put(placement.locationKey(), placement);
         }
         dirty = false;
+    }
+
+    /**
+     * 公開済み NPC 配置へ切り替えるため、旧 NPC と chunk ticket を破棄して再配置します。
+     * Bukkit Entity と chunk ticket を操作するためメインスレッドから呼び出してください。
+     */
+    public void activatePlacementSnapshot() {
+        destroySpawnedNpcs();
+        releaseAllChunkTickets();
+        spawnedByLocation.clear();
         spawnLoadedWorlds();
-        return placements.size();
     }
 
     /**
@@ -202,8 +229,9 @@ public final class NpcPlacementService {
         if (!dirty) {
             return;
         }
-        repository.saveAll(new ArrayList<>(placements.values()));
-        dirty = false;
+        if (repository.saveAll(new ArrayList<>(placements.values()))) {
+            dirty = false;
+        }
     }
 
     @Nullable

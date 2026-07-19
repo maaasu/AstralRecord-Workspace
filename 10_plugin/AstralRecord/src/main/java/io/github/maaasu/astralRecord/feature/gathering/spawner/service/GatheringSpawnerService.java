@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.gathering.spawner.service;
 
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.gathering.model.GatheringInstance;
 import io.github.maaasu.astralRecord.feature.gathering.service.GatheringService;
 import io.github.maaasu.astralRecord.feature.gathering.spawner.model.GatheringSpawnerDefinition;
@@ -11,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.gathering.spawner.repository.Gather
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -54,6 +56,8 @@ public class GatheringSpawnerService {
     private final Map<String, GatheringSpawnerDefinition> definitions = new LinkedHashMap<>();
     private final Map<String, GatheringSpawnerLocation> locations = new LinkedHashMap<>();
     private final Map<String, Set<UUID>> spawnedByLocation = new HashMap<>();
+    private ParticleDisplayService particleDisplayService;
+    private GatheringSpawnerVisualizer visualizer;
     private BukkitTask task;
     private BukkitTask saveTask;
     private long tick;
@@ -73,18 +77,47 @@ public class GatheringSpawnerService {
     }
 
     public int loadAll() {
+        MasterDataSnapshot snapshot = loadMasterDataSnapshot();
+        replaceMasterDataSnapshot(snapshot);
+        return definitions.size();
+    }
+
+    /**
+     * 採集スポナー定義と配置 YAML を読み込み、公開前のスナップショットを作成します。
+     *
+     * @return 採集スポナーマスタスナップショット
+     */
+    public @NotNull MasterDataSnapshot loadMasterDataSnapshot() {
+        return new MasterDataSnapshot(
+                List.copyOf(definitionRepository.findAll()),
+                List.copyOf(locationRepository.loadAll())
+        );
+    }
+
+    /**
+     * 準備済み採集スポナーマスタを実行時キャッシュへ一括反映します。
+     *
+     * @param snapshot 採集スポナーマスタスナップショット
+     */
+    public void replaceMasterDataSnapshot(@NotNull MasterDataSnapshot snapshot) {
         definitions.clear();
-        for (GatheringSpawnerDefinition definition : definitionRepository.findAll()) {
+        for (GatheringSpawnerDefinition definition : snapshot.definitions()) {
             definitions.put(definition.id(), definition);
         }
         locations.clear();
         spawnedByLocation.clear();
-        for (GatheringSpawnerLocation location : locationRepository.loadAll()) {
+        for (GatheringSpawnerLocation location : snapshot.locations()) {
             locations.put(location.locationKey(), location);
             spawnedByLocation.put(location.locationKey(), new HashSet<>());
         }
         dirty = false;
-        return definitions.size();
+    }
+
+    /** 公開前に準備した採集スポナー定義と配置の immutable スナップショットです。 */
+    public record MasterDataSnapshot(
+            @NotNull List<GatheringSpawnerDefinition> definitions,
+            @NotNull List<GatheringSpawnerLocation> locations
+    ) {
     }
 
     public void start() {
@@ -94,6 +127,14 @@ public class GatheringSpawnerService {
         if (saveTask == null) {
             saveTask = Bukkit.getScheduler().runTaskTimer(plugin, this::saveIfDirty, SAVE_INTERVAL, SAVE_INTERVAL);
         }
+        if (visualizer == null && particleDisplayService != null) {
+            visualizer = new GatheringSpawnerVisualizer(plugin, this, particleDisplayService);
+            visualizer.start();
+        }
+    }
+
+    public void setParticleDisplayService(@NotNull ParticleDisplayService particleDisplayService) {
+        this.particleDisplayService = particleDisplayService;
     }
 
     public void stop() {
@@ -104,6 +145,10 @@ public class GatheringSpawnerService {
         if (saveTask != null) {
             saveTask.cancel();
             saveTask = null;
+        }
+        if (visualizer != null) {
+            visualizer.stop();
+            visualizer = null;
         }
         saveIfDirty();
     }
@@ -238,6 +283,15 @@ public class GatheringSpawnerService {
         return astPlayer != null && astPlayer.hasAdminPermission();
     }
 
+    public boolean canViewSpawnerVisual(@Nullable AstPlayer astPlayer) {
+        return astPlayer != null && astPlayer.getAccount().getMode() == AccountMode.ADMIN;
+    }
+
+    public @NotNull Material getDisplayMaterial(@NotNull String spawnerId) {
+        GatheringSpawnerDefinition definition = definitions.get(spawnerId);
+        return definition == null ? Material.RESPAWN_ANCHOR : definition.itemMaterial();
+    }
+
     public @NotNull Collection<String> getLoadedSpawnerIds() {
         return List.copyOf(definitions.keySet());
     }
@@ -365,7 +419,8 @@ public class GatheringSpawnerService {
         if (!dirty) {
             return;
         }
-        locationRepository.saveAll(new ArrayList<>(locations.values()));
-        dirty = false;
+        if (locationRepository.saveAll(new ArrayList<>(locations.values()))) {
+            dirty = false;
+        }
     }
 }

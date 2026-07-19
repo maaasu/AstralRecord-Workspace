@@ -170,7 +170,9 @@ public final class AstEntity {
             case PLAYER -> {
                 yield player.getStatusSnapshot().rollValue(statusType);
             }
-            case MOB -> mob.template().statValue(statusType.name(), 0.0D);
+            case MOB -> statusType == StatusType.MAX_HEALTH
+                    ? mob.maxHealth()
+                    : mob.template().statValue(statusType.name(), 0.0D);
             case BUKKIT -> 0.0D;
         };
     }
@@ -196,7 +198,7 @@ public final class AstEntity {
     public double maxHealth() {
         return switch (type) {
             case PLAYER -> player.getStatusSnapshot().getMaxValue(StatusType.MAX_HEALTH);
-            case MOB -> mob.template().statValue(StatusType.MAX_HEALTH.name(), 0.0D);
+            case MOB -> mob.maxHealth();
             case BUKKIT -> {
                 if (bukkitEntity instanceof LivingEntity livingEntity
                         && livingEntity.getAttribute(Attribute.MAX_HEALTH) != null) {

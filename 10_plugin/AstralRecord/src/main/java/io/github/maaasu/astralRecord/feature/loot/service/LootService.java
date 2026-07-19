@@ -45,21 +45,41 @@ public class LootService {
      */
     public int loadAll() {
         try {
-            List<LootModel> loots = lootRepository.findAll();
-            Map<String, LootModel> nextLoots = new LinkedHashMap<>();
-            for (LootModel loot : loots) {
-                nextLoots.put(normalize(loot.getId()), loot);
-                Logger.log(LogId.D_5301, loot);
-            }
-            synchronized (cacheLock) {
-                loadedLoots = immutableSnapshot(nextLoots);
-            }
-            Logger.log(LogId.I_5300, loots.size());
-            return loots.size();
+            Map<String, LootModel> snapshot = loadSnapshot();
+            replaceSnapshot(snapshot);
+            return snapshot.size();
         } catch (Exception e) {
             Logger.log(LogId.E_5301, e, "loadAll");
             return 0;
         }
+    }
+
+    /**
+     * 全ルートテーブルを読み込みますが、現在の公開キャッシュは変更しません。
+     * マスターデータ再読込の prepare 段階で使用します。
+     *
+     * @return 正規化済みIDをキーとする不変スナップショット
+     */
+    public @NotNull Map<String, LootModel> loadSnapshot() {
+        List<LootModel> loots = lootRepository.findAll();
+        Map<String, LootModel> nextLoots = new LinkedHashMap<>();
+        for (LootModel loot : loots) {
+            nextLoots.put(normalize(loot.getId()), loot);
+            Logger.log(LogId.D_5301, loot);
+        }
+        return immutableSnapshot(nextLoots);
+    }
+
+    /**
+     * prepare 済みのルートテーブルを原子的に公開します。
+     *
+     * @param snapshot {@link #loadSnapshot()} で構築したスナップショット
+     */
+    public void replaceSnapshot(@NotNull Map<String, LootModel> snapshot) {
+        synchronized (cacheLock) {
+            loadedLoots = immutableSnapshot(snapshot);
+        }
+        Logger.log(LogId.I_5300, snapshot.size());
     }
 
     /**

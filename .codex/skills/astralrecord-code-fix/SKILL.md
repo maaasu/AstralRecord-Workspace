@@ -68,6 +68,7 @@ If no review result or finding detail is available, ask for the review result be
 7. After editing, re-read changed snippets and verify that each fixed finding is addressed.
 8. Verify:
    - Run the narrowest meaningful build / test / static-analysis check for the touched project.
+   - For Plugin source/resource fixes, run `python .codex/skills/astralrecord-code/scripts/check_plugin_resources.py --repo-root <task-worktree>` and resolve ID/property drift, duplicate keys, log placeholder mismatches, direct logger/message calls, and string literals passed to command message helpers before marking any finding fixed. Verify manually that reused IDs describe the actual operation.
    - If a full build is too expensive or blocked, run targeted compile / test / lint checks and report what was not run.
 9. If the review source is a saved review result under `E:\AstralRecord-Workspace\00_docs\99_資料\レビュー結果`, update that file after fixes:
    - set each fixed finding's `修正状態` to `修正済み`.

@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.user.service.UserService;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -18,11 +19,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class UserPermissionCommand extends AstCommand {
 
     private static final String SOURCE_PLAYER = "PLAYER";
     private static final String SOURCE_CONSOLE = "CONSOLE";
+    private final Set<UUID> pendingTargets = ConcurrentHashMap.newKeySet();
 
     public UserPermissionCommand() {
         this("userpermission", "/user permission <permission> [<player|uuid>]");
@@ -35,7 +39,7 @@ public class UserPermissionCommand extends AstCommand {
      * @param usage 表示する使用方法
      */
     public UserPermissionCommand(@NotNull String commandName, @NotNull String usage) {
-        super(commandName, "Set user permission.", usage, false, UserPermission.ADMIN.getValue());
+        super(commandName, "ユーザー権限を変更します。", usage, false, UserPermission.ADMIN.getValue());
     }
 
     @Override
@@ -66,35 +70,50 @@ public class UserPermissionCommand extends AstCommand {
             sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5302.getId()));
             return;
         }
-
-        // 監査ログ用に変更前 permission を取得（取得失敗時は null として記録する）
-        UserModel before = userService.getUser(targetUuid);
-        Integer previousPermission = (before != null) ? before.getPermission() : null;
-
-        UUID executorUuid = getUpdatedBy(sender);
-        UserModel updated = userService.setPermission(targetUuid, permission.getValue(), executorUuid);
-        if (updated == null) {
-            sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5303.getId(), targetUuid));
+        if (!pendingTargets.add(targetUuid)) {
+            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5306.getId()));
             return;
         }
-
+        UUID executorUuid = getUpdatedBy(sender);
         String source = (sender instanceof Player) ? SOURCE_PLAYER : SOURCE_CONSOLE;
-        Logger.log(LogId.I_5053, executorUuid, targetUuid, previousPermission, updated.getPermission(), source);
-
-        var online = Bukkit.getPlayer(targetUuid);
-        if (online != null) {
-            var astPlayer = AstPlayerCache.get(online);
-            if (astPlayer != null) {
-                astPlayer.applyPermission(updated);
-                var skillTreeService = AstralRecord.getInstance().getSkillTreeService();
-                if (skillTreeService != null) {
-                    skillTreeService.markViewerContextDirty(online);
-                }
-                online.updateCommands();
+        AstralRecord plugin = AstralRecord.getInstance();
+        AsyncTaskUtil.supplyAsync(plugin, () -> {
+            UserModel before = userService.getUser(targetUuid);
+            UserModel updated = userService.setPermission(targetUuid, permission.getValue(), executorUuid);
+            return new PermissionUpdateResult(before, updated);
+        }).whenComplete((result, throwable) -> AsyncTaskUtil.runSync(plugin, () -> {
+            pendingTargets.remove(targetUuid);
+            if (throwable != null) {
+                Logger.log(LogId.E_5059, throwable, targetUuid);
+                sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5062.getId()));
+                return;
             }
-        }
+            UserModel updated = result.updated();
+            if (updated == null) {
+                sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5303.getId(), targetUuid));
+                return;
+            }
+            Integer previousPermission = result.before() == null ? null : result.before().getPermission();
+            Logger.log(LogId.I_5053, executorUuid, targetUuid, previousPermission, updated.getPermission(), source);
 
-        sendSuccess(sender, PlayerMsgResource.format(PlayerMsgId.P_5304.getId(), updated.getMcid(), updated.getPermission()));
+            var online = Bukkit.getPlayer(targetUuid);
+            if (online != null) {
+                var astPlayer = AstPlayerCache.get(online);
+                if (astPlayer != null) {
+                    astPlayer.applyPermission(updated);
+                    var skillTreeService = plugin.getSkillTreeService();
+                    if (skillTreeService != null) {
+                        skillTreeService.markViewerContextDirty(online);
+                    }
+                    online.updateCommands();
+                }
+            }
+            sendSuccess(sender, PlayerMsgResource.format(
+                PlayerMsgId.P_5304.getId(),
+                updated.getMcid(),
+                updated.getPermission()
+            ));
+        }));
     }
 
     @Override
@@ -146,5 +165,8 @@ public class UserPermissionCommand extends AstCommand {
             return player.getUniqueId();
         }
         return SystemUser.INSTANCE.getUuid();
+    }
+
+    private record PermissionUpdateResult(@Nullable UserModel before, @Nullable UserModel updated) {
     }
 }

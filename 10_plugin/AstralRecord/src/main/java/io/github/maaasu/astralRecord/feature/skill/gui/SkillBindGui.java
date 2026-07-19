@@ -286,7 +286,7 @@ public final class SkillBindGui {
         }
 
         List<Component> lore = new ArrayList<>();
-        lore.add(Component.text("No. " + preset.getPresetIndex(), NamedTextColor.WHITE));
+        lore.add(Component.text("番号: " + preset.getPresetIndex(), NamedTextColor.WHITE));
         lore.add(Component.text(preset.isSaved() ? "保存済み" : "未保存", NamedTextColor.GRAY));
         lore.add(
             Component.text(
@@ -437,9 +437,6 @@ public final class SkillBindGui {
         lore.add(Component.text("消費MP: " + formatDecimal(skill.getManaCost()), NamedTextColor.AQUA));
         lore.add(Component.text("必要Lv: " + skill.getRequiredLevel(), NamedTextColor.GRAY));
 
-        if (!skill.getTags().isEmpty()) {
-            lore.add(Component.text("タグ: " + String.join(", ", skill.getTags()), NamedTextColor.DARK_GRAY));
-        }
     }
 
     private boolean matchesBindType(@NotNull SkillBindType type, @NotNull SkillDefinition skill) {
@@ -450,7 +447,7 @@ public final class SkillBindGui {
         if (ticks <= 0L) {
             return "なし";
         }
-        return ticks + " tick (" + String.format(Locale.ROOT, "%.1f", ticks / 20.0D) + "秒)";
+        return ticks + "ティック（" + String.format(Locale.ROOT, "%.1f", ticks / 20.0D) + "秒）";
     }
 
     private @NotNull String formatDecimal(double value) {

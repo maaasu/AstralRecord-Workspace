@@ -8,7 +8,7 @@ import org.jetbrains.annotations.NotNull;
 
 public final class QuestCommand extends AstCommand {
     public QuestCommand() {
-        super("quest", "Open quest list.", "/quest", true);
+        super("quest", "クエスト一覧を開きます。", "/quest", true);
     }
 
     @Override

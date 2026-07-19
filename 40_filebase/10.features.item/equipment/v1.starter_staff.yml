@@ -2,7 +2,7 @@
 schemaVersion: 1
 id: starter_staff
 category: equipment
-name: "&f初期スタッフ"
+name: "&f初心者用の杖"
 icon: STICK
 rarity: COMMON
 maxStack: 1

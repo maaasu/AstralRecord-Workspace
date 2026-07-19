@@ -17,7 +17,7 @@ public class AccountCommand extends AstCommand {
      * アカウント管理コマンドを初期化します。
      */
     public AccountCommand() {
-        super("account", "Manage accounts.", "/account mode <mode> [<player|accountUuid>]", false, 99);
+        super("account", "アカウントを管理します。", "/account mode <mode> [<player|accountUuid>]", false, 99);
     }
 
     /**

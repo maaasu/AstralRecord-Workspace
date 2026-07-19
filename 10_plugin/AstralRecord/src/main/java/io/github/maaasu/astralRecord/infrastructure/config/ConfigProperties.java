@@ -125,7 +125,7 @@ public class ConfigProperties {
         this.resourcePackForce = configManager.getConfig().getBoolean(ConfigKeys.RESOURCE_PACK_FORCE, false);
         this.resourcePackPrompt = configManager.getConfig().getString(
                 ConfigKeys.RESOURCE_PACK_PROMPT,
-                "AstralRecord resource pack"
+                "AstralRecord のリソースパックを適用してください。"
         );
         this.resourcePackSkipBedrock = configManager.getConfig().getBoolean(ConfigKeys.RESOURCE_PACK_SKIP_BEDROCK, true);
         this.resourcePackBedrockNamePrefixes = configManager.getConfig().getStringList(

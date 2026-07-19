@@ -28,7 +28,7 @@ public final class SkillTreeSpawnCheckCommand extends AstCommand {
     private static final String TAG_SKILLTREE_EDGE = "astralrecord:skilltree:edge";
 
     public SkillTreeSpawnCheckCommand() {
-        super("testskilltree", "Inspect spawned skilltree display entities.", "/testskilltree [world]",
+        super("testskilltree", "生成済みのスキルツリー表示エンティティを確認します。", "/testskilltree [world]",
                 false, UserPermission.ADMIN.getValue());
     }
 

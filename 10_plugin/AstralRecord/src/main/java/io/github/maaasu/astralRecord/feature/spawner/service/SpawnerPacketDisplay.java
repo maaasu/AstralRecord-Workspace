@@ -32,7 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * スポナー位置表示用の packet-only Display entity を送信します。
  */
-final class SpawnerPacketDisplay {
+public final class SpawnerPacketDisplay {
     private static final AtomicInteger NEXT_ENTITY_ID = new AtomicInteger(2_800_000);
     private static final float DEFAULT_VIEW_RANGE = 96.0F;
     private static final int DISPLAY_INTERPOLATION_START_INDEX = 8;
@@ -56,8 +56,11 @@ final class SpawnerPacketDisplay {
 
     private final ProtocolManager protocolManager = ProtocolLibrary.getProtocolManager();
 
+    public SpawnerPacketDisplay() {
+    }
+
     @NotNull
-    PacketEntity block(@NotNull Location location, @NotNull Material material, @NotNull Vector3f scale) {
+    public PacketEntity block(@NotNull Location location, @NotNull Material material, @NotNull Vector3f scale) {
         List<WrappedDataValue> metadata = baseDisplayMetadata(
                 new Vector3f(-scale.x() * 0.5F, 0.0F, -scale.z() * 0.5F),
                 scale,
@@ -68,7 +71,7 @@ final class SpawnerPacketDisplay {
     }
 
     @NotNull
-    PacketEntity text(@NotNull Location location, @NotNull Component text, float scale) {
+    public PacketEntity text(@NotNull Location location, @NotNull Component text, float scale) {
         List<WrappedDataValue> metadata = baseDisplayMetadata(
                 new Vector3f(),
                 new Vector3f(scale, scale, scale),
@@ -157,7 +160,7 @@ final class SpawnerPacketDisplay {
         }
     }
 
-    final class PacketEntity {
+    public final class PacketEntity {
         private final int entityId = NEXT_ENTITY_ID.getAndIncrement();
         private final UUID uuid = UUID.randomUUID();
         private final EntityType entityType;
@@ -170,7 +173,7 @@ final class SpawnerPacketDisplay {
             this.metadata = List.copyOf(metadata);
         }
 
-        void spawn(@NotNull Player player) {
+        public void spawn(@NotNull Player player) {
             PacketContainer spawn = protocolManager.createPacket(PacketType.Play.Server.SPAWN_ENTITY);
             spawn.getIntegers().writeSafely(0, entityId);
             spawn.getUUIDs().writeSafely(0, uuid);
@@ -186,7 +189,7 @@ final class SpawnerPacketDisplay {
             send(player, metadataPacket);
         }
 
-        void destroy(@NotNull Player player) {
+        public void destroy(@NotNull Player player) {
             PacketContainer destroy = protocolManager.createPacket(PacketType.Play.Server.ENTITY_DESTROY);
             destroy.getIntLists().writeSafely(0, List.of(entityId));
             destroy.getIntegerArrays().writeSafely(0, new int[]{entityId});

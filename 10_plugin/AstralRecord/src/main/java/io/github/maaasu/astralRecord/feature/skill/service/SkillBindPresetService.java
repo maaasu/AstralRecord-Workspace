@@ -2,13 +2,18 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillBindPresetRepository;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 /**
  * スキルバインドプリセットの取得と保存を扱います。
@@ -16,11 +21,14 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class SkillBindPresetService {
     private static final int PRESET_COUNT = 6;
 
+    private final Plugin plugin;
     private final SkillBindPresetRepository repository;
     private final Map<UUID, Integer> selectedPresetIndexes = new ConcurrentHashMap<>();
     private final Map<UUID, List<SkillBindPreset>> presetsByAccount = new ConcurrentHashMap<>();
+    private final Map<UUID, AccountSessionState> sessionStates = new ConcurrentHashMap<>();
 
-    public SkillBindPresetService(@NotNull SkillBindPresetRepository repository) {
+    public SkillBindPresetService(@NotNull Plugin plugin, @NotNull SkillBindPresetRepository repository) {
+        this.plugin = plugin;
         this.repository = repository;
     }
 
@@ -32,15 +40,11 @@ public final class SkillBindPresetService {
      */
     public @NotNull List<SkillBindPreset> getPresets(@NotNull UUID accountId) {
         List<SkillBindPreset> cached = presetsByAccount.get(accountId);
-        if (cached != null) {
-            return new ArrayList<>(cached);
-        }
-        List<SkillBindPreset> loaded = loadPresets(accountId);
-        if (loaded == null) {
-            return fallbackPresets(accountId);
-        }
-        List<SkillBindPreset> current = presetsByAccount.putIfAbsent(accountId, loaded);
-        return new ArrayList<>(current == null ? loaded : current);
+        return cached == null ? fallbackPresets(accountId) : new ArrayList<>(cached);
+    }
+
+    public boolean hasLoadedPresets(@NotNull UUID accountId) {
+        return presetsByAccount.containsKey(accountId);
     }
 
     /**
@@ -49,18 +53,29 @@ public final class SkillBindPresetService {
      * @param accountId アカウント ID
      */
     public void invalidate(@NotNull UUID accountId) {
+        AccountSessionState state = sessionStates.computeIfAbsent(accountId, ignored -> new AccountSessionState());
+        synchronized (state) {
+            state.generation++;
+        }
         presetsByAccount.remove(accountId);
+        selectedPresetIndexes.remove(accountId);
     }
 
-    private List<SkillBindPreset> loadPresets(@NotNull UUID accountId) {
+    public @NotNull List<SkillBindPreset> loadInitialPresets(@NotNull UUID accountId) {
         try {
             List<SkillBindPreset> presets = new ArrayList<>(repository.findByAccountId(accountId));
-            if (presets.size() >= PRESET_COUNT) {
-                return new ArrayList<>(presets.subList(0, PRESET_COUNT));
-            }
-        } catch (RuntimeException ignored) {
+            return normalizePresets(accountId, presets);
+        } catch (Exception exception) {
+            Logger.log(LogId.E_5803, exception, "skill_bind_load:" + accountId);
         }
-        return null;
+        return fallbackPresets(accountId);
+    }
+
+    public void applyInitialPresets(
+        @NotNull UUID accountId,
+        @NotNull List<SkillBindPreset> presets
+    ) {
+        presetsByAccount.put(accountId, normalizePresets(accountId, presets));
     }
 
     private @NotNull List<SkillBindPreset> fallbackPresets(@NotNull UUID accountId) {
@@ -110,16 +125,76 @@ public final class SkillBindPresetService {
      * @param updatedBy 更新者
      * @return 保存後プリセット
      */
-    public @NotNull SkillBindPreset save(
+    public boolean saveAsync(
         @NotNull UUID accountId,
         int presetIndex,
         @NotNull List<String> activeSkillSlots,
         @NotNull List<String> passiveSkillSlots,
-        @NotNull UUID updatedBy
+        @NotNull UUID updatedBy,
+        @NotNull Consumer<SkillBindPreset> onSuccess,
+        @NotNull Runnable onFailure
     ) {
-        SkillBindPreset saved = repository.save(accountId, presetIndex, activeSkillSlots, passiveSkillSlots, updatedBy);
-        presetsByAccount.compute(accountId, (ignored, current) -> mergePreset(accountId, current, saved));
-        return saved;
+        AccountSessionState state = sessionStates.computeIfAbsent(accountId, ignored -> new AccountSessionState());
+        SaveAttempt attempt;
+        synchronized (state) {
+            if (state.inProgress != null) {
+                return false;
+            }
+            attempt = new SaveAttempt(state.generation);
+            state.inProgress = attempt;
+        }
+        int normalizedPresetIndex = Math.max(1, Math.min(PRESET_COUNT, presetIndex));
+        List<String> activeSnapshot = Collections.unmodifiableList(new ArrayList<>(activeSkillSlots));
+        List<String> passiveSnapshot = Collections.unmodifiableList(new ArrayList<>(passiveSkillSlots));
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            SkillBindPreset saved = null;
+            try {
+                saved = repository.save(
+                    accountId,
+                    normalizedPresetIndex,
+                    activeSnapshot,
+                    passiveSnapshot,
+                    updatedBy
+                );
+            } catch (Exception exception) {
+                Logger.log(LogId.E_5804, exception, "skill_bind_save:" + accountId + ":" + normalizedPresetIndex);
+            }
+            SkillBindPreset result = saved;
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                if (!completeSaveAttempt(state, attempt)) {
+                    return;
+                }
+                if (result == null) {
+                    onFailure.run();
+                    return;
+                }
+                presetsByAccount.compute(accountId, (ignored, current) -> mergePreset(accountId, current, result));
+                onSuccess.accept(result);
+            });
+        });
+        return true;
+    }
+
+    private boolean completeSaveAttempt(AccountSessionState state, SaveAttempt attempt) {
+        synchronized (state) {
+            if (state.inProgress != attempt) {
+                return false;
+            }
+            state.inProgress = null;
+            return state.generation == attempt.generation();
+        }
+    }
+
+    private @NotNull List<SkillBindPreset> normalizePresets(
+        @NotNull UUID accountId,
+        @NotNull List<SkillBindPreset> presets
+    ) {
+        List<SkillBindPreset> normalized = new ArrayList<>(presets.subList(0, Math.min(PRESET_COUNT, presets.size())));
+        List<SkillBindPreset> fallback = fallbackPresets(accountId);
+        while (normalized.size() < PRESET_COUNT) {
+            normalized.add(fallback.get(normalized.size()));
+        }
+        return List.copyOf(normalized);
     }
 
     private @NotNull List<SkillBindPreset> mergePreset(
@@ -135,6 +210,14 @@ public final class SkillBindPresetService {
             merged.add(fallbackPresets(accountId).get(merged.size()));
         }
         merged.set(index, saved);
-        return new ArrayList<>(merged.subList(0, PRESET_COUNT));
+        return List.copyOf(merged.subList(0, PRESET_COUNT));
+    }
+
+    private static final class AccountSessionState {
+        private long generation;
+        private SaveAttempt inProgress;
+    }
+
+    private record SaveAttempt(long generation) {
     }
 }

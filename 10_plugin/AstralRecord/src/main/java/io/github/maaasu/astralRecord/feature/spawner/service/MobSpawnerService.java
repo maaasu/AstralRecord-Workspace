@@ -10,6 +10,8 @@ import io.github.maaasu.astralRecord.feature.spawner.repository.MobSpawnerDefini
 import io.github.maaasu.astralRecord.feature.spawner.repository.MobSpawnerLocationRepository;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerRegionService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
@@ -105,8 +107,31 @@ public class MobSpawnerService {
      * @return ロードしたスポナー定義数
      */
     public int loadAll() {
+        MasterDataSnapshot snapshot = loadMasterDataSnapshot();
+        replaceMasterDataSnapshot(snapshot);
+        return definitions.size();
+    }
+
+    /**
+     * スポナー定義と配置 YAML を読み込み、公開前のスナップショットを作成します。
+     *
+     * @return スポナーマスタスナップショット
+     */
+    public @NotNull MasterDataSnapshot loadMasterDataSnapshot() {
+        return new MasterDataSnapshot(
+                List.copyOf(definitionRepository.findAll()),
+                List.copyOf(locationRepository.loadAll())
+        );
+    }
+
+    /**
+     * 準備済みスポナーマスタを実行時キャッシュへ一括反映します。
+     *
+     * @param snapshot スポナーマスタスナップショット
+     */
+    public void replaceMasterDataSnapshot(@NotNull MasterDataSnapshot snapshot) {
         definitions.clear();
-        for (MobSpawnerDefinition definition : definitionRepository.findAll()) {
+        for (MobSpawnerDefinition definition : snapshot.definitions()) {
             definitions.put(definition.id(), definition);
         }
         regionLevelByName.clear();
@@ -120,12 +145,18 @@ public class MobSpawnerService {
 
         locations.clear();
         spawnedByLocation.clear();
-        for (MobSpawnerLocation location : locationRepository.loadAll()) {
+        for (MobSpawnerLocation location : snapshot.locations()) {
             locations.put(location.locationKey(), location);
             spawnedByLocation.put(location.locationKey(), new HashSet<>());
         }
         dirty = false;
-        return definitions.size();
+    }
+
+    /** 公開前に準備したスポナー定義と配置の immutable スナップショットです。 */
+    public record MasterDataSnapshot(
+            @NotNull List<MobSpawnerDefinition> definitions,
+            @NotNull List<MobSpawnerLocation> locations
+    ) {
     }
 
     /**
@@ -185,7 +216,7 @@ public class MobSpawnerService {
         ItemStack itemStack = new ItemStack(definition.itemMaterial(), Math.max(1, amount));
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(Component.text(ColorCodeUtil.translateAlternateColorCodes("&dMobスポナー: &f" + spawnerId)));
+            meta.displayName(PlayerMsgResource.formatComponent(PlayerMsgId.P_5730.getId(), spawnerId));
             meta.lore(buildSpawnerLore(definition));
             meta.addItemFlags(ItemFlag.values());
             meta.getPersistentDataContainer().set(spawnerIdKey, PersistentDataType.STRING, spawnerId);
@@ -197,11 +228,11 @@ public class MobSpawnerService {
     @NotNull
     private List<Component> buildSpawnerLore(@NotNull MobSpawnerDefinition definition) {
         List<String> lore = new ArrayList<>();
-        lore.add("&7Mobスポナー設置アイテム");
+        lore.add("&7モブスポナー設置アイテム");
         lore.add("");
         lore.add("&e基本情報");
         lore.add("&7ID: &f" + definition.id());
-        lore.add("&7種別: &fMobスポナー");
+        lore.add("&7種別: &fモブスポナー");
         lore.add("&7地域: &f" + (definition.region() == null ? "未設定" : definition.region()));
         lore.add("&7表示ブロック: &f" + definition.itemMaterial().name());
         lore.add("");
@@ -661,8 +692,9 @@ public class MobSpawnerService {
         if (!dirty) {
             return;
         }
-        locationRepository.saveAll(new ArrayList<>(locations.values()));
-        dirty = false;
+        if (locationRepository.saveAll(new ArrayList<>(locations.values()))) {
+            dirty = false;
+        }
     }
 
     private record PlayerRegionCandidate(

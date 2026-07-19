@@ -49,13 +49,13 @@ api:
     # 自己署名証明書や内部CA証明書を使用している場合は false に設定してください
     verifyEnabled: true
 
-# Resource Pack Settings
+# リソースパック設定
 resourcePack:
   enabled: false
   url: "https://example.com/resourcepack/AstralRecordResourcePack.zip"
   sha1: ""
   force: false
-  prompt: "Please apply the AstralRecord resource pack."
+  prompt: "AstralRecord のリソースパックを適用してください。"
   skipBedrock: true
   bedrockNamePrefixes:
     - "."

@@ -27,6 +27,10 @@ class PlayerClassService @JvmOverloads constructor(
 
     fun loadAll(): Int = classService.loadAll()
 
+    fun loadSnapshot(): Map<String, ClassModel> = classService.loadSnapshot()
+
+    fun replaceSnapshot(snapshot: Map<String, ClassModel>) = classService.replaceSnapshot(snapshot)
+
     fun getLoadedClass(classId: String): ClassModel? = classService.getLoadedClass(classId)
 
     fun getDisplayName(classId: String): String {

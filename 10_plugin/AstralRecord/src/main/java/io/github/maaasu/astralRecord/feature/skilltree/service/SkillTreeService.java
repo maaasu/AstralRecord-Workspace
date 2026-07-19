@@ -514,10 +514,10 @@ public class SkillTreeService {
         ItemStack itemStack = new ItemStack(Material.ARMOR_STAND, Math.max(1, amount));
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(component("&dSkillTree Position [&f" + positionId + "&d]"));
+            meta.displayName(component("&dスキルツリー位置設定 [&f" + positionId + "&d]"));
             meta.lore(List.of(
-                    component("&7Right click block: register / Left click: remove"),
-                    component("&7positionId: &f" + positionId)
+                    component("&7ブロックを右クリック: 登録 / 左クリック: 削除"),
+                    component("&7位置ID: &f" + positionId)
             ));
             meta.addItemFlags(ItemFlag.values());
             meta.getPersistentDataContainer().set(positionItemKey, PersistentDataType.STRING, positionId);
@@ -530,10 +530,10 @@ public class SkillTreeService {
         ItemStack itemStack = new ItemStack(Material.LEAD, Math.max(1, amount));
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.displayName(component("&bSkillTree Connector"));
+            meta.displayName(component("&bスキルツリー接続設定"));
             meta.lore(List.of(
-                    component("&7Left click: select left node"),
-                    component("&7Right click: toggle connection with targeted node")
+                    component("&7左クリック: 接続元ノードを選択"),
+                    component("&7右クリック: 視線先ノードとの接続を切り替え")
             ));
             meta.addItemFlags(ItemFlag.values());
             meta.getPersistentDataContainer().set(connectorItemKey, PersistentDataType.BOOLEAN, true);
@@ -701,6 +701,20 @@ public class SkillTreeService {
         loadingPlayerStates.remove(state.accountId());
         failedPlayerStateLoads.remove(state.accountId());
         playerStates.put(state.accountId(), state);
+        derivedPlayerStates.remove(state.accountId());
+    }
+
+    /**
+     * ログイン反映が中断された場合に、当該反映で公開したスキルツリー状態だけを破棄します。
+     * 後続セッションが同じアカウントへ別の状態を反映済みの場合は削除しません。
+     *
+     * @param state {@link #applyInitialPlayerState(SkillTreePlayerState)} へ渡した初期状態
+     */
+    public void discardInitialPlayerState(@NotNull SkillTreePlayerState state) {
+        if (playerStates.get(state.accountId()) != state) {
+            return;
+        }
+        playerStates.remove(state.accountId());
         derivedPlayerStates.remove(state.accountId());
     }
 
@@ -1375,13 +1389,11 @@ public class SkillTreeService {
                 lore.add(component(""));
             }
             lore.add(component(unlocked
-                    ? inactive ? "&8State: &cUnlocked / Inactive" : "&8State: &fUnlocked"
+                    ? inactive ? "&8状態: &c解放済み / 無効" : "&8状態: &f解放済み"
                     : canUnlock
-                    ? "&8State: &aConnected"
-                    : "&8State: &cNeed adjacent unlocked node"));
-            lore.add(component("&8ID: &f" + node.id()));
-            lore.add(component("&8位置ID: &f" + node.positionId()));
-            lore.add(component("&8Cost: &f" + node.pointType().displayName() + " " + node.pointCost()));
+                    ? "&8状態: &a解放可能"
+                    : "&8状態: &c隣接ノードの解放が必要"));
+            lore.add(component("&8消費: &f" + node.pointType().displayName() + " " + node.pointCost()));
             lore.add(component("&8CP: &f" + availablePoints(astPlayer, SkillTreePointType.CLASS_POINT)
                     + " &8/ PP: &f" + availablePoints(astPlayer, SkillTreePointType.PASSIVE_POINT)));
             if (inactive) {
@@ -1389,7 +1401,7 @@ public class SkillTreeService {
             }
             lore.add(component(unlocked ? "&6◆ 解放済みノード ◆" : "&7◆ 未解放ノード ◆"));
             lore.add(component("&e左クリック&7でノードを解放"));
-            lore.add(component("&6右クリック&7でノードを解除 &8(100G)"));
+            lore.add(component("&6右クリック&7でノードを解除 &8（100ゴールド）"));
             if (!node.lore().isEmpty()) {
                 lore.add(component(""));
                 node.lore().forEach(line -> lore.add(component("&7" + line)));

@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.model.PartyActionResult;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
@@ -25,7 +26,7 @@ public final class PartyCommand extends AstCommand {
      * PartyCommand を初期化します。
      */
     public PartyCommand() {
-        super("party", "Manage temporary parties.", "/party [gui|create|invite|accept|decline|leave|disband|kick|promote|list|chat]", true);
+        super("party", "パーティーを管理します。", "/party [gui|create|invite|accept|decline|leave|disband|kick|promote|list|chat]", true);
     }
 
     @Override
@@ -125,7 +126,9 @@ public final class PartyCommand extends AstCommand {
         for (UUID memberId : party.members()) {
             Player member = Bukkit.getPlayer(memberId);
             String name = member == null ? memberId.toString() : member.getName();
-            String leaderMark = party.getLeaderId().equals(memberId) ? " (Leader)" : "";
+            String leaderMark = party.getLeaderId().equals(memberId)
+                ? PlayerMsgResource.getMessage(PlayerMsgId.P_6708.getId())
+                : "";
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5910, name, leaderMark);
         }
     }

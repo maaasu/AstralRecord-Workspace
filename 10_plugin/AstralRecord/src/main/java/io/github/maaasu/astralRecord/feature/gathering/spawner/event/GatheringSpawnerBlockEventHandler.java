@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputResolver;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
@@ -23,13 +24,17 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 
 /**
- * Gathering spawner の block mutation 候補を提供します。
+ * Gathering spawner の設置・破壊・視線左クリックを共通入力候補として提供します。
  */
 public final class GatheringSpawnerBlockEventHandler
     implements PlayerInputResolver<PlayerInteractionSnapshot> {
+    private static final double TARGET_DISTANCE = 6.0D;
+    private static final double TARGET_RADIUS = 0.9D;
+
     private final GatheringSpawnerService spawnerService;
 
     public GatheringSpawnerBlockEventHandler(@NotNull GatheringSpawnerService spawnerService) {
@@ -40,9 +45,42 @@ public final class GatheringSpawnerBlockEventHandler
     public @NotNull Collection<PlayerInputCandidate> resolve(
         @NotNull PlayerInputContext<PlayerInteractionSnapshot> context
     ) {
-        if (context.family() != InputFamily.BLOCK_MUTATION) {
+        if (context.family() == InputFamily.BLOCK_MUTATION) {
+            return resolveBlockMutation(context);
+        }
+        if (context.family() != InputFamily.LEFT_CLICK || !context.inputSnapshot().isMainHandInput()) {
             return List.of();
         }
+        PlayerInteractionSnapshot snapshot = context.inputSnapshot();
+        AstPlayer astPlayer = AstPlayerCache.get(snapshot.player());
+        if (!spawnerService.canViewSpawnerVisual(astPlayer)) {
+            return List.of();
+        }
+        SpawnerHit hit = findTargetedSpawner(snapshot);
+        if (hit == null || !snapshot.isVisible(hit.hitDistance())) {
+            return List.of();
+        }
+        return List.of(new PlayerInputCandidate(
+            "gathering-spawner-left-interaction",
+            InteractionTier.WORLD_INTERACTION,
+            hit.hitDistance(),
+            InteractionCandidateOrder.GATHERING_SPAWNER,
+            locationKey(hit.location()),
+            InputClaimPolicy.CLAIM_AND_CANCEL,
+            () -> {
+                PlayerInteractionSnapshot currentSnapshot = snapshot.refresh();
+                SpawnerHit current = findTargetedSpawner(currentSnapshot);
+                return current != null
+                    && locationKey(current.location()).equals(locationKey(hit.location()))
+                    && currentSnapshot.isVisible(current.hitDistance());
+            },
+            () -> removeTargetedSpawner(snapshot.player(), hit.location())
+        ));
+    }
+
+    private Collection<PlayerInputCandidate> resolveBlockMutation(
+        PlayerInputContext<PlayerInteractionSnapshot> context
+    ) {
         PlayerInteractionSnapshot snapshot = context.inputSnapshot();
         if (context.source() == InputSource.BLOCK_PLACE
             && snapshot.event() instanceof BlockPlaceEvent event) {
@@ -102,6 +140,43 @@ public final class GatheringSpawnerBlockEventHandler
         }
     }
 
+    private void removeTargetedSpawner(Player player, Location target) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (!spawnerService.isAdminMode(astPlayer)) {
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5719);
+            return;
+        }
+        if (spawnerService.removeLocation(target)) {
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5710);
+        }
+    }
+
+    private SpawnerHit findTargetedSpawner(PlayerInteractionSnapshot snapshot) {
+        if (snapshot.clickedBlock() != null
+            && spawnerService.hasLocation(snapshot.clickedBlock().getLocation())) {
+            Double hitDistance = snapshot.hitDistance(snapshot.clickedBlock());
+            return hitDistance == null
+                ? null
+                : new SpawnerHit(snapshot.clickedBlock().getLocation(), hitDistance);
+        }
+        return spawnerService.getLocations().stream()
+            .map(location -> location.toLocation())
+            .filter(location -> location != null && location.getWorld() == snapshot.player().getWorld())
+            .map(location -> {
+                Double hitDistance = snapshot.ray().sphereEntryDistance(
+                    location.clone().add(0.0D, 0.75D, 0.0D).toVector(),
+                    TARGET_RADIUS
+                );
+                return hitDistance == null || hitDistance > TARGET_DISTANCE
+                    ? null
+                    : new SpawnerHit(location, hitDistance);
+            })
+            .filter(hit -> hit != null)
+            .min(Comparator.comparingDouble(SpawnerHit::hitDistance)
+                .thenComparing(hit -> locationKey(hit.location())))
+            .orElse(null);
+    }
+
     private void consumePlacedItem(Player player, EquipmentSlot hand) {
         if (player.getGameMode() == GameMode.CREATIVE) {
             return;
@@ -116,5 +191,15 @@ public final class GatheringSpawnerBlockEventHandler
         }
         itemStack.setAmount(itemStack.getAmount() - 1);
         player.getInventory().setItem(hand, itemStack);
+    }
+
+    private String locationKey(Location location) {
+        return location.getWorld().getUID() + ":"
+            + location.getBlockX() + ":"
+            + location.getBlockY() + ":"
+            + location.getBlockZ();
+    }
+
+    private record SpawnerHit(Location location, double hitDistance) {
     }
 }

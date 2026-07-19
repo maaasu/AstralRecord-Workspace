@@ -252,10 +252,13 @@ public final class ConditionService {
         double multiplier = 1.0D;
         for (ActiveCondition condition : getActiveConditions(target)) {
             ConditionEffect effect = effect(condition);
+            double conditionMultiplier = 1.0D
+                    + (effect.damageTakenMultiplier() - 1.0D)
+                    * resistance(target, condition.type().category()).effectMultiplier();
             if (condition.type() == ConditionType.VULNERABLE) {
-                multiplier *= Math.pow(effect.damageTakenMultiplier(), condition.stack());
+                multiplier *= Math.pow(conditionMultiplier, condition.stack());
             } else {
-                multiplier *= effect.damageTakenMultiplier();
+                multiplier *= conditionMultiplier;
             }
         }
         return Math.max(0.1D, Math.min(5.0D, multiplier));

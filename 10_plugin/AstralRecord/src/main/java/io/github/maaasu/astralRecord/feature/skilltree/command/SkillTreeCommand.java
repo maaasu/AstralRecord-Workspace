@@ -18,7 +18,7 @@ public class SkillTreeCommand extends AstCommand {
     private final SkillTreeService service;
 
     public SkillTreeCommand(@NotNull SkillTreeService service) {
-        super("skilltree", "Open and manage the skill tree.", "/skilltree [back|reload|position-item|connector-item|option]", true);
+        super("skilltree", "スキルツリーを開いて管理します。", "/skilltree [back|reload|position-item|connector-item|option]", true);
         this.service = service;
     }
 

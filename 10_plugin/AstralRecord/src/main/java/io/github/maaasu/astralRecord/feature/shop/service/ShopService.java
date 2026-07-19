@@ -53,6 +53,41 @@ public final class ShopService {
         return shopRepository.findAll();
     }
 
+    /**
+     * ショップと SHOP レシピを先読みします。
+     *
+     * <p>起動時の非同期マスタロードで呼び出し、最初の GUI 操作にファイル I/O を持ち込みません。</p>
+     *
+     * @return 先読みしたショップ定義と SHOP レシピの合計件数
+     */
+    public int warmCaches() {
+        CacheSnapshot snapshot = loadCacheSnapshot();
+        replaceCacheSnapshot(snapshot);
+        return snapshot.size();
+    }
+
+    /**
+     * 現在のキャッシュを維持したまま、filebase から次のキャッシュを構築します。
+     *
+     * @return 公開前のショップキャッシュスナップショット
+     */
+    public @NotNull CacheSnapshot loadCacheSnapshot() {
+        return new CacheSnapshot(
+            shopRepository.loadSnapshot(),
+            recipeRepository.loadSnapshot()
+        );
+    }
+
+    /**
+     * 構築済みのショップ・レシピを同じメインスレッド処理内で公開します。
+     *
+     * @param snapshot 公開するキャッシュスナップショット
+     */
+    public void replaceCacheSnapshot(@NotNull CacheSnapshot snapshot) {
+        shopRepository.replaceCache(snapshot.shops());
+        recipeRepository.replaceCache(snapshot.recipes());
+    }
+
     public @Nullable ShopDefinition findById(@NotNull String shopId) {
         return shopRepository.findById(shopId);
     }
@@ -287,5 +322,20 @@ public final class ShopService {
 
     private int toIntAmount(long amount) {
         return (int) Math.min(Integer.MAX_VALUE, Math.max(0L, amount));
+    }
+
+    /** 公開前のショップ定義と SHOP レシピを保持します。 */
+    public record CacheSnapshot(
+        @NotNull List<ShopDefinition> shops,
+        @NotNull Map<String, ShopRecipeCost> recipes
+    ) {
+        public CacheSnapshot {
+            shops = List.copyOf(shops);
+            recipes = Map.copyOf(recipes);
+        }
+
+        public int size() {
+            return shops.size() + recipes.size();
+        }
     }
 }

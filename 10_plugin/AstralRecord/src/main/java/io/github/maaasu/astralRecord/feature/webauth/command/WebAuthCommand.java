@@ -31,7 +31,7 @@ public class WebAuthCommand extends AstCommand {
      * @param webAuthService Web 認証サービス
      */
     public WebAuthCommand(@NotNull WebAuthService webAuthService) {
-        super("web", "Issue web login code.", "/web login", true);
+        super("web", "Webログインコードを発行します。", "/web login", true);
         this.webAuthService = webAuthService;
     }
 

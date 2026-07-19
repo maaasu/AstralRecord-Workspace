@@ -9,6 +9,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.function.Supplier;
 
 /**
  * フォルダ型データベースを管理するクラス。
@@ -17,7 +18,8 @@ import java.io.IOException;
 public class FileDatabaseManager {
 
     private static FileDatabaseManager instance;
-    private File rootDirectory;
+    private volatile File rootDirectory;
+    private final ThreadLocal<File> preparedRootDirectory = new ThreadLocal<>();
 
     private FileDatabaseManager() {
         initialize();
@@ -34,22 +36,28 @@ public class FileDatabaseManager {
      * 初期化処理。ルートディレクトリの準備を行います。
      */
     private void initialize() {
+        File resolvedRootDirectory = resolveRootDirectory();
+        if (resolvedRootDirectory != null) {
+            this.rootDirectory = resolvedRootDirectory;
+        }
+    }
+
+    private File resolveRootDirectory() {
         String rootPath = ConfigProperties.getInstance().getFileDatabaseRootPath();
         if (rootPath == null || rootPath.isBlank() || rootPath.equals("filebase.path")) {
             //Logger.log(LogId.FILE_DB_ROOT_PATH_FAILED);
-            return;
+            return null;
         }
 
         // 絶対パスか相対パスかを判定
         File pathFile = new File(rootPath);
         if (pathFile.isAbsolute()) {
             // 絶対パスの場合はそのまま使用
-            this.rootDirectory = pathFile;
-        } else {
-            // 相対パスの場合はプラグインのデータフォルダ配下に配置
-            File dataFolder = AstralRecord.getInstance().getDataFolder();
-            this.rootDirectory = new File(dataFolder, rootPath);
+            return pathFile;
         }
+        // 相対パスの場合はプラグインのデータフォルダ配下に配置
+        File dataFolder = AstralRecord.getInstance().getDataFolder();
+        return new File(dataFolder, rootPath);
     }
 
     /**
@@ -59,7 +67,7 @@ public class FileDatabaseManager {
      * @return FileConfiguration
      */
     public FileConfiguration getConfig(String relativePath) {
-        File file = new File(rootDirectory, relativePath);
+        File file = new File(getRootDirectory(), relativePath);
         return YamlConfiguration.loadConfiguration(file);
     }
 
@@ -82,7 +90,7 @@ public class FileDatabaseManager {
      * @param relativePath ルートディレクトリからの相対パス
      */
     public void saveConfig(FileConfiguration config, String relativePath) {
-        File file = new File(rootDirectory, relativePath);
+        File file = new File(getRootDirectory(), relativePath);
 
         // 親ディレクトリの作成
         File parent = file.getParentFile();
@@ -119,7 +127,7 @@ public class FileDatabaseManager {
      * @return 存在すれば true
      */
     public boolean exists(String relativePath) {
-        return new File(rootDirectory, relativePath).exists();
+        return new File(getRootDirectory(), relativePath).exists();
     }
 
     /**
@@ -170,14 +178,64 @@ public class FileDatabaseManager {
      * @return ルートディレクトリ
      */
     public File getRootDirectory() {
-        return rootDirectory;
+        File prepared = preparedRootDirectory.get();
+        return prepared == null ? rootDirectory : prepared;
+    }
+
+    /**
+     * 現在の設定から、共有状態へ公開していない再読込スナップショットを構築します。
+     *
+     * @return 検証済みの再読込スナップショット
+     * @throws IllegalStateException filebase ルートが未設定の場合
+     */
+    public ReloadSnapshot loadReloadSnapshot() {
+        File resolvedRootDirectory = resolveRootDirectory();
+        if (resolvedRootDirectory == null) {
+            throw new IllegalStateException("filebase.path");
+        }
+        return new ReloadSnapshot(resolvedRootDirectory);
+    }
+
+    /**
+     * 呼出スレッド内だけで準備済みルートを参照させ、共有ルートを変更せず処理を実行します。
+     *
+     * @param snapshot 準備済みの再読込スナップショット
+     * @param action スナップショットを参照して実行する処理
+     * @param <T> 戻り値の型
+     * @return 処理結果
+     */
+    public <T> T withReloadSnapshot(ReloadSnapshot snapshot, Supplier<T> action) {
+        File previous = preparedRootDirectory.get();
+        preparedRootDirectory.set(snapshot.rootDirectory());
+        try {
+            return action.get();
+        } finally {
+            if (previous == null) {
+                preparedRootDirectory.remove();
+            } else {
+                preparedRootDirectory.set(previous);
+            }
+        }
+    }
+
+    /**
+     * 準備済みルートを共有状態へ公開します。
+     *
+     * @param snapshot 公開する再読込スナップショット
+     */
+    public void replaceReloadSnapshot(ReloadSnapshot snapshot) {
+        rootDirectory = snapshot.rootDirectory();
     }
 
     /**
      * システムをリロード（再初期化）します。
      */
     public void reload() {
-        initialize();
+        replaceReloadSnapshot(loadReloadSnapshot());
+    }
+
+    /** filebase ルートの再読込スナップショットです。 */
+    public record ReloadSnapshot(File rootDirectory) {
     }
 }
 

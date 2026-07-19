@@ -102,10 +102,10 @@ class LootRepository {
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            Logger.log(LogId.E_5300, e)
+            Logger.error(LogId.E_5300, e, e.message ?: e.javaClass.simpleName)
             throw RuntimeException(e)
         } catch (e: IOException) {
-            Logger.log(LogId.E_5300, e)
+            Logger.error(LogId.E_5300, e, e.message ?: e.javaClass.simpleName)
             throw e
         }
     }

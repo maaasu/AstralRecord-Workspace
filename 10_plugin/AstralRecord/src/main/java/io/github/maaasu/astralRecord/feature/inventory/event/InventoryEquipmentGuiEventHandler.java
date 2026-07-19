@@ -31,6 +31,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerItemHeldEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -140,6 +141,17 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             }
             saveEquipmentMenuSnapshot(player, event.getInventory());
         }, LogId.E_5600, event.getPlayer().getName());
+    }
+
+    /**
+     * プレイヤー保存より先に、強化・修理 GUI が退避中の装備を対象ログイン世代の state へ戻します。
+     *
+     * @param event Bukkit のログアウトイベント
+     */
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
+        equipmentEnhancementService.prepareForPlayerSave(event.getPlayer());
+        equipmentRepairService.prepareForPlayerSave(event.getPlayer());
     }
 
     /**

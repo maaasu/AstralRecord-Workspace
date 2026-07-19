@@ -26,6 +26,7 @@ import java.io.File;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -51,7 +52,7 @@ public class WorldService {
     private final WorldRepository repository;
     private final Supplier<File> worldContainerSupplier;
     private final Supplier<Collection<org.bukkit.World>> bukkitWorldsSupplier;
-    private final Map<String, WorldMasterData> loadedWorlds = new LinkedHashMap<>();
+    private volatile Map<String, WorldMasterData> loadedWorlds = Map.of();
     private final Map<String, org.bukkit.World> resolvedBukkitWorldsById = new LinkedHashMap<>();
     private final Map<UUID, String> worldIdByBukkitWorldId = new LinkedHashMap<>();
     private final Map<UUID, RuntimeWorldRegistration> runtimeWorldByBukkitWorldId = new LinkedHashMap<>();
@@ -73,7 +74,7 @@ public class WorldService {
         this(repository, worldContainerSupplier, List::of);
     }
 
-    private WorldService(
+    WorldService(
             @NotNull WorldRepository repository,
             @NotNull Supplier<File> worldContainerSupplier,
             @NotNull Supplier<Collection<org.bukkit.World>> bukkitWorldsSupplier
@@ -89,18 +90,55 @@ public class WorldService {
      * @return WorldMasterData のロード件数
      */
     public synchronized int loadAll() {
+        DefinitionSnapshot snapshot = loadDefinitionSnapshot();
+        replaceDefinitionSnapshot(snapshot);
+        activateDefinitionSnapshot(snapshot);
+        return loadedWorlds.size();
+    }
+
+    /**
+     * WorldMasterData を API から取得し、公開前のスナップショットを作成します。
+     *
+     * @return 検証済み WorldMasterData スナップショット
+     */
+    public @NotNull DefinitionSnapshot loadDefinitionSnapshot() {
         List<WorldMasterData> worlds = repository.findAll().stream()
                 .sorted(Comparator.comparing(WorldMasterData::id))
                 .toList();
-        loadedWorlds.clear();
-        clearWorldResolutionCaches();
-        for (WorldMasterData world : worlds) {
-            loadedWorlds.put(world.id(), world);
-        }
         validateOverworldTeleportGuiSlots(worlds);
+
+        Map<String, WorldMasterData> worldsById = new LinkedHashMap<>();
+        for (WorldMasterData world : worlds) {
+            worldsById.put(world.id(), world);
+        }
+        return new DefinitionSnapshot(
+                worlds,
+                Collections.unmodifiableMap(new LinkedHashMap<>(worldsById))
+        );
+    }
+
+    /**
+     * 準備済み WorldMasterData を参照交換で公開します。
+     * Bukkit API を操作しないため、公開後のワールド読込は {@link #activateDefinitionSnapshot(DefinitionSnapshot)}
+     * で実行してください。
+     *
+     * @param snapshot WorldMasterData スナップショット
+     */
+    public synchronized void replaceDefinitionSnapshot(@NotNull DefinitionSnapshot snapshot) {
+        loadedWorlds = snapshot.worldsById();
+        clearWorldResolutionCaches();
         Logger.log(LogId.I_5750, loadedWorlds.size());
-        loadRegisteredBukkitWorlds(worlds);
-        return loadedWorlds.size();
+    }
+
+    /**
+     * 公開済み定義に従って autoLoad 対象の Bukkit ワールドを読み込みます。
+     * 個別ワールドの失敗はログへ記録し、他の定義公開を巻き戻しません。
+     * Bukkit API を操作するためメインスレッドから呼び出してください。
+     *
+     * @param snapshot 公開済み WorldMasterData スナップショット
+     */
+    public synchronized void activateDefinitionSnapshot(@NotNull DefinitionSnapshot snapshot) {
+        loadRegisteredBukkitWorlds(snapshot.worlds());
     }
 
     private void validateOverworldTeleportGuiSlots(@NotNull List<WorldMasterData> worlds) {
@@ -604,13 +642,17 @@ public class WorldService {
     private void loadRegisteredBukkitWorlds(@NotNull Collection<WorldMasterData> worlds) {
         int loadedCount = 0;
         for (WorldMasterData world : worlds) {
-            if (!world.autoLoad()) {
-                resolveLoadedWorld(world);
-                continue;
-            }
-            org.bukkit.World loaded = loadBukkitWorld(world);
-            if (loaded != null) {
-                loadedCount++;
+            try {
+                if (!world.autoLoad()) {
+                    resolveLoadedWorld(world);
+                    continue;
+                }
+                org.bukkit.World loaded = loadBukkitWorld(world);
+                if (loaded != null) {
+                    loadedCount++;
+                }
+            } catch (RuntimeException e) {
+                Logger.log(LogId.E_5753, e, world.id());
             }
         }
         Logger.log(LogId.I_5751, loadedCount, worlds.size());
@@ -757,6 +799,13 @@ public class WorldService {
     private static boolean sameNormalizedPath(@NotNull File left, @NotNull File right) {
         return left.toPath().toAbsolutePath().normalize()
                 .equals(right.toPath().toAbsolutePath().normalize());
+    }
+
+    /** 公開前に構築・検証した WorldMasterData スナップショットです。 */
+    public record DefinitionSnapshot(
+            @NotNull List<WorldMasterData> worlds,
+            @NotNull Map<String, WorldMasterData> worldsById
+    ) {
     }
 
     private record RuntimeWorldRegistration(

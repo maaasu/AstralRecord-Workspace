@@ -98,12 +98,39 @@ public class GatheringService {
     }
 
     public int loadAll() {
-        clearInstances();
+        List<GatheringDefinition> snapshot = loadDefinitionSnapshot();
+        replaceDefinitionSnapshot(snapshot);
+        activateDefinitionSnapshot();
+        return definitions.size();
+    }
+
+    /**
+     * 採集定義を読み込み、公開前のスナップショットを作成します。
+     *
+     * @return 採集定義スナップショット
+     */
+    public @NotNull List<GatheringDefinition> loadDefinitionSnapshot() {
+        return List.copyOf(definitionRepository.findAll());
+    }
+
+    /**
+     * 準備済み採集定義を実行時キャッシュへ反映します。
+     *
+     * @param snapshot 採集定義スナップショット
+     */
+    public void replaceDefinitionSnapshot(@NotNull List<GatheringDefinition> snapshot) {
         definitions.clear();
-        for (GatheringDefinition definition : definitionRepository.findAll()) {
+        for (GatheringDefinition definition : snapshot) {
             definitions.put(definition.id(), definition);
         }
-        return definitions.size();
+    }
+
+    /**
+     * 公開済み採集定義へ切り替えるため、旧定義に属する実体を破棄します。
+     * Bukkit Entity を操作するためメインスレッドから呼び出してください。
+     */
+    public void activateDefinitionSnapshot() {
+        clearInstances();
     }
 
     public void start() {

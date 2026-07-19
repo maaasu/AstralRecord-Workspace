@@ -2,7 +2,7 @@
 schemaVersion: 1
 id: starter_bow
 category: equipment
-name: "&f初期ボウ"
+name: "&f初心者用の弓"
 icon: BOW
 rarity: COMMON
 maxStack: 1

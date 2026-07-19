@@ -133,7 +133,7 @@ public enum PlayerMsgId {
     P_5065(5065),
     // endregion
 
-    // region /infrastructure/command/ReloadCommand.java 5090-5099
+    // region /core/command/ReloadCommand.java, MasterDataCommand.java 5090-5099
     /**
      * リロードを開始します...
      */
@@ -154,6 +154,22 @@ public enum PlayerMsgId {
      * リロード中にエラーが発生しました: {0}
      */
     P_5094(5094),
+    /**
+     * マスターデータの再読込を開始しました。完了までお待ちください。
+     */
+    P_5095(5095),
+    /**
+     * マスターデータはすでに再読込中です。
+     */
+    P_5096(5096),
+    /**
+     * マスターデータの再読込が完了しました（{0} 件）。
+     */
+    P_5097(5097),
+    /**
+     * マスターデータの再読込に失敗しました。詳細はサーバーログを確認してください。
+     */
+    P_5098(5098),
     // endregion
 
     // region /feature/status/command/StatusCommand.java 5100-5149
@@ -384,6 +400,10 @@ public enum PlayerMsgId {
      * 装備の耐久値が 0 になり、使用できなくなりました: {0}
      */
     P_5279(5279),
+    /** 強化処理中。 */
+    P_5282(5282),
+    /** 修理処理中。 */
+    P_5283(5283),
     // endregion
 
     // region /feature/user/command/UserPermissionCommand.java 5300-5309
@@ -411,6 +431,7 @@ public enum PlayerMsgId {
      * このコマンドをコンソールから実行する場合は対象プレイヤーの指定が必要です。
      */
     P_5305(5305),
+    P_5306(5306),
     // endregion
 
     // region /feature/playersetting 5320-5329
@@ -420,6 +441,7 @@ public enum PlayerMsgId {
     P_5323(5323),
     P_5324(5324),
     P_5325(5325),
+    P_5326(5326),
     // endregion
 
     // region /feature/account/command/AccountModeCommand.java 5330-5339
@@ -427,6 +449,7 @@ public enum PlayerMsgId {
     P_5331(5331),
     P_5332(5332),
     P_5333(5333),
+    P_5334(5334),
     // endregion
 
     // region /feature/combat 5350-5359
@@ -615,7 +638,7 @@ public enum PlayerMsgId {
      */
     P_5706(5706),
     /**
-     * permission 99 のプレイヤーのみ使用できます。
+     * 管理者権限を持つプレイヤーのみ使用できます。
      */
     P_5707(5707),
     /**
@@ -663,7 +686,7 @@ public enum PlayerMsgId {
      */
     P_5718(5718),
     /**
-     * account mode ADMIN のプレイヤーのみ使用できます。
+     * 管理者モードのプレイヤーのみ使用できます。
      */
     P_5719(5719),
     /**
@@ -702,6 +725,10 @@ public enum PlayerMsgId {
      * レアドロップ全体通知。
      */
     P_5728(5728),
+    /** 採集スポナーの管理表示ラベル。 */
+    P_5729(5729),
+    /** モブスポナーの管理表示ラベル。 */
+    P_5730(5730),
     // endregion
 
     // region /feature/textdisplay/command/TextDisplayCommand.java 5770-5779
@@ -868,6 +895,8 @@ public enum PlayerMsgId {
     P_5845(5845),
     P_5846(5846),
     P_5847(5847),
+    P_5848(5848),
+    P_5849(5849),
     // endregion
 
     // region /feature/party 5900-5929
@@ -964,6 +993,21 @@ public enum PlayerMsgId {
     P_6606(6606),
     P_6607(6607),
     P_6608(6608),
+    P_6609(6609),
+    // endregion
+
+    // region common display labels 6700-6719
+    /** 処理が完了するまでお待ちください。 */
+    P_6700(6700),
+    P_6701(6701),
+    P_6702(6702),
+    P_6703(6703),
+    P_6704(6704),
+    P_6705(6705),
+    P_6706(6706),
+    P_6707(6707),
+    /** パーティー一覧のリーダー表示。 */
+    P_6708(6708),
     // endregion
 
     // region /feature/player/service/PlayerMessageService.java 5940-5949

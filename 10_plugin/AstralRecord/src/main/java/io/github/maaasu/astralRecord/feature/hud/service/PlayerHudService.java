@@ -207,6 +207,9 @@ public class PlayerHudService {
                     showPerformanceInfo,
                     bossInfo
                 );
+            } else {
+                cancelActionBarOverrideTask(player.getUniqueId());
+                playerHudView.removeSidebar(player);
             }
             playerHudView.renderBars(player, snapshot);
             playerHudView.renderTabList(

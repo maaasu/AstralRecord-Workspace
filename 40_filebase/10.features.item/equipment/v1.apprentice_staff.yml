@@ -9,7 +9,7 @@ maxStack: 1
 saleValue: 60
 lore:
   - "&7魔法の入門に適した杖。"
-  - "&7魔法攻撃のスケーリングに影響する知力を底上げする。"
+  - "&7握ると淡い魔力の脈動が伝わる。"
 unTradeable: false
 unSellable: false
 

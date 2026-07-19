@@ -35,17 +35,17 @@ public class GuideRepository {
                 var request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
                 if (response.statusCode() != 200) {
-                    Logger.log(LogId.E_5200, "HTTP " + response.statusCode() + " for GET " + path);
+                    Logger.log(LogId.E_5180, "find_all", path, "http_status:" + response.statusCode());
                     throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
                 }
                 return parseList(response.body());
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            Logger.log(LogId.E_5200, e);
+            Logger.error(LogId.E_5180, e, "find_all", path, failureReason(e));
             throw new RuntimeException(e);
         } catch (IOException e) {
-            Logger.log(LogId.E_5200, e);
+            Logger.error(LogId.E_5180, e, "find_all", path, failureReason(e));
             throw new RuntimeException(e);
         }
     }
@@ -67,17 +67,17 @@ public class GuideRepository {
                     case 200 -> parse(JsonParser.parseString(response.body()).getAsJsonObject());
                     case 404 -> null;
                     default -> {
-                        Logger.log(LogId.E_5200, "HTTP " + response.statusCode() + " for GET " + path);
+                        Logger.log(LogId.E_5180, "find_by_id", path, "http_status:" + response.statusCode());
                         throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
                     }
                 };
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            Logger.log(LogId.E_5200, e);
+            Logger.error(LogId.E_5180, e, "find_by_id", path, failureReason(e));
             throw new RuntimeException(e);
         } catch (IOException e) {
-            Logger.log(LogId.E_5200, e);
+            Logger.error(LogId.E_5180, e, "find_by_id", path, failureReason(e));
             throw new RuntimeException(e);
         }
     }
@@ -149,5 +149,10 @@ public class GuideRepository {
         return element.isJsonPrimitive() && element.getAsJsonPrimitive().isNumber()
             ? element.getAsInt()
             : fallback;
+    }
+
+    private static @NotNull String failureReason(@NotNull Throwable failure) {
+        String message = failure.getMessage();
+        return message == null || message.isBlank() ? failure.getClass().getSimpleName() : message;
     }
 }

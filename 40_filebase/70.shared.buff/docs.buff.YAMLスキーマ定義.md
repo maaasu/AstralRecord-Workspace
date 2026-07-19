@@ -59,7 +59,7 @@ schemaVersion: 1
 id: battle_focus
 type: BUFF
 name: "&c戦闘集中"
-durationTicks: 000 # 20秒
+durationTicks: 400 # 20秒
 modifiers:
   - status: ATTACK
     type: FLAT

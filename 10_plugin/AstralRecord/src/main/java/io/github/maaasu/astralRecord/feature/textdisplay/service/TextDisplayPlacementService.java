@@ -176,8 +176,9 @@ public final class TextDisplayPlacementService {
         if (!dirty) {
             return;
         }
-        repository.saveAll(new ArrayList<>(placements.values()));
-        dirty = false;
+        if (repository.saveAll(new ArrayList<>(placements.values()))) {
+            dirty = false;
+        }
     }
 
     /**

@@ -16,7 +16,7 @@ import org.jetbrains.annotations.NotNull;
 public final class PlayerInfoCommand extends AstCommand {
 
     public PlayerInfoCommand() {
-        super("player", "Open player info GUI.", "/player info <playerName>", true);
+        super("player", "プレイヤー情報GUIを開きます。", "/player info <playerName>", true);
     }
 
     @Override

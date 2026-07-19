@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class SkillTreeServiceTest extends MockBukkitTestBase {
 
@@ -84,6 +85,27 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
         player.getInventory().setItemInMainHand(service.createPositionItem("position-test", 1));
 
         assertTrue(service.shouldSuppressSkillTreeSetupControls(player));
+    }
+
+    @Test
+    void discardingOldJoinStateDoesNotRemoveNewerSessionState() {
+        UUID accountId = UUID.randomUUID();
+        SkillTreeService service = newService(null);
+        SkillTreePlayerState oldState = new SkillTreePlayerState(accountId, Set.of("old"));
+        SkillTreePlayerState currentState = new SkillTreePlayerState(accountId, Set.of("current"));
+        AstPlayer player = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        when(player.getAccount()).thenReturn(account);
+        when(account.getUuid()).thenReturn(accountId);
+
+        service.applyInitialPlayerState(oldState);
+        service.applyInitialPlayerState(currentState);
+        service.discardInitialPlayerState(oldState);
+
+        assertTrue(service.isStateReady(player));
+
+        service.discardInitialPlayerState(currentState);
+        assertFalse(service.isStateReady(player));
     }
 
     private SkillTreeService newService(SkillTreeNodeDefinition node) {

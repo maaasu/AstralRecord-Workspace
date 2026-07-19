@@ -47,6 +47,17 @@ public final class PlayerInventoryStateRegistry {
     }
 
     /**
+     * 指定したセッションの state が現在も登録されている場合だけ削除します。
+     *
+     * @param accountId 対象アカウント ID
+     * @param expectedState 削除対象として期待する state
+     * @return 対象 state を削除できた場合 {@code true}
+     */
+    public boolean remove(@NotNull UUID accountId, @NotNull PlayerInventoryState expectedState) {
+        return byAccountId.remove(accountId, expectedState);
+    }
+
+    /**
      * 現在登録されている全 state のスナップショットを返します。
      *
      * @return state コレクション

@@ -9,7 +9,7 @@ maxStack: 1
 saleValue: 20
 lore:
   - "&7軽くて動きやすい革製のブーツ。"
-  - "&7移動速度をわずかに上昇させる。"
+  - "&7長旅でも足を疲れさせにくい。"
 unTradeable: false
 unSellable: false
 

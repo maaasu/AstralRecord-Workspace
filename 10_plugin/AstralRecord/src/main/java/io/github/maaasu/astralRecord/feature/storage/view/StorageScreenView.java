@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.storage.view;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewEntry;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewOptions;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
+import io.github.maaasu.astralRecord.feature.item.model.ItemRarity;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
@@ -127,17 +128,17 @@ public final class StorageScreenView extends BaseMenuScreenView {
         inventory.setItem(CATEGORY_FILTER_SLOT, createItem(
             Material.HOPPER,
             Component.text("カテゴリフィルター", NamedTextColor.AQUA),
-            filterLore("CATEGORY", categoryFilterLabel(options.categoryFilter()))
+            filterLore("カテゴリ", categoryFilterLabel(options.categoryFilter()))
         ));
         inventory.setItem(RARITY_FILTER_SLOT, createItem(
             Material.NETHER_STAR,
             Component.text("レアリティフィルター", NamedTextColor.LIGHT_PURPLE),
-            filterLore("RARITY", filterLabel(options.rarityFilter()))
+            filterLore("レアリティ", rarityFilterLabel(options.rarityFilter()))
         ));
         inventory.setItem(SORT_KEY_SLOT, createItem(
             Material.COMPASS,
             Component.text("並び替え", NamedTextColor.YELLOW),
-            filterLore("SORT", options.sortKey().getDisplayNameJa())
+            filterLore("並び順", options.sortKey().getDisplayNameJa())
         ));
         inventory.setItem(SORT_DIRECTION_SLOT, createItem(
             Material.ARROW,
@@ -200,19 +201,19 @@ public final class StorageScreenView extends BaseMenuScreenView {
         return displayItem;
     }
 
-    private @NotNull String filterLabel(@Nullable String value) {
-        return value == null || value.isBlank() ? "すべて" : value;
-    }
-
     private @NotNull String categoryFilterLabel(@Nullable String value) {
         return value == null || value.isBlank() ? "すべて" : ItemCategory.displayNameJa(value);
+    }
+
+    private @NotNull String rarityFilterLabel(@Nullable String value) {
+        return value == null || value.isBlank() ? "すべて" : ItemRarity.displayNameJa(value);
     }
 
     private @NotNull List<Component> filterLore(@NotNull String label, @NotNull String value) {
         return List.of(
             Component.text("◇ " + label, NamedTextColor.DARK_AQUA),
             Component.text("  現在: ", NamedTextColor.GRAY).append(Component.text(value, NamedTextColor.WHITE)),
-            Component.text("  Click to switch", NamedTextColor.DARK_GRAY)
+            Component.text("  クリックで切り替え", NamedTextColor.DARK_GRAY)
         );
     }
 

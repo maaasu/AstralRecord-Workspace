@@ -2,7 +2,7 @@
 schemaVersion: 1
 id: starter_leggings
 category: equipment
-name: "&f初期レギンス"
+name: "&f初心者用のレギンス"
 icon: LEATHER_LEGGINGS
 rarity: COMMON
 maxStack: 1

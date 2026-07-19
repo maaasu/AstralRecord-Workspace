@@ -67,7 +67,7 @@ public class AdventureRecordGui {
      */
     public void openMain(@NotNull Player player) {
         Inventory inventory = Bukkit.createInventory(
-            new Holder(Screen.MAIN, null, 0, Set.of()),
+            new Holder(Screen.MAIN, null, 0, Set.of(), List.of(), false),
             SIZE,
             Component.text("冒険記録", NamedTextColor.GOLD)
         );
@@ -120,7 +120,14 @@ public class AdventureRecordGui {
         int normalizedPage = pagedGuiView.normalizePage(pageIndex, icons.size());
         int totalPages = pagedGuiView.totalPages(icons.size());
         Inventory inventory = Bukkit.createInventory(
-            new Holder(Screen.MOB_LIST, listType, normalizedPage, searchItemIds),
+            new Holder(
+                Screen.MOB_LIST,
+                listType,
+                normalizedPage,
+                Set.copyOf(searchItemIds),
+                List.copyOf(entries),
+                superMode
+            ),
             SIZE,
             Component.text(listType.getTitle() + " " + (normalizedPage + 1) + "/" + totalPages, NamedTextColor.GOLD)
         );
@@ -136,7 +143,7 @@ public class AdventureRecordGui {
      */
     public void openSearch(@NotNull Player player, @NotNull List<ItemStack> selectedItems) {
         Inventory inventory = Bukkit.createInventory(
-            new Holder(Screen.SEARCH, null, 0, selectedItemIds(selectedItems)),
+            new Holder(Screen.SEARCH, null, 0, selectedItemIds(selectedItems), List.of(), false),
             SIZE,
             Component.text("アイテムを指定してモブを検索", NamedTextColor.AQUA)
         );
@@ -185,6 +192,19 @@ public class AdventureRecordGui {
             return holder.searchItemIds();
         }
         return Set.of();
+    }
+
+    public @NotNull List<AdventureRecordService.Entry> getEntries(@Nullable Inventory inventory) {
+        if (inventory != null && inventory.getHolder() instanceof Holder holder) {
+            return holder.entries();
+        }
+        return List.of();
+    }
+
+    public boolean isSuperMode(@Nullable Inventory inventory) {
+        return inventory != null
+            && inventory.getHolder() instanceof Holder holder
+            && holder.superMode();
     }
 
     public boolean isSearchItemSlot(int rawSlot) {
@@ -237,9 +257,9 @@ public class AdventureRecordGui {
     private @NotNull ItemStack createMobItem(@NotNull AdventureRecordService.Entry entry, boolean superMode) {
         MobTemplate template = entry.template();
         List<Component> lore = new ArrayList<>();
-        lore.add(Component.text("ID: " + template.id(), NamedTextColor.DARK_GRAY));
-        lore.add(Component.text("Lv: " + template.level(), NamedTextColor.YELLOW));
+        lore.add(Component.text("レベル: " + template.level(), NamedTextColor.YELLOW));
         if (superMode) {
+            lore.add(Component.text("管理ID: " + template.id(), NamedTextColor.DARK_GRAY));
             lore.add(Component.text(entry.defeated() ? "討伐済み" : "未討伐", entry.defeated() ? NamedTextColor.GREEN : NamedTextColor.RED));
         }
         long defeatCount = entry.record() == null ? 0 : entry.record().defeatCount();
@@ -267,10 +287,10 @@ public class AdventureRecordGui {
         }
         lore.add(Component.text("ドロップ", NamedTextColor.AQUA));
         if (drops.exp() > 0) {
-            lore.add(Component.text("- EXP " + drops.exp(), NamedTextColor.GREEN));
+            lore.add(Component.text("- 経験値 " + drops.exp(), NamedTextColor.GREEN));
         }
         if (drops.money() != null) {
-            lore.add(Component.text("- Gold " + drops.money().min() + "-" + drops.money().max(), NamedTextColor.YELLOW));
+            lore.add(Component.text("- ゴールド " + drops.money().min() + "-" + drops.money().max(), NamedTextColor.YELLOW));
         }
         int visible = 0;
         for (MobDropItem item : drops.items()) {
@@ -324,10 +344,7 @@ public class AdventureRecordGui {
         return createItem(
             Material.SPECTRAL_ARROW,
             Component.text("戻る", NamedTextColor.WHITE, TextDecoration.BOLD),
-            List.of(
-                Component.text("前の画面へ戻ります", NamedTextColor.GRAY),
-                Component.text("navigation", NamedTextColor.DARK_GRAY)
-            )
+            List.of(Component.text("前の画面へ戻ります", NamedTextColor.GRAY))
         );
     }
 
@@ -360,7 +377,9 @@ public class AdventureRecordGui {
         @NotNull Screen screen,
         @Nullable AdventureRecordListType listType,
         int pageIndex,
-        @NotNull Set<String> searchItemIds
+        @NotNull Set<String> searchItemIds,
+        @NotNull List<AdventureRecordService.Entry> entries,
+        boolean superMode
     ) implements HotbarShortcutGuiHolder {
         @Override
         public @NotNull String getNavigationId() {

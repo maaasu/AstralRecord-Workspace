@@ -18,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -58,7 +59,18 @@ public class ItemService {
      * @return ロードしたアイテムの総件数
      */
     public int loadAll() {
-        int total = 0;
+        List<ItemModel> snapshot = loadMasterDataSnapshot();
+        replaceMasterDataSnapshot(snapshot);
+        return snapshot.size();
+    }
+
+    /**
+     * API から全アイテムを取得し、公開前の immutable スナップショットを作成します。
+     *
+     * @return アイテムマスタスナップショット
+     */
+    public @NotNull List<ItemModel> loadMasterDataSnapshot() {
+        Map<String, ItemModel> snapshot = new LinkedHashMap<>();
         Map<String, Integer> categoryCounts = new HashMap<>();
 
         try {
@@ -70,21 +82,41 @@ public class ItemService {
                     continue;
                 }
 
-                cacheItem(item);
+                snapshot.put(normalize(item.getId()), item);
                 categoryCounts.merge(item.getCategory().toLowerCase(Locale.ROOT), 1, Integer::sum);
-                total++;
             }
         } catch (Exception e) {
             Logger.log(LogId.E_5202, e, "loadAll");
         }
 
-        total += cacheBuiltInItems(categoryCounts);
+        for (GoldDenomination denomination : GoldDenomination.values()) {
+            ItemModel currency = createGoldCurrencyItem(denomination, denomination.itemId());
+            snapshot.put(normalize(currency.getId()), currency);
+            categoryCounts.merge(currency.getCategory().toLowerCase(Locale.ROOT), 1, Integer::sum);
+        }
+        ItemModel astrald = createAstraldCurrencyItem();
+        snapshot.put(normalize(astrald.getId()), astrald);
+        categoryCounts.merge(astrald.getCategory().toLowerCase(Locale.ROOT), 1, Integer::sum);
         for (Map.Entry<String, Integer> entry : categoryCounts.entrySet()) {
             Logger.log(LogId.I_5202, entry.getKey(), entry.getValue());
         }
 
-        Logger.log(LogId.I_5203, total);
-        return total;
+        Logger.log(LogId.I_5203, snapshot.size());
+        return List.copyOf(snapshot.values());
+    }
+
+    /**
+     * 準備済みアイテムマスタを実行時キャッシュへ一括反映します。
+     * 装備インスタンスなどのプレイヤー実行時状態は保持します。
+     *
+     * @param snapshot アイテムマスタスナップショット
+     */
+    public void replaceMasterDataSnapshot(@NotNull List<ItemModel> snapshot) {
+        loadedItems.clear();
+        loadedSetEffects.clear();
+        for (ItemModel item : snapshot) {
+            cacheItem(item);
+        }
     }
 
     /** Reloads only filebase/API-backed item caches; runtime equipment state is preserved. */
@@ -568,6 +600,17 @@ public class ItemService {
             Logger.log(LogId.E_5202, e, runeId);
             return null;
         }
+    }
+
+    /**
+     * 永続化されなかった準備済みルーンを実行時キャッシュから破棄します。
+     * <p>
+     * Rune Instance API には削除 endpoint がないため、永続データの削除は行いません。
+     *
+     * @param instanceId キャッシュから破棄するルーンインスタンス ID
+     */
+    public void evictRuneInstanceFromCache(@NotNull String instanceId) {
+        loadedRuneInstances.remove(normalize(instanceId));
     }
 
     public @Nullable RuneInstance findRuneInstanceById(@NotNull String instanceId) {

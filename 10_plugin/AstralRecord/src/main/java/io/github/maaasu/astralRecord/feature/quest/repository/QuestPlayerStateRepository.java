@@ -60,7 +60,7 @@ public final class QuestPlayerStateRepository {
 
     public void save(@NotNull QuestPlayerState state) {
         if (!directory.exists() && !directory.mkdirs()) {
-            return;
+            throw new SaveException(SaveFailure.DIRECTORY_CREATE, directory, null);
         }
         YamlConfiguration yaml = new YamlConfiguration();
         for (QuestProgress progress : state.activeQuests().values()) {
@@ -79,8 +79,40 @@ public final class QuestPlayerStateRepository {
             yaml.set("cooldownUntil." + entry.getKey(), entry.getValue());
         }
         try {
-            yaml.save(file(state.accountId()));
-        } catch (IOException ignored) {
+            File target = file(state.accountId());
+            yaml.save(target);
+        } catch (IOException exception) {
+            throw new SaveException(SaveFailure.FILE_WRITE, file(state.accountId()), exception);
+        }
+    }
+
+    public enum SaveFailure {
+        DIRECTORY_CREATE,
+        FILE_WRITE
+    }
+
+    public static final class SaveException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
+        private final SaveFailure failure;
+        private final File path;
+
+        private SaveException(
+            @NotNull SaveFailure failure,
+            @NotNull File path,
+            IOException cause
+        ) {
+            super(cause);
+            this.failure = failure;
+            this.path = path;
+        }
+
+        public @NotNull SaveFailure failure() {
+            return failure;
+        }
+
+        public @NotNull File path() {
+            return path;
         }
     }
 

@@ -58,10 +58,10 @@ class AccountRepository {
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            Logger.log(LogId.E_5150, e)
+            Logger.error(LogId.E_5150, e, e.message ?: e.javaClass.simpleName)
             throw RuntimeException(e)
         } catch (e: IOException) {
-            Logger.log(LogId.E_5150, e)
+            Logger.error(LogId.E_5150, e, e.message ?: e.javaClass.simpleName)
             throw e
         }
     }
@@ -93,10 +93,10 @@ class AccountRepository {
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            Logger.log(LogId.E_5151, e)
+            Logger.error(LogId.E_5151, e, e.message ?: e.javaClass.simpleName)
             throw RuntimeException(e)
         } catch (e: IOException) {
-            Logger.log(LogId.E_5151, e)
+            Logger.error(LogId.E_5151, e, e.message ?: e.javaClass.simpleName)
             throw e
         }
     }
@@ -128,10 +128,10 @@ class AccountRepository {
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            Logger.log(LogId.E_5152, e)
+            Logger.error(LogId.E_5152, e, e.message ?: e.javaClass.simpleName)
             throw RuntimeException(e)
         } catch (e: IOException) {
-            Logger.log(LogId.E_5152, e)
+            Logger.error(LogId.E_5152, e, e.message ?: e.javaClass.simpleName)
             throw e
         }
     }
@@ -161,10 +161,10 @@ class AccountRepository {
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            Logger.log(LogId.E_5153, e)
+            Logger.error(LogId.E_5153, e, e.message ?: e.javaClass.simpleName)
             throw RuntimeException(e)
         } catch (e: IOException) {
-            Logger.log(LogId.E_5153, e)
+            Logger.error(LogId.E_5153, e, e.message ?: e.javaClass.simpleName)
             throw e
         }
     }
@@ -191,10 +191,10 @@ class AccountRepository {
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            Logger.log(LogId.E_5154, e)
+            Logger.error(LogId.E_5154, e, e.message ?: e.javaClass.simpleName)
             throw RuntimeException(e)
         } catch (e: IOException) {
-            Logger.log(LogId.E_5154, e)
+            Logger.error(LogId.E_5154, e, e.message ?: e.javaClass.simpleName)
             throw e
         }
     }
@@ -227,10 +227,10 @@ class AccountRepository {
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            Logger.log(LogId.E_5155, e)
+            Logger.error(LogId.E_5155, e, e.message ?: e.javaClass.simpleName)
             throw RuntimeException(e)
         } catch (e: IOException) {
-            Logger.log(LogId.E_5155, e)
+            Logger.error(LogId.E_5155, e, e.message ?: e.javaClass.simpleName)
             throw e
         }
     }
@@ -271,10 +271,10 @@ class AccountRepository {
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            Logger.log(LogId.E_5155, e)
+            Logger.error(LogId.E_5155, e, e.message ?: e.javaClass.simpleName)
             throw RuntimeException(e)
         } catch (e: IOException) {
-            Logger.log(LogId.E_5155, e)
+            Logger.error(LogId.E_5155, e, e.message ?: e.javaClass.simpleName)
             throw e
         }
     }

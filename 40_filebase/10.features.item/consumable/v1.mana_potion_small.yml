@@ -2,14 +2,13 @@
 schemaVersion: 1
 id: mana_potion_small
 category: consumable
-name: "&9マナポーション(小)"
+name: "&9マナポーション（小）"
 icon: POTION
 rarity: COMMON
 maxStack: 64
 saleValue: 20
 lore:
-  - "&7飲むとMPを少量回復する。"
-  - "&7最大MPの20%を回復。"
+  - "&7魔力を取り戻す力を封じた小瓶。"
 unTradeable: false
 unSellable: false
 

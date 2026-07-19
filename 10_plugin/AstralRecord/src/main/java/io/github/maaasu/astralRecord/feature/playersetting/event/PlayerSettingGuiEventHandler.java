@@ -4,6 +4,8 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.PlayerSettingMsgId;
@@ -13,6 +15,8 @@ import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingCh
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKey;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.entity.Player;
@@ -27,6 +31,8 @@ import org.jetbrains.annotations.NotNull;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -129,6 +135,17 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
     }
 
     private void handleSuperModeSecretClick(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null || !astPlayer.hasAdminPermission()) {
+            secretClickCounts.remove(player.getUniqueId());
+            Map<PlayerSettingKey, Object> draft = draftValues.get(player.getUniqueId());
+            if (draft != null) {
+                draft.remove(PlayerSettingKey.ADVENTURE_RECORD_SUPER_MODE);
+            }
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5061);
+            GuiSound.DENY.play(player);
+            return;
+        }
         int count = secretClickCounts.merge(player.getUniqueId(), 1, Integer::sum);
         if (count < SUPER_MODE_TOGGLE_CLICK_COUNT) {
             GuiSound.SELECT.play(player);
@@ -169,29 +186,75 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
         if (pending == null || pending.isEmpty()) {
             return;
         }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            return;
+        }
+        EnumMap<PlayerSettingKey, Object> pendingCopy = new EnumMap<>(PlayerSettingKey.class);
+        pendingCopy.putAll(pending);
+        if (!astPlayer.hasAdminPermission()) {
+            pendingCopy.remove(PlayerSettingKey.ADVENTURE_RECORD_SUPER_MODE);
+        }
+        if (pendingCopy.isEmpty()) {
+            return;
+        }
 
+        UUID userId = astPlayer.getUser().getUuid();
+        long sessionToken = playerSettingService.captureSessionToken(userId);
+        AstralRecord plugin = AstralRecord.getInstance();
+        AsyncTaskUtil.supplyAsync(plugin, () -> persistChanges(userId, sessionToken, pendingCopy))
+            .whenComplete((results, throwable) -> AsyncTaskUtil.runSync(plugin, () -> {
+                if (!player.isOnline()) {
+                    return;
+                }
+                if (throwable != null) {
+                    Logger.log(LogId.E_5312, throwable, userId);
+                    PlayerMessageService.getInstance().sendRaw(
+                        player,
+                        PlayerMsgResource.getMessage(PlayerSettingMsgId.P_5326.getId())
+                    );
+                    return;
+                }
+                for (PersistResult persisted : results) {
+                    if (persisted.result().staleSession()) {
+                        continue;
+                    }
+                    if (persisted.result().conflict()) {
+                        PlayerMessageService.getInstance().sendRaw(player, persisted.result().message());
+                        continue;
+                    }
+                    PlayerMessageService.getInstance().sendRaw(player, PlayerMsgResource.format(
+                        PlayerSettingMsgId.P_5321.getId(),
+                        persisted.key().getDisplayNameJa(),
+                        persisted.key().formatValue(persisted.value())
+                    ));
+                }
+            }));
+    }
+
+    private @NotNull List<PersistResult> persistChanges(
+        @NotNull UUID userId,
+        long sessionToken,
+        @NotNull Map<PlayerSettingKey, Object> pending
+    ) {
+        List<PersistResult> results = new ArrayList<>();
         for (Map.Entry<PlayerSettingKey, Object> entry : pending.entrySet()) {
             PlayerSettingKey key = entry.getKey();
             Object nextValue = entry.getValue();
-            Object currentValue = playerSettingService.getPlayerSetting(player.getUniqueId(), key);
+            Object currentValue = playerSettingService.getPlayerSetting(userId, key);
             if (currentValue.equals(nextValue)) {
                 continue;
             }
-
             PlayerSettingService.UpdateResult result = playerSettingService.updatePlayerSetting(
-                new PlayerSettingChangeRequest(player.getUniqueId(), key, nextValue, player.getUniqueId())
+                new PlayerSettingChangeRequest(userId, key, nextValue, userId),
+                sessionToken
             );
-            if (result.conflict()) {
-                PlayerMessageService.getInstance().sendRaw(player, result.message());
-                continue;
+            results.add(new PersistResult(key, nextValue, result));
+            if (result.staleSession()) {
+                break;
             }
-
-            PlayerMessageService.getInstance().sendRaw(player, PlayerMsgResource.format(
-                PlayerSettingMsgId.P_5321.getId(),
-                key.getDisplayNameJa(),
-                key.formatValue(nextValue)
-            ));
         }
+        return results;
     }
 
     private @NotNull Object nextValue(@NotNull PlayerSettingKey key, @NotNull Object currentValue) {
@@ -205,5 +268,12 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
             return values[nextIndex];
         }
         return currentValue;
+    }
+
+    private record PersistResult(
+        @NotNull PlayerSettingKey key,
+        @NotNull Object value,
+        @NotNull PlayerSettingService.UpdateResult result
+    ) {
     }
 }

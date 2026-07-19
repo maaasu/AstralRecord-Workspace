@@ -2,14 +2,13 @@
 schemaVersion: 1
 id: healing_potion_small
 category: consumable
-name: "&a回復ポーション(小)"
+name: "&a回復ポーション（小）"
 icon: POTION
 rarity: COMMON
 maxStack: 64
 saleValue: 10
 lore:
-  - "&7飲むとHPを少量回復する。"
-  - "&7最大HPの10%を回復。"
+  - "&7傷を癒やす力を封じた小瓶。"
 unTradeable: false
 unSellable: false
 

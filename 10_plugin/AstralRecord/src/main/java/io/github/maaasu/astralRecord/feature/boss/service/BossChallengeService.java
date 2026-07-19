@@ -560,11 +560,11 @@ public final class BossChallengeService {
             String worldName = challenge.field() == null ? "-" : challenge.field().worldName();
             lines.add(String.format(
                     Locale.ROOT,
-                    "%s | party=%s | boss=%s | state=%s | members=%d | world=%s | elapsed=%ds | remaining=%ds",
+                    "%s | パーティー=%s | ボス=%s | 状態=%s | 参加者=%d | ワールド=%s | 経過=%d秒 | 残り=%d秒",
                     challenge.challengeId(),
                     challenge.partyKey(),
                     challenge.bossTemplate().id(),
-                    challenge.state(),
+                    stateDisplayName(challenge.state()),
                     displayParticipantIds(challenge).size(),
                     worldName,
                     elapsed,
@@ -572,6 +572,16 @@ public final class BossChallengeService {
             ));
         }
         return lines;
+    }
+
+    private @NotNull String stateDisplayName(@NotNull BossChallengeState state) {
+        return switch (state) {
+            case PREPARING -> "準備中";
+            case IN_PROGRESS -> "戦闘中";
+            case RESULT_WAITING -> "結果表示中";
+            case ENDING -> "終了処理中";
+            case ENDED -> "終了済み";
+        };
     }
 
     /**
@@ -746,14 +756,15 @@ public final class BossChallengeService {
         }
     }
 
-    private void applyParticipantScaling(@NotNull BossChallengeInstance challenge, @NotNull MobInstance boss) {
+    static void applyParticipantScaling(@NotNull BossChallengeInstance challenge, @NotNull MobInstance boss) {
         if (!challenge.config().scaling().enabled()) {
             return;
         }
         int extraPlayers = Math.max(0, challenge.participantIds().size() - 1);
         double healthMultiplier = 1.0D + extraPlayers * Math.max(0.0D, challenge.config().scaling().healthPerExtraPlayer()) / 100.0D;
         double attackMultiplier = 1.0D + extraPlayers * Math.max(0.0D, challenge.config().scaling().attackPerExtraPlayer()) / 100.0D;
-        boss.currentHealth(boss.currentHealth() * healthMultiplier);
+        boss.maxHealth(boss.maxHealth() * healthMultiplier);
+        boss.currentHealth(boss.maxHealth());
         boss.outgoingDamageMultiplier(attackMultiplier);
     }
 
@@ -856,7 +867,7 @@ public final class BossChallengeService {
                 || reason == BossChallengeEndReason.PARTICIPANT_REQUIREMENT_NOT_MET) {
             // The specific reason was already announced when the condition was detected.
         } else {
-            notifyParticipants(challenge, PlayerMsgId.P_6512, challenge.bossTemplate().displayName(), reason.name());
+            notifyParticipants(challenge, PlayerMsgId.P_6512, challenge.bossTemplate().displayName(), reason.displayName());
         }
 
         for (UUID participantId : exitParticipantIds(challenge)) {
@@ -956,12 +967,12 @@ public final class BossChallengeService {
         Map<UUID, Double> damage = challenge.damageSnapshot();
         double total = damage.values().stream().mapToDouble(Double::doubleValue).sum();
         long remainingSeconds = Math.max(0L, (challenge.resultWaitEndsAtMs() - System.currentTimeMillis() + 999L) / 1000L);
-        StringBuilder text = new StringBuilder("&6&lBOSS CLEAR &f")
+        StringBuilder text = new StringBuilder("&6&lボス討伐成功 &f")
                 .append(challenge.bossTemplate().displayName())
-                .append("\n&7Returning to challenge location in &e")
+                .append("\n&7挑戦地点へ戻るまで &e")
                 .append(remainingSeconds)
-                .append("s")
-                .append("\n&d&lDamage Ranking &7Total &f")
+                .append("秒")
+                .append("\n&d&lダメージ順位 &7合計 &f")
                 .append(formatDamage(total));
 
         List<DamageLine> lines = challenge.participantIds().stream()
@@ -980,7 +991,7 @@ public final class BossChallengeService {
                     .append(formatDamage(line.damage()))
                     .append(" &7")
                     .append(String.format(Locale.ROOT, "%.1f%%", rate))
-                    .append(" &cDeaths ")
+                    .append(" &c死亡回数 ")
                     .append(challenge.playerDeathCount(line.playerId()));
         }
         return text.toString();

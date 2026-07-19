@@ -12,6 +12,8 @@ public final class TradeSession {
     private final UUID sessionId;
     private final UUID playerAUuid;
     private final UUID playerBUuid;
+    private final UUID playerAAccountId;
+    private final UUID playerBAccountId;
     private final String playerAName;
     private final String playerBName;
     private List<ItemStack> playerAItems;
@@ -27,14 +29,18 @@ public final class TradeSession {
     public TradeSession(
         @NotNull UUID sessionId,
         @NotNull UUID playerAUuid,
+        @NotNull UUID playerAAccountId,
         @NotNull String playerAName,
         @NotNull UUID playerBUuid,
+        @NotNull UUID playerBAccountId,
         @NotNull String playerBName,
         @NotNull Instant openedAt
     ) {
         this.sessionId = sessionId;
         this.playerAUuid = playerAUuid;
         this.playerBUuid = playerBUuid;
+        this.playerAAccountId = playerAAccountId;
+        this.playerBAccountId = playerBAccountId;
         this.playerAName = playerAName;
         this.playerBName = playerBName;
         this.playerAItems = List.of();
@@ -47,6 +53,8 @@ public final class TradeSession {
     public UUID getSessionId() { return sessionId; }
     public UUID getPlayerAUuid() { return playerAUuid; }
     public UUID getPlayerBUuid() { return playerBUuid; }
+    public UUID getPlayerAAccountId() { return playerAAccountId; }
+    public UUID getPlayerBAccountId() { return playerBAccountId; }
     public String getPlayerAName() { return playerAName; }
     public String getPlayerBName() { return playerBName; }
     public boolean isPlayerAReady() { return playerAReady; }
@@ -61,6 +69,10 @@ public final class TradeSession {
 
     public UUID getPartnerUuid(@NotNull UUID playerUuid) {
         return playerAUuid.equals(playerUuid) ? playerBUuid : playerAUuid;
+    }
+
+    public UUID getAccountId(@NotNull UUID playerUuid) {
+        return playerAUuid.equals(playerUuid) ? playerAAccountId : playerBAccountId;
     }
 
     public String getPartnerName(@NotNull UUID playerUuid) {

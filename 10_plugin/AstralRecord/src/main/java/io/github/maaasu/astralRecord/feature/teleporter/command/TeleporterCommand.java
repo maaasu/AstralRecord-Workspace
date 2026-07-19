@@ -18,7 +18,7 @@ public final class TeleporterCommand extends AstCommand {
     private final TeleporterService teleporterService;
 
     public TeleporterCommand(@NotNull TeleporterService teleporterService) {
-        super("teleporter", "Manage waystone teleporters.", "/teleporter <set|remove|list|reload> ...", true, UserPermission.ADMIN.getValue());
+        super("teleporter", "ウェイストーンテレポーターを管理します。", "/teleporter <set|remove|list|reload> ...", true, UserPermission.ADMIN.getValue());
         this.teleporterService = teleporterService;
     }
 

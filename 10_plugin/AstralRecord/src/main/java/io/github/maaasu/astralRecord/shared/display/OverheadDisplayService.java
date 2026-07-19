@@ -278,7 +278,7 @@ public class OverheadDisplayService {
 
     @NotNull
     private String mobText(@NotNull MobInstance instance) {
-        double maxHealth = instance.template().statValue(StatusType.MAX_HEALTH.name(), 1.0D);
+        double maxHealth = instance.maxHealth();
         String shield = instance.template().shield().active()
                 ? "\n" + bar("SH", instance.currentShield(), instance.template().shield().max(), "&b")
                 : "";

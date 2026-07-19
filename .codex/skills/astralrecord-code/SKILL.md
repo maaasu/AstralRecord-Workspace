@@ -56,6 +56,7 @@ If target project cannot be determined, stop and ask the project-selection quest
    - If no related design document can be identified with reasonable search, report that explicitly instead of creating a new speculative document.
 6. Verify:
    - Run the narrowest meaningful tests or build checks for the touched project.
+   - For Plugin source/resource changes, always run `python .codex/skills/astralrecord-code/scripts/check_plugin_resources.py --repo-root <task-worktree>` before build/test handoff; resolve ID/property drift, duplicate keys, log placeholder mismatches, direct logger/message calls, and string literals passed to command message helpers. Also confirm manually that each reused ID's property text describes the actual operation.
    - If a full build is too expensive or blocked, run targeted compile/test/lint checks and report what was not run.
    - Re-read changed source and docs snippets for rule compliance before final reporting.
 

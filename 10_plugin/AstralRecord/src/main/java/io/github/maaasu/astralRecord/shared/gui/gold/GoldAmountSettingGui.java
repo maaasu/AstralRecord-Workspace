@@ -52,7 +52,7 @@ public final class GoldAmountSettingGui {
         Inventory inventory = Bukkit.createInventory(
             new GoldAmountHolder(sourceKey, contextId, viewer.getUniqueId(), normalizedAmount, normalizedMax),
             SIZE,
-            Component.text("Gold Amount", NamedTextColor.GOLD)
+            Component.text("ゴールド金額", NamedTextColor.GOLD)
         );
         render(inventory, normalizedAmount, normalizedMax);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory);
@@ -82,7 +82,7 @@ public final class GoldAmountSettingGui {
         inventory.setItem(CLEAR_SLOT, item(
             Material.BARRIER,
             Component.text("0", NamedTextColor.RED, TextDecoration.BOLD),
-            List.of(Component.text("Set to 0 Gold", NamedTextColor.GRAY))
+            List.of(Component.text("0 ゴールドに設定します", NamedTextColor.GRAY))
         ));
         inventory.setItem(MINUS_1000_SLOT, item(
             Material.RED_CONCRETE,
@@ -96,10 +96,10 @@ public final class GoldAmountSettingGui {
         ));
         inventory.setItem(AMOUNT_SLOT, item(
             Material.GOLD_INGOT,
-            Component.text(amount + " Gold", NamedTextColor.GOLD, TextDecoration.BOLD),
+            Component.text(amount + " ゴールド", NamedTextColor.GOLD, TextDecoration.BOLD),
             List.of(
-                Component.text("Max: " + maxAmount + " Gold", NamedTextColor.YELLOW),
-                Component.text("Use buttons to change the amount.", NamedTextColor.GRAY)
+                Component.text("上限: " + maxAmount + " ゴールド", NamedTextColor.YELLOW),
+                Component.text("左右のボタンで金額を変更します", NamedTextColor.GRAY)
             )
         ));
         inventory.setItem(PLUS_100_SLOT, item(
@@ -114,18 +114,18 @@ public final class GoldAmountSettingGui {
         ));
         inventory.setItem(MAX_SLOT, item(
             Material.EMERALD_BLOCK,
-            Component.text("MAX", NamedTextColor.GREEN, TextDecoration.BOLD),
-            List.of(Component.text(maxAmount + " Gold", NamedTextColor.YELLOW))
+            Component.text("最大", NamedTextColor.GREEN, TextDecoration.BOLD),
+            List.of(Component.text(maxAmount + " ゴールド", NamedTextColor.YELLOW))
         ));
         inventory.setItem(BACK_SLOT, item(
             Material.ARROW,
-            Component.text("Back", NamedTextColor.YELLOW, TextDecoration.BOLD),
+            Component.text("戻る", NamedTextColor.YELLOW, TextDecoration.BOLD),
             List.of()
         ));
         inventory.setItem(CONFIRM_SLOT, item(
             Material.LIME_CONCRETE,
-            Component.text("Confirm", NamedTextColor.GREEN, TextDecoration.BOLD),
-            List.of(Component.text(amount + " Gold", NamedTextColor.YELLOW))
+            Component.text("確定", NamedTextColor.GREEN, TextDecoration.BOLD),
+            List.of(Component.text(amount + " ゴールド", NamedTextColor.YELLOW))
         ));
     }
 

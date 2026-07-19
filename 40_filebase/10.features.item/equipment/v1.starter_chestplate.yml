@@ -2,7 +2,7 @@
 schemaVersion: 1
 id: starter_chestplate
 category: equipment
-name: "&f初期チェスト"
+name: "&f初心者用の胸当て"
 icon: LEATHER_CHESTPLATE
 rarity: COMMON
 maxStack: 1

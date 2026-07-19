@@ -44,7 +44,7 @@ public final class GuideScreenView extends BaseMenuScreenView {
             inventory.setItem(22, createItem(
                 Material.BOOK,
                 Component.text("ガイドがありません", NamedTextColor.YELLOW),
-                List.of(Component.text("guide master data is empty", NamedTextColor.DARK_GRAY))
+                List.of(Component.text("現在表示できるガイドはありません", NamedTextColor.DARK_GRAY))
             ));
         } else {
             renderGuideItems(inventory, guides, normalizedPage, guideService);
@@ -145,7 +145,6 @@ public final class GuideScreenView extends BaseMenuScreenView {
             lore.add(component(guideService.resolveText(guide.summary()), ""));
         }
         lore.add(Component.text("クリックで詳細を開く", NamedTextColor.GRAY));
-        lore.add(Component.text(guide.category() + " / " + guide.displayOrder(), NamedTextColor.DARK_GRAY));
         return createItem(
             material(guide.iconMaterial(), Material.WRITABLE_BOOK),
             component(guideService.resolveText(guide.title()), guide.id()),
@@ -158,7 +157,6 @@ public final class GuideScreenView extends BaseMenuScreenView {
         if (guide.summary() != null && !guide.summary().isBlank()) {
             lore.add(component(guideService.resolveText(guide.summary()), ""));
         }
-        lore.add(Component.text(guide.category() + " / " + guide.displayOrder(), NamedTextColor.DARK_GRAY));
         return createItem(
             material(guide.iconMaterial(), Material.WRITABLE_BOOK),
             component(guideService.resolveText(guide.title()), guide.id()),

@@ -21,6 +21,7 @@ import java.util.function.IntSupplier;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -30,6 +31,74 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class WorldServiceDesignTest extends MockBukkitTestBase {
+
+    @Test
+    void preparedDefinitionSnapshotDoesNotPublishBeforeExplicitSwap() {
+        WorldRepository repository = mock(WorldRepository.class);
+        WorldService service = new WorldService(repository, () -> new File("target/test-world-container"));
+        WorldMasterData current = world(
+                "current",
+                "Current",
+                WorldType.BASE,
+                "current",
+                WorldSpawnLocation.defaultLocation(),
+                false
+        );
+        WorldMasterData prepared = world(
+                "prepared",
+                "Prepared",
+                WorldType.BASE,
+                "prepared",
+                WorldSpawnLocation.defaultLocation(),
+                false
+        );
+        when(repository.findAll()).thenReturn(List.of(current), List.of(prepared));
+        withPluginLogger(service::loadAll);
+
+        WorldService.DefinitionSnapshot snapshot = service.loadDefinitionSnapshot();
+
+        assertEquals(List.of(current), service.getAll());
+        try (MockedStatic<io.github.maaasu.astralRecord.infrastructure.logging.Logger> logger =
+                 Mockito.mockStatic(io.github.maaasu.astralRecord.infrastructure.logging.Logger.class)) {
+            service.replaceDefinitionSnapshot(snapshot);
+        }
+        assertEquals(List.of(prepared), service.getAll());
+    }
+
+    @Test
+    void activationFailureDoesNotEscapeOrDiscardPublishedDefinitions() {
+        WorldRepository repository = mock(WorldRepository.class);
+        WorldService service = new WorldService(
+                repository,
+                () -> new File("target/test-world-container"),
+                () -> {
+                    throw new IllegalStateException("world-supplier");
+                }
+        );
+        WorldMasterData prepared = world(
+                "prepared",
+                "Prepared",
+                WorldType.BASE,
+                "prepared",
+                WorldSpawnLocation.defaultLocation(),
+                false
+        );
+        when(repository.findAll()).thenReturn(List.of(prepared));
+
+        try (MockedStatic<io.github.maaasu.astralRecord.infrastructure.logging.Logger> logger =
+                 Mockito.mockStatic(io.github.maaasu.astralRecord.infrastructure.logging.Logger.class)) {
+            WorldService.DefinitionSnapshot snapshot = service.loadDefinitionSnapshot();
+            service.replaceDefinitionSnapshot(snapshot);
+
+            assertDoesNotThrow(() -> service.activateDefinitionSnapshot(snapshot));
+            assertEquals(List.of(prepared), service.getAll());
+            logger.verify(() -> io.github.maaasu.astralRecord.infrastructure.logging.Logger.log(
+                    Mockito.eq(LogId.E_5753),
+                    Mockito.any(IllegalStateException.class),
+                    Mockito.eq("prepared")
+            ));
+        }
+    }
 
     @Test
     void loadAllSortsMasterDataResolvesBukkitWorldAndAppliesRpgGameRules() {

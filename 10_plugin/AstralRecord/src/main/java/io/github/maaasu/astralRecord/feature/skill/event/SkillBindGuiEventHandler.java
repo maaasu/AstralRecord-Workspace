@@ -86,6 +86,11 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
+        if (!presetService.hasLoadedPresets(astPlayer.getAccount().getUuid())) {
+            GuiSound.DENY.play(player);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5848);
+            return;
+        }
         int initialPresetIndex = presetService.selectedPresetIndex(astPlayer.getAccount().getUuid());
         SkillBindSession session = new SkillBindSession(presetService.getPresets(astPlayer.getAccount().getUuid()), initialPresetIndex);
         if (!session.selectedPreset().isUnlocked()) {
@@ -346,19 +351,40 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        try {
-            var saved = presetService.save(
-                astPlayer.getAccount().getUuid(),
-                session.selectedPresetIndex(),
-                session.activeDraft(),
-                session.passiveDraft(),
-                astPlayer.getAccount().getUuid()
-            );
-            session.replaceSelectedPreset(saved);
-            passiveSkillService.reconcileNow(astPlayer);
-            GuiSound.SELECT.play(player);
-            openMain(player, session, pageIndex);
-        } catch (RuntimeException e) {
+        UUID accountId = astPlayer.getAccount().getUuid();
+        int presetIndex = session.selectedPresetIndex();
+        List<String> activeSnapshot = new java.util.ArrayList<>(session.activeDraft());
+        List<String> passiveSnapshot = new java.util.ArrayList<>(session.passiveDraft());
+        boolean scheduled = presetService.saveAsync(
+            accountId,
+            presetIndex,
+            activeSnapshot,
+            passiveSnapshot,
+            accountId,
+            saved -> {
+                AstPlayer currentPlayer = AstPlayerCache.get(player);
+                SkillBindSession currentSession = sessions.get(player.getUniqueId());
+                if (currentPlayer == null || currentSession != session) {
+                    return;
+                }
+                passiveSkillService.reconcileNow(currentPlayer);
+                if (session.selectedPresetIndex() != presetIndex
+                    || !session.activeDraft().equals(activeSnapshot)
+                    || !session.passiveDraft().equals(passiveSnapshot)) {
+                    return;
+                }
+                session.replaceSelectedPreset(saved);
+                GuiSound.SELECT.play(player);
+                openMain(player, session, pageIndex);
+            },
+            () -> {
+                if (sessions.get(player.getUniqueId()) == session && player.isOnline()) {
+                    GuiSound.DENY.play(player);
+                    PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5849);
+                }
+            }
+        );
+        if (!scheduled) {
             GuiSound.DENY.play(player);
         }
     }

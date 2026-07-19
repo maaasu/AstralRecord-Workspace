@@ -1,11 +1,18 @@
 package io.github.maaasu.astralRecord.feature.player.event;
 
+import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.account.service.AccountModeApplicationService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.GameModeChangeGuard;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
 import io.github.maaasu.astralRecord.shared.interaction.InputClaimPolicy;
 import io.github.maaasu.astralRecord.shared.interaction.InputFamily;
 import io.github.maaasu.astralRecord.shared.interaction.InteractionCandidateOrder;
@@ -27,11 +34,15 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class PlayerModeEventHandler extends AbstractEventHandler
     implements PlayerInputResolver<PlayerInteractionSnapshot> {
     private static final String PLUGIN_PACKAGE_PREFIX = "io.github.maaasu.astralRecord.";
     private final AccountModeApplicationService accountModeApplicationService;
+    private final Map<UUID, PendingModeChange> pendingModeChanges = new ConcurrentHashMap<>();
 
     public PlayerModeEventHandler(@NotNull AccountModeApplicationService accountModeApplicationService) {
         this.accountModeApplicationService = accountModeApplicationService;
@@ -122,13 +133,14 @@ public class PlayerModeEventHandler extends AbstractEventHandler
                 default -> null;
             };
             if (requestedMode != null && astPlayer.hasAdminPermission()) {
-                if (astPlayer.getAccount().getMode() != requestedMode) {
-                    accountModeApplicationService.changeMode(
-                        astPlayer.getAccount().getUuid(),
-                        requestedMode,
-                        event.getPlayer().getUniqueId()
-                    );
+                AccountModel currentAccount = astPlayer.getAccount();
+                if (currentAccount.getMode() == requestedMode) {
+                    return;
                 }
+
+                event.setCancelled(true);
+                event.cancelMessage(PlayerMsgResource.getComponent(PlayerMsgId.P_5334.getId()));
+                requestModeChange(event.getPlayer(), currentAccount, requestedMode, event.getNewGameMode());
                 return;
             }
             if (!isPlayerMode(event.getPlayer())) {
@@ -137,6 +149,81 @@ public class PlayerModeEventHandler extends AbstractEventHandler
             event.setCancelled(true);
             GameModeChangeGuard.setGameMode(event.getPlayer(), GameMode.ADVENTURE);
         }, LogId.E_5072, event.getPlayer().getName());
+    }
+
+    private void requestModeChange(
+        @NotNull Player player,
+        @NotNull AccountModel currentAccount,
+        @NotNull AccountMode requestedMode,
+        @NotNull GameMode requestedGameMode
+    ) {
+        UUID playerId = player.getUniqueId();
+        PendingModeChange pending = new PendingModeChange(
+            player,
+            currentAccount.getUuid(),
+            requestedMode,
+            requestedGameMode
+        );
+        if (pendingModeChanges.putIfAbsent(playerId, pending) != null) {
+            return;
+        }
+
+        AstralRecord plugin = AstralRecord.getInstance();
+        if (plugin == null) {
+            pendingModeChanges.remove(playerId, pending);
+            return;
+        }
+        try {
+            AsyncTaskUtil.supplyAsync(plugin, () -> accountModeApplicationService.persistModeChange(
+                pending.accountUuid(),
+                pending.requestedMode(),
+                playerId
+            )).whenComplete((updated, throwable) -> AsyncTaskUtil.runSync(plugin, () ->
+                completeModeChange(playerId, pending, updated, throwable)
+            ));
+        } catch (RuntimeException exception) {
+            pendingModeChanges.remove(playerId, pending);
+            throw exception;
+        }
+    }
+
+    private void completeModeChange(
+        @NotNull UUID playerId,
+        @NotNull PendingModeChange pending,
+        AccountModeApplicationService.PersistedModeChange persisted,
+        Throwable throwable
+    ) {
+        if (!pendingModeChanges.remove(playerId, pending)) {
+            return;
+        }
+        if (throwable != null) {
+            Logger.log(LogId.E_5154, throwable, pending.accountUuid());
+            if (pending.player().isOnline()) {
+                PlayerMessageService.getInstance().send(pending.player(), PlayerMsgId.P_5062);
+            }
+            return;
+        }
+        if (persisted == null) {
+            return;
+        }
+        if (!accountModeApplicationService.applyPersistedMode(persisted)) {
+            return;
+        }
+        if (!pending.player().isOnline()) {
+            return;
+        }
+        var current = AstPlayerCache.get(pending.player());
+        if (current == null || !current.getAccount().getUuid().equals(pending.accountUuid())) {
+            return;
+        }
+        AccountModel updated = persisted.account();
+        GameModeChangeGuard.setGameMode(pending.player(), pending.requestedGameMode());
+        PlayerMessageService.getInstance().send(
+            pending.player(),
+            PlayerMsgId.P_5332,
+            updated.getAccountName(),
+            updated.getMode().getDisplayName()
+        );
     }
 
     private boolean isPlayerMode(Player player) {
@@ -148,5 +235,13 @@ public class PlayerModeEventHandler extends AbstractEventHandler
         InventoryHolder inventoryHolder = topInventory.getHolder();
         return inventoryHolder != null
             && inventoryHolder.getClass().getName().startsWith(PLUGIN_PACKAGE_PREFIX);
+    }
+
+    private record PendingModeChange(
+        @NotNull Player player,
+        @NotNull UUID accountUuid,
+        @NotNull AccountMode requestedMode,
+        @NotNull GameMode requestedGameMode
+    ) {
     }
 }

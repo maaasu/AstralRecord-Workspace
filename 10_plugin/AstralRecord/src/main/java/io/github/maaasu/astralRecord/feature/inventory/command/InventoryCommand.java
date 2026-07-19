@@ -10,7 +10,7 @@ import org.jetbrains.annotations.NotNull;
 public class InventoryCommand extends AstCommand {
 
     public InventoryCommand() {
-        super("inventory", "Refresh inventory view.", "/inventory", true);
+        super("inventory", "インベントリ表示を更新します。", "/inventory", true);
     }
 
     @Override

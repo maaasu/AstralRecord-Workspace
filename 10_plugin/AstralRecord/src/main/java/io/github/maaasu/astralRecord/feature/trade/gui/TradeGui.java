@@ -14,7 +14,6 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,17 +35,6 @@ public final class TradeGui {
 
     public @Nullable TradeHolder getTradeHolder(@Nullable Inventory inventory) {
         return inventory != null && inventory.getHolder() instanceof TradeHolder holder ? holder : null;
-    }
-
-    public @NotNull List<ItemStack> collectOwnItems(@NotNull Inventory inventory) {
-        List<ItemStack> items = new ArrayList<>();
-        for (int slot : TradeGuiLayout.OWN_SLOTS) {
-            ItemStack item = inventory.getItem(slot);
-            if (item != null && !item.getType().isAir()) {
-                items.add(item.clone());
-            }
-        }
-        return items;
     }
 
     public void clearTradeInventory(@NotNull Inventory inventory) {
@@ -110,11 +98,11 @@ public final class TradeGui {
     private @NotNull ItemStack goldItem(long viewerGold, long partnerGold) {
         return actionItem(
             Material.GOLD_INGOT,
-            Component.text("Gold", NamedTextColor.GOLD, TextDecoration.BOLD),
+            Component.text("ゴールド", NamedTextColor.GOLD, TextDecoration.BOLD),
             List.of(
-                Component.text("Your offer: " + viewerGold + " Gold", NamedTextColor.YELLOW),
-                Component.text("Partner offer: " + partnerGold + " Gold", NamedTextColor.GRAY),
-                Component.text("Click to set your Gold offer.", NamedTextColor.GREEN)
+                Component.text("あなたの提示額: " + viewerGold + " ゴールド", NamedTextColor.YELLOW),
+                Component.text("相手の提示額: " + partnerGold + " ゴールド", NamedTextColor.GRAY),
+                Component.text("クリックで提示額を設定します。", NamedTextColor.GREEN)
             )
         );
     }

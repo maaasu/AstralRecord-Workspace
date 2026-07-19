@@ -28,7 +28,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 冒険記録 GUI のクリック操作を処理します。
@@ -37,6 +40,7 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
     private final AdventureRecordGui gui;
     private final AdventureRecordService adventureRecordService;
     private final InventoryService inventoryService;
+    private final Map<UUID, UUID> listRequestIds = new ConcurrentHashMap<>();
 
     public AdventureRecordGuiEventHandler(
         @NotNull AdventureRecordGui gui,
@@ -88,7 +92,7 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
             if (screen == AdventureRecordGui.Screen.SEARCH) {
                 handleSearchClick(player, topInventory, event.getRawSlot());
             }
-        }, LogId.E_5600, event.getWhoClicked().getName(), "adventure_record_gui_click");
+        }, LogId.E_5601, event.getWhoClicked().getName(), "adventure_record_gui_click");
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -101,7 +105,7 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
             if (event.getWhoClicked() instanceof Player player) {
                 GuiSound.DENY.play(player);
             }
-        }, LogId.E_5600, event.getWhoClicked().getName(), "adventure_record_gui_drag");
+        }, LogId.E_5601, event.getWhoClicked().getName(), "adventure_record_gui_drag");
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -111,9 +115,10 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             if (event.getPlayer() instanceof Player player) {
+                listRequestIds.remove(player.getUniqueId());
                 setHotbarShortcutMode(player, false);
             }
-        }, LogId.E_5600, event.getPlayer().getName(), "adventure_record_gui_close");
+        }, LogId.E_5601, event.getPlayer().getName(), "adventure_record_gui_close");
     }
 
     private void handleMainClick(@NotNull Player player, int rawSlot) {
@@ -156,13 +161,33 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
         }
         int pageIndex = gui.getPageIndex(inventory);
         Set<String> searchItemIds = gui.getSearchItemIds(inventory);
-        int itemCount = entryCount(player, listType, searchItemIds);
+        List<AdventureRecordService.Entry> entries = gui.getEntries(inventory);
+        boolean superMode = gui.isSuperMode(inventory);
+        int itemCount = entries.size();
         if (rawSlot == PagedGuiView.PREVIOUS_SLOT && gui.hasPreviousPage(pageIndex)) {
-            openList(player, listType, pageIndex - 1, searchItemIds);
+            GuiSound.SELECT.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
+            gui.openMobList(
+                player,
+                listType,
+                entries,
+                pageIndex - 1,
+                searchItemIds,
+                superMode
+            );
             return;
         }
         if (rawSlot == PagedGuiView.NEXT_SLOT && gui.hasNextPage(pageIndex, itemCount)) {
-            openList(player, listType, pageIndex + 1, searchItemIds);
+            GuiSound.SELECT.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
+            gui.openMobList(
+                player,
+                listType,
+                entries,
+                pageIndex + 1,
+                searchItemIds,
+                superMode
+            );
             return;
         }
         GuiSound.DENY.play(player);
@@ -232,22 +257,41 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        List<AdventureRecordService.Entry> entries = adventureRecordService.buildEntries(astPlayer, listType, searchItemIds);
+        UUID playerId = player.getUniqueId();
+        UUID accountId = astPlayer.getAccount().getUuid();
+        UUID requestId = UUID.randomUUID();
+        listRequestIds.put(playerId, requestId);
         GuiSound.SELECT.play(player);
-        MenuOpenEventHandler.suppressNextCloseSound(player);
-        gui.openMobList(player, listType, entries, pageIndex, searchItemIds, adventureRecordService.isSuperMode(astPlayer));
-    }
-
-    private int entryCount(
-        @NotNull Player player,
-        @NotNull AdventureRecordListType listType,
-        @NotNull Set<String> searchItemIds
-    ) {
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) {
-            return 0;
-        }
-        return adventureRecordService.buildEntries(astPlayer, listType, searchItemIds).size();
+        adventureRecordService.buildEntriesAsync(
+            astPlayer,
+            listType,
+            searchItemIds,
+            result -> {
+                if (!listRequestIds.remove(playerId, requestId)) {
+                    return;
+                }
+                Player online = org.bukkit.Bukkit.getPlayer(playerId);
+                AstPlayer current = online == null ? null : AstPlayerCache.get(online);
+                if (online == null || !online.isOnline() || current == null
+                    || !current.getAccount().getUuid().equals(accountId)) {
+                    return;
+                }
+                MenuOpenEventHandler.suppressNextCloseSound(online);
+                gui.openMobList(
+                    online,
+                    listType,
+                    result.entries(),
+                    pageIndex,
+                    searchItemIds,
+                    result.superMode()
+                );
+            },
+            () -> {
+                if (listRequestIds.remove(playerId, requestId) && player.isOnline()) {
+                    GuiSound.DENY.play(player);
+                }
+            }
+        );
     }
 
     private void setHotbarShortcutMode(@NotNull Player player, boolean enabled) {

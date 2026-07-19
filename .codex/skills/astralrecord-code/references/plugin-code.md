@@ -39,6 +39,9 @@ Use these rules when adding or changing log messages, `LogId`, or `logger.proper
 4. Call logs through the existing logger API.
 5. Preserve `Throwable` when logging exceptions.
 6. Avoid `printStackTrace()`-only handling and new IDs that duplicate an existing ID's meaning.
+7. Before choosing a new ID, search `LogId.java`, `logger.properties`, and nearby call sites for an existing common definition with the same meaning.
+8. For every reused or newly selected `LogId`, compare the property text with the actual operation and verify that formatter placeholders exactly match the non-`Throwable` arguments. A numerically valid ID with a different meaning is not reusable.
+9. After any Plugin source/resource edit, run `python .codex/skills/astralrecord-code/scripts/check_plugin_resources.py --repo-root <task-worktree>` before committing. Do not finish while it reports direct logger calls, human-readable fixed text hidden in changed `LogId` arguments, any log placeholder-count mismatch, duplicate resource keys, or ID/property drift.
 
 ## Player Messages
 
@@ -53,6 +56,8 @@ Use these rules when adding or changing player-facing messages, `MsgId`, or `pla
 7. Check color codes, placeholders, and existing wording style.
 8. Avoid changing an existing message's meaning without checking all call sites.
 9. When a player-facing message includes filebase/master-data display strings such as `name`, `title`, `description`, or lore text, route the value through `PlayerMsgResource` / `PlayerMessageService` formatting or explicitly normalize it with `ColorCodeUtil`; raw `&` color codes from master data must never be displayed to players.
+10. Before choosing a new player message ID, search `PlayerMsgId.java`, feature-specific `*MsgId`, and `player.properties`; update every authoritative enum and the property in the same patch.
+11. Run the Plugin resource validation script from the Logs section after edits; it also rejects direct `sendMessage` calls, string literals passed to command message helpers, duplicate property keys, and player ID/property drift.
 
 ## Database, API, and Filebase Contracts
 

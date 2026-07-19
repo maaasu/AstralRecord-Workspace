@@ -37,6 +37,8 @@ public final class Logger {
             DateTimeFormatter.ofPattern("HH:mm:ss");
     private static final DateTimeFormatter AUDIT_FMT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final java.util.logging.Logger FALLBACK_LOGGER =
+            java.util.logging.Logger.getLogger("AstralRecord");
 
     private Logger() {
         // utility
@@ -140,7 +142,8 @@ public final class Logger {
             }
         } else {
             // ── 通常モード (標準ターミナル / useAnsiColors 設定に従う) ──────────
-            java.util.logging.Logger utilLogger = AstralRecord.getInstance().getLogger();
+            AstralRecord plugin = AstralRecord.getInstance();
+            java.util.logging.Logger utilLogger = plugin == null ? FALLBACK_LOGGER : plugin.getLogger();
             String coloredMessage = buildAnsiColor(level, formatted);
             if (t == null)
                 utilLogger.log(level, coloredMessage);

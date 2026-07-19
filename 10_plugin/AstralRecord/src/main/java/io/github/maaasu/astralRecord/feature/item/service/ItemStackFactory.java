@@ -17,6 +17,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStatType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentTranscendence;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.model.ItemRarity;
 import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
 import io.github.maaasu.astralRecord.feature.loot.model.LootEntry;
 import io.github.maaasu.astralRecord.feature.loot.model.LootModel;
@@ -623,10 +624,6 @@ public class ItemStackFactory {
                 && !model.getBundle().getLootTableId().isBlank()) {
             appendBundleLootLore(lore, model.getBundle().getLootTableId());
         }
-        if (model.getBundle() == null) {
-            lore.add(ColorCodeUtil.DARK_GRAY + ColorCodeUtil.ITALIC + "ID: " + model.getId());
-        }
-
         if (model.getUnTradeable()) {
             lore.add(ColorCodeUtil.RED + "✖ 取引不可");
         }
@@ -1104,8 +1101,6 @@ public class ItemStackFactory {
 
         appendSaleValueLore(lore, model);
         lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
-        lore.add(ColorCodeUtil.DARK_GRAY + ColorCodeUtil.ITALIC + "ID: " + model.getId());
-        lore.add(ColorCodeUtil.DARK_GRAY + ColorCodeUtil.ITALIC + "InstanceID: " + instance.getEquipmentInstanceId());
         if (model.getUnTradeable()) lore.add(ColorCodeUtil.RED + "✖ 取引不可");
         if (shouldShowUnSellable(model)) lore.add(ColorCodeUtil.RED + "✖ 売却不可");
         return lore;
@@ -1154,8 +1149,6 @@ public class ItemStackFactory {
 
         appendSaleValueLore(lore, model);
         lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
-        lore.add(ColorCodeUtil.DARK_GRAY + ColorCodeUtil.ITALIC + "ID: " + model.getId());
-        lore.add(ColorCodeUtil.DARK_GRAY + ColorCodeUtil.ITALIC + "InstanceID: " + instance.getRuneInstanceId());
         if (model.getUnTradeable()) lore.add(ColorCodeUtil.RED + "✖ 取引不可");
         if (shouldShowUnSellable(model)) lore.add(ColorCodeUtil.RED + "✖ 売却不可");
         return lore;
@@ -1393,15 +1386,7 @@ public class ItemStackFactory {
      * レアリティを日本語表示名に変換します。
      */
     private @NotNull String rarityDisplayName(@NotNull String rarity) {
-        return switch (rarity.toLowerCase(Locale.ROOT)) {
-            case "common"    -> "コモン";
-            case "uncommon"  -> "アンコモン";
-            case "rare"      -> "レア";
-            case "epic"      -> "エピック";
-            case "legendary" -> "レジェンダリー";
-            case "mythic"    -> "ミシック";
-            default          -> rarity;
-        };
+        return ItemRarity.displayNameJa(rarity);
     }
 
     /**

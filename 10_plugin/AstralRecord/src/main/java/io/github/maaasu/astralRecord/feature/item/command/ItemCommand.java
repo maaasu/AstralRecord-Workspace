@@ -23,7 +23,7 @@ public class ItemCommand extends AstCommand {
     private final ItemService itemService;
 
     public ItemCommand(@NotNull ItemService itemService) {
-        super("item", "Load and get items.", "/item [load|get] <itemId> [amount]",
+        super("item", "アイテムを読み込み、取得します。", "/item [load|get] <itemId> [amount]",
                 true, UserPermission.ADMIN.getValue());
         this.itemService = itemService;
     }

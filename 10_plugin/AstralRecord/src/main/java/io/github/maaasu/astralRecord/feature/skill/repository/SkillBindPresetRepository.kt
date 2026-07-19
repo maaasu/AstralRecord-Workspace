@@ -28,14 +28,14 @@ class SkillBindPresetRepository {
                     200 -> JsonParser.parseString(response.body()).asJsonArray.map { parsePreset(it.asJsonObject, accountId) }
                     else -> {
                         val message = "HTTP ${response.statusCode()} for GET $path"
-                        Logger.log(LogId.E_5801, message)
+                        Logger.log(LogId.E_5803, message)
                         throw IOException(message)
                     }
                 }
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            Logger.log(LogId.E_5801, e, e.message ?: "Interrupted while GET $path")
+            Logger.error(LogId.E_5803, e, e.message ?: e.javaClass.simpleName)
             throw RuntimeException(e)
         }
     }
@@ -63,14 +63,14 @@ class SkillBindPresetRepository {
                     200 -> parsePreset(JsonParser.parseString(response.body()).asJsonObject, accountId)
                     else -> {
                         val message = "HTTP ${response.statusCode()} for PUT $path"
-                        Logger.log(LogId.E_5801, message)
+                        Logger.log(LogId.E_5804, message)
                         throw IOException(message)
                     }
                 }
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            Logger.log(LogId.E_5801, e, e.message ?: "Interrupted while PUT $path")
+            Logger.error(LogId.E_5804, e, e.message ?: e.javaClass.simpleName)
             throw RuntimeException(e)
         }
     }

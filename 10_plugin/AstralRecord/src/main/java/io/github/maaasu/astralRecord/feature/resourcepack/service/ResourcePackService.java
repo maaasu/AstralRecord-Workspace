@@ -1,9 +1,7 @@
 package io.github.maaasu.astralRecord.feature.resourcepack.service;
 
-import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
-import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -151,11 +149,10 @@ public class ResourcePackService {
             return false;
         }
 
-        var p = AstPlayerCache.get(player);
-        if (p == null) {
-            return false;
-        }
-        return p.isBedrock();
+        return BedrockPlayerDetector.isBedrock(
+            player.getName(),
+            configProperties.getResourcePackBedrockNamePrefixes()
+        );
     }
 
     /**

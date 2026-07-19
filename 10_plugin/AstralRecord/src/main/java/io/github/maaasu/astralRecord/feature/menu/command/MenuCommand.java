@@ -17,7 +17,7 @@ public final class MenuCommand extends AstCommand {
      * /menu コマンドを生成します。
      */
     public MenuCommand() {
-        super("menu", "Open AstralRecord menu.", "/menu [status|guide|mail]", true);
+        super("menu", "AstralRecord メニューを開きます。", "/menu [status|guide|mail]", true);
     }
 
     @Override

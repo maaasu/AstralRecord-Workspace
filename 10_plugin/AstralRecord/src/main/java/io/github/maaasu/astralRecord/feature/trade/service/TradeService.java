@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.item.service.ItemTransferSupport;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
@@ -14,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeCancelConfirmGui;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeGui;
+import io.github.maaasu.astralRecord.feature.trade.gui.TradeGuiLayout;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeRequest;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeRequestStatus;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeSession;
@@ -25,6 +27,7 @@ import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -32,6 +35,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -66,6 +70,28 @@ public final class TradeService {
         @NotNull PlayerMessageService messageService,
         @NotNull ItemService itemService
     ) {
+        this(
+            plugin,
+            tradeGui,
+            cancelConfirmGui,
+            goldAmountSettingGui,
+            inventoryService,
+            currencyService,
+            messageService,
+            new ItemReferenceResolver(itemService)
+        );
+    }
+
+    TradeService(
+        @NotNull AstralRecord plugin,
+        @NotNull TradeGui tradeGui,
+        @NotNull TradeCancelConfirmGui cancelConfirmGui,
+        @NotNull GoldAmountSettingGui goldAmountSettingGui,
+        @NotNull InventoryService inventoryService,
+        @NotNull CurrencyService currencyService,
+        @NotNull PlayerMessageService messageService,
+        @NotNull ItemReferenceResolver itemReferenceResolver
+    ) {
         this.plugin = plugin;
         this.tradeGui = tradeGui;
         this.cancelConfirmGui = cancelConfirmGui;
@@ -73,7 +99,7 @@ public final class TradeService {
         this.inventoryService = inventoryService;
         this.currencyService = currencyService;
         this.messageService = messageService;
-        this.itemReferenceResolver = new ItemReferenceResolver(itemService);
+        this.itemReferenceResolver = itemReferenceResolver;
     }
 
     /**
@@ -146,12 +172,21 @@ public final class TradeService {
             messageService.send(accepter, PlayerMsgId.P_6203);
             return;
         }
+        AstPlayer senderAstPlayer = AstPlayerCache.get(sender);
+        AstPlayer accepterAstPlayer = AstPlayerCache.get(accepter);
+        if (senderAstPlayer == null || accepterAstPlayer == null) {
+            request.setStatus(TradeRequestStatus.CANCELLED);
+            messageService.send(accepter, PlayerMsgId.P_6203);
+            return;
+        }
         request.setStatus(TradeRequestStatus.ACCEPTED);
         TradeSession session = new TradeSession(
             UUID.randomUUID(),
             sender.getUniqueId(),
+            senderAstPlayer.getAccount().getUuid(),
             sender.getName(),
             accepter.getUniqueId(),
+            accepterAstPlayer.getAccount().getUuid(),
             accepter.getName(),
             Instant.now()
         );
@@ -176,7 +211,6 @@ public final class TradeService {
         if (session == null) {
             return;
         }
-        captureOpenInventory(player, session);
         if (session.isReady(player.getUniqueId())) {
             session.setReady(player.getUniqueId(), false);
             messageService.send(player, PlayerMsgId.P_6206);
@@ -225,7 +259,6 @@ public final class TradeService {
         if (session == null) {
             return;
         }
-        captureOpenInventory(player, session);
         suppressNextClose(player);
         clearTopInventory(player);
         long ownedGold = currencyService.getGoldAmount(player);
@@ -314,10 +347,20 @@ public final class TradeService {
         if (session.getStatus() != TradeSessionStatus.OPEN) {
             return;
         }
-        captureBoth(session);
+        TradeRollbackSnapshot rollbackSnapshot = captureRollbackSnapshot(session);
+        if (rollbackSnapshot == null) {
+            Logger.log(LogId.E_6201, "cancel_snapshot:" + session.getSessionId());
+            return;
+        }
+        session.setStatus(TradeSessionStatus.COMMITTING);
+        boolean returnedA = returnItems(session.getPlayerAUuid(), session.getItems(session.getPlayerAUuid()));
+        boolean returnedB = returnItems(session.getPlayerBUuid(), session.getItems(session.getPlayerBUuid()));
+        if (!returnedA || !returnedB) {
+            Logger.log(LogId.E_6201, "cancel_inventory");
+            rollbackCommittedTrade(session, rollbackSnapshot, PlayerMsgId.P_6209);
+            return;
+        }
         session.setStatus(TradeSessionStatus.CANCELLED);
-        returnItems(session.getPlayerAUuid(), session.getItems(session.getPlayerAUuid()));
-        returnItems(session.getPlayerBUuid(), session.getItems(session.getPlayerBUuid()));
         closeParticipants(session);
         clearSession(session);
         sendIfOnline(session.getPlayerAUuid(), PlayerMsgId.P_6208);
@@ -338,10 +381,10 @@ public final class TradeService {
 
     public boolean isTradeable(@Nullable ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir()) {
-            return true;
+            return false;
         }
         ItemModel model = itemReferenceResolver.resolveItemModel(itemStack);
-        return model == null || !model.getUnTradeable();
+        return model != null && !model.getUnTradeable();
     }
 
     public @Nullable TradeSession getOpenSession(@NotNull UUID playerUuid) {
@@ -350,26 +393,121 @@ public final class TradeService {
         return session != null && session.getStatus() == TradeSessionStatus.OPEN ? session : null;
     }
 
-    public void captureOpenInventory(@NotNull Player player) {
+    public boolean offerOwnedItem(
+        @NotNull Player player,
+        int sourceBukkitSlot,
+        @NotNull ClickType clickType,
+        @Nullable ItemStack displayedItem
+    ) {
         TradeSession session = getOpenSession(player.getUniqueId());
-        if (session != null) {
-            captureOpenInventory(player, session);
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (session == null || astPlayer == null
+            || !session.getAccountId(player.getUniqueId()).equals(astPlayer.getAccount().getUuid())
+            || displayedItem == null || displayedItem.getType().isAir()) {
+            return false;
+        }
+        ItemModel model = inventoryService.getOwnedItemModelAtBukkitSlot(astPlayer, sourceBukkitSlot);
+        if (model == null || model.getUnTradeable()) {
+            return false;
+        }
+        int requested = ItemTransferSupport.resolveTransferAmount(
+            clickType,
+            displayedItem.getAmount(),
+            displayedItem.getMaxStackSize()
+        );
+        int capacity = offerCapacity(session.getItems(player.getUniqueId()), displayedItem, requested);
+        if (capacity <= 0) {
+            return false;
+        }
+        InventoryService.InventoryStateSnapshot stateSnapshot =
+            inventoryService.snapshotState(astPlayer.getAccount().getUuid());
+        if (stateSnapshot == null) {
+            return false;
+        }
+        List<ItemStack> originalItems = session.getItems(player.getUniqueId());
+        try {
+            ItemStack moved = inventoryService.takeOwnedItemAmount(astPlayer, sourceBukkitSlot, capacity);
+            if (!isTradeable(moved)) {
+                inventoryService.restoreState(stateSnapshot);
+                return false;
+            }
+            List<ItemStack> updated = appendEscrowItems(originalItems, moved);
+            if (updated.size() > TradeGuiLayout.OWN_SLOT_LIST.size()) {
+                inventoryService.restoreState(stateSnapshot);
+                return false;
+            }
+            session.setItems(player.getUniqueId(), updated);
+            refreshBoth(session);
+            return true;
+        } catch (RuntimeException e) {
+            inventoryService.restoreState(stateSnapshot);
+            session.setItems(player.getUniqueId(), originalItems);
+            Logger.log(LogId.E_6201, e, "offer:" + session.getSessionId());
+            return false;
         }
     }
 
-    public void captureInventory(@NotNull Player player, @NotNull Inventory inventory) {
+    public boolean withdrawOfferedItem(
+        @NotNull Player player,
+        int offerIndex,
+        @NotNull ClickType clickType
+    ) {
         TradeSession session = getOpenSession(player.getUniqueId());
-        TradeGui.TradeHolder holder = tradeGui.getTradeHolder(inventory);
-        if (session == null || holder == null || !holder.sessionId().equals(session.getSessionId())) {
-            return;
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (session == null || astPlayer == null
+            || !session.getAccountId(player.getUniqueId()).equals(astPlayer.getAccount().getUuid())) {
+            return false;
         }
-        session.setItems(player.getUniqueId(), tradeGui.collectOwnItems(inventory));
+        List<ItemStack> originalItems = session.getItems(player.getUniqueId());
+        if (offerIndex < 0 || offerIndex >= originalItems.size()) {
+            return false;
+        }
+        ItemStack offered = originalItems.get(offerIndex);
+        ItemModel model = itemReferenceResolver.resolveItemModel(offered);
+        int requested = ItemTransferSupport.resolveTransferAmount(
+            clickType,
+            offered.getAmount(),
+            offered.getMaxStackSize()
+        );
+        if (model == null || requested <= 0
+            || !inventoryService.canAddItemToNormalInventory(astPlayer, model, requested)) {
+            return false;
+        }
+        InventoryService.InventoryStateSnapshot stateSnapshot =
+            inventoryService.snapshotState(astPlayer.getAccount().getUuid());
+        if (stateSnapshot == null) {
+            return false;
+        }
+        try {
+            ItemStack returning = offered.clone();
+            returning.setAmount(requested);
+            if (inventoryService.returnItemToOwnedInventory(astPlayer, returning) == null) {
+                inventoryService.restoreState(stateSnapshot);
+                return false;
+            }
+            List<ItemStack> updated = new ArrayList<>(originalItems);
+            int remaining = offered.getAmount() - requested;
+            if (remaining <= 0) {
+                updated.remove(offerIndex);
+            } else {
+                ItemStack remainder = offered.clone();
+                remainder.setAmount(remaining);
+                updated.set(offerIndex, remainder);
+            }
+            session.setItems(player.getUniqueId(), updated);
+            refreshBoth(session);
+            return true;
+        } catch (RuntimeException e) {
+            inventoryService.restoreState(stateSnapshot);
+            session.setItems(player.getUniqueId(), originalItems);
+            Logger.log(LogId.E_6201, e, "withdraw:" + session.getSessionId());
+            return false;
+        }
     }
 
     private void completeTrade(@NotNull TradeSession session) {
         TradeRollbackSnapshot rollbackSnapshot = null;
         try {
-            captureBoth(session);
             Player playerA = Bukkit.getPlayer(session.getPlayerAUuid());
             Player playerB = Bukkit.getPlayer(session.getPlayerBUuid());
             if (!AccountModeGuard.isGameplayPlayer(playerA) || !AccountModeGuard.isGameplayPlayer(playerB)) {
@@ -463,24 +601,65 @@ public final class TradeService {
         tradeGui.open(player, session);
     }
 
-    private void captureBoth(@NotNull TradeSession session) {
-        Player playerA = Bukkit.getPlayer(session.getPlayerAUuid());
-        Player playerB = Bukkit.getPlayer(session.getPlayerBUuid());
-        if (playerA != null && playerA.isOnline()) {
-            captureOpenInventory(playerA, session);
+    private int offerCapacity(
+        @NotNull List<ItemStack> escrowItems,
+        @NotNull ItemStack template,
+        int requested
+    ) {
+        if (requested <= 0) {
+            return 0;
         }
-        if (playerB != null && playerB.isOnline()) {
-            captureOpenInventory(playerB, session);
+        int maxStackSize = Math.max(1, template.getMaxStackSize());
+        long capacity = 0L;
+        if (maxStackSize > 1) {
+            for (ItemStack existing : escrowItems) {
+                if (existing.isSimilar(template)) {
+                    capacity += Math.max(0, maxStackSize - existing.getAmount());
+                }
+            }
         }
+        int freeSlots = Math.max(0, TradeGuiLayout.OWN_SLOT_LIST.size() - escrowItems.size());
+        capacity += (long) freeSlots * maxStackSize;
+        return (int) Math.min(requested, Math.min(Integer.MAX_VALUE, capacity));
     }
 
-    private void captureOpenInventory(@NotNull Player player, @NotNull TradeSession session) {
-        Inventory top = player.getOpenInventory().getTopInventory();
-        TradeGui.TradeHolder holder = tradeGui.getTradeHolder(top);
-        if (holder == null || !holder.sessionId().equals(session.getSessionId())) {
-            return;
+    private @NotNull List<ItemStack> appendEscrowItems(
+        @NotNull List<ItemStack> escrowItems,
+        @NotNull ItemStack moved
+    ) {
+        List<ItemStack> updated = new ArrayList<>();
+        for (ItemStack item : escrowItems) {
+            updated.add(item.clone());
         }
-        session.setItems(player.getUniqueId(), tradeGui.collectOwnItems(top));
+        int remaining = moved.getAmount();
+        if (moved.getMaxStackSize() > 1) {
+            for (int index = 0; index < updated.size() && remaining > 0; index++) {
+                ItemStack existing = updated.get(index);
+                if (!existing.isSimilar(moved)) {
+                    continue;
+                }
+                int available = Math.max(0, existing.getMaxStackSize() - existing.getAmount());
+                if (available <= 0) {
+                    continue;
+                }
+                int transfer = Math.min(remaining, available);
+                ItemStack merged = existing.clone();
+                merged.setAmount(existing.getAmount() + transfer);
+                updated.set(index, merged);
+                remaining -= transfer;
+            }
+        }
+        while (remaining > 0 && updated.size() < TradeGuiLayout.OWN_SLOT_LIST.size()) {
+            ItemStack split = moved.clone();
+            int transfer = Math.min(remaining, split.getMaxStackSize());
+            split.setAmount(transfer);
+            updated.add(split);
+            remaining -= transfer;
+        }
+        if (remaining > 0) {
+            throw new IllegalStateException("提示アイテムの移動中に取引保管領域の容量が変化しました");
+        }
+        return updated;
     }
 
     private void clearTopInventory(@NotNull Player player) {
@@ -500,40 +679,32 @@ public final class TradeService {
         boolean logFailure
     ) {
         Player player = Bukkit.getPlayer(ownerUuid);
-        if (player == null || !player.isOnline()) {
+        AstPlayer astPlayer = player == null ? null : AstPlayerCache.get(player);
+        if (player == null || astPlayer == null) {
             return false;
         }
-        boolean success = true;
-        AstPlayer astPlayer = AstPlayerCache.get(player);
         for (ItemStack item : items) {
             if (item == null || item.getType().isAir()) {
                 continue;
             }
             ItemStack clone = item.clone();
-            if (itemReferenceResolver.resolve(clone) != null && astPlayer != null) {
-                if (inventoryService.returnItemToOwnedInventory(astPlayer, clone) == null) {
-                    if (logFailure) {
-                        Logger.log(LogId.W_6202, player.getName());
-                    }
-                    success = false;
-                }
-                continue;
-            }
-            Map<Integer, ItemStack> overflow = player.getInventory().addItem(clone);
-            if (!overflow.isEmpty()) {
+            ItemModel model = itemReferenceResolver.resolveItemModel(clone);
+            if (model == null
+                || !inventoryService.canAddItemToNormalInventory(astPlayer, model, clone.getAmount())
+                || inventoryService.returnItemToOwnedInventory(astPlayer, clone) == null) {
                 if (logFailure) {
                     Logger.log(LogId.W_6202, player.getName());
                 }
-                success = false;
+                return false;
             }
         }
-        return success;
+        return true;
     }
 
     private boolean canReceiveItems(@NotNull UUID playerUuid, @NotNull List<ItemStack> items) {
         Player player = Bukkit.getPlayer(playerUuid);
         AstPlayer astPlayer = player == null ? null : AstPlayerCache.get(player);
-        if (player == null || !player.isOnline() || astPlayer == null) {
+        if (player == null || astPlayer == null) {
             return false;
         }
         InventoryService.InventoryStateSnapshot stateSnapshot =
@@ -541,14 +712,12 @@ public final class TradeService {
         if (stateSnapshot == null) {
             return false;
         }
-        ItemStack[] storageContents = cloneContents(player.getInventory().getStorageContents());
         boolean receivable;
         boolean restored;
         try {
             receivable = returnItems(playerUuid, items, false);
         } finally {
             restored = inventoryService.restoreState(stateSnapshot);
-            player.getInventory().setStorageContents(storageContents);
         }
         return restored && receivable;
     }
@@ -603,26 +772,14 @@ public final class TradeService {
     }
 
     private @Nullable TradeRollbackSnapshot captureRollbackSnapshot(@NotNull TradeSession session) {
-        Player playerA = Bukkit.getPlayer(session.getPlayerAUuid());
-        Player playerB = Bukkit.getPlayer(session.getPlayerBUuid());
-        AstPlayer astPlayerA = playerA == null ? null : AstPlayerCache.get(playerA);
-        AstPlayer astPlayerB = playerB == null ? null : AstPlayerCache.get(playerB);
-        if (playerA == null || playerB == null || astPlayerA == null || astPlayerB == null) {
-            return null;
-        }
         InventoryService.InventoryStateSnapshot stateA =
-            inventoryService.snapshotState(astPlayerA.getAccount().getUuid());
+            inventoryService.snapshotState(session.getPlayerAAccountId());
         InventoryService.InventoryStateSnapshot stateB =
-            inventoryService.snapshotState(astPlayerB.getAccount().getUuid());
+            inventoryService.snapshotState(session.getPlayerBAccountId());
         if (stateA == null || stateB == null) {
             return null;
         }
-        return new TradeRollbackSnapshot(
-            stateA,
-            stateB,
-            cloneContents(playerA.getInventory().getStorageContents()),
-            cloneContents(playerB.getInventory().getStorageContents())
-        );
+        return new TradeRollbackSnapshot(stateA, stateB);
     }
 
     private void rollbackCommittedTrade(
@@ -630,17 +787,9 @@ public final class TradeService {
         @NotNull TradeRollbackSnapshot snapshot,
         @NotNull PlayerMsgId messageId
     ) {
-        Player playerA = Bukkit.getPlayer(session.getPlayerAUuid());
-        Player playerB = Bukkit.getPlayer(session.getPlayerBUuid());
         boolean restoredA = inventoryService.restoreState(snapshot.playerAState());
         boolean restoredB = inventoryService.restoreState(snapshot.playerBState());
-        boolean restored = restoredA && restoredB && playerA != null && playerB != null;
-        if (playerA != null) {
-            playerA.getInventory().setStorageContents(cloneContents(snapshot.playerAStorage()));
-        }
-        if (playerB != null) {
-            playerB.getInventory().setStorageContents(cloneContents(snapshot.playerBStorage()));
-        }
+        boolean restored = restoredA && restoredB;
         sendIfOnline(session.getPlayerAUuid(), messageId);
         sendIfOnline(session.getPlayerBUuid(), messageId);
         if (!restored) {
@@ -655,15 +804,12 @@ public final class TradeService {
         refreshBoth(session);
     }
 
-    private @NotNull ItemStack[] cloneContents(@NotNull ItemStack[] contents) {
-        ItemStack[] cloned = new ItemStack[contents.length];
-        for (int index = 0; index < contents.length; index++) {
-            cloned[index] = contents[index] == null ? null : contents[index].clone();
-        }
-        return cloned;
-    }
-
     private @Nullable UUID resolveAccountId(@NotNull UUID playerUuid) {
+        UUID sessionId = activeSessionByPlayer.get(playerUuid);
+        TradeSession session = sessionId == null ? null : sessions.get(sessionId);
+        if (session != null && session.contains(playerUuid)) {
+            return session.getAccountId(playerUuid);
+        }
         Player player = Bukkit.getPlayer(playerUuid);
         AstPlayer astPlayer = player == null ? null : AstPlayerCache.get(player);
         return astPlayer == null ? null : astPlayer.getAccount().getUuid();
@@ -735,7 +881,6 @@ public final class TradeService {
         if (session == null) {
             return;
         }
-        captureOpenInventory(player, session);
         if (suppressCurrentClose) {
             suppressNextClose(player);
         }
@@ -745,9 +890,7 @@ public final class TradeService {
 
     private record TradeRollbackSnapshot(
         @NotNull InventoryService.InventoryStateSnapshot playerAState,
-        @NotNull InventoryService.InventoryStateSnapshot playerBState,
-        @NotNull ItemStack[] playerAStorage,
-        @NotNull ItemStack[] playerBStorage
+        @NotNull InventoryService.InventoryStateSnapshot playerBState
     ) {
     }
 }

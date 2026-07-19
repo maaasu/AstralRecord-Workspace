@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.gathering.spawner.repository;
 
 import io.github.maaasu.astralRecord.feature.gathering.spawner.model.GatheringSpawnerLocation;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -45,7 +47,7 @@ public class GatheringSpawnerLocationRepository {
         return result;
     }
 
-    public void saveAll(@NotNull Iterable<GatheringSpawnerLocation> locations) {
+    public boolean saveAll(@NotNull Iterable<GatheringSpawnerLocation> locations) {
         YamlConfiguration yaml = new YamlConfiguration();
         List<Map<String, Object>> rows = new ArrayList<>();
         for (GatheringSpawnerLocation location : locations) {
@@ -61,13 +63,16 @@ public class GatheringSpawnerLocationRepository {
 
         File file = file();
         File parent = file.getParentFile();
-        if (parent != null && !parent.exists()) {
-            parent.mkdirs();
+        if (parent != null && !parent.exists() && !parent.mkdirs()) {
+            Logger.log(LogId.E_6401, "gathering_spawner", parent);
+            return false;
         }
         try {
             yaml.save(file);
-        } catch (IOException ignored) {
-            // 次回保存に委ねる。
+            return true;
+        } catch (IOException ex) {
+            Logger.log(LogId.E_6400, ex, "gathering_spawner", file, ex.getMessage());
+            return false;
         }
     }
 

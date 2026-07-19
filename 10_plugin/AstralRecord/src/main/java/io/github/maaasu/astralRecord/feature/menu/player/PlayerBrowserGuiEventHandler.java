@@ -112,7 +112,7 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
                 }
                 handlePlayerDetailClick(player, event.getRawSlot(), event.getView().getTopInventory());
             }
-        }, LogId.E_5600, event.getWhoClicked().getName(), "player_browser_gui_click");
+        }, LogId.E_5601, event.getWhoClicked().getName(), "player_browser_gui_click");
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -126,7 +126,7 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
             if (event.getWhoClicked() instanceof Player player) {
                 GuiSound.DENY.play(player);
             }
-        }, LogId.E_5600, event.getWhoClicked().getName(), "player_browser_gui_drag");
+        }, LogId.E_5601, event.getWhoClicked().getName(), "player_browser_gui_drag");
     }
 
     private void handlePlayerListClick(@NotNull Player player, int rawSlot, @NotNull org.bukkit.inventory.Inventory inventory) {

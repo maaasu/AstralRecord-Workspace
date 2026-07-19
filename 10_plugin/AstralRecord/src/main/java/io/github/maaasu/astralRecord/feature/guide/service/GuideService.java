@@ -42,21 +42,41 @@ public class GuideService {
     }
 
     public synchronized int loadAll() {
+        List<GuideEntry> snapshot = loadEntrySnapshot();
+        replaceEntrySnapshot(snapshot);
+        return loadedGuides.size();
+    }
+
+    /**
+     * ガイド定義を読み込み、公開前のスナップショットを作成します。
+     *
+     * @return ガイド定義スナップショット
+     */
+    public @NotNull List<GuideEntry> loadEntrySnapshot() {
         try {
-            List<GuideEntry> guides = repository.findAll().stream()
+            return repository.findAll().stream()
                 .sorted(Comparator
                     .comparingInt((GuideEntry guide) -> categoryOrder(guide.category()))
                     .thenComparingInt(GuideEntry::displayOrder)
                     .thenComparing(GuideEntry::id))
                 .toList();
-            loadedGuides.clear();
-            for (GuideEntry guide : guides) {
-                loadedGuides.put(guide.id(), guide);
-            }
-            return loadedGuides.size();
         } catch (RuntimeException e) {
-            Logger.log(LogId.E_5200, e);
-            return loadedGuides.size();
+            Logger.log(LogId.E_5181, e, failureReason(e));
+            synchronized (this) {
+                return List.copyOf(loadedGuides.values());
+            }
+        }
+    }
+
+    /**
+     * 準備済みガイド定義を実行時キャッシュへ一括反映します。
+     *
+     * @param snapshot ガイド定義スナップショット
+     */
+    public synchronized void replaceEntrySnapshot(@NotNull List<GuideEntry> snapshot) {
+        loadedGuides.clear();
+        for (GuideEntry guide : snapshot) {
+            loadedGuides.put(guide.id(), guide);
         }
     }
 
@@ -124,5 +144,10 @@ public class GuideService {
             case "world" -> 40;
             default -> 100;
         };
+    }
+
+    private static @NotNull String failureReason(@NotNull Throwable failure) {
+        String message = failure.getMessage();
+        return message == null || message.isBlank() ? failure.getClass().getSimpleName() : message;
     }
 }

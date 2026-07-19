@@ -38,12 +38,7 @@ public class InventorySaveTask implements PlayerSaveTask {
     }
 
     @Override
-    public void save(@NotNull AstPlayer player, @NotNull PlayerSaveTrigger trigger) {
-        PlayerInventoryState state = stateRegistry.get(player.getAccount().getUuid());
-        if (state == null) {
-            return;
-        }
-
+    public void prepare(@NotNull AstPlayer player, @NotNull PlayerSaveTrigger trigger) {
         if (isToolInventoryMode(player.getAccount().getMode())) {
             inventoryService.saveToolInventorySnapshot(player);
         } else if (player.getAccount().getMode().shouldReflectInventoryToGui()) {
@@ -51,6 +46,14 @@ public class InventorySaveTask implements PlayerSaveTask {
             inventoryService.saveHotbarSnapshot(player);
             inventoryService.saveAccessorySlotSnapshot(player);
             inventoryService.syncCurrentEquipmentState(player);
+        }
+    }
+
+    @Override
+    public void save(@NotNull AstPlayer player, @NotNull PlayerSaveTrigger trigger) {
+        PlayerInventoryState state = stateRegistry.get(player.getAccount().getUuid());
+        if (state == null) {
+            return;
         }
 
         persistence.save(state, mapTrigger(trigger));

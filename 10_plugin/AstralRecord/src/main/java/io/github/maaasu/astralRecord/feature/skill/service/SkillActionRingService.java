@@ -183,7 +183,7 @@ public final class SkillActionRingService {
         if (skillId != null && !skillId.isBlank()) {
             SkillDefinition definition = skillService.registry().getDefinition(skillId);
             skillDisplayName = SkillPresentationUtil.plainName(definition, "未定義スキル");
-            skillService.castSkill(
+            SkillCastResult castResult = skillService.castSkill(
                 new PlayerSkillCaster(astPlayer),
                 skillId,
                 SkillCastTrigger.PLAYER_COMMAND,
@@ -191,6 +191,9 @@ public final class SkillActionRingService {
                 null,
                 List.of()
             );
+            if (!castResult.success()) {
+                return;
+            }
         }
         GuiSound.RING_CAST.play(player);
         PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5807, SLOT_COUNT, selectedSlot, skillDisplayName);

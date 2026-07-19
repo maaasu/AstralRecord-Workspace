@@ -11,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class TrashCommand extends AstCommand {
     public TrashCommand() {
-        super("trash", "Open trash GUI.", "/trash", true);
+        super("trash", "ごみ箱GUIを開きます。", "/trash", true);
     }
 
     @Override

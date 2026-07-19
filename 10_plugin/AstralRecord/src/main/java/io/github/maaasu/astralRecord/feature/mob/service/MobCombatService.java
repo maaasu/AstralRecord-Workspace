@@ -571,7 +571,7 @@ public class MobCombatService {
             ClassExperienceResult classProgress = playerClassService.grantClassExperience(recipient, result.exp());
             applyExperienceAndSkillPointsResult(recipient, progress, classProgress);
         } catch (RuntimeException ex) {
-            Logger.error(LogId.E_5155, ex, recipient.getAccount().getUuid(), result.exp());
+            Logger.error(LogId.E_5158, ex, recipient.getAccount().getUuid(), result.exp());
         }
     }
 

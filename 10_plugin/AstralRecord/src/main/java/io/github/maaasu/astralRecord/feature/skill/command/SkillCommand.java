@@ -10,7 +10,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class SkillCommand extends AstCommand {
     public SkillCommand() {
-        super("skill", "Open skill bind GUI.", "/skill [gui]", true);
+        super("skill", "スキル割り当てGUIを開きます。", "/skill [gui]", true);
     }
 
     @Override

@@ -198,6 +198,27 @@ public class AccountService {
         return new AccountExperienceResult(previous, updated, experience, levelUps);
     }
 
+    /**
+     * 複数機能にまたがる処理の補償時に、指定したアカウント進捗を pending 状態へ戻します。
+     * 次回 flush ではこのスナップショットが正本として保存されます。
+     *
+     * @param snapshot 復元するアカウント進捗
+     * @param updatedBy 更新者 UUID
+     */
+    public void restoreCachedProgress(
+        @NotNull AccountModel snapshot,
+        @NotNull UUID updatedBy
+    ) {
+        pendingExperienceUpdates.put(
+            snapshot.getUuid(),
+            new PendingExperienceUpdate(snapshot, updatedBy)
+        );
+        pendingClassProgressUpdates.put(
+            snapshot.getUuid(),
+            new PendingClassProgressUpdate(snapshot, updatedBy)
+        );
+    }
+
     public double experienceProgress(UUID accountUuid, int level, long totalExperience) {
         int normalizedLevel = Math.max(1, level);
         if (normalizedLevel >= MAX_PLAYER_LEVEL) {
@@ -261,7 +282,11 @@ public class AccountService {
             flushPendingClassProgressNow();
         }
         if (!pendingExperienceUpdates.isEmpty() || !pendingClassProgressUpdates.isEmpty()) {
-            Logger.log(LogId.E_5155, "experience flush unfinished", pendingExperienceUpdates.size());
+            Logger.log(
+                LogId.W_5156,
+                pendingExperienceUpdates.size(),
+                pendingClassProgressUpdates.size()
+            );
         }
     }
 
@@ -302,7 +327,7 @@ public class AccountService {
             );
         } catch (RuntimeException ex) {
             Logger.error(
-                LogId.E_5155,
+                LogId.E_5156,
                 ex,
                 accountUuid,
                 snapshot.account().getLevel(),
@@ -376,7 +401,7 @@ public class AccountService {
             );
         } catch (RuntimeException ex) {
             Logger.error(
-                LogId.E_5155,
+                LogId.E_5157,
                 ex,
                 accountUuid,
                 snapshot.account().getClassId(),

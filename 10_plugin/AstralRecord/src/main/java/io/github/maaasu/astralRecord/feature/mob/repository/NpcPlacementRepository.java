@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.mob.repository;
 
 import io.github.maaasu.astralRecord.feature.mob.model.NpcPlacement;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -68,7 +70,7 @@ public final class NpcPlacementRepository {
      *
      * @param placements 保存対象
      */
-    public void saveAll(@NotNull Iterable<NpcPlacement> placements) {
+    public boolean saveAll(@NotNull Iterable<NpcPlacement> placements) {
         YamlConfiguration yaml = new YamlConfiguration();
         List<Map<String, Object>> rows = new ArrayList<>();
         for (NpcPlacement placement : placements) {
@@ -86,13 +88,16 @@ public final class NpcPlacementRepository {
 
         File file = file();
         File parent = file.getParentFile();
-        if (parent != null && !parent.exists()) {
-            parent.mkdirs();
+        if (parent != null && !parent.exists() && !parent.mkdirs()) {
+            Logger.log(LogId.E_6401, "npc", parent);
+            return false;
         }
         try {
             yaml.save(file);
-        } catch (IOException ignored) {
-            // 次回保存で再試行できるため、配置操作自体は継続します。
+            return true;
+        } catch (IOException ex) {
+            Logger.log(LogId.E_6400, ex, "npc", file, ex.getMessage());
+            return false;
         }
     }
 

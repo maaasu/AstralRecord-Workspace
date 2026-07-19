@@ -9,7 +9,6 @@ maxStack: 64
 saleValue: 12
 lore:
   - "&7採集した若葉と胞子で作る序盤用の回復薬。"
-  - "&7最大HP割合ではなくHPを45回復する。"
 unTradeable: false
 unSellable: false
 

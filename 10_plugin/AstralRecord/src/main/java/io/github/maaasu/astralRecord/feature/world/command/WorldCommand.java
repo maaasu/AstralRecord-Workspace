@@ -30,7 +30,7 @@ public class WorldCommand extends AstCommand {
      * @param worldService WorldMasterData サービス
      */
     public WorldCommand(@NotNull WorldService worldService) {
-        super("world", "Manage world master data.", "/world <list|info|tp|loaded|reload> [worldId]",
+        super("world", "ワールドのマスターデータを管理します。", "/world <list|info|tp|loaded|reload> [worldId]",
                 true, UserPermission.ADMIN.getValue());
         this.worldService = worldService;
     }
@@ -66,8 +66,8 @@ public class WorldCommand extends AstCommand {
                     PlayerMsgId.P_5753.getId(),
                     world.id(),
                     ColorCodeUtil.toLegacyText(world.displayName(), world.id()),
-                    world.worldType().name(),
-                    world.instanceEnabled()
+                    world.worldType().getRegionDisplayName(),
+                    enabledLabel(world.instanceEnabled())
             ));
         }
     }
@@ -90,21 +90,21 @@ public class WorldCommand extends AstCommand {
         ));
         sendInfo(player.getBukkit(), PlayerMsgResource.format(
                 PlayerMsgId.P_5756.getId(),
-                world.worldType().name(),
+                world.worldType().getRegionDisplayName(),
                 world.baseWorldPath(),
                 world.instanceRootPath()
         ));
         sendInfo(player.getBukkit(), PlayerMsgResource.format(
                 PlayerMsgId.P_5757.getId(),
-                world.autoLoad(),
-                world.instanceEnabled(),
+                enabledLabel(world.autoLoad()),
+                enabledLabel(world.instanceEnabled()),
                 world.maxPlayers()
         ));
         sendInfo(player.getBukkit(), PlayerMsgResource.format(
                 PlayerMsgId.P_5758.getId(),
-                world.allowBlockBreak(),
-                world.allowBlockPlace(),
-                world.allowMobSpawn()
+                permissionLabel(world.allowBlockBreak()),
+                permissionLabel(world.allowBlockPlace()),
+                permissionLabel(world.allowMobSpawn())
         ));
         sendInfo(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5759.getId(), world.description()));
     }
@@ -138,8 +138,10 @@ public class WorldCommand extends AstCommand {
                 Bukkit.getScheduler().runTask(AstralRecord.getInstance(), () -> {
                     sendInfo(player.getBukkit(), PlayerMsgResource.format(
                             PlayerMsgId.P_5765.getId(),
-                            success,
-                            player.getBukkit().getWorld() == null ? "null" : player.getBukkit().getWorld().getName(),
+                            success ? commonLabel(PlayerMsgId.P_6701) : commonLabel(PlayerMsgId.P_6702),
+                            player.getBukkit().getWorld() == null
+                                ? commonLabel(PlayerMsgId.P_6703)
+                                : player.getBukkit().getWorld().getName(),
                             player.getBukkit().getLocation().getX(),
                             player.getBukkit().getLocation().getY(),
                             player.getBukkit().getLocation().getZ()
@@ -158,7 +160,9 @@ public class WorldCommand extends AstCommand {
                                 PlayerMsgResource.format(
                                         PlayerMsgId.P_5766.getId(),
                                         data.id(),
-                                        spawnLocation.getWorld() == null ? "null" : spawnLocation.getWorld().getName()
+                                        spawnLocation.getWorld() == null
+                                            ? commonLabel(PlayerMsgId.P_6703)
+                                            : spawnLocation.getWorld().getName()
                                 )
                         );
                         return;
@@ -194,5 +198,17 @@ public class WorldCommand extends AstCommand {
     private void handleReload(@NotNull AstPlayer player) {
         int count = worldService.reloadFromYaml();
         sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5763.getId(), count));
+    }
+
+    private @NotNull String enabledLabel(boolean enabled) {
+        return commonLabel(enabled ? PlayerMsgId.P_6704 : PlayerMsgId.P_6705);
+    }
+
+    private @NotNull String permissionLabel(boolean allowed) {
+        return commonLabel(allowed ? PlayerMsgId.P_6706 : PlayerMsgId.P_6707);
+    }
+
+    private @NotNull String commonLabel(@NotNull PlayerMsgId messageId) {
+        return PlayerMsgResource.getMessage(messageId.getId());
     }
 }

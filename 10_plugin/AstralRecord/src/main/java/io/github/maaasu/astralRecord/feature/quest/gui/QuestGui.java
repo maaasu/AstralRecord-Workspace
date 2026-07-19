@@ -193,13 +193,13 @@ public final class QuestGui {
             return;
         }
         if (rewards.exp() > 0) {
-            lore.add(Component.text("- EXP " + rewards.exp(), NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.text("- 経験値 " + rewards.exp(), NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
         }
         if (rewards.gold() > 0) {
-            lore.add(Component.text("- Gold " + rewards.gold(), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.text("- ゴールド " + rewards.gold(), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         }
         for (var item : rewards.items()) {
-            lore.add(Component.text("- " + questService.resolveItemDisplayName(item) + " x" + item.amount(), NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.text("- " + questService.resolveItemDisplayName(item) + " ×" + item.amount(), NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
         }
     }
 

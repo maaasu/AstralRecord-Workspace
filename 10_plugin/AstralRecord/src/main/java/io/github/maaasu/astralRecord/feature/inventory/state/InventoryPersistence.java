@@ -31,8 +31,9 @@ import java.util.concurrent.TimeUnit;
  *       {@link PlayerInventoryState} を構築します。</li>
  *   <li>{@link #save(PlayerInventoryState, SaveTrigger)}: dirty な state を API へ反映します。
  *       オートセーブ / ログアウト時に呼び出されます。</li>
- *   <li>{@link #saveNow(PlayerInventoryState)}: マーケット成立など、即時整合性が必要なケース向けの拡張点。
- *       同期的に save() を実行し、結果が確定するまで呼び出し元に戻りません。</li>
+ *   <li>{@link #saveNow(PlayerInventoryState)}: マーケット成立など、即時整合性が必要なケース向けの内部処理。
+ *       {@link io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator} の保存キューから
+ *       同期的に呼び出され、結果が確定するまでキューの後続処理へ進みません。</li>
  * </ul>
  *
  * 永続化失敗時はログを warn で残し、{@link PlayerInventoryState#restoreDirty()} で次回再試行できる状態に戻します。
@@ -193,7 +194,7 @@ public final class InventoryPersistence {
     }
 
     /**
-     * マーケット成立など、即時整合性が必要な場面で同期的に保存します。
+     * 保存コーディネーターから、即時整合性が必要な場面で同期的に保存します。
      * <p>
      * dirty フラグを強制的に立ててから {@link #save(PlayerInventoryState, SaveTrigger)} を呼ぶため、
      * 直前にゲームロジックが state を変更していない場合でも安全に呼び出せます。
@@ -205,7 +206,7 @@ public final class InventoryPersistence {
     public boolean saveNow(@NotNull PlayerInventoryState state) {
         state.markDirty();
         save(state, SaveTrigger.IMMEDIATE);
-        return !state.isDirty();
+        return !hasPendingChanges(state);
     }
 
     private void saveLoadoutSlotsDiff(@NotNull PlayerInventoryState state) {

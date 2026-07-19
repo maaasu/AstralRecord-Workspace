@@ -39,7 +39,7 @@ public final class TestCommand extends AstCommand {
     private final Plugin plugin;
 
     public TestCommand(@NotNull Plugin plugin) {
-        super("test", "Show a temporary display for the executor.", "/test <material> [seconds] [label...]",
+        super("test", "実行者の位置に一時表示を生成します。", "/test <material> [seconds] [label...]",
                 true, UserPermission.ADMIN.getValue());
         this.plugin = plugin;
     }

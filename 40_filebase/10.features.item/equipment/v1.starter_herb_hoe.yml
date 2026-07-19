@@ -2,14 +2,14 @@
 schemaVersion: 1
 id: starter_herb_hoe
 category: equipment
-name: "&fスターターハーベストホー"
+name: "&f初心者用の採集クワ"
 icon: STONE_HOE
 rarity: COMMON
 maxStack: 1
 saleValue: 0
 lore:
-  - "&7ハーベスティングを始めるための軽いホー。"
-  - "&7若葉やキノコの採集に必要なツール。"
+  - "&7採集を始める冒険者向けの軽いクワ。"
+  - "&7若葉やキノコの採集に使える。"
 unTradeable: true
 unSellable: true
 

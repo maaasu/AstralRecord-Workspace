@@ -26,6 +26,7 @@ public final class MobInstance {
     private UUID displayEntityId;
     private int displayEntityNumericId = -1;
     private Location currentLocation;
+    private double maxHealth;
     private double currentHealth;
     private double currentShield;
     private double outgoingDamageMultiplier = 1.0D;
@@ -78,7 +79,8 @@ public final class MobInstance {
         this.spawnLocation = spawnLocation.clone();
         this.wanderAnchor = spawnLocation.clone();
         this.currentLocation = spawnLocation.clone();
-        this.currentHealth = template.statValue("MAX_HEALTH", 1.0);
+        this.maxHealth = Math.max(1.0D, template.statValue("MAX_HEALTH", 1.0D));
+        this.currentHealth = maxHealth;
         this.currentShield = template.shield().active() ? template.shield().max() : 0.0D;
     }
 
@@ -170,6 +172,21 @@ public final class MobInstance {
     /** 現在 HP を返します。 */
     public double currentHealth() {
         return currentHealth;
+    }
+
+    /** この個体に適用済みの実効最大 HP を返します。 */
+    public double maxHealth() {
+        return maxHealth;
+    }
+
+    /**
+     * この個体の実効最大 HP を更新します。
+     *
+     * @param value 新しい実効最大 HP
+     */
+    public void maxHealth(double value) {
+        this.maxHealth = Math.max(1.0D, value);
+        this.currentHealth = Math.min(currentHealth, maxHealth);
     }
 
     /**

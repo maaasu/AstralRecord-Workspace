@@ -31,8 +31,9 @@ public final class PlayerSettingJoinEventHandler extends AbstractEventHandler {
     public void onPlayerJoin(PlayerJoinEvent event) {
         UUID userId = event.getPlayer().getUniqueId();
         String playerName = event.getPlayer().getName();
+        long sessionToken = playerSettingService.beginSession(userId);
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () ->
-            runSafely(() -> playerSettingService.warmup(userId), LogId.E_5314, playerName)
+            runSafely(() -> playerSettingService.warmup(userId, sessionToken), LogId.E_5314, playerName)
         );
     }
 

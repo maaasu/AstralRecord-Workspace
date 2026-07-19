@@ -235,6 +235,7 @@ public final class LoginBonusGui {
         boolean enchanted
     ) {
         var itemStack = GuiItems.create(material, name, lore);
+        itemStack.editMeta(meta -> meta.setEnchantmentGlintOverride(enchanted));
         if (material != Material.AIR) {
             itemStack.setAmount(Math.clamp(amount, 1, MAX_ITEM_AMOUNT));
         }

@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger
 
 import java.io.File
+import java.util.function.Supplier
 
 /**
  * YamlDBのconfig.ymlのロードおよびデータ提供を管理するユーティリティ
@@ -12,6 +13,7 @@ import java.io.File
 object YamlDbConfigUtil {
 
     private const val CONFIG_FILE_NAME = "config.yml"
+    private val preparedConfig = ThreadLocal<YamlDbConfig>()
 
     /**
      * config.ymlをロードし、キャッシュを更新します。
@@ -24,17 +26,53 @@ object YamlDbConfigUtil {
                 return null
             }
 
+        val config = loadSnapshot(rootDir) ?: return null
+        replaceSnapshot(config)
+        return config
+    }
+
+    /**
+     * 指定ルートの config.yml を読み込み、共有キャッシュへ公開しないスナップショットを返します。
+     * @param rootDir filebase ルート
+     * @return 読込済み設定。読込失敗時は null
+     */
+    fun loadSnapshot(rootDir: File): YamlDbConfig? {
         val configFile = File(rootDir, CONFIG_FILE_NAME)
         if (!configFile.exists()) {
             Logger.log(LogId.W_1401, configFile.absolutePath)
             return null
         }
 
-        val config = YamlDbConfigLoader.loadAndCache(configFile)
-        if (config != null) {
-            Logger.log(LogId.I_1400)
+        return YamlDbConfigLoader.load(configFile)
+    }
+
+    /**
+     * 呼出スレッド内だけで準備済み設定を参照させ、共有キャッシュを変更せず処理を実行します。
+     * @param config 準備済み設定
+     * @param action 設定を参照して実行する処理
+     * @return 処理結果
+     */
+    fun <T> withSnapshot(config: YamlDbConfig, action: Supplier<T>): T {
+        val previous = preparedConfig.get()
+        preparedConfig.set(config)
+        return try {
+            action.get()
+        } finally {
+            if (previous == null) {
+                preparedConfig.remove()
+            } else {
+                preparedConfig.set(previous)
+            }
         }
-        return config
+    }
+
+    /**
+     * 準備済み設定を共有キャッシュへ公開します。
+     * @param config 公開する設定
+     */
+    fun replaceSnapshot(config: YamlDbConfig) {
+        YamlDbConfigLoader.replaceCachedConfig(config)
+        Logger.log(LogId.I_1400)
     }
 
     /**
@@ -43,7 +81,7 @@ object YamlDbConfigUtil {
      * @return YamlDbConfig（ロード失敗時はnull）
      */
     fun getConfig(): YamlDbConfig? {
-        return YamlDbConfigLoader.getCachedConfig() ?: reload()
+        return preparedConfig.get() ?: YamlDbConfigLoader.getCachedConfig() ?: reload()
     }
 
     /**

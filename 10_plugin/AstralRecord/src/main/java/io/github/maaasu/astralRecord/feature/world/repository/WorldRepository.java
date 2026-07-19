@@ -79,14 +79,7 @@ public class WorldRepository {
                     if (!element.isJsonObject()) {
                         continue;
                     }
-                    String id = optionalString(element.getAsJsonObject(), "id");
-                    if (id == null) {
-                        continue;
-                    }
-                    WorldMasterData data = findById(id);
-                    if (data != null) {
-                        result.add(data);
-                    }
+                    result.add(parse(element.getAsJsonObject()));
                 }
                 return result;
             }

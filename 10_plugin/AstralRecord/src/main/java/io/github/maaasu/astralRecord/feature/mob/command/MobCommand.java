@@ -46,7 +46,7 @@ public class MobCommand extends AstCommand {
             @NotNull MobSpawnerService spawnerService,
             @NotNull NpcPlacementService npcPlacementService
     ) {
-        super("mob", "Manage AstralRecord mobs.", "/mob <load|list|spawn|delete|spawner|npc> [id]",
+        super("mob", "AstralRecord のモブを管理します。", "/mob <load|list|spawn|delete|spawner|npc> [id]",
                 true, UserPermission.ADMIN.getValue());
         this.mobService = mobService;
         this.spawnerService = spawnerService;

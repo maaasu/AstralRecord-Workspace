@@ -2,7 +2,7 @@
 schemaVersion: 1
 id: starter_helmet
 category: equipment
-name: "&f初期ヘルム"
+name: "&f初心者用の兜"
 icon: LEATHER_HELMET
 rarity: COMMON
 maxStack: 1

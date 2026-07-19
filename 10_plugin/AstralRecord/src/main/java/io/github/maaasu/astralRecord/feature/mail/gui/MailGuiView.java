@@ -59,7 +59,7 @@ public final class MailGuiView {
         int normalizedPage = pagedGuiView.normalizePage(pageIndex, mails.size());
         int totalPages = pagedGuiView.totalPages(mails.size());
         Inventory inventory = Bukkit.createInventory(
-            new Holder(normalizedPage, filter),
+            new Holder(normalizedPage, filter, List.copyOf(mails)),
             SIZE,
             Component.text("メール " + (normalizedPage + 1) + "/" + totalPages, NamedTextColor.AQUA)
         );
@@ -83,6 +83,13 @@ public final class MailGuiView {
             return holder.filter();
         }
         return MailFilter.ALL;
+    }
+
+    public @NotNull List<MailEntry> getMails(@Nullable Inventory inventory) {
+        if (inventory != null && inventory.getHolder() instanceof Holder holder) {
+            return holder.mails();
+        }
+        return List.of();
     }
 
     public @Nullable String getMailId(@Nullable ItemStack itemStack) {
@@ -151,9 +158,6 @@ public final class MailGuiView {
             lore.add(Component.text("報酬:", NamedTextColor.AQUA));
             mail.rewards().forEach(reward -> {
                 ItemModel model = itemService.findLoadedById(reward.itemId());
-                if (model == null) {
-                    model = itemService.loadItem(reward.itemId(), reward.category());
-                }
                 lore.add(RewardDisplayFormatter.rewardBullet(model, reward.itemId(), reward.amount()));
             });
         }
@@ -175,7 +179,11 @@ public final class MailGuiView {
         return itemStack;
     }
 
-    public record Holder(int pageIndex, @NotNull MailFilter filter) implements HotbarShortcutGuiHolder {
+    public record Holder(
+        int pageIndex,
+        @NotNull MailFilter filter,
+        @NotNull List<MailEntry> mails
+    ) implements HotbarShortcutGuiHolder {
         @Override
         public int getBackSlot() {
             return BACK_SLOT;

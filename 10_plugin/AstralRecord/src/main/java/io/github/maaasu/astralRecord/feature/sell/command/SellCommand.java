@@ -12,7 +12,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class SellCommand extends AstCommand {
     public SellCommand() {
-        super("sell", "Open sell GUI.", "/sell", true, UserPermission.ADMIN.getValue());
+        super("sell", "売却GUIを開きます。", "/sell", true, UserPermission.ADMIN.getValue());
     }
 
     @Override

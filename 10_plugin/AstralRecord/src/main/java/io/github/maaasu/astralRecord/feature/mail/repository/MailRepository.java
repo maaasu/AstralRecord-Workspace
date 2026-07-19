@@ -45,14 +45,14 @@ public class MailRepository {
             if (response.statusCode() == 200) {
                 return parseList(response.body());
             }
-            Logger.log(LogId.E_5200, "HTTP " + response.statusCode() + " for GET " + path);
+            Logger.log(LogId.E_5190, "find_available", path, "http_status:" + response.statusCode());
             throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            Logger.log(LogId.E_5200, e);
+            Logger.error(LogId.E_5190, e, "find_available", path, failureReason(e));
             throw new RuntimeException(e);
         } catch (IOException e) {
-            Logger.log(LogId.E_5200, e);
+            Logger.error(LogId.E_5190, e, "find_available", path, failureReason(e));
             throw new RuntimeException(e);
         }
     }
@@ -90,14 +90,14 @@ public class MailRepository {
             if (response.statusCode() == 404) {
                 return false;
             }
-            Logger.log(LogId.E_5200, "HTTP " + response.statusCode() + " for PUT " + path);
+            Logger.log(LogId.E_5190, "delete", path, "http_status:" + response.statusCode());
             throw new IOException("Unexpected status " + response.statusCode() + " for PUT " + path);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            Logger.log(LogId.E_5200, e);
+            Logger.error(LogId.E_5190, e, "delete", path, failureReason(e));
             throw new RuntimeException(e);
         } catch (IOException e) {
-            Logger.log(LogId.E_5200, e);
+            Logger.error(LogId.E_5190, e, "delete", path, failureReason(e));
             throw new RuntimeException(e);
         }
     }
@@ -117,14 +117,14 @@ public class MailRepository {
             if (response.statusCode() == 404) {
                 return null;
             }
-            Logger.log(LogId.E_5200, "HTTP " + response.statusCode() + " for PUT " + path);
+            Logger.log(LogId.E_5190, action, path, "http_status:" + response.statusCode());
             throw new IOException("Unexpected status " + response.statusCode() + " for PUT " + path);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            Logger.log(LogId.E_5200, e);
+            Logger.error(LogId.E_5190, e, action, path, failureReason(e));
             throw new RuntimeException(e);
         } catch (IOException e) {
-            Logger.log(LogId.E_5200, e);
+            Logger.error(LogId.E_5190, e, action, path, failureReason(e));
             throw new RuntimeException(e);
         }
     }
@@ -198,5 +198,10 @@ public class MailRepository {
 
     private boolean booleanValue(@NotNull JsonObject obj, @NotNull String key, boolean fallback) {
         return obj.has(key) && !obj.get(key).isJsonNull() ? obj.get(key).getAsBoolean() : fallback;
+    }
+
+    private static @NotNull String failureReason(@NotNull Throwable failure) {
+        String message = failure.getMessage();
+        return message == null || message.isBlank() ? failure.getClass().getSimpleName() : message;
     }
 }

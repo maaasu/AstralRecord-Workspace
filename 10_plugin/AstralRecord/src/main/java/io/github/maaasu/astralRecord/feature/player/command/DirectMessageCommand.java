@@ -17,7 +17,7 @@ public final class DirectMessageCommand extends AstCommand {
      * DirectMessageCommand を初期化する。
      */
     public DirectMessageCommand() {
-        super("message", "Send a managed direct message.", "/message <player> <message>", true);
+        super("message", "ダイレクトメッセージを送信します。", "/message <player> <message>", true);
     }
 
     @Override

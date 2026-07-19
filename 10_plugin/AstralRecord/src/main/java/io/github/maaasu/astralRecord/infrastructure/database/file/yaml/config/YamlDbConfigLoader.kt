@@ -11,6 +11,7 @@ import java.io.File
  */
 object YamlDbConfigLoader {
 
+    @Volatile
     private var cachedConfig: YamlDbConfig? = null
 
     /**
@@ -57,6 +58,14 @@ object YamlDbConfigLoader {
      */
     fun getCachedConfig(): YamlDbConfig? {
         return cachedConfig
+    }
+
+    /**
+     * 準備済み設定でキャッシュを置換します。
+     * @param config 公開する設定
+     */
+    fun replaceCachedConfig(config: YamlDbConfig) {
+        cachedConfig = config
     }
 
     /**

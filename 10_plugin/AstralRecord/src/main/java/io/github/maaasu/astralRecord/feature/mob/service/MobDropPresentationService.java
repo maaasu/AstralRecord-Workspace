@@ -380,9 +380,6 @@ public final class MobDropPresentationService {
         if (world == null || !player.isOnline()) {
             return;
         }
-        if (!inventoryService.canAddItemToNormalInventory(recipient, item.model(), item.amount())) {
-            return;
-        }
 
         CompletableFuture<PreparedDropGrant> future = prepareDropAsync(recipient, item, dropSource);
         future.whenComplete((ignored, ex) -> {
@@ -399,7 +396,7 @@ public final class MobDropPresentationService {
             item.amount(),
             index,
             future,
-            () -> grantPreparedItem(recipient, future, dropSource),
+            () -> grantPreparedItem(recipient, dropLocation, future, dropSource),
             () -> handleCancelledPreparedItem(dropLocation, future)
         );
     }
@@ -410,9 +407,6 @@ public final class MobDropPresentationService {
         @NotNull ResolvedDropItem item,
         @NotNull String dropSource
     ) {
-        if (!inventoryService.canAddItemToNormalInventory(recipient, item.model(), item.amount())) {
-            return;
-        }
         CompletableFuture<PreparedDropGrant> future = prepareDropAsync(recipient, item, dropSource);
         future.whenComplete((prepared, ex) -> plugin.getServer().getScheduler().runTask(plugin, () -> {
             if (ex != null) {
@@ -425,7 +419,12 @@ public final class MobDropPresentationService {
                 }
                 return;
             }
-            grantPreparedItem(recipient, CompletableFuture.completedFuture(prepared), dropSource);
+            grantPreparedItem(
+                recipient,
+                deathLocation,
+                CompletableFuture.completedFuture(prepared),
+                dropSource
+            );
         }));
     }
 
@@ -470,38 +469,69 @@ public final class MobDropPresentationService {
 
     private void grantPreparedItem(
         @NotNull AstPlayer recipient,
+        @NotNull Location dropLocation,
         @NotNull CompletableFuture<PreparedDropGrant> future,
         @NotNull String dropSource
     ) {
         PreparedDropGrant prepared = joinPrepared(future);
-        if (prepared == null || !recipient.getBukkit().isOnline()) {
+        if (prepared == null) {
+            return;
+        }
+        if (!recipient.getBukkit().isOnline()) {
+            dropPreparedItem(dropLocation, prepared);
             return;
         }
 
         switch (prepared.kind()) {
-            case STACKED -> grantStackedItem(recipient, prepared, dropSource);
-            case EQUIPMENT, RUNE -> grantPreparedInstance(recipient, prepared);
+            case STACKED -> grantStackedItem(recipient, dropLocation, prepared, dropSource);
+            case EQUIPMENT, RUNE -> grantPreparedInstance(recipient, dropLocation, prepared);
         }
     }
 
-    private int grantStackedItem(@NotNull AstPlayer recipient, @NotNull PreparedDropGrant prepared, @NotNull String dropSource) {
-        inventoryService.addItemToNormalInventory(
+    private int grantStackedItem(
+        @NotNull AstPlayer recipient,
+        @NotNull Location dropLocation,
+        @NotNull PreparedDropGrant prepared,
+        @NotNull String dropSource
+    ) {
+        return grantStackedItemWithFallback(
             recipient,
+            dropLocation,
             prepared.item().model(),
             prepared.item().amount(),
             dropSource
         );
-        return 0;
     }
 
-    private int grantPreparedInstance(@NotNull AstPlayer recipient, @NotNull PreparedDropGrant prepared) {
-        inventoryService.addPreparedInstanceToNormalInventory(
+    int grantStackedItemWithFallback(
+        @NotNull AstPlayer recipient,
+        @NotNull Location dropLocation,
+        @NotNull ItemModel model,
+        int requested,
+        @NotNull String dropSource
+    ) {
+        int granted = inventoryService.addItemToNormalInventory(
+            recipient,
+            model,
+            requested,
+            dropSource
+        );
+        int shortfall = Math.max(0, requested - Math.max(0, granted));
+        return Math.max(0, granted) + dropStackedItem(dropLocation, model, shortfall);
+    }
+
+    private int grantPreparedInstance(
+        @NotNull AstPlayer recipient,
+        @NotNull Location dropLocation,
+        @NotNull PreparedDropGrant prepared
+    ) {
+        int granted = inventoryService.addPreparedInstanceToNormalInventory(
             recipient,
             prepared.item().model(),
             prepared.instanceType(),
             prepared.instanceId()
         );
-        return 0;
+        return granted > 0 ? granted : dropPreparedItem(dropLocation, prepared);
     }
 
     private void handleCancelledPreparedItem(

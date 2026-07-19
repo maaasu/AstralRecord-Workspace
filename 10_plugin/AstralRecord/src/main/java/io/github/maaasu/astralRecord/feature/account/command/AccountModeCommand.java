@@ -7,7 +7,12 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.user.model.SystemUser;
+import io.github.maaasu.astralRecord.feature.account.service.AccountService;
+import io.github.maaasu.astralRecord.feature.user.service.UserService;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -15,8 +20,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class AccountModeCommand extends AstCommand {
+    private final Set<UUID> pendingTargets = ConcurrentHashMap.newKeySet();
 
     public AccountModeCommand() {
         this("accountmode", "/account mode <mode> [<player|accountUuid>]");
@@ -29,7 +37,7 @@ public class AccountModeCommand extends AstCommand {
      * @param usage 表示する使用方法
      */
     public AccountModeCommand(@NotNull String commandName, @NotNull String usage) {
-        super(commandName, "Set account mode.", usage, false, 99);
+        super(commandName, "アカウントモードを変更します。", usage, false, 99);
     }
 
     @Override
@@ -61,17 +69,46 @@ public class AccountModeCommand extends AstCommand {
             return;
         }
 
-        UUID accountUuid = resolveTargetAccountUuid(sender, args);
-        if (accountUuid == null) {
+        TargetAccountRequest request = resolveTargetAccountRequest(sender, args);
+        if (request == null) {
+            return;
+        }
+        UUID pendingKey = request.pendingKey();
+        if (!pendingTargets.add(pendingKey)) {
+            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5334.getId()));
             return;
         }
 
-        AccountModel updated = accountModeApplicationService.changeMode(accountUuid, mode, getUpdatedBy(sender));
-        sendSuccess(sender, PlayerMsgResource.format(
-            PlayerMsgId.P_5332.getId(),
-            updated.getAccountName(),
-            updated.getMode().name()
-        ));
+        AstralRecord plugin = AstralRecord.getInstance();
+        UUID updatedBy = getUpdatedBy(sender);
+        AsyncTaskUtil.supplyAsync(plugin, () -> {
+            UUID accountUuid = request.accountUuid() != null
+                ? request.accountUuid()
+                : resolveRemoteAccountUuid(request.lookupUuid(), accountService, userService);
+            return accountUuid == null
+                ? null
+                : accountModeApplicationService.persistModeChange(accountUuid, mode, updatedBy);
+        }).whenComplete((persisted, throwable) -> AsyncTaskUtil.runSync(plugin, () -> {
+            pendingTargets.remove(pendingKey);
+            if (throwable != null) {
+                Logger.log(LogId.E_5154, throwable, pendingKey);
+                sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5062.getId()));
+                return;
+            }
+            if (persisted == null) {
+                sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5333.getId(), request.label()));
+                return;
+            }
+            if (!accountModeApplicationService.applyPersistedMode(persisted)) {
+                return;
+            }
+            AccountModel updated = persisted.account();
+            sendSuccess(sender, PlayerMsgResource.format(
+                PlayerMsgId.P_5332.getId(),
+                updated.getAccountName(),
+                updated.getMode().getDisplayName()
+            ));
+        }));
     }
 
     /**
@@ -85,7 +122,7 @@ public class AccountModeCommand extends AstCommand {
      * @return 対象アカウント UUID。解決できない場合は `null`
      */
     @Nullable
-    private UUID resolveTargetAccountUuid(@NotNull CommandSender sender, @NotNull String[] args) {
+    private TargetAccountRequest resolveTargetAccountRequest(@NotNull CommandSender sender, @NotNull String[] args) {
         if (args.length < 2) {
             if (sender instanceof Player player) {
                 var astPlayer = AstPlayerCache.get(player);
@@ -93,44 +130,44 @@ public class AccountModeCommand extends AstCommand {
                     sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5333.getId(), player.getName()));
                     return null;
                 }
-                return astPlayer.getAccount().getUuid();
+                UUID accountUuid = astPlayer.getAccount().getUuid();
+                return new TargetAccountRequest(accountUuid, null, player.getName());
             }
             sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5305.getId()));
             return null;
         }
 
-        UUID resolved = resolveAccountUuid(args[1]);
-        if (resolved == null) {
-            sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5333.getId(), args[1]));
+        Player online = Bukkit.getPlayerExact(args[1]);
+        if (online != null) {
+            var astPlayer = AstPlayerCache.get(online);
+            if (astPlayer != null) {
+                UUID accountUuid = astPlayer.getAccount().getUuid();
+                return new TargetAccountRequest(accountUuid, null, args[1]);
+            }
         }
-        return resolved;
+        UUID lookupUuid;
+        try {
+            lookupUuid = UUID.fromString(args[1]);
+        } catch (IllegalArgumentException ignored) {
+            sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5333.getId(), args[1]));
+            return null;
+        }
+        return new TargetAccountRequest(null, lookupUuid, args[1]);
     }
 
-    private UUID resolveAccountUuid(@NotNull String value) {
-        Player player = Bukkit.getPlayerExact(value);
-        if (player != null) {
-            var astPlayer = AstPlayerCache.get(player);
-            if (astPlayer != null) {
-                return astPlayer.getAccount().getUuid();
-            }
+    private UUID resolveRemoteAccountUuid(
+        @NotNull UUID uuid,
+        @NotNull AccountService accountService,
+        @NotNull UserService userService
+    ) {
+        AccountModel account = accountService.getAccount(uuid);
+        if (account != null) {
+            return account.getUuid();
         }
-
-        try {
-            UUID uuid = UUID.fromString(value);
-            var accountService = AstralRecord.getInstance().getAccountService();
-            AccountModel account = accountService == null ? null : accountService.getAccount(uuid);
-            if (account != null) {
-                return account.getUuid();
-            }
-
-            var userService = AstralRecord.getInstance().getUserService();
-            var user = userService == null ? null : userService.getUser(uuid);
-            if (user != null) {
-                AccountModel selected = accountService.getSelectedAccount(user.getUuid(), user.getAccountId());
-                return selected == null ? null : selected.getUuid();
-            }
-        } catch (IllegalArgumentException ignored) {
-            return null;
+        var user = userService.getUser(uuid);
+        if (user != null) {
+            AccountModel selected = accountService.getSelectedAccount(user.getUuid(), user.getAccountId());
+            return selected == null ? null : selected.getUuid();
         }
         return null;
     }
@@ -140,5 +177,15 @@ public class AccountModeCommand extends AstCommand {
             return player.getUniqueId();
         }
         return SystemUser.INSTANCE.getUuid();
+    }
+
+    private record TargetAccountRequest(
+        @Nullable UUID accountUuid,
+        @Nullable UUID lookupUuid,
+        @NotNull String label
+    ) {
+        private @NotNull UUID pendingKey() {
+            return accountUuid != null ? accountUuid : java.util.Objects.requireNonNull(lookupUuid);
+        }
     }
 }

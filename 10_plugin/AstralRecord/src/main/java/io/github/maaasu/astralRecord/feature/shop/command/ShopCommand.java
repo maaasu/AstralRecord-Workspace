@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 
 public final class ShopCommand extends AstCommand {
     public ShopCommand() {
-        super("shop", "Open a shop.", "/shop <shopId>", true);
+        super("shop", "ショップを開きます。", "/shop <shopId>", true);
     }
 
     @Override

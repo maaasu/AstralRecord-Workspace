@@ -10,7 +10,7 @@ public final class WorldTeleportCommand extends AstCommand {
     private final WorldCommand worldCommand;
 
     public WorldTeleportCommand(@NotNull WorldCommand worldCommand) {
-        super("wtp", "Teleport to a managed world.", "/wtp <worldId>", true, UserPermission.ADMIN.getValue());
+        super("wtp", "管理対象ワールドへテレポートします。", "/wtp <worldId>", true, UserPermission.ADMIN.getValue());
         this.worldCommand = worldCommand;
     }
 

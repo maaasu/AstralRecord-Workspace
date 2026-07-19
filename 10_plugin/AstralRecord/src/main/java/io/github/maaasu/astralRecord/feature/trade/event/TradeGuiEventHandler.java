@@ -105,22 +105,9 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
                 event.setCancelled(true);
                 return;
             }
-            boolean touchesTop = event.getRawSlots().stream().anyMatch(slot -> slot < top.getSize());
-            if (!touchesTop) {
-                return;
-            }
-            boolean allOwnSlots = event.getRawSlots().stream()
-                .filter(slot -> slot < top.getSize())
-                .allMatch(TradeGuiLayout.OWN_SLOTS::contains);
-            if (!allOwnSlots || !tradeService.isTradeable(event.getOldCursor())) {
-                event.setCancelled(true);
-                if (event.getWhoClicked() instanceof Player player && !tradeService.isTradeable(event.getOldCursor())) {
-                    messageService.send(player, PlayerMsgId.P_6204);
-                }
-                return;
-            }
+            event.setCancelled(true);
             if (event.getWhoClicked() instanceof Player player) {
-                scheduleCaptureAndRefresh(player);
+                GuiSound.DENY.play(player);
             }
         }, LogId.E_6200, event.getWhoClicked().getName());
     }
@@ -141,7 +128,6 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (tradeInventory) {
-            tradeService.captureInventory(player, inventory);
             Bukkit.getScheduler().runTask(plugin, () -> tradeService.openCancelConfirmAfterClose(player));
             return;
         }
@@ -152,14 +138,14 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
         Bukkit.getScheduler().runTask(plugin, () -> tradeService.cancelTrade(player));
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
         tradeService.cancelTrade(event.getPlayer());
     }
 
     private void handleTradeClick(@NotNull InventoryClickEvent event) {
+        event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player player)) {
-            event.setCancelled(true);
             return;
         }
         if (handleHotbarShortcutClick(event, player)) {
@@ -167,41 +153,49 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
         }
         int rawSlot = event.getRawSlot();
         if (rawSlot == TradeGuiLayout.GOLD_SLOT) {
-            event.setCancelled(true);
             tradeService.openGoldAmountSetting(player);
             GuiSound.SELECT.play(player);
             return;
         }
         if (rawSlot == TradeGuiLayout.READY_SLOT) {
-            event.setCancelled(true);
             tradeService.toggleReady(player);
             GuiSound.SELECT.play(player);
             return;
         }
         if (rawSlot >= 0 && rawSlot < event.getView().getTopInventory().getSize()) {
             if (!TradeGuiLayout.OWN_SLOTS.contains(rawSlot)) {
-                event.setCancelled(true);
                 GuiSound.DENY.play(player);
                 return;
             }
-            if (!tradeService.isTradeable(event.getCursor()) || !tradeService.isTradeable(event.getCurrentItem())) {
-                event.setCancelled(true);
-                messageService.send(player, PlayerMsgId.P_6204);
+            ItemStack cursor = event.getCursor();
+            if (cursor != null && !cursor.getType().isAir()) {
                 GuiSound.DENY.play(player);
                 return;
             }
-            event.setCancelled(false);
-            scheduleCaptureAndRefresh(player);
+            int offerIndex = TradeGuiLayout.OWN_SLOT_LIST.indexOf(rawSlot);
+            if (tradeService.withdrawOfferedItem(player, offerIndex, event.getClick())) {
+                GuiSound.SELECT.play(player);
+            } else {
+                GuiSound.DENY.play(player);
+            }
             return;
         }
-        if (event.isShiftClick() && !tradeService.isTradeable(event.getCurrentItem())) {
-            event.setCancelled(true);
-            messageService.send(player, PlayerMsgId.P_6204);
+        if (!(event.getClickedInventory() instanceof PlayerInventory)) {
             GuiSound.DENY.play(player);
             return;
         }
-        if (event.isShiftClick()) {
-            scheduleCaptureAndRefresh(player);
+        ItemStack current = event.getCurrentItem();
+        if (!tradeService.isTradeable(current)) {
+            if (current != null && !current.getType().isAir()) {
+                messageService.send(player, PlayerMsgId.P_6204);
+            }
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (tradeService.offerOwnedItem(player, event.getSlot(), event.getClick(), current)) {
+            GuiSound.SELECT.play(player);
+        } else {
+            GuiSound.DENY.play(player);
         }
     }
 
@@ -287,18 +281,4 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
         return true;
     }
 
-    private void scheduleCaptureAndRefresh(@NotNull Player player) {
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            var session = tradeService.getOpenSession(player.getUniqueId());
-            if (session == null) {
-                return;
-            }
-            tradeService.captureOpenInventory(player);
-            tradeService.reopenTrade(player);
-            Player partner = Bukkit.getPlayer(session.getPartnerUuid(player.getUniqueId()));
-            if (partner != null && partner.isOnline()) {
-                tradeService.reopenTrade(partner);
-            }
-        });
-    }
 }

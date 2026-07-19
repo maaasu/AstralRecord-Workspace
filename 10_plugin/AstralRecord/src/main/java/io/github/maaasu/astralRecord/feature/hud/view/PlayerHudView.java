@@ -107,22 +107,22 @@ public class PlayerHudView {
         }
 
         int ping = player.getPing();
-        clearSidebar(scoreboard);
+        clearSidebar(objective);
         objective.getScore(ColorCodeUtil.AQUA + "オンライン" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
                 + Bukkit.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers()).setScore(14);
         if (showPerformanceInfo) {
             objective.getScore(msptLegacyColor(mspt) + "MSPT" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + String.format("%.1f", mspt)).setScore(13);
-            objective.getScore(pingLegacyColor(ping) + "Ping" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + ping + "ms").setScore(12);
+            objective.getScore(pingLegacyColor(ping) + "通信遅延" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + ping + "ms").setScore(12);
         }
         objective.getScore(ColorCodeUtil.BLUE + "ワールド" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.toLegacyText(worldName, "Unknown")).setScore(11);
+                + ColorCodeUtil.toLegacyText(worldName, "不明")).setScore(11);
         objective.getScore(ColorCodeUtil.GREEN + "地域" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.toLegacyText(regionName, "Unknown")).setScore(10);
+                + ColorCodeUtil.toLegacyText(regionName, "不明")).setScore(10);
         objective.getScore(ColorCodeUtil.GOLD + "地域レベル" + ColorCodeUtil.GRAY + ": "
                 + "Lv." + ColorCodeUtil.YELLOW + Math.max(0, regionLevel)).setScore(9);
         objective.getScore(buildSeparator("player")).setScore(8);
         objective.getScore(ColorCodeUtil.GOLD + "レベル" + ColorCodeUtil.GRAY + ": " + "Lv." + ColorCodeUtil.YELLOW + playerLevel).setScore(7);
-        objective.getScore(buildExperienceBar("EXP", experienceProgress, ColorCodeUtil.GREEN)).setScore(6);
+        objective.getScore(buildExperienceBar("経験値", experienceProgress, ColorCodeUtil.GREEN)).setScore(6);
         objective.getScore(ColorCodeUtil.DARK_AQUA + "クラス" + ColorCodeUtil.GRAY + ": " + className
                 + ColorCodeUtil.GRAY + " Lv." + ColorCodeUtil.YELLOW + classLevel).setScore(5);
         if (bossInfo != null) {
@@ -146,7 +146,7 @@ public class PlayerHudView {
                 : Component.empty())
             .build();
         Component footer = showPerformanceInfo
-            ? Component.text().append(Component.text("Ping ", NamedTextColor.GRAY))
+            ? Component.text().append(Component.text("通信遅延 ", NamedTextColor.GRAY))
                 .append(Component.text(ping + "ms", pingTextColor(ping))).build()
             : Component.empty();
         player.sendPlayerListHeaderAndFooter(header, footer);
@@ -155,7 +155,7 @@ public class PlayerHudView {
     private void renderBossInfo(Objective objective, BossChallengeSidebarInfo info) {
         objective.getScore(buildSeparator("boss")).setScore(4);
         objective.getScore(ColorCodeUtil.RED + "ボス" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.toLegacyText(info.bossDisplayName(), "Boss")).setScore(3);
+                + ColorCodeUtil.toLegacyText(info.bossDisplayName(), "ボス")).setScore(3);
         objective.getScore(ColorCodeUtil.RED + "デス" + ColorCodeUtil.GRAY + ": "
                 + ColorCodeUtil.WHITE + info.deathCount() + "/" + info.deathLimit()).setScore(2);
         objective.getScore(ColorCodeUtil.GOLD + "時間" + ColorCodeUtil.GRAY + ": "
@@ -182,9 +182,24 @@ public class PlayerHudView {
         }
     }
 
-    private void clearSidebar(Scoreboard scoreboard) {
-        for (String entry : scoreboard.getEntries()) {
-            scoreboard.resetScores(entry);
+    /**
+     * AstralRecord が表示したサイドバーだけを解除します。
+     *
+     * @param player 対象プレイヤー
+     */
+    public void removeSidebar(Player player) {
+        Objective objective = player.getScoreboard().getObjective(OBJECTIVE_NAME);
+        if (objective != null) {
+            objective.unregister();
+        }
+    }
+
+    private void clearSidebar(Objective objective) {
+        for (String entry : objective.getScoreboard().getEntries()) {
+            var score = objective.getScore(entry);
+            if (score.isScoreSet()) {
+                score.resetScore();
+            }
         }
     }
 

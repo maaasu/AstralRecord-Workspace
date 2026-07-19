@@ -16,7 +16,7 @@ public final class LoginBonusCommand extends AstCommand {
      * /loginbonus コマンドを生成します。
      */
     public LoginBonusCommand() {
-        super("loginbonus", "Open login bonus calendar.", "/loginbonus", true);
+        super("loginbonus", "ログインボーナスカレンダーを開きます。", "/loginbonus", true);
     }
 
     @Override

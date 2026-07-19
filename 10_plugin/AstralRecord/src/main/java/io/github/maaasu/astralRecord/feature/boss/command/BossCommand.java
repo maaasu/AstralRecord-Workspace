@@ -19,7 +19,7 @@ import java.util.Locale;
  */
 public final class BossCommand extends AstCommand {
     public BossCommand() {
-        super("boss", "Manage boss challenges.", "/boss <instances|stop|cancel> [partyId|challengeId]",
+        super("boss", "ボス挑戦を管理します。", "/boss <instances|stop|cancel> [partyId|challengeId]",
                 false);
     }
 

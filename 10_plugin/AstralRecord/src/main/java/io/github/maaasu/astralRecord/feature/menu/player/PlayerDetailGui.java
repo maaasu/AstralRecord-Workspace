@@ -179,7 +179,7 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
             lore.add(noItalic(Component.text("モード: " + target.getAccount().getMode().getDisplayName(), NamedTextColor.GRAY)));
             lore.add(noItalic(Component.text("累計 EXP: " + formatInt(target.getAccount().getTotalExperience()), NamedTextColor.YELLOW)));
             lore.add(Component.empty());
-            lore.add(noItalic(Component.text("所持 Gold: " + formatInt(goldAmount), NamedTextColor.GOLD, TextDecoration.BOLD)));
+            lore.add(noItalic(Component.text("所持ゴールド: " + formatInt(goldAmount), NamedTextColor.GOLD, TextDecoration.BOLD)));
             lore.add(noItalic(Component.text("プレイ時間: " + formatPlayTime(target), NamedTextColor.YELLOW)));
             lore.add(noItalic(Component.text("現在地: " + displayWorldName(target.getBukkit()), NamedTextColor.GRAY)));
             lore.add(noItalic(Component.text("初ログイン: " + formatDateTime(target.getUser().getJoinDate()), NamedTextColor.GRAY)));

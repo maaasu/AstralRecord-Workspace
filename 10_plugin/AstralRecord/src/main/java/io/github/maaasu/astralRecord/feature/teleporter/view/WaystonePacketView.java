@@ -117,8 +117,8 @@ public final class WaystonePacketView {
         if (unlocked) {
             return Component.text(definition.name(), NamedTextColor.AQUA);
         }
-        return Component.text("Locked: " + definition.name(), NamedTextColor.RED)
+        return Component.text("未解除: " + definition.name(), NamedTextColor.RED)
                 .append(Component.newline())
-                .append(Component.text(definition.unlockGold() + " Gold", NamedTextColor.GOLD));
+                .append(Component.text(definition.unlockGold() + " ゴールド", NamedTextColor.GOLD));
     }
 }

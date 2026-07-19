@@ -12,7 +12,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class StorageCommand extends AstCommand {
     public StorageCommand() {
-        super("storage", "Open storage GUI.", "/storage", true, UserPermission.ADMIN.getValue());
+        super("storage", "倉庫GUIを開きます。", "/storage", true, UserPermission.ADMIN.getValue());
     }
 
     @Override

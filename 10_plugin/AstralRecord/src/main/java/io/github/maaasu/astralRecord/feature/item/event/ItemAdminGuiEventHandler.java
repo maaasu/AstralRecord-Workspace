@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.gui.ItemAdminGuiView;
 import io.github.maaasu.astralRecord.feature.item.model.ItemAdminViewOptions;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.model.ItemRarity;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -35,14 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 管理者用アイテム一覧 GUI のイベント処理を担当します。
  */
 public final class ItemAdminGuiEventHandler extends AbstractEventHandler {
-    private static final List<String> RARITY_ORDER = List.of(
-        "common",
-        "uncommon",
-        "rare",
-        "epic",
-        "legendary",
-        "mythic"
-    );
+    private static final List<String> RARITY_ORDER = ItemRarity.orderedValues();
 
     private final ItemAdminGuiView view;
     private final ItemService itemService;

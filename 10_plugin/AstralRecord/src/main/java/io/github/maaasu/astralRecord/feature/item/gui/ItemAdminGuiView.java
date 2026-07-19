@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.item.model.ItemAdminViewOptions;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.model.ItemRarity;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
@@ -23,7 +24,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 /**
  * 管理者用アイテム一覧 GUI の描画を担当します。
@@ -227,7 +227,7 @@ public final class ItemAdminGuiView {
         lore.add(Component.empty());
         lore.add(Component.text("管理者配布", NamedTextColor.GOLD, TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false));
         lore.add(Component.text("カテゴリ: " + ItemCategory.displayNameJa(model.getCategory()), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.text("レア度: " + normalizeLabel(model.getRarity()), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("レア度: " + ItemRarity.displayNameJa(model.getRarity()), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
         lore.add(Component.text("左=1個 / 右=半スタック / Shift+左=1スタック", NamedTextColor.GREEN)
             .decoration(TextDecoration.ITALIC, false));
         meta.lore(lore);
@@ -240,15 +240,11 @@ public final class ItemAdminGuiView {
     }
 
     private @NotNull String filterLabel(@Nullable String value) {
-        return value == null || value.isBlank() ? "すべて" : normalizeLabel(value);
+        return value == null || value.isBlank() ? "すべて" : ItemRarity.displayNameJa(value);
     }
 
     private @NotNull String categoryFilterLabel(@Nullable String value) {
         return value == null || value.isBlank() ? "すべて" : ItemCategory.displayNameJa(value);
-    }
-
-    private @NotNull String normalizeLabel(@NotNull String value) {
-        return value.trim().toUpperCase(Locale.ROOT);
     }
 
     private @NotNull List<Component> filterLore(@NotNull String value) {

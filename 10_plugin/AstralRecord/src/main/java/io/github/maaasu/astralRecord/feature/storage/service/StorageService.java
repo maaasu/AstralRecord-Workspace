@@ -1,7 +1,9 @@
 package io.github.maaasu.astralRecord.feature.storage.service;
 
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
+import io.github.maaasu.astralRecord.feature.item.model.ItemRarity;
 import io.github.maaasu.astralRecord.feature.item.service.ItemTransferSupport;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
@@ -35,26 +37,30 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class StorageService {
     private final MenuView menuView;
     private final InventoryService inventoryService;
+    private final InventorySaveCoordinator inventorySaveCoordinator;
     private final MenuGuiTransitionService menuGuiTransitionService;
     private final ConcurrentHashMap<UUID, StorageViewOptions> storageOptionsByPlayer = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, List<StorageViewEntry>> storageEntriesByPlayer = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, Integer> storagePageByPlayer = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<UUID, Boolean> dirtyStorageByPlayer = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UUID, Long> dirtyStorageVersionByPlayer = new ConcurrentHashMap<>();
 
     /**
      * ストレージ GUI サービスを初期化します。
      *
      * @param menuView メニュー GUI 表示
      * @param inventoryService インベントリサービス
+     * @param inventorySaveCoordinator インベントリ保存コーディネーター
      * @param menuGuiTransitionService GUI 切替サービス
      */
     public StorageService(
         @NotNull MenuView menuView,
         @NotNull InventoryService inventoryService,
+        @NotNull InventorySaveCoordinator inventorySaveCoordinator,
         @NotNull MenuGuiTransitionService menuGuiTransitionService
     ) {
         this.menuView = menuView;
         this.inventoryService = inventoryService;
+        this.inventorySaveCoordinator = inventorySaveCoordinator;
         this.menuGuiTransitionService = menuGuiTransitionService;
     }
 
@@ -206,12 +212,21 @@ public final class StorageService {
         }
         storageEntriesByPlayer.remove(player.getUniqueId());
         storagePageByPlayer.remove(player.getUniqueId());
-        if (dirtyStorageByPlayer.remove(player.getUniqueId()) == null) {
+        UUID playerId = player.getUniqueId();
+        Long requestedVersion = dirtyStorageVersionByPlayer.get(playerId);
+        if (requestedVersion == null) {
             return;
         }
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer != null) {
-            inventoryService.saveNow(astPlayer.getAccount().getUuid());
+            UUID accountId = astPlayer.getAccount().getUuid();
+            inventorySaveCoordinator.saveNow(accountId).whenComplete((succeeded, throwable) -> {
+                // 永続化失敗時の再試行要否は PlayerInventoryState の dirty が保持する。
+                dirtyStorageVersionByPlayer.computeIfPresent(
+                    playerId,
+                    (ignored, currentVersion) -> currentVersion.equals(requestedVersion) ? null : currentVersion
+                );
+            });
         }
     }
 
@@ -279,7 +294,7 @@ public final class StorageService {
             player.updateInventory();
             return;
         }
-        dirtyStorageByPlayer.put(player.getUniqueId(), true);
+        markStorageDirty(player.getUniqueId());
         refreshStorageEntries(player, storageOptions(player));
         GuiSound.SELECT.play(player);
         rerenderStorageInventory(player, topInventory);
@@ -332,7 +347,7 @@ public final class StorageService {
             player.updateInventory();
             return;
         }
-        dirtyStorageByPlayer.put(player.getUniqueId(), true);
+        markStorageDirty(player.getUniqueId());
         refreshStorageEntries(player, storageOptions(player));
         GuiSound.SELECT.play(player);
         rerenderStorageInventory(player, topInventory);
@@ -378,8 +393,12 @@ public final class StorageService {
         return nextNullableCycle(current, values);
     }
 
+    private void markStorageDirty(@NotNull UUID playerId) {
+        dirtyStorageVersionByPlayer.merge(playerId, 1L, Long::sum);
+    }
+
     private @Nullable String nextStorageRarity(@Nullable String current) {
-        return nextNullableCycle(current, List.of("COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY", "MYTHIC"));
+        return nextNullableCycle(current, ItemRarity.orderedValues());
     }
 
     private @Nullable String nextNullableCycle(@Nullable String current, @NotNull List<String> values) {

@@ -2,7 +2,7 @@
 schemaVersion: 1
 id: starter_boots
 category: equipment
-name: "&f初期ブーツ"
+name: "&f初心者用のブーツ"
 icon: LEATHER_BOOTS
 rarity: COMMON
 maxStack: 1

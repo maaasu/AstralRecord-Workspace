@@ -25,6 +25,28 @@ public class PlayerSaveCoordinator {
     }
 
     /**
+     * Bukkit API を参照する保存前スナップショットをメインスレッド上で準備します。
+     *
+     * @param player 保存対象プレイヤー
+     * @param trigger 保存の発火契機
+     */
+    public void prepare(@NotNull AstPlayer player, @NotNull PlayerSaveTrigger trigger) {
+        for (PlayerSaveTask task : tasks) {
+            try {
+                task.prepare(player, trigger);
+            } catch (Exception e) {
+                Logger.log(
+                    LogId.W_5071,
+                    task.getTaskName(),
+                    trigger.name(),
+                    player.getBukkit().getName(),
+                    e.getMessage()
+                );
+            }
+        }
+    }
+
+    /**
      * 指定プレイヤーの保存タスクを順に実行します。
      * <p>
      * 個別タスクで例外が発生しても残りのタスク実行は継続します。

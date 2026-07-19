@@ -1,7 +1,12 @@
 package io.github.maaasu.astralRecord.feature.item.service;
 
+import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
+import io.github.maaasu.astralRecord.feature.inventory.service.EquipmentOperationInventoryState;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryState;
+import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStateRegistry;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
@@ -20,6 +25,7 @@ import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
@@ -35,19 +41,24 @@ import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class EquipmentRepairService {
     private static final Component TITLE = Component.text("装備修理", NamedTextColor.GOLD);
 
+    private final Plugin plugin;
     private final MenuView menuView;
     private final InventoryService inventoryService;
+    private final InventorySaveCoordinator inventorySaveCoordinator;
+    private final PlayerInventoryStateRegistry inventoryStateRegistry;
     private final ItemService itemService;
     private final ItemStackFactory itemStackFactory;
     private final ParticleDisplayService particleDisplayService;
@@ -61,19 +72,27 @@ public final class EquipmentRepairService {
      *
      * @param menuView メニュー GUI の描画・判定サービス
      * @param inventoryService プレイヤーインベントリ操作サービス
+     * @param inventorySaveCoordinator ログアウト保存との直列化サービス
+     * @param inventoryStateRegistry ログイン世代ごとのインベントリ state レジストリ
      * @param itemService 装備インスタンス更新に使うアイテムサービス
      * @param itemStackFactory 更新後の装備 ItemStack 生成サービス
      * @param particleDisplayService 修理成功時の共通パーティクル表示サービス
      */
     public EquipmentRepairService(
+        @NotNull Plugin plugin,
         @NotNull MenuView menuView,
         @NotNull InventoryService inventoryService,
+        @NotNull InventorySaveCoordinator inventorySaveCoordinator,
+        @NotNull PlayerInventoryStateRegistry inventoryStateRegistry,
         @NotNull ItemService itemService,
         @NotNull ItemStackFactory itemStackFactory,
         @NotNull ParticleDisplayService particleDisplayService
     ) {
+        this.plugin = plugin;
         this.menuView = menuView;
         this.inventoryService = inventoryService;
+        this.inventorySaveCoordinator = inventorySaveCoordinator;
+        this.inventoryStateRegistry = inventoryStateRegistry;
         this.itemService = itemService;
         this.itemStackFactory = itemStackFactory;
         this.particleDisplayService = particleDisplayService;
@@ -112,10 +131,12 @@ public final class EquipmentRepairService {
             GuiSound.DENY.play(player);
             return;
         }
-        RepairSession session = sessions.computeIfAbsent(
-            player.getUniqueId(),
-            ignored -> new RepairSession(inventoryService.getDisplayedInventoryType(astPlayer.getAccount().getUuid()))
-        );
+        RepairSession session = getOrCreateSession(player, astPlayer);
+        if (session == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        session.closeRequested = false;
         Inventory inventory = Bukkit.createInventory(
             new MenuInventoryHolder(MenuScreen.EQUIPMENT_REPAIR, -1, 0),
             BaseMenuScreenView.SIZE,
@@ -138,10 +159,16 @@ public final class EquipmentRepairService {
             player.closeInventory();
             return;
         }
-        RepairSession session = sessions.computeIfAbsent(
-            player.getUniqueId(),
-            ignored -> new RepairSession(inventoryService.getDisplayedInventoryType(astPlayer.getAccount().getUuid()))
-        );
+        RepairSession session = getOrCreateSession(player, astPlayer);
+        if (session == null) {
+            player.closeInventory();
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (session.inFlightOperationId != null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
         if (rawSlot == EquipmentRepairMenuScreenView.TARGET_SLOT) {
             if (!returnSelectedEquipment(astPlayer, session)) {
                 GuiSound.DENY.play(player);
@@ -173,6 +200,17 @@ public final class EquipmentRepairService {
             GuiSound.DENY.play(player);
             return true;
         }
+        RepairSession session = getOrCreateSession(player, astPlayer);
+        if (session == null) {
+            player.closeInventory();
+            GuiSound.DENY.play(player);
+            return true;
+        }
+        if (session.inFlightOperationId != null) {
+            GuiSound.DENY.play(player);
+            return true;
+        }
+        InventoryEntryModel selectedEntry = inventoryService.getOwnedEntryAtBukkitSlot(astPlayer, bukkitSlot);
         ItemModel clickedModel = inventoryService.getOwnedItemModelAtBukkitSlot(astPlayer, bukkitSlot);
         if (clickedModel == null || clickedModel.getEquipment() == null) {
             return false;
@@ -184,21 +222,22 @@ public final class EquipmentRepairService {
         }
         SelectionResult selection = resolveSelection(selected);
         if (selection.state() == SelectionState.INVALID_TARGET) {
-            inventoryService.returnItemToOwnedInventory(astPlayer, selected);
+            if (!EquipmentOperationInventoryState.restoreEntry(session.inventoryState, selectedEntry)) {
+                Logger.log(LogId.W_5203, "repair_invalid_target", session.accountId);
+            }
             GuiSound.DENY.play(player);
             return true;
         }
 
-        RepairSession session = sessions.computeIfAbsent(
-            player.getUniqueId(),
-            ignored -> new RepairSession(inventoryService.getDisplayedInventoryType(astPlayer.getAccount().getUuid()))
-        );
         ItemStack previous = session.selectedEquipment;
+        InventoryEntryModel previousEntry = session.selectedEntry;
         session.selectedEquipment = selected.clone();
+        session.selectedEntry = selectedEntry;
         if (previous != null && previous.getType() != Material.AIR) {
-            if (inventoryService.returnItemToOwnedInventory(astPlayer, previous.clone()) == null) {
-                inventoryService.returnItemToOwnedInventory(astPlayer, selected.clone());
+            if (!EquipmentOperationInventoryState.restoreEntry(session.inventoryState, previousEntry)) {
+                EquipmentOperationInventoryState.restoreEntry(session.inventoryState, selectedEntry);
                 session.selectedEquipment = previous;
+                session.selectedEntry = previousEntry;
                 GuiSound.DENY.play(player);
                 return true;
             }
@@ -214,21 +253,59 @@ public final class EquipmentRepairService {
      * @param player GUI を閉じたプレイヤー
      */
     public void handleClose(@NotNull Player player) {
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) {
-            sessions.remove(player.getUniqueId());
+        RepairSession session = sessions.get(player.getUniqueId());
+        if (session == null || session.owner != player) {
             return;
         }
-        releaseSession(astPlayer, true);
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (session.inFlightOperationId != null) {
+            session.closeRequested = true;
+            if (astPlayer != null) {
+                restoreDisplayedInventory(astPlayer, session);
+            }
+            return;
+        }
+        if (astPlayer == null) {
+            if (sessions.remove(player.getUniqueId(), session)) {
+                detachForSave(session);
+            }
+            return;
+        }
+        releaseSession(astPlayer, session, true);
+    }
+
+    /**
+     * ログアウト保存より前に、対象ログイン世代の修理セッションを state へ回収します。
+     * 進行中の API 処理は同一アカウントの保存キュー上で確定または補償されます。
+     *
+     * @param player ログアウトする Bukkit プレイヤー
+     */
+    public void prepareForPlayerSave(@NotNull Player player) {
+        RepairSession session = sessions.get(player.getUniqueId());
+        if (session == null || session.owner != player || !sessions.remove(player.getUniqueId(), session)) {
+            return;
+        }
+        detachForSave(session);
+    }
+
+    /**
+     * プラグイン停止前に全修理セッションを state へ回収し、進行処理を保存キューへ登録します。
+     */
+    public void prepareAllForShutdown() {
+        for (RepairSession session : List.copyOf(sessions.values())) {
+            if (sessions.remove(session.owner.getUniqueId(), session)) {
+                detachForSave(session);
+            }
+        }
     }
 
     /**
      * 修理費用を計算します。
-     * 耐久値が高い装備ほど軽い倍率を乗せ、欠損耐久 1 につき最低 1 Gold を要求します。
+     * 耐久値が高い装備ほど軽い倍率を乗せ、欠損耐久 1 につき最低 1 ゴールドを要求します。
      *
      * @param durabilityMax 装備の最大耐久値
      * @param missingDurability 欠損している耐久値
-     * @return 修理に必要な Gold。修理不要な場合は {@code 0}
+     * @return 修理に必要なゴールド。修理不要な場合は {@code 0}
      */
     public static long calculateRepairCost(int durabilityMax, int missingDurability) {
         if (durabilityMax <= 0 || missingDurability <= 0) {
@@ -265,28 +342,96 @@ public final class EquipmentRepairService {
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5277);
             return;
         }
-        EquipmentInstance updated = itemService.updateEquipmentDurability(
-            context.instance().getEquipmentInstanceId(),
-            context.instance().getDurabilityMax(),
-            astPlayer.getAccount().getUuid().toString()
+        UUID operationId = UUID.randomUUID();
+        session.inFlightOperationId = operationId;
+        session.paymentSnapshot = paymentSnapshot;
+        session.closeRequested = false;
+        render(player, player.getOpenInventory().getTopInventory(), session);
+        CompletableFuture<EquipmentInstance> operationFuture = AsyncTaskUtil.supplyAsync(plugin, () ->
+            itemService.updateEquipmentDurability(
+                context.instance().getEquipmentInstanceId(),
+                context.instance().getDurabilityMax(),
+                accountId.toString()
+            )
         );
-        if (updated == null) {
-            restorePayment(paymentSnapshot, accountId, "repair_api");
-            GuiSound.DENY.play(player);
-            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5277);
+        session.operationFuture = operationFuture;
+        operationFuture.whenComplete((updated, throwable) -> {
+            if (session.detached) {
+                return;
+            }
+            AsyncTaskUtil.runSync(
+                plugin,
+                () -> completeRepair(
+                    player,
+                    astPlayer,
+                    session,
+                    operationId,
+                    paymentSnapshot,
+                    context,
+                    wasBroken,
+                    updated,
+                    throwable
+                )
+            );
+        });
+    }
+
+    private void completeRepair(
+        @NotNull Player player,
+        @NotNull AstPlayer astPlayer,
+        @NotNull RepairSession session,
+        @NotNull UUID operationId,
+        @NotNull InventoryService.InventoryStateSnapshot paymentSnapshot,
+        @NotNull RepairContext context,
+        boolean wasBroken,
+        @Nullable EquipmentInstance updated,
+        @Nullable Throwable throwable
+    ) {
+        if (session.detached
+            || session.owner != player
+            || !operationId.equals(session.inFlightOperationId)) {
             return;
         }
+        session.inFlightOperationId = null;
+        session.operationFuture = null;
+        session.paymentSnapshot = null;
+        if (throwable != null || updated == null) {
+            restorePayment(paymentSnapshot, astPlayer.getAccount().getUuid(), "repair_api");
+            if (player.isOnline()) {
+                GuiSound.DENY.play(player);
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5277);
+            }
+            finishRepairOperation(player, astPlayer, session);
+            return;
+        }
+
         session.selectedEquipment = itemStackFactory.create(context.model(), updated, 1);
-        inventoryService.saveNow(accountId);
         if (wasBroken && statusService != null) {
             statusService.refreshStatus(astPlayer);
         }
-        PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5278, displayName(context.model()), context.cost());
-        player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, SoundCategory.PLAYERS, 0.8f, 1.2f);
-        particleDisplayService.spawnForNearbyViewers(
-            player.getLocation().add(0.0, 1.0, 0.0),
-            SharedParticleDefinitions.EQUIPMENT_REPAIR_ENCHANT
-        );
+        if (player.isOnline()) {
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5278, displayName(context.model()), context.cost());
+            player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, SoundCategory.PLAYERS, 0.8f, 1.2f);
+            particleDisplayService.spawnForNearbyViewers(
+                player.getLocation().add(0.0, 1.0, 0.0),
+                SharedParticleDefinitions.EQUIPMENT_REPAIR_ENCHANT
+            );
+        }
+        finishRepairOperation(player, astPlayer, session);
+    }
+
+    private void finishRepairOperation(
+        @NotNull Player player,
+        @NotNull AstPlayer astPlayer,
+        @NotNull RepairSession session
+    ) {
+        if (session.closeRequested
+            || sessions.get(player.getUniqueId()) != session
+            || !player.isOnline()
+            || !isRepairMenu(player.getOpenInventory().getTopInventory())) {
+            releaseSession(astPlayer, session, player.isOnline());
+            return;
+        }
         render(player, player.getOpenInventory().getTopInventory(), session);
     }
 
@@ -312,7 +457,7 @@ public final class EquipmentRepairService {
             createCostItem(player, selection),
             view.createGuideItem(),
             createInfoItem(player, selection),
-            createExecuteItem(player, selection)
+            createExecuteItem(player, selection, session.inFlightOperationId != null)
         );
     }
 
@@ -364,7 +509,7 @@ public final class EquipmentRepairService {
             List.of(
                 Component.text("回復耐久: " + context.missingDurability(), NamedTextColor.GRAY),
                 Component.text(
-                    "必要Gold: " + context.cost() + " / 所持 " + ownedGold,
+                    "必要ゴールド: " + context.cost() + " / 所持: " + ownedGold,
                     ownedGold >= context.cost() ? NamedTextColor.GREEN : NamedTextColor.RED
                 )
             )
@@ -391,7 +536,18 @@ public final class EquipmentRepairService {
         );
     }
 
-    private @NotNull ItemStack createExecuteItem(@NotNull Player player, @NotNull SelectionResult selection) {
+    private @NotNull ItemStack createExecuteItem(
+        @NotNull Player player,
+        @NotNull SelectionResult selection,
+        boolean inFlight
+    ) {
+        if (inFlight) {
+            return createItem(
+                Material.BARRIER,
+                PlayerMsgResource.getComponent(PlayerMsgId.P_5283.getId()).decorate(TextDecoration.BOLD),
+                List.of(PlayerMsgResource.getComponent(PlayerMsgId.P_6700.getId()))
+            );
+        }
         AstPlayer astPlayer = AstPlayerCache.get(player);
         RepairContext context = selection.context();
         boolean executable = AccountModeGuard.isGameplayPlayer(astPlayer)
@@ -412,29 +568,169 @@ public final class EquipmentRepairService {
             + inventoryService.getCurrencyAmount(accountId, ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID);
     }
 
+    private synchronized @Nullable RepairSession getOrCreateSession(
+        @NotNull Player player,
+        @NotNull AstPlayer astPlayer
+    ) {
+        UUID accountId = astPlayer.getAccount().getUuid();
+        PlayerInventoryState inventoryState = inventoryStateRegistry.get(accountId);
+        if (inventoryState == null) {
+            return null;
+        }
+        RepairSession current = sessions.get(player.getUniqueId());
+        if (current != null && current.owner == player && current.inventoryState == inventoryState) {
+            return current;
+        }
+        if (current != null && sessions.remove(player.getUniqueId(), current)) {
+            detachForSave(current);
+        }
+        RepairSession created = new RepairSession(
+            player,
+            accountId,
+            inventoryState,
+            inventoryService.getDisplayedInventoryType(accountId)
+        );
+        sessions.put(player.getUniqueId(), created);
+        return created;
+    }
+
+    private void detachForSave(@NotNull RepairSession session) {
+        session.detached = true;
+        session.closeRequested = true;
+        session.entryRestoredForSave = EquipmentOperationInventoryState.restoreEntry(
+            session.inventoryState,
+            session.selectedEntry
+        );
+        if (!session.entryRestoredForSave) {
+            Logger.log(LogId.W_5203, "repair_logout_restore", session.accountId);
+        }
+        restoreBukkitInventoryBeforeSave(session);
+
+        CompletableFuture<EquipmentInstance> operationFuture = session.operationFuture;
+        if (session.inFlightOperationId == null || operationFuture == null) {
+            inventorySaveCoordinator.enqueueLogoutReconciliation(session.accountId, () -> {
+                boolean restored = EquipmentOperationInventoryState.restoreEntry(
+                    session.inventoryState,
+                    session.selectedEntry
+                );
+                clearHeldEquipment(session);
+                if (!restored) {
+                    Logger.log(LogId.W_5203, "repair_logout_entry", session.accountId);
+                }
+                return restored;
+            });
+            return;
+        }
+        inventorySaveCoordinator.enqueueLogoutReconciliation(
+            session.accountId,
+            () -> reconcileDetachedOperation(session, operationFuture)
+        ).exceptionally(throwable -> {
+            Logger.log(LogId.W_5203, "repair_logout_reconciliation", session.accountId);
+            return false;
+        });
+    }
+
+    private void restoreBukkitInventoryBeforeSave(@NotNull RepairSession session) {
+        AstPlayer astPlayer = AstPlayerCache.get(session.owner);
+        if (astPlayer == null || astPlayer.getBukkit() != session.owner) {
+            return;
+        }
+        inventoryService.applyInventoryToGui(
+            astPlayer,
+            session.previousDisplayedType == null ? InventoryType.BAG : session.previousDisplayedType
+        );
+    }
+
+    private boolean reconcileDetachedOperation(
+        @NotNull RepairSession session,
+        @NotNull CompletableFuture<EquipmentInstance> operationFuture
+    ) {
+        EquipmentInstance updated;
+        try {
+            updated = operationFuture.join();
+        } catch (RuntimeException failure) {
+            boolean compensated = EquipmentOperationInventoryState.restoreSnapshot(
+                session.inventoryState,
+                session.paymentSnapshot
+            );
+            boolean restored = EquipmentOperationInventoryState.restoreEntry(
+                session.inventoryState,
+                session.selectedEntry
+            );
+            clearHeldEquipment(session);
+            if (!compensated || !restored) {
+                Logger.log(LogId.W_5203, "repair_logout_api", session.accountId);
+            }
+            return compensated && restored;
+        }
+
+        if (updated == null) {
+            boolean compensated = EquipmentOperationInventoryState.restoreSnapshot(
+                session.inventoryState,
+                session.paymentSnapshot
+            );
+            boolean restored = EquipmentOperationInventoryState.restoreEntry(
+                session.inventoryState,
+                session.selectedEntry
+            );
+            clearHeldEquipment(session);
+            if (!compensated || !restored) {
+                Logger.log(LogId.W_5203, "repair_logout_result", session.accountId);
+            }
+            return compensated && restored;
+        }
+
+        boolean restored = session.entryRestoredForSave;
+        clearHeldEquipment(session);
+        if (!restored) {
+            Logger.log(LogId.W_5203, "repair_logout_entry", session.accountId);
+        }
+        return restored;
+    }
+
+    private void clearHeldEquipment(@NotNull RepairSession session) {
+        session.selectedEquipment = null;
+        session.selectedEntry = null;
+        session.inFlightOperationId = null;
+        session.operationFuture = null;
+        session.paymentSnapshot = null;
+    }
+
     private boolean returnSelectedEquipment(@NotNull AstPlayer astPlayer, @NotNull RepairSession session) {
         if (session.selectedEquipment == null || session.selectedEquipment.getType() == Material.AIR) {
             return false;
         }
-        if (inventoryService.returnItemToOwnedInventory(astPlayer, session.selectedEquipment.clone()) == null) {
+        if (!EquipmentOperationInventoryState.restoreEntry(session.inventoryState, session.selectedEntry)) {
             astPlayer.getBukkit().getWorld().dropItemNaturally(astPlayer.getBukkit().getLocation(), session.selectedEquipment.clone());
         }
         session.selectedEquipment = null;
+        session.selectedEntry = null;
         return true;
     }
 
-    private void releaseSession(@NotNull AstPlayer astPlayer, boolean restoreDisplayedInventory) {
-        RepairSession session = sessions.remove(astPlayer.getBukkit().getUniqueId());
-        if (session == null) {
-            return;
-        }
+    private void releaseSession(
+        @NotNull AstPlayer astPlayer,
+        @NotNull RepairSession session,
+        boolean restoreDisplayedInventory
+    ) {
+        sessions.remove(session.owner.getUniqueId(), session);
         if (session.selectedEquipment != null && session.selectedEquipment.getType() != Material.AIR) {
-            if (inventoryService.returnItemToOwnedInventory(astPlayer, session.selectedEquipment.clone()) == null) {
+            if (!EquipmentOperationInventoryState.restoreEntry(session.inventoryState, session.selectedEntry)) {
                 astPlayer.getBukkit().getWorld().dropItemNaturally(astPlayer.getBukkit().getLocation(), session.selectedEquipment.clone());
             }
             session.selectedEquipment = null;
+            session.selectedEntry = null;
         }
-        if (restoreDisplayedInventory && session.previousDisplayedType != null) {
+        if (restoreDisplayedInventory && session.owner == astPlayer.getBukkit()) {
+            restoreDisplayedInventory(astPlayer, session);
+        }
+    }
+
+    private void restoreDisplayedInventory(
+        @NotNull AstPlayer astPlayer,
+        @NotNull RepairSession session
+    ) {
+        if (session.previousDisplayedType != null) {
             inventoryService.applyInventoryToGui(astPlayer, session.previousDisplayedType);
         }
     }
@@ -452,10 +748,28 @@ public final class EquipmentRepairService {
     }
 
     private static final class RepairSession {
+        private final Player owner;
+        private final UUID accountId;
+        private final PlayerInventoryState inventoryState;
         private final InventoryType previousDisplayedType;
         private ItemStack selectedEquipment;
+        private InventoryEntryModel selectedEntry;
+        private UUID inFlightOperationId;
+        private CompletableFuture<EquipmentInstance> operationFuture;
+        private InventoryService.InventoryStateSnapshot paymentSnapshot;
+        private boolean closeRequested;
+        private volatile boolean detached;
+        private boolean entryRestoredForSave;
 
-        private RepairSession(@Nullable InventoryType previousDisplayedType) {
+        private RepairSession(
+            @NotNull Player owner,
+            @NotNull UUID accountId,
+            @NotNull PlayerInventoryState inventoryState,
+            @Nullable InventoryType previousDisplayedType
+        ) {
+            this.owner = owner;
+            this.accountId = accountId;
+            this.inventoryState = inventoryState;
             this.previousDisplayedType = previousDisplayedType;
         }
     }

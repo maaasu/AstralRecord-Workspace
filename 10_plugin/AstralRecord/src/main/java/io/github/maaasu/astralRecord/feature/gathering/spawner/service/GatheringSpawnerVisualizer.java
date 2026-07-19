@@ -1,12 +1,13 @@
-package io.github.maaasu.astralRecord.feature.mob.spawner.service;
+package io.github.maaasu.astralRecord.feature.gathering.spawner.service;
 
-import io.github.maaasu.astralRecord.feature.mob.spawner.model.MobSpawnerLocation;
+import io.github.maaasu.astralRecord.feature.gathering.spawner.model.GatheringSpawnerLocation;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
-import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.spawner.service.SpawnerPacketDisplay;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -20,11 +21,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * ADMIN モードのプレイヤーにだけスポナー位置と ID を表示します。
- */
-final class MobSpawnerVisualizer {
-
+/** ADMIN モードのプレイヤーに採集スポナーの位置と ID を表示します。 */
+final class GatheringSpawnerVisualizer {
     private static final long INTERVAL_TICKS = 40L;
     private static final int RESPAWN_CYCLES = 5;
     private static final float BLOCK_SCALE = 0.75F;
@@ -32,15 +30,15 @@ final class MobSpawnerVisualizer {
     private static final double VIEW_DISTANCE_SQ = 64.0D * 64.0D;
 
     private final Plugin plugin;
-    private final MobSpawnerService spawnerService;
+    private final GatheringSpawnerService spawnerService;
     private final ParticleDisplayService particleDisplayService;
     private final SpawnerPacketDisplay packetDisplay = new SpawnerPacketDisplay();
     private final Map<ViewerSpawnerKey, SpawnerVisual> displays = new HashMap<>();
     private BukkitTask task;
 
-    MobSpawnerVisualizer(
+    GatheringSpawnerVisualizer(
         @NotNull Plugin plugin,
-        @NotNull MobSpawnerService spawnerService,
+        @NotNull GatheringSpawnerService spawnerService,
         @NotNull ParticleDisplayService particleDisplayService
     ) {
         this.plugin = plugin;
@@ -49,10 +47,9 @@ final class MobSpawnerVisualizer {
     }
 
     void start() {
-        if (task != null) {
-            return;
+        if (task == null) {
+            task = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 1L, INTERVAL_TICKS);
         }
-        task = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 1L, INTERVAL_TICKS);
     }
 
     void stop() {
@@ -69,7 +66,7 @@ final class MobSpawnerVisualizer {
 
     private void tick() {
         Set<ViewerSpawnerKey> activeKeys = new HashSet<>();
-        for (MobSpawnerLocation spawnerLocation : spawnerService.getLocations()) {
+        for (GatheringSpawnerLocation spawnerLocation : spawnerService.getLocations()) {
             Location location = spawnerLocation.toLocation();
             if (location == null || location.getWorld() == null) {
                 continue;
@@ -87,37 +84,25 @@ final class MobSpawnerVisualizer {
         });
     }
 
-    @NotNull
-    private SpawnerVisual createDisplay(@NotNull MobSpawnerLocation spawnerLocation, @NotNull Location location) {
-        SpawnerPacketDisplay.PacketEntity block = packetDisplay.block(
-                location.clone().add(0.0D, 0.05D, 0.0D),
-                spawnerService.getDisplayMaterial(spawnerLocation.spawnerId()),
-                new Vector3f(BLOCK_SCALE, BLOCK_SCALE, BLOCK_SCALE)
-        );
-        SpawnerPacketDisplay.PacketEntity text = packetDisplay.text(
-                location.clone().add(0.0D, 1.35D, 0.0D),
-                label(spawnerLocation),
-                TEXT_SCALE
-        );
-        return new SpawnerVisual(block, text);
-    }
-
     private void updateViewers(
-            @NotNull MobSpawnerLocation spawnerLocation,
-            @NotNull Location location,
-            @NotNull Set<ViewerSpawnerKey> activeKeys
+        @NotNull GatheringSpawnerLocation spawnerLocation,
+        @NotNull Location location,
+        @NotNull Set<ViewerSpawnerKey> activeKeys
     ) {
         for (Player player : plugin.getServer().getOnlinePlayers()) {
             if (!isVisibleTo(player, location)) {
                 continue;
             }
             ViewerSpawnerKey key = new ViewerSpawnerKey(
-                    player.getUniqueId(),
-                    spawnerLocation.locationKey(),
-                    spawnerLocation.spawnerId()
+                player.getUniqueId(),
+                spawnerLocation.locationKey(),
+                spawnerLocation.spawnerId()
             );
             activeKeys.add(key);
-            SpawnerVisual display = displays.computeIfAbsent(key, ignored -> createDisplay(spawnerLocation, location));
+            SpawnerVisual display = displays.computeIfAbsent(
+                key,
+                ignored -> createDisplay(spawnerLocation, location)
+            );
             display.show(player);
             particleDisplayService.spawnForViewer(
                 player,
@@ -135,9 +120,28 @@ final class MobSpawnerVisualizer {
     }
 
     @NotNull
-    private Component label(@NotNull MobSpawnerLocation spawnerLocation) {
-        return LegacyComponentSerializer.legacySection().deserialize(
-                ColorCodeUtil.translateAlternateColorCodes("&dSpawner&7: &f" + spawnerLocation.spawnerId())
+    private SpawnerVisual createDisplay(
+        @NotNull GatheringSpawnerLocation spawnerLocation,
+        @NotNull Location location
+    ) {
+        SpawnerPacketDisplay.PacketEntity block = packetDisplay.block(
+            location.clone().add(0.0D, 0.05D, 0.0D),
+            spawnerService.getDisplayMaterial(spawnerLocation.spawnerId()),
+            new Vector3f(BLOCK_SCALE, BLOCK_SCALE, BLOCK_SCALE)
+        );
+        SpawnerPacketDisplay.PacketEntity text = packetDisplay.text(
+            location.clone().add(0.0D, 1.35D, 0.0D),
+            label(spawnerLocation),
+            TEXT_SCALE
+        );
+        return new SpawnerVisual(block, text);
+    }
+
+    @NotNull
+    private Component label(@NotNull GatheringSpawnerLocation spawnerLocation) {
+        return PlayerMsgResource.formatComponent(
+            PlayerMsgId.P_5729.getId(),
+            spawnerLocation.spawnerId()
         );
     }
 
@@ -151,8 +155,8 @@ final class MobSpawnerVisualizer {
         private int ageCycles;
 
         private SpawnerVisual(
-                @NotNull SpawnerPacketDisplay.PacketEntity block,
-                @NotNull SpawnerPacketDisplay.PacketEntity text
+            @NotNull SpawnerPacketDisplay.PacketEntity block,
+            @NotNull SpawnerPacketDisplay.PacketEntity text
         ) {
             this.block = block;
             this.text = text;

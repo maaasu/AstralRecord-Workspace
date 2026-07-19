@@ -10,38 +10,83 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public final class ShopRecipeRepository {
     private static final String RELATIVE_PATH = "85.shared.recipe";
+    private volatile Map<String, ShopRecipeCost> cachedRecipes;
 
     public @Nullable ShopRecipeCost findShopRecipeById(@NotNull String recipeId) {
+        return recipes().get(recipeId);
+    }
+
+    /**
+     * 現在のキャッシュを維持したまま、filebase から次のスナップショットを構築します。
+     *
+     * @return 公開前の SHOP レシピスナップショット
+     */
+    public @NotNull Map<String, ShopRecipeCost> loadSnapshot() {
+        return loadRecipes();
+    }
+
+    /**
+     * 構築済みスナップショットをキャッシュへ一括公開します。
+     *
+     * @param snapshot 公開する SHOP レシピ
+     */
+    public void replaceCache(@NotNull Map<String, ShopRecipeCost> snapshot) {
+        cachedRecipes = Map.copyOf(snapshot);
+    }
+
+    private @NotNull Map<String, ShopRecipeCost> recipes() {
+        Map<String, ShopRecipeCost> current = cachedRecipes;
+        if (current != null) {
+            return current;
+        }
+        synchronized (this) {
+            current = cachedRecipes;
+            if (current != null) {
+                return current;
+            }
+            current = loadRecipes();
+            if (FileDatabaseManager.getInstance().getRootDirectory() != null) {
+                cachedRecipes = current;
+            }
+            return current;
+        }
+    }
+
+    private @NotNull Map<String, ShopRecipeCost> loadRecipes() {
         File root = FileDatabaseManager.getInstance().getRootDirectory();
         if (root == null) {
-            return null;
+            return Map.of();
         }
         File directory = new File(root, RELATIVE_PATH);
         File[] files = directory.listFiles((dir, name) -> name.endsWith(".yml"));
         if (files == null) {
-            return null;
+            return Map.of();
         }
+        Map<String, ShopRecipeCost> result = new LinkedHashMap<>();
         for (File file : files) {
             YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
-            if (!recipeId.equals(yaml.getString("id"))) {
+            String recipeId = yaml.getString("id");
+            if (recipeId == null || recipeId.isBlank()) {
                 continue;
             }
             String category = yaml.getString("category", "");
             if (!"SHOP".equalsIgnoreCase(category)) {
-                return null;
+                continue;
             }
-            return new ShopRecipeCost(
+            result.put(recipeId, new ShopRecipeCost(
                 recipeId,
                 yaml.getInt("requiredCurrency", 0),
                 parseIngredients(yaml)
-            );
+            ));
         }
-        return null;
+        return Map.copyOf(result);
     }
 
     private @NotNull List<ShopCostItem> parseIngredients(@NotNull YamlConfiguration yaml) {

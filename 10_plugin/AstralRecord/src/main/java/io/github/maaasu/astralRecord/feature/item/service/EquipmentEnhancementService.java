@@ -1,7 +1,12 @@
 package io.github.maaasu.astralRecord.feature.item.service;
 
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
+import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.inventory.service.EquipmentOperationInventoryState;
+import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryState;
+import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStateRegistry;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
@@ -20,24 +25,28 @@ import io.github.maaasu.astralRecord.feature.menu.view.screen.EquipmentEnhanceme
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -49,29 +58,54 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class EquipmentEnhancementService {
     private static final Component TITLE = Component.text("装備強化", NamedTextColor.GOLD);
 
+    private final Plugin plugin;
     private final MenuView menuView;
     private final InventoryService inventoryService;
+    private final InventorySaveCoordinator inventorySaveCoordinator;
+    private final PlayerInventoryStateRegistry inventoryStateRegistry;
     private final ItemService itemService;
     private final ItemStackFactory itemStackFactory;
+    private final ParticleDisplayService particleDisplayService;
     private final ItemReferenceResolver itemReferenceResolver;
     private final EquipmentEnhancementMenuScreenView view = new EquipmentEnhancementMenuScreenView();
     private final Map<UUID, EnhancementSession> sessions = new ConcurrentHashMap<>();
 
+    /**
+     * 装備強化 GUI と非同期強化処理を初期化します。
+     *
+     * @param plugin 非同期処理を登録するプラグイン
+     * @param menuView メニュー GUI の表示・判定サービス
+     * @param inventoryService プレイヤーインベントリ操作サービス
+     * @param inventorySaveCoordinator ログアウト保存との直列化サービス
+     * @param inventoryStateRegistry ログイン世代ごとのインベントリ state レジストリ
+     * @param itemService 装備インスタンス更新サービス
+     * @param itemStackFactory 更新後の装備表示生成サービス
+     * @param particleDisplayService 強化結果のパーティクル表示サービス
+     */
     public EquipmentEnhancementService(
+        @NotNull Plugin plugin,
         @NotNull MenuView menuView,
         @NotNull InventoryService inventoryService,
+        @NotNull InventorySaveCoordinator inventorySaveCoordinator,
+        @NotNull PlayerInventoryStateRegistry inventoryStateRegistry,
         @NotNull ItemService itemService,
-        @NotNull ItemStackFactory itemStackFactory
+        @NotNull ItemStackFactory itemStackFactory,
+        @NotNull ParticleDisplayService particleDisplayService
     ) {
+        this.plugin = plugin;
         this.menuView = menuView;
         this.inventoryService = inventoryService;
+        this.inventorySaveCoordinator = inventorySaveCoordinator;
+        this.inventoryStateRegistry = inventoryStateRegistry;
         this.itemService = itemService;
         this.itemStackFactory = itemStackFactory;
+        this.particleDisplayService = particleDisplayService;
         this.itemReferenceResolver = new ItemReferenceResolver(itemService);
     }
 
@@ -87,10 +121,12 @@ public final class EquipmentEnhancementService {
             return;
         }
 
-        EnhancementSession session = sessions.computeIfAbsent(
-            player.getUniqueId(),
-            ignored -> new EnhancementSession(inventoryService.getDisplayedInventoryType(astPlayer.getAccount().getUuid()))
-        );
+        EnhancementSession session = getOrCreateSession(player, astPlayer);
+        if (session == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        session.closeRequested = false;
 
         Inventory inventory = Bukkit.createInventory(
             new MenuInventoryHolder(MenuScreen.EQUIPMENT_ENHANCE, -1, 0),
@@ -107,10 +143,16 @@ public final class EquipmentEnhancementService {
             player.closeInventory();
             return;
         }
-        EnhancementSession session = sessions.computeIfAbsent(
-            player.getUniqueId(),
-            ignored -> new EnhancementSession(inventoryService.getDisplayedInventoryType(astPlayer.getAccount().getUuid()))
-        );
+        EnhancementSession session = getOrCreateSession(player, astPlayer);
+        if (session == null) {
+            player.closeInventory();
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (session.inFlightOperationId != null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
 
         if (rawSlot == EquipmentEnhancementMenuScreenView.TARGET_SLOT) {
             if (!returnSelectedEquipment(astPlayer, session)) {
@@ -142,11 +184,18 @@ public final class EquipmentEnhancementService {
             GuiSound.DENY.play(player);
             return true;
         }
-        EnhancementSession session = sessions.computeIfAbsent(
-            player.getUniqueId(),
-            ignored -> new EnhancementSession(inventoryService.getDisplayedInventoryType(astPlayer.getAccount().getUuid()))
-        );
+        EnhancementSession session = getOrCreateSession(player, astPlayer);
+        if (session == null) {
+            player.closeInventory();
+            GuiSound.DENY.play(player);
+            return true;
+        }
+        if (session.inFlightOperationId != null) {
+            GuiSound.DENY.play(player);
+            return true;
+        }
 
+        InventoryEntryModel selectedEntry = inventoryService.getOwnedEntryAtBukkitSlot(astPlayer, bukkitSlot);
         ItemModel clickedModel = inventoryService.getOwnedItemModelAtBukkitSlot(astPlayer, bukkitSlot);
         if (!isEquipmentModel(clickedModel)) {
             return false;
@@ -160,17 +209,22 @@ public final class EquipmentEnhancementService {
 
         SelectionResult selection = resolveSelection(selected);
         if (selection.state() == SelectionState.INVALID_TARGET) {
-            inventoryService.returnItemToOwnedInventory(astPlayer, selected);
+            if (!EquipmentOperationInventoryState.restoreEntry(session.inventoryState, selectedEntry)) {
+                Logger.log(LogId.W_5203, "enhancement_invalid_target", session.accountId);
+            }
             GuiSound.DENY.play(player);
             return true;
         }
 
         ItemStack previous = session.selectedEquipment;
+        InventoryEntryModel previousEntry = session.selectedEntry;
         session.selectedEquipment = selected.clone();
+        session.selectedEntry = selectedEntry;
         if (previous != null && previous.getType() != Material.AIR) {
-            if (inventoryService.returnItemToOwnedInventory(astPlayer, previous.clone()) == null) {
-                inventoryService.returnItemToOwnedInventory(astPlayer, selected.clone());
+            if (!EquipmentOperationInventoryState.restoreEntry(session.inventoryState, previousEntry)) {
+                EquipmentOperationInventoryState.restoreEntry(session.inventoryState, selectedEntry);
                 session.selectedEquipment = previous;
+                session.selectedEntry = previousEntry;
                 GuiSound.DENY.play(player);
                 return true;
             }
@@ -182,12 +236,50 @@ public final class EquipmentEnhancementService {
     }
 
     public void handleClose(@NotNull Player player) {
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) {
-            sessions.remove(player.getUniqueId());
+        EnhancementSession session = sessions.get(player.getUniqueId());
+        if (session == null || session.owner != player) {
             return;
         }
-        releaseSession(astPlayer, true);
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (session.inFlightOperationId != null) {
+            session.closeRequested = true;
+            if (astPlayer != null) {
+                restoreDisplayedInventory(astPlayer, session);
+            }
+            return;
+        }
+        if (astPlayer == null) {
+            if (sessions.remove(player.getUniqueId(), session)) {
+                detachForSave(session);
+            }
+            return;
+        }
+        releaseSession(astPlayer, session, true);
+    }
+
+    /**
+     * ログアウト保存より前に、対象ログイン世代の強化セッションを state へ回収します。
+     * 進行中の API 処理は同一アカウントの保存キュー上で確定または補償されます。
+     *
+     * @param player ログアウトする Bukkit プレイヤー
+     */
+    public void prepareForPlayerSave(@NotNull Player player) {
+        EnhancementSession session = sessions.get(player.getUniqueId());
+        if (session == null || session.owner != player || !sessions.remove(player.getUniqueId(), session)) {
+            return;
+        }
+        detachForSave(session);
+    }
+
+    /**
+     * プラグイン停止前に全強化セッションを state へ回収し、進行処理を保存キューへ登録します。
+     */
+    public void prepareAllForShutdown() {
+        for (EnhancementSession session : List.copyOf(sessions.values())) {
+            if (sessions.remove(session.owner.getUniqueId(), session)) {
+                detachForSave(session);
+            }
+        }
     }
 
     private void executeEnhancement(
@@ -224,30 +316,87 @@ public final class EquipmentEnhancementService {
             return;
         }
 
-        EnhancementResult result = applyEnhancementResult(astPlayer, context, success);
-        if (result == null) {
-            restorePayment(paymentSnapshot, accountId, "enhancement_api");
-            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5262);
-            GuiSound.DENY.play(player);
+        UUID operationId = UUID.randomUUID();
+        session.inFlightOperationId = operationId;
+        session.paymentSnapshot = paymentSnapshot;
+        session.closeRequested = false;
+        render(player, player.getOpenInventory().getTopInventory(), session);
+        String updatedBy = accountId.toString();
+        CompletableFuture<EnhancementResult> operationFuture = AsyncTaskUtil.supplyAsync(
+            plugin,
+            () -> applyEnhancementResult(context, success, updatedBy)
+        );
+        session.operationFuture = operationFuture;
+        operationFuture.whenComplete((result, throwable) -> {
+            if (session.detached) {
+                return;
+            }
+            AsyncTaskUtil.runSync(
+                plugin,
+                () -> completeEnhancement(
+                    player,
+                    astPlayer,
+                    session,
+                    operationId,
+                    paymentSnapshot,
+                    context,
+                    successRate,
+                    result,
+                    throwable
+                )
+            );
+        });
+    }
+
+    private void completeEnhancement(
+        @NotNull Player player,
+        @NotNull AstPlayer astPlayer,
+        @NotNull EnhancementSession session,
+        @NotNull UUID operationId,
+        @NotNull InventoryService.InventoryStateSnapshot paymentSnapshot,
+        @NotNull EnhancementContext context,
+        double successRate,
+        @Nullable EnhancementResult result,
+        @Nullable Throwable throwable
+    ) {
+        if (session.detached
+            || session.owner != player
+            || !operationId.equals(session.inFlightOperationId)) {
             return;
         }
-        inventoryService.saveNow(accountId);
+        session.inFlightOperationId = null;
+        session.operationFuture = null;
+        session.paymentSnapshot = null;
+        UUID accountId = astPlayer.getAccount().getUuid();
+        if (throwable != null || result == null) {
+            restorePayment(paymentSnapshot, accountId, "enhancement_api");
+            if (player.isOnline()) {
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5262);
+                GuiSound.DENY.play(player);
+            }
+            finishEnhancementOperation(player, astPlayer, session);
+            return;
+        }
 
         switch (result.type) {
             case SUCCESS -> {
                 session.selectedEquipment = itemStackFactory.create(context.model, Objects.requireNonNull(result.updatedInstance), 1);
-                PlayerMessageService.getInstance().send(
-                    player,
-                    PlayerMsgId.P_5257,
-                    displayName(context.model),
-                    result.updatedInstance.getEnhanceLevel(),
-                    formatPercent(successRate)
-                );
-                playSuccessEffects(player);
+                if (player.isOnline()) {
+                    PlayerMessageService.getInstance().send(
+                        player,
+                        PlayerMsgId.P_5257,
+                        displayName(context.model),
+                        result.updatedInstance.getEnhanceLevel(),
+                        formatPercent(successRate)
+                    );
+                    playSuccessEffects(player);
+                }
             }
             case FAIL_NONE -> {
-                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5258, displayName(context.model));
-                playFailureEffects(player);
+                if (player.isOnline()) {
+                    PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5258, displayName(context.model));
+                    playFailureEffects(player);
+                }
             }
             case FAIL_DOWNGRADE -> {
                 if (result.updatedInstance != null) {
@@ -256,21 +405,41 @@ public final class EquipmentEnhancementService {
                 int downgradedLevel = result.updatedInstance == null
                     ? Math.max(0, context.instance.getEnhanceLevel() - 1)
                     : result.updatedInstance.getEnhanceLevel();
-                PlayerMessageService.getInstance().send(
-                    player,
-                    PlayerMsgId.P_5259,
-                    displayName(context.model),
-                    downgradedLevel
-                );
-                playFailureEffects(player);
+                if (player.isOnline()) {
+                    PlayerMessageService.getInstance().send(
+                        player,
+                        PlayerMsgId.P_5259,
+                        displayName(context.model),
+                        downgradedLevel
+                    );
+                    playFailureEffects(player);
+                }
             }
             case FAIL_DESTROY -> {
                 session.selectedEquipment = null;
-                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5260, displayName(context.model));
-                playDestroyEffects(player);
+                session.selectedEntry = null;
+                if (player.isOnline()) {
+                    PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5260, displayName(context.model));
+                    playDestroyEffects(player);
+                }
             }
         }
 
+        finishEnhancementOperation(player, astPlayer, session);
+    }
+
+    private void finishEnhancementOperation(
+        @NotNull Player player,
+        @NotNull AstPlayer astPlayer,
+        @NotNull EnhancementSession session
+    ) {
+        if (session.closeRequested
+            || sessions.get(player.getUniqueId()) != session
+            || !player.isOnline()
+            || !isEnhancementMenu(player.getOpenInventory().getTopInventory())) {
+            releaseSession(astPlayer, session, player.isOnline());
+            return;
+        }
         render(player, player.getOpenInventory().getTopInventory(), session);
     }
 
@@ -285,11 +454,10 @@ public final class EquipmentEnhancementService {
     }
 
     private @Nullable EnhancementResult applyEnhancementResult(
-        @NotNull AstPlayer astPlayer,
         @NotNull EnhancementContext context,
-        boolean success
+        boolean success,
+        @NotNull String updatedBy
     ) {
-        String updatedBy = astPlayer.getAccount().getUuid().toString();
         if (success) {
             EquipmentInstance updated = itemService.enhanceEquipmentInstance(
                 context.instance.getEquipmentInstanceId(),
@@ -362,7 +530,7 @@ public final class EquipmentEnhancementService {
             createMaterialSummaryItem(selection.state(), requirements),
             createGuideItem(),
             createInfoItem(player, selection),
-            createExecuteItem(player, selection, requirements)
+            createExecuteItem(player, selection, requirements, session.inFlightOperationId != null)
         );
     }
 
@@ -469,8 +637,16 @@ public final class EquipmentEnhancementService {
     private @NotNull ItemStack createExecuteItem(
         @NotNull Player player,
         @NotNull SelectionResult selection,
-        @NotNull List<MaterialRequirement> requirements
+        @NotNull List<MaterialRequirement> requirements,
+        boolean inFlight
     ) {
+        if (inFlight) {
+            return createItem(
+                Material.BARRIER,
+                PlayerMsgResource.getComponent(PlayerMsgId.P_5282.getId()).decorate(TextDecoration.BOLD),
+                List.of(PlayerMsgResource.getComponent(PlayerMsgId.P_6700.getId()))
+            );
+        }
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
             return createItem(
@@ -594,46 +770,201 @@ public final class EquipmentEnhancementService {
         return model != null && model.getEquipment() != null;
     }
 
+    private synchronized @Nullable EnhancementSession getOrCreateSession(
+        @NotNull Player player,
+        @NotNull AstPlayer astPlayer
+    ) {
+        UUID accountId = astPlayer.getAccount().getUuid();
+        PlayerInventoryState inventoryState = inventoryStateRegistry.get(accountId);
+        if (inventoryState == null) {
+            return null;
+        }
+        EnhancementSession current = sessions.get(player.getUniqueId());
+        if (current != null && current.owner == player && current.inventoryState == inventoryState) {
+            return current;
+        }
+        if (current != null && sessions.remove(player.getUniqueId(), current)) {
+            detachForSave(current);
+        }
+        EnhancementSession created = new EnhancementSession(
+            player,
+            accountId,
+            inventoryState,
+            inventoryService.getDisplayedInventoryType(accountId)
+        );
+        sessions.put(player.getUniqueId(), created);
+        return created;
+    }
+
+    private void detachForSave(@NotNull EnhancementSession session) {
+        session.detached = true;
+        session.closeRequested = true;
+        session.entryRestoredForSave = EquipmentOperationInventoryState.restoreEntry(
+            session.inventoryState,
+            session.selectedEntry
+        );
+        if (!session.entryRestoredForSave) {
+            Logger.log(LogId.W_5203, "enhancement_logout_restore", session.accountId);
+        }
+        restoreBukkitInventoryBeforeSave(session);
+
+        CompletableFuture<EnhancementResult> operationFuture = session.operationFuture;
+        if (session.inFlightOperationId == null || operationFuture == null) {
+            inventorySaveCoordinator.enqueueLogoutReconciliation(session.accountId, () -> {
+                boolean restored = EquipmentOperationInventoryState.restoreEntry(
+                    session.inventoryState,
+                    session.selectedEntry
+                );
+                clearHeldEquipment(session);
+                if (!restored) {
+                    Logger.log(LogId.W_5203, "enhancement_logout_entry", session.accountId);
+                }
+                return restored;
+            });
+            return;
+        }
+        inventorySaveCoordinator.enqueueLogoutReconciliation(
+            session.accountId,
+            () -> reconcileDetachedOperation(session, operationFuture)
+        ).exceptionally(throwable -> {
+            Logger.log(LogId.W_5203, "enhancement_logout_reconciliation", session.accountId);
+            return false;
+        });
+    }
+
+    private void restoreBukkitInventoryBeforeSave(@NotNull EnhancementSession session) {
+        AstPlayer astPlayer = AstPlayerCache.get(session.owner);
+        if (astPlayer == null || astPlayer.getBukkit() != session.owner) {
+            return;
+        }
+        inventoryService.applyInventoryToGui(
+            astPlayer,
+            session.previousDisplayedType == null ? InventoryType.BAG : session.previousDisplayedType
+        );
+    }
+
+    private boolean reconcileDetachedOperation(
+        @NotNull EnhancementSession session,
+        @NotNull CompletableFuture<EnhancementResult> operationFuture
+    ) {
+        EnhancementResult result;
+        try {
+            result = operationFuture.join();
+        } catch (RuntimeException failure) {
+            boolean compensated = EquipmentOperationInventoryState.restoreSnapshot(
+                session.inventoryState,
+                session.paymentSnapshot
+            );
+            boolean restored = EquipmentOperationInventoryState.restoreEntry(
+                session.inventoryState,
+                session.selectedEntry
+            );
+            clearHeldEquipment(session);
+            if (!compensated || !restored) {
+                Logger.log(LogId.W_5203, "enhancement_logout_api", session.accountId);
+            }
+            return compensated && restored;
+        }
+
+        if (result == null) {
+            boolean compensated = EquipmentOperationInventoryState.restoreSnapshot(
+                session.inventoryState,
+                session.paymentSnapshot
+            );
+            boolean restored = EquipmentOperationInventoryState.restoreEntry(
+                session.inventoryState,
+                session.selectedEntry
+            );
+            clearHeldEquipment(session);
+            if (!compensated || !restored) {
+                Logger.log(LogId.W_5203, "enhancement_logout_result", session.accountId);
+            }
+            return compensated && restored;
+        }
+
+        boolean reconciled = session.entryRestoredForSave;
+        if (result.type == EnhancementResultType.FAIL_DESTROY) {
+            reconciled = EquipmentOperationInventoryState.removeEntry(
+                session.inventoryState,
+                session.selectedEntry
+            );
+        }
+        clearHeldEquipment(session);
+        if (!reconciled) {
+            Logger.log(LogId.W_5203, "enhancement_logout_entry", session.accountId);
+        }
+        return reconciled;
+    }
+
+    private void clearHeldEquipment(@NotNull EnhancementSession session) {
+        session.selectedEquipment = null;
+        session.selectedEntry = null;
+        session.inFlightOperationId = null;
+        session.operationFuture = null;
+        session.paymentSnapshot = null;
+    }
+
     private boolean returnSelectedEquipment(@NotNull AstPlayer astPlayer, @NotNull EnhancementSession session) {
         if (session.selectedEquipment == null || session.selectedEquipment.getType() == Material.AIR) {
             return false;
         }
-        if (inventoryService.returnItemToOwnedInventory(astPlayer, session.selectedEquipment.clone()) == null) {
+        if (!EquipmentOperationInventoryState.restoreEntry(session.inventoryState, session.selectedEntry)) {
             astPlayer.getBukkit().getWorld().dropItemNaturally(astPlayer.getBukkit().getLocation(), session.selectedEquipment.clone());
         }
         session.selectedEquipment = null;
+        session.selectedEntry = null;
         return true;
     }
 
-    private void releaseSession(@NotNull AstPlayer astPlayer, boolean restoreDisplayedInventory) {
-        EnhancementSession session = sessions.remove(astPlayer.getBukkit().getUniqueId());
-        if (session == null) {
-            return;
-        }
+    private void releaseSession(
+        @NotNull AstPlayer astPlayer,
+        @NotNull EnhancementSession session,
+        boolean restoreDisplayedInventory
+    ) {
+        sessions.remove(session.owner.getUniqueId(), session);
         if (session.selectedEquipment != null && session.selectedEquipment.getType() != Material.AIR) {
-            if (inventoryService.returnItemToOwnedInventory(astPlayer, session.selectedEquipment.clone()) == null) {
+            if (!EquipmentOperationInventoryState.restoreEntry(session.inventoryState, session.selectedEntry)) {
                 astPlayer.getBukkit().getWorld().dropItemNaturally(astPlayer.getBukkit().getLocation(), session.selectedEquipment.clone());
             }
             session.selectedEquipment = null;
+            session.selectedEntry = null;
         }
-        if (restoreDisplayedInventory && session.previousDisplayedType != null) {
+        if (restoreDisplayedInventory && session.owner == astPlayer.getBukkit()) {
+            restoreDisplayedInventory(astPlayer, session);
+        }
+    }
+
+    private void restoreDisplayedInventory(
+        @NotNull AstPlayer astPlayer,
+        @NotNull EnhancementSession session
+    ) {
+        if (session.previousDisplayedType != null) {
             inventoryService.applyInventoryToGui(astPlayer, session.previousDisplayedType);
         }
     }
 
     private void playSuccessEffects(@NotNull Player player) {
         player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.8f, 1.1f);
-        player.spawnParticle(Particle.ENCHANT, player.getLocation().add(0.0, 1.0, 0.0), 30, 0.35, 0.45, 0.35, 0.0);
+        particleDisplayService.spawnForNearbyViewers(
+            player.getLocation().add(0.0, 1.0, 0.0),
+            SharedParticleDefinitions.EQUIPMENT_ENHANCEMENT_SUCCESS
+        );
     }
 
     private void playFailureEffects(@NotNull Player player) {
         player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, SoundCategory.PLAYERS, 0.7f, 0.9f);
-        player.spawnParticle(Particle.SMOKE, player.getLocation().add(0.0, 1.0, 0.0), 18, 0.25, 0.35, 0.25, 0.02);
+        particleDisplayService.spawnForNearbyViewers(
+            player.getLocation().add(0.0, 1.0, 0.0),
+            SharedParticleDefinitions.EQUIPMENT_ENHANCEMENT_FAILURE
+        );
     }
 
     private void playDestroyEffects(@NotNull Player player) {
         player.playSound(player.getLocation(), Sound.ENTITY_ITEM_BREAK, SoundCategory.PLAYERS, 0.85f, 0.8f);
-        player.spawnParticle(Particle.LARGE_SMOKE, player.getLocation().add(0.0, 1.0, 0.0), 22, 0.3, 0.35, 0.3, 0.02);
+        particleDisplayService.spawnForNearbyViewers(
+            player.getLocation().add(0.0, 1.0, 0.0),
+            SharedParticleDefinitions.EQUIPMENT_ENHANCEMENT_DESTROY
+        );
     }
 
     private double normalizeSuccessRate(double rawRate) {
@@ -666,10 +997,28 @@ public final class EquipmentEnhancementService {
     }
 
     private static final class EnhancementSession {
+        private final Player owner;
+        private final UUID accountId;
+        private final PlayerInventoryState inventoryState;
         private final InventoryType previousDisplayedType;
         private ItemStack selectedEquipment;
+        private InventoryEntryModel selectedEntry;
+        private UUID inFlightOperationId;
+        private CompletableFuture<EnhancementResult> operationFuture;
+        private InventoryService.InventoryStateSnapshot paymentSnapshot;
+        private boolean closeRequested;
+        private volatile boolean detached;
+        private boolean entryRestoredForSave;
 
-        private EnhancementSession(@Nullable InventoryType previousDisplayedType) {
+        private EnhancementSession(
+            @NotNull Player owner,
+            @NotNull UUID accountId,
+            @NotNull PlayerInventoryState inventoryState,
+            @Nullable InventoryType previousDisplayedType
+        ) {
+            this.owner = owner;
+            this.accountId = accountId;
+            this.inventoryState = inventoryState;
             this.previousDisplayedType = previousDisplayedType;
         }
     }

@@ -16,7 +16,7 @@ public final class TradeCommand extends AstCommand {
      * TradeCommand を初期化する。
      */
     public TradeCommand() {
-        super("trade", "Request or accept player trade.", "/trade <playerName|accept>", true);
+        super("trade", "プレイヤー間取引を申請または承認します。", "/trade <playerName|accept>", true);
     }
 
     @Override

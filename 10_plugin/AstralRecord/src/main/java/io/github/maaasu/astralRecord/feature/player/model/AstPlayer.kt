@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot
 import io.github.maaasu.astralRecord.feature.user.model.UserModel
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties
+import io.github.maaasu.astralRecord.feature.resourcepack.service.BedrockPlayerDetector
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger
 import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationState
@@ -204,10 +205,10 @@ data class AstPlayer(
      * @return Bedrock Edition プレイヤーとして扱うなら true
      */
     fun isBedrock(): Boolean {
-        val prefixes = ConfigProperties.getInstance().resourcePackBedrockNamePrefixes ?: return false
-        return prefixes.any { prefix ->
-            !prefix.isNullOrBlank() && bukkit.name.startsWith(prefix)
-        }
+        return BedrockPlayerDetector.isBedrock(
+            bukkit.name,
+            ConfigProperties.getInstance().resourcePackBedrockNamePrefixes,
+        )
     }
 
     /**

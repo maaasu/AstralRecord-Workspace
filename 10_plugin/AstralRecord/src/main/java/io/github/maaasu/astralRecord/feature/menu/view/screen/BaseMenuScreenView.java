@@ -31,10 +31,7 @@ public abstract class BaseMenuScreenView {
         return createItem(
             Material.SPECTRAL_ARROW,
             Component.text("戻る", NamedTextColor.WHITE, TextDecoration.BOLD),
-            List.of(
-                Component.text("前の画面へ戻ります", NamedTextColor.GRAY),
-                Component.text("navigation", NamedTextColor.DARK_GRAY)
-            )
+            List.of(Component.text("前の画面へ戻ります", NamedTextColor.GRAY))
         );
     }
 

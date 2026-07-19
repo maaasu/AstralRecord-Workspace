@@ -73,10 +73,10 @@ class SetEffectRepository {
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            Logger.log(LogId.E_5400, e)
+            Logger.error(LogId.E_5400, e, e.message ?: e.javaClass.simpleName)
             throw RuntimeException(e)
         } catch (e: IOException) {
-            Logger.log(LogId.E_5400, e)
+            Logger.error(LogId.E_5400, e, e.message ?: e.javaClass.simpleName)
             throw e
         }
     }

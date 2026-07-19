@@ -39,4 +39,19 @@ public final class QuestPlayerState {
     public @NotNull Map<String, Long> cooldownUntil() {
         return cooldownUntil;
     }
+
+    public @NotNull QuestPlayerState snapshot() {
+        Map<String, QuestProgress> activeSnapshot = new LinkedHashMap<>();
+        for (Map.Entry<String, QuestProgress> entry : activeQuests.entrySet()) {
+            QuestProgress progress = entry.getValue();
+            activeSnapshot.put(entry.getKey(), new QuestProgress(
+                progress.questId(),
+                progress.acceptedAtEpochMillis(),
+                progress.acceptedNpcId(),
+                progress.objectiveProgress(),
+                progress.readyToTurnIn()
+            ));
+        }
+        return new QuestPlayerState(accountId, activeSnapshot, completedAt, cooldownUntil);
+    }
 }

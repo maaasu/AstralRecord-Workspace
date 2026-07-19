@@ -32,7 +32,7 @@ public final class GuiNavigationEventHandler extends AbstractEventHandler {
             if (event.getPlayer() instanceof Player player) {
                 navigationService.registerOpen(player, event.getInventory());
             }
-        }, LogId.E_5600, event.getPlayer().getName(), "gui_navigation_open");
+        }, LogId.E_5601, event.getPlayer().getName(), "gui_navigation_open");
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -41,7 +41,7 @@ public final class GuiNavigationEventHandler extends AbstractEventHandler {
             if (event.getPlayer() instanceof Player player) {
                 navigationService.scheduleSessionCloseCheck(player, event.getInventory());
             }
-        }, LogId.E_5600, event.getPlayer().getName(), "gui_navigation_close");
+        }, LogId.E_5601, event.getPlayer().getName(), "gui_navigation_close");
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -69,6 +69,6 @@ public final class GuiNavigationEventHandler extends AbstractEventHandler {
             } else {
                 GuiSound.DENY.play(player);
             }
-        }, LogId.E_5600, event.getWhoClicked().getName(), "gui_navigation_back");
+        }, LogId.E_5601, event.getWhoClicked().getName(), "gui_navigation_back");
     }
 }

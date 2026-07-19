@@ -43,6 +43,8 @@ import org.bukkit.projectiles.ProjectileSource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -143,6 +145,7 @@ public final class DamageService {
      * @param event Bukkit ダメージイベント
      */
     public void handleEntityDamage(@NotNull EntityDamageByEntityEvent event) {
+        double originalDamage = event.getDamage();
         AstEntity attacker = resolveEntity(event.getDamager());
         AstEntity victim = resolveEntity(event.getEntity());
 
@@ -170,7 +173,7 @@ public final class DamageService {
             return;
         }
 
-        applyDamage(attacker, victim, event.getDamage(), AttackType.MELEE, DamageType.PHYSICAL);
+        applyDamage(attacker, victim, originalDamage, AttackType.MELEE, DamageType.PHYSICAL);
     }
 
     /**
@@ -365,11 +368,11 @@ public final class DamageService {
         }
 
         double shieldBreak = attacker == null ? 0.0D : Math.max(0.0D, attacker.statValue(StatusType.SHIELD_BREAK));
-        double baseShieldDamage = Math.floor(result.finalDamage() / Math.max(1.0D, victim.maxHealth() * 0.1D));
+        double baseShieldDamage = Math.max(
+                1.0D,
+                Math.floor(result.finalDamage() / Math.max(1.0D, victim.maxHealth() * 0.1D))
+        );
         double calculatedShieldDamage = baseShieldDamage + shieldBreak;
-        if (calculatedShieldDamage < 1.0D) {
-            return DamageResult.shield(0.0D, false, result);
-        }
 
         double currentShield = currentShield(victim);
         double shieldDamage = Math.min(currentShield, calculatedShieldDamage);
@@ -754,20 +757,22 @@ public final class DamageService {
         double width = entity == null ? 0.6D : Math.max(0.6D, entity.getWidth());
         double radius = Math.max(width, height * 0.5D) * 0.65D + 0.25D;
         Location center = location.clone().add(0.0D, height * 0.5D, 0.0D);
+        List<Location> particles = new ArrayList<>(18);
         for (int i = 0; i < 18; i++) {
             double yaw = Math.toRadians(i * 20.0D);
             double pitch = Math.toRadians((i % 6 - 2.5D) * 18.0D);
             double cosPitch = Math.cos(pitch);
-            Location point = center.clone().add(
+            particles.add(center.clone().add(
                     Math.cos(yaw) * cosPitch * radius,
                     Math.sin(pitch) * radius,
                     Math.sin(yaw) * cosPitch * radius
-            );
-            particleDisplayService.spawnForNearbyViewers(
-                    point,
-                    broken ? SharedParticleDefinitions.SHIELD_BREAK_DUST : SharedParticleDefinitions.SHIELD_HIT_DUST
-            );
+            ));
         }
+        particleDisplayService.spawnForNearbyViewers(
+                center,
+                particles,
+                broken ? SharedParticleDefinitions.SHIELD_BREAK_DUST : SharedParticleDefinitions.SHIELD_HIT_DUST
+        );
         world.playSound(location, broken ? Sound.ITEM_SHIELD_BREAK : Sound.ITEM_SHIELD_BLOCK, 0.85F, broken ? 0.8F : 1.2F);
     }
 

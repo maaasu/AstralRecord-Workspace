@@ -4,7 +4,7 @@ type: BUFF
 name: "&6鷹の目"
 lore:
   - "&7一定時間、会心率と命中率が上昇する。"
-durationTicks: 000 # 20秒
+durationTicks: 400 # 20秒
 isDebuff: false
 modifiers:
   - status: CRITICAL_RATE

@@ -16,7 +16,7 @@ public final class EnhanceCommand extends AstCommand {
      * `/enhance` コマンドを生成します。
      */
     public EnhanceCommand() {
-        super("enhance", "Open equipment enhancement GUI.", "/enhance", true);
+        super("enhance", "装備強化GUIを開きます。", "/enhance", true);
     }
 
     @Override

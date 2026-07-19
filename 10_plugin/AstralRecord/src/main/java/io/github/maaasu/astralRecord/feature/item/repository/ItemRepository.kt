@@ -153,10 +153,10 @@ class ItemRepository {
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            Logger.log(LogId.E_5200, e)
+            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
             throw RuntimeException(e)
         } catch (e: IOException) {
-            Logger.log(LogId.E_5200, e)
+            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
             throw e
         }
     }
@@ -186,10 +186,10 @@ class ItemRepository {
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            Logger.log(LogId.E_5200, e)
+            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
             throw RuntimeException(e)
         } catch (e: IOException) {
-            Logger.log(LogId.E_5200, e)
+            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
             throw e
         }
     }
@@ -222,10 +222,10 @@ class ItemRepository {
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            Logger.log(LogId.E_5200, e)
+            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
             throw RuntimeException(e)
         } catch (e: IOException) {
-            Logger.log(LogId.E_5200, e)
+            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
             throw e
         }
     }
@@ -258,10 +258,10 @@ class ItemRepository {
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            Logger.log(LogId.E_5200, e)
+            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
             throw RuntimeException(e)
         } catch (e: IOException) {
-            Logger.log(LogId.E_5200, e)
+            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
             throw e
         }
     }
@@ -285,10 +285,10 @@ class ItemRepository {
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            Logger.log(LogId.E_5200, e)
+            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
             throw RuntimeException(e)
         } catch (e: IOException) {
-            Logger.log(LogId.E_5200, e)
+            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
             throw e
         }
     }
@@ -332,10 +332,10 @@ class ItemRepository {
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            Logger.log(LogId.E_5200, e)
+            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
             throw RuntimeException(e)
         } catch (e: IOException) {
-            Logger.log(LogId.E_5200, e)
+            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
             throw e
         }
     }
@@ -366,10 +366,10 @@ class ItemRepository {
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            Logger.log(LogId.E_5200, e)
+            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
             throw RuntimeException(e)
         } catch (e: IOException) {
-            Logger.log(LogId.E_5200, e)
+            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
             throw e
         }
     }
@@ -393,10 +393,10 @@ class ItemRepository {
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            Logger.log(LogId.E_5200, e)
+            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
             throw RuntimeException(e)
         } catch (e: IOException) {
-            Logger.log(LogId.E_5200, e)
+            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
             throw e
         }
     }

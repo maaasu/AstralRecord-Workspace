@@ -62,8 +62,10 @@ public final class BuffScreenView extends BaseMenuScreenView {
         NamedTextColor accent = buff.getType().isDebuff() ? NamedTextColor.RED : NamedTextColor.AQUA;
         Component name = noItalic(Component.text(sanitizeDisplayName(buff.getType().getDisplayName()), accent, TextDecoration.BOLD));
         List<Component> lore = new ArrayList<>();
-        lore.add(noItalic(Component.text("ID: " + buff.getType().getId(), NamedTextColor.DARK_GRAY)));
-        lore.add(noItalic(Component.text("種別: " + buff.getType().getType(), NamedTextColor.GRAY)));
+        lore.add(noItalic(Component.text(
+            "種別: " + (buff.getType().isDebuff() ? "デバフ" : "バフ"),
+            NamedTextColor.GRAY
+        )));
         lore.add(noItalic(Component.text("残り: " + formatRemaining(buff), NamedTextColor.YELLOW)));
         lore.add(Component.empty());
         for (BuffModifier modifier : buff.getType().getModifiers()) {

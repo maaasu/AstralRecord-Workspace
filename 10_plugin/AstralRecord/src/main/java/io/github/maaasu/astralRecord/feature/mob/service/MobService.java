@@ -105,12 +105,33 @@ public class MobService {
      * @return ロードしたテンプレート数
      */
     public int loadAll() {
-        templates.clear();
-        for (MobTemplate template : repository.findAll()) {
-            templates.put(template.id(), template);
-        }
-        Logger.log(LogId.I_5700, templates.size());
+        Map<String, MobTemplate> snapshot = loadTemplateSnapshot();
+        replaceTemplateSnapshot(snapshot);
         return templates.size();
+    }
+
+    /**
+     * API から Mob テンプレートを取得し、公開前の immutable スナップショットを作成します。
+     *
+     * @return Mob テンプレートスナップショット
+     */
+    public @NotNull Map<String, MobTemplate> loadTemplateSnapshot() {
+        Map<String, MobTemplate> snapshot = new LinkedHashMap<>();
+        for (MobTemplate template : repository.findAll()) {
+            snapshot.put(template.id(), template);
+        }
+        return Collections.unmodifiableMap(snapshot);
+    }
+
+    /**
+     * 準備済み Mob テンプレートを実行時キャッシュへ一括反映します。
+     *
+     * @param snapshot Mob テンプレートスナップショット
+     */
+    public void replaceTemplateSnapshot(@NotNull Map<String, MobTemplate> snapshot) {
+        templates.clear();
+        templates.putAll(snapshot);
+        Logger.log(LogId.I_5700, templates.size());
     }
 
     /**

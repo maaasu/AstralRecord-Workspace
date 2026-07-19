@@ -104,11 +104,30 @@ public final class TeleporterService {
      * @return 読み込んだ件数
      */
     public int loadAll() {
+        List<WaystoneDefinition> snapshot = loadDefinitionSnapshot();
+        replaceDefinitionSnapshot(snapshot);
+        return definitionsById.size();
+    }
+
+    /**
+     * ウェイストーン定義を読み込み、公開前のスナップショットを作成します。
+     *
+     * @return ウェイストーン定義スナップショット
+     */
+    public @NotNull List<WaystoneDefinition> loadDefinitionSnapshot() {
+        return List.copyOf(definitionRepository.loadAll());
+    }
+
+    /**
+     * 準備済みウェイストーン定義を実行時キャッシュへ一括反映します。
+     *
+     * @param snapshot ウェイストーン定義スナップショット
+     */
+    public void replaceDefinitionSnapshot(@NotNull List<WaystoneDefinition> snapshot) {
         definitionsById.clear();
-        for (WaystoneDefinition definition : definitionRepository.loadAll()) {
+        for (WaystoneDefinition definition : snapshot) {
             definitionsById.put(definition.id(), definition);
         }
-        return definitionsById.size();
     }
 
     /**

@@ -2,7 +2,6 @@ package io.github.maaasu.astralRecord.feature.inventory.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
-import io.github.maaasu.astralRecord.feature.inventory.state.InventoryPersistence;
 import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryState;
 import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStateRegistry;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -18,11 +17,13 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * 一定間隔（既定 60 秒）でオンライン全プレイヤーのインベントリ状態を API へ反映するスケジュールタスク。
  * <p>
- * BukkitScheduler の async timer として動作するため API 呼び出しはメインスレッドを止めません。
+ * BukkitScheduler の timer でスナップショットを取得し、API 呼び出しは
+ * {@link InventorySaveCoordinator} の非同期 executor 上で実行するためメインスレッドを止めません。
  * dirty フラグが立っている state のみを保存対象とし、未変更プレイヤーは通信を行いません。
  */
 public final class InventoryAutoSaveTask {
@@ -31,7 +32,7 @@ public final class InventoryAutoSaveTask {
     public static final long DEFAULT_INTERVAL_TICKS = 60L * 20L;
 
     private final InventoryService inventoryService;
-    private final InventoryPersistence persistence;
+    private final InventorySaveCoordinator inventorySaveCoordinator;
     private final PlayerInventoryStateRegistry registry;
     private final PlayerSettingService playerSettingService;
     private final PlayerMessageService playerMessageService;
@@ -40,18 +41,21 @@ public final class InventoryAutoSaveTask {
     /**
      * オートセーブタスクを構築します。
      *
-     * @param persistence 永続化サービス
+     * @param inventoryService インベントリサービス
+     * @param inventorySaveCoordinator インベントリ保存コーディネーター
      * @param registry プレイヤー state レジストリ
+     * @param playerSettingService プレイヤー設定サービス
+     * @param playerMessageService プレイヤーメッセージサービス
      */
     public InventoryAutoSaveTask(
         @NotNull InventoryService inventoryService,
-        @NotNull InventoryPersistence persistence,
+        @NotNull InventorySaveCoordinator inventorySaveCoordinator,
         @NotNull PlayerInventoryStateRegistry registry,
         @NotNull PlayerSettingService playerSettingService,
         @NotNull PlayerMessageService playerMessageService
     ) {
         this.inventoryService = inventoryService;
-        this.persistence = persistence;
+        this.inventorySaveCoordinator = inventorySaveCoordinator;
         this.registry = registry;
         this.playerSettingService = playerSettingService;
         this.playerMessageService = playerMessageService;
@@ -72,8 +76,7 @@ public final class InventoryAutoSaveTask {
             () -> {
                 List<UUID> notificationTargets = notifySaveStarted();
                 captureToolInventorySnapshots();
-                plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-                    boolean succeeded = runSaveAllWithResult();
+                runSaveAll().thenAccept(succeeded -> {
                     if (succeeded) {
                         plugin.getServer().getScheduler().runTask(
                             plugin,
@@ -101,25 +104,22 @@ public final class InventoryAutoSaveTask {
      * 全オンラインプレイヤーの state を保存対象として 1 回だけ実行します。
      * <p>
      * 通常はスケジューラから呼び出されますが、テストや手動 flush で利用してもかまいません。
+     * 保存処理はアカウント別キュー上で非同期に実行され、呼び出しスレッドを待機させません。
+     *
+     * @return 全 state の保存が未保存変更を残さず完了した場合 {@code true} となる future
      */
-    public void runSaveAll() {
-        runSaveAllWithResult();
-    }
-
-    private boolean runSaveAllWithResult() {
-        boolean succeeded = true;
+    public @NotNull CompletableFuture<Boolean> runSaveAll() {
+        List<CompletableFuture<Boolean>> saves = new ArrayList<>();
         for (PlayerInventoryState state : registry.all()) {
-            try {
-                boolean attempted = persistence.save(state, InventoryPersistence.SaveTrigger.AUTO);
-                if (attempted && persistence.hasPendingChanges(state)) {
-                    succeeded = false;
-                }
-            } catch (RuntimeException e) {
-                succeeded = false;
-                Logger.warn(LogId.W_5252, state.getAccountId(), e.getMessage());
-            }
+            CompletableFuture<Boolean> save = inventorySaveCoordinator.saveAuto(state).handle((succeeded, throwable) -> {
+                inventorySaveCoordinator.cleanupAfterRetry(state);
+                return throwable == null && Boolean.TRUE.equals(succeeded);
+            });
+            saves.add(save);
         }
-        return succeeded;
+        CompletableFuture<?>[] pending = saves.toArray(CompletableFuture[]::new);
+        return CompletableFuture.allOf(pending)
+            .thenApply(ignored -> saves.stream().allMatch(CompletableFuture::join));
     }
 
     private @NotNull List<UUID> notifySaveStarted() {

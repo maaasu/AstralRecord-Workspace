@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -67,5 +68,21 @@ class TextDisplayPlacementServiceTest extends MockBukkitTestBase {
         command.onCommand(player, null, "textdisplay", new String[] {"place", "notice", "&aHello", "World"});
 
         verify(placementService).place("notice", "&aHello World", location);
+    }
+
+    @Test
+    void failedSaveKeepsDirtyStateForRetry() {
+        Plugin plugin = mock(Plugin.class);
+        TextDisplayPlacementRepository repository = mock(TextDisplayPlacementRepository.class);
+        DisplayTextService displayTextService = mock(DisplayTextService.class);
+        when(repository.saveAll(any())).thenReturn(false, true);
+        TextDisplayPlacementService service = new TextDisplayPlacementService(plugin, repository);
+        service.setDisplayTextService(displayTextService);
+        World world = server().addSimpleWorld("retry_world");
+
+        service.place("retry", "保存再試行", new Location(world, 0.0D, 64.0D, 0.0D));
+        service.saveIfDirty();
+
+        verify(repository, times(2)).saveAll(any());
     }
 }

@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.Field;
 import java.util.AbstractList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -80,6 +81,27 @@ class LootServiceTest {
         assertSame(firstNewLoot, service.getLoaded("new_first"));
         assertSame(secondNewLoot, service.getLoaded("new_second"));
         assertEquals(List.of(firstNewLoot, secondNewLoot), service.getLoadedLoots());
+    }
+
+    @Test
+    void preparedSnapshotDoesNotPublishUntilExplicitReplace() {
+        LootRepository repository = mock(LootRepository.class);
+        LootModel oldLoot = loot("old");
+        LootModel newLoot = loot("new");
+        when(repository.findById("old")).thenReturn(oldLoot);
+        when(repository.findAll()).thenReturn(List.of(newLoot));
+        LootService service = new LootService(repository);
+        assertSame(oldLoot, service.getLoadedOrFetch("old"));
+
+        Map<String, LootModel> snapshot = service.loadSnapshot();
+
+        assertSame(oldLoot, service.getLoaded("old"));
+        assertNull(service.getLoaded("new"));
+
+        service.replaceSnapshot(snapshot);
+
+        assertNull(service.getLoaded("old"));
+        assertSame(newLoot, service.getLoaded("new"));
     }
 
     private LootModel loot(String id) {

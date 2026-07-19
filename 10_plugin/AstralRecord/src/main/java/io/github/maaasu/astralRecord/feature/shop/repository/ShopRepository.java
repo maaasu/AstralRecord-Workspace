@@ -17,8 +17,45 @@ import java.util.List;
 
 public final class ShopRepository {
     private static final String RELATIVE_PATH = "45.features.shop";
+    private volatile List<ShopDefinition> cachedShops;
 
     public @NotNull List<ShopDefinition> findAll() {
+        List<ShopDefinition> current = cachedShops;
+        if (current != null) {
+            return current;
+        }
+        synchronized (this) {
+            current = cachedShops;
+            if (current != null) {
+                return current;
+            }
+            current = loadAll();
+            if (FileDatabaseManager.getInstance().getRootDirectory() != null) {
+                cachedShops = current;
+            }
+            return current;
+        }
+    }
+
+    /**
+     * 現在のキャッシュを維持したまま、filebase から次のスナップショットを構築します。
+     *
+     * @return 公開前のショップ定義スナップショット
+     */
+    public @NotNull List<ShopDefinition> loadSnapshot() {
+        return loadAll();
+    }
+
+    /**
+     * 構築済みスナップショットをキャッシュへ一括公開します。
+     *
+     * @param snapshot 公開するショップ定義
+     */
+    public void replaceCache(@NotNull List<ShopDefinition> snapshot) {
+        cachedShops = List.copyOf(snapshot);
+    }
+
+    private @NotNull List<ShopDefinition> loadAll() {
         File root = FileDatabaseManager.getInstance().getRootDirectory();
         if (root == null) {
             return List.of();
@@ -35,7 +72,7 @@ public final class ShopRepository {
                 result.add(shop);
             }
         }
-        return result;
+        return List.copyOf(result);
     }
 
     public @Nullable ShopDefinition findById(@NotNull String shopId) {

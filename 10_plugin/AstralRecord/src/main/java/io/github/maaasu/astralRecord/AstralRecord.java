@@ -60,6 +60,7 @@ import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryRepos
 import io.github.maaasu.astralRecord.feature.inventory.repository.EquipmentLoadoutRepository;
 import io.github.maaasu.astralRecord.feature.inventory.event.InventoryEquipmentGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryAutoSaveTask;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveTask;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.inventory.state.InventoryPersistence;
@@ -206,17 +207,25 @@ import io.github.maaasu.astralRecord.infrastructure.config.ConfigManager;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
 import io.github.maaasu.astralRecord.infrastructure.api.ApiHealthChecker;
 import io.github.maaasu.astralRecord.infrastructure.database.file.FileDatabaseManager;
+import io.github.maaasu.astralRecord.infrastructure.database.file.yaml.config.YamlDbConfig;
 import io.github.maaasu.astralRecord.infrastructure.database.file.yaml.config.YamlDbConfigUtil;
 import io.github.maaasu.astralRecord.infrastructure.database.sqlserver.SqlServerManager;
 import io.github.maaasu.astralRecord.infrastructure.logging.AuditLogger;
 import io.github.maaasu.astralRecord.infrastructure.logging.AuditLoggerRegistry;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.display.OverheadDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionGatewayEventHandler;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 public final class AstralRecord extends JavaPlugin {
 
@@ -233,6 +242,7 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerMessageService playerMessageService;
     private PlayerRegionService playerRegionService;
     private InventoryService inventoryService;
+    private InventorySaveCoordinator inventorySaveCoordinator;
     private InventoryPersistence inventoryPersistence;
     private PlayerInventoryStateRegistry inventoryStateRegistry;
     private InventoryAutoSaveTask inventoryAutoSaveTask;
@@ -332,6 +342,8 @@ public final class AstralRecord extends JavaPlugin {
     private BossChallengeService bossChallengeService;
     private BossChallengeCancelGui bossChallengeCancelGui;
     private String joinSpawnWorldId;
+    private final AtomicReference<CompletableFuture<Integer>> masterDataReloadInFlight = new AtomicReference<>();
+    private final AtomicLong masterDataReloadGeneration = new AtomicLong();
 
     @Override
     public void onLoad() {
@@ -423,17 +435,40 @@ public final class AstralRecord extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        masterDataReloadGeneration.incrementAndGet();
+        CompletableFuture<Integer> pendingMasterDataReload = masterDataReloadInFlight.getAndSet(null);
+        if (pendingMasterDataReload != null && !pendingMasterDataReload.isDone()) {
+            pendingMasterDataReload.completeExceptionally(
+                new IllegalStateException("マスターデータ再読込中にプラグインが停止しました")
+            );
+        }
         if (inventoryAutoSaveTask != null) {
             inventoryAutoSaveTask.stop();
         }
         if (guideReminderTask != null) {
             guideReminderTask.stop();
         }
+        if (questService != null) {
+            questService.stop();
+        }
         if (accountService != null) {
             accountService.stop();
         }
+        if (tradeService != null) {
+            tradeService.cancelAll();
+        }
+        if (equipmentEnhancementService != null) {
+            equipmentEnhancementService.prepareAllForShutdown();
+        }
+        if (equipmentRepairService != null) {
+            equipmentRepairService.prepareAllForShutdown();
+        }
         if (playerService != null) {
             playerService.saveAllOnlinePlayersAndClear();
+        }
+        if (inventorySaveCoordinator != null) {
+            inventorySaveCoordinator.beginClosing();
+            inventorySaveCoordinator.awaitPendingWrites(5000L);
         }
         if (inventoryService != null) {
             inventoryService.awaitPendingWrites(5000L);
@@ -498,9 +533,6 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (partyService != null) {
             partyService.clearAll();
-        }
-        if (tradeService != null) {
-            tradeService.cancelAll();
         }
         if (returnToBaseService != null) {
             returnToBaseService.cancelAll();
@@ -584,13 +616,19 @@ public final class AstralRecord extends JavaPlugin {
         var equipmentLoadoutRepository = new EquipmentLoadoutRepository();
         inventoryStateRegistry = new PlayerInventoryStateRegistry();
         inventoryPersistence = new InventoryPersistence(inventoryRepository, equipmentLoadoutRepository, itemService);
+        inventorySaveCoordinator = new InventorySaveCoordinator(
+            inventoryPersistence,
+            inventoryStateRegistry,
+            task -> getServer().getScheduler().runTaskAsynchronously(this, task)
+        );
         inventoryService = new InventoryService(
             inventoryRepository,
             equipmentLoadoutRepository,
             itemService,
             itemStackFactory,
             inventoryStateRegistry,
-            inventoryPersistence
+            inventoryPersistence,
+            inventorySaveCoordinator
         );
         accountModeApplicationService = new AccountModeApplicationService(accountService, inventoryService);
         skillTreeService.setInventoryService(inventoryService);
@@ -603,7 +641,7 @@ public final class AstralRecord extends JavaPlugin {
         playerMessageService = new PlayerMessageService();
         inventoryAutoSaveTask = new InventoryAutoSaveTask(
             inventoryService,
-            inventoryPersistence,
+            inventorySaveCoordinator,
             inventoryStateRegistry,
             playerSettingService,
             playerMessageService
@@ -616,6 +654,7 @@ public final class AstralRecord extends JavaPlugin {
         );
         particleDisplayService = new ParticleDisplayService(playerSettingService);
         mobSpawnerService.setParticleDisplayService(particleDisplayService);
+        gatheringSpawnerService.setParticleDisplayService(particleDisplayService);
         displayTextService = new DisplayTextService();
         textDisplayPlacementService.setDisplayTextService(displayTextService);
         waystonePacketView = new WaystonePacketView(teleporterService);
@@ -724,6 +763,7 @@ public final class AstralRecord extends JavaPlugin {
             userService,
             accountService,
             inventoryService,
+            inventorySaveCoordinator,
             inventoryPersistence,
             inventoryStateRegistry,
             statusService,
@@ -788,16 +828,28 @@ public final class AstralRecord extends JavaPlugin {
             new MenuGuiTransitionService(this, menuView, inventoryService);
         trashService = new TrashService(this, menuView, inventoryService, menuGuiTransitionService);
         sellService = new SellService(this, menuView, inventoryService, menuGuiTransitionService);
-        storageService = new StorageService(menuView, inventoryService, menuGuiTransitionService);
-        equipmentEnhancementService = new EquipmentEnhancementService(
+        storageService = new StorageService(
             menuView,
             inventoryService,
+            inventorySaveCoordinator,
+            menuGuiTransitionService
+        );
+        equipmentEnhancementService = new EquipmentEnhancementService(
+            this,
+            menuView,
+            inventoryService,
+            inventorySaveCoordinator,
+            inventoryStateRegistry,
             itemService,
-            itemStackFactory
+            itemStackFactory,
+            particleDisplayService
         );
         equipmentRepairService = new EquipmentRepairService(
+            this,
             menuView,
             inventoryService,
+            inventorySaveCoordinator,
+            inventoryStateRegistry,
             itemService,
             itemStackFactory,
             particleDisplayService
@@ -822,7 +874,7 @@ public final class AstralRecord extends JavaPlugin {
             new LoginBonusClaimRepository()
         );
         partyMemberActionGui = new PartyMemberActionGui();
-        mailService = new MailService(new MailRepository(), itemService, inventoryService);
+        mailService = new MailService(this, new MailRepository(), itemService, inventoryService);
         shopService = new ShopService(
             new ShopRepository(),
             new ShopRecipeRepository(),
@@ -838,6 +890,7 @@ public final class AstralRecord extends JavaPlugin {
         shopGui = new ShopGui(this, shopService, itemStackFactory);
         shopGuiEventHandler = new ShopGuiEventHandler(shopGui, shopService, inventoryService);
         questService = new QuestService(
+            this,
             new QuestDefinitionRepository(),
             new QuestBoardRepository(),
             new QuestPlayerStateRepository(this),
@@ -868,7 +921,7 @@ public final class AstralRecord extends JavaPlugin {
 
         // skill
         skillService = new SkillService(new SkillRepository(), new SkillRegistry(), this);
-        skillBindPresetService = new SkillBindPresetService(new SkillBindPresetRepository());
+        skillBindPresetService = new SkillBindPresetService(this, new SkillBindPresetRepository());
         skillService.setConditionService(conditionService);
         skillService.registerExecutor(new FireBoostSkillExecutor(particleDisplayService));
         skillService.registerExecutor(new IronWillSkillExecutor());
@@ -898,6 +951,7 @@ public final class AstralRecord extends JavaPlugin {
             var skillDefinitions = skillService.loadDefinitions();
             playerClassService.loadAll();
             guideService.loadAll();
+            shopService.warmCaches();
             getServer().getScheduler().runTask(this, () -> {
                 skillService.replaceDefinitions(skillDefinitions);
                 skillTreeService.loadAll();
@@ -945,6 +999,8 @@ public final class AstralRecord extends JavaPlugin {
             this,
             playerService,
             skillTreeService,
+            questService,
+            skillBindPresetService,
             loginBonusService,
             mailService
         );
@@ -1227,6 +1283,7 @@ public final class AstralRecord extends JavaPlugin {
         mobSpawnerService.start();
         gatheringService.start();
         gatheringSpawnerService.start();
+        questService.start();
         bossChallengeService.start();
         passiveSkillService.start();
         skillTreeService.start();
@@ -1476,33 +1533,220 @@ public final class AstralRecord extends JavaPlugin {
     }
 
     /**
-     * Re-reads all runtime master-data caches from the API/filebase-backed repositories.
-     * This deliberately preserves player, inventory, and runtime world instance state.
+     * API/filebase 由来のマスターデータ再読込を開始します。
+     *
+     * <p>Repository/file I/O は非同期 task で実行し、Bukkit API と実行時キャッシュへの公開だけを
+     * メインスレッドへ戻します。同時に実行できる再読込は 1 件だけです。</p>
+     *
+     * @return 開始結果と完了 future
      */
-    public synchronized int reloadMasterData() {
-        FileDatabaseManager.getInstance().reload();
-        YamlDbConfigUtil.INSTANCE.reload();
+    public @org.jetbrains.annotations.NotNull MasterDataReloadStart reloadMasterData() {
+        CompletableFuture<Integer> completion = new CompletableFuture<>();
+        while (true) {
+            CompletableFuture<Integer> current = masterDataReloadInFlight.get();
+            if (current != null && !current.isDone()) {
+                return new MasterDataReloadStart(false, current);
+            }
+            if (current != null && !masterDataReloadInFlight.compareAndSet(current, null)) {
+                continue;
+            }
+            if (masterDataReloadInFlight.compareAndSet(null, completion)) {
+                break;
+            }
+        }
 
-        lootService.clearCache();
-        int loaded = lootService.loadAll();
-        itemService.clearMasterDataCache();
-        itemStackFactory.clearCache();
-        loaded += itemService.loadAll();
+        long generation = masterDataReloadGeneration.incrementAndGet();
+        try {
+            AsyncTaskUtil.supplyAsync(this, this::prepareMasterDataReload)
+                .whenComplete((plan, throwable) -> {
+                    if (throwable != null) {
+                        if (isCurrentMasterDataReload(completion, generation)) {
+                            completion.completeExceptionally(throwable);
+                            masterDataReloadInFlight.compareAndSet(completion, null);
+                        } else {
+                            completion.completeExceptionally(
+                                new IllegalStateException("古いマスターデータ再読込の完了結果です", throwable)
+                            );
+                        }
+                        return;
+                    }
+                    try {
+                        AsyncTaskUtil.runSync(this, () -> publishMasterDataReload(completion, generation, plan));
+                    } catch (RuntimeException schedulingFailure) {
+                        if (isCurrentMasterDataReload(completion, generation)) {
+                            completion.completeExceptionally(schedulingFailure);
+                            masterDataReloadInFlight.compareAndSet(completion, null);
+                        } else {
+                            completion.completeExceptionally(
+                                new IllegalStateException("古いマスターデータ再読込の完了結果です", schedulingFailure)
+                            );
+                        }
+                    }
+                });
+        } catch (RuntimeException schedulingFailure) {
+            masterDataReloadInFlight.compareAndSet(completion, null);
+            completion.completeExceptionally(schedulingFailure);
+        }
+        return new MasterDataReloadStart(true, completion);
+    }
+
+    private @org.jetbrains.annotations.NotNull MasterDataReloadPlan prepareMasterDataReload() {
+        FileDatabaseManager fileDatabaseManager = FileDatabaseManager.getInstance();
+        FileDatabaseManager.ReloadSnapshot fileDatabaseSnapshot = fileDatabaseManager.loadReloadSnapshot();
+        YamlDbConfig yamlDbConfig = YamlDbConfigUtil.INSTANCE.loadSnapshot(
+            fileDatabaseSnapshot.rootDirectory()
+        );
+        if (yamlDbConfig == null) {
+            throw new IllegalStateException("filebase.config");
+        }
+
+        return fileDatabaseManager.withReloadSnapshot(
+            fileDatabaseSnapshot,
+            () -> YamlDbConfigUtil.INSTANCE.withSnapshot(
+                yamlDbConfig,
+                () -> loadMasterDataReloadPlan(fileDatabaseSnapshot, yamlDbConfig)
+            )
+        );
+    }
+
+    private @org.jetbrains.annotations.NotNull MasterDataReloadPlan loadMasterDataReloadPlan(
+        @org.jetbrains.annotations.NotNull FileDatabaseManager.ReloadSnapshot fileDatabaseSnapshot,
+        @org.jetbrains.annotations.NotNull YamlDbConfig yamlDbConfig
+    ) {
+        var lootSnapshot = lootService.loadSnapshot();
+        int loaded = lootSnapshot.size();
+        List<Runnable> publications = new ArrayList<>();
+        List<MasterDataActivation> activations = new ArrayList<>();
+        publications.add(() -> lootService.replaceSnapshot(lootSnapshot));
+
+        var itemSnapshot = itemService.loadMasterDataSnapshot();
+        loaded += itemSnapshot.size();
+        publications.add(() -> {
+            itemService.replaceMasterDataSnapshot(itemSnapshot);
+            itemStackFactory.clearCache();
+        });
+
         var skillDefinitions = skillService.loadDefinitions();
-        skillService.replaceDefinitions(skillDefinitions);
         loaded += skillDefinitions.size();
-        loaded += playerClassService.loadAll();
-        loaded += guideService.loadAll();
+        publications.add(() -> skillService.replaceDefinitions(skillDefinitions));
 
-        loaded += mobService.loadAll();
-        loaded += npcPlacementService.loadAll();
-        loaded += mobSpawnerService.loadAll();
-        loaded += gatheringService.loadAll();
-        loaded += gatheringSpawnerService.loadAll();
-        loaded += questService.loadAll();
-        loaded += teleporterService.loadAll();
-        loaded += worldService.loadAll();
-        return loaded;
+        var classSnapshot = playerClassService.loadSnapshot();
+        loaded += classSnapshot.size();
+        publications.add(() -> playerClassService.replaceSnapshot(classSnapshot));
+        var guideSnapshot = guideService.loadEntrySnapshot();
+        loaded += guideSnapshot.size();
+        publications.add(() -> guideService.replaceEntrySnapshot(guideSnapshot));
+
+        var mobSnapshot = mobService.loadTemplateSnapshot();
+        loaded += mobSnapshot.size();
+        publications.add(() -> mobService.replaceTemplateSnapshot(mobSnapshot));
+
+        var npcSnapshot = npcPlacementService.loadPlacementSnapshot();
+        loaded += npcSnapshot.size();
+        publications.add(() -> npcPlacementService.replacePlacementSnapshot(npcSnapshot));
+        activations.add(new MasterDataActivation("npc", npcPlacementService::activatePlacementSnapshot));
+
+        var mobSpawnerSnapshot = mobSpawnerService.loadMasterDataSnapshot();
+        loaded += mobSpawnerSnapshot.definitions().size();
+        publications.add(() -> mobSpawnerService.replaceMasterDataSnapshot(mobSpawnerSnapshot));
+
+        var gatheringSnapshot = gatheringService.loadDefinitionSnapshot();
+        loaded += gatheringSnapshot.size();
+        publications.add(() -> gatheringService.replaceDefinitionSnapshot(gatheringSnapshot));
+        activations.add(new MasterDataActivation("gathering", gatheringService::activateDefinitionSnapshot));
+
+        var gatheringSpawnerSnapshot = gatheringSpawnerService.loadMasterDataSnapshot();
+        loaded += gatheringSpawnerSnapshot.definitions().size();
+        publications.add(() -> gatheringSpawnerService.replaceMasterDataSnapshot(gatheringSpawnerSnapshot));
+
+        var questSnapshot = questService.loadMasterDataSnapshot();
+        loaded += questSnapshot.quests().size();
+        publications.add(() -> questService.replaceMasterDataSnapshot(questSnapshot));
+
+        var teleporterSnapshot = teleporterService.loadDefinitionSnapshot();
+        loaded += teleporterSnapshot.size();
+        publications.add(() -> teleporterService.replaceDefinitionSnapshot(teleporterSnapshot));
+
+        var worldSnapshot = worldService.loadDefinitionSnapshot();
+        loaded += worldSnapshot.worlds().size();
+        publications.add(() -> worldService.replaceDefinitionSnapshot(worldSnapshot));
+        activations.add(new MasterDataActivation(
+            "world",
+            () -> worldService.activateDefinitionSnapshot(worldSnapshot)
+        ));
+
+        var shopSnapshot = shopService.loadCacheSnapshot();
+        loaded += shopSnapshot.size();
+        publications.add(() -> shopService.replaceCacheSnapshot(shopSnapshot));
+        return new MasterDataReloadPlan(
+            loaded,
+            fileDatabaseSnapshot,
+            yamlDbConfig,
+            List.copyOf(publications),
+            List.copyOf(activations)
+        );
+    }
+
+    private void publishMasterDataReload(
+        @org.jetbrains.annotations.NotNull CompletableFuture<Integer> completion,
+        long generation,
+        @org.jetbrains.annotations.NotNull MasterDataReloadPlan plan
+    ) {
+        if (!isCurrentMasterDataReload(completion, generation) || !isEnabled()) {
+            completion.completeExceptionally(new IllegalStateException("古いマスターデータ再読込の完了結果です"));
+            masterDataReloadInFlight.compareAndSet(completion, null);
+            return;
+        }
+
+        try {
+            for (Runnable publication : plan.publications()) {
+                publication.run();
+            }
+            FileDatabaseManager.getInstance().replaceReloadSnapshot(plan.fileDatabaseSnapshot());
+            YamlDbConfigUtil.INSTANCE.replaceSnapshot(plan.yamlDbConfig());
+            for (MasterDataActivation activation : plan.activations()) {
+                try {
+                    activation.action().run();
+                } catch (RuntimeException activationFailure) {
+                    Logger.log(LogId.W_1550, activationFailure, activation.target());
+                }
+            }
+            completion.complete(plan.loadedCount());
+        } catch (RuntimeException publicationFailure) {
+            completion.completeExceptionally(publicationFailure);
+        } finally {
+            masterDataReloadInFlight.compareAndSet(completion, null);
+        }
+    }
+
+    private boolean isCurrentMasterDataReload(
+        @org.jetbrains.annotations.NotNull CompletableFuture<Integer> completion,
+        long generation
+    ) {
+        return masterDataReloadGeneration.get() == generation
+            && masterDataReloadInFlight.get() == completion;
+    }
+
+    /** マスターデータ再読込の開始結果です。 */
+    public record MasterDataReloadStart(
+        boolean started,
+        @org.jetbrains.annotations.NotNull CompletableFuture<Integer> completion
+    ) {
+    }
+
+    private record MasterDataReloadPlan(
+        int loadedCount,
+        @org.jetbrains.annotations.NotNull FileDatabaseManager.ReloadSnapshot fileDatabaseSnapshot,
+        @org.jetbrains.annotations.NotNull YamlDbConfig yamlDbConfig,
+        @org.jetbrains.annotations.NotNull List<Runnable> publications,
+        @org.jetbrains.annotations.NotNull List<MasterDataActivation> activations
+    ) {
+    }
+
+    private record MasterDataActivation(
+        @org.jetbrains.annotations.NotNull String target,
+        @org.jetbrains.annotations.NotNull Runnable action
+    ) {
     }
 
     public BossChallengeService getBossChallengeService() {

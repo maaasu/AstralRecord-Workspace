@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.spawner.repository;
 
 import io.github.maaasu.astralRecord.feature.spawner.model.MobSpawnerLocation;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -64,7 +66,7 @@ public class MobSpawnerLocationRepository {
      *
      * @param locations 保存対象
      */
-    public void saveAll(@NotNull Iterable<MobSpawnerLocation> locations) {
+    public boolean saveAll(@NotNull Iterable<MobSpawnerLocation> locations) {
         YamlConfiguration yaml = new YamlConfiguration();
         List<java.util.Map<String, Object>> rows = new ArrayList<>();
         for (MobSpawnerLocation location : locations) {
@@ -80,13 +82,16 @@ public class MobSpawnerLocationRepository {
 
         File file = file();
         File parent = file.getParentFile();
-        if (parent != null && !parent.exists()) {
-            parent.mkdirs();
+        if (parent != null && !parent.exists() && !parent.mkdirs()) {
+            Logger.log(LogId.E_6401, "mob_spawner", parent);
+            return false;
         }
         try {
             yaml.save(file);
-        } catch (IOException ignored) {
-            // ライトビハインド保存のため、失敗時は次回保存に委ねます。
+            return true;
+        } catch (IOException ex) {
+            Logger.log(LogId.E_6400, ex, "mob_spawner", file, ex.getMessage());
+            return false;
         }
     }
 

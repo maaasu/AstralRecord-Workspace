@@ -15,6 +15,15 @@ public interface PlayerSaveTask {
     @NotNull String getTaskName();
 
     /**
+     * 永続化前に Bukkit メインスレッド上で取得すべきスナップショットを準備します。
+     *
+     * @param player 保存対象プレイヤー
+     * @param trigger 保存の発火契機
+     */
+    default void prepare(@NotNull AstPlayer player, @NotNull PlayerSaveTrigger trigger) {
+    }
+
+    /**
      * 指定プレイヤーのデータを保存します。
      *
      * @param player 保存対象プレイヤー

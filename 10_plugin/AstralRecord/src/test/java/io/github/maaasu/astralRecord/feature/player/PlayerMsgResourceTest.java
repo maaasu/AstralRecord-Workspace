@@ -58,8 +58,8 @@ class PlayerMsgResourceTest {
 
         assertTrue(accountMode.contains("Alice"));
         assertTrue(accountMode.contains("PLAYER"));
-        assertTrue(displayAudit.contains("skilltreeDisplays="));
-        assertTrue(PlayerMsgResource.getMessage(PlayerMsgId.P_5325.getId()).contains("PlayerSettingService"));
+        assertTrue(displayAudit.contains("スキルツリー表示="));
+        assertTrue(PlayerMsgResource.getMessage(PlayerMsgId.P_5325.getId()).contains("プレイヤー設定機能"));
         assertTrue(PlayerMsgResource.getMessage(PlayerMsgId.P_5280.getId()).contains("オートセーブ"));
         assertTrue(PlayerMsgResource.getMessage(PlayerMsgId.P_5600.getId()).contains("ガイド"));
         assertTrue(PlayerMsgResource.format(PlayerMsgId.P_5624.getId(), 3).contains("3"));

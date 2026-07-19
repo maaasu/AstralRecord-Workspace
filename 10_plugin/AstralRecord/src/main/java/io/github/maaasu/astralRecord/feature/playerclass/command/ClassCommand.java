@@ -22,7 +22,7 @@ import org.jetbrains.annotations.Nullable;
 public final class ClassCommand extends AstCommand {
 
     public ClassCommand() {
-        super("class", "Change player class.", "/class gui|change <classId> [player]", false, UserPermission.ADMIN.getValue());
+        super("class", "プレイヤーのクラスを変更します。", "/class gui|change <classId> [player]", false, UserPermission.ADMIN.getValue());
     }
 
     @Override

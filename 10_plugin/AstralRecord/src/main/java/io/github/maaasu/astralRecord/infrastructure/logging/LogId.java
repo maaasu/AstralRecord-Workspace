@@ -86,17 +86,13 @@ public enum LogId {
      * イベントマネージャーをシャットダウンしています
      */
     I_3052(3052),
-    I_3053(3053),
     /**
      * イベントマネージャーのシャットダウンが完了しました
      */
-    /**
-     * イベントハンドラーが無効のためスキップしました: %s
-     */
+    I_3053(3053),
     /**
      * イベントハンドラーの登録に失敗しました: %s
      */
-    W_3000(3000),
     E_3000(3000),
     /**
      * イベントハンドラーのクリーンアップに失敗しました: %s
@@ -220,9 +216,25 @@ public enum LogId {
      */
     I_1553(1553),
     /**
+     * マスターデータ再読込を開始しました。実行者: %s
+     */
+    I_1554(1554),
+    /**
+     * マスターデータ再読込が完了しました
+     */
+    I_1555(1555),
+    /**
+     * マスターデータ公開後の実行時再同期に失敗しました: 対象=%s
+     */
+    W_1550(1550),
+    /**
      * リロード中にエラーが発生しました: %s
      */
     E_1550(1550),
+    /**
+     * マスターデータ再読込に失敗しました: %s
+     */
+    E_1551(1551),
     // endregion
 
     // region /infrastructure/api/ApiHealthChecker.java
@@ -355,6 +367,10 @@ public enum LogId {
      * ログインボーナス API の呼び出しに失敗しました: %s
      */
     E_5071(5071),
+    /**
+     * プレイヤー参加データ読み込みの再試行待機が中断されました: プレイヤー=%s
+     */
+    E_5073(5073),
     // endregion
 
     // region /feature/player/event/PlayerModeEventHandler.java
@@ -441,6 +457,40 @@ public enum LogId {
     E_5154(5154),
     D_5155(5155),
     E_5155(5155),
+    /**
+     * 停止時にアカウント進行の未保存更新が残りました: experience=%d, class=%d
+     */
+    W_5156(5156),
+    /**
+     * アカウント経験値の保存に失敗しました: accountId=%s, level=%d, totalExperience=%d
+     */
+    E_5156(5156),
+    /**
+     * クラス進行の保存に失敗しました: accountId=%s, classId=%s, level=%d, experience=%d
+     */
+    E_5157(5157),
+    /**
+     * Mob報酬の経験値反映に失敗しました: accountId=%s, experience=%d
+     */
+    E_5158(5158),
+    // endregion
+
+    // region /feature/guide/ 5180-5189
+    /**
+     * ガイドデータ取得に失敗しました (API): operation=%s, target=%s, reason=%s
+     */
+    E_5180(5180),
+    /**
+     * ガイドキャッシュ更新に失敗し、直前値を使用します: %s
+     */
+    E_5181(5181),
+    // endregion
+
+    // region /feature/mail/ 5190-5199
+    /**
+     * メールデータ処理に失敗しました (API): operation=%s, target=%s, reason=%s
+     */
+    E_5190(5190),
     // endregion
 
     // region /feature/item/repository/ItemRepository.kt /feature/item/service/ItemService.java
@@ -500,6 +550,22 @@ public enum LogId {
      * 装備プリセットの初期化に失敗しました。従来のインベントリ保存のみ継続します: accountId=%s, reason=%s
      */
     W_5253(5253),
+    /**
+     * インベントリ状態が未登録のため即時保存を開始できません: accountId=%s
+     */
+    W_5254(5254),
+    /**
+     * インベントリ即時保存後も未保存変更が残っています: accountId=%s
+     */
+    W_5255(5255),
+    /**
+     * ログアウト保存後も未保存変更が残っています: accountId=%s
+     */
+    W_5256(5256),
+    /**
+     * プラグイン停止前のインベントリ保存待機がタイムアウトしました: accountId=%s
+     */
+    W_5257(5257),
     /**
      * 装備プリセットスロット同期に失敗しました: loadoutId=%s, slotType=%s, slotIndex=%d, reason=%s
      */
@@ -687,6 +753,10 @@ public enum LogId {
      */
     E_5600(5600),
     /**
+     * GUI イベント処理に失敗しました: player=%s, operation=%s
+     */
+    E_5601(5601),
+    /**
      * ショートカット設定の取得に失敗しました（デフォルト設定を使用）: %s
      */
     /**
@@ -775,7 +845,6 @@ public enum LogId {
     // region /feature/world/ 5750-5799
     I_5750(5750),
     I_5751(5751),
-    I_5752(5752),
     I_5753(5753),
     I_5754(5754),
     D_5750(5750),
@@ -832,6 +901,14 @@ public enum LogId {
      * スキル発動に失敗しました: skillId=%s, implementationId=%s
      */
     E_5802(5802),
+    /**
+     * スキルバインドプリセット読込に失敗しました: %s
+     */
+    E_5803(5803),
+    /**
+     * スキルバインドプリセット保存に失敗しました: %s
+     */
+    E_5804(5804),
     // endregion
 
     // region /feature/combat/ 5900-5999
@@ -839,23 +916,24 @@ public enum LogId {
      * 戦闘ダメージ処理に失敗しました: %s
      */
     E_5900(5900),
-    /** プレイヤー入力調停に失敗しました: player=%s, source=%s */
-    E_5999(5999),
+    /**
+     * 状態異常 tick 処理に失敗しました: condition=%s target=%s
+     */
+    E_5901(5901),
     I_5950(5950),
     E_5950(5950),
     E_5951(5951),
     E_5952(5952),
     E_5953(5953),
     E_5954(5954),
+    /** プレイヤー入力調停に失敗しました: player=%s, source=%s */
+    E_5999(5999),
     // endregion
 
     // region /feature/equipment/event/EquipmentAttackEventHandler.java 6000-6099
     /**
      * ホットバーアクション処理に失敗しました: %s
      */
-    // endregion
-
-    // region /feature/equipment/event/EquipmentAttackEventHandler.java 6000-6099
     E_6000(6000),
     // endregion
 
@@ -877,6 +955,17 @@ public enum LogId {
     W_6300(6300),
     // endregion
 
+    // region shared local placement persistence 6400-6499
+    /**
+     * ローカル配置データの保存に失敗しました: type=%s, path=%s, reason=%s
+     */
+    E_6400(6400),
+    /**
+     * ローカル配置データの保存先ディレクトリを作成できません: type=%s, path=%s
+     */
+    E_6401(6401),
+    // endregion
+
     // region /feature/boss/ 6500-6529
     I_6500(6500),
     I_6501(6501),
@@ -887,6 +976,37 @@ public enum LogId {
     E_6501(6501),
     E_6502(6502),
     E_6503(6503),
+    // endregion
+
+    // region /feature/quest/ 6600-6699
+    /**
+     * クエスト状態の保存に失敗しました: accountId=%s, reason=%s
+     */
+    W_6600(6600),
+    /**
+     * クエスト報酬の準備に失敗しました: accountId=%s, questId=%s, reason=%s
+     */
+    W_6601(6601),
+    /**
+     * クエスト状態の保存先ディレクトリを作成できません: accountId=%s, path=%s
+     */
+    W_6602(6602),
+    /**
+     * クエスト状態ファイルを保存できません: accountId=%s, path=%s
+     */
+    W_6603(6603),
+    /**
+     * クエスト報酬の反映に失敗したため補償しました: accountId=%s, questId=%s
+     */
+    W_6604(6604),
+    /**
+     * クエスト完了演出の実行に失敗しました: accountId=%s, questId=%s
+     */
+    W_6605(6605),
+    /**
+     * クエスト報酬の補償処理に失敗しました: accountId=%s, questId=%s
+     */
+    W_6606(6606),
     // endregion
 
     // region /feature/skilltree/ 9000-9009

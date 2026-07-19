@@ -279,6 +279,16 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         InventoryRepository inventoryRepository = mock(InventoryRepository.class);
         EquipmentLoadoutRepository equipmentLoadoutRepository = mock(EquipmentLoadoutRepository.class);
         PlayerInventoryStateRegistry stateRegistry = new PlayerInventoryStateRegistry();
+        InventoryPersistence persistence = new InventoryPersistence(
+            inventoryRepository,
+            equipmentLoadoutRepository,
+            itemService
+        );
+        InventorySaveCoordinator saveCoordinator = new InventorySaveCoordinator(
+            persistence,
+            stateRegistry,
+            Runnable::run
+        );
         return new InventoryHarness(
             itemService,
             stateRegistry,
@@ -288,7 +298,8 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
                 itemService,
                 new ItemStackFactory(mock(LootService.class), itemService),
                 stateRegistry,
-                new InventoryPersistence(inventoryRepository, equipmentLoadoutRepository, itemService)
+                persistence,
+                saveCoordinator
             )
         );
     }

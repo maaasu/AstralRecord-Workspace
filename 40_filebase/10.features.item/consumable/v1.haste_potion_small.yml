@@ -2,14 +2,13 @@
 schemaVersion: 1
 id: haste_potion_small
 category: consumable
-name: "&eスモールヘイストポーション"
+name: "&e迅速ポーション（小）"
 icon: POTION
 rarity: COMMON
 maxStack: 64
 saleValue: 20
 lore:
-  - "&7飲むと一定時間、移動速度が上昇する。"
-  - "&7フットワークを軽くする小型ポーション。"
+  - "&7足取りを軽くする力を封じた小瓶。"
 unTradeable: false
 unSellable: false
 

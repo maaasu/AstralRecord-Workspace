@@ -24,6 +24,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
+import io.github.maaasu.astralRecord.feature.item.model.ItemRarity;
 import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
 import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
@@ -60,14 +61,15 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * インベントリ機能のビジネスロジックを担うサービス。
  * <p>
  * すべてのインベントリ・装備ロードアウト状態は {@link PlayerInventoryState} に集約され、
  * 本サービスはその state を読み書きするだけで API 通信は行いません。
- * API への反映は {@link InventoryPersistence} 経由で 60 秒間隔のオートセーブまたはログアウト時に行われます。
- * マーケットなど整合性が必要な操作は {@link InventoryPersistence#saveNow(PlayerInventoryState)} を直接呼び出してください。
+ * API への反映は {@link InventorySaveCoordinator} のアカウント別保存キューを経由し、
+ * 60 秒間隔のオートセーブ、即時保存、ログアウト保存を直列に実行します。
  */
 public class InventoryService {
     private static final InventoryProfile DEFAULT_PROFILE = InventoryProfile.GAME;
@@ -91,6 +93,7 @@ public class InventoryService {
     private final HotbarRenderer hotbarRenderer;
     private final PlayerInventoryStateRegistry stateRegistry;
     private final InventoryPersistence persistence;
+    private final InventorySaveCoordinator saveCoordinator;
     private final InventoryClickGuard clickGuard = new InventoryClickGuard();
 
     /**
@@ -102,6 +105,7 @@ public class InventoryService {
      * @param itemStackFactory ItemStack 生成ヘルパ
      * @param stateRegistry プレイヤー state レジストリ
      * @param persistence 永続化サービス
+     * @param saveCoordinator アカウント別保存コーディネーター
      */
     public InventoryService(
         InventoryRepository inventoryRepository,
@@ -109,7 +113,8 @@ public class InventoryService {
         ItemService itemService,
         ItemStackFactory itemStackFactory,
         PlayerInventoryStateRegistry stateRegistry,
-        InventoryPersistence persistence
+        InventoryPersistence persistence,
+        InventorySaveCoordinator saveCoordinator
     ) {
         this.inventoryRepository = inventoryRepository;
         this.equipmentLoadoutRepository = equipmentLoadoutRepository;
@@ -121,6 +126,7 @@ public class InventoryService {
         this.hotbarRenderer = new HotbarRenderer(itemStackResolver);
         this.stateRegistry = stateRegistry;
         this.persistence = persistence;
+        this.saveCoordinator = saveCoordinator;
     }
 
     /**
@@ -142,7 +148,8 @@ public class InventoryService {
     }
 
     /**
-     * 永続化サービスを返します。即時セーブ等の拡張点として外部から利用してください。
+     * ロード処理などの構成に使用する永続化サービスを返します。
+     * 即時保存は永続化サービスを直接呼ばず {@link #saveNow(UUID)} を使用してください。
      *
      * @return InventoryPersistence
      */
@@ -343,6 +350,260 @@ public class InventoryService {
         state.replaceEntries(targetInventory.getInventoryId(), entries);
         autoSwitchDisplayedInventory(astPlayer, inventoryType);
         return 1;
+    }
+
+    /**
+     * API I/O 済みのインスタンスを含む報酬を、1 回のローカル変更として通常インベントリへ追加します。
+     * 装備品とルーンについて、このメソッド内ではインスタンス生成 API を呼び出しません。
+     *
+     * @param astPlayer 追加対象プレイヤー
+     * @param rewards 事前解決済みの報酬
+     * @return 追加した entry の差分。全量を追加できない場合は {@code null}
+     */
+    public @Nullable InventoryGrantReceipt addPreparedRewardsToNormalInventory(
+        @NotNull AstPlayer astPlayer,
+        @NotNull List<PreparedInventoryReward> rewards
+    ) {
+        if (rewards.isEmpty()) {
+            return new InventoryGrantReceipt(astPlayer.getAccount().getUuid(), List.of());
+        }
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) {
+            return null;
+        }
+
+        Map<UUID, List<InventoryEntryModel>> beforeEntries = new LinkedHashMap<>();
+        InventoryType beforeDisplayedType;
+        Set<InventoryType> changedTypes = new HashSet<>();
+        synchronized (state) {
+            beforeDisplayedType = state.getDisplayedType();
+            for (PreparedInventoryReward reward : rewards) {
+                if (reward.amount() <= 0) {
+                    continue;
+                }
+                InventoryType inventoryType = resolveTargetInventoryType(reward.model());
+                InventoryModel targetInventory = ensureInventory(state, inventoryType);
+                if (inventoryType == InventoryType.CURRENCY) {
+                    normalizeCurrencyEntries(state, targetInventory);
+                }
+            }
+            for (InventoryModel inventory : state.snapshotInventories()) {
+                beforeEntries.put(inventory.getInventoryId(), state.snapshotEntries(inventory.getInventoryId()));
+            }
+
+            boolean succeeded = true;
+            Set<UUID> preparedInstanceIds = new HashSet<>();
+            for (PreparedInventoryReward reward : rewards) {
+                if (reward.amount() <= 0) {
+                    continue;
+                }
+                ItemCategory category = ItemCategory.fromApiValue(reward.model().getCategory());
+                InventoryType inventoryType = resolveTargetInventoryType(reward.model());
+                InventoryModel targetInventory = ensureInventory(state, inventoryType);
+                changedTypes.add(inventoryType);
+
+                if (category == ItemCategory.EQUIPMENT || category == ItemCategory.RUNE) {
+                    InventoryInstanceType expectedType = category == ItemCategory.EQUIPMENT
+                        ? InventoryInstanceType.EQUIPMENT
+                        : InventoryInstanceType.RUNE;
+                    if (reward.instances().size() != reward.amount()
+                        || reward.instances().stream().anyMatch(instance -> instance.instanceType() != expectedType)) {
+                        succeeded = false;
+                        break;
+                    }
+                    for (PreparedInventoryInstance instance : reward.instances()) {
+                        if (!preparedInstanceIds.add(instance.instanceId())
+                            || !addPreparedInstanceEntry(
+                            state,
+                            targetInventory,
+                            reward.model(),
+                            instance.instanceType(),
+                            instance.instanceId()
+                        )) {
+                            succeeded = false;
+                            break;
+                        }
+                    }
+                } else {
+                    if (!reward.instances().isEmpty()) {
+                        succeeded = false;
+                        break;
+                    }
+                    Set<Integer> usedSlots = collectUsedSlots(state, targetInventory);
+                    succeeded = addStackedItems(
+                        state,
+                        targetInventory,
+                        reward.model(),
+                        reward.amount(),
+                        usedSlots
+                    ) == reward.amount();
+                }
+                if (!succeeded) {
+                    break;
+                }
+            }
+
+            if (!succeeded) {
+                restoreImmediateGrantState(state, beforeEntries, beforeDisplayedType);
+                return null;
+            }
+
+            List<InventoryGrantMutation> mutations = collectGrantMutations(state, beforeEntries);
+            for (InventoryType changedType : changedTypes) {
+                autoSwitchDisplayedInventory(astPlayer, changedType);
+            }
+            return new InventoryGrantReceipt(state.getAccountId(), mutations);
+        }
+    }
+
+    /**
+     * 指定した受取票に含まれる増加分だけを現在の state から取り除きます。
+     * 同じ entry に後から追加された数量や、無関係な entry は保持します。
+     *
+     * @param receipt 補償対象の受取票
+     * @return 全差分を補償できた場合は {@code true}
+     */
+    public boolean rollbackPreparedRewards(@NotNull InventoryGrantReceipt receipt) {
+        if (receipt.mutations().isEmpty()) {
+            return true;
+        }
+        PlayerInventoryState state = getState(receipt.accountId());
+        if (state == null) {
+            return false;
+        }
+        synchronized (state) {
+            Map<UUID, List<InventoryEntryModel>> currentByInventory = new LinkedHashMap<>();
+            for (InventoryModel inventory : state.snapshotInventories()) {
+                currentByInventory.put(inventory.getInventoryId(), state.snapshotEntries(inventory.getInventoryId()));
+            }
+
+            List<LocatedGrantMutation> located = new ArrayList<>();
+            Set<UUID> locatedEntryIds = new HashSet<>();
+            for (InventoryGrantMutation mutation : receipt.mutations()) {
+                LocatedGrantMutation match = locateGrantMutation(currentByInventory, mutation);
+                if (mutation.quantity() <= 0L || match == null
+                    || !locatedEntryIds.add(match.entry().getInventoryEntryId())
+                    || match.entry().getQuantity() < mutation.quantity()) {
+                    return false;
+                }
+                located.add(match);
+            }
+
+            Map<UUID, List<LocatedGrantMutation>> byInventory = new LinkedHashMap<>();
+            for (LocatedGrantMutation mutation : located) {
+                byInventory.computeIfAbsent(mutation.inventoryId(), ignored -> new ArrayList<>()).add(mutation);
+            }
+            for (Map.Entry<UUID, List<LocatedGrantMutation>> inventoryMutations : byInventory.entrySet()) {
+                List<InventoryEntryModel> entries = new ArrayList<>(
+                    currentByInventory.getOrDefault(inventoryMutations.getKey(), List.of())
+                );
+                for (LocatedGrantMutation locatedMutation : inventoryMutations.getValue()) {
+                    InventoryGrantMutation mutation = locatedMutation.mutation();
+                    for (int index = 0; index < entries.size(); index++) {
+                        InventoryEntryModel entry = entries.get(index);
+                        if (!entry.getInventoryEntryId().equals(locatedMutation.entry().getInventoryEntryId())) {
+                            continue;
+                        }
+                        long remaining = entry.getQuantity() - mutation.quantity();
+                        if (remaining == 0L) {
+                            entries.remove(index);
+                        } else {
+                            entries.set(index, withQuantity(entry, remaining, state.getAccountId()));
+                        }
+                        break;
+                    }
+                }
+                state.replaceEntries(inventoryMutations.getKey(), entries);
+            }
+            return true;
+        }
+    }
+
+    private boolean addPreparedInstanceEntry(
+        @NotNull PlayerInventoryState state,
+        @NotNull InventoryModel inventory,
+        @NotNull ItemModel model,
+        @NotNull InventoryInstanceType instanceType,
+        @NotNull UUID instanceId
+    ) {
+        Set<Integer> usedSlots = collectUsedSlots(state, inventory);
+        Integer slot = findNextFreeSlot(inventory, usedSlots);
+        if (slot == null) {
+            return false;
+        }
+        List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(inventory.getInventoryId()).stream()
+            .filter(entry -> !entry.isDeleted())
+            .toList());
+        entries.add(newEntry(
+            inventory.getInventoryId(),
+            slot,
+            model.getCategory(),
+            null,
+            instanceType.getCode(),
+            instanceId,
+            1L,
+            null,
+            state.getAccountId()
+        ));
+        state.replaceEntries(inventory.getInventoryId(), entries);
+        return true;
+    }
+
+    private void restoreImmediateGrantState(
+        @NotNull PlayerInventoryState state,
+        @NotNull Map<UUID, List<InventoryEntryModel>> beforeEntries,
+        @NotNull InventoryType beforeDisplayedType
+    ) {
+        for (InventoryModel inventory : state.snapshotInventories()) {
+            state.replaceEntries(
+                inventory.getInventoryId(),
+                beforeEntries.getOrDefault(inventory.getInventoryId(), List.of())
+            );
+        }
+        state.setDisplayedType(beforeDisplayedType);
+    }
+
+    private @NotNull List<InventoryGrantMutation> collectGrantMutations(
+        @NotNull PlayerInventoryState state,
+        @NotNull Map<UUID, List<InventoryEntryModel>> beforeEntries
+    ) {
+        List<InventoryGrantMutation> mutations = new ArrayList<>();
+        for (InventoryModel inventory : state.snapshotInventories()) {
+            Map<UUID, InventoryEntryModel> beforeById = new HashMap<>();
+            for (InventoryEntryModel entry : beforeEntries.getOrDefault(inventory.getInventoryId(), List.of())) {
+                beforeById.put(entry.getInventoryEntryId(), entry);
+            }
+            for (InventoryEntryModel entry : state.snapshotEntries(inventory.getInventoryId())) {
+                InventoryEntryModel before = beforeById.get(entry.getInventoryEntryId());
+                long beforeQuantity = before == null ? 0L : before.getQuantity();
+                long added = entry.getQuantity() - beforeQuantity;
+                if (added > 0L) {
+                    mutations.add(new InventoryGrantMutation(
+                        entry.getInventoryEntryId(),
+                        entry.getInstanceId(),
+                        added
+                    ));
+                }
+            }
+        }
+        return List.copyOf(mutations);
+    }
+
+    private @Nullable LocatedGrantMutation locateGrantMutation(
+        @NotNull Map<UUID, List<InventoryEntryModel>> currentByInventory,
+        @NotNull InventoryGrantMutation mutation
+    ) {
+        for (Map.Entry<UUID, List<InventoryEntryModel>> inventory : currentByInventory.entrySet()) {
+            for (InventoryEntryModel entry : inventory.getValue()) {
+                boolean matches = mutation.instanceId() == null
+                    ? entry.getInventoryEntryId().equals(mutation.entryId())
+                    : mutation.instanceId().equals(entry.getInstanceId());
+                if (matches) {
+                    return new LocatedGrantMutation(inventory.getKey(), entry, mutation);
+                }
+            }
+        }
+        return null;
     }
 
     private int addInstanceItems(
@@ -1381,9 +1642,18 @@ public class InventoryService {
         return remaining <= 0L;
     }
 
-    public boolean saveNow(@NotNull UUID accountId) {
-        PlayerInventoryState state = getState(accountId);
-        return state != null && persistence.saveNow(state);
+    /**
+     * 指定アカウントの即時保存をアカウント別キューへ登録します。
+     * <p>
+     * API I/O は保存コーディネーターの非同期 executor 上で実行されます。
+     * 呼び出し元で同期待機すると同じ executor 上ではデッドロックし得るため、必要な後続処理は
+     * 返却された future へ接続してください。
+     *
+     * @param accountId 対象アカウント ID
+     * @return 保存に成功した場合 {@code true} となる future
+     */
+    public @NotNull CompletableFuture<Boolean> saveNow(@NotNull UUID accountId) {
+        return saveCoordinator.saveNow(accountId);
     }
 
     public InventoryType resolveInventoryType(@NotNull ItemModel model) {
@@ -3085,7 +3355,7 @@ public class InventoryService {
     /**
      * 旧 API: ログアウト直前の即時 flush 用フックです。新実装ではログアウト時の通常 save に統合済みのため、
      * 互換のためのスタブとして残しています。マーケットなど即時整合性が必要な処理は
-     * {@link InventoryPersistence#saveNow(PlayerInventoryState)} を呼んでください。
+     * {@link #saveNow(UUID)} を呼び、アカウント別保存キューへ登録してください。
      *
      * @param accountId 対象アカウントID
      */
@@ -3520,15 +3790,7 @@ public class InventoryService {
     }
 
     private int rarityRank(@NotNull String rarity) {
-        return switch (rarity.toUpperCase(Locale.ROOT)) {
-            case "COMMON" -> 1;
-            case "UNCOMMON" -> 2;
-            case "RARE" -> 3;
-            case "EPIC" -> 4;
-            case "LEGENDARY" -> 5;
-            case "MYTHIC" -> 6;
-            default -> 0;
-        };
+        return ItemRarity.rankOf(rarity);
     }
 
     private @NotNull InventoryEntryModel withSlot(
@@ -3968,6 +4230,71 @@ public class InventoryService {
     private int inventoryCapacity(@NotNull InventoryModel inventory) {
         return NormalInventoryLayout.effectiveCapacity(
             inventory.getInventoryType(), inventory.getSlotCapacity());
+    }
+
+    /**
+     * API 側で生成済みのインスタンス参照です。
+     *
+     * @param instanceType インスタンス種別
+     * @param instanceId インスタンス ID
+     */
+    public record PreparedInventoryInstance(
+        @NotNull InventoryInstanceType instanceType,
+        @NotNull UUID instanceId
+    ) {
+    }
+
+    /**
+     * インベントリ公開前に解決した報酬です。
+     *
+     * @param model アイテム定義
+     * @param amount 追加数
+     * @param instances 装備品またはルーンの生成済みインスタンス
+     */
+    public record PreparedInventoryReward(
+        @NotNull ItemModel model,
+        int amount,
+        @NotNull List<PreparedInventoryInstance> instances
+    ) {
+        public PreparedInventoryReward {
+            instances = List.copyOf(instances);
+        }
+    }
+
+    /**
+     * 1 回の報酬追加で増加した数量を識別する差分です。
+     *
+     * @param entryId 追加時の entry ID
+     * @param instanceId インスタンス ID。スタック品では {@code null}
+     * @param quantity 増加数量
+     */
+    public record InventoryGrantMutation(
+        @NotNull UUID entryId,
+        @Nullable UUID instanceId,
+        long quantity
+    ) {
+    }
+
+    /**
+     * 報酬追加の補償に使用する受取票です。
+     *
+     * @param accountId 対象アカウント ID
+     * @param mutations 今回の追加で発生した差分
+     */
+    public record InventoryGrantReceipt(
+        @NotNull UUID accountId,
+        @NotNull List<InventoryGrantMutation> mutations
+    ) {
+        public InventoryGrantReceipt {
+            mutations = List.copyOf(mutations);
+        }
+    }
+
+    private record LocatedGrantMutation(
+        @NotNull UUID inventoryId,
+        @NotNull InventoryEntryModel entry,
+        @NotNull InventoryGrantMutation mutation
+    ) {
     }
 
     /**

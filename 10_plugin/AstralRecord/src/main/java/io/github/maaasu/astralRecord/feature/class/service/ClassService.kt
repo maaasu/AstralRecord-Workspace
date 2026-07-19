@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.`class`.model.ClassModel
 import io.github.maaasu.astralRecord.feature.`class`.repository.ClassRepository
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger
+import java.util.Collections
 import java.util.LinkedHashMap
 import java.util.Locale
 
@@ -16,7 +17,8 @@ import java.util.Locale
 class ClassService {
 
     private val classRepository = ClassRepository()
-    private val loadedClasses: MutableMap<String, ClassModel> = LinkedHashMap()
+    @Volatile
+    private var loadedClasses: Map<String, ClassModel> = emptyMap()
 
     /**
      * 全クラスを API から一括取得してキャッシュへ登録します。
@@ -26,19 +28,40 @@ class ClassService {
      */
     fun loadAll(): Int {
         return try {
-            val summaries = classRepository.findAll()
-            for (summary in summaries) {
-                val model = classRepository.findById(summary.id)
-                if (model != null) {
-                    loadedClasses[normalize(model.id)] = model
-                }
-            }
-            Logger.log(LogId.I_5500, loadedClasses.size)
-            loadedClasses.size
+            val snapshot = loadSnapshot()
+            replaceSnapshot(snapshot)
+            snapshot.size
         } catch (e: Exception) {
             Logger.log(LogId.E_5502, e, "loadAll")
             0
         }
+    }
+
+    /**
+     * 全クラスを読み込みますが、現在の公開キャッシュは変更しません。
+     *
+     * @return 正規化済みIDをキーとする不変スナップショット
+     */
+    fun loadSnapshot(): Map<String, ClassModel> {
+        val summaries = classRepository.findAll()
+        val loaded = LinkedHashMap<String, ClassModel>()
+        for (summary in summaries) {
+            val model = classRepository.findById(summary.id)
+            if (model != null) {
+                loaded[normalize(model.id)] = model
+            }
+        }
+        return Collections.unmodifiableMap(LinkedHashMap(loaded))
+    }
+
+    /**
+     * prepare 済みのクラス定義を原子的に公開します。
+     *
+     * @param snapshot [loadSnapshot] で構築したスナップショット
+     */
+    fun replaceSnapshot(snapshot: Map<String, ClassModel>) {
+        loadedClasses = Collections.unmodifiableMap(LinkedHashMap(snapshot))
+        Logger.log(LogId.I_5500, snapshot.size)
     }
 
     /**
@@ -64,7 +87,7 @@ class ClassService {
      * キャッシュをクリアします。
      */
     fun clearCache() {
-        loadedClasses.clear()
+        loadedClasses = emptyMap()
     }
 
     private fun normalize(value: String): String {

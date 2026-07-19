@@ -135,7 +135,7 @@ public final class TeleporterGui {
                 Component.text(definition.name(), NamedTextColor.DARK_GRAY),
                 List.of(
                         Component.text("未解除のウェイストーンです", NamedTextColor.RED),
-                        Component.text("必要 Gold: " + definition.unlockGold(), NamedTextColor.GOLD)
+                        Component.text("必要ゴールド: " + definition.unlockGold(), NamedTextColor.GOLD)
                 )
         );
     }

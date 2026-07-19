@@ -2,11 +2,11 @@ package io.github.maaasu.astralRecord.feature.spawner.service;
 
 import io.github.maaasu.astralRecord.feature.spawner.model.MobSpawnerLocation;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
-import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -136,9 +136,7 @@ final class MobSpawnerVisualizer {
 
     @NotNull
     private Component label(@NotNull MobSpawnerLocation spawnerLocation) {
-        return LegacyComponentSerializer.legacySection().deserialize(
-                ColorCodeUtil.translateAlternateColorCodes("&dSpawner&7: &f" + spawnerLocation.spawnerId())
-        );
+        return PlayerMsgResource.formatComponent(PlayerMsgId.P_5730.getId(), spawnerLocation.spawnerId());
     }
 
     private record ViewerSpawnerKey(@NotNull UUID viewerId, @NotNull String locationKey, @NotNull String spawnerId) {

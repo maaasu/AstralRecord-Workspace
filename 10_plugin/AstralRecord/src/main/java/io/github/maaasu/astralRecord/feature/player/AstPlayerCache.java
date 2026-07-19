@@ -76,6 +76,17 @@ public final class AstPlayerCache {
     }
 
     /**
+     * 指定したセッションが現在も登録されている場合だけキャッシュから削除します。
+     *
+     * @param uuid プレイヤーの UUID
+     * @param expectedPlayer 削除対象として期待するプレイヤーセッション
+     * @return 対象セッションを削除できた場合は {@code true}
+     */
+    public static boolean remove(@NotNull UUID uuid, @NotNull AstPlayer expectedPlayer) {
+        return CACHE.remove(uuid, expectedPlayer);
+    }
+
+    /**
      * キャッシュされているすべての {@link AstPlayer} を返します。
      *
      * @return {@link AstPlayer} のコレクション（変更不可）

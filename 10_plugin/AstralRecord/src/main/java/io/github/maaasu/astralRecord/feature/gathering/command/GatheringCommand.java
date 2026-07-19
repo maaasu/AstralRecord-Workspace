@@ -19,7 +19,7 @@ public class GatheringCommand extends AstCommand {
     private final GatheringSpawnerService spawnerService;
 
     public GatheringCommand(@NotNull GatheringService gatheringService, @NotNull GatheringSpawnerService spawnerService) {
-        super("gathering", "Manage gathering objects.", "/gathering <load|list|spawn|spawner>",
+        super("gathering", "採集オブジェクトを管理します。", "/gathering <load|list|spawn|spawner>",
                 true, UserPermission.ADMIN.getValue());
         this.gatheringService = gatheringService;
         this.spawnerService = spawnerService;

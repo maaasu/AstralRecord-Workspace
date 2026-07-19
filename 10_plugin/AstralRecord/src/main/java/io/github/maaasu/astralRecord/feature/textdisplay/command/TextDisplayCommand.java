@@ -27,7 +27,7 @@ public final class TextDisplayCommand extends AstCommand {
      * @param placementService 固定 TextDisplay 配置サービス
      */
     public TextDisplayCommand(@NotNull TextDisplayPlacementService placementService) {
-        super("textdisplay", "Manage fixed TextDisplays.", "/textdisplay <place|remove|list|reload> ...",
+        super("textdisplay", "固定テキスト表示を管理します。", "/textdisplay <place|remove|list|reload> ...",
                 true, UserPermission.ADMIN.getValue());
         this.placementService = placementService;
     }

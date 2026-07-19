@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 /**
  * 冒険記録 GUI 向けの表示データ生成と討伐記録保存を扱います。
@@ -63,6 +64,42 @@ public class AdventureRecordService {
         boolean superMode = isSuperMode(player);
         MobCategory category = listType.getCategory();
         List<AdventureMobRecord> records = repository.findMobRecords(player.getAccount().getUuid(), category);
+        return buildEntries(records, listType, searchItemIds, superMode);
+    }
+
+    public void buildEntriesAsync(
+        @NotNull AstPlayer player,
+        @NotNull AdventureRecordListType listType,
+        @NotNull Set<String> searchItemIds,
+        @NotNull Consumer<EntryResult> completion,
+        @NotNull Runnable failure
+    ) {
+        UUID accountId = player.getAccount().getUuid();
+        UUID userId = player.getUser().getUuid();
+        MobCategory category = listType.getCategory();
+        Set<String> requestedItemIds = Set.copyOf(searchItemIds);
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                boolean superMode = isSuperMode(userId);
+                List<AdventureMobRecord> records = repository.findMobRecords(accountId, category);
+                plugin.getServer().getScheduler().runTask(plugin, () ->
+                    completion.accept(new EntryResult(
+                        buildEntries(records, listType, requestedItemIds, superMode),
+                        superMode
+                    ))
+                );
+            } catch (RuntimeException e) {
+                plugin.getServer().getScheduler().runTask(plugin, failure);
+            }
+        });
+    }
+
+    private @NotNull List<Entry> buildEntries(
+        @NotNull List<AdventureMobRecord> records,
+        @NotNull AdventureRecordListType listType,
+        @NotNull Set<String> searchItemIds,
+        boolean superMode
+    ) {
         Map<String, AdventureMobRecord> recordsByMobId = new HashMap<>();
         for (AdventureMobRecord record : records) {
             recordsByMobId.put(record.mobId(), record);
@@ -124,7 +161,11 @@ public class AdventureRecordService {
      * @return 有効なら true
      */
     public boolean isSuperMode(@NotNull AstPlayer player) {
-        Object value = playerSettingService.getPlayerSetting(player.getUser().getUuid(), PlayerSettingKey.ADVENTURE_RECORD_SUPER_MODE);
+        return isSuperMode(player.getUser().getUuid());
+    }
+
+    private boolean isSuperMode(@NotNull UUID userId) {
+        Object value = playerSettingService.getPlayerSetting(userId, PlayerSettingKey.ADVENTURE_RECORD_SUPER_MODE);
         return value instanceof Boolean enabled && enabled;
     }
 
@@ -156,5 +197,11 @@ public class AdventureRecordService {
         @Nullable AdventureMobRecord record,
         boolean defeated
     ) {
+    }
+
+    public record EntryResult(@NotNull List<Entry> entries, boolean superMode) {
+        public EntryResult {
+            entries = List.copyOf(entries);
+        }
     }
 }
