@@ -170,6 +170,12 @@ def changed_source_lines(repo_root: Path, source_root: Path) -> dict[Path, set[i
     return changed
 
 
+def production_source_roots(plugin_root: Path) -> tuple[Path, Path]:
+    """Return every supported production source root for the Plugin."""
+    main_root = plugin_root / "src" / "main"
+    return main_root / "java", main_root / "kotlin"
+
+
 def report_inline_log_text(
     relative: Path,
     text: str,
@@ -339,6 +345,24 @@ def scan_direct_calls(
     return violations
 
 
+def scan_source_roots(
+    source_roots: tuple[Path, ...],
+    changed_lines_by_root: dict[Path, dict[Path, set[int]]],
+    log_templates: dict[str, str],
+) -> list[str]:
+    """Scan Java and Kotlin production roots without assuming either one exists."""
+    violations: list[str] = []
+    for source_root in source_roots:
+        if not source_root.is_dir():
+            continue
+        violations.extend(scan_direct_calls(
+            source_root,
+            changed_lines_by_root.get(source_root, {}),
+            log_templates,
+        ))
+    return violations
+
+
 def main() -> int:
     default_repo = Path(__file__).resolve().parents[4]
     parser = argparse.ArgumentParser()
@@ -346,7 +370,8 @@ def main() -> int:
     args = parser.parse_args()
 
     plugin_root = args.repo_root.resolve() / "10_plugin" / "AstralRecord"
-    java_root = plugin_root / "src" / "main" / "java"
+    source_roots = production_source_roots(plugin_root)
+    java_root = source_roots[0]
     resources = plugin_root / "src" / "main" / "resources"
 
     log_id_file = java_root / "io/github/maaasu/astralRecord/infrastructure/logging/LogId.java"
@@ -385,9 +410,14 @@ def main() -> int:
     errors.extend(report_difference("PlayerMsgId only", player_ids, player_keys))
     errors.extend(report_difference("player.properties only", player_keys, player_ids))
     errors.extend(report_difference("PlayerSettingMsgId not in PlayerMsgId", player_setting_ids, player_ids))
-    errors.extend(scan_direct_calls(
-        java_root,
-        changed_source_lines(args.repo_root.resolve(), java_root),
+    changed_lines_by_root = {
+        source_root: changed_source_lines(args.repo_root.resolve(), source_root)
+        for source_root in source_roots
+        if source_root.is_dir()
+    }
+    errors.extend(scan_source_roots(
+        source_roots,
+        changed_lines_by_root,
         read_property_values(logger_file),
     ))
 

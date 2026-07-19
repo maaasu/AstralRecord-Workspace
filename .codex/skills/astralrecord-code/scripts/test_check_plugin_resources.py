@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+import tempfile
 import unittest
 
 
@@ -109,6 +110,27 @@ class PluginResourceCheckerPatternTest(unittest.TestCase):
             [("P_5050", "5050", "5051")],
             CHECKER.ID_VALUE_PATTERN.findall("    P_5050(5051),"),
         )
+
+    def test_java_and_kotlin_production_roots_are_scanned(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            plugin_root = Path(directory)
+            java_root, kotlin_root = CHECKER.production_source_roots(plugin_root)
+            java_root.mkdir(parents=True)
+            kotlin_root.mkdir(parents=True)
+            kotlin_source = kotlin_root / "Example.kt"
+            kotlin_source.write_text(
+                'fun report() = System.err.println("inline message")\n',
+                encoding="utf-8",
+            )
+
+            self.assertEqual(
+                ["direct logger call: Example.kt:1"],
+                CHECKER.scan_source_roots(
+                    (java_root, kotlin_root),
+                    {},
+                    {},
+                ),
+            )
 
 
 if __name__ == "__main__":
