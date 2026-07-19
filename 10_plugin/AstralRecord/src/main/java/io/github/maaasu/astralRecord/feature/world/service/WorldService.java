@@ -97,9 +97,32 @@ public class WorldService {
         for (WorldMasterData world : worlds) {
             loadedWorlds.put(world.id(), world);
         }
+        validateOverworldTeleportGuiSlots(worlds);
         Logger.log(LogId.I_5750, loadedWorlds.size());
         loadRegisteredBukkitWorlds(worlds);
         return loadedWorlds.size();
+    }
+
+    private void validateOverworldTeleportGuiSlots(@NotNull List<WorldMasterData> worlds) {
+        Map<Integer, String> worldIdBySlot = new LinkedHashMap<>();
+        for (WorldMasterData world : worlds) {
+            if (world.worldType() != WorldType.OVERWORLD || world.overworldTeleportGui() == null) {
+                continue;
+            }
+            Integer slot = world.overworldTeleportGui().slot();
+            if (slot == null) {
+                continue;
+            }
+            if (!world.overworldTeleportGui().hasValidSlot()) {
+                Logger.log(LogId.W_5755, world.id(), slot);
+                continue;
+            }
+
+            String keptWorldId = worldIdBySlot.putIfAbsent(slot, world.id());
+            if (keptWorldId != null) {
+                Logger.log(LogId.W_5754, slot, keptWorldId, world.id());
+            }
+        }
     }
 
     /**

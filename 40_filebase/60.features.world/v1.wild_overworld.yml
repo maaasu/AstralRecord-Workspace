@@ -27,3 +27,5 @@ adventureGuide:
   notes:
     - "草原と浅い谷が広がる入門向けフィールド"
     - "夜間は敵の数が増えるため、帰還導線の確保を推奨"
+overworldTeleportGui:
+  slot: 20

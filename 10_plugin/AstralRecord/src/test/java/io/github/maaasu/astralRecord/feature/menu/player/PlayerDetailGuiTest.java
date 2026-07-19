@@ -101,6 +101,7 @@ class PlayerDetailGuiTest extends MockBukkitTestBase {
             WorldSpawnLocation.defaultLocation(),
             id,
             null,
+            null,
             null
         );
     }

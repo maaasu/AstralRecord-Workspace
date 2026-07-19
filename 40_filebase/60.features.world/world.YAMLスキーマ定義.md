@@ -1,6 +1,6 @@
 # WorldMasterData YAMLスキーマ定義
 
-World システムで参照する filebase マスタです。Plugin は API 経由でこの定義を取得し、`spawnLocation` を参加時スポーンと `/world tp` に利用し、`showSpawnParticle` でスポーン地点リング演出とスニーク導線 TextDisplay の表示有無を制御します。拠点ワールドからオーバーワールドへ移動する GUI では、`displayName` / `description` / `guiIconMaterial` / `adventureGuide` を表示に利用します。
+World システムで参照する filebase マスタです。Plugin は API 経由でこの定義を取得し、`spawnLocation` を参加時スポーンと `/world tp` に利用し、`showSpawnParticle` でスポーン地点リング演出とスニーク導線 TextDisplay の表示有無を制御します。拠点ワールドからオーバーワールドへ移動する GUI では、`displayName` / `description` / `guiIconMaterial` / `adventureGuide` を表示に利用し、`overworldTeleportGui.slot` が指定されたワールドだけを指定スロットへ配置します。
 
 ## スキーマ定義
 
@@ -33,6 +33,8 @@ adventureGuide:
   recommendedPartySizeMax: integer?
   notes:
     - string
+overworldTeleportGui:
+  slot: integer?
 ```
 
 | Key | Required | Description |
@@ -58,3 +60,4 @@ adventureGuide:
 | `adventureGuide.recommendedPartySizeMin` | no | 推奨人数下限。 |
 | `adventureGuide.recommendedPartySizeMax` | no | 推奨人数上限。 |
 | `adventureGuide.notes[]` | no | ワールド選択を補助する補足メモ。GUI ではそのまま lore として表示する。 |
+| `overworldTeleportGui.slot` | no | 拠点から開くオーバーワールド転送 GUI の配置先。0 以上 44 以下の Bukkit スロット番号を指定する。オブジェクトまたは `slot` が未指定の場合は GUI に表示しない。範囲外は警告して非表示とし、重複時はワールド ID の昇順で先の1件だけを表示する。 |

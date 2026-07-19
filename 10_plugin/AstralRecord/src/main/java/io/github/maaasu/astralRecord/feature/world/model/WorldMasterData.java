@@ -18,8 +18,12 @@ import org.jetbrains.annotations.Nullable;
  * @param allowBlockBreak ブロック破壊許可
  * @param allowBlockPlace ブロック設置許可
  * @param allowMobSpawn Mob 自然スポーン許可
+ * @param showSpawnParticle スポーン地点演出の表示有無
  * @param spawnLocation ワールド固有のスポーン地点
  * @param description 説明
+ * @param guiIconMaterial オーバーワールド転送 GUI のアイコン Material 名
+ * @param adventureGuide オーバーワールド転送 GUI の冒険ガイド
+ * @param overworldTeleportGui オーバーワールド転送 GUI の配置設定
  */
 public record WorldMasterData(
         int schemaVersion,
@@ -38,6 +42,7 @@ public record WorldMasterData(
         @NotNull WorldSpawnLocation spawnLocation,
         @NotNull String description,
         @Nullable String guiIconMaterial,
-        @Nullable WorldAdventureGuide adventureGuide
+        @Nullable WorldAdventureGuide adventureGuide,
+        @Nullable OverworldTeleportGuiSetting overworldTeleportGui
 ) {
 }

@@ -4,7 +4,6 @@ import io.github.maaasu.astralRecord.feature.world.model.WorldAdventureGuide;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
-import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -19,8 +18,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * 拠点ワールドからオーバーワールドを選ぶ GUI です。
@@ -30,25 +31,21 @@ public final class OverworldTeleportGui {
 
     public static final int SIZE = 54;
     public static final int CONTENT_SLOT_COUNT = 45;
-    public static final int PREVIOUS_SLOT = 45;
-    public static final int NEXT_SLOT = 53;
 
     /**
      * GUI を開きます。
      *
      * @param player 表示対象プレイヤー
      * @param destinations 表示するワールド一覧
-     * @param pageIndex 表示ページ
      */
-    public void open(@NotNull Player player, @NotNull List<WorldMasterData> destinations, int pageIndex) {
-        int normalizedPage = normalizePage(pageIndex, destinations.size());
-        List<String> visibleIds = visibleIds(destinations, normalizedPage);
+    public void open(@NotNull Player player, @NotNull List<WorldMasterData> destinations) {
+        Map<Integer, String> worldIdsBySlot = worldIdsBySlot(destinations);
         Inventory inventory = Bukkit.createInventory(
-                new Holder(normalizedPage, visibleIds),
+                new Holder(worldIdsBySlot),
                 SIZE,
                 Component.text("オーバーワールド転送", NamedTextColor.AQUA, TextDecoration.BOLD)
         );
-        render(inventory, destinations, normalizedPage);
+        render(inventory, destinations, worldIdsBySlot);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
@@ -75,46 +72,26 @@ public final class OverworldTeleportGui {
         return null;
     }
 
-    public boolean hasPreviousPage(int pageIndex) {
-        return GuiPagination.hasPreviousPage(pageIndex);
-    }
-
-    public boolean hasNextPage(int pageIndex, int itemCount) {
-        return GuiPagination.hasNextPage(pageIndex, itemCount, CONTENT_SLOT_COUNT);
-    }
-
-    public int normalizePage(int pageIndex, int itemCount) {
-        return GuiPagination.normalizePage(pageIndex, itemCount, CONTENT_SLOT_COUNT);
-    }
-
-    private void render(@NotNull Inventory inventory, @NotNull List<WorldMasterData> destinations, int pageIndex) {
+    private void render(
+            @NotNull Inventory inventory,
+            @NotNull List<WorldMasterData> destinations,
+            @NotNull Map<Integer, String> worldIdsBySlot
+    ) {
         for (int slot = 0; slot < SIZE; slot++) {
             inventory.setItem(slot, new ItemStack(Material.AIR));
         }
 
-        int start = GuiPagination.pageStart(pageIndex, CONTENT_SLOT_COUNT);
-        int end = GuiPagination.pageEnd(pageIndex, destinations.size(), CONTENT_SLOT_COUNT);
-        for (int index = start; index < end; index++) {
-            inventory.setItem(index - start, destinationItem(destinations.get(index)));
+        for (WorldMasterData destination : destinations) {
+            if (destination.overworldTeleportGui() != null
+                    && destination.overworldTeleportGui().hasValidSlot()
+                    && destination.id().equals(worldIdsBySlot.get(destination.overworldTeleportGui().slot()))) {
+                inventory.setItem(destination.overworldTeleportGui().slot(), destinationItem(destination));
+            }
         }
 
         ItemStack spacer = GuiItems.create(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of());
         for (int slot = CONTENT_SLOT_COUNT; slot < SIZE; slot++) {
             inventory.setItem(slot, spacer);
-        }
-        if (hasPreviousPage(pageIndex)) {
-            inventory.setItem(PREVIOUS_SLOT, GuiItems.create(
-                    Material.MAP,
-                    Component.text("前のページ", NamedTextColor.WHITE, TextDecoration.BOLD),
-                    List.of()
-            ));
-        }
-        if (hasNextPage(pageIndex, destinations.size())) {
-            inventory.setItem(NEXT_SLOT, GuiItems.create(
-                    Material.MAP,
-                    Component.text("次のページ", NamedTextColor.WHITE, TextDecoration.BOLD),
-                    List.of()
-            ));
         }
     }
 
@@ -151,14 +128,15 @@ public final class OverworldTeleportGui {
         );
     }
 
-    private @NotNull List<String> visibleIds(@NotNull List<WorldMasterData> destinations, int pageIndex) {
-        List<String> ids = new ArrayList<>();
-        int start = GuiPagination.pageStart(pageIndex, CONTENT_SLOT_COUNT);
-        int end = GuiPagination.pageEnd(pageIndex, destinations.size(), CONTENT_SLOT_COUNT);
-        for (int index = start; index < end; index++) {
-            ids.add(destinations.get(index).id());
+    private @NotNull Map<Integer, String> worldIdsBySlot(@NotNull List<WorldMasterData> destinations) {
+        Map<Integer, String> ids = new LinkedHashMap<>();
+        for (WorldMasterData destination : destinations) {
+            if (destination.overworldTeleportGui() != null
+                    && destination.overworldTeleportGui().hasValidSlot()) {
+                ids.putIfAbsent(destination.overworldTeleportGui().slot(), destination.id());
+            }
         }
-        return ids;
+        return Map.copyOf(ids);
     }
 
     private @NotNull Component legacy(@NotNull String text, @NotNull String fallback) {
@@ -188,7 +166,12 @@ public final class OverworldTeleportGui {
         return prefix + "-";
     }
 
-    public record Holder(int pageIndex, @NotNull List<String> visibleWorldIds) implements InventoryHolder {
+    /**
+     * GUI のスロットとワールド ID の対応を保持します。
+     *
+     * @param worldIdsBySlot GUI スロットをキーとする表示ワールド ID
+     */
+    public record Holder(@NotNull Map<Integer, String> worldIdsBySlot) implements InventoryHolder {
         @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, SIZE);

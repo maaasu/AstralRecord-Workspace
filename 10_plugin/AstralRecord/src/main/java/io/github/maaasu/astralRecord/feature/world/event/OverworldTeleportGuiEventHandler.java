@@ -71,7 +71,7 @@ public final class OverworldTeleportGuiEventHandler extends AbstractEventHandler
             return false;
         }
 
-        gui.open(player, destinations, 0);
+        gui.open(player, destinations);
         applyGuiDarkness(player);
         return true;
     }
@@ -150,24 +150,14 @@ public final class OverworldTeleportGuiEventHandler extends AbstractEventHandler
             return;
         }
 
-        List<WorldMasterData> destinations = teleportService.listDestinations();
-        if (rawSlot == OverworldTeleportGui.PREVIOUS_SLOT && gui.hasPreviousPage(holder.pageIndex())) {
-            GuiSound.SELECT.play(player);
-            gui.open(player, destinations, holder.pageIndex() - 1);
-            return;
-        }
-        if (rawSlot == OverworldTeleportGui.NEXT_SLOT && gui.hasNextPage(holder.pageIndex(), destinations.size())) {
-            GuiSound.SELECT.play(player);
-            gui.open(player, destinations, holder.pageIndex() + 1);
-            return;
-        }
-        if (rawSlot < 0 || rawSlot >= OverworldTeleportGui.CONTENT_SLOT_COUNT || rawSlot >= holder.visibleWorldIds().size()) {
+        String worldId = holder.worldIdsBySlot().get(rawSlot);
+        if (worldId == null) {
             GuiSound.DENY.play(player);
             return;
         }
 
         GuiSound.SELECT.play(player);
-        teleportService.teleportToDestination(player, astPlayer, holder.visibleWorldIds().get(rawSlot));
+        teleportService.teleportToDestination(player, astPlayer, worldId);
     }
 
     private void applyGuiDarkness(@NotNull Player player) {

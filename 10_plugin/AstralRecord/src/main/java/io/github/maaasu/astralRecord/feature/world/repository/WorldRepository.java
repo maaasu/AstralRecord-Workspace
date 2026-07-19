@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import io.github.maaasu.astralRecord.feature.world.model.OverworldTeleportGuiSetting;
 import io.github.maaasu.astralRecord.feature.world.model.WorldAdventureGuide;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.model.WorldSpawnLocation;
@@ -158,8 +159,18 @@ public class WorldRepository {
                 parseSpawnLocation(obj),
                 optionalString(obj, "description", ""),
                 optionalString(obj, "guiIconMaterial"),
-                parseAdventureGuide(obj)
+                parseAdventureGuide(obj),
+                parseOverworldTeleportGui(obj)
         );
+    }
+
+    @Nullable
+    private static OverworldTeleportGuiSetting parseOverworldTeleportGui(@NotNull JsonObject obj) {
+        JsonObject setting = optionalObject(obj, "overworldTeleportGui");
+        if (setting == null) {
+            return null;
+        }
+        return new OverworldTeleportGuiSetting(optionalInteger(setting, "slot"));
     }
 
     @NotNull

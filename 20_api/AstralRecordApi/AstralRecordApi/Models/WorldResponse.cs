@@ -36,6 +36,8 @@ public class WorldResponse
     public string? GuiIconMaterial { get; init; }
 
     public WorldAdventureGuideResponse? AdventureGuide { get; init; }
+
+    public OverworldTeleportGuiResponse? OverworldTeleportGui { get; init; }
 }
 
 /// <summary>World のスポーン地点座標です。</summary>
@@ -64,6 +66,12 @@ public class WorldAdventureGuideResponse
     public int? RecommendedPartySizeMax { get; init; }
 
     public IReadOnlyList<string>? Notes { get; init; }
+}
+
+/// <summary>拠点から開くオーバーワールド転送 GUI の配置設定です。</summary>
+public class OverworldTeleportGuiResponse
+{
+    public int? Slot { get; init; }
 }
 
 /// <summary>World マスタ一覧レスポンス要約です。</summary>

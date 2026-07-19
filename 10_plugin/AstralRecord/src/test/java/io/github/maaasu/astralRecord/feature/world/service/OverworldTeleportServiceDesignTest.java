@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.world.service;
 
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.world.model.OverworldTeleportGuiSetting;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.model.WorldSpawnLocation;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
@@ -28,13 +29,16 @@ import static org.mockito.Mockito.when;
 class OverworldTeleportServiceDesignTest extends MockBukkitTestBase {
 
     @Test
-    void listDestinationsKeepsOnlyOverworldsAndSortsByPlainDisplayName() {
+    void listDestinationsUsesConfiguredSlotsAndKeepsFirstWorldIdOnCollision() {
         WorldService worldService = mock(WorldService.class);
         when(worldService.getAll()).thenReturn(List.of(
-            world("base", "&6Base", WorldType.BASE),
-            world("greenfall", "&aGreenfall Fields", WorldType.OVERWORLD),
-            world("amber", "Amber Plains", WorldType.OVERWORLD),
-            world("dungeon", "Dungeon", WorldType.DUNGEON)
+            world("base", "&6Base", WorldType.BASE, 0),
+            world("greenfall", "&aGreenfall Fields", WorldType.OVERWORLD, 22),
+            world("zeta", "Zeta Plains", WorldType.OVERWORLD, 1),
+            world("amber", "Amber Plains", WorldType.OVERWORLD, 1),
+            world("hidden", "Hidden World", WorldType.OVERWORLD, null),
+            world("invalid", "Invalid World", WorldType.OVERWORLD, 45),
+            world("dungeon", "Dungeon", WorldType.DUNGEON, 2)
         ));
         OverworldTeleportService service = new OverworldTeleportService(mock(Plugin.class), worldService);
 
@@ -48,8 +52,8 @@ class OverworldTeleportServiceDesignTest extends MockBukkitTestBase {
         WorldService worldService = mock(WorldService.class);
         World baseWorld = mock(World.class);
         World overworld = mock(World.class);
-        when(worldService.findByBukkitWorld(baseWorld)).thenReturn(world("base", "Base", WorldType.BASE));
-        when(worldService.findByBukkitWorld(overworld)).thenReturn(world("field", "Field", WorldType.OVERWORLD));
+        when(worldService.findByBukkitWorld(baseWorld)).thenReturn(world("base", "Base", WorldType.BASE, null));
+        when(worldService.findByBukkitWorld(overworld)).thenReturn(world("field", "Field", WorldType.OVERWORLD, 0));
         OverworldTeleportService service = new OverworldTeleportService(mock(Plugin.class), worldService);
 
         assertTrue(service.isBaseWorld(baseWorld));
@@ -62,7 +66,7 @@ class OverworldTeleportServiceDesignTest extends MockBukkitTestBase {
         WorldService worldService = mock(WorldService.class);
         PlayerMock player = server().addPlayer();
         AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
-        WorldMasterData base = world("base", "Base", WorldType.BASE);
+        WorldMasterData base = world("base", "Base", WorldType.BASE, null);
         when(worldService.getById("base")).thenReturn(base);
         OverworldTeleportService service = new OverworldTeleportService(mock(Plugin.class), worldService);
 
@@ -77,7 +81,7 @@ class OverworldTeleportServiceDesignTest extends MockBukkitTestBase {
         WorldService worldService = mock(WorldService.class);
         PlayerMock player = server().addPlayer();
         AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
-        WorldMasterData destination = world("amber", "Amber Plains", WorldType.OVERWORLD);
+        WorldMasterData destination = world("amber", "Amber Plains", WorldType.OVERWORLD, 1);
         when(worldService.getById("amber")).thenReturn(destination);
         when(worldService.teleportToSpawnAsync(player, destination)).thenReturn(CompletableFuture.completedFuture(true));
         OverworldTeleportService service = new OverworldTeleportService(mock(Plugin.class), worldService);
@@ -87,7 +91,7 @@ class OverworldTeleportServiceDesignTest extends MockBukkitTestBase {
         verify(worldService).teleportToSpawnAsync(player, destination);
     }
 
-    private WorldMasterData world(String id, String displayName, WorldType worldType) {
+    private WorldMasterData world(String id, String displayName, WorldType worldType, Integer slot) {
         return new WorldMasterData(
             1,
             id,
@@ -105,7 +109,8 @@ class OverworldTeleportServiceDesignTest extends MockBukkitTestBase {
             WorldSpawnLocation.defaultLocation(),
             id,
             null,
-            null
+            null,
+            slot == null ? null : new OverworldTeleportGuiSetting(slot)
         );
     }
 }

@@ -15,6 +15,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * 拠点ワールドからオーバーワールドへ移動する GUI 向けのワールド選択と転送を扱います。
@@ -40,13 +42,14 @@ public final class OverworldTeleportService {
      * @return 表示順に整列した `WorldMasterData`
      */
     public @NotNull List<WorldMasterData> listDestinations() {
-        return worldService.getAll().stream()
+        Map<Integer, WorldMasterData> destinationBySlot = new TreeMap<>();
+        worldService.getAll().stream()
                 .filter(world -> world.worldType() == WorldType.OVERWORLD)
-                .sorted(Comparator.comparing(
-                        world -> ColorCodeUtil.toPlainText(world.displayName(), world.id()),
-                        String.CASE_INSENSITIVE_ORDER
-                ))
-                .toList();
+                .filter(world -> world.overworldTeleportGui() != null
+                        && world.overworldTeleportGui().hasValidSlot())
+                .sorted(Comparator.comparing(WorldMasterData::id))
+                .forEach(world -> destinationBySlot.putIfAbsent(world.overworldTeleportGui().slot(), world));
+        return List.copyOf(destinationBySlot.values());
     }
 
     /**

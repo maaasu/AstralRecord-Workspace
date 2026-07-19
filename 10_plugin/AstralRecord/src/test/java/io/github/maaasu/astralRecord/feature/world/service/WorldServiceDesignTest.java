@@ -1,10 +1,12 @@
 package io.github.maaasu.astralRecord.feature.world.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.world.model.OverworldTeleportGuiSetting;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.model.WorldSpawnLocation;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.feature.world.repository.WorldRepository;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.GameRules;
 import org.bukkit.Location;
@@ -113,6 +115,52 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
         assertSame(manual, service.findByBukkitWorld(loadedWorld));
         assertTrue(loadedWorld.getGameRuleValue(GameRules.SPAWN_MOBS));
         assertTrue(loadedWorld.getGameRuleValue(GameRules.MOB_GRIEFING));
+    }
+
+    @Test
+    void loadAllWarnsForDuplicateAndOutOfRangeOverworldTeleportSlots() {
+        WorldRepository repository = mock(WorldRepository.class);
+        WorldService service = new WorldService(repository, () -> new File("target/test-world-container"));
+        WorldMasterData first = world(
+            "a_first",
+            "First",
+            WorldType.OVERWORLD,
+            "first",
+            WorldSpawnLocation.defaultLocation(),
+            false,
+            4
+        );
+        WorldMasterData duplicate = world(
+            "b_duplicate",
+            "Duplicate",
+            WorldType.OVERWORLD,
+            "duplicate",
+            WorldSpawnLocation.defaultLocation(),
+            false,
+            4
+        );
+        WorldMasterData invalid = world(
+            "invalid",
+            "Invalid",
+            WorldType.OVERWORLD,
+            "invalid",
+            WorldSpawnLocation.defaultLocation(),
+            false,
+            45
+        );
+        when(repository.findAll()).thenReturn(List.of(duplicate, invalid, first));
+
+        try (MockedStatic<io.github.maaasu.astralRecord.infrastructure.logging.Logger> logger =
+                 Mockito.mockStatic(io.github.maaasu.astralRecord.infrastructure.logging.Logger.class)) {
+            service.loadAll();
+
+            logger.verify(() -> io.github.maaasu.astralRecord.infrastructure.logging.Logger.log(
+                LogId.W_5754, 4, "a_first", "b_duplicate"
+            ));
+            logger.verify(() -> io.github.maaasu.astralRecord.infrastructure.logging.Logger.log(
+                LogId.W_5755, "invalid", 45
+            ));
+        }
     }
 
     @Test
@@ -246,6 +294,18 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
         WorldSpawnLocation spawnLocation,
         boolean autoLoad
     ) {
+        return world(id, displayName, worldType, baseWorldPath, spawnLocation, autoLoad, null);
+    }
+
+    private WorldMasterData world(
+        String id,
+        String displayName,
+        WorldType worldType,
+        String baseWorldPath,
+        WorldSpawnLocation spawnLocation,
+        boolean autoLoad,
+        Integer overworldTeleportSlot
+    ) {
         return new WorldMasterData(
             1,
             id,
@@ -263,7 +323,8 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
             spawnLocation,
             id,
             null,
-            null
+            null,
+            overworldTeleportSlot == null ? null : new OverworldTeleportGuiSetting(overworldTeleportSlot)
         );
     }
 }
