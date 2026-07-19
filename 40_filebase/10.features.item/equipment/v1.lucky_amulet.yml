@@ -1,0 +1,25 @@
+# design:
+#   motif: "民間伝承 / 幸運のお守り"
+#   progression: 1
+schemaVersion: 1
+id: lucky_amulet
+category: equipment
+name: "&e幸運のアミュレット"
+icon: GOLD_NUGGET
+rarity: UNCOMMON
+maxStack: 1
+saleValue: 50
+lore:
+  - "&7身につけた者の幸運をそっと引き寄せるお守り。"
+  - "&7幸運値が約10%上昇する。"
+unTradeable: false
+unSellable: false
+
+equipment:
+  slot: ACCESSORY
+  tag: AMULET
+  requiredLevel: 1
+  stats:
+    - status: LUCK
+      type: SCALAR
+      value: 0.10
