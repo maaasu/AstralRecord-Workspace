@@ -4,15 +4,16 @@ import io.github.maaasu.astralRecord.feature.menu.model.MenuIconDefinition;
 import io.github.maaasu.astralRecord.feature.menu.model.CurrencyDisplayEntry;
 import io.github.maaasu.astralRecord.feature.menu.model.PlayerEquipmentSnapshot;
 import io.github.maaasu.astralRecord.feature.menu.model.PlayerGuiRenderContext;
-import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * 共通メニュー定義と描画時点の値から GUI 用 ItemStack を生成します。
@@ -74,7 +75,7 @@ public final class MenuIconFactory {
     }
 
     /**
-     * ゴールドを先頭にした所持通貨の共通表示行を生成します。
+     * 合計ゴールドと所持通貨種別を仕切って表示する共通行を生成します。
      *
      * @param context GUI 描画コンテキスト
      * @return 所持通貨表示行
@@ -82,15 +83,22 @@ public final class MenuIconFactory {
     public static @NotNull List<Component> currencyDetails(@NotNull PlayerGuiRenderContext context) {
         List<CurrencyDisplayEntry> balances = context.currencyBalances();
         int visibleCount = Math.min(MAX_CURRENCY_DETAILS, balances.size());
-        List<Component> details = new ArrayList<>(visibleCount + 1);
+        List<Component> details = new ArrayList<>(visibleCount + 5);
+        details.add(Component.text("◆ 合計ゴールド ◆", NamedTextColor.GOLD, TextDecoration.BOLD));
+        details.add(Component.text(
+            String.format(Locale.JAPAN, "%,d G", context.goldAmount()),
+            NamedTextColor.YELLOW
+        ));
+        details.add(Component.empty());
+        details.add(Component.text("◆ 所持カレンシー ◆", NamedTextColor.GOLD, TextDecoration.BOLD));
         for (int index = 0; index < visibleCount; index++) {
             CurrencyDisplayEntry balance = balances.get(index);
-            String suffix = ItemService.DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(balance.currencyId())
-                ? "G"
-                : "";
             details.add(Component.empty()
                 .append(balance.displayName())
-                .append(Component.text(": " + balance.amount() + suffix, NamedTextColor.YELLOW)));
+                .append(Component.text(
+                    ": " + String.format(Locale.JAPAN, "%,d", balance.amount()),
+                    NamedTextColor.YELLOW
+                )));
         }
         if (balances.size() > MAX_CURRENCY_DETAILS) {
             details.add(Component.text("…", NamedTextColor.GRAY));

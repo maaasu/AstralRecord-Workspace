@@ -4,6 +4,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.currency.model.GoldCurrencyCalculator;
+import io.github.maaasu.astralRecord.feature.currency.model.GoldDenomination;
 import io.github.maaasu.astralRecord.feature.inventory.model.AccessorySlotType;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentLoadoutModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentLoadoutSlotModel;
@@ -1322,6 +1324,22 @@ public class InventoryService {
     }
 
     /**
+     * 全ゴールド額面と互換IDを基本ゴールドへ換算した合計値を返します。
+     *
+     * @param accountId 対象アカウントID
+     * @return 合計ゴールド値
+     */
+    public long getGoldAmount(@NotNull UUID accountId) {
+        long denominationTotal = GoldCurrencyCalculator.totalValue(
+            denomination -> getCurrencyAmount(accountId, denomination.itemId())
+        );
+        long legacyAmount = getCurrencyAmount(accountId, ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID);
+        return denominationTotal > Long.MAX_VALUE - legacyAmount
+            ? Long.MAX_VALUE
+            : denominationTotal + legacyAmount;
+    }
+
+    /**
      * 通貨 GUI の通貨を通常 BAG へ取り出します。
      * <p>
      * 通貨は通常の報酬付与時には CURRENCY へ直接保存されますが、GUI 操作による取り出しだけは
@@ -1529,6 +1547,14 @@ public class InventoryService {
         return true;
     }
 
+    /**
+     * 全額面を自動両替し、合計ゴールド値から指定量を消費します。
+     * 支払後残高は高額面から順に再構成されます。
+     *
+     * @param accountId 対象アカウントID
+     * @param amount 消費する基本ゴールド値
+     * @return 全量を消費できた場合はtrue
+     */
     public boolean consumeGold(@NotNull UUID accountId, long amount) {
         if (amount <= 0L) {
             return true;
@@ -1541,16 +1567,22 @@ public class InventoryService {
         if (inventory == null || !inventory.isEnabled()) {
             return false;
         }
-        if (getCurrencyAmount(accountId, ItemService.DEFAULT_CURRENCY_ITEM_ID)
-            + getCurrencyAmount(accountId, ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID) < amount) {
-            return false;
+        synchronized (state) {
+            long totalGold = getGoldAmount(accountId);
+            if (totalGold < amount) {
+                return false;
+            }
+            InventoryStateSnapshot snapshot = snapshotState(accountId);
+            if (snapshot == null || !removeAllGoldCurrency(state, inventory)) {
+                return false;
+            }
+            if (!addGoldValue(state, inventory, totalGold - amount)) {
+                restoreState(snapshot);
+                return false;
+            }
+            compactInventoryEntries(state, inventory.getInventoryId());
+            return true;
         }
-        long remaining = amount;
-        remaining -= consumeItemAmountFromInventory(state, inventory, ItemService.DEFAULT_CURRENCY_ITEM_ID, remaining);
-        if (remaining > 0L) {
-            remaining -= consumeItemAmountFromInventory(state, inventory, ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID, remaining);
-        }
-        return remaining <= 0L;
     }
 
     /**
@@ -1590,6 +1622,62 @@ public class InventoryService {
     }
 
     /**
+     * 価値が等しい組み込みゴールド額面を、同一トランザクション内で交換します。
+     * 基本額面の交換元には互換ID {@code ast_gold} も使用します。
+     *
+     * @param accountId 対象アカウントID
+     * @param sourceItemId 交換元額面ID
+     * @param sourceAmount 交換元数量
+     * @param targetItemId 交換先額面ID
+     * @param targetAmount 交換先数量
+     * @return 等価交換が完了した場合はtrue
+     */
+    public boolean exchangeCurrency(
+        @NotNull UUID accountId,
+        @NotNull String sourceItemId,
+        long sourceAmount,
+        @NotNull String targetItemId,
+        long targetAmount
+    ) {
+        GoldDenomination source = GoldDenomination.findByItemId(sourceItemId);
+        GoldDenomination target = GoldDenomination.findByItemId(targetItemId);
+        if (source == null || target == null || source == target
+            || sourceAmount <= 0L || targetAmount <= 0L
+            || !hasEqualGoldValue(source, sourceAmount, target, targetAmount)) {
+            return false;
+        }
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return false;
+        }
+        InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, InventoryType.CURRENCY);
+        if (inventory == null || !inventory.isEnabled()) {
+            return false;
+        }
+        synchronized (state) {
+            long available = getCurrencyAmount(accountId, source.itemId());
+            if (source == GoldDenomination.GOLD) {
+                long legacyAmount = getCurrencyAmount(accountId, ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID);
+                available = available > Long.MAX_VALUE - legacyAmount
+                    ? Long.MAX_VALUE
+                    : available + legacyAmount;
+            }
+            if (available < sourceAmount) {
+                return false;
+            }
+            InventoryStateSnapshot snapshot = snapshotState(accountId);
+            if (snapshot == null
+                || consumeExactCurrencyAmount(state, inventory, source, sourceAmount) != sourceAmount
+                || !addCurrencyAmountToInventory(state, inventory, target.itemId(), targetAmount)) {
+                restoreState(snapshot);
+                return false;
+            }
+            compactInventoryEntries(state, inventory.getInventoryId());
+            return true;
+        }
+    }
+
+    /**
      * 指定プレイヤーの通貨インベントリへゴールドを加算します。
      *
      * @param astPlayer 加算対象プレイヤー
@@ -1601,22 +1689,134 @@ public class InventoryService {
             return true;
         }
 
-        ItemModel gold = itemService.loadItem(ItemService.DEFAULT_CURRENCY_ITEM_ID);
-        if (gold == null) {
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) {
             return false;
         }
-
-        long remaining = amount;
-        int maxStack = Math.max(1, gold.getMaxStack());
-        while (remaining > 0L) {
-            int chunk = (int) Math.min(maxStack, remaining);
-            ItemStack goldStack = itemStackResolver.resolveCurrencyDisplay(gold, chunk);
-            if (returnItemToOwnedInventory(astPlayer, goldStack) == null) {
+        InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, InventoryType.CURRENCY);
+        if (inventory == null || !inventory.isEnabled()) {
+            return false;
+        }
+        synchronized (state) {
+            InventoryStateSnapshot snapshot = snapshotState(astPlayer.getAccount().getUuid());
+            if (snapshot == null || !addGoldValue(state, inventory, amount)) {
+                restoreState(snapshot);
                 return false;
             }
-            remaining -= chunk;
+            compactInventoryEntries(state, inventory.getInventoryId());
+            return true;
+        }
+    }
+
+    private boolean removeAllGoldCurrency(
+        @NotNull PlayerInventoryState state,
+        @NotNull InventoryModel inventory
+    ) {
+        for (GoldDenomination denomination : GoldDenomination.values()) {
+            long amount = getCurrencyAmount(state.getAccountId(), denomination.itemId());
+            if (consumeItemAmountFromInventory(state, inventory, denomination.itemId(), amount) != amount) {
+                return false;
+            }
+        }
+        long legacyAmount = getCurrencyAmount(state.getAccountId(), ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID);
+        return consumeItemAmountFromInventory(
+            state,
+            inventory,
+            ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID,
+            legacyAmount
+        ) == legacyAmount;
+    }
+
+    private boolean addGoldValue(
+        @NotNull PlayerInventoryState state,
+        @NotNull InventoryModel inventory,
+        long goldValue
+    ) {
+        for (Map.Entry<GoldDenomination, Long> entry : GoldCurrencyCalculator.decompose(goldValue).entrySet()) {
+            if (!addCurrencyAmountToInventory(state, inventory, entry.getKey().itemId(), entry.getValue())) {
+                return false;
+            }
         }
         return true;
+    }
+
+    private boolean addCurrencyAmountToInventory(
+        @NotNull PlayerInventoryState state,
+        @NotNull InventoryModel inventory,
+        @NotNull String itemId,
+        long amount
+    ) {
+        if (amount <= 0L) {
+            return true;
+        }
+        ItemModel model = itemService.loadItem(itemId);
+        if (model == null || ItemCategory.fromApiValue(model.getCategory()) != ItemCategory.CURRENCY) {
+            return false;
+        }
+        List<InventoryEntryModel> entries = new ArrayList<>(normalizeCurrencyEntries(state, inventory));
+        for (int index = 0; index < entries.size(); index++) {
+            InventoryEntryModel entry = entries.get(index);
+            if (entry.getItemId() == null || !entry.getItemId().equalsIgnoreCase(itemId)) {
+                continue;
+            }
+            if (entry.getQuantity() > Long.MAX_VALUE - amount) {
+                return false;
+            }
+            entries.set(index, withQuantity(entry, entry.getQuantity() + amount, state.getAccountId()));
+            state.replaceEntries(inventory.getInventoryId(), entries);
+            return true;
+        }
+        Set<Integer> usedSlots = collectUsedSlots(state, inventory);
+        Integer slot = findNextFreeSlot(inventory, usedSlots);
+        if (slot == null) {
+            return false;
+        }
+        entries.add(newEntry(
+            inventory.getInventoryId(),
+            slot,
+            model.getCategory(),
+            model.getId(),
+            null,
+            null,
+            amount,
+            null,
+            state.getAccountId()
+        ));
+        state.replaceEntries(inventory.getInventoryId(), entries);
+        return true;
+    }
+
+    private long consumeExactCurrencyAmount(
+        @NotNull PlayerInventoryState state,
+        @NotNull InventoryModel inventory,
+        @NotNull GoldDenomination source,
+        long amount
+    ) {
+        long remaining = amount;
+        remaining -= consumeItemAmountFromInventory(state, inventory, source.itemId(), remaining);
+        if (remaining > 0L && source == GoldDenomination.GOLD) {
+            remaining -= consumeItemAmountFromInventory(
+                state,
+                inventory,
+                ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID,
+                remaining
+            );
+        }
+        return amount - remaining;
+    }
+
+    private boolean hasEqualGoldValue(
+        @NotNull GoldDenomination source,
+        long sourceAmount,
+        @NotNull GoldDenomination target,
+        long targetAmount
+    ) {
+        try {
+            return Math.multiplyExact(source.goldValue(), sourceAmount)
+                == Math.multiplyExact(target.goldValue(), targetAmount);
+        } catch (ArithmeticException ignored) {
+            return false;
+        }
     }
 
     public boolean consumeNormalItem(@NotNull UUID accountId, @NotNull String itemId, long amount) {

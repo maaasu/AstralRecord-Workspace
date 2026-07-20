@@ -15,6 +15,7 @@ import java.util.List;
  * 通貨をページング GUI として描画します。
  */
 public final class CurrencyGuiView {
+    public static final int EXCHANGE_SLOT = 50;
     private final PagedGuiView pagedGuiView = new PagedGuiView();
 
     /**
@@ -23,10 +24,17 @@ public final class CurrencyGuiView {
      * @param inventory 描画先インベントリ
      * @param items 表示対象通貨アイテム一覧
      * @param pageIndex 0 始まりのページ番号
+     * @param exchangeUnlocked カレンシー画面から両替所を開ける場合はtrue
      */
-    public void render(@NotNull Inventory inventory, @NotNull List<ItemStack> items, int pageIndex) {
+    public void render(
+        @NotNull Inventory inventory,
+        @NotNull List<ItemStack> items,
+        int pageIndex,
+        boolean exchangeUnlocked
+    ) {
         pagedGuiView.render(inventory, items, pageIndex);
         fillEmptySlots(inventory);
+        inventory.setItem(EXCHANGE_SLOT, createExchangeIcon(exchangeUnlocked));
     }
 
     /**
@@ -90,5 +98,19 @@ public final class CurrencyGuiView {
             itemStack.setItemMeta(meta);
         }
         return itemStack;
+    }
+
+    private @NotNull ItemStack createExchangeIcon(boolean unlocked) {
+        return io.github.maaasu.astralRecord.shared.gui.GuiItems.create(
+            unlocked ? Material.NETHER_STAR : Material.BARRIER,
+            Component.text(
+                unlocked ? "ゴールド両替所" : "両替所は利用できません",
+                unlocked ? net.kyori.adventure.text.format.NamedTextColor.GOLD
+                    : net.kyori.adventure.text.format.NamedTextColor.RED
+            ),
+            unlocked
+                ? List.of(Component.text("クリックして両替GUIを開きます"))
+                : List.of(Component.text("ユグドラシルの星核を所持すると、ここから両替できます"))
+        );
     }
 }

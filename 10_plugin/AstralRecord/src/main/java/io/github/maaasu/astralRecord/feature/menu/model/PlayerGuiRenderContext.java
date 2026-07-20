@@ -38,7 +38,7 @@ public record PlayerGuiRenderContext(
     }
 
     /**
-     * 通貨一覧をまだ保持しない呼び出し元向けに、ゴールドだけを含むコンテキストを生成します。
+     * 通貨種別一覧をまだ保持しない呼び出し元向けに、合計ゴールドだけを含むコンテキストを生成します。
      *
      * @param account 選択中アカウント
      * @param statusSnapshot ステータス計算結果
@@ -65,11 +65,7 @@ public record PlayerGuiRenderContext(
             goldAmount,
             returnToBaseGoldCost,
             equipment,
-            List.of(new CurrencyDisplayEntry(
-                io.github.maaasu.astralRecord.feature.item.service.ItemService.DEFAULT_CURRENCY_ITEM_ID,
-                net.kyori.adventure.text.Component.text("ゴールド"),
-                goldAmount
-            ))
+            List.of()
         );
     }
 }

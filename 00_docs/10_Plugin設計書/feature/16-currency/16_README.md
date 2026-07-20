@@ -9,7 +9,8 @@
 - `src/main/java/io/github/maaasu/astralRecord/feature/currency/service/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/currency/model/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/currency/repository/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/currency/gui/*`
+- `src/main/java/io/github/maaasu/astralRecord/feature/currency/view/*`
+- `src/main/java/io/github/maaasu/astralRecord/feature/currency/event/*`
 
 ## ドキュメント一覧（推奨順）
 
@@ -36,6 +37,7 @@
 ## 実装メモ
 
 - 2026-07-17: 通貨 GUI の数量規則は左クリック1個、右クリック半分、Shift+左クリック1スタック、Shift+右クリック全量とする。収納側の Shift+右は BAG・ホットバー全体の同一通貨を対象にする。
+- 2026-07-20: ゴールドは7額面の合計値で支払い、残高を高額面優先で自動再構成する。専用両替GUIはNPCから開き、最上位額面所持時のみカレンシーGUIからも開ける。
 
 ## 更新ルール（変更時に必ず更新する章）
 

@@ -1,4 +1,6 @@
-# NOTE: 現在実装されているマスタデータはすべてデバッグ用の仮設定です。正式なゲームバランス・報酬・入手設計として扱わないでください。
+# design:
+#   motif: "北欧神話 / ビフレストの交易"
+#   progression: 0
 schemaVersion: 1
 id: currency_exchange_clerk
 type: MOB
@@ -36,5 +38,4 @@ interactions:
   rightClick:
     - id: gui
       params:
-        type: SHOP
-        shopId: currency_exchange
+        type: CURRENCY_EXCHANGE

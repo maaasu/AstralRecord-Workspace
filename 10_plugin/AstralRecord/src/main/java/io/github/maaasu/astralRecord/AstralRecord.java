@@ -26,6 +26,7 @@ import io.github.maaasu.astralRecord.feature.condition.task.ConditionCleanupTask
 import io.github.maaasu.astralRecord.feature.condition.task.ConditionDisplayTask;
 import io.github.maaasu.astralRecord.feature.condition.task.ConditionTickTask;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
+import io.github.maaasu.astralRecord.feature.currency.event.CurrencyExchangeGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.buff.service.BuffAcquisitionDisplayService;
 import io.github.maaasu.astralRecord.feature.gathering.event.GatheringInteractionEventHandler;
 import io.github.maaasu.astralRecord.feature.gathering.repository.GatheringDefinitionRepository;
@@ -247,6 +248,7 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerInventoryStateRegistry inventoryStateRegistry;
     private InventoryAutoSaveTask inventoryAutoSaveTask;
     private CurrencyService currencyService;
+    private CurrencyExchangeGuiEventHandler currencyExchangeGuiEventHandler;
     private StatusService statusService;
     private StatusRegenTask statusRegenTask;
     private DodgeService dodgeService;
@@ -633,6 +635,7 @@ public final class AstralRecord extends JavaPlugin {
         accountModeApplicationService = new AccountModeApplicationService(accountService, inventoryService);
         skillTreeService.setInventoryService(inventoryService);
         currencyService = new CurrencyService(inventoryService, itemService);
+        currencyExchangeGuiEventHandler = new CurrencyExchangeGuiEventHandler(currencyService);
         playerSettingService = new PlayerSettingService(
             new PlayerSettingRepository(),
             new PlayerSettingDefaults(),
@@ -1071,6 +1074,7 @@ public final class AstralRecord extends JavaPlugin {
             menuView,
             inventoryService,
             currencyService,
+            currencyExchangeGuiEventHandler,
             statusService,
             playerGuiRenderContextFactory,
             menuGuiTransitionService,
@@ -1080,6 +1084,7 @@ public final class AstralRecord extends JavaPlugin {
             returnToBaseService
         );
         eventManager.registerHandler(menuOpenEventHandler, getServer().getPluginManager());
+        eventManager.registerHandler(currencyExchangeGuiEventHandler, getServer().getPluginManager());
         mailGuiEventHandler = new MailGuiEventHandler(new MailGuiView(this, itemService), mailService, inventoryService);
         eventManager.registerHandler(
             mailGuiEventHandler,
@@ -1223,7 +1228,8 @@ public final class AstralRecord extends JavaPlugin {
             storageService,
             equipmentEnhancementService,
             equipmentRepairService,
-            questGuiEventHandler
+            questGuiEventHandler,
+            currencyExchangeGuiEventHandler
         );
         var itemWeaponAttackEventHandler = new ItemWeaponAttackEventHandler(
             itemWeaponAttackService,

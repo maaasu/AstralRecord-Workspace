@@ -9,10 +9,13 @@ import java.util.Arrays;
  * ゴールド系通貨の額面と表示情報を定義します。
  */
 public enum GoldDenomination {
-    GOLD("gold", "ゴールド", "GOLD_NUGGET", 1L),
-    GOLD_COIN("gold_coin", "金貨", "RAW_GOLD", 10L),
-    GOLD_INGOT("gold_ingot", "金の延べ棒", "GOLD_INGOT", 100L),
-    GOLD_BLOCK("gold_block", "金塊", "GOLD_BLOCK", 1_000L);
+    GOLD("gold", "ルーンの金片", "GOLD_NUGGET", 1L),
+    GOLD_COIN("gold_coin", "ヴァルハラの金貨", "RAW_GOLD", 10L),
+    GOLD_INGOT("gold_ingot", "ミズガルズの黄金インゴット", "GOLD_INGOT", 100L),
+    GOLD_BLOCK("gold_block", "アースガルズの黄金ブロック", "GOLD_BLOCK", 1_000L),
+    GOLD_DIAMOND("gold_diamond", "ビフレストのダイヤ", "DIAMOND", 10_000L),
+    GOLD_DIAMOND_BLOCK("gold_diamond_block", "神域のダイヤ結晶", "DIAMOND_BLOCK", 100_000L),
+    YGGDRASIL_STAR_CORE("yggdrasil_star_core", "ユグドラシルの星核", "NETHER_STAR", 1_000_000L);
 
     private final String itemId;
     private final String displayName;
@@ -65,6 +68,46 @@ public enum GoldDenomination {
      */
     public long goldValue() {
         return goldValue;
+    }
+
+    /**
+     * 1段階下のゴールド額面を返します。
+     *
+     * @return 下位額面。最小額面の場合は {@code null}
+     */
+    public @Nullable GoldDenomination lower() {
+        int index = ordinal() - 1;
+        return index < 0 ? null : values()[index];
+    }
+
+    /**
+     * 1段階上のゴールド額面を返します。
+     *
+     * @return 上位額面。最大額面の場合は {@code null}
+     */
+    public @Nullable GoldDenomination higher() {
+        int index = ordinal() + 1;
+        return index >= values().length ? null : values()[index];
+    }
+
+    /**
+     * この額面1個を直下の額面へ崩したときの個数を返します。
+     *
+     * @return 下位額面との交換比率。最小額面の場合は0
+     */
+    public long lowerExchangeRatio() {
+        GoldDenomination lower = lower();
+        return lower == null ? 0L : goldValue / lower.goldValue;
+    }
+
+    /**
+     * 最上位のゴールド額面を返します。
+     *
+     * @return 最上位額面
+     */
+    public static @NotNull GoldDenomination highest() {
+        GoldDenomination[] denominations = values();
+        return denominations[denominations.length - 1];
     }
 
     /**

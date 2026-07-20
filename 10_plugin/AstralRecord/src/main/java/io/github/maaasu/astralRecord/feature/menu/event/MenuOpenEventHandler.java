@@ -4,6 +4,8 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
+import io.github.maaasu.astralRecord.feature.currency.event.CurrencyExchangeGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.currency.view.CurrencyGuiView;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemTransferSupport;
@@ -75,6 +77,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler
     private final MenuView menuView;
     private final InventoryService inventoryService;
     private final CurrencyService currencyService;
+    private final CurrencyExchangeGuiEventHandler currencyExchangeGuiEventHandler;
     private final StatusService statusService;
     private final PlayerGuiRenderContextFactory playerGuiRenderContextFactory;
     private final MenuGuiTransitionService menuGuiTransitionService;
@@ -93,6 +96,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler
      * @param menuView メニュー GUI 表示
      * @param inventoryService インベントリサービス
      * @param currencyService 通貨サービス
+     * @param currencyExchangeGuiEventHandler 両替GUIハンドラ
      * @param statusService ステータスサービス
      * @param playerGuiRenderContextFactory GUI 描画コンテキスト生成ファクトリ
      * @param menuGuiTransitionService GUI 切替サービス
@@ -106,6 +110,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         @NotNull MenuView menuView,
         @NotNull InventoryService inventoryService,
         @NotNull CurrencyService currencyService,
+        @NotNull CurrencyExchangeGuiEventHandler currencyExchangeGuiEventHandler,
         @NotNull StatusService statusService,
         @NotNull PlayerGuiRenderContextFactory playerGuiRenderContextFactory,
         @NotNull MenuGuiTransitionService menuGuiTransitionService,
@@ -118,6 +123,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         this.menuView = menuView;
         this.inventoryService = inventoryService;
         this.currencyService = currencyService;
+        this.currencyExchangeGuiEventHandler = currencyExchangeGuiEventHandler;
         this.statusService = statusService;
         this.playerGuiRenderContextFactory = playerGuiRenderContextFactory;
         this.menuGuiTransitionService = menuGuiTransitionService;
@@ -620,16 +626,33 @@ public class MenuOpenEventHandler extends AbstractEventHandler
             return;
         }
 
+        if (rawSlot == CurrencyGuiView.EXCHANGE_SLOT) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer == null || !currencyService.hasHighestGoldDenomination(astPlayer.getAccount().getUuid())) {
+                GuiSound.DENY.play(player);
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_6800);
+                return;
+            }
+            currencyExchangeGuiEventHandler.open(player);
+            return;
+        }
+
         int pageIndex = menuView.getPageIndex(event.getView().getTopInventory());
         List<ItemStack> currencyItems = currencyItems(player);
         if (rawSlot == MenuView.PAGING_PREVIOUS_SLOT && menuView.hasPreviousCurrencyPage(pageIndex)) {
             GuiSound.SELECT.play(player);
-            switchGuiWithoutInventoryReload(player, () -> menuView.openCurrency(player, currencyItems, pageIndex - 1));
+            switchGuiWithoutInventoryReload(
+                player,
+                () -> menuView.openCurrency(player, currencyItems, pageIndex - 1, exchangeUnlocked(player))
+            );
             return;
         }
         if (rawSlot == MenuView.PAGING_NEXT_SLOT && menuView.hasNextCurrencyPage(currencyItems, pageIndex)) {
             GuiSound.SELECT.play(player);
-            switchGuiWithoutInventoryReload(player, () -> menuView.openCurrency(player, currencyItems, pageIndex + 1));
+            switchGuiWithoutInventoryReload(
+                player,
+                () -> menuView.openCurrency(player, currencyItems, pageIndex + 1, exchangeUnlocked(player))
+            );
             return;
         }
 
@@ -655,7 +678,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler
                         () -> menuView.openCurrency(
                             player,
                             currencyItems(player),
-                            pageIndex
+                            pageIndex,
+                            exchangeUnlocked(player)
                         )
                     );
                     return;
@@ -700,7 +724,12 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         GuiSound.SELECT.play(player);
         switchGuiWithoutInventoryReload(
             player,
-            () -> menuView.openCurrency(player, currencyItems(player), menuView.getPageIndex(topInventory))
+            () -> menuView.openCurrency(
+                player,
+                currencyItems(player),
+                menuView.getPageIndex(topInventory),
+                exchangeUnlocked(player)
+            )
         );
     }
 
@@ -851,7 +880,10 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         suppressCraftRendering(player);
         menuView.clearCraftShortcuts(player);
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            switchGuiWithoutInventoryReload(player, () -> menuView.openCurrency(player, currencyItems(player), pageIndex));
+            switchGuiWithoutInventoryReload(
+                player,
+                () -> menuView.openCurrency(player, currencyItems(player), pageIndex, exchangeUnlocked(player))
+            );
             resumeCraftRendering(player);
         });
     }
@@ -877,6 +909,12 @@ public class MenuOpenEventHandler extends AbstractEventHandler
             return List.of();
         }
         return currencyService.getCurrencyItemStacks(astPlayer.getAccount().getUuid());
+    }
+
+    private boolean exchangeUnlocked(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        return astPlayer != null
+            && currencyService.hasHighestGoldDenomination(astPlayer.getAccount().getUuid());
     }
 
     private void scheduleCraftShortcutRender(@NotNull Player player) {

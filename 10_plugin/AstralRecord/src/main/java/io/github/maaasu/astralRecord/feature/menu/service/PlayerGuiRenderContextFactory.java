@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.menu.service;
 
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
+import io.github.maaasu.astralRecord.feature.currency.model.GoldDenomination;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.menu.model.CurrencyDisplayEntry;
 import io.github.maaasu.astralRecord.feature.menu.model.PlayerEquipmentSnapshot;
@@ -19,7 +20,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -65,34 +69,32 @@ public final class PlayerGuiRenderContextFactory {
             goldAmount,
             ReturnToBaseService.calculateGoldCost(accountLevel),
             captureEquipment(astPlayer.getBukkit().getInventory()),
-            captureCurrencyBalances(account.getUuid(), goldAmount)
+            captureCurrencyBalances(account.getUuid())
         );
     }
 
-    private @NotNull List<CurrencyDisplayEntry> captureCurrencyBalances(
-        @NotNull UUID accountId,
-        long goldAmount
-    ) {
+    private @NotNull List<CurrencyDisplayEntry> captureCurrencyBalances(@NotNull UUID accountId) {
         List<CurrencyDisplayEntry> balances = new ArrayList<>();
-        balances.add(new CurrencyDisplayEntry(
-            ItemService.DEFAULT_CURRENCY_ITEM_ID,
-            Component.text("ゴールド", NamedTextColor.GOLD),
-            goldAmount
-        ));
-
+        Map<String, Component> displayNamesById = new LinkedHashMap<>();
         for (ItemStack itemStack : currencyService.getCurrencyItemStacks(accountId)) {
             String currencyId = currencyService.getCurrencyItemId(itemStack);
-            if (currencyId == null
-                || ItemService.DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(currencyId)
-                || ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(currencyId)) {
+            if (currencyId == null) {
                 continue;
             }
-
-            long amount = currencyService.getCurrencyAmount(accountId, currencyId);
+            String canonicalId = ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(currencyId)
+                ? ItemService.DEFAULT_CURRENCY_ITEM_ID
+                : currencyId.toLowerCase(Locale.ROOT);
+            Component displayName = GoldDenomination.GOLD.itemId().equalsIgnoreCase(canonicalId)
+                ? Component.text(GoldDenomination.GOLD.displayName(), NamedTextColor.GOLD)
+                : displayName(itemStack);
+            displayNamesById.putIfAbsent(canonicalId, displayName);
+        }
+        for (Map.Entry<String, Component> entry : displayNamesById.entrySet()) {
+            long amount = currencyService.getDisplayCurrencyAmount(accountId, entry.getKey());
             if (amount <= 0L) {
                 continue;
             }
-            balances.add(new CurrencyDisplayEntry(currencyId, displayName(itemStack), amount));
+            balances.add(new CurrencyDisplayEntry(entry.getKey(), entry.getValue(), amount));
         }
         return balances;
     }

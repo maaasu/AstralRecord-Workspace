@@ -37,7 +37,13 @@ class MenuIconFactoryTest extends MockBukkitTestBase {
         assertNotSame(first, second);
         assertEquals(Material.BUNDLE, first.getType());
         assertEquals("カレンシー", plain(first.getItemMeta().displayName()));
-        assertEquals(List.of("所持通貨を確認", "ゴールド: 321G"), first.getItemMeta().lore().stream()
+        assertEquals(List.of(
+            "所持通貨を確認",
+            "◆ 合計ゴールド ◆",
+            "321 G",
+            "",
+            "◆ 所持カレンシー ◆"
+        ), first.getItemMeta().lore().stream()
             .map(MenuIconFactoryTest::plain)
             .toList());
 
@@ -49,8 +55,7 @@ class MenuIconFactoryTest extends MockBukkitTestBase {
     void limitsCurrencyDetailsToTenEntriesAndAddsEllipsis() {
         PlayerGuiRenderContext base = context();
         List<CurrencyDisplayEntry> balances = new java.util.ArrayList<>();
-        balances.add(new CurrencyDisplayEntry("gold", Component.text("ゴールド"), 321L));
-        for (int index = 1; index <= 10; index++) {
+        for (int index = 1; index <= 11; index++) {
             balances.add(new CurrencyDisplayEntry(
                 "currency_" + index,
                 Component.text("通貨" + index),
@@ -70,7 +75,10 @@ class MenuIconFactoryTest extends MockBukkitTestBase {
 
         assertEquals(
             List.of(
-                "ゴールド: 321G",
+                "◆ 合計ゴールド ◆",
+                "321 G",
+                "",
+                "◆ 所持カレンシー ◆",
                 "通貨1: 1",
                 "通貨2: 2",
                 "通貨3: 3",
@@ -80,6 +88,7 @@ class MenuIconFactoryTest extends MockBukkitTestBase {
                 "通貨7: 7",
                 "通貨8: 8",
                 "通貨9: 9",
+                "通貨10: 10",
                 "…"
             ),
             MenuIconFactory.currencyDetails(manyCurrencies).stream()

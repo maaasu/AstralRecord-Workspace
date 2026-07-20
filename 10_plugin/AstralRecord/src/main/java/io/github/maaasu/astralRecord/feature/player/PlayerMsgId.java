@@ -1010,6 +1010,11 @@ public enum PlayerMsgId {
     P_6708(6708),
     // endregion
 
+    // region /feature/currency 6800-6819
+    /** 最上位通貨を所持していないため、カレンシー画面から両替所を開けない。 */
+    P_6800(6800),
+    // endregion
+
     // region /feature/player/service/PlayerMessageService.java 5940-5949
     P_5940(5940),
     P_5941(5941),

@@ -207,12 +207,25 @@ public class MenuView {
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
-    public void openCurrency(@NotNull Player player, @NotNull List<ItemStack> currencyItems, int pageIndex) {
+    /**
+     * 通貨一覧GUIを指定ページで開きます。
+     *
+     * @param player 表示対象プレイヤー
+     * @param currencyItems 表示する所持通貨
+     * @param pageIndex 0始まりのページ番号
+     * @param exchangeUnlocked カレンシー画面から両替所を開ける場合はtrue
+     */
+    public void openCurrency(
+        @NotNull Player player,
+        @NotNull List<ItemStack> currencyItems,
+        int pageIndex,
+        boolean exchangeUnlocked
+    ) {
         int normalizedPage = currencyGuiView.normalizePage(pageIndex, currencyItems.size());
         int totalPages = currencyGuiView.totalPages(currencyItems.size());
         Component title = Component.text(CURRENCY_TITLE + " " + (normalizedPage + 1) + "/" + totalPages, NamedTextColor.GOLD);
         Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.CURRENCY, -1, normalizedPage), PagedGuiView.SIZE, title);
-        currencyGuiView.render(inventory, currencyItems, normalizedPage);
+        currencyGuiView.render(inventory, currencyItems, normalizedPage, exchangeUnlocked);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
