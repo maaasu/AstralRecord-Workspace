@@ -285,7 +285,7 @@ public class ItemStackFactory {
                 ? ColorCodeUtil.DARK_RED + "[破損] " + rarityColor + decoratedName
                 : rarityColor + decoratedName;
         String enhanceSuffix = instance.getEnhanceLevel() > 0
-                ? " §f[強化値 +" + instance.getEnhanceLevel() + "]"
+                ? " §7[ §3+§f§l" + instance.getEnhanceLevel() + "§r§7]"
                 : "";
         meta.displayName(LEGACY_SERIALIZER.deserialize(
                 visibleName + enhanceSuffix + ColorCodeUtil.RESET));
