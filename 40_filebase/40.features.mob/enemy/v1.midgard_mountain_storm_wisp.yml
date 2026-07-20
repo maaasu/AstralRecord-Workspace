@@ -1,0 +1,59 @@
+# design:
+#   motif: "北欧神話 / 雷神トール"
+#   progression: 4
+schemaVersion: 1
+id: midgard_mountain_storm_wisp
+type: MOB
+category: ENEMY
+name: "&bミズガルズ・ストームウィスプ"
+level: 9
+entityType: VEX
+icon: LIGHTNING_ROD
+lore:
+  - "&7山頂を巡る雷雲から生まれた、青白い精霊。"
+  - "&7雷鳴とともに放つ閃光で、足を止めようとする。"
+tags:
+  - midgard
+  - mountain
+  - spirit
+  - magic
+  - lightning
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 155
+  - status: ATTACK
+    value: 31
+  - status: INTELLIGENCE
+    value: 38
+  - status: DEFENSE
+    value: 6
+  - status: MAGIC_DEFENSE
+    value: 12
+  - status: MOVEMENT_SPEED
+    value: 110
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 12
+    speed: 1.0
+  targeting:
+    strategy: RANDOM
+    aggroRange: 21
+    deaggroRange: 33
+    leashRange: 38
+  combat:
+    style: MAGIC
+    preferredRange: 8.0
+    attackIntervalTicks: 44
+    skills:
+      - ref: skill:mob_mountain_thunder_bolt
+
+drops:
+  exp: 90
+  money:
+    min: 12
+    max: 28
+  lootTable:
+    ref: loot_table:midgard_grassland_orb_table

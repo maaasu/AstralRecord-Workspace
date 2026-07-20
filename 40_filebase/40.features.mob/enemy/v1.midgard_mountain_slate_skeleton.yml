@@ -1,0 +1,62 @@
+# design:
+#   motif: "鉱物 / 粘板岩"
+#   progression: 4
+schemaVersion: 1
+id: midgard_mountain_slate_skeleton
+type: MOB
+category: ENEMY
+name: "&8ミズガルズ・スレートスケルトン"
+level: 8
+entityType: SKELETON
+icon: DEEPSLATE
+lore:
+  - "&7粘板岩の裂け目に埋もれていた、重い骨の射手。"
+  - "&7岩肌に紛れ、遠くから硬い矢を射かける。"
+tags:
+  - midgard
+  - mountain
+  - undead
+  - ranged
+  - stone
+
+equipment:
+  mainHand: BOW
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 180
+  - status: ATTACK
+    value: 30
+  - status: DEXTERITY
+    value: 34
+  - status: DEFENSE
+    value: 8
+  - status: MAGIC_DEFENSE
+    value: 5
+  - status: MOVEMENT_SPEED
+    value: 98
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 11
+    speed: 0.8
+  targeting:
+    strategy: NEAREST
+    aggroRange: 21
+    deaggroRange: 32
+    leashRange: 38
+  combat:
+    style: RANGED
+    preferredRange: 9.5
+    attackIntervalTicks: 30
+    skills:
+      - ref: skill:mob_skeleton_bow_shot
+
+drops:
+  exp: 76
+  money:
+    min: 10
+    max: 24
+  lootTable:
+    ref: loot_table:midgard_grassland_orb_table

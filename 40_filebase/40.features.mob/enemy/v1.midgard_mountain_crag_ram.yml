@@ -1,0 +1,58 @@
+# design:
+#   motif: "山羊 / 角と断崖"
+#   progression: 4
+schemaVersion: 1
+id: midgard_mountain_crag_ram
+type: MOB
+category: ENEMY
+name: "&7ミズガルズ・クラッグラム"
+level: 7
+entityType: GOAT
+icon: GOAT_HORN
+lore:
+  - "&7切り立つ岩場を駆ける、太い角を持つ山羊。"
+  - "&7追い詰められると、断崖の勢いで突進してくる。"
+tags:
+  - midgard
+  - mountain
+  - beast
+  - melee
+  - goat
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 165
+  - status: ATTACK
+    value: 27
+  - status: STRENGTH
+    value: 24
+  - status: DEFENSE
+    value: 8
+  - status: MOVEMENT_SPEED
+    value: 106
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 13
+    speed: 0.9
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 22
+    deaggroRange: 32
+    leashRange: 38
+    retaliateOnly: true
+  combat:
+    style: MELEE
+    preferredRange: 2.2
+    attackIntervalTicks: 28
+    skills:
+      - ref: skill:mob_goblin_slash
+
+drops:
+  exp: 64
+  money:
+    min: 8
+    max: 20
+  lootTable:
+    ref: loot_table:midgard_grassland_orb_table

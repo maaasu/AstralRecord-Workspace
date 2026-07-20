@@ -1,0 +1,63 @@
+# design:
+#   motif: "北欧神話 / ビフレストの岩橋"
+#   progression: 4
+schemaVersion: 1
+id: midgard_mountain_crest_guard
+type: MOB
+category: ENEMY
+name: "&6ミズガルズ・クレストガード"
+level: 10
+entityType: IRON_GOLEM
+icon: IRON_BLOCK
+lore:
+  - "&7山道の稜線に立つ、鉄と岩でできた番人。"
+  - "&7重い一撃で、山奥へ踏み入る者を押し返す。"
+tags:
+  - midgard
+  - mountain
+  - guardian
+  - melee
+  - iron
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 290
+  - status: ATTACK
+    value: 38
+  - status: STRENGTH
+    value: 40
+  - status: DEFENSE
+    value: 15
+  - status: MAGIC_DEFENSE
+    value: 8
+  - status: MOVEMENT_SPEED
+    value: 86
+
+shield:
+  enabled: true
+  max: 12
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 9
+    speed: 0.7
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 18
+    deaggroRange: 28
+    leashRange: 32
+  combat:
+    style: MELEE
+    preferredRange: 2.8
+    attackIntervalTicks: 38
+    skills:
+      - ref: skill:mob_field_heavy_slash
+
+drops:
+  exp: 110
+  money:
+    min: 16
+    max: 36
+  lootTable:
+    ref: loot_table:midgard_grassland_orb_table
