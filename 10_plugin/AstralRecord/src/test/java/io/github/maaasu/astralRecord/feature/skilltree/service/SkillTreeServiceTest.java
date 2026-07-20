@@ -5,12 +5,16 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefinition;
+import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeStatusDefinition;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePlayerState;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreeNodeRepository;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreePlayerStateRepository;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreeStructureRepository;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
+import io.github.maaasu.astralRecord.feature.status.model.StatusModifierType;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
+import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Material;
@@ -37,7 +41,7 @@ import static org.mockito.Mockito.when;
 class SkillTreeServiceTest extends MockBukkitTestBase {
 
     @Test
-    void unlockNodeTreatsSkillIdDeltaAsStatusAffected() {
+    void unlockNodeReconcilesPassiveDeltaBeforeStatusRefresh() {
         UUID accountId = UUID.randomUUID();
         SkillTreeNodeDefinition passiveNode = new SkillTreeNodeDefinition(
                 "1000",
@@ -63,8 +67,41 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
                 eq(player),
                 eq(Set.of("sw_passive_wall")),
                 eq(Set.of()),
-                eq(true)
+                eq(false)
         );
+    }
+
+    @Test
+    void unlockNodeRefreshesStatusForDirectNodeModifier() {
+        UUID accountId = UUID.randomUUID();
+        SkillTreeNodeDefinition statusNode = new SkillTreeNodeDefinition(
+                "1000",
+                "root",
+                "Status Root",
+                Material.NETHER_STAR,
+                List.of(),
+                List.of("root"),
+                SkillTreePointType.PASSIVE_POINT,
+                0,
+                List.of(),
+                List.of(new SkillTreeNodeStatusDefinition(
+                        StatusType.ATTACK,
+                        StatusModifierType.FLAT,
+                        5.0D
+                ))
+        );
+        PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
+        StatusService statusService = mock(StatusService.class);
+        SkillTreeService service = newService(statusNode);
+        service.setPassiveSkillService(passiveSkillService);
+        service.setStatusService(statusService);
+        AstPlayer player = astPlayer(accountId);
+        service.applyInitialPlayerState(new SkillTreePlayerState(accountId, Set.of()));
+
+        service.unlockNode(player, statusNode);
+
+        verify(passiveSkillService).reconcileNow(player, false);
+        verify(statusService).refreshStatus(player);
     }
 
     @Test

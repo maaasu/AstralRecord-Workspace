@@ -16,6 +16,7 @@ import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Levelled;
 import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -46,6 +47,8 @@ final class SkillTreeVisualizer {
     private static final float ADMIN_ITEM_SCALE = 0.72F;
     private static final float ADMIN_TEXT_SCALE = 0.72F;
     private static final int NODE_LIGHT_LEVEL = 15;
+    private static final float NODE_INTERACTION_WIDTH = 1.8F;
+    private static final float NODE_INTERACTION_HEIGHT = 1.8F;
 
     private final Plugin plugin;
     private final SkillTreeService service;
@@ -553,6 +556,7 @@ final class SkillTreeVisualizer {
     private final class NodeVisual {
         private final SkillTreeNodeDefinition node;
         private final Location baseLocation;
+        private final Interaction interaction;
         private final SkillTreePacketDisplay.PacketEntity lockedItem;
         private final SkillTreePacketDisplay.PacketEntity unlockedItem;
         private final Map<NodeLabelKey, SkillTreePacketDisplay.PacketEntity> labels = new HashMap<>();
@@ -561,6 +565,7 @@ final class SkillTreeVisualizer {
         private NodeVisual(@NotNull SkillTreeNodeDefinition node, @NotNull Location location) {
             this.node = node;
             this.baseLocation = location.clone();
+            this.interaction = createNodeInteraction(location);
             this.lockedItem = packetItemDisplay(location, service.createNodeDisplayItem(node, false), NODE_ITEM_SCALE, NODE_ITEM_Y_OFFSET, false);
             this.unlockedItem = packetItemDisplay(location, service.createNodeDisplayItem(node, true), NODE_ITEM_SCALE, NODE_ITEM_Y_OFFSET, true);
             registerLabel(location, node, SkillTreeService.NodePresentationState.BLOCKED, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
@@ -599,6 +604,7 @@ final class SkillTreeVisualizer {
             baseLocation.setX(location.getX());
             baseLocation.setY(location.getY());
             baseLocation.setZ(location.getZ());
+            interaction.teleport(location);
             Location itemLocation = itemLocation(location, NODE_ITEM_Y_OFFSET);
             Location textLocation = textLocation(location);
             lockedItem.move(itemLocation);
@@ -690,12 +696,13 @@ final class SkillTreeVisualizer {
         }
 
         private boolean isValid() {
-            return true;
+            return interaction.isValid();
         }
 
         private void remove() {
             hideCurrentViewers();
             viewerStates.clear();
+            interaction.remove();
         }
 
         private void hideCurrentViewers() {
@@ -715,6 +722,30 @@ final class SkillTreeVisualizer {
                 }
             }
         }
+    }
+
+    /**
+     * packet-only ノード表示へ左右クリックを届ける不可視 hitbox を生成します。
+     *
+     * @param location ノード基準位置
+     * @return サーバーが追跡する非永続 Interaction entity
+     * @throws IllegalArgumentException ワールドを解決できない場合
+     */
+    private @NotNull Interaction createNodeInteraction(@NotNull Location location) {
+        World world = location.getWorld();
+        if (world == null) {
+            throw new IllegalArgumentException("skill tree node location must have a world");
+        }
+        return world.spawn(location, Interaction.class, interaction -> {
+            interaction.setInteractionWidth(NODE_INTERACTION_WIDTH);
+            interaction.setInteractionHeight(NODE_INTERACTION_HEIGHT);
+            interaction.setResponsive(true);
+            interaction.setPersistent(false);
+            interaction.setGravity(false);
+            interaction.setInvulnerable(true);
+            interaction.setSilent(true);
+            interaction.addScoreboardTag(SkillTreeService.NODE_INTERACTION_TAG);
+        });
     }
 
     private record NodeLabelKey(

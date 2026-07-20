@@ -82,6 +82,7 @@ public class SkillTreeService {
     private static final String ROOT_TAG = "root";
     private static final double TARGET_DISTANCE = 8.0D;
     private static final double TARGET_RADIUS = 0.9D;
+    static final String NODE_INTERACTION_TAG = "astralrecord:skilltree:node-interaction";
     private static final long SAVE_INTERVAL_TICKS = 20L;
     private static final long FEEDBACK_INTERVAL_TICKS = 5L;
     private static final long VISUAL_DELAY_MILLIS = 1_500L;
@@ -1572,16 +1573,14 @@ public class SkillTreeService {
             @NotNull Set<String> removedSkillIds,
             boolean statusAffected
     ) {
-        boolean refreshedByPassiveService = false;
         if (passiveSkillService != null) {
             if (addedSkillIds.isEmpty() && removedSkillIds.isEmpty()) {
-                passiveSkillService.reconcileNow(astPlayer);
+                passiveSkillService.reconcileNow(astPlayer, false);
             } else {
-                passiveSkillService.reconcileSkillOwnershipDelta(astPlayer, addedSkillIds, removedSkillIds, statusAffected);
+                passiveSkillService.reconcileSkillOwnershipDelta(astPlayer, addedSkillIds, removedSkillIds, false);
             }
-            refreshedByPassiveService = true;
         }
-        if (statusAffected && statusService != null && !refreshedByPassiveService) {
+        if (statusAffected && statusService != null) {
             statusService.refreshStatus(astPlayer);
         }
     }
@@ -1879,7 +1878,11 @@ public class SkillTreeService {
 
         int removedCount = 0;
         for (Entity entity : List.copyOf(world.getEntities())) {
-            if (entity instanceof Item || entity instanceof ItemDisplay || entity instanceof TextDisplay || entity instanceof BlockDisplay) {
+            if (entity instanceof Item
+                    || entity instanceof ItemDisplay
+                    || entity instanceof TextDisplay
+                    || entity instanceof BlockDisplay
+                    || entity.getScoreboardTags().contains(NODE_INTERACTION_TAG)) {
                 entity.remove();
                 removedCount++;
             }

@@ -116,9 +116,19 @@ public final class PassiveSkillService {
      * @param player プレイヤー
      */
     public void reconcileNow(@NotNull AstPlayer player) {
+        reconcileNow(player, true);
+    }
+
+    /**
+     * 指定プレイヤーのパッシブ状態を即時再評価します。
+     *
+     * @param player プレイヤー
+     * @param refreshStatus パッシブ状態が変化した場合にステータスを再計算するか
+     */
+    public void reconcileNow(@NotNull AstPlayer player, boolean refreshStatus) {
         UUID accountId = player.getAccount().getUuid();
         dirtyAccounts.remove(accountId);
-        reconcile(player, true);
+        reconcile(player, refreshStatus);
     }
 
     /**
