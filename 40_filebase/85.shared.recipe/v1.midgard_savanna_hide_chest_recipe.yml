@@ -1,0 +1,28 @@
+# design:
+#   motif: "ミズガルズ / サバンナハイド装備 / チェストクラフト"
+#   progression: サバンナの獣皮
+schemaVersion: 1
+id: midgard_savanna_hide_chest_recipe
+type: RECIPE
+category: CRAFT
+name: "&eサバンナハイド・チェストの製法"
+lore:
+  - "&7サバンナハイド地域の素材からチェストを作る。"
+tags:
+  - armor
+  - midgard
+result:
+  itemId:
+    ref: item:midgard_savanna_hide_chest
+  amount: 1
+ingredients:
+  - itemId:
+      ref: item:midgard_savanna_sunhide
+    amount: 3
+  - itemId:
+      ref: item:midgard_savanna_acaciafiber
+    amount: 2
+requiredLevel: 2
+requiredCurrency: 40
+successRate: 100.0
+failAction: NONE

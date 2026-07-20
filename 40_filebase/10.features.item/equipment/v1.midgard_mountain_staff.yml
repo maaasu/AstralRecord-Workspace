@@ -1,0 +1,34 @@
+# design:
+#   motif: "ミズガルズ / 山岳の岩盤とビフレスト / スタッフ"
+#   progression: 4
+schemaVersion: 1
+id: midgard_mountain_staff
+category: equipment
+name: "&bマウンテン・スタッフ"
+icon: BLAZE_ROD
+rarity: EPIC
+maxStack: 1
+saleValue: 40
+lore:
+  - "&7山岳の岩盤とビフレストを鍛えたマウンテンのスタッフ。"
+  - "&7職業を問わず、対応する攻撃種別の力を引き出す。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: WEAPON
+  handType: TWO
+  tag: STAFF
+  requiredLevel: 5
+  stats:
+    - status: MAGIC_ATTACK
+      type: FLAT
+      value: 25~28
+    - status: MP_REGEN
+      type: FLAT
+      value: 1
+  onUse:
+    leftClickCooldownTicks: 10
+    leftClickSkillId: normal_attack_magic
+  durability:
+    max: 175
+    consume: 1

@@ -55,5 +55,14 @@ drops:
   money:
     min: 12
     max: 28
+  items:
+    - itemId:
+        ref: item:midgard_mountain_stormcore
+      rate: 45.0
+      amount: 1~2
+    - itemId:
+        ref: item:midgard_mountain_bifrost_amulet
+      rate: 0.5
+      amount: 1
   lootTable:
     ref: loot_table:midgard_grassland_orb_table

@@ -1,0 +1,31 @@
+# design:
+#   motif: "ミズガルズ / フォレスト装備 / ボウクラフト"
+#   progression: 3
+schemaVersion: 1
+id: midgard_forest_bow_recipe
+type: RECIPE
+category: CRAFT
+name: "&2フォレスト・ボウの製法"
+lore:
+  - "&7フォレスト地域の素材を束ねてボウを作る。"
+tags:
+  - weapon
+  - midgard
+result:
+  itemId:
+    ref: item:midgard_forest_bow
+  amount: 1
+ingredients:
+  - itemId:
+      ref: item:midgard_forest_brackenfang
+    amount: 2
+  - itemId:
+      ref: item:midgard_forest_mossessence
+    amount: 2
+  - itemId:
+      ref: item:midgard_forest_rootwood
+    amount: 1
+requiredLevel: 3
+requiredCurrency: 75
+successRate: 100.0
+failAction: NONE

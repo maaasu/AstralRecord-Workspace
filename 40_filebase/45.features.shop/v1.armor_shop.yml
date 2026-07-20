@@ -99,3 +99,99 @@ items:
     page: 1
     slot: 23
     priceGold: 15
+  - id: midgard_savanna_hide_helmet
+    itemId:
+      ref: item:midgard_savanna_hide_helmet
+    category: equipment
+    amount: 1
+    page: 2
+    slot: 0
+    priceGold: 45
+  - id: midgard_savanna_hide_chest
+    itemId:
+      ref: item:midgard_savanna_hide_chest
+    category: equipment
+    amount: 1
+    page: 2
+    slot: 7
+    priceGold: 90
+  - id: midgard_savanna_hide_legs
+    itemId:
+      ref: item:midgard_savanna_hide_legs
+    category: equipment
+    amount: 1
+    page: 2
+    slot: 14
+    priceGold: 75
+  - id: midgard_savanna_hide_boots
+    itemId:
+      ref: item:midgard_savanna_hide_boots
+    category: equipment
+    amount: 1
+    page: 2
+    slot: 21
+    priceGold: 45
+  - id: midgard_forest_bark_helmet
+    itemId:
+      ref: item:midgard_forest_bark_helmet
+    category: equipment
+    amount: 1
+    page: 3
+    slot: 0
+    priceGold: 90
+  - id: midgard_forest_bark_chest
+    itemId:
+      ref: item:midgard_forest_bark_chest
+    category: equipment
+    amount: 1
+    page: 3
+    slot: 7
+    priceGold: 180
+  - id: midgard_forest_bark_legs
+    itemId:
+      ref: item:midgard_forest_bark_legs
+    category: equipment
+    amount: 1
+    page: 3
+    slot: 14
+    priceGold: 150
+  - id: midgard_forest_bark_boots
+    itemId:
+      ref: item:midgard_forest_bark_boots
+    category: equipment
+    amount: 1
+    page: 3
+    slot: 21
+    priceGold: 90
+  - id: midgard_mountain_crest_helmet
+    itemId:
+      ref: item:midgard_mountain_crest_helmet
+    category: equipment
+    amount: 1
+    page: 4
+    slot: 0
+    priceGold: 150
+  - id: midgard_mountain_crest_chest
+    itemId:
+      ref: item:midgard_mountain_crest_chest
+    category: equipment
+    amount: 1
+    page: 4
+    slot: 7
+    priceGold: 300
+  - id: midgard_mountain_crest_legs
+    itemId:
+      ref: item:midgard_mountain_crest_legs
+    category: equipment
+    amount: 1
+    page: 4
+    slot: 14
+    priceGold: 250
+  - id: midgard_mountain_crest_boots
+    itemId:
+      ref: item:midgard_mountain_crest_boots
+    category: equipment
+    amount: 1
+    page: 4
+    slot: 21
+    priceGold: 150

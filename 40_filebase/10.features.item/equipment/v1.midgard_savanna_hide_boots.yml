@@ -1,0 +1,31 @@
+# design:
+#   motif: "ミズガルズ / 6,12,9,4 / ブーツ"
+#   progression: サバンナの獣皮
+schemaVersion: 1
+id: midgard_savanna_hide_boots
+category: equipment
+name: "&eサバンナハイド・ブーツ"
+icon: LEATHER_BOOTS
+rarity: UNCOMMON
+maxStack: 1
+saleValue: 15
+appearance:
+  color: "#C28B52"
+lore:
+  - "&76,12,9,4を仕立てたサバンナハイド一式のブーツ。"
+  - "&7ミズガルズのサバンナで力を発揮する。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: FEET
+  requiredLevel: 2
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: undefined
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 3
+  durability:
+    max: 150
+    consume: 1

@@ -56,5 +56,14 @@ drops:
   money:
     min: 4
     max: 10
+  items:
+    - itemId:
+        ref: item:midgard_savanna_acaciafiber
+      rate: 45.0
+      amount: 1~2
+    - itemId:
+        ref: item:midgard_savanna_sun_talisman
+      rate: 1.5
+      amount: 1
   lootTable:
     ref: loot_table:midgard_grassland_orb_table

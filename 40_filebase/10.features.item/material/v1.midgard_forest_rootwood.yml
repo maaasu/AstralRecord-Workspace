@@ -1,0 +1,18 @@
+# design:
+#   motif: "ミズガルズ / ルートガード / 地域素材"
+#   progression: 3
+schemaVersion: 1
+id: midgard_forest_rootwood
+category: material
+name: "&6フォレストルートウッド"
+icon: OAK_LOG
+rarity: RARE
+maxStack: 64
+saleValue: 18
+appearance:
+  color: "#60452D"
+lore:
+  - "&7森の根守が抱える硬質な根木。防具の骨組みに適している。"
+  - "&7対応地域の防具や武器を作るための素材。"
+unTradeable: false
+unSellable: false

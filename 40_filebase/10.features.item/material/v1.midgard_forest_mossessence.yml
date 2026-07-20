@@ -1,0 +1,18 @@
+# design:
+#   motif: "ミズガルズ / 苔のウィスプ / 地域素材"
+#   progression: 3
+schemaVersion: 1
+id: midgard_forest_mossessence
+category: material
+name: "&aフォレストモスエッセンス"
+icon: SLIME_BALL
+rarity: RARE
+maxStack: 64
+saleValue: 18
+appearance:
+  color: "#6FAF86"
+lore:
+  - "&7苔の精気を凝縮した露。魔力を保つ樹脂として使われる。"
+  - "&7対応地域の防具や武器を作るための素材。"
+unTradeable: false
+unSellable: false

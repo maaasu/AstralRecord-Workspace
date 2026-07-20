@@ -1,0 +1,31 @@
+# design:
+#   motif: "ミズガルズ / 12,28,20,10 / レッグス"
+#   progression: 山岳の岩盤と嵐
+schemaVersion: 1
+id: midgard_mountain_crest_legs
+category: equipment
+name: "&bマウンテンクレスト・レッグス"
+icon: LEATHER_LEGGINGS
+rarity: EPIC
+maxStack: 1
+saleValue: 25
+appearance:
+  color: "#6B7280"
+lore:
+  - "&712,28,20,10を仕立てたマウンテンクレスト一式のレッグス。"
+  - "&7ミズガルズの森林・山岳で力を発揮する。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: LEGS
+  requiredLevel: 5
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: midgard_mountain_stormcore
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 12
+  durability:
+    max: 185
+    consume: 1

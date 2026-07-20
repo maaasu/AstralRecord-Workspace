@@ -50,5 +50,14 @@ drops:
   money:
     min: 1
     max: 4
+  items:
+    - itemId:
+        ref: item:midgard_savanna_sunhide
+      rate: 55.0
+      amount: 1~2
+    - itemId:
+        ref: item:midgard_savanna_fang_talisman
+      rate: 1.5
+      amount: 1
   lootTable:
     ref: loot_table:midgard_grassland_orb_table

@@ -1,0 +1,18 @@
+# design:
+#   motif: "ミズガルズ / ストームウィスプ / 地域素材"
+#   progression: 4
+schemaVersion: 1
+id: midgard_mountain_stormcore
+category: material
+name: "&bマウンテンストームコア"
+icon: HEART_OF_THE_SEA
+rarity: EPIC
+maxStack: 64
+saleValue: 32
+appearance:
+  color: "#4B9BC4"
+lore:
+  - "&7嵐のウィスプが残す蒼い核。武器の攻撃種別を強く引き出す。"
+  - "&7対応地域の防具や武器を作るための素材。"
+unTradeable: false
+unSellable: false

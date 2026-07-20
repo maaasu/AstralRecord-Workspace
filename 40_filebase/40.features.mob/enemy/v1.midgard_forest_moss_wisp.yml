@@ -55,5 +55,14 @@ drops:
   money:
     min: 5
     max: 14
+  items:
+    - itemId:
+        ref: item:midgard_forest_mossessence
+      rate: 50.0
+      amount: 1~2
+    - itemId:
+        ref: item:midgard_forest_canopy_relic
+      rate: 1.2
+      amount: 1
   lootTable:
     ref: loot_table:midgard_grassland_orb_table

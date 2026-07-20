@@ -59,5 +59,14 @@ drops:
   money:
     min: 16
     max: 36
+  items:
+    - itemId:
+        ref: item:midgard_mountain_slate
+      rate: 35.0
+      amount: 1~2
+    - itemId:
+        ref: item:midgard_mountain_iron_core
+      rate: 1.0
+      amount: 1
   lootTable:
     ref: loot_table:midgard_grassland_orb_table

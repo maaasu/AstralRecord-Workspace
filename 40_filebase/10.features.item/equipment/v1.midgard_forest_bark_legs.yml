@@ -1,0 +1,31 @@
+# design:
+#   motif: "ミズガルズ / 9,20,14,7 / レッグス"
+#   progression: 森林の樹皮と根木
+schemaVersion: 1
+id: midgard_forest_bark_legs
+category: equipment
+name: "&2フォレストバーク・レッグス"
+icon: LEATHER_LEGGINGS
+rarity: RARE
+maxStack: 1
+saleValue: 25
+appearance:
+  color: "#3F6B4A"
+lore:
+  - "&79,20,14,7を仕立てたフォレストバーク一式のレッグス。"
+  - "&7ミズガルズの森林・山岳で力を発揮する。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: LEGS
+  requiredLevel: 3
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: midgard_forest_rootwood
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 8
+  durability:
+    max: 155
+    consume: 1

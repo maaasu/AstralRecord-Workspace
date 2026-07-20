@@ -1,0 +1,31 @@
+# design:
+#   motif: "ミズガルズ / 12,28,20,10 / ブーツ"
+#   progression: 山岳の岩盤と嵐
+schemaVersion: 1
+id: midgard_mountain_crest_boots
+category: equipment
+name: "&bマウンテンクレスト・ブーツ"
+icon: LEATHER_BOOTS
+rarity: EPIC
+maxStack: 1
+saleValue: 15
+appearance:
+  color: "#6B7280"
+lore:
+  - "&712,28,20,10を仕立てたマウンテンクレスト一式のブーツ。"
+  - "&7ミズガルズの森林・山岳で力を発揮する。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: FEET
+  requiredLevel: 5
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: undefined
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 8
+  durability:
+    max: 195
+    consume: 1

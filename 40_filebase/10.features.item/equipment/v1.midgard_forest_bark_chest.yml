@@ -1,0 +1,31 @@
+# design:
+#   motif: "ミズガルズ / 9,20,14,7 / チェスト"
+#   progression: 森林の樹皮と根木
+schemaVersion: 1
+id: midgard_forest_bark_chest
+category: equipment
+name: "&2フォレストバーク・チェスト"
+icon: LEATHER_CHESTPLATE
+rarity: RARE
+maxStack: 1
+saleValue: 30
+appearance:
+  color: "#3F6B4A"
+lore:
+  - "&79,20,14,7を仕立てたフォレストバーク一式のチェスト。"
+  - "&7ミズガルズの森林・山岳で力を発揮する。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: CHEST
+  requiredLevel: 3
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: midgard_forest_mossessence
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 11
+  durability:
+    max: 145
+    consume: 1

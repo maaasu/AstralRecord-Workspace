@@ -1,0 +1,34 @@
+# design:
+#   motif: "ミズガルズ / 森林の根と月影 / スタッフ"
+#   progression: 3
+schemaVersion: 1
+id: midgard_forest_staff
+category: equipment
+name: "&2フォレスト・スタッフ"
+icon: BLAZE_ROD
+rarity: RARE
+maxStack: 1
+saleValue: 32
+lore:
+  - "&7森林の根と月影を鍛えたフォレストのスタッフ。"
+  - "&7職業を問わず、対応する攻撃種別の力を引き出す。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: WEAPON
+  handType: TWO
+  tag: STAFF
+  requiredLevel: 3
+  stats:
+    - status: MAGIC_ATTACK
+      type: FLAT
+      value: 17~20
+    - status: MP_REGEN
+      type: FLAT
+      value: 1
+  onUse:
+    leftClickCooldownTicks: 10
+    leftClickSkillId: normal_attack_magic
+  durability:
+    max: 145
+    consume: 1
