@@ -11,6 +11,5 @@ maxStack: 64
 saleValue: 80
 lore:
   - "&7防具に守りの加護を与える強化素材。"
-  - "&7防具を最大&f+5&7まで強化できる。"
 unTradeable: false
 unSellable: false

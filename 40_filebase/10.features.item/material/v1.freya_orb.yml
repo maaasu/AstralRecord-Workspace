@@ -11,6 +11,5 @@ maxStack: 64
 saleValue: 80
 lore:
   - "&7アクセサリに幸運の加護を与える強化素材。"
-  - "&7アクセサリを最大&f+5&7まで強化できる。"
 unTradeable: false
 unSellable: false
