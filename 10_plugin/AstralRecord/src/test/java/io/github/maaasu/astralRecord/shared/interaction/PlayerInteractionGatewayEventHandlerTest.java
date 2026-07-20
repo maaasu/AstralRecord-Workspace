@@ -7,9 +7,11 @@ import org.bukkit.Location;
 import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -200,6 +202,54 @@ class PlayerInteractionGatewayEventHandlerTest {
         when(target.getBoundingBox()).thenReturn(new BoundingBox(-0.5D, 63.5D, 1.0D, 0.5D, 65.5D, 2.0D));
 
         gateway.onPrePlayerAttackEntity(event);
+
+        assertEquals(1, executions.get());
+    }
+
+    @Test
+    void evaluatesCustomInteractionWhenEntityRightClickIsInitiallyCancelled() {
+        AtomicInteger executions = new AtomicInteger();
+        PlayerInteractionGatewayEventHandler gateway = gateway(context -> List.of(candidate(
+            "skill-tree-right-interaction",
+            InteractionTier.EXCLUSIVE_CONTEXT,
+            1.0D,
+            InteractionCandidateOrder.SKILL_TREE,
+            executions
+        )));
+        PlayerInteractEntityEvent event = mock(PlayerInteractEntityEvent.class);
+        Interaction target = mock(Interaction.class);
+        when(event.getPlayer()).thenReturn(player);
+        when(event.getHand()).thenReturn(EquipmentSlot.HAND);
+        when(event.getRightClicked()).thenReturn(target);
+        when(event.isCancelled()).thenReturn(true);
+        when(target.getUniqueId()).thenReturn(UUID.fromString("00000000-0000-0000-0000-000000000304"));
+        when(target.getBoundingBox()).thenReturn(new BoundingBox(-0.5D, 63.5D, 1.0D, 0.5D, 65.5D, 2.0D));
+
+        gateway.onPlayerInteractEntity(event);
+
+        assertEquals(1, executions.get());
+    }
+
+    @Test
+    void evaluatesCustomInteractionWhenPositionRightClickIsInitiallyCancelled() {
+        AtomicInteger executions = new AtomicInteger();
+        PlayerInteractionGatewayEventHandler gateway = gateway(context -> List.of(candidate(
+            "skill-tree-position-right-interaction",
+            InteractionTier.EXCLUSIVE_CONTEXT,
+            1.0D,
+            InteractionCandidateOrder.SKILL_TREE,
+            executions
+        )));
+        PlayerInteractAtEntityEvent event = mock(PlayerInteractAtEntityEvent.class);
+        Interaction target = mock(Interaction.class);
+        when(event.getPlayer()).thenReturn(player);
+        when(event.getHand()).thenReturn(EquipmentSlot.HAND);
+        when(event.getRightClicked()).thenReturn(target);
+        when(event.isCancelled()).thenReturn(true);
+        when(target.getUniqueId()).thenReturn(UUID.fromString("00000000-0000-0000-0000-000000000305"));
+        when(target.getBoundingBox()).thenReturn(new BoundingBox(-0.5D, 63.5D, 1.0D, 0.5D, 65.5D, 2.0D));
+
+        gateway.onPlayerInteractAtEntity(event);
 
         assertEquals(1, executions.get());
     }

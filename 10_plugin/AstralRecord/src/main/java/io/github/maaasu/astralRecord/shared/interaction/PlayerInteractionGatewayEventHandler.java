@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.papermc.paper.event.player.PlayerArmSwingEvent;
 import io.papermc.paper.event.player.PrePlayerAttackEntityEvent;
+import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
@@ -358,7 +359,7 @@ public final class PlayerInteractionGatewayEventHandler extends AbstractEventHan
             snapshot.directTargetKey()
         );
         sequenceLedger.observeSemanticInput(token);
-        if (isCancelled(snapshot.event())) {
+        if (isCancelled(snapshot)) {
             return;
         }
         if (sequenceLedger.isClaimed(token)) {
@@ -445,7 +446,19 @@ public final class PlayerInteractionGatewayEventHandler extends AbstractEventHan
         }
     }
 
-    private boolean isCancelled(Event event) {
+    /**
+     * 先行処理によって入力全体が拒否済みかを判定します。
+     * server-side Interaction entity は独自操作の入口であり、初期 cancel 状態でも候補評価を続行します。
+     *
+     * @param snapshot 入力 snapshot
+     * @return 独自候補を評価せず終了すべき場合は true
+     */
+    private boolean isCancelled(@NotNull PlayerInteractionSnapshot snapshot) {
+        Event event = snapshot.event();
+        if (snapshot.targetEntity() instanceof Interaction
+            && event instanceof PlayerInteractEntityEvent) {
+            return false;
+        }
         if (event instanceof PlayerInteractEvent interactEvent) {
             /*
              * AIR interact は vanilla の事前予測により block use だけが DENY で生成され、
