@@ -2,11 +2,11 @@
 #   motif: "北欧神話 / 世界樹"
 #   progression: 1
 schemaVersion: 1
-id: greenfall_fields
+id: midgard_greenfields
 displayName: "ミズガルズの緑野"
 worldType: OVERWORLD
-baseWorldPath: "plugins/AstralRecord/worlds/overworld/greenfall_fields"
-instanceRootPath: "plugins/AstralRecord/_world_instances/greenfall_fields"
+baseWorldPath: "plugins/AstralRecord/worlds/overworld/midgard_greenfields"
+instanceRootPath: "plugins/AstralRecord/_world_instances/midgard_greenfields"
 autoLoad: false
 instanceEnabled: true
 maxPlayers: 40
