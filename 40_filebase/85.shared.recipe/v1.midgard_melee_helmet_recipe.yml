@@ -17,7 +17,7 @@ result:
   amount: 1
 ingredients:
   - itemId:
-      ref: item:midgard_forest_brackenfang
+      ref: item:midgard_savanna_sunhide
     amount: 2
   - itemId:
       ref: item:midgard_forest_rootwood

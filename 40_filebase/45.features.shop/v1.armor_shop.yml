@@ -13,7 +13,7 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:midgard_forest_brackenfang
+          ref: item:midgard_savanna_sunhide
         amount: 2
       - itemId:
           ref: item:midgard_forest_rootwood
@@ -31,7 +31,7 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:midgard_forest_brackenfang
+          ref: item:midgard_savanna_sunhide
         amount: 3
       - itemId:
           ref: item:midgard_forest_rootwood
@@ -49,7 +49,7 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:midgard_forest_brackenfang
+          ref: item:midgard_savanna_sunhide
         amount: 2
       - itemId:
           ref: item:midgard_forest_rootwood
@@ -67,7 +67,7 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:midgard_forest_brackenfang
+          ref: item:midgard_savanna_sunhide
         amount: 1
       - itemId:
           ref: item:midgard_forest_rootwood
@@ -88,7 +88,7 @@ items:
           ref: item:midgard_savanna_sunhide
         amount: 2
       - itemId:
-          ref: item:midgard_savanna_ashcloth
+          ref: item:midgard_mountain_slate
         amount: 1
       - itemId:
           ref: item:midgard_forest_rootwood
@@ -106,7 +106,7 @@ items:
           ref: item:midgard_savanna_sunhide
         amount: 3
       - itemId:
-          ref: item:midgard_savanna_ashcloth
+          ref: item:midgard_mountain_slate
         amount: 2
       - itemId:
           ref: item:midgard_forest_rootwood
@@ -124,7 +124,7 @@ items:
           ref: item:midgard_savanna_sunhide
         amount: 2
       - itemId:
-          ref: item:midgard_savanna_ashcloth
+          ref: item:midgard_mountain_slate
         amount: 2
       - itemId:
           ref: item:midgard_forest_rootwood
@@ -142,7 +142,7 @@ items:
           ref: item:midgard_savanna_sunhide
         amount: 1
       - itemId:
-          ref: item:midgard_savanna_ashcloth
+          ref: item:midgard_mountain_slate
         amount: 2
       - itemId:
           ref: item:midgard_forest_rootwood
@@ -163,7 +163,7 @@ items:
           ref: item:midgard_mountain_slate
         amount: 1
       - itemId:
-          ref: item:midgard_forest_mossessence
+          ref: item:midgard_forest_rootwood
         amount: 1
   - id: midgard_mage_chest
     itemId:
@@ -181,7 +181,7 @@ items:
           ref: item:midgard_mountain_slate
         amount: 2
       - itemId:
-          ref: item:midgard_forest_mossessence
+          ref: item:midgard_forest_rootwood
         amount: 1
   - id: midgard_mage_legs
     itemId:
@@ -199,7 +199,7 @@ items:
           ref: item:midgard_mountain_slate
         amount: 2
       - itemId:
-          ref: item:midgard_forest_mossessence
+          ref: item:midgard_forest_rootwood
         amount: 1
   - id: midgard_mage_boots
     itemId:
@@ -217,5 +217,5 @@ items:
           ref: item:midgard_mountain_slate
         amount: 2
       - itemId:
-          ref: item:midgard_forest_mossessence
+          ref: item:midgard_forest_rootwood
         amount: 1

@@ -23,7 +23,7 @@ ingredients:
       ref: item:midgard_mountain_slate
     amount: 2
   - itemId:
-      ref: item:midgard_forest_mossessence
+      ref: item:midgard_forest_rootwood
     amount: 1
 requiredLevel: 3
 requiredCurrency: 80

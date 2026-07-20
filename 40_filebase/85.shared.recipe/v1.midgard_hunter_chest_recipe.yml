@@ -20,7 +20,7 @@ ingredients:
       ref: item:midgard_savanna_sunhide
     amount: 3
   - itemId:
-      ref: item:midgard_savanna_ashcloth
+      ref: item:midgard_mountain_slate
     amount: 2
   - itemId:
       ref: item:midgard_forest_rootwood
