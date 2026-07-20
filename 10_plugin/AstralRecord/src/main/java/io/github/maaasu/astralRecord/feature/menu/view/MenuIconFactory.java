@@ -62,16 +62,21 @@ public final class MenuIconFactory {
      * 現在装備の共通表示行を生成します。
      *
      * @param context GUI 描画コンテキスト
-     * @return 頭・胴・脚・足の装備表示行
+     * @return 頭・胴・脚・足とアクセサリーの装備表示行
      */
     public static @NotNull List<Component> equipmentDetails(@NotNull PlayerGuiRenderContext context) {
         PlayerEquipmentSnapshot equipment = context.equipment();
-        return List.of(
+        List<Component> details = new ArrayList<>(9);
+        details.addAll(List.of(
             equipmentLine("頭", equipment.helmet()),
             equipmentLine("胴", equipment.chestplate()),
             equipmentLine("脚", equipment.leggings()),
             equipmentLine("足", equipment.boots())
-        );
+        ));
+        details.add(Component.text("アクセサリー", NamedTextColor.DARK_AQUA));
+        details.add(Component.text("  アミュレット / タリスマン", NamedTextColor.GRAY));
+        details.add(Component.text("  チャーム / コア / レリック", NamedTextColor.GRAY));
+        return details;
     }
 
     /**
