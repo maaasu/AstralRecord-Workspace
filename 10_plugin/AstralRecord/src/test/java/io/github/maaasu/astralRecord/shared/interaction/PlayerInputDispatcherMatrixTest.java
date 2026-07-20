@@ -42,7 +42,7 @@ class PlayerInputDispatcherMatrixTest {
                     npc(4.0D),
                     waystone(2.0D),
                     item(0.1D),
-                    actionRing(0.0D)
+                    newActionRing(0.0D)
                 ),
                 "waystone"
             ),
@@ -52,7 +52,7 @@ class PlayerInputDispatcherMatrixTest {
                     npc(1.0D),
                     waystone(3.0D),
                     item(0.1D),
-                    actionRing(0.0D)
+                    newActionRing(0.0D)
                 ),
                 "npc"
             ),
@@ -60,13 +60,21 @@ class PlayerInputDispatcherMatrixTest {
                 "item wins when no world interaction exists",
                 List.of(
                     item(3.0D),
-                    actionRing(0.0D)
+                    newActionRing(0.0D)
                 ),
                 "item"
             ),
             new Scenario(
                 "action ring runs only as the remaining fallback",
-                List.of(actionRing(0.0D)),
+                List.of(newActionRing(0.0D)),
+                "action-ring"
+            ),
+            new Scenario(
+                "new action ring wins over right click item vanilla guard",
+                List.of(
+                    rightClickItemVanillaGuard(0.0D),
+                    newActionRing(0.0D)
+                ),
                 "action-ring"
             )
         );
@@ -206,13 +214,23 @@ class PlayerInputDispatcherMatrixTest {
         );
     }
 
-    private static CandidateSpec actionRing(double hitDistance) {
+    private static CandidateSpec newActionRing(double hitDistance) {
         return new CandidateSpec(
             "action-ring",
             InteractionTier.FALLBACK,
             hitDistance,
-            InteractionCandidateOrder.OPEN_ACTION_RING,
+            InteractionCandidateOrder.NEW_ACTION_RING,
             "action-ring:open"
+        );
+    }
+
+    private static CandidateSpec rightClickItemVanillaGuard(double hitDistance) {
+        return new CandidateSpec(
+            "item-vanilla-guard",
+            InteractionTier.FALLBACK,
+            hitDistance,
+            InteractionCandidateOrder.RIGHT_CLICK_ITEM_VANILLA_GUARD,
+            "item:weapon"
         );
     }
 

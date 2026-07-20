@@ -22,6 +22,7 @@ public final class InteractionCandidateOrder {
     public static final int ITEM_VANILLA_GUARD = 220;
     public static final int VANILLA_COMBAT = 300;
     public static final int NEW_ACTION_RING = 400;
+    public static final int RIGHT_CLICK_ITEM_VANILLA_GUARD = 450;
     public static final int PLAYER_CONTROL = 500;
 
     private InteractionCandidateOrder() {

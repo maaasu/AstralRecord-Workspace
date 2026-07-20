@@ -100,7 +100,9 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler
             "astral-item-vanilla-guard",
             InteractionTier.FALLBACK,
             0.0D,
-            InteractionCandidateOrder.ITEM_VANILLA_GUARD,
+            context.family() == InputFamily.RIGHT_CLICK
+                ? InteractionCandidateOrder.RIGHT_CLICK_ITEM_VANILLA_GUARD
+                : InteractionCandidateOrder.ITEM_VANILLA_GUARD,
             model.getId() + ":" + hand.name(),
             InputClaimPolicy.CLAIM_AND_CANCEL,
             () -> {
