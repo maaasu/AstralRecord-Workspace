@@ -1,16 +1,16 @@
 # design:
-#   motif: "旅立ち / 間接攻撃 / トラベラー"
+#   motif: "星影の街ノクス / 間接攻撃 / ノクス"
 #   progression: 0
 schemaVersion: 1
 id: traveler_bow
 category: equipment
-name: "&fトラベラー・ボウ"
+name: "&fノクスボウ"
 icon: BOW
 rarity: COMMON
 maxStack: 1
 saleValue: 20
 lore:
-  - "&7遠くの敵を狙うために作られた、旅人用の小型弓。"
+  - "&7星影の街ノクスの夜道を進む者のために作られた小型弓。"
 unTradeable: false
 unSellable: false
 equipment:

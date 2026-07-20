@@ -1,16 +1,16 @@
 # design:
-#   motif: "旅立ち / 魔法攻撃 / トラベラー"
+#   motif: "星影の街ノクス / 魔法攻撃 / ノクス"
 #   progression: 0
 schemaVersion: 1
 id: traveler_staff
 category: equipment
-name: "&fトラベラー・スタッフ"
+name: "&fノクススタッフ"
 icon: BLAZE_ROD
 rarity: COMMON
 maxStack: 1
 saleValue: 20
 lore:
-  - "&7魔力を宿す枝から作られた、旅人用の簡素な杖。"
+  - "&7星影の街ノクスで魔法を学ぶ者に手渡される、簡素な杖。"
 unTradeable: false
 unSellable: false
 equipment:

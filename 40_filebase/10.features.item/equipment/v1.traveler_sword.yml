@@ -1,16 +1,16 @@
 # design:
-#   motif: "旅立ち / 近接攻撃 / トラベラー"
+#   motif: "星影の街ノクス / 近接攻撃 / ノクス"
 #   progression: 0
 schemaVersion: 1
 id: traveler_sword
 category: equipment
-name: "&fトラベラー・ソード"
+name: "&fノクスソード"
 icon: IRON_SWORD
 rarity: COMMON
 maxStack: 1
 saleValue: 20
 lore:
-  - "&7旅人が初めて手にする、扱いやすい片手剣。"
+  - "&7星影の街ノクスで旅立つ者に贈られる、扱いやすい片手剣。"
 unTradeable: false
 unSellable: false
 equipment:
