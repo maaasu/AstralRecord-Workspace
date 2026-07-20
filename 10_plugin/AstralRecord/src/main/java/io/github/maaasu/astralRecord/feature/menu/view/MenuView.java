@@ -21,6 +21,7 @@ import io.github.maaasu.astralRecord.feature.menu.view.screen.SellConfirmScreenV
 import io.github.maaasu.astralRecord.feature.menu.view.screen.TrashConfirmScreenView;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.TrashScreenView;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.playerclass.model.ClassViewEntry;
 import io.github.maaasu.astralRecord.feature.sell.view.SellScreenView;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewEntry;
@@ -235,6 +236,8 @@ public class MenuView {
 
     public void openGuide(@NotNull Player player, int pageIndex) {
         List<GuideEntry> guides = guideService.getAll();
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        UUID accountId = astPlayer == null ? null : astPlayer.getAccount().getUuid();
         int normalizedPage = guideScreenView.normalizePage(pageIndex, guides.size());
         int totalPages = guideScreenView.totalPages(guides.size());
         Component title = Component.text("ガイド " + (normalizedPage + 1) + "/" + totalPages, NamedTextColor.LIGHT_PURPLE);
@@ -243,17 +246,19 @@ public class MenuView {
             SIZE,
             title
         );
-        guideScreenView.renderList(inventory, guides, normalizedPage, guideService);
+        guideScreenView.renderList(inventory, guides, normalizedPage, guideService, accountId);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     public void openGuideDetail(@NotNull Player player, @NotNull GuideEntry guide, int returnPageIndex) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        UUID accountId = astPlayer == null ? null : astPlayer.getAccount().getUuid();
         Inventory inventory = Bukkit.createInventory(
             new MenuInventoryHolder(MenuScreen.GUIDE, -1, returnPageIndex, guide.id()),
             SIZE,
             Component.text("ガイド", NamedTextColor.LIGHT_PURPLE)
         );
-        guideScreenView.renderDetail(inventory, guide, guideService);
+        guideScreenView.renderDetail(inventory, guide, guideService, accountId);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 

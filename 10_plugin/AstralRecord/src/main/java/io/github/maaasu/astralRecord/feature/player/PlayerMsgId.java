@@ -434,6 +434,13 @@ public enum PlayerMsgId {
     P_5306(5306),
     // endregion
 
+    // region /feature/guide 5180-5189
+    /** ガイド手順達成通知。{0}: 手順本文 */
+    P_5180(5180),
+    /** ガイド全体達成通知。{0}: ガイド名 */
+    P_5181(5181),
+    // endregion
+
     // region /feature/playersetting 5320-5329
     P_5320(5320),
     P_5321(5321),

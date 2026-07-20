@@ -15,7 +15,7 @@ import java.util.List;
  * @param title 表示タイトル
  * @param iconMaterial GUI アイコン Material 名
  * @param summary 一覧用の短い説明
- * @param lines 詳細本文
+ * @param steps 順序付き達成手順
  */
 public record GuideEntry(
     int schemaVersion,
@@ -25,9 +25,9 @@ public record GuideEntry(
     @NotNull String title,
     @Nullable String iconMaterial,
     @Nullable String summary,
-    @NotNull List<String> lines
+    @NotNull List<GuideStep> steps
 ) {
     public GuideEntry {
-        lines = List.copyOf(lines);
+        steps = List.copyOf(steps);
     }
 }

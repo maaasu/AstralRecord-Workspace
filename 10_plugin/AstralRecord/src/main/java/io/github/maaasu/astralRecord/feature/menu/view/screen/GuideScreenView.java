@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.menu.view.screen;
 
 import io.github.maaasu.astralRecord.feature.guide.model.GuideEntry;
+import io.github.maaasu.astralRecord.feature.guide.model.GuideStep;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
@@ -18,6 +19,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 public final class GuideScreenView extends BaseMenuScreenView {
     public static final int CONTENT_SLOT_COUNT = PagedGuiView.CONTENT_SLOT_COUNT;
@@ -32,11 +34,21 @@ public final class GuideScreenView extends BaseMenuScreenView {
     );
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
+    /**
+     * ガイド一覧をアカウントの達成状態付きで描画します。
+     *
+     * @param inventory 描画先inventory
+     * @param guides ガイド一覧
+     * @param pageIndex 0始まりのページ番号
+     * @param guideService ガイドサービス
+     * @param accountId 表示対象アカウントID。未ロード時はnull
+     */
     public void renderList(
         @NotNull Inventory inventory,
         @NotNull List<GuideEntry> guides,
         int pageIndex,
-        @NotNull GuideService guideService
+        @NotNull GuideService guideService,
+        UUID accountId
     ) {
         int normalizedPage = normalizePage(pageIndex, guides.size());
         clear(inventory);
@@ -47,27 +59,39 @@ public final class GuideScreenView extends BaseMenuScreenView {
                 List.of(Component.text("現在表示できるガイドはありません", NamedTextColor.DARK_GRAY))
             ));
         } else {
-            renderGuideItems(inventory, guides, normalizedPage, guideService);
+            renderGuideItems(inventory, guides, normalizedPage, guideService, accountId);
         }
         renderNavigation(inventory, guides.size(), normalizedPage);
     }
 
+    /**
+     * ガイド詳細を手順ごとの達成状態付きで描画します。
+     *
+     * @param inventory 描画先inventory
+     * @param guide 対象ガイド
+     * @param guideService ガイドサービス
+     * @param accountId 表示対象アカウントID。未ロード時はnull
+     */
     public void renderDetail(
         @NotNull Inventory inventory,
         @NotNull GuideEntry guide,
-        @NotNull GuideService guideService
+        @NotNull GuideService guideService,
+        UUID accountId
     ) {
         fill(inventory);
         inventory.setItem(BACK_SLOT, backItem());
         inventory.setItem(SUMMARY_SLOT, summaryItem(guide, guideService));
 
-        List<String> resolvedLines = guide.lines().stream()
-            .map(guideService::resolveText)
-            .toList();
-        for (int i = 0; i < Math.min(resolvedLines.size(), DETAIL_LINE_SLOTS.size()); i++) {
-            inventory.setItem(DETAIL_LINE_SLOTS.get(i), lineItem(i + 1, resolvedLines.get(i)));
+        List<GuideStep> steps = guide.steps();
+        for (int i = 0; i < Math.min(steps.size(), DETAIL_LINE_SLOTS.size()); i++) {
+            GuideStep step = steps.get(i);
+            boolean completed = guideService.isStepCompleted(accountId, guide.id(), step.id());
+            inventory.setItem(
+                DETAIL_LINE_SLOTS.get(i),
+                stepItem(i + 1, guideService.resolveText(step.text()), completed)
+            );
         }
-        if (resolvedLines.size() > DETAIL_LINE_SLOTS.size()) {
+        if (steps.size() > DETAIL_LINE_SLOTS.size()) {
             inventory.setItem(44, createItem(
                 Material.PAPER,
                 Component.text("続きがあります", NamedTextColor.YELLOW),
@@ -106,13 +130,14 @@ public final class GuideScreenView extends BaseMenuScreenView {
         @NotNull Inventory inventory,
         @NotNull List<GuideEntry> guides,
         int pageIndex,
-        @NotNull GuideService guideService
+        @NotNull GuideService guideService,
+        UUID accountId
     ) {
         int start = GuiPagination.pageStart(pageIndex, CONTENT_SLOT_COUNT);
         int end = GuiPagination.pageEnd(pageIndex, guides.size(), CONTENT_SLOT_COUNT);
         for (int i = start; i < end; i++) {
             GuideEntry guide = guides.get(i);
-            inventory.setItem(i - start, listItem(guide, guideService));
+            inventory.setItem(i - start, listItem(guide, guideService, accountId));
         }
     }
 
@@ -139,11 +164,17 @@ public final class GuideScreenView extends BaseMenuScreenView {
         }
     }
 
-    private @NotNull ItemStack listItem(@NotNull GuideEntry guide, @NotNull GuideService guideService) {
+    private @NotNull ItemStack listItem(
+        @NotNull GuideEntry guide,
+        @NotNull GuideService guideService,
+        UUID accountId
+    ) {
         List<Component> lore = new ArrayList<>();
         if (guide.summary() != null && !guide.summary().isBlank()) {
             lore.add(component(guideService.resolveText(guide.summary()), ""));
         }
+        boolean completed = guideService.isGuideCompleted(accountId, guide);
+        lore.add(Component.text(completed ? "達成済み" : "未達成", completed ? NamedTextColor.GREEN : NamedTextColor.GRAY));
         lore.add(Component.text("クリックで詳細を開く", NamedTextColor.GRAY));
         return createItem(
             material(guide.iconMaterial(), Material.WRITABLE_BOOK),
@@ -164,10 +195,10 @@ public final class GuideScreenView extends BaseMenuScreenView {
         );
     }
 
-    private @NotNull ItemStack lineItem(int lineNumber, @NotNull String text) {
+    private @NotNull ItemStack stepItem(int lineNumber, @NotNull String text, boolean completed) {
         return createItem(
-            Material.PAPER,
-            Component.text(lineNumber + ".", NamedTextColor.AQUA),
+            completed ? Material.LIME_DYE : Material.GRAY_DYE,
+            Component.text((completed ? "✓ " : "□ ") + lineNumber + ".", completed ? NamedTextColor.GREEN : NamedTextColor.GRAY),
             List.of(component(text, ""))
         );
     }

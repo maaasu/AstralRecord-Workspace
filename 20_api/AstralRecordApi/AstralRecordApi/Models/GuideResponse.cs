@@ -17,5 +17,23 @@ public class GuideResponse
 
     public string? Summary { get; init; }
 
-    public IReadOnlyList<string>? Lines { get; init; }
+    public IReadOnlyList<GuideStepResponse> Steps { get; init; } = [];
+}
+
+/// <summary>ゲーム内ガイドの順序付き手順です。</summary>
+public class GuideStepResponse
+{
+    public required string Id { get; init; }
+
+    public required string Text { get; init; }
+
+    public required GuideConditionResponse Condition { get; init; }
+}
+
+/// <summary>ガイド手順の達成条件です。</summary>
+public class GuideConditionResponse
+{
+    public required string Type { get; init; }
+
+    public string? TargetId { get; init; }
 }

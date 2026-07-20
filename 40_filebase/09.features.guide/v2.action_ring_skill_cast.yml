@@ -1,0 +1,19 @@
+# design:
+#   motif: "操作検証 / アクションリング"
+#   progression: 0
+schemaVersion: 2
+id: action_ring_skill_cast
+category: skill
+displayOrder: 10
+title: "&bアクションリングでスキル発動"
+iconMaterial: ENCHANTED_BOOK
+summary: "&7アクションリングを開き、スキルを発動します。"
+steps:
+  - id: open_action_ring
+    text: "&fアクションリングを開きます。"
+    condition:
+      type: ACTION_RING_OPENED
+  - id: cast_skill
+    text: "&fアクションリングからスキルを発動します。"
+    condition:
+      type: SKILL_CAST

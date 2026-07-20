@@ -119,6 +119,8 @@
 | GET `/api/world/{worldId}` | WorldMasterData 詳細取得 | `00_docs/20_API設計書/feature/17-world/3-エンドポイント仕様/17_3.00-検索.md` |
 | GET `/api/guide` | ゲーム内ガイド一覧取得 | `00_docs/20_API設計書/feature/27-guide/3-エンドポイント仕様/27_3.00-検索.md` |
 | GET `/api/guide/{guideId}` | ゲーム内ガイド詳細取得 | `00_docs/20_API設計書/feature/27-guide/3-エンドポイント仕様/27_3.00-検索.md` |
+| GET `/api/account-guide/{accountId}` | アカウント単位のガイド進行取得 | `00_docs/20_API設計書/feature/27-guide/3-エンドポイント仕様/27_3.00-検索.md` |
+| POST `/api/account-guide/{accountId}/steps/complete` | ガイド手順達成の冪等登録 | `00_docs/20_API設計書/feature/27-guide/3-エンドポイント仕様/27_3.00-検索.md` |
 | GET `/api/mail?user_id={user_id}&filter={filter}` | 期限内メール一覧取得 | `00_docs/20_API設計書/feature/18-mail/3-エンドポイント仕様/18_3.00-索引.md` |
 | PUT `/api/mail/{mailId}/read` | メール既読更新 | `00_docs/20_API設計書/feature/18-mail/3-エンドポイント仕様/18_3.00-索引.md` |
 | PUT `/api/mail/{mailId}/delete` | プレイヤー単位メール削除 | `00_docs/20_API設計書/feature/18-mail/3-エンドポイント仕様/18_3.00-索引.md` |

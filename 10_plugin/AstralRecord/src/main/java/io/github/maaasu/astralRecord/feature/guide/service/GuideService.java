@@ -1,14 +1,23 @@
 package io.github.maaasu.astralRecord.feature.guide.service;
 
+import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.guide.model.GuideConditionType;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideEntry;
+import io.github.maaasu.astralRecord.feature.guide.model.GuideStep;
+import io.github.maaasu.astralRecord.feature.guide.model.GuideStepKey;
+import io.github.maaasu.astralRecord.feature.guide.repository.GuideProgressRepository;
 import io.github.maaasu.astralRecord.feature.guide.repository.GuideRepository;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -17,28 +26,54 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class GuideService {
     private static final Pattern REFERENCE_PATTERN = Pattern.compile("\\{([a-zA-Z_]+):([^}]+)}");
 
+    private final AstralRecord plugin;
     private final GuideRepository repository;
+    private final GuideProgressRepository progressRepository;
+    private final PlayerMessageService playerMessageService;
     private final ItemService itemService;
     private final PlayerClassService playerClassService;
     private final WorldService worldService;
     private final Map<String, GuideEntry> loadedGuides = new LinkedHashMap<>();
+    private final Map<UUID, Set<GuideStepKey>> completedStepsByAccount = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> progressGenerations = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> loadingGenerations = new ConcurrentHashMap<>();
 
+    /**
+     * ガイドマスターとアカウント進行を扱うサービスを生成します。
+     *
+     * @param plugin 非同期API通信のschedulerに使用するPlugin
+     * @param repository ガイドマスターrepository
+     * @param progressRepository ガイド進行repository
+     * @param itemService item参照解決サービス
+     * @param playerClassService class参照解決サービス
+     * @param worldService world参照解決サービス
+     * @param playerMessageService 達成通知サービス
+     */
     public GuideService(
+        @NotNull AstralRecord plugin,
         @NotNull GuideRepository repository,
+        @NotNull GuideProgressRepository progressRepository,
         @NotNull ItemService itemService,
         @NotNull PlayerClassService playerClassService,
-        @NotNull WorldService worldService
+        @NotNull WorldService worldService,
+        @NotNull PlayerMessageService playerMessageService
     ) {
+        this.plugin = plugin;
         this.repository = repository;
+        this.progressRepository = progressRepository;
         this.itemService = itemService;
         this.playerClassService = playerClassService;
         this.worldService = worldService;
+        this.playerMessageService = playerMessageService;
     }
 
     public synchronized int loadAll() {
@@ -91,6 +126,135 @@ public class GuideService {
 
     public synchronized @Nullable GuideEntry getById(@NotNull String guideId) {
         return loadedGuides.get(guideId);
+    }
+
+    /**
+     * アカウントのガイド進行を非同期で読み込みます。読み込み済みの場合は何もしません。
+     *
+     * @param accountId アカウント ID
+     */
+    public void loadProgressAsync(@NotNull UUID accountId) {
+        long generation = progressGenerations.getOrDefault(accountId, 0L);
+        if (completedStepsByAccount.containsKey(accountId)
+            || loadingGenerations.putIfAbsent(accountId, generation) != null) {
+            return;
+        }
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                Set<GuideStepKey> loaded = ConcurrentHashMap.newKeySet();
+                loaded.addAll(progressRepository.findByAccountId(accountId));
+                if (progressGenerations.getOrDefault(accountId, 0L) == generation) {
+                    completedStepsByAccount.put(accountId, loaded);
+                }
+            } catch (RuntimeException e) {
+                Logger.log(LogId.E_5182, e, "load", accountId, failureReason(e));
+            } finally {
+                loadingGenerations.remove(accountId, generation);
+            }
+        });
+    }
+
+    /**
+     * ログアウトしたアカウントの進行キャッシュを破棄します。
+     *
+     * @param accountId アカウント ID
+     */
+    public void releaseProgress(@NotNull UUID accountId) {
+        progressGenerations.merge(accountId, 1L, Long::sum);
+        completedStepsByAccount.remove(accountId);
+        loadingGenerations.remove(accountId);
+    }
+
+    /**
+     * ガイドが達成済みか判定します。
+     *
+     * @param accountId アカウント ID。未ロード時は null 可
+     * @param guide 対象ガイド
+     * @return 全手順が達成済みの場合は true
+     */
+    public boolean isGuideCompleted(@Nullable UUID accountId, @NotNull GuideEntry guide) {
+        return !guide.steps().isEmpty()
+            && guide.steps().stream().allMatch(step -> isStepCompleted(accountId, guide.id(), step.id()));
+    }
+
+    /**
+     * ガイド手順が達成済みか判定します。
+     *
+     * @param accountId アカウント ID。未ロード時は null 可
+     * @param guideId ガイド ID
+     * @param stepId 手順 ID
+     * @return 達成済みの場合は true
+     */
+    public boolean isStepCompleted(@Nullable UUID accountId, @NotNull String guideId, @NotNull String stepId) {
+        Set<GuideStepKey> completed = accountId == null ? null : completedStepsByAccount.get(accountId);
+        return completed != null && completed.contains(new GuideStepKey(guideId, stepId));
+    }
+
+    /**
+     * ゲーム内イベントをガイド条件として評価し、各ガイドの次の未達成手順を更新します。
+     *
+     * @param player イベントを実行したプレイヤー
+     * @param eventType イベント種別
+     * @param targetId 対象 ID。対象を持たないイベントでは null
+     */
+    public void recordCondition(
+        @NotNull AstPlayer player,
+        @NotNull GuideConditionType eventType,
+        @Nullable String targetId
+    ) {
+        UUID accountId = player.getAccount().getUuid();
+        Set<GuideStepKey> completed = completedStepsByAccount.get(accountId);
+        if (completed == null) {
+            loadProgressAsync(accountId);
+            return;
+        }
+
+        for (GuideEntry guide : getAll()) {
+            GuideStep step = GuideProgressEvaluator.evaluate(guide, completed, eventType, targetId);
+            if (step == null) {
+                continue;
+            }
+            GuideStepKey key = new GuideStepKey(guide.id(), step.id());
+            if (!completed.add(key)) {
+                continue;
+            }
+
+            notifyStepCompleted(player, guide, step);
+            persistStepAsync(player, guide, key);
+        }
+    }
+
+    private void notifyStepCompleted(
+        @NotNull AstPlayer player,
+        @NotNull GuideEntry guide,
+        @NotNull GuideStep step
+    ) {
+        playerMessageService.send(player, PlayerMsgId.P_5180, resolveText(step.text()));
+        GuiSound.GUIDE_STEP.play(player.getBukkit());
+        if (isGuideCompleted(player.getAccount().getUuid(), guide)) {
+            playerMessageService.send(player, PlayerMsgId.P_5181, resolveText(guide.title()));
+            GuiSound.GUIDE_COMPLETE.play(player.getBukkit());
+        }
+    }
+
+    private void persistStepAsync(
+        @NotNull AstPlayer player,
+        @NotNull GuideEntry guide,
+        @NotNull GuideStepKey key
+    ) {
+        UUID accountId = player.getAccount().getUuid();
+        UUID updatedBy = player.getUser().getUuid();
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                progressRepository.completeStep(accountId, key, updatedBy);
+            } catch (RuntimeException e) {
+                Set<GuideStepKey> completed = completedStepsByAccount.get(accountId);
+                if (completed != null) {
+                    completed.remove(key);
+                }
+                Logger.log(LogId.E_5182, e, "complete", guide.id() + ":" + key.stepId(), failureReason(e));
+            }
+        });
     }
 
     public @NotNull String resolveText(@NotNull String text) {

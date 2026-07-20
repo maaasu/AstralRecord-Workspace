@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
 import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
@@ -64,12 +65,16 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     private final SkillBindPresetService skillBindPresetService;
     private final LoginBonusService loginBonusService;
     private final MailService mailService;
+    private final @Nullable GuideService guideService;
     private final AstralRecord plugin;
     private final Map<UUID, JoinAttempt> joinAttempts = new ConcurrentHashMap<>();
     private final Map<UUID, LoadingControl> loadingControls = new ConcurrentHashMap<>();
     private final AtomicLong joinAttemptSequence = new AtomicLong();
     private final AtomicLong nextJoinStartNanos = new AtomicLong();
 
+    /**
+     * ガイド進行連携を使用しないテスト・互換用途のコンストラクタです。
+     */
     public PlayerJoinEventHandler(
         AstralRecord plugin,
         PlayerService playerService,
@@ -79,6 +84,32 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         LoginBonusService loginBonusService,
         MailService mailService
     ) {
+        this(plugin, playerService, skillTreeService, questService, skillBindPresetService,
+            loginBonusService, mailService, null);
+    }
+
+    /**
+     * ログイン処理と各機能の初期状態読込を構成します。
+     *
+     * @param plugin Plugin本体
+     * @param playerService プレイヤーサービス
+     * @param skillTreeService スキルツリーサービス
+     * @param questService クエストサービス
+     * @param skillBindPresetService スキルバインドサービス
+     * @param loginBonusService ログインボーナスサービス
+     * @param mailService メールサービス
+     * @param guideService ガイド進行サービス
+     */
+    public PlayerJoinEventHandler(
+        AstralRecord plugin,
+        PlayerService playerService,
+        SkillTreeService skillTreeService,
+        QuestService questService,
+        SkillBindPresetService skillBindPresetService,
+        LoginBonusService loginBonusService,
+        MailService mailService,
+        @Nullable GuideService guideService
+    ) {
         this.plugin = plugin;
         this.playerService = playerService;
         this.skillTreeService = skillTreeService;
@@ -86,6 +117,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         this.skillBindPresetService = skillBindPresetService;
         this.loginBonusService = loginBonusService;
         this.mailService = mailService;
+        this.guideService = guideService;
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
@@ -148,6 +180,9 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             UUID accountId = astPlayer.getAccount().getUuid();
             questService.releaseState(accountId);
             skillBindPresetService.invalidate(accountId);
+            if (guideService != null) {
+                guideService.releaseProgress(accountId);
+            }
         }
         runSafely(() -> playerService.onPlayerQuit(player), LogId.E_5070, playerName);
         if (attempt != null) {
@@ -334,6 +369,9 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             }
             loginBonusService.openAfterDataLoaded(player);
             playerService.commitPlayerJoin(playerJoinApplication);
+            if (guideService != null) {
+                guideService.loadProgressAsync(joinData.account().getUuid());
+            }
         } catch (Exception exception) {
             rollbackJoinApplication(
                 playerName,

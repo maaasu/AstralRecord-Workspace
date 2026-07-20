@@ -223,6 +223,39 @@ FROM [dbo].[account];
 GO
 
 -- ============================================================
+-- AstralRecord\dbo.account_guide_step_progress.md
+-- ============================================================
+
+CREATE TABLE [dbo].[account_guide_step_progress] (
+    [account_guide_step_progress_id] UNIQUEIDENTIFIER NOT NULL,
+    [account_id]                     UNIQUEIDENTIFIER NOT NULL,
+    [guide_id]                       NVARCHAR(100)    NOT NULL,
+    [step_id]                        NVARCHAR(100)    NOT NULL,
+    [completed_at]                   DATETIME2(3)     NOT NULL,
+    [created_at]                     DATETIME2(3)     NOT NULL,
+    [created_by]                     UNIQUEIDENTIFIER NOT NULL,
+
+    CONSTRAINT [PK_account_guide_step_progress] PRIMARY KEY CLUSTERED ([account_guide_step_progress_id]),
+    CONSTRAINT [FK_account_guide_step_progress_account] FOREIGN KEY ([account_id])
+        REFERENCES [dbo].[account] ([uuid])
+        ON DELETE NO ACTION
+        ON UPDATE NO ACTION,
+    CONSTRAINT [CK_account_guide_step_progress_guide_id_not_blank]
+        CHECK (LEN(LTRIM(RTRIM([guide_id]))) > 0),
+    CONSTRAINT [CK_account_guide_step_progress_step_id_not_blank]
+        CHECK (LEN(LTRIM(RTRIM([step_id]))) > 0)
+);
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [UX_account_guide_step_progress_account_guide_step]
+    ON [dbo].[account_guide_step_progress] ([account_id], [guide_id], [step_id]);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_account_guide_step_progress_account_completed]
+    ON [dbo].[account_guide_step_progress] ([account_id], [completed_at]);
+GO
+
+-- ============================================================
 -- AstralRecord\dbo.web_login_challenge.md
 -- ============================================================
 

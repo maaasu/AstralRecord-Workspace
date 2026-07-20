@@ -26,6 +26,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<AccountSkillTreeStateEntity> AccountSkillTreeStates => Set<AccountSkillTreeStateEntity>();
     public DbSet<AccountSkillTreeUnlockedNodeEntity> AccountSkillTreeUnlockedNodes => Set<AccountSkillTreeUnlockedNodeEntity>();
     public DbSet<AccountWaystoneUnlockEntity> AccountWaystoneUnlocks => Set<AccountWaystoneUnlockEntity>();
+    public DbSet<AccountGuideStepProgressEntity> AccountGuideStepProgresses => Set<AccountGuideStepProgressEntity>();
     public DbSet<AccountQuestStateEntity> AccountQuestStates => Set<AccountQuestStateEntity>();
     public DbSet<AccountQuestActiveEntity> AccountQuestActives => Set<AccountQuestActiveEntity>();
     public DbSet<AccountQuestObjectiveProgressEntity> AccountQuestObjectiveProgresses => Set<AccountQuestObjectiveProgressEntity>();
@@ -249,6 +250,29 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
                 .HasDatabaseName("UX_account_waystone_unlock_account_waystone");
             entity.HasIndex(unlock => unlock.WaystoneId)
                 .HasDatabaseName("IX_account_waystone_unlock_waystone_id");
+        });
+
+        modelBuilder.Entity<AccountGuideStepProgressEntity>(entity =>
+        {
+            entity.ToTable("account_guide_step_progress", "dbo");
+            entity.HasKey(progress => progress.AccountGuideStepProgressId);
+
+            entity.Property(progress => progress.AccountGuideStepProgressId).HasColumnName("account_guide_step_progress_id");
+            entity.Property(progress => progress.AccountId).HasColumnName("account_id");
+            entity.Property(progress => progress.GuideId).HasColumnName("guide_id").HasMaxLength(100);
+            entity.Property(progress => progress.StepId).HasColumnName("step_id").HasMaxLength(100);
+            entity.Property(progress => progress.CompletedAt).HasColumnName("completed_at");
+            entity.Property(progress => progress.CreatedAt).HasColumnName("created_at");
+            entity.Property(progress => progress.CreatedBy).HasColumnName("created_by");
+            entity.HasOne<AccountEntity>()
+                .WithMany()
+                .HasForeignKey(progress => progress.AccountId)
+                .OnDelete(DeleteBehavior.NoAction);
+            entity.HasIndex(progress => new { progress.AccountId, progress.GuideId, progress.StepId })
+                .IsUnique()
+                .HasDatabaseName("UX_account_guide_step_progress_account_guide_step");
+            entity.HasIndex(progress => new { progress.AccountId, progress.CompletedAt })
+                .HasDatabaseName("IX_account_guide_step_progress_account_completed");
         });
 
         modelBuilder.Entity<AccountQuestStateEntity>(entity =>

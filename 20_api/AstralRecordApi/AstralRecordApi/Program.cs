@@ -68,6 +68,7 @@ builder.Services.AddScoped<IAdventureRecordRepository, AdventureRecordRepository
 builder.Services.AddScoped<IAccountSkillTreeStateRepository, AccountSkillTreeStateRepository>();
 builder.Services.AddScoped<IAccountQuestStateRepository, AccountQuestStateRepository>();
 builder.Services.AddScoped<IAccountWaystoneRepository, AccountWaystoneRepository>();
+builder.Services.AddScoped<IAccountGuideProgressRepository, AccountGuideProgressRepository>();
 builder.Services.AddScoped<ILoginBonusClaimRepository, LoginBonusClaimRepository>();
 builder.Services.AddScoped<ISkillBindPresetRepository, SkillBindPresetRepository>();
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();

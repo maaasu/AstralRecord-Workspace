@@ -5,6 +5,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideEntry;
+import io.github.maaasu.astralRecord.feature.guide.model.GuideCondition;
+import io.github.maaasu.astralRecord.feature.guide.model.GuideConditionType;
+import io.github.maaasu.astralRecord.feature.guide.model.GuideStep;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
@@ -16,7 +19,9 @@ import java.net.URLEncoder;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * AstralRecord API からガイドマスターを取得する repository です。
@@ -102,28 +107,60 @@ public class GuideRepository {
             return null;
         }
 
+        int schemaVersion = intValue(obj, "schemaVersion", 0);
+        if (schemaVersion != 2) {
+            throw new IllegalArgumentException("Unsupported guide schemaVersion: " + schemaVersion + " (id=" + id + ")");
+        }
+        List<GuideStep> steps = steps(obj);
+        if (steps.isEmpty()) {
+            throw new IllegalArgumentException("Guide steps are required: " + id);
+        }
+        Set<String> stepIds = new HashSet<>();
+        for (GuideStep step : steps) {
+            if (!stepIds.add(step.id())) {
+                throw new IllegalArgumentException("Duplicate guide step id: " + id + ":" + step.id());
+            }
+        }
+
         return new GuideEntry(
-            intValue(obj, "schemaVersion", 1),
+            schemaVersion,
             id,
             stringValue(obj, "category", "other"),
             intValue(obj, "displayOrder", 0),
             stringValue(obj, "title", id),
             nullableString(obj, "iconMaterial"),
             nullableString(obj, "summary"),
-            stringList(obj, "lines")
+            steps
         );
     }
 
-    private @NotNull List<String> stringList(@NotNull JsonObject obj, @NotNull String key) {
-        JsonElement element = obj.get(key);
+    private @NotNull List<GuideStep> steps(@NotNull JsonObject obj) {
+        JsonElement element = obj.get("steps");
         if (element == null || element.isJsonNull() || !element.isJsonArray()) {
             return List.of();
         }
-        List<String> values = new ArrayList<>();
+        List<GuideStep> values = new ArrayList<>();
         for (JsonElement child : element.getAsJsonArray()) {
-            if (child.isJsonPrimitive()) {
-                values.add(child.getAsString());
+            if (!child.isJsonObject()) {
+                continue;
             }
+            JsonObject step = child.getAsJsonObject();
+            JsonObject condition = step.has("condition") && step.get("condition").isJsonObject()
+                ? step.getAsJsonObject("condition")
+                : new JsonObject();
+            String stepId = stringValue(step, "id", "").trim();
+            String conditionType = stringValue(condition, "type", "").trim();
+            if (stepId.isBlank() || conditionType.isBlank()) {
+                continue;
+            }
+            values.add(new GuideStep(
+                stepId,
+                stringValue(step, "text", stepId),
+                new GuideCondition(
+                    GuideConditionType.parse(conditionType),
+                    nullableString(condition, "targetId")
+                )
+            ));
         }
         return List.copyOf(values);
     }

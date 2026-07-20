@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.MobSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
@@ -40,6 +41,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 
 /**
  * スキル定義の同期・発動前検証・実行クラス委譲を担うサービス。
@@ -60,11 +62,21 @@ public class SkillService {
     private final AstralRecord plugin;
     private SkillOwnershipService ownershipService;
     private ConditionService conditionService;
+    private BiConsumer<AstPlayer, String> playerCastSuccessListener = (player, skillId) -> { };
     private final Map<String, SkillDefinition> builtInDefinitions = new ConcurrentHashMap<>();
 
     /** 発動者ごと・スキルごとの cooldown 終了予定時刻（{@link System#currentTimeMillis()} 基準）。 */
     private final Map<UUID, Map<String, Long>> cooldownExpiryByCaster = new ConcurrentHashMap<>();
     private final Map<UUID, CastingSession> castingSessions = new ConcurrentHashMap<>();
+
+    /**
+     * プレイヤーのスキル実行成功を受け取る listener を設定します。
+     *
+     * @param listener プレイヤーとスキル ID を受け取る listener
+     */
+    public void setPlayerCastSuccessListener(@NotNull BiConsumer<AstPlayer, String> listener) {
+        this.playerCastSuccessListener = listener;
+    }
 
     /**
      * 既定のリポジトリとレジストリでサービスを構築します。
@@ -394,6 +406,9 @@ public class SkillService {
             consumeResource(caster, resolveResourceType(definition), result.consumedMana());
             if (result.startedCooldownTicks() > 0L) {
                 startCooldown(caster, definition.getId(), result.startedCooldownTicks());
+            }
+            if (caster instanceof PlayerSkillCaster playerCaster) {
+                playerCastSuccessListener.accept(playerCaster.player(), definition.getId());
             }
         } else {
             notifyIfFailed(caster, result, definition.getId());

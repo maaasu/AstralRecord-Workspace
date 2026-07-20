@@ -36,6 +36,8 @@ import io.github.maaasu.astralRecord.feature.gathering.spawner.repository.Gather
 import io.github.maaasu.astralRecord.feature.gathering.spawner.repository.GatheringSpawnerLocationRepository;
 import io.github.maaasu.astralRecord.feature.gathering.spawner.service.GatheringSpawnerService;
 import io.github.maaasu.astralRecord.feature.guide.repository.GuideRepository;
+import io.github.maaasu.astralRecord.feature.guide.repository.GuideProgressRepository;
+import io.github.maaasu.astralRecord.feature.guide.model.GuideConditionType;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideReminderTask;
 import io.github.maaasu.astralRecord.shared.gui.event.GuiClickCooldownEventHandler;
@@ -816,7 +818,15 @@ public final class AstralRecord extends JavaPlugin {
 
         // resource pack
         resourcePackService = new ResourcePackService(ConfigProperties.getInstance());
-        guideService = new GuideService(new GuideRepository(), itemService, playerClassService, worldService);
+        guideService = new GuideService(
+            this,
+            new GuideRepository(),
+            new GuideProgressRepository(),
+            itemService,
+            playerClassService,
+            worldService,
+            playerMessageService
+        );
         guideReminderTask = new GuideReminderTask(playerMessageService);
 
         // menu
@@ -943,6 +953,12 @@ public final class AstralRecord extends JavaPlugin {
         skillTreeService.setPassiveSkillService(passiveSkillService);
         skillActionRingService = new SkillActionRingService(this, skillBindPresetService, skillService, skillOwnershipService);
         skillActionRingService.setEquipmentDurabilityService(equipmentDurabilityService);
+        skillActionRingService.setOpenListener(player ->
+            guideService.recordCondition(player, GuideConditionType.ACTION_RING_OPENED, null)
+        );
+        skillService.setPlayerCastSuccessListener((player, skillId) ->
+            guideService.recordCondition(player, GuideConditionType.SKILL_CAST, skillId)
+        );
         skillBindGui = new SkillBindGui(this);
         itemWeaponAttackService = new ItemWeaponAttackService(inventoryService, skillService);
         itemWeaponAttackService.setEquipmentDurabilityService(equipmentDurabilityService);
@@ -1005,7 +1021,8 @@ public final class AstralRecord extends JavaPlugin {
             questService,
             skillBindPresetService,
             loginBonusService,
-            mailService
+            mailService,
+            guideService
         );
         eventManager.registerHandler(playerJoinEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(

@@ -484,6 +484,10 @@ public enum LogId {
      * ガイドキャッシュ更新に失敗し、直前値を使用します: %s
      */
     E_5181(5181),
+    /**
+     * ガイド進行処理に失敗しました (API): operation=%s, target=%s, reason=%s
+     */
+    E_5182(5182),
     // endregion
 
     // region /feature/mail/ 5190-5199

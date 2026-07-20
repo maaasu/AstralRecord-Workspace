@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 /**
  * スキル発動前のアクションリング表示と選択状態を管理します。
@@ -61,6 +62,7 @@ public final class SkillActionRingService {
     private final Map<UUID, RingSession> sessions = new ConcurrentHashMap<>();
     private final Set<UUID> suppressedAttackPlayers = ConcurrentHashMap.newKeySet();
     private EquipmentDurabilityService equipmentDurabilityService;
+    private Consumer<AstPlayer> openListener = player -> { };
     private BukkitTask task;
 
     /**
@@ -84,6 +86,15 @@ public final class SkillActionRingService {
 
     public void setEquipmentDurabilityService(@Nullable EquipmentDurabilityService equipmentDurabilityService) {
         this.equipmentDurabilityService = equipmentDurabilityService;
+    }
+
+    /**
+     * アクションリング表示成功を受け取る listener を設定します。
+     *
+     * @param listener 表示したプレイヤーを受け取る listener
+     */
+    public void setOpenListener(@NotNull Consumer<AstPlayer> listener) {
+        this.openListener = listener;
     }
 
     /**
@@ -115,6 +126,7 @@ public final class SkillActionRingService {
         );
         sessions.put(playerId, session);
         GuiSound.RING_OPEN.play(player);
+        openListener.accept(astPlayer);
         ensureTask();
     }
 
