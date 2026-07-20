@@ -1,0 +1,27 @@
+# design:
+#   motif: "北欧神話 / ビフレスト / ミズガルズの山岳"
+#   progression: 4
+schemaVersion: 1
+id: midgard_mountain_bifrost_amulet
+category: equipment
+name: "&dビフレスト・アミュレット"
+icon: PRISMARINE_CRYSTALS
+rarity: EPIC
+maxStack: 1
+saleValue: 90
+lore:
+  - "&7山岳の空に現れる光の橋を象ったアミュレット。"
+  - "&7旅人の生命力と幸運を支える、地域を選ばない守り。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: ACCESSORY
+  tag: AMULET
+  requiredLevel: 15
+  stats:
+    - status: VITALITY
+      type: FLAT
+      value: 4~5
+    - status: LUCK
+      type: SCALAR
+      value: 0.03

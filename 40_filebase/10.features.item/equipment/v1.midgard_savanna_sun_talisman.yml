@@ -1,0 +1,27 @@
+# design:
+#   motif: "北欧神話 / ミズガルズのサバンナ / 魔法攻撃"
+#   progression: 2
+schemaVersion: 1
+id: midgard_savanna_sun_talisman
+category: equipment
+name: "&eサバンナサン・タリスマン"
+icon: SUNFLOWER
+rarity: UNCOMMON
+maxStack: 1
+saleValue: 28
+lore:
+  - "&7サバンナの陽光を宿した、魔法使い向けのタリスマン。"
+  - "&7知力と魔法を支える力を高める。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: ACCESSORY
+  tag: TALISMAN
+  requiredLevel: 5
+  stats:
+    - status: INTELLIGENCE
+      type: FLAT
+      value: 2~3
+    - status: MAX_MANA
+      type: FLAT
+      value: 8

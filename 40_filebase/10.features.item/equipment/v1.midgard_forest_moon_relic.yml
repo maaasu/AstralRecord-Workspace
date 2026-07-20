@@ -1,0 +1,27 @@
+# design:
+#   motif: "北欧神話 / ミズガルズの森林 / 魔法攻撃"
+#   progression: 3
+schemaVersion: 1
+id: midgard_forest_moon_relic
+category: equipment
+name: "&2フォレストムーン・レリック"
+icon: ENCHANTED_BOOK
+rarity: RARE
+maxStack: 1
+saleValue: 55
+lore:
+  - "&7森林の月明かりを写した、魔法使い向けのレリック。"
+  - "&7知力と魔力の回復を高める。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: ACCESSORY
+  tag: RELIC
+  requiredLevel: 10
+  stats:
+    - status: INTELLIGENCE
+      type: FLAT
+      value: 3~4
+    - status: MP_REGEN
+      type: FLAT
+      value: 1

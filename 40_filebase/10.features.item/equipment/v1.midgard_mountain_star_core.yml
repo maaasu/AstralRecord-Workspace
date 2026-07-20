@@ -1,0 +1,27 @@
+# design:
+#   motif: "北欧神話 / ミズガルズの山岳 / 魔法攻撃"
+#   progression: 4
+schemaVersion: 1
+id: midgard_mountain_star_core
+category: equipment
+name: "&bマウンテンスター・コア"
+icon: NETHER_STAR
+rarity: EPIC
+maxStack: 1
+saleValue: 100
+lore:
+  - "&7山頂で見える星の力を封じた、魔法使い向けのコア。"
+  - "&7魔法攻撃の輝きと知力を高める。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: ACCESSORY
+  tag: CORE
+  requiredLevel: 15
+  stats:
+    - status: INTELLIGENCE
+      type: FLAT
+      value: 4~5
+    - status: MAGIC_ATTACK
+      type: FLAT
+      value: 2

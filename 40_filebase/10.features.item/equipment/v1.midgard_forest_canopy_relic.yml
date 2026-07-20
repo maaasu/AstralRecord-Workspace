@@ -1,0 +1,27 @@
+# design:
+#   motif: "北欧神話 / ミズガルズの森林 / 間接攻撃"
+#   progression: 3
+schemaVersion: 1
+id: midgard_forest_canopy_relic
+category: equipment
+name: "&2フォレストキャノピー・レリック"
+icon: SPIDER_EYE
+rarity: RARE
+maxStack: 1
+saleValue: 55
+lore:
+  - "&7森林の樹冠を渡る狩人の技を宿した、弓使い向けのレリック。"
+  - "&7狙いを定める器用さと攻撃速度を高める。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: ACCESSORY
+  tag: RELIC
+  requiredLevel: 10
+  stats:
+    - status: DEXTERITY
+      type: FLAT
+      value: 3~4
+    - status: ATTACK_SPEED
+      type: FLAT
+      value: 3

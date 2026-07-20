@@ -1,0 +1,27 @@
+# design:
+#   motif: "北欧神話 / ミズガルズのサバンナ / 間接攻撃"
+#   progression: 2
+schemaVersion: 1
+id: midgard_savanna_wind_talisman
+category: equipment
+name: "&eサバンナウィンド・タリスマン"
+icon: STRING
+rarity: UNCOMMON
+maxStack: 1
+saleValue: 28
+lore:
+  - "&7サバンナを渡る風を封じた、弓使い向けのタリスマン。"
+  - "&7遠くの獲物を見極める器用さと命中を高める。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: ACCESSORY
+  tag: TALISMAN
+  requiredLevel: 5
+  stats:
+    - status: DEXTERITY
+      type: FLAT
+      value: 2~3
+    - status: ACCURACY
+      type: FLAT
+      value: 2

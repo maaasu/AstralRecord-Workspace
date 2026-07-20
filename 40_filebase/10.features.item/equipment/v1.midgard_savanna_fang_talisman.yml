@@ -1,0 +1,27 @@
+# design:
+#   motif: "北欧神話 / ミズガルズのサバンナ / 近接攻撃"
+#   progression: 2
+schemaVersion: 1
+id: midgard_savanna_fang_talisman
+category: equipment
+name: "&eサバンナファング・タリスマン"
+icon: RABBIT_FOOT
+rarity: UNCOMMON
+maxStack: 1
+saleValue: 28
+lore:
+  - "&7サバンナの牙を加工した、近接戦士向けのタリスマン。"
+  - "&7力強い踏み込みと会心の威力を高める。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: ACCESSORY
+  tag: TALISMAN
+  requiredLevel: 5
+  stats:
+    - status: STRENGTH
+      type: FLAT
+      value: 2~3
+    - status: CRITICAL_DAMAGE
+      type: FLAT
+      value: 0.05

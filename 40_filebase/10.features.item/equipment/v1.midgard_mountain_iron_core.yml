@@ -1,0 +1,27 @@
+# design:
+#   motif: "北欧神話 / ミズガルズの山岳 / 近接攻撃"
+#   progression: 4
+schemaVersion: 1
+id: midgard_mountain_iron_core
+category: equipment
+name: "&bマウンテンアイアン・コア"
+icon: IRON_BLOCK
+rarity: EPIC
+maxStack: 1
+saleValue: 100
+lore:
+  - "&7山岳の鉱脈から採れた鉄核を封じた、近接戦士向けのコア。"
+  - "&7近接攻撃の芯を強くし、強烈な一撃を生む。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: ACCESSORY
+  tag: CORE
+  requiredLevel: 15
+  stats:
+    - status: STRENGTH
+      type: FLAT
+      value: 4~5
+    - status: MELEE_ATTACK
+      type: FLAT
+      value: 2
