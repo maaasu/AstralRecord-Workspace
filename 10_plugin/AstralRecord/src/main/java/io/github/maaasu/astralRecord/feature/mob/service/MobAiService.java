@@ -246,7 +246,10 @@ public class MobAiService {
             return;
         }
 
-        if (targeting != null && !targeting.retaliateOnly() && selectTarget(instance) != null) {
+        // retaliateOnly では攻撃を受けるまで targetId が設定されないため、
+        // selectTarget は null を返して WANDER を継続する。攻撃を受けて
+        // targetId が設定された後は、通常の AGGRO 遷移へ進める。
+        if (targeting != null && selectTarget(instance) != null) {
             instance.state(MobState.AGGRO);
             mobService.stopPathfinding(instance);
             return;
