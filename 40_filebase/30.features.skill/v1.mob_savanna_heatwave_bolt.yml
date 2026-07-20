@@ -1,0 +1,65 @@
+# design:
+#   motif: "北欧神話 / ムスペルヘイムの熱風"
+#   progression: 2
+schemaVersion: 1
+id: mob_savanna_heatwave_bolt
+type: SKILL
+implementationId: normal_attack
+name: "&6灼熱の陽炎弾"
+description: "&7Mob AI が使用する、火傷を伴う魔法の遠距離攻撃。"
+icon: FIRE_CHARGE
+cooldownTicks: 36
+manaCost: 0
+castTimeTicks: 18
+requiredLevel: 1
+params:
+  resourceType: ENERGY
+  resourceCost: 0
+  attackType: MAGIC
+  damageType: MAGIC
+  damageElement: FIRE
+  particle: FLAME
+  particleCount: 12
+  spreadX: 0.12
+  spreadY: 0.12
+  spreadZ: 0.12
+  extra: 0.01
+  forwardOffset: 1.1
+  upwardOffset: 0.0
+  hitRange: 8.0
+  hitRadius: 0.8
+  hitStepDistance: 0.8
+  maxTargets: 1
+  activationRange: 8.0
+  projectileSpeed: 0.72
+  homingStrength: 0.14
+  homingRange: 3.5
+  trailSteps: 0
+  trailIntervalTicks: 1
+  trailStepDistance: 0.8
+  trailParticleCount: 4
+  trailSpreadX: 0.03
+  trailSpreadY: 0.03
+  trailSpreadZ: 0.03
+  trailExtra: 0.0
+  castSound: entity.blaze.ambient
+  castSoundVolume: 0.7
+  castSoundPitch: 1.1
+  sound: entity.blaze.shoot
+  soundVolume: 0.85
+  soundPitch: 1.15
+  conditions:
+    - type: BURNING
+      chance: 30
+      durationTicks: 60
+      basePower: 1.0
+      powerCoefficient: 0.1
+      tickIntervalTicks: 20
+      damageType: MAGIC
+      damageElement: FIRE
+tags:
+  - mob
+  - active
+  - magic
+  - fire
+  - savanna

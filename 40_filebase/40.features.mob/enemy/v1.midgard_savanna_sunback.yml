@@ -1,0 +1,54 @@
+# design:
+#   motif: "太陽 / 乾いた砂地"
+#   progression: 2
+schemaVersion: 1
+id: midgard_savanna_sunback
+type: MOB
+category: ENEMY
+name: "&eミズガルズ・サンバック"
+level: 2
+entityType: CAMEL
+icon: HAY_BLOCK
+lore:
+  - "&7陽に灼かれた背を持つ、サバンナの大型獣。"
+  - "&7不用意に近づかなければ、争いを好まない。"
+tags:
+  - midgard
+  - savanna
+  - beast
+  - melee
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 75
+  - status: ATTACK
+    value: 10
+  - status: DEFENSE
+    value: 2
+  - status: MOVEMENT_SPEED
+    value: 98
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 14
+    speed: 0.85
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 24
+    deaggroRange: 30
+    leashRange: 34
+    retaliateOnly: true
+  combat:
+    style: MELEE
+    preferredRange: 2.2
+    attackIntervalTicks: 30
+    skills: []
+
+drops:
+  exp: 14
+  money:
+    min: 1
+    max: 4
+  lootTable:
+    ref: loot_table:midgard_grassland_orb_table

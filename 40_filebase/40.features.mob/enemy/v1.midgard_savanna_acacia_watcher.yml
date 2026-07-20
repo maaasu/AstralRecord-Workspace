@@ -1,0 +1,60 @@
+# design:
+#   motif: "アカシア / 刺と樹液"
+#   progression: 2
+schemaVersion: 1
+id: midgard_savanna_acacia_watcher
+type: MOB
+category: ENEMY
+name: "&aミズガルズ・アカシアウォッチャー"
+level: 4
+entityType: PILLAGER
+icon: CROSSBOW
+lore:
+  - "&7アカシアの枝に潜み、乾いた平原を見張る狩人。"
+  - "&7木の棘を思わせる矢で、距離を取る旅人を狙う。"
+tags:
+  - midgard
+  - savanna
+  - humanoid
+  - ranged
+  - acacia
+
+equipment:
+  mainHand: CROSSBOW
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 110
+  - status: ATTACK
+    value: 17
+  - status: DEXTERITY
+    value: 20
+  - status: DEFENSE
+    value: 4
+  - status: MOVEMENT_SPEED
+    value: 104
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.9
+  targeting:
+    strategy: NEAREST
+    aggroRange: 19
+    deaggroRange: 30
+    leashRange: 36
+  combat:
+    style: RANGED
+    preferredRange: 8.5
+    attackIntervalTicks: 30
+    skills:
+      - ref: skill:mob_skeleton_bow_shot
+
+drops:
+  exp: 34
+  money:
+    min: 4
+    max: 10
+  lootTable:
+    ref: loot_table:midgard_grassland_orb_table

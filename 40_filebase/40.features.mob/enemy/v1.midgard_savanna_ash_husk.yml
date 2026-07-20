@@ -1,0 +1,59 @@
+# design:
+#   motif: "北欧神話 / ムスペルヘイムの灰"
+#   progression: 2
+schemaVersion: 1
+id: midgard_savanna_ash_husk
+type: MOB
+category: ENEMY
+name: "&6ミズガルズ・アッシュハスク"
+level: 3
+entityType: HUSK
+icon: CHARCOAL
+lore:
+  - "&7熱風に運ばれた灰から立ち上がる干からびた亡者。"
+  - "&7揺らめく陽炎を弾にして、遠くの獲物を焼く。"
+tags:
+  - midgard
+  - savanna
+  - undead
+  - magic
+  - fire
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 95
+  - status: ATTACK
+    value: 14
+  - status: INTELLIGENCE
+    value: 16
+  - status: DEFENSE
+    value: 3
+  - status: MAGIC_DEFENSE
+    value: 4
+  - status: MOVEMENT_SPEED
+    value: 100
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 12
+    speed: 0.85
+  targeting:
+    strategy: NEAREST
+    aggroRange: 17
+    deaggroRange: 27
+    leashRange: 32
+  combat:
+    style: MAGIC
+    preferredRange: 7.0
+    attackIntervalTicks: 36
+    skills:
+      - ref: skill:mob_savanna_heatwave_bolt
+
+drops:
+  exp: 24
+  money:
+    min: 2
+    max: 7
+  lootTable:
+    ref: loot_table:midgard_grassland_orb_table
