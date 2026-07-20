@@ -19,7 +19,7 @@ tags:
 
 equipment:
   mainHand:
-    ref: item:bronze_sword
+    ref: item:traveler_sword
   boots:
     ref: item:traveler_melee_boots
 

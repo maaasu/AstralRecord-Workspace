@@ -19,7 +19,7 @@ tags:
 
 equipment:
   mainHand:
-    ref: item:rusty_sword
+    ref: item:traveler_sword
 
 baseStats:
   - status: MAX_HEALTH

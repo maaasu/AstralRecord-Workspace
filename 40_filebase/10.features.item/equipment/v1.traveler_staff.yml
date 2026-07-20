@@ -1,21 +1,25 @@
-# NOTE: 現在実装されているマスタデータはすべてデバッグ用の仮設定です。正式なゲームバランス・報酬・入手設計として扱わないでください。
+# design:
+#   motif: "旅立ち / 魔法攻撃 / トラベラー"
+#   progression: 0
 schemaVersion: 1
-id: starter_staff
+id: traveler_staff
 category: equipment
-name: "&f初心者用の杖"
-icon: STICK
+name: "&fトラベラー・スタッフ"
+icon: BLAZE_ROD
 rarity: COMMON
 maxStack: 1
-saleValue: 0
+saleValue: 20
 lore:
-  - "&7魔力の流れを整えやすい練習用の杖。"
-unTradeable: true
-unSellable: true
-
+  - "&7魔力を宿す枝から作られた、旅人用の簡素な杖。"
+unTradeable: false
+unSellable: false
 equipment:
   slot: WEAPON
   handType: TWO
+  tag: STAFF
   requiredLevel: 0
+  requiredClasses:
+    - mage
   stats:
     - status: ATTACK
       type: FLAT
@@ -30,5 +34,5 @@ equipment:
     leftClickCooldownTicks: 10
     leftClickSkillId: normal_attack_magic
   durability:
-    max: 70
+    max: 80
     consume: 1

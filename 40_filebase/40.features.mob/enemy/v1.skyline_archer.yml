@@ -18,7 +18,7 @@ tags:
 
 equipment:
   mainHand:
-    ref: item:starter_bow
+    ref: item:traveler_bow
 
 baseStats:
   - status: MAX_HEALTH

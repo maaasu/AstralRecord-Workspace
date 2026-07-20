@@ -1,25 +1,28 @@
-# NOTE: 現在実装されているマスタデータはすべてデバッグ用の仮設定です。正式なゲームバランス・報酬・入手設計として扱わないでください。
+# design:
+#   motif: "旅立ち / 間接攻撃 / トラベラー"
+#   progression: 0
 schemaVersion: 1
-id: starter_bow
+id: traveler_bow
 category: equipment
-name: "&f初心者用の弓"
+name: "&fトラベラー・ボウ"
 icon: BOW
 rarity: COMMON
 maxStack: 1
-saleValue: 0
+saleValue: 20
 lore:
-  - "&7遠距離戦に慣れるための訓練用の弓。"
-unTradeable: true
-unSellable: true
-
+  - "&7遠くの敵を狙うために作られた、旅人用の小型弓。"
+unTradeable: false
+unSellable: false
 equipment:
   slot: WEAPON
   handType: TWO
   requiredLevel: 0
+  requiredClasses:
+    - hunter
   stats:
     - status: ATTACK
       type: FLAT
-      value: 5
+      value: 5~7
     - status: DEXTERITY
       type: FLAT
       value: 2
@@ -30,5 +33,5 @@ equipment:
     leftClickCooldownTicks: 12
     leftClickSkillId: normal_attack_bow
   durability:
-    max: 70
+    max: 80
     consume: 1

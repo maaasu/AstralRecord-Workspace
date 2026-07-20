@@ -22,7 +22,7 @@ tags:
 
 equipment:
   mainHand:
-    ref: item:apprentice_staff
+    ref: item:traveler_staff
 
 baseStats:
   - status: MAX_HEALTH

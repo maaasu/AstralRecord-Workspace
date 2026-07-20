@@ -4,11 +4,11 @@ type: LOOT_POOL
 pick: 1
 contents:
   - itemId:
-      ref: item:skyway_saber
+      ref: item:traveler_sword
     rate: 1.5
     amount: 1
   - itemId:
-      ref: item:skyway_staff
+      ref: item:traveler_staff
     rate: 1.5
     amount: 1
   - itemId:

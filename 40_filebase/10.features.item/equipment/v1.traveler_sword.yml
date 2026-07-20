@@ -1,0 +1,32 @@
+# design:
+#   motif: "旅立ち / 近接攻撃 / トラベラー"
+#   progression: 0
+schemaVersion: 1
+id: traveler_sword
+category: equipment
+name: "&fトラベラー・ソード"
+icon: IRON_SWORD
+rarity: COMMON
+maxStack: 1
+saleValue: 20
+lore:
+  - "&7旅人が初めて手にする、扱いやすい片手剣。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: WEAPON
+  handType: ONE
+  tag: SWORD
+  requiredLevel: 0
+  requiredClasses:
+    - swordsman
+  stats:
+    - status: ATTACK
+      type: FLAT
+      value: 5~7
+  onUse:
+    leftClickCooldownTicks: 10
+    leftClickSkillId: normal_attack_melee
+  durability:
+    max: 80
+    consume: 1

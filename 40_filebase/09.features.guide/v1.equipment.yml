@@ -7,7 +7,7 @@ iconMaterial: IRON_CHESTPLATE
 summary: "&7武器・防具の装備手順。"
 lines:
   - "&fメニューから {menu:equipment} を開きます。"
-  - "&f武器・ツールショップで {item:starter_sword} などの初期武器を無料で選べます。"
-  - "&f採集を始めるときは {item:starter_pickaxe} または {item:starter_herb_hoe} を受け取ります。"
+  - "&fウェポンショップで {item:traveler_sword}・{item:traveler_bow}・{item:traveler_staff} から武器を選べます。"
+  - "&f剣は近接攻撃、弓は間接攻撃、杖は魔法攻撃に対応します。"
   - "&f装備中の防具はメニューの装備欄に表示されます。"
   - "&f装備を変更した後はステータス画面で能力値を確認できます。"

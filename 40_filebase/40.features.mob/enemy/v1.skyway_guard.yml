@@ -20,7 +20,7 @@ tags:
 
 equipment:
   mainHand:
-    ref: item:skyway_saber
+    ref: item:traveler_sword
   chestplate:
     ref: item:traveler_melee_chest
   boots:

@@ -19,7 +19,7 @@ tags:
 
 equipment:
   mainHand:
-    ref: item:skyway_staff
+    ref: item:traveler_staff
 
 baseStats:
   - status: MAX_HEALTH
