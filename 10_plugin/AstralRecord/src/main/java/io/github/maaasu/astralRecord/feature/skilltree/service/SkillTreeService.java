@@ -1885,7 +1885,7 @@ public class SkillTreeService {
                 removedCount++;
             }
         }
-        Logger.log(LogId.W_9001, world.getName(), removedCount);
+        Logger.log(LogId.I_9003, world.getName(), removedCount);
 
         File entitiesDirectory = new File(world.getWorldFolder(), "entities");
         File[] files = entitiesDirectory.listFiles();
