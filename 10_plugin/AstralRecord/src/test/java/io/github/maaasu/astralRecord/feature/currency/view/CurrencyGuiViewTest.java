@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.currency.view;
 import io.github.maaasu.astralRecord.feature.currency.model.GoldDenomination;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
@@ -12,6 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -43,6 +45,7 @@ class CurrencyGuiViewTest extends MockBukkitTestBase {
 
         Inventory inventory = player.getOpenInventory().getTopInventory();
         assertEquals(27, inventory.getSize());
+        assertInstanceOf(HotbarShortcutGuiHolder.class, inventory.getHolder());
         assertEquals(Material.GOLD_NUGGET, inventory.getItem(10).getType());
         assertEquals(Material.DIAMOND, inventory.getItem(14).getType());
         assertEquals(Material.DIAMOND_BLOCK, inventory.getItem(15).getType());

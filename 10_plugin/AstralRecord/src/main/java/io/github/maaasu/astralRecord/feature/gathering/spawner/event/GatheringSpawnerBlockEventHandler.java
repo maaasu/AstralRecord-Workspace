@@ -14,13 +14,10 @@ import io.github.maaasu.astralRecord.shared.interaction.PlayerInputCandidate;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputResolver;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
-import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
@@ -94,7 +91,7 @@ public final class GatheringSpawnerBlockEventHandler
                 0.0D,
                 InteractionCandidateOrder.GATHERING_SPAWNER,
                 snapshot.directTargetKey(),
-                InputClaimPolicy.CLAIM_AND_CANCEL,
+                InputClaimPolicy.CLAIM,
                 () -> placeSpawner(event, spawnerId)
             ));
         }
@@ -117,14 +114,15 @@ public final class GatheringSpawnerBlockEventHandler
     private void placeSpawner(BlockPlaceEvent event, String spawnerId) {
         AstPlayer astPlayer = AstPlayerCache.get(event.getPlayer());
         if (!spawnerService.isAdminMode(astPlayer)) {
+            event.setCancelled(true);
             PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5719);
             return;
         }
         if (!spawnerService.registerLocation(spawnerId, event.getBlockPlaced().getLocation())) {
+            event.setCancelled(true);
             PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5711, spawnerId);
             return;
         }
-        consumePlacedItem(event.getPlayer(), event.getHand());
         PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5709, spawnerId);
     }
 
@@ -175,22 +173,6 @@ public final class GatheringSpawnerBlockEventHandler
             .min(Comparator.comparingDouble(SpawnerHit::hitDistance)
                 .thenComparing(hit -> locationKey(hit.location())))
             .orElse(null);
-    }
-
-    private void consumePlacedItem(Player player, EquipmentSlot hand) {
-        if (player.getGameMode() == GameMode.CREATIVE) {
-            return;
-        }
-        ItemStack itemStack = player.getInventory().getItem(hand);
-        if (itemStack == null) {
-            return;
-        }
-        if (itemStack.getAmount() <= 1) {
-            player.getInventory().setItem(hand, null);
-            return;
-        }
-        itemStack.setAmount(itemStack.getAmount() - 1);
-        player.getInventory().setItem(hand, itemStack);
     }
 
     private String locationKey(Location location) {
