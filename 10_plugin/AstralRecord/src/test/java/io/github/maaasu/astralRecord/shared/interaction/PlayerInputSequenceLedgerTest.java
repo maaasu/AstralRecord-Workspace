@@ -265,4 +265,33 @@ class PlayerInputSequenceLedgerTest {
 
         assertFalse(ledger.hasSemanticInput(pending));
     }
+
+    @Test
+    void semanticObservationCanBeQueriedAcrossFamiliesByPlayerTickAndHand() {
+        PlayerInputSequenceLedger ledger = new PlayerInputSequenceLedger();
+        PlayerInputToken blockPlace = ledger.correlate(
+            PLAYER_ID,
+            900,
+            InputFamily.BLOCK_MUTATION,
+            InputSource.BLOCK_PLACE,
+            "HAND",
+            "block:world:10:64:20"
+        );
+        ledger.observeSemanticInput(blockPlace);
+        ledger.correlate(
+            PLAYER_ID,
+            900,
+            InputFamily.LEFT_CLICK,
+            InputSource.PLAYER_ARM_SWING,
+            "HAND",
+            ""
+        );
+
+        assertAll(
+            () -> assertTrue(ledger.hasSemanticInput(PLAYER_ID, 900, "HAND")),
+            () -> assertFalse(ledger.hasSemanticInput(PLAYER_ID, 900, "OFF_HAND")),
+            () -> assertFalse(ledger.hasSemanticInput(PLAYER_ID, 901, "HAND")),
+            () -> assertFalse(ledger.hasSemanticInput(OTHER_PLAYER_ID, 900, "HAND"))
+        );
+    }
 }

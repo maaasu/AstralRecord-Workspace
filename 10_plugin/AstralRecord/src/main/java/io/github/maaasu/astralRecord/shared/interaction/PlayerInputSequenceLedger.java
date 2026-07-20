@@ -144,6 +144,36 @@ public final class PlayerInputSequenceLedger {
     }
 
     /**
+     * 同一プレイヤー・tick・handにsemanticな入口が観測済みか、入力familyを問わず判定します。
+     * 設置や右クリックに伴うARM_SWINGを独立した左クリックとして実行しないために使用します。
+     *
+     * @param playerId プレイヤーUUID
+     * @param serverTick 判定対象のサーバーtick
+     * @param handKey hand識別子
+     * @return 該当するsemantic入力が観測済みならtrue
+     */
+    public synchronized boolean hasSemanticInput(
+        @NotNull UUID playerId,
+        int serverTick,
+        @NotNull String handKey
+    ) {
+        Objects.requireNonNull(playerId, "playerId");
+        Objects.requireNonNull(handKey, "handKey");
+        if (serverTick < 0) {
+            throw new IllegalArgumentException("serverTick must be zero or greater");
+        }
+        List<Entry> entries = entriesByPlayer.get(playerId);
+        if (entries == null) {
+            return false;
+        }
+        return entries.stream().anyMatch(entry ->
+            entry.token.serverTick() == serverTick
+                && entry.semanticObserved
+                && entry.hands.contains(handKey)
+        );
+    }
+
+    /**
      * プレイヤー退出時に相関状態を破棄します。
      *
      * @param playerId プレイヤー UUID

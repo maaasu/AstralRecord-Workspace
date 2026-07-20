@@ -6,11 +6,13 @@ import io.papermc.paper.event.player.PrePlayerAttackEntityEvent;
 import org.bukkit.Location;
 import org.bukkit.Server;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -56,6 +58,7 @@ class PlayerInteractionGatewayEventHandlerTest {
         when(player.getName()).thenReturn("gateway-test-player");
         when(player.getWorld()).thenReturn(world);
         when(player.getEyeLocation()).thenReturn(new Location(world, 0.0D, 64.0D, 0.0D, 0.0F, 0.0F));
+        when(world.getUID()).thenReturn(UUID.fromString("00000000-0000-0000-0000-000000000304"));
     }
 
     @Test
@@ -302,6 +305,51 @@ class PlayerInteractionGatewayEventHandlerTest {
         verify(semantic).setCancelled(true);
     }
 
+    @Test
+    void blockPlaceSemanticPreventsFollowingArmFallback() {
+        AtomicInteger executions = new AtomicInteger();
+        PlayerInteractionGatewayEventHandler gateway = gateway(context ->
+            context.family() == InputFamily.LEFT_CLICK
+                ? List.of(candidate(
+                    "spawner-left-interaction",
+                    InteractionTier.WORLD_INTERACTION,
+                    1.0D,
+                    InteractionCandidateOrder.MOB_SPAWNER,
+                    executions
+                ))
+                : List.of()
+        );
+
+        gateway.onBlockPlace(blockPlaceEvent());
+        gateway.onPlayerArmSwing(armSwingEvent());
+
+        assertEquals(0, executions.get());
+        verify(scheduler, never()).runTask(eq(plugin), any(Runnable.class));
+    }
+
+    @Test
+    void blockPlaceSemanticSuppressesAlreadyPendingArmFallback() {
+        AtomicInteger executions = new AtomicInteger();
+        AtomicReference<Runnable> scheduled = captureNextTask();
+        PlayerInteractionGatewayEventHandler gateway = gateway(context ->
+            context.family() == InputFamily.LEFT_CLICK
+                ? List.of(candidate(
+                    "spawner-left-interaction",
+                    InteractionTier.WORLD_INTERACTION,
+                    1.0D,
+                    InteractionCandidateOrder.MOB_SPAWNER,
+                    executions
+                ))
+                : List.of()
+        );
+
+        gateway.onPlayerArmSwing(armSwingEvent());
+        gateway.onBlockPlace(blockPlaceEvent());
+        scheduled.get().run();
+
+        assertEquals(0, executions.get());
+    }
+
     private PlayerInteractionGatewayEventHandler gateway(
         PlayerInputResolver<PlayerInteractionSnapshot> resolver
     ) {
@@ -344,6 +392,20 @@ class PlayerInteractionGatewayEventHandlerTest {
         when(event.getHand()).thenReturn(EquipmentSlot.HAND);
         when(event.isCancelled()).thenReturn(false);
         when(player.isOnline()).thenReturn(true);
+        return event;
+    }
+
+    private BlockPlaceEvent blockPlaceEvent() {
+        BlockPlaceEvent event = mock(BlockPlaceEvent.class);
+        Block block = mock(Block.class);
+        when(event.getPlayer()).thenReturn(player);
+        when(event.getHand()).thenReturn(EquipmentSlot.HAND);
+        when(event.getBlockPlaced()).thenReturn(block);
+        when(event.isCancelled()).thenReturn(false);
+        when(block.getWorld()).thenReturn(world);
+        when(block.getX()).thenReturn(10);
+        when(block.getY()).thenReturn(64);
+        when(block.getZ()).thenReturn(20);
         return event;
     }
 

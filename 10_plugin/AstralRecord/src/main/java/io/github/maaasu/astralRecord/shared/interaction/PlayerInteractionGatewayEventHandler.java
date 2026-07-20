@@ -205,6 +205,13 @@ public final class PlayerInteractionGatewayEventHandler extends AbstractEventHan
             event.getHand().name(),
             ""
         );
+        if (sequenceLedger.hasSemanticInput(
+            snapshot.player().getUniqueId(),
+            serverTick,
+            event.getHand().name()
+        )) {
+            return;
+        }
         if (sequenceLedger.isClaimed(token)) {
             if (sequenceLedger.isCancelRequested(token)) {
                 cancel(snapshot.event());
@@ -414,7 +421,9 @@ public final class PlayerInteractionGatewayEventHandler extends AbstractEventHan
             return;
         }
         PlayerInteractionSnapshot snapshot = pending.context.inputSnapshot();
-        if (!snapshot.player().isOnline()) {
+        String handKey = snapshot.hand() == null ? "" : snapshot.hand().name();
+        if (!snapshot.player().isOnline()
+            || sequenceLedger.hasSemanticInput(token.playerId(), token.serverTick(), handKey)) {
             return;
         }
         try {
