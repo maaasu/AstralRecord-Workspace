@@ -8,7 +8,6 @@ import io.github.maaasu.astralRecord.feature.spawner.model.MobSpawnerLocation;
 import io.github.maaasu.astralRecord.feature.spawner.model.MobSpawnerTimeWindow;
 import io.github.maaasu.astralRecord.feature.spawner.repository.MobSpawnerDefinitionRepository;
 import io.github.maaasu.astralRecord.feature.spawner.repository.MobSpawnerLocationRepository;
-import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
@@ -355,13 +354,13 @@ public class MobSpawnerService {
     }
 
     /**
-     * スポナー表示を見せるアカウントモードか判定します。
+     * スポナー表示を見せる管理権限があるか判定します。
      *
      * @param astPlayer 対象プレイヤー
-     * @return ADMIN モードなら true
+     * @return user.permission が 99 以上なら true
      */
     public boolean canViewSpawnerVisual(@Nullable AstPlayer astPlayer) {
-        return astPlayer != null && astPlayer.getAccount().getMode() == AccountMode.ADMIN;
+        return astPlayer != null && astPlayer.hasAdminPermission();
     }
 
     /**

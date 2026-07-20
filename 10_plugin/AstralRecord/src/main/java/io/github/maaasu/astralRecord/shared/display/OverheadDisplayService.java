@@ -35,7 +35,7 @@ public class OverheadDisplayService {
 
     private static final long UPDATE_INTERVAL_TICKS = 5L;
     private static final double PLAYER_TEXT_OFFSET = -1.65D;
-    private static final double MOB_TEXT_OFFSET = -1.65D;
+    private static final double MOB_PASSENGER_TEXT_OFFSET = 0.15D;
     private static final int BAR_LENGTH = 12;
     private static final String HIDDEN_NAME_TEAM = "ar_hidden_names";
 
@@ -200,9 +200,19 @@ public class OverheadDisplayService {
 
     private @NotNull DisplayAnchor mobDisplayAnchor(@NotNull MobInstance instance, @NotNull Entity entity) {
         if (instance.template().blockMaterial() == null) {
-            return DisplayAnchor.entity(entity, overheadOffset(entity, MOB_TEXT_OFFSET));
+            return DisplayAnchor.entity(entity, mobPassengerOverheadOffset());
         }
         return DisplayAnchor.fixed(instance.currentLocation().add(0.0D, 1.35D, 0.0D));
+    }
+
+    /**
+     * Mob passenger の乗車位置へ加える頭上余白を返します。
+     * passenger の基準位置には Mob 種別ごとの高さが既に反映されるため、実体高による再補正は行いません。
+     *
+     * @return passenger 基準の頭上余白
+     */
+    static @NotNull Vector mobPassengerOverheadOffset() {
+        return new Vector(0.0D, MOB_PASSENGER_TEXT_OFFSET, 0.0D);
     }
 
     private Entity resolveMobEntity(@NotNull MobInstance instance) {
