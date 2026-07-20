@@ -22,6 +22,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Interaction;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Mob;
+import org.bukkit.entity.Vex;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
@@ -53,6 +54,9 @@ public class MobEntityController {
     private static final double PATH_TARGET_DRIFT_DISTANCE_SQ = 2.25D;
     private static final double PATH_STOP_DISTANCE_SQ = 0.36D;
     private static final long PATH_RECOMPUTE_INTERVAL_TICKS = 10L;
+    private static final double VEX_FLIGHT_SPEED_MULTIPLIER = 0.18D;
+    private static final double MIN_VEX_FLIGHT_SPEED = 0.05D;
+    private static final double MAX_VEX_FLIGHT_SPEED = 0.35D;
     private static final float BLOCK_DISPLAY_VIEW_RANGE = 64.0F;
     private static final float BLOCK_DISPLAY_RENDER_SCALE = 0.75F;
     private static final float BLOCK_DISPLAY_RENDER_XZ_OFFSET = -BLOCK_DISPLAY_RENDER_SCALE / 2.0F;
@@ -431,6 +435,10 @@ public class MobEntityController {
             return false;
         }
 
+        if (mob instanceof Vex vex) {
+            return moveVexTo(instance, vex, target, aiSpeedModifier);
+        }
+
         Location current = mob.getLocation();
         if (current.distanceSquared(target) <= PATH_STOP_DISTANCE_SQ) {
             mob.getPathfinder().stopPathfinding();
@@ -463,6 +471,9 @@ public class MobEntityController {
         Mob mob = getMob(instance);
         if (mob != null) {
             mob.getPathfinder().stopPathfinding();
+            if (mob instanceof Vex) {
+                mob.setVelocity(new Vector());
+            }
             instance.currentLocation(mob.getLocation());
         }
         instance.clearNavPath();
@@ -760,10 +771,49 @@ public class MobEntityController {
         return dx * dx + dz * dz > PATH_TARGET_DRIFT_DISTANCE_SQ;
     }
 
+    /**
+     * Vex を目標地点へ三次元で飛行させます。
+     *
+     * <p>Vex は地上 Mob 用の Paper Pathfinder では経路を生成できないため、
+     * 目標地点への正規化ベクトルを直接速度として設定します。停止時は
+     * {@link #stopPathfinding(MobInstance)} が速度をゼロへ戻します。</p>
+     *
+     * @param instance        移動対象の Mob インスタンス
+     * @param vex             移動させる Vex
+     * @param target          追従する目標地点
+     * @param aiSpeedModifier AI 設定の速度倍率
+     * @return 速度を設定した場合は {@code true}
+     */
+    private boolean moveVexTo(
+            @NotNull MobInstance instance,
+            @NotNull Vex vex,
+            @NotNull Location target,
+            double aiSpeedModifier) {
+        Location current = vex.getLocation();
+        Vector direction = target.toVector().subtract(current.toVector());
+        if (direction.lengthSquared() <= PATH_STOP_DISTANCE_SQ) {
+            vex.setVelocity(new Vector());
+            instance.currentLocation(current);
+            return false;
+        }
+
+        double speed = resolveVexFlightSpeed(instance, aiSpeedModifier);
+        vex.setVelocity(direction.normalize().multiply(speed));
+        instance.navTargetX(target.getX());
+        instance.navTargetZ(target.getZ());
+        instance.currentLocation(current);
+        return true;
+    }
+
     private double resolvePathfinderSpeed(@NotNull MobInstance instance, double aiSpeedModifier) {
         double statusSpeed = instance.template().statValue("MOVEMENT_SPEED", STANDARD_MOVEMENT_SPEED);
         double statusMultiplier = Math.max(0.0D, statusSpeed) / STANDARD_MOVEMENT_SPEED;
         double speed = Math.max(0.0D, aiSpeedModifier) * statusMultiplier * PATHFINDER_SPEED_MULTIPLIER;
         return Math.max(MIN_PATHFINDER_SPEED, Math.min(speed, MAX_PATHFINDER_SPEED));
+    }
+
+    private double resolveVexFlightSpeed(@NotNull MobInstance instance, double aiSpeedModifier) {
+        double speed = resolvePathfinderSpeed(instance, aiSpeedModifier) * VEX_FLIGHT_SPEED_MULTIPLIER;
+        return Math.max(MIN_VEX_FLIGHT_SPEED, Math.min(speed, MAX_VEX_FLIGHT_SPEED));
     }
 }
