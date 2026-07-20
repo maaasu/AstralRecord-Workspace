@@ -27,6 +27,8 @@ import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusValue;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -129,7 +131,21 @@ public class StatusService {
         }
 
         player.setStatusSnapshot(merged);
+        applyMovementSpeed(player, merged);
         return merged;
+    }
+
+    private void applyMovementSpeed(
+        @NotNull AstPlayer player,
+        @NotNull StatusSnapshot snapshot
+    ) {
+        AttributeInstance attribute = player.getBukkit().getAttribute(Attribute.MOVEMENT_SPEED);
+        if (attribute == null) {
+            return;
+        }
+
+        double speedPercent = Math.max(0.0D, snapshot.getMaxValue(StatusType.MOVEMENT_SPEED));
+        attribute.setBaseValue(attribute.getDefaultValue() * speedPercent / 100.0D);
     }
 
     /**
