@@ -4,13 +4,13 @@
 schemaVersion: 1
 id: midgard_staff
 category: equipment
-name: "&fノクスマウンテン・スタッフ"
+name: "&fミズガルズ・スタッフ"
 icon: END_ROD
 rarity: RARE
 maxStack: 1
 saleValue: 80
 lore:
-  - "&7山岳の嵐と黒板石を束ね、ノクスの職人が鍛えたノクスマウンテン・スタッフ。"
+  - "&7山岳の嵐と黒板石を束ね、ノクスの職人が鍛えたミズガルズ・スタッフ。"
   - "&7職業制限はなく、魔法攻撃に適した武器。"
 unTradeable: false
 unSellable: false

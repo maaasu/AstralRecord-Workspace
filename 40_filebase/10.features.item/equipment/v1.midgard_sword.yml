@@ -4,13 +4,13 @@
 schemaVersion: 1
 id: midgard_sword
 category: equipment
-name: "&fノクスフォレスト・ソード"
+name: "&fミズガルズ・ソード"
 icon: DIAMOND_SWORD
 rarity: RARE
 maxStack: 1
 saleValue: 80
 lore:
-  - "&7森林の根と獣牙を束ね、ノクスの職人が鍛えたノクスフォレスト・ソード。"
+  - "&7森林の根と獣牙を束ね、ノクスの職人が鍛えたミズガルズ・ソード。"
   - "&7職業制限はなく、近接攻撃に適した武器。"
 unTradeable: false
 unSellable: false

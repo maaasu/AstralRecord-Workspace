@@ -5,7 +5,7 @@ schemaVersion: 1
 id: midgard_staff_recipe
 type: RECIPE
 category: CRAFT
-name: "&fノクスマウンテン・スタッフの製法"
+name: "&fミズガルズ・スタッフの製法"
 lore:
   - "&7複数地域の素材を組み合わせてスタッフを作る。"
 tags:

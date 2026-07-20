@@ -4,13 +4,13 @@
 schemaVersion: 1
 id: midgard_bow
 category: equipment
-name: "&fノクスサバンナ・ボウ"
+name: "&fミズガルズ・ボウ"
 icon: BOW
 rarity: RARE
 maxStack: 1
 saleValue: 80
 lore:
-  - "&7サバンナの皮と乾いた風を束ね、ノクスの職人が鍛えたノクスサバンナ・ボウ。"
+  - "&7サバンナの皮と乾いた風を束ね、ノクスの職人が鍛えたミズガルズ・ボウ。"
   - "&7職業制限はなく、間接攻撃に適した武器。"
 unTradeable: false
 unSellable: false

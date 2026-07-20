@@ -3,13 +3,37 @@ id: weapon_shop
 type: SHOP
 name: "&6武器ショップ"
 items:
+  - id: traveler_sword
+    itemId:
+      ref: item:traveler_sword
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 0
+    priceGold: 20
+  - id: traveler_bow
+    itemId:
+      ref: item:traveler_bow
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 1
+    priceGold: 20
+  - id: traveler_staff
+    itemId:
+      ref: item:traveler_staff
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 2
+    priceGold: 20
   - id: midgard_sword
     itemId:
       ref: item:midgard_sword
     category: equipment
     amount: 1
     page: 1
-    slot: 0
+    slot: 3
     priceGold: 0
     requiredItems:
       - itemId:
@@ -27,7 +51,7 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 1
+    slot: 4
     priceGold: 0
     requiredItems:
       - itemId:
@@ -45,7 +69,7 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 2
+    slot: 5
     priceGold: 0
     requiredItems:
       - itemId:
