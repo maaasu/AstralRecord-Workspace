@@ -17,6 +17,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -68,6 +70,27 @@ class TextDisplayPlacementServiceTest extends MockBukkitTestBase {
         command.onCommand(player, null, "textdisplay", new String[] {"place", "notice", "&aHello", "World"});
 
         verify(placementService).place("notice", "&aHello World", location);
+    }
+
+    @Test
+    void commandPlaceAcceptsTextWithoutExplicitId() {
+        TextDisplayPlacementService placementService = mock(TextDisplayPlacementService.class);
+        TextDisplayCommand command = new TextDisplayCommand(placementService);
+        World world = server().addSimpleWorld("command_without_id_world");
+        Player player = server().addPlayer("admin");
+        Location location = new Location(world, 5.0D, 65.0D, 9.0D);
+        player.teleport(location);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        when(astPlayer.getBukkit()).thenReturn(player);
+        when(astPlayer.hasPermissionLevel(anyInt())).thenReturn(true);
+        AstPlayerCache.put(astPlayer);
+        when(placementService.getPlacements()).thenReturn(List.of());
+        TextDisplayPlacement placement = TextDisplayPlacement.from("textdisplay-1", "冒険者ギルド", location);
+        when(placementService.place("textdisplay-1", "冒険者ギルド", location)).thenReturn(placement);
+
+        command.onCommand(player, null, "textdisplay", new String[] {"place", "冒険者ギルド"});
+
+        verify(placementService).place("textdisplay-1", "冒険者ギルド", location);
     }
 
     @Test

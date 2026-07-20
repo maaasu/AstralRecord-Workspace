@@ -9,7 +9,9 @@ import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -18,6 +20,7 @@ import java.util.regex.Pattern;
 public final class TextDisplayCommand extends AstCommand {
 
     private static final Pattern ID_PATTERN = Pattern.compile("[a-zA-Z0-9_-]{1,64}");
+    private static final String AUTO_ID_PREFIX = "textdisplay-";
 
     private final TextDisplayPlacementService placementService;
 
@@ -27,7 +30,7 @@ public final class TextDisplayCommand extends AstCommand {
      * @param placementService 固定 TextDisplay 配置サービス
      */
     public TextDisplayCommand(@NotNull TextDisplayPlacementService placementService) {
-        super("textdisplay", "固定テキスト表示を管理します。", "/textdisplay <place|remove|list|reload> ...",
+        super("textdisplay", "固定テキスト表示を管理します。", "/textdisplay <place [id] <text...>|remove <id>|list|reload>",
                 true, UserPermission.ADMIN.getValue());
         this.placementService = placementService;
     }
@@ -50,18 +53,26 @@ public final class TextDisplayCommand extends AstCommand {
     }
 
     private void handlePlace(@NotNull AstPlayer player, @NotNull String[] args) {
-        if (args.length < 3) {
+        if (args.length < 2) {
             sendUsage(player.getBukkit());
             return;
         }
 
-        String id = args[1];
-        if (!ID_PATTERN.matcher(id).matches()) {
-            sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5774.getId()));
-            return;
+        String id;
+        int textStartIndex;
+        if (args.length == 2) {
+            id = nextAutomaticId();
+            textStartIndex = 1;
+        } else {
+            id = args[1];
+            textStartIndex = 2;
+            if (!ID_PATTERN.matcher(id).matches()) {
+                sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5774.getId()));
+                return;
+            }
         }
 
-        String text = joinArgs(args, 2).replace("\\n", "\n");
+        String text = joinArgs(args, textStartIndex).replace("\\n", "\n");
         TextDisplayPlacement placement = placementService.place(id, text, player.getBukkit().getLocation());
         sendSuccess(player.getBukkit(), PlayerMsgResource.format(
                 PlayerMsgId.P_5770.getId(),
@@ -71,6 +82,20 @@ public final class TextDisplayCommand extends AstCommand {
                 String.format(Locale.ROOT, "%.2f", placement.y()),
                 String.format(Locale.ROOT, "%.2f", placement.z())
         ));
+    }
+
+    private @NotNull String nextAutomaticId() {
+        Set<String> ids = new HashSet<>();
+        for (TextDisplayPlacement placement : placementService.getPlacements()) {
+            ids.add(placement.id());
+        }
+
+        int sequence = 1;
+        String id;
+        do {
+            id = AUTO_ID_PREFIX + sequence++;
+        } while (ids.contains(id));
+        return id;
     }
 
     private void handleRemove(@NotNull AstPlayer player, @NotNull String[] args) {
