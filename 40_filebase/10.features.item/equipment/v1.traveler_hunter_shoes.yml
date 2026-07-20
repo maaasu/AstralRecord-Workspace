@@ -18,8 +18,6 @@ unSellable: false
 equipment:
   slot: FEET
   requiredLevel: 0
-  requiredClasses:
-    - hunter
   stats:
     - status: DEFENSE
       type: FLAT

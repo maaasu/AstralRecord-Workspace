@@ -17,8 +17,6 @@ equipment:
   slot: WEAPON
   handType: TWO
   requiredLevel: 0
-  requiredClasses:
-    - hunter
   stats:
     - status: ATTACK
       type: FLAT

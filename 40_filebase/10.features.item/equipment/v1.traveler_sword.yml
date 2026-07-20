@@ -18,8 +18,6 @@ equipment:
   handType: ONE
   tag: SWORD
   requiredLevel: 0
-  requiredClasses:
-    - swordsman
   stats:
     - status: ATTACK
       type: FLAT
