@@ -1,7 +1,10 @@
+# design:
+#   motif: "北欧神話 / ミズガルズの草原"
+#   progression: 1
 schemaVersion: 1
-id: windwait_patrol_spawner
+id: midgard_grassland_spawner
 type: MOB_SPAWNER
-region: "風待ち草原"
+region: "ミズガルズ草原"
 radiusMeters: 22
 
 spawnMobs:

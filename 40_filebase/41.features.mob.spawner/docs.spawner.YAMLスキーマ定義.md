@@ -33,16 +33,18 @@ Mob スポナーの静的マスタ定義です。
 
 ```yaml
 schemaVersion: 1
-id: windwait_patrol_spawner
+id: midgard_grassland_spawner
 type: MOB_SPAWNER
-region: "風待ち草原"
+region: "ミズガルズ草原"
 radiusMeters: 18
 
 spawnMobs:
   - mobId: mob:midgard_grassboar
-    weight: 70
+    weight: 55
   - mobId: mob:midgard_rune_skeleton
     weight: 30
+  - mobId: mob:midgard_shield_guard
+    weight: 15
 
 spawnTimes:
   - startTick: 0
