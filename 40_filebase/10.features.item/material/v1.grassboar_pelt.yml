@@ -1,0 +1,16 @@
+# design:
+#   motif: "北欧神話 / ミズガルズの草原"
+#   progression: 1
+schemaVersion: 1
+id: grassboar_pelt
+category: material
+name: "&aグラスボアの毛皮"
+icon: LEATHER
+rarity: COMMON
+maxStack: 64
+saleValue: 4
+lore:
+  - "&7ミズガルズの草原を駆けるグラスボアの毛皮。"
+  - "&7旅人の道具や革細工の素材になる。"
+unTradeable: false
+unSellable: false

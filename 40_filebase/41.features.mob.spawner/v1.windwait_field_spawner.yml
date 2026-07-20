@@ -5,8 +5,12 @@ region: "風待ち草原"
 radiusMeters: 20
 
 spawnMobs:
-  - mobId: mob:windwait_stray
-    weight: 100
+  - mobId: mob:midgard_grassboar
+    weight: 55
+  - mobId: mob:midgard_rune_skeleton
+    weight: 30
+  - mobId: mob:midgard_shield_guard
+    weight: 15
 
 spawnTimes:
   - startTick: 0

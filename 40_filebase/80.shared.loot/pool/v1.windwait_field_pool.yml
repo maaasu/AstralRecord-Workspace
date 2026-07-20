@@ -4,11 +4,11 @@ type: LOOT_POOL
 pick: 1
 contents:
   - itemId:
-      ref: item:skygrass_fiber
+      ref: item:grassboar_pelt
     rate: 82
     amount: 1~2
   - itemId:
-      ref: item:old_plank_chip
+      ref: item:rune_bone
     rate: 68
     amount: 1~2
   - itemId:

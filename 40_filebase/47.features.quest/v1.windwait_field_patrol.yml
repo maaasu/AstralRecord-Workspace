@@ -13,11 +13,11 @@ completion:
   turnInNpcId:
     ref: mob:village_elder
 objectives:
-  - id: defeat_windwait_stray
+  - id: defeat_midgard_grassboar
     type: KILL_MOB
     targetId:
-      ref: mob:windwait_stray
-    label: "風待ちのはぐれ者"
+      ref: mob:midgard_grassboar
+    label: "ミズガルズ・グラスボア"
     amount: 3
 acceptRequirements:
   items: []

@@ -21,8 +21,7 @@ tags:
   - quest_giver
 
 equipment:
-  mainHand:
-    ref: item:traveler_staff
+  mainHand: BLAZE_ROD
 
 baseStats:
   - status: MAX_HEALTH

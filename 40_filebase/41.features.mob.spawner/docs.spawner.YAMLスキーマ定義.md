@@ -39,9 +39,9 @@ region: "風待ち草原"
 radiusMeters: 18
 
 spawnMobs:
-  - mobId: mob:windwait_stray
+  - mobId: mob:midgard_grassboar
     weight: 70
-  - mobId: mob:skyline_archer
+  - mobId: mob:midgard_rune_skeleton
     weight: 30
 
 spawnTimes:

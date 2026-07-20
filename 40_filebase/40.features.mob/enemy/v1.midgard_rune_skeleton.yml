@@ -1,0 +1,65 @@
+# design:
+#   motif: "北欧神話 / ルーンと死者"
+#   progression: 1
+schemaVersion: 1
+id: midgard_rune_skeleton
+type: MOB
+category: ENEMY
+name: "&fミズガルズ・ルーンスケルトン"
+level: 2
+entityType: SKELETON
+icon: SKELETON_SKULL
+lore:
+  - "&7草原の古い石標に縛られたスケルトン。"
+  - "&7骨に刻まれたルーンが、放つ矢を支えている。"
+tags:
+  - midgard
+  - grassland
+  - undead
+  - skeleton
+  - ranged
+
+equipment:
+  mainHand: BOW
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 70
+  - status: ATTACK
+    value: 11
+  - status: DEXTERITY
+    value: 15
+  - status: DEFENSE
+    value: 2
+  - status: MOVEMENT_SPEED
+    value: 102
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 12
+    speed: 0.9
+  targeting:
+    strategy: NEAREST
+    aggroRange: 18
+    deaggroRange: 28
+    leashRange: 34
+  combat:
+    style: RANGED
+    preferredRange: 7.5
+    attackIntervalTicks: 28
+    skills:
+      - ref: skill:mob_skeleton_bow_shot
+
+drops:
+  exp: 18
+  money:
+    min: 1
+    max: 5
+  items:
+    - itemId:
+        ref: item:rune_bone
+      rate: 48.0
+      amount: 1
+      luckAffected: true
+      hidden: false

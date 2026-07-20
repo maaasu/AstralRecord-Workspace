@@ -128,7 +128,7 @@ lore:
 unTradeable: true
 bundle:
   lootTableId:
-    ref: loot_table:windwait_outer_table
+    ref: loot_table:windwait_field_table
   items:
     - itemId:
         ref: item:healing_potion_small

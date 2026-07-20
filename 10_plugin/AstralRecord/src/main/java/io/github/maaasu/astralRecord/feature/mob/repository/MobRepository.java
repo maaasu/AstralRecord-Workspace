@@ -301,7 +301,14 @@ public class MobRepository {
                 ? obj.get("deaggroRange").getAsDouble()
                 : aggro * 2.0;
         double leash = obj.has("leashRange") ? obj.get("leashRange").getAsDouble() : 30.0;
-        return new MobTargetingConfig(TargetStrategyFrom(optionalString(obj, "strategy")), aggro, deaggro, leash);
+        boolean retaliateOnly = obj.has("retaliateOnly") && obj.get("retaliateOnly").getAsBoolean();
+        return new MobTargetingConfig(
+                TargetStrategyFrom(optionalString(obj, "strategy")),
+                aggro,
+                deaggro,
+                leash,
+                retaliateOnly
+        );
     }
 
     @Nullable

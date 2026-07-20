@@ -1,0 +1,16 @@
+# design:
+#   motif: "北欧神話 / ルーンと死者"
+#   progression: 1
+schemaVersion: 1
+id: rune_bone
+category: material
+name: "&fルーンボーン"
+icon: BONE
+rarity: COMMON
+maxStack: 64
+saleValue: 6
+lore:
+  - "&7古いルーンの刻まれたスケルトンの骨。"
+  - "&7ミズガルズの魔除けや術具に使われる。"
+unTradeable: false
+unSellable: false

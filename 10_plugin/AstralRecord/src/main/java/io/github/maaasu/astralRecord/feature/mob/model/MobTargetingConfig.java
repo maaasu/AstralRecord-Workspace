@@ -7,11 +7,13 @@ package io.github.maaasu.astralRecord.feature.mob.model;
  * @param aggroRange   敵対検知範囲（ブロック単位）
  * @param deaggroRange 敵対解除距離（ブロック単位）
  * @param leashRange   スポーン地点からの最大追跡距離
+ * @param retaliateOnly 攻撃を受けた後のみターゲット選定を行うか
  */
 public record MobTargetingConfig(
         TargetStrategy strategy,
         double aggroRange,
         double deaggroRange,
-        double leashRange
+        double leashRange,
+        boolean retaliateOnly
 ) {
 }

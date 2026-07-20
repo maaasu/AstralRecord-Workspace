@@ -246,7 +246,7 @@ public class MobAiService {
             return;
         }
 
-        if (targeting != null && selectTarget(instance) != null) {
+        if (targeting != null && !targeting.retaliateOnly() && selectTarget(instance) != null) {
             instance.state(MobState.AGGRO);
             mobService.stopPathfinding(instance);
             return;
@@ -459,9 +459,23 @@ public class MobAiService {
             instance.targetId(null);
             return null;
         }
+        if (targeting.retaliateOnly() && instance.targetId() == null) {
+            return null;
+        }
 
         double aggroSq = targeting.aggroRange() * targeting.aggroRange();
         Location loc = instance.currentLocation();
+        if (targeting.retaliateOnly()) {
+            UUID topId = instance.threatTable().top();
+            Player top = topId == null ? null : Bukkit.getPlayer(topId);
+            if (top == null || !isActiveTargetPlayer(top) || top.getWorld() != loc.getWorld()
+                    || top.getLocation().distanceSquared(loc) > aggroSq) {
+                instance.targetId(null);
+                return null;
+            }
+            instance.targetId(top.getUniqueId());
+            return top;
+        }
         List<Player> candidates = new ArrayList<>();
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (!isActiveTargetPlayer(player)) continue;

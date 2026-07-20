@@ -21,7 +21,7 @@ AI（行動ロジック）もプラグイン独自実装であり、本スキー
 | キー              | 型            | 必須 | デフォルト     | 説明                                                      |
 |:----------------|:-------------|:--:|:----------|:--------------------------------------------------------|
 | `schemaVersion` | Integer      | ○  | -         | スキーマのバージョン（2026-00-01時点は `1`）                           |
-| `id`            | String       | ○  | -         | mobのテンプレートID（例: `windwait_stray`）                       |
+| `id`            | String       | ○  | -         | mobのテンプレートID（例: `midgard_grassboar`）                       |
 | `type`          | String       | ○  | -         | 種別（MOB(mob)）                                            |
 | `category`      | String       | ○  | -         | カテゴリ（`ENEMY` / `BOSS` / `NPC`）。ファイルが適切なフォルダに配置されているかの確認 |
 | `name`          | String       | ○  | -         | ゲーム内に表示される名前（色コード利用可能）                                  |
@@ -81,14 +81,14 @@ Mobが表示上装備するアイテムを指定します。すべて任意項�
 
 | キー                     | 型      | 必須 | デフォルト | 説明             |
 |:-----------------------|:-------|:--:|:------|:---------------|
-| `equipment.mainHand`   | String | ×  | Null  | メインハンド（※参照値）   |
-| `equipment.offHand`    | String | ×  | Null  | オフハンド（※参照値）    |
-| `equipment.helmet`     | String | ×  | Null  | ヘルメット（※参照値）    |
-| `equipment.chestplate` | String | ×  | Null  | チェストプレート（※参照値） |
-| `equipment.leggings`   | String | ×  | Null  | レギンス（※参照値）     |
-| `equipment.boots`      | String | ×  | Null  | ブーツ（※参照値）      |
+| `equipment.mainHand`   | String | ×  | Null  | メインハンド（Bukkit/Paper の標準 Material 名）   |
+| `equipment.offHand`    | String | ×  | Null  | オフハンド（Bukkit/Paper の標準 Material 名）    |
+| `equipment.helmet`     | String | ×  | Null  | ヘルメット（Bukkit/Paper の標準 Material 名）    |
+| `equipment.chestplate` | String | ×  | Null  | チェストプレート（Bukkit/Paper の標準 Material 名） |
+| `equipment.leggings`   | String | ×  | Null  | レギンス（Bukkit/Paper の標準 Material 名）     |
+| `equipment.boots`      | String | ×  | Null  | ブーツ（Bukkit/Paper の標準 Material 名）      |
 
-※ 参照値は `item:` prefix（例: `ref: item:iron_sword`）
+※ アイテムマスタの `ref: item:` 参照は使用しません。例: `mainHand: IRON_SWORD`
 
 ### baseStats（ステータス）
 
@@ -130,13 +130,13 @@ StatusType の定義は、プラグイン側の [`StatusType.kt`](../../10_plugi
 
 ```yaml
 schemaVersion: 1
-id: windwait_stray
+id: midgard_grassboar
 type: MOB
 category: ENEMY
-name: "&6風待ちのはぐれ者"
+name: "&aミズガルズ・グラスボア"
 level: 2
-entityType: ZOMBIE
-icon: ZOMBIE_HEAD
+entityType: PIG
+icon: PIG
 lore:
   - "&7風待ち草原の外れをうろつく流れ者。"
 tags:
@@ -148,8 +148,7 @@ shield:
   max: 3
 
 equipment:
-  mainHand:
-    ref: item:rusty_sword
+  mainHand: IRON_SWORD
 
 baseStats:
   - status: MAX_HEALTH

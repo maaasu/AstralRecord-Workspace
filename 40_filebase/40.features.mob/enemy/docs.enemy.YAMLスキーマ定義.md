@@ -19,12 +19,15 @@ Enemy（通常エネミー）の固有フィールド定義。
 | `ai.targeting.aggroRange`   | Double | ○  | -              | 敵対検知範囲（ブロック単位）                 |
 | `ai.targeting.deaggroRange` | Double | ×  | aggroRange × 2 | 敵対解除距離（ブロック単位）                 |
 | `ai.targeting.leashRange`   | Double | ×  | 30.0           | スポーン地点からの最大追跡距離。超えるとリセット       |
+| `ai.targeting.retaliateOnly` | Boolean | × | false | 攻撃を受けた後のみターゲット選定を行うか |
 
 #### TargetStrategy
 - `NEAREST` : 最も近いプレイヤーをターゲット
 - `HIGHEST_THREAT` : ヘイト（脅威値）が最も高いプレイヤーをターゲット
 - `RANDOM` : 範囲内のプレイヤーからランダムに選択
 - `LOWEST_HP` : HPが最も低いプレイヤーを優先
+
+`retaliateOnly: true` を指定した場合、通常時はプレイヤーを自動検知せず、攻撃を受けた後にその攻撃者をターゲットにします。
 
 ### ai.combat（戦闘行動）
 
@@ -68,13 +71,13 @@ Mob撃破時のドロップを定義します。
 
 ```yaml
 schemaVersion: 1
-id: windwait_stray
+id: midgard_grassboar
 type: MOB
 category: ENEMY
-name: "&6風待ちのはぐれ者"
+name: "&aミズガルズ・グラスボア"
 level: 2
-entityType: ZOMBIE
-icon: ZOMBIE_HEAD
+entityType: PIG
+icon: PIG
 lore:
   - "&7風待ち草原の外れをうろつく流れ者。"
   - "&7木道の残材を武器にして襲い掛かる。"
@@ -83,8 +86,7 @@ tags:
   - windwait
 
 equipment:
-  mainHand:
-    ref: item:rusty_sword
+  mainHand: IRON_SWORD
 
 baseStats:
   - status: MAX_HEALTH
@@ -120,13 +122,13 @@ drops:
     max: 4
   items:
     - itemId:
-        ref: item:glowstone_shard
+        ref: item:grassboar_pelt
       rate: 18.0
       amount: 1
       luckAffected: true
       hidden: false
     - itemId:
-        ref: item:astral_dust
+        ref: item:rune_bone
       rate: 4.5
       amount: 1
       luckAffected: false
@@ -154,8 +156,7 @@ tags:
   - magic
 
 equipment:
-  mainHand:
-    ref: item:dark_staff
+  mainHand: BLAZE_ROD
 
 baseStats:
   - status: MAX_HEALTH
@@ -190,7 +191,7 @@ drops:
     max: 40
   items:
     - itemId:
-        ref: item:bone_fragment
+        ref: item:midgard_iron_shard
       rate: 70.0
       amount: 1~3
     - itemId:

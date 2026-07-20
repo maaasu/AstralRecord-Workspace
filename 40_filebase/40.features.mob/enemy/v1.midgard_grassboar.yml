@@ -1,0 +1,59 @@
+# design:
+#   motif: "北欧神話 / ミズガルズの草原"
+#   progression: 1
+schemaVersion: 1
+id: midgard_grassboar
+type: MOB
+category: ENEMY
+name: "&aミズガルズ・グラスボア"
+level: 1
+entityType: PIG
+icon: PIG
+lore:
+  - "&7ミズガルズの草原をのんびり歩く野生のブタ。"
+  - "&7手を出さなければ、こちらを敵とは見なさない。"
+tags:
+  - midgard
+  - grassland
+  - beast
+  - melee
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 45
+  - status: ATTACK
+    value: 6
+  - status: DEFENSE
+    value: 0
+  - status: MOVEMENT_SPEED
+    value: 100
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 12
+    speed: 0.9
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 24
+    deaggroRange: 30
+    leashRange: 32
+    retaliateOnly: true
+  combat:
+    style: MELEE
+    preferredRange: 2.0
+    attackIntervalTicks: 28
+    skills: []
+
+drops:
+  exp: 8
+  money:
+    min: 0
+    max: 2
+  items:
+    - itemId:
+        ref: item:grassboar_pelt
+      rate: 35.0
+      amount: 1
+      luckAffected: true
+      hidden: false

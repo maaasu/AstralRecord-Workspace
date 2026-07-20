@@ -1,0 +1,16 @@
+# design:
+#   motif: "北欧神話 / ミズガルズの守護者"
+#   progression: 1
+schemaVersion: 1
+id: midgard_iron_shard
+category: material
+name: "&6ミズガルズ・アイアンの欠片"
+icon: IRON_NUGGET
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 12
+lore:
+  - "&7草原の守り手が盾に埋め込んでいる鉄片。"
+  - "&7旅人の装備を補強する素材になる。"
+unTradeable: false
+unSellable: false
