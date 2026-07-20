@@ -245,9 +245,7 @@ public class SkillTreeService {
         Logger.log(
                 LogId.I_9001,
                 SKILL_TREE_WORLD_ID,
-                resolvedWorld == null ? "null" : resolvedWorld.getName(),
-                positionsById.size(),
-                edgesByKey.size()
+                resolvedWorld == null ? "null" : resolvedWorld.getName()
         );
         if (visualizer == null) {
             visualizer = new SkillTreeVisualizer(plugin, this);
