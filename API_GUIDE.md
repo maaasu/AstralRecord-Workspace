@@ -48,6 +48,8 @@
 | PUT `/api/account-skilltree/{accountId}` | アカウント単位のスキルツリー進行保存 | `00_docs/20_API設計書/feature/20-skilltree/3-エンドポイント仕様/20_3.00-索引.md` |
 | GET `/api/account-waystone/{accountId}` | アカウント単位のウェイストーン開放状態取得 | `00_docs/20_API設計書/feature/25-waystone/3-エンドポイント仕様/25_3.00-索引.md` |
 | POST `/api/account-waystone/{accountId}/unlock` | ウェイストーン開放登録 | `00_docs/20_API設計書/feature/25-waystone/3-エンドポイント仕様/25_3.00-索引.md` |
+| GET `/api/account-quest/{accountId}` | アカウント単位のクエスト進行取得 | `00_docs/20_API設計書/feature/27-quest/3-エンドポイント仕様/27_3.00-索引.md` |
+| PUT `/api/account-quest/{accountId}` | アカウント単位のクエスト進行保存 | `00_docs/20_API設計書/feature/27-quest/3-エンドポイント仕様/27_3.00-索引.md` |
 | GET `/api/login-bonus/claims?account_id={account_id}&from={from}&to={to}` | ログインボーナス受取履歴取得 | `00_docs/20_API設計書/feature/26-login-bonus/3-エンドポイント仕様/26_3.00-索引.md` |
 | POST `/api/login-bonus/accounts/{accountId}/claims` | ログインボーナス受取済み日登録 | `00_docs/20_API設計書/feature/26-login-bonus/3-エンドポイント仕様/26_3.00-索引.md` |
 | DELETE `/api/login-bonus/accounts/{accountId}/claims/{claimDate}` | 報酬付与失敗時のログインボーナス受取登録取消 | `00_docs/20_API設計書/feature/26-login-bonus/3-エンドポイント仕様/26_3.00-索引.md` |

@@ -403,6 +403,129 @@ CREATE NONCLUSTERED INDEX [IX_account_waystone_unlock_is_deleted]
 GO
 
 -- ============================================================
+-- AstralRecord\dbo.account_quest_state.md
+-- ============================================================
+
+CREATE TABLE [dbo].[account_quest_state] (
+    [account_quest_state_id] UNIQUEIDENTIFIER NOT NULL,
+    [account_id]             UNIQUEIDENTIFIER NOT NULL,
+    [version]                INT              NOT NULL CONSTRAINT [DF_account_quest_state_version] DEFAULT (1),
+    [created_at]             DATETIME2(3)     NOT NULL,
+    [updated_at]             DATETIME2(3)     NOT NULL,
+    [created_by]             UNIQUEIDENTIFIER NOT NULL,
+    [updated_by]             UNIQUEIDENTIFIER NOT NULL,
+    [is_deleted]             BIT              NOT NULL CONSTRAINT [DF_account_quest_state_is_deleted] DEFAULT (0),
+
+    CONSTRAINT [PK_account_quest_state] PRIMARY KEY CLUSTERED ([account_quest_state_id]),
+    CONSTRAINT [FK_account_quest_state_account] FOREIGN KEY ([account_id])
+        REFERENCES [dbo].[account] ([uuid])
+        ON DELETE NO ACTION
+        ON UPDATE NO ACTION,
+    CONSTRAINT [CK_account_quest_state_version] CHECK ([version] >= 1)
+);
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [UX_account_quest_state_account]
+    ON [dbo].[account_quest_state] ([account_id])
+    WHERE [is_deleted] = 0;
+GO
+
+CREATE TABLE [dbo].[account_quest_active] (
+    [account_quest_active_id] UNIQUEIDENTIFIER NOT NULL,
+    [account_quest_state_id]  UNIQUEIDENTIFIER NOT NULL,
+    [quest_id]                NVARCHAR(100)    NOT NULL,
+    [accepted_at]             DATETIME2(3)     NOT NULL,
+    [accepted_npc_id]         NVARCHAR(100)    NULL,
+    [ready_to_turn_in]        BIT              NOT NULL,
+    [created_at]              DATETIME2(3)     NOT NULL,
+    [updated_at]              DATETIME2(3)     NOT NULL,
+    [created_by]              UNIQUEIDENTIFIER NOT NULL,
+    [updated_by]              UNIQUEIDENTIFIER NOT NULL,
+
+    CONSTRAINT [PK_account_quest_active] PRIMARY KEY CLUSTERED ([account_quest_active_id]),
+    CONSTRAINT [FK_account_quest_active_state] FOREIGN KEY ([account_quest_state_id])
+        REFERENCES [dbo].[account_quest_state] ([account_quest_state_id])
+        ON DELETE CASCADE
+        ON UPDATE NO ACTION,
+    CONSTRAINT [CK_account_quest_active_quest_id_not_blank] CHECK (LEN(LTRIM(RTRIM([quest_id]))) > 0)
+);
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [UX_account_quest_active_state_quest]
+    ON [dbo].[account_quest_active] ([account_quest_state_id], [quest_id]);
+GO
+
+CREATE TABLE [dbo].[account_quest_objective_progress] (
+    [account_quest_objective_progress_id] UNIQUEIDENTIFIER NOT NULL,
+    [account_quest_active_id]             UNIQUEIDENTIFIER NOT NULL,
+    [objective_id]                        NVARCHAR(100)    NOT NULL,
+    [progress]                            INT              NOT NULL CONSTRAINT [DF_account_quest_objective_progress_progress] DEFAULT (0),
+    [created_at]                          DATETIME2(3)     NOT NULL,
+    [updated_at]                          DATETIME2(3)     NOT NULL,
+    [created_by]                          UNIQUEIDENTIFIER NOT NULL,
+    [updated_by]                          UNIQUEIDENTIFIER NOT NULL,
+
+    CONSTRAINT [PK_account_quest_objective_progress] PRIMARY KEY CLUSTERED ([account_quest_objective_progress_id]),
+    CONSTRAINT [FK_account_quest_objective_progress_active] FOREIGN KEY ([account_quest_active_id])
+        REFERENCES [dbo].[account_quest_active] ([account_quest_active_id])
+        ON DELETE CASCADE
+        ON UPDATE NO ACTION,
+    CONSTRAINT [CK_account_quest_objective_progress_objective_id_not_blank] CHECK (LEN(LTRIM(RTRIM([objective_id]))) > 0),
+    CONSTRAINT [CK_account_quest_objective_progress_progress] CHECK ([progress] >= 0)
+);
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [UX_account_quest_objective_progress_active_objective]
+    ON [dbo].[account_quest_objective_progress] ([account_quest_active_id], [objective_id]);
+GO
+
+CREATE TABLE [dbo].[account_quest_completion] (
+    [account_quest_completion_id] UNIQUEIDENTIFIER NOT NULL,
+    [account_quest_state_id]      UNIQUEIDENTIFIER NOT NULL,
+    [quest_id]                    NVARCHAR(100)    NOT NULL,
+    [completed_at]                DATETIME2(3)     NOT NULL,
+    [created_at]                  DATETIME2(3)     NOT NULL,
+    [updated_at]                  DATETIME2(3)     NOT NULL,
+    [created_by]                  UNIQUEIDENTIFIER NOT NULL,
+    [updated_by]                  UNIQUEIDENTIFIER NOT NULL,
+
+    CONSTRAINT [PK_account_quest_completion] PRIMARY KEY CLUSTERED ([account_quest_completion_id]),
+    CONSTRAINT [FK_account_quest_completion_state] FOREIGN KEY ([account_quest_state_id])
+        REFERENCES [dbo].[account_quest_state] ([account_quest_state_id])
+        ON DELETE CASCADE
+        ON UPDATE NO ACTION,
+    CONSTRAINT [CK_account_quest_completion_quest_id_not_blank] CHECK (LEN(LTRIM(RTRIM([quest_id]))) > 0)
+);
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [UX_account_quest_completion_state_quest]
+    ON [dbo].[account_quest_completion] ([account_quest_state_id], [quest_id]);
+GO
+
+CREATE TABLE [dbo].[account_quest_cooldown] (
+    [account_quest_cooldown_id] UNIQUEIDENTIFIER NOT NULL,
+    [account_quest_state_id]    UNIQUEIDENTIFIER NOT NULL,
+    [quest_id]                  NVARCHAR(100)    NOT NULL,
+    [cooldown_until]            DATETIME2(3)     NOT NULL,
+    [created_at]                DATETIME2(3)     NOT NULL,
+    [updated_at]                DATETIME2(3)     NOT NULL,
+    [created_by]                UNIQUEIDENTIFIER NOT NULL,
+    [updated_by]                UNIQUEIDENTIFIER NOT NULL,
+
+    CONSTRAINT [PK_account_quest_cooldown] PRIMARY KEY CLUSTERED ([account_quest_cooldown_id]),
+    CONSTRAINT [FK_account_quest_cooldown_state] FOREIGN KEY ([account_quest_state_id])
+        REFERENCES [dbo].[account_quest_state] ([account_quest_state_id])
+        ON DELETE CASCADE
+        ON UPDATE NO ACTION,
+    CONSTRAINT [CK_account_quest_cooldown_quest_id_not_blank] CHECK (LEN(LTRIM(RTRIM([quest_id]))) > 0)
+);
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [UX_account_quest_cooldown_state_quest]
+    ON [dbo].[account_quest_cooldown] ([account_quest_state_id], [quest_id]);
+GO
+
+-- ============================================================
 -- AstralRecord\dbo.login_bonus_claim.md
 -- ============================================================
 

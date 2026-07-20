@@ -26,6 +26,11 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<AccountSkillTreeStateEntity> AccountSkillTreeStates => Set<AccountSkillTreeStateEntity>();
     public DbSet<AccountSkillTreeUnlockedNodeEntity> AccountSkillTreeUnlockedNodes => Set<AccountSkillTreeUnlockedNodeEntity>();
     public DbSet<AccountWaystoneUnlockEntity> AccountWaystoneUnlocks => Set<AccountWaystoneUnlockEntity>();
+    public DbSet<AccountQuestStateEntity> AccountQuestStates => Set<AccountQuestStateEntity>();
+    public DbSet<AccountQuestActiveEntity> AccountQuestActives => Set<AccountQuestActiveEntity>();
+    public DbSet<AccountQuestObjectiveProgressEntity> AccountQuestObjectiveProgresses => Set<AccountQuestObjectiveProgressEntity>();
+    public DbSet<AccountQuestCompletionEntity> AccountQuestCompletions => Set<AccountQuestCompletionEntity>();
+    public DbSet<AccountQuestCooldownEntity> AccountQuestCooldowns => Set<AccountQuestCooldownEntity>();
     public DbSet<LoginBonusClaimEntity> LoginBonusClaims => Set<LoginBonusClaimEntity>();
     public DbSet<MarketAccountStateEntity> MarketAccountStates => Set<MarketAccountStateEntity>();
     public DbSet<MarketListingEntity> MarketListings => Set<MarketListingEntity>();
@@ -244,6 +249,109 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
                 .HasDatabaseName("UX_account_waystone_unlock_account_waystone");
             entity.HasIndex(unlock => unlock.WaystoneId)
                 .HasDatabaseName("IX_account_waystone_unlock_waystone_id");
+        });
+
+        modelBuilder.Entity<AccountQuestStateEntity>(entity =>
+        {
+            entity.ToTable("account_quest_state", "dbo");
+            entity.HasKey(state => state.AccountQuestStateId);
+            entity.Property(state => state.AccountQuestStateId).HasColumnName("account_quest_state_id");
+            entity.Property(state => state.AccountId).HasColumnName("account_id");
+            entity.Property(state => state.Version).HasColumnName("version");
+            entity.Property(state => state.CreatedAt).HasColumnName("created_at");
+            entity.Property(state => state.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(state => state.CreatedBy).HasColumnName("created_by");
+            entity.Property(state => state.UpdatedBy).HasColumnName("updated_by");
+            entity.Property(state => state.IsDeleted).HasColumnName("is_deleted");
+            entity.HasIndex(state => state.AccountId)
+                .IsUnique()
+                .HasDatabaseName("UX_account_quest_state_account");
+            entity.HasMany(state => state.ActiveQuests)
+                .WithOne(active => active.State)
+                .HasForeignKey(active => active.AccountQuestStateId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(state => state.Completions)
+                .WithOne(completion => completion.State)
+                .HasForeignKey(completion => completion.AccountQuestStateId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(state => state.Cooldowns)
+                .WithOne(cooldown => cooldown.State)
+                .HasForeignKey(cooldown => cooldown.AccountQuestStateId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AccountQuestActiveEntity>(entity =>
+        {
+            entity.ToTable("account_quest_active", "dbo");
+            entity.HasKey(active => active.AccountQuestActiveId);
+            entity.Property(active => active.AccountQuestActiveId).HasColumnName("account_quest_active_id");
+            entity.Property(active => active.AccountQuestStateId).HasColumnName("account_quest_state_id");
+            entity.Property(active => active.QuestId).HasColumnName("quest_id").HasMaxLength(100);
+            entity.Property(active => active.AcceptedAt).HasColumnName("accepted_at");
+            entity.Property(active => active.AcceptedNpcId).HasColumnName("accepted_npc_id").HasMaxLength(100);
+            entity.Property(active => active.ReadyToTurnIn).HasColumnName("ready_to_turn_in");
+            entity.Property(active => active.CreatedAt).HasColumnName("created_at");
+            entity.Property(active => active.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(active => active.CreatedBy).HasColumnName("created_by");
+            entity.Property(active => active.UpdatedBy).HasColumnName("updated_by");
+            entity.HasIndex(active => new { active.AccountQuestStateId, active.QuestId })
+                .IsUnique()
+                .HasDatabaseName("UX_account_quest_active_state_quest");
+            entity.HasMany(active => active.ObjectiveProgress)
+                .WithOne(progress => progress.ActiveQuest)
+                .HasForeignKey(progress => progress.AccountQuestActiveId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AccountQuestObjectiveProgressEntity>(entity =>
+        {
+            entity.ToTable("account_quest_objective_progress", "dbo");
+            entity.HasKey(progress => progress.AccountQuestObjectiveProgressId);
+            entity.Property(progress => progress.AccountQuestObjectiveProgressId).HasColumnName("account_quest_objective_progress_id");
+            entity.Property(progress => progress.AccountQuestActiveId).HasColumnName("account_quest_active_id");
+            entity.Property(progress => progress.ObjectiveId).HasColumnName("objective_id").HasMaxLength(100);
+            entity.Property(progress => progress.Progress).HasColumnName("progress");
+            entity.Property(progress => progress.CreatedAt).HasColumnName("created_at");
+            entity.Property(progress => progress.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(progress => progress.CreatedBy).HasColumnName("created_by");
+            entity.Property(progress => progress.UpdatedBy).HasColumnName("updated_by");
+            entity.HasIndex(progress => new { progress.AccountQuestActiveId, progress.ObjectiveId })
+                .IsUnique()
+                .HasDatabaseName("UX_account_quest_objective_progress_active_objective");
+        });
+
+        modelBuilder.Entity<AccountQuestCompletionEntity>(entity =>
+        {
+            entity.ToTable("account_quest_completion", "dbo");
+            entity.HasKey(completion => completion.AccountQuestCompletionId);
+            entity.Property(completion => completion.AccountQuestCompletionId).HasColumnName("account_quest_completion_id");
+            entity.Property(completion => completion.AccountQuestStateId).HasColumnName("account_quest_state_id");
+            entity.Property(completion => completion.QuestId).HasColumnName("quest_id").HasMaxLength(100);
+            entity.Property(completion => completion.CompletedAt).HasColumnName("completed_at");
+            entity.Property(completion => completion.CreatedAt).HasColumnName("created_at");
+            entity.Property(completion => completion.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(completion => completion.CreatedBy).HasColumnName("created_by");
+            entity.Property(completion => completion.UpdatedBy).HasColumnName("updated_by");
+            entity.HasIndex(completion => new { completion.AccountQuestStateId, completion.QuestId })
+                .IsUnique()
+                .HasDatabaseName("UX_account_quest_completion_state_quest");
+        });
+
+        modelBuilder.Entity<AccountQuestCooldownEntity>(entity =>
+        {
+            entity.ToTable("account_quest_cooldown", "dbo");
+            entity.HasKey(cooldown => cooldown.AccountQuestCooldownId);
+            entity.Property(cooldown => cooldown.AccountQuestCooldownId).HasColumnName("account_quest_cooldown_id");
+            entity.Property(cooldown => cooldown.AccountQuestStateId).HasColumnName("account_quest_state_id");
+            entity.Property(cooldown => cooldown.QuestId).HasColumnName("quest_id").HasMaxLength(100);
+            entity.Property(cooldown => cooldown.CooldownUntil).HasColumnName("cooldown_until");
+            entity.Property(cooldown => cooldown.CreatedAt).HasColumnName("created_at");
+            entity.Property(cooldown => cooldown.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(cooldown => cooldown.CreatedBy).HasColumnName("created_by");
+            entity.Property(cooldown => cooldown.UpdatedBy).HasColumnName("updated_by");
+            entity.HasIndex(cooldown => new { cooldown.AccountQuestStateId, cooldown.QuestId })
+                .IsUnique()
+                .HasDatabaseName("UX_account_quest_cooldown_state_quest");
         });
 
         modelBuilder.Entity<LoginBonusClaimEntity>(entity =>

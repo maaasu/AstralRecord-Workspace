@@ -305,14 +305,6 @@ final class QuestStatePersistenceCoordinator {
     }
 
     private void logSaveFailure(@NotNull UUID accountId, @NotNull Throwable cause) {
-        if (cause instanceof QuestPlayerStateRepository.SaveException saveException) {
-            LogId logId = saveException.failure()
-                == QuestPlayerStateRepository.SaveFailure.DIRECTORY_CREATE
-                ? LogId.W_6602
-                : LogId.W_6603;
-            Logger.log(logId, saveException, accountId, saveException.path());
-            return;
-        }
         Logger.log(LogId.W_6600, cause, accountId, cause.getClass().getSimpleName());
     }
 
