@@ -164,6 +164,8 @@ public class MobTargetingResponse
     public double? DeaggroRange { get; init; }
 
     public double LeashRange { get; init; } = 30.0;
+
+    public bool RetaliateOnly { get; init; }
 }
 
 /// <summary>Mob の戦闘設定。</summary>

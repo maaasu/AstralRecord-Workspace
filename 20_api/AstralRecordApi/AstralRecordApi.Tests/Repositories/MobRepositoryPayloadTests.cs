@@ -28,7 +28,7 @@ public class MobRepositoryPayloadTests
               },
               "ai": {
                 "idle": { "behavior": "WANDER" },
-                "targeting": { "strategy": "NEAREST", "aggroRange": 12 },
+                "targeting": { "strategy": "NEAREST", "aggroRange": 12, "retaliateOnly": true },
                 "combat": { "style": "MELEE" }
               }
             }
@@ -40,6 +40,8 @@ public class MobRepositoryPayloadTests
         Assert.NotNull(mob!.Shield);
         Assert.True(mob.Shield!.Enabled);
         Assert.Equal(10.0D, mob.Shield.Max);
+        Assert.NotNull(mob.Ai?.Targeting);
+        Assert.True(mob.Ai.Targeting.RetaliateOnly);
     }
 
     [Fact]
