@@ -33,4 +33,12 @@ class StatusValueRangeTest {
         assertEquals("26", StatusType.ATTACK.formatRange(26.0D, 26.0D));
         assertEquals("20 ～ 30", StatusType.ATTACK.formatRange(20.0D, 30.0D));
     }
+
+    @Test
+    void percentageStatusFormattingUsesStoredPercentagePoints() {
+        assertEquals("5.0%", StatusType.CRITICAL_RATE.formatValue(5.0D));
+        assertEquals("150.0%", StatusType.CRITICAL_DAMAGE.formatValue(150.0D));
+        assertEquals("95.0%", StatusType.ACCURACY.formatValue(95.0D));
+        assertEquals("100%", StatusType.ATTACK_SPEED.formatValue(100.0D));
+    }
 }

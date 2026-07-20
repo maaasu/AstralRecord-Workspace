@@ -199,8 +199,7 @@ enum class StatusType(
     fun formatValue(value: Double): String {
         val pattern = "% ,.${decimalPlaces}f"
             .replace(" ", "")
-        val displayValue = if (suffix == "%") value * 100.0 else value
-        return String.format(Locale.US, pattern, displayValue) + suffix
+        return String.format(Locale.US, pattern, value) + suffix
     }
 
     /** `%` 単位で表示するステータスかどうかを返します。 */
