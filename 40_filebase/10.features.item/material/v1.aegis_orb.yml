@@ -1,0 +1,16 @@
+# design:
+#   motif: "防具強化 / イージス / 守りの加護"
+#   progression: 0
+schemaVersion: 1
+id: aegis_orb
+category: material
+name: "&9イージスのオーブ"
+icon: SHIELD
+rarity: RARE
+maxStack: 64
+saleValue: 80
+lore:
+  - "&7防具に守りの加護を与える強化素材。"
+  - "&7防具を最大&f+5&7まで強化できる。"
+unTradeable: false
+unSellable: false

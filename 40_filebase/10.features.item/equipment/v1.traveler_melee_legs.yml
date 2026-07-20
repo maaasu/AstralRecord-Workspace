@@ -30,3 +30,61 @@ equipment:
   durability:
     max: 105
     consume: 1
+  enhance:
+    maxLevel: 5
+    levels:
+      - level: 1
+        statIncrease:
+          - status: DEFENSE
+            type: FLAT
+            value: 1
+        requiredMaterials:
+          - itemId: aegis_orb
+            amount: 1
+        requiredCurrency: 20
+        successRate: 1.0
+        failAction: NONE
+      - level: 2
+        statIncrease:
+          - status: DEFENSE
+            type: FLAT
+            value: 1
+        requiredMaterials:
+          - itemId: aegis_orb
+            amount: 2
+        requiredCurrency: 40
+        successRate: 1.0
+        failAction: NONE
+      - level: 3
+        statIncrease:
+          - status: DEFENSE
+            type: FLAT
+            value: 1
+        requiredMaterials:
+          - itemId: aegis_orb
+            amount: 3
+        requiredCurrency: 80
+        successRate: 1.0
+        failAction: NONE
+      - level: 4
+        statIncrease:
+          - status: DEFENSE
+            type: FLAT
+            value: 1
+        requiredMaterials:
+          - itemId: aegis_orb
+            amount: 4
+        requiredCurrency: 120
+        successRate: 1.0
+        failAction: NONE
+      - level: 5
+        statIncrease:
+          - status: DEFENSE
+            type: FLAT
+            value: 1
+        requiredMaterials:
+          - itemId: aegis_orb
+            amount: 5
+        requiredCurrency: 200
+        successRate: 1.0
+        failAction: NONE

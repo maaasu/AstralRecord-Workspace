@@ -1,0 +1,16 @@
+# design:
+#   motif: "武器強化 / テュール / 戦いの加護"
+#   progression: 0
+schemaVersion: 1
+id: tyr_orb
+category: material
+name: "&bテュールのオーブ"
+icon: EYE_OF_ENDER
+rarity: RARE
+maxStack: 64
+saleValue: 80
+lore:
+  - "&7武器に戦いの加護を与える強化素材。"
+  - "&7武器を最大&f+5&7まで強化できる。"
+unTradeable: false
+unSellable: false
