@@ -1093,6 +1093,7 @@ public class SkillTreeService {
     /**
      * 入力イベントが直接示すノード hitbox を優先し、視線上のスキルツリー位置を返します。
      * Interaction entity に紐づく位置は、イベント自体を命中根拠として再 ray trace せず解決します。
+     * スキルツリーはバリア等の遮蔽ブロック越しに操作するため、遮蔽距離では候補を除外しません。
      *
      * @param snapshot 判定対象の入力 snapshot
      * @return 命中したスキルツリー位置と入口距離
@@ -1122,8 +1123,7 @@ public class SkillTreeService {
             return Optional.of(new SkillTreePositionHit(position, hitDistance));
         }
 
-        return findTargetedPositionHit(snapshot.player(), snapshot.ray())
-                .filter(hit -> snapshot.isVisible(hit.hitDistance()));
+        return findTargetedPositionHit(snapshot.player(), snapshot.ray());
     }
 
     private Optional<SkillTreePositionHit> findTargetedPositionHit(

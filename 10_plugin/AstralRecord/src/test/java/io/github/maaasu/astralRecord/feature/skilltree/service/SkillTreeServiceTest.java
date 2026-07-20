@@ -175,6 +175,36 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
     }
 
     @Test
+    void skillTreePositionRemainsTargetableThroughBlockingBarrier() {
+        SkillTreeService service = newService(null);
+        Player player = server().addPlayer();
+        service.registerPosition("1000", new Location(player.getWorld(), 0.0D, 65.0D, 3.0D));
+        PlayerInteractionSnapshot snapshot = new PlayerInteractionSnapshot(
+                player,
+                mock(Event.class),
+                EquipmentSlot.HAND,
+                null,
+                null,
+                null,
+                null,
+                false,
+                PlayerInteractionRayTrace.create(
+                        new Vector(0.0D, 65.62D, 0.0D),
+                        new Vector(0.0D, 0.0D, 1.0D),
+                        8.0D
+                ),
+                0.5D
+        );
+
+        SkillTreeService.SkillTreePositionHit hit = service
+                .findTargetedPositionHit(snapshot)
+                .orElseThrow();
+
+        assertEquals("1000", hit.position().positionId());
+        assertTrue(hit.hitDistance() > snapshot.blockingDistance());
+    }
+
+    @Test
     void discardingOldJoinStateDoesNotRemoveNewerSessionState() {
         UUID accountId = UUID.randomUUID();
         SkillTreeService service = newService(null);
