@@ -71,7 +71,7 @@ drops:
 challenge:
   fieldWorldId: twilight_colossus_field
   entryLocation:
-    worldId: greenfall_fields
+    worldId: midgard_greenfields
     x: -410.5
     y: 17.0
     z: -366.5
