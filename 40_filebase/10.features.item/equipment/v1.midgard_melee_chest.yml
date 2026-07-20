@@ -1,0 +1,34 @@
+# design:
+#   motif: "ミズガルズ / 星影の街ノクス / 近接上位装備 / チェスト"
+#   progression: 3
+schemaVersion: 1
+id: midgard_melee_chest
+category: equipment
+name: "&cミズガルズ・バトル・チェスト"
+icon: LEATHER_CHESTPLATE
+rarity: RARE
+maxStack: 1
+saleValue: 90
+appearance:
+  color: "#7A3E3E"
+lore:
+  - "&7森林の獣牙と根木を仕立てたミズガルズ・バトルのチェスト。"
+  - "&7トラベラー装備より防御力が高く、近接向けの能力を伸ばす。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: CHEST
+  requiredLevel: 3
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 12
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 20
+    - status: STRENGTH
+      type: FLAT
+      value: 3
+  durability:
+    max: 150
+    consume: 1

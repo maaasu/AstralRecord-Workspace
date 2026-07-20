@@ -1,0 +1,31 @@
+# design:
+#   motif: "ミズガルズ / ノクス魔法 / レッグスクラフト / 山岳の嵐と森林の苔"
+#   progression: 3
+schemaVersion: 1
+id: midgard_mage_legs_recipe
+type: RECIPE
+category: CRAFT
+name: "&dミズガルズ・アルカナ・レッグスの製法"
+lore:
+  - "&7魔法向けの素材を部位ごとに組み合わせる。"
+tags:
+  - armor
+  - midgard
+result:
+  itemId:
+    ref: item:midgard_mage_legs
+  amount: 1
+ingredients:
+  - itemId:
+      ref: item:midgard_mountain_stormcore
+    amount: 2
+  - itemId:
+      ref: item:midgard_mountain_slate
+    amount: 2
+  - itemId:
+      ref: item:midgard_forest_mossessence
+    amount: 1
+requiredLevel: 3
+requiredCurrency: 80
+successRate: 100.0
+failAction: NONE

@@ -1,0 +1,31 @@
+# design:
+#   motif: "ミズガルズ / ノクス武器 / スタッフクラフト"
+#   progression: 3
+schemaVersion: 1
+id: midgard_staff_recipe
+type: RECIPE
+category: CRAFT
+name: "&fノクスマウンテン・スタッフの製法"
+lore:
+  - "&7複数地域の素材を組み合わせてスタッフを作る。"
+tags:
+  - weapon
+  - midgard
+result:
+  itemId:
+    ref: item:midgard_staff
+  amount: 1
+ingredients:
+  - itemId:
+      ref: item:midgard_mountain_stormcore
+    amount: 4
+  - itemId:
+      ref: item:midgard_mountain_slate
+    amount: 2
+  - itemId:
+      ref: item:midgard_forest_mossessence
+    amount: 1
+requiredLevel: 3
+requiredCurrency: 100
+successRate: 100.0
+failAction: NONE

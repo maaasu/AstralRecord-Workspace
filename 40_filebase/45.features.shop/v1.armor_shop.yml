@@ -1,197 +1,221 @@
 schemaVersion: 1
 id: armor_shop
 type: SHOP
-name: "&6アーマーショップ"
+name: "&6防具ショップ"
 items:
-  - id: traveler_melee_helmet
+  - id: midgard_melee_helmet
     itemId:
-      ref: item:traveler_melee_helmet
+      ref: item:midgard_melee_helmet
     category: equipment
     amount: 1
     page: 1
     slot: 0
-    priceGold: 15
-  - id: traveler_melee_chest
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:midgard_forest_brackenfang
+        amount: 2
+      - itemId:
+          ref: item:midgard_forest_rootwood
+        amount: 1
+      - itemId:
+          ref: item:midgard_mountain_slate
+        amount: 1
+  - id: midgard_melee_chest
     itemId:
-      ref: item:traveler_melee_chest
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 7
-    priceGold: 30
-  - id: traveler_melee_legs
-    itemId:
-      ref: item:traveler_melee_legs
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 14
-    priceGold: 25
-  - id: traveler_melee_boots
-    itemId:
-      ref: item:traveler_melee_boots
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 21
-    priceGold: 15
-  - id: traveler_hunter_cap
-    itemId:
-      ref: item:traveler_hunter_cap
+      ref: item:midgard_melee_chest
     category: equipment
     amount: 1
     page: 1
     slot: 1
-    priceGold: 15
-  - id: traveler_hunter_jacket
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:midgard_forest_brackenfang
+        amount: 3
+      - itemId:
+          ref: item:midgard_forest_rootwood
+        amount: 2
+      - itemId:
+          ref: item:midgard_mountain_slate
+        amount: 1
+  - id: midgard_melee_legs
     itemId:
-      ref: item:traveler_hunter_jacket
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 8
-    priceGold: 30
-  - id: traveler_hunter_pants
-    itemId:
-      ref: item:traveler_hunter_pants
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 15
-    priceGold: 25
-  - id: traveler_hunter_shoes
-    itemId:
-      ref: item:traveler_hunter_shoes
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 22
-    priceGold: 15
-  - id: traveler_mage_hood
-    itemId:
-      ref: item:traveler_mage_hood
+      ref: item:midgard_melee_legs
     category: equipment
     amount: 1
     page: 1
     slot: 2
-    priceGold: 15
-  - id: traveler_mage_robe
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:midgard_forest_brackenfang
+        amount: 2
+      - itemId:
+          ref: item:midgard_forest_rootwood
+        amount: 2
+      - itemId:
+          ref: item:midgard_mountain_slate
+        amount: 1
+  - id: midgard_melee_boots
     itemId:
-      ref: item:traveler_mage_robe
+      ref: item:midgard_melee_boots
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 3
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:midgard_forest_brackenfang
+        amount: 1
+      - itemId:
+          ref: item:midgard_forest_rootwood
+        amount: 2
+      - itemId:
+          ref: item:midgard_mountain_slate
+        amount: 1
+  - id: midgard_hunter_helmet
+    itemId:
+      ref: item:midgard_hunter_helmet
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 4
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:midgard_savanna_sunhide
+        amount: 2
+      - itemId:
+          ref: item:midgard_savanna_ashcloth
+        amount: 1
+      - itemId:
+          ref: item:midgard_forest_rootwood
+        amount: 1
+  - id: midgard_hunter_chest
+    itemId:
+      ref: item:midgard_hunter_chest
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 5
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:midgard_savanna_sunhide
+        amount: 3
+      - itemId:
+          ref: item:midgard_savanna_ashcloth
+        amount: 2
+      - itemId:
+          ref: item:midgard_forest_rootwood
+        amount: 1
+  - id: midgard_hunter_legs
+    itemId:
+      ref: item:midgard_hunter_legs
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 6
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:midgard_savanna_sunhide
+        amount: 2
+      - itemId:
+          ref: item:midgard_savanna_ashcloth
+        amount: 2
+      - itemId:
+          ref: item:midgard_forest_rootwood
+        amount: 1
+  - id: midgard_hunter_boots
+    itemId:
+      ref: item:midgard_hunter_boots
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 7
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:midgard_savanna_sunhide
+        amount: 1
+      - itemId:
+          ref: item:midgard_savanna_ashcloth
+        amount: 2
+      - itemId:
+          ref: item:midgard_forest_rootwood
+        amount: 1
+  - id: midgard_mage_helmet
+    itemId:
+      ref: item:midgard_mage_helmet
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 8
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:midgard_mountain_stormcore
+        amount: 2
+      - itemId:
+          ref: item:midgard_mountain_slate
+        amount: 1
+      - itemId:
+          ref: item:midgard_forest_mossessence
+        amount: 1
+  - id: midgard_mage_chest
+    itemId:
+      ref: item:midgard_mage_chest
     category: equipment
     amount: 1
     page: 1
     slot: 9
-    priceGold: 30
-  - id: traveler_mage_trousers
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:midgard_mountain_stormcore
+        amount: 3
+      - itemId:
+          ref: item:midgard_mountain_slate
+        amount: 2
+      - itemId:
+          ref: item:midgard_forest_mossessence
+        amount: 1
+  - id: midgard_mage_legs
     itemId:
-      ref: item:traveler_mage_trousers
+      ref: item:midgard_mage_legs
     category: equipment
     amount: 1
     page: 1
-    slot: 16
-    priceGold: 25
-  - id: traveler_mage_sandals
+    slot: 10
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:midgard_mountain_stormcore
+        amount: 2
+      - itemId:
+          ref: item:midgard_mountain_slate
+        amount: 2
+      - itemId:
+          ref: item:midgard_forest_mossessence
+        amount: 1
+  - id: midgard_mage_boots
     itemId:
-      ref: item:traveler_mage_sandals
+      ref: item:midgard_mage_boots
     category: equipment
     amount: 1
     page: 1
-    slot: 23
-    priceGold: 15
-  - id: midgard_savanna_hide_helmet
-    itemId:
-      ref: item:midgard_savanna_hide_helmet
-    category: equipment
-    amount: 1
-    page: 2
-    slot: 0
-    priceGold: 45
-  - id: midgard_savanna_hide_chest
-    itemId:
-      ref: item:midgard_savanna_hide_chest
-    category: equipment
-    amount: 1
-    page: 2
-    slot: 7
-    priceGold: 90
-  - id: midgard_savanna_hide_legs
-    itemId:
-      ref: item:midgard_savanna_hide_legs
-    category: equipment
-    amount: 1
-    page: 2
-    slot: 14
-    priceGold: 75
-  - id: midgard_savanna_hide_boots
-    itemId:
-      ref: item:midgard_savanna_hide_boots
-    category: equipment
-    amount: 1
-    page: 2
-    slot: 21
-    priceGold: 45
-  - id: midgard_forest_bark_helmet
-    itemId:
-      ref: item:midgard_forest_bark_helmet
-    category: equipment
-    amount: 1
-    page: 3
-    slot: 0
-    priceGold: 90
-  - id: midgard_forest_bark_chest
-    itemId:
-      ref: item:midgard_forest_bark_chest
-    category: equipment
-    amount: 1
-    page: 3
-    slot: 7
-    priceGold: 180
-  - id: midgard_forest_bark_legs
-    itemId:
-      ref: item:midgard_forest_bark_legs
-    category: equipment
-    amount: 1
-    page: 3
-    slot: 14
-    priceGold: 150
-  - id: midgard_forest_bark_boots
-    itemId:
-      ref: item:midgard_forest_bark_boots
-    category: equipment
-    amount: 1
-    page: 3
-    slot: 21
-    priceGold: 90
-  - id: midgard_mountain_crest_helmet
-    itemId:
-      ref: item:midgard_mountain_crest_helmet
-    category: equipment
-    amount: 1
-    page: 4
-    slot: 0
-    priceGold: 150
-  - id: midgard_mountain_crest_chest
-    itemId:
-      ref: item:midgard_mountain_crest_chest
-    category: equipment
-    amount: 1
-    page: 4
-    slot: 7
-    priceGold: 300
-  - id: midgard_mountain_crest_legs
-    itemId:
-      ref: item:midgard_mountain_crest_legs
-    category: equipment
-    amount: 1
-    page: 4
-    slot: 14
-    priceGold: 250
-  - id: midgard_mountain_crest_boots
-    itemId:
-      ref: item:midgard_mountain_crest_boots
-    category: equipment
-    amount: 1
-    page: 4
-    slot: 21
-    priceGold: 150
+    slot: 11
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:midgard_mountain_stormcore
+        amount: 1
+      - itemId:
+          ref: item:midgard_mountain_slate
+        amount: 2
+      - itemId:
+          ref: item:midgard_forest_mossessence
+        amount: 1

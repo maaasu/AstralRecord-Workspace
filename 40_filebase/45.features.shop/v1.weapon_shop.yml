@@ -1,101 +1,59 @@
 schemaVersion: 1
 id: weapon_shop
 type: SHOP
-name: "&6\u6B66\u5668\u30B7\u30E7\u30C3\u30D7"
+name: "&6武器ショップ"
 items:
-  - id: traveler_sword
+  - id: midgard_sword
     itemId:
-      ref: item:traveler_sword
+      ref: item:midgard_sword
     category: equipment
     amount: 1
     page: 1
     slot: 0
-    priceGold: 20
-  - id: traveler_bow
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:midgard_forest_brackenfang
+        amount: 4
+      - itemId:
+          ref: item:midgard_forest_rootwood
+        amount: 2
+      - itemId:
+          ref: item:midgard_mountain_slate
+        amount: 1
+  - id: midgard_bow
     itemId:
-      ref: item:traveler_bow
+      ref: item:midgard_bow
     category: equipment
     amount: 1
     page: 1
     slot: 1
-    priceGold: 20
-  - id: traveler_staff
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:midgard_savanna_sunhide
+        amount: 4
+      - itemId:
+          ref: item:midgard_savanna_ashcloth
+        amount: 2
+      - itemId:
+          ref: item:midgard_forest_mossessence
+        amount: 1
+  - id: midgard_staff
     itemId:
-      ref: item:traveler_staff
+      ref: item:midgard_staff
     category: equipment
     amount: 1
     page: 1
     slot: 2
-    priceGold: 20
-  - id: midgard_savanna_sword
-    itemId:
-      ref: item:midgard_savanna_sword
-    category: equipment
-    amount: 1
-    page: 2
-    slot: 0
-    priceGold: 80
-  - id: midgard_savanna_bow
-    itemId:
-      ref: item:midgard_savanna_bow
-    category: equipment
-    amount: 1
-    page: 2
-    slot: 1
-    priceGold: 80
-  - id: midgard_savanna_staff
-    itemId:
-      ref: item:midgard_savanna_staff
-    category: equipment
-    amount: 1
-    page: 2
-    slot: 2
-    priceGold: 80
-  - id: midgard_forest_sword
-    itemId:
-      ref: item:midgard_forest_sword
-    category: equipment
-    amount: 1
-    page: 3
-    slot: 0
-    priceGold: 160
-  - id: midgard_forest_bow
-    itemId:
-      ref: item:midgard_forest_bow
-    category: equipment
-    amount: 1
-    page: 3
-    slot: 1
-    priceGold: 160
-  - id: midgard_forest_staff
-    itemId:
-      ref: item:midgard_forest_staff
-    category: equipment
-    amount: 1
-    page: 3
-    slot: 2
-    priceGold: 160
-  - id: midgard_mountain_sword
-    itemId:
-      ref: item:midgard_mountain_sword
-    category: equipment
-    amount: 1
-    page: 4
-    slot: 0
-    priceGold: 280
-  - id: midgard_mountain_bow
-    itemId:
-      ref: item:midgard_mountain_bow
-    category: equipment
-    amount: 1
-    page: 4
-    slot: 1
-    priceGold: 280
-  - id: midgard_mountain_staff
-    itemId:
-      ref: item:midgard_mountain_staff
-    category: equipment
-    amount: 1
-    page: 4
-    slot: 2
-    priceGold: 280
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:midgard_mountain_stormcore
+        amount: 4
+      - itemId:
+          ref: item:midgard_mountain_slate
+        amount: 2
+      - itemId:
+          ref: item:midgard_forest_mossessence
+        amount: 1

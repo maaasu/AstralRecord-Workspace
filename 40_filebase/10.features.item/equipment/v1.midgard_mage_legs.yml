@@ -1,0 +1,37 @@
+# design:
+#   motif: "ミズガルズ / 星影の街ノクス / 魔法上位装備 / レッグス"
+#   progression: 3
+schemaVersion: 1
+id: midgard_mage_legs
+category: equipment
+name: "&dミズガルズ・アルカナ・レッグス"
+icon: LEATHER_LEGGINGS
+rarity: RARE
+maxStack: 1
+saleValue: 60
+appearance:
+  color: "#5E4B8B"
+lore:
+  - "&7山岳の嵐と森林の苔を仕立てたミズガルズ・アルカナのレッグス。"
+  - "&7トラベラー装備より防御力が高く、魔法向けの能力を伸ばす。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: LEGS
+  requiredLevel: 3
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 9
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 15
+    - status: INTELLIGENCE
+      type: FLAT
+      value: 2
+    - status: MAX_MANA
+      type: FLAT
+      value: 5
+  durability:
+    max: 150
+    consume: 1
