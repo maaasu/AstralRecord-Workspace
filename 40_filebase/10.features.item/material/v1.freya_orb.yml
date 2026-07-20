@@ -5,7 +5,7 @@ schemaVersion: 1
 id: freya_orb
 category: material
 name: "&dフレイヤのオーブ"
-icon: HEART_OF_THE_SEA
+icon: FIRE_CHARGE
 rarity: RARE
 maxStack: 64
 saleValue: 80

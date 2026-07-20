@@ -5,7 +5,7 @@ schemaVersion: 1
 id: aegis_orb
 category: material
 name: "&9イージスのオーブ"
-icon: SHIELD
+icon: HEART_OF_THE_SEA
 rarity: RARE
 maxStack: 64
 saleValue: 80

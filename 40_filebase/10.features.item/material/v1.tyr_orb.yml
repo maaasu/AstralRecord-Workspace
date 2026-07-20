@@ -5,7 +5,7 @@ schemaVersion: 1
 id: tyr_orb
 category: material
 name: "&bテュールのオーブ"
-icon: EYE_OF_ENDER
+icon: ENDER_PEARL
 rarity: RARE
 maxStack: 64
 saleValue: 80
