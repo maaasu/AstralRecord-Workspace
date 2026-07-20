@@ -21,7 +21,7 @@ equipment:
   mainHand:
     ref: item:bronze_sword
   boots:
-    ref: item:leather_boots
+    ref: item:traveler_melee_boots
 
 baseStats:
   - status: MAX_HEALTH

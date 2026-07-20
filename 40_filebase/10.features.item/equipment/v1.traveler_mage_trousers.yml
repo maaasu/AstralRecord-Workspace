@@ -1,0 +1,32 @@
+# design:
+#   motif: "旅立ち / 魔法攻撃 / パープルレザー"
+#   progression: 0
+schemaVersion: 1
+id: traveler_mage_trousers
+category: equipment
+name: "&fトラベラー・トラウザー"
+icon: LEATHER_LEGGINGS
+rarity: COMMON
+maxStack: 1
+saleValue: 25
+appearance:
+  color: "#5E4B8B"
+lore:
+  - "&7詠唱の姿勢を保ちやすい魔法使い用トラウザー。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: LEGS
+  requiredLevel: 0
+  requiredClasses:
+    - mage
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 2
+    - status: MP_REGEN
+      type: FLAT
+      value: 1
+  durability:
+    max: 90
+    consume: 1

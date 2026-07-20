@@ -1,0 +1,32 @@
+# design:
+#   motif: "旅立ち / 間接攻撃 / グリーンレザー"
+#   progression: 0
+schemaVersion: 1
+id: traveler_hunter_shoes
+category: equipment
+name: "&fトラベラー・シューズ"
+icon: LEATHER_BOOTS
+rarity: COMMON
+maxStack: 1
+saleValue: 15
+appearance:
+  color: "#4F7F45"
+lore:
+  - "&7足音を抑え、間合いを保つためのハンターシューズ。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: FEET
+  requiredLevel: 0
+  requiredClasses:
+    - hunter
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 2
+    - status: MOVEMENT_SPEED
+      type: FLAT
+      value: 2.0
+  durability:
+    max: 85
+    consume: 1

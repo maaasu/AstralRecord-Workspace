@@ -1,0 +1,32 @@
+# design:
+#   motif: "旅立ち / 近接攻撃 / ブラウンレザー"
+#   progression: 0
+schemaVersion: 1
+id: traveler_melee_legs
+category: equipment
+name: "&fトラベラー・グリーブ"
+icon: LEATHER_LEGGINGS
+rarity: COMMON
+maxStack: 1
+saleValue: 25
+appearance:
+  color: "#6B4A2F"
+lore:
+  - "&7前線で踏みとどまるための丈夫なレザーグリーブ。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: LEGS
+  requiredLevel: 0
+  requiredClasses:
+    - swordsman
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 5
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 9
+  durability:
+    max: 105
+    consume: 1

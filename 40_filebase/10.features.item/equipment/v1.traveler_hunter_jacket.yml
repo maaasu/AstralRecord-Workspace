@@ -1,0 +1,32 @@
+# design:
+#   motif: "旅立ち / 間接攻撃 / グリーンレザー"
+#   progression: 0
+schemaVersion: 1
+id: traveler_hunter_jacket
+category: equipment
+name: "&fトラベラー・ジャケット"
+icon: LEATHER_CHESTPLATE
+rarity: COMMON
+maxStack: 1
+saleValue: 30
+appearance:
+  color: "#4F7F45"
+lore:
+  - "&7動きを妨げず、狙いを定めやすいハンタージャケット。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: CHEST
+  requiredLevel: 0
+  requiredClasses:
+    - hunter
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 5
+    - status: DEXTERITY
+      type: FLAT
+      value: 2
+  durability:
+    max: 110
+    consume: 1

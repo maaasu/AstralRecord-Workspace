@@ -12,10 +12,10 @@ contents:
     rate: 1.5
     amount: 1
   - itemId:
-      ref: item:pathfinder_jerkin
+      ref: item:traveler_hunter_jacket
     rate: 1
     amount: 1
   - itemId:
-      ref: item:windrunner_boots
+      ref: item:traveler_hunter_shoes
     rate: 1
     amount: 1

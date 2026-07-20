@@ -1,0 +1,35 @@
+# design:
+#   motif: "旅立ち / 魔法攻撃 / パープルレザー"
+#   progression: 0
+schemaVersion: 1
+id: traveler_mage_robe
+category: equipment
+name: "&fトラベラー・ローブ"
+icon: LEATHER_CHESTPLATE
+rarity: COMMON
+maxStack: 1
+saleValue: 30
+appearance:
+  color: "#5E4B8B"
+lore:
+  - "&7魔力を通しやすい革布で仕立てたマジックローブ。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: CHEST
+  requiredLevel: 0
+  requiredClasses:
+    - mage
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 4
+    - status: INTELLIGENCE
+      type: FLAT
+      value: 2
+    - status: MAX_MANA
+      type: FLAT
+      value: 4
+  durability:
+    max: 100
+    consume: 1

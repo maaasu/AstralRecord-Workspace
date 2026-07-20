@@ -22,9 +22,9 @@ equipment:
   mainHand:
     ref: item:skyway_saber
   chestplate:
-    ref: item:pathfinder_jerkin
+    ref: item:traveler_melee_chest
   boots:
-    ref: item:windrunner_boots
+    ref: item:traveler_melee_boots
 
 baseStats:
   - status: MAX_HEALTH

@@ -1,0 +1,32 @@
+# design:
+#   motif: "旅立ち / 魔法攻撃 / パープルレザー"
+#   progression: 0
+schemaVersion: 1
+id: traveler_mage_hood
+category: equipment
+name: "&fトラベラー・フード"
+icon: LEATHER_HELMET
+rarity: COMMON
+maxStack: 1
+saleValue: 15
+appearance:
+  color: "#5E4B8B"
+lore:
+  - "&7魔力の流れを感じ取る魔法使い用のレザーフード。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: HEAD
+  requiredLevel: 0
+  requiredClasses:
+    - mage
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 1
+    - status: INTELLIGENCE
+      type: FLAT
+      value: 1
+  durability:
+    max: 80
+    consume: 1

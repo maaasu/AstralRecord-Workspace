@@ -1,0 +1,32 @@
+# design:
+#   motif: "旅立ち / 間接攻撃 / グリーンレザー"
+#   progression: 0
+schemaVersion: 1
+id: traveler_hunter_cap
+category: equipment
+name: "&fトラベラー・キャップ"
+icon: LEATHER_HELMET
+rarity: COMMON
+maxStack: 1
+saleValue: 15
+appearance:
+  color: "#4F7F45"
+lore:
+  - "&7周囲を見渡しやすい遠距離攻撃用の軽いキャップ。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: HEAD
+  requiredLevel: 0
+  requiredClasses:
+    - hunter
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 2
+    - status: DEXTERITY
+      type: FLAT
+      value: 1
+  durability:
+    max: 85
+    consume: 1

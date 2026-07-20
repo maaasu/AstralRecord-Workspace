@@ -1,0 +1,32 @@
+# design:
+#   motif: "旅立ち / 近接攻撃 / ブラウンレザー"
+#   progression: 0
+schemaVersion: 1
+id: traveler_melee_helmet
+category: equipment
+name: "&fトラベラー・ヘルム"
+icon: LEATHER_HELMET
+rarity: COMMON
+maxStack: 1
+saleValue: 15
+appearance:
+  color: "#6B4A2F"
+lore:
+  - "&7近接戦闘を始める旅人のための革製ヘルム。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: HEAD
+  requiredLevel: 0
+  requiredClasses:
+    - swordsman
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 3
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 5
+  durability:
+    max: 90
+    consume: 1
