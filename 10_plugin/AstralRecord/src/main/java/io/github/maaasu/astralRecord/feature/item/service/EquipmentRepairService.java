@@ -565,8 +565,7 @@ public final class EquipmentRepairService {
     }
 
     private long ownedGold(@NotNull UUID accountId) {
-        return inventoryService.getCurrencyAmount(accountId, ItemService.DEFAULT_CURRENCY_ITEM_ID)
-            + inventoryService.getCurrencyAmount(accountId, ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID);
+        return inventoryService.getGoldAmount(accountId);
     }
 
     private synchronized @Nullable RepairSession getOrCreateSession(

@@ -23,10 +23,12 @@ class CurrencyGuiViewTest extends MockBukkitTestBase {
         Inventory inventory = Bukkit.createInventory(null, 54);
 
         view.render(inventory, List.of(), 0, false);
-        assertEquals(Material.BARRIER, inventory.getItem(CurrencyGuiView.EXCHANGE_SLOT).getType());
+        assertEquals(51, CurrencyGuiView.EXCHANGE_SLOT);
+        assertEquals(Material.GRAY_STAINED_GLASS_PANE, inventory.getItem(50).getType());
+        assertEquals(Material.EMERALD, inventory.getItem(CurrencyGuiView.EXCHANGE_SLOT).getType());
 
         view.render(inventory, List.of(), 0, true);
-        assertEquals(Material.NETHER_STAR, inventory.getItem(CurrencyGuiView.EXCHANGE_SLOT).getType());
+        assertEquals(Material.EMERALD, inventory.getItem(CurrencyGuiView.EXCHANGE_SLOT).getType());
     }
 
     @Test

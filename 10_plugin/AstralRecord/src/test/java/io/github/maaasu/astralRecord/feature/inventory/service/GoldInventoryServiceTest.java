@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -72,18 +73,40 @@ class GoldInventoryServiceTest {
         assertEquals(1_000L, harness.service.getGoldAmount(harness.accountId));
     }
 
+    @Test
+    void consumesSmallDenominationsBeforeBreakingHigherOnes() {
+        Harness harness = harness(Map.of(
+            GoldDenomination.GOLD, 5L,
+            GoldDenomination.GOLD_COIN, 9L,
+            GoldDenomination.GOLD_INGOT, 8L
+        ));
+
+        assertTrue(harness.service.consumeGold(harness.accountId, 120L));
+
+        assertEquals(775L, harness.service.getGoldAmount(harness.accountId));
+        assertEquals(5L, harness.service.getCurrencyAmount(harness.accountId, GoldDenomination.GOLD.itemId()));
+        assertEquals(7L, harness.service.getCurrencyAmount(harness.accountId, GoldDenomination.GOLD_COIN.itemId()));
+        assertEquals(7L, harness.service.getCurrencyAmount(harness.accountId, GoldDenomination.GOLD_INGOT.itemId()));
+    }
+
     private static Harness harness(GoldDenomination denomination, long amount) {
+        return harness(Map.of(denomination, amount));
+    }
+
+    private static Harness harness(Map<GoldDenomination, Long> balances) {
         UUID accountId = UUID.randomUUID();
         PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
         PlayerInventoryState state = new PlayerInventoryState(accountId);
         InventoryModel currency = DesignTestFixtures.inventory(accountId, InventoryType.CURRENCY, 27);
         state.putInventory(currency);
-        state.replaceEntriesFromLoad(currency.getInventoryId(), List.of(currencyEntry(
-            accountId,
-            currency.getInventoryId(),
-            denomination.itemId(),
-            amount
-        )));
+        state.replaceEntriesFromLoad(currency.getInventoryId(), balances.entrySet().stream()
+            .map(entry -> currencyEntry(
+                accountId,
+                currency.getInventoryId(),
+                entry.getKey().itemId(),
+                entry.getValue()
+            ))
+            .toList());
         registry.put(state);
 
         ItemService itemService = mock(ItemService.class);

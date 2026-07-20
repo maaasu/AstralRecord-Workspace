@@ -923,8 +923,7 @@ public class SkillTreeService {
             return 0L;
         }
         UUID accountId = astPlayer.getAccount().getUuid();
-        return inventoryService.getCurrencyAmount(accountId, io.github.maaasu.astralRecord.feature.item.service.ItemService.DEFAULT_CURRENCY_ITEM_ID)
-                + inventoryService.getCurrencyAmount(accountId, io.github.maaasu.astralRecord.feature.item.service.ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID);
+        return inventoryService.getGoldAmount(accountId);
     }
 
     public void markViewerContextDirty(@NotNull Player player) {

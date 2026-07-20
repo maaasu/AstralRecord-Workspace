@@ -55,7 +55,7 @@ public final class CurrencyExchangeGuiEventHandler extends AbstractEventHandler 
      *
      * @param event インベントリクリックイベント
      */
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onInventoryClick(@NotNull InventoryClickEvent event) {
         runSafely(() -> {
             if (!view.isExchangeInventory(event.getView().getTopInventory())) {
@@ -63,6 +63,10 @@ public final class CurrencyExchangeGuiEventHandler extends AbstractEventHandler 
             }
             event.setCancelled(true);
             if (!(event.getWhoClicked() instanceof Player player)) {
+                return;
+            }
+            if (event.getRawSlot() < 0
+                || event.getRawSlot() >= event.getView().getTopInventory().getSize()) {
                 return;
             }
             handleClick(event, player);

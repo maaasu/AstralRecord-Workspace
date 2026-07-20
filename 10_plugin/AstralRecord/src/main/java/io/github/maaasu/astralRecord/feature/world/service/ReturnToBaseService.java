@@ -2,7 +2,6 @@ package io.github.maaasu.astralRecord.feature.world.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
-import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -110,8 +109,7 @@ public final class ReturnToBaseService {
         cancelPending(player.getUniqueId(), false);
 
         long goldCost = calculateGoldCost(astPlayer.getAccount().getLevel());
-        long currentGold = inventoryService.getCurrencyAmount(astPlayer.getAccount().getUuid(), ItemService.DEFAULT_CURRENCY_ITEM_ID)
-            + inventoryService.getCurrencyAmount(astPlayer.getAccount().getUuid(), ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID);
+        long currentGold = inventoryService.getGoldAmount(astPlayer.getAccount().getUuid());
         if (currentGold < goldCost) {
             PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5609, goldCost);
             showResultTitle(player, PlayerMsgId.P_5615, PlayerMsgId.P_5609, goldCost);

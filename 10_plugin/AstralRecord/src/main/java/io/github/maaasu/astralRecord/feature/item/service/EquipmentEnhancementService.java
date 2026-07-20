@@ -507,8 +507,7 @@ public final class EquipmentEnhancementService {
         int requiredCurrency
     ) {
         UUID accountId = astPlayer.getAccount().getUuid();
-        long ownedGold = inventoryService.getCurrencyAmount(accountId, ItemService.DEFAULT_CURRENCY_ITEM_ID)
-            + inventoryService.getCurrencyAmount(accountId, ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID);
+        long ownedGold = inventoryService.getGoldAmount(accountId);
         if (ownedGold < requiredCurrency) {
             return false;
         }
@@ -617,8 +616,7 @@ public final class EquipmentEnhancementService {
             );
         }
 
-        long ownedGold = inventoryService.getCurrencyAmount(astPlayer.getAccount().getUuid(), ItemService.DEFAULT_CURRENCY_ITEM_ID)
-            + inventoryService.getCurrencyAmount(astPlayer.getAccount().getUuid(), ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID);
+        long ownedGold = inventoryService.getGoldAmount(astPlayer.getAccount().getUuid());
         return createItem(
             Material.KNOWLEDGE_BOOK,
             Component.text("次の強化情報", NamedTextColor.AQUA, TextDecoration.BOLD),

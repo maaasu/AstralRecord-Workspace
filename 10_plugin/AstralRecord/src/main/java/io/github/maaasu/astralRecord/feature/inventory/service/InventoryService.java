@@ -1548,8 +1548,8 @@ public class InventoryService {
     }
 
     /**
-     * 全額面を自動両替し、合計ゴールド値から指定量を消費します。
-     * 支払後残高は高額面から順に再構成されます。
+     * 合計ゴールド値から低額面を優先して指定量を消費します。
+     * 低額面だけで不足する場合に限り、必要な上位額面を崩して釣り銭を作ります。
      *
      * @param accountId 対象アカウントID
      * @param amount 消費する基本ゴールド値
@@ -1568,17 +1568,31 @@ public class InventoryService {
             return false;
         }
         synchronized (state) {
-            long totalGold = getGoldAmount(accountId);
-            if (totalGold < amount) {
+            long legacyAmount = getCurrencyAmount(accountId, ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID);
+            Map<GoldDenomination, Long> remainingBalances = GoldCurrencyCalculator.spendSmallestFirst(
+                denomination -> {
+                    long denominationAmount = getCurrencyAmount(accountId, denomination.itemId());
+                    if (denomination != GoldDenomination.GOLD) {
+                        return denominationAmount;
+                    }
+                    return denominationAmount > Long.MAX_VALUE - legacyAmount
+                        ? Long.MAX_VALUE
+                        : denominationAmount + legacyAmount;
+                },
+                amount
+            );
+            if (remainingBalances == null) {
                 return false;
             }
             InventoryStateSnapshot snapshot = snapshotState(accountId);
             if (snapshot == null || !removeAllGoldCurrency(state, inventory)) {
                 return false;
             }
-            if (!addGoldValue(state, inventory, totalGold - amount)) {
-                restoreState(snapshot);
-                return false;
+            for (Map.Entry<GoldDenomination, Long> entry : remainingBalances.entrySet()) {
+                if (!addCurrencyAmountToInventory(state, inventory, entry.getKey().itemId(), entry.getValue())) {
+                    restoreState(snapshot);
+                    return false;
+                }
             }
             compactInventoryEntries(state, inventory.getInventoryId());
             return true;

@@ -15,7 +15,7 @@ import java.util.List;
  * 通貨をページング GUI として描画します。
  */
 public final class CurrencyGuiView {
-    public static final int EXCHANGE_SLOT = 50;
+    public static final int EXCHANGE_SLOT = 51;
     private final PagedGuiView pagedGuiView = new PagedGuiView();
 
     /**
@@ -102,7 +102,7 @@ public final class CurrencyGuiView {
 
     private @NotNull ItemStack createExchangeIcon(boolean unlocked) {
         return io.github.maaasu.astralRecord.shared.gui.GuiItems.create(
-            unlocked ? Material.NETHER_STAR : Material.BARRIER,
+            Material.EMERALD,
             Component.text(
                 unlocked ? "ゴールド両替所" : "両替所は利用できません",
                 unlocked ? net.kyori.adventure.text.format.NamedTextColor.GOLD
