@@ -32,12 +32,15 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.mockito.ArgumentMatchers.any;
@@ -48,6 +51,31 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class QuestServicePersistenceTest extends MockBukkitTestBase {
+
+    @Test
+    void stopFallsBackToSynchronousSaveWhenAsyncExecutorRejectsShutdownTask() {
+        List<QuestPlayerState> savedStates = new CopyOnWriteArrayList<>();
+        AtomicInteger submittedTasks = new AtomicInteger();
+        QuestHarness harness = harness(command -> {
+            if (submittedTasks.getAndIncrement() == 0) {
+                command.run();
+                return;
+            }
+            throw new RejectedExecutionException("executor is shutting down");
+        });
+        doAnswer(invocation -> {
+            savedStates.add(invocation.getArgument(0, QuestPlayerState.class).snapshot());
+            return null;
+        }).when(harness.stateRepository()).save(any(QuestPlayerState.class));
+
+        AstPlayer player = player();
+        when(harness.statusService().getStatus(player)).thenReturn(player.getStatusSnapshot());
+        harness.service().applyInitialState(emptyState(player));
+        assertTrue(harness.service().accept(player, harness.quest(), null));
+
+        assertDoesNotThrow(harness.service()::stop);
+        assertTrue(savedStates.stream().anyMatch(state -> state.activeQuests().containsKey(harness.quest().id())));
+    }
 
     @Test
     void quickRelogUsesRetainedStateWithoutReadingStaleDisk() throws Exception {
@@ -148,7 +176,7 @@ class QuestServicePersistenceTest extends MockBukkitTestBase {
         }
     }
 
-    private QuestHarness harness(ExecutorService persistenceExecutor) {
+    private QuestHarness harness(Executor persistenceExecutor) {
         QuestDefinition quest = new QuestDefinition(
             "persistence_test",
             "persistence_test",

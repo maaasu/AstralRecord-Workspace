@@ -200,6 +200,7 @@ public final class QuestService {
      */
     public void stop() {
         stopping = true;
+        persistenceCoordinator.beginShutdown();
         if (saveTask != null) {
             saveTask.cancel();
             saveTask = null;

@@ -24,6 +24,7 @@ final class QuestStatePersistenceCoordinator {
     private final StateStorage storage;
     private final Executor executor;
     private final Map<UUID, AccountChannel> channels = new ConcurrentHashMap<>();
+    private volatile boolean shuttingDown;
 
     QuestStatePersistenceCoordinator(@NotNull StateStorage storage, @NotNull Executor executor) {
         this.storage = storage;
@@ -135,6 +136,13 @@ final class QuestStatePersistenceCoordinator {
         }
     }
 
+    /**
+     * サーバ停止時の最終保存を開始し、非同期保存の一時的な失敗を同期リトライへ委ねます。
+     */
+    void beginShutdown() {
+        shuttingDown = true;
+    }
+
     boolean hasPendingSave(@NotNull UUID accountId) {
         AccountChannel channel = channels.get(accountId);
         if (channel == null) {
@@ -173,7 +181,17 @@ final class QuestStatePersistenceCoordinator {
             QuestPlayerState snapshot = channel.latestSnapshot.snapshot();
             CompletableFuture<Void> previous = channel.tail;
             channel.scheduledGeneration = generation;
-            CompletableFuture<Void> attempt = previous.thenRunAsync(() -> storage.save(snapshot), executor);
+            CompletableFuture<Void> attempt;
+            try {
+                attempt = previous.thenRunAsync(() -> storage.save(snapshot), executor);
+            } catch (RuntimeException exception) {
+                // Bukkit scheduler が停止処理に入ると、新規タスク登録を拒否することがある。
+                // scheduledGeneration を戻し、stop() の同期リトライ対象として残す。
+                channel.scheduledGeneration = channel.persistedGeneration;
+                CompletableFuture<Void> rejected = new CompletableFuture<>();
+                rejected.completeExceptionally(exception);
+                return rejected;
+            }
             CompletableFuture<Void> outcome = new CompletableFuture<>();
             channel.tail = attempt.handle((ignored, failure) -> {
                 finishSave(accountId, channel, generation, failure);
@@ -281,7 +299,7 @@ final class QuestStatePersistenceCoordinator {
                 channel.scheduledGeneration = channel.persistedGeneration;
             }
         }
-        if (cause != null) {
+        if (cause != null && !shuttingDown) {
             logSaveFailure(accountId, cause);
         }
     }
