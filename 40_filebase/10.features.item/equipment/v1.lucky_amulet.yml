@@ -23,3 +23,6 @@ equipment:
     - status: LUCK
       type: SCALAR
       value: 0.10
+  durability:
+    max: 100
+    consume: 1
