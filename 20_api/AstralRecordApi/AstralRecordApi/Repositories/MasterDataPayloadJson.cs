@@ -26,8 +26,75 @@ internal static class MasterDataPayloadJson
         };
 
         options.Converters.Add(new ItemEquipmentStatValueConverter());
+        options.Converters.Add(new ItemEquipmentRequiredClassConverter());
         options.Converters.Add(new FlexibleStringConverter());
         return options;
+    }
+
+    /// <summary>
+    /// equipment.requiredClasses の旧文字列形式と、クラスレベルを持つオブジェクト形式を読み取る。
+    /// </summary>
+    private sealed class ItemEquipmentRequiredClassConverter : JsonConverter<ItemEquipmentRequiredClassResponse>
+    {
+        public override ItemEquipmentRequiredClassResponse? Read(
+            ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType == JsonTokenType.String)
+            {
+                return new ItemEquipmentRequiredClassResponse
+                {
+                    ClassId = reader.GetString() ?? string.Empty,
+                    Level = 1,
+                };
+            }
+
+            if (reader.TokenType != JsonTokenType.StartObject)
+                throw new JsonException($"Unexpected token for required class: {reader.TokenType}");
+
+            string? classId = null;
+            var level = 1;
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonTokenType.EndObject)
+                    break;
+                if (reader.TokenType != JsonTokenType.PropertyName)
+                    continue;
+
+                var propertyName = reader.GetString();
+                reader.Read();
+                if (string.Equals(propertyName, "classId", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(propertyName, "class", StringComparison.OrdinalIgnoreCase))
+                {
+                    classId = reader.TokenType == JsonTokenType.String ? reader.GetString() : null;
+                }
+                else if (string.Equals(propertyName, "level", StringComparison.OrdinalIgnoreCase))
+                {
+                    level = reader.TokenType == JsonTokenType.Number ? reader.GetInt32() : 1;
+                }
+                else
+                {
+                    reader.Skip();
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(classId))
+                throw new JsonException("classId is required for equipment.requiredClasses.");
+
+            return new ItemEquipmentRequiredClassResponse
+            {
+                ClassId = classId,
+                Level = Math.Max(1, level),
+            };
+        }
+
+        public override void Write(
+            Utf8JsonWriter writer, ItemEquipmentRequiredClassResponse value, JsonSerializerOptions options)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("classId", value.ClassId);
+            writer.WriteNumber("level", value.Level);
+            writer.WriteEndObject();
+        }
     }
 
     /// <summary>

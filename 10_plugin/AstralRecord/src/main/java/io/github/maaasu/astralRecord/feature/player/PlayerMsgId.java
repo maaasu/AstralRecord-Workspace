@@ -404,6 +404,14 @@ public enum PlayerMsgId {
     P_5282(5282),
     /** 修理処理中。 */
     P_5283(5283),
+    /** 必要プレイヤーレベル未達。 */
+    P_5284(5284),
+    /** 必要クラス不一致。 */
+    P_5285(5285),
+    /** 必要クラスレベル未達。 */
+    P_5286(5286),
+    /** 装備状態変化成功。 */
+    P_5287(5287),
     // endregion
 
     // region /feature/user/command/UserPermissionCommand.java 5300-5309

@@ -18,6 +18,7 @@ import io.github.maaasu.astralRecord.feature.item.model.SetEffect;
 import io.github.maaasu.astralRecord.feature.item.model.SetEffectPiece;
 import io.github.maaasu.astralRecord.feature.item.model.SetEffectStat;
 import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
+import io.github.maaasu.astralRecord.feature.item.service.EquipmentRequirementService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
@@ -506,7 +507,7 @@ public class StatusService {
         EquipmentBonus bonus = new EquipmentBonus();
         Map<String, Integer> setCounts = new HashMap<>();
         for (ItemReference reference : collectEquippedReferences(player)) {
-            applyEquipmentItemBonus(reference, bonus, setCounts);
+            applyEquipmentItemBonus(player, reference, bonus, setCounts);
         }
         applySetEffectBonus(setCounts, bonus);
         return bonus;
@@ -518,7 +519,7 @@ public class StatusService {
             return setCounts;
         }
         for (ItemReference reference : collectEquippedReferences(player)) {
-            countSetId(reference, setCounts);
+            countSetId(player, reference, setCounts);
         }
         return setCounts;
     }
@@ -542,6 +543,7 @@ public class StatusService {
     }
 
     private void applyEquipmentItemBonus(
+        @NotNull AstPlayer player,
         @Nullable ItemReference reference,
         @NotNull EquipmentBonus bonus,
         @NotNull Map<String, Integer> setCounts
@@ -563,6 +565,9 @@ public class StatusService {
         }
 
         ItemEquipment equipment = model.getEquipment();
+        if (!EquipmentRequirementService.check(player, equipment).allowed()) {
+            return;
+        }
         String setId = equipment.getSetId();
         if (setId != null && !setId.isBlank()) {
             setCounts.merge(setId.trim(), 1, Integer::sum);
@@ -610,7 +615,11 @@ public class StatusService {
         }
     }
 
-    private void countSetId(@Nullable ItemReference reference, @NotNull Map<String, Integer> setCounts) {
+    private void countSetId(
+        @NotNull AstPlayer player,
+        @Nullable ItemReference reference,
+        @NotNull Map<String, Integer> setCounts
+    ) {
         if (reference == null || itemService == null || itemReferenceResolver == null || !reference.hasEquipmentInstanceId()) {
             return;
         }
@@ -622,7 +631,11 @@ public class StatusService {
         if (model == null || model.getEquipment() == null) {
             return;
         }
-        String setId = model.getEquipment().getSetId();
+        ItemEquipment equipment = model.getEquipment();
+        if (!EquipmentRequirementService.check(player, equipment).allowed()) {
+            return;
+        }
+        String setId = equipment.getSetId();
         if (setId == null || setId.isBlank()) {
             return;
         }

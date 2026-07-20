@@ -94,7 +94,7 @@ public class ItemEquipmentResponse
 
     public int RequiredLevel { get; init; }
 
-    public IReadOnlyList<string> RequiredClasses { get; init; } = [];
+    public IReadOnlyList<ItemEquipmentRequiredClassResponse> RequiredClasses { get; init; } = [];
 
     public string? SetId { get; init; }
 
@@ -120,6 +120,13 @@ public class ItemEquipmentEnhanceResponse
     public int MaxLevel { get; init; }
 
     public IReadOnlyList<ItemEquipmentEnhanceLevelResponse> Levels { get; init; } = [];
+}
+
+public class ItemEquipmentRequiredClassResponse
+{
+    public required string ClassId { get; init; }
+
+    public int Level { get; init; } = 1;
 }
 
 public class ItemEquipmentEnhanceLevelResponse
@@ -232,6 +239,8 @@ public class ItemEquipmentTranscendenceResponse
     public string? Name { get; init; }
 
     public int Rank { get; init; }
+
+    public int RequiredEnhanceLevel { get; init; }
 
     public string? RecipeId { get; init; }
 

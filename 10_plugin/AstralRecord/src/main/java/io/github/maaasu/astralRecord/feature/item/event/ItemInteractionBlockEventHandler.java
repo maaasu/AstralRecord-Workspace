@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseService;
+import io.github.maaasu.astralRecord.feature.item.service.EquipmentRequirementService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.item.service.PotionUseService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -106,6 +107,9 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler
             model.getId() + ":" + hand.name(),
             InputClaimPolicy.CLAIM_AND_CANCEL,
             () -> {
+                if (category == ItemCategory.EQUIPMENT && model.getEquipment() != null) {
+                    EquipmentRequirementService.checkAndNotify(astPlayer, model.getEquipment());
+                }
             }
         ));
     }

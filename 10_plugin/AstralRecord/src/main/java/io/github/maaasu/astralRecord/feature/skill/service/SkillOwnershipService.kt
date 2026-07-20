@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment
 import io.github.maaasu.astralRecord.feature.item.service.ItemService
+import io.github.maaasu.astralRecord.feature.item.service.EquipmentRequirementService
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService
@@ -52,6 +53,7 @@ class SkillOwnershipService(
             val instance = itemService.findEquipmentInstanceById(slot.equipmentInstanceId.toString()) ?: continue
             val item = itemService.findLoadedById(instance.itemId) ?: itemService.loadItem(instance.itemId) ?: continue
             val equipment = item.equipment ?: continue
+            if (!EquipmentRequirementService.check(player, equipment).allowed()) continue
             addEquipmentDefinitionSkills(skillIds, equipment)
             addRuneSkills(skillIds, instance)
             equipment.setId?.takeIf { it.isNotBlank() }?.trim()?.let { setId ->

@@ -207,21 +207,27 @@ public class EquipmentService(IItemRepository itemRepository, IEquipmentReposito
         if (item?.Equipment is null || item.Equipment.Transcendence.Count == 0)
             return null;
 
-        var targetRank = request.TargetRank
-            ?? item.Equipment.Transcendence
-                .Where(t => t.Rank > instance.TranscendenceRank)
-                .OrderBy(t => t.Rank)
-                .Select(t => t.Rank)
-                .FirstOrDefault();
-
-        if (targetRank <= instance.TranscendenceRank)
+        var target = item.Equipment.Transcendence
+            .Where(t => t.Rank > instance.TranscendenceRank)
+            .OrderBy(t => t.Rank)
+            .FirstOrDefault();
+        if (target is null || request.TargetRank is int requestedRank && requestedRank != target.Rank)
             return null;
 
-        var target = item.Equipment.Transcendence.FirstOrDefault(t => t.Rank == targetRank);
-        if (target is null)
+        var effectiveMaxLevel = item.Equipment.Enhance?.MaxLevel ?? 0;
+        foreach (var applied in item.Equipment.Transcendence
+                     .Where(t => t.Rank <= instance.TranscendenceRank)
+                     .OrderBy(t => t.Rank))
+        {
+            if (applied.Overrides?.Enhance is not null)
+                effectiveMaxLevel = applied.Overrides.Enhance.MaxLevel;
+        }
+
+        if (instance.EnhanceLevel < effectiveMaxLevel
+            || instance.EnhanceLevel < target.RequiredEnhanceLevel)
             return null;
 
-        instance.TranscendenceRank = targetRank;
+        instance.TranscendenceRank = target.Rank;
         if (target.Overrides?.Rune is not null && !string.IsNullOrWhiteSpace(target.Overrides.Rune.MaxSlots))
             instance.RuneMaxSlots = RangeValueResolver.ResolveInt(target.Overrides.Rune.MaxSlots);
 

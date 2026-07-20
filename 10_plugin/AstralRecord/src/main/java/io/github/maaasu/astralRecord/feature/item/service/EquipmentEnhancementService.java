@@ -298,19 +298,19 @@ public final class EquipmentEnhancementService {
             return;
         }
 
-        List<MaterialRequirement> requirements = collectMaterialRequirements(astPlayer, context.nextLevel);
-        if (!hasEnoughRequirements(astPlayer, requirements, context.nextLevel.getRequiredCurrency())) {
+        List<MaterialRequirement> requirements = collectMaterialRequirements(astPlayer, context);
+        if (!hasEnoughRequirements(astPlayer, requirements, context.requiredCurrency())) {
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5254);
             GuiSound.DENY.play(player);
             return;
         }
 
-        double successRate = normalizeSuccessRate(context.nextLevel.getSuccessRate());
+        double successRate = normalizeSuccessRate(context.successRate());
         boolean success = Math.random() < successRate;
         UUID accountId = astPlayer.getAccount().getUuid();
         InventoryService.InventoryStateSnapshot paymentSnapshot = inventoryService.snapshotState(accountId);
         if (paymentSnapshot == null
-            || !consumeRequirements(astPlayer, requirements, context.nextLevel.getRequiredCurrency())) {
+            || !consumeRequirements(astPlayer, requirements, context.requiredCurrency())) {
             restorePayment(paymentSnapshot, accountId, "enhancement_consume");
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5262);
             GuiSound.DENY.play(player);
@@ -383,13 +383,22 @@ public final class EquipmentEnhancementService {
             case SUCCESS -> {
                 session.selectedEquipment = itemStackFactory.create(context.model, Objects.requireNonNull(result.updatedInstance), 1);
                 if (player.isOnline()) {
-                    PlayerMessageService.getInstance().send(
-                        player,
-                        PlayerMsgId.P_5257,
-                        displayName(context.model),
-                        result.updatedInstance.getEnhanceLevel(),
-                        formatPercent(successRate)
-                    );
+                    if (context.isTranscendence()) {
+                        PlayerMessageService.getInstance().send(
+                            player,
+                            PlayerMsgId.P_5287,
+                            displayName(context.model),
+                            context.transcendenceDisplayName()
+                        );
+                    } else {
+                        PlayerMessageService.getInstance().send(
+                            player,
+                            PlayerMsgId.P_5257,
+                            displayName(context.model),
+                            result.updatedInstance.getEnhanceLevel(),
+                            formatPercent(successRate)
+                        );
+                    }
                     playSuccessEffects(player);
                 }
             }
@@ -460,15 +469,22 @@ public final class EquipmentEnhancementService {
         @NotNull String updatedBy
     ) {
         if (success) {
-            EquipmentInstance updated = itemService.enhanceEquipmentInstance(
-                context.instance.getEquipmentInstanceId(),
-                context.nextLevel.getLevel(),
-                updatedBy
-            );
+            EquipmentInstance updated = context.isTranscendence()
+                ? itemService.transcendEquipmentInstance(
+                    context.instance.getEquipmentInstanceId(),
+                    Objects.requireNonNull(context.transcendence).getRank(),
+                    updatedBy
+                )
+                : itemService.enhanceEquipmentInstance(
+                    context.instance.getEquipmentInstanceId(),
+                    Objects.requireNonNull(context.nextLevel).getLevel(),
+                    updatedBy
+                );
             return updated == null ? null : new EnhancementResult(EnhancementResultType.SUCCESS, updated);
         }
 
-        return switch (context.nextLevel.getFailAction()) {
+        ItemEquipmentEnhanceLevel nextLevel = Objects.requireNonNull(context.nextLevel);
+        return switch (nextLevel.getFailAction()) {
             case NONE -> new EnhancementResult(EnhancementResultType.FAIL_NONE, null);
             case DOWNGRADE -> {
                 if (context.instance.getEnhanceLevel() <= 0) {
@@ -523,7 +539,7 @@ public final class EquipmentEnhancementService {
         EnhancementContext context = selection.context();
         List<MaterialRequirement> requirements = context == null
             ? List.of()
-            : collectMaterialRequirements(Objects.requireNonNull(AstPlayerCache.get(player)), context.nextLevel);
+            : collectMaterialRequirements(Objects.requireNonNull(AstPlayerCache.get(player)), context);
         view.render(
             inventory,
             session.selectedEquipment == null ? null : session.selectedEquipment.clone(),
@@ -541,14 +557,14 @@ public final class EquipmentEnhancementService {
         List<Component> lore = new ArrayList<>();
         if (requirements.isEmpty()) {
             if (state == SelectionState.READY) {
-                lore.add(Component.text("この強化段階で消費するアイテムはありません。", NamedTextColor.GRAY));
-                lore.add(Component.text("必要ゴールドは強化情報を確認してください。", NamedTextColor.GRAY));
+                lore.add(Component.text("この操作で消費するアイテムはありません。", NamedTextColor.GRAY));
+                lore.add(Component.text("必要ゴールドは操作情報を確認してください。", NamedTextColor.GRAY));
             } else {
                 lore.add(Component.text("装備をセットすると消費アイテムを一覧表示します。", NamedTextColor.GRAY));
                 lore.add(Component.text("必要ゴールドは強化情報に表示されます。", NamedTextColor.GRAY));
             }
         } else {
-            lore.add(Component.text("強化実行時に消費されるアイテムです。", NamedTextColor.GRAY));
+            lore.add(Component.text("強化・状態変化の実行時に消費されるアイテムです。", NamedTextColor.GRAY));
             lore.add(Component.empty());
             for (MaterialRequirement requirement : requirements) {
                 lore.add(Component.text(
@@ -575,8 +591,8 @@ public final class EquipmentEnhancementService {
             Component.text("強化ガイド", NamedTextColor.GOLD, TextDecoration.BOLD),
             List.of(
                 Component.text("1. 下の装備インベントリから装備をクリックしてセットします。", NamedTextColor.GRAY),
-                Component.text("2. 必要素材とゴールドが揃うと強化ボタンが実行可能になります。", NamedTextColor.GRAY),
-                Component.text("3. 実行すると成功率と失敗時挙動に従って強化されます。", NamedTextColor.GRAY)
+                Component.text("2. 必要素材とゴールドが揃うと実行可能になります。", NamedTextColor.GRAY),
+                Component.text("3. 強化上限では次の状態変化を実行できます。", NamedTextColor.GRAY)
             )
         );
     }
@@ -617,17 +633,34 @@ public final class EquipmentEnhancementService {
         }
 
         long ownedGold = inventoryService.getGoldAmount(astPlayer.getAccount().getUuid());
+        if (context.isTranscendence()) {
+            ItemEquipmentTranscendence transcendence = Objects.requireNonNull(context.transcendence);
+            return createItem(
+                Material.NETHER_STAR,
+                Component.text("次の状態変化", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD),
+                List.of(
+                    Component.text("現在強化値: +" + context.instance.getEnhanceLevel(), NamedTextColor.GRAY),
+                    Component.text("状態変化: " + context.transcendenceDisplayName(), NamedTextColor.GRAY),
+                    Component.text("必要強化値: +" + transcendence.getRequiredEnhanceLevel(), NamedTextColor.GRAY),
+                    Component.text(
+                        "必要ゴールド: " + context.requiredCurrency() + " / 所持: " + ownedGold,
+                        ownedGold >= context.requiredCurrency() ? NamedTextColor.GREEN : NamedTextColor.RED
+                    )
+                )
+            );
+        }
+        ItemEquipmentEnhanceLevel nextLevel = Objects.requireNonNull(context.nextLevel);
         return createItem(
             Material.KNOWLEDGE_BOOK,
             Component.text("次の強化情報", NamedTextColor.AQUA, TextDecoration.BOLD),
             List.of(
                 Component.text("現在強化値: +" + context.instance.getEnhanceLevel(), NamedTextColor.GRAY),
-                Component.text("次の強化値: +" + context.nextLevel.getLevel(), NamedTextColor.GRAY),
-                Component.text("成功率: " + formatPercent(normalizeSuccessRate(context.nextLevel.getSuccessRate())) + "%", NamedTextColor.GRAY),
-                Component.text("失敗時: " + failActionLabel(context.nextLevel.getFailAction()), NamedTextColor.GRAY),
+                Component.text("次の強化値: +" + nextLevel.getLevel(), NamedTextColor.GRAY),
+                Component.text("成功率: " + formatPercent(normalizeSuccessRate(nextLevel.getSuccessRate())) + "%", NamedTextColor.GRAY),
+                Component.text("失敗時: " + failActionLabel(nextLevel.getFailAction()), NamedTextColor.GRAY),
                 Component.text(
-                    "必要ゴールド: " + context.nextLevel.getRequiredCurrency() + " / 所持: " + ownedGold,
-                    ownedGold >= context.nextLevel.getRequiredCurrency() ? NamedTextColor.GREEN : NamedTextColor.RED
+                    "必要ゴールド: " + context.requiredCurrency() + " / 所持: " + ownedGold,
+                    ownedGold >= context.requiredCurrency() ? NamedTextColor.GREEN : NamedTextColor.RED
                 )
             )
         );
@@ -667,12 +700,18 @@ public final class EquipmentEnhancementService {
             );
         }
 
-        boolean executable = hasEnoughRequirements(astPlayer, requirements, context.nextLevel.getRequiredCurrency());
+        boolean executable = hasEnoughRequirements(astPlayer, requirements, context.requiredCurrency());
+        String operationName = context.isTranscendence() ? "状態変化実行" : "強化実行";
         return createItem(
             executable ? Material.ANVIL : Material.BARRIER,
-            Component.text("強化実行", executable ? NamedTextColor.GREEN : NamedTextColor.RED, TextDecoration.BOLD),
+            Component.text(operationName, executable ? NamedTextColor.GREEN : NamedTextColor.RED, TextDecoration.BOLD),
             List.of(
-                Component.text("クリックするとこの装備の強化を実行します。", NamedTextColor.GRAY),
+                Component.text(
+                    context.isTranscendence()
+                        ? "クリックするとこの装備の状態変化を実行します。"
+                        : "クリックするとこの装備の強化を実行します。",
+                    NamedTextColor.GRAY
+                ),
                 Component.text(
                     executable ? "必要素材とゴールドが揃っています。" : "必要素材またはゴールドが不足しています。",
                     executable ? NamedTextColor.GREEN : NamedTextColor.RED
@@ -705,7 +744,22 @@ public final class EquipmentEnhancementService {
 
         int effectiveMaxLevel = resolveEffectiveMaxLevel(equipment, instance);
         if (instance.getEnhanceLevel() >= effectiveMaxLevel) {
-            return new SelectionResult(SelectionState.MAX_LEVEL, model, instance, null);
+            ItemEquipmentTranscendence nextTranscendence = equipment.getTranscendence().stream()
+                .filter(transcendence -> transcendence.getRank() > instance.getTranscendenceRank())
+                .min(Comparator.comparingInt(ItemEquipmentTranscendence::getRank))
+                .orElse(null);
+            if (nextTranscendence == null) {
+                return new SelectionResult(SelectionState.MAX_LEVEL, model, instance, null);
+            }
+            if (instance.getEnhanceLevel() < nextTranscendence.getRequiredEnhanceLevel()) {
+                return new SelectionResult(SelectionState.TRANSCENDENCE_REQUIREMENT, model, instance, null);
+            }
+            return new SelectionResult(
+                SelectionState.READY,
+                model,
+                instance,
+                new EnhancementContext(model, instance, null, nextTranscendence)
+            );
         }
 
         ItemEquipmentEnhanceLevel nextLevel = enhance.getLevels().stream()
@@ -720,16 +774,16 @@ public final class EquipmentEnhancementService {
             SelectionState.READY,
             model,
             instance,
-            new EnhancementContext(model, instance, nextLevel)
+            new EnhancementContext(model, instance, nextLevel, null)
         );
     }
 
     private @NotNull List<MaterialRequirement> collectMaterialRequirements(
         @NotNull AstPlayer astPlayer,
-        @NotNull ItemEquipmentEnhanceLevel nextLevel
+        @NotNull EnhancementContext context
     ) {
         Map<String, Integer> merged = new LinkedHashMap<>();
-        for (ItemEquipmentEnhanceMaterial material : nextLevel.getRequiredMaterials()) {
+        for (ItemEquipmentEnhanceMaterial material : context.requiredMaterials()) {
             if (material.getItemId() == null || material.getItemId().isBlank() || material.getAmount() <= 0) {
                 continue;
             }
@@ -1033,8 +1087,35 @@ public final class EquipmentEnhancementService {
     private record EnhancementContext(
         @NotNull ItemModel model,
         @NotNull EquipmentInstance instance,
-        @NotNull ItemEquipmentEnhanceLevel nextLevel
+        @Nullable ItemEquipmentEnhanceLevel nextLevel,
+        @Nullable ItemEquipmentTranscendence transcendence
     ) {
+        private boolean isTranscendence() {
+            return transcendence != null;
+        }
+
+        private @NotNull List<ItemEquipmentEnhanceMaterial> requiredMaterials() {
+            return isTranscendence()
+                ? Objects.requireNonNull(transcendence).getRequiredMaterials()
+                : Objects.requireNonNull(nextLevel).getRequiredMaterials();
+        }
+
+        private int requiredCurrency() {
+            return isTranscendence()
+                ? Objects.requireNonNull(transcendence).getRequiredCurrency()
+                : Objects.requireNonNull(nextLevel).getRequiredCurrency();
+        }
+
+        private double successRate() {
+            return isTranscendence() ? 1.0D : Objects.requireNonNull(nextLevel).getSuccessRate();
+        }
+
+        private @NotNull String transcendenceDisplayName() {
+            ItemEquipmentTranscendence definition = Objects.requireNonNull(transcendence);
+            return definition.getName() == null || definition.getName().isBlank()
+                ? "ランク " + definition.getRank()
+                : ColorCodeUtil.toPlainText(definition.getName(), String.valueOf(definition.getRank()));
+        }
     }
 
     private record MaterialRequirement(
@@ -1066,6 +1147,7 @@ public final class EquipmentEnhancementService {
         INVALID_TARGET("選択した装備の情報を取得できません。"),
         NO_ENHANCE_DATA("この装備には強化データが定義されていません。"),
         MAX_LEVEL("この装備は現在の強化上限に達しています。"),
+        TRANSCENDENCE_REQUIREMENT("状態変化に必要な強化値を満たしていません。"),
         NEXT_LEVEL_MISSING("次の強化レベル定義が見つかりません。"),
         READY("");
 

@@ -77,6 +77,9 @@ public final class ItemWeaponAttackService {
         if (equipment.getSlot() != ItemEquipmentSlot.WEAPON) {
             return;
         }
+        if (!EquipmentRequirementService.checkAndNotify(player, equipment)) {
+            return;
+        }
         if (equipmentDurabilityService != null && !equipmentDurabilityService.canUseMainHandWeapon(player)) {
             return;
         }

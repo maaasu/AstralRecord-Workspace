@@ -12,7 +12,9 @@
 | `equipment[].handType`                                    | String        | ×  | ONE   | 手持ち装備の手数。`slot=WEAPON` または `slot=TOOL` の場合に使用（`ONE` / `TWO`）。                                                                                 |
 | `equipment[].tag`                                         | String        | ×  | -     | equipment固有の補助情報。`slot=ACCESSORY` では必須とし、`AMULET` / `TALISMAN` / `CHARM` / `CORE` / `RELIC` のいずれかを指定する。Toolでは「ツルハシ」「斧」などの分類にも使用する |
 | `equipment[].requiredLevel`                               | Integer       | ×  | 0     | 装備に必要なプレイヤーレベル。`0` で制限なし。                                                                                                                      |
-| `equipment[].requiredClasses[]`                           | List<String>  | ×  | -     | 装備可能クラスIDのリスト（任意）。未指定時は全クラス装備可。                                                                                                                |
+| `equipment[].requiredClasses[]`                           | List<Object>  | ×  | -     | 装備可能な現在クラスと必要クラスレベルのリスト（任意）。未指定時は全クラス装備可。                                                                                                  |
+| `equipment[].requiredClasses[].classId`                   | String        | ○  | -     | 装備可能なクラス ID。プレイヤーが現在選択しているクラスと一致する必要がある。                                                                                                  |
+| `equipment[].requiredClasses[].level`                     | Integer       | ×  | 1     | 対象クラスに必要なクラスレベル。                                                                                                                               |
 | `equipment[].setId`                                       | String        | ×  | -     | このアイテムが属するセット効果ID（架空例: `example_guardian_set`）。セット効果定義は `set_effect/docs.set_effect.YAMLスキーマ定義.md` を参照。                                                  |
 | `equipment[].stats[]`                                     | List          | ×  | -     | 装備中に適用される基礎ステータス補正のリスト（後述）。                                                                                                                    |
 | `equipment[].stats[].status`                              | String        | ×  | -     | 対象ステータス（`StatusType`）。例: `ATTACK` / `DEFENSE` / `MOVEMENT_SPEED`。                                                                              |
@@ -59,6 +61,7 @@
 | `equipment[].transcendence[]`                             | List          | ×  | -     | 状態変化（進化・覚醒・超越など）の定義リスト。指定した素材を消費することでアイテムの各種パラメータを上書きする。                                                                                       |
 | `equipment[].transcendence[].name`                        | String        | ×  | -     | 状態変化の名称（例: `進化` / `覚醒` / `超越`）。ゲーム内UIに表示される。                                                                                                   |
 | `equipment[].transcendence[].rank`                        | Integer       | ×  | -     | 状態変化の強さ指標。数値が大きいほど上位の状態変化。同一装備内で一意である必要がある。プラグインはこの値を使い、現在の状態変化より `rank` が低い状態変化への遷移を禁止する。                                                     |
+| `equipment[].transcendence[].requiredEnhanceLevel`        | Integer       | ×  | 0     | 状態変化に必要な最小強化値。装備強化 GUI では、現在状態の有効な `enhance.maxLevel` 到達後、かつこの値以上の場合に状態変化を実行できる。                                                       |
 | `equipment[].transcendence[].recipeId`                    | String        | ×  | -     | 状態変化に使用するレシピID（参照値。例: `ref: recipe:iron_sword_evolution`）。`requiredMaterials` / `requiredCurrency` はレシピ側で定義するため省略可。                            |
 | `equipment[].transcendence[].requiredMaterials[].itemId`  | String        | ×  | -     | 状態変化に必要な素材アイテムID。`recipeId` を指定した場合は省略可。                                                                                                       |
 | `equipment[].transcendence[].requiredMaterials[].amount`  | Integer       | ×  | -     | 必要な素材の個数。`recipeId` を指定した場合は省略可。                                                                                                               |
@@ -96,6 +99,12 @@
 
 - `ONE` : 片手装備
 - `TWO` : 両手装備
+
+### equipment[].requiredLevel / requiredClasses
+
+- `requiredLevel` はアカウントのプレイヤーレベルに対する制限です。
+- `requiredClasses` は候補のいずれかが現在選択中のクラス ID と一致し、その候補の `level` 以下ではない場合に成立します。`level` はプレイヤーレベルではなくクラスレベルです。
+- 防具、サブ武器、アクセサリは条件未達時に装備スロットへ移動できません。武器はホットバーへ割り当てられますが、条件未達中はクリック操作と装備由来ステータス・スキルが無効になります。
 
 ### equipment[].stats[].type
 - `FLAT` : 定数加算
@@ -165,6 +174,7 @@
 状態変化システムは、指定した素材（またはレシピ）を消費することでアイテムの各種パラメータを上書きする仕組みです。「進化」「覚醒」「超越」など、ゲームデザインに応じた名称を自由に設定できます。
 
 - `name` で状態変化の名称を指定します（例: `進化` / `覚醒` / `超越`）。
+- `requiredEnhanceLevel` で状態変化に必要な強化値を指定します。装備強化 GUI は現在状態の有効な強化上限へ到達した次の操作として、次 rank の状態変化を提示します。
 - 素材はレシピ参照（`recipeId`）または直接指定（`requiredMaterials` / `requiredCurrency`）のいずれかで指定します。両方を指定した場合は `recipeId` が優先されます。
 - `overrides` に上書きしたいパラメータのみ指定します。未指定のパラメータは変更されません。
 - 上書き可能なパラメータ: `name`（アイテム名称）/ `enhance.maxLevel` / `enchant.maxSlots` / `rune.maxSlots`。
@@ -217,6 +227,9 @@ equipment:
 	handType: ONE
 	tag: SWORD
 	requiredLevel: 3
+	requiredClasses:
+		- classId: swordsman
+		  level: 5
 	stats:
 		- status: ATTACK
 		  type: FLAT

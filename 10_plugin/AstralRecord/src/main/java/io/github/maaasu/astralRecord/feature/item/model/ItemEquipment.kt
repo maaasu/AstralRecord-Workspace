@@ -13,7 +13,8 @@ data class ItemEquipment(
     /** 採集ツール種別など equipment master が定義する用途タグ。 */
     val tag: String? = null,
     val requiredLevel: Int = 0,
-    val requiredClasses: List<String> = emptyList(),
+    /** 装備可能な現在クラスと必要クラスレベルの組み合わせ。空ならクラス制限なし。 */
+    val requiredClasses: List<ItemEquipmentClassRequirement> = emptyList(),
     val setId: String? = null,
     val stats: List<ItemEquipmentStat> = emptyList(),
     val durability: ItemEquipmentDurability?,
@@ -144,6 +145,16 @@ data class ItemEquipmentOnUse(
 )
 
 /**
+ * 装備に必要な現在クラスとクラスレベル。
+ */
+data class ItemEquipmentClassRequirement(
+    /** クラス ID */
+    val classId: String,
+    /** 必要クラスレベル */
+    val level: Int = 1,
+)
+
+/**
  * 強化システム定義。
  */
 data class ItemEquipmentEnhance(
@@ -235,6 +246,12 @@ data class ItemEquipmentTranscendence(
     val name: String?,
     /** 状態変化の強さ指標 */
     val rank: Int,
+    /** 状態変化に必要な強化レベル */
+    val requiredEnhanceLevel: Int = 0,
+    /** 状態変化に必要な素材 */
+    val requiredMaterials: List<ItemEquipmentEnhanceMaterial> = emptyList(),
+    /** 状態変化に必要な通貨量 */
+    val requiredCurrency: Int = 0,
     /** 状態変化後のアイテム名称（未設定なら null） */
     val overridesName: String?,
     /** 状態変化後の強化最大レベル（未設定なら null） */

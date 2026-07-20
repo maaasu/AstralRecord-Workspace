@@ -444,6 +444,31 @@ public class ItemService {
     }
 
     /**
+     * 装備インスタンスを指定した状態変化ランクへ更新し、Plugin 側キャッシュへ反映します。
+     *
+     * @param instanceId 装備インスタンス ID
+     * @param targetRank 目標状態変化ランク
+     * @param updatedBy 更新者アカウント ID
+     * @return 更新後の装備インスタンス。対象不在または条件不成立時は {@code null}
+     */
+    public @Nullable EquipmentInstance transcendEquipmentInstance(
+        @NotNull String instanceId,
+        int targetRank,
+        @NotNull String updatedBy
+    ) {
+        try {
+            EquipmentInstance instance = itemRepository.transcendEquipmentInstance(instanceId, targetRank, updatedBy);
+            if (instance != null) {
+                loadedEquipmentInstances.put(normalize(instance.getEquipmentInstanceId()), instance);
+            }
+            return instance;
+        } catch (Exception e) {
+            Logger.log(LogId.E_5202, e, instanceId);
+            return null;
+        }
+    }
+
+    /**
      * 装備耐久値を plugin 側キャッシュへ即時反映し、次回保存時の API flush 対象として記録します。
      * 戦闘中の同期 HTTP を避けるため、このメソッド自体は API を呼びません。
      *

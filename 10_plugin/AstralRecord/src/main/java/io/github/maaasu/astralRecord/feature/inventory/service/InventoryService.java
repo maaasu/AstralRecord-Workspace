@@ -29,6 +29,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
 import io.github.maaasu.astralRecord.feature.item.model.ItemRarity;
 import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
 import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
+import io.github.maaasu.astralRecord.feature.item.service.EquipmentRequirementService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.player.GameModeChangeGuard;
@@ -2655,6 +2656,11 @@ public class InventoryService {
                 return false;
             }
             ItemEquipmentSlot itemSlot = model.getEquipment().getSlot();
+            if (itemSlot != ItemEquipmentSlot.WEAPON
+                && itemSlot != ItemEquipmentSlot.TOOL
+                && !EquipmentRequirementService.checkAndNotify(astPlayer, model.getEquipment())) {
+                return false;
+            }
             if (itemSlot == ItemEquipmentSlot.HEAD || itemSlot == ItemEquipmentSlot.CHEST
                 || itemSlot == ItemEquipmentSlot.LEGS || itemSlot == ItemEquipmentSlot.FEET
                 || itemSlot == ItemEquipmentSlot.SUBWEAPON) {
@@ -3283,6 +3289,32 @@ public class InventoryService {
     }
 
     /**
+     * ItemStack の装備種別とプレイヤー条件を検証し、条件未達時は理由を通知します。
+     *
+     * @param astPlayer 判定対象プレイヤー
+     * @param itemStack 判定対象 ItemStack
+     * @param equipmentType 対象装備種別
+     * @param accessorySlotType 種類別アクセサリ枠
+     * @return 配置可能な場合は {@code true}
+     */
+    public boolean canPlaceInEquipmentGuiSlot(
+        @NotNull AstPlayer astPlayer,
+        @Nullable ItemStack itemStack,
+        @Nullable EquipmentType equipmentType,
+        @Nullable AccessorySlotType accessorySlotType
+    ) {
+        if (itemStack == null || itemStack.getType() == Material.AIR) {
+            return true;
+        }
+        return canPlaceInEquipmentGuiSlot(
+            astPlayer,
+            itemReferenceResolver.resolve(itemStack),
+            equipmentType,
+            accessorySlotType
+        );
+    }
+
+    /**
      * inventory entry を正本として、指定装備スロットへ配置可能か判定します。
      *
      * @param entry 判定対象 entry
@@ -3299,6 +3331,47 @@ public class InventoryService {
             return true;
         }
         return canPlaceInEquipmentGuiSlot(resolveItemReference(entry), equipmentType, accessorySlotType);
+    }
+
+    /**
+     * inventory entry の装備種別とプレイヤー条件を検証し、条件未達時は理由を通知します。
+     *
+     * @param astPlayer 判定対象プレイヤー
+     * @param entry 判定対象 entry
+     * @param equipmentType 対象装備種別
+     * @param accessorySlotType 種類別アクセサリ枠
+     * @return 配置可能な場合は {@code true}
+     */
+    public boolean canPlaceInEquipmentGuiSlot(
+        @NotNull AstPlayer astPlayer,
+        @Nullable InventoryEntryModel entry,
+        @Nullable EquipmentType equipmentType,
+        @Nullable AccessorySlotType accessorySlotType
+    ) {
+        if (entry == null) {
+            return true;
+        }
+        return canPlaceInEquipmentGuiSlot(
+            astPlayer,
+            resolveItemReference(entry),
+            equipmentType,
+            accessorySlotType
+        );
+    }
+
+    private boolean canPlaceInEquipmentGuiSlot(
+        @NotNull AstPlayer astPlayer,
+        @Nullable ItemReference reference,
+        @Nullable EquipmentType equipmentType,
+        @Nullable AccessorySlotType accessorySlotType
+    ) {
+        if (!canPlaceInEquipmentGuiSlot(reference, equipmentType, accessorySlotType)) {
+            return false;
+        }
+        ItemModel model = itemReferenceResolver.resolveItemModel(reference);
+        return model != null
+            && model.getEquipment() != null
+            && EquipmentRequirementService.checkAndNotify(astPlayer, model.getEquipment());
     }
 
     private boolean canPlaceInEquipmentGuiSlot(

@@ -658,7 +658,7 @@ public class ItemStackFactory {
         }
         if (!equipment.getRequiredClasses().isEmpty()) {
             lore.add(ColorCodeUtil.GRAY + " ▸ 必要クラス: " + ColorCodeUtil.WHITE
-                    + String.join(", ", equipment.getRequiredClasses()));
+                    + formatRequiredClasses(equipment));
         }
 
         // ステータス
@@ -947,7 +947,7 @@ public class ItemStackFactory {
             }
             if (!eq.getRequiredClasses().isEmpty()) {
                 lore.add(ColorCodeUtil.GRAY + " ▸ 必要クラス: " + ColorCodeUtil.WHITE
-                        + String.join(", ", eq.getRequiredClasses()));
+                        + formatRequiredClasses(eq));
             }
 
             // --- transcendence 状態変化表示 ---
@@ -1242,6 +1242,12 @@ public class ItemStackFactory {
      */
     private @NotNull String formatStatValue(double value) {
         return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
+    }
+
+    private @NotNull String formatRequiredClasses(@NotNull ItemEquipment equipment) {
+        return String.join(", ", equipment.getRequiredClasses().stream()
+            .map(requirement -> requirement.getClassId() + " Lv." + Math.max(1, requirement.getLevel()))
+            .toList());
     }
 
     private @NotNull String formatStatValueWithType(@NotNull ItemEquipmentStatType type, double value) {

@@ -166,6 +166,44 @@ public class ItemRepositoryEnhanceMasterTests
         Assert.Equal("HEALING", item.Appearance.PotionType);
     }
 
+    [Fact]
+    public void DeserializeLiteralJson_PopulatesEquipmentRequirementsAndTranscendenceRequirement()
+    {
+        var payloadType = typeof(ItemRepository)
+            .Assembly
+            .GetType("AstralRecordApi.Repositories.MasterDataPayloadJson", throwOnError: true)!;
+        var options = (System.Text.Json.JsonSerializerOptions)payloadType
+            .GetField("Options", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)!
+            .GetValue(null)!;
+
+        var json = """
+            {
+              "schemaVersion": 1,
+              "id": "class_blade",
+              "category": "equipment",
+              "name": "class blade",
+              "icon": "IRON_SWORD",
+              "rarity": "COMMON",
+              "maxStack": 1,
+              "equipment": {
+                "slot": "WEAPON",
+                "requiredLevel": 5,
+                "requiredClasses": [{"classId": "swordsman", "level": 3}],
+                "transcendence": [{"rank": 1, "requiredEnhanceLevel": 5}]
+              }
+            }
+            """;
+
+        var item = System.Text.Json.JsonSerializer.Deserialize<ItemResponse>(json, options);
+
+        Assert.NotNull(item?.Equipment);
+        var requiredClass = Assert.Single(item!.Equipment!.RequiredClasses);
+        Assert.Equal("swordsman", requiredClass.ClassId);
+        Assert.Equal(3, requiredClass.Level);
+        var transcendence = Assert.Single(item.Equipment.Transcendence);
+        Assert.Equal(5, transcendence.RequiredEnhanceLevel);
+    }
+
     private static async Task<MasterDataDbContext> CreateSeededMasterDataDbContextAsync()
     {
         var connection = new SqliteConnection("Data Source=:memory:");

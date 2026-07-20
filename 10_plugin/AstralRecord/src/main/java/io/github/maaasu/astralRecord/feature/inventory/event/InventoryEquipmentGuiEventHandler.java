@@ -330,7 +330,13 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         int rawSlot = event.getRawSlot();
         EquipmentType equipmentType = menuView.getEquipmentTypeAtSlot(rawSlot);
         AccessorySlotType accessorySlotType = menuView.getAccessorySlotTypeAtSlot(rawSlot);
-        if (!inventoryService.canPlaceInEquipmentGuiSlot(cursor, equipmentType, accessorySlotType)) {
+        if (astPlayer == null
+            || !inventoryService.canPlaceInEquipmentGuiSlot(
+                astPlayer,
+                cursor,
+                equipmentType,
+                accessorySlotType
+            )) {
             GuiSound.DENY.play(player);
             return;
         }
@@ -445,7 +451,12 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
 
         AccessorySlotType targetAccessorySlotType = menuView.getAccessorySlotTypeAtSlot(targetSlot);
         EquipmentType targetEquipmentType = menuView.getEquipmentTypeAtSlot(targetSlot);
-        if (!inventoryService.canPlaceInEquipmentGuiSlot(sourceEntry, targetEquipmentType, targetAccessorySlotType)) {
+        if (!inventoryService.canPlaceInEquipmentGuiSlot(
+            astPlayer,
+            sourceEntry,
+            targetEquipmentType,
+            targetAccessorySlotType
+        )) {
             GuiSound.DENY.play(player);
             return;
         }
@@ -679,7 +690,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             return true;
         }
 
-        if (!inventoryService.canPlaceInEquipmentGuiSlot(cursor, equipmentType, null)) {
+        if (!inventoryService.canPlaceInEquipmentGuiSlot(astPlayer, cursor, equipmentType, null)) {
             return false;
         }
 

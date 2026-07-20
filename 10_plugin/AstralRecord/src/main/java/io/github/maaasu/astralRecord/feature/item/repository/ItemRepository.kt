@@ -28,6 +28,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceFail
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceLevel
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceMaterial
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceStatIncrease
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentClassRequirement
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentHandType
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentOnUse
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentRuneDef
@@ -216,6 +217,49 @@ class ItemRepository {
                     404 -> null
                     else -> {
                         Logger.log(LogId.E_5200, "HTTP ${response.statusCode()} for POST $path")
+                        throw IOException("Unexpected status ${response.statusCode()} for POST $path")
+                    }
+                }
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
+            throw RuntimeException(e)
+        } catch (e: IOException) {
+            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
+            throw e
+        }
+    }
+
+    /**
+     * 装備インスタンスを指定した状態変化ランクへ更新します。
+     *
+     * @param instanceId 装備インスタンス ID
+     * @param targetRank 目標状態変化ランク
+     * @param updatedBy 更新者アカウント ID
+     * @return 更新後の装備インスタンス。対象不在または条件不成立時は null
+     */
+    fun transcendEquipmentInstance(
+        instanceId: String,
+        targetRank: Int,
+        updatedBy: String,
+    ): EquipmentInstance? {
+        val path = "/api/equipment/transcendence"
+        val body = ApiRequestUtil.buildJsonBody {
+            addProperty("equipmentInstanceId", instanceId)
+            addProperty("targetRank", targetRank)
+            addProperty("updatedBy", updatedBy)
+        }
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val request = ApiRequestUtil.buildRequestBuilder(path)
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                return when (response.statusCode()) {
+                    200 -> parseEquipmentInstance(response.body())
+                    400, 404 -> null
+                    else -> {
                         throw IOException("Unexpected status ${response.statusCode()} for POST $path")
                     }
                 }
@@ -577,7 +621,7 @@ class ItemRepository {
             handType = ItemEquipmentHandType.fromApiValue(parseStringOrNull(equipmentObj, "handType")),
             tag = parseStringOrNull(equipmentObj, "tag"),
             requiredLevel = equipmentObj.get("requiredLevel")?.asInt ?: 0,
-            requiredClasses = parseStringList(equipmentObj.getAsJsonArray("requiredClasses")),
+            requiredClasses = parseEquipmentClassRequirements(equipmentObj.getAsJsonArray("requiredClasses")),
             setId = parseStringOrNull(equipmentObj, "setId"),
             stats = stats,
             durability = durability,
@@ -655,6 +699,26 @@ class ItemRepository {
         return ItemEquipmentEnhance(maxLevel = maxLevel, levels = levels)
     }
 
+    private fun parseEquipmentClassRequirements(array: JsonArray?): List<ItemEquipmentClassRequirement> {
+        if (array == null) {
+            return emptyList()
+        }
+        return array.mapNotNull { element ->
+            if (element.isJsonPrimitive && element.asJsonPrimitive.isString) {
+                return@mapNotNull ItemEquipmentClassRequirement(element.asString, 1)
+            }
+            if (!element.isJsonObject) return@mapNotNull null
+            val obj = element.asJsonObject
+            val classId = parseStringOrNull(obj, "classId")
+                ?: parseStringOrNull(obj, "class")
+                ?: return@mapNotNull null
+            ItemEquipmentClassRequirement(
+                classId = classId,
+                level = max(1, parseIntOrNull(obj, "level") ?: 1),
+            )
+        }
+    }
+
     private fun parseEquipmentEnhanceMaterials(array: JsonArray?): List<ItemEquipmentEnhanceMaterial> {
         if (array == null) {
             return emptyList()
@@ -697,6 +761,9 @@ class ItemRepository {
             ItemEquipmentTranscendence(
                 name = parseStringOrNull(tObj, "name"),
                 rank = tObj.get("rank")?.asInt ?: 0,
+                requiredEnhanceLevel = max(0, parseIntOrNull(tObj, "requiredEnhanceLevel") ?: 0),
+                requiredMaterials = parseEquipmentEnhanceMaterials(tObj.getAsJsonArray("requiredMaterials")),
+                requiredCurrency = max(0, parseIntOrNull(tObj, "requiredCurrency") ?: 0),
                 overridesName = overridesObj?.let { parseStringOrNull(it, "name") },
                 overridesEnhanceMaxLevel = overridesEnhanceObj?.let { parseIntOrNull(it, "maxLevel") },
                 overridesEnchantMaxSlots = overridesEnchantObj?.let { parseIntOrNull(it, "maxSlots") },
