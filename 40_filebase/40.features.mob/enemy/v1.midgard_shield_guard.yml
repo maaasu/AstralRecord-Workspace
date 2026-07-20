@@ -71,3 +71,5 @@ drops:
       amount: 1
       luckAffected: true
       hidden: false
+  lootTable:
+    ref: loot_table:midgard_grassland_orb_table

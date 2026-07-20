@@ -1,0 +1,20 @@
+# design:
+#   motif: "北欧神話 / ミズガルズの加護"
+#   progression: 1
+schemaVersion: 1
+id: midgard_grassland_orb_pool
+type: LOOT_POOL
+pick: 1
+contents:
+  - itemId:
+      ref: item:tyr_orb
+    rate: 2.0
+    amount: 1
+  - itemId:
+      ref: item:aegis_orb
+    rate: 2.0
+    amount: 1
+  - itemId:
+      ref: item:freya_orb
+    rate: 2.0
+    amount: 1
