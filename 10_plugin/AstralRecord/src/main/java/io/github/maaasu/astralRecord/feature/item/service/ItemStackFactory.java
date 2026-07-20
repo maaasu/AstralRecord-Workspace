@@ -666,14 +666,13 @@ public class ItemStackFactory {
             lore.add("");
             lore.add(ColorCodeUtil.YELLOW + " ▸ ステータス補正");
             for (ItemEquipmentStat stat : equipment.getStats()) {
-                String prefix = stat.getType().name().equals("SCALAR") ? "×" : "+";
                 StatusType statusType = resolveStatusTypeOrNull(stat.getStatus());
                 String statColor = statusCategoryColor(stat.getStatus(), statusType);
                 String displayName = resolveStatusDisplayName(stat.getStatus(), statusType);
                 lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
                         + statColor + displayName
                         + ColorCodeUtil.DARK_GRAY + " : "
-                        + formatStatValueWithPrefix(prefix, stat.displayValue()));
+                        + formatStatValueWithType(stat.getType(), stat.displayValue()));
             }
         }
 
@@ -997,15 +996,14 @@ public class ItemStackFactory {
                     double totalMin = baseMin + enhAdd[0];
                     double totalMax = baseMax + enhAdd[1];
 
-                    String prefix = rollType == ItemEquipmentStatType.SCALAR ? "×" : "+";
                     String displayValue = totalMin == totalMax
-                            ? formatStatValueWithPrefix(prefix, totalMin)
-                            : formatStatRange(prefix, totalMin, totalMax);
+                            ? formatStatValueWithType(rollType, totalMin)
+                            : formatStatRange(rollType, totalMin, totalMax);
 
                     // enhance 加算分の表示注釈
                     String enhanceNote = (enhAdd[0] != 0.0 || enhAdd[1] != 0.0)
-                            ? ColorCodeUtil.YELLOW + " [強化+" + formatStatValue(enhAdd[0])
-                                    + (enhAdd[0] != enhAdd[1] ? " ～ " + formatStatValue(enhAdd[1]) : "") + "]"
+                            ? ColorCodeUtil.YELLOW + " [強化" + formatStatValueWithType(rollType, enhAdd[0])
+                                    + (enhAdd[0] != enhAdd[1] ? " ～ " + formatStatValueWithType(rollType, enhAdd[1]) : "") + "]"
                             : "";
 
                     StatusType statusType = resolveStatusTypeOrNull(roll.getStatus());
@@ -1031,10 +1029,9 @@ public class ItemStackFactory {
                     if (alreadyShown) continue;
 
                     double[] enhAdd = entry.getValue();
-                    String prefix = type == ItemEquipmentStatType.SCALAR ? "×" : "+";
                     String displayValue = enhAdd[0] == enhAdd[1]
-                            ? formatStatValueWithPrefix(prefix, enhAdd[0])
-                            : formatStatRange(prefix, enhAdd[0], enhAdd[1]);
+                            ? formatStatValueWithType(type, enhAdd[0])
+                            : formatStatRange(type, enhAdd[0], enhAdd[1]);
 
                     StatusType statusType = resolveStatusTypeOrNull(status);
                     String statColor = statusCategoryColor(status, statusType);
@@ -1058,15 +1055,15 @@ public class ItemStackFactory {
                     lore.add(ColorCodeUtil.DARK_GRAY + "   ─ 未付与");
                 } else {
                     for (EquipmentEnchant enchant : instance.getEnchants()) {
-                        String prefix = "SCALAR".equals(enchant.getType()) ? "×" : "+";
+                        ItemEquipmentStatType enchantType = "SCALAR".equals(enchant.getType())
+                                ? ItemEquipmentStatType.SCALAR : ItemEquipmentStatType.FLAT;
                         StatusType statusType = resolveStatusTypeOrNull(enchant.getStatus());
                         String statColor = statusCategoryColor(enchant.getStatus(), statusType);
                         String displayName = resolveStatusDisplayName(enchant.getStatus(), statusType);
-                        String valueStr = formatStatValue(enchant.getValue());
                         lore.add(ColorCodeUtil.DARK_GRAY + " [" + (enchant.getSlotIndex() + 1) + "] "
                                 + statColor + displayName
                                 + ColorCodeUtil.DARK_GRAY + " : "
-                                + formatStatValueWithPrefix(prefix, valueStr));
+                                + formatStatValueWithType(enchantType, enchant.getValue()));
                     }
                 }
             }
@@ -1136,14 +1133,15 @@ public class ItemStackFactory {
             lore.add(ColorCodeUtil.GOLD + "❖ ルーン効果");
             lore.add(ColorCodeUtil.YELLOW + " ▸ ステータス補正");
             for (var roll : instance.getStatRolls()) {
-                String prefix = "SCALAR".equals(roll.getType()) ? "×" : "+";
+                ItemEquipmentStatType rollType = "SCALAR".equals(roll.getType())
+                        ? ItemEquipmentStatType.SCALAR : ItemEquipmentStatType.FLAT;
                 StatusType statusType = resolveStatusTypeOrNull(roll.getStatus());
                 String statColor = statusCategoryColor(roll.getStatus(), statusType);
                 String displayName = resolveStatusDisplayName(roll.getStatus(), statusType);
                 lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
                         + statColor + displayName
                         + ColorCodeUtil.DARK_GRAY + " : "
-                        + formatStatValueWithPrefix(prefix, roll.getValue()));
+                        + formatStatValueWithType(rollType, roll.getValue()));
             }
             lore.add("");
         }
@@ -1246,27 +1244,30 @@ public class ItemStackFactory {
         return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
     }
 
-    private @NotNull String formatStatValueWithPrefix(@NotNull String prefix, double value) {
-        return formatStatValueWithPrefix(prefix, formatStatValue(value));
+    private @NotNull String formatStatValueWithType(@NotNull ItemEquipmentStatType type, double value) {
+        if (type == ItemEquipmentStatType.SCALAR) {
+            return STATUS_VALUE_COLOR + "+" + formatStatValue(value * 100.0D) + "%";
+        }
+        return STATUS_VALUE_COLOR + "+" + formatStatValue(value);
     }
 
-    private @NotNull String formatStatValueWithPrefix(@NotNull String prefix, @NotNull String value) {
+    private @NotNull String formatStatValueWithType(@NotNull ItemEquipmentStatType type, @NotNull String value) {
         String normalized = value.trim();
         if (normalized.contains("~") || normalized.contains("～")) {
             String[] parts = normalized.split("[~～]", 2);
             if (parts.length == 2) {
-                return STATUS_VALUE_COLOR + prefix + parts[0].trim()
+                return formatStatValueWithType(type, parseStatDouble(parts[0].trim()))
                         + ColorCodeUtil.DARK_GRAY + " ～ "
-                        + STATUS_VALUE_COLOR + prefix + parts[1].trim();
+                        + formatStatValueWithType(type, parseStatDouble(parts[1].trim()));
             }
         }
-        return STATUS_VALUE_COLOR + prefix + normalized;
+        return formatStatValueWithType(type, parseStatDouble(normalized));
     }
 
-    private @NotNull String formatStatRange(@NotNull String prefix, double min, double max) {
-        return formatStatValueWithPrefix(prefix, min)
+    private @NotNull String formatStatRange(@NotNull ItemEquipmentStatType type, double min, double max) {
+        return formatStatValueWithType(type, min)
                 + ColorCodeUtil.DARK_GRAY + " ～ "
-                + formatStatValueWithPrefix(prefix, max);
+                + formatStatValueWithType(type, max);
     }
 
     private @NotNull String formatDurabilityLore(@NotNull EquipmentInstance instance) {
