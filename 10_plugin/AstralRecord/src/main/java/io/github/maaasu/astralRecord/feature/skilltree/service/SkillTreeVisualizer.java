@@ -565,7 +565,7 @@ final class SkillTreeVisualizer {
         private NodeVisual(@NotNull SkillTreeNodeDefinition node, @NotNull Location location) {
             this.node = node;
             this.baseLocation = location.clone();
-            this.interaction = createNodeInteraction(location);
+            this.interaction = createNodeInteraction(location, node.positionId());
             this.lockedItem = packetItemDisplay(location, service.createNodeDisplayItem(node, false), NODE_ITEM_SCALE, NODE_ITEM_Y_OFFSET, false);
             this.unlockedItem = packetItemDisplay(location, service.createNodeDisplayItem(node, true), NODE_ITEM_SCALE, NODE_ITEM_Y_OFFSET, true);
             registerLabel(location, node, SkillTreeService.NodePresentationState.BLOCKED, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
@@ -728,10 +728,14 @@ final class SkillTreeVisualizer {
      * packet-only ノード表示へ左右クリックを届ける不可視 hitbox を生成します。
      *
      * @param location ノード基準位置
+     * @param positionId hitbox が示すスキルツリー位置 ID
      * @return サーバーが追跡する非永続 Interaction entity
      * @throws IllegalArgumentException ワールドを解決できない場合
      */
-    private @NotNull Interaction createNodeInteraction(@NotNull Location location) {
+    private @NotNull Interaction createNodeInteraction(
+            @NotNull Location location,
+            @NotNull String positionId
+    ) {
         World world = location.getWorld();
         if (world == null) {
             throw new IllegalArgumentException("skill tree node location must have a world");
@@ -745,6 +749,7 @@ final class SkillTreeVisualizer {
             interaction.setInvulnerable(true);
             interaction.setSilent(true);
             interaction.addScoreboardTag(SkillTreeService.NODE_INTERACTION_TAG);
+            service.tagNodeInteraction(interaction, positionId);
         });
     }
 

@@ -75,7 +75,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler
         ItemStack held = snapshot.player().getInventory().getItemInMainHand();
         String positionId = service.readPositionItemId(held);
         boolean connector = service.isConnectorItem(held);
-        SkillTreeService.SkillTreePositionHit hit = service.findTargetedPositionHit(snapshot.player()).orElse(null);
+        SkillTreeService.SkillTreePositionHit hit = service.findTargetedPositionHit(snapshot).orElse(null);
         double hitDistance = hit == null ? 0.0D : hit.hitDistance();
         String targetKey = hit == null
             ? snapshot.player().getUniqueId().toString()
@@ -91,13 +91,23 @@ public class SkillTreeEventHandler extends AbstractEventHandler
                 candidateTargetKey,
                 InputClaimPolicy.CLAIM_AND_CANCEL,
                 () -> isSameTarget(snapshot, hit),
-                () -> handleAdminInteraction(snapshot, context.family(), positionId, connector)
+                () -> handleAdminInteraction(
+                    snapshot,
+                    context.family(),
+                    positionId,
+                    connector,
+                    hit == null ? null : hit.position()
+                )
             ));
         }
         if (!service.isPlayerModeSkillTree(snapshot.player())) {
             return List.of();
         }
         if (hit == null) {
+            return List.of();
+        }
+        SkillTreeNodeDefinition node = service.getNodeByPositionId(hit.position().positionId());
+        if (node == null) {
             return List.of();
         }
         return List.of(new PlayerInputCandidate(
@@ -108,7 +118,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler
             targetKey,
             InputClaimPolicy.CLAIM_AND_CANCEL,
             () -> isSameTarget(snapshot, hit),
-            () -> handlePlayerModeInteraction(snapshot.player(), context.family())
+            () -> handlePlayerModeInteraction(snapshot.player(), context.family(), node)
         ));
     }
 
@@ -117,13 +127,12 @@ public class SkillTreeEventHandler extends AbstractEventHandler
         SkillTreeService.SkillTreePositionHit expected
     ) {
         PlayerInteractionSnapshot currentSnapshot = snapshot.refresh();
-        SkillTreeService.SkillTreePositionHit current = service.findTargetedPositionHit(snapshot.player()).orElse(null);
+        SkillTreeService.SkillTreePositionHit current = service.findTargetedPositionHit(currentSnapshot).orElse(null);
         if (expected == null) {
             return current == null;
         }
         return current != null
-            && current.position().positionId().equals(expected.position().positionId())
-            && currentSnapshot.isVisible(current.hitDistance());
+            && current.position().positionId().equals(expected.position().positionId());
     }
 
     private Collection<PlayerInputCandidate> resolveHotbarSlot(
@@ -178,7 +187,8 @@ public class SkillTreeEventHandler extends AbstractEventHandler
         PlayerInteractionSnapshot snapshot,
         InputFamily family,
         String positionId,
-        boolean connector
+        boolean connector,
+        SkillTreePosition target
     ) {
         AstPlayer astPlayer = AstPlayerCache.get(snapshot.player());
         if (!service.isAdminMode(astPlayer)) {
@@ -186,13 +196,17 @@ public class SkillTreeEventHandler extends AbstractEventHandler
             return;
         }
         if (positionId != null) {
-            handlePositionItem(snapshot, family, positionId);
+            handlePositionItem(snapshot, family, positionId, target);
         } else if (connector) {
-            handleConnectorItem(snapshot.player(), family);
+            handleConnectorItem(snapshot.player(), family, target);
         }
     }
 
-    private void handlePlayerModeInteraction(Player player, InputFamily family) {
+    private void handlePlayerModeInteraction(
+        Player player,
+        InputFamily family,
+        SkillTreeNodeDefinition node
+    ) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) {
             return;
@@ -200,12 +214,6 @@ public class SkillTreeEventHandler extends AbstractEventHandler
         service.preloadState(astPlayer);
         if (!service.isStateReady(astPlayer)) {
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5836);
-            return;
-        }
-        SkillTreeNodeDefinition node = service.findTargetedNode(player).orElse(null);
-        if (node == null) {
-            playDenied(player, 0.85F);
-            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5828);
             return;
         }
         if (family == InputFamily.LEFT_CLICK) {
@@ -334,7 +342,8 @@ public class SkillTreeEventHandler extends AbstractEventHandler
     private void handlePositionItem(
         @NotNull PlayerInteractionSnapshot snapshot,
         @NotNull InputFamily family,
-        @NotNull String positionId
+        @NotNull String positionId,
+        SkillTreePosition target
     ) {
         Player player = snapshot.player();
         if (family == InputFamily.RIGHT_CLICK && snapshot.clickedBlock() != null) {
@@ -345,15 +354,17 @@ public class SkillTreeEventHandler extends AbstractEventHandler
             return;
         }
         if (family == InputFamily.LEFT_CLICK) {
-            SkillTreePosition target = service.findTargetedPosition(player).orElse(null);
             if (target != null && service.removePosition(target.positionId())) {
                 PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5822, target.positionId());
             }
         }
     }
 
-    private void handleConnectorItem(@NotNull Player player, @NotNull InputFamily family) {
-        SkillTreePosition target = service.findTargetedPosition(player).orElse(null);
+    private void handleConnectorItem(
+        @NotNull Player player,
+        @NotNull InputFamily family,
+        SkillTreePosition target
+    ) {
         if (target == null) {
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5823);
             return;

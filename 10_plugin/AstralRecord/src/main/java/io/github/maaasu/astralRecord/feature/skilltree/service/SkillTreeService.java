@@ -29,6 +29,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionRayTrace;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
@@ -42,6 +43,7 @@ import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.ItemDisplay;
@@ -1085,6 +1087,50 @@ public class SkillTreeService {
             return Optional.empty();
         }
 
+        return findTargetedPositionHit(player, ray);
+    }
+
+    /**
+     * 入力イベントが直接示すノード hitbox を優先し、視線上のスキルツリー位置を返します。
+     * Interaction entity に紐づく位置は、イベント自体を命中根拠として再 ray trace せず解決します。
+     *
+     * @param snapshot 判定対象の入力 snapshot
+     * @return 命中したスキルツリー位置と入口距離
+     */
+    @NotNull
+    public Optional<SkillTreePositionHit> findTargetedPositionHit(
+            @NotNull PlayerInteractionSnapshot snapshot
+    ) {
+        Entity targetEntity = snapshot.targetEntity();
+        if (targetEntity instanceof Interaction
+                && targetEntity.getScoreboardTags().contains(NODE_INTERACTION_TAG)) {
+            String positionId = targetEntity.getPersistentDataContainer().get(
+                    positionItemKey,
+                    PersistentDataType.STRING
+            );
+            SkillTreePosition position = positionId == null ? null : positionsById.get(positionId);
+            if (position == null || !targetEntity.isValid()) {
+                return Optional.empty();
+            }
+            Double hitDistance = snapshot.hitDistance(targetEntity);
+            if (hitDistance == null) {
+                hitDistance = Math.min(
+                        snapshot.ray().maxDistance(),
+                        snapshot.rayOrigin().distance(targetEntity.getBoundingBox().getCenter())
+                );
+            }
+            return Optional.of(new SkillTreePositionHit(position, hitDistance));
+        }
+
+        return findTargetedPositionHit(snapshot.player(), snapshot.ray())
+                .filter(hit -> snapshot.isVisible(hit.hitDistance()));
+    }
+
+    private Optional<SkillTreePositionHit> findTargetedPositionHit(
+            @NotNull Player player,
+            @NotNull PlayerInteractionRayTrace ray
+    ) {
+
         SkillTreePositionHit nearest = null;
         for (SkillTreePosition position : positionsById.values()) {
             Location location = position.toLocation();
@@ -1102,6 +1148,20 @@ public class SkillTreeService {
             nearest = new SkillTreePositionHit(position, hitDistance);
         }
         return Optional.ofNullable(nearest);
+    }
+
+    /**
+     * ノード hitbox に対応するスキルツリー位置 ID を保存します。
+     *
+     * @param interaction 対象の Interaction entity
+     * @param positionId 対応するスキルツリー位置 ID
+     */
+    void tagNodeInteraction(@NotNull Interaction interaction, @NotNull String positionId) {
+        interaction.getPersistentDataContainer().set(
+                positionItemKey,
+                PersistentDataType.STRING,
+                positionId
+        );
     }
 
     @NotNull

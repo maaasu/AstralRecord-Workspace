@@ -16,11 +16,22 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusModifierType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionRayTrace;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.util.BoundingBox;
+import org.bukkit.util.Vector;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.plugin.PluginMock;
 
@@ -32,6 +43,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -122,6 +135,43 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
         player.getInventory().setItemInMainHand(service.createPositionItem("position-test", 1));
 
         assertTrue(service.shouldSuppressSkillTreeSetupControls(player));
+    }
+
+    @Test
+    void directNodeInteractionResolvesItsBoundPositionWithoutRayRetargeting() {
+        SkillTreeService service = newService(null);
+        Player player = server().addPlayer();
+        service.registerPosition("1000", new Location(player.getWorld(), 0.0D, 64.0D, 3.0D));
+        Interaction interaction = mock(Interaction.class);
+        PersistentDataContainer data = mock(PersistentDataContainer.class);
+        when(interaction.getScoreboardTags()).thenReturn(Set.of(SkillTreeService.NODE_INTERACTION_TAG));
+        when(interaction.getPersistentDataContainer()).thenReturn(data);
+        when(interaction.isValid()).thenReturn(true);
+        when(interaction.getBoundingBox()).thenReturn(new BoundingBox(-0.9D, 64.0D, 2.1D, 0.9D, 65.8D, 3.9D));
+        when(data.get(any(NamespacedKey.class), eq(PersistentDataType.STRING))).thenReturn("1000");
+        PlayerInteractionSnapshot snapshot = new PlayerInteractionSnapshot(
+                player,
+                mock(Event.class),
+                EquipmentSlot.HAND,
+                null,
+                interaction,
+                null,
+                null,
+                false,
+                PlayerInteractionRayTrace.create(
+                        new Vector(0.0D, 65.62D, 0.0D),
+                        new Vector(0.0D, 0.0D, 1.0D),
+                        8.0D
+                ),
+                8.0D
+        );
+
+        SkillTreeService.SkillTreePositionHit hit = service
+                .findTargetedPositionHit(snapshot)
+                .orElseThrow();
+
+        assertEquals("1000", hit.position().positionId());
+        assertTrue(hit.hitDistance() >= 0.0D);
     }
 
     @Test
