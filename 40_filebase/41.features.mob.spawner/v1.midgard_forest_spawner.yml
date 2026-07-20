@@ -1,18 +1,18 @@
 # design:
-#   motif: "太陽 / 乾いた平原"
-#   progression: 2
+#   motif: "北欧神話 / 世界樹の森"
+#   progression: 3
 schemaVersion: 1
-id: midgard_savanna_spawner
+id: midgard_forest_spawner
 type: MOB_SPAWNER
-region: "ミズガルズ・サバンナ"
+region: "ミズガルズの森林"
 radiusMeters: 22
 
 spawnMobs:
-  - mobId: mob:midgard_savanna_sunback
+  - mobId: mob:midgard_forest_bracken_wolf
     weight: 1
-  - mobId: mob:midgard_savanna_ash_husk
+  - mobId: mob:midgard_forest_moss_wisp
     weight: 1
-  - mobId: mob:midgard_savanna_acacia_watcher
+  - mobId: mob:midgard_forest_root_guard
     weight: 1
 
 spawnTimes:

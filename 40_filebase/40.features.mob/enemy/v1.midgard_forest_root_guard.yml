@@ -1,0 +1,59 @@
+# design:
+#   motif: "北欧神話 / 世界樹の根"
+#   progression: 3
+schemaVersion: 1
+id: midgard_forest_root_guard
+type: MOB
+category: ENEMY
+name: "&6ミズガルズ・ルートガード"
+level: 6
+entityType: IRON_GOLEM
+icon: OAK_LOG
+lore:
+  - "&7地表に現れた巨大な根を核に、森を守る石の番人。"
+  - "&7重い腕を振るい、樹木を傷つける者を押し返す。"
+tags:
+  - midgard
+  - forest
+  - guardian
+  - melee
+  - root
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 210
+  - status: ATTACK
+    value: 25
+  - status: STRENGTH
+    value: 26
+  - status: DEFENSE
+    value: 10
+  - status: MAGIC_DEFENSE
+    value: 5
+  - status: MOVEMENT_SPEED
+    value: 90
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 9
+    speed: 0.75
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 16
+    deaggroRange: 26
+    leashRange: 30
+  combat:
+    style: MELEE
+    preferredRange: 2.6
+    attackIntervalTicks: 36
+    skills:
+      - ref: skill:mob_field_heavy_slash
+
+drops:
+  exp: 58
+  money:
+    min: 7
+    max: 18
+  lootTable:
+    ref: loot_table:midgard_grassland_orb_table

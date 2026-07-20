@@ -1,0 +1,57 @@
+# design:
+#   motif: "北欧神話 / フェンリル"
+#   progression: 3
+schemaVersion: 1
+id: midgard_forest_bracken_wolf
+type: MOB
+category: ENEMY
+name: "&2ミズガルズ・ブラックバックウルフ"
+level: 4
+entityType: WOLF
+icon: WOLF_SPAWN_EGG
+lore:
+  - "&7シダに覆われた獣道を駆ける、深森の狩人。"
+  - "&7一度獲物を見定めると、鋭い爪で間合いを裂く。"
+tags:
+  - midgard
+  - forest
+  - beast
+  - melee
+  - wolf
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 120
+  - status: ATTACK
+    value: 18
+  - status: STRENGTH
+    value: 18
+  - status: DEFENSE
+    value: 4
+  - status: MOVEMENT_SPEED
+    value: 112
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 14
+    speed: 1.0
+  targeting:
+    strategy: NEAREST
+    aggroRange: 18
+    deaggroRange: 28
+    leashRange: 34
+  combat:
+    style: MELEE
+    preferredRange: 2.0
+    attackIntervalTicks: 24
+    skills:
+      - ref: skill:mob_goblin_slash
+
+drops:
+  exp: 38
+  money:
+    min: 4
+    max: 11
+  lootTable:
+    ref: loot_table:midgard_grassland_orb_table
