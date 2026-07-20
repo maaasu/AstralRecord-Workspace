@@ -3,12 +3,12 @@ package io.github.maaasu.astralRecord.feature.mob.model;
 /**
  * Mob の表示装備設定。表示のみに使用し、ステータス計算には影響しない。
  *
- * @param mainHand   メインハンドのアイテム ID（prefix 除去済み）
- * @param offHand    オフハンドのアイテム ID
- * @param helmet     ヘルメットのアイテム ID
- * @param chestplate チェストプレートのアイテム ID
- * @param leggings   レギンスのアイテム ID
- * @param boots      ブーツのアイテム ID
+ * @param mainHand   メインハンドへ表示する Minecraft Material 名
+ * @param offHand    オフハンドへ表示する Minecraft Material 名
+ * @param helmet     ヘルメットへ表示する Minecraft Material 名
+ * @param chestplate チェストプレートへ表示する Minecraft Material 名
+ * @param leggings   レギンスへ表示する Minecraft Material 名
+ * @param boots      ブーツへ表示する Minecraft Material 名
  */
 public record MobEquipmentConfig(
         String mainHand,

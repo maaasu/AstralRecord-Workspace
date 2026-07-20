@@ -2,8 +2,10 @@ package io.github.maaasu.astralRecord.feature.mob.service;
 
 import io.github.maaasu.astralRecord.feature.mob.model.IdleBehavior;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
+import io.github.maaasu.astralRecord.feature.mob.model.MobEquipmentConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
+import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.papermc.paper.entity.LookAnchor;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -34,6 +36,7 @@ import org.joml.Vector3f;
 
 import java.lang.reflect.Method;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 /**
  * AstralRecord Mob と Bukkit 実体 Mob の橋渡しを担当します。
@@ -259,6 +262,7 @@ public class MobEntityController {
         mob.setCustomNameVisible(false);
         applyVariant(template, mob);
         clearEquipment(mob.getEquipment());
+        applyEquipment(mob.getEquipment(), template.equipment());
 
         mob.getPersistentDataContainer().set(instanceIdKey, PersistentDataType.STRING, instance.instanceId().toString());
         mob.getPersistentDataContainer().set(templateIdKey, PersistentDataType.STRING, template.id());
@@ -692,6 +696,46 @@ public class MobEntityController {
         equipment.setChestplateDropChance(0.0F);
         equipment.setLeggingsDropChance(0.0F);
         equipment.setBootsDropChance(0.0F);
+    }
+
+    static void applyEquipment(
+            @Nullable EntityEquipment equipment,
+            @NotNull MobEquipmentConfig config
+    ) {
+        if (equipment == null) {
+            return;
+        }
+
+        setEquipmentItem(equipment::setItemInMainHand, config.mainHand());
+        setEquipmentItem(equipment::setItemInOffHand, config.offHand());
+        setEquipmentItem(equipment::setHelmet, config.helmet());
+        setEquipmentItem(equipment::setChestplate, config.chestplate());
+        setEquipmentItem(equipment::setLeggings, config.leggings());
+        setEquipmentItem(equipment::setBoots, config.boots());
+    }
+
+    private static void setEquipmentItem(
+            @NotNull Consumer<ItemStack> setter,
+            @Nullable String rawMaterial
+    ) {
+        Material material = resolveEquipmentMaterial(rawMaterial);
+        if (material != null) {
+            setter.accept(new ItemStack(material));
+        }
+    }
+
+    @Nullable
+    static Material resolveEquipmentMaterial(@Nullable String rawMaterial) {
+        if (rawMaterial == null || rawMaterial.isBlank()) {
+            return null;
+        }
+
+        String materialName = rawMaterial.trim();
+        int separator = materialName.indexOf(':');
+        if (separator >= 0) {
+            materialName = materialName.substring(separator + 1);
+        }
+        return MaterialNameResolver.match(materialName);
     }
 
     void applyStationaryNpcAttributes(@NotNull MobTemplate template, @NotNull Mob mob) {
