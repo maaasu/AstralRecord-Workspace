@@ -24,4 +24,4 @@ equipment:
       value: 2~3
     - status: CRITICAL_DAMAGE
       type: FLAT
-      value: 0.05
+      value: 5

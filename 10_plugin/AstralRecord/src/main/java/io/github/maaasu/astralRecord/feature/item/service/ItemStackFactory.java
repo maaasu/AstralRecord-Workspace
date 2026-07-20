@@ -668,7 +668,7 @@ public class ItemStackFactory {
             for (ItemEquipmentStat stat : equipment.getStats()) {
                 StatusType statusType = resolveStatusTypeOrNull(stat.getStatus());
                 String statColor = statusCategoryColor(stat.getStatus(), statusType);
-                String displayName = resolveStatusDisplayName(stat.getStatus(), statusType);
+                String displayName = resolveStatusDisplayName(stat.getStatus(), statusType, stat.getType());
                 lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
                         + statColor + displayName
                         + ColorCodeUtil.DARK_GRAY + " : "
@@ -1008,7 +1008,7 @@ public class ItemStackFactory {
                             : "";
 
                     String statColor = statusCategoryColor(roll.getStatus(), statusType);
-                    String displayName = resolveStatusDisplayName(roll.getStatus(), statusType);
+                    String displayName = resolveStatusDisplayName(roll.getStatus(), statusType, rollType);
                     lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
                             + statColor + displayName
                             + ColorCodeUtil.DARK_GRAY + " : "
@@ -1034,7 +1034,7 @@ public class ItemStackFactory {
                             ? formatStatValueWithType(type, statusType, enhAdd[0])
                             : formatStatRange(type, statusType, enhAdd[0], enhAdd[1]);
                     String statColor = statusCategoryColor(status, statusType);
-                    String displayName = resolveStatusDisplayName(status, statusType);
+                    String displayName = resolveStatusDisplayName(status, statusType, type);
                     lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
                             + statColor + displayName
                             + ColorCodeUtil.DARK_GRAY + " : "
@@ -1058,7 +1058,7 @@ public class ItemStackFactory {
                                 ? ItemEquipmentStatType.SCALAR : ItemEquipmentStatType.FLAT;
                         StatusType statusType = resolveStatusTypeOrNull(enchant.getStatus());
                         String statColor = statusCategoryColor(enchant.getStatus(), statusType);
-                        String displayName = resolveStatusDisplayName(enchant.getStatus(), statusType);
+                        String displayName = resolveStatusDisplayName(enchant.getStatus(), statusType, enchantType);
                         lore.add(ColorCodeUtil.DARK_GRAY + " [" + (enchant.getSlotIndex() + 1) + "] "
                                 + statColor + displayName
                                 + ColorCodeUtil.DARK_GRAY + " : "
@@ -1136,7 +1136,7 @@ public class ItemStackFactory {
                         ? ItemEquipmentStatType.SCALAR : ItemEquipmentStatType.FLAT;
                 StatusType statusType = resolveStatusTypeOrNull(roll.getStatus());
                 String statColor = statusCategoryColor(roll.getStatus(), statusType);
-                String displayName = resolveStatusDisplayName(roll.getStatus(), statusType);
+                String displayName = resolveStatusDisplayName(roll.getStatus(), statusType, rollType);
                 lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
                         + statColor + displayName
                         + ColorCodeUtil.DARK_GRAY + " : "
@@ -1252,9 +1252,10 @@ public class ItemStackFactory {
     private @NotNull String formatStatValueWithType(
             @NotNull ItemEquipmentStatType type, @Nullable StatusType statusType, double value) {
         if (type == ItemEquipmentStatType.SCALAR) {
-            return STATUS_VALUE_COLOR + "+" + formatStatValue(value * 100.0D) + "%";
+            return STATUS_VALUE_COLOR + "×" + formatStatValue(value * 100.0D) + "%";
         }
-        return STATUS_VALUE_COLOR + "+" + formatStatValue(value);
+        String suffix = statusType != null && statusType.isPercentage() ? "%" : "";
+        return STATUS_VALUE_COLOR + "+" + formatStatValue(value) + suffix;
     }
 
     private @NotNull String formatStatValueWithType(
@@ -1305,6 +1306,14 @@ public class ItemStackFactory {
     /**
      * 解決済みStatusTypeがある場合はそれを優先して表示名を返します。
      */
+    private @NotNull String resolveStatusDisplayName(
+            @NotNull String rawStatus,
+            @Nullable StatusType type,
+            @NotNull ItemEquipmentStatType statType) {
+        String displayName = resolveStatusDisplayName(rawStatus, type);
+        return statType == ItemEquipmentStatType.SCALAR ? "最終" + displayName + "乗数" : displayName;
+    }
+
     private @NotNull String resolveStatusDisplayName(@NotNull String rawStatus, @Nullable StatusType type) {
         if (type != null) {
             return type.getDisplayName();

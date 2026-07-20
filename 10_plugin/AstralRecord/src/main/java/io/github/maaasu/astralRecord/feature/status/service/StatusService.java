@@ -595,6 +595,8 @@ public class StatusService {
             statTypes.put(normalizeStatusKey(stat.getStatus()), stat.getType());
         }
 
+        EquipmentItemBonus itemBonus = new EquipmentItemBonus();
+
         for (EquipmentStatRoll roll : instance.getStatRolls()) {
             StatusType statusType = resolveStatusTypeOrNull(roll.getStatus());
             if (statusType == null) {
@@ -604,8 +606,8 @@ public class StatusService {
                 normalizeStatusKey(roll.getStatus()),
                 ItemEquipmentStatType.FLAT
             );
-            addBonus(
-                bonus,
+            addItemBonus(
+                itemBonus,
                 statusType,
                 statType,
                 parseStatDouble(roll.getMin()),
@@ -615,7 +617,7 @@ public class StatusService {
 
         for (Map.Entry<String, EquipmentStatAmount> entry : calculateEnhanceStats(equipment, instance.getEnhanceLevel()).entrySet()) {
             EquipmentStatAmount amount = entry.getValue();
-            addBonus(bonus, amount.statusType, amount.type, amount.min, amount.max);
+            addItemBonus(itemBonus, amount.statusType, amount.type, amount.min, amount.max);
         }
 
         for (EquipmentEnchant enchant : instance.getEnchants()) {
@@ -623,13 +625,20 @@ public class StatusService {
             if (statusType == null) {
                 continue;
             }
-            addBonus(
-                bonus,
+            addItemBonus(
+                itemBonus,
                 statusType,
                 ItemEquipmentStatType.fromApiValue(enchant.getType()),
                 enchant.getValue(),
                 enchant.getValue()
             );
+        }
+
+        for (StatusType statusType : StatusType.values()) {
+            StatusRange contribution = itemBonus.resolve(statusType);
+            if (contribution != null) {
+                addBonus(bonus, statusType, ItemEquipmentStatType.FLAT, contribution.min(), contribution.max());
+            }
         }
     }
 
@@ -726,6 +735,27 @@ public class StatusService {
         target.computeIfAbsent(statusType, ignored -> new StatusRangeAccumulator()).add(min, max);
     }
 
+    private void addItemBonus(
+        @NotNull EquipmentItemBonus bonus,
+        @NotNull StatusType statusType,
+        @NotNull ItemEquipmentStatType statType,
+        double min,
+        double max
+    ) {
+        Map<StatusType, StatusRangeAccumulator> target = statType == ItemEquipmentStatType.SCALAR
+            ? bonus.scalarValues
+            : bonus.flatValues;
+        StatusRangeAccumulator accumulator = target.computeIfAbsent(
+            statusType,
+            ignored -> new StatusRangeAccumulator()
+        );
+        if (statType == ItemEquipmentStatType.SCALAR) {
+            accumulator.set(min, max);
+        } else {
+            accumulator.add(min, max);
+        }
+    }
+
     private @NotNull Map<String, EquipmentStatAmount> calculateEnhanceStats(
         @NotNull ItemEquipment equipment,
         int enhanceLevel
@@ -787,6 +817,35 @@ public class StatusService {
         }
     }
 
+    private static final class EquipmentItemBonus {
+        private final Map<StatusType, StatusRangeAccumulator> flatValues = new EnumMap<>(StatusType.class);
+        private final Map<StatusType, StatusRangeAccumulator> scalarValues = new EnumMap<>(StatusType.class);
+
+        private @Nullable StatusRange resolve(@NotNull StatusType statusType) {
+            StatusRangeAccumulator flat = flatValues.get(statusType);
+            if (flat == null) {
+                return null;
+            }
+            StatusRangeAccumulator scalar = scalarValues.get(statusType);
+            if (scalar == null) {
+                return new StatusRange(flat.min, flat.max);
+            }
+            double[] values = {
+                flat.min * scalar.min,
+                flat.min * scalar.max,
+                flat.max * scalar.min,
+                flat.max * scalar.max
+            };
+            double min = values[0];
+            double max = values[0];
+            for (double value : values) {
+                min = Math.min(min, value);
+                max = Math.max(max, value);
+            }
+            return new StatusRange(min, max);
+        }
+    }
+
     private static final class StatusRangeAccumulator {
         private double min;
         private double max;
@@ -794,6 +853,11 @@ public class StatusService {
         private void add(double first, double second) {
             min += Math.min(first, second);
             max += Math.max(first, second);
+        }
+
+        private void set(double first, double second) {
+            min = Math.min(first, second);
+            max = Math.max(first, second);
         }
 
         private double average() {

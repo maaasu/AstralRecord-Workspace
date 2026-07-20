@@ -24,4 +24,4 @@ equipment:
       value: 3~4
     - status: CRITICAL_RATE
       type: FLAT
-      value: 0.02
+      value: 2

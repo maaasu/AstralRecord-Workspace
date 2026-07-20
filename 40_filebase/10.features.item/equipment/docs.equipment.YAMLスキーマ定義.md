@@ -18,8 +18,8 @@
 | `equipment[].setId`                                       | String        | ×  | -     | このアイテムが属するセット効果ID（架空例: `example_guardian_set`）。セット効果定義は `set_effect/docs.set_effect.YAMLスキーマ定義.md` を参照。                                                  |
 | `equipment[].stats[]`                                     | List          | ×  | -     | 装備中に適用される基礎ステータス補正のリスト（後述）。                                                                                                                    |
 | `equipment[].stats[].status`                              | String        | ×  | -     | 対象ステータス（`StatusType`）。例: `ATTACK` / `DEFENSE` / `MOVEMENT_SPEED`。                                                                              |
-| `equipment[].stats[].type`                                | String        | ×  | -     | 補正方式（`FLAT` / `SCALAR`）。`FLAT` は加算、`SCALAR` は乗算係数。                                                                                             |
-| `equipment[].stats[].value`                               | String/Object | ×  | -     | ステータスの下限値/上限値。固定値（例: `12`）、固定範囲（例: `10~20`）、または `min/max` オブジェクト（後述）で指定。`SCALAR` の場合は `0.10 = +10%`。                                           |
+| `equipment[].stats[].type`                                | String        | ×  | -     | 補正方式（`FLAT` / `SCALAR`）。`FLAT` は加算、`SCALAR` は同一装備内の同じステータスのフラット値へ適用する最終乗数。                                                                                             |
+| `equipment[].stats[].value`                               | String/Object | ×  | -     | ステータスの下限値/上限値。固定値（例: `12`）、固定範囲（例: `10~20`）、または `min/max` オブジェクト（後述）で指定。パーセンテージ系ステータスの `FLAT` は表示単位（`1` = `+1%`）で指定し、`SCALAR` は係数（`0.50` = `×50%`）で指定する。                                           |
 | `equipment[].stats[].value.min`                           | String        | ×  | -     | ステータス下限値。固定値または範囲（例: `10` / `10~20`）。                                                                                                          |
 | `equipment[].stats[].value.max`                           | String        | ×  | -     | ステータス上限値。固定値または範囲（例: `21` / `21~50`）。                                                                                                          |
 | `equipment[].durability.max`                              | Integer       | ×  | -     | 最大耐久値（任意）。指定しない場合は耐久管理なし。                                                                                                                      |
@@ -108,7 +108,7 @@
 
 ### equipment[].stats[].type
 - `FLAT` : 定数加算
-- `SCALAR`: 乗算（ベース値に対して）
+- `SCALAR`: 同一装備内の対応する `FLAT` の最終乗数。対応する `FLAT` がない場合は無効。
 
 ### equipment[].stats[].value
 
