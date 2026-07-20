@@ -1,6 +1,9 @@
 package io.github.maaasu.astralRecord.feature.gathering.spawner.event;
 
 import io.github.maaasu.astralRecord.feature.gathering.spawner.service.GatheringSpawnerService;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.shared.interaction.InputClaimPolicy;
 import io.github.maaasu.astralRecord.shared.interaction.InputFamily;
 import io.github.maaasu.astralRecord.shared.interaction.InputSource;
@@ -13,33 +16,47 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.util.Vector;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import java.util.Objects;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class GatheringSpawnerBlockEventHandlerTest {
 
     @Test
-    void allowsVanillaPlacementToCompleteBeforeRegisteringGatheringSpawner() {
+    void cancelsVanillaPlacementWithoutConsumingGatheringSpawnerItem() {
         GatheringSpawnerService spawnerService = mock(GatheringSpawnerService.class);
         BlockPlaceEvent event = mock(BlockPlaceEvent.class);
         Block placedBlock = mock(Block.class);
         Location location = mock(Location.class);
         World world = mock(World.class);
+        Player player = mock(Player.class);
+        PlayerInventory inventory = mock(PlayerInventory.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        PlayerMessageService messageService = mock(PlayerMessageService.class);
         when(event.getBlockPlaced()).thenReturn(placedBlock);
+        when(event.getPlayer()).thenReturn(player);
         when(placedBlock.getLocation()).thenReturn(location);
         when(placedBlock.getWorld()).thenReturn(world);
         when(world.getUID()).thenReturn(UUID.randomUUID());
+        when(player.getInventory()).thenReturn(inventory);
         when(spawnerService.readSpawnerId(any())).thenReturn("test_spawner");
+        when(spawnerService.isAdminMode(astPlayer)).thenReturn(true);
+        when(spawnerService.registerLocation("test_spawner", location)).thenReturn(true);
         PlayerInteractionSnapshot snapshot = new PlayerInteractionSnapshot(
-            mock(Player.class),
+            player,
             event,
             EquipmentSlot.HAND,
             null,
@@ -60,6 +77,17 @@ class GatheringSpawnerBlockEventHandlerTest {
         ));
 
         assertEquals(1, candidates.size());
-        assertEquals(InputClaimPolicy.CLAIM, candidates.iterator().next().claimPolicy());
+        var candidate = candidates.iterator().next();
+        assertEquals(InputClaimPolicy.CLAIM_AND_CANCEL, candidate.claimPolicy());
+        assertTrue(candidate.claimPolicy().isCancelRequested());
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
+
+            assertTrue(candidate.executeIfValid());
+        }
+        verify(spawnerService).registerLocation("test_spawner", location);
+        verify(inventory, never()).getItem(any(EquipmentSlot.class));
     }
 }

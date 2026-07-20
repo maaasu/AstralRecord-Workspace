@@ -91,7 +91,7 @@ public final class MobSpawnerBlockEventHandler
                 0.0D,
                 InteractionCandidateOrder.MOB_SPAWNER,
                 locationKey(event.getBlockPlaced().getLocation()),
-                InputClaimPolicy.CLAIM,
+                InputClaimPolicy.CLAIM_AND_CANCEL,
                 () -> placeSpawner(event, spawnerId)
             ));
         }

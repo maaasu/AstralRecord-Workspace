@@ -91,7 +91,7 @@ public final class GatheringSpawnerBlockEventHandler
                 0.0D,
                 InteractionCandidateOrder.GATHERING_SPAWNER,
                 snapshot.directTargetKey(),
-                InputClaimPolicy.CLAIM,
+                InputClaimPolicy.CLAIM_AND_CANCEL,
                 () -> placeSpawner(event, spawnerId)
             ));
         }
