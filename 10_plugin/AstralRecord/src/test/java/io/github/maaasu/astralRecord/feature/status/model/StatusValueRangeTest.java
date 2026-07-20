@@ -40,7 +40,7 @@ class StatusValueRangeTest {
         assertEquals("150.0%", StatusType.CRITICAL_DAMAGE.formatValue(150.0D));
         assertEquals("95.0%", StatusType.ACCURACY.formatValue(95.0D));
         assertEquals("100%", StatusType.ATTACK_SPEED.formatValue(100.0D));
-        assertEquals("100%", StatusType.MOVEMENT_SPEED.formatValue(100.0D));
+        assertEquals("100", StatusType.MOVEMENT_SPEED.formatValue(100.0D));
         assertTrue(StatusType.byCategory(StatusType.Category.UTILITY).contains(StatusType.MOVEMENT_SPEED));
     }
 }

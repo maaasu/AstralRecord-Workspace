@@ -149,8 +149,8 @@ enum class StatusType(
     /** エネルギー自然回復量（5秒あたり） */
     ENERGY_REGEN("EN回復力", Category.UTILITY),
 
-    /** 移動速度 — 100% が標準速度 */
-    MOVEMENT_SPEED("移動速度", Category.UTILITY, "%", 0),
+    /** 移動速度 — 100 がバニラ標準速度 */
+    MOVEMENT_SPEED("移動速度", Category.UTILITY),
 
     /** クールダウン短縮率 */
     COOLDOWN_REDUCTION("CD短縮", Category.UTILITY, "%", 1),

@@ -52,6 +52,8 @@ import java.util.TreeSet;
  */
 public class StatusService {
 
+    private static final double VANILLA_PLAYER_MOVEMENT_SPEED = 0.1D;
+
     private final BuffService buffService;
     private final ItemService itemService;
     private final InventoryService inventoryService;
@@ -145,7 +147,7 @@ public class StatusService {
         }
 
         double speedPercent = Math.max(0.0D, snapshot.getMaxValue(StatusType.MOVEMENT_SPEED));
-        attribute.setBaseValue(attribute.getDefaultValue() * speedPercent / 100.0D);
+        attribute.setBaseValue(VANILLA_PLAYER_MOVEMENT_SPEED * speedPercent / 100.0D);
     }
 
     /**
