@@ -317,6 +317,10 @@ public final class EquipmentEnhancementService {
             return;
         }
 
+        // 消費結果をプレイヤーの表示インベントリへ即時反映する。
+        inventoryService.applyInventoryToGui(astPlayer, InventoryType.BAG);
+        player.updateInventory();
+
         UUID operationId = UUID.randomUUID();
         session.inFlightOperationId = operationId;
         session.paymentSnapshot = paymentSnapshot;
@@ -450,6 +454,8 @@ public final class EquipmentEnhancementService {
             releaseSession(astPlayer, session, player.isOnline());
             return;
         }
+        inventoryService.applyInventoryToGui(astPlayer, InventoryType.BAG);
+        player.updateInventory();
         render(player, player.getOpenInventory().getTopInventory(), session);
     }
 

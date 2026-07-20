@@ -49,6 +49,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
     private final EquipmentEnhancementService equipmentEnhancementService;
     private final EquipmentRepairService equipmentRepairService;
     private final MenuGuiTransitionService menuGuiTransitionService;
+    private final MenuOpenEventHandler menuOpenEventHandler;
 
     /**
      * 装備 GUI とプレイヤーインベントリ上の装備操作を処理するイベントハンドラーを生成します。
@@ -58,6 +59,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
      * @param currencyService 通貨表示を担当するサービス
      * @param statusService ステータス再計算サービス
      * @param passiveSkillService 装備由来パッシブの再同期サービス
+     * @param menuOpenEventHandler クラフトスロットのショートカット再描画サービス
      */
     public InventoryEquipmentGuiEventHandler(
         @NotNull MenuView menuView,
@@ -67,7 +69,8 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         @NotNull PassiveSkillService passiveSkillService,
         @NotNull EquipmentEnhancementService equipmentEnhancementService,
         @NotNull EquipmentRepairService equipmentRepairService,
-        @NotNull MenuGuiTransitionService menuGuiTransitionService
+        @NotNull MenuGuiTransitionService menuGuiTransitionService,
+        @NotNull MenuOpenEventHandler menuOpenEventHandler
     ) {
         this.menuView = menuView;
         this.inventoryService = inventoryService;
@@ -77,6 +80,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         this.equipmentEnhancementService = equipmentEnhancementService;
         this.equipmentRepairService = equipmentRepairService;
         this.menuGuiTransitionService = menuGuiTransitionService;
+        this.menuOpenEventHandler = menuOpenEventHandler;
     }
 
     /**
@@ -630,6 +634,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
     private void refreshStatusAfterEquipmentChange(@NotNull AstPlayer astPlayer) {
         passiveSkillService.markDirty(astPlayer);
         statusService.refreshStatus(astPlayer);
+        menuOpenEventHandler.refreshCraftShortcuts(astPlayer.getBukkit());
     }
 
     private void playResultSound(@NotNull Player player, boolean handled, boolean equipAction) {

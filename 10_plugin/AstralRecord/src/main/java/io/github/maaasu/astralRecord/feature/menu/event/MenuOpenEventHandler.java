@@ -921,6 +921,15 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         plugin.getServer().getScheduler().runTask(plugin, () -> renderCraftShortcuts(player));
     }
 
+    /**
+     * 装備変更後にクラフトスロットのショートカット表示を再描画します。
+     *
+     * @param player 再描画対象のプレイヤー
+     */
+    public void refreshCraftShortcuts(@NotNull Player player) {
+        scheduleCraftShortcutRender(player);
+    }
+
     private void renderCraftShortcuts(@NotNull Player player) {
         UUID playerId = player.getUniqueId();
         if (craftRenderSuppressed.contains(playerId)) {
