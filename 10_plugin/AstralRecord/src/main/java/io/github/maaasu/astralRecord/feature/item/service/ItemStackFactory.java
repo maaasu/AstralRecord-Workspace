@@ -1251,7 +1251,7 @@ public class ItemStackFactory {
 
     private @NotNull String formatStatValueWithType(
             @NotNull ItemEquipmentStatType type, @Nullable StatusType statusType, double value) {
-        if (type == ItemEquipmentStatType.SCALAR || (statusType != null && statusType.isPercentage())) {
+        if (type == ItemEquipmentStatType.SCALAR) {
             return STATUS_VALUE_COLOR + "+" + formatStatValue(value * 100.0D) + "%";
         }
         return STATUS_VALUE_COLOR + "+" + formatStatValue(value);
