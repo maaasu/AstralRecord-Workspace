@@ -164,20 +164,26 @@ class PlayerClassService @JvmOverloads constructor(
      * @param astPlayer 表示対象プレイヤー
      * @return クラスマスタ順の進行度一覧
      */
-    fun getClassProgressViewEntries(astPlayer: AstPlayer): List<ClassProgressViewEntry> =
-        classService.getLoadedClasses().map { model ->
-            val progress = astPlayer.getClassProgress(model.id)
-            ClassProgressViewEntry(
-                id = model.id,
-                name = ColorCodeUtil.toLegacyText(model.name, model.id),
-                icon = model.icon,
-                level = progress.level,
-                experience = progress.experience,
-                experienceProgress = classExperienceProgress(model, progress.level, progress.experience),
-                experienceRemaining = classExperienceRemainingToNextLevel(model, progress.level, progress.experience),
-                current = model.id.equals(astPlayer.classId, ignoreCase = true),
-            )
-        }
+    fun getClassProgressViewEntries(astPlayer: AstPlayer): List<ClassProgressViewEntry> {
+        val employedClassIds = astPlayer.getAllClassProgresses()
+            .map { it.classId }
+            .toSet()
+        return classService.getLoadedClasses()
+            .filter { model -> employedClassIds.any { it.equals(model.id, ignoreCase = true) } }
+            .map { model ->
+                val progress = astPlayer.getClassProgress(model.id)
+                ClassProgressViewEntry(
+                    id = model.id,
+                    name = ColorCodeUtil.toLegacyText(model.name, model.id),
+                    icon = model.icon,
+                    level = progress.level,
+                    experience = progress.experience,
+                    experienceProgress = classExperienceProgress(model, progress.level, progress.experience),
+                    experienceRemaining = classExperienceRemainingToNextLevel(model, progress.level, progress.experience),
+                    current = model.id.equals(astPlayer.classId, ignoreCase = true),
+                )
+            }
+    }
 
     fun getClassViewEntries(astPlayer: AstPlayer): List<ClassViewEntry> {
         val skillRegistry = AstralRecord.getInstance().skillService?.registry()
