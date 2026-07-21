@@ -81,7 +81,7 @@ function Invoke-MasterDataSeed {
         }
 
         Write-Host "==> Seeding MasterDataDB ($Mode)" -ForegroundColor Cyan
-        $result = Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -ContentType 'application/json'
+        $result = Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -ContentType 'application/json' -Body '{}'
         if ([string]$result.status -eq 'FAILED') {
             throw "MasterDataDB seed failed: $($result.errorMessage)"
         }
