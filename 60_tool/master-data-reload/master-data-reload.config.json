@@ -8,6 +8,7 @@
   },
   "api": {
     "baseUrl": "http://localhost:5261",
+    "apiKey": "",
     "apiKeyEnvironmentVariable": "ASTRALRECORD_API_KEY",
     "verifySsl": true
   }

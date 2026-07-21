@@ -56,9 +56,19 @@ function Invoke-MasterDataSeed {
     param($Config)
 
     $environmentVariable = [string]$Config.api.apiKeyEnvironmentVariable
-    $apiKey = [Environment]::GetEnvironmentVariable($environmentVariable)
+    $apiKey = ''
+    if ($null -ne $Config.api.PSObject.Properties['apiKey']) {
+        $apiKey = [string]$Config.api.apiKey
+    }
+    if ([string]::IsNullOrWhiteSpace($apiKey) -and -not [string]::IsNullOrWhiteSpace($environmentVariable)) {
+        $apiKey = [Environment]::GetEnvironmentVariable($environmentVariable)
+    }
     if ([string]::IsNullOrWhiteSpace($apiKey)) {
-        throw "API key environment variable is empty: $environmentVariable"
+        if ([string]::IsNullOrWhiteSpace($environmentVariable)) {
+            throw 'API key is empty. Set api.apiKey in master-data-reload.config.json or configure api.apiKeyEnvironmentVariable.'
+        }
+
+        throw "API key is empty. Set api.apiKey in master-data-reload.config.json or environment variable: $environmentVariable"
     }
 
     $uri = "$($Config.api.baseUrl.TrimEnd('/'))/api/master-data/seed?mode=$Mode"

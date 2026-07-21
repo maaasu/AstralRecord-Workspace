@@ -43,6 +43,18 @@ bat はどのカレントディレクトリから実行しても動作するよ�
 
 Master data reload の実行前には `ASTRALRECORD_API_KEY` を設定してください。
 
+API key は `master-data-reload/master-data-reload.config.json` の `api.apiKey` に設定できます。`apiKey` が空の場合は、`api.apiKeyEnvironmentVariable` で指定した環境変数を使用します。
+
+```json
+{
+  "api": {
+    "apiKey": "your-api-key"
+  }
+}
+```
+
+環境変数を使用する場合は、従来どおり次のように実行できます。
+
 ```powershell
 $env:ASTRALRECORD_API_KEY = 'your-api-key'
 E:\AstralRecord-Workspace\60_tool\03-master-data-reload.bat
