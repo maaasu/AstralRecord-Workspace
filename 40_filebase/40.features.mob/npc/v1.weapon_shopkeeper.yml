@@ -3,7 +3,7 @@ schemaVersion: 1
 id: weapon_shopkeeper
 type: MOB
 category: NPC
-name: "&6武器・道具商人ルーク"
+name: "&6武商人ルーク"
 title: "&7武器・ツールショップ"
 level: 1
 entityType: PLAYER
@@ -32,7 +32,7 @@ interactions:
   leftClick:
     - id: message
       params:
-        message: "&6武器・道具商人ルーク&7: 武器や採集ツールを見ていきな。"
+        message: "&6武器商人ルーク&7: 品質の高い武器を販売しているぞ！！"
   rightClick:
     - id: gui
       params:
