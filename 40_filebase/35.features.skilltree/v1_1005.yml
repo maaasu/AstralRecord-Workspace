@@ -7,8 +7,6 @@ pointType: PP
 pointCost: 1
 lore:
   - "&7防御を固め、前線で踏みとどまるための受けを習得する。"
-skillIds:
-  - sw_passive_wall
 tags:
   - passive
   - melee

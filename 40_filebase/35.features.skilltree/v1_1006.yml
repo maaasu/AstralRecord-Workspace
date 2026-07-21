@@ -7,8 +7,6 @@ pointType: PP
 pointCost: 1
 lore:
   - "&7装備の重さに慣れ、耐久を底上げする。"
-skillIds:
-  - sw_passive_iron_body
 tags:
   - passive
   - melee

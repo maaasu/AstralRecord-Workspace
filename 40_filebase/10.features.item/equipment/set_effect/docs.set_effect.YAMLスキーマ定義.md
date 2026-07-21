@@ -92,7 +92,7 @@ pieces:
         type: FLAT
         value: 20
     skills:
-      - ref: skill:sw_passive_parry
+      - ref: skill:iron_will
   - count: 6
     stats:
       - status: ATTACK
@@ -102,8 +102,8 @@ pieces:
         type: FLAT
         value: 12
     skills:
-      - ref: skill:sw_passive_parry
-      - ref: skill:sw_passive_execution
+      - ref: skill:iron_will
+      - ref: skill:iron_will
 ```
 
 ---

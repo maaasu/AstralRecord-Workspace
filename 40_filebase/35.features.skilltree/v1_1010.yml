@@ -7,8 +7,6 @@ pointType: PP
 pointCost: 1
 lore:
   - "&7深い魔力を汲み上げ、最大マナを押し広げる。"
-skillIds:
-  - mg_passive_mana_well
 tags:
   - passive
   - magic

@@ -22,7 +22,13 @@ import org.jetbrains.annotations.Nullable;
 public final class ClassCommand extends AstCommand {
 
     public ClassCommand() {
-        super("class", "プレイヤーのクラスを変更します。", "/class gui|change <classId> [player]", false, UserPermission.ADMIN.getValue());
+        super(
+            "class",
+            "プレイヤーのクラスを変更・設定します。",
+            "/class [change <classId> [player]|level <classId> <level|+delta|-delta> [player]]",
+            false,
+            UserPermission.ADMIN.getValue()
+        );
     }
 
     @Override
@@ -31,11 +37,23 @@ public final class ClassCommand extends AstCommand {
             sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5061.getId()));
             return;
         }
-        if (args.length >= 1 && args[0].equalsIgnoreCase("gui")) {
+        if (args.length == 0) {
             openGui(sender);
             return;
         }
-        if (args.length < 2 || !args[0].equalsIgnoreCase("change")) {
+        if (args[0].equalsIgnoreCase("change")) {
+            changeClass(sender, args);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("level")) {
+            setClassLevel(sender, args);
+            return;
+        }
+        sendUsage(sender);
+    }
+
+    private void changeClass(@NotNull CommandSender sender, @NotNull String[] args) {
+        if (args.length < 2) {
             sendUsage(sender);
             return;
         }
@@ -53,7 +71,7 @@ public final class ClassCommand extends AstCommand {
             return;
         }
 
-        AstPlayer target = resolveTarget(sender, args);
+        AstPlayer target = resolveTarget(sender, args.length >= 3 ? args[2] : null);
         if (target == null) {
             return;
         }
@@ -67,6 +85,67 @@ public final class ClassCommand extends AstCommand {
         if (sender != target.getBukkit()) {
             PlayerMessageService.getInstance().send(target, PlayerMsgId.P_5812, oldDisplayName, newDisplayName);
         }
+        AstralRecord.getInstance().getStatusService().refreshStatus(target);
+    }
+
+    private void setClassLevel(@NotNull CommandSender sender, @NotNull String[] args) {
+        if (args.length < 3) {
+            sendUsage(sender);
+            return;
+        }
+
+        PlayerClassService classService = AstralRecord.getInstance().getPlayerClassService();
+        if (classService == null) {
+            sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5813.getId(), args[1].trim()));
+            return;
+        }
+
+        String classInput = args[1].trim();
+        String classId = classService.resolveLoadedClassId(classInput);
+        if (classId == null) {
+            sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5813.getId(), classInput));
+            return;
+        }
+
+        AstPlayer target = resolveTarget(sender, args.length >= 4 ? args[3] : null);
+        if (target == null) {
+            return;
+        }
+
+        Long requestedLevel = parseRequestedLevel(args[2], target.getClassProgress(classId).getLevel());
+        if (requestedLevel == null) {
+            sendUsage(sender);
+            return;
+        }
+
+        var result = classService.setClassLevel(target, classId, requestedLevel);
+        if (result == null) {
+            sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5813.getId(), classInput));
+            return;
+        }
+
+        String classDisplayName = classService.getDisplayName(classId);
+        sendSuccess(
+            sender,
+            PlayerMsgResource.format(
+                PlayerMsgId.P_5850.getId(),
+                classDisplayName,
+                result.getPreviousLevel(),
+                result.getCurrentLevel(),
+                result.getMaxLevel()
+            )
+        );
+        if (sender != target.getBukkit()) {
+            PlayerMessageService.getInstance().send(
+                target,
+                PlayerMsgId.P_5850,
+                classDisplayName,
+                result.getPreviousLevel(),
+                result.getCurrentLevel(),
+                result.getMaxLevel()
+            );
+        }
+        AstralRecord.getInstance().getStatusService().refreshStatus(target);
     }
 
     private boolean hasAdminPermission(@NotNull CommandSender sender) {
@@ -95,12 +174,12 @@ public final class ClassCommand extends AstCommand {
         AstralRecord.getInstance().getMenuView().openClass(player, astPlayer, classService.getClassViewEntries(astPlayer));
     }
 
-    private @Nullable AstPlayer resolveTarget(@NotNull CommandSender sender, @NotNull String[] args) {
-        if (args.length >= 3) {
-            Player player = Bukkit.getPlayerExact(args[2]);
+    private @Nullable AstPlayer resolveTarget(@NotNull CommandSender sender, @Nullable String targetName) {
+        if (targetName != null) {
+            Player player = Bukkit.getPlayerExact(targetName);
             AstPlayer astPlayer = player == null ? null : AstPlayerCache.get(player);
             if (astPlayer == null) {
-                sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5814.getId(), args[2]));
+                sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5814.getId(), targetName));
             }
             return astPlayer;
         }
@@ -113,5 +192,16 @@ public final class ClassCommand extends AstCommand {
         }
         sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5305.getId()));
         return null;
+    }
+
+    private @Nullable Long parseRequestedLevel(@NotNull String input, int currentLevel) {
+        try {
+            if (input.startsWith("+") || input.startsWith("-")) {
+                return Math.addExact((long) currentLevel, Long.parseLong(input));
+            }
+            return Long.parseLong(input);
+        } catch (NumberFormatException | ArithmeticException ignored) {
+            return null;
+        }
     }
 }

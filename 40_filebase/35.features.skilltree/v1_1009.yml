@@ -7,8 +7,6 @@ pointType: PP
 pointCost: 1
 lore:
   - "&7魔力を静かに巡らせ、継戦力を高める。"
-skillIds:
-  - mg_passive_meditation
 tags:
   - passive
   - magic

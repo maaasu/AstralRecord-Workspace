@@ -51,7 +51,6 @@ ai:
     attackIntervalTicks: 32
     skills:
       - skill:iron_will
-      - skill:sw_active_guard_break
 
 drops:
   exp: 1200

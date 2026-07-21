@@ -179,6 +179,11 @@ data class AstPlayer(
     fun getAllClassProgresses(): List<ClassProgressModel> =
         classProgressById.values.sortedBy { it.classId }
 
+    /** 指定クラスの進行度を更新します。 */
+    fun setClassProgress(targetClassId: String, level: Int, experience: Long) {
+        updateClassProgress(targetClassId, level, experience)
+    }
+
     private fun updateClassProgress(targetClassId: String, level: Int, experience: Long) {
         val normalized = normalizeClassId(targetClassId)
         val existingKey = classProgressById.keys.firstOrNull { it.equals(normalized, ignoreCase = true) }

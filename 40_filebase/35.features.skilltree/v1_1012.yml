@@ -7,8 +7,6 @@ pointType: PP
 pointCost: 1
 lore:
   - "&7魔法防御を固め、支援役の安定感を底上げする。"
-skillIds:
-  - ac_passive_shield
 tags:
   - passive
   - support

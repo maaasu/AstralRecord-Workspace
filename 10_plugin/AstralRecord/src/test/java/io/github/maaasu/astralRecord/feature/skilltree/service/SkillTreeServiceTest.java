@@ -65,7 +65,7 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
                 List.of("root"),
                 SkillTreePointType.PASSIVE_POINT,
                 0,
-                List.of("sw_passive_wall"),
+                List.of("passive-test"),
                 List.of()
         );
         PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
@@ -78,7 +78,7 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
 
         verify(passiveSkillService).reconcileSkillOwnershipDelta(
                 eq(player),
-                eq(Set.of("sw_passive_wall")),
+                eq(Set.of("passive-test")),
                 eq(Set.of()),
                 eq(false)
         );

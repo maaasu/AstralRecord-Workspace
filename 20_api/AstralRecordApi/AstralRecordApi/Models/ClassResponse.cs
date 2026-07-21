@@ -18,6 +18,10 @@ public class ClassResponse
 
     public required string Role { get; init; }
 
+    public int MaxLevel { get; init; } = 100;
+
+    public bool CommandOnly { get; init; }
+
     public int UnlockLevel { get; init; } = 1;
 
     public IReadOnlyList<ClassUnlockClassLevelResponse> UnlockClassLevel { get; init; } = [];

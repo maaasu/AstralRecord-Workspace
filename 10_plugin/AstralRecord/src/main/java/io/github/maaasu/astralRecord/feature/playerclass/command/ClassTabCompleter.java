@@ -22,7 +22,7 @@ public final class ClassTabCompleter extends AstTabCompleter {
             return List.of();
         }
 
-        List<String> subCommands = completeAtPosition(args, 0, "gui", "change");
+        List<String> subCommands = completeAtPosition(args, 0, "change", "level");
         if (!subCommands.isEmpty()) {
             return subCommands;
         }
@@ -36,6 +36,22 @@ public final class ClassTabCompleter extends AstTabCompleter {
         }
 
         if (args.length == 3 && args[0].equalsIgnoreCase("change")) {
+            return getOnlinePlayerNames();
+        }
+
+        if (args.length == 2 && args[0].equalsIgnoreCase("level")) {
+            PlayerClassService classService = AstralRecord.getInstance().getPlayerClassService();
+            if (classService == null) {
+                return List.of();
+            }
+            return classService.getClassSuggestions();
+        }
+
+        if (args.length == 3 && args[0].equalsIgnoreCase("level")) {
+            return List.of("1", "10", "100", "+1", "-1");
+        }
+
+        if (args.length == 4 && args[0].equalsIgnoreCase("level")) {
             return getOnlinePlayerNames();
         }
 

@@ -103,7 +103,7 @@ tags:
 
 ```yaml
 schemaVersion: 1
-id: mg_active_ember_lance
+id: av_active_mana_spark
 type: SKILL
 implementationId: normal_attack
 name: "&cエンバーランス"

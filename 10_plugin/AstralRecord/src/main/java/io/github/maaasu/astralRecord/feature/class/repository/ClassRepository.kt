@@ -108,6 +108,8 @@ class ClassRepository {
             description = parseStringOrNull(obj, "description"),
             icon = parseStringOrNull(obj, "icon"),
             role = obj.get("role").asString,
+            maxLevel = obj.get("maxLevel")?.asInt ?: 100,
+            commandOnly = obj.get("commandOnly")?.asBoolean ?: false,
             unlockLevel = obj.get("unlockLevel")?.asInt ?: 1,
             unlockClassLevel = parseUnlockClassLevelList(obj.getAsJsonArray("unlockClassLevel")),
             baseStats = parseStatList(obj.getAsJsonArray("baseStats")),

@@ -6,7 +6,10 @@ import io.github.maaasu.astralRecord.feature.`class`.model.ClassModel
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassStat
 import io.github.maaasu.astralRecord.feature.`class`.service.ClassService
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource
 import io.github.maaasu.astralRecord.feature.playerclass.model.ClassExperienceResult
+import io.github.maaasu.astralRecord.feature.playerclass.model.ClassLevelSetResult
 import io.github.maaasu.astralRecord.feature.playerclass.model.ClassProgressViewEntry
 import io.github.maaasu.astralRecord.feature.playerclass.model.ClassViewEntry
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil
@@ -19,10 +22,6 @@ import kotlin.math.roundToLong
 class PlayerClassService @JvmOverloads constructor(
     private val accountService: AccountService? = null,
 ) {
-    companion object {
-        const val MAX_CLASS_LEVEL = 100
-    }
-
     private val classService = ClassService()
 
     fun loadAll(): Int = classService.loadAll()
@@ -43,7 +42,8 @@ class PlayerClassService @JvmOverloads constructor(
     fun getStatusBonus(astPlayer: AstPlayer, statusType: StatusType): Double {
         val model = classService.getLoadedClass(astPlayer.classId) ?: return 0.0
         val base = classStatValue(model.baseStats, statusType)
-        val growth = classStatValue(model.growthPerLevel, statusType) * (astPlayer.classLevel.coerceAtLeast(1) - 1)
+        val level = astPlayer.classLevel.coerceIn(1, maxClassLevel(model))
+        val growth = classStatValue(model.growthPerLevel, statusType) * (level - 1)
         return base + growth
     }
 
@@ -55,16 +55,17 @@ class PlayerClassService @JvmOverloads constructor(
      * @return クラス経験値加算結果
      */
     fun grantClassExperience(astPlayer: AstPlayer, experience: Int): ClassExperienceResult {
-        val previousLevel = astPlayer.classLevel.coerceIn(1, MAX_CLASS_LEVEL)
+        val model = classService.getLoadedClass(astPlayer.classId)
+            ?: return ClassExperienceResult(astPlayer.classLevel.coerceAtLeast(1), astPlayer.classLevel.coerceAtLeast(1), 0, 0)
+        val maxLevel = maxClassLevel(model)
+        val previousLevel = astPlayer.classLevel.coerceIn(1, maxLevel)
         if (experience <= 0) {
             return ClassExperienceResult(previousLevel, previousLevel, 0, 0)
         }
-        val model = classService.getLoadedClass(astPlayer.classId)
-            ?: return ClassExperienceResult(previousLevel, previousLevel, 0, 0)
 
         val totalExperience = (astPlayer.classExperience + experience).coerceAtLeast(0L)
         var level = previousLevel
-        while (level < MAX_CLASS_LEVEL && totalExperience >= totalRequiredClassExperienceForLevel(model, level + 1)) {
+        while (level < maxLevel && totalExperience >= totalRequiredClassExperienceForLevel(model, level + 1)) {
             level++
         }
         astPlayer.classExperience = totalExperience
@@ -85,6 +86,26 @@ class PlayerClassService @JvmOverloads constructor(
     }
 
     /**
+     * 指定クラスのレベルを上限・下限内に丸めて設定します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param classId 設定対象クラス ID
+     * @param requestedLevel 設定要求レベル
+     * @return 設定前後のレベルとクラス上限
+     */
+    fun setClassLevel(astPlayer: AstPlayer, classId: String, requestedLevel: Long): ClassLevelSetResult? {
+        val model = classService.getLoadedClass(classId) ?: return null
+        val maxLevel = maxClassLevel(model)
+        val previous = astPlayer.getClassProgress(model.id)
+        val previousLevel = previous.level.coerceIn(1, maxLevel)
+        val currentLevel = requestedLevel.coerceIn(1L, maxLevel.toLong()).toInt()
+        val experience = totalRequiredClassExperienceForLevel(model, currentLevel)
+        astPlayer.setClassProgress(model.id, currentLevel, experience)
+        persistClassProgress(astPlayer, model.id, currentLevel, experience)
+        return ClassLevelSetResult(model.id, previousLevel, currentLevel, maxLevel)
+    }
+
+    /**
      * 現在クラスレベル内の経験値進捗率を返します。
      *
      * @param astPlayer 対象プレイヤー
@@ -96,8 +117,9 @@ class PlayerClassService @JvmOverloads constructor(
     }
 
     private fun classExperienceProgress(model: ClassModel, classLevel: Int, classExperience: Long): Double {
-        val level = classLevel.coerceIn(1, MAX_CLASS_LEVEL)
-        if (level >= MAX_CLASS_LEVEL) {
+        val maxLevel = maxClassLevel(model)
+        val level = classLevel.coerceIn(1, maxLevel)
+        if (level >= maxLevel) {
             return 1.0
         }
         val current = totalRequiredClassExperienceForLevel(model, level)
@@ -127,8 +149,9 @@ class PlayerClassService @JvmOverloads constructor(
         classLevel: Int,
         classExperience: Long,
     ): Long {
-        val level = classLevel.coerceIn(1, MAX_CLASS_LEVEL)
-        if (level >= MAX_CLASS_LEVEL) {
+        val maxLevel = maxClassLevel(model)
+        val level = classLevel.coerceIn(1, maxLevel)
+        if (level >= maxLevel) {
             return 0L
         }
         val nextRequired = totalRequiredClassExperienceForLevel(model, level + 1)
@@ -188,7 +211,7 @@ class PlayerClassService @JvmOverloads constructor(
 
     fun canChangeClass(astPlayer: AstPlayer, classId: String): Boolean {
         val model = classService.getLoadedClass(classId) ?: return false
-        return astPlayer.hasAdminPermission() || evaluateChangeRequirements(astPlayer, model).available
+        return !model.commandOnly && (astPlayer.hasAdminPermission() || evaluateChangeRequirements(astPlayer, model).available)
     }
 
     fun getClassSuggestions(): List<String> {
@@ -224,6 +247,9 @@ class PlayerClassService @JvmOverloads constructor(
 
     private fun evaluateChangeRequirements(astPlayer: AstPlayer, model: ClassModel): ChangeAvailability {
         val blockedReasons = mutableListOf<String>()
+        if (model.commandOnly) {
+            blockedReasons += PlayerMsgResource.getMessage(PlayerMsgId.P_5851.id)
+        }
         if (model.unlockLevel > 1 && astPlayer.account.level < model.unlockLevel) {
             blockedReasons += "&e\u30d7\u30ec\u30a4\u30e4\u30fcLv.${model.unlockLevel}&7 \u304c\u5fc5\u8981\u3067\u3059"
         }
@@ -291,6 +317,9 @@ class PlayerClassService @JvmOverloads constructor(
             normalizeStatusKey(stat.status) == statusType.name
         }?.value ?: 0.0
 
+    private fun maxClassLevel(model: ClassModel): Int =
+        model.maxLevel.coerceAtLeast(1)
+
     private fun totalRequiredClassExperienceForLevel(model: ClassModel, targetLevel: Int): Long {
         var total = 0L
         for (level in 1 until targetLevel.coerceAtLeast(1)) {
@@ -327,11 +356,20 @@ class PlayerClassService @JvmOverloads constructor(
         (if (value > 0.0) "+" else "") + formatClassStat(value)
 
     private fun persistClassProgress(astPlayer: AstPlayer) {
+        persistClassProgress(astPlayer, astPlayer.classId, astPlayer.classLevel, astPlayer.classExperience)
+    }
+
+    private fun persistClassProgress(
+        astPlayer: AstPlayer,
+        classId: String,
+        classLevel: Int,
+        classExperience: Long,
+    ) {
         val updated = accountService?.updateClassProgressCached(
             astPlayer.account,
-            astPlayer.classId,
-            astPlayer.classLevel,
-            astPlayer.classExperience,
+            classId,
+            classLevel,
+            classExperience,
             astPlayer.user.uuid,
         ) ?: return
         astPlayer.account = updated

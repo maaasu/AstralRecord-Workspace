@@ -18,6 +18,8 @@ Class（職業）のスキーマ定義。
 | `description`              | String       | ×  | Null      | 職業説明文                                            |
 | `icon`                     | String       | ×  | Null      | 表示アイコン（任意。表現は実装側に委ねる）                            |
 | `role`                     | String       | ○  | -         | 職業ロール（後述）                                        |
+| `maxLevel`                 | Integer      | ×  | `100`     | この職業のクラスレベル上限。`1` 以上を指定する              |
+| `commandOnly`              | Boolean      | ×  | `false`   | `true` の職業は職業 GUI・通常転職では選択せず、管理コマンドだけで変更する |
 | `unlockLevel`              | Integer      | ×  | 1         | 解放に必要な最低プレイヤーレベル                                 |
 | `unlockClassLevel[]`       | List         | ×  | -         | 解放に必要な素材クラスとレベルを指定                               |
 | `unlockClassLevel[].class` | String       | ×  | -         | 解放に必要な素材クラスを指定                                   |
@@ -34,6 +36,11 @@ Class（職業）のスキーマ定義。
 | `levelSkills[].level`      | Integer      | ○  | -         | スキルを習得するレベル                                      |
 | `levelSkills[].skill`      | String       | ○  | -         | 習得するスキルID（参照値。例: `ref: skill:shield_bash`）       |
 | `tags`                     | List<String> | ×  | emptyList | 検索・分類用タグ（例: `melee`, `tank`）                     |
+
+### maxLevel / commandOnly
+
+- `maxLevel` は職業ごとのクラスレベル上限で、省略時は `100` です。`1` 未満はプラグイン側で `1` に補正します。
+- `commandOnly: true` の職業は職業 GUI・NPC 転職から選択できず、ADMIN の `/class change <classId>` だけで変更できます。
 
 ### role
 以下のいずれかの値を指定します。

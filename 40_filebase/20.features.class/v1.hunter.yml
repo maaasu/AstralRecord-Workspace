@@ -5,6 +5,7 @@ name: "&aハンター"
 description: "&7機動遠距離射手。"
 icon: BOW
 role: DEALER
+maxLevel: 100
 unlockLevel: 1
 unlockClassLevel:
   - class: adventurer
@@ -56,19 +57,8 @@ growthPerLevel:
   - status: MAGIC_DEFENSE
     value: 0.3
 expRate: 100
-starterSkills:
-  - ht_active_quick_shot
-levelSkills:
-  - level: 3
-    skill: ht_active_mark_prey
-  - level: 6
-    skill: ht_active_scatter_trap
-  - level: 9
-    skill: ht_active_piercing_shot
-  - level: 12
-    skill: ht_active_shadow_dodge
-  - level: 15
-    skill: ht_active_hawkeye_volley
+starterSkills: []
+levelSkills: []
 tags:
   - tier1
   - ranged

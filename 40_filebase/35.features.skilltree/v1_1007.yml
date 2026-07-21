@@ -7,8 +7,6 @@ pointType: PP
 pointCost: 1
 lore:
   - "&7狙った相手を見失わず、射撃の精度を高める。"
-skillIds:
-  - ht_passive_mark
 tags:
   - passive
   - ranged

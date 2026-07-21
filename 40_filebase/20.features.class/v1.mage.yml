@@ -5,6 +5,7 @@ name: "&bメイジ"
 description: "&7属性魔術師。"
 icon: BLAZE_ROD
 role: DEALER
+maxLevel: 100
 unlockLevel: 1
 unlockClassLevel:
   - class: adventurer
@@ -56,19 +57,8 @@ growthPerLevel:
   - status: MP_REGEN
     value: 0.2
 expRate: 100
-starterSkills:
-  - mg_active_mana_bolt
-levelSkills:
-  - level: 3
-    skill: mg_active_ember_lance
-  - level: 6
-    skill: mg_active_frost_bind
-  - level: 9
-    skill: mg_active_mana_burst
-  - level: 12
-    skill: mg_active_blink_sigil
-  - level: 15
-    skill: mg_active_element_cycle
+starterSkills: []
+levelSkills: []
 tags:
   - tier1
   - magic

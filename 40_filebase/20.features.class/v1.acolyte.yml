@@ -5,6 +5,7 @@ name: "&eアコライト"
 description: "&7支援呪術師。"
 icon: TOTEM_OF_UNDYING
 role: SUPPORT
+maxLevel: 100
 unlockLevel: 1
 unlockClassLevel:
   - class: adventurer
@@ -56,19 +57,8 @@ growthPerLevel:
   - status: MP_REGEN
     value: 0.2
 expRate: 100
-starterSkills:
-  - ac_active_smite
-levelSkills:
-  - level: 3
-    skill: ac_active_healing_echo
-  - level: 6
-    skill: ac_active_ward_circle
-  - level: 9
-    skill: ac_active_weakness_seal
-  - level: 12
-    skill: ac_active_soul_chain
-  - level: 15
-    skill: ac_active_sanctuary_rite
+starterSkills: []
+levelSkills: []
 tags:
   - tier1
   - support

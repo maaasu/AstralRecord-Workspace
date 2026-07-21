@@ -7,8 +7,6 @@ pointType: PP
 pointCost: 1
 lore:
   - "&7再生の祈りで、自身と味方を支える土台を築く。"
-skillIds:
-  - ac_passive_prayer
 tags:
   - passive
   - support

@@ -7,8 +7,6 @@ pointType: PP
 pointCost: 1
 lore:
   - "&7身のこなしを洗練させ、回避と機動力を高める。"
-skillIds:
-  - ht_passive_dodge
 tags:
   - passive
   - ranged

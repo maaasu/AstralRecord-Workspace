@@ -11,6 +11,8 @@ data class ClassModel(
     val description: String?,
     val icon: String?,
     val role: String,
+    val maxLevel: Int,
+    val commandOnly: Boolean,
     val unlockLevel: Int,
     val unlockClassLevel: List<ClassUnlockClassLevel>,
     val baseStats: List<ClassStat>,
