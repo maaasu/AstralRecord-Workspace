@@ -45,7 +45,7 @@
 
 ## 実装メモ
 
-- 2026-06-09: `loginbonus` は独立実装を持つが、docs では player join 導線として本 feature に吸収する。`/loginbonus` コマンドと `LoginBonusService` の呼び出し点は player 設計書の範囲で扱う。
+- `loginbonus` は独立実装を持つが、docs では player join 導線として本 feature に吸収する。ログイン時の自動表示と NPC の `LOGIN_BONUS` action から `LoginBonusService` を呼び出す。
 
 ## 更新ルール（変更時に必ず更新する章）
 

@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.mob.event;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentEnhancementService;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentRepairService;
 import io.github.maaasu.astralRecord.feature.currency.event.CurrencyExchangeGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.loginbonus.service.LoginBonusService;
 import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
@@ -50,6 +51,7 @@ public final class MobInteractionEventHandler
     private final EquipmentRepairService equipmentRepairService;
     private final QuestGuiEventHandler questGuiEventHandler;
     private final CurrencyExchangeGuiEventHandler currencyExchangeGuiEventHandler;
+    private final LoginBonusService loginBonusService;
 
     /**
      * ハンドラを生成します。
@@ -63,6 +65,7 @@ public final class MobInteractionEventHandler
      * @param equipmentRepairService 装備修理 GUI サービス
      * @param questGuiEventHandler クエストボード GUI ハンドラ
      * @param currencyExchangeGuiEventHandler ゴールド両替 GUI ハンドラ
+     * @param loginBonusService ログインボーナス GUI サービス
      */
     public MobInteractionEventHandler(
             @NotNull MobService mobService,
@@ -73,7 +76,8 @@ public final class MobInteractionEventHandler
             @NotNull EquipmentEnhancementService equipmentEnhancementService,
             @NotNull EquipmentRepairService equipmentRepairService,
             @NotNull QuestGuiEventHandler questGuiEventHandler,
-            @NotNull CurrencyExchangeGuiEventHandler currencyExchangeGuiEventHandler) {
+            @NotNull CurrencyExchangeGuiEventHandler currencyExchangeGuiEventHandler,
+            @NotNull LoginBonusService loginBonusService) {
         this.mobService = mobService;
         this.shopGuiEventHandler = shopGuiEventHandler;
         this.menuView = menuView;
@@ -83,6 +87,7 @@ public final class MobInteractionEventHandler
         this.equipmentRepairService = equipmentRepairService;
         this.questGuiEventHandler = questGuiEventHandler;
         this.currencyExchangeGuiEventHandler = currencyExchangeGuiEventHandler;
+        this.loginBonusService = loginBonusService;
     }
 
     @Override
@@ -194,6 +199,7 @@ public final class MobInteractionEventHandler
             case "EQUIPMENT_ENHANCE", "ENHANCE" -> openEquipmentEnhance(player);
             case "EQUIPMENT_REPAIR", "REPAIR" -> openEquipmentRepair(player);
             case "CURRENCY_EXCHANGE", "EXCHANGE" -> currencyExchangeGuiEventHandler.open(player);
+            case "LOGIN_BONUS" -> openLoginBonus(player);
             default -> GuiSound.DENY.play(player);
         }
     }
@@ -247,6 +253,17 @@ public final class MobInteractionEventHandler
     private void openEquipmentRepair(@NotNull Player player) {
         MenuGuiTransitionService.suppressNextCloseSound(player);
         equipmentRepairService.open(player);
+        GuiSound.OPEN.play(player);
+    }
+
+    /**
+     * NPC からログインボーナス GUI を開きます。
+     *
+     * @param player 対象プレイヤー
+     */
+    private void openLoginBonus(@NotNull Player player) {
+        MenuGuiTransitionService.suppressNextCloseSound(player);
+        loginBonusService.openAfterDataLoaded(player);
         GuiSound.OPEN.play(player);
     }
 

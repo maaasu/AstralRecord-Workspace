@@ -1,0 +1,40 @@
+# design:
+#   motif: "北欧神話 / 毎日の恵み"
+#   progression: 0
+schemaVersion: 1
+id: login_bonus_clerk
+type: MOB
+category: NPC
+name: "&dログインボーナス案内人"
+title: "&7毎日の報酬"
+level: 1
+entityType: PLAYER
+nameVisible: true
+damageImmune: true
+icon: CHEST
+lore:
+  - "&7毎日のログイン報酬を受け取れる案内人。"
+  - "&7右クリックでログインボーナスを確認できる。"
+tags:
+  - npc
+  - login_bonus
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&dログインボーナス案内人&7: 毎日忘れずに報酬を受け取ってね。"
+  rightClick:
+    - id: gui
+      params:
+        type: LOGIN_BONUS

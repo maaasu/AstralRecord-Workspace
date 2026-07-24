@@ -1247,7 +1247,8 @@ public final class AstralRecord extends JavaPlugin {
             equipmentEnhancementService,
             equipmentRepairService,
             questGuiEventHandler,
-            currencyExchangeGuiEventHandler
+            currencyExchangeGuiEventHandler,
+            loginBonusService
         );
         var itemWeaponAttackEventHandler = new ItemWeaponAttackEventHandler(
             itemWeaponAttackService,
