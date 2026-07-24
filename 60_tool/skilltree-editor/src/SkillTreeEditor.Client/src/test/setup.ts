@@ -57,3 +57,18 @@ Object.defineProperty(HTMLElement.prototype, 'getBoundingClientRect', {
     toJSON: () => ({}),
   }),
 })
+
+Object.defineProperties(HTMLElement.prototype, {
+  offsetWidth: {
+    configurable: true,
+    get(this: HTMLElement) {
+      return this.classList.contains('react-flow__node') ? 180 : 800
+    },
+  },
+  offsetHeight: {
+    configurable: true,
+    get(this: HTMLElement) {
+      return this.classList.contains('react-flow__node') ? 80 : 600
+    },
+  },
+})

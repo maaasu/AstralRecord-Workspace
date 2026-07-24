@@ -11,6 +11,7 @@ import {
   useReactFlow,
   type Connection,
   type Edge,
+  type EdgeChange,
   type Node,
   type NodeChange,
   type NodeProps,
@@ -58,6 +59,7 @@ function CanvasInner({
 }: SkillTreeCanvasProps) {
   const { screenToFlowPosition } = useReactFlow()
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+  const [selectedEdgeIds, setSelectedEdgeIds] = useState<Set<string>>(() => new Set())
   const masterMap = useMemo(() => new Map(masters.map((node) => [node.nodeId, node])), [masters])
   const nodes = useMemo<Node<SkillNodeData>[]>(() => structure.nodes.map((placement) => ({
       id: placement.nodeId,
@@ -79,8 +81,9 @@ function CanvasInner({
       target: edge.targetNodeId,
       type: 'straight',
       className: 'skill-edge',
+      selected: selectedEdgeIds.has(edgeId(edge.sourceNodeId, edge.targetNodeId)),
     })),
-    [structure.edges],
+    [selectedEdgeIds, structure.edges],
   )
 
   const onNodesChange = useCallback((changes: NodeChange<Node<SkillNodeData>>[]) => {
@@ -116,6 +119,21 @@ function CanvasInner({
     })
   }, [onReplace, structure])
 
+  const onEdgesChange = useCallback((changes: EdgeChange<Edge>[]) => {
+    setSelectedEdgeIds((current) => {
+      let next: Set<string> | null = null
+      for (const change of changes) {
+        if (change.type !== 'select') continue
+        const selected = (next ?? current).has(change.id)
+        if (selected === change.selected) continue
+        next ??= new Set(current)
+        if (change.selected) next.add(change.id)
+        else next.delete(change.id)
+      }
+      return next ?? current
+    })
+  }, [])
+
   const connect = useCallback((connection: Connection) => {
     if (!connection.source || !connection.target || connection.source === connection.target) return
     const sourceNodeId = connection.source < connection.target ? connection.source : connection.target
@@ -147,6 +165,13 @@ function CanvasInner({
 
   const removeEdges = useCallback((deleted: Edge[]) => {
     const ids = new Set(deleted.map((edge) => edge.id))
+    if (!ids.size) return
+    setSelectedEdgeIds((current) => {
+      if (![...ids].some((id) => current.has(id))) return current
+      const next = new Set(current)
+      ids.forEach((id) => next.delete(id))
+      return next
+    })
     onRecord({
       ...structure,
       edges: structure.edges.filter((edge) => !ids.has(edgeId(edge.sourceNodeId, edge.targetNodeId))),
@@ -193,6 +218,7 @@ function CanvasInner({
         edges={edges}
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
         onNodesDelete={removeNodes}
         onEdgesDelete={removeEdges}
         onNodeDragStart={onBeginTransaction}

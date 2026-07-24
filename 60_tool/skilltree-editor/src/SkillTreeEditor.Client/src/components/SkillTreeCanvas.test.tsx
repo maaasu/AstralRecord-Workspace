@@ -98,4 +98,33 @@ describe('SkillTreeCanvas', () => {
       expect(secondNode).toHaveClass('selected')
     })
   })
+
+  it('deletes the selected edge with the Delete key', async () => {
+    const onRecord = vi.fn()
+    render(
+      <div style={{ width: 800, height: 600 }}>
+        <SkillTreeCanvas
+          structure={structure}
+          masters={masters}
+          onRecord={onRecord}
+          onReplace={vi.fn()}
+          onBeginTransaction={vi.fn()}
+          onCommitTransaction={vi.fn()}
+          onSelectedNode={vi.fn()}
+        />
+      </div>,
+    )
+
+    const edge = await screen.findByTestId('rf__edge-edge:1000:1001')
+    fireEvent.click(edge)
+    await waitFor(() => expect(edge).toHaveClass('selected'))
+
+    fireEvent.keyDown(document, { key: 'Delete', code: 'Delete' })
+    fireEvent.keyUp(document, { key: 'Delete', code: 'Delete' })
+
+    await waitFor(() => expect(onRecord).toHaveBeenCalledWith({
+      ...structure,
+      edges: [],
+    }))
+  })
 })
