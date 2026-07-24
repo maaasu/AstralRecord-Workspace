@@ -11,7 +11,7 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 | `30_web/AstralRecordWeb/` | Web Site | ASP.NET Core Razor Pages | この README の「AstralRecord Web」 |
 | `00_docs/40_Database設計書/` | SQL Server schema / table docs | SQL Server, Markdown | `00_docs/40_Database設計書/README.md` |
 | `40_filebase/` | File-based master data | YAML, Markdown | この README の「AstralRecord Filebase」 |
-| `50_resourcepack/` | Minecraft Resource Pack | JSON, PNG, PowerShell | この README の「AstralRecord Resource Pack」 |
+| `50_resourcepack/` | Minecraft Resource Pack（現在は開発停止・将来用に保持） | JSON, PNG, PowerShell | この README の「AstralRecord Resource Pack」 |
 
 ## コミットルール
 
@@ -84,7 +84,7 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 
 ## AstralRecord Resource Pack
 
-`50_resourcepack/` は AstralRecord サーバーで配布する Minecraft Java Edition 向けリソースパックの雛形です。
+`50_resourcepack/` は将来の作成再開に備えて保持している Minecraft Java Edition 向けリソースパックの雛形です。現在は開発を停止しているため、通常の実装・設計・マスターデータ作業では対象外として無視してください。リソースパックの作成や修正を再開するときに、この節と `50_resourcepack/AGENTS.md` を確認してください。
 
 ### 対象バージョン
 

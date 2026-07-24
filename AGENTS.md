@@ -12,7 +12,7 @@
 | `30_web/AstralRecordWeb/` | Web Site | ASP.NET Core Razor Pages | `30_web/AstralRecordWeb/AGENTS.md` |
 | `00_docs/40_Database設計書/` | SQL Server schema / table docs | SQL Server, Markdown | `00_docs/40_Database設計書/README.md` |
 | `40_filebase/` | File-based master data | YAML, Markdown | `00_docs/50_Filebase設計書/README.md` / `40_filebase/AGENTS.md` |
-| `50_resourcepack/` | Minecraft Resource Pack | JSON, PNG, PowerShell | `50_resourcepack/AGENTS.md` |
+| `50_resourcepack/` | Minecraft Resource Pack（現在は開発停止・将来用に保持） | JSON, PNG, PowerShell | `50_resourcepack/AGENTS.md` |
 
 実行環境や配置先の確認が必要な場合は、`E:\AstralRecord-Workspace` に加えて `\\DEVICE_SERVER\server` も一度確認してください。アクセスできない場合は、その場所の参照をあきらめて作業を継続し、そこがどうしても必要で作業を進められない場合だけユーザーに確認してください。
 
@@ -34,7 +34,7 @@
 - AstralRecordWeb（Web サイト / Razor Pages）
 - Database（SQL Server DB / テーブル定義）
 - Filebase（file 系マスタデータ）
-- Resourcepack（Minecraft Resource Pack）
+- Resourcepack（Minecraft Resource Pack。将来用に保持、現在は無視）
 ```
 
 ## 共通方針

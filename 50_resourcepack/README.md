@@ -1,6 +1,6 @@
 # AstralRecord リソースパック
 
-AstralRecord サーバーで配布する Minecraft Java Edition 向けリソースパックの雛形です。
+将来の作成再開に備えて保持している、AstralRecord サーバーで配布する Minecraft Java Edition 向けリソースパックの雛形です。現在は開発を停止しているため、通常の作業ではこのディレクトリを無視してください。ユーザーがリソースパックの作成・修正を明示的に依頼した場合に限り、この README と `AGENTS.md` の内容に従って作業します。
 
 ## 対象バージョン
 
