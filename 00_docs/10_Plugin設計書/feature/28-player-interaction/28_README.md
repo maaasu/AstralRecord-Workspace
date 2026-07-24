@@ -23,7 +23,7 @@
 - `mob`: NPC 左右クリック候補
 - `teleporter`: ウェイストーン左右クリック候補
 - `skill`: アクションリング操作・表示候補
-- `skilltree`: ノード操作、管理用設置操作、設定中のホットバー切替抑止候補
+- `skilltree`: ノードの解放・再ロック操作
 - `item`: bundle / potion 使用、武器攻撃候補
 - `combat`: プレイヤー起点の entity 攻撃候補
 - `gathering`: 採集開始候補

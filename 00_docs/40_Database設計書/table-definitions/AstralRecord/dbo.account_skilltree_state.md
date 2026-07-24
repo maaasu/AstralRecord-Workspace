@@ -28,4 +28,4 @@
 ## 運用メモ
 
 - 解放済みノード一覧は子テーブル `dbo.account_skilltree_unlocked_node` に保持する。
-- plugin ローカル YAML にプレイヤー進行は保持しない。正本は API / DB 側。
+- filebase JSON や plugin ローカルファイルにプレイヤー進行は保持しない。正本は API / DB 側。

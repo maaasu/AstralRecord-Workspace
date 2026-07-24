@@ -3,6 +3,8 @@
 このディレクトリは API `account-skilltree` 機能の設計をまとめる。
 アカウント単位のスキルツリー進行状態を API / DB で永続化し、plugin はこの API を介して読み書きする。
 
+ノード定義と配置・接続構造は、それぞれ filebase `40_filebase/35.features.skilltree/nodes/*.json` と `structures/*.json` を正本とします。これらは Plugin が直接読み込む静的マスタであり、`account-skilltree` API の入出力や MasterDataDB へは追加しません。
+
 ## 対象実装パス
 
 - `20_api/AstralRecordApi/AstralRecordApi/Controllers/AccountSkillTreeController.cs`
@@ -17,6 +19,7 @@
 - plugin 側の skilltree: `00_docs/10_Plugin設計書/feature/13-skill/`
 - account レベル進行: `00_docs/10_Plugin設計書/feature/02-account/`
 - DB テーブル: `00_docs/40_Database設計書/table-definitions/AstralRecord/`
+- filebase JSON: `40_filebase/35.features.skilltree/docs.skilltree.JSONスキーマ定義.md`
 
 ## ドキュメント
 

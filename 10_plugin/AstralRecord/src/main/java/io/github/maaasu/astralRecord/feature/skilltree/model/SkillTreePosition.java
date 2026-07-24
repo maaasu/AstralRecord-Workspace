@@ -12,24 +12,12 @@ import java.io.File;
  * スキルツリー構造内のポジション定義です。
  */
 public record SkillTreePosition(
-        @NotNull String positionId,
+        @NotNull String nodeId,
         @NotNull String worldName,
         int x,
         int y,
         int z
 ) {
-    @NotNull
-    public static SkillTreePosition from(@NotNull String positionId, @NotNull Location location) {
-        String worldName = location.getWorld() == null ? "" : location.getWorld().getName();
-        return new SkillTreePosition(
-                positionId,
-                worldName,
-                location.getBlockX(),
-                location.getBlockY(),
-                location.getBlockZ()
-        );
-    }
-
     @NotNull
     public String locationKey() {
         return worldName + ":" + x + ":" + y + ":" + z;

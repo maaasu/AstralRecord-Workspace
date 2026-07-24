@@ -386,7 +386,7 @@ public final class AstralRecord extends JavaPlugin {
                 worldService,
                 null,
                 new SkillTreeNodeRepository(),
-                new SkillTreeStructureRepository(this),
+                new SkillTreeStructureRepository(),
                 new SkillTreePlayerStateRepository(this)
         );
         joinSpawnWorldId = PluginJoinSpawnWorldConfig.load(this);
@@ -968,12 +968,13 @@ public final class AstralRecord extends JavaPlugin {
             lootService.loadAll();
             itemService.loadAll();
             var skillDefinitions = skillService.loadDefinitions();
+            var skillTreeSnapshot = skillTreeService.loadMasterDataSnapshot();
             playerClassService.loadAll();
             guideService.loadAll();
             shopService.warmCaches();
             getServer().getScheduler().runTask(this, () -> {
                 skillService.replaceDefinitions(skillDefinitions);
-                skillTreeService.loadAll();
+                skillTreeService.replaceMasterDataSnapshot(skillTreeSnapshot);
             });
         });
 
@@ -1655,6 +1656,10 @@ public final class AstralRecord extends JavaPlugin {
         var skillDefinitions = skillService.loadDefinitions();
         loaded += skillDefinitions.size();
         publications.add(() -> skillService.replaceDefinitions(skillDefinitions));
+
+        var skillTreeSnapshot = skillTreeService.loadMasterDataSnapshot();
+        loaded += skillTreeSnapshot.nodes().size();
+        publications.add(() -> skillTreeService.replaceMasterDataSnapshot(skillTreeSnapshot));
 
         var classSnapshot = playerClassService.loadSnapshot();
         loaded += classSnapshot.size();

@@ -1,0 +1,5 @@
+.gitattributes text eol=lf
+*.json text eol=lf
+nodes/*.json text eol=lf
+schemas/*.json text eol=lf
+structures/*.json text eol=lf

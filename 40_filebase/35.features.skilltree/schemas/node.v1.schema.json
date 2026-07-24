@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astralrecord.local/schemas/skilltree/node.v1.schema.json",
+  "title": "AstralRecord SkillTree Node v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schemaVersion",
+    "nodeId",
+    "name",
+    "icon",
+    "lore",
+    "tags",
+    "pointType",
+    "pointCost",
+    "effects"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "../schemas/node.v1.schema.json"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "nodeId": {
+      "$ref": "#/$defs/nodeId"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": ".*\\S.*"
+    },
+    "icon": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": ".*\\S.*"
+    },
+    "lore": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": ".*\\S.*"
+      },
+      "uniqueItems": true
+    },
+    "pointType": {
+      "enum": [
+        "CP",
+        "PP"
+      ]
+    },
+    "pointCost": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2147483647
+    },
+    "effects": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/skillEffect"
+          },
+          {
+            "$ref": "#/$defs/statusEffect"
+          }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "nodeId": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$",
+      "maxLength": 100
+    },
+    "skillEffect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "skillId"
+      ],
+      "properties": {
+        "type": {
+          "const": "skill"
+        },
+        "skillId": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": ".*\\S.*"
+        }
+      }
+    },
+    "statusEffect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "status",
+        "modifierType",
+        "value"
+      ],
+      "properties": {
+        "type": {
+          "const": "status"
+        },
+        "status": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "modifierType": {
+          "enum": [
+            "FLAT",
+            "SCALAR"
+          ]
+        },
+        "value": {
+          "type": "number"
+        }
+      }
+    }
+  }
+}

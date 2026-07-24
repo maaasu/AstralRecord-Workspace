@@ -19,7 +19,7 @@
 | データ種別 | 内容例 | 管理場所 | ディレクトリパス |
 |:--|:--|:--|:--|
 | 動的データ | プレイヤーレベル、経験値、所持アイテム、座標など | SQL Server | `E:\AstralRecord-Workspace\00_docs\40_Database設計書` |
-| 静的データ | アイテムの基本設定、説明、武器ステータスなど | YAML ファイル | `E:\AstralRecord-Workspace\40_filebase` |
+| 静的データ | アイテムの基本設定、説明、武器ステータスなど | YAML / JSON ファイル | `E:\AstralRecord-Workspace\40_filebase` |
 
 - SQL Server 定義は `E:\AstralRecord-Workspace\00_docs\40_Database設計書` を参照する。
 - file 系マスタデータは `E:\AstralRecord-Workspace\40_filebase` を参照する。

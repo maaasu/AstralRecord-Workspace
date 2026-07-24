@@ -59,7 +59,7 @@ final class SkillTreeVisualizer {
     private final Set<String> loggedInvalidPositions = new HashSet<>();
     private final Set<String> loggedInvalidEdges = new HashSet<>();
     private final Set<UUID> dirtyViewers = new HashSet<>();
-    private final Map<UUID, Set<String>> dirtyNodeStatePositionIds = new HashMap<>();
+    private final Map<UUID, Set<String>> dirtyNodeStateNodeIds = new HashMap<>();
     private boolean structureDirty = true;
     private BukkitTask task;
 
@@ -98,9 +98,9 @@ final class SkillTreeVisualizer {
         dirtyViewers.add(viewerId);
     }
 
-    void markNodeStateDirty(@NotNull UUID viewerId, @NotNull Set<String> positionIds) {
+    void markNodeStateDirty(@NotNull UUID viewerId, @NotNull Set<String> nodeIds) {
         dirtyViewers.add(viewerId);
-        dirtyNodeStatePositionIds.computeIfAbsent(viewerId, ignored -> new HashSet<>()).addAll(positionIds);
+        dirtyNodeStateNodeIds.computeIfAbsent(viewerId, ignored -> new HashSet<>()).addAll(nodeIds);
     }
 
     private void tick() {
@@ -118,11 +118,11 @@ final class SkillTreeVisualizer {
             if (player == null) {
                 continue;
             }
-            refreshViewer(player, dirtyNodeStatePositionIds.remove(viewerId));
+            refreshViewer(player, dirtyNodeStateNodeIds.remove(viewerId));
         }
 
         dirtyViewers.removeAll(viewersToRefresh);
-        dirtyNodeStatePositionIds.keySet().removeIf(viewerId -> !onlineViewerIds.contains(viewerId));
+        dirtyNodeStateNodeIds.keySet().removeIf(viewerId -> !onlineViewerIds.contains(viewerId));
         nodeVisuals.values().forEach(visual -> visual.pruneViewers(onlineViewerIds));
         adminPositionVisuals.values().forEach(visual -> visual.pruneViewers(onlineViewerIds));
         edgeVisuals.values().forEach(visual -> visual.pruneViewers(onlineViewerIds));
@@ -145,7 +145,7 @@ final class SkillTreeVisualizer {
             visual.updateViewer(player, visible);
         }
         for (NodeVisual visual : nodeVisuals.values()) {
-            if (partialNodeRefresh && !dirtyPositions.contains(visual.node().positionId())) {
+            if (partialNodeRefresh && !dirtyPositions.contains(visual.node().nodeId())) {
                 continue;
             }
             boolean visible = mode == RenderMode.PLAYER && isVisibleTo(player, visual.baseLocation());
@@ -159,8 +159,8 @@ final class SkillTreeVisualizer {
         }
         for (EdgeVisual visual : edgeVisuals.values()) {
             if (partialNodeRefresh
-                    && !dirtyPositions.contains(visual.edge().leftPositionId())
-                    && !dirtyPositions.contains(visual.edge().rightPositionId())) {
+                    && !dirtyPositions.contains(visual.edge().sourceNodeId())
+                    && !dirtyPositions.contains(visual.edge().targetNodeId())) {
                 continue;
             }
             EdgeState state = resolveEdgeState(player, visual.edge(), mode);
@@ -171,58 +171,58 @@ final class SkillTreeVisualizer {
 
     private void syncVisuals() {
         Collection<SkillTreePosition> positions = service.getPositions();
-        Set<String> activePositionIds = new HashSet<>();
+        Set<String> activeNodeIds = new HashSet<>();
         for (SkillTreePosition position : positions) {
             Location location = position.toLocation();
             if (location == null || location.getWorld() == null) {
-                if (loggedInvalidPositions.add(position.positionId())) {
-                    Logger.log(LogId.W_9000, position.positionId(), position.worldName(), "location_resolve_failed");
+                if (loggedInvalidPositions.add(position.nodeId())) {
+                    Logger.log(LogId.W_9000, position.nodeId(), position.worldName(), "location_resolve_failed");
                 }
                 continue;
             }
             if (!isChunkLoaded(location)) {
-                removeAdminPositionVisual(position.positionId());
-                removeNodeVisual(position.positionId());
+                removeAdminPositionVisual(position.nodeId());
+                removeNodeVisual(position.nodeId());
                 continue;
             }
             ensureNodeLight(location);
-            loggedInvalidPositions.remove(position.positionId());
-            activePositionIds.add(position.positionId());
+            loggedInvalidPositions.remove(position.nodeId());
+            activeNodeIds.add(position.nodeId());
 
-            AdminPositionVisual adminVisual = adminPositionVisuals.get(position.positionId());
+            AdminPositionVisual adminVisual = adminPositionVisuals.get(position.nodeId());
             if (adminVisual == null || !adminVisual.isValid()) {
                 if (adminVisual != null) {
                     adminVisual.remove();
                 }
-                adminPositionVisuals.put(position.positionId(), new AdminPositionVisual(position.positionId(), location));
+                adminPositionVisuals.put(position.nodeId(), new AdminPositionVisual(position.nodeId(), location));
             } else {
                 adminVisual.teleport(location);
             }
 
-            SkillTreeNodeDefinition node = service.getNodeByPositionId(position.positionId());
+            SkillTreeNodeDefinition node = service.getNode(position.nodeId());
             if (node == null) {
-                removeNodeVisual(position.positionId());
+                removeNodeVisual(position.nodeId());
                 continue;
             }
 
-            NodeVisual nodeVisual = nodeVisuals.get(position.positionId());
-            if (nodeVisual == null || !nodeVisual.isValid() || !nodeVisual.node().id().equals(node.id())) {
-                removeNodeVisual(position.positionId());
-                nodeVisuals.put(position.positionId(), new NodeVisual(node, location));
+            NodeVisual nodeVisual = nodeVisuals.get(position.nodeId());
+            if (nodeVisual == null || !nodeVisual.isValid() || nodeDefinitionsDiffer(nodeVisual.node(), node)) {
+                removeNodeVisual(position.nodeId());
+                nodeVisuals.put(position.nodeId(), new NodeVisual(node, location));
             } else {
                 nodeVisual.teleport(location);
             }
         }
 
         adminPositionVisuals.entrySet().removeIf(entry -> {
-            if (activePositionIds.contains(entry.getKey())) {
+            if (activeNodeIds.contains(entry.getKey())) {
                 return false;
             }
             entry.getValue().remove();
             return true;
         });
         nodeVisuals.entrySet().removeIf(entry -> {
-            if (activePositionIds.contains(entry.getKey())) {
+            if (activeNodeIds.contains(entry.getKey())) {
                 return false;
             }
             entry.getValue().remove();
@@ -231,8 +231,8 @@ final class SkillTreeVisualizer {
 
         Set<String> activeEdgeKeys = new HashSet<>();
         for (SkillTreeEdge edge : service.getEdges()) {
-            SkillTreePosition left = service.getPosition(edge.leftPositionId());
-            SkillTreePosition right = service.getPosition(edge.rightPositionId());
+            SkillTreePosition left = service.getPosition(edge.sourceNodeId());
+            SkillTreePosition right = service.getPosition(edge.targetNodeId());
             if (left == null || right == null) {
                 continue;
             }
@@ -279,15 +279,29 @@ final class SkillTreeVisualizer {
         });
     }
 
-    private void removeNodeVisual(@NotNull String positionId) {
-        NodeVisual removed = nodeVisuals.remove(positionId);
+    /**
+     * 同じ nodeId でも表示内容を含むノード定義が変化したかを判定します。
+     *
+     * @param current 現在表示中のノード定義
+     * @param updated 再読込後のノード定義
+     * @return 内容が異なる場合は {@code true}
+     */
+    static boolean nodeDefinitionsDiffer(
+            @NotNull SkillTreeNodeDefinition current,
+            @NotNull SkillTreeNodeDefinition updated
+    ) {
+        return !current.equals(updated);
+    }
+
+    private void removeNodeVisual(@NotNull String nodeId) {
+        NodeVisual removed = nodeVisuals.remove(nodeId);
         if (removed != null) {
             removed.remove();
         }
     }
 
-    private void removeAdminPositionVisual(@NotNull String positionId) {
-        AdminPositionVisual removed = adminPositionVisuals.remove(positionId);
+    private void removeAdminPositionVisual(@NotNull String nodeId) {
+        AdminPositionVisual removed = adminPositionVisuals.remove(nodeId);
         if (removed != null) {
             removed.remove();
         }
@@ -323,8 +337,8 @@ final class SkillTreeVisualizer {
             return EdgeState.HIDDEN;
         }
 
-        SkillTreeNodeDefinition leftNode = service.getNodeByPositionId(edge.leftPositionId());
-        SkillTreeNodeDefinition rightNode = service.getNodeByPositionId(edge.rightPositionId());
+        SkillTreeNodeDefinition leftNode = service.getNode(edge.sourceNodeId());
+        SkillTreeNodeDefinition rightNode = service.getNode(edge.targetNodeId());
         if (leftNode == null || rightNode == null) {
             return EdgeState.HIDDEN;
         }
@@ -337,9 +351,7 @@ final class SkillTreeVisualizer {
         if (leftUnlocked || rightUnlocked) {
             return EdgeState.CONNECTED;
         }
-        return service.viewOptions(player).edgeDisplayMode() == SkillTreeService.SkillTreeEdgeDisplayMode.ALL
-                ? EdgeState.LOCKED
-                : EdgeState.HIDDEN;
+        return EdgeState.LOCKED;
     }
 
     private @NotNull SkillTreeService.NodePresentationState resolveNodeState(
@@ -354,7 +366,7 @@ final class SkillTreeVisualizer {
     }
 
     private boolean isVisibleTo(@NotNull Player player, @Nullable Location location) {
-        double viewDistance = service.viewOptions(player).viewDistance();
+        double viewDistance = service.viewDistance();
         return location != null
                 && location.getWorld() != null
                 && player.getWorld() == location.getWorld()
@@ -470,16 +482,16 @@ final class SkillTreeVisualizer {
         private final SkillTreePacketDisplay.PacketEntity label;
         private final Set<UUID> visibleViewers = new HashSet<>();
 
-        private AdminPositionVisual(@NotNull String positionId, @NotNull Location location) {
+        private AdminPositionVisual(@NotNull String nodeId, @NotNull Location location) {
             this.baseLocation = location.clone();
             this.item = packetItemDisplay(location, new ItemStack(Material.ARMOR_STAND), ADMIN_ITEM_SCALE, ADMIN_ITEM_Y_OFFSET, false);
             this.marker = packetTextDisplay(location, component("&d*"), ADMIN_TEXT_SCALE);
             Location labelLocation = location.clone().add(0.0D, 0.45D, 0.0D);
-            this.label = packetTextDisplay(labelLocation, component("&d" + positionId), ADMIN_TEXT_SCALE);
+            this.label = packetTextDisplay(labelLocation, component("&d" + nodeId), ADMIN_TEXT_SCALE);
             Logger.log(
                     LogId.I_9002,
                     "admin",
-                    positionId,
+                    nodeId,
                     location.getWorld() == null ? "null" : location.getWorld().getName(),
                     location.getX(),
                     location.getY(),
@@ -565,7 +577,7 @@ final class SkillTreeVisualizer {
         private NodeVisual(@NotNull SkillTreeNodeDefinition node, @NotNull Location location) {
             this.node = node;
             this.baseLocation = location.clone();
-            this.interaction = createNodeInteraction(location, node.positionId());
+            this.interaction = createNodeInteraction(location, node.nodeId());
             this.lockedItem = packetItemDisplay(location, service.createNodeDisplayItem(node, false), NODE_ITEM_SCALE, NODE_ITEM_Y_OFFSET, false);
             this.unlockedItem = packetItemDisplay(location, service.createNodeDisplayItem(node, true), NODE_ITEM_SCALE, NODE_ITEM_Y_OFFSET, true);
             registerLabel(location, node, SkillTreeService.NodePresentationState.BLOCKED, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
@@ -579,7 +591,7 @@ final class SkillTreeVisualizer {
             Logger.log(
                     LogId.I_9002,
                     "node",
-                    node.id(),
+                    node.nodeId(),
                     location.getWorld() == null ? "null" : location.getWorld().getName(),
                     location.getX(),
                     location.getY(),
@@ -728,13 +740,13 @@ final class SkillTreeVisualizer {
      * packet-only ノード表示へ左右クリックを届ける不可視 hitbox を生成します。
      *
      * @param location ノード基準位置
-     * @param positionId hitbox が示すスキルツリー位置 ID
+     * @param nodeId hitbox が示す nodeId
      * @return サーバーが追跡する非永続 Interaction entity
      * @throws IllegalArgumentException ワールドを解決できない場合
      */
     private @NotNull Interaction createNodeInteraction(
             @NotNull Location location,
-            @NotNull String positionId
+            @NotNull String nodeId
     ) {
         World world = location.getWorld();
         if (world == null) {
@@ -749,7 +761,7 @@ final class SkillTreeVisualizer {
             interaction.setInvulnerable(true);
             interaction.setSilent(true);
             interaction.addScoreboardTag(SkillTreeService.NODE_INTERACTION_TAG);
-            service.tagNodeInteraction(interaction, positionId);
+            service.tagNodeInteraction(interaction, nodeId);
         });
     }
 

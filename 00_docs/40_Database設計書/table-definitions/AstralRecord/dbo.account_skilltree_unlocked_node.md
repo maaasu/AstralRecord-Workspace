@@ -24,5 +24,6 @@
 
 ## 運用メモ
 
-- ノード定義の正本は filebase `40_filebase/35.features.skilltree/*.yml`。
+- ノード定義の正本は filebase `40_filebase/35.features.skilltree/nodes/*.json`。
+- 配置・接続構造は `40_filebase/35.features.skilltree/structures/*.json` に保持し、DB には保存しない。
 - このテーブルは「どのノードを解放済みか」だけを保持し、座標情報は保持しない。

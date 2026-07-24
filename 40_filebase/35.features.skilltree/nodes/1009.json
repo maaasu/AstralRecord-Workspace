@@ -1,0 +1,18 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1009",
+  "name": "&b&l瞑想",
+  "icon": "BOOK",
+  "lore": [
+    "&7魔力を静かに巡らせ、継戦力を高める。"
+  ],
+  "tags": [
+    "passive",
+    "magic",
+    "early"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": []
+}

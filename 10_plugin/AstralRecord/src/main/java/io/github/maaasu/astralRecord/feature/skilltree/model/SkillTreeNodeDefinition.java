@@ -9,18 +9,43 @@ import java.util.List;
  * filebase で定義されるスキルツリーノードのマスタデータです。
  */
 public record SkillTreeNodeDefinition(
-        @NotNull String id,
-        @NotNull String positionId,
+        @NotNull String nodeId,
         @NotNull String name,
         @NotNull Material icon,
         @NotNull List<String> lore,
         @NotNull List<String> tags,
         @NotNull SkillTreePointType pointType,
         int pointCost,
-        @NotNull List<String> skillIds,
-        @NotNull List<SkillTreeNodeStatusDefinition> statuses
+        @NotNull List<SkillTreeNodeEffect> effects
 ) {
     public SkillTreeNodeDefinition {
         pointCost = Math.max(0, pointCost);
+        lore = List.copyOf(lore);
+        tags = List.copyOf(tags);
+        effects = List.copyOf(effects);
+    }
+
+    /**
+     * スキル付与効果だけを返します。
+     *
+     * @return 定義順を維持したスキル付与効果
+     */
+    public @NotNull List<SkillTreeSkillEffect> skillEffects() {
+        return effects.stream()
+                .filter(SkillTreeSkillEffect.class::isInstance)
+                .map(SkillTreeSkillEffect.class::cast)
+                .toList();
+    }
+
+    /**
+     * ステータス補正効果だけを返します。
+     *
+     * @return 定義順を維持したステータス補正効果
+     */
+    public @NotNull List<SkillTreeStatusEffect> statusEffects() {
+        return effects.stream()
+                .filter(SkillTreeStatusEffect.class::isInstance)
+                .map(SkillTreeStatusEffect.class::cast)
+                .toList();
     }
 }

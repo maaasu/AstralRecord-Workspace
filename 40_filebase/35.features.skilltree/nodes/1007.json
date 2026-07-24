@@ -1,0 +1,18 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1007",
+  "name": "&a&l観測標",
+  "icon": "SPYGLASS",
+  "lore": [
+    "&7狙った相手を見失わず、射撃の精度を高める。"
+  ],
+  "tags": [
+    "passive",
+    "ranged",
+    "early"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": []
+}

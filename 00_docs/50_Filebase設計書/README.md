@@ -4,18 +4,18 @@
 
 この設計書は、`40_filebase` に作成するマスタデータの共通コンセプトと、カテゴリごとに「どのようなマスタを作るか」を定義します。
 
-個別ワールドの設定、特定エリアの敵構成、具体的なアイテム名、個別マスタの数値は扱いません。これらは各 YAML と、その YAML に付ける設計コメントで管理します。
+個別ワールドの設定、特定エリアの敵構成、具体的なアイテム名、個別マスタの数値は扱いません。これらは各マスタファイルと、ファイル形式ごとの設計メタデータで管理します。
 
 ## 2. 正本
 
 | 対象 | 正本 |
 |:--|:--|
-| YAML の構造、必須項目、参照形式 | `E:\AstralRecord-Workspace\40_filebase` 配下の各 `docs.<項目名>.YAMLスキーマ定義.md` |
+| マスタファイルの構造、必須項目、参照形式 | `E:\AstralRecord-Workspace\40_filebase` 配下の各 `docs.<項目名>.YAMLスキーマ定義.md` または `schemas/*.schema.json` |
 | Plugin が解釈する列挙値や動作 | `E:\AstralRecord-Workspace\10_plugin\AstralRecord\src\main` 配下のソースコード |
 | Plugin の機能仕様 | `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書` |
 | マスタカテゴリの設計方針 | 本設計書の `feature` 配下 |
-| 個別マスタの定義 | `E:\AstralRecord-Workspace\40_filebase` 配下の各 YAML |
-| 個別マスタのモチーフと進行度 | 各 YAML の先頭コメント |
+| 個別マスタの定義 | `E:\AstralRecord-Workspace\40_filebase` 配下の各 YAML / JSON |
+| 個別マスタのモチーフと進行度 | YAML の先頭コメント、または対象 JSON Schema が定義する設計メタデータ |
 
 本設計書には、Plugin 側の列挙値一覧を複製しません。使用可能な値は参照先のソースコードを確認します。
 
@@ -25,9 +25,9 @@
 - 同じ進行度のマスタ同士は、入手元、消費先、攻略対象、報酬先のいずれかで緩く接続します。
 - 個別ワールドや物語へ強く依存する説明を共通設計へ持ち込みません。
 - 数値は進行度、カテゴリの役割、レアリティ、入手難度の順に根拠を持たせます。
-- 実装可能な値と挙動は Plugin ソース、記述形式は YAML スキーマを正とします。
+- 実装可能な値と挙動は Plugin ソース、記述形式は対象カテゴリの YAML スキーマまたは JSON Schema を正とします。
 
-## 4. YAML 設計コメント
+## 4. 設計メタデータ
 
 各本番向け YAML の先頭には、次の形式でモチーフと進行度を記載します。このコメントは Plugin/API から参照しません。
 
@@ -36,6 +36,8 @@
 #   motif: "北欧神話 / 世界樹"
 #   progression: 12
 ```
+
+JSON はコメントを持たないため、対象 JSON Schema に `design` などの設計メタデータが定義されている場合だけ、そのフィールドへ記載します。スキーマに設計メタデータがない JSON へ未定義プロパティを追加せず、カテゴリの feature 設計書で設計意図を管理します。
 
 ### motif
 
@@ -108,8 +110,8 @@ feature 設計書の先頭番号は、原則として `40_filebase` のディレ
 
 1. 本 README
 2. 対象カテゴリの `feature/<number>-<category>.md`
-3. 対象カテゴリの `docs.<項目名>.YAMLスキーマ定義.md`
+3. 対象カテゴリの `docs.<項目名>.YAMLスキーマ定義.md` または `schemas/*.schema.json`
 4. feature 文書に記載された Plugin ソースまたは Plugin 設計書
 5. `モチーフ選定ガイド.md`
-6. 近い既存 YAML
+6. 近い既存 YAML / JSON
 7. `作成時チェックリスト.md`

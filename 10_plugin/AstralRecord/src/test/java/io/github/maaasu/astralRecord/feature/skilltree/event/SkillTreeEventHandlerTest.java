@@ -20,8 +20,6 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.util.Vector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,8 +51,6 @@ class SkillTreeEventHandlerTest {
     void setUp() {
         service = mock(SkillTreeService.class);
         player = mock(Player.class);
-        PlayerInventory inventory = mock(PlayerInventory.class);
-        ItemStack held = mock(ItemStack.class);
         snapshot = new PlayerInteractionSnapshot(
             player,
             mock(Event.class),
@@ -68,13 +64,9 @@ class SkillTreeEventHandlerTest {
             8.0D
         );
 
-        when(player.getInventory()).thenReturn(inventory);
         when(player.getUniqueId()).thenReturn(
             UUID.fromString("00000000-0000-0000-0000-000000000581")
         );
-        when(inventory.getItemInMainHand()).thenReturn(held);
-        when(service.readPositionItemId(held)).thenReturn(null);
-        when(service.isConnectorItem(held)).thenReturn(false);
         when(service.isPlayerModeSkillTree(player)).thenReturn(true);
 
         context = new PlayerInputContext<>(
@@ -101,7 +93,7 @@ class SkillTreeEventHandlerTest {
         when(service.findTargetedPositionHit(snapshot)).thenReturn(Optional.of(
             new SkillTreeService.SkillTreePositionHit(position, 2.5D)
         ));
-        when(service.getNodeByPositionId("1000")).thenReturn(node("1000"));
+        when(service.getNode("1000")).thenReturn(node("1000"));
 
         Collection<PlayerInputCandidate> candidates = new SkillTreeEventHandler(service).resolve(context);
 
@@ -124,7 +116,7 @@ class SkillTreeEventHandlerTest {
         allowSnapshotRefresh();
         when(service.findTargetedPositionHit(any(PlayerInteractionSnapshot.class)))
             .thenReturn(Optional.of(hit));
-        when(service.getNodeByPositionId("1000")).thenReturn(node);
+        when(service.getNode("1000")).thenReturn(node);
         when(service.isStateReady(astPlayer)).thenReturn(true);
         when(service.hasAvailableUnlockPoint(astPlayer)).thenReturn(true);
         when(service.canUnlockNode(astPlayer, node)).thenReturn(true);
@@ -167,7 +159,7 @@ class SkillTreeEventHandlerTest {
         allowSnapshotRefresh();
         when(service.findTargetedPositionHit(any(PlayerInteractionSnapshot.class)))
             .thenReturn(Optional.of(hit));
-        when(service.getNodeByPositionId("1000")).thenReturn(node);
+        when(service.getNode("1000")).thenReturn(node);
         when(service.isStateReady(astPlayer)).thenReturn(true);
         when(service.isNodeUnlocked(astPlayer, node)).thenReturn(true);
         when(service.canAffordRelock(astPlayer)).thenReturn(true);
@@ -205,17 +197,15 @@ class SkillTreeEventHandlerTest {
         )).thenReturn(null);
     }
 
-    private SkillTreeNodeDefinition node(String positionId) {
+    private SkillTreeNodeDefinition node(String nodeId) {
         return new SkillTreeNodeDefinition(
-            "test-node",
-            positionId,
+            nodeId,
             "Test Node",
             Material.STONE,
             List.of(),
             List.of(),
             SkillTreePointType.PASSIVE_POINT,
             1,
-            List.of(),
             List.of()
         );
     }

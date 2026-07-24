@@ -1,0 +1,18 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1008",
+  "name": "&a&lすり抜け",
+  "icon": "FEATHER",
+  "lore": [
+    "&7身のこなしを洗練させ、回避と機動力を高める。"
+  ],
+  "tags": [
+    "passive",
+    "ranged",
+    "early"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": []
+}

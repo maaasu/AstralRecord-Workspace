@@ -10,12 +10,14 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
+import io.github.maaasu.astralRecord.feature.skilltree.config.SkillTreePluginConfig;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeEdge;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefinition;
-import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeStatusDefinition;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePlayerState;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePosition;
+import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeSkillEffect;
+import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeStatusEffect;
 import io.github.maaasu.astralRecord.feature.status.model.StatusModifierType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -75,13 +77,12 @@ import java.util.UUID;
 import net.kyori.adventure.title.Title;
 
 /**
- * スキルツリーのノード状態管理、GUI 更新、ホットバー制御、
+ * スキルツリーのノード状態管理、表示更新、
  * およびノード由来のスキル・ステータス反映を担当するサービスです。
  */
 public class SkillTreeService {
     public static final String SKILL_TREE_WORLD_ID = "skill_tree";
     public static final long RELOCK_GOLD_COST = 100L;
-    private static final String ROOT_TAG = "root";
     private static final double TARGET_DISTANCE = 8.0D;
     private static final double TARGET_RADIUS = 0.9D;
     static final String NODE_INTERACTION_TAG = "astralrecord:skilltree:node-interaction";
@@ -90,8 +91,6 @@ public class SkillTreeService {
     private static final long VISUAL_DELAY_MILLIS = 1_500L;
     private static final long SAVE_DEBOUNCE_MILLIS = 5_000L;
     private static final int DEFAULT_VIEW_DISTANCE = 48;
-    private static final int MIN_VIEW_DISTANCE = 16;
-    private static final int MAX_VIEW_DISTANCE = 96;
     private static final double DETAILED_LABEL_DISTANCE = 14.0D;
     private static final double COMPACT_LABEL_DISTANCE = 28.0D;
 
@@ -116,6 +115,27 @@ public class SkillTreeService {
         }
     }
 
+    /**
+     * JSONから準備し、メインスレッドで一括公開するスキルツリーマスタです。
+     *
+     * @param rootNodeId 構造上のrootノードID
+     * @param nodes ノード定義
+     * @param positions nodeIdに直接対応する絶対座標
+     * @param edges nodeId同士の無向接続
+     */
+    public record SkillTreeMasterDataSnapshot(
+            @NotNull String rootNodeId,
+            @NotNull List<SkillTreeNodeDefinition> nodes,
+            @NotNull List<SkillTreePosition> positions,
+            @NotNull List<SkillTreeEdge> edges
+    ) {
+        public SkillTreeMasterDataSnapshot {
+            nodes = List.copyOf(nodes);
+            positions = List.copyOf(positions);
+            edges = List.copyOf(edges);
+        }
+    }
+
     private final Plugin plugin;
     private final WorldService worldService;
     private InventoryService inventoryService;
@@ -126,11 +146,9 @@ public class SkillTreeService {
     private final SkillTreeNodeRepository nodeRepository;
     private final SkillTreeStructureRepository structureRepository;
     private final SkillTreePlayerStateRepository playerStateRepository;
-    private final NamespacedKey positionItemKey;
-    private final NamespacedKey connectorItemKey;
+    private final NamespacedKey nodeInteractionKey;
     private final Map<String, SkillTreeNodeDefinition> nodesById = new LinkedHashMap<>();
-    private final Map<String, SkillTreeNodeDefinition> nodesByPositionId = new LinkedHashMap<>();
-    private final Map<String, SkillTreePosition> positionsById = new LinkedHashMap<>();
+    private final Map<String, SkillTreePosition> positionsByNodeId = new LinkedHashMap<>();
     private final Map<String, SkillTreeEdge> edgesByKey = new LinkedHashMap<>();
     private final Map<String, ItemStack> lockedNodeDisplayItems = new LinkedHashMap<>();
     private final Map<String, ItemStack> unlockedNodeDisplayItems = new LinkedHashMap<>();
@@ -140,12 +158,10 @@ public class SkillTreeService {
     private final Map<String, NodeLabelSet> inactiveNodeFieldLabels = new LinkedHashMap<>();
     private final Map<UUID, SkillTreePlayerState> playerStates = new HashMap<>();
     private final Map<UUID, DerivedPlayerState> derivedPlayerStates = new HashMap<>();
-    private final Map<UUID, SkillTreeViewOptions> playerViewOptions = new HashMap<>();
     private final Set<UUID> dirtyPlayerStates = new LinkedHashSet<>();
     private final Set<UUID> loadingPlayerStates = new LinkedHashSet<>();
     private final Set<UUID> failedPlayerStateLoads = new LinkedHashSet<>();
     private final Map<UUID, Long> dirtyPlayerStateDueAtMillis = new HashMap<>();
-    private final Map<UUID, String> connectorLeftSelections = new HashMap<>();
     private final Map<UUID, Location> returnLocations = new HashMap<>();
     private final Map<UUID, Long> visualReadyAtMillis = new HashMap<>();
     private final Map<UUID, BossBar> loadingBossBars = new HashMap<>();
@@ -153,8 +169,8 @@ public class SkillTreeService {
     private BukkitTask saveTask;
     private BukkitTask feedbackTask;
     private SkillTreeVisualizer visualizer;
-    private boolean structureDirty;
     private boolean playerStateSaveInProgress;
+    private String rootNodeId = "";
 
     public SkillTreeService(
             @NotNull Plugin plugin,
@@ -170,8 +186,7 @@ public class SkillTreeService {
         this.nodeRepository = nodeRepository;
         this.structureRepository = structureRepository;
         this.playerStateRepository = playerStateRepository;
-        this.positionItemKey = new NamespacedKey(plugin, "skilltree_position_id");
-        this.connectorItemKey = new NamespacedKey(plugin, "skilltree_connector");
+        this.nodeInteractionKey = new NamespacedKey(plugin, "skilltree_node_id");
     }
 
     public void setInventoryService(@NotNull InventoryService inventoryService) {
@@ -206,38 +221,83 @@ public class SkillTreeService {
         this.passiveSkillService = passiveSkillService;
     }
 
-    public int loadAll() {
+    /**
+     * JSONファイルを読み、共有キャッシュを変更しない検証済みスナップショットを構築します。
+     *
+     * @return 公開前のスキルツリーマスタ
+     * @throws IllegalStateException JSONまたはノード参照が不正な場合
+     */
+    public @NotNull SkillTreeMasterDataSnapshot loadMasterDataSnapshot() {
+        List<SkillTreeNodeDefinition> nodes = nodeRepository.findAll();
+        Map<String, SkillTreeNodeDefinition> definitions = new LinkedHashMap<>();
+        for (SkillTreeNodeDefinition node : nodes) {
+            if (definitions.putIfAbsent(node.nodeId(), node) != null) {
+                throw new IllegalStateException("Duplicate skilltree nodeId: " + node.nodeId());
+            }
+        }
+        SkillTreePluginConfig config = SkillTreePluginConfig.loadFile(
+                new File(plugin.getDataFolder(), "config.yml")
+        );
+        var structure = structureRepository.load(config);
+        for (SkillTreePosition position : structure.positions()) {
+            if (!definitions.containsKey(position.nodeId())) {
+                throw new IllegalStateException("Skilltree structure references unknown nodeId: " + position.nodeId());
+            }
+        }
+        if (!definitions.containsKey(structure.rootNodeId())) {
+            throw new IllegalStateException("Skilltree rootNodeId has no node definition: " + structure.rootNodeId());
+        }
+        return new SkillTreeMasterDataSnapshot(
+                structure.rootNodeId(),
+                nodes,
+                structure.positions(),
+                structure.edges()
+        );
+    }
+
+    /**
+     * 検証済みスキルツリーマスタを実行時キャッシュへ一括公開します。
+     *
+     * @param snapshot 公開するスナップショット
+     */
+    public void replaceMasterDataSnapshot(@NotNull SkillTreeMasterDataSnapshot snapshot) {
         nodesById.clear();
-        nodesByPositionId.clear();
         lockedNodeDisplayItems.clear();
         unlockedNodeDisplayItems.clear();
         blockedNodeFieldLabels.clear();
         availableNodeFieldLabels.clear();
         unlockedNodeFieldLabels.clear();
         inactiveNodeFieldLabels.clear();
-        for (SkillTreeNodeDefinition node : nodeRepository.findAll()) {
-            nodesById.put(node.id(), node);
-            nodesByPositionId.put(node.positionId(), node);
+        for (SkillTreeNodeDefinition node : snapshot.nodes()) {
+            nodesById.put(node.nodeId(), node);
             cacheNodePresentation(node);
         }
 
-        positionsById.clear();
+        positionsByNodeId.clear();
         edgesByKey.clear();
-        var snapshot = structureRepository.load();
         for (SkillTreePosition position : snapshot.positions()) {
-            positionsById.put(position.positionId(), position);
+            positionsByNodeId.put(position.nodeId(), position);
         }
         for (SkillTreeEdge edge : snapshot.edges()) {
-            if (positionsById.containsKey(edge.leftPositionId()) && positionsById.containsKey(edge.rightPositionId())) {
-                edgesByKey.put(edge.key(), edge);
-            }
+            edgesByKey.put(edge.key(), edge);
         }
-        structureDirty = false;
+        rootNodeId = snapshot.rootNodeId();
         derivedPlayerStates.clear();
+        refreshLoadedOnlinePlayerDerivedStates();
         if (visualizer != null) {
             visualizer.markStructureDirty();
         }
-        Logger.log(LogId.I_9000, nodesById.size(), positionsById.size(), edgesByKey.size());
+        Logger.log(LogId.I_9000, nodesById.size(), positionsByNodeId.size(), edgesByKey.size());
+    }
+
+    /**
+     * スキルツリーマスタを同期読込して公開します。
+     *
+     * @return 読み込んだノード件数
+     */
+    public int loadAll() {
+        SkillTreeMasterDataSnapshot snapshot = loadMasterDataSnapshot();
+        replaceMasterDataSnapshot(snapshot);
         return nodesById.size();
     }
 
@@ -420,7 +480,7 @@ public class SkillTreeService {
      * @return 解放済みなら {@code true}
      */
     public boolean isNodeUnlocked(@NotNull AstPlayer astPlayer, @NotNull SkillTreeNodeDefinition node) {
-        return state(astPlayer).isUnlocked(node.id());
+        return state(astPlayer).isUnlocked(node.nodeId());
     }
 
     /**
@@ -444,13 +504,13 @@ public class SkillTreeService {
 
     public boolean canUnlockNode(@NotNull AstPlayer astPlayer, @NotNull SkillTreeNodeDefinition node) {
         SkillTreePlayerState state = state(astPlayer);
-        if (state.isUnlocked(node.id()) || availablePoints(astPlayer, node.pointType()) < node.pointCost()) {
+        if (state.isUnlocked(node.nodeId()) || availablePoints(astPlayer, node.pointType()) < node.pointCost()) {
             return false;
         }
-        if (state.unlockedNodeIds().isEmpty()) {
-            return hasTag(node, ROOT_TAG);
+        if (knownUnlockedNodeIds(state).isEmpty()) {
+            return rootNodeId.equals(node.nodeId());
         }
-        return isAdjacentToActiveNode(astPlayer, state, node.positionId());
+        return isAdjacentToActiveNode(astPlayer, state, node.nodeId());
     }
 
     /**
@@ -464,39 +524,13 @@ public class SkillTreeService {
     }
 
     /**
-     * ItemStack がスキルツリー設定用アイテムかを判定します。
-     *
-     * @param itemStack 判定対象の ItemStack
-     * @return Position / Connector アイテムの場合は true
-     */
-    public boolean isSkillTreeSetupItem(@Nullable ItemStack itemStack) {
-        return readPositionItemId(itemStack) != null || isConnectorItem(itemStack);
-    }
-
-    /**
-     * スキルツリー設定アイテムを現在の手で操作中かを判定します。
-     * インベントリや未選択のホットバースロットに設定アイテムがあるだけでは、通常操作を抑止しません。
-     *
-     * @param player 判定対象プレイヤー
-     * @return メインハンドまたはオフハンドに設定アイテムを持っている場合は true
-     */
-    public boolean shouldSuppressSkillTreeSetupControls(@NotNull Player player) {
-        return hasSetupItemInHands(player);
-    }
-
-    /**
-     * プレイヤーがスキルツリー編集中で、通常攻撃・特殊攻撃などの通常操作を抑止すべきか判定します。
+     * プレイヤーがスキルツリー操作中で、通常攻撃・特殊攻撃などを抑止すべきか判定します。
      *
      * @param player 判定対象のプレイヤー
-     * @return スキルツリー編集中の場合は true
+     * @return 通常プレイヤーとしてスキルツリーワールドにいる場合は true
      */
     public boolean isSkillTreeEditing(@NotNull Player player) {
-        return shouldSuppressSkillTreeSetupControls(player) || isPlayerModeSkillTree(player);
-    }
-
-    private boolean hasSetupItemInHands(@NotNull Player player) {
-        return isSkillTreeSetupItem(player.getInventory().getItemInMainHand())
-                || isSkillTreeSetupItem(player.getInventory().getItemInOffHand());
+        return isPlayerModeSkillTree(player);
     }
 
     private void updateVisibility(@NotNull Player viewer, @NotNull Player target) {
@@ -507,108 +541,9 @@ public class SkillTreeService {
         viewer.showPlayer(plugin, target);
     }
 
-    @Nullable
-    public ItemStack createPositionItem(@NotNull String positionId, int amount) {
-        if (positionId.isBlank()) {
-            return null;
-        }
-        ItemStack itemStack = new ItemStack(Material.ARMOR_STAND, Math.max(1, amount));
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(component("&dスキルツリー位置設定 [&f" + positionId + "&d]"));
-            meta.lore(List.of(
-                    component("&7ブロックを右クリック: 登録 / 左クリック: 削除"),
-                    component("&7位置ID: &f" + positionId)
-            ));
-            meta.addItemFlags(ItemFlag.values());
-            meta.getPersistentDataContainer().set(positionItemKey, PersistentDataType.STRING, positionId);
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
-    }
-    @NotNull
-    public ItemStack createConnectorItem(int amount) {
-        ItemStack itemStack = new ItemStack(Material.LEAD, Math.max(1, amount));
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(component("&bスキルツリー接続設定"));
-            meta.lore(List.of(
-                    component("&7左クリック: 接続元ノードを選択"),
-                    component("&7右クリック: 視線先ノードとの接続を切り替え")
-            ));
-            meta.addItemFlags(ItemFlag.values());
-            meta.getPersistentDataContainer().set(connectorItemKey, PersistentDataType.BOOLEAN, true);
-            itemStack.setItemMeta(meta);
-        }
-        return itemStack;
-    }
-
-    @Nullable
-    public String readPositionItemId(@Nullable ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType() == Material.AIR || !itemStack.hasItemMeta()) {
-            return null;
-        }
-        return itemStack.getItemMeta().getPersistentDataContainer().get(positionItemKey, PersistentDataType.STRING);
-    }
-
-    public boolean isConnectorItem(@Nullable ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType() == Material.AIR || !itemStack.hasItemMeta()) {
-            return false;
-        }
-        Boolean value = itemStack.getItemMeta().getPersistentDataContainer().get(connectorItemKey, PersistentDataType.BOOLEAN);
-        return Boolean.TRUE.equals(value);
-    }
-
-    public boolean registerPosition(@NotNull String positionId, @NotNull Location location) {
-        positionsById.put(positionId, SkillTreePosition.from(positionId, location));
-        structureDirty = true;
-        if (visualizer != null) {
-            visualizer.markStructureDirty();
-        }
-        return true;
-    }
-
-    public boolean removePosition(@NotNull String positionId) {
-        boolean removed = positionsById.remove(positionId) != null;
-        edgesByKey.entrySet().removeIf(entry -> entry.getValue().contains(positionId));
-        if (removed) {
-            structureDirty = true;
-            if (visualizer != null) {
-                visualizer.markStructureDirty();
-            }
-        }
-        return removed;
-    }
-
-    public boolean toggleConnection(@NotNull String leftPositionId, @NotNull String rightPositionId) {
-        if (leftPositionId.equals(rightPositionId)
-                || !positionsById.containsKey(leftPositionId)
-                || !positionsById.containsKey(rightPositionId)) {
-            return false;
-        }
-        SkillTreeEdge edge = new SkillTreeEdge(leftPositionId, rightPositionId);
-        if (edgesByKey.remove(edge.key()) == null) {
-            edgesByKey.put(edge.key(), edge);
-        }
-        structureDirty = true;
-        if (visualizer != null) {
-            visualizer.markStructureDirty();
-        }
-        return true;
-    }
-
-    public void selectConnectorLeft(@NotNull UUID playerId, @NotNull String positionId) {
-        connectorLeftSelections.put(playerId, positionId);
-    }
-
-    @Nullable
-    public String consumeConnectorLeft(@NotNull UUID playerId) {
-        return connectorLeftSelections.remove(playerId);
-    }
-
     @NotNull
     public Collection<SkillTreePosition> getPositions() {
-        return List.copyOf(positionsById.values());
+        return List.copyOf(positionsByNodeId.values());
     }
 
     @NotNull
@@ -617,32 +552,18 @@ public class SkillTreeService {
     }
 
     @Nullable
-    public SkillTreePosition getPosition(@NotNull String positionId) {
-        return positionsById.get(positionId);
+    public SkillTreePosition getPosition(@NotNull String nodeId) {
+        return positionsByNodeId.get(nodeId);
     }
 
     @Nullable
-    public SkillTreeNodeDefinition getNodeByPositionId(@NotNull String positionId) {
-        return nodesByPositionId.get(positionId);
+    public SkillTreeNodeDefinition getNode(@NotNull String nodeId) {
+        return nodesById.get(nodeId);
     }
 
     @NotNull
     public Collection<String> getNodeIds() {
         return List.copyOf(nodesById.keySet());
-    }
-
-    @NotNull
-    public Collection<String> getPositionIds() {
-        return List.copyOf(positionsById.keySet());
-    }
-
-    @NotNull
-    public Collection<String> getDefinedPositionIds() {
-        return List.copyOf(nodesByPositionId.keySet());
-    }
-
-    public boolean hasDefinedPosition(@NotNull String positionId) {
-        return nodesByPositionId.containsKey(positionId);
     }
 
     @NotNull
@@ -801,16 +722,16 @@ public class SkillTreeService {
             if (node == null) {
                 continue;
             }
-            for (String rawSkillId : node.skillIds()) {
-                if (rawSkillId != null && !rawSkillId.isBlank()) {
-                    unlockedSkillIds.add(rawSkillId.trim());
+            for (SkillTreeSkillEffect skill : node.skillEffects()) {
+                if (!skill.skillId().isBlank()) {
+                    unlockedSkillIds.add(skill.skillId());
                 }
             }
-            for (SkillTreeNodeStatusDefinition status : node.statuses()) {
+            for (SkillTreeStatusEffect status : node.statusEffects()) {
                 StatusBonusTotals current = statusBonuses.getOrDefault(status.statusType(), StatusBonusTotals.ZERO);
                 statusBonuses.put(
                         status.statusType(),
-                        status.type() == StatusModifierType.SCALAR
+                        status.modifierType() == StatusModifierType.SCALAR
                                 ? new StatusBonusTotals(current.flat(), current.scalar() + status.value())
                                 : new StatusBonusTotals(current.flat() + status.value(), current.scalar())
                 );
@@ -847,6 +768,22 @@ public class SkillTreeService {
             spent.put(pointType, spent.getOrDefault(pointType, 0) - node.pointCost());
         }
         return activeNodeIds;
+    }
+
+    /**
+     * API 状態に残る削除済み ID を除外し、現行ノードマスタに存在する解放済み ID だけを返します。
+     *
+     * @param state プレイヤーの永続化済み解放状態
+     * @return 現行ノードマスタに存在する解放済み ID
+     */
+    private @NotNull Set<String> knownUnlockedNodeIds(@NotNull SkillTreePlayerState state) {
+        Set<String> knownNodeIds = new LinkedHashSet<>();
+        for (String nodeId : state.unlockedNodeIds()) {
+            if (nodesById.containsKey(nodeId)) {
+                knownNodeIds.add(nodeId);
+            }
+        }
+        return knownNodeIds;
     }
 
     private int availablePoints(@NotNull AstPlayer astPlayer, @NotNull SkillTreePointType pointType) {
@@ -901,23 +838,23 @@ public class SkillTreeService {
         addedSkillIds.removeAll(previousSkillIds);
         Set<String> removedSkillIds = new LinkedHashSet<>(previousSkillIds);
         removedSkillIds.removeAll(currentSkillIds);
-        boolean statusAffected = !changedNode.statuses().isEmpty()
+        boolean statusAffected = !changedNode.statusEffects().isEmpty()
                 || !addedSkillIds.isEmpty()
                 || !removedSkillIds.isEmpty();
         refreshDerivedState(astPlayer, addedSkillIds, removedSkillIds, statusAffected);
         if (visualizer != null) {
             visualizer.markNodeStateDirty(
                     astPlayer.getBukkit().getUniqueId(),
-                    affectedPositionIds(changedNode.positionId())
+                    affectedNodeIds(changedNode.nodeId())
             );
             visualizer.markViewerDirty(astPlayer.getBukkit().getUniqueId());
         }
     }
 
-    public @NotNull Set<String> affectedPositionIds(@NotNull String positionId) {
+    public @NotNull Set<String> affectedNodeIds(@NotNull String nodeId) {
         Set<String> affected = new LinkedHashSet<>();
-        affected.add(positionId);
-        affected.addAll(adjacentPositionIds(positionId));
+        affected.add(nodeId);
+        affected.addAll(adjacentNodeIds(nodeId));
         return affected;
     }
 
@@ -982,7 +919,7 @@ public class SkillTreeService {
         }
         SkillTreePlayerState state = state(astPlayer);
         Set<String> previousSkillIds = derivedState(astPlayer, state).unlockedSkillIds();
-        boolean changed = state.unlock(node.id());
+        boolean changed = state.unlock(node.nodeId());
         if (changed) {
             DerivedPlayerState nextDerivedState = rebuildDerivedState(astPlayer, state);
             derivedPlayerStates.put(state.accountId(), nextDerivedState);
@@ -1001,7 +938,7 @@ public class SkillTreeService {
         }
         SkillTreePlayerState state = state(astPlayer);
         Set<String> previousSkillIds = derivedState(astPlayer, state).unlockedSkillIds();
-        boolean changed = state.relock(node.id());
+        boolean changed = state.relock(node.nodeId());
         if (changed) {
             DerivedPlayerState nextDerivedState = rebuildDerivedState(astPlayer, state);
             derivedPlayerStates.put(state.accountId(), nextDerivedState);
@@ -1013,44 +950,37 @@ public class SkillTreeService {
 
     public boolean canRelockNode(@NotNull AstPlayer astPlayer, @NotNull SkillTreeNodeDefinition node) {
         SkillTreePlayerState state = state(astPlayer);
-        if (!state.isUnlocked(node.id())) {
+        if (!state.isUnlocked(node.nodeId())) {
             return false;
         }
 
-        Set<String> remainingUnlocked = new LinkedHashSet<>(state.unlockedNodeIds());
-        remainingUnlocked.remove(node.id());
+        Set<String> remainingUnlocked = knownUnlockedNodeIds(state);
+        remainingUnlocked.remove(node.nodeId());
         if (remainingUnlocked.isEmpty()) {
             return true;
         }
 
-        Set<String> rootPositions = new LinkedHashSet<>();
-        for (String nodeId : remainingUnlocked) {
-            SkillTreeNodeDefinition unlockedNode = nodesById.get(nodeId);
-            if (unlockedNode != null && hasTag(unlockedNode, ROOT_TAG)) {
-                rootPositions.add(unlockedNode.positionId());
-            }
-        }
-        if (rootPositions.isEmpty()) {
+        if (!remainingUnlocked.contains(rootNodeId)) {
             return false;
         }
 
         Set<String> reachableUnlocked = new LinkedHashSet<>();
-        java.util.ArrayDeque<String> queue = new java.util.ArrayDeque<>(rootPositions);
-        Set<String> visitedPositions = new LinkedHashSet<>();
+        java.util.ArrayDeque<String> queue = new java.util.ArrayDeque<>(List.of(rootNodeId));
+        Set<String> visitedNodeIds = new LinkedHashSet<>();
         while (!queue.isEmpty()) {
-            String positionId = queue.removeFirst();
-            if (!visitedPositions.add(positionId)) {
+            String currentNodeId = queue.removeFirst();
+            if (!visitedNodeIds.add(currentNodeId)) {
                 continue;
             }
-            SkillTreeNodeDefinition current = nodesByPositionId.get(positionId);
-            if (current == null || !remainingUnlocked.contains(current.id())) {
+            SkillTreeNodeDefinition current = nodesById.get(currentNodeId);
+            if (current == null || !remainingUnlocked.contains(current.nodeId())) {
                 continue;
             }
-            reachableUnlocked.add(current.id());
-            for (String adjacentPositionId : adjacentPositionIds(positionId)) {
-                SkillTreeNodeDefinition adjacent = nodesByPositionId.get(adjacentPositionId);
-                if (adjacent != null && remainingUnlocked.contains(adjacent.id())) {
-                    queue.addLast(adjacentPositionId);
+            reachableUnlocked.add(current.nodeId());
+            for (String adjacentNodeId : adjacentNodeIds(currentNodeId)) {
+                SkillTreeNodeDefinition adjacent = nodesById.get(adjacentNodeId);
+                if (adjacent != null && remainingUnlocked.contains(adjacent.nodeId())) {
+                    queue.addLast(adjacentNodeId);
                 }
             }
         }
@@ -1105,11 +1035,11 @@ public class SkillTreeService {
         Entity targetEntity = snapshot.targetEntity();
         if (targetEntity instanceof Interaction
                 && targetEntity.getScoreboardTags().contains(NODE_INTERACTION_TAG)) {
-            String positionId = targetEntity.getPersistentDataContainer().get(
-                    positionItemKey,
+            String nodeId = targetEntity.getPersistentDataContainer().get(
+                    nodeInteractionKey,
                     PersistentDataType.STRING
             );
-            SkillTreePosition position = positionId == null ? null : positionsById.get(positionId);
+            SkillTreePosition position = nodeId == null ? null : positionsByNodeId.get(nodeId);
             if (position == null || !targetEntity.isValid()) {
                 return Optional.empty();
             }
@@ -1132,7 +1062,7 @@ public class SkillTreeService {
     ) {
 
         SkillTreePositionHit nearest = null;
-        for (SkillTreePosition position : positionsById.values()) {
+        for (SkillTreePosition position : positionsByNodeId.values()) {
             Location location = position.toLocation();
             if (location == null || location.getWorld() != player.getWorld()) {
                 continue;
@@ -1142,7 +1072,7 @@ public class SkillTreeService {
             if (hitDistance == null || (nearest != null
                     && (hitDistance > nearest.hitDistance()
                     || (Double.compare(hitDistance, nearest.hitDistance()) == 0
-                    && position.positionId().compareTo(nearest.position().positionId()) >= 0)))) {
+                    && position.nodeId().compareTo(nearest.position().nodeId()) >= 0)))) {
                 continue;
             }
             nearest = new SkillTreePositionHit(position, hitDistance);
@@ -1151,22 +1081,22 @@ public class SkillTreeService {
     }
 
     /**
-     * ノード hitbox に対応するスキルツリー位置 ID を保存します。
+     * ノード hitbox に対応する nodeId を保存します。
      *
      * @param interaction 対象の Interaction entity
-     * @param positionId 対応するスキルツリー位置 ID
+     * @param nodeId 対応する nodeId
      */
-    void tagNodeInteraction(@NotNull Interaction interaction, @NotNull String positionId) {
+    void tagNodeInteraction(@NotNull Interaction interaction, @NotNull String nodeId) {
         interaction.getPersistentDataContainer().set(
-                positionItemKey,
+                nodeInteractionKey,
                 PersistentDataType.STRING,
-                positionId
+                nodeId
         );
     }
 
     @NotNull
     public Optional<SkillTreeNodeDefinition> findTargetedNode(@NotNull Player player) {
-        return findTargetedPosition(player).map(position -> nodesByPositionId.get(position.positionId()));
+        return findTargetedPosition(player).map(position -> nodesById.get(position.nodeId()));
     }
 
     /**
@@ -1194,76 +1124,12 @@ public class SkillTreeService {
     }
 
     /**
-     * 指定プレイヤーのスキルツリー表示設定を返します。
+     * 固定されたスキルツリー表示距離を返します。
      *
-     * @param player 対象プレイヤー
-     * @return 表示設定。未設定時は既定値
+     * @return 表示距離48ブロック
      */
-    public @NotNull SkillTreeViewOptions viewOptions(@NotNull Player player) {
-        return playerViewOptions.getOrDefault(resolveViewOptionOwnerId(player), SkillTreeViewOptions.DEFAULT);
-    }
-
-    /**
-     * 指定プレイヤーのスキルツリー表示距離を更新します。
-     *
-     * @param player 対象プレイヤー
-     * @param viewDistance 新しい表示距離
-     * @return 更新後の表示設定
-     * @throws IllegalArgumentException 指定距離が許容範囲外の場合
-     */
-    public @NotNull SkillTreeViewOptions updateViewDistance(@NotNull Player player, int viewDistance) {
-        if (viewDistance < MIN_VIEW_DISTANCE || viewDistance > MAX_VIEW_DISTANCE) {
-            throw new IllegalArgumentException("viewDistance out of range");
-        }
-        SkillTreeViewOptions updated = viewOptions(player).withViewDistance(viewDistance);
-        playerViewOptions.put(resolveViewOptionOwnerId(player), updated);
-        markViewerContextDirty(player);
-        return updated;
-    }
-
-    /**
-     * 指定プレイヤーのスキルツリー接続表示モードを更新します。
-     *
-     * @param player 対象プレイヤー
-     * @param edgeDisplayMode 新しい接続表示モード
-     * @return 更新後の表示設定
-     */
-    public @NotNull SkillTreeViewOptions updateEdgeDisplayMode(
-            @NotNull Player player,
-            @NotNull SkillTreeEdgeDisplayMode edgeDisplayMode
-    ) {
-        SkillTreeViewOptions updated = viewOptions(player).withEdgeDisplayMode(edgeDisplayMode);
-        playerViewOptions.put(resolveViewOptionOwnerId(player), updated);
-        markViewerContextDirty(player);
-        return updated;
-    }
-
-    /**
-     * 指定プレイヤーのスキルツリー表示設定を既定値へ戻します。
-     *
-     * @param player 対象プレイヤー
-     */
-    public void resetViewOptions(@NotNull Player player) {
-        playerViewOptions.remove(resolveViewOptionOwnerId(player));
-        markViewerContextDirty(player);
-    }
-
-    /**
-     * スキルツリー表示距離の最小値を返します。
-     *
-     * @return 最小表示距離
-     */
-    public int minViewDistance() {
-        return MIN_VIEW_DISTANCE;
-    }
-
-    /**
-     * スキルツリー表示距離の最大値を返します。
-     *
-     * @return 最大表示距離
-     */
-    public int maxViewDistance() {
-        return MAX_VIEW_DISTANCE;
+    public int viewDistance() {
+        return DEFAULT_VIEW_DISTANCE;
     }
 
     /**
@@ -1278,11 +1144,11 @@ public class SkillTreeService {
             return NodeLabelDetail.HIDDEN;
         }
         double distanceSquared = player.getLocation().distanceSquared(nodeLocation);
-        double detailedThreshold = Math.min(DETAILED_LABEL_DISTANCE, viewOptions(player).viewDistance());
+        double detailedThreshold = Math.min(DETAILED_LABEL_DISTANCE, DEFAULT_VIEW_DISTANCE);
         if (distanceSquared <= detailedThreshold * detailedThreshold) {
             return NodeLabelDetail.DETAILED;
         }
-        double compactThreshold = Math.min(COMPACT_LABEL_DISTANCE, viewOptions(player).viewDistance());
+        double compactThreshold = Math.min(COMPACT_LABEL_DISTANCE, DEFAULT_VIEW_DISTANCE);
         if (distanceSquared <= compactThreshold * compactThreshold) {
             return NodeLabelDetail.COMPACT;
         }
@@ -1291,7 +1157,7 @@ public class SkillTreeService {
 
     @NotNull
     public ItemStack createNodeDisplayItem(@NotNull SkillTreeNodeDefinition node, boolean unlocked) {
-        ItemStack cached = unlocked ? unlockedNodeDisplayItems.get(node.id()) : lockedNodeDisplayItems.get(node.id());
+        ItemStack cached = unlocked ? unlockedNodeDisplayItems.get(node.nodeId()) : lockedNodeDisplayItems.get(node.nodeId());
         return cached == null ? new ItemStack(node.icon()) : cached.clone();
     }
 
@@ -1327,10 +1193,10 @@ public class SkillTreeService {
             @NotNull NodeLabelDetail labelDetail
     ) {
         return switch (presentationState) {
-            case BLOCKED -> blockedNodeFieldLabels.getOrDefault(node.id(), NodeLabelSet.EMPTY).component(labelDetail);
-            case AVAILABLE -> availableNodeFieldLabels.getOrDefault(node.id(), NodeLabelSet.EMPTY).component(labelDetail);
-            case UNLOCKED -> unlockedNodeFieldLabels.getOrDefault(node.id(), NodeLabelSet.EMPTY).component(labelDetail);
-            case INACTIVE -> inactiveNodeFieldLabels.getOrDefault(node.id(), NodeLabelSet.EMPTY).component(labelDetail);
+            case BLOCKED -> blockedNodeFieldLabels.getOrDefault(node.nodeId(), NodeLabelSet.EMPTY).component(labelDetail);
+            case AVAILABLE -> availableNodeFieldLabels.getOrDefault(node.nodeId(), NodeLabelSet.EMPTY).component(labelDetail);
+            case UNLOCKED -> unlockedNodeFieldLabels.getOrDefault(node.nodeId(), NodeLabelSet.EMPTY).component(labelDetail);
+            case INACTIVE -> inactiveNodeFieldLabels.getOrDefault(node.nodeId(), NodeLabelSet.EMPTY).component(labelDetail);
         };
     }
 
@@ -1339,12 +1205,12 @@ public class SkillTreeService {
         if (astPlayer == null) {
             return 0;
         }
-        SkillTreeNodeDefinition left = nodesByPositionId.get(edge.leftPositionId());
-        SkillTreeNodeDefinition right = nodesByPositionId.get(edge.rightPositionId());
+        SkillTreeNodeDefinition left = nodesById.get(edge.sourceNodeId());
+        SkillTreeNodeDefinition right = nodesById.get(edge.targetNodeId());
         SkillTreePlayerState state = state(astPlayer);
         Set<String> activeNodeIds = activeUnlockedNodeIds(astPlayer, state);
-        boolean leftUnlocked = left != null && activeNodeIds.contains(left.id());
-        boolean rightUnlocked = right != null && activeNodeIds.contains(right.id());
+        boolean leftUnlocked = left != null && activeNodeIds.contains(left.nodeId());
+        boolean rightUnlocked = right != null && activeNodeIds.contains(right.nodeId());
         if (leftUnlocked && rightUnlocked) {
             return 2;
         }
@@ -1355,7 +1221,6 @@ public class SkillTreeService {
     }
 
     public void saveDirty() {
-        flushStructureDirty();
         for (UUID accountId : List.copyOf(dirtyPlayerStates)) {
             SkillTreePlayerState state = playerStates.get(accountId);
             if (state != null) {
@@ -1372,20 +1237,7 @@ public class SkillTreeService {
      * Bukkit API には触れず、メインスレッドでは保存対象のスナップショット作成だけを行います。
      */
     public void saveDirtyAsync() {
-        flushStructureDirty();
         flushDirtyPlayerStatesAsync();
-    }
-
-    private void flushStructureDirty() {
-        if (!structureDirty) {
-            return;
-        }
-        try {
-            structureRepository.save(positionsById.values(), edgesByKey.values());
-            structureDirty = false;
-        } catch (RuntimeException e) {
-            Logger.log(LogId.E_9004, e, e.getMessage());
-        }
     }
 
     private void flushDirtyPlayerStatesAsync() {
@@ -1434,8 +1286,8 @@ public class SkillTreeService {
     @NotNull
     private ItemStack createNodeHotbarItem(@NotNull AstPlayer astPlayer, @NotNull SkillTreeNodeDefinition node) {
         SkillTreePlayerState state = state(astPlayer);
-        boolean unlocked = state.isUnlocked(node.id());
-        boolean inactive = unlocked && derivedState(astPlayer, state).inactiveUnlockedNodeIds().contains(node.id());
+        boolean unlocked = state.isUnlocked(node.nodeId());
+        boolean inactive = unlocked && derivedState(astPlayer, state).inactiveUnlockedNodeIds().contains(node.nodeId());
         boolean canUnlock = canUnlockNode(astPlayer, node);
         ItemStack itemStack = createNodeDisplayItem(node, unlocked);
         ItemMeta meta = itemStack.getItemMeta();
@@ -1471,16 +1323,13 @@ public class SkillTreeService {
     }
 
     private void appendNodeSkillInfo(@NotNull List<Component> lore, @NotNull SkillTreeNodeDefinition node) {
-        if (node.skillIds().isEmpty()) {
+        if (node.skillEffects().isEmpty()) {
             return;
         }
         lore.add(component(""));
         lore.add(component("&b紐づくスキル"));
-        for (String rawSkillId : node.skillIds()) {
-            if (rawSkillId == null || rawSkillId.isBlank()) {
-                continue;
-            }
-            String skillId = rawSkillId.trim();
+        for (SkillTreeSkillEffect effect : node.skillEffects()) {
+            String skillId = effect.skillId();
             if (skillService == null) {
                 lore.add(component("&7- &f未読込スキル"));
                 continue;
@@ -1500,18 +1349,18 @@ public class SkillTreeService {
     }
 
     private void appendNodeStatusInfo(@NotNull List<Component> lore, @NotNull SkillTreeNodeDefinition node) {
-        if (node.statuses().isEmpty()) {
+        if (node.statusEffects().isEmpty()) {
             return;
         }
         lore.add(component("&8--- &dステータス &8---"));
-        for (SkillTreeNodeStatusDefinition status : node.statuses()) {
+        for (SkillTreeStatusEffect status : node.statusEffects()) {
             lore.add(component("&7- " + status.statusType().legacyColor() + status.statusType().getDisplayName()
                     + " &a" + formatNodeStatusModifier(status)));
         }
     }
 
     private void appendNodePassiveInfo(@NotNull List<Component> lore, @NotNull SkillTreeNodeDefinition node) {
-        if (node.skillIds().isEmpty()) {
+        if (node.skillEffects().isEmpty()) {
             return;
         }
         if (!lore.isEmpty()) {
@@ -1522,11 +1371,8 @@ public class SkillTreeService {
     }
 
     private void appendNodePassiveSkillLines(@NotNull List<Component> lore, @NotNull SkillTreeNodeDefinition node) {
-        for (String rawSkillId : node.skillIds()) {
-            if (rawSkillId == null || rawSkillId.isBlank()) {
-                continue;
-            }
-            String skillId = rawSkillId.trim();
+        for (SkillTreeSkillEffect effect : node.skillEffects()) {
+            String skillId = effect.skillId();
             var definition = skillService == null ? null : skillService.registry().getDefinition(skillId);
             if (definition == null) {
                 lore.add(component("&7- &f未読込スキル &8(未読込)"));
@@ -1545,11 +1391,11 @@ public class SkillTreeService {
             @NotNull SkillTreeNodeDefinition node,
             boolean unlocked
     ) {
-        if (node.statuses().isEmpty()) {
+        if (node.statusEffects().isEmpty()) {
             return;
         }
         lines.add(unlocked ? "&8--- &dステータス &8---" : "&8--- ステータス ---");
-        for (SkillTreeNodeStatusDefinition status : node.statuses()) {
+        for (SkillTreeStatusEffect status : node.statusEffects()) {
             lines.add((unlocked ? "&7- " + status.statusType().legacyColor() : "&8- &7")
                     + status.statusType().getDisplayName()
                     + " "
@@ -1563,15 +1409,12 @@ public class SkillTreeService {
             @NotNull SkillTreeNodeDefinition node,
             boolean unlocked
     ) {
-        if (node.skillIds().isEmpty()) {
+        if (node.skillEffects().isEmpty()) {
             return;
         }
         lines.add(unlocked ? "&8--- &bパッシブ &8---" : "&8--- パッシブ ---");
-        for (String rawSkillId : node.skillIds()) {
-            if (rawSkillId == null || rawSkillId.isBlank()) {
-                continue;
-            }
-            String skillId = rawSkillId.trim();
+        for (SkillTreeSkillEffect effect : node.skillEffects()) {
+            String skillId = effect.skillId();
             var definition = skillService == null ? null : skillService.registry().getDefinition(skillId);
             if (definition == null) {
                 lines.add((unlocked ? "&7- &f" : "&8- &7") + "未読込スキル");
@@ -1597,8 +1440,8 @@ public class SkillTreeService {
         return "";
     }
 
-    private @NotNull String formatNodeStatusModifier(@NotNull SkillTreeNodeStatusDefinition status) {
-        if (status.type() == StatusModifierType.SCALAR) {
+    private @NotNull String formatNodeStatusModifier(@NotNull SkillTreeStatusEffect status) {
+        if (status.modifierType() == StatusModifierType.SCALAR) {
             double displayValue = status.value() * 100.0D;
             String sign = displayValue > 0.0D ? "+" : "";
             return sign + formatStatusValue(displayValue) + "%";
@@ -1612,7 +1455,7 @@ public class SkillTreeService {
 
     private @NotNull String resolveNodeDisplayName(@NotNull SkillTreeNodeDefinition node, boolean unlocked) {
         return unlocked
-                ? ColorCodeUtil.toLegacyText(node.name(), node.id())
+                ? ColorCodeUtil.toLegacyText(node.name(), node.nodeId())
                 : "&7" + stripLegacy(node.name());
     }
 
@@ -1655,13 +1498,32 @@ public class SkillTreeService {
         }
     }
 
+    /**
+     * マスタ交換後、進行状態をロード済みのオンラインプレイヤーへ新しい効果を即時反映します。
+     * プレイヤー状態が一件もない起動直後や単体テストではオンラインキャッシュへアクセスしません。
+     */
+    private void refreshLoadedOnlinePlayerDerivedStates() {
+        if (playerStates.isEmpty()) {
+            return;
+        }
+        for (AstPlayer astPlayer : AstPlayerCache.getAll()) {
+            UUID accountId = astPlayer.getAccount().getUuid();
+            if (!playerStates.containsKey(accountId)
+                    || loadingPlayerStates.contains(accountId)
+                    || failedPlayerStateLoads.contains(accountId)) {
+                continue;
+            }
+            refreshDerivedState(astPlayer);
+        }
+    }
+
     private void cacheNodePresentation(@NotNull SkillTreeNodeDefinition node) {
-        lockedNodeDisplayItems.put(node.id(), createCachedNodeDisplayItem(node, false));
-        unlockedNodeDisplayItems.put(node.id(), createCachedNodeDisplayItem(node, true));
-        blockedNodeFieldLabels.put(node.id(), createNodeLabelSet(node, NodePresentationState.BLOCKED));
-        availableNodeFieldLabels.put(node.id(), createNodeLabelSet(node, NodePresentationState.AVAILABLE));
-        unlockedNodeFieldLabels.put(node.id(), createNodeLabelSet(node, NodePresentationState.UNLOCKED));
-        inactiveNodeFieldLabels.put(node.id(), createNodeLabelSet(node, NodePresentationState.INACTIVE));
+        lockedNodeDisplayItems.put(node.nodeId(), createCachedNodeDisplayItem(node, false));
+        unlockedNodeDisplayItems.put(node.nodeId(), createCachedNodeDisplayItem(node, true));
+        blockedNodeFieldLabels.put(node.nodeId(), createNodeLabelSet(node, NodePresentationState.BLOCKED));
+        availableNodeFieldLabels.put(node.nodeId(), createNodeLabelSet(node, NodePresentationState.AVAILABLE));
+        unlockedNodeFieldLabels.put(node.nodeId(), createNodeLabelSet(node, NodePresentationState.UNLOCKED));
+        inactiveNodeFieldLabels.put(node.nodeId(), createNodeLabelSet(node, NodePresentationState.INACTIVE));
     }
 
     private @NotNull ItemStack createCachedNodeDisplayItem(@NotNull SkillTreeNodeDefinition node, boolean unlocked) {
@@ -1709,16 +1571,8 @@ public class SkillTreeService {
         return component(String.join("\n", lines));
     }
 
-    private @NotNull UUID resolveViewOptionOwnerId(@NotNull Player player) {
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer != null) {
-            return astPlayer.getAccount().getUuid();
-        }
-        return player.getUniqueId();
-    }
-
     private boolean canUnlockWithoutState(@NotNull SkillTreeNodeDefinition node) {
-        return hasTag(node, ROOT_TAG);
+        return rootNodeId.equals(node.nodeId());
     }
 
     private boolean updateLoadingPresentation(@NotNull Player player) {
@@ -1779,50 +1633,31 @@ public class SkillTreeService {
         loadingBossBars.clear();
     }
 
-    private boolean isAdjacentToUnlockedNode(@NotNull SkillTreePlayerState state, @NotNull String positionId) {
-        for (String adjacentPositionId : adjacentPositionIds(positionId)) {
-            SkillTreeNodeDefinition adjacent = nodesByPositionId.get(adjacentPositionId);
-            if (adjacent != null && state.isUnlocked(adjacent.id())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private boolean isAdjacentToActiveNode(
             @NotNull AstPlayer astPlayer,
             @NotNull SkillTreePlayerState state,
-            @NotNull String positionId
+            @NotNull String nodeId
     ) {
         Set<String> activeNodeIds = activeUnlockedNodeIds(astPlayer, state);
-        for (String adjacentPositionId : adjacentPositionIds(positionId)) {
-            SkillTreeNodeDefinition adjacent = nodesByPositionId.get(adjacentPositionId);
-            if (adjacent != null && activeNodeIds.contains(adjacent.id())) {
+        for (String adjacentNodeId : adjacentNodeIds(nodeId)) {
+            SkillTreeNodeDefinition adjacent = nodesById.get(adjacentNodeId);
+            if (adjacent != null && activeNodeIds.contains(adjacent.nodeId())) {
                 return true;
             }
         }
         return false;
     }
 
-    private @NotNull Set<String> adjacentPositionIds(@NotNull String positionId) {
+    private @NotNull Set<String> adjacentNodeIds(@NotNull String nodeId) {
         Set<String> result = new LinkedHashSet<>();
         for (SkillTreeEdge edge : edgesByKey.values()) {
-            if (positionId.equals(edge.leftPositionId())) {
-                result.add(edge.rightPositionId());
-            } else if (positionId.equals(edge.rightPositionId())) {
-                result.add(edge.leftPositionId());
+            if (nodeId.equals(edge.sourceNodeId())) {
+                result.add(edge.targetNodeId());
+            } else if (nodeId.equals(edge.targetNodeId())) {
+                result.add(edge.sourceNodeId());
             }
         }
         return result;
-    }
-
-    private boolean hasTag(@NotNull SkillTreeNodeDefinition node, @NotNull String tag) {
-        for (String nodeTag : node.tags()) {
-            if (nodeTag != null && tag.equalsIgnoreCase(nodeTag.trim())) {
-                return true;
-            }
-        }
-        return false;
     }
 
     @NotNull
@@ -1835,8 +1670,8 @@ public class SkillTreeService {
             @NotNull SkillTreeNodeDefinition node
     ) {
         SkillTreePlayerState state = state(astPlayer);
-        if (state.isUnlocked(node.id())) {
-            return derivedState(astPlayer, state).inactiveUnlockedNodeIds().contains(node.id())
+        if (state.isUnlocked(node.nodeId())) {
+            return derivedState(astPlayer, state).inactiveUnlockedNodeIds().contains(node.nodeId())
                     ? NodePresentationState.INACTIVE
                     : NodePresentationState.UNLOCKED;
         }
@@ -1854,49 +1689,6 @@ public class SkillTreeService {
         HIDDEN,
         COMPACT,
         DETAILED
-    }
-
-    public enum SkillTreeEdgeDisplayMode {
-        ALL("all"),
-        CONNECTED("connected");
-
-        private final String commandValue;
-
-        SkillTreeEdgeDisplayMode(@NotNull String commandValue) {
-            this.commandValue = commandValue;
-        }
-
-        public @NotNull String commandValue() {
-            return commandValue;
-        }
-
-        public static @Nullable SkillTreeEdgeDisplayMode fromCommandValue(@Nullable String value) {
-            if (value == null) {
-                return null;
-            }
-            for (SkillTreeEdgeDisplayMode mode : values()) {
-                if (mode.commandValue.equalsIgnoreCase(value)) {
-                    return mode;
-                }
-            }
-            return null;
-        }
-    }
-
-    public record SkillTreeViewOptions(
-            int viewDistance,
-            @NotNull SkillTreeEdgeDisplayMode edgeDisplayMode
-    ) {
-        public static final SkillTreeViewOptions DEFAULT =
-                new SkillTreeViewOptions(DEFAULT_VIEW_DISTANCE, SkillTreeEdgeDisplayMode.ALL);
-
-        public @NotNull SkillTreeViewOptions withViewDistance(int updatedViewDistance) {
-            return new SkillTreeViewOptions(updatedViewDistance, edgeDisplayMode);
-        }
-
-        public @NotNull SkillTreeViewOptions withEdgeDisplayMode(@NotNull SkillTreeEdgeDisplayMode updatedEdgeDisplayMode) {
-            return new SkillTreeViewOptions(viewDistance, updatedEdgeDisplayMode);
-        }
     }
 
     private record NodeLabelSet(@NotNull Component detailed, @NotNull Component compact) {

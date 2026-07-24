@@ -1,0 +1,18 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1006",
+  "name": "&c&l鉄身",
+  "icon": "IRON_CHESTPLATE",
+  "lore": [
+    "&7装備の重さに慣れ、耐久を底上げする。"
+  ],
+  "tags": [
+    "passive",
+    "melee",
+    "early"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": []
+}

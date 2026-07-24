@@ -33,7 +33,7 @@
 - `status`
   - `manaCost` / `requiredLevel` / `params` 内のステータス依存ロジックの評価に利用する。
 - `player-interaction`
-  - skilltree操作、表示中action ring、weapon入力、新規action ring表示、`HOTBAR_SLOT`のskilltree setup / 表示中ring guardの排他制御は[[28_README]]を正本とする。
+  - skilltree操作、表示中action ring、weapon入力、新規action ring表示、`HOTBAR_SLOT`のinput lock / 表示中ring guardの排他制御は[[28_README]]を正本とする。
 - API
   - `00_docs/20_API設計書/feature/11-skill/` を参照し、`/api/skill` から定義を取得する。
 
@@ -55,22 +55,26 @@
 - スキルツリー進行状態のロード・保存・TPS 負荷対策の変更:
   - [[13_5.00-例外・ログ・運用]]
   - `00_docs/20_API設計書/feature/20-skilltree/`
-- skilltreeクリック・setup中hotbar guard、action ring開閉・発動・表示中hotbar guard、新規表示条件の変更:
+- スキルツリー JSON の項目、配置・接続契約の変更:
+  - `40_filebase/35.features.skilltree/docs.skilltree.JSONスキーマ定義.md`
+  - `40_filebase/35.features.skilltree/schemas/`
+- skilltreeクリック、action ring開閉・発動・表示中hotbar guard、新規表示条件の変更:
   - [[13_3.02-サービス]]
   - [[13_4.00-統合フロー]]
   - [[28_3.02-サービス]]
   - [[28_4.00-統合フロー]]
 
-## 2026-06 skilltree パフォーマンス更新
+## SkillTree 実装方針
 
 - SkillTree のプレイヤー操作はホットバー切替に依存しない方式へ変更する。
 - 対象ノードの解決は毎 tick 監視ではなく、プレイヤー操作イベント起点で行う。
 - ノードの表示テキスト・表示アイテムは skilltree マスタデータ読込時にキャッシュする。
-- スキルツリーのエディター表示と通常表示の切替は `account.mode` を基準に行い、`AccountMode.ADMIN` はエディター表示、それ以外は通常表示とする。
-- SkillTree の表示オプションはプレイヤー単位で拡張可能に保つ。表示距離とエッジ表示は `/skilltree option ...` から扱える共通状態として管理する。
+- ゲーム内の構造編集機能は持たず、ノード定義と配置・接続は `60_tool/skilltree-editor/` のローカル Web エディターで編集する。
+- SkillTree の表示距離は `48`、エッジ表示は `ALL` に固定し、プレイヤー別の表示オプションは持たない。
 - ノードの world ラベルは距離別の段階表示にする。近距離は詳細表示、中距離は簡略表示、遠距離は非表示とする。
 - ノード解放・解除後の更新はプレイヤー単位の派生キャッシュと遅延保存で扱う。
 - 見た目の更新は dirty になった閲覧者と変更座標だけに限定する。
+- `/masterdata reload` は filebase の node/structure JSON を再読込し、検証済みスナップショットを一括反映する。
 - 2026-06-09: `skilltree` は独立実装を持つが、docs では skill feature の拡張範囲として扱う。スキル定義・スキル実行・スキルツリー進行状態の境界は本 README と `00_docs/20_API設計書/feature/20-skilltree/` を正本とする。
 - 2026-06-09: class / playerclass は `starterSkills` / `levelSkills[].skill` の参照元であり、職業マスタや `/class` GUI の正本は本 feature ではない。
 - `skill_tree` ワールド滞在中は、対象プレイヤーから見える他プレイヤーを AstralRecord 側で非表示にする。`skill_tree` 以外へ移動した時点で可視状態を通常へ戻す。

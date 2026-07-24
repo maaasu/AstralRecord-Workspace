@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/SkillTreeEditor.Server/SkillTreeEditor.Server.csproj" />
+  <Project Path="tests/SkillTreeEditor.Server.Tests/SkillTreeEditor.Server.Tests.csproj" />
+</Solution>

@@ -1,7 +1,6 @@
 package io.github.maaasu.astralRecord.core;
 
 import io.github.maaasu.astralRecord.AstralRecord;
-import io.github.maaasu.astralRecord.core.command.ReloadCommand;
 import io.github.maaasu.astralRecord.core.command.MasterDataCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountModeCommand;
@@ -142,7 +141,7 @@ public class CommandRegister {
         cm.registerCommand("message", new DirectMessageCommand(), new DirectMessageTabCompleter());
         cm.registerCommand("class", new ClassCommand(), new ClassTabCompleter());
         cm.registerCommand("skill", new SkillCommand());
-        cm.registerCommand("skilltree", new SkillTreeCommand(skillTreeService), new SkillTreeTabCompleter(skillTreeService));
+        cm.registerCommand("skilltree", new SkillTreeCommand(skillTreeService), new SkillTreeTabCompleter());
         cm.registerCommand("party", new PartyCommand(), new PartyTabCompleter());
         cm.registerCommand("trade", new TradeCommand(), new TradeTabCompleter());
         cm.registerCommand("shop", new ShopCommand(), new ShopTabCompleter());
@@ -152,7 +151,6 @@ public class CommandRegister {
         cm.registerCommand("teleporter", new TeleporterCommand(teleporterService), new TeleporterTabCompleter(teleporterService));
         cm.registerCommand("test", new TestCommand(AstralRecord.getInstance()), new TestTabCompleter());
         cm.registerCommand("testskilltree", new SkillTreeSpawnCheckCommand(), new SkillTreeSpawnCheckTabCompleter());
-        cm.registerCommand("astreload", new ReloadCommand());
         cm.registerCommand("masterdata", new MasterDataCommand(AstralRecord.getInstance()));
     }
 }

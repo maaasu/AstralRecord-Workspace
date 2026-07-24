@@ -1,0 +1,18 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1011",
+  "name": "&e&l祈り",
+  "icon": "BREAD",
+  "lore": [
+    "&7再生の祈りで、自身と味方を支える土台を築く。"
+  ],
+  "tags": [
+    "passive",
+    "support",
+    "early"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": []
+}

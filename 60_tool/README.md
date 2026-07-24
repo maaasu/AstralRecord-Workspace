@@ -10,6 +10,7 @@
 | 02 | `02-deploy-debug-plugin-only.bat` | Plugin のみデバッグデプロイ |
 | 03 | `03-master-data-reload.bat` | Filebase 同期と MasterDataDB seed |
 | 04 | `04-db-rebuild.bat` | AstralRecord / MasterDataDB / HistoryDB の再構築 |
+| 05 | `05-skilltree-editor.bat` | ビルド済みスキルツリーエディタのローカル起動 |
 
 bat はどのカレントディレクトリから実行しても動作するよう、内部で専用ディレクトリのスクリプトを絶対パス解決します。
 
@@ -21,6 +22,7 @@ bat はどのカレントディレクトリから実行しても動作するよ�
 ├─ 02-deploy-debug-plugin-only.bat
 ├─ 03-master-data-reload.bat
 ├─ 04-db-rebuild.bat
+├─ 05-skilltree-editor.bat
 ├─ deploy-debug/
 │  ├─ deploy-debug.ps1
 │  ├─ deploy-debug.config.json
@@ -28,10 +30,17 @@ bat はどのカレントディレクトリから実行しても動作するよ�
 ├─ master-data-reload/
 │  ├─ master-data-reload.ps1
 │  └─ master-data-reload.config.json
-└─ db-rebuild/
+├─ db-rebuild/
    ├─ DbRebuildTool.csproj
    ├─ Program.cs
    ├─ db-rebuild.config.json
+   └─ README.md
+└─ skilltree-editor/
+   ├─ SkillTreeEditor.slnx
+   ├─ src/
+   │  ├─ SkillTreeEditor.Server/
+   │  └─ SkillTreeEditor.Client/
+   ├─ tests/
    └─ README.md
 ```
 
@@ -40,6 +49,8 @@ bat はどのカレントディレクトリから実行しても動作するよ�
 1. 必要に応じて各専用ディレクトリの config を確認します。
 2. 直下の番号付き bat を実行します。
 3. DB 再構築は既存データを保持しないため、`04-db-rebuild.bat` は内容を確認してから実行してください。
+
+スキルツリーエディタは初回のみ `skilltree-editor/src/SkillTreeEditor.Client` で `npm ci` と `npm run build` を実行してください。開発時の2プロセス起動やpublish手順は `skilltree-editor/README.md` を参照してください。
 
 Master data reload の実行前には `ASTRALRECORD_API_KEY` を設定してください。
 

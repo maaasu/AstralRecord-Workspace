@@ -1,144 +1,202 @@
 package io.github.maaasu.astralRecord.feature.skilltree.repository;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import io.github.maaasu.astralRecord.feature.skilltree.config.SkillTreePluginConfig;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeEdge;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePosition;
-import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.plugin.Plugin;
+import io.github.maaasu.astralRecord.infrastructure.database.file.FileDatabaseManager;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.UncheckedIOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-/**
- * plugin data に保存されるスキルツリー構造定義のリポジトリです。
- */
+/** filebase の読取専用スキルツリー構造JSONリポジトリです。 */
 public class SkillTreeStructureRepository {
-    private static final String FILE_NAME = "skilltree_structure.yml";
+    private static final String RELATIVE_PATH = "35.features.skilltree" + File.separator + "structures";
+    private static final String SCHEMA_REFERENCE = "../schemas/structure.v1.schema.json";
+    private static final Set<String> STRUCTURE_KEYS = Set.of(
+            "$schema", "schemaVersion", "structureId", "name", "rootNodeId", "nodes", "edges"
+    );
+    private static final Set<String> NODE_KEYS = Set.of("nodeId", "x", "y", "z");
+    private static final Set<String> EDGE_KEYS = Set.of("sourceNodeId", "targetNodeId");
 
-    private final Plugin plugin;
+    private final File fixedRootDirectory;
 
-    public SkillTreeStructureRepository(@NotNull Plugin plugin) {
-        this.plugin = plugin;
+    public SkillTreeStructureRepository() {
+        this.fixedRootDirectory = null;
+    }
+
+    SkillTreeStructureRepository(@NotNull File rootDirectory) {
+        this.fixedRootDirectory = rootDirectory;
     }
 
     /**
-     * スキルツリー構造定義を読み込みます。
+     * 選択された構造JSONを読み込み、相対座標を絶対座標へ変換します。
      *
-     * <p>plugin data folder に構造ファイルが存在しない場合は、
-     * 同梱した既定レイアウトを初回だけ展開してから読み込みます。</p>
-     *
-     * @return 構造定義スナップショット
+     * @param config 構造選択と配置中心のplugin設定
+     * @return 検証済み構造スナップショット
+     * @throws IllegalStateException JSON、座標、参照または到達性が不正な場合
      */
-    @NotNull
-    public StructureSnapshot load() {
-        File file = file();
-        if (!file.exists()) {
-            ensureDefaultFile(file);
+    public @NotNull StructureSnapshot load(@NotNull SkillTreePluginConfig config) {
+        File root = fixedRootDirectory == null
+                ? FileDatabaseManager.getInstance().getRootDirectory()
+                : fixedRootDirectory;
+        if (root == null) {
+            throw new IllegalStateException("filebase root is not configured");
         }
-        if (!file.exists()) {
-            return new StructureSnapshot(List.of(), List.of());
+        File file = new File(new File(root, RELATIVE_PATH), config.structureId() + ".json");
+        if (!file.isFile()) {
+            throw new IllegalStateException("Skilltree structure is missing: " + file.getAbsolutePath());
         }
-        YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
-        List<SkillTreePosition> positions = new ArrayList<>();
-        for (var map : yaml.getMapList("positions")) {
-            String id = stringValue(map.get("id"));
-            String world = stringValue(map.get("world"));
-            if (id == null || world == null) {
-                continue;
-            }
-            positions.add(new SkillTreePosition(id, world, intValue(map.get("x")), intValue(map.get("y")), intValue(map.get("z"))));
+        JsonObject structure = SkillTreeJsonReader.readObject(file);
+        SkillTreeJsonReader.requireOnlyKeys(structure, STRUCTURE_KEYS, file, "structure");
+        String schemaReference = SkillTreeJsonReader.requiredString(structure, "$schema", file, "structure");
+        if (!SCHEMA_REFERENCE.equals(schemaReference)) {
+            throw SkillTreeJsonReader.invalid(file, "unsupported structure.$schema '" + schemaReference + "'");
         }
-
-        List<SkillTreeEdge> edges = new ArrayList<>();
-        for (var map : yaml.getMapList("edges")) {
-            String left = stringValue(map.get("left"));
-            String right = stringValue(map.get("right"));
-            if (left == null || right == null || left.equals(right)) {
-                continue;
-            }
-            edges.add(new SkillTreeEdge(left, right));
+        int schemaVersion = SkillTreeJsonReader.requiredInt(structure, "schemaVersion", file, "structure");
+        if (schemaVersion != 1) {
+            throw SkillTreeJsonReader.invalid(file, "unsupported schemaVersion " + schemaVersion);
         }
-        return new StructureSnapshot(positions, edges);
+        String structureId = SkillTreeJsonReader.requiredString(structure, "structureId", file, "structure").trim();
+        if (!structureId.matches("[a-z0-9][a-z0-9_-]*")) {
+            throw SkillTreeJsonReader.invalid(file, "structure.structureId has an invalid format");
+        }
+        if (!config.structureId().equals(structureId)) {
+            throw SkillTreeJsonReader.invalid(file, "structureId does not match plugin config");
+        }
+        SkillTreeJsonReader.requiredString(structure, "name", file, "structure");
+        String rootNodeId = digitId(structure, "rootNodeId", file, "structure");
+        Map<String, SkillTreePosition> positions = parsePositions(structure, file, config);
+        if (!positions.containsKey(rootNodeId)) {
+            throw SkillTreeJsonReader.invalid(file, "rootNodeId is not placed: " + rootNodeId);
+        }
+        Map<String, SkillTreeEdge> edges = parseEdges(structure, file, positions.keySet());
+        validateReachability(file, rootNodeId, positions.keySet(), edges.values());
+        return new StructureSnapshot(
+                structureId,
+                rootNodeId,
+                List.copyOf(positions.values()),
+                List.copyOf(edges.values())
+        );
     }
 
-    /**
-     * スキルツリー構造定義を保存します。
-     *
-     * @param positions 保存する座標一覧
-     * @param edges 保存する接続一覧
-     */
-    public void save(@NotNull Iterable<SkillTreePosition> positions, @NotNull Iterable<SkillTreeEdge> edges) {
-        YamlConfiguration yaml = new YamlConfiguration();
-        List<Map<String, Object>> positionRows = new ArrayList<>();
-        for (SkillTreePosition position : positions) {
-            Map<String, Object> row = new LinkedHashMap<>();
-            row.put("id", position.positionId());
-            row.put("world", position.worldName());
-            row.put("x", position.x());
-            row.put("y", position.y());
-            row.put("z", position.z());
-            positionRows.add(row);
+    private Map<String, SkillTreePosition> parsePositions(
+            JsonObject structure,
+            File file,
+            SkillTreePluginConfig config
+    ) {
+        JsonArray nodes = SkillTreeJsonReader.requiredArray(structure, "nodes", file, "structure");
+        Map<String, SkillTreePosition> positions = new LinkedHashMap<>();
+        Set<String> coordinates = new LinkedHashSet<>();
+        for (int index = 0; index < nodes.size(); index++) {
+            String path = "structure.nodes[" + index + "]";
+            JsonObject row = SkillTreeJsonReader.requiredObject(nodes.get(index), file, path);
+            SkillTreeJsonReader.requireOnlyKeys(row, NODE_KEYS, file, path);
+            String nodeId = digitId(row, "nodeId", file, path);
+            int relativeX = SkillTreeJsonReader.requiredInt(row, "x", file, path);
+            int relativeY = SkillTreeJsonReader.requiredInt(row, "y", file, path);
+            int relativeZ = SkillTreeJsonReader.requiredInt(row, "z", file, path);
+            int x;
+            int y;
+            int z;
+            try {
+                x = Math.addExact(config.center().x(), relativeX);
+                y = Math.addExact(config.center().y(), relativeY);
+                z = Math.addExact(config.center().z(), relativeZ);
+            } catch (ArithmeticException e) {
+                throw SkillTreeJsonReader.invalid(file, path + " overflows absolute coordinates");
+            }
+            SkillTreePosition position = new SkillTreePosition(nodeId, config.worldName(), x, y, z);
+            if (positions.putIfAbsent(nodeId, position) != null) {
+                throw SkillTreeJsonReader.invalid(file, "duplicate placed nodeId '" + nodeId + "'");
+            }
+            if (!coordinates.add(position.locationKey())) {
+                throw SkillTreeJsonReader.invalid(file, "duplicate node coordinate '" + position.locationKey() + "'");
+            }
         }
-        yaml.set("positions", positionRows);
+        return positions;
+    }
 
-        List<Map<String, Object>> edgeRows = new ArrayList<>();
+    private Map<String, SkillTreeEdge> parseEdges(
+            JsonObject structure,
+            File file,
+            Set<String> placedNodeIds
+    ) {
+        JsonArray edgeRows = SkillTreeJsonReader.requiredArray(structure, "edges", file, "structure");
+        Map<String, SkillTreeEdge> edges = new LinkedHashMap<>();
+        for (int index = 0; index < edgeRows.size(); index++) {
+            String path = "structure.edges[" + index + "]";
+            JsonObject row = SkillTreeJsonReader.requiredObject(edgeRows.get(index), file, path);
+            SkillTreeJsonReader.requireOnlyKeys(row, EDGE_KEYS, file, path);
+            String source = digitId(row, "sourceNodeId", file, path);
+            String target = digitId(row, "targetNodeId", file, path);
+            if (source.equals(target)) {
+                throw SkillTreeJsonReader.invalid(file, path + " must not connect a node to itself");
+            }
+            if (!placedNodeIds.contains(source) || !placedNodeIds.contains(target)) {
+                throw SkillTreeJsonReader.invalid(file, path + " references an unplaced node");
+            }
+            SkillTreeEdge edge = new SkillTreeEdge(source, target);
+            if (edges.putIfAbsent(edge.key(), edge) != null) {
+                throw SkillTreeJsonReader.invalid(file, "duplicate undirected edge '" + edge.key() + "'");
+            }
+        }
+        return edges;
+    }
+
+    private void validateReachability(
+            File file,
+            String rootNodeId,
+            Set<String> placedNodeIds,
+            Iterable<SkillTreeEdge> edges
+    ) {
+        Map<String, Set<String>> adjacency = new LinkedHashMap<>();
+        for (String nodeId : placedNodeIds) {
+            adjacency.put(nodeId, new LinkedHashSet<>());
+        }
         for (SkillTreeEdge edge : edges) {
-            Map<String, Object> row = new LinkedHashMap<>();
-            row.put("left", edge.leftPositionId());
-            row.put("right", edge.rightPositionId());
-            edgeRows.add(row);
+            adjacency.get(edge.sourceNodeId()).add(edge.targetNodeId());
+            adjacency.get(edge.targetNodeId()).add(edge.sourceNodeId());
         }
-        yaml.set("edges", edgeRows);
-
-        File file = file();
-        File parent = file.getParentFile();
-        if (parent != null && !parent.exists() && !parent.mkdirs()) {
-            throw new IllegalStateException("Failed to create directory: " + parent.getAbsolutePath());
+        Set<String> reached = new LinkedHashSet<>();
+        ArrayDeque<String> queue = new ArrayDeque<>();
+        queue.add(rootNodeId);
+        while (!queue.isEmpty()) {
+            String current = queue.removeFirst();
+            if (reached.add(current)) {
+                queue.addAll(adjacency.getOrDefault(current, Set.of()));
+            }
         }
-        try {
-            yaml.save(file);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to save " + file.getAbsolutePath(), e);
-        }
-    }
-
-    @NotNull
-    private File file() {
-        return new File(plugin.getDataFolder(), FILE_NAME);
-    }
-
-    private String stringValue(Object value) {
-        return value == null ? null : value.toString();
-    }
-
-    private int intValue(Object value) {
-        if (value instanceof Number number) {
-            return number.intValue();
-        }
-        try {
-            return value == null ? 0 : Integer.parseInt(value.toString());
-        } catch (NumberFormatException ignored) {
-            return 0;
+        if (!reached.containsAll(placedNodeIds)) {
+            Set<String> unreachable = new LinkedHashSet<>(placedNodeIds);
+            unreachable.removeAll(reached);
+            throw SkillTreeJsonReader.invalid(file, "nodes unreachable from root: " + unreachable);
         }
     }
 
-    private void ensureDefaultFile(@NotNull File file) {
-        if (plugin.getResource(FILE_NAME) == null) {
-            return;
+    private @NotNull String digitId(JsonObject object, String key, File file, String path) {
+        String value = SkillTreeJsonReader.requiredString(object, key, file, path).trim();
+        if (value.length() > 100 || !value.matches("0|[1-9][0-9]*")) {
+            throw SkillTreeJsonReader.invalid(
+                    file,
+                    path + "." + key + " must be '0' or a non-zero-leading digit string of at most 100 characters"
+            );
         }
-        File parent = file.getParentFile();
-        if (parent != null && !parent.exists() && !parent.mkdirs()) {
-            throw new IllegalStateException("Failed to create directory: " + parent.getAbsolutePath());
-        }
-        plugin.saveResource(FILE_NAME, false);
+        return value;
     }
 
+    /** 読込済みスキルツリー構造です。 */
     public record StructureSnapshot(
+            @NotNull String structureId,
+            @NotNull String rootNodeId,
             @NotNull List<SkillTreePosition> positions,
             @NotNull List<SkillTreeEdge> edges
     ) {

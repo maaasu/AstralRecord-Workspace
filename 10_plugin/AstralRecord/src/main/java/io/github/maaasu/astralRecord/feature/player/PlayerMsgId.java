@@ -133,27 +133,7 @@ public enum PlayerMsgId {
     P_5065(5065),
     // endregion
 
-    // region /core/command/ReloadCommand.java, MasterDataCommand.java 5090-5099
-    /**
-     * リロードを開始します...
-     */
-    P_5090(5090),
-    /**
-     * PlugMan を使用してリロードします
-     */
-    P_5091(5091),
-    /**
-     * PlugMan が見つかりません。内部リロードを実行します
-     */
-    P_5092(5092),
-    /**
-     * 内部リロードが完了しました（設定・YAMLデータ）
-     */
-    P_5093(5093),
-    /**
-     * リロード中にエラーが発生しました: {0}
-     */
-    P_5094(5094),
+    // region /core/command/MasterDataCommand.java 5095-5099
     /**
      * マスターデータの再読込を開始しました。完了までお待ちください。
      */

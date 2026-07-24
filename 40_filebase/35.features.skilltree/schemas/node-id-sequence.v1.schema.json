@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astralrecord.local/schemas/skilltree/node-id-sequence.v1.schema.json",
+  "title": "AstralRecord SkillTree Node ID Sequence v1",
+  "x-astralrecord-entityKind": "generic",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schemaVersion",
+    "lastIssuedNodeId"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "./schemas/node-id-sequence.v1.schema.json"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "lastIssuedNodeId": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$",
+      "maxLength": 100
+    }
+  }
+}

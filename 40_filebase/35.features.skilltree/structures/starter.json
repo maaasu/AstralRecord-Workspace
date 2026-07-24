@@ -1,0 +1,137 @@
+{
+  "$schema": "../schemas/structure.v1.schema.json",
+  "schemaVersion": 1,
+  "structureId": "starter",
+  "name": "序盤スキルツリー",
+  "rootNodeId": "1000",
+  "nodes": [
+    {
+      "nodeId": "1000",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "nodeId": "1001",
+      "x": 6,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "nodeId": "1002",
+      "x": 0,
+      "y": 0,
+      "z": 6
+    },
+    {
+      "nodeId": "1003",
+      "x": -6,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "nodeId": "1004",
+      "x": 0,
+      "y": 0,
+      "z": -6
+    },
+    {
+      "nodeId": "1005",
+      "x": 12,
+      "y": 0,
+      "z": 2
+    },
+    {
+      "nodeId": "1006",
+      "x": 12,
+      "y": 0,
+      "z": -2
+    },
+    {
+      "nodeId": "1007",
+      "x": -2,
+      "y": 0,
+      "z": 12
+    },
+    {
+      "nodeId": "1008",
+      "x": 2,
+      "y": 0,
+      "z": 12
+    },
+    {
+      "nodeId": "1009",
+      "x": -12,
+      "y": 0,
+      "z": -2
+    },
+    {
+      "nodeId": "1010",
+      "x": -12,
+      "y": 0,
+      "z": 2
+    },
+    {
+      "nodeId": "1011",
+      "x": -2,
+      "y": 0,
+      "z": -12
+    },
+    {
+      "nodeId": "1012",
+      "x": 2,
+      "y": 0,
+      "z": -12
+    }
+  ],
+  "edges": [
+    {
+      "sourceNodeId": "1000",
+      "targetNodeId": "1001"
+    },
+    {
+      "sourceNodeId": "1000",
+      "targetNodeId": "1002"
+    },
+    {
+      "sourceNodeId": "1000",
+      "targetNodeId": "1003"
+    },
+    {
+      "sourceNodeId": "1000",
+      "targetNodeId": "1004"
+    },
+    {
+      "sourceNodeId": "1001",
+      "targetNodeId": "1005"
+    },
+    {
+      "sourceNodeId": "1001",
+      "targetNodeId": "1006"
+    },
+    {
+      "sourceNodeId": "1002",
+      "targetNodeId": "1007"
+    },
+    {
+      "sourceNodeId": "1002",
+      "targetNodeId": "1008"
+    },
+    {
+      "sourceNodeId": "1003",
+      "targetNodeId": "1009"
+    },
+    {
+      "sourceNodeId": "1003",
+      "targetNodeId": "1010"
+    },
+    {
+      "sourceNodeId": "1004",
+      "targetNodeId": "1011"
+    },
+    {
+      "sourceNodeId": "1004",
+      "targetNodeId": "1012"
+    }
+  ]
+}

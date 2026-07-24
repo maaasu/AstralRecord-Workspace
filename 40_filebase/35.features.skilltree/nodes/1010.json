@@ -1,0 +1,18 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1010",
+  "name": "&b&l魔泉",
+  "icon": "WATER_BUCKET",
+  "lore": [
+    "&7深い魔力を汲み上げ、最大マナを押し広げる。"
+  ],
+  "tags": [
+    "passive",
+    "magic",
+    "early"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": []
+}

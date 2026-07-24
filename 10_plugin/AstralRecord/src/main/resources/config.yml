@@ -6,6 +6,14 @@ plugin:
   joinSpawn:
     world: "world"
 
+skilltree:
+  worldName: "plugins/AstralRecord/worlds/hub/skill_tree"
+  structureId: "starter"
+  center:
+    x: 1000
+    y: 65
+    z: 1000
+
 boss:
   hubWorldId: "skyhaven_isle"
 

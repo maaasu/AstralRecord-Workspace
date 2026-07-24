@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1003",
+  "name": "&d魔導の呼吸",
+  "icon": "BOOK",
+  "lore": [
+    "&7魔力の巡りを整え、呪文を扱うための余裕を広げる。"
+  ],
+  "tags": [
+    "status",
+    "magic",
+    "branch",
+    "early"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAGIC_ATTACK",
+      "modifierType": "FLAT",
+      "value": 2
+    },
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "FLAT",
+      "value": 10
+    }
+  ]
+}

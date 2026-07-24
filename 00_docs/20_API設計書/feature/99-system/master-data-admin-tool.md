@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This contract allows an operator to edit filebase YAML through the authenticated API, seed the edited files into MasterDataDB, and reload the plugin without restarting the Minecraft server.
+This contract allows an operator to edit filebase YAML through the authenticated API, seed the edited files into MasterDataDB, and reload the plugin without restarting the Minecraft server. SkillTree node and structure JSON are edited separately with `60_tool/skilltree-editor/`; the YAML file API and MasterDataDB Seeder do not accept those JSON files.
 
 ## API
 
@@ -20,8 +20,8 @@ The file path must remain below `FileDatabase:RootPath`, must not contain `..`, 
 
 ## Runtime flow
 
-1. Update one or more YAML files with the admin tool.
-2. Run `POST /api/master-data/seed?mode=diff`.
+1. Update one or more YAML files with the admin tool. For SkillTree, save validated JSON with `60_tool/skilltree-editor/` instead.
+2. Run `POST /api/master-data/seed?mode=diff` when YAML-backed MasterDataDB entries changed. SkillTree-only changes do not require seeding.
 3. Run `/masterdata reload` in Minecraft with permission level 99.
 
-The plugin reloads API/filebase-backed master caches while preserving player state, inventory state, and runtime world instances.
+The plugin reloads API/filebase-backed master caches, including SkillTree node/structure JSON, while preserving player state, inventory state, and runtime world instances. SkillTree `unlockedNodeIds` remain in the `account-skilltree` API / DB and are not replaced by master-data reload.

@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astralrecord.local/schemas/skilltree/structure.v1.schema.json",
+  "title": "AstralRecord SkillTree Structure v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schemaVersion",
+    "structureId",
+    "name",
+    "rootNodeId",
+    "nodes",
+    "edges"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "../schemas/structure.v1.schema.json"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "structureId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": ".*\\S.*"
+    },
+    "rootNodeId": {
+      "$ref": "#/$defs/nodeId"
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/placedNode"
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/edge"
+      }
+    }
+  },
+  "$defs": {
+    "nodeId": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$",
+      "maxLength": 100
+    },
+    "placedNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodeId",
+        "x",
+        "y",
+        "z"
+      ],
+      "properties": {
+        "nodeId": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "x": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "y": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "z": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourceNodeId",
+        "targetNodeId"
+      ],
+      "properties": {
+        "sourceNodeId": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "targetNodeId": {
+          "$ref": "#/$defs/nodeId"
+        }
+      }
+    }
+  }
+}
