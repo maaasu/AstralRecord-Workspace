@@ -14,7 +14,7 @@
 | `40_filebase/` | File-based master data | YAML, Markdown | `00_docs/50_Filebase設計書/README.md` / `40_filebase/AGENTS.md` |
 | `50_resourcepack/` | Minecraft Resource Pack | JSON, PNG, PowerShell | `50_resourcepack/AGENTS.md` |
 
-実行環境や配置先の確認が必要な場合は、`E:\AstralRecord-Workspace` に加えて `\\DEVICE_SERVER\server` も確認対象に含めてください。
+実行環境や配置先の確認が必要な場合は、`E:\AstralRecord-Workspace` に加えて `\\DEVICE_SERVER\server` も一度確認してください。アクセスできない場合は、その場所の参照をあきらめて作業を継続し、そこがどうしても必要で作業を進められない場合だけユーザーに確認してください。
 
 ## 対象判定ルール
 
@@ -43,6 +43,14 @@
 - 実装ルールは対象プロジェクトの `Read Next` を優先する。
 - ソースコードだけで運用ルールを推測しない。文書化された `AGENTS.md`、`README.md`、skill 参照を優先する。
 - SQL Server の DB / テーブル定義は `00_docs/40_Database設計書/`、file 系マスタデータは `40_filebase/`、filebase の設計方針は `00_docs/50_Filebase設計書/` に分けて扱う。
+
+## 文字コード
+
+- Windows PowerShell で UTF-8 のテキストファイルを読む場合、`Get-Content` には必ず `-Encoding UTF8` を指定する。
+- `Get-Content` は次の形式を使用する: `Get-Content -Raw -Encoding UTF8 -LiteralPath '<absolute-path>'`
+- `Select-String` でファイルを読む場合も、必ず `-Encoding UTF8` を指定する。
+- `$OutputEncoding` やコンソール出力設定の変更だけでは入力時の文字化けを防げないため、ファイル読み込み側のエンコーディング指定を優先する。
+- 既存ファイルを文字コード変換する目的で再保存してはならない。
 
 ## Skills 実行ガイド（E:\AstralRecord-Workspace）
 
