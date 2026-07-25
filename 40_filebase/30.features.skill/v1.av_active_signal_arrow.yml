@@ -14,7 +14,6 @@ params:
   resourceType: ENERGY
   resourceCost: 14
   attackType: RANGED
-  damageType: PHYSICAL
   particle: FIREWORK
   particleCount: 8
   spreadX: 0.08

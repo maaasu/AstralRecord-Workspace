@@ -4,7 +4,7 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
-import io.github.maaasu.astralRecord.feature.combat.model.DamageType;
+import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
@@ -56,8 +56,7 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
             AstEntity.player(attacker),
             AstEntity.mob(mob),
             6.0D,
-            AttackType.MELEE,
-            DamageType.PHYSICAL
+            AttackType.MELEE
         );
 
         assertEquals(6.0D, result.finalDamage(), 0.0001D);
@@ -81,8 +80,7 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
             AstEntity.player(attacker),
             AstEntity.mob(mob),
             12.0D,
-            AttackType.MELEE,
-            DamageType.PHYSICAL
+            AttackType.MELEE
         );
 
         assertEquals(12.0D, result.finalDamage(), 0.0001D);
@@ -102,8 +100,7 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
             AstEntity.player(attacker),
             AstEntity.mob(mob),
             50.0D,
-            AttackType.MELEE,
-            DamageType.PHYSICAL
+            AttackType.MELEE
         );
 
         assertEquals(0.0D, result.finalDamage(), 0.0001D);
@@ -129,8 +126,7 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
             AstEntity.player(attacker),
             AstEntity.mob(mob),
             1.0D,
-            AttackType.MELEE,
-            DamageType.PHYSICAL
+            AttackType.MELEE
         );
 
         assertEquals(0.0D, result.finalDamage(), 0.0001D);
@@ -184,6 +180,24 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         assertEquals(250.0D, mob.maxHealth(), 0.0001D);
         assertEquals(250.0D, entity.maxHealth(), 0.0001D);
         assertEquals(250.0D, entity.statValue(StatusType.MAX_HEALTH), 0.0001D);
+    }
+
+    @Test
+    void poisonConditionDamageNeverReducesHealthBelowOneAndCannotCrit() {
+        DamageHarness harness = damageHarness();
+        MobInstance mob = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D);
+        mob.currentHealth(1.2D);
+
+        DamageResult result = harness.service.applyConditionDamage(
+            null,
+            AstEntity.mob(mob),
+            5.0D,
+            ConditionType.POISON
+        );
+
+        assertEquals(0.2D, result.finalDamage(), 0.0001D);
+        assertEquals(1.0D, mob.currentHealth(), 0.0001D);
+        assertEquals(false, result.critical());
     }
 
     private AstPlayer attacker() {

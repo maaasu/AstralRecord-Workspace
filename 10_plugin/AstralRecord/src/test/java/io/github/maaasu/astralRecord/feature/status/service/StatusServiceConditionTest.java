@@ -1,0 +1,48 @@
+package io.github.maaasu.astralRecord.feature.status.service;
+
+import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
+import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
+import io.github.maaasu.astralRecord.support.DesignTestFixtures;
+import org.junit.jupiter.api.Test;
+
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+class StatusServiceConditionTest {
+
+    @Test
+    void healingInhibitionBlocksNormalRecoveryButRestoreAllRemainsAdministrativeException() {
+        AstPlayer player = mock(AstPlayer.class);
+        StatusSnapshot snapshot = DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.MAX_HEALTH, 100.0D,
+            StatusType.MAX_MANA, 50.0D,
+            StatusType.MAX_ENERGY, 30.0D
+        ), 5.0D, 2.0D, 3.0D);
+        when(player.getStatusSnapshot()).thenReturn(snapshot);
+
+        ConditionService conditionService = mock(ConditionService.class);
+        when(conditionService.isHealingBlocked(any(AstEntity.class))).thenReturn(true);
+        StatusService statusService = new StatusService();
+        statusService.setConditionService(conditionService);
+
+        assertEquals(5.0D, statusService.recoverHp(player, 10.0D).getCurrentHp(), 0.0001D);
+        assertEquals(2.0D, statusService.recoverMp(player, 10.0D).getCurrentMp(), 0.0001D);
+        assertEquals(3.0D, statusService.recoverEnergy(player, 10.0D).getCurrentEnergy(), 0.0001D);
+        verify(player, never()).setStatusSnapshot(any(StatusSnapshot.class));
+
+        StatusSnapshot restored = statusService.restoreAll(player);
+        assertEquals(100.0D, restored.getCurrentHp(), 0.0001D);
+        assertEquals(50.0D, restored.getCurrentMp(), 0.0001D);
+        assertEquals(30.0D, restored.getCurrentEnergy(), 0.0001D);
+        verify(player).setStatusSnapshot(restored);
+    }
+}

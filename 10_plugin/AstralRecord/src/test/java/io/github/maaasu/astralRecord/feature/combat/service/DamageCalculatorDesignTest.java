@@ -4,9 +4,10 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageContext;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageScaling;
-import io.github.maaasu.astralRecord.feature.combat.model.DamageType;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -42,7 +44,6 @@ class DamageCalculatorDesignTest {
             AstEntity.mob(victim),
             0.0D,
             AttackType.MELEE,
-            DamageType.PHYSICAL,
             DamageScaling.ATTACKER_STATUS
         ));
 
@@ -67,7 +68,6 @@ class DamageCalculatorDesignTest {
             AstEntity.mob(victim),
             10.0D,
             AttackType.MELEE,
-            DamageType.PHYSICAL,
             DamageScaling.FIXED
         ));
 
@@ -76,20 +76,19 @@ class DamageCalculatorDesignTest {
     }
 
     @Test
-    void trueDamageBypassesDefense() {
+    void magicAttackUsesMagicDefense() {
         DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
-        MobInstance victim = DesignTestFixtures.mobInstance(100.0D, 999.0D, 999.0D);
+        MobInstance victim = DesignTestFixtures.mobInstance(100.0D, 999.0D, 8.0D);
 
         var result = calculator.calculate(new DamageContext(
             null,
             AstEntity.mob(victim),
             12.0D,
             AttackType.MAGIC,
-            DamageType.TRUE,
             DamageScaling.FIXED
         ));
 
-        assertEquals(12.0D, result.finalDamage(), 0.0001D);
+        assertEquals(8.0D, result.finalDamage(), 0.0001D);
     }
 
     @Test
@@ -108,7 +107,6 @@ class DamageCalculatorDesignTest {
             AstEntity.player(victim),
             0.0D,
             AttackType.MELEE,
-            DamageType.PHYSICAL,
             DamageScaling.ATTACKER_STATUS
         ));
 
@@ -134,7 +132,6 @@ class DamageCalculatorDesignTest {
             AstEntity.player(victim),
             12.0D,
             AttackType.MAGIC,
-            DamageType.TRUE,
             DamageScaling.FIXED
         ));
 
@@ -154,7 +151,6 @@ class DamageCalculatorDesignTest {
             AstEntity.mob(highLevelVictim),
             100.0D,
             AttackType.MELEE,
-            DamageType.TRUE,
             DamageScaling.FIXED
         ));
 
@@ -165,7 +161,6 @@ class DamageCalculatorDesignTest {
             AstEntity.mob(lowLevelVictim),
             100.0D,
             AttackType.MELEE,
-            DamageType.TRUE,
             DamageScaling.FIXED
         ));
 
@@ -173,6 +168,58 @@ class DamageCalculatorDesignTest {
         assertEquals(130.0D, highResult.finalDamage(), 0.0001D);
         assertEquals(0.70D, LevelDifferenceCalculator.damageMultiplier(1, 100), 0.0001D);
         assertEquals(1.30D, LevelDifferenceCalculator.damageMultiplier(100, 1), 0.0001D);
+    }
+
+    @Test
+    void elementDamageIncreaseResistanceAndPenetrationArePercentages() {
+        DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
+        AstPlayer attacker = player(Map.of(
+            StatusType.FIRE_DAMAGE_INCREASE, 20.0D,
+            StatusType.FIRE_PENETRATION, 10.0D
+        ));
+        AstPlayer victim = player(Map.of(
+            StatusType.FIRE_RESISTANCE, 50.0D
+        ));
+
+        var result = calculator.calculate(new DamageContext(
+            AstEntity.player(attacker),
+            AstEntity.player(victim),
+            100.0D,
+            AttackType.MAGIC,
+            List.of(new DamageComponent(DamageElement.FIRE, 1.0D)),
+            DamageScaling.FIXED
+        ));
+
+        assertEquals(72.0D, result.finalDamage(), 0.0001D);
+    }
+
+    @Test
+    void equalTotalElementRatiosHaveEqualBaselineDamage() {
+        DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
+        MobInstance victim = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D);
+
+        var singleElement = calculator.calculate(new DamageContext(
+            null,
+            AstEntity.mob(victim),
+            100.0D,
+            AttackType.MAGIC,
+            List.of(new DamageComponent(DamageElement.FIRE, 0.6D)),
+            DamageScaling.FIXED
+        ));
+        var twoElements = calculator.calculate(new DamageContext(
+            null,
+            AstEntity.mob(victim),
+            100.0D,
+            AttackType.MAGIC,
+            List.of(
+                new DamageComponent(DamageElement.ICE, 0.3D),
+                new DamageComponent(DamageElement.LIGHTNING, 0.3D)
+            ),
+            DamageScaling.FIXED
+        ));
+
+        assertEquals(60.0D, singleElement.finalDamage(), 0.0001D);
+        assertEquals(singleElement.finalDamage(), twoElements.finalDamage(), 0.0001D);
     }
 
     private AstPlayer player(Map<StatusType, Double> statuses) {

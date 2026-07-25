@@ -177,10 +177,13 @@ public class MobAiService {
                         continue;
                     }
                     if (conditionService != null
-                            && (!conditionService.canMove(AstEntity.mob(instance))
-                            || !conditionService.canRunAi(AstEntity.mob(instance)))) {
+                            && !conditionService.canRunAi(AstEntity.mob(instance))) {
                         mobService.stopPathfinding(instance);
                         continue;
+                    }
+                    if (conditionService != null
+                            && !conditionService.canMove(AstEntity.mob(instance))) {
+                        mobService.stopPathfinding(instance);
                     }
                     spawnBlockNpcParticles(instance);
 
@@ -552,7 +555,7 @@ public class MobAiService {
      * @param speed    AI 設定側の速度倍率
      */
     private void moveToward(@NotNull MobInstance instance, @NotNull Location target, double speed) {
-        mobService.moveToward(instance, target, speed, internalTick);
+        mobService.moveToward(instance, target, speed * conditionMovementMultiplier(instance), internalTick);
     }
 
     private void moveAway(@NotNull MobInstance instance, @NotNull Location target, double preferredRange) {
@@ -624,13 +627,19 @@ public class MobAiService {
         }
 
         double speedScale = Math.max(0.0D, Math.min(instance.template().idle().speed(), 2.0D));
-        double velocity = baseVelocity * speedScale;
+        double velocity = baseVelocity * speedScale * conditionMovementMultiplier(instance);
         if (velocity <= 0.0D) {
             return;
         }
 
         double length = Math.sqrt(lengthSq);
         mobService.entityController().addVelocity(instance, new Vector(x / length * velocity, 0.0D, z / length * velocity));
+    }
+
+    private double conditionMovementMultiplier(@NotNull MobInstance instance) {
+        return conditionService == null
+                ? 1.0D
+                : conditionService.movementSpeedMultiplier(AstEntity.mob(instance));
     }
 
     private boolean isWithinActivationRange(double horizontalSq, double activationRange) {

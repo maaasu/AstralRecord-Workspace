@@ -14,7 +14,6 @@ params:
   resourceType: ENERGY
   resourceCost: 12
   attackType: MELEE
-  damageType: PHYSICAL
   particle: CRIT
   particleCount: 12
   spreadX: 0.22

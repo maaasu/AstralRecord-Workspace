@@ -4,10 +4,12 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
+
 /**
  * ダメージ計算に必要な入力情報をまとめたコンテキストです。
  * <p>
- * Bukkit 由来のイベント情報と、攻撃種別／ダメージ種別の判定結果を保持します。
+ * Bukkit 由来のイベント情報と、攻撃種別／属性成分の判定結果を保持します。
  * Bukkit API への依存はこのモデルと {@code from(...)} ファクトリのみに閉じ込め、
  * {@link io.github.maaasu.astralRecord.feature.combat.service.DamageCalculator} は
  * 本コンテキストの数値情報のみを参照して計算します。
@@ -16,15 +18,14 @@ import org.jetbrains.annotations.Nullable;
  * @param victim       被弾者エンティティ
  * @param baseDamage   Bukkit 側のベースダメージ（{@link EntityDamageByEntityEvent#getDamage()}）
  * @param attackType   攻撃種別（近接 / 間接 / 魔法）
- * @param damageType   ダメージ種別（物理 / 魔法 / 純粋）
+ * @param components   属性別ダメージ倍率。空の場合は無属性100%として扱う
  */
 public record DamageContext(
         @Nullable AstEntity attacker,
         @NotNull AstEntity victim,
         double baseDamage,
         @NotNull AttackType attackType,
-        @NotNull DamageType damageType,
-        @NotNull DamageElement damageElement,
+        @NotNull List<DamageComponent> components,
         @NotNull DamageScaling scaling
 ) {
 
@@ -33,16 +34,21 @@ public record DamageContext(
             @NotNull AstEntity victim,
             double baseDamage,
             @NotNull AttackType attackType,
-            @NotNull DamageType damageType,
             @NotNull DamageScaling scaling
     ) {
-        this(attacker, victim, baseDamage, attackType, damageType, DamageElement.NEUTRAL, scaling);
+        this(attacker, victim, baseDamage, attackType, List.of(DamageComponent.defaultComponent()), scaling);
+    }
+
+    public DamageContext {
+        components = components == null || components.isEmpty()
+                ? List.of(DamageComponent.defaultComponent())
+                : List.copyOf(components);
     }
 
     /**
      * {@link EntityDamageByEntityEvent} からコンテキストを構築します。
      * <p>
-     * 現状は近接物理ダメージ既定で生成します。攻撃種別／ダメージ種別の高度な判定は
+     * 現状は近接・無属性ダメージ既定で生成します。攻撃種別／属性成分の高度な判定は
      * 将来、攻撃者の装備・スキル文脈をもとに拡張する想定です。
      *
      * @param event Bukkit のエンティティ間ダメージイベント
@@ -54,8 +60,7 @@ public record DamageContext(
                 AstEntity.bukkit(event.getEntity()),
                 event.getDamage(),
                 AttackType.MELEE,
-                DamageType.PHYSICAL,
-                DamageElement.NEUTRAL,
+                List.of(DamageComponent.defaultComponent()),
                 DamageScaling.ATTACKER_STATUS
         );
     }

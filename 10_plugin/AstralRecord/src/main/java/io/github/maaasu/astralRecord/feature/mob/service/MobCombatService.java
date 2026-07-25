@@ -3,10 +3,10 @@ package io.github.maaasu.astralRecord.feature.mob.service;
 import io.github.maaasu.astralRecord.feature.adventurerecord.service.AdventureRecordService;
 import io.github.maaasu.astralRecord.feature.account.model.AccountExperienceResult;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
+import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageCalculator;
 import io.github.maaasu.astralRecord.feature.combat.service.LevelDifferenceCalculator;
 import io.github.maaasu.astralRecord.feature.mob.model.CombatStyle;
-import io.github.maaasu.astralRecord.feature.mob.model.DamageType;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCombatConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
@@ -238,7 +238,7 @@ public class MobCombatService {
         double baseDamage = computeDamage(instance, target);
         double finalDamage = applyCriticalMultiplier(instance, baseDamage);
 
-        applyDamageToPlayer(target, finalDamage, damageTypeOf(combat.style()));
+        applyDamageToPlayer(target, finalDamage);
         showMobAttackFeedback(
                 instance,
                 target,
@@ -325,7 +325,6 @@ public class MobCombatService {
                 formatOneDecimal(damage),
                 "0.0",
                 combatStyleName(style),
-                damageTypeOf(style) == DamageType.MAGIC ? "魔法" : "物理",
                 "無属性",
                 formatOneDecimal(hitChance),
                 formatOneDecimal(accuracy),
@@ -343,7 +342,7 @@ public class MobCombatService {
     private @NotNull String combatStyleName(@NotNull CombatStyle style) {
         return switch (style) {
             case MELEE -> "近接";
-            case RANGED -> "遠隔";
+            case RANGED -> "間接";
             case MAGIC -> "魔法";
         };
     }
@@ -376,7 +375,7 @@ public class MobCombatService {
             case MAGIC -> template.statValue("INTELLIGENCE", 0.0);
         };
         double offensive = attack * (1.0 + scaling / 100.0);
-        double defense = resolvePlayerDefense(target, damageTypeOf(style));
+        double defense = resolvePlayerDefense(target, style);
         double damage = Math.max(1.0, offensive - defense * 0.5);
         AstPlayer astTarget = AstPlayerCache.get(target);
         int playerLevel = astTarget == null ? 1 : astTarget.getAccount().getLevel();
@@ -417,21 +416,21 @@ public class MobCombatService {
      * @param instance     被ダメージ対象 Mob
      * @param attacker     攻撃元プレイヤー
      * @param damage       確定済み攻撃側ダメージ（防御適用前）
-     * @param type         ダメージ種別
+     * @param attackType   攻撃種別
      * @return 実際に与えたダメージ（防御適用後）
      */
     public double applyDamage(
             @NotNull MobInstance instance,
             @NotNull AstPlayer attacker,
             double damage,
-            @NotNull DamageType type) {
+            @NotNull AttackType attackType) {
         if (instance.state() == MobState.DEAD) return 0.0;
         if (isPlayerDead(attacker.getBukkit())) return 0.0;
 
         MobTemplate template = instance.template();
-        double defenseStat = type == DamageType.PHYSICAL
-                ? template.statValue("DEFENSE", 0.0)
-                : template.statValue("MAGIC_DEFENSE", 0.0);
+        double defenseStat = attackType == AttackType.MAGIC
+                ? template.statValue("MAGIC_DEFENSE", 0.0)
+                : template.statValue("DEFENSE", 0.0);
         double effective = Math.max(1.0, damage - defenseStat * 0.5);
 
         instance.currentHealth(instance.currentHealth() - effective);
@@ -643,23 +642,22 @@ public class MobCombatService {
         particleDisplayService.spawnForNearbyViewers(location, SharedParticleDefinitions.CLASS_LEVEL_UP_ENCHANT);
     }
 
-    private double resolvePlayerDefense(@NotNull Player target, @NotNull DamageType type) {
-        // プレイヤー側 AstPlayer / StatusSnapshot からの取得は将来統合する。
-        // 当面は固定値 0 を返す。
-        StatusType ignored = type == DamageType.PHYSICAL ? StatusType.DEFENSE : StatusType.MAGIC_DEFENSE;
-        // ignored 変数は forward-compat のため意図的に保持
-        return ignored == null ? 0.0 : 0.0;
-    }
-
-    private DamageType damageTypeOf(@NotNull CombatStyle style) {
-        return style == CombatStyle.MAGIC ? DamageType.MAGIC : DamageType.PHYSICAL;
+    private double resolvePlayerDefense(@NotNull Player target, @NotNull CombatStyle style) {
+        AstPlayer astPlayer = AstPlayerCache.get(target);
+        if (astPlayer == null) {
+            return 0.0D;
+        }
+        StatusType defenseStatus = style == CombatStyle.MAGIC
+                ? StatusType.MAGIC_DEFENSE
+                : StatusType.DEFENSE;
+        return statusService.getStatus(astPlayer).rollValue(defenseStatus);
     }
 
     private boolean isPlayerDead(@NotNull Player player) {
         return playerDeathService != null && playerDeathService.isDead(player.getUniqueId());
     }
 
-    private void applyDamageToPlayer(@NotNull Player target, double damage, @NotNull DamageType type) {
+    private void applyDamageToPlayer(@NotNull Player target, double damage) {
         // プレイヤー側の独自ダメージ適用 API（feature/player）が未整備のため、当面は Bukkit Player.damage を呼ぶ。
         // 将来的に AstPlayer / StatusSnapshot 経由で適用する（[[12_9.00-未決事項]] 参照）。
         target.damage(damage);
@@ -699,6 +697,5 @@ public class MobCombatService {
     @SuppressWarnings("unused")
     private static void retainEnums() {
         TargetStrategy ts = TargetStrategy.NEAREST;
-        DamageType dt = DamageType.PHYSICAL;
     }
 }

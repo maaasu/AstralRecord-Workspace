@@ -13,7 +13,6 @@ params:
   resourceType: ENERGY
   resourceCost: 0
   attackType: MELEE
-  damageType: PHYSICAL
   particle: SWEEP_ATTACK
   particleCount: 6
   spreadX: 0.0

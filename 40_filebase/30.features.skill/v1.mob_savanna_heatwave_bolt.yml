@@ -16,8 +16,9 @@ params:
   resourceType: ENERGY
   resourceCost: 0
   attackType: MAGIC
-  damageType: MAGIC
-  damageElement: FIRE
+  damageComponents:
+    - element: FIRE
+      ratio: 1.0
   particle: FLAME
   particleCount: 12
   spreadX: 0.12
@@ -55,8 +56,6 @@ params:
       basePower: 1.0
       powerCoefficient: 0.1
       tickIntervalTicks: 20
-      damageType: MAGIC
-      damageElement: FIRE
 tags:
   - mob
   - active

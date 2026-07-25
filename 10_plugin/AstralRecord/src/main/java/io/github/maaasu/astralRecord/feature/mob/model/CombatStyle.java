@@ -5,10 +5,10 @@ package io.github.maaasu.astralRecord.feature.mob.model;
  */
 public enum CombatStyle {
 
-    /** 近接戦闘。STRENGTH でスケール、物理ダメージ */
+    /** 近接戦闘。STRENGTH でスケール */
     MELEE,
 
-    /** 遠距離物理戦闘。DEXTERITY でスケール、物理ダメージ */
+    /** 間接戦闘。DEXTERITY でスケール */
     RANGED,
 
     /** 魔法戦闘。INTELLIGENCE でスケール、魔法ダメージ */

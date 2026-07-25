@@ -1,43 +1,41 @@
 package io.github.maaasu.astralRecord.feature.condition.model;
 
-import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
-import io.github.maaasu.astralRecord.feature.combat.model.DamageType;
-import org.jetbrains.annotations.NotNull;
-
 /**
- * 状態異常が持つ具体的な効果値を表します。
+ * 状態異常の既定効果です。
  *
- * @param tickIntervalTicks periodic effect の間隔。0 以下なら tick 処理なし
- * @param basePower 固定効果値
- * @param sourceAttackCoefficient 付与元 ATTACK 係数
- * @param sourceTypedAttackCoefficient 付与元攻撃種別ステータス係数
- * @param targetMaxHealthCoefficient 対象最大 HP 係数
- * @param maxTickDamage 1 tick 処理あたりの上限。0 以下なら上限なし
- * @param healingReceivedMultiplier 受ける回復量倍率
- * @param damageTakenMultiplier 受けるダメージ倍率
- * @param movementBlocked 移動不可か
- * @param attackBlocked 通常攻撃不可か
- * @param skillBlocked スキル使用不可か
- * @param aiBlocked Mob AI 停止か
- * @param damageImmune HP/Shield ダメージ無効か
- * @param damageType DoT のダメージ種別
- * @param damageElement DoT または表示用属性
+ * @param tickIntervalTicks DoT間隔。0はDoTなし
+ * @param healthRate 1tickあたりのHP割合。0.01は1%
+ * @param currentHealthBased trueなら現在HP、falseなら最大HPを基準にする
+ * @param basePower 固定DoT値
+ * @param sourceAttackCoefficient 付与元攻撃力係数
+ * @param movementSpeedMultiplier 移動速度倍率
+ * @param castTimeMultiplier 詠唱時間倍率
+ * @param damageDealtMultiplier 与える最終ダメージ倍率
+ * @param movementBlocked 移動不可
+ * @param attackBlocked 通常攻撃不可
+ * @param skillBlocked スキル不可
+ * @param aiBlocked Mob AI不可
+ * @param healingBlocked 回復不可
+ * @param controlIntervalMinTicks 間欠行動不能の最短発生間隔
+ * @param controlIntervalMaxTicks 間欠行動不能の最長発生間隔
+ * @param controlDurationTicks 間欠行動不能の継続時間
  */
 public record ConditionEffect(
         int tickIntervalTicks,
+        double healthRate,
+        boolean currentHealthBased,
         double basePower,
         double sourceAttackCoefficient,
-        double sourceTypedAttackCoefficient,
-        double targetMaxHealthCoefficient,
-        double maxTickDamage,
-        double healingReceivedMultiplier,
-        double damageTakenMultiplier,
+        double movementSpeedMultiplier,
+        double castTimeMultiplier,
+        double damageDealtMultiplier,
         boolean movementBlocked,
         boolean attackBlocked,
         boolean skillBlocked,
         boolean aiBlocked,
-        boolean damageImmune,
-        @NotNull DamageType damageType,
-        @NotNull DamageElement damageElement
+        boolean healingBlocked,
+        int controlIntervalMinTicks,
+        int controlIntervalMaxTicks,
+        int controlDurationTicks
 ) {
 }

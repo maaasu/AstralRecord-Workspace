@@ -2,12 +2,15 @@ package io.github.maaasu.astralRecord.feature.condition.service;
 
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.condition.model.ActiveCondition;
+import io.github.maaasu.astralRecord.feature.condition.model.ConditionEffect;
 import org.jetbrains.annotations.NotNull;
 
-/**
- * 状態異常の periodic effect を処理します。
- */
+import java.util.concurrent.ThreadLocalRandom;
+
+/** 状態異常の periodic effect を処理します。 */
 public final class ConditionTickService {
+    private static final long MS_PER_TICK = 50L;
+
     private final ConditionService conditionService;
     private final DamageService damageService;
 
@@ -19,39 +22,48 @@ public final class ConditionTickService {
         this.damageService = damageService;
     }
 
-    /**
-     * 1 件の状態異常 tick を処理します。
-     *
-     * @param condition 対象状態異常
-     * @param nowMs 現在時刻ミリ秒
-     */
+    /** 1 件の状態異常 tick を処理します。 */
     public void tickCondition(@NotNull ActiveCondition condition, long nowMs) {
         if (condition.expired(nowMs)) {
             conditionService.removeCondition(condition.target(), condition.type());
             return;
         }
+
+        processIntermittentControl(condition, nowMs);
         if (condition.tickIntervalTicks() <= 0 || condition.nextTickAtMs() > nowMs) {
             return;
         }
 
-        double damage = Math.max(0.0D, condition.snapshotPower() * Math.max(1, condition.stack()));
-        double maxTickDamage = condition.type().defaultEffect().maxTickDamage();
-        if (maxTickDamage > 0.0D) {
-            damage = Math.min(damage, maxTickDamage);
-        }
+        ConditionEffect effect = condition.type().defaultEffect();
+        double healthBase = effect.currentHealthBased()
+                ? condition.target().currentHealth()
+                : condition.target().maxHealth();
+        double damage = Math.max(0.0D, condition.snapshotPower() + healthBase * condition.healthRate());
         if (damage > 0.0D) {
             damageService.applyConditionDamage(
                     condition.source(),
                     condition.target(),
                     damage,
-                    condition.damageType(),
-                    condition.damageElement(),
                     condition.type()
             );
             conditionService.pulse(condition);
         }
 
         condition.lastTickAtMs(nowMs);
-        condition.nextTickAtMs(nowMs + condition.tickIntervalTicks() * 50L);
+        condition.nextTickAtMs(nowMs + condition.tickIntervalTicks() * MS_PER_TICK);
+    }
+
+    private void processIntermittentControl(@NotNull ActiveCondition condition, long nowMs) {
+        ConditionEffect effect = condition.type().defaultEffect();
+        if (effect.controlIntervalMaxTicks() <= 0 || condition.nextControlAtMs() > nowMs) {
+            return;
+        }
+
+        condition.controlBlockedUntilMs(nowMs + Math.max(1, effect.controlDurationTicks()) * MS_PER_TICK);
+        int min = Math.max(1, effect.controlIntervalMinTicks());
+        int max = Math.max(min, effect.controlIntervalMaxTicks());
+        int nextInterval = ThreadLocalRandom.current().nextInt(min, max + 1);
+        condition.nextControlAtMs(nowMs + nextInterval * MS_PER_TICK);
+        conditionService.pulse(condition);
     }
 }

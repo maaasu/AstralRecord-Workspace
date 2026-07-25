@@ -750,6 +750,8 @@ public final class AstralRecord extends JavaPlugin {
         );
         conditionDisplayService = new ConditionDisplayService(particleDisplayService, mobVanillaEffectProtectionService);
         conditionService = new ConditionService(conditionDisplayService, playerDeathService);
+        conditionService.setStatusService(statusService);
+        statusService.setConditionService(conditionService);
         var conditionTickService = new ConditionTickService(conditionService, damageService);
         conditionTickTask = new ConditionTickTask(conditionService, conditionTickService);
         conditionDisplayTask = new ConditionDisplayTask(conditionService, conditionDisplayService);

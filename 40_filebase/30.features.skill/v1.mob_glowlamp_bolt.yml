@@ -13,8 +13,9 @@ params:
   resourceType: MANA
   resourceCost: 0
   attackType: MAGIC
-  damageType: MAGIC
-  damageElement: LIGHTNING
+  damageComponents:
+    - element: LIGHTNING
+      ratio: 1.0
   particle: END_ROD
   particleCount: 12
   spreadX: 0.12

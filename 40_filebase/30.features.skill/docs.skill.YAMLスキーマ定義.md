@@ -2,10 +2,9 @@
 
 `40_filebase/30.features.skill/*.yml` に配置するスキル定義の schema です。
 
-スキルの種別は plugin 側の `SkillExecutor.kind()` が正本です。
-filebase 側では、パッシブスキルだった場合に `passive.bindRequired` でバインド必要可否を定義します。
+スキル種別は plugin 側の `SkillExecutor.kind()` が正本です。filebase 側ではパッシブスキルの場合に `passive.bindRequired` でバインド必要可否を定義します。
 
-## スキーマ定義
+## 共通定義
 
 | キー | 型 | 必須 | 既定値 | 説明 |
 | --- | --- | --- | --- | --- |
@@ -19,155 +18,74 @@ filebase 側では、パッシブスキルだった場合に `passive.bindRequir
 | `lore` | List<String> | 任意 | `[]` | 詳細表示 lore |
 | `cooldownTicks` | Long | 任意 | `0` | クールダウン |
 | `manaCost` | Double | 任意 | `0` | 消費 MP |
-| `castTimeTicks` | Long | 任意 | `0` | 詠唱時間 |
+| `castTimeTicks` | Long | 任意 | `0` | 詠唱時間。冷気中は最終値が2倍 |
 | `requiredLevel` | Integer | 任意 | `1` | 必要レベル |
 | `onCast` | Map | 任意 | `null` | 発動時演出設定 |
 | `onCast.sound` | String | 任意 | `null` | 再生する sound key |
 | `passive` | Map | 任意 | `null` | パッシブ設定 |
-| `passive.bindRequired` | Boolean | 任意 | `true` | `true` の場合はバインド時のみ有効。`false` の場合は所持のみで常時有効 |
+| `passive.bindRequired` | Boolean | 任意 | `true` | `false` は所持のみで常時有効 |
 | `params` | Map<String, Any> | 任意 | `{}` | 実装側パラメータ |
 | `tags` | List<String> | 任意 | `[]` | 任意タグ |
 
-### normal_attack 共通 params
+## 攻撃スキル params
 
-`implementationId: normal_attack` の Mob 攻撃では、Mob AI の発動距離と詠唱開始時の予兆音として以下を指定できます。
-
-| キー | 型 | 必須 | 既定値 | 説明 |
-| --- | --- | --- | --- | --- |
-| `activationRange` | Double | 任意 | `hitRange` | Mob AI がこのスキルを発動し始める最大距離。未指定時は `hitRange`、それも未指定なら Mob の `preferredRange` にフォールバックします |
-| `damageElement` | String | 任意 | `NEUTRAL` | 属性種別。`NEUTRAL` / `FIRE` / `ICE` / `POISON` / `LIGHTNING` / `HOLY` / `DARK` |
-| `conditions[]` | List | 任意 | `[]` | 命中時に付与する状態異常定義。詳細は後述 |
-| `castSound` | String | 任意 | `null` | 詠唱開始時に再生する sound key |
-| `castSoundVolume` | Double | 任意 | `1.0` | 詠唱開始音の音量 |
-| `castSoundPitch` | Double | 任意 | `1.0` | 詠唱開始音のピッチ |
-
-### normal_attack conditions[] params
-
-`conditions[]` は攻撃が命中した対象へ状態異常を付与するための設定です。
-状態異常の正本仕様は `00_docs/10_Plugin設計書/feature/27-condition/` を参照してください。
+`normal_attack` と `adventurer_starter_attack` は同じ戦闘パラメータを使用します。
 
 | キー | 型 | 必須 | 既定値 | 説明 |
 | --- | --- | --- | --- | --- |
-| `conditions[].type` | String | 必須 | - | 状態異常種別。`BURNING` / `POISON` / `BLEEDING` / `CHILLED` / `FROZEN` / `STUNNED` / `SILENCED` / `ATTACK_DISABLED` / `INVULNERABLE` / `VULNERABLE` |
-| `conditions[].chance` | Double | 任意 | `100` | 付与確率。0-100 |
-| `conditions[].durationTicks` | Int | 必須 | - | 効果時間 tick |
-| `conditions[].stack` | Int | 任意 | `1` | 付与スタック数 |
-| `conditions[].basePower` | Double | 任意 | 種別既定 | 固定効果値 |
-| `conditions[].powerCoefficient` | Double | 任意 | 種別既定 | 付与元攻撃力に対する係数 |
-| `conditions[].tickIntervalTicks` | Int | 任意 | 種別既定 | DoT / periodic effect 間隔。0 以下なら periodic effect なし |
-| `conditions[].damageType` | String | 任意 | 種別既定 | DoT の防御種別。`PHYSICAL` / `MAGIC` / `TRUE` |
-| `conditions[].damageElement` | String | 任意 | 種別既定 | DoT の属性種別 |
+| `attackType` | String | 任意 | `MELEE` | `MELEE` / `RANGED` / `MAGIC`。攻撃力・能力値・防御力の参照元を決める |
+| `damageComponents` | List | 任意 | 無属性100% | 属性別ダメージ倍率。各成分を独立して属性補正後に合算する |
+| `damageComponents[].element` | String | 必須 | - | `NONE` / `FIRE` / `ICE` / `LIGHTNING` / `POISON` / `LIGHT` / `DARK` |
+| `damageComponents[].ratio` | Double | 必須 | - | 攻撃種別から求めた攻撃力に掛ける倍率。`0.8` は80% |
+| `activationRange` | Double | 任意 | `hitRange` | Mob AI が発動を開始する最大距離 |
+| `conditions` | List | 任意 | `[]` | 命中時に付与する状態異常定義 |
+| `castSound` | String | 任意 | `null` | 詠唱開始 sound key |
+| `castSoundVolume` | Double | 任意 | `1.0` | 詠唱開始音量 |
+| `castSoundPitch` | Double | 任意 | `1.0` | 詠唱開始音ピッチ |
 
-### adventurer_starter_attack params
+`damageComponents` を省略したスキルは `NONE` 1.0 として扱います。たとえば火0.6と、氷0.3＋雷0.3は属性補正前の総倍率がどちらも0.6なので、基礎DPSは同じです。
 
-`implementationId: adventurer_starter_attack` は冒険者の序盤発動スキル向けの攻撃 executor です。
-ダメージ処理は `normal_attack` と同じ custom combat 経路を使い、`starterStyle` に応じて通常攻撃と区別できる発動演出を追加します。
-`attackType`、`damageType`、`damageElement`、`conditions[]`、`particle`、`hitRange` などの攻撃パラメータは `normal_attack` と同じキーを使用します。
+## conditions params
 
 | キー | 型 | 必須 | 既定値 | 説明 |
 | --- | --- | --- | --- | --- |
-| `starterStyle` | String | 必須 | - | 発動演出の種類。`ANCHOR_BURST` / `SIGNAL_ARROW` / `MANA_SPARK` |
+| `conditions[].type` | String | 必須 | - | `BURNING` / `FROZEN` / `CHILLED` / `SHOCKED` / `POISON` / `BLINDNESS` / `WEAKNESS` / `HEALING_INHIBITION` |
+| `conditions[].chance` | Double | 任意 | `100` | 基礎付与確率（%） |
+| `conditions[].durationTicks` | Long | 任意 | 種別既定 | 効果時間 |
+| `conditions[].strength` | Double | 任意 | `1.0` | 同種重複時の強さ比較値 |
+| `conditions[].basePower` | Double | 任意 | 種別既定 | 固定DoT値 |
+| `conditions[].powerCoefficient` | Double | 任意 | 種別既定 | 付与元 `ATTACK` に対するDoT係数 |
+| `conditions[].healthRate` | Double | 任意 | 種別既定 | 1 tick処理ごとのHP割合。`0.03` は3% |
+| `conditions[].tickIntervalTicks` | Integer | 任意 | 種別既定 | DoT間隔。0以下はDoTなし |
 
-## 補足
+同種状態異常は強い効果だけを保持し、終了時刻は既存より後になる場合だけ延長します。DoTは会心しません。状態異常の付与耐性とDoT耐性は独立し、DoT貫通はDoT耐性だけを相殺します。
 
-- 発動系スキルかパッシブスキルかは `implementationId` に対応する plugin 実装で決まります。
-- `passive.bindRequired` は、plugin 実装がパッシブスキルの場合だけ意味を持ちます。
-- `passive.bindRequired: false` のパッシブスキルは、スキル設定 GUI のバインド一覧には表示しません。
-- `params` の解釈は各 executor に委ねます。
+## 状態異常既定値
 
-## YAML 例
+| 種別 | 時間 | 既定効果 |
+| --- | ---: | --- |
+| `BURNING` | 100 tick | 20 tickごとに最大HP1% |
+| `FROZEN` | 40 tick | 全行動不能 |
+| `CHILLED` | 100 tick | 移動50%、詠唱時間2倍 |
+| `SHOCKED` | 100 tick | 最大HP1%/秒、16～32 tickごとに6 tick移動・ジャンプ不能 |
+| `POISON` | 120 tick | 現在HP3%/秒、HP1未満にしない |
+| `BLINDNESS` | 100 tick | バニラ盲目 |
+| `WEAKNESS` | 100 tick | 与える最終ダメージ50% |
+| `HEALING_INHIBITION` | 100 tick | 通常の全回復を無効化 |
 
-### 発動系スキル
+## 例
 
 ```yaml
-schemaVersion: 1
-id: fire_boost
-type: SKILL
-implementationId: fire_boost
-name: "&cファイアブースト"
-description: "&7筋力を強化する発動系スキル。"
-icon: BLAZE_POWDER
-cooldownTicks: 0
-manaCost: 0
-castTimeTicks: 0
-requiredLevel: 1
-params:
-  strengthDurationTicks: 400
-  strengthAmplifier: 1
-tags:
-  - active
-  - fire
-```
-
-### 属性攻撃 + 状態異常付与
-
-```yaml
-schemaVersion: 1
-id: av_active_mana_spark
-type: SKILL
-implementationId: normal_attack
-name: "&cエンバーランス"
-icon: BLAZE_ROD
-cooldownTicks: 80
-manaCost: 8
 params:
   attackType: MAGIC
-  damageType: MAGIC
-  damageElement: FIRE
+  damageComponents:
+    - element: FIRE
+      ratio: 0.8
   hitRange: 8
   conditions:
     - type: BURNING
       chance: 35
       durationTicks: 100
-      basePower: 2.0
-      powerCoefficient: 0.25
-      tickIntervalTicks: 20
-      damageType: MAGIC
-      damageElement: FIRE
-tags:
-  - active
-  - fire
 ```
 
-### バインド必須のパッシブスキル
-
-```yaml
-schemaVersion: 1
-id: iron_will
-type: SKILL
-implementationId: iron_will
-name: "&7アイアンウィル"
-description: "&7防御系能力を上げるパッシブスキル。"
-icon: IRON_INGOT
-cooldownTicks: 0
-manaCost: 0
-castTimeTicks: 0
-requiredLevel: 1
-passive:
-  bindRequired: true
-params:
-  defenseFlat: 5
-  magicDefenseFlat: 3
-tags:
-  - passive
-  - defense
-```
-
-### 所持のみで常時有効なパッシブスキル
-
-```yaml
-schemaVersion: 1
-id: mana_knowledge
-type: SKILL
-implementationId: mana_knowledge
-name: "&bマナナレッジ"
-description: "&7所持しているだけで最大 MP が上がる。"
-icon: LAPIS_LAZULI
-passive:
-  bindRequired: false
-params:
-  maxManaFlat: 20
-tags:
-  - passive
-  - support
-```
+`adventurer_starter_attack` は上記に加えて `starterStyle`（`ANCHOR_BURST` / `SIGNAL_ARROW` / `MANA_SPARK`）を必須とします。

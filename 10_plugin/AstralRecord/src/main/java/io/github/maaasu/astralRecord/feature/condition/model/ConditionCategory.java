@@ -6,7 +6,5 @@ package io.github.maaasu.astralRecord.feature.condition.model;
 public enum ConditionCategory {
     DOT,
     CONTROL,
-    PROTECTION,
-    AMPLIFIER,
-    VISUAL_ONLY
+    AMPLIFIER
 }

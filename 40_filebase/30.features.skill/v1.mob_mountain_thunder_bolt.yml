@@ -6,7 +6,7 @@ id: mob_mountain_thunder_bolt
 type: SKILL
 implementationId: normal_attack
 name: "&b山雷の閃光"
-description: "&7Mob AI が使用する、短時間の気絶を伴う雷属性の魔法弾。"
+description: "&7Mob AI が使用する、短時間の感電を伴う雷属性の魔法弾。"
 icon: LIGHTNING_ROD
 cooldownTicks: 44
 manaCost: 0
@@ -16,8 +16,9 @@ params:
   resourceType: ENERGY
   resourceCost: 0
   attackType: MAGIC
-  damageType: MAGIC
-  damageElement: LIGHTNING
+  damageComponents:
+    - element: LIGHTNING
+      ratio: 1.0
   particle: END_ROD
   particleCount: 16
   spreadX: 0.1
@@ -49,7 +50,7 @@ params:
   soundVolume: 0.9
   soundPitch: 1.4
   conditions:
-    - type: STUNNED
+    - type: SHOCKED
       chance: 18
       durationTicks: 20
 tags:

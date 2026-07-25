@@ -2,8 +2,10 @@ package io.github.maaasu.astralRecord.feature.condition.service;
 
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.condition.display.ConditionDisplayService;
+import io.github.maaasu.astralRecord.feature.condition.model.ActiveCondition;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyReason;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyRequest;
+import io.github.maaasu.astralRecord.feature.condition.model.ConditionRejectReason;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.mob.model.MobBaseStat;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
@@ -22,19 +24,137 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 class ConditionServiceTest {
 
     @Test
-    void bossAmplifierResistanceHalvesVulnerableEffect() {
-        ConditionDisplayService displayService = mock(ConditionDisplayService.class);
-        ConditionService service = new ConditionService(displayService, null);
+    void applyChanceUsesIncreaseAndResistanceAsPercentages() {
+        assertEquals(45.0D, ConditionService.calculateApplyChance(50.0D, 20.0D, 25.0D), 0.0001D);
+        assertEquals(100.0D, ConditionService.calculateApplyChance(80.0D, 100.0D, 0.0D), 0.0001D);
+        assertEquals(0.0D, ConditionService.calculateApplyChance(100.0D, 0.0D, 100.0D), 0.0001D);
+    }
+
+    @Test
+    void keepsStrongerEffectAndOnlyExtendsExpiry() {
+        ConditionService service = service();
+        AstEntity target = AstEntity.mob(mob(MobCategory.ENEMY, List.of()));
+
+        ActiveCondition first = service.applyCondition(request(
+            target, null, ConditionType.BURNING, 100L, 2.0D, 10.0D
+        )).condition();
+        ActiveCondition afterWeaker = service.applyCondition(request(
+            target, null, ConditionType.BURNING, 200L, 1.0D, 5.0D
+        )).condition();
+
+        assertEquals(2.0D, afterWeaker.strength(), 0.0001D);
+        assertEquals(10.0D, afterWeaker.snapshotPower(), 0.0001D);
+        assertTrue(afterWeaker.expiresAtMs() > first.startedAtMs() + 100L * 50L);
+
+        long extendedExpiry = afterWeaker.expiresAtMs();
+        ActiveCondition afterStrongerShorter = service.applyCondition(request(
+            target, null, ConditionType.BURNING, 50L, 3.0D, 15.0D
+        )).condition();
+
+        assertEquals(3.0D, afterStrongerShorter.strength(), 0.0001D);
+        assertEquals(15.0D, afterStrongerShorter.snapshotPower(), 0.0001D);
+        assertEquals(extendedExpiry, afterStrongerShorter.expiresAtMs());
+    }
+
+    @Test
+    void frozenDominatesChilledWithoutRemovingIt() {
+        ConditionService service = service();
+        AstEntity target = AstEntity.mob(mob(MobCategory.ENEMY, List.of()));
+
+        service.applyCondition(request(target, null, ConditionType.CHILLED, 100L, 1.0D, null));
+        assertEquals(0.5D, service.movementSpeedMultiplier(target), 0.0001D);
+
+        service.applyCondition(request(target, null, ConditionType.FROZEN, 40L, 1.0D, null));
+        assertFalse(service.canMove(target));
+        assertTrue(service.getActiveConditions(target).stream()
+            .anyMatch(condition -> condition.type() == ConditionType.CHILLED));
+
+        service.removeCondition(target, ConditionType.FROZEN);
+        assertTrue(service.canMove(target));
+        assertEquals(0.5D, service.movementSpeedMultiplier(target), 0.0001D);
+    }
+
+    @Test
+    void conditionDamageUsesIndependentIncreaseResistanceAndPenetration() {
+        ConditionService service = service();
+        AstEntity source = AstEntity.mob(mob(MobCategory.ENEMY, List.of(
+            new MobBaseStat(StatusType.BURNING_DAMAGE_INCREASE.name(), 20.0D),
+            new MobBaseStat(StatusType.BURNING_DAMAGE_PENETRATION.name(), 10.0D)
+        )));
+        AstEntity target = AstEntity.mob(mob(MobCategory.ENEMY, List.of(
+            new MobBaseStat(StatusType.BURNING_DAMAGE_RESISTANCE.name(), 50.0D)
+        )));
+
+        assertEquals(0.72D, service.conditionDamageMultiplier(source, target, ConditionType.BURNING), 0.0001D);
+    }
+
+    @Test
+    void fullApplyResistanceAlwaysRejectsAndHealingInhibitionBlocksRecovery() {
+        ConditionService service = service();
+        AstEntity resistant = AstEntity.mob(mob(MobCategory.ENEMY, List.of(
+            new MobBaseStat(StatusType.FROZEN_RESISTANCE.name(), 100.0D)
+        )));
+        var rejected = service.applyCondition(request(
+            resistant, null, ConditionType.FROZEN, 40L, 1.0D, null
+        ));
+        assertFalse(rejected.success());
+        assertEquals(ConditionRejectReason.CHANCE_FAILED, rejected.rejectReason());
+
+        AstEntity target = AstEntity.mob(mob(MobCategory.ENEMY, List.of()));
+        service.applyCondition(request(target, null, ConditionType.HEALING_INHIBITION, 100L, 1.0D, null));
+        assertTrue(service.isHealingBlocked(target));
+    }
+
+    @Test
+    void weaknessHalvesAllOutgoingDamageIncludingConditionSourceDamage() {
+        ConditionService service = service();
+        AstEntity source = AstEntity.mob(mob(MobCategory.ENEMY, List.of()));
+
+        service.applyCondition(request(source, null, ConditionType.WEAKNESS, 100L, 1.0D, null));
+
+        assertEquals(0.5D, service.damageDealtMultiplier(source), 0.0001D);
+    }
+
+    private ConditionService service() {
+        return new ConditionService(mock(ConditionDisplayService.class), null);
+    }
+
+    private ConditionApplyRequest request(
+            AstEntity target,
+            AstEntity source,
+            ConditionType type,
+            long durationTicks,
+            double strength,
+            Double basePower
+    ) {
+        return new ConditionApplyRequest(
+            target,
+            source,
+            type,
+            durationTicks,
+            100.0D,
+            strength,
+            basePower,
+            null,
+            null,
+            null,
+            ConditionApplyReason.SKILL
+        );
+    }
+
+    private MobInstance mob(MobCategory category, List<MobBaseStat> stats) {
         MobTemplate template = new MobTemplate(
             1,
-            "test_boss",
-            MobCategory.BOSS,
-            "Test Boss",
+            "condition_test_" + UUID.randomUUID(),
+            category,
+            "Condition Test",
             null,
             1,
             EntityType.IRON_GOLEM,
@@ -44,7 +164,7 @@ class ConditionServiceTest {
             List.of(),
             null,
             MobEquipmentConfig.EMPTY,
-            List.of(new MobBaseStat(StatusType.MAX_HEALTH.name(), 100.0D)),
+            stats,
             MobShieldConfig.EMPTY,
             MobIdleConfig.defaults(),
             false,
@@ -53,28 +173,6 @@ class ConditionServiceTest {
             null,
             null
         );
-        MobInstance mob = new MobInstance(
-            UUID.randomUUID(),
-            template,
-            new Location(null, 0.0D, 0.0D, 0.0D)
-        );
-        AstEntity target = AstEntity.mob(mob);
-
-        service.applyCondition(new ConditionApplyRequest(
-            target,
-            null,
-            ConditionType.VULNERABLE,
-            ConditionType.VULNERABLE.defaultDurationTicks(),
-            100.0D,
-            1,
-            null,
-            null,
-            null,
-            null,
-            null,
-            ConditionApplyReason.SKILL
-        ));
-
-        assertEquals(1.05D, service.damageTakenMultiplier(target), 0.0001D);
+        return new MobInstance(UUID.randomUUID(), template, new Location(null, 0.0D, 0.0D, 0.0D));
     }
 }

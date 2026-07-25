@@ -4,8 +4,8 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
-import io.github.maaasu.astralRecord.feature.combat.model.DamageType;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyReason;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyRequest;
@@ -32,6 +32,7 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -168,7 +169,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             applyMeleeDamage(skill, attacker, startLocation, direction);
             return;
         }
-        launchProjectileAttack(skill, attacker, startLocation, direction, attackType, readDamageType(skill), readDamageElement(skill));
+        launchProjectileAttack(skill, attacker, startLocation, direction, attackType, readDamageComponents(skill));
     }
 
     private void applyMeleeDamage(
@@ -204,7 +205,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         }
 
         for (AstEntity victim : victims.values()) {
-            DamageResult result = damageService.attack(attacker, victim, AttackType.MELEE, readDamageType(skill), readDamageElement(skill));
+            DamageResult result = damageService.attack(attacker, victim, AttackType.MELEE, readDamageComponents(skill));
             applyConditions(skill, attacker, victim, result);
         }
     }
@@ -215,8 +216,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             @NotNull Location startLocation,
             @NotNull Vector direction,
             @NotNull AttackType attackType,
-            @NotNull DamageType damageType,
-            @NotNull DamageElement damageElement
+            @NotNull List<DamageComponent> damageComponents
     ) {
         double hitRadius = readDoubleParam(skill, "hitRadius", 0.75D);
         double hitRange = readDoubleParam(skill, "hitRange", 6.0D);
@@ -281,7 +281,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
 
                 AstEntity victim = findClosestTarget(currentLocation, hitRadius, attacker);
                 if (victim != null) {
-                    DamageResult result = damageService.attack(attacker, victim, attackType, damageType, damageElement);
+                    DamageResult result = damageService.attack(attacker, victim, attackType, damageComponents);
                     applyConditions(skill, attacker, victim, result);
                     spawnImpactEffect(currentLocation, attackType);
                     cancel();
@@ -581,20 +581,27 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         }
     }
 
-    private @NotNull DamageType readDamageType(@NotNull SkillDefinition skill) {
-        String raw = readStringParam(skill, "damageType");
-        if (raw.isBlank()) {
-            return DamageType.PHYSICAL;
+    private @NotNull List<DamageComponent> readDamageComponents(@NotNull SkillDefinition skill) {
+        Object raw = skill.getParams().get("damageComponents");
+        if (raw instanceof List<?> entries) {
+            List<DamageComponent> components = new ArrayList<>();
+            for (Object entry : entries) {
+                if (!(entry instanceof Map<?, ?> map)) {
+                    continue;
+                }
+                double ratio = doubleParam(map, "ratio", 0.0D);
+                if (ratio > 0.0D) {
+                    components.add(new DamageComponent(DamageElement.from(map.get("element")), ratio));
+                }
+            }
+            if (!components.isEmpty()) {
+                return List.copyOf(components);
+            }
         }
-        try {
-            return DamageType.valueOf(raw.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException ignored) {
-            return DamageType.PHYSICAL;
-        }
-    }
 
-    private @NotNull DamageElement readDamageElement(@NotNull SkillDefinition skill) {
-        return DamageElement.from(skill.getParams().get("damageElement"));
+        DamageElement legacyElement = DamageElement.from(skill.getParams().get("damageElement"));
+        double legacyRatio = readDoubleParam(skill, "damageRatio", 1.0D);
+        return List.of(new DamageComponent(legacyElement, legacyRatio));
     }
 
     private void applyConditions(
@@ -624,12 +631,11 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                     type,
                     longParam(map, "durationTicks", type.defaultDurationTicks()),
                     doubleParam(map, "chance", 100.0D),
-                    intParam(map, "stack", 1),
+                    doubleParam(map, "strength", 1.0D),
                     nullableDoubleParam(map, "basePower"),
                     nullableDoubleParam(map, "powerCoefficient"),
+                    nullableDoubleParam(map, "healthRate"),
                     nullableIntParam(map, "tickIntervalTicks"),
-                    damageTypeParam(map, "damageType"),
-                    damageElementParam(map, "damageElement"),
                     ConditionApplyReason.SKILL
             ));
         }
@@ -638,11 +644,6 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
     private long longParam(@NotNull Map<?, ?> map, @NotNull String key, long defaultValue) {
         Object raw = map.get(key);
         return raw instanceof Number number ? number.longValue() : defaultValue;
-    }
-
-    private int intParam(@NotNull Map<?, ?> map, @NotNull String key, int defaultValue) {
-        Object raw = map.get(key);
-        return raw instanceof Number number ? number.intValue() : defaultValue;
     }
 
     private double doubleParam(@NotNull Map<?, ?> map, @NotNull String key, double defaultValue) {
@@ -660,19 +661,4 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         return raw instanceof Number number ? number.doubleValue() : null;
     }
 
-    private @Nullable DamageType damageTypeParam(@NotNull Map<?, ?> map, @NotNull String key) {
-        Object raw = map.get(key);
-        if (raw == null) {
-            return null;
-        }
-        try {
-            return DamageType.valueOf(raw.toString().trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException ignored) {
-            return null;
-        }
-    }
-
-    private @Nullable DamageElement damageElementParam(@NotNull Map<?, ?> map, @NotNull String key) {
-        return map.containsKey(key) ? DamageElement.from(map.get(key)) : null;
-    }
 }

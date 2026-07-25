@@ -3,7 +3,7 @@ id: defense_up_small
 type: BUFF
 name: "&9防御強化(小)"
 lore:
-  - "&7一定時間、物理防御力が上昇する。"
+  - "&7一定時間、防御力が上昇する。"
 durationTicks: 600 # 30秒
 isDebuff: false
 modifiers:

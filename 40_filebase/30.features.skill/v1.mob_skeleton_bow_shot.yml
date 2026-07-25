@@ -13,7 +13,6 @@ params:
   resourceType: ENERGY
   resourceCost: 0
   attackType: RANGED
-  damageType: PHYSICAL
   particle: CRIT
   particleCount: 12
   spreadX: 0.18

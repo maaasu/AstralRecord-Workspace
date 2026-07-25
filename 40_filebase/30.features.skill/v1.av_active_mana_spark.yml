@@ -16,7 +16,6 @@ params:
   resourceType: MANA
   resourceCost: 10
   attackType: MAGIC
-  damageType: MAGIC
   particle: ENCHANT
   particleCount: 12
   spreadX: 0.12

@@ -23,7 +23,8 @@ public class PlayerVanillaDamageBlockEventHandler extends AbstractEventHandler {
         EnumSet.of(
             EntityDamageEvent.DamageCause.FALL,
             EntityDamageEvent.DamageCause.FIRE,
-            EntityDamageEvent.DamageCause.FIRE_TICK
+            EntityDamageEvent.DamageCause.FIRE_TICK,
+            EntityDamageEvent.DamageCause.POISON
         );
 
     /**

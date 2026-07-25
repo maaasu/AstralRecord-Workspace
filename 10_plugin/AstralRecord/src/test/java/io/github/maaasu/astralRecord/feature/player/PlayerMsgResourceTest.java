@@ -37,7 +37,6 @@ class PlayerMsgResourceTest {
                 "25.0",
                 "0.0",
                 "近接",
-                "物理",
                 "無属性",
                 "92.0",
                 "95.0",

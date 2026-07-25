@@ -1,21 +1,21 @@
 package io.github.maaasu.astralRecord.feature.combat.service;
 
+import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageContext;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
-import io.github.maaasu.astralRecord.feature.combat.model.DamageType;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageScaling;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.DoubleSupplier;
 
 /**
- * ダメージ計算の純粋ロジックを担うクラスです。
- * <p>
- * Bukkit API への依存を持たず、{@link DamageContext} の入力値のみから
- * {@link DamageResult} を導出します。攻撃力／防御力／会心／属性補正等は
- * 将来この実装内で拡張する想定で、現状は下限クランプのみを行います。
+ * 近接・間接・魔法の攻撃力と属性成分からダメージを算出します。
  */
 public final class DamageCalculator {
 
@@ -26,9 +26,7 @@ public final class DamageCalculator {
     private final DoubleSupplier hitRollSupplier;
     private final DoubleSupplier criticalRollSupplier;
 
-    /**
-     * サーバー標準の乱数を使うダメージ計算器を作成します。
-     */
+    /** サーバー標準乱数を使う計算器を作成します。 */
     public DamageCalculator() {
         this(
                 () -> ThreadLocalRandom.current().nextDouble(0.0D, 100.0D),
@@ -49,10 +47,8 @@ public final class DamageCalculator {
     }
 
     /**
-     * ダメージを計算し、結果を返します。
-     * <p>
-     * 攻撃力・防御力・クリティカル・属性補正などはここで計算します。
-     * 最終ダメージは必ず 0 以上にクランプします。
+     * ダメージを計算します。防御は合計ダメージへ一度だけ適用し、その後に各属性成分へ
+     * 比例配分して属性増加・耐性・貫通を個別適用します。
      *
      * @param context ダメージ計算入力
      * @return 計算結果
@@ -63,46 +59,46 @@ public final class DamageCalculator {
             return DamageResult.evaded(hitCheck.hitChance(), hitCheck.accuracy(), hitCheck.evasion());
         }
 
-        double damage = resolveBaseDamage(context);
-        boolean critical = false;
-
-        CriticalDamage criticalDamage = applyCriticalDamage(context, damage);
-        damage = criticalDamage.damage();
-        critical = criticalDamage.critical();
-
-        if (context.damageType() != DamageType.TRUE && context.victim().isManaged()) {
-            double defense = defensePower(context);
-            damage = Math.max(1.0D, damage - defense * 0.5D);
+        List<DamageComponent> components = context.components().stream()
+                .filter(component -> component.ratio() > 0.0D)
+                .toList();
+        double totalRatio = components.stream().mapToDouble(DamageComponent::ratio).sum();
+        if (totalRatio <= 0.0D) {
+            return new DamageResult(0.0D, false, hitCheck.hitChance(), hitCheck.accuracy(), hitCheck.evasion());
         }
 
-        if (context.attacker() != null
-                && context.attacker().isManaged()
-                && context.victim().isManaged()) {
+        double damage = Math.max(0.0D, resolveBaseDamage(context)) * totalRatio;
+        CriticalDamage criticalDamage = applyCriticalDamage(context, damage);
+        damage = criticalDamage.damage();
+
+        if (context.victim().isManaged() && damage > 0.0D) {
+            damage = Math.max(1.0D, damage - defensePower(context) * 0.5D);
+        }
+
+        if (context.attacker() != null && context.attacker().isManaged() && context.victim().isManaged()) {
             damage *= LevelDifferenceCalculator.damageMultiplier(
                     context.attacker().level(),
                     context.victim().level()
             );
         }
 
-        damage = Math.max(0.0D, damage);
+        double attributedDamage = 0.0D;
+        for (DamageComponent component : components) {
+            double share = damage * component.ratio() / totalRatio;
+            attributedDamage += share * elementMultiplier(context, component.element());
+        }
 
         return new DamageResult(
-                damage,
-                critical,
+                Math.max(0.0D, attributedDamage),
+                criticalDamage.critical(),
                 hitCheck.hitChance(),
                 hitCheck.accuracy(),
                 hitCheck.evasion()
         );
     }
 
-    /**
-     * 通常攻撃コンテキストの命中・回避を判定します。
-     *
-     * @param context ダメージ計算入力
-     * @return 命中判定と計算に使った各率
-     */
     private @NotNull HitCheck checkHit(@NotNull DamageContext context) {
-        if (context.scaling() != io.github.maaasu.astralRecord.feature.combat.model.DamageScaling.ATTACKER_STATUS
+        if (context.scaling() != DamageScaling.ATTACKER_STATUS
                 || context.attacker() == null
                 || !context.attacker().isManaged()) {
             return new HitCheck(true, 100.0D, 100.0D, 0.0D);
@@ -123,8 +119,8 @@ public final class DamageCalculator {
      * 命中率と回避率から最終命中率を算出します。
      *
      * @param accuracy 攻撃者の命中率
-     * @param evasion  被弾者の回避率
-     * @return 0 から 100 に収めた最終命中率
+     * @param evasion 被弾者の回避率
+     * @return 0～100の最終命中率
      */
     public static double calculateHitChance(double accuracy, double evasion) {
         return Math.max(0.0D, Math.min(100.0D, accuracy - evasion));
@@ -141,24 +137,18 @@ public final class DamageCalculator {
         }
 
         double criticalDamage = context.attacker().statValue(StatusType.CRITICAL_DAMAGE);
-        if (criticalDamage <= 0.0D) {
-            criticalDamage = DEFAULT_CRITICAL_DAMAGE;
-        }
-        damage *= criticalDamage / 100.0D;
+        damage *= (criticalDamage <= 0.0D ? DEFAULT_CRITICAL_DAMAGE : criticalDamage) / 100.0D;
 
         double superCriticalRate = Math.max(0.0D, context.attacker().statValue(StatusType.SUPER_CRITICAL_RATE));
         if (superCriticalRate > 0.0D && criticalRollSupplier.getAsDouble() < superCriticalRate) {
             double superCriticalDamage = context.attacker().statValue(StatusType.SUPER_CRITICAL_DAMAGE);
-            if (superCriticalDamage <= 0.0D) {
-                superCriticalDamage = DEFAULT_SUPER_CRITICAL_DAMAGE;
-            }
-            damage *= superCriticalDamage / 100.0D;
+            damage *= (superCriticalDamage <= 0.0D ? DEFAULT_SUPER_CRITICAL_DAMAGE : superCriticalDamage) / 100.0D;
         }
         return new CriticalDamage(damage, true);
     }
 
     private double resolveBaseDamage(@NotNull DamageContext context) {
-        if (context.scaling() == io.github.maaasu.astralRecord.feature.combat.model.DamageScaling.FIXED) {
+        if (context.scaling() == DamageScaling.FIXED) {
             return context.baseDamage();
         }
         if (context.attacker() != null && context.attacker().isManaged()) {
@@ -175,10 +165,59 @@ public final class DamageCalculator {
     }
 
     private double defensePower(@NotNull DamageContext context) {
-        return switch (context.damageType()) {
-            case PHYSICAL -> context.victim().statValue(StatusType.DEFENSE);
-            case MAGIC -> context.victim().statValue(StatusType.MAGIC_DEFENSE);
-            case TRUE -> 0.0D;
+        return context.attackType() == io.github.maaasu.astralRecord.feature.combat.model.AttackType.MAGIC
+                ? context.victim().statValue(StatusType.MAGIC_DEFENSE)
+                : context.victim().statValue(StatusType.DEFENSE);
+    }
+
+    private double elementMultiplier(@NotNull DamageContext context, @NotNull DamageElement element) {
+        if (element == DamageElement.NONE) {
+            return 1.0D;
+        }
+        double increase = context.attacker() == null ? 0.0D
+                : context.attacker().statValue(elementDamageIncrease(element));
+        double penetration = context.attacker() == null ? 0.0D
+                : context.attacker().statValue(elementPenetration(element));
+        double resistance = context.victim().statValue(elementResistance(element));
+        double effectiveResistance = Math.max(0.0D, resistance - penetration);
+        double increaseMultiplier = Math.max(0.0D, 1.0D + increase / 100.0D);
+        double resistanceMultiplier = Math.max(0.0D, 1.0D - effectiveResistance / 100.0D);
+        return increaseMultiplier * resistanceMultiplier;
+    }
+
+    private @Nullable StatusType elementDamageIncrease(@NotNull DamageElement element) {
+        return switch (element) {
+            case FIRE -> StatusType.FIRE_DAMAGE_INCREASE;
+            case ICE -> StatusType.ICE_DAMAGE_INCREASE;
+            case LIGHTNING -> StatusType.LIGHTNING_DAMAGE_INCREASE;
+            case POISON -> StatusType.POISON_DAMAGE_INCREASE;
+            case LIGHT -> StatusType.LIGHT_DAMAGE_INCREASE;
+            case DARK -> StatusType.DARK_DAMAGE_INCREASE;
+            case NONE -> null;
+        };
+    }
+
+    private @Nullable StatusType elementResistance(@NotNull DamageElement element) {
+        return switch (element) {
+            case FIRE -> StatusType.FIRE_RESISTANCE;
+            case ICE -> StatusType.ICE_RESISTANCE;
+            case LIGHTNING -> StatusType.LIGHTNING_RESISTANCE;
+            case POISON -> StatusType.POISON_RESISTANCE;
+            case LIGHT -> StatusType.LIGHT_RESISTANCE;
+            case DARK -> StatusType.DARK_RESISTANCE;
+            case NONE -> null;
+        };
+    }
+
+    private @Nullable StatusType elementPenetration(@NotNull DamageElement element) {
+        return switch (element) {
+            case FIRE -> StatusType.FIRE_PENETRATION;
+            case ICE -> StatusType.ICE_PENETRATION;
+            case LIGHTNING -> StatusType.LIGHTNING_PENETRATION;
+            case POISON -> StatusType.POISON_PENETRATION;
+            case LIGHT -> StatusType.LIGHT_PENETRATION;
+            case DARK -> StatusType.DARK_PENETRATION;
+            case NONE -> null;
         };
     }
 
@@ -198,9 +237,7 @@ public final class DamageCalculator {
         };
     }
 
-    private record CriticalDamage(double damage, boolean critical) {
-    }
+    private record CriticalDamage(double damage, boolean critical) {}
 
-    private record HitCheck(boolean hit, double hitChance, double accuracy, double evasion) {
-    }
+    private record HitCheck(boolean hit, double hitChance, double accuracy, double evasion) {}
 }

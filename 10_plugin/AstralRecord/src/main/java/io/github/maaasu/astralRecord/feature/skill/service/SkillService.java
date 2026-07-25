@@ -444,7 +444,7 @@ public class SkillService {
             return failure;
         }
 
-        long castTimeTicks = definition.getCastTimeTicks();
+        long castTimeTicks = resolveCastTimeTicks(playerCaster, definition);
         astPlayer.setSkillCastingUntilMs(System.currentTimeMillis() + castTimeTicks * MS_PER_TICK);
         float originalWalkSpeed = player.getWalkSpeed();
         player.setWalkSpeed(clampWalkSpeed(originalWalkSpeed * 0.5F));
@@ -455,6 +455,12 @@ public class SkillService {
             @Override
             public void run() {
                 if (!player.isOnline() || player.isDead()) {
+                    finishCast(player, astPlayer, false, playerCaster, definition, trigger, castLocation, primaryTarget, targets);
+                    cancel();
+                    return;
+                }
+                if (conditionService != null
+                        && !conditionService.canCastSkill(AstEntity.player(astPlayer))) {
                     finishCast(player, astPlayer, false, playerCaster, definition, trigger, castLocation, primaryTarget, targets);
                     cancel();
                     return;
@@ -484,7 +490,7 @@ public class SkillService {
             return SkillCastResult.failure(PlayerMsgId.P_5810);
         }
 
-        long castTimeTicks = definition.getCastTimeTicks();
+        long castTimeTicks = resolveCastTimeTicks(caster, definition);
         caster.mob().startSkillCasting(SkillPresentationUtil.legacyName(definition, definition.getId()), castTimeTicks);
         playMobCastStartSound(castLocation, definition);
 
@@ -494,6 +500,12 @@ public class SkillService {
             @Override
             public void run() {
                 if (caster.mob().state() == io.github.maaasu.astralRecord.feature.mob.model.MobState.DEAD) {
+                    finishMobCast(caster, false, definition, trigger, castLocation, primaryTarget, targets);
+                    cancel();
+                    return;
+                }
+                if (conditionService != null
+                        && !conditionService.canCastSkill(AstEntity.mob(caster.mob()))) {
                     finishMobCast(caster, false, definition, trigger, castLocation, primaryTarget, targets);
                     cancel();
                     return;
@@ -511,6 +523,21 @@ public class SkillService {
         BukkitTask task = runnable.runTaskTimer(plugin, 0L, 1L);
         castingSessions.put(caster.casterId(), new CastingSession(task, null));
         return SkillCastResult.success(0.0D, 0L);
+    }
+
+    private long resolveCastTimeTicks(
+            @NotNull SkillCaster caster,
+            @NotNull SkillDefinition definition
+    ) {
+        double multiplier = 1.0D;
+        if (conditionService != null) {
+            if (caster instanceof PlayerSkillCaster playerCaster) {
+                multiplier = conditionService.castTimeMultiplier(AstEntity.player(playerCaster.player()));
+            } else if (caster instanceof MobSkillCaster mobCaster) {
+                multiplier = conditionService.castTimeMultiplier(AstEntity.mob(mobCaster.mob()));
+            }
+        }
+        return Math.max(0L, (long) Math.ceil(definition.getCastTimeTicks() * multiplier));
     }
 
     private void finishMobCast(

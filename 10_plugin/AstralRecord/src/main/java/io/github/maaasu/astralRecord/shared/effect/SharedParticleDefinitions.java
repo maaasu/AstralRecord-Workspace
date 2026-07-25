@@ -202,17 +202,6 @@ public final class SharedParticleDefinitions {
             0.0D,
             new Particle.DustOptions(Color.fromRGB(80, 210, 70), 0.9F)
         );
-    public static final SharedParticleDefinition CONDITION_BLEEDING_DUST =
-        new SharedParticleDefinition(
-            "condition_bleeding_dust",
-            Particle.DUST,
-            4,
-            0.16D,
-            0.10D,
-            0.16D,
-            0.0D,
-            new Particle.DustOptions(Color.fromRGB(190, 20, 35), 0.9F)
-        );
     public static final SharedParticleDefinition CONDITION_ICE_DUST =
         new SharedParticleDefinition(
             "condition_ice_dust",
@@ -224,53 +213,30 @@ public final class SharedParticleDefinitions {
             0.0D,
             new Particle.DustOptions(Color.fromRGB(125, 220, 255), 0.9F)
         );
-    public static final SharedParticleDefinition CONDITION_STUN_SPARK =
-        new SharedParticleDefinition("condition_stun_spark", Particle.ELECTRIC_SPARK, 3, 0.20D, 0.28D, 0.20D, 0.02D);
-    public static final SharedParticleDefinition CONDITION_SILENCE_DUST =
+    public static final SharedParticleDefinition CONDITION_SHOCKED_SPARK =
+        new SharedParticleDefinition("condition_shocked_spark", Particle.ELECTRIC_SPARK, 5, 0.24D, 0.34D, 0.24D, 0.025D);
+    public static final SharedParticleDefinition CONDITION_WEAKNESS_DUST =
         new SharedParticleDefinition(
-            "condition_silence_dust",
-            Particle.DUST,
-            3,
-            0.18D,
-            0.22D,
-            0.18D,
-            0.0D,
-            new Particle.DustOptions(Color.fromRGB(130, 70, 180), 0.85F)
-        );
-    public static final SharedParticleDefinition CONDITION_ATTACK_DISABLED_DUST =
-        new SharedParticleDefinition(
-            "condition_attack_disabled_dust",
-            Particle.DUST,
-            3,
-            0.18D,
-            0.18D,
-            0.18D,
-            0.0D,
-            new Particle.DustOptions(Color.fromRGB(145, 145, 145), 0.85F)
-        );
-    public static final SharedParticleDefinition CONDITION_INVULNERABLE_DUST =
-        new SharedParticleDefinition(
-            "condition_invulnerable_dust",
-            Particle.DUST,
-            5,
-            0.24D,
-            0.34D,
-            0.24D,
-            0.0D,
-            new Particle.DustOptions(Color.fromRGB(255, 220, 90), 1.0F)
-        );
-    public static final SharedParticleDefinition CONDITION_VULNERABLE_DUST =
-        new SharedParticleDefinition(
-            "condition_vulnerable_dust",
+            "condition_weakness_dust",
             Particle.DUST,
             4,
             0.20D,
             0.24D,
             0.20D,
             0.0D,
-            new Particle.DustOptions(Color.fromRGB(210, 65, 145), 0.9F)
+            new Particle.DustOptions(Color.fromRGB(110, 70, 130), 0.9F)
         );
-
+    public static final SharedParticleDefinition CONDITION_HEALING_INHIBITION_DUST =
+        new SharedParticleDefinition(
+            "condition_healing_inhibition_dust",
+            Particle.DUST,
+            4,
+            0.22D,
+            0.26D,
+            0.22D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(175, 30, 65), 0.95F)
+        );
     private static final Map<String, Particle> PARTICLES = buildParticleMap();
 
     private SharedParticleDefinitions() {}

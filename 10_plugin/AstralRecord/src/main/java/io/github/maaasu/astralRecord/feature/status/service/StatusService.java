@@ -3,6 +3,8 @@ package io.github.maaasu.astralRecord.feature.status.service;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.buff.service.BuffService;
+import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
+import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.inventory.model.AccessorySlotType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentEnchant;
@@ -61,6 +63,7 @@ public class StatusService {
     private SkillTreeService skillTreeService;
     private PassiveSkillService passiveSkillService;
     private PlayerClassService playerClassService;
+    private ConditionService conditionService;
 
     public StatusService() {
         this(null, null);
@@ -90,6 +93,10 @@ public class StatusService {
 
     public void setPlayerClassService(@Nullable PlayerClassService playerClassService) {
         this.playerClassService = playerClassService;
+    }
+
+    public void setConditionService(@Nullable ConditionService conditionService) {
+        this.conditionService = conditionService;
     }
 
     /**
@@ -146,7 +153,11 @@ public class StatusService {
             return;
         }
 
-        double speedPercent = Math.max(0.0D, snapshot.getMaxValue(StatusType.MOVEMENT_SPEED));
+        double conditionMultiplier = conditionService == null
+            ? 1.0D
+            : conditionService.movementSpeedMultiplier(AstEntity.player(player));
+        double speedPercent = Math.max(0.0D, snapshot.getMaxValue(StatusType.MOVEMENT_SPEED))
+            * conditionMultiplier;
         attribute.setBaseValue(VANILLA_PLAYER_MOVEMENT_SPEED * speedPercent / 100.0D);
     }
 
@@ -249,7 +260,7 @@ public class StatusService {
      */
     public @NotNull StatusSnapshot recoverHp(@NotNull AstPlayer player, double amount) {
         StatusSnapshot snapshot = getStatus(player);
-        if (amount <= 0.0D) {
+        if (amount <= 0.0D || isHealingBlocked(player)) {
             return snapshot;
         }
 
@@ -267,7 +278,7 @@ public class StatusService {
      */
     public @NotNull StatusSnapshot recoverShield(@NotNull AstPlayer player, double amount) {
         StatusSnapshot snapshot = getStatus(player);
-        if (amount <= 0.0D || snapshot.getMaxValue(StatusType.MAX_SHIELD) <= 0.0D) {
+        if (amount <= 0.0D || snapshot.getMaxValue(StatusType.MAX_SHIELD) <= 0.0D || isHealingBlocked(player)) {
             return snapshot;
         }
 
@@ -285,7 +296,7 @@ public class StatusService {
      */
     public @NotNull StatusSnapshot recoverMp(@NotNull AstPlayer player, double amount) {
         StatusSnapshot snapshot = getStatus(player);
-        if (amount <= 0.0D) {
+        if (amount <= 0.0D || isHealingBlocked(player)) {
             return snapshot;
         }
 
@@ -323,7 +334,7 @@ public class StatusService {
      */
     public @NotNull StatusSnapshot recoverEnergy(@NotNull AstPlayer player, double amount) {
         StatusSnapshot snapshot = getStatus(player);
-        if (amount <= 0.0D) {
+        if (amount <= 0.0D || isHealingBlocked(player)) {
             return snapshot;
         }
 
@@ -452,6 +463,7 @@ public class StatusService {
             // 採集速度は装備値をそのまま1回分の破壊力として扱う。装備なしは GatheringService 側で1に補正する。
             case MINING_SPEED -> 0.0D;
             case QUEST_LIMIT -> 3.0D;
+            default -> 0.0D;
         };
     }
 
@@ -957,6 +969,7 @@ public class StatusService {
                 case SHIELD_RECHARGE_RATE -> 0.0D;
                 case MINING_SPEED -> 0.0D;
                 case QUEST_LIMIT -> 0.0D;
+                default -> 0.0D;
             };
             case ADMIN -> switch (type) {
                 case MAX_HEALTH -> 10.0D;
@@ -995,8 +1008,13 @@ public class StatusService {
                 case SHIELD_RECHARGE_RATE -> 0.0D;
                 case MINING_SPEED -> 0.0D;
                 case QUEST_LIMIT -> 0.0D;
+                default -> 0.0D;
             };
         };
+    }
+
+    private boolean isHealingBlocked(@NotNull AstPlayer player) {
+        return conditionService != null && conditionService.isHealingBlocked(AstEntity.player(player));
     }
 
 }

@@ -3,10 +3,10 @@ package io.github.maaasu.astralRecord.feature.combat.service;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageContext;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageScaling;
-import io.github.maaasu.astralRecord.feature.combat.model.DamageType;
 import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
@@ -169,11 +169,11 @@ public final class DamageService {
         }
 
         if (attacker.isManaged()) {
-            attack(attacker, victim, AttackType.MELEE, DamageType.PHYSICAL);
+            attack(attacker, victim, AttackType.MELEE);
             return;
         }
 
-        applyDamage(attacker, victim, originalDamage, AttackType.MELEE, DamageType.PHYSICAL);
+        applyDamage(attacker, victim, originalDamage, AttackType.MELEE);
     }
 
     /**
@@ -182,36 +182,32 @@ public final class DamageService {
      * @param attacker   攻撃者
      * @param victim     被弾者
      * @param attackType 攻撃種別
-     * @param damageType ダメージ種別
      * @return ダメージ結果
      */
     public @NotNull DamageResult attack(
             @NotNull AstEntity attacker,
             @NotNull AstEntity victim,
-            @NotNull AttackType attackType,
-            @NotNull DamageType damageType
+            @NotNull AttackType attackType
     ) {
-        return attack(attacker, victim, attackType, damageType, DamageElement.NEUTRAL);
+        return attack(attacker, victim, attackType, List.of(DamageComponent.defaultComponent()));
     }
 
     /**
-     * 攻撃者のステータスを使って属性付き攻撃ダメージを適用します。
+     * 攻撃者のステータスを使って属性成分付き攻撃ダメージを適用します。
      *
      * @param attacker      攻撃者
      * @param victim        被弾者
      * @param attackType    攻撃種別
-     * @param damageType   ダメージ種別
-     * @param damageElement ダメージ属性
+     * @param components 属性別の攻撃倍率
      * @return ダメージ結果
      */
     public @NotNull DamageResult attack(
             @NotNull AstEntity attacker,
             @NotNull AstEntity victim,
             @NotNull AttackType attackType,
-            @NotNull DamageType damageType,
-            @NotNull DamageElement damageElement
+            @NotNull List<DamageComponent> components
     ) {
-        return applyDamage(attacker, victim, 0.0D, attackType, damageType, damageElement, DamageScaling.ATTACKER_STATUS);
+        return applyDamage(attacker, victim, 0.0D, attackType, components, DamageScaling.ATTACKER_STATUS);
     }
 
     /**
@@ -221,17 +217,16 @@ public final class DamageService {
      * @param victim     被弾者
      * @param baseDamage 基礎ダメージ
      * @param attackType 攻撃種別
-     * @param damageType ダメージ種別
      * @return ダメージ結果
      */
     public @NotNull DamageResult applyDamage(
             @Nullable AstEntity attacker,
             @NotNull AstEntity victim,
             double baseDamage,
-            @NotNull AttackType attackType,
-            @NotNull DamageType damageType
+            @NotNull AttackType attackType
     ) {
-        return applyDamage(attacker, victim, baseDamage, attackType, damageType, DamageElement.NEUTRAL, DamageScaling.FIXED);
+        return applyDamage(attacker, victim, baseDamage, attackType,
+                List.of(DamageComponent.defaultComponent()), DamageScaling.FIXED);
     }
 
     /**
@@ -240,16 +235,15 @@ public final class DamageService {
      * @param attacker   原因元の攻撃者。存在しない場合は {@code null}
      * @param victim     被弾者
      * @param baseDamage 固定ダメージ
-     * @param damageType ダメージ種別
      * @return ダメージ結果
      */
     public @NotNull DamageResult applyEffectDamage(
             @Nullable AstEntity attacker,
             @NotNull AstEntity victim,
-            double baseDamage,
-            @NotNull DamageType damageType
+            double baseDamage
     ) {
-        return applyDamage(attacker, victim, baseDamage, AttackType.MAGIC, damageType, DamageElement.NEUTRAL, DamageScaling.FIXED);
+        return applyDamage(attacker, victim, baseDamage, AttackType.MAGIC,
+                List.of(DamageComponent.defaultComponent()), DamageScaling.FIXED);
     }
 
     /**
@@ -258,8 +252,6 @@ public final class DamageService {
      * @param attacker 付与元。環境由来なら null
      * @param victim 対象
      * @param baseDamage 基礎ダメージ
-     * @param damageType ダメージ種別
-     * @param damageElement ダメージ属性
      * @param conditionType 状態異常種別
      * @return ダメージ結果
      */
@@ -267,11 +259,33 @@ public final class DamageService {
             @Nullable AstEntity attacker,
             @NotNull AstEntity victim,
             double baseDamage,
-            @NotNull DamageType damageType,
-            @NotNull DamageElement damageElement,
             @NotNull ConditionType conditionType
     ) {
-        return applyDamage(attacker, victim, baseDamage, AttackType.MAGIC, damageType, damageElement, DamageScaling.FIXED);
+        if (attacker != null && attacker.isPlayer() && isPlayerDead(attacker.id())) {
+            return new DamageResult(0.0D);
+        }
+        if (victim.isPlayer() && isPlayerDead(victim.id())) {
+            return new DamageResult(0.0D);
+        }
+        if (victim.isMob() && victim.mob() != null && victim.mob().template().damageImmune()) {
+            return new DamageResult(0.0D);
+        }
+
+        ensureStatusLoaded(attacker);
+        ensureStatusLoaded(victim);
+        double damage = Math.max(0.0D, baseDamage);
+        if (conditionService != null) {
+            damage *= conditionService.conditionDamageMultiplier(attacker, victim, conditionType);
+            damage *= conditionService.damageDealtMultiplier(attacker);
+        }
+        if (conditionType == ConditionType.POISON) {
+            damage = Math.min(damage, Math.max(0.0D, victim.currentHealth() - 1.0D));
+        }
+
+        DamageResult result = applyShieldDamage(attacker, victim, new DamageResult(damage, false));
+        applyDamageResult(attacker, victim, result, AttackType.MAGIC, false);
+        spawnDamageDisplay(attacker, victim, result);
+        return result;
     }
 
     /**
@@ -311,8 +325,7 @@ public final class DamageService {
             @NotNull AstEntity victim,
             double baseDamage,
             @NotNull AttackType attackType,
-            @NotNull DamageType damageType,
-            @NotNull DamageElement damageElement,
+            @NotNull List<DamageComponent> components,
             @NotNull DamageScaling scaling
     ) {
         if (attacker != null && attacker.isPlayer() && isPlayerDead(attacker.id())) {
@@ -331,15 +344,17 @@ public final class DamageService {
         ensureStatusLoaded(attacker);
         ensureStatusLoaded(victim);
 
-        DamageContext context = new DamageContext(attacker, victim, baseDamage, attackType, damageType, damageElement, scaling);
+        DamageContext context = new DamageContext(attacker, victim, baseDamage, attackType, components, scaling);
         DamageResult calculated = damageCalculator.calculate(context);
         if (!calculated.evaded() && conditionService != null && calculated.finalDamage() > 0.0D) {
             calculated = calculated.withFinalDamage(
-                    calculated.finalDamage() * conditionService.damageTakenMultiplier(victim)
+                    calculated.finalDamage()
+                            * conditionService.damageTakenMultiplier(victim)
+                            * conditionService.damageDealtMultiplier(attacker)
             );
         }
         DamageResult result = applyShieldDamage(attacker, victim, calculated);
-        applyDamageResult(attacker, victim, result, attackType);
+        applyDamageResult(attacker, victim, result, attackType, true);
         applyDurabilityWear(attacker, victim, result);
         spawnDamageDisplay(attacker, victim, result);
         sendDamageLog(attacker, victim, result, context);
@@ -385,7 +400,8 @@ public final class DamageService {
             @Nullable AstEntity attacker,
             @NotNull AstEntity victim,
             @NotNull DamageResult result,
-            @NotNull AttackType attackType
+            @NotNull AttackType attackType,
+            boolean knockback
     ) {
         if (result.shieldDamage() > 0.0D) {
             applyShieldThreat(attacker, victim, result.shieldDamage());
@@ -400,7 +416,9 @@ public final class DamageService {
             if (victim.player() != null) {
                 var updated = statusService.consumeHp(victim.player(), result.finalDamage());
                 playPlayerHurtEffect(victim.player().getBukkit(), result.critical());
-                applyDamageKnockback(attacker, victim, attackType);
+                if (knockback) {
+                    applyDamageKnockback(attacker, victim, attackType);
+                }
                 if (updated.getCurrentHp() <= 0.0D && playerDeathService != null) {
                     boolean handledByBoss = bossChallengeService != null
                             && bossChallengeService.handleParticipantDeath(victim.player(), victim.location());
@@ -422,7 +440,9 @@ public final class DamageService {
         double effectiveHealthDamage = Math.min(healthBefore, result.finalDamage());
         mob.currentHealth(Math.max(0.0D, healthBefore - result.finalDamage()));
         playMobHurtEffect(mob.bukkitEntityId(), result.critical());
-        applyDamageKnockback(attacker, victim, attackType);
+        if (knockback) {
+            applyDamageKnockback(attacker, victim, attackType);
+        }
         if (attacker != null && attacker.isPlayer()) {
             if (isPlayerDead(attacker.id())) {
                 return;
@@ -567,8 +587,7 @@ public final class DamageService {
                 formatOneDecimal(result.finalDamage()),
                 formatOneDecimal(result.shieldDamage()),
                 attackTypeName(context.attackType()),
-                damageTypeName(context.damageType()),
-                damageElementName(context.damageElement()),
+                damageElementsName(context.components()),
                 formatOneDecimal(result.hitChance()),
                 formatOneDecimal(result.accuracy()),
                 formatOneDecimal(result.evasion()),
@@ -585,22 +604,8 @@ public final class DamageService {
     private @NotNull String attackTypeName(@NotNull AttackType attackType) {
         return switch (attackType) {
             case MELEE -> "近接";
-            case RANGED -> "遠隔";
+            case RANGED -> "間接";
             case MAGIC -> "魔法";
-        };
-    }
-
-    /**
-     * ダメージ種別のプレイヤー向け表示名を返します。
-     *
-     * @param damageType ダメージ種別
-     * @return 日本語表示名
-     */
-    private @NotNull String damageTypeName(@NotNull DamageType damageType) {
-        return switch (damageType) {
-            case PHYSICAL -> "物理";
-            case MAGIC -> "魔法";
-            case TRUE -> "純粋";
         };
     }
 
@@ -614,12 +619,22 @@ public final class DamageService {
         return switch (element) {
             case FIRE -> "火";
             case ICE -> "氷";
-            case POISON -> "毒";
             case LIGHTNING -> "雷";
-            case HOLY -> "聖";
+            case POISON -> "毒";
+            case LIGHT -> "光";
             case DARK -> "闇";
-            case NEUTRAL -> "無属性";
+            case NONE -> "無属性";
         };
+    }
+
+    private @NotNull String damageElementsName(@NotNull List<DamageComponent> components) {
+        return components.stream()
+                .filter(component -> component.ratio() > 0.0D)
+                .map(DamageComponent::element)
+                .distinct()
+                .map(this::damageElementName)
+                .reduce((left, right) -> left + "+" + right)
+                .orElse("無属性");
     }
 
     /**

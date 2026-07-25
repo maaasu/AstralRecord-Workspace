@@ -50,7 +50,7 @@ enum class StatusType(
     /** 知力 — 魔法攻撃のダメージスケーリング・最大MP・MP回復に影響 */
     INTELLIGENCE("知力", Category.PRIMARY),
 
-    /** 体力 — 最大HP・物理/魔法防御・HP回復に影響 */
+    /** 体力 — 最大HP・防御力・魔法防御力・HP回復に影響 */
     VITALITY("体力", Category.PRIMARY),
 
     /** 敏捷性 — 攻撃速度・移動速度・回避率に影響 */
@@ -125,9 +125,76 @@ enum class StatusType(
     SHIELD_BREAK("シールドブレイク", Category.OFFENSE),
     // endregion
 
+    // region 属性系
+    /** 火属性ダメージ増加率 */
+    FIRE_DAMAGE_INCREASE("火属性ダメージ増加", Category.ELEMENT, "%", 1),
+    /** 火属性耐性 */
+    FIRE_RESISTANCE("火属性耐性", Category.ELEMENT, "%", 1),
+    /** 火属性貫通 */
+    FIRE_PENETRATION("火属性貫通", Category.ELEMENT, "%", 1),
+    /** 氷属性ダメージ増加率 */
+    ICE_DAMAGE_INCREASE("氷属性ダメージ増加", Category.ELEMENT, "%", 1),
+    /** 氷属性耐性 */
+    ICE_RESISTANCE("氷属性耐性", Category.ELEMENT, "%", 1),
+    /** 氷属性貫通 */
+    ICE_PENETRATION("氷属性貫通", Category.ELEMENT, "%", 1),
+    /** 雷属性ダメージ増加率 */
+    LIGHTNING_DAMAGE_INCREASE("雷属性ダメージ増加", Category.ELEMENT, "%", 1),
+    /** 雷属性耐性 */
+    LIGHTNING_RESISTANCE("雷属性耐性", Category.ELEMENT, "%", 1),
+    /** 雷属性貫通 */
+    LIGHTNING_PENETRATION("雷属性貫通", Category.ELEMENT, "%", 1),
+    /** 毒属性ダメージ増加率 */
+    POISON_DAMAGE_INCREASE("毒属性ダメージ増加", Category.ELEMENT, "%", 1),
+    /** 毒属性耐性 */
+    POISON_RESISTANCE("毒属性耐性", Category.ELEMENT, "%", 1),
+    /** 毒属性貫通 */
+    POISON_PENETRATION("毒属性貫通", Category.ELEMENT, "%", 1),
+    /** 光属性ダメージ増加率 */
+    LIGHT_DAMAGE_INCREASE("光属性ダメージ増加", Category.ELEMENT, "%", 1),
+    /** 光属性耐性 */
+    LIGHT_RESISTANCE("光属性耐性", Category.ELEMENT, "%", 1),
+    /** 光属性貫通 */
+    LIGHT_PENETRATION("光属性貫通", Category.ELEMENT, "%", 1),
+    /** 闇属性ダメージ増加率 */
+    DARK_DAMAGE_INCREASE("闇属性ダメージ増加", Category.ELEMENT, "%", 1),
+    /** 闇属性耐性 */
+    DARK_RESISTANCE("闇属性耐性", Category.ELEMENT, "%", 1),
+    /** 闇属性貫通 */
+    DARK_PENETRATION("闇属性貫通", Category.ELEMENT, "%", 1),
+    // endregion
+
+    // region 状態異常系
+    BURNING_APPLY_CHANCE("燃焼付与確率増加", Category.CONDITION, "%", 1),
+    BURNING_RESISTANCE("燃焼付与耐性", Category.CONDITION, "%", 1),
+    BURNING_DAMAGE_INCREASE("燃焼ダメージ増加", Category.CONDITION, "%", 1),
+    BURNING_DAMAGE_RESISTANCE("燃焼ダメージ耐性", Category.CONDITION, "%", 1),
+    BURNING_DAMAGE_PENETRATION("燃焼DoT貫通", Category.CONDITION, "%", 1),
+    FROZEN_APPLY_CHANCE("凍結付与確率増加", Category.CONDITION, "%", 1),
+    FROZEN_RESISTANCE("凍結付与耐性", Category.CONDITION, "%", 1),
+    CHILLED_APPLY_CHANCE("冷気付与確率増加", Category.CONDITION, "%", 1),
+    CHILLED_RESISTANCE("冷気付与耐性", Category.CONDITION, "%", 1),
+    SHOCKED_APPLY_CHANCE("感電付与確率増加", Category.CONDITION, "%", 1),
+    SHOCKED_RESISTANCE("感電付与耐性", Category.CONDITION, "%", 1),
+    SHOCKED_DAMAGE_INCREASE("感電ダメージ増加", Category.CONDITION, "%", 1),
+    SHOCKED_DAMAGE_RESISTANCE("感電ダメージ耐性", Category.CONDITION, "%", 1),
+    SHOCKED_DAMAGE_PENETRATION("感電DoT貫通", Category.CONDITION, "%", 1),
+    POISONED_APPLY_CHANCE("毒状態付与確率増加", Category.CONDITION, "%", 1),
+    POISONED_RESISTANCE("毒状態付与耐性", Category.CONDITION, "%", 1),
+    POISONED_DAMAGE_INCREASE("毒状態ダメージ増加", Category.CONDITION, "%", 1),
+    POISONED_DAMAGE_RESISTANCE("毒状態ダメージ耐性", Category.CONDITION, "%", 1),
+    POISONED_DAMAGE_PENETRATION("毒状態DoT貫通", Category.CONDITION, "%", 1),
+    BLINDNESS_APPLY_CHANCE("盲目付与確率増加", Category.CONDITION, "%", 1),
+    BLINDNESS_RESISTANCE("盲目付与耐性", Category.CONDITION, "%", 1),
+    WEAKNESS_APPLY_CHANCE("衰弱付与確率増加", Category.CONDITION, "%", 1),
+    WEAKNESS_RESISTANCE("衰弱付与耐性", Category.CONDITION, "%", 1),
+    HEALING_INHIBITION_APPLY_CHANCE("回復阻害付与確率増加", Category.CONDITION, "%", 1),
+    HEALING_INHIBITION_RESISTANCE("回復阻害付与耐性", Category.CONDITION, "%", 1),
+    // endregion
+
     // region 防御系
-    /** 物理防御力 — 近接・間接攻撃による物理ダメージを軽減 */
-    DEFENSE("物理防御力", Category.DEFENSE),
+    /** 防御力 — 近接・間接攻撃によるダメージを軽減 */
+    DEFENSE("防御力", Category.DEFENSE),
 
     /** 魔法防御力 — 魔法攻撃によるダメージを軽減 */
     MAGIC_DEFENSE("魔法防御力", Category.DEFENSE),
@@ -185,6 +252,12 @@ enum class StatusType(
 
         /** 防御系（DEF/MDEF/EVA） */
         DEFENSE("防御"),
+
+        /** 属性ダメージ・耐性・貫通 */
+        ELEMENT("属性"),
+
+        /** 状態異常付与・耐性・DoT補正 */
+        CONDITION("状態異常"),
 
         /** 回復・ユーティリティ系 */
         UTILITY("ユーティリティ"),
@@ -250,6 +323,8 @@ enum class StatusType(
             Category.PRIMARY -> NamedTextColor.GREEN
             Category.OFFENSE -> NamedTextColor.RED
             Category.DEFENSE -> NamedTextColor.BLUE
+            Category.ELEMENT -> NamedTextColor.LIGHT_PURPLE
+            Category.CONDITION -> NamedTextColor.DARK_PURPLE
             Category.UTILITY -> NamedTextColor.YELLOW
         }
 
@@ -264,6 +339,8 @@ enum class StatusType(
             Category.PRIMARY -> ColorCodeUtil.GREEN
             Category.OFFENSE -> ColorCodeUtil.RED
             Category.DEFENSE -> ColorCodeUtil.BLUE
+            Category.ELEMENT -> ColorCodeUtil.LIGHT_PURPLE
+            Category.CONDITION -> ColorCodeUtil.DARK_PURPLE
             Category.UTILITY -> ColorCodeUtil.YELLOW
         }
 

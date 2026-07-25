@@ -8,8 +8,14 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -35,6 +41,72 @@ public final class ConditionPlayerEventHandler extends AbstractEventHandler {
             if (event.getFrom().getWorld() == event.getTo().getWorld()
                     && event.getFrom().distanceSquared(event.getTo()) > 1.0E-6D) {
                 event.setTo(event.getFrom());
+            }
+        }, LogId.E_5900, event.getPlayer().getName());
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPlayerInteract(@NotNull PlayerInteractEvent event) {
+        runSafely(() -> {
+            var astPlayer = AstPlayerCache.get(event.getPlayer());
+            if (astPlayer != null && !conditionService.canInteract(AstEntity.player(astPlayer))) {
+                event.setCancelled(true);
+            }
+        }, LogId.E_5900, event.getPlayer().getName());
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPlayerInteractEntity(@NotNull PlayerInteractEntityEvent event) {
+        runSafely(() -> {
+            var astPlayer = AstPlayerCache.get(event.getPlayer());
+            if (astPlayer != null && !conditionService.canInteract(AstEntity.player(astPlayer))) {
+                event.setCancelled(true);
+            }
+        }, LogId.E_5900, event.getPlayer().getName());
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onInventoryClick(@NotNull InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof org.bukkit.entity.Player player)) {
+            return;
+        }
+        runSafely(() -> {
+            var astPlayer = AstPlayerCache.get(player);
+            if (astPlayer != null && !conditionService.canInteract(AstEntity.player(astPlayer))) {
+                event.setCancelled(true);
+            }
+        }, LogId.E_5900, player.getName());
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onInventoryDrag(@NotNull InventoryDragEvent event) {
+        if (!(event.getWhoClicked() instanceof org.bukkit.entity.Player player)) {
+            return;
+        }
+        runSafely(() -> {
+            var astPlayer = AstPlayerCache.get(player);
+            if (astPlayer != null && !conditionService.canInteract(AstEntity.player(astPlayer))) {
+                event.setCancelled(true);
+            }
+        }, LogId.E_5900, player.getName());
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPlayerDropItem(@NotNull PlayerDropItemEvent event) {
+        runSafely(() -> {
+            var astPlayer = AstPlayerCache.get(event.getPlayer());
+            if (astPlayer != null && !conditionService.canInteract(AstEntity.player(astPlayer))) {
+                event.setCancelled(true);
+            }
+        }, LogId.E_5900, event.getPlayer().getName());
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPlayerSwapHandItems(@NotNull PlayerSwapHandItemsEvent event) {
+        runSafely(() -> {
+            var astPlayer = AstPlayerCache.get(event.getPlayer());
+            if (astPlayer != null && !conditionService.canInteract(AstEntity.player(astPlayer))) {
+                event.setCancelled(true);
             }
         }, LogId.E_5900, event.getPlayer().getName());
     }
