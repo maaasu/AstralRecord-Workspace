@@ -2,15 +2,16 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1016",
-  "name": "&d生命の星脈",
-  "icon": "GOLDEN_APPLE",
+  "name": "&d灯火の星脈",
+  "icon": "HEART_OF_THE_SEA",
   "lore": [
-    "&7星の息吹を生命へ満たし、最大HPを高める。"
+    "&7消えぬ星灯を胸に宿し、最大HPを高める。"
   ],
   "tags": [
     "status",
     "resource",
-    "health"
+    "health",
+    "starlight"
   ],
   "pointType": "PP",
   "pointCost": 1,

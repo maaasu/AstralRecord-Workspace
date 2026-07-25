@@ -2,15 +2,16 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1017",
-  "name": "&d魔力の星脈",
+  "name": "&d蒼泉の星脈",
   "icon": "AMETHYST_SHARD",
   "lore": [
-    "&7星の魔力を蓄え、最大MPを高める。"
+    "&7天の蒼泉から魔力を汲み、最大MPを高める。"
   ],
   "tags": [
     "status",
     "resource",
-    "mana"
+    "mana",
+    "azure"
   ],
   "pointType": "PP",
   "pointCost": 1,

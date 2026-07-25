@@ -2,15 +2,16 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1013",
-  "name": "&d剛力の星脈",
-  "icon": "IRON_SWORD",
+  "name": "&d紅蓮の星脈",
+  "icon": "BLAZE_POWDER",
   "lore": [
-    "&7星の力を筋力へ巡らせ、近接攻撃の基礎を高める。"
+    "&7燃ゆる星の鼓動を宿し、筋力を高める。"
   ],
   "tags": [
     "status",
     "primary",
-    "strength"
+    "strength",
+    "ember"
   ],
   "pointType": "PP",
   "pointCost": 1,

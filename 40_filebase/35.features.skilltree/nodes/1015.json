@@ -2,15 +2,16 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1015",
-  "name": "&d叡智の星脈",
+  "name": "&d星詠みの星脈",
   "icon": "ENCHANTED_BOOK",
   "lore": [
-    "&7星の知恵を取り込み、魔法を支える知力を高める。"
+    "&7星々の理を読み解き、知力を高める。"
   ],
   "tags": [
     "status",
     "primary",
-    "intelligence"
+    "intelligence",
+    "astral"
   ],
   "pointType": "PP",
   "pointCost": 1,

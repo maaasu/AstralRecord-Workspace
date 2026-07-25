@@ -2,10 +2,10 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1020",
-  "name": "&d幸運の星脈",
+  "name": "&d巡星の星脈",
   "icon": "EMERALD",
   "lore": [
-    "&7星の巡りを味方につけ、会心と幸運を高める。"
+    "&7巡る星の導きを受け、幸運を高める。"
   ],
   "tags": [
     "status",
@@ -18,12 +18,6 @@
     {
       "type": "status",
       "status": "LUCK",
-      "modifierType": "FLAT",
-      "value": 1
-    },
-    {
-      "type": "status",
-      "status": "CRITICAL_RATE",
       "modifierType": "FLAT",
       "value": 1
     }

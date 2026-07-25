@@ -2,15 +2,15 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1019",
-  "name": "&d集中の星脈",
+  "name": "&d月影の星脈",
   "icon": "SPYGLASS",
   "lore": [
-    "&7星の輝きを一点へ集め、命中と技の回転を高める。"
+    "&7月影の一点を見据え、命中率を高める。"
   ],
   "tags": [
     "status",
-    "utility",
-    "focus"
+    "offense",
+    "accuracy"
   ],
   "pointType": "PP",
   "pointCost": 1,
@@ -20,12 +20,6 @@
       "status": "ACCURACY",
       "modifierType": "FLAT",
       "value": 2
-    },
-    {
-      "type": "status",
-      "status": "COOLDOWN_REDUCTION",
-      "modifierType": "FLAT",
-      "value": 1
     }
   ]
 }
