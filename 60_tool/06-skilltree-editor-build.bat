@@ -30,24 +30,43 @@ if not exist "node_modules\.bin\tsc.cmd" set "INSTALL_DEPENDENCIES=1"
 if not exist "node_modules\.bin\vite.cmd" set "INSTALL_DEPENDENCIES=1"
 
 if defined INSTALL_DEPENDENCIES (
-    echo Installing Skill Tree Editor frontend dependencies...
-    call "%NPM_COMMAND%" ci
-    if errorlevel 1 (
-        popd
-        echo ERROR: npm ci failed.
-        exit /b 1
-    )
+    call :install_dependencies
+    if errorlevel 1 goto dependencies_failed
 )
 
 echo Building Skill Tree Editor frontend...
 call "%NPM_COMMAND%" run build
-set "EXIT_CODE=%ERRORLEVEL%"
+if errorlevel 1 goto retry_build
+goto build_succeeded
+
+:retry_build
+echo Initial frontend build failed. Reinstalling dependencies and retrying once...
+call :install_dependencies
+if errorlevel 1 goto dependencies_failed
+call "%NPM_COMMAND%" run build
+if errorlevel 1 goto build_failed
+
+:build_succeeded
 popd
-
-if not "%EXIT_CODE%"=="0" (
-    echo ERROR: Skill Tree Editor frontend build failed.
-    exit /b %EXIT_CODE%
-)
-
 echo Skill Tree Editor frontend build succeeded.
 exit /b 0
+
+:dependencies_failed
+popd
+echo ERROR: npm ci failed.
+exit /b 1
+
+:build_failed
+popd
+echo ERROR: Skill Tree Editor frontend build failed after reinstalling dependencies.
+exit /b 1
+
+:install_dependencies
+if exist "node_modules\" (
+    echo Removing incomplete Skill Tree Editor frontend dependencies...
+    rmdir /s /q "node_modules"
+    if exist "node_modules\" exit /b 1
+)
+echo Installing Skill Tree Editor frontend dependencies...
+call "%NPM_COMMAND%" ci
+exit /b %ERRORLEVEL%
