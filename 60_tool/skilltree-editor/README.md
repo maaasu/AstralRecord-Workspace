@@ -86,6 +86,8 @@ dotnet build SkillTreeEditor.slnx
 
 `60_tool/05-skilltree-editor.bat` はReactをビルドしてからASP.NET Coreを起動します。`node_modules` がない初回だけ `npm ci` も実行し、ビルドに失敗した場合はサーバーを起動しません。
 
+BAT起動時の `PATH` にnpmが含まれていない場合は、Node.jsの標準インストール先（`C:\Program Files\nodejs` またはユーザー単位のインストール先）も自動検出します。ビルドまたはサーバー起動に失敗した場合は、原因を確認できるようウィンドウを閉じずに停止します。
+
 Reactだけをビルドする場合は、次のBATを実行します。起動済みのASP.NET Coreは通常そのままでよく、ビルド後にブラウザを再読み込みしてください。
 
 ```powershell
