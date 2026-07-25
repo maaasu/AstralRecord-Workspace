@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1017",
+  "name": "&d魔力の星脈",
+  "icon": "AMETHYST_SHARD",
+  "lore": [
+    "&7星の魔力を蓄え、最大MPを高める。"
+  ],
+  "tags": [
+    "status",
+    "resource",
+    "mana"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "FLAT",
+      "value": 10
+    }
+  ]
+}

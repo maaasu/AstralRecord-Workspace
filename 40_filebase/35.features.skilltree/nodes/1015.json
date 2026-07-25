@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1015",
+  "name": "&d叡智の星脈",
+  "icon": "ENCHANTED_BOOK",
+  "lore": [
+    "&7星の知恵を取り込み、魔法を支える知力を高める。"
+  ],
+  "tags": [
+    "status",
+    "primary",
+    "intelligence"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "INTELLIGENCE",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ]
+}

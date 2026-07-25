@@ -1,5 +1,5 @@
 {
   "$schema": "./schemas/node-id-sequence.v1.schema.json",
   "schemaVersion": 1,
-  "lastIssuedNodeId": "1012"
+  "lastIssuedNodeId": "1020"
 }

@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1013",
+  "name": "&d剛力の星脈",
+  "icon": "IRON_SWORD",
+  "lore": [
+    "&7星の力を筋力へ巡らせ、近接攻撃の基礎を高める。"
+  ],
+  "tags": [
+    "status",
+    "primary",
+    "strength"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "STRENGTH",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ]
+}

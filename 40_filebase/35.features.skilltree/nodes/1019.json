@@ -1,0 +1,31 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1019",
+  "name": "&d集中の星脈",
+  "icon": "SPYGLASS",
+  "lore": [
+    "&7星の輝きを一点へ集め、命中と技の回転を高める。"
+  ],
+  "tags": [
+    "status",
+    "utility",
+    "focus"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ACCURACY",
+      "modifierType": "FLAT",
+      "value": 2
+    },
+    {
+      "type": "status",
+      "status": "COOLDOWN_REDUCTION",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1016",
+  "name": "&d生命の星脈",
+  "icon": "GOLDEN_APPLE",
+  "lore": [
+    "&7星の息吹を生命へ満たし、最大HPを高める。"
+  ],
+  "tags": [
+    "status",
+    "resource",
+    "health"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 10
+    }
+  ]
+}
