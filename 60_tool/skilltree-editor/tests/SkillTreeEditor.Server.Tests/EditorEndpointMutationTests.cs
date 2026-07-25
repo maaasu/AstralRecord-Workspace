@@ -105,6 +105,35 @@ public sealed class EditorEndpointMutationTests : IDisposable
         Assert.Contains("SCHEMA_INVALID", await invalidResponse.Content.ReadAsStringAsync());
     }
 
+    [Fact]
+    public async Task ExistingStructureValidationExcludesTheUpdatedFileFromDuplicateCheck()
+    {
+        await using var host = await StartAsync();
+        var structure = Structure("starter", "1000");
+        using var createResponse = await host.Client.PostAsJsonAsync("/api/structures", structure);
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+
+        using var updateValidationResponse = await host.Client.PostAsJsonAsync(
+            "/api/validation/structure?existingStructureId=starter",
+            structure);
+        Assert.Equal(HttpStatusCode.OK, updateValidationResponse.StatusCode);
+        var updateValidation = JsonNode.Parse(await updateValidationResponse.Content.ReadAsStringAsync())!;
+        Assert.True(updateValidation["isValid"]!.GetValue<bool>());
+        Assert.DoesNotContain(
+            updateValidation["issues"]!.AsArray(),
+            issue => issue!["code"]!.GetValue<string>() == "DUPLICATE_STRUCTURE_ID");
+
+        using var createValidationResponse = await host.Client.PostAsJsonAsync(
+            "/api/validation/structure",
+            structure);
+        Assert.Equal(HttpStatusCode.OK, createValidationResponse.StatusCode);
+        var createValidation = JsonNode.Parse(await createValidationResponse.Content.ReadAsStringAsync())!;
+        Assert.False(createValidation["isValid"]!.GetValue<bool>());
+        Assert.Contains(
+            createValidation["issues"]!.AsArray(),
+            issue => issue!["code"]!.GetValue<string>() == "DUPLICATE_STRUCTURE_ID");
+    }
+
     private async Task<RunningEditor> StartAsync()
     {
         PrepareWorkspace();

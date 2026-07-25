@@ -205,7 +205,7 @@ export default function App() {
     setSaving(true)
     setError('')
     try {
-      const validation = await editorApi.validateStructure(currentStructure)
+      const validation = await editorApi.validateStructure(currentStructure, selectedStructureId)
       setReport(validation)
       if (!validation.isValid) {
         setError('検証エラーがあるため保存しませんでした。')
@@ -236,7 +236,7 @@ export default function App() {
     setValidating(true)
     setError('')
     try {
-      setReport(await editorApi.validateStructure(currentStructure))
+      setReport(await editorApi.validateStructure(currentStructure, selectedStructureId ?? undefined))
     } catch (reason) {
       showError(reason)
     } finally {

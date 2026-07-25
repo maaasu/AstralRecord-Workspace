@@ -74,8 +74,8 @@ export const editorApi = {
   listSchemas: () => request<SchemaSummary[]>('/api/schemas'),
   getSchema: (fileName: string) => request<JsonObject>(`/api/schemas/${encodeURIComponent(fileName)}`),
   validateAll: () => request<ValidationReport>('/api/validation'),
-  validateStructure: (structure: StructureDocument) => request<ValidationReport>(
-    '/api/validation/structure',
+  validateStructure: (structure: StructureDocument, existingStructureId?: string) => request<ValidationReport>(
+    `/api/validation/structure${existingStructureId ? `?existingStructureId=${encodeURIComponent(existingStructureId)}` : ''}`,
     json('POST', structure),
   ),
   getSettings: () => request<PluginSkillTreeSettings>('/api/settings'),

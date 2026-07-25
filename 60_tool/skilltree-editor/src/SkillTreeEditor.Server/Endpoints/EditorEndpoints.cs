@@ -61,11 +61,21 @@ public static class EditorEndpoints
         api.MapGet("/validation", (ValidationService validation, CancellationToken token) => validation.ValidateAllAsync(token));
         api.MapPost("/validation/structure", async (
             JsonElement payload,
+            string? existingStructureId,
+            FilebaseRepository repository,
             ValidationService validation,
             CancellationToken token) =>
         {
             var document = RequireObject(payload);
-            return Results.Ok(await validation.ValidateStructureDocumentAsync(document, null, token));
+            string? existingFileName = null;
+            if (!string.IsNullOrWhiteSpace(existingStructureId))
+            {
+                var existing = await repository.GetStructureAsync(existingStructureId, token);
+                if (existing is null)
+                    return Results.NotFound();
+                existingFileName = existing.FileName;
+            }
+            return Results.Ok(await validation.ValidateStructureDocumentAsync(document, existingFileName, token));
         });
         api.MapPost("/validation/node", async (
             JsonElement payload,
