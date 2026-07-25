@@ -85,4 +85,5 @@ export interface EditorMetadata {
   nodeIdSequencePath: string
   pluginConfigPath: string
   backupPath: string
+  minecraftIconCachePath: string
 }

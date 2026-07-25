@@ -48,4 +48,5 @@ public sealed record EditorMetadata(
     string SchemasPath,
     string NodeIdSequencePath,
     string PluginConfigPath,
-    string BackupPath);
+    string BackupPath,
+    string MinecraftIconCachePath);

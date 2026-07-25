@@ -14,6 +14,13 @@ builder.Services.AddSingleton<SchemaCatalog>();
 builder.Services.AddSingleton<ValidationService>();
 builder.Services.AddSingleton<PluginConfigService>();
 builder.Services.AddSingleton<WorkspaceMutationGate>();
+builder.Services.AddHttpClient<MinecraftIconService>((services, client) =>
+{
+    var options = services.GetRequiredService<Microsoft.Extensions.Options.IOptions<EditorOptions>>().Value;
+    client.BaseAddress = new Uri(options.MinecraftIconsBaseUrl.TrimEnd('/') + "/", UriKind.Absolute);
+    client.Timeout = TimeSpan.FromSeconds(15);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("AstralRecord-SkillTreeEditor/1.0");
+});
 
 var app = builder.Build();
 var staticFilesRoot = EditorStaticFiles.ResolveRoot(app.Environment);

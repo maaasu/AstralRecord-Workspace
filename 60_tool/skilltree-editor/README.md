@@ -12,6 +12,7 @@
 | nodeId採番high-water | `40_filebase/35.features.skilltree/node-id-sequence.json` |
 | Plugin 表示設定 | `10_plugin/AstralRecord/src/main/resources/config.yml` の `skilltree.worldName` / `structureId` / `center` |
 | 保存前バックアップ | `60_tool/skilltree-editor/.backups/` |
+| Minecraftアイコンキャッシュ | `60_tool/skilltree-editor/.cache/minecraft-icons/` |
 
 ノード ID は `node-id-sequence.json` のhigh-waterと既存最大値を照合して1000から自動採番され、作成後は変更できません。採番値はノードJSONより先に永続化し、削除しても戻さないため再利用されません（書込み失敗時の欠番は許容）。構造の X / Z をキャンバス座標、Y を配置インスペクターで編集します。edge は無向として扱い、保存時に端点を正規化します。
 
@@ -135,12 +136,22 @@ dotnet run --project .\src\SkillTreeEditor.Server -- --SkillTreeEditor:Workspace
 ## 操作メモ
 
 - 未配置ノードを左ペインからキャンバスへドラッグして配置します。
+- キャンバスとノード一覧には、マスターの `icon` に指定したBukkit Materialの画像と、Minecraft装飾コードを除いた名前を表示します。
+- キャンバスでノードを選択すると、右側でX/Y/Z、名前、Material、ポイント、タグ、Loreを直接編集できます。Effects、Schema、Raw JSONは「Effects・Schema・Raw JSONを編集」から編集します。
 - ノードのハンドル間をドラッグしてedgeを追加します。
 - Shift / Ctrl / Cmdで複数選択、Deleteで配置またはedgeを削除します。
 - Ctrl+Z / Ctrl+Y、またはヘッダーのボタンでUndo / Redoします。
 - 「補助自動配置」はrootからのBFSレイヤー配置をX/Zへ明示反映します。通常の編集履歴に入るためUndoでき、結果は保存時に構造JSONの座標として確定します。
 - ノードマスターはJSON Schemaから生成したフォームとRaw JSONの両方で編集できます。既存文書は `$schema` のファイル名から対応Schemaを選び、新規文書では最新の既定Schemaを選択できます。新しいSchema項目はフォームへ自動的に反映され、未対応の複雑な表現はRaw JSONで編集できます。
 - 検証に成功するまで構造JSONは保存されません。
+
+## Minecraftアイコン
+
+- アイコン画像は[MC Icons API](https://mc-icons.com/api)の `download/{id}/thumb` からASP.NET Core経由で取得します。`50_resourcepack` は参照しません。
+- `NETHER_STAR` や `minecraft:nether_star` はMC Icons用の `nether_star` に正規化され、初回取得後は `.cache/minecraft-icons/` のPNGを利用します。キャッシュはGit管理対象外です。
+- 外部サービスへ接続できない、またはMaterialに対応する画像がない場合も編集は継続でき、画面には `?` を表示します。接続を復旧してからヘッダーまたはインスペクターの「アイコン再読込」を押してください。
+- 取得元を差し替える場合は `appsettings.json` の `SkillTreeEditor:MinecraftIconsBaseUrl` を変更します。互換先には同じ `download/{id}/thumb` 形式とPNG応答が必要です。
+- 完全に取り直す場合はEditorを停止し、`.cache/minecraft-icons/` 内の対象PNGを削除してから再起動します。ノードマスターや構造JSONには影響しません。
 
 ## デプロイとリロード
 

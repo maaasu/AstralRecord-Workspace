@@ -59,6 +59,10 @@ describe('SkillTreeCanvas', () => {
 
     render(<StrictMode><Harness /></StrictMode>)
     expect(await screen.findByText('Root node')).toBeInTheDocument()
+    expect(screen.getByTitle('NETHER_STAR').querySelector('img')).toHaveAttribute(
+      'src',
+      '/api/minecraft-icons/NETHER_STAR?revision=0',
+    )
 
     fireEvent.click(screen.getByRole('button', { name: 'rerender parent' }))
 

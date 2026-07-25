@@ -13,6 +13,31 @@ public static class EditorEndpoints
 
         api.MapGet("/metadata", (WorkspacePaths paths) => Results.Ok(paths.ToMetadata()));
 
+        if (endpoints.ServiceProvider.GetService<MinecraftIconService>() is not null)
+        {
+            api.MapGet("/minecraft-icons/{material}", async (
+                string material,
+                bool? refresh,
+                MinecraftIconService icons,
+                CancellationToken token) =>
+            {
+                try
+                {
+                    var path = await icons.GetIconPathAsync(material, refresh ?? false, token);
+                    return path is null
+                        ? Results.NotFound(new { message = $"Minecraft icon '{material}' was not found." })
+                        : Results.File(path, "image/png", enableRangeProcessing: false);
+                }
+                catch (HttpRequestException exception)
+                {
+                    return Results.Problem(
+                        statusCode: StatusCodes.Status503ServiceUnavailable,
+                        title: "MC Icons is unavailable.",
+                        detail: exception.Message);
+                }
+            });
+        }
+
         api.MapGet("/nodes", async (FilebaseRepository repository, CancellationToken token) =>
         {
             var documents = await repository.ReadNodesAsync(token);

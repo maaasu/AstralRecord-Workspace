@@ -24,6 +24,7 @@ obj/
 .gradle/
 node_modules/
 dist/
+60_tool/skilltree-editor/.cache/
 10_plugin/AstralRecord/.dev-server/
 dependency-reduced-pom.xml
 

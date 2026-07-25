@@ -58,6 +58,7 @@ export default function App() {
   const [validating, setValidating] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [iconRevision, setIconRevision] = useState(0)
   const [savedSnapshot, setSavedSnapshot] = useState(JSON.stringify(emptyStructure()))
   const history = useHistory(emptyStructure())
 
@@ -307,6 +308,29 @@ export default function App() {
     }
   }
 
+  const saveSelectedMaster = async (draft: NodeMaster): Promise<NodeMaster | null> => {
+    setSaving(true)
+    setError('')
+    try {
+      const saved = await editorApi.saveNode(draft)
+      setNodeDocuments((current) => current.map((document) => document.content.nodeId === saved.nodeId
+        ? { ...document, content: saved }
+        : document))
+      setNotice(`ノード #${saved.nodeId} のマスター定義を保存しました。`)
+      return saved
+    } catch (reason) {
+      showError(reason)
+      return null
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const retryIcons = () => {
+    setIconRevision((current) => current + 1)
+    setNotice('Minecraftアイコンを再読み込みします。取得できない場合は外部サービスへの接続を確認してください。')
+  }
+
   const savePluginSettings = async (draft: PluginSkillTreeSettings) => {
     setSaving(true)
     try {
@@ -346,6 +370,7 @@ export default function App() {
           <button className="icon-button" onClick={history.redo} disabled={!history.canRedo} title="Redo (Ctrl+Y)">↷</button>
           <button className="button subtle" onClick={autoLayout} disabled={!selectedStructureId || currentStructure.nodes.length === 0}>補助自動配置</button>
           <span className={dirty ? 'save-state dirty' : 'save-state'}>{dirty ? '未保存' : '保存済み'}</span>
+          <button className="button subtle" onClick={retryIcons} title="取得に失敗したMinecraftアイコンを再読み込み">アイコン再読込</button>
           <button className="button" onClick={() => setSettingsOpen(true)}>表示設定</button>
           <button className="button primary" onClick={() => void saveStructure()} disabled={!dirty || saving || !selectedStructureId}>
             {saving ? '保存中…' : '構造を保存'}
@@ -370,6 +395,7 @@ export default function App() {
           onTagChange={setSelectedTag}
           onEdit={(node) => setNodeEditor({ node, isNew: false })}
           onCreate={openNewNode}
+          iconRevision={iconRevision}
         />
         <section className="canvas-column">
           {selectedStructureId ? (
@@ -381,6 +407,7 @@ export default function App() {
               onBeginTransaction={history.beginTransaction}
               onCommitTransaction={history.commitTransaction}
               onSelectedNode={setSelectedNodeId}
+              iconRevision={iconRevision}
             />
           ) : (
             <div className="canvas-placeholder"><h2>構造を作成してください</h2><p>ノードマスターを用意し、「＋ 構造」から始めます。</p></div>
@@ -391,8 +418,12 @@ export default function App() {
             nodeId={selectedNodeId}
             structure={currentStructure}
             master={selectedMaster}
+            saving={saving}
+            iconRevision={iconRevision}
             onChange={history.record}
+            onSaveMaster={saveSelectedMaster}
             onEditMaster={(node) => setNodeEditor({ node, isNew: false })}
+            onRetryIcons={retryIcons}
           />
           <ValidationPanel
             report={report}
@@ -409,6 +440,7 @@ export default function App() {
                 <dt>Structures</dt><dd>{metadata.structuresPath}</dd>
                 <dt>ID Sequence</dt><dd>{metadata.nodeIdSequencePath}</dd>
                 <dt>Backups</dt><dd>{metadata.backupPath}</dd>
+                <dt>Icon Cache</dt><dd>{metadata.minecraftIconCachePath}</dd>
               </dl>
             </details>
           )}

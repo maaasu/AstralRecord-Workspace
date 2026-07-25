@@ -18,6 +18,8 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import type { NodeMaster, StructureDocument } from '../types/editor'
+import { MinecraftIcon } from './MinecraftIcon'
+import { stripMinecraftFormatting } from '../utils/minecraft'
 
 interface SkillTreeCanvasProps {
   structure: StructureDocument
@@ -27,6 +29,7 @@ interface SkillTreeCanvasProps {
   onBeginTransaction: () => void
   onCommitTransaction: () => void
   onSelectedNode: (nodeId: string | null) => void
+  iconRevision?: number
 }
 
 interface SkillNodeData extends Record<string, unknown> {
@@ -34,6 +37,10 @@ interface SkillNodeData extends Record<string, unknown> {
   nodeId: string
   y: number
   root: boolean
+  icon: NodeMaster['icon']
+  iconRevision: number
+  pointCost: number
+  pointType: string
 }
 
 const nodeTypes = { skill: SkillNode }
@@ -56,24 +63,32 @@ function CanvasInner({
   onBeginTransaction,
   onCommitTransaction,
   onSelectedNode,
+  iconRevision = 0,
 }: SkillTreeCanvasProps) {
   const { screenToFlowPosition } = useReactFlow()
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [selectedEdgeIds, setSelectedEdgeIds] = useState<Set<string>>(() => new Set())
   const masterMap = useMemo(() => new Map(masters.map((node) => [node.nodeId, node])), [masters])
-  const nodes = useMemo<Node<SkillNodeData>[]>(() => structure.nodes.map((placement) => ({
+  const nodes = useMemo<Node<SkillNodeData>[]>(() => structure.nodes.map((placement) => {
+    const master = masterMap.get(placement.nodeId)
+    return {
       id: placement.nodeId,
       type: 'skill',
       selected: selectedIds.has(placement.nodeId),
       position: { x: placement.x * BLOCK_SCALE, y: placement.z * BLOCK_SCALE },
       data: {
-        label: masterMap.get(placement.nodeId)?.name ?? `Unknown ${placement.nodeId}`,
+        label: master ? stripMinecraftFormatting(master.name) : `Unknown ${placement.nodeId}`,
         nodeId: placement.nodeId,
         y: placement.y,
         root: placement.nodeId === structure.rootNodeId,
+        icon: master?.icon ?? '',
+        iconRevision,
+        pointCost: master?.pointCost ?? 0,
+        pointType: master?.pointType ?? '',
       },
-    })),
-    [masterMap, selectedIds, structure.nodes, structure.rootNodeId],
+    }
+  }),
+    [iconRevision, masterMap, selectedIds, structure.nodes, structure.rootNodeId],
   )
   const edges = useMemo<Edge[]>(() => structure.edges.map((edge) => ({
       id: edgeId(edge.sourceNodeId, edge.targetNodeId),
@@ -252,8 +267,9 @@ function SkillNode({ data, selected }: NodeProps<Node<SkillNodeData>>) {
       <Handle type="source" position={Position.Right} />
       <Handle type="source" position={Position.Bottom} id="bottom" />
       <Handle type="target" position={Position.Top} id="top" />
-      <span className="node-kicker">#{data.nodeId} · Y {data.y}</span>
-      <strong>{data.label}</strong>
+      <strong title={data.label}>{data.label}</strong>
+      <MinecraftIcon icon={data.icon} revision={data.iconRevision} className="canvas-node-icon" />
+      <span className="node-kicker">#{data.nodeId} · {data.pointType} {data.pointCost} · Y {data.y}</span>
       {data.root && <span className="root-label">ROOT</span>}
     </div>
   )

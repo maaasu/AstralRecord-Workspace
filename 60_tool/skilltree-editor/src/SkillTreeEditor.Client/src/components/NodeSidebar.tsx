@@ -1,4 +1,6 @@
 import type { NodeMaster } from '../types/editor'
+import { MinecraftIcon } from './MinecraftIcon'
+import { stripMinecraftFormatting } from '../utils/minecraft'
 
 interface NodeSidebarProps {
   nodes: NodeMaster[]
@@ -9,6 +11,7 @@ interface NodeSidebarProps {
   onTagChange: (value: string) => void
   onEdit: (node: NodeMaster) => void
   onCreate: () => void
+  iconRevision?: number
 }
 
 export function NodeSidebar({
@@ -20,6 +23,7 @@ export function NodeSidebar({
   onTagChange,
   onEdit,
   onCreate,
+  iconRevision = 0,
 }: NodeSidebarProps) {
   const tags = [...new Set(nodes.flatMap((node) => node.tags ?? []))].sort((a, b) => a.localeCompare(b, 'ja'))
   const filtered = nodes.filter((node) => {
@@ -54,8 +58,8 @@ export function NodeSidebar({
           {tags.map((tag) => <option key={tag} value={tag}>{tag}</option>)}
         </select>
       </div>
-      <NodeGroup title={`未配置 ${unplaced.length}`} nodes={unplaced} placedIds={placedIds} onEdit={onEdit} />
-      <NodeGroup title={`配置済み ${placed.length}`} nodes={placed} placedIds={placedIds} onEdit={onEdit} />
+      <NodeGroup title={`未配置 ${unplaced.length}`} nodes={unplaced} placedIds={placedIds} onEdit={onEdit} iconRevision={iconRevision} />
+      <NodeGroup title={`配置済み ${placed.length}`} nodes={placed} placedIds={placedIds} onEdit={onEdit} iconRevision={iconRevision} />
     </aside>
   )
 }
@@ -65,11 +69,13 @@ function NodeGroup({
   nodes,
   placedIds,
   onEdit,
+  iconRevision,
 }: {
   title: string
   nodes: NodeMaster[]
   placedIds: Set<string>
   onEdit: (node: NodeMaster) => void
+  iconRevision: number
 }) {
   return (
     <section className="node-group">
@@ -86,8 +92,9 @@ function NodeGroup({
             }}
             onDoubleClick={() => onEdit(node)}
           >
-            <div className="node-id">#{node.nodeId}</div>
-            <strong>{node.name}</strong>
+            <MinecraftIcon icon={node.icon} revision={iconRevision} className="sidebar-node-icon" />
+            <div className="node-id">#{node.nodeId} · {String(node.icon)}</div>
+            <strong>{stripMinecraftFormatting(node.name)}</strong>
             <div className="tag-row">
               {(node.tags ?? []).slice(0, 3).map((tag) => <span className="tag" key={tag}>{tag}</span>)}
             </div>

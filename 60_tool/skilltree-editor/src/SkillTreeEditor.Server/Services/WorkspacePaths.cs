@@ -28,6 +28,7 @@ public sealed class WorkspacePaths
             "resources",
             "config.yml");
         Backups = Path.Combine(WorkspaceRoot, "60_tool", "skilltree-editor", ".backups");
+        MinecraftIconCache = Path.Combine(WorkspaceRoot, "60_tool", "skilltree-editor", ".cache", "minecraft-icons");
         WorkspaceMutationLock = Path.Combine(Backups, ".locks", "workspace-mutation.lock");
         NodeIdSequenceLock = Path.Combine(Backups, ".locks", "node-id-sequence.lock");
     }
@@ -40,6 +41,7 @@ public sealed class WorkspacePaths
     public string NodeIdSequence { get; }
     public string PluginConfig { get; }
     public string Backups { get; }
+    public string MinecraftIconCache { get; }
     public string WorkspaceMutationLock { get; }
     public string NodeIdSequenceLock { get; }
 
@@ -50,7 +52,8 @@ public sealed class WorkspacePaths
         Schemas,
         NodeIdSequence,
         PluginConfig,
-        Backups);
+        Backups,
+        MinecraftIconCache);
 
     public static string ResolveWorkspaceRoot(string? configuredRoot, params string[] startPaths)
     {
