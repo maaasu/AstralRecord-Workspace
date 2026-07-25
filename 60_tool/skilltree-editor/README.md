@@ -84,6 +84,14 @@ dotnet build SkillTreeEditor.slnx
 
 ## Reactをビルドして単一起動
 
+`60_tool/05-skilltree-editor.bat` はReactをビルドしてからASP.NET Coreを起動します。`node_modules` がない初回だけ `npm ci` も実行し、ビルドに失敗した場合はサーバーを起動しません。
+
+Reactだけをビルドする場合は、次のBATを実行します。起動済みのASP.NET Coreは通常そのままでよく、ビルド後にブラウザを再読み込みしてください。
+
+```powershell
+E:\AstralRecord-Workspace\60_tool\06-skilltree-editor-build.bat
+```
+
 通常ビルド後にASP.NET Coreから静的ファイルを配信する場合:
 
 ```powershell
@@ -95,7 +103,7 @@ cd ..\SkillTreeEditor.Server
 dotnet run
 ```
 
-`dist/index.html` を検出するとASP.NET CoreがSPAを配信します。`60_tool/05-skilltree-editor.bat` も同じサーバーの起動入口です。
+`dist/index.html` を検出するとASP.NET CoreがSPAを配信します。コマンドから直接 `dotnet run` した場合はReactを自動ビルドしません。
 
 配布用publishではフロントエンドの `npm ci` / `npm run build` を自動実行し、成果物をpublish先の `wwwroot` へ格納します。
 
