@@ -1,8 +1,7 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import {
   Background,
   BackgroundVariant,
-  Controls,
   Handle,
   MiniMap,
   Position,
@@ -29,6 +28,8 @@ interface SkillTreeCanvasProps {
   onBeginTransaction: () => void
   onCommitTransaction: () => void
   onSelectedNode: (nodeId: string | null) => void
+  onEditMaster: (node: NodeMaster) => void
+  onNotify: (message: string) => void
   iconRevision?: number
 }
 
@@ -41,6 +42,13 @@ interface SkillNodeData extends Record<string, unknown> {
   iconRevision: number
   pointCost: number
   pointType: string
+}
+
+interface NodeContextMenuState {
+  nodeId: string
+  targetIds: string[]
+  x: number
+  y: number
 }
 
 const nodeTypes = { skill: SkillNode }
@@ -63,11 +71,15 @@ function CanvasInner({
   onBeginTransaction,
   onCommitTransaction,
   onSelectedNode,
+  onEditMaster,
+  onNotify,
   iconRevision = 0,
 }: SkillTreeCanvasProps) {
   const { screenToFlowPosition } = useReactFlow()
+  const canvasRef = useRef<HTMLDivElement>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [selectedEdgeIds, setSelectedEdgeIds] = useState<Set<string>>(() => new Set())
+  const [contextMenu, setContextMenu] = useState<NodeContextMenuState | null>(null)
   const masterMap = useMemo(() => new Map(masters.map((node) => [node.nodeId, node])), [masters])
   const nodes = useMemo<Node<SkillNodeData>[]>(() => structure.nodes.map((placement) => {
     const master = masterMap.get(placement.nodeId)
@@ -160,8 +172,7 @@ function CanvasInner({
     })
   }, [onRecord, structure])
 
-  const removeNodes = useCallback((deleted: Node[]) => {
-    const ids = new Set(deleted.map((node) => node.id))
+  const removeNodeIds = useCallback((ids: Set<string>) => {
     if (!ids.size) return
     setSelectedIds((current) => {
       if (![...ids].some((id) => current.has(id))) return current
@@ -177,6 +188,10 @@ function CanvasInner({
     })
     onSelectedNode(null)
   }, [onRecord, onSelectedNode, structure])
+
+  const removeNodes = useCallback((deleted: Node[]) => {
+    removeNodeIds(new Set(deleted.map((node) => node.id)))
+  }, [removeNodeIds])
 
   const removeEdges = useCallback((deleted: Edge[]) => {
     const ids = new Set(deleted.map((edge) => edge.id))
@@ -204,9 +219,62 @@ function CanvasInner({
     && !structure.edges.some((edge) => edgeId(edge.sourceNodeId, edge.targetNodeId) === edgeId(connection.source, connection.target)),
   ), [structure.edges])
 
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setContextMenu(null)
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [])
+
+  const openNodeContextMenu = useCallback((event: ReactMouseEvent, node: Node) => {
+    event.preventDefault()
+    const selectedTargets = selectedIds.has(node.id) ? [...selectedIds] : [node.id]
+    if (!selectedIds.has(node.id)) setSelectedIds(new Set([node.id]))
+    setSelectedEdgeIds(new Set())
+    onSelectedNode(node.id)
+
+    const bounds = canvasRef.current?.getBoundingClientRect()
+    const localX = event.clientX - (bounds?.left ?? 0)
+    const localY = event.clientY - (bounds?.top ?? 0)
+    const availableWidth = bounds?.width ?? 0
+    const availableHeight = bounds?.height ?? 0
+    setContextMenu({
+      nodeId: node.id,
+      targetIds: selectedTargets,
+      x: clampMenuPosition(localX, availableWidth, 230),
+      y: clampMenuPosition(localY, availableHeight, 250),
+    })
+  }, [onSelectedNode, selectedIds])
+
+  const deleteConnections = useCallback((nodeId: string) => {
+    onRecord({
+      ...structure,
+      edges: structure.edges.filter((edge) => edge.sourceNodeId !== nodeId && edge.targetNodeId !== nodeId),
+    })
+    setContextMenu(null)
+  }, [onRecord, structure])
+
+  const copyNodeId = useCallback(async (nodeId: string) => {
+    try {
+      await navigator.clipboard.writeText(nodeId)
+      onNotify(`nodeId '${nodeId}' をコピーしました。`)
+    } catch {
+      onNotify(`nodeId: ${nodeId}（クリップボードへコピーできませんでした）`)
+    } finally {
+      setContextMenu(null)
+    }
+  }, [onNotify])
+
+  const contextMaster = contextMenu ? masterMap.get(contextMenu.nodeId) : undefined
+  const contextHasEdges = contextMenu
+    ? structure.edges.some((edge) => edge.sourceNodeId === contextMenu.nodeId || edge.targetNodeId === contextMenu.nodeId)
+    : false
+
   return (
     <div
       className="canvas"
+      ref={canvasRef}
       onDragOver={(event) => {
         event.preventDefault()
         event.dataTransfer.dropEffect = 'copy'
@@ -236,26 +304,62 @@ function CanvasInner({
         onEdgesChange={onEdgesChange}
         onNodesDelete={removeNodes}
         onEdgesDelete={removeEdges}
-        onNodeDragStart={onBeginTransaction}
+        onNodeDragStart={() => {
+          setContextMenu(null)
+          onBeginTransaction()
+        }}
         onNodeDragStop={onCommitTransaction}
         onConnect={connect}
         onSelectionChange={selectionChanged}
+        onNodeContextMenu={openNodeContextMenu}
+        onPaneClick={() => setContextMenu(null)}
+        onMoveStart={() => setContextMenu(null)}
         isValidConnection={validConnection}
         snapToGrid
         snapGrid={GRID}
         deleteKeyCode={['Backspace', 'Delete']}
-        selectionOnDrag
+        selectionOnDrag={false}
+        selectionKeyCode="Shift"
         multiSelectionKeyCode={['Control', 'Meta', 'Shift']}
-        panOnDrag={[1, 2]}
+        panOnDrag={[0, 1, 2]}
         fitView
         minZoom={0.1}
         maxZoom={2.5}
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1.4} color="#3c4a61" />
         <MiniMap pannable zoomable nodeColor={miniMapNodeColor} />
-        <Controls showInteractive={false} />
       </ReactFlow>
-      <div className="canvas-hint">X / Z 相対ブロック座標 · grid 1 block · Shift/Ctrlで複数選択 · Deleteで削除</div>
+      {contextMenu && (
+        <div
+          className="node-context-menu"
+          role="menu"
+          aria-label={`ノード #${contextMenu.nodeId} の操作`}
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onContextMenu={(event) => event.preventDefault()}
+        >
+          <div className="context-menu-heading">
+            <strong>#{contextMenu.nodeId}</strong>
+            {contextMenu.targetIds.length > 1 && <span>{contextMenu.targetIds.length}件選択中</span>}
+          </div>
+          <button role="menuitem" disabled={!contextMaster} onClick={() => {
+            if (contextMaster) onEditMaster(contextMaster)
+            setContextMenu(null)
+          }}>マスター定義を編集</button>
+          <button role="menuitem" disabled={structure.rootNodeId === contextMenu.nodeId} onClick={() => {
+            onRecord({ ...structure, rootNodeId: contextMenu.nodeId })
+            setContextMenu(null)
+          }}>ROOTに設定</button>
+          <button role="menuitem" onClick={() => void copyNodeId(contextMenu.nodeId)}>nodeIdをコピー</button>
+          <button role="menuitem" disabled={!contextHasEdges} onClick={() => deleteConnections(contextMenu.nodeId)}>このノードの接続をすべて削除</button>
+          <button role="menuitem" className="danger" onClick={() => {
+            removeNodeIds(new Set(contextMenu.targetIds))
+            setContextMenu(null)
+          }}>
+            {contextMenu.targetIds.length > 1 ? `選択中${contextMenu.targetIds.length}件を配置から削除` : '配置から削除'}
+          </button>
+        </div>
+      )}
+      <div className="canvas-hint">空白ドラッグで移動 · Shift＋空白ドラッグで範囲選択 · Ctrl/Cmdで追加選択 · 右クリックでノード操作</div>
     </div>
   )
 }
@@ -282,3 +386,7 @@ const edgeId = (source: string | null, target: string | null) => {
 }
 
 const miniMapNodeColor = (node: Node) => node.data.root ? '#e0b56a' : '#6d86ad'
+
+const clampMenuPosition = (position: number, available: number, menuSize: number) => (
+  Math.max(8, Math.min(position, Math.max(8, available - menuSize - 8)))
+)

@@ -1,4 +1,5 @@
 import type { JsonObject, JsonValue } from '../types/editor'
+import { SuggestionInput } from './SuggestionInput'
 
 interface SchemaFormProps {
   schema: JsonObject
@@ -7,6 +8,7 @@ interface SchemaFormProps {
   rootSchema?: JsonObject
   path?: string
   disabledPaths?: Set<string>
+  suggestionsByPath?: Readonly<Record<string, readonly string[]>>
 }
 
 export function SchemaForm({
@@ -16,6 +18,7 @@ export function SchemaForm({
   rootSchema = schema,
   path = '',
   disabledPaths = new Set(),
+  suggestionsByPath = {},
 }: SchemaFormProps) {
   const resolved = resolveSchema(schema, rootSchema)
   const union = asArray(resolved.oneOf ?? resolved.anyOf)
@@ -52,6 +55,7 @@ export function SchemaForm({
           rootSchema={rootSchema}
           path={path}
           disabledPaths={disabledPaths}
+          suggestionsByPath={suggestionsByPath}
         />
       </div>
     )
@@ -97,6 +101,7 @@ export function SchemaForm({
                 rootSchema={rootSchema}
                 path={childPath}
                 disabledPaths={disabledPaths}
+                suggestionsByPath={suggestionsByPath}
               />
             </label>
           )
@@ -123,6 +128,7 @@ export function SchemaForm({
               rootSchema={rootSchema}
               path={`${path}/${index}`}
               disabledPaths={disabledPaths}
+              suggestionsByPath={suggestionsByPath}
             />
             <button
               type="button"
@@ -173,12 +179,13 @@ export function SchemaForm({
   }
 
   return (
-    <input
+    <SuggestionInput
       type="text"
       disabled={disabledPaths.has(path)}
       value={typeof value === 'string' ? value : ''}
       onChange={(event) => onChange(event.target.value)}
       placeholder={resolved.description ? String(resolved.description) : undefined}
+      suggestions={suggestionsForPath(suggestionsByPath, path)}
     />
   )
 }
@@ -243,3 +250,13 @@ const asObject = (value: JsonValue | undefined): JsonObject | null => (
   value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null
 )
 const asArray = (value: JsonValue | undefined): JsonValue[] | null => Array.isArray(value) ? value : null
+
+function suggestionsForPath(
+  suggestionsByPath: Readonly<Record<string, readonly string[]>>,
+  path: string,
+): readonly string[] {
+  const exact = suggestionsByPath[path]
+  if (exact) return exact
+  const wildcardPath = path.replace(/\/\d+(?=\/|$)/g, '/*')
+  return suggestionsByPath[wildcardPath] ?? []
+}

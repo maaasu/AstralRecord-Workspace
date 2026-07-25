@@ -38,6 +38,8 @@ describe('PlacementInspector', () => {
         master={master}
         saving={false}
         iconRevision={0}
+        materialSuggestions={['NETHER_STAR', 'DIAMOND_SWORD']}
+        tagSuggestions={['root', 'combat']}
         onChange={onChange}
         onSaveMaster={onSaveMaster}
         onEditMaster={vi.fn()}
@@ -46,6 +48,8 @@ describe('PlacementInspector', () => {
     )
 
     expect(screen.getByRole('heading', { name: '旅立ちの記録' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Minecraft Material')).toHaveAttribute('list')
+    expect(screen.getByRole('button', { name: '＋ combat' })).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('X'), { target: { value: '8' } })
     expect(onChange).toHaveBeenCalledWith({
       ...structure,

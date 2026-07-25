@@ -52,6 +52,8 @@ describe('SkillTreeCanvas', () => {
             onBeginTransaction={onBeginTransaction}
             onCommitTransaction={onCommitTransaction}
             onSelectedNode={selectNode}
+            onEditMaster={vi.fn()}
+            onNotify={vi.fn()}
           />
         </div>
       )
@@ -83,6 +85,8 @@ describe('SkillTreeCanvas', () => {
           onBeginTransaction={vi.fn()}
           onCommitTransaction={vi.fn()}
           onSelectedNode={vi.fn()}
+          onEditMaster={vi.fn()}
+          onNotify={vi.fn()}
         />
       </div>,
     )
@@ -115,6 +119,8 @@ describe('SkillTreeCanvas', () => {
           onBeginTransaction={vi.fn()}
           onCommitTransaction={vi.fn()}
           onSelectedNode={vi.fn()}
+          onEditMaster={vi.fn()}
+          onNotify={vi.fn()}
         />
       </div>,
     )
@@ -130,5 +136,35 @@ describe('SkillTreeCanvas', () => {
       ...structure,
       edges: [],
     }))
+  })
+
+  it('opens node operations on right click and removes all connections for the node', async () => {
+    const onRecord = vi.fn()
+    const onEditMaster = vi.fn()
+    render(
+      <div style={{ width: 800, height: 600 }}>
+        <SkillTreeCanvas
+          structure={structure}
+          masters={masters}
+          onRecord={onRecord}
+          onReplace={vi.fn()}
+          onBeginTransaction={vi.fn()}
+          onCommitTransaction={vi.fn()}
+          onSelectedNode={vi.fn()}
+          onEditMaster={onEditMaster}
+          onNotify={vi.fn()}
+        />
+      </div>,
+    )
+
+    fireEvent.contextMenu(await screen.findByTestId('rf__node-1000'), { clientX: 120, clientY: 100 })
+
+    expect(screen.getByRole('menu', { name: 'ノード #1000 の操作' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'マスター定義を編集' }))
+    expect(onEditMaster).toHaveBeenCalledWith(masters[0])
+
+    fireEvent.contextMenu(screen.getByTestId('rf__node-1000'), { clientX: 120, clientY: 100 })
+    fireEvent.click(screen.getByRole('menuitem', { name: 'このノードの接続をすべて削除' }))
+    expect(onRecord).toHaveBeenCalledWith({ ...structure, edges: [] })
   })
 })

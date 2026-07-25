@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
-import { defaultFromSchema } from './SchemaForm'
+import { render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { defaultFromSchema, SchemaForm } from './SchemaForm'
 import type { JsonObject } from '../types/editor'
 
 describe('defaultFromSchema', () => {
@@ -25,5 +26,20 @@ describe('defaultFromSchema', () => {
       },
     }
     expect(defaultFromSchema(schema)).toEqual({ effect: { type: 'skill', skillId: '' } })
+  })
+
+  it('offers path-based suggestions without restricting free text', () => {
+    render(
+      <SchemaForm
+        schema={{ type: 'string' }}
+        value="BOOK"
+        path="/icon"
+        suggestionsByPath={{ '/icon': ['BOOK', 'NETHER_STAR'] }}
+        onChange={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('combobox')).toHaveAttribute('list')
+    expect(document.querySelector('option[value="NETHER_STAR"]')).toBeInTheDocument()
   })
 })

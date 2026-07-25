@@ -136,13 +136,17 @@ dotnet run --project .\src\SkillTreeEditor.Server -- --SkillTreeEditor:Workspace
 ## 操作メモ
 
 - 未配置ノードを左ペインからキャンバスへドラッグして配置します。
+- キャンバスの空白を左ドラッグすると画面を移動します。Shiftを押しながら空白をドラッグすると範囲選択になります。
 - キャンバスとノード一覧には、マスターの `icon` に指定したBukkit Materialの画像と、Minecraft装飾コードを除いた名前を表示します。
 - キャンバスでノードを選択すると、右側でX/Y/Z、名前、Material、ポイント、タグ、Loreを直接編集できます。Effects、Schema、Raw JSONは「Effects・Schema・Raw JSONを編集」から編集します。
+- キャンバス上のノードを右クリックすると、マスター編集、ROOT設定、nodeIdコピー、接続削除、配置削除を選べます。複数選択中の配置削除にも対応します。
 - ノードのハンドル間をドラッグしてedgeを追加します。
 - Shift / Ctrl / Cmdで複数選択、Deleteで配置またはedgeを削除します。
+- ヘッダーの「一覧」「キャンバス」「詳細」で各ペインを表示・非表示にできます。ペイン間の境界をドラッグすると幅を変更でき、境界のダブルクリックで初期幅へ戻ります。
 - Ctrl+Z / Ctrl+Y、またはヘッダーのボタンでUndo / Redoします。
 - 「補助自動配置」はrootからのBFSレイヤー配置をX/Zへ明示反映します。通常の編集履歴に入るためUndoでき、結果は保存時に構造JSONの座標として確定します。
 - ノードマスターはJSON Schemaから生成したフォームとRaw JSONの両方で編集できます。既存文書は `$schema` のファイル名から対応Schemaを選び、新規文書では最新の既定Schemaを選択できます。新しいSchema項目はフォームへ自動的に反映され、未対応の複雑な表現はRaw JSONで編集できます。
+- `icon` は自由入力を維持しつつ、Paper 1.21.11でアイテムとして使用可能なMaterial候補を表示します。候補は `src/SkillTreeEditor.Client/src/data/minecraft-materials.1.21.11.json` に固定しているため、サーバーバージョンを変更するときに公式server data generatorの `generated/reports/items.json` から更新してください。既存タグも候補として表示します。スキルIDとステータス名はPlugin実装との同期が必要なため固定候補にはしていません。
 - 検証に成功するまで構造JSONは保存されません。
 
 ## Minecraftアイコン

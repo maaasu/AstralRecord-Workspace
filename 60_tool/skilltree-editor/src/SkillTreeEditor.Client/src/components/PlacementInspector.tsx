@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import type { JsonObject, JsonValue, NodeMaster, StructureDocument, StructurePlacement } from '../types/editor'
 import { MinecraftIcon } from './MinecraftIcon'
 import { stripMinecraftFormatting } from '../utils/minecraft'
+import { SuggestionInput } from './SuggestionInput'
+import { MINECRAFT_MATERIAL_VERSION } from '../data/nodeFieldSuggestions'
 
 interface PlacementInspectorProps {
   nodeId: string | null
@@ -13,6 +15,8 @@ interface PlacementInspectorProps {
   onSaveMaster: (node: NodeMaster) => Promise<NodeMaster | null>
   onEditMaster: (node: NodeMaster) => void
   onRetryIcons: () => void
+  materialSuggestions?: readonly string[]
+  tagSuggestions?: readonly string[]
 }
 
 export function PlacementInspector({
@@ -25,6 +29,8 @@ export function PlacementInspector({
   onSaveMaster,
   onEditMaster,
   onRetryIcons,
+  materialSuggestions = [],
+  tagSuggestions = [],
 }: PlacementInspectorProps) {
   const [draft, setDraft] = useState<NodeMaster | null>(() => master ? structuredClone(master) : null)
 
@@ -114,9 +120,15 @@ export function PlacementInspector({
             </label>
             <label>Minecraft Material
               <div className="input-with-action">
-                <input aria-label="Minecraft Material" value={String(draft.icon)} onChange={(event) => updateMaster('icon', event.target.value.toUpperCase())} />
+                <SuggestionInput
+                  aria-label="Minecraft Material"
+                  value={String(draft.icon)}
+                  suggestions={materialSuggestions}
+                  onChange={(event) => updateMaster('icon', event.target.value.toUpperCase())}
+                />
                 <button className="button subtle compact" type="button" onClick={onRetryIcons}>再読込</button>
               </div>
+              <small>Paper {MINECRAFT_MATERIAL_VERSION}のアイテムMaterial {materialSuggestions.length.toLocaleString()}件から検索できます。</small>
             </label>
             <div className="two-column-fields">
               <label>ポイント種別
@@ -136,6 +148,21 @@ export function PlacementInspector({
                 onChange={(event) => updateMaster('tags', splitList(event.target.value))}
               />
             </label>
+            {tagSuggestions.length > 0 && (
+              <div className="tag-suggestions" aria-label="タグ候補">
+                {tagSuggestions.map((tag) => (
+                  <button
+                    className="tag suggestion"
+                    type="button"
+                    key={tag}
+                    disabled={draft.tags.includes(tag)}
+                    onClick={() => updateMaster('tags', [...new Set([...draft.tags, tag])])}
+                  >
+                    ＋ {tag}
+                  </button>
+                ))}
+              </div>
+            )}
             <label>Lore <small>1行につき1項目</small>
               <textarea
                 aria-label="Lore"

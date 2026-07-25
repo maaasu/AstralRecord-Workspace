@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { defaultFromSchema, SchemaForm } from './SchemaForm'
 import { schemaForDocument } from '../state/schemaSelection'
 import type { JsonObject, JsonValue, LoadedSchema, NodeMaster } from '../types/editor'
+import { MINECRAFT_MATERIAL_VERSION } from '../data/nodeFieldSuggestions'
 
 interface NodeEditorProps {
   node: JsonObject | NodeMaster
@@ -11,9 +12,10 @@ interface NodeEditorProps {
   onSave: (node: JsonObject) => Promise<void>
   onDelete?: () => Promise<void>
   onCancel: () => void
+  suggestionsByPath?: Readonly<Record<string, readonly string[]>>
 }
 
-export function NodeEditor({ node, schemas, isNew, saving, onSave, onDelete, onCancel }: NodeEditorProps) {
+export function NodeEditor({ node, schemas, isNew, saving, onSave, onDelete, onCancel, suggestionsByPath = {} }: NodeEditorProps) {
   const [draft, setDraft] = useState<JsonObject>(() => structuredClone(node))
   const [raw, setRaw] = useState(() => JSON.stringify(node, null, 2))
   const [mode, setMode] = useState<'form' | 'raw'>('form')
@@ -71,6 +73,7 @@ export function NodeEditor({ node, schemas, isNew, saving, onSave, onDelete, onC
             <span className="eyebrow">NODE MASTER</span>
             <h2>{title}</h2>
             <p className="muted">nodeId: {isNew ? '保存時に自動採番（1000以上）' : String(draft.nodeId)}</p>
+            <p className="muted">iconは入力中にPaper {MINECRAFT_MATERIAL_VERSION}のMaterial候補を表示します。</p>
           </div>
           <button className="icon-button" onClick={onCancel} aria-label="閉じる">×</button>
         </header>
@@ -100,6 +103,7 @@ export function NodeEditor({ node, schemas, isNew, saving, onSave, onDelete, onC
               value={draft}
               onChange={updateDraft}
               disabledPaths={disabledPaths}
+              suggestionsByPath={suggestionsByPath}
             />
           )}
           {mode === 'form' && !selectedSchema && (

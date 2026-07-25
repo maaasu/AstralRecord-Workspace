@@ -7,6 +7,8 @@ import { defaultFromSchema } from './components/SchemaForm'
 import { SettingsDialog } from './components/SettingsDialog'
 import { SkillTreeCanvas } from './components/SkillTreeCanvas'
 import { ValidationPanel } from './components/ValidationPanel'
+import { WorkspaceLayout } from './components/WorkspaceLayout'
+import { buildNodeFieldSuggestions, minecraftMaterialSuggestions } from './data/nodeFieldSuggestions'
 import { useHistory } from './state/history'
 import { applyAuxiliaryLayout } from './state/autoLayout'
 import { defaultSchema } from './state/schemaSelection'
@@ -37,6 +39,8 @@ interface EditorTarget {
   isNew: boolean
 }
 
+type WorkspacePane = 'nodes' | 'canvas' | 'details'
+
 export default function App() {
   const [nodeDocuments, setNodeDocuments] = useState<StoredDocument<NodeMaster>[]>([])
   const [structureDocuments, setStructureDocuments] = useState<StoredDocument<StructureDocument>[]>([])
@@ -59,6 +63,11 @@ export default function App() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [iconRevision, setIconRevision] = useState(0)
+  const [visiblePanes, setVisiblePanes] = useState<Record<WorkspacePane, boolean>>({
+    nodes: true,
+    canvas: true,
+    details: true,
+  })
   const [savedSnapshot, setSavedSnapshot] = useState(JSON.stringify(emptyStructure()))
   const history = useHistory(emptyStructure())
 
@@ -71,6 +80,11 @@ export default function App() {
   const dirty = Boolean(selectedStructureId) && JSON.stringify(currentStructure) !== savedSnapshot
   const placedIds = useMemo(() => new Set(currentStructure.nodes.map((node) => node.nodeId)), [currentStructure.nodes])
   const selectedMaster = nodes.find((node) => node.nodeId === selectedNodeId) ?? null
+  const tagSuggestions = useMemo(
+    () => [...new Set(nodes.flatMap((node) => node.tags))].sort((a, b) => a.localeCompare(b, 'ja')),
+    [nodes],
+  )
+  const nodeFieldSuggestions = useMemo(() => buildNodeFieldSuggestions(tagSuggestions), [tagSuggestions])
 
   const showError = useCallback((reason: unknown) => {
     if (reason instanceof ApiError) {
@@ -371,6 +385,23 @@ export default function App() {
           <button className="button subtle" onClick={autoLayout} disabled={!selectedStructureId || currentStructure.nodes.length === 0}>補助自動配置</button>
           <span className={dirty ? 'save-state dirty' : 'save-state'}>{dirty ? '未保存' : '保存済み'}</span>
           <button className="button subtle" onClick={retryIcons} title="取得に失敗したMinecraftアイコンを再読み込み">アイコン再読込</button>
+          <div className="pane-toggles" role="group" aria-label="表示パネル">
+            {([
+              ['nodes', '一覧'],
+              ['canvas', 'キャンバス'],
+              ['details', '詳細'],
+            ] as const).map(([pane, label]) => (
+              <button
+                className={`button compact pane-toggle ${visiblePanes[pane] ? 'active' : ''}`}
+                key={pane}
+                type="button"
+                aria-pressed={visiblePanes[pane]}
+                onClick={() => setVisiblePanes((current) => ({ ...current, [pane]: !current[pane] }))}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           <button className="button" onClick={() => setSettingsOpen(true)}>表示設定</button>
           <button className="button primary" onClick={() => void saveStructure()} disabled={!dirty || saving || !selectedStructureId}>
             {saving ? '保存中…' : '構造を保存'}
@@ -385,67 +416,80 @@ export default function App() {
         </div>
       )}
 
-      <div className="workspace-grid">
-        <NodeSidebar
-          nodes={nodes}
-          placedIds={placedIds}
-          query={query}
-          selectedTag={selectedTag}
-          onQueryChange={setQuery}
-          onTagChange={setSelectedTag}
-          onEdit={(node) => setNodeEditor({ node, isNew: false })}
-          onCreate={openNewNode}
-          iconRevision={iconRevision}
-        />
-        <section className="canvas-column">
-          {selectedStructureId ? (
-            <SkillTreeCanvas
-              structure={currentStructure}
-              masters={nodes}
-              onRecord={history.record}
-              onReplace={history.replace}
-              onBeginTransaction={history.beginTransaction}
-              onCommitTransaction={history.commitTransaction}
-              onSelectedNode={setSelectedNodeId}
-              iconRevision={iconRevision}
-            />
-          ) : (
-            <div className="canvas-placeholder"><h2>構造を作成してください</h2><p>ノードマスターを用意し、「＋ 構造」から始めます。</p></div>
-          )}
-        </section>
-        <aside className="right-panel">
-          <PlacementInspector
-            nodeId={selectedNodeId}
-            structure={currentStructure}
-            master={selectedMaster}
-            saving={saving}
+      <WorkspaceLayout
+        leftVisible={visiblePanes.nodes}
+        centerVisible={visiblePanes.canvas}
+        rightVisible={visiblePanes.details}
+        left={(
+          <NodeSidebar
+            nodes={nodes}
+            placedIds={placedIds}
+            query={query}
+            selectedTag={selectedTag}
+            onQueryChange={setQuery}
+            onTagChange={setSelectedTag}
+            onEdit={(node) => setNodeEditor({ node, isNew: false })}
+            onCreate={openNewNode}
             iconRevision={iconRevision}
-            onChange={history.record}
-            onSaveMaster={saveSelectedMaster}
-            onEditMaster={(node) => setNodeEditor({ node, isNew: false })}
-            onRetryIcons={retryIcons}
           />
-          <ValidationPanel
-            report={report}
-            validating={validating}
-            onValidate={() => void validateCurrent()}
-            onValidateAll={() => void validateAll()}
-          />
-          {metadata && (
-            <details className="paths panel-section">
-              <summary>読込先</summary>
-              <dl>
-                <dt>Workspace</dt><dd>{metadata.workspaceRoot}</dd>
-                <dt>Nodes</dt><dd>{metadata.nodesPath}</dd>
-                <dt>Structures</dt><dd>{metadata.structuresPath}</dd>
-                <dt>ID Sequence</dt><dd>{metadata.nodeIdSequencePath}</dd>
-                <dt>Backups</dt><dd>{metadata.backupPath}</dd>
-                <dt>Icon Cache</dt><dd>{metadata.minecraftIconCachePath}</dd>
-              </dl>
-            </details>
-          )}
-        </aside>
-      </div>
+        )}
+        center={(
+          <section className="canvas-column">
+            {selectedStructureId ? (
+              <SkillTreeCanvas
+                structure={currentStructure}
+                masters={nodes}
+                onRecord={history.record}
+                onReplace={history.replace}
+                onBeginTransaction={history.beginTransaction}
+                onCommitTransaction={history.commitTransaction}
+                onSelectedNode={setSelectedNodeId}
+                onEditMaster={(node) => setNodeEditor({ node, isNew: false })}
+                onNotify={setNotice}
+                iconRevision={iconRevision}
+              />
+            ) : (
+              <div className="canvas-placeholder"><h2>構造を作成してください</h2><p>ノードマスターを用意し、「＋ 構造」から始めます。</p></div>
+            )}
+          </section>
+        )}
+        right={(
+          <aside className="right-panel">
+            <PlacementInspector
+              nodeId={selectedNodeId}
+              structure={currentStructure}
+              master={selectedMaster}
+              saving={saving}
+              iconRevision={iconRevision}
+              materialSuggestions={minecraftMaterialSuggestions}
+              tagSuggestions={tagSuggestions}
+              onChange={history.record}
+              onSaveMaster={saveSelectedMaster}
+              onEditMaster={(node) => setNodeEditor({ node, isNew: false })}
+              onRetryIcons={retryIcons}
+            />
+            <ValidationPanel
+              report={report}
+              validating={validating}
+              onValidate={() => void validateCurrent()}
+              onValidateAll={() => void validateAll()}
+            />
+            {metadata && (
+              <details className="paths panel-section">
+                <summary>読込先</summary>
+                <dl>
+                  <dt>Workspace</dt><dd>{metadata.workspaceRoot}</dd>
+                  <dt>Nodes</dt><dd>{metadata.nodesPath}</dd>
+                  <dt>Structures</dt><dd>{metadata.structuresPath}</dd>
+                  <dt>ID Sequence</dt><dd>{metadata.nodeIdSequencePath}</dd>
+                  <dt>Backups</dt><dd>{metadata.backupPath}</dd>
+                  <dt>Icon Cache</dt><dd>{metadata.minecraftIconCachePath}</dd>
+                </dl>
+              </details>
+            )}
+          </aside>
+        )}
+      />
 
       {nodeEditor && (
         <NodeEditor
@@ -456,6 +500,7 @@ export default function App() {
           onSave={saveNode}
           onDelete={nodeEditor.isNew ? undefined : deleteNode}
           onCancel={() => setNodeEditor(null)}
+          suggestionsByPath={nodeFieldSuggestions}
         />
       )}
       {settingsOpen && (
