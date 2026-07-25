@@ -25,7 +25,11 @@ if not exist "%CLIENT_DIR%\package.json" (
 pushd "%CLIENT_DIR%"
 if errorlevel 1 exit /b 1
 
-if not exist "node_modules\" (
+set "INSTALL_DEPENDENCIES="
+if not exist "node_modules\.bin\tsc.cmd" set "INSTALL_DEPENDENCIES=1"
+if not exist "node_modules\.bin\vite.cmd" set "INSTALL_DEPENDENCIES=1"
+
+if defined INSTALL_DEPENDENCIES (
     echo Installing Skill Tree Editor frontend dependencies...
     call "%NPM_COMMAND%" ci
     if errorlevel 1 (
