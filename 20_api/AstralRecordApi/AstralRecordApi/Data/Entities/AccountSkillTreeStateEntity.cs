@@ -4,7 +4,6 @@ public class AccountSkillTreeStateEntity
 {
     public Guid AccountSkillTreeStateId { get; set; }
     public Guid AccountId { get; set; }
-    public int SkillPoints { get; set; }
     public int Version { get; set; } = 1;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

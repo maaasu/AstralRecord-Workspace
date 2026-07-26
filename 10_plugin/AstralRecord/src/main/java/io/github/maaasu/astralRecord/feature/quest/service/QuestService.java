@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
+import io.github.maaasu.astralRecord.feature.playerclass.model.ClassExperienceResult;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestBoardDefinition;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestCompletionMode;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestDefinition;
@@ -29,6 +30,7 @@ import io.github.maaasu.astralRecord.feature.quest.model.QuestRequirementDefinit
 import io.github.maaasu.astralRecord.feature.quest.repository.QuestBoardRepository;
 import io.github.maaasu.astralRecord.feature.quest.repository.QuestDefinitionRepository;
 import io.github.maaasu.astralRecord.feature.quest.repository.QuestPlayerStateRepository;
+import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -71,6 +73,7 @@ public final class QuestService {
     private final AccountService accountService;
     private final PlayerClassService playerClassService;
     private final StatusService statusService;
+    private SkillTreeService skillTreeService;
     private final ParticleDisplayService particleDisplayService;
     private final Executor asyncExecutor;
     private final Executor mainExecutor;
@@ -110,6 +113,11 @@ public final class QuestService {
             command -> plugin.getServer().getScheduler().runTaskAsynchronously(plugin, command),
             command -> plugin.getServer().getScheduler().runTask(plugin, command)
         );
+    }
+
+    /** クエスト報酬によるレベル変化をスキルツリーへ反映するサービスを設定します。 */
+    public void setSkillTreeService(@NotNull SkillTreeService skillTreeService) {
+        this.skillTreeService = skillTreeService;
     }
 
     QuestService(
@@ -920,9 +928,16 @@ public final class QuestService {
                 );
                 progressChanged = true;
                 player.setAccount(result.updatedAccount());
-                playerClassService.grantClassExperience(player, quest.rewards().exp());
-                if (result.leveledUp()) {
-                    statusService.refreshStatus(player);
+                ClassExperienceResult classProgress = playerClassService.grantClassExperience(
+                    player,
+                    quest.rewards().exp()
+                );
+                if (result.leveledUp() || classProgress.getLeveledUp()) {
+                    if (skillTreeService != null) {
+                        skillTreeService.refreshProgressDerivedState(player);
+                    } else {
+                        statusService.refreshStatus(player);
+                    }
                 }
             }
             return new AppliedRewards(
@@ -983,6 +998,9 @@ public final class QuestService {
                 applied.previousAccount(),
                 player.getUser().getUuid()
             );
+            if (skillTreeService != null) {
+                skillTreeService.refreshProgressDerivedState(player);
+            }
             statusService.refreshStatus(player);
         } catch (RuntimeException exception) {
             Logger.log(

@@ -46,6 +46,7 @@ class PlayerGuiRenderContextFactoryTest extends MockBukkitTestBase {
         when(currencyService.getCurrencyItemId(astrald)).thenReturn("astrald");
         when(currencyService.getDisplayCurrencyAmount(astPlayer.getAccount().getUuid(), "astrald")).thenReturn(12L);
         when(statusService.getStatus(astPlayer)).thenReturn(snapshot);
+        when(skillTreeService.currentClassPointLabel(astPlayer)).thenReturn("CP[冒険者]");
         when(skillTreeService.availableClassPoints(astPlayer)).thenReturn(7);
         when(skillTreeService.availablePassivePoints(astPlayer)).thenReturn(8);
 
@@ -54,6 +55,7 @@ class PlayerGuiRenderContextFactoryTest extends MockBukkitTestBase {
 
         assertSame(astPlayer.getAccount(), context.account());
         assertSame(snapshot, context.statusSnapshot());
+        assertEquals("CP[冒険者]", context.classPointLabel());
         assertEquals(7, context.availableClassPoints());
         assertEquals(8, context.availablePassivePoints());
         assertEquals(456L, context.goldAmount());
@@ -69,6 +71,7 @@ class PlayerGuiRenderContextFactoryTest extends MockBukkitTestBase {
         verify(currencyService).getCurrencyItemId(astrald);
         verify(currencyService).getDisplayCurrencyAmount(astPlayer.getAccount().getUuid(), "astrald");
         verify(statusService).getStatus(astPlayer);
+        verify(skillTreeService).currentClassPointLabel(astPlayer);
         verify(skillTreeService).availableClassPoints(astPlayer);
         verify(skillTreeService).availablePassivePoints(astPlayer);
     }

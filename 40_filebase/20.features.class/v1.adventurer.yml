@@ -61,13 +61,7 @@ growthPerLevel:
     value: 0.5
 expRate: 100
 starterSkills: []
-levelSkills:
-  - level: 2
-    skill: av_active_anchor_burst
-  - level: 3
-    skill: av_active_signal_arrow
-  - level: 4
-    skill: av_active_mana_spark
+levelSkills: []
 tags:
   - starter
   - beginner

@@ -12,6 +12,7 @@ import java.util.Objects;
  *
  * @param account 選択中アカウント
  * @param statusSnapshot ステータス計算結果
+ * @param classPointLabel 現在職を含むクラス・ポイント表示名
  * @param availableClassPoints 利用可能クラス・ポイント
  * @param availablePassivePoints 利用可能パッシブ・ポイント
  * @param goldAmount 所持ゴールド
@@ -22,6 +23,7 @@ import java.util.Objects;
 public record PlayerGuiRenderContext(
     @NotNull AccountModel account,
     @NotNull StatusSnapshot statusSnapshot,
+    @NotNull String classPointLabel,
     int availableClassPoints,
     int availablePassivePoints,
     long goldAmount,
@@ -32,6 +34,7 @@ public record PlayerGuiRenderContext(
     public PlayerGuiRenderContext {
         Objects.requireNonNull(account, "account");
         Objects.requireNonNull(statusSnapshot, "statusSnapshot");
+        Objects.requireNonNull(classPointLabel, "classPointLabel");
         Objects.requireNonNull(equipment, "equipment");
         Objects.requireNonNull(currencyBalances, "currencyBalances");
         currencyBalances = List.copyOf(currencyBalances);
@@ -60,12 +63,37 @@ public record PlayerGuiRenderContext(
         this(
             account,
             statusSnapshot,
+            "CP[" + account.getClassId() + "]",
             availableClassPoints,
             availablePassivePoints,
             goldAmount,
             returnToBaseGoldCost,
             equipment,
             List.of()
+        );
+    }
+
+    /** 旧呼び出し形を維持し、クラス ID から CP 表示名を補完します。 */
+    public PlayerGuiRenderContext(
+        @NotNull AccountModel account,
+        @NotNull StatusSnapshot statusSnapshot,
+        int availableClassPoints,
+        int availablePassivePoints,
+        long goldAmount,
+        long returnToBaseGoldCost,
+        @NotNull PlayerEquipmentSnapshot equipment,
+        @NotNull List<CurrencyDisplayEntry> currencyBalances
+    ) {
+        this(
+            account,
+            statusSnapshot,
+            "CP[" + account.getClassId() + "]",
+            availableClassPoints,
+            availablePassivePoints,
+            goldAmount,
+            returnToBaseGoldCost,
+            equipment,
+            currencyBalances
         );
     }
 }

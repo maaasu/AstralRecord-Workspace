@@ -1,11 +1,14 @@
 package io.github.maaasu.astralRecord.feature.playerclass
 
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassModel
+import io.github.maaasu.astralRecord.feature.`class`.model.ClassUnlockClassLevel
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode
 import io.github.maaasu.astralRecord.support.DesignTestFixtures
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 
 class PlayerClassServiceTest : MockBukkitTestBase() {
 
@@ -30,7 +33,40 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
         )
     }
 
-    private fun classModel(id: String, name: String) = ClassModel(
+    @Test
+    fun resolvesCurrentClassAndEveryAncestorAcrossMultiplePaths() {
+        val service = PlayerClassService()
+        service.replaceSnapshot(
+            mapOf(
+                "adventurer" to classModel("adventurer", "Adventurer"),
+                "hunter" to classModel("hunter", "Hunter", listOf("adventurer")),
+                "scout" to classModel("scout", "Scout", listOf("adventurer")),
+                "ranger" to classModel("ranger", "Ranger", listOf("hunter", "scout")),
+            )
+        )
+
+        assertTrue(service.isClassOrAncestor("ranger", "ranger"))
+        assertTrue(service.isClassOrAncestor("ranger", "hunter"))
+        assertTrue(service.isClassOrAncestor("ranger", "scout"))
+        assertTrue(service.isClassOrAncestor("ranger", "adventurer"))
+        assertFalse(service.isClassOrAncestor("hunter", "ranger"))
+    }
+
+    @Test
+    fun ancestorResolutionStopsOnCyclicDefinitions() {
+        val service = PlayerClassService()
+        service.replaceSnapshot(
+            mapOf(
+                "cycle_a" to classModel("cycle_a", "A", listOf("cycle_b")),
+                "cycle_b" to classModel("cycle_b", "B", listOf("cycle_a")),
+            )
+        )
+
+        assertTrue(service.isClassOrAncestor("cycle_a", "cycle_b"))
+        assertFalse(service.isClassOrAncestor("cycle_a", "adventurer"))
+    }
+
+    private fun classModel(id: String, name: String, parentIds: List<String> = emptyList()) = ClassModel(
         schemaVersion = 1,
         id = id,
         type = "CLASS",
@@ -41,7 +77,7 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
         maxLevel = 10,
         commandOnly = false,
         unlockLevel = 1,
-        unlockClassLevel = emptyList(),
+        unlockClassLevel = parentIds.map { ClassUnlockClassLevel(it, 1) },
         baseStats = emptyList(),
         growthPerLevel = emptyList(),
         expRate = 100,

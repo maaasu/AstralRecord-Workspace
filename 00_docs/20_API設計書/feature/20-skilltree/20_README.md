@@ -3,6 +3,8 @@
 このディレクトリは API `account-skilltree` 機能の設計をまとめる。
 アカウント単位のスキルツリー進行状態を API / DB で永続化し、plugin はこの API を介して読み書きする。
 
+CP / PP の残高は永続化しない。API は解放ノードごとに CP の消費元クラスを保持し、Plugin がプレイヤーレベル・クラス別レベルから残高を導出する。
+
 ノード定義と配置・接続構造は、それぞれ filebase `40_filebase/35.features.skilltree/nodes/*.json` と `structures/*.json` を正本とします。これらは Plugin が直接読み込む静的マスタであり、`account-skilltree` API の入出力や MasterDataDB へは追加しません。
 
 ## 対象実装パス

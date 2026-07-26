@@ -77,6 +77,12 @@ export interface PluginSkillTreeSettings {
   centerZ: number
 }
 
+export interface ClassMasterSummary {
+  id: string
+  name: string
+  parentClassIds: string[]
+}
+
 export interface EditorMetadata {
   workspaceRoot: string
   nodesPath: string

@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
@@ -18,6 +19,7 @@ import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePosition;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeSkillEffect;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeStatusEffect;
+import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeUnlockedNode;
 import io.github.maaasu.astralRecord.feature.status.model.StatusModifierType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -115,6 +117,15 @@ public class SkillTreeService {
         }
     }
 
+    /** CP 消費元クラス選択 GUI に表示するクラス別残高です。 */
+    public record CpSourceOption(
+            @NotNull String classId,
+            @NotNull String displayName,
+            int classLevel,
+            int availablePoints
+    ) {
+    }
+
     /**
      * JSONから準備し、メインスレッドで一括公開するスキルツリーマスタです。
      *
@@ -143,6 +154,7 @@ public class SkillTreeService {
     private StatusService statusService;
     private SkillService skillService;
     private PassiveSkillService passiveSkillService;
+    private PlayerClassService playerClassService;
     private final SkillTreeNodeRepository nodeRepository;
     private final SkillTreeStructureRepository structureRepository;
     private final SkillTreePlayerStateRepository playerStateRepository;
@@ -219,6 +231,11 @@ public class SkillTreeService {
      */
     public void setPassiveSkillService(@NotNull PassiveSkillService passiveSkillService) {
         this.passiveSkillService = passiveSkillService;
+    }
+
+    /** クラス条件とクラス別 CP の解決元を設定します。 */
+    public void setPlayerClassService(@NotNull PlayerClassService playerClassService) {
+        this.playerClassService = playerClassService;
     }
 
     /**
@@ -490,21 +507,76 @@ public class SkillTreeService {
      * @return 1 以上の CP または PP を持つなら {@code true}
      */
     public boolean hasAvailableUnlockPoint(@NotNull AstPlayer astPlayer) {
-        return availablePoints(astPlayer, SkillTreePointType.CLASS_POINT) > 0
-                || availablePoints(astPlayer, SkillTreePointType.PASSIVE_POINT) > 0;
+        return availablePassivePoints(astPlayer) > 0
+                || cpSourceOptions(astPlayer).stream().anyMatch(option -> option.availablePoints() > 0);
     }
 
     public int availableClassPoints(@NotNull AstPlayer astPlayer) {
-        return availablePoints(astPlayer, SkillTreePointType.CLASS_POINT);
+        return availableClassPoints(astPlayer, astPlayer.getClassId());
     }
 
     public int availablePassivePoints(@NotNull AstPlayer astPlayer) {
-        return availablePoints(astPlayer, SkillTreePointType.PASSIVE_POINT);
+        SkillTreePlayerState state = state(astPlayer);
+        return Math.max(0, earnedPassivePoints(astPlayer) - spentPassivePoints(knownUnlockedNodeIds(state)));
+    }
+
+    /** 現在職の CP 表示名を {@code CP[{職業名}]} 形式で返します。 */
+    public @NotNull String currentClassPointLabel(@NotNull AstPlayer astPlayer) {
+        String className = playerClassService == null
+                ? astPlayer.getClassId()
+                : playerClassService.getDisplayName(astPlayer.getClassId());
+        return "CP[" + ColorCodeUtil.toPlainText(className, astPlayer.getClassId()) + "]";
+    }
+
+    /**
+     * 保持済みクラス進行度を、CP 消費元候補として返します。
+     * 残高 0 のクラスも GUI 上で理由を確認できるように含めます。
+     */
+    public @NotNull List<CpSourceOption> cpSourceOptions(@NotNull AstPlayer astPlayer) {
+        List<CpSourceOption> options = new ArrayList<>();
+        for (var progress : astPlayer.getAllClassProgresses()) {
+            String classId = progress.getClassId();
+            String displayName = playerClassService == null
+                    ? classId
+                    : playerClassService.getDisplayName(classId);
+            options.add(new CpSourceOption(
+                    classId,
+                    displayName,
+                    Math.max(1, progress.getLevel()),
+                    availableClassPoints(astPlayer, classId)
+            ));
+        }
+        options.sort(java.util.Comparator.comparing(CpSourceOption::classId));
+        return List.copyOf(options);
+    }
+
+    public boolean requiresCpSourceSelection(@NotNull SkillTreeNodeDefinition node) {
+        return node.pointType() == SkillTreePointType.CLASS_POINT
+                && node.pointCost() > 0
+                && !node.unlockCondition().hasClassCondition();
     }
 
     public boolean canUnlockNode(@NotNull AstPlayer astPlayer, @NotNull SkillTreeNodeDefinition node) {
+        if (requiresCpSourceSelection(node)) {
+            return cpSourceOptions(astPlayer).stream()
+                    .anyMatch(option -> canUnlockNode(astPlayer, node, option.classId()));
+        }
+        String consumedClassId = node.pointType() == SkillTreePointType.CLASS_POINT
+                ? node.unlockCondition().classId()
+                : null;
+        return canUnlockNode(astPlayer, node, consumedClassId);
+    }
+
+    public boolean canUnlockNode(
+            @NotNull AstPlayer astPlayer,
+            @NotNull SkillTreeNodeDefinition node,
+            @Nullable String consumedClassId
+    ) {
         SkillTreePlayerState state = state(astPlayer);
-        if (state.isUnlocked(node.nodeId()) || availablePoints(astPlayer, node.pointType()) < node.pointCost()) {
+        if (state.isUnlocked(node.nodeId()) || !isNodeUnlockConditionMet(astPlayer, node)) {
+            return false;
+        }
+        if (!hasRequiredPoints(astPlayer, node, consumedClassId)) {
             return false;
         }
         if (knownUnlockedNodeIds(state).isEmpty()) {
@@ -574,7 +646,7 @@ public class SkillTreeService {
             return state;
         }
         failedPlayerStateLoads.remove(accountId);
-        SkillTreePlayerState fallback = new SkillTreePlayerState(accountId, Set.of());
+        SkillTreePlayerState fallback = new SkillTreePlayerState(accountId, Set.<String>of());
         playerStates.put(accountId, fallback);
         loadStateAsync(accountId);
         return fallback;
@@ -594,7 +666,7 @@ public class SkillTreeService {
             return;
         }
         failedPlayerStateLoads.remove(accountId);
-        playerStates.put(accountId, new SkillTreePlayerState(accountId, Set.of()));
+        playerStates.put(accountId, new SkillTreePlayerState(accountId, Set.<String>of()));
         loadStateAsync(accountId);
     }
 
@@ -700,7 +772,11 @@ public class SkillTreeService {
         Set<String> previousSkillIds = derivedState(astPlayer, state).unlockedSkillIds();
         DerivedPlayerState nextDerivedState = rebuildDerivedState(astPlayer, state);
         derivedPlayerStates.put(state.accountId(), nextDerivedState);
-        refreshDerivedState(astPlayer, previousSkillIds, nextDerivedState.unlockedSkillIds(), true);
+        Set<String> addedSkillIds = new LinkedHashSet<>(nextDerivedState.unlockedSkillIds());
+        addedSkillIds.removeAll(previousSkillIds);
+        Set<String> removedSkillIds = new LinkedHashSet<>(previousSkillIds);
+        removedSkillIds.removeAll(nextDerivedState.unlockedSkillIds());
+        refreshDerivedState(astPlayer, addedSkillIds, removedSkillIds, true);
         markViewerContextDirty(astPlayer.getBukkit());
     }
 
@@ -744,29 +820,51 @@ public class SkillTreeService {
             @NotNull AstPlayer astPlayer,
             @NotNull SkillTreePlayerState state
     ) {
-        Set<String> activeNodeIds = new LinkedHashSet<>();
-        for (String nodeId : state.unlockedNodeIds()) {
-            if (nodesById.containsKey(nodeId)) {
-                activeNodeIds.add(nodeId);
+        Set<String> activeNodeIds = knownUnlockedNodeIds(state);
+
+        List<String> passiveNodeIds = activeNodeIds.stream()
+                .filter(nodeId -> nodesById.get(nodeId).pointType() == SkillTreePointType.PASSIVE_POINT)
+                .sorted(this::compareNodeIdDescending)
+                .toList();
+        int passiveSpent = spentPassivePoints(activeNodeIds);
+        for (String nodeId : passiveNodeIds) {
+            if (passiveSpent <= earnedPassivePoints(astPlayer)) {
+                break;
+            }
+            activeNodeIds.remove(nodeId);
+            passiveSpent -= nodesById.get(nodeId).pointCost();
+        }
+
+        Map<String, List<String>> classNodeIds = new LinkedHashMap<>();
+        Map<String, Integer> classSpent = new LinkedHashMap<>();
+        for (String nodeId : knownUnlockedNodeIds(state)) {
+            SkillTreeNodeDefinition node = nodesById.get(nodeId);
+            if (node.pointType() != SkillTreePointType.CLASS_POINT || node.pointCost() <= 0) {
+                continue;
+            }
+            String consumedClassId = resolvedConsumedClassId(state.unlockedNode(nodeId), node);
+            if (consumedClassId == null) {
+                activeNodeIds.remove(nodeId);
+                continue;
+            }
+            classNodeIds.computeIfAbsent(consumedClassId, ignored -> new ArrayList<>()).add(nodeId);
+            classSpent.merge(consumedClassId, node.pointCost(), Integer::sum);
+        }
+        for (Map.Entry<String, List<String>> entry : classNodeIds.entrySet()) {
+            String classId = entry.getKey();
+            int spent = classSpent.getOrDefault(classId, 0);
+            List<String> descendingNodeIds = entry.getValue();
+            descendingNodeIds.sort(this::compareNodeIdDescending);
+            for (String nodeId : descendingNodeIds) {
+                if (spent <= earnedClassPoints(astPlayer, classId)) {
+                    break;
+                }
+                activeNodeIds.remove(nodeId);
+                spent -= nodesById.get(nodeId).pointCost();
             }
         }
 
-        Map<SkillTreePointType, Integer> spent = spentPoints(activeNodeIds);
-        Map<SkillTreePointType, Integer> earned = earnedPoints(astPlayer);
-        List<String> descendingNodeIds = new ArrayList<>(activeNodeIds);
-        descendingNodeIds.sort(this::compareNodeIdDescending);
-        for (String nodeId : descendingNodeIds) {
-            SkillTreeNodeDefinition node = nodesById.get(nodeId);
-            if (node == null) {
-                continue;
-            }
-            SkillTreePointType pointType = node.pointType();
-            if (spent.getOrDefault(pointType, 0) <= earned.getOrDefault(pointType, 0)) {
-                continue;
-            }
-            activeNodeIds.remove(nodeId);
-            spent.put(pointType, spent.getOrDefault(pointType, 0) - node.pointCost());
-        }
+        activeNodeIds.removeIf(nodeId -> !isNodeUnlockConditionMet(astPlayer, nodesById.get(nodeId)));
         return activeNodeIds;
     }
 
@@ -787,28 +885,118 @@ public class SkillTreeService {
     }
 
     private int availablePoints(@NotNull AstPlayer astPlayer, @NotNull SkillTreePointType pointType) {
+        return pointType == SkillTreePointType.CLASS_POINT
+                ? availableClassPoints(astPlayer)
+                : availablePassivePoints(astPlayer);
+    }
+
+    private int availableClassPoints(@NotNull AstPlayer astPlayer, @NotNull String classId) {
         SkillTreePlayerState state = state(astPlayer);
-        Set<String> activeNodeIds = activeUnlockedNodeIds(astPlayer, state);
-        return Math.max(0, earnedPoints(astPlayer).getOrDefault(pointType, 0) - spentPoints(activeNodeIds).getOrDefault(pointType, 0));
+        return Math.max(0, earnedClassPoints(astPlayer, classId) - spentClassPoints(state, classId));
     }
 
-    private @NotNull Map<SkillTreePointType, Integer> earnedPoints(@NotNull AstPlayer astPlayer) {
-        Map<SkillTreePointType, Integer> earned = new java.util.EnumMap<>(SkillTreePointType.class);
-        earned.put(SkillTreePointType.CLASS_POINT, Math.max(0, astPlayer.getClassLevel() - 1));
-        earned.put(SkillTreePointType.PASSIVE_POINT, Math.max(0, astPlayer.getAccount().getLevel() - 1));
-        return earned;
+    private int earnedClassPoints(@NotNull AstPlayer astPlayer, @NotNull String classId) {
+        String normalizedClassId = normalizeClassId(classId);
+        for (var progress : astPlayer.getAllClassProgresses()) {
+            if (normalizeClassId(progress.getClassId()).equals(normalizedClassId)) {
+                return Math.max(0, progress.getLevel() - 1);
+            }
+        }
+        return 0;
     }
 
-    private @NotNull Map<SkillTreePointType, Integer> spentPoints(@NotNull Set<String> nodeIds) {
-        Map<SkillTreePointType, Integer> spent = new java.util.EnumMap<>(SkillTreePointType.class);
-        for (String nodeId : nodeIds) {
+    private int earnedPassivePoints(@NotNull AstPlayer astPlayer) {
+        return Math.max(0, astPlayer.getAccount().getLevel() - 1);
+    }
+
+    private int spentClassPoints(@NotNull SkillTreePlayerState state, @NotNull String classId) {
+        String normalizedClassId = normalizeClassId(classId);
+        int spent = 0;
+        for (String nodeId : knownUnlockedNodeIds(state)) {
             SkillTreeNodeDefinition node = nodesById.get(nodeId);
-            if (node == null || node.pointCost() <= 0) {
+            if (node.pointType() != SkillTreePointType.CLASS_POINT || node.pointCost() <= 0) {
                 continue;
             }
-            spent.merge(node.pointType(), node.pointCost(), Integer::sum);
+            String consumedClassId = resolvedConsumedClassId(state.unlockedNode(nodeId), node);
+            if (normalizedClassId.equals(consumedClassId)) {
+                spent += node.pointCost();
+            }
         }
         return spent;
+    }
+
+    private int spentPassivePoints(@NotNull Set<String> nodeIds) {
+        int spent = 0;
+        for (String nodeId : nodeIds) {
+            SkillTreeNodeDefinition node = nodesById.get(nodeId);
+            if (node == null || node.pointType() != SkillTreePointType.PASSIVE_POINT || node.pointCost() <= 0) {
+                continue;
+            }
+            spent += node.pointCost();
+        }
+        return spent;
+    }
+
+    private @Nullable String resolvedConsumedClassId(
+            @Nullable SkillTreeUnlockedNode unlockedNode,
+            @NotNull SkillTreeNodeDefinition node
+    ) {
+        if (unlockedNode != null && unlockedNode.consumedClassId() != null) {
+            return normalizeClassId(unlockedNode.consumedClassId());
+        }
+        return node.unlockCondition().hasClassCondition()
+                ? normalizeClassId(node.unlockCondition().classId())
+                : null;
+    }
+
+    private @NotNull String normalizeClassId(@NotNull String classId) {
+        return classId.trim().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    private boolean hasRequiredPoints(
+            @NotNull AstPlayer astPlayer,
+            @NotNull SkillTreeNodeDefinition node,
+            @Nullable String consumedClassId
+    ) {
+        if (node.pointType() == SkillTreePointType.PASSIVE_POINT) {
+            return consumedClassId == null && availablePassivePoints(astPlayer) >= node.pointCost();
+        }
+
+        String requiredClassId = node.unlockCondition().classId();
+        String normalizedSource = consumedClassId == null ? null : normalizeClassId(consumedClassId);
+        if (requiredClassId != null) {
+            String normalizedRequired = normalizeClassId(requiredClassId);
+            if (normalizedSource == null) {
+                normalizedSource = normalizedRequired;
+            }
+            return normalizedRequired.equals(normalizedSource)
+                    && availableClassPoints(astPlayer, normalizedRequired) >= node.pointCost();
+        }
+        if (node.pointCost() == 0) {
+            return normalizedSource == null || earnedClassPoints(astPlayer, normalizedSource) >= 0;
+        }
+        return normalizedSource != null
+                && availableClassPoints(astPlayer, normalizedSource) >= node.pointCost();
+    }
+
+    /** ノードの現在職・プレイヤーレベル条件が成立しているかを返します。 */
+    public boolean isNodeUnlockConditionMet(
+            @NotNull AstPlayer astPlayer,
+            @NotNull SkillTreeNodeDefinition node
+    ) {
+        if (node.unlockCondition().hasPlayerLevelCondition()
+                && astPlayer.getAccount().getLevel() < node.unlockCondition().playerLevel()) {
+            return false;
+        }
+        String requiredClassId = node.unlockCondition().classId();
+        return requiredClassId == null
+                || playerClassService != null
+                && playerClassService.matchesCurrentClassCondition(astPlayer, requiredClassId);
+    }
+
+    /** 通常プレイヤーにノードを表示してよいかを返します。 */
+    public boolean isNodeVisible(@NotNull AstPlayer astPlayer, @NotNull SkillTreeNodeDefinition node) {
+        return isNodeUnlockConditionMet(astPlayer, node);
     }
 
     private int compareNodeIdDescending(@NotNull String left, @NotNull String right) {
@@ -914,12 +1102,29 @@ public class SkillTreeService {
     }
 
     public boolean unlockNode(@NotNull AstPlayer astPlayer, @NotNull SkillTreeNodeDefinition node) {
-        if (!canUnlockNode(astPlayer, node)) {
+        String consumedClassId = node.pointType() == SkillTreePointType.CLASS_POINT
+                ? node.unlockCondition().classId()
+                : null;
+        if (requiresCpSourceSelection(node)) {
+            return false;
+        }
+        return unlockNode(astPlayer, node, consumedClassId);
+    }
+
+    public boolean unlockNode(
+            @NotNull AstPlayer astPlayer,
+            @NotNull SkillTreeNodeDefinition node,
+            @Nullable String consumedClassId
+    ) {
+        if (!canUnlockNode(astPlayer, node, consumedClassId)) {
             return false;
         }
         SkillTreePlayerState state = state(astPlayer);
         Set<String> previousSkillIds = derivedState(astPlayer, state).unlockedSkillIds();
-        boolean changed = state.unlock(node.nodeId());
+        String normalizedSource = node.pointType() == SkillTreePointType.CLASS_POINT && consumedClassId != null
+                ? normalizeClassId(consumedClassId)
+                : null;
+        boolean changed = state.unlock(node.nodeId(), normalizedSource);
         if (changed) {
             DerivedPlayerState nextDerivedState = rebuildDerivedState(astPlayer, state);
             derivedPlayerStates.put(state.accountId(), nextDerivedState);
@@ -950,7 +1155,7 @@ public class SkillTreeService {
 
     public boolean canRelockNode(@NotNull AstPlayer astPlayer, @NotNull SkillTreeNodeDefinition node) {
         SkillTreePlayerState state = state(astPlayer);
-        if (!state.isUnlocked(node.nodeId())) {
+        if (!state.isUnlocked(node.nodeId()) || !isNodeUnlockConditionMet(astPlayer, node)) {
             return false;
         }
 
@@ -1040,7 +1245,7 @@ public class SkillTreeService {
                     PersistentDataType.STRING
             );
             SkillTreePosition position = nodeId == null ? null : positionsByNodeId.get(nodeId);
-            if (position == null || !targetEntity.isValid()) {
+            if (position == null || !targetEntity.isValid() || !isNodeVisibleToPlayer(snapshot.player(), nodeId)) {
                 return Optional.empty();
             }
             Double hitDistance = snapshot.hitDistance(targetEntity);
@@ -1063,6 +1268,9 @@ public class SkillTreeService {
 
         SkillTreePositionHit nearest = null;
         for (SkillTreePosition position : positionsByNodeId.values()) {
+            if (!isNodeVisibleToPlayer(player, position.nodeId())) {
+                continue;
+            }
             Location location = position.toLocation();
             if (location == null || location.getWorld() != player.getWorld()) {
                 continue;
@@ -1078,6 +1286,19 @@ public class SkillTreeService {
             nearest = new SkillTreePositionHit(position, hitDistance);
         }
         return Optional.ofNullable(nearest);
+    }
+
+    private boolean isNodeVisibleToPlayer(@NotNull Player player, @NotNull String nodeId) {
+        SkillTreeNodeDefinition node = nodesById.get(nodeId);
+        if (node == null) {
+            return true;
+        }
+        if (!node.unlockCondition().hasClassCondition()
+                && !node.unlockCondition().hasPlayerLevelCondition()) {
+            return true;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        return astPlayer != null && isNodeUnlockConditionMet(astPlayer, node);
     }
 
     /**
@@ -1254,7 +1475,7 @@ public class SkillTreeService {
             }
             SkillTreePlayerState state = playerStates.get(accountId);
             if (state != null) {
-                snapshots.add(new SkillTreePlayerState(state.accountId(), state.unlockedNodeIds()));
+                snapshots.add(new SkillTreePlayerState(state.accountId(), state.unlockedNodes()));
             }
             dirtyPlayerStates.remove(accountId);
             dirtyPlayerStateDueAtMillis.remove(accountId);
@@ -1304,7 +1525,7 @@ public class SkillTreeService {
                     ? "&8状態: &a解放可能"
                     : "&8状態: &c隣接ノードの解放が必要"));
             lore.add(component("&8消費: &f" + node.pointType().displayName() + " " + node.pointCost()));
-            lore.add(component("&8CP: &f" + availablePoints(astPlayer, SkillTreePointType.CLASS_POINT)
+            lore.add(component("&8" + currentClassPointLabel(astPlayer) + ": &f" + availableClassPoints(astPlayer)
                     + " &8/ PP: &f" + availablePoints(astPlayer, SkillTreePointType.PASSIVE_POINT)));
             if (inactive) {
                 lore.add(component("&cCP/PP 不足により効果停止中"));

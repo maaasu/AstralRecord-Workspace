@@ -16,13 +16,28 @@ public record SkillTreeNodeDefinition(
         @NotNull List<String> tags,
         @NotNull SkillTreePointType pointType,
         int pointCost,
+        @NotNull SkillTreeUnlockCondition unlockCondition,
         @NotNull List<SkillTreeNodeEffect> effects
 ) {
     public SkillTreeNodeDefinition {
         pointCost = Math.max(0, pointCost);
         lore = List.copyOf(lore);
         tags = List.copyOf(tags);
+        unlockCondition = unlockCondition == null ? SkillTreeUnlockCondition.NONE : unlockCondition;
         effects = List.copyOf(effects);
+    }
+
+    public SkillTreeNodeDefinition(
+            @NotNull String nodeId,
+            @NotNull String name,
+            @NotNull Material icon,
+            @NotNull List<String> lore,
+            @NotNull List<String> tags,
+            @NotNull SkillTreePointType pointType,
+            int pointCost,
+            @NotNull List<SkillTreeNodeEffect> effects
+    ) {
+        this(nodeId, name, icon, lore, tags, pointType, pointCost, SkillTreeUnlockCondition.NONE, effects);
     }
 
     /**

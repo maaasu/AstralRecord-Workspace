@@ -54,8 +54,7 @@ public class AccountSkillTreeStateRepositoryTests
 
         Assert.Null(state.AccountSkillTreeStateId);
         Assert.Equal(accountId, state.AccountId);
-        Assert.Equal(0, state.SkillPoints);
-        Assert.Empty(state.UnlockedNodeIds);
+        Assert.Empty(state.UnlockedNodes);
         Assert.False(state.IsSaved);
         Assert.Equal(0, state.Version);
     }
@@ -103,15 +102,30 @@ public class AccountSkillTreeStateRepositoryTests
 
             var created = await repository.UpsertAsync(accountId, new AccountSkillTreeStateUpsertRequest
             {
-                SkillPoints = 3,
-                UnlockedNodeIds = [" starter_power ", "", "starter_vital", "starter_power"],
+                UnlockedNodes =
+                [
+                    new() { NodeId = " starter_power ", ConsumedClassId = " Adventurer " },
+                    new() { NodeId = "", ConsumedClassId = "hunter" },
+                    new() { NodeId = "starter_vital" },
+                    new() { NodeId = "starter_power", ConsumedClassId = "hunter" },
+                ],
                 UpdatedBy = userId,
             });
 
             Assert.True(created.IsSaved);
             Assert.Equal(1, created.Version);
-            Assert.Equal(3, created.SkillPoints);
-            Assert.Equal(["starter_power", "starter_vital"], created.UnlockedNodeIds);
+            Assert.Collection(
+                created.UnlockedNodes,
+                node =>
+                {
+                    Assert.Equal("starter_power", node.NodeId);
+                    Assert.Equal("adventurer", node.ConsumedClassId);
+                },
+                node =>
+                {
+                    Assert.Equal("starter_vital", node.NodeId);
+                    Assert.Null(node.ConsumedClassId);
+                });
         }
 
         await using (var dbContext = new AstralRecordDbContext(options))
@@ -120,15 +134,15 @@ public class AccountSkillTreeStateRepositoryTests
 
             var updated = await repository.UpsertAsync(accountId, new AccountSkillTreeStateUpsertRequest
             {
-                SkillPoints = 1,
-                UnlockedNodeIds = ["hybrid_guard"],
+                UnlockedNodes = [new() { NodeId = "hybrid_guard", ConsumedClassId = "hunter" }],
                 UpdatedBy = userId,
             });
 
             Assert.True(updated.IsSaved);
             Assert.Equal(2, updated.Version);
-            Assert.Equal(1, updated.SkillPoints);
-            Assert.Equal(["hybrid_guard"], updated.UnlockedNodeIds);
+            var node = Assert.Single(updated.UnlockedNodes);
+            Assert.Equal("hybrid_guard", node.NodeId);
+            Assert.Equal("hunter", node.ConsumedClassId);
         }
     }
 
@@ -158,7 +172,6 @@ public class AccountSkillTreeStateRepositoryTests
             CREATE TABLE account_skilltree_state (
                 account_skilltree_state_id TEXT NOT NULL PRIMARY KEY,
                 account_id TEXT NOT NULL,
-                skill_points INTEGER NOT NULL,
                 version INTEGER NOT NULL,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
@@ -174,6 +187,7 @@ public class AccountSkillTreeStateRepositoryTests
                 account_skilltree_unlocked_node_id TEXT NOT NULL PRIMARY KEY,
                 account_skilltree_state_id TEXT NOT NULL,
                 node_id TEXT NOT NULL,
+                consumed_class_id TEXT NULL,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
                 created_by TEXT NOT NULL,

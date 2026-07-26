@@ -37,4 +37,18 @@ public sealed class WorkspaceValidationTests
             Assert.Equal(text, StableJson.Serialize(parsed));
         }
     }
+
+    [Fact]
+    public async Task ClassCatalogExposesTheCommittedGameClassHierarchy()
+    {
+        var root = WorkspacePaths.ResolveWorkspaceRoot(null, AppContext.BaseDirectory);
+        var classes = await new ClassMasterCatalog(new WorkspacePaths(root)).ReadAllAsync(CancellationToken.None);
+
+        Assert.DoesNotContain(classes, entry => entry.Id == "acolyte");
+        foreach (var classId in new[] { "swordsman", "hunter", "mage" })
+        {
+            var entry = Assert.Single(classes, value => value.Id == classId);
+            Assert.Contains("adventurer", entry.ParentClassIds);
+        }
+    }
 }

@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.playerclass.model.ClassLevelSetResu
 import io.github.maaasu.astralRecord.feature.playerclass.model.ClassProgressViewEntry
 import io.github.maaasu.astralRecord.feature.playerclass.model.ClassViewEntry
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil
+import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService
 import io.github.maaasu.astralRecord.feature.status.model.StatusType
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil
 import java.util.LinkedHashSet
@@ -23,6 +24,11 @@ class PlayerClassService @JvmOverloads constructor(
     private val accountService: AccountService? = null,
 ) {
     private val classService = ClassService()
+    private var skillTreeService: SkillTreeService? = null
+
+    fun setSkillTreeService(service: SkillTreeService) {
+        skillTreeService = service
+    }
 
     fun loadAll(): Int = classService.loadAll()
 
@@ -83,6 +89,7 @@ class PlayerClassService @JvmOverloads constructor(
     fun changeClass(astPlayer: AstPlayer, classId: String) {
         astPlayer.selectClass(classId)
         persistClassProgress(astPlayer)
+        skillTreeService?.refreshProgressDerivedState(astPlayer)
     }
 
     /**
@@ -102,7 +109,39 @@ class PlayerClassService @JvmOverloads constructor(
         val experience = totalRequiredClassExperienceForLevel(model, currentLevel)
         astPlayer.setClassProgress(model.id, currentLevel, experience)
         persistClassProgress(astPlayer, model.id, currentLevel, experience)
+        skillTreeService?.refreshProgressDerivedState(astPlayer)
         return ClassLevelSetResult(model.id, previousLevel, currentLevel, maxLevel)
+    }
+
+    /**
+     * 必要クラスが現在クラスそのもの、またはいずれかの転職前提クラスなら true を返します。
+     * 複数の前提経路をすべて辿り、循環定義があっても停止します。
+     */
+    fun matchesCurrentClassCondition(astPlayer: AstPlayer, requiredClassId: String): Boolean =
+        isClassOrAncestor(astPlayer.classId, requiredClassId)
+
+    fun isClassOrAncestor(currentClassId: String, requiredClassId: String): Boolean {
+        val required = requiredClassId.trim().lowercase(Locale.ROOT)
+        if (required.isEmpty()) {
+            return true
+        }
+        val queue = java.util.ArrayDeque<String>()
+        val visited = mutableSetOf<String>()
+        queue.add(currentClassId.trim().lowercase(Locale.ROOT))
+        while (queue.isNotEmpty()) {
+            val classId = queue.removeFirst()
+            if (!visited.add(classId)) {
+                continue
+            }
+            if (classId == required) {
+                return true
+            }
+            val model = classService.getLoadedClass(classId) ?: continue
+            model.unlockClassLevel.forEach { requirement ->
+                queue.addLast(requirement.classId.trim().lowercase(Locale.ROOT))
+            }
+        }
+        return false
     }
 
     /**

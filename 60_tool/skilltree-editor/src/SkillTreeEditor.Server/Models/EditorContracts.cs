@@ -41,6 +41,11 @@ public sealed record PluginSkillTreeSettings(
     int CenterY,
     int CenterZ);
 
+public sealed record ClassMasterSummary(
+    string Id,
+    string Name,
+    IReadOnlyList<string> ParentClassIds);
+
 public sealed record EditorMetadata(
     string WorkspaceRoot,
     string NodesPath,

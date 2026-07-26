@@ -15,6 +15,7 @@ public sealed class WorkspacePaths
     {
         WorkspaceRoot = Path.GetFullPath(workspaceRoot);
         SkillTreeRoot = Path.Combine(WorkspaceRoot, "40_filebase", "35.features.skilltree");
+        Classes = Path.Combine(WorkspaceRoot, "40_filebase", "20.features.class");
         Nodes = Path.Combine(SkillTreeRoot, "nodes");
         Structures = Path.Combine(SkillTreeRoot, "structures");
         Schemas = Path.Combine(SkillTreeRoot, "schemas");
@@ -35,6 +36,7 @@ public sealed class WorkspacePaths
 
     public string WorkspaceRoot { get; }
     public string SkillTreeRoot { get; }
+    public string Classes { get; }
     public string Nodes { get; }
     public string Structures { get; }
     public string Schemas { get; }

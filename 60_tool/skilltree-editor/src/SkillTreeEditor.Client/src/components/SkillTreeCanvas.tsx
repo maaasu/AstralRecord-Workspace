@@ -31,6 +31,7 @@ interface SkillTreeCanvasProps {
   onEditMaster: (node: NodeMaster) => void
   onNotify: (message: string) => void
   iconRevision?: number
+  visibleNodeIds?: ReadonlySet<string> | null
 }
 
 interface SkillNodeData extends Record<string, unknown> {
@@ -74,6 +75,7 @@ function CanvasInner({
   onEditMaster,
   onNotify,
   iconRevision = 0,
+  visibleNodeIds = null,
 }: SkillTreeCanvasProps) {
   const { screenToFlowPosition } = useReactFlow()
   const canvasRef = useRef<HTMLDivElement>(null)
@@ -81,7 +83,9 @@ function CanvasInner({
   const [selectedEdgeIds, setSelectedEdgeIds] = useState<Set<string>>(() => new Set())
   const [contextMenu, setContextMenu] = useState<NodeContextMenuState | null>(null)
   const masterMap = useMemo(() => new Map(masters.map((node) => [node.nodeId, node])), [masters])
-  const nodes = useMemo<Node<SkillNodeData>[]>(() => structure.nodes.map((placement) => {
+  const nodes = useMemo<Node<SkillNodeData>[]>(() => structure.nodes
+    .filter((placement) => !visibleNodeIds || visibleNodeIds.has(placement.nodeId))
+    .map((placement) => {
     const master = masterMap.get(placement.nodeId)
     return {
       id: placement.nodeId,
@@ -99,10 +103,13 @@ function CanvasInner({
         pointType: master?.pointType ?? '',
       },
     }
-  }),
-    [iconRevision, masterMap, selectedIds, structure.nodes, structure.rootNodeId],
+    }),
+    [iconRevision, masterMap, selectedIds, structure.nodes, structure.rootNodeId, visibleNodeIds],
   )
-  const edges = useMemo<Edge[]>(() => structure.edges.map((edge) => ({
+  const edges = useMemo<Edge[]>(() => structure.edges
+    .filter((edge) => !visibleNodeIds
+      || visibleNodeIds.has(edge.sourceNodeId) && visibleNodeIds.has(edge.targetNodeId))
+    .map((edge) => ({
       id: edgeId(edge.sourceNodeId, edge.targetNodeId),
       source: edge.sourceNodeId,
       target: edge.targetNodeId,
@@ -110,7 +117,7 @@ function CanvasInner({
       className: 'skill-edge',
       selected: selectedEdgeIds.has(edgeId(edge.sourceNodeId, edge.targetNodeId)),
     })),
-    [selectedEdgeIds, structure.edges],
+    [selectedEdgeIds, structure.edges, visibleNodeIds],
   )
 
   const onNodesChange = useCallback((changes: NodeChange<Node<SkillNodeData>>[]) => {

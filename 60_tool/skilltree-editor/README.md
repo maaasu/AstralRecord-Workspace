@@ -9,6 +9,7 @@
 | ノードマスター | `40_filebase/35.features.skilltree/nodes/*.json` |
 | 配置・接続構造 | `40_filebase/35.features.skilltree/structures/*.json` |
 | JSON Schema | `40_filebase/35.features.skilltree/schemas/*.schema.json` |
+| 表示シミュレーション用クラス階層（読取専用） | `40_filebase/20.features.class/*.yml` |
 | nodeId採番high-water | `40_filebase/35.features.skilltree/node-id-sequence.json` |
 | Plugin 表示設定 | `10_plugin/AstralRecord/src/main/resources/config.yml` の `skilltree.worldName` / `structureId` / `center` |
 | 保存前バックアップ | `60_tool/skilltree-editor/.backups/` |
@@ -153,6 +154,7 @@ dotnet run --project .\src\SkillTreeEditor.Server -- --SkillTreeEditor:Workspace
 - ノードのハンドル間をドラッグしてedgeを追加します。
 - Shift / Ctrl / Cmdで複数選択、Deleteで配置またはedgeを削除します。
 - ヘッダーの「一覧」「キャンバス」「詳細」で各ペインを表示・非表示にできます。ペイン間の境界をドラッグすると幅を変更でき、境界のダブルクリックで初期幅へ戻ります。
+- 「ゲーム内表示シミュレーション」を有効にすると、現在の職業とプレイヤーレベルを指定して、`unlockCondition` を満たすノードだけを一覧・キャンバスへ表示します。クラス条件は現在職から filebase の転職前提を再帰的に辿り、祖先職も成立扱いにします。edge は両端ノードが表示対象の場合だけ表示します。
 - Ctrl+Z / Ctrl+Y、またはヘッダーのボタンでUndo / Redoします。
 - 「補助自動配置」はrootからのBFSレイヤー配置をX/Zへ明示反映します。通常の編集履歴に入るためUndoでき、結果は保存時に構造JSONの座標として確定します。
 - ノードマスターはJSON Schemaから生成したフォームとRaw JSONの両方で編集できます。既存文書は `$schema` のファイル名から対応Schemaを選び、新規文書では最新の既定Schemaを選択できます。新しいSchema項目はフォームへ自動的に反映され、未対応の複雑な表現はRaw JSONで編集できます。

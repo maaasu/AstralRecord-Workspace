@@ -341,7 +341,6 @@ GO
 CREATE TABLE [dbo].[account_skilltree_state] (
     [account_skilltree_state_id] UNIQUEIDENTIFIER NOT NULL,
     [account_id]                 UNIQUEIDENTIFIER NOT NULL,
-    [skill_points]               INT              NOT NULL CONSTRAINT [DF_account_skilltree_state_skill_points] DEFAULT (0),
     [version]                    INT              NOT NULL CONSTRAINT [DF_account_skilltree_state_version] DEFAULT (1),
     [created_at]                 DATETIME2(3)     NOT NULL,
     [updated_at]                 DATETIME2(3)     NOT NULL,
@@ -354,7 +353,6 @@ CREATE TABLE [dbo].[account_skilltree_state] (
         REFERENCES [dbo].[account] ([uuid])
         ON DELETE NO ACTION
         ON UPDATE NO ACTION,
-    CONSTRAINT [CK_account_skilltree_state_skill_points] CHECK ([skill_points] >= 0),
     CONSTRAINT [CK_account_skilltree_state_version] CHECK ([version] >= 1)
 );
 GO
@@ -376,6 +374,7 @@ CREATE TABLE [dbo].[account_skilltree_unlocked_node] (
     [account_skilltree_unlocked_node_id] UNIQUEIDENTIFIER NOT NULL,
     [account_skilltree_state_id]         UNIQUEIDENTIFIER NOT NULL,
     [node_id]                            NVARCHAR(100)    NOT NULL,
+    [consumed_class_id]                  NVARCHAR(100)    NULL,
     [created_at]                         DATETIME2(3)     NOT NULL,
     [updated_at]                         DATETIME2(3)     NOT NULL,
     [created_by]                         UNIQUEIDENTIFIER NOT NULL,
@@ -386,7 +385,9 @@ CREATE TABLE [dbo].[account_skilltree_unlocked_node] (
         REFERENCES [dbo].[account_skilltree_state] ([account_skilltree_state_id])
         ON DELETE CASCADE
         ON UPDATE NO ACTION,
-    CONSTRAINT [CK_account_skilltree_unlocked_node_node_id_not_blank] CHECK (LEN(LTRIM(RTRIM([node_id]))) > 0)
+    CONSTRAINT [CK_account_skilltree_unlocked_node_node_id_not_blank] CHECK (LEN(LTRIM(RTRIM([node_id]))) > 0),
+    CONSTRAINT [CK_account_skilltree_unlocked_node_consumed_class_id_not_blank]
+        CHECK ([consumed_class_id] IS NULL OR LEN(LTRIM(RTRIM([consumed_class_id]))) > 0)
 );
 GO
 
@@ -396,6 +397,11 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_account_skilltree_unlocked_node_node_id]
     ON [dbo].[account_skilltree_unlocked_node] ([node_id]);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_account_skilltree_unlocked_node_consumed_class]
+    ON [dbo].[account_skilltree_unlocked_node] ([account_skilltree_state_id], [consumed_class_id])
+    WHERE [consumed_class_id] IS NOT NULL;
 GO
 
 -- ============================================================

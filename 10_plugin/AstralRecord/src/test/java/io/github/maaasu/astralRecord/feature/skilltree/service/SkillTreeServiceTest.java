@@ -1,13 +1,16 @@
 package io.github.maaasu.astralRecord.feature.skilltree.service;
 
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
+import io.github.maaasu.astralRecord.feature.account.model.ClassProgressModel;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefinition;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePosition;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeSkillEffect;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeStatusEffect;
+import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeUnlockCondition;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePlayerState;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreeNodeRepository;
@@ -41,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
@@ -167,6 +171,159 @@ class SkillTreeServiceTest {
 
         verify(passiveSkillService).reconcileNow(player, false);
         verify(statusService).refreshStatus(player);
+    }
+
+    @Test
+    void classPointNodeWithoutClassConditionRequiresExplicitSourceClass() {
+        UUID accountId = UUID.randomUUID();
+        SkillTreeNodeDefinition classNode = new SkillTreeNodeDefinition(
+                "1000",
+                "Shared CP Root",
+                Material.NETHER_STAR,
+                List.of(),
+                List.of("root"),
+                SkillTreePointType.CLASS_POINT,
+                1,
+                SkillTreeUnlockCondition.NONE,
+                List.of()
+        );
+        SkillTreeService service = newService(classNode);
+        AstPlayer player = astPlayer(accountId);
+        when(player.getClassId()).thenReturn("hunter");
+        when(player.getAllClassProgresses()).thenReturn(List.of(
+                new ClassProgressModel("adventurer", 5, 0L),
+                new ClassProgressModel("hunter", 2, 0L)
+        ));
+        SkillTreePlayerState state = new SkillTreePlayerState(accountId, Set.of());
+        service.applyInitialPlayerState(state);
+
+        assertTrue(service.requiresCpSourceSelection(classNode));
+        assertTrue(service.canUnlockNode(player, classNode));
+        assertFalse(service.unlockNode(player, classNode));
+        assertTrue(service.unlockNode(player, classNode, "hunter"));
+        assertEquals("hunter", state.unlockedNode("1000").consumedClassId());
+        assertEquals(0, service.availableClassPoints(player));
+        assertEquals(4, service.cpSourceOptions(player).stream()
+                .filter(option -> option.classId().equals("adventurer"))
+                .findFirst()
+                .orElseThrow()
+                .availablePoints());
+    }
+
+    @Test
+    void conditionedClassPointAutomaticallyConsumesTheRequiredAncestorClass() {
+        UUID accountId = UUID.randomUUID();
+        SkillTreeNodeDefinition classNode = new SkillTreeNodeDefinition(
+                "1000",
+                "Adventurer Root",
+                Material.NETHER_STAR,
+                List.of(),
+                List.of("root"),
+                SkillTreePointType.CLASS_POINT,
+                1,
+                new SkillTreeUnlockCondition("adventurer", 0),
+                List.of()
+        );
+        SkillTreeService service = newService(classNode);
+        PlayerClassService playerClassService = mock(PlayerClassService.class);
+        service.setPlayerClassService(playerClassService);
+        AstPlayer player = astPlayer(accountId);
+        when(player.getClassId()).thenReturn("hunter");
+        when(player.getAllClassProgresses()).thenReturn(List.of(
+                new ClassProgressModel("adventurer", 2, 0L),
+                new ClassProgressModel("hunter", 10, 0L)
+        ));
+        when(playerClassService.matchesCurrentClassCondition(player, "adventurer")).thenReturn(true);
+        SkillTreePlayerState state = new SkillTreePlayerState(accountId, Set.of());
+        service.applyInitialPlayerState(state);
+
+        assertTrue(service.unlockNode(player, classNode));
+        assertEquals("adventurer", state.unlockedNode("1000").consumedClassId());
+        assertEquals(9, service.availableClassPoints(player));
+        assertEquals(0, service.cpSourceOptions(player).stream()
+                .filter(option -> option.classId().equals("adventurer"))
+                .findFirst()
+                .orElseThrow()
+                .availablePoints());
+    }
+
+    @Test
+    void unmetNodeConditionHidesUnlockedNodeAndDisablesItsEffects() {
+        UUID accountId = UUID.randomUUID();
+        SkillTreeNodeDefinition conditionedNode = new SkillTreeNodeDefinition(
+                "1000",
+                "Hunter Status",
+                Material.NETHER_STAR,
+                List.of(),
+                List.of("root"),
+                SkillTreePointType.PASSIVE_POINT,
+                0,
+                new SkillTreeUnlockCondition("hunter", 10),
+                List.of(new SkillTreeStatusEffect(StatusType.ATTACK, StatusModifierType.FLAT, 5.0D))
+        );
+        SkillTreeService service = newService(conditionedNode);
+        PlayerClassService playerClassService = mock(PlayerClassService.class);
+        service.setPlayerClassService(playerClassService);
+        AstPlayer player = astPlayer(accountId);
+        AccountModel account = player.getAccount();
+        when(account.getLevel()).thenReturn(12);
+        AtomicBoolean classMatches = new AtomicBoolean(false);
+        when(playerClassService.matchesCurrentClassCondition(player, "hunter"))
+                .thenAnswer(ignored -> classMatches.get());
+        service.applyInitialPlayerState(new SkillTreePlayerState(accountId, Set.of("1000")));
+
+        assertFalse(service.isNodeVisible(player, conditionedNode));
+        assertEquals(0.0D, service.getStatusBonus(player, StatusType.ATTACK, 100.0D));
+
+        classMatches.set(true);
+        when(account.getLevel()).thenReturn(9);
+        service.refreshProgressDerivedState(player);
+        assertFalse(service.isNodeVisible(player, conditionedNode));
+        assertEquals(0.0D, service.getStatusBonus(player, StatusType.ATTACK, 100.0D));
+
+        when(account.getLevel()).thenReturn(12);
+        service.refreshProgressDerivedState(player);
+
+        assertTrue(service.isNodeVisible(player, conditionedNode));
+        assertEquals(5.0D, service.getStatusBonus(player, StatusType.ATTACK, 100.0D));
+    }
+
+    @Test
+    void conditionChangeReconcilesRemovedPassiveSkillAsRemoval() {
+        UUID accountId = UUID.randomUUID();
+        SkillTreeNodeDefinition conditionedNode = new SkillTreeNodeDefinition(
+                "1000",
+                "Hunter Passive",
+                Material.NETHER_STAR,
+                List.of(),
+                List.of("root"),
+                SkillTreePointType.PASSIVE_POINT,
+                0,
+                new SkillTreeUnlockCondition("hunter", 0),
+                List.of(new SkillTreeSkillEffect("passive-test"))
+        );
+        PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
+        PlayerClassService playerClassService = mock(PlayerClassService.class);
+        AtomicBoolean classMatches = new AtomicBoolean(true);
+        SkillTreeService service = newService(conditionedNode);
+        service.setPassiveSkillService(passiveSkillService);
+        service.setPlayerClassService(playerClassService);
+        AstPlayer player = astPlayer(accountId);
+        when(playerClassService.matchesCurrentClassCondition(player, "hunter"))
+                .thenAnswer(ignored -> classMatches.get());
+        service.applyInitialPlayerState(new SkillTreePlayerState(accountId, Set.of("1000")));
+        assertEquals(Set.of("passive-test"), service.getUnlockedSkillIds(player));
+
+        classMatches.set(false);
+        service.refreshProgressDerivedState(player);
+
+        assertEquals(Set.of(), service.getUnlockedSkillIds(player));
+        verify(passiveSkillService).reconcileSkillOwnershipDelta(
+                eq(player),
+                eq(Set.of()),
+                eq(Set.of("passive-test")),
+                eq(false)
+        );
     }
 
     @Test

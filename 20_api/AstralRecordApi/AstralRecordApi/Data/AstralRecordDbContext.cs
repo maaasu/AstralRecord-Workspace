@@ -198,7 +198,6 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
 
             entity.Property(state => state.AccountSkillTreeStateId).HasColumnName("account_skilltree_state_id");
             entity.Property(state => state.AccountId).HasColumnName("account_id");
-            entity.Property(state => state.SkillPoints).HasColumnName("skill_points");
             entity.Property(state => state.Version).HasColumnName("version");
             entity.Property(state => state.CreatedAt).HasColumnName("created_at");
             entity.Property(state => state.UpdatedAt).HasColumnName("updated_at");
@@ -221,7 +220,8 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
 
             entity.Property(node => node.AccountSkillTreeUnlockedNodeId).HasColumnName("account_skilltree_unlocked_node_id");
             entity.Property(node => node.AccountSkillTreeStateId).HasColumnName("account_skilltree_state_id");
-            entity.Property(node => node.NodeId).HasColumnName("node_id");
+            entity.Property(node => node.NodeId).HasColumnName("node_id").HasMaxLength(100);
+            entity.Property(node => node.ConsumedClassId).HasColumnName("consumed_class_id").HasMaxLength(100);
             entity.Property(node => node.CreatedAt).HasColumnName("created_at");
             entity.Property(node => node.UpdatedAt).HasColumnName("updated_at");
             entity.Property(node => node.CreatedBy).HasColumnName("created_by");

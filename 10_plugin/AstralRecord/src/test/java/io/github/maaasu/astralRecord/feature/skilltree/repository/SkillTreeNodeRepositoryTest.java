@@ -93,6 +93,31 @@ class SkillTreeNodeRepositoryTest {
         assertTrue(error.getMessage().contains("non-zero-leading"));
     }
 
+    @Test
+    void loadsOptionalCurrentClassAndPlayerLevelCondition() throws IOException {
+        writeNode("1000.json", nodeJson("1000", "[]").replace(
+                "\"effects\": []",
+                "\"unlockCondition\": {\"classId\": \"hunter\", \"playerLevel\": 25},\n  \"effects\": []"
+        ));
+
+        var node = repository().findAll().getFirst();
+
+        assertEquals("hunter", node.unlockCondition().classId());
+        assertEquals(25, node.unlockCondition().playerLevel());
+    }
+
+    @Test
+    void rejectsClassLevelAsNodeUnlockCondition() throws IOException {
+        writeNode("1000.json", nodeJson("1000", "[]").replace(
+                "\"effects\": []",
+                "\"unlockCondition\": {\"classId\": \"hunter\", \"classLevel\": 25},\n  \"effects\": []"
+        ));
+
+        IllegalStateException error = assertThrows(IllegalStateException.class, () -> repository().findAll());
+
+        assertTrue(error.getMessage().contains("classLevel"));
+    }
+
     private void writeNode(String fileName, String json) throws IOException {
         Path directory = filebaseRoot.resolve("35.features.skilltree").resolve("nodes");
         Files.createDirectories(directory);

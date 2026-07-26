@@ -64,6 +64,7 @@ public final class PlayerGuiRenderContextFactory {
         return new PlayerGuiRenderContext(
             account,
             statusService.getStatus(astPlayer),
+            skillTreeService.currentClassPointLabel(astPlayer),
             skillTreeService.availableClassPoints(astPlayer),
             skillTreeService.availablePassivePoints(astPlayer),
             goldAmount,

@@ -11,6 +11,9 @@ Skilltree は、skill や能力解放の順序、前提関係、選択分岐を�
 - 後続ノードが前提ノードの役割を単純に無効化しないようにします。
 - 存在しない skill や未実装の解放条件を参照しません。
 - ノード効果は `effects[]` に統合し、`skill` と `status` を `type` で識別します。
+- ノードには任意の `unlockCondition.classId` と `unlockCondition.playerLevel` を設定できます。職業レベル条件は持ちません。
+- クラス条件は現在職そのもの、または `unlockClassLevel[].class` を再帰的に辿った祖先職なら成立します。複数経路のいずれかで祖先に到達できれば成立します。
+- 条件不成立ノードは通常プレイヤーから非表示とし、解放済みでも効果を停止します。
 - `nodeId` は Git 管理の `node-id-sequence.json` を高水位としてエディターが自動採番し、欠番を許容して削除済み ID を再利用しません。Plugin は採番状態を読み込みません。
 - 配置は構造 JSON で `nodeId` と相対座標を直接対応させ、`positionId` は使用しません。
 - edge は無向接続として端点だけを保持し、edge ID は持ちません。
@@ -23,6 +26,7 @@ Skilltree は、skill や能力解放の順序、前提関係、選択分岐を�
 - ノード定義、配置、接続の編集は同エディターから行います。
 - JSON Schema と意味検証に成功したデータだけを保存し、保存前ファイルをバックアップします。
 - JSON Schema が追加された場合、汎用 JSON テキスト編集と Schema 検証をフォールバックとして使用します。
+- ゲーム内表示シミュレーションでは現在職とプレイヤーレベルを指定し、Plugin と同じ祖先職・レベル条件でノードと両端が可視な edge だけを表示します。
 - Plugin 設定編集はリポジトリ上の `10_plugin/AstralRecord/src/main/resources/config.yml` を対象とします。稼働環境の設定と filebase へデプロイまたは同期した後、`/masterdata reload` で反映し、エディターから稼働サーバーへ直接書き込みません。
 
 ## progression

@@ -24,4 +24,4 @@ The file path must remain below `FileDatabase:RootPath`, must not contain `..`, 
 2. Run `POST /api/master-data/seed?mode=diff` when YAML-backed MasterDataDB entries changed. SkillTree-only changes do not require seeding.
 3. Run `/masterdata reload` in Minecraft with permission level 99.
 
-The plugin reloads API/filebase-backed master caches, including SkillTree node/structure JSON, while preserving player state, inventory state, and runtime world instances. SkillTree `unlockedNodeIds` remain in the `account-skilltree` API / DB and are not replaced by master-data reload.
+The plugin reloads API/filebase-backed master caches, including SkillTree node/structure JSON, while preserving player state, inventory state, and runtime world instances. SkillTree unlocked nodes and their CP source class remain in the `account-skilltree` API / DB and are not replaced by master-data reload.

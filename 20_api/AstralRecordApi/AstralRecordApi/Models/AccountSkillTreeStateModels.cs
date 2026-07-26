@@ -4,8 +4,7 @@ public class AccountSkillTreeStateResponse
 {
     public Guid? AccountSkillTreeStateId { get; init; }
     public Guid AccountId { get; init; }
-    public int SkillPoints { get; init; }
-    public required IReadOnlyList<string> UnlockedNodeIds { get; init; }
+    public required IReadOnlyList<AccountSkillTreeUnlockedNodeModel> UnlockedNodes { get; init; }
     public bool IsSaved { get; init; }
     public int Version { get; init; }
     public DateTime? CreatedAt { get; init; }
@@ -16,7 +15,12 @@ public class AccountSkillTreeStateResponse
 
 public class AccountSkillTreeStateUpsertRequest
 {
-    public int SkillPoints { get; init; }
-    public required IReadOnlyList<string> UnlockedNodeIds { get; init; }
+    public required IReadOnlyList<AccountSkillTreeUnlockedNodeModel> UnlockedNodes { get; init; }
     public Guid UpdatedBy { get; init; }
+}
+
+public class AccountSkillTreeUnlockedNodeModel
+{
+    public required string NodeId { get; init; }
+    public string? ConsumedClassId { get; init; }
 }

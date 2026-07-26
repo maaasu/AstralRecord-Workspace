@@ -29,7 +29,7 @@
 
 ## 攻撃スキル params
 
-`normal_attack` と `adventurer_starter_attack` は同じ戦闘パラメータを使用します。
+`normal_attack` などの攻撃スキル実装は次の戦闘パラメータを使用します。
 
 | キー | 型 | 必須 | 既定値 | 説明 |
 | --- | --- | --- | --- | --- |
@@ -87,5 +87,3 @@ params:
       chance: 35
       durationTicks: 100
 ```
-
-`adventurer_starter_attack` は上記に加えて `starterStyle`（`ANCHOR_BURST` / `SIGNAL_ARROW` / `MANA_SPARK`）を必須とします。

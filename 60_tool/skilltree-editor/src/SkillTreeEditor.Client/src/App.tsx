@@ -12,7 +12,10 @@ import { buildNodeFieldSuggestions, minecraftMaterialSuggestions } from './data/
 import { useHistory } from './state/history'
 import { applyAuxiliaryLayout } from './state/autoLayout'
 import { defaultSchema } from './state/schemaSelection'
+import { isNodeVisibleInSimulation } from './state/nodeVisibility'
+import { stripMinecraftFormatting } from './utils/minecraft'
 import type {
+  ClassMasterSummary,
   EditorMetadata,
   JsonObject,
   LoadedSchema,
@@ -46,6 +49,7 @@ export default function App() {
   const [structureDocuments, setStructureDocuments] = useState<StoredDocument<StructureDocument>[]>([])
   const [schemas, setSchemas] = useState<SchemaSummary[]>([])
   const [nodeSchemas, setNodeSchemas] = useState<LoadedSchema[]>([])
+  const [classMasters, setClassMasters] = useState<ClassMasterSummary[]>([])
   const [settings, setSettings] = useState<PluginSkillTreeSettings>({
     worldName: 'world', structureId: '', centerX: 0, centerY: 0, centerZ: 0,
   })
@@ -54,6 +58,9 @@ export default function App() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [selectedTag, setSelectedTag] = useState('')
+  const [simulationEnabled, setSimulationEnabled] = useState(false)
+  const [simulationClassId, setSimulationClassId] = useState('adventurer')
+  const [simulationPlayerLevel, setSimulationPlayerLevel] = useState(1)
   const [nodeEditor, setNodeEditor] = useState<EditorTarget | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [report, setReport] = useState<ValidationReport | null>(null)
@@ -85,6 +92,19 @@ export default function App() {
     [nodes],
   )
   const nodeFieldSuggestions = useMemo(() => buildNodeFieldSuggestions(tagSuggestions), [tagSuggestions])
+  const simulatedNodes = useMemo(
+    () => simulationEnabled
+      ? nodes.filter((node) => isNodeVisibleInSimulation(node, classMasters, {
+          currentClassId: simulationClassId,
+          playerLevel: simulationPlayerLevel,
+        }))
+      : nodes,
+    [classMasters, nodes, simulationClassId, simulationEnabled, simulationPlayerLevel],
+  )
+  const simulationVisibleNodeIds = useMemo(
+    () => simulationEnabled ? new Set(simulatedNodes.map((node) => node.nodeId)) : null,
+    [simulatedNodes, simulationEnabled],
+  )
 
   const showError = useCallback((reason: unknown) => {
     if (reason instanceof ApiError) {
@@ -100,18 +120,23 @@ export default function App() {
     setLoading(true)
     setError('')
     try {
-      const [loadedNodes, loadedStructures, loadedSchemas, loadedSettings, loadedMetadata] = await Promise.all([
+      const [loadedNodes, loadedStructures, loadedSchemas, loadedSettings, loadedMetadata, loadedClasses] = await Promise.all([
         editorApi.listNodes(),
         editorApi.listStructures(),
         editorApi.listSchemas(),
         editorApi.getSettings(),
         editorApi.metadata(),
+        editorApi.listClasses(),
       ])
       setNodeDocuments(loadedNodes)
       setStructureDocuments(loadedStructures)
       setSchemas(loadedSchemas)
       setSettings(loadedSettings)
       setMetadata(loadedMetadata)
+      setClassMasters(loadedClasses)
+      setSimulationClassId((current) => loadedClasses.some((entry) => entry.id === current)
+        ? current
+        : loadedClasses.find((entry) => entry.id === 'adventurer')?.id ?? loadedClasses[0]?.id ?? '')
       const loadedNodeSchemas = await Promise.all(loadedSchemas
         .filter((schema) => schema.entityKind === 'node')
         .map(async (summary) => ({ summary, content: await editorApi.getSchema(summary.fileName) })))
@@ -422,7 +447,7 @@ export default function App() {
         rightVisible={visiblePanes.details}
         left={(
           <NodeSidebar
-            nodes={nodes}
+            nodes={simulatedNodes}
             placedIds={placedIds}
             query={query}
             selectedTag={selectedTag}
@@ -435,6 +460,40 @@ export default function App() {
         )}
         center={(
           <section className="canvas-column">
+            <div className={`simulation-toolbar ${simulationEnabled ? 'active' : ''}`}>
+              <label className="simulation-toggle">
+                <input
+                  type="checkbox"
+                  checked={simulationEnabled}
+                  onChange={(event) => setSimulationEnabled(event.target.checked)}
+                />
+                ゲーム内表示シミュレーション
+              </label>
+              <label>現在の職業
+                <select
+                  value={simulationClassId}
+                  disabled={!simulationEnabled}
+                  onChange={(event) => setSimulationClassId(event.target.value)}
+                >
+                  {classMasters.map((entry) => (
+                    <option key={entry.id} value={entry.id}>
+                      {stripMinecraftFormatting(entry.name)} · {entry.id}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>プレイヤーLv.
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={simulationPlayerLevel}
+                  disabled={!simulationEnabled}
+                  onChange={(event) => setSimulationPlayerLevel(Math.max(1, Math.floor(Number(event.target.value) || 1)))}
+                />
+              </label>
+              <span>{simulationEnabled ? `${simulatedNodes.length} / ${nodes.length} ノード表示` : '全ノード表示'}</span>
+            </div>
             {selectedStructureId ? (
               <SkillTreeCanvas
                 structure={currentStructure}
@@ -447,6 +506,7 @@ export default function App() {
                 onEditMaster={(node) => setNodeEditor({ node, isNew: false })}
                 onNotify={setNotice}
                 iconRevision={iconRevision}
+                visibleNodeIds={simulationVisibleNodeIds}
               />
             ) : (
               <div className="canvas-placeholder"><h2>構造を作成してください</h2><p>ノードマスターを用意し、「＋ 構造」から始めます。</p></div>

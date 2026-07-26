@@ -170,7 +170,7 @@ final class CraftShortcutView {
             .append(Component.text(selectedAccount.getMode().getDisplayName(), NamedTextColor.LIGHT_PURPLE)));
         lore.add(Component.text("累計経験値: ", NamedTextColor.GRAY)
             .append(Component.text(String.valueOf(selectedAccount.getTotalExperience()), NamedTextColor.GREEN)));
-        lore.add(Component.text("CP: ", NamedTextColor.GRAY)
+        lore.add(Component.text(context.classPointLabel() + ": ", NamedTextColor.GRAY)
             .append(Component.text(String.valueOf(context.availableClassPoints()), NamedTextColor.AQUA))
             .append(Component.text(" / PP: ", NamedTextColor.GRAY))
             .append(Component.text(String.valueOf(context.availablePassivePoints()), NamedTextColor.AQUA)));

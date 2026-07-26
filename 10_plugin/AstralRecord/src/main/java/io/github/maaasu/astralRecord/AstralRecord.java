@@ -145,7 +145,6 @@ import io.github.maaasu.astralRecord.feature.sell.service.SellService;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillActionRingEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillBindGuiEventHandler;
-import io.github.maaasu.astralRecord.feature.skill.executor.AdventurerStarterSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.FireBoostSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.IronWillSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
@@ -686,6 +685,8 @@ public final class AstralRecord extends JavaPlugin {
 
         // class
         playerClassService = new PlayerClassService(accountService);
+        playerClassService.setSkillTreeService(skillTreeService);
+        skillTreeService.setPlayerClassService(playerClassService);
 
         // status
         statusService = new StatusService(itemService, inventoryService);
@@ -916,6 +917,7 @@ public final class AstralRecord extends JavaPlugin {
             statusService,
             particleDisplayService
         );
+        questService.setSkillTreeService(skillTreeService);
         questGui = new QuestGui(this, questService);
         questGuiEventHandler = new QuestGuiEventHandler(questGui, questService, inventoryService);
         mobCombatService.setQuestService(questService);
@@ -942,7 +944,6 @@ public final class AstralRecord extends JavaPlugin {
         skillService.registerExecutor(new IronWillSkillExecutor());
         skillService.registerExecutor(new StatusPassiveSkillExecutor());
         skillService.registerExecutor(new WeaponAttackSkillExecutor(particleDisplayService, damageService, conditionService));
-        skillService.registerExecutor(new AdventurerStarterSkillExecutor(particleDisplayService, damageService, conditionService));
         skillService.registerBuiltInDefinitions(BuiltInWeaponAttackDefinitions.definitions());
         itemStackFactory.setSkillService(skillService);
         skillOwnershipService = new SkillOwnershipService(playerClassService, inventoryService, itemService, skillTreeService);
@@ -1661,11 +1662,11 @@ public final class AstralRecord extends JavaPlugin {
 
         var skillTreeSnapshot = skillTreeService.loadMasterDataSnapshot();
         loaded += skillTreeSnapshot.nodes().size();
-        publications.add(() -> skillTreeService.replaceMasterDataSnapshot(skillTreeSnapshot));
 
         var classSnapshot = playerClassService.loadSnapshot();
         loaded += classSnapshot.size();
         publications.add(() -> playerClassService.replaceSnapshot(classSnapshot));
+        publications.add(() -> skillTreeService.replaceMasterDataSnapshot(skillTreeSnapshot));
         var guideSnapshot = guideService.loadEntrySnapshot();
         loaded += guideSnapshot.size();
         publications.add(() -> guideService.replaceEntrySnapshot(guideSnapshot));

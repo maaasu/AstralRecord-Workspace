@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeEffect
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeSkillEffect;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeStatusEffect;
+import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeUnlockCondition;
 import io.github.maaasu.astralRecord.feature.status.model.StatusModifierType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.database.file.FileDatabaseManager;
@@ -32,8 +33,9 @@ public class SkillTreeNodeRepository {
     private static final String SCHEMA_REFERENCE = "../schemas/node.v1.schema.json";
     private static final Set<String> NODE_KEYS = Set.of(
             "$schema", "schemaVersion", "nodeId", "name", "icon", "lore", "tags",
-            "pointType", "pointCost", "effects"
+            "pointType", "pointCost", "unlockCondition", "effects"
     );
+    private static final Set<String> UNLOCK_CONDITION_KEYS = Set.of("classId", "playerLevel");
     private static final Set<String> SKILL_EFFECT_KEYS = Set.of("type", "skillId");
     private static final Set<String> STATUS_EFFECT_KEYS = Set.of(
             "type", "status", "modifierType", "value"
@@ -121,8 +123,49 @@ public class SkillTreeNodeRepository {
                 tags,
                 pointType,
                 pointCost,
+                parseUnlockCondition(node, file),
                 parseEffects(node, file)
         );
+    }
+
+    private @NotNull SkillTreeUnlockCondition parseUnlockCondition(@NotNull JsonObject node, @NotNull File file) {
+        if (!node.has("unlockCondition") || node.get("unlockCondition").isJsonNull()) {
+            return SkillTreeUnlockCondition.NONE;
+        }
+        JsonObject condition = SkillTreeJsonReader.requiredObject(
+                node.get("unlockCondition"),
+                file,
+                "node.unlockCondition"
+        );
+        SkillTreeJsonReader.requireOnlyKeys(condition, UNLOCK_CONDITION_KEYS, file, "node.unlockCondition");
+        String classId = null;
+        if (condition.has("classId") && !condition.get("classId").isJsonNull()) {
+            classId = SkillTreeJsonReader.requiredString(
+                    condition,
+                    "classId",
+                    file,
+                    "node.unlockCondition"
+            ).trim();
+            if (classId.length() > 100 || !classId.matches("[a-z0-9][a-z0-9_-]*")) {
+                throw SkillTreeJsonReader.invalid(file, "node.unlockCondition.classId has an invalid format");
+            }
+        }
+        int playerLevel = 0;
+        if (condition.has("playerLevel") && !condition.get("playerLevel").isJsonNull()) {
+            playerLevel = SkillTreeJsonReader.requiredInt(
+                    condition,
+                    "playerLevel",
+                    file,
+                    "node.unlockCondition"
+            );
+            if (playerLevel < 1) {
+                throw SkillTreeJsonReader.invalid(file, "node.unlockCondition.playerLevel must be 1 or greater");
+            }
+        }
+        if (classId == null && playerLevel == 0) {
+            throw SkillTreeJsonReader.invalid(file, "node.unlockCondition must define classId or playerLevel");
+        }
+        return new SkillTreeUnlockCondition(classId, playerLevel);
     }
 
     private @NotNull List<SkillTreeNodeEffect> parseEffects(JsonObject node, File file) {

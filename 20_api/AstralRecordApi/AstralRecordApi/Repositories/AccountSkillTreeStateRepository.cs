@@ -35,7 +35,7 @@ public class AccountSkillTreeStateRepository(AstralRecordDbContext dbContext) : 
             throw new KeyNotFoundException($"Account not found: {accountId}");
 
         var now = DateTime.UtcNow;
-        var normalizedNodeIds = NormalizeNodeIds(request.UnlockedNodeIds);
+        var normalizedNodes = NormalizeUnlockedNodes(request.UnlockedNodes);
         var entity = await dbContext.AccountSkillTreeStates
             .FirstOrDefaultAsync(state => state.AccountId == accountId && !state.IsDeleted);
 
@@ -45,7 +45,6 @@ public class AccountSkillTreeStateRepository(AstralRecordDbContext dbContext) : 
             {
                 AccountSkillTreeStateId = Guid.NewGuid(),
                 AccountId = accountId,
-                SkillPoints = Math.Max(0, request.SkillPoints),
                 Version = 1,
                 CreatedAt = now,
                 UpdatedAt = now,
@@ -55,11 +54,10 @@ public class AccountSkillTreeStateRepository(AstralRecordDbContext dbContext) : 
             };
 
             await dbContext.AccountSkillTreeStates.AddAsync(entity);
-            await AddUnlockedNodesAsync(entity.AccountSkillTreeStateId, normalizedNodeIds, now, request.UpdatedBy);
+            await AddUnlockedNodesAsync(entity.AccountSkillTreeStateId, normalizedNodes, now, request.UpdatedBy);
         }
         else
         {
-            entity.SkillPoints = Math.Max(0, request.SkillPoints);
             entity.Version = Math.Max(1, entity.Version + 1);
             entity.UpdatedAt = now;
             entity.UpdatedBy = request.UpdatedBy;
@@ -68,7 +66,7 @@ public class AccountSkillTreeStateRepository(AstralRecordDbContext dbContext) : 
                 .Where(node => node.AccountSkillTreeStateId == entity.AccountSkillTreeStateId)
                 .ToListAsync();
             dbContext.AccountSkillTreeUnlockedNodes.RemoveRange(existingNodes);
-            await AddUnlockedNodesAsync(entity.AccountSkillTreeStateId, normalizedNodeIds, now, request.UpdatedBy);
+            await AddUnlockedNodesAsync(entity.AccountSkillTreeStateId, normalizedNodes, now, request.UpdatedBy);
         }
 
         await dbContext.SaveChangesAsync();
@@ -79,8 +77,7 @@ public class AccountSkillTreeStateRepository(AstralRecordDbContext dbContext) : 
     {
         AccountSkillTreeStateId = null,
         AccountId = accountId,
-        SkillPoints = 0,
-        UnlockedNodeIds = [],
+        UnlockedNodes = [],
         IsSaved = false,
         Version = 0,
         CreatedAt = null,
@@ -93,10 +90,13 @@ public class AccountSkillTreeStateRepository(AstralRecordDbContext dbContext) : 
     {
         AccountSkillTreeStateId = entity.AccountSkillTreeStateId,
         AccountId = entity.AccountId,
-        SkillPoints = entity.SkillPoints,
-        UnlockedNodeIds = entity.UnlockedNodes
-            .Select(node => node.NodeId)
-            .OrderBy(nodeId => nodeId, StringComparer.Ordinal)
+        UnlockedNodes = entity.UnlockedNodes
+            .OrderBy(node => node.NodeId, StringComparer.Ordinal)
+            .Select(node => new AccountSkillTreeUnlockedNodeModel
+            {
+                NodeId = node.NodeId,
+                ConsumedClassId = node.ConsumedClassId,
+            })
             .ToList(),
         IsSaved = true,
         Version = entity.Version,
@@ -106,23 +106,36 @@ public class AccountSkillTreeStateRepository(AstralRecordDbContext dbContext) : 
         UpdatedBy = entity.UpdatedBy,
     };
 
-    private static List<string> NormalizeNodeIds(IReadOnlyList<string> rawNodeIds)
+    private static List<AccountSkillTreeUnlockedNodeModel> NormalizeUnlockedNodes(
+        IReadOnlyList<AccountSkillTreeUnlockedNodeModel> rawNodes)
     {
-        return rawNodeIds
-            .Where(nodeId => !string.IsNullOrWhiteSpace(nodeId))
-            .Select(nodeId => nodeId.Trim())
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(nodeId => nodeId, StringComparer.Ordinal)
+        return rawNodes
+            .Where(node => node is not null && !string.IsNullOrWhiteSpace(node.NodeId))
+            .Select(node => new AccountSkillTreeUnlockedNodeModel
+            {
+                NodeId = node.NodeId.Trim(),
+                ConsumedClassId = string.IsNullOrWhiteSpace(node.ConsumedClassId)
+                    ? null
+                    : node.ConsumedClassId.Trim().ToLowerInvariant(),
+            })
+            .GroupBy(node => node.NodeId, StringComparer.Ordinal)
+            .Select(group => group.First())
+            .OrderBy(node => node.NodeId, StringComparer.Ordinal)
             .ToList();
     }
 
-    private async Task AddUnlockedNodesAsync(Guid stateId, IReadOnlyList<string> nodeIds, DateTime now, Guid updatedBy)
+    private async Task AddUnlockedNodesAsync(
+        Guid stateId,
+        IReadOnlyList<AccountSkillTreeUnlockedNodeModel> nodes,
+        DateTime now,
+        Guid updatedBy)
     {
-        var entities = nodeIds.Select(nodeId => new AccountSkillTreeUnlockedNodeEntity
+        var entities = nodes.Select(node => new AccountSkillTreeUnlockedNodeEntity
         {
             AccountSkillTreeUnlockedNodeId = Guid.NewGuid(),
             AccountSkillTreeStateId = stateId,
-            NodeId = nodeId,
+            NodeId = node.NodeId,
+            ConsumedClassId = node.ConsumedClassId,
             CreatedAt = now,
             UpdatedAt = now,
             CreatedBy = updatedBy,

@@ -48,9 +48,14 @@ SkillTree のノード定義と配置・接続構造は、`40_filebase/35.featur
 | `tags` | List\<String\> | 必須 | 検索・分類用タグ。各要素は空白のみ不可、重複不可 |
 | `pointType` | String | 必須 | `CP` または `PP` |
 | `pointCost` | Integer | 必須 | 0 以上、2147483647 以下の解放コスト（Java `int` 範囲） |
+| `unlockCondition` | Object | 任意 | ノードを表示・有効化する条件。省略時は条件なし |
+| `unlockCondition.classId` | String | 任意 | 現在クラスまたはその祖先として必要なクラス ID。1 職だけ指定可能 |
+| `unlockCondition.playerLevel` | Integer | 任意 | 必要プレイヤーレベル。1 以上 |
 | `effects` | List\<Effect\> | 必須 | 解放時に有効になる効果 |
 
 `nodeId` はエディターが `node-id-sequence.json` の `lastIssuedNodeId` の次から自動採番し、初回は `1000` から開始します。作成後は変更せず、ノードを削除しても `lastIssuedNodeId` を戻さないため、削除済み ID は再利用しません。採番の欠番は許容します。ファイル名は `<nodeId>.json` と一致させます。
+
+`unlockCondition` は `classId` と `playerLevel` の少なくとも一方を持ちます。職業レベルはノード条件として定義しません。`classId` は現在クラスそのものに加え、現在クラスから `unlockClassLevel[].class` を再帰的に辿ったいずれかの祖先であれば成立します。条件を満たさないノードはゲーム内で非表示となり、解放済みでも効果を発揮しません。
 
 ### nodeId 採番状態
 
@@ -169,4 +174,4 @@ JSON Schema による型・必須項目検証に加え、エディターのバ�
 - エディターが更新する Plugin 設定はリポジトリ上の `10_plugin/AstralRecord/src/main/resources/config.yml` とし、稼働環境の `plugins/AstralRecord/config.yml` へ直接書き込まない。稼働環境へ filebase と設定をデプロイまたは同期した後、`/masterdata reload` で反映する。
 - Plugin は選択された node/structure JSON を読み取り専用で使用し、ゲーム内操作から構造ファイルを書き換えない。
 - Plugin の `/masterdata reload` は node/structure JSON を再読込し、検証済みスナップショットを一括反映する。
-- プレイヤー別の `unlockedNodeIds` は `account-skilltree` API/DB に保存し、構造 JSON や Plugin ローカルファイルには保存しない。
+- プレイヤー別の解放ノードと CP 消費元クラスは `account-skilltree` API/DB に保存し、構造 JSON や Plugin ローカルファイルには保存しない。

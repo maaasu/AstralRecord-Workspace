@@ -138,6 +138,7 @@ final class SkillTreeVisualizer {
 
     private void refreshViewer(@NotNull Player player, @Nullable Set<String> dirtyPositions) {
         RenderMode mode = resolveMode(player);
+        AstPlayer astPlayer = AstPlayerCache.get(player);
         boolean partialNodeRefresh = dirtyPositions != null && !dirtyPositions.isEmpty() && mode == RenderMode.PLAYER;
 
         for (AdminPositionVisual visual : adminPositionVisuals.values()) {
@@ -148,7 +149,10 @@ final class SkillTreeVisualizer {
             if (partialNodeRefresh && !dirtyPositions.contains(visual.node().nodeId())) {
                 continue;
             }
-            boolean visible = mode == RenderMode.PLAYER && isVisibleTo(player, visual.baseLocation());
+            boolean visible = mode == RenderMode.PLAYER
+                    && astPlayer != null
+                    && service.isNodeVisible(astPlayer, visual.node())
+                    && isVisibleTo(player, visual.baseLocation());
             SkillTreeService.NodePresentationState nodeState = visible
                     ? resolveNodeState(player, visual.node())
                     : SkillTreeService.NodePresentationState.BLOCKED;
@@ -340,6 +344,12 @@ final class SkillTreeVisualizer {
         SkillTreeNodeDefinition leftNode = service.getNode(edge.sourceNodeId());
         SkillTreeNodeDefinition rightNode = service.getNode(edge.targetNodeId());
         if (leftNode == null || rightNode == null) {
+            return EdgeState.HIDDEN;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null
+                || !service.isNodeVisible(astPlayer, leftNode)
+                || !service.isNodeVisible(astPlayer, rightNode)) {
             return EdgeState.HIDDEN;
         }
 

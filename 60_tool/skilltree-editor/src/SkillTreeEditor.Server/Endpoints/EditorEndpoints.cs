@@ -12,6 +12,8 @@ public static class EditorEndpoints
         var api = endpoints.MapGroup("/api");
 
         api.MapGet("/metadata", (WorkspacePaths paths) => Results.Ok(paths.ToMetadata()));
+        api.MapGet("/classes", async (WorkspacePaths paths, CancellationToken token) =>
+            Results.Ok(await new ClassMasterCatalog(paths).ReadAllAsync(token)));
 
         if (endpoints.ServiceProvider.GetService<MinecraftIconService>() is not null)
         {

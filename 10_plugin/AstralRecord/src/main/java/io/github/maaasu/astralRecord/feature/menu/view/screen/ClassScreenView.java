@@ -25,7 +25,6 @@ public final class ClassScreenView extends BaseMenuScreenView {
     private static final int SWORDSMAN_SLOT = 12;
     private static final int HUNTER_SLOT = 13;
     private static final int MAGE_SLOT = 14;
-    private static final int ACOLYTE_SLOT = 15;
 
     private static final String LABEL_ROLE_AND_TYPE =
         "\u30ed\u30fc\u30eb: %s / \u7a2e\u5225: %s";
@@ -152,7 +151,6 @@ public final class ClassScreenView extends BaseMenuScreenView {
             case "swordsman" -> SWORDSMAN_SLOT;
             case "hunter" -> HUNTER_SLOT;
             case "mage" -> MAGE_SLOT;
-            case "acolyte" -> ACOLYTE_SLOT;
             default -> -1;
         };
     }

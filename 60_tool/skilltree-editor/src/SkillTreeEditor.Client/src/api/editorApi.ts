@@ -1,4 +1,5 @@
 import type {
+  ClassMasterSummary,
   EditorMetadata,
   JsonObject,
   NodeMaster,
@@ -52,6 +53,7 @@ const json = (method: string, body: JsonObject | PluginSkillTreeSettings): Reque
 
 export const editorApi = {
   metadata: () => request<EditorMetadata>('/api/metadata'),
+  listClasses: () => request<ClassMasterSummary[]>('/api/classes'),
   listNodes: () => request<StoredDocument<NodeMaster>[]>('/api/nodes'),
   createNode: (node: JsonObject) => request<NodeMaster>('/api/nodes', json('POST', node)),
   saveNode: (node: NodeMaster) => request<NodeMaster>(
