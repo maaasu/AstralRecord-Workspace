@@ -49,7 +49,8 @@ describe('PlacementInspector', () => {
 
     expect(screen.getByRole('heading', { name: '旅立ちの記録' })).toBeInTheDocument()
     expect(screen.getByLabelText('Minecraft Material')).toHaveAttribute('list')
-    expect(screen.getByRole('button', { name: '＋ combat' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'ルート／根を削除' })).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('タグを追加'), { target: { value: 'primary' } })
     fireEvent.change(screen.getByLabelText('X'), { target: { value: '8' } })
     expect(onChange).toHaveBeenCalledWith({
       ...structure,
@@ -64,6 +65,7 @@ describe('PlacementInspector', () => {
       ...master,
       name: '&b新しい名前',
       icon: 'DIAMOND_SWORD',
+      tags: ['root', 'primary'],
     }))
   })
 })

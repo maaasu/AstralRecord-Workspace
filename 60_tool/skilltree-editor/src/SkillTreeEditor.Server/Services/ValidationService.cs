@@ -11,7 +11,8 @@ namespace SkillTreeEditor.Server.Services;
 public sealed class ValidationService(
     WorkspacePaths paths,
     SchemaCatalog schemaCatalog,
-    PluginConfigService pluginConfig)
+    PluginConfigService pluginConfig,
+    MasterTagCatalog masterTagCatalog)
 {
     public async Task<ValidationReport> ValidateAllAsync(CancellationToken cancellationToken)
     {
@@ -27,6 +28,7 @@ public sealed class ValidationService(
         var nodes = await LoadDirectoryAsync(paths.Nodes, "NODE_JSON_INVALID", report, cancellationToken);
         var structures = await LoadDirectoryAsync(paths.Structures, "STRUCTURE_JSON_INVALID", report, cancellationToken);
         var sequence = await LoadNodeIdSequenceAsync(report, cancellationToken);
+        var masterTags = await TryReadMasterTagsAsync(report, cancellationToken);
 
         foreach (var duplicate in nodes
                      .Select(document => (Document: document, Id: JsonValueReader.String(document.Content["nodeId"])))
@@ -57,6 +59,8 @@ public sealed class ValidationService(
                 await schemaCatalog.ValidateAsync("node", node.Content, node.FileName, cancellationToken),
                 invalidSchemaFiles);
             ValidateNodeShape(node.Content, node.FileName, report);
+            if (masterTags is not null)
+                ValidateNodeTags(node.Content, node.FileName, masterTags, report);
             ValidateDocumentFileName(node.Content, "nodeId", node.FileName, "NODE_FILE_NAME_MISMATCH", report);
         }
 
@@ -116,6 +120,9 @@ public sealed class ValidationService(
         var report = new ValidationReport();
         report.Merge(await schemaCatalog.ValidateAsync("node", candidate, existingFileName, cancellationToken));
         ValidateNodeShape(candidate, existingFileName, report);
+        var masterTags = await TryReadMasterTagsAsync(report, cancellationToken);
+        if (masterTags is not null)
+            ValidateNodeTags(candidate, existingFileName, masterTags, report);
 
         var candidateId = JsonValueReader.String(candidate["nodeId"]);
         if (!string.IsNullOrWhiteSpace(candidateId))
@@ -210,6 +217,41 @@ public sealed class ValidationService(
         if (pointCost < 0)
             report.AddError("POINT_COST_INVALID", "pointCost must not be negative.", fileName, "/pointCost");
         RequireArray(node, "effects", fileName, report);
+    }
+
+    private static void ValidateNodeTags(
+        JsonObject node,
+        string? fileName,
+        IReadOnlyDictionary<string, MasterTagSummary> masterTags,
+        ValidationReport report)
+    {
+        if (node["tags"] is not JsonArray tags)
+            return;
+
+        for (var index = 0; index < tags.Count; index++)
+        {
+            var tagId = JsonValueReader.String(tags[index]);
+            if (string.IsNullOrWhiteSpace(tagId))
+                continue;
+            if (!masterTags.TryGetValue(tagId, out var definition))
+            {
+                report.AddError(
+                    "UNKNOWN_MASTER_TAG",
+                    $"Tag '{tagId}' is not defined in the shared master tag catalog.",
+                    fileName,
+                    $"/tags/{index}");
+                continue;
+            }
+
+            if (!definition.AppliesTo.Contains("SKILLTREE_NODE", StringComparer.Ordinal))
+            {
+                report.AddError(
+                    "MASTER_TAG_TARGET_INVALID",
+                    $"Tag '{tagId}' cannot be used by a skill-tree node.",
+                    fileName,
+                    $"/tags/{index}");
+            }
+        }
     }
 
     public static void ValidateStructureShape(
@@ -411,6 +453,26 @@ public sealed class ValidationService(
         catch (Exception exception) when (exception is FileNotFoundException or IOException or UnauthorizedAccessException)
         {
             report.AddWarning("PLUGIN_CONFIG_UNAVAILABLE", exception.Message, Path.GetFileName(paths.PluginConfig));
+            return null;
+        }
+    }
+
+    private async Task<IReadOnlyDictionary<string, MasterTagSummary>?> TryReadMasterTagsAsync(
+        ValidationReport report,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return (await masterTagCatalog.ReadAllAsync(cancellationToken))
+                .ToDictionary(value => value.Id, StringComparer.Ordinal);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            report.AddError("TAG_CATALOG_INVALID", exception.Message, Path.GetFileName(paths.TagCatalog));
             return null;
         }
     }

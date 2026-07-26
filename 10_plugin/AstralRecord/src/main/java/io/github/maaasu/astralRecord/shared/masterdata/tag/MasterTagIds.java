@@ -101,6 +101,9 @@ public final class MasterTagIds {
         /** 攻撃: 攻撃能力に関係する分類。 */
         public static final String OFFENSE = "offense";
 
+        /** 前衛: 前線で戦うクラスロール。 */
+        public static final String FRONT = "front";
+
         /** 弓: 弓系統に関係する分類。 */
         public static final String BOW = "bow";
 
@@ -358,6 +361,18 @@ public final class MasterTagIds {
 
         /** 防具: 防具を成果物とするレシピ。 */
         public static final String ARMOR = "armor";
+
+        /** 鍛冶: 鍛冶設備や鍛冶工程で扱うレシピ。 */
+        public static final String BLACKSMITH = "blacksmith";
+
+        /** 強化: 既存アイテムを強化するレシピ。 */
+        public static final String ENHANCE = "enhance";
+
+        /** 錬金: 錬金・調合工程で扱うレシピ。 */
+        public static final String ALCHEMY = "alchemy";
+
+        /** 消耗品: 消耗品を成果物とするレシピ。 */
+        public static final String CONSUMABLE = "consumable";
     }
 
     /** モチーフタグです。 */
@@ -389,7 +404,7 @@ public final class MasterTagIds {
         /** 風: 風をモチーフとする分類。 */
         public static final String WIND = "wind";
 
-        /** 風待ち: 風待ちをモチーフとするスキル分類。 */
+        /** 風待ち: 風待ちをモチーフとするスキルまたはMobの分類。 */
         public static final String WINDWAIT = "windwait";
 
         /** 黄昏: 黄昏をモチーフとする分類。 */

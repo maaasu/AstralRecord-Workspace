@@ -25,7 +25,7 @@
 | `displayScale.x` | Double | ○ | - | X 軸スケール |
 | `displayScale.y` | Double | ○ | - | Y 軸スケール |
 | `displayScale.z` | Double | ○ | - | Z 軸スケール |
-| `requiredToolTags[]` | List<String> | ○ | - | 破壊可能な装備タグ。`PICKAXE` / `HOE` など |
+| `requiredToolTags[]` | List<String> | ○ | - | 共有タグカタログの`GATHERING_REQUIRED_TOOL`対象ID。`PICKAXE` / `HOE`など |
 | `sounds.hit.sound` | String | 任意 | null | 採集 HP を削ったときに鳴らす Bukkit sound key |
 | `sounds.hit.volume` | Double | 任意 | `1.0` | `sounds.hit.sound` の音量 |
 | `sounds.hit.pitch` | Double | 任意 | `1.0` | `sounds.hit.sound` のピッチ |
@@ -35,7 +35,7 @@
 
 ### requiredToolTags
 
-`requiredToolTags[]` は item/equipment の `equipment.tag` と対応する値を保持します。
+`requiredToolTags[]` は item/equipment の `equipment.tag` と対応する値を保持します。使用可能なIDと日本語定義は`40_filebase/76.shared.tag/v1.tags.yml`を参照してください。
 採集判定では、このリストのいずれかに一致する装備だけを有効な採集ツールとして扱います。
 
 例:

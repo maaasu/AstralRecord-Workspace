@@ -114,11 +114,17 @@ public sealed class ValidationServiceTests
                     y: 0
                     z: 0
                 """);
+            Directory.CreateDirectory(Path.GetDirectoryName(paths.TagCatalog)!);
+            var sourceRoot = WorkspacePaths.ResolveWorkspaceRoot(null, AppContext.BaseDirectory);
+            File.Copy(
+                Path.Combine(sourceRoot, "40_filebase", "76.shared.tag", "v1.tags.yml"),
+                paths.TagCatalog);
             var backups = new BackupService(paths);
             var validation = new ValidationService(
                 paths,
                 new SchemaCatalog(paths),
-                new PluginConfigService(paths, backups));
+                new PluginConfigService(paths, backups),
+                new MasterTagCatalog(paths));
 
             var report = await validation.ValidateAllAsync(CancellationToken.None);
 

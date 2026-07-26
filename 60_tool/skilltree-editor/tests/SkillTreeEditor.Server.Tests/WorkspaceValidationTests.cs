@@ -12,7 +12,7 @@ public sealed class WorkspaceValidationTests
         var backups = new BackupService(paths);
         var schemas = new SchemaCatalog(paths);
         var pluginConfig = new PluginConfigService(paths, backups);
-        var validation = new ValidationService(paths, schemas, pluginConfig);
+        var validation = new ValidationService(paths, schemas, pluginConfig, new MasterTagCatalog(paths));
 
         var report = await validation.ValidateAllAsync(CancellationToken.None);
 
@@ -62,5 +62,16 @@ public sealed class WorkspaceValidationTests
         Assert.Contains("アイアンウィル", ironWill.Name);
         Assert.Contains("被ダメージ", ironWill.Description);
         Assert.Equal("SKILL", ironWill.Type);
+    }
+
+    [Fact]
+    public async Task MasterTagCatalogExposesJapaneseSkillTreeTagInformation()
+    {
+        var root = WorkspacePaths.ResolveWorkspaceRoot(null, AppContext.BaseDirectory);
+        var tags = await new MasterTagCatalog(new WorkspacePaths(root)).ReadAllAsync(CancellationToken.None);
+
+        var primary = Assert.Single(tags, value => value.Id == "primary");
+        Assert.Equal("基本能力", primary.DisplayName);
+        Assert.Contains("SKILLTREE_NODE", primary.AppliesTo);
     }
 }

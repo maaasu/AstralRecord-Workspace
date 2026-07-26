@@ -13,6 +13,7 @@
 | 05 | `05-skilltree-editor.bat` | ビルド済みスキルツリーエディタのローカル起動 |
 | 06 | `06-skilltree-editor-build.bat` | スキルツリーエディタのフロントエンドだけをビルド |
 | 07 | `07-generate-status-types.bat` | 共有ステータスカタログからKotlin / C# / TypeScriptを生成 |
+| 08 | `08-generate-tag-types.bat` | 共有タグカタログからJava / C# / TypeScriptを生成し、filebaseのタグ参照を検証 |
 
 bat はどのカレントディレクトリから実行しても動作するよう、内部で専用ディレクトリのスクリプトを絶対パス解決します。
 
@@ -27,6 +28,7 @@ bat はどのカレントディレクトリから実行しても動作するよ�
 ├─ 05-skilltree-editor.bat
 ├─ 06-skilltree-editor-build.bat
 ├─ 07-generate-status-types.bat
+├─ 08-generate-tag-types.bat
 ├─ deploy-debug/
 │  ├─ deploy-debug.ps1
 │  ├─ deploy-debug.config.json
@@ -41,6 +43,10 @@ bat はどのカレントディレクトリから実行しても動作するよ�
 │  └─ README.md
 ├─ status-catalog-codegen/
 │  ├─ StatusCatalogCodegen.csproj
+│  ├─ Program.cs
+│  └─ README.md
+├─ tag-catalog-codegen/
+│  ├─ TagCatalogCodegen.csproj
 │  ├─ Program.cs
 │  └─ README.md
 └─ skilltree-editor/
@@ -61,6 +67,8 @@ bat はどのカレントディレクトリから実行しても動作するよ�
 スキルツリーエディタは初回のみ `skilltree-editor/src/SkillTreeEditor.Client` で `npm ci` と `npm run build` を実行してください。開発時の2プロセス起動やpublish手順は `skilltree-editor/README.md` を参照してください。
 
 共有ステータスカタログを変更した後は`07-generate-status-types.bat`を実行します。生成漏れだけを検査する場合は`07-generate-status-types.bat -Check`を使用できます。
+
+共有タグカタログを変更した後は`08-generate-tag-types.bat`を実行します。生成漏れと全filebaseの未定義・用途違いタグだけを検査する場合は`08-generate-tag-types.bat -Check`を使用できます。
 
 Master data reload の実行前には `ASTRALRECORD_API_KEY` を設定してください。
 

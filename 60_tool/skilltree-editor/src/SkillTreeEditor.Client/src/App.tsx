@@ -581,6 +581,7 @@ export default function App() {
                   <dt>Structures</dt><dd>{metadata.structuresPath}</dd>
                   <dt>Skills</dt><dd>{metadata.skillsPath}</dd>
                   <dt>Status Catalog</dt><dd>{metadata.statusCatalogPath}</dd>
+                  <dt>Tag Catalog</dt><dd>{metadata.tagCatalogPath}</dd>
                   <dt>ID Sequence</dt><dd>{metadata.nodeIdSequencePath}</dd>
                   <dt>Backups</dt><dd>{metadata.backupPath}</dd>
                   <dt>Icon Cache</dt><dd>{metadata.minecraftIconCachePath}</dd>

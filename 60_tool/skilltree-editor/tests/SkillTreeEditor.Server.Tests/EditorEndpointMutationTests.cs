@@ -134,6 +134,24 @@ public sealed class EditorEndpointMutationTests : IDisposable
             issue => issue!["code"]!.GetValue<string>() == "DUPLICATE_STRUCTURE_ID");
     }
 
+    [Fact]
+    public async Task NodeSaveRejectsUnknownAndWrongTargetMasterTags()
+    {
+        await using var host = await StartAsync();
+        var unknown = Node("1000", "Unknown tag");
+        unknown["tags"] = new JsonArray("not_defined");
+
+        using var unknownResponse = await host.Client.PutAsJsonAsync("/api/nodes/1000", unknown);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, unknownResponse.StatusCode);
+        Assert.Contains("UNKNOWN_MASTER_TAG", await unknownResponse.Content.ReadAsStringAsync());
+
+        var wrongTarget = Node("1000", "Wrong target");
+        wrongTarget["tags"] = new JsonArray("active");
+        using var wrongTargetResponse = await host.Client.PutAsJsonAsync("/api/nodes/1000", wrongTarget);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, wrongTargetResponse.StatusCode);
+        Assert.Contains("MASTER_TAG_TARGET_INVALID", await wrongTargetResponse.Content.ReadAsStringAsync());
+    }
+
     private async Task<RunningEditor> StartAsync()
     {
         PrepareWorkspace();
@@ -142,7 +160,8 @@ public sealed class EditorEndpointMutationTests : IDisposable
         var repository = new FilebaseRepository(paths, backups);
         var schemas = new SchemaCatalog(paths);
         var pluginConfig = new PluginConfigService(paths, backups);
-        var validation = new ValidationService(paths, schemas, pluginConfig);
+        var masterTags = new MasterTagCatalog(paths);
+        var validation = new ValidationService(paths, schemas, pluginConfig, masterTags);
         var gate = new WorkspaceMutationGate(paths);
 
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
@@ -159,6 +178,7 @@ public sealed class EditorEndpointMutationTests : IDisposable
         builder.Services.AddSingleton(validation);
         builder.Services.AddSingleton(gate);
         builder.Services.AddSingleton(new SkillMasterCatalog(paths));
+        builder.Services.AddSingleton(masterTags);
 
         var app = builder.Build();
         app.MapEditorEndpoints();
@@ -176,6 +196,7 @@ public sealed class EditorEndpointMutationTests : IDisposable
         Directory.CreateDirectory(paths.Structures);
         Directory.CreateDirectory(paths.Schemas);
         Directory.CreateDirectory(Path.GetDirectoryName(paths.PluginConfig)!);
+        Directory.CreateDirectory(Path.GetDirectoryName(paths.TagCatalog)!);
         var sourceRoot = WorkspacePaths.ResolveWorkspaceRoot(null, AppContext.BaseDirectory);
         var sourceSchemas = Path.Combine(sourceRoot, "40_filebase", "35.features.skilltree", "schemas");
         File.Copy(
@@ -187,6 +208,9 @@ public sealed class EditorEndpointMutationTests : IDisposable
         File.Copy(
             Path.Combine(sourceSchemas, "node-id-sequence.v1.schema.json"),
             Path.Combine(paths.Schemas, "node-id-sequence.v1.schema.json"));
+        File.Copy(
+            Path.Combine(sourceRoot, "40_filebase", "76.shared.tag", "v1.tags.yml"),
+            paths.TagCatalog);
         File.WriteAllText(Path.Combine(paths.Nodes, "1000.json"), StableJson.Serialize(Node("1000", "Node")));
         File.WriteAllText(paths.NodeIdSequence, StableJson.Serialize(new JsonObject
         {

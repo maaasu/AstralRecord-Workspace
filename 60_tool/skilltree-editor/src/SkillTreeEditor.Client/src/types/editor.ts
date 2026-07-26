@@ -106,6 +106,7 @@ export interface EditorMetadata {
   nodeIdSequencePath: string
   skillsPath: string
   statusCatalogPath: string
+  tagCatalogPath: string
   pluginConfigPath: string
   backupPath: string
   minecraftIconCachePath: string

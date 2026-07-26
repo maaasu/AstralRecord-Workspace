@@ -76,6 +76,7 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 - `config.yml` のパス解決ルールと各 YAML スキーマ定義を優先する。
 - マスタデータの ID、カテゴリ、参照先が実装やリソースパックと矛盾しないか確認する。
 - ステータスID・日本語名・表示メタデータは`40_filebase/75.shared.status/v1.status_types.yml`を正本とし、変更後はルートの`generate-status-types.ps1`でKotlin/C#/TypeScript型を再生成する。
+- マスターデータのタグID・日本語名・用途は`40_filebase/76.shared.tag/v1.tags.yml`を正本とし、変更後はルートの`generate-tag-types.ps1`でJava/C#/TypeScript定数を再生成する。同スクリプトは全filebaseのタグ参照も検証する。
 
 ### スキーマ定義ファイルの配置
 

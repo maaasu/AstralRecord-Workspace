@@ -12,6 +12,7 @@
 | 表示シミュレーション用クラス階層（読取専用） | `40_filebase/20.features.class/*.yml` |
 | スキル表示情報・候補（読取専用） | `40_filebase/30.features.skill/**/*.yml` |
 | ステータス表示情報・候補（生成元） | `40_filebase/75.shared.status/v1.status_types.yml` |
+| タグ表示情報・候補・保存時検証（生成元） | `40_filebase/76.shared.tag/v1.tags.yml` |
 | nodeId採番high-water | `40_filebase/35.features.skilltree/node-id-sequence.json` |
 | Plugin 表示設定 | `10_plugin/AstralRecord/src/main/resources/config.yml` の `skilltree.worldName` / `structureId` / `center` |
 | 保存前バックアップ | `60_tool/skilltree-editor/.backups/` |
@@ -83,6 +84,7 @@ dotnet build SkillTreeEditor.slnx
 - node/structureのIDとファイル名の不一致
 - nodeId high-waterのSchema違反、既存最大IDより小さい値
 - 壊れたJSON Schema（未参照Schemaも全体検証でファイル単位に報告）
+- 共有タグカタログに未定義、または`SKILLTREE_NODE`へ適用できないノードタグ
 - Plugin中心座標と相対座標の加算による32-bit座標overflow
 
 ## Reactをビルドして単一起動
@@ -150,7 +152,7 @@ dotnet run --project .\src\SkillTreeEditor.Server -- --SkillTreeEditor:Workspace
 
 - 未配置ノードを左ペインからキャンバスへドラッグして配置します。
 - キャンバスの空白を左ドラッグすると画面を移動します。Shiftを押しながら空白をドラッグすると範囲選択になります。
-- キャンバスとノード一覧には、マスターの `icon` に指定したBukkit Materialの画像と、Minecraft装飾コードを除いた名前を表示します。ステータス効果は日本語名と値、スキル効果は日本語名と説明をノードのホバー情報へ表示し、ノード一覧と詳細には効果概要も直接表示します。
+- キャンバスとノード一覧には、マスターの `icon` に指定したBukkit Materialの画像と、Minecraft装飾コードを除いた名前を表示します。タグは共有カタログの日本語名・説明、ステータス効果は日本語名と値、スキル効果は日本語名と説明をノードのホバー情報へ表示し、ノード一覧と詳細には概要も直接表示します。
 - キャンバスでノードを選択すると、右側でX/Y/Z、名前、Material、ポイント、タグ、Loreを直接編集できます。Effects、Schema、Raw JSONは「Effects・Schema・Raw JSONを編集」から編集します。
 - キャンバス上のノードを右クリックすると、マスター編集、ROOT設定、nodeIdコピー、接続削除、配置削除を選べます。複数選択中の配置削除にも対応します。
 - ノードのハンドル間をドラッグしてedgeを追加します。
@@ -161,7 +163,7 @@ dotnet run --project .\src\SkillTreeEditor.Server -- --SkillTreeEditor:Workspace
 - Ctrl+Z / Ctrl+Y、またはヘッダーのボタンでUndo / Redoします。
 - 「補助自動配置」はrootからのBFSレイヤー配置をX/Zへ明示反映します。通常の編集履歴に入るためUndoでき、結果は保存時に構造JSONの座標として確定します。
 - ノードマスターはJSON Schemaから生成したフォームとRaw JSONの両方で編集できます。既存文書は `$schema` のファイル名から対応Schemaを選び、新規文書では最新の既定Schemaを選択できます。新しいSchema項目はフォームへ自動的に反映され、未対応の複雑な表現はRaw JSONで編集できます。
-- `icon` は自由入力を維持しつつ、Paper 1.21.11でアイテムとして使用可能なMaterial候補を表示します。候補は `src/SkillTreeEditor.Client/src/data/minecraft-materials.1.21.11.json` に固定しているため、サーバーバージョンを変更するときに公式server data generatorの `generated/reports/items.json` から更新してください。既存タグも候補として表示します。ステータスは共有カタログから生成した日本語名付き候補、スキルはfilebaseから読み取った日本語名付き候補を表示しますが、JSONへ保存する値はIDです。
+- `icon` は自由入力を維持しつつ、Paper 1.21.11でアイテムとして使用可能なMaterial候補を表示します。候補は `src/SkillTreeEditor.Client/src/data/minecraft-materials.1.21.11.json` に固定しているため、サーバーバージョンを変更するときに公式server data generatorの `generated/reports/items.json` から更新してください。タグとステータスは共有カタログから生成した日本語名・説明付き候補、スキルはfilebaseから読み取った日本語名付き候補を表示しますが、JSONへ保存する値はいずれもIDです。
 - 検証に成功するまで構造JSONは保存されません。
 
 ## Minecraftアイコン
@@ -178,7 +180,7 @@ dotnet run --project .\src\SkillTreeEditor.Server -- --SkillTreeEditor:Workspace
 
 ソース側 `config.yml` の変更は既存のPlugin data folderへ自動コピーされません。表示ワールド・構造・中心座標を変えた場合は、稼働環境の `plugins/AstralRecord/config.yml` もデプロイまたは同期してからリロードしてください。エディタが稼働サーバーの設定へ直接書き込むことはありません。
 
-JSON Schemaで表現できないBukkit MaterialやスキルIDとの実在照合はPluginロード時にも行われます。ステータス候補を変更する場合は共有カタログを編集して`.\generate-status-types.ps1`を実行してください。`/masterdata reload` が返すエラーを修正してから運用へ反映してください。
+JSON Schemaで表現できないBukkit MaterialやスキルIDとの実在照合はPluginロード時にも行われます。ステータス候補は共有ステータスカタログと`.\generate-status-types.ps1`、タグ候補は共有タグカタログと`.\generate-tag-types.ps1`で更新してください。タグ生成では全filebaseの未定義タグと用途不一致も検査します。`/masterdata reload` が返すエラーを修正してから運用へ反映してください。
 
 ## トラブルシューティング
 

@@ -189,6 +189,11 @@ tags:
     description: 攻撃能力に関係する分類。
     category: COMBAT_ROLE
     appliesTo: [SKILLTREE_NODE]
+  - id: front
+    displayName: 前衛
+    description: 前線で戦うクラスロール。
+    category: COMBAT_ROLE
+    appliesTo: [CLASS]
   - id: bow
     displayName: 弓
     description: 弓系統に関係する分類。
@@ -556,6 +561,26 @@ tags:
     description: 防具を成果物とするレシピ。
     category: CRAFTING
     appliesTo: [RECIPE]
+  - id: blacksmith
+    displayName: 鍛冶
+    description: 鍛冶設備や鍛冶工程で扱うレシピ。
+    category: CRAFTING
+    appliesTo: [RECIPE]
+  - id: enhance
+    displayName: 強化
+    description: 既存アイテムを強化するレシピ。
+    category: CRAFTING
+    appliesTo: [RECIPE]
+  - id: alchemy
+    displayName: 錬金
+    description: 錬金・調合工程で扱うレシピ。
+    category: CRAFTING
+    appliesTo: [RECIPE]
+  - id: consumable
+    displayName: 消耗品
+    description: 消耗品を成果物とするレシピ。
+    category: CRAFTING
+    appliesTo: [RECIPE]
 
   - id: administrator
     displayName: 管理者
@@ -599,9 +624,9 @@ tags:
     appliesTo: [SKILLTREE_NODE]
   - id: windwait
     displayName: 風待ち
-    description: 風待ちをモチーフとするスキル分類。
+    description: 風待ちをモチーフとするスキルまたはMobの分類。
     category: THEME
-    appliesTo: [SKILL]
+    appliesTo: [SKILL, MOB]
   - id: twilight
     displayName: 黄昏
     description: 黄昏をモチーフとする分類。

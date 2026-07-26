@@ -25,7 +25,7 @@
 | `passive` | Map | 任意 | `null` | パッシブ設定 |
 | `passive.bindRequired` | Boolean | 任意 | `true` | `false` は所持のみで常時有効 |
 | `params` | Map<String, Any> | 任意 | `{}` | 実装側パラメータ |
-| `tags` | List<String> | 任意 | `[]` | 任意タグ |
+| `tags` | List<String> | 任意 | `[]` | `76.shared.tag/v1.tags.yml`の`SKILL`対象タグID |
 
 ## 攻撃スキル params
 

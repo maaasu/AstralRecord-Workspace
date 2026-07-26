@@ -52,6 +52,13 @@ public sealed record SkillMasterSummary(
     string Description,
     string Type);
 
+public sealed record MasterTagSummary(
+    string Id,
+    string DisplayName,
+    string Description,
+    string Category,
+    IReadOnlyList<string> AppliesTo);
+
 public sealed record EditorMetadata(
     string WorkspaceRoot,
     string NodesPath,
@@ -60,6 +67,7 @@ public sealed record EditorMetadata(
     string NodeIdSequencePath,
     string SkillsPath,
     string StatusCatalogPath,
+    string TagCatalogPath,
     string PluginConfigPath,
     string BackupPath,
     string MinecraftIconCachePath);

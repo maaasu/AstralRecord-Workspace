@@ -72,6 +72,8 @@ public static class MasterTagIds
         public const string DEFENSE = "defense";
         /// <summary>攻撃。</summary>
         public const string OFFENSE = "offense";
+        /// <summary>前衛。</summary>
+        public const string FRONT = "front";
         /// <summary>弓。</summary>
         public const string BOW = "bow";
         /// <summary>杖。</summary>
@@ -244,6 +246,14 @@ public static class MasterTagIds
         public const string WEAPON = "weapon";
         /// <summary>防具。</summary>
         public const string ARMOR = "armor";
+        /// <summary>鍛冶。</summary>
+        public const string BLACKSMITH = "blacksmith";
+        /// <summary>強化。</summary>
+        public const string ENHANCE = "enhance";
+        /// <summary>錬金。</summary>
+        public const string ALCHEMY = "alchemy";
+        /// <summary>消耗品。</summary>
+        public const string CONSUMABLE = "consumable";
     }
     /// <summary>モチーフタグ。</summary>
     public static class Theme
@@ -317,6 +327,7 @@ public static class MasterTags
                 ["balanced"] = new("balanced", "バランス", "複数の役割を均等に扱うクラス。", "COMBAT_ROLE", ["CLASS"]),
                 ["defense"] = new("defense", "防御", "防御能力や耐久力に関係する分類。", "COMBAT_ROLE", ["SKILL", "SKILLTREE_NODE"]),
                 ["offense"] = new("offense", "攻撃", "攻撃能力に関係する分類。", "COMBAT_ROLE", ["SKILLTREE_NODE"]),
+                ["front"] = new("front", "前衛", "前線で戦うクラスロール。", "COMBAT_ROLE", ["CLASS"]),
                 ["bow"] = new("bow", "弓", "弓系統に関係する分類。", "COMBAT_ROLE", ["CLASS", "SKILL"]),
                 ["staff"] = new("staff", "杖", "杖系統に関係する分類。", "COMBAT_ROLE", ["CLASS"]),
                 ["sword"] = new("sword", "剣", "剣系統に関係する分類。", "COMBAT_ROLE", ["CLASS"]),
@@ -389,6 +400,10 @@ public static class MasterTags
                 ["quest_giver"] = new("quest_giver", "クエスト発行", "クエストを発行する NPC。", "NPC_ROLE", ["MOB"]),
                 ["weapon"] = new("weapon", "武器", "武器を成果物とするレシピ。", "CRAFTING", ["RECIPE"]),
                 ["armor"] = new("armor", "防具", "防具を成果物とするレシピ。", "CRAFTING", ["RECIPE"]),
+                ["blacksmith"] = new("blacksmith", "鍛冶", "鍛冶設備や鍛冶工程で扱うレシピ。", "CRAFTING", ["RECIPE"]),
+                ["enhance"] = new("enhance", "強化", "既存アイテムを強化するレシピ。", "CRAFTING", ["RECIPE"]),
+                ["alchemy"] = new("alchemy", "錬金", "錬金・調合工程で扱うレシピ。", "CRAFTING", ["RECIPE"]),
+                ["consumable"] = new("consumable", "消耗品", "消耗品を成果物とするレシピ。", "CRAFTING", ["RECIPE"]),
                 ["administrator"] = new("administrator", "管理者", "管理者専用クラス。", "THEME", ["CLASS"]),
                 ["adventurer"] = new("adventurer", "冒険者", "冒険者クラス。", "THEME", ["CLASS"]),
                 ["command-only"] = new("command-only", "コマンド限定", "コマンドからのみ利用する分類。", "THEME", ["CLASS"]),
@@ -397,7 +412,7 @@ public static class MasterTags
                 ["ember"] = new("ember", "残り火", "残り火をモチーフとする分類。", "THEME", ["SKILLTREE_NODE"]),
                 ["starlight"] = new("starlight", "星光", "星の光をモチーフとする分類。", "THEME", ["SKILLTREE_NODE"]),
                 ["wind"] = new("wind", "風", "風をモチーフとする分類。", "THEME", ["SKILLTREE_NODE"]),
-                ["windwait"] = new("windwait", "風待ち", "風待ちをモチーフとするスキル分類。", "THEME", ["SKILL"]),
+                ["windwait"] = new("windwait", "風待ち", "風待ちをモチーフとするスキルまたはMobの分類。", "THEME", ["SKILL", "MOB"]),
                 ["twilight"] = new("twilight", "黄昏", "黄昏をモチーフとする分類。", "THEME", ["MOB"]),
                 ["moss"] = new("moss", "苔", "苔をモチーフとする分類。", "THEME", ["MOB"]),
                 ["iron"] = new("iron", "鉄", "鉄をモチーフとする分類。", "THEME", ["MOB"]),

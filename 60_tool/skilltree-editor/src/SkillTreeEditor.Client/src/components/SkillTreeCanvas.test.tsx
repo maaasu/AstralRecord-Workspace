@@ -72,6 +72,10 @@ describe('SkillTreeCanvas', () => {
     expect(screen.getByTestId('selected-node')).toHaveTextContent('none')
     expect(screen.getByText('Root node')).toBeInTheDocument()
     expect(screen.getByText('Second node')).toBeInTheDocument()
+    expect(screen.getByTestId('rf__node-1000').querySelector('.skill-node')).toHaveAttribute(
+      'title',
+      expect.stringContaining('ルート／根（root）'),
+    )
   })
 
   it('keeps both nodes selected after Ctrl-clicking a second node', async () => {

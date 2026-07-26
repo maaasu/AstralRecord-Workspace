@@ -20,6 +20,7 @@ import type { NodeMaster, SkillMasterSummary, StructureDocument } from '../types
 import { MinecraftIcon } from './MinecraftIcon'
 import { stripMinecraftFormatting } from '../utils/minecraft'
 import { describeNodeEffects, nodeTooltip, type NodeEffectPresentation } from '../data/nodeEffectPresentation'
+import { masterTagTooltip } from '../data/masterTagPresentation'
 
 interface SkillTreeCanvasProps {
   structure: StructureDocument
@@ -47,6 +48,7 @@ interface SkillNodeData extends Record<string, unknown> {
   pointCost: number
   pointType: string
   effects: NodeEffectPresentation[]
+  tags: string[]
   nodeSize: number
 }
 
@@ -109,6 +111,7 @@ function CanvasInner({
         pointCost: master?.pointCost ?? 0,
         pointType: master?.pointType ?? '',
         effects: master ? describeNodeEffects(master, skillMasters) : [],
+        tags: master?.tags ?? [],
         nodeSize,
       },
     }
@@ -384,13 +387,16 @@ function SkillNode({ data, selected }: NodeProps<Node<SkillNodeData>>) {
   const compact = data.nodeSize < 72
   const tooltipNode = {
     $schema: '', schemaVersion: 1, nodeId: data.nodeId, name: data.label, icon: data.icon,
-    lore: [], tags: [], pointType: data.pointType, pointCost: data.pointCost, effects: [],
+    lore: [], tags: data.tags, pointType: data.pointType, pointCost: data.pointCost, effects: [],
   } satisfies NodeMaster
   return (
     <div
       className={`skill-node ${selected ? 'selected' : ''} ${data.root ? 'root' : ''} ${compact ? 'compact' : ''}`}
       style={{ '--skill-node-size': `${data.nodeSize}px` } as CSSProperties}
-      title={nodeTooltip(tooltipNode, data.effects)}
+      title={[
+        nodeTooltip(tooltipNode, data.effects),
+        ...(data.tags.length > 0 ? ['', 'タグ:', ...data.tags.map(masterTagTooltip)] : []),
+      ].join('\n')}
     >
       <Handle type="target" position={Position.Left} />
       <Handle type="source" position={Position.Right} />

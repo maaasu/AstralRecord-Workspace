@@ -18,6 +18,7 @@ public sealed class WorkspacePaths
         Classes = Path.Combine(WorkspaceRoot, "40_filebase", "20.features.class");
         Skills = Path.Combine(WorkspaceRoot, "40_filebase", "30.features.skill");
         StatusCatalog = Path.Combine(WorkspaceRoot, "40_filebase", "75.shared.status", "v1.status_types.yml");
+        TagCatalog = Path.Combine(WorkspaceRoot, "40_filebase", "76.shared.tag", "v1.tags.yml");
         Nodes = Path.Combine(SkillTreeRoot, "nodes");
         Structures = Path.Combine(SkillTreeRoot, "structures");
         Schemas = Path.Combine(SkillTreeRoot, "schemas");
@@ -41,6 +42,7 @@ public sealed class WorkspacePaths
     public string Classes { get; }
     public string Skills { get; }
     public string StatusCatalog { get; }
+    public string TagCatalog { get; }
     public string Nodes { get; }
     public string Structures { get; }
     public string Schemas { get; }
@@ -59,6 +61,7 @@ public sealed class WorkspacePaths
         NodeIdSequence,
         Skills,
         StatusCatalog,
+        TagCatalog,
         PluginConfig,
         Backups,
         MinecraftIconCache);

@@ -33,7 +33,7 @@ AI（行動ロジック）もプラグイン独自実装であり、本スキー
 | `nameVisible`   | Boolean      | ×  | true      | ネームタグ表示の有無                                              |
 | `icon`          | String       | ×  | Null      | UI/図鑑表示用アイコン（Bukkit Material名）                          |
 | `lore`          | List<String> | ×  | emptyList | 説明文（§ または & の色コード利用可能）                                  |
-| `tags`          | List<String> | ×  | emptyList | 検索・分類用タグ（例: `undead`, `humanoid`, `fire`）               |
+| `tags`          | List<String> | ×  | emptyList | 共有タグカタログの`MOB`対象ID（例: `undead`, `humanoid`, `fire`）  |
 | `shield`        | Map          | ×  | Null      | シールド定義。未定義または `enabled: false` の場合は従来どおりシールドなし。      |
 
 ### skin（外見設定）

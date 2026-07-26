@@ -35,7 +35,7 @@ Class（職業）のスキーマ定義。
 | `levelSkills[]`            | List         | ×  | emptyList | レベル到達時に習得するスキルのリスト                               |
 | `levelSkills[].level`      | Integer      | ○  | -         | スキルを習得するレベル                                      |
 | `levelSkills[].skill`      | String       | ○  | -         | 習得するスキルID（参照値。例: `ref: skill:shield_bash`）       |
-| `tags`                     | List<String> | ×  | emptyList | 検索・分類用タグ（例: `melee`, `tank`）                     |
+| `tags`                     | List<String> | ×  | emptyList | 共有タグカタログの`CLASS`対象ID（例: `melee`, `tank`）      |
 
 ### maxLevel / commandOnly
 

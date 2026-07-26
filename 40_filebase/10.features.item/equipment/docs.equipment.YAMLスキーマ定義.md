@@ -4,13 +4,15 @@
 通常のアイテム共通項目（`schemaVersion` / `id` / `category` / `name` など）は `docs.item.YAMLスキーマ定義.md` を参照し、本書では Equipment 固有項目のみ定義します。
 
 > **StatusType について**: `status`フィールドに使用できるIDは、共有カタログ`40_filebase/75.shared.status/v1.status_types.yml`を参照してください。
+>
+> **Equipment tag について**: `equipment[].tag`に使用できるIDと日本語定義は、共有カタログ`40_filebase/76.shared.tag/v1.tags.yml`の`EQUIPMENT`対象を参照してください。
 
 ## スキーマ定義
 | キー                                                        | 型             | 必須 | デフォルト | 説明                                                                                                                                             |
 |:----------------------------------------------------------|:--------------|:--:|:------|:-----------------------------------------------------------------------------------------------------------------------------------------------|
 | `equipment[].slot`                                        | String        | ○  | -     | 装備スロット種別（後述）。                                                                                                                                  |
 | `equipment[].handType`                                    | String        | ×  | ONE   | 手持ち装備の手数。`slot=WEAPON` または `slot=TOOL` の場合に使用（`ONE` / `TWO`）。                                                                                 |
-| `equipment[].tag`                                         | String        | ×  | -     | equipment固有の補助情報。`slot=ACCESSORY` では必須とし、`AMULET` / `TALISMAN` / `CHARM` / `CORE` / `RELIC` のいずれかを指定する。Toolでは「ツルハシ」「斧」などの分類にも使用する |
+| `equipment[].tag`                                         | String        | ×  | -     | 共有タグカタログの`EQUIPMENT`対象ID。`slot=ACCESSORY`では`AMULET` / `TALISMAN` / `CHARM` / `CORE` / `RELIC`のいずれかが必須。Toolでは採集条件との照合にも使用する |
 | `equipment[].requiredLevel`                               | Integer       | ×  | 0     | 装備に必要なプレイヤーレベル。`0` で制限なし。                                                                                                                      |
 | `equipment[].requiredClasses[]`                           | List<Object>  | ×  | -     | 装備可能な現在クラスと必要クラスレベルのリスト（任意）。未指定時は全クラス装備可。                                                                                                  |
 | `equipment[].requiredClasses[].classId`                   | String        | ○  | -     | 装備可能なクラス ID。プレイヤーが現在選択しているクラスと一致する必要がある。                                                                                                  |

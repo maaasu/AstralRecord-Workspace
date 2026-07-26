@@ -3,6 +3,7 @@ import type { NodeMaster, SkillMasterSummary } from '../types/editor'
 import { MinecraftIcon } from './MinecraftIcon'
 import { stripMinecraftFormatting } from '../utils/minecraft'
 import { describeNodeEffects, nodeTooltip, type NodeEffectPresentation } from '../data/nodeEffectPresentation'
+import { masterTagLabel, masterTagSearchText, masterTagTooltip } from '../data/masterTagPresentation'
 
 interface NodeSidebarProps {
   nodes: NodeMaster[]
@@ -39,7 +40,7 @@ export function NodeSidebar({
     const matchesKeyword = !keyword
       || node.nodeId.toLocaleLowerCase().includes(keyword)
       || node.name.toLocaleLowerCase().includes(keyword)
-      || (node.tags ?? []).some((tag) => tag.toLocaleLowerCase().includes(keyword))
+      || (node.tags ?? []).some((tag) => masterTagSearchText(tag).toLocaleLowerCase().includes(keyword))
       || (effectsByNodeId.get(node.nodeId) ?? []).some((effect) => effect.searchText.toLocaleLowerCase().includes(keyword))
     return matchesKeyword && (!selectedTag || node.tags?.includes(selectedTag))
   })
@@ -64,7 +65,7 @@ export function NodeSidebar({
         />
         <select value={selectedTag} onChange={(event) => onTagChange(event.target.value)}>
           <option value="">すべてのタグ</option>
-          {tags.map((tag) => <option key={tag} value={tag}>{tag}</option>)}
+          {tags.map((tag) => <option key={tag} value={tag}>{masterTagLabel(tag, true)}</option>)}
         </select>
       </div>
       <NodeGroup title={`未配置 ${unplaced.length}`} nodes={unplaced} placedIds={placedIds} onEdit={onEdit} iconRevision={iconRevision} effectsByNodeId={effectsByNodeId} />
@@ -97,7 +98,7 @@ function NodeGroup({
           return <article
             className={`node-list-item ${placedIds.has(node.nodeId) ? 'placed' : ''}`}
             key={node.nodeId}
-            title={nodeTooltip(node, effects)}
+            title={nodeTooltipWithTags(node, effects)}
             draggable={!placedIds.has(node.nodeId)}
             onDragStart={(event) => {
               event.dataTransfer.setData('application/x-astral-node', node.nodeId)
@@ -109,7 +110,9 @@ function NodeGroup({
             <div className="node-id">#{node.nodeId} · {String(node.icon)}</div>
             <strong>{stripMinecraftFormatting(node.name)}</strong>
             <div className="tag-row">
-              {(node.tags ?? []).slice(0, 3).map((tag) => <span className="tag" key={tag}>{tag}</span>)}
+              {(node.tags ?? []).slice(0, 3).map((tag) => (
+                <span className="tag" title={masterTagTooltip(tag)} key={tag}>{masterTagLabel(tag)}</span>
+              ))}
             </div>
             {effects.length > 0 && (
               <div className="node-effect-preview">
@@ -126,4 +129,12 @@ function NodeGroup({
       </div>
     </section>
   )
+}
+
+function nodeTooltipWithTags(node: NodeMaster, effects: readonly NodeEffectPresentation[]): string {
+  const tags = node.tags ?? []
+  return [
+    nodeTooltip(node, effects),
+    ...(tags.length > 0 ? ['', 'タグ:', ...tags.map(masterTagTooltip)] : []),
+  ].join('\n')
 }

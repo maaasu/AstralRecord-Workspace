@@ -45,7 +45,7 @@ SkillTree のノード定義と配置・接続構造は、`40_filebase/35.featur
 | `name` | String | 必須 | Legacy color code を使用できる表示名。空白のみ不可 |
 | `icon` | String | 必須 | Bukkit `Material` 名。空白のみ不可 |
 | `lore` | List\<String\> | 必須 | ノード説明 |
-| `tags` | List\<String\> | 必須 | 検索・分類用タグ。各要素は空白のみ不可、重複不可 |
+| `tags` | List\<String\> | 必須 | `76.shared.tag/v1.tags.yml`で`SKILLTREE_NODE`対象に定義されたタグID。各要素は重複不可 |
 | `pointType` | String | 必須 | `CP` または `PP` |
 | `pointCost` | Integer | 必須 | 0 以上、2147483647 以下の解放コスト（Java `int` 範囲） |
 | `unlockCondition` | Object | 任意 | ノードを表示・有効化する条件。省略時は条件なし |
@@ -155,6 +155,7 @@ SkillTree のノード定義と配置・接続構造は、`40_filebase/35.featur
 JSON Schema による型・必須項目検証に加え、エディターのバックエンドは保存前に次を検証します。
 
 - node 定義間の `nodeId` 重複
+- 共有タグカタログに存在しない、または`SKILLTREE_NODE`へ適用できない`tags[]`
 - node ファイル名と `nodeId` の不一致
 - `node-id-sequence.json` のスキーマ違反、および `lastIssuedNodeId` が既存 node ID より小さい状態
 - 構造内の `nodeId` 重複
@@ -170,7 +171,7 @@ JSON Schema による型・必須項目検証に加え、エディターのバ�
 ## Plugin とエディターの責務
 
 - 開発者用ローカル Web エディターのソースは `60_tool/skilltree-editor/` に置く。
-- ステータス候補と日本語表示は共有ステータスカタログのTypeScript生成物、スキル情報は`30.features.skill`の読取結果を使用し、JSONにはIDだけを保存する。
+- ステータス候補とタグ候補の日本語表示は各共有カタログのTypeScript生成物、スキル情報は`30.features.skill`の読取結果を使用し、JSONにはIDだけを保存する。
 - キャンバス上のノード表示サイズはWeb UIのローカル設定とし、構造JSONには保存しない。
 - ノード定義、配置、接続の編集と JSON 書き込みはエディターだけが行う。
 - エディターが更新する Plugin 設定はリポジトリ上の `10_plugin/AstralRecord/src/main/resources/config.yml` とし、稼働環境の `plugins/AstralRecord/config.yml` へ直接書き込まない。稼働環境へ filebase と設定をデプロイまたは同期した後、`/masterdata reload` で反映する。

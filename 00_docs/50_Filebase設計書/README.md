@@ -12,13 +12,14 @@
 |:--|:--|
 | マスタファイルの構造、必須項目、参照形式 | `E:\AstralRecord-Workspace\40_filebase` 配下の各 `docs.<項目名>.YAMLスキーマ定義.md` または `schemas/*.schema.json` |
 | ステータスID・日本語名・表示メタデータ | `E:\AstralRecord-Workspace\40_filebase\75.shared.status\v1.status_types.yml` |
+| タグID・日本語名・説明・適用対象 | `E:\AstralRecord-Workspace\40_filebase\76.shared.tag\v1.tags.yml` |
 | Plugin が解釈する列挙値や動作 | `E:\AstralRecord-Workspace\10_plugin\AstralRecord\src\main` 配下のソースコード |
 | Plugin の機能仕様 | `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書` |
 | マスタカテゴリの設計方針 | 本設計書の `feature` 配下 |
 | 個別マスタの定義 | `E:\AstralRecord-Workspace\40_filebase` 配下の各 YAML / JSON |
 | 個別マスタのモチーフと進行度 | YAML の先頭コメント、または対象 JSON Schema が定義する設計メタデータ |
 
-ステータスだけは複数言語で共有するため、filebaseの共有カタログを正本とし、Plugin/API/TypeScriptの型を生成します。それ以外のPlugin固有列挙値は参照先のソースコードを確認します。
+ステータスとタグは複数言語で共有するため、filebaseの共有カタログを正本とし、Plugin/API/TypeScriptの型・定数を生成します。それ以外のPlugin固有列挙値は参照先のソースコードを確認します。
 
 ## 3. 共通コンセプト
 
@@ -26,7 +27,7 @@
 - 同じ進行度のマスタ同士は、入手元、消費先、攻略対象、報酬先のいずれかで緩く接続します。
 - 個別ワールドや物語へ強く依存する説明を共通設計へ持ち込みません。
 - 数値は進行度、カテゴリの役割、レアリティ、入手難度の順に根拠を持たせます。
-- ステータスID・表示メタデータは共有ステータスカタログ、実装可能な挙動はPluginソース、記述形式は対象カテゴリのYAMLスキーマまたはJSON Schemaを正とします。
+- ステータスID・表示メタデータとタグID・用途は共有カタログ、実装可能な挙動はPluginソース、記述形式は対象カテゴリのYAMLスキーマまたはJSON Schemaを正とします。
 
 ## 4. 設計メタデータ
 
@@ -102,6 +103,7 @@ feature 設計書の先頭番号は、原則として `40_filebase` のディレ
 │  ├─ 65-dungeon.md
 │  ├─ 70-buff.md
 │  ├─ 75-status.md
+│  ├─ 76-tag.md
 │  ├─ 80-loot.md
 │  └─ 85-recipe.md
 ├─ モチーフ選定ガイド.md

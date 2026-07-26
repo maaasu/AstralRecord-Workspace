@@ -29,6 +29,7 @@ Skilltree は、skill や能力解放の順序、前提関係、選択分岐を�
 - ゲーム内表示シミュレーションでは現在職とプレイヤーレベルを指定し、Plugin と同じ祖先職・レベル条件でノードと両端が可視な edge だけを表示します。
 - Plugin 設定編集はリポジトリ上の `10_plugin/AstralRecord/src/main/resources/config.yml` を対象とします。稼働環境の設定と filebase へデプロイまたは同期した後、`/masterdata reload` で反映し、エディターから稼働サーバーへ直接書き込みません。
 - ステータス効果は`75.shared.status`の日本語名と整形済み値を一覧・キャンバスのホバー・詳細へ表示し、編集候補も日本語名付きで提示します。保存JSONには従来どおり不変IDだけを記録します。
+- ノードタグは`76.shared.tag`のうち`SKILLTREE_NODE`に適用できる定義を日本語名・説明付きで一覧、キャンバス、詳細、編集候補へ表示します。保存JSONにはタグIDだけを記録し、未定義または対象外のタグは保存しません。
 - スキル効果は`30.features.skill`から日本語名・説明・種別を読み、一覧・キャンバスのホバー・詳細へ表示します。保存JSONには従来どおり`skillId`だけを記録します。
 - キャンバスのノード表示サイズは32～140pxで変更でき、ブラウザのローカル設定へ保持します。構造JSONのブロック座標やPlugin表示サイズは変更しません。
 
@@ -40,5 +41,6 @@ Skilltree は、skill や能力解放の順序、前提関係、選択分岐を�
 
 - JSON 契約: `E:\AstralRecord-Workspace\40_filebase\35.features.skilltree\docs.skilltree.JSONスキーマ定義.md`
 - JSON Schema: `E:\AstralRecord-Workspace\40_filebase\35.features.skilltree\schemas\`
+- タグカタログ: `E:\AstralRecord-Workspace\40_filebase\76.shared.tag\v1.tags.yml`
 - Plugin 設計: `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書\feature\13-skill`
 - API 設計: `E:\AstralRecord-Workspace\00_docs\20_API設計書\feature\20-skilltree`

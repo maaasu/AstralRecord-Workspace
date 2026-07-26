@@ -57,7 +57,7 @@ AstralRecord モノレポ全体のコミット運用ルールです。
 
 例外として、テンプレートや共有ルールとして明示的に管理するファイルはコミットしてよい。例: `.env.example`, `.gitignore`, `.gitattributes`, `.editorconfig`, `.agents/`, `.github/`, `.codex/skills/`。
 
-`generate-status-types.ps1`が共有ステータスカタログから生成するKotlin/C#/TypeScriptソースは、プラットフォーム間の型同期を保証するための管理対象ソースとして例外的にコミットする。生成物を直接編集せず、YAMLと生成物を同じcommitへ含める。
+`generate-status-types.ps1`と`generate-tag-types.ps1`が共有カタログから生成するKotlin/Java/C#/TypeScriptソースは、プラットフォーム間の型同期を保証するための管理対象ソースとして例外的にコミットする。生成物を直接編集せず、YAMLと生成物を同じcommitへ含める。
 
 ## コミットメッセージ
 

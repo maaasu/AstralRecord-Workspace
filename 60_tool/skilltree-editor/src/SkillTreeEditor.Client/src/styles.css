@@ -156,6 +156,9 @@ body.resizing-panels, body.resizing-panels * { cursor: col-resize !important; us
 .tag.suggestion { cursor: pointer; background: #172234; }
 .tag.suggestion:hover:not(:disabled) { color: #d9e8fb; border-color: #5e789e; }
 .tag.suggestion:disabled { opacity: .45; cursor: default; }
+.tag.selected-tag { cursor: pointer; background: #172234; }
+.tag.selected-tag small { color: #7387a3; font-size: 8px; }
+.tag.selected-tag:hover { color: #ffd1d1; border-color: #8f5e66; }
 .inline-master-form textarea { resize: vertical; }
 .input-with-action { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px; }
 .two-column-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }

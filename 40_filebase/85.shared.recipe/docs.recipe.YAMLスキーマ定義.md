@@ -16,7 +16,7 @@
 | `category`             | String       | ○  | -         | レシピ種別（後述 `RecipeCategory`）                                      |
 | `name`                 | String       | ×  | Null      | レシピの表示名（UI表示用。色コード利用可能）                                         |
 | `lore`                 | List<String> | ×  | emptyList | レシピの説明文（§ または & の色コード利用可能）                                      |
-| `tags`                 | List<String> | ×  | emptyList | 検索・分類用タグ（例: `blacksmith`, `alchemy`）                            |
+| `tags`                 | List<String> | ×  | emptyList | 共有タグカタログの`RECIPE`対象ID（例: `blacksmith`, `alchemy`）             |
 | `result.itemId`        | String       | △  | -         | 生成されるアイテムのID（参照値。例: `ref: item:iron_sword`）。`ENHANCE` では不使用（後述） |
 | `result.amount`        | Integer      | ×  | 1         | 生成数。`ENHANCE` では不使用                                             |
 | `ingredients[]`        | List         | ○  | -         | 素材リスト                                                           |

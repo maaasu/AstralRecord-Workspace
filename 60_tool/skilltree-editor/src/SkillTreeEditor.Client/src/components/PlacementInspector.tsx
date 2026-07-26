@@ -5,6 +5,11 @@ import { stripMinecraftFormatting } from '../utils/minecraft'
 import { SuggestionInput } from './SuggestionInput'
 import { MINECRAFT_MATERIAL_VERSION } from '../data/nodeFieldSuggestions'
 import { describeNodeEffects } from '../data/nodeEffectPresentation'
+import {
+  masterTagLabel,
+  masterTagTooltip,
+  skillTreeNodeTagDefinitions,
+} from '../data/masterTagPresentation'
 
 interface PlacementInspectorProps {
   nodeId: string | null
@@ -43,6 +48,11 @@ export function PlacementInspector({
   const masterDirty = useMemo(
     () => Boolean(master && draft && JSON.stringify(master) !== JSON.stringify(draft)),
     [draft, master],
+  )
+  const knownTagIds = useMemo(() => new Set(skillTreeNodeTagDefinitions.map((tag) => tag.id)), [])
+  const legacyTags = useMemo(
+    () => [...new Set([...tagSuggestions, ...(draft?.tags ?? [])])].filter((tag) => !knownTagIds.has(tag)),
+    [draft?.tags, knownTagIds, tagSuggestions],
   )
 
   if (!placement) {
@@ -144,24 +154,40 @@ export function PlacementInspector({
                 <input aria-label="コスト" type="number" min={0} step={1} value={draft.pointCost} onChange={(event) => updateMaster('pointCost', Math.max(0, Math.round(Number(event.target.value) || 0)))} />
               </label>
             </div>
-            <label>タグ <small>カンマ区切り</small>
-              <input
-                aria-label="タグ"
-                value={(draft.tags ?? []).join(', ')}
-                onChange={(event) => updateMaster('tags', splitList(event.target.value))}
-              />
+            <label>タグを追加 <small>表示は日本語、保存値はID</small>
+              <select
+                aria-label="タグを追加"
+                value=""
+                onChange={(event) => {
+                  const tag = event.target.value
+                  if (tag) updateMaster('tags', [...new Set([...draft.tags, tag])])
+                }}
+              >
+                <option value="">候補を選択してください</option>
+                {skillTreeNodeTagDefinitions
+                  .filter((tag) => !draft.tags.includes(tag.id))
+                  .map((tag) => (
+                    <option value={tag.id} title={tag.description} key={tag.id}>
+                      {tag.displayName}（{tag.id}）
+                    </option>
+                  ))}
+                {legacyTags.filter((tag) => !draft.tags.includes(tag)).map((tag) => (
+                  <option value={tag} key={tag}>未定義: {tag}</option>
+                ))}
+              </select>
             </label>
-            {tagSuggestions.length > 0 && (
-              <div className="tag-suggestions" aria-label="タグ候補">
-                {tagSuggestions.map((tag) => (
+            {draft.tags.length > 0 && (
+              <div className="tag-suggestions" aria-label="設定済みタグ">
+                {draft.tags.map((tag) => (
                   <button
-                    className="tag suggestion"
+                    className="tag selected-tag"
                     type="button"
                     key={tag}
-                    disabled={draft.tags.includes(tag)}
-                    onClick={() => updateMaster('tags', [...new Set([...draft.tags, tag])])}
+                    title={masterTagTooltip(tag)}
+                    aria-label={`${masterTagLabel(tag)}を削除`}
+                    onClick={() => updateMaster('tags', draft.tags.filter((value) => value !== tag))}
                   >
-                    ＋ {tag}
+                    {masterTagLabel(tag)} <small>{tag}</small> ×
                   </button>
                 ))}
               </div>
@@ -198,5 +224,4 @@ export function PlacementInspector({
   )
 }
 
-const splitList = (value: string) => [...new Set(value.split(',').map((item) => item.trim()).filter(Boolean))]
 const clampCoordinate = (value: number): StructurePlacement['x'] => Math.max(-2147483648, Math.min(2147483647, Math.round(value)))

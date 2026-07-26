@@ -47,7 +47,8 @@
       "items": {
         "type": "string",
         "minLength": 1,
-        "pattern": ".*\\S.*"
+        "pattern": ".*\\S.*",
+        "description": "76.shared.tag共有カタログでSKILLTREE_NODEに適用できる不変タグID"
       },
       "uniqueItems": true
     },
