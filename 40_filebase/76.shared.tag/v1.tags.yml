@@ -1,0 +1,624 @@
+# design:
+#   motif: "システム共通分類"
+#   progression: 0
+schemaVersion: 1
+
+categories:
+  - id: EQUIPMENT
+    displayName: 装備種別
+    description: 装備スロット、武器、道具を識別するタグ。
+  - id: ACTIVITY
+    displayName: 機能種別
+    description: スキルやマスターが担う機能・動作を識別するタグ。
+  - id: COMBAT_ROLE
+    displayName: 戦闘ロール
+    description: 攻撃距離、役割、戦闘上の性質を識別するタグ。
+  - id: ELEMENT
+    displayName: 属性
+    description: 炎、氷、雷などの属性や状態異常を識別するタグ。
+  - id: PROGRESSION
+    displayName: 進行区分
+    description: 解放段階や職業段階などの進行上の位置を識別するタグ。
+  - id: SKILLTREE
+    displayName: スキルツリー
+    description: スキルツリーノードの役割や表示上の分類に使用するタグ。
+  - id: CREATURE
+    displayName: 生物・種族
+    description: Mob の種族や形態を識別するタグ。
+  - id: LOCATION
+    displayName: 地域・環境
+    description: 地域、地形、環境テーマを識別するタグ。
+  - id: NPC_ROLE
+    displayName: NPC役割
+    description: NPC が提供する導線やサービスを識別するタグ。
+  - id: CRAFTING
+    displayName: 製作分類
+    description: レシピの成果物や製作用途を識別するタグ。
+  - id: THEME
+    displayName: モチーフ
+    description: 表示や世界観上の補助的なモチーフを識別するタグ。
+
+targets:
+  - id: EQUIPMENT
+    displayName: 装備マスター
+    description: item/equipment の equipment.tag。
+  - id: CLASS
+    displayName: クラスマスター
+    description: class の tags[]。
+  - id: SKILL
+    displayName: スキルマスター
+    description: skill の tags[]。
+  - id: SKILLTREE_NODE
+    displayName: スキルツリーノード
+    description: skilltree node の tags[]。
+  - id: MOB
+    displayName: Mobマスター
+    description: enemy、boss、npc を含む mob の tags[]。
+  - id: RECIPE
+    displayName: レシピマスター
+    description: recipe の tags[]。
+  - id: GATHERING_REQUIRED_TOOL
+    displayName: 採集必須道具
+    description: gathering の requiredToolTags[]。
+
+tags:
+  - id: AMULET
+    displayName: アミュレット
+    description: アミュレット用アクセサリ枠へ装着できる装備。
+    category: EQUIPMENT
+    appliesTo: [EQUIPMENT]
+  - id: TALISMAN
+    displayName: タリスマン
+    description: タリスマン用アクセサリ枠へ装着できる装備。
+    category: EQUIPMENT
+    appliesTo: [EQUIPMENT]
+  - id: CHARM
+    displayName: チャーム
+    description: チャーム用アクセサリ枠へ装着できる装備。
+    category: EQUIPMENT
+    appliesTo: [EQUIPMENT]
+  - id: CORE
+    displayName: コア
+    description: コア用アクセサリ枠へ装着できる装備。
+    category: EQUIPMENT
+    appliesTo: [EQUIPMENT]
+  - id: RELIC
+    displayName: レリック
+    description: レリック用アクセサリ枠へ装着できる装備。
+    category: EQUIPMENT
+    appliesTo: [EQUIPMENT]
+  - id: SWORD
+    displayName: 剣
+    description: 剣として扱う装備。
+    category: EQUIPMENT
+    appliesTo: [EQUIPMENT, GATHERING_REQUIRED_TOOL]
+  - id: STAFF
+    displayName: 杖
+    description: 杖として扱う装備。
+    category: EQUIPMENT
+    appliesTo: [EQUIPMENT, GATHERING_REQUIRED_TOOL]
+  - id: BOW
+    displayName: 弓
+    description: 弓として扱う装備。
+    category: EQUIPMENT
+    appliesTo: [EQUIPMENT, GATHERING_REQUIRED_TOOL]
+  - id: PICKAXE
+    displayName: ツルハシ
+    description: 採掘用のツルハシとして扱う装備。
+    category: EQUIPMENT
+    appliesTo: [EQUIPMENT, GATHERING_REQUIRED_TOOL]
+  - id: AXE
+    displayName: 斧
+    description: 伐採用の斧として扱う装備。
+    category: EQUIPMENT
+    appliesTo: [EQUIPMENT, GATHERING_REQUIRED_TOOL]
+  - id: HOE
+    displayName: クワ
+    description: 採取用のクワとして扱う装備。
+    category: EQUIPMENT
+    appliesTo: [EQUIPMENT, GATHERING_REQUIRED_TOOL]
+
+  - id: active
+    displayName: アクティブ
+    description: 能動的に発動するスキル。
+    category: ACTIVITY
+    appliesTo: [SKILL]
+  - id: passive
+    displayName: パッシブ
+    description: 常時または条件付きで自動適用されるスキル。
+    category: ACTIVITY
+    appliesTo: [SKILL]
+  - id: mob
+    displayName: Mob用
+    description: Mob が使用するスキル。
+    category: ACTIVITY
+    appliesTo: [SKILL]
+  - id: field
+    displayName: フィールド
+    description: フィールド上の行動・効果に関係する分類。
+    category: ACTIVITY
+    appliesTo: [SKILL]
+  - id: status
+    displayName: ステータス
+    description: ステータス効果を持つスキルツリーノード。
+    category: ACTIVITY
+    appliesTo: [SKILLTREE_NODE]
+  - id: skilltree
+    displayName: スキルツリー
+    description: スキルツリー機能への導線を持つ NPC。
+    category: ACTIVITY
+    appliesTo: [MOB]
+
+  - id: melee
+    displayName: 近接
+    description: 近接戦闘を主とする分類。
+    category: COMBAT_ROLE
+    appliesTo: [CLASS, SKILL, MOB]
+  - id: ranged
+    displayName: 遠隔
+    description: 遠隔攻撃を主とする分類。
+    category: COMBAT_ROLE
+    appliesTo: [CLASS, SKILL, MOB]
+  - id: magic
+    displayName: 魔法
+    description: 魔法攻撃または魔法系統の分類。
+    category: COMBAT_ROLE
+    appliesTo: [CLASS, SKILL, MOB]
+  - id: tank
+    displayName: タンク
+    description: 防御と敵対維持を主とするクラスロール。
+    category: COMBAT_ROLE
+    appliesTo: [CLASS]
+  - id: dealer
+    displayName: アタッカー
+    description: ダメージ出力を主とするクラスロール。
+    category: COMBAT_ROLE
+    appliesTo: [CLASS]
+  - id: balanced
+    displayName: バランス
+    description: 複数の役割を均等に扱うクラス。
+    category: COMBAT_ROLE
+    appliesTo: [CLASS]
+  - id: defense
+    displayName: 防御
+    description: 防御能力や耐久力に関係する分類。
+    category: COMBAT_ROLE
+    appliesTo: [SKILL, SKILLTREE_NODE]
+  - id: offense
+    displayName: 攻撃
+    description: 攻撃能力に関係する分類。
+    category: COMBAT_ROLE
+    appliesTo: [SKILLTREE_NODE]
+  - id: bow
+    displayName: 弓
+    description: 弓系統に関係する分類。
+    category: COMBAT_ROLE
+    appliesTo: [CLASS, SKILL]
+  - id: staff
+    displayName: 杖
+    description: 杖系統に関係する分類。
+    category: COMBAT_ROLE
+    appliesTo: [CLASS]
+  - id: sword
+    displayName: 剣
+    description: 剣系統に関係する分類。
+    category: COMBAT_ROLE
+    appliesTo: [CLASS]
+
+  - id: fire
+    displayName: 炎
+    description: 炎属性または炎をモチーフとする分類。
+    category: ELEMENT
+    appliesTo: [SKILL, SKILLTREE_NODE, MOB]
+  - id: ice
+    displayName: 氷
+    description: 氷属性に関係する分類。
+    category: ELEMENT
+    appliesTo: [SKILLTREE_NODE]
+  - id: lightning
+    displayName: 雷
+    description: 雷属性に関係する分類。
+    category: ELEMENT
+    appliesTo: [SKILL, SKILLTREE_NODE, MOB]
+  - id: poison
+    displayName: 毒
+    description: 毒属性に関係する分類。
+    category: ELEMENT
+    appliesTo: [SKILLTREE_NODE]
+  - id: light
+    displayName: 光
+    description: 光属性に関係する分類。
+    category: ELEMENT
+    appliesTo: [SKILLTREE_NODE]
+  - id: dark
+    displayName: 闇
+    description: 闇属性に関係する分類。
+    category: ELEMENT
+    appliesTo: [SKILLTREE_NODE]
+  - id: burning
+    displayName: 炎上
+    description: 炎上状態に関係する分類。
+    category: ELEMENT
+    appliesTo: [SKILLTREE_NODE]
+  - id: frozen
+    displayName: 凍結
+    description: 凍結状態に関係する分類。
+    category: ELEMENT
+    appliesTo: [SKILLTREE_NODE]
+  - id: chilled
+    displayName: 冷却
+    description: 冷却状態に関係する分類。
+    category: ELEMENT
+    appliesTo: [SKILLTREE_NODE]
+  - id: shocked
+    displayName: 感電
+    description: 感電状態に関係する分類。
+    category: ELEMENT
+    appliesTo: [SKILLTREE_NODE]
+  - id: poisoned
+    displayName: 毒状態
+    description: 毒状態に関係する分類。
+    category: ELEMENT
+    appliesTo: [SKILLTREE_NODE]
+  - id: blindness
+    displayName: 盲目
+    description: 盲目状態に関係する分類。
+    category: ELEMENT
+    appliesTo: [SKILLTREE_NODE]
+  - id: weakness
+    displayName: 弱体
+    description: 弱体状態に関係する分類。
+    category: ELEMENT
+    appliesTo: [SKILLTREE_NODE]
+  - id: healing_inhibition
+    displayName: 回復阻害
+    description: 回復阻害状態に関係する分類。
+    category: ELEMENT
+    appliesTo: [SKILLTREE_NODE]
+  - id: condition
+    displayName: 状態異常
+    description: 状態異常系ノードをまとめる分類。
+    category: ELEMENT
+    appliesTo: [SKILLTREE_NODE]
+  - id: element
+    displayName: 属性
+    description: 属性系ノードをまとめる分類。
+    category: ELEMENT
+    appliesTo: [SKILLTREE_NODE]
+
+  - id: starter
+    displayName: 初期
+    description: ゲーム開始時の初期クラス。
+    category: PROGRESSION
+    appliesTo: [CLASS]
+  - id: beginner
+    displayName: 初心者
+    description: 初心者向けのクラス。
+    category: PROGRESSION
+    appliesTo: [CLASS]
+  - id: tier1
+    displayName: 一次職
+    description: 一次職段階のクラス。
+    category: PROGRESSION
+    appliesTo: [CLASS]
+  - id: early
+    displayName: 序盤
+    description: 序盤に位置するスキルツリーノード。
+    category: PROGRESSION
+    appliesTo: [SKILLTREE_NODE]
+  - id: entry
+    displayName: 入口
+    description: コンテンツ入口への案内を行う NPC。
+    category: PROGRESSION
+    appliesTo: [MOB]
+  - id: return
+    displayName: 帰還
+    description: コンテンツからの帰還を案内する NPC。
+    category: PROGRESSION
+    appliesTo: [MOB]
+
+  - id: root
+    displayName: ルート／根
+    description: スキルツリーの開始点、または根をモチーフとする分類。
+    category: SKILLTREE
+    appliesTo: [SKILLTREE_NODE, MOB]
+  - id: shared
+    displayName: 共通
+    description: 複数クラスで共有するスキルツリーノード。
+    category: SKILLTREE
+    appliesTo: [SKILLTREE_NODE]
+  - id: core
+    displayName: 中核
+    description: スキルツリーの中核となるノード。
+    category: SKILLTREE
+    appliesTo: [SKILLTREE_NODE]
+  - id: primary
+    displayName: 基本能力
+    description: 基本能力値に関係するノード。
+    category: SKILLTREE
+    appliesTo: [SKILLTREE_NODE]
+  - id: resource
+    displayName: リソース
+    description: HP、MPなどのリソースに関係するノード。
+    category: SKILLTREE
+    appliesTo: [SKILLTREE_NODE]
+  - id: strength
+    displayName: 筋力
+    description: 筋力に関係するノード。
+    category: SKILLTREE
+    appliesTo: [SKILLTREE_NODE]
+  - id: agility
+    displayName: 敏捷
+    description: 敏捷に関係するノード。
+    category: SKILLTREE
+    appliesTo: [SKILLTREE_NODE]
+  - id: intelligence
+    displayName: 知力
+    description: 知力に関係するノード。
+    category: SKILLTREE
+    appliesTo: [SKILLTREE_NODE]
+  - id: dexterity
+    displayName: 器用
+    description: 器用に関係するノード。
+    category: SKILLTREE
+    appliesTo: [SKILLTREE_NODE]
+  - id: luck
+    displayName: 運
+    description: 運に関係するノード。
+    category: SKILLTREE
+    appliesTo: [SKILLTREE_NODE]
+  - id: health
+    displayName: 体力
+    description: HPに関係するノード。
+    category: SKILLTREE
+    appliesTo: [SKILLTREE_NODE]
+  - id: mana
+    displayName: マナ
+    description: MPに関係するノード。
+    category: SKILLTREE
+    appliesTo: [SKILLTREE_NODE]
+  - id: energy
+    displayName: エネルギー
+    description: エネルギーに関係するノード。
+    category: SKILLTREE
+    appliesTo: [SKILLTREE_NODE]
+  - id: shield
+    displayName: シールド
+    description: シールド能力または盾を持つ Mob に関係する分類。
+    category: SKILLTREE
+    appliesTo: [SKILLTREE_NODE, MOB]
+  - id: durability
+    displayName: 耐久
+    description: 耐久力に関係するノード。
+    category: SKILLTREE
+    appliesTo: [SKILLTREE_NODE]
+  - id: accuracy
+    displayName: 命中
+    description: 命中能力に関係するノード。
+    category: SKILLTREE
+    appliesTo: [SKILLTREE_NODE]
+
+  - id: dragon
+    displayName: ドラゴン
+    description: ドラゴン種の Mob。
+    category: CREATURE
+    appliesTo: [MOB]
+  - id: boss
+    displayName: ボス
+    description: ボスとして扱う Mob。
+    category: CREATURE
+    appliesTo: [MOB]
+  - id: golem
+    displayName: ゴーレム
+    description: ゴーレム種の Mob。
+    category: CREATURE
+    appliesTo: [MOB]
+  - id: beast
+    displayName: 獣
+    description: 獣種の Mob。
+    category: CREATURE
+    appliesTo: [MOB]
+  - id: spirit
+    displayName: 精霊
+    description: 精霊種の Mob。
+    category: CREATURE
+    appliesTo: [MOB]
+  - id: guardian
+    displayName: 守護者
+    description: 守護者として配置される Mob。
+    category: CREATURE
+    appliesTo: [MOB]
+  - id: undead
+    displayName: アンデッド
+    description: アンデッド種の Mob。
+    category: CREATURE
+    appliesTo: [MOB]
+  - id: skeleton
+    displayName: スケルトン
+    description: スケルトン種の Mob。
+    category: CREATURE
+    appliesTo: [MOB]
+  - id: humanoid
+    displayName: 人型
+    description: 人型の Mob。
+    category: CREATURE
+    appliesTo: [MOB]
+  - id: goat
+    displayName: ヤギ
+    description: ヤギ種の Mob。
+    category: CREATURE
+    appliesTo: [MOB]
+  - id: wolf
+    displayName: オオカミ
+    description: オオカミ種の Mob。
+    category: CREATURE
+    appliesTo: [MOB]
+  - id: npc
+    displayName: NPC
+    description: NPCとして扱う Mob。
+    category: CREATURE
+    appliesTo: [MOB]
+
+  - id: midgard
+    displayName: ミズガルズ
+    description: ミズガルズ地域に属する分類。
+    category: LOCATION
+    appliesTo: [MOB, RECIPE]
+  - id: forest
+    displayName: 森林
+    description: 森林地域に属する分類。
+    category: LOCATION
+    appliesTo: [MOB]
+  - id: grassland
+    displayName: 草原
+    description: 草原地域に属する分類。
+    category: LOCATION
+    appliesTo: [MOB]
+  - id: mountain
+    displayName: 山岳
+    description: 山岳地域に属する分類。
+    category: LOCATION
+    appliesTo: [SKILL, MOB]
+  - id: savanna
+    displayName: サバンナ
+    description: サバンナ地域に属する分類。
+    category: LOCATION
+    appliesTo: [SKILL, MOB]
+  - id: acacia
+    displayName: アカシア
+    description: アカシアをモチーフとする分類。
+    category: LOCATION
+    appliesTo: [MOB]
+
+  - id: class_guide
+    displayName: クラス案内
+    description: クラス選択を案内する NPC。
+    category: NPC_ROLE
+    appliesTo: [MOB]
+  - id: currency_exchange
+    displayName: 通貨交換
+    description: 通貨交換を提供する NPC。
+    category: NPC_ROLE
+    appliesTo: [MOB]
+  - id: equipment_enhance
+    displayName: 装備強化
+    description: 装備強化を提供する NPC。
+    category: NPC_ROLE
+    appliesTo: [MOB]
+  - id: equipment_repair
+    displayName: 装備修理
+    description: 装備修理を提供する NPC。
+    category: NPC_ROLE
+    appliesTo: [MOB]
+  - id: armor_shop
+    displayName: 防具店
+    description: 防具を扱う店舗 NPC。
+    category: NPC_ROLE
+    appliesTo: [MOB]
+  - id: weapon_shop
+    displayName: 武器店
+    description: 武器を扱う店舗 NPC。
+    category: NPC_ROLE
+    appliesTo: [MOB]
+  - id: shop
+    displayName: 店舗
+    description: 店舗機能を持つ NPC。
+    category: NPC_ROLE
+    appliesTo: [MOB]
+  - id: sell
+    displayName: 買取
+    description: アイテム買取を提供する NPC。
+    category: NPC_ROLE
+    appliesTo: [MOB]
+  - id: storage
+    displayName: 倉庫
+    description: 倉庫機能を提供する NPC。
+    category: NPC_ROLE
+    appliesTo: [MOB]
+  - id: login_bonus
+    displayName: ログインボーナス
+    description: ログインボーナスを提供する NPC。
+    category: NPC_ROLE
+    appliesTo: [MOB]
+  - id: quest_giver
+    displayName: クエスト発行
+    description: クエストを発行する NPC。
+    category: NPC_ROLE
+    appliesTo: [MOB]
+
+  - id: weapon
+    displayName: 武器
+    description: 武器を成果物とするレシピ。
+    category: CRAFTING
+    appliesTo: [RECIPE]
+  - id: armor
+    displayName: 防具
+    description: 防具を成果物とするレシピ。
+    category: CRAFTING
+    appliesTo: [RECIPE]
+
+  - id: administrator
+    displayName: 管理者
+    description: 管理者専用クラス。
+    category: THEME
+    appliesTo: [CLASS]
+  - id: adventurer
+    displayName: 冒険者
+    description: 冒険者クラス。
+    category: THEME
+    appliesTo: [CLASS]
+  - id: command-only
+    displayName: コマンド限定
+    description: コマンドからのみ利用する分類。
+    category: THEME
+    appliesTo: [CLASS]
+  - id: astral
+    displayName: アストラル
+    description: 星界をモチーフとする分類。
+    category: THEME
+    appliesTo: [SKILLTREE_NODE]
+  - id: azure
+    displayName: 蒼
+    description: 蒼色をモチーフとする分類。
+    category: THEME
+    appliesTo: [SKILLTREE_NODE]
+  - id: ember
+    displayName: 残り火
+    description: 残り火をモチーフとする分類。
+    category: THEME
+    appliesTo: [SKILLTREE_NODE]
+  - id: starlight
+    displayName: 星光
+    description: 星の光をモチーフとする分類。
+    category: THEME
+    appliesTo: [SKILLTREE_NODE]
+  - id: wind
+    displayName: 風
+    description: 風をモチーフとする分類。
+    category: THEME
+    appliesTo: [SKILLTREE_NODE]
+  - id: windwait
+    displayName: 風待ち
+    description: 風待ちをモチーフとするスキル分類。
+    category: THEME
+    appliesTo: [SKILL]
+  - id: twilight
+    displayName: 黄昏
+    description: 黄昏をモチーフとする分類。
+    category: THEME
+    appliesTo: [MOB]
+  - id: moss
+    displayName: 苔
+    description: 苔をモチーフとする分類。
+    category: THEME
+    appliesTo: [MOB]
+  - id: iron
+    displayName: 鉄
+    description: 鉄をモチーフとする分類。
+    category: THEME
+    appliesTo: [MOB]
+  - id: stone
+    displayName: 石
+    description: 石をモチーフとする分類。
+    category: THEME
+    appliesTo: [SKILLTREE_NODE, MOB]

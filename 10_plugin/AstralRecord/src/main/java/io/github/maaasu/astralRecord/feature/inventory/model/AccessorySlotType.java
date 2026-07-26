@@ -1,19 +1,20 @@
 package io.github.maaasu.astralRecord.feature.inventory.model;
 
+import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public enum AccessorySlotType {
     OFF_HAND(1, "オフハンド", null),
-    AMULET(2, "アミュレット", "AMULET"),
-    TALISMAN_1(3, "タリスマン 1", "TALISMAN"),
-    TALISMAN_2(4, "タリスマン 2", "TALISMAN"),
-    CHARM_1(5, "チャーム 1", "CHARM"),
-    CHARM_2(6, "チャーム 2", "CHARM"),
-    CHARM_3(7, "チャーム 3", "CHARM"),
-    CORE(8, "コア", "CORE"),
-    RELIC_1(9, "レリック 1", "RELIC"),
-    RELIC_2(10, "レリック 2", "RELIC");
+    AMULET(2, "アミュレット", MasterTagIds.Equipment.AMULET),
+    TALISMAN_1(3, "タリスマン 1", MasterTagIds.Equipment.TALISMAN),
+    TALISMAN_2(4, "タリスマン 2", MasterTagIds.Equipment.TALISMAN),
+    CHARM_1(5, "チャーム 1", MasterTagIds.Equipment.CHARM),
+    CHARM_2(6, "チャーム 2", MasterTagIds.Equipment.CHARM),
+    CHARM_3(7, "チャーム 3", MasterTagIds.Equipment.CHARM),
+    CORE(8, "コア", MasterTagIds.Equipment.CORE),
+    RELIC_1(9, "レリック 1", MasterTagIds.Equipment.RELIC),
+    RELIC_2(10, "レリック 2", MasterTagIds.Equipment.RELIC);
 
     private final int slotIndex;
     private final String displayName;
