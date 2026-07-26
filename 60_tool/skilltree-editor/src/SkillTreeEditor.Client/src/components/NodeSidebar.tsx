@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import type { NodeMaster, SkillMasterSummary } from '../types/editor'
 import { MinecraftIcon } from './MinecraftIcon'
 import { stripMinecraftFormatting } from '../utils/minecraft'
-import { describeNodeEffects, nodeTooltip, type NodeEffectPresentation } from '../data/nodeEffectPresentation'
+import { describeNodeCost, describeNodeEffects, nodeTooltip, type NodeEffectPresentation } from '../data/nodeEffectPresentation'
 import { masterTagLabel, masterTagSearchText, masterTagTooltip } from '../data/masterTagPresentation'
 
 interface NodeSidebarProps {
@@ -37,10 +37,12 @@ export function NodeSidebar({
   const tags = [...new Set(nodes.flatMap((node) => node.tags ?? []))].sort((a, b) => a.localeCompare(b, 'ja'))
   const filtered = nodes.filter((node) => {
     const keyword = query.trim().toLocaleLowerCase()
+    const cost = describeNodeCost(node)
     const matchesKeyword = !keyword
       || node.nodeId.toLocaleLowerCase().includes(keyword)
       || node.name.toLocaleLowerCase().includes(keyword)
       || (node.tags ?? []).some((tag) => masterTagSearchText(tag).toLocaleLowerCase().includes(keyword))
+      || cost.searchText.toLocaleLowerCase().includes(keyword)
       || (effectsByNodeId.get(node.nodeId) ?? []).some((effect) => effect.searchText.toLocaleLowerCase().includes(keyword))
     return matchesKeyword && (!selectedTag || node.tags?.includes(selectedTag))
   })
@@ -95,6 +97,7 @@ function NodeGroup({
       <div className="node-list">
         {nodes.map((node) => {
           const effects = effectsByNodeId.get(node.nodeId) ?? []
+          const cost = describeNodeCost(node)
           return <article
             className={`node-list-item ${placedIds.has(node.nodeId) ? 'placed' : ''}`}
             key={node.nodeId}
@@ -113,6 +116,9 @@ function NodeGroup({
               {(node.tags ?? []).slice(0, 3).map((tag) => (
                 <span className="tag" title={masterTagTooltip(tag)} key={tag}>{masterTagLabel(tag)}</span>
               ))}
+            </div>
+            <div className="node-cost-preview" title={cost.detail}>
+              <span className={`cost-chip ${cost.kind}`}>消費 {cost.title}</span>
             </div>
             {effects.length > 0 && (
               <div className="node-effect-preview">

@@ -9,6 +9,26 @@ export interface NodeEffectPresentation {
   searchText: string
 }
 
+export interface NodeCostPresentation {
+  kind: 'cp' | 'pp' | 'unknown'
+  title: string
+  detail: string
+  searchText: string
+}
+
+export function describeNodeCost(node: NodeMaster): NodeCostPresentation {
+  const pointType = node.pointType.toUpperCase()
+  const kind = pointType === 'CP' ? 'cp' : pointType === 'PP' ? 'pp' : 'unknown'
+  const label = pointType || '未設定'
+  const title = `${label} ${node.pointCost}`
+  return {
+    kind,
+    title,
+    detail: `${label}を${node.pointCost}消費`,
+    searchText: `${title} ${label}消費 ポイント消費`,
+  }
+}
+
 export function describeNodeEffects(
   node: NodeMaster,
   skills: readonly SkillMasterSummary[],
@@ -21,7 +41,8 @@ export function nodeTooltip(
   node: NodeMaster,
   effects: readonly NodeEffectPresentation[],
 ): string {
-  const lines = [`${stripMinecraftFormatting(node.name)} (#${node.nodeId})`]
+  const cost = describeNodeCost(node)
+  const lines = [`${stripMinecraftFormatting(node.name)} (#${node.nodeId})`, `消費: ${cost.title}`]
   for (const effect of effects) {
     lines.push(`・${effect.title}`)
     if (effect.detail) lines.push(`  ${effect.detail}`)

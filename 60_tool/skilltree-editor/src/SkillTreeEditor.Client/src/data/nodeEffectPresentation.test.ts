@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { describeNodeEffects, nodeTooltip } from './nodeEffectPresentation'
+import { describeNodeCost, describeNodeEffects, nodeTooltip } from './nodeEffectPresentation'
 import type { NodeMaster, SkillMasterSummary } from '../types/editor'
 
 const node: NodeMaster = {
@@ -35,6 +35,13 @@ describe('nodeEffectPresentation', () => {
     expect(effects[1].title).toBe('最大HP +10%')
     expect(effects[2].title).toBe('アイアンウィル')
     expect(effects[2].detail).toContain('被ダメージを軽減する。')
+    expect(describeNodeCost(node)).toEqual({
+      kind: 'pp',
+      title: 'PP 1',
+      detail: 'PPを1消費',
+      searchText: 'PP 1 PP消費 ポイント消費',
+    })
+    expect(nodeTooltip(node, effects)).toContain('消費: PP 1')
     expect(nodeTooltip(node, effects)).toContain('会心率 +5.0%')
   })
 })

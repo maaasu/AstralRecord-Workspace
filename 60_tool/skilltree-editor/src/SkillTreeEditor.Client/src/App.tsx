@@ -9,6 +9,7 @@ import { SkillTreeCanvas } from './components/SkillTreeCanvas'
 import { ValidationPanel } from './components/ValidationPanel'
 import { WorkspaceLayout } from './components/WorkspaceLayout'
 import { buildNodeFieldSuggestions, minecraftMaterialSuggestions } from './data/nodeFieldSuggestions'
+import { duplicateNodeDraft } from './data/nodeDuplication'
 import { useHistory } from './state/history'
 import { applyAuxiliaryLayout } from './state/autoLayout'
 import { defaultSchema } from './state/schemaSelection'
@@ -353,6 +354,12 @@ export default function App() {
     }
   }
 
+  const duplicateNode = (draft: JsonObject) => {
+    const sourceNodeId = String(draft.nodeId)
+    setNodeEditor({ node: duplicateNodeDraft(draft), isNew: true })
+    setNotice(`ノード #${sourceNodeId} の複製を準備しました。保存時に新しいnodeIdを採番します。`)
+  }
+
   const deleteNode = async () => {
     if (!nodeEditor || nodeEditor.isNew) return
     const node = nodeEditor.node as NodeMaster
@@ -599,6 +606,7 @@ export default function App() {
           isNew={nodeEditor.isNew}
           saving={saving}
           onSave={saveNode}
+          onDuplicate={nodeEditor.isNew ? undefined : duplicateNode}
           onDelete={nodeEditor.isNew ? undefined : deleteNode}
           onCancel={() => setNodeEditor(null)}
           suggestionsByPath={nodeFieldSuggestions}

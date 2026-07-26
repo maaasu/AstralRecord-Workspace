@@ -17,6 +17,24 @@ const node: NodeMaster = {
 }
 
 describe('NodeSidebar', () => {
+  it('shows point consumption as prominently as node effects', () => {
+    render(<NodeSidebar
+      nodes={[{ ...node, pointType: 'CP', pointCost: 3 }]}
+      placedIds={new Set<string>()}
+      query=""
+      selectedTag=""
+      onQueryChange={vi.fn()}
+      onTagChange={vi.fn()}
+      onEdit={vi.fn()}
+      onCreate={vi.fn()}
+      skillMasters={[]}
+    />)
+
+    const cost = screen.getByText('消費 CP 3')
+    expect(cost).toHaveClass('cost-chip', 'cp')
+    expect(cost.closest('article')).toHaveAttribute('title', expect.stringContaining('消費: CP 3'))
+  })
+
   it('shows and searches shared tags by their Japanese definitions', () => {
     const props = {
       nodes: [node],

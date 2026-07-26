@@ -4,7 +4,7 @@ import { MinecraftIcon } from './MinecraftIcon'
 import { stripMinecraftFormatting } from '../utils/minecraft'
 import { SuggestionInput } from './SuggestionInput'
 import { MINECRAFT_MATERIAL_VERSION } from '../data/nodeFieldSuggestions'
-import { describeNodeEffects } from '../data/nodeEffectPresentation'
+import { describeNodeCost, describeNodeEffects } from '../data/nodeEffectPresentation'
 import {
   masterTagLabel,
   masterTagTooltip,
@@ -200,6 +200,12 @@ export function PlacementInspector({
                 onChange={(event) => updateMaster('lore', event.target.value.split(/\r?\n/))}
               />
             </label>
+          </div>
+          <div className="cost-summary">
+            <strong>消費ポイント</strong>
+            <span className={`cost-chip ${describeNodeCost(draft).kind}`} title={describeNodeCost(draft).detail}>
+              {describeNodeCost(draft).title}
+            </span>
           </div>
           <div className="effect-summary">
             <strong>Effects ({draft.effects?.length ?? 0})</strong>

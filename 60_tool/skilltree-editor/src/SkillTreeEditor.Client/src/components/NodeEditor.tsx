@@ -10,12 +10,13 @@ interface NodeEditorProps {
   isNew: boolean
   saving: boolean
   onSave: (node: JsonObject) => Promise<void>
+  onDuplicate?: (node: JsonObject) => void
   onDelete?: () => Promise<void>
   onCancel: () => void
   suggestionsByPath?: Readonly<Record<string, readonly FieldSuggestionValue[]>>
 }
 
-export function NodeEditor({ node, schemas, isNew, saving, onSave, onDelete, onCancel, suggestionsByPath = {} }: NodeEditorProps) {
+export function NodeEditor({ node, schemas, isNew, saving, onSave, onDuplicate, onDelete, onCancel, suggestionsByPath = {} }: NodeEditorProps) {
   const [draft, setDraft] = useState<JsonObject>(() => structuredClone(node))
   const [raw, setRaw] = useState(() => JSON.stringify(node, null, 2))
   const [mode, setMode] = useState<'form' | 'raw'>('form')
@@ -125,6 +126,9 @@ export function NodeEditor({ node, schemas, isNew, saving, onSave, onDelete, onC
         <footer className="modal-footer">
           {!isNew && onDelete && (
             <button className="button danger" onClick={() => void onDelete()} disabled={saving}>削除</button>
+          )}
+          {!isNew && onDuplicate && (
+            <button className="button subtle" onClick={() => onDuplicate(draft)} disabled={saving || Boolean(parseError)}>複製して新規作成</button>
           )}
           <span className="spacer" />
           <button className="button subtle" onClick={onCancel} disabled={saving}>キャンセル</button>
