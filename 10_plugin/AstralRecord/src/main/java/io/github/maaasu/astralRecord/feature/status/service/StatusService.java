@@ -55,6 +55,16 @@ import java.util.TreeSet;
 public class StatusService {
 
     private static final double VANILLA_PLAYER_MOVEMENT_SPEED = 0.1D;
+    private static final double INTELLIGENCE_MAX_MANA_PER_POINT = 1.0D;
+    private static final double INTELLIGENCE_MP_REGEN_PER_POINT = 0.1D;
+    private static final double VITALITY_MAX_HEALTH_PER_POINT = 2.0D;
+    private static final double VITALITY_DEFENSE_PER_POINT = 1.0D;
+    private static final double VITALITY_MAGIC_DEFENSE_PER_POINT = 1.0D;
+    private static final double VITALITY_HP_REGEN_PER_POINT = 0.1D;
+    private static final double AGILITY_ATTACK_SPEED_PER_POINT = 1.0D;
+    private static final double AGILITY_MOVEMENT_SPEED_PER_POINT = 1.0D;
+    private static final double AGILITY_EVASION_PER_POINT = 0.1D;
+    private static final double LUCK_CRITICAL_RATE_PER_POINT = 0.1D;
 
     private final BuffService buffService;
     private final ItemService itemService;
@@ -407,8 +417,74 @@ public class StatusService {
                 bonusRange.max()
             ));
         }
+        applyPrimaryAttributeEffects(values);
 
         return new StatusSnapshot(values, 0.0D, 0.0D, 0.0D, 0.0D, System.currentTimeMillis(), LocalDateTime.now());
+    }
+
+    /**
+     * 基本能力値から派生ステータスへの補正を反映します。
+     * <p>
+     * 基本能力値自体に装備・バフなどで範囲がある場合は、派生ステータスにも対応する範囲を維持します。
+     * 範囲を保持しない最大リソースには、基本能力値の範囲平均を適用します。
+     *
+     * @param values 基本ステータスまで計算済みのステータス値
+     */
+    private void applyPrimaryAttributeEffects(@NotNull Map<StatusType, StatusValue> values) {
+        addPrimaryDerivedBonus(values, StatusType.INTELLIGENCE, StatusType.MAX_MANA, INTELLIGENCE_MAX_MANA_PER_POINT);
+        addPrimaryDerivedBonus(values, StatusType.INTELLIGENCE, StatusType.MP_REGEN, INTELLIGENCE_MP_REGEN_PER_POINT);
+
+        addPrimaryDerivedBonus(values, StatusType.VITALITY, StatusType.MAX_HEALTH, VITALITY_MAX_HEALTH_PER_POINT);
+        addPrimaryDerivedBonus(values, StatusType.VITALITY, StatusType.DEFENSE, VITALITY_DEFENSE_PER_POINT);
+        addPrimaryDerivedBonus(values, StatusType.VITALITY, StatusType.MAGIC_DEFENSE, VITALITY_MAGIC_DEFENSE_PER_POINT);
+        addPrimaryDerivedBonus(values, StatusType.VITALITY, StatusType.HP_REGEN, VITALITY_HP_REGEN_PER_POINT);
+
+        addPrimaryDerivedBonus(values, StatusType.AGILITY, StatusType.ATTACK_SPEED, AGILITY_ATTACK_SPEED_PER_POINT);
+        addPrimaryDerivedBonus(values, StatusType.AGILITY, StatusType.MOVEMENT_SPEED, AGILITY_MOVEMENT_SPEED_PER_POINT);
+        addPrimaryDerivedBonus(values, StatusType.AGILITY, StatusType.EVASION, AGILITY_EVASION_PER_POINT);
+
+        addPrimaryDerivedBonus(values, StatusType.LUCK, StatusType.CRITICAL_RATE, LUCK_CRITICAL_RATE_PER_POINT);
+    }
+
+    /**
+     * 基本能力値の最終値を指定した派生ステータスへ加算します。
+     *
+     * @param values ステータス値一覧
+     * @param primaryType 基本能力値の種別
+     * @param targetType 派生先ステータスの種別
+     * @param multiplier 基本能力値1あたりの派生量
+     */
+    private void addPrimaryDerivedBonus(
+        @NotNull Map<StatusType, StatusValue> values,
+        @NotNull StatusType primaryType,
+        @NotNull StatusType targetType,
+        double multiplier
+    ) {
+        StatusValue primary = values.get(primaryType);
+        StatusValue target = values.get(targetType);
+        if (primary == null || target == null || multiplier == 0.0D) {
+            return;
+        }
+
+        double primaryMin = primary.getMinValue();
+        double primaryMax = primary.getMaxValue();
+        if (!targetType.getSupportsRange()) {
+            double average = (primaryMin + primaryMax) / 2.0D * multiplier;
+            values.put(targetType, new StatusValue(
+                target.getBaseMinValue(),
+                target.getBaseMaxValue(),
+                target.getBonusMinValue() + average,
+                target.getBonusMaxValue() + average
+            ));
+            return;
+        }
+
+        values.put(targetType, new StatusValue(
+            target.getBaseMinValue(),
+            target.getBaseMaxValue(),
+            target.getBonusMinValue() + primaryMin * multiplier,
+            target.getBonusMaxValue() + primaryMax * multiplier
+        ));
     }
 
     private @NotNull StatusSnapshot restoreAllInternal(@NotNull StatusSnapshot snapshot) {
