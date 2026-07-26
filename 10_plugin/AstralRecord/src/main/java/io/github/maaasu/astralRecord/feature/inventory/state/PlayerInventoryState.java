@@ -45,6 +45,8 @@ public final class PlayerInventoryState {
     private @NotNull InventoryType displayedType = InventoryType.BAG;
     /** BAG 表示の先頭行（0 始まり）。非永続。 */
     private int bagScrollRow;
+    /** 現在のステータスで利用可能な BAG 論理スロット数。非永続。 */
+    private int bagSlotCapacity = 32;
     /** ホットバー選択中スロット（DB slot_index 1〜9 / オフハンド 10）。非永続。 */
     private @Nullable Integer selectedHotbarSlot;
     /** ホットバーショートカット表示モード。非永続。 */
@@ -427,6 +429,24 @@ public final class PlayerInventoryState {
         this.bagScrollRow = normalized;
         return true;
     }
+
+    /**
+     * 現在のステータスに基づく BAG の利用可能スロット数を更新します。
+     * 容量外の entry は保持され、空いた後の新規追加先には選ばれません。
+     *
+     * @param bagSlotCapacity 0 以上の利用可能スロット数
+     * @return 値が変化した場合 true
+     */
+    public synchronized boolean setBagSlotCapacity(int bagSlotCapacity) {
+        int normalized = Math.max(0, bagSlotCapacity);
+        if (this.bagSlotCapacity == normalized) return false;
+        this.bagSlotCapacity = normalized;
+        this.bagScrollRow = Math.min(this.bagScrollRow, Math.max(0, (normalized + 7) / 8 - 3));
+        return true;
+    }
+
+    /** 現在のステータスで利用可能な BAG 論理スロット数を返します。 */
+    public synchronized int getBagSlotCapacity() { return bagSlotCapacity; }
 
     public synchronized @Nullable Integer getSelectedHotbarSlot() {
         return selectedHotbarSlot;

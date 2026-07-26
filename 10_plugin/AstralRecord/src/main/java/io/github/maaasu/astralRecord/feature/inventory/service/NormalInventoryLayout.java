@@ -32,7 +32,7 @@ final class NormalInventoryLayout {
     static int effectiveCapacity(@NotNull InventoryType inventoryType, @Nullable Integer configuredCapacity) {
         int capacity = configuredCapacity == null ? DEFAULT_CAPACITY : Math.max(0, configuredCapacity);
         if (inventoryType == InventoryType.BAG) {
-            return Math.max(DEFAULT_CAPACITY, capacity);
+            return capacity;
         }
         return capacity;
     }

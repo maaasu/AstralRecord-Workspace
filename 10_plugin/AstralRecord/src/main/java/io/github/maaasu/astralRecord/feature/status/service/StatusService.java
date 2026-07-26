@@ -150,6 +150,9 @@ public class StatusService {
         }
 
         player.setStatusSnapshot(merged);
+        if (inventoryService != null) {
+            inventoryService.applyBagSlotCapacity(player, merged.getMaxValue(StatusType.INVENTORY_SLOTS));
+        }
         applyMovementSpeed(player, merged);
         return merged;
     }
@@ -538,6 +541,7 @@ public class StatusService {
             case SHIELD_RECHARGE_RATE -> 0.0D;
             // 採集速度は装備値をそのまま1回分の破壊力として扱う。装備なしは GatheringService 側で1に補正する。
             case MINING_SPEED -> 0.0D;
+            case INVENTORY_SLOTS -> 32.0D;
             case QUEST_LIMIT -> 3.0D;
             default -> 0.0D;
         };

@@ -231,6 +231,9 @@ enum class StatusType(
     /** 採集速度 — 採集オブジェクトへ1回の採集判定で与える破壊力 */
     MINING_SPEED("採集速度", Category.UTILITY),
 
+    /** インベントリスロット数 — 通常 BAG の所持可能な論理スロット数 */
+    INVENTORY_SLOTS("インベントリスロット", Category.UTILITY, supportsRange = false),
+
     /** クエストを同時に受領できる最大数 */
     QUEST_LIMIT("クエスト受領上限", Category.UTILITY, supportsRange = false),
     ;

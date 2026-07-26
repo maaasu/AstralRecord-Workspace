@@ -169,6 +169,22 @@ public class InventoryService {
         return stateRegistry;
     }
 
+    /**
+     * ステータス再計算後の BAG 利用可能スロット数を反映します。
+     * 容量外 entry は削除せず、表示と新規追加の対象外にします。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param slotCount ステータスで確定した所持可能スロット数
+     */
+    public void applyBagSlotCapacity(@NotNull AstPlayer astPlayer, double slotCount) {
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) return;
+        int capacity = Math.max(0, (int) Math.floor(slotCount));
+        if (state.setBagSlotCapacity(capacity)) {
+            applyInventoryToGuiInternal(astPlayer, InventoryType.BAG, false);
+        }
+    }
+
     // ---------------------------------------------------------------
     // state helpers
     // ---------------------------------------------------------------
@@ -4515,6 +4531,10 @@ public class InventoryService {
     }
 
     private int inventoryCapacity(@NotNull InventoryModel inventory) {
+        if (inventory.getInventoryType() == InventoryType.BAG) {
+            PlayerInventoryState state = stateRegistry.get(inventory.getAccountId());
+            if (state != null) return state.getBagSlotCapacity();
+        }
         return NormalInventoryLayout.effectiveCapacity(
             inventory.getInventoryType(), inventory.getSlotCapacity());
     }
