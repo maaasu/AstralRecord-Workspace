@@ -1,4 +1,4 @@
-import type { JsonObject, JsonValue } from '../types/editor'
+import type { FieldSuggestion, FieldSuggestionValue, JsonObject, JsonValue } from '../types/editor'
 import { SuggestionInput } from './SuggestionInput'
 
 interface SchemaFormProps {
@@ -8,7 +8,7 @@ interface SchemaFormProps {
   rootSchema?: JsonObject
   path?: string
   disabledPaths?: Set<string>
-  suggestionsByPath?: Readonly<Record<string, readonly string[]>>
+  suggestionsByPath?: Readonly<Record<string, readonly FieldSuggestionValue[]>>
 }
 
 export function SchemaForm({
@@ -178,6 +178,28 @@ export function SchemaForm({
     )
   }
 
+  const suggestions = suggestionsForPath(suggestionsByPath, path)
+  const labeledSuggestions = suggestions.filter(isLabeledSuggestion)
+  if (labeledSuggestions.length > 0) {
+    const currentValue = typeof value === 'string' ? value : ''
+    const knownValue = labeledSuggestions.some((suggestion) => suggestion.value === currentValue)
+    return (
+      <select
+        disabled={disabledPaths.has(path)}
+        value={currentValue}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        {!knownValue && currentValue && <option value={currentValue}>未定義: {currentValue}</option>}
+        {!currentValue && <option value="">選択してください</option>}
+        {labeledSuggestions.map((suggestion) => (
+          <option key={suggestion.value} value={suggestion.value} title={suggestion.description}>
+            {suggestion.label}
+          </option>
+        ))}
+      </select>
+    )
+  }
+
   return (
     <SuggestionInput
       type="text"
@@ -185,7 +207,7 @@ export function SchemaForm({
       value={typeof value === 'string' ? value : ''}
       onChange={(event) => onChange(event.target.value)}
       placeholder={resolved.description ? String(resolved.description) : undefined}
-      suggestions={suggestionsForPath(suggestionsByPath, path)}
+      suggestions={suggestions.filter((suggestion): suggestion is string => typeof suggestion === 'string')}
     />
   )
 }
@@ -252,11 +274,13 @@ const asObject = (value: JsonValue | undefined): JsonObject | null => (
 const asArray = (value: JsonValue | undefined): JsonValue[] | null => Array.isArray(value) ? value : null
 
 function suggestionsForPath(
-  suggestionsByPath: Readonly<Record<string, readonly string[]>>,
+  suggestionsByPath: Readonly<Record<string, readonly FieldSuggestionValue[]>>,
   path: string,
-): readonly string[] {
+): readonly FieldSuggestionValue[] {
   const exact = suggestionsByPath[path]
   if (exact) return exact
   const wildcardPath = path.replace(/\/\d+(?=\/|$)/g, '/*')
   return suggestionsByPath[wildcardPath] ?? []
 }
+
+const isLabeledSuggestion = (value: FieldSuggestionValue): value is FieldSuggestion => typeof value !== 'string'

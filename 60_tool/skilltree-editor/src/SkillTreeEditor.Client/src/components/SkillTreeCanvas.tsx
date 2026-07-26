@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react'
 import {
   Background,
   BackgroundVariant,
@@ -16,9 +16,10 @@ import {
   type NodeProps,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import type { NodeMaster, StructureDocument } from '../types/editor'
+import type { NodeMaster, SkillMasterSummary, StructureDocument } from '../types/editor'
 import { MinecraftIcon } from './MinecraftIcon'
 import { stripMinecraftFormatting } from '../utils/minecraft'
+import { describeNodeEffects, nodeTooltip, type NodeEffectPresentation } from '../data/nodeEffectPresentation'
 
 interface SkillTreeCanvasProps {
   structure: StructureDocument
@@ -32,6 +33,8 @@ interface SkillTreeCanvasProps {
   onNotify: (message: string) => void
   iconRevision?: number
   visibleNodeIds?: ReadonlySet<string> | null
+  skillMasters?: readonly SkillMasterSummary[]
+  nodeSize?: number
 }
 
 interface SkillNodeData extends Record<string, unknown> {
@@ -43,6 +46,8 @@ interface SkillNodeData extends Record<string, unknown> {
   iconRevision: number
   pointCost: number
   pointType: string
+  effects: NodeEffectPresentation[]
+  nodeSize: number
 }
 
 interface NodeContextMenuState {
@@ -76,6 +81,8 @@ function CanvasInner({
   onNotify,
   iconRevision = 0,
   visibleNodeIds = null,
+  skillMasters = [],
+  nodeSize = 56,
 }: SkillTreeCanvasProps) {
   const { screenToFlowPosition } = useReactFlow()
   const canvasRef = useRef<HTMLDivElement>(null)
@@ -101,10 +108,12 @@ function CanvasInner({
         iconRevision,
         pointCost: master?.pointCost ?? 0,
         pointType: master?.pointType ?? '',
+        effects: master ? describeNodeEffects(master, skillMasters) : [],
+        nodeSize,
       },
     }
     }),
-    [iconRevision, masterMap, selectedIds, structure.nodes, structure.rootNodeId, visibleNodeIds],
+    [iconRevision, masterMap, nodeSize, selectedIds, skillMasters, structure.nodes, structure.rootNodeId, visibleNodeIds],
   )
   const edges = useMemo<Edge[]>(() => structure.edges
     .filter((edge) => !visibleNodeIds
@@ -372,8 +381,17 @@ function CanvasInner({
 }
 
 function SkillNode({ data, selected }: NodeProps<Node<SkillNodeData>>) {
+  const compact = data.nodeSize < 72
+  const tooltipNode = {
+    $schema: '', schemaVersion: 1, nodeId: data.nodeId, name: data.label, icon: data.icon,
+    lore: [], tags: [], pointType: data.pointType, pointCost: data.pointCost, effects: [],
+  } satisfies NodeMaster
   return (
-    <div className={`skill-node ${selected ? 'selected' : ''} ${data.root ? 'root' : ''}`}>
+    <div
+      className={`skill-node ${selected ? 'selected' : ''} ${data.root ? 'root' : ''} ${compact ? 'compact' : ''}`}
+      style={{ '--skill-node-size': `${data.nodeSize}px` } as CSSProperties}
+      title={nodeTooltip(tooltipNode, data.effects)}
+    >
       <Handle type="target" position={Position.Left} />
       <Handle type="source" position={Position.Right} />
       <Handle type="source" position={Position.Bottom} id="bottom" />
@@ -381,6 +399,7 @@ function SkillNode({ data, selected }: NodeProps<Node<SkillNodeData>>) {
       <strong title={data.label}>{data.label}</strong>
       <MinecraftIcon icon={data.icon} revision={data.iconRevision} className="canvas-node-icon" />
       <span className="node-kicker">#{data.nodeId} · {data.pointType} {data.pointCost} · Y {data.y}</span>
+      {data.effects.length > 0 && <span className="effect-count" aria-label={`効果 ${data.effects.length}件`}>{data.effects.length}</span>}
       {data.root && <span className="root-label">ROOT</span>}
     </div>
   )

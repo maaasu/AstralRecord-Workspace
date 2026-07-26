@@ -3,7 +3,7 @@
 MOBの基本的なスキーマ定義。全カテゴリ（ENEMY / BOSS / NPC）で共通のフィールドを定義します。
 
 本定義は、ProtocolLib を用いて表示されるカスタムエンティティのテンプレートを管理するためのものです。
-ステータスはプラグイン側の独自ステータスシステム（`io.github.maaasu.astralRecord.feature.status.model.StatusType`）に基づき、バニラの Attribute は使用しません。
+ステータスは共有カタログの独自ステータスシステムに基づき、バニラのAttributeは使用しません。
 AI（行動ロジック）もプラグイン独自実装であり、本スキーマでは行動パラメータのみを宣言します。
 
 各カテゴリ固有のフィールドは、それぞれのサブディレクトリ配下にあるスキーマ定義を参照してください。
@@ -102,9 +102,9 @@ Mobが表示上装備するアイテムを指定します。すべて任意項�
 
 #### baseStats[].status（StatusType）
 
-プラグイン側（`io.github.maaasu.astralRecord.feature.status.model.StatusType`）で定義されるステータス名を指定します。（class / buff / equipment と同一の体系）
+共有カタログで定義されるステータスIDを指定します。（class / buff / equipment と同一の体系）
 
-StatusType の定義は、プラグイン側の [`StatusType.kt`](../../10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/status/model/StatusType.kt) を参照してください。
+StatusTypeの定義は共有カタログ[`v1.status_types.yml`](../75.shared.status/v1.status_types.yml)を参照してください。
 
 ### ai.idle（非接敵時行動）— 全カテゴリ共通
 

@@ -3,7 +3,7 @@
 指定した数の同セット装備を装着したときに発動するセット効果を定義します。
 Equipment 側の `setId` でこのファイルの `id` を参照することで、セット効果を装備と紐付けます。
 
-> **StatusType について**: `stats` フィールドに使用できるステータス名は、プラグイン側の [`StatusType.kt`](../../../../10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/status/model/StatusType.kt) を参照してください。
+> **StatusType について**: `stats`フィールドに使用できるIDは、共有カタログ`40_filebase/75.shared.status/v1.status_types.yml`を参照してください。
 
 ## スキーマ定義
 

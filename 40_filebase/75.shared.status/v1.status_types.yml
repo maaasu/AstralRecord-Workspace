@@ -1,0 +1,95 @@
+# design:
+#   motif: "AstralRecord 共通ステータス契約"
+#   progression: 0
+schemaVersion: 1
+
+categories:
+  - { id: RESOURCE, displayName: "リソース" }
+  - { id: PRIMARY, displayName: "基本能力値" }
+  - { id: OFFENSE, displayName: "攻撃" }
+  - { id: DEFENSE, displayName: "防御" }
+  - { id: ELEMENT, displayName: "属性" }
+  - { id: CONDITION, displayName: "状態異常" }
+  - { id: UTILITY, displayName: "ユーティリティ" }
+
+statuses:
+  - { id: MAX_HEALTH, displayName: "最大HP", category: RESOURCE, supportsRange: false }
+  - { id: MAX_MANA, displayName: "最大MP", category: RESOURCE, supportsRange: false }
+  - { id: MAX_ENERGY, displayName: "最大EN", category: RESOURCE, supportsRange: false }
+  - { id: MAX_SHIELD, displayName: "最大シールド", category: RESOURCE, supportsRange: false }
+  - { id: STRENGTH, displayName: "筋力", category: PRIMARY }
+  - { id: DEXTERITY, displayName: "器用さ", category: PRIMARY }
+  - { id: INTELLIGENCE, displayName: "知力", category: PRIMARY }
+  - { id: VITALITY, displayName: "体力", category: PRIMARY }
+  - { id: AGILITY, displayName: "敏捷性", category: PRIMARY }
+  - { id: LUCK, displayName: "幸運", category: PRIMARY }
+  - { id: ATTACK, displayName: "攻撃力", category: OFFENSE }
+  - { id: MELEE_ATTACK, displayName: "近接攻撃力", category: OFFENSE }
+  - { id: RANGED_ATTACK, displayName: "間接攻撃力", category: OFFENSE }
+  - { id: MAGIC_ATTACK, displayName: "魔法攻撃力", category: OFFENSE }
+  - { id: CRITICAL_RATE, displayName: "会心率", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
+  - { id: CRITICAL_DAMAGE, displayName: "会心ダメージ", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
+  - { id: SUPER_CRITICAL_RATE, displayName: "超会心率", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
+  - { id: SUPER_CRITICAL_DAMAGE, displayName: "超会心ダメージ", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
+  - { id: FINAL_DAMAGE_RATE, displayName: "最終ダメージ確率", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
+  - { id: FINAL_DAMAGE_MULTIPLIER, displayName: "最終ダメージ倍率", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
+  - { id: ACCURACY, displayName: "命中率", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
+  - { id: ATTACK_SPEED, displayName: "攻撃速度", category: OFFENSE, suffix: "%" }
+  - { id: SHIELD_BREAK, displayName: "シールドブレイク", category: OFFENSE }
+  - { id: FIRE_DAMAGE_INCREASE, displayName: "火属性ダメージ増加", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
+  - { id: FIRE_RESISTANCE, displayName: "火属性耐性", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
+  - { id: FIRE_PENETRATION, displayName: "火属性貫通", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
+  - { id: ICE_DAMAGE_INCREASE, displayName: "氷属性ダメージ増加", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
+  - { id: ICE_RESISTANCE, displayName: "氷属性耐性", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
+  - { id: ICE_PENETRATION, displayName: "氷属性貫通", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
+  - { id: LIGHTNING_DAMAGE_INCREASE, displayName: "雷属性ダメージ増加", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
+  - { id: LIGHTNING_RESISTANCE, displayName: "雷属性耐性", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
+  - { id: LIGHTNING_PENETRATION, displayName: "雷属性貫通", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
+  - { id: POISON_DAMAGE_INCREASE, displayName: "毒属性ダメージ増加", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
+  - { id: POISON_RESISTANCE, displayName: "毒属性耐性", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
+  - { id: POISON_PENETRATION, displayName: "毒属性貫通", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
+  - { id: LIGHT_DAMAGE_INCREASE, displayName: "光属性ダメージ増加", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
+  - { id: LIGHT_RESISTANCE, displayName: "光属性耐性", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
+  - { id: LIGHT_PENETRATION, displayName: "光属性貫通", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
+  - { id: DARK_DAMAGE_INCREASE, displayName: "闇属性ダメージ増加", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
+  - { id: DARK_RESISTANCE, displayName: "闇属性耐性", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
+  - { id: DARK_PENETRATION, displayName: "闇属性貫通", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
+  - { id: BURNING_APPLY_CHANCE, displayName: "燃焼付与確率増加", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: BURNING_RESISTANCE, displayName: "燃焼付与耐性", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: BURNING_DAMAGE_INCREASE, displayName: "燃焼ダメージ増加", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: BURNING_DAMAGE_RESISTANCE, displayName: "燃焼ダメージ耐性", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: BURNING_DAMAGE_PENETRATION, displayName: "燃焼DoT貫通", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: FROZEN_APPLY_CHANCE, displayName: "凍結付与確率増加", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: FROZEN_RESISTANCE, displayName: "凍結付与耐性", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: CHILLED_APPLY_CHANCE, displayName: "冷気付与確率増加", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: CHILLED_RESISTANCE, displayName: "冷気付与耐性", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: SHOCKED_APPLY_CHANCE, displayName: "感電付与確率増加", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: SHOCKED_RESISTANCE, displayName: "感電付与耐性", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: SHOCKED_DAMAGE_INCREASE, displayName: "感電ダメージ増加", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: SHOCKED_DAMAGE_RESISTANCE, displayName: "感電ダメージ耐性", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: SHOCKED_DAMAGE_PENETRATION, displayName: "感電DoT貫通", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: POISONED_APPLY_CHANCE, displayName: "毒状態付与確率増加", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: POISONED_RESISTANCE, displayName: "毒状態付与耐性", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: POISONED_DAMAGE_INCREASE, displayName: "毒状態ダメージ増加", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: POISONED_DAMAGE_RESISTANCE, displayName: "毒状態ダメージ耐性", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: POISONED_DAMAGE_PENETRATION, displayName: "毒状態DoT貫通", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: BLINDNESS_APPLY_CHANCE, displayName: "盲目付与確率増加", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: BLINDNESS_RESISTANCE, displayName: "盲目付与耐性", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: WEAKNESS_APPLY_CHANCE, displayName: "衰弱付与確率増加", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: WEAKNESS_RESISTANCE, displayName: "衰弱付与耐性", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: HEALING_INHIBITION_APPLY_CHANCE, displayName: "回復阻害付与確率増加", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: HEALING_INHIBITION_RESISTANCE, displayName: "回復阻害付与耐性", category: CONDITION, suffix: "%", decimalPlaces: 1 }
+  - { id: DEFENSE, displayName: "防御力", category: DEFENSE }
+  - { id: MAGIC_DEFENSE, displayName: "魔法防御力", category: DEFENSE }
+  - { id: EVASION, displayName: "回避率", category: DEFENSE, suffix: "%", decimalPlaces: 1 }
+  - { id: KNOCKBACK_RESISTANCE, displayName: "ノックバック耐性", category: DEFENSE, suffix: "%", decimalPlaces: 1 }
+  - { id: HP_REGEN, displayName: "HP回復力", category: UTILITY }
+  - { id: MP_REGEN, displayName: "MP回復力", category: UTILITY }
+  - { id: ENERGY_REGEN, displayName: "EN回復力", category: UTILITY }
+  - { id: MOVEMENT_SPEED, displayName: "移動速度", category: UTILITY }
+  - { id: COOLDOWN_REDUCTION, displayName: "CD短縮", category: UTILITY, suffix: "%", decimalPlaces: 1 }
+  - { id: SHIELD_RECHARGE_REDUCTION, displayName: "シールドリチャージ短縮", category: UTILITY, suffix: "%", decimalPlaces: 1 }
+  - { id: SHIELD_RECHARGE_RATE, displayName: "シールドリチャージ", category: UTILITY }
+  - { id: MINING_SPEED, displayName: "採集速度", category: UTILITY }
+  - { id: INVENTORY_SLOTS, displayName: "インベントリスロット", category: UTILITY, supportsRange: false }
+  - { id: QUEST_LIMIT, displayName: "クエスト受領上限", category: UTILITY, supportsRange: false }

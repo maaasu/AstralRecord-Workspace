@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { JsonObject, JsonValue, NodeMaster, StructureDocument, StructurePlacement } from '../types/editor'
+import type { JsonValue, NodeMaster, SkillMasterSummary, StructureDocument, StructurePlacement } from '../types/editor'
 import { MinecraftIcon } from './MinecraftIcon'
 import { stripMinecraftFormatting } from '../utils/minecraft'
 import { SuggestionInput } from './SuggestionInput'
 import { MINECRAFT_MATERIAL_VERSION } from '../data/nodeFieldSuggestions'
+import { describeNodeEffects } from '../data/nodeEffectPresentation'
 
 interface PlacementInspectorProps {
   nodeId: string | null
@@ -17,6 +18,7 @@ interface PlacementInspectorProps {
   onRetryIcons: () => void
   materialSuggestions?: readonly string[]
   tagSuggestions?: readonly string[]
+  skillMasters?: readonly SkillMasterSummary[]
 }
 
 export function PlacementInspector({
@@ -31,6 +33,7 @@ export function PlacementInspector({
   onRetryIcons,
   materialSuggestions = [],
   tagSuggestions = [],
+  skillMasters = [],
 }: PlacementInspectorProps) {
   const [draft, setDraft] = useState<NodeMaster | null>(() => master ? structuredClone(master) : null)
 
@@ -176,7 +179,11 @@ export function PlacementInspector({
             <strong>Effects ({draft.effects?.length ?? 0})</strong>
             {(draft.effects ?? []).length === 0
               ? <span className="muted">効果なし</span>
-              : (draft.effects ?? []).map((effect, index) => <EffectSummary key={index} effect={effect} />)}
+              : describeNodeEffects(draft, skillMasters).map((effect, index) => (
+                  <span className={`effect-chip ${effect.kind}`} title={effect.detail} key={`${effect.kind}-${index}`}>
+                    {effect.title}
+                  </span>
+                ))}
           </div>
           <div className="button-stack inspector-actions">
             <button className="button primary" onClick={() => void saveMaster()} disabled={!masterDirty || saving || !draft.name.trim() || !String(draft.icon).trim()}>
@@ -189,14 +196,6 @@ export function PlacementInspector({
       )}
     </section>
   )
-}
-
-function EffectSummary({ effect }: { effect: JsonValue }) {
-  const value = effect !== null && typeof effect === 'object' && !Array.isArray(effect) ? effect as JsonObject : null
-  if (!value) return <span className="effect-chip">不明な効果</span>
-  if (value.type === 'skill') return <span className="effect-chip">skill: {String(value.skillId ?? '')}</span>
-  if (value.type === 'status') return <span className="effect-chip">{String(value.status ?? '')} {String(value.modifierType ?? '')} {String(value.value ?? '')}</span>
-  return <span className="effect-chip">{String(value.type ?? '不明')}</span>
 }
 
 const splitList = (value: string) => [...new Set(value.split(',').map((item) => item.trim()).filter(Boolean))]

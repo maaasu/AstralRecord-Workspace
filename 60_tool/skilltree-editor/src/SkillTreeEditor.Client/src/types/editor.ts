@@ -83,12 +83,29 @@ export interface ClassMasterSummary {
   parentClassIds: string[]
 }
 
+export interface SkillMasterSummary {
+  id: string
+  name: string
+  description: string
+  type: string
+}
+
+export interface FieldSuggestion {
+  value: string
+  label: string
+  description?: string
+}
+
+export type FieldSuggestionValue = string | FieldSuggestion
+
 export interface EditorMetadata {
   workspaceRoot: string
   nodesPath: string
   structuresPath: string
   schemasPath: string
   nodeIdSequencePath: string
+  skillsPath: string
+  statusCatalogPath: string
   pluginConfigPath: string
   backupPath: string
   minecraftIconCachePath: string

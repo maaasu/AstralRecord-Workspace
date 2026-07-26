@@ -75,6 +75,7 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 - file マスタを変更する場合は、Plugin と API の読み込み処理、Resource Pack の参照、関連ドキュメントへの影響を確認する。
 - `config.yml` のパス解決ルールと各 YAML スキーマ定義を優先する。
 - マスタデータの ID、カテゴリ、参照先が実装やリソースパックと矛盾しないか確認する。
+- ステータスID・日本語名・表示メタデータは`40_filebase/75.shared.status/v1.status_types.yml`を正本とし、変更後はルートの`generate-status-types.ps1`でKotlin/C#/TypeScript型を再生成する。
 
 ### スキーマ定義ファイルの配置
 

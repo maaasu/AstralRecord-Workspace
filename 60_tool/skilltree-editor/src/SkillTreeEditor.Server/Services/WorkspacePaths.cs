@@ -16,6 +16,8 @@ public sealed class WorkspacePaths
         WorkspaceRoot = Path.GetFullPath(workspaceRoot);
         SkillTreeRoot = Path.Combine(WorkspaceRoot, "40_filebase", "35.features.skilltree");
         Classes = Path.Combine(WorkspaceRoot, "40_filebase", "20.features.class");
+        Skills = Path.Combine(WorkspaceRoot, "40_filebase", "30.features.skill");
+        StatusCatalog = Path.Combine(WorkspaceRoot, "40_filebase", "75.shared.status", "v1.status_types.yml");
         Nodes = Path.Combine(SkillTreeRoot, "nodes");
         Structures = Path.Combine(SkillTreeRoot, "structures");
         Schemas = Path.Combine(SkillTreeRoot, "schemas");
@@ -37,6 +39,8 @@ public sealed class WorkspacePaths
     public string WorkspaceRoot { get; }
     public string SkillTreeRoot { get; }
     public string Classes { get; }
+    public string Skills { get; }
+    public string StatusCatalog { get; }
     public string Nodes { get; }
     public string Structures { get; }
     public string Schemas { get; }
@@ -53,6 +57,8 @@ public sealed class WorkspacePaths
         Structures,
         Schemas,
         NodeIdSequence,
+        Skills,
+        StatusCatalog,
         PluginConfig,
         Backups,
         MinecraftIconCache);

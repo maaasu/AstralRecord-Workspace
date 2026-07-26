@@ -5,6 +5,7 @@ import type {
   NodeMaster,
   PluginSkillTreeSettings,
   SchemaSummary,
+  SkillMasterSummary,
   StoredDocument,
   StructureDocument,
   ValidationReport,
@@ -54,6 +55,7 @@ const json = (method: string, body: JsonObject | PluginSkillTreeSettings): Reque
 export const editorApi = {
   metadata: () => request<EditorMetadata>('/api/metadata'),
   listClasses: () => request<ClassMasterSummary[]>('/api/classes'),
+  listSkills: () => request<SkillMasterSummary[]>('/api/skills'),
   listNodes: () => request<StoredDocument<NodeMaster>[]>('/api/nodes'),
   createNode: (node: JsonObject) => request<NodeMaster>('/api/nodes', json('POST', node)),
   saveNode: (node: NodeMaster) => request<NodeMaster>(

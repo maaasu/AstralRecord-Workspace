@@ -127,7 +127,7 @@ describe('SkillTreeCanvas', () => {
 
     const edge = await screen.findByTestId('rf__edge-edge:1000:1001')
     fireEvent.click(edge)
-    await waitFor(() => expect(edge).toHaveClass('selected'))
+    await waitFor(() => expect(screen.getByTestId('rf__edge-edge:1000:1001')).toHaveClass('selected'))
 
     fireEvent.keyDown(document, { key: 'Delete', code: 'Delete' })
     fireEvent.keyUp(document, { key: 'Delete', code: 'Delete' })
@@ -166,5 +166,27 @@ describe('SkillTreeCanvas', () => {
     fireEvent.contextMenu(screen.getByTestId('rf__node-1000'), { clientX: 120, clientY: 100 })
     fireEvent.click(screen.getByRole('menuitem', { name: 'このノードの接続をすべて削除' }))
     expect(onRecord).toHaveBeenCalledWith({ ...structure, edges: [] })
+  })
+
+  it('applies the selected visual node size', async () => {
+    render(
+      <div style={{ width: 800, height: 600 }}>
+        <SkillTreeCanvas
+          structure={structure}
+          masters={masters}
+          nodeSize={40}
+          onRecord={vi.fn()}
+          onReplace={vi.fn()}
+          onBeginTransaction={vi.fn()}
+          onCommitTransaction={vi.fn()}
+          onSelectedNode={vi.fn()}
+          onEditMaster={vi.fn()}
+          onNotify={vi.fn()}
+        />
+      </div>,
+    )
+
+    const rootNode = await screen.findByTestId('rf__node-1000')
+    expect(rootNode.querySelector('.skill-node')).toHaveStyle('--skill-node-size: 40px')
   })
 })

@@ -1,6 +1,8 @@
-import type { NodeMaster } from '../types/editor'
+import { useMemo } from 'react'
+import type { NodeMaster, SkillMasterSummary } from '../types/editor'
 import { MinecraftIcon } from './MinecraftIcon'
 import { stripMinecraftFormatting } from '../utils/minecraft'
+import { describeNodeEffects, nodeTooltip, type NodeEffectPresentation } from '../data/nodeEffectPresentation'
 
 interface NodeSidebarProps {
   nodes: NodeMaster[]
@@ -12,6 +14,7 @@ interface NodeSidebarProps {
   onEdit: (node: NodeMaster) => void
   onCreate: () => void
   iconRevision?: number
+  skillMasters: readonly SkillMasterSummary[]
 }
 
 export function NodeSidebar({
@@ -24,7 +27,12 @@ export function NodeSidebar({
   onEdit,
   onCreate,
   iconRevision = 0,
+  skillMasters,
 }: NodeSidebarProps) {
+  const effectsByNodeId = useMemo(
+    () => new Map(nodes.map((node) => [node.nodeId, describeNodeEffects(node, skillMasters)])),
+    [nodes, skillMasters],
+  )
   const tags = [...new Set(nodes.flatMap((node) => node.tags ?? []))].sort((a, b) => a.localeCompare(b, 'ja'))
   const filtered = nodes.filter((node) => {
     const keyword = query.trim().toLocaleLowerCase()
@@ -32,6 +40,7 @@ export function NodeSidebar({
       || node.nodeId.toLocaleLowerCase().includes(keyword)
       || node.name.toLocaleLowerCase().includes(keyword)
       || (node.tags ?? []).some((tag) => tag.toLocaleLowerCase().includes(keyword))
+      || (effectsByNodeId.get(node.nodeId) ?? []).some((effect) => effect.searchText.toLocaleLowerCase().includes(keyword))
     return matchesKeyword && (!selectedTag || node.tags?.includes(selectedTag))
   })
   const unplaced = filtered.filter((node) => !placedIds.has(node.nodeId))
@@ -58,8 +67,8 @@ export function NodeSidebar({
           {tags.map((tag) => <option key={tag} value={tag}>{tag}</option>)}
         </select>
       </div>
-      <NodeGroup title={`未配置 ${unplaced.length}`} nodes={unplaced} placedIds={placedIds} onEdit={onEdit} iconRevision={iconRevision} />
-      <NodeGroup title={`配置済み ${placed.length}`} nodes={placed} placedIds={placedIds} onEdit={onEdit} iconRevision={iconRevision} />
+      <NodeGroup title={`未配置 ${unplaced.length}`} nodes={unplaced} placedIds={placedIds} onEdit={onEdit} iconRevision={iconRevision} effectsByNodeId={effectsByNodeId} />
+      <NodeGroup title={`配置済み ${placed.length}`} nodes={placed} placedIds={placedIds} onEdit={onEdit} iconRevision={iconRevision} effectsByNodeId={effectsByNodeId} />
     </aside>
   )
 }
@@ -70,21 +79,25 @@ function NodeGroup({
   placedIds,
   onEdit,
   iconRevision,
+  effectsByNodeId,
 }: {
   title: string
   nodes: NodeMaster[]
   placedIds: Set<string>
   onEdit: (node: NodeMaster) => void
   iconRevision: number
+  effectsByNodeId: ReadonlyMap<string, readonly NodeEffectPresentation[]>
 }) {
   return (
     <section className="node-group">
       <h3>{title}</h3>
       <div className="node-list">
-        {nodes.map((node) => (
-          <article
+        {nodes.map((node) => {
+          const effects = effectsByNodeId.get(node.nodeId) ?? []
+          return <article
             className={`node-list-item ${placedIds.has(node.nodeId) ? 'placed' : ''}`}
             key={node.nodeId}
+            title={nodeTooltip(node, effects)}
             draggable={!placedIds.has(node.nodeId)}
             onDragStart={(event) => {
               event.dataTransfer.setData('application/x-astral-node', node.nodeId)
@@ -98,9 +111,17 @@ function NodeGroup({
             <div className="tag-row">
               {(node.tags ?? []).slice(0, 3).map((tag) => <span className="tag" key={tag}>{tag}</span>)}
             </div>
+            {effects.length > 0 && (
+              <div className="node-effect-preview">
+                {effects.slice(0, 2).map((effect, index) => (
+                  <span className={`node-effect ${effect.kind}`} key={`${effect.kind}-${index}`}>{effect.title}</span>
+                ))}
+                {effects.length > 2 && <span className="node-effect more">ほか{effects.length - 2}件</span>}
+              </div>
+            )}
             <button className="text-button" onClick={() => onEdit(node)}>編集</button>
           </article>
-        ))}
+        })}
         {nodes.length === 0 && <p className="empty-state">該当ノードはありません。</p>}
       </div>
     </section>

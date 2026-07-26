@@ -103,7 +103,7 @@ SkillTree のノード定義と配置・接続構造は、`40_filebase/35.featur
 | キー | 型 | 必須 | 説明 |
 | --- | --- | --- | --- |
 | `type` | String | 必須 | `status` 固定 |
-| `status` | String | 必須 | Plugin の `StatusType` 名 |
+| `status` | String | 必須 | `75.shared.status/v1.status_types.yml`のステータスID |
 | `modifierType` | String | 必須 | `FLAT` または `SCALAR` |
 | `value` | Number | 必須 | 補正値。`SCALAR` は `0.10` を 10% として扱う |
 
@@ -170,6 +170,8 @@ JSON Schema による型・必須項目検証に加え、エディターのバ�
 ## Plugin とエディターの責務
 
 - 開発者用ローカル Web エディターのソースは `60_tool/skilltree-editor/` に置く。
+- ステータス候補と日本語表示は共有ステータスカタログのTypeScript生成物、スキル情報は`30.features.skill`の読取結果を使用し、JSONにはIDだけを保存する。
+- キャンバス上のノード表示サイズはWeb UIのローカル設定とし、構造JSONには保存しない。
 - ノード定義、配置、接続の編集と JSON 書き込みはエディターだけが行う。
 - エディターが更新する Plugin 設定はリポジトリ上の `10_plugin/AstralRecord/src/main/resources/config.yml` とし、稼働環境の `plugins/AstralRecord/config.yml` へ直接書き込まない。稼働環境へ filebase と設定をデプロイまたは同期した後、`/masterdata reload` で反映する。
 - Plugin は選択された node/structure JSON を読み取り専用で使用し、ゲーム内操作から構造ファイルを書き換えない。

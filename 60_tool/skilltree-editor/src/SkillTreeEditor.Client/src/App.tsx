@@ -22,6 +22,7 @@ import type {
   NodeMaster,
   PluginSkillTreeSettings,
   SchemaSummary,
+  SkillMasterSummary,
   StoredDocument,
   StructureDocument,
   ValidationReport,
@@ -44,12 +45,25 @@ interface EditorTarget {
 
 type WorkspacePane = 'nodes' | 'canvas' | 'details'
 
+const NODE_SIZE_STORAGE_KEY = 'astralrecord.skilltree-editor.node-size'
+const DEFAULT_NODE_SIZE = 56
+const MIN_NODE_SIZE = 32
+const MAX_NODE_SIZE = 140
+
+function initialNodeSize(): number {
+  const stored = typeof window === 'undefined' ? Number.NaN : Number(window.localStorage.getItem(NODE_SIZE_STORAGE_KEY))
+  return Number.isFinite(stored)
+    ? Math.min(MAX_NODE_SIZE, Math.max(MIN_NODE_SIZE, stored))
+    : DEFAULT_NODE_SIZE
+}
+
 export default function App() {
   const [nodeDocuments, setNodeDocuments] = useState<StoredDocument<NodeMaster>[]>([])
   const [structureDocuments, setStructureDocuments] = useState<StoredDocument<StructureDocument>[]>([])
   const [schemas, setSchemas] = useState<SchemaSummary[]>([])
   const [nodeSchemas, setNodeSchemas] = useState<LoadedSchema[]>([])
   const [classMasters, setClassMasters] = useState<ClassMasterSummary[]>([])
+  const [skillMasters, setSkillMasters] = useState<SkillMasterSummary[]>([])
   const [settings, setSettings] = useState<PluginSkillTreeSettings>({
     worldName: 'world', structureId: '', centerX: 0, centerY: 0, centerZ: 0,
   })
@@ -70,6 +84,7 @@ export default function App() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [iconRevision, setIconRevision] = useState(0)
+  const [nodeSize, setNodeSize] = useState(initialNodeSize)
   const [visiblePanes, setVisiblePanes] = useState<Record<WorkspacePane, boolean>>({
     nodes: true,
     canvas: true,
@@ -91,7 +106,10 @@ export default function App() {
     () => [...new Set(nodes.flatMap((node) => node.tags))].sort((a, b) => a.localeCompare(b, 'ja')),
     [nodes],
   )
-  const nodeFieldSuggestions = useMemo(() => buildNodeFieldSuggestions(tagSuggestions), [tagSuggestions])
+  const nodeFieldSuggestions = useMemo(
+    () => buildNodeFieldSuggestions(tagSuggestions, skillMasters),
+    [skillMasters, tagSuggestions],
+  )
   const simulatedNodes = useMemo(
     () => simulationEnabled
       ? nodes.filter((node) => isNodeVisibleInSimulation(node, classMasters, {
@@ -120,13 +138,14 @@ export default function App() {
     setLoading(true)
     setError('')
     try {
-      const [loadedNodes, loadedStructures, loadedSchemas, loadedSettings, loadedMetadata, loadedClasses] = await Promise.all([
+      const [loadedNodes, loadedStructures, loadedSchemas, loadedSettings, loadedMetadata, loadedClasses, loadedSkills] = await Promise.all([
         editorApi.listNodes(),
         editorApi.listStructures(),
         editorApi.listSchemas(),
         editorApi.getSettings(),
         editorApi.metadata(),
         editorApi.listClasses(),
+        editorApi.listSkills(),
       ])
       setNodeDocuments(loadedNodes)
       setStructureDocuments(loadedStructures)
@@ -134,6 +153,7 @@ export default function App() {
       setSettings(loadedSettings)
       setMetadata(loadedMetadata)
       setClassMasters(loadedClasses)
+      setSkillMasters(loadedSkills)
       setSimulationClassId((current) => loadedClasses.some((entry) => entry.id === current)
         ? current
         : loadedClasses.find((entry) => entry.id === 'adventurer')?.id ?? loadedClasses[0]?.id ?? '')
@@ -159,6 +179,9 @@ export default function App() {
   }, [history.reset, showError])
 
   useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    window.localStorage.setItem(NODE_SIZE_STORAGE_KEY, String(nodeSize))
+  }, [nodeSize])
   useEffect(() => {
     const beforeUnload = (event: BeforeUnloadEvent) => {
       if (!dirty) return
@@ -456,6 +479,7 @@ export default function App() {
             onEdit={(node) => setNodeEditor({ node, isNew: false })}
             onCreate={openNewNode}
             iconRevision={iconRevision}
+            skillMasters={skillMasters}
           />
         )}
         center={(
@@ -492,6 +516,17 @@ export default function App() {
                   onChange={(event) => setSimulationPlayerLevel(Math.max(1, Math.floor(Number(event.target.value) || 1)))}
                 />
               </label>
+              <label>ノードサイズ {nodeSize}px
+                <input
+                  type="range"
+                  min={MIN_NODE_SIZE}
+                  max={MAX_NODE_SIZE}
+                  step={4}
+                  value={nodeSize}
+                  aria-label="キャンバスのノードサイズ"
+                  onChange={(event) => setNodeSize(Number(event.target.value))}
+                />
+              </label>
               <span>{simulationEnabled ? `${simulatedNodes.length} / ${nodes.length} ノード表示` : '全ノード表示'}</span>
             </div>
             {selectedStructureId ? (
@@ -507,6 +542,8 @@ export default function App() {
                 onNotify={setNotice}
                 iconRevision={iconRevision}
                 visibleNodeIds={simulationVisibleNodeIds}
+                skillMasters={skillMasters}
+                nodeSize={nodeSize}
               />
             ) : (
               <div className="canvas-placeholder"><h2>構造を作成してください</h2><p>ノードマスターを用意し、「＋ 構造」から始めます。</p></div>
@@ -523,6 +560,7 @@ export default function App() {
               iconRevision={iconRevision}
               materialSuggestions={minecraftMaterialSuggestions}
               tagSuggestions={tagSuggestions}
+              skillMasters={skillMasters}
               onChange={history.record}
               onSaveMaster={saveSelectedMaster}
               onEditMaster={(node) => setNodeEditor({ node, isNew: false })}
@@ -541,6 +579,8 @@ export default function App() {
                   <dt>Workspace</dt><dd>{metadata.workspaceRoot}</dd>
                   <dt>Nodes</dt><dd>{metadata.nodesPath}</dd>
                   <dt>Structures</dt><dd>{metadata.structuresPath}</dd>
+                  <dt>Skills</dt><dd>{metadata.skillsPath}</dd>
+                  <dt>Status Catalog</dt><dd>{metadata.statusCatalogPath}</dd>
                   <dt>ID Sequence</dt><dd>{metadata.nodeIdSequencePath}</dd>
                   <dt>Backups</dt><dd>{metadata.backupPath}</dd>
                   <dt>Icon Cache</dt><dd>{metadata.minecraftIconCachePath}</dd>

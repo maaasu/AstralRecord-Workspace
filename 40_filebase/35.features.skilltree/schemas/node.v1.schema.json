@@ -135,7 +135,8 @@
         },
         "status": {
           "type": "string",
-          "pattern": "^[A-Z][A-Z0-9_]*$"
+          "pattern": "^[A-Z][A-Z0-9_]*$",
+          "description": "75.shared.status共有カタログの不変ステータスID"
         },
         "modifierType": {
           "enum": [

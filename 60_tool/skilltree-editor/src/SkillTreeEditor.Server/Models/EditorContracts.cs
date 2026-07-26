@@ -46,12 +46,20 @@ public sealed record ClassMasterSummary(
     string Name,
     IReadOnlyList<string> ParentClassIds);
 
+public sealed record SkillMasterSummary(
+    string Id,
+    string Name,
+    string Description,
+    string Type);
+
 public sealed record EditorMetadata(
     string WorkspaceRoot,
     string NodesPath,
     string StructuresPath,
     string SchemasPath,
     string NodeIdSequencePath,
+    string SkillsPath,
+    string StatusCatalogPath,
     string PluginConfigPath,
     string BackupPath,
     string MinecraftIconCachePath);

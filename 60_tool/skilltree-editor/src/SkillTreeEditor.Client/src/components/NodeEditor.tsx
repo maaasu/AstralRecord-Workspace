@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { defaultFromSchema, SchemaForm } from './SchemaForm'
 import { schemaForDocument } from '../state/schemaSelection'
-import type { JsonObject, JsonValue, LoadedSchema, NodeMaster } from '../types/editor'
+import type { FieldSuggestionValue, JsonObject, JsonValue, LoadedSchema, NodeMaster } from '../types/editor'
 import { MINECRAFT_MATERIAL_VERSION } from '../data/nodeFieldSuggestions'
 
 interface NodeEditorProps {
@@ -12,7 +12,7 @@ interface NodeEditorProps {
   onSave: (node: JsonObject) => Promise<void>
   onDelete?: () => Promise<void>
   onCancel: () => void
-  suggestionsByPath?: Readonly<Record<string, readonly string[]>>
+  suggestionsByPath?: Readonly<Record<string, readonly FieldSuggestionValue[]>>
 }
 
 export function NodeEditor({ node, schemas, isNew, saving, onSave, onDelete, onCancel, suggestionsByPath = {} }: NodeEditorProps) {

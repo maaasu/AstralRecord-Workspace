@@ -158,6 +158,7 @@ public sealed class EditorEndpointMutationTests : IDisposable
         builder.Services.AddSingleton(pluginConfig);
         builder.Services.AddSingleton(validation);
         builder.Services.AddSingleton(gate);
+        builder.Services.AddSingleton(new SkillMasterCatalog(paths));
 
         var app = builder.Build();
         app.MapEditorEndpoints();

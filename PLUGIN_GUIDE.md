@@ -74,6 +74,8 @@
 
 ステータスの詳細仕様は本ガイドに重複記載せず、正本は `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書\feature\07-status` とします。攻撃・防御・魔法の 3 種別で構成され、武器には攻撃力（ATTACK）のみをステータスとして持たせ、職業ごとに内部でダメージ計算を行います。
 
+ステータスID・日本語表示名・カテゴリ・表示書式の正本は`E:\AstralRecord-Workspace\40_filebase\75.shared.status\v1.status_types.yml`です。Pluginの`StatusType.kt`は`.\generate-status-types.ps1`で生成し、直接編集しません。ダメージ計算などのPlugin固有ロジックは従来どおりPluginソースと本設計書で管理します。
+
 ## パーティクル表示共通ルール
 
 - パーティクル表示は `io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService` を経由する。

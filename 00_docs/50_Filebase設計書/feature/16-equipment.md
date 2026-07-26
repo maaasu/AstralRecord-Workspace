@@ -57,7 +57,7 @@ Equipment は、装備中のステータス、skill、操作、採集能力な�
 
 - YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\equipment\docs.equipment.YAMLスキーマ定義.md`
 - set effect YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\equipment\set_effect\docs.set_effect.YAMLスキーマ定義.md`
-- status: `E:\AstralRecord-Workspace\10_plugin\AstralRecord\src\main\java\io\github\maaasu\astralRecord\feature\status\model\StatusType.kt`
+- status: `E:\AstralRecord-Workspace\40_filebase\75.shared.status\v1.status_types.yml`
 - slot / hand type / enhance / enchant / rune / transcendence: `E:\AstralRecord-Workspace\10_plugin\AstralRecord\src\main\java\io\github\maaasu\astralRecord\feature\item\model\ItemEquipment.kt`
 - accessory slot / tag: `E:\AstralRecord-Workspace\10_plugin\AstralRecord\src\main\java\io\github\maaasu\astralRecord\feature\inventory\model\AccessorySlotType.java`
 - inventory slot mapping: `E:\AstralRecord-Workspace\10_plugin\AstralRecord\src\main\java\io\github\maaasu\astralRecord\feature\inventory\model\EquipmentType.kt`

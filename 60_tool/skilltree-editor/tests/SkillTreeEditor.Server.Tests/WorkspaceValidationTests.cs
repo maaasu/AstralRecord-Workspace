@@ -51,4 +51,16 @@ public sealed class WorkspaceValidationTests
             Assert.Contains("adventurer", entry.ParentClassIds);
         }
     }
+
+    [Fact]
+    public async Task SkillCatalogExposesJapaneseSkillInformation()
+    {
+        var root = WorkspacePaths.ResolveWorkspaceRoot(null, AppContext.BaseDirectory);
+        var skills = await new SkillMasterCatalog(new WorkspacePaths(root)).ReadAllAsync(CancellationToken.None);
+
+        var ironWill = Assert.Single(skills, value => value.Id == "iron_will");
+        Assert.Contains("アイアンウィル", ironWill.Name);
+        Assert.Contains("被ダメージ", ironWill.Description);
+        Assert.Equal("SKILL", ironWill.Type);
+    }
 }

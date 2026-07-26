@@ -3,9 +3,9 @@
 Class（職業）のスキーマ定義。
 
 本定義は、プレイヤーの職業テンプレート（成長方針・初期ステータス・進行解放要件）を管理するためのものです。
-ステータスの種別はプラグイン側で定義されるため、本スキーマではステータス名（`status`）と値（`value`）のペアのみを指定します。
+ステータスの種別は共有カタログで定義されるため、本スキーマではステータスID（`status`）と値（`value`）のペアのみを指定します。
 
-> **StatusType について**: 使用可能なステータス名は、プラグイン側の [`StatusType.kt`](../../10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/status/model/StatusType.kt) を参照してください。
+> **StatusType について**: 使用可能なステータスIDは、共有カタログ[`v1.status_types.yml`](../75.shared.status/v1.status_types.yml)を参照してください。
 
 ## スキーマ定義
 
@@ -25,7 +25,7 @@ Class（職業）のスキーマ定義。
 | `unlockClassLevel[].class` | String       | ×  | -         | 解放に必要な素材クラスを指定                                   |
 | `unlockClassLevel[].level` | Integer      | ×  | -         | 解放に必要な素材クラスのレベルを指定                               |
 | `baseStats[]`              | List         | ○  | -         | 初期ステータスのリスト（後述）                                  |
-| `baseStats[].status`       | String       | ○  | -         | ステータス名（`StatusType`。プラグイン側で定義。例: `MAX_HEALTH`）   |
+| `baseStats[].status`       | String       | ○  | -         | 共有カタログのステータスID（例: `MAX_HEALTH`）   |
 | `baseStats[].value`        | Double       | ○  | -         | 初期値                                              |
 | `growthPerLevel[]`         | List         | ×  | emptyList | レベルアップ時の成長量リスト（後述）                               |
 | `growthPerLevel[].status`  | String       | ○  | -         | ステータス名（`StatusType`。`baseStats` と同様）             |
@@ -51,7 +51,7 @@ Class（職業）のスキーマ定義。
 
 ### baseStats[].status / growthPerLevel[].status（StatusType）
 
-プラグイン側で定義されるステータス名を指定します。使用可能な値は [`StatusType.kt`](../../10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/status/model/StatusType.kt) を参照してください。
+共有カタログで定義される不変ステータスIDを指定します。使用可能な値は[`v1.status_types.yml`](../75.shared.status/v1.status_types.yml)を参照してください。
 
 ### 参照（ref）
 他DBからclassを参照する場合は `class:` prefix を使用します（aliases: `cls`）。

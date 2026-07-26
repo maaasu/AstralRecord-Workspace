@@ -13,6 +13,7 @@ builder.Services.AddSingleton<FilebaseRepository>();
 builder.Services.AddSingleton<SchemaCatalog>();
 builder.Services.AddSingleton<ValidationService>();
 builder.Services.AddSingleton<PluginConfigService>();
+builder.Services.AddSingleton<SkillMasterCatalog>();
 builder.Services.AddSingleton<WorkspaceMutationGate>();
 builder.Services.AddHttpClient<MinecraftIconService>((services, client) =>
 {
