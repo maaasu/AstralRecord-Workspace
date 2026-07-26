@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.shared.gui;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.shared.gui.sound.GuiCloseSoundPolicy;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -44,11 +45,28 @@ public final class GuiOpenSupport {
         AstralRecord plugin = AstralRecord.getPlugin(AstralRecord.class);
         BukkitTask task = plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             PENDING_TRANSITIONS.remove(playerId);
-            if (player.isOnline() && player.getOpenInventory().getTopInventory() == source) {
-                player.openInventory(inventory);
-            }
+            openIfSourceIsCurrent(player, source, inventory);
         }, TRANSITION_DELAY_TICKS);
         PENDING_TRANSITIONS.put(playerId, task);
+    }
+
+    /**
+     * 遷移元 GUI が引き続き開かれている場合だけ内部画面遷移を実行します。
+     *
+     * @param player 対象プレイヤー
+     * @param source 遷移元 GUI
+     * @param target 遷移先 GUI
+     */
+    static void openIfSourceIsCurrent(
+        @NotNull Player player,
+        @NotNull Inventory source,
+        @NotNull Inventory target
+    ) {
+        if (!player.isOnline() || player.getOpenInventory().getTopInventory() != source) {
+            return;
+        }
+        GuiCloseSoundPolicy.suppressNextCloseSound(player, source);
+        player.openInventory(target);
     }
 
     private static boolean isPluginGui(@Nullable Inventory inventory) {
