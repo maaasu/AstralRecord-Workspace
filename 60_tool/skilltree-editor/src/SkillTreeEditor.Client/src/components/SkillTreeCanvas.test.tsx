@@ -1,7 +1,7 @@
 import { StrictMode, useCallback, useState } from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { SkillTreeCanvas } from './SkillTreeCanvas'
+import { routeEdge, SkillTreeCanvas } from './SkillTreeCanvas'
 import type { NodeMaster, StructureDocument } from '../types/editor'
 
 const structure: StructureDocument = {
@@ -29,6 +29,21 @@ const masters: NodeMaster[] = [
 ]
 
 describe('SkillTreeCanvas', () => {
+  it('routes edges through the nearest matching handles', () => {
+    const placements = new Map([
+      ['1000', { x: 0, z: 0 }],
+      ['1001', { x: 0, z: 6 }],
+      ['1002', { x: -6, z: 0 }],
+    ])
+
+    expect(routeEdge('1000', '1001', placements)).toEqual({
+      source: '1000', target: '1001', sourceHandle: 'bottom', targetHandle: 'top',
+    })
+    expect(routeEdge('1000', '1002', placements)).toEqual({
+      source: '1002', target: '1000', sourceHandle: 'right', targetHandle: 'left',
+    })
+  })
+
   it('renders and survives a parent selection rerender without a React Flow update loop', async () => {
     const onRecord = vi.fn()
     const onReplace = vi.fn()

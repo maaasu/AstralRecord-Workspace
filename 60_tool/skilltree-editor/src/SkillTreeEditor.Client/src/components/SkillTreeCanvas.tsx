@@ -118,19 +118,26 @@ function CanvasInner({
     }),
     [iconRevision, masterMap, nodeSize, selectedIds, skillMasters, structure.nodes, structure.rootNodeId, visibleNodeIds],
   )
-  const edges = useMemo<Edge[]>(() => structure.edges
-    .filter((edge) => !visibleNodeIds
-      || visibleNodeIds.has(edge.sourceNodeId) && visibleNodeIds.has(edge.targetNodeId))
-    .map((edge) => ({
-      id: edgeId(edge.sourceNodeId, edge.targetNodeId),
-      source: edge.sourceNodeId,
-      target: edge.targetNodeId,
-      type: 'straight',
-      className: 'skill-edge',
-      selected: selectedEdgeIds.has(edgeId(edge.sourceNodeId, edge.targetNodeId)),
-    })),
-    [selectedEdgeIds, structure.edges, visibleNodeIds],
-  )
+  const edges = useMemo<Edge[]>(() => {
+    const placementMap = new Map(structure.nodes.map((placement) => [placement.nodeId, placement]))
+    return structure.edges
+      .filter((edge) => !visibleNodeIds
+        || visibleNodeIds.has(edge.sourceNodeId) && visibleNodeIds.has(edge.targetNodeId))
+      .map((edge) => {
+        const routed = routeEdge(edge.sourceNodeId, edge.targetNodeId, placementMap)
+        const id = edgeId(edge.sourceNodeId, edge.targetNodeId)
+        return {
+          id,
+          source: routed.source,
+          target: routed.target,
+          sourceHandle: routed.sourceHandle,
+          targetHandle: routed.targetHandle,
+          type: 'straight',
+          className: 'skill-edge',
+          selected: selectedEdgeIds.has(id),
+        }
+      })
+  }, [selectedEdgeIds, structure.edges, structure.nodes, visibleNodeIds])
 
   const onNodesChange = useCallback((changes: NodeChange<Node<SkillNodeData>>[]) => {
     setSelectedIds((current) => {
@@ -398,8 +405,8 @@ function SkillNode({ data, selected }: NodeProps<Node<SkillNodeData>>) {
         ...(data.tags.length > 0 ? ['', 'タグ:', ...data.tags.map(masterTagTooltip)] : []),
       ].join('\n')}
     >
-      <Handle type="target" position={Position.Left} />
-      <Handle type="source" position={Position.Right} />
+      <Handle type="target" position={Position.Left} id="left" />
+      <Handle type="source" position={Position.Right} id="right" />
       <Handle type="source" position={Position.Bottom} id="bottom" />
       <Handle type="target" position={Position.Top} id="top" />
       <strong title={data.label}>{data.label}</strong>
@@ -415,6 +422,31 @@ const edgeId = (source: string | null, target: string | null) => {
   const first = (source ?? '') < (target ?? '') ? source : target
   const second = (source ?? '') < (target ?? '') ? target : source
   return `edge:${first ?? ''}:${second ?? ''}`
+}
+
+type RoutedEdge = Pick<Edge, 'source' | 'target' | 'sourceHandle' | 'targetHandle'>
+
+export const routeEdge = (
+  firstNodeId: string,
+  secondNodeId: string,
+  placements: ReadonlyMap<string, { x: number; z: number }>,
+): RoutedEdge => {
+  const first = placements.get(firstNodeId)
+  const second = placements.get(secondNodeId)
+  if (!first || !second) {
+    return { source: firstNodeId, target: secondNodeId, sourceHandle: 'right', targetHandle: 'left' }
+  }
+
+  const deltaX = second.x - first.x
+  const deltaZ = second.z - first.z
+  if (Math.abs(deltaX) >= Math.abs(deltaZ)) {
+    return deltaX >= 0
+      ? { source: firstNodeId, target: secondNodeId, sourceHandle: 'right', targetHandle: 'left' }
+      : { source: secondNodeId, target: firstNodeId, sourceHandle: 'right', targetHandle: 'left' }
+  }
+  return deltaZ >= 0
+    ? { source: firstNodeId, target: secondNodeId, sourceHandle: 'bottom', targetHandle: 'top' }
+    : { source: secondNodeId, target: firstNodeId, sourceHandle: 'bottom', targetHandle: 'top' }
 }
 
 const miniMapNodeColor = (node: Node) => node.data.root ? '#e0b56a' : '#6d86ad'
