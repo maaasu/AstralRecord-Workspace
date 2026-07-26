@@ -30,11 +30,10 @@ final class NormalInventoryLayout {
     static final int SCROLL_DOWN_GUI_SLOT = 35;
 
     static int effectiveCapacity(@NotNull InventoryType inventoryType, @Nullable Integer configuredCapacity) {
-        int capacity = configuredCapacity == null ? DEFAULT_CAPACITY : Math.max(0, configuredCapacity);
         if (inventoryType == InventoryType.BAG) {
-            return Math.max(DEFAULT_CAPACITY, capacity);
+            throw new IllegalArgumentException("BAG capacity must come from PlayerInventoryState");
         }
-        return capacity;
+        return configuredCapacity == null ? DEFAULT_CAPACITY : Math.max(0, configuredCapacity);
     }
 
     private NormalInventoryLayout() {
@@ -157,11 +156,36 @@ final class NormalInventoryLayout {
     }
 
     static int totalRows(int capacity) {
-        return Math.max(1, (Math.max(0, capacity) + CONTENT_COLUMNS - 1) / CONTENT_COLUMNS);
+        long normalized = Math.max(0L, capacity);
+        return Math.max(1, (int) ((normalized + CONTENT_COLUMNS - 1L) / CONTENT_COLUMNS));
     }
 
     static int maxScrollRow(int capacity) {
         return Math.max(0, totalRows(capacity) - VISIBLE_ROWS);
+    }
+
+    /**
+     * 利用可能容量と保持中 entry の最大スロットから、GUI で到達可能にする表示容量を返します。
+     * 容量外 entry は消さずに表示し、取り出し操作を可能にします。
+     */
+    static int displayCapacity(@NotNull List<InventoryEntryModel> entries, int usableCapacity) {
+        int displayCapacity = Math.max(0, usableCapacity);
+        for (InventoryEntryModel entry : entries) {
+            Integer slotIndex = entry.getSlotIndex();
+            if (!entry.isDeleted() && slotIndex != null && slotIndex > displayCapacity) {
+                displayCapacity = slotIndex;
+            }
+        }
+        return displayCapacity;
+    }
+
+    static long overflowCount(@NotNull List<InventoryEntryModel> entries, int usableCapacity) {
+        int capacity = Math.max(0, usableCapacity);
+        return entries.stream()
+            .filter(entry -> !entry.isDeleted())
+            .map(InventoryEntryModel::getSlotIndex)
+            .filter(slotIndex -> slotIndex != null && slotIndex > capacity)
+            .count();
     }
 
     /**

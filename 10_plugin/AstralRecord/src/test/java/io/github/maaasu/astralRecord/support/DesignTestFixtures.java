@@ -50,6 +50,10 @@ public final class DesignTestFixtures {
     }
 
     public static AstPlayer astPlayer(PlayerMock player, AccountMode mode, int permission) {
+        return astPlayer(player, mode, permission, 1);
+    }
+
+    public static AstPlayer astPlayer(PlayerMock player, AccountMode mode, int permission, int level) {
         UUID userId = UUID.randomUUID();
         UUID accountId = UUID.randomUUID();
         UUID systemId = UUID.randomUUID();
@@ -83,16 +87,15 @@ public final class DesignTestFixtures {
             now,
             systemId,
             systemId,
-            false
+            false,
+            level
         );
         return new AstPlayer(player, user, account);
     }
 
     public static InventoryModel inventory(UUID accountId, InventoryType type) {
         Integer slotCapacity = null;
-        if (type == InventoryType.BAG) {
-            slotCapacity = 32;
-        } else if (type.isSlotted()) {
+        if (type.isSlotted() && type != InventoryType.BAG) {
             slotCapacity = 27;
         }
         return inventory(accountId, type, slotCapacity);

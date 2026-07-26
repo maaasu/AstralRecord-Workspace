@@ -171,7 +171,7 @@ public class InventoryService {
 
     /**
      * ステータス再計算後の BAG 利用可能スロット数を反映します。
-     * 容量外 entry は削除せず、表示と新規追加の対象外にします。
+     * 容量外 entry は削除せずに表示し続けますが、新規追加先にはしません。
      *
      * @param astPlayer 対象プレイヤー
      * @param slotCount ステータスで確定した所持可能スロット数
@@ -669,6 +669,7 @@ public class InventoryService {
         UUID accountId = state.getAccountId();
         int maxStack = Math.max(1, model.getMaxStack());
         boolean unlimitedStack = inventory.getInventoryType() == InventoryType.CURRENCY;
+        int capacity = inventoryCapacity(inventory);
         List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(inventory.getInventoryId()).stream()
             .filter(e -> !e.isDeleted())
             .toList());
@@ -684,6 +685,11 @@ public class InventoryService {
                 break;
             }
             InventoryEntryModel entry = entries.get(index);
+            Integer entrySlot = entry.getSlotIndex();
+            if (!unlimitedStack && (entrySlot == null
+                || !NormalInventoryLayout.isManagedSlot(entrySlot, capacity))) {
+                continue;
+            }
             if (!isStackableEntry(entry, model, maxStack)) {
                 continue;
             }
@@ -961,12 +967,13 @@ public class InventoryService {
         Map<Integer, ItemStack> itemByGuiSlot = new HashMap<>();
         ItemStack filler = createManagedSlotFiller();
         int capacity = inventoryCapacity(inventory);
-        int scrollRow = Math.min(state.getBagScrollRow(), NormalInventoryLayout.maxScrollRow(capacity));
+        int displayCapacity = NormalInventoryLayout.displayCapacity(entries, capacity);
+        int scrollRow = Math.min(state.getBagScrollRow(), NormalInventoryLayout.maxScrollRow(displayCapacity));
         state.setBagScrollRow(scrollRow);
 
         for (InventoryEntryModel entry : entries) {
             Integer slotIndex = entry.getSlotIndex();
-            if (slotIndex == null || !NormalInventoryLayout.isManagedSlot(slotIndex, capacity) || entry.isDeleted()) {
+            if (slotIndex == null || !NormalInventoryLayout.isManagedSlot(slotIndex, displayCapacity) || entry.isDeleted()) {
                 continue;
             }
             int guiSlotIndex = NormalInventoryLayout.toGuiSlotIndex(slotIndex, scrollRow);
@@ -977,6 +984,9 @@ public class InventoryService {
             if (itemStack == null) {
                 continue;
             }
+            if (slotIndex > capacity) {
+                itemStack = createOverflowItem(itemStack);
+            }
             itemByGuiSlot.put(guiSlotIndex, itemStack);
         }
         for (int guiSlot = NormalInventoryLayout.GUI_SLOT_START;
@@ -985,14 +995,16 @@ public class InventoryService {
             if (!NormalInventoryLayout.isManagedGuiSlot(guiSlot)) {
                 continue;
             }
-            setStorageItemIfChanged(playerInventory, guiSlot, itemByGuiSlot.getOrDefault(guiSlot, filler));
+            int dbSlot = NormalInventoryLayout.toDbSlotIndex(guiSlot, scrollRow);
+            ItemStack emptySlot = dbSlot > capacity ? createOverflowSlotFiller() : filler;
+            setStorageItemIfChanged(playerInventory, guiSlot, itemByGuiSlot.getOrDefault(guiSlot, emptySlot));
         }
         setStorageItemIfChanged(playerInventory, NormalInventoryLayout.SCROLL_UP_GUI_SLOT,
             createScrollIcon(true, scrollRow > 0));
         setStorageItemIfChanged(playerInventory, NormalInventoryLayout.INFO_GUI_SLOT,
-            createInventoryInfoIcon(entries, capacity, scrollRow));
+            createInventoryInfoIcon(entries, capacity, displayCapacity, scrollRow));
         setStorageItemIfChanged(playerInventory, NormalInventoryLayout.SCROLL_DOWN_GUI_SLOT,
-            createScrollIcon(false, scrollRow < NormalInventoryLayout.maxScrollRow(capacity)));
+            createScrollIcon(false, scrollRow < NormalInventoryLayout.maxScrollRow(displayCapacity)));
     }
 
     public @NotNull InventoryType getDisplayedInventoryType(@NotNull UUID accountId) {
@@ -1020,11 +1032,15 @@ public class InventoryService {
             return true;
         }
         InventoryModel bag = state.findInventory(DEFAULT_PROFILE, InventoryType.BAG);
-        int capacity = bag == null ? NormalInventoryLayout.DEFAULT_CAPACITY : inventoryCapacity(bag);
-        int current = Math.min(state.getBagScrollRow(), NormalInventoryLayout.maxScrollRow(capacity));
+        int capacity = state.getBagSlotCapacity();
+        List<InventoryEntryModel> entries = bag == null
+            ? List.of()
+            : state.snapshotEntries(bag.getInventoryId());
+        int displayCapacity = NormalInventoryLayout.displayCapacity(entries, capacity);
+        int current = Math.min(state.getBagScrollRow(), NormalInventoryLayout.maxScrollRow(displayCapacity));
         int next = bukkitSlot == NormalInventoryLayout.SCROLL_UP_GUI_SLOT
             ? Math.max(0, current - 1)
-            : Math.min(NormalInventoryLayout.maxScrollRow(capacity), current + 1);
+            : Math.min(NormalInventoryLayout.maxScrollRow(displayCapacity), current + 1);
         if (next != current
             && clickGuard.tryAcquire(state.getAccountId(), InventoryClickGuard.ClickAction.INVENTORY_SWITCH)) {
             state.setBagScrollRow(next);
@@ -2710,6 +2726,9 @@ public class InventoryService {
         }
         PlayerInventory inventory = astPlayer.getBukkit().getInventory();
         ItemStack previous = getEquipmentItem(inventory, equipmentType);
+        if (!canReturnReplacedEquipment(state, sourceEntry, false, previous)) {
+            return false;
+        }
         equipmentType.applyTo(inventory, clickedItem.clone());
         inventory.setItem(sourceBukkitSlot, emptyToAir(previous));
 
@@ -2794,9 +2813,10 @@ public class InventoryService {
         if (hasReplacedItem && itemReferenceResolver.resolve(replacedItem) == null) {
             return false;
         }
-        List<InventoryEntryModel> sourceInventoryEntries = hotbarSlot
-            ? state.snapshotEntries(sourceEntry.getInventoryId())
-            : List.of();
+        if (!canReturnReplacedEquipment(state, sourceEntry, hotbarSlot, replacedItem)) {
+            return false;
+        }
+        List<InventoryEntryModel> sourceInventoryEntries = state.snapshotEntries(sourceEntry.getInventoryId());
         if (hotbarSlot) {
             List<InventoryEntryModel> remaining = state.snapshotEntries(sourceEntry.getInventoryId()).stream()
                 .filter(entry -> !entry.isDeleted())
@@ -2808,10 +2828,8 @@ public class InventoryService {
             removeDisplayedEntryAfterMove(state, sourceEntry);
         }
         if (hasReplacedItem && returnItemToOwnedInventory(astPlayer, replacedItem.clone()) == null) {
-            if (hotbarSlot) {
-                state.replaceEntries(sourceEntry.getInventoryId(), sourceInventoryEntries);
-                requestManagedInventoryUiRefresh(astPlayer, true);
-            }
+            state.replaceEntries(sourceEntry.getInventoryId(), sourceInventoryEntries);
+            requestManagedInventoryUiRefresh(astPlayer, hotbarSlot);
             return false;
         }
         requestManagedInventoryUiRefresh(astPlayer, hotbarSlot);
@@ -2966,13 +2984,40 @@ public class InventoryService {
                 e -> e.getSlotIndex() == null ? Integer.MAX_VALUE : e.getSlotIndex()
             ).thenComparing(InventoryEntryModel::getCreatedAt))
             .toList();
-        List<InventoryEntryModel> compacted = new ArrayList<>(remaining.size());
-        int next = NormalInventoryLayout.DB_SLOT_START;
-        for (InventoryEntryModel entry : remaining) {
-            compacted.add(withSlot(entry, next, state.getAccountId()));
-            next++;
+        state.replaceEntries(sourceEntry.getInventoryId(), remaining);
+    }
+
+    /**
+     * 装備交換で外れる装備を、BAG の利用可能範囲へ安全に戻せるか判定します。
+     * 容量外スロットのアイテムを移動しても通常範囲は空かないため、空きがなければ交換を拒否します。
+     */
+    private boolean canReturnReplacedEquipment(
+        @NotNull PlayerInventoryState state,
+        @NotNull InventoryEntryModel sourceEntry,
+        boolean sourceIsHotbar,
+        @Nullable ItemStack replacedItem
+    ) {
+        if (replacedItem == null || replacedItem.getType() == Material.AIR) {
+            return true;
         }
-        state.replaceEntries(sourceEntry.getInventoryId(), compacted);
+        ItemReference replacedReference = itemReferenceResolver.resolve(replacedItem);
+        if (replacedReference == null || itemReferenceResolver.resolveItemModel(replacedReference) == null) {
+            return false;
+        }
+        InventoryModel bag = state.findInventory(DEFAULT_PROFILE, InventoryType.BAG);
+        if (bag == null || !bag.isEnabled()) {
+            return false;
+        }
+        int capacity = state.getBagSlotCapacity();
+        Set<Integer> usedSlots = NormalInventoryLayout.collectUsedSlots(
+            state.snapshotEntries(bag.getInventoryId()), capacity);
+        if (!sourceIsHotbar && sourceEntry.getInventoryId().equals(bag.getInventoryId())) {
+            Integer sourceSlot = sourceEntry.getSlotIndex();
+            if (sourceSlot != null && NormalInventoryLayout.isManagedSlot(sourceSlot, capacity)) {
+                usedSlots.remove(sourceSlot);
+            }
+        }
+        return NormalInventoryLayout.findNextFreeSlot(usedSlots, capacity) != null;
     }
 
     private void returnReplacedItemToOwnedInventory(
@@ -3586,13 +3631,16 @@ public class InventoryService {
     }
 
     private void compactInventoryEntries(@NotNull PlayerInventoryState state, @NotNull UUID inventoryId) {
+        InventoryModel inventory = state.findInventoryById(inventoryId);
+        if (inventory != null && inventory.getInventoryType() == InventoryType.BAG) {
+            return;
+        }
         List<InventoryEntryModel> entries = state.snapshotEntries(inventoryId).stream()
             .filter(e -> !e.isDeleted())
             .sorted(Comparator.<InventoryEntryModel, Integer>comparing(
                 e -> e.getSlotIndex() == null ? Integer.MAX_VALUE : e.getSlotIndex()
             ).thenComparing(InventoryEntryModel::getCreatedAt))
             .toList();
-        InventoryModel inventory = state.findInventoryById(inventoryId);
         boolean unlimitedSlots = inventory != null && inventory.getInventoryType() == InventoryType.CURRENCY;
         if (inventory != null && inventory.getInventoryType() == InventoryType.CURRENCY) {
             entries = normalizeCurrencyEntries(state, inventory);
@@ -3938,31 +3986,11 @@ public class InventoryService {
             List<InventoryEntryModel> remaining = activeEntries.stream()
                 .filter(entry -> !batch.entryIds().contains(entry.getInventoryEntryId()))
                 .toList();
-            if (inventoryType == InventoryType.BAG) {
-                remaining = compactOwnedBagEntries(remaining, state.getAccountId());
-            } else {
+            if (inventoryType != InventoryType.BAG) {
                 state.setSelectedHotbarSlot(null);
             }
             state.replaceEntries(inventory.getInventoryId(), remaining);
         }
-    }
-
-    private @NotNull List<InventoryEntryModel> compactOwnedBagEntries(
-        @NotNull List<InventoryEntryModel> entries,
-        @NotNull UUID actor
-    ) {
-        List<InventoryEntryModel> sorted = entries.stream()
-            .sorted(Comparator.<InventoryEntryModel, Integer>comparing(
-                entry -> entry.getSlotIndex() == null ? Integer.MAX_VALUE : entry.getSlotIndex()
-            ).thenComparing(InventoryEntryModel::getCreatedAt))
-            .toList();
-        List<InventoryEntryModel> compacted = new ArrayList<>(sorted.size());
-        int nextSlot = NormalInventoryLayout.DB_SLOT_START;
-        for (InventoryEntryModel entry : sorted) {
-            compacted.add(withSlot(entry, nextSlot, actor));
-            nextSlot++;
-        }
-        return compacted;
     }
 
     private int findStackableStorageEntryIndex(
@@ -4302,6 +4330,33 @@ public class InventoryService {
         return itemStack;
     }
 
+    private @NotNull ItemStack createOverflowSlotFiller() {
+        ItemStack itemStack = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
+        ItemMeta meta = itemStack.getItemMeta();
+        if (meta != null) {
+            meta.displayName(Component.text("容量外", NamedTextColor.DARK_GRAY));
+            meta.lore(List.of(Component.text("新しいアイテムは配置できません", NamedTextColor.GRAY)));
+            meta.addItemFlags(ItemFlag.values());
+            itemStack.setItemMeta(meta);
+        }
+        return itemStack;
+    }
+
+    private @NotNull ItemStack createOverflowItem(@NotNull ItemStack source) {
+        ItemStack itemStack = source.clone();
+        ItemMeta meta = itemStack.getItemMeta();
+        if (meta == null) {
+            return itemStack;
+        }
+        List<Component> lore = meta.lore() == null
+            ? new ArrayList<>()
+            : new ArrayList<>(meta.lore());
+        lore.add(Component.text("容量外: 移動・破棄のみ", NamedTextColor.RED));
+        meta.lore(lore);
+        itemStack.setItemMeta(meta);
+        return itemStack;
+    }
+
     private @NotNull ItemStack createScrollIcon(boolean up, boolean enabled) {
         ItemStack itemStack = new ItemStack(enabled ? Material.ARROW : Material.GRAY_DYE);
         ItemMeta meta = itemStack.getItemMeta();
@@ -4321,21 +4376,30 @@ public class InventoryService {
     private @NotNull ItemStack createInventoryInfoIcon(
         @NotNull List<InventoryEntryModel> entries,
         int capacity,
+        int displayCapacity,
         int scrollRow
     ) {
-        long used = entries.stream().filter(entry -> !entry.isDeleted()).count();
-        int totalRows = NormalInventoryLayout.totalRows(capacity);
+        long used = entries.stream()
+            .filter(entry -> !entry.isDeleted())
+            .map(InventoryEntryModel::getSlotIndex)
+            .filter(slotIndex -> slotIndex != null && NormalInventoryLayout.isManagedSlot(slotIndex, capacity))
+            .count();
+        long overflow = NormalInventoryLayout.overflowCount(entries, capacity);
+        int totalRows = NormalInventoryLayout.totalRows(displayCapacity);
         int firstRow = scrollRow + 1;
         int lastRow = Math.min(totalRows, scrollRow + NormalInventoryLayout.VISIBLE_ROWS);
         ItemStack itemStack = new ItemStack(Material.CHEST);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
             meta.displayName(Component.text("インベントリ情報", NamedTextColor.GOLD));
-            meta.lore(List.of(
-                Component.text("使用: " + used + " / " + capacity, NamedTextColor.GRAY),
-                Component.text("表示行: " + firstRow + " - " + lastRow + " / " + totalRows,
-                    NamedTextColor.GRAY)
-            ));
+            List<Component> lore = new ArrayList<>();
+            lore.add(Component.text("使用: " + used + " / " + capacity, NamedTextColor.GRAY));
+            if (overflow > 0) {
+                lore.add(Component.text("容量外: " + overflow, NamedTextColor.RED));
+            }
+            lore.add(Component.text("表示行: " + firstRow + " - " + lastRow + " / " + totalRows,
+                NamedTextColor.GRAY));
+            meta.lore(lore);
             meta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(meta);
         }
@@ -4523,17 +4587,16 @@ public class InventoryService {
     }
 
     private @Nullable Integer resolveSlotCapacity(@NotNull InventoryType inventoryType) {
-        if (inventoryType == InventoryType.CURRENCY) {
+        if (inventoryType == InventoryType.CURRENCY || inventoryType == InventoryType.BAG) {
             return null;
         }
-        return inventoryType == InventoryType.BAG ? NormalInventoryLayout.DEFAULT_CAPACITY
-            : inventoryType.isSlotted() ? NormalInventoryLayout.DEFAULT_CAPACITY : null;
+        return inventoryType.isSlotted() ? NormalInventoryLayout.DEFAULT_CAPACITY : null;
     }
 
     private int inventoryCapacity(@NotNull InventoryModel inventory) {
         if (inventory.getInventoryType() == InventoryType.BAG) {
             PlayerInventoryState state = stateRegistry.get(inventory.getAccountId());
-            if (state != null) return state.getBagSlotCapacity();
+            return state == null ? 0 : state.getBagSlotCapacity();
         }
         return NormalInventoryLayout.effectiveCapacity(
             inventory.getInventoryType(), inventory.getSlotCapacity());

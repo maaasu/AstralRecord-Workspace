@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryProfile;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
+import io.github.maaasu.astralRecord.feature.status.model.StatusDefaults;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -46,7 +47,7 @@ public final class PlayerInventoryState {
     /** BAG 表示の先頭行（0 始まり）。非永続。 */
     private int bagScrollRow;
     /** 現在のステータスで利用可能な BAG 論理スロット数。非永続。 */
-    private int bagSlotCapacity = 32;
+    private int bagSlotCapacity = (int) StatusDefaults.INVENTORY_SLOTS;
     /** ホットバー選択中スロット（DB slot_index 1〜9 / オフハンド 10）。非永続。 */
     private @Nullable Integer selectedHotbarSlot;
     /** ホットバーショートカット表示モード。非永続。 */
@@ -441,7 +442,6 @@ public final class PlayerInventoryState {
         int normalized = Math.max(0, bagSlotCapacity);
         if (this.bagSlotCapacity == normalized) return false;
         this.bagSlotCapacity = normalized;
-        this.bagScrollRow = Math.min(this.bagScrollRow, Math.max(0, (normalized + 7) / 8 - 3));
         return true;
     }
 

@@ -921,6 +921,9 @@ public final class QuestService {
                 progressChanged = true;
                 player.setAccount(result.updatedAccount());
                 playerClassService.grantClassExperience(player, quest.rewards().exp());
+                if (result.leveledUp()) {
+                    statusService.refreshStatus(player);
+                }
             }
             return new AppliedRewards(
                 inventorySnapshot,
@@ -980,6 +983,7 @@ public final class QuestService {
                 applied.previousAccount(),
                 player.getUser().getUuid()
             );
+            statusService.refreshStatus(player);
         } catch (RuntimeException exception) {
             Logger.log(
                 LogId.W_6606,

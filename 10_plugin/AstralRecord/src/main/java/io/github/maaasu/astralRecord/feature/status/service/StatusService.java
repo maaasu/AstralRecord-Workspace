@@ -26,6 +26,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
+import io.github.maaasu.astralRecord.feature.status.model.StatusDefaults;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusValue;
@@ -541,7 +542,7 @@ public class StatusService {
             case SHIELD_RECHARGE_RATE -> 0.0D;
             // 採集速度は装備値をそのまま1回分の破壊力として扱う。装備なしは GatheringService 側で1に補正する。
             case MINING_SPEED -> 0.0D;
-            case INVENTORY_SLOTS -> 32.0D;
+            case INVENTORY_SLOTS -> StatusDefaults.INVENTORY_SLOTS;
             case QUEST_LIMIT -> 3.0D;
             default -> 0.0D;
         };
@@ -570,6 +571,7 @@ public class StatusService {
         @NotNull RangeEndpoint endpoint
     ) {
         double nonBuffBonus = getAccountModeBonus(player.getAccount().getMode(), type);
+        nonBuffBonus += getLevelBonus(player, type);
         nonBuffBonus += getClassShieldBonus(player, type);
         nonBuffBonus += getEquipmentBonus(equipmentBonus, type, baseValue + nonBuffBonus, endpoint);
         nonBuffBonus += getSkillTreeBonus(player, type, baseValue + nonBuffBonus);
@@ -578,6 +580,17 @@ public class StatusService {
         double preBuffTotal = baseValue + nonBuffBonus;
         double buffBonus = buffService.getTotalBonus(player, type, preBuffTotal);
         return nonBuffBonus + buffBonus;
+    }
+
+    /**
+     * プレイヤーレベルに応じたステータス加算値を返します。
+     * BAG 容量はレベル5ごとに1スロット増加します。
+     */
+    private double getLevelBonus(@NotNull AstPlayer player, @NotNull StatusType type) {
+        if (type != StatusType.INVENTORY_SLOTS) {
+            return 0.0D;
+        }
+        return Math.max(0, player.getAccount().getLevel()) / 5;
     }
 
     private double getSkillTreeBonus(@NotNull AstPlayer player, @NotNull StatusType type, double baseValue) {

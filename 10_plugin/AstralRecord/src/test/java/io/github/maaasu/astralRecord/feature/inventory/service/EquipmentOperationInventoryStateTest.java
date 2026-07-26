@@ -20,6 +20,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class EquipmentOperationInventoryStateTest {
 
     @Test
+    void bagRuntimeCapacityDefaultsToTwentyFour() {
+        assertEquals(24, new PlayerInventoryState(UUID.randomUUID()).getBagSlotCapacity());
+    }
+
+    @Test
+    void bagRuntimeCapacityHasZeroFloorNoMaximumAndKeepsOverflowScroll() {
+        PlayerInventoryState state = new PlayerInventoryState(UUID.randomUUID());
+        state.setBagScrollRow(3);
+
+        state.setBagSlotCapacity(-1);
+        assertEquals(0, state.getBagSlotCapacity());
+        assertEquals(3, state.getBagScrollRow());
+
+        state.setBagSlotCapacity(1_000);
+        assertEquals(1_000, state.getBagSlotCapacity());
+    }
+
+    @Test
     void restoresHeldEntryToItsOriginalStateAndSlot() {
         UUID accountId = UUID.randomUUID();
         PlayerInventoryState state = new PlayerInventoryState(accountId);
@@ -73,6 +91,23 @@ class EquipmentOperationInventoryStateTest {
         assertEquals(1, state.snapshotEntries(bag.getInventoryId()).size());
         assertEquals(1, state.snapshotEntries(bag.getInventoryId()).getFirst().getSlotIndex());
         assertTrue(state.snapshotEntries(hotbar.getInventoryId()).isEmpty());
+    }
+
+    @Test
+    void bagRestoreIgnoresPersistedCapacityAndUsesStatusCapacity() {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        state.setBagSlotCapacity(2);
+        InventoryModel bag = DesignTestFixtures.inventory(accountId, InventoryType.BAG, 32);
+        state.putInventory(bag);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(
+            equipmentEntry(accountId, bag.getInventoryId(), 1, UUID.randomUUID()),
+            equipmentEntry(accountId, bag.getInventoryId(), 2, UUID.randomUUID())
+        ));
+        InventoryEntryModel held = equipmentEntry(accountId, bag.getInventoryId(), 3, UUID.randomUUID());
+
+        assertFalse(EquipmentOperationInventoryState.restoreEntry(state, held));
+        assertEquals(2, state.snapshotEntries(bag.getInventoryId()).size());
     }
 
     @Test

@@ -29,6 +29,7 @@ import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -37,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
@@ -112,7 +114,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
     }
 
     @Test
-    void legacyBagCapacityIsRaisedBeforeRejectingItems() {
+    void bagCapacityUsesRuntimeStatusInsteadOfPersistedCapacity() {
         InventoryHarness harness = inventoryHarness();
         PlayerMock bukkitPlayer = server().addPlayer();
         AstPlayer astPlayer = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.ADMIN);
@@ -120,14 +122,82 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         InventoryModel bagInventory = harness.addInventory(state, InventoryType.BAG, 24);
         ItemModel singleStackItem = DesignTestFixtures.item("capacity_test", ItemCategory.MATERIAL, 1);
 
-        for (int slot = 1; slot <= 32; slot++) {
+        for (int slot = 1; slot <= 24; slot++) {
             assertEquals(1, harness.inventoryService.addItemToNormalInventory(
                 astPlayer, singleStackItem, 1, "test"));
         }
 
         assertEquals(0, harness.inventoryService.addItemToNormalInventory(
             astPlayer, singleStackItem, 1, "test"));
-        assertEquals(32, state.snapshotEntries(bagInventory.getInventoryId()).size());
+        assertEquals(24, state.snapshotEntries(bagInventory.getInventoryId()).size());
+    }
+
+    @Test
+    void inventorySlotsIncreaseOncePerFivePlayerLevels() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        StatusService statusService = new StatusService(null, inventoryService);
+        AstPlayer levelFour = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER, 0, 4);
+        AstPlayer levelFive = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER, 0, 5);
+        AstPlayer levelTen = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER, 0, 10);
+
+        assertEquals(24.0D, statusService.refreshStatus(levelFour)
+            .getMaxValue(StatusType.INVENTORY_SLOTS), 0.0001D);
+        assertEquals(25.0D, statusService.refreshStatus(levelFive)
+            .getMaxValue(StatusType.INVENTORY_SLOTS), 0.0001D);
+        assertEquals(26.0D, statusService.refreshStatus(levelTen)
+            .getMaxValue(StatusType.INVENTORY_SLOTS), 0.0001D);
+        verify(inventoryService).applyBagSlotCapacity(levelFour, 24.0D);
+        verify(inventoryService).applyBagSlotCapacity(levelFive, 25.0D);
+        verify(inventoryService).applyBagSlotCapacity(levelTen, 26.0D);
+    }
+
+    @Test
+    void overflowEntryIsPreservedAndCannotReceiveNewItems() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        state.setBagSlotCapacity(2);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG, 99);
+        InventoryEntryModel overflow = bagEntry(
+            state.getAccountId(), bag.getInventoryId(), 3, "overflow_test", 1L);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(overflow));
+        ItemModel model = DesignTestFixtures.item("overflow_test", ItemCategory.MATERIAL, 64);
+
+        assertEquals(1, harness.inventoryService.addItemToNormalInventory(astPlayer, model, 1, "test"));
+        harness.inventoryService.compactInventoryEntries(bag.getInventoryId(), state.getAccountId());
+
+        List<InventoryEntryModel> entries = state.snapshotEntries(bag.getInventoryId());
+        assertEquals(2, entries.size());
+        assertEquals(1L, entries.stream()
+            .filter(entry -> entry.getSlotIndex() == 3)
+            .findFirst()
+            .orElseThrow()
+            .getQuantity());
+        assertEquals(1, entries.stream()
+            .filter(entry -> entry.getSlotIndex() == 1)
+            .count());
+    }
+
+    @Test
+    void overflowEntryRemainsVisibleWhileEmptyOverflowSlotsAreLocked() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        state.setBagSlotCapacity(0);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG, 99);
+        harness.addInventory(state, InventoryType.HOTBAR, 9);
+        ItemModel model = DesignTestFixtures.item("visible_overflow_test", ItemCategory.MATERIAL, 64);
+        when(harness.itemService.findLoadedById(model.getId())).thenReturn(model);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(
+            bagEntry(state.getAccountId(), bag.getInventoryId(), 1, model.getId(), 1L)
+        ));
+
+        harness.inventoryService.applyInventoriesToGuiOnJoin(astPlayer);
+
+        assertEquals(Material.PAPER, astPlayer.getBukkit().getInventory().getItem(9).getType());
+        assertEquals(Material.BLACK_STAINED_GLASS_PANE,
+            astPlayer.getBukkit().getInventory().getItem(10).getType());
+        assertFalse(astPlayer.getBukkit().getInventory().getItem(9).getItemMeta().lore().isEmpty());
     }
 
     @Test
@@ -301,6 +371,32 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
                 persistence,
                 saveCoordinator
             )
+        );
+    }
+
+    private static InventoryEntryModel bagEntry(
+        UUID accountId,
+        UUID inventoryId,
+        int slot,
+        String itemId,
+        long quantity
+    ) {
+        LocalDateTime now = LocalDateTime.now();
+        return new InventoryEntryModel(
+            UUID.randomUUID(),
+            inventoryId,
+            slot,
+            ItemCategory.MATERIAL.getApiValue(),
+            itemId,
+            null,
+            null,
+            quantity,
+            null,
+            now,
+            now,
+            accountId,
+            accountId,
+            false
         );
     }
 

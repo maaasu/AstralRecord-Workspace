@@ -184,10 +184,9 @@ public final class EquipmentOperationInventoryState {
         @NotNull InventoryEntryModel heldEntry,
         boolean preferOriginal
     ) {
-        int capacity = NormalInventoryLayout.effectiveCapacity(
-            inventory.getInventoryType(),
-            inventory.getSlotCapacity()
-        );
+        int capacity = inventory.getInventoryType() == InventoryType.BAG
+            ? state.getBagSlotCapacity()
+            : NormalInventoryLayout.effectiveCapacity(inventory.getInventoryType(), inventory.getSlotCapacity());
         Set<Integer> used = new HashSet<>();
         for (InventoryEntryModel entry : state.snapshotEntries(inventory.getInventoryId())) {
             Integer slot = entry.getSlotIndex();
