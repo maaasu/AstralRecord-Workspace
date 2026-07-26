@@ -12,46 +12,16 @@
       "z": 0
     },
     {
-      "nodeId": "1001",
-      "x": 6,
-      "y": 0,
-      "z": 0
-    },
-    {
-      "nodeId": "1002",
+      "nodeId": "1013",
       "x": 0,
       "y": 0,
-      "z": 6
-    },
-    {
-      "nodeId": "1003",
-      "x": -6,
-      "y": 0,
-      "z": 0
-    },
-    {
-      "nodeId": "1004",
-      "x": 0,
-      "y": 0,
-      "z": -6
+      "z": -4
     }
   ],
   "edges": [
     {
       "sourceNodeId": "1000",
-      "targetNodeId": "1001"
-    },
-    {
-      "sourceNodeId": "1000",
-      "targetNodeId": "1002"
-    },
-    {
-      "sourceNodeId": "1000",
-      "targetNodeId": "1003"
-    },
-    {
-      "sourceNodeId": "1000",
-      "targetNodeId": "1004"
+      "targetNodeId": "1013"
     }
   ]
 }
