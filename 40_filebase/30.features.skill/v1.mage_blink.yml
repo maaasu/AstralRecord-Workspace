@@ -1,0 +1,24 @@
+# design:
+#   motif: "星術 / 瞬間移動"
+#   progression: 1
+schemaVersion: 1
+id: mage_blink
+type: SKILL
+implementationId: mage_blink
+name: "&d星渡り"
+description: "&7星明かりの残像を残し、視線の先にある安全な地点へ瞬時に移動する。"
+icon: ENDER_PEARL
+lore:
+  - "&7視線方向へ最大7m移動する。"
+  - "&7障害物を通り抜けず、安全に立てる地点で停止する。"
+  - "&8消費MP: 16 / クールダウン: 8.0秒"
+cooldownTicks: 160
+resourceType: MANA
+resourceCost: 16
+castTimeTicks: 0
+requiredLevel: 1
+onCast:
+  sound: entity.ender_pearl.throw
+tags:
+  - active
+  - magic

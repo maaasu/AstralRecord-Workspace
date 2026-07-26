@@ -1,0 +1,24 @@
+# design:
+#   motif: "元素魔術 / 三相"
+#   progression: 1
+schemaVersion: 1
+id: mage_elemental_storm
+type: SKILL
+implementationId: mage_elemental_storm
+name: "&d三相嵐"
+description: "&7火・氷・雷を循環させる魔法陣を展開し、範囲内を連続攻撃する。"
+icon: NETHER_STAR
+lore:
+  - "&7射程12m、半径4mへ魔法攻撃力32%の攻撃を6回行う。"
+  - "&7火・氷・雷に応じた状態異常を15%で付与する。"
+  - "&8消費MP: 45 / クールダウン: 20.0秒"
+cooldownTicks: 400
+resourceType: MANA
+resourceCost: 45
+castTimeTicks: 20
+requiredLevel: 1
+onCast:
+  sound: entity.evoker.prepare_summon
+tags:
+  - active
+  - magic

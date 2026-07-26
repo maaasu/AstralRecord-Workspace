@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.combat.model;
 
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.bukkit.Location;
@@ -28,17 +29,20 @@ public final class AstEntity {
     private final AstPlayer player;
     private final MobInstance mob;
     private final Entity bukkitEntity;
+    private final StatusSnapshot playerStatusOverride;
 
     private AstEntity(
             @NotNull AstEntityType type,
             @Nullable AstPlayer player,
             @Nullable MobInstance mob,
-            @Nullable Entity bukkitEntity
+            @Nullable Entity bukkitEntity,
+            @Nullable StatusSnapshot playerStatusOverride
     ) {
         this.type = type;
         this.player = player;
         this.mob = mob;
         this.bukkitEntity = bukkitEntity;
+        this.playerStatusOverride = playerStatusOverride;
     }
 
     /**
@@ -48,7 +52,21 @@ public final class AstEntity {
      * @return 変換後のエンティティ
      */
     public static @NotNull AstEntity player(@NotNull AstPlayer player) {
-        return new AstEntity(AstEntityType.PLAYER, player, null, player.getBukkit());
+        return new AstEntity(AstEntityType.PLAYER, player, null, player.getBukkit(), null);
+    }
+
+    /**
+     * 発動時点などの固定ステータスを使うプレイヤーエンティティを作成します。
+     *
+     * @param player プレイヤー
+     * @param statusSnapshot 固定して参照するステータス
+     * @return ステータス固定済みエンティティ
+     */
+    public static @NotNull AstEntity player(
+            @NotNull AstPlayer player,
+            @NotNull StatusSnapshot statusSnapshot
+    ) {
+        return new AstEntity(AstEntityType.PLAYER, player, null, player.getBukkit(), statusSnapshot);
     }
 
     /**
@@ -58,7 +76,7 @@ public final class AstEntity {
      * @return 変換後のエンティティ
      */
     public static @NotNull AstEntity mob(@NotNull MobInstance mob) {
-        return new AstEntity(AstEntityType.MOB, null, mob, null);
+        return new AstEntity(AstEntityType.MOB, null, mob, null, null);
     }
 
     /**
@@ -68,7 +86,7 @@ public final class AstEntity {
      * @return 変換後のエンティティ
      */
     public static @NotNull AstEntity bukkit(@NotNull Entity entity) {
-        return new AstEntity(AstEntityType.BUKKIT, null, null, entity);
+        return new AstEntity(AstEntityType.BUKKIT, null, null, entity, null);
     }
 
     /**
@@ -167,9 +185,7 @@ public final class AstEntity {
      */
     public double statValue(@NotNull StatusType statusType) {
         return switch (type) {
-            case PLAYER -> {
-                yield player.getStatusSnapshot().rollValue(statusType);
-            }
+            case PLAYER -> playerStatus().rollValue(statusType);
             case MOB -> statusType == StatusType.MAX_HEALTH
                     ? mob.maxHealth()
                     : mob.template().statValue(statusType.name(), 0.0D);
@@ -184,7 +200,7 @@ public final class AstEntity {
      */
     public double currentHealth() {
         return switch (type) {
-            case PLAYER -> player.getStatusSnapshot().getCurrentHp();
+            case PLAYER -> playerStatus().getCurrentHp();
             case MOB -> mob.currentHealth();
             case BUKKIT -> bukkitEntity instanceof Damageable damageable ? damageable.getHealth() : 0.0D;
         };
@@ -197,7 +213,7 @@ public final class AstEntity {
      */
     public double maxHealth() {
         return switch (type) {
-            case PLAYER -> player.getStatusSnapshot().getMaxValue(StatusType.MAX_HEALTH);
+            case PLAYER -> playerStatus().getMaxValue(StatusType.MAX_HEALTH);
             case MOB -> mob.maxHealth();
             case BUKKIT -> {
                 if (bukkitEntity instanceof LivingEntity livingEntity
@@ -234,5 +250,9 @@ public final class AstEntity {
      */
     public @Nullable Entity bukkitEntity() {
         return bukkitEntity;
+    }
+
+    private @NotNull StatusSnapshot playerStatus() {
+        return playerStatusOverride == null ? player.getStatusSnapshot() : playerStatusOverride;
     }
 }

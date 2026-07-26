@@ -46,7 +46,7 @@ import java.util.function.BiConsumer;
 /**
  * スキル定義の同期・発動前検証・実行クラス委譲を担うサービス。
  * <p>
- * 共通制御（要求レベル・MP・クールダウン・発動サウンド）はここで一元管理し、
+ * 共通制御（要求レベル・消費リソース・クールダウン・発動サウンド）はここで一元管理し、
  * 個別ロジックは {@link SkillExecutor} に委譲する。
  *
  * <p>本サービスは Plugin メインスレッドからの利用を想定する。
@@ -169,9 +169,9 @@ public class SkillService {
     /**
      * スキル定義を API から再取得し、レジストリへ反映します。
      * <p>
-     * {@code implementationId} が空、または対応する実行クラスが未登録のスキルはスキップし
-     * {@link LogId#W_5801} を出力する。{@code validateParams} で例外が発生した場合も同様に
-     * スキップする。失敗分は隔離し、有効分のみが新マップとしてスワップされる。
+     * 共通項目、実行クラス、実装固有 params のいずれかが不正なスキルは
+     * {@link LogId#W_5801} を出力してその定義だけを隔離する。
+     * 有効分のみが新マップとしてスワップされる。
      *
      * @return 検証を通過した immutable な定義スナップショット
      */
@@ -198,50 +198,69 @@ public class SkillService {
                         "API から定義を取得できませんでした");
                 continue;
             }
-            if (definition.getImplementationId().isBlank()) {
-                Logger.log(LogId.W_5801, definition.getId(), definition.getImplementationId(),
-                        "implementationId が空です");
-                continue;
-            }
-            SkillExecutor executor = registry.getExecutor(definition.getImplementationId());
-            if (executor == null) {
-                Logger.log(LogId.W_5801, definition.getId(), definition.getImplementationId(),
-                        "実行クラスが未登録です");
-                continue;
-            }
-            try {
-                executor.validateParams(definition);
-            } catch (SkillParameterException e) {
-                Logger.log(LogId.W_5801, definition.getId(), definition.getImplementationId(),
-                        "params 検証失敗: key=" + e.key() + ", message=" + e.getMessage());
-                continue;
-            }
-            next.put(definition.getId(), withResolvedKind(definition, executor));
+            addValidatedDefinition(next, definition);
         }
 
         for (SkillDefinition definition : builtInDefinitions.values()) {
-            if (definition.getImplementationId().isBlank()) {
-                Logger.log(LogId.W_5801, definition.getId(), definition.getImplementationId(),
-                        "implementationId が空です");
-                continue;
-            }
-            SkillExecutor executor = registry.getExecutor(definition.getImplementationId());
-            if (executor == null) {
-                Logger.log(LogId.W_5801, definition.getId(), definition.getImplementationId(),
-                        "実行クラスが登録されていません");
-                continue;
-            }
-            try {
-                executor.validateParams(definition);
-            } catch (SkillParameterException e) {
-                Logger.log(LogId.W_5801, definition.getId(), definition.getImplementationId(),
-                        "params 検証失敗: key=" + e.key() + ", message=" + e.getMessage());
-                continue;
-            }
-            next.put(definition.getId(), withResolvedKind(definition, executor));
+            addValidatedDefinition(next, definition);
         }
 
         return Collections.unmodifiableMap(new LinkedHashMap<>(next));
+    }
+
+    private void addValidatedDefinition(
+            @NotNull Map<String, SkillDefinition> definitions,
+            @NotNull SkillDefinition definition
+    ) {
+        String skillId = definition.getId();
+        String implementationId = definition.getImplementationId();
+        try {
+            validateCommonDefinition(definition);
+            SkillExecutor executor = registry.getExecutor(implementationId);
+            if (executor == null) {
+                throw new IllegalArgumentException("実行クラスが未登録です");
+            }
+
+            executor.validateParams(definition);
+            definitions.put(skillId, withResolvedDefinition(definition, executor));
+        } catch (RuntimeException e) {
+            Logger.log(LogId.W_5801, skillId, implementationId, validationFailureReason(e));
+        }
+    }
+
+    private void validateCommonDefinition(@NotNull SkillDefinition definition) {
+        if (definition.getId().isBlank()) {
+            throw new IllegalArgumentException("id が空です");
+        }
+        if (definition.getImplementationId().isBlank()) {
+            throw new IllegalArgumentException("implementationId が空です");
+        }
+        if (definition.getCooldownTicks() < 0L) {
+            throw new IllegalArgumentException("cooldownTicks は 0 以上で指定してください");
+        }
+        if (definition.getCastTimeTicks() < 0L) {
+            throw new IllegalArgumentException("castTimeTicks は 0 以上で指定してください");
+        }
+        if (definition.getRequiredLevel() < 0) {
+            throw new IllegalArgumentException("requiredLevel は 0 以上で指定してください");
+        }
+        if (!Double.isFinite(definition.getManaCost()) || definition.getManaCost() < 0.0D) {
+            throw new IllegalArgumentException("manaCost は有限の 0 以上で指定してください");
+        }
+
+        resolveResourceType(definition);
+        double resourceCost = resolveResourceCost(definition);
+        if (!Double.isFinite(resourceCost) || resourceCost < 0.0D) {
+            throw new IllegalArgumentException("resourceCost は有限の 0 以上で指定してください");
+        }
+    }
+
+    private @NotNull String validationFailureReason(@NotNull RuntimeException exception) {
+        String message = exception.getMessage() == null ? exception.getClass().getSimpleName() : exception.getMessage();
+        if (exception instanceof SkillParameterException parameterException) {
+            return "params 検証失敗: key=" + parameterException.key() + ", message=" + message;
+        }
+        return "定義検証失敗: " + message;
     }
 
     /**
@@ -278,7 +297,7 @@ public class SkillService {
      *
      * @param caster 発動者
      * @param skill  スキル定義
-     * @return 判定結果。発動可能なら {@link SkillCastResult#success(double, long)} 相当の成功結果
+     * @return 判定結果。発動可能なら {@link SkillCastResult#succeeded()} の成功結果
      */
     @NotNull
     public SkillCastResult canCast(@NotNull SkillCaster caster, @NotNull SkillDefinition skill) {
@@ -300,7 +319,7 @@ public class SkillService {
         if (isOnCooldown(caster, skill.getId())) {
             return SkillCastResult.failure(PlayerMsgId.P_5802);
         }
-        return SkillCastResult.success(requiredCost, skill.getCooldownTicks());
+        return SkillCastResult.succeeded();
     }
 
     private @Nullable AstEntity toAstEntity(@NotNull SkillCaster caster) {
@@ -314,7 +333,7 @@ public class SkillService {
     }
 
     /**
-     * スキルを発動します。共通検証 → 実行クラス委譲 → 成功時の MP 消費・cooldown 開始を一括で行います。
+     * スキルを発動します。共通検証 → 実行クラス委譲 → 成功時のリソース消費・cooldown 開始を一括で行います。
      *
      * @param caster        発動者
      * @param skillId       スキル ID
@@ -403,9 +422,9 @@ public class SkillService {
         }
 
         if (result.success()) {
-            consumeResource(caster, resolveResourceType(definition), result.consumedMana());
-            if (result.startedCooldownTicks() > 0L) {
-                startCooldown(caster, definition.getId(), result.startedCooldownTicks());
+            consumeResource(caster, resolveResourceType(definition), resolveResourceCost(definition));
+            if (definition.getCooldownTicks() > 0L) {
+                startCooldown(caster, definition.getId(), definition.getCooldownTicks());
             }
             if (caster instanceof PlayerSkillCaster playerCaster) {
                 playerCastSuccessListener.accept(playerCaster.player(), definition.getId());
@@ -474,8 +493,11 @@ public class SkillService {
             }
         };
         BukkitTask task = runnable.runTaskTimer(plugin, 0L, 1L);
-        castingSessions.put(player.getUniqueId(), new CastingSession(task, originalWalkSpeed));
-        return SkillCastResult.success(0.0D, 0L);
+        castingSessions.put(player.getUniqueId(), new CastingSession(task, () -> {
+            astPlayer.setSkillCastingUntilMs(0L);
+            player.setWalkSpeed(originalWalkSpeed);
+        }));
+        return SkillCastResult.succeeded();
     }
 
     private @NotNull SkillCastResult beginMobCast(
@@ -521,8 +543,8 @@ public class SkillService {
             }
         };
         BukkitTask task = runnable.runTaskTimer(plugin, 0L, 1L);
-        castingSessions.put(caster.casterId(), new CastingSession(task, null));
-        return SkillCastResult.success(0.0D, 0L);
+        castingSessions.put(caster.casterId(), new CastingSession(task, caster.mob()::clearSkillCasting));
+        return SkillCastResult.succeeded();
     }
 
     private long resolveCastTimeTicks(
@@ -549,8 +571,12 @@ public class SkillService {
             @Nullable LivingEntity primaryTarget,
             @NotNull List<LivingEntity> targets
     ) {
-        castingSessions.remove(caster.casterId());
-        caster.mob().clearSkillCasting();
+        CastingSession session = castingSessions.remove(caster.casterId());
+        if (session != null) {
+            session.cleanup().run();
+        } else {
+            caster.mob().clearSkillCasting();
+        }
         if (execute) {
             executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets);
         }
@@ -569,9 +595,10 @@ public class SkillService {
     ) {
         CastingSession session = castingSessions.remove(player.getUniqueId());
         if (session != null) {
-            player.setWalkSpeed(session.originalWalkSpeed());
+            session.cleanup().run();
+        } else {
+            astPlayer.setSkillCastingUntilMs(0L);
         }
-        astPlayer.setSkillCastingUntilMs(0L);
         if (execute) {
             executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets);
         }
@@ -662,19 +689,41 @@ public class SkillService {
     }
 
     /**
+     * 指定した発動者の進行中詠唱を停止します。クールダウン状態は保持します。
+     *
+     * @param casterId 発動者 UUID
+     */
+    public void cancelCasting(@NotNull UUID casterId) {
+        CastingSession session = castingSessions.remove(casterId);
+        if (session == null) {
+            return;
+        }
+
+        session.task().cancel();
+        session.cleanup().run();
+    }
+
+    /**
+     * 指定した発動者の詠唱とクールダウンを破棄します。
+     * 退出・死亡など、発動者のライフサイクル終了時に使用します。
+     *
+     * @param casterId 発動者 UUID
+     */
+    public void clearCasterState(@NotNull UUID casterId) {
+        try {
+            cancelCasting(casterId);
+        } finally {
+            cooldownExpiryByCaster.remove(casterId);
+        }
+    }
+
+    /**
      * 進行中の詠唱を停止し、詠唱中に変更した歩行速度を戻します。
      */
     public void stop() {
-        for (Map.Entry<UUID, CastingSession> entry : castingSessions.entrySet()) {
-            entry.getValue().task().cancel();
-            if (plugin != null) {
-                Player player = plugin.getServer().getPlayer(entry.getKey());
-                if (player != null && entry.getValue().originalWalkSpeed() != null) {
-                    player.setWalkSpeed(entry.getValue().originalWalkSpeed());
-                }
-            }
+        for (UUID casterId : List.copyOf(castingSessions.keySet())) {
+            cancelCasting(casterId);
         }
-        castingSessions.clear();
     }
 
     private void notifyIfFailed(@NotNull SkillCaster caster, @NotNull SkillCastResult result, @NotNull String skillId) {
@@ -722,15 +771,39 @@ public class SkillService {
     }
 
     private @NotNull SkillResourceType resolveResourceType(@NotNull SkillDefinition skill) {
-        return SkillResourceType.fromRaw(skill.getParams().get("resourceType"));
+        SkillResourceType declaredType = skill.getResourceType();
+        if (declaredType != null) {
+            return declaredType;
+        }
+
+        Object raw = skill.getParams().get("resourceType");
+        if (raw == null) {
+            return SkillResourceType.MANA;
+        }
+        if (!(raw instanceof String value) || value.isBlank()) {
+            throw new SkillParameterException("resourceType", "MANA または ENERGY を指定してください");
+        }
+        try {
+            return SkillResourceType.valueOf(value.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new SkillParameterException("resourceType", "MANA または ENERGY を指定してください");
+        }
     }
 
     private double resolveResourceCost(@NotNull SkillDefinition skill) {
+        Double declaredCost = skill.getResourceCost();
+        if (declaredCost != null) {
+            return declaredCost;
+        }
+
         Object raw = skill.getParams().get("resourceCost");
+        if (raw == null) {
+            return skill.getManaCost();
+        }
         if (raw instanceof Number number) {
             return number.doubleValue();
         }
-        return skill.getManaCost();
+        throw new SkillParameterException("resourceCost", "number を指定してください");
     }
 
     private double currentResource(@NotNull SkillCaster caster, @NotNull SkillResourceType resourceType) {
@@ -754,7 +827,7 @@ public class SkillService {
         }
     }
 
-    private @NotNull SkillDefinition withResolvedKind(
+    private @NotNull SkillDefinition withResolvedDefinition(
             @NotNull SkillDefinition definition,
             @NotNull SkillExecutor executor
     ) {
@@ -773,10 +846,12 @@ public class SkillService {
                 definition.getParams(),
                 definition.getTags(),
                 executor.kind(),
-                definition.getPassiveBindRequired()
+                definition.getPassiveBindRequired(),
+                resolveResourceType(definition),
+                resolveResourceCost(definition)
         );
     }
 
-    private record CastingSession(@NotNull BukkitTask task, @Nullable Float originalWalkSpeed) {
+    private record CastingSession(@NotNull BukkitTask task, @NotNull Runnable cleanup) {
     }
 }

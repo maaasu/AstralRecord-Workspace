@@ -41,7 +41,7 @@ public final class FireBoostSkillExecutor implements SkillExecutor {
     @Override
     public @NotNull SkillCastResult cast(@NotNull SkillCastContext context) {
         if (!(context.caster() instanceof PlayerSkillCaster caster)) {
-            return SkillCastResult.success(context.skill().getManaCost(), context.skill().getCooldownTicks());
+            return SkillCastResult.succeeded();
         }
 
         Player player = caster.player().getBukkit();
@@ -66,7 +66,7 @@ public final class FireBoostSkillExecutor implements SkillExecutor {
         );
         player.playSound(player.getLocation(), Sound.ITEM_FIRECHARGE_USE, 1.0F, 1.2F);
 
-        return SkillCastResult.success(context.skill().getManaCost(), context.skill().getCooldownTicks());
+        return SkillCastResult.succeeded();
     }
 
     @Override

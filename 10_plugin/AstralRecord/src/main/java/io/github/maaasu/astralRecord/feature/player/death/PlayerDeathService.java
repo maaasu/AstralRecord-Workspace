@@ -31,6 +31,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 /**
  * プレイヤー死亡中の一時状態、表示、復帰を管理します。
@@ -50,6 +51,7 @@ public final class PlayerDeathService {
     private final DisplayTextService displayTextService;
     private final String joinSpawnWorldId;
     private final Map<UUID, DeathState> deaths = new ConcurrentHashMap<>();
+    private Consumer<UUID> deathStartedListener = ignored -> { };
     private BukkitTask task;
 
     /**
@@ -79,6 +81,15 @@ public final class PlayerDeathService {
         this.worldService = worldService;
         this.displayTextService = displayTextService;
         this.joinSpawnWorldId = joinSpawnWorldId;
+    }
+
+    /**
+     * custom combat の死亡状態開始を受け取る listener を設定します。
+     *
+     * @param listener 死亡したプレイヤー UUID を受け取る listener
+     */
+    public void setDeathStartedListener(@NotNull Consumer<UUID> listener) {
+        this.deathStartedListener = listener;
     }
 
     /**
@@ -143,6 +154,7 @@ public final class PlayerDeathService {
         long expiresAtMillis = System.currentTimeMillis() + Math.max(1_000L, durationMillis);
         DeathState state = new DeathState(playerId, lockLocation, expiresAtMillis, recoveryAction);
         deaths.put(playerId, state);
+        deathStartedListener.accept(playerId);
 
         if (applyExperiencePenalty) {
             accountService.loseCurrentLevelExperiencePercentCached(astPlayer.getAccount(), 10, astPlayer.getUser().getUuid())

@@ -142,12 +142,23 @@ import io.github.maaasu.astralRecord.feature.resourcepack.event.ResourcePackJoin
 import io.github.maaasu.astralRecord.feature.resourcepack.event.ResourcePackStatusEventHandler;
 import io.github.maaasu.astralRecord.feature.resourcepack.service.ResourcePackService;
 import io.github.maaasu.astralRecord.feature.sell.service.SellService;
+import io.github.maaasu.astralRecord.feature.skill.active.event.ActiveSkillLifecycleEventHandler;
+import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillLifecycleService;
+import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillCombatService;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillMovementService;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillProjectileService;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTargetingService;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTaskService;
+import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkillEffectService;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillActionRingEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillBindGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.executor.FireBoostSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.IronWillSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.ActiveSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui;
 import io.github.maaasu.astralRecord.feature.skill.registry.SkillRegistry;
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillBindPresetRepository;
@@ -299,6 +310,9 @@ public final class AstralRecord extends JavaPlugin {
     private SkillOwnershipService skillOwnershipService;
     private SkillBindGui skillBindGui;
     private SkillBindGuiEventHandler skillBindGuiEventHandler;
+    private ActiveSkillLifecycleService activeSkillLifecycleService;
+    private SkillTaskService activeSkillTaskService;
+    private TemporarySkillEffectService temporarySkillEffectService;
     private DamageService damageService;
     private ConditionService conditionService;
     private ConditionDisplayService conditionDisplayService;
@@ -539,6 +553,12 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (returnToBaseService != null) {
             returnToBaseService.cancelAll();
+        }
+        if (activeSkillTaskService != null) {
+            activeSkillTaskService.stop();
+        }
+        if (temporarySkillEffectService != null) {
+            temporarySkillEffectService.clearAll();
         }
         if (skillActionRingService != null) {
             skillActionRingService.stop();
@@ -944,6 +964,34 @@ public final class AstralRecord extends JavaPlugin {
         skillService.registerExecutor(new IronWillSkillExecutor());
         skillService.registerExecutor(new StatusPassiveSkillExecutor());
         skillService.registerExecutor(new WeaponAttackSkillExecutor(particleDisplayService, damageService, conditionService));
+        var activeSkillTargetingService = new SkillTargetingService(mobService);
+        var activeSkillEffectService = new SkillEffectService(particleDisplayService);
+        activeSkillTaskService = new SkillTaskService(this);
+        temporarySkillEffectService = new TemporarySkillEffectService();
+        mobKnockbackService.setAdditionalKnockbackMultiplier(
+            temporarySkillEffectService::knockbackMultiplier
+        );
+        activeSkillLifecycleService = new ActiveSkillLifecycleService(
+            skillService,
+            activeSkillTaskService,
+            temporarySkillEffectService
+        );
+        playerDeathService.setDeathStartedListener(activeSkillLifecycleService::clearAll);
+        var activeSkillServices = new ActiveSkillServices(
+            activeSkillTargetingService,
+            new SkillCombatService(damageService, conditionService, mobKnockbackService),
+            activeSkillEffectService,
+            new SkillProjectileService(
+                activeSkillTargetingService,
+                activeSkillEffectService,
+                activeSkillTaskService
+            ),
+            new SkillMovementService(conditionService),
+            temporarySkillEffectService,
+            activeSkillTaskService
+        );
+        ActiveSkillExecutorCatalog.create(activeSkillServices).forEach(skillService::registerExecutor);
+        damageService.setTemporarySkillEffectService(temporarySkillEffectService);
         skillService.registerBuiltInDefinitions(BuiltInWeaponAttackDefinitions.definitions());
         itemStackFactory.setSkillService(skillService);
         skillOwnershipService = new SkillOwnershipService(playerClassService, inventoryService, itemService, skillTreeService);
@@ -1210,6 +1258,10 @@ public final class AstralRecord extends JavaPlugin {
             inventoryService
         );
         eventManager.registerHandler(skillActionRingEventHandler, getServer().getPluginManager());
+        eventManager.registerHandler(
+            new ActiveSkillLifecycleEventHandler(activeSkillLifecycleService),
+            getServer().getPluginManager()
+        );
         var playerModeEventHandler = new PlayerModeEventHandler(accountModeApplicationService);
         eventManager.registerHandler(playerModeEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(

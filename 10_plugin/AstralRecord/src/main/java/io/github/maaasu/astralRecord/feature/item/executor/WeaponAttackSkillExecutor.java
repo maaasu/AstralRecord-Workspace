@@ -80,10 +80,9 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
 
     @Override
     public @NotNull SkillCastResult cast(@NotNull SkillCastContext context) {
-        double resourceCost = readDoubleParam(context.skill(), "resourceCost", context.skill().getManaCost());
         CastOrigin origin = resolveCastOrigin(context);
         if (origin == null) {
-            return SkillCastResult.success(resourceCost, context.skill().getCooldownTicks());
+            return SkillCastResult.succeeded();
         }
 
         Location eyeLocation = origin.location();
@@ -129,14 +128,13 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 readAttackType(context.skill())
         );
         applyAttackDamage(context.skill(), origin.attacker(), effectLocation, direction);
-        return SkillCastResult.success(resourceCost, context.skill().getCooldownTicks());
+        return SkillCastResult.succeeded();
     }
 
     @Override
     public void validateParams(@NotNull SkillDefinition skill) {
         requireParticle(skill, "particle");
         requireNonNegativeInt(skill, "particleCount");
-        requireNonNegativeDouble(skill, "resourceCost");
         requireNonNegativeDouble(skill, "spreadX");
         requireNonNegativeDouble(skill, "spreadY");
         requireNonNegativeDouble(skill, "spreadZ");

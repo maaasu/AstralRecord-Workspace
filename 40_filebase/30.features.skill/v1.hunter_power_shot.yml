@@ -1,0 +1,23 @@
+# design:
+#   motif: "森林狩猟 / 強弓"
+#   progression: 1
+schemaVersion: 1
+id: hunter_power_shot
+type: SKILL
+implementationId: hunter_power_shot
+name: "&a強弓射ち"
+description: "&7弦を深く引き絞り、狙った一体へ重い矢を撃ち込む射撃技。"
+icon: BOW
+lore:
+  - "&7射程18mの矢で間接攻撃力155%のダメージ。"
+  - "&8消費EN: 16 / クールダウン: 2.5秒"
+cooldownTicks: 50
+resourceType: ENERGY
+resourceCost: 16
+castTimeTicks: 8
+requiredLevel: 1
+onCast:
+  sound: entity.arrow.shoot
+tags:
+  - active
+  - ranged

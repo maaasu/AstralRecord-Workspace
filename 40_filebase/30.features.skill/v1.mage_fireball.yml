@@ -1,0 +1,25 @@
+# design:
+#   motif: "元素魔術 / 火球"
+#   progression: 1
+schemaVersion: 1
+id: mage_fireball
+type: SKILL
+implementationId: mage_fireball
+name: "&c火焔弾"
+description: "&7火球を放ち、着弾地点を巻き込む炎と燃焼で敵を追い詰める。"
+icon: FIRE_CHARGE
+lore:
+  - "&7射程14m、着弾地点2.3mへ魔法攻撃力125%の火ダメージ。"
+  - "&760%の確率で3秒間の燃焼を付与する。"
+  - "&8消費MP: 18 / クールダウン: 3.0秒"
+cooldownTicks: 60
+resourceType: MANA
+resourceCost: 18
+castTimeTicks: 8
+requiredLevel: 1
+onCast:
+  sound: entity.blaze.shoot
+tags:
+  - active
+  - magic
+  - fire

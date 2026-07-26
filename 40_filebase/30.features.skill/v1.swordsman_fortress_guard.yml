@@ -1,0 +1,24 @@
+# design:
+#   motif: "城塞 / 盾壁"
+#   progression: 1
+schemaVersion: 1
+id: swordsman_fortress_guard
+type: SKILL
+implementationId: swordsman_fortress_guard
+name: "&f堅城の構え"
+description: "&7守りを固め、短時間だけ正面からの猛攻にも耐える防御技。"
+icon: SHIELD
+lore:
+  - "&78秒間、受けるダメージを35%軽減する。"
+  - "&7効果中はノックバックへの耐性も高まる。"
+  - "&8消費EN: 25 / クールダウン: 18.0秒"
+cooldownTicks: 360
+resourceType: ENERGY
+resourceCost: 25
+castTimeTicks: 0
+requiredLevel: 1
+onCast:
+  sound: item.shield.block
+tags:
+  - active
+  - defense

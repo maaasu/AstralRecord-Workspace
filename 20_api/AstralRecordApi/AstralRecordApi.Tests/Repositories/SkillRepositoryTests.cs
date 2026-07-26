@@ -1,8 +1,11 @@
 using AstralRecordApi.Data;
+using AstralRecordApi.Models;
 using AstralRecordApi.Repositories;
 using AstralRecordApi.Tests.TestSupport;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using System.Runtime.CompilerServices;
+using System.Text.Json;
 using Xunit;
 
 namespace AstralRecordApi.Tests.Repositories;
@@ -24,7 +27,7 @@ public class SkillRepositoryTests
             await MasterDataTestSeed.CreateSchemaAsync(setupContext);
             await MasterDataTestSeed.SeedEntryAsync(
                 setupContext,
-                @"E:\AstralRecord-Workspace\40_filebase\30.features.skill\v1.fire_boost.yml",
+                Path.Combine(ResolveWorkspaceRoot(), "40_filebase", "30.features.skill", "v1.fire_boost.yml"),
                 "skill",
                 null);
         }
@@ -55,7 +58,7 @@ public class SkillRepositoryTests
             await MasterDataTestSeed.CreateSchemaAsync(setupContext);
             await MasterDataTestSeed.SeedEntryAsync(
                 setupContext,
-                @"E:\AstralRecord-Workspace\40_filebase\30.features.skill\v1.iron_will.yml",
+                Path.Combine(ResolveWorkspaceRoot(), "40_filebase", "30.features.skill", "v1.iron_will.yml"),
                 "skill",
                 null);
         }
@@ -71,5 +74,50 @@ public class SkillRepositoryTests
         Assert.NotNull(skill.Passive);
         Assert.True(skill.Passive!.BindRequired);
         Assert.True(skill.Params.ContainsKey("defenseFlat"));
+    }
+
+    [Fact]
+    public void DeserializeSkillPayload_ReturnsFirstClassResourceFields()
+    {
+        var payloadType = typeof(SkillRepository)
+            .Assembly
+            .GetType("AstralRecordApi.Repositories.MasterDataPayloadJson", throwOnError: true)!;
+        var options = (JsonSerializerOptions)payloadType
+            .GetField("Options", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)!
+            .GetValue(null)!;
+        var json = """
+            {
+              "schemaVersion": 1,
+              "id": "blade_wave",
+              "type": "SKILL",
+              "implementationId": "blade_wave",
+              "name": "Blade Wave",
+              "resourceType": "ENERGY",
+              "resourceCost": 20
+            }
+            """;
+
+        var skill = JsonSerializer.Deserialize<SkillResponse>(json, options);
+
+        Assert.NotNull(skill);
+        Assert.Equal("ENERGY", skill!.ResourceType);
+        Assert.Equal(20.0D, skill.ResourceCost);
+    }
+
+    private static string ResolveWorkspaceRoot([CallerFilePath] string currentFile = "")
+    {
+        var current = new FileInfo(currentFile).Directory;
+        while (current is not null)
+        {
+            if (Directory.Exists(Path.Combine(current.FullName, "40_filebase"))
+                && Directory.Exists(Path.Combine(current.FullName, "20_api")))
+            {
+                return current.FullName;
+            }
+
+            current = current.Parent;
+        }
+
+        throw new InvalidOperationException("workspace root could not be resolved from the test source path.");
     }
 }

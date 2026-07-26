@@ -1,0 +1,23 @@
+# design:
+#   motif: "戦陣 / 雄叫び"
+#   progression: 1
+schemaVersion: 1
+id: swordsman_war_cry
+type: SKILL
+implementationId: swordsman_war_cry
+name: "&f戦士の咆哮"
+description: "&7力強い咆哮で周囲の敵意を引き受け、前線へ注意を集める。"
+icon: GOAT_HORN
+lore:
+  - "&7周囲7mの敵から大きな敵視を集める。"
+  - "&7壁越しの敵には効果を与えない。"
+  - "&8消費EN: 18 / クールダウン: 12.0秒"
+cooldownTicks: 240
+resourceType: ENERGY
+resourceCost: 18
+castTimeTicks: 0
+requiredLevel: 1
+onCast:
+  sound: entity.ravager.roar
+tags:
+  - active

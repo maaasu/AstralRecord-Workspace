@@ -1,0 +1,24 @@
+# design:
+#   motif: "元素魔術 / 氷輪"
+#   progression: 1
+schemaVersion: 1
+id: mage_frost_nova
+type: SKILL
+implementationId: mage_frost_nova
+name: "&b氷輪"
+description: "&7冷気の輪を周囲へ解き放ち、接近した敵の動きを鈍らせる。"
+icon: BLUE_ICE
+lore:
+  - "&7周囲4mへ魔法攻撃力75%の氷ダメージ。"
+  - "&7命中した敵へ4秒間の冷気を付与する。"
+  - "&8消費MP: 24 / クールダウン: 8.0秒"
+cooldownTicks: 160
+resourceType: MANA
+resourceCost: 24
+castTimeTicks: 6
+requiredLevel: 1
+onCast:
+  sound: block.glass.break
+tags:
+  - active
+  - magic

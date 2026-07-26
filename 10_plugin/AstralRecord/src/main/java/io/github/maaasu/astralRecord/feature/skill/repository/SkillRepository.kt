@@ -5,6 +5,8 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition
+import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException
+import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType
 import io.github.maaasu.astralRecord.feature.skill.model.SkillSummary
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger
@@ -13,6 +15,7 @@ import java.io.IOException
 import java.net.URLEncoder
 import java.net.http.HttpResponse
 import java.nio.charset.StandardCharsets
+import java.util.Locale
 
 /**
  * AstralRecord API を通じてスキル定義を取得するリポジトリ。
@@ -88,11 +91,15 @@ class SkillRepository {
 
     /**
      * API レスポンスオブジェクトを [SkillDefinition] へ変換します。
-     * `onCast.sound` は `onCastSound` へ射影し、null 許容項目は Plugin 側既定値で補完しません。
+     * `onCast.sound` は `onCastSound` へ射影します。
+     * `resourceType` / `resourceCost` は top-level に指定された値だけを読み取り、
+     * 旧 `params` / `manaCost` からの互換解決は [io.github.maaasu.astralRecord.feature.skill.service.SkillService]
+     * に委ねます。
      */
     private fun toDefinition(obj: JsonObject): SkillDefinition {
         val onCastObj = parseObjectOrNull(obj, "onCast")
         val onCastSound = onCastObj?.get("sound")?.takeIf { !it.isJsonNull }?.asString
+        val params = parseParams(parseObjectOrNull(obj, "params"))
 
         return SkillDefinition(
             id = obj.get("id").asString,
@@ -106,10 +113,37 @@ class SkillRepository {
             castTimeTicks = obj.get("castTimeTicks")?.takeIf { !it.isJsonNull }?.asLong ?: 0L,
             requiredLevel = obj.get("requiredLevel")?.takeIf { !it.isJsonNull }?.asInt ?: 1,
             onCastSound = onCastSound,
-            params = parseParams(parseObjectOrNull(obj, "params")),
+            params = params,
             tags = parseStringList(obj.getAsJsonArray("tags")),
             passiveBindRequired = parsePassiveBindRequired(parseObjectOrNull(obj, "passive")),
+            resourceType = parseResourceTypeOrNull(obj.get("resourceType")),
+            resourceCost = parseResourceCostOrNull(obj.get("resourceCost")),
         )
+    }
+
+    private fun parseResourceTypeOrNull(element: JsonElement?): SkillResourceType? {
+        if (element == null || element.isJsonNull) return null
+        if (!element.isJsonPrimitive || !element.asJsonPrimitive.isString) {
+            throw SkillParameterException("resourceType", "MANA または ENERGY を文字列で指定してください")
+        }
+
+        val rawValue = element.asString.trim()
+        if (rawValue.isEmpty()) {
+            throw SkillParameterException("resourceType", "MANA または ENERGY を指定してください")
+        }
+        return try {
+            SkillResourceType.valueOf(rawValue.uppercase(Locale.ROOT))
+        } catch (e: IllegalArgumentException) {
+            throw SkillParameterException("resourceType", "MANA または ENERGY を指定してください")
+        }
+    }
+
+    private fun parseResourceCostOrNull(element: JsonElement?): Double? {
+        if (element == null || element.isJsonNull) return null
+        if (!element.isJsonPrimitive || !element.asJsonPrimitive.isNumber) {
+            throw SkillParameterException("resourceCost", "number を指定してください")
+        }
+        return element.asDouble
     }
 
     private fun parsePassiveBindRequired(obj: JsonObject?): Boolean {

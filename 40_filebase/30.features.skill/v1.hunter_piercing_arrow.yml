@@ -1,0 +1,24 @@
+# design:
+#   motif: "森林狩猟 / 貫き矢"
+#   progression: 1
+schemaVersion: 1
+id: hunter_piercing_arrow
+type: SKILL
+implementationId: hunter_piercing_arrow
+name: "&a貫通矢"
+description: "&7一直線に並んだ獲物を次々と射抜く、鋭い貫通射撃。"
+icon: SPECTRAL_ARROW
+lore:
+  - "&7射程16mの矢で間接攻撃力130%のダメージ。"
+  - "&7最大4体まで貫通し、貫通ごとに威力が下がる。"
+  - "&8消費EN: 20 / クールダウン: 4.5秒"
+cooldownTicks: 90
+resourceType: ENERGY
+resourceCost: 20
+castTimeTicks: 6
+requiredLevel: 1
+onCast:
+  sound: entity.arrow.shoot
+tags:
+  - active
+  - ranged

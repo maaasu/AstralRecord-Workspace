@@ -1,0 +1,24 @@
+# design:
+#   motif: "森林狩猟 / 扇形"
+#   progression: 1
+schemaVersion: 1
+id: hunter_fan_shot
+type: SKILL
+implementationId: hunter_fan_shot
+name: "&a扇射ち"
+description: "&7五本の矢を扇状に放ち、広がった敵の群れを一度に捉える。"
+icon: ARROW
+lore:
+  - "&7前方へ5本の矢を放ち、間接攻撃力90%のダメージ。"
+  - "&7同じ敵へ複数の矢が重なっても1回だけ命中する。"
+  - "&8消費EN: 22 / クールダウン: 5.0秒"
+cooldownTicks: 100
+resourceType: ENERGY
+resourceCost: 22
+castTimeTicks: 0
+requiredLevel: 1
+onCast:
+  sound: entity.arrow.shoot
+tags:
+  - active
+  - ranged

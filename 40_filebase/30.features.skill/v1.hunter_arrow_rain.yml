@@ -1,0 +1,24 @@
+# design:
+#   motif: "森林狩猟 / 矢雨"
+#   progression: 1
+schemaVersion: 1
+id: hunter_arrow_rain
+type: SKILL
+implementationId: hunter_arrow_rain
+name: "&a矢雨"
+description: "&7狙った地点へ矢の雨を降らせ、範囲内の獲物を継続して追い詰める。"
+icon: TIPPED_ARROW
+lore:
+  - "&7射程14m、半径3.2mへ間接攻撃力35%の攻撃を4回行う。"
+  - "&7着弾地点は攻撃前に予告表示される。"
+  - "&8消費EN: 34 / クールダウン: 15.0秒"
+cooldownTicks: 300
+resourceType: ENERGY
+resourceCost: 34
+castTimeTicks: 14
+requiredLevel: 1
+onCast:
+  sound: entity.arrow.shoot
+tags:
+  - active
+  - ranged

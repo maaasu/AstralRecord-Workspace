@@ -23,6 +23,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkillEffectService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -70,6 +71,7 @@ public final class DamageService {
     private BossChallengeService bossChallengeService;
     private ConditionService conditionService;
     private EquipmentDurabilityService equipmentDurabilityService;
+    private TemporarySkillEffectService temporarySkillEffectService;
 
     /**
      * サービスを構築します。
@@ -133,6 +135,17 @@ public final class DamageService {
      */
     public void setConditionService(@Nullable ConditionService conditionService) {
         this.conditionService = conditionService;
+    }
+
+    /**
+     * 発動スキル由来の一時ダメージ倍率を設定します。
+     *
+     * @param temporarySkillEffectService 一時効果サービス。null の場合は補正なし
+     */
+    public void setTemporarySkillEffectService(
+            @Nullable TemporarySkillEffectService temporarySkillEffectService
+    ) {
+        this.temporarySkillEffectService = temporarySkillEffectService;
     }
 
     public void setEquipmentDurabilityService(@Nullable EquipmentDurabilityService equipmentDurabilityService) {
@@ -278,6 +291,7 @@ public final class DamageService {
             damage *= conditionService.conditionDamageMultiplier(attacker, victim, conditionType);
             damage *= conditionService.damageDealtMultiplier(attacker);
         }
+        damage *= temporaryDamageMultiplier(attacker, victim);
         if (conditionType == ConditionType.POISON) {
             damage = Math.min(damage, Math.max(0.0D, victim.currentHealth() - 1.0D));
         }
@@ -346,12 +360,13 @@ public final class DamageService {
 
         DamageContext context = new DamageContext(attacker, victim, baseDamage, attackType, components, scaling);
         DamageResult calculated = damageCalculator.calculate(context);
-        if (!calculated.evaded() && conditionService != null && calculated.finalDamage() > 0.0D) {
-            calculated = calculated.withFinalDamage(
-                    calculated.finalDamage()
-                            * conditionService.damageTakenMultiplier(victim)
-                            * conditionService.damageDealtMultiplier(attacker)
-            );
+        if (!calculated.evaded() && calculated.finalDamage() > 0.0D) {
+            double multiplier = temporaryDamageMultiplier(attacker, victim);
+            if (conditionService != null) {
+                multiplier *= conditionService.damageTakenMultiplier(victim)
+                        * conditionService.damageDealtMultiplier(attacker);
+            }
+            calculated = calculated.withFinalDamage(calculated.finalDamage() * multiplier);
         }
         DamageResult result = applyShieldDamage(attacker, victim, calculated);
         applyDamageResult(attacker, victim, result, attackType, true);
@@ -359,6 +374,19 @@ public final class DamageService {
         spawnDamageDisplay(attacker, victim, result);
         sendDamageLog(attacker, victim, result, context);
         return result;
+    }
+
+    private double temporaryDamageMultiplier(
+            @Nullable AstEntity attacker,
+            @NotNull AstEntity victim
+    ) {
+        if (temporarySkillEffectService == null) {
+            return 1.0D;
+        }
+        double outgoing = attacker == null
+                ? 1.0D
+                : temporarySkillEffectService.outgoingMultiplier(attacker);
+        return outgoing * temporarySkillEffectService.incomingMultiplier(victim);
     }
 
     private void applyDurabilityWear(

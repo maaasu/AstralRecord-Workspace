@@ -1,0 +1,23 @@
+# design:
+#   motif: "戦陣 / 先陣"
+#   progression: 1
+schemaVersion: 1
+id: swordsman_vanguard_rush
+type: SKILL
+implementationId: swordsman_vanguard_rush
+name: "&f先陣突撃"
+description: "&7剣を構えて前方へ駆け抜け、進路上の敵を押し切る突撃技。"
+icon: RABBIT_FOOT
+lore:
+  - "&7最大5.5m突進し、近接攻撃力120%のダメージ。"
+  - "&8消費EN: 22 / クールダウン: 9.0秒"
+cooldownTicks: 180
+resourceType: ENERGY
+resourceCost: 22
+castTimeTicks: 0
+requiredLevel: 1
+onCast:
+  sound: entity.player.attack.knockback
+tags:
+  - active
+  - melee

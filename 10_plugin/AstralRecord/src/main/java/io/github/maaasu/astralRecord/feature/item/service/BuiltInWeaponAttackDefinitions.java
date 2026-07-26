@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.item.service;
 
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -38,8 +40,6 @@ public final class BuiltInWeaponAttackDefinitions {
                         0,
                         null,
                         Map.ofEntries(
-                                Map.entry("resourceType", "ENERGY"),
-                                Map.entry("resourceCost", 0.0D),
                                 Map.entry("particle", "SWEEP_ATTACK"),
                                 Map.entry("particleCount", 1),
                                 Map.entry("spreadX", 0.0D),
@@ -57,7 +57,11 @@ public final class BuiltInWeaponAttackDefinitions {
                                 Map.entry("soundVolume", 1.0D),
                                 Map.entry("soundPitch", 1.0D)
                         ),
-                        List.of("builtin", "equipment", "normal_attack", "melee")
+                        List.of("builtin", "equipment", "normal_attack", "melee"),
+                        SkillKind.ACTIVE,
+                        true,
+                        SkillResourceType.ENERGY,
+                        0.0D
                 ),
                 new SkillDefinition(
                         NORMAL_ATTACK_BOW,
@@ -72,8 +76,6 @@ public final class BuiltInWeaponAttackDefinitions {
                         0,
                         null,
                         Map.ofEntries(
-                                Map.entry("resourceType", "ENERGY"),
-                                Map.entry("resourceCost", 0.0D),
                                 Map.entry("particle", "CRIT"),
                                 Map.entry("particleCount", 12),
                                 Map.entry("spreadX", 0.18D),
@@ -101,7 +103,11 @@ public final class BuiltInWeaponAttackDefinitions {
                                 Map.entry("projectileSpeed", 1.35D),
                                 Map.entry("projectileGravity", 0.04D)
                         ),
-                        List.of("builtin", "equipment", "normal_attack", "bow")
+                        List.of("builtin", "equipment", "normal_attack", "bow"),
+                        SkillKind.ACTIVE,
+                        true,
+                        SkillResourceType.ENERGY,
+                        0.0D
                 ),
                 new SkillDefinition(
                         NORMAL_ATTACK_MAGIC,
@@ -116,8 +122,6 @@ public final class BuiltInWeaponAttackDefinitions {
                         0,
                         null,
                         Map.ofEntries(
-                                Map.entry("resourceType", "MANA"),
-                                Map.entry("resourceCost", 0.0D),
                                 Map.entry("particle", "ENCHANT"),
                                 Map.entry("particleCount", 10),
                                 Map.entry("spreadX", 0.12D),
@@ -146,7 +150,11 @@ public final class BuiltInWeaponAttackDefinitions {
                                 Map.entry("homingStrength", 0.18D),
                                 Map.entry("homingRange", 4.75D)
                         ),
-                        List.of("builtin", "equipment", "normal_attack", "magic")
+                        List.of("builtin", "equipment", "normal_attack", "magic"),
+                        SkillKind.ACTIVE,
+                        true,
+                        SkillResourceType.MANA,
+                        0.0D
                 ),
                 new SkillDefinition(
                         SPECIAL_ATTACK_MELEE,
@@ -161,8 +169,6 @@ public final class BuiltInWeaponAttackDefinitions {
                         0,
                         null,
                         Map.ofEntries(
-                                Map.entry("resourceType", "ENERGY"),
-                                Map.entry("resourceCost", 24.0D),
                                 Map.entry("particle", "SWEEP_ATTACK"),
                                 Map.entry("particleCount", 8),
                                 Map.entry("spreadX", 0.35D),
@@ -180,7 +186,11 @@ public final class BuiltInWeaponAttackDefinitions {
                                 Map.entry("soundVolume", 1.0D),
                                 Map.entry("soundPitch", 0.95D)
                         ),
-                        List.of("builtin", "equipment", "special_attack", "melee")
+                        List.of("builtin", "equipment", "special_attack", "melee"),
+                        SkillKind.ACTIVE,
+                        true,
+                        SkillResourceType.ENERGY,
+                        24.0D
                 ),
                 new SkillDefinition(
                         SPECIAL_ATTACK_BOW,
@@ -195,8 +205,6 @@ public final class BuiltInWeaponAttackDefinitions {
                         0,
                         null,
                         Map.ofEntries(
-                                Map.entry("resourceType", "ENERGY"),
-                                Map.entry("resourceCost", 30.0D),
                                 Map.entry("particle", "CRIT"),
                                 Map.entry("particleCount", 24),
                                 Map.entry("spreadX", 0.3D),
@@ -222,7 +230,11 @@ public final class BuiltInWeaponAttackDefinitions {
                                 Map.entry("trailExtra", 0.0D),
                                 Map.entry("projectileGravity", 0.04D)
                         ),
-                        List.of("builtin", "equipment", "special_attack", "bow")
+                        List.of("builtin", "equipment", "special_attack", "bow"),
+                        SkillKind.ACTIVE,
+                        true,
+                        SkillResourceType.ENERGY,
+                        30.0D
                 ),
                 new SkillDefinition(
                         SPECIAL_ATTACK_MAGIC,
@@ -237,8 +249,6 @@ public final class BuiltInWeaponAttackDefinitions {
                         0,
                         null,
                         Map.ofEntries(
-                                Map.entry("resourceType", "MANA"),
-                                Map.entry("resourceCost", 18.0D),
                                 Map.entry("particle", "ENCHANT"),
                                 Map.entry("particleCount", 16),
                                 Map.entry("spreadX", 0.18D),
@@ -265,7 +275,11 @@ public final class BuiltInWeaponAttackDefinitions {
                                 Map.entry("homingStrength", 0.22D),
                                 Map.entry("homingRange", 5.0D)
                         ),
-                        List.of("builtin", "equipment", "special_attack", "magic")
+                        List.of("builtin", "equipment", "special_attack", "magic"),
+                        SkillKind.ACTIVE,
+                        true,
+                        SkillResourceType.MANA,
+                        18.0D
                 )
         );
     }

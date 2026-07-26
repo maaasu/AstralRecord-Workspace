@@ -22,6 +22,10 @@ public class SkillResponse
 
     public double ManaCost { get; init; }
 
+    public string? ResourceType { get; init; }
+
+    public double? ResourceCost { get; init; }
+
     public long CastTimeTicks { get; init; }
 
     public int RequiredLevel { get; init; } = 1;

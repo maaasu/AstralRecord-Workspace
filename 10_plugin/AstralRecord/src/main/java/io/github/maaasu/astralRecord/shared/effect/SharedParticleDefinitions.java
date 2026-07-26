@@ -157,6 +157,55 @@ public final class SharedParticleDefinitions {
             0.0D,
             new Particle.DustOptions(Color.fromRGB(170, 70, 255), 1.2F)
         );
+    public static final SharedParticleDefinition SKILL_SWORD_SWEEP =
+        new SharedParticleDefinition("skill_sword_sweep", Particle.SWEEP_ATTACK, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+    public static final SharedParticleDefinition SKILL_SWORD_EDGE =
+        new SharedParticleDefinition("skill_sword_edge", Particle.CRIT, 2, 0.04D, 0.04D, 0.04D, 0.02D);
+    public static final SharedParticleDefinition SKILL_SWORD_GUARD_DUST =
+        new SharedParticleDefinition(
+            "skill_sword_guard_dust",
+            Particle.DUST,
+            1,
+            0.02D,
+            0.02D,
+            0.02D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(105, 175, 230), 1.0F)
+        );
+    public static final SharedParticleDefinition SKILL_HUNTER_ARROW =
+        new SharedParticleDefinition("skill_hunter_arrow", Particle.CRIT, 1, 0.02D, 0.02D, 0.02D, 0.01D);
+    public static final SharedParticleDefinition SKILL_HUNTER_IMPACT =
+        new SharedParticleDefinition("skill_hunter_impact", Particle.END_ROD, 3, 0.08D, 0.08D, 0.08D, 0.01D);
+    public static final SharedParticleDefinition SKILL_HUNTER_TRAP_DUST =
+        new SharedParticleDefinition(
+            "skill_hunter_trap_dust",
+            Particle.DUST,
+            1,
+            0.02D,
+            0.02D,
+            0.02D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(120, 175, 80), 0.9F)
+        );
+    public static final SharedParticleDefinition SKILL_MAGE_FIRE =
+        new SharedParticleDefinition("skill_mage_fire", Particle.FLAME, 2, 0.06D, 0.06D, 0.06D, 0.01D);
+    public static final SharedParticleDefinition SKILL_MAGE_ICE =
+        new SharedParticleDefinition("skill_mage_ice", Particle.SNOWFLAKE, 2, 0.06D, 0.06D, 0.06D, 0.01D);
+    public static final SharedParticleDefinition SKILL_MAGE_LIGHTNING =
+        new SharedParticleDefinition("skill_mage_lightning", Particle.ELECTRIC_SPARK, 2, 0.06D, 0.06D, 0.06D, 0.02D);
+    public static final SharedParticleDefinition SKILL_MAGE_ARCANE_DUST =
+        new SharedParticleDefinition(
+            "skill_mage_arcane_dust",
+            Particle.DUST,
+            1,
+            0.02D,
+            0.02D,
+            0.02D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(175, 95, 245), 1.0F)
+        );
+    public static final SharedParticleDefinition SKILL_MAGE_PORTAL =
+        new SharedParticleDefinition("skill_mage_portal", Particle.PORTAL, 5, 0.14D, 0.22D, 0.14D, 0.05D);
     public static final SharedParticleDefinition CLASS_LEVEL_UP_DUST =
         new SharedParticleDefinition(
             "class_level_up_dust",

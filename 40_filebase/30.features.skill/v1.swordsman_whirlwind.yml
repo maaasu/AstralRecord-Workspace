@@ -1,0 +1,23 @@
+# design:
+#   motif: "西洋剣術 / 円環"
+#   progression: 1
+schemaVersion: 1
+id: swordsman_whirlwind
+type: SKILL
+implementationId: swordsman_whirlwind
+name: "&f旋回斬り"
+description: "&7剣を大きく一周させ、周囲を取り囲む敵をまとめて斬り払う。"
+icon: WIND_CHARGE
+lore:
+  - "&7自身の周囲3.25mへ近接攻撃力95%のダメージ。"
+  - "&8消費EN: 24 / クールダウン: 7.0秒"
+cooldownTicks: 140
+resourceType: ENERGY
+resourceCost: 24
+castTimeTicks: 0
+requiredLevel: 1
+onCast:
+  sound: entity.player.attack.sweep
+tags:
+  - active
+  - melee

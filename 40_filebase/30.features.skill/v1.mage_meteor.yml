@@ -1,0 +1,25 @@
+# design:
+#   motif: "天体 / 流星"
+#   progression: 1
+schemaVersion: 1
+id: mage_meteor
+type: SKILL
+implementationId: mage_meteor
+name: "&c落星"
+description: "&7狙った地点へ燃える星を落とし、予告範囲を大きな炎で焼き払う。"
+icon: MAGMA_CREAM
+lore:
+  - "&7射程14m、半径3.5mへ魔法攻撃力220%の火ダメージ。"
+  - "&7命中した敵へ4秒間の燃焼を付与する。"
+  - "&8消費MP: 38 / クールダウン: 18.0秒"
+cooldownTicks: 360
+resourceType: MANA
+resourceCost: 38
+castTimeTicks: 30
+requiredLevel: 1
+onCast:
+  sound: entity.generic.explode
+tags:
+  - active
+  - magic
+  - fire

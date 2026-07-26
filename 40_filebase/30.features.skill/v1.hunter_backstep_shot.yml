@@ -1,0 +1,24 @@
+# design:
+#   motif: "森林狩猟 / 退き撃ち"
+#   progression: 1
+schemaVersion: 1
+id: hunter_backstep_shot
+type: SKILL
+implementationId: hunter_backstep_shot
+name: "&a退き撃ち"
+description: "&7矢を放つと同時に後方へ身を翻し、獲物との間合いを作り直す。"
+icon: FEATHER
+lore:
+  - "&7間接攻撃力105%の矢を放ち、後方へ最大3.5m移動。"
+  - "&7障害物や足場を確認し、安全な範囲だけ後退する。"
+  - "&8消費EN: 18 / クールダウン: 9.0秒"
+cooldownTicks: 180
+resourceType: ENERGY
+resourceCost: 18
+castTimeTicks: 0
+requiredLevel: 1
+onCast:
+  sound: entity.arrow.shoot
+tags:
+  - active
+  - ranged

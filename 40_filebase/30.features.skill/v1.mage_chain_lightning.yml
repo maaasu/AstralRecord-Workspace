@@ -1,0 +1,25 @@
+# design:
+#   motif: "元素魔術 / 稲妻"
+#   progression: 1
+schemaVersion: 1
+id: mage_chain_lightning
+type: SKILL
+implementationId: mage_chain_lightning
+name: "&b連鎖雷"
+description: "&7稲妻を一体へ落とし、近くの敵へ威力を減らしながら連鎖させる。"
+icon: LIGHTNING_ROD
+lore:
+  - "&7最初の敵へ魔法攻撃力120%の雷ダメージ。"
+  - "&7近くの敵へ最大3回連鎖し、各命中時25%で感電を付与。"
+  - "&8消費MP: 26 / クールダウン: 7.0秒"
+cooldownTicks: 140
+resourceType: MANA
+resourceCost: 26
+castTimeTicks: 10
+requiredLevel: 1
+onCast:
+  sound: entity.lightning_bolt.impact
+tags:
+  - active
+  - magic
+  - lightning

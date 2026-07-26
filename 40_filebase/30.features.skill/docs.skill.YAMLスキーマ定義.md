@@ -4,6 +4,8 @@
 
 スキル種別は plugin 側の `SkillExecutor.kind()` が正本です。filebase 側ではパッシブスキルの場合に `passive.bindRequired` でバインド必要可否を定義します。
 
+発動スキルのリソース種別と消費量は、共通項目 `resourceType` / `resourceCost` へ定義します。`params` は実装固有の拡張値だけに使用し、リソース、クールダウン、詠唱時間などの共通項目を重複して定義しません。
+
 ## 共通定義
 
 | キー | 型 | 必須 | 既定値 | 説明 |
@@ -17,19 +19,29 @@
 | `icon` | String | 任意 | `null` | Material 名 |
 | `lore` | List<String> | 任意 | `[]` | 詳細表示 lore |
 | `cooldownTicks` | Long | 任意 | `0` | クールダウン |
-| `manaCost` | Double | 任意 | `0` | 消費 MP |
+| `resourceType` | String | 任意 | `MANA` | 消費リソース種別。`MANA` / `ENERGY` |
+| `resourceCost` | Double | 任意 | `0` | `resourceType` で指定したリソースの消費量。0以上を指定する |
+| `manaCost` | Double | 任意 | `0` | 旧定義との互換用 MP 消費量。新規定義では使用せず `resourceCost` を使う |
 | `castTimeTicks` | Long | 任意 | `0` | 詠唱時間。冷気中は最終値が2倍 |
 | `requiredLevel` | Integer | 任意 | `1` | 必要レベル |
 | `onCast` | Map | 任意 | `null` | 発動時演出設定 |
 | `onCast.sound` | String | 任意 | `null` | 再生する sound key |
 | `passive` | Map | 任意 | `null` | パッシブ設定 |
 | `passive.bindRequired` | Boolean | 任意 | `true` | `false` は所持のみで常時有効 |
-| `params` | Map<String, Any> | 任意 | `{}` | 実装側パラメータ |
+| `params` | Map<String, Any> | 任意 | `{}` | 実装固有の拡張パラメータ。共通項目は定義しない |
 | `tags` | List<String> | 任意 | `[]` | `76.shared.tag/v1.tags.yml`の`SKILL`対象タグID |
 
-## 攻撃スキル params
+## 職業発動スキルの定義方針
 
-`normal_attack` などの攻撃スキル実装は次の戦闘パラメータを使用します。
+- プレイヤー向け職業発動スキルは、`id` と `implementationId` を同じ値にします。
+- ID は `swordsman_` / `hunter_` / `mage_` の職業 prefix と lowercase snake_case を組み合わせます。
+- 当たり判定、攻撃種別、倍率、状態異常、演出の詳細は `implementationId` に対応する Plugin 実装を正本とし、YAML の `params` へ大量の調整値を複製しません。
+- プレイヤーが効果を判断できる倍率、範囲、時間は `description` / `lore` に記載し、実装変更時は同時に同期します。
+- リソース種別、消費量、クールダウン、詠唱時間、必要レベル、共通発動音は、それぞれの top-level 項目へ定義します。
+
+## 共通攻撃 executor の params
+
+既存の `normal_attack` など、1つの executor を複数マスタで共有する実装は次の戦闘パラメータを使用します。職業発動スキルにはこの一覧を機械的に複製しません。
 
 | キー | 型 | 必須 | 既定値 | 説明 |
 | --- | --- | --- | --- | --- |
@@ -73,7 +85,30 @@
 | `WEAKNESS` | 100 tick | 与える最終ダメージ50% |
 | `HEALING_INHIBITION` | 100 tick | 通常の全回復を無効化 |
 
-## 例
+## 職業発動スキルの例
+
+```yaml
+schemaVersion: 1
+id: swordsman_crescent_slash
+type: SKILL
+implementationId: swordsman_crescent_slash
+name: "&f半月斬り"
+description: "&7前方を半月状に薙ぎ払う近接技。"
+icon: IRON_SWORD
+cooldownTicks: 40
+resourceType: ENERGY
+resourceCost: 12
+castTimeTicks: 0
+requiredLevel: 1
+onCast:
+  sound: entity.player.attack.sweep
+tags:
+  - active
+  - swordsman
+  - melee
+```
+
+## 共通攻撃 executor の例
 
 ```yaml
 params:

@@ -15,7 +15,8 @@ import java.util.List;
  * {@code implementationId} に紐づく個別スキルロジックの共通契約。
  * <p>
  * 共通制御層は {@link io.github.maaasu.astralRecord.feature.skill.service.SkillService}
- * が担うため、実装側は {@code params} を解釈して個別演出・当たり判定・倍率計算等に集中する。
+ * が要求レベル、リソース消費、クールダウンを担うため、実装側は {@code params} を解釈して
+ * 個別演出・当たり判定・倍率計算等に集中する。
  * 同一実装クラスが複数のスキル定義から呼び出される前提のため、状態は持たず、
  * 入力 {@link SkillCastContext} だけから結果を導出すること。
  */
@@ -40,7 +41,9 @@ public interface SkillExecutor {
     }
 
     /**
-     * スキルを実行します。共通検証（要求レベル・MP・cooldown）は呼び出し前に通過済みです。
+     * スキルを実行します。共通検証（要求レベル・消費リソース・cooldown）は呼び出し前に通過済みです。
+     * 実装は効果の適用結果だけを成功／失敗で返し、成功時の実消費と cooldown 開始は
+     * {@code SkillService} がスキル定義から一元適用します。
      *
      * @param context 実行コンテキスト
      * @return 実行結果。失敗時は {@link SkillCastResult#failure} を返す

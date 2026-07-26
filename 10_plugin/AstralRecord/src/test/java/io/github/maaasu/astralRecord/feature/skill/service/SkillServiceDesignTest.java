@@ -10,12 +10,14 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillSummary;
 import io.github.maaasu.astralRecord.feature.skill.registry.SkillRegistry;
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillRepository;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import org.bukkit.Location;
+import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -24,6 +26,7 @@ import java.util.logging.Logger;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -32,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class SkillServiceDesignTest {
@@ -69,13 +73,53 @@ class SkillServiceDesignTest {
     }
 
     @Test
-    void castSkillConsumesResourceAndStartsCooldownOnlyAfterExecutorSuccess() {
+    void castSkillConsumesDefinitionResourceAndStartsDefinitionCooldownAfterExecutorSuccess() {
         SkillRepository repository = mock(SkillRepository.class);
         SkillRegistry registry = new SkillRegistry();
         SkillService service = new SkillService(repository, registry, null);
         TestExecutor executor = new TestExecutor("damage_impl");
-        SkillDefinition definition = skill("arc_slash", "damage_impl", 5.0D, 40L, Map.of());
+        SkillDefinition definition = skill(
+            "arc_slash",
+            "damage_impl",
+            0.0D,
+            40L,
+            Map.of(),
+            SkillKind.ACTIVE,
+            0L,
+            1,
+            SkillResourceType.ENERGY,
+            5.0D
+        );
         registry.registerExecutor(executor);
+        registry.replaceDefinitions(Map.of(definition.getId(), definition));
+        TestCaster caster = new TestCaster(3, 20.0D, 12.0D);
+
+        SkillCastResult result = service.castSkill(
+            caster,
+            definition.getId(),
+            SkillCastTrigger.SYSTEM,
+            new Location(null, 0.0D, 0.0D, 0.0D),
+            null,
+            List.of()
+        );
+
+        assertTrue(result.success());
+        assertEquals(20.0D, caster.currentMana(), 0.0001D);
+        assertEquals(7.0D, caster.currentEnergy(), 0.0001D);
+        assertTrue(service.isOnCooldown(caster, definition.getId()));
+        assertTrue(service.getRemainingCooldownTicks(caster, definition.getId()) > 0L);
+        assertTrue(service.getRemainingCooldownTicks(caster, definition.getId()) <= 40L);
+        assertSame(definition, executor.lastContext.skill());
+        assertEquals(SkillCastTrigger.SYSTEM, executor.lastContext.trigger());
+    }
+
+    @Test
+    void castSkillDoesNotConsumeResourceOrStartCooldownAfterExecutorFailure() {
+        SkillRepository repository = mock(SkillRepository.class);
+        SkillRegistry registry = new SkillRegistry();
+        SkillService service = new SkillService(repository, registry, null);
+        SkillDefinition definition = skill("failed_skill", "failed_impl", 5.0D, 40L, Map.of());
+        registry.registerExecutor(new FailingExecutor("failed_impl"));
         registry.replaceDefinitions(Map.of(definition.getId(), definition));
         TestCaster caster = new TestCaster(3, 20.0D, 0.0D);
 
@@ -88,15 +132,50 @@ class SkillServiceDesignTest {
             List.of()
         );
 
-        assertTrue(result.success());
-        assertEquals(5.0D, result.consumedMana(), 0.0001D);
-        assertEquals(40L, result.startedCooldownTicks());
-        assertEquals(15.0D, caster.currentMana(), 0.0001D);
-        assertTrue(service.isOnCooldown(caster, definition.getId()));
-        assertTrue(service.getRemainingCooldownTicks(caster, definition.getId()) > 0L);
-        assertTrue(service.getRemainingCooldownTicks(caster, definition.getId()) <= 40L);
-        assertSame(definition, executor.lastContext.skill());
-        assertEquals(SkillCastTrigger.SYSTEM, executor.lastContext.trigger());
+        assertFalse(result.success());
+        assertEquals(20.0D, caster.currentMana(), 0.0001D);
+        assertFalse(service.isOnCooldown(caster, definition.getId()));
+    }
+
+    @Test
+    void loadDefinitionsNormalizesLegacyResourcesAndIsolatesMalformedDefinitions() {
+        SkillRepository repository = mock(SkillRepository.class);
+        SkillRegistry registry = new SkillRegistry();
+        SkillService service = new SkillService(repository, registry, null);
+        registry.registerExecutor(new TestExecutor("valid_impl"));
+        registry.registerExecutor(new RuntimeRejectingExecutor("runtime_rejecting_impl"));
+        when(repository.findAll()).thenReturn(List.of());
+
+        service.registerBuiltInDefinitions(List.of(
+            skill("legacy_mana", "valid_impl", 4.0D, 0L, Map.of()),
+            skill("legacy_energy", "valid_impl", 0.0D, 0L,
+                Map.of("resourceType", "ENERGY", "resourceCost", 2.0D)),
+            skill("top_level_wins", "valid_impl", 0.0D, 0L,
+                Map.of("resourceType", "ENERGY", "resourceCost", 99.0D), SkillKind.ACTIVE,
+                0L, 1, SkillResourceType.MANA, 3.0D),
+            skill("", "valid_impl", 0.0D, 0L, Map.of()),
+            skill("blank_impl", "", 0.0D, 0L, Map.of()),
+            skill("bad_resource_type", "valid_impl", 0.0D, 0L,
+                Map.of("resourceType", "HEALTH")),
+            skill("negative_resource", "valid_impl", 0.0D, 0L, Map.of(), SkillKind.ACTIVE,
+                0L, 1, SkillResourceType.MANA, -1.0D),
+            skill("negative_cooldown", "valid_impl", 0.0D, -1L, Map.of()),
+            skill("negative_cast", "valid_impl", 0.0D, 0L, Map.of(), SkillKind.ACTIVE,
+                -1L, 1, null, null),
+            skill("negative_level", "valid_impl", 0.0D, 0L, Map.of(), SkillKind.ACTIVE,
+                0L, -1, null, null),
+            skill("runtime_rejected", "runtime_rejecting_impl", 0.0D, 0L, Map.of())
+        ));
+
+        Map<String, SkillDefinition> loaded = service.loadDefinitions();
+
+        assertEquals(3, loaded.size());
+        assertEquals(SkillResourceType.MANA, loaded.get("legacy_mana").getResourceType());
+        assertEquals(4.0D, loaded.get("legacy_mana").getResourceCost(), 0.0001D);
+        assertEquals(SkillResourceType.ENERGY, loaded.get("legacy_energy").getResourceType());
+        assertEquals(2.0D, loaded.get("legacy_energy").getResourceCost(), 0.0001D);
+        assertEquals(SkillResourceType.MANA, loaded.get("top_level_wins").getResourceType());
+        assertEquals(3.0D, loaded.get("top_level_wins").getResourceCost(), 0.0001D);
     }
 
     @Test
@@ -122,6 +201,33 @@ class SkillServiceDesignTest {
         assertEquals(PlayerMsgId.P_5801, costlyResult.messageId());
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    void casterLifecycleCleanupRunsCastingCleanupAndCanPreserveOrRemoveCooldown() throws ReflectiveOperationException {
+        SkillService service = new SkillService(mock(SkillRepository.class), new SkillRegistry(), null);
+        TestCaster caster = new TestCaster(1, 10.0D, 10.0D);
+        BukkitTask castingTask = mock(BukkitTask.class);
+        AtomicBoolean castingCleanupRan = new AtomicBoolean(false);
+        Class<?> sessionType = Class.forName(SkillService.class.getName() + "$CastingSession");
+        var sessionConstructor = sessionType.getDeclaredConstructor(BukkitTask.class, Runnable.class);
+        sessionConstructor.setAccessible(true);
+        Object session = sessionConstructor.newInstance(castingTask, (Runnable) () -> castingCleanupRan.set(true));
+        var sessionsField = SkillService.class.getDeclaredField("castingSessions");
+        sessionsField.setAccessible(true);
+        Map<UUID, Object> sessions = (Map<UUID, Object>) sessionsField.get(service);
+        sessions.put(caster.casterId(), session);
+        service.startCooldown(caster, "lifecycle_skill", 100L);
+
+        service.cancelCasting(caster.casterId());
+        verify(castingTask).cancel();
+        assertTrue(castingCleanupRan.get());
+        assertFalse(sessions.containsKey(caster.casterId()));
+        assertTrue(service.isOnCooldown(caster, "lifecycle_skill"));
+
+        service.clearCasterState(caster.casterId());
+        assertFalse(service.isOnCooldown(caster, "lifecycle_skill"));
+    }
+
     private SkillSummary summary(String id, String implementationId) {
         return new SkillSummary(id, id, implementationId, null, List.of());
     }
@@ -144,6 +250,21 @@ class SkillServiceDesignTest {
         Map<String, Object> params,
         SkillKind kind
     ) {
+        return skill(id, implementationId, manaCost, cooldownTicks, params, kind, 0L, 1, null, null);
+    }
+
+    private SkillDefinition skill(
+        String id,
+        String implementationId,
+        double manaCost,
+        long cooldownTicks,
+        Map<String, Object> params,
+        SkillKind kind,
+        long castTimeTicks,
+        int requiredLevel,
+        SkillResourceType resourceType,
+        Double resourceCost
+    ) {
         return new SkillDefinition(
             id,
             implementationId,
@@ -153,13 +274,15 @@ class SkillServiceDesignTest {
             List.of(),
             cooldownTicks,
             manaCost,
-            0L,
-            1,
+            castTimeTicks,
+            requiredLevel,
             null,
             params,
             List.of(),
             kind,
-            true
+            true,
+            resourceType,
+            resourceCost
         );
     }
 
@@ -179,7 +302,18 @@ class SkillServiceDesignTest {
         @Override
         public SkillCastResult cast(SkillCastContext context) {
             this.lastContext = context;
-            return SkillCastResult.success(context.skill().getManaCost(), context.skill().getCooldownTicks());
+            return SkillCastResult.succeeded();
+        }
+    }
+
+    private static final class FailingExecutor extends TestExecutor {
+        FailingExecutor(String implementationId) {
+            super(implementationId);
+        }
+
+        @Override
+        public SkillCastResult cast(SkillCastContext context) {
+            return SkillCastResult.failure(PlayerMsgId.P_5805);
         }
     }
 
@@ -191,6 +325,17 @@ class SkillServiceDesignTest {
         @Override
         public void validateParams(SkillDefinition skill) {
             throw new SkillParameterException("params", "invalid");
+        }
+    }
+
+    private static final class RuntimeRejectingExecutor extends TestExecutor {
+        RuntimeRejectingExecutor(String implementationId) {
+            super(implementationId);
+        }
+
+        @Override
+        public void validateParams(SkillDefinition skill) {
+            throw new IllegalStateException("unexpected validation failure");
         }
     }
 

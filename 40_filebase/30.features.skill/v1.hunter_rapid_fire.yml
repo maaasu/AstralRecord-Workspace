@@ -1,0 +1,24 @@
+# design:
+#   motif: "森林狩猟 / 連射"
+#   progression: 1
+schemaVersion: 1
+id: hunter_rapid_fire
+type: SKILL
+implementationId: hunter_rapid_fire
+name: "&a連矢"
+description: "&7素早く三本の矢をつがえ、狙いを修正しながら連続で射る。"
+icon: CROSSBOW
+lore:
+  - "&7間接攻撃力55%の矢を3回連続で放つ。"
+  - "&7矢を放つたびに現在の照準を参照する。"
+  - "&8消費EN: 28 / クールダウン: 8.0秒"
+cooldownTicks: 160
+resourceType: ENERGY
+resourceCost: 28
+castTimeTicks: 0
+requiredLevel: 1
+onCast:
+  sound: item.crossbow.shoot
+tags:
+  - active
+  - ranged

@@ -9,6 +9,8 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService
 
+private const val SKILL_REFERENCE_PREFIX = "skill:"
+
 /**
  * プレイヤーが現在所持している扱いになるスキル ID を解決します。
  */
@@ -100,6 +102,7 @@ class SkillOwnershipService(
     }
 
     private fun addSkillId(skillIds: MutableSet<String>, value: String?) {
-        if (!value.isNullOrBlank()) skillIds.add(value.trim())
+        val skillId = value?.trim()?.removePrefix(SKILL_REFERENCE_PREFIX).orEmpty()
+        if (skillId.isNotBlank()) skillIds.add(skillId)
     }
 }

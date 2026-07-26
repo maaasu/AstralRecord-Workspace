@@ -1,0 +1,24 @@
+# design:
+#   motif: "森林狩猟 / 絡め罠"
+#   progression: 1
+schemaVersion: 1
+id: hunter_snare_trap
+type: SKILL
+implementationId: hunter_snare_trap
+name: "&a絡め罠"
+description: "&7足元を絡め取る罠を設置し、踏み込んだ獲物の動きを封じる。"
+icon: TRIPWIRE_HOOK
+lore:
+  - "&7射程8m以内へ、12秒間残る罠を1つ設置する。"
+  - "&7最初の敵へ間接攻撃力45%のダメージと凍結・冷気を付与。"
+  - "&8消費EN: 22 / クールダウン: 12.0秒"
+cooldownTicks: 240
+resourceType: ENERGY
+resourceCost: 22
+castTimeTicks: 6
+requiredLevel: 1
+onCast:
+  sound: block.tripwire.click_on
+tags:
+  - active
+  - ranged

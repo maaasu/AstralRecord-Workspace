@@ -65,7 +65,55 @@ growthPerLevel:
     value: 0.5
 expRate: 100
 starterSkills: []
-levelSkills: []
+levelSkills:
+  - level: 1
+    skill: skill:swordsman_crescent_slash
+  - level: 1
+    skill: skill:swordsman_piercing_thrust
+  - level: 1
+    skill: skill:swordsman_whirlwind
+  - level: 1
+    skill: skill:swordsman_vanguard_rush
+  - level: 1
+    skill: skill:swordsman_blade_wave
+  - level: 1
+    skill: skill:swordsman_fortress_guard
+  - level: 1
+    skill: skill:swordsman_war_cry
+  - level: 1
+    skill: skill:swordsman_earthbreaker
+  - level: 1
+    skill: skill:hunter_power_shot
+  - level: 1
+    skill: skill:hunter_piercing_arrow
+  - level: 1
+    skill: skill:hunter_fan_shot
+  - level: 1
+    skill: skill:hunter_rapid_fire
+  - level: 1
+    skill: skill:hunter_backstep_shot
+  - level: 1
+    skill: skill:hunter_snare_trap
+  - level: 1
+    skill: skill:hunter_arrow_rain
+  - level: 1
+    skill: skill:hunter_ricochet
+  - level: 1
+    skill: skill:mage_fireball
+  - level: 1
+    skill: skill:mage_frost_nova
+  - level: 1
+    skill: skill:mage_chain_lightning
+  - level: 1
+    skill: skill:mage_arcane_lance
+  - level: 1
+    skill: skill:mage_meteor
+  - level: 1
+    skill: skill:mage_blink
+  - level: 1
+    skill: skill:mage_mana_barrier
+  - level: 1
+    skill: skill:mage_elemental_storm
 tags:
   - administrator
   - command-only

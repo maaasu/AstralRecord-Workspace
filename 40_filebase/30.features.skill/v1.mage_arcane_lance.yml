@@ -1,0 +1,24 @@
+# design:
+#   motif: "星術 / 光槍"
+#   progression: 1
+schemaVersion: 1
+id: mage_arcane_lance
+type: SKILL
+implementationId: mage_arcane_lance
+name: "&d星幽槍"
+description: "&7魔力を細い槍へ収束し、遠くまで一直線に貫く無属性魔術。"
+icon: END_ROD
+lore:
+  - "&7前方16mの直線へ魔法攻撃力160%のダメージ。"
+  - "&7最大5体まで貫通する。"
+  - "&8消費MP: 22 / クールダウン: 5.0秒"
+cooldownTicks: 100
+resourceType: MANA
+resourceCost: 22
+castTimeTicks: 12
+requiredLevel: 1
+onCast:
+  sound: entity.evoker.cast_spell
+tags:
+  - active
+  - magic

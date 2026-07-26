@@ -1,0 +1,23 @@
+# design:
+#   motif: "西洋剣術 / 切先"
+#   progression: 1
+schemaVersion: 1
+id: swordsman_piercing_thrust
+type: SKILL
+implementationId: swordsman_piercing_thrust
+name: "&f貫き突き"
+description: "&7狭い射線を鋭く突き抜き、一直線上の敵へ大きな一撃を与える。"
+icon: POINTED_DRIPSTONE
+lore:
+  - "&7前方5mの細い直線へ近接攻撃力155%のダメージ。"
+  - "&8消費EN: 16 / クールダウン: 3.5秒"
+cooldownTicks: 70
+resourceType: ENERGY
+resourceCost: 16
+castTimeTicks: 4
+requiredLevel: 1
+onCast:
+  sound: entity.player.attack.strong
+tags:
+  - active
+  - melee

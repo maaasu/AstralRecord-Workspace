@@ -1,0 +1,24 @@
+# design:
+#   motif: "鉱物 / 結晶障壁"
+#   progression: 1
+schemaVersion: 1
+id: mage_mana_barrier
+type: SKILL
+implementationId: mage_mana_barrier
+name: "&b魔力障壁"
+description: "&7魔力を結晶状の障壁へ変え、短時間だけ受ける攻撃を大きく和らげる。"
+icon: AMETHYST_SHARD
+lore:
+  - "&78秒間、受けるダメージを45%軽減する。"
+  - "&8消費MP: 30 / クールダウン: 16.0秒"
+cooldownTicks: 320
+resourceType: MANA
+resourceCost: 30
+castTimeTicks: 0
+requiredLevel: 1
+onCast:
+  sound: block.amethyst_block.chime
+tags:
+  - active
+  - magic
+  - defense

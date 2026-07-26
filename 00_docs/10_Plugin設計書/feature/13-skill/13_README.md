@@ -10,6 +10,7 @@
 - `src/main/java/io/github/maaasu/astralRecord/feature/skill/repository/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/skill/registry/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/skill/executor/*`
+- `src/main/java/io/github/maaasu/astralRecord/feature/skill/active/*`
 - `src/main/java/io/github/maaasu/astralRecord/feature/skilltree/*`
 
 ## ドキュメント一覧（推奨順）
@@ -20,7 +21,8 @@
 4. [[13_3.00-索引]]
 5. [[13_4.00-統合フロー]]
 6. [[13_5.00-例外・ログ・運用]]
-7. [[13_9.00-未決事項]]
+7. [[13_6.00-発動スキル追加ガイド]]
+8. [[13_9.00-未決事項]]
 
 ## 依存 feature
 
@@ -31,7 +33,7 @@
 - `player`
   - 発動者・対象者の `AstPlayer` と状態をスキル実行コンテキストへ渡す。
 - `status`
-  - `manaCost` / `requiredLevel` / `params` 内のステータス依存ロジックの評価に利用する。
+  - `resourceType` / `resourceCost` / `requiredLevel` / `params` 内のステータス依存ロジックの評価に利用する。
 - `player-interaction`
   - skilltree操作、表示中action ring、weapon入力、新規action ring表示、`HOTBAR_SLOT`のinput lock / 表示中ring guardの排他制御は[[28_README]]を正本とする。
 - API
@@ -49,6 +51,9 @@
 - 実行コンテキスト・ `params` 読み取り契約の変更:
   - [[13_1.00-モデル定義]]
   - [[13_3.09-モデル操作]]
+- 発動スキルの当たり判定・演出・個別 executor 構成の変更:
+  - [[13_3.02-サービス]]
+  - [[13_6.00-発動スキル追加ガイド]]
 - API 取得経路やキャッシュ更新方式の変更:
   - [[13_3.04-リポジトリ]]
   - [[13_4.00-統合フロー]]
