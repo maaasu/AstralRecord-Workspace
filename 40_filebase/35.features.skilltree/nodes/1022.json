@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1022",
+  "name": "&d星環の星脈",
+  "icon": "SHIELD",
+  "lore": [
+    "&7星を巡る環の守りをまとい、最大シールドを高める。"
+  ],
+  "tags": [
+    "status",
+    "resource",
+    "shield"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAX_SHIELD",
+      "modifierType": "FLAT",
+      "value": 5
+    }
+  ]
+}

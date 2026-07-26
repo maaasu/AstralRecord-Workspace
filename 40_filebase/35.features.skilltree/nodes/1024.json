@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1024",
+  "name": "&d焔環の星脈",
+  "icon": "BLAZE_POWDER",
+  "lore": [
+    "&7紅き焔の環を巡らせ、火属性の力をわずかに高める。"
+  ],
+  "tags": [
+    "status",
+    "element",
+    "fire"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "FIRE_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ]
+}

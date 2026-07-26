@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1026",
+  "name": "&d雷環の星脈",
+  "icon": "LIGHTNING_ROD",
+  "lore": [
+    "&7轟く雷環を身に巡らせ、雷属性の力をわずかに高める。"
+  ],
+  "tags": [
+    "status",
+    "element",
+    "lightning"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "LIGHTNING_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ]
+}

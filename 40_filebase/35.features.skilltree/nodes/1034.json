@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1034",
+  "name": "&d毒牙の星脈",
+  "icon": "SPIDER_EYE",
+  "lore": [
+    "&7毒牙の気配を宿し、毒を与える機会を高める。"
+  ],
+  "tags": [
+    "status",
+    "condition",
+    "poisoned"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "POISONED_APPLY_CHANCE",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ]
+}

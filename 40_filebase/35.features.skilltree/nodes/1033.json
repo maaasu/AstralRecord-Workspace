@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1033",
+  "name": "&d雷縛の星脈",
+  "icon": "LIGHTNING_ROD",
+  "lore": [
+    "&7雷の縛めを呼び、感電を与える機会を高める。"
+  ],
+  "tags": [
+    "status",
+    "condition",
+    "shocked"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "SHOCKED_APPLY_CHANCE",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1031",
+  "name": "&d凍月の星脈",
+  "icon": "SNOWBALL",
+  "lore": [
+    "&7凍てつく月影を宿し、凍結を与える機会を高める。"
+  ],
+  "tags": [
+    "status",
+    "condition",
+    "frozen"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "FROZEN_APPLY_CHANCE",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ]
+}
