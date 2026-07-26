@@ -15,6 +15,12 @@
       "nodeId": "1013",
       "x": 0,
       "y": 0,
+      "z": -2
+    },
+    {
+      "nodeId": "1014",
+      "x": 0,
+      "y": 0,
       "z": -4
     }
   ],
@@ -22,6 +28,10 @@
     {
       "sourceNodeId": "1000",
       "targetNodeId": "1013"
+    },
+    {
+      "sourceNodeId": "1013",
+      "targetNodeId": "1014"
     }
   ]
 }
