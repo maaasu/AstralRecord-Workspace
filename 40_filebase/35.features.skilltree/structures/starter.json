@@ -22,6 +22,90 @@
       "x": 0,
       "y": 0,
       "z": -4
+    },
+    {
+      "nodeId": "1015",
+      "x": -2,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "nodeId": "1016",
+      "x": -1,
+      "y": 0,
+      "z": 4
+    },
+    {
+      "nodeId": "1017",
+      "x": 1,
+      "y": 0,
+      "z": 4
+    },
+    {
+      "nodeId": "1018",
+      "x": 0,
+      "y": 0,
+      "z": 2
+    },
+    {
+      "nodeId": "1022",
+      "x": 0,
+      "y": 0,
+      "z": 6
+    },
+    {
+      "nodeId": "1023",
+      "x": 2,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "nodeId": "1038",
+      "x": 0,
+      "y": 0,
+      "z": -6
+    },
+    {
+      "nodeId": "1040",
+      "x": -8,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "nodeId": "1041",
+      "x": -6,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "nodeId": "1042",
+      "x": -4,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "nodeId": "1043",
+      "x": 0,
+      "y": 0,
+      "z": -8
+    },
+    {
+      "nodeId": "1044",
+      "x": 6,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "nodeId": "1045",
+      "x": 8,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "nodeId": "1046",
+      "x": 4,
+      "y": 0,
+      "z": 0
     }
   ],
   "edges": [
@@ -30,8 +114,68 @@
       "targetNodeId": "1013"
     },
     {
+      "sourceNodeId": "1000",
+      "targetNodeId": "1015"
+    },
+    {
+      "sourceNodeId": "1000",
+      "targetNodeId": "1018"
+    },
+    {
+      "sourceNodeId": "1000",
+      "targetNodeId": "1023"
+    },
+    {
       "sourceNodeId": "1013",
       "targetNodeId": "1014"
+    },
+    {
+      "sourceNodeId": "1014",
+      "targetNodeId": "1038"
+    },
+    {
+      "sourceNodeId": "1015",
+      "targetNodeId": "1042"
+    },
+    {
+      "sourceNodeId": "1016",
+      "targetNodeId": "1018"
+    },
+    {
+      "sourceNodeId": "1016",
+      "targetNodeId": "1022"
+    },
+    {
+      "sourceNodeId": "1017",
+      "targetNodeId": "1018"
+    },
+    {
+      "sourceNodeId": "1017",
+      "targetNodeId": "1022"
+    },
+    {
+      "sourceNodeId": "1023",
+      "targetNodeId": "1046"
+    },
+    {
+      "sourceNodeId": "1038",
+      "targetNodeId": "1043"
+    },
+    {
+      "sourceNodeId": "1040",
+      "targetNodeId": "1041"
+    },
+    {
+      "sourceNodeId": "1041",
+      "targetNodeId": "1042"
+    },
+    {
+      "sourceNodeId": "1044",
+      "targetNodeId": "1045"
+    },
+    {
+      "sourceNodeId": "1044",
+      "targetNodeId": "1046"
     }
   ]
 }
