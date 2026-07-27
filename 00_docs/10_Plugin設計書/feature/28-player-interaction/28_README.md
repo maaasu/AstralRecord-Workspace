@@ -1,13 +1,13 @@
-# 28-player-interaction
+# 28_README
 
 このディレクトリは、プレイヤーの同一物理入力から複数の AstralRecord アクションが競合する場合の共通調停仕様をまとめる。
 採番・命名・参照ルールは [[README]] に従う。
 
 ## 対象実装パス
 
-- `src/main/java/io/github/maaasu/astralRecord/shared/interaction/*`
-- `src/main/java/io/github/maaasu/astralRecord/shared/interaction/PlayerInteractionGatewayEventHandler.java`
-- 各 feature が登録する `PlayerInputResolver`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/shared/interaction/*`
+
+各業務候補を生成する `PlayerInputResolver` 実装は、依存 feature 側のイベント設計書を正本とする。
 
 ## ドキュメント一覧（推奨順）
 
@@ -16,6 +16,7 @@
 3. [[28_3.01-イベント]]
 4. [[28_3.02-サービス]]
 5. [[28_4.00-統合フロー]]
+6. [[28_9.00-未決事項]]
 
 ## 依存 feature
 
@@ -31,7 +32,7 @@
 - `menu`: クラフトショートカット用ダミーのドロップ抑止候補
 - `inventory`: ホットバー変更後の非競合表示同期
 - `world`: 拠点・オーバーワールドのスポーン地点スニーク候補
-- `boss`: ボス入口スニーク候補、ボス中のドロップ抑止候補
+- `boss`: ボス入口スニーク候補、ボス中止装置の右クリック・ドロップ抑止候補
 
 ## 更新ルール（変更時に必ず更新する章）
 
@@ -55,6 +56,8 @@
   - [[28_3.02-サービス]]
   - [[28_3.01-イベント]]
   - [[28_4.00-統合フロー]]
+- snapshot が保持しない入力情報や、将来の入力 family 拡張:
+  - [[28_9.00-未決事項]]
 - `HOTBAR_SLOT` の非競合 observer を追加・変更:
   - [[28_3.01-イベント]]
   - 対象 observer のイベント設計書

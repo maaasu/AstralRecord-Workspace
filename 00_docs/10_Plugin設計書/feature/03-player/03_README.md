@@ -1,18 +1,21 @@
-﻿# 03_README
+# 03_README
 
-このディレクトリは `feature/player` の設計書です。  
+このディレクトリは `feature/player` の設計書です。
 採番・命名・参照ルールは [[README]] に従います。
 
 ## 対象実装パス
 
-- `src/main/java/io/github/maaasu/astralRecord/feature/player/event/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/player/command/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/player/service/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/player/model/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/player/save/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/player/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/loginbonus/*`
-- `src/main/java/io/github/maaasu/astralRecord/shared/interaction/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/player/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/player/command/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/player/death/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/player/event/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/player/model/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/player/save/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/player/service/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/loginbonus/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/class/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/playerclass/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/shared/interaction/*`
 
 ## ドキュメント一覧（推奨順）
 
@@ -20,11 +23,17 @@
 2. [[03_1.00-モデル定義]]
 3. [[03_2.00-ユースケース]]
 4. [[03_3.00-索引]]
-5. [[03_4.00-統合フロー]]
-6. [[03_5.00-例外・ログ・運用]]
-7. [[03_9.00-未決事項]]（必要時）
+5. [[03_3.01-イベント]]
+6. [[03_3.02-サービス]]
+7. [[03_3.03-コマンド]]
+8. [[03_3.04-キャッシュ]]
+9. [[03_3.05-保存]]
+10. [[03_3.06-モデル操作]]
+11. [[03_4.00-統合フロー]]
+12. [[03_5.00-例外・ログ・運用]]
+13. [[03_9.00-未決事項]]（必要時）
 
-`/test`・`/temp` は `src/main/java/io/github/maaasu/astralRecord/temp/command/` へ移動済みで本 feature の責務外。
+`/test`・`/temp` は `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/temp/command/` へ移動済みで本 feature の責務外。
 
 ## 依存 feature
 
@@ -43,9 +52,9 @@
 - `player-interaction`
   - 右クリック、左クリック、block mutation、item drop、hotbar slot変更、sneak変更の共通入口と候補仲裁は[[28_README]]を正本とする。共通gatewayは`shared/interaction`へ配置し、player featureは入力ロック、player-mode drop guard、wall-cling / dodge fallback、プレイヤー状態、退出ライフサイクルを提供する。
 
-## 実装メモ
-
-- `loginbonus` は独立実装を持つが、docs では player join 導線として本 feature に吸収する。ログイン時の自動表示と NPC の `LOGIN_BONUS` action から `LoginBonusService` を呼び出す。
+- `loginbonus`
+  - 実装は独立パッケージだが、設計書では player join 導線として本 feature に含める。
+  - ログイン時の自動表示と NPC の `LOGIN_BONUS` action から `LoginBonusService` を呼び出す。
 
 ## 更新ルール（変更時に必ず更新する章）
 

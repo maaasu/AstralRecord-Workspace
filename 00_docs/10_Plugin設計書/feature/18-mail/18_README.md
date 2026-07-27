@@ -1,16 +1,13 @@
 # 18_README
 
-このディレクトリは `feature/mail` の設計書です。
-採番・命名・参照ルールは [[README]] に従います。
+`mail` feature は API 上の表示可能メールを取得し、GUI での既読化、受取時報酬付与、プレイヤー単位の削除を扱う。
 
 ## 対象実装パス
 
-- `src/main/java/io/github/maaasu/astralRecord/feature/mail/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/mail/service/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/mail/event/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/mail/gui/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/mail/model/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/mail/repository/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mail/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/inventory/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/item/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/menu/event/MenuOpenEventHandler.java`
 
 ## ドキュメント一覧（推奨順）
 
@@ -23,24 +20,16 @@
 
 ## 依存 feature
 
-- `account`
-  - 初回参加者向け `welcome_mail` の配布導線から呼び出される。
-- `currency`
-  - 既読時報酬として通貨を加算する。
-- `item` / `inventory`
-  - 添付アイテムがある場合の表示・付与に利用する。
-- `menu`
-  - メール GUI を開く導線元。
+| feature | 依存内容 |
+|:--|:--|
+| infrastructure / API | `/api/mail` の一覧、既読化、削除 |
+| item | 報酬 item 定義の解決、equipment / rune instance の事前生成 |
+| inventory | NORMAL inventory への一括付与と rollback receipt |
+| player / menu | user・account identity、通知、GUI navigation |
 
 ## 更新ルール（変更時に必ず更新する章）
 
-- メールモデル・既読状態の変更:
-  - [[18_1.00-モデル定義]]
-  - [[18_3.00-メソッド仕様]]
-- 報酬配布仕様の変更:
-  - [[18_2.00-ユースケース]]
-  - [[18_4.00-統合フロー]]
-  - [[18_5.00-例外・ログ・運用]]
-- GUI 構成変更:
-  - [[18_3.00-メソッド仕様]]
-  - [[18_4.00-統合フロー]]
+- API の mail response／action を変更した場合は [[18_1.00-モデル定義]]、[[18_3.00-メソッド仕様]] と API 設計書を更新する。
+- 受取・rollback・reconciliation を変更した場合は [[18_4.00-統合フロー]] と [[18_5.00-例外・ログ・運用]]を更新する。
+- GUI の click、filter、page を変更した場合は [[18_2.00-ユースケース]] と [[18_4.00-統合フロー]]を更新する。
+- welcome mail 等の発行規則は API／master data 側に記載し、プラグインだけの仕様として追加しない。

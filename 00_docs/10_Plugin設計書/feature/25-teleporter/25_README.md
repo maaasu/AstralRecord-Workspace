@@ -1,18 +1,10 @@
-# 25-teleporter
+# 25_README
 
-このディレクトリは `feature/teleporter` の設計書です。
-採番・命名・参照ルールは [[README]] に従います。
+`feature/teleporter` のウェイストーン定義、アカウント単位の解除状態、表示、GUI、同一ワールド内テレポートを扱います。
 
 ## 対象実装パス
 
-- `src/main/java/io/github/maaasu/astralRecord/feature/teleporter/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/teleporter/command/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/teleporter/event/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/teleporter/gui/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/teleporter/model/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/teleporter/repository/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/teleporter/service/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/teleporter/view/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/teleporter/*`
 - Plugin data folder: `waystones.yml`
 
 ## ドキュメント一覧（推奨順）
@@ -21,9 +13,14 @@
 2. [[25_1.00-モデル定義]]
 3. [[25_2.00-ユースケース]]
 4. [[25_3.00-索引]]
-5. [[25_4.00-統合フロー]]
-6. [[25_5.00-例外・ログ・運用]]
-7. [[25_9.00-未決事項]]
+5. [[25_3.01-イベント]]
+6. [[25_3.02-サービス]]
+7. [[25_3.03-コマンド]]
+8. [[25_3.04-リポジトリ]]
+9. [[25_3.07-GUI・View]]
+10. [[25_4.00-統合フロー]]
+11. [[25_5.00-例外・ログ・運用]]
+12. [[25_9.00-未決事項]]
 
 ## 依存 feature
 
@@ -58,7 +55,7 @@
   - [[25_3.07-GUI・View]]
   - [[25_4.00-統合フロー]]
 
-## 実装メモ
+## 正本境界
 
-- 2026-06-23: API / DB 側には `account-waystone` 契約と `dbo.account_waystone_unlock` が存在する。Plugin 側の `feature/waystone` は削除済みのため、本 feature は Plugin 側の再実装設計として扱う。
-- 本設計では、ユーザー依頼上の「プレイヤー単位の解除状態」を、既存 DB / API 契約に合わせて「選択中アカウント単位の解除状態」として扱う。Minecraft ユーザー単位で共有する場合は [[25_9.00-未決事項]] で別途判断する。
+- ウェイストーン定義は Plugin data folder の `waystones.yml`、解除状態は既存 API / DB 契約に合わせた選択中アカウント単位を正本とする。
+- Minecraft ユーザー内の複数アカウントで解除状態を共有する案は [[25_9.00-未決事項]] で扱う。

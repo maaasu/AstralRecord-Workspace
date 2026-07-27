@@ -1,16 +1,11 @@
-﻿# 23_README
+# 23_README
 
-このディレクトリは `feature/market` の設計書です。
-採番・命名・参照ルールは [[README]] に従います。
-
-Plugin 側の market feature は、ゲーム内 GUI やコマンドから利用する API クライアント層を提供する。
-出品可否、価格ガード、相場算出、購入確定などの基本ロジックは [[23_README]]（API 側）を正本とし、Plugin は API 呼び出しと短時間キャッシュを担当する。
+`market` feature は Market API の出品一覧・詳細・account summary・価格見積・出品・購入・cancel を型付き model と短期 cache で集約する plugin 内 API facade である。
 
 ## 対象実装パス
 
-- `src/main/java/io/github/maaasu/astralRecord/feature/market/model/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/market/repository/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/market/service/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/market/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/infrastructure/util/ApiRequestUtil.kt`
 
 ## ドキュメント一覧（推奨順）
 
@@ -22,23 +17,16 @@ Plugin 側の market feature は、ゲーム内 GUI やコマンドから利用�
 
 ## 依存 feature
 
-- `inventory`
-  - 出品元 entry や購入後の表示更新に利用する。最終移転は API が行う。
-- `item`
-  - 表示用 ItemStack 生成に利用する。価格判定は API に委譲する。
-- `currency`
-  - 通貨表示に利用する。通貨残高の正本化は API 側未決事項に従う。
-- `menu`
-  - 将来の GUI 導線元。
+| feature | 依存内容 |
+|:--|:--|
+| infrastructure / API | HTTP request builder、Market API の業務判定・transaction |
+| Gson / Java time | JSON model 変換、期限・cache TTL |
+
+現在の plugin market 実装は GUI、command、player inventory、item、currency を直接呼ばない。これらは将来の呼び出し側であり、実装済み依存として扱わない。
 
 ## 更新ルール（変更時に必ず更新する章）
 
-- API 契約変更:
-  - [[23_1.00-モデル定義]]
-  - [[23_3.00-メソッド仕様]]
-- キャッシュ TTL / 破棄条件変更:
-  - [[23_0.00-概要]]
-  - [[23_3.00-メソッド仕様]]
-  - [[23_4.00-統合フロー]]
-- GUI / コマンド追加:
-  - 該当する `3-メソッド仕様` の詳細ファイルを追加する。
+- Market API request／response field を変更した場合は [[23_1.00-モデル定義]]、[[23_3.00-メソッド仕様]] と API 設計書を同時更新する。
+- endpoint／status code を変更した場合は [[23_3.00-メソッド仕様]] と [[23_5.00-例外・ログ・運用]]を更新する。
+- cache TTL／invalidation を変更した場合は [[23_4.00-統合フロー]] と [[23_5.00-例外・ログ・運用]]を更新する。
+- GUI／inventory 統合を追加した場合は新しいユースケース章と transaction 補償設計を追加する。

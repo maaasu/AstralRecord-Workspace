@@ -91,7 +91,7 @@ Enemy と同一仕様です。
 | `challenge.reviveDelaySeconds` | Long | × | 上限未満の死亡時にフィールドへ復帰するまでの秒数。未指定時 5 |
 | `challenge.scaling.enabled` | Boolean | × | 参加人数補正の有効化 |
 | `challenge.scaling.healthPerExtraPlayer` | Double | × | 2人目以降1人あたりの HP 増加率 (%) |
-| `challenge.scaling.attackPerExtraPlayer` | Double | × | 2人目以降1人あたりの攻撃力増加率 (%)。初回実装では読み込みのみ |
+| `challenge.scaling.attackPerExtraPlayer` | Double | × | 2人目以降1人あたりの攻撃力増加率 (%)。ボスの与ダメージ倍率へ適用する |
 
 ---
 

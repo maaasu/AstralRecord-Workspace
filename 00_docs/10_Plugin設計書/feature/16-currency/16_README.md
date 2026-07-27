@@ -1,16 +1,14 @@
 # 16_README
 
-このディレクトリは `feature/currency` の設計書です。
-採番・命名・参照ルールは [[README]] に従います。
+`currency` feature は、inventory feature が保持する `CURRENCY` インベントリを通貨表示・ゴールド換算・額面交換として利用する facade を提供する。
 
 ## 対象実装パス
 
-- `src/main/java/io/github/maaasu/astralRecord/feature/currency/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/currency/service/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/currency/model/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/currency/repository/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/currency/view/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/currency/event/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/currency/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/inventory/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/item/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/menu/event/MenuOpenEventHandler.java`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/event/MobInteractionEventHandler.java`
 
 ## ドキュメント一覧（推奨順）
 
@@ -23,30 +21,16 @@
 
 ## 依存 feature
 
-- `account`
-  - 通貨残高はアカウント単位で扱う。
-- `item`
-  - 通貨表示用 ItemStack の見た目と `currency` カテゴリ item 表現を参照する。
-- `menu`
-  - 通貨 GUI の導線元。menu は表示導線のみを担当する。
-- `mob`
-  - Mob 撃破時の金銭加算で本 feature を呼び出す。
-- `mail`
-  - メール既読時報酬で通貨加算を行う。
-
-## 実装メモ
-
-- 2026-07-17: 通貨 GUI の数量規則は左クリック1個、右クリック半分、Shift+左クリック1スタック、Shift+右クリック全量とする。収納側の Shift+右は BAG・ホットバー全体の同一通貨を対象にする。
-- 2026-07-20: ゴールドは7額面の合計値で支払い、低額面から優先して消費する。不足時だけ上位額面を崩す。専用両替GUIはNPCから開き、最上位額面所持時のみカレンシーGUIからも開ける。
+| feature | 依存内容 |
+|:--|:--|
+| inventory | `CURRENCY` の entry、スナップショット、増減、保存 |
+| item | 通貨 item 定義、表示用 `ItemStack`、カテゴリ判定 |
+| menu | 通貨一覧 GUI、通常 BAG との移動、両替所への導線 |
+| mob / mail / shop / trade / world | 報酬付与、支払い、プレイヤー間移転、帰還コストの呼び出し元 |
 
 ## 更新ルール（変更時に必ず更新する章）
 
-- 通貨種別・残高モデルの変更:
-  - [[16_1.00-モデル定義]]
-  - [[16_3.00-メソッド仕様]]
-- 通貨加算・減算・表示順の変更:
-  - [[16_2.00-ユースケース]]
-  - [[16_4.00-統合フロー]]
-- 他 feature からの呼び出し契約変更:
-  - [[16_3.00-メソッド仕様]]
-  - 呼び出し元 feature の README
+- 組み込みゴールド額面、換算値、互換 ID を変更した場合は [[16_0.00-概要]]、[[16_1.00-モデル定義]]、[[16_3.00-メソッド仕様]]を更新する。
+- 通貨 GUI の移動量、ページング、両替導線を変更した場合は [[16_2.00-ユースケース]]、[[16_4.00-統合フロー]]を更新する。
+- `CURRENCY` の保存・増減・補償処理を変更した場合は inventory feature と [[16_3.00-メソッド仕様]]、[[16_5.00-例外・ログ・運用]]を更新する。
+- 呼び出し元の支払い・報酬契約を変更した場合は、該当 feature の設計書も更新する。

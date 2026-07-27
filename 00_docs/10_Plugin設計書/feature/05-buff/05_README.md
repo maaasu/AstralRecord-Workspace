@@ -1,13 +1,13 @@
 # 05_README
 
-このディレクトリは `feature/buff` の設計書です。  
+このディレクトリは `feature/buff` の設計書です。
 採番・命名・参照ルールは [[README]] に従います。
 
 ## 対象実装パス
 
-- `src/main/java/io/github/maaasu/astralRecord/feature/buff/service/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/buff/repository/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/buff/model/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/buff/service/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/buff/repository/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/buff/model/*`
 
 ## ドキュメント一覧（推奨順）
 
@@ -15,9 +15,11 @@
 2. [[05_1.00-モデル定義]]
 3. [[05_2.00-ユースケース]]
 4. [[05_3.00-索引]]
-5. [[05_4.00-統合フロー]]
-6. [[05_5.00-例外・ログ・運用]]
-7. [[05_9.00-未決事項]]（必要時）
+5. [[05_3.02-サービス]]
+6. [[05_3.04-リポジトリ]]
+7. [[05_4.00-統合フロー]]
+8. [[05_5.00-例外・ログ・運用]]
+9. [[05_9.00-未決事項]]（必要時）
 
 ## 依存 feature
 

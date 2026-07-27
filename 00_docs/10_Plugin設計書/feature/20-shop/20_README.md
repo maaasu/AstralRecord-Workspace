@@ -1,15 +1,13 @@
 # 20_README
 
-このディレクトリは `feature/shop` の設計書です。
-採番・命名・参照ルールは [[README]] に従います。
+`shop` feature は filebase/API 由来の shop・recipe 定義を cache し、command／NPC から購入 GUI を開き、gold・通貨・通常 item を対価に商品を付与する。
 
 ## 対象実装パス
 
-- `src/main/java/io/github/maaasu/astralRecord/feature/shop/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/shop/service/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/shop/gui/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/shop/command/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/shop/model/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/shop/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/inventory/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/currency/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/event/MobInteractionEventHandler.java`
 
 ## ドキュメント一覧（推奨順）
 
@@ -22,23 +20,17 @@
 
 ## 依存 feature
 
-- `currency`
-  - 購入時の支払いを委譲する。
-- `item` / `inventory`
-  - 商品 ItemStack 表示と購入品付与に利用する。
-- `mob`
-  - NPC interaction からショップを開く導線元。
-- `menu`
-  - 戻る遷移や共通 GUI 操作の参照元。
+| feature | 依存内容 |
+|:--|:--|
+| infrastructure / filebase | shop master の一覧取得と cache |
+| filebase / shop repository | `recipeId` の追加 gold・ingredient cost |
+| item | 商品・必要 item の model 解決と表示名 |
+| inventory / currency | 所持数、支払い、商品付与、snapshot／保存 |
+| mob / npc / menu | NPC 導線と GUI navigation |
 
 ## 更新ルール（変更時に必ず更新する章）
 
-- 商品モデル・価格仕様の変更:
-  - [[20_1.00-モデル定義]]
-  - [[20_3.00-メソッド仕様]]
-- 購入・売却・在庫処理の変更:
-  - [[20_2.00-ユースケース]]
-  - [[20_4.00-統合フロー]]
-- NPC 導線の変更:
-  - [[20_4.00-統合フロー]]
-  - mob feature の NPC interaction 記述
+- shop／entry／recipe schema を変更した場合は [[20_1.00-モデル定義]]、filebase 設計書、parser を更新する。
+- 購入 validation・補償順序を変更した場合は [[20_3.00-メソッド仕様]]、[[20_4.00-統合フロー]]、[[20_5.00-例外・ログ・運用]]を更新する。
+- command／NPC access を変更した場合は [[20_2.00-ユースケース]] と [[20_3.00-メソッド仕様]]を更新する。
+- 在庫・販売回数制限を導入する場合は model と永続化を設計してから仕様へ追加する。

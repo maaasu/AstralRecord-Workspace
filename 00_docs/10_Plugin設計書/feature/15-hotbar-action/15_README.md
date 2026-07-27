@@ -1,34 +1,35 @@
-# 15 ホットバーアクション（移行済み）
+# 15_README
 
-この feature は現役の独立実装を持たない。旧ホットバーアクション設計は、攻撃起動を `item`、ホットバー操作を `inventory`、built-in skill 実行とアクションリングを `skill` へ移管済みとして扱う。
+旧ホットバーアクションは独立 feature を廃止し、入力調停を player-interaction、武器アクションを item、ホットバー状態を inventory、アクションリングと skill 実行を skill へ移管している。本ディレクトリは責務境界を示す移行資料として扱う。
 
 ## 対象実装パス
 
-- なし（移行済み）
-- 攻撃起動: `src/main/java/io/github/maaasu/astralRecord/feature/item/*`
-- ホットバー操作: `src/main/java/io/github/maaasu/astralRecord/feature/inventory/*`
-- built-in skill 実行・アクションリング: `src/main/java/io/github/maaasu/astralRecord/feature/skill/*`
+独立した実装 package は存在しない。現在の対象は次の移管先である。
 
-## ドキュメント一覧
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/shared/interaction/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/shared/interaction/PlayerInteractionGatewayEventHandler.java`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/item/event/ItemWeaponAttackEventHandler.java`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/item/service/ItemWeaponAttackService.java`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/inventory/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/skill/*`
 
-| ファイル | 役割 |
-|:--|:--|
-| [[15_0.00-概要]] | 機能概要・対象範囲・メッセージ/ログ ID |
-| [[15_3.01-イベント]] | 左クリック通常攻撃のイベント連携 |
+## ドキュメント一覧（推奨順）
+
+1. [[15_0.00-概要]]
+2. [[15_3.01-イベント]]
 
 ## 依存 feature
 
 | feature | 依存内容 |
 |:--|:--|
-| [[03_README\|03-player]] | AstPlayer 取得、リソースステータス参照 |
-| [[04_README\|04-item]] | `equipment.onUse.leftClickSkillId` / `leftClickCooldownTicks` |
-| [[08_README\|08-inventory]] | メインハンド装備参照 |
-| [[13_README\|13-skill]] | built-in 通常攻撃発動、リソース消費、クールダウン |
-| [[28_README\|28-player-interaction]] | クリック・`HOTBAR_SLOT`入力の候補仲裁、勝者一件実行、action ring fallback |
+| [[03_README\|03-player]] | `AstPlayer` と `AccountMode` |
+| [[04_README\|04-item]] | 武器マスタ、装備要件、耐久値、左クリック候補 |
+| [[08_README\|08-inventory]] | メインハンドの item 解決とホットバー状態 |
+| [[13_README\|13-skill]] | skill 発動、クールダウン、アクションリング |
+| [[28_README\|28-player-interaction]] | 入力正規化、候補選択、二重実行防止 |
 
-## 更新ルール
+## 更新ルール（変更時に必ず更新する章）
 
-- 武器クリック攻撃の起点、対象`InputFamily`、クールダウン開始条件を変更した場合は[[04_3.01-イベント]]、[[13_3.02-サービス]]、[[28_3.01-イベント]]を更新する。
-- ホットバー操作やショートカット表示を変更した場合は [[08_3.01-イベント]]、[[08_3.02-サービス]]、[[28_3.01-イベント]]を更新する。
-- built-in skill 実行、アクションリング、skilltree ガードを変更した場合は [[13_3.02-サービス]] と [[13_4.00-統合フロー]] を更新する。
-- 本ディレクトリの本文は移行履歴としてのみ更新し、新しい仕様の正本にはしない。
+- 入力候補の tier、距離、`stableOrder`、claim 方針を変更した場合は [[15_3.01-イベント]] と player-interaction feature を更新する。
+- 武器の発動条件、装備要件、耐久値、skill 発動条件を変更した場合は [[15_0.00-概要]]、[[15_3.01-イベント]]、item / skill feature を更新する。
+- ホットバーの保存・描画を変更した場合は inventory feature を更新する。本ディレクトリへ新しい正本仕様を戻さない。

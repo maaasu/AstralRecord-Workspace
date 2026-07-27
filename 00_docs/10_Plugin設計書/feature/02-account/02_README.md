@@ -1,14 +1,14 @@
-﻿# 02_README
+# 02_README
 
-このディレクトリは `feature/account` の設計書です。  
+このディレクトリは `feature/account` の設計書です。
 採番・命名・参照ルールは [[README]] に従います。
 
 ## 対象実装パス
 
-- `src/main/java/io/github/maaasu/astralRecord/feature/account/command/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/account/service/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/account/repository/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/account/model/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/account/command/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/account/service/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/account/repository/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/account/model/*`
 
 ## ドキュメント一覧（推奨順）
 
@@ -16,9 +16,12 @@
 2. [[02_1.00-モデル定義]]
 3. [[02_2.00-ユースケース]]
 4. [[02_3.00-索引]]
-5. [[02_4.00-統合フロー]]
-6. [[02_5.00-例外・ログ・運用]]
-7. [[02_9.00-未決事項]]（必要時）
+5. [[02_3.01-サービス]]
+6. [[02_3.02-コマンド]]
+7. [[02_3.03-リポジトリ]]
+8. [[02_4.00-統合フロー]]
+9. [[02_5.00-例外・ログ・運用]]
+10. [[02_9.00-未決事項]]（必要時）
 
 ## 依存 feature
 
@@ -29,8 +32,6 @@
   - オンライン中の [[03_1.00-モデル定義]].プレイヤーセッション へアカウントモード変更を反映する。
 - `inventory`
   - アカウントモードが通常プレイヤーの場合、GUIインベントリ反映を依頼する。
-- `mail`
-  - 初回参加者向け `welcome_mail` の配布元は mail feature とする。account は初回参加・アカウント作成導線から mail へ引き渡す側に限定する。
 
 ## 更新ルール（変更時に必ず更新する章）
 

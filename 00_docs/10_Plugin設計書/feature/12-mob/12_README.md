@@ -1,73 +1,53 @@
 # 12_README
 
-このディレクトリは `feature/mob` の設計書です。  
-採番・命名・参照ルールは [[README]] に従います。
+このディレクトリは `feature/mob` と、その配置・スポーン表示を担う `feature/spawner` / `feature/textdisplay`、同じ world object 基盤を使う `feature/gathering` の設計書です。採番・命名・参照ルールは [[README]] に従います。
 
 ## 対象実装パス
 
-- `src/main/java/io/github/maaasu/astralRecord/feature/mob/command/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/mob/event/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/mob/model/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/mob/repository/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/mob/service/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/spawner/*`
-- `src/main/java/io/github/maaasu/astralRecord/feature/textdisplay/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/spawner/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/textdisplay/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/gathering/*`
+- `10_plugin/AstralRecord/src/main/resources/logger.properties`（Mob の `5700` 系、採集配置の shared `E_6400` / `E_6401`、採集 packet の shared `W_9010`）
+- `10_plugin/AstralRecord/src/main/resources/player.properties`（Mob / NPC / TextDisplay / gathering の player message）
 
-## ドキュメント一覧
+## ドキュメント一覧（推奨順）
 
 1. [[12_0.00-概要]]
 2. [[12_1.00-モデル定義]]
 3. [[12_2.00-ユースケース]]
 4. [[12_3.00-索引]]
-5. [[12_4.00-統合フロー]]
-6. [[12_5.00-例外・ログ・運用]]
-7. [[12_9.00-未決事項]]（必要時）
+5. [[12_3.01-イベント]]
+6. [[12_3.02-サービス]]
+7. [[12_3.03-コマンド]]
+8. [[12_3.04-リポジトリ]]
+9. [[12_3.05-実体Mob制御]]
+10. [[12_3.06-戦闘]]
+11. [[12_4.00-統合フロー]]
+12. [[12_5.00-例外・ログ・運用]]
+13. [[12_9.00-未決事項]]（必要時）
 
 ## 依存 feature
 
-- `status`
-- `loot`
-- `item`
-- `skill`
-- `player`
-- `currency`
-- `player-interaction`
-  - NPC左右クリック、Mob spawnerの表示クリック、block設置・破壊の排他制御は[[28_README]]を正本とする。
+- `status` / `combat`: Mob と player の status、独自 damage、HP / shield 減算を扱う。
+- `skill`: Mob skill caster と `combat.skills` の発動を扱う。
+- `loot` / `item` / `currency` / `account`: 討伐報酬を解決・付与する。
+- `player` / `player-setting`: target、viewer、地域状態、drop log 表示設定を参照する。
+- `quest`: 採集完了時に `QuestService.recordGathering` へ進捗通知する。採集定義・採集 session・スポーンの所有者ではない。
+- `boss`: boss challenge、scaling、死亡処理を連携する。
+- `player-interaction`: NPC / fakeblock / spawner / block mutation の候補収集と勝者選択を正本とする。
+- AstralRecordApi `/api/mob` と `40_filebase/40.features.mob/{boss,enemy,npc,spawner}/*`: Mob template の永続正本。
+- `40_filebase/42.features.gathering/*` / `40_filebase/43.features.gathering.spawner/*`: 採集 object と採集 spawner の定義正本。
+- plugin data folder の `mob_spawners.yml`、`gathering_spawners.yml`、`npc_placements.yml`、`text_displays.yml`: 実行環境ごとの配置状態を保持する。
+- Paper API / ProtocolLib: 実体 Mob、Pathfinder、packet-only spawner display を提供する。
 
-## filebase
+## 更新ルール（変更時に必ず更新する章）
 
-- `40_filebase/40.features.mob/`
-  - `boss/v1.*.yml`
-  - `enemy/v1.*.yml`
-  - `npc/v1.*.yml`
-
-## 更新ルール
-
-- spawn / despawn / 実体制御を変更した場合:
-  - [[12_3.02-サービス]]
-  - [[12_3.05-実体Mob制御]]
-  - [[12_4.00-統合フロー]]
-- NPC interaction や導線を変更した場合:
-  - [[12_1.00-モデル定義]]
-  - [[12_3.02-サービス]]
-  - [[12_4.00-統合フロー]]
-  - [[12_3.04-リポジトリ]]
-  - [[28_3.02-サービス]]
-  - 関連先 feature の設計書
-- Mob spawnerのクリック・block mutation候補を変更した場合:
-  - [[12_0.00-概要]]
-  - [[12_3.02-サービス]]
-  - [[12_4.00-統合フロー]]
-  - [[28_3.01-イベント]]
-- ドロップや戦闘挙動を変更した場合:
-  - [[12_3.03-戦闘]]
-  - [[12_5.00-例外・ログ・運用]]
-
-## 実装メモ
-
-- 2026-06-09: spawner の正本実装は `feature/spawner/*` にあり、mob docs では関連挙動のみ扱う。
-- 2026-06-22: NPC と同時に配置する固定 TextDisplay は `feature/textdisplay/*` で扱い、配置データは `text_displays.yml` に保存する。
-- 2026-06-23: NPC interaction の `gui.type` は `SHOP` / `SELL` / `CLASS` / `STORAGE` / `EQUIPMENT_ENHANCE` / `EQUIPMENT_REPAIR` を扱う。NPC `entityType` は Bukkit EntityType に加えて Bukkit block Material も指定でき、block 指定時は配置座標を水平中心にした `Interaction` + `BlockDisplay` fakeblock に通常 NPC と同じ display text、ambient particle、左クリック/右クリック interaction を付与する。fakeblock の描画はプレイヤー方向へ回転させず、下端を配置 Y 座標に接地させた `0.75` 倍の固定表示とする。`CHEST` / `TRAPPED_CHEST` / `ENDER_CHEST` は BlockDisplay で描画されないため、表示用 Material は `BARREL` に正規化する。
-- 2026-07-04: NPC interaction に `command` アクションを追加し、プレイヤーとしてコマンドを実行できるようにした。`skill_tree` ワールドの帰還 NPC は `skilltree back` を呼び出して `BASE` ワールドへ戻す。
-- 2026-07-16: `currency_exchange_clerk` を専用両替商NPCとして追加した。右クリックの `SHOP` interaction は `currency_exchange` をNPC導線で開き、`access=NPC_ONLY` のためコマンドやメニューからは開かない。
-- 2026-07-07: スキルツリー入口 NPC `skilltree_entry_guide` は `skilltree` を呼び出して `skill_tree` ワールドへ移動する。帰還 NPC `skilltree_return_guide` と対になる導線として扱う。
+- template / AI / interaction / drop schema 変更: [[12_1.00-モデル定義]]、[[12_3.04-リポジトリ]]、filebase schema、API 設計書
+- spawn / despawn / movement / viewer 変更: [[12_3.02-サービス]]、[[12_3.05-実体Mob制御]]、[[12_4.00-統合フロー]]
+- `/mob` / `/textdisplay` 変更: [[12_3.03-コマンド]]、[[12_5.00-例外・ログ・運用]]
+- damage / threat / knockback / drop 変更: [[12_3.06-戦闘]]、[[12_4.00-統合フロー]]、[[12_5.00-例外・ログ・運用]]
+- NPC・spawner 入力候補または account mode 制約変更: [[12_1.00-モデル定義]]、[[12_3.02-サービス]]、[[12_4.00-統合フロー]]、[[28_3.01-イベント]]、[[28_3.02-サービス]]
+- 配置 YAML または packet display 変更: [[12_3.02-サービス]]、[[12_3.04-リポジトリ]]、[[12_4.00-統合フロー]]
+- 採集定義・tool tag・採集 session・drop・quest 通知変更: [[12_1.00-モデル定義]]、[[12_2.00-ユースケース]]、[[12_3.01-イベント]]、[[12_3.02-サービス]]、[[12_4.00-統合フロー]]
+- 採集 spawner の出現条件・管理者表示・配置保存変更: [[12_1.00-モデル定義]]、[[12_3.01-イベント]]、[[12_3.02-サービス]]、[[12_3.03-コマンド]]、[[12_3.04-リポジトリ]]、[[12_4.00-統合フロー]]
