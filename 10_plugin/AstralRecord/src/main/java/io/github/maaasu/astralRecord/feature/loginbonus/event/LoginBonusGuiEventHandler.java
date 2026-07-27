@@ -45,7 +45,7 @@ public final class LoginBonusGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             handleClick(event, player);
-        }, LogId.E_5070, "login_bonus_click: " + event.getWhoClicked().getName());
+        }, LogId.E_5601, event.getWhoClicked().getName(), "login_bonus_click");
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -54,7 +54,7 @@ public final class LoginBonusGuiEventHandler extends AbstractEventHandler {
             if (gui.isLoginBonusInventory(event.getView().getTopInventory())) {
                 event.setCancelled(true);
             }
-        }, LogId.E_5070, "login_bonus_drag: " + event.getWhoClicked().getName());
+        }, LogId.E_5601, event.getWhoClicked().getName(), "login_bonus_drag");
     }
 
     private void handleClick(@NotNull InventoryClickEvent event, @NotNull Player player) {

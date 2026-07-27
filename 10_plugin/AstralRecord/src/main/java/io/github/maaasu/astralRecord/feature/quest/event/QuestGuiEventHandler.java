@@ -70,7 +70,7 @@ public final class QuestGuiEventHandler extends AbstractEventHandler {
                     handleListClick(event, player);
                 }
             }
-        }, LogId.E_5200, event.getWhoClicked().getName());
+        }, LogId.E_5601, event.getWhoClicked().getName(), "quest_gui_click");
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)

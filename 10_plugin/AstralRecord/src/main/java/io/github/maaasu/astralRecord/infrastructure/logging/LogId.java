@@ -99,6 +99,10 @@ public enum LogId {
      */
     E_3001(3001),
     /**
+     * イベント処理に失敗しました: context=%s
+     */
+    E_3002(3002),
+    /**
      * イベントハンドラーを登録しました: %s
      */
     D_3000(3000),
@@ -731,7 +735,7 @@ public enum LogId {
     E_5550(5550),
     // endregion
 
-    // region /feature/menu/event/MenuOpenEventHandler.java 5600-5609
+    // region /feature/menu and shared GUI event 5600-5609
     /**
      * メニューイベント処理に失敗しました: %s
      */
@@ -805,6 +809,10 @@ public enum LogId {
      * Mob ドロップ抽選で例外が発生しました: mobId=%s
      */
     E_5703(5703),
+    /**
+     * Mobイベント処理に失敗しました: operation=%s, target=%s
+     */
+    E_5706(5706),
     /**
      * Mob ベースステータスを解決できませんでした: status=%s, mobId=%s
      */
@@ -904,12 +912,17 @@ public enum LogId {
      * 状態異常 tick 処理に失敗しました: condition=%s target=%s
      */
     E_5901(5901),
+    /**
+     * 状態異常プレイヤーイベント処理に失敗: player=%s, operation=%s
+     */
+    E_5902(5902),
     I_5950(5950),
-    E_5950(5950),
     E_5951(5951),
     E_5952(5952),
     E_5953(5953),
     E_5954(5954),
+    /** ウェイストーン表示同期処理に失敗しました: player=%s, trigger=%s */
+    E_5955(5955),
     /** プレイヤー入力調停に失敗しました: player=%s, source=%s */
     E_5999(5999),
     // endregion
@@ -960,6 +973,13 @@ public enum LogId {
     E_6501(6501),
     E_6502(6502),
     E_6503(6503),
+    // endregion
+
+    // region /feature/adventurerecord/ 6550-6559
+    /**
+     * 冒険記録の討伐記録保存に失敗しました: accountId=%s, mobId=%s
+     */
+    E_6550(6550),
     // endregion
 
     // region /feature/quest/ 6600-6699

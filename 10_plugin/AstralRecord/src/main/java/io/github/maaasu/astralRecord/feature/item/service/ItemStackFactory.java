@@ -805,7 +805,7 @@ public class ItemStackFactory {
 
     /**
      * Bundle に紐付く Loot テーブルの内容を Lore に追加します。
-     * LootService にキャッシュ済みのデータのみを参照し、API リクエストは発行しません。
+     * LootService のキャッシュを優先し、未登録時は単体 API 取得を試みます。
      */
     private void appendBundleLootLore(@NotNull List<String> lore, @NotNull String lootTableId) {
         LootModel lootModel = lootService.getLoadedOrFetch(lootTableId);

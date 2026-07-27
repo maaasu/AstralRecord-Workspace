@@ -47,7 +47,7 @@ public final class PlayerDeathEventHandler extends AbstractEventHandler {
             if (astPlayer != null) {
                 deathService.startDeath(astPlayer, event.getEntity().getLocation());
             }
-        }, LogId.E_5600, event.getEntity().getName());
+        }, LogId.E_3002, "player_death:" + event.getEntity().getName());
     }
 
     /**
@@ -57,7 +57,7 @@ public final class PlayerDeathEventHandler extends AbstractEventHandler {
      */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerJoin(@NotNull PlayerJoinEvent event) {
-        runSafely(() -> deathService.handleJoin(event.getPlayer()), LogId.E_5600, event.getPlayer().getName());
+        runSafely(() -> deathService.handleJoin(event.getPlayer()), LogId.E_3002, "death_join:" + event.getPlayer().getName());
     }
 
     /**
@@ -67,7 +67,7 @@ public final class PlayerDeathEventHandler extends AbstractEventHandler {
      */
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
-        runSafely(() -> deathService.handleQuit(event.getPlayer()), LogId.E_5600, event.getPlayer().getName());
+        runSafely(() -> deathService.handleQuit(event.getPlayer()), LogId.E_3002, "death_quit:" + event.getPlayer().getName());
     }
 
     /**
@@ -95,7 +95,7 @@ public final class PlayerDeathEventHandler extends AbstractEventHandler {
             corrected.setYaw(to.getYaw());
             corrected.setPitch(to.getPitch());
             event.setTo(corrected);
-        }, LogId.E_5600, event.getPlayer().getName());
+        }, LogId.E_3002, "death_move_lock:" + event.getPlayer().getName());
     }
 
     private boolean hasPositionChanged(@NotNull Location from, @NotNull Location to) {

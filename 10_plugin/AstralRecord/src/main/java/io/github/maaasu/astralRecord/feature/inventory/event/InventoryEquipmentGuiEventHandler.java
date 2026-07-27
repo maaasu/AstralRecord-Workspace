@@ -123,7 +123,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             handlePlayerInventoryClick(event);
-        }, LogId.E_5600, event.getWhoClicked().getName());
+        }, LogId.E_5601, event.getWhoClicked().getName(), "equipment_gui_click");
     }
 
     /**
@@ -147,7 +147,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             saveEquipmentMenuSnapshot(player, event.getInventory());
-        }, LogId.E_5600, event.getPlayer().getName());
+        }, LogId.E_5601, event.getPlayer().getName(), "equipment_gui_close");
     }
 
     /**
@@ -178,7 +178,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
                 topInventory,
                 player.getInventory().getItem(event.getNewSlot())
             );
-        }, LogId.E_5600, event.getPlayer().getName());
+        }, LogId.E_5601, event.getPlayer().getName(), "equipment_gui_held_item");
     }
 
     /**

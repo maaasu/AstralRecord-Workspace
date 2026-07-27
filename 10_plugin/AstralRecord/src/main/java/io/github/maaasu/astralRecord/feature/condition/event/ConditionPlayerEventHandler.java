@@ -42,7 +42,7 @@ public final class ConditionPlayerEventHandler extends AbstractEventHandler {
                     && event.getFrom().distanceSquared(event.getTo()) > 1.0E-6D) {
                 event.setTo(event.getFrom());
             }
-        }, LogId.E_5900, event.getPlayer().getName());
+        }, LogId.E_5902, event.getPlayer().getName(), "player_move");
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -52,7 +52,7 @@ public final class ConditionPlayerEventHandler extends AbstractEventHandler {
             if (astPlayer != null && !conditionService.canInteract(AstEntity.player(astPlayer))) {
                 event.setCancelled(true);
             }
-        }, LogId.E_5900, event.getPlayer().getName());
+        }, LogId.E_5902, event.getPlayer().getName(), "player_interact");
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -62,7 +62,7 @@ public final class ConditionPlayerEventHandler extends AbstractEventHandler {
             if (astPlayer != null && !conditionService.canInteract(AstEntity.player(astPlayer))) {
                 event.setCancelled(true);
             }
-        }, LogId.E_5900, event.getPlayer().getName());
+        }, LogId.E_5902, event.getPlayer().getName(), "player_interact_entity");
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -75,7 +75,7 @@ public final class ConditionPlayerEventHandler extends AbstractEventHandler {
             if (astPlayer != null && !conditionService.canInteract(AstEntity.player(astPlayer))) {
                 event.setCancelled(true);
             }
-        }, LogId.E_5900, player.getName());
+        }, LogId.E_5902, player.getName(), "inventory_click");
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -88,7 +88,7 @@ public final class ConditionPlayerEventHandler extends AbstractEventHandler {
             if (astPlayer != null && !conditionService.canInteract(AstEntity.player(astPlayer))) {
                 event.setCancelled(true);
             }
-        }, LogId.E_5900, player.getName());
+        }, LogId.E_5902, player.getName(), "inventory_drag");
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -98,7 +98,7 @@ public final class ConditionPlayerEventHandler extends AbstractEventHandler {
             if (astPlayer != null && !conditionService.canInteract(AstEntity.player(astPlayer))) {
                 event.setCancelled(true);
             }
-        }, LogId.E_5900, event.getPlayer().getName());
+        }, LogId.E_5902, event.getPlayer().getName(), "player_drop_item");
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -108,7 +108,7 @@ public final class ConditionPlayerEventHandler extends AbstractEventHandler {
             if (astPlayer != null && !conditionService.canInteract(AstEntity.player(astPlayer))) {
                 event.setCancelled(true);
             }
-        }, LogId.E_5900, event.getPlayer().getName());
+        }, LogId.E_5902, event.getPlayer().getName(), "player_swap_hand");
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -118,7 +118,7 @@ public final class ConditionPlayerEventHandler extends AbstractEventHandler {
             if (astPlayer != null) {
                 conditionService.clearAll(AstEntity.player(astPlayer));
             }
-        }, LogId.E_5900, event.getPlayer().getName());
+        }, LogId.E_5902, event.getPlayer().getName(), "player_quit");
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -128,6 +128,6 @@ public final class ConditionPlayerEventHandler extends AbstractEventHandler {
             if (astPlayer != null) {
                 conditionService.clearAll(AstEntity.player(astPlayer));
             }
-        }, LogId.E_5900, event.getEntity().getName());
+        }, LogId.E_5902, event.getEntity().getName(), "player_death");
     }
 }

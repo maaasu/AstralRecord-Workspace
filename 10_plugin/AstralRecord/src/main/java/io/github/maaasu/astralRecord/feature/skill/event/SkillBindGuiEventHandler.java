@@ -131,7 +131,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             handleTopClick(player, session, event.getRawSlot(), holder.pageIndex(), event.getCurrentItem());
-        }, LogId.E_5802, event.getWhoClicked().getName(), "skill_bind_click");
+        }, LogId.E_5601, event.getWhoClicked().getName(), "skill_bind_click");
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -143,7 +143,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                     GuiSound.DENY.play(player);
                 }
             }
-        }, LogId.E_5802, event.getWhoClicked().getName(), "skill_bind_drag");
+        }, LogId.E_5601, event.getWhoClicked().getName(), "skill_bind_drag");
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -169,7 +169,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             }
             sessions.remove(playerId);
             restorePlayerInventory(player);
-        }, LogId.E_5802, event.getPlayer().getName(), "skill_bind_close");
+        }, LogId.E_5601, event.getPlayer().getName(), "skill_bind_close");
     }
 
     private void handleTopClick(

@@ -34,11 +34,6 @@ public final class ConditionCleanupTask {
     }
 
     public void run() {
-        long nowMs = System.currentTimeMillis();
-        for (var condition : conditionService.snapshotAllActiveConditions()) {
-            if (condition.expired(nowMs)) {
-                conditionService.removeCondition(condition.target(), condition.type());
-            }
-        }
+        conditionService.purgeExpiredConditions();
     }
 }

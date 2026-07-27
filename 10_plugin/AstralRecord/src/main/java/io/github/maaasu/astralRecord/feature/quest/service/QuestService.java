@@ -1044,8 +1044,8 @@ public final class QuestService {
 
     private boolean canMeetRequirements(@NotNull AstPlayer player, @NotNull QuestDefinition quest) {
         UUID accountId = player.getAccount().getUuid();
-        for (QuestRequirementDefinition requirement : quest.requirements()) {
-            if (inventoryService.getNormalItemAmount(accountId, requirement.item().itemId()) < requirement.item().amount()) {
+        for (Map.Entry<String, Long> requirement : aggregateRequirementAmounts(quest, false).entrySet()) {
+            if (inventoryService.getNormalItemAmount(accountId, requirement.getKey()) < requirement.getValue()) {
                 return false;
             }
         }
@@ -1057,14 +1057,37 @@ public final class QuestService {
             return false;
         }
         UUID accountId = player.getAccount().getUuid();
-        for (QuestRequirementDefinition requirement : quest.requirements()) {
-            if (requirement.consume()
-                && !inventoryService.consumeNormalItem(accountId, requirement.item().itemId(), requirement.item().amount())) {
+        for (Map.Entry<String, Long> requirement : aggregateRequirementAmounts(quest, true).entrySet()) {
+            if (!inventoryService.consumeNormalItem(accountId, requirement.getKey(), requirement.getValue())) {
                 return false;
             }
         }
         saveInventory(accountId);
         return true;
+    }
+
+    private @NotNull Map<String, Long> aggregateRequirementAmounts(
+        @NotNull QuestDefinition quest,
+        boolean consumedOnly
+    ) {
+        Map<String, Long> amounts = new LinkedHashMap<>();
+        for (QuestRequirementDefinition requirement : quest.requirements()) {
+            if (consumedOnly && !requirement.consume()) {
+                continue;
+            }
+            amounts.merge(
+                requirement.item().itemId(),
+                (long) requirement.item().amount(),
+                (current, added) -> {
+                    try {
+                        return Math.addExact(current, added);
+                    } catch (ArithmeticException ignored) {
+                        return Long.MAX_VALUE;
+                    }
+                }
+            );
+        }
+        return amounts;
     }
 
     private void saveInventory(@NotNull UUID accountId) {

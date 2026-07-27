@@ -50,6 +50,6 @@ public class PlayerHeldItemStatusEventHandler extends AbstractEventHandler {
                     statusService.refreshStatus(astPlayer);
                 }
             });
-        }, LogId.E_5600, event.getPlayer().getName());
+        }, LogId.E_3002, "status_held_item:" + event.getPlayer().getName());
     }
 }

@@ -47,7 +47,7 @@ public final class ManagedChatEventHandler extends AbstractEventHandler {
             plugin.getServer().getScheduler().runTask(plugin, () ->
                 PlayerMessageService.getInstance().broadcastGlobalChat(senderName, message)
             );
-        }, LogId.E_3000, handlerName);
+        }, LogId.E_3002, handlerName + ":chat");
     }
 
     /**
@@ -64,7 +64,7 @@ public final class ManagedChatEventHandler extends AbstractEventHandler {
             }
             event.setCancelled(true);
             PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5945);
-        }, LogId.E_3000, handlerName);
+        }, LogId.E_3002, handlerName + ":command");
     }
 
     static boolean isVanillaDirectMessageCommand(@NotNull String raw) {

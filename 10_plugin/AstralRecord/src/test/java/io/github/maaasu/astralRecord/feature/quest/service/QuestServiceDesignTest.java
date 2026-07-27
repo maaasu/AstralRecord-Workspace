@@ -46,6 +46,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -87,6 +88,70 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         verify(harness.inventoryService).consumeNormalItem(player.getAccount().getUuid(), "guild_token", 1);
         verify(harness.inventoryService).saveNow(player.getAccount().getUuid());
         assertTrue(harness.service.hasPendingSave(player.getAccount().getUuid()));
+    }
+
+    @Test
+    void acceptAggregatesDuplicateItemRequirementsBeforeConsuming() {
+        QuestDefinition quest = quest(
+            "duplicate_token_requirement",
+            QuestCompletionMode.NPC,
+            List.of(new QuestObjectiveDefinition("kill_wolf", QuestObjectiveType.KILL_MOB, "wolf", "Wolf", 1)),
+            List.of(
+                new QuestRequirementDefinition(new QuestItemStackDefinition("guild_token", "material", 2), true),
+                new QuestRequirementDefinition(new QuestItemStackDefinition("guild_token", "material", 3), true)
+            ),
+            new QuestRewardDefinition(0, 0L, List.of())
+        );
+        QuestHarness harness = questHarness(quest);
+        AstPlayer player = playerWithQuestLimit(2.0D);
+        when(harness.statusService.getStatus(player)).thenReturn(player.getStatusSnapshot());
+        QuestPlayerState state = new QuestPlayerState(player.getAccount().getUuid(), Map.of(), Map.of(), Map.of());
+        harness.service.applyInitialState(state);
+        when(harness.inventoryService.getNormalItemAmount(player.getAccount().getUuid(), "guild_token")).thenReturn(4L);
+        when(harness.inventoryService.consumeNormalItem(
+            eq(player.getAccount().getUuid()),
+            eq("guild_token"),
+            anyLong()
+        )).thenReturn(true);
+
+        assertFalse(harness.service.accept(player, quest, null));
+
+        verify(harness.inventoryService, never()).consumeNormalItem(
+            eq(player.getAccount().getUuid()),
+            eq("guild_token"),
+            anyLong()
+        );
+        assertFalse(state.activeQuests().containsKey(quest.id()));
+    }
+
+    @Test
+    void acceptConsumesAggregatedDuplicateItemRequirementsOnce() {
+        QuestDefinition quest = quest(
+            "duplicate_token_consumption",
+            QuestCompletionMode.NPC,
+            List.of(new QuestObjectiveDefinition("kill_wolf", QuestObjectiveType.KILL_MOB, "wolf", "Wolf", 1)),
+            List.of(
+                new QuestRequirementDefinition(new QuestItemStackDefinition("guild_token", "material", 2), true),
+                new QuestRequirementDefinition(new QuestItemStackDefinition("guild_token", "material", 3), true)
+            ),
+            new QuestRewardDefinition(0, 0L, List.of())
+        );
+        QuestHarness harness = questHarness(quest);
+        AstPlayer player = playerWithQuestLimit(2.0D);
+        when(harness.statusService.getStatus(player)).thenReturn(player.getStatusSnapshot());
+        QuestPlayerState state = new QuestPlayerState(player.getAccount().getUuid(), Map.of(), Map.of(), Map.of());
+        harness.service.applyInitialState(state);
+        when(harness.inventoryService.getNormalItemAmount(player.getAccount().getUuid(), "guild_token")).thenReturn(5L);
+        when(harness.inventoryService.consumeNormalItem(player.getAccount().getUuid(), "guild_token", 5L)).thenReturn(true);
+
+        assertTrue(harness.service.accept(player, quest, null));
+
+        verify(harness.inventoryService, times(1)).consumeNormalItem(
+            player.getAccount().getUuid(),
+            "guild_token",
+            5L
+        );
+        assertTrue(state.activeQuests().containsKey(quest.id()));
     }
 
     @Test

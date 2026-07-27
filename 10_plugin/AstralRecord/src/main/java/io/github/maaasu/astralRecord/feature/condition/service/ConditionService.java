@@ -132,6 +132,30 @@ public final class ConditionService {
         return snapshot;
     }
 
+    /**
+     * 全対象から期限切れ状態異常を解除します。
+     *
+     * @return 解除した状態異常数
+     */
+    public int purgeExpiredConditions() {
+        return purgeExpiredConditions(System.currentTimeMillis());
+    }
+
+    int purgeExpiredConditions(long nowMs) {
+        List<ActiveCondition> expired = new ArrayList<>();
+        for (Map<ConditionType, ActiveCondition> conditions : activeByTarget.values()) {
+            for (ActiveCondition condition : conditions.values()) {
+                if (condition.expired(nowMs)) {
+                    expired.add(condition);
+                }
+            }
+        }
+        for (ActiveCondition condition : expired) {
+            removeCondition(condition.target(), condition.type());
+        }
+        return expired.size();
+    }
+
     /** 表示更新対象を返します。 */
     public @NotNull Set<AstEntity> snapshotVisibleTargets() {
         Set<AstEntity> targets = new HashSet<>();

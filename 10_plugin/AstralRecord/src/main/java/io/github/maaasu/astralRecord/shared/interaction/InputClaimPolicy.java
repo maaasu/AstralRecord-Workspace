@@ -5,8 +5,8 @@ package io.github.maaasu.astralRecord.shared.interaction;
  */
 public enum InputClaimPolicy {
     /**
-     * 下位候補は抑止しますが、元イベントはclaimもcancelもしません。
-     * バニラ操作へ委譲する候補で使用します。
+     * 元イベントをclaimもcancelもしません。
+     * 現在は候補なしのdispatch結果を表す既定方針として使用します。
      */
     PASS_THROUGH(false, false),
     /** 元イベントを処理済みとしてclaimしますが、cancelは要求しません。 */

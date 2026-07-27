@@ -74,6 +74,7 @@ public final class WaystoneDefinitionRepository {
      * ウェイストーン定義一覧を waystones.yml に保存します。
      *
      * @param definitions 保存対象
+     * @throws IllegalStateException data folder の作成または YAML 保存に失敗した場合
      */
     public void saveAll(@NotNull Iterable<WaystoneDefinition> definitions) {
         YamlConfiguration yaml = new YamlConfiguration();
@@ -107,6 +108,7 @@ public final class WaystoneDefinitionRepository {
             yaml.save(file);
         } catch (IOException e) {
             Logger.log(LogId.E_5953, e, file.getAbsolutePath());
+            throw new IllegalStateException("waystones.yml could not be saved: " + file.getAbsolutePath(), e);
         }
     }
 

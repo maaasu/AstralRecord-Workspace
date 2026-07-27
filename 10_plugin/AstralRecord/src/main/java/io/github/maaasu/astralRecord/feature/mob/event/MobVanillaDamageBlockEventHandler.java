@@ -56,7 +56,7 @@ public final class MobVanillaDamageBlockEventHandler extends AbstractEventHandle
             event.setDamage(0.0D);
             event.setCancelled(true);
             effectProtectionService.clearVanillaVisuals(entity);
-        }, LogId.E_5702, event.getEntity().getName());
+        }, LogId.E_5706, "vanilla_damage", event.getEntity().getName());
     }
 
     /**
@@ -74,7 +74,7 @@ public final class MobVanillaDamageBlockEventHandler extends AbstractEventHandle
 
             event.setCancelled(true);
             effectProtectionService.clearVanillaVisuals(entity);
-        }, LogId.E_5702, event.getEntity().getName());
+        }, LogId.E_5706, "vanilla_combust", event.getEntity().getName());
     }
 
     private boolean isProtectedMob(@NotNull Entity entity) {

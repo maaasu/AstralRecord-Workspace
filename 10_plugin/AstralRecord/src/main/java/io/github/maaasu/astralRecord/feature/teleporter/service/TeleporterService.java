@@ -143,6 +143,13 @@ public final class TeleporterService {
 
     /**
      * ウェイストーンを新規作成します。
+     *
+     * @param astPlayer 作成者
+     * @param name 表示名
+     * @param lockEnabled ロックを有効にする場合 true
+     * @param unlockGold 解除に必要なゴールド
+     * @return 作成して永続化したウェイストーン定義
+     * @throws IllegalStateException waystones.yml の保存に失敗した場合
      */
     @NotNull
     public WaystoneDefinition createWaystone(@NotNull AstPlayer astPlayer, @NotNull String name, boolean lockEnabled, long unlockGold) {
@@ -164,7 +171,12 @@ public final class TeleporterService {
                 astPlayer.getUser().getUuid().toString()
         );
         definitionsById.put(definition.id(), definition);
-        saveAll();
+        try {
+            saveAll();
+        } catch (RuntimeException e) {
+            definitionsById.remove(definition.id());
+            throw e;
+        }
         syncAllViews();
         Logger.log(LogId.I_5950, definition.id(), definition.name(), definition.worldName());
         return definition;
@@ -175,13 +187,22 @@ public final class TeleporterService {
      *
      * @param waystoneId 削除対象 ID
      * @return 削除できた場合 true
+     * @throws IllegalStateException waystones.yml の保存に失敗した場合
      */
     public boolean removeWaystone(@NotNull String waystoneId) {
-        WaystoneDefinition removed = definitionsById.remove(waystoneId);
+        WaystoneDefinition removed = definitionsById.get(waystoneId);
         if (removed == null) {
             return false;
         }
-        saveAll();
+        Map<String, WaystoneDefinition> snapshot = new LinkedHashMap<>(definitionsById);
+        definitionsById.remove(waystoneId);
+        try {
+            saveAll();
+        } catch (RuntimeException e) {
+            definitionsById.clear();
+            definitionsById.putAll(snapshot);
+            throw e;
+        }
         syncAllViews();
         return true;
     }
@@ -259,7 +280,7 @@ public final class TeleporterService {
                             return;
                         }
                         if (throwable != null) {
-                            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5957);
+                            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5964);
                             return;
                         }
                         handleWaystoneClick(player, astPlayer, definition, rightClick);
@@ -288,7 +309,7 @@ public final class TeleporterService {
         }
         InventoryService inventory = inventoryService;
         if (inventory == null) {
-            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5958);
+            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5963);
             return;
         }
         long cost = Math.max(0L, definition.unlockGold());

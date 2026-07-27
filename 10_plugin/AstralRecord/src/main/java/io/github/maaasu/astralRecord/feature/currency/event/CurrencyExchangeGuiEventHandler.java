@@ -70,7 +70,7 @@ public final class CurrencyExchangeGuiEventHandler extends AbstractEventHandler 
                 return;
             }
             handleClick(event, player);
-        }, LogId.E_5070, "currency_exchange_click: " + event.getWhoClicked().getName());
+        }, LogId.E_5601, event.getWhoClicked().getName(), "currency_exchange_click");
     }
 
     /**
@@ -84,7 +84,7 @@ public final class CurrencyExchangeGuiEventHandler extends AbstractEventHandler 
             if (view.isExchangeInventory(event.getView().getTopInventory())) {
                 event.setCancelled(true);
             }
-        }, LogId.E_5070, "currency_exchange_drag: " + event.getWhoClicked().getName());
+        }, LogId.E_5601, event.getWhoClicked().getName(), "currency_exchange_drag");
     }
 
     private void handleClick(@NotNull InventoryClickEvent event, @NotNull Player player) {

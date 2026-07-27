@@ -149,7 +149,7 @@ public class AdventureRecordService {
             try {
                 repository.recordMobDefeat(accountId, template.id(), template.category(), userId);
             } catch (RuntimeException ex) {
-                Logger.error(LogId.E_5703, ex, template.id());
+                Logger.error(LogId.E_6550, ex, accountId, template.id());
             }
         });
     }

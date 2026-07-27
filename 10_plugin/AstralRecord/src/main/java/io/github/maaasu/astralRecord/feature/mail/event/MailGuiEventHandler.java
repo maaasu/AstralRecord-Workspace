@@ -104,7 +104,7 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             handleClick(event, player);
-        }, LogId.E_5600, event.getWhoClicked().getName());
+        }, LogId.E_5601, event.getWhoClicked().getName(), "mail_gui_click");
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -116,7 +116,7 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
                     GuiSound.DENY.play(player);
                 }
             }
-        }, LogId.E_5600, event.getWhoClicked().getName());
+        }, LogId.E_5601, event.getWhoClicked().getName(), "mail_gui_drag");
     }
 
     @EventHandler(priority = EventPriority.MONITOR)

@@ -103,7 +103,7 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
                     handleConfirmClick(event, player);
                 }
             }
-        }, LogId.E_5200, event.getWhoClicked().getName());
+        }, LogId.E_5601, event.getWhoClicked().getName(), "shop_gui_click");
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -117,7 +117,7 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
                     player.closeInventory();
                 }
             }
-        }, LogId.E_5200, event.getWhoClicked().getName());
+        }, LogId.E_5601, event.getWhoClicked().getName(), "shop_gui_drag");
     }
 
     private void handleListClick(@NotNull InventoryClickEvent event, @NotNull Player player) {

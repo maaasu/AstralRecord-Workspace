@@ -29,8 +29,8 @@ public final class ActiveSkillLifecycleEventHandler extends AbstractEventHandler
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
         runSafely(
                 () -> lifecycleService.clearAll(event.getPlayer().getUniqueId()),
-                LogId.E_5900,
-                event.getPlayer().getName()
+                LogId.E_3002,
+                "active_skill_quit:" + event.getPlayer().getName()
         );
     }
 
@@ -39,8 +39,8 @@ public final class ActiveSkillLifecycleEventHandler extends AbstractEventHandler
     public void onPlayerDeath(@NotNull PlayerDeathEvent event) {
         runSafely(
                 () -> lifecycleService.clearAll(event.getEntity().getUniqueId()),
-                LogId.E_5900,
-                event.getEntity().getName()
+                LogId.E_3002,
+                "active_skill_death:" + event.getEntity().getName()
         );
     }
 
@@ -49,8 +49,8 @@ public final class ActiveSkillLifecycleEventHandler extends AbstractEventHandler
     public void onPlayerChangedWorld(@NotNull PlayerChangedWorldEvent event) {
         runSafely(
                 () -> lifecycleService.clearTransient(event.getPlayer().getUniqueId()),
-                LogId.E_5900,
-                event.getPlayer().getName()
+                LogId.E_3002,
+                "active_skill_world:" + event.getPlayer().getName()
         );
     }
 }

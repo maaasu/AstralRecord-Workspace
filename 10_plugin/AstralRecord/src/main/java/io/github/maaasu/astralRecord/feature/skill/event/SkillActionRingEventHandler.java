@@ -154,8 +154,11 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
-        runSafely(() -> actionRingService.close(event.getPlayer()),
-            LogId.E_5802, event.getPlayer().getName(), "skill_action_ring_quit");
+        runSafely(
+            () -> actionRingService.close(event.getPlayer()),
+            LogId.E_3002,
+            "skill_action_ring_quit:" + event.getPlayer().getName()
+        );
     }
 
     private boolean isPlayerMode(AstPlayer astPlayer) {

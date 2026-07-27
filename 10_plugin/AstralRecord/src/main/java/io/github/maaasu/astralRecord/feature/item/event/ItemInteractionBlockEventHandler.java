@@ -93,7 +93,7 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler
                     } else {
                         potionUseService.use(astPlayer, hand, model);
                     }
-                }, LogId.E_5200, snapshot.player().getName())
+                }, LogId.E_3002, "item_use_candidate:" + snapshot.player().getName())
             ));
         }
 
@@ -134,7 +134,7 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler
                 return;
             }
             event.setCancelled(true);
-        }, LogId.E_5200, event.getPlayer().getName());
+        }, LogId.E_3002, "item_consume:" + event.getPlayer().getName());
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -146,7 +146,7 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler
             }
             bundleUseService.cancelPendingOpen(astPlayer, true);
             potionUseService.cancelPendingUse(astPlayer, true);
-        }, LogId.E_5200, event.getPlayer().getName());
+        }, LogId.E_3002, "item_held_change:" + event.getPlayer().getName());
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -154,7 +154,7 @@ public class ItemInteractionBlockEventHandler extends AbstractEventHandler
         runSafely(() -> {
             bundleUseService.cancelPendingOpen(event.getPlayer().getUniqueId());
             potionUseService.cancelPendingUse(event.getPlayer().getUniqueId());
-        }, LogId.E_5200, event.getPlayer().getName());
+        }, LogId.E_3002, "item_quit_cleanup:" + event.getPlayer().getName());
     }
 
     private static boolean isPlayerMode(AstPlayer astPlayer) {

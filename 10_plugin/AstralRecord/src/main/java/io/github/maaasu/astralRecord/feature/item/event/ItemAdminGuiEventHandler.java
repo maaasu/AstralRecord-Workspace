@@ -93,7 +93,7 @@ public final class ItemAdminGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             handleClick(event, player, topInventory);
-        }, LogId.E_5200, event.getWhoClicked().getName());
+        }, LogId.E_5601, event.getWhoClicked().getName(), "item_admin_gui_click");
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -106,7 +106,7 @@ public final class ItemAdminGuiEventHandler extends AbstractEventHandler {
             if (event.getWhoClicked() instanceof Player player) {
                 GuiSound.DENY.play(player);
             }
-        }, LogId.E_5200, event.getWhoClicked().getName());
+        }, LogId.E_5601, event.getWhoClicked().getName(), "item_admin_gui_drag");
     }
 
     @EventHandler(priority = EventPriority.MONITOR)

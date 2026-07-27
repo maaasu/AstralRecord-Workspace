@@ -32,22 +32,22 @@ public final class TeleporterPlayerEventHandler extends AbstractEventHandler {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerJoin(@NotNull PlayerJoinEvent event) {
-        runSafely(() -> scheduleJoinSync(event.getPlayer(), 0), LogId.E_5950, event.getPlayer().getName(), "join");
+        runSafely(() -> scheduleJoinSync(event.getPlayer(), 0), LogId.E_5955, event.getPlayer().getName(), "join");
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerChangedWorld(@NotNull PlayerChangedWorldEvent event) {
-        runSafely(() -> teleporterService.syncView(event.getPlayer()), LogId.E_5950, event.getPlayer().getName(), "world");
+        runSafely(() -> teleporterService.syncView(event.getPlayer()), LogId.E_5955, event.getPlayer().getName(), "world");
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
-        runSafely(() -> teleporterService.clearPlayer(event.getPlayer()), LogId.E_5950, event.getPlayer().getName(), "quit");
+        runSafely(() -> teleporterService.clearPlayer(event.getPlayer()), LogId.E_5955, event.getPlayer().getName(), "quit");
     }
 
     private void scheduleJoinSync(@NotNull Player player, int attempt) {
         Bukkit.getScheduler().runTaskLater(plugin, () ->
-                runSafely(() -> syncJoinedPlayer(player, attempt), LogId.E_5950, player.getName(), "join"), JOIN_SYNC_RETRY_DELAY_TICKS);
+                runSafely(() -> syncJoinedPlayer(player, attempt), LogId.E_5955, player.getName(), "join"), JOIN_SYNC_RETRY_DELAY_TICKS);
     }
 
     private void syncJoinedPlayer(@NotNull Player player, int attempt) {

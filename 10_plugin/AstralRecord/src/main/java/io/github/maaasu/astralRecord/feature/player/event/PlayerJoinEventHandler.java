@@ -461,7 +461,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                         );
                     }
                 });
-            }, LogId.E_5600, playerName)
+            }, LogId.E_5070, playerName)
         );
     }
 

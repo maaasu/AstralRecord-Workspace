@@ -48,7 +48,7 @@ public class PlayerVanillaDamageBlockEventHandler extends AbstractEventHandler {
             }
             event.setDamage(0.0D);
             event.setCancelled(true);
-        }, LogId.E_5600, event.getEntity().getName());
+        }, LogId.E_3002, "vanilla_damage_block:" + event.getEntity().getName());
     }
 }
 

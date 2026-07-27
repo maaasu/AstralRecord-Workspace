@@ -122,6 +122,24 @@ class ConditionServiceTest {
         assertEquals(0.5D, service.damageDealtMultiplier(source), 0.0001D);
     }
 
+    @Test
+    void cleanupSweepRemovesConditionsExpiredAtProvidedTime() {
+        ConditionService service = service();
+        AstEntity target = AstEntity.mob(mob(MobCategory.ENEMY, List.of()));
+        ActiveCondition condition = service.applyCondition(request(
+            target, null, ConditionType.BURNING, 100L, 1.0D, null
+        )).condition();
+
+        assertEquals(1, service.purgeExpiredConditions(condition.expiresAtMs()));
+        assertTrue(service.snapshotAllActiveConditions().isEmpty());
+
+        var reapplied = service.applyCondition(request(
+            target, null, ConditionType.BURNING, 100L, 1.0D, null
+        ));
+        assertTrue(reapplied.success());
+        assertFalse(reapplied.updated());
+    }
+
     private ConditionService service() {
         return new ConditionService(mock(ConditionDisplayService.class), null);
     }

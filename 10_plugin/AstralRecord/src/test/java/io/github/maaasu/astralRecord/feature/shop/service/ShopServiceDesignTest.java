@@ -151,7 +151,7 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
     }
 
     @Test
-    void previewChecksCurrencyCostsAgainstCurrencyInventory() {
+    void previewChecksGoldCurrencyCostAgainstTotalGoldBalance() {
         ShopHarness harness = shopHarness(null);
         AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
         ShopEntry entry = new ShopEntry(
@@ -173,7 +173,38 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
 
         assertTrue(preview.canPurchase());
         assertEquals(20, preview.requiredItems().get(0).amount());
+        verify(harness.currencyService, never()).getCurrencyAmount(player.getAccount().getUuid(), "gold");
         verify(harness.inventoryService, never()).getNormalItemAmount(player.getAccount().getUuid(), "gold");
+    }
+
+    @Test
+    void previewChecksNonGoldCurrencyCostAgainstExactCurrencyBalance() {
+        ShopHarness harness = shopHarness(null);
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        ShopEntry entry = new ShopEntry(
+            "token_to_coin",
+            "gold_coin",
+            "currency",
+            1,
+            1,
+            null,
+            null,
+            null,
+            0,
+            List.of(new ShopCostItem("silver_token", "currency", 10)),
+            null
+        );
+        when(harness.currencyService.getGoldAmount(player.getAccount().getUuid())).thenReturn(1_000L);
+        when(harness.currencyService.getCurrencyAmount(player.getAccount().getUuid(), "silver_token")).thenReturn(19L);
+
+        ShopPurchasePreview preview = harness.service.preview(player, entry, 2);
+
+        assertFalse(preview.canPurchase());
+        assertEquals(20, preview.requiredItems().get(0).amount());
+        assertEquals("silver_token", preview.missingItems().get(0).itemId());
+        assertEquals(1, preview.missingItems().get(0).amount());
+        verify(harness.currencyService).getCurrencyAmount(player.getAccount().getUuid(), "silver_token");
+        verify(harness.inventoryService, never()).getNormalItemAmount(player.getAccount().getUuid(), "silver_token");
     }
 
     @Test
