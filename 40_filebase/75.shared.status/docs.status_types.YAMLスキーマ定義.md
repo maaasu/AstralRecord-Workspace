@@ -25,6 +25,7 @@
 | --- | --- | --- | --- | --- |
 | `id` | String | 必須 | - | 大文字スネークケースの不変ID。削除済みIDを再利用しない |
 | `displayName` | String | 必須 | - | 日本語表示名 |
+| `description` | String | 必須 | - | ステータスの用途・効果を説明する日本語文 |
 | `category` | String | 必須 | - | `categories[].id`への参照 |
 | `suffix` | String | 任意 | 空文字 | 表示単位 |
 | `decimalPlaces` | Integer | 任意 | `0` | 表示時の小数桁数（0～6） |

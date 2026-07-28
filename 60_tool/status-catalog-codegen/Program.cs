@@ -114,6 +114,7 @@ internal sealed class StatusDefinition
 {
     public string Id { get; init; } = string.Empty;
     public string DisplayName { get; init; } = string.Empty;
+    public string Description { get; init; } = string.Empty;
     public string Category { get; init; } = string.Empty;
     public string Suffix { get; init; } = string.Empty;
     public int DecimalPlaces { get; init; }
@@ -152,6 +153,8 @@ internal static partial class CatalogValidator
                 throw new InvalidDataException($"Duplicate status id: {status.Id}");
             if (string.IsNullOrWhiteSpace(status.DisplayName))
                 throw new InvalidDataException($"Status '{status.Id}' requires displayName.");
+            if (string.IsNullOrWhiteSpace(status.Description))
+                throw new InvalidDataException($"Status '{status.Id}' requires description.");
             if (!categoryIds.Contains(status.Category))
                 throw new InvalidDataException($"Status '{status.Id}' references unknown category '{status.Category}'.");
             if (status.DecimalPlaces is < 0 or > 6)
@@ -189,6 +192,7 @@ internal static class CodeTemplates
         builder.AppendLine("enum class StatusType(");
         builder.AppendLine("    val id: String,");
         builder.AppendLine("    val displayName: String,");
+        builder.AppendLine("    val description: String,");
         builder.AppendLine("    val category: Category,");
         builder.AppendLine("    val suffix: String = \"\",");
         builder.AppendLine("    val decimalPlaces: Int = 0,");
@@ -198,7 +202,8 @@ internal static class CodeTemplates
         {
             builder.Append("    ").Append(status.Id).Append('(')
                 .Append(Quote(status.Id)).Append(", ")
-                .Append(Quote(status.DisplayName)).Append(", Category.").Append(status.Category).Append(", ")
+                .Append(Quote(status.DisplayName)).Append(", ")
+                .Append(Quote(status.Description)).Append(", Category.").Append(status.Category).Append(", ")
                 .Append(Quote(status.Suffix)).Append(", ")
                 .Append(status.DecimalPlaces).Append(", ")
                 .Append(status.SupportsRange ? "true" : "false").AppendLine("),");
@@ -341,6 +346,7 @@ internal static class CodeTemplates
         builder.AppendLine("    StatusType Type,");
         builder.AppendLine("    string Id,");
         builder.AppendLine("    string DisplayName,");
+        builder.AppendLine("    string Description,");
         builder.AppendLine("    StatusCategory Category,");
         builder.AppendLine("    string Suffix,");
         builder.AppendLine("    int DecimalPlaces,");
@@ -357,7 +363,8 @@ internal static class CodeTemplates
         {
             builder.Append("                [").Append(Quote(status.Id)).Append("] = new(StatusType.")
                 .Append(status.Id).Append(", ").Append(Quote(status.Id)).Append(", ")
-                .Append(Quote(status.DisplayName)).Append(", StatusCategory.").Append(status.Category).Append(", ")
+                .Append(Quote(status.DisplayName)).Append(", ").Append(Quote(status.Description))
+                .Append(", StatusCategory.").Append(status.Category).Append(", ")
                 .Append(Quote(status.Suffix)).Append(", ").Append(status.DecimalPlaces).Append(", ")
                 .Append(status.SupportsRange ? "true" : "false").AppendLine("),");
         }
@@ -394,6 +401,7 @@ internal static class CodeTemplates
         builder.AppendLine("export interface StatusTypeDefinition {");
         builder.AppendLine("  readonly id: StatusTypeId");
         builder.AppendLine("  readonly displayName: string");
+        builder.AppendLine("  readonly description: string");
         builder.AppendLine("  readonly category: StatusCategoryId");
         builder.AppendLine("  readonly suffix: string");
         builder.AppendLine("  readonly decimalPlaces: number");
@@ -405,6 +413,7 @@ internal static class CodeTemplates
         {
             builder.Append("  { id: ").Append(Quote(status.Id))
                 .Append(", displayName: ").Append(Quote(status.DisplayName))
+                .Append(", description: ").Append(Quote(status.Description))
                 .Append(", category: ").Append(Quote(status.Category))
                 .Append(", suffix: ").Append(Quote(status.Suffix))
                 .Append(", decimalPlaces: ").Append(status.DecimalPlaces)
