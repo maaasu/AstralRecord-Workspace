@@ -8,7 +8,7 @@ Statusは、Plugin・API・開発者用Webツールが共通利用するステ�
 
 - 共有カタログ: `E:\AstralRecord-Workspace\40_filebase\75.shared.status\v1.status_types.yml`
 - スキーマ資料: `E:\AstralRecord-Workspace\40_filebase\75.shared.status\docs.status_types.YAMLスキーマ定義.md`
-- 生成入口: `E:\AstralRecord-Workspace\generate-status-types.ps1`
+- 生成入口: `E:\AstralRecord-Workspace\60_tool\generate-status-types.ps1`
 - BAT入口: `E:\AstralRecord-Workspace\60_tool\07-generate-status-types.bat`
 
 ステータスIDは大文字スネークケースの不変文字列とし、YAMLの記載順や数値採番をIDとして使用しません。削除したIDは再利用しません。
@@ -21,7 +21,7 @@ Statusは、Plugin・API・開発者用Webツールが共通利用するステ�
 - API向けC# `StatusType`と表示メタデータ
 - Skill Tree Editor向けTypeScript `StatusTypeId`と表示カタログ
 
-カタログ変更後は`.\generate-status-types.ps1`を実行します。`.\generate-status-types.ps1 -Check`は生成漏れがある場合に失敗します。
+カタログ変更後は`.\60_tool\generate-status-types.ps1`を実行します。`.\60_tool\generate-status-types.ps1 -Check`は生成漏れがある場合に失敗します。
 
 ダメージ計算、カテゴリ色、Minecraft表示などプラットフォーム固有の挙動は、生成対象ごとのコードまたは利用側ロジックで扱います。新しいステータスをゲーム計算へ反映する処理は自動生成の対象外です。
 

@@ -3,8 +3,9 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$repositoryRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$project = Join-Path $repositoryRoot '60_tool\tag-catalog-codegen\TagCatalogCodegen.csproj'
+$toolRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repositoryRoot = Split-Path -Parent $toolRoot
+$project = Join-Path $toolRoot 'status-catalog-codegen\StatusCatalogCodegen.csproj'
 $generatorArguments = @('--repo-root', $repositoryRoot)
 if ($Check) {
     $generatorArguments += '--check'

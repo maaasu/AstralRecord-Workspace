@@ -6,7 +6,7 @@
 
 - マスタ: `v1.status_types.yml`
 - JSON Schema: `schemas/status-types.v1.schema.json`
-- 生成入口: `E:\AstralRecord-Workspace\generate-status-types.ps1`
+- 生成入口: `E:\AstralRecord-Workspace\60_tool\generate-status-types.ps1`
 - BAT入口: `E:\AstralRecord-Workspace\60_tool\07-generate-status-types.bat`
 
 各プラットフォームの型は生成物であり、直接編集しません。YAMLを変更した後に生成スクリプトを実行し、生成物も同じcommitへ含めます。
@@ -43,7 +43,7 @@ IDは既存filebaseが使用する`MAX_HEALTH`などを維持します。表示�
 通常生成:
 
 ```powershell
-.\generate-status-types.ps1
+.\60_tool\generate-status-types.ps1
 ```
 
 または`60_tool\07-generate-status-types.bat`を実行します。
@@ -51,5 +51,5 @@ IDは既存filebaseが使用する`MAX_HEALTH`などを維持します。表示�
 生成漏れ検査:
 
 ```powershell
-.\generate-status-types.ps1 -Check
+.\60_tool\generate-status-types.ps1 -Check
 ```

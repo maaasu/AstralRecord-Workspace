@@ -1,6 +1,6 @@
 # 60_tool
 
-実行入口となる bat は、このディレクトリ直下に採番して配置しています。
+実行入口となる bat とPowerShellスクリプトは、このディレクトリ直下に配置しています。採番した bat は、どのカレントディレクトリからでも実行できます。
 
 ## 実行入口
 
@@ -15,7 +15,7 @@
 | 07 | `07-generate-status-types.bat` | 共有ステータスカタログからKotlin / C# / TypeScriptを生成 |
 | 08 | `08-generate-tag-types.bat` | 共有タグカタログからJava / C# / TypeScriptを生成し、filebaseのタグ参照を検証 |
 
-bat はどのカレントディレクトリから実行しても動作するよう、内部で専用ディレクトリのスクリプトを絶対パス解決します。
+PowerShellから直接実行する場合は`generate-status-types.ps1`または`generate-tag-types.ps1`を使用します。bat はどのカレントディレクトリから実行しても動作するよう、内部で同じディレクトリのスクリプトを絶対パス解決します。
 
 ## ディレクトリ構成
 
@@ -29,6 +29,8 @@ bat はどのカレントディレクトリから実行しても動作するよ�
 ├─ 06-skilltree-editor-build.bat
 ├─ 07-generate-status-types.bat
 ├─ 08-generate-tag-types.bat
+├─ generate-status-types.ps1
+├─ generate-tag-types.ps1
 ├─ deploy-debug/
 │  ├─ deploy-debug.ps1
 │  ├─ deploy-debug.config.json

@@ -65,7 +65,7 @@ if (staleTargets.Count > 0)
     Console.Error.WriteLine("Tag type generated files are stale:");
     foreach (var target in staleTargets)
         Console.Error.WriteLine($"  - {target}");
-    Console.Error.WriteLine("Run .\\generate-tag-types.ps1 and commit the generated files.");
+    Console.Error.WriteLine("Run .\\60_tool\\generate-tag-types.ps1 and commit the generated files.");
     Environment.ExitCode = 2;
 }
 else if (options.CheckOnly)

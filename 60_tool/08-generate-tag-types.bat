@@ -1,8 +1,7 @@
 @echo off
 setlocal
 
-set "REPOSITORY_ROOT=%~dp0.."
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%REPOSITORY_ROOT%\generate-tag-types.ps1" %*
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0generate-tag-types.ps1" %*
 set "GENERATOR_EXIT_CODE=%ERRORLEVEL%"
 
 if not "%GENERATOR_EXIT_CODE%"=="0" (

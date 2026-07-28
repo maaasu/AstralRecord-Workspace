@@ -182,7 +182,7 @@ dotnet run --project .\src\SkillTreeEditor.Server -- --SkillTreeEditor:Workspace
 
 ソース側 `config.yml` の変更は既存のPlugin data folderへ自動コピーされません。表示ワールド・構造・中心座標を変えた場合は、稼働環境の `plugins/AstralRecord/config.yml` もデプロイまたは同期してからリロードしてください。エディタが稼働サーバーの設定へ直接書き込むことはありません。
 
-JSON Schemaで表現できないBukkit MaterialやスキルIDとの実在照合はPluginロード時にも行われます。ステータス候補は共有ステータスカタログと`.\generate-status-types.ps1`、タグ候補は共有タグカタログと`.\generate-tag-types.ps1`で更新してください。タグ生成では全filebaseの未定義タグと用途不一致も検査します。`/masterdata reload` が返すエラーを修正してから運用へ反映してください。
+JSON Schemaで表現できないBukkit MaterialやスキルIDとの実在照合はPluginロード時にも行われます。ステータス候補は共有ステータスカタログと`.\60_tool\generate-status-types.ps1`、タグ候補は共有タグカタログと`.\60_tool\generate-tag-types.ps1`で更新してください。タグ生成では全filebaseの未定義タグと用途不一致も検査します。`/masterdata reload` が返すエラーを修正してから運用へ反映してください。
 
 ## トラブルシューティング
 

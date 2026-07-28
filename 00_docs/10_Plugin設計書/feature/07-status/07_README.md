@@ -14,7 +14,7 @@
 ## 関連データ
 
 - `40_filebase/75.shared.status/v1.status_types.yml`（ステータス ID・表示メタデータの正本）
-- `generate-status-types.ps1`（`StatusType.kt` を含む各言語型の生成入口）
+- `60_tool/generate-status-types.ps1`（`StatusType.kt` を含む各言語型の生成入口）
 
 ## ドキュメント一覧（推奨順）
 
@@ -64,7 +64,7 @@
   - [[07_3.09-モデル操作]]
 - ステータスID・日本語名・カテゴリ・単位・小数桁・範囲可否の変更:
   - `40_filebase/75.shared.status/v1.status_types.yml`
-  - `.\generate-status-types.ps1`による生成物
+  - `.\60_tool\generate-status-types.ps1`による生成物
   - [[07_1.00-モデル定義]]
 - `PlayerItemHeldEvent`後のステータス再計算、または`HOTBAR_SLOT`調停との境界変更:
   - [[07_4.00-統合フロー]]
