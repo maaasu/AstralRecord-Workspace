@@ -118,7 +118,7 @@ public class StatusService {
      * @return 現在のステータススナップショット
      */
     public @NotNull StatusSnapshot getStatus(@NotNull AstPlayer player) {
-        if (player.getStatusSnapshot().getValues().isEmpty()) {
+        if (player.getStatusSnapshot().getValues().isEmpty() || buffService.purgeExpired(player) > 0) {
             return refreshStatus(player);
         }
         return player.getStatusSnapshot();
@@ -187,6 +187,27 @@ public class StatusService {
             return getStatus(player);
         }
         return refreshStatus(player);
+    }
+
+    /**
+     * 指定ステータスを固定値で上昇させる一時バフを付与し、ステータスを再計算します。
+     *
+     * @param player          対象プレイヤー
+     * @param statusType      上昇させるステータス種別
+     * @param value           上昇値（正の有限値）
+     * @param durationSeconds 持続秒数
+     * @return 付与したアクティブバフ
+     * @throws IllegalArgumentException 値または持続秒数が有効範囲外の場合
+     */
+    public @NotNull ActiveBuff applyTemporaryFlatBuff(
+        @NotNull AstPlayer player,
+        @NotNull StatusType statusType,
+        double value,
+        long durationSeconds
+    ) {
+        ActiveBuff activeBuff = buffService.applyTemporaryFlat(player, statusType, value, durationSeconds);
+        refreshStatus(player);
+        return activeBuff;
     }
 
     /**

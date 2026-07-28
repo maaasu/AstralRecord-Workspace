@@ -24,6 +24,11 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class BuffService {
 
+    private static final String TEMPORARY_FLAT_BUFF_ID_PREFIX = "temporary-flat:";
+    private static final String TEMPORARY_FLAT_BUFF_TYPE = "ADMIN";
+    private static final String TEMPORARY_FLAT_BUFF_DISPLAY_NAME = "管理者ステータスバフ";
+    private static final long MAX_TEMPORARY_DURATION_SECONDS = Integer.MAX_VALUE / 20L;
+
     private final BuffRepository buffRepository;
     private final Map<String, BuffType> buffCache;
 
@@ -54,6 +59,49 @@ public class BuffService {
         LocalDateTime expiresAt = now.plusSeconds(durationSeconds);
         player.getActiveBuffs().add(new ActiveBuff(type, now, expiresAt));
         return true;
+    }
+
+    /**
+     * 指定ステータスを固定値で上昇させる一時バフを付与します。
+     * <p>
+     * 同じ対象・同じステータスに対する一時バフは重複させず、値と失効時刻を更新します。
+     *
+     * @param player          対象プレイヤー
+     * @param statusType      上昇させるステータス種別
+     * @param value           上昇値（正の有限値）
+     * @param durationSeconds 持続秒数（1〜{@value #MAX_TEMPORARY_DURATION_SECONDS}）
+     * @return 付与したアクティブバフ
+     * @throws IllegalArgumentException 値または持続秒数が有効範囲外の場合
+     */
+    public @NotNull ActiveBuff applyTemporaryFlat(
+        @NotNull AstPlayer player,
+        @NotNull StatusType statusType,
+        double value,
+        long durationSeconds
+    ) {
+        if (!Double.isFinite(value) || value <= 0.0D) {
+            throw new IllegalArgumentException("value must be a positive finite number");
+        }
+        if (durationSeconds <= 0L || durationSeconds > MAX_TEMPORARY_DURATION_SECONDS) {
+            throw new IllegalArgumentException("durationSeconds is out of range");
+        }
+
+        String buffId = TEMPORARY_FLAT_BUFF_ID_PREFIX + statusType.getId();
+        BuffType type = new BuffType(
+            buffId,
+            TEMPORARY_FLAT_BUFF_TYPE,
+            TEMPORARY_FLAT_BUFF_DISPLAY_NAME,
+            Math.toIntExact(durationSeconds * 20L),
+            false,
+            List.of(new BuffModifier(statusType, BuffModifierType.FLAT, value))
+        );
+        purgeExpired(player);
+        remove(player, buffId);
+
+        LocalDateTime now = LocalDateTime.now();
+        ActiveBuff activeBuff = new ActiveBuff(type, now, now.plusSeconds(durationSeconds));
+        player.getActiveBuffs().add(activeBuff);
+        return activeBuff;
     }
 
     /**
