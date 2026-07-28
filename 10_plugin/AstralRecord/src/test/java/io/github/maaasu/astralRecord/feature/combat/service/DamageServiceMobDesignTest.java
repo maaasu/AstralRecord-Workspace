@@ -91,6 +91,22 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
     }
 
     @Test
+    void lifeStealRecoversHpFromActualHealthDamageOnly() {
+        DamageHarness harness = damageHarness();
+        AstPlayer attacker = attacker();
+        attacker.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.MAX_HEALTH, 100.0D,
+            StatusType.LIFE_STEAL, 25.0D
+        ), 100.0D, 0.0D, 0.0D));
+        MobInstance mob = DesignTestFixtures.mobInstance(10.0D, 0.0D, 0.0D);
+        when(harness.statusService.getStatus(attacker)).thenReturn(attacker.getStatusSnapshot());
+
+        harness.service.applyDamage(AstEntity.player(attacker), AstEntity.mob(mob), 6.0D, AttackType.MELEE);
+
+        verify(harness.statusService).recoverHp(attacker, 1.5D);
+    }
+
+    @Test
     void lethalPlayerDamageMarksMobDeadAndDelegatesDeathHandling() {
         DamageHarness harness = damageHarness();
         AstPlayer attacker = attacker();

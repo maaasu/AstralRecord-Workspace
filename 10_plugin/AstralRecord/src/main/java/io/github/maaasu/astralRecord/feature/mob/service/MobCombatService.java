@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.adventurerecord.service.AdventureRe
 import io.github.maaasu.astralRecord.feature.account.model.AccountExperienceResult;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
+import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageCalculator;
 import io.github.maaasu.astralRecord.feature.combat.service.LevelDifferenceCalculator;
 import io.github.maaasu.astralRecord.feature.mob.model.CombatStyle;
@@ -376,7 +377,7 @@ public class MobCombatService {
             case MAGIC -> template.statValue("INTELLIGENCE", 0.0);
         };
         double offensive = attack * (1.0 + scaling / 100.0);
-        double defense = resolvePlayerDefense(target, style);
+        double defense = resolvePlayerDefense(instance, target, style);
         double damage = Math.max(1.0, offensive - defense * 0.5);
         return damage;
     }
@@ -654,15 +655,26 @@ public class MobCombatService {
         particleDisplayService.spawnForNearbyViewers(location, SharedParticleDefinitions.CLASS_LEVEL_UP_ENCHANT);
     }
 
-    private double resolvePlayerDefense(@NotNull Player target, @NotNull CombatStyle style) {
+    private double resolvePlayerDefense(
+            @NotNull MobInstance attacker,
+            @NotNull Player target,
+            @NotNull CombatStyle style
+    ) {
         AstPlayer astPlayer = AstPlayerCache.get(target);
         if (astPlayer == null) {
             return 0.0D;
         }
-        StatusType defenseStatus = style == CombatStyle.MAGIC
-                ? StatusType.MAGIC_DEFENSE
-                : StatusType.DEFENSE;
-        return statusService.getStatus(astPlayer).rollValue(defenseStatus);
+        statusService.getStatus(astPlayer);
+        AttackType attackType = switch (style) {
+            case MELEE -> AttackType.MELEE;
+            case RANGED -> AttackType.RANGED;
+            case MAGIC -> AttackType.MAGIC;
+        };
+        return DamageCalculator.calculateDefensePower(
+                AstEntity.mob(attacker),
+                AstEntity.player(astPlayer),
+                attackType
+        );
     }
 
     private boolean isPlayerDead(@NotNull Player player) {

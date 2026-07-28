@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageScaling;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
 import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
@@ -220,7 +221,27 @@ public final class DamageService {
             @NotNull AttackType attackType,
             @NotNull List<DamageComponent> components
     ) {
-        return applyDamage(attacker, victim, 0.0D, attackType, components, DamageScaling.ATTACKER_STATUS);
+        return attack(attacker, victim, attackType, components, DamageSource.NORMAL_ATTACK);
+    }
+
+    /**
+     * 攻撃者のステータスを使って、発生元を明示した攻撃ダメージを適用します。
+     *
+     * @param attacker   攻撃者
+     * @param victim     被弾者
+     * @param attackType 攻撃種別
+     * @param components 属性別の攻撃倍率
+     * @param source     通常攻撃・スキルなどの発生元
+     * @return ダメージ結果
+     */
+    public @NotNull DamageResult attack(
+            @NotNull AstEntity attacker,
+            @NotNull AstEntity victim,
+            @NotNull AttackType attackType,
+            @NotNull List<DamageComponent> components,
+            @NotNull DamageSource source
+    ) {
+        return applyDamage(attacker, victim, 0.0D, attackType, components, DamageScaling.ATTACKER_STATUS, source);
     }
 
     /**
@@ -239,7 +260,7 @@ public final class DamageService {
             @NotNull AttackType attackType
     ) {
         return applyDamage(attacker, victim, baseDamage, attackType,
-                List.of(DamageComponent.defaultComponent()), DamageScaling.FIXED);
+                List.of(DamageComponent.defaultComponent()), DamageScaling.FIXED, DamageSource.OTHER);
     }
 
     /**
@@ -256,7 +277,7 @@ public final class DamageService {
             double baseDamage
     ) {
         return applyDamage(attacker, victim, baseDamage, AttackType.MAGIC,
-                List.of(DamageComponent.defaultComponent()), DamageScaling.FIXED);
+                List.of(DamageComponent.defaultComponent()), DamageScaling.FIXED, DamageSource.OTHER);
     }
 
     /**
@@ -341,7 +362,8 @@ public final class DamageService {
             double baseDamage,
             @NotNull AttackType attackType,
             @NotNull List<DamageComponent> components,
-            @NotNull DamageScaling scaling
+            @NotNull DamageScaling scaling,
+            @NotNull DamageSource source
     ) {
         if (attacker != null && attacker.isPlayer() && isPlayerDead(attacker.id())) {
             return new DamageResult(0.0D);
@@ -359,7 +381,7 @@ public final class DamageService {
         ensureStatusLoaded(attacker);
         ensureStatusLoaded(victim);
 
-        DamageContext context = new DamageContext(attacker, victim, baseDamage, attackType, components, scaling);
+        DamageContext context = new DamageContext(attacker, victim, baseDamage, attackType, components, scaling, source);
         DamageResult calculated = damageCalculator.calculate(context);
         if (!calculated.evaded() && calculated.finalDamage() > 0.0D) {
             double multiplier = finalDamageMultiplier(attacker) * temporaryDamageMultiplier(attacker, victim);
@@ -460,7 +482,9 @@ public final class DamageService {
 
         if (victim.isPlayer()) {
             if (victim.player() != null) {
+                double effectiveHealthDamage = Math.min(victim.currentHealth(), result.finalDamage());
                 var updated = statusService.consumeHp(victim.player(), result.finalDamage());
+                applyLifeSteal(attacker, effectiveHealthDamage);
                 playPlayerHurtEffect(victim.player().getBukkit(), result.critical());
                 if (knockback) {
                     applyDamageKnockback(attacker, victim, attackType);
@@ -490,6 +514,7 @@ public final class DamageService {
         mob.currentHealth(mob.nonLethal()
                 ? Math.max(1.0D, remainingHealth)
                 : Math.max(0.0D, remainingHealth));
+        applyLifeSteal(attacker, effectiveHealthDamage);
         playMobHurtEffect(mob.bukkitEntityId(), result.critical());
         if (knockback) {
             applyDamageKnockback(attacker, victim, attackType);
@@ -524,6 +549,20 @@ public final class DamageService {
                 mobCombatService.handleDeath(mob);
             }
         }
+    }
+
+    /**
+     * HP へ実際に与えたダメージを基準に、攻撃プレイヤーのライフスティールを回復へ反映します。
+     *
+     * @param attacker              攻撃者。プレイヤー以外は回復しません
+     * @param effectiveHealthDamage シールドを除く実HPダメージ
+     */
+    private void applyLifeSteal(@Nullable AstEntity attacker, double effectiveHealthDamage) {
+        if (attacker == null || !attacker.isPlayer() || attacker.player() == null || effectiveHealthDamage <= 0.0D) {
+            return;
+        }
+        double rate = Math.max(0.0D, attacker.statValue(StatusType.LIFE_STEAL));
+        statusService.recoverHp(attacker.player(), effectiveHealthDamage * rate / 100.0D);
     }
 
     private void applyShieldThreat(@Nullable AstEntity attacker, @NotNull AstEntity victim, double shieldDamage) {

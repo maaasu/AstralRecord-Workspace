@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageContext;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageScaling;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -166,6 +167,51 @@ class DamageCalculatorDesignTest {
 
         assertEquals(100.0D, lowResult.finalDamage(), 0.0001D);
         assertEquals(100.0D, highResult.finalDamage(), 0.0001D);
+    }
+
+    @Test
+    void skillAndNormalAttackDamageIncreasesUseTheirOwnDamageSource() {
+        DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
+        AstPlayer attacker = player(Map.of(
+            StatusType.SKILL_DAMAGE_INCREASE, 20.0D,
+            StatusType.NORMAL_ATTACK_DAMAGE_INCREASE, 50.0D
+        ));
+        AstPlayer victim = player(Map.of());
+
+        var skillResult = calculator.calculate(new DamageContext(
+            AstEntity.player(attacker), AstEntity.player(victim), 100.0D,
+            AttackType.MELEE, List.of(DamageComponent.defaultComponent()),
+            DamageScaling.FIXED, DamageSource.SKILL
+        ));
+        var normalResult = calculator.calculate(new DamageContext(
+            AstEntity.player(attacker), AstEntity.player(victim), 100.0D,
+            AttackType.MELEE, List.of(DamageComponent.defaultComponent()),
+            DamageScaling.FIXED, DamageSource.NORMAL_ATTACK
+        ));
+
+        assertEquals(120.0D, skillResult.finalDamage(), 0.0001D);
+        assertEquals(150.0D, normalResult.finalDamage(), 0.0001D);
+    }
+
+    @Test
+    void defenseUsesGeneralAndTypedDefenseAfterTheirOwnPenetrationRates() {
+        DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
+        AstPlayer attacker = player(Map.of(
+            StatusType.DEFENSE_PENETRATION_RATE, 20.0D,
+            StatusType.MELEE_DEFENSE_PENETRATION_RATE, 50.0D
+        ));
+        AstPlayer victim = player(Map.of(
+            StatusType.DEFENSE, 10.0D,
+            StatusType.MELEE_DEFENSE, 20.0D
+        ));
+
+        var result = calculator.calculate(new DamageContext(
+            AstEntity.player(attacker), AstEntity.player(victim), 100.0D,
+            AttackType.MELEE, List.of(DamageComponent.defaultComponent()),
+            DamageScaling.FIXED, DamageSource.OTHER
+        ));
+
+        assertEquals(111.0D, result.finalDamage(), 0.0001D);
     }
 
     @Test

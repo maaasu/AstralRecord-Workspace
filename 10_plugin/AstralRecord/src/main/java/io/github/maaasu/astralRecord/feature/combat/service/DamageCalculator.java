@@ -67,7 +67,9 @@ public final class DamageCalculator {
             return new DamageResult(0.0D, false, hitCheck.hitChance(), hitCheck.accuracy(), hitCheck.evasion());
         }
 
-        double damage = Math.max(0.0D, resolveBaseDamage(context)) * totalRatio;
+        double damage = Math.max(0.0D, resolveBaseDamage(context))
+                * totalRatio
+                * sourceDamageMultiplier(context);
         CriticalDamage criticalDamage = applyCriticalDamage(context, damage);
         damage = criticalDamage.damage();
 
@@ -158,9 +160,71 @@ public final class DamageCalculator {
     }
 
     private double defensePower(@NotNull DamageContext context) {
-        return context.attackType() == io.github.maaasu.astralRecord.feature.combat.model.AttackType.MAGIC
-                ? context.victim().statValue(StatusType.MAGIC_DEFENSE)
-                : context.victim().statValue(StatusType.DEFENSE);
+        return calculateDefensePower(context.attacker(), context.victim(), context.attackType());
+    }
+
+    /**
+     * 全ダメージ防御力と攻撃種別防御力へ対応する貫通率を適用した有効防御力を返します。
+     *
+     * @param attacker   攻撃者。存在しない場合は防御貫通なし
+     * @param victim     被弾者
+     * @param attackType 攻撃種別
+     * @return 有効防御力
+     */
+    public static double calculateDefensePower(
+            @Nullable io.github.maaasu.astralRecord.feature.combat.model.AstEntity attacker,
+            @NotNull io.github.maaasu.astralRecord.feature.combat.model.AstEntity victim,
+            @NotNull io.github.maaasu.astralRecord.feature.combat.model.AttackType attackType
+    ) {
+        double generalDefense = effectiveDefense(
+                victim.statValue(StatusType.DEFENSE),
+                attacker == null ? 0.0D : attacker.statValue(StatusType.DEFENSE_PENETRATION_RATE)
+        );
+        double typedDefense = effectiveDefense(
+                victim.statValue(defenseStatusType(attackType)),
+                attacker == null ? 0.0D : attacker.statValue(defensePenetrationStatusType(attackType))
+        );
+        return generalDefense + typedDefense;
+    }
+
+    private static double effectiveDefense(double defense, double penetrationRate) {
+        return Math.max(0.0D, defense)
+                * Math.max(0.0D, 1.0D - Math.max(0.0D, penetrationRate) / 100.0D);
+    }
+
+    private static @NotNull StatusType defenseStatusType(
+            @NotNull io.github.maaasu.astralRecord.feature.combat.model.AttackType attackType
+    ) {
+        return switch (attackType) {
+            case MELEE -> StatusType.MELEE_DEFENSE;
+            case RANGED -> StatusType.RANGED_DEFENSE;
+            case MAGIC -> StatusType.MAGIC_DEFENSE;
+        };
+    }
+
+    private static @NotNull StatusType defensePenetrationStatusType(
+            @NotNull io.github.maaasu.astralRecord.feature.combat.model.AttackType attackType
+    ) {
+        return switch (attackType) {
+            case MELEE -> StatusType.MELEE_DEFENSE_PENETRATION_RATE;
+            case RANGED -> StatusType.RANGED_DEFENSE_PENETRATION_RATE;
+            case MAGIC -> StatusType.MAGIC_DEFENSE_PENETRATION_RATE;
+        };
+    }
+
+    private double sourceDamageMultiplier(@NotNull DamageContext context) {
+        if (context.attacker() == null || !context.attacker().isManaged()) {
+            return 1.0D;
+        }
+        StatusType statusType = switch (context.source()) {
+            case SKILL -> StatusType.SKILL_DAMAGE_INCREASE;
+            case NORMAL_ATTACK -> StatusType.NORMAL_ATTACK_DAMAGE_INCREASE;
+            case OTHER -> null;
+        };
+        if (statusType == null) {
+            return 1.0D;
+        }
+        return Math.max(0.0D, 1.0D + context.attacker().statValue(statusType) / 100.0D);
     }
 
     private double elementMultiplier(@NotNull DamageContext context, @NotNull DamageElement element) {

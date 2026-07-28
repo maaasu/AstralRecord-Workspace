@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.MobSkillCaster;
@@ -312,7 +313,7 @@ public class SkillService {
             return SkillCastResult.failure(PlayerMsgId.P_5800);
         }
         SkillResourceType resourceType = resolveResourceType(skill);
-        double requiredCost = resolveResourceCost(skill);
+        double requiredCost = resolveResourceCost(caster, skill);
         if (currentResource(caster, resourceType) < requiredCost) {
             return SkillCastResult.failure(resourceType.insufficientMessageId());
         }
@@ -370,7 +371,7 @@ public class SkillService {
             return guard;
         }
 
-        if (definition.getCastTimeTicks() > 0L) {
+        if (resolveCastTimeTicks(caster, definition) > 0L) {
             return beginCast(caster, definition, trigger, castLocation, primaryTarget, targets);
         }
 
@@ -422,7 +423,7 @@ public class SkillService {
         }
 
         if (result.success()) {
-            consumeResource(caster, resolveResourceType(definition), resolveResourceCost(definition));
+            consumeResource(caster, resolveResourceType(definition), resolveResourceCost(caster, definition));
             if (definition.getCooldownTicks() > 0L) {
                 startCooldown(caster, definition.getId(), definition.getCooldownTicks());
             }
@@ -552,6 +553,11 @@ public class SkillService {
             @NotNull SkillDefinition definition
     ) {
         double multiplier = 1.0D;
+        AstEntity entity = toAstEntity(caster);
+        if (entity != null) {
+            double reduction = Math.max(0.0D, entity.statValue(StatusType.CAST_TIME_REDUCTION));
+            multiplier *= Math.max(0.0D, 1.0D - reduction / 100.0D);
+        }
         if (conditionService != null) {
             if (caster instanceof PlayerSkillCaster playerCaster) {
                 multiplier = conditionService.castTimeMultiplier(AstEntity.player(playerCaster.player()));
@@ -804,6 +810,26 @@ public class SkillService {
             return number.doubleValue();
         }
         throw new SkillParameterException("resourceCost", "number を指定してください");
+    }
+
+    /**
+     * 発動者の消費軽減率を反映したスキルの実消費量を返します。
+     *
+     * @param caster 発動者
+     * @param skill  スキル定義
+     * @return 0 以上の実消費量
+     */
+    private double resolveResourceCost(@NotNull SkillCaster caster, @NotNull SkillDefinition skill) {
+        double baseCost = resolveResourceCost(skill);
+        AstEntity entity = toAstEntity(caster);
+        if (entity == null) {
+            return baseCost;
+        }
+        StatusType reductionType = resolveResourceType(skill) == SkillResourceType.MANA
+                ? StatusType.MANA_COST_REDUCTION
+                : StatusType.ENERGY_COST_REDUCTION;
+        double reduction = Math.max(0.0D, entity.statValue(reductionType));
+        return Math.max(0.0D, baseCost * (1.0D - reduction / 100.0D));
     }
 
     private double currentResource(@NotNull SkillCaster caster, @NotNull SkillResourceType resourceType) {

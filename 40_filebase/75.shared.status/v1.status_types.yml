@@ -31,10 +31,17 @@ statuses:
   - { id: CRITICAL_DAMAGE, displayName: "会心ダメージ", description: "会心が発生したときのダメージ倍率。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
   - { id: SUPER_CRITICAL_RATE, displayName: "超会心率", description: "攻撃が超会心になる確率。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
   - { id: SUPER_CRITICAL_DAMAGE, displayName: "超会心ダメージ", description: "超会心が発生したときのダメージ倍率。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
+  - { id: SKILL_DAMAGE_INCREASE, displayName: "スキルダメージ増加", description: "スキルで与えるダメージを増加させる補正。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
+  - { id: NORMAL_ATTACK_DAMAGE_INCREASE, displayName: "通常攻撃ダメージ増加", description: "通常攻撃で与えるダメージを増加させる補正。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
   - { id: FINAL_DAMAGE_MULTIPLIER, displayName: "最終ダメージ倍率", description: "各種補正の後に常時適用される最終ダメージ倍率。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
   - { id: ACCURACY, displayName: "命中率", description: "攻撃が対象へ命中する確率。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
   - { id: ATTACK_SPEED, displayName: "攻撃速度", description: "通常攻撃や攻撃行動を行う速さ。", category: OFFENSE, suffix: "%" }
   - { id: SHIELD_BREAK, displayName: "シールドブレイク", description: "対象のシールドを削る攻撃性能。", category: OFFENSE }
+  - { id: DEFENSE_PENETRATION_RATE, displayName: "防御力貫通率", description: "対象の全ダメージ防御力を割合で無視する補正。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
+  - { id: MELEE_DEFENSE_PENETRATION_RATE, displayName: "近接防御貫通率", description: "対象の近接防御力を割合で無視する補正。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
+  - { id: RANGED_DEFENSE_PENETRATION_RATE, displayName: "間接防御貫通率", description: "対象の間接防御力を割合で無視する補正。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
+  - { id: MAGIC_DEFENSE_PENETRATION_RATE, displayName: "魔法防御貫通率", description: "対象の魔法防御力を割合で無視する補正。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
+  - { id: LIFE_STEAL, displayName: "ライフスティール", description: "HPへ与えたダメージの一部を自身のHPとして回復する補正。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
   - { id: FIRE_DAMAGE_INCREASE, displayName: "火属性ダメージ増加", description: "火属性で与えるダメージを増加させる補正。", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
   - { id: FIRE_RESISTANCE, displayName: "火属性耐性", description: "火属性から受けるダメージを軽減する補正。", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
   - { id: FIRE_PENETRATION, displayName: "火属性貫通", description: "対象の火属性耐性を無視して攻撃する性能。", category: ELEMENT, suffix: "%", decimalPlaces: 1 }
@@ -78,8 +85,10 @@ statuses:
   - { id: WEAKNESS_RESISTANCE, displayName: "衰弱付与耐性", description: "衰弱を付与されにくくする補正。", category: CONDITION, suffix: "%", decimalPlaces: 1 }
   - { id: HEALING_INHIBITION_APPLY_CHANCE, displayName: "回復阻害付与確率増加", description: "攻撃時に回復阻害を付与する確率を高める補正。", category: CONDITION, suffix: "%", decimalPlaces: 1 }
   - { id: HEALING_INHIBITION_RESISTANCE, displayName: "回復阻害付与耐性", description: "回復阻害を付与されにくくする補正。", category: CONDITION, suffix: "%", decimalPlaces: 1 }
-  - { id: DEFENSE, displayName: "防御力", description: "物理攻撃から受けるダメージを抑える防御性能。", category: DEFENSE }
-  - { id: MAGIC_DEFENSE, displayName: "魔法防御力", description: "魔法攻撃から受けるダメージを抑える防御性能。", category: DEFENSE }
+  - { id: DEFENSE, displayName: "防御力", description: "すべての攻撃種別から受けるダメージを抑える共通防御力。", category: DEFENSE }
+  - { id: MELEE_DEFENSE, displayName: "近接防御力", description: "近接攻撃から受けるダメージを追加で抑える防御性能。", category: DEFENSE }
+  - { id: RANGED_DEFENSE, displayName: "間接防御力", description: "間接攻撃から受けるダメージを追加で抑える防御性能。", category: DEFENSE }
+  - { id: MAGIC_DEFENSE, displayName: "魔法防御力", description: "魔法攻撃から受けるダメージを追加で抑える防御性能。", category: DEFENSE }
   - { id: EVASION, displayName: "回避率", description: "攻撃を回避して無効化する確率。", category: DEFENSE, suffix: "%", decimalPlaces: 1 }
   - { id: KNOCKBACK_RESISTANCE, displayName: "ノックバック耐性", description: "攻撃を受けたときにノックバックしにくくする補正。", category: DEFENSE, suffix: "%", decimalPlaces: 1 }
   - { id: HP_REGEN, displayName: "HP回復力", description: "時間経過などでHPを回復する量。", category: UTILITY }
@@ -87,6 +96,11 @@ statuses:
   - { id: ENERGY_REGEN, displayName: "EN回復力", description: "時間経過などでENを回復する量。", category: UTILITY }
   - { id: MOVEMENT_SPEED, displayName: "移動速度", description: "フィールド上を移動する速さ。", category: UTILITY }
   - { id: COOLDOWN_REDUCTION, displayName: "CD短縮", description: "スキルの再使用までに必要な時間を短縮する補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
+  - { id: CAST_TIME_REDUCTION, displayName: "詠唱時間短縮率", description: "スキルの詠唱時間を割合で短縮する補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
+  - { id: MANA_COST_REDUCTION, displayName: "MP消費軽減率", description: "スキルのMP消費量を割合で軽減する補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
+  - { id: ENERGY_COST_REDUCTION, displayName: "エネルギー消費軽減率", description: "スキルのエネルギー消費量を割合で軽減する補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
+  - { id: HEALING_INCREASE, displayName: "回復量増加", description: "自身のHP回復量を増加させる補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
+  - { id: CONDITION_DURATION_INCREASE, displayName: "状態異常持続時間増加", description: "自身が付与する状態異常の持続時間を増加させる補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
   - { id: SHIELD_RECHARGE_REDUCTION, displayName: "シールドリチャージ短縮", description: "シールドの再充填開始までに必要な時間を短縮する補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
   - { id: SHIELD_RECHARGE_RATE, displayName: "シールドリチャージ", description: "時間経過などでシールドを再充填する量。", category: UTILITY }
   - { id: MINING_SPEED, displayName: "採集速度", description: "採掘や採取などの採集行動を行う速さ。", category: UTILITY }

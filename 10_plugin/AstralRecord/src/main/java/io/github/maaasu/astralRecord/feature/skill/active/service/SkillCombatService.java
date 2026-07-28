@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyReason;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyRequest;
@@ -68,7 +69,7 @@ public final class SkillCombatService {
             @NotNull List<DamageComponent> components,
             @NotNull ActiveSkillCondition... conditions
     ) {
-        DamageResult result = damageService.attack(attacker, target, attackType, components);
+        DamageResult result = damageService.attack(attacker, target, attackType, components, DamageSource.SKILL);
         if (!result.evaded() && (result.finalDamage() > 0.0D || result.shieldDamage() > 0.0D)) {
             Arrays.stream(conditions).forEach(condition -> applyCondition(attacker, target, condition));
         }

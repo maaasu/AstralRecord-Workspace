@@ -278,7 +278,11 @@ public class StatusService {
             return snapshot;
         }
 
-        StatusSnapshot updated = snapshot.withCurrentValues(snapshot.getCurrentHp() + amount, snapshot.getCurrentMp());
+        double healingIncrease = Math.max(0.0D, snapshot.getMaxValue(StatusType.HEALING_INCREASE));
+        StatusSnapshot updated = snapshot.withCurrentValues(
+            snapshot.getCurrentHp() + amount * (1.0D + healingIncrease / 100.0D),
+            snapshot.getCurrentMp()
+        );
         player.setStatusSnapshot(updated);
         return updated;
     }

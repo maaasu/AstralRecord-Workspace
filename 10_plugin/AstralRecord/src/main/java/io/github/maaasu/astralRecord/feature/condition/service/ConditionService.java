@@ -64,7 +64,7 @@ public final class ConditionService {
             return ConditionApplyResult.rejected(ConditionRejectReason.CHANCE_FAILED);
         }
 
-        long durationTicks = adjustedDurationTicks(request.target(), request.type(), request.durationTicks());
+        long durationTicks = adjustedDurationTicks(request);
         if (durationTicks < 1L) {
             return ConditionApplyResult.rejected(ConditionRejectReason.RESISTED);
         }
@@ -391,16 +391,19 @@ public final class ConditionService {
         return Math.max(0.0D, base + sourceAttack * coefficient);
     }
 
-    private long adjustedDurationTicks(
-            @NotNull AstEntity target,
-            @NotNull ConditionType type,
-            long requestedDurationTicks
-    ) {
-        long durationTicks = requestedDurationTicks <= 0L ? type.defaultDurationTicks() : requestedDurationTicks;
+    private long adjustedDurationTicks(@NotNull ConditionApplyRequest request) {
+        long durationTicks = request.durationTicks() <= 0L
+                ? request.type().defaultDurationTicks()
+                : request.durationTicks();
+        if (request.source() != null) {
+            double increase = Math.max(0.0D, request.source().statValue(StatusType.CONDITION_DURATION_INCREASE));
+            durationTicks = Math.round(durationTicks * (1.0D + increase / 100.0D));
+        }
+        AstEntity target = request.target();
         if (!target.isMob() || target.mob() == null || target.mob().template().category() != MobCategory.BOSS) {
             return durationTicks;
         }
-        return type.category() == ConditionCategory.CONTROL
+        return request.type().category() == ConditionCategory.CONTROL
                 ? Math.round(durationTicks * 0.25D)
                 : durationTicks;
     }

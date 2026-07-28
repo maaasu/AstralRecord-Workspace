@@ -19,6 +19,7 @@ import java.util.List;
  * @param baseDamage   Bukkit 側のベースダメージ（{@link EntityDamageByEntityEvent#getDamage()}）
  * @param attackType   攻撃種別（近接 / 間接 / 魔法）
  * @param components   属性別ダメージ倍率。空の場合は無属性100%として扱う
+ * @param source       通常攻撃・スキルなどの発生元
  */
 public record DamageContext(
         @Nullable AstEntity attacker,
@@ -26,8 +27,20 @@ public record DamageContext(
         double baseDamage,
         @NotNull AttackType attackType,
         @NotNull List<DamageComponent> components,
-        @NotNull DamageScaling scaling
+        @NotNull DamageScaling scaling,
+        @NotNull DamageSource source
 ) {
+
+    public DamageContext(
+            @Nullable AstEntity attacker,
+            @NotNull AstEntity victim,
+            double baseDamage,
+            @NotNull AttackType attackType,
+            @NotNull List<DamageComponent> components,
+            @NotNull DamageScaling scaling
+    ) {
+        this(attacker, victim, baseDamage, attackType, components, scaling, DamageSource.NORMAL_ATTACK);
+    }
 
     public DamageContext(
             @Nullable AstEntity attacker,
@@ -36,7 +49,7 @@ public record DamageContext(
             @NotNull AttackType attackType,
             @NotNull DamageScaling scaling
     ) {
-        this(attacker, victim, baseDamage, attackType, List.of(DamageComponent.defaultComponent()), scaling);
+        this(attacker, victim, baseDamage, attackType, List.of(DamageComponent.defaultComponent()), scaling, DamageSource.NORMAL_ATTACK);
     }
 
     public DamageContext {
