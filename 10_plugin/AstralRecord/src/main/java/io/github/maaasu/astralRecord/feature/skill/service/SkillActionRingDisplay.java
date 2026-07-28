@@ -20,6 +20,7 @@ import org.joml.Vector3f;
 final class SkillActionRingDisplay {
     private static final float ITEM_SCALE = 0.55F;
     private static final int TEXT_LINE_WIDTH = 180;
+    private static final int TELEPORT_DURATION_TICKS = 1;
     private static final float DEFAULT_VIEW_RANGE = 16.0F;
 
     private final Plugin plugin;
@@ -52,6 +53,7 @@ final class SkillActionRingDisplay {
         display.setSilent(true);
         display.setViewRange(DEFAULT_VIEW_RANGE);
         display.setVisibleByDefault(false);
+        display.setTeleportDuration(TELEPORT_DURATION_TICKS);
     }
 
     private static @NotNull Transformation scaleTransformation(float scale) {
