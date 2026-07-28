@@ -39,7 +39,7 @@ If target project cannot be determined, stop and ask the project-selection quest
    - Web implementation: use the root `README.md` "AstralRecord Web" section, then apply the general workflow here.
    - Database, filebase, or resourcepack changes: use `00_docs/40_Database設計書/README.md` or the root `README.md` "AstralRecord Filebase" / "AstralRecord Resource Pack" sections; treat generated/runtime outputs as out of scope unless the project rules say otherwise.
 2. Build the minimum context:
-   - For design-driven work, read the specified design docs, feature README, linked contract docs, and unresolved-decision notes.
+   - For design-driven work, read the specified design docs, feature overview, linked contract docs, planned specifications, and unresolved-decision notes.
    - For custom instructions, search for the named symbols, item IDs, routes, messages, tables, or resource keys.
    - For plugin logs/messages/DB/filebase dependencies, use the specialized rules embedded in `references/plugin-code.md`.
 3. Plan the edit boundary:

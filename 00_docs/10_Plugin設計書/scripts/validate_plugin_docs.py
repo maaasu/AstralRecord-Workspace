@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AstralRecord Plugin 設計書の構造と参照を検証する。"""
+"""AstralRecord Plugin設計書の構造、所有関係、参照を検証する。"""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import re
 import sys
 from collections import defaultdict
 from pathlib import Path
+from urllib.parse import unquote
 
 
 DOCS_ROOT = Path(__file__).resolve().parents[1]
@@ -26,49 +27,63 @@ PLUGIN_FEATURE_ROOT = (
     / "astralRecord"
     / "feature"
 )
+
 FEATURE_DIR_PATTERN = re.compile(r"^(?P<number>\d{2})-(?P<slug>[a-z0-9-]+)$")
-DETAIL_FILE_PATTERN = re.compile(
-    r"^(?P<number>\d{2})_(?P<category>\d+)\.(?P<detail>\d{2})-(?P<title>.+)\.md$"
+DOC_FILE_PATTERN = re.compile(
+    r"^(?P<number>\d{2})_(?P<category>\d+)-(?P<title>[^\[\]\s]+)\.md$"
 )
+OLD_DOC_FILE_PATTERN = re.compile(r"^\d{2}_\d+\.\d{2}-.+\.md$")
+FEATURE_README_PATTERN = re.compile(r"^\d{2}_README\.md$")
+CATEGORY_DIR_PATTERN = re.compile(r"^(?P<category>\d+)-(?P<title>[^\[\]\s]+)$")
+ALLOWED_CATEGORIES = {"0", "1", "2", "3", "4", "5", "6", "8", "9"}
 WIKI_LINK_PATTERN = re.compile(r"\[\[([^\]]+)\]\]")
-PLUGIN_DOC_TARGET_PATTERN = re.compile(r"^\d{2}_(?:README|\d+\.\d{2}-.+)$")
-FLOW_HEADING_PATTERN = re.compile(r"^## \d+\. .+$", re.MULTILINE)
+MARKDOWN_LINK_PATTERN = re.compile(r"\[[^\]]*\]\((?!https?://|mailto:)([^)]+)\)")
+PLUGIN_DOC_TARGET_PATTERN = re.compile(
+    r"^\d{2}_(?:README|\d+\.\d{2}-.+|\d+-.+)$"
+)
 CHANGELOG_HEADING_PATTERN = re.compile(
     r"^#{2,6}\s+(?:追記|20\d{2}-\d{2}(?:-\d{2})?(?:\s|$))", re.MULTILINE
 )
-REQUIRED_README_HEADINGS = (
-    "## 対象実装パス",
-    "## ドキュメント一覧（推奨順）",
-    "## 依存 feature",
-    "## 更新ルール（変更時に必ず更新する章）",
+EMPTY_UNRESOLVED_PATTERN = re.compile(
+    r"(?:現在|現時点で).{0,20}未決事項.{0,10}(?:は)?(?:ない|なし)", re.DOTALL
 )
-TARGET_PATH_PREFIX = "10_plugin/AstralRecord/"
-TARGET_PATH_PATTERN = re.compile(r"`([^`\r\n]+)`")
-FEATURE_PACKAGE_PATTERN = re.compile(
-    r"^10_plugin/AstralRecord/src/main/(?:java|kotlin)/"
-    r"io/github/maaasu/astralRecord/feature/(?P<package>[a-z0-9]+)(?:/|$)"
-)
-CATALOG_README_PATTERN = re.compile(r"\[\[(\d{2})_README(?:\|[^\]]+)?\]\]")
+CATALOG_OVERVIEW_PATTERN = re.compile(r"\[\[(\d{2})_0-概要(?:\|[^\]]+)?\]\]")
 CATALOG_PACKAGE_PATTERN = re.compile(r"`feature/([a-z0-9]+)`")
+CATALOG_OWNER_HEADING_PATTERN = re.compile(
+    r"^### \[\[(\d{2})_0-概要\|[^\]]+\]\]$", re.MULTILINE
+)
 
 
 def read_text(path: Path) -> str:
-    """UTF-8 BOM の有無を許容してテキストを読む。"""
+    """UTF-8 BOMの有無を許容してテキストを読む。"""
 
     return path.read_text(encoding="utf-8-sig")
 
 
 def relative(path: Path) -> str:
-    """検証結果向けに docs root からの相対パスを返す。"""
+    """検証結果向けにdocs rootからの相対パスを返す。"""
 
-    return path.relative_to(DOCS_ROOT).as_posix()
+    try:
+        return path.relative_to(DOCS_ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
 
 
 def wiki_target(raw_target: str) -> str:
-    """Wikiリンクからファイル名部分だけを取り出す。"""
+    """Wikiリンクから拡張子を除いた対象ファイル名を返す。"""
 
     target = raw_target.split("|", 1)[0].split("#", 1)[0].strip()
-    return Path(target).name
+    name = Path(target.replace("\\", "/")).name
+    return name[:-3] if name.endswith(".md") else name
+
+
+def markdown_target(raw_target: str) -> str:
+    """Markdownリンクからfragment等を除いたパス文字列を返す。"""
+
+    target = raw_target.strip().split("#", 1)[0].split("?", 1)[0]
+    if target.startswith("<") and target.endswith(">"):
+        target = target[1:-1]
+    return unquote(target)
 
 
 def validate() -> list[str]:
@@ -83,12 +98,12 @@ def validate() -> list[str]:
     for feature_dir in feature_dirs:
         match = FEATURE_DIR_PATTERN.fullmatch(feature_dir.name)
         if match is None:
-            errors.append(f"不正な feature ディレクトリ名: {relative(feature_dir)}")
+            errors.append(f"不正なfeatureディレクトリ名: {relative(feature_dir)}")
             continue
         number = match.group("number")
         if number in feature_numbers:
             errors.append(
-                "feature 採番重複: "
+                "feature採番重複: "
                 f"{number} ({relative(feature_numbers[number])}, {relative(feature_dir)})"
             )
         else:
@@ -100,7 +115,7 @@ def validate() -> list[str]:
         for value in range(1, highest_number + 1):
             number = f"{value:02d}"
             if number not in feature_numbers:
-                errors.append(f"feature 採番欠番: {number}")
+                errors.append(f"feature採番欠番: {number}")
 
     files_by_stem: dict[str, list[Path]] = defaultdict(list)
     for markdown_file in markdown_files:
@@ -108,104 +123,94 @@ def validate() -> list[str]:
     for stem, paths in sorted(files_by_stem.items()):
         if len(paths) > 1:
             errors.append(
-                f"Markdown ファイル名重複: {stem} "
+                f"Markdownファイル名重複: {stem} "
                 f"({', '.join(relative(path) for path in paths)})"
             )
 
-    covered_source_packages: set[str] = set()
     for feature_dir, number in parsed_features:
-        readme = feature_dir / f"{number}_README.md"
-        if not readme.is_file():
-            errors.append(f"feature README 不足: {relative(readme)}")
-            continue
-
-        readme_content = read_text(readme)
-        if readme_content.splitlines()[:1] != [f"# {number}_README"]:
-            errors.append(f"README H1 不一致: {relative(readme)}")
-
-        previous_index = -1
-        for heading in REQUIRED_README_HEADINGS:
-            index = readme_content.find(heading)
-            if index < 0:
-                errors.append(f"README 必須章不足: {relative(readme)} -> {heading}")
-            elif index <= previous_index:
-                errors.append(f"README 必須章順序不正: {relative(readme)} -> {heading}")
-            else:
-                previous_index = index
-
-        target_section_start = readme_content.find("## 対象実装パス")
-        target_section_end = readme_content.find("\n## ", target_section_start + 1)
-        if target_section_start >= 0:
-            if target_section_end < 0:
-                target_section_end = len(readme_content)
-            target_section = readme_content[target_section_start:target_section_end]
-            target_paths = [
-                target
-                for target in TARGET_PATH_PATTERN.findall(target_section)
-                if "/" in target
-            ]
-            if not target_paths:
-                errors.append(f"README 対象実装パス不足: {relative(readme)}")
-            for target_path in target_paths:
-                normalized_target = target_path.replace("\\", "/")
-                if not normalized_target.startswith(TARGET_PATH_PREFIX):
-                    errors.append(
-                        f"README 対象実装パスがリポジトリ相対でない: "
-                        f"{relative(readme)} -> {target_path}"
-                    )
-                    continue
-                path_without_glob = normalized_target.split("*", 1)[0].rstrip("/")
-                if not (REPOSITORY_ROOT / path_without_glob).exists():
-                    errors.append(
-                        f"README 対象実装パス不存在: "
-                        f"{relative(readme)} -> {target_path}"
-                    )
-                package_match = FEATURE_PACKAGE_PATTERN.match(normalized_target)
-                if package_match is not None:
-                    covered_source_packages.add(package_match.group("package"))
+        direct_readmes = [
+            path for path in feature_dir.glob("*_README.md") if FEATURE_README_PATTERN.fullmatch(path.name)
+        ]
+        for readme in direct_readmes:
+            errors.append(f"廃止済みfeature README残存: {relative(readme)}")
 
         feature_markdown = sorted(feature_dir.rglob("*.md"))
-        expected_stems: set[str] = set()
+        overviews = [path for path in feature_markdown if path.name == f"{number}_0-概要.md"]
+        if len(overviews) != 1:
+            errors.append(
+                f"feature概要は1件必須: {relative(feature_dir)} -> {len(overviews)}件"
+            )
+        elif overviews[0].parent != feature_dir:
+            errors.append(f"feature概要はfeature直下へ配置: {relative(overviews[0])}")
+
+        categories_at_root: set[str] = set()
+        categories_in_directories: set[str] = set()
+
+        for child in sorted(feature_dir.iterdir()):
+            if not child.is_dir():
+                continue
+            category_match = CATEGORY_DIR_PATTERN.fullmatch(child.name)
+            if category_match is None:
+                errors.append(f"カテゴリディレクトリ名不正: {relative(child)}")
+                continue
+            if category_match.group("category") not in ALLOWED_CATEGORIES:
+                errors.append(f"未定義カテゴリディレクトリ: {relative(child)}")
+
+            direct_markdown = sorted(child.glob("*.md"))
+            nested_markdown = sorted(path for path in child.rglob("*.md") if path.parent != child)
+            if nested_markdown:
+                errors.append(f"カテゴリディレクトリの多段化: {relative(child)}")
+            if len(direct_markdown) < 2:
+                errors.append(
+                    f"単一ファイルカテゴリはfeature直下へ配置: {relative(child)} -> "
+                    f"{len(direct_markdown)}件"
+                )
+            if not direct_markdown and not nested_markdown:
+                errors.append(f"空カテゴリディレクトリ: {relative(child)}")
+            categories_in_directories.add(category_match.group("category"))
+
         for markdown_file in feature_markdown:
             content = read_text(markdown_file)
-            if markdown_file == readme:
+            if FEATURE_README_PATTERN.fullmatch(markdown_file.name):
                 continue
 
-            expected_stems.add(markdown_file.stem)
-            if not markdown_file.name.startswith(f"{number}_"):
-                errors.append(f"feature 番号とファイル名不一致: {relative(markdown_file)}")
-            if content.splitlines()[:1] != [f"# {markdown_file.stem}"]:
-                errors.append(f"H1 とファイル名不一致: {relative(markdown_file)}")
+            if OLD_DOC_FILE_PATTERN.fullmatch(markdown_file.name):
+                errors.append(f"旧詳細番号ファイル名残存: {relative(markdown_file)}")
 
-            detail_match = DETAIL_FILE_PATTERN.fullmatch(markdown_file.name)
-            if detail_match is None:
-                errors.append(f"詳細ファイル名形式不正: {relative(markdown_file)}")
+            name_match = DOC_FILE_PATTERN.fullmatch(markdown_file.name)
+            if name_match is None:
+                errors.append(f"設計書ファイル名形式不正: {relative(markdown_file)}")
+                continue
+            if name_match.group("number") != number:
+                errors.append(f"feature番号とファイル名不一致: {relative(markdown_file)}")
+
+            category = name_match.group("category")
+            if category not in ALLOWED_CATEGORIES:
+                errors.append(f"未定義カテゴリ番号: {relative(markdown_file)}")
+            if markdown_file.parent == feature_dir:
+                categories_at_root.add(category)
             else:
-                category_match = re.match(r"^(\d+)-", markdown_file.parent.name)
-                if category_match is None:
-                    errors.append(f"カテゴリディレクトリ名不正: {relative(markdown_file.parent)}")
-                elif category_match.group(1) != detail_match.group("category"):
-                    errors.append(f"カテゴリ番号不一致: {relative(markdown_file)}")
+                if markdown_file.parent.parent != feature_dir:
+                    errors.append(f"設計書配置が深すぎる: {relative(markdown_file)}")
+                directory_match = CATEGORY_DIR_PATTERN.fullmatch(markdown_file.parent.name)
+                if directory_match is None or directory_match.group("category") != category:
+                    errors.append(f"カテゴリ番号とディレクトリ不一致: {relative(markdown_file)}")
 
-            if markdown_file.parent.name.startswith("4-"):
-                if "```mermaid" not in content:
-                    errors.append(f"統合フロー Mermaid 不足: {relative(markdown_file)}")
-                if FLOW_HEADING_PATTERN.search(content) is None:
-                    errors.append(f"統合フロー連番見出し不足: {relative(markdown_file)}")
+            first_line = content.splitlines()[:1]
+            if first_line != [f"# {markdown_file.stem}"]:
+                errors.append(f"H1とファイル名不一致: {relative(markdown_file)}")
 
             if CHANGELOG_HEADING_PATTERN.search(content) is not None:
                 errors.append(f"時系列追記見出し: {relative(markdown_file)}")
 
-        listed_stems = {
-            wiki_target(raw_target)
-            for raw_target in WIKI_LINK_PATTERN.findall(readme_content)
-            if wiki_target(raw_target).startswith(f"{number}_")
-            and wiki_target(raw_target) != f"{number}_README"
-        }
-        for missing in sorted(expected_stems - listed_stems):
-            errors.append(f"README 目次漏れ: {relative(readme)} -> {missing}")
-        for unknown in sorted(listed_stems - expected_stems):
-            errors.append(f"README 目次の参照先不存在: {relative(readme)} -> {unknown}")
+            if category == "9" and EMPTY_UNRESOLVED_PATTERN.search(content):
+                errors.append(f"空の未決事項文書: {relative(markdown_file)}")
+
+        for mixed_category in sorted(categories_at_root & categories_in_directories):
+            errors.append(
+                f"同一カテゴリが直下とディレクトリに分散: "
+                f"{relative(feature_dir)} -> {mixed_category}"
+            )
 
     for markdown_file in markdown_files:
         content = read_text(markdown_file)
@@ -219,39 +224,67 @@ def validate() -> list[str]:
             elif len(matches) > 1:
                 errors.append(f"Wikiリンク参照先重複: {relative(markdown_file)} -> {target}")
 
+        for raw_target in MARKDOWN_LINK_PATTERN.findall(content):
+            target = markdown_target(raw_target)
+            if not target or not target.lower().endswith(".md"):
+                continue
+            target_path = Path(target)
+            if target_path.is_absolute():
+                resolved = target_path
+            else:
+                resolved = (markdown_file.parent / target_path).resolve()
+            if not resolved.is_file():
+                errors.append(
+                    f"Markdownリンク参照先不存在: {relative(markdown_file)} -> {target}"
+                )
+
     source_packages: set[str] = set()
     if PLUGIN_FEATURE_ROOT.is_dir():
         source_packages = {
             path.name for path in PLUGIN_FEATURE_ROOT.iterdir() if path.is_dir()
         }
-        for package in sorted(source_packages - covered_source_packages):
-            errors.append(f"source feature package の設計書所有者不足: {package}")
     else:
         errors.append(
-            "Plugin feature source root 不存在: "
+            "Plugin feature source root不存在: "
             f"{PLUGIN_FEATURE_ROOT.relative_to(REPOSITORY_ROOT).as_posix()}"
         )
 
     if not FEATURE_CATALOG.is_file():
-        errors.append(f"feature カタログ不足: {relative(FEATURE_CATALOG)}")
+        errors.append(f"featureカタログ不足: {relative(FEATURE_CATALOG)}")
     else:
         catalog_content = read_text(FEATURE_CATALOG)
-        catalog_numbers = CATALOG_README_PATTERN.findall(catalog_content)
+        primary_catalog = catalog_content.split("## 更新規則", 1)[0]
+        catalog_numbers = CATALOG_OVERVIEW_PATTERN.findall(primary_catalog)
         expected_numbers = set(feature_numbers)
-        for number in sorted(expected_numbers - set(catalog_numbers)):
-            errors.append(f"feature カタログの README 漏れ: {number}_README")
-        for number in sorted(set(catalog_numbers) - expected_numbers):
-            errors.append(f"feature カタログの不存在 README: {number}_README")
-        for number in sorted({value for value in catalog_numbers if catalog_numbers.count(value) > 1}):
-            errors.append(f"feature カタログの README 重複: {number}_README")
 
-        catalog_packages = CATALOG_PACKAGE_PATTERN.findall(catalog_content)
+        for number in sorted(expected_numbers - set(catalog_numbers)):
+            errors.append(f"featureカタログの概要漏れ: {number}_0-概要")
+        for number in sorted(set(catalog_numbers) - expected_numbers):
+            errors.append(f"featureカタログの不存在概要: {number}_0-概要")
+        for number in sorted(
+            {value for value in catalog_numbers if catalog_numbers.count(value) > 1}
+        ):
+            errors.append(f"featureカタログの概要重複: {number}_0-概要")
+
+        catalog_packages = CATALOG_PACKAGE_PATTERN.findall(primary_catalog)
         for package in sorted(source_packages - set(catalog_packages)):
-            errors.append(f"feature カタログの source package 漏れ: {package}")
+            errors.append(f"featureカタログのsource package漏れ: {package}")
         for package in sorted(set(catalog_packages) - source_packages):
-            errors.append(f"feature カタログの不存在 source package: {package}")
-        for package in sorted({value for value in catalog_packages if catalog_packages.count(value) > 1}):
-            errors.append(f"feature カタログの source package 重複: {package}")
+            errors.append(f"featureカタログの不存在source package: {package}")
+        for package in sorted(
+            {value for value in catalog_packages if catalog_packages.count(value) > 1}
+        ):
+            errors.append(f"featureカタログのsource package重複: {package}")
+
+        owner_numbers = CATALOG_OWNER_HEADING_PATTERN.findall(catalog_content)
+        for number in sorted(expected_numbers - set(owner_numbers)):
+            errors.append(f"実装所有パスのfeature漏れ: {number}_0-概要")
+        for number in sorted(set(owner_numbers) - expected_numbers):
+            errors.append(f"実装所有パスの不存在feature: {number}_0-概要")
+        for number in sorted(
+            {value for value in owner_numbers if owner_numbers.count(value) > 1}
+        ):
+            errors.append(f"実装所有パスのfeature重複: {number}_0-概要")
 
     return errors
 

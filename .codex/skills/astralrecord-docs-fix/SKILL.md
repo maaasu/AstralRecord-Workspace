@@ -55,7 +55,7 @@ Use the audit as a format check. If the script reports unrelated pre-existing is
 - Keep changes limited to docs under the requested target unless a finding explicitly points elsewhere.
 - Preserve Japanese terminology already used in the feature docs.
 - Prefer correcting the authoritative doc over duplicating explanations across multiple files.
-- Keep unresolved design decisions in `9-未決事項` when the review result or user instruction says to record them instead of deciding them.
+- Keep unresolved design decisions in category `9` when the review result or user instruction says to record them instead of deciding them. Keep accepted but unimplemented specifications in category `8`; do not mix the two states.
 - Do not add implementation details that are not stated in docs or by the user.
 - Do not remove ambiguity by choosing one behavior when the review marked it as requiring confirmation.
 - Resolve `未確認/質問` (`Q-DOC-*`) only when the answer is already present in the review result, supplied by the user, or unambiguously confirmed from the allowed docs context. Otherwise leave them unresolved and list them in the report.

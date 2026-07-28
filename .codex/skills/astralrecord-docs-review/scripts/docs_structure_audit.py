@@ -1,15 +1,28 @@
 #!/usr/bin/env python3
-"""Audit AstralRecord Markdown design docs without reading source code."""
+"""Audit AstralRecord Plugin design-doc structure without reading source code."""
 
 from __future__ import annotations
 
 import argparse
 import re
+import sys
+from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
 
 PLUGIN_DOC_ROOT_NAME = "10_Plugin設計書"
+FEATURE_PATTERN = re.compile(r"^(?P<number>\d{2})-[a-z0-9-]+$")
+DOC_PATTERN = re.compile(
+    r"^(?P<number>\d{2})_(?P<category>\d+)-(?P<title>[^\[\]\s]+)\.md$"
+)
+CATEGORY_PATTERN = re.compile(r"^(?P<category>\d+)-[^\[\]\s]+$")
+ALLOWED_CATEGORIES = {"0", "1", "2", "3", "4", "5", "6", "8", "9"}
+OLD_DOC_PATTERN = re.compile(r"^\d{2}_\d+\.\d{2}-.+\.md$")
+README_PATTERN = re.compile(r"^\d{2}_README\.md$")
+EMPTY_UNRESOLVED_PATTERN = re.compile(
+    r"(?:現在|現時点で).{0,20}未決事項.{0,10}(?:は)?(?:ない|なし)", re.DOTALL
+)
 
 
 @dataclass
@@ -26,17 +39,9 @@ def read_text(path: Path) -> str:
 
 def rel(path: Path, root: Path) -> str:
     try:
-        return str(path.relative_to(root))
+        return path.relative_to(root).as_posix()
     except ValueError:
-        return str(path)
-
-
-def line_of(text: str, pattern: str) -> int | None:
-    regex = re.compile(pattern)
-    for index, line in enumerate(text.splitlines(), start=1):
-        if regex.search(line):
-            return index
-    return None
+        return path.as_posix()
 
 
 def find_plugin_root(path: Path) -> Path | None:
@@ -53,99 +58,62 @@ def find_target_feature(path: Path, plugin_root: Path) -> Path | None:
     for candidate in [current, *current.parents]:
         if candidate.parent == feature_root:
             return candidate
-        if candidate == feature_root or candidate == plugin_root:
+        if candidate in {feature_root, plugin_root}:
             return None
     return None
 
 
-def is_method_spec(path: Path) -> bool:
-    return "3-メソッド仕様" in path.parts
-
-
-def add(findings: list[Finding], severity: str, path: Path, line: int | None, message: str) -> None:
+def add(
+    findings: list[Finding],
+    severity: str,
+    path: Path,
+    line: int | None,
+    message: str,
+) -> None:
     findings.append(Finding(severity, path, line, message))
 
 
-def audit_feature_readme(path: Path, root: Path, findings: list[Finding]) -> None:
+def audit_document(
+    path: Path,
+    feature_dir: Path,
+    feature_number: str,
+    findings: list[Finding],
+) -> None:
     text = read_text(path)
-    required = [
-        "対象実装パス",
-        "ドキュメント一覧",
-        "依存 feature",
-        "更新ルール",
-    ]
-    for heading in required:
-        if heading not in text:
-            add(findings, "WARN", path, None, f"feature README に必須項目 `{heading}` がありません。")
-
-    markdown_doc_link = re.search(r"\[[^\]]+\]\((?!https?://|#)([^)]+\.md(?:#[^)]+)?)\)", text)
-    if markdown_doc_link:
-        add(
-            findings,
-            "WARN",
-            path,
-            line_of(text, r"\[[^\]]+\]\((?!https?://|#)([^)]+\.md(?:#[^)]+)?)\)"),
-            "別ファイル参照に Markdown リンクが使われています。設計書間参照は Wiki リンクを優先してください。",
-        )
-
-
-def audit_markdown_file(path: Path, root: Path, findings: list[Finding]) -> None:
-    text = read_text(path)
-    if "[" in path.name or "]" in path.name:
-        add(findings, "ERROR", path, None, "ファイル名に `[` または `]` が含まれています。")
-    if " " in path.name:
-        add(findings, "WARN", path, None, "ファイル名に空白が含まれています。区切りは `_` を使用してください。")
-
-    wiki_with_path = re.search(r"\[\[[^\]]*[\\/][^\]]*\]\]", text)
-    if wiki_with_path:
-        add(
-            findings,
-            "WARN",
-            path,
-            line_of(text, r"\[\[[^\]]*[\\/][^\]]*\]\]"),
-            "Wiki リンクにパスが含まれています。原則としてファイル名のみで参照してください。",
-        )
-
-    markdown_doc_link = re.search(r"\[[^\]]+\]\((?!https?://|#)([^)]+\.md(?:#[^)]+)?)\)", text)
-    if markdown_doc_link:
-        add(
-            findings,
-            "WARN",
-            path,
-            line_of(text, r"\[[^\]]+\]\((?!https?://|#)([^)]+\.md(?:#[^)]+)?)\)"),
-            "別ファイル参照に Markdown リンクが使われています。設計書間参照は Wiki リンクを優先してください。",
-        )
-
-    if re.search(r"^#+\s*ログ\s*/\s*メッセージ", text, re.MULTILINE):
-        add(
-            findings,
-            "WARN",
-            path,
-            line_of(text, r"^#+\s*ログ\s*/\s*メッセージ"),
-            "`ログ/メッセージ` の独立見出しがあります。ログ・メッセージは出力処理番号の直下に記載してください。",
-        )
-
-    if is_method_spec(path) and "LogId." in text and "テンプレート" not in text:
-        add(findings, "WARN", path, line_of(text, r"LogId\."), "LogId の記載がありますが、メッセージテンプレートが見当たりません。")
-
-
-def audit_method_spec(path: Path, root: Path, findings: list[Finding]) -> None:
-    text = read_text(path)
-    if re.search(r"_3\.00-", path.name):
+    if README_PATTERN.fullmatch(path.name):
+        add(findings, "ERROR", path, None, "feature READMEは廃止されています。概要へ統合してください。")
         return
+    if OLD_DOC_PATTERN.fullmatch(path.name):
+        add(findings, "ERROR", path, None, "旧詳細番号形式のファイル名です。詳細番号を除去してください。")
 
-    if "クラス名" not in text:
-        add(findings, "ERROR", path, None, "メソッド仕様に `クラス名` が見当たりません。")
-    if "物理名" not in text:
-        add(findings, "ERROR", path, None, "メソッド仕様に `物理名` が見当たりません。")
+    match = DOC_PATTERN.fullmatch(path.name)
+    if match is None:
+        add(
+            findings,
+            "ERROR",
+            path,
+            None,
+            f"ファイル名を `{feature_number}_<カテゴリ番号>-<名称>.md` 形式にしてください。",
+        )
+        return
+    if match.group("number") != feature_number:
+        add(findings, "ERROR", path, None, "feature番号とファイル名の番号が一致しません。")
 
-    for index, line in enumerate(text.splitlines(), start=1):
-        match = re.match(r"^###\s+(.+)$", line)
-        if not match:
-            continue
-        title = match.group(1).strip()
-        if re.search(r"(する|します|した|される|できる|を行う)$", title):
-            add(findings, "WARN", path, index, f"メソッド論理名 `{title}` が文章形に見えます。名詞句で記載してください。")
+    if text.splitlines()[:1] != [f"# {path.stem}"]:
+        add(findings, "ERROR", path, 1, "H1がファイル名と一致しません。")
+
+    category = match.group("category")
+    if category not in ALLOWED_CATEGORIES:
+        add(findings, "ERROR", path, None, "未定義のカテゴリ番号です。")
+    if path.parent != feature_dir:
+        if path.parent.parent != feature_dir:
+            add(findings, "ERROR", path, None, "カテゴリディレクトリが多段化されています。")
+        category_match = CATEGORY_PATTERN.fullmatch(path.parent.name)
+        if category_match is None or category_match.group("category") != category:
+            add(findings, "ERROR", path, None, "カテゴリ番号と配置ディレクトリが一致しません。")
+
+    if category == "9" and EMPTY_UNRESOLVED_PATTERN.search(text):
+        add(findings, "WARN", path, None, "未決事項がない文書は削除してください。")
 
 
 def audit_plugin_docs(target: Path, findings: list[Finding]) -> Path:
@@ -155,51 +123,89 @@ def audit_plugin_docs(target: Path, findings: list[Finding]) -> Path:
 
     root_readme = plugin_root / "README.md"
     if not root_readme.exists():
-        add(findings, "ERROR", root_readme, None, "プラグイン設計書ルートの README.md がありません。")
+        add(findings, "ERROR", root_readme, None, "プラグイン設計書ルートのREADME.mdがありません。")
 
     feature_root = plugin_root / "feature"
     if not feature_root.exists():
-        add(findings, "ERROR", feature_root, None, "`feature` ディレクトリがありません。")
+        add(findings, "ERROR", feature_root, None, "`feature`ディレクトリがありません。")
         return plugin_root
 
-    feature_pattern = re.compile(r"^\d{2}-[A-Za-z0-9][A-Za-z0-9-]*$")
-    doc_pattern_template = r"^{num}_(\d+)\.(\d{{2}})-[^\[\]\s]+\.md$"
-
     target_feature = find_target_feature(target, plugin_root)
-    feature_dirs = [target_feature] if target_feature else sorted(p for p in feature_root.iterdir() if p.is_dir())
+    feature_dirs = (
+        [target_feature]
+        if target_feature
+        else sorted(path for path in feature_root.iterdir() if path.is_dir())
+    )
+
+    files_by_stem: dict[str, list[Path]] = defaultdict(list)
+    for markdown in plugin_root.rglob("*.md"):
+        files_by_stem[markdown.stem].append(markdown)
+    for stem, paths in sorted(files_by_stem.items()):
+        if len(paths) > 1:
+            add(
+                findings,
+                "ERROR",
+                paths[0],
+                None,
+                f"設計書ツリー内でファイル名 `{stem}` が重複しています。",
+            )
 
     for feature_dir in feature_dirs:
-        if not feature_pattern.match(feature_dir.name):
-            add(findings, "WARN", feature_dir, None, "feature ディレクトリ名は `2桁採番-機能名` 形式にしてください。")
+        if feature_dir is None:
+            continue
+        feature_match = FEATURE_PATTERN.fullmatch(feature_dir.name)
+        if feature_match is None:
+            add(findings, "ERROR", feature_dir, None, "featureディレクトリ名が不正です。")
             continue
 
-        feature_num = feature_dir.name[:2]
-        readme = feature_dir / f"{feature_num}_README.md"
-        if not readme.exists():
-            add(findings, "ERROR", readme, None, f"feature README `{feature_num}_README.md` がありません。")
-        else:
-            audit_feature_readme(readme, plugin_root, findings)
+        feature_number = feature_match.group("number")
+        markdown_files = sorted(feature_dir.rglob("*.md"))
+        overviews = [
+            path for path in markdown_files if path.name == f"{feature_number}_0-概要.md"
+        ]
+        if len(overviews) != 1:
+            add(
+                findings,
+                "ERROR",
+                feature_dir,
+                None,
+                f"入口概要 `{feature_number}_0-概要.md` は1件必須です。",
+            )
+        elif overviews[0].parent != feature_dir:
+            add(findings, "ERROR", overviews[0], None, "入口概要はfeature直下へ配置してください。")
 
-        doc_pattern = re.compile(doc_pattern_template.format(num=re.escape(feature_num)))
         for child in sorted(feature_dir.iterdir()):
-            if child.is_dir() and not re.match(r"^\d+-", child.name):
-                add(findings, "WARN", child, None, "カテゴリディレクトリ名は `<カテゴリ番号>-<名称>` 形式にしてください。")
-
-        for md in sorted(feature_dir.rglob("*.md")):
-            if md == readme:
+            if not child.is_dir():
                 continue
-            audit_markdown_file(md, plugin_root, findings)
-            if not doc_pattern.match(md.name):
-                add(findings, "WARN", md, None, f"Markdown ファイル名が `{feature_num}_<カテゴリ番号>.<詳細番号>-<名称>.md` 形式ではありません。")
-            if is_method_spec(md):
-                audit_method_spec(md, plugin_root, findings)
+            category_match = CATEGORY_PATTERN.fullmatch(child.name)
+            if category_match is None:
+                add(findings, "ERROR", child, None, "カテゴリディレクトリ名が不正です。")
+                continue
+            if category_match.group("category") not in ALLOWED_CATEGORIES:
+                add(findings, "ERROR", child, None, "未定義のカテゴリディレクトリです。")
+            direct_markdown = list(child.glob("*.md"))
+            if len(direct_markdown) < 2:
+                add(
+                    findings,
+                    "ERROR",
+                    child,
+                    None,
+                    "Markdownが1件以下のカテゴリはfeature直下へ平坦化してください。",
+                )
+            if any(path.parent != child for path in child.rglob("*.md")):
+                add(findings, "ERROR", child, None, "カテゴリディレクトリを多段化しないでください。")
+
+        for markdown in markdown_files:
+            audit_document(markdown, feature_dir, feature_number, findings)
 
     return plugin_root
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Audit AstralRecord design-doc structure.")
-    parser.add_argument("target", help="Absolute path to a docs root, feature directory, or Markdown file.")
+    parser.add_argument(
+        "target", help="Path to a docs root, feature directory, or Markdown file."
+    )
     args = parser.parse_args()
 
     target = Path(args.target).resolve()
@@ -208,8 +214,17 @@ def main() -> int:
     if not target.exists():
         raise SystemExit(f"Target does not exist: {target}")
 
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
     root = audit_plugin_docs(target, findings)
-    findings.sort(key=lambda item: ({"ERROR": 0, "WARN": 1, "INFO": 2}.get(item.severity, 9), str(item.path), item.line or 0))
+    findings.sort(
+        key=lambda item: (
+            {"ERROR": 0, "WARN": 1, "INFO": 2}.get(item.severity, 9),
+            str(item.path),
+            item.line or 0,
+        )
+    )
 
     print(f"# docs_structure_audit: {target}")
     print(f"Scope root: {root}")

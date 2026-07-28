@@ -80,15 +80,17 @@ Use these rules when adding or changing plugin-side DB access, features that dep
 Use these rules only when the user asks to create or modify plugin design docs under `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書\`.
 
 1. Read `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書\README.md`.
-2. If a feature is identified, read `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書\feature\<feature>\NN_README.md`.
+2. If a feature is identified, read its `NN_0-概要.md` entry point and `FEATURE_CATALOG.md` when implementation ownership matters.
 3. Read corresponding implementation code to avoid speculative descriptions.
-4. Prefer the root docs numbering categories `0/1/2/3/4/5/9`.
-5. Keep categories directory-based and use `[機能番号] カテゴリ番号.詳細番号-名称.md` naming.
-6. Put method specs under `3-メソッド仕様/` split by layer: event, service, command, repository.
-7. Split long files by increasing detail numbers inside the category.
-8. Put information that does not match implementation into `90-*` as unresolved instead of guessing.
-9. Update the target feature README table of contents when editing feature docs.
-10. Use Obsidian-style `[[参照]]` links.
+4. Use the root categories `0/1/2/3/4/5/6/8/9` only when the category has content; only category `0` is mandatory.
+5. Name files `NN_<category>-<meaningful-name>.md`. Do not add `.00` / `.01` detail numbers.
+6. Keep a single category document at the feature root. Create a category directory only when the category has multiple documents.
+7. Split long files by coherent responsibility and use a meaningful name rather than a sequence number.
+8. Put accepted but unimplemented specifications in category `8` and unresolved design decisions in category `9`; do not guess or mix the states.
+9. Keep the feature overview and `FEATURE_CATALOG.md` aligned when responsibility or ownership changes.
+10. Use either uniquely resolvable Wiki links or relative Markdown links according to the root docs rules.
+11. Treat method docs as processing contracts, not a mandatory inventory of every physical method.
+12. Do not duplicate full logger/player message text when a properties file is the authoritative source.
 
 ## Custom Instruction Examples
 

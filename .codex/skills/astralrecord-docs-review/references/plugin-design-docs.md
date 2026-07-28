@@ -6,75 +6,81 @@ Use this reference for paths under `E:\AstralRecord-Workspace\00_docs\10_Plugin�
 
 Before reviewing a feature, read:
 
-- `00_docs/10_Plugin設計書/README.md`
-- the target feature README, such as `feature/01-user/01_README.md`
-- `0-概要`
-- `1-モデル定義`
-- `2-ユースケース`
-- `3-メソッド仕様` files relevant to the reviewed behavior
-- `4-統合フロー`
-- `5-例外・ログ・運用`
-- `9-未決事項` when present
+- `00_docs/10_Plugin設計書/README.md`.
+- `00_docs/10_Plugin設計書/FEATURE_CATALOG.md` when implementation ownership matters.
+- the target feature overview, such as `feature/01-user/01_0-概要.md`.
+- model, use-case, method-contract, flow, operation, planned-specification, and unresolved-decision docs relevant to the reviewed behavior.
 
-For cross-feature dependencies, follow Wiki links such as `[[03_1.00-モデル定義]].プレイヤーセッション` to the referenced design doc. Do not inspect the implementation path listed in feature README.
+Follow both Wiki links and relative Markdown links when they define terms, models, methods, flows, dependencies, or unresolved items. Do not inspect implementation paths while running a docs-only review; paths in `FEATURE_CATALOG.md` are ownership labels only.
 
 ## Structure Rules To Check
 
 Use the root design README as the source of truth. Current expected structure:
 
 - Feature directory: `2-digit-number-feature-name`, for example `01-user`.
-- Feature README: `<feature-number>_README.md`.
-- Category directories:
-  - `0-概要`
-  - `1-モデル定義`
-  - `2-ユースケース`
-  - `3-メソッド仕様`
-  - `4-統合フロー`
-  - `5-例外・ログ・運用`
-  - `9-未決事項` when needed
-- Markdown file name: `<feature-number>_<category-number>.<detail-number>-<name>.md`.
-- Do not use `[` or `]` in file names.
-- Prefer Obsidian Wiki links. Cross-doc references should be `[[file-name]].logical-name` and should not include paths.
-- If a directory contains only one file, do not require an index file.
+- Required feature entry point: `<feature-number>_0-概要.md` directly under the feature directory.
+- No feature-level `<feature-number>_README.md`.
+- Optional categories:
+  - `1`: model definitions.
+  - `2`: use cases.
+  - `3`: method specifications and processing contracts.
+  - `4`: integration flows.
+  - `5`: exceptions, logs, and operations.
+  - `6`: development and extension guides.
+  - `8`: accepted but unimplemented specifications.
+  - `9`: unresolved decisions only.
+- Markdown file name: `<feature-number>_<category-number>-<meaningful-name>.md`.
+- A category with one Markdown file is flattened into the feature directory.
+- A category directory is used only when it contains multiple Markdown files.
+- H1 matches the file name without `.md`.
+- File names are unique across the Plugin design-doc tree and do not use brackets or spaces.
+- Wiki links and relative Markdown links are both valid. A pathless Wiki link must resolve uniquely.
+- Empty category directories, empty unresolved-decision docs, and detail-number names such as `.00` or `.01` are not valid.
 
-Feature README must contain:
+## Feature Overview Rules
 
-- `対象実装パス`
-- `ドキュメント一覧（推奨順）`
-- `依存 feature`
-- `更新ルール（変更時に必ず更新する章）`
+The feature overview is the navigation and responsibility entry point. Review whether it contains the information needed for the feature rather than requiring fixed headings:
 
-## Method Spec Rules To Check
+- purpose, responsibilities, and non-goals.
+- major boundaries and invariants.
+- dependent features and cross-feature contracts.
+- related data, settings, and authoritative sources.
+- links to the design docs needed to understand the feature.
+- feature-specific change impact only when it adds value beyond the root rules.
 
-For docs under `3-メソッド仕様`:
+Implementation ownership paths belong in `FEATURE_CATALOG.md`, not in a duplicated per-feature table of contents.
 
-- Logical names should be Japanese noun phrases, not sentence-style descriptions.
-- Each method spec should include `クラス名` and `物理名`.
-- Event specs should also include `イベント物理名`.
-- Cross-file method references should use `[[file-name]].論理名`.
-- Model references should prefer Japanese logical model names in body text.
-- Process contents must include concrete judgment conditions, retrieved items, delegation targets, and failure behavior when relevant.
-- Do not split validation that belongs to one process step into unrelated numbered steps.
-- Logs/messages must include message content, not only log IDs.
-- Logs/messages should be written directly below the process step that emits them, using the documented table format.
-- Do not create an isolated `ログ/メッセージ:` heading.
+## Method Contract Rules To Check
+
+For category `3` docs:
+
+- Focus on externally meaningful or cross-feature contracts, not a complete method inventory.
+- Require the inputs, outputs, preconditions, rejection conditions, important decisions, delegation, state changes, persistence/thread boundaries, and failure behavior that are relevant to the documented contract.
+- Class names, physical method names, and event names are optional. When present, they must be internally consistent with the design being reviewed, but a clear table or grouped contract is not defective merely because fixed labels are absent.
+- Logical names should remain understandable Japanese noun phrases where practical.
+- Cross-file references may use Wiki links or relative Markdown links.
+- Logs/messages should identify the ID, level/type, trigger, arguments, meaning, and operational response as needed. Do not require a full message template when a properties file is the documented source of truth.
+
+## Integration Flow Rules To Check
+
+- Require an integration-flow document only when the behavior crosses components or cannot be understood from local contracts alone.
+- Mermaid is required only when a diagram materially clarifies participants, branching, asynchronous work, compensation, or state transitions.
+- A simple flow may use prose or a table.
+- When a diagram is present, check that its labels and sequence agree with the surrounding design.
 
 ## Design Review Focus
 
 Prioritize design-level issues:
 
-- Does the flow match the method specs and the feature overview?
+- Does the flow match the method contracts and the feature overview?
 - Are model fields sufficient for the stated use cases and lifecycle?
 - Are responsibilities divided cleanly between event, command, service, repository, cache/session, task, adapter/listener, and operation docs?
 - Are cross-feature calls explicit enough to know ownership and dependency direction?
 - Are failure paths, null/not-found behavior, retries, logging, player-facing messages, and operational response documented where needed?
 - Are state transitions clear for login/logout, cache/session, save timing, cooldowns, buffs/status effects, item ownership, loot grants, and other gameplay lifecycles?
-- Are unresolved decisions captured in `9-未決事項` instead of hidden in body text?
+- Are current behavior, accepted future work, and unresolved decisions clearly separated?
+- Does documentation avoid duplicating authoritative implementation paths and message templates?
 
 ## When Intent Is Missing
 
-Gather intent from the overview, use cases, flow diagrams, unresolved issues, and related feature docs. If the intended behavior still cannot be determined, report it as `未確認/質問` with the exact decision needed, for example:
-
-- "この処理はリトライする設計か、失敗を確定させる設計か"
-- "通常プレイヤー以外のアカウントモードで GUI 反映を抑止する理由"
-- "キャッシュがない場合に WARN として扱うか、正常系として扱うか"
+Gather intent from the overview, use cases, flow diagrams, category `8`, category `9`, and related feature docs. If the intended behavior still cannot be determined, report it as `未確認/質問` with the exact decision needed rather than forcing a defect.

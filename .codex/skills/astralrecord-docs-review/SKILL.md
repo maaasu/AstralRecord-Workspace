@@ -1,6 +1,6 @@
 ---
 name: astralrecord-docs-review
-description: AstralRecord の設計書をソースコードを読まずにレビューする。設計仕様、feature 設計書、Markdown 設計ファイル、Obsidian 形式 docs、00_docs 配下の文書について、設計整合性・不適切なロジック・意図不足・未決事項・文書間矛盾・命名/フォーマットルールを確認したい場合に使う。
+description: AstralRecord の設計書をソースコードを読まずにレビューする。設計仕様、feature 設計書、Markdown / Obsidian 形式 docs、00_docs 配下の文書について、設計整合性・不適切なロジック・意図不足・未決事項・文書間矛盾・命名/フォーマットルールを確認したい場合に使う。
 ---
 
 # AstralRecord Docs Review
@@ -9,14 +9,14 @@ description: AstralRecord の設計書をソースコードを読まずにレビ
 
 Review design documents only. Do not open or infer from source code, implementation files, database schema files, generated assets, or runtime outputs. Treat implementation paths written in docs as scope labels only.
 
-If a judgment depends on the designer's intent, gather intent from docs first: root README, feature README, overview, use cases, model definitions, flows, operation notes, unresolved issues, and related feature docs referenced by Wiki links. If the intent is still unclear, report it as a question or assumption instead of forcing a defect.
+If a judgment depends on the designer's intent, gather intent from docs first: root README, feature overview, use cases, model definitions, flows, operation notes, planned specifications, unresolved issues, and related feature docs. If the intent is still unclear, report it as a question or assumption instead of forcing a defect.
 
 ## Workflow
 
 1. Identify the target design area from the absolute path.
    - `00_docs/10_Plugin設計書`: read `references/plugin-design-docs.md`.
    - Future API/Web docs: use this generic workflow, then look for an added reference file such as `references/api-design-docs.md` or `references/web-design-docs.md`. If no domain reference exists, review only general design quality and documented local rules.
-2. Read documented rules before judging: the nearest docs README, feature README, and any local rule files inside the target docs tree.
+2. Read documented rules before judging: the docs root README, target feature overview, and any local rule files inside the target docs tree.
 3. Run `scripts/docs_structure_audit.py <absolute-docs-path>` only when reviewing `00_docs/10_Plugin設計書`. Use its output as evidence for format and structure findings, not as the whole review. For other docs areas, write `未実行（理由: docs_structure_audit.py は 10_Plugin設計書 専用）` in the checked-scope section unless a matching domain audit script has been added.
 4. Read the minimum related design docs needed to understand the feature intent and cross-document contracts. Follow Wiki links to docs when they define terms, models, methods, flows, dependencies, or unresolved items.
 5. Review for design defects:

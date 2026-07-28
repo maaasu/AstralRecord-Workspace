@@ -35,7 +35,7 @@ Base every judgment on documented rules first (root guide, project README/AGENTS
    - File set: explicit path(s), feature directory, recent diff range, or a named module.
    - Review depth: quick scan vs. deep review. Default is deep review when a single feature/path is given.
 2. Map code to design:
-   - For features under `00_docs/10_Plugin設計書` or `00_docs/20_API設計書`, identify the corresponding code modules from the feature README `対象実装パス` or from naming conventions.
+   - For Plugin features under `00_docs/10_Plugin設計書`, identify the corresponding code modules from `FEATURE_CATALOG.md`, the feature overview, or naming conventions. For other design areas, follow that area's documented entry-point rules.
    - For custom-instruction scope (e.g. "ホットバー周り"), use grep/glob to enumerate the affected files.
 3. Read the minimum necessary code:
    - Entry points, public APIs/commands/endpoints/events, service/repository boundaries, data models, and call sites of the changed symbols.
@@ -59,7 +59,7 @@ Base every judgment on documented rules first (root guide, project README/AGENTS
 Adjust depth to the target project, but cover these categories:
 
 - 仕様整合性
-  - 設計書 (`対象実装パス` / モデル / ユースケース / メソッド仕様 / 統合フロー / 例外・ログ・運用) と実装が一致しているか。
+  - 設計書（概要 / モデル / ユースケース / メソッド仕様 / 統合フロー / 例外・ログ・運用）と実装が一致しているか。
   - 設計書未決事項 (`9-未決事項`) を勝手に実装で確定していないか。
 - コーディングルール遵守
   - 言語規約・パッケージ/レイヤ構成・命名 (`PLUGIN_GUIDE.md`/`API_GUIDE.md` などのルール準拠)。
