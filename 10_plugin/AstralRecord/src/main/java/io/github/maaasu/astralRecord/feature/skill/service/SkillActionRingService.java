@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -447,6 +448,7 @@ public final class SkillActionRingService {
         private SkillActionRingDisplay.DisplayEntity closeIcon;
         private SkillActionRingDisplay.DisplayEntity closeLabel;
         private SkillActionRingDisplay.DisplayEntity timerLabel;
+        private Location renderedCenter;
         private int selectedIndex;
         private int confirmedIndex = -1;
         private RingPhase phase = RingPhase.SELECTING;
@@ -579,7 +581,13 @@ public final class SkillActionRingService {
                 }
             }
 
-            updateCircle(center);
+            boolean layoutChanged = renderedCenter == null
+                || !renderedCenter.equals(center)
+                || isSelectionAnimationActive();
+            if (layoutChanged) {
+                renderedCenter = center.clone();
+            }
+            updateCircle(center, layoutChanged);
             for (int index = 0; index < SLOT_COUNT; index++) {
                 SlotView slot = slots.get(index);
                 boolean selected = index == selectedIndex && slot.selectable();
@@ -590,25 +598,27 @@ public final class SkillActionRingService {
                 Location labelLocation = iconLocation.clone().subtract(up.clone().multiply(labelOffset));
                 SkillActionRingDisplay.DisplayEntity icon = icons.get(index);
                 SkillActionRingDisplay.DisplayEntity label = labels.get(index);
-                icon.teleport(player, iconLocation);
+                if (layoutChanged) {
+                    icon.teleport(player, iconLocation);
+                }
                 actionRingDisplay.updateItem(
                     player,
                     icon,
                     hiddenByConfirmedSelection ? HIDDEN_ITEM : new ItemStack(slot.material()),
                     selected && !hiddenByConfirmedSelection
                 );
-                label.teleport(player, labelLocation);
+                if (layoutChanged) {
+                    label.teleport(player, labelLocation);
+                }
                 actionRingDisplay.updateText(
                     player,
                     label,
-                    hiddenByConfirmedSelection
-                        ? Component.empty()
-                        : legacyComponent(slot.color(selected) + slot.label(skillService, caster)),
+                    labelComponent(slot, selected, hiddenByConfirmedSelection),
                     0.60F
                 );
             }
-            updateCloseButton(player, center);
-            updateTimer(center);
+            updateCloseButton(player, center, layoutChanged);
+            updateTimer(center, layoutChanged);
             return true;
         }
 
@@ -689,7 +699,26 @@ public final class SkillActionRingService {
             return offset.multiply(1.0D - progress);
         }
 
-        private void updateCircle(@NotNull Location center) {
+        private boolean isSelectionAnimationActive() {
+            return phase == RingPhase.WAITING_CAST && phaseElapsedTicks <= SELECT_ANIMATION_TICKS;
+        }
+
+        private @NotNull Component labelComponent(
+            @NotNull SlotView slot,
+            boolean selected,
+            boolean hidden
+        ) {
+            if (hidden) {
+                return Component.empty();
+            }
+            Component label = legacyComponent(slot.color(selected) + slot.label(skillService, caster));
+            return selected ? label.decorate(TextDecoration.BOLD) : label;
+        }
+
+        private void updateCircle(@NotNull Location center, boolean layoutChanged) {
+            if (!layoutChanged) {
+                return;
+            }
             for (int index = 0; index < circleDots.size(); index++) {
                 SkillActionRingDisplay.DisplayEntity dot = circleDots.get(index);
                 double angle = ((Math.PI * 2.0D) / CIRCLE_DISPLAY_POINTS) * index;
@@ -699,15 +728,17 @@ public final class SkillActionRingService {
             }
         }
 
-        private void updateCloseButton(@NotNull Player player, @NotNull Location center) {
+        private void updateCloseButton(@NotNull Player player, @NotNull Location center, boolean layoutChanged) {
             if (closeIcon == null || closeLabel == null) {
                 return;
             }
             boolean hidden = phase == RingPhase.WAITING_CAST;
             boolean selected = isCloseSelected();
             Location labelLocation = center.clone().subtract(up.clone().multiply(0.45D));
-            closeIcon.teleport(player, center);
-            closeLabel.teleport(player, labelLocation);
+            if (layoutChanged) {
+                closeIcon.teleport(player, center);
+                closeLabel.teleport(player, labelLocation);
+            }
             actionRingDisplay.updateItem(player, closeIcon, hidden ? HIDDEN_ITEM : new ItemStack(Material.BARRIER), selected && !hidden);
             actionRingDisplay.updateText(
                 player,
@@ -717,12 +748,14 @@ public final class SkillActionRingService {
             );
         }
 
-        private void updateTimer(@NotNull Location center) {
+        private void updateTimer(@NotNull Location center, boolean layoutChanged) {
             if (timerLabel == null) {
                 return;
             }
             Location timerLocation = center.clone().subtract(up.clone().multiply(0.30D));
-            timerLabel.teleport(viewer, timerLocation);
+            if (layoutChanged) {
+                timerLabel.teleport(viewer, timerLocation);
+            }
             actionRingDisplay.updateText(viewer, timerLabel, legacyComponent(timerText()), 0.60F);
         }
 

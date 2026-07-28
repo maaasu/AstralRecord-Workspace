@@ -1,32 +1,61 @@
 package io.github.maaasu.astralRecord.feature.skill.service;
 
+import com.comphenix.protocol.PacketType;
+import com.comphenix.protocol.ProtocolLibrary;
+import com.comphenix.protocol.ProtocolManager;
+import com.comphenix.protocol.events.PacketContainer;
+import com.comphenix.protocol.wrappers.WrappedChatComponent;
+import com.comphenix.protocol.wrappers.WrappedDataValue;
+import com.comphenix.protocol.wrappers.WrappedDataWatcher;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import net.kyori.adventure.text.Component;
-import org.bukkit.Color;
+import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.entity.Display;
-import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.TextDisplay;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.util.Transformation;
 import org.jetbrains.annotations.NotNull;
-import org.joml.Quaternionf;
 import org.joml.Vector3f;
+import org.joml.Vector3fc;
 
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+
+/**
+ * アクションリングを閲覧者専用の packet-only Display entity として描画します。
+ */
 final class SkillActionRingDisplay {
+    private static final AtomicInteger NEXT_ENTITY_ID = new AtomicInteger(2_800_000);
     private static final float ITEM_SCALE = 0.55F;
     private static final int TEXT_LINE_WIDTH = 180;
     private static final int TELEPORT_DURATION_TICKS = 1;
     private static final float DEFAULT_VIEW_RANGE = 16.0F;
+    private static final int ENTITY_SHARED_FLAGS_INDEX = 0;
+    private static final byte ENTITY_FLAG_GLOWING = 0x40;
+    private static final int DISPLAY_POSITION_ROTATION_DURATION_INDEX = 10;
+    private static final int DISPLAY_SCALE_INDEX = 12;
+    private static final int DISPLAY_BILLBOARD_INDEX = 15;
+    private static final int DISPLAY_VIEW_RANGE_INDEX = 17;
+    private static final int ITEM_DISPLAY_ITEM_INDEX = 23;
+    private static final int ITEM_DISPLAY_TRANSFORM_INDEX = 24;
+    private static final int TEXT_DISPLAY_TEXT_INDEX = 23;
+    private static final int TEXT_DISPLAY_LINE_WIDTH_INDEX = 24;
+    private static final int TEXT_DISPLAY_BACKGROUND_INDEX = 25;
+    private static final int TEXT_DISPLAY_TEXT_OPACITY_INDEX = 26;
+    private static final int TEXT_DISPLAY_FLAGS_INDEX = 27;
+    private static final byte TEXT_DISPLAY_SHADOWED = 0x01;
 
-    private final Plugin plugin;
+    private final ProtocolManager protocolManager;
 
     SkillActionRingDisplay(@NotNull Plugin plugin) {
-        this.plugin = plugin;
+        this.protocolManager = ProtocolLibrary.getProtocolManager();
     }
 
     DisplayEntity item(@NotNull Location location, @NotNull ItemStack itemStack, boolean glowing) {
@@ -45,24 +74,53 @@ final class SkillActionRingDisplay {
         entity.updateText(player, text, scale);
     }
 
-    private static void applyDisplayBase(@NotNull Display display) {
-        display.setBillboard(Display.Billboard.CENTER);
-        display.setGravity(false);
-        display.setInvulnerable(true);
-        display.setPersistent(false);
-        display.setSilent(true);
-        display.setViewRange(DEFAULT_VIEW_RANGE);
-        display.setVisibleByDefault(false);
-        display.setTeleportDuration(TELEPORT_DURATION_TICKS);
+    private @NotNull List<WrappedDataValue> baseDisplayMetadata(float scale) {
+        List<WrappedDataValue> values = new ArrayList<>();
+        values.add(value(DISPLAY_POSITION_ROTATION_DURATION_INDEX, serializer(Integer.class), TELEPORT_DURATION_TICKS));
+        values.add(value(DISPLAY_SCALE_INDEX, vectorSerializer(), new Vector3f(scale, scale, scale)));
+        values.add(value(DISPLAY_BILLBOARD_INDEX, serializer(Byte.class), (byte) Display.Billboard.CENTER.ordinal()));
+        values.add(value(DISPLAY_VIEW_RANGE_INDEX, serializer(Float.class), DEFAULT_VIEW_RANGE));
+        return values;
     }
 
-    private static @NotNull Transformation scaleTransformation(float scale) {
-        return new Transformation(
-            new Vector3f(),
-            new Quaternionf(),
-            new Vector3f(scale, scale, scale),
-            new Quaternionf()
+    private @NotNull WrappedDataValue itemValue(@NotNull ItemStack itemStack) {
+        return value(ITEM_DISPLAY_ITEM_INDEX, WrappedDataWatcher.Registry.getItemStackSerializer(false), itemStack);
+    }
+
+    private @NotNull WrappedDataValue glowingValue(boolean glowing) {
+        return value(ENTITY_SHARED_FLAGS_INDEX, serializer(Byte.class), glowing ? ENTITY_FLAG_GLOWING : (byte) 0);
+    }
+
+    private @NotNull WrappedDataValue textValue(@NotNull Component text) {
+        return value(
+            TEXT_DISPLAY_TEXT_INDEX,
+            WrappedDataWatcher.Registry.getChatComponentSerializer(false),
+            WrappedChatComponent.fromJson(GsonComponentSerializer.gson().serialize(text))
         );
+    }
+
+    private @NotNull WrappedDataValue value(int index, @NotNull WrappedDataWatcher.Serializer serializer, Object value) {
+        return WrappedDataValue.fromWrappedValue(index, serializer, value);
+    }
+
+    private @NotNull WrappedDataWatcher.Serializer serializer(@NotNull Type type) {
+        return WrappedDataWatcher.Registry.get(type);
+    }
+
+    private @NotNull WrappedDataWatcher.Serializer vectorSerializer() {
+        try {
+            return serializer(Vector3f.class);
+        } catch (IllegalArgumentException ignored) {
+            return serializer(Vector3fc.class);
+        }
+    }
+
+    private void send(@NotNull Player player, @NotNull PacketContainer packet) {
+        try {
+            protocolManager.sendServerPacket(player, packet);
+        } catch (RuntimeException exception) {
+            Logger.log(LogId.W_9000, "skill_action_ring_packet:" + packet.getType().name(), player.getWorld().getName(), exception.getClass().getSimpleName());
+        }
     }
 
     final class DisplayEntity {
@@ -72,7 +130,7 @@ final class SkillActionRingDisplay {
         private Component text;
         private float scale;
         private boolean glowing;
-        private Entity entity;
+        private PacketEntity entity;
 
         private DisplayEntity(
             @NotNull DisplayKind kind,
@@ -91,102 +149,153 @@ final class SkillActionRingDisplay {
         }
 
         void spawn(@NotNull Player player) {
-            if (entity != null && entity.isValid()) {
-                showOnly(player);
+            if (entity != null) {
                 return;
             }
-            World world = location.getWorld();
-            if (world == null) {
+            entity = new PacketEntity(kind == DisplayKind.ITEM ? EntityType.ITEM_DISPLAY : EntityType.TEXT_DISPLAY, location);
+            entity.spawn(player, initialMetadata());
+        }
+
+        void teleport(@NotNull Player player, @NotNull Location nextLocation) {
+            if (location.equals(nextLocation)) {
                 return;
             }
-            entity = kind == DisplayKind.ITEM ? spawnItem(world) : spawnText(world);
-            showOnly(player);
+            boolean worldChanged = location.getWorld() != nextLocation.getWorld();
+            location = nextLocation.clone();
+            if (entity != null) {
+                if (worldChanged) {
+                    entity.destroy(player);
+                    entity = new PacketEntity(kind == DisplayKind.ITEM ? EntityType.ITEM_DISPLAY : EntityType.TEXT_DISPLAY, location);
+                    entity.spawn(player, initialMetadata());
+                } else {
+                    entity.teleport(player, location);
+                }
+            }
         }
 
-        void teleport(@NotNull Player player, @NotNull Location location) {
-            this.location = location.clone();
-            if (entity == null || !entity.isValid()) {
+        void updateItem(@NotNull Player player, @NotNull ItemStack nextItemStack, boolean nextGlowing) {
+            ItemStack cloned = nextItemStack.clone();
+            boolean itemChanged = itemStack == null || !itemStack.equals(cloned);
+            boolean glowingChanged = glowing != nextGlowing;
+            if (!itemChanged && !glowingChanged) {
                 return;
             }
-            entity.teleport(location);
-        }
-
-        void updateItem(@NotNull Player player, @NotNull ItemStack itemStack, boolean glowing) {
-            ItemStack cloned = itemStack.clone();
-            boolean itemChanged = this.itemStack == null || !this.itemStack.equals(cloned);
-            boolean glowingChanged = this.glowing != glowing;
-            this.itemStack = cloned;
-            this.glowing = glowing;
-            if (entity instanceof ItemDisplay display) {
-                if (itemChanged) {
-                    display.setItemStack(this.itemStack);
-                }
-                if (glowingChanged) {
-                    display.setGlowing(glowing);
-                }
-            }
-        }
-
-        void updateText(@NotNull Player player, @NotNull Component text, float scale) {
-            boolean textChanged = this.text == null || !this.text.equals(text);
-            boolean scaleChanged = Float.compare(this.scale, scale) != 0;
-            this.text = text;
-            this.scale = scale;
-            if (entity instanceof TextDisplay display) {
-                if (textChanged) {
-                    display.text(text);
-                }
-                if (scaleChanged) {
-                    display.setTransformation(scaleTransformation(scale));
-                }
-            }
-        }
-
-        void destroy(@NotNull Player player) {
+            itemStack = cloned;
+            glowing = nextGlowing;
             if (entity == null) {
                 return;
             }
-            if (entity.isValid()) {
-                player.hideEntity(plugin, entity);
-                entity.remove();
+            List<WrappedDataValue> values = new ArrayList<>();
+            if (itemChanged) {
+                values.add(itemValue(itemStack));
             }
-            entity = null;
+            if (glowingChanged) {
+                values.add(glowingValue(glowing));
+            }
+            entity.updateMetadata(player, values);
         }
 
-        private @NotNull ItemDisplay spawnItem(@NotNull World world) {
-            return world.spawn(location, ItemDisplay.class, display -> {
-                applyDisplayBase(display);
-                display.setItemStack(itemStack == null ? new ItemStack(Material.AIR) : itemStack.clone());
-                display.setGlowing(glowing);
-                display.setTransformation(scaleTransformation(ITEM_SCALE));
-                display.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.GUI);
-            });
-        }
-
-        private @NotNull TextDisplay spawnText(@NotNull World world) {
-            return world.spawn(location, TextDisplay.class, display -> {
-                applyDisplayBase(display);
-                display.setLineWidth(TEXT_LINE_WIDTH);
-                display.setShadowed(true);
-                display.setDefaultBackground(false);
-                display.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
-                display.setTransformation(scaleTransformation(scale));
-                display.text(text == null ? Component.empty() : text);
-            });
-        }
-
-        private void showOnly(@NotNull Player viewer) {
-            if (entity == null || !entity.isValid()) {
+        void updateText(@NotNull Player player, @NotNull Component nextText, float nextScale) {
+            boolean textChanged = text == null || !text.equals(nextText);
+            boolean scaleChanged = Float.compare(scale, nextScale) != 0;
+            if (!textChanged && !scaleChanged) {
                 return;
             }
-            for (Player onlinePlayer : plugin.getServer().getOnlinePlayers()) {
-                if (onlinePlayer.getUniqueId().equals(viewer.getUniqueId())) {
-                    onlinePlayer.showEntity(plugin, entity);
-                } else {
-                    onlinePlayer.hideEntity(plugin, entity);
-                }
+            text = nextText;
+            scale = nextScale;
+            if (entity == null) {
+                return;
+            }
+            List<WrappedDataValue> values = new ArrayList<>();
+            if (textChanged) {
+                values.add(textValue(text));
+            }
+            if (scaleChanged) {
+                values.add(value(DISPLAY_SCALE_INDEX, vectorSerializer(), new Vector3f(scale, scale, scale)));
+            }
+            entity.updateMetadata(player, values);
+        }
+
+        void destroy(@NotNull Player player) {
+            if (entity != null) {
+                entity.destroy(player);
+                entity = null;
             }
         }
+
+        private @NotNull List<WrappedDataValue> initialMetadata() {
+            List<WrappedDataValue> values = baseDisplayMetadata(scale);
+            if (kind == DisplayKind.ITEM) {
+                values.add(glowingValue(glowing));
+                values.add(itemValue(itemStack == null ? new ItemStack(org.bukkit.Material.AIR) : itemStack));
+                values.add(value(ITEM_DISPLAY_TRANSFORM_INDEX, serializer(Byte.class), (byte) ItemDisplay.ItemDisplayTransform.GUI.ordinal()));
+                return values;
+            }
+            values.add(textValue(text == null ? Component.empty() : text));
+            values.add(value(TEXT_DISPLAY_LINE_WIDTH_INDEX, serializer(Integer.class), TEXT_LINE_WIDTH));
+            values.add(value(TEXT_DISPLAY_BACKGROUND_INDEX, serializer(Integer.class), 0));
+            values.add(value(TEXT_DISPLAY_TEXT_OPACITY_INDEX, serializer(Byte.class), (byte) -1));
+            values.add(value(TEXT_DISPLAY_FLAGS_INDEX, serializer(Byte.class), TEXT_DISPLAY_SHADOWED));
+            return values;
+        }
+    }
+
+    private final class PacketEntity {
+        private final int entityId = NEXT_ENTITY_ID.getAndIncrement();
+        private final UUID uuid = UUID.randomUUID();
+        private final EntityType entityType;
+        private final Location location;
+
+        private PacketEntity(@NotNull EntityType entityType, @NotNull Location location) {
+            this.entityType = entityType;
+            this.location = location.clone();
+        }
+
+        private void spawn(@NotNull Player player, @NotNull List<WrappedDataValue> metadata) {
+            PacketContainer spawn = protocolManager.createPacket(PacketType.Play.Server.SPAWN_ENTITY);
+            spawn.getIntegers().writeSafely(0, entityId);
+            spawn.getUUIDs().writeSafely(0, uuid);
+            spawn.getEntityTypeModifier().writeSafely(0, entityType);
+            spawn.getDoubles().writeSafely(0, location.getX());
+            spawn.getDoubles().writeSafely(1, location.getY());
+            spawn.getDoubles().writeSafely(2, location.getZ());
+            send(player, spawn);
+
+            updateMetadata(player, metadata);
+        }
+
+        private void teleport(@NotNull Player player, @NotNull Location nextLocation) {
+            PacketContainer packet = protocolManager.createPacket(PacketType.Play.Server.ENTITY_TELEPORT);
+            packet.getIntegers().writeSafely(0, entityId);
+            packet.getDoubles().writeSafely(0, nextLocation.getX());
+            packet.getDoubles().writeSafely(1, nextLocation.getY());
+            packet.getDoubles().writeSafely(2, nextLocation.getZ());
+            packet.getBytes().writeSafely(0, angleToByte(nextLocation.getYaw()));
+            packet.getBytes().writeSafely(1, angleToByte(nextLocation.getPitch()));
+            packet.getBooleans().writeSafely(0, true);
+            send(player, packet);
+        }
+
+        private void updateMetadata(@NotNull Player player, @NotNull List<WrappedDataValue> metadata) {
+            if (metadata.isEmpty()) {
+                return;
+            }
+            PacketContainer packet = protocolManager.createPacket(PacketType.Play.Server.ENTITY_METADATA);
+            packet.getIntegers().writeSafely(0, entityId);
+            packet.getDataValueCollectionModifier().writeSafely(0, metadata);
+            send(player, packet);
+        }
+
+        private void destroy(@NotNull Player player) {
+            PacketContainer packet = protocolManager.createPacket(PacketType.Play.Server.ENTITY_DESTROY);
+            packet.getIntLists().writeSafely(0, List.of(entityId));
+            packet.getIntegerArrays().writeSafely(0, new int[]{entityId});
+            send(player, packet);
+        }
+    }
+
+    private static byte angleToByte(float angle) {
+        return (byte) Math.floor(angle * 256.0F / 360.0F);
     }
 
     private enum DisplayKind {
