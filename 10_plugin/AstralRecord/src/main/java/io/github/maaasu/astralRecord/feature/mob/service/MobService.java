@@ -401,6 +401,18 @@ public class MobService {
             return null;
         }
 
+        return spawn(template, location);
+    }
+
+    /**
+     * filebase に登録されていない実行時テンプレートから Mob を生成します。
+     *
+     * @param template 実行時テンプレート
+     * @param location スポーン位置
+     * @return 生成した Mob インスタンス。実体生成不可なら null
+     */
+    @Nullable
+    public MobInstance spawn(@NotNull MobTemplate template, @NotNull Location location) {
         UUID instanceId = UUID.randomUUID();
         MobInstance instance = new MobInstance(instanceId, template, location);
         var entity = entityController.spawn(instance, location);
@@ -417,7 +429,7 @@ public class MobService {
         viewers.put(instanceId, new HashSet<>());
         updateViewers(instance);
 
-        Logger.log(LogId.D_5701, templateId, instanceId);
+        Logger.log(LogId.D_5701, template.id(), instanceId);
         return instance;
     }
 
@@ -534,6 +546,7 @@ public class MobService {
     public int destroyEnemiesOutsideViewDistance() {
         List<UUID> targetIds = instances.values().stream()
                 .filter(instance -> instance.template().category() == MobCategory.ENEMY)
+                .filter(instance -> !instance.keepWhenUnobserved())
                 .filter(instance -> {
                     if (!syncLocation(instance)) {
                         return true;

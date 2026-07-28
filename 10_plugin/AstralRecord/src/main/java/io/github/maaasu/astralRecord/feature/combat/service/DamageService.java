@@ -465,8 +465,13 @@ public final class DamageService {
         var mob = victim.mob();
         if (mob == null) return;
         double healthBefore = mob.currentHealth();
-        double effectiveHealthDamage = Math.min(healthBefore, result.finalDamage());
-        mob.currentHealth(Math.max(0.0D, healthBefore - result.finalDamage()));
+        double effectiveHealthDamage = mob.nonLethal()
+                ? Math.min(Math.max(0.0D, healthBefore - 1.0D), result.finalDamage())
+                : Math.min(healthBefore, result.finalDamage());
+        double remainingHealth = healthBefore - result.finalDamage();
+        mob.currentHealth(mob.nonLethal()
+                ? Math.max(1.0D, remainingHealth)
+                : Math.max(0.0D, remainingHealth));
         playMobHurtEffect(mob.bukkitEntityId(), result.critical());
         if (knockback) {
             applyDamageKnockback(attacker, victim, attackType);

@@ -30,6 +30,10 @@ public final class MobInstance {
     private double currentHealth;
     private double currentShield;
     private double outgoingDamageMultiplier = 1.0D;
+    /** 検証用 Mob など、HP が 0 になっても死亡させない実行時フラグ。 */
+    private boolean nonLethal;
+    /** 描画範囲にプレイヤーがいなくても破棄しない実行時フラグ。 */
+    private boolean keepWhenUnobserved;
     private long lastShieldChangedAtMs;
     private MobState state = MobState.IDLE;
     private UUID targetId;
@@ -214,6 +218,42 @@ public final class MobInstance {
      */
     public void outgoingDamageMultiplier(double value) {
         this.outgoingDamageMultiplier = Math.max(0.0D, value);
+    }
+
+    /**
+     * この個体を非致死に扱うか返します。
+     *
+     * @return 非致死なら true
+     */
+    public boolean nonLethal() {
+        return nonLethal;
+    }
+
+    /**
+     * この個体の非致死扱いを設定します。
+     *
+     * @param value HP を 1 未満にしない場合は true
+     */
+    public void nonLethal(boolean value) {
+        this.nonLethal = value;
+    }
+
+    /**
+     * 視認者がいない場合にも維持するか返します。
+     *
+     * @return 維持対象なら true
+     */
+    public boolean keepWhenUnobserved() {
+        return keepWhenUnobserved;
+    }
+
+    /**
+     * 視認者がいない場合にも維持するか設定します。
+     *
+     * @param value 維持対象なら true
+     */
+    public void keepWhenUnobserved(boolean value) {
+        this.keepWhenUnobserved = value;
     }
 
     /** 現在シールド値を返します。 */

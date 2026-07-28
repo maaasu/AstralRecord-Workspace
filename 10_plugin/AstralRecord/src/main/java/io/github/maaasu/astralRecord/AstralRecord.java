@@ -197,6 +197,11 @@ import io.github.maaasu.astralRecord.feature.trade.event.TradeGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeCancelConfirmGui;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeGui;
 import io.github.maaasu.astralRecord.feature.trade.service.TradeService;
+import io.github.maaasu.astralRecord.feature.trainingdummy.event.TrainingDummyGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.trainingdummy.event.TrainingDummyInputResolver;
+import io.github.maaasu.astralRecord.feature.trainingdummy.gui.TrainingDummyGui;
+import io.github.maaasu.astralRecord.feature.trainingdummy.repository.TrainingDummyRepository;
+import io.github.maaasu.astralRecord.feature.trainingdummy.service.TrainingDummyService;
 import io.github.maaasu.astralRecord.shared.gui.gold.GoldAmountSettingGui;
 import io.github.maaasu.astralRecord.feature.user.event.UserLoginEventHandler;
 import io.github.maaasu.astralRecord.feature.user.repository.UserRepository;
@@ -282,6 +287,8 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerDetailGui playerDetailGui;
     private PlayerBrowserGuiEventHandler playerBrowserGuiEventHandler;
     private MobService mobService;
+    private TrainingDummyService trainingDummyService;
+    private TrainingDummyGui trainingDummyGui;
     private MobSpawnerService mobSpawnerService;
     private GatheringService gatheringService;
     private GatheringSpawnerService gatheringSpawnerService;
@@ -369,6 +376,8 @@ public final class AstralRecord extends JavaPlugin {
         lootService = new LootService();
         itemStackFactory = new ItemStackFactory(lootService, itemService);
         mobService = new MobService(this, new MobRepository());
+        trainingDummyService = new TrainingDummyService(this, mobService, new TrainingDummyRepository(this));
+        trainingDummyGui = new TrainingDummyGui();
         npcPlacementService = new NpcPlacementService(this, mobService, new NpcPlacementRepository(this));
         textDisplayPlacementService = new TextDisplayPlacementService(this, new TextDisplayPlacementRepository(this));
         teleporterService = new TeleporterService(this, new WaystoneDefinitionRepository(this), new AccountWaystoneRepository());
@@ -416,7 +425,9 @@ public final class AstralRecord extends JavaPlugin {
                 gatheringService,
                 gatheringSpawnerService,
                 textDisplayPlacementService,
-                teleporterService
+                teleporterService,
+                trainingDummyService,
+                trainingDummyGui
         );
         CommandManager.getInstance().initialize(this);
     }
@@ -532,6 +543,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (mobAiService != null) {
             mobAiService.stop();
+        }
+        if (trainingDummyService != null) {
+            trainingDummyService.stop();
         }
         if (mobSpawnerService != null) {
             mobSpawnerService.stop();
@@ -1031,6 +1045,7 @@ public final class AstralRecord extends JavaPlugin {
 
         // mob
         mobService.loadAll();
+        trainingDummyService.loadAll();
         npcPlacementService.loadAll();
         textDisplayPlacementService.loadAll();
         mobSpawnerService.loadAll();
@@ -1042,6 +1057,7 @@ public final class AstralRecord extends JavaPlugin {
         worldService.loadAll();
         mobAiService = new MobAiService(mobService, mobCombatService, skillService, playerDeathService, particleDisplayService, conditionService);
         mobAiService.start();
+        trainingDummyService.start();
         worldSpawnParticleTask = new WorldSpawnParticleTask(this, worldService, particleDisplayService, displayTextService);
 
         // item: ProtocolLib パケットアダプター（icon 差し替え）登録
@@ -1306,6 +1322,10 @@ public final class AstralRecord extends JavaPlugin {
             currencyExchangeGuiEventHandler,
             loginBonusService
         );
+        eventManager.registerHandler(
+            new TrainingDummyGuiEventHandler(trainingDummyGui, trainingDummyService),
+            getServer().getPluginManager()
+        );
         var itemWeaponAttackEventHandler = new ItemWeaponAttackEventHandler(
             itemWeaponAttackService,
             skillActionRingService,
@@ -1331,6 +1351,7 @@ public final class AstralRecord extends JavaPlugin {
                     gatheringInteractionEventHandler,
                     skillTreeEventHandler,
                     mobInteractionEventHandler,
+                    new TrainingDummyInputResolver(mobService, trainingDummyService, trainingDummyGui),
                     itemWeaponAttackEventHandler
                 ),
                 playerJoinEventHandler::isLoading,

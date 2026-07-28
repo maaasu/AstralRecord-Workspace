@@ -53,6 +53,10 @@ import io.github.maaasu.astralRecord.feature.teleporter.command.TeleporterComman
 import io.github.maaasu.astralRecord.feature.teleporter.command.TeleporterTabCompleter;
 import io.github.maaasu.astralRecord.feature.teleporter.service.TeleporterService;
 import io.github.maaasu.astralRecord.feature.trade.command.TradeCommand;
+import io.github.maaasu.astralRecord.feature.trainingdummy.command.TrainingDummyCommand;
+import io.github.maaasu.astralRecord.feature.trainingdummy.command.TrainingDummyTabCompleter;
+import io.github.maaasu.astralRecord.feature.trainingdummy.gui.TrainingDummyGui;
+import io.github.maaasu.astralRecord.feature.trainingdummy.service.TrainingDummyService;
 import io.github.maaasu.astralRecord.feature.trade.command.TradeTabCompleter;
 import io.github.maaasu.astralRecord.feature.user.command.UserCommand;
 import io.github.maaasu.astralRecord.feature.user.command.UserPermissionCommand;
@@ -87,6 +91,8 @@ public class CommandRegister {
     private final GatheringSpawnerService gatheringSpawnerService;
     private final TextDisplayPlacementService textDisplayPlacementService;
     private final TeleporterService teleporterService;
+    private final TrainingDummyService trainingDummyService;
+    private final TrainingDummyGui trainingDummyGui;
 
     public CommandRegister(
             ItemService itemService,
@@ -99,7 +105,9 @@ public class CommandRegister {
             GatheringService gatheringService,
             GatheringSpawnerService gatheringSpawnerService,
             TextDisplayPlacementService textDisplayPlacementService,
-            TeleporterService teleporterService
+            TeleporterService teleporterService,
+            TrainingDummyService trainingDummyService,
+            TrainingDummyGui trainingDummyGui
     ) {
         this.itemService = itemService;
         this.itemStackFactory = itemStackFactory;
@@ -112,6 +120,8 @@ public class CommandRegister {
         this.gatheringSpawnerService = gatheringSpawnerService;
         this.textDisplayPlacementService = textDisplayPlacementService;
         this.teleporterService = teleporterService;
+        this.trainingDummyService = trainingDummyService;
+        this.trainingDummyGui = trainingDummyGui;
         registerCommand();
     }
 
@@ -128,6 +138,7 @@ public class CommandRegister {
         cm.registerCommand("storage", new StorageCommand());
         cm.registerCommand("item", new ItemCommand(itemService), new ItemTabCompleter(itemService));
         cm.registerCommand("mob", new MobCommand(mobService, spawnerService, npcPlacementService), new MobTabCompleter(mobService, spawnerService, npcPlacementService));
+        cm.registerCommand("dummy", new TrainingDummyCommand(trainingDummyService, trainingDummyGui), new TrainingDummyTabCompleter(trainingDummyService));
         cm.registerCommand("gathering", new GatheringCommand(gatheringService, gatheringSpawnerService), new GatheringTabCompleter(gatheringService, gatheringSpawnerService));
         WorldCommand worldCommand = new WorldCommand(worldService);
         cm.registerCommand("world", worldCommand, new WorldTabCompleter(worldService));
