@@ -141,7 +141,7 @@ class DamageCalculatorDesignTest {
     }
 
     @Test
-    void levelDifferenceScalesDamageAndClampsAtConfiguredBounds() {
+    void levelDifferenceDoesNotChangeDamage() {
         DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
         AstPlayer lowLevelAttacker = player(Map.of(), 1);
         MobInstance highLevelVictim = DesignTestFixtures.mobInstance(11, 100.0D, 0.0D, 0.0D, null);
@@ -164,10 +164,8 @@ class DamageCalculatorDesignTest {
             DamageScaling.FIXED
         ));
 
-        assertEquals(70.0D, lowResult.finalDamage(), 0.0001D);
-        assertEquals(130.0D, highResult.finalDamage(), 0.0001D);
-        assertEquals(0.70D, LevelDifferenceCalculator.damageMultiplier(1, 100), 0.0001D);
-        assertEquals(1.30D, LevelDifferenceCalculator.damageMultiplier(100, 1), 0.0001D);
+        assertEquals(100.0D, lowResult.finalDamage(), 0.0001D);
+        assertEquals(100.0D, highResult.finalDamage(), 0.0001D);
     }
 
     @Test

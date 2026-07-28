@@ -75,13 +75,6 @@ public final class DamageCalculator {
             damage = Math.max(1.0D, damage - defensePower(context) * 0.5D);
         }
 
-        if (context.attacker() != null && context.attacker().isManaged() && context.victim().isManaged()) {
-            damage *= LevelDifferenceCalculator.damageMultiplier(
-                    context.attacker().level(),
-                    context.victim().level()
-            );
-        }
-
         double attributedDamage = 0.0D;
         for (DamageComponent component : components) {
             double share = damage * component.ratio() / totalRatio;

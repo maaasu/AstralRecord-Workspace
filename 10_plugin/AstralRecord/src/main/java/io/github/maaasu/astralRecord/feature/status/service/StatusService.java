@@ -522,7 +522,6 @@ public class StatusService {
             case CRITICAL_DAMAGE -> 150.0D;
             case SUPER_CRITICAL_RATE -> 0.0D;
             case SUPER_CRITICAL_DAMAGE -> 200.0D;
-            case FINAL_DAMAGE_RATE -> 0.0D;
             case FINAL_DAMAGE_MULTIPLIER -> 130.0D;
             case ACCURACY -> 95.0D;
             case ATTACK_SPEED -> 100.0D;
@@ -1044,7 +1043,6 @@ public class StatusService {
                 case CRITICAL_DAMAGE -> 0.0D;
                 case SUPER_CRITICAL_RATE -> 0.0D;
                 case SUPER_CRITICAL_DAMAGE -> 0.0D;
-                case FINAL_DAMAGE_RATE -> 0.0D;
                 case FINAL_DAMAGE_MULTIPLIER -> 0.0D;
                 case ACCURACY -> 0.0D;
                 case ATTACK_SPEED -> 0.0D;
@@ -1083,7 +1081,6 @@ public class StatusService {
                 case CRITICAL_DAMAGE -> 25.0D;
                 case SUPER_CRITICAL_RATE -> 5.0D;
                 case SUPER_CRITICAL_DAMAGE -> 20.0D;
-                case FINAL_DAMAGE_RATE -> 5.0D;
                 case FINAL_DAMAGE_MULTIPLIER -> 10.0D;
                 case ACCURACY -> 5.0D;
                 case ATTACK_SPEED -> 10.0D;

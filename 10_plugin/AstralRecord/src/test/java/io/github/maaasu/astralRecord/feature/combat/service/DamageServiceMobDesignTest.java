@@ -69,6 +69,28 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
     }
 
     @Test
+    void finalDamageMultiplierScalesDamageBeforeApplyingIt() {
+        DamageHarness harness = damageHarness();
+        AstPlayer attacker = attacker();
+        attacker.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.MAX_HEALTH, 100.0D,
+            StatusType.FINAL_DAMAGE_MULTIPLIER, 150.0D
+        ), 100.0D, 0.0D, 0.0D));
+        MobInstance mob = DesignTestFixtures.mobInstance(10.0D, 0.0D, 0.0D);
+        when(harness.statusService.getStatus(attacker)).thenReturn(attacker.getStatusSnapshot());
+
+        DamageResult result = harness.service.applyDamage(
+            AstEntity.player(attacker),
+            AstEntity.mob(mob),
+            6.0D,
+            AttackType.MELEE
+        );
+
+        assertEquals(9.0D, result.finalDamage(), 0.0001D);
+        assertEquals(1.0D, mob.currentHealth(), 0.0001D);
+    }
+
+    @Test
     void lethalPlayerDamageMarksMobDeadAndDelegatesDeathHandling() {
         DamageHarness harness = damageHarness();
         AstPlayer attacker = attacker();

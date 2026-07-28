@@ -31,8 +31,7 @@ statuses:
   - { id: CRITICAL_DAMAGE, displayName: "会心ダメージ", description: "会心が発生したときのダメージ倍率。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
   - { id: SUPER_CRITICAL_RATE, displayName: "超会心率", description: "攻撃が超会心になる確率。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
   - { id: SUPER_CRITICAL_DAMAGE, displayName: "超会心ダメージ", description: "超会心が発生したときのダメージ倍率。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
-  - { id: FINAL_DAMAGE_RATE, displayName: "最終ダメージ確率", description: "最終ダメージ補正が適用される確率。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
-  - { id: FINAL_DAMAGE_MULTIPLIER, displayName: "最終ダメージ倍率", description: "各種補正の後に最終的に適用されるダメージ倍率。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
+  - { id: FINAL_DAMAGE_MULTIPLIER, displayName: "最終ダメージ倍率", description: "各種補正の後に常時適用される最終ダメージ倍率。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
   - { id: ACCURACY, displayName: "命中率", description: "攻撃が対象へ命中する確率。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
   - { id: ATTACK_SPEED, displayName: "攻撃速度", description: "通常攻撃や攻撃行動を行う速さ。", category: OFFENSE, suffix: "%" }
   - { id: SHIELD_BREAK, displayName: "シールドブレイク", description: "対象のシールドを削る攻撃性能。", category: OFFENSE }

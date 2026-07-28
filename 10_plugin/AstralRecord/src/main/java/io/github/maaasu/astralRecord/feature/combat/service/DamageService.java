@@ -292,6 +292,7 @@ public final class DamageService {
             damage *= conditionService.damageDealtMultiplier(attacker);
         }
         damage *= temporaryDamageMultiplier(attacker, victim);
+        damage *= finalDamageMultiplier(attacker);
         if (conditionType == ConditionType.POISON) {
             damage = Math.min(damage, Math.max(0.0D, victim.currentHealth() - 1.0D));
         }
@@ -361,7 +362,7 @@ public final class DamageService {
         DamageContext context = new DamageContext(attacker, victim, baseDamage, attackType, components, scaling);
         DamageResult calculated = damageCalculator.calculate(context);
         if (!calculated.evaded() && calculated.finalDamage() > 0.0D) {
-            double multiplier = temporaryDamageMultiplier(attacker, victim);
+            double multiplier = finalDamageMultiplier(attacker) * temporaryDamageMultiplier(attacker, victim);
             if (conditionService != null) {
                 multiplier *= conditionService.damageTakenMultiplier(victim)
                         * conditionService.damageDealtMultiplier(attacker);
@@ -387,6 +388,23 @@ public final class DamageService {
                 ? 1.0D
                 : temporarySkillEffectService.outgoingMultiplier(attacker);
         return outgoing * temporarySkillEffectService.incomingMultiplier(victim);
+    }
+
+    /**
+     * 攻撃者の最終ダメージ倍率を返します。
+     *
+     * <p>管理対象の攻撃者だけが {@link StatusType#FINAL_DAMAGE_MULTIPLIER} を使用します。
+     * 未設定または 0 以下の値は、Mob テンプレートの未設定値を含めて 100% と扱います。</p>
+     *
+     * @param attacker 攻撃者。環境ダメージの場合は {@code null}
+     * @return 最終ダメージへ乗算する倍率
+     */
+    private double finalDamageMultiplier(@Nullable AstEntity attacker) {
+        if (attacker == null || !attacker.isManaged()) {
+            return 1.0D;
+        }
+        double configured = attacker.statValue(StatusType.FINAL_DAMAGE_MULTIPLIER);
+        return configured > 0.0D ? configured / 100.0D : 1.0D;
     }
 
     private void applyDurabilityWear(

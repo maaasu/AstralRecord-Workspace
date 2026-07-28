@@ -236,14 +236,15 @@ public class MobCombatService {
 
         // ダメージ計算
         double baseDamage = computeDamage(instance, target);
-        double finalDamage = applyCriticalMultiplier(instance, baseDamage);
+        double criticalDamage = applyCriticalMultiplier(instance, baseDamage);
+        double finalDamage = criticalDamage * finalDamageMultiplier(instance);
 
         applyDamageToPlayer(target, finalDamage);
         showMobAttackFeedback(
                 instance,
                 target,
                 finalDamage,
-                finalDamage > baseDamage,
+                criticalDamage > baseDamage,
                 false,
                 accuracy,
                 evasion,
@@ -377,9 +378,7 @@ public class MobCombatService {
         double offensive = attack * (1.0 + scaling / 100.0);
         double defense = resolvePlayerDefense(target, style);
         double damage = Math.max(1.0, offensive - defense * 0.5);
-        AstPlayer astTarget = AstPlayerCache.get(target);
-        int playerLevel = astTarget == null ? 1 : astTarget.getAccount().getLevel();
-        return damage * LevelDifferenceCalculator.damageMultiplier(template.level(), playerLevel);
+        return damage;
     }
 
     /**
@@ -407,6 +406,19 @@ public class MobCombatService {
             damage *= superMul;
         }
         return damage;
+    }
+
+    /**
+     * Mob テンプレートの最終ダメージ倍率を返します。
+     *
+     * <p>テンプレートに未設定または 0 以下の場合は、既存 Mob の挙動を保つため 100% とします。</p>
+     *
+     * @param instance 攻撃側 Mob
+     * @return 最終ダメージへ乗算する倍率
+     */
+    private double finalDamageMultiplier(@NotNull MobInstance instance) {
+        double configured = instance.template().statValue(StatusType.FINAL_DAMAGE_MULTIPLIER.name(), 0.0D);
+        return configured > 0.0D ? configured / 100.0D : 1.0D;
     }
 
     /**

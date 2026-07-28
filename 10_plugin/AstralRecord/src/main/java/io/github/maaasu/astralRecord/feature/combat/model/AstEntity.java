@@ -126,19 +126,6 @@ public final class AstEntity {
     }
 
     /**
-     * レベル差計算に使用するレベルを返します。
-     *
-     * @return プレイヤーはアカウントレベル、Mob はテンプレートレベル、その他は 1
-     */
-    public int level() {
-        return switch (type) {
-            case PLAYER -> Math.max(1, player.getAccount().getLevel());
-            case MOB -> Math.max(1, mob.template().level());
-            case BUKKIT -> 1;
-        };
-    }
-
-    /**
      * 一意な ID を返します。
      *
      * @return プレイヤー UUID、Mob インスタンス ID、または Bukkit エンティティ UUID
