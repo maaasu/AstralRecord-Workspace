@@ -179,6 +179,34 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
     }
 
     @Test
+    void fullTransferOfMiddleBagEntryCompactsFollowingEntries() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        harness.addInventory(state, InventoryType.STORAGE);
+        ItemModel first = DesignTestFixtures.item("compact_first", ItemCategory.MATERIAL, 64);
+        ItemModel middle = DesignTestFixtures.item("compact_middle", ItemCategory.MATERIAL, 64);
+        ItemModel last = DesignTestFixtures.item("compact_last", ItemCategory.MATERIAL, 64);
+        when(harness.itemService.findLoadedById(middle.getId())).thenReturn(middle);
+
+        assertEquals(1, harness.inventoryService.addItemToNormalInventory(astPlayer, first, 1, "test"));
+        assertEquals(1, harness.inventoryService.addItemToNormalInventory(astPlayer, middle, 1, "test"));
+        assertEquals(1, harness.inventoryService.addItemToNormalInventory(astPlayer, last, 1, "test"));
+
+        assertEquals(1, harness.inventoryService.moveOwnedItemToStorage(astPlayer, 10, 1));
+
+        List<InventoryEntryModel> remaining = state.snapshotEntries(bag.getInventoryId()).stream()
+            .sorted(java.util.Comparator.comparing(InventoryEntryModel::getSlotIndex))
+            .toList();
+        assertEquals(2, remaining.size());
+        assertEquals("compact_first", remaining.get(0).getItemId());
+        assertEquals(1, remaining.get(0).getSlotIndex());
+        assertEquals("compact_last", remaining.get(1).getItemId());
+        assertEquals(2, remaining.get(1).getSlotIndex());
+    }
+
+    @Test
     void overflowEntryRemainsVisibleWhileEmptyOverflowSlotsAreLocked() {
         InventoryHarness harness = inventoryHarness();
         AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
@@ -262,7 +290,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
     }
 
     @Test
-    void currencyBulkTransferMovesAllNormalStacksBackToCurrency() {
+    void currencyBulkTransferMovesLegacyBagStacksBackToCurrency() {
         InventoryHarness harness = inventoryHarness();
         PlayerMock bukkitPlayer = server().addPlayer();
         AstPlayer astPlayer = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.ADMIN);
@@ -274,21 +302,22 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         when(harness.itemService.findLoadedById(currency.getId())).thenReturn(currency);
         when(harness.itemService.loadItem(currency.getId())).thenReturn(currency);
 
-        assertEquals(130, harness.inventoryService.addItemToNormalInventory(astPlayer, currency, 130, "test"));
-        ItemStack currencyDisplay = harness.inventoryService.getInventoryItemStacks(
-            astPlayer.getAccount().getUuid(),
-            InventoryType.CURRENCY
-        ).get(0);
-        assertEquals(130, harness.inventoryService.withdrawCurrencyToNormalInventory(
-            astPlayer,
-            currencyDisplay,
-            130
-        ));
-        assertEquals(3, state.snapshotEntries(bag.getInventoryId()).size());
-        assertEquals(0L, harness.inventoryService.getCurrencyAmount(
-            astPlayer.getAccount().getUuid(),
-            currency.getId()
-        ));
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(new InventoryEntryModel(
+            UUID.randomUUID(),
+            bag.getInventoryId(),
+            1,
+            ItemCategory.CURRENCY.getApiValue(),
+            currency.getId(),
+            null,
+            null,
+            130L,
+            null,
+            LocalDateTime.now(),
+            LocalDateTime.now(),
+            state.getAccountId(),
+            state.getAccountId(),
+            false
+        )));
 
         assertEquals(130, harness.inventoryService.moveAllOwnedMatchingCurrencyToCurrency(astPlayer, 9));
 

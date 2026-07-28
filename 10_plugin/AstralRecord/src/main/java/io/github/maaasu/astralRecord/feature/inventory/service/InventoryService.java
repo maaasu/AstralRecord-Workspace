@@ -1373,62 +1373,6 @@ public class InventoryService {
     }
 
     /**
-     * 通貨 GUI の通貨を通常 BAG へ取り出します。
-     * <p>
-     * 通貨は通常の報酬付与時には CURRENCY へ直接保存されますが、GUI 操作による取り出しだけは
-     * プレイヤーが交換に使える通常アイテムとして BAG へ移します。
-     *
-     * @param astPlayer 対象プレイヤー
-     * @param currencyItem 通貨 GUI 上の通貨 ItemStack
-     * @param amount 取り出す数量
-     * @return 実際に取り出せた数量
-     */
-    public int withdrawCurrencyToNormalInventory(
-        @NotNull AstPlayer astPlayer,
-        @Nullable ItemStack currencyItem,
-        int amount
-    ) {
-        ItemReference reference = resolveItemReference(currencyItem);
-        if (reference == null || ItemCategory.fromApiValue(reference.category()) != ItemCategory.CURRENCY) {
-            return 0;
-        }
-        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
-        if (state == null) {
-            return 0;
-        }
-        InventoryModel currencyInventory = state.findInventory(DEFAULT_PROFILE, InventoryType.CURRENCY);
-        if (currencyInventory == null || !currencyInventory.isEnabled()) {
-            return 0;
-        }
-        long available = getCurrencyAmount(astPlayer.getAccount().getUuid(), reference.itemId());
-        int requested = Math.max(0, amount);
-        int desired = (int) Math.min(available, Math.min(Integer.MAX_VALUE, requested));
-        if (desired <= 0) {
-            return 0;
-        }
-
-        ItemModel model = itemReferenceResolver.resolveItemModel(reference);
-        if (model == null) {
-            return 0;
-        }
-        InventoryStateSnapshot snapshot = snapshotState(astPlayer.getAccount().getUuid());
-        InventoryModel bagInventory = ensureInventory(state, InventoryType.BAG);
-        int added = addStackedItems(state, bagInventory, model, desired, collectUsedSlots(state, bagInventory));
-        if (added <= 0) {
-            return 0;
-        }
-
-        long consumed = consumeItemAmountFromInventory(state, currencyInventory, reference.itemId(), added);
-        if (consumed != added) {
-            restoreState(snapshot);
-            return 0;
-        }
-        compactInventoryEntries(currencyInventory.getInventoryId(), state.getAccountId());
-        requestManagedInventoryUiRefresh(astPlayer, false);
-        return added;
-    }
-
-    /**
      * 通常 BAG またはホットバーの通貨アイテムを通貨インベントリへ戻します。
      *
      * @param astPlayer 対象プレイヤー
@@ -2985,6 +2929,7 @@ public class InventoryService {
             ).thenComparing(InventoryEntryModel::getCreatedAt))
             .toList();
         state.replaceEntries(sourceEntry.getInventoryId(), remaining);
+        compactInventoryEntriesAfterRemoval(state, sourceEntry.getInventoryId());
     }
 
     /**
@@ -3630,9 +3575,44 @@ public class InventoryService {
         compactInventoryEntries(state, inventoryId);
     }
 
+    /**
+     * BAG を除く通常の圧縮規則で entry の slotIndex を詰め直します。
+     *
+     * @param state 対象プレイヤーのインベントリ状態
+     * @param inventoryId 対象インベントリ ID
+     */
     private void compactInventoryEntries(@NotNull PlayerInventoryState state, @NotNull UUID inventoryId) {
+        compactInventoryEntries(state, inventoryId, false);
+    }
+
+    /**
+     * entry の全量移動後に、BAG の容量外 entry も保持したまま表示順を前詰めします。
+     * 固定位置に意味がある HOTBAR などは通常の圧縮規則に従います。
+     *
+     * @param state 対象プレイヤーのインベントリ状態
+     * @param inventoryId 全量移動が発生したインベントリ ID
+     */
+    private void compactInventoryEntriesAfterRemoval(
+        @NotNull PlayerInventoryState state,
+        @NotNull UUID inventoryId
+    ) {
+        compactInventoryEntries(state, inventoryId, true);
+    }
+
+    /**
+     * 指定インベントリの有効 entry を slotIndex 順の連続スロットへ詰め直します。
+     *
+     * @param state 対象プレイヤーのインベントリ状態
+     * @param inventoryId 対象インベントリ ID
+     * @param includeBag BAG を圧縮対象に含める場合 true
+     */
+    private void compactInventoryEntries(
+        @NotNull PlayerInventoryState state,
+        @NotNull UUID inventoryId,
+        boolean includeBag
+    ) {
         InventoryModel inventory = state.findInventoryById(inventoryId);
-        if (inventory != null && inventory.getInventoryType() == InventoryType.BAG) {
+        if (inventory != null && inventory.getInventoryType() == InventoryType.BAG && !includeBag) {
             return;
         }
         List<InventoryEntryModel> entries = state.snapshotEntries(inventoryId).stream()
@@ -3641,7 +3621,9 @@ public class InventoryService {
                 e -> e.getSlotIndex() == null ? Integer.MAX_VALUE : e.getSlotIndex()
             ).thenComparing(InventoryEntryModel::getCreatedAt))
             .toList();
-        boolean unlimitedSlots = inventory != null && inventory.getInventoryType() == InventoryType.CURRENCY;
+        boolean preserveEntriesBeyondCapacity = inventory != null
+            && (inventory.getInventoryType() == InventoryType.CURRENCY
+                || inventory.getInventoryType() == InventoryType.BAG);
         if (inventory != null && inventory.getInventoryType() == InventoryType.CURRENCY) {
             entries = normalizeCurrencyEntries(state, inventory);
         }
@@ -3649,7 +3631,7 @@ public class InventoryService {
         List<InventoryEntryModel> compacted = new ArrayList<>();
         boolean changed = false;
         for (InventoryEntryModel entry : entries) {
-            if (!unlimitedSlots && inventory != null && next > inventoryCapacity(inventory)) {
+            if (!preserveEntriesBeyondCapacity && inventory != null && next > inventoryCapacity(inventory)) {
                 break;
             }
             Integer current = entry.getSlotIndex();
@@ -3990,6 +3972,9 @@ public class InventoryService {
                 state.setSelectedHotbarSlot(null);
             }
             state.replaceEntries(inventory.getInventoryId(), remaining);
+            if (inventoryType == InventoryType.BAG) {
+                compactInventoryEntriesAfterRemoval(state, inventory.getInventoryId());
+            }
         }
     }
 

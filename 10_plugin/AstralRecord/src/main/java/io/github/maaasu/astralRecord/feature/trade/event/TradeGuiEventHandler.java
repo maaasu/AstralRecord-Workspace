@@ -227,32 +227,63 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        long amount = switch (event.getRawSlot()) {
-            case GoldAmountSettingGui.CLEAR_SLOT -> 0L;
-            case GoldAmountSettingGui.MINUS_1000_SLOT -> goldAmountSettingGui.applyDelta(holder, -1000L);
-            case GoldAmountSettingGui.MINUS_100_SLOT -> goldAmountSettingGui.applyDelta(holder, -100L);
-            case GoldAmountSettingGui.PLUS_100_SLOT -> goldAmountSettingGui.applyDelta(holder, 100L);
-            case GoldAmountSettingGui.PLUS_1000_SLOT -> goldAmountSettingGui.applyDelta(holder, 1000L);
-            case GoldAmountSettingGui.MAX_SLOT -> holder.maxAmount();
-            default -> holder.amount();
-        };
-        if (event.getRawSlot() == GoldAmountSettingGui.BACK_SLOT) {
+        int rawSlot = event.getRawSlot();
+        if (rawSlot == GoldAmountSettingGui.BACK_SLOT) {
             tradeService.reopenTrade(player);
             GuiSound.SELECT.play(player);
             return;
         }
-        if (event.getRawSlot() == GoldAmountSettingGui.CONFIRM_SLOT) {
+        if (rawSlot == GoldAmountSettingGui.CONFIRM_SLOT) {
             tradeService.applyGoldAmount(player, holder.contextId(), holder.amount());
             GuiSound.SELECT.play(player);
             return;
         }
+        if (rawSlot == GoldAmountSettingGui.STEP_DOWN_SLOT
+            || rawSlot == GoldAmountSettingGui.STEP_UP_SLOT) {
+            long previousStep = holder.step();
+            int digitChange = event.isShiftClick() ? 3 : 1;
+            goldAmountSettingGui.shiftStep(
+                holder,
+                rawSlot == GoldAmountSettingGui.STEP_DOWN_SLOT ? -digitChange : digitChange
+            );
+            goldAmountSettingGui.rerender(event.getView().getTopInventory(), holder);
+            if (previousStep == holder.step()) {
+                GuiSound.DENY.play(player);
+            } else {
+                GuiSound.SELECT.play(player);
+            }
+            return;
+        }
+        int multiplier = resolveGoldAdjustmentMultiplier(event);
+        long amount = switch (event.getRawSlot()) {
+            case GoldAmountSettingGui.CLEAR_SLOT -> 0L;
+            case GoldAmountSettingGui.MINUS_SLOT -> goldAmountSettingGui.applyStepDelta(holder, -1, multiplier);
+            case GoldAmountSettingGui.HALF_SLOT -> holder.amount() / 2L;
+            case GoldAmountSettingGui.DOUBLE_SLOT -> goldAmountSettingGui.applyDelta(holder, holder.amount());
+            case GoldAmountSettingGui.PLUS_SLOT -> goldAmountSettingGui.applyStepDelta(holder, 1, multiplier);
+            case GoldAmountSettingGui.MAX_SLOT -> holder.maxAmount();
+            default -> holder.amount();
+        };
         if (amount != holder.amount()) {
             holder.setAmount(amount);
-            goldAmountSettingGui.rerender(event.getView().getTopInventory(), amount, holder.maxAmount());
+            goldAmountSettingGui.rerender(event.getView().getTopInventory(), holder);
             GuiSound.SELECT.play(player);
             return;
         }
         GuiSound.DENY.play(player);
+    }
+
+    /**
+     * Gold 増減ボタンのクリック種別から調整倍率を解決します。
+     *
+     * @param event 金額設定 GUI のクリックイベント
+     * @return 通常1倍、右クリック5倍、Shiftクリック10倍
+     */
+    private int resolveGoldAdjustmentMultiplier(@NotNull InventoryClickEvent event) {
+        if (event.isShiftClick()) {
+            return 10;
+        }
+        return event.isRightClick() ? 5 : 1;
     }
 
     private boolean handleHotbarShortcutClick(@NotNull InventoryClickEvent event, @NotNull Player player) {

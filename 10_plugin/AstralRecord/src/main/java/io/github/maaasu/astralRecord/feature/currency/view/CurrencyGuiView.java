@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.currency.view;
 
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
@@ -9,6 +10,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -16,6 +18,7 @@ import java.util.List;
  */
 public final class CurrencyGuiView {
     public static final int EXCHANGE_SLOT = 51;
+    public static final String BALANCE_ONLY_LORE = "残高表示専用（所持品へ取り出せません）";
     private final PagedGuiView pagedGuiView = new PagedGuiView();
 
     /**
@@ -32,9 +35,35 @@ public final class CurrencyGuiView {
         int pageIndex,
         boolean exchangeUnlocked
     ) {
-        pagedGuiView.render(inventory, items, pageIndex);
+        pagedGuiView.render(inventory, asBalanceDisplayItems(items), pageIndex);
         fillEmptySlots(inventory);
         inventory.setItem(EXCHANGE_SLOT, createExchangeIcon(exchangeUnlocked));
+    }
+
+    /**
+     * 通貨一覧の各 item を残高表示専用であることが分かる表示へ変換します。
+     *
+     * @param items 通貨残高を表す item 一覧
+     * @return 表示専用 lore を付けた clone 一覧
+     */
+    private @NotNull List<ItemStack> asBalanceDisplayItems(@NotNull List<ItemStack> items) {
+        List<ItemStack> displayItems = new ArrayList<>(items.size());
+        for (ItemStack item : items) {
+            ItemStack displayItem = item.clone();
+            ItemMeta meta = displayItem.getItemMeta();
+            if (meta != null) {
+                List<Component> lore = meta.hasLore() && meta.lore() != null
+                    ? new ArrayList<>(meta.lore())
+                    : new ArrayList<>();
+                lore.add(io.github.maaasu.astralRecord.shared.gui.GuiItems.noItalic(
+                    Component.text(BALANCE_ONLY_LORE, NamedTextColor.DARK_GRAY)
+                ));
+                meta.lore(lore);
+                displayItem.setItemMeta(meta);
+            }
+            displayItems.add(displayItem);
+        }
+        return List.copyOf(displayItems);
     }
 
     /**

@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.currency.model.GoldDenomination;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
@@ -14,6 +15,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -51,5 +53,18 @@ class CurrencyGuiViewTest extends MockBukkitTestBase {
         assertEquals(Material.DIAMOND_BLOCK, inventory.getItem(15).getType());
         assertEquals(Material.NETHER_STAR, inventory.getItem(16).getType());
         assertEquals(GoldDenomination.YGGDRASIL_STAR_CORE, view.denominationAt(16));
+    }
+
+    @Test
+    void marksCurrencyEntriesAsBalanceOnly() {
+        CurrencyGuiView view = new CurrencyGuiView();
+        Inventory inventory = Bukkit.createInventory(null, 54);
+
+        view.render(inventory, List.of(new org.bukkit.inventory.ItemStack(Material.GOLD_NUGGET)), 0, true);
+
+        var lore = inventory.getItem(0).getItemMeta().lore();
+        assertTrue(lore.stream()
+            .map(PlainTextComponentSerializer.plainText()::serialize)
+            .anyMatch(CurrencyGuiView.BALANCE_ONLY_LORE::equals));
     }
 }

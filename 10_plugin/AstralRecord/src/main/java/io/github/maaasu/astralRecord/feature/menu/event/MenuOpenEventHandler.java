@@ -656,37 +656,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler
             return;
         }
 
-        if (rawSlot >= 0 && rawSlot < MenuView.PAGING_PREVIOUS_SLOT) {
-            ItemStack currencyItem = topInventory.getItem(rawSlot);
-            String currencyItemId = currencyService.getCurrencyItemId(currencyItem);
-            AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (currencyItemId != null && astPlayer != null) {
-                long ownedAmount = currencyService.getCurrencyAmount(
-                    astPlayer.getAccount().getUuid(),
-                    currencyItemId
-                );
-                int requested = ItemTransferSupport.resolveTransferAmount(
-                    event.getClick(),
-                    (int) Math.min(Integer.MAX_VALUE, ownedAmount),
-                    currencyService.getCurrencyMaxStackSize(currencyItem)
-                );
-                int moved = inventoryService.withdrawCurrencyToNormalInventory(astPlayer, currencyItem, requested);
-                if (moved > 0) {
-                    GuiSound.SELECT.play(player);
-                    switchGuiWithoutInventoryReload(
-                        player,
-                        () -> menuView.openCurrency(
-                            player,
-                            currencyItems(player),
-                            pageIndex,
-                            exchangeUnlocked(player)
-                        )
-                    );
-                    return;
-                }
-            }
-        }
-
         GuiSound.DENY.play(player);
     }
 

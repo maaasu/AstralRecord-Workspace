@@ -14,6 +14,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -22,14 +23,17 @@ import java.util.UUID;
 public final class GoldAmountSettingGui {
     public static final int SIZE = 27;
     public static final int CLEAR_SLOT = 9;
-    public static final int MINUS_1000_SLOT = 10;
-    public static final int MINUS_100_SLOT = 11;
+    public static final int STEP_DOWN_SLOT = 10;
+    public static final int MINUS_SLOT = 11;
+    public static final int HALF_SLOT = 12;
     public static final int AMOUNT_SLOT = 13;
-    public static final int PLUS_100_SLOT = 15;
-    public static final int PLUS_1000_SLOT = 16;
+    public static final int DOUBLE_SLOT = 14;
+    public static final int PLUS_SLOT = 15;
+    public static final int STEP_UP_SLOT = 16;
     public static final int MAX_SLOT = 17;
     public static final int BACK_SLOT = 21;
     public static final int CONFIRM_SLOT = 23;
+    private static final long MAX_STEP = 1_000_000_000_000_000_000L;
 
     /**
      * 指定した金額設定 GUI を開きます。
@@ -54,27 +58,105 @@ public final class GoldAmountSettingGui {
             SIZE,
             Component.text("ゴールド金額", NamedTextColor.GOLD)
         );
-        render(inventory, normalizedAmount, normalizedMax);
+        render(inventory, normalizedAmount, normalizedMax, 1L);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory);
     }
 
+    /**
+     * 指定インベントリが Gold 金額設定 GUI か判定します。
+     *
+     * @param inventory 判定対象インベントリ
+     * @return Gold 金額設定 GUI の場合 true
+     */
     public boolean isGoldAmountInventory(@Nullable Inventory inventory) {
         return inventory != null && inventory.getHolder() instanceof GoldAmountHolder;
     }
 
+    /**
+     * 指定インベントリから Gold 金額設定 holder を取得します。
+     *
+     * @param inventory 取得元インベントリ
+     * @return holder。対象外の場合は null
+     */
     public @Nullable GoldAmountHolder getHolder(@Nullable Inventory inventory) {
         return inventory != null && inventory.getHolder() instanceof GoldAmountHolder holder ? holder : null;
     }
 
+    /**
+     * 現在額へ増減値を加え、0 から上限の範囲へ丸めます。
+     * 加算が long の範囲を超える場合は符号に応じて飽和させます。
+     *
+     * @param holder 金額設定 holder
+     * @param delta 増減値
+     * @return 丸めた変更後金額
+     */
     public long applyDelta(@NotNull GoldAmountHolder holder, long delta) {
-        return clamp(holder.amount() + delta, holder.maxAmount());
+        return clamp(saturatingAdd(holder.amount(), delta), holder.maxAmount());
     }
 
-    public void rerender(@NotNull Inventory inventory, long amount, long maxAmount) {
-        render(inventory, clamp(amount, maxAmount), Math.max(0L, maxAmount));
+    /**
+     * 現在の調整単位を使って金額を増減します。
+     *
+     * @param holder 金額設定 holder
+     * @param direction 増加は正数、減少は負数、0は変更なし
+     * @param multiplier 調整単位へ掛ける倍率
+     * @return 丸めた変更後金額
+     */
+    public long applyStepDelta(@NotNull GoldAmountHolder holder, int direction, int multiplier) {
+        if (direction == 0) {
+            return clamp(holder.amount(), holder.maxAmount());
+        }
+        int normalizedMultiplier = Math.max(1, multiplier);
+        long magnitude = saturatingMultiply(holder.step(), normalizedMultiplier);
+        return applyDelta(holder, direction < 0 ? -magnitude : magnitude);
     }
 
-    private void render(@NotNull Inventory inventory, long amount, long maxAmount) {
+    /**
+     * 金額調整単位を10進の指定桁数だけ上下させます。
+     *
+     * @param holder 金額設定 holder
+     * @param digitDelta 正数で桁を上げ、負数で桁を下げる
+     * @return 変更後の調整単位
+     */
+    public long shiftStep(@NotNull GoldAmountHolder holder, int digitDelta) {
+        long step = holder.step();
+        int direction = Integer.compare(digitDelta, 0);
+        int iterations = (int) Math.min(18L, Math.abs((long) digitDelta));
+        for (int index = 0; index < iterations; index++) {
+            if (direction > 0) {
+                step = step >= MAX_STEP / 10L ? MAX_STEP : step * 10L;
+            } else if (direction < 0) {
+                step = Math.max(1L, step / 10L);
+            }
+        }
+        holder.setStep(step);
+        return step;
+    }
+
+    /**
+     * holder の現在値で Gold 金額設定 GUI を再描画します。
+     *
+     * @param inventory 描画先インベントリ
+     * @param holder 現在の金額・上限・調整単位を持つ holder
+     */
+    public void rerender(@NotNull Inventory inventory, @NotNull GoldAmountHolder holder) {
+        render(
+            inventory,
+            clamp(holder.amount(), holder.maxAmount()),
+            Math.max(0L, holder.maxAmount()),
+            holder.step()
+        );
+    }
+
+    /**
+     * Gold 金額設定 GUI の全スロットを現在値で描画します。
+     *
+     * @param inventory 描画先インベントリ
+     * @param amount 現在の設定金額
+     * @param maxAmount 設定可能な最大金額
+     * @param step 現在の10進調整単位
+     */
+    private void render(@NotNull Inventory inventory, long amount, long maxAmount, long step) {
         ItemStack filler = item(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of());
         for (int slot = 0; slot < SIZE; slot++) {
             inventory.setItem(slot, filler.clone());
@@ -84,38 +166,62 @@ public final class GoldAmountSettingGui {
             Component.text("0", NamedTextColor.RED, TextDecoration.BOLD),
             List.of(Component.text("0 ゴールドに設定します", NamedTextColor.GRAY))
         ));
-        inventory.setItem(MINUS_1000_SLOT, item(
-            Material.RED_CONCRETE,
-            Component.text("-1000", NamedTextColor.RED, TextDecoration.BOLD),
-            List.of()
+        inventory.setItem(STEP_DOWN_SLOT, item(
+            Material.REDSTONE,
+            Component.text("調整桁を下げる", NamedTextColor.YELLOW, TextDecoration.BOLD),
+            List.of(
+                Component.text("現在: " + formatAmount(step), NamedTextColor.WHITE),
+                Component.text("左: 1桁 / Shift: 3桁", NamedTextColor.GRAY)
+            )
         ));
-        inventory.setItem(MINUS_100_SLOT, item(
-            Material.RED_STAINED_GLASS_PANE,
-            Component.text("-100", NamedTextColor.RED, TextDecoration.BOLD),
-            List.of()
+        inventory.setItem(MINUS_SLOT, item(
+            Material.RED_CONCRETE,
+            Component.text("-" + formatAmount(step), NamedTextColor.RED, TextDecoration.BOLD),
+            List.of(
+                Component.text("右クリック: 5倍", NamedTextColor.GRAY),
+                Component.text("Shiftクリック: 10倍", NamedTextColor.GRAY)
+            )
+        ));
+        inventory.setItem(HALF_SLOT, item(
+            Material.ORANGE_STAINED_GLASS_PANE,
+            Component.text("半分", NamedTextColor.GOLD, TextDecoration.BOLD),
+            List.of(Component.text(formatAmount(amount / 2L) + " ゴールド", NamedTextColor.GRAY))
         ));
         inventory.setItem(AMOUNT_SLOT, item(
             Material.GOLD_INGOT,
-            Component.text(amount + " ゴールド", NamedTextColor.GOLD, TextDecoration.BOLD),
+            Component.text(formatAmount(amount) + " ゴールド", NamedTextColor.GOLD, TextDecoration.BOLD),
             List.of(
-                Component.text("上限: " + maxAmount + " ゴールド", NamedTextColor.YELLOW),
-                Component.text("左右のボタンで金額を変更します", NamedTextColor.GRAY)
+                Component.text("上限: " + formatAmount(maxAmount) + " ゴールド", NamedTextColor.YELLOW),
+                Component.text("調整単位: " + formatAmount(step), NamedTextColor.WHITE),
+                Component.text("桁切替と増減ボタンで金額を変更します", NamedTextColor.GRAY)
             )
         ));
-        inventory.setItem(PLUS_100_SLOT, item(
+        inventory.setItem(DOUBLE_SLOT, item(
             Material.LIME_STAINED_GLASS_PANE,
-            Component.text("+100", NamedTextColor.GREEN, TextDecoration.BOLD),
-            List.of()
+            Component.text("2倍", NamedTextColor.GREEN, TextDecoration.BOLD),
+            List.of(Component.text(formatAmount(clamp(saturatingMultiply(amount, 2L), maxAmount))
+                + " ゴールド", NamedTextColor.GRAY))
         ));
-        inventory.setItem(PLUS_1000_SLOT, item(
+        inventory.setItem(PLUS_SLOT, item(
             Material.LIME_CONCRETE,
-            Component.text("+1000", NamedTextColor.GREEN, TextDecoration.BOLD),
-            List.of()
+            Component.text("+" + formatAmount(step), NamedTextColor.GREEN, TextDecoration.BOLD),
+            List.of(
+                Component.text("右クリック: 5倍", NamedTextColor.GRAY),
+                Component.text("Shiftクリック: 10倍", NamedTextColor.GRAY)
+            )
+        ));
+        inventory.setItem(STEP_UP_SLOT, item(
+            Material.GLOWSTONE_DUST,
+            Component.text("調整桁を上げる", NamedTextColor.YELLOW, TextDecoration.BOLD),
+            List.of(
+                Component.text("現在: " + formatAmount(step), NamedTextColor.WHITE),
+                Component.text("左: 1桁 / Shift: 3桁", NamedTextColor.GRAY)
+            )
         ));
         inventory.setItem(MAX_SLOT, item(
             Material.EMERALD_BLOCK,
             Component.text("最大", NamedTextColor.GREEN, TextDecoration.BOLD),
-            List.of(Component.text(maxAmount + " ゴールド", NamedTextColor.YELLOW))
+            List.of(Component.text(formatAmount(maxAmount) + " ゴールド", NamedTextColor.YELLOW))
         ));
         inventory.setItem(BACK_SLOT, item(
             Material.ARROW,
@@ -125,12 +231,53 @@ public final class GoldAmountSettingGui {
         inventory.setItem(CONFIRM_SLOT, item(
             Material.LIME_CONCRETE,
             Component.text("確定", NamedTextColor.GREEN, TextDecoration.BOLD),
-            List.of(Component.text(amount + " ゴールド", NamedTextColor.YELLOW))
+            List.of(Component.text(formatAmount(amount) + " ゴールド", NamedTextColor.YELLOW))
         ));
     }
 
     private static long clamp(long amount, long maxAmount) {
         return Math.max(0L, Math.min(amount, Math.max(0L, maxAmount)));
+    }
+
+    /**
+     * long の範囲を超える加算を上限または下限へ飽和させます。
+     *
+     * @param left 左辺
+     * @param right 右辺
+     * @return 飽和加算結果
+     */
+    private static long saturatingAdd(long left, long right) {
+        if (right > 0L && left > Long.MAX_VALUE - right) {
+            return Long.MAX_VALUE;
+        }
+        if (right < 0L && left < Long.MIN_VALUE - right) {
+            return Long.MIN_VALUE;
+        }
+        return left + right;
+    }
+
+    /**
+     * 非負数同士の乗算を long 上限へ飽和させます。
+     *
+     * @param value 被乗数
+     * @param multiplier 乗数
+     * @return 飽和乗算結果。いずれかが0以下の場合は0
+     */
+    private static long saturatingMultiply(long value, long multiplier) {
+        if (value <= 0L || multiplier <= 0L) {
+            return 0L;
+        }
+        return value > Long.MAX_VALUE / multiplier ? Long.MAX_VALUE : value * multiplier;
+    }
+
+    /**
+     * 金額を3桁区切りの表示文字列へ変換します。
+     *
+     * @param amount 表示対象金額
+     * @return 3桁区切り文字列
+     */
+    private static @NotNull String formatAmount(long amount) {
+        return String.format(Locale.ROOT, "%,d", amount);
     }
 
     private @NotNull ItemStack item(
@@ -147,7 +294,17 @@ public final class GoldAmountSettingGui {
         private final UUID viewerUuid;
         private long amount;
         private final long maxAmount;
+        private long step = 1L;
 
+        /**
+         * Gold 金額設定 GUI の状態を作成します。
+         *
+         * @param sourceKey 呼び出し元識別キー
+         * @param contextId 呼び出し元コンテキスト ID
+         * @param viewerUuid 表示プレイヤー UUID
+         * @param amount 初期金額
+         * @param maxAmount 設定可能な最大金額
+         */
         public GoldAmountHolder(
             @NotNull String sourceKey,
             @NotNull UUID contextId,
@@ -184,6 +341,24 @@ public final class GoldAmountSettingGui {
 
         public void setAmount(long amount) {
             this.amount = amount;
+        }
+
+        /**
+         * 現在の調整単位を返します。
+         *
+         * @return 1 から 10^18 の10進調整単位
+         */
+        public long step() {
+            return step;
+        }
+
+        /**
+         * 金額増減に使う10進調整単位を更新します。
+         *
+         * @param step 新しい調整単位
+         */
+        public void setStep(long step) {
+            this.step = Math.max(1L, Math.min(step, MAX_STEP));
         }
 
         @Override

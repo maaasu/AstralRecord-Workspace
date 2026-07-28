@@ -186,17 +186,4 @@ public final class CurrencyService {
         return reference.itemId();
     }
 
-    /**
-     * 通貨 ItemStack に対応する1スタック上限を返します。
-     *
-     * @param itemStack 解決対象 ItemStack
-     * @return item master のスタック上限。解決できない場合は Bukkit ItemStack の上限
-     */
-    public int getCurrencyMaxStackSize(@Nullable ItemStack itemStack) {
-        var model = itemReferenceResolver.resolveItemModel(itemStack);
-        if (model != null && ItemCategory.fromApiValue(model.getCategory()) == ItemCategory.CURRENCY) {
-            return Math.max(1, model.getMaxStack());
-        }
-        return itemStack == null ? 1 : Math.max(1, itemStack.getMaxStackSize());
-    }
 }
