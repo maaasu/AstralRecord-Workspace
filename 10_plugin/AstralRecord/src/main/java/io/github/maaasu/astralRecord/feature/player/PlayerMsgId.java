@@ -74,7 +74,7 @@ public enum PlayerMsgId {
      */
     P_5071(5071),
     /**
-     * プレイヤーデータのロードが完了しました。
+     * プレイヤーデータのロードが完了しました: ({0}ms)
      */
     P_5072(5072),
     /**
@@ -1071,4 +1071,3 @@ public enum PlayerMsgId {
         return id;
     }
 }
-

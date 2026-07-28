@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -470,7 +471,8 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         JoinAttempt attempt = new JoinAttempt(
             playerUuid,
             joinAttemptSequence.incrementAndGet(),
-            player
+            player,
+            System.nanoTime()
         );
         joinAttempts.put(playerUuid, attempt);
         LoadingControl previous = loadingControls.remove(playerUuid);
@@ -510,7 +512,11 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             restoreLoadingControl(player, loadingControl);
             player.clearTitle();
             if (notifyComplete) {
-                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5072);
+                PlayerMessageService.getInstance().send(
+                    player,
+                    PlayerMsgId.P_5072,
+                    elapsedMillisSince(attempt.startedAtNanos())
+                );
             }
         } else if (loadingControl != null && loadingControl.titleTask() != null) {
             loadingControl.titleTask().cancel();
@@ -642,6 +648,16 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         }
     }
 
+    /**
+     * 指定した単調時計の開始時刻から現在までの経過時間をミリ秒で返します。
+     *
+     * @param startedAtNanos {@link System#nanoTime()} で取得した開始時刻
+     * @return 0 以上の経過ミリ秒
+     */
+    private long elapsedMillisSince(long startedAtNanos) {
+        return Math.max(0L, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAtNanos));
+    }
+
     private boolean hasPositionChanged(Location from, Location to) {
         if (from.getWorld() != to.getWorld()) {
             return true;
@@ -667,8 +683,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         }
     }
 
-    private record JoinAttempt(UUID playerUuid, long generation, Player player) {
+    private record JoinAttempt(UUID playerUuid, long generation, Player player, long startedAtNanos) {
     }
 }
-
 

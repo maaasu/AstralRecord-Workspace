@@ -63,4 +63,13 @@ class PlayerMsgResourceTest {
         assertTrue(PlayerMsgResource.getMessage(PlayerMsgId.P_5600.getId()).contains("ガイド"));
         assertTrue(PlayerMsgResource.format(PlayerMsgId.P_5624.getId(), 3).contains("3"));
     }
+
+    @Test
+    void externalDataOperationCompletionMessagesIncludeElapsedMilliseconds() {
+        String joinLoad = PlayerMsgResource.format(PlayerMsgId.P_5072.getId(), 123L);
+        String autoSave = PlayerMsgResource.format(PlayerMsgId.P_5281.getId(), 456L);
+
+        assertTrue(joinLoad.contains("(123ms)"));
+        assertTrue(autoSave.contains("(456ms)"));
+    }
 }

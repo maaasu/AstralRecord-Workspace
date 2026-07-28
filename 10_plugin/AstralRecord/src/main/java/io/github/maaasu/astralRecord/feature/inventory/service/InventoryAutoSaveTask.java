@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 一定間隔（既定 60 秒）でオンライン全プレイヤーのインベントリ状態を API へ反映するスケジュールタスク。
@@ -75,12 +76,17 @@ public final class InventoryAutoSaveTask {
             plugin,
             () -> {
                 List<UUID> notificationTargets = notifySaveStarted();
+                long saveStartedAtNanos = System.nanoTime();
                 captureToolInventorySnapshots();
                 runSaveAll().thenAccept(succeeded -> {
                     if (succeeded) {
                         plugin.getServer().getScheduler().runTask(
                             plugin,
-                            () -> notifySaveCompleted(plugin, notificationTargets)
+                            () -> notifySaveCompleted(
+                                plugin,
+                                notificationTargets,
+                                elapsedMillisSince(saveStartedAtNanos)
+                            )
                         );
                     }
                 });
@@ -135,13 +141,34 @@ public final class InventoryAutoSaveTask {
         return targets;
     }
 
-    private void notifySaveCompleted(@NotNull AstralRecord plugin, @NotNull List<UUID> targets) {
+    /**
+     * 保存完了を通知対象のオンラインプレイヤーへ送信します。
+     *
+     * @param plugin プラグインインスタンス
+     * @param targets 保存開始を通知したユーザー ID 一覧
+     * @param elapsedMillis 保存開始から完了までの経過ミリ秒
+     */
+    private void notifySaveCompleted(
+        @NotNull AstralRecord plugin,
+        @NotNull List<UUID> targets,
+        long elapsedMillis
+    ) {
         for (UUID userId : targets) {
             var player = plugin.getServer().getPlayer(userId);
             if (player != null && player.isOnline()) {
-                playerMessageService.send(player, PlayerMsgId.P_5281);
+                playerMessageService.send(player, PlayerMsgId.P_5281, elapsedMillis);
             }
         }
+    }
+
+    /**
+     * 指定した単調時計の開始時刻から現在までの経過時間をミリ秒で返します。
+     *
+     * @param startedAtNanos {@link System#nanoTime()} で取得した開始時刻
+     * @return 0 以上の経過ミリ秒
+     */
+    private long elapsedMillisSince(long startedAtNanos) {
+        return Math.max(0L, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAtNanos));
     }
 
     private void captureToolInventorySnapshots() {
