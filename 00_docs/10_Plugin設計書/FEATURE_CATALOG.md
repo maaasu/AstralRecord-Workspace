@@ -34,6 +34,7 @@
 | 28 | [[28_0-概要]] | 複数機能のクリック候補を一件へ調停 | `shared/interaction` の共通契約 |
 | 29 | [[29_0-概要]] | クエスト状態、進捗、報酬、board | `feature/quest` |
 | 30 | [[30_0-概要]] | Java 用リソースパック要求と client status | `feature/resourcepack` |
+| 31 | [[31_0-概要]] | 検証用カカシの配置、共有ステータス調整、非致死・定期回復 | `feature/trainingdummy` |
 
 ## 更新規則
 
@@ -296,3 +297,8 @@
 - `10_plugin/AstralRecord/src/main/resources/config.yml`
 - `10_plugin/AstralRecord/src/main/resources/player.properties`
 - `10_plugin/AstralRecord/src/main/resources/logger.properties`
+
+### [[31_0-概要|31-training-dummy]]
+
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/trainingdummy/*`
+- Plugin data folder: `training-dummies.yml`
