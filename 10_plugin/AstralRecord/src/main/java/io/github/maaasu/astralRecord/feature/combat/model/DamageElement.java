@@ -8,15 +8,12 @@ public enum DamageElement {
     FIRE,
     ICE,
     LIGHTNING,
-    POISON,
-    LIGHT,
-    DARK,
     ;
 
     /**
      * 文字列から属性を解決します。
      *
-     * 旧値 {@code NEUTRAL} は {@link #NONE}、{@code HOLY} は {@link #LIGHT} として扱います。
+     * 旧値 {@code NEUTRAL} は {@link #NONE} として扱います。廃止済み属性を含む不正な値も {@link #NONE} として扱います。
      *
      * @param raw 入力文字列。null または不正値の場合は NONE
      * @return 解決した属性
@@ -28,9 +25,6 @@ public enum DamageElement {
         String normalized = raw.toString().trim().toUpperCase(java.util.Locale.ROOT);
         if (normalized.equals("NEUTRAL")) {
             return NONE;
-        }
-        if (normalized.equals("HOLY")) {
-            return LIGHT;
         }
         try {
             return DamageElement.valueOf(normalized);

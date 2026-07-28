@@ -47,7 +47,7 @@
 | --- | --- | --- | --- | --- |
 | `attackType` | String | 任意 | `MELEE` | `MELEE` / `RANGED` / `MAGIC`。攻撃力・能力値・防御力の参照元を決める |
 | `damageComponents` | List | 任意 | 無属性100% | 属性別ダメージ倍率。各成分を独立して属性補正後に合算する |
-| `damageComponents[].element` | String | 必須 | - | `NONE` / `FIRE` / `ICE` / `LIGHTNING` / `POISON` / `LIGHT` / `DARK` |
+| `damageComponents[].element` | String | 必須 | - | `NONE` / `FIRE` / `ICE` / `LIGHTNING` |
 | `damageComponents[].ratio` | Double | 必須 | - | 攻撃種別から求めた攻撃力に掛ける倍率。`0.8` は80% |
 | `activationRange` | Double | 任意 | `hitRange` | Mob AI が発動を開始する最大距離 |
 | `conditions` | List | 任意 | `[]` | 命中時に付与する状態異常定義 |

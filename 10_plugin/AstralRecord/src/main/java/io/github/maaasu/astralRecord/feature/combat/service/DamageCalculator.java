@@ -19,6 +19,8 @@ import java.util.function.DoubleSupplier;
  */
 public final class DamageCalculator {
 
+    private static final double DEFAULT_ELEMENT_RESISTANCE_CAP = 75.0D;
+
     private static final double DEFAULT_CRITICAL_DAMAGE = 150.0D;
     private static final double DEFAULT_SUPER_CRITICAL_DAMAGE = 100.0D;
     private static final double DEFAULT_ACCURACY = 100.0D;
@@ -236,7 +238,8 @@ public final class DamageCalculator {
         double penetration = context.attacker() == null ? 0.0D
                 : context.attacker().statValue(elementPenetration(element));
         double resistance = context.victim().statValue(elementResistance(element));
-        double effectiveResistance = Math.max(0.0D, resistance - penetration);
+        double resistanceCap = elementResistanceCap(context, element);
+        double effectiveResistance = Math.min(resistance, resistanceCap) - penetration;
         double increaseMultiplier = Math.max(0.0D, 1.0D + increase / 100.0D);
         double resistanceMultiplier = Math.max(0.0D, 1.0D - effectiveResistance / 100.0D);
         return increaseMultiplier * resistanceMultiplier;
@@ -247,9 +250,6 @@ public final class DamageCalculator {
             case FIRE -> StatusType.FIRE_DAMAGE_INCREASE;
             case ICE -> StatusType.ICE_DAMAGE_INCREASE;
             case LIGHTNING -> StatusType.LIGHTNING_DAMAGE_INCREASE;
-            case POISON -> StatusType.POISON_DAMAGE_INCREASE;
-            case LIGHT -> StatusType.LIGHT_DAMAGE_INCREASE;
-            case DARK -> StatusType.DARK_DAMAGE_INCREASE;
             case NONE -> null;
         };
     }
@@ -259,9 +259,6 @@ public final class DamageCalculator {
             case FIRE -> StatusType.FIRE_RESISTANCE;
             case ICE -> StatusType.ICE_RESISTANCE;
             case LIGHTNING -> StatusType.LIGHTNING_RESISTANCE;
-            case POISON -> StatusType.POISON_RESISTANCE;
-            case LIGHT -> StatusType.LIGHT_RESISTANCE;
-            case DARK -> StatusType.DARK_RESISTANCE;
             case NONE -> null;
         };
     }
@@ -271,11 +268,24 @@ public final class DamageCalculator {
             case FIRE -> StatusType.FIRE_PENETRATION;
             case ICE -> StatusType.ICE_PENETRATION;
             case LIGHTNING -> StatusType.LIGHTNING_PENETRATION;
-            case POISON -> StatusType.POISON_PENETRATION;
-            case LIGHT -> StatusType.LIGHT_PENETRATION;
-            case DARK -> StatusType.DARK_PENETRATION;
             case NONE -> null;
         };
+    }
+
+    private double elementResistanceCap(@NotNull DamageContext context, @NotNull DamageElement element) {
+        StatusType capStatus = switch (element) {
+            case FIRE -> StatusType.FIRE_RESISTANCE_CAP;
+            case ICE -> StatusType.ICE_RESISTANCE_CAP;
+            case LIGHTNING -> StatusType.LIGHTNING_RESISTANCE_CAP;
+            case NONE -> null;
+        };
+        if (capStatus == null) {
+            return 0.0D;
+        }
+        if (context.victim().isMob()) {
+            return context.victim().mob().template().statValue(capStatus.name(), DEFAULT_ELEMENT_RESISTANCE_CAP);
+        }
+        return context.victim().statValue(capStatus);
     }
 
     private @NotNull StatusType attackStatusType(@NotNull DamageContext context) {

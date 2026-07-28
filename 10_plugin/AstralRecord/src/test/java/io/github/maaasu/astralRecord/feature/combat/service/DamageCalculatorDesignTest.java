@@ -222,7 +222,8 @@ class DamageCalculatorDesignTest {
             StatusType.FIRE_PENETRATION, 10.0D
         ));
         AstPlayer victim = player(Map.of(
-            StatusType.FIRE_RESISTANCE, 50.0D
+            StatusType.FIRE_RESISTANCE, 50.0D,
+            StatusType.FIRE_RESISTANCE_CAP, 75.0D
         ));
 
         var result = calculator.calculate(new DamageContext(
@@ -235,6 +236,49 @@ class DamageCalculatorDesignTest {
         ));
 
         assertEquals(72.0D, result.finalDamage(), 0.0001D);
+    }
+
+    @Test
+    void elementResistanceUsesConfiguredCapBeforePenetration() {
+        DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
+        AstPlayer attacker = player(Map.of(StatusType.FIRE_PENETRATION, 10.0D));
+        AstPlayer victim = player(Map.of(
+            StatusType.FIRE_RESISTANCE, 120.0D,
+            StatusType.FIRE_RESISTANCE_CAP, 75.0D
+        ));
+
+        var result = calculator.calculate(new DamageContext(
+            AstEntity.player(attacker), AstEntity.player(victim), 100.0D,
+            AttackType.MAGIC, List.of(new DamageComponent(DamageElement.FIRE, 1.0D)),
+            DamageScaling.FIXED
+        ));
+
+        assertEquals(35.0D, result.finalDamage(), 0.0001D);
+    }
+
+    @Test
+    void negativeElementResistanceIncreasesDamageAsAWeakness() {
+        DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
+        AstPlayer victim = player(Map.of(
+            StatusType.FIRE_RESISTANCE, -25.0D,
+            StatusType.FIRE_RESISTANCE_CAP, 75.0D
+        ));
+
+        var result = calculator.calculate(new DamageContext(
+            null, AstEntity.player(victim), 100.0D,
+            AttackType.MAGIC, List.of(new DamageComponent(DamageElement.FIRE, 1.0D)),
+            DamageScaling.FIXED
+        ));
+
+        assertEquals(125.0D, result.finalDamage(), 0.0001D);
+    }
+
+    @Test
+    void removedElementsResolveToNone() {
+        assertEquals(DamageElement.NONE, DamageElement.from("POISON"));
+        assertEquals(DamageElement.NONE, DamageElement.from("LIGHT"));
+        assertEquals(DamageElement.NONE, DamageElement.from("DARK"));
+        assertEquals(DamageElement.NONE, DamageElement.from("HOLY"));
     }
 
     @Test

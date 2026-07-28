@@ -530,6 +530,8 @@ public class StatusService {
             case ACCURACY -> 95.0D;
             case ATTACK_SPEED -> 100.0D;
             case SHIELD_BREAK -> 0.0D;
+            // 属性系
+            case FIRE_RESISTANCE_CAP, ICE_RESISTANCE_CAP, LIGHTNING_RESISTANCE_CAP -> 75.0D;
             // 防御系
             case DEFENSE -> 5.0D;
             case MAGIC_DEFENSE -> 3.0D;

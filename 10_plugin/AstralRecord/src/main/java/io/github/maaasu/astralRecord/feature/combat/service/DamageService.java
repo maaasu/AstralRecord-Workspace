@@ -710,9 +710,6 @@ public final class DamageService {
             case FIRE -> "火";
             case ICE -> "氷";
             case LIGHTNING -> "雷";
-            case POISON -> "毒";
-            case LIGHT -> "光";
-            case DARK -> "闇";
             case NONE -> "無属性";
         };
     }
