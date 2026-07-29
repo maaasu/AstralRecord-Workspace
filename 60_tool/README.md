@@ -6,8 +6,8 @@
 
 | 番号 | bat | 用途 |
 | --- | --- | --- |
-| 01 | `01-deploy-debug.bat` | API / Web / Plugin / FileDatabase のデバッグデプロイ |
-| 02 | `02-deploy-debug-plugin-only.bat` | Plugin のみデバッグデプロイ |
+| 01 | `01-deploy-debug.bat` | API / Web / Plugin / FileDatabase のデバッグデプロイ（Plugin のテストを実行） |
+| 02 | `02-deploy-debug-plugin-only.bat` | Plugin のテストコンパイル・実行を省略してビルド、デバッグデプロイ |
 | 03 | `03-master-data-reload.bat` | Filebase 同期と MasterDataDB seed |
 | 04 | `04-db-rebuild.bat` | AstralRecord / MasterDataDB / HistoryDB の再構築 |
 | 05 | `05-skilltree-editor.bat` | ビルド済みスキルツリーエディタのローカル起動 |
@@ -65,6 +65,8 @@ PowerShellから直接実行する場合は`generate-status-types.ps1`または`
 1. 必要に応じて各専用ディレクトリの config を確認します。
 2. 直下の番号付き bat を実行します。
 3. DB 再構築は既存データを保持しないため、`04-db-rebuild.bat` は内容を確認してから実行してください。
+
+`01-deploy-debug.bat` は従来どおり Plugin のテストを含めてビルドします。高速な配置確認用の `02-deploy-debug-plugin-only.bat` は Maven の `maven.test.skip` を有効にし、テストのコンパイルと実行を省略してから Plugin を配置します。
 
 スキルツリーエディタは初回のみ `skilltree-editor/src/SkillTreeEditor.Client` で `npm ci` と `npm run build` を実行してください。開発時の2プロセス起動やpublish手順は `skilltree-editor/README.md` を参照してください。
 

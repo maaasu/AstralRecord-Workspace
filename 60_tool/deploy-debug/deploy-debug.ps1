@@ -171,7 +171,10 @@ function Publish-DotNetProject {
 }
 
 function Build-Plugin {
-    param($Component)
+    param(
+        $Component,
+        [switch]$SkipTests
+    )
 
     Assert-PathExists -Label "Plugin project path" -Path $Component.projectPath
     Assert-PathExists -Label "Encoding normalizer script" -Path $encodingNormalizerPath
@@ -179,12 +182,20 @@ function Build-Plugin {
     Write-Step "Normalizing plugin source encodings (UTF-8 no BOM)"
     & $encodingNormalizerPath -RootPath (Join-Path $Component.projectPath "src\main\java")
 
-    Write-Step "Building plugin"
+    $mavenArguments = @("clean", "package")
+    if ($SkipTests) {
+        $mavenArguments = @("-Dmaven.test.skip=true") + $mavenArguments
+        Write-Step "Building plugin without compiling or running tests"
+    }
+    else {
+        Write-Step "Building plugin with tests"
+    }
+
     Push-Location $Component.projectPath
     try {
-        & mvn clean package
+        & mvn @mavenArguments
         if ($LASTEXITCODE -ne 0) {
-            throw "mvn clean package failed for plugin."
+            throw "Plugin build failed: mvn $($mavenArguments -join ' ')"
         }
     }
     finally {
@@ -398,7 +409,7 @@ try {
     }
 
     if ($config.plugin.enabled) {
-        Build-Plugin -Component $config.plugin
+        Build-Plugin -Component $config.plugin -SkipTests:$PluginOnly
     }
 
     if ($null -ne $script:iisResetCommand -and ($config.api.enabled -or $config.web.enabled)) {
