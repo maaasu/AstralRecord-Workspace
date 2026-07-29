@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.combat.service;
 
+import io.github.maaasu.astralRecord.feature.combat.model.DamageBreakdown;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageContext;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
@@ -10,7 +11,9 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.DoubleSupplier;
@@ -67,11 +70,25 @@ public final class DamageCalculator {
                 .filter(component -> component.ratio() > 0.0D)
                 .toList();
         double totalRatio = components.stream().mapToDouble(DamageComponent::ratio).sum();
+        double resolvedAttackPower = Math.max(0.0D, resolveBaseDamage(context));
+        DefenseCalculation defense = defenseCalculation(context.attacker(), context.victim(), context.attackType());
         if (totalRatio <= 0.0D) {
-            return new DamageResult(0.0D, false, hitCheck.hitChance(), hitCheck.accuracy(), hitCheck.evasion());
+            return new DamageResult(
+                    0.0D,
+                    false,
+                    hitCheck.hitChance(),
+                    hitCheck.accuracy(),
+                    hitCheck.evasion(),
+                    new DamageBreakdown(
+                            resolvedAttackPower,
+                            defense.rawDefense(),
+                            defense.effectiveDefense(),
+                            List.of()
+                    )
+            );
         }
 
-        double damage = Math.max(0.0D, resolveBaseDamage(context))
+        double damage = resolvedAttackPower
                 * totalRatio
                 * sourceDamageMultiplier(context)
                 * context.attackerDamageMultiplier();
@@ -79,13 +96,18 @@ public final class DamageCalculator {
         damage = criticalDamage.damage();
 
         if (context.victim().isManaged() && damage > 0.0D) {
-            damage = Math.max(0.0D, damage - defensePower(context) * 0.5D);
+            damage = Math.max(0.0D, damage - defense.effectiveDefense() * 0.5D);
         }
 
         double attributedDamage = 0.0D;
+        Map<DamageElement, ElementCalculation> elementCalculations = new LinkedHashMap<>();
         for (DamageComponent component : components) {
             double share = damage * component.ratio() / totalRatio;
-            attributedDamage += share * elementMultiplier(context, component.element());
+            ElementCalculation element = elementCalculations.computeIfAbsent(
+                    component.element(),
+                    damageElement -> elementCalculation(context, damageElement)
+            );
+            attributedDamage += share * element.multiplier();
         }
 
         return new DamageResult(
@@ -94,7 +116,16 @@ public final class DamageCalculator {
                 criticalDamage.superStarCritical(),
                 hitCheck.hitChance(),
                 hitCheck.accuracy(),
-                hitCheck.evasion()
+                hitCheck.evasion(),
+                new DamageBreakdown(
+                        resolvedAttackPower,
+                        defense.rawDefense(),
+                        defense.effectiveDefense(),
+                        elementCalculations.values().stream()
+                                .map(ElementCalculation::resistance)
+                                .filter(Objects::nonNull)
+                                .toList()
+                )
         );
     }
 
@@ -192,10 +223,6 @@ public final class DamageCalculator {
         return attack * (1.0D + primary / 100.0D) + typedAttack;
     }
 
-    private double defensePower(@NotNull DamageContext context) {
-        return calculateDefensePower(context.attacker(), context.victim(), context.attackType());
-    }
-
     /**
      * 全ダメージ防御力と攻撃種別防御力へ対応する貫通率を適用した有効防御力を返します。
      *
@@ -209,15 +236,28 @@ public final class DamageCalculator {
             @NotNull io.github.maaasu.astralRecord.feature.combat.model.AstEntity victim,
             @NotNull io.github.maaasu.astralRecord.feature.combat.model.AttackType attackType
     ) {
+        return defenseCalculation(attacker, victim, attackType).effectiveDefense();
+    }
+
+    private static @NotNull DefenseCalculation defenseCalculation(
+            @Nullable io.github.maaasu.astralRecord.feature.combat.model.AstEntity attacker,
+            @NotNull io.github.maaasu.astralRecord.feature.combat.model.AstEntity victim,
+            @NotNull io.github.maaasu.astralRecord.feature.combat.model.AttackType attackType
+    ) {
+        double rawGeneralDefense = Math.max(0.0D, victim.statValue(StatusType.DEFENSE));
+        double rawTypedDefense = Math.max(0.0D, victim.statValue(defenseStatusType(attackType)));
         double generalDefense = effectiveDefense(
-                victim.statValue(StatusType.DEFENSE),
+                rawGeneralDefense,
                 attacker == null ? 0.0D : attacker.statValue(StatusType.DEFENSE_PENETRATION_RATE)
         );
         double typedDefense = effectiveDefense(
-                victim.statValue(defenseStatusType(attackType)),
+                rawTypedDefense,
                 attacker == null ? 0.0D : attacker.statValue(defensePenetrationStatusType(attackType))
         );
-        return generalDefense + typedDefense;
+        return new DefenseCalculation(
+                rawGeneralDefense + rawTypedDefense,
+                generalDefense + typedDefense
+        );
     }
 
     private static double effectiveDefense(double defense, double penetrationRate) {
@@ -260,9 +300,12 @@ public final class DamageCalculator {
         return Math.max(0.0D, 1.0D + context.attacker().statValue(statusType) / 100.0D);
     }
 
-    private double elementMultiplier(@NotNull DamageContext context, @NotNull DamageElement element) {
+    private @NotNull ElementCalculation elementCalculation(
+            @NotNull DamageContext context,
+            @NotNull DamageElement element
+    ) {
         if (element == DamageElement.NONE) {
-            return 1.0D;
+            return new ElementCalculation(1.0D, null);
         }
         double increase = context.attacker() == null ? 0.0D
                 : context.attacker().statValue(elementDamageIncrease(element));
@@ -273,7 +316,10 @@ public final class DamageCalculator {
         double effectiveResistance = Math.min(resistance, resistanceCap) - penetration;
         double increaseMultiplier = Math.max(0.0D, 1.0D + increase / 100.0D);
         double resistanceMultiplier = Math.max(0.0D, 1.0D - effectiveResistance / 100.0D);
-        return increaseMultiplier * resistanceMultiplier;
+        return new ElementCalculation(
+                increaseMultiplier * resistanceMultiplier,
+                new DamageBreakdown.ElementResistance(element, resistance, effectiveResistance)
+        );
     }
 
     private @Nullable StatusType elementDamageIncrease(@NotNull DamageElement element) {
@@ -338,4 +384,11 @@ public final class DamageCalculator {
     private record CriticalDamage(double damage, boolean critical, boolean superStarCritical) {}
 
     private record HitCheck(boolean hit, double hitChance, double accuracy, double evasion) {}
+
+    private record DefenseCalculation(double rawDefense, double effectiveDefense) {}
+
+    private record ElementCalculation(
+            double multiplier,
+            @Nullable DamageBreakdown.ElementResistance resistance
+    ) {}
 }

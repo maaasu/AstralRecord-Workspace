@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.combat.service;
 
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageBreakdown;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageContext;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
@@ -872,14 +873,13 @@ public final class DamageService {
     ) {
         if (attacker != null && attacker.isPlayer() && attacker.player() != null
                 && playerSettingService.isDamageLogMessageEnabled(attacker.player().getUser().getUuid())) {
-            sendDamageLogMessage(attacker.player(), victim.name(), result, context, true);
+            sendDamageLogMessage(attacker.player(), result, context, true);
         }
 
         if (victim.isPlayer() && victim.player() != null
                 && (attacker == null || !attacker.id().equals(victim.id()))
                 && playerSettingService.isDamageLogMessageEnabled(victim.player().getUser().getUuid())) {
-            String sourceName = attacker == null ? "環境" : attacker.name();
-            sendDamageLogMessage(victim.player(), sourceName, result, context, false);
+            sendDamageLogMessage(victim.player(), result, context, false);
         }
     }
 
@@ -887,14 +887,12 @@ public final class DamageService {
      * 与ダメージまたは被ダメージの詳細メッセージを送信します。
      *
      * @param recipient 送信先
-     * @param counterpartName 相手側の表示名
      * @param result ダメージ結果
      * @param context ダメージ計算コンテキスト
      * @param outgoing 与ダメージログなら true
      */
     private void sendDamageLogMessage(
             @NotNull AstPlayer recipient,
-            @NotNull String counterpartName,
             @NotNull DamageResult result,
             @NotNull DamageContext context,
             boolean outgoing
@@ -904,10 +902,9 @@ public final class DamageService {
             messages.send(
                     recipient,
                     outgoing ? PlayerMsgId.P_5351 : PlayerMsgId.P_5353,
-                    counterpartName,
-                    formatOneDecimal(result.hitChance()),
-                    formatOneDecimal(result.accuracy()),
-                    formatOneDecimal(result.evasion())
+                    formatCompactNumber(result.hitChance()),
+                    formatCompactNumber(result.accuracy()),
+                    formatCompactNumber(result.evasion())
             );
             return;
         }
@@ -915,65 +912,134 @@ public final class DamageService {
         messages.send(
                 recipient,
                 outgoing ? PlayerMsgId.P_5350 : PlayerMsgId.P_5352,
-                counterpartName,
-                formatOneDecimal(result.finalDamage()),
-                formatOneDecimal(result.shieldDamage()),
-                attackTypeName(context.attackType()),
-                damageElementsName(context.components()),
-                formatOneDecimal(result.hitChance()),
-                formatOneDecimal(result.accuracy()),
-                formatOneDecimal(result.evasion()),
-                result.critical() ? " &eCRITICAL" : ""
+                damageSummary(result),
+                attackTypeCode(context.attackType()),
+                damageElementsCode(context.components()),
+                formatCompactNumber(result.breakdown().resolvedAttackPower()),
+                formatCompactNumber(result.breakdown().rawDefense()),
+                formatCompactNumber(result.breakdown().effectiveDefense()),
+                resistanceSummary(result.breakdown()),
+                formatCompactNumber(result.hitChance()),
+                formatCompactNumber(result.accuracy()),
+                formatCompactNumber(result.evasion()),
+                criticalSummary(result)
         );
     }
 
     /**
-     * 攻撃種別のプレイヤー向け表示名を返します。
+     * 成立した通常会心・超星会心を短縮形式で返します。
+     *
+     * @param result ダメージ結果
+     * @return CRIT、S-CRIT、両方の連結、または空文字
+     */
+    static @NotNull String criticalSummary(@NotNull DamageResult result) {
+        if (result.critical() && result.superStarCritical()) {
+            return " &eCRIT&d+S-CRIT";
+        }
+        if (result.superStarCritical()) {
+            return " &dS-CRIT";
+        }
+        return result.critical() ? " &eCRIT" : "";
+    }
+
+    /**
+     * ダメージの反映先と値を短縮形式で返します。
+     *
+     * @param result ダメージ結果
+     * @return HP、SHD、または DMG の短縮表示
+     */
+    static @NotNull String damageSummary(@NotNull DamageResult result) {
+        if (result.shieldDamage() > 0.0D) {
+            return "&bSHD" + formatCompactNumber(result.shieldDamage()) + (result.shieldBroken() ? "!" : "");
+        }
+        if (result.finalDamage() > 0.0D) {
+            return "&cHP" + formatCompactNumber(result.finalDamage());
+        }
+        return "&7DMG0";
+    }
+
+    /**
+     * 攻撃種別の英語短縮コードを返します。
      *
      * @param attackType 攻撃種別
-     * @return 日本語表示名
+     * @return MEL、RNG、MAG のいずれか
      */
-    private @NotNull String attackTypeName(@NotNull AttackType attackType) {
+    static @NotNull String attackTypeCode(@NotNull AttackType attackType) {
         return switch (attackType) {
-            case MELEE -> "近接";
-            case RANGED -> "間接";
-            case MAGIC -> "魔法";
+            case MELEE -> "MEL";
+            case RANGED -> "RNG";
+            case MAGIC -> "MAG";
         };
     }
 
     /**
-     * ダメージ属性のプレイヤー向け表示名を返します。
+     * ダメージ属性の英語短縮コードを返します。
      *
      * @param element ダメージ属性
-     * @return 日本語表示名
+     * @return NON、FIR、ICE、LTN のいずれか
      */
-    private @NotNull String damageElementName(@NotNull DamageElement element) {
+    static @NotNull String damageElementCode(@NotNull DamageElement element) {
         return switch (element) {
-            case FIRE -> "火";
-            case ICE -> "氷";
-            case LIGHTNING -> "雷";
-            case NONE -> "無属性";
+            case FIRE -> "FIR";
+            case ICE -> "ICE";
+            case LIGHTNING -> "LTN";
+            case NONE -> "NON";
         };
     }
 
-    private @NotNull String damageElementsName(@NotNull List<DamageComponent> components) {
+    static @NotNull String damageElementsCode(@NotNull List<DamageComponent> components) {
         return components.stream()
                 .filter(component -> component.ratio() > 0.0D)
                 .map(DamageComponent::element)
                 .distinct()
-                .map(this::damageElementName)
+                .map(DamageService::damageElementCode)
                 .reduce((left, right) -> left + "+" + right)
-                .orElse("無属性");
+                .orElse("NON");
     }
 
     /**
-     * 数値を小数第1位で表示します。
+     * 属性耐性を元値から実効値への短縮形式で返します。
+     *
+     * @param breakdown 計算時点の中間値
+     * @return 属性なしは空文字、単属性は RESx&gt;y、複数属性は RES[F.../I...] 形式
+     */
+    static @NotNull String resistanceSummary(@NotNull DamageBreakdown breakdown) {
+        List<DamageBreakdown.ElementResistance> resistances = breakdown.elementResistances();
+        if (resistances.isEmpty()) {
+            return "";
+        }
+        if (resistances.size() == 1) {
+            DamageBreakdown.ElementResistance resistance = resistances.getFirst();
+            return " RES" + formatCompactNumber(resistance.rawResistance())
+                    + ">" + formatCompactNumber(resistance.effectiveResistance());
+        }
+        String values = resistances.stream()
+                .map(resistance -> resistanceElementCode(resistance.element())
+                        + formatCompactNumber(resistance.rawResistance())
+                        + ">" + formatCompactNumber(resistance.effectiveResistance()))
+                .reduce((left, right) -> left + "/" + right)
+                .orElse("");
+        return " RES[" + values + "]";
+    }
+
+    private static @NotNull String resistanceElementCode(@NotNull DamageElement element) {
+        return switch (element) {
+            case FIRE -> "F";
+            case ICE -> "I";
+            case LIGHTNING -> "L";
+            case NONE -> "N";
+        };
+    }
+
+    /**
+     * 数値を小数第1位まで表示し、整数なら小数部を省略します。
      *
      * @param value 表示する値
-     * @return 小数第1位の文字列
+     * @return 末尾の .0 を除いた文字列
      */
-    private @NotNull String formatOneDecimal(double value) {
-        return String.format(Locale.ROOT, "%.1f", value);
+    static @NotNull String formatCompactNumber(double value) {
+        String formatted = String.format(Locale.ROOT, "%.1f", value);
+        return formatted.endsWith(".0") ? formatted.substring(0, formatted.length() - 2) : formatted;
     }
 
     private boolean hasActiveShield(@NotNull AstEntity victim) {

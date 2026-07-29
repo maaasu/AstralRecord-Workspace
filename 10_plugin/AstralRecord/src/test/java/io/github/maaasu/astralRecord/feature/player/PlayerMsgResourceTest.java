@@ -30,24 +30,29 @@ class PlayerMsgResourceTest {
     }
 
     @Test
-    void damageDetailMessageFormatsHitChanceAndCriticalMarker() {
+    void damageDetailMessageFormatsCompactCalculationBreakdown() {
         String formatted = PlayerMsgResource.format(
                 PlayerMsgId.P_5350.getId(),
-                "Test Mob",
-                "25.0",
-                "0.0",
-                "近接",
-                "無属性",
-                "92.0",
-                "95.0",
-                "3.0",
-                " &eCRITICAL"
+                "&cHP125",
+                "MEL",
+                "FIR",
+                "180",
+                "80",
+                "64",
+                " RES25>15",
+                "92",
+                "95",
+                "3",
+                " &eCRIT"
         );
 
-        assertTrue(formatted.contains("Test Mob"));
-        assertTrue(formatted.contains("92.0%"));
-        assertTrue(formatted.contains("命中 95.0 - 回避 3.0"));
-        assertTrue(formatted.contains("\u00a7eCRITICAL"));
+        assertTrue(formatted.contains("HP125"));
+        assertTrue(formatted.contains("MEL/FIR"));
+        assertTrue(formatted.contains("AP180 DEF80>64 RES25>15"));
+        assertTrue(formatted.contains("H92"));
+        assertTrue(formatted.contains("A95-E3"));
+        assertTrue(formatted.contains("\u00a7eCRIT"));
+        assertFalse(formatted.contains("Test Mob"));
     }
 
     @Test
