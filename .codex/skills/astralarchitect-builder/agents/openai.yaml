@@ -1,0 +1,4 @@
+interface:
+  display_name: "AstralArchitect AI建築"
+  short_description: "AstralArchitect チケットを調査し建築候補を安全に編集する"
+  default_prompt: "$astralarchitect-builder を使って、指定したAstralArchitectチケットの地形を調査し、依頼内容に沿ってcandidate.schemを安全に作成・修正してください。"

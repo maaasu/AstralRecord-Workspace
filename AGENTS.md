@@ -8,6 +8,7 @@
 | Project | Role | Main Stack | Read Next |
 |:--|:--|:--|:--|
 | `10_plugin/AstralRecord/` | Minecraft Plugin | Java, Kotlin, Paper/Spigot, Maven | `PLUGIN_GUIDE.md` / `$astralrecord-code` |
+| `10_plugin/AstralArchitect/` | AI-assisted Minecraft building Plugin | Java, Paper, FAWE, Maven, Python | `10_plugin/AstralArchitect/AGENTS.md` / `$astralarchitect-builder` |
 | `20_api/AstralRecordApi/` | REST API | ASP.NET Core, C#, SQL Server | `API_GUIDE.md` / `$astralrecord-code` |
 | `30_web/AstralRecordWeb/` | Web Site | ASP.NET Core Razor Pages | `30_web/AstralRecordWeb/AGENTS.md` |
 | `00_docs/40_Database設計書/` | SQL Server schema / table docs | SQL Server, Markdown | `00_docs/40_Database設計書/README.md` |
@@ -68,9 +69,10 @@
 
 1. 対象プロジェクトを先に判定する（本ファイルの「対象判定ルール」を使用）。
 2. 対象が `10_plugin/AstralRecord` の場合、ルート `PLUGIN_GUIDE.md` と `$astralrecord-code` を使う。
-3. 対象が `20_api/AstralRecordApi` の場合、ルート `API_GUIDE.md` と `$astralrecord-code` の API 参照を使う。
-4. 使う skill は `E:\AstralRecord-Workspace\.codex\skills\README.md` の正本ルールに従って判定する。
-5. 実装差分が発生する作業では、個別 worker skill を直接使う前に `$astralrecord-code-version-commit-develop` を入口にできるか確認する。
+3. 対象が `10_plugin/AstralArchitect` の場合、`10_plugin/AstralArchitect/AGENTS.md`を先に読み、AI候補編集には`$astralarchitect-builder`を使う。
+4. 対象が `20_api/AstralRecordApi` の場合、ルート `API_GUIDE.md` と `$astralrecord-code` の API 参照を使う。
+5. 使う skill は `E:\AstralRecord-Workspace\.codex\skills\README.md` の正本ルールに従って判定する。
+6. 実装差分が発生する作業では、個別 worker skill を直接使う前に `$astralrecord-code-version-commit-develop` を入口にできるか確認する。
 
 ### テンプレート実行手順
 

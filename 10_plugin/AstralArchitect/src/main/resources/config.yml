@@ -1,0 +1,27 @@
+selection:
+  # 初期推奨値。範囲の縦横高さは固定せず、総ブロック数だけを制限します。
+  max-block-count: 262144
+  target-block-distance: 100
+
+candidate:
+  max-changed-block-count: 262144
+  forbidden-block-types:
+    - minecraft:command_block
+    - minecraft:chain_command_block
+    - minecraft:repeating_command_block
+    - minecraft:structure_block
+    - minecraft:jigsaw
+    - minecraft:spawner
+    - minecraft:trial_spawner
+    - minecraft:vault
+    - minecraft:end_portal
+    - minecraft:end_gateway
+    - minecraft:nether_portal
+    - minecraft:moving_piston
+    - minecraft:tnt
+    - minecraft:fire
+    - minecraft:soul_fire
+    - minecraft:lava
+
+tickets:
+  trash-retention-days: 7

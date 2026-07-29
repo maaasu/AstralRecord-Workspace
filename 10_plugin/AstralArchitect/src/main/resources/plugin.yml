@@ -1,0 +1,21 @@
+name: AstralArchitect
+version: ${project.version}
+main: io.github.maaasu.astralarchitect.AstralArchitectPlugin
+api-version: '1.21'
+authors: [ "AstralRecord" ]
+description: CodexとFastAsyncWorldEditを接続する局所建築チケットプラグイン
+depend: [ FastAsyncWorldEdit ]
+
+commands:
+  architect:
+    description: AstralArchitectのチケットを管理します。
+    usage: /architect help
+    aliases: [ aa ]
+
+permissions:
+  astralarchitect.use:
+    description: 自分のAstralArchitectチケットを操作できます。
+    default: op
+  astralarchitect.admin:
+    description: 全AstralArchitectチケットと管理コマンドを操作できます。
+    default: op

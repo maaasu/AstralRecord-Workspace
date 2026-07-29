@@ -23,6 +23,8 @@ bin/
 obj/
 .gradle/
 node_modules/
+__pycache__/
+*.py[cod]
 dist/
 60_tool/skilltree-editor/.cache/
 10_plugin/AstralRecord/.dev-server/

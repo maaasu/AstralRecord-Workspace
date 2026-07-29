@@ -65,6 +65,7 @@ $<skill-name> を使って、<absolute-path> に対して <task> を行い、結
 | プラグインのテスト・検証基盤整備 | `$astralrecord-plugin-test` | 機能仕様変更は `$astralrecord-code` を使う |
 | プラグイン版番号更新 | `$astralrecord-plugin-version` | finalize 直前の rebased worktree で使う |
 | player/logger プロパティの未使用削除 | `$astralrecord-unused-properties-prune` | 専用スクリプトの結果を根拠にする |
+| AstralArchitectのAI建築候補作成 | `$astralarchitect-builder` | 専用CLIだけでチケットを調査し、`candidate.schem`を安全に編集する |
 
 ## 作業 Skill
 
@@ -172,6 +173,21 @@ local `develop` へ取り込み済みの `codex/*` branch、不要になった t
 - 削除前に、dirty worktree や未 merge branch を保持したまま安全な削除候補だけ見たい。
 
 ## 専用補助 Skill
+
+### `$astralarchitect-builder`
+
+AstralArchitectが保存した局所範囲を調査し、既存地形と基準ブロックに合わせたMinecraft建築候補を専用CLI経由で作成・修正します。
+
+使う場面:
+
+- `plugins/AstralArchitect/tickets/<ID>`の範囲へ橋、小規模建築、道などを設計したい。
+- `source.schem`を正本として周辺地形を読み、`candidate.schem`だけへAIの建築案を反映したい。
+- AI候補を差分確認し、Minecraft内での検証・適用前に再調整したい。
+
+ほかのskillとの使い分け:
+
+- AstralArchitectプラグイン自体の実装変更は`$astralrecord-code-version-commit-develop`を使う。
+- このskillはワールド適用、ロールバック、チケット削除を行わず、候補設計だけを担当する。
 
 ### `$astralrecord-master-data-author`
 
