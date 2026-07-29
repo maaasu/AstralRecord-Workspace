@@ -49,7 +49,7 @@ class DamageCalculatorDesignTest {
             DamageScaling.ATTACKER_STATUS
         ));
 
-        assertEquals(31.0D, result.finalDamage(), 0.0001D);
+        assertEquals(30.7301607D, result.finalDamage(), 0.0001D);
         assertFalse(result.critical());
     }
 
@@ -73,7 +73,7 @@ class DamageCalculatorDesignTest {
             1.5D
         ));
 
-        assertEquals(25.0D, result.finalDamage(), 0.0001D);
+        assertEquals(22.1626945D, result.finalDamage(), 0.0001D);
     }
 
     @Test
@@ -83,7 +83,7 @@ class DamageCalculatorDesignTest {
             StatusType.ATTACK, 10.0D,
             StatusType.ACCURACY, 100.0D
         ));
-        MobInstance victim = DesignTestFixtures.mobInstance(100.0D, 20.0D, 0.0D);
+        MobInstance victim = DesignTestFixtures.mobInstance(100.0D, 25.0D, 0.0D);
 
         var result = calculator.calculate(new DamageContext(
             AstEntity.player(attacker),
@@ -119,6 +119,35 @@ class DamageCalculatorDesignTest {
         assertEquals(30.0D, result.finalDamage(), 0.0001D);
         assertTrue(result.critical());
         assertTrue(result.superStarCritical());
+    }
+
+    @Test
+    void equalAttackAndDefenseHalveDamageBeforeSkillAndCriticalMultipliers() {
+        DamageCalculator calculator = new DamageCalculator(() -> 0.0D);
+        AstPlayer attacker = player(Map.of(
+            StatusType.CRITICAL_RATE, 100.0D,
+            StatusType.CRITICAL_DAMAGE, 200.0D
+        ));
+        AstPlayer victim = player(Map.of(StatusType.DEFENSE, 100.0D));
+
+        var result = calculator.calculate(new DamageContext(
+            AstEntity.player(attacker), AstEntity.player(victim), 100.0D,
+            AttackType.MELEE, List.of(new DamageComponent(DamageElement.NONE, 3.0D)),
+            DamageScaling.FIXED, DamageSource.SKILL
+        ));
+
+        assertEquals(300.0D, result.finalDamage(), 0.0001D);
+        assertTrue(result.critical());
+    }
+
+    @Test
+    void defenseCurveHasExpectedBalanceAnchors() {
+        assertEquals(1.0D, DamageCalculator.defenseDamageMultiplier(100.0D, 0.0D), 0.0001D);
+        assertEquals(0.5D, DamageCalculator.defenseDamageMultiplier(100.0D, 100.0D), 0.0001D);
+        assertEquals(0.2884224D, DamageCalculator.defenseDamageMultiplier(100.0D, 150.0D), 0.0001D);
+        assertEquals(0.1126048D, DamageCalculator.defenseDamageMultiplier(100.0D, 200.0D), 0.0001D);
+        assertEquals(0.0D, DamageCalculator.defenseDamageMultiplier(100.0D, 250.0D), 0.0001D);
+        assertEquals(0.0D, DamageCalculator.defenseDamageMultiplier(100.0D, 900.0D), 0.0001D);
     }
 
     @Test
@@ -187,7 +216,7 @@ class DamageCalculatorDesignTest {
     @Test
     void magicAttackUsesMagicDefense() {
         DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
-        MobInstance victim = DesignTestFixtures.mobInstance(100.0D, 999.0D, 8.0D);
+        MobInstance victim = DesignTestFixtures.mobInstance(100.0D, 0.0D, 8.0D);
 
         var result = calculator.calculate(new DamageContext(
             null,
@@ -197,7 +226,8 @@ class DamageCalculatorDesignTest {
             DamageScaling.FIXED
         ));
 
-        assertEquals(8.0D, result.finalDamage(), 0.0001D);
+        assertEquals(7.8778312D, result.finalDamage(), 0.0001D);
+        assertEquals(8.0D, result.breakdown().effectiveDefense(), 0.0001D);
     }
 
     @Test
@@ -319,7 +349,9 @@ class DamageCalculatorDesignTest {
             DamageScaling.FIXED, DamageSource.OTHER
         ));
 
-        assertEquals(111.0D, result.finalDamage(), 0.0001D);
+        assertEquals(90.3577374D, result.finalDamage(), 0.0001D);
+        assertEquals(30.0D, result.breakdown().rawDefense(), 0.0001D);
+        assertEquals(18.0D, result.breakdown().effectiveDefense(), 0.0001D);
     }
 
     @Test

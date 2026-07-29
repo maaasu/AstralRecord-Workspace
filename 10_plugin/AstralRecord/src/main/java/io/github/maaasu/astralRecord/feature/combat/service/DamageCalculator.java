@@ -29,6 +29,11 @@ public final class DamageCalculator {
     private static final double DEFAULT_SUPER_STAR_CRITICAL_MULTIPLIER = 30.0D;
     private static final double DEFAULT_ACCURACY = 100.0D;
 
+    private static final double FULL_BLOCK_DEFENSE_RATIO = 2.5D;
+    private static final double EQUAL_POWER_DAMAGE_MULTIPLIER = 0.5D;
+    private static final double DEFENSE_CURVE_EXPONENT = Math.log(EQUAL_POWER_DAMAGE_MULTIPLIER)
+            / Math.log(1.0D - 1.0D / FULL_BLOCK_DEFENSE_RATIO);
+
     private final DoubleSupplier hitRollSupplier;
     private final DoubleSupplier criticalRollSupplier;
 
@@ -53,9 +58,10 @@ public final class DamageCalculator {
     }
 
     /**
-     * ダメージを計算します。防御は合計ダメージへ一度だけ適用し、その後に各属性成分へ
-     * 比例配分して属性増加・耐性・貫通を個別適用します。通常会心と超星会心は独立して
-     * 判定し、コンテキストで強制・無効化も指定できます。
+     * ダメージを計算します。防御は解決攻撃力との比率から軽減倍率を求め、会心後の合計
+     * ダメージへ一度だけ適用します。その後に各属性成分へ比例配分して属性増加・耐性・
+     * 貫通を個別適用します。通常会心と超星会心は独立して判定し、コンテキストで強制・
+     * 無効化も指定できます。
      *
      * @param context ダメージ計算入力
      * @return 計算結果
@@ -96,7 +102,7 @@ public final class DamageCalculator {
         damage = criticalDamage.damage();
 
         if (context.victim().isManaged() && damage > 0.0D) {
-            damage = Math.max(0.0D, damage - defense.effectiveDefense() * 0.5D);
+            damage *= defenseDamageMultiplier(resolvedAttackPower, defense.effectiveDefense());
         }
 
         double attributedDamage = 0.0D;
@@ -237,6 +243,26 @@ public final class DamageCalculator {
             @NotNull io.github.maaasu.astralRecord.feature.combat.model.AttackType attackType
     ) {
         return defenseCalculation(attacker, victim, attackType).effectiveDefense();
+    }
+
+    /**
+     * 解決攻撃力と有効防御力の比率から、防御適用後に残るダメージ倍率を算出します。
+     * 攻防が同値なら50%、防御が攻撃の2.5倍以上なら0%となります。
+     *
+     * @param resolvedAttackPower ratio・発生元倍率・会心を適用する前の解決攻撃力
+     * @param effectiveDefense 貫通適用後の有効防御力
+     * @return 0～1のダメージ倍率
+     */
+    static double defenseDamageMultiplier(double resolvedAttackPower, double effectiveDefense) {
+        if (!Double.isFinite(resolvedAttackPower) || resolvedAttackPower <= 0.0D) {
+            return 0.0D;
+        }
+        double defenseRatio = Math.max(0.0D, effectiveDefense) / resolvedAttackPower;
+        if (defenseRatio >= FULL_BLOCK_DEFENSE_RATIO) {
+            return 0.0D;
+        }
+        double remainingRatio = Math.max(0.0D, 1.0D - defenseRatio / FULL_BLOCK_DEFENSE_RATIO);
+        return Math.pow(remainingRatio, DEFENSE_CURVE_EXPONENT);
     }
 
     private static @NotNull DefenseCalculation defenseCalculation(
