@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageContext;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageScaling;
+import io.github.maaasu.astralRecord.feature.combat.model.SuperStarCriticalMode;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -22,7 +23,7 @@ public final class DamageCalculator {
     private static final double DEFAULT_ELEMENT_RESISTANCE_CAP = 75.0D;
 
     private static final double DEFAULT_CRITICAL_DAMAGE = 150.0D;
-    private static final double DEFAULT_SUPER_CRITICAL_DAMAGE = 100.0D;
+    private static final double DEFAULT_SUPER_STAR_CRITICAL_MULTIPLIER = 30.0D;
     private static final double DEFAULT_ACCURACY = 100.0D;
 
     private final DoubleSupplier hitRollSupplier;
@@ -50,7 +51,8 @@ public final class DamageCalculator {
 
     /**
      * ダメージを計算します。防御は合計ダメージへ一度だけ適用し、その後に各属性成分へ
-     * 比例配分して属性増加・耐性・貫通を個別適用します。
+     * 比例配分して属性増加・耐性・貫通を個別適用します。通常会心と超星会心は独立して
+     * 判定し、コンテキストで強制・無効化も指定できます。
      *
      * @param context ダメージ計算入力
      * @return 計算結果
@@ -73,7 +75,7 @@ public final class DamageCalculator {
                 * totalRatio
                 * sourceDamageMultiplier(context)
                 * context.attackerDamageMultiplier();
-        CriticalDamage criticalDamage = applyCriticalDamage(context, damage);
+        CriticalDamage criticalDamage = applyCriticalMultipliers(context, damage);
         damage = criticalDamage.damage();
 
         if (context.victim().isManaged() && damage > 0.0D) {
@@ -89,6 +91,7 @@ public final class DamageCalculator {
         return new DamageResult(
                 Math.max(0.0D, attributedDamage),
                 criticalDamage.critical(),
+                criticalDamage.superStarCritical(),
                 hitCheck.hitChance(),
                 hitCheck.accuracy(),
                 hitCheck.evasion()
@@ -124,25 +127,52 @@ public final class DamageCalculator {
         return Math.max(0.0D, Math.min(100.0D, accuracy - evasion));
     }
 
-    private @NotNull CriticalDamage applyCriticalDamage(@NotNull DamageContext context, double damage) {
+    /**
+     * 通常会心と超星会心を独立して判定し、成立した倍率をダメージへ適用します。
+     *
+     * @param context ダメージ計算入力
+     * @param damage 会心適用前ダメージ
+     * @return 会心適用後ダメージと成立情報
+     */
+    private @NotNull CriticalDamage applyCriticalMultipliers(@NotNull DamageContext context, double damage) {
         if (context.attacker() == null || !context.attacker().isManaged() || damage <= 0.0D) {
-            return new CriticalDamage(damage, false);
+            return new CriticalDamage(damage, false, false);
         }
 
         double criticalRate = Math.max(0.0D, context.attacker().statValue(StatusType.CRITICAL_RATE));
-        if (criticalRate <= 0.0D || criticalRollSupplier.getAsDouble() >= criticalRate) {
-            return new CriticalDamage(damage, false);
+        boolean critical = criticalRate > 0.0D && criticalRollSupplier.getAsDouble() < criticalRate;
+        if (critical) {
+            double criticalDamage = context.attacker().statValue(StatusType.CRITICAL_DAMAGE);
+            damage *= (criticalDamage <= 0.0D ? DEFAULT_CRITICAL_DAMAGE : criticalDamage) / 100.0D;
         }
 
-        double criticalDamage = context.attacker().statValue(StatusType.CRITICAL_DAMAGE);
-        damage *= (criticalDamage <= 0.0D ? DEFAULT_CRITICAL_DAMAGE : criticalDamage) / 100.0D;
-
-        double superCriticalRate = Math.max(0.0D, context.attacker().statValue(StatusType.SUPER_CRITICAL_RATE));
-        if (superCriticalRate > 0.0D && criticalRollSupplier.getAsDouble() < superCriticalRate) {
-            double superCriticalDamage = context.attacker().statValue(StatusType.SUPER_CRITICAL_DAMAGE);
-            damage *= (superCriticalDamage <= 0.0D ? DEFAULT_SUPER_CRITICAL_DAMAGE : superCriticalDamage) / 100.0D;
+        boolean superStarCritical = shouldApplySuperStarCritical(context);
+        if (superStarCritical) {
+            double configuredMultiplier = context.attacker().statValue(StatusType.SUPER_CRITICAL_DAMAGE);
+            damage *= (configuredMultiplier <= 0.0D
+                    ? DEFAULT_SUPER_STAR_CRITICAL_MULTIPLIER
+                    : configuredMultiplier) / 100.0D;
         }
-        return new CriticalDamage(damage, true);
+        return new CriticalDamage(damage, critical, superStarCritical);
+    }
+
+    /**
+     * コンテキストに従い超星会心倍率を適用するか判定します。
+     *
+     * @param context ダメージ計算入力
+     * @return 倍率を適用する場合は {@code true}
+     */
+    private boolean shouldApplySuperStarCritical(@NotNull DamageContext context) {
+        var attacker = context.attacker();
+        if (attacker == null || !attacker.isPlayer() || !context.victim().isMob()
+                || context.superStarCriticalMode() == SuperStarCriticalMode.DISABLED) {
+            return false;
+        }
+        if (context.superStarCriticalMode() == SuperStarCriticalMode.FORCE) {
+            return true;
+        }
+        double rate = Math.max(0.0D, attacker.statValue(StatusType.SUPER_CRITICAL_RATE));
+        return rate > 0.0D && criticalRollSupplier.getAsDouble() < rate;
     }
 
     private double resolveBaseDamage(@NotNull DamageContext context) {
@@ -305,7 +335,7 @@ public final class DamageCalculator {
         };
     }
 
-    private record CriticalDamage(double damage, boolean critical) {}
+    private record CriticalDamage(double damage, boolean critical, boolean superStarCritical) {}
 
     private record HitCheck(boolean hit, double hitChance, double accuracy, double evasion) {}
 }

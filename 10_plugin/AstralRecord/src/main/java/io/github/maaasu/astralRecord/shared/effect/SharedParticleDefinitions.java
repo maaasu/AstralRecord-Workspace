@@ -50,6 +50,12 @@ public final class SharedParticleDefinitions {
         );
     public static final SharedParticleDefinition DAMAGE_HIT_INDICATOR =
         new SharedParticleDefinition("damage_hit_indicator", Particle.DAMAGE_INDICATOR, 6, 0.18D, 0.25D, 0.18D, 0.0D);
+    public static final SharedParticleDefinition SUPER_STAR_CRITICAL_TRAIL_END_ROD =
+        new SharedParticleDefinition("super_star_critical_trail_end_rod", Particle.END_ROD, 1, 0.03D, 0.03D, 0.03D, 0.0D);
+    public static final SharedParticleDefinition SUPER_STAR_CRITICAL_TRAIL_SPARK =
+        new SharedParticleDefinition("super_star_critical_trail_spark", Particle.ELECTRIC_SPARK, 1, 0.04D, 0.04D, 0.04D, 0.0D);
+    public static final SharedParticleDefinition SUPER_STAR_CRITICAL_IMPACT =
+        new SharedParticleDefinition("super_star_critical_impact", Particle.FLASH, 1, 0.0D, 0.0D, 0.0D, 0.0D);
     public static final SharedParticleDefinition SPAWNER_VISUAL_ENCHANT =
         new SharedParticleDefinition("spawner_visual_enchant", Particle.ENCHANT, 3, 0.35D, 0.35D, 0.35D, 0.0D);
     public static final SharedParticleDefinition NPC_BLOCK_AMBIENT_ENCHANT =

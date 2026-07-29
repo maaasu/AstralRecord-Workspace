@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageScaling;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
+import io.github.maaasu.astralRecord.feature.combat.model.SuperStarCriticalMode;
 import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
@@ -42,6 +43,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.projectiles.ProjectileSource;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -69,6 +71,7 @@ public final class DamageService {
     private final PlayerSettingService playerSettingService;
     private final ParticleDisplayService particleDisplayService;
     private final PlayerDeathService playerDeathService;
+    private final SuperStarCriticalProjectileService superStarCriticalProjectileService;
     private BossChallengeService bossChallengeService;
     private ConditionService conditionService;
     private EquipmentDurabilityService equipmentDurabilityService;
@@ -89,7 +92,8 @@ public final class DamageService {
             @NotNull PlayerSettingService playerSettingService,
             @NotNull ParticleDisplayService particleDisplayService
     ) {
-        this(statusService, mobService, mobCombatService, knockbackService, displayTextService, playerSettingService, particleDisplayService, null);
+        this(statusService, mobService, mobCombatService, knockbackService, displayTextService,
+                playerSettingService, particleDisplayService, null, null);
     }
 
     /**
@@ -109,6 +113,34 @@ public final class DamageService {
             @NotNull ParticleDisplayService particleDisplayService,
             @Nullable PlayerDeathService playerDeathService
     ) {
+        this(statusService, mobService, mobCombatService, knockbackService, displayTextService,
+                playerSettingService, particleDisplayService, playerDeathService, null);
+    }
+
+    /**
+     * 超星会心追尾弾を含むサービスを構築します。
+     *
+     * @param statusService プレイヤー HP 反映に使うサービス
+     * @param mobService Bukkit Entity から custom mob を解決するサービス
+     * @param mobCombatService Mob の死亡・報酬処理サービス
+     * @param knockbackService ノックバック適用サービス
+     * @param displayTextService ダメージ表示サービス
+     * @param playerSettingService 表示設定サービス
+     * @param particleDisplayService パーティクル表示サービス
+     * @param playerDeathService プレイヤー死亡状態管理サービス。未設定時は死亡状態判定を行いません
+     * @param plugin 追尾弾の更新タスクを所有するプラグイン。未設定時は追尾弾を生成しません
+     */
+    public DamageService(
+            @NotNull StatusService statusService,
+            @NotNull MobService mobService,
+            @NotNull MobCombatService mobCombatService,
+            @NotNull MobKnockbackService knockbackService,
+            @NotNull DisplayTextService displayTextService,
+            @NotNull PlayerSettingService playerSettingService,
+            @NotNull ParticleDisplayService particleDisplayService,
+            @Nullable PlayerDeathService playerDeathService,
+            @Nullable Plugin plugin
+    ) {
         this.statusService = statusService;
         this.mobService = mobService;
         this.mobCombatService = mobCombatService;
@@ -118,6 +150,18 @@ public final class DamageService {
         this.playerSettingService = playerSettingService;
         this.particleDisplayService = particleDisplayService;
         this.playerDeathService = playerDeathService;
+        this.superStarCriticalProjectileService = plugin == null
+                ? null
+                : new SuperStarCriticalProjectileService(plugin, mobService, particleDisplayService);
+    }
+
+    /**
+     * 実行中の超星会心追尾弾を除去して更新処理を停止します。
+     */
+    public void stop() {
+        if (superStarCriticalProjectileService != null) {
+            superStarCriticalProjectileService.stop();
+        }
     }
 
     /**
@@ -387,6 +431,18 @@ public final class DamageService {
         return AstEntity.bukkit(entity);
     }
 
+    /**
+     * 通常の発生率判定を使って共通ダメージ処理を実行します。
+     *
+     * @param attacker 攻撃者。環境ダメージでは {@code null}
+     * @param victim 被弾者
+     * @param baseDamage 外部基礎ダメージ
+     * @param attackType 攻撃種別
+     * @param components 属性別ダメージ倍率
+     * @param scaling 基礎ダメージの解決方法
+     * @param source ダメージの発生元
+     * @return 適用結果
+     */
     private @NotNull DamageResult applyDamage(
             @Nullable AstEntity attacker,
             @NotNull AstEntity victim,
@@ -396,6 +452,34 @@ public final class DamageService {
             @NotNull DamageScaling scaling,
             @NotNull DamageSource source,
             double attackerDamageMultiplier
+    ) {
+        return applyDamage(attacker, victim, baseDamage, attackType, components, scaling, source,
+                attackerDamageMultiplier, SuperStarCriticalMode.ROLL);
+    }
+
+    /**
+     * 超星会心モードを指定して共通ダメージ処理を実行します。
+     *
+     * @param attacker 攻撃者。環境ダメージでは {@code null}
+     * @param victim 被弾者
+     * @param baseDamage 外部基礎ダメージ
+     * @param attackType 攻撃種別
+     * @param components 属性別ダメージ倍率
+     * @param scaling 基礎ダメージの解決方法
+     * @param source ダメージの発生元
+     * @param superStarCriticalMode 超星会心倍率の適用方法
+     * @return 適用結果
+     */
+    private @NotNull DamageResult applyDamage(
+            @Nullable AstEntity attacker,
+            @NotNull AstEntity victim,
+            double baseDamage,
+            @NotNull AttackType attackType,
+            @NotNull List<DamageComponent> components,
+            @NotNull DamageScaling scaling,
+            @NotNull DamageSource source,
+            double attackerDamageMultiplier,
+            @NotNull SuperStarCriticalMode superStarCriticalMode
     ) {
         if (attacker != null && attacker.isPlayer() && isPlayerDead(attacker.id())) {
             return new DamageResult(0.0D);
@@ -421,7 +505,8 @@ public final class DamageService {
                 components,
                 scaling,
                 source,
-                attackerDamageMultiplier
+                attackerDamageMultiplier,
+                superStarCriticalMode
         );
         DamageResult calculated = damageCalculator.calculate(context);
         if (!calculated.evaded() && calculated.finalDamage() > 0.0D) {
@@ -432,12 +517,107 @@ public final class DamageService {
             }
             calculated = calculated.withFinalDamage(calculated.finalDamage() * multiplier);
         }
+        Location superStarOrigin = shouldSpawnSuperStarCriticalProjectiles(attacker, victim, calculated, superStarCriticalMode)
+                ? damageOrigin(victim)
+                : null;
         DamageResult result = applyShieldDamage(attacker, victim, calculated);
-        applyDamageResult(attacker, victim, result, attackType, true);
-        applyDurabilityWear(attacker, victim, result);
+        boolean projectileDamage = superStarCriticalMode == SuperStarCriticalMode.FORCE;
+        applyDamageResult(attacker, victim, result, attackType, !projectileDamage);
+        if (!projectileDamage) {
+            applyDurabilityWear(attacker, victim, result);
+        }
         spawnDamageDisplay(attacker, victim, result);
         sendDamageLog(attacker, victim, result, context);
+        if (superStarOrigin != null && attacker != null) {
+            spawnSuperStarCriticalProjectiles(
+                    attacker,
+                    superStarOrigin,
+                    baseDamage,
+                    attackType,
+                    components,
+                    scaling,
+                    source,
+                    attackerDamageMultiplier
+            );
+        }
         return result;
+    }
+
+    /**
+     * 主攻撃の結果から超星会心追尾弾を生成するか判定します。
+     *
+     * @param attacker 攻撃者
+     * @param victim 被弾者
+     * @param result 主攻撃の計算結果
+     * @param mode 超星会心倍率の適用方法
+     * @return 追尾弾を生成する場合は {@code true}
+     */
+    private boolean shouldSpawnSuperStarCriticalProjectiles(
+            @Nullable AstEntity attacker,
+            @NotNull AstEntity victim,
+            @NotNull DamageResult result,
+            @NotNull SuperStarCriticalMode mode
+    ) {
+        return superStarCriticalProjectileService != null
+                && mode == SuperStarCriticalMode.ROLL
+                && attacker != null
+                && attacker.isPlayer()
+                && victim.isMob()
+                && result.superStarCritical()
+                && !result.evaded()
+                && result.finalDamage() > 0.0D;
+    }
+
+    /**
+     * 元攻撃の再計算条件を保持した超星会心追尾弾を生成します。
+     *
+     * @param attacker 発生元プレイヤー
+     * @param origin 生成位置
+     * @param baseDamage 外部基礎ダメージ
+     * @param attackType 攻撃種別
+     * @param components 属性別ダメージ倍率
+     * @param scaling 基礎ダメージの解決方法
+     * @param source ダメージの発生元
+     */
+    private void spawnSuperStarCriticalProjectiles(
+            @NotNull AstEntity attacker,
+            @NotNull Location origin,
+            double baseDamage,
+            @NotNull AttackType attackType,
+            @NotNull List<DamageComponent> components,
+            @NotNull DamageScaling scaling,
+            @NotNull DamageSource source,
+            double attackerDamageMultiplier
+    ) {
+        if (superStarCriticalProjectileService == null) {
+            return;
+        }
+        List<DamageComponent> componentSnapshot = List.copyOf(components);
+        superStarCriticalProjectileService.spawn(attacker, origin, target -> applyDamage(
+                attacker,
+                target,
+                baseDamage,
+                attackType,
+                componentSnapshot,
+                scaling,
+                source,
+                attackerDamageMultiplier,
+                SuperStarCriticalMode.FORCE
+        ));
+    }
+
+    /**
+     * 被弾対象の身体中央に相当する追尾弾生成位置を返します。
+     *
+     * @param victim 被弾対象
+     * @return 追尾弾生成位置
+     */
+    private @NotNull Location damageOrigin(@NotNull AstEntity victim) {
+        Entity entity = victim.isMob() && victim.mob() != null
+                ? resolveBukkitEntity(victim.mob().bukkitEntityId())
+                : victim.bukkitEntity();
+        double height = entity == null ? 1.8D : Math.max(0.2D, entity.getHeight());
+        return victim.location().clone().add(0.0D, height * 0.5D, 0.0D);
     }
 
     private double temporaryDamageMultiplier(
@@ -532,7 +712,10 @@ public final class DamageService {
                 double effectiveHealthDamage = Math.min(victim.currentHealth(), result.finalDamage());
                 var updated = statusService.consumeHp(victim.player(), result.finalDamage());
                 applyLifeSteal(attacker, effectiveHealthDamage);
-                playPlayerHurtEffect(victim.player().getBukkit(), result.critical());
+                playPlayerHurtEffect(
+                        victim.player().getBukkit(),
+                        result.critical() || result.superStarCritical()
+                );
                 if (knockback) {
                     applyDamageKnockback(attacker, victim, attackType);
                 }
@@ -562,7 +745,7 @@ public final class DamageService {
                 ? Math.max(1.0D, remainingHealth)
                 : Math.max(0.0D, remainingHealth));
         applyLifeSteal(attacker, effectiveHealthDamage);
-        playMobHurtEffect(mob.bukkitEntityId(), result.critical());
+        playMobHurtEffect(mob.bukkitEntityId(), result.critical() || result.superStarCritical());
         if (knockback) {
             applyDamageKnockback(attacker, victim, attackType);
         }
@@ -634,6 +817,14 @@ public final class DamageService {
         }
     }
 
+    /**
+     * 回避・シールド・HP ダメージに対応する表示を生成します。
+     * 通常会心または超星会心が成立したダメージは会心表示を使用します。
+     *
+     * @param attacker 攻撃者。環境ダメージでは {@code null}
+     * @param victim 被弾者
+     * @param result 表示対象のダメージ結果
+     */
     private void spawnDamageDisplay(
             @Nullable AstEntity attacker,
             @NotNull AstEntity victim,
@@ -658,7 +849,11 @@ public final class DamageService {
         if (!shouldDisplayDamage(attacker, victim)) {
             return;
         }
-        displayTextService.spawnDamageNumber(victim.location().clone().add(0.0D, 1.2D, 0.0D), result.finalDamage(), result.critical());
+        displayTextService.spawnDamageNumber(
+                victim.location().clone().add(0.0D, 1.2D, 0.0D),
+                result.finalDamage(),
+                result.critical() || result.superStarCritical()
+        );
     }
 
     /**

@@ -6,7 +6,8 @@ package io.github.maaasu.astralRecord.feature.combat.model;
  * @param finalDamage  HP に適用する最終ダメージ
  * @param shieldDamage シールドに適用するダメージ
  * @param shieldBroken この結果でシールドを破壊したか
- * @param critical     会心または超会心が成立したか
+ * @param critical     通常会心が成立したか
+ * @param superStarCritical 超星会心が成立したか
  * @param evaded       命中判定で回避されたか
  * @param hitChance    命中判定に使用した最終命中率（%）
  * @param accuracy     攻撃者の命中率（%）
@@ -17,6 +18,7 @@ public record DamageResult(
         double shieldDamage,
         boolean shieldBroken,
         boolean critical,
+        boolean superStarCritical,
         boolean evaded,
         double hitChance,
         double accuracy,
@@ -31,17 +33,17 @@ public record DamageResult(
      * HP ダメージのみの結果を作成します。
      *
      * @param finalDamage HP に適用する最終ダメージ
-     * @param critical    会心または超会心が成立したか
+     * @param critical    通常会心が成立したか
      */
     public DamageResult(double finalDamage, boolean critical) {
-        this(finalDamage, 0.0D, false, critical, false, 100.0D, 100.0D, 0.0D);
+        this(finalDamage, 0.0D, false, critical, false, false, 100.0D, 100.0D, 0.0D);
     }
 
     /**
      * 命中情報を含む HP ダメージ結果を作成します。
      *
      * @param finalDamage HP に適用する最終ダメージ
-     * @param critical    会心または超会心が成立したか
+     * @param critical    通常会心が成立したか
      * @param hitChance   最終命中率
      * @param accuracy    攻撃者の命中率
      * @param evasion     被弾者の回避率
@@ -53,7 +55,28 @@ public record DamageResult(
             double accuracy,
             double evasion
     ) {
-        this(finalDamage, 0.0D, false, critical, false, hitChance, accuracy, evasion);
+        this(finalDamage, 0.0D, false, critical, false, false, hitChance, accuracy, evasion);
+    }
+
+    /**
+     * 命中・通常会心・超星会心情報を含む HP ダメージ結果を作成します。
+     *
+     * @param finalDamage HP に適用する最終ダメージ
+     * @param critical 通常会心が成立したか
+     * @param superStarCritical 超星会心が成立したか
+     * @param hitChance 最終命中率
+     * @param accuracy 攻撃者の命中率
+     * @param evasion 被弾者の回避率
+     */
+    public DamageResult(
+            double finalDamage,
+            boolean critical,
+            boolean superStarCritical,
+            double hitChance,
+            double accuracy,
+            double evasion
+    ) {
+        this(finalDamage, 0.0D, false, critical, superStarCritical, false, hitChance, accuracy, evasion);
     }
 
     /**
@@ -65,7 +88,7 @@ public record DamageResult(
      * @return 回避結果
      */
     public static DamageResult evaded(double hitChance, double accuracy, double evasion) {
-        return new DamageResult(0.0D, 0.0D, false, false, true, hitChance, accuracy, evasion);
+        return new DamageResult(0.0D, 0.0D, false, false, false, true, hitChance, accuracy, evasion);
     }
 
     /**
@@ -84,11 +107,11 @@ public record DamageResult(
      *
      * @param shieldDamage シールドに適用するダメージ
      * @param shieldBroken この結果でシールドを破壊したか
-     * @param critical     会心または超会心が成立したか
+     * @param critical     通常会心が成立したか
      * @return シールドダメージ結果
      */
     public static DamageResult shield(double shieldDamage, boolean shieldBroken, boolean critical) {
-        return new DamageResult(0.0D, shieldDamage, shieldBroken, critical, false, 100.0D, 100.0D, 0.0D);
+        return new DamageResult(0.0D, shieldDamage, shieldBroken, critical, false, false, 100.0D, 100.0D, 0.0D);
     }
 
     /**
@@ -105,6 +128,7 @@ public record DamageResult(
                 shieldDamage,
                 shieldBroken,
                 source.critical(),
+                source.superStarCritical(),
                 source.evaded(),
                 source.hitChance(),
                 source.accuracy(),
@@ -113,7 +137,7 @@ public record DamageResult(
     }
 
     /**
-     * 命中情報を保ったまま最終 HP ダメージを差し替えます。
+     * 命中・通常会心・超星会心情報を保ったまま最終 HP ダメージを差し替えます。
      *
      * @param newFinalDamage 差し替える最終ダメージ
      * @return 差し替え後の結果
@@ -124,6 +148,7 @@ public record DamageResult(
                 shieldDamage,
                 shieldBroken,
                 critical,
+                superStarCritical,
                 evaded,
                 hitChance,
                 accuracy,

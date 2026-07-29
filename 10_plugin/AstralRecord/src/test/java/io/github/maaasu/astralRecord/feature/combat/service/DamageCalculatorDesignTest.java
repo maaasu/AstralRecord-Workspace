@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageContext;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageScaling;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
+import io.github.maaasu.astralRecord.feature.combat.model.SuperStarCriticalMode;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -117,6 +118,70 @@ class DamageCalculatorDesignTest {
 
         assertEquals(30.0D, result.finalDamage(), 0.0001D);
         assertTrue(result.critical());
+        assertTrue(result.superStarCritical());
+    }
+
+    @Test
+    void superStarCriticalRollIsIndependentFromNormalCritical() {
+        DamageCalculator calculator = new DamageCalculator(() -> 0.0D);
+        AstPlayer attacker = player(Map.of(
+            StatusType.CRITICAL_RATE, 0.0D,
+            StatusType.SUPER_CRITICAL_RATE, 100.0D,
+            StatusType.SUPER_CRITICAL_DAMAGE, 30.0D
+        ));
+        MobInstance victim = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D);
+
+        var result = calculator.calculate(new DamageContext(
+            AstEntity.player(attacker), AstEntity.mob(victim), 10.0D,
+            AttackType.MELEE, List.of(DamageComponent.defaultComponent()),
+            DamageScaling.FIXED, DamageSource.OTHER
+        ));
+
+        assertEquals(3.0D, result.finalDamage(), 0.0001D);
+        assertFalse(result.critical());
+        assertTrue(result.superStarCritical());
+    }
+
+    @Test
+    void forcedSuperStarCriticalRecalculatesNormalCriticalAndUsesDefaultMultiplier() {
+        DamageCalculator calculator = new DamageCalculator(() -> 0.0D);
+        AstPlayer attacker = player(Map.of(
+            StatusType.CRITICAL_RATE, 100.0D,
+            StatusType.CRITICAL_DAMAGE, 200.0D,
+            StatusType.SUPER_CRITICAL_RATE, 0.0D,
+            StatusType.SUPER_CRITICAL_DAMAGE, 0.0D
+        ));
+        MobInstance victim = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D);
+
+        var result = calculator.calculate(new DamageContext(
+            AstEntity.player(attacker), AstEntity.mob(victim), 10.0D,
+            AttackType.MELEE, List.of(DamageComponent.defaultComponent()),
+            DamageScaling.FIXED, DamageSource.OTHER, SuperStarCriticalMode.FORCE
+        ));
+
+        assertEquals(6.0D, result.finalDamage(), 0.0001D);
+        assertTrue(result.critical());
+        assertTrue(result.superStarCritical());
+    }
+
+    @Test
+    void disabledSuperStarCriticalDoesNotApplyOrChain() {
+        DamageCalculator calculator = new DamageCalculator(() -> 0.0D);
+        AstPlayer attacker = player(Map.of(
+            StatusType.CRITICAL_RATE, 0.0D,
+            StatusType.SUPER_CRITICAL_RATE, 100.0D,
+            StatusType.SUPER_CRITICAL_DAMAGE, 30.0D
+        ));
+        MobInstance victim = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D);
+
+        var result = calculator.calculate(new DamageContext(
+            AstEntity.player(attacker), AstEntity.mob(victim), 10.0D,
+            AttackType.MELEE, List.of(DamageComponent.defaultComponent()),
+            DamageScaling.FIXED, DamageSource.OTHER, SuperStarCriticalMode.DISABLED
+        ));
+
+        assertEquals(10.0D, result.finalDamage(), 0.0001D);
+        assertFalse(result.superStarCritical());
     }
 
     @Test

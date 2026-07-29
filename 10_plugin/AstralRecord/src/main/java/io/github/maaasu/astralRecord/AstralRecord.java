@@ -531,6 +531,9 @@ public final class AstralRecord extends JavaPlugin {
         if (conditionService != null) {
             conditionService.clearAllRuntimeState();
         }
+        if (damageService != null) {
+            damageService.stop();
+        }
         if (textDisplayPlacementService != null) {
             textDisplayPlacementService.saveIfDirty();
             textDisplayPlacementService.stop();
@@ -779,7 +782,8 @@ public final class AstralRecord extends JavaPlugin {
             displayTextService,
             playerSettingService,
             particleDisplayService,
-            playerDeathService
+            playerDeathService,
+            this
         );
         mobCombatService.setDamageService(damageService);
         conditionDisplayService = new ConditionDisplayService(particleDisplayService, mobVanillaEffectProtectionService);
