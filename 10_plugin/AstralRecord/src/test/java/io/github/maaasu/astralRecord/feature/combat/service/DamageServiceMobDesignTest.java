@@ -118,7 +118,8 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         AstPlayer attacker = attacker();
         attacker.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
             StatusType.MAX_HEALTH, 100.0D,
-            StatusType.LIFE_STEAL, 25.0D
+            StatusType.LIFE_STEAL, 25.0D,
+            StatusType.FINAL_DAMAGE_MULTIPLIER, 100.0D
         ), 100.0D, 0.0D, 0.0D));
         MobInstance mob = DesignTestFixtures.mobInstance(10.0D, 0.0D, 0.0D);
         when(harness.statusService.getStatus(attacker)).thenReturn(attacker.getStatusSnapshot());
@@ -263,7 +264,8 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
     private AstPlayer attacker() {
         AstPlayer attacker = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
         attacker.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
-            StatusType.MAX_HEALTH, 100.0D
+            StatusType.MAX_HEALTH, 100.0D,
+            StatusType.FINAL_DAMAGE_MULTIPLIER, 100.0D
         ), 100.0D, 0.0D, 0.0D));
         return attacker;
     }
