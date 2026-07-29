@@ -17,6 +17,7 @@ import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
@@ -148,11 +149,18 @@ public final class TeleporterService {
      * @param name 表示名
      * @param lockEnabled ロックを有効にする場合 true
      * @param unlockGold 解除に必要なゴールド
+     * @param icon GUI とワールド表示に使うアイコン。未設定の場合は null
      * @return 作成して永続化したウェイストーン定義
      * @throws IllegalStateException waystones.yml の保存に失敗した場合
      */
     @NotNull
-    public WaystoneDefinition createWaystone(@NotNull AstPlayer astPlayer, @NotNull String name, boolean lockEnabled, long unlockGold) {
+    public WaystoneDefinition createWaystone(
+            @NotNull AstPlayer astPlayer,
+            @NotNull String name,
+            boolean lockEnabled,
+            long unlockGold,
+            @Nullable Material icon
+    ) {
         Player player = astPlayer.getBukkit();
         Location location = player.getLocation();
         String id = generateId(name);
@@ -167,6 +175,7 @@ public final class TeleporterService {
                 location.getPitch(),
                 lockEnabled,
                 lockEnabled ? Math.max(0L, unlockGold) : 0L,
+                icon,
                 Instant.now(),
                 astPlayer.getUser().getUuid().toString()
         );

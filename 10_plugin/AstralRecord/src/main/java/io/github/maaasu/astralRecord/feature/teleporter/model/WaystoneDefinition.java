@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.teleporter.model;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -22,9 +23,22 @@ public record WaystoneDefinition(
         float pitch,
         boolean lockEnabled,
         long unlockGold,
+        @Nullable Material icon,
         @NotNull Instant createdAt,
         @NotNull String createdBy
 ) {
+    private static final Material DEFAULT_ICON = Material.BEACON;
+
+    /**
+     * GUI とワールド上の ItemDisplay に使用するアイコンを返します。
+     *
+     * @return 設定済みアイコン。未設定の場合は BEACON
+     */
+    @NotNull
+    public Material displayIcon() {
+        return icon == null ? DEFAULT_ICON : icon;
+    }
+
     /**
      * Bukkit の Location へ変換します。
      *

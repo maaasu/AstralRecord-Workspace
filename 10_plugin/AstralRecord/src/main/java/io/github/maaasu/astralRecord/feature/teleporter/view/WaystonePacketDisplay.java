@@ -16,7 +16,9 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Quaternionf;
 import org.joml.Quaternionfc;
@@ -47,6 +49,8 @@ final class WaystonePacketDisplay {
     private static final int DISPLAY_WIDTH_INDEX = 20;
     private static final int DISPLAY_HEIGHT_INDEX = 21;
     private static final int BLOCK_DISPLAY_BLOCK_INDEX = 23;
+    private static final int ITEM_DISPLAY_ITEM_INDEX = 23;
+    private static final int ITEM_DISPLAY_TRANSFORM_INDEX = 24;
     private static final int TEXT_DISPLAY_TEXT_INDEX = 23;
     private static final int TEXT_DISPLAY_LINE_WIDTH_INDEX = 24;
     private static final int TEXT_DISPLAY_BACKGROUND_INDEX = 25;
@@ -70,6 +74,33 @@ final class WaystonePacketDisplay {
         metadata.add(value(TEXT_DISPLAY_TEXT_OPACITY_INDEX, serializer(Byte.class), (byte) -1));
         metadata.add(value(TEXT_DISPLAY_FLAGS_INDEX, serializer(Byte.class), TEXT_DISPLAY_SHADOWED));
         return new PacketEntity(EntityType.TEXT_DISPLAY, location, metadata);
+    }
+
+    /**
+     * ドロップアイテム風の packet-only ItemDisplay を作成します。
+     *
+     * @param location 表示座標
+     * @param itemStack 表示アイテム
+     * @param scale 表示倍率
+     * @return 送信前の packet entity
+     */
+    PacketEntity item(@NotNull Location location, @NotNull ItemStack itemStack, float scale) {
+        List<WrappedDataValue> metadata = baseDisplayMetadata(
+                new Vector3f(),
+                new Vector3f(scale, scale, scale),
+                Display.Billboard.CENTER
+        );
+        metadata.add(value(
+                ITEM_DISPLAY_ITEM_INDEX,
+                WrappedDataWatcher.Registry.getItemStackSerializer(false),
+                itemStack
+        ));
+        metadata.add(value(
+                ITEM_DISPLAY_TRANSFORM_INDEX,
+                serializer(Byte.class),
+                (byte) ItemDisplay.ItemDisplayTransform.GROUND.ordinal()
+        ));
+        return new PacketEntity(EntityType.ITEM_DISPLAY, location, metadata);
     }
 
     private List<WrappedDataValue> baseDisplayMetadata(

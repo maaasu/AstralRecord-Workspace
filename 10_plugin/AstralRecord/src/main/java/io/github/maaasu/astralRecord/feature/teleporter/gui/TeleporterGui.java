@@ -119,12 +119,18 @@ public final class TeleporterGui {
         }
     }
 
+    /**
+     * ウェイストーン定義のアイコンと解除状態に応じた GUI アイテムを作成します。
+     *
+     * @param entry GUI 表示項目
+     * @return 一覧 slot に配置するアイテム
+     */
     @NotNull
     private ItemStack entryItem(@NotNull Entry entry) {
         WaystoneDefinition definition = entry.definition();
         if (entry.unlocked()) {
             return createItem(
-                    Material.BEACON,
+                    definition.displayIcon(),
                     ColorCodeUtil.toComponent(definition.name(), definition.id(), NamedTextColor.AQUA),
                     List.of(
                             Component.text("クリックでテレポート", NamedTextColor.GREEN)
@@ -132,7 +138,7 @@ public final class TeleporterGui {
             );
         }
         return createItem(
-                Material.IRON_BARS,
+                definition.displayIcon(),
                 ColorCodeUtil.toComponent(definition.name(), definition.id(), NamedTextColor.DARK_GRAY),
                 List.of(
                         Component.text("未解除のウェイストーンです", NamedTextColor.RED),

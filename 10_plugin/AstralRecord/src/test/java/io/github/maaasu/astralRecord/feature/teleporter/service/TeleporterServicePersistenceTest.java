@@ -51,7 +51,7 @@ class TeleporterServicePersistenceTest {
 
         assertThrows(
                 IllegalStateException.class,
-                () -> service.createWaystone(astPlayer, "North Gate", true, 100L)
+                () -> service.createWaystone(astPlayer, "North Gate", true, 100L, null)
         );
 
         assertTrue(service.getAll().isEmpty());
@@ -94,6 +94,7 @@ class TeleporterServicePersistenceTest {
                 0.0F,
                 false,
                 0L,
+                null,
                 Instant.EPOCH,
                 "test"
         );

@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.teleporter.model.WaystoneDefinition
 import io.github.maaasu.astralRecord.feature.teleporter.service.TeleporterService;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
+import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Locale;
@@ -37,8 +38,14 @@ public final class TeleporterCommand extends AstCommand {
         }
     }
 
+    /**
+     * ウェイストーンの作成引数を検証し、省略可能なアイコンを含めて登録します。
+     *
+     * @param player 実行者
+     * @param args set サブコマンドを含む引数
+     */
     private void handleSet(@NotNull AstPlayer player, @NotNull String[] args) {
-        if (args.length != 4) {
+        if (args.length < 4 || args.length > 5) {
             sendUsage(player.getBukkit());
             return;
         }
@@ -65,7 +72,15 @@ public final class TeleporterCommand extends AstCommand {
             sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5951.getId()));
             return;
         }
-        WaystoneDefinition definition = teleporterService.createWaystone(player, name, lockEnabled, unlockGold);
+        Material icon = null;
+        if (args.length == 5) {
+            icon = Material.matchMaterial(args[4]);
+            if (icon == null || !icon.isItem() || icon.isAir()) {
+                sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerMsgId.P_5951.getId()));
+                return;
+            }
+        }
+        WaystoneDefinition definition = teleporterService.createWaystone(player, name, lockEnabled, unlockGold, icon);
         sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5959.getId(), definition.id(), definition.name()));
     }
 
@@ -81,6 +96,11 @@ public final class TeleporterCommand extends AstCommand {
         sendSuccess(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5959.getId(), args[1], "removed"));
     }
 
+    /**
+     * 登録済みウェイストーンとフォールバック解決後のアイコンを一覧表示します。
+     *
+     * @param player 実行者
+     */
     private void handleList(@NotNull AstPlayer player) {
         var definitions = teleporterService.getAll();
         sendInfo(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5958.getId(), definitions.size()));
@@ -91,7 +111,8 @@ public final class TeleporterCommand extends AstCommand {
                     definition.name(),
                     definition.worldName(),
                     definition.lockEnabled(),
-                    definition.unlockGold()
+                    definition.unlockGold(),
+                    definition.displayIcon().name()
             ));
         }
     }

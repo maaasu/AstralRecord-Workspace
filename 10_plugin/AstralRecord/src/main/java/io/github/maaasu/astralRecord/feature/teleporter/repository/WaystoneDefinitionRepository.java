@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.teleporter.repository;
 import io.github.maaasu.astralRecord.feature.teleporter.model.WaystoneDefinition;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import org.bukkit.Material;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -63,6 +64,7 @@ public final class WaystoneDefinitionRepository {
                     floatValue(map.get("pitch")),
                     booleanValue(map.get("lockEnabled")),
                     Math.max(0L, longValue(map.get("unlockGold"))),
+                    materialValue(map.get("icon")),
                     instantValue(map.get("createdAt")),
                     stringValue(map.get("createdBy"), "system")
             ));
@@ -93,6 +95,9 @@ public final class WaystoneDefinitionRepository {
             row.put("pitch", definition.pitch());
             row.put("lockEnabled", definition.lockEnabled());
             row.put("unlockGold", definition.unlockGold());
+            if (definition.icon() != null) {
+                row.put("icon", definition.icon().name());
+            }
             row.put("createdAt", definition.createdAt().toString());
             row.put("createdBy", definition.createdBy());
             rows.add(row);
@@ -161,6 +166,17 @@ public final class WaystoneDefinitionRepository {
 
     private boolean booleanValue(Object value) {
         return value instanceof Boolean bool ? bool : value != null && Boolean.parseBoolean(value.toString());
+    }
+
+    /**
+     * YAML 値をアイコンとして使用可能な Material へ変換します。
+     *
+     * @param value YAML から取得した値
+     * @return アイテム表示可能な Material。未設定、AIR、非アイテム、不正値の場合は null
+     */
+    private Material materialValue(Object value) {
+        Material material = value == null ? null : Material.matchMaterial(value.toString().trim());
+        return material != null && material.isItem() && !material.isAir() ? material : null;
     }
 
     private Instant instantValue(Object value) {
