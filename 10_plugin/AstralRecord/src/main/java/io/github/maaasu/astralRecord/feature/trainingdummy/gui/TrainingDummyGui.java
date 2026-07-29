@@ -64,7 +64,10 @@ public final class TrainingDummyGui {
     /** GUI アイテムの生成をこの View 内へ限定する補助です。 */
     private static final class ItemStackFactory {
         private static void set(@NotNull Inventory inventory, int slot, @NotNull Material material, @NotNull String name, @NotNull List<String> lore) {
-            inventory.setItem(slot, GuiItems.create(material, Component.text(name, NamedTextColor.AQUA), lore.stream().map(line -> Component.text(line, NamedTextColor.GRAY)).toList()));
+            List<Component> loreComponents = lore.stream()
+                    .<Component>map(line -> Component.text(line, NamedTextColor.GRAY))
+                    .toList();
+            inventory.setItem(slot, GuiItems.create(material, Component.text(name, NamedTextColor.AQUA), loreComponents));
         }
     }
 }
