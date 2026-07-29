@@ -76,6 +76,26 @@ class DamageCalculatorDesignTest {
     }
 
     @Test
+    void defenseCanReduceDamageToZero() {
+        DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
+        AstPlayer attacker = player(Map.of(
+            StatusType.ATTACK, 10.0D,
+            StatusType.ACCURACY, 100.0D
+        ));
+        MobInstance victim = DesignTestFixtures.mobInstance(100.0D, 20.0D, 0.0D);
+
+        var result = calculator.calculate(new DamageContext(
+            AstEntity.player(attacker),
+            AstEntity.mob(victim),
+            0.0D,
+            AttackType.MELEE,
+            DamageScaling.ATTACKER_STATUS
+        ));
+
+        assertEquals(0.0D, result.finalDamage(), 0.0001D);
+    }
+
+    @Test
     void criticalAndSuperCriticalUseConfiguredMultipliers() {
         DamageCalculator calculator = new DamageCalculator(() -> 0.0D);
         AstPlayer attacker = player(Map.of(

@@ -457,7 +457,7 @@ public final class DamageService {
      * 攻撃者の最終ダメージ倍率を返します。
      *
      * <p>管理対象の攻撃者だけが {@link StatusType#FINAL_DAMAGE_MULTIPLIER} を使用します。
-     * 未設定または 0 以下の値は、Mob テンプレートの未設定値を含めて 100% と扱います。</p>
+     * Mob テンプレートで未定義の場合だけ 100% を既定値とし、明示された 0 以下の値は 0% と扱います。</p>
      *
      * @param attacker 攻撃者。環境ダメージの場合は {@code null}
      * @return 最終ダメージへ乗算する倍率
@@ -466,8 +466,14 @@ public final class DamageService {
         if (attacker == null || !attacker.isManaged()) {
             return 1.0D;
         }
+        if (attacker.isMob() && attacker.mob() != null) {
+            return Math.max(
+                    0.0D,
+                    attacker.mob().template().statValue(StatusType.FINAL_DAMAGE_MULTIPLIER.name(), 100.0D)
+            ) / 100.0D;
+        }
         double configured = attacker.statValue(StatusType.FINAL_DAMAGE_MULTIPLIER);
-        return configured > 0.0D ? configured / 100.0D : 1.0D;
+        return Math.max(0.0D, configured) / 100.0D;
     }
 
     private void applyDurabilityWear(

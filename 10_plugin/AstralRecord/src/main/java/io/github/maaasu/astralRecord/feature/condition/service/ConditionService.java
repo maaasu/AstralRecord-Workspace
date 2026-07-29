@@ -267,7 +267,7 @@ public final class ConditionService {
         double increase = source == null ? 0.0D : source.statValue(increaseStatus);
         double penetration = source == null ? 0.0D : source.statValue(penetrationStatus);
         double resistance = target.statValue(resistanceStatus);
-        double effectiveResistance = Math.max(0.0D, resistance - penetration);
+        double effectiveResistance = resistance - penetration;
         return Math.max(0.0D, 1.0D + increase / 100.0D)
                 * Math.max(0.0D, 1.0D - effectiveResistance / 100.0D);
     }

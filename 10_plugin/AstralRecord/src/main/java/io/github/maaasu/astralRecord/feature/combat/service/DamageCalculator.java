@@ -77,7 +77,7 @@ public final class DamageCalculator {
         damage = criticalDamage.damage();
 
         if (context.victim().isManaged() && damage > 0.0D) {
-            damage = Math.max(1.0D, damage - defensePower(context) * 0.5D);
+            damage = Math.max(0.0D, damage - defensePower(context) * 0.5D);
         }
 
         double attributedDamage = 0.0D;

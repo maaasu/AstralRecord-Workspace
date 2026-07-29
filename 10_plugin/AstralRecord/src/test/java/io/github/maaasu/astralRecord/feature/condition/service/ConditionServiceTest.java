@@ -96,6 +96,16 @@ class ConditionServiceTest {
     }
 
     @Test
+    void negativeDotResistanceIncreasesConditionDamage() {
+        ConditionService service = service();
+        AstEntity target = AstEntity.mob(mob(MobCategory.ENEMY, List.of(
+            new MobBaseStat(StatusType.BURNING_DAMAGE_RESISTANCE.name(), -25.0D)
+        )));
+
+        assertEquals(1.25D, service.conditionDamageMultiplier(null, target, ConditionType.BURNING), 0.0001D);
+    }
+
+    @Test
     void fullApplyResistanceAlwaysRejectsAndHealingInhibitionBlocksRecovery() {
         ConditionService service = service();
         AstEntity resistant = AstEntity.mob(mob(MobCategory.ENEMY, List.of(
