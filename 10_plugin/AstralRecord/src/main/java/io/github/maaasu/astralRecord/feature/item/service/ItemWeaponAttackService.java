@@ -110,7 +110,7 @@ public final class ItemWeaponAttackService {
                 List.of()
         );
         if (result.success() && cooldownTicks != null && cooldownTicks > 0) {
-            skillService.startCooldown(caster, skillId, cooldownTicks.longValue());
+            skillService.startAttackCooldown(caster, skillId, cooldownTicks.longValue());
         }
     }
 }

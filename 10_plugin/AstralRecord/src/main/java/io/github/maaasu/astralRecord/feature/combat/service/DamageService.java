@@ -241,7 +241,38 @@ public final class DamageService {
             @NotNull List<DamageComponent> components,
             @NotNull DamageSource source
     ) {
-        return applyDamage(attacker, victim, 0.0D, attackType, components, DamageScaling.ATTACKER_STATUS, source);
+        return attack(attacker, victim, attackType, components, source, 1.0D);
+    }
+
+    /**
+     * 攻撃者固有のダメージ倍率を含めて、発生元を明示した攻撃ダメージを適用します。
+     *
+     * @param attacker 攻撃者
+     * @param victim 被弾者
+     * @param attackType 攻撃種別
+     * @param components 属性別の攻撃倍率
+     * @param source 通常攻撃・スキルなどの発生元
+     * @param attackerDamageMultiplier 攻撃者固有のダメージ倍率
+     * @return ダメージ結果
+     */
+    public @NotNull DamageResult attack(
+            @NotNull AstEntity attacker,
+            @NotNull AstEntity victim,
+            @NotNull AttackType attackType,
+            @NotNull List<DamageComponent> components,
+            @NotNull DamageSource source,
+            double attackerDamageMultiplier
+    ) {
+        return applyDamage(
+                attacker,
+                victim,
+                0.0D,
+                attackType,
+                components,
+                DamageScaling.ATTACKER_STATUS,
+                source,
+                attackerDamageMultiplier
+        );
     }
 
     /**
@@ -260,7 +291,7 @@ public final class DamageService {
             @NotNull AttackType attackType
     ) {
         return applyDamage(attacker, victim, baseDamage, attackType,
-                List.of(DamageComponent.defaultComponent()), DamageScaling.FIXED, DamageSource.OTHER);
+                List.of(DamageComponent.defaultComponent()), DamageScaling.FIXED, DamageSource.OTHER, 1.0D);
     }
 
     /**
@@ -277,7 +308,7 @@ public final class DamageService {
             double baseDamage
     ) {
         return applyDamage(attacker, victim, baseDamage, AttackType.MAGIC,
-                List.of(DamageComponent.defaultComponent()), DamageScaling.FIXED, DamageSource.OTHER);
+                List.of(DamageComponent.defaultComponent()), DamageScaling.FIXED, DamageSource.OTHER, 1.0D);
     }
 
     /**
@@ -363,7 +394,8 @@ public final class DamageService {
             @NotNull AttackType attackType,
             @NotNull List<DamageComponent> components,
             @NotNull DamageScaling scaling,
-            @NotNull DamageSource source
+            @NotNull DamageSource source,
+            double attackerDamageMultiplier
     ) {
         if (attacker != null && attacker.isPlayer() && isPlayerDead(attacker.id())) {
             return new DamageResult(0.0D);
@@ -381,7 +413,16 @@ public final class DamageService {
         ensureStatusLoaded(attacker);
         ensureStatusLoaded(victim);
 
-        DamageContext context = new DamageContext(attacker, victim, baseDamage, attackType, components, scaling, source);
+        DamageContext context = new DamageContext(
+                attacker,
+                victim,
+                baseDamage,
+                attackType,
+                components,
+                scaling,
+                source,
+                attackerDamageMultiplier
+        );
         DamageResult calculated = damageCalculator.calculate(context);
         if (!calculated.evaded() && calculated.finalDamage() > 0.0D) {
             double multiplier = finalDamageMultiplier(attacker) * temporaryDamageMultiplier(attacker, victim);

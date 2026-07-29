@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
+import io.github.maaasu.astralRecord.feature.combat.service.CombatTimingCalculator;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -425,7 +426,7 @@ public class SkillService {
         if (result.success()) {
             consumeResource(caster, resolveResourceType(definition), resolveResourceCost(caster, definition));
             if (definition.getCooldownTicks() > 0L) {
-                startCooldown(caster, definition.getId(), definition.getCooldownTicks());
+                startCooldown(caster, definition.getId(), resolveCooldownTicks(caster, definition.getCooldownTicks()));
             }
             if (caster instanceof PlayerSkillCaster playerCaster) {
                 playerCastSuccessListener.accept(playerCaster.player(), definition.getId());
@@ -560,9 +561,9 @@ public class SkillService {
         }
         if (conditionService != null) {
             if (caster instanceof PlayerSkillCaster playerCaster) {
-                multiplier = conditionService.castTimeMultiplier(AstEntity.player(playerCaster.player()));
+                multiplier *= conditionService.castTimeMultiplier(AstEntity.player(playerCaster.player()));
             } else if (caster instanceof MobSkillCaster mobCaster) {
-                multiplier = conditionService.castTimeMultiplier(AstEntity.mob(mobCaster.mob()));
+                multiplier *= conditionService.castTimeMultiplier(AstEntity.mob(mobCaster.mob()));
             }
         }
         return Math.max(0L, (long) Math.ceil(definition.getCastTimeTicks() * multiplier));
@@ -648,6 +649,33 @@ public class SkillService {
         cooldownExpiryByCaster
                 .computeIfAbsent(caster.casterId(), id -> new ConcurrentHashMap<>())
                 .put(normalize(skillId), expiry);
+    }
+
+    /**
+     * 装備の通常攻撃・攻撃行動に、CD短縮率と攻撃速度を適用して cooldown を開始します。
+     *
+     * @param caster 発動者
+     * @param skillId 攻撃に対応するスキル ID
+     * @param baseCooldownTicks 装備定義上の基本攻撃間隔 tick
+     */
+    public void startAttackCooldown(
+            @NotNull SkillCaster caster,
+            @NotNull String skillId,
+            long baseCooldownTicks
+    ) {
+        long cooldownTicks = resolveCooldownTicks(caster, baseCooldownTicks);
+        cooldownTicks = CombatTimingCalculator.resolveAttackIntervalTicks(
+                cooldownTicks,
+                caster.statusSnapshot().rollValue(StatusType.ATTACK_SPEED)
+        );
+        startCooldown(caster, skillId, cooldownTicks);
+    }
+
+    private long resolveCooldownTicks(@NotNull SkillCaster caster, long baseCooldownTicks) {
+        return CombatTimingCalculator.resolveCooldownTicks(
+                baseCooldownTicks,
+                caster.statusSnapshot().rollValue(StatusType.COOLDOWN_REDUCTION)
+        );
     }
 
     /**

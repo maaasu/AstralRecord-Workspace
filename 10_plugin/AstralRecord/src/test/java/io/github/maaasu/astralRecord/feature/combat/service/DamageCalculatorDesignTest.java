@@ -53,6 +53,29 @@ class DamageCalculatorDesignTest {
     }
 
     @Test
+    void attackerDamageMultiplierIsAppliedBeforeDefense() {
+        DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
+        AstPlayer attacker = player(Map.of(
+            StatusType.ATTACK, 20.0D,
+            StatusType.ACCURACY, 100.0D
+        ));
+        MobInstance victim = DesignTestFixtures.mobInstance(100.0D, 10.0D, 0.0D);
+
+        var result = calculator.calculate(new DamageContext(
+            AstEntity.player(attacker),
+            AstEntity.mob(victim),
+            0.0D,
+            AttackType.MELEE,
+            List.of(DamageComponent.defaultComponent()),
+            DamageScaling.ATTACKER_STATUS,
+            DamageSource.NORMAL_ATTACK,
+            1.5D
+        ));
+
+        assertEquals(25.0D, result.finalDamage(), 0.0001D);
+    }
+
+    @Test
     void criticalAndSuperCriticalUseConfiguredMultipliers() {
         DamageCalculator calculator = new DamageCalculator(() -> 0.0D);
         AstPlayer attacker = player(Map.of(

@@ -71,7 +71,8 @@ public final class DamageCalculator {
 
         double damage = Math.max(0.0D, resolveBaseDamage(context))
                 * totalRatio
-                * sourceDamageMultiplier(context);
+                * sourceDamageMultiplier(context)
+                * context.attackerDamageMultiplier();
         CriticalDamage criticalDamage = applyCriticalDamage(context, damage);
         damage = criticalDamage.damage();
 

@@ -5,8 +5,10 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountExperienceResu
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
-import io.github.maaasu.astralRecord.feature.combat.service.DamageCalculator;
-import io.github.maaasu.astralRecord.feature.combat.service.LevelDifferenceCalculator;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
+import io.github.maaasu.astralRecord.feature.combat.service.CombatTimingCalculator;
+import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.mob.model.CombatStyle;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCombatConfig;
@@ -23,7 +25,6 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
-import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.playerclass.model.ClassExperienceResult;
 import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
@@ -33,7 +34,6 @@ import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
-import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Bukkit;
@@ -54,8 +54,8 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * Mob の戦闘ロジックを担うサービス。
  *
- * <p>バニラの {@code EntityDamageEvent} や Bukkit Attribute には依存せず、
- * 命中判定・ダメージ計算・会心判定・致死処理を独自に実装する。</p>
+ * <p>Mob のターゲット選定・攻撃間隔・報酬処理を管理する。
+ * ダメージの命中判定・計算・HP反映は {@link DamageService} に委譲する。</p>
  */
 public class MobCombatService {
 
@@ -69,10 +69,9 @@ public class MobCombatService {
     private final StatusService statusService;
     private final SkillTreeService skillTreeService;
     private final ParticleDisplayService particleDisplayService;
-    private final DisplayTextService displayTextService;
-    private final PlayerSettingService playerSettingService;
     private PlayerDeathService playerDeathService;
     private QuestService questService;
+    private DamageService damageService;
 
     /**
      * コンストラクタ。
@@ -87,8 +86,6 @@ public class MobCombatService {
      * @param statusService ステータスサービス
      * @param skillTreeService スキルツリーサービス
      * @param particleDisplayService パーティクル表示サービス
-     * @param displayTextService TextDisplay 表示サービス
-     * @param playerSettingService プレイヤー設定サービス
      */
     public MobCombatService(
             @NotNull MobService mobService,
@@ -100,9 +97,7 @@ public class MobCombatService {
             @NotNull PlayerClassService playerClassService,
             @NotNull StatusService statusService,
             @NotNull SkillTreeService skillTreeService,
-            @NotNull ParticleDisplayService particleDisplayService,
-            @NotNull DisplayTextService displayTextService,
-            @NotNull PlayerSettingService playerSettingService) {
+            @NotNull ParticleDisplayService particleDisplayService) {
         this.mobService = mobService;
         this.dropService = dropService;
         this.dropPresentationService = dropPresentationService;
@@ -113,8 +108,6 @@ public class MobCombatService {
         this.statusService = statusService;
         this.skillTreeService = skillTreeService;
         this.particleDisplayService = particleDisplayService;
-        this.displayTextService = displayTextService;
-        this.playerSettingService = playerSettingService;
     }
 
     /**
@@ -124,6 +117,15 @@ public class MobCombatService {
      */
     public void setPlayerDeathService(@Nullable PlayerDeathService playerDeathService) {
         this.playerDeathService = playerDeathService;
+    }
+
+    /**
+     * Mob の通常攻撃に使う統合ダメージサービスを設定します。
+     *
+     * @param damageService 統合ダメージサービス
+     */
+    public void setDamageService(@NotNull DamageService damageService) {
+        this.damageService = damageService;
     }
 
     public void setQuestService(@Nullable QuestService questService) {
@@ -213,8 +215,11 @@ public class MobCombatService {
             return;
         }
 
-        // 攻撃間隔チェック
-        if (serverTick - instance.lastAttackTick() < combat.attackIntervalTicks()) {
+        long attackIntervalTicks = CombatTimingCalculator.resolveAttackIntervalTicks(
+                combat.attackIntervalTicks(),
+                AstEntity.mob(instance).statValue(StatusType.ATTACK_SPEED)
+        );
+        if (serverTick - instance.lastAttackTick() < attackIntervalTicks) {
             return;
         }
 
@@ -226,238 +231,27 @@ public class MobCombatService {
             return;
         }
 
-        double accuracy = Math.max(0.0D, instance.template().statValue(StatusType.ACCURACY.name(), 100.0D));
-        double evasion = resolvePlayerEvasion(target);
-        double hitChance = DamageCalculator.calculateHitChance(accuracy, evasion);
-        if (ThreadLocalRandom.current().nextDouble(0.0D, 100.0D) >= hitChance) {
-            showMobAttackFeedback(instance, target, 0.0D, false, true, accuracy, evasion, hitChance);
-            instance.lastAttackTick(serverTick);
+        AstPlayer astTarget = AstPlayerCache.get(target);
+        if (damageService == null || astTarget == null) {
             return;
         }
-
-        // ダメージ計算
-        double baseDamage = computeDamage(instance, target);
-        double criticalDamage = applyCriticalMultiplier(instance, baseDamage);
-        double finalDamage = criticalDamage * finalDamageMultiplier(instance);
-
-        applyDamageToPlayer(target, finalDamage);
-        showMobAttackFeedback(
-                instance,
-                target,
-                finalDamage,
-                criticalDamage > baseDamage,
-                false,
-                accuracy,
-                evasion,
-                hitChance
+        damageService.attack(
+                AstEntity.mob(instance),
+                AstEntity.player(astTarget),
+                attackType(combat.style()),
+                List.of(DamageComponent.defaultComponent()),
+                DamageSource.NORMAL_ATTACK,
+                instance.outgoingDamageMultiplier()
         );
         instance.lastAttackTick(serverTick);
     }
 
-    /**
-     * プレイヤーの現在回避率をキャッシュ済みステータスから取得します。
-     *
-     * @param target 対象プレイヤー
-     * @return 回避率。未ロードの場合は 0
-     */
-    private double resolvePlayerEvasion(@NotNull Player target) {
-        AstPlayer astPlayer = AstPlayerCache.get(target);
-        if (astPlayer == null) {
-            return 0.0D;
-        }
-        return Math.max(0.0D, statusService.getStatus(astPlayer).rollValue(StatusType.EVASION));
-    }
-
-    /**
-     * Mob 攻撃の TextDisplay と被ダメージ詳細メッセージを設定に従って表示します。
-     *
-     * @param instance 攻撃した Mob
-     * @param target 被弾プレイヤー
-     * @param damage 最終ダメージ
-     * @param critical 会心が成立したか
-     * @param evaded 回避されたか
-     * @param accuracy Mob の命中率
-     * @param evasion プレイヤーの回避率
-     * @param hitChance 最終命中率
-     */
-    private void showMobAttackFeedback(
-            @NotNull MobInstance instance,
-            @NotNull Player target,
-            double damage,
-            boolean critical,
-            boolean evaded,
-            double accuracy,
-            double evasion,
-            double hitChance
-    ) {
-        UUID userId = target.getUniqueId();
-        if (playerSettingService.isDamageLogDisplayEnabled(userId)) {
-            Location origin = target.getLocation().add(0.0D, 1.2D, 0.0D);
-            if (evaded) {
-                displayTextService.spawnEvadedText(origin);
-            } else {
-                displayTextService.spawnDamageNumber(origin, damage, critical);
-            }
-        }
-
-        if (!playerSettingService.isDamageLogMessageEnabled(userId)) {
-            return;
-        }
-
-        String mobName = ColorCodeUtil.toLegacyText(instance.template().displayName(), instance.template().id());
-        if (evaded) {
-            PlayerMessageService.getInstance().send(
-                    target,
-                    PlayerMsgId.P_5353,
-                    mobName,
-                    formatOneDecimal(hitChance),
-                    formatOneDecimal(accuracy),
-                    formatOneDecimal(evasion)
-            );
-            return;
-        }
-
-        CombatStyle style = instance.template().combat() == null
-                ? CombatStyle.MELEE
-                : instance.template().combat().style();
-        PlayerMessageService.getInstance().send(
-                target,
-                PlayerMsgId.P_5352,
-                mobName,
-                formatOneDecimal(damage),
-                "0.0",
-                combatStyleName(style),
-                "無属性",
-                formatOneDecimal(hitChance),
-                formatOneDecimal(accuracy),
-                formatOneDecimal(evasion),
-                critical ? " &eCRITICAL" : ""
-        );
-    }
-
-    /**
-     * Mob 戦闘スタイルのプレイヤー向け表示名を返します。
-     *
-     * @param style 戦闘スタイル
-     * @return 日本語表示名
-     */
-    private @NotNull String combatStyleName(@NotNull CombatStyle style) {
+    private @NotNull AttackType attackType(@NotNull CombatStyle style) {
         return switch (style) {
-            case MELEE -> "近接";
-            case RANGED -> "間接";
-            case MAGIC -> "魔法";
+            case MELEE -> AttackType.MELEE;
+            case RANGED -> AttackType.RANGED;
+            case MAGIC -> AttackType.MAGIC;
         };
-    }
-
-    /**
-     * 数値を小数第1位で表示します。
-     *
-     * @param value 表示値
-     * @return 小数第1位の文字列
-     */
-    private @NotNull String formatOneDecimal(double value) {
-        return String.format(java.util.Locale.ROOT, "%.1f", value);
-    }
-
-    /**
-     * Mob からターゲット（プレイヤー）への基礎ダメージを算出します。
-     * 戦闘スタイルに応じて使用ステータスを切り替え、ターゲットの防御で軽減します。
-     *
-     * @param instance 攻撃側 Mob
-     * @param target   被攻撃側プレイヤー
-     * @return 基礎ダメージ
-     */
-    public double computeDamage(@NotNull MobInstance instance, @NotNull Player target) {
-        MobTemplate template = instance.template();
-        double attack = template.statValue("ATTACK", 1.0) * instance.outgoingDamageMultiplier();
-        CombatStyle style = template.combat() == null ? CombatStyle.MELEE : template.combat().style();
-        double scaling = switch (style) {
-            case MELEE -> template.statValue("STRENGTH", 0.0);
-            case RANGED -> template.statValue("DEXTERITY", 0.0);
-            case MAGIC -> template.statValue("INTELLIGENCE", 0.0);
-        };
-        double offensive = attack * (1.0 + scaling / 100.0);
-        double defense = resolvePlayerDefense(instance, target, style);
-        double damage = Math.max(1.0, offensive - defense * 0.5);
-        return damage;
-    }
-
-    /**
-     * 基礎ダメージに会心・超会心の倍率を適用します。
-     *
-     * @param instance   攻撃側
-     * @param baseDamage 基礎ダメージ
-     * @return 会心適用後ダメージ
-     */
-    public double applyCriticalMultiplier(@NotNull MobInstance instance, double baseDamage) {
-        MobTemplate template = instance.template();
-        ThreadLocalRandom rng = ThreadLocalRandom.current();
-
-        double critRate = template.statValue("CRITICAL_RATE", 0.0);
-        if (rng.nextDouble(0.0, 100.0) >= critRate) {
-            return baseDamage;
-        }
-
-        double critMul = template.statValue("CRITICAL_DAMAGE", 150.0) / 100.0;
-        double damage = baseDamage * critMul;
-
-        double superRate = template.statValue("SUPER_CRITICAL_RATE", 0.0);
-        if (rng.nextDouble(0.0, 100.0) < superRate) {
-            double superMul = template.statValue("SUPER_CRITICAL_DAMAGE", 100.0) / 100.0;
-            damage *= superMul;
-        }
-        return damage;
-    }
-
-    /**
-     * Mob テンプレートの最終ダメージ倍率を返します。
-     *
-     * <p>テンプレートに未設定または 0 以下の場合は、既存 Mob の挙動を保つため 100% とします。</p>
-     *
-     * @param instance 攻撃側 Mob
-     * @return 最終ダメージへ乗算する倍率
-     */
-    private double finalDamageMultiplier(@NotNull MobInstance instance) {
-        double configured = instance.template().statValue(StatusType.FINAL_DAMAGE_MULTIPLIER.name(), 0.0D);
-        return configured > 0.0D ? configured / 100.0D : 1.0D;
-    }
-
-    /**
-     * プレイヤーから Mob への被ダメージを処理します。
-     * ダメージ計算（プレイヤー側のスケーリング・装備補正）は呼び出し元の責務です。
-     *
-     * @param instance     被ダメージ対象 Mob
-     * @param attacker     攻撃元プレイヤー
-     * @param damage       確定済み攻撃側ダメージ（防御適用前）
-     * @param attackType   攻撃種別
-     * @return 実際に与えたダメージ（防御適用後）
-     */
-    public double applyDamage(
-            @NotNull MobInstance instance,
-            @NotNull AstPlayer attacker,
-            double damage,
-            @NotNull AttackType attackType) {
-        if (instance.state() == MobState.DEAD) return 0.0;
-        if (isPlayerDead(attacker.getBukkit())) return 0.0;
-
-        MobTemplate template = instance.template();
-        double defenseStat = attackType == AttackType.MAGIC
-                ? template.statValue("MAGIC_DEFENSE", 0.0)
-                : template.statValue("DEFENSE", 0.0);
-        double effective = Math.max(1.0, damage - defenseStat * 0.5);
-
-        instance.currentHealth(instance.currentHealth() - effective);
-        instance.threatTable().add(attacker.getBukkit().getUniqueId(), effective);
-        instance.lastAttackerUuid(attacker.getBukkit().getUniqueId());
-
-        if (instance.state() == MobState.IDLE) {
-            instance.state(MobState.AGGRO);
-            instance.targetId(attacker.getBukkit().getUniqueId());
-        }
-        if (instance.currentHealth() <= 0.0) {
-            instance.state(MobState.DEAD);
-        }
-        return effective;
     }
 
     /**
@@ -655,36 +449,8 @@ public class MobCombatService {
         particleDisplayService.spawnForNearbyViewers(location, SharedParticleDefinitions.CLASS_LEVEL_UP_ENCHANT);
     }
 
-    private double resolvePlayerDefense(
-            @NotNull MobInstance attacker,
-            @NotNull Player target,
-            @NotNull CombatStyle style
-    ) {
-        AstPlayer astPlayer = AstPlayerCache.get(target);
-        if (astPlayer == null) {
-            return 0.0D;
-        }
-        statusService.getStatus(astPlayer);
-        AttackType attackType = switch (style) {
-            case MELEE -> AttackType.MELEE;
-            case RANGED -> AttackType.RANGED;
-            case MAGIC -> AttackType.MAGIC;
-        };
-        return DamageCalculator.calculateDefensePower(
-                AstEntity.mob(attacker),
-                AstEntity.player(astPlayer),
-                attackType
-        );
-    }
-
     private boolean isPlayerDead(@NotNull Player player) {
         return playerDeathService != null && playerDeathService.isDead(player.getUniqueId());
-    }
-
-    private void applyDamageToPlayer(@NotNull Player target, double damage) {
-        // プレイヤー側の独自ダメージ適用 API（feature/player）が未整備のため、当面は Bukkit Player.damage を呼ぶ。
-        // 将来的に AstPlayer / StatusSnapshot 経由で適用する（[[12_9.00-未決事項]] 参照）。
-        target.damage(damage);
     }
 
     @Nullable

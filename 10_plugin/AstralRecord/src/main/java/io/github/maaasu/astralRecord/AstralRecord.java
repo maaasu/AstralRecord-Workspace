@@ -759,9 +759,7 @@ public final class AstralRecord extends JavaPlugin {
                 playerClassService,
                 statusService,
                 skillTreeService,
-                particleDisplayService,
-                displayTextService,
-                playerSettingService
+                particleDisplayService
         );
         playerDeathService = new PlayerDeathService(
             this,
@@ -783,6 +781,7 @@ public final class AstralRecord extends JavaPlugin {
             particleDisplayService,
             playerDeathService
         );
+        mobCombatService.setDamageService(damageService);
         conditionDisplayService = new ConditionDisplayService(particleDisplayService, mobVanillaEffectProtectionService);
         conditionService = new ConditionService(conditionDisplayService, playerDeathService);
         conditionService.setStatusService(statusService);
