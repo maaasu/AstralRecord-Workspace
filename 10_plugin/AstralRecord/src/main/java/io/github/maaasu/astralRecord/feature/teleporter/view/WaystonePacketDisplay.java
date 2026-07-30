@@ -10,6 +10,7 @@ import com.comphenix.protocol.wrappers.WrappedDataValue;
 import com.comphenix.protocol.wrappers.WrappedDataWatcher;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.shared.display.PacketEntityIdAllocator;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 import org.bukkit.Location;
@@ -29,13 +30,11 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * ウェイストーン用 packet-only Display entity を送信します。
  */
 final class WaystonePacketDisplay {
-    private static final AtomicInteger NEXT_ENTITY_ID = new AtomicInteger(2_700_000);
     private static final float DEFAULT_VIEW_RANGE = 96.0F;
     private static final int DISPLAY_INTERPOLATION_START_INDEX = 8;
     private static final int DISPLAY_INTERPOLATION_DURATION_INDEX = 9;
@@ -168,7 +167,7 @@ final class WaystonePacketDisplay {
     }
 
     final class PacketEntity {
-        private final int entityId = NEXT_ENTITY_ID.getAndIncrement();
+        private final int entityId = PacketEntityIdAllocator.nextEntityId();
         private final UUID uuid = UUID.randomUUID();
         private final EntityType entityType;
         private final Location location;

@@ -9,6 +9,7 @@ import com.comphenix.protocol.wrappers.WrappedDataValue;
 import com.comphenix.protocol.wrappers.WrappedDataWatcher;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.shared.display.PacketEntityIdAllocator;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 import org.bukkit.Location;
@@ -26,13 +27,11 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * アクションリングを閲覧者専用の packet-only Display entity として描画します。
  */
 final class SkillActionRingDisplay {
-    private static final AtomicInteger NEXT_ENTITY_ID = new AtomicInteger(2_800_000);
     private static final float ITEM_SCALE = 0.55F;
     private static final int TEXT_LINE_WIDTH = 180;
     private static final int TELEPORT_DURATION_TICKS = 1;
@@ -241,7 +240,7 @@ final class SkillActionRingDisplay {
     }
 
     private final class PacketEntity {
-        private final int entityId = NEXT_ENTITY_ID.getAndIncrement();
+        private final int entityId = PacketEntityIdAllocator.nextEntityId();
         private final UUID uuid = UUID.randomUUID();
         private final EntityType entityType;
         private final Location location;
