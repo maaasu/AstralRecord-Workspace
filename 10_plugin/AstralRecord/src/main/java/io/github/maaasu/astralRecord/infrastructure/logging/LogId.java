@@ -814,6 +814,14 @@ public enum LogId {
      */
     E_5706(5706),
     /**
+     * Mob Entity 生成に失敗しました: entityType=%s, mobId=%s
+     */
+    E_5707(5707),
+    /**
+     * TrainingDummy chunk ticket 操作に失敗しました: operation=%s, target=%s
+     */
+    E_5708(5708),
+    /**
      * Mob ベースステータスを解決できませんでした: status=%s, mobId=%s
      */
     W_5704(5704),

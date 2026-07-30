@@ -5,6 +5,8 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobEquipmentConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.papermc.paper.entity.LookAnchor;
 import org.bukkit.attribute.Attribute;
@@ -151,9 +153,16 @@ public class MobEntityController {
         try {
             armorStand = world.spawn(location, ArmorStand.class, spawned -> configureArmorStand(instance, spawned));
         } catch (RuntimeException ex) {
+            Logger.error(
+                    LogId.E_5707,
+                    ex,
+                    instance.template().entityType().name(),
+                    instance.template().id()
+            );
             return null;
         }
-        if (armorStand.isDead() || !armorStand.isValid()) {
+        if (!isManagedEntityUsable(armorStand)) {
+            armorStand.remove();
             return null;
         }
 
@@ -161,6 +170,12 @@ public class MobEntityController {
             instance.bindEntity(armorStand.getUniqueId(), armorStand.getEntityId(), armorStand.getLocation());
             return armorStand;
         } catch (RuntimeException ex) {
+            Logger.error(
+                    LogId.E_5707,
+                    ex,
+                    instance.template().entityType().name(),
+                    instance.template().id()
+            );
             armorStand.remove();
             return null;
         }
@@ -191,6 +206,21 @@ public class MobEntityController {
         armorStand.addDisabledSlots(EquipmentSlot.values());
         armorStand.getPersistentDataContainer().set(instanceIdKey, PersistentDataType.STRING, instance.instanceId().toString());
         armorStand.getPersistentDataContainer().set(templateIdKey, PersistentDataType.STRING, template.id());
+    }
+
+    /**
+     * Bukkit Entity を AstralRecord の管理対象として利用可能か判定します。
+     *
+     * <p>Paper/Purpur はワールド初期化中に生成した Entity について、生成呼び出しが成功していても
+     * 同じ tick 内では {@link Entity#isValid()} が一時的に {@code false} を返すことがあります。
+     * UUID と Entity ID はこの時点で確定しているため、ArmorStand は死亡済みでなければ
+     * 生成直後の同期と追跡を続行します。その他の Entity は従来どおり有効性も確認します。</p>
+     *
+     * @param entity 判定対象 Entity
+     * @return 管理対象として利用可能なら {@code true}
+     */
+    static boolean isManagedEntityUsable(@NotNull Entity entity) {
+        return !entity.isDead() && (entity instanceof ArmorStand || entity.isValid());
     }
 
     @Nullable
@@ -461,7 +491,7 @@ public class MobEntityController {
             return null;
         }
         Entity entity = Bukkit.getEntity(entityUuid);
-        return entity != null && !entity.isDead() && entity.isValid() ? entity : null;
+        return entity != null && isManagedEntityUsable(entity) ? entity : null;
     }
 
     /**

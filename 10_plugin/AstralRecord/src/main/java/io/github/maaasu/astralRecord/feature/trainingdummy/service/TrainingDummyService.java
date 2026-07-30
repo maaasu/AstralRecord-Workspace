@@ -13,8 +13,12 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.trainingdummy.model.TrainingDummyDefinition;
 import io.github.maaasu.astralRecord.feature.trainingdummy.repository.TrainingDummyRepository;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.EntityType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
@@ -36,16 +40,29 @@ public final class TrainingDummyService {
     private final Plugin plugin;
     private final MobService mobService;
     private final TrainingDummyRepository repository;
+    private final ChunkTicketGateway chunkTicketGateway;
     private final Map<String, TrainingDummyDefinition> definitions = new LinkedHashMap<>();
     private final Map<String, UUID> instanceIds = new LinkedHashMap<>();
     private final Set<String> spawnFailures = new HashSet<>();
+    private final Map<String, ChunkTicket> chunkTicketById = new LinkedHashMap<>();
+    private final Map<ChunkTicket, Integer> chunkTicketRefs = new LinkedHashMap<>();
     private long tick;
     private BukkitTask task;
 
     public TrainingDummyService(@NotNull Plugin plugin, @NotNull MobService mobService, @NotNull TrainingDummyRepository repository) {
+        this(plugin, mobService, repository, new BukkitChunkTicketGateway(plugin));
+    }
+
+    TrainingDummyService(
+            @NotNull Plugin plugin,
+            @NotNull MobService mobService,
+            @NotNull TrainingDummyRepository repository,
+            @NotNull ChunkTicketGateway chunkTicketGateway
+    ) {
         this.plugin = plugin;
         this.mobService = mobService;
         this.repository = repository;
+        this.chunkTicketGateway = chunkTicketGateway;
     }
 
     /** 設定を再読込し、既存実体を新しい設定で再生成します。 */
@@ -139,8 +156,13 @@ public final class TrainingDummyService {
     private void spawn(@NotNull TrainingDummyDefinition definition) {
         Location location = definition.toLocation();
         if (location == null) return;
+        if (!retainChunkTicket(definition.id(), location)) {
+            spawnFailures.add(definition.id());
+            return;
+        }
         MobInstance instance = mobService.spawn(template(definition), location);
         if (instance == null) {
+            releaseChunkTicket(definition.id());
             spawnFailures.add(definition.id());
             return;
         }
@@ -150,9 +172,91 @@ public final class TrainingDummyService {
         instanceIds.put(definition.id(), instance.instanceId());
     }
     private @Nullable MobInstance instance(@NotNull String id) { UUID instanceId = instanceIds.get(id); return instanceId == null ? null : mobService.getInstance(instanceId); }
-    private void destroyInstance(@NotNull String id) { UUID instanceId = instanceIds.remove(id); if (instanceId != null) mobService.destroy(instanceId); }
-    private void stopInstances() { List.copyOf(instanceIds.keySet()).forEach(this::destroyInstance); }
+    private void destroyInstance(@NotNull String id) {
+        UUID instanceId = instanceIds.remove(id);
+        if (instanceId != null) mobService.destroy(instanceId);
+        releaseChunkTicket(id);
+    }
+    private void stopInstances() {
+        List.copyOf(instanceIds.keySet()).forEach(this::destroyInstance);
+        releaseAllChunkTickets();
+    }
     private void save() { repository.saveAll(definitions.values()); }
+
+    boolean retainChunkTicket(@NotNull String id, @NotNull Location location) {
+        Chunk chunk = location.getChunk();
+        ChunkTicket ticket = new ChunkTicket(chunk.getWorld().getName(), chunk.getX(), chunk.getZ());
+        ChunkTicket currentTicket = chunkTicketById.get(id);
+        if (ticket.equals(currentTicket)) return true;
+        if (currentTicket != null) releaseChunkTicket(id);
+
+        int refs = chunkTicketRefs.getOrDefault(ticket, 0);
+        if (refs == 0) {
+            try {
+                chunkTicketGateway.retain(chunk);
+            } catch (RuntimeException ex) {
+                Logger.error(LogId.E_5708, ex, "retain", ticket);
+                return false;
+            }
+        }
+        chunkTicketById.put(id, ticket);
+        chunkTicketRefs.put(ticket, refs + 1);
+        return true;
+    }
+
+    private void releaseChunkTicket(@NotNull String id) {
+        ChunkTicket ticket = chunkTicketById.remove(id);
+        if (ticket == null) return;
+
+        int refs = chunkTicketRefs.getOrDefault(ticket, 0) - 1;
+        if (refs > 0) {
+            chunkTicketRefs.put(ticket, refs);
+            return;
+        }
+        chunkTicketRefs.remove(ticket);
+        World world = Bukkit.getWorld(ticket.worldName());
+        if (world != null) {
+            try {
+                chunkTicketGateway.release(world, ticket.x(), ticket.z());
+            } catch (RuntimeException ex) {
+                Logger.error(LogId.E_5708, ex, "release", ticket);
+            }
+        }
+    }
+
+    private void releaseAllChunkTickets() {
+        for (ChunkTicket ticket : List.copyOf(chunkTicketRefs.keySet())) {
+            World world = Bukkit.getWorld(ticket.worldName());
+            if (world != null) {
+                try {
+                    chunkTicketGateway.release(world, ticket.x(), ticket.z());
+                } catch (RuntimeException ex) {
+                    Logger.error(LogId.E_5708, ex, "release_all", ticket);
+                }
+            }
+        }
+        chunkTicketById.clear();
+        chunkTicketRefs.clear();
+    }
+
+    private record ChunkTicket(@NotNull String worldName, int x, int z) {}
+
+    interface ChunkTicketGateway {
+        void retain(@NotNull Chunk chunk);
+        void release(@NotNull World world, int chunkX, int chunkZ);
+    }
+
+    private record BukkitChunkTicketGateway(@NotNull Plugin plugin) implements ChunkTicketGateway {
+        @Override
+        public void retain(@NotNull Chunk chunk) {
+            chunk.addPluginChunkTicket(plugin);
+        }
+
+        @Override
+        public void release(@NotNull World world, int chunkX, int chunkZ) {
+            world.getChunkAt(chunkX, chunkZ).removePluginChunkTicket(plugin);
+        }
+    }
     /**
      * カカシ定義から固定 HP・ノックバック無効の ArmorStand テンプレートを生成します。
      *

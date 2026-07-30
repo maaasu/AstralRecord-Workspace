@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.trainingdummy.model.TrainingDummyDefinition;
 import io.github.maaasu.astralRecord.feature.trainingdummy.repository.TrainingDummyRepository;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.EntityType;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -47,7 +49,8 @@ class TrainingDummyServiceTest extends MockBukkitTestBase {
         TrainingDummyService service = new TrainingDummyService(
                 PluginMock.builder().withPluginName("AstralRecordTest").build(),
                 mobService,
-                repository
+                repository,
+                noOpChunkTicketGateway()
         );
         service.loadAll();
 
@@ -80,7 +83,8 @@ class TrainingDummyServiceTest extends MockBukkitTestBase {
         TrainingDummyService service = new TrainingDummyService(
                 PluginMock.builder().withPluginName("AstralRecordTest").build(),
                 mobService,
-                repository
+                repository,
+                noOpChunkTicketGateway()
         );
         service.loadAll();
 
@@ -88,6 +92,40 @@ class TrainingDummyServiceTest extends MockBukkitTestBase {
         service.tick();
 
         verify(mobService, times(1)).spawn(any(MobTemplate.class), any());
+    }
+
+    @Test
+    void sharedDummyChunkAddsOnlyOnePluginTicket() {
+        PluginMock plugin = PluginMock.builder().withPluginName("AstralRecordTest").build();
+        MobService mobService = mock(MobService.class);
+        TrainingDummyRepository repository = mock(TrainingDummyRepository.class);
+        TrainingDummyService.ChunkTicketGateway gateway = mock(TrainingDummyService.ChunkTicketGateway.class);
+        World world = mock(World.class);
+        Chunk chunk = mock(Chunk.class);
+        Location first = mock(Location.class);
+        Location second = mock(Location.class);
+        when(chunk.getWorld()).thenReturn(world);
+        when(chunk.getX()).thenReturn(4);
+        when(chunk.getZ()).thenReturn(-3);
+        when(world.getName()).thenReturn("ticket_world");
+        when(first.getChunk()).thenReturn(chunk);
+        when(second.getChunk()).thenReturn(chunk);
+        TrainingDummyService service = new TrainingDummyService(plugin, mobService, repository, gateway);
+
+        assertTrue(service.retainChunkTicket("first", first));
+        assertTrue(service.retainChunkTicket("second", second));
+
+        verify(gateway, times(1)).retain(chunk);
+    }
+
+    private TrainingDummyService.ChunkTicketGateway noOpChunkTicketGateway() {
+        return new TrainingDummyService.ChunkTicketGateway() {
+            @Override
+            public void retain(Chunk chunk) {}
+
+            @Override
+            public void release(World world, int chunkX, int chunkZ) {}
+        };
     }
 
     private TrainingDummyDefinition definition(String id, String worldName) {
