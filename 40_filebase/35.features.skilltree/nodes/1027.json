@@ -5,19 +5,19 @@
   "name": "&d翠毒の星脈",
   "icon": "FERMENTED_SPIDER_EYE",
   "lore": [
-    "&7翠の毒環を巡らせ、毒属性の力をわずかに高める。"
+    "&7翠の毒環を巡らせ、毒状態の継続ダメージをわずかに高める。"
   ],
   "tags": [
     "status",
-    "element",
-    "poison"
+    "condition",
+    "poisoned"
   ],
   "pointType": "PP",
   "pointCost": 1,
   "effects": [
     {
       "type": "status",
-      "status": "POISON_DAMAGE_INCREASE",
+      "status": "POISONED_DAMAGE_INCREASE",
       "modifierType": "FLAT",
       "value": 1
     }
