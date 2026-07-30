@@ -14,6 +14,7 @@
 | `00_docs/40_Database設計書/` | SQL Server schema / table docs | SQL Server, Markdown | `00_docs/40_Database設計書/README.md` |
 | `40_filebase/` | File-based master data | YAML, Markdown | `00_docs/50_Filebase設計書/README.md` / `40_filebase/AGENTS.md` |
 | `50_resourcepack/` | Minecraft Resource Pack（現在は開発停止・将来用に保持） | JSON, PNG, PowerShell | `50_resourcepack/AGENTS.md` |
+| `60_tool/` | Workspace build, deploy, and development tools | BAT, PowerShell, C#, TypeScript | `60_tool/README.md` |
 
 実行環境や配置先の確認が必要な場合は、`E:\AstralRecord-Workspace` に加えて `\\DEVICE_SERVER\server` も一度確認してください。アクセスできない場合は、その場所の参照をあきらめて作業を継続し、そこがどうしても必要で作業を進められない場合だけユーザーに確認してください。
 
@@ -31,11 +32,13 @@
 対象プロジェクトを教えてください。
 
 - AstralRecord（Minecraft Plugin / Java）
+- AstralArchitect（AI建築 Plugin / Java・Paper・FAWE・Python）
 - AstralRecordApi（REST API / ASP.NET Core）
 - AstralRecordWeb（Web サイト / Razor Pages）
 - Database（SQL Server DB / テーブル定義）
 - Filebase（file 系マスタデータ）
 - Resourcepack（Minecraft Resource Pack。将来用に保持、現在は無視）
+- Tools（ビルド・デプロイ・開発補助ツール）
 ```
 
 ## 共通方針
@@ -71,8 +74,9 @@
 2. 対象が `10_plugin/AstralRecord` の場合、ルート `PLUGIN_GUIDE.md` と `$astralrecord-code` を使う。
 3. 対象が `10_plugin/AstralArchitect` の場合、`10_plugin/AstralArchitect/AGENTS.md`を先に読み、AI候補編集には`$astralarchitect-builder`を使う。
 4. 対象が `20_api/AstralRecordApi` の場合、ルート `API_GUIDE.md` と `$astralrecord-code` の API 参照を使う。
-5. 使う skill は `E:\AstralRecord-Workspace\.codex\skills\README.md` の正本ルールに従って判定する。
-6. 実装差分が発生する作業では、個別 worker skill を直接使う前に `$astralrecord-code-version-commit-develop` を入口にできるか確認する。
+5. 対象が `60_tool` の場合、`60_tool/README.md`を先に読み、番号付き実行BATと実装スクリプトの配置規約を確認する。
+6. 使う skill は `E:\AstralRecord-Workspace\.codex\skills\README.md` の正本ルールに従って判定する。
+7. 実装差分が発生する作業では、個別 worker skill を直接使う前に `$astralrecord-code-version-commit-develop` を入口にできるか確認する。
 
 ### テンプレート実行手順
 

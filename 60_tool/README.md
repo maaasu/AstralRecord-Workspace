@@ -1,6 +1,6 @@
 # 60_tool
 
-実行入口となる bat とPowerShellスクリプトは、このディレクトリ直下に配置しています。採番した bat は、どのカレントディレクトリからでも実行できます。
+番号付きの実行入口BATはこのディレクトリ直下、複数ファイルで構成される実装や環境設定は用途別の専用ディレクトリに配置します。単一ファイルで完結する小規模なPowerShellジェネレーターだけは直下に置きます。採番したBATは、どのカレントディレクトリからでも実行できます。
 
 ## 実行入口
 
@@ -14,6 +14,7 @@
 | 06 | `06-skilltree-editor-build.bat` | スキルツリーエディタのフロントエンドだけをビルド |
 | 07 | `07-generate-status-types.bat` | 共有ステータスカタログからKotlin / C# / TypeScriptを生成 |
 | 08 | `08-generate-tag-types.bat` | 共有タグカタログからJava / C# / TypeScriptを生成し、filebaseのタグ参照を検証 |
+| 09 | `09-astralarchitect-build-deploy.bat` | AstralArchitectをテスト・ビルドし、指定したMinecraftサーバーへJARを配置 |
 
 PowerShellから直接実行する場合は`generate-status-types.ps1`または`generate-tag-types.ps1`を使用します。bat はどのカレントディレクトリから実行しても動作するよう、内部で同じディレクトリのスクリプトを絶対パス解決します。
 
@@ -29,12 +30,18 @@ PowerShellから直接実行する場合は`generate-status-types.ps1`または`
 ├─ 06-skilltree-editor-build.bat
 ├─ 07-generate-status-types.bat
 ├─ 08-generate-tag-types.bat
+├─ 09-astralarchitect-build-deploy.bat
 ├─ generate-status-types.ps1
 ├─ generate-tag-types.ps1
 ├─ deploy-debug/
 │  ├─ deploy-debug.ps1
 │  ├─ deploy-debug.config.json
 │  └─ normalize-source-encoding.ps1
+├─ astralarchitect-deploy/
+│  ├─ astralarchitect-deploy.ps1
+│  ├─ astralarchitect-deploy.config.json
+│  └─ tests/
+│     └─ astralarchitect-deploy.integration.ps1
 ├─ master-data-reload/
 │  ├─ master-data-reload.ps1
 │  └─ master-data-reload.config.json
@@ -67,6 +74,14 @@ PowerShellから直接実行する場合は`generate-status-types.ps1`または`
 3. DB 再構築は既存データを保持しないため、`04-db-rebuild.bat` は内容を確認してから実行してください。
 
 `01-deploy-debug.bat` は従来どおり Plugin のテストを含めてビルドします。高速な配置確認用の `02-deploy-debug-plugin-only.bat` は Maven の `maven.test.skip` を有効にし、テストのコンパイルと実行を省略してから Plugin を配置します。
+
+`09-astralarchitect-build-deploy.bat`はAstralArchitectのMavenテストとビルドを行い、成功後に`AstralArchitect.jar`だけを配置します。`-BuildOnly`で配置を省略でき、`-PluginsDirectory "D:\minecraft\plugins"`で今回だけ配置先を上書きできます。既定値は`astralarchitect-deploy/astralarchitect-deploy.config.json`の`pluginsDirectory`で管理します。サーバーの停止・再起動や、既存チケットデータの変更は行いません。
+
+配置先は末尾が`plugins`の絶対パスだけを受け付けます。同じworktreeのビルドと同じ配置先へのデプロイは排他制御されます。配置・中断復旧・データ非変更・不正パスと並行実行の拒否を確認する場合は、次を実行します。テストはシステムの一時ディレクトリだけへJARを配置し、実サーバーへは接続しません。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\astralarchitect-deploy\tests\astralarchitect-deploy.integration.ps1
+```
 
 スキルツリーエディタは初回のみ `skilltree-editor/src/SkillTreeEditor.Client` で `npm ci` と `npm run build` を実行してください。開発時の2プロセス起動やpublish手順は `skilltree-editor/README.md` を参照してください。
 

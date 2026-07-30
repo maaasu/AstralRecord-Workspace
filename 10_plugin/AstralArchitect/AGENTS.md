@@ -25,4 +25,4 @@ mvn clean test package
 python -m unittest discover -s tools -p 'test_*.py'
 ```
 
-実サーバーへ配置する場合は`build-and-deploy.bat`を使います。スクリプトはサーバーを停止・再起動しません。
+実サーバーへ配置する場合は`60_tool/09-astralarchitect-build-deploy.bat`を使います。実行入口は`60_tool`で管理し、スクリプトはサーバーを停止・再起動しません。

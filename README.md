@@ -13,6 +13,7 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 | `00_docs/40_Database設計書/` | SQL Server schema / table docs | SQL Server, Markdown | `00_docs/40_Database設計書/README.md` |
 | `40_filebase/` | File-based master data | YAML, Markdown | この README の「AstralRecord Filebase」 |
 | `50_resourcepack/` | Minecraft Resource Pack（現在は開発停止・将来用に保持） | JSON, PNG, PowerShell | この README の「AstralRecord Resource Pack」 |
+| `60_tool/` | Workspace build, deploy, and development tools | BAT, PowerShell, C#, TypeScript | [60_tool README](60_tool/README.md) |
 
 ## コミットルール
 

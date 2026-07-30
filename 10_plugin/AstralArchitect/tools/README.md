@@ -1,8 +1,8 @@
 # AstralArchitect companion ticket CLI
 
-このディレクトリは、Codexがチケットを調査し、`candidate.schem`だけを安全に編集するための標準ライブラリのみのPython CLIです。Minecraftワールドへの適用、チケット削除、ロールバックは行いません。
+このディレクトリは、Codexがチケットを調査し、`candidate.schem`だけを安全に編集するための標準ライブラリのみのPython CLIソースです。Minecraftワールドへの適用、チケット削除、ロールバックは行いません。実チケットを扱うCodexは、このファイルを直接起動せず、`$astralarchitect-builder`の`invoke_ticket_cli.py`から信頼済みパスとして呼び出します。
 
-## 実行例
+## CLI開発・手動検証用の実行例
 
 ```text
 python ticket_cli.py info <absolute-ticket-directory>

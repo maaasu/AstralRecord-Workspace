@@ -75,9 +75,6 @@ plugins/AstralArchitect/
 ├─ .locks/
 │  ├─ .worker.lock
 │  └─ <ticket-id>.lock
-├─ tools/
-│  ├─ ticket_cli.py
-│  └─ astralarchitect_ticket/
 ├─ tickets/
 │  └─ <ticket-id>/
 │     ├─ ticket.json
@@ -98,17 +95,20 @@ plugins/AstralArchitect/
 
 ## AIがファイルを読む仕組み
 
-`.schem`は人間向けテキストではなく、gzip圧縮されたSponge Schematic v3のバイナリです。Codexはこのバイナリを直接推測して書き換えず、配置時に同梱される`tools/ticket_cli.py`をプログラムとして呼び出します。CLIは1ブロック単位の情報をJSONへ変換し、編集時は`candidate.schem`だけを一時ファイル経由で原子的に置換します。
+`.schem`は人間向けテキストではなく、gzip圧縮されたSponge Schematic v3のバイナリです。Codexはこのバイナリを直接推測して書き換えません。`$astralarchitect-builder`の安全なラッパーから、ワークスペースで管理される`10_plugin/AstralArchitect/tools/ticket_cli.py`を呼び出します。CLIは指定されたサーバー上のチケットを1ブロック単位のJSONへ変換し、編集時は`candidate.schem`だけを一時ファイル経由で原子的に置換します。
+
+サーバーの`plugins/AstralArchitect`配下へ実行可能なCLIは配置しません。チケットに隣接するプログラムは信頼せず、必ずworkspace-local skillのラッパーを使います。
 
 主な読取例:
 
 ```text
-python tools/ticket_cli.py info <チケットの絶対パス>
-python tools/ticket_cli.py palette <チケットの絶対パス>
-python tools/ticket_cli.py get-block <チケットの絶対パス> <X> <Y> <Z>
-python tools/ticket_cli.py slice <チケットの絶対パス> --y <Y> --x-min <X> --x-max <X> --z-min <Z> --z-max <Z>
-python tools/ticket_cli.py surface <チケットの絶対パス> --x-min <X> --x-max <X> --z-min <Z> --z-max <Z>
-python tools/ticket_cli.py diff <チケットの絶対パス>
+cd E:\AstralRecord-Workspace\.codex\skills\astralarchitect-builder
+python scripts/invoke_ticket_cli.py --ticket <チケットの絶対パス> -- info
+python scripts/invoke_ticket_cli.py --ticket <チケットの絶対パス> -- palette
+python scripts/invoke_ticket_cli.py --ticket <チケットの絶対パス> -- get-block <X> <Y> <Z>
+python scripts/invoke_ticket_cli.py --ticket <チケットの絶対パス> -- slice --y <Y> --x-min <X> --x-max <X> --z-min <Z> --z-max <Z>
+python scripts/invoke_ticket_cli.py --ticket <チケットの絶対パス> -- surface --x-min <X> --x-max <X> --z-min <Z> --z-max <Z>
+python scripts/invoke_ticket_cli.py --ticket <チケットの絶対パス> -- diff
 ```
 
 編集は`set`、`fill`、`line`、`replace`操作をJSON/NDJSONで指定します。詳細は`tools/README.md`と`$astralarchitect-builder`を参照してください。CLIにはワールド適用、ロールバック、チケット削除機能を持たせていません。
@@ -135,25 +135,25 @@ Codexが候補を編集しただけでは`READY`になりません。必ずMinec
 
 ## ビルドと配置
 
-プロジェクト直下で次を実行します。
+ワークスペース共通の実行入口からビルド・配置します。どのカレントディレクトリからでも実行できます。
 
 ```text
-build-and-deploy.bat
+E:\AstralRecord-Workspace\60_tool\09-astralarchitect-build-deploy.bat
 ```
 
 既定ではMavenビルド後、生成JARを現在の開発サーバーの`plugins/AstralArchitect.jar`へ配置します。ビルドだけを行う場合:
 
 ```text
-build-and-deploy.bat -BuildOnly
+E:\AstralRecord-Workspace\60_tool\09-astralarchitect-build-deploy.bat -BuildOnly
 ```
 
 別のサーバーへ配置する場合:
 
 ```text
-build-and-deploy.bat -PluginsDirectory "D:\minecraft\plugins"
+E:\AstralRecord-Workspace\60_tool\09-astralarchitect-build-deploy.bat -PluginsDirectory "D:\minecraft\plugins"
 ```
 
-配置スクリプトはサーバーを停止・再起動しません。更新したJARは次回のサーバー再起動時に読み込まれます。
+既定の配置先は`60_tool/astralarchitect-deploy/astralarchitect-deploy.config.json`で管理します。配置するのは`AstralArchitect.jar`だけで、既存の`plugins/AstralArchitect`データフォルダ、チケット、trash、画像は変更しません。配置スクリプトはサーバーを停止・再起動しないため、更新したJARは次回のサーバー再起動時に読み込まれます。
 
 ## 開発上の注意
 
