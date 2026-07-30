@@ -23,9 +23,11 @@ import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3f;
 import org.joml.Vector3fc;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -52,6 +54,7 @@ final class SkillActionRingDisplay {
     private static final byte TEXT_DISPLAY_SHADOWED = 0x01;
 
     private final ProtocolManager protocolManager;
+    private TeleportPacketLayout teleportPacketLayout;
 
     SkillActionRingDisplay(@NotNull Plugin plugin) {
         this.protocolManager = ProtocolLibrary.getProtocolManager();
@@ -266,11 +269,7 @@ final class SkillActionRingDisplay {
         private void teleport(@NotNull Player player, @NotNull Location nextLocation) {
             PacketContainer packet = protocolManager.createPacket(PacketType.Play.Server.ENTITY_TELEPORT);
             packet.getIntegers().writeSafely(0, entityId);
-            packet.getDoubles().writeSafely(0, nextLocation.getX());
-            packet.getDoubles().writeSafely(1, nextLocation.getY());
-            packet.getDoubles().writeSafely(2, nextLocation.getZ());
-            packet.getBytes().writeSafely(0, angleToByte(nextLocation.getYaw()));
-            packet.getBytes().writeSafely(1, angleToByte(nextLocation.getPitch()));
+            writeTeleportTarget(packet, nextLocation);
             packet.getBooleans().writeSafely(0, true);
             send(player, packet);
         }
@@ -290,6 +289,65 @@ final class SkillActionRingDisplay {
             packet.getIntLists().writeSafely(0, List.of(entityId));
             packet.getIntegerArrays().writeSafely(0, new int[]{entityId});
             send(player, packet);
+        }
+    }
+
+    private void writeTeleportTarget(@NotNull PacketContainer packet, @NotNull Location location) {
+        if (packet.getDoubles().size() >= 3) {
+            packet.getDoubles().write(0, location.getX());
+            packet.getDoubles().write(1, location.getY());
+            packet.getDoubles().write(2, location.getZ());
+            packet.getBytes().writeSafely(0, angleToByte(location.getYaw()));
+            packet.getBytes().writeSafely(1, angleToByte(location.getPitch()));
+            return;
+        }
+
+        try {
+            TeleportPacketLayout layout = teleportPacketLayout;
+            if (layout == null) {
+                layout = TeleportPacketLayout.resolve(packet);
+                teleportPacketLayout = layout;
+            }
+            packet.getModifier().write(1, layout.createChange(location));
+            packet.getModifier().write(2, Set.of());
+        } catch (ReflectiveOperationException exception) {
+            throw new IllegalStateException("Unsupported entity teleport packet structure", exception);
+        }
+    }
+
+    private record TeleportPacketLayout(
+        @NotNull Constructor<?> vectorConstructor,
+        @NotNull Constructor<?> changeConstructor
+    ) {
+        private static @NotNull TeleportPacketLayout resolve(@NotNull PacketContainer packet)
+            throws ReflectiveOperationException {
+            if (packet.getModifier().size() < 3) {
+                throw new NoSuchFieldException("Entity teleport packet does not contain movement and relative fields");
+            }
+            Class<?> changeType = packet.getModifier().getField(1).getType();
+            Constructor<?> changeConstructor = null;
+            for (Constructor<?> candidate : changeType.getConstructors()) {
+                Class<?>[] parameterTypes = candidate.getParameterTypes();
+                if (parameterTypes.length == 4
+                    && parameterTypes[0] == parameterTypes[1]
+                    && parameterTypes[2] == float.class
+                    && parameterTypes[3] == float.class) {
+                    changeConstructor = candidate;
+                    break;
+                }
+            }
+            if (changeConstructor == null) {
+                throw new NoSuchMethodException("PositionMoveRotation constructor was not found");
+            }
+            Class<?> vectorType = changeConstructor.getParameterTypes()[0];
+            Constructor<?> vectorConstructor = vectorType.getConstructor(double.class, double.class, double.class);
+            return new TeleportPacketLayout(vectorConstructor, changeConstructor);
+        }
+
+        private @NotNull Object createChange(@NotNull Location location) throws ReflectiveOperationException {
+            Object position = vectorConstructor.newInstance(location.getX(), location.getY(), location.getZ());
+            Object velocity = vectorConstructor.newInstance(0.0D, 0.0D, 0.0D);
+            return changeConstructor.newInstance(position, velocity, location.getYaw(), location.getPitch());
         }
     }
 
