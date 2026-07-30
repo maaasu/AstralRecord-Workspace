@@ -41,8 +41,11 @@ public final class SuperStarCriticalProjectileService {
     static final int MIN_INITIAL_TICKS = 10;
     static final int MAX_INITIAL_TICKS = 20;
     static final int LIFETIME_TICKS = 100;
-    static final double INITIAL_SPEED_PER_TICK = 0.1D;
-    static final double HOMING_SPEED_PER_TICK = 0.4D;
+    static final double MIN_INITIAL_SPEED_PER_TICK = 0.16D;
+    static final double MAX_INITIAL_SPEED_PER_TICK = 0.24D;
+    static final double MIN_INITIAL_ELEVATION_RADIANS = Math.toRadians(25.0D);
+    static final double MAX_INITIAL_ELEVATION_RADIANS = Math.toRadians(65.0D);
+    static final double HOMING_SPEED_PER_TICK = 0.35D;
     static final double TARGET_RADIUS = 24.0D;
     private static final double COLLISION_RADIUS = 0.2D;
     private static final double FALLBACK_TARGET_HALF_WIDTH = 0.45D;
@@ -91,14 +94,16 @@ public final class SuperStarCriticalProjectileService {
         ThreadLocalRandom random = ThreadLocalRandom.current();
         for (int index = 0; index < PROJECTILE_COUNT; index++) {
             double azimuth = random.nextDouble(0.0D, Math.PI * 2.0D);
-            Vector direction = initialDirection(azimuth);
+            double elevation = random.nextDouble(MIN_INITIAL_ELEVATION_RADIANS, MAX_INITIAL_ELEVATION_RADIANS);
+            double initialSpeed = random.nextDouble(MIN_INITIAL_SPEED_PER_TICK, MAX_INITIAL_SPEED_PER_TICK);
+            Vector direction = initialDirection(azimuth, elevation);
             int initialTicks = random.nextInt(MIN_INITIAL_TICKS, MAX_INITIAL_TICKS + 1);
             ItemDisplay display = world.spawn(origin, ItemDisplay.class, this::configureDisplay);
             projectiles.add(new ProjectileState(
                     attacker,
                     display,
                     origin.clone(),
-                    direction.multiply(INITIAL_SPEED_PER_TICK),
+                    direction.multiply(initialSpeed),
                     initialTicks,
                     damageApplier
             ));
@@ -121,16 +126,17 @@ public final class SuperStarCriticalProjectileService {
     }
 
     /**
-     * 水平方位と上向き45度から正規化済みの初速方向を作成します。
+     * 水平方位と仰角から正規化済みの初速方向を作成します。
      *
      * @param azimuth 水平面の方位角（radian）
+     * @param elevation 水平面から上向きの仰角（radian）
      * @return 正規化済み方向
      */
-    static @NotNull Vector initialDirection(double azimuth) {
-        double horizontal = Math.cos(Math.PI / 4.0D);
+    static @NotNull Vector initialDirection(double azimuth, double elevation) {
+        double horizontal = Math.cos(elevation);
         return new Vector(
                 Math.cos(azimuth) * horizontal,
-                Math.sin(Math.PI / 4.0D),
+                Math.sin(elevation),
                 Math.sin(azimuth) * horizontal
         );
     }
