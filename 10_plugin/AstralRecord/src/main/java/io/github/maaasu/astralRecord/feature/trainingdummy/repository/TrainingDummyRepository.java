@@ -33,7 +33,7 @@ public final class TrainingDummyRepository {
             if (id == null || id.isBlank() || world == null || world.isBlank()) continue;
             definitions.add(new TrainingDummyDefinition(
                     id, world, number(row.get("x")), number(row.get("y")), number(row.get("z")),
-                    (float) number(row.get("yaw")), number(row.get("maxHealth"), 100.0D),
+                    (float) number(row.get("yaw")), number(row.get("maxHealth"), TrainingDummyDefinition.FIXED_MAX_HEALTH),
                     number(row.get("defense")), number(row.get("magicDefense")),
                     bool(row.get("shieldEnabled")), number(row.get("shieldMax"), 10.0D),
                     (long) number(row.get("recoveryIntervalTicks"), 40.0D)

@@ -26,8 +26,6 @@ public final class TrainingDummyGuiEventHandler extends AbstractEventHandler {
         TrainingDummyDefinition definition = id == null ? null : service.find(id);
         if (definition == null) { player.closeInventory(); return; }
         TrainingDummyDefinition next = switch (event.getRawSlot()) {
-            case TrainingDummyGui.MAX_HEALTH_MINUS -> definition.withStats(definition.maxHealth() - 50.0D, definition.defense(), definition.magicDefense(), definition.shieldEnabled(), definition.shieldMax());
-            case TrainingDummyGui.MAX_HEALTH_PLUS -> definition.withStats(definition.maxHealth() + 50.0D, definition.defense(), definition.magicDefense(), definition.shieldEnabled(), definition.shieldMax());
             case TrainingDummyGui.DEFENSE_MINUS -> definition.withStats(definition.maxHealth(), definition.defense() - 1.0D, definition.magicDefense(), definition.shieldEnabled(), definition.shieldMax());
             case TrainingDummyGui.DEFENSE_PLUS -> definition.withStats(definition.maxHealth(), definition.defense() + 1.0D, definition.magicDefense(), definition.shieldEnabled(), definition.shieldMax());
             case TrainingDummyGui.MAGIC_DEFENSE_MINUS -> definition.withStats(definition.maxHealth(), definition.defense(), definition.magicDefense() - 1.0D, definition.shieldEnabled(), definition.shieldMax());

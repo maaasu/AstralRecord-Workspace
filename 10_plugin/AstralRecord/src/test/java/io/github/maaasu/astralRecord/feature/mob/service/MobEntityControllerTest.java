@@ -1,12 +1,29 @@
 package io.github.maaasu.astralRecord.feature.mob.service;
 
+import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobEquipmentConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobIdleConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
+import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionsConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.inventory.EntityEquipment;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.util.Transformation;
 import org.junit.jupiter.api.Test;
+import org.mockbukkit.mockbukkit.plugin.PluginMock;
+
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -80,5 +97,33 @@ class MobEntityControllerTest extends MockBukkitTestBase {
         );
 
         verify(equipment, never()).setItemInMainHand(any());
+    }
+
+    @Test
+    void armorStandTemplateSpawnsFixedVisibleEquipmentCarrier() {
+        World world = server().addSimpleWorld("training_dummy_world");
+        PluginMock plugin = PluginMock.builder().withPluginName("AstralRecordTest").build();
+        MobTemplate template = new MobTemplate(
+                1, "training_dummy:test", MobCategory.ENEMY, "Training Dummy", null,
+                1, EntityType.ARMOR_STAND, true, "ARMOR_STAND", List.of(), List.of(), null,
+                new MobEquipmentConfig(null, null, "LEATHER_HELMET", "LEATHER_CHESTPLATE", "LEATHER_LEGGINGS", "LEATHER_BOOTS"),
+                List.of(), MobShieldConfig.EMPTY, MobIdleConfig.defaults(), false,
+                MobInteractionsConfig.EMPTY, null, null, null
+        );
+        MobInstance instance = new MobInstance(UUID.randomUUID(), template, new Location(world, 1.5D, 64.0D, 2.5D));
+
+        Entity entity = new MobEntityController(plugin).spawn(instance, instance.currentLocation());
+
+        assertTrue(entity instanceof ArmorStand);
+        ArmorStand armorStand = (ArmorStand) entity;
+        assertFalse(armorStand.hasGravity());
+        assertFalse(armorStand.isCollidable());
+        assertTrue(armorStand.isVisible());
+        assertTrue(armorStand.hasArms());
+        assertTrue(armorStand.hasBasePlate());
+        assertFalse(armorStand.isMarker());
+        assertEquals(Set.of(EquipmentSlot.values()), armorStand.getDisabledSlots());
+        assertEquals(Material.LEATHER_HELMET, armorStand.getEquipment().getHelmet().getType());
+        assertEquals(entity.getUniqueId(), instance.bukkitEntityId());
     }
 }

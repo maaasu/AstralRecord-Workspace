@@ -18,8 +18,6 @@ import java.util.List;
 /** カカシの共有検証ステータスを変更する GUI です。 */
 public final class TrainingDummyGui {
     public static final int SIZE = 27;
-    public static final int MAX_HEALTH_MINUS = 10;
-    public static final int MAX_HEALTH_PLUS = 12;
     public static final int DEFENSE_MINUS = 14;
     public static final int DEFENSE_PLUS = 16;
     public static final int MAGIC_DEFENSE_MINUS = 19;
@@ -38,9 +36,7 @@ public final class TrainingDummyGui {
     /** GUI を再描画します。 */
     public void render(@NotNull Inventory inventory, @NotNull TrainingDummyDefinition definition) {
         inventory.clear();
-        ItemStackFactory.set(inventory, MAX_HEALTH_MINUS, Material.RED_DYE, "最大HP -50", List.of());
-        ItemStackFactory.set(inventory, 11, Material.APPLE, "最大HP: " + number(definition.maxHealth()), List.of("クリックで調整"));
-        ItemStackFactory.set(inventory, MAX_HEALTH_PLUS, Material.LIME_DYE, "最大HP +50", List.of());
+        ItemStackFactory.set(inventory, 11, Material.APPLE, "最大HP: " + number(definition.maxHealth()), List.of("固定値"));
         ItemStackFactory.set(inventory, DEFENSE_MINUS, Material.RED_DYE, "防御力 -1", List.of());
         ItemStackFactory.set(inventory, 15, Material.IRON_CHESTPLATE, "防御力: " + number(definition.defense()), List.of("物理ダメージ用"));
         ItemStackFactory.set(inventory, DEFENSE_PLUS, Material.LIME_DYE, "防御力 +1", List.of());

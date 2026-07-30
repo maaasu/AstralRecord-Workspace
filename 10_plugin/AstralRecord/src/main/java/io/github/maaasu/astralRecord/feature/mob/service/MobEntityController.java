@@ -15,6 +15,7 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.Ageable;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Breedable;
 import org.bukkit.entity.Display;
@@ -24,6 +25,7 @@ import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Vex;
 import org.bukkit.inventory.EntityEquipment;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
@@ -80,7 +82,7 @@ public class MobEntityController {
     }
 
     /**
-     * 指定テンプレートの実体 Mob を生成し、AstralRecord 管理用の初期化を行います。
+     * 指定テンプレートの実体 Mob または固定表示用 ArmorStand を生成し、AstralRecord 管理用の初期化を行います。
      *
      * @param instance 紐付ける Mob インスタンス
      * @param location スポーン位置
@@ -94,6 +96,9 @@ public class MobEntityController {
         }
         if (instance.template().blockMaterial() != null) {
             return spawnBlockDisplay(instance, location);
+        }
+        if (instance.template().entityType() == org.bukkit.entity.EntityType.ARMOR_STAND) {
+            return spawnArmorStand(instance, location);
         }
 
         Class<? extends Entity> entityClass = instance.template().entityType().getEntityClass();
@@ -126,6 +131,66 @@ public class MobEntityController {
             mob.remove();
             return null;
         }
+    }
+
+    /**
+     * 固定表示用 ArmorStand を生成し、Mob インスタンスへ紐付けます。
+     *
+     * @param instance 紐付ける Mob インスタンス
+     * @param location スポーン位置
+     * @return 生成した ArmorStand。生成できない場合は {@code null}
+     */
+    @Nullable
+    private Entity spawnArmorStand(@NotNull MobInstance instance, @NotNull Location location) {
+        World world = location.getWorld();
+        if (world == null) {
+            return null;
+        }
+
+        ArmorStand armorStand;
+        try {
+            armorStand = world.spawn(location, ArmorStand.class, spawned -> configureArmorStand(instance, spawned));
+        } catch (RuntimeException ex) {
+            return null;
+        }
+        if (armorStand.isDead() || !armorStand.isValid()) {
+            return null;
+        }
+
+        try {
+            instance.bindEntity(armorStand.getUniqueId(), armorStand.getEntityId(), armorStand.getLocation());
+            return armorStand;
+        } catch (RuntimeException ex) {
+            armorStand.remove();
+            return null;
+        }
+    }
+
+    /**
+     * 固定表示用 ArmorStand をカカシとして構成します。
+     *
+     * @param instance   紐付ける Mob インスタンス
+     * @param armorStand 初期化対象の ArmorStand
+     */
+    private void configureArmorStand(@NotNull MobInstance instance, @NotNull ArmorStand armorStand) {
+        MobTemplate template = instance.template();
+        armorStand.setPersistent(false);
+        armorStand.setGravity(false);
+        armorStand.setInvulnerable(template.damageImmune());
+        armorStand.setCollidable(false);
+        armorStand.setSilent(true);
+        armorStand.customName(null);
+        armorStand.setCustomNameVisible(false);
+        armorStand.setVisible(true);
+        armorStand.setArms(true);
+        armorStand.setBasePlate(true);
+        armorStand.setSmall(false);
+        armorStand.setMarker(false);
+        clearEquipment(armorStand.getEquipment());
+        applyEquipment(armorStand.getEquipment(), template.equipment());
+        armorStand.addDisabledSlots(EquipmentSlot.values());
+        armorStand.getPersistentDataContainer().set(instanceIdKey, PersistentDataType.STRING, instance.instanceId().toString());
+        armorStand.getPersistentDataContainer().set(templateIdKey, PersistentDataType.STRING, template.id());
     }
 
     @Nullable
@@ -505,23 +570,23 @@ public class MobEntityController {
     }
 
     /**
-     * 実体 Mob にノックバック速度を加算します。
+     * 管理 Entity の移動を止め、指定した固定位置へ戻します。
      *
      * @param instance 対象インスタンス
-     * @param velocity 加算する速度
+     * @param anchor   固定位置
      */
     public void holdPosition(@NotNull MobInstance instance, @NotNull Location anchor) {
         if (instance.template().blockMaterial() != null) {
             holdBlockNpcPosition(instance, anchor);
             return;
         }
-        Mob mob = getMob(instance);
-        if (mob == null || mob.getWorld() != anchor.getWorld()) {
+        Entity entity = getEntity(instance);
+        if (entity == null || entity.getWorld() != anchor.getWorld()) {
             return;
         }
 
-        Location current = mob.getLocation();
-        Vector currentVelocity = mob.getVelocity();
+        Location current = entity.getLocation();
+        Vector currentVelocity = entity.getVelocity();
         boolean drifted = current.distanceSquared(anchor) > 1.0E-4D;
         boolean moving = currentVelocity.lengthSquared() > 1.0E-4D;
         if (!drifted && !moving) {
@@ -529,19 +594,25 @@ public class MobEntityController {
             return;
         }
 
-        mob.setVelocity(new Vector(0.0D, 0.0D, 0.0D));
+        entity.setVelocity(new Vector(0.0D, 0.0D, 0.0D));
         if (drifted) {
             Location anchored = anchor.clone();
             anchored.setYaw(current.getYaw());
             anchored.setPitch(current.getPitch());
-            mob.teleport(anchored);
+            entity.teleport(anchored);
             instance.currentLocation(anchored);
             return;
         }
 
-        instance.currentLocation(mob.getLocation());
+        instance.currentLocation(entity.getLocation());
     }
 
+    /**
+     * 実体 Mob に速度を加算します。ArmorStand など Mob 以外の管理 Entity には適用しません。
+     *
+     * @param instance 対象インスタンス
+     * @param velocity 加算する速度
+     */
     public void addVelocity(@NotNull MobInstance instance, @NotNull Vector velocity) {
         Mob mob = getMob(instance);
         if (mob == null) {
@@ -701,12 +772,14 @@ public class MobEntityController {
         equipment.setChestplate(air);
         equipment.setLeggings(air);
         equipment.setBoots(air);
-        equipment.setItemInMainHandDropChance(0.0F);
-        equipment.setItemInOffHandDropChance(0.0F);
-        equipment.setHelmetDropChance(0.0F);
-        equipment.setChestplateDropChance(0.0F);
-        equipment.setLeggingsDropChance(0.0F);
-        equipment.setBootsDropChance(0.0F);
+        if (equipment.getHolder() instanceof Mob) {
+            equipment.setItemInMainHandDropChance(0.0F);
+            equipment.setItemInOffHandDropChance(0.0F);
+            equipment.setHelmetDropChance(0.0F);
+            equipment.setChestplateDropChance(0.0F);
+            equipment.setLeggingsDropChance(0.0F);
+            equipment.setBootsDropChance(0.0F);
+        }
     }
 
     static void applyEquipment(

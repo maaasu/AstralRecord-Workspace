@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionsConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.trainingdummy.model.TrainingDummyDefinition;
 import io.github.maaasu.astralRecord.feature.trainingdummy.repository.TrainingDummyRepository;
 import org.bukkit.Bukkit;
@@ -21,10 +22,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /** 検証用カカシの配置、非致死制御、定期全回復を担当します。 */
@@ -35,6 +38,7 @@ public final class TrainingDummyService {
     private final TrainingDummyRepository repository;
     private final Map<String, TrainingDummyDefinition> definitions = new LinkedHashMap<>();
     private final Map<String, UUID> instanceIds = new LinkedHashMap<>();
+    private final Set<String> spawnFailures = new HashSet<>();
     private long tick;
     private BukkitTask task;
 
@@ -48,6 +52,7 @@ public final class TrainingDummyService {
     public int loadAll() {
         stopInstances();
         definitions.clear();
+        spawnFailures.clear();
         repository.loadAll().forEach(definition -> definitions.put(definition.id(), definition));
         return definitions.size();
     }
@@ -69,9 +74,10 @@ public final class TrainingDummyService {
         String normalizedId = id.trim().toLowerCase(Locale.ROOT);
         TrainingDummyDefinition definition = new TrainingDummyDefinition(
                 normalizedId, location.getWorld().getName(), location.getX(), location.getY(), location.getZ(), location.getYaw(),
-                100.0D, 0.0D, 0.0D, false, 10.0D, 40L
+                TrainingDummyDefinition.FIXED_MAX_HEALTH, 0.0D, 0.0D, false, 10.0D, 40L
         );
         definitions.put(normalizedId, definition);
+        spawnFailures.remove(normalizedId);
         save();
         respawn(normalizedId);
         return true;
@@ -80,6 +86,7 @@ public final class TrainingDummyService {
     /** 配置 ID を削除します。 */
     public boolean remove(@NotNull String id) {
         if (definitions.remove(id) == null) return false;
+        spawnFailures.remove(id);
         destroyInstance(id);
         save();
         return true;
@@ -89,6 +96,7 @@ public final class TrainingDummyService {
     public boolean update(@NotNull TrainingDummyDefinition definition) {
         if (!definitions.containsKey(definition.id())) return false;
         definitions.put(definition.id(), definition);
+        spawnFailures.remove(definition.id());
         save();
         respawn(definition.id());
         return true;
@@ -108,11 +116,15 @@ public final class TrainingDummyService {
     /** 全配置 ID を返します。 */
     public @NotNull Collection<String> ids() { return List.copyOf(definitions.keySet()); }
 
-    private void tick() {
+    /** カカシの生成、固定位置維持、定期回復を一周期分処理します。 */
+    void tick() {
         tick += TICK_INTERVAL;
         for (TrainingDummyDefinition definition : List.copyOf(definitions.values())) {
             MobInstance instance = instance(definition.id());
-            if (instance == null) { spawn(definition); continue; }
+            if (instance == null) {
+                if (!spawnFailures.contains(definition.id())) spawn(definition);
+                continue;
+            }
             mobService.stopPathfinding(instance);
             Location anchor = definition.toLocation();
             if (anchor != null) mobService.holdPosition(instance, anchor);
@@ -128,7 +140,11 @@ public final class TrainingDummyService {
         Location location = definition.toLocation();
         if (location == null) return;
         MobInstance instance = mobService.spawn(template(definition), location);
-        if (instance == null) return;
+        if (instance == null) {
+            spawnFailures.add(definition.id());
+            return;
+        }
+        spawnFailures.remove(definition.id());
         instance.nonLethal(true);
         instance.keepWhenUnobserved(true);
         instanceIds.put(definition.id(), instance.instanceId());
@@ -137,11 +153,17 @@ public final class TrainingDummyService {
     private void destroyInstance(@NotNull String id) { UUID instanceId = instanceIds.remove(id); if (instanceId != null) mobService.destroy(instanceId); }
     private void stopInstances() { List.copyOf(instanceIds.keySet()).forEach(this::destroyInstance); }
     private void save() { repository.saveAll(definitions.values()); }
-    private @NotNull MobTemplate template(@NotNull TrainingDummyDefinition definition) {
+    /**
+     * カカシ定義から固定 HP・ノックバック無効の ArmorStand テンプレートを生成します。
+     *
+     * @param definition カカシ定義
+     * @return 実行時 Mob テンプレート
+     */
+    static @NotNull MobTemplate template(@NotNull TrainingDummyDefinition definition) {
         return new MobTemplate(1, "training_dummy:" + definition.id(), MobCategory.ENEMY, "&e訓練用カカシ " + definition.id(), null,
-                1, EntityType.ZOMBIE, true, "ARMOR_STAND", List.of("&7Drop キーで設定を開く"), List.of(), null,
+                1, EntityType.ARMOR_STAND, true, "ARMOR_STAND", List.of("&7Drop キーで設定を開く"), List.of(), null,
                 new MobEquipmentConfig(null, definition.shieldEnabled() ? "SHIELD" : null, "LEATHER_HELMET", "LEATHER_CHESTPLATE", "LEATHER_LEGGINGS", "LEATHER_BOOTS"),
-                List.of(new MobBaseStat("MAX_HEALTH", definition.maxHealth()), new MobBaseStat("DEFENSE", definition.defense()), new MobBaseStat("MAGIC_DEFENSE", definition.magicDefense()), new MobBaseStat("MOVEMENT_SPEED", 0.0D)),
+                List.of(new MobBaseStat(StatusType.MAX_HEALTH.name(), TrainingDummyDefinition.FIXED_MAX_HEALTH), new MobBaseStat(StatusType.DEFENSE.name(), definition.defense()), new MobBaseStat(StatusType.MAGIC_DEFENSE.name(), definition.magicDefense()), new MobBaseStat(StatusType.MOVEMENT_SPEED.name(), 0.0D), new MobBaseStat(StatusType.KNOCKBACK_RESISTANCE.name(), 100.0D)),
                 new MobShieldConfig(definition.shieldEnabled(), definition.shieldMax()), new MobIdleConfig(IdleBehavior.STATIONARY, 0.0D, 0.0D), false,
                 MobInteractionsConfig.EMPTY, null, null, null);
     }

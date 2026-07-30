@@ -21,10 +21,13 @@ public record TrainingDummyDefinition(
         double shieldMax,
         long recoveryIntervalTicks
 ) {
+    /** カカシへ固定適用する最大 HP です。 */
+    public static final double FIXED_MAX_HEALTH = Integer.MAX_VALUE;
+
     public TrainingDummyDefinition {
         id = id.trim();
         worldName = worldName.trim();
-        maxHealth = Math.max(1.0D, maxHealth);
+        maxHealth = FIXED_MAX_HEALTH;
         defense = Math.max(0.0D, defense);
         magicDefense = Math.max(0.0D, magicDefense);
         shieldMax = Math.max(0.0D, shieldMax);
