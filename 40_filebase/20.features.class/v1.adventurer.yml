@@ -2,6 +2,7 @@ schemaVersion: 1
 id: adventurer
 type: CLASS
 name: "&f冒険者"
+shortName: "&f冒険者"
 description: "&7基礎を学びながら進路を決める見習い冒険者。"
 icon: COMPASS
 role: DEALER

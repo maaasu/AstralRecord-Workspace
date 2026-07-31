@@ -94,6 +94,7 @@ class ClassRepository {
             ClassSummary(
                 id = obj.get("id").asString,
                 name = obj.get("name").asString,
+                shortName = obj.get("shortName").asString,
                 role = obj.get("role").asString,
             )
         }
@@ -105,6 +106,7 @@ class ClassRepository {
             id = obj.get("id").asString,
             type = obj.get("type").asString,
             name = obj.get("name").asString,
+            shortName = obj.get("shortName").asString,
             description = parseStringOrNull(obj, "description"),
             icon = parseStringOrNull(obj, "icon"),
             role = obj.get("role").asString,

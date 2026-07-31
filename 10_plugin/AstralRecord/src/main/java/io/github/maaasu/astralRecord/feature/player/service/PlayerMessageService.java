@@ -3,13 +3,16 @@ package io.github.maaasu.astralRecord.feature.player.service;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 
@@ -21,11 +24,22 @@ import java.util.Collection;
  */
 public final class PlayerMessageService {
     private static final PlayerMessageService FALLBACK_INSTANCE = new PlayerMessageService();
+    private final @Nullable PlayerClassService playerClassService;
 
     /**
      * PlayerMessageService を初期化する。
      */
     public PlayerMessageService() {
+        this(null);
+    }
+
+    /**
+     * クラス表示情報を利用するプレイヤーメッセージサービスを初期化する。
+     *
+     * @param playerClassService クラス表示名サービス
+     */
+    public PlayerMessageService(@Nullable PlayerClassService playerClassService) {
+        this.playerClassService = playerClassService;
     }
 
     /**
@@ -143,11 +157,16 @@ public final class PlayerMessageService {
     /**
      * 全体チャットをオンラインプレイヤー全員へ配信する。
      *
-     * @param senderName 発言者名
+     * @param sender 発言者
      * @param message チャット本文
      */
-    public void broadcastGlobalChat(@NotNull String senderName, @NotNull String message) {
-        Component component = PlayerMsgResource.formatComponent(PlayerMsgId.P_5941.getId(), senderName, message);
+    public void broadcastGlobalChat(@NotNull Player sender, @NotNull String message) {
+        Component component = PlayerMsgResource.formatComponent(
+            PlayerMsgId.P_5941.getId(),
+            resolveShortClassName(sender),
+            sender.getName(),
+            message
+        );
         for (Player recipient : Bukkit.getOnlinePlayers()) {
             if (recipient.isOnline()) {
                 recipient.sendMessage(component);
@@ -159,11 +178,16 @@ public final class PlayerMessageService {
      * パーティーチャットを対象プレイヤーへ配信する。
      *
      * @param recipients 受信者一覧
-     * @param senderName 発言者名
+     * @param sender 発言者
      * @param message チャット本文
      */
-    public void broadcastPartyChat(@NotNull Collection<Player> recipients, @NotNull String senderName, @NotNull String message) {
-        Component component = PlayerMsgResource.formatComponent(PlayerMsgId.P_5942.getId(), senderName, message);
+    public void broadcastPartyChat(@NotNull Collection<Player> recipients, @NotNull Player sender, @NotNull String message) {
+        Component component = PlayerMsgResource.formatComponent(
+            PlayerMsgId.P_5942.getId(),
+            resolveShortClassName(sender),
+            sender.getName(),
+            message
+        );
         for (Player recipient : recipients) {
             if (recipient.isOnline()) {
                 recipient.sendMessage(component);
@@ -181,13 +205,17 @@ public final class PlayerMessageService {
     public void sendDirectMessage(@NotNull Player sender, @NotNull Player target, @NotNull String message) {
         Component sent = PlayerMsgResource.formatComponent(
             PlayerMsgId.P_5943.getId(),
+            resolveShortClassName(sender),
             sender.getName(),
+            resolveShortClassName(target),
             target.getName(),
             message
         );
         Component received = PlayerMsgResource.formatComponent(
             PlayerMsgId.P_5944.getId(),
+            resolveShortClassName(sender),
             sender.getName(),
+            resolveShortClassName(target),
             target.getName(),
             message
         );
@@ -201,5 +229,13 @@ public final class PlayerMessageService {
 
     private @NotNull Component systemPrefix() {
         return PlayerMsgResource.getComponent(PlayerMsgId.P_5940.getId()).append(Component.space());
+    }
+
+    private @NotNull String resolveShortClassName(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (playerClassService == null || astPlayer == null) {
+            return "&7---";
+        }
+        return playerClassService.getShortDisplayName(astPlayer.getClassId());
     }
 }

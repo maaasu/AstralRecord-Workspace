@@ -292,6 +292,7 @@ public class MasterDataSeeder(
             .ToDictionary(group => group.Key, group => group.ToList());
 
         var seenKeys = new HashSet<(string, string)>(TupleKeyComparer.Instance);
+        var classIdByShortName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var plan in plans)
         {
@@ -310,6 +311,10 @@ public class MasterDataSeeder(
                 var schemaVersion = RequireInt(root, "schemaVersion", file.RelativePath);
                 var type = OptionalScalar(root, "type");
                 var displayName = OptionalScalar(root, "name");
+                if (string.Equals(plan.MasterType, "class", StringComparison.OrdinalIgnoreCase))
+                {
+                    ValidateClassShortName(root, masterId, file.RelativePath, classIdByShortName);
+                }
                 var payloadJson = root.ToJsonString();
 
                 var key = (plan.MasterType, masterId);
@@ -676,6 +681,51 @@ public class MasterDataSeeder(
             throw new InvalidOperationException($"必須フィールド '{key}' がありません: {relativePath}");
         return value;
     }
+
+    private static void ValidateClassShortName(
+        JsonObject root,
+        string masterId,
+        string relativePath,
+        IDictionary<string, string> classIdByShortName)
+    {
+        var shortName = RequireScalar(root, "shortName", relativePath);
+        var visibleShortName = StripLegacyColorCodes(shortName).Trim();
+        if (StringInfo.ParseCombiningCharacters(visibleShortName).Length != 3)
+        {
+            throw new InvalidOperationException(
+                $"class '{masterId}' の shortName は色コードを除いて3文字である必要があります: {relativePath}");
+        }
+
+        if (classIdByShortName.TryGetValue(visibleShortName, out var existingClassId))
+        {
+            throw new InvalidOperationException(
+                $"class shortName '{visibleShortName}' が '{existingClassId}' と '{masterId}' で重複しています: {relativePath}");
+        }
+
+        classIdByShortName[visibleShortName] = masterId;
+    }
+
+    private static string StripLegacyColorCodes(string value)
+    {
+        var builder = new StringBuilder(value.Length);
+        for (var index = 0; index < value.Length; index++)
+        {
+            if (value[index] == '&' && index + 1 < value.Length && IsLegacyColorCode(value[index + 1]))
+            {
+                index++;
+                continue;
+            }
+            builder.Append(value[index]);
+        }
+        return builder.ToString();
+    }
+
+    private static bool IsLegacyColorCode(char value)
+        => value is >= '0' and <= '9'
+            or >= 'a' and <= 'f'
+            or >= 'A' and <= 'F'
+            or 'k' or 'K' or 'l' or 'L' or 'm' or 'M'
+            or 'n' or 'N' or 'o' or 'O' or 'r' or 'R';
 
     private static string? OptionalScalar(JsonObject root, string key)
         => root.TryGetPropertyValue(key, out var node) && node is JsonValue value

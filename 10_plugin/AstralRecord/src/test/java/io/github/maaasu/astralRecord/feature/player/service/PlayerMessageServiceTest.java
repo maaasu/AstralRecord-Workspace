@@ -1,6 +1,9 @@
 package io.github.maaasu.astralRecord.feature.player.service;
 
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -47,6 +50,30 @@ class PlayerMessageServiceTest {
             service.sendClickable(player, PlayerMsgId.P_5600, "/menu guide");
 
             assertTrue(hasRunCommand(captureMessage(player), "/menu guide"));
+        }
+    }
+
+    @Test
+    void globalChatPlacesShortClassNameBeforePlayerName() {
+        Player sender = onlinePlayer();
+        when(sender.getName()).thenReturn("Alice");
+        PlayerClassService classService = mock(PlayerClassService.class);
+        when(classService.getShortDisplayName("mage")).thenReturn("§b魔術師");
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        when(astPlayer.getClassId()).thenReturn("mage");
+        PlayerMessageService service = new PlayerMessageService(classService);
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            bukkit.when(Bukkit::getOnlinePlayers).thenReturn(Set.of(sender));
+            cache.when(() -> AstPlayerCache.get(sender)).thenReturn(astPlayer);
+
+            service.broadcastGlobalChat(sender, "hello");
+
+            assertEquals(
+                "[全体] [魔術師] Alice: hello",
+                PlainTextComponentSerializer.plainText().serialize(captureMessage(sender))
+            );
         }
     }
 

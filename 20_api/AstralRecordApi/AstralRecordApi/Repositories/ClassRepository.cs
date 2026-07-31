@@ -28,6 +28,7 @@ public class ClassRepository(MasterDataDbContext dbContext) : IClassRepository
             {
                 Id = cls!.Id,
                 Name = cls.Name,
+                ShortName = cls.ShortName,
                 Role = cls.Role,
             })
             .ToArray();

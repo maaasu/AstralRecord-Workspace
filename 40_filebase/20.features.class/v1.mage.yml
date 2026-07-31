@@ -2,6 +2,7 @@ schemaVersion: 1
 id: mage
 type: CLASS
 name: "&bメイジ"
+shortName: "&b魔術師"
 description: "&7属性魔術師。"
 icon: BLAZE_ROD
 role: DEALER

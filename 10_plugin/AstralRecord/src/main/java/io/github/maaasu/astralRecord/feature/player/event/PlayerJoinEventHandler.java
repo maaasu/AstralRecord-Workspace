@@ -370,6 +370,10 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             }
             loginBonusService.openAfterDataLoaded(player);
             playerService.commitPlayerJoin(playerJoinApplication);
+            AstPlayer appliedPlayer = AstPlayerCache.get(player);
+            if (appliedPlayer != null) {
+                plugin.getPlayerClassService().updatePlayerListName(appliedPlayer);
+            }
             if (guideService != null) {
                 guideService.loadProgressAsync(joinData.account().getUuid());
             }
@@ -686,4 +690,3 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     private record JoinAttempt(UUID playerUuid, long generation, Player player, long startedAtNanos) {
     }
 }
-

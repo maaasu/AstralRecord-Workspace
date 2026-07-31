@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.`class`.model.ClassModel
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassStat
 import io.github.maaasu.astralRecord.feature.`class`.service.ClassService
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource
 import io.github.maaasu.astralRecord.feature.playerclass.model.ClassExperienceResult
@@ -34,13 +35,42 @@ class PlayerClassService @JvmOverloads constructor(
 
     fun loadSnapshot(): Map<String, ClassModel> = classService.loadSnapshot()
 
-    fun replaceSnapshot(snapshot: Map<String, ClassModel>) = classService.replaceSnapshot(snapshot)
+    fun replaceSnapshot(snapshot: Map<String, ClassModel>) {
+        classService.replaceSnapshot(snapshot)
+        AstPlayerCache.getAll().forEach(::updatePlayerListName)
+    }
 
     fun getLoadedClass(classId: String): ClassModel? = classService.getLoadedClass(classId)
 
     fun getDisplayName(classId: String): String {
         val model = classService.getLoadedClass(classId) ?: return classId
         return ColorCodeUtil.toLegacyText(model.name, classId)
+    }
+
+    /**
+     * チャット表示用の3文字クラス短縮名を返します。
+     *
+     * @param classId クラス ID
+     * @return 色コードを反映した短縮名。未ロードの場合はクラス ID
+     */
+    fun getShortDisplayName(classId: String): String {
+        val model = classService.getLoadedClass(classId) ?: return classId
+        return ColorCodeUtil.toLegacyText(model.shortName, classId)
+    }
+
+    /**
+     * タブのプレイヤーリスト名を、正式クラス名タグ付きで更新します。
+     *
+     * @param astPlayer 更新対象プレイヤー
+     */
+    fun updatePlayerListName(astPlayer: AstPlayer) {
+        astPlayer.bukkit.playerListName(
+            PlayerMsgResource.formatComponent(
+                PlayerMsgId.P_5948.id,
+                getDisplayName(astPlayer.classId),
+                astPlayer.bukkit.name,
+            ),
+        )
     }
 
     fun getLoadedClasses(): List<ClassModel> = classService.getLoadedClasses()
@@ -90,6 +120,7 @@ class PlayerClassService @JvmOverloads constructor(
         astPlayer.selectClass(classId)
         persistClassProgress(astPlayer)
         skillTreeService?.refreshProgressDerivedState(astPlayer)
+        updatePlayerListName(astPlayer)
     }
 
     /**

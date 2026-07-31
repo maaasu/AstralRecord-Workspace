@@ -679,7 +679,12 @@ public final class AstralRecord extends JavaPlugin {
             new PlayerSettingDefaults(),
             new PlayerSettingCache()
         );
-        playerMessageService = new PlayerMessageService();
+        // class
+        playerClassService = new PlayerClassService(accountService);
+        playerClassService.setSkillTreeService(skillTreeService);
+        skillTreeService.setPlayerClassService(playerClassService);
+
+        playerMessageService = new PlayerMessageService(playerClassService);
         inventoryAutoSaveTask = new InventoryAutoSaveTask(
             inventoryService,
             inventorySaveCoordinator,
@@ -719,11 +724,6 @@ public final class AstralRecord extends JavaPlugin {
             bundleUseEffectService,
             particleDisplayService
         );
-
-        // class
-        playerClassService = new PlayerClassService(accountService);
-        playerClassService.setSkillTreeService(skillTreeService);
-        skillTreeService.setPlayerClassService(playerClassService);
 
         // status
         statusService = new StatusService(itemService, inventoryService);

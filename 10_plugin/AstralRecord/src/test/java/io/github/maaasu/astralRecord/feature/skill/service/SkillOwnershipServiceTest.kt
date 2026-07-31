@@ -90,6 +90,7 @@ class SkillOwnershipServiceTest : MockBukkitTestBase() {
         id = id,
         type = "CLASS",
         name = id,
+        shortName = id.takeLast(3).padStart(3, '_'),
         description = null,
         icon = "EXPERIENCE_BOTTLE",
         role = "DEALER",

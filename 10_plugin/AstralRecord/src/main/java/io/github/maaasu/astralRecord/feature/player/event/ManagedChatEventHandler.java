@@ -43,9 +43,8 @@ public final class ManagedChatEventHandler extends AbstractEventHandler {
             if (message.isBlank()) {
                 return;
             }
-            String senderName = event.getPlayer().getName();
             plugin.getServer().getScheduler().runTask(plugin, () ->
-                PlayerMessageService.getInstance().broadcastGlobalChat(senderName, message)
+                PlayerMessageService.getInstance().broadcastGlobalChat(event.getPlayer(), message)
             );
         }, LogId.E_3002, handlerName + ":chat");
     }

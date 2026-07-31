@@ -1047,6 +1047,8 @@ public enum PlayerMsgId {
     P_5945(5945),
     P_5946(5946),
     P_5947(5947),
+    /** クラス正式名タグ付きのタブプレイヤー名。 */
+    P_5948(5948),
     // endregion
 
     // region /feature/teleporter 5950-5969

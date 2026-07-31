@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.`class`.model.ClassModel
 import io.github.maaasu.astralRecord.feature.`class`.repository.ClassRepository
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil
 import java.util.Collections
 import java.util.LinkedHashMap
 import java.util.Locale
@@ -51,7 +52,9 @@ class ClassService {
                 loaded[normalize(model.id)] = model
             }
         }
-        return Collections.unmodifiableMap(LinkedHashMap(loaded))
+        val snapshot = Collections.unmodifiableMap(LinkedHashMap(loaded))
+        validateSnapshot(snapshot)
+        return snapshot
     }
 
     /**
@@ -60,6 +63,7 @@ class ClassService {
      * @param snapshot [loadSnapshot] で構築したスナップショット
      */
     fun replaceSnapshot(snapshot: Map<String, ClassModel>) {
+        validateSnapshot(snapshot)
         loadedClasses = Collections.unmodifiableMap(LinkedHashMap(snapshot))
         Logger.log(LogId.I_5500, snapshot.size)
     }
@@ -92,5 +96,20 @@ class ClassService {
 
     private fun normalize(value: String): String {
         return value.trim().lowercase(Locale.ROOT)
+    }
+
+    private fun validateSnapshot(snapshot: Map<String, ClassModel>) {
+        val classIdByShortName = LinkedHashMap<String, String>()
+        for (model in snapshot.values) {
+            val visibleShortName = ColorCodeUtil.toPlainText(model.shortName, "").trim()
+            require(visibleShortName.codePointCount(0, visibleShortName.length) == 3) {
+                "class '${model.id}' shortName must contain exactly 3 visible characters"
+            }
+            val normalizedShortName = normalize(visibleShortName)
+            val existingClassId = classIdByShortName.putIfAbsent(normalizedShortName, model.id)
+            require(existingClassId == null) {
+                "class shortName '$visibleShortName' is duplicated by '$existingClassId' and '${model.id}'"
+            }
+        }
     }
 }

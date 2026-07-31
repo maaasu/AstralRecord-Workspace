@@ -154,7 +154,7 @@ public final class PartyCommand extends AstCommand {
                 .map(Bukkit::getPlayer)
                 .filter(Objects::nonNull)
                 .toList(),
-            player.getBukkit().getName(),
+            player.getBukkit(),
             message
         );
     }

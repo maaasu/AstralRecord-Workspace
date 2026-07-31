@@ -15,6 +15,7 @@ Class（職業）のスキーマ定義。
 | `id`                       | String       | ○  | -         | classのテンプレートID（例: `warrior`）                     |
 | `type`                     | String       | ○  | -         | 種別（CLASS(cls)）                                   |
 | `name`                     | String       | ○  | -         | ゲーム内に表示される職業名                                    |
+| `shortName`                | String       | ○  | -         | チャットのプレイヤー情報に表示する3文字の職業短縮名。色コードを除いた表示文字をクラス間で一意にする |
 | `description`              | String       | ×  | Null      | 職業説明文                                            |
 | `icon`                     | String       | ×  | Null      | 表示アイコン（任意。表現は実装側に委ねる）                            |
 | `role`                     | String       | ○  | -         | 職業ロール（後述）                                        |
@@ -42,6 +43,13 @@ Class（職業）のスキーマ定義。
 - `maxLevel` は職業ごとのクラスレベル上限で、省略時は `100` です。`1` 未満はプラグイン側で `1` に補正します。
 - `commandOnly: true` の職業は職業 GUI・NPC 転職から選択できず、ADMIN の `/class change <classId>` だけで変更できます。
 
+### shortName
+
+- `shortName` はチャット表示でプレイヤー名の左に付けるクラス名タグです。
+- `&` 形式の色・装飾コードを除いた表示文字を、ちょうど3文字にします。
+- 大文字・小文字を区別せず、ほかのクラスと同じ短縮名を定義してはいけません。
+- タブのプレイヤーリストでは `shortName` ではなく正式な `name` を表示します。
+
 ### role
 以下のいずれかの値を指定します。
 - TANK
@@ -66,6 +74,7 @@ schemaVersion: 1
 id: warrior
 type: CLASS
 name: "&c戦士"
+shortName: "&c剣術士"
 description: "&7近接戦闘を得意とする前衛職。"
 role: TANK
 unlockLevel: 1
