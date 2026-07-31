@@ -20,6 +20,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.util.Vector;
 import org.junit.jupiter.api.BeforeEach;
@@ -216,6 +217,25 @@ class SkillTreeEventHandlerTest {
         } catch (ReflectiveOperationException exception) {
             throw new AssertionError(exception);
         }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 12. skill tree 入力候補・node 実行
+     * 検証契約: スキルツリーから別ワールドへ移動した場合、プレイヤー専用表示の再同期を要求する。
+     */
+    @Test
+    void worldChangeOutOfSkillTreeRefreshesViewerPresentation() {
+        PlayerChangedWorldEvent event = mock(PlayerChangedWorldEvent.class);
+        when(event.getPlayer()).thenReturn(player);
+        when(service.isPlayerModeSkillTree(player)).thenReturn(false);
+
+        new SkillTreeEventHandler(service).onWorldChange(event);
+
+        verify(service).refreshPlayerVisibility(player);
+        verify(service).clearPlayerPresentation(player);
+        verify(service).markViewerContextDirty(player);
+    }
     }
 
     private void allowSnapshotRefresh() {

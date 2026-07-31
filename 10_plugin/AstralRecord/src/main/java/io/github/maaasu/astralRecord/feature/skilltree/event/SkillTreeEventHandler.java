@@ -456,6 +456,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler
             return;
         }
         service.clearPlayerPresentation(event.getPlayer());
+        service.markViewerContextDirty(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
