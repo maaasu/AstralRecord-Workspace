@@ -14,7 +14,7 @@
 
 ## Worktree First
 
-実装、設計書修正、レビュー修正のように差分が発生する作業は、原則として task ごとの branch / git worktree で行います。
+実装、設計書修正、レビュー記録の新規保存、レビュー修正のように差分が発生する作業は、原則として task ごとの branch / git worktree で行います。レビュー skill を main `develop` から開始した場合も、記録を書き込む前に review 用 worktree を作ります。
 
 標準の流れは次の通りです。
 
@@ -52,10 +52,10 @@ $<skill-name> を使って、<absolute-path> に対して <task> を行い、結
 |:--|:--|:--|
 | task worktree を作る | `$astralrecord-git-worktree-develop` | prepare と finalize の両方を担当し、worktree 管理ファイルを更新する |
 | 新規実装・仕様反映 | `$astralrecord-code` | 実装と関連設計書の同期を扱う |
-| 実装から develop merge まで一気通貫 | `$astralrecord-code-version-commit-develop` | worktree first の統合入口 |
-| コードレビュー | `$astralrecord-code-review` | ソースを編集しない |
+| 実装から develop merge まで一気通貫 | `$astralrecord-code-version-commit-develop` | 実装後の独立レビュー・自動修正・再レビューを含む統合入口 |
+| コードレビュー | `$astralrecord-code-review` | ソースを編集せず、固定書式の記録を task worktree に保存する |
 | コードレビュー指摘の修正 | `$astralrecord-code-fix` | レビュー結果を入力にして最小修正する |
-| 設計書レビュー | `$astralrecord-docs-review` | ソースコードを読まない |
+| 設計書レビュー | `$astralrecord-docs-review` | ソースコードを読まず、固定書式の記録を task worktree に保存する |
 | 設計書レビュー指摘の修正 | `$astralrecord-docs-fix` | docs だけを編集する |
 | 現在の branch/worktree の差分だけ commit | `$astralrecord-commit-current-diff` | branch 作成や merge はしない |
 | 複数の `codex/*` branch をまとめて監査・merge | `$astralrecord-merge-codex-branches-develop` | 既定は dry-run、監査後に worktree 管理ファイルを更新 |
@@ -81,7 +81,7 @@ AstralRecord モノレポ全体の実装変更を行います。設計書パス�
 
 ### `$astralrecord-code-review`
 
-AstralRecord モノレポのソースコードをレビューします。設計書とコードの整合、コーディングルール、バグ、死コード、セキュリティ、テスト不足などを点検し、ソースは編集しません。
+AstralRecord モノレポのソースコード、実装データ、workspace skill をレビューします。設計書との整合、ルール、バグ、死コード、セキュリティ、テスト不足などを点検し、対象成果物は編集しません。記録は共通固定書式で task worktree 内へ保存・検証し、review-only 依頼でも `develop` に未コミット差分を残しません。
 
 使う場面:
 
@@ -91,7 +91,7 @@ AstralRecord モノレポのソースコードをレビューします。設計�
 
 ### `$astralrecord-code-fix`
 
-`$astralrecord-code-review` のレビュー結果を入力にして、コード側の指摘を最小修正します。レビュー結果なしの新規実装は `$astralrecord-code` を使います。
+`$astralrecord-code-review` のレビュー結果を入力にして、コード・実装データ・workspace skill 側の指摘を最小修正します。レビュー結果なしの新規実装は `$astralrecord-code`、skill 新規作成・更新は `$skill-creator` を使います。
 
 使う場面:
 
@@ -101,7 +101,7 @@ AstralRecord モノレポのソースコードをレビューします。設計�
 
 ### `$astralrecord-docs-review`
 
-AstralRecord の設計書をレビューします。ソースコードは読まず、設計上の矛盾、不足、未決事項、フォーマット差分を確認します。
+AstralRecord の設計書をレビューします。ソースコードは読まず、設計上の矛盾、不足、未決事項、フォーマット差分を確認します。記録は共通固定書式で task worktree 内へ保存・検証します。
 
 使う場面:
 
@@ -133,14 +133,14 @@ task ごとに branch と git worktree を作り、作業後の commit、rebase�
 
 ### `$astralrecord-code-version-commit-develop`
 
-`$astralrecord-git-worktree-develop` と `$astralrecord-code` / `$astralrecord-master-data-author` をつなぐ統合入口です。実装や本番向け filebase マスタ作成から develop への merge まで 1 回の依頼で進めたいときに使います。並列作業で worktree を残す場合も管理ファイルを更新します。
+`$astralrecord-git-worktree-develop`、worker、review、fix skill をつなぐ統合入口です。実装や本番向け filebase マスタ作成後に、独立レビュー、自動修正、再検証、独立再レビューを完了してから develop merge へ進みます。並列作業で worktree を残す場合も管理ファイルを更新します。
 
 使う場面:
 
 - worktree 作成、実装、commit、develop merge、cleanup まで任せたい。
 - `40_filebase` の本番向けマスタ作成を task worktree 上で行い、そのまま develop へ反映したい。
 - プラグイン版番号更新を finalize 時まで遅らせたい。
-- 並列作業では prepare + 実装で止め、後から finalize したい。
+- 並列作業では prepare + 実装 + 品質ゲート + scoped commit で止め、後から finalize したい。
 
 ### `$astralrecord-commit-current-diff`
 

@@ -25,7 +25,7 @@ Use `E:\AstralRecord-Workspace\COMMIT_RULES.md` as the source of truth for commi
    - If the current branch is `develop` and the user did not explicitly request a direct `develop` commit, stop and recommend `$astralrecord-git-worktree-develop`.
    - If the repository is in detached HEAD, stop unless the user explicitly requested committing there.
 5. Run the shared classifier:
-   - `python E:\AstralRecord-Workspace\.codex\skills\astralrecord-git-worktree-develop\scripts\commit_candidate_audit.py <current-worktree-root>`
+   - `python <current-worktree-root>\.codex\skills\astralrecord-git-worktree-develop\scripts\commit_candidate_audit.py <current-worktree-root>`
    - Treat `EXCLUDE` as not stageable unless the user explicitly overrides.
    - Treat `REVIEW` as requiring judgment from the actual diff and the user request.
 6. Select files:
@@ -37,7 +37,7 @@ Use `E:\AstralRecord-Workspace\COMMIT_RULES.md` as the source of truth for commi
    - Use explicit paths only: `git add -- <path1> <path2> ...`
    - Run `git diff --cached --stat`
    - Run `git diff --cached --check`
-   - Run `python E:\AstralRecord-Workspace\.codex\skills\astralrecord-git-worktree-develop\scripts\staged_mojibake_check.py <current-worktree-root>`
+   - Run `python <current-worktree-root>\.codex\skills\astralrecord-git-worktree-develop\scripts\staged_mojibake_check.py <current-worktree-root>`
    - If an unrelated file was staged by mistake, remove it with `git restore --staged -- <path>`
 8. Compose a commit message:
    - Follow `E:\AstralRecord-Workspace\COMMIT_RULES.md`.
@@ -65,6 +65,7 @@ Stop before committing if any of the following is true:
 - Use `$astralrecord-git-worktree-develop` when the user wants branch creation, worktree creation, rebase, merge into `develop`, or cleanup.
 - Use `$astralrecord-code-version-commit-develop` when the user wants implementation and commit flow in one request.
 - Use this skill when the branch or worktree already exists and only the current uncommitted diff needs to be sorted and committed.
+- Review skills may use this only after Git preflight selected a dedicated non-`develop` worktree. A review record must never rely on the direct-`develop` exception; prepare a review worktree before writing it.
 
 ## Example Prompts
 
@@ -77,7 +78,7 @@ $astralrecord-commit-current-diff を使って、現在の task branch から E:
 ```
 
 ```text
-$astralrecord-commit-current-diff を使って、E:\AstralRecord-Workspace\00_docs\99_資料\レビュー結果 のレビュー修正差分だけを commit し、結果を報告してください。
+$astralrecord-commit-current-diff を使って、E:\AstralRecord-Worktrees\<task-slug>\00_docs\99_資料\レビュー結果 のレビュー記録差分だけを task branch に commit し、結果を報告してください。
 ```
 
 ## Report Format

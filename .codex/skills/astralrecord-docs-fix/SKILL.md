@@ -11,6 +11,8 @@ Fix design documents only. Do not open or edit source code, implementation files
 
 Use the review result as the authority for what to change. Do not invent missing design intent. If a finding is marked `要確認` or `設計判断待ち`, leave it unresolved unless the user explicitly provides the missing decision in the request.
 
+Read `<task-root>\.codex\skills\_shared\review-record-format.md` completely before parsing or updating a saved review record. The canonical schema and updater are mandatory.
+
 ## Inputs
 
 Accept either:
@@ -23,9 +25,13 @@ If no review result or finding detail is available, ask for the review result be
 ## Workflow
 
 1. Identify the docs target path and the review source.
+   - Resolve `<task-root>` with `git rev-parse --show-toplevel`.
+   - Require a dedicated non-`develop` task branch/worktree before editing docs or the review record. If absent, use the integrated worktree flow instead of writing on `develop`.
+   - When the supplied record path is under `E:\AstralRecord-Workspace`, remap it to the same relative path under `<task-root>` and update only that worktree copy.
+   - If the supplied record is inside a different task worktree, stop and require the integrated review-fix entry to reuse that record's worktree. Never split fixes and the canonical record across branches.
 2. Parse the review result using the `astralrecord-docs-review` report format:
    - `AR-DOC-*` finding IDs.
-   - `対象`, `関連箇所`, `修正方針`, `修正対象候補`, and `修正可否`.
+   - `対象`, `関連箇所`, `修正方針`, `修正対象候補`, `修正可否`, `確信度`, and `修正状態`.
    - `修正スキル入力サマリ` when present.
 3. Select findings to fix:
    - Fix all `修正可否: 自動修正可` findings by default.
@@ -34,18 +40,20 @@ If no review result or finding detail is available, ask for the review result be
 4. Read the target docs and nearby docs needed to make a coherent minimal edit. Prefer the files listed in `修正対象候補`; if it says `複数`, read each referenced target before editing.
 5. Apply the smallest Markdown/design change that resolves the finding while preserving the local structure, headings, terminology, Wiki link style, and table format.
 6. After editing, re-read changed snippets and verify that each fixed finding is addressed.
-7. If the review source is a saved review result under `E:\AstralRecord-Workspace\00_docs\99_資料\レビュー結果`, update that file after fixes:
-   - set each fixed finding's `修正状態` to `修正済み`.
-   - update `指摘修正数 / 指摘数`.
-   - set `完了状態: 完了` when all findings are fixed.
-   - rename the file to `yy-MM-dd HH：mm：ss<skill-name-without-astralrecord-prefix>.md`.
-   - prefix the filename with `(<fixed-count>／<finding-count>) ` while incomplete, or `[完了] ` when all findings are fixed.
-   - use the visible skill name without the `astralrecord-` prefix.
-   - use fullwidth `：` and `／` in the filename because Windows file names cannot contain `:` or `/`.
+7. If the review source is a saved record under `<task-root>\00_docs\99_資料\レビュー結果`, update only fixed states and derived metadata with:
+
+```powershell
+python <task-root>\.codex\skills\_shared\scripts\update_review_record.py <record-path> --fixed <AR-DOC-IDs>
+```
+
+   - Do not manually rename the record, rewrite metadata, delete finding fields, summarize finding text, reorder findings, or renumber IDs.
+   - Preserve its original timestamp, target path, and `docs-review` skill name.
+   - Add `--resolve-question '<Q-DOC-ID>=<confirmed answer>'` once per question only when the answer was supplied or unambiguously confirmed; otherwise omit it and keep the question `未確認`.
+   - Validate the returned path again with `validate_review_record.py` and do not report the record update complete on failure.
 8. For plugin design docs, run:
 
 ```powershell
-python E:\AstralRecord-Workspace\.codex\skills\astralrecord-docs-review\scripts\docs_structure_audit.py <absolute-docs-path>
+python <task-root>\.codex\skills\astralrecord-docs-review\scripts\docs_structure_audit.py <absolute-docs-path>
 ```
 
 Use the audit as a format check. If the script reports unrelated pre-existing issues, list them separately instead of expanding the edit scope.

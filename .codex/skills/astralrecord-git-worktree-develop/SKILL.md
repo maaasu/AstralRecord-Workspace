@@ -20,7 +20,7 @@ worktree 管理ファイルと状態分類は `E:\AstralRecord-Workspace\.codex\
 This skill supports two modes.
 
 - Prepare mode: create a task branch and a dedicated worktree from local `develop`, then report the branch name and worktree path for follow-up work.
-- Finalize mode: from an existing task worktree, inspect the diff, commit the implementation changes, rebase onto `develop`, run plugin versioning only when needed on the rebased worktree, fast-forward merge into `develop`, and remove the task worktree and branch when safe.
+- Finalize mode: from an existing task worktree, inspect and commit requested uncommitted task files when present, or accept a clean branch with existing task commits ahead of `develop`; then rebase, run plugin versioning only when needed, fast-forward merge, and clean up when safe.
 
 This skill manages one requested task branch/worktree at a time. For historical cleanup of already merged `codex/*` branches, stale worktree metadata, or leftover task worktrees outside the current finalize target, hand off to `$astralrecord-prune-codex-worktrees`.
 
@@ -54,15 +54,20 @@ If the request is ambiguous, infer the mode from the wording:
      - `git status --porcelain=v1 -uall`
      - `git diff --stat`
      - targeted `git diff -- <path>`
-   - Run the bundled classifier:
-     - `python E:\AstralRecord-Workspace\.codex\skills\astralrecord-git-worktree-develop\scripts\commit_candidate_audit.py <worktree-root>`
-   - Stage only requested implementation files with explicit paths. Never use `git add .` or `git add -A`.
-   - Run:
-     - `git diff --cached --stat`
-     - `git diff --cached --check`
-     - `python E:\AstralRecord-Workspace\.codex\skills\astralrecord-git-worktree-develop\scripts\staged_mojibake_check.py <worktree-root>`
-   - Commit the implementation diff with a Japanese summary that follows `COMMIT_RULES.md`.
+   - Decide commit state:
+     - If requested uncommitted task files exist, follow the stage/check/commit steps below.
+     - If the worktree is clean, require at least one task commit in `develop..HEAD`; inspect `git log --oneline develop..HEAD`, `git diff --stat develop...HEAD`, `git diff --name-status develop...HEAD`, and targeted committed diffs. Continue only when every ahead commit and changed path belongs to the requested task. Skip the new commit and continue to rebase.
+     - If a clean branch contains unrelated, unexplained, or mixed-scope ahead commits, stop before rebase/merge and retain the worktree for explicit separation or approval.
+     - If the worktree is clean and `develop..HEAD` is empty, stop because there is nothing to finalize.
+   - Only when requested uncommitted task files exist:
+     - Run `python <worktree-root>\.codex\skills\astralrecord-git-worktree-develop\scripts\commit_candidate_audit.py <worktree-root>`.
+     - Stage only requested task files with explicit paths. Review-only tasks may stage their validated Markdown record under `00_docs/99_資料/レビュー結果`. Never use `git add .` or `git add -A`.
+     - Run `git diff --cached --stat` and `git diff --cached --check`.
+     - Run `python <worktree-root>\.codex\skills\astralrecord-git-worktree-develop\scripts\staged_mojibake_check.py <worktree-root>`.
+     - Commit the requested task diff with a Japanese summary that follows `COMMIT_RULES.md`.
    - Rebase the task branch onto local `develop`.
+   - If the rebase incorporates upstream changes that intersect the reviewed paths, affected call sites, contracts, tests, or resources, pause before merge and rerun targeted verification plus review confirmation against the rebased tree. Update the same canonical record, validate it again, and apply the integrated quality-gate blocking criteria. If a new finding needs a fix, return to the quality gate; stop and retain the worktree on any failure or unresolved blocker.
+   - If post-rebase confirmation or its fix pass changes the canonical record or any task file, run the worktree-local classifier, stage only those explicit paths, rerun cached diff/check/mojibake validation, and create a separate scoped post-rebase quality commit before filebase validation, versioning, or merge. Never merge or clean up with those updates uncommitted.
    - If the rebased branch changes `40_filebase` YAML, run post-rebase filebase validation before merge:
      - Parse every changed YAML again with the applicable schema or the repository's available YAML validation command.
      - Scan all `40_filebase/**/*.yml` on the rebased tree for duplicate master IDs, including duplicates introduced in different files that Git would not report as conflicts.
@@ -98,7 +103,7 @@ Stop before mutating git state if:
 - The target task branch or worktree path already exists and reuse was not explicitly requested.
 - `develop` has uncommitted changes before the merge step.
 - The selected files mix unrelated work that cannot be separated safely.
-- The commit would be empty.
+- The worktree is clean and the task branch has no commits ahead of `develop`.
 - Rebase or merge produces conflicts.
 - Post-rebase filebase validation finds duplicate IDs, unresolved changed references, invalid YAML/schema content, or an ambiguous result.
 - A plugin version update is required but cannot be completed cleanly after the rebase.
@@ -122,6 +127,7 @@ E:\AstralRecord-Workspace\<relative-path>
 - Commit only files that belong to the requested task.
 - Exclude local build outputs, IDE settings, machine-local config, secrets, logs, temp files, and unrelated user changes.
 - `.codex/skills/` is commit-eligible when the requested task is a skill creation or skill update.
+- `00_docs/99_資料/レビュー結果/*.md` is commit-eligible when it is the validated canonical artifact of the requested review or quality gate.
 - Use `git restore --staged -- <path>` when an unrelated file was staged by mistake.
 - When plugin versioning is required, keep the implementation commit and the `pom.xml` version-bump commit scoped separately.
 

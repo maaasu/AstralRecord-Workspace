@@ -1,58 +1,83 @@
 ---
 name: astralrecord-code-review
-description: AstralRecord モノレポのソースコードをレビューする。コードレビュー、実装監査、コーディングルール準拠の確認、設計書とコードの整合確認、バグ・アルゴリズム破綻・死コード・セキュリティ問題の検出、命名・例外処理・テスト・保守性の評価を、ソースを編集せずに行いたい場合に使う。
+description: AstralRecord モノレポのソースコード、実装データ、workspace skill をレビューし、固定書式のレビュー記録を専用 task worktree 内へ安全に保存する。コード/skillレビュー、実装監査、ルール準拠、設計整合、バグ・死コード・セキュリティ・テスト・保守性の評価、実装後の独立レビューで使う。対象成果物は編集せず、可能な場合は読み取り専用サブエージェントを活用する。
 ---
 
 # AstralRecord Code Review
 
 ## Core Rule
 
-Review source code only. Do not edit source, docs, or configuration during this skill. Treat findings as proposals; actual code/doc changes are the job of `$astralrecord-code` or `$astralrecord-docs-fix`.
+Review implementation artifacts without editing them. This includes source code, implementation configuration/data, SQL Server schema docs, scripts, tools, and workspace skill definitions; other design-doc-only review belongs to `$astralrecord-docs-review`. The only file content this skill may create is the canonical review record. Treat findings as proposals; actual changes are the job of `$astralrecord-code-fix`.
 
 Base every judgment on documented rules first (root guide, project README/AGENTS.md, design docs, `references/*`). Do not infer project rules from the code alone when an authoritative document exists. If documented rules are silent, fall back to general engineering practice and clearly mark the finding as a general-practice judgment rather than a rule violation.
+
+Resolve the selected repository root, then read `<repo-root>\.codex\skills\_shared\review-record-format.md` completely before reviewing. Its storage, filename, body schema, state, and validation rules are mandatory and override examples in this skill.
+
+## Git Preflight
+
+Complete this before creating the review record.
+
+1. Resolve the selected checkout with `git rev-parse --show-toplevel` and inspect `git status --short --branch`.
+2. If already inside a dedicated non-`develop` task worktree, set that root as `<task-root>`.
+3. If the selected checkout is the main `develop` workspace, inspect whether uncommitted changes overlap the review target. If they do, stop before writing and require those changes to be moved to a task worktree; never review a stale HEAD copy as though it contains the dirty diff. Otherwise invoke `$astralrecord-git-worktree-develop` in Prepare mode to create `codex/review-<slug>`, remap the target path into that worktree, and use the new root as `<task-root>`.
+4. Never save to the literal main-workspace path from a task worktree. The only destination is `<task-root>\00_docs\99_資料\レビュー結果`.
+5. If a review-only request ends in an existing task worktree, invoke `$astralrecord-commit-current-diff` and commit only the validated record. Do not finalize an existing implementation worktree unless requested.
+6. If this skill created a review-only worktree, invoke `$astralrecord-git-worktree-develop` in Finalize mode directly after validation; Finalize owns staging and committing the record. If finalize is blocked, keep the branch/worktree and report it. Never pre-commit and then call Finalize, and never fall back to writing on `develop`.
 
 ## Required Context
 
 1. Read `E:\AstralRecord-Workspace\AGENTS.md`.
 2. Identify the target project from the absolute path or technical signals:
    - `10_plugin/AstralRecord` → Minecraft Plugin (Java/Kotlin, Paper/Spigot, Maven)
+   - `10_plugin/AstralArchitect` → AI-assisted Minecraft building Plugin (Java/Paper/FAWE/Python)
    - `20_api/AstralRecordApi` → REST API (ASP.NET Core, C#)
    - `30_web/AstralRecordWeb` → Web (Razor Pages)
    - `40_filebase/` → file-based master data (YAML/Markdown)
    - `50_resourcepack/` → Minecraft Resource Pack (JSON/PNG)
    - `00_docs/40_Database設計書/` → SQL Server schema docs
+   - `.codex/skills/` → Workspace skills (Markdown/Python/YAML)
+   - `60_tool/` → Workspace build/deploy/development tools (PowerShell/C#/TypeScript/BAT)
 3. Read documented rules for the target project before judging:
    - Plugin: root `PLUGIN_GUIDE.md`, project `README.md`/`AGENTS.md`, and any `astralrecord-code/references/plugin-code.md`.
+   - AstralArchitect: `10_plugin/AstralArchitect/AGENTS.md` and its linked project rules.
    - API: root `API_GUIDE.md`, project `README.md`/`AGENTS.md`, and `astralrecord-code/references/api-code.md`.
    - Web: root `README.md` "AstralRecord Web" section and `30_web/AstralRecordWeb/AGENTS.md`.
    - Filebase / Resourcepack / Database: the corresponding section of root `README.md` and the area's `AGENTS.md`/`README.md`.
+   - Workspace skills: `.codex/skills/README.md`, the target `SKILL.md`, linked references/scripts, and `$skill-creator` instructions.
+   - Tools: `60_tool/README.md` and any local `AGENTS.md` or linked tool documentation.
 4. When the review references a design document area, read the relevant `00_docs/...` design docs to check code↔design consistency. Do not perform a docs-only review here; that belongs to `$astralrecord-docs-review`.
 5. If the target project cannot be determined, stop and ask the project-selection question from the root `AGENTS.md`.
 
 ## Workflow
 
-1. Define the review scope:
+1. Complete Git Preflight and define `<task-root>` before any file write.
+2. Define the review scope:
    - File set: explicit path(s), feature directory, recent diff range, or a named module.
    - Review depth: quick scan vs. deep review. Default is deep review when a single feature/path is given.
-2. Map code to design:
+3. Map code to design:
    - For Plugin features under `00_docs/10_Plugin設計書`, identify the corresponding code modules from `FEATURE_CATALOG.md`, the feature overview, or naming conventions. For other design areas, follow that area's documented entry-point rules.
    - For custom-instruction scope (e.g. "ホットバー周り"), use grep/glob to enumerate the affected files.
-3. Read the minimum necessary code:
+4. Read the minimum necessary code:
    - Entry points, public APIs/commands/endpoints/events, service/repository boundaries, data models, and call sites of the changed symbols.
    - Tests, fixtures, and resource files that gate the behavior.
-4. Review against the checklist (see "Review Checklist"). For each issue, distinguish:
+5. Review against the checklist (see "Review Checklist"). For each issue, distinguish:
    - Rule violation (documented rule exists and is broken).
    - Bug / algorithmic defect (incorrect behavior, missing edge case, race, leak).
    - Design mismatch (code contradicts a design doc).
    - Dead / unreachable / unused code.
    - Maintainability / readability concern (general practice).
-5. Verify suspected issues:
+6. Verify suspected issues:
    - Trace call sites with grep before claiming "unused" or "dead".
    - Re-read the documented rule before claiming a rule violation.
    - When a doubt remains, downgrade the finding to a question instead of inventing a defect.
-6. Resolve questions that can be answered from the reviewed code, design docs, or documented rules during the review. Only leave `## 未確認/質問` entries for decisions or facts that cannot be confirmed from the allowed review sources.
-7. If a finding-specific question is needed (including questions tied to a specific `AR-CODE-*` finding), put it under `## 未確認/質問` and reference the finding from `関連指摘`. Do not leave questions inline only inside the finding body.
-8. Report findings in the format below. Do not modify source, docs, or configuration files, except for saving the review result file required by this skill.
+7. For a non-trivial scope and when sub-agents are available, delegate at least one independent read-only pass to an agent that did not implement the change. For multi-project, security, concurrency, or data-integrity work, use a second read-only specialist with a distinct concern. Give them the target diff and authoritative context, not expected findings. The coordinating reviewer de-duplicates evidence and remains the only canonical record writer. Never allow parallel edits to the record.
+8. Resolve questions that can be answered from the reviewed code, design docs, or documented rules during the review. Only leave `## 未確認/質問` entries for decisions or facts that cannot be confirmed from the allowed review sources.
+9. If a finding-specific question is needed, put it under `## 未確認/質問` and reference the finding from `関連指摘`. Do not leave questions inline only inside the finding body.
+10. Create exactly one canonical record using the shared format. Use the allowed code-review types below, start every new finding with `修正状態: 未修正`, and do not add extra headings.
+    - Round 1 creates the record and returns its absolute path to the coordinator.
+    - Round 2 must receive that canonical record path as input, update the same file, preserve existing IDs/text/timestamp/target, and append only new sequential findings. It must not create a second record.
+11. Validate the saved file with `<task-root>\.codex\skills\_shared\scripts\validate_review_record.py`. Correct the record until it passes.
+12. Complete the review-only commit/finalize behavior from Git Preflight. In an integrated implementation workflow, leave commit/finalize ownership to the coordinator so implementation, record, and fixes remain one scoped task.
 
 ## Review Checklist
 
@@ -87,69 +112,21 @@ Adjust depth to the target project, but cover these categories:
 
 ## Report Format
 
-Write the review in Japanese. Start with findings, ordered by severity. Severity is one of `[高]` / `[中]` / `[低]` / `[情報]`. Use this exact section order so downstream skills can consume the result.
+Write the review in Japanese and emit the validated saved record body without restructuring it. Use the canonical body and exact section order from the shared format. Severity is exactly `[高]`, `[中]`, `[低]`, or `[情報]`.
 
-```markdown
-## 指摘一覧
+The allowed `種別` values for code review are:
 
-### AR-CODE-001 [高] <短い指摘タイトル>
-- 種別: `仕様不整合` | `コーディングルール違反` | `バグ/アルゴリズム` | `セキュリティ` | `パフォーマンス` | `死コード/重複` | `テスト不足` | `ドキュメント不整合` | `可読性/保守性`
-- 対象: `<absolute-or-workspace-relative-path>:<line>` (行が不明な場合は `<path>`)
-- 関連箇所: `<path>:<line>` / `なし`
-- 根拠: <ルール出典 (README/AGENTS.md/設計書) または一般原則。原則の場合はその旨明示>
-- 問題: <何が不整合・誤り・危険・無駄か>
-- 影響: <なぜ困るか (機能/運用/性能/セキュリティ/保守性)>
-- 修正方針: <最小の変更案。複数案あるなら短く列挙>
-- 修正可否: `自動修正可` | `要確認` | `設計判断待ち`
-- 確信度: `高` | `中` | `低`
-```
+`仕様不整合` | `コーディングルール違反` | `バグ/アルゴリズム` | `セキュリティ` | `パフォーマンス` | `死コード/重複` | `テスト不足` | `ドキュメント不整合` | `可読性/保守性`
 
-連番は `AR-CODE-001` から開始する。`修正可否: 自動修正可` は、追加の設計判断なしに `$astralrecord-code` で対応可能な指摘にだけ付ける。
-
-findings の後に次のセクションを必ず含める。
-
-```markdown
-## 未確認/質問
-
-### Q-CODE-001
-- 関連指摘: `AR-CODE-001` / `なし`
-- 確認事項: <設計者/実装者へ確認したいこと>
-- 判断が必要な理由: <レビューだけで確定できない理由>
-
-## 修正スキル入力サマリ
-- 自動修正候補: `AR-CODE-001`, `AR-CODE-003` / `なし`
-- 要確認: `AR-CODE-002`, `Q-CODE-001` / `なし`
-- 推奨修正順: `AR-CODE-001` -> `AR-CODE-003` / `なし`
-- 対象範囲: `<review target path>`
-
-## 確認した範囲
-- 対象プロジェクト: <project>
-- 読んだ設計書/ルール: <paths>
-- 読んだソース: <paths or globs>
-- 実行した検査: <ビルド/テスト/静的解析の有無。未実行ならその理由>
-
-## 対象外
-- <意図的にレビューしなかった範囲とその理由> / `なし`
-```
-
-指摘が無い場合は `## 指摘一覧` の下に `指摘なし。` と書き、残りのセクションも省略せず記載する。
+Set `修正可否: 自動修正可` only when `$astralrecord-code-fix` can resolve the finding without a new design decision. Always include `修正対象候補`, `確信度`, and `修正状態` in the shared field order.
 
 ## Review Result File
 
-レビュー結果は必ず `E:\AstralRecord-Workspace\00_docs\99_資料\レビュー結果` 配下に Markdown コピーを残す。ファイル名フォーマットは `$astralrecord-docs-review` に合わせる。
-
-```text
-yy-MM-dd HH：mm：ss<skill-name-without-astralrecord-prefix>.md
-```
-
-未完了時はファイル名の先頭に `(<fixed-count>／<finding-count>) ` を付ける。全件修正済みになった時点で先頭を `[完了] ` にし、本文メタデータの `完了状態` を `完了` にする。
-ファイル名とレビュー結果本文の表示用 skill 名では `astralrecord-` prefix を省略する（例: `code-review`）。Windows の制約により `:` と `/` は全角 `：` `／` を使う。新規時は `<fixed-count>` を `0` にする。
-
-保存ファイルには通常レポートのセクションに加えて、対象パス、skill 名、`指摘修正数 / 指摘数`、各指摘の `修正状態`、`修正スキル入力サマリ` を含める。
+Save exactly one Markdown record under `<task-root>\00_docs\99_資料\レビュー結果`. The shared format is the sole authority for filename, metadata, fields, empty values, state transitions, and validation. Do not use `E:\AstralRecord-Workspace` as a literal destination when `<task-root>` is another worktree.
 
 ## Out of Scope
 
-- ソースの編集、設計書の編集、設定ファイルの書き換え。必要な場合は `$astralrecord-code` / `$astralrecord-docs-fix` に引き継ぐ。
+- ソースの編集、設計書の編集、設定ファイルの書き換え。必要な場合は `$astralrecord-code-fix` に引き継ぐ。
 - 設計書だけの不整合チェック。これは `$astralrecord-docs-review` の範囲。
 - 大規模リファクタの提案。指摘は最小修正案にとどめ、構造的な再設計は「要確認」または別タスクとして残す。
 
