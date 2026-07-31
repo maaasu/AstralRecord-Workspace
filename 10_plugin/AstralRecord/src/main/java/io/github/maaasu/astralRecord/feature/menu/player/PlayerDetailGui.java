@@ -43,9 +43,11 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
     public static final int PRIMARY_SLOT = 11;
     public static final int OFFENSE_SLOT = 12;
     public static final int DEFENSE_SLOT = 13;
-    public static final int UTILITY_SLOT = 14;
-    public static final int CLASS_SLOT = 15;
-    public static final int BUFF_SLOT = 16;
+    public static final int ELEMENT_SLOT = 14;
+    public static final int CONDITION_SLOT = 15;
+    public static final int UTILITY_SLOT = 16;
+    public static final int CLASS_SLOT = 30;
+    public static final int BUFF_SLOT = 32;
     public static final int TRADE_SLOT = 38;
     public static final int PARTY_INVITE_SLOT = 42;
 
@@ -138,6 +140,8 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         inventory.setItem(PRIMARY_SLOT, categoryItem(Material.DIAMOND, "◇", StatusType.Category.PRIMARY, NamedTextColor.YELLOW, snapshot));
         inventory.setItem(OFFENSE_SLOT, categoryItem(Material.NETHERITE_SWORD, "⚔", StatusType.Category.OFFENSE, NamedTextColor.RED, snapshot));
         inventory.setItem(DEFENSE_SLOT, categoryItem(Material.SHIELD, "✚", StatusType.Category.DEFENSE, NamedTextColor.BLUE, snapshot));
+        inventory.setItem(ELEMENT_SLOT, categoryItem(Material.PRISMARINE_CRYSTALS, "✧", StatusType.Category.ELEMENT, NamedTextColor.LIGHT_PURPLE, snapshot));
+        inventory.setItem(CONDITION_SLOT, categoryItem(Material.FERMENTED_SPIDER_EYE, "☣", StatusType.Category.CONDITION, NamedTextColor.DARK_PURPLE, snapshot));
         inventory.setItem(UTILITY_SLOT, categoryItem(Material.FEATHER, "✦", StatusType.Category.UTILITY, NamedTextColor.GREEN, snapshot));
         inventory.setItem(CLASS_SLOT, classProgressItem(classProgresses));
         inventory.setItem(BUFF_SLOT, createItem(

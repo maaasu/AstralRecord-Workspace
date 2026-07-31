@@ -37,6 +37,8 @@ class PlayerDetailGuiTest extends MockBukkitTestBase {
 
         EnumMap<StatusType, StatusValue> values = new EnumMap<>(StatusType.class);
         values.put(StatusType.MAX_HEALTH, new StatusValue(100.0D, 5.0D));
+        values.put(StatusType.FIRE_RESISTANCE, new StatusValue(10.0D, 2.0D));
+        values.put(StatusType.BURNING_RESISTANCE, new StatusValue(15.0D, 3.0D));
         StatusSnapshot snapshot = new StatusSnapshot(values, 100.0D, 0.0D, 0.0D, 0.0D, 0L, LocalDateTime.now());
 
         new PlayerDetailGui(worldService).open(
@@ -54,6 +56,8 @@ class PlayerDetailGuiTest extends MockBukkitTestBase {
         Inventory inventory = player.getOpenInventory().getTopInventory();
         String headLore = plainLore(inventory.getItem(PlayerDetailGui.HEAD_SLOT));
         String statusLore = plainLore(inventory.getItem(PlayerDetailGui.RESOURCE_SLOT));
+        String elementLore = plainLore(inventory.getItem(PlayerDetailGui.ELEMENT_SLOT));
+        String conditionLore = plainLore(inventory.getItem(PlayerDetailGui.CONDITION_SLOT));
         String buffLore = plainLore(inventory.getItem(PlayerDetailGui.BUFF_SLOT));
         String classLore = plainLore(inventory.getItem(PlayerDetailGui.CLASS_SLOT));
 
@@ -66,6 +70,10 @@ class PlayerDetailGuiTest extends MockBukkitTestBase {
         assertTrue(statusLore.contains("105  (100 +5)"));
         assertFalse(statusLore.contains("基礎"));
         assertFalse(statusLore.contains("補正"));
+        assertTrue(elementLore.contains("火属性耐性"));
+        assertTrue(elementLore.contains("12.0%  (10.0% +2.0%)"));
+        assertTrue(conditionLore.contains("燃焼付与耐性"));
+        assertTrue(conditionLore.contains("18.0%  (15.0% +3.0%)"));
         assertTrue(buffLore.contains("クリックで詳細を表示"));
         assertTrue(classLore.contains("Adventurer Lv.10"));
         assertTrue(classLore.contains("Mage Lv.4"));

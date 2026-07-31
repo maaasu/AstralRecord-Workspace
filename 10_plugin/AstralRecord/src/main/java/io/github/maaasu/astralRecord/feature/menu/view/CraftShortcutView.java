@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;
 import io.github.maaasu.astralRecord.feature.menu.model.PlayerGuiRenderContext;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
+import io.github.maaasu.astralRecord.feature.status.model.StatusValue;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
@@ -26,6 +27,7 @@ import java.util.List;
 final class CraftShortcutView {
     static final int CRAFT_RESULT_RAW_SLOT = 0;
     static final int CRAFT_SHORTCUT_RAW_SLOT_START = 1;
+    private static final int MAX_STATUS_DETAILS = 8;
 
     private final NamespacedKey craftShortcutKey;
     private final NamespacedKey craftActionKey;
@@ -175,12 +177,25 @@ final class CraftShortcutView {
             .append(Component.text(" / PP: ", NamedTextColor.GRAY))
             .append(Component.text(String.valueOf(context.availablePassivePoints()), NamedTextColor.AQUA)));
         lore.add(Component.text("━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
-        if (!snapshot.getValues().isEmpty()) {
-            for (StatusType statusType : StatusType.values()) {
-                addStatusLine(lore, snapshot, statusType);
+        List<StatusType> changedStatusTypes = changedStatusTypes(snapshot);
+        if (!changedStatusTypes.isEmpty()) {
+            int visibleCount = Math.min(MAX_STATUS_DETAILS, changedStatusTypes.size());
+            for (int index = 0; index < visibleCount; index++) {
+                addStatusLine(lore, snapshot, changedStatusTypes.get(index));
+            }
+            if (changedStatusTypes.size() > MAX_STATUS_DETAILS) {
+                lore.add(Component.text(
+                    "… ほか" + (changedStatusTypes.size() - MAX_STATUS_DETAILS) + "件",
+                    NamedTextColor.DARK_GRAY
+                ));
             }
         } else {
-            lore.add(Component.text("ステータス未取得", NamedTextColor.DARK_GRAY));
+            lore.add(Component.text(
+                snapshot.getValues().isEmpty()
+                    ? "ステータス未取得"
+                    : "変更されたステータスはありません",
+                NamedTextColor.DARK_GRAY
+            ));
         }
         lore.add(Component.text("━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
         lore.add(MenuIconFactory.openHint());
@@ -213,13 +228,49 @@ final class CraftShortcutView {
         return itemStack;
     }
 
+    /**
+     * 指定ステータスの合計範囲をショートカット Lore へ追加します。
+     *
+     * @param lore 追加先の Lore
+     * @param snapshot 描画時点のステータス
+     * @param statusType 表示するステータス種別
+     */
     private void addStatusLine(
         @NotNull List<Component> lore,
         @NotNull StatusSnapshot snapshot,
         @NotNull StatusType statusType
     ) {
+        StatusValue value = snapshot.getValue(statusType);
+        if (value == null) {
+            return;
+        }
         lore.add(Component.text(statusType.getDisplayName() + ": ", statusType.namedColor())
-            .append(Component.text(statusType.formatValue(snapshot.getMaxValue(statusType)), NamedTextColor.WHITE)));
+            .append(Component.text(
+                statusType.formatRange(value.getMinValue(), value.getMaxValue()),
+                NamedTextColor.WHITE
+            )));
+    }
+
+    /**
+     * 基礎値から合計値が変化しているステータスをカタログ順で返します。
+     *
+     * @param snapshot 描画時点のステータス
+     * @return 基礎値と異なるステータス種別
+     */
+    private @NotNull List<StatusType> changedStatusTypes(@NotNull StatusSnapshot snapshot) {
+        List<StatusType> changed = new ArrayList<>();
+        for (StatusType statusType : StatusType.values()) {
+            StatusValue value = snapshot.getValue(statusType);
+            if (value == null) {
+                continue;
+            }
+            boolean minChanged = Double.compare(value.getMinValue(), value.getBaseMinValue()) != 0;
+            boolean maxChanged = Double.compare(value.getMaxValue(), value.getBaseMaxValue()) != 0;
+            if (minChanged || maxChanged) {
+                changed.add(statusType);
+            }
+        }
+        return List.copyOf(changed);
     }
 
     private void markCraftShortcutIcon(
