@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.mob.model;
 
+import io.github.maaasu.astralRecord.feature.status.model.ShieldRechargeState;
 import org.bukkit.Location;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -29,12 +30,13 @@ public final class MobInstance {
     private double maxHealth;
     private double currentHealth;
     private double currentShield;
+    private double shieldDisplayCapacity;
+    private ShieldRechargeState shieldRechargeState;
     private double outgoingDamageMultiplier = 1.0D;
     /** 検証用 Mob など、HP が 0 になっても死亡させない実行時フラグ。 */
     private boolean nonLethal;
     /** 描画範囲にプレイヤーがいなくても破棄しない実行時フラグ。 */
     private boolean keepWhenUnobserved;
-    private long lastShieldChangedAtMs;
     private MobState state = MobState.IDLE;
     private UUID targetId;
     private UUID lastAttackerUuid;
@@ -86,6 +88,7 @@ public final class MobInstance {
         this.maxHealth = Math.max(1.0D, template.statValue("MAX_HEALTH", 1.0D));
         this.currentHealth = maxHealth;
         this.currentShield = template.shield().active() ? template.shield().max() : 0.0D;
+        this.shieldDisplayCapacity = this.currentShield;
     }
 
     /** インスタンス ID を返します。 */
@@ -265,20 +268,88 @@ public final class MobInstance {
      * 現在シールド値を更新します。
      *
      * @param value 新しいシールド値
-     * @param currentTick 更新時点の Mob AI tick
+     * @param currentTimeMs 更新時刻。互換引数であり値は保持しない
      */
     public void currentShield(double value, long currentTimeMs) {
-        double max = template.shield().active() ? template.shield().max() : 0.0D;
-        double clamped = Math.max(0.0D, Math.min(value, max));
-        if (Double.compare(currentShield, clamped) != 0) {
-            lastShieldChangedAtMs = currentTimeMs;
-        }
-        this.currentShield = clamped;
+        this.currentShield = template.shield().active()
+                ? Math.clamp(value, 0.0D, Math.max(0.0D, shieldDisplayCapacity))
+                : 0.0D;
     }
 
-    /** 最後にシールド値が変動した Mob AI tick を返します。 */
-    public long lastShieldChangedAtMs() {
-        return lastShieldChangedAtMs;
+    /**
+     * 現在周期の通常シールドバーで満タンとして扱う値を返します。
+     *
+     * @return 0 以上の表示基準値
+     */
+    public double shieldDisplayCapacity() {
+        return shieldDisplayCapacity;
+    }
+
+    /**
+     * 現在のリチャージ状態を返します。
+     *
+     * @return リチャージ中の状態。通常時は {@code null}
+     */
+    public @Nullable ShieldRechargeState shieldRechargeState() {
+        return shieldRechargeState;
+    }
+
+    /**
+     * シールド破壊時点の時間を固定してリチャージを開始します。
+     *
+     * @param nowMs 開始時刻（epoch milliseconds）
+     * @param durationMs 短縮適用済みの待機ミリ秒
+     * @return リチャージを開始した場合は {@code true}
+     */
+    public boolean startShieldRecharge(long nowMs, long durationMs) {
+        if (!template.shield().rechargeable() || currentShield > 0.0D || shieldRechargeState != null) {
+            return false;
+        }
+        shieldRechargeState = new ShieldRechargeState(
+                nowMs,
+                saturatingAdd(nowMs, Math.max(0L, durationMs)),
+                template.shield().resolvedRechargeAmount()
+        );
+        return true;
+    }
+
+    /**
+     * 進行中のリチャージへ待機時間を追加します。
+     *
+     * @param additionalMs 短縮適用済みの追加ミリ秒
+     * @return リチャージ中に追加できた場合は {@code true}
+     */
+    public boolean extendShieldRecharge(long additionalMs) {
+        if (shieldRechargeState == null || additionalMs <= 0L) {
+            return false;
+        }
+        shieldRechargeState = shieldRechargeState.extendedBy(additionalMs);
+        return true;
+    }
+
+    /**
+     * 完了時刻を過ぎていれば設定量を一括回復し、通常シールドへ戻します。
+     *
+     * @param nowMs 判定時刻（epoch milliseconds）
+     * @return 今回完了した場合は {@code true}
+     */
+    public boolean completeShieldRechargeIfReady(long nowMs) {
+        ShieldRechargeState state = shieldRechargeState;
+        if (state == null || state.remainingMs(nowMs) > 0L) {
+            return false;
+        }
+        currentShield = Math.max(0.0D, state.rechargeAmount());
+        shieldDisplayCapacity = currentShield;
+        shieldRechargeState = null;
+        return true;
+    }
+
+    private long saturatingAdd(long left, long right) {
+        try {
+            return Math.addExact(left, right);
+        } catch (ArithmeticException ignored) {
+            return Long.MAX_VALUE;
+        }
     }
 
     /** 状態を返します。 */

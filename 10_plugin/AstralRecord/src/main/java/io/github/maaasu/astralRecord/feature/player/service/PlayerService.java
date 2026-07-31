@@ -331,6 +331,7 @@ public class PlayerService {
             );
             inventoryService.clearClickGuard(accountId);
         }
+        statusService.clearShieldRuntimeState(player.getUniqueId());
         AstPlayerCache.remove(player.getUniqueId());
     }
 

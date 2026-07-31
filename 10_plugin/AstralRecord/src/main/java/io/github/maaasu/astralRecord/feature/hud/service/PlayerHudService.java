@@ -324,7 +324,8 @@ public class PlayerHudService {
         playerHudView.renderActionBar(
             player,
             snapshot,
-            conditionService.getActiveConditions(AstEntity.player(astPlayer))
+            conditionService.getActiveConditions(AstEntity.player(astPlayer)),
+            statusService.getShieldRechargeState(astPlayer)
         );
     }
 

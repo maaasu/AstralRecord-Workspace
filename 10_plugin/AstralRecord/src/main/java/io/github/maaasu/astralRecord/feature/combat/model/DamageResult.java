@@ -4,6 +4,7 @@ package io.github.maaasu.astralRecord.feature.combat.model;
  * ダメージ計算結果を表します。
  *
  * @param finalDamage  HP に適用する最終ダメージ
+ * @param fixedHealthDamage {@code finalDamage} のうち防御・会心・各種倍率・ライフスティールを適用しない固定HPダメージ
  * @param shieldDamage シールドに適用するダメージ
  * @param shieldBroken この結果でシールドを破壊したか
  * @param critical     通常会心が成立したか
@@ -16,6 +17,7 @@ package io.github.maaasu.astralRecord.feature.combat.model;
  */
 public record DamageResult(
         double finalDamage,
+        double fixedHealthDamage,
         double shieldDamage,
         boolean shieldBroken,
         boolean critical,
@@ -29,6 +31,36 @@ public record DamageResult(
 
     public DamageResult {
         breakdown = breakdown == null ? DamageBreakdown.empty() : breakdown;
+    }
+
+    /**
+     * 固定HPダメージ成分を持たない従来形式の完全な計算結果を作成します。
+     *
+     * @param finalDamage HP に適用する最終ダメージ
+     * @param shieldDamage シールドに適用するダメージ
+     * @param shieldBroken シールドを破壊したか
+     * @param critical 通常会心が成立したか
+     * @param superStarCritical 超星会心が成立したか
+     * @param evaded 回避されたか
+     * @param hitChance 最終命中率
+     * @param accuracy 攻撃者命中率
+     * @param evasion 被弾者回避率
+     * @param breakdown 計算内訳
+     */
+    public DamageResult(
+            double finalDamage,
+            double shieldDamage,
+            boolean shieldBroken,
+            boolean critical,
+            boolean superStarCritical,
+            boolean evaded,
+            double hitChance,
+            double accuracy,
+            double evasion,
+            DamageBreakdown breakdown
+    ) {
+        this(finalDamage, 0.0D, shieldDamage, shieldBroken, critical, superStarCritical,
+                evaded, hitChance, accuracy, evasion, breakdown);
     }
 
     /**
@@ -276,6 +308,30 @@ public record DamageResult(
     public DamageResult withFinalDamage(double newFinalDamage) {
         return new DamageResult(
                 newFinalDamage,
+                fixedHealthDamage,
+                shieldDamage,
+                shieldBroken,
+                critical,
+                superStarCritical,
+                evaded,
+                hitChance,
+                accuracy,
+                evasion,
+                breakdown
+        );
+    }
+
+    /**
+     * 通常ダメージと分離した固定HPダメージを加算します。
+     *
+     * @param amount 加算する固定HPダメージ
+     * @return 合計HPダメージと固定成分を保持した結果
+     */
+    public DamageResult withAddedFixedHealthDamage(double amount) {
+        double applied = Math.max(0.0D, amount);
+        return new DamageResult(
+                finalDamage + applied,
+                fixedHealthDamage + applied,
                 shieldDamage,
                 shieldBroken,
                 critical,

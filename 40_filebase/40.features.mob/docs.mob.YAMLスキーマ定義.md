@@ -53,6 +53,8 @@ Mob に HP より先に消費されるシールドを持たせる場合だけ定
 |:-----------------|:-------|:--:|:------|:-------------------------|
 | `shield.enabled` | Boolean | ×  | false | シールドを有効化するか。           |
 | `shield.max`     | Double  | ×  | 0     | 最大シールド値。`enabled: true` の場合に使用。 |
+| `shield.rechargeTimeSeconds` | Double | × | Null | シールド破壊から一括回復までの基礎秒数。未設定時はリチャージしない。 |
+| `shield.rechargeAmount` | Double | × | `shield.max` | リチャージ完了時のシールド値。`shield.max` を超える値も許可し、次周期の表示上限にも使用する。 |
 
 ### variant（見た目差分固定設定）
 
@@ -146,6 +148,8 @@ tags:
 shield:
   enabled: true
   max: 3
+  rechargeTimeSeconds: 15
+  rechargeAmount: 5
 
 equipment:
   mainHand: IRON_SWORD

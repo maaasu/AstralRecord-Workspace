@@ -6,9 +6,11 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
+import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -27,6 +29,9 @@ class StatusServiceConditionTest {
     @Test
     void healingInhibitionBlocksNormalRecoveryButRestoreAllRemainsAdministrativeException() {
         AstPlayer player = mock(AstPlayer.class);
+        Player bukkitPlayer = mock(Player.class);
+        when(bukkitPlayer.getUniqueId()).thenReturn(UUID.fromString("00000000-0000-0000-0000-000000000001"));
+        when(player.getBukkit()).thenReturn(bukkitPlayer);
         StatusSnapshot snapshot = DesignTestFixtures.statusSnapshot(Map.of(
             StatusType.MAX_HEALTH, 100.0D,
             StatusType.MAX_MANA, 50.0D,

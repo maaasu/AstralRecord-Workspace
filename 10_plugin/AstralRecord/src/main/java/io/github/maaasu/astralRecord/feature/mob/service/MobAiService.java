@@ -75,7 +75,6 @@ public class MobAiService {
     private static final double DIRECT_STRAFE_VELOCITY = 0.16D;
     private static final long STRAFE_DIRECTION_INTERVAL_TICKS = 40L;
     private static final double STATIONARY_LOOK_RANGE_SQ = 64.0D * 64.0D;
-    private static final long SHIELD_RECHARGE_BASE_DELAY_MS = 10_000L;
     private static final String PARAM_ACTIVATION_RANGE = "activationRange";
     private static final String PARAM_HIT_RANGE = "hitRange";
 
@@ -176,6 +175,7 @@ public class MobAiService {
                         mobService.destroy(instance.instanceId());
                         continue;
                     }
+                    instance.completeShieldRechargeIfReady(System.currentTimeMillis());
                     if (conditionService != null
                             && !conditionService.canRunAi(AstEntity.mob(instance))) {
                         mobService.stopPathfinding(instance);
@@ -190,7 +190,6 @@ public class MobAiService {
                     if (internalTick % THREAT_DECAY_INTERVAL_TICKS == 0L) {
                         instance.threatTable().decay(THREAT_DECAY_PER_TICK);
                     }
-                    rechargeShield(instance);
 
                     if (instance.state() != MobState.DEAD && isLeashed(instance)) {
                         instance.state(MobState.LEASHED);
@@ -693,24 +692,6 @@ public class MobAiService {
             return true;
         }
         return Math.floorMod(instance.instanceId().hashCode() + internalTick, interval) == 0L;
-    }
-
-    private void rechargeShield(@NotNull MobInstance instance) {
-        if (!instance.template().shield().active() || instance.currentShield() >= instance.template().shield().max()) {
-            return;
-        }
-        double reduction = Math.clamp(
-                instance.template().statValue(StatusType.SHIELD_RECHARGE_REDUCTION.name(), 0.0D),
-                0.0D,
-                95.0D
-        );
-        long delayMs = Math.max(500L, Math.round(SHIELD_RECHARGE_BASE_DELAY_MS * (1.0D - reduction / 100.0D)));
-        long nowMs = System.currentTimeMillis();
-        if (nowMs - instance.lastShieldChangedAtMs() < delayMs) {
-            return;
-        }
-        double amount = 1.0D + instance.template().statValue(StatusType.SHIELD_RECHARGE_RATE.name(), 0.0D);
-        instance.currentShield(instance.currentShield() + amount, nowMs);
     }
 
     private void spawnBlockNpcParticles(@NotNull MobInstance instance) {

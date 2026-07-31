@@ -132,6 +132,10 @@ public class MobShieldResponse
     public bool Enabled { get; init; }
 
     public double Max { get; init; }
+
+    public double? RechargeTimeSeconds { get; init; }
+
+    public double? RechargeAmount { get; init; }
 }
 
 /// <summary>Mob の AI 設定。</summary>

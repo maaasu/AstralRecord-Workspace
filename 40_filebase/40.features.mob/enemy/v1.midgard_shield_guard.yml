@@ -41,6 +41,7 @@ baseStats:
 shield:
   enabled: true
   max: 10
+  rechargeTimeSeconds: 15
 
 ai:
   idle:

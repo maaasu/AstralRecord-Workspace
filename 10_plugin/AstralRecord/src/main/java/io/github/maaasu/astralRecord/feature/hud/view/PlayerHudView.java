@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.condition.model.ActiveCondition;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
+import io.github.maaasu.astralRecord.feature.status.model.ShieldRechargeState;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import net.kyori.adventure.text.Component;
@@ -34,7 +35,7 @@ public class PlayerHudView {
     private static final String SIDEBAR_BAR_CHAR = "|";
 
     public void renderActionBar(Player player, StatusSnapshot snapshot) {
-        renderActionBar(player, snapshot, List.of());
+        renderActionBar(player, snapshot, List.of(), null);
     }
 
     /**
@@ -49,6 +50,23 @@ public class PlayerHudView {
         StatusSnapshot snapshot,
         Collection<ActiveCondition> activeConditions
     ) {
+        renderActionBar(player, snapshot, activeConditions, null);
+    }
+
+    /**
+     * 通常リソース・状態異常・シールドリチャージ残り時間を同じアクションバーへ描画します。
+     *
+     * @param player 対象プレイヤー
+     * @param snapshot 現在のステータス
+     * @param activeConditions 現在有効な状態異常
+     * @param shieldRechargeState シールドリチャージ状態。通常時は {@code null}
+     */
+    public void renderActionBar(
+        Player player,
+        StatusSnapshot snapshot,
+        Collection<ActiveCondition> activeConditions,
+        ShieldRechargeState shieldRechargeState
+    ) {
         double maxHp = snapshot.getMaxValue(StatusType.MAX_HEALTH);
         double maxMp = snapshot.getMaxValue(StatusType.MAX_MANA);
         double maxEnergy = snapshot.getMaxValue(StatusType.MAX_ENERGY);
@@ -58,7 +76,7 @@ public class PlayerHudView {
             .append(statText("MP", snapshot.getCurrentMp(), maxMp, NamedTextColor.AQUA))
             .append(Component.text("  ", NamedTextColor.DARK_GRAY))
             .append(statText("ENG", snapshot.getCurrentEnergy(), maxEnergy, NamedTextColor.YELLOW))
-            .append(shieldActionText(snapshot))
+            .append(shieldActionText(snapshot, shieldRechargeState))
             .append(conditionActionText(activeConditions)));
     }
 
@@ -389,10 +407,15 @@ public class PlayerHudView {
             .append(Component.text(String.format("%.0f", max), NamedTextColor.GRAY));
     }
 
-    private Component shieldActionText(StatusSnapshot snapshot) {
+    private Component shieldActionText(StatusSnapshot snapshot, ShieldRechargeState rechargeState) {
         double maxShield = snapshot.getMaxValue(StatusType.MAX_SHIELD);
         if (maxShield <= 0.0D) {
             return Component.empty();
+        }
+        if (rechargeState != null) {
+            double remainingSeconds = rechargeState.remainingMs(System.currentTimeMillis()) / 1000.0D;
+            return Component.text("  SH RC ", NamedTextColor.GOLD, TextDecoration.BOLD)
+                .append(Component.text(String.format("%.1fs", remainingSeconds), NamedTextColor.WHITE));
         }
         return Component.text("  ", NamedTextColor.DARK_GRAY)
             .append(statText("SH", snapshot.getCurrentShield(), maxShield, NamedTextColor.BLUE));

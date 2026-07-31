@@ -54,6 +54,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * custom combat のダメージ適用を一元化するサービスです。
@@ -395,7 +396,7 @@ public final class DamageService {
             damage = Math.min(damage, Math.max(0.0D, victim.currentHealth() - 1.0D));
         }
 
-        DamageResult result = applyShieldDamage(attacker, victim, new DamageResult(damage, false));
+        DamageResult result = new DamageResult(damage, false);
         applyDamageResult(attacker, victim, result, AttackType.MAGIC, false);
         spawnDamageDisplay(attacker, victim, result);
         return result;
@@ -522,7 +523,18 @@ public final class DamageService {
         Location superStarOrigin = shouldSpawnSuperStarCriticalProjectiles(attacker, victim, calculated, superStarCriticalMode)
                 ? damageOrigin(victim)
                 : null;
+        long rechargeEventAtMs = System.currentTimeMillis();
+        completeShieldRechargeIfReady(victim, rechargeEventAtMs);
+        boolean shieldWasActive = hasActiveShield(victim);
         DamageResult result = applyShieldDamage(attacker, victim, calculated);
+        if (!shieldWasActive && isDirectDamage(source) && !result.evaded()) {
+            result = result.withAddedFixedHealthDamage(fixedHealthDamage(attacker));
+        }
+        if (result.shieldBroken()) {
+            startShieldRecharge(victim, rechargeEventAtMs);
+        }
+        applyShieldRechargeDelay(attacker, victim, result, source);
+        completeShieldRechargeIfReady(victim, rechargeEventAtMs);
         playCriticalHitEffect(victim, result);
         boolean projectileDamage = superStarCriticalMode == SuperStarCriticalMode.FORCE;
         applyDamageResult(attacker, victim, result, attackType, !projectileDamage);
@@ -748,9 +760,12 @@ public final class DamageService {
 
         if (victim.isPlayer()) {
             if (victim.player() != null) {
-                double effectiveHealthDamage = Math.min(victim.currentHealth(), result.finalDamage());
+                double effectiveLifeStealDamage = Math.min(
+                        victim.currentHealth(),
+                        Math.max(0.0D, result.finalDamage() - result.fixedHealthDamage())
+                );
                 var updated = statusService.consumeHp(victim.player(), result.finalDamage());
-                applyLifeSteal(attacker, effectiveHealthDamage);
+                applyLifeSteal(attacker, effectiveLifeStealDamage);
                 playPlayerHurtEffect(
                         victim.player().getBukkit(),
                         result.critical() || result.superStarCritical()
@@ -779,11 +794,17 @@ public final class DamageService {
         double effectiveHealthDamage = mob.nonLethal()
                 ? Math.min(Math.max(0.0D, healthBefore - 1.0D), result.finalDamage())
                 : Math.min(healthBefore, result.finalDamage());
+        double effectiveLifeStealDamage = mob.nonLethal()
+                ? Math.min(
+                        Math.max(0.0D, healthBefore - 1.0D),
+                        Math.max(0.0D, result.finalDamage() - result.fixedHealthDamage())
+                )
+                : Math.min(healthBefore, Math.max(0.0D, result.finalDamage() - result.fixedHealthDamage()));
         double remainingHealth = healthBefore - result.finalDamage();
         mob.currentHealth(mob.nonLethal()
                 ? Math.max(1.0D, remainingHealth)
                 : Math.max(0.0D, remainingHealth));
-        applyLifeSteal(attacker, effectiveHealthDamage);
+        applyLifeSteal(attacker, effectiveLifeStealDamage);
         playMobHurtEffect(mob.bukkitEntityId(), result.critical() || result.superStarCritical());
         if (knockback) {
             applyDamageKnockback(attacker, victim, attackType);
@@ -1084,6 +1105,107 @@ public final class DamageService {
         return maxShield(victim) > 0.0D && currentShield(victim) > 0.0D;
     }
 
+    private boolean isDirectDamage(@NotNull DamageSource source) {
+        return source == DamageSource.NORMAL_ATTACK || source == DamageSource.SKILL;
+    }
+
+    private double fixedHealthDamage(@Nullable AstEntity attacker) {
+        return attacker == null || !attacker.isManaged()
+                ? 0.0D
+                : Math.max(0.0D, attacker.statValue(StatusType.FIXED_HEALTH_DAMAGE));
+    }
+
+    private void startShieldRecharge(@NotNull AstEntity victim, long nowMs) {
+        if (victim.isPlayer() && victim.player() != null) {
+            statusService.startShieldRecharge(victim.player(), nowMs);
+            return;
+        }
+        if (!victim.isMob() || victim.mob() == null || !victim.mob().template().shield().rechargeable()) {
+            return;
+        }
+        double baseSeconds = Math.max(0.0D, victim.mob().template().shield().rechargeTimeSeconds());
+        long durationMs = reducedDurationMs(
+                baseSeconds * 1000.0D,
+                victim.statValue(StatusType.SHIELD_RECHARGE_REDUCTION)
+        );
+        victim.mob().startShieldRecharge(nowMs, durationMs);
+    }
+
+    private void applyShieldRechargeDelay(
+            @Nullable AstEntity attacker,
+            @NotNull AstEntity victim,
+            @NotNull DamageResult result,
+            @NotNull DamageSource source
+    ) {
+        if (attacker == null || !attacker.isManaged() || !isDirectDamage(source) || result.evaded()) {
+            return;
+        }
+        boolean eligibleHit = result.shieldBroken() || effectiveHealthDamage(victim, result) > 0.0D;
+        if (!eligibleHit || !isShieldRecharging(victim)) {
+            return;
+        }
+        double chance = attacker.statValue(StatusType.SHIELD_RECHARGE_DELAY_CHANCE);
+        if (chance <= 0.0D
+                || (chance < 100.0D && ThreadLocalRandom.current().nextDouble(100.0D) >= chance)) {
+            return;
+        }
+        double rawSeconds = Math.max(0.0D, attacker.statValue(StatusType.SHIELD_RECHARGE_DELAY_SECONDS));
+        if (rawSeconds <= 0.0D) {
+            return;
+        }
+        if (victim.isPlayer() && victim.player() != null) {
+            statusService.extendShieldRecharge(victim.player(), rawSeconds);
+            return;
+        }
+        if (victim.isMob() && victim.mob() != null) {
+            long additionalMs = reducedDurationMs(
+                    rawSeconds * 1000.0D,
+                    victim.statValue(StatusType.SHIELD_RECHARGE_REDUCTION)
+            );
+            victim.mob().extendShieldRecharge(additionalMs);
+        }
+    }
+
+    private boolean isShieldRecharging(@NotNull AstEntity victim) {
+        if (victim.isPlayer() && victim.player() != null) {
+            return statusService.getShieldRechargeState(victim.player()) != null;
+        }
+        return victim.isMob() && victim.mob() != null && victim.mob().shieldRechargeState() != null;
+    }
+
+    private double effectiveHealthDamage(@NotNull AstEntity victim, @NotNull DamageResult result) {
+        if (result.finalDamage() <= 0.0D) {
+            return 0.0D;
+        }
+        if (victim.isPlayer()) {
+            return Math.min(Math.max(0.0D, victim.currentHealth()), result.finalDamage());
+        }
+        if (victim.isMob() && victim.mob() != null) {
+            double minimumHealth = victim.mob().nonLethal() ? 1.0D : 0.0D;
+            return Math.min(
+                    Math.max(0.0D, victim.mob().currentHealth() - minimumHealth),
+                    result.finalDamage()
+            );
+        }
+        return 0.0D;
+    }
+
+    private void completeShieldRechargeIfReady(@NotNull AstEntity victim, long nowMs) {
+        if (victim.isPlayer() && victim.player() != null) {
+            statusService.completeShieldRechargeIfReady(victim.player(), nowMs);
+            return;
+        }
+        if (victim.isMob() && victim.mob() != null) {
+            victim.mob().completeShieldRechargeIfReady(nowMs);
+        }
+    }
+
+    private long reducedDurationMs(double rawDurationMs, double reductionPercent) {
+        double reduction = Math.clamp(reductionPercent, 0.0D, 100.0D);
+        double reduced = Math.max(0.0D, rawDurationMs) * (1.0D - reduction / 100.0D);
+        return reduced >= Long.MAX_VALUE ? Long.MAX_VALUE : Math.max(0L, Math.round(reduced));
+    }
+
     private double currentShield(@NotNull AstEntity victim) {
         if (victim.isPlayer() && victim.player() != null) {
             return statusService.getStatus(victim.player()).getCurrentShield();
@@ -1099,7 +1221,7 @@ public final class DamageService {
             return statusService.getStatus(victim.player()).getMaxValue(StatusType.MAX_SHIELD);
         }
         if (victim.isMob() && victim.mob() != null && victim.mob().template().shield().active()) {
-            return victim.mob().template().shield().max();
+            return victim.mob().shieldDisplayCapacity();
         }
         return 0.0D;
     }

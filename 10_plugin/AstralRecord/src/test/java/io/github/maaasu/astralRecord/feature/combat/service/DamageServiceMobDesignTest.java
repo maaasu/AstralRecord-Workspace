@@ -208,6 +208,179 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
+     * 検証契約: 直接攻撃のHP固定damageを通常damageへ加算し、life stealの算出元から除外する。
+     */
+    @Test
+    void directAttackAddsFixedHealthDamageWithoutLifeSteal() {
+        DamageHarness harness = damageHarness();
+        AstPlayer attacker = attacker();
+        attacker.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.MAX_HEALTH, 100.0D,
+            StatusType.ATTACK, 10.0D,
+            StatusType.ACCURACY, 100.0D,
+            StatusType.FINAL_DAMAGE_MULTIPLIER, 100.0D,
+            StatusType.FIXED_HEALTH_DAMAGE, 7.0D,
+            StatusType.LIFE_STEAL, 50.0D
+        ), 50.0D, 0.0D, 0.0D));
+        MobInstance mob = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D);
+        when(harness.statusService.getStatus(attacker)).thenReturn(attacker.getStatusSnapshot());
+
+        DamageResult result = harness.service.attack(
+            AstEntity.player(attacker),
+            AstEntity.mob(mob),
+            AttackType.MELEE
+        );
+
+        assertEquals(17.0D, result.finalDamage(), 0.0001D);
+        assertEquals(7.0D, result.fixedHealthDamage(), 0.0001D);
+        assertEquals(83.0D, mob.currentHealth(), 0.0001D);
+        verify(harness.statusService).recoverHp(attacker, 5.0D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 9. result 反映（内部）
+     * 検証契約: shield破壊hitでは固定HP damageを遮断し、recharge開始後に同hitの延長抽選を適用する。
+     */
+    @Test
+    void shieldBreakBlocksFixedDamageAndStartsThenExtendsRecharge() {
+        DamageHarness harness = damageHarness();
+        AstPlayer attacker = attacker();
+        attacker.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.MAX_HEALTH, 100.0D,
+            StatusType.ATTACK, 50.0D,
+            StatusType.ACCURACY, 100.0D,
+            StatusType.FINAL_DAMAGE_MULTIPLIER, 100.0D,
+            StatusType.FIXED_HEALTH_DAMAGE, 20.0D,
+            StatusType.SHIELD_RECHARGE_DELAY_CHANCE, 100.0D,
+            StatusType.SHIELD_RECHARGE_DELAY_SECONDS, 10.0D
+        ), 100.0D, 0.0D, 0.0D));
+        MobInstance mob = DesignTestFixtures.mobInstance(
+            100.0D,
+            0.0D,
+            0.0D,
+            new MobShieldConfig(true, 3.0D, 20.0D, 50.0D)
+        );
+        when(harness.statusService.getStatus(attacker)).thenReturn(attacker.getStatusSnapshot());
+
+        DamageResult result = harness.service.attack(
+            AstEntity.player(attacker),
+            AstEntity.mob(mob),
+            AttackType.MELEE
+        );
+
+        assertEquals(0.0D, result.finalDamage(), 0.0001D);
+        assertEquals(0.0D, result.fixedHealthDamage(), 0.0001D);
+        assertEquals(100.0D, mob.currentHealth(), 0.0001D);
+        assertEquals(30_000L,
+            mob.shieldRechargeState().completesAtMs() - mob.shieldRechargeState().startedAtMs());
+        assertEquals(50.0D, mob.shieldRechargeState().rechargeAmount(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
+     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### Shield リチャージ
+     * 検証契約: 攻撃処理開始時に期限到来済みリチャージを確定し、回復済みshieldへ同hitを適用する。
+     */
+    @Test
+    void expiredRechargeCompletesBeforeTheIncomingHit() {
+        DamageHarness harness = damageHarness();
+        AstPlayer attacker = attacker();
+        attacker.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.MAX_HEALTH, 100.0D,
+            StatusType.ATTACK, 50.0D,
+            StatusType.ACCURACY, 100.0D,
+            StatusType.FINAL_DAMAGE_MULTIPLIER, 100.0D
+        ), 100.0D, 0.0D, 0.0D));
+        MobInstance mob = DesignTestFixtures.mobInstance(
+            100.0D,
+            0.0D,
+            0.0D,
+            new MobShieldConfig(true, 3.0D, 20.0D, 3.0D)
+        );
+        mob.currentShield(0.0D, 0L);
+        mob.startShieldRecharge(0L, 0L);
+        when(harness.statusService.getStatus(attacker)).thenReturn(attacker.getStatusSnapshot());
+
+        DamageResult result = harness.service.attack(
+            AstEntity.player(attacker),
+            AstEntity.mob(mob),
+            AttackType.MELEE
+        );
+
+        assertEquals(3.0D, result.shieldDamage(), 0.0001D);
+        assertEquals(0.0D, result.finalDamage(), 0.0001D);
+        assertEquals(100.0D, mob.currentHealth(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 9. result 反映（内部）
+     * 検証契約: HP1のnonLethal Mobへ実HP damageがないhitでは進行中リチャージを延長しない。
+     */
+    @Test
+    void nonLethalMobAtOneHealthDoesNotExtendRechargeWithoutEffectiveHealthDamage() {
+        DamageHarness harness = damageHarness();
+        AstPlayer attacker = attacker();
+        attacker.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.MAX_HEALTH, 100.0D,
+            StatusType.ATTACK, 10.0D,
+            StatusType.ACCURACY, 100.0D,
+            StatusType.FINAL_DAMAGE_MULTIPLIER, 100.0D,
+            StatusType.SHIELD_RECHARGE_DELAY_CHANCE, 100.0D,
+            StatusType.SHIELD_RECHARGE_DELAY_SECONDS, 10.0D
+        ), 100.0D, 0.0D, 0.0D));
+        MobInstance mob = DesignTestFixtures.mobInstance(
+            100.0D,
+            0.0D,
+            0.0D,
+            new MobShieldConfig(true, 3.0D, 60.0D, 3.0D)
+        );
+        mob.nonLethal(true);
+        mob.currentHealth(1.0D);
+        long nowMs = System.currentTimeMillis();
+        mob.currentShield(0.0D, nowMs);
+        mob.startShieldRecharge(nowMs, 60_000L);
+        long completesAtMs = mob.shieldRechargeState().completesAtMs();
+        when(harness.statusService.getStatus(attacker)).thenReturn(attacker.getStatusSnapshot());
+
+        harness.service.attack(AstEntity.player(attacker), AstEntity.mob(mob), AttackType.MELEE);
+
+        assertEquals(1.0D, mob.currentHealth(), 0.0001D);
+        assertEquals(completesAtMs, mob.shieldRechargeState().completesAtMs());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 7. condition damage
+     * 検証契約: condition DoTは有効shieldを参照・消費せずHPへ直通する。
+     */
+    @Test
+    void conditionDamageBypassesActiveShield() {
+        DamageHarness harness = damageHarness();
+        MobInstance mob = DesignTestFixtures.mobInstance(
+            100.0D,
+            0.0D,
+            0.0D,
+            new MobShieldConfig(true, 3.0D)
+        );
+
+        DamageResult result = harness.service.applyConditionDamage(
+            null,
+            AstEntity.mob(mob),
+            5.0D,
+            ConditionType.BURNING
+        );
+
+        assertEquals(5.0D, result.finalDamage(), 0.0001D);
+        assertEquals(3.0D, mob.currentShield(), 0.0001D);
+        assertEquals(95.0D, mob.currentHealth(), 0.0001D);
+        assertEquals(null, mob.shieldRechargeState());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
      * 章・見出し: # 14_3-サービス > ## 9. result 反映（内部）
      * 検証契約: 正の微小damageでもshieldを最低1消費しshield particleをbatch表示する。
      */

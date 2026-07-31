@@ -21,7 +21,7 @@ class LevelDifferenceCalculatorTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
-     * 章・見出し: # 14_3-サービス > ## 10. level difference
+     * 章・見出し: # 14_3-サービス > ## 11. level difference
      * 検証契約: 正の基礎EXPはlevel差補正後も最低1を返す。
      */
     @Test

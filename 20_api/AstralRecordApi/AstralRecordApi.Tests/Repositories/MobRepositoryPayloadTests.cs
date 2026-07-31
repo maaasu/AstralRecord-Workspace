@@ -1,6 +1,11 @@
+using AstralRecordApi.Data;
 using AstralRecordApi.Models;
 using AstralRecordApi.Repositories;
+using AstralRecordApi.Tests.TestSupport;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Xunit;
 
@@ -8,6 +13,43 @@ namespace AstralRecordApi.Tests.Repositories;
 
 public class MobRepositoryPayloadTests
 {
+    [Fact]
+    public async Task GetById_FromShieldGuardYaml_PreservesMissingRechargeAmount()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<MasterDataDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var setupContext = new MasterDataDbContext(options))
+        {
+            await MasterDataTestSeed.CreateSchemaAsync(setupContext);
+            await MasterDataTestSeed.SeedEntryAsync(
+                setupContext,
+                Path.Combine(
+                    ResolveWorkspaceRoot(),
+                    "40_filebase",
+                    "40.features.mob",
+                    "enemy",
+                    "v1.midgard_shield_guard.yml"),
+                "mob.enemy",
+                "ENEMY");
+        }
+
+        await using var dbContext = new MasterDataDbContext(options);
+        var repository = new MobRepository(dbContext);
+
+        var mob = repository.GetById("midgard_shield_guard");
+
+        Assert.NotNull(mob?.Shield);
+        Assert.True(mob!.Shield!.Enabled);
+        Assert.Equal(10.0D, mob.Shield.Max);
+        Assert.Equal(15.0D, mob.Shield.RechargeTimeSeconds);
+        Assert.Null(mob.Shield.RechargeAmount);
+    }
+
     [Fact]
     public void DeserializeLiteralJson_PopulatesShield()
     {
@@ -24,7 +66,9 @@ public class MobRepositoryPayloadTests
               ],
               "shield": {
                 "enabled": true,
-                "max": 10
+                "max": 10,
+                "rechargeTimeSeconds": 15,
+                "rechargeAmount": 25
               },
               "ai": {
                 "idle": { "behavior": "WANDER" },
@@ -40,6 +84,8 @@ public class MobRepositoryPayloadTests
         Assert.NotNull(mob!.Shield);
         Assert.True(mob.Shield!.Enabled);
         Assert.Equal(10.0D, mob.Shield.Max);
+        Assert.Equal(15.0D, mob.Shield.RechargeTimeSeconds);
+        Assert.Equal(25.0D, mob.Shield.RechargeAmount);
         Assert.NotNull(mob.Ai?.Targeting);
         Assert.True(mob.Ai.Targeting.RetaliateOnly);
     }
@@ -132,5 +178,22 @@ public class MobRepositoryPayloadTests
         return (JsonSerializerOptions)payloadType
             .GetField("Options", BindingFlags.Public | BindingFlags.Static)!
             .GetValue(null)!;
+    }
+
+    private static string ResolveWorkspaceRoot([CallerFilePath] string currentFile = "")
+    {
+        var current = new FileInfo(currentFile).Directory;
+        while (current is not null)
+        {
+            if (Directory.Exists(Path.Combine(current.FullName, "40_filebase"))
+                && Directory.Exists(Path.Combine(current.FullName, "20_api")))
+            {
+                return current.FullName;
+            }
+
+            current = current.Parent;
+        }
+
+        throw new InvalidOperationException("workspace root could not be resolved from the test source path.");
     }
 }

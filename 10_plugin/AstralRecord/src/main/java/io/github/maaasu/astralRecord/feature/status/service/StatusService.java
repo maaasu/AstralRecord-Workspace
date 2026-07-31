@@ -27,6 +27,7 @@ import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusDefaults;
+import io.github.maaasu.astralRecord.feature.status.model.ShieldRechargeState;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusValue;
@@ -46,6 +47,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
 
 /**
  * ステータス機能のビジネスロジックを担うサービスクラスです。
@@ -66,6 +68,8 @@ public class StatusService {
     private static final double AGILITY_MOVEMENT_SPEED_PER_POINT = 1.0D;
     private static final double AGILITY_EVASION_PER_POINT = 0.1D;
     private static final double LUCK_CRITICAL_RATE_PER_POINT = 0.1D;
+    /** プレイヤーシールドの既定リチャージ秒数です。 */
+    public static final double PLAYER_SHIELD_RECHARGE_SECONDS = 30.0D;
 
     private final BuffService buffService;
     private final ItemService itemService;
@@ -75,6 +79,8 @@ public class StatusService {
     private PassiveSkillService passiveSkillService;
     private PlayerClassService playerClassService;
     private ConditionService conditionService;
+    private final Map<UUID, ShieldRechargeState> shieldRechargeStates = new HashMap<>();
+    private final Map<UUID, Double> shieldDisplayCapacities = new HashMap<>();
 
     public StatusService() {
         this(null, null);
@@ -126,6 +132,7 @@ public class StatusService {
 
     /**
      * プレイヤーのステータスを再計算し、{@link AstPlayer} に反映します。
+     * セッション中に最大シールドが 0 から正数へ変化した場合は、即時回復せずリチャージを開始します。
      *
      * @param player 対象プレイヤー
      * @return 再計算後のステータススナップショット
@@ -151,6 +158,18 @@ public class StatusService {
         }
 
         player.setStatusSnapshot(merged);
+        UUID playerId = player.getBukkit().getUniqueId();
+        double maxShield = merged.getMaxValue(StatusType.MAX_SHIELD);
+        if (previous.getValues().isEmpty()) {
+            clearShieldRecharge(player);
+            shieldDisplayCapacities.put(playerId, maxShield);
+        } else if (maxShield <= 0.0D) {
+            clearShieldRuntimeState(playerId);
+        } else if (previous.getMaxValue(StatusType.MAX_SHIELD) <= 0.0D) {
+            clearShieldRuntimeState(playerId);
+            shieldDisplayCapacities.put(playerId, maxShield);
+            startShieldRecharge(player, merged, System.currentTimeMillis());
+        }
         if (inventoryService != null) {
             inventoryService.applyBagSlotCapacity(player, merged.getMaxValue(StatusType.INVENTORY_SLOTS));
         }
@@ -266,6 +285,137 @@ public class StatusService {
         StatusSnapshot updated = snapshot.withCurrentShield(snapshot.getCurrentShield() - amount);
         player.setStatusSnapshot(updated);
         return updated;
+    }
+
+    /**
+     * シールド破壊時点の短縮率を固定し、プレイヤーのリチャージを開始します。
+     *
+     * @param player 対象プレイヤー
+     * @param nowMs 破壊時刻（epoch milliseconds）
+     * @return 開始後の状態。シールドを持たない場合は {@code null}
+     */
+    public @Nullable ShieldRechargeState startShieldRecharge(@NotNull AstPlayer player, long nowMs) {
+        return startShieldRecharge(player, getStatus(player), nowMs);
+    }
+
+    private @Nullable ShieldRechargeState startShieldRecharge(
+            @NotNull AstPlayer player,
+            @NotNull StatusSnapshot snapshot,
+            long nowMs
+    ) {
+        double maxShield = snapshot.getMaxValue(StatusType.MAX_SHIELD);
+        if (maxShield <= 0.0D || snapshot.getCurrentShield() > 0.0D) {
+            return null;
+        }
+        UUID playerId = player.getBukkit().getUniqueId();
+        ShieldRechargeState existing = shieldRechargeStates.get(playerId);
+        if (existing != null) {
+            return existing;
+        }
+        long durationMs = reducedDurationMs(
+            PLAYER_SHIELD_RECHARGE_SECONDS * 1000.0D,
+            snapshot.rollValue(StatusType.SHIELD_RECHARGE_REDUCTION)
+        );
+        ShieldRechargeState state = new ShieldRechargeState(
+            nowMs,
+            saturatingAdd(nowMs, durationMs),
+            maxShield
+        );
+        shieldRechargeStates.put(playerId, state);
+        return state;
+    }
+
+    /**
+     * 現在の被ダメージ側短縮率を使い、進行中リチャージへ秒数を追加します。
+     *
+     * @param player 対象プレイヤー
+     * @param rawSeconds 攻撃者ステータス由来の基礎追加秒数
+     * @return 正の時間を追加できた場合は {@code true}
+     */
+    public boolean extendShieldRecharge(@NotNull AstPlayer player, double rawSeconds) {
+        UUID playerId = player.getBukkit().getUniqueId();
+        ShieldRechargeState state = shieldRechargeStates.get(playerId);
+        if (state == null || rawSeconds <= 0.0D) {
+            return false;
+        }
+        StatusSnapshot snapshot = getStatus(player);
+        long additionalMs = reducedDurationMs(
+            rawSeconds * 1000.0D,
+            snapshot.rollValue(StatusType.SHIELD_RECHARGE_REDUCTION)
+        );
+        if (additionalMs <= 0L) {
+            return false;
+        }
+        shieldRechargeStates.put(playerId, state.extendedBy(additionalMs));
+        return true;
+    }
+
+    /**
+     * 完了時刻を過ぎていれば、回復阻害とは独立してシールドを一括復元します。
+     *
+     * @param player 対象プレイヤー
+     * @param nowMs 判定時刻（epoch milliseconds）
+     * @return 今回完了した場合は {@code true}
+     */
+    public boolean completeShieldRechargeIfReady(@NotNull AstPlayer player, long nowMs) {
+        UUID playerId = player.getBukkit().getUniqueId();
+        ShieldRechargeState state = shieldRechargeStates.get(playerId);
+        if (state == null || state.remainingMs(nowMs) > 0L) {
+            return false;
+        }
+        StatusSnapshot snapshot = getStatus(player);
+        double maxShield = snapshot.getMaxValue(StatusType.MAX_SHIELD);
+        if (maxShield <= 0.0D) {
+            clearShieldRuntimeState(playerId);
+            return false;
+        }
+        StatusSnapshot updated = snapshot.withCurrentShield(maxShield);
+        player.setStatusSnapshot(updated);
+        shieldDisplayCapacities.put(playerId, maxShield);
+        shieldRechargeStates.remove(playerId);
+        return true;
+    }
+
+    /**
+     * プレイヤーの現在のリチャージ状態を返します。
+     *
+     * @param player 対象プレイヤー
+     * @return リチャージ中の状態。通常時は {@code null}
+     */
+    public @Nullable ShieldRechargeState getShieldRechargeState(@NotNull AstPlayer player) {
+        return shieldRechargeStates.get(player.getBukkit().getUniqueId());
+    }
+
+    /**
+     * 通常シールドバーの現在周期における満タン値を返します。
+     *
+     * @param player 対象プレイヤー
+     * @return 0 以上の表示基準値
+     */
+    public double getShieldDisplayCapacity(@NotNull AstPlayer player) {
+        return shieldDisplayCapacities.getOrDefault(
+            player.getBukkit().getUniqueId(),
+            getStatus(player).getMaxValue(StatusType.MAX_SHIELD)
+        );
+    }
+
+    /**
+     * プレイヤーのシールドリチャージ状態を破棄します。
+     *
+     * @param player 対象プレイヤー
+     */
+    public void clearShieldRecharge(@NotNull AstPlayer player) {
+        shieldRechargeStates.remove(player.getBukkit().getUniqueId());
+    }
+
+    /**
+     * 指定 UUID のセッション内シールド状態を破棄します。
+     *
+     * @param playerId 対象プレイヤー UUID
+     */
+    public void clearShieldRuntimeState(@NotNull UUID playerId) {
+        shieldRechargeStates.remove(playerId);
+        shieldDisplayCapacities.remove(playerId);
     }
 
     /**
@@ -393,6 +543,11 @@ public class StatusService {
     public @NotNull StatusSnapshot restoreAll(@NotNull AstPlayer player) {
         StatusSnapshot snapshot = restoreAllInternal(getStatus(player));
         player.setStatusSnapshot(snapshot);
+        clearShieldRecharge(player);
+        shieldDisplayCapacities.put(
+            player.getBukkit().getUniqueId(),
+            snapshot.getMaxValue(StatusType.MAX_SHIELD)
+        );
         return snapshot;
     }
 
@@ -551,6 +706,9 @@ public class StatusService {
             case ACCURACY -> 95.0D;
             case ATTACK_SPEED -> 100.0D;
             case SHIELD_BREAK -> 0.0D;
+            case FIXED_HEALTH_DAMAGE -> 0.0D;
+            case SHIELD_RECHARGE_DELAY_CHANCE -> 0.0D;
+            case SHIELD_RECHARGE_DELAY_SECONDS -> 0.0D;
             // 属性系
             case FIRE_RESISTANCE_CAP, ICE_RESISTANCE_CAP, LIGHTNING_RESISTANCE_CAP -> 75.0D;
             // 防御系
@@ -565,7 +723,6 @@ public class StatusService {
             case MOVEMENT_SPEED -> 100.0D;
             case COOLDOWN_REDUCTION -> 0.0D;
             case SHIELD_RECHARGE_REDUCTION -> 0.0D;
-            case SHIELD_RECHARGE_RATE -> 0.0D;
             // 採集速度は装備値をそのまま1回分の破壊力として扱う。装備なしは GatheringService 側で1に補正する。
             case MINING_SPEED -> 0.0D;
             case INVENTORY_SLOTS -> StatusDefaults.INVENTORY_SLOTS;
@@ -637,8 +794,7 @@ public class StatusService {
     private boolean isShieldStatus(@NotNull StatusType type) {
         return type == StatusType.MAX_SHIELD
             || type == StatusType.SHIELD_BREAK
-            || type == StatusType.SHIELD_RECHARGE_REDUCTION
-            || type == StatusType.SHIELD_RECHARGE_RATE;
+            || type == StatusType.SHIELD_RECHARGE_REDUCTION;
     }
 
     private double getEquipmentBonus(
@@ -1074,6 +1230,9 @@ public class StatusService {
                 case ACCURACY -> 0.0D;
                 case ATTACK_SPEED -> 0.0D;
                 case SHIELD_BREAK -> 0.0D;
+                case FIXED_HEALTH_DAMAGE -> 0.0D;
+                case SHIELD_RECHARGE_DELAY_CHANCE -> 0.0D;
+                case SHIELD_RECHARGE_DELAY_SECONDS -> 0.0D;
                 case DEFENSE -> 3.0D;
                 case MAGIC_DEFENSE -> 2.0D;
                 case EVASION -> 0.0D;
@@ -1084,7 +1243,6 @@ public class StatusService {
                 case MOVEMENT_SPEED -> 5.0D;
                 case COOLDOWN_REDUCTION -> 0.0D;
                 case SHIELD_RECHARGE_REDUCTION -> 0.0D;
-                case SHIELD_RECHARGE_RATE -> 0.0D;
                 case MINING_SPEED -> 0.0D;
                 case QUEST_LIMIT -> 0.0D;
                 default -> 0.0D;
@@ -1112,6 +1270,9 @@ public class StatusService {
                 case ACCURACY -> 5.0D;
                 case ATTACK_SPEED -> 10.0D;
                 case SHIELD_BREAK -> 0.0D;
+                case FIXED_HEALTH_DAMAGE -> 0.0D;
+                case SHIELD_RECHARGE_DELAY_CHANCE -> 0.0D;
+                case SHIELD_RECHARGE_DELAY_SECONDS -> 0.0D;
                 case DEFENSE -> 6.0D;
                 case MAGIC_DEFENSE -> 6.0D;
                 case EVASION -> 5.0D;
@@ -1122,12 +1283,25 @@ public class StatusService {
                 case MOVEMENT_SPEED -> 10.0D;
                 case COOLDOWN_REDUCTION -> 5.0D;
                 case SHIELD_RECHARGE_REDUCTION -> 0.0D;
-                case SHIELD_RECHARGE_RATE -> 0.0D;
                 case MINING_SPEED -> 0.0D;
                 case QUEST_LIMIT -> 0.0D;
                 default -> 0.0D;
             };
         };
+    }
+
+    private long reducedDurationMs(double rawDurationMs, double reductionPercent) {
+        double reduction = Math.clamp(reductionPercent, 0.0D, 100.0D);
+        double reduced = Math.max(0.0D, rawDurationMs) * (1.0D - reduction / 100.0D);
+        return reduced >= Long.MAX_VALUE ? Long.MAX_VALUE : Math.max(0L, Math.round(reduced));
+    }
+
+    private long saturatingAdd(long left, long right) {
+        try {
+            return Math.addExact(left, right);
+        } catch (ArithmeticException ignored) {
+            return Long.MAX_VALUE;
+        }
     }
 
     private boolean isHealingBlocked(@NotNull AstPlayer player) {

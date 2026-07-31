@@ -130,7 +130,7 @@ public class MobRepository {
     }
 
     @Nullable
-    private MobTemplate parseTemplate(@NotNull JsonObject obj) {
+    MobTemplate parseTemplate(@NotNull JsonObject obj) {
         String id = optionalString(obj, "id");
         if (id == null) return null;
 
@@ -257,7 +257,13 @@ public class MobRepository {
         double max = obj.has("max") && !obj.get("max").isJsonNull()
                 ? obj.get("max").getAsDouble()
                 : 0.0D;
-        return new MobShieldConfig(enabled, max).normalized();
+        Double rechargeTimeSeconds = obj.has("rechargeTimeSeconds") && !obj.get("rechargeTimeSeconds").isJsonNull()
+                ? obj.get("rechargeTimeSeconds").getAsDouble()
+                : null;
+        Double rechargeAmount = obj.has("rechargeAmount") && !obj.get("rechargeAmount").isJsonNull()
+                ? obj.get("rechargeAmount").getAsDouble()
+                : null;
+        return new MobShieldConfig(enabled, max, rechargeTimeSeconds, rechargeAmount).normalized();
     }
 
     @NotNull

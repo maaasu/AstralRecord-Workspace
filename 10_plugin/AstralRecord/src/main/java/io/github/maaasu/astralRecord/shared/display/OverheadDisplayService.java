@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
+import io.github.maaasu.astralRecord.feature.status.model.ShieldRechargeState;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import org.bukkit.Bukkit;
@@ -274,7 +275,10 @@ public class OverheadDisplayService {
 
         StatusSnapshot snapshot = statusService.getStatus(astPlayer);
         String className = playerClassService.getDisplayName(astPlayer.getClassId());
-        String shield = shieldIconLine(snapshot.getCurrentShield(), snapshot.getMaxValue(StatusType.MAX_SHIELD));
+        ShieldRechargeState recharge = statusService.getShieldRechargeState(astPlayer);
+        String shield = recharge == null
+                ? shieldIconLine(snapshot.getCurrentShield(), statusService.getShieldDisplayCapacity(astPlayer))
+                : "\n" + rechargeBar(recharge, System.currentTimeMillis());
         return String.format(
                 Locale.ROOT,
                 "&7[%s&7] &f%s\n%s\n%s%s",
@@ -289,9 +293,12 @@ public class OverheadDisplayService {
     @NotNull
     private String mobText(@NotNull MobInstance instance) {
         double maxHealth = instance.maxHealth();
-        String shield = instance.template().shield().active()
-                ? "\n" + bar("SH", instance.currentShield(), instance.template().shield().max(), "&b")
-                : "";
+        ShieldRechargeState recharge = instance.shieldRechargeState();
+        String shield = recharge != null
+                ? "\n" + rechargeBar(recharge, System.currentTimeMillis())
+                : instance.template().shield().active()
+                    ? "\n" + bar("SH", instance.currentShield(), instance.shieldDisplayCapacity(), "&b")
+                    : "";
         String cast = instance.isSkillCasting()
                 ? "\n" + castBar(instance)
                 : "";
@@ -329,6 +336,19 @@ public class OverheadDisplayService {
         builder.append("&8");
         builder.repeat("|", Math.max(0, BAR_LENGTH - filled));
         builder.append(color).append("] &f").append(number(current)).append("&7/&f").append(number(max));
+        return builder.toString();
+    }
+
+    private @NotNull String rechargeBar(@NotNull ShieldRechargeState state, long nowMs) {
+        double ratio = state.progress(nowMs);
+        int filled = (int) Math.round(ratio * BAR_LENGTH);
+        StringBuilder builder = new StringBuilder();
+        builder.append("&6RC [&6");
+        builder.repeat("|", Math.max(0, filled));
+        builder.append("&8");
+        builder.repeat("|", Math.max(0, BAR_LENGTH - filled));
+        builder.append("&6] &f")
+                .append(String.format(Locale.ROOT, "%.1fs", state.remainingMs(nowMs) / 1000.0D));
         return builder.toString();
     }
 

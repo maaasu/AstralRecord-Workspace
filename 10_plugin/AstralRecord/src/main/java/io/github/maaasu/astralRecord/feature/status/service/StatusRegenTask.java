@@ -10,7 +10,7 @@ import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * オンラインプレイヤーの HP / MP / エネルギーを定期的に少しずつ回復させる定常タスク。
+ * オンラインプレイヤーの HP / MP / エネルギー自然回復とシールドリチャージ完了を処理する定常タスク。
  * <p>
  * 各ステータスの基準回復量は {@link StatusType#HP_REGEN} / {@link StatusType#MP_REGEN} /
  * {@link StatusType#ENERGY_REGEN}（5秒あたりの値として定義）を使用し、1秒ごとに 1/5 ずつ加算します。
@@ -22,7 +22,6 @@ public class StatusRegenTask {
 
     /** {@link StatusType#HP_REGEN} などが「5秒あたり」の値として定義されているための分母 */
     private static final double REGEN_PERIOD_SECONDS = 5.0D;
-    private static final long SHIELD_RECHARGE_BASE_DELAY_MS = 10_000L;
 
     private final StatusService statusService;
     private BukkitTask task;
@@ -57,6 +56,7 @@ public class StatusRegenTask {
         for (AstPlayer astPlayer : AstPlayerCache.getAll()) {
             Player player = astPlayer.getBukkit();
             if (!player.isOnline() || player.isDead()) {
+                statusService.clearShieldRuntimeState(player.getUniqueId());
                 continue;
             }
             applyRegen(astPlayer);
@@ -84,20 +84,6 @@ public class StatusRegenTask {
         if (energyRegenPerSecond > 0.0D && snapshot.getCurrentEnergy() < snapshot.getMaxValue(StatusType.MAX_ENERGY)) {
             statusService.recoverEnergy(astPlayer, energyRegenPerSecond);
         }
-        if (shouldRechargeShield(snapshot)) {
-            double amount = 1.0D + snapshot.rollValue(StatusType.SHIELD_RECHARGE_RATE);
-            statusService.recoverShield(astPlayer, amount);
-        }
-    }
-
-    private boolean shouldRechargeShield(@NotNull StatusSnapshot snapshot) {
-        double maxShield = snapshot.getMaxValue(StatusType.MAX_SHIELD);
-        if (maxShield <= 0.0D || snapshot.getCurrentShield() >= maxShield) {
-            return false;
-        }
-        double reduction = Math.clamp(snapshot.rollValue(StatusType.SHIELD_RECHARGE_REDUCTION), 0.0D, 95.0D);
-        long delayMs = Math.max(500L, Math.round(SHIELD_RECHARGE_BASE_DELAY_MS * (1.0D - reduction / 100.0D)));
-        long changedAt = snapshot.getShieldChangedAtMs();
-        return changedAt > 0L && System.currentTimeMillis() - changedAt >= delayMs;
+        statusService.completeShieldRechargeIfReady(astPlayer, System.currentTimeMillis());
     }
 }
