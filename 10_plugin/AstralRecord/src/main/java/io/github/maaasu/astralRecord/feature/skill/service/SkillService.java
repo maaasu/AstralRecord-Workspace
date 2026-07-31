@@ -4,8 +4,8 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.combat.service.CombatTimingCalculator;
+import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
-import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
@@ -24,8 +24,6 @@ import io.github.maaasu.astralRecord.feature.skill.registry.SkillRegistry;
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.LivingEntity;
@@ -43,7 +41,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
+import java.util.function.LongSupplier;
 
 /**
  * スキル定義の同期・発動前検証・実行クラス委譲を担うサービス。
@@ -64,7 +64,9 @@ public class SkillService {
     private final AstralRecord plugin;
     private SkillOwnershipService ownershipService;
     private ConditionService conditionService;
+    private PlayerHudService playerHudService;
     private BiConsumer<AstPlayer, String> playerCastSuccessListener = (player, skillId) -> { };
+    private final SkillCastFeedback castFeedback = new SkillCastFeedback();
     private final Map<String, SkillDefinition> builtInDefinitions = new ConcurrentHashMap<>();
 
     /** 発動者ごと・スキルごとの cooldown 終了予定時刻（{@link System#currentTimeMillis()} 基準）。 */
@@ -126,6 +128,15 @@ public class SkillService {
      */
     public void setConditionService(@NotNull ConditionService conditionService) {
         this.conditionService = conditionService;
+    }
+
+    /**
+     * 詠唱中 ActionBar を管理する HUD サービスを設定します。
+     *
+     * @param playerHudService HUD サービス
+     */
+    public void setPlayerHudService(@NotNull PlayerHudService playerHudService) {
+        this.playerHudService = playerHudService;
     }
 
     /**
@@ -469,6 +480,8 @@ public class SkillService {
         astPlayer.setSkillCastingUntilMs(System.currentTimeMillis() + castTimeTicks * MS_PER_TICK);
         float originalWalkSpeed = player.getWalkSpeed();
         player.setWalkSpeed(clampWalkSpeed(originalWalkSpeed * 0.5F));
+        AtomicLong remainingCastTicks = new AtomicLong(castTimeTicks);
+        startPlayerCastFeedback(astPlayer, definition, castTimeTicks, remainingCastTicks::get);
 
         BukkitRunnable runnable = new BukkitRunnable() {
             private long elapsedTicks = 0L;
@@ -486,7 +499,12 @@ public class SkillService {
                     cancel();
                     return;
                 }
-                showCastActionBar(player, definition, castTimeTicks - elapsedTicks);
+                long remainingTicks = Math.max(0L, castTimeTicks - elapsedTicks);
+                remainingCastTicks.set(remainingTicks);
+                refreshPlayerCastFeedback(astPlayer, definition, castTimeTicks, remainingTicks);
+                if (castFeedback.shouldPlaySound(elapsedTicks)) {
+                    castFeedback.playSound(player, elapsedTicks, castTimeTicks);
+                }
                 elapsedTicks++;
                 if (elapsedTicks >= castTimeTicks) {
                     finishCast(player, astPlayer, true, playerCaster, definition, trigger, castLocation, primaryTarget, targets);
@@ -498,6 +516,7 @@ public class SkillService {
         castingSessions.put(player.getUniqueId(), new CastingSession(task, () -> {
             astPlayer.setSkillCastingUntilMs(0L);
             player.setWalkSpeed(originalWalkSpeed);
+            stopPlayerCastFeedback(astPlayer);
         }));
         return SkillCastResult.succeeded();
     }
@@ -611,15 +630,69 @@ public class SkillService {
         }
     }
 
-    private void showCastActionBar(@NotNull Player player, @NotNull SkillDefinition definition, long remainingTicks) {
-        double seconds = Math.max(0.0D, remainingTicks / 20.0D);
-        String message = PlayerMsgResource.format(
-                PlayerMsgId.P_5811.getId(),
-                SkillPresentationUtil.legacyName(definition, definition.getId()),
-                String.format(Locale.ROOT, "%.1f", seconds)
+    /**
+     * 詠唱中 ActionBar を HUD の primary renderer として登録し、即時描画します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param definition 対象スキル定義
+     * @param castTimeTicks 詠唱の総 tick 数
+     * @param remainingTicks 現在の残り tick 数を返す supplier
+     */
+    private void startPlayerCastFeedback(
+            @NotNull AstPlayer astPlayer,
+            @NotNull SkillDefinition definition,
+            long castTimeTicks,
+            @NotNull LongSupplier remainingTicks
+    ) {
+        if (playerHudService == null) {
+            return;
+        }
+        playerHudService.setPrimaryActionBarRenderer(
+                astPlayer.getBukkit().getUniqueId(),
+                ignored -> castFeedback.createActionBar(
+                        definition,
+                        castTimeTicks,
+                        remainingTicks.getAsLong()
+                )
         );
-        Component component = LegacyComponentSerializer.legacySection().deserialize(message);
-        player.sendActionBar(component);
+        playerHudService.refreshActionBar(astPlayer);
+    }
+
+    /**
+     * 現在の詠唱進捗を ActionBar へ再描画します。
+     * HUD サービス未設定時は対象プレイヤーへ直接描画します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param definition 対象スキル定義
+     * @param castTimeTicks 詠唱の総 tick 数
+     * @param remainingTicks 残り tick 数
+     */
+    private void refreshPlayerCastFeedback(
+            @NotNull AstPlayer astPlayer,
+            @NotNull SkillDefinition definition,
+            long castTimeTicks,
+            long remainingTicks
+    ) {
+        if (playerHudService != null) {
+            playerHudService.refreshActionBar(astPlayer);
+            return;
+        }
+        astPlayer.getBukkit().sendActionBar(
+                castFeedback.createActionBar(definition, castTimeTicks, remainingTicks)
+        );
+    }
+
+    /**
+     * 詠唱中 ActionBar を解除し、通常 HUD を即時再描画します。
+     *
+     * @param astPlayer 対象プレイヤー
+     */
+    private void stopPlayerCastFeedback(@NotNull AstPlayer astPlayer) {
+        if (playerHudService == null) {
+            return;
+        }
+        playerHudService.clearPrimaryActionBarRenderer(astPlayer.getBukkit().getUniqueId());
+        playerHudService.refreshActionBar(astPlayer);
     }
 
     private boolean requiresOwnershipCheck(@NotNull SkillCaster caster, @NotNull SkillCastTrigger trigger) {

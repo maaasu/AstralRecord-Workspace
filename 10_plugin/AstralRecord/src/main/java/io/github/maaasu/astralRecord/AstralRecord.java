@@ -977,6 +977,7 @@ public final class AstralRecord extends JavaPlugin {
         skillService = new SkillService(new SkillRepository(), new SkillRegistry(), this);
         skillBindPresetService = new SkillBindPresetService(this, new SkillBindPresetRepository());
         skillService.setConditionService(conditionService);
+        skillService.setPlayerHudService(playerHudService);
         skillService.registerExecutor(new FireBoostSkillExecutor(particleDisplayService));
         skillService.registerExecutor(new IronWillSkillExecutor());
         skillService.registerExecutor(new StatusPassiveSkillExecutor());
