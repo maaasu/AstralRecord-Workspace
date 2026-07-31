@@ -114,7 +114,7 @@ class DamageCalculatorDesignTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
      * 章・見出し: # 14_3-サービス > ## 1. damage 計算
-     * 検証契約: 通常criticalと超星criticalへ各設定倍率を適用する。
+     * 検証契約: base 10へ通常会心200%とROLL超星会心250%を乗算し、最終damageを50.0とする。
      */
     @Test
     void criticalAndRolledSuperCriticalMultiplyConfiguredBonusOverBaseDamage() {
@@ -183,7 +183,7 @@ class DamageCalculatorDesignTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
      * 章・見出し: # 14_3-サービス > ## 1. damage 計算
-     * 検証契約: 超星criticalを通常criticalとは独立に抽選する。
+     * 検証契約: 通常会心率0%でも超星会心率100%を独立抽選し、base 10へ30%を加算して最終damageを13.0とする。
      */
     @Test
     void superStarCriticalRollIsIndependentFromNormalCritical() {

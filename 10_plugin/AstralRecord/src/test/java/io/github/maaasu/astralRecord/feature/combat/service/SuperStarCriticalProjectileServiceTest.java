@@ -1,11 +1,10 @@
 package io.github.maaasu.astralRecord.feature.combat.service;
 
-import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
-import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
@@ -43,7 +42,7 @@ class SuperStarCriticalProjectileServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
      * 章・見出し: # 14_3-サービス > ## 2. 超星会心追尾弾
-     * 検証契約: 速度3.2〜4.8 block/s・直進10〜20tickの初期飛行距離を1.6〜4.8 blockに収める。
+     * 検証契約: 初速3.2〜4.8 block/sで10〜20 tick曲線飛行する距離を1.6〜4.8 blockとし、追尾速度を7 block/sとする。
      */
     @Test
     void initialFlightTravelDistanceMatchesConfiguredRandomSpeedAndDuration() {
@@ -96,7 +95,7 @@ class SuperStarCriticalProjectileServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
      * 章・見出し: # 14_3-サービス > ## 2. 超星会心追尾弾
-     * 検証契約: 追尾移動は7 block/sの速度長と目標方向への正の内積を保ち、曲率軸方向の横揺らぎを合成する。
+     * 検証契約: 追尾移動は7 block/sの速度長で目標方向と現在方向への正の進行成分を保ち、曲率軸方向の横揺らぎを合成する。
      */
     @Test
     void homingMovementCurvesSidewaysWhileContinuingTowardTarget() {
@@ -146,7 +145,7 @@ class SuperStarCriticalProjectileServiceTest {
     @Test
     void homingMovementConvergesFromOppositeDirectionWithinLifetime() {
         World world = mock(World.class);
-        MobInstance target = mockMob(world, -SuperStarCriticalProjectileService.TARGET_RADIUS,
+        MobInstance target = mobAt(world, -SuperStarCriticalProjectileService.TARGET_RADIUS,
                 "00000000-0000-0000-0000-000000000001");
         SuperStarCriticalProjectileService service = serviceWithMobs(List.of(target));
         Location position = new Location(world, 0.0D, 0.9D, 0.0D);
@@ -207,8 +206,8 @@ class SuperStarCriticalProjectileServiceTest {
     @Test
     void initialFlightCollisionSelectsEnteredMobButNotSpawnOverlap() {
         World world = mock(World.class);
-        MobInstance spawnMob = mockMob(world, 0.0D, "00000000-0000-0000-0000-000000000001");
-        MobInstance enteredMob = mockMob(world, 0.8D, "00000000-0000-0000-0000-000000000002");
+        MobInstance spawnMob = mobAt(world, 0.0D, "00000000-0000-0000-0000-000000000001");
+        MobInstance enteredMob = mobAt(world, 0.8D, "00000000-0000-0000-0000-000000000002");
         SuperStarCriticalProjectileService service = serviceWithMobs(List.of(spawnMob, enteredMob));
 
         MobInstance collision = service.firstCollision(
@@ -228,8 +227,8 @@ class SuperStarCriticalProjectileServiceTest {
     @Test
     void collisionSelectsMobBeforeCurrentSteeringTarget() {
         World world = mock(World.class);
-        MobInstance steeringTarget = mockMob(world, 0.95D, "00000000-0000-0000-0000-000000000002");
-        MobInstance firstContact = mockMob(world, 0.8D, "00000000-0000-0000-0000-000000000001");
+        MobInstance steeringTarget = mobAt(world, 0.95D, "00000000-0000-0000-0000-000000000002");
+        MobInstance firstContact = mobAt(world, 0.8D, "00000000-0000-0000-0000-000000000001");
         SuperStarCriticalProjectileService service = serviceWithMobs(List.of(steeringTarget, firstContact));
 
         MobInstance collision = service.firstCollision(
@@ -249,8 +248,8 @@ class SuperStarCriticalProjectileServiceTest {
     @Test
     void originExitExclusionDoesNotHideAnotherOverlappingMob() {
         World world = mock(World.class);
-        MobInstance originVictim = mockMob(world, 0.0D, "00000000-0000-0000-0000-000000000001");
-        MobInstance overlappingMob = mockMob(world, 0.0D, "00000000-0000-0000-0000-000000000002");
+        MobInstance originVictim = mobAt(world, 0.0D, "00000000-0000-0000-0000-000000000001");
+        MobInstance overlappingMob = mobAt(world, 0.0D, "00000000-0000-0000-0000-000000000002");
         SuperStarCriticalProjectileService service = serviceWithMobs(List.of(originVictim, overlappingMob));
 
         MobInstance collision = service.firstCollision(
@@ -270,7 +269,7 @@ class SuperStarCriticalProjectileServiceTest {
     @Test
     void startingInsideMobAfterOriginExitIsImmediateCollision() {
         World world = mock(World.class);
-        MobInstance overlappingMob = mockMob(world, 0.0D, "00000000-0000-0000-0000-000000000001");
+        MobInstance overlappingMob = mobAt(world, 0.0D, "00000000-0000-0000-0000-000000000001");
         SuperStarCriticalProjectileService service = serviceWithMobs(List.of(overlappingMob));
 
         MobInstance collision = service.firstCollision(
@@ -292,17 +291,12 @@ class SuperStarCriticalProjectileServiceTest {
         );
     }
 
-    private static MobInstance mockMob(World world, double x, String instanceId) {
-        MobTemplate template = mock(MobTemplate.class);
-        when(template.category()).thenReturn(MobCategory.ENEMY);
-        when(template.damageImmune()).thenReturn(false);
-
-        MobInstance mob = mock(MobInstance.class);
-        when(mob.instanceId()).thenReturn(UUID.fromString(instanceId));
-        when(mob.template()).thenReturn(template);
-        when(mob.state()).thenReturn(MobState.IDLE);
-        when(mob.currentHealth()).thenReturn(100.0D);
-        when(mob.currentLocation()).thenReturn(new Location(world, x, 0.0D, 0.0D));
-        return mob;
+    private static MobInstance mobAt(World world, double x, String instanceId) {
+        MobTemplate template = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D).template();
+        return new MobInstance(
+                UUID.fromString(instanceId),
+                template,
+                new Location(world, x, 0.0D, 0.0D)
+        );
     }
 }

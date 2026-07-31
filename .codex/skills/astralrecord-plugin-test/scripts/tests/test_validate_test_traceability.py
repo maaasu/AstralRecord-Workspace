@@ -1170,6 +1170,278 @@ class TraceabilityValidatorTest(unittest.TestCase):
 
         self.assertIn("POM_SUREFIRE_FILTER", {issue.code for issue in issues})
 
+    def test_accepts_java_newline_qualified_and_unicode_escaped_tests(self) -> None:
+        doc = self._javadoc()
+        self._test_source(
+            "JavaLexicalAnnotationTest.java",
+            f"""
+            class JavaLexicalAnnotationTest {{
+                {doc}
+                @org.junit.jupiter.api.
+                    Test
+                void newlineQualifiedTest() {{}}
+
+                {doc}
+                @T\\u0065st
+                void unicodeEscapedTest() {{}}
+
+                {doc}
+                @
+                    org.junit.jupiter.api.Test
+                void whitespaceAfterAtTest() {{}}
+            }}
+            """,
+        )
+
+        issues, method_count, _ = self._validate()
+
+        self.assertEqual([], issues)
+        self.assertEqual(3, method_count)
+
+    def test_rejects_java_newline_and_unicode_test_and_skip_bypasses(self) -> None:
+        self._test_source(
+            "JavaAnnotationBypassTest.java",
+            """
+            class JavaAnnotationBypassTest {
+                @org.junit.jupiter.api.
+                    Test
+                void newlineQualifiedTestWithoutDesign() {}
+
+                @T\\u0065st
+                void unicodeEscapedTestWithoutDesign() {}
+
+                // \\u000a @Test
+                void testIntroducedAfterEscapedLineTerminator() {}
+
+                @org.junit.jupiter.api.condition.
+                    DisabledOnOs
+                void newlineQualifiedSkip() {}
+
+                @Dis\\u0061bled
+                void unicodeEscapedSkip() {}
+
+                @
+                    Disabled
+                void whitespaceAfterAtSkip() {}
+            }
+            """,
+        )
+
+        issues, method_count, _ = self._validate()
+        codes = [issue.code for issue in issues]
+
+        self.assertEqual(3, method_count)
+        self.assertEqual(3, codes.count("JAVADOC_MISSING"))
+        self.assertEqual(3, codes.count("DISABLED_TEST"))
+
+    def test_translates_java_unicode_escapes_before_comment_scanning(self) -> None:
+        self._test_source(
+            "EscapedCommentTest.java",
+            """
+            class EscapedCommentTest {
+                \\u002f\\u002f @Test
+                void plainHelper() {}
+            }
+            """,
+        )
+
+        issues, method_count, _ = self._validate()
+
+        self.assertEqual([], issues)
+        self.assertEqual(0, method_count)
+
+    def test_rejects_nonstandard_project_and_profile_test_source_directories(self) -> None:
+        self._write(
+            "10_plugin/AstralRecord/pom.xml",
+            """
+            <project xmlns="http://maven.apache.org/POM/4.0.0">
+              <modelVersion>4.0.0</modelVersion>
+              <build>
+                <testSourceDirectory>src/no-tests</testSourceDirectory>
+              </build>
+              <profiles>
+                <profile>
+                  <id>alternate-tests</id>
+                  <build>
+                    <testSourceDirectory>${custom.test.source}</testSourceDirectory>
+                  </build>
+                </profile>
+              </profiles>
+            </project>
+            """,
+        )
+
+        issues, _, _ = self._validate()
+
+        self.assertEqual(
+            ["POM_TEST_SOURCE_DIRECTORY", "POM_TEST_SOURCE_DIRECTORY"],
+            [issue.code for issue in issues],
+        )
+
+    def test_accepts_default_test_source_and_unrelated_compiler_settings(self) -> None:
+        self._write(
+            "10_plugin/AstralRecord/pom.xml",
+            """
+            <project xmlns="http://maven.apache.org/POM/4.0.0">
+              <modelVersion>4.0.0</modelVersion>
+              <build>
+                <testSourceDirectory>./src/test/java/</testSourceDirectory>
+                <plugins>
+                  <plugin>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration>
+                      <includes><include>**/*.java</include></includes>
+                      <compilerArgs><arg>-AtestIncludes=metadata</arg></compilerArgs>
+                    </configuration>
+                  </plugin>
+                </plugins>
+              </build>
+              <profiles>
+                <profile>
+                  <id>default-tests</id>
+                  <build>
+                    <testSourceDirectory>${project.basedir}/src/test/java</testSourceDirectory>
+                  </build>
+                </profile>
+              </profiles>
+            </project>
+            """,
+        )
+
+        issues, _, _ = self._validate()
+
+        self.assertEqual([], issues)
+
+    def test_rejects_compiler_test_filters_in_direct_and_execution_configurations(self) -> None:
+        cases = (
+            ("testIncludes", "direct"),
+            ("testExcludes", "direct"),
+            ("testIncludes", "execution"),
+            ("testExcludes", "execution"),
+        )
+        for setting_name, placement in cases:
+            with self.subTest(setting=setting_name, placement=placement):
+                setting = (
+                    f"<{setting_name}><testInclude>**/*DesignTest.java</testInclude>"
+                    f"</{setting_name}>"
+                )
+                if placement == "direct":
+                    configuration = f"<configuration>{setting}</configuration>"
+                else:
+                    configuration = (
+                        "<executions><execution><configuration>"
+                        f"{setting}"
+                        "</configuration></execution></executions>"
+                    )
+                self._write(
+                    "10_plugin/AstralRecord/pom.xml",
+                    f"""
+                    <project xmlns="http://maven.apache.org/POM/4.0.0">
+                      <modelVersion>4.0.0</modelVersion>
+                      <build><plugins><plugin>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        {configuration}
+                      </plugin></plugins></build>
+                    </project>
+                    """,
+                )
+
+                issues, _, _ = self._validate()
+
+                self.assertEqual(
+                    ["POM_COMPILER_TEST_FILTER"],
+                    [issue.code for issue in issues],
+                )
+
+    def test_rejects_empty_design_bodies_including_heading_only_sections(self) -> None:
+        self._write(
+            self.design_path,
+            """
+            # 01_3-サービス
+
+            ## 1. 空の契約
+
+            ### 見出しだけの子契約
+            """,
+        )
+        self._test_source(
+            "EmptyDesignBodyTest.java",
+            f"""
+            class EmptyDesignBodyTest {{
+                /**
+                 * 設計入力: {self.design_path}
+                 * 章・見出し: # 01_3-サービス > ## 1. 空の契約
+                 * 検証契約: 空入力の場合はnullを返す。
+                 */
+                @Test
+                void citesHeadingOnlyParent() {{}}
+
+                /**
+                 * 設計入力: {self.design_path}
+                 * 章・見出し: # 01_3-サービス > ## 1. 空の契約 > ### 見出しだけの子契約
+                 * 検証契約: 空入力の場合はnullを返す。
+                 */
+                @Test
+                void citesEmptyChild() {{}}
+            }}
+            """,
+        )
+
+        issues, method_count, _ = self._validate()
+
+        self.assertEqual(2, method_count)
+        self.assertEqual(
+            ["DESIGN_BODY_EMPTY", "DESIGN_BODY_EMPTY"],
+            [issue.code for issue in issues],
+        )
+
+    def test_accepts_paragraph_list_and_table_design_bodies(self) -> None:
+        self._write(
+            self.design_path,
+            """
+            # 01_3-サービス
+
+            ## 1. 段落契約
+
+            空入力の場合は null を返す。
+
+            ## 2. 箇条書き契約
+
+            - cache は更新しない。
+
+            ## 3. 表契約
+
+            | 入力 | 結果 |
+            |:--|:--|
+            | 0 | 上限値 |
+            """,
+        )
+        methods = "\n".join(
+            f"""
+            /**
+             * 設計入力: {self.design_path}
+             * 章・見出し: # 01_3-サービス > ## {number}. {title}
+             * 検証契約: {contract}
+             */
+            @Test
+            void accepts{number}() {{}}
+            """
+            for number, title, contract in (
+                (1, "段落契約", "空入力の場合はnullを返す。"),
+                (2, "箇条書き契約", "空入力ではcacheを更新しない。"),
+                (3, "表契約", "入力が0の場合は上限値を返す。"),
+            )
+        )
+        self._test_source(
+            "NonEmptyDesignBodyTest.java",
+            f"class NonEmptyDesignBodyTest {{\n{methods}\n}}",
+        )
+
+        issues, method_count, _ = self._validate()
+
+        self.assertEqual([], issues)
+        self.assertEqual(3, method_count)
+
 
 if __name__ == "__main__":
     unittest.main()

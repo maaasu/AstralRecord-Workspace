@@ -106,7 +106,7 @@ Run `python .codex/skills/astralrecord-plugin-test/scripts/validate_test_traceab
 - `.codex/skills/astralrecord-code-version-commit-develop/SKILL.md`
 - `.codex/skills/astralrecord-docs-fix/SKILL.md`
 
-Run the gate before the final Maven test run and before review handoff. Do not leave an untraced test method, disabled or conditionally skipped test, Surefire-excluded test, Kotlin JUnit annotation alias, or ad-hoc `AdHoc*Test` / `*OneShotTest` source in the final diff. Do not substitute `mvn verify` for this command because the Plugin shade configuration writes to the main workspace distribution path.
+Run the gate before the final Maven test run and before review handoff. Do not leave an untraced test method, disabled or conditionally skipped test, nonstandard Maven test source, compiler/Surefire-excluded test, Kotlin JUnit annotation alias, or ad-hoc `AdHoc*Test` / `*OneShotTest` source in the final diff. Do not substitute `mvn verify` for this command because the Plugin shade configuration writes to the main workspace distribution path.
 
 ## Custom Instruction Examples
 

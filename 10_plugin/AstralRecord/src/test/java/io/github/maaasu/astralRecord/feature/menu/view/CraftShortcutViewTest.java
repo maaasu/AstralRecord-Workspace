@@ -24,6 +24,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.time.LocalDateTime;
 import java.util.EnumMap;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -145,9 +146,32 @@ class CraftShortcutViewTest extends MockBukkitTestBase {
 
         ArgumentCaptor<ItemStack[]> matrixCaptor = ArgumentCaptor.forClass(ItemStack[].class);
         verify(inventory).setMatrix(matrixCaptor.capture());
-        String statusLore = plainLore(matrixCaptor.getValue()[0]);
+        List<String> statusLoreLines = plainLoreLines(matrixCaptor.getValue()[0]);
+        String statusLore = String.join("\n", statusLoreLines);
+        List<String> expectedStatusPrefixes = List.of(
+            "最大MP:",
+            "最大EN:",
+            "最大シールド:",
+            "筋力:",
+            "器用さ:",
+            "知力:",
+            "体力:",
+            "敏捷性:"
+        );
+        List<String> actualStatusPrefixes = statusLoreLines.stream()
+            .map(line -> expectedStatusPrefixes.stream()
+                .filter(line::startsWith)
+                .findFirst()
+                .orElse(null))
+            .filter(java.util.Objects::nonNull)
+            .toList();
         assertFalse(statusLore.contains("最大HP"));
         assertTrue(statusLore.contains("最大MP: 11"));
+        assertEquals(expectedStatusPrefixes, actualStatusPrefixes);
+        assertEquals(
+            statusLoreLines.indexOf("敏捷性: 6") + 1,
+            statusLoreLines.indexOf("… ほか1件")
+        );
         assertTrue(statusLore.contains("… ほか1件"));
         assertFalse(statusLore.contains("幸運"));
     }
@@ -159,12 +183,16 @@ class CraftShortcutViewTest extends MockBukkitTestBase {
     }
 
     private static String plainLore(ItemStack itemStack) {
+        return String.join("\n", plainLoreLines(itemStack));
+    }
+
+    private static List<String> plainLoreLines(ItemStack itemStack) {
         java.util.List<Component> lore = itemStack.getItemMeta().lore();
         if (lore == null) {
-            return "";
+            return List.of();
         }
         return lore.stream()
             .map(PlainTextComponentSerializer.plainText()::serialize)
-            .reduce("", (left, right) -> left + "\n" + right);
+            .toList();
     }
 }

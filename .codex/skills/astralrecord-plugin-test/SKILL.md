@@ -76,7 +76,7 @@ void returnsCurrentAndMaximumValuesFromOneSnapshot() {
 - 設計書名だけ、絶対パス、Windows の `\` 区切り、存在しない見出し、`8` / `9` カテゴリ、review、`TODO` を参照しない
 - Kotlin の import alias / typealias を test annotation や無効化 annotation に付けない。`@Disabled` / `@Ignore` に加え、`@DisabledOnOs` / `@EnabledOnJre` など環境条件で skip し得る JUnit annotation で validator や Maven 実行を回避しない
 - Maven Surefire の既定命名 `Test*`、`*Test`、`*Tests`、`*TestCase` に一致させる
-- `<task-root>\10_plugin\AstralRecord\pom.xml` の Surefire へ custom `includes` / `excludes`、group・engine filter、skip 設定を追加して恒久テストを実行対象外にしない
+- `<task-root>\10_plugin\AstralRecord\pom.xml` の `build/testSourceDirectory` を Maven 既定から変更せず、`maven-compiler-plugin` の `testIncludes` / `testExcludes` や Surefire の custom `includes` / `excludes`、group・engine filter、skip 設定で恒久テストを compile・実行対象外にしない
 
 リポジトリルートから次を実行し、全 method の設計入力と見出し階層を検証する。
 

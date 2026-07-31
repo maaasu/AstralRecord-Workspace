@@ -251,4 +251,4 @@ cd 10_plugin/AstralRecord
 mvn -q test
 ```
 
-validator は Java / Kotlin の test annotation、Kotlin import alias / typealias、Javadoc の三項目と path-heading pair の物理隣接、設計文書と見出し階層の実在、恒久仕様として使用できない文書、一時テスト、無効化・条件付き skip annotation、Surefire の既定命名と POM の custom test filter 不在を検査する。
+validator は Java / Kotlin の test annotation、Kotlin import alias / typealias、Javadoc の三項目と path-heading pair の物理隣接、設計文書・見出し階層・採用済み契約本文の実在、恒久仕様として使用できない文書、一時テスト、無効化・条件付き skip annotation、Surefire の既定命名、Maven 既定 test source、compiler / Surefire の custom test filter 不在を検査する。

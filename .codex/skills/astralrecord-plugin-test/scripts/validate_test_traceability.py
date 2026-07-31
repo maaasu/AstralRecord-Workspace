@@ -49,16 +49,16 @@ SKIP_ANNOTATION_NAME = (
     + r")`)"
 )
 ANNOTATION_PATTERN = re.compile(
-    r"@(?:"
+    r"@[ \t\f\r\n]*(?:"
     + KOTLIN_IDENTIFIER
-    + r"[ \t]*\.[ \t]*)*("
+    + r"[ \t\f\r\n]*\.[ \t\f\r\n]*)*("
     + TEST_ANNOTATION_NAME
     + r")(?![\w$`])"
 )
 SKIP_ANNOTATION_PATTERN = re.compile(
-    r"@(?:"
+    r"@[ \t\f\r\n]*(?:"
     + KOTLIN_IDENTIFIER
-    + r"[ \t]*\.[ \t]*)*("
+    + r"[ \t\f\r\n]*\.[ \t\f\r\n]*)*("
     + SKIP_ANNOTATION_NAME
     + r")(?![\w$`])"
 )
@@ -247,6 +247,14 @@ POM_TEST_CONTROL_PROPERTIES = frozenset(
         "surefire.excludesFile",
     }
 )
+STANDARD_TEST_SOURCE_DIRECTORIES = frozenset(
+    {
+        "src/test/java",
+        "${basedir}/src/test/java",
+        "${project.basedir}/src/test/java",
+    }
+)
+COMPILER_TEST_FILTER_ELEMENTS = frozenset({"testIncludes", "testExcludes"})
 
 
 @dataclass(frozen=True, order=True)
@@ -283,6 +291,57 @@ class TypeBlock:
 class MarkdownDocument:
     hierarchies: frozenset[tuple[str, ...]]
     section_bodies: dict[tuple[str, ...], str]
+
+
+def _translate_java_unicode_escapes(text: str) -> str:
+    """Apply Java's Unicode-escape translation before lexical scanning."""
+
+    translated: list[str] = []
+    trailing_backslashes = 0
+    last_backslash_from_escape = False
+    index = 0
+    while index < len(text):
+        character = text[index]
+        if character != "\\":
+            translated.append(character)
+            trailing_backslashes = 0
+            last_backslash_from_escape = False
+            index += 1
+            continue
+
+        eligible = (
+            trailing_backslashes == 0
+            or last_backslash_from_escape
+            or trailing_backslashes % 2 == 0
+        )
+        u_end = index + 1
+        while u_end < len(text) and text[u_end] == "u":
+            u_end += 1
+        digits_end = u_end + 4
+        digits = text[u_end:digits_end]
+        if (
+            eligible
+            and u_end > index + 1
+            and len(digits) == 4
+            and all(value in "0123456789abcdefABCDEF" for value in digits)
+        ):
+            decoded = chr(int(digits, 16))
+            translated.append(decoded)
+            if decoded == "\\":
+                trailing_backslashes += 1
+                last_backslash_from_escape = True
+            else:
+                trailing_backslashes = 0
+                last_backslash_from_escape = False
+            index = digits_end
+            continue
+
+        translated.append(character)
+        trailing_backslashes += 1
+        last_backslash_from_escape = False
+        index += 1
+
+    return "".join(translated)
 
 
 def _mask_range(buffer: list[str], start: int, end: int) -> None:
@@ -413,6 +472,8 @@ def _is_annotation_stack(text: str) -> bool:
         if text[index] != "@":
             return False
         index += 1
+        while index < length and text[index].isspace():
+            index += 1
         name_match = identifier.match(text, index)
         if name_match is None:
             return False
@@ -423,8 +484,14 @@ def _is_annotation_stack(text: str) -> bool:
             if use_site_match is None:
                 return False
             index = use_site_match.end()
-        while index < length and text[index] == ".":
+        while True:
+            while index < length and text[index].isspace():
+                index += 1
+            if index >= length or text[index] != ".":
+                break
             index += 1
+            while index < length and text[index].isspace():
+                index += 1
             part_match = identifier.match(text, index)
             if part_match is None:
                 return False
@@ -662,6 +729,15 @@ def _has_non_adopted_heading(
     return False
 
 
+def _has_adopted_design_body(body: str) -> bool:
+    """Return true when a section contains content other than child headings."""
+
+    return any(
+        line.strip() and MARKDOWN_HEADING_PATTERN.match(line) is None
+        for line in body.splitlines()
+    )
+
+
 def _is_generic_meta_contract(contract: str) -> bool:
     """Detect contracts composed only of generic test/verification meta language."""
 
@@ -858,6 +934,7 @@ def _validate_reference_pair(
                 )
             )
         else:
+            section_body = document.section_bodies.get(hierarchy, "")
             if _has_non_adopted_heading(document, hierarchy):
                 issues.append(
                     ValidationIssue(
@@ -867,7 +944,16 @@ def _validate_reference_pair(
                         "実装予定・未決事項・判断待ちの見出しは恒久テストの入力にできません",
                     )
                 )
-            if TODO_PATTERN.search(document.section_bodies.get(hierarchy, "")):
+            if not _has_adopted_design_body(section_body):
+                issues.append(
+                    ValidationIssue(
+                        source_path,
+                        line,
+                        "DESIGN_BODY_EMPTY",
+                        "参照見出しには採用済みの設計契約本文が必要です",
+                    )
+                )
+            if TODO_PATTERN.search(section_body):
                 issues.append(
                     ValidationIssue(
                         source_path,
@@ -876,9 +962,7 @@ def _validate_reference_pair(
                         "参照見出し配下の TODO は恒久テストの期待値にできません",
                     )
                 )
-            if NON_ADOPTED_BODY_PATTERN.search(
-                document.section_bodies.get(hierarchy, "")
-            ):
+            if NON_ADOPTED_BODY_PATTERN.search(section_body):
                 issues.append(
                     ValidationIssue(
                         source_path,
@@ -956,6 +1040,8 @@ def _validate_source_file(
 ) -> tuple[list[ValidationIssue], int]:
     source_path = source_file.relative_to(repo_root).as_posix()
     text = source_file.read_text(encoding="utf-8-sig")
+    if source_file.suffix == ".java":
+        text = _translate_java_unicode_escapes(text)
     scan = _scan_source(text)
     issues: list[ValidationIssue] = []
     type_blocks = _source_type_blocks(scan.code)
@@ -1102,7 +1188,7 @@ def _direct_xml_children(
     )
 
 
-def _surefire_configurations(plugin: ET.Element) -> tuple[ET.Element, ...]:
+def _plugin_configurations(plugin: ET.Element) -> tuple[ET.Element, ...]:
     configurations = list(_direct_xml_children(plugin, "configuration"))
     for executions in _direct_xml_children(plugin, "executions"):
         for execution in _direct_xml_children(executions, "execution"):
@@ -1110,6 +1196,18 @@ def _surefire_configurations(plugin: ET.Element) -> tuple[ET.Element, ...]:
                 _direct_xml_children(execution, "configuration")
             )
     return tuple(configurations)
+
+
+def _project_builds(pom_root: ET.Element) -> tuple[ET.Element, ...]:
+    builds = list(_direct_xml_children(pom_root, "build"))
+    for profiles in _direct_xml_children(pom_root, "profiles"):
+        for profile in _direct_xml_children(profiles, "profile"):
+            builds.extend(_direct_xml_children(profile, "build"))
+    return tuple(builds)
+
+
+def _normalize_maven_path(value: str) -> str:
+    return value.strip().replace("\\", "/").removeprefix("./").rstrip("/")
 
 
 def _project_property_containers(pom_root: ET.Element) -> tuple[ET.Element, ...]:
@@ -1157,12 +1255,34 @@ def _validate_pom_configuration(
         ]
 
     reported_filters: set[str] = set()
+    reported_compiler_filters: set[str] = set()
     for plugin in pom_root.iter():
         if _xml_local_name(plugin.tag) != "plugin":
             continue
-        if _direct_xml_child_text(plugin, "artifactId") != "maven-surefire-plugin":
+        artifact_id = _direct_xml_child_text(plugin, "artifactId")
+        if artifact_id == "maven-compiler-plugin":
+            for configuration in _plugin_configurations(plugin):
+                for setting in configuration:
+                    setting_name = _xml_local_name(setting.tag)
+                    if (
+                        setting_name not in COMPILER_TEST_FILTER_ELEMENTS
+                        or setting_name in reported_compiler_filters
+                    ):
+                        continue
+                    reported_compiler_filters.add(setting_name)
+                    issues.append(
+                        ValidationIssue(
+                            display_path,
+                            1,
+                            "POM_COMPILER_TEST_FILTER",
+                            "maven-compiler-plugin の test compile selection は禁止です: "
+                            f"<{setting_name}>",
+                        )
+                    )
             continue
-        for configuration in _surefire_configurations(plugin):
+        if artifact_id != "maven-surefire-plugin":
+            continue
+        for configuration in _plugin_configurations(plugin):
             for setting in configuration:
                 setting_name = _xml_local_name(setting.tag)
                 if setting_name not in (
@@ -1186,6 +1306,21 @@ def _validate_pom_configuration(
                         f"<{setting_name}>",
                     )
                 )
+
+    for build in _project_builds(pom_root):
+        for setting in _direct_xml_children(build, "testSourceDirectory"):
+            value = _normalize_maven_path(setting.text or "")
+            if value in STANDARD_TEST_SOURCE_DIRECTORIES:
+                continue
+            issues.append(
+                ValidationIssue(
+                    display_path,
+                    1,
+                    "POM_TEST_SOURCE_DIRECTORY",
+                    "build/testSourceDirectory は Maven 既定の src/test/java から変更できません: "
+                    f"{value or '<空>'}",
+                )
+            )
 
     reported_properties: set[str] = set()
     for properties in _project_property_containers(pom_root):

@@ -31,7 +31,7 @@ class PlayerDetailGuiTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-GUI・View.md
      * 章・見出し: # 09_3-GUI・View > ## 4. プレイヤー一覧・詳細
-     * 検証契約: プロフィールを1画面へ統合しworld表示名とcompact status値で描画する。
+     * 検証契約: プロフィールを1画面へ統合し、world表示名とリソース・属性・状態異常の合計値（基礎値＋補正値）をcompact描画する。
      */
     @Test
     void consolidatesProfileAndUsesDisplayWorldNameAndCompactStatusValues() {
