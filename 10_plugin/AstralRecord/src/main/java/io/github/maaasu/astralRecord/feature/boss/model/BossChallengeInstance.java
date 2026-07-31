@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.boss.model;
 
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
+import org.bukkit.boss.BossBar;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -34,6 +35,7 @@ public final class BossChallengeInstance {
     private long resultWaitEndsAtMs;
     private BukkitTask resultWaitTask;
     private DisplayTextService.ManagedTextDisplay resultDisplay;
+    private BossBar bossBar;
 
     public BossChallengeInstance(
             @NotNull UUID challengeId,
@@ -193,5 +195,23 @@ public final class BossChallengeInstance {
 
     public void resultDisplay(@Nullable DisplayTextService.ManagedTextDisplay resultDisplay) {
         this.resultDisplay = resultDisplay;
+    }
+
+    /**
+     * ボス HP 表示に使用する BossBar を返します。
+     *
+     * @return 挑戦中の BossBar。未作成または破棄済みなら {@code null}
+     */
+    public @Nullable BossBar bossBar() {
+        return bossBar;
+    }
+
+    /**
+     * ボス HP 表示に使用する BossBar を設定します。
+     *
+     * @param bossBar 挑戦に紐付ける BossBar。破棄時は {@code null}
+     */
+    public void bossBar(@Nullable BossBar bossBar) {
+        this.bossBar = bossBar;
     }
 }

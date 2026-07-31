@@ -58,4 +58,21 @@ class BossChallengeServiceTest {
         assertEquals(200.0D, boss.currentHealth(), 0.0001D);
         assertEquals(1.5D, boss.outgoingDamageMultiplier(), 0.0001D);
     }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-タスク・スケジューラ.md
+     * 章・見出し: # 26_3-タスク・スケジューラ > ## 3. 挑戦監視 tick
+     * 検証契約: 挑戦中ボスの現在HPを最大HPで割ったBossBar進捗率を0.0以上1.0以下へ制限する。
+     */
+    @Test
+    void bossBarProgressIsClampedToValidRange() {
+        assertEquals(
+            "§cTest Boss §7| §cHP: §f25§7/§f100",
+            BossChallengeService.formatBossBarTitle("&cTest Boss", 25.0D, 100.0D)
+        );
+        assertEquals(0.25D, BossChallengeService.bossBarProgress(25.0D, 100.0D), 0.0001D);
+        assertEquals(0.0D, BossChallengeService.bossBarProgress(-10.0D, 100.0D), 0.0001D);
+        assertEquals(1.0D, BossChallengeService.bossBarProgress(150.0D, 100.0D), 0.0001D);
+        assertEquals(0.0D, BossChallengeService.bossBarProgress(50.0D, 0.0D), 0.0001D);
+    }
 }

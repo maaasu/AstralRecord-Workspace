@@ -26,6 +26,7 @@ import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.display.DisplayAnchor;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
@@ -34,6 +35,9 @@ import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.boss.BarColor;
+import org.bukkit.boss.BarStyle;
+import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
@@ -743,6 +747,8 @@ public final class BossChallengeService {
             cancelControllersByChallengeId.put(challenge.challengeId(), controller);
             challengeIdByCancelInteraction.put(controller.interaction().getUniqueId(), challenge.challengeId());
             challenge.markStarted();
+            challenge.bossBar(createBossBar(boss));
+            updateBossBar(challenge);
             Logger.log(LogId.I_6501, challenge.challengeId(), challenge.bossTemplate().id(), field.worldName());
             notifyParticipants(challenge, PlayerMsgId.P_6510, challenge.bossTemplate().displayName(), challenge.config().timeLimitSeconds());
         } catch (RuntimeException ex) {
@@ -774,6 +780,7 @@ public final class BossChallengeService {
             if (challenge.state() != BossChallengeState.IN_PROGRESS) {
                 continue;
             }
+            updateBossBar(challenge);
             long elapsedSeconds = (now - challenge.startedAtMs()) / 1000L;
             if (elapsedSeconds >= challenge.config().timeLimitSeconds()) {
                 endChallenge(challenge, BossChallengeEndReason.TIME_LIMIT);
@@ -812,6 +819,7 @@ public final class BossChallengeService {
         if (bossMobId != null) {
             challengeIdByBossMob.remove(bossMobId);
         }
+        destroyBossBar(challenge);
 
         notifyParticipants(challenge, PlayerMsgId.P_6511, challenge.bossTemplate().displayName());
         showDamageResult(challenge, deathLocation);
@@ -833,6 +841,7 @@ public final class BossChallengeService {
         fieldInstanceService.cancelPendingCreation(challenge.challengeId());
         challenge.state(BossChallengeState.ENDING);
         destroyCancelController(challenge.challengeId());
+        destroyBossBar(challenge);
         if (!challenge.participantsConfirmed()) {
             challenge.confirmParticipants(
                     eligibleParticipantsForEntry(challenge).stream().map(Player::getUniqueId).toList()
@@ -918,6 +927,7 @@ public final class BossChallengeService {
     }
 
     private void finishChallengeRemoval(@NotNull BossChallengeInstance challenge) {
+        destroyBossBar(challenge);
         challenge.state(BossChallengeState.ENDED);
         challengeIdByPartyKey.remove(challenge.partyKey());
         challengesById.remove(challenge.challengeId());
@@ -935,6 +945,126 @@ public final class BossChallengeService {
         }
         challengeIdByCancelInteraction.remove(controller.interaction().getUniqueId());
         controller.destroy();
+    }
+
+    /**
+     * 生成直後のボス HP を使って BossBar を作成します。
+     *
+     * @param boss 表示対象のボス Mob
+     * @return 表示状態で作成した BossBar
+     */
+    private @NotNull BossBar createBossBar(@NotNull MobInstance boss) {
+        BossBar bossBar = Bukkit.createBossBar(
+                formatBossBarTitle(boss.template().displayName(), boss.currentHealth(), boss.maxHealth()),
+                BarColor.RED,
+                BarStyle.SOLID
+        );
+        bossBar.setVisible(true);
+        return bossBar;
+    }
+
+    /**
+     * 挑戦中のボス HP と表示対象参加者を BossBar へ同期します。
+     *
+     * @param challenge 同期対象のボス挑戦
+     */
+    private void updateBossBar(@NotNull BossChallengeInstance challenge) {
+        BossBar bossBar = challenge.bossBar();
+        UUID bossMobId = challenge.bossMobInstanceId();
+        MobInstance boss = bossMobId == null ? null : mobService.getInstance(bossMobId);
+        if (bossBar == null) {
+            return;
+        }
+        if (boss == null) {
+            destroyBossBar(challenge);
+            return;
+        }
+
+        bossBar.setTitle(formatBossBarTitle(boss.template().displayName(), boss.currentHealth(), boss.maxHealth()));
+        bossBar.setProgress(bossBarProgress(boss.currentHealth(), boss.maxHealth()));
+
+        BossFieldInstance field = challenge.field();
+        Set<UUID> visibleParticipantIds = new HashSet<>();
+        if (field != null) {
+            UUID fieldWorldId = field.world().getUID();
+            for (UUID participantId : challenge.participantIds()) {
+                Player player = Bukkit.getPlayer(participantId);
+                if (player != null && player.isOnline() && player.getWorld().getUID().equals(fieldWorldId)) {
+                    visibleParticipantIds.add(participantId);
+                }
+            }
+        }
+
+        for (Player player : List.copyOf(bossBar.getPlayers())) {
+            if (!visibleParticipantIds.contains(player.getUniqueId())) {
+                bossBar.removePlayer(player);
+            }
+        }
+        for (UUID participantId : visibleParticipantIds) {
+            Player player = Bukkit.getPlayer(participantId);
+            if (player != null && !bossBar.getPlayers().contains(player)) {
+                bossBar.addPlayer(player);
+            }
+        }
+    }
+
+    /**
+     * 挑戦に紐付く BossBar を全参加者から除去して破棄します。
+     *
+     * @param challenge 破棄対象のボス挑戦
+     */
+    private void destroyBossBar(@NotNull BossChallengeInstance challenge) {
+        BossBar bossBar = challenge.bossBar();
+        if (bossBar == null) {
+            return;
+        }
+        bossBar.removeAll();
+        bossBar.setVisible(false);
+        challenge.bossBar(null);
+    }
+
+    /**
+     * ボス HP の BossBar タイトルを作成します。
+     *
+     * @param displayName ボス表示名
+     * @param currentHealth 現在 HP
+     * @param maxHealth 最大 HP
+     * @return カラーコードと現在 HP／最大 HP を含む表示文字列
+     */
+    static @NotNull String formatBossBarTitle(
+            @NotNull String displayName,
+            double currentHealth,
+            double maxHealth
+    ) {
+        return ColorCodeUtil.toLegacyText(displayName, "ボス")
+                + " §7| §cHP: §f"
+                + formatHealth(currentHealth)
+                + "§7/§f"
+                + formatHealth(maxHealth);
+    }
+
+    /**
+     * 現在 HP と最大 HP から BossBar の進捗率を計算します。
+     *
+     * @param currentHealth 現在 HP
+     * @param maxHealth 最大 HP
+     * @return 0.0 以上1.0以下の進捗率
+     */
+    static double bossBarProgress(double currentHealth, double maxHealth) {
+        if (!Double.isFinite(currentHealth) || !Double.isFinite(maxHealth) || maxHealth <= 0.0D) {
+            return 0.0D;
+        }
+        return Math.clamp(currentHealth / maxHealth, 0.0D, 1.0D);
+    }
+
+    /**
+     * BossBar タイトル用の HP 数値を整形します。
+     *
+     * @param health 整形対象 HP
+     * @return 小数点以下を四捨五入した非負 HP 文字列
+     */
+    private static @NotNull String formatHealth(double health) {
+        return String.format(Locale.ROOT, "%.0f", Math.max(0.0D, Double.isFinite(health) ? health : 0.0D));
     }
 
     private boolean isEnding(@NotNull BossChallengeInstance challenge) {
