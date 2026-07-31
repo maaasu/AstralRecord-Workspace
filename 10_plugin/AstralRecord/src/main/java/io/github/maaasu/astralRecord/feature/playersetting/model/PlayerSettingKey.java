@@ -21,6 +21,7 @@ public enum PlayerSettingKey {
     PERFORMANCE_INFO_DISPLAY("PERFORMANCE_INFO_DISPLAY", "MSPT・Ping表示", false),
     AUTO_SAVE_MESSAGE("AUTO_SAVE_MESSAGE", "オートセーブメッセージ", false),
     BUFF_SIDEBAR_DISPLAY("BUFF_SIDEBAR_DISPLAY", "バフ情報のサイドバー表示", false),
+    ARMOR_DISPLAY("ARMOR_DISPLAY", "防具表示", true),
     ADVENTURE_RECORD_SUPER_MODE("ADVENTURE_RECORD_SUPER_MODE", "冒険記録スーパーモード", false);
 
     private final String code;

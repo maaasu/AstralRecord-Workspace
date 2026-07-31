@@ -96,6 +96,9 @@ public final class PlayerSettingCommand extends AstCommand {
                 if (result.staleSession()) {
                     return;
                 }
+                if (key == PlayerSettingKey.ARMOR_DISPLAY) {
+                    plugin.getItemStackPacketAdapter().refreshEquipmentView(player.getBukkit());
+                }
                 if (result.conflict()) {
                     sendError(player.getBukkit(), result.message());
                     return;

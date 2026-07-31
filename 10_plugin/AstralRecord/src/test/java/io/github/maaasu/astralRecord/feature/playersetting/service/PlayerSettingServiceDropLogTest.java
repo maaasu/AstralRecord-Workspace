@@ -70,4 +70,32 @@ class PlayerSettingServiceDropLogTest {
 
         assertFalse(service.isAutoSaveMessageEnabled(UUID.randomUUID()));
     }
+
+    @Test
+    void armorDisplayUsesCachedPlayerChoice() {
+        UUID userId = UUID.randomUUID();
+        PlayerSettingCache cache = new PlayerSettingCache();
+        cache.put(new PlayerSettingSnapshot(userId, Map.of(
+            PlayerSettingKey.ARMOR_DISPLAY,
+            new PlayerSettingEntry(null, PlayerSettingKey.ARMOR_DISPLAY, false, null)
+        )));
+        PlayerSettingService service = new PlayerSettingService(
+            new PlayerSettingRepository(),
+            new PlayerSettingDefaults(),
+            cache
+        );
+
+        assertFalse(service.isArmorDisplayEnabled(userId));
+    }
+
+    @Test
+    void armorDisplayDefaultsToEnabledWithoutCachedSnapshot() {
+        PlayerSettingService service = new PlayerSettingService(
+            new PlayerSettingRepository(),
+            new PlayerSettingDefaults(),
+            new PlayerSettingCache()
+        );
+
+        assertTrue(service.isArmorDisplayEnabled(UUID.randomUUID()));
+    }
 }

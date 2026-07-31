@@ -7,17 +7,26 @@ import com.comphenix.protocol.events.ListenerPriority;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.PacketEvent;
+import com.comphenix.protocol.wrappers.EnumWrappers;
+import com.comphenix.protocol.wrappers.Pair;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
+import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.CustomModelDataComponentUtil;
+import io.papermc.paper.datacomponent.DataComponentTypes;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,6 +41,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * <ul>
  *   <li>{@code SET_SLOT} — 単一スロットの更新</li>
  *   <li>{@code WINDOW_ITEMS} — インベントリ全体の一括送信</li>
+ *   <li>{@code ENTITY_EQUIPMENT} — 他エンティティの手持ち・装備更新</li>
  * </ul>
  * <p>
  * <b>性能上の考慮:</b>
@@ -49,15 +59,21 @@ public class ItemStackPacketAdapter {
     private static final Map<String, Material> MATERIAL_CACHE = new ConcurrentHashMap<>();
 
     private final Plugin plugin;
+    private final PlayerSettingService playerSettingService;
     private boolean registered = false;
 
     /**
      * アダプタを初期化します。
      *
      * @param plugin プラグインインスタンス
+     * @param playerSettingService 受信者ごとの防具表示設定を参照するサービス
      */
-    public ItemStackPacketAdapter(@NotNull Plugin plugin) {
+    public ItemStackPacketAdapter(
+        @NotNull Plugin plugin,
+        @NotNull PlayerSettingService playerSettingService
+    ) {
         this.plugin = plugin;
+        this.playerSettingService = playerSettingService;
     }
 
     /**
@@ -75,7 +91,8 @@ public class ItemStackPacketAdapter {
                 plugin,
                 ListenerPriority.NORMAL,
                 PacketType.Play.Server.SET_SLOT,
-                PacketType.Play.Server.WINDOW_ITEMS
+                PacketType.Play.Server.WINDOW_ITEMS,
+                PacketType.Play.Server.ENTITY_EQUIPMENT
         ) {
             @Override
             public void onPacketSending(PacketEvent event) {
@@ -85,11 +102,16 @@ public class ItemStackPacketAdapter {
 
                 PacketContainer packet = event.getPacket();
                 PacketType type = packet.getType();
+                boolean armorDisplayEnabled = playerSettingService.isArmorDisplayEnabled(
+                    event.getPlayer().getUniqueId()
+                );
 
                 if (type == PacketType.Play.Server.SET_SLOT) {
-                    handleSetSlot(packet);
+                    handleSetSlot(packet, armorDisplayEnabled);
                 } else if (type == PacketType.Play.Server.WINDOW_ITEMS) {
-                    handleWindowItems(packet);
+                    handleWindowItems(packet, armorDisplayEnabled);
+                } else if (type == PacketType.Play.Server.ENTITY_EQUIPMENT) {
+                    handleEntityEquipment(packet, armorDisplayEnabled);
                 }
             }
         });
@@ -102,14 +124,17 @@ public class ItemStackPacketAdapter {
 
     /**
      * SET_SLOT パケット内の単一 ItemStack を書き換えます。
+     *
+     * @param packet 書き換え対象パケット
+     * @param armorDisplayEnabled 受信者が防具の身体描画を表示する場合は {@code true}
      */
-    private void handleSetSlot(@NotNull PacketContainer packet) {
+    private void handleSetSlot(@NotNull PacketContainer packet, boolean armorDisplayEnabled) {
         var original = packet.getItemModifier().readSafely(0);
         if (original == null || original.getType() == Material.AIR) {
             return;
         }
 
-        var replaced = replaceIcon(original);
+        var replaced = replaceIcon(original, armorDisplayEnabled);
         if (replaced != null) {
             packet.getItemModifier().writeSafely(0, replaced);
         }
@@ -117,8 +142,11 @@ public class ItemStackPacketAdapter {
 
     /**
      * WINDOW_ITEMS パケット内の ItemStack リストを書き換えます。
+     *
+     * @param packet 書き換え対象パケット
+     * @param armorDisplayEnabled 受信者が防具の身体描画を表示する場合は {@code true}
      */
-    private void handleWindowItems(@NotNull PacketContainer packet) {
+    private void handleWindowItems(@NotNull PacketContainer packet, boolean armorDisplayEnabled) {
         var items = packet.getItemListModifier().readSafely(0);
         if (items == null || items.isEmpty()) {
             return;
@@ -131,7 +159,7 @@ public class ItemStackPacketAdapter {
                 continue;
             }
 
-            var replaced = replaceIcon(original);
+            var replaced = replaceIcon(original, armorDisplayEnabled);
             if (replaced != null) {
                 items.set(i, replaced);
                 modified = true;
@@ -140,6 +168,38 @@ public class ItemStackPacketAdapter {
 
         if (modified) {
             packet.getItemListModifier().writeSafely(0, items);
+        }
+    }
+
+    /**
+     * ENTITY_EQUIPMENT パケット内の手持ち・装備 ItemStack を受信者向け表示へ書き換えます。
+     *
+     * @param packet 書き換え対象パケット
+     * @param armorDisplayEnabled 受信者が防具の身体描画を表示する場合は {@code true}
+     */
+    private void handleEntityEquipment(@NotNull PacketContainer packet, boolean armorDisplayEnabled) {
+        List<Pair<EnumWrappers.ItemSlot, ItemStack>> equipment = packet.getSlotStackPairLists().readSafely(0);
+        if (equipment == null || equipment.isEmpty()) {
+            return;
+        }
+
+        boolean modified = false;
+        List<Pair<EnumWrappers.ItemSlot, ItemStack>> replacedEquipment = new ArrayList<>(equipment.size());
+        for (Pair<EnumWrappers.ItemSlot, ItemStack> pair : equipment) {
+            ItemStack original = pair.getSecond();
+            ItemStack replaced = original == null || original.getType() == Material.AIR
+                ? null
+                : replaceIcon(original, armorDisplayEnabled);
+            if (replaced != null) {
+                replacedEquipment.add(new Pair<>(pair.getFirst(), replaced));
+                modified = true;
+            } else {
+                replacedEquipment.add(new Pair<>(pair.getFirst(), original));
+            }
+        }
+
+        if (modified) {
+            packet.getSlotStackPairLists().writeSafely(0, replacedEquipment);
         }
     }
 
@@ -152,9 +212,10 @@ public class ItemStackPacketAdapter {
      * AstralRecord アイテムでなければ {@code null} を返します。
      *
      * @param original 元の ItemStack
+     * @param armorDisplayEnabled 受信者が防具の身体描画を表示する場合は {@code true}
      * @return icon 適用済み ItemStack、または {@code null}
      */
-    private ItemStack replaceIcon(@NotNull ItemStack original) {
+    private ItemStack replaceIcon(@NotNull ItemStack original, boolean armorDisplayEnabled) {
         var iconName = ItemStackFactory.getIconName(original);
         var customModelData = ItemStackFactory.getCustomModelData(original);
         var appearanceColor = ItemStackFactory.getAppearanceColor(original);
@@ -193,12 +254,58 @@ public class ItemStackPacketAdapter {
         if (ItemStackFactory.applyDurabilityVisual(replaced)) {
             modified = true;
         }
+        if (!armorDisplayEnabled && replaced.hasData(DataComponentTypes.EQUIPPABLE)) {
+            if (replaced == original) {
+                replaced = original.clone();
+            }
+            modified |= removeEquippableComponent(replaced);
+        }
 
         return modified ? replaced : null;
     }
 
+    /**
+     * 指定プレイヤーの inventory と、そのプレイヤーが追跡中の全プレイヤーの防具表示を再送します。
+     *
+     * <p>Bukkit メインスレッドから呼び出してください。設定変更時とログイン設定ロード完了時に、
+     * 次の通常装備更新を待たず表示状態を即時反映します。</p>
+     *
+     * @param viewer 表示設定を反映する受信プレイヤー
+     */
+    public void refreshEquipmentView(@NotNull Player viewer) {
+        if (!viewer.isOnline()) {
+            return;
+        }
+        viewer.updateInventory();
+        for (Player target : plugin.getServer().getOnlinePlayers()) {
+            if (target != viewer && !target.isTrackedBy(viewer)) {
+                continue;
+            }
+            EnumMap<EquipmentSlot, ItemStack> armor = new EnumMap<>(EquipmentSlot.class);
+            armor.put(EquipmentSlot.HEAD, target.getInventory().getHelmet());
+            armor.put(EquipmentSlot.CHEST, target.getInventory().getChestplate());
+            armor.put(EquipmentSlot.LEGS, target.getInventory().getLeggings());
+            armor.put(EquipmentSlot.FEET, target.getInventory().getBoots());
+            viewer.sendEquipmentChange(target, armor);
+        }
+    }
+
     static boolean needsCustomModelDataUpdate(int desiredCustomModelData, @Nullable Integer currentCustomModelData) {
         return currentCustomModelData == null || currentCustomModelData != desiredCustomModelData;
+    }
+
+    /**
+     * 送信 ItemStack から身体装備レイヤーを描画する component を除去します。
+     *
+     * @param item 送信専用の ItemStack コピー
+     * @return component を除去した場合は {@code true}
+     */
+    static boolean removeEquippableComponent(@NotNull ItemStack item) {
+        if (!item.hasData(DataComponentTypes.EQUIPPABLE)) {
+            return false;
+        }
+        item.unsetData(DataComponentTypes.EQUIPPABLE);
+        return true;
     }
 
 

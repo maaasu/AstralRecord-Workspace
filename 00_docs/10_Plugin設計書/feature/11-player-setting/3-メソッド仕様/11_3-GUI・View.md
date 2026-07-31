@@ -16,6 +16,7 @@
 | 24 | `DROP_LOG_DISPLAY` |
 | 25 | `AUTO_SAVE_MESSAGE` |
 | 26 | `BUFF_SIDEBAR_DISPLAY` |
+| 27 | `ARMOR_DISPLAY` |
 | 49 | 前画面へ戻る |
 | 53 | icon を置かない管理者用 super mode secret slot |
 

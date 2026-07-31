@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.playersetting.event;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.view.ItemStackPacketAdapter;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
@@ -44,17 +45,28 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
     private final PlayerSettingGui gui;
     private final PlayerSettingService playerSettingService;
     private final InventoryService inventoryService;
+    private final ItemStackPacketAdapter itemStackPacketAdapter;
     private final ConcurrentHashMap<UUID, Integer> secretClickCounts = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, EnumMap<PlayerSettingKey, Object>> draftValues = new ConcurrentHashMap<>();
 
+    /**
+     * プレイヤー設定 GUI の操作と保存後表示同期を行うハンドラを初期化します。
+     *
+     * @param gui プレイヤー設定 GUI
+     * @param playerSettingService プレイヤー設定サービス
+     * @param inventoryService hotbar shortcut 用 inventory サービス
+     * @param itemStackPacketAdapter 防具表示を再同期するパケットアダプタ
+     */
     public PlayerSettingGuiEventHandler(
         @NotNull PlayerSettingGui gui,
         @NotNull PlayerSettingService playerSettingService,
-        @NotNull InventoryService inventoryService
+        @NotNull InventoryService inventoryService,
+        @NotNull ItemStackPacketAdapter itemStackPacketAdapter
     ) {
         this.gui = gui;
         this.playerSettingService = playerSettingService;
         this.inventoryService = inventoryService;
+        this.itemStackPacketAdapter = itemStackPacketAdapter;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -228,6 +240,13 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
                         persisted.key().getDisplayNameJa(),
                         persisted.key().formatValue(persisted.value())
                     ));
+                }
+                boolean armorSettingSynchronized = results.stream().anyMatch(persisted ->
+                    persisted.key() == PlayerSettingKey.ARMOR_DISPLAY
+                        && !persisted.result().staleSession()
+                );
+                if (armorSettingSynchronized) {
+                    itemStackPacketAdapter.refreshEquipmentView(player);
                 }
             }));
     }

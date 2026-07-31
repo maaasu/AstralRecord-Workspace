@@ -33,6 +33,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
     public static final int DROP_LOG_SLOT = 24;
     public static final int AUTO_SAVE_MESSAGE_SLOT = 25;
     public static final int BUFF_SIDEBAR_DISPLAY_SLOT = 26;
+    public static final int ARMOR_DISPLAY_SLOT = 27;
     public static final int SUPER_MODE_SECRET_SLOT = 53;
     public static final int BACK_TO_MENU_SLOT = BaseMenuScreenView.BACK_SLOT;
 
@@ -75,6 +76,7 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             case DROP_LOG_SLOT -> PlayerSettingKey.DROP_LOG_DISPLAY;
             case AUTO_SAVE_MESSAGE_SLOT -> PlayerSettingKey.AUTO_SAVE_MESSAGE;
             case BUFF_SIDEBAR_DISPLAY_SLOT -> PlayerSettingKey.BUFF_SIDEBAR_DISPLAY;
+            case ARMOR_DISPLAY_SLOT -> PlayerSettingKey.ARMOR_DISPLAY;
             default -> null;
         };
     }
@@ -125,6 +127,11 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             Material.POTION,
             PlayerSettingKey.BUFF_SIDEBAR_DISPLAY,
             (Boolean) resolveValue(userId, PlayerSettingKey.BUFF_SIDEBAR_DISPLAY, draftValues)
+        ));
+        inventory.setItem(ARMOR_DISPLAY_SLOT, createBooleanItem(
+            Material.IRON_CHESTPLATE,
+            PlayerSettingKey.ARMOR_DISPLAY,
+            (Boolean) resolveValue(userId, PlayerSettingKey.ARMOR_DISPLAY, draftValues)
         ));
         inventory.setItem(BACK_TO_MENU_SLOT, backItem());
     }

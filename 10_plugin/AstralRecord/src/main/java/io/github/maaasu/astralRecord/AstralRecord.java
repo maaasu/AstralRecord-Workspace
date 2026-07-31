@@ -309,6 +309,7 @@ public final class AstralRecord extends JavaPlugin {
     private OverheadDisplayService overheadDisplayService;
     private PlayerSettingService playerSettingService;
     private PlayerSettingGui playerSettingGui;
+    private ItemStackPacketAdapter itemStackPacketAdapter;
     private SkillService skillService;
     private SkillActionRingService skillActionRingService;
     private PassiveSkillService passiveSkillService;
@@ -1066,8 +1067,8 @@ public final class AstralRecord extends JavaPlugin {
         worldSpawnParticleTask = new WorldSpawnParticleTask(this, worldService, particleDisplayService, displayTextService);
 
         // item: ProtocolLib パケットアダプター（icon 差し替え）登録
-        ItemStackPacketAdapter packetAdapter = new ItemStackPacketAdapter(this);
-        packetAdapter.register();
+        itemStackPacketAdapter = new ItemStackPacketAdapter(this, playerSettingService);
+        itemStackPacketAdapter.register();
 
     }
 
@@ -1238,11 +1239,16 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new PlayerSettingJoinEventHandler(this, playerSettingService),
+            new PlayerSettingJoinEventHandler(this, playerSettingService, itemStackPacketAdapter),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new PlayerSettingGuiEventHandler(playerSettingGui, playerSettingService, inventoryService),
+            new PlayerSettingGuiEventHandler(
+                playerSettingGui,
+                playerSettingService,
+                inventoryService,
+                itemStackPacketAdapter
+            ),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
@@ -1584,6 +1590,15 @@ public final class AstralRecord extends JavaPlugin {
 
     public PlayerSettingGui getPlayerSettingGui() {
         return playerSettingGui;
+    }
+
+    /**
+     * プレイヤー向け ItemStack パケット表示アダプタを取得します。
+     *
+     * @return 登録済み ItemStack パケット表示アダプタ
+     */
+    public ItemStackPacketAdapter getItemStackPacketAdapter() {
+        return itemStackPacketAdapter;
     }
 
     /**

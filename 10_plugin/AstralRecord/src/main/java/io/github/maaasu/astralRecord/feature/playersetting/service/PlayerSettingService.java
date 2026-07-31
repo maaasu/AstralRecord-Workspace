@@ -252,6 +252,27 @@ public final class PlayerSettingService {
     }
 
     /**
+     * 指定プレイヤーで防具の身体描画が有効かを、API 通信を行わずキャッシュから返します。
+     *
+     * <p>パケット送信スレッドから呼ばれるため、cache miss 時は既定値へ直ちに
+     * fallback します。</p>
+     *
+     * @param userId 判定対象ユーザー ID
+     * @return 防具の身体描画が有効な場合は {@code true}
+     */
+    public boolean isArmorDisplayEnabled(@NotNull UUID userId) {
+        PlayerSettingSnapshot snapshot = cache.find(userId);
+        if (snapshot == null) {
+            return (Boolean) PlayerSettingKey.ARMOR_DISPLAY.getDefaultValue();
+        }
+        PlayerSettingEntry entry = snapshot.getEntry(PlayerSettingKey.ARMOR_DISPLAY);
+        Object value = entry == null ? null : entry.getValue();
+        return value instanceof Boolean enabled
+            ? enabled
+            : (Boolean) PlayerSettingKey.ARMOR_DISPLAY.getDefaultValue();
+    }
+
+    /**
      * 指定セッションのプレイヤー設定を更新します。
      *
      * <p>同一ユーザーの更新は直列化されます。呼び出し元はリポジトリ通信を Bukkit
