@@ -60,8 +60,9 @@ public final class DamageCalculator {
     /**
      * ダメージを計算します。防御は解決攻撃力との比率から軽減倍率を求め、会心後の合計
      * ダメージへ一度だけ適用します。その後に各属性成分へ比例配分して属性増加・耐性・
-     * 貫通を個別適用します。通常会心と超星会心は独立して判定し、コンテキストで強制・
-     * 無効化も指定できます。
+     * 貫通を個別適用します。通常会心と超星会心は独立して判定し、通常判定で成立した
+     * 超星会心は100%へ設定倍率を加算します。強制適用では設定倍率だけを乗算し、
+     * コンテキストで無効化も指定できます。
      *
      * @param context ダメージ計算入力
      * @return 計算結果
@@ -166,6 +167,8 @@ public final class DamageCalculator {
 
     /**
      * 通常会心と超星会心を独立して判定し、成立した倍率をダメージへ適用します。
+     * 通常判定の超星会心は100%へ設定倍率を加算し、追尾弾の強制適用は設定倍率だけを
+     * 乗算します。
      *
      * @param context ダメージ計算入力
      * @param damage 会心適用前ダメージ
@@ -186,9 +189,14 @@ public final class DamageCalculator {
         boolean superStarCritical = shouldApplySuperStarCritical(context);
         if (superStarCritical) {
             double configuredMultiplier = context.attacker().statValue(StatusType.SUPER_CRITICAL_DAMAGE);
-            damage *= (configuredMultiplier <= 0.0D
+            double multiplierPercent = configuredMultiplier <= 0.0D
                     ? DEFAULT_SUPER_STAR_CRITICAL_MULTIPLIER
-                    : configuredMultiplier) / 100.0D;
+                    : configuredMultiplier;
+            double multiplier = multiplierPercent / 100.0D;
+            if (context.superStarCriticalMode() == SuperStarCriticalMode.ROLL) {
+                multiplier += 1.0D;
+            }
+            damage *= multiplier;
         }
         return new CriticalDamage(damage, critical, superStarCritical);
     }

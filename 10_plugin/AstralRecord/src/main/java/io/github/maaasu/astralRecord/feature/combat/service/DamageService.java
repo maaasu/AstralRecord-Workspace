@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResultItem;
+import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.service.MobCombatService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropPresentationService;
@@ -533,6 +534,7 @@ public final class DamageService {
         if (superStarOrigin != null && attacker != null) {
             spawnSuperStarCriticalProjectiles(
                     attacker,
+                    victim.mob(),
                     superStarOrigin,
                     baseDamage,
                     attackType,
@@ -574,6 +576,7 @@ public final class DamageService {
      * 元攻撃の再計算条件を保持した超星会心追尾弾を生成します。
      *
      * @param attacker 発生元プレイヤー
+     * @param originVictim 追尾弾の生成元となった被弾 Mob
      * @param origin 生成位置
      * @param baseDamage 外部基礎ダメージ
      * @param attackType 攻撃種別
@@ -583,6 +586,7 @@ public final class DamageService {
      */
     private void spawnSuperStarCriticalProjectiles(
             @NotNull AstEntity attacker,
+            @NotNull MobInstance originVictim,
             @NotNull Location origin,
             double baseDamage,
             @NotNull AttackType attackType,
@@ -595,7 +599,7 @@ public final class DamageService {
             return;
         }
         List<DamageComponent> componentSnapshot = List.copyOf(components);
-        superStarCriticalProjectileService.spawn(attacker, origin, target -> applyDamage(
+        superStarCriticalProjectileService.spawn(attacker, originVictim, origin, target -> applyDamage(
                 attacker,
                 target,
                 baseDamage,

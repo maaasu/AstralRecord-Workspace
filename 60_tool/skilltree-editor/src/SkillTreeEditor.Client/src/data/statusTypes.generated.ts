@@ -124,7 +124,7 @@ export const STATUS_TYPES: readonly StatusTypeDefinition[] = [
   { id: "CRITICAL_RATE", displayName: "会心率", description: "攻撃が会心になる確率。", category: "OFFENSE", suffix: "%", decimalPlaces: 1, supportsRange: true },
   { id: "CRITICAL_DAMAGE", displayName: "会心ダメージ", description: "会心が発生したときのダメージ倍率。", category: "OFFENSE", suffix: "%", decimalPlaces: 1, supportsRange: true },
   { id: "SUPER_CRITICAL_RATE", displayName: "超星会心率", description: "プレイヤーの攻撃が超星会心になる確率。", category: "OFFENSE", suffix: "%", decimalPlaces: 1, supportsRange: true },
-  { id: "SUPER_CRITICAL_DAMAGE", displayName: "超星会心倍率", description: "超星会心の主攻撃と追尾弾へ適用するダメージ倍率。", category: "OFFENSE", suffix: "%", decimalPlaces: 1, supportsRange: true },
+  { id: "SUPER_CRITICAL_DAMAGE", displayName: "超星会心倍率", description: "主攻撃では100%へ加算し、追尾弾ではそのまま乗算する超星会心の割合。", category: "OFFENSE", suffix: "%", decimalPlaces: 1, supportsRange: true },
   { id: "SKILL_DAMAGE_INCREASE", displayName: "スキルダメージ増加", description: "スキルで与えるダメージを増加させる補正。", category: "OFFENSE", suffix: "%", decimalPlaces: 1, supportsRange: true },
   { id: "NORMAL_ATTACK_DAMAGE_INCREASE", displayName: "通常攻撃ダメージ増加", description: "通常攻撃で与えるダメージを増加させる補正。", category: "OFFENSE", suffix: "%", decimalPlaces: 1, supportsRange: true },
   { id: "FINAL_DAMAGE_MULTIPLIER", displayName: "最終ダメージ倍率", description: "各種補正の後に常時適用される最終ダメージ倍率。", category: "OFFENSE", suffix: "%", decimalPlaces: 1, supportsRange: true },

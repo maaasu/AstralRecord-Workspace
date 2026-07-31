@@ -21,7 +21,7 @@ import java.util.List;
  * @param components   属性別ダメージ倍率。空の場合は無属性100%として扱う
  * @param source       通常攻撃・スキルなどの発生元
  * @param attackerDamageMultiplier 攻撃者固有のダメージ倍率。攻撃力解決後、防御・会心より前に適用する
- * @param superStarCriticalMode 超星会心倍率の適用方法
+ * @param superStarCriticalMode 超星会心倍率の適用方法。ROLLは設定率を100%へ加算し、FORCEは設定率だけを乗算する
  */
 public record DamageContext(
         @Nullable AstEntity attacker,

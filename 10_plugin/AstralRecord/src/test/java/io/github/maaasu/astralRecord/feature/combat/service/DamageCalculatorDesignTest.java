@@ -97,7 +97,7 @@ class DamageCalculatorDesignTest {
     }
 
     @Test
-    void criticalAndSuperCriticalUseConfiguredMultipliers() {
+    void criticalAndRolledSuperCriticalMultiplyConfiguredBonusOverBaseDamage() {
         DamageCalculator calculator = new DamageCalculator(() -> 0.0D);
         AstPlayer attacker = player(Map.of(
             StatusType.CRITICAL_RATE, 100.0D,
@@ -116,7 +116,7 @@ class DamageCalculatorDesignTest {
             DamageScaling.FIXED
         ));
 
-        assertEquals(30.0D, result.finalDamage(), 0.0001D);
+        assertEquals(50.0D, result.finalDamage(), 0.0001D);
         assertTrue(result.critical());
         assertTrue(result.superStarCritical());
     }
@@ -166,7 +166,7 @@ class DamageCalculatorDesignTest {
             DamageScaling.FIXED, DamageSource.OTHER
         ));
 
-        assertEquals(3.0D, result.finalDamage(), 0.0001D);
+        assertEquals(13.0D, result.finalDamage(), 0.0001D);
         assertFalse(result.critical());
         assertTrue(result.superStarCritical());
     }
@@ -190,6 +190,26 @@ class DamageCalculatorDesignTest {
 
         assertEquals(6.0D, result.finalDamage(), 0.0001D);
         assertTrue(result.critical());
+        assertTrue(result.superStarCritical());
+    }
+
+    @Test
+    void forcedSuperStarCriticalUsesConfiguredPercentageWithoutBaseDamage() {
+        DamageCalculator calculator = new DamageCalculator(() -> 0.0D);
+        AstPlayer attacker = player(Map.of(
+            StatusType.CRITICAL_RATE, 0.0D,
+            StatusType.SUPER_CRITICAL_DAMAGE, 30.0D
+        ));
+        MobInstance victim = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D);
+
+        var result = calculator.calculate(new DamageContext(
+            AstEntity.player(attacker), AstEntity.mob(victim), 10.0D,
+            AttackType.MELEE, List.of(DamageComponent.defaultComponent()),
+            DamageScaling.FIXED, DamageSource.OTHER, SuperStarCriticalMode.FORCE
+        ));
+
+        assertEquals(3.0D, result.finalDamage(), 0.0001D);
+        assertFalse(result.critical());
         assertTrue(result.superStarCritical());
     }
 
