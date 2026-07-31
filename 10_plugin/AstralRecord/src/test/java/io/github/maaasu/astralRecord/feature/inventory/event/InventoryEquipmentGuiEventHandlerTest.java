@@ -17,6 +17,11 @@ import static org.mockito.Mockito.verify;
 
 class InventoryEquipmentGuiEventHandlerTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-イベント.md
+     * 章・見出し: # 08_3-イベント > ## 5. 手持ちアイテム入れ替え抑止
+     * 検証契約: vanilla offhand swap操作をcancelする。
+     */
     @Test
     void cancelsVanillaOffhandSwap() {
         PlayerSwapHandItemsEvent event = mock(PlayerSwapHandItemsEvent.class);

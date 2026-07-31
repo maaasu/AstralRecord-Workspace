@@ -24,6 +24,11 @@ class WaystoneDefinitionRepositoryTest extends MockBukkitTestBase {
     @TempDir
     Path tempDir;
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/25-teleporter/3-メソッド仕様/25_3-リポジトリ.md
+     * 章・見出し: # 25_3-リポジトリ > ## ウェイストーン定義一覧取得
+     * 検証契約: icon欠落・未知Materialを未設定として読み、表示時はBEACONへfallbackする。
+     */
     @Test
     void loadAllUsesBeaconWhenIconIsMissingOrInvalid() throws IOException {
         Files.writeString(tempDir.resolve("waystones.yml"), """
@@ -46,6 +51,11 @@ class WaystoneDefinitionRepositoryTest extends MockBukkitTestBase {
         assertEquals(Material.BEACON, definitions.get(1).displayIcon());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/25-teleporter/3-メソッド仕様/25_3-リポジトリ.md
+     * 章・見出し: # 25_3-リポジトリ > ## ウェイストーン定義一覧取得
+     * 検証契約: 有効なitem Material名AMETHYST_SHARDを定義iconと表示iconへ反映する。
+     */
     @Test
     void loadAllReadsConfiguredItemMaterial() throws IOException {
         Files.writeString(tempDir.resolve("waystones.yml"), """
@@ -62,6 +72,11 @@ class WaystoneDefinitionRepositoryTest extends MockBukkitTestBase {
         assertEquals(Material.AMETHYST_SHARD, definition.displayIcon());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/25-teleporter/3-メソッド仕様/25_3-リポジトリ.md
+     * 章・見出し: # 25_3-リポジトリ > ## ウェイストーン定義保存
+     * 検証契約: icon未設定の定義を保存するとYAMLへiconキーを出力しない。
+     */
     @Test
     void saveAllOmitsUnsetIcon() throws IOException {
         WaystoneDefinition definition = new WaystoneDefinition(

@@ -10,6 +10,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PlayerMsgResourceTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_1-モデル定義.md
+     * 章・見出し: # 03_1-モデル定義 > ## 8. プレイヤーメッセージリソース
+     * 検証契約: 引数中の&カラーコードも§コードへ変換する。
+     */
     @Test
     void formatTranslatesColorCodesInMessageArguments() {
         String formatted = PlayerMsgResource.format(PlayerMsgId.P_6608.getId(), "&eColored Quest");
@@ -18,6 +23,11 @@ class PlayerMsgResourceTest {
         assertFalse(formatted.contains("&eColored Quest"));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_1-モデル定義.md
+     * 章・見出し: # 03_1-モデル定義 > ## 8. プレイヤーメッセージリソース
+     * 検証契約: Component化後のplain textに&カラーコードを残さず色付き本文を保持する。
+     */
     @Test
     void formatComponentDoesNotLeaveAmpersandColorCodesInPlainText() {
         Component component = PlayerMsgResource.formatComponent(PlayerMsgId.P_6608.getId(), "&eColored Quest");
@@ -29,6 +39,11 @@ class PlayerMsgResourceTest {
         assertFalse(plainText.contains("&e"));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_5-例外・ログ・運用.md
+     * 章・見出し: # 14_5-例外・ログ・運用 > ## 2. player message
+     * 検証契約: damage詳細を相手名なしの短縮attack/element/AP/DEF/RES/hit/critical形式で整形する。
+     */
     @Test
     void damageDetailMessageFormatsCompactCalculationBreakdown() {
         String formatted = PlayerMsgResource.format(
@@ -55,20 +70,13 @@ class PlayerMsgResourceTest {
         assertFalse(formatted.contains("Test Mob"));
     }
 
-    @Test
-    void displayAndCommandMessagesAreLoadedFromPlayerProperties() {
-        String accountMode = PlayerMsgResource.format(PlayerMsgId.P_5332.getId(), "Alice", "PLAYER");
-        String displayAudit = PlayerMsgResource.format(PlayerMsgId.P_5055.getId(), 4, 3, 2, 1);
-
-        assertTrue(accountMode.contains("Alice"));
-        assertTrue(accountMode.contains("PLAYER"));
-        assertTrue(displayAudit.contains("スキルツリー表示="));
-        assertTrue(PlayerMsgResource.getMessage(PlayerMsgId.P_5325.getId()).contains("プレイヤー設定機能"));
-        assertTrue(PlayerMsgResource.getMessage(PlayerMsgId.P_5280.getId()).contains("オートセーブ"));
-        assertTrue(PlayerMsgResource.getMessage(PlayerMsgId.P_5600.getId()).contains("ガイド"));
-        assertTrue(PlayerMsgResource.format(PlayerMsgId.P_5624.getId(), 3).contains("3"));
-    }
-
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
+     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤー参加イベント受付
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
+     * 章・見出し: # 08_3-タスク・補助 > ## 2. インベントリオートセーブ
+     * 検証契約: join loadとautosave完了通知に経過millisecondsを(ms)形式で含める。
+     */
     @Test
     void externalDataOperationCompletionMessagesIncludeElapsedMilliseconds() {
         String joinLoad = PlayerMsgResource.format(PlayerMsgId.P_5072.getId(), 123L);

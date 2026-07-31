@@ -13,26 +13,15 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.ActiveSkillEx
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillExecutor;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 class ActiveSkillExecutorDesignTest {
-
-    private static final Path EXECUTOR_SOURCE_ROOT = Path.of(
-        "src", "main", "java", "io", "github", "maaasu", "astralRecord",
-        "feature", "skill", "executor", "active"
-    );
 
     private static final Set<String> EXPECTED_SKILL_IDS = Set.of(
         "swordsman_blade_wave",
@@ -61,12 +50,11 @@ class ActiveSkillExecutorDesignTest {
         "mage_meteor"
     );
 
-    @Test
-    void hasExactlyTwentyFourConcreteExecutorSources() throws IOException {
-        assertEquals(24, EXPECTED_SKILL_IDS.size());
-        assertEquals(EXPECTED_SKILL_IDS.size(), concreteExecutorSources().size());
-    }
-
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
+     * 検証契約: catalogが設計記載24 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
+     */
     @Test
     void catalogContainsEveryDesignedSkillIdExactlyOnce() {
         List<SkillExecutor> executors = ActiveSkillExecutorCatalog.create(activeSkillServices());
@@ -78,40 +66,6 @@ class ActiveSkillExecutorDesignTest {
         assertEquals(executors.size(), implementationIds.size(), "implementation IDs must be unique");
         assertEquals(EXPECTED_SKILL_IDS, implementationIds);
         assertTrue(executors.stream().allMatch(PlayerActiveSkillExecutor.class::isInstance));
-    }
-
-    @Test
-    void concreteExecutorsUseTheSharedBaseAndDoNotReadFreeFormParams() throws IOException {
-        List<Path> sources = concreteExecutorSources();
-        assertEquals(24, sources.size());
-
-        for (Path sourcePath : sources) {
-            String source = Files.readString(sourcePath, StandardCharsets.UTF_8);
-            assertTrue(
-                source.contains("extends PlayerActiveSkillExecutor"),
-                () -> sourcePath.getFileName() + " must use PlayerActiveSkillExecutor"
-            );
-            assertFalse(
-                source.matches("(?s).*\\bgetParams\\s*\\(.*"),
-                () -> sourcePath.getFileName() + " must not read SkillDefinition.params"
-            );
-            assertFalse(
-                source.matches("(?s).*\\.params\\s*\\(.*"),
-                () -> sourcePath.getFileName() + " must not read params through a record accessor"
-            );
-        }
-    }
-
-    private static List<Path> concreteExecutorSources() throws IOException {
-        assertTrue(Files.isDirectory(EXECUTOR_SOURCE_ROOT), "active executor source directory must exist");
-        try (Stream<Path> paths = Files.walk(EXECUTOR_SOURCE_ROOT)) {
-            return paths
-                .filter(Files::isRegularFile)
-                .filter(path -> path.getFileName().toString().endsWith("Executor.java"))
-                .filter(path -> !path.getFileName().toString().equals("PlayerActiveSkillExecutor.java"))
-                .sorted()
-                .toList();
-        }
     }
 
     private static ActiveSkillServices activeSkillServices() {

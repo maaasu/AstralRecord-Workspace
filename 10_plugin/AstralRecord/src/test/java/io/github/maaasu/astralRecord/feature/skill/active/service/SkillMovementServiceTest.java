@@ -17,6 +17,11 @@ import static org.mockito.Mockito.when;
 
 class SkillMovementServiceTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
+     * 検証契約: 視線が垂直でもworld固定軸でなくplayer yawから水平移動方向を決める。
+     */
     @Test
     void verticalViewFallsBackToYawInsteadOfAWorldAxis() {
         Vector west = SkillMovementService.horizontal(new Vector(0.0D, 1.0D, 0.0D), 90.0F);
@@ -25,6 +30,11 @@ class SkillMovementServiceTest {
         assertEquals(0.0D, west.getZ(), 1.0E-9D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
+     * 検証契約: 移動禁止condition中はdash/backstep/blinkのteleport移動を行わない。
+     */
     @Test
     void movementConditionPreventsTeleportSkillMovement() {
         ConditionService conditionService = mock(ConditionService.class);
@@ -43,6 +53,11 @@ class SkillMovementServiceTest {
         assertEquals(start, result.end());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
+     * 検証契約: player bodyをsweepして頭高の障害物手前でskill移動を停止する。
+     */
     @Test
     void sweptBodyStopsBeforeAHeadHeightObstacle() {
         ConditionService conditionService = mock(ConditionService.class);

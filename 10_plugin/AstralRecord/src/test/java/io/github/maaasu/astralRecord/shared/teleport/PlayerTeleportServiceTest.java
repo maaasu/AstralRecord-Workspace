@@ -11,6 +11,11 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 
 class PlayerTeleportServiceTest extends MockBukkitTestBase {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
+     * 章・見出し: # 17_3-サービス > ## スポーン地点解決・転送
+     * 検証契約: targetをcloneし座標を維持したまま転送直前のplayer yaw/pitchへ置換し、入力Locationを変更しない。
+     */
     @Test
     void withCurrentLookDirectionCopiesPlayerYawAndPitchWithoutMutatingTarget() {
         PlayerMock player = server().addPlayer();
@@ -30,6 +35,11 @@ class PlayerTeleportServiceTest extends MockBukkitTestBase {
         assertEquals(0.0F, target.getPitch());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
+     * 章・見出し: # 17_3-サービス > ## スポーン地点解決・転送
+     * 検証契約: 転送先world・座標へ移動しつつplayerの転送直前yaw/pitchを維持する。
+     */
     @Test
     void teleportKeepsPlayerYawAndPitchAtDestination() {
         PlayerMock player = server().addPlayer();

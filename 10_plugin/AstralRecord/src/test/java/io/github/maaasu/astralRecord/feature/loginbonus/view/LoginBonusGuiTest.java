@@ -14,6 +14,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class LoginBonusGuiTest extends MockBukkitTestBase {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 1. service メソッド仕様 > ### ログインボーナス表示
+     * 検証契約: 当日未受取セルだけを受取可能かつglint付きで描画し、未来日はglintなしにする。
+     */
     @Test
     void claimableTodayUsesGlintAndFutureDateDoesNot() {
         LocalDate today = LocalDate.of(2026, 7, 19);

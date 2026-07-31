@@ -17,6 +17,11 @@ import static org.mockito.Mockito.when;
 
 class MobKnockbackServiceTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 2. MobKnockbackService メソッド仕様 > ### ノックバック適用
+     * 検証契約: custom strengthへ(1-resistance/100)を乗算して水平knockbackを減衰する。
+     */
     @Test
     void customStrengthIsReducedByKnockbackResistance() {
         MobService mobService = mock(MobService.class);
@@ -44,6 +49,11 @@ class MobKnockbackServiceTest {
         assertEquals(0.8D, velocity.getValue().getZ(), 1.0E-9D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 2. MobKnockbackService メソッド仕様 > ### ノックバック適用
+     * 検証契約: knockback resistance 100%でcustom velocityを発生させない。
+     */
     @Test
     void fullKnockbackResistancePreventsCustomVelocity() {
         MobService mobService = mock(MobService.class);
@@ -65,6 +75,11 @@ class MobKnockbackServiceTest {
         );
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 2. MobKnockbackService メソッド仕様 > ### ノックバック適用
+     * 検証契約: 追加multiplierでbase knockbackを比例scaleする。
+     */
     @Test
     void additionalMultiplierScalesNormalKnockback() {
         MobService mobService = mock(MobService.class);

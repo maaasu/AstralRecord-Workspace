@@ -15,6 +15,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class OverworldTeleportGuiTest extends MockBukkitTestBase {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_1-モデル定義.md
+     * 章・見出し: # 17_1-モデル定義 > ## 補助モデル > ### OverworldTeleportGuiSetting
+     * 検証契約: 定義されたslot 10・22だけへworld itemを配置し、holderのslot別world IDを一致させる。
+     */
     @Test
     void openPlacesWorldsOnlyAtConfiguredSlots() {
         var player = server().addPlayer();

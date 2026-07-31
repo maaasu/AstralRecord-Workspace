@@ -29,6 +29,11 @@ import static org.mockito.Mockito.when;
 
 class TradeGuiEventHandlerTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_3-メソッド仕様.md
+     * 章・見出し: # 22_3-メソッド仕様 > ## GUI event
+     * 検証契約: 取引GUI下部の所有item clickをcancelし、Bukkit slotとclick種別をofferOwnedItemへ渡す。
+     */
     @Test
     void cancelsVanillaMovementAndDelegatesBottomSlotOfferToTradeService() {
         TestContext context = new TestContext();
@@ -56,6 +61,11 @@ class TradeGuiEventHandlerTest {
         verify(context.tradeService).offerOwnedItem(context.player, 9, ClickType.LEFT, displayed);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_3-メソッド仕様.md
+     * 章・見出し: # 22_3-メソッド仕様 > ## GUI event
+     * 検証契約: 取引inventory上のdragをすべてcancelして標準移動を防ぐ。
+     */
     @Test
     void cancelsEveryDragOverTradeInventory() {
         TestContext context = new TestContext();

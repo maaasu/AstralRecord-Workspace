@@ -26,6 +26,11 @@ import static org.mockito.Mockito.when;
 
 class AccountModeApplicationServiceTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
+     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### 永続化済みモードオンライン反映
+     * 検証契約: 古い世代の遅延反映を拒否し、最新の永続化済みモードだけをオンラインへ反映する。
+     */
     @Test
     void newerPersistedModeSupersedesDelayedOlderApplication() {
         UUID accountUuid = UUID.randomUUID();
@@ -64,6 +69,11 @@ class AccountModeApplicationServiceTest {
         }
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
+     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### アカウントモード直列永続化
+     * 検証契約: 同一アカウントのモード永続化を直列化し、先行更新完了前に後続更新を開始しない。
+     */
     @Test
     void sameAccountPersistenceIsSerialized() throws Exception {
         UUID accountUuid = UUID.randomUUID();

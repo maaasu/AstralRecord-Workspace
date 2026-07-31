@@ -17,6 +17,11 @@ class SkillTreeStructureRepositoryTest {
     @TempDir
     Path filebaseRoot;
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
+     * 章・見出し: # 13_3-リポジトリ > ## 7. skill tree structure 読込
+     * 検証契約: 相対座標へcenterを加算し無向edge両端をcanonical順へ正規化する。
+     */
     @Test
     void loadsRelativeCoordinatesAndCanonicalUndirectedEdges() throws IOException {
         writeStructure(structureJson(
@@ -43,6 +48,11 @@ class SkillTreeStructureRepositoryTest {
         assertEquals("1001", snapshot.edges().getFirst().targetNodeId());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
+     * 章・見出し: # 13_3-リポジトリ > ## 7. skill tree structure 読込
+     * 検証契約: 重複node座標をstructure load失敗にする。
+     */
     @Test
     void rejectsDuplicateCoordinates() throws IOException {
         assertInvalid(
@@ -57,6 +67,11 @@ class SkillTreeStructureRepositoryTest {
         );
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
+     * 章・見出し: # 13_3-リポジトリ > ## 7. skill tree structure 読込
+     * 検証契約: node自身へ接続するself edgeを拒否する。
+     */
     @Test
     void rejectsSelfConnections() throws IOException {
         assertInvalid(
@@ -66,6 +81,11 @@ class SkillTreeStructureRepositoryTest {
         );
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
+     * 章・見出し: # 13_3-リポジトリ > ## 7. skill tree structure 読込
+     * 検証契約: 向きだけ違うものを含む同一無向edge重複を拒否する。
+     */
     @Test
     void rejectsDuplicateUndirectedEdges() throws IOException {
         assertInvalid(
@@ -80,6 +100,11 @@ class SkillTreeStructureRepositoryTest {
         );
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
+     * 章・見出し: # 13_3-リポジトリ > ## 7. skill tree structure 読込
+     * 検証契約: 配置されていないnodeを参照するedgeを拒否する。
+     */
     @Test
     void rejectsReferencesToUnplacedNodes() throws IOException {
         assertInvalid(
@@ -89,6 +114,11 @@ class SkillTreeStructureRepositoryTest {
         );
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
+     * 章・見出し: # 13_3-リポジトリ > ## 7. skill tree structure 読込
+     * 検証契約: rootから到達不能な配置nodeを拒否する。
+     */
     @Test
     void rejectsNodesUnreachableFromRoot() throws IOException {
         assertInvalid(

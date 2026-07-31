@@ -16,6 +16,11 @@ import static org.mockito.Mockito.when;
 
 class ConditionTickServiceTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
+     * 章・見出し: # 27_3-サービス > ## 5. `ConditionTickService.tickCondition`
+     * 検証契約: 燃焼は固定snapshot 2と最大HP100の1%を合計した3 damageを与え、20tick後へ次回時刻を進める。
+     */
     @Test
     void burningUsesMaximumHealthRateAndFixedSnapshot() {
         ConditionService conditionService = mock(ConditionService.class);
@@ -34,6 +39,11 @@ class ConditionTickServiceTest {
         assertEquals(1_100L, condition.nextTickAtMs());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
+     * 章・見出し: # 27_3-サービス > ## 5. `ConditionTickService.tickCondition`
+     * 検証契約: 毒は現在HP50の3%で1.5 damageを算出する。
+     */
     @Test
     void poisonUsesCurrentHealthRate() {
         ConditionService conditionService = mock(ConditionService.class);
@@ -49,6 +59,11 @@ class ConditionTickServiceTest {
         verify(damageService).applyConditionDamage(null, target, 1.5D, ConditionType.POISON);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
+     * 章・見出し: # 27_3-サービス > ## 5. `ConditionTickService.tickCondition`
+     * 検証契約: 感電制御時に6tickの移動禁止を設定し、次回制御を16〜32tick後へ置く。
+     */
     @Test
     void shockedStartsSixTickMovementBlockAtRandomInterval() {
         ConditionService conditionService = mock(ConditionService.class);

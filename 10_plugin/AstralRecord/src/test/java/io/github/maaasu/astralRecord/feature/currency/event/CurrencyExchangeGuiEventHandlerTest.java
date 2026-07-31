@@ -27,6 +27,11 @@ import static org.mockito.Mockito.when;
 
 class CurrencyExchangeGuiEventHandlerTest extends MockBukkitTestBase {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/16-currency/16_3-メソッド仕様.md
+     * 章・見出し: # 16_3-メソッド仕様 > ## 両替 GUI クリック
+     * 検証契約: 両替GUIの既取消済みclickも受付け、eventをcancelしたまま左clickを1口の上位額面交換へ委譲する。
+     */
     @Test
     void handlesExchangeClicksEvenWhenVanillaMovementWasAlreadyCancelled() throws Exception {
         Method method = CurrencyExchangeGuiEventHandler.class.getMethod(

@@ -27,6 +27,11 @@ import static org.mockito.Mockito.when;
 
 class SkillBindPresetServiceTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 7. bind preset cache / 保存
+     * 検証契約: GUI読取は公開cacheだけを参照しrepository I/Oを行わない。
+     */
     @Test
     void guiReadUsesOnlyPublishedCacheAndNeverCallsRepository() {
         Plugin plugin = mock(Plugin.class);
@@ -49,6 +54,11 @@ class SkillBindPresetServiceTest {
         verify(repository).findByAccountId(accountId);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 7. bind preset cache / 保存
+     * 検証契約: session invalidate後の旧save callbackがcacheを再生成しない。
+     */
     @Test
     void saveCompletionFromInvalidatedSessionDoesNotRecreateCache() {
         Plugin plugin = mock(Plugin.class);

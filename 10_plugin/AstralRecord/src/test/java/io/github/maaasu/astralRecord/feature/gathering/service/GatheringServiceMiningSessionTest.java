@@ -45,6 +45,11 @@ class GatheringServiceMiningSessionTest {
         AstPlayerCache.clear();
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 7. GatheringService メソッド仕様 > ### 採集開始・継続
+     * 検証契約: 同一instance/toolのactive session中は連打damageを追加せず8tick後だけ再damageする。
+     */
     @Test
     void activeSessionIgnoresRepeatedClicksAndDamagesAgainAfterCooldown() {
         Fixture fixture = createFixture();
@@ -62,6 +67,11 @@ class GatheringServiceMiningSessionTest {
         verify(fixture.player(), times(2)).swingMainHand();
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 7. GatheringService メソッド仕様 > ### 採集開始・継続
+     * 検証契約: 視線が外れたら採集sessionを停止し対象HPを初期化する。
+     */
     @Test
     void lookingAwayCancelsSessionAndRestoresObjectHealth() {
         Fixture fixture = createFixture();

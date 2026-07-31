@@ -26,6 +26,11 @@ import static org.mockito.Mockito.when;
 
 class TeleporterServicePersistenceTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/25-teleporter/3-メソッド仕様/25_3-サービス.md
+     * 章・見出し: # 25_3-サービス > ## ウェイストーン登録
+     * 検証契約: 定義追加後の全件保存が失敗した場合は追加cacheを削除し例外を伝播する。
+     */
     @Test
     void createWaystoneRollsBackCacheWhenPersistenceFails() {
         WaystoneDefinitionRepository repository = mock(WaystoneDefinitionRepository.class);
@@ -58,6 +63,11 @@ class TeleporterServicePersistenceTest {
         verify(repository).saveAll(any());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/25-teleporter/3-メソッド仕様/25_3-サービス.md
+     * 章・見出し: # 25_3-サービス > ## ウェイストーン削除
+     * 検証契約: 削除後の保存が失敗した場合は変更前cacheを元の順序ごと復元し例外を伝播する。
+     */
     @Test
     void removeWaystoneRestoresCacheAndOrderWhenPersistenceFails() {
         WaystoneDefinitionRepository repository = mock(WaystoneDefinitionRepository.class);

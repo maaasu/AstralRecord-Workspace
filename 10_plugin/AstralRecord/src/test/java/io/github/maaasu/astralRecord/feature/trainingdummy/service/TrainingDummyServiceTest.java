@@ -27,6 +27,11 @@ import static org.mockito.Mockito.when;
 
 class TrainingDummyServiceTest extends MockBukkitTestBase {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/31-training-dummy/31_1-モデル定義.md
+     * 章・見出し: # 31_1-モデル定義 > ## 3. 実行時 Mob
+     * 検証契約: 実行時templateをARMOR_STAND、最大HP Integer.MAX_VALUE、ノックバック耐性100%で構築する。
+     */
     @Test
     void templateUsesArmorStandFixedHealthAndFullKnockbackResistance() {
         TrainingDummyDefinition definition = definition("template", "world");
@@ -38,6 +43,11 @@ class TrainingDummyServiceTest extends MockBukkitTestBase {
         assertEquals(100.0D, template.statValue(StatusType.KNOCKBACK_RESISTANCE.name(), 0.0D));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/31-training-dummy/31_3-処理契約.md
+     * 章・見出し: # 31_3-処理契約 > ## 1. 初期化と停止
+     * 検証契約: spawn失敗IDを同じ読込状態では再試行せず、reload後の次tickでだけ再試行する。
+     */
     @Test
     void failedSpawnIsNotRetriedUntilConfigurationIsReloaded() {
         World world = server().addSimpleWorld("retry_world");
@@ -65,6 +75,11 @@ class TrainingDummyServiceTest extends MockBukkitTestBase {
         verify(mobService, times(2)).spawn(any(MobTemplate.class), any());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/31-training-dummy/31_3-処理契約.md
+     * 章・見出し: # 31_3-処理契約 > ## 1. 初期化と停止
+     * 検証契約: 配置IDに有効な追跡instanceがある間は後続tickで重複spawnしない。
+     */
     @Test
     void trackedInstanceIsNotSpawnedAgainOnFollowingTicks() {
         World world = server().addSimpleWorld("tracked_world");
@@ -94,6 +109,11 @@ class TrainingDummyServiceTest extends MockBukkitTestBase {
         verify(mobService, times(1)).spawn(any(MobTemplate.class), any());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/31-training-dummy/31_3-処理契約.md
+     * 章・見出し: # 31_3-処理契約 > ## 1. 初期化と停止
+     * 検証契約: 同一chunkを共有する複数カカシはplugin chunk ticketを一回だけ追加する。
+     */
     @Test
     void sharedDummyChunkAddsOnlyOnePluginTicket() {
         PluginMock plugin = PluginMock.builder().withPluginName("AstralRecordTest").build();

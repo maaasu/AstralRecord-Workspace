@@ -15,6 +15,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PlayerSettingServiceDropLogTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
+     * 章・見出し: # 11_3-サービス > ## 4. 型別参照
+     * 検証契約: DROP_LOG_DISPLAYをcache済みplayer選択値から返す。
+     */
     @Test
     void dropLogDisplayUsesCachedPlayerChoice() {
         UUID userId = UUID.randomUUID();
@@ -32,6 +37,11 @@ class PlayerSettingServiceDropLogTest {
         assertFalse(service.isDropLogDisplayEnabled(userId));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
+     * 章・見出し: # 11_3-サービス > ## 4. 型別参照
+     * 検証契約: cache miss時のDROP_LOG_DISPLAYを既定trueにする。
+     */
     @Test
     void dropLogDisplayDefaultsToEnabledWithoutCachedSnapshot() {
         PlayerSettingService service = new PlayerSettingService(
@@ -43,6 +53,11 @@ class PlayerSettingServiceDropLogTest {
         assertTrue(service.isDropLogDisplayEnabled(UUID.randomUUID()));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
+     * 章・見出し: # 11_3-サービス > ## 4. 型別参照
+     * 検証契約: AUTO_SAVE_MESSAGEをcache済みplayer選択値から返す。
+     */
     @Test
     void autoSaveMessageUsesCachedPlayerChoice() {
         UUID userId = UUID.randomUUID();
@@ -60,6 +75,11 @@ class PlayerSettingServiceDropLogTest {
         assertFalse(service.isAutoSaveMessageEnabled(userId));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
+     * 章・見出し: # 11_3-サービス > ## 4. 型別参照
+     * 検証契約: cache miss時のAUTO_SAVE_MESSAGEを既定falseにする。
+     */
     @Test
     void autoSaveMessageDefaultsToDisabledWithoutCachedSnapshot() {
         PlayerSettingService service = new PlayerSettingService(
@@ -71,6 +91,11 @@ class PlayerSettingServiceDropLogTest {
         assertFalse(service.isAutoSaveMessageEnabled(UUID.randomUUID()));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
+     * 章・見出し: # 11_3-サービス > ## 4. 型別参照
+     * 検証契約: ARMOR_DISPLAYをAPIなしでcache済みplayer選択値から返す。
+     */
     @Test
     void armorDisplayUsesCachedPlayerChoice() {
         UUID userId = UUID.randomUUID();
@@ -88,6 +113,11 @@ class PlayerSettingServiceDropLogTest {
         assertFalse(service.isArmorDisplayEnabled(userId));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
+     * 章・見出し: # 11_3-サービス > ## 4. 型別参照
+     * 検証契約: cache miss時のARMOR_DISPLAYをAPIなしで既定trueにする。
+     */
     @Test
     void armorDisplayDefaultsToEnabledWithoutCachedSnapshot() {
         PlayerSettingService service = new PlayerSettingService(

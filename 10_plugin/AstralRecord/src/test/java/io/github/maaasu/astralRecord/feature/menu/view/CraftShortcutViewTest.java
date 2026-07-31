@@ -34,6 +34,11 @@ import static org.mockito.Mockito.when;
 
 class CraftShortcutViewTest extends MockBukkitTestBase {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_1-モデル定義.md
+     * 章・見出し: # 09_1-モデル定義 > ## 2. クラフトショートカット
+     * 検証契約: 4つの共通shortcut定義を単一player描画contextで描く。
+     */
     @Test
     void rendersSharedDefinitionsWithOnePlayerRenderContext() {
         var astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
@@ -83,6 +88,11 @@ class CraftShortcutViewTest extends MockBukkitTestBase {
         assertLoreContains(matrix[3].getItemMeta().lore(), "星頭巾");
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-GUI・View.md
+     * 章・見出し: # 09_3-GUI・View > ## 6. クラフトショートカット描画
+     * 検証契約: 基礎範囲と合計範囲が異なるstatusだけをカタログ順で最大8件表示し、9件目を「… ほか1件」とする。
+     */
     @Test
     void statusShortcutShowsOnlyChangedStatusesUpToDisplayLimit() {
         var astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);

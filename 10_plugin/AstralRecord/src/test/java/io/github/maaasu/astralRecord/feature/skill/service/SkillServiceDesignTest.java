@@ -40,6 +40,11 @@ import static org.mockito.Mockito.when;
 
 class SkillServiceDesignTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 1. definition load / reload
+     * 検証契約: reload時に登録executorがありparams検証を通るdefinitionだけを一括公開する。
+     */
     @Test
     void reloadDefinitionsKeepsOnlyDefinitionsWithRegisteredExecutorsAndValidParams() {
         SkillRepository repository = mock(SkillRepository.class);
@@ -72,6 +77,11 @@ class SkillServiceDesignTest {
         assertNull(registry.getDefinition("bad_params_skill"));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 4. skill 発動
+     * 検証契約: executor成功後だけdefinition resourceを消費し短縮後cooldownを開始する。
+     */
     @Test
     void castSkillConsumesDefinitionResourceAndStartsDefinitionCooldownAfterExecutorSuccess() {
         SkillRepository repository = mock(SkillRepository.class);
@@ -113,6 +123,11 @@ class SkillServiceDesignTest {
         assertEquals(SkillCastTrigger.SYSTEM, executor.lastContext.trigger());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 4. skill 発動
+     * 検証契約: executor失敗時はresourceを消費せずcooldownも開始しない。
+     */
     @Test
     void castSkillDoesNotConsumeResourceOrStartCooldownAfterExecutorFailure() {
         SkillRepository repository = mock(SkillRepository.class);
@@ -137,6 +152,11 @@ class SkillServiceDesignTest {
         assertFalse(service.isOnCooldown(caster, definition.getId()));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 1. definition load / reload
+     * 検証契約: legacy mana項目をresourceへ正規化しmalformed definitionだけを除外して他を公開する。
+     */
     @Test
     void loadDefinitionsNormalizesLegacyResourcesAndIsolatesMalformedDefinitions() {
         SkillRepository repository = mock(SkillRepository.class);
@@ -178,6 +198,11 @@ class SkillServiceDesignTest {
         assertEquals(3.0D, loaded.get("top_level_wins").getResourceCost(), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 3. cast 可否
+     * 検証契約: passive skillおよび必要mana不足をexecutor前に拒否する。
+     */
     @Test
     void canCastRejectsPassiveSkillAndInsufficientManaBeforeExecution() {
         SkillService service = new SkillService(mock(SkillRepository.class), new SkillRegistry(), null);
@@ -201,6 +226,11 @@ class SkillServiceDesignTest {
         assertEquals(PlayerMsgId.P_5801, costlyResult.messageId());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 5. cooldown・cast lifecycle
+     * 検証契約: caster cleanupで詠唱stateを消し、指定方針に応じcooldownを保持または除去する。
+     */
     @Test
     @SuppressWarnings("unchecked")
     void casterLifecycleCleanupRunsCastingCleanupAndCanPreserveOrRemoveCooldown() throws ReflectiveOperationException {

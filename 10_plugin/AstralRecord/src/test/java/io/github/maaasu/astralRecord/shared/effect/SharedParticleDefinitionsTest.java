@@ -10,6 +10,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SharedParticleDefinitionsTest {
 
+    /**
+     * 設計入力: PLUGIN_GUIDE.md
+     * 章・見出し: # AstralRecord Plugin > ## パーティクル表示共通ルール
+     * 検証契約: 全共有Particle定義でVoid data typeはnull、それ以外はParticle要求型の非null dataを保持する。
+     */
     @Test
     void allDefinitionsProvideDataRequiredByTheirParticle() throws IllegalAccessException {
         for (Field field : SharedParticleDefinitions.class.getFields()) {

@@ -1,4 +1,4 @@
 interface:
   display_name: "AstralRecord プラグインテスト整備"
-  short_description: "プラグインのテスト、検証サーバー、再現基盤を整備する"
-  default_prompt: "$astralrecord-plugin-test を使って、E:\\AstralRecord-Workspace\\10_plugin\\AstralRecord のテストまたは検証基盤を整備し、結果を報告してください。"
+  short_description: "設計追跡可能なテストと一時・実機検証基盤を整備する"
+  default_prompt: "$astralrecord-plugin-test を使って、現在の task root にある 10_plugin/AstralRecord の設計追跡可能なテストまたは検証基盤を整備し、結果を報告してください。"

@@ -13,6 +13,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class MobSpawnerRegionLevelTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_0-概要.md
+     * 章・見出し: # 12_0-概要 > ## 3. 構成要素（実装単位）
+     * 検証契約: 同一region全spawnerの解決可能Mob levelをspawn weight加重平均し四捨五入する。
+     */
     @Test
     void calculatesWeightedAverageAcrossSpawnerDefinitionsInSameRegion() {
         var definitions = List.of(

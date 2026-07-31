@@ -35,6 +35,11 @@ import static org.mockito.Mockito.when;
 
 class InventorySaveCoordinatorTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
+     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
+     * 検証契約: 同一accountの未開始autosave/close save重複要求を1件へまとめる。
+     */
     @Test
     void coalescesPendingStorageCloseSaves() {
         UUID accountId = UUID.randomUUID();
@@ -60,6 +65,11 @@ class InventorySaveCoordinatorTest {
         verify(persistence, times(1)).saveNow(state);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
+     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
+     * 検証契約: reconciliation境界を跨ぐsaveをcoalesceせず順序を維持する。
+     */
     @Test
     void doesNotCoalesceSaveAcrossReconciliationBoundary() {
         UUID accountId = UUID.randomUUID();
@@ -91,6 +101,11 @@ class InventorySaveCoordinatorTest {
         verify(persistence, times(2)).saveNow(state);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
+     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
+     * 検証契約: close save失敗後もlogout saveを実行し、retry成功後だけstateを解放する。
+     */
     @Test
     void runsLogoutAfterFailedCloseSaveAndReleasesStateOnlyAfterRetrySucceeds() {
         UUID accountId = UUID.randomUUID();
@@ -129,6 +144,11 @@ class InventorySaveCoordinatorTest {
         }
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_5-例外・ログ・運用.md
+     * 章・見出し: # 08_5-例外・ログ・運用 > ## 3. 例外・運用方針
+     * 検証契約: autosave失敗時にdirty stateをregistryへ保持しretry成功まで解放しない。
+     */
     @Test
     void keepsDirtyStateAttachedUntilAutosaveRetrySucceeds() {
         UUID accountId = UUID.randomUUID();
@@ -160,6 +180,11 @@ class InventorySaveCoordinatorTest {
         }
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
+     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
+     * 検証契約: 即時再loginはlogout完了を待ち、失敗retained stateを取得してstale API dataをloadしない。
+     */
     @Test
     void quickRelogWaitsForLogoutAndClaimsFailedStateInsteadOfLoadingStaleData() {
         UUID accountId = UUID.randomUUID();
@@ -195,6 +220,11 @@ class InventorySaveCoordinatorTest {
         }
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
+     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
+     * 検証契約: 同一accountのimmediate/autosave/logoutを単一laneで直列化する。
+     */
     @Test
     void serializesImmediateAutoAndLogoutSavesForSameAccount() throws Exception {
         UUID accountId = UUID.randomUUID();
@@ -242,6 +272,11 @@ class InventorySaveCoordinatorTest {
         }
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
+     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
+     * 検証契約: reconciliation失敗後も現sessionのlogout保存を継続する。
+     */
     @Test
     void continuesLogoutSaveAfterReconciliationFailure() {
         UUID accountId = UUID.randomUUID();
@@ -270,6 +305,11 @@ class InventorySaveCoordinatorTest {
         }
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
+     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
+     * 検証契約: pending write待機自身を保存laneへ登録せず自己待機しない。
+     */
     @Test
     void pendingWriteWaitDoesNotCreateOrFollowItsOwnLane() {
         PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
@@ -281,6 +321,11 @@ class InventorySaveCoordinatorTest {
         assertEquals(0, executor.pendingCount());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
+     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
+     * 検証契約: closing drain後のlate saveを拒否しdirty flagを消さない。
+     */
     @Test
     void rejectsLateSaveAfterClosingDrainWithoutClearingDirtyState() {
         UUID accountId = UUID.randomUUID();

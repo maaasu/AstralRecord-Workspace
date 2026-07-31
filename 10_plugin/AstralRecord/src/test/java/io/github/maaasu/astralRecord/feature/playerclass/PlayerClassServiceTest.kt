@@ -14,6 +14,11 @@ import org.junit.jupiter.api.Assertions.assertThrows
 
 class PlayerClassServiceTest : MockBukkitTestBase() {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 5. PlayerClassService
+     * 検証契約: player進行を持つclassだけを表示対象にする。
+     */
     @Test
     fun displaysOnlyClassesWithPlayerProgress() {
         val player = server().addPlayer()
@@ -35,6 +40,11 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
         )
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 5. PlayerClassService
+     * 検証契約: 現在classから複数path上の全ancestorを重複なく解決する。
+     */
     @Test
     fun resolvesCurrentClassAndEveryAncestorAcrossMultiplePaths() {
         val service = PlayerClassService()
@@ -54,6 +64,11 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
         assertFalse(service.isClassOrAncestor("hunter", "ranger"))
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 5. PlayerClassService
+     * 検証契約: 循環class定義でもancestor探索を有限回で停止する。
+     */
     @Test
     fun ancestorResolutionStopsOnCyclicDefinitions() {
         val service = PlayerClassService()
@@ -68,6 +83,11 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
         assertFalse(service.isClassOrAncestor("cycle_a", "adventurer"))
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 5. PlayerClassService
+     * 検証契約: class masterで設定した3文字短縮名を返す。
+     */
     @Test
     fun returnsConfiguredThreeCharacterShortName() {
         val service = PlayerClassService()
@@ -76,6 +96,11 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
         assertEquals("§b魔術師", service.getShortDisplayName("mage"))
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
+     * 章・見出し: # 10_3-View > ## 5. tab list 描画
+     * 検証契約: tab list名の左へ正式class名tagを反映する。
+     */
     @Test
     fun updatesTabListNameWithFullClassName() {
         val player = server().addPlayer()
@@ -92,6 +117,11 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
         )
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 5. PlayerClassService
+     * 検証契約: 可視class間で3文字短縮名が重複するmasterを拒否する。
+     */
     @Test
     fun rejectsDuplicateVisibleShortNames() {
         val service = PlayerClassService()

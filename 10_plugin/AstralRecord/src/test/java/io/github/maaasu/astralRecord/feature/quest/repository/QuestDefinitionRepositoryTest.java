@@ -10,6 +10,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class QuestDefinitionRepositoryTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 1. クエスト定義読込
+     * 検証契約: nested ref形式のturnInNpcIdとobjective targetIdを読み、mob: prefixを除去する。
+     */
     @Test
     void parseResolvesNestedTurnInNpcReference() throws InvalidConfigurationException {
         YamlConfiguration yaml = new YamlConfiguration();

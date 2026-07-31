@@ -19,6 +19,11 @@ import static org.mockito.Mockito.when;
 
 class StatusServiceConditionTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
+     * 章・見出し: # 07_3-サービス > ## 状態異常との統合
+     * 検証契約: 回復阻害中は通常回復を拒否し、administrative restoreAllは例外的に全回復する。
+     */
     @Test
     void healingInhibitionBlocksNormalRecoveryButRestoreAllRemainsAdministrativeException() {
         AstPlayer player = mock(AstPlayer.class);

@@ -25,6 +25,11 @@ import static org.mockito.Mockito.when;
 
 class PlayerMessageServiceTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### システムメッセージ送信
+     * 検証契約: 共通タグ直後に半角空白1文字を置く。
+     */
     @Test
     void systemMessagePlacesSpaceAfterCommonTag() {
         Player player = onlinePlayer();
@@ -40,6 +45,11 @@ class PlayerMessageServiceTest {
         }
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### クリック可能メッセージ送信
+     * 検証契約: GUI導線messageに指定slash commandのrunCommand click eventを保持する。
+     */
     @Test
     void clickableMessageKeepsGuiCommand() {
         Player player = onlinePlayer();
@@ -53,6 +63,11 @@ class PlayerMessageServiceTest {
         }
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### 全体チャット配信
+     * 検証契約: 全体chatで3文字短縮class tagをplayer名より前に置く。
+     */
     @Test
     void globalChatPlacesShortClassNameBeforePlayerName() {
         Player sender = onlinePlayer();

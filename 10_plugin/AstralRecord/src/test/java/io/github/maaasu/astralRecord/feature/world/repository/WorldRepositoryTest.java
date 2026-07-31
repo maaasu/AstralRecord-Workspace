@@ -18,6 +18,11 @@ import static org.mockito.Mockito.mockStatic;
 
 class WorldRepositoryTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
+     * 章・見出し: # 17_3-サービス > ## 定義一覧取得
+     * 検証契約: 概要行ごとに詳細APIの完全定義へ展開し、一覧順を維持して返す。
+     */
     @Test
     void summaryListRowsAreHydratedThroughDetailEndpoint() {
         WorldMasterData skillTree = world("skill_tree", WorldType.HUB);
@@ -39,6 +44,11 @@ class WorldRepositoryTest {
         assertSame(base, result.get(1));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
+     * 章・見出し: # 17_3-サービス > ## 定義一覧取得
+     * 検証契約: 概要行の詳細が存在しない場合は不完全定義を公開せずIllegalStateExceptionとする。
+     */
     @Test
     void missingDetailFailsInsteadOfPublishingIncompleteWorld() {
         WorldRepository repository = new StubWorldRepository(Map.of());
@@ -49,6 +59,11 @@ class WorldRepositoryTest {
         assertThrows(IllegalStateException.class, () -> repository.resolveListPayload(summaries));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
+     * 章・見出し: # 17_3-サービス > ## 定義一覧取得
+     * 検証契約: 一覧APIが完全定義を返す旧形式も追加詳細取得なしで変換する。
+     */
     @Test
     void detailedListRowsRemainBackwardCompatible() {
         WorldRepository repository = new StubWorldRepository(Map.of());

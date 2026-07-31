@@ -46,6 +46,11 @@ class PlayerServiceJoinTransactionTest {
         AstPlayerCache.clear();
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 1. service メソッド仕様 > ### プレイヤー参加トランザクション反映
+     * 検証契約: 地域初期化失敗時に公開cache・新inventory state・Bukkit状態を逆順復元する。
+     */
     @Test
     void regionInitializationFailureRollsBackPublishedCacheAndNewInventoryState() {
         UUID playerId = UUID.randomUUID();
@@ -72,6 +77,11 @@ class PlayerServiceJoinTransactionTest {
         verify(inventoryService).clearClickGuard(accountId);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 1. service メソッド仕様 > ### プレイヤー参加反映ロールバック
+     * 検証契約: 失敗joinが取得したretained-state leaseを返却しregistry stateを残す。
+     */
     @Test
     void failedJoinReturnsClaimedRetainedInventoryLeaseWithoutRemovingItsRegistryState() {
         UUID playerId = UUID.randomUUID();
@@ -99,6 +109,11 @@ class PlayerServiceJoinTransactionTest {
         verify(saveCoordinator).releaseRetainedStateLease(retainedLease);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 1. service メソッド仕様 > ### プレイヤー参加インベントリstate読込
+     * 検証契約: 即時再loginが同じdirty stateを新世代leaseで取得し旧joinのfinally解放を無効化する。
+     */
     @Test
     void immediateRelogClaimsSameDirtyStateBeforeOldJoinFinallyReleasesItsLease() {
         UUID accountId = UUID.randomUUID();

@@ -32,6 +32,11 @@ import static org.mockito.Mockito.when;
 
 class WorldServiceDesignTest extends MockBukkitTestBase {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_1-モデル定義.md
+     * 章・見出し: # 17_1-モデル定義 > ## 補助モデル > ### WorldService.DefinitionSnapshot
+     * 検証契約: 準備したsnapshotを明示置換するまでは旧定義を公開し、置換時に一括更新する。
+     */
     @Test
     void preparedDefinitionSnapshotDoesNotPublishBeforeExplicitSwap() {
         WorldRepository repository = mock(WorldRepository.class);
@@ -67,6 +72,11 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
         assertEquals(List.of(prepared), service.getAll());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
+     * 章・見出し: # 17_3-サービス > ## 定義 snapshot 読み込み・反映
+     * 検証契約: auto-load有効化失敗を外へ送出せずE_5753へ記録し、公開済み定義snapshotを維持する。
+     */
     @Test
     void activationFailureDoesNotEscapeOrDiscardPublishedDefinitions() {
         WorldRepository repository = mock(WorldRepository.class);
@@ -102,6 +112,15 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
         }
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
+     * 章・見出し: # 17_3-サービス > ## 定義 snapshot 読み込み・反映
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
+     * 章・見出し: # 17_3-サービス > ## Bukkit world 解決
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
+     * 章・見出し: # 17_3-サービス > ## スポーン地点解決・転送
+     * 検証契約: 定義をID順で公開しBukkit worldを双方向索引へ登録し、master座標・向きでLocationを解決し、5種のRPG gameruleを設定する。
+     */
     @Test
     void loadAllSortsMasterDataResolvesBukkitWorldAndAppliesRpgGameRules() {
         WorldRepository repository = mock(WorldRepository.class);
@@ -145,6 +164,11 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
         assertFalse(loadedWorld.getGameRuleValue(GameRules.NATURAL_HEALTH_REGENERATION));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
+     * 章・見出し: # 17_3-サービス > ## スポーン地点解決・転送
+     * 検証契約: 定義があってもBukkit worldが未ロードならspawn Locationを返さない。
+     */
     @Test
     void resolveSpawnLocationReturnsNullWhenWorldIsNotLoaded() {
         WorldRepository repository = mock(WorldRepository.class);
@@ -165,6 +189,11 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
         assertNull(service.resolveSpawnLocation(missing));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
+     * 章・見出し: # 17_3-サービス > ## 定義 snapshot 読み込み・反映
+     * 検証契約: autoLoad=falseの既存worldは定義索引へ結び付けるがRPG gameruleを変更しない。
+     */
     @Test
     void loadAllDoesNotApplyGameRulesToAutoLoadDisabledWorld() {
         WorldRepository repository = mock(WorldRepository.class);
@@ -188,6 +217,11 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
         assertTrue(loadedWorld.getGameRuleValue(GameRules.MOB_GRIEFING));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_5-例外・ログ・運用.md
+     * 章・見出し: # 17_5-例外・ログ・運用 > ## ログ・メッセージ
+     * 検証契約: 重複GUI slotをW_5754、不正範囲slotをW_5755へ正確な引数で記録する。
+     */
     @Test
     void loadAllWarnsForDuplicateAndOutOfRangeOverworldTeleportSlots() {
         WorldRepository repository = mock(WorldRepository.class);
@@ -234,6 +268,11 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
         }
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
+     * 章・見出し: # 17_3-サービス > ## Bukkit world 解決
+     * 検証契約: runtime world名をload前予約するとUUID登録前でも定義・表示名を解決し、重複予約を拒否し、cancelで解除する。
+     */
     @Test
     void pendingRuntimeWorldIsManagedBeforeUuidRegistrationWithoutFileLookup() {
         WorldRepository repository = mock(WorldRepository.class);
@@ -261,6 +300,11 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
         assertNull(service.findByBukkitWorld(runtimeWorld));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
+     * 章・見出し: # 17_3-サービス > ## Bukkit world 解決
+     * 検証契約: 同一masterの複数runtime worldを独立登録し、master一時消失中も型・表示情報を保持し、再登場時に再結合して個別解除する。
+     */
     @Test
     void runtimeWorldRegistrationsSupportParallelInstancesAndSurviveMasterReload() {
         WorldRepository repository = mock(WorldRepository.class);
@@ -315,6 +359,11 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
         assertSame(reloadedFieldData, service.findByBukkitWorld(secondRuntimeWorld));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_1-モデル定義.md
+     * 章・見出し: # 17_1-モデル定義 > ## 補助モデル > ### WorldType
+     * 検証契約: 空のBOSS_FIELD表示名では内部world名を露出せず「ボスフィールド」を返す。
+     */
     @Test
     void runtimeBossWorldWithBlankMasterNameUsesJapaneseFallbackInsteadOfInternalName() {
         WorldRepository repository = mock(WorldRepository.class);

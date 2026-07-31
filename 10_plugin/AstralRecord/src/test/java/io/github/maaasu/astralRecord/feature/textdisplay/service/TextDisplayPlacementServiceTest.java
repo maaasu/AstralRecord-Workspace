@@ -34,6 +34,13 @@ class TextDisplayPlacementServiceTest extends MockBukkitTestBase {
         AstPlayerCache.clear();
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 5. TextDisplayPlacementService メソッド仕様 > ### 固定 TextDisplay 配置
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_5-例外・ログ・運用.md
+     * 章・見出し: # 12_5-例外・ログ・運用 > ## 6. 運用上の注意 > ### 固定 TextDisplay の採用済み運用契約
+     * 検証契約: 永続配置textはraw &codeを保持し表示時だけColorCodeUtilで色変換する。
+     */
     @Test
     void placeKeepsRawTextButCreatesDisplayWithLegacyColorCodes() {
         Plugin plugin = mock(Plugin.class);
@@ -52,6 +59,11 @@ class TextDisplayPlacementServiceTest extends MockBukkitTestBase {
         assertEquals("\u00a7aHello \u00a7fWorld\\n\u00a7cRed", options.getValue().text());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-コマンド.md
+     * 章・見出し: # 12_3-コマンド > ## 8. 固定 TextDisplay 管理
+     * 検証契約: place引数の残りを空白でjoinして配置serviceへ渡す。
+     */
     @Test
     void commandPlacePassesJoinedTextToPlacementService() {
         TextDisplayPlacementService placementService = mock(TextDisplayPlacementService.class);
@@ -72,6 +84,11 @@ class TextDisplayPlacementServiceTest extends MockBukkitTestBase {
         verify(placementService).place("notice", "&aHello World", location);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-コマンド.md
+     * 章・見出し: # 12_3-コマンド > ## 8. 固定 TextDisplay 管理
+     * 検証契約: ID省略時もtextを受理しtextdisplay-連番IDを生成する。
+     */
     @Test
     void commandPlaceAcceptsTextWithoutExplicitId() {
         TextDisplayPlacementService placementService = mock(TextDisplayPlacementService.class);
@@ -93,6 +110,11 @@ class TextDisplayPlacementServiceTest extends MockBukkitTestBase {
         verify(placementService).place("textdisplay-1", "冒険者ギルド", location);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 5. TextDisplayPlacementService メソッド仕様 > ### 固定 TextDisplay 配置
+     * 検証契約: YAML save失敗時にdirty stateを保持して後続retry対象にする。
+     */
     @Test
     void failedSaveKeepsDirtyStateForRetry() {
         Plugin plugin = mock(Plugin.class);

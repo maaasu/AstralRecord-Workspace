@@ -12,15 +12,15 @@
 | 06 | [[06_0-概要]] | ルートテーブル取得と抽選 | `feature/loot` |
 | 07 | [[07_0-概要]] | プレイヤーステータス計算と表示 | `feature/status` |
 | 08 | [[08_0-概要]] | インベントリ同期、装備、保管庫 | `feature/inventory`, `feature/storage` |
-| 09 | [[09_0-概要]] | 共通メニュー、ガイド、売却導線 | `feature/menu`, `feature/guide`, `feature/sell` |
+| 09 | [[09_0-概要]] | 共通メニュー、ガイド、売却導線 | `feature/menu`, `feature/guide`, `feature/sell`, `shared/gui` |
 | 10 | [[10_0-概要]] | HUD の組み立てと表示 | `feature/hud` |
 | 11 | [[11_0-概要]] | プレイヤー設定と設定 GUI | `feature/playersetting` |
-| 12 | [[12_0-概要]] | Mob、NPC、採集、スポナー、固定 text display | `feature/mob`, `feature/gathering`, `feature/spawner`, `feature/textdisplay` |
+| 12 | [[12_0-概要]] | Mob、NPC、採集、スポナー、固定 text display | `feature/mob`, `feature/gathering`, `feature/spawner`, `feature/textdisplay`, `shared/display` |
 | 13 | [[13_0-概要]] | スキル発動、bind、skill tree | `feature/skill`, `feature/skilltree` |
 | 14 | [[14_0-概要]] | ダメージ計算と戦闘状態 | `feature/combat` |
-| 15 | [[15_0-概要]] | ホットバー入力と item / skill action の調停 | `shared/interaction` と item・inventory・skill の連携境界 |
+| 15 | [[15_0-概要]] | ホットバー入力と item / skill action の調停 | item・inventory・skill が 28 の共通入力調停へ候補を提供する依存境界 |
 | 16 | [[16_0-概要]] | 通貨残高と両替 | `feature/currency` |
-| 17 | [[17_0-概要]] | WorldMasterData、ワールド遷移、スポーン | `feature/world`, `shared/teleport` |
+| 17 | [[17_0-概要]] | WorldMasterData、ワールド遷移、スポーン | `feature/world`, `shared/teleport`, `shared/effect` |
 | 18 | [[18_0-概要]] | メール一覧、既読化、報酬受取 | `feature/mail` |
 | 19 | [[19_0-概要]] | パーティー状態と Mob 報酬共有 | `feature/party` |
 | 20 | [[20_0-概要]] | ショップ表示、コスト preview、購入補償 | `feature/shop` |
@@ -74,7 +74,6 @@
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/loginbonus/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/class/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/playerclass/*`
-- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/shared/interaction/*`
 
 ### [[04_0-概要|04-item]]
 
@@ -130,6 +129,7 @@
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/guide/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/sell/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/storage/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/shared/gui/*`
 - `10_plugin/AstralRecord/src/main/resources/logger.properties`（`E_5600`、shared GUI の `E_5601`）
 - `10_plugin/AstralRecord/src/main/resources/player.properties`（`P_5601` から `P_5603`）
 
@@ -158,6 +158,7 @@
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/spawner/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/textdisplay/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/gathering/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/shared/display/*`
 - `10_plugin/AstralRecord/src/main/resources/logger.properties`（Mob の `5700` 系、採集配置の shared `E_6400` / `E_6401`、採集 packet の shared `W_9010`）
 - `10_plugin/AstralRecord/src/main/resources/player.properties`（Mob / NPC / TextDisplay / gathering の player message）
 
@@ -178,10 +179,8 @@
 
 ### [[15_0-概要|15-hotbar-action]]
 
-独立した実装 package は存在しない。現在の対象は次の移管先である。
+独立した実装 package は存在しない。共通入力調停の主所有者は [[28_0-概要|28-player-interaction]] とし、本 feature は次の依存 feature が候補を提供する境界だけを扱う。
 
-- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/shared/interaction/*`
-- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/shared/interaction/PlayerInteractionGatewayEventHandler.java`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/item/event/ItemWeaponAttackEventHandler.java`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/item/service/ItemWeaponAttackService.java`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/inventory/*`
@@ -199,12 +198,13 @@
 
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/world/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/shared/teleport/*`
-- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/shared/interaction/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/menu/event/MenuOpenEventHandler.java`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/service/MobService.java`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/inventory/service/InventoryService.java`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/shared/effect/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/shared/timing/*`
+
+入力候補の共通調停には [[28_0-概要|28-player-interaction]] を依存先として使用する。
 
 ### [[18_0-概要|18-mail]]
 
@@ -234,14 +234,14 @@
 ### [[22_0-概要|22-trade]]
 
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/trade/*`
-- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/shared/gui/gold/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/inventory/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/item/*`
+
+金額入力 GUI は [[09_0-概要|09-menu]] が所有する `shared/gui/gold/*` を利用する。
 
 ### [[23_0-概要|23-market]]
 
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/market/*`
-- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/infrastructure/util/ApiRequestUtil.kt`
 
 ### [[24_0-概要|24-web-auth]]
 
@@ -271,7 +271,6 @@
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/condition/display/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/condition/event/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/condition/task/*`
-- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/infrastructure/logging/LogId.java`
 - `10_plugin/AstralRecord/src/main/resources/logger.properties`
 - `10_plugin/AstralRecord/src/test/java/io/github/maaasu/astralRecord/feature/condition/*`
 
@@ -292,8 +291,6 @@
 ### [[30_0-概要|30-resource-pack]]
 
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/resourcepack/*`
-- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/infrastructure/config/ConfigKeys.java`
-- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/infrastructure/config/ConfigProperties.java`
 - `10_plugin/AstralRecord/src/main/resources/config.yml`
 - `10_plugin/AstralRecord/src/main/resources/player.properties`
 - `10_plugin/AstralRecord/src/main/resources/logger.properties`
@@ -302,3 +299,11 @@
 
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/trainingdummy/*`
 - Plugin data folder: `training-dummies.yml`
+
+## 共通基盤所有パス
+
+次の package は単一の業務 feature に所有させず、`PLUGIN_GUIDE.md` の共通規約を設計正本とする。各 feature は必要な契約だけを依存境界として記載する。
+
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/infrastructure/*`
+
+feature 固有 resource の ID 範囲や利用条件は各 feature が所有し、共通 loader、resolver、logger、正規化処理の実装境界はこの共通基盤が所有する。

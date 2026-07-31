@@ -62,7 +62,7 @@ $<skill-name> を使って、<absolute-path> に対して <task> を行い、結
 | merged 済み `codex/*` branch / task worktree を掃除 | `$astralrecord-prune-codex-worktrees` | 既定は dry-run、管理ファイル作成、未登録ディレクトリは手動確認 |
 | 本番向け filebase マスタ追加 | `$astralrecord-master-data-author` | コンセプト・ステータス・命名方針と YAML スキーマに沿って追加 |
 | 指定 filebase マスタの高速作成・直接 commit | `$astralrecord-master-data-create-direct` | 単一ライターで develop の対象ファイルだけを作成・更新し、worktree を使わず直列 commit |
-| プラグインのテスト・検証基盤整備 | `$astralrecord-plugin-test` | 機能仕様変更は `$astralrecord-code` を使う |
+| プラグインの設計追跡可能なテスト・検証基盤整備 | `$astralrecord-plugin-test` | 恒久テストは設計入力必須。一時診断は実行後に削除し、機能仕様変更は `$astralrecord-code` を使う |
 | プラグイン版番号更新 | `$astralrecord-plugin-version` | finalize 直前の rebased worktree で使う |
 | player/logger プロパティの未使用削除 | `$astralrecord-unused-properties-prune` | 専用スクリプトの結果を根拠にする |
 | AstralArchitectのAI建築候補作成 | `$astralarchitect-builder` | 専用CLIだけでチケットを調査し、`candidate.schem`を安全に編集する |
@@ -206,12 +206,13 @@ AstralRecord のゲームコンセプト、ステータス設計、命名方針�
 
 ### `$astralrecord-plugin-test`
 
-`10_plugin/AstralRecord` 向けに、JUnit / MockBukkit のテスト雛形、手動確認のテスト化、一時 Purpur/Paper サーバースクリプト、integration 用 dev server を整備します。
+`10_plugin/AstralRecord` 向けに、設計書のパス・見出し・検証契約を各 test method から追跡できる JUnit / MockBukkit テスト、一時診断テストの清掃手順、Purpur/Paper・integration 検証基盤を整備します。
 
 使う場面:
 
 - 手動サーバ起動の確認をテストへ寄せたい。
 - MockBukkit で確認できる範囲を増やしたい。
+- 恒久テストを採用済み設計へ対応付け、設計にない一時テストを残さず検証したい。
 - AI が追える再現手順や検証基盤を固定したい。
 
 ### `$astralrecord-plugin-version`

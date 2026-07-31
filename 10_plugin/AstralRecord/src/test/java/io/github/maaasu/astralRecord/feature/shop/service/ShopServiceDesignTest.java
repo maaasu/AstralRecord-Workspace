@@ -40,6 +40,11 @@ import static org.mockito.Mockito.when;
 
 class ShopServiceDesignTest extends MockBukkitTestBase {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_3-メソッド仕様.md
+     * 章・見出し: # 20_3-メソッド仕様 > ## 購入 preview
+     * 検証契約: directとrecipeのgold・同一item costを口数込みで合算し、所持不足量をpreviewへ出す。
+     */
     @Test
     void previewCombinesEntryAndRecipeCostsBeforePurchaseCheck() {
         ShopHarness harness = shopHarness(new ShopRecipeCost(
@@ -69,6 +74,11 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         assertEquals(1, preview.missingItems().get(0).amount());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_3-メソッド仕様.md
+     * 章・見出し: # 20_3-メソッド仕様 > ## 購入
+     * 検証契約: capacity確認後にgold・素材を消費し、exact商品付与、BAG GUI反映、即時保存の順で完了する。
+     */
     @Test
     void purchasePaysGoldAndMaterialsBeforeGrantingItemsThenRefreshesInventory() {
         ShopHarness harness = shopHarness(new ShopRecipeCost(
@@ -101,6 +111,11 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         order.verify(harness.inventoryService).saveNow(player.getAccount().getUuid());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_4-統合フロー.md
+     * 章・見出し: # 20_4-統合フロー > ## 3. Preview・購入
+     * 検証契約: 支払い失敗時はsnapshotを復元し、商品付与・GUI反映・保存を行わない。
+     */
     @Test
     void purchaseDoesNotGrantItemsWhenPaymentFails() {
         ShopHarness harness = shopHarness(null);
@@ -127,6 +142,11 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         verify(harness.inventoryService).restoreState(snapshot);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_3-メソッド仕様.md
+     * 章・見出し: # 20_3-メソッド仕様 > ## 購入
+     * 検証契約: 商品付与数が要求量未満なら支払前snapshotへ復元し保存しない。
+     */
     @Test
     void purchaseRestoresPaymentWhenItemGrantIsPartial() {
         ShopHarness harness = shopHarness(null);
@@ -150,6 +170,11 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         verify(harness.inventoryService, never()).saveNow(player.getAccount().getUuid());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_3-メソッド仕様.md
+     * 章・見出し: # 20_3-メソッド仕様 > ## 購入 preview
+     * 検証契約: currencyカテゴリのgold costは単一entryでなく全額面換算残高に対して判定する。
+     */
     @Test
     void previewChecksGoldCurrencyCostAgainstTotalGoldBalance() {
         ShopHarness harness = shopHarness(null);
@@ -177,6 +202,11 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         verify(harness.inventoryService, never()).getNormalItemAmount(player.getAccount().getUuid(), "gold");
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_3-メソッド仕様.md
+     * 章・見出し: # 20_3-メソッド仕様 > ## 購入 preview
+     * 検証契約: gold以外のcurrency costはNORMAL item量でなく同一currency IDの残高で不足量を判定する。
+     */
     @Test
     void previewChecksNonGoldCurrencyCostAgainstExactCurrencyBalance() {
         ShopHarness harness = shopHarness(null);
@@ -207,6 +237,11 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         verify(harness.inventoryService, never()).getNormalItemAmount(player.getAccount().getUuid(), "silver_token");
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_3-メソッド仕様.md
+     * 章・見出し: # 20_3-メソッド仕様 > ## 購入
+     * 検証契約: currency cost消費とcurrency商品付与を同じsnapshot境界で行い、成功時は保存するがBAG GUIを更新しない。
+     */
     @Test
     void purchaseConsumesCurrencyCostAndGrantsCurrencyAtomically() {
         ShopHarness harness = shopHarness(null);
@@ -243,6 +278,11 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         verify(harness.inventoryService, never()).applyInventoryToGui(player, InventoryType.CURRENCY);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_3-メソッド仕様.md
+     * 章・見出し: # 20_3-メソッド仕様 > ## Shop 検索
+     * 検証契約: 一般検索ではNPC_ONLYを解決できるがcommand用検索からは除外する。
+     */
     @Test
     void commandLookupExcludesNpcOnlyShop() {
         ShopHarness harness = shopHarness(null);

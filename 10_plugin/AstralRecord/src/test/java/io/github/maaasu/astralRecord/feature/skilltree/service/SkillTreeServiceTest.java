@@ -58,6 +58,11 @@ import static org.mockito.Mockito.when;
 
 class SkillTreeServiceTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 10. skill tree 設定・master snapshot
+     * 検証契約: master置換時にstate未loadのonline playerへ派生効果/status refreshを適用しない。
+     */
     @Test
     void replaceMasterDataSnapshotSkipsOnlineCacheWhenNoPlayerStateIsLoaded() {
         SkillTreeService service = newService(null);
@@ -69,6 +74,11 @@ class SkillTreeServiceTest {
         }
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 10. skill tree 設定・master snapshot
+     * 検証契約: state load済みonline playerはpassive所有状態を調停してからstatus refreshする。
+     */
     @Test
     void replaceMasterDataSnapshotReconcilesLoadedOnlinePlayerBeforeStatusRefresh() {
         UUID accountId = UUID.randomUUID();
@@ -91,6 +101,11 @@ class SkillTreeServiceTest {
         order.verify(statusService).refreshStatus(player);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
+     * 検証契約: root unlock判定で永続state内のmaster未知node IDを既解放として数えない。
+     */
     @Test
     void canUnlockRootIgnoresPersistedUnknownNodeIds() {
         UUID accountId = UUID.randomUUID();
@@ -102,6 +117,11 @@ class SkillTreeServiceTest {
         assertTrue(service.canUnlockNode(player, root));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
+     * 検証契約: relock/point判定でmaster未知node IDを現在nodeとして数えない。
+     */
     @Test
     void canRelockNodeIgnoresPersistedUnknownNodeIds() {
         UUID accountId = UUID.randomUUID();
@@ -113,6 +133,11 @@ class SkillTreeServiceTest {
         assertTrue(service.canRelockNode(player, root));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
+     * 検証契約: passive effect node unlock時にpassive差分を調停してからstatus refreshする。
+     */
     @Test
     void unlockNodeReconcilesPassiveDeltaBeforeStatusRefresh() {
         UUID accountId = UUID.randomUUID();
@@ -142,6 +167,11 @@ class SkillTreeServiceTest {
         );
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
+     * 検証契約: 直接status modifier node unlock後にstatus refreshする。
+     */
     @Test
     void unlockNodeRefreshesStatusForDirectNodeModifier() {
         UUID accountId = UUID.randomUUID();
@@ -173,6 +203,11 @@ class SkillTreeServiceTest {
         verify(statusService).refreshStatus(player);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
+     * 検証契約: class conditionなしclass-point nodeは消費元classの明示選択を要求する。
+     */
     @Test
     void classPointNodeWithoutClassConditionRequiresExplicitSourceClass() {
         UUID accountId = UUID.randomUUID();
@@ -210,6 +245,11 @@ class SkillTreeServiceTest {
                 .availablePoints());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
+     * 検証契約: class condition付きnodeは条件に対応するancestor classを消費元として記録する。
+     */
     @Test
     void conditionedClassPointAutomaticallyConsumesTheRequiredAncestorClass() {
         UUID accountId = UUID.randomUUID();
@@ -247,6 +287,11 @@ class SkillTreeServiceTest {
                 .availablePoints());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
+     * 検証契約: current class/player level条件不成立の解放済みnodeを非表示にしeffectを無効化する。
+     */
     @Test
     void unmetNodeConditionHidesUnlockedNodeAndDisablesItsEffects() {
         UUID accountId = UUID.randomUUID();
@@ -288,6 +333,11 @@ class SkillTreeServiceTest {
         assertEquals(5.0D, service.getStatusBonus(player, StatusType.ATTACK, 100.0D));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
+     * 検証契約: condition失効で無効になったpassive skillをremoval差分として調停する。
+     */
     @Test
     void conditionChangeReconcilesRemovedPassiveSkillAsRemoval() {
         UUID accountId = UUID.randomUUID();
@@ -326,6 +376,11 @@ class SkillTreeServiceTest {
         );
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 12. skill tree 入力候補・node 実行
+     * 検証契約: Interaction entityのPDC node IDからbound positionを直接解決しray retargetしない。
+     */
     @Test
     void directNodeInteractionResolvesItsBoundPositionWithoutRayRetargeting() {
         SkillTreeService service = newService(null);
@@ -366,6 +421,11 @@ class SkillTreeServiceTest {
         assertTrue(hit.hitDistance() >= 0.0D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 12. skill tree 入力候補・node 実行
+     * 検証契約: 意図的なbarrier block越しでもnode hitbox交差をtarget候補として扱う。
+     */
     @Test
     void skillTreePositionRemainsTargetableThroughBlockingBarrier() {
         SkillTreeService service = newService(null);
@@ -401,6 +461,11 @@ class SkillTreeServiceTest {
         assertTrue(hit.hitDistance() > snapshot.blockingDistance());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
+     * 章・見出し: # 13_3-リポジトリ > ## 8. skill tree player state
+     * 検証契約: 旧join callbackのdiscardはstate instance一致時だけ行い新session stateを消さない。
+     */
     @Test
     void discardingOldJoinStateDoesNotRemoveNewerSessionState() {
         UUID accountId = UUID.randomUUID();

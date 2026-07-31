@@ -44,6 +44,11 @@ class LootServiceTest {
         pluginInstanceField.set(null, previousPluginInstance);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/06-loot/3-メソッド仕様/06_3-サービス.md
+     * 章・見出し: # 06_3-サービス > ## 1. LootService > ### 全ルートテーブルロード
+     * 検証契約: 全table構築完了後だけ変更不能snapshotを一括公開する。
+     */
     @Test
     void loadAllPublishesOnlyACompleteImmutableSnapshot() throws Exception {
         LootRepository repository = mock(LootRepository.class);
@@ -83,6 +88,11 @@ class LootServiceTest {
         assertEquals(List.of(firstNewLoot, secondNewLoot), service.getLoadedLoots());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/06-loot/3-メソッド仕様/06_3-サービス.md
+     * 章・見出し: # 06_3-サービス > ## 1. LootService > ### ルートスナップショット構築
+     * 検証契約: prepareしたsnapshotは明示replaceまで公開cacheを変更しない。
+     */
     @Test
     void preparedSnapshotDoesNotPublishUntilExplicitReplace() {
         LootRepository repository = mock(LootRepository.class);

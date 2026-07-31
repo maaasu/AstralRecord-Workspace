@@ -78,6 +78,11 @@ class SkillTreeEventHandlerTest {
         );
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 12. skill tree 入力候補・node 実行
+     * 検証契約: 視線上にskill tree nodeがなければ入力候補を返さない。
+     */
     @Test
     void returnsNoCandidateWhenPlayerDoesNotTargetSkillTreeNode() {
         when(service.findTargetedPositionHit(snapshot)).thenReturn(Optional.empty());
@@ -87,6 +92,11 @@ class SkillTreeEventHandlerTest {
         assertTrue(candidates.isEmpty());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 12. skill tree 入力候補・node 実行
+     * 検証契約: node hit時にnode IDとray入口距離を持つplayer-control候補を1件返す。
+     */
     @Test
     void returnsPlayerControlCandidateWhenPlayerTargetsSkillTreeNode() {
         SkillTreePosition position = new SkillTreePosition("1000", "skill_tree", 0, 64, 0);
@@ -104,6 +114,11 @@ class SkillTreeEventHandlerTest {
         assertEquals(2.5D, candidate.hitDistance());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 12. skill tree 入力候補・node 実行
+     * 検証契約: winner選択後は解決済みnode/positionを使いray targetを再選択しない。
+     */
     @Test
     void executesResolvedNodeWithoutTargetingItAgainAfterWinnerSelection() {
         SkillTreePosition position = new SkillTreePosition("1000", "skill_tree", 0, 64, 0);
@@ -147,6 +162,11 @@ class SkillTreeEventHandlerTest {
         verify(service, never()).findTargetedNode(player);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 12. skill tree 入力候補・node 実行
+     * 検証契約: 右click winnerは解決済みnodeのrelockを実行する。
+     */
     @Test
     void rightClickExecutesRelockForTheResolvedNode() {
         SkillTreePosition position = new SkillTreePosition("1000", "skill_tree", 0, 64, 0);

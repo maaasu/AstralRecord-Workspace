@@ -11,6 +11,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ItemRepositoryEquipmentParsingTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
+     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.3 `ItemEquipment`
+     * 検証契約: nullable durability/collection項目を安全な空/defaultへ変換する。
+     */
     @Test
     void nullableDurabilityAndCollectionsUseSafeDefaults() throws Exception {
         EquipmentInstance instance = parseEquipmentInstance("""
@@ -42,6 +47,11 @@ class ItemRepositoryEquipmentParsingTest {
         assertTrue(instance.getEnchantPools().isEmpty());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
+     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.3 `ItemEquipment`
+     * 検証契約: 装備level/class条件とtranscendence強化条件をDTOから保持する。
+     */
     @Test
     void equipmentRequirementsAndTranscendenceEnhanceRequirementAreParsed() throws Exception {
         ItemModel item = parseItem("""

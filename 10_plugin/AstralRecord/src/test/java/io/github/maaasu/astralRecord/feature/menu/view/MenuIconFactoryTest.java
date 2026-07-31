@@ -21,6 +21,11 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 
 class MenuIconFactoryTest extends MockBukkitTestBase {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-GUI・View.md
+     * 章・見出し: # 09_3-GUI・View > ## 5. 画面固有の描画不変条件
+     * 検証契約: 共通icon定義から呼出ごとに独立ItemStackを生成し相互変更を漏らさない。
+     */
     @Test
     void createsIndependentItemStacksFromSharedDefinition() {
         PlayerGuiRenderContext context = context();
@@ -51,6 +56,11 @@ class MenuIconFactoryTest extends MockBukkitTestBase {
         assertEquals(1, second.getAmount());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-GUI・View.md
+     * 章・見出し: # 09_3-GUI・View > ## 5. 画面固有の描画不変条件
+     * 検証契約: currency detailを最大10件に制限し超過時ellipsisを追加する。
+     */
     @Test
     void limitsCurrencyDetailsToTenEntriesAndAddsEllipsis() {
         PlayerGuiRenderContext base = context();
@@ -97,6 +107,11 @@ class MenuIconFactoryTest extends MockBukkitTestBase {
         );
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_1-モデル定義.md
+     * 章・見出し: # 09_1-モデル定義 > ## 2. クラフトショートカット
+     * 検証契約: 各shortcut actionを同じ意味の共通icon定義へ対応付ける。
+     */
     @Test
     void shortcutActionsReferenceTheSameSemanticIconDefinitions() {
         assertSame(MenuIconDefinition.MAIN_MENU, MenuShortcutAction.MAIN_MENU.getIconDefinition());

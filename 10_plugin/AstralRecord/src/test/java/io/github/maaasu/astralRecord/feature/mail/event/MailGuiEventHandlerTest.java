@@ -31,6 +31,11 @@ import static org.mockito.Mockito.when;
 
 class MailGuiEventHandlerTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_4-統合フロー.md
+     * 章・見出し: # 18_4-統合フロー > ## 1. 一覧表示
+     * 検証契約: 一覧応答待ちの対象inventoryを閉じた場合、遅延応答でメールGUIを再表示しない。
+     */
     @Test
     void closingExpectedScreenCancelsPendingListWithoutReopeningMail() {
         MailGuiView view = mock(MailGuiView.class);

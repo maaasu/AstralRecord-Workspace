@@ -14,6 +14,11 @@ class PlayerInputSequenceLedgerTest {
     private static final UUID PLAYER_ID = UUID.fromString("00000000-0000-0000-0000-000000000101");
     private static final UUID OTHER_PLAYER_ID = UUID.fromString("00000000-0000-0000-0000-000000000102");
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
+     * 章・見出し: # 28_3-サービス > ## 5. 入力token相関
+     * 検証契約: 同tickの汎用interactとentity interactを同じRIGHT_CLICK token・sequenceへ相関する。
+     */
     @Test
     void sameTickDeliveriesCorrelateAndKeepOneSequence() {
         PlayerInputSequenceLedger ledger = new PlayerInputSequenceLedger();
@@ -42,6 +47,11 @@ class PlayerInputSequenceLedgerTest {
         );
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
+     * 章・見出し: # 28_3-サービス > ## 5. 入力token相関
+     * 検証契約: 同tick・同hand・同entityのEntity/AtEntity sourceを同じtokenへ相関する。
+     */
     @Test
     void differentEntitySourcesCorrelateForSameDirectTarget() {
         PlayerInputSequenceLedger ledger = new PlayerInputSequenceLedger();
@@ -66,6 +76,11 @@ class PlayerInputSequenceLedgerTest {
         assertEquals(entity, positionedEntity);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
+     * 章・見出し: # 28_3-サービス > ## 5. 入力token相関
+     * 検証契約: 同tickでも直接対象entityが異なる配送は別sequenceにする。
+     */
     @Test
     void differentEntitySourcesDoNotCorrelateDifferentDirectTargets() {
         PlayerInputSequenceLedger ledger = new PlayerInputSequenceLedger();
@@ -90,6 +105,11 @@ class PlayerInputSequenceLedgerTest {
         assertNotEquals(firstTarget, secondTarget);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
+     * 章・見出し: # 28_3-サービス > ## 5. 入力token相関
+     * 検証契約: 同tick・同source・同targetのmain/offhand重複配送を同じtokenへ相関する。
+     */
     @Test
     void mainAndOffHandDuplicatesFromSameSourceCorrelate() {
         PlayerInputSequenceLedger ledger = new PlayerInputSequenceLedger();
@@ -114,6 +134,11 @@ class PlayerInputSequenceLedgerTest {
         assertEquals(mainHand, offHand);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
+     * 章・見出し: # 28_3-サービス > ## 5. 入力token相関
+     * 検証契約: 次tickの入力は前tickのclaim済みtokenと異なるsequenceを持ち未claimで開始する。
+     */
     @Test
     void nextTickCreatesIndependentInput() {
         PlayerInputSequenceLedger ledger = new PlayerInputSequenceLedger();
@@ -144,6 +169,11 @@ class PlayerInputSequenceLedgerTest {
         );
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
+     * 章・見出し: # 28_3-サービス > ## 5. 入力token相関
+     * 検証契約: 相関配送間でclaim/cancel要求を共有し、player clear後は旧状態を破棄して新tokenを発行する。
+     */
     @Test
     void claimIsSharedByCorrelatedDeliveriesAndClearRemovesState() {
         PlayerInputSequenceLedger ledger = new PlayerInputSequenceLedger();
@@ -189,6 +219,11 @@ class PlayerInputSequenceLedgerTest {
         );
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
+     * 章・見出し: # 28_3-サービス > ## 5. 入力token相関
+     * 検証契約: semantic観測を同tick全体でなく正確なplayer・sequenceへ限定しclearで破棄する。
+     */
     @Test
     void semanticObservationIsScopedToExactInputSequence() {
         PlayerInputSequenceLedger ledger = new PlayerInputSequenceLedger();
@@ -230,6 +265,11 @@ class PlayerInputSequenceLedgerTest {
         assertFalse(ledger.hasSemanticInput(observed));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
+     * 章・見出し: # 28_3-サービス > ## 5. 入力token相関
+     * 検証契約: 前ticksemantic状態を次tickfallback参照まで保持し、2tick後の相関時に破棄する。
+     */
     @Test
     void previousTickStateSurvivesCurrentTickInputForDeferredFallback() {
         PlayerInputSequenceLedger ledger = new PlayerInputSequenceLedger();
@@ -266,6 +306,11 @@ class PlayerInputSequenceLedgerTest {
         assertFalse(ledger.hasSemanticInput(pending));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/28_4-統合フロー.md
+     * 章・見出し: # 28_4-統合フロー > ## 2. arm swing 遅延fallback
+     * 検証契約: 同player・tick・handのsemantic ingressをfamily横断で検出し、別hand・tick・playerには波及させない。
+     */
     @Test
     void semanticObservationCanBeQueriedAcrossFamiliesByPlayerTickAndHand() {
         PlayerInputSequenceLedger ledger = new PlayerInputSequenceLedger();

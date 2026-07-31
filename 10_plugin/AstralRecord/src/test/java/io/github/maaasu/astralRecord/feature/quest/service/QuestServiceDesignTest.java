@@ -61,6 +61,11 @@ import static org.mockito.Mockito.when;
 
 class QuestServiceDesignTest extends MockBukkitTestBase {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 7. クエスト受領
+     * 検証契約: 受領条件itemを消費し、prefix除去済みNPC ID付きprogressをactiveへ追加してquest/inventory保存を予約する。
+     */
     @Test
     void acceptConsumesRequiredItemsAndStoresNpcBoundProgress() {
         QuestDefinition quest = quest(
@@ -90,6 +95,11 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         assertTrue(harness.service.hasPendingSave(player.getAccount().getUuid()));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 7. クエスト受領
+     * 検証契約: 同一itemの重複条件を合計し、合計所持不足なら消費もactive追加も行わない。
+     */
     @Test
     void acceptAggregatesDuplicateItemRequirementsBeforeConsuming() {
         QuestDefinition quest = quest(
@@ -124,6 +134,11 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         assertFalse(state.activeQuests().containsKey(quest.id()));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 7. クエスト受領
+     * 検証契約: 同一itemのconsume条件を合計し、合計数量を一回だけ消費してactiveへ追加する。
+     */
     @Test
     void acceptConsumesAggregatedDuplicateItemRequirementsOnce() {
         QuestDefinition quest = quest(
@@ -154,6 +169,15 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         assertTrue(state.activeQuests().containsKey(quest.id()));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 8. 目標進行
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 10. 報酬準備・反映
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 11. 報酬commit・補償
+     * 検証契約: AUTO目標達成時にaccount/class EXP・gold・itemを付与し、activeを削除して完了履歴と両store保存を確定する。
+     */
     @Test
     void autoQuestCompletionGrantsExpGoldItemsAndClearsActiveQuest() {
         ItemModel rewardItem = DesignTestFixtures.item("wolf_claw", ItemCategory.MATERIAL, 64);
@@ -196,6 +220,11 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         verify(harness.inventoryService, times(2)).saveNow(player.getAccount().getUuid());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 9. NPC報告・重複受取guard
+     * 検証契約: NPC quest達成をREADY_TO_TURN_INとし、受領元以外を拒否して正しいNPCからだけ報酬を付与する。
+     */
     @Test
     void npcQuestBecomesReadyAndRequiresExpectedTurnInNpcBeforeRewards() {
         ItemModel rewardItem = DesignTestFixtures.item("letter_seal", ItemCategory.MATERIAL, 64);
@@ -229,6 +258,13 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         verify(harness.inventoryService).addItemToNormalInventory(player, rewardItem, 1, "quest_reward");
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 10. 報酬準備・反映
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 11. 報酬commit・補償
+     * 検証契約: 二つ目の商品報酬がexact付与できなければinventoryを全復元し、EXPを付与せずquestをactiveに残す。
+     */
     @Test
     void autoQuestKeepsQuestActiveAndRestoresAllRewardsWhenSecondItemDoesNotFit() {
         ItemModel firstReward = DesignTestFixtures.item("wolf_claw", ItemCategory.MATERIAL, 64);
@@ -269,6 +305,13 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         verify(harness.playerClassService, never()).grantClassExperience(player, 25);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 10. 報酬準備・反映
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 11. 報酬commit・補償
+     * 検証契約: equipment instanceを非同期事前生成し、main反映の一部失敗時はinventoryを復元して全生成instanceを削除しquestをactiveに残す。
+     */
     @Test
     void equipmentRewardsArePreparedOffMainAndCleanedUpAfterAtomicGrantFailure() {
         ItemModel equipmentReward = DesignTestFixtures.item("quest_sword", ItemCategory.EQUIPMENT, 1);
@@ -351,6 +394,11 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         verify(harness.itemService).deleteEquipmentInstance(secondId.toString());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 11. 報酬commit・補償
+     * 検証契約: class EXP付与例外時にinventory・account・quest stateを復元してclaimを解放し、同じ報告を再試行可能にする。
+     */
     @Test
     void rewardExceptionRestoresAllStateAndAllowsRetry() {
         ItemModel rewardItem = DesignTestFixtures.item("retry_reward", ItemCategory.MATERIAL, 64);
@@ -403,6 +451,11 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         verify(harness.playerClassService, times(2)).grantClassExperience(player, 25);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 11. 報酬commit・補償
+     * 検証契約: quest保存後もinventory保存完了までclaimと演出を保留し、両保存成功後だけclaim解除・完了state・particleを公開する。
+     */
     @Test
     void completionKeepsClaimAndPresentationPendingUntilBothStoresAreSaved() {
         QuestDefinition quest = quest(
@@ -463,6 +516,11 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         );
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 11. 報酬commit・補償
+     * 検証契約: quest API保存失敗時に報酬とquest stateを復元してclaimを解放し、再試行成功時だけ完了へ進める。
+     */
     @Test
     void questSaveFailureRestoresRewardsAndAllowsRetry() {
         QuestDefinition quest = quest(
@@ -497,6 +555,11 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         verify(harness.stateRepository, times(3)).save(any(QuestPlayerState.class));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 11. 報酬commit・補償
+     * 検証契約: quest保存後のinventory保存失敗時に両storeを受取前へ戻して再保存し、再試行成功時だけ完了へ進める。
+     */
     @Test
     void inventorySaveFailureRestoresBothStoresAndAllowsRetry() {
         QuestDefinition quest = quest(

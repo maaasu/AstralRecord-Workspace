@@ -170,3 +170,85 @@ python .codex/skills/astralrecord-docs-review/scripts/docs_structure_audit.py 00
 - [[FEATURE_CATALOG]] のfeature・package所有関係
 - READMEや旧詳細番号形式の残存
 - 空の未決事項文書、時系列追記、曖昧な同名ファイル
+
+## 11. テスト設計とトレーサビリティ
+
+### 11.1 恒久テストの設計入力
+
+- `10_plugin/AstralRecord/src/test` に残す恒久テストは、採用済みの設計契約を入力として期待結果を決める。
+- 実装コードや既存テストは fixture、依存関係、観測方法を判断する資料であり、期待結果の正本にはしない。
+- テスト入力として参照できる設計文書は `PLUGIN_GUIDE.md` と `00_docs/10_Plugin設計書/` 配下の Markdown とする。
+- `8-実装予定`、`9-未決事項`、review 記録、`TODO` を含む記載は採用済み仕様ではないため、恒久テストの期待結果に使用しない。
+- 一つの test method は一つの設計契約を検証する。parameterized test と test factory は、全 case が同じ設計箇所の同じ契約を検証する場合に限り一つへまとめる。
+- 設計契約を検知しない getter の写経、実装と同じ式の再実装、内部の呼出回数だけを固定するテストは残さない。ただし、呼出回数自体が冪等性、補償、外部送信回数などの設計契約である場合は残す。
+
+### 11.2 test method のコメント標準
+
+`@Test`、`@ParameterizedTest`、`@RepeatedTest`、`@TestFactory`、`@TestTemplate` を持つ Java / Kotlin の各 method では、同一 method の連続 annotation stack の直前に次の Javadoc コメントを必須とする。`@DisplayName`、`@Tag`、`@Timeout` 等は Javadoc と test annotation の間に置いてよいが、別の宣言や説明文を挟まない。
+
+```java
+/**
+ * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
+ * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### ステータス取得
+ * 検証契約: 指定したステータス種別について、現在値と最大値を同じスナップショットから返す。
+ */
+@Test
+void returnsCurrentAndMaximumValuesFromOneSnapshot() {
+    // ...
+}
+```
+
+- `設計入力:` には `/` 区切りのリポジトリ相対パスを書く。絶対パス、`\` 区切り、設計書名だけの記載は認めない。
+- `章・見出し:` には実在する H1 から契約が書かれた子見出しまでを、Markdown の `#` を含めて ` > ` で連結する。
+- `検証契約:` には、どの入力・条件に対して何が返るか、どの状態へ遷移するか、または何を不変とするかを一文で書く。「動作を確認する」のような汎用文は認めない。
+- 一つの method が複数 feature の契約を結合して検証する場合は、`設計入力:` と対応する `章・見出し:` の対を空の Javadoc 装飾行以外を挟まず物理的に隣接させ、必要数だけ繰り返す。`検証契約:` はそれらの結合条件が分かる一文にまとめる。
+- class 単位のコメントだけでは method ごとの根拠を代替できない。同じ設計箇所を参照する場合も各 test method に記載する。
+- test annotation を持たない fixture、builder、MockBukkit 基底 class などの support source は対象外とする。
+
+### 11.3 設計書に契約が不足している場合
+
+恒久的に守る価値がある挙動が採用済み実装に存在し、設計書に記載がない場合は、テストへ実装値を直接固定する前に設計書へ契約を追加する。追記内容はテスト case の説明ではなく、入力、拒否条件、境界値、状態遷移、失敗時挙動など、実装を判断できる設計契約として現在の正しい節へ統合する。
+
+実装と意図のどちらが正しいか一意に判断できない場合は、テストで現行挙動を正当化しない。設計判断を行い、採用済みの節へ反映できるまでは一時テストとして扱う。
+
+### 11.4 一時テストの運用
+
+不具合の切り分け、実装中の仮説、設計に現れない内部詳細の一度限りの確認には `AdHoc<目的>Test`（既定）または `<目的>OneShotTest` を使用できる。通常機能名と衝突し得る曖昧な接頭辞は一時診断の識別子にしない。一時テストは次の順序で使用し、コミット対象へ残さない。
+
+1. `AdHoc<目的>Test` または `<目的>OneShotTest` を追加する。
+2. `mvn -q -Dtest=<一時テストClass名> test` を実行し、手順1で選んだ実際の class 名の test が検出・実行されたことを確認する。
+3. 結果を修正または調査記録へ反映する。恒久契約と判断した場合は、設計書を更新して通常名の恒久テストへ変更する。
+4. 追加した ad-hoc test を削除する。
+5. `git status --short` で一時ファイルが残っていないことを確認する。
+6. トレーサビリティ validator を実行する。
+7. `mvn -q test` を実行する。
+
+Kotlin の import alias / typealias で test annotation を隠す、`@Disabled` / `@Ignore` や環境条件付き annotation で一時テストを skip させる、Surefire 対象外の名前へ変更する、support source へ移して温存することは禁止する。
+
+### 11.5 検証層の境界
+
+| 検証層 | 対象 | 保証できないもの |
+|:--|:--|:--|
+| JUnit | 純粋な計算、判定、状態遷移、repository/service の契約 | Bukkit/Paper の実ライフサイクル |
+| MockBukkit | `Player`、`Inventory`、`Command`、`Event` など Bukkit API 周辺 | Purpur/Paper 固有 API、ProtocolLib、実 plugin 構成 |
+| 一時 Purpur/Paper server | server lifecycle、scheduler、Paper/Purpur 固有挙動 | 本番 plugin・proxy・world 構成との組合せ |
+| live server clone integration | ProtocolLib、依存 plugin、proxy、world、設定を含む結合挙動 | client 上の見た目、視認性、操作感 |
+| 実 client 確認 | 表示配置、視認性、入力感、演出 | 自動回帰検知 |
+
+- 下位層で保証できる契約を、理由なく上位の重い層だけで確認しない。
+- packet probe と test bot は packet-level の再現証跡であり、client 表示確認の代替にはしない。
+- 恒久的な integration scenario は対応する設計入力と見出しをスクリプトのコメントまたは隣接する運用文書へ記録する。一度限りの probe は結果確認後に削除する。
+
+### 11.6 テスト検証コマンド
+
+`10_plugin/AstralRecord/src/test` に加え、`10_plugin/AstralRecord/pom.xml`、恒久テストの入力として許可する `PLUGIN_GUIDE.md` または本設計書ツリーの Markdown を追加・変更・rename・削除した場合は、test source が無変更でもトレーサビリティ validator を必ず実行する。テスト方針を定める path の正本一覧は `.codex/skills/astralrecord-code/references/plugin-code.md` の「Plugin Test Traceability Gate」とし、その一覧の変更時も同じ品質ゲートを適用する。
+
+リポジトリルートから次を実行する。Plugin の shade 出力先が main workspace に固定されているため、トレーサビリティ検査を `mvn verify` で代用しない。
+
+```powershell
+python .codex/skills/astralrecord-plugin-test/scripts/validate_test_traceability.py
+cd 10_plugin/AstralRecord
+mvn -q test
+```
+
+validator は Java / Kotlin の test annotation、Kotlin import alias / typealias、Javadoc の三項目と path-heading pair の物理隣接、設計文書と見出し階層の実在、恒久仕様として使用できない文書、一時テスト、無効化・条件付き skip annotation、Surefire の既定命名と POM の custom test filter 不在を検査する。

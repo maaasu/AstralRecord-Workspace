@@ -12,6 +12,11 @@ import static org.mockito.Mockito.when;
 
 class AstEntitySnapshotTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_1-モデル定義.md
+     * 章・見出し: # 14_1-モデル定義 > ## 7. unified entity
+     * 検証契約: cast時に明示したplayer status snapshotを保持しlive status変更後もstatValueを変えない。
+     */
     @Test
     void playerStatusOverrideRemainsStableWhenLiveStatusChanges() {
         AstPlayer player = mock(AstPlayer.class);

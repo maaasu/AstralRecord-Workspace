@@ -23,6 +23,11 @@ import static org.mockito.Mockito.when;
 
 class ConditionTickTaskTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-タスク・スケジューラ.md
+     * 章・見出し: # 27_3-タスク・スケジューラ > ## 1. `ConditionTickTask`
+     * 検証契約: 301件では一回300件まで処理し、次回runを最初の未処理conditionから再開する。
+     */
     @Test
     void resumesAtFirstUnprocessedConditionOnNextRun() {
         ConditionService conditionService = mock(ConditionService.class);
@@ -45,6 +50,11 @@ class ConditionTickTaskTest {
         verify(tickService).tickCondition(eq(conditions.get(300)), anyLong());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-タスク・スケジューラ.md
+     * 章・見出し: # 27_3-タスク・スケジューラ > ## 1. `ConditionTickTask`
+     * 検証契約: 一件のtick例外を隔離して後続conditionの処理を継続する。
+     */
     @Test
     void isolatesOneConditionFailureAndContinuesProcessing() {
         ConditionService conditionService = mock(ConditionService.class);

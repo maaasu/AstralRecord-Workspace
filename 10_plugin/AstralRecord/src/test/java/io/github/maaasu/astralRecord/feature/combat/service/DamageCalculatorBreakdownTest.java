@@ -15,6 +15,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class DamageCalculatorBreakdownTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_1-モデル定義.md
+     * 章・見出し: # 14_1-モデル定義 > ## 6. damage breakdown
+     * 検証契約: 同一hit計算で解決attack、貫通前後defense、属性raw/effective resistanceをsnapshot化する。
+     */
     @Test
     void calculationCapturesResolvedAttackDefenseAndElementResistance() {
         DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
@@ -39,6 +44,11 @@ class DamageCalculatorBreakdownTest {
         assertEquals(0.0D, resistance.effectiveResistance(), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_1-モデル定義.md
+     * 章・見出し: # 14_1-モデル定義 > ## 6. damage breakdown
+     * 検証契約: component ratio合計0でdamage 0でも解決attack/defense breakdownを保持する。
+     */
     @Test
     void zeroRatioResultStillKeepsAttackAndDefenseBreakdown() {
         DamageCalculator calculator = new DamageCalculator(() -> 100.0D);

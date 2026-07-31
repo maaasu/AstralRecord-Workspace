@@ -17,6 +17,11 @@ import static org.mockito.Mockito.when;
 
 class ShopServiceCacheTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_4-統合フロー.md
+     * 章・見出し: # 20_4-統合フロー > ## 1. Cache 準備
+     * 検証契約: shopとrecipeを両方準備したsnapshotを明示置換するまで既存cacheを変更しない。
+     */
     @Test
     void cacheReloadKeepsCurrentCachesUntilPreparedSnapshotIsPublished() {
         ShopRepository shopRepository = mock(ShopRepository.class);

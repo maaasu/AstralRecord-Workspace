@@ -19,11 +19,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class EquipmentOperationInventoryStateTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
+     * 章・見出し: # 08_1-モデル定義 > ## 12. プレイヤー状態モデル
+     * 検証契約: BAG実効容量の初期値を24にする。
+     */
     @Test
     void bagRuntimeCapacityDefaultsToTwentyFour() {
         assertEquals(24, new PlayerInventoryState(UUID.randomUUID()).getBagSlotCapacity());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
+     * 章・見出し: # 08_1-モデル定義 > ## 3. インベントリ種別
+     * 検証契約: BAG容量を最小0・上限なしとし、容量変更でscroll位置を失わない。
+     */
     @Test
     void bagRuntimeCapacityHasZeroFloorNoMaximumAndKeepsOverflowScroll() {
         PlayerInventoryState state = new PlayerInventoryState(UUID.randomUUID());
@@ -37,6 +47,11 @@ class EquipmentOperationInventoryStateTest {
         assertEquals(1_000, state.getBagSlotCapacity());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 17. 一時保持・補償・feature 境界
+     * 検証契約: 一時保持装備を元inventoryの元slotへinstance ID付きで戻す。
+     */
     @Test
     void restoresHeldEntryToItsOriginalStateAndSlot() {
         UUID accountId = UUID.randomUUID();
@@ -54,6 +69,11 @@ class EquipmentOperationInventoryStateTest {
         assertEquals(4, restored.getFirst().getSlotIndex());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 17. 一時保持・補償・feature 境界
+     * 検証契約: 元slotが占有済みなら既存entryを上書きせず空slotへ再配置する。
+     */
     @Test
     void relocatesHeldEntryWithoutOverwritingAnOccupiedOriginalSlot() {
         UUID accountId = UUID.randomUUID();
@@ -75,6 +95,11 @@ class EquipmentOperationInventoryStateTest {
             .getSlotIndex());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 17. 一時保持・補償・feature 境界
+     * 検証契約: hotbar由来の一時保持装備をhotbarではなくBAGへ返却する。
+     */
     @Test
     void restoresHeldEntryFromHotbarToBagInsteadOfHotbar() {
         UUID accountId = UUID.randomUUID();
@@ -93,6 +118,11 @@ class EquipmentOperationInventoryStateTest {
         assertTrue(state.snapshotEntries(hotbar.getInventoryId()).isEmpty());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
+     * 章・見出し: # 08_1-モデル定義 > ## 3. インベントリ種別
+     * 検証契約: BAG復元可否を永続slotCapacityでなくINVENTORY_SLOTS実効容量だけで判定する。
+     */
     @Test
     void bagRestoreIgnoresPersistedCapacityAndUsesStatusCapacity() {
         UUID accountId = UUID.randomUUID();
@@ -110,6 +140,11 @@ class EquipmentOperationInventoryStateTest {
         assertEquals(2, state.snapshotEntries(bag.getInventoryId()).size());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 17. 一時保持・補償・feature 境界
+     * 検証契約: 支払前snapshot復元後も保持装備を復元またはinstance ID指定で除去できる。
+     */
     @Test
     void restoresPaymentSnapshotThenCanRestoreOrRemoveHeldEquipment() {
         UUID accountId = UUID.randomUUID();

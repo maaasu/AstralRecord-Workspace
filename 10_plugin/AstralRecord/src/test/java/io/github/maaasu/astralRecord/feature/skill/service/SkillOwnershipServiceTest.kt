@@ -18,6 +18,11 @@ import org.mockito.Mockito.mock
 
 class SkillOwnershipServiceTest : MockBukkitTestBase() {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 8. 所持 skill 解決
+     * 検証契約: administrator level1のskill参照をcanonical skill ID setへ正規化する。
+     */
     @Test
     fun resolvesAdministratorLevelOneSkillReferencesToCanonicalIds() {
         val playerClassService = PlayerClassService()
@@ -49,6 +54,11 @@ class SkillOwnershipServiceTest : MockBukkitTestBase() {
         assertFalse(ownedSkillIds.contains(BuiltInWeaponAttackDefinitions.SPECIAL_ATTACK_MELEE))
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 8. 所持 skill 解決
+     * 検証契約: 通常classへ切替後はadministrator専用skillを所持setへ含めない。
+     */
     @Test
     fun switchingToNormalClassDoesNotGrantAdministratorSkills() {
         val administratorSkillId = "administrator_only_skill"

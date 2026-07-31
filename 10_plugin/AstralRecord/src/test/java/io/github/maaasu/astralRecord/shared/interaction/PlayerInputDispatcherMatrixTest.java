@@ -33,6 +33,11 @@ class PlayerInputDispatcherMatrixTest {
         "block-break-snapshot"
     );
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
+     * 章・見出し: # 28_3-サービス > ## 4. 勝者選択
+     * 検証契約: world interactionでは近いNPC/waystone、world不在時はitem、残余時はaction ringを選び、item vanilla guardよりnew action ringを優先して各scenario一件だけ実行する。
+     */
     @TestFactory
     Stream<DynamicTest> npcWaystoneItemAndActionRingMatrix() {
         List<Scenario> scenarios = List.of(
@@ -85,6 +90,11 @@ class PlayerInputDispatcherMatrixTest {
         ));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/28_4-統合フロー.md
+     * 章・見出し: # 28_4-統合フロー > ## 3. block mutation 調停
+     * 検証契約: 同座標のMob/Gathering候補をstable orderで決め、Mob spawnerだけを実行し、CLAIM結果をcancelなしで返す。
+     */
     @Test
     void blockMutationExecutesOnlyOneStableWinner() {
         AtomicInteger mobSpawnerExecutions = new AtomicInteger();

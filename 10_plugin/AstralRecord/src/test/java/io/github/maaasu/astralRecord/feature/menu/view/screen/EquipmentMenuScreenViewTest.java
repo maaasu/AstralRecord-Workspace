@@ -15,6 +15,11 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 
 class EquipmentMenuScreenViewTest extends MockBukkitTestBase {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-GUI・View.md
+     * 章・見出し: # 09_3-GUI・View > ## 5. 画面固有の描画不変条件
+     * 検証契約: 54 slot装備画面へstatus・pet・back・選択main hand・armor・off hand・memory・accessory・gaugeを設計slotとmarker Materialで描画する。
+     */
     @Test
     void rendersRequestedVanillaLayoutAndSelectedHotbarItem() {
         var player = server().addPlayer();
@@ -27,35 +32,41 @@ class EquipmentMenuScreenViewTest extends MockBukkitTestBase {
 
         view.render(inventory, player, new ItemStack[AccessorySlotType.RELIC_2.getSlotIndex() + 1]);
 
-        assertMaterial(inventory, EquipmentMenuScreenView.PLAYER_STATUS_SLOT, Material.PLAYER_HEAD);
-        assertMaterial(inventory, EquipmentMenuScreenView.PET_SLOT, Material.SADDLE);
-        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_BACK_SLOT, Material.SPECTRAL_ARROW);
-        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_MAIN_HAND_SLOT, Material.WOODEN_SWORD);
-        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_HEAD_SLOT, Material.LEATHER_HELMET);
-        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_CHEST_SLOT, Material.LEATHER_CHESTPLATE);
-        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_LEGS_SLOT, Material.LEATHER_LEGGINGS);
-        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_FEET_SLOT, Material.LEATHER_BOOTS);
-        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_OFF_HAND_SLOT, Material.GLOW_ITEM_FRAME);
-        assertDarkGrayLeatherArmor(inventory, EquipmentMenuScreenView.EQUIPMENT_HEAD_SLOT);
-        assertDarkGrayLeatherArmor(inventory, EquipmentMenuScreenView.EQUIPMENT_CHEST_SLOT);
-        assertDarkGrayLeatherArmor(inventory, EquipmentMenuScreenView.EQUIPMENT_LEGS_SLOT);
-        assertDarkGrayLeatherArmor(inventory, EquipmentMenuScreenView.EQUIPMENT_FEET_SLOT);
-        assertMaterial(inventory, EquipmentMenuScreenView.MEMORY_1_SLOT, Material.HOPPER);
-        assertMaterial(inventory, EquipmentMenuScreenView.MEMORY_2_SLOT, Material.HOPPER);
-        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_AMULET_SLOT, Material.CHEST_MINECART);
-        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_TALISMAN_1_SLOT, Material.FURNACE_MINECART);
-        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_TALISMAN_2_SLOT, Material.FURNACE_MINECART);
-        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_CORE_SLOT, Material.HOPPER_MINECART);
-        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_RELIC_1_SLOT, Material.TNT_MINECART);
-        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_RELIC_2_SLOT, Material.TNT_MINECART);
-        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_CHARM_1_SLOT, Material.MINECART);
-        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_CHARM_2_SLOT, Material.MINECART);
-        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_CHARM_3_SLOT, Material.MINECART);
-        assertMaterial(inventory, EquipmentMenuScreenView.GAUGE_LARGE_SLOT, Material.SPAWNER);
-        assertMaterial(inventory, EquipmentMenuScreenView.GAUGE_MEDIUM_SLOT, Material.SPAWNER);
-        assertMaterial(inventory, EquipmentMenuScreenView.GAUGE_SMALL_SLOT, Material.SPAWNER);
+        assertEquals(54, inventory.getSize());
+        assertMaterial(inventory, 0, Material.PLAYER_HEAD);
+        assertMaterial(inventory, 16, Material.SADDLE);
+        assertMaterial(inventory, 49, Material.SPECTRAL_ARROW);
+        assertMaterial(inventory, 19, Material.WOODEN_SWORD);
+        assertMaterial(inventory, 11, Material.LEATHER_HELMET);
+        assertMaterial(inventory, 20, Material.LEATHER_CHESTPLATE);
+        assertMaterial(inventory, 29, Material.LEATHER_LEGGINGS);
+        assertMaterial(inventory, 38, Material.LEATHER_BOOTS);
+        assertMaterial(inventory, 21, Material.GLOW_ITEM_FRAME);
+        assertDarkGrayLeatherArmor(inventory, 11);
+        assertDarkGrayLeatherArmor(inventory, 20);
+        assertDarkGrayLeatherArmor(inventory, 29);
+        assertDarkGrayLeatherArmor(inventory, 38);
+        assertMaterial(inventory, 27, Material.HOPPER);
+        assertMaterial(inventory, 36, Material.HOPPER);
+        assertMaterial(inventory, 23, Material.CHEST_MINECART);
+        assertMaterial(inventory, 31, Material.FURNACE_MINECART);
+        assertMaterial(inventory, 33, Material.FURNACE_MINECART);
+        assertMaterial(inventory, 32, Material.HOPPER_MINECART);
+        assertMaterial(inventory, 39, Material.TNT_MINECART);
+        assertMaterial(inventory, 43, Material.TNT_MINECART);
+        assertMaterial(inventory, 40, Material.MINECART);
+        assertMaterial(inventory, 41, Material.MINECART);
+        assertMaterial(inventory, 42, Material.MINECART);
+        assertMaterial(inventory, 26, Material.SPAWNER);
+        assertMaterial(inventory, 35, Material.SPAWNER);
+        assertMaterial(inventory, 44, Material.SPAWNER);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-GUI・View.md
+     * 章・見出し: # 09_3-GUI・View > ## 5. 画面固有の描画不変条件
+     * 検証契約: main/off hand空slotに各専用empty markerを描画する。
+     */
     @Test
     void usesDedicatedEmptyMarkersForMainAndOffHandSlots() {
         var player = server().addPlayer();
@@ -66,13 +77,18 @@ class EquipmentMenuScreenViewTest extends MockBukkitTestBase {
 
         view.render(inventory, player, new ItemStack[AccessorySlotType.RELIC_2.getSlotIndex() + 1]);
 
-        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_MAIN_HAND_SLOT, Material.ITEM_FRAME);
-        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_OFF_HAND_SLOT, Material.GLOW_ITEM_FRAME);
+        assertMaterial(inventory, 19, Material.ITEM_FRAME);
+        assertMaterial(inventory, 21, Material.GLOW_ITEM_FRAME);
         player.getInventory().setItemInOffHand(new ItemStack(Material.SHIELD));
         view.render(inventory, player, new ItemStack[AccessorySlotType.RELIC_2.getSlotIndex() + 1]);
-        assertMaterial(inventory, EquipmentMenuScreenView.EQUIPMENT_OFF_HAND_SLOT, Material.SHIELD);
+        assertMaterial(inventory, 21, Material.SHIELD);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-GUI・View.md
+     * 章・見出し: # 09_3-GUI・View > ## 5. 画面固有の描画不変条件
+     * 検証契約: GUI slot 23/31/33/32/39/43/40..42をAMULET/TALISMAN_1..2/CORE/RELIC_1..2/CHARM_1..3へ対応付ける。
+     */
     @Test
     void mapsGuiSlotsToTypedAccessorySlots() {
         EquipmentMenuScreenView view = new EquipmentMenuScreenView(
@@ -90,6 +106,11 @@ class EquipmentMenuScreenViewTest extends MockBukkitTestBase {
         assertSame(AccessorySlotType.RELIC_2, view.getAccessorySlotTypeAtSlot(43));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-GUI・View.md
+     * 章・見出し: # 09_3-GUI・View > ## 5. 画面固有の描画不変条件
+     * 検証契約: 空accessory選択先を同一equipment tagカテゴリ内だけから選ぶ。
+     */
     @Test
     void selectsEmptyAccessorySlotOnlyFromSameCategory() {
         var player = server().addPlayer();
@@ -100,18 +121,18 @@ class EquipmentMenuScreenViewTest extends MockBukkitTestBase {
         view.render(inventory, player, new ItemStack[AccessorySlotType.RELIC_2.getSlotIndex() + 1]);
 
         assertEquals(
-            EquipmentMenuScreenView.EQUIPMENT_TALISMAN_1_SLOT,
+            31,
             view.firstEmptyAccessorySlot(inventory, AccessorySlotType.TALISMAN_1)
         );
-        inventory.setItem(EquipmentMenuScreenView.EQUIPMENT_TALISMAN_1_SLOT, new ItemStack(Material.DIAMOND));
+        inventory.setItem(31, new ItemStack(Material.DIAMOND));
         assertEquals(
-            EquipmentMenuScreenView.EQUIPMENT_TALISMAN_2_SLOT,
+            33,
             view.firstEmptyAccessorySlot(inventory, AccessorySlotType.TALISMAN_1)
         );
-        inventory.setItem(EquipmentMenuScreenView.EQUIPMENT_TALISMAN_2_SLOT, new ItemStack(Material.EMERALD));
+        inventory.setItem(33, new ItemStack(Material.EMERALD));
         assertEquals(-1, view.firstEmptyAccessorySlot(inventory, AccessorySlotType.TALISMAN_1));
         assertEquals(
-            EquipmentMenuScreenView.EQUIPMENT_CHARM_1_SLOT,
+            40,
             view.firstEmptyAccessorySlot(inventory, AccessorySlotType.CHARM_2)
         );
     }

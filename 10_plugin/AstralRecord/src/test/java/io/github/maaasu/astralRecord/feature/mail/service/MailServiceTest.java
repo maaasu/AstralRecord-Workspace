@@ -47,6 +47,11 @@ import static org.mockito.Mockito.when;
 
 class MailServiceTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_4-統合フロー.md
+     * 章・見出し: # 18_4-統合フロー > ## 2. 未読メールの報酬受取
+     * 検証契約: 追跡可能な報酬receiptをinventoryへ反映してからAPI既読化し、全state snapshot方式を使わない。
+     */
     @Test
     void addsTrackedRewardBeforeMarkingMailRead() {
         TestContext context = new TestContext();
@@ -72,6 +77,11 @@ class MailServiceTest {
         verify(context.inventoryService, never()).restoreState(any());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_4-統合フロー.md
+     * 章・見出し: # 18_4-統合フロー > ## 2. 未読メールの報酬受取
+     * 検証契約: 既読化失敗時は当該claimのreceiptだけをrollbackし、並行して追加されたmutationを残す。
+     */
     @Test
     void markReadFailureCompensatesOnlyClaimMutationsAndKeepsConcurrentMutation() {
         TestContext context = new TestContext();
@@ -106,6 +116,11 @@ class MailServiceTest {
         verify(context.inventoryService, never()).restoreState(any());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_4-統合フロー.md
+     * 章・見出し: # 18_4-統合フロー > ## 2. 未読メールの報酬受取
+     * 検証契約: 報酬なしメールはinventory snapshot・付与・復元を行わず既読化だけで成功する。
+     */
     @Test
     void rewardlessMailDoesNotSnapshotOrMutateInventory() {
         TestContext context = new TestContext();
@@ -124,6 +139,11 @@ class MailServiceTest {
         verify(context.inventoryService, never()).restoreState(any());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_4-統合フロー.md
+     * 章・見出し: # 18_4-統合フロー > ## 2. 未読メールの報酬受取
+     * 検証契約: equipment数量分のinstanceを事前生成し、prepared instance一覧をmain-thread inventory反映後に既読化する。
+     */
     @Test
     void preparesEquipmentInstanceBeforeMainThreadInventoryPublication() {
         TestContext context = new TestContext();
@@ -175,6 +195,11 @@ class MailServiceTest {
         assertEquals(instanceIds.get(0), prepared.instanceId());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_4-統合フロー.md
+     * 章・見出し: # 18_4-統合フロー > ## 3. reconciliation
+     * 検証契約: 既読化とrollbackの両方が失敗した間はclaimを維持して重複付与を拒否し、再調停成功後は既読として扱う。
+     */
     @Test
     void stateLossKeepsClaimLockedUntilMarkReadReconciliationCompletes() {
         TestContext context = new TestContext();

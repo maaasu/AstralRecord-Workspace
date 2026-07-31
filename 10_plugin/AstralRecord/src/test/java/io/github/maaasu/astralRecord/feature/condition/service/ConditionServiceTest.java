@@ -30,6 +30,11 @@ import static org.mockito.Mockito.mock;
 
 class ConditionServiceTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
+     * 章・見出し: # 27_3-サービス > ## 1. `ConditionService.applyCondition` > ### 1.2 付与確率
+     * 検証契約: 基礎確率・増加率・耐性率を乗算し0〜100へclampする。
+     */
     @Test
     void applyChanceUsesIncreaseAndResistanceAsPercentages() {
         assertEquals(45.0D, ConditionService.calculateApplyChance(50.0D, 20.0D, 25.0D), 0.0001D);
@@ -37,6 +42,11 @@ class ConditionServiceTest {
         assertEquals(0.0D, ConditionService.calculateApplyChance(100.0D, 0.0D, 100.0D), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
+     * 章・見出し: # 27_3-サービス > ## 1. `ConditionService.applyCondition` > ### 1.3 新規付与と同種更新
+     * 検証契約: 弱い再付与では効果を維持して期限だけ延長し、強い再付与では効果を置換して既存の長い期限を維持する。
+     */
     @Test
     void keepsStrongerEffectAndOnlyExtendsExpiry() {
         ConditionService service = service();
@@ -63,6 +73,11 @@ class ConditionServiceTest {
         assertEquals(extendedExpiry, afterStrongerShorter.expiresAtMs());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/27_0-概要.md
+     * 章・見出し: # 27_0-概要 > ## 3. 不変条件
+     * 検証契約: 冷気を残したまま凍結で移動不可とし、凍結解除後は冷気の移動倍率0.5へ戻す。
+     */
     @Test
     void frozenDominatesChilledWithoutRemovingIt() {
         ConditionService service = service();
@@ -81,6 +96,11 @@ class ConditionServiceTest {
         assertEquals(0.5D, service.movementSpeedMultiplier(target), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
+     * 章・見出し: # 27_3-サービス > ## 4. `conditionDamageMultiplier`
+     * 検証契約: DoT増加20%、耐性50%、貫通10%を専用式で0.72倍へ計算する。
+     */
     @Test
     void conditionDamageUsesIndependentIncreaseResistanceAndPenetration() {
         ConditionService service = service();
@@ -95,6 +115,11 @@ class ConditionServiceTest {
         assertEquals(0.72D, service.conditionDamageMultiplier(source, target, ConditionType.BURNING), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
+     * 章・見出し: # 27_3-サービス > ## 4. `conditionDamageMultiplier`
+     * 検証契約: DoT耐性-25%を弱点として1.25倍へ増幅する。
+     */
     @Test
     void negativeDotResistanceIncreasesConditionDamage() {
         ConditionService service = service();
@@ -105,6 +130,13 @@ class ConditionServiceTest {
         assertEquals(1.25D, service.conditionDamageMultiplier(null, target, ConditionType.BURNING), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
+     * 章・見出し: # 27_3-サービス > ## 1. `ConditionService.applyCondition` > ### 1.2 付与確率
+     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
+     * 章・見出し: # 27_3-サービス > ## 3. 行動可否と倍率
+     * 検証契約: 付与耐性100%ではCHANCE_FAILEDとなり、回復阻害が有効な対象はhealing blockedとなる。
+     */
     @Test
     void fullApplyResistanceAlwaysRejectsAndHealingInhibitionBlocksRecovery() {
         ConditionService service = service();
@@ -122,6 +154,11 @@ class ConditionServiceTest {
         assertTrue(service.isHealingBlocked(target));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
+     * 章・見出し: # 27_3-サービス > ## 3. 行動可否と倍率
+     * 検証契約: 衰弱中のsourceの全与ダメージ倍率を0.5とする。
+     */
     @Test
     void weaknessHalvesAllOutgoingDamageIncludingConditionSourceDamage() {
         ConditionService service = service();
@@ -132,6 +169,11 @@ class ConditionServiceTest {
         assertEquals(0.5D, service.damageDealtMultiplier(source), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
+     * 章・見出し: # 27_3-サービス > ## 2. 解除・照会・全体掃除
+     * 検証契約: 指定時刻で期限到達した状態異常をmapから削除し、その後は新規状態として再付与できる。
+     */
     @Test
     void cleanupSweepRemovesConditionsExpiredAtProvidedTime() {
         ConditionService service = service();

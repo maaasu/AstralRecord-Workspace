@@ -15,6 +15,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AccessorySlotTypeTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
+     * 章・見出し: # 08_1-モデル定義 > ## 5. アクセサリスロット種別
+     * 検証契約: offhand1・amulet1・talisman2・charm3・core1・relic2を連続index 1〜10へ割り当てる。
+     */
     @Test
     void definesRequestedSlotCountsAndContinuousIndexes() {
         Set<Integer> indexes = Arrays.stream(AccessorySlotType.values())
@@ -29,6 +34,11 @@ class AccessorySlotTypeTest {
         assertEquals(2, countSlots("RELIC"));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
+     * 章・見出し: # 08_1-モデル定義 > ## 5. アクセサリスロット種別
+     * 検証契約: slot indexとequipment tagを明示対応だけで解決し不明値へunsafe fallbackしない。
+     */
     @Test
     void resolvesSlotAndEquipmentTagWithoutUnsafeFallback() {
         assertSame(AccessorySlotType.OFF_HAND, AccessorySlotType.fromSlotIndex(1));
@@ -41,6 +51,11 @@ class AccessorySlotTypeTest {
         assertNull(AccessorySlotType.fromEquipmentTag("NECKLACE"));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
+     * 章・見出し: # 08_1-モデル定義 > ## 5. アクセサリスロット種別
+     * 検証契約: OFF_HAND subweaponを種類別accessory slotから分離する。
+     */
     @Test
     void separatesSubweaponFromTypedAccessory() {
         assertSame(EquipmentType.OFF_HAND, EquipmentType.fromItemEquipmentSlot(ItemEquipmentSlot.SUBWEAPON));

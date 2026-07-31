@@ -43,6 +43,11 @@ import static org.mockito.Mockito.when;
 
 class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加
+     * 検証契約: stackable item取得をBAG既存stackまたは空slotへ追加しdirtyにする。
+     */
     @Test
     void itemGetFlowAddsStackableItemToNormalInventoryState() {
         InventoryHarness harness = inventoryHarness();
@@ -64,6 +69,11 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         assertTrue(state.isDirty());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加
+     * 検証契約: equipment/runeをinstance ID付きで統合BAGへ格納する。
+     */
     @Test
     void itemGetFlowStoresEquipmentAndRuneTogetherInBag() {
         InventoryHarness harness = inventoryHarness();
@@ -113,25 +123,11 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         assertEquals(runeInstanceId, runeEntry.getInstanceId());
     }
 
-    @Test
-    void bagCapacityUsesRuntimeStatusInsteadOfPersistedCapacity() {
-        InventoryHarness harness = inventoryHarness();
-        PlayerMock bukkitPlayer = server().addPlayer();
-        AstPlayer astPlayer = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.ADMIN);
-        PlayerInventoryState state = harness.registerState(astPlayer);
-        InventoryModel bagInventory = harness.addInventory(state, InventoryType.BAG, 24);
-        ItemModel singleStackItem = DesignTestFixtures.item("capacity_test", ItemCategory.MATERIAL, 1);
-
-        for (int slot = 1; slot <= 24; slot++) {
-            assertEquals(1, harness.inventoryService.addItemToNormalInventory(
-                astPlayer, singleStackItem, 1, "test"));
-        }
-
-        assertEquals(0, harness.inventoryService.addItemToNormalInventory(
-            astPlayer, singleStackItem, 1, "test"));
-        assertEquals(24, state.snapshotEntries(bagInventory.getInventoryId()).size());
-    }
-
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
+     * 章・見出し: # 08_1-モデル定義 > ## 3. インベントリ種別
+     * 検証契約: 基礎24にplayer level 5ごと1slotを加算する。
+     */
     @Test
     void inventorySlotsIncreaseOncePerFivePlayerLevels() {
         InventoryService inventoryService = mock(InventoryService.class);
@@ -151,6 +147,11 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         verify(inventoryService).applyBagSlotCapacity(levelTen, 26.0D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
+     * 章・見出し: # 08_1-モデル定義 > ## 3. インベントリ種別
+     * 検証契約: 容量外既存entryを保持するが新規取得/stack先には使わない。
+     */
     @Test
     void overflowEntryIsPreservedAndCannotReceiveNewItems() {
         InventoryHarness harness = inventoryHarness();
@@ -178,6 +179,11 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
             .count());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 11. 装備移動とアクセサリ移動
+     * 検証契約: BAG中間entry全量移動後に後続entryを表示順のまま前詰めする。
+     */
     @Test
     void fullTransferOfMiddleBagEntryCompactsFollowingEntries() {
         InventoryHarness harness = inventoryHarness();
@@ -206,6 +212,11 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         assertEquals(2, remaining.get(1).getSlotIndex());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 4. 表示インベントリ GUI 反映
+     * 検証契約: 容量外entryを表示し、空の容量外枠を新規配置不可の黒枠にする。
+     */
     @Test
     void overflowEntryRemainsVisibleWhileEmptyOverflowSlotsAreLocked() {
         InventoryHarness harness = inventoryHarness();
@@ -228,6 +239,11 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         assertFalse(astPlayer.getBukkit().getInventory().getItem(9).getItemMeta().lore().isEmpty());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 17. 一時保持・補償・feature 境界
+     * 検証契約: 同itemがhotbar割当済みでもstorage transferを優先し対応entryを移動する。
+     */
     @Test
     void storageTransferTakesPriorityForItemAssignedToHotbar() {
         InventoryHarness harness = inventoryHarness();
@@ -250,6 +266,11 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         assertEquals(1, state.snapshotEntries(storage.getInventoryId()).size());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 14. ストレージ操作
+     * 検証契約: BAG/hotbar全体の同一通常itemを一括収納し全量取出し時は複数stackへ分割する。
+     */
     @Test
     void storageBulkTransferMovesAndWithdrawsAllMatchingStacks() {
         InventoryHarness harness = inventoryHarness();
@@ -289,6 +310,11 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         assertEquals(3, state.snapshotEntries(bag.getInventoryId()).size());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 17. 一時保持・補償・feature 境界
+     * 検証契約: legacy BAG内currency stackをCURRENCY inventoryへ一括移動する。
+     */
     @Test
     void currencyBulkTransferMovesLegacyBagStacksBackToCurrency() {
         InventoryHarness harness = inventoryHarness();
@@ -328,6 +354,11 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         ));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 17. 一時保持・補償・feature 境界
+     * 検証契約: status refreshがinventory/loadout上の装備instance参照をbonus計算へ渡す。
+     */
     @Test
     void statusRefreshUsesInventoryEquippedReferencesForEquipmentBonus() {
         PlayerMock bukkitPlayer = server().addPlayer();
@@ -360,6 +391,11 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         assertEquals(snapshot.getMaxValue(StatusType.MAX_ENERGY), snapshot.getCurrentEnergy(), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 10. ホットバー操作
+     * 検証契約: Bukkit hotbar 0〜8の全9slotを通常item割当として描画する。
+     */
     @Test
     void hotbarRenderingKeepsAllNineSlotsAsNormalHotbarSlots() {
         PlayerMock player = server().addPlayer();

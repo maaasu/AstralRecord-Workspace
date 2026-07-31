@@ -57,6 +57,13 @@ python <task-root>\.codex\skills\astralrecord-docs-review\scripts\docs_structure
 ```
 
 Use the audit as a format check. If the script reports unrelated pre-existing issues, list them separately instead of expanding the edit scope.
+9. When the changed docs are under `00_docs/10_Plugin設計書`, also run the following black-box consistency gate from `<task-root>`, even though this skill does not open or interpret Plugin source. This checks whether existing permanent-test references still resolve after docs-only heading/path edits.
+
+```powershell
+python <task-root>\.codex\skills\astralrecord-plugin-test\scripts\validate_test_traceability.py --repo-root <task-root>
+```
+
+Do not substitute `mvn verify`; its Plugin shade output targets the main workspace distribution path.
 
 ## Editing Guardrails
 
@@ -86,5 +93,6 @@ Write the result in Japanese.
 ## 検証
 - 変更箇所の再確認: 実施
 - docs_structure_audit.py: 実行 / 未実行（理由: ...）
+- validate_test_traceability.py: 実行 / 未実行（理由: Plugin設計書以外）
 - ソースコード参照: していません
 ```

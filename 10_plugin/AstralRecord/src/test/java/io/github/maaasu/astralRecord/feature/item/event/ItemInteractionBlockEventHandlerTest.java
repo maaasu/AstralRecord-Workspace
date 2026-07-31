@@ -32,6 +32,11 @@ import static org.mockito.Mockito.when;
 
 class ItemInteractionBlockEventHandlerTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-イベント.md
+     * 章・見出し: # 04_3-イベント > ## 1. クリック入力受付 > ### item入力候補解決
+     * 検証契約: 右click vanilla guard候補を新規action ringより後順位にする。
+     */
     @Test
     void rightClickVanillaGuardRunsAfterNewActionRing() {
         assertEquals(
@@ -40,6 +45,11 @@ class ItemInteractionBlockEventHandlerTest {
         );
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-イベント.md
+     * 章・見出し: # 04_3-イベント > ## 1. クリック入力受付 > ### item入力候補解決
+     * 検証契約: 左click vanilla guardをFALLBACKとしてcombat blocking順序に置く。
+     */
     @Test
     void leftClickVanillaGuardKeepsCombatBlockingOrder() {
         assertEquals(

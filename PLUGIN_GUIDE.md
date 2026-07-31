@@ -80,12 +80,34 @@
 
 ## パーティクル表示共通ルール
 
-- パーティクル表示は `io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService` を経由する。
-- feature 側で `World#spawnParticle(...)` / `Player#spawnParticle(...)` を直接呼び出さない。
-- 共通のパーティクル種別・別名・既定値は `io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions` に定義する。
+- Plugin production source のパーティクル表示は `io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService` を経由し、同 service 以外から `World#spawnParticle(...)` / `Player#spawnParticle(...)` を直接呼び出さない。
+- `Particle.valueOf(...)` による直接解決は行わず、共有 resolver を使う。
+- 固定の `Particle.*` 定数、共通の別名、既定値は `io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions` だけに定義する。
+- `SharedParticleDefinition.data` は `Particle#getDataType()` が `Void` の場合は `null`、それ以外では要求型の非 `null` instance とする。
 
 ## メッセージ管理共通ルール
 
 - プレイヤー向けメッセージ送信の正本は `io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService` とする。
 - `Player#sendMessage(...)`・`AstPlayer#sendMessage(...)` の新規利用は禁止し、既存経路を変更する場合も `PlayerMessageService` 経由へ寄せる。
 - システムメッセージは `PlayerMessageService` が付与する共通タグ付き形式を維持する。全体チャット・パーティーチャット・ダイレクトメッセージも同サービス経由で管理する。
+
+## 共通基盤の設定スナップショットと入力正規化
+
+### Filebase YAML 設定スナップショット
+
+- `YamlDbConfigUtil.loadSnapshot(rootDir)` は `<rootDir>/config.yml` を読み、共有 cache へ公開しない。
+- `YamlDbConfigUtil.withSnapshot` は準備済み `YamlDbConfig` を呼出スレッドと action の実行中だけ公開し、共有済み cache を変更しない。
+- action の正常終了・例外終了にかかわらず、実行後は直前の thread-local snapshot を復元し、直前値がない場合は thread-local を除去する。
+- `getConfig` は action 中の準備済み snapshot、共有 cache、再読込の順で解決する。
+
+### Legacy color code 正規化
+
+- filebase や設定由来の表示文字列に含まれる `&` 形式の legacy color code は `ColorCodeUtil` で `§` 形式へ変換してから表示する。
+- 入力が `null` または空白なら fallback 文字列を使用する。
+- `Component` 変換時に fallback color を指定した場合、入力側で色が指定されていない部分だけへ fallback color を適用し、明示済みの色は維持する。
+
+### Material 名解決
+
+- filebase や設定由来の Material 名は前後空白を除去し、`Locale.ROOT` で大文字へ正規化して `MaterialNameResolver` で解決する。
+- 現行 Paper 名は `Material.matchMaterial` で解決し、Minecraft 更新前の互換名 `CHAIN` は `IRON_CHAIN` として扱う。
+- 空値または未知の Material 名は推測で別 Material へ置換せず `null` を返し、呼び出し側の設計済み fallback に委ねる。

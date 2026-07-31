@@ -10,6 +10,11 @@ import static org.mockito.Mockito.mock;
 
 class GuiNavigationStateTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 4. 共通 GUI navigation session
+     * 検証契約: GUI履歴をLIFOで直前画面から順に返す。
+     */
     @Test
     void returnsToTheImmediatelyPreviousGuiInOrder() {
         GuiNavigationState state = new GuiNavigationState();
@@ -28,6 +33,11 @@ class GuiNavigationStateTest {
         assertNull(state.getPreviousGui());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 4. 共通 GUI navigation session
+     * 検証契約: 同一screen再描画はhistory追加でなくcurrent entry置換にする。
+     */
     @Test
     void replacesCurrentGuiWhenTheSameScreenIsRedrawn() {
         GuiNavigationState state = new GuiNavigationState();
@@ -43,6 +53,11 @@ class GuiNavigationStateTest {
         assertSame(menu, state.getPreviousGui());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 4. 共通 GUI navigation session
+     * 検証契約: session終了でcurrentとprevious履歴を全消去する。
+     */
     @Test
     void clearsCurrentAndPreviousGuisWhenTheSessionEnds() {
         GuiNavigationState state = new GuiNavigationState();

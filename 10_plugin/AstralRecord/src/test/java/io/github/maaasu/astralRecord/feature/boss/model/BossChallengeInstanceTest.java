@@ -18,6 +18,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BossChallengeInstanceTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/26_1-モデル定義.md
+     * 章・見出し: # 26_1-モデル定義 > ## 4. ボス挑戦インスタンス
+     * 検証契約: 受付時参加予定者を維持しつつ、入場直前の実参加者を別一覧へ確定してconfirmedを立てる。
+     */
     @Test
     void confirmsActualEntrantsSeparatelyFromExpectedMembers() {
         UUID first = UUID.randomUUID();
@@ -31,6 +36,11 @@ class BossChallengeInstanceTest {
         assertTrue(challenge.participantsConfirmed());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/26_1-モデル定義.md
+     * 章・見出し: # 26_1-モデル定義 > ## 4. ボス挑戦インスタンス
+     * 検証契約: 死亡ごとに共有回数とplayer別回数を同時加算し、immutable snapshotへ反映する。
+     */
     @Test
     void recordsSharedAndPerPlayerDeathCounts() {
         UUID first = UUID.randomUUID();

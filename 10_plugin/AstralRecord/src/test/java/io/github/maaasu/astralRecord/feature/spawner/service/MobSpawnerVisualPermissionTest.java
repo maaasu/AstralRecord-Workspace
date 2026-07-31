@@ -16,6 +16,11 @@ import static org.mockito.Mockito.when;
 
 class MobSpawnerVisualPermissionTest extends MockBukkitTestBase {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_0-概要.md
+     * 章・見出し: # 12_0-概要 > ## 3. 構成要素（実装単位）
+     * 検証契約: user.permission=99ならaccount modeに関係なくMob spawner packet visualを見せる。
+     */
     @Test
     void adminPermissionCanViewSpawnerVisualRegardlessOfAccountMode() {
         MobSpawnerService service = service();
@@ -25,6 +30,11 @@ class MobSpawnerVisualPermissionTest extends MockBukkitTestBase {
         assertTrue(service.canViewSpawnerVisual(administrator));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_0-概要.md
+     * 章・見出し: # 12_0-概要 > ## 3. 構成要素（実装単位）
+     * 検証契約: admin permissionなしplayerへMob spawner packet visualを見せない。
+     */
     @Test
     void playerWithoutAdminPermissionCannotViewSpawnerVisual() {
         MobSpawnerService service = service();

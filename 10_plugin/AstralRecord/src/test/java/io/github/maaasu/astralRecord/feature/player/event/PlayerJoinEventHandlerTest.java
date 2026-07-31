@@ -47,6 +47,11 @@ import static org.mockito.Mockito.when;
 
 class PlayerJoinEventHandlerTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
+     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤー参加イベント受付
+     * 検証契約: 旧sessionの遅延taskが再ログイン後の新sessionをload/確定しない。
+     */
     @Test
     void delayedTaskFromOldSessionCannotLoadOrFinishQuickRelogin() {
         UUID playerUuid = UUID.randomUUID();
@@ -115,6 +120,11 @@ class PlayerJoinEventHandlerTest {
         }
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
+     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤー参加イベント受付
+     * 検証契約: main thread引渡し失敗時に事前load済みjoin stateを破棄する。
+     */
     @Test
     void failedMainThreadHandoffDiscardsLoadedJoinStates() {
         UUID playerUuid = UUID.randomUUID();
@@ -198,6 +208,11 @@ class PlayerJoinEventHandlerTest {
         }
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
+     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤー参加イベント受付
+     * 検証契約: 公開後例外時に公開済みfeatureを逆順rollbackする。
+     */
     @Test
     void exceptionAfterPublishingJoinStateRollsBackEveryFeatureInReverseOrder() {
         UUID playerUuid = UUID.randomUUID();

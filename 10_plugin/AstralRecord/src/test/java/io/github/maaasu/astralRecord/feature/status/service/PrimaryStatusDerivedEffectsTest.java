@@ -13,6 +13,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class PrimaryStatusDerivedEffectsTest extends MockBukkitTestBase {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/07_1-モデル定義.md
+     * 章・見出し: # 07_1-モデル定義 > ## 4. ステータス種別 > ### 4.2 基本能力値
+     * 検証契約: INT/VIT/AGI/LUCKの最終値から表記どおり派生statusを加算する。
+     */
     @Test
     void refreshStatusAppliesPrimaryAttributesToTheirDocumentedDerivedStats() {
         PlayerMock bukkitPlayer = server().addPlayer();

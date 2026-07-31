@@ -14,6 +14,11 @@ class TemporarySkillEffectServiceTest {
 
     private static final double DELTA = 0.0001D;
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
+     * 検証契約: 異なるtemporary modifierを合成し同じeffect keyの再適用は置換する。
+     */
     @Test
     void composesDifferentEffectsAndReplacesTheSameEffect() {
         TemporarySkillEffectService service = new TemporarySkillEffectService();
@@ -28,6 +33,11 @@ class TemporarySkillEffectServiceTest {
         assertEquals(0.25D, service.knockbackMultiplier(entity), DELTA);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
+     * 検証契約: 期限切れtemporary effectを読取時に除去して倍率へ含めない。
+     */
     @Test
     void removesExpiredEffectsWhenTheyAreRead() {
         AtomicLong currentTimeMillis = new AtomicLong(1_000L);
@@ -48,6 +58,11 @@ class TemporarySkillEffectServiceTest {
         assertEquals(1.0D, service.knockbackMultiplier(entity), DELTA);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
+     * 検証契約: 1 entityのeffectだけをclearでき、全clearも他stateを残さず行える。
+     */
     @Test
     void clearsOneEntityWithoutAffectingOthersAndCanClearAll() {
         TemporarySkillEffectService service = new TemporarySkillEffectService();

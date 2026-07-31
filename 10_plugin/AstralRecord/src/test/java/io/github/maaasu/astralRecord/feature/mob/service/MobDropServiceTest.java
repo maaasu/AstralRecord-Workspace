@@ -34,6 +34,11 @@ import static org.mockito.Mockito.when;
 
 class MobDropServiceTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 4. MobDropService メソッド仕様 > ### ドロップ確定
+     * 検証契約: 直接drop/loot結果へ設定rateを保持し表示・rare判定へ渡す。
+     */
     @Test
     void rollPreservesConfiguredRateForResultPresentation() {
         MobDropConfig drops = new MobDropConfig(
@@ -51,6 +56,11 @@ class MobDropServiceTest {
         assertEquals(100.0D, result.items().getFirst().dropRate());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 4. MobDropService メソッド仕様 > ### ドロップ確定
+     * 検証契約: amountのmin~max記法を閉区間として抽選する。
+     */
     @Test
     void rollAcceptsDocumentedTildeAmountRange() {
         MobDropConfig drops = new MobDropConfig(
@@ -67,6 +77,11 @@ class MobDropServiceTest {
         assertTrue(result.items().getFirst().amount() <= 4);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 4. MobDropService メソッド仕様 > ### ドロップ確定
+     * 検証契約: load済みloot table当選結果を直接drop結果へ結合する。
+     */
     @Test
     void rollAddsLoadedLootTableRewards() {
         LootService lootService = mock(LootService.class);
@@ -91,6 +106,11 @@ class MobDropServiceTest {
         assertEquals(100.0D, result.items().getFirst().dropRate());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 4. MobDropService メソッド仕様 > ### ドロップ確定
+     * 検証契約: LUCK補正をluckAffected=trueの直接dropだけへ適用する。
+     */
     @Test
     void rollAppliesLuckOnlyToAffectedDirectDrops() {
         AstPlayer killer = mock(AstPlayer.class);
@@ -119,6 +139,11 @@ class MobDropServiceTest {
         assertEquals("affected", result.items().getFirst().itemId());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 4. MobDropService メソッド仕様 > ### ドロップ確定
+     * 検証契約: EXPをplayer/Mob絶対level差1ごと5%減、最低10%へ補正する。
+     */
     @Test
     void rollTemplateReducesExperienceByPlayerAndMobLevelDifference() {
         LocalDateTime now = LocalDateTime.now();

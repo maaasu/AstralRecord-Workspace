@@ -38,6 +38,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MobEntityControllerTest extends MockBukkitTestBase {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 2. MobEntityController メソッド仕様 > ### 実体 Mob 取得
+     * 検証契約: spawn直後の非dead ArmorStandをPaper isValid反映前でも管理対象として利用可能にする。
+     */
     @Test
     void freshArmorStandRemainsUsableBeforePaperMarksItValid() {
         ArmorStand armorStand = mock(ArmorStand.class);
@@ -49,19 +54,34 @@ class MobEntityControllerTest extends MockBukkitTestBase {
         verify(armorStand, never()).isValid();
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 2. MobEntityController メソッド仕様 > ### 実体 Mob 生成
+     * 検証契約: CHEST/TRAPPED_CHEST/ENDER_CHESTをItemDisplay描画経路の対象Materialと判定する。
+     */
     @Test
-    void chestBlockNpcMaterialsUseItemDisplay() {
+    void chestBlockNpcMaterialsSelectItemDisplayRoute() {
         assertTrue(MobEntityController.usesItemDisplayBlockMaterial(Material.CHEST));
         assertTrue(MobEntityController.usesItemDisplayBlockMaterial(Material.TRAPPED_CHEST));
         assertTrue(MobEntityController.usesItemDisplayBlockMaterial(Material.ENDER_CHEST));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 2. MobEntityController メソッド仕様 > ### 実体 Mob 生成
+     * 検証契約: BARREL/ANVIL等の通常block NPCはItemDisplayへ切り替えずBlockDisplayで描画する。
+     */
     @Test
     void regularBlockNpcMaterialsKeepBlockDisplay() {
         assertFalse(MobEntityController.usesItemDisplayBlockMaterial(Material.BARREL));
         assertFalse(MobEntityController.usesItemDisplayBlockMaterial(Material.ANVIL));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 2. MobEntityController メソッド仕様 > ### 実体 Mob 生成
+     * 検証契約: chest ItemDisplayをtransform NONE、Transformation.translation (0,+0.375,0)、scale (0.75,0.75,0.75)で描画する。
+     */
     @Test
     void chestItemDisplayUsesFullModelTransformAboveGround() {
         Transformation transformation = MobEntityController.itemDisplayTransformation();
@@ -75,6 +95,11 @@ class MobEntityControllerTest extends MockBukkitTestBase {
         assertEquals(0.75F, transformation.getScale().z);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
+     * 章・見出し: # 12_1-モデル定義 > ## 6. Mob 装備設定
+     * 検証契約: 標準Material名をmain/off hand・各armor slotへ適用する。
+     */
     @Test
     void standardMaterialsAreAppliedToConfiguredEquipmentSlots() {
         EntityEquipment equipment = mock(EntityEquipment.class);
@@ -99,6 +124,11 @@ class MobEntityControllerTest extends MockBukkitTestBase {
         verify(equipment).setBoots(argThat(item -> item.getType() == Material.IRON_BOOTS));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
+     * 章・見出し: # 12_1-モデル定義 > ## 6. Mob 装備設定
+     * 検証契約: item master参照等Materialでない値を実体装備へ反映しない。
+     */
     @Test
     void itemReferencesAreIgnoredWhenTheyAreNotMaterials() {
         EntityEquipment equipment = mock(EntityEquipment.class);
@@ -111,6 +141,11 @@ class MobEntityControllerTest extends MockBukkitTestBase {
         verify(equipment, never()).setItemInMainHand(any());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 2. MobEntityController メソッド仕様 > ### 実体 Mob 生成
+     * 検証契約: ARMOR_STAND templateをvisible/arms/baseplateあり、gravity/collisionなし、全slot操作無効の装備carrierとしてspawn/bindする。
+     */
     @Test
     void armorStandTemplateSpawnsFixedVisibleEquipmentCarrier() {
         World world = server().addSimpleWorld("training_dummy_world");

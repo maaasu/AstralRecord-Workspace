@@ -35,6 +35,11 @@ import static org.mockito.Mockito.when;
 
 class AdventureRecordServiceTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/21-adventurerecord/21_3-メソッド仕様.md
+     * 章・見出し: # 21_3-メソッド仕様 > ## 表示 entry 生成
+     * 検証契約: ENEMY一覧をaccount・category指定で一度だけ取得し、main-thread callbackへsuper modeと解決済みentryを渡す。
+     */
     @Test
     void asyncBuildFetchesRecordsOnceAndPublishesResolvedEntries() {
         UUID accountId = UUID.randomUUID();

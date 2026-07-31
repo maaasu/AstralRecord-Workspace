@@ -50,7 +50,7 @@ Choose one tier before implementation:
 - Light gate: one-file typo, comment, display metadata, or similarly non-behavioral edit. Run one independent review when collaboration tools are available, otherwise use the documented sequential fallback. If it finds an issue, fix it and run one targeted confirmation; otherwise Round 2 is not required. Record the reason for choosing this tier.
 - Review-fix entry: when the request starts from an existing canonical review record, treat that record as Round 1, run the matching fix worker, verify, and continue at Round 2. Do not create a replacement record.
 
-1. Run the worker's verification before review.
+1. Run the worker's verification before review. Independently inspect the complete task diff against `astralrecord-code/references/plugin-code.md` "Plugin Test Traceability Gate"; when any listed test source, Plugin POM, allowed design input, or test-policy path changes, run `python .codex/skills/astralrecord-plugin-test/scripts/validate_test_traceability.py` from `<task-root>` regardless of which worker ran or whether test source changed. This common gate cannot be replaced by `mvn verify`.
 2. Review Round 1:
    - use an independent reviewer when collaboration tools are available, otherwise use the documented sequential fallback;
    - review the exact task diff plus impacted call sites, tests, resources, and design contracts;

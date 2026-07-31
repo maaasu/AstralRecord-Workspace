@@ -36,6 +36,8 @@
 
 ## 4. プレイヤー一覧・詳細
 
+プロフィール詳細は一画面へ集約し、内部 world ID ではなく world 表示名、status は compact 表示値を使用する。
+
 クラス名: `PlayerListGui`、`PlayerDetailGui`
 物理名: `open`
 
@@ -43,7 +45,29 @@ online player をページ表示し、選択対象のプロフィール・ステ
 
 詳細画面は slot `4` にプロフィール、`10` から `16` にリソース、基本能力値、攻撃、防御、属性、状態異常、ユーティリティの全 status category、`30` にクラス、`32` に有効バフ、`38` にトレード、`42` に party 招待を配置する。各 status category icon は描画時点の `StatusSnapshot` に含まれる全項目を、合計値と基礎値・補正値の内訳付きで表示する。
 
-## 5. クラフトショートカット描画
+## 5. 画面固有の描画不変条件
+
+- `MenuIconFactory` は共有 icon 定義から呼出ごとに独立した `ItemStack` を生成する。通貨詳細は最大 10 件とし、超過時は ellipsis を加える。
+- equipment 画面は main hand / off hand に専用の空 marker を使い、accessory GUI slot を `AccessorySlotType` へ対応付ける。空 slot の自動選択は同じ equipment tag category 内に限定する。
+
+equipment 画面は 54 slot とし、次の配置と空 marker を正本とする。
+
+| 用途 | GUI slot | 空 marker / 将来枠 |
+|:--|:--|:--|
+| player status / pet / back | `0` / `16` / `49` | `PLAYER_HEAD` / `SADDLE` / `SPECTRAL_ARROW` |
+| main hand / off hand | `19` / `21` | `ITEM_FRAME` / `GLOW_ITEM_FRAME` |
+| head / chest / legs / feet | `11` / `20` / `29` / `38` | 対応する leather armor。空 marker の RGB は `(48,48,48)` |
+| memory 1 / 2 | `27` / `36` | `HOPPER` |
+| amulet | `23` | `CHEST_MINECART` |
+| talisman 1 / 2 | `31` / `33` | `FURNACE_MINECART` |
+| core | `32` | `HOPPER_MINECART` |
+| relic 1 / 2 | `39` / `43` | `TNT_MINECART` |
+| charm 1 / 2 / 3 | `40` / `41` / `42` | `MINECART` |
+| gauge large / medium / small | `26` / `35` / `44` | `SPAWNER` |
+
+accessory slot の逆引きは `23=AMULET`、`31=TALISMAN_1`、`33=TALISMAN_2`、`32=CORE`、`39=RELIC_1`、`43=RELIC_2`、`40..42=CHARM_1..3` とする。同一 category に複数 slot がある場合は番号の小さい空 slot から選び、同一 category に空きがなければ `-1` とする。
+
+## 6. クラフトショートカット描画
 
 クラス名: `CraftShortcutView`
 物理名: `renderCraftShortcuts`

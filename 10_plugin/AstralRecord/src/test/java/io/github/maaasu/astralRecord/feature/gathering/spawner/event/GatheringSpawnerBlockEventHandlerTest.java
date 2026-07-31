@@ -35,6 +35,11 @@ import static org.mockito.Mockito.when;
 
 class GatheringSpawnerBlockEventHandlerTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-イベント.md
+     * 章・見出し: # 12_3-イベント > ## 3. 採集スポナーの block mutation 候補
+     * 検証契約: 専用spawner item配置をCLAIM_AND_CANCELし実blockを置かずitemも消費しない。
+     */
     @Test
     void cancelsVanillaPlacementWithoutConsumingGatheringSpawnerItem() {
         GatheringSpawnerService spawnerService = mock(GatheringSpawnerService.class);

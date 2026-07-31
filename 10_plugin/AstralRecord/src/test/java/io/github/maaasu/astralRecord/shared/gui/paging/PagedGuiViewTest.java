@@ -17,6 +17,11 @@ class PagedGuiViewTest extends MockBukkitTestBase {
 
     private final PagedGuiView view = new PagedGuiView();
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 7. 共通 page GUI
+     * 検証契約: chest inventory内へ専用close buttonを描画しない。
+     */
     @Test
     void doesNotRenderCloseButtonInChestInventory() {
         Inventory hotbarManaged = Bukkit.createInventory(new HotbarManagedHolder(), PagedGuiView.SIZE);

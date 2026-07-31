@@ -52,6 +52,11 @@ import static org.mockito.Mockito.when;
 
 class QuestServicePersistenceTest extends MockBukkitTestBase {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 5. ロード・保存世代管理
+     * 検証契約: 停止時にasync executorがtaskを拒否しても最新stateを同期保存して例外を外へ出さない。
+     */
     @Test
     void stopFallsBackToSynchronousSaveWhenAsyncExecutorRejectsShutdownTask() {
         List<QuestPlayerState> savedStates = new CopyOnWriteArrayList<>();
@@ -77,6 +82,11 @@ class QuestServicePersistenceTest extends MockBukkitTestBase {
         assertTrue(savedStates.stream().anyMatch(state -> state.activeQuests().containsKey(harness.quest().id())));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_4-統合フロー.md
+     * 章・見出し: # 29_4-統合フロー > ## 5. 通常保存・ログアウト・停止
+     * 検証契約: logout保存中の即時再loginは保持中の最新snapshotを使い、古いrepository stateを再読込しない。
+     */
     @Test
     void quickRelogUsesRetainedStateWithoutReadingStaleDisk() throws Exception {
         ExecutorService persistenceExecutor = Executors.newSingleThreadExecutor();
@@ -113,6 +123,11 @@ class QuestServicePersistenceTest extends MockBukkitTestBase {
         }
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_4-統合フロー.md
+     * 章・見出し: # 29_4-統合フロー > ## 5. 通常保存・ログアウト・停止
+     * 検証契約: 停止時の最新世代保存を進行中saveのaccount別tail後へ直列化し、同時保存せず最後に最新stateを永続化する。
+     */
     @Test
     void stopChainsLatestGenerationBehindInFlightSave() throws Exception {
         ExecutorService persistenceExecutor = Executors.newSingleThreadExecutor();

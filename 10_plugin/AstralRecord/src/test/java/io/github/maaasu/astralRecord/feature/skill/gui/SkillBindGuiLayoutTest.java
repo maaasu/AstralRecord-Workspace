@@ -5,18 +5,24 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class SkillBindGuiLayoutTest {
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+     * 章・見出し: # 13_3-GUI・View > ## 1. bind main GUI
+     * 検証契約: preset 1〜3を46〜48、backを49、preset 4〜6を50〜52へ配置する。
+     */
     @Test
     void mapsSixPresetSlotsAroundBackButton() {
-        assertEquals(46, SkillBindGui.presetSlot(1));
-        assertEquals(48, SkillBindGui.presetSlot(3));
-        assertEquals(50, SkillBindGui.presetSlot(4));
-        assertEquals(52, SkillBindGui.presetSlot(6));
-        assertEquals(-1, SkillBindGui.presetSlot(7));
+        int[] presetSlots = {46, 47, 48, 50, 51, 52};
+        for (int index = 0; index < presetSlots.length; index++) {
+            int preset = index + 1;
+            int slot = presetSlots[index];
+            assertEquals(slot, SkillBindGui.presetSlot(preset));
+            assertEquals(preset, SkillBindGui.presetIndexAtSlot(slot));
+        }
 
-        assertEquals(1, SkillBindGui.presetIndexAtSlot(46));
-        assertEquals(3, SkillBindGui.presetIndexAtSlot(48));
-        assertEquals(4, SkillBindGui.presetIndexAtSlot(50));
-        assertEquals(6, SkillBindGui.presetIndexAtSlot(52));
-        assertEquals(-1, SkillBindGui.presetIndexAtSlot(SkillBindGui.BACK_SLOT));
+        assertEquals(49, SkillBindGui.BACK_SLOT);
+        assertEquals(-1, SkillBindGui.presetSlot(0));
+        assertEquals(-1, SkillBindGui.presetSlot(7));
+        assertEquals(-1, SkillBindGui.presetIndexAtSlot(49));
     }
 }

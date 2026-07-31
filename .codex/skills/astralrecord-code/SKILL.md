@@ -57,6 +57,7 @@ If target project cannot be determined, stop and ask the project-selection quest
 6. Verify:
    - Run the narrowest meaningful tests or build checks for the touched project.
    - For Plugin source/resource changes, always run `python .codex/skills/astralrecord-code/scripts/check_plugin_resources.py --repo-root <task-worktree>` before build/test handoff; resolve ID/property drift, duplicate keys, log placeholder mismatches, direct logger/message calls, and string literals passed to command message helpers. Also confirm manually that each reused ID's property text describes the actual operation.
+   - For Plugin work, inspect the complete task diff against `references/plugin-code.md` "Plugin Test Traceability Gate". If any trigger path changed, including the Plugin POM, run the traceability validator even when `src/test` is unchanged or the task is docs-only/test-policy-only. Do not use `mvn verify` for this gate.
    - If a full build is too expensive or blocked, run targeted compile/test/lint checks and report what was not run.
    - Re-read changed source and docs snippets for rule compliance before final reporting.
 

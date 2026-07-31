@@ -17,6 +17,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class LootRollServiceTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/06-loot/3-メソッド仕様/06_3-サービス.md
+     * 章・見出し: # 06_3-サービス > ## 2. LootRollService > ### ルートテーブル抽選
+     * 検証契約: 0〜100へclampした独立確率判定でmissを許し100%を必ず採用する。
+     */
     @Test
     void rollAllowsMissesAndAlwaysAcceptsHundredPercent() {
         LootModel loot = fixedLoot(
@@ -38,6 +43,11 @@ class LootRollServiceTest {
         assertEquals(100.0D, results.getFirst().getConfiguredRate());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/06-loot/3-メソッド仕様/06_3-サービス.md
+     * 章・見出し: # 06_3-サービス > ## 2. LootRollService > ### ルートテーブル抽選
+     * 検証契約: 独立成功候補をpick上限まで無作為に絞る。
+     */
     @Test
     void rollUsesPickAsMaximumAfterIndependentSuccesses() {
         LootModel loot = fixedLoot(
@@ -58,6 +68,11 @@ class LootRollServiceTest {
         assertEquals(2, new HashSet<>(results.stream().map(LootRollResult::getItemId).toList()).size());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/06-loot/3-メソッド仕様/06_3-サービス.md
+     * 章・見出し: # 06_3-サービス > ## 2. LootRollService > ### ルートテーブル抽選
+     * 検証契約: 当選結果へclamp済み設定rateを保持する。
+     */
     @Test
     void rollPreservesConfiguredDropRateForSuccessfulResult() {
         LootModel loot = fixedLoot(
@@ -74,6 +89,11 @@ class LootRollServiceTest {
         assertEquals(1.5D, results.getFirst().getConfiguredRate());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/06-loot/3-メソッド仕様/06_3-サービス.md
+     * 章・見出し: # 06_3-サービス > ## 2. LootRollService > ### ルートテーブル抽選
+     * 検証契約: roll/pick回数を閉区間から抽選し常に上限値を使わない。
+     */
     @Test
     void rollSamplesRollAndPickRangesInsteadOfUsingTheirUpperBounds() {
         LootModel loot = new LootModel(
@@ -101,6 +121,11 @@ class LootRollServiceTest {
         assertEquals(1, results.size());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/06-loot/3-メソッド仕様/06_3-サービス.md
+     * 章・見出し: # 06_3-サービス > ## 2. LootRollService > ### ルートテーブル抽選
+     * 検証契約: pickが0に解決したpoolから結果を生成しない。
+     */
     @Test
     void rollReturnsNoResultsWhenPickRangeResolvesToZero() {
         LootModel loot = new LootModel(

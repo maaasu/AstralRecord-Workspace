@@ -22,6 +22,11 @@ class SkillTreeNodeRepositoryTest {
     @TempDir
     Path filebaseRoot;
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
+     * 章・見出し: # 13_3-リポジトリ > ## 6. skill tree node 定義読込
+     * 検証契約: schema v1 JSONのskill/status typed effectを対応modelへ変換する。
+     */
     @Test
     void loadsSchemaV1TypedEffects() throws IOException {
         writeNode("1000.json", nodeJson(
@@ -53,6 +58,11 @@ class SkillTreeNodeRepositoryTest {
         assertEquals(5.0D, status.value());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
+     * 章・見出し: # 13_3-リポジトリ > ## 6. skill tree node 定義読込
+     * 検証契約: 複数file間で重複するnode IDを全体load失敗にする。
+     */
     @Test
     void rejectsDuplicateNodeIdsAcrossFiles() throws IOException {
         writeNode("first.json", nodeJson("1000", "[]"));
@@ -66,6 +76,11 @@ class SkillTreeNodeRepositoryTest {
         assertTrue(error.getMessage().contains("duplicate nodeId"));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
+     * 章・見出し: # 13_3-リポジトリ > ## 6. skill tree node 定義読込
+     * 検証契約: schema外legacy propertyと先頭0付きnode IDを拒否する。
+     */
     @Test
     void rejectsLegacyPropertiesAndLeadingZeroIds() throws IOException {
         writeNode("legacy.json", nodeJson("01000", "[]").replace(
@@ -81,6 +96,11 @@ class SkillTreeNodeRepositoryTest {
         assertTrue(error.getMessage().contains("positionId"));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
+     * 章・見出し: # 13_3-リポジトリ > ## 6. skill tree node 定義読込
+     * 検証契約: 0単独を除く先頭0付き数字node IDを拒否する。
+     */
     @Test
     void rejectsNodeIdWithLeadingZero() throws IOException {
         writeNode("invalid-id.json", nodeJson("01000", "[]"));
@@ -93,6 +113,11 @@ class SkillTreeNodeRepositoryTest {
         assertTrue(error.getMessage().contains("non-zero-leading"));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
+     * 章・見出し: # 13_3-リポジトリ > ## 6. skill tree node 定義読込
+     * 検証契約: 任意current class/player level unlock conditionをmodelへ変換する。
+     */
     @Test
     void loadsOptionalCurrentClassAndPlayerLevelCondition() throws IOException {
         writeNode("1000.json", nodeJson("1000", "[]").replace(
@@ -106,6 +131,11 @@ class SkillTreeNodeRepositoryTest {
         assertEquals(25, node.unlockCondition().playerLevel());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_1-モデル定義.md
+     * 章・見出し: # 13_1-モデル定義 > ## 10. skill tree master data > ### node definition
+     * 検証契約: 現schemaにないclass level conditionを未知propertyとして拒否する。
+     */
     @Test
     void rejectsClassLevelAsNodeUnlockCondition() throws IOException {
         writeNode("1000.json", nodeJson("1000", "[]").replace(

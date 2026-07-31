@@ -21,6 +21,11 @@ import static org.mockito.Mockito.when;
 
 class PlayerRegionServiceTest extends MockBukkitTestBase {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 3. 地域サービス > ### スポナー地域更新
+     * 検証契約: 同一region内でspawnerだけ変わる場合はtitleを再表示しない。
+     */
     @Test
     void sameRegionFromDifferentSpawnersDoesNotDisplayTitleAgain() {
         PlayerMock player = server().addPlayer();
@@ -45,6 +50,11 @@ class PlayerRegionServiceTest extends MockBukkitTestBase {
         assertEquals(List.of("風待ち草原"), displayedRegions);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 3. 地域サービス > ### ワールド変更時地域更新
+     * 検証契約: 非OVERWORLDではworld種別の既定region/level0を使いspawner regionを無視する。
+     */
     @Test
     void nonOverworldUsesWorldTypeRegionAndIgnoresSpawnerRegion() {
         PlayerMock player = server().addPlayer();
@@ -67,6 +77,11 @@ class PlayerRegionServiceTest extends MockBukkitTestBase {
         assertTrue(displayedRegions.isEmpty());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 3. 地域サービス > ### オーバーワールド地域リセット
+     * 検証契約: region spawner退出時にoverworldへ一度だけ戻して重複titleを出さない。
+     */
     @Test
     void leavingRegionalSpawnerRestoresOverworldOnlyOnce() {
         PlayerMock player = server().addPlayer();

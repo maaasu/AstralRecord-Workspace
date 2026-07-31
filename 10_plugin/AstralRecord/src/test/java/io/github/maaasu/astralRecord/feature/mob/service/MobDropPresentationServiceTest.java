@@ -23,18 +23,33 @@ import static org.mockito.Mockito.when;
 
 class MobDropPresentationServiceTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 1. MobCombatService メソッド仕様 > ### ドロップ配布対象と演出
+     * 検証契約: 通常Mobのrate=0.1%境界をrare dropに含める。
+     */
     @Test
     void enemyRareDropIncludesZeroPointOnePercentBoundary() {
         assertTrue(MobDropPresentationService.isRareDrop(MobCategory.ENEMY, 0.1D));
         assertFalse(MobDropPresentationService.isRareDrop(MobCategory.ENEMY, 0.1001D));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 1. MobCombatService メソッド仕様 > ### ドロップ配布対象と演出
+     * 検証契約: BOSSのrate=5%境界をrare dropに含める。
+     */
     @Test
     void bossRareDropIncludesFivePercentBoundary() {
         assertTrue(MobDropPresentationService.isRareDrop(MobCategory.BOSS, 5.0D));
         assertFalse(MobDropPresentationService.isRareDrop(MobCategory.BOSS, 5.0001D));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 1. MobCombatService メソッド仕様 > ### ドロップ配布対象と演出
+     * 検証契約: drop rate表示で有効小数を保持し不要な末尾0だけ除く。
+     */
     @Test
     void dropRateFormattingRemovesOnlyUnnecessaryTrailingZeros() {
         assertEquals("5", MobDropPresentationService.formatDropRate(5.0D));
@@ -43,6 +58,11 @@ class MobDropPresentationServiceTest {
         assertEquals("0.00001", MobDropPresentationService.formatDropRate(0.00001D));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 1. MobCombatService メソッド仕様 > ### ドロップ配布対象と演出
+     * 検証契約: inventoryに入らなかった数量を安全なworld dropへfallbackする。
+     */
     @Test
     void inventoryShortfallFallsBackToWorldDrop() {
         Plugin plugin = mock(Plugin.class);

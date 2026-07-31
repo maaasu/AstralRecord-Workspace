@@ -92,6 +92,22 @@ Use these rules only when the user asks to create or modify plugin design docs u
 11. Treat method docs as processing contracts, not a mandatory inventory of every physical method.
 12. Do not duplicate full logger/player message text when a properties file is the authoritative source.
 
+## Plugin Test Traceability Gate
+
+Run `python .codex/skills/astralrecord-plugin-test/scripts/validate_test_traceability.py` from the repository root whenever the task diff adds, changes, renames, or deletes any of the following paths. This gate is mandatory even when no test source changed and the diff is design-doc-only or test-policy-only.
+
+- `10_plugin/AstralRecord/src/test/**/*`
+- `10_plugin/AstralRecord/pom.xml`
+- `PLUGIN_GUIDE.md`
+- `00_docs/10_Plugin設計書/**/*.md`
+- `.codex/skills/astralrecord-plugin-test/**/*`
+- `.codex/skills/astralrecord-code/SKILL.md`
+- `.codex/skills/astralrecord-code/references/plugin-code.md`
+- `.codex/skills/astralrecord-code-version-commit-develop/SKILL.md`
+- `.codex/skills/astralrecord-docs-fix/SKILL.md`
+
+Run the gate before the final Maven test run and before review handoff. Do not leave an untraced test method, disabled or conditionally skipped test, Surefire-excluded test, Kotlin JUnit annotation alias, or ad-hoc `AdHoc*Test` / `*OneShotTest` source in the final diff. Do not substitute `mvn verify` for this command because the Plugin shade configuration writes to the main workspace distribution path.
+
 ## Custom Instruction Examples
 
 For direct requests such as `表示アイテムを apple から iron_ingot に変更`:

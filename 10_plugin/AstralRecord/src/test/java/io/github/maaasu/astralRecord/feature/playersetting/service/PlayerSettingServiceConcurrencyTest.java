@@ -31,6 +31,11 @@ import static org.mockito.Mockito.when;
 
 class PlayerSettingServiceConcurrencyTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
+     * 章・見出し: # 11_3-サービス > ## 5. 設定更新
+     * 検証契約: 同一userの異なるkey更新を直列化し双方のcache entryを失わない。
+     */
     @Test
     void concurrentDifferentKeyUpdatesAreSerializedAndPreserveBothCacheEntries() throws Exception {
         UUID userId = UUID.randomUUID();
@@ -110,6 +115,11 @@ class PlayerSettingServiceConcurrencyTest {
         }
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
+     * 章・見出し: # 11_3-サービス > ## 2. session 管理と warmup
+     * 検証契約: warmup中clearでtokenが失効した場合stale snapshotをcache公開しない。
+     */
     @Test
     void clearDuringWarmupPreventsStaleSnapshotFromBeingPublished() throws Exception {
         UUID userId = UUID.randomUUID();
@@ -148,6 +158,11 @@ class PlayerSettingServiceConcurrencyTest {
         }
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
+     * 章・見出し: # 11_3-サービス > ## 5. 設定更新
+     * 検証契約: update中clearでtokenが失効した場合成功modelをstale cacheへ再公開しない。
+     */
     @Test
     void clearDuringUpdatePreventsStaleUpdatedSnapshotFromBeingPublished() throws Exception {
         UUID userId = UUID.randomUUID();

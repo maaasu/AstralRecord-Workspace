@@ -28,6 +28,11 @@ import static org.mockito.Mockito.when;
 
 class ConditionPlayerEventHandlerTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-イベント.md
+     * 章・見出し: # 27_3-イベント > ## 3. 例外ログ
+     * 検証契約: 9種類のplayer event失敗をE_5902へplayer名とevent固有operationで記録する。
+     */
     @Test
     void logsDedicatedIdAndOperationForEveryHandledEvent() {
         ConditionService conditionService = mock(ConditionService.class);

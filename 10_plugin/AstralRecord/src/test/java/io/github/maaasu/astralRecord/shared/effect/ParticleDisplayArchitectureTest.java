@@ -22,9 +22,14 @@ class ParticleDisplayArchitectureTest {
     private static final Pattern DIRECT_PARTICLE_RESOLVER = Pattern.compile("\\bParticle\\.valueOf\\s*\\(");
     private static final Pattern FIXED_PARTICLE_CONSTANT = Pattern.compile("\\bParticle\\.[A-Z][A-Z0-9_]*\\b");
 
-    /** feature 実装が共通の表示・解決・固定定義を使用していることを確認します。 */
+    /**
+     * feature 実装が共通の表示・解決・固定定義を使用していることを確認します。
+     * 設計入力: PLUGIN_GUIDE.md
+     * 章・見出し: # AstralRecord Plugin > ## パーティクル表示共通ルール
+     * 検証契約: 全production Java/Kotlin sourceで直接spawnParticle・Particle.valueOf・共有定義外の固定Particle定数が存在しない。
+     */
     @Test
-    void featureSourcesUseSharedParticleInfrastructure() throws IOException {
+    void productionSourcesUseSharedParticleInfrastructure() throws IOException {
         List<String> directSpawnOffenders = new ArrayList<>();
         List<String> directResolverOffenders = new ArrayList<>();
         List<String> fixedParticleOffenders = new ArrayList<>();

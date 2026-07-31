@@ -28,6 +28,11 @@ class BossFieldInstanceServiceTest {
     @TempDir
     Path tempDirectory;
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-サービス.md
+     * 章・見出し: # 26_3-サービス > ## 17. フィールド破棄
+     * 検証契約: 入れ子のregion/dataを含むinstance world directoryを再帰的に完全削除する。
+     */
     @Test
     void deleteDirectoryRemovesNestedWorldFilesWithoutCollectingAllPaths() throws Exception {
         Path worldDirectory = tempDirectory.resolve("boss_instance");
@@ -41,6 +46,11 @@ class BossFieldInstanceServiceTest {
         assertFalse(Files.exists(worldDirectory));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-サービス.md
+     * 章・見出し: # 26_3-サービス > ## 14. フィールド作成
+     * 検証契約: 同じchunkの複数spawn位置を一件へ重複排除し、非緊急async load後のticketを明示releaseまで保持する。
+     */
     @Test
     void prepareRequiredChunksDeduplicatesLocationsAndHoldsTicketsUntilRelease() {
         AstralRecord plugin = mock(AstralRecord.class);
@@ -81,6 +91,11 @@ class BossFieldInstanceServiceTest {
         verify(bossChunk).removePluginChunkTicket(plugin);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-サービス.md
+     * 章・見出し: # 26_3-サービス > ## 14. フィールド作成
+     * 検証契約: 全chunk Future完了まで待ち、一件失敗時は保持済みticketを解放してFutureを例外完了する。
+     */
     @Test
     void prepareRequiredChunksWaitsForEveryChunkAndPropagatesFailure() {
         AstralRecord plugin = mock(AstralRecord.class);

@@ -15,6 +15,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class BossChallengeServiceTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-サービス.md
+     * 章・見出し: # 26_3-サービス > ## 5. 参加人数補正
+     * 検証契約: 3人・HP50%/人・攻撃25%/人の補正で最大HPと現在HPを200、攻撃倍率を1.5へ設定する。
+     */
     @Test
     void participantScalingUpdatesRuntimeMaxHealthAndCurrentHealthTogether() {
         List<UUID> participants = List.of(

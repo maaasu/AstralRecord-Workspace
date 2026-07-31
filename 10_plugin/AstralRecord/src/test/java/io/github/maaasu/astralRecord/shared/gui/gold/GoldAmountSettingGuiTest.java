@@ -11,6 +11,11 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 class GoldAmountSettingGuiTest extends MockBukkitTestBase {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 6. 共通 gold 金額入力
+     * 検証契約: 桁別増減とquick adjustment controlを共通gold GUIへ描画する。
+     */
     @Test
     void rendersDigitAndQuickAdjustmentControls() {
         GoldAmountSettingGui gui = new GoldAmountSettingGui();
@@ -29,6 +34,11 @@ class GoldAmountSettingGuiTest extends MockBukkitTestBase {
         assertEquals(Material.GLOWSTONE_DUST, inventory.getItem(GoldAmountSettingGui.STEP_UP_SLOT).getType());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 6. 共通 gold 金額入力
+     * 検証契約: 1 goldおよび10進桁stepで金額を増減し0..maxへclampする。
+     */
     @Test
     void supportsOneGoldAndDecimalStepAdjustment() {
         GoldAmountSettingGui gui = new GoldAmountSettingGui();
@@ -42,6 +52,11 @@ class GoldAmountSettingGuiTest extends MockBukkitTestBase {
         assertEquals(10L, gui.shiftStep(holder, -2));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 6. 共通 gold 金額入力
+     * 検証契約: 巨大step×回数でもlong overflowせず0または上限へ安全に丸める。
+     */
     @Test
     void clampsLargeAdjustmentsWithoutLongOverflow() {
         GoldAmountSettingGui gui = new GoldAmountSettingGui();

@@ -9,6 +9,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class AstPlayerClassProgressTest extends MockBukkitTestBase {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_1-モデル定義.md
+     * 章・見出し: # 03_1-モデル定義 > ## 2. プレイヤーセッション > ### 2.2 主要状態
+     * 検証契約: クラスごとのlevel/experienceを独立保持し、転職後も各進行値を復元する。
+     */
     @Test
     void keepsLevelAndExperienceIndependentlyForEveryClass() {
         AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);

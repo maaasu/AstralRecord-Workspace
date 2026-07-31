@@ -22,6 +22,11 @@ import static org.mockito.Mockito.when;
 
 class SkillCastFeedbackTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 4. skill 発動
+     * 検証契約: 詠唱ActionBarに残り秒とlime難読化済み/gray未完了の太いprogress barを表示する。
+     */
     @Test
     void actionBarShowsRemainingTimeAndColoredObfuscatedProgress() {
         SkillCastFeedback feedback = new SkillCastFeedback();
@@ -38,6 +43,11 @@ class SkillCastFeedbackTest {
         assertTrue(legacy.contains("§7"));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 4. skill 発動
+     * 検証契約: 詠唱soundを0.5秒間隔で鳴らし進捗に応じてpitchを上げる。
+     */
     @Test
     void castSoundRunsAtHalfSecondIntervalsWithProgressPitch() {
         SkillCastFeedback feedback = new SkillCastFeedback();

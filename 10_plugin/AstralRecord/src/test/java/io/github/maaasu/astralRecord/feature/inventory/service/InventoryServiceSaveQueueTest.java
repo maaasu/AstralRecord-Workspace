@@ -19,6 +19,11 @@ import static org.mockito.Mockito.when;
 
 class InventoryServiceSaveQueueTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 12. 即時保存
+     * 検証契約: 即時保存要求をInventorySaveCoordinatorへ委譲し、そのfutureを返してInventoryPersistenceを直接呼ばない。
+     */
     @Test
     void delegatesImmediateSaveToAccountQueueWithoutCallingPersistenceDirectly() {
         UUID accountId = UUID.randomUUID();

@@ -47,6 +47,11 @@ import static org.mockito.Mockito.when;
 
 class DamageServiceMobDesignTest extends MockBukkitTestBase {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 9. result 反映（内部）
+     * 検証契約: playerからMobへのHP damageをcurrentHealthへ反映しthreatを加算してaggroへ移行する。
+     */
     @Test
     void playerDamageToMobReducesHealthAddsThreatAndSwitchesToAggro() {
         DamageHarness harness = damageHarness();
@@ -70,6 +75,11 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         verify(harness.knockbackService).apply(any(AstEntity.class), any(AstEntity.class), eq(1.0D));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
+     * 検証契約: FINAL_DAMAGE_MULTIPLIERで最終反映damageを比例scaleする。
+     */
     @Test
     void finalDamageMultiplierScalesDamageBeforeApplyingIt() {
         DamageHarness harness = damageHarness();
@@ -92,6 +102,11 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         assertEquals(1.0D, mob.currentHealth(), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
+     * 検証契約: 明示FINAL_DAMAGE_MULTIPLIER=0でHP/shield damageを発生させない。
+     */
     @Test
     void explicitZeroFinalDamageMultiplierDealsNoDamage() {
         DamageHarness harness = damageHarness();
@@ -114,6 +129,11 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         assertEquals(10.0D, mob.currentHealth(), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 9. result 反映（内部）
+     * 検証契約: LIFE_STEAL回復量をshield吸収前の計算値でなく実HP damageだけから算出する。
+     */
     @Test
     void lifeStealRecoversHpFromActualHealthDamageOnly() {
         DamageHarness harness = damageHarness();
@@ -131,6 +151,11 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         verify(harness.statusService).recoverHp(attacker, 1.5D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 9. result 反映（内部）
+     * 検証契約: playerの致死damageでMob HPを0にしdead状態へしてMob/boss death handlerへ委譲する。
+     */
     @Test
     void lethalPlayerDamageMarksMobDeadAndDelegatesDeathHandling() {
         DamageHarness harness = damageHarness();
@@ -152,6 +177,11 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         verify(harness.mobCombatService).handleDeath(mob);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 9. result 反映（内部）
+     * 検証契約: shield有効hitはshieldだけを消費してthreatを加え同hitのHP damageを0にする。
+     */
     @Test
     void shieldDamageConsumesShieldAndAddsThreatBeforeHealthDamage() {
         DamageHarness harness = damageHarness();
@@ -176,6 +206,11 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         verify(harness.knockbackService, never()).apply(any(AstEntity.class), any(AstEntity.class), eq(1.0D));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 9. result 反映（内部）
+     * 検証契約: 正の微小damageでもshieldを最低1消費しshield particleをbatch表示する。
+     */
     @Test
     void lowDamageConsumesAtLeastOneShieldAndBatchesShieldParticles() {
         DamageHarness harness = damageHarness();
@@ -203,7 +238,12 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         );
     }
 
-    /** 通常会心が共通パーティクル定義と専用サウンドを使用することを確認します。 */
+    /**
+     * 通常会心が共通パーティクル定義と専用サウンドを使用することを確認します。
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 9. result 反映（内部）
+     * 検証契約: 通常criticalでshared CRITICAL_HIT_CRIT particleと専用attack crit soundを使う。
+     */
     @Test
     void normalCriticalUsesSharedParticleAndDedicatedSound() {
         DamageHarness harness = damageHarness();
@@ -242,7 +282,12 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         );
     }
 
-    /** 超星会心が重ね合わせた共通パーティクル定義と専用サウンドを使用することを確認します。 */
+    /**
+     * 超星会心が重ね合わせた共通パーティクル定義と専用サウンドを使用することを確認します。
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 9. result 反映（内部）
+     * 検証契約: 超星criticalで2種shared particleを重ね専用twinkle soundを使う。
+     */
     @Test
     void superStarCriticalUsesLayeredSharedParticlesAndDedicatedSound() {
         DamageHarness harness = damageHarness();
@@ -285,6 +330,11 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         );
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 4. Bukkit damage 変換
+     * 検証契約: unmanaged attackerのevent damageをcancel/0化前にcaptureしFIXED applyDamageへ渡す。
+     */
     @Test
     void unmanagedAttackerUsesDamageCapturedBeforeEventCancellation() {
         DamageHarness harness = damageHarness();
@@ -315,6 +365,11 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         verify(event).setCancelled(true);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_1-モデル定義.md
+     * 章・見出し: # 14_1-モデル定義 > ## 7. unified entity
+     * 検証契約: AstEntity.mobのmaxHealthがtemplate基礎値でなくruntime level scaling後Mob値を返す。
+     */
     @Test
     void mobEntityExposesRuntimeMaxHealthAfterScaling() {
         MobInstance mob = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D);
@@ -327,6 +382,11 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         assertEquals(250.0D, entity.statValue(StatusType.MAX_HEALTH), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 7. condition damage
+     * 検証契約: poison DoTをHP1でclampし通常/超星criticalを判定しない。
+     */
     @Test
     void poisonConditionDamageNeverReducesHealthBelowOneAndCannotCrit() {
         DamageHarness harness = damageHarness();

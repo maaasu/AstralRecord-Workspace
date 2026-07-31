@@ -30,6 +30,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DamageCalculatorDesignTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
+     * 検証契約: ATTACK×(1+primary/100)+typed attackを解決し対応defenseを適用する。
+     */
     @Test
     void attackerStatusScalingUsesAttackPrimaryTypedAttackAndDefense() {
         DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
@@ -53,6 +58,11 @@ class DamageCalculatorDesignTest {
         assertFalse(result.critical());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
+     * 検証契約: attacker固有damage multiplierをdefense curve前のpreDefenseへ掛ける。
+     */
     @Test
     void attackerDamageMultiplierIsAppliedBeforeDefense() {
         DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
@@ -76,6 +86,11 @@ class DamageCalculatorDesignTest {
         assertEquals(22.1626945D, result.finalDamage(), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
+     * 検証契約: defenseが解決attackの2.5倍以上ならdamageを0にする。
+     */
     @Test
     void defenseCanReduceDamageToZero() {
         DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
@@ -96,6 +111,11 @@ class DamageCalculatorDesignTest {
         assertEquals(0.0D, result.finalDamage(), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
+     * 検証契約: 通常criticalと超星criticalへ各設定倍率を適用する。
+     */
     @Test
     void criticalAndRolledSuperCriticalMultiplyConfiguredBonusOverBaseDamage() {
         DamageCalculator calculator = new DamageCalculator(() -> 0.0D);
@@ -121,6 +141,11 @@ class DamageCalculatorDesignTest {
         assertTrue(result.superStarCritical());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
+     * 検証契約: attack=defense時のdefense倍率を0.5としskill/critical倍率にも同軽減率を適用する。
+     */
     @Test
     void equalAttackAndDefenseHalveDamageBeforeSkillAndCriticalMultipliers() {
         DamageCalculator calculator = new DamageCalculator(() -> 0.0D);
@@ -140,6 +165,11 @@ class DamageCalculatorDesignTest {
         assertTrue(result.critical());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
+     * 検証契約: 記載式のdefense curveがQ=0/1/2.5等のbalance anchor値を満たす。
+     */
     @Test
     void defenseCurveHasExpectedBalanceAnchors() {
         assertEquals(1.0D, DamageCalculator.defenseDamageMultiplier(100.0D, 0.0D), 0.0001D);
@@ -150,6 +180,11 @@ class DamageCalculatorDesignTest {
         assertEquals(0.0D, DamageCalculator.defenseDamageMultiplier(100.0D, 900.0D), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
+     * 検証契約: 超星criticalを通常criticalとは独立に抽選する。
+     */
     @Test
     void superStarCriticalRollIsIndependentFromNormalCritical() {
         DamageCalculator calculator = new DamageCalculator(() -> 0.0D);
@@ -171,6 +206,11 @@ class DamageCalculatorDesignTest {
         assertTrue(result.superStarCritical());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
+     * 検証契約: FORCE超星criticalでも通常criticalを再抽選し未設定超星倍率30%を使う。
+     */
     @Test
     void forcedSuperStarCriticalRecalculatesNormalCriticalAndUsesDefaultMultiplier() {
         DamageCalculator calculator = new DamageCalculator(() -> 0.0D);
@@ -193,6 +233,11 @@ class DamageCalculatorDesignTest {
         assertTrue(result.superStarCritical());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
+     * 検証契約: FORCE時はbase 10へ100%を加算せずSUPER_CRITICAL_DAMAGE=30%分だけを適用し、最終damageを3.0とする。
+     */
     @Test
     void forcedSuperStarCriticalUsesConfiguredPercentageWithoutBaseDamage() {
         DamageCalculator calculator = new DamageCalculator(() -> 0.0D);
@@ -213,6 +258,11 @@ class DamageCalculatorDesignTest {
         assertTrue(result.superStarCritical());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_1-モデル定義.md
+     * 章・見出し: # 14_1-モデル定義 > ## 4. damage context
+     * 検証契約: DISABLED時は超星会心率100%・倍率30%でもbase 10.0を変更せず、超星会心成立flagをfalseとする。
+     */
     @Test
     void disabledSuperStarCriticalDoesNotApplyOrChain() {
         DamageCalculator calculator = new DamageCalculator(() -> 0.0D);
@@ -233,6 +283,11 @@ class DamageCalculatorDesignTest {
         assertFalse(result.superStarCritical());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_1-モデル定義.md
+     * 章・見出し: # 14_1-モデル定義 > ## 1. attack type
+     * 検証契約: MAGIC攻撃へMAGIC_ATTACK/INTELLIGENCE/MAGIC_DEFENSEを対応付ける。
+     */
     @Test
     void magicAttackUsesMagicDefense() {
         DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
@@ -250,6 +305,11 @@ class DamageCalculatorDesignTest {
         assertEquals(8.0D, result.breakdown().effectiveDefense(), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 3. hit chance 計算
+     * 検証契約: hit chanceをclamp(accuracy-evasion,0,100)とし外れた時evaded resultを返す。
+     */
     @Test
     void accuracyMinusEvasionCanProduceEvadedResult() {
         DamageCalculator calculator = new DamageCalculator(() -> 90.0D, () -> 100.0D);
@@ -276,6 +336,11 @@ class DamageCalculatorDesignTest {
         assertEquals(10.0D, result.evasion(), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_1-モデル定義.md
+     * 章・見出し: # 14_1-モデル定義 > ## 3. scaling
+     * 検証契約: FIXED damageではhit/evasion判定を省略する。
+     */
     @Test
     void fixedDamageDoesNotRunEvasionCheck() {
         DamageCalculator calculator = new DamageCalculator(() -> 99.0D, () -> 100.0D);
@@ -299,6 +364,11 @@ class DamageCalculatorDesignTest {
         assertEquals(100.0D, result.hitChance(), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_1-モデル定義.md
+     * 章・見出し: # 14_1-モデル定義 > ## 8. level difference（経験値のみ）
+     * 検証契約: attacker/victim level差をdamage計算へ適用しない。
+     */
     @Test
     void levelDifferenceDoesNotChangeDamage() {
         DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
@@ -327,6 +397,11 @@ class DamageCalculatorDesignTest {
         assertEquals(100.0D, highResult.finalDamage(), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
+     * 検証契約: SKILLとNORMAL_ATTACKのdamage increaseをsource別にだけ適用する。
+     */
     @Test
     void skillAndNormalAttackDamageIncreasesUseTheirOwnDamageSource() {
         DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
@@ -351,6 +426,11 @@ class DamageCalculatorDesignTest {
         assertEquals(150.0D, normalResult.finalDamage(), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
+     * 検証契約: general/typed defenseへ各対応penetration rateを別々に適用して合算する。
+     */
     @Test
     void defenseUsesGeneralAndTypedDefenseAfterTheirOwnPenetrationRates() {
         DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
@@ -374,6 +454,11 @@ class DamageCalculatorDesignTest {
         assertEquals(18.0D, result.breakdown().effectiveDefense(), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
+     * 検証契約: 属性increase/resistance/penetrationをpercentage pointとして式へ適用する。
+     */
     @Test
     void elementDamageIncreaseResistanceAndPenetrationArePercentages() {
         DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
@@ -398,6 +483,11 @@ class DamageCalculatorDesignTest {
         assertEquals(72.0D, result.finalDamage(), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
+     * 検証契約: raw resistanceをcapで抑えた後にpenetrationを減算する。
+     */
     @Test
     void elementResistanceUsesConfiguredCapBeforePenetration() {
         DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
@@ -416,6 +506,11 @@ class DamageCalculatorDesignTest {
         assertEquals(35.0D, result.finalDamage(), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
+     * 検証契約: 負のeffective resistanceを弱点として属性damage増加へ反映する。
+     */
     @Test
     void negativeElementResistanceIncreasesDamageAsAWeakness() {
         DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
@@ -433,6 +528,11 @@ class DamageCalculatorDesignTest {
         assertEquals(125.0D, result.finalDamage(), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_1-モデル定義.md
+     * 章・見出し: # 14_1-モデル定義 > ## 2. element / component
+     * 検証契約: 現行enumにない削除済みelement入力をNONEへ正規化する。
+     */
     @Test
     void removedElementsResolveToNone() {
         assertEquals(DamageElement.NONE, DamageElement.from("POISON"));
@@ -441,6 +541,11 @@ class DamageCalculatorDesignTest {
         assertEquals(DamageElement.NONE, DamageElement.from("HOLY"));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
+     * 検証契約: component ratio totalが同じ構成は属性補正前baseline damageを等しくする。
+     */
     @Test
     void equalTotalElementRatiosHaveEqualBaselineDamage() {
         DamageCalculator calculator = new DamageCalculator(() -> 100.0D);

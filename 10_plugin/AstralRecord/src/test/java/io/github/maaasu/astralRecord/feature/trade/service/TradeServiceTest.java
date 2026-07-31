@@ -38,6 +38,11 @@ import static org.mockito.Mockito.when;
 
 class TradeServiceTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_3-メソッド仕様.md
+     * 章・見出し: # 22_3-メソッド仕様 > ## Item 提示・取り下げ
+     * 検証契約: 表示itemを正本にせず所有slotから実itemを取り出して解決した後だけescrowへ追加する。
+     */
     @Test
     void offerTakesAuthoritativeOwnedItemBeforeAddingEscrow() throws Exception {
         TestContext context = new TestContext();
@@ -62,6 +67,11 @@ class TradeServiceTest {
         verify(context.inventoryService, never()).restoreState(context.snapshot);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_3-メソッド仕様.md
+     * 章・見出し: # 22_3-メソッド仕様 > ## Item 提示・取り下げ
+     * 検証契約: 取り出したitemのmodelを解決できなければescrowを変更せずinventory snapshotを復元する。
+     */
     @Test
     void unresolvedTakenItemFailsClosedAndRestoresInventorySnapshot() throws Exception {
         TestContext context = new TestContext();

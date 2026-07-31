@@ -28,6 +28,11 @@ import static org.mockito.Mockito.when;
 
 class OverworldTeleportServiceDesignTest extends MockBukkitTestBase {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_1-モデル定義.md
+     * 章・見出し: # 17_1-モデル定義 > ## 補助モデル > ### OverworldTeleportGuiSetting
+     * 検証契約: OVERWORLDかつ有効slotだけを採用し、重複slotはworld ID順の先頭を残してslot順に返す。
+     */
     @Test
     void listDestinationsUsesConfiguredSlotsAndKeepsFirstWorldIdOnCollision() {
         WorldService worldService = mock(WorldService.class);
@@ -47,6 +52,11 @@ class OverworldTeleportServiceDesignTest extends MockBukkitTestBase {
         assertEquals(List.of("amber", "greenfall"), destinations.stream().map(WorldMasterData::id).toList());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
+     * 章・見出し: # 17_3-サービス > ## OVERWORLD 転送先一覧・転送
+     * 検証契約: Bukkit worldをWorldServiceの定義へ解決し、BASEだけをtrue、OVERWORLDとnullをfalseとする。
+     */
     @Test
     void isBaseWorldUsesWorldServiceMapping() {
         WorldService worldService = mock(WorldService.class);
@@ -61,6 +71,11 @@ class OverworldTeleportServiceDesignTest extends MockBukkitTestBase {
         assertFalse(service.isBaseWorld(null));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
+     * 章・見出し: # 17_3-サービス > ## OVERWORLD 転送先一覧・転送
+     * 検証契約: 未知IDまたはOVERWORLD以外を転送前に拒否し、spawn転送APIを呼ばない。
+     */
     @Test
     void teleportToDestinationRejectsMissingOrNonOverworldDestinationsBeforeTeleport() {
         WorldService worldService = mock(WorldService.class);
@@ -76,6 +91,11 @@ class OverworldTeleportServiceDesignTest extends MockBukkitTestBase {
         verify(worldService, never()).teleportToSpawnAsync(eq(player), any(WorldMasterData.class));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
+     * 章・見出し: # 17_3-サービス > ## OVERWORLD 転送先一覧・転送
+     * 検証契約: 有効なOVERWORLD定義をWorldService.teleportToSpawnAsyncへ一回委譲する。
+     */
     @Test
     void teleportToDestinationDelegatesOverworldSpawnTeleport() {
         WorldService worldService = mock(WorldService.class);

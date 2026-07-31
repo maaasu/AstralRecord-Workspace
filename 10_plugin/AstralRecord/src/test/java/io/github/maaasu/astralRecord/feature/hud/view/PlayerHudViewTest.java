@@ -20,20 +20,25 @@ import org.bukkit.scoreboard.Scoreboard;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
-import java.time.LocalDateTime;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class PlayerHudViewTest extends MockBukkitTestBase {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
+     * 章・見出し: # 10_3-View > ## 4. sidebar 描画・解除
+     * 検証契約: world/region/region levelをsidebarへ描き全体を15行以内にする。
+     */
     @Test
     void rendersWorldRegionAndRegionLevelWithinSidebarLineLimit() {
         Player player = mock(Player.class);
@@ -79,30 +84,32 @@ class PlayerHudViewTest extends MockBukkitTestBase {
         assertTrue(entries.getAllValues().stream().anyMatch(entry -> entry.contains("地域レベル") && entry.contains("Lv.") && entry.contains("42")));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
+     * 章・見出し: # 10_3-View > ## 4. sidebar 描画・解除
+     * 検証契約: 解除時にplugin専用astral_info objectiveだけをunregisterする。
+     */
     @Test
-    void clearsOnlyScoresOwnedByAstralObjective() {
+    void unregistersOnlyAstralObjectiveWhenSidebarIsRemoved() {
         Player player = mock(Player.class);
         Scoreboard scoreboard = mock(Scoreboard.class);
-        Objective objective = mock(Objective.class);
-        Score astralScore = mock(Score.class);
+        Objective astralObjective = mock(Objective.class);
+        Objective unrelatedObjective = mock(Objective.class);
         when(player.getScoreboard()).thenReturn(scoreboard);
-        when(player.getPing()).thenReturn(25);
-        when(scoreboard.getObjective("astral_info")).thenReturn(objective);
-        when(scoreboard.getEntries()).thenReturn(java.util.Set.of("shared-entry"));
-        when(objective.getScoreboard()).thenReturn(scoreboard);
-        when(objective.getScore("shared-entry")).thenReturn(astralScore);
-        when(astralScore.isScoreSet()).thenReturn(true);
-        when(objective.getScore(org.mockito.ArgumentMatchers.<String>argThat(value -> !"shared-entry".equals(value))))
-            .thenReturn(mock(Score.class));
+        when(scoreboard.getObjective("astral_info")).thenReturn(astralObjective);
+        when(scoreboard.getObjectives()).thenReturn(Set.of(astralObjective, unrelatedObjective));
 
-        new PlayerHudView().renderSidebar(
-            player, 20.0D, 1, 0.0D, 1, "冒険者", "拠点", "拠点", 0, false, null
-        );
+        new PlayerHudView().removeSidebar(player);
 
-        verify(astralScore).resetScore();
-        verify(scoreboard, never()).resetScores("shared-entry");
+        verify(astralObjective).unregister();
+        verify(unrelatedObjective, org.mockito.Mockito.never()).unregister();
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
+     * 章・見出し: # 10_3-View > ## 1. status ActionBar 描画
+     * 検証契約: HP/MP/EN/必要時shieldと装飾済みcondition最大3件を同じActionBarへ描く。
+     */
     @Test
     void rendersResourcesAndDecoratedConditionsTogetherOnActionBar() {
         Player player = mock(Player.class);
@@ -130,6 +137,11 @@ class PlayerHudViewTest extends MockBukkitTestBase {
         assertTrue(hasDecoratedText(component.getValue(), "燃焼"));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
+     * 章・見出し: # 10_3-View > ## 4. sidebar 描画・解除
+     * 検証契約: buffを取得順で最大5件表示し超過数を「ほかN件」で示して15行以内にする。
+     */
     @Test
     void rendersFirstFiveBuffsAndOverflowWithinSidebarLimit() {
         Player player = mock(Player.class);

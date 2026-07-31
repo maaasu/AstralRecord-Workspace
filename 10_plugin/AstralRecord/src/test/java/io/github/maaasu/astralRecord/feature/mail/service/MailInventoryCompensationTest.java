@@ -31,6 +31,11 @@ import static org.mockito.Mockito.mock;
 
 class MailInventoryCompensationTest extends MockBukkitTestBase {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_4-統合フロー.md
+     * 章・見出し: # 18_4-統合フロー > ## 2. 未読メールの報酬受取
+     * 検証契約: 報酬receiptのrollbackはメール付与分だけを除去し、付与後に発生した別inventory mutationを保持する。
+     */
     @Test
     void rollbackKeepsInventoryMutationAddedAfterMailGrant() {
         ItemService itemService = mock(ItemService.class);

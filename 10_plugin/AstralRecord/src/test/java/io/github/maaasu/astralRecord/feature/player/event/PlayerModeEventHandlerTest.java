@@ -33,6 +33,15 @@ import static org.mockito.Mockito.when;
 
 class PlayerModeEventHandlerTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
+     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤーモード操作制限
+     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
+     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### アカウントモード直列永続化
+     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
+     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### 永続化済みモードオンライン反映
+     * 検証契約: 管理者game mode要求を非mainで永続化し、Bukkit反映だけmain threadで行う。
+     */
     @Test
     void adminGameModeRequestPersistsOffMainThenAppliesOnMain() {
         UUID playerId = UUID.randomUUID();

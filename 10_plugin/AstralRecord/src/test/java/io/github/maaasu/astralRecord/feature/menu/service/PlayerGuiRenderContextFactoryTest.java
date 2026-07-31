@@ -23,6 +23,11 @@ import static org.mockito.Mockito.when;
 
 class PlayerGuiRenderContextFactoryTest extends MockBukkitTestBase {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 1. 描画コンテキスト生成
+     * 検証契約: player/sessionと画面固有値を描画開始時に1回だけ取得してimmutable contextへ集約する。
+     */
     @Test
     void capturesPlayerSessionAndScreenSpecificValuesOnce() {
         var player = server().addPlayer();

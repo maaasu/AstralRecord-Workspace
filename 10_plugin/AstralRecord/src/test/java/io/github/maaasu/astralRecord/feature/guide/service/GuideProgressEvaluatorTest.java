@@ -15,6 +15,11 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 class GuideProgressEvaluatorTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
+     * 検証契約: guide requires stepをmaster記載順に全件評価する。
+     */
     @Test
     void evaluate_RequiresStepsInMasterOrder() {
         GuideEntry guide = guide();
@@ -43,6 +48,11 @@ class GuideProgressEvaluatorTest {
         assertEquals("cast_skill", second.id());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
+     * 検証契約: guide stepにtargetIdがある場合だけ対象IDまで一致させる。
+     */
     @Test
     void evaluate_AppliesOptionalTargetId() {
         GuideEntry guide = new GuideEntry(

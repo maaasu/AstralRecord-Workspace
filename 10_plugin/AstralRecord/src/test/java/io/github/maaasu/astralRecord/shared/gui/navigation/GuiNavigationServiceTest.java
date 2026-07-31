@@ -26,6 +26,11 @@ class GuiNavigationServiceTest extends MockBukkitTestBase {
         AstPlayerCache.clear();
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 4. 共通 GUI navigation session
+     * 検証契約: historyなしはcloseを示し、historyありは記録した直前GUIをopenする。
+     */
     @Test
     void showsCloseWithoutHistoryAndOpensTheRecordedPreviousGui() {
         var player = server().addPlayer();
@@ -50,6 +55,11 @@ class GuiNavigationServiceTest extends MockBukkitTestBase {
         assertFalse(service.hasPrevious(player));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 4. 共通 GUI navigation session
+     * 検証契約: always-close画面はhistoryがあってもback actionを公開しない。
+     */
     @Test
     void alwaysCloseNavigationDoesNotExposeHistoryAsBackAction() {
         var player = server().addPlayer();

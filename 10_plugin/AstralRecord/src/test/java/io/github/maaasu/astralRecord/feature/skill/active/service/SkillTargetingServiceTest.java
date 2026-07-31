@@ -15,6 +15,11 @@ class SkillTargetingServiceTest {
             0.3D, 1.8D, 5.3D
     );
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
+     * 検証契約: 水平eye rayとMob実body bounding boxの交差をhitとする。
+     */
     @Test
     void horizontalEyeRayHitsTheMobsActualBodyBounds() {
         assertTrue(SkillTargetingService.intersectsLine(
@@ -26,6 +31,11 @@ class SkillTargetingServiceTest {
         ));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
+     * 検証契約: line capsule半径で拡張したbounds外のtargetをhitにしない。
+     */
     @Test
     void capsuleRadiusDoesNotHitTargetsOutsideItsExpandedBounds() {
         assertFalse(SkillTargetingService.intersectsLine(
@@ -37,6 +47,11 @@ class SkillTargetingServiceTest {
         ));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
+     * 検証契約: line originより後方のtargetをhitにしない。
+     */
     @Test
     void lineDoesNotHitTargetsBehindItsOrigin() {
         assertFalse(SkillTargetingService.intersectsLine(
@@ -48,6 +63,11 @@ class SkillTargetingServiceTest {
         ));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
+     * 検証契約: target center距離でなくrayがbody前面へ入る交差距離でhit順を決める。
+     */
     @Test
     void intersectionDistanceOrdersByFrontFaceInsteadOfTargetCenter() {
         BoundingBox largeFrontTarget = new BoundingBox(-1.0D, 0.0D, 2.0D, 1.0D, 3.0D, 10.0D);

@@ -17,6 +17,11 @@ import static org.mockito.Mockito.when;
 
 class GuiOpenSupportTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 5. 共通 GUI 遷移ガード
+     * 検証契約: plugin GUI遷移時は遷移元close soundだけを1回抑止する。
+     */
     @Test
     void pluginGuiTransitionSuppressesOnlyTheSourceCloseSound() {
         Player player = mock(Player.class);
@@ -36,6 +41,11 @@ class GuiOpenSupportTest {
         assertTrue(GuiCloseSoundPolicy.shouldPlayCloseSound(player, target));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 5. 共通 GUI 遷移ガード
+     * 検証契約: 遷移openが成立しない場合はclose sound抑止状態を残さない。
+     */
     @Test
     void cancelledTransitionDoesNotSuppressCloseSound() {
         Player player = mock(Player.class);

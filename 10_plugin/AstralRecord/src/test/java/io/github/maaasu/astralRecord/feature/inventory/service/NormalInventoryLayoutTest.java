@@ -18,6 +18,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class NormalInventoryLayoutTest {
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
+     * 章・見出し: # 08_1-モデル定義 > ## 3. インベントリ種別
+     * 検証契約: 3行24entryを右端control列17/26/35を避けて配置する。
+     */
     @Test
     void mapsTwentyFourVisibleItemsAroundRightControlColumn() {
         assertEquals(24, NormalInventoryLayout.VISIBLE_CAPACITY);
@@ -32,6 +37,11 @@ class NormalInventoryLayoutTest {
         assertEquals(1, NormalInventoryLayout.maxScrollRow(NormalInventoryLayout.DEFAULT_CAPACITY));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
+     * 章・見出し: # 08_1-モデル定義 > ## 3. インベントリ種別
+     * 検証契約: BAG scrollを1行8entry単位で移動する。
+     */
     @Test
     void scrollsOneEightItemRowAtATime() {
         assertEquals(9, NormalInventoryLayout.toGuiSlotIndex(9, 1));
@@ -44,6 +54,11 @@ class NormalInventoryLayoutTest {
         assertEquals(268_435_456, NormalInventoryLayout.totalRows(Integer.MAX_VALUE));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
+     * 章・見出し: # 08_1-モデル定義 > ## 3. インベントリ種別
+     * 検証契約: 空slot探索をruntime実効容量内に限定する。
+     */
     @Test
     void freeSlotSearchHonorsConfiguredCapacity() {
         Set<Integer> used = new HashSet<>();
@@ -57,6 +72,11 @@ class NormalInventoryLayoutTest {
         assertFalse(NormalInventoryLayout.isManagedSlot(41, 40));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
+     * 章・見出し: # 08_1-モデル定義 > ## 3. インベントリ種別
+     * 検証契約: BAG容量をpersisted slotCapacityへfallbackしない。
+     */
     @Test
     void bagCapacityCannotFallBackToPersistedConfiguration() {
         assertThrows(IllegalArgumentException.class,
@@ -68,6 +88,11 @@ class NormalInventoryLayoutTest {
         assertEquals(24, NormalInventoryLayout.effectiveCapacity(InventoryType.EQUIP_SLOT, 24));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
+     * 章・見出し: # 08_1-モデル定義 > ## 3. インベントリ種別
+     * 検証契約: 表示行数を実効容量と最大entry indexの大きい方で求め容量外entryへscroll到達可能にする。
+     */
     @Test
     void displayCapacityKeepsOverflowEntriesReachable() {
         InventoryEntryModel overflow = entryAtSlot(40);
