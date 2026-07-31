@@ -180,6 +180,37 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
      * 章・見出し: # 14_3-サービス > ## 9. result 反映（内部）
+     * 検証契約: 死亡済みMobへの後続damageでは状態と報酬配布を再処理しない。
+     */
+    @Test
+    void damageToDeadMobDoesNotProcessDeathTwice() {
+        DamageHarness harness = damageHarness();
+        AstPlayer attacker = attacker();
+        MobInstance mob = DesignTestFixtures.mobInstance(10.0D, 0.0D, 0.0D);
+        when(harness.statusService.getStatus(attacker)).thenReturn(attacker.getStatusSnapshot());
+        when(harness.mobCombatService.handleDeath(mob)).thenReturn(List.of());
+
+        harness.service.applyDamage(
+            AstEntity.player(attacker),
+            AstEntity.mob(mob),
+            12.0D,
+            AttackType.MELEE
+        );
+        harness.service.applyDamage(
+            AstEntity.player(attacker),
+            AstEntity.mob(mob),
+            12.0D,
+            AttackType.MELEE
+        );
+
+        assertEquals(0.0D, mob.currentHealth(), 0.0001D);
+        assertEquals(MobState.DEAD, mob.state());
+        verify(harness.mobCombatService).handleDeath(mob);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 9. result 反映（内部）
      * 検証契約: shield有効hitはshieldだけを消費してthreatを加え同hitのHP damageを0にする。
      */
     @Test

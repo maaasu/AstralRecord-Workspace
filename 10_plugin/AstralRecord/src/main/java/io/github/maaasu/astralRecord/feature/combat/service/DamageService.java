@@ -749,6 +749,10 @@ public final class DamageService {
             @NotNull AttackType attackType,
             boolean knockback
     ) {
+        if (victim.isMob() && victim.mob() != null && victim.mob().state() == MobState.DEAD) {
+            return;
+        }
+
         if (result.shieldDamage() > 0.0D) {
             applyShieldThreat(attacker, victim, result.shieldDamage());
             playShieldEffect(victim, result.shieldBroken());
