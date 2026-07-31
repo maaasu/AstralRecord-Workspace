@@ -7,7 +7,6 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobVanillaEffectProtect
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
-import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -25,7 +24,6 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -64,10 +62,6 @@ public final class ConditionDisplayService {
         if (activeConditions.isEmpty()) {
             clearAll(target);
             return;
-        }
-
-        if (target.isPlayer() && target.player() != null) {
-            target.player().getBukkit().sendActionBar(Component.text(formatTopConditions(activeConditions)));
         }
 
         for (ActiveCondition condition : activeConditions) {
@@ -116,9 +110,6 @@ public final class ConditionDisplayService {
         removePotionVisual(target, PotionEffectType.POISON);
         removePotionVisual(target, PotionEffectType.BLINDNESS);
         clearFrozenDisplay(target.id());
-        if (target.isPlayer() && target.player() != null) {
-            target.player().getBukkit().sendActionBar(Component.empty());
-        }
     }
 
     private void applyVanillaVisual(@NotNull ActiveCondition condition) {
@@ -247,43 +238,4 @@ public final class ConditionDisplayService {
         return entity instanceof LivingEntity living ? living : null;
     }
 
-    private @NotNull String formatTopConditions(@NotNull Collection<ActiveCondition> conditions) {
-        return conditions.stream()
-                .sorted(Comparator.comparingInt(condition -> priority(condition.type())))
-                .limit(3)
-                .map(this::formatCondition)
-                .reduce((left, right) -> left + "  " + right)
-                .orElse("");
-    }
-
-    private @NotNull String formatCondition(@NotNull ActiveCondition condition) {
-        long remainingSeconds = Math.max(0L, (condition.expiresAtMs() - System.currentTimeMillis() + 999L) / 1000L);
-        return icon(condition.type()) + " " + condition.type().displayName() + " " + remainingSeconds + "s";
-    }
-
-    private @NotNull String icon(@NotNull ConditionType type) {
-        return switch (type) {
-            case BURNING -> "[火]";
-            case FROZEN -> "[氷]";
-            case CHILLED -> "[冷]";
-            case SHOCKED -> "[雷]";
-            case POISON -> "[毒]";
-            case BLINDNESS -> "[盲]";
-            case WEAKNESS -> "[衰]";
-            case HEALING_INHIBITION -> "[阻]";
-        };
-    }
-
-    private int priority(@NotNull ConditionType type) {
-        return switch (type) {
-            case FROZEN -> 0;
-            case SHOCKED -> 1;
-            case BURNING -> 2;
-            case POISON -> 3;
-            case CHILLED -> 4;
-            case BLINDNESS -> 5;
-            case WEAKNESS -> 6;
-            case HEALING_INHIBITION -> 7;
-        };
-    }
 }

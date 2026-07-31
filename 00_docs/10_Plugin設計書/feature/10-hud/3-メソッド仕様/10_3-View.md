@@ -5,7 +5,7 @@
 クラス名: `PlayerHudView`
 物理名: `renderActionBar`
 
-HP、MP、ENG の現在値 / 最大値を表示し、`MAX_SHIELD > 0` の場合だけ SH を追加する。
+HP、MP、ENG の現在値 / 最大値を表示し、`MAX_SHIELD > 0` の場合だけ SH を追加する。有効な状態異常は固定優先順位で最大3件を右側へ併記し、種別ごとの色、太字の識別記号・表示名、残り秒数で装飾する。4件目以降は `+N` で省略数を示す。
 
 ## 2. 一時 ActionBar 描画
 
@@ -31,7 +31,7 @@ HP、MP、ENG の現在値 / 最大値を表示し、`MAX_SHIELD > 0` の場合�
 クラス名: `PlayerHudView`
 物理名: `renderSidebar`, `removeSidebar`
 
-plugin 専用 objective `astral_info` を player scoreboard に作成・再描画する。performance 表示が有効な場合だけ MSPT / ping を含め、挑戦中 boss がある場合だけ boss 名、death、時間、参加者を追加する。非 gameplay mode では同 objective だけを unregister する。
+plugin 専用 objective `astral_info` を player scoreboard に作成・再描画する。performance 表示が有効な場合だけ MSPT / ping を含め、挑戦中 boss がある場合だけ boss 名、death、時間、参加者を追加する。`BUFF_SIDEBAR_DISPLAY` が有効な場合は、有効バフを獲得順に最大5件、buff / debuff の色分け、残り時間付きで追加する。超過分は最後の表示行へ「ほかN件」と付記する。全体は15行以内とし、必要時は performance 情報を省略し、boss 表示中は利用可能行数までバフ件数を縮小する。非 gameplay mode では同 objective だけを unregister する。
 
 ## 5. tab list 描画
 

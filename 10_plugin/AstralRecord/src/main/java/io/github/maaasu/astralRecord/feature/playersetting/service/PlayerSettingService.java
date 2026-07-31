@@ -221,6 +221,19 @@ public final class PlayerSettingService {
     }
 
     /**
+     * 指定プレイヤーでバフ情報のサイドバー表示が有効かを返します。
+     *
+     * @param userId 判定対象ユーザー ID
+     * @return バフ情報をサイドバーへ表示する場合は {@code true}
+     */
+    public boolean isBuffSidebarDisplayEnabled(@NotNull UUID userId) {
+        Object value = getPlayerSetting(userId, PlayerSettingKey.BUFF_SIDEBAR_DISPLAY);
+        return value instanceof Boolean enabled
+                ? enabled
+                : (Boolean) PlayerSettingKey.BUFF_SIDEBAR_DISPLAY.getDefaultValue();
+    }
+
+    /**
      * 指定プレイヤーでオートセーブメッセージが有効かを返します。
      *
      * @param userId 判定対象ユーザー ID

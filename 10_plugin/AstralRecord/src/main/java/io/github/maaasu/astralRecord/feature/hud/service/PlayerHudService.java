@@ -7,6 +7,8 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
 import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeSidebarInfo;
+import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
+import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
@@ -31,6 +33,7 @@ public class PlayerHudService {
     private final PlayerClassService playerClassService;
     private final AccountService accountService;
     private final PlayerSettingService playerSettingService;
+    private final ConditionService conditionService;
     private final BossChallengeService bossChallengeService;
     private final WorldService worldService;
     private final PlayerHudView playerHudView;
@@ -46,6 +49,7 @@ public class PlayerHudService {
      * @param playerClassService  職業サービス（サイドバーの職業名・レベル表示に使用）
      * @param accountService      アカウント経験値サービス
      * @param playerSettingService プレイヤー設定サービス
+     * @param conditionService 状態異常サービス
      * @param bossChallengeService ボス挑戦サービス
      * @param worldService ワールド表示名・種別の解決サービス
      */
@@ -54,6 +58,7 @@ public class PlayerHudService {
         PlayerClassService playerClassService,
         AccountService accountService,
         PlayerSettingService playerSettingService,
+        ConditionService conditionService,
         BossChallengeService bossChallengeService,
         WorldService worldService
     ) {
@@ -61,6 +66,7 @@ public class PlayerHudService {
         this.playerClassService = playerClassService;
         this.accountService = accountService;
         this.playerSettingService = playerSettingService;
+        this.conditionService = conditionService;
         this.bossChallengeService = bossChallengeService;
         this.worldService = worldService;
         this.playerHudView = new PlayerHudView();
@@ -186,6 +192,9 @@ public class PlayerHudService {
                 boolean showPerformanceInfo = playerSettingService.isPerformanceInfoDisplayEnabled(
                     astPlayer.getUser().getUuid()
                 );
+                boolean showBuffInfo = playerSettingService.isBuffSidebarDisplayEnabled(
+                    astPlayer.getUser().getUuid()
+                );
                 BossChallengeSidebarInfo bossInfo = bossChallengeService.findSidebarInfo(player.getUniqueId());
                 WorldType worldType = worldService.resolveWorldType(player.getWorld());
                 String regionName = astPlayer.getCurrentRegion();
@@ -205,7 +214,9 @@ public class PlayerHudService {
                     regionName,
                     resolveRegionLevel(astPlayer, worldType, bossInfo),
                     showPerformanceInfo,
-                    bossInfo
+                    bossInfo,
+                    showBuffInfo,
+                    statusService.getActiveBuffs(astPlayer)
                 );
             } else {
                 cancelActionBarOverrideTask(player.getUniqueId());
@@ -310,7 +321,11 @@ public class PlayerHudService {
             player.sendActionBar(override);
             return;
         }
-        playerHudView.renderActionBar(player, snapshot);
+        playerHudView.renderActionBar(
+            player,
+            snapshot,
+            conditionService.getActiveConditions(AstEntity.player(astPlayer))
+        );
     }
 
     private @Nullable Component resolvePrimaryActionBar(@NotNull AstPlayer astPlayer) {

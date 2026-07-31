@@ -1,6 +1,9 @@
 package io.github.maaasu.astralRecord.feature.hud.view;
 
 import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeSidebarInfo;
+import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
+import io.github.maaasu.astralRecord.feature.condition.model.ActiveCondition;
+import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
@@ -15,13 +18,37 @@ import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+
 public class PlayerHudView {
     private static final String OBJECTIVE_NAME = "astral_info";
     private static final int TRANSIENT_BAR_LENGTH = 28;
     private static final int SIDEBAR_BAR_LENGTH = 40;
+    private static final int SIDEBAR_LINE_LIMIT = 15;
+    private static final int BUFF_DISPLAY_LIMIT = 5;
     private static final String SIDEBAR_BAR_CHAR = "|";
 
     public void renderActionBar(Player player, StatusSnapshot snapshot) {
+        renderActionBar(player, snapshot, List.of());
+    }
+
+    /**
+     * 通常リソースと状態異常を同じアクションバーへ描画します。
+     *
+     * @param player 対象プレイヤー
+     * @param snapshot 現在のステータス
+     * @param activeConditions 現在有効な状態異常
+     */
+    public void renderActionBar(
+        Player player,
+        StatusSnapshot snapshot,
+        Collection<ActiveCondition> activeConditions
+    ) {
         double maxHp = snapshot.getMaxValue(StatusType.MAX_HEALTH);
         double maxMp = snapshot.getMaxValue(StatusType.MAX_MANA);
         double maxEnergy = snapshot.getMaxValue(StatusType.MAX_ENERGY);
@@ -31,7 +58,8 @@ public class PlayerHudView {
             .append(statText("MP", snapshot.getCurrentMp(), maxMp, NamedTextColor.AQUA))
             .append(Component.text("  ", NamedTextColor.DARK_GRAY))
             .append(statText("ENG", snapshot.getCurrentEnergy(), maxEnergy, NamedTextColor.YELLOW))
-            .append(shieldActionText(snapshot)));
+            .append(shieldActionText(snapshot))
+            .append(conditionActionText(activeConditions)));
     }
 
     /**
@@ -90,6 +118,56 @@ public class PlayerHudView {
         boolean showPerformanceInfo,
         BossChallengeSidebarInfo bossInfo
     ) {
+        renderSidebar(
+            player,
+            mspt,
+            playerLevel,
+            experienceProgress,
+            classLevel,
+            className,
+            worldName,
+            regionName,
+            regionLevel,
+            showPerformanceInfo,
+            bossInfo,
+            false,
+            List.of()
+        );
+    }
+
+    /**
+     * サイドバーを描画し、設定が有効な場合は獲得順のバフを最大5件表示します。
+     * 表示行数が15行を超えないよう、バフを優先して性能情報の表示を調整します。
+     *
+     * @param player 対象プレイヤー
+     * @param mspt 現在のMSPT
+     * @param playerLevel アカウント単位のプレイヤーレベル
+     * @param experienceProgress 現在レベル内の経験値進捗（0.0-1.0）
+     * @param classLevel 現在のクラスレベル
+     * @param className 現在のクラス表示名
+     * @param worldName 現在のワールド表示名
+     * @param regionName 現在の地域表示名
+     * @param regionLevel 現在の地域レベル
+     * @param showPerformanceInfo MSPT・Ping を表示するか
+     * @param bossInfo 挑戦中ボス情報。挑戦していない場合は null
+     * @param showBuffInfo バフ情報を表示するか
+     * @param activeBuffs 獲得順の有効バフ一覧
+     */
+    public void renderSidebar(
+        Player player,
+        double mspt,
+        int playerLevel,
+        double experienceProgress,
+        int classLevel,
+        String className,
+        String worldName,
+        String regionName,
+        int regionLevel,
+        boolean showPerformanceInfo,
+        BossChallengeSidebarInfo bossInfo,
+        boolean showBuffInfo,
+        List<ActiveBuff> activeBuffs
+    ) {
         Scoreboard scoreboard = player.getScoreboard();
         if (scoreboard == Bukkit.getScoreboardManager().getMainScoreboard()) {
             scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
@@ -108,25 +186,35 @@ public class PlayerHudView {
 
         int ping = player.getPing();
         clearSidebar(objective);
-        objective.getScore(ColorCodeUtil.AQUA + "オンライン" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
-                + Bukkit.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers()).setScore(14);
-        if (showPerformanceInfo) {
-            objective.getScore(msptLegacyColor(mspt) + "MSPT" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + String.format("%.1f", mspt)).setScore(13);
-            objective.getScore(pingLegacyColor(ping) + "通信遅延" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + ping + "ms").setScore(12);
+        List<String> buffLines = buildBuffLines(activeBuffs, showBuffInfo, bossInfo != null);
+        int fixedLineCount = 8 + (bossInfo == null ? 0 : 5) + buffLines.size();
+        boolean renderPerformance = showPerformanceInfo && SIDEBAR_LINE_LIMIT - fixedLineCount >= 2;
+
+        List<String> lines = new ArrayList<>(SIDEBAR_LINE_LIMIT);
+        lines.add(ColorCodeUtil.AQUA + "オンライン" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
+                + Bukkit.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers());
+        if (renderPerformance) {
+            lines.add(msptLegacyColor(mspt) + "MSPT" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + String.format("%.1f", mspt));
+            lines.add(pingLegacyColor(ping) + "通信遅延" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + ping + "ms");
         }
-        objective.getScore(ColorCodeUtil.BLUE + "ワールド" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.toLegacyText(worldName, "不明")).setScore(11);
-        objective.getScore(ColorCodeUtil.GREEN + "地域" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.toLegacyText(regionName, "不明")).setScore(10);
-        objective.getScore(ColorCodeUtil.GOLD + "地域レベル" + ColorCodeUtil.GRAY + ": "
-                + "Lv." + ColorCodeUtil.YELLOW + Math.max(0, regionLevel)).setScore(9);
-        objective.getScore(buildSeparator("player")).setScore(8);
-        objective.getScore(ColorCodeUtil.GOLD + "レベル" + ColorCodeUtil.GRAY + ": " + "Lv." + ColorCodeUtil.YELLOW + playerLevel).setScore(7);
-        objective.getScore(buildExperienceBar("経験値", experienceProgress, ColorCodeUtil.GREEN)).setScore(6);
-        objective.getScore(ColorCodeUtil.DARK_AQUA + "クラス" + ColorCodeUtil.GRAY + ": " + className
-                + ColorCodeUtil.GRAY + " Lv." + ColorCodeUtil.YELLOW + classLevel).setScore(5);
+        lines.add(ColorCodeUtil.BLUE + "ワールド" + ColorCodeUtil.GRAY + ": "
+                + ColorCodeUtil.toLegacyText(worldName, "不明"));
+        lines.add(ColorCodeUtil.GREEN + "地域" + ColorCodeUtil.GRAY + ": "
+                + ColorCodeUtil.toLegacyText(regionName, "不明"));
+        lines.add(ColorCodeUtil.GOLD + "地域レベル" + ColorCodeUtil.GRAY + ": "
+                + "Lv." + ColorCodeUtil.YELLOW + Math.max(0, regionLevel));
+        lines.add(buildSeparator("player"));
+        lines.add(ColorCodeUtil.GOLD + "レベル" + ColorCodeUtil.GRAY + ": " + "Lv." + ColorCodeUtil.YELLOW + playerLevel);
+        lines.add(buildExperienceBar("経験値", experienceProgress, ColorCodeUtil.GREEN));
+        lines.add(ColorCodeUtil.DARK_AQUA + "クラス" + ColorCodeUtil.GRAY + ": " + className
+                + ColorCodeUtil.GRAY + " Lv." + ColorCodeUtil.YELLOW + classLevel);
+        lines.addAll(buffLines);
         if (bossInfo != null) {
-            renderBossInfo(objective, bossInfo);
+            appendBossInfo(lines, bossInfo);
+        }
+
+        for (int index = 0; index < Math.min(lines.size(), SIDEBAR_LINE_LIMIT); index++) {
+            objective.getScore(lines.get(index)).setScore(SIDEBAR_LINE_LIMIT - index);
         }
     }
 
@@ -152,16 +240,57 @@ public class PlayerHudView {
         player.sendPlayerListHeaderAndFooter(header, footer);
     }
 
-    private void renderBossInfo(Objective objective, BossChallengeSidebarInfo info) {
-        objective.getScore(buildSeparator("boss")).setScore(4);
-        objective.getScore(ColorCodeUtil.RED + "ボス" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.toLegacyText(info.bossDisplayName(), "ボス")).setScore(3);
-        objective.getScore(ColorCodeUtil.RED + "デス" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.WHITE + info.deathCount() + "/" + info.deathLimit()).setScore(2);
-        objective.getScore(ColorCodeUtil.GOLD + "時間" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.WHITE + info.elapsedSeconds() + "/" + info.timeLimitSeconds() + "s").setScore(1);
-        objective.getScore(ColorCodeUtil.LIGHT_PURPLE + "参加者" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.WHITE + String.join("、", info.participantNames())).setScore(0);
+    private void appendBossInfo(List<String> lines, BossChallengeSidebarInfo info) {
+        lines.add(buildSeparator("boss"));
+        lines.add(ColorCodeUtil.RED + "ボス" + ColorCodeUtil.GRAY + ": "
+                + ColorCodeUtil.toLegacyText(info.bossDisplayName(), "ボス"));
+        lines.add(ColorCodeUtil.RED + "デス" + ColorCodeUtil.GRAY + ": "
+                + ColorCodeUtil.WHITE + info.deathCount() + "/" + info.deathLimit());
+        lines.add(ColorCodeUtil.GOLD + "時間" + ColorCodeUtil.GRAY + ": "
+                + ColorCodeUtil.WHITE + info.elapsedSeconds() + "/" + info.timeLimitSeconds() + "s");
+        lines.add(ColorCodeUtil.LIGHT_PURPLE + "参加者" + ColorCodeUtil.GRAY + ": "
+                + ColorCodeUtil.WHITE + String.join("、", info.participantNames()));
+    }
+
+    private List<String> buildBuffLines(List<ActiveBuff> activeBuffs, boolean showBuffInfo, boolean hasBossInfo) {
+        if (!showBuffInfo || activeBuffs.isEmpty()) {
+            return List.of();
+        }
+
+        int availableEntries = Math.max(0, SIDEBAR_LINE_LIMIT - 8 - (hasBossInfo ? 5 : 0) - 1);
+        int displayCount = Math.min(Math.min(BUFF_DISPLAY_LIMIT, activeBuffs.size()), availableEntries);
+        if (displayCount == 0) {
+            return List.of();
+        }
+
+        List<String> lines = new ArrayList<>(displayCount + 1);
+        lines.add(buildSeparator("buff"));
+        LocalDateTime now = LocalDateTime.now();
+        for (int index = 0; index < displayCount; index++) {
+            ActiveBuff buff = activeBuffs.get(index);
+            int hiddenCount = index == displayCount - 1 ? activeBuffs.size() - displayCount : 0;
+            lines.add(formatBuffLine(buff, index + 1, hiddenCount, now));
+        }
+        return lines;
+    }
+
+    private String formatBuffLine(ActiveBuff buff, int position, int hiddenCount, LocalDateTime now) {
+        String color = buff.getType().isDebuff() ? ColorCodeUtil.RED : ColorCodeUtil.GREEN;
+        String displayName = ColorCodeUtil.toLegacyText(buff.getType().getDisplayName(), buff.getType().getId());
+        long remainingSeconds = Math.max(0L, Duration.between(now, buff.getExpiresAt()).toSeconds());
+        String overflow = hiddenCount > 0
+                ? ColorCodeUtil.DARK_GRAY + " …ほか" + ColorCodeUtil.WHITE + hiddenCount + ColorCodeUtil.GRAY + "件"
+                : "";
+        return ColorCodeUtil.DARK_GRAY + position + ". " + color + ColorCodeUtil.BOLD + "◆ "
+                + ColorCodeUtil.RESET + displayName + ColorCodeUtil.GRAY + " [" + ColorCodeUtil.YELLOW
+                + formatRemaining(remainingSeconds) + ColorCodeUtil.GRAY + "]" + overflow;
+    }
+
+    private String formatRemaining(long remainingSeconds) {
+        if (remainingSeconds < 60L) {
+            return remainingSeconds + "s";
+        }
+        return String.format("%d:%02d", remainingSeconds / 60L, remainingSeconds % 60L);
     }
 
     private void setHealthBar(Player player, double ratio) {
@@ -267,6 +396,76 @@ public class PlayerHudView {
         }
         return Component.text("  ", NamedTextColor.DARK_GRAY)
             .append(statText("SH", snapshot.getCurrentShield(), maxShield, NamedTextColor.BLUE));
+    }
+
+    private Component conditionActionText(Collection<ActiveCondition> activeConditions) {
+        if (activeConditions.isEmpty()) {
+            return Component.empty();
+        }
+        Component summary = Component.text("  ❖ ", NamedTextColor.DARK_GRAY);
+        List<ActiveCondition> conditions = activeConditions.stream()
+                .sorted(Comparator.comparingInt(condition -> conditionPriority(condition.type())))
+                .limit(3)
+                .toList();
+        for (int index = 0; index < conditions.size(); index++) {
+            if (index > 0) {
+                summary = summary.append(Component.text("  ", NamedTextColor.DARK_GRAY));
+            }
+            summary = summary.append(conditionText(conditions.get(index)));
+        }
+        int hiddenCount = Math.max(0, activeConditions.size() - conditions.size());
+        if (hiddenCount > 0) {
+            summary = summary.append(Component.text("  +" + hiddenCount, NamedTextColor.GRAY));
+        }
+        return summary;
+    }
+
+    private Component conditionText(ActiveCondition condition) {
+        long remainingSeconds = Math.max(0L,
+                (condition.expiresAtMs() - System.currentTimeMillis() + 999L) / 1000L);
+        NamedTextColor color = conditionColor(condition.type());
+        return Component.text(conditionIcon(condition.type()) + " ", color, TextDecoration.BOLD)
+                .append(Component.text(condition.type().displayName(), color, TextDecoration.BOLD))
+                .append(Component.text(" " + remainingSeconds + "s", NamedTextColor.GRAY));
+    }
+
+    private String conditionIcon(ConditionType type) {
+        return switch (type) {
+            case BURNING -> "[火]";
+            case FROZEN -> "[氷]";
+            case CHILLED -> "[冷]";
+            case SHOCKED -> "[雷]";
+            case POISON -> "[毒]";
+            case BLINDNESS -> "[盲]";
+            case WEAKNESS -> "[衰]";
+            case HEALING_INHIBITION -> "[阻]";
+        };
+    }
+
+    private NamedTextColor conditionColor(ConditionType type) {
+        return switch (type) {
+            case BURNING -> NamedTextColor.RED;
+            case FROZEN -> NamedTextColor.AQUA;
+            case CHILLED -> NamedTextColor.BLUE;
+            case SHOCKED -> NamedTextColor.YELLOW;
+            case POISON -> NamedTextColor.DARK_PURPLE;
+            case BLINDNESS -> NamedTextColor.DARK_GRAY;
+            case WEAKNESS -> NamedTextColor.GRAY;
+            case HEALING_INHIBITION -> NamedTextColor.LIGHT_PURPLE;
+        };
+    }
+
+    private int conditionPriority(ConditionType type) {
+        return switch (type) {
+            case FROZEN -> 0;
+            case SHOCKED -> 1;
+            case BURNING -> 2;
+            case POISON -> 3;
+            case CHILLED -> 4;
+            case BLINDNESS -> 5;
+            case WEAKNESS -> 6;
+            case HEALING_INHIBITION -> 7;
+        };
     }
 
     private void renderTransientActionBar(Player player, String label, double progressRemaining, NamedTextColor labelColor, NamedTextColor fillColor) {
