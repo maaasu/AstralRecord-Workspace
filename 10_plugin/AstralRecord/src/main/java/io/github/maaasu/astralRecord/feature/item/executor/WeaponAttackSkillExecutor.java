@@ -91,7 +91,11 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         double upwardOffset = readDoubleParam(context.skill(), "upwardOffset", 0.0D);
         Location effectLocation = eyeLocation.clone().add(direction.clone().multiply(forwardOffset)).add(0.0D, upwardOffset, 0.0D);
 
-        Particle particle = readParticle(context.skill(), "particle", Particle.CRIT);
+        Particle particle = readParticle(
+                context.skill(),
+                "particle",
+                SharedParticleDefinitions.WEAPON_ATTACK_DEFAULT.particle()
+        );
         int particleCount = readIntParam(context.skill(), "particleCount", 10);
         double spreadX = readDoubleParam(context.skill(), "spreadX", 0.15D);
         double spreadY = readDoubleParam(context.skill(), "spreadY", 0.15D);
@@ -234,7 +238,13 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         double trailSpreadY = readDoubleParam(skill, "trailSpreadY", 0.05D);
         double trailSpreadZ = readDoubleParam(skill, "trailSpreadZ", 0.05D);
         double trailExtra = readDoubleParam(skill, "trailExtra", 0.0D);
-        Particle particle = readParticle(skill, "particle", attackType == AttackType.MAGIC ? Particle.ENCHANT : Particle.CRIT);
+        Particle particle = readParticle(
+                skill,
+                "particle",
+                attackType == AttackType.MAGIC
+                        ? SharedParticleDefinitions.WEAPON_MAGIC_PROJECTILE_DEFAULT.particle()
+                        : SharedParticleDefinitions.WEAPON_ATTACK_DEFAULT.particle()
+        );
         Location currentLocation = startLocation.clone();
         Vector velocity = direction.clone().normalize().multiply(projectileSpeed);
         Entity sourceEntity = resolveBukkitEntity(attacker);

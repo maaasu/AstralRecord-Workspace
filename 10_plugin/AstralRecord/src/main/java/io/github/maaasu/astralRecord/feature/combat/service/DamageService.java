@@ -522,6 +522,7 @@ public final class DamageService {
                 ? damageOrigin(victim)
                 : null;
         DamageResult result = applyShieldDamage(attacker, victim, calculated);
+        playCriticalHitEffect(victim, result);
         boolean projectileDamage = superStarCriticalMode == SuperStarCriticalMode.FORCE;
         applyDamageResult(attacker, victim, result, attackType, !projectileDamage);
         if (!projectileDamage) {
@@ -619,6 +620,39 @@ public final class DamageService {
                 : victim.bukkitEntity();
         double height = entity == null ? 1.8D : Math.max(0.2D, entity.getHeight());
         return victim.location().clone().add(0.0D, height * 0.5D, 0.0D);
+    }
+
+    /**
+     * 成立した通常会心・超星会心のパーティクルとサウンドを被弾中心へ表示します。
+     *
+     * @param victim 被弾対象
+     * @param result shield 反映後のダメージ結果
+     */
+    private void playCriticalHitEffect(@NotNull AstEntity victim, @NotNull DamageResult result) {
+        if (result.evaded()
+                || (result.finalDamage() <= 0.0D && result.shieldDamage() <= 0.0D)
+                || (!result.critical() && !result.superStarCritical())) {
+            return;
+        }
+
+        Location center = damageOrigin(victim);
+        World world = center.getWorld();
+        if (world == null) {
+            return;
+        }
+
+        if (result.critical()) {
+            particleDisplayService.spawnForNearbyViewers(center, SharedParticleDefinitions.CRITICAL_HIT_CRIT);
+            world.playSound(center, Sound.ENTITY_PLAYER_ATTACK_CRIT, SoundCategory.PLAYERS, 0.9F, 1.0F);
+        }
+        if (result.superStarCritical()) {
+            particleDisplayService.spawnForNearbyViewers(
+                    center,
+                    SharedParticleDefinitions.SUPER_STAR_CRITICAL_BURST_END_ROD
+            );
+            particleDisplayService.spawnForNearbyViewers(center, SharedParticleDefinitions.SUPER_STAR_CRITICAL_IMPACT);
+            world.playSound(center, Sound.ENTITY_FIREWORK_ROCKET_TWINKLE, SoundCategory.PLAYERS, 1.0F, 1.2F);
+        }
     }
 
     private double temporaryDamageMultiplier(

@@ -15,7 +15,18 @@ public class BundleUseEffectService {
     public static final BundleUseSound DEFAULT_SOUND =
         new BundleUseSound("default", "block.chest.open", 0.6f, 1.28f);
     public static final BundleUseParticle DEFAULT_PARTICLE =
-        new BundleUseParticle("default", Particle.TOTEM_OF_UNDYING, 24, 0.0d, 1.0d, 0.0d, 0.4d, 0.5d, 0.4d, 0.0d);
+        new BundleUseParticle(
+            "default",
+            SharedParticleDefinitions.BUNDLE_USE_DEFAULT.particle(),
+            SharedParticleDefinitions.BUNDLE_USE_DEFAULT.count(),
+            0.0d,
+            1.0d,
+            0.0d,
+            SharedParticleDefinitions.BUNDLE_USE_DEFAULT.offsetX(),
+            SharedParticleDefinitions.BUNDLE_USE_DEFAULT.offsetY(),
+            SharedParticleDefinitions.BUNDLE_USE_DEFAULT.offsetZ(),
+            SharedParticleDefinitions.BUNDLE_USE_DEFAULT.extra()
+        );
 
     public BundleUseEffectService() {}
 

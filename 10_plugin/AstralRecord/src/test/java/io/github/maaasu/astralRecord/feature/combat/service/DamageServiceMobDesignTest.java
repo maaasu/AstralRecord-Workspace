@@ -21,6 +21,8 @@ import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -198,6 +200,88 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
             any(Location.class),
             argThat((Collection<Location> locations) -> locations.size() == 18),
             eq(SharedParticleDefinitions.SHIELD_HIT_DUST)
+        );
+    }
+
+    /** 通常会心が共通パーティクル定義と専用サウンドを使用することを確認します。 */
+    @Test
+    void normalCriticalUsesSharedParticleAndDedicatedSound() {
+        DamageHarness harness = damageHarness();
+        AstPlayer attacker = attacker();
+        attacker.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.MAX_HEALTH, 100.0D,
+            StatusType.CRITICAL_RATE, 100.0D,
+            StatusType.CRITICAL_DAMAGE, 150.0D,
+            StatusType.SUPER_CRITICAL_RATE, 0.0D,
+            StatusType.FINAL_DAMAGE_MULTIPLIER, 100.0D
+        ), 100.0D, 0.0D, 0.0D));
+        MobInstance mob = DesignTestFixtures.mobInstance(1000.0D, 0.0D, 0.0D);
+        World world = mock(World.class);
+        mob.currentLocation(new Location(world, 0.0D, 64.0D, 0.0D));
+        when(harness.statusService.getStatus(attacker)).thenReturn(attacker.getStatusSnapshot());
+
+        DamageResult result = harness.service.applyDamage(
+            AstEntity.player(attacker),
+            AstEntity.mob(mob),
+            10.0D,
+            AttackType.MELEE
+        );
+
+        assertEquals(true, result.critical());
+        assertEquals(false, result.superStarCritical());
+        verify(harness.particleDisplayService).spawnForNearbyViewers(
+            any(Location.class),
+            eq(SharedParticleDefinitions.CRITICAL_HIT_CRIT)
+        );
+        verify(world).playSound(
+            any(Location.class),
+            eq(Sound.ENTITY_PLAYER_ATTACK_CRIT),
+            eq(SoundCategory.PLAYERS),
+            eq(0.9F),
+            eq(1.0F)
+        );
+    }
+
+    /** 超星会心が重ね合わせた共通パーティクル定義と専用サウンドを使用することを確認します。 */
+    @Test
+    void superStarCriticalUsesLayeredSharedParticlesAndDedicatedSound() {
+        DamageHarness harness = damageHarness();
+        AstPlayer attacker = attacker();
+        attacker.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.MAX_HEALTH, 100.0D,
+            StatusType.CRITICAL_RATE, 0.0D,
+            StatusType.SUPER_CRITICAL_RATE, 100.0D,
+            StatusType.SUPER_CRITICAL_DAMAGE, 30.0D,
+            StatusType.FINAL_DAMAGE_MULTIPLIER, 100.0D
+        ), 100.0D, 0.0D, 0.0D));
+        MobInstance mob = DesignTestFixtures.mobInstance(1000.0D, 0.0D, 0.0D);
+        World world = mock(World.class);
+        mob.currentLocation(new Location(world, 0.0D, 64.0D, 0.0D));
+        when(harness.statusService.getStatus(attacker)).thenReturn(attacker.getStatusSnapshot());
+
+        DamageResult result = harness.service.applyDamage(
+            AstEntity.player(attacker),
+            AstEntity.mob(mob),
+            10.0D,
+            AttackType.MELEE
+        );
+
+        assertEquals(false, result.critical());
+        assertEquals(true, result.superStarCritical());
+        verify(harness.particleDisplayService).spawnForNearbyViewers(
+            any(Location.class),
+            eq(SharedParticleDefinitions.SUPER_STAR_CRITICAL_BURST_END_ROD)
+        );
+        verify(harness.particleDisplayService).spawnForNearbyViewers(
+            any(Location.class),
+            eq(SharedParticleDefinitions.SUPER_STAR_CRITICAL_IMPACT)
+        );
+        verify(world).playSound(
+            any(Location.class),
+            eq(Sound.ENTITY_FIREWORK_ROCKET_TWINKLE),
+            eq(SoundCategory.PLAYERS),
+            eq(1.0F),
+            eq(1.2F)
         );
     }
 

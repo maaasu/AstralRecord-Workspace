@@ -50,6 +50,10 @@ public final class SharedParticleDefinitions {
         );
     public static final SharedParticleDefinition DAMAGE_HIT_INDICATOR =
         new SharedParticleDefinition("damage_hit_indicator", Particle.DAMAGE_INDICATOR, 6, 0.18D, 0.25D, 0.18D, 0.0D);
+    public static final SharedParticleDefinition CRITICAL_HIT_CRIT =
+        new SharedParticleDefinition("critical_hit_crit", Particle.CRIT, 18, 0.34D, 0.38D, 0.34D, 0.16D);
+    public static final SharedParticleDefinition SUPER_STAR_CRITICAL_BURST_END_ROD =
+        new SharedParticleDefinition("super_star_critical_burst_end_rod", Particle.END_ROD, 24, 0.42D, 0.48D, 0.42D, 0.08D);
     public static final SharedParticleDefinition SUPER_STAR_CRITICAL_TRAIL_END_ROD =
         new SharedParticleDefinition("super_star_critical_trail_end_rod", Particle.END_ROD, 1, 0.03D, 0.03D, 0.03D, 0.0D);
     public static final SharedParticleDefinition SUPER_STAR_CRITICAL_TRAIL_SPARK =
@@ -73,6 +77,8 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("item_drop_land_crit", Particle.CRIT, 10, 0.18D, 0.04D, 0.18D, 0.03D);
     public static final SharedParticleDefinition ITEM_DROP_COLLECT_END_ROD =
         new SharedParticleDefinition("item_drop_collect_end_rod", Particle.END_ROD, 8, 0.16D, 0.22D, 0.16D, 0.01D);
+    public static final SharedParticleDefinition BUNDLE_USE_DEFAULT =
+        new SharedParticleDefinition("bundle_use_default", Particle.TOTEM_OF_UNDYING, 24, 0.4D, 0.5D, 0.4D, 0.0D);
     public static final SharedParticleDefinition WORLD_SPAWN_RING_END_ROD =
         new SharedParticleDefinition("world_spawn_ring_end_rod", Particle.END_ROD, 1, 0.0D, 0.0D, 0.0D, 0.0D);
     public static final SharedParticleDefinition BOSS_ENTRY_RING_DUST =
@@ -172,6 +178,10 @@ public final class SharedParticleDefinitions {
             0.0D,
             new Particle.DustOptions(Color.fromRGB(170, 70, 255), 1.2F)
         );
+    public static final SharedParticleDefinition WEAPON_ATTACK_DEFAULT =
+        new SharedParticleDefinition("weapon_attack_default", Particle.CRIT, 10, 0.15D, 0.15D, 0.15D, 0.0D);
+    public static final SharedParticleDefinition WEAPON_MAGIC_PROJECTILE_DEFAULT =
+        new SharedParticleDefinition("weapon_magic_projectile_default", Particle.ENCHANT, 10, 0.05D, 0.05D, 0.05D, 0.0D);
     public static final SharedParticleDefinition SKILL_SWORD_SWEEP =
         new SharedParticleDefinition("skill_sword_sweep", Particle.SWEEP_ATTACK, 1, 0.0D, 0.0D, 0.0D, 0.0D);
     public static final SharedParticleDefinition SKILL_SWORD_EDGE =
