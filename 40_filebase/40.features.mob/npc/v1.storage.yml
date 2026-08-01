@@ -1,4 +1,6 @@
-# NOTE: 現在実装されているマスタデータはすべてデバッグ用の仮設定です。正式なゲームバランス・報酬・入手設計として扱わないでください。
+# design:
+#   motif: "交易 / 保管庫"
+#   progression: 0
 schemaVersion: 1
 id: storage
 type: MOB

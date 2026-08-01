@@ -1,4 +1,6 @@
-# NOTE: 現在実装されているマスタデータはすべてデバッグ用の仮設定です。正式なゲームバランス・報酬・入手設計として扱わないでください。
+# design:
+#   motif: "村落 / 石造りの集会所"
+#   progression: 0
 schemaVersion: 1
 id: village_elder
 type: MOB
@@ -6,10 +8,11 @@ category: NPC
 name: "&e村長マルクス"
 title: "&7始まりの村 村長"
 level: 1
-entityType: PLAYER
-skin:
-  texture: "ewogICJ0aW1lc3RhbXAi..."
-  signature: "dGVzdFNpZ20hdHVyZQ..."
+entityType: VILLAGER
+variant:
+  profession: MASON
+  villagerType: TAIGA
+  villagerLevel: 5
 nameVisible: true
 damageImmune: true
 icon: VILLAGER_SPAWN_EGG

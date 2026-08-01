@@ -1,4 +1,6 @@
-# NOTE: 現在実装されているマスタデータはすべてデバッグ用の仮設定です。正式なゲームバランス・報酬・入手設計として扱わないでください。
+# design:
+#   motif: "鍛冶 / 砥石"
+#   progression: 0
 schemaVersion: 1
 id: equipment_repair
 type: MOB

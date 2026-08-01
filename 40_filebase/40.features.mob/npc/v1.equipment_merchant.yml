@@ -1,4 +1,6 @@
-# NOTE: 現在実装されているマスタデータはすべてデバッグ用の仮設定です。正式なゲームバランス・報酬・入手設計として扱わないでください。
+# design:
+#   motif: "鍛冶 / 防具工房"
+#   progression: 0
 schemaVersion: 1
 id: equipment_merchant
 type: MOB
@@ -6,7 +8,11 @@ category: NPC
 name: "&6防具商人ダレン"
 title: "&7防具屋"
 level: 1
-entityType: PLAYER
+entityType: VILLAGER
+variant:
+  profession: ARMORER
+  villagerType: PLAINS
+  villagerLevel: 3
 nameVisible: true
 damageImmune: true
 icon: IRON_CHESTPLATE

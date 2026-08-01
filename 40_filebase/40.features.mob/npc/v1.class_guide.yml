@@ -1,4 +1,6 @@
-# NOTE: 現在実装されているマスタデータはすべてデバッグ用の仮設定です。正式なゲームバランス・報酬・入手設計として扱わないでください。
+# design:
+#   motif: "天体 / 星図の書庫"
+#   progression: 0
 schemaVersion: 1
 id: class_guide
 type: MOB
@@ -6,7 +8,11 @@ category: NPC
 name: "&b職業案内人ミラ"
 title: "&7職業案内"
 level: 1
-entityType: PLAYER
+entityType: VILLAGER
+variant:
+  profession: LIBRARIAN
+  villagerType: PLAINS
+  villagerLevel: 3
 nameVisible: true
 damageImmune: true
 icon: BOOK

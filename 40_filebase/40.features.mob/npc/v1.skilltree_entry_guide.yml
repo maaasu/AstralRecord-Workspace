@@ -1,4 +1,6 @@
-# NOTE: 現在実装されているマスタデータはすべてデバッグ用の仮設定です。正式なゲームバランス・報酬・入手設計として扱わないでください。
+# design:
+#   motif: "天体 / 星図"
+#   progression: 0
 schemaVersion: 1
 id: skilltree_entry_guide
 type: MOB
@@ -6,7 +8,11 @@ category: NPC
 name: "&d星図案内人"
 title: "&7スキルツリー案内"
 level: 1
-entityType: PLAYER
+entityType: VILLAGER
+variant:
+  profession: CARTOGRAPHER
+  villagerType: JUNGLE
+  villagerLevel: 2
 nameVisible: true
 damageImmune: true
 icon: NETHER_STAR

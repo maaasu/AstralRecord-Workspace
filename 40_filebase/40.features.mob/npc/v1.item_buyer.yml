@@ -1,4 +1,6 @@
-# NOTE: 現在実装されているマスタデータはすべてデバッグ用の仮設定です。正式なゲームバランス・報酬・入手設計として扱わないでください。
+# design:
+#   motif: "交易 / 市場の帳簿"
+#   progression: 0
 schemaVersion: 1
 id: item_buyer
 type: MOB
@@ -6,7 +8,11 @@ category: NPC
 name: "&e買取係"
 title: "&7買取"
 level: 1
-entityType: PLAYER
+entityType: VILLAGER
+variant:
+  profession: CARTOGRAPHER
+  villagerType: SAVANNA
+  villagerLevel: 2
 nameVisible: true
 damageImmune: true
 icon: GOLD_INGOT

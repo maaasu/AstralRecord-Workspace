@@ -8,7 +8,11 @@ category: NPC
 name: "&6両替商ノア"
 title: "&7ゴールド両替所"
 level: 1
-entityType: PLAYER
+entityType: VILLAGER
+variant:
+  profession: CLERIC
+  villagerType: DESERT
+  villagerLevel: 4
 nameVisible: true
 damageImmune: true
 icon: GOLD_BLOCK

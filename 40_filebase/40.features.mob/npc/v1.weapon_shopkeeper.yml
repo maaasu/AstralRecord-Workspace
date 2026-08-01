@@ -1,4 +1,6 @@
-# NOTE: 現在実装されているマスタデータはすべてデバッグ用の仮設定です。正式なゲームバランス・報酬・入手設計として扱わないでください。
+# design:
+#   motif: "鍛冶 / 武器工房"
+#   progression: 0
 schemaVersion: 1
 id: weapon_shopkeeper
 type: MOB
@@ -6,7 +8,11 @@ category: NPC
 name: "&6武商人ルーク"
 title: "&7武器・ツールショップ"
 level: 1
-entityType: PLAYER
+entityType: VILLAGER
+variant:
+  profession: WEAPONSMITH
+  villagerType: TAIGA
+  villagerLevel: 3
 nameVisible: true
 damageImmune: true
 icon: IRON_SWORD
