@@ -410,7 +410,6 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 }
                 session.replaceSelectedPreset(saved);
                 savingSessions.remove(player.getUniqueId());
-                GuiSound.SELECT.play(player);
                 openMain(player, session, pageIndex);
             },
             () -> {
