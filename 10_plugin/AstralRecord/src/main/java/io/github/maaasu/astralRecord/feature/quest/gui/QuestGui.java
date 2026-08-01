@@ -84,16 +84,25 @@ public final class QuestGui {
         fillFrame(inventory);
         List<QuestDefinition> active = questService.activeQuests(astPlayer);
         for (int index = 0; index < Math.min(MAX_LOGICAL_SLOT + 1, active.size()); index++) {
-            int row = index / 7;
-            int column = index % 7;
-            inventory.setItem((row + 1) * 9 + column + 1, questItem(astPlayer, active.get(index), true));
+            inventory.setItem(listSlot(index), questItem(astPlayer, active.get(index), true));
         }
-        inventory.setItem(49, GuiItems.create(
-            Material.BOOK,
-            Component.text("受領枠", NamedTextColor.WHITE, TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false),
-            List.of(Component.text(active.size() + " / " + questService.maxActiveQuests(astPlayer), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false))
-        ));
+        int firstUnavailableSlot = Math.max(active.size(), questService.maxActiveQuests(astPlayer));
+        for (int index = firstUnavailableSlot; index <= MAX_LOGICAL_SLOT; index++) {
+            inventory.setItem(listSlot(index), questLimitGuideItem(astPlayer));
+        }
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
+    }
+
+    private @NotNull ItemStack questLimitGuideItem(@NotNull AstPlayer astPlayer) {
+        return GuiItems.create(
+            Material.BOOK,
+            Component.text("受領枠を増やすには", NamedTextColor.YELLOW, TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false),
+            List.of(
+                Component.text("現在の受領枠: " + questService.maxActiveQuests(astPlayer), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
+                Component.text("QUEST_LIMITを増やすと", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
+                Component.text("受領できるクエスト数が増えます", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false)
+            )
+        );
     }
 
     public boolean isBoardInventory(@Nullable Inventory inventory) {
@@ -150,7 +159,7 @@ public final class QuestGui {
         appendRewards(lore, quest.rewards());
         lore.add(Component.empty());
         if (listMode) {
-            lore.add(Component.text("クリックで破棄します", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.text("ドロップで破棄します", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
         } else {
             lore.add(Component.text(boardActionLabel(state, quest), NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
             if (state == QuestDisplayState.COOLDOWN) {
@@ -307,6 +316,10 @@ public final class QuestGui {
 
     private int toPageIndex(int page) {
         return Math.max(0, page - 1);
+    }
+
+    private int listSlot(int index) {
+        return (index / 7 + 1) * 9 + index % 7 + 1;
     }
 
     public record BoardHolder(@NotNull String boardId, @Nullable String npcId, int pageIndex) implements HotbarShortcutGuiHolder {

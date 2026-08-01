@@ -17,6 +17,7 @@ import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.jetbrains.annotations.NotNull;
@@ -125,6 +126,9 @@ public final class QuestGuiEventHandler extends AbstractEventHandler {
         if (HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
             return;
         }
+        if (!isQuestAbandonInput(event.getClick())) {
+            return;
+        }
         AstPlayer astPlayer = AstPlayerCache.get(player);
         String questId = questGui.getQuestId(event.getCurrentItem());
         if (astPlayer == null || questId == null || !questService.abandon(astPlayer, questId)) {
@@ -134,5 +138,15 @@ public final class QuestGuiEventHandler extends AbstractEventHandler {
         MenuOpenEventHandler.suppressNextCloseSound(player);
         questGui.openList(player, astPlayer);
         GuiSound.SELECT.play(player);
+    }
+
+    /**
+     * クエスト一覧でクエストを破棄するためのクリック種別かを判定します。
+     *
+     * @param click プレイヤーが一覧上で行ったクリック種別
+     * @return 通常ドロップまたはCtrl+ドロップの場合は true
+     */
+    private boolean isQuestAbandonInput(@NotNull ClickType click) {
+        return click == ClickType.DROP || click == ClickType.CONTROL_DROP;
     }
 }
