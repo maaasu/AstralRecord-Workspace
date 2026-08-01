@@ -21,6 +21,8 @@ import java.util.concurrent.Executor;
  * クエスト状態の世代管理と、アカウント単位の直列保存を担当します。
  */
 final class QuestStatePersistenceCoordinator {
+    private static final long INITIAL_RETRY_DELAY_MILLIS = 1_000L;
+    private static final long MAX_RETRY_DELAY_MILLIS = 60_000L;
     private final StateStorage storage;
     private final Executor executor;
     private final Map<UUID, AccountChannel> channels = new ConcurrentHashMap<>();
@@ -157,6 +159,22 @@ final class QuestStatePersistenceCoordinator {
         return !hasPendingSave(accountId);
     }
 
+    /**
+     * 通常保存を再試行できる最短時刻を返します。
+     *
+     * @param accountId 対象アカウント ID
+     * @return epoch milliseconds。再試行待ちがなければ {@code 0}
+     */
+    long retryNotBeforeMillis(@NotNull UUID accountId) {
+        AccountChannel channel = channels.get(accountId);
+        if (channel == null) {
+            return 0L;
+        }
+        synchronized (channel) {
+            return channel.retryNotBeforeMillis;
+        }
+    }
+
     @NotNull Set<UUID> accountIds() {
         return Set.copyOf(channels.keySet());
     }
@@ -257,6 +275,8 @@ final class QuestStatePersistenceCoordinator {
                 synchronized (channel) {
                     channel.persistedGeneration = Math.max(channel.persistedGeneration, generation);
                     channel.scheduledGeneration = Math.max(channel.scheduledGeneration, generation);
+                    channel.consecutiveSaveFailures = 0;
+                    channel.retryNotBeforeMillis = 0L;
                 }
             } catch (RuntimeException exception) {
                 logSaveFailure(accountId, exception);
@@ -295,8 +315,13 @@ final class QuestStatePersistenceCoordinator {
         synchronized (channel) {
             if (cause == null) {
                 channel.persistedGeneration = Math.max(channel.persistedGeneration, generation);
+                channel.consecutiveSaveFailures = 0;
+                channel.retryNotBeforeMillis = 0L;
             } else if (channel.scheduledGeneration == generation) {
                 channel.scheduledGeneration = channel.persistedGeneration;
+                channel.consecutiveSaveFailures++;
+                channel.retryNotBeforeMillis = System.currentTimeMillis()
+                    + retryDelayMillis(channel.consecutiveSaveFailures);
             }
         }
         if (cause != null && !shuttingDown) {
@@ -328,6 +353,11 @@ final class QuestStatePersistenceCoordinator {
         return failure.getCause() == null ? failure : failure.getCause();
     }
 
+    private long retryDelayMillis(int consecutiveFailures) {
+        int exponent = Math.min(Math.max(0, consecutiveFailures - 1), 6);
+        return Math.min(MAX_RETRY_DELAY_MILLIS, INITIAL_RETRY_DELAY_MILLIS << exponent);
+    }
+
     interface StateStorage {
         @NotNull QuestPlayerState load(@NotNull UUID accountId);
 
@@ -349,6 +379,8 @@ final class QuestStatePersistenceCoordinator {
         private long latestLoadToken;
         private QuestPlayerState latestSnapshot;
         private boolean released;
+        private int consecutiveSaveFailures;
+        private long retryNotBeforeMillis;
         private final Set<Long> pendingLoadTokens = new HashSet<>();
         private CompletableFuture<Void> tail = CompletableFuture.completedFuture(null);
     }

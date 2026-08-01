@@ -27,6 +27,7 @@ public class AccountQuestController(IAccountQuestStateRepository repository) : C
     /// <summary>指定アカウントのクエスト進行状態を置換保存します。</summary>
     [HttpPut("{accountId:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Upsert(Guid accountId, [FromBody] AccountQuestStateUpsertRequest request)
     {
@@ -37,6 +38,10 @@ public class AccountQuestController(IAccountQuestStateRepository repository) : C
         catch (KeyNotFoundException)
         {
             return NotFound();
+        }
+        catch (ArgumentException)
+        {
+            return BadRequest();
         }
     }
 }

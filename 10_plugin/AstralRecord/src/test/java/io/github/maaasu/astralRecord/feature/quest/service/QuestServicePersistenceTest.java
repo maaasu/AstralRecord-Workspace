@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
@@ -41,6 +42,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.mockito.ArgumentMatchers.any;
@@ -51,6 +53,48 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class QuestServicePersistenceTest extends MockBukkitTestBase {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 5. ロード・保存世代管理
+     * 検証契約: 通常保存の連続失敗は指数バックオフし、次回成功時に再試行待機を解除する。
+     */
+    @Test
+    void failedSavesBackOffUntilASubsequentSaveSucceeds() {
+        UUID accountId = UUID.randomUUID();
+        AtomicInteger saveAttempts = new AtomicInteger();
+        QuestStatePersistenceCoordinator coordinator = new QuestStatePersistenceCoordinator(
+            new QuestStatePersistenceCoordinator.StateStorage() {
+                @Override
+                public QuestPlayerState load(UUID ignoredAccountId) {
+                    return new QuestPlayerState(ignoredAccountId, Map.of(), Map.of(), Map.of());
+                }
+
+                @Override
+                public void save(QuestPlayerState ignoredState) {
+                    if (saveAttempts.getAndIncrement() < 2) {
+                        throw new IllegalStateException("api unavailable");
+                    }
+                }
+            },
+            Runnable::run
+        );
+        QuestPlayerState state = new QuestPlayerState(accountId, Map.of(), Map.of(), Map.of());
+
+        coordinator.recordLatest(state);
+        assertThrows(CompletionException.class, () -> coordinator.flushLatest(accountId).join());
+        long firstRetryNotBefore = coordinator.retryNotBeforeMillis(accountId);
+        assertTrue(firstRetryNotBefore >= System.currentTimeMillis() + 900L);
+
+        coordinator.recordLatest(state);
+        assertThrows(CompletionException.class, () -> coordinator.flushLatest(accountId).join());
+        long secondRetryNotBefore = coordinator.retryNotBeforeMillis(accountId);
+        assertTrue(secondRetryNotBefore >= firstRetryNotBefore + 900L);
+
+        coordinator.recordLatest(state);
+        assertDoesNotThrow(() -> coordinator.flushLatest(accountId).join());
+        assertTrue(coordinator.retryNotBeforeMillis(accountId) == 0L);
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md

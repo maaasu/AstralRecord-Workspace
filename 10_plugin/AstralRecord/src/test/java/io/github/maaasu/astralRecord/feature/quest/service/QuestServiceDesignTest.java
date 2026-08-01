@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.quest.service;
 
 import io.github.maaasu.astralRecord.feature.account.model.AccountExperienceResult;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryInstanceType;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
@@ -36,6 +37,7 @@ import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Material;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 
 import java.util.List;
 import java.util.Map;
@@ -46,14 +48,18 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -558,6 +564,268 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
      * 章・見出し: # 29_3-メソッド仕様 > ## 11. 報酬commit・補償
+     * 検証契約: あるクエストの保存失敗を補償しても、待機中に記録された別クエストの進行を巻き戻さない。
+     */
+    @Test
+    void questSaveFailurePreservesLaterProgressForAnotherQuest() {
+        QuestDefinition rewardQuest = quest(
+            "reward_failure_isolated",
+            QuestCompletionMode.NPC,
+            List.of(),
+            List.of(),
+            new QuestRewardDefinition(0, 5L, List.of())
+        );
+        QuestDefinition otherQuest = quest(
+            "later_progress",
+            QuestCompletionMode.NPC,
+            List.of(new QuestObjectiveDefinition("kill_wolf", QuestObjectiveType.KILL_MOB, "wolf", "Wolf", 1)),
+            List.of(),
+            new QuestRewardDefinition(0, 0L, List.of())
+        );
+        ManualExecutor asyncExecutor = new ManualExecutor();
+        ManualExecutor mainExecutor = new ManualExecutor();
+        QuestHarness harness = questHarness(List.of(rewardQuest, otherQuest), asyncExecutor, mainExecutor);
+        AstPlayer player = playerWithQuestLimit(2.0D);
+        QuestProgress rewardProgress = QuestProgress.start(rewardQuest, null);
+        rewardProgress.readyToTurnIn(true);
+        QuestProgress otherProgress = QuestProgress.start(otherQuest, null);
+        QuestPlayerState state = new QuestPlayerState(
+            player.getAccount().getUuid(),
+            Map.of(rewardQuest.id(), rewardProgress, otherQuest.id(), otherProgress),
+            Map.of(),
+            Map.of()
+        );
+        harness.service.applyInitialState(state);
+        InventoryService.InventoryStateSnapshot inventorySnapshot = inventorySnapshot(player);
+        when(harness.inventoryService.snapshotState(player.getAccount().getUuid())).thenReturn(inventorySnapshot);
+        when(harness.inventoryService.addGold(player, 5L)).thenReturn(true);
+        doThrow(new IllegalStateException("quest_save_failure"))
+            .doNothing()
+            .when(harness.stateRepository).save(any(QuestPlayerState.class));
+
+        assertTrue(harness.service.turnIn(player, rewardQuest, null));
+        asyncExecutor.runAll();
+        mainExecutor.runAll();
+
+        harness.service.recordMobKill(player, "wolf");
+        asyncExecutor.runAll();
+        mainExecutor.runAll();
+
+        assertTrue(state.activeQuests().containsKey(rewardQuest.id()));
+        assertFalse(state.completedAt().containsKey(rewardQuest.id()));
+        assertEquals(1, state.activeQuests().get(otherQuest.id()).progress("kill_wolf"));
+        assertTrue(state.activeQuests().get(otherQuest.id()).readyToTurnIn());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 11. 報酬commit・補償
+     * 検証契約: 同一accountの別quest報酬は先行questの保存失敗補償後に反映し、後続questのGold・item・account/class EXPと完了状態を保持する。
+     */
+    @Test
+    void failedRewardPersistenceQueuesAnotherQuestAndPreservesItsRewards() {
+        ItemModel failedRewardItem = DesignTestFixtures.item("failed_reward_item", ItemCategory.MATERIAL, 64);
+        ItemModel succeedingRewardItem = DesignTestFixtures.item("succeeding_reward_item", ItemCategory.MATERIAL, 64);
+        QuestDefinition failedQuest = quest(
+            "failed_reward_persistence",
+            QuestCompletionMode.NPC,
+            List.of(),
+            List.of(),
+            new QuestRewardDefinition(
+                10,
+                5L,
+                List.of(new QuestItemStackDefinition("failed_reward_item", "material", 1))
+            )
+        );
+        QuestDefinition succeedingQuest = quest(
+            "succeeding_reward_persistence",
+            QuestCompletionMode.NPC,
+            List.of(),
+            List.of(),
+            new QuestRewardDefinition(
+                20,
+                7L,
+                List.of(new QuestItemStackDefinition("succeeding_reward_item", "material", 2))
+            )
+        );
+        ManualExecutor asyncExecutor = new ManualExecutor();
+        ManualExecutor mainExecutor = new ManualExecutor();
+        QuestHarness harness = questHarness(List.of(failedQuest, succeedingQuest), asyncExecutor, mainExecutor);
+        AstPlayer player = playerWithQuestLimit(2.0D);
+        player.selectClass("adventurer");
+        player.setClassLevel(1);
+        player.setClassExperience(100L);
+        QuestPlayerState state = new QuestPlayerState(
+            player.getAccount().getUuid(),
+            Map.of(
+                failedQuest.id(), QuestProgress.start(failedQuest, null),
+                succeedingQuest.id(), QuestProgress.start(succeedingQuest, null)
+            ),
+            Map.of(),
+            Map.of()
+        );
+        state.activeQuests().get(failedQuest.id()).readyToTurnIn(true);
+        state.activeQuests().get(succeedingQuest.id()).readyToTurnIn(true);
+        harness.service.applyInitialState(state);
+
+        InventoryService.InventoryStateSnapshot failedInventorySnapshot = inventorySnapshot(player);
+        InventoryService.InventoryStateSnapshot succeedingInventorySnapshot = inventorySnapshot(player);
+        when(harness.inventoryService.snapshotState(player.getAccount().getUuid()))
+            .thenReturn(failedInventorySnapshot, succeedingInventorySnapshot);
+        when(harness.itemService.findLoadedById("failed_reward_item")).thenReturn(failedRewardItem);
+        when(harness.itemService.findLoadedById("succeeding_reward_item")).thenReturn(succeedingRewardItem);
+        when(harness.inventoryService.addGold(player, 5L)).thenReturn(true);
+        when(harness.inventoryService.addGold(player, 7L)).thenReturn(true);
+        when(harness.inventoryService.addItemToNormalInventory(player, failedRewardItem, 1, "quest_reward")).thenReturn(1);
+        when(harness.inventoryService.addItemToNormalInventory(player, succeedingRewardItem, 2, "quest_reward")).thenReturn(2);
+        AccountModel initialAccount = player.getAccount();
+        AccountModel failedRewardAccount = mock(AccountModel.class);
+        AccountModel succeedingRewardAccount = mock(AccountModel.class);
+        when(harness.accountService.grantExperienceCached(
+            eq(initialAccount),
+            eq(10),
+            eq(player.getUser().getUuid())
+        )).thenReturn(new AccountExperienceResult(initialAccount, failedRewardAccount, 10, 0));
+        when(harness.accountService.grantExperienceCached(
+            eq(initialAccount),
+            eq(20),
+            eq(player.getUser().getUuid())
+        )).thenReturn(new AccountExperienceResult(initialAccount, succeedingRewardAccount, 20, 0));
+        doAnswer(invocation -> {
+            int grantedExperience = invocation.getArgument(1, Integer.class);
+            player.setClassExperience(player.getClassExperience() + grantedExperience);
+            return new ClassExperienceResult(player.getClassLevel(), player.getClassLevel(), grantedExperience, 0);
+        }).when(harness.playerClassService).grantClassExperience(eq(player), anyInt());
+        doThrow(new IllegalStateException("quest_save_failure"))
+            .doNothing()
+            .doNothing()
+            .when(harness.stateRepository).save(any(QuestPlayerState.class));
+
+        assertTrue(harness.service.turnIn(player, failedQuest, null));
+        assertTrue(harness.service.turnIn(player, succeedingQuest, null));
+        asyncExecutor.runAll();
+        mainExecutor.runAll();
+
+        verify(harness.inventoryService, never()).addGold(player, 7L);
+        verify(harness.inventoryService, never()).addItemToNormalInventory(
+            player,
+            succeedingRewardItem,
+            2,
+            "quest_reward"
+        );
+
+        asyncExecutor.runAll();
+        mainExecutor.runAll();
+        asyncExecutor.runAll();
+        mainExecutor.runAll();
+        asyncExecutor.runAll();
+        mainExecutor.runAll();
+
+        assertTrue(state.activeQuests().containsKey(failedQuest.id()));
+        assertFalse(state.completedAt().containsKey(failedQuest.id()));
+        assertFalse(state.activeQuests().containsKey(succeedingQuest.id()));
+        assertTrue(state.completedAt().containsKey(succeedingQuest.id()));
+        assertSame(succeedingRewardAccount, player.getAccount());
+        assertEquals(120L, player.getClassExperience());
+
+        InOrder rewardOrder = inOrder(
+            harness.inventoryService,
+            harness.accountService,
+            harness.playerClassService
+        );
+        rewardOrder.verify(harness.inventoryService).addGold(player, 5L);
+        rewardOrder.verify(harness.inventoryService).addItemToNormalInventory(
+            player,
+            failedRewardItem,
+            1,
+            "quest_reward"
+        );
+        rewardOrder.verify(harness.accountService).grantExperienceCached(
+            initialAccount,
+            10,
+            player.getUser().getUuid()
+        );
+        rewardOrder.verify(harness.playerClassService).grantClassExperience(player, 10);
+        rewardOrder.verify(harness.inventoryService).restoreState(failedInventorySnapshot);
+        rewardOrder.verify(harness.accountService).restoreCachedProgress(
+            initialAccount,
+            player.getUser().getUuid()
+        );
+        rewardOrder.verify(harness.inventoryService).addGold(player, 7L);
+        rewardOrder.verify(harness.inventoryService).addItemToNormalInventory(
+            player,
+            succeedingRewardItem,
+            2,
+            "quest_reward"
+        );
+        rewardOrder.verify(harness.accountService).grantExperienceCached(
+            initialAccount,
+            20,
+            player.getUser().getUuid()
+        );
+        rewardOrder.verify(harness.playerClassService).grantClassExperience(player, 20);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 7. クエスト受領
+     * 検証契約: 繰り返しクエストの報酬保存が失敗して補償中でも、同一questを再受領して受領条件itemを消費できない。
+     */
+    @Test
+    void repeatableQuestCannotBeAcceptedWhileFailedRewardSaveIsBeingCompensated() {
+        QuestDefinition quest = new QuestDefinition(
+            "repeatable_reward_save_failure",
+            "repeatable_reward_save_failure",
+            List.of(),
+            Material.PAPER,
+            QuestRepeatMode.REPEATABLE,
+            0L,
+            QuestCompletionMode.NPC,
+            null,
+            List.of(),
+            List.of(new QuestRequirementDefinition(new QuestItemStackDefinition("guild_token", "material", 1), true)),
+            new QuestRewardDefinition(0, 5L, List.of())
+        );
+        ManualExecutor asyncExecutor = new ManualExecutor();
+        ManualExecutor mainExecutor = new ManualExecutor();
+        QuestHarness harness = questHarness(quest, asyncExecutor, mainExecutor);
+        AstPlayer player = playerWithQuestLimit(2.0D);
+        when(harness.statusService.getStatus(player)).thenReturn(player.getStatusSnapshot());
+        QuestPlayerState state = readyState(player, quest);
+        harness.service.applyInitialState(state);
+        InventoryService.InventoryStateSnapshot inventorySnapshot = inventorySnapshot(player);
+        when(harness.inventoryService.snapshotState(player.getAccount().getUuid())).thenReturn(inventorySnapshot);
+        when(harness.inventoryService.addGold(player, 5L)).thenReturn(true);
+        when(harness.inventoryService.getNormalItemAmount(player.getAccount().getUuid(), "guild_token")).thenReturn(1L);
+        doThrow(new IllegalStateException("quest_save_failure"))
+            .doNothing()
+            .when(harness.stateRepository).save(any(QuestPlayerState.class));
+
+        assertTrue(harness.service.turnIn(player, quest, null));
+        asyncExecutor.runAll();
+        mainExecutor.runAll();
+
+        assertTrue(harness.service.hasPendingRewardClaim(player.getAccount().getUuid(), quest.id()));
+        assertFalse(state.activeQuests().containsKey(quest.id()));
+        assertFalse(harness.service.accept(player, quest, null));
+        verify(harness.inventoryService, never()).consumeNormalItem(
+            player.getAccount().getUuid(),
+            "guild_token",
+            1
+        );
+
+        asyncExecutor.runAll();
+        mainExecutor.runAll();
+        asyncExecutor.runAll();
+        mainExecutor.runAll();
+
+        assertFalse(harness.service.hasPendingRewardClaim(player.getAccount().getUuid(), quest.id()));
+        assertTrue(state.activeQuests().containsKey(quest.id()));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 11. 報酬commit・補償
      * 検証契約: quest保存後のinventory保存失敗時に両storeを受取前へ戻して再保存し、再試行成功時だけ完了へ進める。
      */
     @Test
@@ -627,7 +895,15 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
     }
 
     private QuestHarness questHarness(QuestDefinition quest) {
-        return questHarness(quest, Runnable::run, Runnable::run);
+        return questHarness(List.of(quest), Runnable::run, Runnable::run);
+    }
+
+    private QuestHarness questHarness(
+        List<QuestDefinition> quests,
+        Executor asyncExecutor,
+        Executor mainExecutor
+    ) {
+        return questHarness(quests.getFirst(), quests, asyncExecutor, mainExecutor);
     }
 
     private InventoryService.InventoryStateSnapshot inventorySnapshot(AstPlayer player) {
@@ -655,6 +931,15 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         Executor asyncExecutor,
         Executor mainExecutor
     ) {
+        return questHarness(quest, List.of(quest), asyncExecutor, mainExecutor);
+    }
+
+    private QuestHarness questHarness(
+        QuestDefinition quest,
+        List<QuestDefinition> quests,
+        Executor asyncExecutor,
+        Executor mainExecutor
+    ) {
         QuestDefinitionRepository questRepository = mock(QuestDefinitionRepository.class);
         QuestBoardRepository boardRepository = mock(QuestBoardRepository.class);
         QuestPlayerStateRepository stateRepository = mock(QuestPlayerStateRepository.class);
@@ -679,7 +964,7 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
             asyncExecutor,
             mainExecutor
         );
-        when(questRepository.findAll()).thenReturn(List.of(quest));
+        when(questRepository.findAll()).thenReturn(quests);
         when(boardRepository.findAll()).thenReturn(List.<QuestBoardDefinition>of());
         service.loadAll();
         return new QuestHarness(

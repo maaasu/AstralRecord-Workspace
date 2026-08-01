@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.quest.model.QuestRepeatMode;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestRequirementDefinition;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestRewardDefinition;
 import io.github.maaasu.astralRecord.infrastructure.database.file.FileDatabaseManager;
+import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -145,11 +146,8 @@ public final class QuestDefinitionRepository {
         if (raw == null || raw.isBlank()) {
             return fallback;
         }
-        try {
-            return Material.valueOf(raw.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException ignored) {
-            return fallback;
-        }
+        Material material = MaterialNameResolver.match(raw);
+        return material == null ? fallback : material;
     }
 
     private @Nullable String asString(@Nullable Object raw) {

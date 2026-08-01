@@ -2,6 +2,7 @@ using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace AstralRecordApi.Repositories;
 
@@ -28,20 +29,29 @@ public class AccountQuestStateRepository(AstralRecordDbContext dbContext) : IAcc
 
     public async Task<AccountQuestStateResponse> UpsertAsync(Guid accountId, AccountQuestStateUpsertRequest request)
     {
+        ArgumentNullException.ThrowIfNull(request);
+        if (request.UpdatedBy == Guid.Empty)
+            throw new ArgumentException("UpdatedBy is required.", nameof(request));
+        ValidateRequest(request);
+
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         var accountExists = await dbContext.Accounts
             .AnyAsync(account => account.Uuid == accountId && !account.IsDeleted);
         if (!accountExists)
             throw new KeyNotFoundException($"Account not found: {accountId}");
-        if (request.UpdatedBy == Guid.Empty)
-            throw new ArgumentException("UpdatedBy is required.", nameof(request));
 
         var now = DateTime.UtcNow;
         var state = await dbContext.AccountQuestStates
+            .FromSqlInterpolated($"""
+                SELECT *
+                FROM dbo.account_quest_state WITH (UPDLOCK, HOLDLOCK)
+                WHERE account_id = {accountId} AND is_deleted = 0
+                """)
             .Include(value => value.ActiveQuests)
                 .ThenInclude(active => active.ObjectiveProgress)
             .Include(value => value.Completions)
             .Include(value => value.Cooldowns)
-            .FirstOrDefaultAsync(value => value.AccountId == accountId && !value.IsDeleted);
+            .FirstOrDefaultAsync();
 
         if (state is null)
         {
@@ -73,14 +83,16 @@ public class AccountQuestStateRepository(AstralRecordDbContext dbContext) : IAcc
             state.Cooldowns.Clear();
         }
 
-        AddActiveQuests(state, request.ActiveQuests, now, request.UpdatedBy);
-        AddCompletions(state, request.Completions, now, request.UpdatedBy);
-        AddCooldowns(state, request.Cooldowns, now, request.UpdatedBy);
+        AddActiveQuests(dbContext, state, request.ActiveQuests, now, request.UpdatedBy);
+        AddCompletions(dbContext, state, request.Completions, now, request.UpdatedBy);
+        AddCooldowns(dbContext, state, request.Cooldowns, now, request.UpdatedBy);
         await dbContext.SaveChangesAsync();
-        return await GetByAccountIdAsync(accountId);
+        await transaction.CommitAsync();
+        return Map(state);
     }
 
     private static void AddActiveQuests(
+        AstralRecordDbContext dbContext,
         AccountQuestStateEntity state,
         IReadOnlyList<AccountQuestActiveRequest> requests,
         DateTime now,
@@ -117,10 +129,12 @@ public class AccountQuestStateRepository(AstralRecordDbContext dbContext) : IAcc
                 });
             }
             state.ActiveQuests.Add(active);
+            dbContext.AccountQuestActives.Add(active);
         }
     }
 
     private static void AddCompletions(
+        AstralRecordDbContext dbContext,
         AccountQuestStateEntity state,
         IReadOnlyList<AccountQuestCompletionRequest> requests,
         DateTime now,
@@ -128,7 +142,7 @@ public class AccountQuestStateRepository(AstralRecordDbContext dbContext) : IAcc
     {
         foreach (var request in requests.Where(request => !string.IsNullOrWhiteSpace(request.QuestId)))
         {
-            state.Completions.Add(new AccountQuestCompletionEntity
+            var completion = new AccountQuestCompletionEntity
             {
                 AccountQuestCompletionId = Guid.NewGuid(),
                 AccountQuestStateId = state.AccountQuestStateId,
@@ -138,11 +152,14 @@ public class AccountQuestStateRepository(AstralRecordDbContext dbContext) : IAcc
                 UpdatedAt = now,
                 CreatedBy = updatedBy,
                 UpdatedBy = updatedBy,
-            });
+            };
+            state.Completions.Add(completion);
+            dbContext.AccountQuestCompletions.Add(completion);
         }
     }
 
     private static void AddCooldowns(
+        AstralRecordDbContext dbContext,
         AccountQuestStateEntity state,
         IReadOnlyList<AccountQuestCooldownRequest> requests,
         DateTime now,
@@ -150,7 +167,7 @@ public class AccountQuestStateRepository(AstralRecordDbContext dbContext) : IAcc
     {
         foreach (var request in requests.Where(request => !string.IsNullOrWhiteSpace(request.QuestId)))
         {
-            state.Cooldowns.Add(new AccountQuestCooldownEntity
+            var cooldown = new AccountQuestCooldownEntity
             {
                 AccountQuestCooldownId = Guid.NewGuid(),
                 AccountQuestStateId = state.AccountQuestStateId,
@@ -160,8 +177,91 @@ public class AccountQuestStateRepository(AstralRecordDbContext dbContext) : IAcc
                 UpdatedAt = now,
                 CreatedBy = updatedBy,
                 UpdatedBy = updatedBy,
-            });
+            };
+            state.Cooldowns.Add(cooldown);
+            dbContext.AccountQuestCooldowns.Add(cooldown);
         }
+    }
+
+    private static void ValidateRequest(AccountQuestStateUpsertRequest request)
+    {
+        ValidateActiveQuests(request.ActiveQuests);
+        ValidateQuestIds(request.Completions, completion => completion.QuestId, nameof(request.Completions));
+        ValidateQuestIds(request.Cooldowns, cooldown => cooldown.QuestId, nameof(request.Cooldowns));
+    }
+
+    private static void ValidateActiveQuests(IReadOnlyList<AccountQuestActiveRequest>? requests)
+    {
+        if (requests is null)
+            throw new ArgumentException("ActiveQuests is required.", nameof(requests));
+
+        var questIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var request in requests)
+        {
+            if (request is null)
+                throw new ArgumentException("ActiveQuests cannot contain null.", nameof(requests));
+
+            var questId = ValidateId(request.QuestId, "ActiveQuests.questId");
+            if (!questIds.Add(questId))
+                throw new ArgumentException("ActiveQuests contains a duplicate questId.", nameof(requests));
+
+            if (!string.IsNullOrWhiteSpace(request.AcceptedNpcId))
+                ValidateId(request.AcceptedNpcId, "ActiveQuests.acceptedNpcId");
+            ValidateObjectiveProgress(request.ObjectiveProgress, questId);
+        }
+    }
+
+    private static void ValidateObjectiveProgress(
+        IReadOnlyList<AccountQuestObjectiveProgressRequest>? requests,
+        string questId)
+    {
+        if (requests is null)
+            throw new ArgumentException("ObjectiveProgress is required.", nameof(requests));
+
+        var objectiveIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var request in requests)
+        {
+            if (request is null)
+                throw new ArgumentException("ObjectiveProgress cannot contain null.", nameof(requests));
+
+            var objectiveId = ValidateId(request.ObjectiveId, "ObjectiveProgress.objectiveId");
+            if (!objectiveIds.Add(objectiveId))
+            {
+                throw new ArgumentException(
+                    $"ObjectiveProgress contains a duplicate objectiveId for quest '{questId}'.",
+                    nameof(requests));
+            }
+        }
+    }
+
+    private static void ValidateQuestIds<T>(
+        IReadOnlyList<T>? requests,
+        Func<T, string?> questIdSelector,
+        string parameterName)
+    {
+        if (requests is null)
+            throw new ArgumentException($"{parameterName} is required.", parameterName);
+
+        var questIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var request in requests)
+        {
+            if (request is null)
+                throw new ArgumentException($"{parameterName} cannot contain null.", parameterName);
+
+            var questId = ValidateId(questIdSelector(request), parameterName + ".questId");
+            if (!questIds.Add(questId))
+                throw new ArgumentException($"{parameterName} contains a duplicate questId.", parameterName);
+        }
+    }
+
+    private static string ValidateId(string? value, string fieldName)
+    {
+        var normalized = Normalize(value);
+        if (normalized is null)
+            throw new ArgumentException($"{fieldName} is required.", fieldName);
+        if (normalized.Length > 100)
+            throw new ArgumentException($"{fieldName} must be 100 characters or fewer.", fieldName);
+        return normalized;
     }
 
     private static AccountQuestStateResponse Unsaved(Guid accountId) => new()
@@ -182,7 +282,7 @@ public class AccountQuestStateRepository(AstralRecordDbContext dbContext) : IAcc
         ActiveQuests = state.ActiveQuests.Select(active => new AccountQuestActiveResponse
         {
             QuestId = active.QuestId,
-            AcceptedAtEpochMillis = new DateTimeOffset(active.AcceptedAt).ToUnixTimeMilliseconds(),
+            AcceptedAtEpochMillis = ToEpochMillis(active.AcceptedAt),
             AcceptedNpcId = active.AcceptedNpcId,
             ReadyToTurnIn = active.ReadyToTurnIn,
             ObjectiveProgress = active.ObjectiveProgress.Select(objective => new AccountQuestObjectiveProgressResponse
@@ -194,12 +294,12 @@ public class AccountQuestStateRepository(AstralRecordDbContext dbContext) : IAcc
         Completions = state.Completions.Select(completion => new AccountQuestCompletionResponse
         {
             QuestId = completion.QuestId,
-            CompletedAtEpochMillis = new DateTimeOffset(completion.CompletedAt).ToUnixTimeMilliseconds(),
+            CompletedAtEpochMillis = ToEpochMillis(completion.CompletedAt),
         }).OrderBy(completion => completion.QuestId, StringComparer.Ordinal).ToList(),
         Cooldowns = state.Cooldowns.Select(cooldown => new AccountQuestCooldownResponse
         {
             QuestId = cooldown.QuestId,
-            CooldownUntilEpochMillis = new DateTimeOffset(cooldown.CooldownUntil).ToUnixTimeMilliseconds(),
+            CooldownUntilEpochMillis = ToEpochMillis(cooldown.CooldownUntil),
         }).OrderBy(cooldown => cooldown.QuestId, StringComparer.Ordinal).ToList(),
         IsSaved = true,
         Version = state.Version,
@@ -220,6 +320,9 @@ public class AccountQuestStateRepository(AstralRecordDbContext dbContext) : IAcc
             throw new ArgumentException("Epoch milliseconds are out of range.", parameterName, exception);
         }
     }
+
+    private static long ToEpochMillis(DateTime value) =>
+        new DateTimeOffset(DateTime.SpecifyKind(value, DateTimeKind.Utc)).ToUnixTimeMilliseconds();
 
     private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
