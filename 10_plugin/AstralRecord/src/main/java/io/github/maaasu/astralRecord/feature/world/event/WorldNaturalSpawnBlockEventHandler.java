@@ -12,6 +12,7 @@ import org.bukkit.entity.Mob;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.plugin.Plugin;
@@ -76,6 +77,28 @@ public class WorldNaturalSpawnBlockEventHandler extends AbstractEventHandler {
 
         event.setCancelled(true);
         mob.remove();
+    }
+
+    /**
+     * 管理ワールド内の Mob が死亡したときに、バニラのドロップを破棄します。
+     *
+     * <p>AstralRecord 独自の報酬は死亡イベントのドロップ一覧ではなく、Mob の戦闘処理から別経路で付与されるため、
+     * この処理では対象にしません。</p>
+     *
+     * @param event Mob 死亡イベント
+     */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    public void onEntityDeath(EntityDeathEvent event) {
+        if (!(event.getEntity() instanceof Mob)) {
+            return;
+        }
+
+        World world = event.getEntity().getWorld();
+        if (!isManagedWorld(world)) {
+            return;
+        }
+
+        event.getDrops().clear();
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
