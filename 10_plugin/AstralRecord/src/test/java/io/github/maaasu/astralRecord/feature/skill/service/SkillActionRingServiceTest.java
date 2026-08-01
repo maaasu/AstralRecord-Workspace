@@ -18,10 +18,12 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.feature.skill.registry.SkillRegistry;
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillRepository;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.junit.jupiter.api.Test;
 
@@ -47,12 +49,12 @@ class SkillActionRingServiceTest extends MockBukkitTestBase {
      */
     @Test
     void actionRingUsesAvailabilityAndSelectionColorsForSkillLabels() throws ReflectiveOperationException {
-        assertSlot(SkillCastResult.succeeded(), NamedTextColor.GREEN, "スキル", false);
-        assertSlot(SkillCastResult.failure(PlayerMsgId.P_5802), NamedTextColor.GRAY, "スキル", false);
-        assertSlot(SkillCastResult.failure(PlayerMsgId.P_5801), NamedTextColor.RED, "スキル\nMP", false);
-        assertSlot(SkillCastResult.failure(PlayerMsgId.P_5806), NamedTextColor.RED, "スキル\nENG", false);
-        assertSlot(SkillCastResult.failure(PlayerMsgId.P_5810), NamedTextColor.RED, "スキル\nNG", false);
-        assertSlot(SkillCastResult.succeeded(), NamedTextColor.YELLOW, "スキル", true);
+        assertSlot(SkillCastResult.succeeded(), ColorCodeUtil.GREEN, "スキル", false);
+        assertSlot(SkillCastResult.failure(PlayerMsgId.P_5802), ColorCodeUtil.GRAY, "スキル", false);
+        assertSlot(SkillCastResult.failure(PlayerMsgId.P_5801), ColorCodeUtil.RED, "スキル\nMP", false);
+        assertSlot(SkillCastResult.failure(PlayerMsgId.P_5806), ColorCodeUtil.RED, "スキル\nENG", false);
+        assertSlot(SkillCastResult.failure(PlayerMsgId.P_5810), ColorCodeUtil.RED, "スキル\nNG", false);
+        assertSlot(SkillCastResult.succeeded(), ColorCodeUtil.YELLOW, "スキル", true);
     }
 
     /**
@@ -94,7 +96,7 @@ class SkillActionRingServiceTest extends MockBukkitTestBase {
         verifyNoInteractions(skillService);
     }
 
-    private void assertSlot(SkillCastResult castResult, NamedTextColor expectedColor, String expectedLabel, boolean selected)
+    private void assertSlot(SkillCastResult castResult, String expectedColorCode, String expectedLabel, boolean selected)
             throws ReflectiveOperationException {
         Method availabilityFor = SkillActionRingService.class.getDeclaredMethod("availabilityFor", SkillCastResult.class);
         availabilityFor.setAccessible(true);
@@ -113,12 +115,17 @@ class SkillActionRingServiceTest extends MockBukkitTestBase {
         Method legacyComponent = SkillActionRingService.class.getDeclaredMethod("legacyComponent", String.class);
         legacyComponent.setAccessible(true);
         String colorCode = (String) color.invoke(slot, selected);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        Player bukkitPlayer = mock(Player.class);
+        when(astPlayer.getBukkit()).thenReturn(bukkitPlayer);
+        when(bukkitPlayer.getUniqueId()).thenReturn(UUID.randomUUID());
         String labelText = (String) label.invoke(slot,
-            new SkillService(mock(SkillRepository.class), new SkillRegistry(), null), mock(PlayerSkillCaster.class));
+            new SkillService(mock(SkillRepository.class), new SkillRegistry(), null), new PlayerSkillCaster(astPlayer));
         Component component = (Component) legacyComponent.invoke(null, colorCode + labelText);
         assertTrue(labelText.startsWith(expectedLabel));
-        assertEquals(expectedColor, component.color());
-        assertTrue(component.children().isEmpty());
+        assertEquals(expectedColorCode, colorCode);
+        assertTrue(LegacyComponentSerializer.legacySection().serialize(component)
+            .startsWith(expectedColorCode + expectedLabel.split("\\n", 2)[0]));
     }
 
     private SkillDefinition definition() {
