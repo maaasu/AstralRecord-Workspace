@@ -11,6 +11,7 @@ public enum MenuIconDefinition {
     UNSET(Material.GRAY_DYE, "未設定", NamedTextColor.GRAY, "ショートカット未設定"),
     MAIN_MENU(Material.NETHER_STAR, "メニュー", NamedTextColor.GREEN, "クリックしてメニューを開く"),
     ACCOUNT_INFO(Material.PLAYER_HEAD, "プレイヤー情報", NamedTextColor.GOLD, "プロフィールとステータスを確認"),
+    QUEST(Material.WRITABLE_BOOK, "クエスト", NamedTextColor.GREEN, "受領中のクエストを確認・破棄"),
     PLAYER_SETTING(Material.COMPARATOR, "プレイヤー設定", NamedTextColor.AQUA, "表示設定を変更"),
     EQUIPMENT(Material.NETHERITE_CHESTPLATE, "装備", NamedTextColor.GOLD, "現在装備中の防具"),
     TRASH(Material.LAVA_BUCKET, "ゴミ箱", NamedTextColor.RED, "アイテムを破棄する"),

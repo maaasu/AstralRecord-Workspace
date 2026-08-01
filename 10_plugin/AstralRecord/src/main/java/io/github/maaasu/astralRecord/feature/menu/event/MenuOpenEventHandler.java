@@ -480,6 +480,16 @@ public class MenuOpenEventHandler extends AbstractEventHandler
             );
             return;
         }
+        if (rawSlot == MenuView.QUEST_SLOT) {
+            var questGuiEventHandler = plugin.getQuestGuiEventHandler();
+            if (questGuiEventHandler == null) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.SELECT.play(player);
+            switchGuiWithoutInventoryReload(player, () -> questGuiEventHandler.openList(player));
+            return;
+        }
         if (rawSlot == MenuView.PLAYER_SETTING_SLOT) {
             PlayerSettingGui playerSettingGui = plugin.getPlayerSettingGui();
             if (playerSettingGui == null) {

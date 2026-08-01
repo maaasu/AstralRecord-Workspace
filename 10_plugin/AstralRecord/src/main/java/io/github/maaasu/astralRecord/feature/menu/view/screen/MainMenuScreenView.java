@@ -11,6 +11,7 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
     public static final int STATUS_SLOT = 20;
     public static final int EQUIPMENT_GUI_SLOT = 21;
     public static final int SKILL_BIND_SLOT = 22;
+    public static final int QUEST_SLOT = 23;
     public static final int PLAYER_SETTING_SLOT = 24;
     public static final int ADVENTURE_RECORD_SLOT = 29;
     public static final int MAIL_SLOT = 30;
@@ -31,6 +32,7 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
         fill(inventory);
         inventory.setItem(BACK_SLOT, GuiItems.closeButton());
         inventory.setItem(STATUS_SLOT, MenuIconFactory.create(MenuIconDefinition.ACCOUNT_INFO));
+        inventory.setItem(QUEST_SLOT, MenuIconFactory.create(MenuIconDefinition.QUEST));
         inventory.setItem(PLAYER_SETTING_SLOT, MenuIconFactory.create(MenuIconDefinition.PLAYER_SETTING));
         inventory.setItem(EQUIPMENT_GUI_SLOT, MenuIconFactory.create(
             MenuIconDefinition.EQUIPMENT,

@@ -47,6 +47,7 @@ class MainMenuScreenViewTest extends MockBukkitTestBase {
         assertEquals(20, MainMenuScreenView.STATUS_SLOT);
         assertEquals(21, MainMenuScreenView.EQUIPMENT_GUI_SLOT);
         assertEquals(22, MainMenuScreenView.SKILL_BIND_SLOT);
+        assertEquals(23, MainMenuScreenView.QUEST_SLOT);
         assertEquals(24, MainMenuScreenView.PLAYER_SETTING_SLOT);
         assertEquals(29, MainMenuScreenView.ADVENTURE_RECORD_SLOT);
         assertEquals(30, MainMenuScreenView.MAIL_SLOT);
@@ -60,7 +61,9 @@ class MainMenuScreenViewTest extends MockBukkitTestBase {
         assertMaterial(inventory, 20, Material.PLAYER_HEAD);
         assertMaterial(inventory, 21, Material.NETHERITE_CHESTPLATE);
         assertMaterial(inventory, 22, Material.ENCHANTED_BOOK);
+        assertMaterial(inventory, 23, Material.WRITABLE_BOOK);
         assertMaterial(inventory, 24, Material.COMPARATOR);
+        assertDisplayNameContains(inventory, 23, "クエスト");
         assertMaterial(inventory, 29, Material.WRITTEN_BOOK);
         assertMaterial(inventory, 30, Material.WRITABLE_BOOK);
         assertMaterial(inventory, 31, Material.PLAYER_HEAD);

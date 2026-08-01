@@ -46,6 +46,7 @@ public class MenuView {
     public static final int SIZE = BaseMenuScreenView.SIZE;
     public static final int BACK_SLOT = BaseMenuScreenView.BACK_SLOT;
     public static final int STATUS_SLOT = MainMenuScreenView.STATUS_SLOT;
+    public static final int QUEST_SLOT = MainMenuScreenView.QUEST_SLOT;
     public static final int PLAYER_SETTING_SLOT = MainMenuScreenView.PLAYER_SETTING_SLOT;
     public static final int EQUIPMENT_GUI_SLOT = MainMenuScreenView.EQUIPMENT_GUI_SLOT;
     public static final int TRASH_SLOT = MainMenuScreenView.TRASH_SLOT;
@@ -554,4 +555,3 @@ public class MenuView {
     }
 
 }
-
