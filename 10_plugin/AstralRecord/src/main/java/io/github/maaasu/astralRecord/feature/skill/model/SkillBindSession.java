@@ -90,9 +90,11 @@ public final class SkillBindSession {
     }
 
     /**
-     * 選択中スロット、または次の空きスロットへスキルを割り当てます。
+     * 選択中スロット、または種別に応じた優先順位で空きスロットへスキルを割り当てます。
+     * 発動スキルは action ring の空き枠を優先し、すべて埋まっている場合だけ空の左クリック枠を使用します。
      *
      * @param skillId 割り当てるスキル ID
+     * @param skillKind 割り当てるスキル種別。passive は passive 枠、active は action ring、最後に左クリック枠の順で配置先を決定します
      * @return 割当できた場合は {@code true}
      */
     public boolean assignSelectedOrNextSlot(@NotNull String skillId, @NotNull SkillKind skillKind) {
@@ -101,6 +103,10 @@ public final class SkillBindSession {
         if (targetType == null || targetIndex < 0 || targetIndex >= slotCount(targetType)) {
             targetType = skillKind.isPassive() ? SkillBindType.PASSIVE : SkillBindType.ACTIVE;
             targetIndex = findNextFreeSlot(targetType == SkillBindType.ACTIVE ? activeDraft : passiveDraft);
+            if (targetIndex < 0 && targetType == SkillBindType.ACTIVE && isLeftClickUnassigned()) {
+                targetType = SkillBindType.LEFT_CLICK;
+                targetIndex = 0;
+            }
         } else if (!matches(targetType, skillKind)) {
             return false;
         }
@@ -208,6 +214,17 @@ public final class SkillBindSession {
             }
         }
         return -1;
+    }
+
+    /**
+     * 左クリックバインドが未設定かを判定します。
+     *
+     * <p>発動スキルの自動配置で action ring がすべて埋まっている場合に、最後の優先順位で左クリック枠を使用できるか判定します。</p>
+     *
+     * @return 左クリックバインドが {@code null} または空白の場合は {@code true}
+     */
+    private boolean isLeftClickUnassigned() {
+        return leftClickDraft == null || leftClickDraft.isBlank();
     }
 
     /** 左クリックバインドを更新します。 */
