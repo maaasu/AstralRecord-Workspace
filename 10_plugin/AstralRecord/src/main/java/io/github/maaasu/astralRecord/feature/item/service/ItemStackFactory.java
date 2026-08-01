@@ -285,8 +285,8 @@ public class ItemStackFactory {
         var decoratedName = ColorCodeUtil.toLegacyText(baseName, model.getId());
         boolean broken = isBroken(instance);
         String visibleName = broken
-                ? ColorCodeUtil.DARK_RED + "[破損] " + rarityColor + decoratedName
-                : rarityColor + decoratedName;
+                ? ColorCodeUtil.DARK_RED + "[破損] " + rarityColor + "◆ " + decoratedName
+                : rarityColor + "◆ " + decoratedName;
         String enhanceSuffix = instance.getEnhanceLevel() > 0
                 ? " §7[ §e+ §f§l" + instance.getEnhanceLevel() + "§r§7 ]"
                 : "";
@@ -340,7 +340,8 @@ public class ItemStackFactory {
 
         var rarityColor = rarityToColor(model.getRarity());
         var decoratedName = ColorCodeUtil.toLegacyText(model.getName(), model.getId());
-        meta.displayName(LEGACY_SERIALIZER.deserialize(rarityColor + decoratedName + ColorCodeUtil.RESET));
+        meta.displayName(LEGACY_SERIALIZER.deserialize(
+                rarityColor + "◆ " + decoratedName + ColorCodeUtil.RESET));
 
         var loreStrings = buildLoreForRuneInstance(model, instance);
         meta.lore(loreStrings.stream()
@@ -555,7 +556,7 @@ public class ItemStackFactory {
         var rarityColor = rarityToColor(model.getRarity());
         var decoratedName = ColorCodeUtil.toLegacyText(model.getName(), model.getId());
         meta.displayName(LEGACY_SERIALIZER.deserialize(
-                rarityColor + decoratedName + ColorCodeUtil.RESET));
+                rarityColor + "◆ " + decoratedName + ColorCodeUtil.RESET));
 
         // --- Lore 構築 ---
         var loreStrings = buildLore(model);
@@ -591,12 +592,9 @@ public class ItemStackFactory {
      */
     private @NotNull List<String> buildLore(@NotNull ItemModel model) {
         List<String> lore = new ArrayList<>();
-        String rarityColor = rarityToColor(model.getRarity());
-        String decoratedName = ColorCodeUtil.toLegacyText(model.getName(), model.getId());
 
         // ヘッダー
         lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
-        lore.add(rarityColor + "◆ " + decoratedName);
         lore.add(rarityStars(model.getRarity())
                 + ColorCodeUtil.DARK_GRAY + "  " + rarityDisplayName(model.getRarity())
                 + ColorCodeUtil.DARK_GRAY + " │ " + ColorCodeUtil.GRAY + displayCategoryName(model.getCategory()));
@@ -912,14 +910,8 @@ public class ItemStackFactory {
     private @NotNull List<String> buildLoreForEquipmentInstance(
             @NotNull ItemModel model, @NotNull EquipmentInstance instance) {
         List<String> lore = new ArrayList<>();
-        String rarityColor = rarityToColor(model.getRarity());
-        String decoratedName = ColorCodeUtil.toLegacyText(resolveEquipmentDisplayName(model, instance), model.getId());
-        if (isBroken(instance)) {
-            decoratedName = ColorCodeUtil.DARK_RED + "[破損] " + rarityColor + decoratedName;
-        }
 
         lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
-        lore.add(rarityColor + "◆ " + decoratedName);
         lore.add(rarityStars(model.getRarity())
                 + ColorCodeUtil.DARK_GRAY + "  " + rarityDisplayName(model.getRarity())
                 + ColorCodeUtil.DARK_GRAY + " │ " + ColorCodeUtil.GRAY + displayCategoryName(model.getCategory()));
@@ -1113,11 +1105,8 @@ public class ItemStackFactory {
     private @NotNull List<String> buildLoreForRuneInstance(
             @NotNull ItemModel model, @NotNull RuneInstance instance) {
         List<String> lore = new ArrayList<>();
-        String rarityColor = rarityToColor(model.getRarity());
-        String decoratedName = ColorCodeUtil.toLegacyText(model.getName(), model.getId());
 
         lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
-        lore.add(rarityColor + "◆ " + decoratedName);
         lore.add(rarityStars(model.getRarity())
                 + ColorCodeUtil.DARK_GRAY + "  " + rarityDisplayName(model.getRarity())
                 + ColorCodeUtil.DARK_GRAY + " │ " + ColorCodeUtil.GRAY + displayCategoryName(model.getCategory()));
@@ -1555,5 +1544,3 @@ public class ItemStackFactory {
 
     // endregion
 }
-
-
