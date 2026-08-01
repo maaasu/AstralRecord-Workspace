@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemDropAnimationServi
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
+import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import org.bukkit.Location;
@@ -56,6 +57,22 @@ class MobDropPresentationServiceTest {
         assertEquals("0.1", MobDropPresentationService.formatDropRate(0.1D));
         assertEquals("0.0125", MobDropPresentationService.formatDropRate(0.0125D));
         assertEquals("0.00001", MobDropPresentationService.formatDropRate(0.00001D));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 1. MobCombatService メソッド仕様 > ### ドロップ配布対象と演出
+     * 検証契約: リザルト TextDisplay は固定報酬の後、獲得アイテムの前に共通区切り線を表示する。
+     */
+    @Test
+    void resultTextSeparatesFixedRewardsFromItems() {
+        String text = MobDropPresentationService.formatResultText(
+            "スライム",
+            new MobDropResult(java.util.List.of(), 12, 34),
+            java.util.List.of()
+        );
+
+        assertTrue(text.contains("&6ゴールド &f+34\n&8◈───────────◈\n&a獲得アイテム"));
     }
 
     /**

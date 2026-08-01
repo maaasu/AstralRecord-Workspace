@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobDropItem;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.display.DisplaySeparators;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
@@ -272,6 +273,7 @@ public class AdventureRecordGui {
             template.lore().stream().limit(4)
                 .map(line -> ColorCodeUtil.toPlainText(line, line))
                 .forEach(line -> lore.add(Component.text("- " + line, NamedTextColor.WHITE)));
+            lore.add(Component.text(DisplaySeparators.SECTION, NamedTextColor.DARK_GRAY));
         }
         appendDrops(lore, template.drops());
         return createItem(resolveMaterial(template.icon(), Material.ZOMBIE_HEAD), Component.text(
@@ -292,10 +294,14 @@ public class AdventureRecordGui {
         if (drops.money() != null) {
             lore.add(Component.text("- ゴールド " + drops.money().min() + "-" + drops.money().max(), NamedTextColor.YELLOW));
         }
+        boolean hasFixedRewards = drops.exp() > 0 || drops.money() != null;
         int visible = 0;
         for (MobDropItem item : drops.items()) {
             if (item.hidden()) {
                 continue;
+            }
+            if (visible == 0 && hasFixedRewards) {
+                lore.add(Component.text(DisplaySeparators.SECTION, NamedTextColor.DARK_GRAY));
             }
             visible++;
             lore.add(Component.text("- " + itemName(item.itemId()) + " x" + item.amount() + " (" + item.rate() + "%)", NamedTextColor.WHITE));

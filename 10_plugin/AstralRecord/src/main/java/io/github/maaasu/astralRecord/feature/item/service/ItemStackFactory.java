@@ -31,6 +31,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.infrastructure.util.CustomModelDataComponentUtil;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
+import io.github.maaasu.astralRecord.shared.display.DisplaySeparators;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Color;
@@ -594,7 +595,7 @@ public class ItemStackFactory {
         List<String> lore = new ArrayList<>();
 
         // ヘッダー
-        lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
+        lore.add(ColorCodeUtil.DARK_GRAY + DisplaySeparators.SECTION);
         lore.add(rarityStars(model.getRarity())
                 + ColorCodeUtil.DARK_GRAY + "  " + rarityDisplayName(model.getRarity())
                 + ColorCodeUtil.DARK_GRAY + " │ " + ColorCodeUtil.GRAY + displayCategoryName(model.getCategory()));
@@ -620,7 +621,7 @@ public class ItemStackFactory {
         appendSaleValueLore(lore, model);
 
         // フッター
-        lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
+        lore.add(ColorCodeUtil.DARK_GRAY + DisplaySeparators.SECTION);
         if (model.getBundle() != null
                 && model.getBundle().getLootTableId() != null
                 && !model.getBundle().getLootTableId().isBlank()) {
@@ -911,7 +912,7 @@ public class ItemStackFactory {
             @NotNull ItemModel model, @NotNull EquipmentInstance instance) {
         List<String> lore = new ArrayList<>();
 
-        lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
+        lore.add(ColorCodeUtil.DARK_GRAY + DisplaySeparators.SECTION);
         lore.add(rarityStars(model.getRarity())
                 + ColorCodeUtil.DARK_GRAY + "  " + rarityDisplayName(model.getRarity())
                 + ColorCodeUtil.DARK_GRAY + " │ " + ColorCodeUtil.GRAY + displayCategoryName(model.getCategory()));
@@ -1092,7 +1093,7 @@ public class ItemStackFactory {
         }
 
         appendSaleValueLore(lore, model);
-        lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
+        lore.add(ColorCodeUtil.DARK_GRAY + DisplaySeparators.SECTION);
         if (model.getUnTradeable()) lore.add(ColorCodeUtil.RED + "✖ 取引不可");
         if (shouldShowUnSellable(model)) lore.add(ColorCodeUtil.RED + "✖ 売却不可");
         return lore;
@@ -1106,7 +1107,7 @@ public class ItemStackFactory {
             @NotNull ItemModel model, @NotNull RuneInstance instance) {
         List<String> lore = new ArrayList<>();
 
-        lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
+        lore.add(ColorCodeUtil.DARK_GRAY + DisplaySeparators.SECTION);
         lore.add(rarityStars(model.getRarity())
                 + ColorCodeUtil.DARK_GRAY + "  " + rarityDisplayName(model.getRarity())
                 + ColorCodeUtil.DARK_GRAY + " │ " + ColorCodeUtil.GRAY + displayCategoryName(model.getCategory()));
@@ -1138,7 +1139,7 @@ public class ItemStackFactory {
         }
 
         appendSaleValueLore(lore, model);
-        lore.add(ColorCodeUtil.DARK_GRAY + "◈───────────◈");
+        lore.add(ColorCodeUtil.DARK_GRAY + DisplaySeparators.SECTION);
         if (model.getUnTradeable()) lore.add(ColorCodeUtil.RED + "✖ 取引不可");
         if (shouldShowUnSellable(model)) lore.add(ColorCodeUtil.RED + "✖ 売却不可");
         return lore;

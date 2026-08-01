@@ -19,6 +19,7 @@ import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSetting
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.display.DisplaySeparators;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Color;
 import org.bukkit.Location;
@@ -282,16 +283,16 @@ public final class MobDropPresentationService {
      * @param items 解決済み当選アイテム
      * @return legacy color code を含むリザルト文字列
      */
-    private @NotNull String formatResultText(
+    static @NotNull String formatResultText(
         @NotNull String mobName,
         @NotNull MobDropResult result,
         @NotNull List<ResolvedDropItem> items
     ) {
         StringBuilder text = new StringBuilder("&6&l◆ 討伐報酬 ◆");
         text.append("\n&f").append(mobName);
-        text.append("\n&8────────────");
         text.append("\n&e経験値 &f+").append(result.exp());
         text.append("\n&6ゴールド &f+").append(result.money());
+        text.append("\n&8").append(DisplaySeparators.SECTION);
         text.append("\n&a獲得アイテム");
         if (items.isEmpty()) {
             text.append("\n&7・なし");
