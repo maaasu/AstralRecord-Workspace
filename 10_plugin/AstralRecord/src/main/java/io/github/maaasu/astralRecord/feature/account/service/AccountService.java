@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.account.service;
 
 import io.github.maaasu.astralRecord.feature.account.model.AccountExperienceResult;
+import io.github.maaasu.astralRecord.feature.account.model.AccountLevelSetResult;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.account.model.ClassProgressModel;
@@ -196,6 +197,28 @@ public class AccountService {
             Logger.log(LogId.I_5103, updated.getUuid(), updated.getLevel(), updated.getTotalExperience());
         }
         return new AccountExperienceResult(previous, updated, experience, levelUps);
+    }
+
+    /**
+     * プレイヤーレベルを設定し、設定レベルの開始累計経験値を pending 状態へ登録します。
+     *
+     * @param currentAccount 現在のアカウント状態
+     * @param requestedLevel 設定要求レベル。1 未満は 1、上限超過は最大レベルへ補正します
+     * @param updatedBy 更新者 UUID
+     * @return 設定前後のレベルと最大レベル
+     */
+    public @NotNull AccountLevelSetResult setPlayerLevelCached(
+        @NotNull AccountModel currentAccount,
+        long requestedLevel,
+        @NotNull UUID updatedBy
+    ) {
+        AccountModel previous = overlayPendingProgress(currentAccount);
+        int previousLevel = Math.clamp(previous.getLevel(), 1, MAX_PLAYER_LEVEL);
+        int currentLevel = (int) Math.clamp(requestedLevel, 1L, (long) MAX_PLAYER_LEVEL);
+        long totalExperience = totalRequiredExperienceForLevel(previous.getUuid(), currentLevel);
+        AccountModel updated = withProgress(previous, currentLevel, totalExperience, updatedBy);
+        pendingExperienceUpdates.put(updated.getUuid(), new PendingExperienceUpdate(updated, updatedBy));
+        return new AccountLevelSetResult(previousLevel, currentLevel, MAX_PLAYER_LEVEL, updated);
     }
 
     /**

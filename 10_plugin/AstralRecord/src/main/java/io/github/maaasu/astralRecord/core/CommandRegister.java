@@ -6,6 +6,8 @@ import io.github.maaasu.astralRecord.feature.account.command.AccountCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountModeCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountModeTabCompleter;
 import io.github.maaasu.astralRecord.feature.account.command.AccountTabCompleter;
+import io.github.maaasu.astralRecord.feature.account.command.LevelCommand;
+import io.github.maaasu.astralRecord.feature.account.command.LevelTabCompleter;
 import io.github.maaasu.astralRecord.feature.boss.command.BossCommand;
 import io.github.maaasu.astralRecord.feature.gathering.command.GatheringCommand;
 import io.github.maaasu.astralRecord.feature.gathering.command.GatheringTabCompleter;
@@ -150,6 +152,7 @@ public class CommandRegister {
         cm.registerCommand("user", new UserCommand(), new UserTabCompleter());
         cm.registerCommand("uperm", new UserPermissionCommand("uperm", "/uperm <permission> [<player|uuid>]"), new UserPermissionTabCompleter());
         cm.registerCommand("account", new AccountCommand(), new AccountTabCompleter());
+        cm.registerCommand("level", new LevelCommand(), new LevelTabCompleter());
         cm.registerCommand("am", new AccountModeCommand("am", "/am <mode> [<player|accountUuid>]"), new AccountModeTabCompleter());
         cm.registerCommand("setting", new PlayerSettingCommand(), new PlayerSettingTabCompleter());
         cm.registerCommand("message", new DirectMessageCommand(), new DirectMessageTabCompleter());
