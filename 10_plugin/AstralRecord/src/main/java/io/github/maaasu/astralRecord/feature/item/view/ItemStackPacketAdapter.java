@@ -18,17 +18,20 @@ import io.github.maaasu.astralRecord.infrastructure.util.CustomModelDataComponen
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -57,9 +60,11 @@ public class ItemStackPacketAdapter {
 
     /** Material 名キャッシュ (大文字名 → Material) */
     private static final Map<String, Material> MATERIAL_CACHE = new ConcurrentHashMap<>();
+    private static final long EQUIPMENT_OVERRIDE_TTL_MILLIS = 5_000L;
 
     private final Plugin plugin;
     private final PlayerSettingService playerSettingService;
+    private final EquipmentOverrideRegistry equipmentOverrideRegistry = new EquipmentOverrideRegistry();
     private boolean registered = false;
 
     /**
@@ -102,6 +107,10 @@ public class ItemStackPacketAdapter {
 
                 PacketContainer packet = event.getPacket();
                 PacketType type = packet.getType();
+                if (type == PacketType.Play.Server.ENTITY_EQUIPMENT
+                    && equipmentOverrideRegistry.consume(packet, event.getPlayer().getUniqueId(), System.currentTimeMillis())) {
+                    return;
+                }
                 boolean armorDisplayEnabled = playerSettingService.isArmorDisplayEnabled(
                     event.getPlayer().getUniqueId()
                 );
@@ -111,10 +120,16 @@ public class ItemStackPacketAdapter {
                 } else if (type == PacketType.Play.Server.WINDOW_ITEMS) {
                     handleWindowItems(packet, armorDisplayEnabled);
                 } else if (type == PacketType.Play.Server.ENTITY_EQUIPMENT) {
-                    handleEntityEquipment(packet, armorDisplayEnabled);
+                    handleEntityEquipment(event, armorDisplayEnabled);
                 }
             }
         });
+        plugin.getServer().getPluginManager().registerEvents(new Listener() {
+            @EventHandler
+            public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
+                equipmentOverrideRegistry.discardViewer(event.getPlayer().getUniqueId());
+            }
+        }, plugin);
 
         registered = true;
         Logger.log(LogId.I_5210);
@@ -172,35 +187,44 @@ public class ItemStackPacketAdapter {
     }
 
     /**
-     * ENTITY_EQUIPMENT パケット内の手持ち・装備 ItemStack を受信者向け表示へ書き換えます。
+     * ENTITY_EQUIPMENT パケットを中止し、Paper API が符号化する受信者専用の装備更新へ置き換えます。
      *
-     * @param packet 書き換え対象パケット
+     * @param event 中止対象のパケットイベント
      * @param armorDisplayEnabled 受信者が防具の身体描画を表示する場合は {@code true}
      */
-    private void handleEntityEquipment(@NotNull PacketContainer packet, boolean armorDisplayEnabled) {
+    private void handleEntityEquipment(@NotNull PacketEvent event, boolean armorDisplayEnabled) {
+        PacketContainer packet = event.getPacket();
         List<Pair<EnumWrappers.ItemSlot, ItemStack>> equipment = packet.getSlotStackPairLists().readSafely(0);
         if (equipment == null || equipment.isEmpty()) {
             return;
         }
 
-        boolean modified = false;
-        List<Pair<EnumWrappers.ItemSlot, ItemStack>> replacedEquipment = new ArrayList<>(equipment.size());
+        List<EquipmentUpdate> updates = new java.util.ArrayList<>(equipment.size());
+        boolean requiresOverride = false;
         for (Pair<EnumWrappers.ItemSlot, ItemStack> pair : equipment) {
             ItemStack original = pair.getSecond();
-            ItemStack replaced = original == null || original.getType() == Material.AIR
-                ? null
-                : replaceIcon(original, armorDisplayEnabled);
-            if (replaced != null) {
-                replacedEquipment.add(new Pair<>(pair.getFirst(), replaced));
-                modified = true;
-            } else {
-                replacedEquipment.add(new Pair<>(pair.getFirst(), original));
+            if (original != null && original.getType() != Material.AIR
+                && replaceIcon(original, armorDisplayEnabled) != null) {
+                requiresOverride = true;
             }
+            updates.add(new EquipmentUpdate(
+                toBukkitEquipmentSlot(pair.getFirst()),
+                original == null ? new ItemStack(Material.AIR) : original.clone()
+            ));
         }
 
-        if (modified) {
-            packet.getSlotStackPairLists().writeSafely(0, replacedEquipment);
+        if (!requiresOverride) {
+            return;
         }
+
+        int entityId = packet.getIntegers().readSafely(0);
+        Player viewer = event.getPlayer();
+        PacketContainer originalPacket = packet.deepClone();
+        event.setCancelled(true);
+        plugin.getServer().getScheduler().runTask(
+            plugin,
+            () -> sendEquipmentOverride(viewer, entityId, updates, originalPacket)
+        );
     }
 
     // endregion
@@ -225,7 +249,7 @@ public class ItemStackPacketAdapter {
             return null;
         }
 
-        ItemStack replaced = original;
+        ItemStack replaced = original.clone();
         boolean modified = false;
 
         if (iconName != null) {
@@ -281,12 +305,219 @@ public class ItemStackPacketAdapter {
             if (target != viewer && !target.isTrackedBy(viewer)) {
                 continue;
             }
-            EnumMap<EquipmentSlot, ItemStack> armor = new EnumMap<>(EquipmentSlot.class);
-            armor.put(EquipmentSlot.HEAD, target.getInventory().getHelmet());
-            armor.put(EquipmentSlot.CHEST, target.getInventory().getChestplate());
-            armor.put(EquipmentSlot.LEGS, target.getInventory().getLeggings());
-            armor.put(EquipmentSlot.FEET, target.getInventory().getBoots());
-            viewer.sendEquipmentChange(target, armor);
+            sendEquipmentOverride(viewer, target, List.of(
+                new EquipmentUpdate(EquipmentSlot.HEAD, copyOrAir(target.getInventory().getHelmet())),
+                new EquipmentUpdate(EquipmentSlot.CHEST, copyOrAir(target.getInventory().getChestplate())),
+                new EquipmentUpdate(EquipmentSlot.LEGS, copyOrAir(target.getInventory().getLeggings())),
+                new EquipmentUpdate(EquipmentSlot.FEET, copyOrAir(target.getInventory().getBoots()))
+            ));
+        }
+    }
+
+    /**
+     * ProtocolLib から中止した装備更新を、Paper API 経由で受信者専用の表示として送信します。
+     *
+     * @param viewer 装備表示を受信するプレイヤー
+     * @param entityId 元パケットのエンティティ ID
+     * @param updates 元パケットから退避した装備更新
+     * @param originalPacket 解決失敗時にフィルタを通さず再送する元パケット
+     */
+    private void sendEquipmentOverride(
+        @NotNull Player viewer,
+        int entityId,
+        @NotNull List<EquipmentUpdate> updates,
+        @NotNull PacketContainer originalPacket
+    ) {
+        if (!viewer.isOnline()) {
+            return;
+        }
+
+        var target = viewer.getWorld().getEntities().stream()
+            .filter(entity -> entity.getEntityId() == entityId)
+            .filter(org.bukkit.entity.LivingEntity.class::isInstance)
+            .map(org.bukkit.entity.LivingEntity.class::cast)
+            .findFirst()
+            .orElse(null);
+        if (target == null) {
+            sendOriginalPacketWithoutFilters(ProtocolLibrary.getProtocolManager(), viewer, originalPacket);
+            return;
+        }
+
+        sendEquipmentOverride(viewer, target, updates);
+    }
+
+    /**
+     * Paper API 経由で受信者専用の表示として装備更新を送信します。
+     *
+     * @param viewer 装備表示を受信するプレイヤー
+     * @param target 装備を表示する対象エンティティ
+     * @param updates 送信する装備更新
+     */
+    private void sendEquipmentOverride(
+        @NotNull Player viewer,
+        @NotNull org.bukkit.entity.LivingEntity target,
+        @NotNull List<EquipmentUpdate> updates
+    ) {
+
+        boolean armorDisplayEnabled = playerSettingService.isArmorDisplayEnabled(viewer.getUniqueId());
+        Map<EquipmentSlot, ItemStack> equipment = new EnumMap<>(EquipmentSlot.class);
+        for (EquipmentUpdate update : updates) {
+            ItemStack replaced = replaceIcon(update.item(), armorDisplayEnabled);
+            equipment.put(update.slot(), replaced != null ? replaced : update.item());
+        }
+        if (equipment.isEmpty()) {
+            return;
+        }
+
+        equipmentOverrideRegistry.mark(viewer.getUniqueId(), target.getEntityId(), equipment, System.currentTimeMillis());
+        viewer.sendEquipmentChange(target, equipment);
+    }
+
+    /**
+     * cancel 済みの元パケットを、ProtocolLib listener filter を通さず再送します。
+     *
+     * @param manager ProtocolLib の送信管理器
+     * @param viewer パケットを受信するプレイヤー
+     * @param originalPacket pair-list を書き換えていない元パケットのコピー
+     */
+    static void sendOriginalPacketWithoutFilters(
+        @NotNull ProtocolManager manager,
+        @NotNull Player viewer,
+        @NotNull PacketContainer originalPacket
+    ) {
+        manager.sendServerPacket(viewer, originalPacket, false);
+    }
+
+    /**
+     * ProtocolLib の装備スロットを Paper API の装備スロットへ対応付けます。
+     *
+     * @param slot ProtocolLib が通知した装備スロット
+     * @return Paper API で同じ装備位置を表すスロット
+     */
+    static EquipmentSlot toBukkitEquipmentSlot(@NotNull EnumWrappers.ItemSlot slot) {
+        return switch (slot) {
+            case MAINHAND -> EquipmentSlot.HAND;
+            case OFFHAND -> EquipmentSlot.OFF_HAND;
+            case FEET -> EquipmentSlot.FEET;
+            case LEGS -> EquipmentSlot.LEGS;
+            case CHEST -> EquipmentSlot.CHEST;
+            case HEAD -> EquipmentSlot.HEAD;
+            case BODY -> EquipmentSlot.BODY;
+            case SADDLE -> EquipmentSlot.SADDLE;
+        };
+    }
+
+    private record EquipmentUpdate(@NotNull EquipmentSlot slot, @NotNull ItemStack item) {
+    }
+
+    private static ItemStack copyOrAir(@Nullable ItemStack item) {
+        return item == null ? new ItemStack(Material.AIR) : item.clone();
+    }
+
+    /**
+     * Paper API で再送した装備更新を、ProtocolLib の dispatch スレッドに依存せず一度だけ通過させます。
+     */
+    static final class EquipmentOverrideRegistry {
+        private final Map<EquipmentOverrideKey, PendingEquipmentOverride> pendingOverrides = new ConcurrentHashMap<>();
+
+        /**
+         * 再送予定の全装備更新を登録します。同じ更新が連続しても件数を保持します。
+         */
+        void mark(
+            @NotNull UUID viewerId,
+            int entityId,
+            @NotNull Map<EquipmentSlot, ItemStack> equipment,
+            long nowMillis
+        ) {
+            discardExpired(nowMillis);
+            for (Map.Entry<EquipmentSlot, ItemStack> entry : equipment.entrySet()) {
+                EquipmentOverrideKey key = new EquipmentOverrideKey(viewerId, entityId, entry.getKey(), entry.getValue());
+                pendingOverrides.compute(key, (ignored, pending) -> pending == null
+                    ? new PendingEquipmentOverride(1, nowMillis + EQUIPMENT_OVERRIDE_TTL_MILLIS)
+                    : pending.add(nowMillis + EQUIPMENT_OVERRIDE_TTL_MILLIS));
+            }
+        }
+
+        /**
+         * 対応する再送パケットなら登録を一回分だけ消費します。
+         */
+        synchronized boolean consume(@NotNull PacketContainer packet, @NotNull UUID viewerId, long nowMillis) {
+            int entityId = packet.getIntegers().readSafely(0);
+            List<Pair<EnumWrappers.ItemSlot, ItemStack>> equipment = packet.getSlotStackPairLists().readSafely(0);
+            if (equipment == null || equipment.isEmpty()) {
+                return false;
+            }
+
+            Map<EquipmentSlot, ItemStack> updates = new EnumMap<>(EquipmentSlot.class);
+            for (Pair<EnumWrappers.ItemSlot, ItemStack> pair : equipment) {
+                updates.put(
+                    toBukkitEquipmentSlot(pair.getFirst()),
+                    pair.getSecond() == null ? new ItemStack(Material.AIR) : pair.getSecond()
+                );
+            }
+            return consume(viewerId, entityId, updates, nowMillis);
+        }
+
+        /**
+         * 対応する再送装備更新なら登録を一回分だけ消費します。
+         */
+        synchronized boolean consume(
+            @NotNull UUID viewerId,
+            int entityId,
+            @NotNull Map<EquipmentSlot, ItemStack> equipment,
+            long nowMillis
+        ) {
+            discardExpired(nowMillis);
+            List<EquipmentOverrideKey> keys = new java.util.ArrayList<>(equipment.size());
+            for (Map.Entry<EquipmentSlot, ItemStack> entry : equipment.entrySet()) {
+                EquipmentOverrideKey key = new EquipmentOverrideKey(
+                    viewerId,
+                    entityId,
+                    entry.getKey(),
+                    entry.getValue() == null ? new ItemStack(Material.AIR) : entry.getValue()
+                );
+                if (!pendingOverrides.containsKey(key)) {
+                    return false;
+                }
+                keys.add(key);
+            }
+
+            for (EquipmentOverrideKey key : keys) {
+                pendingOverrides.computeIfPresent(key, (ignored, pending) -> pending.consume());
+            }
+            return true;
+        }
+
+        /**
+         * viewer の logout 時に未消費の再送識別を破棄します。
+         */
+        void discardViewer(@NotNull UUID viewerId) {
+            pendingOverrides.keySet().removeIf(key -> key.viewerId().equals(viewerId));
+        }
+
+        private void discardExpired(long nowMillis) {
+            pendingOverrides.entrySet().removeIf(entry -> entry.getValue().expiresAtMillis() <= nowMillis);
+        }
+    }
+
+    private record EquipmentOverrideKey(
+        @NotNull UUID viewerId,
+        int entityId,
+        @NotNull EquipmentSlot slot,
+        @NotNull ItemStack item
+    ) {
+        private EquipmentOverrideKey {
+            item = item.clone();
+        }
+    }
+
+    private record PendingEquipmentOverride(int count, long expiresAtMillis) {
+        private PendingEquipmentOverride add(long expiresAtMillis) {
+            return new PendingEquipmentOverride(count + 1, expiresAtMillis);
+        }
+
+        private PendingEquipmentOverride consume() {
+            return count > 1 ? new PendingEquipmentOverride(count - 1, expiresAtMillis) : null;
         }
     }
 
