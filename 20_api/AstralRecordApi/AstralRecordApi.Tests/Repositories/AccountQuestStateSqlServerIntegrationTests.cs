@@ -63,7 +63,7 @@ public class AccountQuestStateSqlServerIntegrationTests
 
     private static AstralRecordDbContext CreateDbContext(string connectionString) => new(
         new DbContextOptionsBuilder<AstralRecordDbContext>()
-            .UseSqlServer(connectionString)
+            .UseSqlServer(connectionString, sqlServerOptions => sqlServerOptions.EnableRetryOnFailure())
             .Options);
 
     private static async Task<IActionResult> PutAsync(

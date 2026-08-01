@@ -34,7 +34,20 @@ public class AccountQuestStateRepository(AstralRecordDbContext dbContext) : IAcc
             throw new ArgumentException("UpdatedBy is required.", nameof(request));
         ValidateRequest(request);
 
-        await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        var executionStrategy = dbContext.Database.CreateExecutionStrategy();
+        return await executionStrategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var response = await UpsertInTransactionAsync(accountId, request);
+            await transaction.CommitAsync();
+            return response;
+        });
+    }
+
+    private async Task<AccountQuestStateResponse> UpsertInTransactionAsync(
+        Guid accountId,
+        AccountQuestStateUpsertRequest request)
+    {
         var accountExists = await dbContext.Accounts
             .AnyAsync(account => account.Uuid == accountId && !account.IsDeleted);
         if (!accountExists)
@@ -87,7 +100,6 @@ public class AccountQuestStateRepository(AstralRecordDbContext dbContext) : IAcc
         AddCompletions(dbContext, state, request.Completions, now, request.UpdatedBy);
         AddCooldowns(dbContext, state, request.Cooldowns, now, request.UpdatedBy);
         await dbContext.SaveChangesAsync();
-        await transaction.CommitAsync();
         return Map(state);
     }
 
