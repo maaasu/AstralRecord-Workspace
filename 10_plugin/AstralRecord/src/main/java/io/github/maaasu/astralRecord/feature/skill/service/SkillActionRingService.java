@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.item.service.ItemWeaponAttackService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
@@ -17,6 +18,7 @@ import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.title.Title;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.Location;
@@ -28,6 +30,7 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -48,10 +51,11 @@ public final class SkillActionRingService {
     private static final int COOLDOWN_BAR_LENGTH = 10;
     private static final long UPDATE_INTERVAL_TICKS = 1L;
     private static final long RING_DISPLAY_LIMIT_TICKS = 100L;
-    private static final long CAST_WAIT_LIMIT_TICKS = 60L;
     private static final long SELECT_ANIMATION_TICKS = 4L;
     private static final double SELECTING_BLOCK_BREAK_SPEED = 1024.0D;
     private static final ItemStack HIDDEN_ITEM = new ItemStack(Material.AIR);
+    private static final Title.Times INSTRUCTION_TITLE_TIMES =
+        Title.Times.times(Duration.ZERO, Duration.ofDays(1L), Duration.ZERO);
 
     private final AstralRecord plugin;
     private final SkillBindPresetService presetService;
@@ -611,6 +615,7 @@ public final class SkillActionRingService {
                 originalBlockBreakSpeed
             );
             session.spawnEntities(player);
+            session.showInstruction(PlayerMsgId.P_5854);
             return session;
         }
 
@@ -651,11 +656,6 @@ public final class SkillActionRingService {
                 GuiSound.CLOSE.play(player);
                 return false;
             }
-            if (phase == RingPhase.WAITING_CAST && phaseElapsedTicks > CAST_WAIT_LIMIT_TICKS) {
-                GuiSound.CLOSE.play(player);
-                return false;
-            }
-
             if (phase == RingPhase.SELECTING) {
                 refreshSlotAvailability();
                 int nextSelectedIndex = resolveSelectedIndex(player);
@@ -730,6 +730,18 @@ public final class SkillActionRingService {
             confirmedIndex = selectedIndex;
             phase = RingPhase.WAITING_CAST;
             phaseElapsedTicks = 0L;
+            showInstruction(PlayerMsgId.P_5855);
+            if (timerLabel != null) {
+                actionRingDisplay.updateText(viewer, timerLabel, Component.empty(), 0.60F);
+            }
+        }
+
+        private void showInstruction(@NotNull PlayerMsgId messageId) {
+            viewer.showTitle(Title.title(
+                Component.empty(),
+                PlayerMsgResource.getComponent(messageId.getId()),
+                INSTRUCTION_TITLE_TIMES
+            ));
         }
 
         private String selectedSkillId() {
@@ -808,7 +820,7 @@ public final class SkillActionRingService {
         }
 
         private void updateTimer(@NotNull Location center, boolean layoutChanged) {
-            if (timerLabel == null) {
+            if (timerLabel == null || phase == RingPhase.WAITING_CAST) {
                 return;
             }
             Location timerLocation = center.clone().subtract(up.clone().multiply(0.30D));
@@ -819,9 +831,8 @@ public final class SkillActionRingService {
         }
 
         private @NotNull String timerText() {
-            long limit = phase == RingPhase.SELECTING ? RING_DISPLAY_LIMIT_TICKS : CAST_WAIT_LIMIT_TICKS;
-            long remainingTicks = Math.max(0L, limit - phaseElapsedTicks);
-            double remaining = Math.max(0.0D, Math.min(1.0D, (double) remainingTicks / limit));
+            long remainingTicks = Math.max(0L, RING_DISPLAY_LIMIT_TICKS - phaseElapsedTicks);
+            double remaining = Math.max(0.0D, Math.min(1.0D, (double) remainingTicks / RING_DISPLAY_LIMIT_TICKS));
             int filled = (int) Math.round(remaining * TIMER_BAR_LENGTH);
             StringBuilder bar = new StringBuilder(TIMER_BAR_LENGTH + 16);
             bar.append(ColorCodeUtil.GREEN);

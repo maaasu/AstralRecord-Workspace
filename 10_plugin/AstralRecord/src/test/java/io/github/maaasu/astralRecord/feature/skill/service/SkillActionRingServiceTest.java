@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentDurabilityService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemWeaponAttackService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
@@ -22,12 +23,16 @@ import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
@@ -37,10 +42,78 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.same;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class SkillActionRingServiceTest extends MockBukkitTestBase {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 2. action ring 入力解決
+     * 検証契約: action ring は選択前後で指定されたタイトル字幕の案内文と色を表示する。
+     */
+    @Test
+    void actionRingSubtitleResourcesUseRequestedInstructionsAndColors() {
+        assertEquals("§e左クリックでスキルを選択", LegacyComponentSerializer.legacySection().serialize(
+            PlayerMsgResource.getComponent(PlayerMsgId.P_5854.getId())
+        ));
+        assertEquals("§a(§2左クリックでスキルを発動§a)", LegacyComponentSerializer.legacySection().serialize(
+            PlayerMsgResource.getComponent(PlayerMsgId.P_5855.getId())
+        ));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 2. action ring 入力解決
+     * 検証契約: action ring は開始時と選択確定時に案内 subtitle を表示し、確定後は timeout を停止して
+     * timer bar を消去する。終了時に後続の機能が表示した title を消去しない。
+     */
+    @Test
+    void confirmedActionRingKeepsSessionWithoutTimerUntilExplicitClose() throws ReflectiveOperationException {
+        Player viewer = mock(Player.class);
+        Location eye = new Location(mock(World.class), 0.0D, 64.0D, 0.0D);
+        eye.setDirection(new org.bukkit.util.Vector(0.0D, 0.0D, 1.0D));
+        when(viewer.getEyeLocation()).thenReturn(eye);
+
+        SkillActionRingDisplay display = mock(SkillActionRingDisplay.class);
+        SkillActionRingDisplay.DisplayEntity timerLabel = mock(SkillActionRingDisplay.DisplayEntity.class);
+        Object session = newRingSession(viewer, display);
+        setField(session, "timerLabel", timerLabel);
+        populateDisplayEntities(session);
+
+        Method showInstruction = session.getClass().getDeclaredMethod("showInstruction", PlayerMsgId.class);
+        showInstruction.setAccessible(true);
+        showInstruction.invoke(session, PlayerMsgId.P_5854);
+        Method confirmSelection = session.getClass().getDeclaredMethod("confirmSelection");
+        confirmSelection.setAccessible(true);
+        confirmSelection.invoke(session);
+
+        ArgumentCaptor<net.kyori.adventure.title.Title> titleCaptor = ArgumentCaptor.forClass(net.kyori.adventure.title.Title.class);
+        verify(viewer, times(2)).showTitle(titleCaptor.capture());
+        assertEquals(Component.empty(), titleCaptor.getAllValues().getFirst().title());
+        assertEquals(PlayerMsgResource.getComponent(PlayerMsgId.P_5854.getId()), titleCaptor.getAllValues().getFirst().subtitle());
+        assertEquals(Component.empty(), titleCaptor.getAllValues().getLast().title());
+        assertEquals(PlayerMsgResource.getComponent(PlayerMsgId.P_5855.getId()), titleCaptor.getAllValues().getLast().subtitle());
+
+        verify(display).updateText(same(viewer), same(timerLabel), same(Component.empty()), org.mockito.ArgumentMatchers.eq(0.60F));
+        Method tick = session.getClass().getDeclaredMethod("tick", Player.class);
+        tick.setAccessible(true);
+        for (int index = 0; index <= 100; index++) {
+            assertTrue((Boolean) tick.invoke(session, viewer));
+        }
+        Field phase = session.getClass().getDeclaredField("phase");
+        phase.setAccessible(true);
+        assertEquals("WAITING_CAST", phase.get(session).toString());
+        verify(display).updateText(same(viewer), same(timerLabel), same(Component.empty()), org.mockito.ArgumentMatchers.eq(0.60F));
+
+        Method destroy = session.getClass().getDeclaredMethod("destroy");
+        destroy.setAccessible(true);
+        destroy.invoke(session);
+        verify(viewer, org.mockito.Mockito.never()).resetTitle();
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
@@ -126,6 +199,55 @@ class SkillActionRingServiceTest extends MockBukkitTestBase {
         assertEquals(expectedColorCode, colorCode);
         assertTrue(LegacyComponentSerializer.legacySection().serialize(component)
             .startsWith(expectedColorCode + expectedLabel.split("\\n", 2)[0]));
+    }
+
+    private Object newRingSession(Player viewer, SkillActionRingDisplay display) throws ReflectiveOperationException {
+        Class<?> availabilityType = Class.forName(SkillActionRingService.class.getName() + "$SlotAvailability");
+        Method availabilityFor = SkillActionRingService.class.getDeclaredMethod("availabilityFor", SkillCastResult.class);
+        availabilityFor.setAccessible(true);
+        Object availability = availabilityFor.invoke(null, SkillCastResult.succeeded());
+        Class<?> slotViewType = Class.forName(SkillActionRingService.class.getName() + "$SlotView");
+        Constructor<?> slotConstructor = slotViewType.getDeclaredConstructor(
+            String.class, SkillDefinition.class, String.class, Material.class, boolean.class, availabilityType
+        );
+        slotConstructor.setAccessible(true);
+        List<Object> slots = new java.util.ArrayList<>(SkillBindPreset.ACTION_RING_SLOT_COUNT);
+        for (int index = 0; index < SkillBindPreset.ACTION_RING_SLOT_COUNT; index++) {
+            slots.add(slotConstructor.newInstance(
+                "test_skill_" + index, definition(), "スキル", Material.STONE, true, availability
+            ));
+        }
+        Class<?> sessionType = Class.forName(SkillActionRingService.class.getName() + "$RingSession");
+        Constructor<?> sessionConstructor = sessionType.getDeclaredConstructors()[0];
+        sessionConstructor.setAccessible(true);
+        Location eye = viewer.getEyeLocation();
+        return sessionConstructor.newInstance(
+            eye, eye.clone().add(0.0D, 0.0D, 3.0D), new org.bukkit.util.Vector(0.0D, 0.0D, 1.0D),
+            new org.bukkit.util.Vector(-1.0D, 0.0D, 0.0D), new org.bukkit.util.Vector(0.0D, 1.0D, 0.0D),
+            slots, viewer, display, mock(SkillService.class), mock(PlayerSkillCaster.class), null, null
+        );
+    }
+
+    private void populateDisplayEntities(Object session) throws ReflectiveOperationException {
+        addDisplayEntities(session, "icons", SkillBindPreset.ACTION_RING_SLOT_COUNT);
+        addDisplayEntities(session, "labels", SkillBindPreset.ACTION_RING_SLOT_COUNT);
+        addDisplayEntities(session, "circleDots", 24);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void addDisplayEntities(Object session, String fieldName, int count) throws ReflectiveOperationException {
+        Field field = session.getClass().getDeclaredField(fieldName);
+        field.setAccessible(true);
+        List<SkillActionRingDisplay.DisplayEntity> entities = (List<SkillActionRingDisplay.DisplayEntity>) field.get(session);
+        for (int index = 0; index < count; index++) {
+            entities.add(mock(SkillActionRingDisplay.DisplayEntity.class));
+        }
+    }
+
+    private void setField(Object target, String fieldName, Object value) throws ReflectiveOperationException {
+        Field field = target.getClass().getDeclaredField(fieldName);
+        field.setAccessible(true);
+        field.set(target, value);
     }
 
     private SkillDefinition definition() {
