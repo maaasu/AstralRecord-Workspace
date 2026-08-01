@@ -45,6 +45,8 @@ public final class NpcPlayerSkinPacketService {
 
     private static final AtomicInteger NEXT_FAKE_ENTITY_ID = new AtomicInteger(-2_000_000_000);
     private static final byte PLAYER_SKIN_PARTS_ALL = (byte) 0x7F;
+    /** クライアントがスキン付き GameProfile を解決するために tab list へ保持する時間。 */
+    private static final long SKIN_PROFILE_RETENTION_TICKS = 20L;
     private static final EnumSet<EnumWrappers.PlayerInfoAction> PLAYER_INFO_ACTIONS = EnumSet.of(
             EnumWrappers.PlayerInfoAction.ADD_PLAYER,
             EnumWrappers.PlayerInfoAction.UPDATE_LISTED,
@@ -243,7 +245,7 @@ public final class NpcPlayerSkinPacketService {
     }
 
     /**
-     * スキンを含む GameProfile がクライアントへ登録された後、NPC を tab list から除外します。
+     * スキンを含む GameProfile がクライアントへ反映されるまで待機してから、NPC を tab list から除外します。
      *
      * @param viewer 表示先プレイヤー
      * @param state  対象 NPC の表示状態
@@ -255,7 +257,7 @@ public final class NpcPlayerSkinPacketService {
                 return;
             }
             sendPacket(viewer, createPlayerInfoHidePacket(state));
-        }, 1L);
+        }, SKIN_PROFILE_RETENTION_TICKS);
     }
 
     private @NotNull PacketContainer createPlayerInfoPacket(@NotNull SkinViewState state) {
