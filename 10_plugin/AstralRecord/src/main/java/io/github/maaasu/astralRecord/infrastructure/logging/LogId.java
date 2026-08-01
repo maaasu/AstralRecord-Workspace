@@ -830,6 +830,10 @@ public enum LogId {
      */
     W_5705(5705),
     /**
+     * NPC Player skin packet の送信に失敗しました: packetType=%s, worldName=%s
+     */
+    W_5706(5706),
+    /**
      * Mob パケット送出に失敗しました: %s
      */
     /**

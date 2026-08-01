@@ -15,6 +15,8 @@ import com.comphenix.protocol.wrappers.WrappedGameProfile;
 import com.comphenix.protocol.wrappers.WrappedSignedProperty;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkin;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
@@ -49,6 +51,9 @@ public final class NpcPlayerSkinPacketService {
             EnumWrappers.PlayerInfoAction.UPDATE_GAME_MODE,
             EnumWrappers.PlayerInfoAction.UPDATE_DISPLAY_NAME,
             EnumWrappers.PlayerInfoAction.UPDATE_HAT
+    );
+    private static final EnumSet<EnumWrappers.PlayerInfoAction> PLAYER_INFO_HIDE_ACTIONS = EnumSet.of(
+            EnumWrappers.PlayerInfoAction.UPDATE_LISTED
     );
 
     private final Plugin plugin;
@@ -213,6 +218,7 @@ public final class NpcPlayerSkinPacketService {
         sendPacket(viewer, createPlayerSpawnPacket(state, location));
         sendPacket(viewer, createEntityMetadataPacket(state));
         sendPacket(viewer, createEntityHeadRotationPacket(state.fakeEntityId(), location.getYaw()));
+        hideFromPlayerListNextTick(viewer, state);
     }
 
     private void syncForViewer(@NotNull Player viewer, @NotNull SkinViewState state, @NotNull Location location) {
@@ -231,19 +237,48 @@ public final class NpcPlayerSkinPacketService {
         }
         try {
             protocolManager.sendServerPacket(viewer, packet);
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException exception) {
+            Logger.log(LogId.W_5706, exception, packet.getType().name(), viewer.getWorld().getName());
         }
     }
 
+    /**
+     * スキンを含む GameProfile がクライアントへ登録された後、NPC を tab list から除外します。
+     *
+     * @param viewer 表示先プレイヤー
+     * @param state  対象 NPC の表示状態
+     */
+    private void hideFromPlayerListNextTick(@NotNull Player viewer, @NotNull SkinViewState state) {
+        UUID viewerId = viewer.getUniqueId();
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (!viewer.isOnline() || !state.viewerIds().contains(viewerId)) {
+                return;
+            }
+            sendPacket(viewer, createPlayerInfoHidePacket(state));
+        }, 1L);
+    }
+
     private @NotNull PacketContainer createPlayerInfoPacket(@NotNull SkinViewState state) {
+        return createPlayerInfoPacket(state, PLAYER_INFO_ACTIONS, true);
+    }
+
+    private @NotNull PacketContainer createPlayerInfoHidePacket(@NotNull SkinViewState state) {
+        return createPlayerInfoPacket(state, PLAYER_INFO_HIDE_ACTIONS, false);
+    }
+
+    private @NotNull PacketContainer createPlayerInfoPacket(
+            @NotNull SkinViewState state,
+            @NotNull EnumSet<EnumWrappers.PlayerInfoAction> actions,
+            boolean listed
+    ) {
         PacketContainer packet = protocolManager.createPacket(PacketType.Play.Server.PLAYER_INFO);
-        packet.getPlayerInfoActions().write(0, PLAYER_INFO_ACTIONS);
+        packet.getPlayerInfoActions().write(0, actions);
         packet.getPlayerInfoDataLists().write(
                 0,
                 List.of(new PlayerInfoData(
                         state.profileUuid(),
                         0,
-                        false,
+                        listed,
                         EnumWrappers.NativeGameMode.SURVIVAL,
                         state.profile(),
                         null,
