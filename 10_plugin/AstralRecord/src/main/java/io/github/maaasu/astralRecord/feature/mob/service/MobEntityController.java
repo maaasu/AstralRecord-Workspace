@@ -40,6 +40,7 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -371,6 +372,12 @@ public class MobEntityController {
         applyStationaryNpcAttributes(template, mob);
     }
 
+    /**
+     * マスターデータで指定された外見差分を対象 Mob の対応 setter へ反映します。
+     *
+     * @param template 外見差分を保持する Mob テンプレート
+     * @param mob      外見差分を反映する Bukkit Mob
+     */
     void applyVariant(@NotNull MobTemplate template, @NotNull Mob mob) {
         if (mob instanceof Ageable ageable) {
             switch (template.variant().age()) {
@@ -383,24 +390,31 @@ public class MobEntityController {
         }
 
         var variant = template.variant();
-        applyEnumVariant(mob, "setVariant", variant.kind());
-        applyEnumVariant(mob, "setCatType", variant.kind());
-        applyEnumVariant(mob, "setRabbitType", variant.kind());
-        applyEnumVariant(mob, "setFoxType", variant.kind());
-        applyEnumVariant(mob, "setColor", variant.color());
-        applyEnumVariant(mob, "setStyle", variant.style());
-        applyEnumVariant(mob, "setProfession", variant.profession());
-        applyEnumVariant(mob, "setVillagerProfession", variant.profession());
-        applyEnumVariant(mob, "setVillagerType", variant.villagerType());
+        applyNamedVariant(mob, "setVariant", variant.kind());
+        applyNamedVariant(mob, "setCatType", variant.kind());
+        applyNamedVariant(mob, "setRabbitType", variant.kind());
+        applyNamedVariant(mob, "setFoxType", variant.kind());
+        applyNamedVariant(mob, "setColor", variant.color());
+        applyNamedVariant(mob, "setStyle", variant.style());
+        applyNamedVariant(mob, "setProfession", variant.profession());
+        applyNamedVariant(mob, "setVillagerProfession", variant.profession());
+        applyNamedVariant(mob, "setVillagerType", variant.villagerType());
         applyIntVariant(mob, "setVillagerLevel", variant.villagerLevel(), 1, 5);
-        applyEnumVariant(mob, "setPattern", variant.pattern());
-        applyEnumVariant(mob, "setBodyColor", variant.bodyColor());
-        applyEnumVariant(mob, "setPatternColor", variant.patternColor());
-        applyEnumVariant(mob, "setMainGene", variant.mainGene());
-        applyEnumVariant(mob, "setHiddenGene", variant.hiddenGene());
+        applyNamedVariant(mob, "setPattern", variant.pattern());
+        applyNamedVariant(mob, "setBodyColor", variant.bodyColor());
+        applyNamedVariant(mob, "setPatternColor", variant.patternColor());
+        applyNamedVariant(mob, "setMainGene", variant.mainGene());
+        applyNamedVariant(mob, "setHiddenGene", variant.hiddenGene());
     }
 
-    private void applyEnumVariant(@NotNull Entity entity, @NotNull String methodName, @Nullable String rawValue) {
+    /**
+     * Java enum または Paper の registry-backed 互換型を引数に取る setter へ名前付き外見差分を反映します。
+     *
+     * @param entity     外見差分を反映する Entity
+     * @param methodName 呼び出す setter 名
+     * @param rawValue   マスターデータ由来の名前。未指定・未知値は反映しません
+     */
+    private void applyNamedVariant(@NotNull Entity entity, @NotNull String methodName, @Nullable String rawValue) {
         if (rawValue == null || rawValue.isBlank()) {
             return;
         }
@@ -410,15 +424,12 @@ public class MobEntityController {
                 continue;
             }
             Class<?> parameterType = method.getParameterTypes()[0];
-            if (!parameterType.isEnum()) {
-                continue;
-            }
-            Object enumValue = resolveEnumValue(parameterType, rawValue);
-            if (enumValue == null) {
+            Object namedValue = resolveNamedValue(parameterType, rawValue);
+            if (namedValue == null) {
                 continue;
             }
             try {
-                method.invoke(entity, enumValue);
+                method.invoke(entity, namedValue);
             } catch (ReflectiveOperationException | RuntimeException ignored) {
                 // EntityType と setter の組み合わせが合わない場合は外見差分を無視する。
             }
@@ -426,13 +437,42 @@ public class MobEntityController {
         }
     }
 
+    /**
+     * Java enum または Paper の registry-backed 互換型が公開する候補から名前に一致する値を解決します。
+     *
+     * @param valueType setter の引数型
+     * @param rawValue  マスターデータ由来の名前
+     * @return 大小文字を区別せず一致した値。対象外の型または未知値の場合は {@code null}
+     */
     @Nullable
-    private Object resolveEnumValue(@NotNull Class<?> enumType, @NotNull String rawValue) {
-        for (Object candidate : enumType.getEnumConstants()) {
-            if (candidate instanceof Enum<?> enumCandidate
-                    && enumCandidate.name().equalsIgnoreCase(rawValue)) {
-                return candidate;
+    private Object resolveNamedValue(@NotNull Class<?> valueType, @NotNull String rawValue) {
+        if (valueType.isEnum()) {
+            for (Object candidate : valueType.getEnumConstants()) {
+                if (candidate instanceof Enum<?> enumCandidate
+                        && enumCandidate.name().equalsIgnoreCase(rawValue)) {
+                    return candidate;
+                }
             }
+            return null;
+        }
+        try {
+            Method valuesMethod = valueType.getMethod("values");
+            Method nameMethod = valueType.getMethod("name");
+            if (!Modifier.isStatic(valuesMethod.getModifiers()) || !valuesMethod.getReturnType().isArray()) {
+                return null;
+            }
+            Object values = valuesMethod.invoke(null);
+            if (!(values instanceof Object[] candidates)) {
+                return null;
+            }
+            for (Object candidate : candidates) {
+                if (valueType.isInstance(candidate)
+                        && rawValue.equalsIgnoreCase(String.valueOf(nameMethod.invoke(candidate)))) {
+                    return candidate;
+                }
+            }
+        } catch (ReflectiveOperationException | RuntimeException ignored) {
+            // Paper の互換 values()/name() を利用できない型は外見差分の対象外とする。
         }
         return null;
     }

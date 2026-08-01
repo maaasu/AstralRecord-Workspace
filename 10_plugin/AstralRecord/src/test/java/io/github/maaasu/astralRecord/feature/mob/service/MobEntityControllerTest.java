@@ -7,7 +7,9 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionsConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
+import io.github.maaasu.astralRecord.feature.mob.model.MobVariantConfig;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
+import org.bukkit.DyeColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -15,6 +17,9 @@ import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.Sheep;
+import org.bukkit.entity.Villager;
+import org.bukkit.entity.ZombieVillager;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.util.Transformation;
@@ -142,6 +147,125 @@ class MobEntityControllerTest extends MockBukkitTestBase {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-実体Mob制御.md
+     * 章・見出し: # 12_3-実体Mob制御 > ## 2. 実体 Mob 初期化
+     * 検証契約: Paper 1.21.11でOldEnumとなったVillager Profession/Typeを名前解決してsetterへ反映する。
+     */
+    @Test
+    void paperOldEnumVillagerAppearanceIsApplied() {
+        Villager villager = mock(Villager.class);
+        MobVariantConfig variant = new MobVariantConfig(
+                MobVariantConfig.Age.ADULT,
+                null,
+                null,
+                null,
+                "farmer",
+                "taiga",
+                4,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        new MobEntityController(PluginMock.builder().withPluginName("AstralRecordTest").build())
+                .applyVariant(templateWithVariant(variant), villager);
+
+        verify(villager).setProfession(Villager.Profession.FARMER);
+        verify(villager).setVillagerType(Villager.Type.TAIGA);
+        verify(villager).setVillagerLevel(4);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-実体Mob制御.md
+     * 章・見出し: # 12_3-実体Mob制御 > ## 2. 実体 Mob 初期化
+     * 検証契約: ZombieVillagerのPaper OldEnum職業を名前解決して固有setterへ反映する。
+     */
+    @Test
+    void paperOldEnumZombieVillagerProfessionIsApplied() {
+        ZombieVillager zombieVillager = mock(ZombieVillager.class);
+        MobVariantConfig variant = new MobVariantConfig(
+                MobVariantConfig.Age.ADULT,
+                null,
+                null,
+                null,
+                "farmer",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        new MobEntityController(PluginMock.builder().withPluginName("AstralRecordTest").build())
+                .applyVariant(templateWithVariant(variant), zombieVillager);
+
+        verify(zombieVillager).setVillagerProfession(Villager.Profession.FARMER);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-実体Mob制御.md
+     * 章・見出し: # 12_3-実体Mob制御 > ## 2. 実体 Mob 初期化
+     * 検証契約: 従来のJava enum型を使う外見差分も引き続き名前解決してsetterへ反映する。
+     */
+    @Test
+    void javaEnumAppearanceRemainsSupported() {
+        Sheep sheep = mock(Sheep.class);
+        MobVariantConfig variant = new MobVariantConfig(
+                MobVariantConfig.Age.ADULT,
+                null,
+                "blue",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        new MobEntityController(PluginMock.builder().withPluginName("AstralRecordTest").build())
+                .applyVariant(templateWithVariant(variant), sheep);
+
+        verify(sheep).setColor(DyeColor.BLUE);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-実体Mob制御.md
+     * 章・見出し: # 12_3-実体Mob制御 > ## 2. 実体 Mob 初期化
+     * 検証契約: OldEnumの未知値はsetterへ反映せず、対象Mobの既定外見を維持する。
+     */
+    @Test
+    void unknownPaperOldEnumAppearanceIsIgnored() {
+        Villager villager = mock(Villager.class);
+        MobVariantConfig variant = new MobVariantConfig(
+                MobVariantConfig.Age.ADULT,
+                null,
+                null,
+                null,
+                "unknown_profession",
+                "unknown_type",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        new MobEntityController(PluginMock.builder().withPluginName("AstralRecordTest").build())
+                .applyVariant(templateWithVariant(variant), villager);
+
+        verify(villager, never()).setProfession(any());
+        verify(villager, never()).setVillagerType(any());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
      * 章・見出し: # 12_3-サービス > ## 2. MobEntityController メソッド仕様 > ### 実体 Mob 生成
      * 検証契約: ARMOR_STAND templateをvisible/arms/baseplateあり、gravity/collisionなし、全slot操作無効の装備carrierとしてspawn/bindする。
@@ -172,5 +296,38 @@ class MobEntityControllerTest extends MockBukkitTestBase {
         assertEquals(Set.of(EquipmentSlot.values()), armorStand.getDisabledSlots());
         assertEquals(Material.LEATHER_HELMET, armorStand.getEquipment().getHelmet().getType());
         assertEquals(entity.getUniqueId(), instance.bukkitEntityId());
+    }
+
+    /**
+     * 外見差分テスト用の NPC テンプレートを生成します。
+     *
+     * @param variant 検証対象の外見差分
+     * @return 指定された外見差分を持つ NPC テンプレート
+     */
+    private static MobTemplate templateWithVariant(MobVariantConfig variant) {
+        return new MobTemplate(
+                1,
+                "npc:test_villager",
+                MobCategory.NPC,
+                "Test Villager",
+                null,
+                1,
+                EntityType.VILLAGER,
+                false,
+                null,
+                List.of(),
+                List.of(),
+                null,
+                variant,
+                MobEquipmentConfig.EMPTY,
+                List.of(),
+                MobShieldConfig.EMPTY,
+                MobIdleConfig.defaults(),
+                true,
+                MobInteractionsConfig.EMPTY,
+                null,
+                null,
+                null
+        );
     }
 }
