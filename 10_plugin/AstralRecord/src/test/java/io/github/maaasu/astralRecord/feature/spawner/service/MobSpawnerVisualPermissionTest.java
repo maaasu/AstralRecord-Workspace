@@ -7,6 +7,8 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerRegionService;
 import io.github.maaasu.astralRecord.feature.spawner.repository.MobSpawnerDefinitionRepository;
 import io.github.maaasu.astralRecord.feature.spawner.repository.MobSpawnerLocationRepository;
+import io.github.maaasu.astralRecord.feature.user.model.UserModel;
+import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.plugin.PluginMock;
@@ -19,29 +21,27 @@ import static org.mockito.Mockito.when;
 class MobSpawnerVisualPermissionTest extends MockBukkitTestBase {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_0-概要.md
-     * 章・見出し: # 12_0-概要 > ## 3. 構成要素（実装単位）
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
+     * 章・見出し: # 12_1-モデル定義 > ## 22. Mob スポナー座標 > ### Mob spawner 削除認可
      * 検証契約: user.permission=99ならaccount modeに関係なくMob spawner packet visualを見せる。
      */
     @Test
     void adminPermissionCanViewSpawnerVisualRegardlessOfAccountMode() {
         MobSpawnerService service = service();
-        AstPlayer administrator = mock(AstPlayer.class);
-        when(administrator.hasAdminPermission()).thenReturn(true);
+        AstPlayer administrator = playerWithPermission(UserPermission.ADMIN.getValue());
 
         assertTrue(service.canViewSpawnerVisual(administrator));
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_0-概要.md
-     * 章・見出し: # 12_0-概要 > ## 3. 構成要素（実装単位）
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
+     * 章・見出し: # 12_1-モデル定義 > ## 22. Mob スポナー座標 > ### Mob spawner 削除認可
      * 検証契約: admin permissionなしplayerへMob spawner packet visualを見せない。
      */
     @Test
     void playerWithoutAdminPermissionCannotViewSpawnerVisual() {
         MobSpawnerService service = service();
-        AstPlayer player = mock(AstPlayer.class);
-        when(player.hasAdminPermission()).thenReturn(false);
+        AstPlayer player = playerWithPermission(UserPermission.PLAYER.getValue());
 
         assertFalse(service.canViewSpawnerVisual(player));
         assertFalse(service.canViewSpawnerVisual(null));
@@ -55,9 +55,8 @@ class MobSpawnerVisualPermissionTest extends MockBukkitTestBase {
     @Test
     void spawnerRemovalRequiresAdminPermissionAndAdminAccountMode() {
         MobSpawnerService service = service();
-        AstPlayer administrator = mock(AstPlayer.class);
+        AstPlayer administrator = playerWithPermission(UserPermission.ADMIN.getValue());
         AccountModel adminAccount = mock(AccountModel.class);
-        when(administrator.hasAdminPermission()).thenReturn(true);
         when(administrator.getAccount()).thenReturn(adminAccount);
         when(adminAccount.getMode()).thenReturn(AccountMode.ADMIN);
 
@@ -66,8 +65,36 @@ class MobSpawnerVisualPermissionTest extends MockBukkitTestBase {
         when(adminAccount.getMode()).thenReturn(AccountMode.PLAYER);
         assertFalse(service.canRemoveSpawner(administrator));
 
-        when(administrator.hasAdminPermission()).thenReturn(false);
-        assertFalse(service.canRemoveSpawner(administrator));
+        AstPlayer player = playerWithPermission(UserPermission.PLAYER.getValue());
+        when(player.getAccount()).thenReturn(adminAccount);
+        when(adminAccount.getMode()).thenReturn(AccountMode.ADMIN);
+        assertFalse(service.canRemoveSpawner(player));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
+     * 章・見出し: # 12_1-モデル定義 > ## 22. Mob スポナー座標 > ### Mob spawner 削除認可
+     * 検証契約: 将来の user.permission=100 は99以上でもMob spawnerの表示・削除を許可しない。
+     */
+    @Test
+    void higherFuturePermissionCannotViewOrRemoveSpawner() {
+        MobSpawnerService service = service();
+        AstPlayer futurePermissionPlayer = playerWithPermission(100);
+        AccountModel adminAccount = mock(AccountModel.class);
+        when(futurePermissionPlayer.hasAdminPermission()).thenReturn(true);
+        when(futurePermissionPlayer.getAccount()).thenReturn(adminAccount);
+        when(adminAccount.getMode()).thenReturn(AccountMode.ADMIN);
+
+        assertFalse(service.canViewSpawnerVisual(futurePermissionPlayer));
+        assertFalse(service.canRemoveSpawner(futurePermissionPlayer));
+    }
+
+    private AstPlayer playerWithPermission(int permission) {
+        AstPlayer player = mock(AstPlayer.class);
+        UserModel user = mock(UserModel.class);
+        when(player.getUser()).thenReturn(user);
+        when(user.getPermission()).thenReturn(permission);
+        return player;
     }
 
     private MobSpawnerService service() {

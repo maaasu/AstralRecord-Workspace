@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerRegionService;
+import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import net.kyori.adventure.text.Component;
@@ -364,8 +365,7 @@ public class MobSpawnerService {
      * @return 削除が許可される場合は true
      */
     public boolean canRemoveSpawner(@Nullable AstPlayer astPlayer) {
-        return astPlayer != null
-            && astPlayer.hasAdminPermission()
+        return hasSpawnerAdminPermission(astPlayer)
             && astPlayer.getAccount().getMode() == AccountMode.ADMIN;
     }
 
@@ -373,10 +373,15 @@ public class MobSpawnerService {
      * スポナー表示を見せる管理権限があるか判定します。
      *
      * @param astPlayer 対象プレイヤー
-     * @return user.permission が 99 以上なら true
+     * @return user.permission が {@link UserPermission#ADMIN} と一致する場合は true
      */
     public boolean canViewSpawnerVisual(@Nullable AstPlayer astPlayer) {
-        return astPlayer != null && astPlayer.hasAdminPermission();
+        return hasSpawnerAdminPermission(astPlayer);
+    }
+
+    private boolean hasSpawnerAdminPermission(@Nullable AstPlayer astPlayer) {
+        return astPlayer != null
+            && astPlayer.getUser().getPermission() == UserPermission.ADMIN.getValue();
     }
 
     /**
