@@ -236,7 +236,6 @@ class SkillTreeEventHandlerTest {
         verify(service).clearPlayerPresentation(player);
         verify(service).markViewerContextDirty(player);
     }
-    }
 
     private void allowSnapshotRefresh() {
         World world = mock(World.class);
