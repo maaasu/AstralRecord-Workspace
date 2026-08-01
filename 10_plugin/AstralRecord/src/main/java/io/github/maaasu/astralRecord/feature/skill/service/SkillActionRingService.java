@@ -18,7 +18,6 @@ import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import net.kyori.adventure.title.Title;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.Location;
@@ -30,7 +29,6 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -54,8 +52,6 @@ public final class SkillActionRingService {
     private static final long SELECT_ANIMATION_TICKS = 4L;
     private static final double SELECTING_BLOCK_BREAK_SPEED = 1024.0D;
     private static final ItemStack HIDDEN_ITEM = new ItemStack(Material.AIR);
-    private static final Title.Times INSTRUCTION_TITLE_TIMES =
-        Title.Times.times(Duration.ZERO, Duration.ofDays(1L), Duration.ZERO);
 
     private final AstralRecord plugin;
     private final SkillBindPresetService presetService;
@@ -542,6 +538,7 @@ public final class SkillActionRingService {
         private final AttributeInstance blockBreakSpeedAttribute;
         private final Double originalBlockBreakSpeed;
         private SkillActionRingDisplay.DisplayEntity timerLabel;
+        private SkillActionRingDisplay.DisplayEntity instructionLabel;
         private Location renderedCenter;
         private int selectedIndex;
         private int confirmedIndex = -1;
@@ -615,7 +612,6 @@ public final class SkillActionRingService {
                 originalBlockBreakSpeed
             );
             session.spawnEntities(player);
-            session.showInstruction(PlayerMsgId.P_5854);
             return session;
         }
 
@@ -644,6 +640,8 @@ public final class SkillActionRingService {
             }
             timerLabel = actionRingDisplay.text(baseCenter, Component.empty(), 0.60F);
             timerLabel.spawn(player);
+            instructionLabel = actionRingDisplay.text(baseCenter, Component.empty(), 0.60F);
+            instructionLabel.spawn(player);
         }
 
         private boolean tick(@NotNull Player player) {
@@ -704,6 +702,7 @@ public final class SkillActionRingService {
                 );
             }
             updateTimer(center, layoutChanged);
+            updateInstruction(center, layoutChanged);
             return true;
         }
 
@@ -730,18 +729,9 @@ public final class SkillActionRingService {
             confirmedIndex = selectedIndex;
             phase = RingPhase.WAITING_CAST;
             phaseElapsedTicks = 0L;
-            showInstruction(PlayerMsgId.P_5855);
             if (timerLabel != null) {
                 actionRingDisplay.updateText(viewer, timerLabel, Component.empty(), 0.60F);
             }
-        }
-
-        private void showInstruction(@NotNull PlayerMsgId messageId) {
-            viewer.showTitle(Title.title(
-                Component.empty(),
-                PlayerMsgResource.getComponent(messageId.getId()),
-                INSTRUCTION_TITLE_TIMES
-            ));
         }
 
         private String selectedSkillId() {
@@ -830,6 +820,26 @@ public final class SkillActionRingService {
             actionRingDisplay.updateText(viewer, timerLabel, legacyComponent(timerText()), 0.60F);
         }
 
+        private void updateInstruction(@NotNull Location center, boolean layoutChanged) {
+            if (instructionLabel == null) {
+                return;
+            }
+            Component instruction;
+            Location instructionLocation;
+            if (phase == RingPhase.SELECTING) {
+                instruction = PlayerMsgResource.getComponent(PlayerMsgId.P_5854.getId());
+                instructionLocation = center.clone().add(up.clone().multiply(0.30D));
+            } else {
+                instruction = PlayerMsgResource.getComponent(PlayerMsgId.P_5855.getId());
+                Vector selectedOffset = animatedSlotOffset(confirmedIndex);
+                instructionLocation = center.clone().add(selectedOffset).add(up.clone().multiply(0.42D));
+            }
+            if (layoutChanged) {
+                instructionLabel.teleport(viewer, instructionLocation);
+            }
+            actionRingDisplay.updateText(viewer, instructionLabel, instruction, 0.60F);
+        }
+
         private @NotNull String timerText() {
             long remainingTicks = Math.max(0L, RING_DISPLAY_LIMIT_TICKS - phaseElapsedTicks);
             double remaining = Math.max(0.0D, Math.min(1.0D, (double) remainingTicks / RING_DISPLAY_LIMIT_TICKS));
@@ -866,6 +876,10 @@ public final class SkillActionRingService {
             if (timerLabel != null) {
                 timerLabel.destroy(viewer);
                 timerLabel = null;
+            }
+            if (instructionLabel != null) {
+                instructionLabel.destroy(viewer);
+                instructionLabel = null;
             }
             restoreBlockBreakSpeed();
         }

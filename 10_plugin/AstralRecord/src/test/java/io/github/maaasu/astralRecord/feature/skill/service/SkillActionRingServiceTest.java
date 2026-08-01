@@ -53,10 +53,10 @@ class SkillActionRingServiceTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
      * 章・見出し: # 13_3-イベント > ## 2. action ring 入力解決
-     * 検証契約: action ring は選択前後で指定されたタイトル字幕の案内文と色を表示する。
+     * 検証契約: action ring は選択前後で指定された案内文と色をリング内の文字 Display に表示する。
      */
     @Test
-    void actionRingSubtitleResourcesUseRequestedInstructionsAndColors() {
+    void actionRingInstructionResourcesUseRequestedInstructionsAndColors() {
         assertEquals("§e左クリックでスキルを選択", LegacyComponentSerializer.legacySection().serialize(
             PlayerMsgResource.getComponent(PlayerMsgId.P_5854.getId())
         ));
@@ -68,7 +68,7 @@ class SkillActionRingServiceTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
      * 章・見出し: # 13_3-イベント > ## 2. action ring 入力解決
-     * 検証契約: action ring は開始時と選択確定時に案内 subtitle を表示し、確定後は timeout を停止して
+     * 検証契約: action ring は開始時と選択確定時に案内文字列をリング内へ表示し、確定後は timeout を停止して
      * timer bar を消去する。終了時に後続の機能が表示した title を消去しない。
      */
     @Test
@@ -77,30 +77,38 @@ class SkillActionRingServiceTest extends MockBukkitTestBase {
         Location eye = new Location(mock(World.class), 0.0D, 64.0D, 0.0D);
         eye.setDirection(new org.bukkit.util.Vector(0.0D, 0.0D, 1.0D));
         when(viewer.getEyeLocation()).thenReturn(eye);
+        when(viewer.isOnline()).thenReturn(true);
 
         SkillActionRingDisplay display = mock(SkillActionRingDisplay.class);
         SkillActionRingDisplay.DisplayEntity timerLabel = mock(SkillActionRingDisplay.DisplayEntity.class);
+        SkillActionRingDisplay.DisplayEntity instructionLabel = mock(SkillActionRingDisplay.DisplayEntity.class);
         Object session = newRingSession(viewer, display);
         setField(session, "timerLabel", timerLabel);
+        setField(session, "instructionLabel", instructionLabel);
         populateDisplayEntities(session);
 
-        Method showInstruction = session.getClass().getDeclaredMethod("showInstruction", PlayerMsgId.class);
-        showInstruction.setAccessible(true);
-        showInstruction.invoke(session, PlayerMsgId.P_5854);
+        Method tick = session.getClass().getDeclaredMethod("tick", Player.class);
+        tick.setAccessible(true);
+        assertTrue((Boolean) tick.invoke(session, viewer));
+        verify(display).updateText(same(viewer), same(instructionLabel),
+            org.mockito.ArgumentMatchers.eq(PlayerMsgResource.getComponent(PlayerMsgId.P_5854.getId())),
+            org.mockito.ArgumentMatchers.eq(0.60F));
         Method confirmSelection = session.getClass().getDeclaredMethod("confirmSelection");
         confirmSelection.setAccessible(true);
         confirmSelection.invoke(session);
-
-        ArgumentCaptor<net.kyori.adventure.title.Title> titleCaptor = ArgumentCaptor.forClass(net.kyori.adventure.title.Title.class);
-        verify(viewer, times(2)).showTitle(titleCaptor.capture());
-        assertEquals(Component.empty(), titleCaptor.getAllValues().getFirst().title());
-        assertEquals(PlayerMsgResource.getComponent(PlayerMsgId.P_5854.getId()), titleCaptor.getAllValues().getFirst().subtitle());
-        assertEquals(Component.empty(), titleCaptor.getAllValues().getLast().title());
-        assertEquals(PlayerMsgResource.getComponent(PlayerMsgId.P_5855.getId()), titleCaptor.getAllValues().getLast().subtitle());
+        assertTrue((Boolean) tick.invoke(session, viewer));
+        verify(display).updateText(same(viewer), same(instructionLabel),
+            org.mockito.ArgumentMatchers.eq(PlayerMsgResource.getComponent(PlayerMsgId.P_5855.getId())),
+            org.mockito.ArgumentMatchers.eq(0.60F));
+        ArgumentCaptor<Location> instructionLocations = ArgumentCaptor.forClass(Location.class);
+        verify(instructionLabel, org.mockito.Mockito.atLeast(2)).teleport(same(viewer), instructionLocations.capture());
+        assertEquals(64.30D, instructionLocations.getAllValues().getFirst().getY(), 0.001D);
+        assertTrue(instructionLocations.getAllValues().get(1).getY() > 64.30D);
+        verify(viewer, org.mockito.Mockito.never()).showTitle(
+            org.mockito.ArgumentMatchers.any(net.kyori.adventure.title.Title.class)
+        );
 
         verify(display).updateText(same(viewer), same(timerLabel), same(Component.empty()), org.mockito.ArgumentMatchers.eq(0.60F));
-        Method tick = session.getClass().getDeclaredMethod("tick", Player.class);
-        tick.setAccessible(true);
         for (int index = 0; index <= 100; index++) {
             assertTrue((Boolean) tick.invoke(session, viewer));
         }
@@ -112,6 +120,7 @@ class SkillActionRingServiceTest extends MockBukkitTestBase {
         Method destroy = session.getClass().getDeclaredMethod("destroy");
         destroy.setAccessible(true);
         destroy.invoke(session);
+        verify(instructionLabel).destroy(viewer);
         verify(viewer, org.mockito.Mockito.never()).resetTitle();
     }
 
@@ -221,10 +230,15 @@ class SkillActionRingServiceTest extends MockBukkitTestBase {
         Constructor<?> sessionConstructor = sessionType.getDeclaredConstructors()[0];
         sessionConstructor.setAccessible(true);
         Location eye = viewer.getEyeLocation();
+        SkillService skillService = mock(SkillService.class);
+        when(skillService.canCast(
+            org.mockito.ArgumentMatchers.any(PlayerSkillCaster.class),
+            org.mockito.ArgumentMatchers.any(SkillDefinition.class)
+        )).thenReturn(SkillCastResult.succeeded());
         return sessionConstructor.newInstance(
             eye, eye.clone().add(0.0D, 0.0D, 3.0D), new org.bukkit.util.Vector(0.0D, 0.0D, 1.0D),
             new org.bukkit.util.Vector(-1.0D, 0.0D, 0.0D), new org.bukkit.util.Vector(0.0D, 1.0D, 0.0D),
-            slots, viewer, display, mock(SkillService.class), mock(PlayerSkillCaster.class), null, null
+            slots, viewer, display, skillService, mock(PlayerSkillCaster.class), null, null
         );
     }
 
