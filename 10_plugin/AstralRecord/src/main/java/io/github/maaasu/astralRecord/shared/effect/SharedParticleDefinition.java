@@ -59,4 +59,20 @@ public record SharedParticleDefinition(
     public @NotNull SharedParticleDefinition withCount(int updatedCount) {
         return new SharedParticleDefinition(id, particle, updatedCount, offsetX, offsetY, offsetZ, extra, data);
     }
+
+    /**
+     * 表示位置の拡散量だけを差し替えた定義を返します。
+     *
+     * @param updatedOffsetX X 方向の拡散量
+     * @param updatedOffsetY Y 方向の拡散量
+     * @param updatedOffsetZ Z 方向の拡散量
+     * @return 拡散量を差し替えた定義
+     */
+    public @NotNull SharedParticleDefinition withOffsets(
+        double updatedOffsetX,
+        double updatedOffsetY,
+        double updatedOffsetZ
+    ) {
+        return new SharedParticleDefinition(id, particle, count, updatedOffsetX, updatedOffsetY, updatedOffsetZ, extra, data);
+    }
 }

@@ -5,7 +5,11 @@ import org.bukkit.Particle;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.Field;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -312,6 +316,7 @@ public final class SharedParticleDefinitions {
             new Particle.DustOptions(Color.fromRGB(175, 30, 65), 0.95F)
         );
     private static final Map<String, Particle> PARTICLES = buildParticleMap();
+    private static final Map<String, SharedParticleDefinition> DEFINITIONS = buildDefinitionMap();
 
     private SharedParticleDefinitions() {}
 
@@ -336,12 +341,72 @@ public final class SharedParticleDefinitions {
         return resolveParticle(raw) != null;
     }
 
+    /**
+     * パーティクル ID を、追加データを含む共通表示定義へ解決します。
+     * <p>
+     * 共有カスタム定義を優先し、追加データが不要な Bukkit パーティクルだけを
+     * 既定の単一点表示として解決します。DUST など追加データを要求する種類は、
+     * 色やサイズを持つ共有カスタム定義の ID で指定してください。
+     *
+     * @param raw パーティクル ID
+     * @return 解決できた表示定義。無効または追加データ不足の場合は {@code null}
+     */
+    public static @Nullable SharedParticleDefinition resolveDefinition(@Nullable String raw) {
+        String normalized = normalize(raw);
+        if (normalized == null) {
+            return null;
+        }
+
+        SharedParticleDefinition definition = DEFINITIONS.get(normalized);
+        if (definition != null) {
+            return definition;
+        }
+
+        Particle particle = PARTICLES.get(normalized);
+        if (particle == null || particle.getDataType() != Void.class) {
+            return null;
+        }
+        return new SharedParticleDefinition(normalized, particle, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+    }
+
+    /**
+     * コマンド入力に利用できるパーティクル ID の一覧を返します。
+     *
+     * @return 共有カスタム定義と追加データ不要な Bukkit パーティクルのソート済み ID
+     */
+    public static @NotNull List<String> getDefinitionIds() {
+        Map<String, String> ids = new LinkedHashMap<>();
+        DEFINITIONS.keySet().forEach(id -> ids.put(id, id));
+        PARTICLES.forEach((id, particle) -> {
+            if (particle.getDataType() == Void.class) {
+                ids.put(id, id);
+            }
+        });
+        return ids.keySet().stream().sorted(Comparator.naturalOrder()).toList();
+    }
+
     private static @NotNull Map<String, Particle> buildParticleMap() {
         Map<String, Particle> resolved = new LinkedHashMap<>();
         for (Particle particle : Particle.values()) {
             resolved.put(normalize(particle.name()), particle);
         }
         return Map.copyOf(resolved);
+    }
+
+    private static @NotNull Map<String, SharedParticleDefinition> buildDefinitionMap() {
+        Map<String, SharedParticleDefinition> definitions = new LinkedHashMap<>();
+        try {
+            for (Field field : SharedParticleDefinitions.class.getFields()) {
+                if (field.getType() != SharedParticleDefinition.class) {
+                    continue;
+                }
+                SharedParticleDefinition definition = (SharedParticleDefinition) field.get(null);
+                definitions.put(normalize(definition.id()), definition);
+            }
+        } catch (IllegalAccessException exception) {
+            throw new ExceptionInInitializerError(exception);
+        }
+        return Collections.unmodifiableMap(definitions);
     }
 
     private static @Nullable String normalize(@Nullable String raw) {

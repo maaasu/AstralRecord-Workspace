@@ -31,6 +31,8 @@ import io.github.maaasu.astralRecord.feature.mob.service.NpcPlacementService;
 import io.github.maaasu.astralRecord.feature.spawner.service.MobSpawnerService;
 import io.github.maaasu.astralRecord.feature.party.command.PartyCommand;
 import io.github.maaasu.astralRecord.feature.party.command.PartyTabCompleter;
+import io.github.maaasu.astralRecord.feature.particle.command.ParticleCommand;
+import io.github.maaasu.astralRecord.feature.particle.command.ParticleTabCompleter;
 import io.github.maaasu.astralRecord.feature.playersetting.command.PlayerSettingCommand;
 import io.github.maaasu.astralRecord.feature.playersetting.command.PlayerSettingTabCompleter;
 import io.github.maaasu.astralRecord.feature.player.command.DirectMessageCommand;
@@ -75,10 +77,13 @@ import io.github.maaasu.astralRecord.feature.world.command.WorldTeleportCommand;
 import io.github.maaasu.astralRecord.feature.world.command.WorldTeleportTabCompleter;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.command.CommandManager;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.test.SkillTreeSpawnCheckCommand;
 import io.github.maaasu.astralRecord.test.SkillTreeSpawnCheckTabCompleter;
 import io.github.maaasu.astralRecord.test.TestCommand;
 import io.github.maaasu.astralRecord.test.TestTabCompleter;
+
+import java.util.function.Supplier;
 
 /**
  * Registers plugin commands before {@link CommandManager#initialize(AstralRecord)} runs.
@@ -97,6 +102,7 @@ public class CommandRegister {
     private final TeleporterService teleporterService;
     private final TrainingDummyService trainingDummyService;
     private final TrainingDummyGui trainingDummyGui;
+    private final Supplier<ParticleDisplayService> particleDisplayServiceSupplier;
 
     public CommandRegister(
             ItemService itemService,
@@ -111,7 +117,8 @@ public class CommandRegister {
             TextDisplayPlacementService textDisplayPlacementService,
             TeleporterService teleporterService,
             TrainingDummyService trainingDummyService,
-            TrainingDummyGui trainingDummyGui
+            TrainingDummyGui trainingDummyGui,
+            Supplier<ParticleDisplayService> particleDisplayServiceSupplier
     ) {
         this.itemService = itemService;
         this.itemStackFactory = itemStackFactory;
@@ -126,6 +133,7 @@ public class CommandRegister {
         this.teleporterService = teleporterService;
         this.trainingDummyService = trainingDummyService;
         this.trainingDummyGui = trainingDummyGui;
+        this.particleDisplayServiceSupplier = particleDisplayServiceSupplier;
         registerCommand();
     }
 
@@ -160,6 +168,10 @@ public class CommandRegister {
         cm.registerCommand("skill", new SkillCommand());
         cm.registerCommand("skilltree", new SkillTreeCommand(skillTreeService), new SkillTreeTabCompleter());
         cm.registerCommand("party", new PartyCommand(), new PartyTabCompleter());
+        ParticleCommand particleCommand = new ParticleCommand(AstralRecord.getInstance(), particleDisplayServiceSupplier);
+        ParticleTabCompleter particleTabCompleter = new ParticleTabCompleter();
+        cm.registerCommand("particle", particleCommand, particleTabCompleter);
+        cm.registerCommand("p", particleCommand, particleTabCompleter);
         cm.registerCommand("trade", new TradeCommand(), new TradeTabCompleter());
         cm.registerCommand("shop", new ShopCommand(), new ShopTabCompleter());
         cm.registerCommand("quest", new QuestCommand());

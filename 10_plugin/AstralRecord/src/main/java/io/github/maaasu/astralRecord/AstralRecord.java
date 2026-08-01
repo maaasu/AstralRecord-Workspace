@@ -428,7 +428,8 @@ public final class AstralRecord extends JavaPlugin {
                 textDisplayPlacementService,
                 teleporterService,
                 trainingDummyService,
-                trainingDummyGui
+                trainingDummyGui,
+                () -> particleDisplayService
         );
         CommandManager.getInstance().initialize(this);
     }
