@@ -1,6 +1,5 @@
 package io.github.maaasu.astralRecord.feature.quest.gui;
 
-import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
@@ -8,6 +7,7 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.junit.jupiter.api.Test;
+import org.mockbukkit.mockbukkit.plugin.PluginMock;
 
 import java.util.List;
 
@@ -24,10 +24,9 @@ class QuestGuiTest extends MockBukkitTestBase {
      */
     @Test
     void rendersQuestLimitGuidesOnlyInUnavailableListSlotsInsteadOfSlot49() {
-        AstralRecord plugin = mock(AstralRecord.class);
+        PluginMock plugin = PluginMock.builder().withPluginName("astralrecord").build();
         QuestService questService = mock(QuestService.class);
         AstPlayer astPlayer = mock(AstPlayer.class);
-        when(plugin.getName()).thenReturn("astralrecord");
         when(questService.activeQuests(astPlayer)).thenReturn(List.of());
         when(questService.maxActiveQuests(astPlayer)).thenReturn(5);
         QuestGui questGui = new QuestGui(plugin, questService);

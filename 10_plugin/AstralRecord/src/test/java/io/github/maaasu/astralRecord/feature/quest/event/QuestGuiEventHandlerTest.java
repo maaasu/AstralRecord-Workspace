@@ -14,6 +14,8 @@ import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
+import java.util.UUID;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -87,6 +89,8 @@ class QuestGuiEventHandlerTest {
             when(event.getCurrentItem()).thenReturn(questItem);
             when(event.getClick()).thenReturn(click);
             when(player.getName()).thenReturn("tester");
+            when(player.getOpenInventory()).thenReturn(view);
+            when(player.getUniqueId()).thenReturn(UUID.randomUUID());
             when(questGui.isListInventory(topInventory)).thenReturn(true);
             when(questGui.getQuestId(questItem)).thenReturn(questId);
             when(questService.abandon(astPlayer, questId)).thenReturn(true);

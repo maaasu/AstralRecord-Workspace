@@ -1,6 +1,5 @@
 package io.github.maaasu.astralRecord.feature.quest.gui;
 
-import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestBoardDefinition;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestBoardEntry;
@@ -27,6 +26,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -44,7 +44,13 @@ public final class QuestGui {
     private final QuestService questService;
     private final NamespacedKey questIdKey;
 
-    public QuestGui(@NotNull AstralRecord plugin, @NotNull QuestService questService) {
+    /**
+     * クエスト GUI を初期化します。
+     *
+     * @param plugin クエスト ID を保持する PersistentDataContainer の名前空間を提供するプラグイン
+     * @param questService クエストの表示状態と進行度を取得するサービス
+     */
+    public QuestGui(@NotNull Plugin plugin, @NotNull QuestService questService) {
         this.questService = questService;
         this.questIdKey = new NamespacedKey(plugin, "quest_id");
     }
