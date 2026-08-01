@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -42,7 +43,10 @@ class PlayerDetailGuiTest extends MockBukkitTestBase {
 
         EnumMap<StatusType, StatusValue> values = new EnumMap<>(StatusType.class);
         values.put(StatusType.MAX_HEALTH, new StatusValue(100.0D, 5.0D));
+        values.put(StatusType.FIRE_DAMAGE_INCREASE, new StatusValue(20.0D, 0.0D));
         values.put(StatusType.FIRE_RESISTANCE, new StatusValue(10.0D, 2.0D));
+        values.put(StatusType.ICE_DAMAGE_INCREASE, new StatusValue(30.0D, 0.0D));
+        values.put(StatusType.ICE_RESISTANCE, new StatusValue(40.0D, 0.0D));
         values.put(StatusType.BURNING_RESISTANCE, new StatusValue(15.0D, 3.0D));
         StatusSnapshot snapshot = new StatusSnapshot(values, 100.0D, 0.0D, 0.0D, 0.0D, 0L, LocalDateTime.now());
 
@@ -77,6 +81,9 @@ class PlayerDetailGuiTest extends MockBukkitTestBase {
         assertFalse(statusLore.contains("補正"));
         assertTrue(elementLore.contains("火属性耐性"));
         assertTrue(elementLore.contains("12.0%  (10.0% +2.0%)"));
+        assertTrue(elementLore.indexOf("火属性ダメージ増加") < elementLore.indexOf("氷属性ダメージ増加"));
+        assertTrue(elementLore.indexOf("氷属性ダメージ増加") < elementLore.indexOf("火属性耐性"));
+        assertTrue(elementLore.indexOf("火属性耐性") < elementLore.indexOf("氷属性耐性"));
         assertTrue(conditionLore.contains("燃焼付与耐性"));
         assertTrue(conditionLore.contains("18.0%  (15.0% +3.0%)"));
         assertTrue(buffLore.contains("クリックで詳細を表示"));
@@ -84,6 +91,8 @@ class PlayerDetailGuiTest extends MockBukkitTestBase {
         assertTrue(classLore.contains("Mage Lv.4"));
         assertTrue(classLore.contains("CEXP"));
         assertFalse(headLore.contains("Class Lv."));
+        assertTrue(NamedTextColor.RED.equals(findTextComponent(inventory.getItem(PlayerDetailGui.ELEMENT_SLOT), "火属性ダメージ増加").color()));
+        assertTrue(NamedTextColor.AQUA.equals(findTextComponent(inventory.getItem(PlayerDetailGui.ELEMENT_SLOT), "氷属性ダメージ増加").color()));
     }
 
     private static String plainLore(ItemStack itemStack) {
@@ -94,6 +103,14 @@ class PlayerDetailGuiTest extends MockBukkitTestBase {
         return lore.stream()
             .map(PlainTextComponentSerializer.plainText()::serialize)
             .reduce("", (left, right) -> left + "\n" + right);
+    }
+
+    private static Component findTextComponent(ItemStack itemStack, String text) {
+        return itemStack.getItemMeta().lore().stream()
+            .flatMap(component -> component.children().stream())
+            .filter(component -> text.equals(PlainTextComponentSerializer.plainText().serialize(component)))
+            .findFirst()
+            .orElseThrow();
     }
 
     private static WorldMasterData world(String id, String displayName) {

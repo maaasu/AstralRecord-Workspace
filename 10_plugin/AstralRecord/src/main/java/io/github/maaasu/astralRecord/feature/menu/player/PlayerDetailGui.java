@@ -30,8 +30,11 @@ import org.jetbrains.annotations.Nullable;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -54,6 +57,37 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
     private static final String SEPARATOR = "◇════════════════◇";
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
+    private static final Set<StatusType> ELEMENT_DAMAGE_INCREASES = EnumSet.of(
+        StatusType.FIRE_DAMAGE_INCREASE, StatusType.ICE_DAMAGE_INCREASE, StatusType.LIGHTNING_DAMAGE_INCREASE
+    );
+    private static final Set<StatusType> ELEMENT_RESISTANCES = EnumSet.of(
+        StatusType.FIRE_RESISTANCE, StatusType.FIRE_RESISTANCE_CAP,
+        StatusType.ICE_RESISTANCE, StatusType.ICE_RESISTANCE_CAP,
+        StatusType.LIGHTNING_RESISTANCE, StatusType.LIGHTNING_RESISTANCE_CAP
+    );
+    private static final Set<StatusType> ELEMENT_PENETRATIONS = EnumSet.of(
+        StatusType.FIRE_PENETRATION, StatusType.ICE_PENETRATION, StatusType.LIGHTNING_PENETRATION
+    );
+    private static final Set<StatusType> CONDITION_INCREASES = EnumSet.of(
+        StatusType.BURNING_APPLY_CHANCE, StatusType.BURNING_DAMAGE_INCREASE,
+        StatusType.FROZEN_APPLY_CHANCE, StatusType.CHILLED_APPLY_CHANCE,
+        StatusType.SHOCKED_APPLY_CHANCE, StatusType.SHOCKED_DAMAGE_INCREASE,
+        StatusType.POISONED_APPLY_CHANCE, StatusType.POISONED_DAMAGE_INCREASE,
+        StatusType.BLINDNESS_APPLY_CHANCE, StatusType.WEAKNESS_APPLY_CHANCE,
+        StatusType.HEALING_INHIBITION_APPLY_CHANCE
+    );
+    private static final Set<StatusType> CONDITION_RESISTANCES = EnumSet.of(
+        StatusType.BURNING_RESISTANCE, StatusType.BURNING_DAMAGE_RESISTANCE,
+        StatusType.FROZEN_RESISTANCE, StatusType.CHILLED_RESISTANCE,
+        StatusType.SHOCKED_RESISTANCE, StatusType.SHOCKED_DAMAGE_RESISTANCE,
+        StatusType.POISONED_RESISTANCE, StatusType.POISONED_DAMAGE_RESISTANCE,
+        StatusType.BLINDNESS_RESISTANCE, StatusType.WEAKNESS_RESISTANCE,
+        StatusType.HEALING_INHIBITION_RESISTANCE
+    );
+    private static final Set<StatusType> CONDITION_PENETRATIONS = EnumSet.of(
+        StatusType.BURNING_DAMAGE_PENETRATION, StatusType.SHOCKED_DAMAGE_PENETRATION,
+        StatusType.POISONED_DAMAGE_PENETRATION
+    );
 
     private final WorldService worldService;
 
@@ -270,7 +304,9 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
 
         List<Component> lore = new ArrayList<>();
         lore.add(separatorLine());
-        for (StatusType type : StatusType.byCategory(category)) {
+        for (StatusType type : StatusType.byCategory(category).stream()
+            .sorted(Comparator.comparingInt(PlayerDetailGui::statusGroupOrder))
+            .toList()) {
             StatusValue value = snapshot.getValue(type);
             if (value != null) {
                 lore.add(statLine(type, value, color));
@@ -288,9 +324,10 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         @NotNull StatusValue value,
         @NotNull TextColor accent
     ) {
+        TextColor typeColor = statusColor(type, accent);
         Component line = Component.empty()
-            .append(Component.text(" ▸ ", accent))
-            .append(Component.text(type.getDisplayName(), type.namedColor()))
+            .append(Component.text(" ▸ ", typeColor))
+            .append(Component.text(type.getDisplayName(), typeColor))
             .append(Component.text("  "))
             .append(Component.text(
                 type.formatRange(value.getMinValue(), value.getMaxValue()),
@@ -312,6 +349,33 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
             .append(Component.text(type.formatSignedRange(bonusMin, bonusMax), bonusColor))
             .append(Component.text(")", NamedTextColor.DARK_GRAY));
         return noItalic(line);
+    }
+
+    private static int statusGroupOrder(@NotNull StatusType type) {
+        if (ELEMENT_DAMAGE_INCREASES.contains(type) || CONDITION_INCREASES.contains(type)) return 0;
+        if (ELEMENT_RESISTANCES.contains(type) || CONDITION_RESISTANCES.contains(type)) return 1;
+        if (ELEMENT_PENETRATIONS.contains(type) || CONDITION_PENETRATIONS.contains(type)) return 2;
+        return 3;
+    }
+
+    private static @NotNull TextColor statusColor(@NotNull StatusType type, @NotNull TextColor fallback) {
+        return switch (type) {
+            case FIRE_DAMAGE_INCREASE, FIRE_RESISTANCE, FIRE_RESISTANCE_CAP, FIRE_PENETRATION,
+                BURNING_APPLY_CHANCE, BURNING_RESISTANCE, BURNING_DAMAGE_INCREASE,
+                BURNING_DAMAGE_RESISTANCE, BURNING_DAMAGE_PENETRATION -> NamedTextColor.RED;
+            case ICE_DAMAGE_INCREASE, ICE_RESISTANCE, ICE_RESISTANCE_CAP, ICE_PENETRATION,
+                FROZEN_APPLY_CHANCE, FROZEN_RESISTANCE -> NamedTextColor.AQUA;
+            case LIGHTNING_DAMAGE_INCREASE, LIGHTNING_RESISTANCE, LIGHTNING_RESISTANCE_CAP,
+                LIGHTNING_PENETRATION, SHOCKED_APPLY_CHANCE, SHOCKED_RESISTANCE,
+                SHOCKED_DAMAGE_INCREASE, SHOCKED_DAMAGE_RESISTANCE, SHOCKED_DAMAGE_PENETRATION -> NamedTextColor.YELLOW;
+            case CHILLED_APPLY_CHANCE, CHILLED_RESISTANCE -> NamedTextColor.BLUE;
+            case POISONED_APPLY_CHANCE, POISONED_RESISTANCE, POISONED_DAMAGE_INCREASE,
+                POISONED_DAMAGE_RESISTANCE, POISONED_DAMAGE_PENETRATION -> NamedTextColor.GREEN;
+            case BLINDNESS_APPLY_CHANCE, BLINDNESS_RESISTANCE -> NamedTextColor.DARK_GRAY;
+            case WEAKNESS_APPLY_CHANCE, WEAKNESS_RESISTANCE -> NamedTextColor.DARK_PURPLE;
+            case HEALING_INHIBITION_APPLY_CHANCE, HEALING_INHIBITION_RESISTANCE -> NamedTextColor.LIGHT_PURPLE;
+            default -> fallback;
+        };
     }
 
     private @NotNull ItemStack actionItem(
