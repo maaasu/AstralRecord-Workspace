@@ -56,6 +56,23 @@ public final class ItemWeaponAttackService {
     }
 
     /**
+     * 現在主手にスキル発動へ使用できる武器があるか判定します。
+     *
+     * @param player 判定対象プレイヤー
+     * @return 主手が武器であり、耐久値切れでない場合は {@code true}
+     */
+    public boolean hasUsableMainHandWeapon(@NotNull AstPlayer player) {
+        ItemModel itemModel = inventoryService.getItemModelInHand(player, EquipmentSlot.HAND);
+        if (itemModel == null || itemModel.getEquipment() == null) {
+            return false;
+        }
+        if (itemModel.getEquipment().getSlot() != ItemEquipmentSlot.WEAPON) {
+            return false;
+        }
+        return equipmentDurabilityService == null || equipmentDurabilityService.canUseMainHandWeapon(player);
+    }
+
+    /**
      * 現在主手に装備している武器へ設定された通常攻撃スキル ID を返します。
      *
      * @param player 対象プレイヤー

@@ -1,7 +1,6 @@
 package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
-import io.github.maaasu.astralRecord.feature.item.service.EquipmentDurabilityService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemWeaponAttackService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -61,7 +60,6 @@ public final class SkillActionRingService {
     private final SkillActionRingDisplay actionRingDisplay;
     private final Map<UUID, RingSession> sessions = new ConcurrentHashMap<>();
     private final Set<UUID> suppressedAttackPlayers = ConcurrentHashMap.newKeySet();
-    private EquipmentDurabilityService equipmentDurabilityService;
     private ItemWeaponAttackService itemWeaponAttackService;
     private Consumer<AstPlayer> openListener = player -> { };
     private BukkitTask task;
@@ -83,10 +81,6 @@ public final class SkillActionRingService {
         this.skillService = skillService;
         this.ownershipService = ownershipService;
         this.actionRingDisplay = new SkillActionRingDisplay(plugin);
-    }
-
-    public void setEquipmentDurabilityService(@Nullable EquipmentDurabilityService equipmentDurabilityService) {
-        this.equipmentDurabilityService = equipmentDurabilityService;
     }
 
     /**
@@ -121,7 +115,7 @@ public final class SkillActionRingService {
             GuiSound.CLOSE.play(player);
             return;
         }
-        if (equipmentDurabilityService != null && !equipmentDurabilityService.canUseMainHandWeapon(astPlayer)) {
+        if (!hasUsableMainHandWeapon(astPlayer)) {
             GuiSound.DENY.play(player);
             return;
         }
@@ -180,6 +174,10 @@ public final class SkillActionRingService {
         Player player = astPlayer.getBukkit();
         RingSession session = sessions.get(player.getUniqueId());
         if (session == null) {
+            return;
+        }
+        if (!hasUsableMainHandWeapon(astPlayer)) {
+            GuiSound.DENY.play(player);
             return;
         }
         if (!session.canActivateSelected()) {
@@ -333,6 +331,9 @@ public final class SkillActionRingService {
      * @param astPlayer 対象プレイヤー
      */
     public void activateLeftClickBind(@NotNull AstPlayer astPlayer) {
+        if (!hasUsableMainHandWeapon(astPlayer)) {
+            return;
+        }
         SkillBindPreset preset = selectedPreset(astPlayer);
         if (preset == null) {
             return;
@@ -359,6 +360,9 @@ public final class SkillActionRingService {
      * @return 発動候補がある場合は true
      */
     public boolean hasLeftClickBind(@NotNull AstPlayer astPlayer) {
+        if (!hasUsableMainHandWeapon(astPlayer)) {
+            return false;
+        }
         SkillBindPreset preset = selectedPreset(astPlayer);
         if (preset == null || preset.getLeftClickSkillId() == null) {
             return false;
@@ -379,6 +383,11 @@ public final class SkillActionRingService {
             .filter(preset -> preset.isUnlocked() && preset.getPresetIndex() == selectedPresetIndex)
             .findFirst()
             .orElse(null);
+    }
+
+    private boolean hasUsableMainHandWeapon(@NotNull AstPlayer astPlayer) {
+        return itemWeaponAttackService != null
+            && itemWeaponAttackService.hasUsableMainHandWeapon(astPlayer);
     }
 
     private static @NotNull SlotAvailability availabilityFor(@NotNull SkillCastResult result) {
