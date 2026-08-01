@@ -5,6 +5,7 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -21,6 +22,18 @@ class PlayerMsgResourceTest {
 
         assertTrue(formatted.contains("\u00a7eColored Quest"));
         assertFalse(formatted.contains("&eColored Quest"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_5-例外・ログ・運用.md
+     * 章・見出し: # 18_5-例外・ログ・運用 > ## ログ・メッセージ
+     * 検証契約: メール報酬受取成功メッセージに報酬個数の「件」を表示しない。
+     */
+    @Test
+    void mailRewardMessageDoesNotDisplayRewardCount() {
+        String formatted = PlayerMsgResource.format(PlayerMsgId.P_5620.getId(), "報酬メール");
+
+        assertEquals("§aメール「§e報酬メール§a」を既読にし、報酬を受け取りました。", formatted);
     }
 
     /**

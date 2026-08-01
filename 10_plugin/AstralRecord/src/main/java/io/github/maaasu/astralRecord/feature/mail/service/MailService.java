@@ -257,14 +257,10 @@ public final class MailService {
                 }
 
                 if (!receipt.mutations().isEmpty() && online != null) {
-                    long grantedAmount = receipt.mutations().stream()
-                        .mapToLong(InventoryService.InventoryGrantMutation::quantity)
-                        .sum();
                     PlayerMessageService.getInstance().send(
                         online,
                         PlayerMsgId.P_5620,
-                        mail.title(),
-                        grantedAmount
+                        mail.title()
                     );
                 }
                 completedClaims.add(claimKey);
