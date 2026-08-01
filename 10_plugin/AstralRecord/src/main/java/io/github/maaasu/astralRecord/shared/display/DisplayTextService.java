@@ -123,7 +123,7 @@ public final class DisplayTextService {
      */
     public @NotNull ManagedTextDisplay spawnEvadedText(@NotNull Location origin) {
         pruneDamageDisplays();
-        return spawnFloatingText(origin, "&f&l回避");
+        return spawnFloatingText(origin, "&7Miss");
     }
 
     private @NotNull ManagedTextDisplay spawnFloatingDamageNumber(@NotNull Location origin, double amount, @NotNull String prefix) {
