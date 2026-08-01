@@ -11,12 +11,15 @@ import java.util.UUID;
  * スキルバインドプリセットの API モデルです。
  */
 public final class SkillBindPreset {
-    public static final int SLOT_COUNT = 8;
+    public static final int ACTION_RING_SLOT_COUNT = 6;
+    public static final int PASSIVE_SLOT_COUNT = 8;
+    public static final String WEAPON_NORMAL_ATTACK_BINDING_ID = "__weapon_normal_attack__";
 
     private final UUID presetId;
     private final UUID accountId;
     private final int presetIndex;
     private final List<String> activeSkillSlots;
+    private final String leftClickSkillId;
     private final List<String> passiveSkillSlots;
     private final boolean unlocked;
     private final boolean saved;
@@ -27,6 +30,7 @@ public final class SkillBindPreset {
         @NotNull UUID accountId,
         int presetIndex,
         @NotNull List<String> activeSkillSlots,
+        @Nullable String leftClickSkillId,
         @NotNull List<String> passiveSkillSlots,
         boolean unlocked,
         boolean saved,
@@ -35,11 +39,30 @@ public final class SkillBindPreset {
         this.presetId = presetId;
         this.accountId = accountId;
         this.presetIndex = presetIndex;
-        this.activeSkillSlots = normalizeSlots(activeSkillSlots);
-        this.passiveSkillSlots = normalizeSlots(passiveSkillSlots);
+        this.activeSkillSlots = normalizeActionRingSlots(activeSkillSlots);
+        this.leftClickSkillId = normalizeSkillId(leftClickSkillId);
+        this.passiveSkillSlots = normalizePassiveSlots(passiveSkillSlots);
         this.unlocked = unlocked;
         this.saved = saved;
         this.version = version;
+    }
+
+    /**
+     * 左クリックバインド未導入時の呼び出し元との互換コンストラクタです。
+     */
+    public SkillBindPreset(
+        @Nullable UUID presetId,
+        @NotNull UUID accountId,
+        int presetIndex,
+        @NotNull List<String> activeSkillSlots,
+        @NotNull List<String> passiveSkillSlots,
+        boolean unlocked,
+        boolean saved,
+        int version
+    ) {
+        this(presetId, accountId, presetIndex, activeSkillSlots,
+            WEAPON_NORMAL_ATTACK_BINDING_ID,
+            passiveSkillSlots, unlocked, saved, version);
     }
 
     public @Nullable UUID getPresetId() {
@@ -58,6 +81,15 @@ public final class SkillBindPreset {
         return activeSkillSlots;
     }
 
+    /**
+     * 左クリックへ割り当てたスキル ID を返します。
+     *
+     * @return 武器通常攻撃の予約 ID、任意スキル ID、または未設定時は {@code null}
+     */
+    public @Nullable String getLeftClickSkillId() {
+        return leftClickSkillId;
+    }
+
     public @NotNull List<String> getPassiveSkillSlots() {
         return passiveSkillSlots;
     }
@@ -74,12 +106,23 @@ public final class SkillBindPreset {
         return version;
     }
 
-    public static @NotNull List<String> normalizeSlots(@NotNull List<String> slots) {
-        List<String> normalized = new ArrayList<>(SLOT_COUNT);
-        for (int i = 0; i < SLOT_COUNT; i++) {
-            String value = i < slots.size() ? slots.get(i) : null;
-            normalized.add(value == null || value.isBlank() ? null : value.trim());
+    public static @NotNull List<String> normalizeActionRingSlots(@NotNull List<String> slots) {
+        return normalizeSlots(slots, ACTION_RING_SLOT_COUNT);
+    }
+
+    public static @NotNull List<String> normalizePassiveSlots(@NotNull List<String> slots) {
+        return normalizeSlots(slots, PASSIVE_SLOT_COUNT);
+    }
+
+    private static @NotNull List<String> normalizeSlots(@NotNull List<String> slots, int slotCount) {
+        List<String> normalized = new ArrayList<>(slotCount);
+        for (int i = 0; i < slotCount; i++) {
+            normalized.add(i < slots.size() ? normalizeSkillId(slots.get(i)) : null);
         }
         return normalized;
+    }
+
+    private static @Nullable String normalizeSkillId(@Nullable String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }

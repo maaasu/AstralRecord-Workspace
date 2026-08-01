@@ -300,6 +300,7 @@ CREATE TABLE [dbo].[skill_bind_preset] (
     [account_id]              UNIQUEIDENTIFIER  NOT NULL,
     [preset_index]            INT               NOT NULL,
     [active_skill_slots_json]  NVARCHAR(MAX)     NOT NULL  CONSTRAINT [DF_skill_bind_preset_active_slots_json]  DEFAULT (N'[]'),
+    [left_click_skill_id]      NVARCHAR(128)     NULL      CONSTRAINT [DF_skill_bind_preset_left_click_skill_id] DEFAULT (N'__weapon_normal_attack__'),
     [passive_skill_slots_json] NVARCHAR(MAX)     NOT NULL  CONSTRAINT [DF_skill_bind_preset_passive_slots_json] DEFAULT (N'[]'),
     [is_unlocked]             BIT               NOT NULL  CONSTRAINT [DF_skill_bind_preset_is_unlocked] DEFAULT (0),
     [version]                 INT               NOT NULL  CONSTRAINT [DF_skill_bind_preset_version]     DEFAULT (1),

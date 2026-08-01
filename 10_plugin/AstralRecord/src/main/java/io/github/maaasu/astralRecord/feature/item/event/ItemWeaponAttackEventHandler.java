@@ -66,7 +66,7 @@ public final class ItemWeaponAttackEventHandler
         var astPlayer = AstPlayerCache.get(snapshot.player());
         if (astPlayer == null
             || astPlayer.getAccount().getMode() != AccountMode.PLAYER
-            || !itemWeaponAttackService.hasLeftClickAction(astPlayer)) {
+            || !actionRingService.hasLeftClickBind(astPlayer)) {
             return List.of();
         }
         if (!conditionService.canAttack(AstEntity.player(astPlayer))) {
@@ -92,12 +92,9 @@ public final class ItemWeaponAttackEventHandler
                 && !skillTreeService.isSkillTreeEditing(snapshot.player())
                 && !actionRingService.isOpen(snapshot.player())
                 && !actionRingService.isAttackSuppressed(snapshot.player())
-                && itemWeaponAttackService.hasLeftClickAction(astPlayer)
+                && actionRingService.hasLeftClickBind(astPlayer)
                 && conditionService.canAttack(AstEntity.player(astPlayer)),
-            () -> itemWeaponAttackService.handleLeftClick(
-                astPlayer,
-                snapshot.player().getEyeLocation()
-            )
+            () -> actionRingService.activateLeftClickBind(astPlayer)
         ));
     }
 }

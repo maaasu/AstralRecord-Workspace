@@ -9,8 +9,10 @@ namespace AstralRecordApi.Repositories;
 public class SkillBindPresetRepository(AstralRecordDbContext dbContext) : ISkillBindPresetRepository
 {
     public const int PresetCount = 9;
-    public const int SlotCount = 8;
+    public const int ActionRingSlotCount = 6;
+    public const int PassiveSlotCount = 8;
     private const int DefaultUnlockedPresetCount = 3;
+    private const string WeaponNormalAttackBindingId = "__weapon_normal_attack__";
 
     public async Task<IReadOnlyList<SkillBindPresetResponse>> GetByAccountIdAsync(Guid accountId)
     {
@@ -41,8 +43,8 @@ public class SkillBindPresetRepository(AstralRecordDbContext dbContext) : ISkill
             return null;
 
         var now = DateTime.UtcNow;
-        var activeSlots = NormalizeSlots(request.ActiveSkillSlots);
-        var passiveSlots = NormalizeSlots(request.PassiveSkillSlots);
+        var activeSlots = NormalizeSlots(request.ActiveSkillSlots, ActionRingSlotCount);
+        var passiveSlots = NormalizeSlots(request.PassiveSkillSlots, PassiveSlotCount);
         var entity = await dbContext.SkillBindPresets
             .FirstOrDefaultAsync(x => x.AccountId == accountId
                 && x.PresetIndex == presetIndex
@@ -68,6 +70,7 @@ public class SkillBindPresetRepository(AstralRecordDbContext dbContext) : ISkill
         }
 
         entity.ActiveSkillSlotsJson = JsonSerializer.Serialize(activeSlots);
+        entity.LeftClickSkillId = NormalizeSkillId(request.LeftClickSkillId) ?? string.Empty;
         entity.PassiveSkillSlotsJson = JsonSerializer.Serialize(passiveSlots);
         entity.IsUnlocked = request.IsUnlocked ?? (entity.IsUnlocked || presetIndex <= DefaultUnlockedPresetCount);
         entity.UpdatedAt = now;
@@ -81,8 +84,9 @@ public class SkillBindPresetRepository(AstralRecordDbContext dbContext) : ISkill
     {
         AccountId = accountId,
         PresetIndex = presetIndex,
-        ActiveSkillSlots = EmptySlots(),
-        PassiveSkillSlots = EmptySlots(),
+        ActiveSkillSlots = EmptySlots(ActionRingSlotCount),
+        LeftClickSkillId = WeaponNormalAttackBindingId,
+        PassiveSkillSlots = EmptySlots(PassiveSlotCount),
         IsUnlocked = presetIndex <= DefaultUnlockedPresetCount,
         IsSaved = false,
     };
@@ -92,8 +96,11 @@ public class SkillBindPresetRepository(AstralRecordDbContext dbContext) : ISkill
         SkillBindPresetId = entity.SkillBindPresetId,
         AccountId = entity.AccountId,
         PresetIndex = entity.PresetIndex,
-        ActiveSkillSlots = DeserializeSlots(entity.ActiveSkillSlotsJson),
-        PassiveSkillSlots = DeserializeSlots(entity.PassiveSkillSlotsJson),
+        ActiveSkillSlots = DeserializeSlots(entity.ActiveSkillSlotsJson, ActionRingSlotCount),
+        LeftClickSkillId = entity.LeftClickSkillId is null
+            ? WeaponNormalAttackBindingId
+            : NormalizeSkillId(entity.LeftClickSkillId),
+        PassiveSkillSlots = DeserializeSlots(entity.PassiveSkillSlotsJson, PassiveSlotCount),
         IsUnlocked = entity.IsUnlocked || entity.PresetIndex <= DefaultUnlockedPresetCount,
         IsSaved = true,
         Version = entity.Version,
@@ -103,29 +110,32 @@ public class SkillBindPresetRepository(AstralRecordDbContext dbContext) : ISkill
         UpdatedBy = entity.UpdatedBy,
     };
 
-    private static IReadOnlyList<string?> EmptySlots()
-        => Enumerable.Repeat<string?>(null, SlotCount).ToArray();
+    private static IReadOnlyList<string?> EmptySlots(int slotCount)
+        => Enumerable.Repeat<string?>(null, slotCount).ToArray();
 
-    private static IReadOnlyList<string?> NormalizeSlots(IEnumerable<string?> slots)
+    private static IReadOnlyList<string?> NormalizeSlots(IEnumerable<string?> slots, int slotCount)
         => slots
-            .Take(SlotCount)
+            .Take(slotCount)
             .Select(slot => string.IsNullOrWhiteSpace(slot) ? null : slot.Trim())
-            .Concat(Enumerable.Repeat<string?>(null, SlotCount))
-            .Take(SlotCount)
+            .Concat(Enumerable.Repeat<string?>(null, slotCount))
+            .Take(slotCount)
             .ToArray();
 
-    private static IReadOnlyList<string?> DeserializeSlots(string? json)
+    private static string? NormalizeSkillId(string? skillId)
+        => string.IsNullOrWhiteSpace(skillId) ? null : skillId.Trim();
+
+    private static IReadOnlyList<string?> DeserializeSlots(string? json, int slotCount)
     {
         if (string.IsNullOrWhiteSpace(json))
-            return EmptySlots();
+            return EmptySlots(slotCount);
 
         try
         {
-            return NormalizeSlots(JsonSerializer.Deserialize<IReadOnlyList<string?>>(json) ?? []);
+            return NormalizeSlots(JsonSerializer.Deserialize<IReadOnlyList<string?>>(json) ?? [], slotCount);
         }
         catch (JsonException)
         {
-            return EmptySlots();
+            return EmptySlots(slotCount);
         }
     }
 }

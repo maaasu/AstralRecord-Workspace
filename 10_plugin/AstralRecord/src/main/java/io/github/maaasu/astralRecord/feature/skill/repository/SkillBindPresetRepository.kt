@@ -44,13 +44,19 @@ class SkillBindPresetRepository {
         accountId: UUID,
         presetIndex: Int,
         activeSkillSlots: List<String?>,
+        leftClickSkillId: String?,
         passiveSkillSlots: List<String?>,
         updatedBy: UUID,
     ): SkillBindPreset {
         val path = "/api/skill-bind-presets/$accountId/$presetIndex"
         val body = ApiRequestUtil.buildJsonBody {
-            add("activeSkillSlots", toJsonArray(activeSkillSlots))
-            add("passiveSkillSlots", toJsonArray(passiveSkillSlots))
+            add("activeSkillSlots", toJsonArray(activeSkillSlots, SkillBindPreset.ACTION_RING_SLOT_COUNT))
+            if (leftClickSkillId.isNullOrBlank()) {
+                add("leftClickSkillId", JsonNull.INSTANCE)
+            } else {
+                addProperty("leftClickSkillId", leftClickSkillId.trim())
+            }
+            add("passiveSkillSlots", toJsonArray(passiveSkillSlots, SkillBindPreset.PASSIVE_SLOT_COUNT))
             addProperty("updatedBy", updatedBy.toString())
         }
         try {
@@ -75,6 +81,21 @@ class SkillBindPresetRepository {
         }
     }
 
+    fun save(
+        accountId: UUID,
+        presetIndex: Int,
+        activeSkillSlots: List<String?>,
+        passiveSkillSlots: List<String?>,
+        updatedBy: UUID,
+    ): SkillBindPreset = save(
+        accountId,
+        presetIndex,
+        activeSkillSlots,
+        SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID,
+        passiveSkillSlots,
+        updatedBy,
+    )
+
     private fun parsePreset(obj: JsonObject, fallbackAccountId: UUID): SkillBindPreset {
         val presetIdElement = obj.get("skillBindPresetId")
         val presetId = if (presetIdElement == null || presetIdElement.isJsonNull) null else UUID.fromString(presetIdElement.asString)
@@ -84,30 +105,39 @@ class SkillBindPresetRepository {
             presetId,
             accountId,
             obj.get("presetIndex").asInt,
-            parseSlots(obj.getAsJsonArray("activeSkillSlots")),
-            parseSlots(obj.getAsJsonArray("passiveSkillSlots")),
+            parseActionRingSlots(obj.getAsJsonArray("activeSkillSlots")),
+            obj.get("leftClickSkillId")?.takeUnless { it.isJsonNull }?.asString,
+            parsePassiveSlots(obj.getAsJsonArray("passiveSkillSlots")),
             obj.get("isUnlocked")?.asBoolean ?: false,
             obj.get("isSaved")?.asBoolean ?: false,
             obj.get("version")?.asInt ?: 0,
         )
     }
 
-    private fun parseSlots(array: JsonArray?): List<String?> {
+    private fun parseActionRingSlots(array: JsonArray?): List<String?> {
+        return parseSlots(array, SkillBindPreset.ACTION_RING_SLOT_COUNT)
+    }
+
+    private fun parsePassiveSlots(array: JsonArray?): List<String?> {
+        return parseSlots(array, SkillBindPreset.PASSIVE_SLOT_COUNT)
+    }
+
+    private fun parseSlots(array: JsonArray?, slotCount: Int): List<String?> {
         val result = mutableListOf<String?>()
         if (array != null) {
             for (element in array) {
                 result += if (element == null || element.isJsonNull) null else element.asString
             }
         }
-        while (result.size < SkillBindPreset.SLOT_COUNT) {
+        while (result.size < slotCount) {
             result += null
         }
-        return result.take(SkillBindPreset.SLOT_COUNT)
+        return result.take(slotCount)
     }
 
-    private fun toJsonArray(values: List<String?>): JsonArray {
+    private fun toJsonArray(values: List<String?>, slotCount: Int): JsonArray {
         val array = JsonArray()
-        for (index in 0 until SkillBindPreset.SLOT_COUNT) {
+        for (index in 0 until slotCount) {
             val value = values.getOrNull(index)
             if (value.isNullOrBlank()) {
                 array.add(JsonNull.INSTANCE)

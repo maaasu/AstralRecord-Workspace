@@ -1,0 +1,100 @@
+using AstralRecordApi.Data;
+using AstralRecordApi.Data.Entities;
+using AstralRecordApi.Models;
+using AstralRecordApi.Repositories;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using Xunit;
+
+namespace AstralRecordApi.Tests.Repositories;
+
+public class SkillBindPresetRepositoryTests
+{
+    [Fact]
+    public async Task GetByAccountIdAsync_UsesWeaponNormalAttackForLegacyNullLeftClickBinding()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        var accountId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+
+        await using (var setupContext = new AstralRecordDbContext(options))
+        {
+            await CreateSchemaAsync(setupContext);
+            await setupContext.SkillBindPresets.AddAsync(new SkillBindPresetEntity
+            {
+                SkillBindPresetId = Guid.NewGuid(),
+                AccountId = accountId,
+                PresetIndex = 1,
+                ActiveSkillSlotsJson = "[]",
+                LeftClickSkillId = null,
+                PassiveSkillSlotsJson = "[]",
+                IsUnlocked = true,
+                Version = 1,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = userId,
+                UpdatedBy = userId,
+                IsDeleted = false,
+            });
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var dbContext = new AstralRecordDbContext(options);
+        var repository = new SkillBindPresetRepository(dbContext);
+
+        var presets = await repository.GetByAccountIdAsync(accountId);
+
+        Assert.Equal("__weapon_normal_attack__", presets.Single(x => x.PresetIndex == 1).LeftClickSkillId);
+    }
+
+    [Fact]
+    public async Task UpsertAsync_PreservesNullLeftClickBindingAsUnbound()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using var dbContext = new AstralRecordDbContext(options);
+        await CreateSchemaAsync(dbContext);
+        var accountId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var repository = new SkillBindPresetRepository(dbContext);
+
+        var saved = await repository.UpsertAsync(accountId, 1, new SkillBindPresetUpsertRequest
+        {
+            LeftClickSkillId = null,
+            UpdatedBy = userId,
+        });
+        var loaded = await repository.GetByAccountIdAsync(accountId);
+
+        Assert.NotNull(saved);
+        Assert.Null(saved.LeftClickSkillId);
+        Assert.Null(loaded.Single(x => x.PresetIndex == 1).LeftClickSkillId);
+    }
+
+    private static async Task CreateSchemaAsync(AstralRecordDbContext dbContext)
+    {
+        await dbContext.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE skill_bind_preset (
+                skill_bind_preset_id TEXT NOT NULL PRIMARY KEY,
+                account_id TEXT NOT NULL,
+                preset_index INTEGER NOT NULL,
+                active_skill_slots_json TEXT NOT NULL,
+                left_click_skill_id TEXT NULL,
+                passive_skill_slots_json TEXT NOT NULL,
+                is_unlocked INTEGER NOT NULL,
+                version INTEGER NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                created_by TEXT NOT NULL,
+                updated_by TEXT NOT NULL,
+                is_deleted INTEGER NOT NULL
+            );");
+    }
+}

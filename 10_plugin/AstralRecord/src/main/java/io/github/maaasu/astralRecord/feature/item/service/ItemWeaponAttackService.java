@@ -52,16 +52,26 @@ public final class ItemWeaponAttackService {
      * @return 左クリック武器アクションを持つ場合は true
      */
     public boolean hasLeftClickAction(@NotNull AstPlayer player) {
+        return currentLeftClickSkillId(player) != null;
+    }
+
+    /**
+     * 現在主手に装備している武器へ設定された通常攻撃スキル ID を返します。
+     *
+     * @param player 対象プレイヤー
+     * @return 武器通常攻撃のスキル ID。武器アクションがない場合は {@code null}
+     */
+    public @Nullable String currentLeftClickSkillId(@NotNull AstPlayer player) {
         ItemModel itemModel = inventoryService.getItemModelInHand(player, EquipmentSlot.HAND);
         if (itemModel == null || itemModel.getEquipment() == null) {
-            return false;
+            return null;
         }
         ItemEquipment equipment = itemModel.getEquipment();
         if (equipment.getSlot() != ItemEquipmentSlot.WEAPON || equipment.getOnUse() == null) {
-            return false;
+            return null;
         }
         String skillId = equipment.getOnUse().getLeftClickSkillId();
-        return skillId != null && !skillId.isBlank();
+        return skillId == null || skillId.isBlank() ? null : skillId.trim();
     }
 
     private void handleAttack(

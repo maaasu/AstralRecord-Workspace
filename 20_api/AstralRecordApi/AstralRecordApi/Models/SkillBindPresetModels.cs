@@ -6,6 +6,7 @@ public class SkillBindPresetResponse
     public Guid AccountId { get; init; }
     public int PresetIndex { get; init; }
     public IReadOnlyList<string?> ActiveSkillSlots { get; init; } = [];
+    public string? LeftClickSkillId { get; init; }
     public IReadOnlyList<string?> PassiveSkillSlots { get; init; } = [];
     public bool IsUnlocked { get; init; }
     public bool IsSaved { get; init; }
@@ -19,6 +20,7 @@ public class SkillBindPresetResponse
 public class SkillBindPresetUpsertRequest
 {
     public IReadOnlyList<string?> ActiveSkillSlots { get; init; } = [];
+    public string? LeftClickSkillId { get; init; }
     public IReadOnlyList<string?> PassiveSkillSlots { get; init; } = [];
     public bool? IsUnlocked { get; init; }
     public Guid UpdatedBy { get; init; }

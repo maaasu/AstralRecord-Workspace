@@ -409,6 +409,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(preset => preset.AccountId).HasColumnName("account_id");
             entity.Property(preset => preset.PresetIndex).HasColumnName("preset_index");
             entity.Property(preset => preset.ActiveSkillSlotsJson).HasColumnName("active_skill_slots_json");
+            entity.Property(preset => preset.LeftClickSkillId).HasColumnName("left_click_skill_id");
             entity.Property(preset => preset.PassiveSkillSlotsJson).HasColumnName("passive_skill_slots_json");
             entity.Property(preset => preset.IsUnlocked).HasColumnName("is_unlocked");
             entity.Property(preset => preset.Version).HasColumnName("version");

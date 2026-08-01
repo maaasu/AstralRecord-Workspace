@@ -58,6 +58,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     private final InventoryService inventoryService;
     private final Map<UUID, SkillBindSession> sessions = new ConcurrentHashMap<>();
     private final Set<UUID> suppressClose = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> savingSessions = ConcurrentHashMap.newKeySet();
 
     public SkillBindGuiEventHandler(
         @NotNull AstralRecord plugin,
@@ -161,6 +162,10 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             SkillBindSession session = sessions.get(playerId);
+            if (holder.screen() == SkillBindScreen.MAIN && savingSessions.contains(playerId) && session != null) {
+                plugin.getServer().getScheduler().runTask(plugin, () -> reopenMainAfterClose(player, session, holder.pageIndex()));
+                return;
+            }
             if (holder.screen() == SkillBindScreen.MAIN && session != null && session.isDirty()) {
                 plugin.getServer().getScheduler().runTask(plugin, () ->
                     openConfirm(player, session, ACTION_CLOSE, -1, Component.text("変更を破棄して閉じますか", NamedTextColor.YELLOW))
@@ -179,10 +184,6 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         int pageIndex,
         org.bukkit.inventory.ItemStack currentItem
     ) {
-        if (rawSlot == SkillBindGui.SAVE_SLOT) {
-            saveCurrentPreset(player, session, pageIndex);
-            return;
-        }
         if (rawSlot == SkillBindGui.BACK_SLOT) {
             GuiSound.SELECT.play(player);
             if (session.isDirty()) {
@@ -216,13 +217,17 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             handlePresetClick(player, session, presetIndex, pageIndex);
             return;
         }
-        if (rawSlot >= SkillBindGui.ACTIVE_BIND_SLOT_START
-            && rawSlot < SkillBindGui.ACTIVE_BIND_SLOT_START + SkillBindPreset.SLOT_COUNT) {
+        if (rawSlot == SkillBindGui.LEFT_CLICK_BIND_SLOT) {
+            handleBindSlotClick(player, session, SkillBindType.LEFT_CLICK, 0, pageIndex);
+            return;
+        }
+        if (rawSlot >= SkillBindGui.ACTION_RING_BIND_SLOT_START
+            && rawSlot < SkillBindGui.ACTION_RING_BIND_SLOT_START + SkillBindPreset.ACTION_RING_SLOT_COUNT) {
             handleBindSlotClick(
                 player,
                 session,
                 SkillBindType.ACTIVE,
-                rawSlot - SkillBindGui.ACTIVE_BIND_SLOT_START,
+                rawSlot - SkillBindGui.ACTION_RING_BIND_SLOT_START,
                 pageIndex
             );
             return;
@@ -230,8 +235,22 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
 
         String skillId = gui.skillId(currentItem);
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (skillId == null || astPlayer == null || !ownershipService.owns(astPlayer, skillId)) {
+        if (savingSessions.contains(player.getUniqueId())) {
             GuiSound.DENY.play(player);
+            return;
+        }
+        boolean weaponNormalAttack = SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID.equals(skillId);
+        if (skillId == null || astPlayer == null || (!weaponNormalAttack && !ownershipService.owns(astPlayer, skillId))) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (weaponNormalAttack) {
+            if (!session.assignSelectedOrNextSlot(skillId, SkillKind.ACTIVE)) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.SELECT.play(player);
+            saveCurrentPreset(player, session, pageIndex);
             return;
         }
         SkillDefinition definition = skillService.registry().getDefinition(skillId);
@@ -243,7 +262,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             return;
         }
         GuiSound.SELECT.play(player);
-        openMain(player, session, pageIndex);
+        saveCurrentPreset(player, session, pageIndex);
     }
 
     private void handlePresetClick(
@@ -288,17 +307,27 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         int slotIndex,
         int pageIndex
     ) {
+        if (savingSessions.contains(player.getUniqueId())) {
+            GuiSound.DENY.play(player);
+            return;
+        }
         String currentSkillId = session.skillIdAt(type, slotIndex);
+        boolean changed = false;
         if (currentSkillId != null && !currentSkillId.isBlank()) {
             session.setSlot(type, slotIndex, null);
             session.clearSelectedBindSlot();
+            changed = true;
         } else if (session.isSelectedBindSlot(type, slotIndex)) {
             session.clearSelectedBindSlot();
         } else {
             session.selectBindSlot(type, slotIndex);
         }
         GuiSound.SELECT.play(player);
-        openMain(player, session, pageIndex);
+        if (changed) {
+            saveCurrentPreset(player, session, pageIndex);
+        } else {
+            openMain(player, session, pageIndex);
+        }
     }
 
     private void handleConfirmClick(@NotNull Player player, @NotNull SkillBindInventoryHolder holder, int rawSlot) {
@@ -354,30 +383,38 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         UUID accountId = astPlayer.getAccount().getUuid();
         int presetIndex = session.selectedPresetIndex();
         List<String> activeSnapshot = new java.util.ArrayList<>(session.activeDraft());
+        String leftClickSnapshot = session.leftClickDraft();
         List<String> passiveSnapshot = new java.util.ArrayList<>(session.passiveDraft());
+        savingSessions.add(player.getUniqueId());
         boolean scheduled = presetService.saveAsync(
             accountId,
             presetIndex,
             activeSnapshot,
+            leftClickSnapshot,
             passiveSnapshot,
             accountId,
             saved -> {
                 AstPlayer currentPlayer = AstPlayerCache.get(player);
                 SkillBindSession currentSession = sessions.get(player.getUniqueId());
                 if (currentPlayer == null || currentSession != session) {
+                    savingSessions.remove(player.getUniqueId());
                     return;
                 }
                 passiveSkillService.reconcileNow(currentPlayer);
                 if (session.selectedPresetIndex() != presetIndex
                     || !session.activeDraft().equals(activeSnapshot)
+                    || !java.util.Objects.equals(session.leftClickDraft(), leftClickSnapshot)
                     || !session.passiveDraft().equals(passiveSnapshot)) {
+                    savingSessions.remove(player.getUniqueId());
                     return;
                 }
                 session.replaceSelectedPreset(saved);
+                savingSessions.remove(player.getUniqueId());
                 GuiSound.SELECT.play(player);
                 openMain(player, session, pageIndex);
             },
             () -> {
+                savingSessions.remove(player.getUniqueId());
                 if (sessions.get(player.getUniqueId()) == session && player.isOnline()) {
                     GuiSound.DENY.play(player);
                     PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5849);
@@ -385,14 +422,33 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             }
         );
         if (!scheduled) {
+            savingSessions.remove(player.getUniqueId());
             GuiSound.DENY.play(player);
         }
     }
 
     private void openMain(@NotNull Player player, @NotNull SkillBindSession session, int pageIndex) {
+        openMain(player, session, pageIndex, true);
+    }
+
+    /**
+     * close event 完了後に、次のユーザー起点 close を抑止せずメイン GUI を再表示します。
+     */
+    private void reopenMainAfterClose(@NotNull Player player, @NotNull SkillBindSession session, int pageIndex) {
+        openMain(player, session, pageIndex, false);
+    }
+
+    private void openMain(
+        @NotNull Player player,
+        @NotNull SkillBindSession session,
+        int pageIndex,
+        boolean suppressPreviousClose
+    ) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         Set<String> ownedSkillIds = astPlayer == null ? Set.of() : ownershipService.ownedSkillIds(astPlayer);
-        suppressCloseIfSwitchingWithinSkillGui(player);
+        if (suppressPreviousClose) {
+            suppressCloseIfSwitchingWithinSkillGui(player);
+        }
         gui.open(player, session, currentSkills(ownedSkillIds), allSkillMap(), ownedSkillIds, pageIndex);
     }
 

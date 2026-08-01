@@ -86,6 +86,7 @@ public final class SkillBindPresetService {
                 accountId,
                 index,
                 List.of(),
+                SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID,
                 List.of(),
                 index <= 3,
                 false,
@@ -121,6 +122,7 @@ public final class SkillBindPresetService {
      * @param accountId アカウント ID
      * @param presetIndex プリセット番号
      * @param activeSkillSlots 発動系スロット
+     * @param leftClickSkillId 左クリックバインド
      * @param passiveSkillSlots パッシブ系スロット
      * @param updatedBy 更新者
      * @return 保存後プリセット
@@ -129,6 +131,7 @@ public final class SkillBindPresetService {
         @NotNull UUID accountId,
         int presetIndex,
         @NotNull List<String> activeSkillSlots,
+        String leftClickSkillId,
         @NotNull List<String> passiveSkillSlots,
         @NotNull UUID updatedBy,
         @NotNull Consumer<SkillBindPreset> onSuccess,
@@ -145,6 +148,7 @@ public final class SkillBindPresetService {
         }
         int normalizedPresetIndex = Math.max(1, Math.min(PRESET_COUNT, presetIndex));
         List<String> activeSnapshot = Collections.unmodifiableList(new ArrayList<>(activeSkillSlots));
+        String leftClickSnapshot = leftClickSkillId == null || leftClickSkillId.isBlank() ? null : leftClickSkillId.trim();
         List<String> passiveSnapshot = Collections.unmodifiableList(new ArrayList<>(passiveSkillSlots));
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             SkillBindPreset saved = null;
@@ -153,6 +157,7 @@ public final class SkillBindPresetService {
                     accountId,
                     normalizedPresetIndex,
                     activeSnapshot,
+                    leftClickSnapshot,
                     passiveSnapshot,
                     updatedBy
                 );
@@ -173,6 +178,24 @@ public final class SkillBindPresetService {
             });
         });
         return true;
+    }
+
+    /**
+     * 左クリックバインド未導入の呼び出し元向けに、武器通常攻撃を既定値として保存します。
+     */
+    public boolean saveAsync(
+        @NotNull UUID accountId,
+        int presetIndex,
+        @NotNull List<String> activeSkillSlots,
+        @NotNull List<String> passiveSkillSlots,
+        @NotNull UUID updatedBy,
+        @NotNull Consumer<SkillBindPreset> onSuccess,
+        @NotNull Runnable onFailure
+    ) {
+        return saveAsync(
+            accountId, presetIndex, activeSkillSlots, SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID,
+            passiveSkillSlots, updatedBy, onSuccess, onFailure
+        );
     }
 
     private boolean completeSaveAttempt(AccountSessionState state, SaveAttempt attempt) {

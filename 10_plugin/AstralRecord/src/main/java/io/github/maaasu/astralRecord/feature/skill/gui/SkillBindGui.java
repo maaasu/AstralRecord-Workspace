@@ -42,12 +42,12 @@ import java.util.Set;
  */
 public final class SkillBindGui {
     public static final int SIZE = 54;
-    public static final int CONTENT_SLOT_COUNT = 36;
+    public static final int CONTENT_SLOT_COUNT = 35;
     public static final int PREVIOUS_SLOT = 45;
     public static final int BACK_SLOT = 49;
     public static final int NEXT_SLOT = 53;
-    public static final int ACTIVE_BIND_SLOT_START = 36;
-    public static final int SAVE_SLOT = 44;
+    public static final int LEFT_CLICK_BIND_SLOT = 37;
+    public static final int ACTION_RING_BIND_SLOT_START = 39;
     public static final int PRESET_COUNT = 6;
 
     private static final Material DEFAULT_SKILL_ICON = Material.AMETHYST_SHARD;
@@ -179,10 +179,11 @@ public final class SkillBindGui {
 
         int start = GuiPagination.pageStart(pageIndex, CONTENT_SLOT_COUNT);
         int end = GuiPagination.pageEnd(pageIndex, skills.size(), CONTENT_SLOT_COUNT);
+        inventory.setItem(0, createWeaponNormalAttackItem());
         for (int index = start; index < end; index++) {
             SkillDefinition skill = skills.get(index);
             boolean owned = ownedSkillIds.contains(skill.getId());
-            inventory.setItem(index - start, createSkillItem(skill, owned));
+            inventory.setItem(index - start + 1, createSkillItem(skill, owned));
         }
 
         ItemStack dummy = createDummy();
@@ -192,9 +193,20 @@ public final class SkillBindGui {
             }
         }
 
-        for (int index = 0; index < SkillBindPreset.SLOT_COUNT; index++) {
+        inventory.setItem(
+            LEFT_CLICK_BIND_SLOT,
+            createBindSlotItem(
+                SkillBindType.LEFT_CLICK,
+                0,
+                session.leftClickDraft(),
+                ownedSkillIds,
+                session.isSelectedBindSlot(SkillBindType.LEFT_CLICK, 0),
+                skillMap
+            )
+        );
+        for (int index = 0; index < SkillBindPreset.ACTION_RING_SLOT_COUNT; index++) {
             inventory.setItem(
-                ACTIVE_BIND_SLOT_START + index,
+                ACTION_RING_BIND_SLOT_START + index,
                 createBindSlotItem(
                     SkillBindType.ACTIVE,
                     index,
@@ -205,15 +217,6 @@ public final class SkillBindGui {
                 )
             );
         }
-
-        inventory.setItem(
-            SAVE_SLOT,
-            createItem(
-                Material.EMERALD,
-                Component.text("保存", NamedTextColor.GREEN),
-                List.of(Component.text("プリセット " + session.selectedPresetIndex() + " に保存", NamedTextColor.GRAY))
-            )
-        );
 
         for (int presetIndex = 1; presetIndex <= PRESET_COUNT; presetIndex++) {
             SkillBindPreset preset = session.presets().get(presetIndex - 1);
@@ -315,21 +318,31 @@ public final class SkillBindGui {
         @NotNull Map<String, SkillDefinition> skillMap
     ) {
         boolean empty = skillId == null || skillId.isBlank();
+        boolean weaponNormalAttack = SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID.equals(skillId);
         boolean owned = !empty && ownedSkillIds.contains(skillId);
-        SkillDefinition skill = empty ? null : skillMap.get(skillId);
-        boolean kindMatches = skill == null || matchesBindType(type, skill);
+        SkillDefinition skill = empty || weaponNormalAttack ? null : skillMap.get(skillId);
+        boolean kindMatches = weaponNormalAttack || skill == null || matchesBindType(type, skill);
 
         Material material = empty
             ? Material.LIGHT_GRAY_STAINED_GLASS_PANE
-            : kindMatches ? resolveSkillMaterial(skill, owned) : Material.BARRIER;
-        String label = type == SkillBindType.ACTIVE ? "アクティブ" : "パッシブ";
+            : weaponNormalAttack ? Material.IRON_SWORD : kindMatches ? resolveSkillMaterial(skill, owned) : Material.BARRIER;
+        String label = type == SkillBindType.LEFT_CLICK ? "左クリックバインド"
+            : type == SkillBindType.ACTIVE ? "アクションリング" : "パッシブ";
 
         List<Component> lore = new ArrayList<>();
-        lore.add(Component.text(label + "スロット " + (index + 1), NamedTextColor.GOLD));
+        lore.add(Component.text(
+            type == SkillBindType.LEFT_CLICK ? label : label + "スロット " + (index + 1),
+            NamedTextColor.GOLD
+        ));
 
         if (empty) {
             lore.add(Component.text("スキル一覧から選択するとここに設定されます。", NamedTextColor.GRAY));
             lore.add(Component.text("クリックでこの枠を選択できます。", NamedTextColor.YELLOW));
+        } else if (weaponNormalAttack) {
+            lore.add(Component.text("現在主手に装備している武器の通常攻撃を発動します。", NamedTextColor.GRAY));
+            lore.add(Component.text("武器を切り替えても、その武器の通常攻撃を使用します。", NamedTextColor.GRAY));
+            lore.add(Component.empty());
+            lore.add(Component.text("クリックでこのバインドから外せます。", NamedTextColor.YELLOW));
         } else if (skill == null) {
             lore.add(Component.text("未読込スキル", NamedTextColor.RED));
             lore.add(Component.text("スキル定義が見つかりません。", NamedTextColor.DARK_GRAY));
@@ -351,11 +364,16 @@ public final class SkillBindGui {
         Component name;
         if (empty) {
             name = Component.text(label + " 未設定", NamedTextColor.GRAY);
+        } else if (weaponNormalAttack) {
+            name = Component.text("武器通常攻撃", NamedTextColor.WHITE);
         } else {
             name = skillName(skill, skillId, owned);
         }
 
         ItemStack itemStack = createItem(material, name, lore);
+        if (type == SkillBindType.ACTIVE && empty) {
+            itemStack.setAmount(index + 1);
+        }
         return selected ? withSelectionGlow(itemStack) : itemStack;
     }
 
@@ -377,6 +395,27 @@ public final class SkillBindGui {
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
             meta.getPersistentDataContainer().set(skillIdKey, PersistentDataType.STRING, skill.getId());
+            itemStack.setItemMeta(meta);
+        }
+        return itemStack;
+    }
+
+    /** 武器通常攻撃の予約バインドを一覧アイテムとして作成します。 */
+    public @NotNull ItemStack createWeaponNormalAttackItem() {
+        List<Component> lore = List.of(
+            Component.text("現在主手に装備している武器の通常攻撃を発動します。", NamedTextColor.GRAY),
+            Component.text("武器を切り替えても、その武器の通常攻撃を使用します。", NamedTextColor.GRAY),
+            Component.empty(),
+            Component.text("クリックで選択中のアクションリングまたは左クリック枠に設定します。", NamedTextColor.YELLOW)
+        );
+        ItemStack itemStack = createItem(Material.IRON_SWORD, Component.text("武器通常攻撃", NamedTextColor.WHITE), lore);
+        ItemMeta meta = itemStack.getItemMeta();
+        if (meta != null) {
+            meta.getPersistentDataContainer().set(
+                skillIdKey,
+                PersistentDataType.STRING,
+                SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID
+            );
             itemStack.setItemMeta(meta);
         }
         return itemStack;

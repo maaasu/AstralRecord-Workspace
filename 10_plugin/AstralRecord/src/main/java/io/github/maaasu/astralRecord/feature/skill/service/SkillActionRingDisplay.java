@@ -34,7 +34,7 @@ import java.util.UUID;
  * アクションリングを閲覧者専用の packet-only Display entity として描画します。
  */
 final class SkillActionRingDisplay {
-    private static final float ITEM_SCALE = 0.55F;
+    private static final float ITEM_SCALE = 0.65F;
     private static final int TEXT_LINE_WIDTH = 180;
     private static final int TELEPORT_DURATION_TICKS = 1;
     private static final float DEFAULT_VIEW_RANGE = 16.0F;

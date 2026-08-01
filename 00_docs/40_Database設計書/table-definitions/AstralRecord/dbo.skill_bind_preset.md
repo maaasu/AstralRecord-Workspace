@@ -9,7 +9,8 @@
 | `skill_bind_preset_id` | UNIQUEIDENTIFIER | × | - | プリセット行 ID |
 | `account_id` | UNIQUEIDENTIFIER | × | - | `dbo.account.uuid` |
 | `preset_index` | INT | × | - | 1 から 9 のプリセット番号 |
-| `active_skill_slots_json` | NVARCHAR(MAX) | × | `[]` | 発動系スキル 8 スロット。JSON 配列、空きは null |
+| `active_skill_slots_json` | NVARCHAR(MAX) | × | `[]` | アクションリングスロット 1〜6。JSON 配列、空きは null |
+| `left_click_skill_id` | NVARCHAR(128) | ○ | `__weapon_normal_attack__` | 左クリックバインド。予約値は現在主手武器の通常攻撃を表す。既存行の `NULL` は予約値として読込み、API の未設定 (`null`) は空文字で保存する |
 | `passive_skill_slots_json` | NVARCHAR(MAX) | × | `[]` | パッシブ系スキル 8 スロット。JSON 配列、空きは null |
 | `is_unlocked` | BIT | × | 0 | 解放済み判定。1 から 3 は API で常時解放扱い |
 | `version` | INT | × | 1 | 更新バージョン |
@@ -30,6 +31,7 @@
 
 ## 運用メモ
 
-- 保存ボタンを押したプリセットのみ行を作成する。
-- 未保存プリセットは API レスポンス上で空スロット、`is_saved = false` として補完する。
+- バインド操作直後の自動保存で行を作成する。
+- 既存DBへ導入する場合は、API 配置前に [`migrations/20260801_add_left_click_skill_id.sql`](migrations/20260801_add_left_click_skill_id.sql) を `AstralRecord` DB へ実行する。このSQLは列の追加と既存行の予約値初期化を冪等に行う。
+- 旧 active 7・8 番は API 正規化時に除外する。
 - 未所持スキルが保存済みスロットに残っていても自動削除しない。発動時の所持判定で使用不可にする。

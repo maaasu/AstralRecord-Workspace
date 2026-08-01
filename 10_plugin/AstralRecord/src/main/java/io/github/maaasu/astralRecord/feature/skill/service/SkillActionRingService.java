@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentDurabilityService;
+import io.github.maaasu.astralRecord.feature.item.service.ItemWeaponAttackService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
@@ -40,7 +41,7 @@ import java.util.function.Consumer;
  * スキル発動前のアクションリング表示と選択状態を管理します。
  */
 public final class SkillActionRingService {
-    private static final int SLOT_COUNT = SkillBindPreset.SLOT_COUNT;
+    private static final int SLOT_COUNT = SkillBindPreset.ACTION_RING_SLOT_COUNT;
     private static final double RING_DISTANCE = 3.0D;
     private static final double RING_RADIUS = 1.12D;
     private static final int CIRCLE_DISPLAY_POINTS = 24;
@@ -51,8 +52,6 @@ public final class SkillActionRingService {
     private static final long CAST_WAIT_LIMIT_TICKS = 60L;
     private static final long SELECT_ANIMATION_TICKS = 4L;
     private static final double SELECTING_BLOCK_BREAK_SPEED = 1024.0D;
-    private static final int CLOSE_SELECTION_INDEX = -2;
-    private static final double CLOSE_SELECTION_PROJECTED_LENGTH = 0.28D;
     private static final ItemStack HIDDEN_ITEM = new ItemStack(Material.AIR);
 
     private final AstralRecord plugin;
@@ -63,6 +62,7 @@ public final class SkillActionRingService {
     private final Map<UUID, RingSession> sessions = new ConcurrentHashMap<>();
     private final Set<UUID> suppressedAttackPlayers = ConcurrentHashMap.newKeySet();
     private EquipmentDurabilityService equipmentDurabilityService;
+    private ItemWeaponAttackService itemWeaponAttackService;
     private Consumer<AstPlayer> openListener = player -> { };
     private BukkitTask task;
 
@@ -87,6 +87,15 @@ public final class SkillActionRingService {
 
     public void setEquipmentDurabilityService(@Nullable EquipmentDurabilityService equipmentDurabilityService) {
         this.equipmentDurabilityService = equipmentDurabilityService;
+    }
+
+    /**
+     * 武器通常攻撃の予約バインドを解決するサービスを設定します。
+     *
+     * @param itemWeaponAttackService 主手武器の通常攻撃サービス
+     */
+    public void setItemWeaponAttackService(@NotNull ItemWeaponAttackService itemWeaponAttackService) {
+        this.itemWeaponAttackService = itemWeaponAttackService;
     }
 
     /**
@@ -177,12 +186,6 @@ public final class SkillActionRingService {
             GuiSound.DENY.play(player);
             return;
         }
-        if (session.isCloseSelected()) {
-            sessions.remove(player.getUniqueId());
-            session.destroy();
-            GuiSound.CLOSE.play(player);
-            return;
-        }
         if (!session.hasConfirmedSelection()) {
             session.confirmSelection();
             GuiSound.RING_SELECT.play(player);
@@ -194,7 +197,13 @@ public final class SkillActionRingService {
         int selectedSlot = session.selectedIndex + 1;
         session.destroy();
         String skillDisplayName = "未設定";
-        if (skillId != null && !skillId.isBlank()) {
+        if (SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID.equals(skillId)) {
+            if (itemWeaponAttackService == null) {
+                return;
+            }
+            itemWeaponAttackService.handleLeftClick(astPlayer, player.getEyeLocation());
+            skillDisplayName = "武器通常攻撃";
+        } else if (skillId != null && !skillId.isBlank()) {
             SkillDefinition definition = skillService.registry().getDefinition(skillId);
             skillDisplayName = SkillPresentationUtil.plainName(definition, "未定義スキル");
             SkillCastResult castResult = skillService.castSkill(
@@ -283,6 +292,23 @@ public final class SkillActionRingService {
                 slots.add(new SlotView(null, null, "未設定", Material.BARRIER, false, SlotAvailability.UNAVAILABLE));
                 continue;
             }
+            if (SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID.equals(skillId)) {
+                String weaponSkillId = itemWeaponAttackService == null ? null : itemWeaponAttackService.currentLeftClickSkillId(astPlayer);
+                SkillDefinition definition = weaponSkillId == null ? null : skillService.registry().getDefinition(weaponSkillId);
+                if (definition == null) {
+                    slots.add(new SlotView(skillId, null, "武器通常攻撃", Material.BARRIER, false, SlotAvailability.UNAVAILABLE));
+                    continue;
+                }
+                slots.add(new SlotView(
+                    skillId,
+                    definition,
+                    "武器通常攻撃",
+                    parseMaterial(definition.getIcon(), Material.IRON_SWORD),
+                    true,
+                    availabilityFor(skillService.canCast(caster, definition))
+                ));
+                continue;
+            }
             SkillDefinition definition = skillService.registry().getDefinition(skillId);
             if (definition != null && definition.getKind() != SkillKind.ACTIVE) {
                 slots.add(new SlotView(skillId, definition, "設定不可", Material.BARRIER, false, SlotAvailability.UNAVAILABLE));
@@ -299,6 +325,60 @@ public final class SkillActionRingService {
             slots.add(new SlotView(skillId, definition, displayName, material, owned, availability));
         }
         return slots;
+    }
+
+    /**
+     * 現在選択プリセットの左クリックバインドを発動します。
+     *
+     * @param astPlayer 対象プレイヤー
+     */
+    public void activateLeftClickBind(@NotNull AstPlayer astPlayer) {
+        SkillBindPreset preset = selectedPreset(astPlayer);
+        if (preset == null) {
+            return;
+        }
+        String skillId = preset.getLeftClickSkillId();
+        if (SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID.equals(skillId)) {
+            if (itemWeaponAttackService != null) {
+                itemWeaponAttackService.handleLeftClick(astPlayer, astPlayer.getBukkit().getEyeLocation());
+            }
+            return;
+        }
+        if (skillId != null && !skillId.isBlank()) {
+            skillService.castSkill(
+                new PlayerSkillCaster(astPlayer), skillId, SkillCastTrigger.PLAYER_COMMAND,
+                astPlayer.getBukkit().getEyeLocation(), null, List.of()
+            );
+        }
+    }
+
+    /**
+     * 現在選択プリセットに左クリック発動可能なバインドがあるかを返します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @return 発動候補がある場合は true
+     */
+    public boolean hasLeftClickBind(@NotNull AstPlayer astPlayer) {
+        SkillBindPreset preset = selectedPreset(astPlayer);
+        if (preset == null || preset.getLeftClickSkillId() == null) {
+            return false;
+        }
+        if (SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID.equals(preset.getLeftClickSkillId())) {
+            return itemWeaponAttackService != null && itemWeaponAttackService.hasLeftClickAction(astPlayer);
+        }
+        SkillDefinition definition = skillService.registry().getDefinition(preset.getLeftClickSkillId());
+        return definition != null
+            && definition.getKind() == SkillKind.ACTIVE
+            && ownershipService.owns(astPlayer, preset.getLeftClickSkillId());
+    }
+
+    private @Nullable SkillBindPreset selectedPreset(@NotNull AstPlayer astPlayer) {
+        UUID accountId = astPlayer.getAccount().getUuid();
+        int selectedPresetIndex = presetService.selectedPresetIndex(accountId);
+        return presetService.getPresets(accountId).stream()
+            .filter(preset -> preset.isUnlocked() && preset.getPresetIndex() == selectedPresetIndex)
+            .findFirst()
+            .orElse(null);
     }
 
     private static @NotNull SlotAvailability availabilityFor(@NotNull SkillCastResult result) {
@@ -386,10 +466,13 @@ public final class SkillActionRingService {
             if (selected) {
                 return ColorCodeUtil.YELLOW;
             }
-            if (availability.temporarilyUnavailable()) {
+            if (availability == SlotAvailability.COOLDOWN) {
+                return ColorCodeUtil.GRAY;
+            }
+            if (availability != SlotAvailability.AVAILABLE) {
                 return ColorCodeUtil.RED;
             }
-            return selectable() ? ColorCodeUtil.GRAY : ColorCodeUtil.DARK_GRAY;
+            return ColorCodeUtil.GREEN;
         }
     }
 
@@ -445,8 +528,6 @@ public final class SkillActionRingService {
         private final List<SkillActionRingDisplay.DisplayEntity> circleDots = new ArrayList<>(CIRCLE_DISPLAY_POINTS);
         private final AttributeInstance blockBreakSpeedAttribute;
         private final Double originalBlockBreakSpeed;
-        private SkillActionRingDisplay.DisplayEntity closeIcon;
-        private SkillActionRingDisplay.DisplayEntity closeLabel;
         private SkillActionRingDisplay.DisplayEntity timerLabel;
         private Location renderedCenter;
         private int selectedIndex;
@@ -547,11 +628,7 @@ public final class SkillActionRingService {
                 icons.add(icon);
                 labels.add(label);
             }
-            closeIcon = actionRingDisplay.item(baseCenter, new ItemStack(Material.BARRIER), false);
-            closeLabel = actionRingDisplay.text(baseCenter, legacyComponent(ColorCodeUtil.RED + "閉じる"), 0.60F);
             timerLabel = actionRingDisplay.text(baseCenter, Component.empty(), 0.60F);
-            closeIcon.spawn(player);
-            closeLabel.spawn(player);
             timerLabel.spawn(player);
         }
 
@@ -613,11 +690,10 @@ public final class SkillActionRingService {
                 actionRingDisplay.updateText(
                     player,
                     label,
-                    labelComponent(slot, selected, hiddenByConfirmedSelection),
+                    labelComponent(index, slot, selected, hiddenByConfirmedSelection),
                     0.60F
                 );
             }
-            updateCloseButton(player, center, layoutChanged);
             updateTimer(center, layoutChanged);
             return true;
         }
@@ -627,8 +703,7 @@ public final class SkillActionRingService {
         }
 
         private boolean canActivateSelected() {
-            return isCloseSelected()
-                || selectedIndex >= 0
+            return selectedIndex >= 0
                 && selectedIndex < slots.size()
                 && slots.get(selectedIndex).selectable();
         }
@@ -640,10 +715,6 @@ public final class SkillActionRingService {
             if (selectedIndex >= 0 && selectedIndex < slots.size() && !slots.get(selectedIndex).selectable()) {
                 selectedIndex = firstSelectableSlot(slots);
             }
-        }
-
-        private boolean isCloseSelected() {
-            return phase == RingPhase.SELECTING && selectedIndex == CLOSE_SELECTION_INDEX;
         }
 
         private void confirmSelection() {
@@ -671,10 +742,7 @@ public final class SkillActionRingService {
             Vector view = player.getEyeLocation().getDirection().normalize();
             Vector projected = view.subtract(normal.clone().multiply(view.dot(normal)));
             if (projected.lengthSquared() < 1.0E-6D) {
-                return CLOSE_SELECTION_INDEX;
-            }
-            if (projected.length() <= CLOSE_SELECTION_PROJECTED_LENGTH) {
-                return CLOSE_SELECTION_INDEX;
+                return -1;
             }
             projected.normalize();
             double angle = Math.atan2(projected.dot(right), projected.dot(up));
@@ -704,6 +772,7 @@ public final class SkillActionRingService {
         }
 
         private @NotNull Component labelComponent(
+            int index,
             @NotNull SlotView slot,
             boolean selected,
             boolean hidden
@@ -711,7 +780,8 @@ public final class SkillActionRingService {
             if (hidden) {
                 return Component.empty();
             }
-            Component label = legacyComponent(slot.color(selected) + slot.label(skillService, caster));
+            Component label = Component.text("[" + (index + 1) + "] ", net.kyori.adventure.text.format.NamedTextColor.GRAY)
+                .append(legacyComponent(slot.color(selected) + slot.label(skillService, caster)));
             return selected ? label.decorate(TextDecoration.BOLD) : label;
         }
 
@@ -726,26 +796,6 @@ public final class SkillActionRingService {
                     .add(right.clone().multiply(Math.sin(angle) * RING_RADIUS));
                 dot.teleport(viewer, center.clone().add(offset));
             }
-        }
-
-        private void updateCloseButton(@NotNull Player player, @NotNull Location center, boolean layoutChanged) {
-            if (closeIcon == null || closeLabel == null) {
-                return;
-            }
-            boolean hidden = phase == RingPhase.WAITING_CAST;
-            boolean selected = isCloseSelected();
-            Location labelLocation = center.clone().subtract(up.clone().multiply(0.45D));
-            if (layoutChanged) {
-                closeIcon.teleport(player, center);
-                closeLabel.teleport(player, labelLocation);
-            }
-            actionRingDisplay.updateItem(player, closeIcon, hidden ? HIDDEN_ITEM : new ItemStack(Material.BARRIER), selected && !hidden);
-            actionRingDisplay.updateText(
-                player,
-                closeLabel,
-                hidden ? Component.empty() : legacyComponent((selected ? ColorCodeUtil.YELLOW : ColorCodeUtil.RED) + "閉じる"),
-                0.60F
-            );
         }
 
         private void updateTimer(@NotNull Location center, boolean layoutChanged) {
@@ -793,14 +843,6 @@ public final class SkillActionRingService {
                 dot.destroy(viewer);
             }
             circleDots.clear();
-            if (closeIcon != null) {
-                closeIcon.destroy(viewer);
-                closeIcon = null;
-            }
-            if (closeLabel != null) {
-                closeLabel.destroy(viewer);
-                closeLabel = null;
-            }
             if (timerLabel != null) {
                 timerLabel.destroy(viewer);
                 timerLabel = null;

@@ -6,6 +6,7 @@ public class SkillBindPresetEntity
     public Guid AccountId { get; set; }
     public int PresetIndex { get; set; }
     public string ActiveSkillSlotsJson { get; set; } = "[]";
+    public string? LeftClickSkillId { get; set; }
     public string PassiveSkillSlotsJson { get; set; } = "[]";
     public bool IsUnlocked { get; set; }
     public int Version { get; set; }

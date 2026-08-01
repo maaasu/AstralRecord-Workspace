@@ -13,6 +13,7 @@ public final class SkillBindSession {
     private final List<SkillBindPreset> presets;
     private int selectedPresetIndex;
     private List<String> activeDraft;
+    private String leftClickDraft;
     private List<String> passiveDraft;
     private SkillBindType selectedBindType;
     private int selectedBindSlotIndex = -1;
@@ -72,7 +73,7 @@ public final class SkillBindSession {
      * @param slotIndex 0 始まりのスロット番号
      */
     public void selectBindSlot(@NotNull SkillBindType type, int slotIndex) {
-        if (slotIndex < 0 || slotIndex >= SkillBindPreset.SLOT_COUNT) {
+        if (slotIndex < 0 || slotIndex >= slotCount(type)) {
             clearSelectedBindSlot();
             return;
         }
@@ -97,7 +98,7 @@ public final class SkillBindSession {
     public boolean assignSelectedOrNextSlot(@NotNull String skillId, @NotNull SkillKind skillKind) {
         SkillBindType targetType = selectedBindType;
         int targetIndex = selectedBindSlotIndex;
-        if (targetType == null || targetIndex < 0 || targetIndex >= SkillBindPreset.SLOT_COUNT) {
+        if (targetType == null || targetIndex < 0 || targetIndex >= slotCount(targetType)) {
             targetType = skillKind.isPassive() ? SkillBindType.PASSIVE : SkillBindType.ACTIVE;
             targetIndex = findNextFreeSlot(targetType == SkillBindType.ACTIVE ? activeDraft : passiveDraft);
         } else if (!matches(targetType, skillKind)) {
@@ -123,8 +124,11 @@ public final class SkillBindSession {
      * @return 設定済みスキル ID。未設定の場合は {@code null}
      */
     public @Nullable String skillIdAt(@NotNull SkillBindType type, int slotIndex) {
-        if (slotIndex < 0 || slotIndex >= SkillBindPreset.SLOT_COUNT) {
+        if (slotIndex < 0 || slotIndex >= slotCount(type)) {
             return null;
+        }
+        if (type == SkillBindType.LEFT_CLICK) {
+            return leftClickDraft;
         }
         List<String> target = type == SkillBindType.ACTIVE ? activeDraft : passiveDraft;
         return target.get(slotIndex);
@@ -138,6 +142,10 @@ public final class SkillBindSession {
         return passiveDraft;
     }
 
+    public @Nullable String leftClickDraft() {
+        return leftClickDraft;
+    }
+
     public @NotNull SkillBindPreset selectedPreset() {
         return presets.get(selectedPresetIndex - 1);
     }
@@ -146,6 +154,7 @@ public final class SkillBindSession {
         this.selectedPresetIndex = presetIndex;
         SkillBindPreset preset = presets.get(presetIndex - 1);
         this.activeDraft = new ArrayList<>(preset.getActiveSkillSlots());
+        this.leftClickDraft = preset.getLeftClickSkillId();
         this.passiveDraft = new ArrayList<>(preset.getPassiveSkillSlots());
         clearSelectedBindSlot();
     }
@@ -153,11 +162,16 @@ public final class SkillBindSession {
     public boolean isDirty() {
         SkillBindPreset preset = selectedPreset();
         return !preset.getActiveSkillSlots().equals(activeDraft)
+            || !java.util.Objects.equals(preset.getLeftClickSkillId(), leftClickDraft)
             || !preset.getPassiveSkillSlots().equals(passiveDraft);
     }
 
     public void setSlot(@NotNull SkillBindType type, int slotIndex, @Nullable String skillId) {
-        if (slotIndex < 0 || slotIndex >= SkillBindPreset.SLOT_COUNT) {
+        if (slotIndex < 0 || slotIndex >= slotCount(type)) {
+            return;
+        }
+        if (type == SkillBindType.LEFT_CLICK) {
+            setLeftClickSkillId(skillId);
             return;
         }
         List<String> target = type == SkillBindType.ACTIVE ? activeDraft : passiveDraft;
@@ -165,8 +179,15 @@ public final class SkillBindSession {
     }
 
     public void clear(@NotNull SkillBindType type) {
+        if (type == SkillBindType.LEFT_CLICK) {
+            setLeftClickSkillId(null);
+            if (selectedBindType == type) {
+                clearSelectedBindSlot();
+            }
+            return;
+        }
         List<String> target = type == SkillBindType.ACTIVE ? activeDraft : passiveDraft;
-        for (int i = 0; i < SkillBindPreset.SLOT_COUNT; i++) {
+        for (int i = 0; i < target.size(); i++) {
             target.set(i, null);
         }
         if (selectedBindType == type) {
@@ -180,12 +201,26 @@ public final class SkillBindSession {
     }
 
     private int findNextFreeSlot(@NotNull List<String> slots) {
-        for (int index = 0; index < SkillBindPreset.SLOT_COUNT; index++) {
+        for (int index = 0; index < slots.size(); index++) {
             String skillId = slots.get(index);
             if (skillId == null || skillId.isBlank()) {
                 return index;
             }
         }
         return -1;
+    }
+
+    /** 左クリックバインドを更新します。 */
+    public void setLeftClickSkillId(@Nullable String skillId) {
+        this.leftClickDraft = skillId == null || skillId.isBlank() ? null : skillId.trim();
+    }
+
+    private int slotCount(@NotNull SkillBindType type) {
+        if (type == SkillBindType.LEFT_CLICK) {
+            return 1;
+        }
+        return type == SkillBindType.PASSIVE
+            ? SkillBindPreset.PASSIVE_SLOT_COUNT
+            : SkillBindPreset.ACTION_RING_SLOT_COUNT;
     }
 }

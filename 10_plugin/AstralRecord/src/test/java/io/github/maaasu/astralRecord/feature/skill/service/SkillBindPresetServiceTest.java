@@ -15,7 +15,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -78,7 +80,7 @@ class SkillBindPresetServiceTest {
             return mock(BukkitTask.class);
         }).when(scheduler).runTask(eq(plugin), org.mockito.ArgumentMatchers.any(Runnable.class));
         UUID accountId = UUID.randomUUID();
-        when(repository.save(eq(accountId), anyInt(), anyList(), anyList(), eq(accountId)))
+        when(repository.save(eq(accountId), anyInt(), anyList(), any(), anyList(), eq(accountId)))
             .thenAnswer(invocation -> preset(accountId, invocation.getArgument(1)));
         SkillBindPresetService service = new SkillBindPresetService(plugin, repository);
         service.applyInitialPresets(accountId, presets(accountId));
@@ -130,6 +132,68 @@ class SkillBindPresetServiceTest {
         assertTrue(newSuccess.get());
         assertTrue(service.hasLoadedPresets(accountId));
         assertEquals("new", service.getPresets(accountId).get(1).getActiveSkillSlots().getFirst());
+        verify(repository).save(
+            eq(accountId), eq(1), anyList(),
+            eq(SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID), anyList(), eq(accountId)
+        );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_1-モデル定義.md
+     * 章・見出し: # 13_1-モデル定義 > ## 6. bind preset
+     * 検証契約: action ring は6件へ正規化し、互換コンストラクタは武器通常攻撃を既定にする。
+     */
+    @Test
+    void bindPresetNormalizesActionRingAndUsesWeaponNormalAttackByDefault() {
+        UUID accountId = UUID.randomUUID();
+
+        SkillBindPreset preset = new SkillBindPreset(
+            UUID.randomUUID(), accountId, 1,
+            List.of("one", "two", "three", "four", "five", "six", "seven"),
+            List.of(), true, true, 1
+        );
+
+        assertEquals(6, preset.getActiveSkillSlots().size());
+        assertEquals("six", preset.getActiveSkillSlots().getLast());
+        assertEquals(SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID, preset.getLeftClickSkillId());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_1-モデル定義.md
+     * 章・見出し: # 13_1-モデル定義 > ## 6. bind preset
+     * 検証契約: 左クリックバインドは null を保存して解除できる。
+     */
+    @Test
+    void saveAsyncPersistsNullLeftClickBindingAsUnbound() {
+        Plugin plugin = mock(Plugin.class);
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        SkillBindPresetRepository repository = mock(SkillBindPresetRepository.class);
+        List<Runnable> asyncTasks = new ArrayList<>();
+        List<Runnable> syncTasks = new ArrayList<>();
+        UUID accountId = UUID.randomUUID();
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+        doAnswer(invocation -> {
+            asyncTasks.add(invocation.getArgument(1));
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTaskAsynchronously(eq(plugin), org.mockito.ArgumentMatchers.any(Runnable.class));
+        doAnswer(invocation -> {
+            syncTasks.add(invocation.getArgument(1));
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTask(eq(plugin), org.mockito.ArgumentMatchers.any(Runnable.class));
+        when(repository.save(eq(accountId), anyInt(), anyList(), isNull(), anyList(), eq(accountId)))
+            .thenReturn(preset(accountId, 1));
+        SkillBindPresetService service = new SkillBindPresetService(plugin, repository);
+        service.applyInitialPresets(accountId, presets(accountId));
+
+        assertTrue(service.saveAsync(
+            accountId, 1, List.of(), null, List.of(), accountId, ignored -> { }, () -> { }
+        ));
+        asyncTasks.getFirst().run();
+        syncTasks.getFirst().run();
+
+        verify(repository).save(eq(accountId), eq(1), anyList(), isNull(), anyList(), eq(accountId));
     }
 
     private List<SkillBindPreset> presets(UUID accountId) {

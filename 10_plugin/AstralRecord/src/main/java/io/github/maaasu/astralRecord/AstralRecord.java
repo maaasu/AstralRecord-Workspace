@@ -1033,6 +1033,7 @@ public final class AstralRecord extends JavaPlugin {
         skillBindGui = new SkillBindGui(this);
         itemWeaponAttackService = new ItemWeaponAttackService(inventoryService, skillService);
         itemWeaponAttackService.setEquipmentDurabilityService(equipmentDurabilityService);
+        skillActionRingService.setItemWeaponAttackService(itemWeaponAttackService);
 
         // item, loot, skill, class 等のマスターデータを非同期ロード
         getServer().getScheduler().runTaskAsynchronously(this, () -> {
