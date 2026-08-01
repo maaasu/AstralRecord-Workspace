@@ -38,6 +38,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -163,23 +164,23 @@ public final class TradeService {
         }
         Player sender = Bukkit.getPlayer(request.getSenderUuid());
         if (sender != null && !AccountModeGuard.isGameplayPlayer(sender)) {
-            request.setStatus(TradeRequestStatus.CANCELLED);
+            finishRequest(request, TradeRequestStatus.CANCELLED);
             messageService.send(accepter, PlayerMsgId.P_5065);
             return;
         }
         if (sender == null || !sender.isOnline() || isTrading(sender.getUniqueId()) || isTrading(accepter.getUniqueId())) {
-            request.setStatus(TradeRequestStatus.CANCELLED);
+            finishRequest(request, TradeRequestStatus.CANCELLED);
             messageService.send(accepter, PlayerMsgId.P_6203);
             return;
         }
         AstPlayer senderAstPlayer = AstPlayerCache.get(sender);
         AstPlayer accepterAstPlayer = AstPlayerCache.get(accepter);
         if (senderAstPlayer == null || accepterAstPlayer == null) {
-            request.setStatus(TradeRequestStatus.CANCELLED);
+            finishRequest(request, TradeRequestStatus.CANCELLED);
             messageService.send(accepter, PlayerMsgId.P_6203);
             return;
         }
-        request.setStatus(TradeRequestStatus.ACCEPTED);
+        finishRequest(request, TradeRequestStatus.ACCEPTED);
         TradeSession session = new TradeSession(
             UUID.randomUUID(),
             sender.getUniqueId(),
@@ -293,7 +294,7 @@ public final class TradeService {
         reopenTrade(player);
         Player partner = Bukkit.getPlayer(session.getPartnerUuid(player.getUniqueId()));
         if (partner != null && partner.isOnline()) {
-            reopenTrade(partner);
+            tradeGui.refreshIfOpen(partner, session);
         }
     }
 
@@ -578,10 +579,10 @@ public final class TradeService {
         Player playerA = Bukkit.getPlayer(session.getPlayerAUuid());
         Player playerB = Bukkit.getPlayer(session.getPlayerBUuid());
         if (playerA != null && playerA.isOnline()) {
-            openTrade(playerA, session);
+            tradeGui.refreshIfOpen(playerA, session);
         }
         if (playerB != null && playerB.isOnline()) {
-            openTrade(playerB, session);
+            tradeGui.refreshIfOpen(playerB, session);
         }
     }
 
@@ -863,13 +864,32 @@ public final class TradeService {
             .orElse(null);
     }
 
+    /**
+     * 期限切れの pending トレード申請を終端状態へ遷移させ、管理対象から除去します。
+     *
+     * @implNote iterator を通じて削除し、同一走査中の構造変更例外を防ぎます。
+     */
     private void expireRequests() {
         Instant now = Instant.now();
-        for (TradeRequest request : requests.values()) {
+        Iterator<TradeRequest> iterator = requests.values().iterator();
+        while (iterator.hasNext()) {
+            TradeRequest request = iterator.next();
             if (request.getStatus() == TradeRequestStatus.PENDING && request.isExpired(now)) {
                 request.setStatus(TradeRequestStatus.EXPIRED);
+                iterator.remove();
             }
         }
+    }
+
+    /**
+     * トレード申請を終端状態へ遷移させ、pending request 管理から除去します。
+     *
+     * @param request 終端化するトレード申請
+     * @param status 設定する終端状態
+     */
+    private void finishRequest(@NotNull TradeRequest request, @NotNull TradeRequestStatus status) {
+        request.setStatus(status);
+        requests.remove(request.getRequestId());
     }
 
     private void suppressNextClose(@NotNull Player player) {

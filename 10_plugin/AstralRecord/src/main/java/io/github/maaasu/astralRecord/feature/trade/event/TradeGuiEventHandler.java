@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeCancelConfirmGui;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeGui;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeGuiLayout;
+import io.github.maaasu.astralRecord.feature.trade.model.TradeSession;
 import io.github.maaasu.astralRecord.feature.trade.service.TradeService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.gold.GoldAmountSettingGui;
@@ -28,6 +29,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.UUID;
 
 public final class TradeGuiEventHandler extends AbstractEventHandler {
     private final AstralRecord plugin;
@@ -67,10 +70,20 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
                     player.closeInventory();
                     return;
                 }
+                if (event.getWhoClicked() instanceof Player player && !isCurrentTradeView(top, player)) {
+                    event.setCancelled(true);
+                    GuiSound.DENY.play(player);
+                    return;
+                }
                 handleTradeClick(event);
                 return;
             }
             if (cancelConfirmGui.isCancelInventory(top)) {
+                if (event.getWhoClicked() instanceof Player player && !isCurrentCancelConfirmView(top, player)) {
+                    event.setCancelled(true);
+                    GuiSound.DENY.play(player);
+                    return;
+                }
                 handleCancelConfirmClick(event);
                 return;
             }
@@ -79,6 +92,11 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
                     && !AccountModeGuard.isGameplayPlayer(player)) {
                     event.setCancelled(true);
                     player.closeInventory();
+                    return;
+                }
+                if (event.getWhoClicked() instanceof Player player && !isCurrentGoldAmountView(top, player)) {
+                    event.setCancelled(true);
+                    GuiSound.DENY.play(player);
                     return;
                 }
                 handleGoldAmountClick(event);
@@ -128,11 +146,20 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (tradeInventory) {
+            if (!isCurrentTradeView(inventory, player)) {
+                return;
+            }
             Bukkit.getScheduler().runTask(plugin, () -> tradeService.openCancelConfirmAfterClose(player));
             return;
         }
         if (goldAmountInventory) {
+            if (!isCurrentGoldAmountView(inventory, player)) {
+                return;
+            }
             Bukkit.getScheduler().runTask(plugin, () -> tradeService.reopenTradeAfterClose(player));
+            return;
+        }
+        if (!isCurrentCancelConfirmView(inventory, player)) {
             return;
         }
         Bukkit.getScheduler().runTask(plugin, () -> tradeService.cancelTrade(player));
@@ -284,6 +311,37 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
             return 10;
         }
         return event.isRightClick() ? 5 : 1;
+    }
+
+    private boolean isCurrentTradeView(@NotNull Inventory inventory, @NotNull Player player) {
+        TradeGui.TradeHolder holder = tradeGui.getTradeHolder(inventory);
+        return holder != null
+            && isCurrentSessionView(player, holder.viewerUuid(), holder.sessionId());
+    }
+
+    private boolean isCurrentCancelConfirmView(@NotNull Inventory inventory, @NotNull Player player) {
+        TradeCancelConfirmGui.CancelHolder holder = cancelConfirmGui.getCancelHolder(inventory);
+        return holder != null
+            && isCurrentSessionView(player, holder.viewerUuid(), holder.sessionId());
+    }
+
+    private boolean isCurrentGoldAmountView(@NotNull Inventory inventory, @NotNull Player player) {
+        GoldAmountSettingGui.GoldAmountHolder holder = goldAmountSettingGui.getHolder(inventory);
+        return holder != null
+            && TradeService.GOLD_AMOUNT_SOURCE_KEY.equals(holder.sourceKey())
+            && isCurrentSessionView(player, holder.viewerUuid(), holder.contextId());
+    }
+
+    private boolean isCurrentSessionView(
+        @NotNull Player player,
+        @NotNull UUID viewerUuid,
+        @NotNull UUID sessionId
+    ) {
+        if (!viewerUuid.equals(player.getUniqueId())) {
+            return false;
+        }
+        TradeSession session = tradeService.getOpenSession(player.getUniqueId());
+        return session != null && session.getSessionId().equals(sessionId);
     }
 
     private boolean handleHotbarShortcutClick(@NotNull InventoryClickEvent event, @NotNull Player player) {

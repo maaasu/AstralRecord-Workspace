@@ -37,6 +37,25 @@ public final class TradeGui {
         return inventory != null && inventory.getHolder() instanceof TradeHolder holder ? holder : null;
     }
 
+    /**
+     * 現在表示中の同一セッションのトレード GUI だけを再描画します。
+     *
+     * @param viewer 再描画対象プレイヤー
+     * @param session 表示するトレードセッション
+     * @return 同一セッションのトレード GUI を再描画した場合は {@code true}
+     */
+    public boolean refreshIfOpen(@NotNull Player viewer, @NotNull TradeSession session) {
+        Inventory inventory = viewer.getOpenInventory().getTopInventory();
+        TradeHolder holder = getTradeHolder(inventory);
+        if (holder == null
+            || !holder.viewerUuid().equals(viewer.getUniqueId())
+            || !holder.sessionId().equals(session.getSessionId())) {
+            return false;
+        }
+        render(inventory, viewer.getUniqueId(), session);
+        return true;
+    }
+
     public void clearTradeInventory(@NotNull Inventory inventory) {
         if (!isTradeInventory(inventory)) {
             return;

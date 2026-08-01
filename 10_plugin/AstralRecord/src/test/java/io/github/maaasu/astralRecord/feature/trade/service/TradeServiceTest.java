@@ -12,6 +12,8 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeCancelConfirmGui;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeGui;
+import io.github.maaasu.astralRecord.feature.trade.model.TradeRequest;
+import io.github.maaasu.astralRecord.feature.trade.model.TradeRequestStatus;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeSession;
 import io.github.maaasu.astralRecord.shared.gui.gold.GoldAmountSettingGui;
 import org.bukkit.Bukkit;
@@ -30,8 +32,10 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -93,6 +97,72 @@ class TradeServiceTest {
         verify(context.inventoryService).restoreState(context.snapshot);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_3-メソッド仕様.md
+     * 章・見出し: # 22_3-メソッド仕様 > ## GUI event
+     * 検証契約: item提示で相手が操作中のGold金額設定GUIをTrade GUIへ強制遷移させない。
+     */
+    @Test
+    void offeringItemRefreshesOpenTradeViewsWithoutReopeningPartnerGoldAmountSetting() throws Exception {
+        TestContext context = new TestContext();
+        ItemStack displayed = itemStack(4);
+        ItemStack moved = itemStack(4);
+        when(context.inventoryService.takeOwnedItemAmount(context.astPlayer, 9, 4)).thenReturn(moved);
+        when(context.itemReferenceResolver.resolveItemModel(moved)).thenReturn(context.itemModel);
+
+        boolean offered;
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            cache.when(() -> AstPlayerCache.get(context.player)).thenReturn(context.astPlayer);
+            bukkit.when(() -> Bukkit.getPlayer(context.playerId)).thenReturn(context.player);
+            bukkit.when(() -> Bukkit.getPlayer(context.partnerId)).thenReturn(context.partner);
+
+            offered = context.service.offerOwnedItem(context.player, 9, ClickType.SHIFT_LEFT, displayed);
+        }
+
+        assertTrue(offered);
+        verify(context.tradeGui).refreshIfOpen(context.player, context.session);
+        verify(context.tradeGui).refreshIfOpen(context.partner, context.session);
+        verify(context.tradeGui, never()).open(any(Player.class), any(TradeSession.class));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_3-メソッド仕様.md
+     * 章・見出し: # 22_3-メソッド仕様 > ## 招待・承認
+     * 検証契約: 期限切れの申請は EXPIRED に遷移後、pending 申請だけを保持する request 管理から除去する。
+     */
+    @Test
+    void expiringRequestsRemovesTerminalRequestsAndKeepsPendingRequests() throws Exception {
+        TestContext context = new TestContext();
+        Instant now = Instant.now();
+        TradeRequest expired = new TradeRequest(
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            "expired-sender",
+            UUID.randomUUID(),
+            "expired-target",
+            now.minusSeconds(61),
+            now.minusSeconds(1)
+        );
+        TradeRequest pending = new TradeRequest(
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            "pending-sender",
+            UUID.randomUUID(),
+            "pending-target",
+            now,
+            now.plusSeconds(60)
+        );
+        TestContext.registerRequest(context.service, expired);
+        TestContext.registerRequest(context.service, pending);
+
+        TestContext.invokeExpireRequests(context.service);
+
+        assertEquals(TradeRequestStatus.EXPIRED, expired.getStatus());
+        assertFalse(TestContext.requestsOf(context.service).containsKey(expired.getRequestId()));
+        assertSame(pending, TestContext.requestsOf(context.service).get(pending.getRequestId()));
+    }
+
     private static final class TestContext {
         private final UUID playerId = UUID.randomUUID();
         private final UUID partnerId = UUID.randomUUID();
@@ -107,6 +177,7 @@ class TradeServiceTest {
         private final PlayerMessageService messageService = mock(PlayerMessageService.class);
         private final ItemReferenceResolver itemReferenceResolver = mock(ItemReferenceResolver.class);
         private final Player player = mock(Player.class);
+        private final Player partner = mock(Player.class);
         private final AstPlayer astPlayer = mock(AstPlayer.class);
         private final AccountModel account = mock(AccountModel.class);
         private final ItemModel itemModel = mock(ItemModel.class);
@@ -135,6 +206,9 @@ class TradeServiceTest {
 
         private TestContext() throws Exception {
             when(player.getUniqueId()).thenReturn(playerId);
+            when(player.isOnline()).thenReturn(true);
+            when(partner.getUniqueId()).thenReturn(partnerId);
+            when(partner.isOnline()).thenReturn(true);
             when(astPlayer.getAccount()).thenReturn(account);
             when(account.getUuid()).thenReturn(accountId);
             when(itemModel.getUnTradeable()).thenReturn(false);
@@ -154,6 +228,24 @@ class TradeServiceTest {
                 session.getPlayerAUuid(),
                 session.getSessionId()
             );
+        }
+
+        @SuppressWarnings("unchecked")
+        private static void registerRequest(TradeService service, TradeRequest request) throws Exception {
+            requestsOf(service).put(request.getRequestId(), request);
+        }
+
+        @SuppressWarnings("unchecked")
+        private static Map<UUID, TradeRequest> requestsOf(TradeService service) throws Exception {
+            Field requestsField = TradeService.class.getDeclaredField("requests");
+            requestsField.setAccessible(true);
+            return (Map<UUID, TradeRequest>) requestsField.get(service);
+        }
+
+        private static void invokeExpireRequests(TradeService service) throws Exception {
+            var expireRequests = TradeService.class.getDeclaredMethod("expireRequests");
+            expireRequests.setAccessible(true);
+            expireRequests.invoke(service);
         }
     }
 
