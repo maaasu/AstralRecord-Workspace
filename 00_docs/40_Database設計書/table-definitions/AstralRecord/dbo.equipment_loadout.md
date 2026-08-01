@@ -23,7 +23,7 @@
 |:---|:---|:---:|:---:|:---:|:---|
 | `equipment_loadout_id` | `UNIQUEIDENTIFIER` | ○ | ○ |  | 装備プリセット ID |
 | `account_id` | `UNIQUEIDENTIFIER` |  | ○ |  | 所有アカウント UUID |
-| `loadout_profile` | `NVARCHAR(20)` |  | ○ | `GAME` | プロファイル。`GAME` / `BUILDER` |
+| `loadout_profile` | `NVARCHAR(20)` |  | ○ | `GAME` | プロファイル。`GAME` / `ADMIN` |
 | `loadout_name` | `NVARCHAR(100)` |  | ○ |  | プリセット名 |
 | `sort_order` | `INT` |  | ○ | `0` | 表示順 |
 | `is_active` | `BIT` |  | ○ | `0` | 現在有効なプリセットか |
@@ -42,7 +42,7 @@
 |:---|:---|:---|
 | `PK_equipment_loadout` | PK | `equipment_loadout_id` |
 | `FK_equipment_loadout_account` | FK | `account_id -> dbo.account(uuid)` |
-| `CK_equipment_loadout_profile` | CHECK | `[loadout_profile] IN (N'GAME', N'BUILDER')` |
+| `CK_equipment_loadout_profile` | CHECK | `[loadout_profile] IN (N'GAME', N'ADMIN')` |
 | `DF_equipment_loadout_profile` | DEFAULT | `loadout_profile = 'GAME'` |
 | `DF_equipment_loadout_sort_order` | DEFAULT | `sort_order = 0` |
 | `DF_equipment_loadout_is_active` | DEFAULT | `is_active = 0` |
@@ -84,7 +84,7 @@ CREATE TABLE [dbo].[equipment_loadout] (
         REFERENCES [dbo].[account] ([uuid])
         ON DELETE NO ACTION
         ON UPDATE NO ACTION,
-    CONSTRAINT [CK_equipment_loadout_profile] CHECK ([loadout_profile] IN (N'GAME', N'BUILDER'))
+    CONSTRAINT [CK_equipment_loadout_profile] CHECK ([loadout_profile] IN (N'GAME', N'ADMIN'))
 );
 GO
 
@@ -116,5 +116,4 @@ GO
 |:---|:---|
 | 複数装備セット | 通常用、ボス用、採掘用などの装備プリセットをアカウントごとに保持します。 |
 | プリセット切替 | `is_active = 1` のプリセットを現在有効な装備セットとして扱います。 |
-| プロファイル分離 | `GAME` / `BUILDER` などの用途ごとに有効プリセットを分けます。 |
-
+| プロファイル分離 | `GAME` / `ADMIN` の用途ごとに有効プリセットを分けます。 |

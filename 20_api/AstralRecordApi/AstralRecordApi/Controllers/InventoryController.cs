@@ -30,17 +30,25 @@ public class InventoryController(IInventoryRepository inventoryRepository) : Con
 
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] InventoryCreateRequest request)
     {
+        if (!AccessControlContract.IsValidProfile(request.InventoryProfile))
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "Inventory profile is invalid.");
+
         var created = await inventoryRepository.CreateAsync(request);
         return CreatedAtAction(nameof(GetById), new { inventoryId = created.InventoryId }, created);
     }
 
     [HttpPut("{inventoryId:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid inventoryId, [FromBody] InventoryUpdateRequest request)
     {
+        if (request.InventoryProfile is not null && !AccessControlContract.IsValidProfile(request.InventoryProfile))
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "Inventory profile is invalid.");
+
         var updated = await inventoryRepository.UpdateAsync(inventoryId, request);
         if (updated is null)
             return NotFound();

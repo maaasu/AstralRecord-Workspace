@@ -24,12 +24,12 @@ final class InventorySnapshotCodec {
     private static final String KEY_GAME_MODE = "gameMode";
 
     /**
-     * BUILDER モード用スナップショット復元結果。
+     * ADMIN モード用スナップショット復元結果。
      *
      * @param contents 復元した ItemStack 配列
      * @param gameMode 保存されていた GameMode。未保存または不明値の場合は null
      */
-    record BuilderSnapshot(@NotNull ItemStack[] contents, @Nullable GameMode gameMode) {
+    record AdminSnapshot(@NotNull ItemStack[] contents, @Nullable GameMode gameMode) {
     }
 
     /**
@@ -46,13 +46,13 @@ final class InventorySnapshotCodec {
     }
 
     /**
-     * BUILDER モード用に ItemStack 配列と GameMode を metadataJson に変換します。
+     * ADMIN モード用に ItemStack 配列と GameMode を metadataJson に変換します。
      *
      * @param contents Bukkit インベントリ内容
      * @param gameMode 保存対象 GameMode。null の場合は GameMode を含めずに保存します
      * @return metadataJson
      */
-    @NotNull String encodeBuilder(@NotNull ItemStack[] contents, @Nullable GameMode gameMode) {
+    @NotNull String encodeAdmin(@NotNull ItemStack[] contents, @Nullable GameMode gameMode) {
         JsonObject json = new JsonObject();
         json.addProperty(KEY_FORMAT, SNAPSHOT_FORMAT);
         json.addProperty(KEY_CONTENTS, encodeContents(contents));
@@ -63,12 +63,12 @@ final class InventorySnapshotCodec {
     }
 
     /**
-     * BUILDER モード用 metadataJson から ItemStack 配列と GameMode を復元します。
+     * ADMIN モード用 metadataJson から ItemStack 配列と GameMode を復元します。
      *
      * @param metadataJson API に保存された metadataJson
-     * @return 復元できた [BuilderSnapshot]。形式不一致や破損時は null
+     * @return 復元できた [AdminSnapshot]。形式不一致や破損時は null
      */
-    @Nullable BuilderSnapshot decodeBuilder(@NotNull String metadataJson) {
+    @Nullable AdminSnapshot decodeAdmin(@NotNull String metadataJson) {
         ItemStack[] contents = decode(metadataJson);
         if (contents == null) {
             return null;
@@ -85,7 +85,7 @@ final class InventorySnapshotCodec {
             }
         } catch (Exception ignored) {
         }
-        return new BuilderSnapshot(contents, gameMode);
+        return new AdminSnapshot(contents, gameMode);
     }
 
     /**

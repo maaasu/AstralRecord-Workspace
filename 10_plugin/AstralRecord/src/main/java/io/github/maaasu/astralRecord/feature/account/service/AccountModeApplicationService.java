@@ -96,7 +96,7 @@ public final class AccountModeApplicationService {
     }
 
     private boolean isToolInventoryMode(@NotNull AccountMode mode) {
-        return mode == AccountMode.BUILDER || mode == AccountMode.ADMIN;
+        return mode == AccountMode.ADMIN;
     }
 
     /** アカウントモードの永続化結果と、同一アカウント内での完了世代です。 */

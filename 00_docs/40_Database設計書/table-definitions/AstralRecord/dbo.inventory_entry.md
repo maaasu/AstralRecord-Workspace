@@ -1,4 +1,4 @@
-補足: プロファイル分離（GAME/BUILDER）は親テーブル `dbo.inventory.inventory_profile` で管理します。
+補足: プロファイル分離（GAME/ADMIN）は親テーブル `dbo.inventory.inventory_profile` で管理します。
 各インベントリの中身を保持するテーブルです。
 連続アイテム・消耗のようなスタック型アイテムと、装備・ルーン・ペットのようなインスタンス生成型アイテムの両方を 1 テーブルで扱えるようにしています。
 どのインベントリ種別に属するかの判定は親テーブル `dbo.inventory.inventory_type` とプラグイン側コードで行います。

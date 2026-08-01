@@ -50,7 +50,7 @@ public final class MobSpawnerBlockEventHandler
         }
         PlayerInteractionSnapshot snapshot = context.inputSnapshot();
         AstPlayer astPlayer = AstPlayerCache.get(snapshot.player());
-        if (!spawnerService.canViewSpawnerVisual(astPlayer)) {
+        if (!spawnerService.canRemoveSpawner(astPlayer)) {
             return List.of();
         }
         SpawnerHit hit = findTargetedSpawner(snapshot);
@@ -66,8 +66,10 @@ public final class MobSpawnerBlockEventHandler
             InputClaimPolicy.CLAIM_AND_CANCEL,
             () -> {
                 PlayerInteractionSnapshot currentSnapshot = snapshot.refresh();
+                AstPlayer currentPlayer = AstPlayerCache.get(currentSnapshot.player());
                 SpawnerHit current = findTargetedSpawner(currentSnapshot);
-                return current != null
+                return spawnerService.canRemoveSpawner(currentPlayer)
+                    && current != null
                     && locationKey(current.location()).equals(locationKey(hit.location()))
                     && currentSnapshot.isVisible(current.hitDistance());
             },
@@ -128,7 +130,7 @@ public final class MobSpawnerBlockEventHandler
 
     private void breakSpawner(BlockBreakEvent event) {
         AstPlayer astPlayer = AstPlayerCache.get(event.getPlayer());
-        if (!spawnerService.isAdminMode(astPlayer)) {
+        if (!spawnerService.canRemoveSpawner(astPlayer)) {
             event.setCancelled(true);
             PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5719);
             return;
@@ -140,7 +142,7 @@ public final class MobSpawnerBlockEventHandler
 
     private void removeTargetedSpawner(Player player, Location target) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (!spawnerService.isAdminMode(astPlayer)) {
+        if (!spawnerService.canRemoveSpawner(astPlayer)) {
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5719);
             return;
         }

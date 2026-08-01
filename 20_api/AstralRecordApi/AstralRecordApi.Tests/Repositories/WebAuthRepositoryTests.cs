@@ -37,7 +37,7 @@ public class WebAuthRepositoryTests
                 LastJoinDate = now,
                 GlobalIp = "127.0.0.1",
                 AccountId = accountId,
-                Permission = 10,
+                Permission = 99,
                 CreatedAt = now,
                 UpdatedAt = now,
                 CreatedBy = userId,

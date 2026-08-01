@@ -1207,46 +1207,6 @@ public class StatusService {
     private double getAccountModeBonus(@NotNull AccountMode mode, @NotNull StatusType type) {
         return switch (mode) {
             case PLAYER -> 0.0D;
-            case BUILDER -> switch (type) {
-                case MAX_HEALTH -> 0.0D;
-                case MAX_MANA -> 4.0D;
-                case MAX_ENERGY -> 0.0D;
-                case MAX_SHIELD -> 0.0D;
-                case STRENGTH -> 0.0D;
-                case DEXTERITY -> 0.0D;
-                case INTELLIGENCE -> 0.0D;
-                case VITALITY -> 0.0D;
-                case AGILITY -> 0.0D;
-                case LUCK -> 0.0D;
-                case ATTACK -> 2.0D;
-                case MELEE_ATTACK -> 0.0D;
-                case RANGED_ATTACK -> 0.0D;
-                case MAGIC_ATTACK -> 0.0D;
-                case CRITICAL_RATE -> 0.0D;
-                case CRITICAL_DAMAGE -> 0.0D;
-                case SUPER_CRITICAL_RATE -> 0.0D;
-                case SUPER_CRITICAL_DAMAGE -> 0.0D;
-                case FINAL_DAMAGE_MULTIPLIER -> 0.0D;
-                case ACCURACY -> 0.0D;
-                case ATTACK_SPEED -> 0.0D;
-                case SHIELD_BREAK -> 0.0D;
-                case FIXED_HEALTH_DAMAGE -> 0.0D;
-                case SHIELD_RECHARGE_DELAY_CHANCE -> 0.0D;
-                case SHIELD_RECHARGE_DELAY_SECONDS -> 0.0D;
-                case DEFENSE -> 3.0D;
-                case MAGIC_DEFENSE -> 2.0D;
-                case EVASION -> 0.0D;
-                case KNOCKBACK_RESISTANCE -> 0.0D;
-                case HP_REGEN -> 0.0D;
-                case MP_REGEN -> 0.0D;
-                case ENERGY_REGEN -> 0.0D;
-                case MOVEMENT_SPEED -> 5.0D;
-                case COOLDOWN_REDUCTION -> 0.0D;
-                case SHIELD_RECHARGE_REDUCTION -> 0.0D;
-                case MINING_SPEED -> 0.0D;
-                case QUEST_LIMIT -> 0.0D;
-                default -> 0.0D;
-            };
             case ADMIN -> switch (type) {
                 case MAX_HEALTH -> 10.0D;
                 case MAX_MANA -> 10.0D;

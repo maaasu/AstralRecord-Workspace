@@ -4,7 +4,7 @@ enum class InventoryProfile(
     val code: String,
 ) {
     GAME("GAME"),
-    BUILDER("BUILDER"),
+    ADMIN("ADMIN"),
     ;
 
     companion object {

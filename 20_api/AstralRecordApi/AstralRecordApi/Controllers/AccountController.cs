@@ -14,8 +14,12 @@ public class AccountController(IAccountRepository accountRepository) : Controlle
     /// <response code="201">アカウント登録成功</response>
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] AccountCreateRequest request)
     {
+        if (!AccessControlContract.IsValidAccountMode(request.Mode))
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "Account mode is invalid.");
+
         var created = await accountRepository.CreateAsync(request);
         return CreatedAtAction(nameof(GetByUuid), new { uuid = created.Uuid }, created);
     }
@@ -31,6 +35,9 @@ public class AccountController(IAccountRepository accountRepository) : Controlle
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Update(Guid uuid, [FromBody] AccountUpdateRequest request)
     {
+        if (request.Mode.HasValue && !AccessControlContract.IsValidAccountMode(request.Mode.Value))
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "Account mode is invalid.");
+
         try
         {
             var updated = await accountRepository.UpdateAsync(uuid, request);

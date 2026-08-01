@@ -76,9 +76,13 @@ public class UserController(IUserRepository userRepository) : ControllerBase
     /// <response code="404">指定 UUID のユーザーが存在しない、または論理削除済み</response>
     [HttpPut("{uuid:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid uuid, [FromBody] UserUpdateRequest request)
     {
+        if (request.Permission.HasValue && !AccessControlContract.IsValidUserPermission(request.Permission.Value))
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "User permission is invalid.");
+
         var updated = await userRepository.UpdateAsync(uuid, request);
         if (updated is null)
             return NotFound();

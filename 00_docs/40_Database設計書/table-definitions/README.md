@@ -18,6 +18,12 @@
 | `MasterDataDB` | `MasterDataDB/init.sql` |
 | `HistoryDB` | `HistoryDB/init.sql` |
 
+## 本番 migration
+
+| DB | migration | 内容 |
+|:--|:--|:--|
+| `AstralRecord` | `AstralRecord/migrations/20260801_remove_builder.sql` | 廃止済みアカウント・権限値の移行と管理用プロファイルの改名 |
+
 ## AstralRecord
 
 | テーブル | 定義 |

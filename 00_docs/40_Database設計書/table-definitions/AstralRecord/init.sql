@@ -37,7 +37,8 @@ CREATE TABLE [dbo].[user] (
     [updated_by]       UNIQUEIDENTIFIER  NOT NULL,
     [is_deleted]       BIT               NOT NULL  CONSTRAINT [DF_user_is_deleted]       DEFAULT (0),
 
-    CONSTRAINT [PK_user] PRIMARY KEY CLUSTERED ([uuid])
+    CONSTRAINT [PK_user] PRIMARY KEY CLUSTERED ([uuid]),
+    CONSTRAINT [CK_user_permission] CHECK ([permission] IN (0, 99))
 );
 GO
 
@@ -167,7 +168,7 @@ CREATE TABLE [dbo].[account] (
         ON DELETE NO ACTION
         ON UPDATE NO ACTION,
     CONSTRAINT [UQ_account_user_slot] UNIQUE ([user_id], [slot_index]),
-    CONSTRAINT [CK_account_mode] CHECK ([mode] IN (0, 1, 2)),
+    CONSTRAINT [CK_account_mode] CHECK ([mode] IN (0, 2)),
     CONSTRAINT [CK_account_menu_shortcuts_json] CHECK (ISJSON([menu_shortcuts_json]) = 1),
     CONSTRAINT [CK_account_level] CHECK ([level] >= 1),
     CONSTRAINT [CK_account_total_experience] CHECK ([total_experience] >= 0),
@@ -626,7 +627,7 @@ CREATE TABLE [dbo].[inventory] (
         ON DELETE NO ACTION
         ON UPDATE NO ACTION,
     CONSTRAINT [UQ_inventory_account_type_profile] UNIQUE ([account_id], [inventory_type], [inventory_profile]),
-    CONSTRAINT [CK_inventory_profile] CHECK ([inventory_profile] IN (N'GAME', N'BUILDER')),
+    CONSTRAINT [CK_inventory_profile] CHECK ([inventory_profile] IN (N'GAME', N'ADMIN')),
     CONSTRAINT [CK_inventory_slot_capacity] CHECK ([slot_capacity] IS NULL OR [slot_capacity] >= 0)
 );
 GO
@@ -784,7 +785,7 @@ CREATE TABLE [dbo].[equipment_loadout] (
         REFERENCES [dbo].[account] ([uuid])
         ON DELETE NO ACTION
         ON UPDATE NO ACTION,
-    CONSTRAINT [CK_equipment_loadout_profile] CHECK ([loadout_profile] IN (N'GAME', N'BUILDER'))
+    CONSTRAINT [CK_equipment_loadout_profile] CHECK ([loadout_profile] IN (N'GAME', N'ADMIN'))
 );
 GO
 

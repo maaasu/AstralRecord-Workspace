@@ -24,7 +24,7 @@
 | `inventory_id` | `UNIQUEIDENTIFIER` | ○ | ○ |  | インベントリ ID |
 | `account_id` | `UNIQUEIDENTIFIER` |  | ○ |  | 所有アカウント UUID |
 | `inventory_type` | `NVARCHAR(30)` |  | ○ |  | インベントリ種別コード。例: `BAG`, `CURRENCY`, `STORAGE`, `EQUIP_SLOT`, `ACCESSORY_SLOT`, `HOTBAR` |
-| `inventory_profile` | `NVARCHAR(20)` |  | ○ | `GAME` | プロファイル。`GAME` / `BUILDER` |
+| `inventory_profile` | `NVARCHAR(20)` |  | ○ | `GAME` | プロファイル。`GAME` / `ADMIN` |
 | `slot_capacity` | `INT` |  |  |  | スロット上限。未指定時は `NULL` |
 | `is_enabled` | `BIT` |  | ○ | `1` | 利用可否 |
 | `metadata_json` | `NVARCHAR(MAX)` |  |  |  | 拡張メタデータ |
@@ -43,7 +43,7 @@
 | `PK_inventory` | PK | `inventory_id` |
 | `FK_inventory_account` | FK | `account_id -> dbo.account(uuid)` |
 | `UQ_inventory_account_type_profile` | UNIQUE | `account_id, inventory_type, inventory_profile` |
-| `CK_inventory_profile` | CHECK | `[inventory_profile] IN (N'GAME', N'BUILDER')` |
+| `CK_inventory_profile` | CHECK | `[inventory_profile] IN (N'GAME', N'ADMIN')` |
 | `CK_inventory_slot_capacity` | CHECK | `[slot_capacity] IS NULL OR [slot_capacity] >= 0` |
 | `DF_inventory_profile` | DEFAULT | `inventory_profile = 'GAME'` |
 | `DF_inventory_is_enabled` | DEFAULT | `is_enabled = 1` |
@@ -87,7 +87,7 @@ CREATE TABLE [dbo].[inventory] (
         ON DELETE NO ACTION
         ON UPDATE NO ACTION,
     CONSTRAINT [UQ_inventory_account_type_profile] UNIQUE ([account_id], [inventory_type], [inventory_profile]),
-    CONSTRAINT [CK_inventory_profile] CHECK ([inventory_profile] IN (N'GAME', N'BUILDER')),
+    CONSTRAINT [CK_inventory_profile] CHECK ([inventory_profile] IN (N'GAME', N'ADMIN')),
     CONSTRAINT [CK_inventory_slot_capacity] CHECK ([slot_capacity] IS NULL OR [slot_capacity] >= 0)
 );
 GO

@@ -11,10 +11,14 @@ public class EquipmentLoadoutController(IEquipmentLoadoutRepository loadoutRepos
 {
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetByAccountId(
         [FromQuery(Name = "account_id")] Guid accountId,
         [FromQuery(Name = "loadout_profile")] string? loadoutProfile)
     {
+        if (loadoutProfile is not null && !AccessControlContract.IsValidProfile(loadoutProfile))
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "Loadout profile is invalid.");
+
         var loadouts = await loadoutRepository.GetByAccountIdAsync(accountId, loadoutProfile);
         return Ok(loadouts);
     }
@@ -36,7 +40,7 @@ public class EquipmentLoadoutController(IEquipmentLoadoutRepository loadoutRepos
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] EquipmentLoadoutCreateRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.LoadoutProfile) || string.IsNullOrWhiteSpace(request.LoadoutName))
+        if (!AccessControlContract.IsValidProfile(request.LoadoutProfile) || string.IsNullOrWhiteSpace(request.LoadoutName))
             return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "Loadout profile and name are required.");
 
         var created = await loadoutRepository.CreateAsync(request);
@@ -49,7 +53,7 @@ public class EquipmentLoadoutController(IEquipmentLoadoutRepository loadoutRepos
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid loadoutId, [FromBody] EquipmentLoadoutUpdateRequest request)
     {
-        if (request.LoadoutProfile is not null && string.IsNullOrWhiteSpace(request.LoadoutProfile))
+        if (request.LoadoutProfile is not null && !AccessControlContract.IsValidProfile(request.LoadoutProfile))
             return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "Loadout profile is invalid.");
 
         if (request.LoadoutName is not null && string.IsNullOrWhiteSpace(request.LoadoutName))

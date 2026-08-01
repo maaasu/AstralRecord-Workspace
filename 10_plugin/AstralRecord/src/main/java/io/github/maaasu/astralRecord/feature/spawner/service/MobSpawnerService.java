@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.spawner.service;
 
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.spawner.model.MobSpawnerDefinition;
 import io.github.maaasu.astralRecord.feature.spawner.model.MobSpawnerEntry;
 import io.github.maaasu.astralRecord.feature.spawner.model.MobSpawnerLocation;
@@ -344,13 +345,28 @@ public class MobSpawnerService {
     }
 
     /**
-     * 管理者モードか判定します。
+     * Mob スポナーの既存の管理者権限を判定します。
      *
      * @param astPlayer 対象プレイヤー
-     * @return ADMIN モードなら true
+     * @return user.permission が管理者なら true
      */
     public boolean isAdminMode(@Nullable AstPlayer astPlayer) {
         return astPlayer != null && astPlayer.hasAdminPermission();
+    }
+
+    /**
+     * Mob スポナー削除を許可する管理状態か判定します。
+     * <p>
+     * 表示・設置の user permission 判定とは分離し、削除だけは user.permission が管理者かつ
+     * account mode が {@link AccountMode#ADMIN} の場合に限定します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @return 削除が許可される場合は true
+     */
+    public boolean canRemoveSpawner(@Nullable AstPlayer astPlayer) {
+        return astPlayer != null
+            && astPlayer.hasAdminPermission()
+            && astPlayer.getAccount().getMode() == AccountMode.ADMIN;
     }
 
     /**

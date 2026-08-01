@@ -1,5 +1,7 @@
 package io.github.maaasu.astralRecord.feature.spawner.service;
 
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerRegionService;
@@ -43,6 +45,29 @@ class MobSpawnerVisualPermissionTest extends MockBukkitTestBase {
 
         assertFalse(service.canViewSpawnerVisual(player));
         assertFalse(service.canViewSpawnerVisual(null));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
+     * 章・見出し: # 12_1-モデル定義 > ## 22. Mob スポナー座標 > ### Mob spawner 削除認可
+     * 検証契約: Mob spawnerの削除はuser.permission=99かつaccount mode=ADMINでだけ許可する。
+     */
+    @Test
+    void spawnerRemovalRequiresAdminPermissionAndAdminAccountMode() {
+        MobSpawnerService service = service();
+        AstPlayer administrator = mock(AstPlayer.class);
+        AccountModel adminAccount = mock(AccountModel.class);
+        when(administrator.hasAdminPermission()).thenReturn(true);
+        when(administrator.getAccount()).thenReturn(adminAccount);
+        when(adminAccount.getMode()).thenReturn(AccountMode.ADMIN);
+
+        assertTrue(service.canRemoveSpawner(administrator));
+
+        when(adminAccount.getMode()).thenReturn(AccountMode.PLAYER);
+        assertFalse(service.canRemoveSpawner(administrator));
+
+        when(administrator.hasAdminPermission()).thenReturn(false);
+        assertFalse(service.canRemoveSpawner(administrator));
     }
 
     private MobSpawnerService service() {

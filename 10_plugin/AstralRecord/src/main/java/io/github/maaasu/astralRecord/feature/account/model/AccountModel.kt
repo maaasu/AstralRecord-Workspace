@@ -11,8 +11,6 @@ import java.util.UUID
 enum class AccountMode(val value: Byte, val displayName: String) {
     /** 通常プレイヤー（デフォルト） */
     PLAYER(0, "プレイヤー"),
-    /** ビルド権限を持つプレイヤー */
-    BUILDER(1, "ビルダー"),
     /** サーバー管理権限を持つプレイヤー */
     ADMIN(2, "サーバー管理者");
 
@@ -35,7 +33,7 @@ enum class AccountMode(val value: Byte, val displayName: String) {
         /**
          * 名称（大小文字無視）から AccountMode を取得します。
          *
-         * @param name 英語ID（`PLAYER` / `BUILDER` / `ADMIN`）
+         * @param name 英語ID（`PLAYER` / `ADMIN`）
          * @return 一致するモード。一致がない場合は `null`
          */
         fun fromName(name: String): AccountMode? =
@@ -81,4 +79,3 @@ data class AccountModel @JvmOverloads constructor(
     val classExperience: Long = 0L,
     val classProgresses: List<ClassProgressModel> = emptyList(),
 )
-

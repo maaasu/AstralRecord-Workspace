@@ -36,6 +36,45 @@ import static org.mockito.Mockito.when;
 class MobSpawnerBlockEventHandlerTest {
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
+     * 章・見出し: # 12_1-モデル定義 > ## 22. Mob スポナー座標 > ### Mob spawner 削除認可
+     * 検証契約: user.permission=99でもaccount modeがPLAYERなら左クリック候補をclaim/cancelしない。
+     */
+    @Test
+    void leavesLeftClickUnclaimedWhenAdminPermissionUsesPlayerAccountMode() {
+        MobSpawnerService spawnerService = mock(MobSpawnerService.class);
+        Player player = mock(Player.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        PlayerInteractionSnapshot snapshot = new PlayerInteractionSnapshot(
+            player,
+            mock(org.bukkit.event.Event.class),
+            EquipmentSlot.HAND,
+            null,
+            null,
+            null,
+            null,
+            false,
+            Objects.requireNonNull(PlayerInteractionRayTrace.create(new Vector(), new Vector(1, 0, 0), 8.0D)),
+            8.0D
+        );
+        when(spawnerService.canRemoveSpawner(astPlayer)).thenReturn(false);
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+
+            var candidates = new MobSpawnerBlockEventHandler(spawnerService).resolve(new PlayerInputContext<>(
+                UUID.randomUUID(),
+                0L,
+                InputFamily.LEFT_CLICK,
+                InputSource.PLAYER_INTERACT,
+                snapshot
+            ));
+
+            assertTrue(candidates.isEmpty());
+        }
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_0-概要.md
      * 章・見出し: # 12_0-概要 > ## 3. 構成要素（実装単位）
      * 検証契約: 専用Mob spawner item配置をcancelし実blockを置かずitemも消費せず座標だけ登録する。

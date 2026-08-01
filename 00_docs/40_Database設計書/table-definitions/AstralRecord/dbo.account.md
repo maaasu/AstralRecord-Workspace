@@ -26,7 +26,7 @@
 | `account_name` | `NVARCHAR(50)`     |    |    ○    |        | アカウント名（キャラクター名）                                         |
 | `slot_index`   | `INT`              |    |    ○    |        | アカウントスロット番号（0 始まり）                                      |
 | `is_active`    | `BIT`              |    |    ○    |  `0`   | 現在選択中フラグ（`1`: 選択中 / `0`: 未選択）                           |
-| `mode`         | `TINYINT`          |    |    ○    |  `0`   | 権限モード（`0`: プレイヤー / `1`: ビルダー / `2`: 管理者）                |
+| `mode`         | `TINYINT`          |    |    ○    |  `0`   | 権限モード（`0`: プレイヤー / `2`: 管理者）                |
 | `menu_shortcuts_json` | `NVARCHAR(MAX)` |    |    ○    | `["STATUS","NONE","INVENTORY_CURRENCY","EQUIPMENT_GUI"]` | 2x2 craft shortcut settings JSON array |
 | `level`        | `INT`              |    |    ○    |  `1`   | プレイヤーレベル。初期値は `1`、最小値も `1`                             |
 | `total_experience` | `BIGINT`       |    |    ○    |  `0`   | 累計経験値。加算専用で負数不可                                           |
@@ -44,7 +44,6 @@
 | 値   | 識別名    | 説明                      |
 |:----|:-------|:------------------------|
 | `0` | プレイヤー  | 通常プレイヤー（デフォルト）          |
-| `1` | ビルダー   | ビルド権限を持つプレイヤー           |
 | `2` | 管理者    | サーバー管理権限を持つプレイヤー        |
 
 ---
@@ -73,7 +72,7 @@
 
 | 制約名                  | カラム    | 条件                | 説明                     |
 |:---------------------|:-------|:------------------|:-----------------------|
-| `CK_account_mode`    | `mode` | `IN (0, 1, 2)`    | 権限モードの有効値を制限する         |
+| `CK_account_mode`    | `mode` | `IN (0, 2)`    | 権限モードの有効値を制限する         |
 | `CK_account_menu_shortcuts_json` | `menu_shortcuts_json` | `ISJSON(menu_shortcuts_json) = 1` | shortcut settings JSON validation |
 | `CK_account_level` | `level` | `>= 1` | レベルの下限を制限する |
 | `CK_account_total_experience` | `total_experience` | `>= 0` | 経験値の負数保存を防ぐ |
@@ -135,7 +134,7 @@ CREATE TABLE [dbo].[account] (
         ON DELETE NO ACTION
         ON UPDATE NO ACTION,
     CONSTRAINT [UQ_account_user_slot] UNIQUE ([user_id], [slot_index]),
-    CONSTRAINT [CK_account_mode] CHECK ([mode] IN (0, 1, 2)),
+    CONSTRAINT [CK_account_mode] CHECK ([mode] IN (0, 2)),
     CONSTRAINT [CK_account_menu_shortcuts_json] CHECK (ISJSON([menu_shortcuts_json]) = 1),
     CONSTRAINT [CK_account_level] CHECK ([level] >= 1),
     CONSTRAINT [CK_account_total_experience] CHECK ([total_experience] >= 0),
@@ -163,7 +162,7 @@ GO
 | キャラクター管理     | 1 人のプレイヤーが複数のゲーム内キャラクター（アカウント）を所持・切り替えできる仕組みを提供する |
 | スロット番号管理     | `slot_index` により、キャラクター選択画面でのスロット位置を一意に管理する       |
 | アクティブアカウント管理 | `is_active` フラグにより、プレイヤーが現在使用中のアカウントを識別する         |
-| 権限モード管理      | `mode` により、アカウントの権限レベル（管理者、プレイヤー、ビルダー）を管理する       |
+| 権限モード管理      | `mode` により、アカウントの権限レベル（管理者、プレイヤー）を管理する       |
 | プレイヤーレベル管理  | `level` と `total_experience` により、アカウント単位の進行度を永続化する     |
 | クラス進行度管理 | `class_id` で現在クラスを保持し、クラス別レベル・経験値の正本は `dbo.account_class_progress` に永続化する。`class_level` / `class_experience` は現在クラスの互換ミラーとする |
 | 論理削除         | `is_deleted` フラグにより、キャラクターの削除を物理削除せず論理削除として管理する   |
