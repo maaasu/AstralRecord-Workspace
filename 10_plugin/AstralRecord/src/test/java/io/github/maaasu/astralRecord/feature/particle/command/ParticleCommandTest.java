@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.particle.command;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
@@ -45,7 +46,7 @@ class ParticleCommandTest extends MockBukkitTestBase {
         command.executePlayerCommand(astPlayer, new String[] {"flame"});
 
         ArgumentCaptor<Location> centerCaptor = ArgumentCaptor.forClass(Location.class);
-        ArgumentCaptor<Collection<Location>> locationsCaptor = ArgumentCaptor.forClass(Collection.class);
+        ArgumentCaptor<Collection<Location>> locationsCaptor = ArgumentCaptor.captor();
         verify(displayService).spawnForNearbyViewers(
                 centerCaptor.capture(),
                 locationsCaptor.capture(),
@@ -73,7 +74,7 @@ class ParticleCommandTest extends MockBukkitTestBase {
         command.executePlayerCommand(astPlayer, new String[] {"condition_poison_dust", "8"});
 
         ArgumentCaptor<Location> centerCaptor = ArgumentCaptor.forClass(Location.class);
-        ArgumentCaptor<Collection<Location>> locationsCaptor = ArgumentCaptor.forClass(Collection.class);
+        ArgumentCaptor<Collection<Location>> locationsCaptor = ArgumentCaptor.captor();
         verify(displayService).spawnForNearbyViewers(
                 centerCaptor.capture(),
                 locationsCaptor.capture(),
@@ -98,7 +99,11 @@ class ParticleCommandTest extends MockBukkitTestBase {
 
         command.executePlayerCommand(astPlayer, new String[] {"dust"});
 
-        verify(displayService, never()).spawnForNearbyViewers(any(Location.class), any(Collection.class), any());
+        verify(displayService, never()).spawnForNearbyViewers(
+                any(Location.class),
+                org.mockito.ArgumentMatchers.<Collection<Location>>any(),
+                any(SharedParticleDefinition.class)
+        );
     }
 
     private AstPlayer prepareAdminPlayer(String name) {
