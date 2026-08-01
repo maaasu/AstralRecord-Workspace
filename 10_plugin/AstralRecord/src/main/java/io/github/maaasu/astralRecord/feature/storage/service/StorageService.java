@@ -13,6 +13,8 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewEntry;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewOptions;
+import io.github.maaasu.astralRecord.feature.storage.model.StorageSortDirection;
+import io.github.maaasu.astralRecord.feature.storage.model.StorageSortKey;
 import io.github.maaasu.astralRecord.feature.storage.view.StorageScreenView;
 import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
@@ -111,6 +113,11 @@ public final class StorageService {
             player.closeInventory();
             return;
         }
+        StorageScreenView.FilterType filterType = resolveFilterType(menuView.getContentId(event.getView().getTopInventory()));
+        if (filterType != null) {
+            handleFilterOptionClick(event, player, filterType);
+            return;
+        }
         int rawSlot = event.getRawSlot();
         Inventory topInventory = event.getView().getTopInventory();
 
@@ -142,30 +149,22 @@ public final class StorageService {
         }
         if (rawSlot == MenuView.STORAGE_CATEGORY_FILTER_SLOT) {
             GuiSound.SELECT.play(player);
-            storageOptionsByPlayer.put(player.getUniqueId(), options.withCategoryFilter(nextStorageCategory(options.categoryFilter())));
-            refreshStorageEntries(player, storageOptions(player));
-            rerenderStorageInventory(player, topInventory, 0);
+            openFilterSelection(player, StorageScreenView.FilterType.CATEGORY, options.categoryFilter());
             return;
         }
         if (rawSlot == MenuView.STORAGE_RARITY_FILTER_SLOT) {
             GuiSound.SELECT.play(player);
-            storageOptionsByPlayer.put(player.getUniqueId(), options.withRarityFilter(nextStorageRarity(options.rarityFilter())));
-            refreshStorageEntries(player, storageOptions(player));
-            rerenderStorageInventory(player, topInventory, 0);
+            openFilterSelection(player, StorageScreenView.FilterType.RARITY, options.rarityFilter());
             return;
         }
         if (rawSlot == MenuView.STORAGE_SORT_KEY_SLOT) {
             GuiSound.SELECT.play(player);
-            storageOptionsByPlayer.put(player.getUniqueId(), options.withSortKey(options.sortKey().next()));
-            refreshStorageEntries(player, storageOptions(player));
-            rerenderStorageInventory(player, topInventory, 0);
+            openFilterSelection(player, StorageScreenView.FilterType.SORT_KEY, options.sortKey().name());
             return;
         }
         if (rawSlot == MenuView.STORAGE_SORT_DIRECTION_SLOT) {
             GuiSound.SELECT.play(player);
-            storageOptionsByPlayer.put(player.getUniqueId(), options.withSortDirection(options.sortDirection().next()));
-            refreshStorageEntries(player, storageOptions(player));
-            rerenderStorageInventory(player, topInventory, 0);
+            openFilterSelection(player, StorageScreenView.FilterType.SORT_DIRECTION, options.sortDirection().name());
             return;
         }
         if (isStorageControlSlot(rawSlot)) {
@@ -208,6 +207,9 @@ public final class StorageService {
             return;
         }
         if (menuView.getMenuScreen(event.getInventory()) != MenuScreen.STORAGE) {
+            return;
+        }
+        if (resolveFilterType(menuView.getContentId(event.getInventory())) != null) {
             return;
         }
         storageEntriesByPlayer.remove(player.getUniqueId());
@@ -388,33 +390,77 @@ public final class StorageService {
             || rawSlot == MenuView.STORAGE_NEXT_SLOT;
     }
 
-    private @Nullable String nextStorageCategory(@Nullable String current) {
-        List<String> values = ItemCategory.supportedApiValues();
-        return nextNullableCycle(current, values);
+    private void openFilterSelection(
+        @NotNull Player player,
+        @NotNull StorageScreenView.FilterType filterType,
+        @Nullable String selectedValue
+    ) {
+        menuGuiTransitionService.switchGuiWithoutInventoryReload(
+            player,
+            () -> menuView.openStorageFilter(player, filterType, selectedValue)
+        );
+    }
+
+    private void handleFilterOptionClick(
+        @NotNull InventoryClickEvent event,
+        @NotNull Player player,
+        @NotNull StorageScreenView.FilterType filterType
+    ) {
+        int rawSlot = event.getRawSlot();
+        List<String> values = filterValues(filterType);
+        if (rawSlot < 0 || rawSlot >= values.size()) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        String value = values.get(rawSlot);
+        StorageViewOptions options = storageOptions(player);
+        StorageViewOptions updated = switch (filterType) {
+            case CATEGORY -> options.withCategoryFilter(value);
+            case RARITY -> options.withRarityFilter(value);
+            case SORT_KEY -> options.withSortKey(StorageSortKey.valueOf(value));
+            case SORT_DIRECTION -> options.withSortDirection(StorageSortDirection.valueOf(value));
+        };
+        storageOptionsByPlayer.put(player.getUniqueId(), updated);
+        List<StorageViewEntry> entries = refreshStorageEntries(player, updated);
+        GuiSound.SELECT.play(player);
+        menuGuiTransitionService.switchGuiWithoutInventoryReload(
+            player,
+            () -> menuView.openStorage(player, entries, updated, 0)
+        );
+    }
+
+    private @NotNull List<String> filterValues(@NotNull StorageScreenView.FilterType filterType) {
+        return switch (filterType) {
+            case CATEGORY -> {
+                List<String> values = new java.util.ArrayList<>();
+                values.add(null);
+                values.addAll(ItemCategory.supportedApiValues());
+                yield values;
+            }
+            case RARITY -> {
+                List<String> values = new java.util.ArrayList<>();
+                values.add(null);
+                values.addAll(ItemRarity.orderedValues());
+                yield values;
+            }
+            case SORT_KEY -> java.util.Arrays.stream(StorageSortKey.values()).map(Enum::name).toList();
+            case SORT_DIRECTION -> java.util.Arrays.stream(StorageSortDirection.values()).map(Enum::name).toList();
+        };
+    }
+
+    private @Nullable StorageScreenView.FilterType resolveFilterType(@Nullable String contentId) {
+        if (contentId == null || !contentId.startsWith("filter:")) {
+            return null;
+        }
+        try {
+            return StorageScreenView.FilterType.valueOf(contentId.substring("filter:".length()));
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
     }
 
     private void markStorageDirty(@NotNull UUID playerId) {
         dirtyStorageVersionByPlayer.merge(playerId, 1L, Long::sum);
     }
 
-    private @Nullable String nextStorageRarity(@Nullable String current) {
-        return nextNullableCycle(current, ItemRarity.orderedValues());
-    }
-
-    private @Nullable String nextNullableCycle(@Nullable String current, @NotNull List<String> values) {
-        if (values.isEmpty()) {
-            return null;
-        }
-        if (current == null || current.isBlank()) {
-            return values.get(0);
-        }
-        for (int index = 0; index < values.size(); index++) {
-            if (!values.get(index).equalsIgnoreCase(current)) {
-                continue;
-            }
-            int nextIndex = index + 1;
-            return nextIndex >= values.size() ? null : values.get(nextIndex);
-        }
-        return null;
-    }
 }

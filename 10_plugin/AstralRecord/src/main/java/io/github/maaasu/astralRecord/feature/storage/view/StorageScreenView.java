@@ -2,6 +2,8 @@ package io.github.maaasu.astralRecord.feature.storage.view;
 
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewEntry;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewOptions;
+import io.github.maaasu.astralRecord.feature.storage.model.StorageSortDirection;
+import io.github.maaasu.astralRecord.feature.storage.model.StorageSortKey;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemRarity;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
@@ -42,6 +44,93 @@ public final class StorageScreenView extends BaseMenuScreenView {
         this.contentPlaceholderKey = contentPlaceholderKey;
         this.entryIdKey = entryIdKey;
     }
+
+    /**
+     * フィルター候補一覧を描画します。
+     *
+     * @param inventory 候補を表示するインベントリ
+     * @param filterType 候補種別
+     * @param selectedValue 現在選択中の値
+     */
+    public void renderFilterOptions(
+        @NotNull Inventory inventory,
+        @NotNull FilterType filterType,
+        @Nullable String selectedValue
+    ) {
+        for (int slot = 0; slot < inventory.getSize(); slot++) {
+            inventory.setItem(slot, createItem(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of()));
+        }
+        List<FilterOption> options = filterType.options();
+        for (int index = 0; index < options.size() && index < inventory.getSize(); index++) {
+            FilterOption option = options.get(index);
+            NamedTextColor color = option.value() == null ? NamedTextColor.WHITE : filterType.color();
+            List<Component> lore = option.value() != null && option.value().equalsIgnoreCase(selectedValue)
+                ? List.of(Component.text("現在選択中", NamedTextColor.GREEN))
+                : List.of(Component.text("クリックで適用", NamedTextColor.GRAY));
+            inventory.setItem(index, createItem(option.material(), Component.text(option.label(), color), lore));
+        }
+    }
+
+    /** ストレージのフィルター候補種別です。 */
+    public enum FilterType {
+        CATEGORY("カテゴリを選択", NamedTextColor.AQUA) {
+            @Override List<FilterOption> options() {
+                List<FilterOption> options = new ArrayList<>();
+                options.add(new FilterOption(null, "すべて", Material.BARRIER));
+                for (ItemCategory category : ItemCategory.values()) {
+                    if (category != ItemCategory.UNKNOWN) {
+                        options.add(new FilterOption(category.getApiValue(), category.getDisplayNameJa(), Material.CHEST));
+                    }
+                }
+                return options;
+            }
+        },
+        RARITY("レアリティを選択", NamedTextColor.LIGHT_PURPLE) {
+            @Override List<FilterOption> options() {
+                List<FilterOption> options = new ArrayList<>();
+                options.add(new FilterOption(null, "すべて", Material.BARRIER));
+                for (String value : ItemRarity.orderedValues()) {
+                    options.add(new FilterOption(value, ItemRarity.displayNameJa(value), Material.NETHER_STAR));
+                }
+                return options;
+            }
+        },
+        SORT_KEY("並び替えを選択", NamedTextColor.YELLOW) {
+            @Override List<FilterOption> options() {
+                List<FilterOption> options = new ArrayList<>();
+                for (StorageSortKey value : StorageSortKey.values()) {
+                    options.add(new FilterOption(value.name(), value.getDisplayNameJa(), Material.COMPASS));
+                }
+                return options;
+            }
+        },
+        SORT_DIRECTION("並び方向を選択", NamedTextColor.GREEN) {
+            @Override List<FilterOption> options() {
+                List<FilterOption> options = new ArrayList<>();
+                for (StorageSortDirection value : StorageSortDirection.values()) {
+                    options.add(new FilterOption(value.name(), value.getDisplayNameJa(), Material.ARROW));
+                }
+                return options;
+            }
+        };
+
+        private final String title;
+        private final NamedTextColor color;
+
+        FilterType(@NotNull String title, @NotNull NamedTextColor color) {
+            this.title = title;
+            this.color = color;
+        }
+
+        /** @return 候補一覧GUIのタイトル */
+        public @NotNull String title() { return title; }
+
+        /** @return 候補アイコンの表示色 */
+        public @NotNull NamedTextColor color() { return color; }
+        abstract List<FilterOption> options();
+    }
+
+    private record FilterOption(@Nullable String value, @NotNull String label, @NotNull Material material) {}
 
     public void render(
         @NotNull Inventory inventory,
@@ -213,7 +302,7 @@ public final class StorageScreenView extends BaseMenuScreenView {
         return List.of(
             Component.text("◇ " + label, NamedTextColor.DARK_AQUA),
             Component.text("  現在: ", NamedTextColor.GRAY).append(Component.text(value, NamedTextColor.WHITE)),
-            Component.text("  クリックで切り替え", NamedTextColor.DARK_GRAY)
+            Component.text("  クリックで候補一覧を表示", NamedTextColor.DARK_GRAY)
         );
     }
 

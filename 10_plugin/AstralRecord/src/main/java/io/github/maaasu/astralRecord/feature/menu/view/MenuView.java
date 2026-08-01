@@ -340,6 +340,27 @@ public class MenuView {
         storageScreenView.render(inventory, storageItems, options, pageIndex);
     }
 
+    /**
+     * ストレージのフィルター候補一覧GUIを開きます。
+     *
+     * @param player 表示対象プレイヤー
+     * @param filterType 候補種別
+     * @param selectedValue 現在選択中の値
+     */
+    public void openStorageFilter(
+        @NotNull Player player,
+        @NotNull StorageScreenView.FilterType filterType,
+        @Nullable String selectedValue
+    ) {
+        Inventory inventory = Bukkit.createInventory(
+            new MenuInventoryHolder(MenuScreen.STORAGE, -1, 0, "filter:" + filterType.name()),
+            PagedGuiView.SIZE,
+            Component.text(filterType.title(), filterType.color())
+        );
+        storageScreenView.renderFilterOptions(inventory, filterType, selectedValue);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
+    }
+
     public @NotNull ItemStack createCraftResultIcon() {
         return craftShortcutView.createCraftResultIcon();
     }
