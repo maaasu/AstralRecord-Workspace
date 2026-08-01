@@ -228,6 +228,30 @@ class SkillServiceDesignTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 3. cast 可否
+     * 検証契約: 進行中castがある発動者はP_5810で次のskill発動を拒否する。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void canCastRejectsCasterWithAnActiveCastingSession() throws ReflectiveOperationException {
+        SkillService service = new SkillService(mock(SkillRepository.class), new SkillRegistry(), null);
+        TestCaster caster = new TestCaster(10, 10.0D, 10.0D);
+        Class<?> sessionType = Class.forName(SkillService.class.getName() + "$CastingSession");
+        var sessionConstructor = sessionType.getDeclaredConstructor(BukkitTask.class, Runnable.class);
+        sessionConstructor.setAccessible(true);
+        Object session = sessionConstructor.newInstance(mock(BukkitTask.class), (Runnable) () -> { });
+        var sessionsField = SkillService.class.getDeclaredField("castingSessions");
+        sessionsField.setAccessible(true);
+        ((Map<UUID, Object>) sessionsField.get(service)).put(caster.casterId(), session);
+
+        SkillCastResult result = service.canCast(caster, skill("casting", "cast_impl", 0.0D, 0L, Map.of()));
+
+        assertFalse(result.success());
+        assertEquals(PlayerMsgId.P_5810, result.messageId());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 5. cooldown・cast lifecycle
      * 検証契約: caster cleanupで詠唱stateを消し、指定方針に応じcooldownを保持または除去する。
      */

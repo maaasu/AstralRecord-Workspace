@@ -332,7 +332,29 @@ public class SkillService {
         if (isOnCooldown(caster, skill.getId())) {
             return SkillCastResult.failure(PlayerMsgId.P_5802);
         }
+        if (isCasting(caster)) {
+            return SkillCastResult.failure(PlayerMsgId.P_5810);
+        }
         return SkillCastResult.succeeded();
+    }
+
+    /**
+     * 発動者が進行中の詠唱を持つか判定します。
+     *
+     * @param caster 発動者
+     * @return 詠唱中の場合は true
+     */
+    private boolean isCasting(@NotNull SkillCaster caster) {
+        if (castingSessions.containsKey(caster.casterId())) {
+            return true;
+        }
+        if (caster instanceof PlayerSkillCaster playerCaster) {
+            return playerCaster.player().isSkillCasting();
+        }
+        if (caster instanceof MobSkillCaster mobCaster) {
+            return mobCaster.mob().isSkillCasting();
+        }
+        return false;
     }
 
     private @Nullable AstEntity toAstEntity(@NotNull SkillCaster caster) {
@@ -470,11 +492,6 @@ public class SkillService {
 
         var astPlayer = playerCaster.player();
         Player player = astPlayer.getBukkit();
-        if (astPlayer.isSkillCasting() || castingSessions.containsKey(player.getUniqueId())) {
-            SkillCastResult failure = SkillCastResult.failure(PlayerMsgId.P_5810);
-            notifyIfFailed(caster, failure, definition.getId());
-            return failure;
-        }
 
         long castTimeTicks = resolveCastTimeTicks(playerCaster, definition);
         astPlayer.setSkillCastingUntilMs(System.currentTimeMillis() + castTimeTicks * MS_PER_TICK);
@@ -529,10 +546,6 @@ public class SkillService {
             @Nullable LivingEntity primaryTarget,
             @NotNull List<LivingEntity> targets
     ) {
-        if (caster.mob().isSkillCasting() || castingSessions.containsKey(caster.casterId())) {
-            return SkillCastResult.failure(PlayerMsgId.P_5810);
-        }
-
         long castTimeTicks = resolveCastTimeTicks(caster, definition);
         caster.mob().startSkillCasting(SkillPresentationUtil.legacyName(definition, definition.getId()), castTimeTicks);
         playMobCastStartSound(castLocation, definition);
