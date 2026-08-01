@@ -42,15 +42,23 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /** スキルツリーの通常プレイヤー操作と表示ライフサイクルを扱います。 */
 public class SkillTreeEventHandler extends AbstractEventHandler
         implements PlayerInputResolver<PlayerInteractionSnapshot> {
+    private static final int RELOCK_CONFIRMATION_SIZE = 27;
+    private static final int RELOCK_CONFIRM_SLOT = 11;
+    private static final int RELOCK_CONFIRMATION_OPTION_SLOT = 13;
+    private static final int RELOCK_CANCEL_SLOT = 15;
+
     private final SkillTreeService service;
+    private final Set<UUID> relockConfirmationSuppressed = new HashSet<>();
 
     public SkillTreeEventHandler(@NotNull SkillTreeService service) {
         this.service = service;
@@ -269,6 +277,18 @@ public class SkillTreeEventHandler extends AbstractEventHandler
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5841);
             return;
         }
+        if (relockConfirmationSuppressed.contains(player.getUniqueId())) {
+            completeRelock(player, astPlayer, node);
+            return;
+        }
+        openRelockConfirmation(player, astPlayer, node);
+    }
+
+    private void completeRelock(
+            @NotNull Player player,
+            @NotNull AstPlayer astPlayer,
+            @NotNull SkillTreeNodeDefinition node
+    ) {
         if (service.relockNode(astPlayer, node)) {
             playRelock(player);
             PlayerMessageService.getInstance().send(
@@ -279,6 +299,137 @@ public class SkillTreeEventHandler extends AbstractEventHandler
         } else {
             playDenied(player, 0.75F);
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5827);
+        }
+    }
+
+    private void openRelockConfirmation(
+            @NotNull Player player,
+            @NotNull AstPlayer astPlayer,
+            @NotNull SkillTreeNodeDefinition node
+    ) {
+        RelockConfirmationHolder holder = new RelockConfirmationHolder(
+                astPlayer.getAccount().getUuid(),
+                node.nodeId()
+        );
+        Inventory inventory = Bukkit.createInventory(
+                holder,
+                RELOCK_CONFIRMATION_SIZE,
+                Component.text("スキルノード解除の確認", NamedTextColor.DARK_RED)
+        );
+        holder.bind(inventory);
+        renderRelockConfirmation(inventory, node, holder.dontAskAgain);
+        player.openInventory(inventory);
+    }
+
+    private void renderRelockConfirmation(
+            @NotNull Inventory inventory,
+            @NotNull SkillTreeNodeDefinition node,
+            boolean dontAskAgain
+    ) {
+        inventory.setItem(RELOCK_CONFIRM_SLOT, createRelockConfirmationItem(
+                Material.GREEN_CONCRETE,
+                "解除する",
+                NamedTextColor.GREEN,
+                List.of(
+                        Component.text("100ゴールドを消費して", NamedTextColor.YELLOW),
+                        Component.text("このノードを解除します", NamedTextColor.YELLOW),
+                        Component.text(node.name(), NamedTextColor.GRAY)
+                )
+        ));
+        inventory.setItem(RELOCK_CONFIRMATION_OPTION_SLOT, createRelockConfirmationItem(
+                dontAskAgain ? Material.LIME_DYE : Material.GRAY_DYE,
+                dontAskAgain ? "確認GUIを表示しない: ON" : "確認GUIを表示しない: OFF",
+                dontAskAgain ? NamedTextColor.GREEN : NamedTextColor.GRAY,
+                List.of(Component.text(
+                        "このスキルツリーワールドを離れるまで有効",
+                        NamedTextColor.DARK_GRAY
+                ))
+        ));
+        inventory.setItem(RELOCK_CANCEL_SLOT, createRelockConfirmationItem(
+                Material.RED_CONCRETE,
+                "キャンセル",
+                NamedTextColor.RED,
+                List.of(Component.text("解除せずに戻る", NamedTextColor.GRAY))
+        ));
+    }
+
+    private ItemStack createRelockConfirmationItem(
+            @NotNull Material material,
+            @NotNull String name,
+            @NotNull NamedTextColor color,
+            @NotNull List<Component> lore
+    ) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.displayName(Component.text(name, color).decoration(TextDecoration.ITALIC, false));
+            meta.lore(lore.stream()
+                    .map(line -> line.decoration(TextDecoration.ITALIC, false))
+                    .toList());
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    /**
+     * ノード解除確認GUIのクリックを処理します。
+     *
+     * @param event インベントリクリックイベント
+     * @implNote 対象アカウント、ノード、ワールドを再検証してから解除します。
+     */
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onRelockConfirmationClick(@NotNull InventoryClickEvent event) {
+        if (!(event.getView().getTopInventory().getHolder() instanceof RelockConfirmationHolder holder)) {
+            return;
+        }
+        event.setCancelled(true);
+        if (!(event.getWhoClicked() instanceof Player player)
+                || event.getRawSlot() < 0
+                || event.getRawSlot() >= event.getView().getTopInventory().getSize()) {
+            return;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        SkillTreeNodeDefinition node = service.getNode(holder.nodeId);
+        if (astPlayer == null
+                || !holder.accountId.equals(astPlayer.getAccount().getUuid())
+                || !service.isPlayerModeSkillTree(player)
+                || node == null
+                || !service.isNodeUnlocked(astPlayer, node)) {
+            player.closeInventory();
+            playDenied(player, 0.75F);
+            return;
+        }
+        if (event.getRawSlot() == RELOCK_CONFIRMATION_OPTION_SLOT) {
+            holder.dontAskAgain = !holder.dontAskAgain;
+            renderRelockConfirmation(event.getView().getTopInventory(), node, holder.dontAskAgain);
+            return;
+        }
+        if (event.getRawSlot() == RELOCK_CANCEL_SLOT) {
+            player.closeInventory();
+            return;
+        }
+        if (event.getRawSlot() != RELOCK_CONFIRM_SLOT) {
+            return;
+        }
+        if (holder.dontAskAgain) {
+            relockConfirmationSuppressed.add(player.getUniqueId());
+        }
+        player.closeInventory();
+        completeRelock(player, astPlayer, node);
+    }
+
+    /**
+     * ノード解除確認GUIへのアイテムドラッグを抑止します。
+     *
+     * @param event インベントリドラッグイベント
+     */
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onRelockConfirmationDrag(@NotNull InventoryDragEvent event) {
+        if (event.getView().getTopInventory().getHolder() instanceof RelockConfirmationHolder) {
+            int topSize = event.getView().getTopInventory().getSize();
+            if (event.getRawSlots().stream().anyMatch(slot -> slot < topSize)) {
+                event.setCancelled(true);
+            }
         }
     }
 
@@ -297,6 +448,9 @@ public class SkillTreeEventHandler extends AbstractEventHandler
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onWorldChange(@NotNull PlayerChangedWorldEvent event) {
         service.refreshPlayerVisibility(event.getPlayer());
+        if (service.isSkillTreeWorld(event.getFrom()) && !service.isSkillTreeWorld(event.getPlayer().getWorld())) {
+            relockConfirmationSuppressed.remove(event.getPlayer().getUniqueId());
+        }
         if (service.isPlayerModeSkillTree(event.getPlayer())) {
             service.markViewerContextDirty(event.getPlayer());
             return;
@@ -327,6 +481,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
+        relockConfirmationSuppressed.remove(event.getPlayer().getUniqueId());
         service.restorePlayerVisibility(event.getPlayer());
         service.clearPlayerPresentation(event.getPlayer());
     }
@@ -356,6 +511,27 @@ public class SkillTreeEventHandler extends AbstractEventHandler
         private Inventory inventory;
 
         private CpSourceSelectionHolder(@NotNull UUID accountId, @NotNull String nodeId) {
+            this.accountId = accountId;
+            this.nodeId = nodeId;
+        }
+
+        private void bind(@NotNull Inventory inventory) {
+            this.inventory = inventory;
+        }
+
+        @Override
+        public @NotNull Inventory getInventory() {
+            return inventory;
+        }
+    }
+
+    private static final class RelockConfirmationHolder implements InventoryHolder {
+        private final UUID accountId;
+        private final String nodeId;
+        private boolean dontAskAgain;
+        private Inventory inventory;
+
+        private RelockConfirmationHolder(@NotNull UUID accountId, @NotNull String nodeId) {
             this.accountId = accountId;
             this.nodeId = nodeId;
         }

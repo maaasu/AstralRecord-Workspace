@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.skilltree.event;
 
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
@@ -165,7 +166,7 @@ class SkillTreeEventHandlerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 12. skill tree 入力候補・node 実行
-     * 検証契約: 右click winnerは解決済みnodeのrelockを実行する。
+     * 検証契約: 右click winnerは確認省略状態では解決済みnodeのrelockを実行する。
      */
     @Test
     void rightClickExecutesRelockForTheResolvedNode() {
@@ -174,7 +175,10 @@ class SkillTreeEventHandlerTest {
             new SkillTreeService.SkillTreePositionHit(position, 2.5D);
         SkillTreeNodeDefinition node = node("1000");
         AstPlayer astPlayer = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
         PlayerMessageService messageService = mock(PlayerMessageService.class);
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(account.getUuid()).thenReturn(UUID.fromString("00000000-0000-0000-0000-000000000581"));
 
         allowSnapshotRefresh();
         when(service.findTargetedPositionHit(any(PlayerInteractionSnapshot.class)))
@@ -183,9 +187,10 @@ class SkillTreeEventHandlerTest {
         when(service.isStateReady(astPlayer)).thenReturn(true);
         when(service.isNodeUnlocked(astPlayer, node)).thenReturn(true);
         when(service.canAffordRelock(astPlayer)).thenReturn(true);
-        when(service.relockNode(astPlayer, node)).thenReturn(true);
+        SkillTreeEventHandler handler = new SkillTreeEventHandler(service);
+        suppressRelockConfirmation(handler);
 
-        PlayerInputCandidate candidate = new SkillTreeEventHandler(service)
+        PlayerInputCandidate candidate = handler
             .resolve(context)
             .iterator()
             .next();
@@ -200,6 +205,17 @@ class SkillTreeEventHandlerTest {
 
         verify(service).relockNode(astPlayer, node);
         verify(service, never()).findTargetedNode(player);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void suppressRelockConfirmation(SkillTreeEventHandler handler) {
+        try {
+            var field = SkillTreeEventHandler.class.getDeclaredField("relockConfirmationSuppressed");
+            field.setAccessible(true);
+            ((java.util.Set<UUID>) field.get(handler)).add(player.getUniqueId());
+        } catch (ReflectiveOperationException exception) {
+            throw new AssertionError(exception);
+        }
     }
 
     private void allowSnapshotRefresh() {
