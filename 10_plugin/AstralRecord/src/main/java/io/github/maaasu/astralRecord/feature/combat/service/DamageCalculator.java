@@ -151,7 +151,8 @@ public final class DamageCalculator {
                 ? Math.max(0.0D, context.victim().statValue(StatusType.EVASION))
                 : 0.0D;
         double hitChance = calculateHitChance(accuracy, evasion);
-        return new HitCheck(hitRollSupplier.getAsDouble() < hitChance, hitChance, accuracy, evasion);
+        boolean hit = hitChance >= 100.0D || hitRollSupplier.getAsDouble() < hitChance;
+        return new HitCheck(hit, hitChance, accuracy, evasion);
     }
 
     /**
@@ -159,10 +160,10 @@ public final class DamageCalculator {
      *
      * @param accuracy 攻撃者の命中率
      * @param evasion 被弾者の回避率
-     * @return 0～100の最終命中率
+     * @return 1～100の最終命中率
      */
     public static double calculateHitChance(double accuracy, double evasion) {
-        return Math.max(0.0D, Math.min(100.0D, accuracy - evasion));
+        return Math.max(1.0D, Math.min(100.0D, accuracy - evasion));
     }
 
     /**

@@ -308,7 +308,7 @@ class DamageCalculatorDesignTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
      * 章・見出し: # 14_3-サービス > ## 3. hit chance 計算
-     * 検証契約: hit chanceをclamp(accuracy-evasion,0,100)とし外れた時evaded resultを返す。
+     * 検証契約: hit chanceをclamp(accuracy-evasion,1,100)とし、100%未満で外れた時はevaded resultを返す。
      */
     @Test
     void accuracyMinusEvasionCanProduceEvadedResult() {
@@ -334,6 +334,35 @@ class DamageCalculatorDesignTest {
         assertEquals(85.0D, result.hitChance(), 0.0001D);
         assertEquals(95.0D, result.accuracy(), 0.0001D);
         assertEquals(10.0D, result.evasion(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 3. hit chance 計算
+     * 検証契約: 命中率は100%なら乱数値にかかわらず命中し、回避率が命中率を上回っても最終命中率は1%を下回らない。
+     */
+    @Test
+    void fullHitChanceAlwaysHitsAndEvasionCannotReachFullAvoidance() {
+        DamageCalculator calculator = new DamageCalculator(() -> 100.0D, () -> 100.0D);
+        AstPlayer attacker = player(Map.of(
+            StatusType.ATTACK, 10.0D,
+            StatusType.ACCURACY, 120.0D
+        ));
+        AstPlayer victim = player(Map.of(
+            StatusType.EVASION, 10.0D
+        ));
+
+        var result = calculator.calculate(new DamageContext(
+            AstEntity.player(attacker),
+            AstEntity.player(victim),
+            0.0D,
+            AttackType.MELEE,
+            DamageScaling.ATTACKER_STATUS
+        ));
+
+        assertFalse(result.evaded());
+        assertEquals(100.0D, result.hitChance(), 0.0001D);
+        assertEquals(1.0D, DamageCalculator.calculateHitChance(0.0D, 100.0D), 0.0001D);
     }
 
     /**
