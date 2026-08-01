@@ -140,6 +140,9 @@ public class ItemStackFactory {
     private static final String STATUS_VALUE_COLOR = ColorCodeUtil.WHITE + ColorCodeUtil.BOLD;
     private static final int DURABILITY_BAR_LENGTH = 20;
     private static final String DURABILITY_BAR_CHAR = "|";
+    private static final double DURABILITY_DARK_GREEN_THRESHOLD = 0.75D;
+    private static final double DURABILITY_GREEN_THRESHOLD = 0.50D;
+    private static final double DURABILITY_YELLOW_THRESHOLD = 0.25D;
 
     /** ルートテーブル参照用（nullable: 未初期化時は Lore に含めない） */
     private final LootService lootService;
@@ -1283,16 +1286,33 @@ public class ItemStackFactory {
         return formatDurabilityBarLore(instance.getDurabilityValue(), instance.getDurabilityMax());
     }
 
-    private @NotNull String formatDurabilityBarLore(int value, int max) {
-        int filledLength = max <= 0
-                ? 0
-                : (int) Math.round(Math.clamp((double) value / max, 0.0D, 1.0D) * DURABILITY_BAR_LENGTH);
+    static @NotNull String formatDurabilityBarLore(int value, int max) {
+        double durabilityRate = max <= 0
+                ? 0.0D
+                : Math.clamp((double) value / max, 0.0D, 1.0D);
+        int filledLength = (int) Math.round(durabilityRate * DURABILITY_BAR_LENGTH);
         StringBuilder bar = new StringBuilder(DURABILITY_BAR_LENGTH + 16);
-        bar.append(ColorCodeUtil.WHITE);
+        bar.append(durabilityBarColor(durabilityRate, max));
         bar.repeat(DURABILITY_BAR_CHAR, filledLength);
         bar.append(ColorCodeUtil.GRAY);
         bar.repeat(DURABILITY_BAR_CHAR, DURABILITY_BAR_LENGTH - filledLength);
         return ColorCodeUtil.GRAY + " ▸ 耐久値: " + bar;
+    }
+
+    private static @NotNull String durabilityBarColor(double durabilityRate, int max) {
+        if (max <= 0) {
+            return ColorCodeUtil.GRAY;
+        }
+        if (durabilityRate >= DURABILITY_DARK_GREEN_THRESHOLD) {
+            return ColorCodeUtil.DARK_GREEN;
+        }
+        if (durabilityRate >= DURABILITY_GREEN_THRESHOLD) {
+            return ColorCodeUtil.GREEN;
+        }
+        if (durabilityRate >= DURABILITY_YELLOW_THRESHOLD) {
+            return ColorCodeUtil.YELLOW;
+        }
+        return ColorCodeUtil.RED;
     }
 
     private boolean isBroken(@NotNull EquipmentInstance instance) {
@@ -1535,6 +1555,5 @@ public class ItemStackFactory {
 
     // endregion
 }
-
 
 
