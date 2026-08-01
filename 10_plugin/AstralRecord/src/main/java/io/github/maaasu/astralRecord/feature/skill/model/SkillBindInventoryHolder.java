@@ -13,14 +13,24 @@ public record SkillBindInventoryHolder(
     int selectedPresetIndex,
     int pageIndex,
     @NotNull String action,
-    int pendingPresetIndex
+    int pendingPresetIndex,
+    @NotNull String learnedSkillId
 ) implements HotbarShortcutGuiHolder {
     public SkillBindInventoryHolder(@NotNull SkillBindScreen screen, int selectedPresetIndex, int pageIndex) {
-        this(screen, selectedPresetIndex, pageIndex, "", -1);
+        this(screen, selectedPresetIndex, pageIndex, "", -1, "");
     }
 
     public SkillBindInventoryHolder(@NotNull SkillBindScreen screen, int selectedPresetIndex, @NotNull String action, int pendingPresetIndex) {
-        this(screen, selectedPresetIndex, 0, action, pendingPresetIndex);
+        this(screen, selectedPresetIndex, 0, action, pendingPresetIndex, "");
+    }
+
+    public SkillBindInventoryHolder(
+        @NotNull SkillBindScreen screen,
+        int selectedPresetIndex,
+        int pageIndex,
+        @NotNull String learnedSkillId
+    ) {
+        this(screen, selectedPresetIndex, pageIndex, "", -1, learnedSkillId);
     }
 
     @Override
@@ -30,7 +40,7 @@ public record SkillBindInventoryHolder(
 
     @Override
     public int getBackSlot() {
-        return screen == SkillBindScreen.MAIN ? 49 : -1;
+        return screen == SkillBindScreen.MAIN || screen == SkillBindScreen.SYNTHESIS ? 52 : -1;
     }
 
     @Override

@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
+import io.github.maaasu.astralRecord.feature.skill.event.SkillGemLearnEventHandler;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.junit.jupiter.api.Test;
@@ -34,7 +35,8 @@ class InventoryEquipmentGuiEventHandlerTest {
             mock(EquipmentEnhancementService.class),
             mock(EquipmentRepairService.class),
             mock(MenuGuiTransitionService.class),
-            mock(MenuOpenEventHandler.class)
+            mock(MenuOpenEventHandler.class),
+            mock(SkillGemLearnEventHandler.class)
         );
 
         handler.onPlayerSwapHandItems(event);

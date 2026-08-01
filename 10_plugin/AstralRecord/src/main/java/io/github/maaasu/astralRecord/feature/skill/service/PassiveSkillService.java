@@ -4,8 +4,10 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillStatusModifier;
+import io.github.maaasu.astralRecord.feature.skill.model.ResolvedLearnedSkill;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
@@ -28,10 +30,10 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-/**
- * パッシブスキルの有効化状態とライフサイクルを管理するサービスです。
- */
+/** 習得個体単位でパッシブスキルの有効化状態を管理します。 */
 public final class PassiveSkillService {
+    public static final int BASE_PASSIVE_SLOT_COUNT = 5;
+    public static final int MAX_PASSIVE_SLOT_COUNT = 9;
     private static final long TICK_INTERVAL = 1L;
     private static final long CLEANUP_INTERVAL_TICKS = 20L;
     private static final int MAX_DIRTY_RECONCILES_PER_TICK = 2;
@@ -40,6 +42,8 @@ public final class PassiveSkillService {
     private final SkillService skillService;
     private final SkillBindPresetService presetService;
     private final SkillOwnershipService ownershipService;
+    private final SkillPermissionService permissionService;
+    private final LearnedSkillResolver learnedSkillResolver;
     private final Map<UUID, PlayerPassiveState> activeStates = new ConcurrentHashMap<>();
     private final Set<UUID> reconciledAccounts = ConcurrentHashMap.newKeySet();
     private final Set<UUID> dirtyAccounts = ConcurrentHashMap.newKeySet();
@@ -50,58 +54,50 @@ public final class PassiveSkillService {
     private long tickCounter;
     private int tickingPassiveCount;
 
-    /**
-     * サービスを構築します。
-     *
-     * @param plugin scheduler 利用用プラグイン
-     * @param skillService スキル定義と executor を解決するサービス
-     * @param presetService スキルバインドプリセットサービス
-     * @param ownershipService 所持スキル判定サービス
-     */
     public PassiveSkillService(
         @NotNull AstralRecord plugin,
         @NotNull SkillService skillService,
         @NotNull SkillBindPresetService presetService,
-        @NotNull SkillOwnershipService ownershipService
+        @NotNull SkillOwnershipService ownershipService,
+        @NotNull SkillPermissionService permissionService,
+        @NotNull LearnedSkillResolver learnedSkillResolver
     ) {
         this.plugin = plugin;
         this.skillService = skillService;
         this.presetService = presetService;
         this.ownershipService = ownershipService;
+        this.permissionService = permissionService;
+        this.learnedSkillResolver = learnedSkillResolver;
     }
 
-    /**
-     * ステータス再計算連携先を設定します。
-     *
-     * @param statusService ステータスサービス
-     */
     public void setStatusService(@NotNull StatusService statusService) {
         this.statusService = statusService;
     }
 
-    /**
-     * パッシブ管理タスクを開始します。
-     */
-    public void start() {
-        if (task != null) {
-            return;
-        }
-        task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, TICK_INTERVAL, TICK_INTERVAL);
+    public int activePassiveSlotCount(@NotNull AstPlayer player) {
+        double slotStatus = statusService == null
+            ? player.getStatusSnapshot().getMaxValue(StatusType.PASSIVE_SKILL_SLOTS)
+            : statusService.getValueExcludingPassiveSkills(player, StatusType.PASSIVE_SKILL_SLOTS);
+        int bonus = (int) Math.floor(
+            Math.max(0.0D, slotStatus)
+        );
+        return Math.min(MAX_PASSIVE_SLOT_COUNT, BASE_PASSIVE_SLOT_COUNT + bonus);
     }
 
-    /**
-     * パッシブ管理タスクを停止し、全パッシブを解除します。
-     */
+    public void start() {
+        if (task == null) {
+            task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, TICK_INTERVAL, TICK_INTERVAL);
+        }
+    }
+
     public void stop() {
         if (task != null) {
             task.cancel();
             task = null;
         }
         for (Map.Entry<UUID, PlayerPassiveState> entry : activeStates.entrySet()) {
-            AstPlayer astPlayer = findOnlineAstPlayer(entry.getKey());
-            if (astPlayer != null) {
-                deactivateAll(astPlayer, entry.getValue());
-            }
+            AstPlayer player = findOnlineAstPlayer(entry.getKey());
+            if (player != null) deactivateAll(player, entry.getValue());
         }
         activeStates.clear();
         reconciledAccounts.clear();
@@ -110,106 +106,34 @@ public final class PassiveSkillService {
         tickingPassiveCount = 0;
     }
 
-    /**
-     * 指定プレイヤーのパッシブ状態を即時再評価します。
-     *
-     * @param player プレイヤー
-     */
     public void reconcileNow(@NotNull AstPlayer player) {
         reconcileNow(player, true);
     }
 
-    /**
-     * 指定プレイヤーのパッシブ状態を即時再評価します。
-     *
-     * @param player プレイヤー
-     * @param refreshStatus パッシブ状態が変化した場合にステータスを再計算するか
-     */
     public void reconcileNow(@NotNull AstPlayer player, boolean refreshStatus) {
-        UUID accountId = player.getAccount().getUuid();
-        dirtyAccounts.remove(accountId);
+        dirtyAccounts.remove(player.getAccount().getUuid());
         reconcile(player, refreshStatus);
     }
 
-    /**
-     * 指定プレイヤーのパッシブ状態を再同期待ちにします。
-     * <p>
-     * 装備・プリセットなど、所持スキルやバインド状態に影響する変更の直後に呼び出します。
-     * 同じプレイヤーが連続で dirty 化されても、再同期キューには 1 回だけ積まれます。
-     *
-     * @param player 再同期対象プレイヤー
-     */
     public void markDirty(@NotNull AstPlayer player) {
         markDirty(player.getAccount().getUuid());
     }
 
-    /**
-     * 指定アカウントのパッシブ状態を再同期待ちにします。
-     *
-     * @param accountId 再同期対象アカウント ID
-     */
     public void markDirty(@NotNull UUID accountId) {
         reconciledAccounts.remove(accountId);
-        if (dirtyAccounts.add(accountId)) {
-            dirtyQueue.offer(accountId);
-        }
+        if (dirtyAccounts.add(accountId)) dirtyQueue.offer(accountId);
     }
 
-    public void reconcileSkillOwnershipDelta(
+    /** スキルツリー許可の変更後は個体一覧を再評価します。 */
+    public void reconcileSkillPermissionDelta(
         @NotNull AstPlayer player,
         @NotNull Set<String> addedSkillIds,
         @NotNull Set<String> removedSkillIds,
         boolean refreshStatus
     ) {
-        UUID accountId = player.getAccount().getUuid();
-        if (!reconciledAccounts.contains(accountId) || dirtyAccounts.remove(accountId)) {
-            reconcile(player, refreshStatus);
-            return;
-        }
-        PlayerPassiveState state = activeStates.computeIfAbsent(accountId, ignored -> new PlayerPassiveState());
-        Set<String> boundPassiveSkillIds = resolveBoundPassiveSkillIds(accountId);
-        boolean changed = false;
-
-        for (String skillId : removedSkillIds) {
-            ActivePassiveSkill current = removeActiveSkill(state, skillId);
-            if (current == null) {
-                continue;
-            }
-            deactivate(player, current);
-            changed = true;
-        }
-
-        for (String skillId : addedSkillIds) {
-            if (state.skillsById.containsKey(skillId)) {
-                continue;
-            }
-            SkillDefinition definition = skillService.registry().getDefinition(skillId);
-            if (definition == null || definition.getKind() != SkillKind.PASSIVE) {
-                continue;
-            }
-            if (definition.getPassiveBindRequired() && !boundPassiveSkillIds.contains(skillId)) {
-                continue;
-            }
-            activate(player, state, definition);
-            changed = true;
-        }
-
-        if (state.skillsById.isEmpty()) {
-            activeStates.remove(accountId);
-        }
-        if (changed && refreshStatus && statusService != null) {
-            statusService.refreshStatus(player);
-        }
+        reconcileNow(player, refreshStatus);
     }
 
-    /**
-     * 指定プレイヤーの有効中パッシブからステータス補正を取得します。
-     *
-     * @param player プレイヤー
-     * @param statusType 対象ステータス
-     * @param baseValue FLAT 適用後の基準値
-     * @return 総補正値
-     */
     public double getStatusBonus(
         @NotNull AstPlayer player,
         @NotNull StatusType statusType,
@@ -217,71 +141,48 @@ public final class PassiveSkillService {
     ) {
         reconcileIfNeeded(player);
         PlayerPassiveState state = activeStates.get(player.getAccount().getUuid());
-        if (state == null) {
-            return 0.0D;
-        }
+        if (state == null) return 0.0D;
 
         double flat = 0.0D;
         double scalar = 0.0D;
-        for (ActivePassiveSkill activeSkill : state.skillsById.values()) {
-            PassiveSkillContext context = new PassiveSkillContext(
-                player,
-                activeSkill.definition(),
-                activeSkill.activatedAt(),
-                activeSkill.activeTicks(tickCounter)
-            );
-            for (PassiveSkillStatusModifier modifier : activeSkill.executor().passiveStatusModifiers(context)) {
-                if (modifier.statusType() != statusType) {
-                    continue;
-                }
-                if (modifier.type() == StatusModifierType.SCALAR) {
-                    scalar += modifier.value();
-                } else {
-                    flat += modifier.value();
-                }
+        for (ActivePassiveSkill active : state.skillsByInstanceId.values()) {
+            flat += active.statusBonuses().getOrDefault(statusType, 0.0D);
+            PassiveSkillContext context = context(player, active);
+            for (PassiveSkillStatusModifier modifier : active.executor().passiveStatusModifiers(context)) {
+                if (modifier.statusType() != statusType) continue;
+                if (modifier.type() == StatusModifierType.SCALAR) scalar += modifier.value();
+                else flat += modifier.value();
             }
         }
-        return flat + (baseValue * scalar);
+        return flat + baseValue * scalar;
     }
 
     private void tick() {
         tickCounter++;
-        if (tickCounter % CLEANUP_INTERVAL_TICKS == 0L) {
-            cleanupOfflinePlayers();
-        }
+        if (tickCounter % CLEANUP_INTERVAL_TICKS == 0L) cleanupOfflinePlayers();
         processDirtyReconciles();
+        if (tickingPassiveCount <= 0) return;
 
-        if (tickingPassiveCount <= 0) {
-            return;
-        }
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (astPlayer == null) {
-                continue;
+        for (Player bukkitPlayer : Bukkit.getOnlinePlayers()) {
+            AstPlayer player = AstPlayerCache.get(bukkitPlayer);
+            if (player == null) continue;
+            PlayerPassiveState state = activeStates.get(player.getAccount().getUuid());
+            if (state == null) continue;
+            for (ActivePassiveSkill active : List.copyOf(state.skillsByInstanceId.values())) {
+                if (!active.shouldTick(tickCounter)) continue;
+                active.markTicked(tickCounter);
+                active.executor().onTick(context(player, active));
             }
-            PlayerPassiveState state = activeStates.get(astPlayer.getAccount().getUuid());
-            if (state == null) {
-                continue;
-            }
-            tickPassives(astPlayer, state);
         }
     }
 
     private void cleanupOfflinePlayers() {
         for (Map.Entry<UUID, PlayerPassiveState> entry : List.copyOf(activeStates.entrySet())) {
-            AstPlayer astPlayer = findOnlineAstPlayer(entry.getKey());
-            if (astPlayer != null) {
-                continue;
-            }
+            if (findOnlineAstPlayer(entry.getKey()) != null) continue;
             decrementTickingPassiveCount(entry.getValue());
             activeStates.remove(entry.getKey());
-        }
-        for (UUID accountId : List.copyOf(reconciledAccounts)) {
-            AstPlayer astPlayer = findOnlineAstPlayer(accountId);
-            if (astPlayer == null) {
-                reconciledAccounts.remove(accountId);
-                dirtyAccounts.remove(accountId);
-            }
+            reconciledAccounts.remove(entry.getKey());
+            dirtyAccounts.remove(entry.getKey());
         }
     }
 
@@ -289,190 +190,155 @@ public final class PassiveSkillService {
         int processed = 0;
         while (processed < MAX_DIRTY_RECONCILES_PER_TICK) {
             UUID accountId = dirtyQueue.poll();
-            if (accountId == null) {
-                return;
-            }
-            if (!dirtyAccounts.remove(accountId)) {
-                continue;
-            }
-            AstPlayer astPlayer = findOnlineAstPlayer(accountId);
-            if (astPlayer == null) {
+            if (accountId == null) return;
+            if (!dirtyAccounts.remove(accountId)) continue;
+            AstPlayer player = findOnlineAstPlayer(accountId);
+            if (player == null) {
                 reconciledAccounts.remove(accountId);
                 continue;
             }
-            reconcile(astPlayer, true);
+            reconcile(player, true);
             processed++;
-        }
-    }
-
-    private AstPlayer findOnlineAstPlayer(@NotNull UUID accountId) {
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (astPlayer != null && accountId.equals(astPlayer.getAccount().getUuid())) {
-                return astPlayer;
-            }
-        }
-        return null;
-    }
-
-    private void tickPassives(@NotNull AstPlayer player, @NotNull PlayerPassiveState state) {
-        for (ActivePassiveSkill activeSkill : List.copyOf(state.skillsById.values())) {
-            if (!activeSkill.shouldTick(tickCounter)) {
-                continue;
-            }
-            activeSkill.markTicked(tickCounter);
-            activeSkill.executor().onTick(new PassiveSkillContext(
-                player,
-                activeSkill.definition(),
-                activeSkill.activatedAt(),
-                activeSkill.activeTicks(tickCounter)
-            ));
         }
     }
 
     private void reconcileIfNeeded(@NotNull AstPlayer player) {
         UUID accountId = player.getAccount().getUuid();
-        if (reconciledAccounts.contains(accountId) && !dirtyAccounts.remove(accountId)) {
-            return;
-        }
+        if (reconciledAccounts.contains(accountId) && !dirtyAccounts.remove(accountId)) return;
         reconcile(player, false);
     }
 
     private void reconcile(@NotNull AstPlayer player, boolean refreshStatus) {
         UUID accountId = player.getAccount().getUuid();
-        Map<String, SkillDefinition> desired = resolveDesiredPassiveDefinitions(player);
+        Map<String, DesiredPassive> desired = resolveDesiredPassives(player);
         PlayerPassiveState state = activeStates.computeIfAbsent(accountId, ignored -> new PlayerPassiveState());
         boolean changed = false;
 
-        for (Map.Entry<String, ActivePassiveSkill> entry : List.copyOf(state.skillsById.entrySet())) {
+        for (Map.Entry<String, ActivePassiveSkill> entry : List.copyOf(state.skillsByInstanceId.entrySet())) {
+            DesiredPassive next = desired.remove(entry.getKey());
             ActivePassiveSkill current = entry.getValue();
-            SkillDefinition desiredDefinition = desired.remove(entry.getKey());
-            if (desiredDefinition != null && desiredDefinition.equals(current.definition())) {
-                continue;
-            }
+            if (next != null && next.matches(current)) continue;
             deactivate(player, current);
             removeActiveSkill(state, entry.getKey());
             changed = true;
-            if (desiredDefinition != null) {
-                activate(player, state, desiredDefinition);
-            }
+            if (next != null) activate(player, state, next);
         }
-
-        for (SkillDefinition definition : desired.values()) {
-            activate(player, state, definition);
+        for (DesiredPassive next : desired.values()) {
+            activate(player, state, next);
             changed = true;
         }
 
-        if (state.skillsById.isEmpty()) {
-            activeStates.remove(accountId);
-        }
+        if (state.skillsByInstanceId.isEmpty()) activeStates.remove(accountId);
         reconciledAccounts.add(accountId);
-        if (changed && refreshStatus && statusService != null) {
-            statusService.refreshStatus(player);
-        }
+        if (changed && refreshStatus && statusService != null) statusService.refreshStatus(player);
     }
 
-    private @NotNull Map<String, SkillDefinition> resolveDesiredPassiveDefinitions(@NotNull AstPlayer player) {
-        Set<String> ownedSkillIds = ownershipService.ownedSkillIds(player);
-        Set<String> boundPassiveSkillIds = resolveBoundPassiveSkillIds(player.getAccount().getUuid());
-        Map<String, SkillDefinition> desired = new LinkedHashMap<>();
-
-        for (String skillId : ownedSkillIds) {
-            SkillDefinition definition = skillService.registry().getDefinition(skillId);
-            if (definition == null || definition.getKind() != SkillKind.PASSIVE) {
-                continue;
-            }
-            if (definition.getPassiveBindRequired() && !boundPassiveSkillIds.contains(skillId)) {
-                continue;
-            }
-            desired.put(skillId, definition);
+    private @NotNull Map<String, DesiredPassive> resolveDesiredPassives(@NotNull AstPlayer player) {
+        Set<String> boundInstanceIds = resolveEnabledBoundPassiveInstanceIds(player);
+        Map<String, DesiredPassive> desired = new LinkedHashMap<>();
+        for (LearnedSkillInstance learned : ownershipService.learnedSkills(player)) {
+            SkillDefinition base = skillService.registry().getDefinition(learned.getSkillId());
+            if (base == null || base.getKind() != SkillKind.PASSIVE) continue;
+            if (!permissionService.isPermitted(player, learned.getSkillId())) continue;
+            String instanceId = learned.getLearnedSkillId().toString();
+            if (base.getPassiveBindRequired() && !boundInstanceIds.contains(instanceId)) continue;
+            ResolvedLearnedSkill resolved = learnedSkillResolver.resolve(base, learned);
+            desired.put(instanceId, new DesiredPassive(
+                learned, resolved.definition(), resolved.statusBonuses(), resolved.sigilIds()
+            ));
         }
         return desired;
     }
 
-    private @NotNull Set<String> resolveBoundPassiveSkillIds(@NotNull UUID accountId) {
+    private @NotNull Set<String> resolveEnabledBoundPassiveInstanceIds(@NotNull AstPlayer player) {
+        UUID accountId = player.getAccount().getUuid();
         int selectedPresetIndex = presetService.selectedPresetIndex(accountId);
-        SkillBindPreset selectedPreset = presetService.getPresets(accountId).stream()
-            .filter(preset -> preset.isUnlocked() && preset.getPresetIndex() == selectedPresetIndex)
+        SkillBindPreset preset = presetService.getPresets(accountId).stream()
+            .filter(candidate -> candidate.isUnlocked() && candidate.getPresetIndex() == selectedPresetIndex)
             .findFirst()
             .orElse(null);
-        if (selectedPreset == null) {
-            return Set.of();
+        if (preset == null) return Set.of();
+
+        int enabledSlots = activePassiveSlotCount(player);
+        Set<String> result = new LinkedHashSet<>();
+        List<String> bindings = preset.getPassiveSkillSlots();
+        for (int index = 0; index < Math.min(enabledSlots, bindings.size()); index++) {
+            String learnedSkillId = bindings.get(index);
+            if (learnedSkillId != null && !learnedSkillId.isBlank()) result.add(learnedSkillId.trim());
         }
-        Set<String> skillIds = new LinkedHashSet<>();
-        for (String skillId : selectedPreset.getPassiveSkillSlots()) {
-            if (skillId != null && !skillId.isBlank()) {
-                skillIds.add(skillId.trim());
-            }
-        }
-        return skillIds;
+        return result;
     }
 
-    private void activate(
-        @NotNull AstPlayer player,
-        @NotNull PlayerPassiveState state,
-        @NotNull SkillDefinition definition
-    ) {
-        SkillExecutor executor = skillService.registry().getExecutor(definition.getImplementationId());
-        if (executor == null) {
-            return;
-        }
-        ActivePassiveSkill activeSkill = new ActivePassiveSkill(
-            definition,
-            executor,
-            Instant.now(),
-            tickCounter,
-            Math.max(1L, executor.passiveTickIntervalTicks())
+    private void activate(AstPlayer player, PlayerPassiveState state, DesiredPassive desired) {
+        SkillExecutor executor = skillService.registry().getExecutor(desired.definition().getImplementationId());
+        if (executor == null) return;
+        ActivePassiveSkill active = new ActivePassiveSkill(
+            desired.learnedSkill(), desired.definition(), desired.statusBonuses(), executor,
+            desired.sigilIds(), Instant.now(), tickCounter, Math.max(1L, executor.passiveTickIntervalTicks())
         );
-        state.skillsById.put(definition.getId(), activeSkill);
-        if (activeSkill.requiresTick()) {
-            tickingPassiveCount++;
-        }
-        executor.onActivate(new PassiveSkillContext(
-            player,
-            definition,
-            activeSkill.activatedAt(),
-            activeSkill.activeTicks(tickCounter)
-        ));
+        state.skillsByInstanceId.put(desired.learnedSkill().getLearnedSkillId().toString(), active);
+        if (active.requiresTick()) tickingPassiveCount++;
+        executor.onActivate(context(player, active));
     }
 
-    private void deactivate(@NotNull AstPlayer player, @NotNull ActivePassiveSkill activeSkill) {
-        activeSkill.executor().onDeactivate(new PassiveSkillContext(
-            player,
-            activeSkill.definition(),
-            activeSkill.activatedAt(),
-            activeSkill.activeTicks(tickCounter)
-        ));
+    private void deactivate(AstPlayer player, ActivePassiveSkill active) {
+        active.executor().onDeactivate(context(player, active));
     }
 
-    private void deactivateAll(@NotNull AstPlayer player, @NotNull PlayerPassiveState state) {
-        for (ActivePassiveSkill activeSkill : state.skillsById.values()) {
-            deactivate(player, activeSkill);
-        }
+    private void deactivateAll(AstPlayer player, PlayerPassiveState state) {
+        for (ActivePassiveSkill active : state.skillsByInstanceId.values()) deactivate(player, active);
     }
 
-    private ActivePassiveSkill removeActiveSkill(@NotNull PlayerPassiveState state, @NotNull String skillId) {
-        ActivePassiveSkill removed = state.skillsById.remove(skillId);
-        if (removed != null && removed.requiresTick()) {
-            tickingPassiveCount = Math.max(0, tickingPassiveCount - 1);
-        }
+    private PassiveSkillContext context(AstPlayer player, ActivePassiveSkill active) {
+        return new PassiveSkillContext(
+            player, active.definition(), active.activatedAt(), active.activeTicks(tickCounter),
+            active.learnedSkill(), active.sigilIds()
+        );
+    }
+
+    private ActivePassiveSkill removeActiveSkill(PlayerPassiveState state, String instanceId) {
+        ActivePassiveSkill removed = state.skillsByInstanceId.remove(instanceId);
+        if (removed != null && removed.requiresTick()) tickingPassiveCount = Math.max(0, tickingPassiveCount - 1);
         return removed;
     }
 
-    private void decrementTickingPassiveCount(@NotNull PlayerPassiveState state) {
-        for (ActivePassiveSkill activeSkill : state.skillsById.values()) {
-            if (activeSkill.requiresTick()) {
-                tickingPassiveCount = Math.max(0, tickingPassiveCount - 1);
-            }
+    private void decrementTickingPassiveCount(PlayerPassiveState state) {
+        for (ActivePassiveSkill active : state.skillsByInstanceId.values()) {
+            if (active.requiresTick()) tickingPassiveCount = Math.max(0, tickingPassiveCount - 1);
         }
     }
 
+    private AstPlayer findOnlineAstPlayer(UUID accountId) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer != null && accountId.equals(astPlayer.getAccount().getUuid())) return astPlayer;
+        }
+        return null;
+    }
+
     private static final class PlayerPassiveState {
-        private final Map<String, ActivePassiveSkill> skillsById = new LinkedHashMap<>();
+        private final Map<String, ActivePassiveSkill> skillsByInstanceId = new LinkedHashMap<>();
+    }
+
+    private record DesiredPassive(
+        LearnedSkillInstance learnedSkill,
+        SkillDefinition definition,
+        Map<StatusType, Double> statusBonuses,
+        Set<String> sigilIds
+    ) {
+        private boolean matches(ActivePassiveSkill active) {
+            return learnedSkill.equals(active.learnedSkill())
+                && definition.equals(active.definition())
+                && statusBonuses.equals(active.statusBonuses())
+                && sigilIds.equals(active.sigilIds());
+        }
     }
 
     private static final class ActivePassiveSkill {
+        private final LearnedSkillInstance learnedSkill;
         private final SkillDefinition definition;
+        private final Map<StatusType, Double> statusBonuses;
+        private final Set<String> sigilIds;
         private final SkillExecutor executor;
         private final Instant activatedAt;
         private final long activatedTick;
@@ -481,13 +347,19 @@ public final class PassiveSkillService {
         private long nextTickAt;
 
         private ActivePassiveSkill(
-            @NotNull SkillDefinition definition,
-            @NotNull SkillExecutor executor,
-            @NotNull Instant activatedAt,
+            LearnedSkillInstance learnedSkill,
+            SkillDefinition definition,
+            Map<StatusType, Double> statusBonuses,
+            SkillExecutor executor,
+            Set<String> sigilIds,
+            Instant activatedAt,
             long activatedTick,
             long tickIntervalTicks
         ) {
+            this.learnedSkill = learnedSkill;
             this.definition = definition;
+            this.statusBonuses = Map.copyOf(statusBonuses);
+            this.sigilIds = Set.copyOf(sigilIds);
             this.executor = executor;
             this.activatedAt = activatedAt;
             this.activatedTick = activatedTick;
@@ -496,32 +368,15 @@ public final class PassiveSkillService {
             this.nextTickAt = activatedTick + tickIntervalTicks;
         }
 
-        private @NotNull SkillDefinition definition() {
-            return definition;
-        }
-
-        private @NotNull SkillExecutor executor() {
-            return executor;
-        }
-
-        private @NotNull Instant activatedAt() {
-            return activatedAt;
-        }
-
-        private long activeTicks(long currentTick) {
-            return Math.max(0L, currentTick - activatedTick);
-        }
-
-        private boolean requiresTick() {
-            return requiresTick;
-        }
-
-        private boolean shouldTick(long currentTick) {
-            return requiresTick && currentTick >= nextTickAt;
-        }
-
-        private void markTicked(long currentTick) {
-            nextTickAt = currentTick + tickIntervalTicks;
-        }
+        private LearnedSkillInstance learnedSkill() { return learnedSkill; }
+        private SkillDefinition definition() { return definition; }
+        private Map<StatusType, Double> statusBonuses() { return statusBonuses; }
+        private Set<String> sigilIds() { return sigilIds; }
+        private SkillExecutor executor() { return executor; }
+        private Instant activatedAt() { return activatedAt; }
+        private long activeTicks(long currentTick) { return Math.max(0L, currentTick - activatedTick); }
+        private boolean requiresTick() { return requiresTick; }
+        private boolean shouldTick(long currentTick) { return requiresTick && currentTick >= nextTickAt; }
+        private void markTicked(long currentTick) { nextTickAt = currentTick + tickIntervalTicks; }
     }
 }

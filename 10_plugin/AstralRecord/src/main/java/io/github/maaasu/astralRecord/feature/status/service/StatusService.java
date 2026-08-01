@@ -753,16 +753,46 @@ public class StatusService {
         @NotNull EquipmentBonus equipmentBonus,
         @NotNull RangeEndpoint endpoint
     ) {
+        return getBonusValue(player, type, baseValue, equipmentBonus, endpoint, true);
+    }
+
+    private double getBonusValue(
+        @NotNull AstPlayer player,
+        @NotNull StatusType type,
+        double baseValue,
+        @NotNull EquipmentBonus equipmentBonus,
+        @NotNull RangeEndpoint endpoint,
+        boolean includePassiveSkills
+    ) {
         double nonBuffBonus = getAccountModeBonus(player.getAccount().getMode(), type);
         nonBuffBonus += getLevelBonus(player, type);
         nonBuffBonus += getClassShieldBonus(player, type);
         nonBuffBonus += getEquipmentBonus(equipmentBonus, type, baseValue + nonBuffBonus, endpoint);
         nonBuffBonus += getSkillTreeBonus(player, type, baseValue + nonBuffBonus);
-        nonBuffBonus += getPassiveSkillBonus(player, type, baseValue + nonBuffBonus);
+        if (includePassiveSkills) {
+            nonBuffBonus += getPassiveSkillBonus(player, type, baseValue + nonBuffBonus);
+        }
 
         double preBuffTotal = baseValue + nonBuffBonus;
         double buffBonus = buffService.getTotalBonus(player, type, preBuffTotal);
         return nonBuffBonus + buffBonus;
+    }
+
+    /**
+     * パッシブスキル由来の補正だけを除外した現在値を返します。
+     * パッシブバインド枠の算出で、枠を増やすパッシブ自身による循環を防ぐために使用します。
+     */
+    public double getValueExcludingPassiveSkills(@NotNull AstPlayer player, @NotNull StatusType type) {
+        double baseValue = getBaseValue(type);
+        EquipmentBonus equipmentBonus = itemService == null ? EquipmentBonus.empty() : collectEquipmentBonus(player);
+        return baseValue + getBonusValue(
+            player,
+            type,
+            baseValue,
+            equipmentBonus,
+            RangeEndpoint.AVERAGE,
+            false
+        );
     }
 
     /**

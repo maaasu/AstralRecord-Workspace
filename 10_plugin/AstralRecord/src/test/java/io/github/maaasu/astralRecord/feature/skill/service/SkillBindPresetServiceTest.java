@@ -140,7 +140,7 @@ class SkillBindPresetServiceTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_1-モデル定義.md
-     * 章・見出し: # 13_1-モデル定義 > ## 6. bind preset
+     * 章・見出し: # 13_1-モデル定義 > ## 5. バインドプリセット
      * 検証契約: action ring は6件へ正規化し、互換コンストラクタは武器通常攻撃を既定にする。
      */
     @Test
@@ -160,7 +160,7 @@ class SkillBindPresetServiceTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_1-モデル定義.md
-     * 章・見出し: # 13_1-モデル定義 > ## 6. bind preset
+     * 章・見出し: # 13_1-モデル定義 > ## 5. バインドプリセット
      * 検証契約: 左クリックバインドは null を保存して解除できる。
      */
     @Test

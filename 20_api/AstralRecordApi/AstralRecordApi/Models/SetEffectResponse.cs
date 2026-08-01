@@ -15,7 +15,6 @@ public class SetEffectPieceResponse
 
     public IReadOnlyList<SetEffectStatResponse> Stats { get; init; } = [];
 
-    public IReadOnlyList<string> Skills { get; init; } = [];
 }
 
 public class SetEffectStatResponse

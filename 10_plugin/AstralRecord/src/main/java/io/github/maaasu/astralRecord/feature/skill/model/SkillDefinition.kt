@@ -39,4 +39,28 @@ data class SkillDefinition @JvmOverloads constructor(
     val passiveBindRequired: Boolean = true,
     val resourceType: SkillResourceType? = null,
     val resourceCost: Double? = null,
+    val cooldownId: String? = null,
+    val maxLevel: Int = 1,
+    val levels: List<SkillLevelDefinition> = emptyList(),
+    val sigilSlotsByLevel: List<SkillSigilSlotDefinition> = emptyList(),
+    val allowedSigilIds: List<String> = emptyList(),
+)
+
+data class SkillLevelDefinition(
+    val level: Int,
+    val cooldownTicksDelta: Long = 0L,
+    val resourceCostDelta: Double = 0.0,
+    val castTimeTicksDelta: Long = 0L,
+    val paramDeltas: Map<String, Double> = emptyMap(),
+    val statusModifiers: List<SkillStatusModifierDefinition> = emptyList(),
+)
+
+data class SkillStatusModifierDefinition(
+    val status: String,
+    val value: Double,
+)
+
+data class SkillSigilSlotDefinition(
+    val level: Int,
+    val slots: Int,
 )

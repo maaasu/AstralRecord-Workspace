@@ -268,6 +268,50 @@ public final class PlayerInventoryState {
     }
 
     /**
+     * 一括保存の応答を、送信後に変更されていないentryだけへ反映します。
+     * 保存待ち中に生じた移動・数量変更は上書きせず、APIが採番した更新時刻だけを安全に取り込みます。
+     */
+    public synchronized void acknowledgePersistedEntries(
+        @NotNull UUID inventoryId,
+        @NotNull List<InventoryEntryModel> submitted,
+        @NotNull List<InventoryEntryModel> persisted
+    ) {
+        Map<UUID, InventoryEntryModel> submittedById = new HashMap<>();
+        for (InventoryEntryModel entry : submitted) {
+            submittedById.put(entry.getInventoryEntryId(), entry);
+        }
+        Map<UUID, InventoryEntryModel> persistedById = new HashMap<>();
+        for (InventoryEntryModel entry : persisted) {
+            persistedById.put(entry.getInventoryEntryId(), entry);
+        }
+        List<InventoryEntryModel> current = entriesByInventoryId.get(inventoryId);
+        if (current == null) return;
+        for (int index = 0; index < current.size(); index++) {
+            InventoryEntryModel currentEntry = current.get(index);
+            InventoryEntryModel submittedEntry = submittedById.get(currentEntry.getInventoryEntryId());
+            InventoryEntryModel persistedEntry = persistedById.get(currentEntry.getInventoryEntryId());
+            if (submittedEntry != null && persistedEntry != null && currentEntry.equals(submittedEntry)) {
+                current.set(index, persistedEntry);
+            }
+        }
+    }
+
+    /** APIから再取得した単一entryだけを反映し、無関係な並行変更は保持します。 */
+    public synchronized void reconcileAuthoritativeEntry(
+        @NotNull UUID inventoryEntryId,
+        @Nullable InventoryEntryModel authoritative
+    ) {
+        for (List<InventoryEntryModel> entries : entriesByInventoryId.values()) {
+            entries.removeIf(entry -> entry.getInventoryEntryId().equals(inventoryEntryId));
+        }
+        if (authoritative != null && !authoritative.isDeleted()) {
+            entriesByInventoryId
+                .computeIfAbsent(authoritative.getInventoryId(), ignored -> new ArrayList<>())
+                .add(authoritative);
+        }
+    }
+
+    /**
      * inventoryId の entry リストエントリを削除します。
      *
      * @param inventoryId 対象UUID

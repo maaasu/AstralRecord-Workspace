@@ -61,8 +61,7 @@ growthPerLevel:
   - status: MAGIC_DEFENSE
     value: 0.5
 expRate: 100
-starterSkills: []
-levelSkills: []
+usableSkills: []
 tags:
   - starter
   - beginner

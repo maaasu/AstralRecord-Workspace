@@ -19,7 +19,6 @@ data class ClassModel(
     val baseStats: List<ClassStat>,
     val growthPerLevel: List<ClassStat>,
     val expRate: Int,
-    val starterSkills: List<String>,
-    val levelSkills: List<ClassLevelSkill>,
+    val usableSkills: List<String>,
     val tags: List<String>,
 )

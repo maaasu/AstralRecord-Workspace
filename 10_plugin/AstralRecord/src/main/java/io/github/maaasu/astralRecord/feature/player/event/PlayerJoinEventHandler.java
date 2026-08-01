@@ -15,6 +15,8 @@ import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
 import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
+import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePlayerState;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
@@ -64,6 +66,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     private final SkillTreeService skillTreeService;
     private final QuestService questService;
     private final SkillBindPresetService skillBindPresetService;
+    private final LearnedSkillService learnedSkillService;
     private final LoginBonusService loginBonusService;
     private final MailService mailService;
     private final @Nullable GuideService guideService;
@@ -82,10 +85,11 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         SkillTreeService skillTreeService,
         QuestService questService,
         SkillBindPresetService skillBindPresetService,
+        LearnedSkillService learnedSkillService,
         LoginBonusService loginBonusService,
         MailService mailService
     ) {
-        this(plugin, playerService, skillTreeService, questService, skillBindPresetService,
+        this(plugin, playerService, skillTreeService, questService, skillBindPresetService, learnedSkillService,
             loginBonusService, mailService, null);
     }
 
@@ -107,6 +111,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         SkillTreeService skillTreeService,
         QuestService questService,
         SkillBindPresetService skillBindPresetService,
+        LearnedSkillService learnedSkillService,
         LoginBonusService loginBonusService,
         MailService mailService,
         @Nullable GuideService guideService
@@ -116,6 +121,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         this.skillTreeService = skillTreeService;
         this.questService = questService;
         this.skillBindPresetService = skillBindPresetService;
+        this.learnedSkillService = learnedSkillService;
         this.loginBonusService = loginBonusService;
         this.mailService = mailService;
         this.guideService = guideService;
@@ -181,6 +187,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             UUID accountId = astPlayer.getAccount().getUuid();
             questService.releaseState(accountId);
             skillBindPresetService.invalidate(accountId);
+            learnedSkillService.invalidate(accountId);
             if (guideService != null) {
                 guideService.releaseProgress(accountId);
             }
@@ -238,11 +245,17 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 return;
             }
 
-            PlayerService.PlayerJoinInventoryState inventoryState =
-                playerService.loadPlayerJoinInventoryState(account);
+            PlayerService.PlayerJoinInventoryState inventoryState = null;
             boolean handedOffToMain = false;
             QuestService.InitialState questStateToDiscard = null;
             try {
+                // 習得スキルロード時に削除済みジェム・不正シジルをAPIが整合するため、
+                // インベントリはその後にロードして整合後のentryを取得する。
+                List<LearnedSkillInstance> learnedSkills = learnedSkillService.loadInitialSkills(account.getUuid());
+                if (!isJoinLoading(attempt)) {
+                    return;
+                }
+                inventoryState = playerService.loadPlayerJoinInventoryState(account);
                 if (!isJoinLoading(attempt)) {
                     return;
                 }
@@ -273,7 +286,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                     inventoryState
                 );
                 plugin.getServer().getScheduler().runTask(plugin, () ->
-                    applyJoinData(attempt, playerName, joinData, skillTreeState, questState, skillBindPresets)
+                    applyJoinData(attempt, playerName, joinData, skillTreeState, questState, skillBindPresets, learnedSkills)
                 );
                 handedOffToMain = true;
                 questStateToDiscard = null;
@@ -282,7 +295,9 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                     if (questStateToDiscard != null) {
                         questService.discardInitialState(questStateToDiscard);
                     }
-                    playerService.discardPlayerJoinInventoryState(inventoryState);
+                    if (inventoryState != null) {
+                        playerService.discardPlayerJoinInventoryState(inventoryState);
+                    }
                 }
             }
         });
@@ -294,7 +309,8 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         PlayerService.PlayerJoinData joinData,
         @Nullable SkillTreePlayerState skillTreeState,
         QuestService.InitialState questState,
-        List<SkillBindPreset> skillBindPresets
+        List<SkillBindPreset> skillBindPresets,
+        List<LearnedSkillInstance> learnedSkills
     ) {
         boolean questApplied = false;
         boolean skillTreeApplied = false;
@@ -353,6 +369,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             skillTreeService.applyInitialPlayerState(skillTreeState);
             skillBindPresetsApplied = true;
             skillBindPresetService.applyInitialPresets(joinData.account().getUuid(), skillBindPresets);
+            learnedSkillService.applyInitialSkills(joinData.account().getUuid(), learnedSkills);
             playerJoinApplication = playerService.applyPlayerJoinTransactional(player, joinData);
             if (playerJoinApplication == null) {
                 rollbackJoinApplication(
@@ -415,6 +432,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         boolean skillBindPresetsApplied,
         @Nullable PlayerService.PlayerJoinApplication playerJoinApplication
     ) {
+        learnedSkillService.invalidate(joinData.account().getUuid());
         if (playerJoinApplication != null) {
             runJoinRollbackStep(playerName, () -> playerService.rollbackPlayerJoin(playerJoinApplication));
         }

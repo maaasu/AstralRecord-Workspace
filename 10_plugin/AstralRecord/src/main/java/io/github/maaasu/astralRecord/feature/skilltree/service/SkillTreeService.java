@@ -1701,7 +1701,7 @@ public class SkillTreeService {
             if (addedSkillIds.isEmpty() && removedSkillIds.isEmpty()) {
                 passiveSkillService.reconcileNow(astPlayer, false);
             } else {
-                passiveSkillService.reconcileSkillOwnershipDelta(astPlayer, addedSkillIds, removedSkillIds, false);
+                passiveSkillService.reconcileSkillPermissionDelta(astPlayer, addedSkillIds, removedSkillIds, false);
             }
         }
         if (statusAffected && statusService != null) {

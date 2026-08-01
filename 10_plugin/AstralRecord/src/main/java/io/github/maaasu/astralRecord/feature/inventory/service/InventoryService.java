@@ -224,6 +224,19 @@ public class InventoryService {
         return List.of();
     }
 
+    /** スキルmutation後または通信結果が不明な場合に、対象entryだけをAPI正本へ合わせます。 */
+    public void reconcileAuthoritativeEntry(
+        @NotNull UUID accountId,
+        @NotNull UUID inventoryEntryId
+    ) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) return;
+        state.reconcileAuthoritativeEntry(
+            inventoryEntryId,
+            inventoryRepository.findEntryById(inventoryEntryId)
+        );
+    }
+
     /**
      * 指定 profile / 種別のインベントリを取得し、未存在の場合は API へ同期的に作成します。
      * <p>

@@ -15,6 +15,5 @@ data class ClassViewEntry(
     val changeBlockedReasons: List<String>,
     val baseStats: List<String>,
     val growthPerLevel: List<String>,
-    val starterSkills: List<String>,
-    val levelSkills: List<String>,
+    val usableSkills: List<String>,
 )

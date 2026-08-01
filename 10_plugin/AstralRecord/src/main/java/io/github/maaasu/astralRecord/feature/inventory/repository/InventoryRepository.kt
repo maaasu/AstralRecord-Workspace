@@ -103,6 +103,16 @@ class InventoryRepository {
             val entries = JsonArray()
             drafts.forEach { draft ->
                 val entry = JsonObject()
+                if (draft.inventoryEntryId != null) {
+                    entry.addProperty("inventoryEntryId", draft.inventoryEntryId.toString())
+                } else {
+                    entry.addProperty("inventoryEntryId", null as String?)
+                }
+                if (draft.expectedUpdatedAt != null) {
+                    entry.addProperty("expectedUpdatedAt", draft.expectedUpdatedAt.toString())
+                } else {
+                    entry.addProperty("expectedUpdatedAt", null as String?)
+                }
                 if (draft.slotIndex != null) {
                     entry.addProperty("slotIndex", draft.slotIndex)
                 } else {

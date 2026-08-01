@@ -3,12 +3,31 @@ id: iron_will
 type: SKILL
 implementationId: iron_will
 name: "&7アイアンウィル"
-description: "&7装備セット効果用のパッシブスキル。被ダメージを軽減する。"
+description: "&7防御力と魔法防御力を高め、被ダメージを抑えるパッシブスキル。"
 icon: IRON_INGOT
 cooldownTicks: 0
 manaCost: 0
 castTimeTicks: 0
 requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    paramDeltas: { defenseFlat: 2, magicDefenseFlat: 1 }
+  - level: 3
+    paramDeltas: { defenseFlat: 2, magicDefenseFlat: 1 }
+  - level: 4
+    paramDeltas: { defenseFlat: 2, magicDefenseFlat: 1 }
+  - level: 5
+    paramDeltas: { defenseFlat: 2, magicDefenseFlat: 1 }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds: []
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
 passive:
   bindRequired: true
 params:

@@ -105,6 +105,7 @@ enum class StatusType(
     SHIELD_RECHARGE_REDUCTION("SHIELD_RECHARGE_REDUCTION", "シールドリチャージ短縮", "シールド破壊後のリチャージ時間と攻撃による追加時間を割合で短縮する補正。", Category.UTILITY, "%", 1, true),
     MINING_SPEED("MINING_SPEED", "採集速度", "採掘や採取などの採集行動を行う速さ。", Category.UTILITY, "", 0, true),
     INVENTORY_SLOTS("INVENTORY_SLOTS", "インベントリスロット", "アイテムを保持できるインベントリの枠数。", Category.UTILITY, "", 0, false),
+    PASSIVE_SKILL_SLOTS("PASSIVE_SKILL_SLOTS", "パッシブスキルスロット", "基礎5枠へ加算されるパッシブスキルの有効枠数。1ポイントごとに1枠増加し、合計9枠を上限とする。", Category.UTILITY, "", 0, false),
     QUEST_LIMIT("QUEST_LIMIT", "クエスト受領上限", "同時に受領できるクエスト数の上限。", Category.UTILITY, "", 0, false),
     ;
 

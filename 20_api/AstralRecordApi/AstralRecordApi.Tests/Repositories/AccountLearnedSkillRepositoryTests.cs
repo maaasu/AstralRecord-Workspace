@@ -1,0 +1,407 @@
+using System.Runtime.CompilerServices;
+using System.Text.Json;
+using AstralRecordApi.Data;
+using AstralRecordApi.Data.Entities;
+using AstralRecordApi.Models;
+using AstralRecordApi.Repositories;
+using AstralRecordApi.Tests.TestSupport;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using Xunit;
+
+namespace AstralRecordApi.Tests.Repositories;
+
+public class AccountLearnedSkillRepositoryTests
+{
+    /// <summary>
+    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
+    /// 検証契約: 同一スキルジェムを個別に消費し、同一skillIdを別UUIDの個体として何個でも習得できる。
+    /// </summary>
+    [Fact]
+    public async Task LearnAsync_CreatesIndependentDuplicateInstances()
+    {
+        await using var fixture = await TestDatabase.CreateAsync();
+        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.mage_fireball.yml", "skill", null);
+        var accountId = Guid.NewGuid();
+        await fixture.AddAccountAsync(accountId);
+        var firstGem = await fixture.AddInventoryEntryAsync(
+            accountId, "skill_gem", "00_skill_gem_mage_fireball", 1);
+        var secondGem = await fixture.AddInventoryEntryAsync(
+            accountId, "skill_gem", "00_skill_gem_mage_fireball", 1);
+        var repository = new AccountLearnedSkillRepository(fixture.PlayerDb, fixture.MasterDb);
+
+        var first = await repository.LearnAsync(accountId, new AccountLearnedSkillLearnRequest
+        {
+            SkillId = "mage_fireball",
+            GemInventoryEntryId = firstGem,
+            UpdatedBy = accountId,
+        });
+        var second = await repository.LearnAsync(accountId, new AccountLearnedSkillLearnRequest
+        {
+            SkillId = "mage_fireball",
+            GemInventoryEntryId = secondGem,
+            UpdatedBy = accountId,
+        });
+
+        Assert.True(first.Succeeded);
+        Assert.True(second.Succeeded);
+        Assert.NotEqual(first.Skill!.LearnedSkillId, second.Skill!.LearnedSkillId);
+        Assert.All([first.Skill, second.Skill], learned =>
+        {
+            Assert.Equal("mage_fireball", learned.SkillId);
+            Assert.Equal(1, learned.Level);
+        });
+        Assert.Equal(2, await fixture.PlayerDb.AccountLearnedSkills.CountAsync(skill => !skill.IsDeleted));
+        Assert.Equal(2, await fixture.PlayerDb.InventoryEntries.CountAsync(entry => entry.IsDeleted));
+    }
+
+    /// <summary>
+    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
+    /// 検証契約: 指定個体だけを同ジェムで1レベル上げ、同じequipGroupIdのシジルを重複装着しない。
+    /// </summary>
+    [Fact]
+    public async Task UpgradeAndAttachSigil_UseSelectedInstanceAndRejectDuplicateGroup()
+    {
+        await using var fixture = await TestDatabase.CreateAsync();
+        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.mage_fireball.yml", "skill", null);
+        await fixture.SeedMasterAsync(
+            "40_filebase/10.features.item/sigil/v1.cooldown_sigil.yml", "item", "sigil");
+        await fixture.SeedMasterAsync(
+            "40_filebase/10.features.item/sigil/v1.cooldown_sigil_ii.yml", "item", "sigil");
+        var accountId = Guid.NewGuid();
+        await fixture.AddAccountAsync(accountId);
+        var learnGem = await fixture.AddInventoryEntryAsync(
+            accountId, "skill_gem", "00_skill_gem_mage_fireball", 1);
+        var levelGem = await fixture.AddInventoryEntryAsync(
+            accountId, "skill_gem", "00_skill_gem_mage_fireball", 1);
+        var firstSigil = await fixture.AddInventoryEntryAsync(accountId, "sigil", "cooldown_sigil", 2);
+        var secondSigil = await fixture.AddInventoryEntryAsync(accountId, "sigil", "cooldown_sigil_ii", 1);
+        AccountLearnedSkillResponse learned;
+        await using (var requestDb = fixture.CreatePlayerDb())
+        {
+            learned = (await new AccountLearnedSkillRepository(requestDb, fixture.MasterDb)
+                .LearnAsync(accountId, new AccountLearnedSkillLearnRequest
+                {
+                    SkillId = "mage_fireball",
+                    GemInventoryEntryId = learnGem,
+                    UpdatedBy = accountId,
+                })).Skill!;
+        }
+        AccountLearnedSkillMutationResult upgraded;
+        await using (var requestDb = fixture.CreatePlayerDb())
+        {
+            upgraded = await new AccountLearnedSkillRepository(requestDb, fixture.MasterDb)
+                .LevelUpAsync(accountId, learned.LearnedSkillId, new AccountLearnedSkillLevelUpRequest
+                {
+                    GemInventoryEntryId = levelGem,
+                    UpdatedBy = accountId,
+                });
+        }
+        AccountLearnedSkillMutationResult attached;
+        await using (var requestDb = fixture.CreatePlayerDb())
+        {
+            attached = await new AccountLearnedSkillRepository(requestDb, fixture.MasterDb)
+                .AttachSigilAsync(accountId, learned.LearnedSkillId,
+                new AccountLearnedSkillAttachSigilRequest
+                {
+                    SigilId = "cooldown_sigil",
+                    SigilInventoryEntryId = firstSigil,
+                    UpdatedBy = accountId,
+                });
+        }
+        AccountLearnedSkillMutationResult duplicate;
+        await using (var requestDb = fixture.CreatePlayerDb())
+        {
+            duplicate = await new AccountLearnedSkillRepository(requestDb, fixture.MasterDb)
+                .AttachSigilAsync(accountId, learned.LearnedSkillId,
+                new AccountLearnedSkillAttachSigilRequest
+                {
+                    SigilId = "cooldown_sigil_ii",
+                    SigilInventoryEntryId = secondSigil,
+                    UpdatedBy = accountId,
+                });
+        }
+
+        Assert.True(upgraded.Succeeded);
+        Assert.Equal(2, upgraded.Skill!.Level);
+        Assert.True(attached.Succeeded);
+        Assert.Single(attached.Skill!.Sigils);
+        Assert.Equal(AccountLearnedSkillMutationFailure.DuplicateSigilGroup, duplicate.Failure);
+        Assert.Equal(1, (await fixture.PlayerDb.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == firstSigil)).Quantity);
+        Assert.False((await fixture.PlayerDb.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == secondSigil)).IsDeleted);
+    }
+
+    /// <summary>
+    /// 設計入力: 00_docs/40_Database設計書/table-definitions/AstralRecord/dbo.player_mail_delivery.md
+    /// 検証契約: ロード時にマスタ上無効な装着シジルを削除し、同じシジルを動的お詫びメールで返却する。
+    /// </summary>
+    [Fact]
+    public async Task GetByAccountIdAsync_ReconcilesInvalidSigilAndCreatesCompensationMail()
+    {
+        await using var fixture = await TestDatabase.CreateAsync();
+        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.mage_fireball.yml", "skill", null);
+        await fixture.SeedMasterAsync(
+            "40_filebase/10.features.item/sigil/v1.homing_fireball_sigil.yml", "item", "sigil");
+        var accountId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        await fixture.AddAccountAsync(accountId, userId);
+        var now = DateTime.UtcNow;
+        var learned = new AccountLearnedSkillEntity
+        {
+            LearnedSkillId = Guid.NewGuid(),
+            AccountId = accountId,
+            SkillId = "mage_fireball",
+            Level = 1,
+            Version = 1,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = accountId,
+            UpdatedBy = accountId,
+        };
+        learned.Sigils.Add(new AccountLearnedSkillSigilEntity
+        {
+            LearnedSkillSigilId = Guid.NewGuid(),
+            LearnedSkillId = learned.LearnedSkillId,
+            SigilId = "homing_fireball_sigil",
+            EquipGroupId = "fireball_trajectory",
+            SlotIndex = 0,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = accountId,
+            UpdatedBy = accountId,
+        });
+        fixture.PlayerDb.AccountLearnedSkills.Add(learned);
+        await fixture.PlayerDb.SaveChangesAsync();
+        var sigilMaster = await fixture.MasterDb.Entries
+            .SingleAsync(entry => entry.MasterId == "homing_fireball_sigil");
+        sigilMaster.IsDeleted = true;
+        await fixture.MasterDb.SaveChangesAsync();
+
+        var repository = new AccountLearnedSkillRepository(fixture.PlayerDb, fixture.MasterDb);
+        var result = await repository.GetByAccountIdAsync(accountId);
+
+        Assert.Empty(Assert.Single(result).Sigils);
+        Assert.True(await fixture.PlayerDb.AccountLearnedSkillSigils
+            .AnyAsync(sigil => sigil.SigilId == "homing_fireball_sigil" && sigil.IsDeleted));
+        var delivery = await fixture.PlayerDb.PlayerMailDeliveries.AsNoTracking().SingleAsync();
+        var mail = JsonSerializer.Deserialize<MailResponse>(delivery.PayloadJson,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        Assert.NotNull(mail);
+        var reward = Assert.Single(mail.Rewards);
+        Assert.Equal("homing_fireball_sigil", reward.ItemId);
+        Assert.Equal("sigil", reward.Category);
+        Assert.Equal(1, reward.Amount);
+        Assert.NotNull(new ItemRepository(fixture.MasterDb).GetById("homing_fireball_sigil"));
+    }
+
+    /// <summary>
+    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
+    /// 検証契約: skill master削除時は対応gem・習得個体・そのbindをロード時に無効化する。
+    /// </summary>
+    [Fact]
+    public async Task GetByAccountIdAsync_RemovesDeletedSkillGemLearnedInstanceAndBindings()
+    {
+        await using var fixture = await TestDatabase.CreateAsync();
+        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.mage_fireball.yml", "skill", null);
+        var accountId = Guid.NewGuid();
+        await fixture.AddAccountAsync(accountId);
+        var gemEntryId = await fixture.AddInventoryEntryAsync(
+            accountId, "skill_gem", "00_skill_gem_mage_fireball", 1);
+        var now = DateTime.UtcNow;
+        var learnedSkillId = Guid.NewGuid();
+        fixture.PlayerDb.AccountLearnedSkills.Add(new AccountLearnedSkillEntity
+        {
+            LearnedSkillId = learnedSkillId,
+            AccountId = accountId,
+            SkillId = "mage_fireball",
+            Level = 3,
+            Version = 1,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = accountId,
+            UpdatedBy = accountId,
+        });
+        fixture.PlayerDb.SkillBindPresets.Add(new SkillBindPresetEntity
+        {
+            SkillBindPresetId = Guid.NewGuid(),
+            AccountId = accountId,
+            PresetIndex = 1,
+            ActiveSkillSlotsJson = JsonSerializer.Serialize(new string?[] { learnedSkillId.ToString() }),
+            LeftClickSkillId = learnedSkillId.ToString(),
+            PassiveSkillSlotsJson = JsonSerializer.Serialize(new string?[] { null, learnedSkillId.ToString() }),
+            IsUnlocked = true,
+            Version = 1,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = accountId,
+            UpdatedBy = accountId,
+        });
+        await fixture.PlayerDb.SaveChangesAsync();
+        var skillMaster = await fixture.MasterDb.Entries.SingleAsync(entry => entry.MasterId == "mage_fireball");
+        skillMaster.IsDeleted = true;
+        await fixture.MasterDb.SaveChangesAsync();
+
+        var result = await new AccountLearnedSkillRepository(fixture.PlayerDb, fixture.MasterDb)
+            .GetByAccountIdAsync(accountId);
+
+        Assert.Empty(result);
+        Assert.True((await fixture.PlayerDb.AccountLearnedSkills.AsNoTracking()
+            .SingleAsync(skill => skill.LearnedSkillId == learnedSkillId)).IsDeleted);
+        Assert.True((await fixture.PlayerDb.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == gemEntryId)).IsDeleted);
+        var preset = await fixture.PlayerDb.SkillBindPresets.AsNoTracking().SingleAsync();
+        Assert.DoesNotContain(learnedSkillId.ToString(), preset.ActiveSkillSlotsJson, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(learnedSkillId.ToString(), preset.PassiveSkillSlotsJson, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("__weapon_normal_attack__", preset.LeftClickSkillId);
+    }
+
+    private sealed class TestDatabase : IAsyncDisposable
+    {
+        private readonly SqliteConnection playerConnection;
+        private readonly SqliteConnection masterConnection;
+        public AstralRecordDbContext PlayerDb { get; }
+        public MasterDataDbContext MasterDb { get; }
+
+        private TestDatabase(
+            SqliteConnection playerConnection,
+            SqliteConnection masterConnection,
+            AstralRecordDbContext playerDb,
+            MasterDataDbContext masterDb)
+        {
+            this.playerConnection = playerConnection;
+            this.masterConnection = masterConnection;
+            PlayerDb = playerDb;
+            MasterDb = masterDb;
+        }
+
+        public static async Task<TestDatabase> CreateAsync()
+        {
+            var playerConnection = new SqliteConnection("Data Source=:memory:");
+            var masterConnection = new SqliteConnection("Data Source=:memory:");
+            await playerConnection.OpenAsync();
+            await masterConnection.OpenAsync();
+            var playerDb = new AstralRecordDbContext(
+                new DbContextOptionsBuilder<AstralRecordDbContext>().UseSqlite(playerConnection).Options);
+            var masterDb = new MasterDataDbContext(
+                new DbContextOptionsBuilder<MasterDataDbContext>().UseSqlite(masterConnection).Options);
+            await CreatePlayerSchemaAsync(playerDb);
+            await MasterDataTestSeed.CreateSchemaAsync(masterDb);
+            return new TestDatabase(playerConnection, masterConnection, playerDb, masterDb);
+        }
+
+        public async Task SeedMasterAsync(string relativePath, string masterType, string? category)
+            => await MasterDataTestSeed.SeedEntryAsync(
+                MasterDb,
+                Path.Combine(ResolveWorkspaceRoot(), relativePath.Replace('/', Path.DirectorySeparatorChar)),
+                masterType,
+                category);
+
+        public AstralRecordDbContext CreatePlayerDb()
+            => new(new DbContextOptionsBuilder<AstralRecordDbContext>()
+                .UseSqlite(playerConnection)
+                .Options);
+
+        public async Task AddAccountAsync(Guid accountId, Guid? userId = null)
+            => await PlayerDb.Database.ExecuteSqlInterpolatedAsync(
+                $"INSERT INTO account (uuid, user_id, is_deleted) VALUES ({accountId}, {userId ?? Guid.NewGuid()}, {false})");
+
+        public async Task<Guid> AddInventoryEntryAsync(
+            Guid accountId,
+            string category,
+            string itemId,
+            long quantity)
+        {
+            var now = DateTime.UtcNow;
+            var inventory = await PlayerDb.Inventories.FirstOrDefaultAsync(candidate => candidate.AccountId == accountId);
+            if (inventory is null)
+            {
+                inventory = new InventoryEntity
+                {
+                    InventoryId = Guid.NewGuid(),
+                    AccountId = accountId,
+                    InventoryType = "BAG",
+                    InventoryProfile = "GAME",
+                    IsEnabled = true,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                    CreatedBy = accountId,
+                    UpdatedBy = accountId,
+                };
+                PlayerDb.Inventories.Add(inventory);
+            }
+            var entry = new InventoryEntryEntity
+            {
+                InventoryEntryId = Guid.NewGuid(),
+                InventoryId = inventory.InventoryId,
+                ItemCategory = category,
+                ItemId = itemId,
+                Quantity = quantity,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = accountId,
+                UpdatedBy = accountId,
+            };
+            PlayerDb.InventoryEntries.Add(entry);
+            await PlayerDb.SaveChangesAsync();
+            return entry.InventoryEntryId;
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            await PlayerDb.DisposeAsync();
+            await MasterDb.DisposeAsync();
+            await playerConnection.DisposeAsync();
+            await masterConnection.DisposeAsync();
+        }
+
+        private static async Task CreatePlayerSchemaAsync(AstralRecordDbContext db)
+        {
+            await db.Database.ExecuteSqlRawAsync(@"
+                CREATE TABLE account (uuid TEXT NOT NULL PRIMARY KEY, user_id TEXT NOT NULL, is_deleted INTEGER NOT NULL);
+                CREATE TABLE inventory (
+                    inventory_id TEXT NOT NULL PRIMARY KEY, account_id TEXT NOT NULL, inventory_type TEXT NOT NULL,
+                    inventory_profile TEXT NOT NULL, slot_capacity INTEGER NULL, is_enabled INTEGER NOT NULL,
+                    metadata_json TEXT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+                    created_by TEXT NOT NULL, updated_by TEXT NOT NULL, is_deleted INTEGER NOT NULL);
+                CREATE TABLE inventory_entry (
+                    inventory_entry_id TEXT NOT NULL PRIMARY KEY, inventory_id TEXT NOT NULL, slot_index INTEGER NULL,
+                    item_category TEXT NOT NULL, item_id TEXT NULL, instance_type TEXT NULL, instance_id TEXT NULL,
+                    quantity INTEGER NOT NULL, metadata_json TEXT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+                    created_by TEXT NOT NULL, updated_by TEXT NOT NULL, is_deleted INTEGER NOT NULL);
+                CREATE TABLE account_learned_skill (
+                    learned_skill_id TEXT NOT NULL PRIMARY KEY, account_id TEXT NOT NULL, skill_id TEXT NOT NULL,
+                    level INTEGER NOT NULL, version INTEGER NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+                    created_by TEXT NOT NULL, updated_by TEXT NOT NULL, is_deleted INTEGER NOT NULL);
+                CREATE TABLE account_learned_skill_sigil (
+                    learned_skill_sigil_id TEXT NOT NULL PRIMARY KEY, learned_skill_id TEXT NOT NULL,
+                    sigil_id TEXT NOT NULL, equip_group_id TEXT NOT NULL, slot_index INTEGER NOT NULL,
+                    created_at TEXT NOT NULL, updated_at TEXT NOT NULL, created_by TEXT NOT NULL,
+                    updated_by TEXT NOT NULL, is_deleted INTEGER NOT NULL);
+                CREATE TABLE skill_bind_preset (
+                    skill_bind_preset_id TEXT NOT NULL PRIMARY KEY, account_id TEXT NOT NULL, preset_index INTEGER NOT NULL,
+                    active_skill_slots_json TEXT NOT NULL, left_click_skill_id TEXT NULL,
+                    passive_skill_slots_json TEXT NOT NULL, is_unlocked INTEGER NOT NULL, version INTEGER NOT NULL,
+                    created_at TEXT NOT NULL, updated_at TEXT NOT NULL, created_by TEXT NOT NULL,
+                    updated_by TEXT NOT NULL, is_deleted INTEGER NOT NULL);
+                CREATE TABLE player_mail_delivery (
+                    player_mail_delivery_id TEXT NOT NULL PRIMARY KEY, user_id TEXT NOT NULL, mail_id TEXT NOT NULL,
+                    payload_json TEXT NOT NULL, version INTEGER NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+                    created_by TEXT NOT NULL, updated_by TEXT NOT NULL, is_deleted INTEGER NOT NULL);");
+        }
+    }
+
+    private static string ResolveWorkspaceRoot([CallerFilePath] string currentFile = "")
+    {
+        var current = new FileInfo(currentFile).Directory;
+        while (current is not null)
+        {
+            if (Directory.Exists(Path.Combine(current.FullName, "40_filebase"))
+                && Directory.Exists(Path.Combine(current.FullName, "20_api")))
+                return current.FullName;
+            current = current.Parent;
+        }
+        throw new InvalidOperationException("workspace root could not be resolved from the test source path.");
+    }
+}

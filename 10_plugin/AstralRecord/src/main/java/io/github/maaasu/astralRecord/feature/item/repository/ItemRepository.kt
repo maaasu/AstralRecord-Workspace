@@ -30,7 +30,6 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceMate
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceStatIncrease
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentClassRequirement
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentHandType
-import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentOnUse
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentRuneDef
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStat
@@ -39,6 +38,9 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentTranscenden
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel
 import io.github.maaasu.astralRecord.feature.item.model.ItemRune
 import io.github.maaasu.astralRecord.feature.item.model.ItemSummary
+import io.github.maaasu.astralRecord.feature.item.model.ItemSkillGem
+import io.github.maaasu.astralRecord.feature.item.model.ItemSigil
+import io.github.maaasu.astralRecord.feature.item.model.ItemSigilModifier
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil
@@ -493,7 +495,28 @@ class ItemRepository {
             equipment = parseEquipment(obj),
             rune = parseRune(obj),
             consumable = parseConsumable(obj),
+            skillGem = parseSkillGem(obj),
+            sigil = parseSigil(obj),
         )
+    }
+
+    private fun parseSkillGem(obj: JsonObject): ItemSkillGem? {
+        val skillGemObj = parseObjectOrNull(obj, "skillGem") ?: return null
+        val skillId = parseStringOrNull(skillGemObj, "skillId") ?: return null
+        return ItemSkillGem(skillId)
+    }
+
+    private fun parseSigil(obj: JsonObject): ItemSigil? {
+        val sigilObj = parseObjectOrNull(obj, "sigil") ?: return null
+        val equipGroupId = parseStringOrNull(sigilObj, "equipGroupId") ?: return null
+        val modifiers = sigilObj.getAsJsonArray("modifiers")?.mapNotNull { element ->
+            if (!element.isJsonObject) return@mapNotNull null
+            val modifier = element.asJsonObject
+            val status = parseStringOrNull(modifier, "status") ?: return@mapNotNull null
+            val value = parseDoubleOrNull(modifier, "value") ?: return@mapNotNull null
+            ItemSigilModifier(status, value)
+        }.orEmpty()
+        return ItemSigil(equipGroupId, modifiers)
     }
 
     private fun parseAppearance(obj: JsonObject): ItemAppearance? {
@@ -606,16 +629,6 @@ class ItemRepository {
             null
         }
 
-        val onUseObj = parseObjectOrNull(equipmentObj, "onUse")
-        val onUse = if (onUseObj != null) {
-            ItemEquipmentOnUse(
-                leftClickCooldownTicks = parseIntOrNull(onUseObj, "leftClickCooldownTicks"),
-                leftClickSkillId = parseStringOrNull(onUseObj, "leftClickSkillId"),
-            )
-        } else {
-            null
-        }
-
         return ItemEquipment(
             slot = ItemEquipmentSlot.fromApiValue(parseStringOrNull(equipmentObj, "slot")),
             handType = ItemEquipmentHandType.fromApiValue(parseStringOrNull(equipmentObj, "handType")),
@@ -625,8 +638,6 @@ class ItemRepository {
             setId = parseStringOrNull(equipmentObj, "setId"),
             stats = stats,
             durability = durability,
-            onUse = onUse,
-            skills = parseStringList(equipmentObj.getAsJsonArray("skills")),
             enhance = parseEquipmentEnhance(equipmentObj),
             enchant = parseEquipmentEnchantDef(equipmentObj),
             rune = parseEquipmentRuneDef(equipmentObj),
@@ -640,7 +651,6 @@ class ItemRepository {
             targetSlots = parseStringList(runeObj.getAsJsonArray("targetSlots")),
             requiredEnhanceLevel = runeObj.get("requiredEnhanceLevel")?.takeIf { !it.isJsonNull }?.asInt ?: 0,
             stats = parseRuneDefinitionStats(runeObj.getAsJsonArray("stats")),
-            skills = parseStringList(runeObj.getAsJsonArray("skills")),
         )
     }
 
@@ -1037,4 +1047,3 @@ class ItemRepository {
         }
     }
 }
-

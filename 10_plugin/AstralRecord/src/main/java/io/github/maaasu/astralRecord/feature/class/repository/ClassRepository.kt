@@ -3,7 +3,6 @@ package io.github.maaasu.astralRecord.feature.`class`.repository
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
-import io.github.maaasu.astralRecord.feature.`class`.model.ClassLevelSkill
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassModel
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassStat
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassSummary
@@ -117,8 +116,7 @@ class ClassRepository {
             baseStats = parseStatList(obj.getAsJsonArray("baseStats")),
             growthPerLevel = parseStatList(obj.getAsJsonArray("growthPerLevel")),
             expRate = obj.get("expRate")?.asInt ?: 100,
-            starterSkills = parseStringList(obj.getAsJsonArray("starterSkills")),
-            levelSkills = parseLevelSkillList(obj.getAsJsonArray("levelSkills")),
+            usableSkills = parseStringList(obj.getAsJsonArray("usableSkills")),
             tags = parseStringList(obj.getAsJsonArray("tags")),
         )
     }
@@ -146,17 +144,6 @@ class ClassRepository {
             ClassStat(
                 status = obj.get("status").asString,
                 value = obj.get("value").asDouble,
-            )
-        }
-    }
-
-    private fun parseLevelSkillList(array: JsonArray?): List<ClassLevelSkill> {
-        if (array == null || array.isJsonNull) return emptyList()
-        return array.map { element ->
-            val obj = element.asJsonObject
-            ClassLevelSkill(
-                level = obj.get("level").asInt,
-                skill = obj.get("skill").asString,
             )
         }
     }

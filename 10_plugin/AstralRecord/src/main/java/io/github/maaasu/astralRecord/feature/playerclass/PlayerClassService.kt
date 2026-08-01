@@ -271,15 +271,9 @@ class PlayerClassService @JvmOverloads constructor(
                 changeBlockedReasons = changeAvailability.blockedReasons,
                 baseStats = model.baseStats.map { formatStatLine(it, false) },
                 growthPerLevel = model.growthPerLevel.map { formatStatLine(it, true) },
-                starterSkills = model.starterSkills.map { skillId ->
+                usableSkills = model.usableSkills.map { reference ->
+                    val skillId = reference.trim().removePrefix("skill:")
                     SkillPresentationUtil.legacyName(skillRegistry?.getDefinition(skillId), skillId)
-                },
-                levelSkills = model.levelSkills.map { levelSkill ->
-                    "&7Lv.${levelSkill.level}: &f" +
-                        SkillPresentationUtil.legacyName(
-                            skillRegistry?.getDefinition(levelSkill.skill),
-                            levelSkill.skill
-                        )
                 },
             )
         }

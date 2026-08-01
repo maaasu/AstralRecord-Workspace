@@ -157,8 +157,7 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
         baseStats = emptyList(),
         growthPerLevel = emptyList(),
         expRate = 100,
-        starterSkills = emptyList(),
-        levelSkills = emptyList(),
+        usableSkills = emptyList(),
         tags = emptyList(),
     )
 }

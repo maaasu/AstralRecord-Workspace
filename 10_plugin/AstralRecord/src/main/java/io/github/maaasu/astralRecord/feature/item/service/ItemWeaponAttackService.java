@@ -1,7 +1,6 @@
 package io.github.maaasu.astralRecord.feature.item.service;
 
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
-import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentOnUse;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
@@ -15,6 +14,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * weapon equipment の左クリック攻撃を処理します。
@@ -73,7 +73,7 @@ public final class ItemWeaponAttackService {
     }
 
     /**
-     * 現在主手に装備している武器へ設定された通常攻撃スキル ID を返します。
+     * 現在主手に装備している武器のタグから通常攻撃スキル ID を自動解決します。
      *
      * @param player 対象プレイヤー
      * @return 武器通常攻撃のスキル ID。武器アクションがない場合は {@code null}
@@ -84,11 +84,11 @@ public final class ItemWeaponAttackService {
             return null;
         }
         ItemEquipment equipment = itemModel.getEquipment();
-        if (equipment.getSlot() != ItemEquipmentSlot.WEAPON || equipment.getOnUse() == null) {
+        if (equipment.getSlot() != ItemEquipmentSlot.WEAPON) {
             return null;
         }
-        String skillId = equipment.getOnUse().getLeftClickSkillId();
-        return skillId == null || skillId.isBlank() ? null : skillId.trim();
+        WeaponAttackDefinition attack = resolveAttack(equipment.getTag());
+        return attack == null ? null : attack.skillId();
     }
 
     private void handleAttack(
@@ -111,20 +111,12 @@ public final class ItemWeaponAttackService {
             return;
         }
 
-        ItemEquipmentOnUse onUse = equipment.getOnUse();
-        if (onUse == null) {
-            return;
-        }
-
-        var rawSkillId = onUse.getLeftClickSkillId();
-        if (rawSkillId == null || rawSkillId.isBlank()) {
-            return;
-        }
-
-        var skillId = rawSkillId.trim();
-        var cooldownTicks = onUse.getLeftClickCooldownTicks();
+        WeaponAttackDefinition attack = resolveAttack(equipment.getTag());
+        if (attack == null) return;
+        String skillId = attack.skillId();
+        long cooldownTicks = attack.cooldownTicks();
         var caster = new PlayerSkillCaster(player);
-        if (cooldownTicks != null && cooldownTicks > 0 && skillService.isOnCooldown(caster, skillId)) {
+        if (cooldownTicks > 0 && skillService.isOnCooldown(caster, skillId)) {
             return;
         }
 
@@ -136,8 +128,21 @@ public final class ItemWeaponAttackService {
                 null,
                 List.of()
         );
-        if (result.success() && cooldownTicks != null && cooldownTicks > 0) {
-            skillService.startAttackCooldown(caster, skillId, cooldownTicks.longValue());
+        if (result.success() && cooldownTicks > 0) {
+            skillService.startAttackCooldown(caster, skillId, cooldownTicks);
         }
+    }
+
+    private @Nullable WeaponAttackDefinition resolveAttack(@Nullable String rawTag) {
+        if (rawTag == null || rawTag.isBlank()) return null;
+        return switch (rawTag.trim().toUpperCase(Locale.ROOT)) {
+            case "SWORD" -> new WeaponAttackDefinition(BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_MELEE, 10L);
+            case "BOW" -> new WeaponAttackDefinition(BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_BOW, 12L);
+            case "STAFF" -> new WeaponAttackDefinition(BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_MAGIC, 10L);
+            default -> null;
+        };
+    }
+
+    private record WeaponAttackDefinition(@NotNull String skillId, long cooldownTicks) {
     }
 }

@@ -11,7 +11,7 @@
 | キー | 型 | 必須 | 既定値 | 説明 |
 | --- | --- | --- | --- | --- |
 | `schemaVersion` | Integer | 必須 | - | 現在は `1` |
-| `id` | String | 必須 | - | スキル ID |
+| `id` | String | 必須 | - | スキル ID。自動生成ID `00_skill_gem_<id>` が100文字以内となる長さにする |
 | `type` | String | 必須 | - | `SKILL` |
 | `implementationId` | String | 必須 | - | plugin 側実装 ID |
 | `name` | String | 必須 | - | 表示名 |
@@ -19,6 +19,7 @@
 | `icon` | String | 任意 | `null` | Material 名 |
 | `lore` | List<String> | 任意 | `[]` | 詳細表示 lore |
 | `cooldownTicks` | Long | 任意 | `0` | クールダウン |
+| `cooldownId` | String | 任意 | `id` | 同一プレイヤー内で共有するクールダウン ID。発動スキル自身のクールダウン時間を共有グループへ設定する |
 | `resourceType` | String | 任意 | `MANA` | 消費リソース種別。`MANA` / `ENERGY` |
 | `resourceCost` | Double | 任意 | `0` | `resourceType` で指定したリソースの消費量。0以上を指定する |
 | `manaCost` | Double | 任意 | `0` | 旧定義との互換用 MP 消費量。新規定義では使用せず `resourceCost` を使う |
@@ -28,6 +29,20 @@
 | `onCast.sound` | String | 任意 | `null` | 再生する sound key |
 | `passive` | Map | 任意 | `null` | パッシブ設定 |
 | `passive.bindRequired` | Boolean | 任意 | `true` | `false` は所持のみで常時有効 |
+| `maxLevel` | Integer | 任意 | `1` | 習得済み個体の最大レベル |
+| `levels[]` | List | 任意 | `[]` | 対象レベルへ上がる際に前レベルから加算する差分 |
+| `levels[].level` | Integer | 必須 | - | 差分を適用する到達レベル（2以上、`maxLevel` 以下） |
+| `levels[].cooldownTicksDelta` | Long | 任意 | `0` | 基礎クールダウンへの加算 tick |
+| `levels[].resourceCostDelta` | Double | 任意 | `0` | 基礎消費量への加算 |
+| `levels[].castTimeTicksDelta` | Long | 任意 | `0` | 基礎詠唱時間への加算 tick |
+| `levels[].paramDeltas` | Map<String, Double> | 任意 | `{}` | 数値 params への加算。非数値 params には使用不可 |
+| `levels[].statusModifiers[]` | List | 任意 | `[]` | このスキルの計算中だけ加算するステータス補正。共有カタログの既知status IDだけを指定 |
+| `sigilSlotsByLevel[]` | List | 任意 | `[]` | 指定レベル以降のシジル装着可能数。現在レベル以下で最大の定義を採用 |
+| `allowedSigilIds` | List<String> | 任意 | `[]` | このスキルへ合成可能なシジル ID |
+| `gem.icon` | String | 任意 | `icon` | 自動生成ジェムのアイコン |
+| `gem.rarity` | String | 必須 | - | 自動生成ジェムのレアリティ。DTO既定値へ暗黙fallbackせず各マスタで明示 |
+| `gem.tradeable` | Boolean | 任意 | `false` | 自動生成ジェムを取引可能にするか |
+| `gem.sellable` | Boolean | 任意 | `false` | 自動生成ジェムを売却可能にするか |
 | `params` | Map<String, Any> | 任意 | `{}` | 実装固有の拡張パラメータ。共通項目は定義しない |
 | `tags` | List<String> | 任意 | `[]` | `76.shared.tag/v1.tags.yml`の`SKILL`対象タグID |
 
@@ -35,6 +50,7 @@
 
 - プレイヤー向け職業発動スキルは、`id` と `implementationId` を同じ値にします。
 - ID は `swordsman_` / `hunter_` / `mage_` の職業 prefix と lowercase snake_case を組み合わせます。
+- `gem` オブジェクトと空でない `gem.rarity` は必須です。`gem.icon` 未指定時はスキルの `icon`、さらに未指定なら通常アイコンを使用します。
 - 当たり判定、攻撃種別、倍率、状態異常、演出の詳細は `implementationId` に対応する Plugin 実装を正本とし、YAML の `params` へ大量の調整値を複製しません。
 - プレイヤーが効果を判断できる倍率、範囲、時間は `description` / `lore` に記載し、実装変更時は同時に同期します。
 - リソース種別、消費量、クールダウン、詠唱時間、必要レベル、共通発動音は、それぞれの top-level 項目へ定義します。
@@ -100,6 +116,21 @@ resourceType: ENERGY
 resourceCost: 12
 castTimeTicks: 0
 requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    statusModifiers:
+      - status: SKILL_DAMAGE_INCREASE
+        value: 5
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+allowedSigilIds:
+  - cooldown_sigil
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
 onCast:
   sound: entity.player.attack.sweep
 tags:

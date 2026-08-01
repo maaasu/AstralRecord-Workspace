@@ -6,11 +6,14 @@ import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.combat.service.CombatTimingCalculator;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.MobSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
+import io.github.maaasu.astralRecord.feature.skill.model.ResolvedLearnedSkill;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
@@ -35,10 +38,12 @@ import org.jetbrains.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.HashSet;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -63,14 +68,16 @@ public class SkillService {
     private final SkillRegistry registry;
     private final AstralRecord plugin;
     private SkillOwnershipService ownershipService;
+    private SkillPermissionService permissionService;
+    private LearnedSkillResolver learnedSkillResolver;
     private ConditionService conditionService;
     private PlayerHudService playerHudService;
     private BiConsumer<AstPlayer, String> playerCastSuccessListener = (player, skillId) -> { };
     private final SkillCastFeedback castFeedback = new SkillCastFeedback();
     private final Map<String, SkillDefinition> builtInDefinitions = new ConcurrentHashMap<>();
 
-    /** 発動者ごと・スキルごとの cooldown 終了予定時刻（{@link System#currentTimeMillis()} 基準）。 */
-    private final Map<UUID, Map<String, Long>> cooldownExpiryByCaster = new ConcurrentHashMap<>();
+    /** 発動者ごと・共有キーごとの cooldown 終了時刻と、発動時に採用した総tick。 */
+    private final Map<UUID, Map<String, CooldownState>> cooldownExpiryByCaster = new ConcurrentHashMap<>();
     private final Map<UUID, CastingSession> castingSessions = new ConcurrentHashMap<>();
 
     /**
@@ -119,6 +126,14 @@ public class SkillService {
      */
     public void setOwnershipService(@NotNull SkillOwnershipService ownershipService) {
         this.ownershipService = ownershipService;
+    }
+
+    public void setPermissionService(@NotNull SkillPermissionService permissionService) {
+        this.permissionService = permissionService;
+    }
+
+    public void setLearnedSkillResolver(@NotNull LearnedSkillResolver learnedSkillResolver) {
+        this.learnedSkillResolver = learnedSkillResolver;
     }
 
     /**
@@ -266,6 +281,72 @@ public class SkillService {
         if (!Double.isFinite(resourceCost) || resourceCost < 0.0D) {
             throw new IllegalArgumentException("resourceCost は有限の 0 以上で指定してください");
         }
+        if (definition.getCooldownId() != null && definition.getCooldownId().isBlank()) {
+            throw new IllegalArgumentException("cooldownId は未指定または空でない文字列にしてください");
+        }
+        if (definition.getMaxLevel() < 1) {
+            throw new IllegalArgumentException("maxLevel は 1 以上で指定してください");
+        }
+
+        Set<Integer> levelNumbers = new HashSet<>();
+        long resolvedCooldown = definition.getCooldownTicks();
+        long resolvedCastTime = definition.getCastTimeTicks();
+        double resolvedCost = resourceCost;
+        for (var level : definition.getLevels()) {
+            if (level.getLevel() < 2 || level.getLevel() > definition.getMaxLevel()) {
+                throw new IllegalArgumentException("levels.level は 2 から maxLevel の範囲で指定してください");
+            }
+            if (!levelNumbers.add(level.getLevel())) {
+                throw new IllegalArgumentException("levels.level が重複しています: " + level.getLevel());
+            }
+            if (!Double.isFinite(level.getResourceCostDelta())) {
+                throw new IllegalArgumentException("levels.resourceCostDelta は有限値で指定してください");
+            }
+            for (Map.Entry<String, Double> delta : level.getParamDeltas().entrySet()) {
+                if (delta.getKey().isBlank() || !Double.isFinite(delta.getValue())) {
+                    throw new IllegalArgumentException("levels.paramDeltas は空でないkeyと有限値で指定してください");
+                }
+            }
+            for (var modifier : level.getStatusModifiers()) {
+                if (StatusType.fromId(modifier.getStatus().trim().toUpperCase(Locale.ROOT)) == null
+                    || !Double.isFinite(modifier.getValue())) {
+                    throw new IllegalArgumentException("levels.statusModifiers に不正なstatusまたはvalueがあります");
+                }
+            }
+            try {
+                resolvedCooldown = Math.addExact(resolvedCooldown, level.getCooldownTicksDelta());
+                resolvedCastTime = Math.addExact(resolvedCastTime, level.getCastTimeTicksDelta());
+            } catch (ArithmeticException e) {
+                throw new IllegalArgumentException("levels のtick差分が範囲外です", e);
+            }
+            resolvedCost += level.getResourceCostDelta();
+            if (resolvedCooldown < 0L || resolvedCastTime < 0L
+                || !Double.isFinite(resolvedCost) || resolvedCost < 0.0D) {
+                throw new IllegalArgumentException("各レベル適用後のcooldown/castTime/resourceCostは0以上にしてください");
+            }
+        }
+        if (levelNumbers.size() != definition.getMaxLevel() - 1) {
+            throw new IllegalArgumentException("levels は Lv.2 から maxLevel まで各レベルを定義してください");
+        }
+
+        Set<Integer> sigilSlotLevels = new HashSet<>();
+        int previousSlots = -1;
+        for (var slot : definition.getSigilSlotsByLevel()) {
+            if (slot.getLevel() < 1 || slot.getLevel() > definition.getMaxLevel()
+                || slot.getSlots() < 0 || !sigilSlotLevels.add(slot.getLevel())) {
+                throw new IllegalArgumentException("sigilSlotsByLevel に不正なlevel/slotsまたは重複があります");
+            }
+            if (slot.getSlots() < previousSlots) {
+                throw new IllegalArgumentException("sigilSlotsByLevel.slots はレベルとともに減少できません");
+            }
+            previousSlots = slot.getSlots();
+        }
+        Set<String> allowedSigils = new HashSet<>();
+        for (String sigilId : definition.getAllowedSigilIds()) {
+            if (sigilId.isBlank() || !allowedSigils.add(sigilId.trim().toLowerCase(Locale.ROOT))) {
+                throw new IllegalArgumentException("allowedSigilIds に空値または重複があります");
+            }
+        }
     }
 
     private @NotNull String validationFailureReason(@NotNull RuntimeException exception) {
@@ -314,6 +395,45 @@ public class SkillService {
      */
     @NotNull
     public SkillCastResult canCast(@NotNull SkillCaster caster, @NotNull SkillDefinition skill) {
+        return canCast(caster, skill, caster.statusSnapshot());
+    }
+
+    /** 習得個体のレベル・シジル補正を含めた発動可否を返します。 */
+    public @NotNull SkillCastResult canCast(
+        @NotNull SkillCaster caster,
+        @NotNull ResolvedLearnedSkill resolved
+    ) {
+        return canCast(
+            caster,
+            resolved.definition(),
+            caster.statusSnapshot().withFlatBonuses(resolved.statusBonuses())
+        );
+    }
+
+    /** 現在のマスタと習得個体から表示・発動共通の解決結果を作成します。 */
+    public @Nullable ResolvedLearnedSkill resolveLearnedSkill(@NotNull LearnedSkillInstance learned) {
+        SkillDefinition base = registry.getDefinition(learned.getSkillId());
+        if (base == null) return null;
+        if (learnedSkillResolver != null) return learnedSkillResolver.resolve(base, learned);
+        return new ResolvedLearnedSkill(learned, base, Map.of(), learned.getSigils().stream()
+            .map(io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillSigil::getSigilId)
+            .collect(java.util.stream.Collectors.toSet()));
+    }
+
+    /** 習得個体に適用される短縮を含むクールダウンtick数を返します。 */
+    public long resolvedCooldownTicks(
+        @NotNull SkillCaster caster,
+        @NotNull ResolvedLearnedSkill resolved
+    ) {
+        StatusSnapshot effective = caster.statusSnapshot().withFlatBonuses(resolved.statusBonuses());
+        return resolveCooldownTicks(effective, resolved.definition().getCooldownTicks());
+    }
+
+    private @NotNull SkillCastResult canCast(
+        @NotNull SkillCaster caster,
+        @NotNull SkillDefinition skill,
+        @NotNull StatusSnapshot statusSnapshot
+    ) {
         if (skill.getKind() == SkillKind.PASSIVE) {
             return SkillCastResult.failure(PlayerMsgId.P_5805);
         }
@@ -325,11 +445,11 @@ public class SkillService {
             return SkillCastResult.failure(PlayerMsgId.P_5800);
         }
         SkillResourceType resourceType = resolveResourceType(skill);
-        double requiredCost = resolveResourceCost(caster, skill);
+        double requiredCost = resolveResourceCost(statusSnapshot, skill);
         if (currentResource(caster, resourceType) < requiredCost) {
             return SkillCastResult.failure(resourceType.insufficientMessageId());
         }
-        if (isOnCooldown(caster, skill.getId())) {
+        if (isOnCooldown(caster, cooldownKey(skill))) {
             return SkillCastResult.failure(PlayerMsgId.P_5802);
         }
         if (isCasting(caster)) {
@@ -393,7 +513,7 @@ public class SkillService {
             notifyIfFailed(caster, failure, skillId);
             return failure;
         }
-        if (requiresOwnershipCheck(caster, trigger) && !ownsSkill((PlayerSkillCaster) caster, skillId)) {
+        if (requiresOwnershipCheck(caster, trigger) && !ownsAndCanUse((PlayerSkillCaster) caster, skillId)) {
             SkillCastResult failure = SkillCastResult.failure(PlayerMsgId.P_5809);
             notifyIfFailed(caster, failure, skillId);
             return failure;
@@ -412,6 +532,55 @@ public class SkillService {
         return executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets);
     }
 
+    /**
+     * 習得個体 UUID からスキルを発動します。所持・使用許可を分離して検証し、
+     * 個体のレベル差分と装着済みシジルをこの発動だけへ適用します。
+     */
+    public @NotNull SkillCastResult castLearnedSkill(
+        @NotNull PlayerSkillCaster caster,
+        @NotNull String learnedSkillId,
+        @NotNull SkillCastTrigger trigger,
+        @NotNull Location castLocation,
+        @Nullable LivingEntity primaryTarget,
+        @NotNull List<LivingEntity> targets
+    ) {
+        LearnedSkillInstance learned = ownershipService == null
+            ? null
+            : ownershipService.findInstance(caster.player(), learnedSkillId);
+        if (learned == null) {
+            SkillCastResult failure = SkillCastResult.failure(PlayerMsgId.P_5809);
+            notifyIfFailed(caster, failure, learnedSkillId);
+            return failure;
+        }
+        if (permissionService != null && !permissionService.isPermitted(caster.player(), learned.getSkillId())) {
+            SkillCastResult failure = SkillCastResult.failure(PlayerMsgId.P_5809);
+            notifyIfFailed(caster, failure, learned.getSkillId());
+            return failure;
+        }
+
+        ResolvedLearnedSkill resolved = resolveLearnedSkill(learned);
+        if (resolved == null) {
+            SkillCastResult failure = SkillCastResult.failure(PlayerMsgId.P_5803);
+            notifyIfFailed(caster, failure, learned.getSkillId());
+            return failure;
+        }
+        LearnedCast runtime = new LearnedCast(
+            learned,
+            caster.statusSnapshot().withFlatBonuses(resolved.statusBonuses()),
+            resolved.sigilIds()
+        );
+        SkillDefinition definition = resolved.definition();
+        SkillCastResult guard = canCast(caster, definition, runtime.statusSnapshot());
+        if (!guard.success()) {
+            notifyIfFailed(caster, guard, definition.getId());
+            return guard;
+        }
+        if (resolveCastTimeTicks(caster, definition, runtime.statusSnapshot()) > 0L) {
+            return beginCast(caster, definition, trigger, castLocation, primaryTarget, targets, runtime);
+        }
+        return executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets, runtime);
+    }
+
     private @NotNull SkillCastResult executeSkillNow(
             @NotNull SkillCaster caster,
             @NotNull SkillDefinition definition,
@@ -420,7 +589,20 @@ public class SkillService {
             @Nullable LivingEntity primaryTarget,
             @NotNull List<LivingEntity> targets
     ) {
-        SkillCastResult guard = canCast(caster, definition);
+        return executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets, null);
+    }
+
+    private @NotNull SkillCastResult executeSkillNow(
+            @NotNull SkillCaster caster,
+            @NotNull SkillDefinition definition,
+            @NotNull SkillCastTrigger trigger,
+            @NotNull Location castLocation,
+            @Nullable LivingEntity primaryTarget,
+            @NotNull List<LivingEntity> targets,
+            @Nullable LearnedCast runtime
+    ) {
+        StatusSnapshot effectiveStatus = runtime == null ? caster.statusSnapshot() : runtime.statusSnapshot();
+        SkillCastResult guard = canCast(caster, definition, effectiveStatus);
         if (!guard.success()) {
             notifyIfFailed(caster, guard, definition.getId());
             return guard;
@@ -441,9 +623,11 @@ public class SkillService {
                 primaryTarget,
                 targets,
                 castLocation,
-                caster.statusSnapshot(),
+                effectiveStatus,
                 trigger,
-                Instant.now()
+                Instant.now(),
+                runtime == null ? null : runtime.learnedSkill(),
+                runtime == null ? Set.of() : runtime.sigilIds()
         );
 
         SkillCastResult result;
@@ -457,9 +641,13 @@ public class SkillService {
         }
 
         if (result.success()) {
-            consumeResource(caster, resolveResourceType(definition), resolveResourceCost(caster, definition));
+            consumeResource(caster, resolveResourceType(definition), resolveResourceCost(effectiveStatus, definition));
             if (definition.getCooldownTicks() > 0L) {
-                startCooldown(caster, definition.getId(), resolveCooldownTicks(caster, definition.getCooldownTicks()));
+                startCooldown(
+                    caster,
+                    cooldownKey(definition),
+                    resolveCooldownTicks(effectiveStatus, definition.getCooldownTicks())
+                );
             }
             if (caster instanceof PlayerSkillCaster playerCaster) {
                 playerCastSuccessListener.accept(playerCaster.player(), definition.getId());
@@ -478,8 +666,20 @@ public class SkillService {
             @Nullable LivingEntity primaryTarget,
             @NotNull List<LivingEntity> targets
     ) {
+        return beginCast(caster, definition, trigger, castLocation, primaryTarget, targets, null);
+    }
+
+    private @NotNull SkillCastResult beginCast(
+            @NotNull SkillCaster caster,
+            @NotNull SkillDefinition definition,
+            @NotNull SkillCastTrigger trigger,
+            @NotNull Location castLocation,
+            @Nullable LivingEntity primaryTarget,
+            @NotNull List<LivingEntity> targets,
+            @Nullable LearnedCast runtime
+    ) {
         if (plugin == null) {
-            return executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets);
+            return executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets, runtime);
         }
 
         if (caster instanceof MobSkillCaster mobCaster) {
@@ -487,13 +687,14 @@ public class SkillService {
         }
 
         if (!(caster instanceof PlayerSkillCaster playerCaster)) {
-            return executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets);
+            return executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets, runtime);
         }
 
         var astPlayer = playerCaster.player();
         Player player = astPlayer.getBukkit();
 
-        long castTimeTicks = resolveCastTimeTicks(playerCaster, definition);
+        StatusSnapshot effectiveStatus = runtime == null ? caster.statusSnapshot() : runtime.statusSnapshot();
+        long castTimeTicks = resolveCastTimeTicks(playerCaster, definition, effectiveStatus);
         astPlayer.setSkillCastingUntilMs(System.currentTimeMillis() + castTimeTicks * MS_PER_TICK);
         float originalWalkSpeed = player.getWalkSpeed();
         player.setWalkSpeed(clampWalkSpeed(originalWalkSpeed * 0.5F));
@@ -506,13 +707,13 @@ public class SkillService {
             @Override
             public void run() {
                 if (!player.isOnline() || player.isDead()) {
-                    finishCast(player, astPlayer, false, playerCaster, definition, trigger, castLocation, primaryTarget, targets);
+                    finishCast(player, astPlayer, false, playerCaster, definition, trigger, castLocation, primaryTarget, targets, runtime);
                     cancel();
                     return;
                 }
                 if (conditionService != null
                         && !conditionService.canCastSkill(AstEntity.player(astPlayer))) {
-                    finishCast(player, astPlayer, false, playerCaster, definition, trigger, castLocation, primaryTarget, targets);
+                    finishCast(player, astPlayer, false, playerCaster, definition, trigger, castLocation, primaryTarget, targets, runtime);
                     cancel();
                     return;
                 }
@@ -524,7 +725,7 @@ public class SkillService {
                 }
                 elapsedTicks++;
                 if (elapsedTicks >= castTimeTicks) {
-                    finishCast(player, astPlayer, true, playerCaster, definition, trigger, castLocation, primaryTarget, targets);
+                    finishCast(player, astPlayer, true, playerCaster, definition, trigger, castLocation, primaryTarget, targets, runtime);
                     cancel();
                 }
             }
@@ -585,12 +786,17 @@ public class SkillService {
             @NotNull SkillCaster caster,
             @NotNull SkillDefinition definition
     ) {
+        return resolveCastTimeTicks(caster, definition, caster.statusSnapshot());
+    }
+
+    private long resolveCastTimeTicks(
+            @NotNull SkillCaster caster,
+            @NotNull SkillDefinition definition,
+            @NotNull StatusSnapshot statusSnapshot
+    ) {
         double multiplier = 1.0D;
-        AstEntity entity = toAstEntity(caster);
-        if (entity != null) {
-            double reduction = Math.max(0.0D, entity.statValue(StatusType.CAST_TIME_REDUCTION));
-            multiplier *= Math.max(0.0D, 1.0D - reduction / 100.0D);
-        }
+        double reduction = Math.max(0.0D, statusSnapshot.rollValue(StatusType.CAST_TIME_REDUCTION));
+        multiplier *= Math.max(0.0D, 1.0D - reduction / 100.0D);
         if (conditionService != null) {
             if (caster instanceof PlayerSkillCaster playerCaster) {
                 multiplier *= conditionService.castTimeMultiplier(AstEntity.player(playerCaster.player()));
@@ -630,7 +836,8 @@ public class SkillService {
             @NotNull SkillCastTrigger trigger,
             @NotNull Location castLocation,
             @Nullable LivingEntity primaryTarget,
-            @NotNull List<LivingEntity> targets
+            @NotNull List<LivingEntity> targets,
+            @Nullable LearnedCast runtime
     ) {
         CastingSession session = castingSessions.remove(player.getUniqueId());
         if (session != null) {
@@ -638,9 +845,34 @@ public class SkillService {
         } else {
             astPlayer.setSkillCastingUntilMs(0L);
         }
-        if (execute) {
-            executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets);
+        if (execute && canStillUseAtCastCompletion(caster, definition, trigger, runtime)) {
+            executeSkillNow(caster, definition, trigger, castLocation, primaryTarget, targets, runtime);
         }
+    }
+
+    private boolean canStillUseAtCastCompletion(
+        @NotNull PlayerSkillCaster caster,
+        @NotNull SkillDefinition definition,
+        @NotNull SkillCastTrigger trigger,
+        @Nullable LearnedCast runtime
+    ) {
+        if (!requiresOwnershipCheck(caster, trigger)) {
+            return true;
+        }
+        boolean allowed;
+        if (runtime != null) {
+            LearnedSkillInstance learned = runtime.learnedSkill();
+            allowed = ownershipService != null
+                && ownershipService.ownsInstance(caster.player(), learned.getLearnedSkillId())
+                && (permissionService == null
+                    || permissionService.isPermitted(caster.player(), learned.getSkillId()));
+        } else {
+            allowed = ownsAndCanUse(caster, definition.getId());
+        }
+        if (!allowed) {
+            notifyIfFailed(caster, SkillCastResult.failure(PlayerMsgId.P_5809), definition.getId());
+        }
+        return allowed;
     }
 
     /**
@@ -714,8 +946,10 @@ public class SkillService {
             && ownershipService != null;
     }
 
-    private boolean ownsSkill(@NotNull PlayerSkillCaster caster, @NotNull String skillId) {
-        return ownershipService == null || ownershipService.owns(caster.player(), skillId);
+    private boolean ownsAndCanUse(@NotNull PlayerSkillCaster caster, @NotNull String skillId) {
+        boolean owned = ownershipService == null || ownershipService.owns(caster.player(), skillId);
+        boolean permitted = permissionService == null || permissionService.isPermitted(caster.player(), skillId);
+        return owned && permitted;
     }
 
     private float clampWalkSpeed(float value) {
@@ -734,7 +968,7 @@ public class SkillService {
         long expiry = System.currentTimeMillis() + cooldownTicks * MS_PER_TICK;
         cooldownExpiryByCaster
                 .computeIfAbsent(caster.casterId(), id -> new ConcurrentHashMap<>())
-                .put(normalize(skillId), expiry);
+                .put(normalize(skillId), new CooldownState(expiry, cooldownTicks));
     }
 
     /**
@@ -749,7 +983,7 @@ public class SkillService {
             @NotNull String skillId,
             long baseCooldownTicks
     ) {
-        long cooldownTicks = resolveCooldownTicks(caster, baseCooldownTicks);
+        long cooldownTicks = resolveCooldownTicks(caster.statusSnapshot(), baseCooldownTicks);
         cooldownTicks = CombatTimingCalculator.resolveAttackIntervalTicks(
                 cooldownTicks,
                 caster.statusSnapshot().rollValue(StatusType.ATTACK_SPEED)
@@ -758,9 +992,13 @@ public class SkillService {
     }
 
     private long resolveCooldownTicks(@NotNull SkillCaster caster, long baseCooldownTicks) {
+        return resolveCooldownTicks(caster.statusSnapshot(), baseCooldownTicks);
+    }
+
+    private long resolveCooldownTicks(@NotNull StatusSnapshot statusSnapshot, long baseCooldownTicks) {
         return CombatTimingCalculator.resolveCooldownTicks(
                 baseCooldownTicks,
-                caster.statusSnapshot().rollValue(StatusType.COOLDOWN_REDUCTION)
+                statusSnapshot.rollValue(StatusType.COOLDOWN_REDUCTION)
         );
     }
 
@@ -772,11 +1010,11 @@ public class SkillService {
      * @return cooldown 中なら {@code true}
      */
     public boolean isOnCooldown(@NotNull SkillCaster caster, @NotNull String skillId) {
-        Map<String, Long> byCaster = cooldownExpiryByCaster.get(caster.casterId());
+        Map<String, CooldownState> byCaster = cooldownExpiryByCaster.get(caster.casterId());
         if (byCaster == null) return false;
-        Long expiry = byCaster.get(normalize(skillId));
-        if (expiry == null) return false;
-        if (System.currentTimeMillis() >= expiry) {
+        CooldownState state = byCaster.get(normalize(skillId));
+        if (state == null) return false;
+        if (System.currentTimeMillis() >= state.expiryMillis()) {
             byCaster.remove(normalize(skillId));
             return false;
         }
@@ -791,21 +1029,35 @@ public class SkillService {
      * @return 残り cooldown tick。cooldown 外は {@code 0}
      */
     public long getRemainingCooldownTicks(@NotNull SkillCaster caster, @NotNull String skillId) {
-        Map<String, Long> byCaster = cooldownExpiryByCaster.get(caster.casterId());
+        Map<String, CooldownState> byCaster = cooldownExpiryByCaster.get(caster.casterId());
         if (byCaster == null) {
             return 0L;
         }
         String normalizedSkillId = normalize(skillId);
-        Long expiry = byCaster.get(normalizedSkillId);
-        if (expiry == null) {
+        CooldownState state = byCaster.get(normalizedSkillId);
+        if (state == null) {
             return 0L;
         }
-        long remainingMillis = expiry - System.currentTimeMillis();
+        long remainingMillis = state.expiryMillis() - System.currentTimeMillis();
         if (remainingMillis <= 0L) {
             byCaster.remove(normalizedSkillId);
             return 0L;
         }
         return Math.max(1L, (remainingMillis + MS_PER_TICK - 1L) / MS_PER_TICK);
+    }
+
+    /** 共有cooldownを開始したスキルが採用した総tickを返します。 */
+    public long getCooldownDurationTicks(@NotNull SkillCaster caster, @NotNull String skillId) {
+        Map<String, CooldownState> byCaster = cooldownExpiryByCaster.get(caster.casterId());
+        if (byCaster == null) return 0L;
+        String key = normalize(skillId);
+        CooldownState state = byCaster.get(key);
+        if (state == null) return 0L;
+        if (System.currentTimeMillis() >= state.expiryMillis()) {
+            byCaster.remove(key);
+            return 0L;
+        }
+        return state.durationTicks();
     }
 
     /**
@@ -890,6 +1142,17 @@ public class SkillService {
         return value.trim().toLowerCase(Locale.ROOT);
     }
 
+    /** cooldownId 未指定時は skillId を共有キーとして使用します。 */
+    public @NotNull String resolveCooldownId(@NotNull String skillId) {
+        SkillDefinition definition = registry.getDefinition(skillId);
+        return definition == null ? skillId : cooldownKey(definition);
+    }
+
+    private @NotNull String cooldownKey(@NotNull SkillDefinition definition) {
+        String cooldownId = definition.getCooldownId();
+        return cooldownId == null || cooldownId.isBlank() ? definition.getId() : cooldownId.trim();
+    }
+
     private @NotNull SkillResourceType resolveResourceType(@NotNull SkillDefinition skill) {
         SkillResourceType declaredType = skill.getResourceType();
         if (declaredType != null) {
@@ -933,16 +1196,12 @@ public class SkillService {
      * @param skill  スキル定義
      * @return 0 以上の実消費量
      */
-    private double resolveResourceCost(@NotNull SkillCaster caster, @NotNull SkillDefinition skill) {
+    private double resolveResourceCost(@NotNull StatusSnapshot statusSnapshot, @NotNull SkillDefinition skill) {
         double baseCost = resolveResourceCost(skill);
-        AstEntity entity = toAstEntity(caster);
-        if (entity == null) {
-            return baseCost;
-        }
         StatusType reductionType = resolveResourceType(skill) == SkillResourceType.MANA
                 ? StatusType.MANA_COST_REDUCTION
                 : StatusType.ENERGY_COST_REDUCTION;
-        double reduction = Math.max(0.0D, entity.statValue(reductionType));
+        double reduction = Math.max(0.0D, statusSnapshot.rollValue(reductionType));
         return Math.max(0.0D, baseCost * (1.0D - reduction / 100.0D));
     }
 
@@ -988,8 +1247,26 @@ public class SkillService {
                 executor.kind(),
                 definition.getPassiveBindRequired(),
                 resolveResourceType(definition),
-                resolveResourceCost(definition)
+                resolveResourceCost(definition),
+                definition.getCooldownId(),
+                definition.getMaxLevel(),
+                definition.getLevels(),
+                definition.getSigilSlotsByLevel(),
+                definition.getAllowedSigilIds()
         );
+    }
+
+    private record LearnedCast(
+        @NotNull LearnedSkillInstance learnedSkill,
+        @NotNull StatusSnapshot statusSnapshot,
+        @NotNull Set<String> sigilIds
+    ) {
+        private LearnedCast {
+            sigilIds = Set.copyOf(sigilIds);
+        }
+    }
+
+    private record CooldownState(long expiryMillis, long durationTicks) {
     }
 
     private record CastingSession(@NotNull BukkitTask task, @NotNull Runnable cleanup) {

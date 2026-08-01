@@ -1,0 +1,17 @@
+schemaVersion: 1
+id: cooldown_sigil
+category: sigil
+name: "&b短縮のシジル"
+icon: AMETHYST_SHARD
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 20
+lore:
+  - "&7合成したスキルだけのクールダウン短縮を5%増加する。"
+unTradeable: false
+unSellable: false
+sigil:
+  equipGroupId: cooldown_reduction
+  modifiers:
+    - status: COOLDOWN_REDUCTION
+      value: 5

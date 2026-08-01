@@ -26,9 +26,6 @@
 | `equipment[].stats[].value.max`                           | String        | ×  | -     | ステータス上限値。固定値または範囲（例: `21` / `21~50`）。                                                                                                          |
 | `equipment[].durability.max`                              | Integer       | ×  | -     | 最大耐久値（任意）。指定しない場合は耐久管理なし。                                                                                                                      |
 | `equipment[].durability.consume`                          | Integer       | ×  | 1     | 1回の使用/攻撃で減る耐久値。`durability.max` を指定した場合に使用。                                                                                                    |
-| `equipment[].onUse[].leftClickCooldownTicks`              | Integer       | ×  | -     | 左クリック使用時クールタイム。                                                                                                                                |
-| `equipment[].onUse[].leftClickSkillId`                    | String        | ×  | -     | 左クリック時に発動するスキル。                                                                                                                                |
-| `equipment[].skills[]`                                    | List<String>  | ×  | -     | 装備にスキルを適用する。id指定。※参照値                                                                                                                          |
 | `equipment[].enchant`                                     | Object        | ×  | -     | エンチャントシステム設定。指定しない場合はエンチャント不可。                                                                                                                 |
 | `equipment[].enchant.maxSlots`                            | Integer       | ×  | 1     | 装備に付与できるエンチャントの最大スロット数。固定値。                                                                                                                    |
 | `equipment[].enchant.pools[]`                             | List          | ×  | -     | エンチャントプールのリスト。素材ごとに異なるステータス候補を定義できる。                                                                                                           |
@@ -106,7 +103,7 @@
 
 - `requiredLevel` はアカウントのプレイヤーレベルに対する制限です。
 - `requiredClasses` は候補のいずれかが現在選択中のクラス ID と一致し、その候補の `level` 以下ではない場合に成立します。`level` はプレイヤーレベルではなくクラスレベルです。
-- 防具、サブ武器、アクセサリは条件未達時に装備スロットへ移動できません。武器はホットバーへ割り当てられますが、条件未達中はクリック操作と装備由来ステータス・スキルが無効になります。
+- 防具、サブ武器、アクセサリは条件未達時に装備スロットへ移動できません。武器はホットバーへ割り当てられますが、条件未達中はクリック操作と装備由来ステータスが無効になります。
 
 ### equipment[].stats[].type
 - `FLAT` : 定数加算
@@ -185,7 +182,7 @@
 
 ### equipment[].rune について
 
-ルーンスロットシステムは、ルーンアイテムを装備のスロットに嵌め込むことでステータス補正やスキルを付与する仕組みです。
+ルーンスロットシステムは、ルーンアイテムを装備のスロットに嵌め込むことでステータス補正を付与する仕組みです。ルーンからスキルは付与しません。
 
 - `maxSlots` で装備に同時に装着できるルーン数の上限を設定します。固定値のほか、`random` を使用して装備作成時にスロット数をランダムに決定することもできます（例: `random: 1~3`）。
 - ルーン側の `requiredEnhanceLevel` が装備の現在の強化レベル以下でなければ装着できません。
@@ -239,10 +236,6 @@ equipment:
 		- status: CRITICAL_RATE
 		  type: FLAT
 		  value: 0.03
-    onUse:
-        leftClickCooldownTicks: 80
-        leftClickSkillId: 
-            ref: skill:lefthand_slash
 	durability:
 		max: 120
 		consume: 1

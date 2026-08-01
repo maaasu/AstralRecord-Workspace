@@ -1,0 +1,17 @@
+schemaVersion: 1
+id: cooldown_sigil_ii
+category: sigil
+name: "&9短縮のシジルⅡ"
+icon: ECHO_SHARD
+rarity: RARE
+maxStack: 64
+saleValue: 50
+lore:
+  - "&7合成したスキルだけのクールダウン短縮を10%増加する。"
+unTradeable: false
+unSellable: false
+sigil:
+  equipGroupId: cooldown_reduction
+  modifiers:
+    - status: COOLDOWN_REDUCTION
+      value: 10

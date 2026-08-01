@@ -159,7 +159,7 @@ class SkillTreeServiceTest {
 
         service.unlockNode(player, passiveNode);
 
-        verify(passiveSkillService).reconcileSkillOwnershipDelta(
+        verify(passiveSkillService).reconcileSkillPermissionDelta(
                 eq(player),
                 eq(Set.of("passive-test")),
                 eq(Set.of()),
@@ -368,7 +368,7 @@ class SkillTreeServiceTest {
         service.refreshProgressDerivedState(player);
 
         assertEquals(Set.of(), service.getUnlockedSkillIds(player));
-        verify(passiveSkillService).reconcileSkillOwnershipDelta(
+        verify(passiveSkillService).reconcileSkillPermissionDelta(
                 eq(player),
                 eq(Set.of()),
                 eq(Set.of("passive-test")),

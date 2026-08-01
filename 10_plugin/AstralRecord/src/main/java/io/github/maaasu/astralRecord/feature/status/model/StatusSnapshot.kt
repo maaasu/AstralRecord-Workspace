@@ -93,6 +93,21 @@ data class StatusSnapshot(
         return withCurrentValues(currentHp, currentMp, currentEnergy, shield)
     }
 
+    /** スキル個体だけに適用する加算補正を反映した一時スナップショットを返します。 */
+    fun withFlatBonuses(bonuses: Map<StatusType, Double>): StatusSnapshot {
+        if (bonuses.isEmpty()) return this
+        val next = values.toMutableMap()
+        for ((type, amount) in bonuses) {
+            if (!amount.isFinite()) continue
+            val current = next[type] ?: StatusValue(0.0, 0.0)
+            next[type] = current.copy(
+                bonusMinValue = current.bonusMinValue + amount,
+                bonusMaxValue = current.bonusMaxValue + amount,
+            )
+        }
+        return copy(values = next.toMap())
+    }
+
     companion object {
         /**
          * 未初期化状態を表す空スナップショットを返します。

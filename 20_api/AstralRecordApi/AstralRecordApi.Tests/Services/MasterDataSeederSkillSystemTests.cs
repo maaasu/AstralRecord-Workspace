@@ -1,0 +1,187 @@
+using System.Reflection;
+using AstralRecordApi.Data;
+using AstralRecordApi.Data.Entities;
+using AstralRecordApi.Options;
+using AstralRecordApi.Services;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
+using Xunit;
+
+namespace AstralRecordApi.Tests.Services;
+
+public class MasterDataSeederSkillSystemTests
+{
+    /// <summary>
+    /// 設計入力: 00_docs/50_Filebase設計書/feature/30-skill.md
+    /// 検証契約: 有効skillから自動生成される仮想gem IDは、loot/quest等のitem必須参照として解決できる。
+    /// </summary>
+    [Fact]
+    public async Task ValidateReferencesAsync_ResolvesGeneratedSkillGemItemReference()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var skill = fixture.AddEntry("skill", "mage_fireball", null, "{}");
+        fixture.Db.References.Add(new MasterDataReferenceEntity
+        {
+            ReferenceId = Guid.NewGuid(),
+            FromEntryId = skill.EntryId,
+            FromMasterType = "loot",
+            FromMasterId = "gem_drop",
+            ReferenceType = "item",
+            ReferenceIdValue = "00_skill_gem_mage_fireball",
+            ReferencePath = "$.entries[0].ref",
+            IsRequired = true,
+            CreatedAt = fixture.Now,
+            UpdatedAt = fixture.Now,
+            CreatedBy = fixture.SystemUser,
+            UpdatedBy = fixture.SystemUser,
+        });
+        await fixture.Db.SaveChangesAsync();
+
+        await InvokeAsync(fixture.Seeder, "ValidateReferencesAsync", new List<string>(), CancellationToken.None);
+    }
+
+    /// <summary>
+    /// 設計入力: 40_filebase/10.features.item/docs.item.YAMLスキーマ定義.md
+    /// 検証契約: シジルmodifierは共有カタログに存在するstatus IDだけを許可する。
+    /// </summary>
+    [Fact]
+    public async Task ValidateSkillSystemMastersAsync_RejectsUnknownSigilStatus()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        fixture.AddEntry("item", "bad_sigil", "sigil", """
+            {
+              "schemaVersion": 1,
+              "id": "bad_sigil",
+              "category": "sigil",
+              "name": "Bad Sigil",
+              "icon": "STONE",
+              "rarity": "COMMON",
+              "sigil": {
+                "equipGroupId": "bad_group",
+                "modifiers": [{ "status": "UNKNOWN_STATUS", "value": 1.0 }]
+              }
+            }
+            """);
+        await fixture.Db.SaveChangesAsync();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            InvokeAsync(fixture.Seeder, "ValidateSkillSystemMastersAsync", CancellationToken.None));
+    }
+
+    /// <summary>
+    /// 設計入力: 00_docs/50_Filebase設計書/feature/30-skill.md
+    /// 検証契約: DTOの既定値へ暗黙fallbackせず、各skill masterがgem rarityを明示する。
+    /// </summary>
+    [Fact]
+    public async Task ValidateSkillSystemMastersAsync_RejectsMissingGemDefinition()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        fixture.AddEntry("skill", "missing_gem", null, """
+            {
+              "schemaVersion": 1,
+              "id": "missing_gem",
+              "type": "SKILL",
+              "implementationId": "missing_gem",
+              "name": "Missing Gem",
+              "maxLevel": 1
+            }
+            """);
+        await fixture.Db.SaveChangesAsync();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            InvokeAsync(fixture.Seeder, "ValidateSkillSystemMastersAsync", CancellationToken.None));
+    }
+
+    private static async Task InvokeAsync(object target, string methodName, params object[] arguments)
+    {
+        MethodInfo method = target.GetType().GetMethod(
+            methodName,
+            BindingFlags.Instance | BindingFlags.NonPublic
+        ) ?? throw new MissingMethodException(target.GetType().FullName, methodName);
+        await ((Task?)method.Invoke(target, arguments)
+            ?? throw new InvalidOperationException($"{methodName} did not return Task"));
+    }
+
+    private sealed class Fixture : IAsyncDisposable
+    {
+        private readonly SqliteConnection connection;
+        public MasterDataDbContext Db { get; }
+        public MasterDataSeeder Seeder { get; }
+        public Guid SystemUser { get; } = Guid.NewGuid();
+        public DateTime Now { get; } = DateTime.UtcNow;
+        private Guid SourceId { get; } = Guid.NewGuid();
+
+        private Fixture(SqliteConnection connection, MasterDataDbContext db)
+        {
+            this.connection = connection;
+            Db = db;
+            Seeder = new MasterDataSeeder(
+                db,
+                Microsoft.Extensions.Options.Options.Create(new FileDatabaseOptions()),
+                Microsoft.Extensions.Options.Options.Create(new MasterDataOptions { SystemUserId = SystemUser }),
+                NullLogger<MasterDataSeeder>.Instance
+            );
+        }
+
+        public static async Task<Fixture> CreateAsync()
+        {
+            var connection = new SqliteConnection("Data Source=:memory:");
+            await connection.OpenAsync();
+            var options = new DbContextOptionsBuilder<MasterDataDbContext>()
+                .UseSqlite(connection)
+                .Options;
+            var db = new MasterDataDbContext(options);
+            await db.Database.EnsureCreatedAsync();
+            var fixture = new Fixture(connection, db);
+            db.Sources.Add(new MasterDataSourceEntity
+            {
+                SourceId = fixture.SourceId,
+                SourceKey = "test",
+                SourcePath = "test",
+                SourceKind = "yaml",
+                IsEnabled = true,
+                CreatedAt = fixture.Now,
+                UpdatedAt = fixture.Now,
+                CreatedBy = fixture.SystemUser,
+                UpdatedBy = fixture.SystemUser,
+            });
+            await db.SaveChangesAsync();
+            return fixture;
+        }
+
+        public MasterDataEntryEntity AddEntry(
+            string masterType,
+            string masterId,
+            string? category,
+            string payloadJson)
+        {
+            var entry = new MasterDataEntryEntity
+            {
+                EntryId = Guid.NewGuid(),
+                SourceId = SourceId,
+                MasterType = masterType,
+                MasterId = masterId,
+                Category = category,
+                SchemaVersion = 1,
+                SourceFilePath = $"test/{masterId}.yml",
+                SourceFileHash = new string('0', 64),
+                PayloadJson = payloadJson,
+                PayloadVersion = 1,
+                EffectiveFrom = Now,
+                CreatedAt = Now,
+                UpdatedAt = Now,
+                CreatedBy = SystemUser,
+                UpdatedBy = SystemUser,
+            };
+            Db.Entries.Add(entry);
+            return entry;
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            await Db.DisposeAsync();
+            await connection.DisposeAsync();
+        }
+    }
+}

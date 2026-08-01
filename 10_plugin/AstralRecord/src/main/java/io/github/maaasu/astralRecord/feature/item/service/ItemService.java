@@ -300,6 +300,8 @@ public class ItemService {
             new ItemCurrency("gold", "denomination", null),
             null,
             null,
+            null,
+            null,
             null
         );
     }
@@ -321,6 +323,8 @@ public class ItemService {
             true,
             null,
             new ItemCurrency("astrald", "donation", null),
+            null,
+            null,
             null,
             null,
             null
@@ -673,6 +677,5 @@ public class ItemService {
         return value.trim().toLowerCase(Locale.ROOT);
     }
 }
-
 
 

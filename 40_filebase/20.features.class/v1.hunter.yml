@@ -58,8 +58,15 @@ growthPerLevel:
   - status: MAGIC_DEFENSE
     value: 0.3
 expRate: 100
-starterSkills: []
-levelSkills: []
+usableSkills:
+  - skill:hunter_power_shot
+  - skill:hunter_piercing_arrow
+  - skill:hunter_fan_shot
+  - skill:hunter_rapid_fire
+  - skill:hunter_backstep_shot
+  - skill:hunter_snare_trap
+  - skill:hunter_arrow_rain
+  - skill:hunter_ricochet
 tags:
   - tier1
   - ranged

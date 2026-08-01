@@ -293,7 +293,7 @@ public class GuideService {
     private @NotNull String menuName(@NotNull String menuId) {
         return switch (menuId.trim().toLowerCase(Locale.ROOT)) {
             case "equipment" -> "&6装備";
-            case "skill_bind" -> "&bスキル設定";
+            case "skill_bind" -> "&bスキルマネージャー";
             case "status" -> "&eステータス";
             case "guide" -> "&dガイド";
             default -> menuId;

@@ -8,6 +8,8 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<UserEntity> Users => Set<UserEntity>();
     public DbSet<PlayerSettingEntity> PlayerSettings => Set<PlayerSettingEntity>();
     public DbSet<SkillBindPresetEntity> SkillBindPresets => Set<SkillBindPresetEntity>();
+    public DbSet<AccountLearnedSkillEntity> AccountLearnedSkills => Set<AccountLearnedSkillEntity>();
+    public DbSet<AccountLearnedSkillSigilEntity> AccountLearnedSkillSigils => Set<AccountLearnedSkillSigilEntity>();
     public DbSet<AccountEntity> Accounts => Set<AccountEntity>();
     public DbSet<AccountClassProgressEntity> AccountClassProgresses => Set<AccountClassProgressEntity>();
     public DbSet<InventoryEntity> Inventories => Set<InventoryEntity>();
@@ -22,6 +24,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<RuneInstanceStatRollEntity> RuneInstanceStatRolls => Set<RuneInstanceStatRollEntity>();
     public DbSet<EquipmentInstanceEnchantPoolEntity> EquipmentInstanceEnchantPools => Set<EquipmentInstanceEnchantPoolEntity>();
     public DbSet<PlayerMailStateEntity> PlayerMailStates => Set<PlayerMailStateEntity>();
+    public DbSet<PlayerMailDeliveryEntity> PlayerMailDeliveries => Set<PlayerMailDeliveryEntity>();
     public DbSet<AccountMobRecordEntity> AccountMobRecords => Set<AccountMobRecordEntity>();
     public DbSet<AccountSkillTreeStateEntity> AccountSkillTreeStates => Set<AccountSkillTreeStateEntity>();
     public DbSet<AccountSkillTreeUnlockedNodeEntity> AccountSkillTreeUnlockedNodes => Set<AccountSkillTreeUnlockedNodeEntity>();
@@ -165,6 +168,25 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.HasIndex(mail => new { mail.UserId, mail.MailId })
                 .IsUnique()
                 .HasDatabaseName("UX_player_mail_state_user_mail");
+        });
+
+        modelBuilder.Entity<PlayerMailDeliveryEntity>(entity =>
+        {
+            entity.ToTable("player_mail_delivery", "dbo");
+            entity.HasKey(mail => mail.PlayerMailDeliveryId);
+            entity.Property(mail => mail.PlayerMailDeliveryId).HasColumnName("player_mail_delivery_id");
+            entity.Property(mail => mail.UserId).HasColumnName("user_id");
+            entity.Property(mail => mail.MailId).HasColumnName("mail_id").HasMaxLength(128);
+            entity.Property(mail => mail.PayloadJson).HasColumnName("payload_json");
+            entity.Property(mail => mail.Version).HasColumnName("version");
+            entity.Property(mail => mail.CreatedAt).HasColumnName("created_at");
+            entity.Property(mail => mail.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(mail => mail.CreatedBy).HasColumnName("created_by");
+            entity.Property(mail => mail.UpdatedBy).HasColumnName("updated_by");
+            entity.Property(mail => mail.IsDeleted).HasColumnName("is_deleted");
+            entity.HasIndex(mail => new { mail.UserId, mail.MailId })
+                .IsUnique()
+                .HasDatabaseName("UX_player_mail_delivery_user_mail");
         });
 
         modelBuilder.Entity<AccountMobRecordEntity>(entity =>
@@ -421,6 +443,54 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.HasIndex(preset => new { preset.AccountId, preset.PresetIndex })
                 .IsUnique()
                 .HasDatabaseName("UX_skill_bind_preset_account_preset");
+        });
+
+        modelBuilder.Entity<AccountLearnedSkillEntity>(entity =>
+        {
+            entity.ToTable("account_learned_skill", "dbo");
+            entity.HasKey(skill => skill.LearnedSkillId);
+
+            entity.Property(skill => skill.LearnedSkillId).HasColumnName("learned_skill_id");
+            entity.Property(skill => skill.AccountId).HasColumnName("account_id");
+            entity.Property(skill => skill.SkillId).HasColumnName("skill_id").HasMaxLength(128);
+            entity.Property(skill => skill.Level).HasColumnName("level");
+            entity.Property(skill => skill.Version).HasColumnName("version");
+            entity.Property(skill => skill.CreatedAt).HasColumnName("created_at");
+            entity.Property(skill => skill.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(skill => skill.CreatedBy).HasColumnName("created_by");
+            entity.Property(skill => skill.UpdatedBy).HasColumnName("updated_by");
+            entity.Property(skill => skill.IsDeleted).HasColumnName("is_deleted");
+            entity.HasIndex(skill => new { skill.AccountId, skill.SkillId, skill.IsDeleted })
+                .HasDatabaseName("IX_account_learned_skill_account_skill");
+        });
+
+        modelBuilder.Entity<AccountLearnedSkillSigilEntity>(entity =>
+        {
+            entity.ToTable("account_learned_skill_sigil", "dbo");
+            entity.HasKey(sigil => sigil.LearnedSkillSigilId);
+
+            entity.Property(sigil => sigil.LearnedSkillSigilId).HasColumnName("learned_skill_sigil_id");
+            entity.Property(sigil => sigil.LearnedSkillId).HasColumnName("learned_skill_id");
+            entity.Property(sigil => sigil.SigilId).HasColumnName("sigil_id").HasMaxLength(128);
+            entity.Property(sigil => sigil.EquipGroupId).HasColumnName("equip_group_id").HasMaxLength(128);
+            entity.Property(sigil => sigil.SlotIndex).HasColumnName("slot_index");
+            entity.Property(sigil => sigil.CreatedAt).HasColumnName("created_at");
+            entity.Property(sigil => sigil.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(sigil => sigil.CreatedBy).HasColumnName("created_by");
+            entity.Property(sigil => sigil.UpdatedBy).HasColumnName("updated_by");
+            entity.Property(sigil => sigil.IsDeleted).HasColumnName("is_deleted");
+            entity.HasOne(sigil => sigil.LearnedSkill)
+                .WithMany(skill => skill.Sigils)
+                .HasForeignKey(sigil => sigil.LearnedSkillId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(sigil => new { sigil.LearnedSkillId, sigil.EquipGroupId })
+                .IsUnique()
+                .HasFilter("[is_deleted] = 0")
+                .HasDatabaseName("UX_account_learned_skill_sigil_group");
+            entity.HasIndex(sigil => new { sigil.LearnedSkillId, sigil.SlotIndex })
+                .IsUnique()
+                .HasFilter("[is_deleted] = 0")
+                .HasDatabaseName("UX_account_learned_skill_sigil_slot");
         });
 
         modelBuilder.Entity<InventoryEntity>(entity =>

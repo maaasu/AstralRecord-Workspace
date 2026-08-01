@@ -65,56 +65,39 @@ growthPerLevel:
   - status: MAGIC_DEFENSE
     value: 0.5
 expRate: 100
-starterSkills: []
-levelSkills:
-  - level: 1
-    skill: skill:swordsman_crescent_slash
-  - level: 1
-    skill: skill:swordsman_piercing_thrust
-  - level: 1
-    skill: skill:swordsman_whirlwind
-  - level: 1
-    skill: skill:swordsman_vanguard_rush
-  - level: 1
-    skill: skill:swordsman_blade_wave
-  - level: 1
-    skill: skill:swordsman_fortress_guard
-  - level: 1
-    skill: skill:swordsman_war_cry
-  - level: 1
-    skill: skill:swordsman_earthbreaker
-  - level: 1
-    skill: skill:hunter_power_shot
-  - level: 1
-    skill: skill:hunter_piercing_arrow
-  - level: 1
-    skill: skill:hunter_fan_shot
-  - level: 1
-    skill: skill:hunter_rapid_fire
-  - level: 1
-    skill: skill:hunter_backstep_shot
-  - level: 1
-    skill: skill:hunter_snare_trap
-  - level: 1
-    skill: skill:hunter_arrow_rain
-  - level: 1
-    skill: skill:hunter_ricochet
-  - level: 1
-    skill: skill:mage_fireball
-  - level: 1
-    skill: skill:mage_frost_nova
-  - level: 1
-    skill: skill:mage_chain_lightning
-  - level: 1
-    skill: skill:mage_arcane_lance
-  - level: 1
-    skill: skill:mage_meteor
-  - level: 1
-    skill: skill:mage_blink
-  - level: 1
-    skill: skill:mage_mana_barrier
-  - level: 1
-    skill: skill:mage_elemental_storm
+usableSkills:
+  - skill:fire_boost
+  - skill:iron_will
+  - skill:swordsman_crescent_slash
+  - skill:swordsman_piercing_thrust
+  - skill:swordsman_whirlwind
+  - skill:swordsman_vanguard_rush
+  - skill:swordsman_blade_wave
+  - skill:swordsman_fortress_guard
+  - skill:swordsman_war_cry
+  - skill:swordsman_earthbreaker
+  - skill:hunter_power_shot
+  - skill:hunter_piercing_arrow
+  - skill:hunter_fan_shot
+  - skill:hunter_rapid_fire
+  - skill:hunter_backstep_shot
+  - skill:hunter_snare_trap
+  - skill:hunter_arrow_rain
+  - skill:hunter_ricochet
+  - skill:mage_fireball
+  - skill:mage_frost_nova
+  - skill:mage_chain_lightning
+  - skill:mage_arcane_lance
+  - skill:mage_meteor
+  - skill:mage_blink
+  - skill:mage_mana_barrier
+  - skill:mage_elemental_storm
+  - skill:mob_field_heavy_slash
+  - skill:mob_glowlamp_bolt
+  - skill:mob_goblin_slash
+  - skill:mob_mountain_thunder_bolt
+  - skill:mob_savanna_heatwave_bolt
+  - skill:mob_skeleton_bow_shot
 tags:
   - administrator
   - command-only

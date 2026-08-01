@@ -1,118 +1,78 @@
 package io.github.maaasu.astralRecord.feature.skill.service
 
-import io.github.maaasu.astralRecord.feature.`class`.model.ClassLevelSkill
-import io.github.maaasu.astralRecord.feature.`class`.model.ClassModel
-import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService
-import io.github.maaasu.astralRecord.feature.item.service.BuiltInWeaponAttackDefinitions
-import io.github.maaasu.astralRecord.feature.item.service.ItemService
-import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService
-import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance
+import io.github.maaasu.astralRecord.feature.skill.repository.LearnedSkillRepository
 import io.github.maaasu.astralRecord.support.DesignTestFixtures
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase
+import org.bukkit.plugin.Plugin
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
+import java.util.UUID
 
 class SkillOwnershipServiceTest : MockBukkitTestBase() {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 8. 所持 skill 解決
-     * 検証契約: administrator level1のskill参照をcanonical skill ID setへ正規化する。
+     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
+     * 検証契約: 所持判定はクラス許可ではなくAPIからロードした習得済み個体だけを正本にする。
      */
     @Test
-    fun resolvesAdministratorLevelOneSkillReferencesToCanonicalIds() {
-        val playerClassService = PlayerClassService()
-        playerClassService.replaceSnapshot(
-            mapOf(
-                "administrator" to classModel(
-                    id = "administrator",
-                    starterSkills = listOf(" skill:starter_skill ", " raw_starter_skill ", "skill:", " "),
-                    levelSkills = listOf(
-                        ClassLevelSkill(1, "skill:level_one_skill"),
-                        ClassLevelSkill(1, "raw_level_one_skill"),
-                        ClassLevelSkill(2, "skill:level_two_skill"),
-                    ),
-                ),
+    fun resolvesOwnedSkillsOnlyFromLearnedInstances() {
+        val astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER)
+        val learnedService = learnedSkillService()
+        learnedService.applyInitialSkills(
+            astPlayer.account.uuid,
+            listOf(
+                learned(astPlayer.account.uuid, "mage_fireball"),
+                learned(astPlayer.account.uuid, "mob_goblin_slash"),
             ),
         )
-        val astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER)
-        astPlayer.selectClass("administrator")
+        val service = SkillOwnershipService(learnedService)
 
-        val ownedSkillIds = ownershipService(playerClassService).ownedSkillIds(astPlayer)
-
-        assertEquals(
-            setOf("starter_skill", "raw_starter_skill", "level_one_skill", "raw_level_one_skill"),
-            ownedSkillIds,
-        )
-        assertFalse(ownedSkillIds.any { it.startsWith("skill:") })
-        assertFalse(ownedSkillIds.contains("mob_goblin_slash"))
-        assertFalse(ownedSkillIds.contains(BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_MELEE))
-        assertFalse(ownedSkillIds.contains(BuiltInWeaponAttackDefinitions.SPECIAL_ATTACK_MELEE))
+        assertEquals(setOf("mage_fireball", "mob_goblin_slash"), service.ownedSkillIds(astPlayer))
+        assertTrue(service.owns(astPlayer, "mage_fireball"))
+        assertFalse(service.owns(astPlayer, "class_permission_only"))
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
-     * 章・見出し: # 13_3-サービス > ## 8. 所持 skill 解決
-     * 検証契約: 通常classへ切替後はadministrator専用skillを所持setへ含めない。
+     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
+     * 検証契約: 同一skillIdの複数個体を別UUIDとして保持し、クラス変更でも所持状態を失わない。
      */
     @Test
-    fun switchingToNormalClassDoesNotGrantAdministratorSkills() {
-        val administratorSkillId = "administrator_only_skill"
-        val playerClassService = PlayerClassService()
-        playerClassService.replaceSnapshot(
-            mapOf(
-                "administrator" to classModel(
-                    id = "administrator",
-                    levelSkills = listOf(ClassLevelSkill(1, "skill:$administratorSkillId")),
-                ),
-                "swordsman" to classModel(id = "swordsman"),
-            ),
-        )
+    fun keepsDuplicateInstancesAcrossClassChanges() {
         val astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER)
-        astPlayer.selectClass("administrator")
-        val ownershipService = ownershipService(playerClassService)
+        val learnedService = learnedSkillService()
+        val first = learned(astPlayer.account.uuid, "mage_fireball")
+        val second = learned(astPlayer.account.uuid, "mage_fireball")
+        learnedService.applyInitialSkills(astPlayer.account.uuid, listOf(first, second))
+        val service = SkillOwnershipService(learnedService)
 
-        assertTrue(ownershipService.owns(astPlayer, administratorSkillId))
+        astPlayer.selectClass("mage")
+        assertTrue(service.ownsInstance(astPlayer, first.learnedSkillId))
+        assertTrue(service.ownsInstance(astPlayer, second.learnedSkillId))
 
         astPlayer.selectClass("swordsman")
 
-        assertEquals(emptySet<String>(), ownershipService.ownedSkillIds(astPlayer))
-        assertFalse(ownershipService.owns(astPlayer, administratorSkillId))
+        assertEquals(2, service.learnedSkills(astPlayer).size)
+        assertTrue(service.owns(astPlayer, "mage_fireball"))
     }
 
-    private fun ownershipService(playerClassService: PlayerClassService) = SkillOwnershipService(
-        playerClassService = playerClassService,
-        inventoryService = mock(InventoryService::class.java),
-        itemService = mock(ItemService::class.java),
-        skillTreeService = mock(SkillTreeService::class.java),
+    private fun learnedSkillService() = LearnedSkillService(
+        mock(Plugin::class.java),
+        mock(LearnedSkillRepository::class.java),
+        mock(InventoryService::class.java),
     )
 
-    private fun classModel(
-        id: String,
-        starterSkills: List<String> = emptyList(),
-        levelSkills: List<ClassLevelSkill> = emptyList(),
-    ) = ClassModel(
-        schemaVersion = 1,
-        id = id,
-        type = "CLASS",
-        name = id,
-        shortName = id.takeLast(3).padStart(3, '_'),
-        description = null,
-        icon = "EXPERIENCE_BOTTLE",
-        role = "DEALER",
-        maxLevel = 10,
-        commandOnly = id == "administrator",
-        unlockLevel = 1,
-        unlockClassLevel = emptyList(),
-        baseStats = emptyList(),
-        growthPerLevel = emptyList(),
-        expRate = 100,
-        starterSkills = starterSkills,
-        levelSkills = levelSkills,
-        tags = emptyList(),
+    private fun learned(accountId: UUID, skillId: String) = LearnedSkillInstance(
+        learnedSkillId = UUID.randomUUID(),
+        accountId = accountId,
+        skillId = skillId,
+        level = 1,
     )
 }

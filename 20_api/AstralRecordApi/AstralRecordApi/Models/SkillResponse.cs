@@ -20,6 +20,8 @@ public class SkillResponse
 
     public long CooldownTicks { get; init; }
 
+    public string? CooldownId { get; init; }
+
     public double ManaCost { get; init; }
 
     public string? ResourceType { get; init; }
@@ -33,6 +35,16 @@ public class SkillResponse
     public SkillOnCastResponse? OnCast { get; init; }
 
     public SkillPassiveResponse? Passive { get; init; }
+
+    public int MaxLevel { get; init; } = 1;
+
+    public IReadOnlyList<SkillLevelResponse> Levels { get; init; } = [];
+
+    public IReadOnlyList<SkillSigilSlotResponse> SigilSlotsByLevel { get; init; } = [];
+
+    public IReadOnlyList<string> AllowedSigilIds { get; init; } = [];
+
+    public SkillGemResponse Gem { get; init; } = new();
 
     public IReadOnlyDictionary<string, object?> Params { get; init; } = new Dictionary<string, object?>();
 
@@ -60,4 +72,44 @@ public class SkillOnCastResponse
 public class SkillPassiveResponse
 {
     public bool BindRequired { get; init; } = true;
+}
+
+public class SkillLevelResponse
+{
+    public int Level { get; init; }
+
+    public long CooldownTicksDelta { get; init; }
+
+    public double ResourceCostDelta { get; init; }
+
+    public long CastTimeTicksDelta { get; init; }
+
+    public IReadOnlyDictionary<string, double> ParamDeltas { get; init; } = new Dictionary<string, double>();
+
+    public IReadOnlyList<SkillStatusModifierResponse> StatusModifiers { get; init; } = [];
+}
+
+public class SkillStatusModifierResponse
+{
+    public required string Status { get; init; }
+
+    public double Value { get; init; }
+}
+
+public class SkillSigilSlotResponse
+{
+    public int Level { get; init; }
+
+    public int Slots { get; init; }
+}
+
+public class SkillGemResponse
+{
+    public string? Icon { get; init; }
+
+    public string Rarity { get; init; } = "COMMON";
+
+    public bool Tradeable { get; init; }
+
+    public bool Sellable { get; init; }
 }

@@ -147,7 +147,12 @@ public final class InventoryPersistence {
                         .map(InventoryPersistence::toDraft)
                         .toList();
                     try {
-                        inventoryRepository.replaceEntries(inventory.getInventoryId(), drafts, accountId);
+                        List<InventoryEntryModel> persisted = inventoryRepository.replaceEntries(
+                            inventory.getInventoryId(),
+                            drafts,
+                            accountId
+                        );
+                        state.acknowledgePersistedEntries(inventory.getInventoryId(), entries, persisted);
                     } catch (RuntimeException e) {
                         Logger.warn(LogId.W_5252, inventory.getInventoryId(), e.getMessage());
                         allOk = false;
@@ -317,7 +322,9 @@ public final class InventoryPersistence {
             entry.getInstanceType(),
             entry.getInstanceId(),
             entry.getQuantity(),
-            entry.getMetadataJson()
+            entry.getMetadataJson(),
+            entry.getInventoryEntryId(),
+            entry.getUpdatedAt()
         );
     }
 

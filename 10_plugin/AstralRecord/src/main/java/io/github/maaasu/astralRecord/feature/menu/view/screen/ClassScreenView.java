@@ -104,8 +104,7 @@ public final class ClassScreenView extends BaseMenuScreenView {
 
         addList(lore, LABEL_BASE_STATS, entry.getBaseStats(), NamedTextColor.AQUA);
         addList(lore, LABEL_GROWTH_PER_LEVEL, entry.getGrowthPerLevel(), NamedTextColor.GREEN);
-        addList(lore, LABEL_STARTER_SKILLS, entry.getStarterSkills(), NamedTextColor.LIGHT_PURPLE);
-        addList(lore, LABEL_LEVEL_SKILLS, entry.getLevelSkills(), NamedTextColor.YELLOW);
+        addList(lore, "使用許可スキル", entry.getUsableSkills(), NamedTextColor.LIGHT_PURPLE);
 
         ItemStack itemStack = createItem(material, className(entry, selected), lore);
         ItemMeta meta = itemStack.getItemMeta();

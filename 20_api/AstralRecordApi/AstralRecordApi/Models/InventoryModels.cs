@@ -68,6 +68,8 @@ public class InventoryEntryReplaceRequest
 
 public class InventoryEntryReplaceItemRequest
 {
+    public Guid? InventoryEntryId { get; set; }
+    public DateTime? ExpectedUpdatedAt { get; set; }
     public int? SlotIndex { get; set; }
     public required string ItemCategory { get; set; }
     public string? ItemId { get; set; }

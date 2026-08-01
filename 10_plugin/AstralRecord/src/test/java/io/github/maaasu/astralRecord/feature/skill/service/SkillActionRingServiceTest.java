@@ -52,7 +52,7 @@ class SkillActionRingServiceTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
-     * 章・見出し: # 13_3-イベント > ## 2. action ring 入力解決
+     * 章・見出し: # 13_3-イベント > ## 3. action ring入力解決
      * 検証契約: action ring は選択前後で指定された案内文と色をリング内の文字 Display に表示する。
      */
     @Test
@@ -67,14 +67,14 @@ class SkillActionRingServiceTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
-     * 章・見出し: # 13_3-イベント > ## 2. action ring 入力解決
+     * 章・見出し: # 13_3-イベント > ## 3. action ring入力解決
      * 検証契約: action ring は開始時と選択確定時に案内文字列をリング内へ表示し、確定後は timeout を停止して
      * timer bar を消去する。終了時に後続の機能が表示した title を消去しない。
      */
     @Test
     void confirmedActionRingKeepsSessionWithoutTimerUntilExplicitClose() throws ReflectiveOperationException {
         Player viewer = mock(Player.class);
-        Location eye = new Location(mock(World.class), 0.0D, 64.0D, 0.0D);
+        Location eye = new Location(server().addSimpleWorld("skill_ring_world"), 0.0D, 64.0D, 0.0D);
         eye.setDirection(new org.bukkit.util.Vector(0.0D, 0.0D, 1.0D));
         when(viewer.getEyeLocation()).thenReturn(eye);
         when(viewer.isOnline()).thenReturn(true);
@@ -169,7 +169,8 @@ class SkillActionRingServiceTest extends MockBukkitTestBase {
         ItemWeaponAttackService weaponAttackService = new ItemWeaponAttackService(inventoryService, skillService);
         weaponAttackService.setEquipmentDurabilityService(durabilityService);
         SkillActionRingService service = new SkillActionRingService(
-            mock(AstralRecord.class), presetService, skillService, mock(SkillOwnershipService.class)
+            mock(AstralRecord.class), presetService, skillService, mock(SkillOwnershipService.class),
+            mock(SkillPermissionService.class)
         );
         service.setItemWeaponAttackService(weaponAttackService);
 

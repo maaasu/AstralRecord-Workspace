@@ -13,6 +13,8 @@ enum class ItemCategory(val apiValue: String, val displayNameJa: String) {
     ENHANCEMENT_MATERIAL("enhancement_material", "強化素材"),
     CONSUMABLE("consumable", "消耗品"),
     RUNE("rune", "ルーン"),
+    SKILL_GEM("skill_gem", "スキルジェム"),
+    SIGIL("sigil", "シジル"),
     UNKNOWN("unknown", "不明"),
     ;
 

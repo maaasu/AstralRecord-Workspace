@@ -1,3 +1,4 @@
+using System.Data;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
@@ -187,51 +188,121 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
         InventoryEntryReplaceRequest request
     )
     {
-        var inventoryExists = await dbContext.Inventories
-            .AnyAsync(x => x.InventoryId == inventoryId && !x.IsDeleted);
-
-        if (!inventoryExists)
-            return null;
-
-        var now = DateTime.UtcNow;
-        var currentEntries = await dbContext.InventoryEntries
-            .Where(x => x.InventoryId == inventoryId && !x.IsDeleted)
-            .ToListAsync();
-
-        foreach (var current in currentEntries)
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
         {
-            current.IsDeleted = true;
-            current.UpdatedAt = now;
-            current.UpdatedBy = request.UpdatedBy;
-        }
+            dbContext.ChangeTracker.Clear();
+            await using var transaction = await dbContext.Database
+                .BeginTransactionAsync(IsolationLevel.Serializable);
 
-        var nextEntries = request.Entries.Select(entry => new InventoryEntryEntity
-        {
-            InventoryEntryId = Guid.NewGuid(),
-            InventoryId = inventoryId,
-            SlotIndex = entry.SlotIndex,
-            ItemCategory = entry.ItemCategory,
-            ItemId = entry.ItemId,
-            InstanceType = entry.InstanceType,
-            InstanceId = entry.InstanceId,
-            Quantity = entry.Quantity,
-            MetadataJson = entry.MetadataJson,
-            CreatedAt = now,
-            UpdatedAt = now,
-            CreatedBy = request.UpdatedBy,
-            UpdatedBy = request.UpdatedBy,
-            IsDeleted = false,
-        }).ToList();
+            var inventory = await dbContext.Inventories
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.InventoryId == inventoryId && !x.IsDeleted);
 
-        await dbContext.InventoryEntries.AddRangeAsync(nextEntries);
-        await dbContext.SaveChangesAsync();
+            if (inventory is null)
+                return null;
 
-        return nextEntries
-            .OrderBy(x => x.SlotIndex.HasValue ? 0 : 1)
-            .ThenBy(x => x.SlotIndex)
-            .ThenBy(x => x.ItemId)
-            .Select(MapEntry)
-            .ToList();
+            var requestedIds = request.Entries
+                .Where(entry => entry.InventoryEntryId.HasValue)
+                .Select(entry => entry.InventoryEntryId!.Value)
+                .ToArray();
+            if (requestedIds.Distinct().Count() != requestedIds.Length)
+                return null;
+
+            var now = DateTime.UtcNow;
+            var currentEntries = await dbContext.InventoryEntries
+                .Where(x => x.InventoryId == inventoryId && !x.IsDeleted)
+                .ToListAsync();
+            var knownEntries = requestedIds.Length == 0
+                ? new Dictionary<Guid, InventoryEntryEntity>()
+                : await dbContext.InventoryEntries
+                    .Where(entry => requestedIds.Contains(entry.InventoryEntryId))
+                    .ToDictionaryAsync(entry => entry.InventoryEntryId);
+
+            // 一度消費・削除されたentry UUIDはクライアントの古いスナップショットから復活させない。
+            if (knownEntries.Values.Any(entry => entry.IsDeleted))
+                return null;
+            foreach (var requested in request.Entries.Where(entry => entry.InventoryEntryId.HasValue))
+            {
+                if (knownEntries.TryGetValue(requested.InventoryEntryId!.Value, out var known)
+                    && (!requested.ExpectedUpdatedAt.HasValue
+                        || known.UpdatedAt != requested.ExpectedUpdatedAt.Value))
+                    return null;
+            }
+
+            if (knownEntries.Count > 0)
+            {
+                var knownInventoryIds = knownEntries.Values
+                    .Select(entry => entry.InventoryId)
+                    .Distinct()
+                    .ToArray();
+                var knownOwners = await dbContext.Inventories.AsNoTracking()
+                    .Where(owner => knownInventoryIds.Contains(owner.InventoryId))
+                    .Select(owner => new { owner.InventoryId, owner.AccountId, owner.IsDeleted })
+                    .ToArrayAsync();
+                if (knownOwners.Length != knownInventoryIds.Length
+                    || knownOwners.Any(owner => owner.AccountId != inventory.AccountId || owner.IsDeleted))
+                    return null;
+            }
+
+            // 部分一意インデックスへ途中配置が衝突しないよう、移動対象と現在配置を一度無効化する。
+            var entriesToDisable = currentEntries
+                .Concat(knownEntries.Values)
+                .DistinctBy(entry => entry.InventoryEntryId)
+                .ToArray();
+            foreach (var entity in entriesToDisable)
+            {
+                entity.IsDeleted = true;
+                entity.UpdatedAt = now;
+                entity.UpdatedBy = request.UpdatedBy;
+            }
+            if (entriesToDisable.Length > 0)
+                await dbContext.SaveChangesAsync();
+
+            var nextEntries = new List<InventoryEntryEntity>(request.Entries.Count);
+            foreach (var entry in request.Entries)
+            {
+                InventoryEntryEntity entity;
+                if (entry.InventoryEntryId.HasValue
+                    && knownEntries.TryGetValue(entry.InventoryEntryId.Value, out var known))
+                {
+                    entity = known;
+                }
+                else
+                {
+                    entity = new InventoryEntryEntity
+                    {
+                        InventoryEntryId = entry.InventoryEntryId ?? Guid.NewGuid(),
+                        CreatedAt = now,
+                        CreatedBy = request.UpdatedBy,
+                    };
+                    await dbContext.InventoryEntries.AddAsync(entity);
+                }
+
+                entity.InventoryId = inventoryId;
+                entity.SlotIndex = entry.SlotIndex;
+                entity.ItemCategory = entry.ItemCategory;
+                entity.ItemId = entry.ItemId;
+                entity.InstanceType = entry.InstanceType;
+                entity.InstanceId = entry.InstanceId;
+                entity.Quantity = entry.Quantity;
+                entity.MetadataJson = entry.MetadataJson;
+                entity.UpdatedAt = now;
+                entity.UpdatedBy = request.UpdatedBy;
+                entity.IsDeleted = false;
+                nextEntries.Add(entity);
+            }
+
+            await dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return nextEntries
+                .OrderBy(x => x.SlotIndex.HasValue ? 0 : 1)
+                .ThenBy(x => x.SlotIndex)
+                .ThenBy(x => x.ItemId)
+                .Select(MapEntry)
+                .ToList();
+        });
     }
 
     public async Task<bool?> DeleteEntryAsync(Guid inventoryEntryId, Guid updatedBy)

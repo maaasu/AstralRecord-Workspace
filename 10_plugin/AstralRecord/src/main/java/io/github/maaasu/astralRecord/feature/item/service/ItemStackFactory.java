@@ -22,9 +22,6 @@ import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
 import io.github.maaasu.astralRecord.feature.loot.model.LootEntry;
 import io.github.maaasu.astralRecord.feature.loot.model.LootModel;
 import io.github.maaasu.astralRecord.feature.loot.service.LootService;
-import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
-import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
-import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -129,15 +126,6 @@ public class ItemStackFactory {
     /** バニラ由来表示を抑制するために適用する ItemFlag 一式（起動時解決） */
     private static final ItemFlag[] VANILLA_HIDE_FLAGS = resolveVanillaHideFlags();
 
-    private static final Set<String> HIDDEN_EQUIPMENT_SKILL_IDS = Set.of(
-            BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_MELEE,
-            BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_BOW,
-            BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_MAGIC,
-            BuiltInWeaponAttackDefinitions.SPECIAL_ATTACK_MELEE,
-            BuiltInWeaponAttackDefinitions.SPECIAL_ATTACK_BOW,
-            BuiltInWeaponAttackDefinitions.SPECIAL_ATTACK_MAGIC
-    );
-
     private static final String STATUS_VALUE_COLOR = ColorCodeUtil.WHITE + ColorCodeUtil.BOLD;
     private static final int DURABILITY_BAR_LENGTH = 20;
     private static final String DURABILITY_BAR_CHAR = "|";
@@ -152,7 +140,6 @@ public class ItemStackFactory {
     private final ItemService itemService;
     private final BuffRepository buffRepository = new BuffRepository();
     private final Map<String, String> buffDisplayNameCache = new ConcurrentHashMap<>();
-    private SkillService skillService;
 
     /**
      * ItemStackFactory を初期化します。
@@ -163,15 +150,6 @@ public class ItemStackFactory {
     public ItemStackFactory(@NotNull LootService lootService, @NotNull ItemService itemService) {
         this.lootService = lootService;
         this.itemService = itemService;
-    }
-
-    /**
-     * 装備 lore へスキル定義情報を表示するための参照を設定します。
-     *
-     * @param skillService 起動後に初期化されたスキルサービス
-     */
-    public void setSkillService(@NotNull SkillService skillService) {
-        this.skillService = skillService;
     }
 
     // region --- public API ---
@@ -197,7 +175,7 @@ public class ItemStackFactory {
         String key = cacheKey(model);
         ItemStack template = templateCache.computeIfAbsent(key, k -> buildTemplate(model));
         ItemStack item = template.clone();
-        item.setAmount(Math.clamp(amount, 1, model.getMaxStack()));
+        item.setAmount(Math.clamp(amount, 1, Math.max(1, model.getMaxStack())));
         return item;
     }
 
@@ -617,6 +595,16 @@ public class ItemStackFactory {
         if (model.getConsumable() != null) {
             appendConsumableLore(lore, model.getConsumable());
         }
+        if (model.getSkillGem() != null) {
+            lore.add(ColorCodeUtil.GREEN + "左クリックで習得");
+            lore.add(ColorCodeUtil.RED + "習得時にジェムを1個消費します");
+            lore.add("");
+        }
+        if (model.getSigil() != null) {
+            lore.add(ColorCodeUtil.LIGHT_PURPLE + "スキルマネージャーで合成");
+            lore.add(ColorCodeUtil.RED + "装着後は取り外せません");
+            lore.add("");
+        }
 
         appendSaleValueLore(lore, model);
 
@@ -684,7 +672,6 @@ public class ItemStackFactory {
             lore.add(formatDurabilityBarLore(durabilityMax, durabilityMax));
         }
 
-        appendEquipmentSkillLore(lore, equipment);
         lore.add("");
     }
 
@@ -830,53 +817,6 @@ public class ItemStackFactory {
                     + weightText);
         }
         lore.add("");
-    }
-
-    private void appendEquipmentSkillLore(@NotNull List<String> lore, @NotNull ItemEquipment equipment) {
-        List<String> skillIds = new ArrayList<>();
-        for (String skillId : equipment.getSkills()) {
-            addSkillId(skillIds, skillId);
-        }
-        if (skillIds.isEmpty()) {
-            return;
-        }
-
-        lore.add("");
-        lore.add(ColorCodeUtil.LIGHT_PURPLE + "◆ スキル");
-        for (String skillId : skillIds) {
-            appendSkillDefinitionLore(lore, skillId);
-        }
-    }
-
-    private void appendSkillDefinitionLore(@NotNull List<String> lore, @NotNull String skillId) {
-        SkillDefinition definition = skillService == null ? null : skillService.registry().getDefinition(skillId);
-        if (definition == null) {
-            lore.add(ColorCodeUtil.DARK_GRAY + "  - " + ColorCodeUtil.GRAY + "未読込スキル");
-            return;
-        }
-
-        String displayName = SkillPresentationUtil.legacyName(definition, "未定義スキル");
-        lore.add(ColorCodeUtil.DARK_GRAY + "  - " + ColorCodeUtil.WHITE + displayName);
-    }
-
-    private void addSkillId(@NotNull List<String> skillIds, @Nullable String skillId) {
-        if (skillId == null) {
-            return;
-        }
-        String normalizedSkillId = skillId.trim();
-        if (normalizedSkillId.isBlank()
-                || HIDDEN_EQUIPMENT_SKILL_IDS.contains(normalizedSkillId)
-                || skillIds.contains(normalizedSkillId)) {
-            return;
-        }
-        skillIds.add(normalizedSkillId);
-    }
-
-    private @NotNull String formatSkillTicks(long ticks) {
-        if (ticks <= 0L) {
-            return "-";
-        }
-        return ticks + "t";
     }
 
     private @NotNull String formatSkillDecimal(double value) {
@@ -1088,7 +1028,6 @@ public class ItemStackFactory {
             if (instance.getDurabilityMax() > 0) {
                 lore.add(formatDurabilityLore(instance));
             }
-            appendEquipmentSkillLore(lore, eq);
             lore.add("");
         }
 

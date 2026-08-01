@@ -16,6 +16,7 @@ unSellable: false
 equipment:
   slot: WEAPON
   handType: TWO
+  tag: BOW
   requiredLevel: 0
   stats:
     - status: ATTACK
@@ -27,9 +28,6 @@ equipment:
     - status: ACCURACY
       type: FLAT
       value: 2.0
-  onUse:
-    leftClickCooldownTicks: 12
-    leftClickSkillId: normal_attack_bow
   durability:
     max: 80
     consume: 1

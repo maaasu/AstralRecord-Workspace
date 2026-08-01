@@ -154,6 +154,40 @@ class SkillServiceDesignTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 5. cooldown・cast lifecycle
+     * 検証契約: 同じcooldownIdのスキルは発動者単位で共有し、開始時間は実際に発動したスキルの値を採用する。
+     */
+    @Test
+    void skillsWithSameCooldownIdShareTheCastingSkillsDuration() {
+        SkillRegistry registry = new SkillRegistry();
+        SkillService service = new SkillService(mock(SkillRepository.class), registry, null);
+        TestExecutor executor = new TestExecutor("shared_impl");
+        SkillDefinition shortSkill = skillWithCooldownId("short_skill", "shared_impl", 40L, "shared_magic");
+        SkillDefinition longSkill = skillWithCooldownId("long_skill", "shared_impl", 80L, "shared_magic");
+        registry.registerExecutor(executor);
+        registry.replaceDefinitions(Map.of(shortSkill.getId(), shortSkill, longSkill.getId(), longSkill));
+        TestCaster caster = new TestCaster(10, 20.0D, 20.0D);
+        Location location = new Location(null, 0.0D, 0.0D, 0.0D);
+
+        assertTrue(service.castSkill(caster, shortSkill.getId(), SkillCastTrigger.SYSTEM, location, null, List.of()).success());
+        long shortRemaining = service.getRemainingCooldownTicks(caster, "shared_magic");
+        assertTrue(shortRemaining > 0L && shortRemaining <= 40L);
+        assertEquals(40L, service.getCooldownDurationTicks(caster, "shared_magic"));
+        SkillCastResult blocked = service.castSkill(
+            caster, longSkill.getId(), SkillCastTrigger.SYSTEM, location, null, List.of()
+        );
+        assertFalse(blocked.success());
+        assertEquals(PlayerMsgId.P_5802, blocked.messageId());
+
+        service.clearCasterState(caster.casterId());
+        assertTrue(service.castSkill(caster, longSkill.getId(), SkillCastTrigger.SYSTEM, location, null, List.of()).success());
+        long longRemaining = service.getRemainingCooldownTicks(caster, "shared_magic");
+        assertTrue(longRemaining > 40L && longRemaining <= 80L);
+        assertEquals(80L, service.getCooldownDurationTicks(caster, "shared_magic"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 1. definition load / reload
      * 検証契約: legacy mana項目をresourceへ正規化しmalformed definitionだけを除外して他を公開する。
      */
@@ -337,6 +371,38 @@ class SkillServiceDesignTest {
             true,
             resourceType,
             resourceCost
+        );
+    }
+
+    private SkillDefinition skillWithCooldownId(
+        String id,
+        String implementationId,
+        long cooldownTicks,
+        String cooldownId
+    ) {
+        return new SkillDefinition(
+            id,
+            implementationId,
+            id,
+            null,
+            null,
+            List.of(),
+            cooldownTicks,
+            0.0D,
+            0L,
+            1,
+            null,
+            Map.of(),
+            List.of(),
+            SkillKind.ACTIVE,
+            true,
+            SkillResourceType.MANA,
+            0.0D,
+            cooldownId,
+            1,
+            List.of(),
+            List.of(),
+            List.of()
         );
     }
 

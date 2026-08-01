@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.inventory.model
 
+import java.time.LocalDateTime
 import java.util.UUID
 
 data class InventoryEntryDraft(
@@ -10,4 +11,6 @@ data class InventoryEntryDraft(
     val instanceId: UUID?,
     val quantity: Long = 1,
     val metadataJson: String? = null,
+    val inventoryEntryId: UUID? = null,
+    val expectedUpdatedAt: LocalDateTime? = null,
 )

@@ -6,9 +6,11 @@
 ## 対象実装パス
 
 - `20_api/AstralRecordApi/AstralRecordApi/Controllers/SkillController.cs`
+- `20_api/AstralRecordApi/AstralRecordApi/Controllers/AccountLearnedSkillController.cs`
 - `20_api/AstralRecordApi/AstralRecordApi/Models/SkillResponse.cs`
 - `20_api/AstralRecordApi/AstralRecordApi/Repositories/ISkillRepository.cs`
 - `20_api/AstralRecordApi/AstralRecordApi/Repositories/SkillRepository.cs`
+- `20_api/AstralRecordApi/AstralRecordApi/Repositories/AccountLearnedSkillRepository.cs`
 
 ## マスタデータの所在
 

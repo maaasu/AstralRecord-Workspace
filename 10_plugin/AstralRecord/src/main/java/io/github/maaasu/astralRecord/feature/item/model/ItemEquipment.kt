@@ -18,8 +18,6 @@ data class ItemEquipment(
     val setId: String? = null,
     val stats: List<ItemEquipmentStat> = emptyList(),
     val durability: ItemEquipmentDurability?,
-    val onUse: ItemEquipmentOnUse?,
-    val skills: List<String> = emptyList(),
     /** 強化システム定義（null ならば強化不可） */
     val enhance: ItemEquipmentEnhance? = null,
     /** エンチャントシステム定義（null ならばエンチャント不可） */
@@ -139,11 +137,6 @@ data class ItemEquipmentDurability(
     val consume: Int = 1,
 )
 
-data class ItemEquipmentOnUse(
-    val leftClickCooldownTicks: Int?,
-    val leftClickSkillId: String?,
-)
-
 /**
  * 装備に必要な現在クラスとクラスレベル。
  */
@@ -259,4 +252,3 @@ data class ItemEquipmentTranscendence(
     /** 状態変化後のエンチャント最大スロット数（未設定なら null） */
     val overridesEnchantMaxSlots: Int?,
 )
-

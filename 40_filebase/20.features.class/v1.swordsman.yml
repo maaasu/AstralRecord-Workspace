@@ -58,8 +58,15 @@ growthPerLevel:
   - status: MAGIC_DEFENSE
     value: 0.4
 expRate: 100
-starterSkills: []
-levelSkills: []
+usableSkills:
+  - skill:swordsman_crescent_slash
+  - skill:swordsman_piercing_thrust
+  - skill:swordsman_whirlwind
+  - skill:swordsman_vanguard_rush
+  - skill:swordsman_blade_wave
+  - skill:swordsman_fortress_guard
+  - skill:swordsman_war_cry
+  - skill:swordsman_earthbreaker
 tags:
   - tier1
   - melee

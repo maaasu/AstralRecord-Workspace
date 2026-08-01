@@ -19,6 +19,19 @@ ITEMの基本的なスキーマ定義。
 | `unTradeable`     | Boolean      | ×  | false     | trueでトレード不可                                            |
 | `unSellable`      | Boolean      | ×  | false     | trueで売却不可                                              |
 
+`sigil` カテゴリは習得済みスキル個体へ消費装着する専用アイテムです。
+
+| キー | 型 | 必須 | デフォルト | 説明 |
+|:--|:--|:--:|:--|:--|
+| `sigil.equipGroupId` | String | ○ | - | 1～128文字。同じスキル個体へ重複装着できないグループ ID。シジル ID とは独立して定義する |
+| `sigil.modifiers[]` | List | × | `[]` | 対象スキルの計算中だけ加算するステータス補正 |
+| `sigil.modifiers[].status` | String | ○ | - | 共有ステータス ID |
+| `sigil.modifiers[].value` | Double | ○ | - | 加算値。同一ステータスは装着シジル間で合算する |
+
+ロジック変更型シジルは `modifiers` を空にし、シジルのアイテム ID を個別スキル executor の `hasSigil` 判定と一致させます。取り外し・汎用優先順位・矛盾解決は定義しません。
+
+シジルのitem IDはインベントリ列へ格納できる100文字以内とします。`modifiers[].status` は共有ステータスカタログに存在するID、`value`は有限値でなければなりません。
+
 #### rarity
 以下のいずれかの値を指定します。
 - COMMON (C, c, 0)

@@ -8,6 +8,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 
 /**
  * スキル実行クラスに引き渡す発動時コンテキスト。
@@ -33,13 +34,50 @@ public record SkillCastContext(
         @NotNull Location castLocation,
         @NotNull StatusSnapshot statusSnapshot,
         @NotNull SkillCastTrigger trigger,
-        @NotNull Instant now
+        @NotNull Instant now,
+        @Nullable LearnedSkillInstance learnedSkill,
+        @NotNull Set<String> effectiveSigilIds
 ) {
+
+    public SkillCastContext(
+        @NotNull SkillDefinition skill,
+        @NotNull SkillCaster caster,
+        @Nullable LivingEntity primaryTarget,
+        @NotNull List<LivingEntity> targets,
+        @NotNull Location castLocation,
+        @NotNull StatusSnapshot statusSnapshot,
+        @NotNull SkillCastTrigger trigger,
+        @NotNull Instant now
+    ) {
+        this(skill, caster, primaryTarget, targets, castLocation, statusSnapshot, trigger, now, null, Set.of());
+    }
+
+    public SkillCastContext(
+        @NotNull SkillDefinition skill,
+        @NotNull SkillCaster caster,
+        @Nullable LivingEntity primaryTarget,
+        @NotNull List<LivingEntity> targets,
+        @NotNull Location castLocation,
+        @NotNull StatusSnapshot statusSnapshot,
+        @NotNull SkillCastTrigger trigger,
+        @NotNull Instant now,
+        @Nullable LearnedSkillInstance learnedSkill
+    ) {
+        this(skill, caster, primaryTarget, targets, castLocation, statusSnapshot, trigger, now,
+            learnedSkill, learnedSkill == null ? Set.of() : learnedSkill.getSigils().stream()
+                .map(LearnedSkillSigil::getSigilId).collect(java.util.stream.Collectors.toSet()));
+    }
 
     /**
      * targets を変更不可リストとして保持するため、コンパクトコンストラクタで防御的コピーを取る。
      */
     public SkillCastContext {
         targets = targets == null ? List.of() : List.copyOf(targets);
+        effectiveSigilIds = effectiveSigilIds == null ? Set.of() : Set.copyOf(effectiveSigilIds);
+    }
+
+    /** ロジック変更系シジルを executor から明示判定します。 */
+    public boolean hasSigil(@NotNull String sigilId) {
+        return effectiveSigilIds.contains(sigilId);
     }
 }

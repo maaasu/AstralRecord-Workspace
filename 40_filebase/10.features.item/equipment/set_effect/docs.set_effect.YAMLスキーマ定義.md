@@ -17,7 +17,6 @@ Equipment 側の `setId` でこのファイルの `id` を参照することで�
 | `pieces[].stats[].status` | String       | ×  | -     | 対象ステータス（`StatusType`）。例: `DEFENSE` / `MAX_HEALTH`。                        |
 | `pieces[].stats[].type`   | String       | ×  | -     | 補正方式（`FLAT` / `SCALAR`）。`FLAT` は加算、`SCALAR` は乗算係数。                        |
 | `pieces[].stats[].value`  | String       | ×  | -     | 補正値。固定値または範囲（例: `10` / `5~15`）。`SCALAR` の場合は `0.10 = +10%`。               |
-| `pieces[].skills[]`       | List<String> | ×  | -     | この装着数で発動するスキルIDのリスト（参照値）。                                                 |
 
 ### pieces[].stats[].type
 - `FLAT` : 定数加算
@@ -28,12 +27,6 @@ Equipment 側の `setId` でこのファイルの `id` を参照することで�
 - プレイヤーが同じ `setId` を持つ装備を同時に装着している数がカウントされます。
 - `pieces[].count` の条件を満たす効果がすべて累積して適用されます（例: 2セット効果と4セット効果の両方の条件を満たす場合、両方が同時に有効になる）。
 - 装着数が減り条件を下回った場合は、その効果は即時無効になります。
-- `pieces[].skills[]` で指定したスキルは、パッシブスキルとして常時発動します。スキル自体の定義はスキルスキーマを参照してください。
-
-### 参照（ref）
-セット効果のスキルには `skill:` prefix を使用します（aliases: `sk`）。
-
-- 例: `ref: skill:iron_will`
 
 Equipment 側からセット効果を参照する場合は `setId` に ID を直接文字列で指定します。
 
@@ -41,7 +34,7 @@ Equipment 側からセット効果を参照する場合は `setId` に ID を直
 
 ## YAML 例
 
-以下のセット効果 ID は書式説明用の架空例です。スキル参照には現行マスタの実在 ID を使用しています。
+以下のセット効果 ID は書式説明用の架空例です。セット効果はステータス補正だけを定義し、スキル付与は行いません。
 
 ### 例1: 2段階のセット効果を持つ架空のガーディアンセット
 
@@ -68,11 +61,9 @@ pieces:
       - status: HP_REGEN
         type: FLAT
         value: 5
-    skills:
-      - ref: skill:iron_will
 ```
 
-### 例2: スキル付き3段階セット効果
+### 例2: 3段階セット効果
 
 ```yaml
 id: example_shadow_set
@@ -91,8 +82,6 @@ pieces:
       - status: CRITICAL_DAMAGE
         type: FLAT
         value: 20
-    skills:
-      - ref: skill:iron_will
   - count: 6
     stats:
       - status: ATTACK
@@ -101,9 +90,6 @@ pieces:
       - status: CRITICAL_RATE
         type: FLAT
         value: 12
-    skills:
-      - ref: skill:iron_will
-      - ref: skill:iron_will
 ```
 
 ---

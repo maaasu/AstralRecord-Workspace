@@ -79,6 +79,48 @@ class SkillTreeNodeRepositoryTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
      * 章・見出し: # 13_3-リポジトリ > ## 6. skill tree node 定義読込
+     * 検証契約: 同じclass条件で同じskill使用許可を複数nodeへ定義できない。
+     */
+    @Test
+    void rejectsDuplicateSkillPermissionsWithSameClassCondition() throws IOException {
+        String skillEffect = "[{\"type\": \"skill\", \"skillId\": \"iron_will\"}]";
+        writeNode("1000.json", nodeJson("1000", skillEffect));
+        writeNode("1001.json", nodeJson("1001", skillEffect));
+
+        IllegalStateException error = assertThrows(
+                IllegalStateException.class,
+                () -> repository().findAll()
+        );
+
+        assertTrue(error.getMessage().contains("duplicate skill permission 'iron_will'"));
+        assertTrue(error.getMessage().contains("nodes '1000' and '1001'"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
+     * 章・見出し: # 13_3-リポジトリ > ## 6. skill tree node 定義読込
+     * 検証契約: class条件が異なるnodeには同じskill使用許可を定義できる。
+     */
+    @Test
+    void allowsSameSkillPermissionForDifferentClassConditions() throws IOException {
+        String skillEffect = "[{\"type\": \"skill\", \"skillId\": \"iron_will\"}]";
+        writeNode("1000.json", nodeJson("1000", skillEffect).replace(
+                "\"effects\":",
+                "\"unlockCondition\": {\"classId\": \"hunter\"},\n  \"effects\":"
+        ));
+        writeNode("1001.json", nodeJson("1001", skillEffect).replace(
+                "\"effects\":",
+                "\"unlockCondition\": {\"classId\": \"mage\"},\n  \"effects\":"
+        ));
+
+        var nodes = repository().findAll();
+
+        assertEquals(2, nodes.size());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
+     * 章・見出し: # 13_3-リポジトリ > ## 6. skill tree node 定義読込
      * 検証契約: schema外legacy propertyと先頭0付きnode IDを拒否する。
      */
     @Test
@@ -133,7 +175,7 @@ class SkillTreeNodeRepositoryTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_1-モデル定義.md
-     * 章・見出し: # 13_1-モデル定義 > ## 10. skill tree master data > ### node definition
+     * 章・見出し: # 13_1-モデル定義 > ## 10. スキルツリー > ### node definition
      * 検証契約: 現schemaにないclass level conditionを未知propertyとして拒否する。
      */
     @Test

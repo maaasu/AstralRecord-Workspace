@@ -7,6 +7,9 @@ import com.google.gson.JsonParser
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType
+import io.github.maaasu.astralRecord.feature.skill.model.SkillLevelDefinition
+import io.github.maaasu.astralRecord.feature.skill.model.SkillSigilSlotDefinition
+import io.github.maaasu.astralRecord.feature.skill.model.SkillStatusModifierDefinition
 import io.github.maaasu.astralRecord.feature.skill.model.SkillSummary
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger
@@ -118,7 +121,62 @@ class SkillRepository {
             passiveBindRequired = parsePassiveBindRequired(parseObjectOrNull(obj, "passive")),
             resourceType = parseResourceTypeOrNull(obj.get("resourceType")),
             resourceCost = parseResourceCostOrNull(obj.get("resourceCost")),
+            cooldownId = obj.get("cooldownId")?.takeIf { !it.isJsonNull }?.asString,
+            maxLevel = obj.get("maxLevel")?.takeIf { !it.isJsonNull }?.asInt ?: 1,
+            levels = parseLevels(obj.getAsJsonArray("levels")),
+            sigilSlotsByLevel = parseSigilSlots(obj.getAsJsonArray("sigilSlotsByLevel")),
+            allowedSigilIds = parseStringList(obj.getAsJsonArray("allowedSigilIds")),
         )
+    }
+
+    private fun parseLevels(array: JsonArray?): List<SkillLevelDefinition> {
+        if (array == null) return emptyList()
+        return array
+            .filter { it.isJsonObject }
+            .map { element ->
+                val obj = element.asJsonObject
+                SkillLevelDefinition(
+                    level = obj.get("level")?.asInt ?: 1,
+                    cooldownTicksDelta = obj.get("cooldownTicksDelta")?.takeIf { !it.isJsonNull }?.asLong ?: 0L,
+                    resourceCostDelta = obj.get("resourceCostDelta")?.takeIf { !it.isJsonNull }?.asDouble ?: 0.0,
+                    castTimeTicksDelta = obj.get("castTimeTicksDelta")?.takeIf { !it.isJsonNull }?.asLong ?: 0L,
+                    paramDeltas = parseDoubleMap(obj.getAsJsonObject("paramDeltas")),
+                    statusModifiers = parseStatusModifiers(obj.getAsJsonArray("statusModifiers")),
+                )
+            }
+            .sortedBy { it.level }
+    }
+
+    private fun parseSigilSlots(array: JsonArray?): List<SkillSigilSlotDefinition> {
+        if (array == null) return emptyList()
+        return array
+            .filter { it.isJsonObject }
+            .map { element ->
+                val obj = element.asJsonObject
+                SkillSigilSlotDefinition(
+                    level = obj.get("level")?.asInt ?: 1,
+                    slots = obj.get("slots")?.asInt ?: 0,
+                )
+            }
+            .sortedBy { it.level }
+    }
+
+    private fun parseStatusModifiers(array: JsonArray?): List<SkillStatusModifierDefinition> {
+        if (array == null) return emptyList()
+        return array
+            .filter { it.isJsonObject }
+            .map { element ->
+                val obj = element.asJsonObject
+                SkillStatusModifierDefinition(
+                    status = obj.get("status").asString,
+                    value = obj.get("value")?.asDouble ?: 0.0,
+                )
+            }
+    }
+
+    private fun parseDoubleMap(obj: JsonObject?): Map<String, Double> {
+        if (obj == null) return emptyMap()
+        return obj.entrySet().associate { (key, value) -> key to value.asDouble }
     }
 
     private fun parseResourceTypeOrNull(element: JsonElement?): SkillResourceType? {

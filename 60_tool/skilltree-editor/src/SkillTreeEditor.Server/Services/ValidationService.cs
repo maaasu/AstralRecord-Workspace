@@ -40,6 +40,7 @@ public sealed class ValidationService(
                 "DUPLICATE_NODE_ID",
                 $"nodeId '{duplicate.Key}' is defined by multiple files: {string.Join(", ", duplicate.Select(value => value.Document.FileName))}");
         }
+        ValidateUniqueSkillPermissions(nodes, report);
 
         foreach (var duplicate in structures
                      .Select(document => (Document: document, Id: JsonValueReader.String(document.Content["structureId"])))
@@ -125,10 +126,10 @@ public sealed class ValidationService(
             ValidateNodeTags(candidate, existingFileName, masterTags, report);
 
         var candidateId = JsonValueReader.String(candidate["nodeId"]);
+        var stored = await LoadDirectoryAsync(paths.Nodes, "NODE_JSON_INVALID", report, cancellationToken);
         if (!string.IsNullOrWhiteSpace(candidateId))
         {
             ValidateDocumentFileName(candidate, "nodeId", existingFileName, "NODE_FILE_NAME_MISMATCH", report);
-            var stored = await LoadDirectoryAsync(paths.Nodes, "NODE_JSON_INVALID", report, cancellationToken);
             var conflicts = stored.Where(document =>
                     !string.Equals(document.FileName, existingFileName, StringComparison.OrdinalIgnoreCase)
                     && string.Equals(JsonValueReader.String(document.Content["nodeId"]), candidateId, StringComparison.Ordinal))
@@ -144,7 +145,57 @@ public sealed class ValidationService(
             }
         }
 
+        var candidateFileName = existingFileName ?? "<new-node>";
+        var skillPermissionDocuments = stored
+            .Where(document => !string.Equals(document.FileName, existingFileName, StringComparison.OrdinalIgnoreCase))
+            .Append(new StoredDocument(candidateFileName, string.Empty, candidate))
+            .ToArray();
+        ValidateUniqueSkillPermissions(skillPermissionDocuments, report);
+
         return report;
+    }
+
+    private static void ValidateUniqueSkillPermissions(
+        IEnumerable<StoredDocument> nodes,
+        ValidationReport report)
+    {
+        var definitions = new Dictionary<string, (string NodeId, string FileName)>(StringComparer.Ordinal);
+        foreach (var document in nodes)
+        {
+            var nodeId = JsonValueReader.String(document.Content["nodeId"]) ?? "(unknown)";
+            var classId = document.Content["unlockCondition"] is JsonObject unlockCondition
+                ? JsonValueReader.String(unlockCondition["classId"])?.Trim().ToLowerInvariant() ?? string.Empty
+                : string.Empty;
+            if (document.Content["effects"] is not JsonArray effects)
+                continue;
+
+            for (var index = 0; index < effects.Count; index++)
+            {
+                if (effects[index] is not JsonObject effect
+                    || !string.Equals(JsonValueReader.String(effect["type"]), "skill", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var skillId = JsonValueReader.String(effect["skillId"])?.Trim().ToLowerInvariant();
+                if (string.IsNullOrWhiteSpace(skillId))
+                    continue;
+
+                var key = classId + "\0" + skillId;
+                if (definitions.TryAdd(key, (nodeId, document.FileName)))
+                    continue;
+
+                var previous = definitions[key];
+                var condition = string.IsNullOrEmpty(classId)
+                    ? "without a class condition"
+                    : $"for class '{classId}'";
+                report.AddError(
+                    "DUPLICATE_SKILL_PERMISSION",
+                    $"Skill permission '{skillId}' {condition} is duplicated by nodes '{previous.NodeId}' ({previous.FileName}) and '{nodeId}' ({document.FileName}).",
+                    document.FileName,
+                    $"/effects/{index}/skillId");
+            }
+        }
     }
 
     public async Task<ValidationReport> ValidateStructureDocumentAsync(

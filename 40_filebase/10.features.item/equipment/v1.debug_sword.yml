@@ -22,9 +22,6 @@ equipment:
     - status: ATTACK
       type: FLAT
       value: 300
-  onUse:
-    leftClickCooldownTicks: 2
-    leftClickSkillId: normal_attack_melee
   durability:
     max: 100000000
     consume: 1

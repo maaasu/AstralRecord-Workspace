@@ -23,6 +23,7 @@
 | DB | migration | 内容 |
 |:--|:--|:--|
 | `AstralRecord` | `AstralRecord/migrations/20260801_remove_builder.sql` | 廃止済みアカウント・権限値の移行と管理用プロファイルの改名 |
+| `AstralRecord` | `AstralRecord/migrations/20260802_add_learned_skills.sql` | 習得スキル個体、装着シジル、6プリセット、動的補償メールの追加 |
 
 ## AstralRecord
 
@@ -31,9 +32,12 @@
 | `dbo.user` | `AstralRecord/dbo.user.md` |
 | `dbo.user_setting` | `AstralRecord/dbo.user_setting.md` |
 | `dbo.player_mail_state` | `AstralRecord/dbo.player_mail_state.md` |
+| `dbo.player_mail_delivery` | `AstralRecord/dbo.player_mail_delivery.md` |
 | `dbo.account_mob_record` | `AstralRecord/dbo.account_mob_record.md` |
 | `dbo.account` | `AstralRecord/dbo.account.md` |
 | `dbo.account_class_progress` | `AstralRecord/dbo.account_class_progress.md` |
+| `dbo.account_learned_skill` | `AstralRecord/dbo.account_learned_skill.md` |
+| `dbo.account_learned_skill_sigil` | `AstralRecord/dbo.account_learned_skill_sigil.md` |
 | `dbo.account_guide_step_progress` | `AstralRecord/dbo.account_guide_step_progress.md` |
 | `dbo.account_skilltree_state` | `AstralRecord/dbo.account_skilltree_state.md` |
 | `dbo.account_skilltree_unlocked_node` | `AstralRecord/dbo.account_skilltree_unlocked_node.md` |

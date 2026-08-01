@@ -8,11 +8,11 @@ namespace AstralRecordApi.Repositories;
 
 public class SkillBindPresetRepository(AstralRecordDbContext dbContext) : ISkillBindPresetRepository
 {
-    public const int PresetCount = 9;
+    public const int PresetCount = 6;
     public const int ActionRingSlotCount = 6;
-    public const int PassiveSlotCount = 8;
+    public const int PassiveSlotCount = 9;
     private const int DefaultUnlockedPresetCount = 3;
-    private const string WeaponNormalAttackBindingId = "__weapon_normal_attack__";
+    internal const string WeaponNormalAttackBindingId = "__weapon_normal_attack__";
 
     public async Task<IReadOnlyList<SkillBindPresetResponse>> GetByAccountIdAsync(Guid accountId)
     {
@@ -45,6 +45,9 @@ public class SkillBindPresetRepository(AstralRecordDbContext dbContext) : ISkill
         var now = DateTime.UtcNow;
         var activeSlots = NormalizeSlots(request.ActiveSkillSlots, ActionRingSlotCount);
         var passiveSlots = NormalizeSlots(request.PassiveSkillSlots, PassiveSlotCount);
+        var leftClickSkillId = NormalizeSkillId(request.LeftClickSkillId);
+        if (!await HasValidOwnedBindingsAsync(accountId, activeSlots, leftClickSkillId, passiveSlots))
+            return null;
         var entity = await dbContext.SkillBindPresets
             .FirstOrDefaultAsync(x => x.AccountId == accountId
                 && x.PresetIndex == presetIndex
@@ -70,7 +73,7 @@ public class SkillBindPresetRepository(AstralRecordDbContext dbContext) : ISkill
         }
 
         entity.ActiveSkillSlotsJson = JsonSerializer.Serialize(activeSlots);
-        entity.LeftClickSkillId = NormalizeSkillId(request.LeftClickSkillId) ?? string.Empty;
+        entity.LeftClickSkillId = leftClickSkillId ?? string.Empty;
         entity.PassiveSkillSlotsJson = JsonSerializer.Serialize(passiveSlots);
         entity.IsUnlocked = request.IsUnlocked ?? (entity.IsUnlocked || presetIndex <= DefaultUnlockedPresetCount);
         entity.UpdatedAt = now;
@@ -123,6 +126,44 @@ public class SkillBindPresetRepository(AstralRecordDbContext dbContext) : ISkill
 
     private static string? NormalizeSkillId(string? skillId)
         => string.IsNullOrWhiteSpace(skillId) ? null : skillId.Trim();
+
+    private async Task<bool> HasValidOwnedBindingsAsync(
+        Guid accountId,
+        IReadOnlyList<string?> activeSlots,
+        string? leftClickSkillId,
+        IReadOnlyList<string?> passiveSlots)
+    {
+        if (!await dbContext.Accounts.AsNoTracking()
+                .AnyAsync(account => account.Uuid == accountId && !account.IsDeleted))
+            return false;
+        if (activeSlots.Any(slot => string.Equals(slot, WeaponNormalAttackBindingId, StringComparison.Ordinal))
+            || passiveSlots.Any(slot => string.Equals(slot, WeaponNormalAttackBindingId, StringComparison.Ordinal)))
+            return false;
+
+        var rawBindings = activeSlots
+            .Concat(passiveSlots)
+            .Append(leftClickSkillId)
+            .Where(binding => !string.IsNullOrWhiteSpace(binding)
+                && !string.Equals(binding, WeaponNormalAttackBindingId, StringComparison.Ordinal))
+            .Select(binding => binding!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var learnedSkillIds = new List<Guid>(rawBindings.Length);
+        foreach (var binding in rawBindings)
+        {
+            if (!Guid.TryParse(binding, out var learnedSkillId))
+                return false;
+            learnedSkillIds.Add(learnedSkillId);
+        }
+        if (learnedSkillIds.Count == 0)
+            return true;
+
+        var ownedCount = await dbContext.AccountLearnedSkills.AsNoTracking()
+            .CountAsync(skill => skill.AccountId == accountId
+                && !skill.IsDeleted
+                && learnedSkillIds.Contains(skill.LearnedSkillId));
+        return ownedCount == learnedSkillIds.Count;
+    }
 
     private static IReadOnlyList<string?> DeserializeSlots(string? json, int slotCount)
     {

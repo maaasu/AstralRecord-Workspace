@@ -35,11 +35,20 @@ public final class MageFireballExecutor extends PlayerActiveSkillExecutor {
                 SharedParticleDefinitions.SKILL_MAGE_FIRE,
                 SharedParticleDefinitions.SKILL_MAGE_FIRE
         );
-        context.services().projectiles().launch(
-                context.player(), context.eyeLocation(), context.direction(), projectile,
-                (target, impact) -> detonate(context, attacker, impact, detonated),
-                end -> detonate(context, attacker, end, detonated)
-        );
+        if (context.source().hasSigil("homing_fireball_sigil")) {
+            context.services().projectiles().launchHoming(
+                    context.player(), context.eyeLocation(), context.direction(), projectile,
+                    0.22D, 6.0D,
+                    (target, impact) -> detonate(context, attacker, impact, detonated),
+                    end -> detonate(context, attacker, end, detonated)
+            );
+        } else {
+            context.services().projectiles().launch(
+                    context.player(), context.eyeLocation(), context.direction(), projectile,
+                    (target, impact) -> detonate(context, attacker, impact, detonated),
+                    end -> detonate(context, attacker, end, detonated)
+            );
+        }
         context.services().effects().sound(context.eyeLocation(), Sound.ITEM_FIRECHARGE_USE, 1.0F, 1.0F);
         return context.success();
     }

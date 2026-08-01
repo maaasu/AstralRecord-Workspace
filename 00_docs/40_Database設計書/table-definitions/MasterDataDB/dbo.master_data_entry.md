@@ -41,6 +41,8 @@ API はこのテーブルを `master_type` + `master_id` で検索し、必要�
 | `updated_by` | `UNIQUEIDENTIFIER` |  | ○ |  | 最終更新者 UUID |
 | `is_deleted` | `BIT` |  | ○ | `0` | 論理削除フラグ |
 
+`rebuild` でもentryは物理削除せずtombstoneとして保持する。特に削除済みシジルは、既に装着されていた個体の補償メール添付を受領時に解決するためpayloadを保持する。
+
 ---
 
 ## 制約定義

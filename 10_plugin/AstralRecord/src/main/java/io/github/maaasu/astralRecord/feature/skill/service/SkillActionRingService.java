@@ -7,6 +7,8 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
+import io.github.maaasu.astralRecord.feature.skill.model.ResolvedLearnedSkill;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
@@ -57,6 +59,7 @@ public final class SkillActionRingService {
     private final SkillBindPresetService presetService;
     private final SkillService skillService;
     private final SkillOwnershipService ownershipService;
+    private final SkillPermissionService permissionService;
     private final SkillActionRingDisplay actionRingDisplay;
     private final Map<UUID, RingSession> sessions = new ConcurrentHashMap<>();
     private final Set<UUID> suppressedAttackPlayers = ConcurrentHashMap.newKeySet();
@@ -74,12 +77,14 @@ public final class SkillActionRingService {
         @NotNull AstralRecord plugin,
         @NotNull SkillBindPresetService presetService,
         @NotNull SkillService skillService,
-        @NotNull SkillOwnershipService ownershipService
+        @NotNull SkillOwnershipService ownershipService,
+        @NotNull SkillPermissionService permissionService
     ) {
         this.plugin = plugin;
         this.presetService = presetService;
         this.skillService = skillService;
         this.ownershipService = ownershipService;
+        this.permissionService = permissionService;
         this.actionRingDisplay = new SkillActionRingDisplay(plugin);
     }
 
@@ -202,9 +207,10 @@ public final class SkillActionRingService {
             itemWeaponAttackService.handleLeftClick(astPlayer, player.getEyeLocation());
             skillDisplayName = "武器通常攻撃";
         } else if (skillId != null && !skillId.isBlank()) {
-            SkillDefinition definition = skillService.registry().getDefinition(skillId);
+            LearnedSkillInstance learned = ownershipService.findInstance(astPlayer, skillId);
+            SkillDefinition definition = learned == null ? null : skillService.registry().getDefinition(learned.getSkillId());
             skillDisplayName = SkillPresentationUtil.plainName(definition, "未定義スキル");
-            SkillCastResult castResult = skillService.castSkill(
+            SkillCastResult castResult = skillService.castLearnedSkill(
                 new PlayerSkillCaster(astPlayer),
                 skillId,
                 SkillCastTrigger.PLAYER_COMMAND,
@@ -282,8 +288,6 @@ public final class SkillActionRingService {
             .findFirst()
             .map(SkillBindPreset::getActiveSkillSlots)
             .orElse(List.of());
-        Set<String> ownedSkillIds = ownershipService.ownedSkillIds(astPlayer);
-
         for (int index = 0; index < SLOT_COUNT; index++) {
             String skillId = index < activeSlots.size() ? activeSlots.get(index) : null;
             if (skillId == null || skillId.isBlank()) {
@@ -307,7 +311,9 @@ public final class SkillActionRingService {
                 ));
                 continue;
             }
-            SkillDefinition definition = skillService.registry().getDefinition(skillId);
+            LearnedSkillInstance learned = ownershipService.findInstance(astPlayer, skillId);
+            ResolvedLearnedSkill resolved = learned == null ? null : skillService.resolveLearnedSkill(learned);
+            SkillDefinition definition = resolved == null ? null : resolved.definition();
             if (definition != null && definition.getKind() != SkillKind.ACTIVE) {
                 slots.add(new SlotView(skillId, definition, "設定不可", Material.BARRIER, false, SlotAvailability.UNAVAILABLE));
                 continue;
@@ -315,12 +321,13 @@ public final class SkillActionRingService {
             String displayName = definition == null
                     ? "未定義スキル"
                     : SkillPresentationUtil.legacyName(definition, "未定義スキル");
-            boolean owned = ownedSkillIds.contains(skillId);
+            boolean owned = learned != null;
+            boolean permitted = learned != null && permissionService.isPermitted(astPlayer, learned.getSkillId());
             Material material = owned ? parseMaterial(definition == null ? null : definition.getIcon(), Material.BARRIER) : Material.BARRIER;
-            SlotAvailability availability = definition == null || !owned
+            SlotAvailability availability = definition == null || !owned || !permitted
                 ? SlotAvailability.UNAVAILABLE
-                : availabilityFor(skillService.canCast(caster, definition));
-            slots.add(new SlotView(skillId, definition, displayName, material, owned, availability));
+                : availabilityFor(skillService.canCast(caster, resolved));
+            slots.add(new SlotView(skillId, definition, displayName, material, owned, availability, resolved));
         }
         return slots;
     }
@@ -346,7 +353,7 @@ public final class SkillActionRingService {
             return;
         }
         if (skillId != null && !skillId.isBlank()) {
-            skillService.castSkill(
+            skillService.castLearnedSkill(
                 new PlayerSkillCaster(astPlayer), skillId, SkillCastTrigger.PLAYER_COMMAND,
                 astPlayer.getBukkit().getEyeLocation(), null, List.of()
             );
@@ -370,10 +377,11 @@ public final class SkillActionRingService {
         if (SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID.equals(preset.getLeftClickSkillId())) {
             return itemWeaponAttackService != null && itemWeaponAttackService.hasLeftClickAction(astPlayer);
         }
-        SkillDefinition definition = skillService.registry().getDefinition(preset.getLeftClickSkillId());
+        LearnedSkillInstance learned = ownershipService.findInstance(astPlayer, preset.getLeftClickSkillId());
+        SkillDefinition definition = learned == null ? null : skillService.registry().getDefinition(learned.getSkillId());
         return definition != null
             && definition.getKind() == SkillKind.ACTIVE
-            && ownershipService.owns(astPlayer, preset.getLeftClickSkillId());
+            && permissionService.isPermitted(astPlayer, learned.getSkillId());
     }
 
     private @Nullable SkillBindPreset selectedPreset(@NotNull AstPlayer astPlayer) {
@@ -421,8 +429,20 @@ public final class SkillActionRingService {
         @NotNull String name,
         @NotNull Material material,
         boolean owned,
-        @NotNull SlotAvailability availability
+        @NotNull SlotAvailability availability,
+        ResolvedLearnedSkill learnedResolution
     ) {
+        private SlotView(
+            String skillId,
+            SkillDefinition definition,
+            @NotNull String name,
+            @NotNull Material material,
+            boolean owned,
+            @NotNull SlotAvailability availability
+        ) {
+            this(skillId, definition, name, material, owned, availability, null);
+        }
+
         private boolean selectable() {
             return availability == SlotAvailability.AVAILABLE;
         }
@@ -434,8 +454,10 @@ public final class SkillActionRingService {
             if (!owned || definition == null || definition.getKind() != SkillKind.ACTIVE) {
                 return this;
             }
-            SlotAvailability nextAvailability = availabilityFor(skillService.canCast(caster, definition));
-            return new SlotView(skillId, definition, name, material, true, nextAvailability);
+            SlotAvailability nextAvailability = availabilityFor(learnedResolution == null
+                ? skillService.canCast(caster, definition)
+                : skillService.canCast(caster, learnedResolution));
+            return new SlotView(skillId, definition, name, material, true, nextAvailability, learnedResolution);
         }
 
         private @NotNull String label(@NotNull SkillService skillService, @NotNull PlayerSkillCaster caster) {
@@ -456,8 +478,18 @@ public final class SkillActionRingService {
             @NotNull SkillService skillService,
             @NotNull PlayerSkillCaster caster
         ) {
-            long totalTicks = Math.max(1L, definition.getCooldownTicks());
-            long remainingTicks = Math.min(totalTicks, skillService.getRemainingCooldownTicks(caster, skillId));
+            String cooldownId = skillService.resolveCooldownId(definition.getId());
+            long totalTicks = skillService.getCooldownDurationTicks(caster, cooldownId);
+            if (totalTicks <= 0L) {
+                totalTicks = learnedResolution == null
+                    ? definition.getCooldownTicks()
+                    : skillService.resolvedCooldownTicks(caster, learnedResolution);
+            }
+            totalTicks = Math.max(1L, totalTicks);
+            long remainingTicks = Math.min(
+                totalTicks,
+                skillService.getRemainingCooldownTicks(caster, cooldownId)
+            );
             int filled = (int) Math.ceil((double) remainingTicks / totalTicks * COOLDOWN_BAR_LENGTH);
             StringBuilder bar = new StringBuilder(COOLDOWN_BAR_LENGTH + 8);
             bar.append(ColorCodeUtil.YELLOW);

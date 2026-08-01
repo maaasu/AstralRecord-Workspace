@@ -82,13 +82,37 @@ public class SkillTreeNodeRepository {
         Arrays.sort(files, Comparator.comparing(File::getName));
 
         Map<String, SkillTreeNodeDefinition> definitions = new LinkedHashMap<>();
+        Map<String, String> skillPermissionNodes = new LinkedHashMap<>();
         for (File file : files) {
             SkillTreeNodeDefinition definition = parse(file);
             if (definitions.putIfAbsent(definition.nodeId(), definition) != null) {
                 throw SkillTreeJsonReader.invalid(file, "duplicate nodeId '" + definition.nodeId() + "'");
             }
+            validateUniqueSkillPermissions(definition, file, skillPermissionNodes);
         }
         return List.copyOf(definitions.values());
+    }
+
+    private void validateUniqueSkillPermissions(
+            @NotNull SkillTreeNodeDefinition definition,
+            @NotNull File file,
+            @NotNull Map<String, String> skillPermissionNodes
+    ) {
+        String classId = definition.unlockCondition().classId();
+        String normalizedClassId = classId == null ? "" : classId.trim().toLowerCase(Locale.ROOT);
+        for (SkillTreeSkillEffect effect : definition.skillEffects()) {
+            String normalizedSkillId = effect.skillId().trim().toLowerCase(Locale.ROOT);
+            String key = normalizedClassId + '\0' + normalizedSkillId;
+            String previousNodeId = skillPermissionNodes.putIfAbsent(key, definition.nodeId());
+            if (previousNodeId != null) {
+                String condition = normalizedClassId.isEmpty() ? "without a class condition" : "for class '" + normalizedClassId + "'";
+                throw SkillTreeJsonReader.invalid(
+                        file,
+                        "duplicate skill permission '" + normalizedSkillId + "' " + condition
+                                + " in nodes '" + previousNodeId + "' and '" + definition.nodeId() + "'"
+                );
+            }
+        }
     }
 
     private @NotNull SkillTreeNodeDefinition parse(@NotNull File file) {

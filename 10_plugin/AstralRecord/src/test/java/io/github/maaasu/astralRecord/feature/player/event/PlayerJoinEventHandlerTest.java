@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestPlayerState;
 import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
+import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePlayerState;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
@@ -62,6 +63,7 @@ class PlayerJoinEventHandlerTest {
         SkillTreeService skillTreeService = mock(SkillTreeService.class);
         QuestService questService = mock(QuestService.class);
         SkillBindPresetService skillBindPresetService = mock(SkillBindPresetService.class);
+        LearnedSkillService learnedSkillService = mock(LearnedSkillService.class);
         LoginBonusService loginBonusService = mock(LoginBonusService.class);
         MailService mailService = mock(MailService.class);
         PlayerMessageService messageService = mock(PlayerMessageService.class);
@@ -96,6 +98,7 @@ class PlayerJoinEventHandlerTest {
             skillTreeService,
             questService,
             skillBindPresetService,
+            learnedSkillService,
             loginBonusService,
             mailService
         );
@@ -136,6 +139,7 @@ class PlayerJoinEventHandlerTest {
         SkillTreeService skillTreeService = mock(SkillTreeService.class);
         QuestService questService = mock(QuestService.class);
         SkillBindPresetService skillBindPresetService = mock(SkillBindPresetService.class);
+        LearnedSkillService learnedSkillService = mock(LearnedSkillService.class);
         LoginBonusService loginBonusService = mock(LoginBonusService.class);
         MailService mailService = mock(MailService.class);
         PlayerMessageService messageService = mock(PlayerMessageService.class);
@@ -189,6 +193,7 @@ class PlayerJoinEventHandlerTest {
             skillTreeService,
             questService,
             skillBindPresetService,
+            learnedSkillService,
             loginBonusService,
             mailService
         );
@@ -224,6 +229,7 @@ class PlayerJoinEventHandlerTest {
         SkillTreeService skillTreeService = mock(SkillTreeService.class);
         QuestService questService = mock(QuestService.class);
         SkillBindPresetService skillBindPresetService = mock(SkillBindPresetService.class);
+        LearnedSkillService learnedSkillService = mock(LearnedSkillService.class);
         LoginBonusService loginBonusService = mock(LoginBonusService.class);
         MailService mailService = mock(MailService.class);
         PlayerMessageService messageService = mock(PlayerMessageService.class);
@@ -282,6 +288,7 @@ class PlayerJoinEventHandlerTest {
             skillTreeService,
             questService,
             skillBindPresetService,
+            learnedSkillService,
             loginBonusService,
             mailService
         );

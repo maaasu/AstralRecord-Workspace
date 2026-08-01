@@ -155,6 +155,7 @@ import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkill
 import io.github.maaasu.astralRecord.feature.skill.event.SkillActionRingEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillBindGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.skill.event.SkillGemLearnEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.executor.FireBoostSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.IronWillSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
@@ -162,11 +163,15 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.ActiveSkillEx
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui;
 import io.github.maaasu.astralRecord.feature.skill.registry.SkillRegistry;
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillBindPresetRepository;
+import io.github.maaasu.astralRecord.feature.skill.repository.LearnedSkillRepository;
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillRepository;
+import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillResolver;
+import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillPermissionService;
 import io.github.maaasu.astralRecord.feature.skilltree.event.SkillTreeEventHandler;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreeNodeRepository;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreePlayerStateRepository;
@@ -315,7 +320,9 @@ public final class AstralRecord extends JavaPlugin {
     private PassiveSkillService passiveSkillService;
     private SkillTreeService skillTreeService;
     private SkillBindPresetService skillBindPresetService;
+    private LearnedSkillService learnedSkillService;
     private SkillOwnershipService skillOwnershipService;
+    private SkillPermissionService skillPermissionService;
     private SkillBindGui skillBindGui;
     private SkillBindGuiEventHandler skillBindGuiEventHandler;
     private ActiveSkillLifecycleService activeSkillLifecycleService;
@@ -1014,23 +1021,36 @@ public final class AstralRecord extends JavaPlugin {
         ActiveSkillExecutorCatalog.create(activeSkillServices).forEach(skillService::registerExecutor);
         damageService.setTemporarySkillEffectService(temporarySkillEffectService);
         skillService.registerBuiltInDefinitions(BuiltInWeaponAttackDefinitions.definitions());
-        itemStackFactory.setSkillService(skillService);
-        skillOwnershipService = new SkillOwnershipService(playerClassService, inventoryService, itemService, skillTreeService);
+        learnedSkillService = new LearnedSkillService(this, new LearnedSkillRepository(), inventoryService);
+        skillOwnershipService = new SkillOwnershipService(learnedSkillService);
+        skillPermissionService = new SkillPermissionService(playerClassService, skillTreeService);
         skillService.setOwnershipService(skillOwnershipService);
-        passiveSkillService = new PassiveSkillService(this, skillService, skillBindPresetService, skillOwnershipService);
+        skillService.setPermissionService(skillPermissionService);
+        var learnedSkillResolver = new LearnedSkillResolver(itemService);
+        skillService.setLearnedSkillResolver(learnedSkillResolver);
+        passiveSkillService = new PassiveSkillService(
+            this,
+            skillService,
+            skillBindPresetService,
+            skillOwnershipService,
+            skillPermissionService,
+            learnedSkillResolver
+        );
         passiveSkillService.setStatusService(statusService);
         statusService.setPassiveSkillService(passiveSkillService);
         skillTreeService.setStatusService(statusService);
         skillTreeService.setSkillService(skillService);
         skillTreeService.setPassiveSkillService(passiveSkillService);
-        skillActionRingService = new SkillActionRingService(this, skillBindPresetService, skillService, skillOwnershipService);
+        skillActionRingService = new SkillActionRingService(
+            this, skillBindPresetService, skillService, skillOwnershipService, skillPermissionService
+        );
         skillActionRingService.setOpenListener(player ->
             guideService.recordCondition(player, GuideConditionType.ACTION_RING_OPENED, null)
         );
         skillService.setPlayerCastSuccessListener((player, skillId) ->
             guideService.recordCondition(player, GuideConditionType.SKILL_CAST, skillId)
         );
-        skillBindGui = new SkillBindGui(this);
+        skillBindGui = new SkillBindGui(this, itemService);
         itemWeaponAttackService = new ItemWeaponAttackService(inventoryService, skillService);
         itemWeaponAttackService.setEquipmentDurabilityService(equipmentDurabilityService);
         skillActionRingService.setItemWeaponAttackService(itemWeaponAttackService);
@@ -1095,6 +1115,7 @@ public final class AstralRecord extends JavaPlugin {
             skillTreeService,
             questService,
             skillBindPresetService,
+            learnedSkillService,
             loginBonusService,
             mailService,
             guideService
@@ -1221,6 +1242,14 @@ public final class AstralRecord extends JavaPlugin {
             playerBrowserGuiEventHandler,
             getServer().getPluginManager()
         );
+        var skillGemLearnEventHandler = new SkillGemLearnEventHandler(
+            this,
+            inventoryService,
+            learnedSkillService,
+            skillService,
+            passiveSkillService
+        );
+        eventManager.registerHandler(skillGemLearnEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(
             new InventoryEquipmentGuiEventHandler(
                 menuView,
@@ -1231,7 +1260,8 @@ public final class AstralRecord extends JavaPlugin {
                 equipmentEnhancementService,
                 equipmentRepairService,
                 menuGuiTransitionService,
-                menuOpenEventHandler
+                menuOpenEventHandler,
+                skillGemLearnEventHandler
             ),
             getServer().getPluginManager()
         );
@@ -1274,6 +1304,8 @@ public final class AstralRecord extends JavaPlugin {
             skillService,
             skillBindPresetService,
             skillOwnershipService,
+            skillPermissionService,
+            learnedSkillService,
             passiveSkillService,
             inventoryService
         );

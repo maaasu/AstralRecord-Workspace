@@ -34,9 +34,7 @@ public class ClassResponse
 
     public int ExpRate { get; init; } = 100;
 
-    public IReadOnlyList<string> StarterSkills { get; init; } = [];
-
-    public IReadOnlyList<ClassLevelSkillResponse> LevelSkills { get; init; } = [];
+    public IReadOnlyList<string> UsableSkills { get; init; } = [];
 
     public IReadOnlyList<string> Tags { get; init; } = [];
 }
@@ -66,11 +64,4 @@ public class ClassStatResponse
     public required string Status { get; init; }
 
     public double Value { get; init; }
-}
-
-public class ClassLevelSkillResponse
-{
-    public int Level { get; init; }
-
-    public required string Skill { get; init; }
 }

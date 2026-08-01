@@ -22,5 +22,6 @@ data class ItemModel(
     val equipment: ItemEquipment?,
     val rune: ItemRune?,
     val consumable: ItemConsumable?,
+    val skillGem: ItemSkillGem? = null,
+    val sigil: ItemSigil? = null,
 )
-

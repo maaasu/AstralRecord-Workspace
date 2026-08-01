@@ -2,7 +2,7 @@
 
 ## 役割
 
-Rune は、対応する equipment へステータスまたは skill を追加する拡張 item です。
+Rune は、対応する equipment へステータス補正を追加する拡張 item です。skill は付与しません。
 
 ## 設計方針
 

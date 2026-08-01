@@ -52,9 +52,42 @@ public final class SkillProjectileService {
             @NotNull BiConsumer<AstEntity, Location> onHit,
             @NotNull Consumer<Location> onFinish
     ) {
-        Vector normalized = direction.lengthSquared() <= 1.0E-8D
+        launchInternal(player, origin, direction, spec, 0.0D, 0.0D, onHit, onFinish);
+    }
+
+    /** 近くの対象へ毎tick進行方向を補正する仮想 projectile を発射します。 */
+    public void launchHoming(
+            @NotNull Player player,
+            @NotNull Location origin,
+            @NotNull Vector direction,
+            @NotNull SkillProjectileSpec spec,
+            double homingStrength,
+            double homingRange,
+            @NotNull BiConsumer<AstEntity, Location> onHit,
+            @NotNull Consumer<Location> onFinish
+    ) {
+        launchInternal(
+            player, origin, direction, spec,
+            Math.max(0.0D, Math.min(1.0D, homingStrength)),
+            Math.max(0.0D, homingRange),
+            onHit, onFinish
+        );
+    }
+
+    private void launchInternal(
+            @NotNull Player player,
+            @NotNull Location origin,
+            @NotNull Vector direction,
+            @NotNull SkillProjectileSpec spec,
+            double homingStrength,
+            double homingRange,
+            @NotNull BiConsumer<AstEntity, Location> onHit,
+            @NotNull Consumer<Location> onFinish
+    ) {
+        Vector initialDirection = direction.lengthSquared() <= 1.0E-8D
                 ? new Vector(0.0D, 0.0D, 1.0D)
                 : direction.clone().normalize();
+        Vector[] currentDirection = {initialDirection};
         int ticks = Math.max(1, (int) Math.ceil(spec.range() / spec.speed()));
         String scope = "projectile:" + UUID.randomUUID();
         Location[] current = {origin.clone()};
@@ -66,15 +99,32 @@ public final class SkillProjectileService {
             if (finished[0]) {
                 return;
             }
+            if (homingStrength > 0.0D && homingRange > 0.0D) {
+                List<AstEntity> nearby = targetingService.inRadius(
+                    player, current[0], homingRange, homingRange, 1, true
+                );
+                if (!nearby.isEmpty()) {
+                    Vector desired = nearby.getFirst().location()
+                        .add(0.0D, 1.0D, 0.0D)
+                        .toVector()
+                        .subtract(current[0].toVector());
+                    if (desired.lengthSquared() > 1.0E-8D) {
+                        currentDirection[0] = currentDirection[0].clone()
+                            .multiply(1.0D - homingStrength)
+                            .add(desired.normalize().multiply(homingStrength))
+                            .normalize();
+                    }
+                }
+            }
             double stepDistance = Math.min(spec.speed(), spec.range() - travelled[0]);
-            Location next = targetingService.clippedEnd(current[0], normalized, stepDistance);
+            Location next = targetingService.clippedEnd(current[0], currentDirection[0], stepDistance);
             double actualDistance = current[0].distance(next);
             effectService.line(current[0], next, 0.45D, spec.trail());
 
             List<AstEntity> candidates = targetingService.inLine(
                     player,
                     current[0],
-                    normalized,
+                    currentDirection[0],
                     Math.max(0.05D, actualDistance),
                     spec.hitRadius(),
                     spec.maxHits()

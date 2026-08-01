@@ -87,7 +87,9 @@ SkillTree のノード定義と配置・接続構造は、`40_filebase/35.featur
 | キー | 型 | 必須 | 説明 |
 | --- | --- | --- | --- |
 | `type` | String | 必須 | `skill` 固定 |
-| `skillId` | String | 必須 | 付与するスキル ID。空白のみ不可 |
+| `skillId` | String | 必須 | 所持とは独立して使用を許可するスキル ID。空白のみ不可 |
+
+同じ `unlockCondition.classId`（条件なし同士を含む）では、同じ `skillId` を複数ノードへ重複定義できません。`unlockCondition.classId` が異なるノード間に限り、同じスキル使用許可を定義できます。`playerLevel` の違いだけでは別のクラス条件として扱いません。
 
 #### ステータス効果
 
@@ -155,6 +157,7 @@ SkillTree のノード定義と配置・接続構造は、`40_filebase/35.featur
 JSON Schema による型・必須項目検証に加え、エディターのバックエンドは保存前に次を検証します。
 
 - node 定義間の `nodeId` 重複
+- 同じクラス条件における `skillId` 使用許可の重複（同一ノード内を含む）
 - 共有タグカタログに存在しない、または`SKILLTREE_NODE`へ適用できない`tags[]`
 - node ファイル名と `nodeId` の不一致
 - `node-id-sequence.json` のスキーマ違反、および `lastIssuedNodeId` が既存 node ID より小さい状態

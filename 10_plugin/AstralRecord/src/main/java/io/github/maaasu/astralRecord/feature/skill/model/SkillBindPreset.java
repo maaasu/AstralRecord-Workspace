@@ -12,7 +12,7 @@ import java.util.UUID;
  */
 public final class SkillBindPreset {
     public static final int ACTION_RING_SLOT_COUNT = 6;
-    public static final int PASSIVE_SLOT_COUNT = 8;
+    public static final int PASSIVE_SLOT_COUNT = 9;
     public static final String WEAPON_NORMAL_ATTACK_BINDING_ID = "__weapon_normal_attack__";
 
     private final UUID presetId;

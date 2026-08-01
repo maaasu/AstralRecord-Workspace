@@ -76,6 +76,47 @@ public class SkillRepositoryTests
         Assert.True(skill.Params.ContainsKey("defenseFlat"));
     }
 
+    /// <summary>
+    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
+    /// 検証契約: skill masterから決定的IDの非スタックgemを仮想生成し、未指定取引設定を禁止側へ倒す。
+    /// </summary>
+    [Fact]
+    public async Task ItemRepository_GeneratesDeterministicUnstackableSkillGemFromSkillMaster()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<MasterDataDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using (var setupContext = new MasterDataDbContext(options))
+        {
+            await MasterDataTestSeed.CreateSchemaAsync(setupContext);
+            await MasterDataTestSeed.SeedEntryAsync(
+                setupContext,
+                Path.Combine(ResolveWorkspaceRoot(), "40_filebase", "30.features.skill", "v1.mage_fireball.yml"),
+                "skill",
+                null);
+        }
+        await using var dbContext = new MasterDataDbContext(options);
+        var repository = new ItemRepository(dbContext);
+
+        var summary = Assert.Single(repository.GetAllSummaries());
+        var gem = repository.GetById("00_skill_gem_mage_fireball");
+
+        Assert.Equal("00_skill_gem_mage_fireball", summary.Id);
+        Assert.Equal("skill_gem", summary.Category);
+        Assert.NotNull(gem);
+        Assert.Equal("skill_gem", gem.Category);
+        Assert.Equal("&c火焔弾ジェム", gem.Name);
+        Assert.Equal("FIRE_CHARGE", gem.Icon);
+        Assert.Equal("COMMON", gem.Rarity);
+        Assert.Equal(0, gem.MaxStack);
+        Assert.True(gem.UnTradeable);
+        Assert.True(gem.UnSellable);
+        Assert.Equal("mage_fireball", gem.SkillGem!.SkillId);
+        Assert.Contains(gem.Lore, line => line.Contains("左クリック", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void DeserializeSkillPayload_ReturnsFirstClassResourceFields()
     {

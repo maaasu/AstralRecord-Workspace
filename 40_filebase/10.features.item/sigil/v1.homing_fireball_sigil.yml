@@ -1,0 +1,15 @@
+schemaVersion: 1
+id: homing_fireball_sigil
+category: sigil
+name: "&d追尾火焔のシジル"
+icon: FIREWORK_STAR
+rarity: EPIC
+maxStack: 64
+saleValue: 100
+lore:
+  - "&7火焔弾が近くの対象を追尾するようになる。"
+unTradeable: false
+unSellable: false
+sigil:
+  equipGroupId: fireball_trajectory
+  modifiers: []

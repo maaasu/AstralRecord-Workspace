@@ -1,42 +1,51 @@
 # 13_3-GUI・View
 
-## 1. bind main GUI
+## 1. スキルマネージャー
 
 クラス名: `SkillBindGui`
 物理名: `open`
 
-54 slot GUI を次の配置で描画する。
+旧スキル設定画面の名称と機能を「スキルマネージャー」に統一する。54 slot GUI の配置は次のとおり。
 
 | slot | 内容 |
 |---:|---|
-| 0..35 | 所持 skill 一覧（36 件 / page） |
-| 36..43 | active bind 1..8 |
-| 44 | 保存 |
-| 45 / 53 | 前 / 次 page |
-| 46..48, 50..52 | preset 1..6 |
-| 49 | 戻る |
+| 0..26 | 習得済みスキル個体一覧（27件 / page） |
+| 27..35 | パッシブスキルスロット1..9 |
+| 36 | 武器タグから解決する通常攻撃 |
+| 37 | 左クリックバインド |
+| 39..44 | action ringスロット1..6 |
+| 45 | ページ切替 |
+| 46..51 | プリセット1..6 |
+| 52 | 戻る |
+| 53 | 閉じる |
 
-一覧は所持 skill のうち active と `passiveBindRequired=true` の passive を表示する。ただし passive は情報表示だけで、一覧 click から active slot へ割り当てない。GUI に passive bind slot は描画しない。
+一覧の各項目はスキル名、個体レベル、装着シジル、使用可否を表示し、PDCへ `learnedSkillId` を保持する。
 
-## 2. スキルツリーノード解除確認GUI
+選択中バインド枠がない場合は全習得個体を表示する。active / left-click枠を選択した場合はactiveだけ、passive枠なら `passiveBindRequired=true` のpassiveだけを表示する。常時発動passiveは設定候補へ表示しない。
 
-クラス名: `SkillTreeEventHandler`
-
-- 右クリックで解放済みノードを解除する前に、100ゴールドを消費することを明示した確認GUIを表示する。
-- GUIには「解除する」「キャンセル」と「確認GUIを表示しない」の切替を配置する。切替をONにして解除を確定すると、以後の解除確認を省略する。
-- 確認省略はプレイヤー単位の一時状態であり、スキルツリーワールドから離れた時点、または quit 時にリセットする。再入場後の最初の解除では確認GUIを再表示する。
-- GUI操作時は対象アカウント、対象ノード、現在のスキルツリーワールド滞在を再検証し、無効な操作や inventory drag はキャンセルする。
-
-## 3. 破棄確認 GUI
+## 2. 合成画面
 
 クラス名: `SkillBindGui`
-物理名: `openConfirm`
+物理名: `openSynthesis`
 
-dirty session の close、back、preset switch 前に共通 `ConfirmDialogView` を表示し、action と切替先 preset を holder へ保持する。
+選択した習得済み個体をslot 20、インベントリから選んだ同スキルジェムまたは対応シジルをslot 22、合成後プレビューをslot 24へ表示する。slot 24をクリックした時点で消費・合成し、追加確認画面は出さない。
 
-## 4. GUI 識別・pagination
+最大レベル未満なら同スキルジェム、空きシジル枠があれば許可シジルを選択できる。最大レベルならジェムを選べず、全シジル枠が埋まっていればシジルを選べない。どちらの操作もない個体は合成画面を開かない。
 
-クラス名: `SkillBindGui`
-物理名: `isInventory`, `holder`, `skillId`, `normalizePage`, `totalPages`, `hasPreviousPage`, `hasNextPage`, `sortedSkills`, `presetSlot`, `presetIndexAtSlot`
+## 3. ジェム習得確認
 
-専用 holder と PDC skill ID で操作対象を識別する。skill は ID 昇順、preset slot は 1..3 を 46..48、4..6 を 50..52 へ割り当てる。
+クラス名: `SkillGemLearnEventHandler`、`ConfirmDialogView`
+
+プレイヤーインベントリ上のスキルジェムを左クリックすると「○○スキルを習得する」「ジェムを1個消費する」を表示する。同じskill IDを所持済みなら、上書き・レベルアップせず別個体を作る旨も表示する。キャンセル・画面closeではアイテムを維持する。右クリックは画面を開かない。
+
+## 4. パッシブ超過枠
+
+現在有効枠数を超える保存済みパッシブ枠は無効表示とする。設定済み値は自動削除せず、手動解除を許可する。無効枠への新規設定は拒否する。
+
+## 5. 識別とページング
+
+専用 holder とPDCの習得個体UUIDで操作対象を識別する。習得個体のロアには装着済みシジルの表示名、ステータス加算値、およびロジック変更型シジルのitem loreを表示する。ページ項目は左クリックで次、右クリックで前へ循環する。プリセットはslot 46..51へ1..6の順で配置する。
+
+## 6. スキルツリーノード解除確認GUI
+
+解放済みノードの右クリック解除前に、100ゴールド消費を明示した確認GUIを表示する。確認省略設定はスキルツリーワールド離脱またはquitまでの一時状態とする。

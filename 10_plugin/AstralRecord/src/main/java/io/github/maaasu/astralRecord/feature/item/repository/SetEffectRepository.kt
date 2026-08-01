@@ -111,15 +111,9 @@ class SetEffectRepository {
             if (!element.isJsonObject) null else parseStat(element.asJsonObject)
         }
 
-        val skillsArray = obj.getAsJsonArray("skills") ?: JsonArray()
-        val skills = skillsArray.mapNotNull { e ->
-            if (e.isJsonPrimitive) e.asString else null
-        }
-
         return SetEffectPiece(
             count = obj.get("count")?.asInt ?: 0,
             stats = stats,
-            skills = skills,
         )
     }
 

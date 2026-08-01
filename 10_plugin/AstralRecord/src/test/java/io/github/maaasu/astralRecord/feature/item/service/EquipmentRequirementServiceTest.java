@@ -69,8 +69,6 @@ class EquipmentRequirementServiceTest extends MockBukkitTestBase {
             List.of(),
             null,
             null,
-            List.of(),
-            null,
             null,
             null,
             List.of()

@@ -91,6 +91,7 @@ export const STATUS_TYPE_IDS = [
   "SHIELD_RECHARGE_REDUCTION",
   "MINING_SPEED",
   "INVENTORY_SLOTS",
+  "PASSIVE_SKILL_SLOTS",
   "QUEST_LIMIT",
 ] as const
 
@@ -197,6 +198,7 @@ export const STATUS_TYPES: readonly StatusTypeDefinition[] = [
   { id: "SHIELD_RECHARGE_REDUCTION", displayName: "シールドリチャージ短縮", description: "シールド破壊後のリチャージ時間と攻撃による追加時間を割合で短縮する補正。", category: "UTILITY", suffix: "%", decimalPlaces: 1, supportsRange: true },
   { id: "MINING_SPEED", displayName: "採集速度", description: "採掘や採取などの採集行動を行う速さ。", category: "UTILITY", suffix: "", decimalPlaces: 0, supportsRange: true },
   { id: "INVENTORY_SLOTS", displayName: "インベントリスロット", description: "アイテムを保持できるインベントリの枠数。", category: "UTILITY", suffix: "", decimalPlaces: 0, supportsRange: false },
+  { id: "PASSIVE_SKILL_SLOTS", displayName: "パッシブスキルスロット", description: "基礎5枠へ加算されるパッシブスキルの有効枠数。1ポイントごとに1枠増加し、合計9枠を上限とする。", category: "UTILITY", suffix: "", decimalPlaces: 0, supportsRange: false },
   { id: "QUEST_LIMIT", displayName: "クエスト受領上限", description: "同時に受領できるクエスト数の上限。", category: "UTILITY", suffix: "", decimalPlaces: 0, supportsRange: false },
 ]
 

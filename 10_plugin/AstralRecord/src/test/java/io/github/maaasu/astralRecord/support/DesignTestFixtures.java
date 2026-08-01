@@ -139,6 +139,8 @@ public final class DesignTestFixtures {
             null,
             null,
             null,
+            null,
+            null,
             null
         );
     }
@@ -153,8 +155,6 @@ public final class DesignTestFixtures {
             null,
             List.of(new ItemEquipmentStat(status, type, 0.0D, 0.0D)),
             null,
-            null,
-            List.of(),
             null,
             null,
             null,
@@ -177,6 +177,8 @@ public final class DesignTestFixtures {
             null,
             null,
             equipment,
+            null,
+            null,
             null,
             null
         );

@@ -14,6 +14,7 @@ Skilltree は、skill や能力解放の順序、前提関係、選択分岐を�
 - ノードには任意の `unlockCondition.classId` と `unlockCondition.playerLevel` を設定できます。職業レベル条件は持ちません。
 - クラス条件は現在職そのもの、または `unlockClassLevel[].class` を再帰的に辿った祖先職なら成立します。複数経路のいずれかで祖先に到達できれば成立します。
 - 条件不成立ノードは通常プレイヤーから非表示とし、解放済みでも効果を停止します。
+- `skill` 効果はスキルの所有権ではなく使用許可を付与します。同じクラス条件では、同じスキルの使用許可を複数ノードへ重複定義しません。`unlockCondition.classId` が異なる場合に限り、同じスキルを別ノードへ定義できます。
 - `nodeId` は Git 管理の `node-id-sequence.json` を高水位としてエディターが自動採番し、欠番を許容して削除済み ID を再利用しません。Plugin は採番状態を読み込みません。
 - 配置は構造 JSON で `nodeId` と相対座標を直接対応させ、`positionId` は使用しません。
 - edge は無向接続として端点だけを保持し、edge ID は持ちません。

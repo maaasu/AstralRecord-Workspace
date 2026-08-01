@@ -10,6 +10,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -68,11 +69,40 @@ class ItemWeaponAttackServiceTest {
         assertTrue(service.hasUsableMainHandWeapon(player));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 武器左クリック処理
+     * 検証契約: 通常攻撃は装備マスタのSWORD/BOW/STAFFタグから対応するシステムスキルを決定する。
+     */
+    @Test
+    void currentLeftClickSkillIdResolvesSystemAttackFromWeaponTag() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        AstPlayer player = mock(AstPlayer.class);
+        ItemModel sword = weaponModel("SWORD");
+        ItemModel bow = weaponModel("bow");
+        ItemModel staff = weaponModel("Staff");
+        when(inventoryService.getItemModelInHand(player, EquipmentSlot.HAND)).thenReturn(
+            sword,
+            bow,
+            staff
+        );
+        ItemWeaponAttackService service = new ItemWeaponAttackService(inventoryService, mock(SkillService.class));
+
+        assertEquals(BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_MELEE, service.currentLeftClickSkillId(player));
+        assertEquals(BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_BOW, service.currentLeftClickSkillId(player));
+        assertEquals(BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_MAGIC, service.currentLeftClickSkillId(player));
+    }
+
     private ItemModel weaponModel() {
+        return weaponModel(null);
+    }
+
+    private ItemModel weaponModel(String tag) {
         ItemModel model = mock(ItemModel.class);
         ItemEquipment equipment = mock(ItemEquipment.class);
         when(model.getEquipment()).thenReturn(equipment);
         when(equipment.getSlot()).thenReturn(ItemEquipmentSlot.WEAPON);
+        when(equipment.getTag()).thenReturn(tag);
         return model;
     }
 }

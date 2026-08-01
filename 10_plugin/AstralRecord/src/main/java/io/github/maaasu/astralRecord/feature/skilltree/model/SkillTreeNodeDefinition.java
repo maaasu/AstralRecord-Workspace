@@ -41,9 +41,9 @@ public record SkillTreeNodeDefinition(
     }
 
     /**
-     * スキル付与効果だけを返します。
+     * スキル使用許可効果だけを返します。
      *
-     * @return 定義順を維持したスキル付与効果
+     * @return 定義順を維持したスキル使用許可効果
      */
     public @NotNull List<SkillTreeSkillEffect> skillEffects() {
         return effects.stream()

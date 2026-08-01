@@ -28,9 +28,6 @@ equipment:
     - status: MP_REGEN
       type: FLAT
       value: 1.0
-  onUse:
-    leftClickCooldownTicks: 10
-    leftClickSkillId: normal_attack_magic
   durability:
     max: 80
     consume: 1

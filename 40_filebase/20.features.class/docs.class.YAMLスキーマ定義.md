@@ -32,10 +32,7 @@ Class（職業）のスキーマ定義。
 | `growthPerLevel[].status`  | String       | ○  | -         | ステータス名（`StatusType`。`baseStats` と同様）             |
 | `growthPerLevel[].value`   | Double       | ○  | -         | 1レベルあたりの増加量                                      |
 | `expRate`                  | Integer      | ×  | 100       | 必要経験値の倍率指標（基準値 `100`。値が大きいほど必要経験値が増え、レベルが上がりにくい） |
-| `starterSkills`            | List<String> | ×  | emptyList | 初期習得スキルID一覧（参照値）                                 |
-| `levelSkills[]`            | List         | ×  | emptyList | レベル到達時に習得するスキルのリスト                               |
-| `levelSkills[].level`      | Integer      | ○  | -         | スキルを習得するレベル                                      |
-| `levelSkills[].skill`      | String       | ○  | -         | 習得するスキルID（参照値。例: `ref: skill:shield_bash`）       |
+| `usableSkills`             | List<String> | ×  | emptyList | 現在クラスで発動を許可するスキル ID。習得・所持は変更しない |
 | `tags`                     | List<String> | ×  | emptyList | 共有タグカタログの`CLASS`対象ID（例: `melee`, `tank`）      |
 
 ### maxLevel / commandOnly
@@ -114,15 +111,9 @@ growthPerLevel:
   - status: DEFENSE
     value: 1
 expRate: 130
-starterSkills:
-  - ref: skill:slash
-levelSkills:
-  - level: 10
-    skill: ref: skill:shield_bash
-  - level: 20
-    skill: ref: skill:taunt
-  - level: 30
-    skill: ref: skill:iron_wall
+usableSkills:
+  - skill:slash
+  - skill:shield_bash
 tags:
   - melee
   - front

@@ -17,6 +17,27 @@ resourceType: ENERGY
 resourceCost: 20
 castTimeTicks: 6
 requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 3
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 4
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 5
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - cooldown_sigil
+  - cooldown_sigil_ii
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
 onCast:
   sound: item.trident.throw
 tags:

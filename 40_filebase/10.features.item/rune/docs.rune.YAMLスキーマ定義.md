@@ -1,6 +1,6 @@
 # RUNE (ルーン) YAML スキーマ定義
 
-装備のスロットに嵌め込むことでステータス補正やスキルを付与する「ルーン」アイテムを表現します。
+装備のスロットに嵌め込むことでステータス補正を付与する「ルーン」アイテムを表現します。ルーンからのスキル付与は行いません。
 通常のアイテム共通項目（`schemaVersion` / `id` / `category` / `name` など）は `docs.item.YAMLスキーマ定義.md` を参照し、本書では Rune 固有項目のみ定義します。
 
 > **StatusType について**: `status`フィールドに使用できるIDは、共有カタログ`40_filebase/75.shared.status/v1.status_types.yml`を参照してください。
@@ -17,7 +17,6 @@
 | `rune.stats[].value`           | String       | ×  | -     | 補正値。固定値または範囲（例: `5` / `3~8`）。`SCALAR` の場合は `0.10 = +10%`。                       |
 | `rune.stats[].random[].min`    | String       | ×  | -     | 固定値（例: `-10`） -10%。「`equipment.stats.random: -10~10`」も可能。装備作成時にステータスをランダムに設定する。 |
 | `rune.stats[].random[].max`    | String       | ×  | -     | 固定値（例: `10`）  +10%。「`equipment.stats.random: -10~10`」も可能。装備作成時にステータスをランダムに設定する。 |
-| `rune.skills[]`                | List<String> | ×  | -     | ルーン装着中に装備へ付与されるスキルIDのリスト。※参照値                                                   |
 
 ### rune.targetSlots[]
 以下のいずれかの値を指定します（複数指定可）。
@@ -40,11 +39,6 @@
 
 装備側の `enhance` レベルが `requiredEnhanceLevel` 以上でなければ、このルーンをセットできません。
 `0` または未指定の場合は強化レベルに関係なくセット可能です。
-
-### 参照（ref）
-スキルを参照する場合は `skill:` prefix を使用します（aliases: `sk`）。
-
-- 例: `ref: skill:fire_boost`
 
 ## YAML 例
 
@@ -100,7 +94,7 @@ rune:
       value: 8
 ```
 
-### 例3: スキル付与ルーン（強化レベル条件付き）
+### 例3: 攻撃補正ルーン（強化レベル条件付き）
 
 ```yaml
 schemaVersion: 1
@@ -125,8 +119,6 @@ rune:
     - status: CRITICAL_RATE
       type: FLAT
       value: 0.05
-  skills:
-    - ref: skill:fire_boost
 ```
 
 ### 例4: 全スロット対応ルーン（スカラー補正）

@@ -19,7 +19,7 @@ public enum MenuIconDefinition {
     RETURN_TO_BASE(Material.BEACON, "帰還", NamedTextColor.AQUA, "3秒間移動しなければ拠点へ帰還"),
     ADVENTURE_RECORD(Material.WRITTEN_BOOK, "冒険記録", NamedTextColor.GOLD, "魔物録・厄災録・モブ検索を開く"),
     MAIL(Material.WRITABLE_BOOK, "メール", NamedTextColor.GOLD, "お知らせと報酬を確認"),
-    SKILL_BIND(Material.ENCHANTED_BOOK, "スキル設定", NamedTextColor.AQUA, "スキルプリセットを設定"),
+    SKILL_BIND(Material.ENCHANTED_BOOK, "スキルマネージャー", NamedTextColor.AQUA, "習得・強化・バインドを管理"),
     CURRENCY(Material.BUNDLE, "カレンシー", NamedTextColor.GOLD, "所持通貨を確認"),
     PARTY(Material.PLAYER_HEAD, "パーティー", NamedTextColor.AQUA, "作成・招待・参加状況を確認"),
     PLAYER_LIST(Material.SPYGLASS, "プレイヤー一覧", NamedTextColor.YELLOW, "参加中プレイヤーの基本情報を確認");

@@ -37,6 +37,10 @@ public class ItemResponse
     public ItemBundleResponse? Bundle { get; init; }
 
     public ItemRuneResponse? Rune { get; init; }
+
+    public ItemSkillGemResponse? SkillGem { get; init; }
+
+    public ItemSigilResponse? Sigil { get; init; }
 }
 
 public class ItemAppearanceResponse
@@ -101,10 +105,6 @@ public class ItemEquipmentResponse
     public IReadOnlyList<ItemEquipmentStatResponse> Stats { get; init; } = [];
 
     public ItemEquipmentDurabilityResponse? Durability { get; init; }
-
-    public ItemEquipmentOnUseResponse? OnUse { get; init; }
-
-    public IReadOnlyList<string> Skills { get; init; } = [];
 
     public ItemEquipmentEnhanceResponse? Enhance { get; init; }
 
@@ -285,7 +285,25 @@ public class ItemRuneResponse
 
     public IReadOnlyList<ItemRuneStatResponse> Stats { get; init; } = [];
 
-    public IReadOnlyList<string> Skills { get; init; } = [];
+}
+
+public class ItemSkillGemResponse
+{
+    public required string SkillId { get; init; }
+}
+
+public class ItemSigilResponse
+{
+    public required string EquipGroupId { get; init; }
+
+    public IReadOnlyList<ItemSigilModifierResponse> Modifiers { get; init; } = [];
+}
+
+public class ItemSigilModifierResponse
+{
+    public required string Status { get; init; }
+
+    public double Value { get; init; }
 }
 
 public class ItemRuneStatResponse
@@ -297,17 +315,6 @@ public class ItemRuneStatResponse
     public string? Value { get; init; }
 
     public string? Random { get; init; }
-}
-
-public class ItemEquipmentOnUseResponse
-{
-    public int? LeftClickCooldownTicks { get; init; }
-
-    public string? LeftClickSkillId { get; init; }
-
-    public int? RightClickCooldownTicks { get; init; }
-
-    public string? RightClickSkillId { get; init; }
 }
 
 public class ItemCurrencyResponse

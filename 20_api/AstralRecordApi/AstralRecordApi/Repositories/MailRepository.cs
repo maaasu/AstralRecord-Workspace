@@ -13,13 +13,14 @@ public class MailRepository(AstralRecordDbContext dbContext, MasterDataDbContext
     {
         var now = DateTime.UtcNow;
         var masters = await GetMailMastersAsync();
+        var deliveries = await GetPlayerDeliveriesAsync(userId);
         var states = await dbContext.PlayerMailStates
             .AsNoTracking()
             .Where(state => state.UserId == userId)
             .ToDictionaryAsync(state => state.MailId);
 
         var normalizedFilter = (filter ?? "all").Trim().ToLowerInvariant();
-        return masters
+        return masters.Concat(deliveries)
             .Select(master => Merge(master, states.GetValueOrDefault(master.Id)))
             .Where(mail => mail.PublishFrom <= now && (mail.PublishTo is null || mail.PublishTo >= now))
             .Where(mail => !mail.IsDeleted)
@@ -37,7 +38,7 @@ public class MailRepository(AstralRecordDbContext dbContext, MasterDataDbContext
 
     public async Task<MailResponse?> MarkReadAsync(string mailId, MailActionRequest request)
     {
-        var master = await GetMailMasterByIdAsync(mailId);
+        var master = await GetMailByIdAsync(mailId, request.UserId);
         if (master is null)
             return null;
 
@@ -58,7 +59,7 @@ public class MailRepository(AstralRecordDbContext dbContext, MasterDataDbContext
 
     public async Task<bool> DeleteAsync(string mailId, MailActionRequest request)
     {
-        var master = await GetMailMasterByIdAsync(mailId);
+        var master = await GetMailByIdAsync(mailId, request.UserId);
         if (master is null)
             return false;
 
@@ -126,6 +127,37 @@ public class MailRepository(AstralRecordDbContext dbContext, MasterDataDbContext
             .Select(entry => entry.PayloadJson)
             .FirstOrDefaultAsync();
 
+        return payload is null ? null : MasterDataPayloadJson.Deserialize<MailResponse>(payload);
+    }
+
+    private async Task<IReadOnlyList<MailResponse>> GetPlayerDeliveriesAsync(Guid userId)
+    {
+        var payloads = await dbContext.PlayerMailDeliveries
+            .AsNoTracking()
+            .Where(delivery => delivery.UserId == userId && !delivery.IsDeleted)
+            .OrderBy(delivery => delivery.CreatedAt)
+            .Select(delivery => delivery.PayloadJson)
+            .ToArrayAsync();
+        return payloads
+            .Select(MasterDataPayloadJson.Deserialize<MailResponse>)
+            .Where(mail => mail is not null)
+            .Select(mail => mail!)
+            .ToArray();
+    }
+
+    private async Task<MailResponse?> GetMailByIdAsync(string mailId, Guid userId)
+    {
+        var master = await GetMailMasterByIdAsync(mailId);
+        if (master is not null)
+            return master;
+
+        var payload = await dbContext.PlayerMailDeliveries
+            .AsNoTracking()
+            .Where(delivery => delivery.UserId == userId
+                && delivery.MailId == mailId
+                && !delivery.IsDeleted)
+            .Select(delivery => delivery.PayloadJson)
+            .FirstOrDefaultAsync();
         return payload is null ? null : MasterDataPayloadJson.Deserialize<MailResponse>(payload);
     }
 

@@ -16,7 +16,6 @@ data class SetEffect(
 data class SetEffectPiece(
     val count: Int,
     val stats: List<SetEffectStat> = emptyList(),
-    val skills: List<String> = emptyList(),
 )
 
 data class SetEffectStat(

@@ -6,6 +6,7 @@ using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
 using AstralRecordApi.Options;
+using AstralRecordApi.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using YamlDotNet.Core;
@@ -24,6 +25,9 @@ public class MasterDataSeeder(
     private const string StatusRunning = "RUNNING";
     private const string StatusSucceeded = "SUCCEEDED";
     private const string StatusFailed = "FAILED";
+    private const string GeneratedSkillGemIdPrefix = "00_skill_gem_";
+    private const int InventoryItemIdMaxLength = 100;
+    private const int LearnedSkillSigilIdMaxLength = 128;
 
     // 同一プロセス内で Seeder の同時実行を直列化する。
     private static readonly SemaphoreSlim Gate = new(1, 1);
@@ -108,17 +112,24 @@ public class MasterDataSeeder(
                 if (mode == MasterDataSeedMode.Rebuild)
                 {
                     await db.References.ExecuteDeleteAsync(ct);
-                    await db.Entries.ExecuteDeleteAsync(ct);
+                    // 補償メールが削除済みシジルの詳細を後から解決できるよう、entryはtombstoneとして残す。
+                    await db.Entries
+                        .Where(entry => !entry.IsDeleted)
+                        .ExecuteUpdateAsync(setters => setters
+                            .SetProperty(entry => entry.IsDeleted, true)
+                            .SetProperty(entry => entry.UpdatedAt, startedAt)
+                            .SetProperty(entry => entry.UpdatedBy, systemUser), ct);
                 }
 
                 var plans = BuildSourcePlans(rootPath, config, warnings);
                 var sourceIdByKey = await SyncSourcesAsync(plans, config.SchemaVersion, systemUser, ct);
                 await db.SaveChangesAsync(ct);
 
-                await SyncEntriesAsync(plans, sourceIdByKey, config, systemUser, mode, counts, ct);
+                await SyncEntriesAsync(plans, sourceIdByKey, config, systemUser, counts, ct);
                 await db.SaveChangesAsync(ct);
 
                 await ValidateReferencesAsync(warnings, ct);
+                await ValidateSkillSystemMastersAsync(ct);
                 await transaction.CommitAsync(ct);
             }, cancellationToken);
 
@@ -272,21 +283,16 @@ public class MasterDataSeeder(
         IReadOnlyDictionary<string, Guid> sourceIdByKey,
         SeedConfig config,
         Guid systemUser,
-        MasterDataSeedMode mode,
         SeedCounts counts,
         CancellationToken cancellationToken)
     {
         var now = DateTime.UtcNow;
 
-        var existingEntries = mode == MasterDataSeedMode.Rebuild
-            ? []
-            : await db.Entries.ToListAsync(cancellationToken);
+        var existingEntries = await db.Entries.ToListAsync(cancellationToken);
         var entryByKey = existingEntries.ToDictionary(
             entry => (entry.MasterType, entry.MasterId), TupleKeyComparer.Instance);
 
-        var existingReferences = mode == MasterDataSeedMode.Rebuild
-            ? []
-            : await db.References.ToListAsync(cancellationToken);
+        var existingReferences = await db.References.ToListAsync(cancellationToken);
         var referencesByEntry = existingReferences
             .GroupBy(reference => reference.FromEntryId)
             .ToDictionary(group => group.Key, group => group.ToList());
@@ -437,11 +443,16 @@ public class MasterDataSeeder(
 
     private async Task ValidateReferencesAsync(List<string> warnings, CancellationToken cancellationToken)
     {
-        var activeTypesByMasterId = (await db.Entries
+        var activeEntries = await db.Entries
                 .Where(entry => !entry.IsDeleted)
                 .Select(entry => new { entry.MasterId, entry.MasterType })
-                .ToListAsync(cancellationToken))
+                .ToListAsync(cancellationToken);
+        var activeTypesByMasterId = activeEntries
             .ToLookup(entry => entry.MasterId, entry => entry.MasterType, KeyComparer);
+        var generatedSkillGemIds = activeEntries
+            .Where(entry => KeyComparer.Equals(entry.MasterType, "skill"))
+            .Select(entry => GeneratedSkillGemIdPrefix + entry.MasterId)
+            .ToHashSet(KeyComparer);
 
         var references = await db.References
             .Where(reference => !reference.IsDeleted)
@@ -453,7 +464,9 @@ public class MasterDataSeeder(
         {
             var resolved = activeTypesByMasterId[reference.ReferenceIdValue].Any(masterType =>
                 string.Equals(masterType, reference.ReferenceType, StringComparison.OrdinalIgnoreCase)
-                || masterType.StartsWith(reference.ReferenceType + ".", StringComparison.OrdinalIgnoreCase));
+                || masterType.StartsWith(reference.ReferenceType + ".", StringComparison.OrdinalIgnoreCase))
+                || (KeyComparer.Equals(reference.ReferenceType, "item")
+                    && generatedSkillGemIds.Contains(reference.ReferenceIdValue));
 
             if (resolved)
                 continue;
@@ -470,6 +483,131 @@ public class MasterDataSeeder(
         {
             throw new InvalidOperationException(
                 "必須参照が未解決です: " + string.Join(", ", unresolvedRequired));
+        }
+    }
+
+    private async Task ValidateSkillSystemMastersAsync(CancellationToken cancellationToken)
+    {
+        var entries = await db.Entries
+            .Where(entry => !entry.IsDeleted
+                && (entry.MasterType == "skill"
+                    || entry.MasterType == "class"
+                    || entry.MasterType == "item"))
+            .Select(entry => new
+            {
+                entry.MasterType,
+                entry.MasterId,
+                entry.Category,
+                entry.PayloadJson,
+                entry.SourceFilePath,
+            })
+            .ToArrayAsync(cancellationToken);
+
+        var skillIds = entries
+            .Where(entry => KeyComparer.Equals(entry.MasterType, "skill"))
+            .Select(entry => entry.MasterId)
+            .ToHashSet(KeyComparer);
+        var sigilIds = entries
+            .Where(entry => KeyComparer.Equals(entry.MasterType, "item")
+                && KeyComparer.Equals(entry.Category, "sigil"))
+            .Select(entry => entry.MasterId)
+            .ToHashSet(KeyComparer);
+
+        foreach (var entry in entries.Where(entry => KeyComparer.Equals(entry.MasterType, "item")
+            && KeyComparer.Equals(entry.Category, "sigil")))
+        {
+            var item = MasterDataPayloadJson.Deserialize<ItemResponse>(entry.PayloadJson)
+                ?? throw new InvalidOperationException($"sigilの解析に失敗しました: {entry.SourceFilePath}");
+            if (!KeyComparer.Equals(item.Id, entry.MasterId))
+                throw new InvalidOperationException($"sigil.id と master_id が一致しません: {entry.SourceFilePath}");
+            if (item.Id.Length > InventoryItemIdMaxLength)
+                throw new InvalidOperationException($"sigil.id は{InventoryItemIdMaxLength}文字以内です: {entry.SourceFilePath}");
+            if (item.Sigil is null)
+                throw new InvalidOperationException($"sigilカテゴリにはsigil定義が必須です: {entry.SourceFilePath}");
+            if (string.IsNullOrWhiteSpace(item.Sigil.EquipGroupId)
+                || item.Sigil.EquipGroupId.Length > LearnedSkillSigilIdMaxLength)
+                throw new InvalidOperationException(
+                    $"sigil.equipGroupId は1～{LearnedSkillSigilIdMaxLength}文字です: {entry.SourceFilePath}");
+            if (item.Sigil.Modifiers.Any(modifier => string.IsNullOrWhiteSpace(modifier.Status)
+                || !StatusTypes.TryGet(modifier.Status, out _)
+                || !double.IsFinite(modifier.Value)))
+                throw new InvalidOperationException(
+                    $"sigil.modifiersには既知status IDと有限値を指定してください: {entry.SourceFilePath}");
+        }
+        var reservedItem = entries.FirstOrDefault(entry => KeyComparer.Equals(entry.MasterType, "item")
+            && entry.MasterId.StartsWith(GeneratedSkillGemIdPrefix, StringComparison.OrdinalIgnoreCase));
+        if (reservedItem is not null)
+            throw new InvalidOperationException(
+                $"item.id '{reservedItem.MasterId}' は自動生成スキルジェム用の予約prefixです: {reservedItem.SourceFilePath}");
+
+        foreach (var entry in entries.Where(entry => KeyComparer.Equals(entry.MasterType, "skill")))
+        {
+            var skillPayload = JsonNode.Parse(entry.PayloadJson)?.AsObject();
+            var gemPayload = skillPayload?["gem"] as JsonObject;
+            var explicitGemRarity = gemPayload?["rarity"]?.GetValue<string>();
+            if (gemPayload is null || string.IsNullOrWhiteSpace(explicitGemRarity))
+                throw new InvalidOperationException($"skill.gem と gem.rarity は明示必須です: {entry.SourceFilePath}");
+            var skill = MasterDataPayloadJson.Deserialize<SkillResponse>(entry.PayloadJson)
+                ?? throw new InvalidOperationException($"skillの解析に失敗しました: {entry.SourceFilePath}");
+            if (!KeyComparer.Equals(skill.Id, entry.MasterId))
+                throw new InvalidOperationException($"skill.id と master_id が一致しません: {entry.SourceFilePath}");
+            if (GeneratedSkillGemIdPrefix.Length + skill.Id.Length > InventoryItemIdMaxLength)
+                throw new InvalidOperationException(
+                    $"skill.id が長すぎるため自動生成ジェムIDをinventory_entry.item_idへ保存できません: {entry.SourceFilePath}");
+            if (skill.MaxLevel < 1)
+                throw new InvalidOperationException($"maxLevel は1以上です: {entry.SourceFilePath}");
+            var expectedLevels = Enumerable.Range(2, Math.Max(0, skill.MaxLevel - 1)).ToArray();
+            var actualLevels = skill.Levels.Select(level => level.Level).Order().ToArray();
+            if (!actualLevels.SequenceEqual(expectedLevels))
+                throw new InvalidOperationException(
+                    $"levels はLv.2からmaxLevelまで重複なく定義してください: {entry.SourceFilePath}");
+            if (skill.Levels.Any(level => !double.IsFinite(level.ResourceCostDelta)
+                || level.ParamDeltas.Any(delta => string.IsNullOrWhiteSpace(delta.Key)
+                    || !double.IsFinite(delta.Value))
+                || level.StatusModifiers.Any(modifier => string.IsNullOrWhiteSpace(modifier.Status)
+                    || !StatusTypes.TryGet(modifier.Status, out _)
+                    || !double.IsFinite(modifier.Value))))
+                throw new InvalidOperationException($"levelsに不正な差分値があります: {entry.SourceFilePath}");
+
+            var slotLevels = new HashSet<int>();
+            var previousSlots = -1;
+            foreach (var slot in skill.SigilSlotsByLevel.OrderBy(slot => slot.Level))
+            {
+                if (slot.Level < 1 || slot.Level > skill.MaxLevel || slot.Slots < 0
+                    || !slotLevels.Add(slot.Level) || slot.Slots < previousSlots)
+                    throw new InvalidOperationException(
+                        $"sigilSlotsByLevelは有効level・0以上・重複なし・非減少で定義してください: {entry.SourceFilePath}");
+                previousSlots = slot.Slots;
+            }
+            var duplicateAllowedSigil = skill.AllowedSigilIds
+                .GroupBy(id => id, KeyComparer)
+                .FirstOrDefault(group => group.Count() > 1 || string.IsNullOrWhiteSpace(group.Key));
+            if (duplicateAllowedSigil is not null)
+                throw new InvalidOperationException($"allowedSigilIdsに空値または重複があります: {entry.SourceFilePath}");
+            var unknownSigils = skill.AllowedSigilIds.Where(id => !sigilIds.Contains(id)).ToArray();
+            if (unknownSigils.Length > 0)
+                throw new InvalidOperationException(
+                    $"allowedSigilIdsに未定義シジルがあります ({string.Join(", ", unknownSigils)}): {entry.SourceFilePath}");
+            if (skill.CooldownId is not null && string.IsNullOrWhiteSpace(skill.CooldownId))
+                throw new InvalidOperationException($"cooldownIdは未指定または空でない文字列です: {entry.SourceFilePath}");
+        }
+
+        foreach (var entry in entries.Where(entry => KeyComparer.Equals(entry.MasterType, "class")))
+        {
+            var classMaster = MasterDataPayloadJson.Deserialize<ClassResponse>(entry.PayloadJson)
+                ?? throw new InvalidOperationException($"classの解析に失敗しました: {entry.SourceFilePath}");
+            var normalized = classMaster.UsableSkills
+                .Select(reference => reference.Trim().StartsWith("skill:", StringComparison.OrdinalIgnoreCase)
+                    ? reference.Trim()["skill:".Length..]
+                    : reference.Trim())
+                .ToArray();
+            if (normalized.Any(string.IsNullOrWhiteSpace)
+                || normalized.Distinct(KeyComparer).Count() != normalized.Length)
+                throw new InvalidOperationException($"usableSkillsに空値または重複があります: {entry.SourceFilePath}");
+            var unknownSkills = normalized.Where(id => !skillIds.Contains(id)).ToArray();
+            if (unknownSkills.Length > 0)
+                throw new InvalidOperationException(
+                    $"usableSkillsに未定義スキルがあります ({string.Join(", ", unknownSkills)}): {entry.SourceFilePath}");
         }
     }
 
