@@ -1003,7 +1003,7 @@ public final class EquipmentEnhancementService {
     }
 
     private void playSuccessEffects(@NotNull Player player) {
-        player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.8f, 1.1f);
+        GuiSound.UPGRADE.play(player);
         particleDisplayService.spawnForNearbyViewers(
             player.getLocation().add(0.0, 1.0, 0.0),
             SharedParticleDefinitions.EQUIPMENT_ENHANCEMENT_SUCCESS

@@ -111,12 +111,12 @@ public final class TeleporterGuiEventHandler extends AbstractEventHandler {
         }
         int itemCount = teleporterService.listGuiEntries(astPlayer, source).size();
         if (rawSlot == TeleporterGui.PREVIOUS_SLOT && gui.hasPreviousPage(holder.pageIndex())) {
-            GuiSound.SELECT.play(player);
+            GuiSound.PAGE.play(player);
             open(player, astPlayer, source, holder.pageIndex() - 1);
             return;
         }
         if (rawSlot == TeleporterGui.NEXT_SLOT && gui.hasNextPage(holder.pageIndex(), itemCount)) {
-            GuiSound.SELECT.play(player);
+            GuiSound.PAGE.play(player);
             open(player, astPlayer, source, holder.pageIndex() + 1);
             return;
         }
@@ -135,7 +135,7 @@ public final class TeleporterGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        GuiSound.SELECT.play(player);
+        GuiSound.TELEPORT.play(player);
         teleporterService.teleportToWaystone(player, astPlayer, source, target);
     }
 

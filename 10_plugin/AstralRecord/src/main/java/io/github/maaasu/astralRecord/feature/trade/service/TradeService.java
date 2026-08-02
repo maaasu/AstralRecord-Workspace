@@ -23,6 +23,7 @@ import io.github.maaasu.astralRecord.feature.trade.model.TradeSessionStatus;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.gui.gold.GoldAmountSettingGui;
+import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.Bukkit;
@@ -565,6 +566,8 @@ public final class TradeService {
             clearSession(session);
             sendIfOnline(session.getPlayerAUuid(), PlayerMsgId.P_6207);
             sendIfOnline(session.getPlayerBUuid(), PlayerMsgId.P_6207);
+            playCompletionSound(session.getPlayerAUuid());
+            playCompletionSound(session.getPlayerBUuid());
         } catch (Exception e) {
             Logger.log(LogId.E_6201, e, session.getSessionId());
             if (rollbackSnapshot != null) {
@@ -572,6 +575,13 @@ public final class TradeService {
             } else {
                 cancelTrade(session);
             }
+        }
+    }
+
+    private void playCompletionSound(@NotNull UUID playerId) {
+        Player player = Bukkit.getPlayer(playerId);
+        if (player != null && player.isOnline()) {
+            GuiSound.TRADE.play(player);
         }
     }
 

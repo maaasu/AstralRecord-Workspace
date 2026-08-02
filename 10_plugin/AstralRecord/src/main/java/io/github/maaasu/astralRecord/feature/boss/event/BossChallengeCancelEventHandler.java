@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.shared.interaction.PlayerInputCandidate;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputResolver;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
+import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -99,12 +100,16 @@ public final class BossChallengeCancelEventHandler extends AbstractEventHandler
             return;
         }
         event.setCancelled(true);
-        if (!(event.getWhoClicked() instanceof Player player)
-                || event.getRawSlot() != BossChallengeCancelGui.CANCEL_SLOT) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+        if (event.getRawSlot() != BossChallengeCancelGui.CANCEL_SLOT) {
+            GuiSound.DENY.play(player);
             return;
         }
         UUID challengeId = gui.getChallengeId(event.getView().getTopInventory());
         if (challengeId == null) {
+            GuiSound.DENY.play(player);
             return;
         }
         BossChallengeService.PlayerCancelResult result = service.stopChallengeForLeader(
@@ -118,8 +123,10 @@ public final class BossChallengeCancelEventHandler extends AbstractEventHandler
     private void openForLeader(@NotNull Player player, @NotNull UUID challengeId) {
         if (!service.isChallengeLeader(player.getUniqueId(), challengeId)) {
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_6526);
+            GuiSound.DENY.play(player);
             return;
         }
+        GuiSound.OPEN.play(player);
         gui.open(player, challengeId);
     }
 
@@ -129,9 +136,18 @@ public final class BossChallengeCancelEventHandler extends AbstractEventHandler
             @NotNull UUID challengeId
     ) {
         switch (result) {
-            case STOPPED -> PlayerMessageService.getInstance().send(player, PlayerMsgId.P_6528);
-            case NOT_LEADER -> PlayerMessageService.getInstance().send(player, PlayerMsgId.P_6526);
-            case NO_CHALLENGE -> PlayerMessageService.getInstance().send(player, PlayerMsgId.P_6527);
+            case STOPPED -> {
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_6528);
+                GuiSound.SUCCESS.play(player);
+            }
+            case NOT_LEADER -> {
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_6526);
+                GuiSound.DENY.play(player);
+            }
+            case NO_CHALLENGE -> {
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_6527);
+                GuiSound.DENY.play(player);
+            }
         }
     }
 }

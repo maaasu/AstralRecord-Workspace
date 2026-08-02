@@ -112,7 +112,7 @@ public final class CurrencyExchangeGuiEventHandler extends AbstractEventHandler 
             GuiSound.DENY.play(player);
             return;
         }
-        GuiSound.SELECT.play(player);
+        GuiSound.SUCCESS.play(player);
         MenuGuiTransitionService.suppressNextCloseSound(player);
         view.open(player, astPlayer.getAccount().getUuid(), currencyService);
     }

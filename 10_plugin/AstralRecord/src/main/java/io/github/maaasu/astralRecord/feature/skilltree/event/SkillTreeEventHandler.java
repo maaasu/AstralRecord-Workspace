@@ -16,14 +16,13 @@ import io.github.maaasu.astralRecord.shared.interaction.PlayerInputCandidate;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputResolver;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
+import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.Sound;
-import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -224,6 +223,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler
             inventory.setItem(slot, item);
             holder.classIdsBySlot.put(slot, option.classId());
         }
+        GuiSound.OPEN.play(player);
         player.openInventory(inventory);
     }
 
@@ -240,6 +240,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler
         }
         String classId = holder.classIdsBySlot.get(event.getRawSlot());
         if (classId == null) {
+            GuiSound.DENY.play(player);
             return;
         }
         AstPlayer astPlayer = AstPlayerCache.get(player);
@@ -251,6 +252,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler
             playDenied(player, 0.75F);
             return;
         }
+        GuiSound.CONFIRM.play(player);
         player.closeInventory();
         completeUnlock(player, astPlayer, node, classId);
     }
@@ -290,7 +292,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler
             @NotNull SkillTreeNodeDefinition node
     ) {
         if (service.relockNode(astPlayer, node)) {
-            playRelock(player);
+            GuiSound.SKILL_RELOCK.play(player);
             PlayerMessageService.getInstance().send(
                     player,
                     PlayerMsgId.P_5826,
@@ -318,6 +320,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler
         );
         holder.bind(inventory);
         renderRelockConfirmation(inventory, node, holder.dontAskAgain);
+        GuiSound.OPEN.play(player);
         player.openInventory(inventory);
     }
 
@@ -402,10 +405,12 @@ public class SkillTreeEventHandler extends AbstractEventHandler
         if (event.getRawSlot() == RELOCK_CONFIRMATION_OPTION_SLOT) {
             holder.dontAskAgain = !holder.dontAskAgain;
             renderRelockConfirmation(event.getView().getTopInventory(), node, holder.dontAskAgain);
+            GuiSound.TOGGLE.play(player);
             return;
         }
         if (event.getRawSlot() == RELOCK_CANCEL_SLOT) {
             player.closeInventory();
+            GuiSound.CLOSE.play(player);
             return;
         }
         if (event.getRawSlot() != RELOCK_CONFIRM_SLOT) {
@@ -488,16 +493,11 @@ public class SkillTreeEventHandler extends AbstractEventHandler
     }
 
     private void playUnlock(@NotNull Player player) {
-        player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.45F, 1.45F);
-        player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.PLAYERS, 0.35F, 1.8F);
-    }
-
-    private void playRelock(@NotNull Player player) {
-        player.playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_CHAIN, SoundCategory.PLAYERS, 0.55F, 1.2F);
+        GuiSound.SKILL_LEARN.play(player);
     }
 
     private void playDenied(@NotNull Player player, float pitch) {
-        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, SoundCategory.PLAYERS, 0.45F, pitch);
+        GuiSound.DENY.play(player, pitch);
     }
 
     private boolean shouldRefreshSkillTreeVisuals(@NotNull Player player) {

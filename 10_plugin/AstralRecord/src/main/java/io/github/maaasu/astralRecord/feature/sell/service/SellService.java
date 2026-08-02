@@ -326,7 +326,7 @@ public final class SellService {
                 player.updateInventory();
                 return;
             }
-            GuiSound.SELECT.play(player);
+            GuiSound.SELL.play(player);
             discard(player);
             notifySellCompleted(player, soldItems, totalSaleValue);
             menuGuiTransitionService.restorePlayerInventory(player);

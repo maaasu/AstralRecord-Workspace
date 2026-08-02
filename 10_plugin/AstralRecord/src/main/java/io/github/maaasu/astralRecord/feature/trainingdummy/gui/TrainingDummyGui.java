@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.trainingdummy.gui;
 import io.github.maaasu.astralRecord.feature.trainingdummy.model.TrainingDummyDefinition;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
+import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -30,6 +31,7 @@ public final class TrainingDummyGui {
     public void open(@NotNull Player player, @NotNull TrainingDummyDefinition definition) {
         Inventory inventory = Bukkit.createInventory(new Holder(definition.id()), SIZE, Component.text("カカシ設定: " + definition.id(), NamedTextColor.GOLD));
         render(inventory, definition);
+        GuiSound.OPEN.play(player);
         GuiOpenSupport.open(player, inventory);
     }
 

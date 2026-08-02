@@ -67,13 +67,13 @@ public final class LoginBonusGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (event.getRawSlot() == LoginBonusGui.PREVIOUS_MONTH_SLOT) {
-            GuiSound.SELECT.play(player);
+            GuiSound.PAGE.play(player);
             MenuOpenEventHandler.suppressNextCloseSound(player);
             loginBonusService.open(player, displayMonth.minusMonths(1));
             return;
         }
         if (event.getRawSlot() == LoginBonusGui.NEXT_MONTH_SLOT) {
-            GuiSound.SELECT.play(player);
+            GuiSound.PAGE.play(player);
             MenuOpenEventHandler.suppressNextCloseSound(player);
             loginBonusService.open(player, displayMonth.plusMonths(1));
             return;

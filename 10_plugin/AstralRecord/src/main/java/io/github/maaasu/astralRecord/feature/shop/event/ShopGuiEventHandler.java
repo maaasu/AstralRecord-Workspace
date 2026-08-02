@@ -138,13 +138,13 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
         if (event.getRawSlot() == ShopGui.PREVIOUS_PAGE_SLOT && shopGui.hasPreviousPage(pageIndex)) {
             MenuOpenEventHandler.suppressNextCloseSound(player);
             shopGui.openList(player, shop, pageIndex - 1);
-            GuiSound.SELECT.play(player);
+            GuiSound.PAGE.play(player);
             return;
         }
         if (event.getRawSlot() == ShopGui.NEXT_PAGE_SLOT && shopGui.hasNextPage(shop, pageIndex)) {
             MenuOpenEventHandler.suppressNextCloseSound(player);
             shopGui.openList(player, shop, pageIndex + 1);
-            GuiSound.SELECT.play(player);
+            GuiSound.PAGE.play(player);
             return;
         }
         String entryId = shopGui.getEntryId(event.getCurrentItem());
@@ -208,7 +208,7 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
         }
         MenuOpenEventHandler.suppressNextCloseSound(player);
         shopGui.openConfirm(player, shop, entry, quantity, shopService.preview(astPlayer, entry, quantity), pageIndex);
-        GuiSound.SELECT.play(player);
+        GuiSound.PURCHASE.play(player);
     }
 
     private boolean handleHotbarShortcutClick(@NotNull InventoryClickEvent event, @NotNull Player player) {

@@ -142,7 +142,7 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
         draftValues
             .computeIfAbsent(player.getUniqueId(), ignored -> new EnumMap<>(PlayerSettingKey.class))
             .put(key, nextValue);
-        GuiSound.SELECT.play(player);
+        GuiSound.TOGGLE.play(player);
         refreshInventory(player);
     }
 
@@ -171,7 +171,7 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
         draftValues
             .computeIfAbsent(player.getUniqueId(), ignored -> new EnumMap<>(PlayerSettingKey.class))
             .put(key, nextValue);
-        GuiSound.SELECT.play(player);
+        GuiSound.TOGGLE.play(player);
         refreshInventory(player);
     }
 

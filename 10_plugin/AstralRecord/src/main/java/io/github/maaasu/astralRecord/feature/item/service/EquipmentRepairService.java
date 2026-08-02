@@ -412,7 +412,7 @@ public final class EquipmentRepairService {
         }
         if (player.isOnline()) {
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5278, displayName(context.model()), context.cost());
-            player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, SoundCategory.PLAYERS, 0.8f, 1.2f);
+            GuiSound.REPAIR.play(player);
             particleDisplayService.spawnForNearbyViewers(
                 player.getLocation().add(0.0, 1.0, 0.0),
                 SharedParticleDefinitions.EQUIPMENT_REPAIR_ENCHANT

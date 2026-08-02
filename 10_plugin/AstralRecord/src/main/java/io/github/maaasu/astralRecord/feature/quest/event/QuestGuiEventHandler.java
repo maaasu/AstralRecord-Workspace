@@ -96,13 +96,13 @@ public final class QuestGuiEventHandler extends AbstractEventHandler {
         if (event.getRawSlot() == QuestGui.PREVIOUS_PAGE_SLOT && questGui.hasPreviousPage(pageIndex)) {
             MenuOpenEventHandler.suppressNextCloseSound(player);
             questGui.openBoard(player, astPlayer, board, questGui.getNpcId(event.getView().getTopInventory()), pageIndex - 1);
-            GuiSound.SELECT.play(player);
+            GuiSound.PAGE.play(player);
             return;
         }
         if (event.getRawSlot() == QuestGui.NEXT_PAGE_SLOT && questGui.hasNextPage(board, pageIndex)) {
             MenuOpenEventHandler.suppressNextCloseSound(player);
             questGui.openBoard(player, astPlayer, board, questGui.getNpcId(event.getView().getTopInventory()), pageIndex + 1);
-            GuiSound.SELECT.play(player);
+            GuiSound.PAGE.play(player);
             return;
         }
         String questId = questGui.getQuestId(event.getCurrentItem());
@@ -119,7 +119,13 @@ public final class QuestGuiEventHandler extends AbstractEventHandler {
         };
         MenuOpenEventHandler.suppressNextCloseSound(player);
         questGui.openBoard(player, astPlayer, board, questGui.getNpcId(event.getView().getTopInventory()), pageIndex);
-        (changed ? GuiSound.SELECT : GuiSound.DENY).play(player);
+        if (!changed) {
+            GuiSound.DENY.play(player);
+        } else if (state == QuestDisplayState.READY_TO_TURN_IN) {
+            GuiSound.REWARD.play(player);
+        } else {
+            GuiSound.SUCCESS.play(player);
+        }
     }
 
     private void handleListClick(@NotNull InventoryClickEvent event, @NotNull Player player) {

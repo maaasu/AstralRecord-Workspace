@@ -207,7 +207,7 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
 
     private void playResultSound(@NotNull Player player, @NotNull PartyActionResult result) {
         if (result.success()) {
-            GuiSound.SELECT.play(player);
+            GuiSound.SUCCESS.play(player);
         } else {
             GuiSound.DENY.play(player);
         }

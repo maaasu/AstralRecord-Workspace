@@ -142,12 +142,12 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (event.getRawSlot() == MailGuiView.BACK_SLOT) {
-            GuiSound.SELECT.play(player);
+            GuiSound.PAGE.play(player);
             AstralRecord.getInstance().getGuiNavigationService().openPrevious(player);
             return;
         }
         if (event.getRawSlot() == MailGuiView.FILTER_SLOT) {
-            GuiSound.SELECT.play(player);
+            GuiSound.PAGE.play(player);
             MenuOpenEventHandler.suppressNextCloseSound(player);
             open(player, filter.next(), 0);
             return;
@@ -195,12 +195,12 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
                 mailService.delete(
                     astPlayer,
                     mailId,
-                    success -> finishMutation(player, topInventory, filter, pageIndex, success)
+                    success -> finishMutation(player, topInventory, filter, pageIndex, success, false)
                 );
             }
             case LEFT, SHIFT_LEFT -> {
                 mailService.readAndReceive(astPlayer, mail, success ->
-                    finishMutation(player, topInventory, filter, pageIndex, success));
+                    finishMutation(player, topInventory, filter, pageIndex, success, true));
             }
             default -> GuiSound.DENY.play(player);
         }
@@ -215,7 +215,8 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
         @NotNull Inventory expectedInventory,
         @NotNull MailFilter filter,
         int pageIndex,
-        boolean success
+        boolean success,
+        boolean rewardReceived
     ) {
         if (!player.isOnline()
             || player.getOpenInventory().getTopInventory() != expectedInventory
@@ -226,7 +227,7 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        GuiSound.SELECT.play(player);
+        (rewardReceived ? GuiSound.REWARD : GuiSound.SUCCESS).play(player);
         MenuOpenEventHandler.suppressNextCloseSound(player);
         open(player, filter, pageIndex);
     }

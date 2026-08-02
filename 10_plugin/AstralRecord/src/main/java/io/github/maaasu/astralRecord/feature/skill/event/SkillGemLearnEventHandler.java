@@ -114,7 +114,7 @@ public final class SkillGemLearnEventHandler extends AbstractEventHandler {
                     passiveSkillService.markDirty(current);
                     player.closeInventory();
                     restoreInventory(player);
-                    GuiSound.SELECT.play(player);
+                    GuiSound.SKILL_LEARN.play(player);
                     SkillDefinition definition = skillService.registry().getDefinition(learned.getSkillId());
                     String name = definition == null ? learned.getSkillId() : definition.getName();
                     PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5856, name);
