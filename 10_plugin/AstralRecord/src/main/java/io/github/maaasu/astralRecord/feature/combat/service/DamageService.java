@@ -547,12 +547,15 @@ public final class DamageService {
         completeShieldRechargeIfReady(victim, rechargeEventAtMs);
         playCriticalHitEffect(victim, result);
         boolean projectileDamage = superStarCriticalMode == SuperStarCriticalMode.FORCE;
+        double victimCurrentHealthBefore = victim.currentHealth();
+        double victimMaxHealth = victim.maxHealth();
         applyDamageResult(attacker, victim, result, attackType, !projectileDamage);
+        double victimCurrentHealthAfter = victim.currentHealth();
         if (!projectileDamage) {
             applyDurabilityWear(attacker, victim, result);
         }
         spawnDamageDisplay(attacker, victim, result);
-        sendDamageLog(attacker, victim, result, context);
+        sendDamageLog(attacker, victim, result, context, victimCurrentHealthBefore, victimMaxHealth, victimCurrentHealthAfter);
         if (superStarOrigin != null && attacker != null) {
             spawnSuperStarCriticalProjectiles(
                     attacker,
@@ -945,17 +948,36 @@ public final class DamageService {
             @Nullable AstEntity attacker,
             @NotNull AstEntity victim,
             @NotNull DamageResult result,
-            @NotNull DamageContext context
+            @NotNull DamageContext context,
+            double victimCurrentHealthBefore,
+            double victimMaxHealth,
+            double victimCurrentHealthAfter
     ) {
         if (attacker != null && attacker.isPlayer() && attacker.player() != null
                 && playerSettingService.isDamageLogMessageEnabled(attacker.player().getUser().getUuid())) {
-            sendDamageLogMessage(attacker.player(), result, context, true);
+            sendDamageLogMessage(
+                    attacker.player(),
+                    result,
+                    context,
+                    victimCurrentHealthBefore,
+                    victimMaxHealth,
+                    victimCurrentHealthAfter,
+                    true
+            );
         }
 
         if (victim.isPlayer() && victim.player() != null
                 && (attacker == null || !attacker.id().equals(victim.id()))
                 && playerSettingService.isDamageLogMessageEnabled(victim.player().getUser().getUuid())) {
-            sendDamageLogMessage(victim.player(), result, context, false);
+            sendDamageLogMessage(
+                    victim.player(),
+                    result,
+                    context,
+                    victimCurrentHealthBefore,
+                    victimMaxHealth,
+                    victimCurrentHealthAfter,
+                    false
+            );
         }
     }
 
@@ -965,12 +987,18 @@ public final class DamageService {
      * @param recipient 送信先
      * @param result ダメージ結果
      * @param context ダメージ計算コンテキスト
+     * @param victimCurrentHealthBefore 被弾者の最終反映前 HP
+     * @param victimMaxHealth 被弾者の最大 HP
+     * @param victimCurrentHealthAfter 被弾者の最終反映後 HP
      * @param outgoing 与ダメージログなら true
      */
     private void sendDamageLogMessage(
             @NotNull AstPlayer recipient,
             @NotNull DamageResult result,
             @NotNull DamageContext context,
+            double victimCurrentHealthBefore,
+            double victimMaxHealth,
+            double victimCurrentHealthAfter,
             boolean outgoing
     ) {
         PlayerMessageService messages = PlayerMessageService.getInstance();
@@ -979,8 +1007,8 @@ public final class DamageService {
                     recipient,
                     outgoing ? PlayerMsgId.P_5351 : PlayerMsgId.P_5353,
                     formatCompactNumber(result.hitChance()),
-                    formatCompactNumber(result.accuracy()),
-                    formatCompactNumber(result.evasion())
+                formatCompactNumber(result.accuracy()),
+                formatCompactNumber(result.evasion())
             );
             return;
         }
@@ -998,7 +1026,8 @@ public final class DamageService {
                 formatCompactNumber(result.hitChance()),
                 formatCompactNumber(result.accuracy()),
                 formatCompactNumber(result.evasion()),
-                criticalSummary(result)
+                criticalSummary(result),
+                healthSummary(victimCurrentHealthBefore, victimMaxHealth, victimCurrentHealthAfter)
         );
     }
 
@@ -1022,16 +1051,28 @@ public final class DamageService {
      * ダメージの反映先と値を短縮形式で返します。
      *
      * @param result ダメージ結果
-     * @return HP、SHD、または DMG の短縮表示
+     * @return 数値のみの反映先別ダメージ表示
      */
     static @NotNull String damageSummary(@NotNull DamageResult result) {
         if (result.shieldDamage() > 0.0D) {
-            return "&bSHD" + formatCompactNumber(result.shieldDamage()) + (result.shieldBroken() ? "!" : "");
+            return "&b" + formatCompactNumber(result.shieldDamage()) + (result.shieldBroken() ? "!" : "");
         }
         if (result.finalDamage() > 0.0D) {
-            return "&cHP" + formatCompactNumber(result.finalDamage());
+            return "&c" + formatCompactNumber(result.finalDamage());
         }
-        return "&7DMG0";
+        return "&70";
+    }
+
+    private static @NotNull String healthSummary(
+            double currentHealth,
+            double maxHealth,
+            double afterHealth
+    ) {
+        double normalizedCurrent = Math.max(0.0D, currentHealth);
+        double normalizedMax = Math.max(0.0D, maxHealth);
+        double normalizedAfter = Math.max(0.0D, afterHealth);
+        return "(" + formatCompactNumber(normalizedCurrent) + "/" + formatCompactNumber(normalizedMax)
+                + "->" + formatCompactNumber(normalizedAfter) + ")";
     }
 
     /**
