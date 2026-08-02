@@ -55,13 +55,13 @@ class PlayerMsgResourceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_5-例外・ログ・運用.md
      * 章・見出し: # 14_5-例外・ログ・運用 > ## 2. player message
-     * 検証契約: damage詳細を相手名なしの短縮attack/element/AP/DEF/RES/hit/critical形式で整形する。
+     * 検証契約: damage詳細を相手名なしの短縮damage/attack/element/AP/DEF/RES/hit/critical形式と被弾者HPスナップショットで整形する。
      */
     @Test
     void damageDetailMessageFormatsCompactCalculationBreakdown() {
         String formatted = PlayerMsgResource.format(
                 PlayerMsgId.P_5350.getId(),
-                "&cHP125",
+                "&c125",
                 "MEL",
                 "FIR",
                 "180",
@@ -71,15 +71,18 @@ class PlayerMsgResourceTest {
                 "92",
                 "95",
                 "3",
-                " &eCRIT"
+                " &eCRIT",
+                "(150/200->25)"
         );
 
-        assertTrue(formatted.contains("HP125"));
+        assertTrue(formatted.contains("125"));
         assertTrue(formatted.contains("MEL/FIR"));
         assertTrue(formatted.contains("AP180 DEF80>64 RES25>15"));
         assertTrue(formatted.contains("H92"));
         assertTrue(formatted.contains("A95-E3"));
         assertTrue(formatted.contains("\u00a7eCRIT"));
+        assertTrue(formatted.contains("(150/200->25)"));
+        assertFalse(formatted.contains("HP125"));
         assertFalse(formatted.contains("Test Mob"));
     }
 

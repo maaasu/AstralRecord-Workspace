@@ -17,7 +17,7 @@ class DamageServiceLogFormatTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_5-例外・ログ・運用.md
      * 章・見出し: # 14_5-例外・ログ・運用 > ## 2. player message
-     * 検証契約: compact damage logへattack type/elementと単一属性RES raw>effectiveを含める。
+     * 検証契約: compact damage logの結果値を接頭辞なしで表示し、attack type/elementと単一属性RES raw>effectiveを含める。
      */
     @Test
     void compactFormatIncludesDamageTypeAndSingleElementResistance() {
@@ -36,7 +36,7 @@ class DamageServiceLogFormatTest {
                 breakdown
         );
 
-        assertEquals("&cHP125", DamageService.damageSummary(result));
+        assertEquals("&c125", DamageService.damageSummary(result));
         assertEquals("MEL", DamageService.attackTypeCode(AttackType.MELEE));
         assertEquals("FIR", DamageService.damageElementsCode(
                 List.of(new DamageComponent(DamageElement.FIRE, 1.0D))
@@ -78,7 +78,7 @@ class DamageServiceLogFormatTest {
         DamageResult shield = DamageResult.shield(3.0D, true, calculated);
 
         assertSame(breakdown, shield.breakdown());
-        assertEquals("&bSHD3!", DamageService.damageSummary(shield));
+        assertEquals("&b3!", DamageService.damageSummary(shield));
     }
 
     /**
