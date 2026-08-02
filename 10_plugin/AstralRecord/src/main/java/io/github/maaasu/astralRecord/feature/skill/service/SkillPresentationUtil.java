@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
 import org.jetbrains.annotations.NotNull;
@@ -10,12 +11,12 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * スキル表示名の整形を共通化します。
  */
 public final class SkillPresentationUtil {
-
     private SkillPresentationUtil() {
     }
 
@@ -128,6 +129,43 @@ public final class SkillPresentationUtil {
             appendMasterLine(lines, line, fallbackColor);
         }
         return List.copyOf(lines);
+    }
+
+    /**
+     * スキルタグをプレイヤー向けの日本語名へ変換します。
+     *
+     * @param definition スキル定義
+     * @return 区切り付きの日本語タグ名。タグ未設定時は空文字列
+     */
+    public static @NotNull String skillTagDisplayNames(@Nullable SkillDefinition definition) {
+        if (definition == null || definition.getTags().isEmpty()) {
+            return "";
+        }
+        return definition.getTags().stream()
+            .map(SkillPresentationUtil::skillTagDisplayName)
+            .filter(tag -> !tag.isBlank())
+            .distinct()
+            .collect(java.util.stream.Collectors.joining(" / "));
+    }
+
+    /**
+     * スキルタグIDをプレイヤー向け日本語名へ変換します。
+     *
+     * @param tagId スキルタグID
+     * @return 日本語表示名。カタログ未登録のタグは「その他」
+     */
+    public static @NotNull String skillTagDisplayName(@Nullable String tagId) {
+        if (tagId == null || tagId.isBlank()) {
+            return "";
+        }
+        String normalizedTagId = tagId.trim();
+        MasterTagIds.Definition definition = MasterTagIds.find(normalizedTagId);
+        if (definition == null) {
+            definition = MasterTagIds.find(normalizedTagId.toLowerCase(Locale.ROOT));
+        }
+        return definition != null && definition.appliesTo().contains("SKILL")
+            ? definition.displayName()
+            : "その他";
     }
 
     /**

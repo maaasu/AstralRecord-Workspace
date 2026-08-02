@@ -245,6 +245,10 @@ public final class SkillBindGui {
         if (!lore.isEmpty()) {
             lore.add(Component.empty());
         }
+        String tagNames = SkillPresentationUtil.skillTagDisplayNames(skill);
+        if (!tagNames.isBlank()) {
+            lore.add(Component.text("タグ: " + tagNames, NamedTextColor.DARK_AQUA));
+        }
         lore.add(Component.text(
             "種別: " + (skill.getKind().isPassive() ? "パッシブ" : "アクティブ"),
             NamedTextColor.GRAY

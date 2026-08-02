@@ -20,7 +20,7 @@
 | 50..52 | プリセット4..6 |
 | 53 | 次ページ |
 
-一覧の各項目は日本語マスター名と `Lv.<現在>/<最大>`、説明、lore、種別、使用可否、シジル合成枠を表示する。シジル合成枠は空き・装着済みをスロットごとに表示し、装着済みシジルは表示名、ステータス補正、ロジック変更型シジルのitem loreまで表示する。個体IDは画面へ表示せず、PDCの `learnedSkillId` だけで内部識別する。使用不可の文言は `現在のクラスでは使用不可` とする。左クリックは種別に合う空きバインド枠へ自動設定し、明示選択中ならその枠を優先する。右クリックは合成画面を開く操作として別行で案内する。通常攻撃も予約バインドIDを PDC へ持ち、ジェム所持やスキル所有を要求しない。
+一覧の各項目は日本語マスター名と `Lv.<現在>/<最大>`、説明、lore、タグ、種別、使用可否、シジル合成枠を表示する。タグはタグIDを表示せず、共有タグカタログに対応する日本語名（例: `active`→`アクティブ`、`lightning`→`雷`）を表示する。シジル合成枠は空き・装着済みをスロットごとに表示し、装着済みシジルは表示名、ステータス補正、ロジック変更型シジルのitem loreまで表示する。個体IDは画面へ表示せず、PDCの `learnedSkillId` だけで内部識別する。使用不可の文言は `現在のクラスでは使用不可` とする。左クリックは種別に合う空きバインド枠へ自動設定し、明示選択中ならその枠を優先する。右クリックは合成画面を開く操作として別行で案内する。通常攻撃も予約バインドIDを PDC へ持ち、ジェム所持やスキル所有を要求しない。
 
 選択中バインド枠がない場合は常時発動passiveを除く全習得個体を表示する。active / left-click枠を選択した場合はactiveだけ、passive枠なら `passiveBindRequired=true` のpassiveだけを表示する。常時発動passiveは設定候補へ表示しない。空の action / passive 枠は枠番号を item amount で示し、無効な passive 枠は鉄格子で表示する。無効枠の既存設定は解除だけを許可する。
 
@@ -51,7 +51,7 @@
 
 ## 6. マスター表示の共通化
 
-`SkillPresentationUtil` を skill GUI / View のマスター表示用 API とし、`ItemModel` と `SkillDefinition` の name / description / lore をこの API で Component 化する。カラーコードの正規化は `ColorCodeUtil` だけが担い、GUI / View は raw master 文字列を `Component`、`displayName`、`lore` へ直接渡さない。リソース検査はこの禁止経路を `feature/skill/gui` と `feature/skill/view` の本番ソースで検出する。
+`SkillPresentationUtil` を skill GUI / View のマスター表示用 API とし、`ItemModel` と `SkillDefinition` の name / description / lore をこの API で Component 化する。スキルタグは共有タグカタログから生成された `MasterTagIds` の表示名を使い、raw tag IDをGUIへ出さない。カラーコードの正規化は `ColorCodeUtil` だけが担い、GUI / View は raw master 文字列を `Component`、`displayName`、`lore` へ直接渡さない。リソース検査はこの禁止経路を `feature/skill/gui` と `feature/skill/view` の本番ソースで検出する。
 
 ## 7. スキルツリーノード解除確認GUI
 

@@ -347,6 +347,9 @@ internal static class CodeTemplates
         var builder = Header("java");
         builder.AppendLine("package io.github.maaasu.astralRecord.shared.masterdata.tag;");
         builder.AppendLine();
+        builder.AppendLine("import java.util.List;");
+        builder.AppendLine("import java.util.Map;");
+        builder.AppendLine();
         builder.AppendLine("/** 共有タグカタログから生成されたタグID定数です。 */");
         builder.AppendLine("public final class MasterTagIds {");
         builder.AppendLine("    private MasterTagIds() {");
@@ -370,6 +373,33 @@ internal static class CodeTemplates
             }
             builder.AppendLine("    }");
         }
+        builder.AppendLine();
+        builder.AppendLine("    /** 共有タグカタログ由来の表示・適用先情報です。 */");
+        builder.AppendLine("    public record Definition(");
+        builder.AppendLine("        String id,");
+        builder.AppendLine("        String displayName,");
+        builder.AppendLine("        String description,");
+        builder.AppendLine("        String category,");
+        builder.AppendLine("        List<String> appliesTo");
+        builder.AppendLine("    ) {");
+        builder.AppendLine("    }");
+        builder.AppendLine();
+        builder.AppendLine("    private static final Map<String, Definition> DEFINITIONS = Map.ofEntries(");
+        for (var index = 0; index < catalog.Tags.Count; index++)
+        {
+            var tag = catalog.Tags[index];
+            builder.Append("        Map.entry(").Append(Quote(tag.Id)).Append(", new Definition(")
+                .Append(Quote(tag.Id)).Append(", ").Append(Quote(tag.DisplayName)).Append(", ")
+                .Append(Quote(tag.Description)).Append(", ").Append(Quote(tag.Category)).Append(", List.of(")
+                .Append(string.Join(", ", tag.AppliesTo.Select(Quote)))
+                .AppendLine(index + 1 < catalog.Tags.Count ? ")))," : ")))");
+        }
+        builder.AppendLine("    );");
+        builder.AppendLine();
+        builder.AppendLine("    /** 不変IDに対応する共有タグ定義を取得します。 */");
+        builder.AppendLine("    public static Definition find(String id) {");
+        builder.AppendLine("        return DEFINITIONS.get(id);");
+        builder.AppendLine("    }");
         builder.AppendLine("}");
         return builder.ToString();
     }

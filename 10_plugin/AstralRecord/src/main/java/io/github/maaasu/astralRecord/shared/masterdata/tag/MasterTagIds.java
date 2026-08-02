@@ -4,6 +4,9 @@
 
 package io.github.maaasu.astralRecord.shared.masterdata.tag;
 
+import java.util.List;
+import java.util.Map;
+
 /** 共有タグカタログから生成されたタグID定数です。 */
 public final class MasterTagIds {
     private MasterTagIds() {
@@ -418,5 +421,138 @@ public final class MasterTagIds {
 
         /** 石: 石をモチーフとする分類。 */
         public static final String STONE = "stone";
+    }
+
+    /** 共有タグカタログ由来の表示・適用先情報です。 */
+    public record Definition(
+        String id,
+        String displayName,
+        String description,
+        String category,
+        List<String> appliesTo
+    ) {
+    }
+
+    private static final Map<String, Definition> DEFINITIONS = Map.ofEntries(
+        Map.entry("AMULET", new Definition("AMULET", "アミュレット", "アミュレット用アクセサリ枠へ装着できる装備。", "EQUIPMENT", List.of("EQUIPMENT"))),
+        Map.entry("TALISMAN", new Definition("TALISMAN", "タリスマン", "タリスマン用アクセサリ枠へ装着できる装備。", "EQUIPMENT", List.of("EQUIPMENT"))),
+        Map.entry("CHARM", new Definition("CHARM", "チャーム", "チャーム用アクセサリ枠へ装着できる装備。", "EQUIPMENT", List.of("EQUIPMENT"))),
+        Map.entry("CORE", new Definition("CORE", "コア", "コア用アクセサリ枠へ装着できる装備。", "EQUIPMENT", List.of("EQUIPMENT"))),
+        Map.entry("RELIC", new Definition("RELIC", "レリック", "レリック用アクセサリ枠へ装着できる装備。", "EQUIPMENT", List.of("EQUIPMENT"))),
+        Map.entry("SWORD", new Definition("SWORD", "剣", "剣として扱う装備。", "EQUIPMENT", List.of("EQUIPMENT", "GATHERING_REQUIRED_TOOL"))),
+        Map.entry("STAFF", new Definition("STAFF", "杖", "杖として扱う装備。", "EQUIPMENT", List.of("EQUIPMENT", "GATHERING_REQUIRED_TOOL"))),
+        Map.entry("BOW", new Definition("BOW", "弓", "弓として扱う装備。", "EQUIPMENT", List.of("EQUIPMENT", "GATHERING_REQUIRED_TOOL"))),
+        Map.entry("PICKAXE", new Definition("PICKAXE", "ツルハシ", "採掘用のツルハシとして扱う装備。", "EQUIPMENT", List.of("EQUIPMENT", "GATHERING_REQUIRED_TOOL"))),
+        Map.entry("AXE", new Definition("AXE", "斧", "伐採用の斧として扱う装備。", "EQUIPMENT", List.of("EQUIPMENT", "GATHERING_REQUIRED_TOOL"))),
+        Map.entry("HOE", new Definition("HOE", "クワ", "採取用のクワとして扱う装備。", "EQUIPMENT", List.of("EQUIPMENT", "GATHERING_REQUIRED_TOOL"))),
+        Map.entry("active", new Definition("active", "アクティブ", "能動的に発動するスキル。", "ACTIVITY", List.of("SKILL"))),
+        Map.entry("passive", new Definition("passive", "パッシブ", "常時または条件付きで自動適用されるスキル。", "ACTIVITY", List.of("SKILL"))),
+        Map.entry("mob", new Definition("mob", "Mob用", "Mob が使用するスキル。", "ACTIVITY", List.of("SKILL"))),
+        Map.entry("field", new Definition("field", "フィールド", "フィールド上の行動・効果に関係する分類。", "ACTIVITY", List.of("SKILL"))),
+        Map.entry("status", new Definition("status", "ステータス", "ステータス効果を持つスキルツリーノード。", "ACTIVITY", List.of("SKILLTREE_NODE"))),
+        Map.entry("skilltree", new Definition("skilltree", "スキルツリー", "スキルツリー機能への導線を持つ NPC。", "ACTIVITY", List.of("MOB"))),
+        Map.entry("melee", new Definition("melee", "近接", "近接戦闘を主とする分類。", "COMBAT_ROLE", List.of("CLASS", "SKILL", "MOB"))),
+        Map.entry("ranged", new Definition("ranged", "遠隔", "遠隔攻撃を主とする分類。", "COMBAT_ROLE", List.of("CLASS", "SKILL", "MOB"))),
+        Map.entry("magic", new Definition("magic", "魔法", "魔法攻撃または魔法系統の分類。", "COMBAT_ROLE", List.of("CLASS", "SKILL", "MOB"))),
+        Map.entry("tank", new Definition("tank", "タンク", "防御と敵対維持を主とするクラスロール。", "COMBAT_ROLE", List.of("CLASS"))),
+        Map.entry("dealer", new Definition("dealer", "アタッカー", "ダメージ出力を主とするクラスロール。", "COMBAT_ROLE", List.of("CLASS"))),
+        Map.entry("balanced", new Definition("balanced", "バランス", "複数の役割を均等に扱うクラス。", "COMBAT_ROLE", List.of("CLASS"))),
+        Map.entry("defense", new Definition("defense", "防御", "防御能力や耐久力に関係する分類。", "COMBAT_ROLE", List.of("SKILL", "SKILLTREE_NODE"))),
+        Map.entry("offense", new Definition("offense", "攻撃", "攻撃能力に関係する分類。", "COMBAT_ROLE", List.of("SKILLTREE_NODE"))),
+        Map.entry("front", new Definition("front", "前衛", "前線で戦うクラスロール。", "COMBAT_ROLE", List.of("CLASS"))),
+        Map.entry("bow", new Definition("bow", "弓", "弓系統に関係する分類。", "COMBAT_ROLE", List.of("CLASS", "SKILL"))),
+        Map.entry("staff", new Definition("staff", "杖", "杖系統に関係する分類。", "COMBAT_ROLE", List.of("CLASS"))),
+        Map.entry("sword", new Definition("sword", "剣", "剣系統に関係する分類。", "COMBAT_ROLE", List.of("CLASS"))),
+        Map.entry("fire", new Definition("fire", "炎", "炎属性または炎をモチーフとする分類。", "ELEMENT", List.of("SKILL", "SKILLTREE_NODE", "MOB"))),
+        Map.entry("ice", new Definition("ice", "氷", "氷属性に関係する分類。", "ELEMENT", List.of("SKILLTREE_NODE"))),
+        Map.entry("lightning", new Definition("lightning", "雷", "雷属性に関係する分類。", "ELEMENT", List.of("SKILL", "SKILLTREE_NODE", "MOB"))),
+        Map.entry("poison", new Definition("poison", "毒", "毒属性に関係する分類。", "ELEMENT", List.of("SKILLTREE_NODE"))),
+        Map.entry("light", new Definition("light", "光", "光属性に関係する分類。", "ELEMENT", List.of("SKILLTREE_NODE"))),
+        Map.entry("dark", new Definition("dark", "闇", "闇属性に関係する分類。", "ELEMENT", List.of("SKILLTREE_NODE"))),
+        Map.entry("burning", new Definition("burning", "炎上", "炎上状態に関係する分類。", "ELEMENT", List.of("SKILLTREE_NODE"))),
+        Map.entry("frozen", new Definition("frozen", "凍結", "凍結状態に関係する分類。", "ELEMENT", List.of("SKILLTREE_NODE"))),
+        Map.entry("chilled", new Definition("chilled", "冷却", "冷却状態に関係する分類。", "ELEMENT", List.of("SKILLTREE_NODE"))),
+        Map.entry("shocked", new Definition("shocked", "感電", "感電状態に関係する分類。", "ELEMENT", List.of("SKILLTREE_NODE"))),
+        Map.entry("poisoned", new Definition("poisoned", "毒状態", "毒状態に関係する分類。", "ELEMENT", List.of("SKILLTREE_NODE"))),
+        Map.entry("blindness", new Definition("blindness", "盲目", "盲目状態に関係する分類。", "ELEMENT", List.of("SKILLTREE_NODE"))),
+        Map.entry("weakness", new Definition("weakness", "弱体", "弱体状態に関係する分類。", "ELEMENT", List.of("SKILLTREE_NODE"))),
+        Map.entry("healing_inhibition", new Definition("healing_inhibition", "回復阻害", "回復阻害状態に関係する分類。", "ELEMENT", List.of("SKILLTREE_NODE"))),
+        Map.entry("condition", new Definition("condition", "状態異常", "状態異常系ノードをまとめる分類。", "ELEMENT", List.of("SKILLTREE_NODE"))),
+        Map.entry("element", new Definition("element", "属性", "属性系ノードをまとめる分類。", "ELEMENT", List.of("SKILLTREE_NODE"))),
+        Map.entry("starter", new Definition("starter", "初期", "ゲーム開始時の初期クラス。", "PROGRESSION", List.of("CLASS"))),
+        Map.entry("beginner", new Definition("beginner", "初心者", "初心者向けのクラス。", "PROGRESSION", List.of("CLASS"))),
+        Map.entry("tier1", new Definition("tier1", "一次職", "一次職段階のクラス。", "PROGRESSION", List.of("CLASS"))),
+        Map.entry("early", new Definition("early", "序盤", "序盤に位置するスキルツリーノード。", "PROGRESSION", List.of("SKILLTREE_NODE"))),
+        Map.entry("entry", new Definition("entry", "入口", "コンテンツ入口への案内を行う NPC。", "PROGRESSION", List.of("MOB"))),
+        Map.entry("return", new Definition("return", "帰還", "コンテンツからの帰還を案内する NPC。", "PROGRESSION", List.of("MOB"))),
+        Map.entry("root", new Definition("root", "ルート／根", "スキルツリーの開始点、または根をモチーフとする分類。", "SKILLTREE", List.of("SKILLTREE_NODE", "MOB"))),
+        Map.entry("shared", new Definition("shared", "共通", "複数クラスで共有するスキルツリーノード。", "SKILLTREE", List.of("SKILLTREE_NODE"))),
+        Map.entry("core", new Definition("core", "中核", "スキルツリーの中核となるノード。", "SKILLTREE", List.of("SKILLTREE_NODE"))),
+        Map.entry("primary", new Definition("primary", "基本能力", "基本能力値に関係するノード。", "SKILLTREE", List.of("SKILLTREE_NODE"))),
+        Map.entry("resource", new Definition("resource", "リソース", "HP、MPなどのリソースに関係するノード。", "SKILLTREE", List.of("SKILLTREE_NODE"))),
+        Map.entry("strength", new Definition("strength", "筋力", "筋力に関係するノード。", "SKILLTREE", List.of("SKILLTREE_NODE"))),
+        Map.entry("agility", new Definition("agility", "敏捷", "敏捷に関係するノード。", "SKILLTREE", List.of("SKILLTREE_NODE"))),
+        Map.entry("intelligence", new Definition("intelligence", "知力", "知力に関係するノード。", "SKILLTREE", List.of("SKILLTREE_NODE"))),
+        Map.entry("dexterity", new Definition("dexterity", "器用", "器用に関係するノード。", "SKILLTREE", List.of("SKILLTREE_NODE"))),
+        Map.entry("luck", new Definition("luck", "運", "運に関係するノード。", "SKILLTREE", List.of("SKILLTREE_NODE"))),
+        Map.entry("health", new Definition("health", "体力", "HPに関係するノード。", "SKILLTREE", List.of("SKILLTREE_NODE"))),
+        Map.entry("mana", new Definition("mana", "マナ", "MPに関係するノード。", "SKILLTREE", List.of("SKILLTREE_NODE"))),
+        Map.entry("energy", new Definition("energy", "エネルギー", "エネルギーに関係するノード。", "SKILLTREE", List.of("SKILLTREE_NODE"))),
+        Map.entry("shield", new Definition("shield", "シールド", "シールド能力または盾を持つ Mob に関係する分類。", "SKILLTREE", List.of("SKILLTREE_NODE", "MOB"))),
+        Map.entry("durability", new Definition("durability", "耐久", "耐久力に関係するノード。", "SKILLTREE", List.of("SKILLTREE_NODE"))),
+        Map.entry("accuracy", new Definition("accuracy", "命中", "命中能力に関係するノード。", "SKILLTREE", List.of("SKILLTREE_NODE"))),
+        Map.entry("dragon", new Definition("dragon", "ドラゴン", "ドラゴン種の Mob。", "CREATURE", List.of("MOB"))),
+        Map.entry("boss", new Definition("boss", "ボス", "ボスとして扱う Mob。", "CREATURE", List.of("MOB"))),
+        Map.entry("golem", new Definition("golem", "ゴーレム", "ゴーレム種の Mob。", "CREATURE", List.of("MOB"))),
+        Map.entry("beast", new Definition("beast", "獣", "獣種の Mob。", "CREATURE", List.of("MOB"))),
+        Map.entry("spirit", new Definition("spirit", "精霊", "精霊種の Mob。", "CREATURE", List.of("MOB"))),
+        Map.entry("guardian", new Definition("guardian", "守護者", "守護者として配置される Mob。", "CREATURE", List.of("MOB"))),
+        Map.entry("undead", new Definition("undead", "アンデッド", "アンデッド種の Mob。", "CREATURE", List.of("MOB"))),
+        Map.entry("skeleton", new Definition("skeleton", "スケルトン", "スケルトン種の Mob。", "CREATURE", List.of("MOB"))),
+        Map.entry("humanoid", new Definition("humanoid", "人型", "人型の Mob。", "CREATURE", List.of("MOB"))),
+        Map.entry("goat", new Definition("goat", "ヤギ", "ヤギ種の Mob。", "CREATURE", List.of("MOB"))),
+        Map.entry("wolf", new Definition("wolf", "オオカミ", "オオカミ種の Mob。", "CREATURE", List.of("MOB"))),
+        Map.entry("npc", new Definition("npc", "NPC", "NPCとして扱う Mob。", "CREATURE", List.of("MOB"))),
+        Map.entry("midgard", new Definition("midgard", "ミズガルズ", "ミズガルズ地域に属する分類。", "LOCATION", List.of("MOB", "RECIPE"))),
+        Map.entry("forest", new Definition("forest", "森林", "森林地域に属する分類。", "LOCATION", List.of("MOB"))),
+        Map.entry("grassland", new Definition("grassland", "草原", "草原地域に属する分類。", "LOCATION", List.of("MOB"))),
+        Map.entry("mountain", new Definition("mountain", "山岳", "山岳地域に属する分類。", "LOCATION", List.of("SKILL", "MOB"))),
+        Map.entry("savanna", new Definition("savanna", "サバンナ", "サバンナ地域に属する分類。", "LOCATION", List.of("SKILL", "MOB"))),
+        Map.entry("acacia", new Definition("acacia", "アカシア", "アカシアをモチーフとする分類。", "LOCATION", List.of("MOB"))),
+        Map.entry("class_guide", new Definition("class_guide", "クラス案内", "クラス選択を案内する NPC。", "NPC_ROLE", List.of("MOB"))),
+        Map.entry("currency_exchange", new Definition("currency_exchange", "通貨交換", "通貨交換を提供する NPC。", "NPC_ROLE", List.of("MOB"))),
+        Map.entry("equipment_enhance", new Definition("equipment_enhance", "装備強化", "装備強化を提供する NPC。", "NPC_ROLE", List.of("MOB"))),
+        Map.entry("equipment_repair", new Definition("equipment_repair", "装備修理", "装備修理を提供する NPC。", "NPC_ROLE", List.of("MOB"))),
+        Map.entry("armor_shop", new Definition("armor_shop", "防具店", "防具を扱う店舗 NPC。", "NPC_ROLE", List.of("MOB"))),
+        Map.entry("weapon_shop", new Definition("weapon_shop", "武器店", "武器を扱う店舗 NPC。", "NPC_ROLE", List.of("MOB"))),
+        Map.entry("shop", new Definition("shop", "店舗", "店舗機能を持つ NPC。", "NPC_ROLE", List.of("MOB"))),
+        Map.entry("sell", new Definition("sell", "買取", "アイテム買取を提供する NPC。", "NPC_ROLE", List.of("MOB"))),
+        Map.entry("storage", new Definition("storage", "倉庫", "倉庫機能を提供する NPC。", "NPC_ROLE", List.of("MOB"))),
+        Map.entry("login_bonus", new Definition("login_bonus", "ログインボーナス", "ログインボーナスを提供する NPC。", "NPC_ROLE", List.of("MOB"))),
+        Map.entry("quest_giver", new Definition("quest_giver", "クエスト発行", "クエストを発行する NPC。", "NPC_ROLE", List.of("MOB"))),
+        Map.entry("weapon", new Definition("weapon", "武器", "武器を成果物とするレシピ。", "CRAFTING", List.of("RECIPE"))),
+        Map.entry("armor", new Definition("armor", "防具", "防具を成果物とするレシピ。", "CRAFTING", List.of("RECIPE"))),
+        Map.entry("blacksmith", new Definition("blacksmith", "鍛冶", "鍛冶設備や鍛冶工程で扱うレシピ。", "CRAFTING", List.of("RECIPE"))),
+        Map.entry("enhance", new Definition("enhance", "強化", "既存アイテムを強化するレシピ。", "CRAFTING", List.of("RECIPE"))),
+        Map.entry("alchemy", new Definition("alchemy", "錬金", "錬金・調合工程で扱うレシピ。", "CRAFTING", List.of("RECIPE"))),
+        Map.entry("consumable", new Definition("consumable", "消耗品", "消耗品を成果物とするレシピ。", "CRAFTING", List.of("RECIPE"))),
+        Map.entry("administrator", new Definition("administrator", "管理者", "管理者専用クラス。", "THEME", List.of("CLASS"))),
+        Map.entry("adventurer", new Definition("adventurer", "冒険者", "冒険者クラス。", "THEME", List.of("CLASS"))),
+        Map.entry("command-only", new Definition("command-only", "コマンド限定", "コマンドからのみ利用する分類。", "THEME", List.of("CLASS"))),
+        Map.entry("astral", new Definition("astral", "アストラル", "星界をモチーフとする分類。", "THEME", List.of("SKILLTREE_NODE"))),
+        Map.entry("azure", new Definition("azure", "蒼", "蒼色をモチーフとする分類。", "THEME", List.of("SKILLTREE_NODE"))),
+        Map.entry("ember", new Definition("ember", "残り火", "残り火をモチーフとする分類。", "THEME", List.of("SKILLTREE_NODE"))),
+        Map.entry("starlight", new Definition("starlight", "星光", "星の光をモチーフとする分類。", "THEME", List.of("SKILLTREE_NODE"))),
+        Map.entry("wind", new Definition("wind", "風", "風をモチーフとする分類。", "THEME", List.of("SKILLTREE_NODE"))),
+        Map.entry("windwait", new Definition("windwait", "風待ち", "風待ちをモチーフとするスキルまたはMobの分類。", "THEME", List.of("SKILL", "MOB"))),
+        Map.entry("twilight", new Definition("twilight", "黄昏", "黄昏をモチーフとする分類。", "THEME", List.of("MOB"))),
+        Map.entry("moss", new Definition("moss", "苔", "苔をモチーフとする分類。", "THEME", List.of("MOB"))),
+        Map.entry("iron", new Definition("iron", "鉄", "鉄をモチーフとする分類。", "THEME", List.of("MOB"))),
+        Map.entry("stone", new Definition("stone", "石", "石をモチーフとする分類。", "THEME", List.of("SKILLTREE_NODE", "MOB")))
+    );
+
+    /** 不変IDに対応する共有タグ定義を取得します。 */
+    public static Definition find(String id) {
+        return DEFINITIONS.get(id);
     }
 }
