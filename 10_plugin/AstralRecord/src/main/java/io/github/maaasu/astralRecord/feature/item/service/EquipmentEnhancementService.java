@@ -967,9 +967,7 @@ public final class EquipmentEnhancementService {
         if (session.selectedEquipment == null || session.selectedEquipment.getType() == Material.AIR) {
             return false;
         }
-        if (!EquipmentOperationInventoryState.restoreEntry(session.inventoryState, session.selectedEntry)) {
-            astPlayer.getBukkit().getWorld().dropItemNaturally(astPlayer.getBukkit().getLocation(), session.selectedEquipment.clone());
-        }
+        restoreHeldEquipment(astPlayer, session);
         session.selectedEquipment = null;
         session.selectedEntry = null;
         return true;
@@ -982,9 +980,7 @@ public final class EquipmentEnhancementService {
     ) {
         sessions.remove(session.owner.getUniqueId(), session);
         if (session.selectedEquipment != null && session.selectedEquipment.getType() != Material.AIR) {
-            if (!EquipmentOperationInventoryState.restoreEntry(session.inventoryState, session.selectedEntry)) {
-                astPlayer.getBukkit().getWorld().dropItemNaturally(astPlayer.getBukkit().getLocation(), session.selectedEquipment.clone());
-            }
+            restoreHeldEquipment(astPlayer, session);
             session.selectedEquipment = null;
             session.selectedEntry = null;
         }
@@ -1000,6 +996,14 @@ public final class EquipmentEnhancementService {
         if (session.previousDisplayedType != null) {
             inventoryService.applyInventoryToGui(astPlayer, session.previousDisplayedType);
         }
+    }
+
+    /** 退避装備を元stateへ戻し、失敗時も現在の所持品へ返却します。 */
+    private void restoreHeldEquipment(@NotNull AstPlayer astPlayer, @NotNull EnhancementSession session) {
+        if (EquipmentOperationInventoryState.restoreEntry(session.inventoryState, session.selectedEntry)) return;
+        if (inventoryService.returnItemToOwnedInventory(astPlayer, session.selectedEquipment.clone()) != null) return;
+        astPlayer.getBukkit().getWorld().dropItemNaturally(astPlayer.getBukkit().getLocation(), session.selectedEquipment.clone());
+        Logger.log(LogId.W_5203, "enhancement_close_restore", session.accountId);
     }
 
     private void playSuccessEffects(@NotNull Player player) {
