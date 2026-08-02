@@ -252,8 +252,28 @@ public final class SkillBindGui {
     }
 
     private ItemStack createLearnedSkillItem(SkillManagerEntry entry, boolean listDisplay) {
-        SkillDefinition skill = entry.definition();
         List<Component> lore = new ArrayList<>();
+        appendLearnedSkillDetails(lore, entry);
+        if (listDisplay) {
+            lore.add(separator());
+            lore.add(Component.text("左クリック: 空き枠へ自動設定", NamedTextColor.YELLOW));
+            lore.add(Component.text("右クリック: スキル合成を開く", NamedTextColor.LIGHT_PURPLE));
+        }
+        SkillDefinition skill = entry.definition();
+        ItemStack item = createItem(
+            listDisplay && !entry.permitted()
+                ? Material.LIGHT_GRAY_WOOL
+                : parseMaterial(skill.getIcon(), DEFAULT_SKILL_ICON),
+            SkillPresentationUtil.skillNameComponent(skill, skill.getId(), NamedTextColor.WHITE)
+                .append(Component.text(" Lv." + entry.learnedSkill().getLevel() + "/" + skill.getMaxLevel(), NamedTextColor.GOLD)),
+            lore
+        );
+        return withBindingId(item, entry.bindingId());
+    }
+
+    /** 一覧・設定済みスロットで共通に表示する、習得済みスキルのプレイヤー向け詳細です。 */
+    private void appendLearnedSkillDetails(@NotNull List<Component> lore, @NotNull SkillManagerEntry entry) {
+        SkillDefinition skill = entry.definition();
         lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(skill, NamedTextColor.GRAY));
         if (!lore.isEmpty()) {
             lore.add(separator());
@@ -278,20 +298,6 @@ public final class SkillBindGui {
         }
         lore.add(separator());
         appendSigilSlotLore(lore, entry, entry.learnedSkill().getLevel(), null);
-        if (listDisplay) {
-            lore.add(separator());
-            lore.add(Component.text("左クリック: 空き枠へ自動設定", NamedTextColor.YELLOW));
-            lore.add(Component.text("右クリック: スキル合成を開く", NamedTextColor.LIGHT_PURPLE));
-        }
-        ItemStack item = createItem(
-            listDisplay && !entry.permitted()
-                ? Material.LIGHT_GRAY_WOOL
-                : parseMaterial(skill.getIcon(), DEFAULT_SKILL_ICON),
-            SkillPresentationUtil.skillNameComponent(skill, skill.getId(), NamedTextColor.WHITE)
-                .append(Component.text(" Lv." + entry.learnedSkill().getLevel() + "/" + skill.getMaxLevel(), NamedTextColor.GOLD)),
-            lore
-        );
-        return withBindingId(item, entry.bindingId());
     }
 
     /** 消費とクールダウンを、旧 lore の一行表記から独立した読みやすい項目へ整形します。 */
@@ -416,6 +422,10 @@ public final class SkillBindGui {
             lore.add(Component.text(enabled ? "クリックして設定先に選択" : "枠数を増やすまで設定不可", NamedTextColor.GRAY));
         } else {
             lore.add(Component.text("クリックで解除", NamedTextColor.YELLOW));
+        }
+        if (entry != null) {
+            lore.add(separator());
+            appendLearnedSkillDetails(lore, entry);
         }
         Material material = !enabled ? Material.IRON_BARS
             : bindingId == null ? Material.LIGHT_GRAY_STAINED_GLASS_PANE
