@@ -70,6 +70,49 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
+     * 章・見出し: # 08_1-モデル定義 > ## 9. インベントリエントリ下書き
+     * 検証契約: 既存stackのローカル数量変更は、API が採番した expectedUpdatedAt を保存成功まで維持する。
+     */
+    @Test
+    void itemGetFlowPreservesApiVersionWhenIncreasingExistingStack() {
+        InventoryHarness harness = inventoryHarness();
+        PlayerMock bukkitPlayer = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.ADMIN);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel normalInventory = harness.addInventory(state, InventoryType.BAG);
+        LocalDateTime apiVersion = LocalDateTime.of(2026, 8, 2, 11, 11, 54, 438_365_700);
+        state.replaceEntriesFromLoad(normalInventory.getInventoryId(), List.of(new InventoryEntryModel(
+            UUID.randomUUID(),
+            normalInventory.getInventoryId(),
+            1,
+            ItemCategory.MATERIAL.getApiValue(),
+            "iron_ingot",
+            null,
+            null,
+            2L,
+            null,
+            apiVersion.minusMinutes(1),
+            apiVersion,
+            astPlayer.getAccount().getUuid(),
+            astPlayer.getAccount().getUuid(),
+            false
+        )));
+
+        int granted = harness.inventoryService.addItemToNormalInventory(
+            astPlayer,
+            DesignTestFixtures.item("iron_ingot", ItemCategory.MATERIAL, 64),
+            3,
+            "command"
+        );
+
+        InventoryEntryModel updated = state.snapshotEntries(normalInventory.getInventoryId()).getFirst();
+        assertEquals(3, granted);
+        assertEquals(5L, updated.getQuantity());
+        assertEquals(apiVersion, updated.getUpdatedAt());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
      * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加
      * 検証契約: equipment/runeをinstance ID付きで統合BAGへ格納する。

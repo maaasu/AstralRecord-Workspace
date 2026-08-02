@@ -199,7 +199,7 @@ class PlayerInventoryStateSkillMutationTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
      * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: 一括保存応答は送信後も同一のentryだけへ反映し、待機中の並行変更を上書きしない。
+     * 検証契約: 一括保存応答は待機中の並行変更を上書きせず、次回保存用に API が採番した版だけを反映する。
      */
     @Test
     void persistenceAcknowledgementPreservesConcurrentEntryChanges() {
@@ -216,10 +216,9 @@ class PlayerInventoryStateSkillMutationTest {
         PlayerInventoryState state = new PlayerInventoryState(accountId);
         state.replaceEntriesFromLoad(inventoryId, submitted);
 
-        LocalDateTime concurrentVersion = originalVersion.plusSeconds(1);
         state.replaceEntries(inventoryId, List.of(
             unchanged,
-            entry(changedId, inventoryId, 2, "changed", 8L, accountId, concurrentVersion)
+            entry(changedId, inventoryId, 2, "changed", 8L, accountId, originalVersion)
         ));
         LocalDateTime persistedVersion = originalVersion.plusSeconds(2);
         state.acknowledgePersistedEntries(inventoryId, submitted, List.of(
@@ -235,7 +234,7 @@ class PlayerInventoryStateSkillMutationTest {
             .filter(entry -> entry.getInventoryEntryId().equals(changedId))
             .findFirst().orElseThrow();
         assertEquals(8L, concurrent.getQuantity());
-        assertEquals(concurrentVersion, concurrent.getUpdatedAt());
+        assertEquals(persistedVersion, concurrent.getUpdatedAt());
         assertTrue(state.isDirty());
     }
 

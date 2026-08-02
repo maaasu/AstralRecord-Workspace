@@ -268,8 +268,14 @@ public final class PlayerInventoryState {
     }
 
     /**
-     * 一括保存の応答を、送信後に変更されていないentryだけへ反映します。
-     * 保存待ち中に生じた移動・数量変更は上書きせず、APIが採番した更新時刻だけを安全に取り込みます。
+     * 一括保存の応答を現在の entry 状態へ反映します。
+     * 保存待ち中に変更されていない entry は API 応答全体で置換し、再変更された entry は
+     * 数量・スロット・メタデータなどを保持したまま API が採番した {@code updatedAt} だけを反映します。
+     * ただし、保存待ち中に削除または別 inventory へ移動した entry には反映しません。
+     *
+     * @param inventoryId 保存した inventory ID
+     * @param submitted API へ送信した entry 一覧
+     * @param persisted API が保存後に返した entry 一覧
      */
     public synchronized void acknowledgePersistedEntries(
         @NotNull UUID inventoryId,
@@ -290,10 +296,49 @@ public final class PlayerInventoryState {
             InventoryEntryModel currentEntry = current.get(index);
             InventoryEntryModel submittedEntry = submittedById.get(currentEntry.getInventoryEntryId());
             InventoryEntryModel persistedEntry = persistedById.get(currentEntry.getInventoryEntryId());
-            if (submittedEntry != null && persistedEntry != null && currentEntry.equals(submittedEntry)) {
+            if (submittedEntry == null
+                || persistedEntry == null
+                || currentEntry.isDeleted()
+                || !currentEntry.getInventoryId().equals(inventoryId)
+                || !submittedEntry.getInventoryId().equals(inventoryId)
+                || !persistedEntry.getInventoryId().equals(inventoryId)) {
+                continue;
+            }
+            if (currentEntry.equals(submittedEntry)) {
                 current.set(index, persistedEntry);
+            } else {
+                current.set(index, withUpdatedAt(currentEntry, persistedEntry.getUpdatedAt()));
             }
         }
+    }
+
+    /**
+     * ローカル変更内容を維持したまま、API が採番した楽観ロック版だけを反映します。
+     *
+     * @param entry 現在のローカル entry
+     * @param updatedAt API が返した更新時刻
+     * @return 更新時刻だけを置き換えた entry
+     */
+    private static @NotNull InventoryEntryModel withUpdatedAt(
+        @NotNull InventoryEntryModel entry,
+        @NotNull java.time.LocalDateTime updatedAt
+    ) {
+        return new InventoryEntryModel(
+            entry.getInventoryEntryId(),
+            entry.getInventoryId(),
+            entry.getSlotIndex(),
+            entry.getItemCategory(),
+            entry.getItemId(),
+            entry.getInstanceType(),
+            entry.getInstanceId(),
+            entry.getQuantity(),
+            entry.getMetadataJson(),
+            entry.getCreatedAt(),
+            updatedAt,
+            entry.getCreatedBy(),
+            entry.getUpdatedBy(),
+            entry.isDeleted()
+        );
     }
 
     /**

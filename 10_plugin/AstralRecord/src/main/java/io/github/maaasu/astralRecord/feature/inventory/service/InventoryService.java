@@ -4236,6 +4236,17 @@ public class InventoryService {
         return ItemRarity.rankOf(rarity);
     }
 
+    /**
+     * ローカル状態だけで entry のスロットを変更します。
+     * <p>
+     * {@code updatedAt} は API が採番する楽観ロック版のため、保存成功応答を受け取るまで
+     * 更新しません。ここで現在時刻へ置き換えると、次回の一括保存が古い版として拒否されます。
+     *
+     * @param entry 変更前 entry
+     * @param slotIndex 変更後スロット番号
+     * @param actor 操作アカウント
+     * @return スロット変更後のローカル entry
+     */
     private @NotNull InventoryEntryModel withSlot(
         @NotNull InventoryEntryModel entry,
         @Nullable Integer slotIndex,
@@ -4255,13 +4266,24 @@ public class InventoryService {
             entry.getQuantity(),
             entry.getMetadataJson(),
             entry.getCreatedAt(),
-            LocalDateTime.now(),
+            entry.getUpdatedAt(),
             entry.getCreatedBy(),
             actor,
             entry.isDeleted()
         );
     }
 
+    /**
+     * ローカル状態だけで entry の数量を変更します。
+     * <p>
+     * {@code updatedAt} は API が採番する楽観ロック版のため、保存成功応答を受け取るまで
+     * 更新しません。ここで現在時刻へ置き換えると、次回の一括保存が古い版として拒否されます。
+     *
+     * @param entry 変更前 entry
+     * @param quantity 変更後数量
+     * @param actor 操作アカウント
+     * @return 数量変更後のローカル entry
+     */
     private @NotNull InventoryEntryModel withQuantity(
         @NotNull InventoryEntryModel entry,
         long quantity,
@@ -4278,7 +4300,7 @@ public class InventoryService {
             quantity,
             entry.getMetadataJson(),
             entry.getCreatedAt(),
-            LocalDateTime.now(),
+            entry.getUpdatedAt(),
             entry.getCreatedBy(),
             actor,
             entry.isDeleted()
