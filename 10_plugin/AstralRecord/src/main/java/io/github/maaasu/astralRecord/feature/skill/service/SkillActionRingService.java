@@ -381,7 +381,9 @@ public final class SkillActionRingService {
         SkillDefinition definition = learned == null ? null : skillService.registry().getDefinition(learned.getSkillId());
         return definition != null
             && definition.getKind() == SkillKind.ACTIVE
-            && permissionService.isPermitted(astPlayer, learned.getSkillId());
+            // 使用許可の最終判定は SkillService が行い、未許可時は P_5863 を表示します。
+            // ここで除外すると入力そのものが棄却され、理由をプレイヤーへ返せません。
+            && learned != null;
     }
 
     private @Nullable SkillBindPreset selectedPreset(@NotNull AstPlayer astPlayer) {
@@ -444,7 +446,10 @@ public final class SkillActionRingService {
         }
 
         private boolean selectable() {
-            return availability == SlotAvailability.AVAILABLE;
+            // 所持済みだが使用許可を失ったスキルは赤表示のまま選択を許可し、
+            // SkillService の統一経路から P_5863 をプレイヤーへ通知します。
+            return availability == SlotAvailability.AVAILABLE
+                || (availability == SlotAvailability.UNAVAILABLE && owned && definition != null && skillId != null);
         }
 
         private @NotNull SlotView refreshAvailability(

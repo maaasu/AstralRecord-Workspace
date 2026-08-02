@@ -40,7 +40,9 @@ public record SkillBindInventoryHolder(
 
     @Override
     public int getBackSlot() {
-        return screen == SkillBindScreen.MAIN || screen == SkillBindScreen.SYNTHESIS ? 52 : -1;
+        // 合成画面の slot 49 はスキルマネージャーへ戻る専用操作です。
+        // 共有ナビゲーションに渡すと、履歴なしで GUI 自体が閉じてしまいます。
+        return screen == SkillBindScreen.MAIN ? 49 : -1;
     }
 
     @Override

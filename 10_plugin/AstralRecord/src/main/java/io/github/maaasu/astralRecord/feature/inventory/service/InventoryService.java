@@ -231,10 +231,15 @@ public class InventoryService {
     ) {
         PlayerInventoryState state = getState(accountId);
         if (state == null) return;
-        state.reconcileAuthoritativeEntry(
-            inventoryEntryId,
-            inventoryRepository.findEntryById(inventoryEntryId)
-        );
+        InventoryEntryModel authoritative = inventoryRepository.findEntryById(inventoryEntryId);
+        // API mutation の非同期 thread とメイン thread の収納操作を同じ state monitor で直列化する。
+        // reconcile と前詰めの間に取得した古い snapshot で無関係 entry を置換しない。
+        synchronized (state) {
+            UUID compactInventoryId = state.reconcileAuthoritativeEntry(inventoryEntryId, authoritative);
+            if (compactInventoryId != null) {
+                compactInventoryEntriesAfterRemoval(state, compactInventoryId);
+            }
+        }
     }
 
     /**

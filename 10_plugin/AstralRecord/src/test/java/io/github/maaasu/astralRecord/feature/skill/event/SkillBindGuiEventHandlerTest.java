@@ -1,14 +1,19 @@
 package io.github.maaasu.astralRecord.feature.skill.event;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindInventoryHolder;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindScreen;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindSession;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationException;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationFailure;
 import io.github.maaasu.astralRecord.feature.skill.registry.SkillRegistry;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
@@ -37,6 +42,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -53,17 +59,86 @@ class SkillBindGuiEventHandlerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
      * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
+     * 検証契約: APIのシジル拒否理由は合成素材の汎用エラーへ畳み込まず、理由別メッセージIDへ対応付ける。
+     */
+    @Test
+    void synthesisMutationFailuresKeepSpecificPlayerMessages() throws ReflectiveOperationException {
+        SkillBindGuiEventHandler handler = newHandler();
+        Method method = SkillBindGuiEventHandler.class.getDeclaredMethod("mutationFailureMessage", Throwable.class);
+        method.setAccessible(true);
+
+        assertEquals(PlayerMsgId.P_5859, method.invoke(handler,
+            new LearnedSkillMutationException(LearnedSkillMutationFailure.SIGIL_NOT_ALLOWED, "not allowed")));
+        assertEquals(PlayerMsgId.P_5860, method.invoke(handler,
+            new LearnedSkillMutationException(LearnedSkillMutationFailure.NO_SIGIL_SLOT, "no slot")));
+        assertEquals(PlayerMsgId.P_5861, method.invoke(handler,
+            new LearnedSkillMutationException(LearnedSkillMutationFailure.DUPLICATE_SIGIL_GROUP, "duplicate")));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
+     * 検証契約: 合成素材を一時非表示にした状態でスキルマネージャーを開き直しても、素材表示を復元してから新しいセッションを開く。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void reopeningSkillManagerRestoresTemporarilyHiddenSynthesisMaterial() throws ReflectiveOperationException {
+        AstralRecord plugin = mock(AstralRecord.class);
+        SkillBindGui gui = mock(SkillBindGui.class);
+        SkillService skillService = mock(SkillService.class);
+        SkillBindPresetService presetService = mock(SkillBindPresetService.class);
+        SkillOwnershipService ownershipService = mock(SkillOwnershipService.class);
+        LearnedSkillService learnedSkillService = mock(LearnedSkillService.class);
+        PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
+            plugin, gui, skillService, presetService, ownershipService, mock(SkillPermissionService.class),
+            learnedSkillService, passiveSkillService, inventoryService
+        );
+        UUID accountId = UUID.randomUUID();
+        UUID playerId = UUID.randomUUID();
+        Player player = mock(Player.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        InventoryView view = mock(InventoryView.class);
+        when(player.getUniqueId()).thenReturn(playerId);
+        when(player.getOpenInventory()).thenReturn(view);
+        when(view.getTopInventory()).thenReturn(mock(Inventory.class));
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(account.getUuid()).thenReturn(accountId);
+        when(presetService.hasLoadedPresets(accountId)).thenReturn(true);
+        when(learnedSkillService.hasLoadedSkills(accountId)).thenReturn(true);
+        when(presetService.selectedPresetIndex(accountId)).thenReturn(1);
+        when(presetService.getPresets(accountId)).thenReturn(presets(accountId));
+        when(skillService.registry()).thenReturn(new SkillRegistry());
+        when(ownershipService.learnedSkills(astPlayer)).thenReturn(List.of());
+        when(passiveSkillService.activePassiveSlotCount(astPlayer)).thenReturn(0);
+        Class<?> selectionType = Class.forName(SkillBindGuiEventHandler.class.getName() + "$SynthesisSelection");
+        var constructor = selectionType.getDeclaredConstructor(UUID.class, ItemModel.class, int.class);
+        constructor.setAccessible(true);
+        ((Map<UUID, Object>) fieldValue(handler, "synthesisSelections")).put(
+            playerId, constructor.newInstance(UUID.randomUUID(), mock(ItemModel.class), 12)
+        );
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            handler.open(player);
+        }
+
+        verify(inventoryService).applyInventoriesToGui(astPlayer);
+        verify(player).updateInventory();
+        assertFalse(mapValue(handler, "synthesisSelections").containsKey(playerId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
      * 検証契約: 有効枠が減った後の超過パッシブ枠は既存維持・解除だけを許可し、新規設定を保存しない。
      */
     @Test
     void passiveOverflowGuardRestoresNewBindingBeforeSave() throws ReflectiveOperationException {
         PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
-        SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
-            mock(AstralRecord.class), mock(SkillBindGui.class), mock(SkillService.class),
-            mock(SkillBindPresetService.class), mock(SkillOwnershipService.class),
-            mock(SkillPermissionService.class), mock(LearnedSkillService.class),
-            passiveSkillService, mock(InventoryService.class)
-        );
+        SkillBindGuiEventHandler handler = newHandler(passiveSkillService);
         UUID accountId = UUID.randomUUID();
         SkillBindSession session = new SkillBindSession(presets(accountId));
         session.setSlot(io.github.maaasu.astralRecord.feature.skill.model.SkillBindType.PASSIVE, 6, UUID.randomUUID().toString());
@@ -87,12 +162,7 @@ class SkillBindGuiEventHandlerTest {
      */
     @Test
     void quitClearsSavingTokenAndEditingSession() throws ReflectiveOperationException {
-        SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
-            mock(AstralRecord.class), mock(SkillBindGui.class), mock(SkillService.class),
-            mock(SkillBindPresetService.class), mock(SkillOwnershipService.class),
-            mock(SkillPermissionService.class), mock(LearnedSkillService.class),
-            mock(PassiveSkillService.class), mock(InventoryService.class)
-        );
+        SkillBindGuiEventHandler handler = newHandler();
         UUID playerId = UUID.randomUUID();
         putMapValue(handler, "sessions", playerId, new SkillBindSession(presets(playerId)));
         putSavingToken(handler, playerId);
@@ -111,7 +181,7 @@ class SkillBindGuiEventHandlerTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/4-統合フロー/13_4-スキルバインドGUI.md
-     * 章・見出し: # 13_4-スキルマネージャーGUI > ## 6. 自動保存中の close 再表示
+     * 章・見出し: # 13_4-スキルバインドGUI > ## 6. 自動保存中の close 再表示
      * 検証契約: 自動保存中のclose後の再表示は、次のユーザー起点closeを抑止しない。
      */
     @Test
@@ -178,6 +248,19 @@ class SkillBindGuiEventHandlerTest {
             ));
         }
         return presets;
+    }
+
+    private static SkillBindGuiEventHandler newHandler() {
+        return newHandler(mock(PassiveSkillService.class));
+    }
+
+    private static SkillBindGuiEventHandler newHandler(PassiveSkillService passiveSkillService) {
+        return new SkillBindGuiEventHandler(
+            mock(AstralRecord.class), mock(SkillBindGui.class), mock(SkillService.class),
+            mock(SkillBindPresetService.class), mock(SkillOwnershipService.class),
+            mock(SkillPermissionService.class), mock(LearnedSkillService.class),
+            passiveSkillService, mock(InventoryService.class)
+        );
     }
 
     @SuppressWarnings("unchecked")

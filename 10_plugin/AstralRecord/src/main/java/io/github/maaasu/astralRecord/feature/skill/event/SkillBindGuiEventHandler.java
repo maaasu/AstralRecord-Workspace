@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationException;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindInventoryHolder;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindScreen;
@@ -28,6 +29,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillPermissionServic
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.confirm.ConfirmDialogView;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -39,6 +41,8 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -107,8 +111,9 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         SkillBindSession session = new SkillBindSession(presetService.getPresets(astPlayer.getAccount().getUuid()), presetIndex);
         if (!session.selectedPreset().isUnlocked()) session.loadPreset(1);
         presetService.selectPreset(astPlayer.getAccount().getUuid(), session.selectedPresetIndex());
+        // 合成画面からコマンド等で開き直す場合も、表示だけ隠していた素材を先に正本から復元する。
+        removeSynthesisSelectionAndRestore(player);
         sessions.put(player.getUniqueId(), session);
-        synthesisSelections.remove(player.getUniqueId());
         openMain(player, session, 0, true);
     }
 
@@ -134,6 +139,9 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             if (event.getClickedInventory() instanceof PlayerInventory) {
+                if (HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
+                    return;
+                }
                 GuiSound.DENY.play(player);
                 return;
             }
@@ -198,24 +206,31 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) return;
 
-        if (slot == SkillBindGui.PAGE_SLOT) {
-            List<SkillManagerEntry> entries = visibleEntries(astPlayer, session);
-            int pages = gui.totalPages(entries.size());
-            int next = event.isRightClick() ? page - 1 : page + 1;
-            if (pages <= 1) next = 0;
-            else next = Math.floorMod(next, pages);
+        if (slot == SkillBindGui.PREVIOUS_PAGE_SLOT) {
+            if (page <= 0) {
+                GuiSound.DENY.play(player);
+                return;
+            }
             GuiSound.SELECT.play(player);
-            openMain(player, session, next, true);
+            openMain(player, session, page - 1, true);
             return;
         }
-        if (slot == SkillBindGui.BACK_SLOT || slot == SkillBindGui.CLOSE_SLOT) {
-            String action = slot == SkillBindGui.BACK_SLOT ? ACTION_BACK : ACTION_CLOSE;
+        if (slot == SkillBindGui.NEXT_PAGE_SLOT) {
+            int pages = gui.totalPages(visibleEntries(astPlayer, session).size());
+            if (page + 1 >= pages) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.SELECT.play(player);
+            openMain(player, session, page + 1, true);
+            return;
+        }
+        if (slot == SkillBindGui.BACK_SLOT) {
+            String action = ACTION_BACK;
             if (session.isDirty()) {
                 openConfirm(player, session, action, -1, Component.text("変更を破棄しますか", NamedTextColor.YELLOW));
-            } else if (slot == SkillBindGui.BACK_SLOT) {
-                returnToPrevious(player);
             } else {
-                restoreAndClose(player);
+                returnToPrevious(player);
             }
             return;
         }
@@ -246,6 +261,10 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (slot == SkillBindGui.NORMAL_ATTACK_SLOT) {
+            if (!event.isLeftClick()) {
+                GuiSound.DENY.play(player);
+                return;
+            }
             SkillBindType selectedType = session.selectedBindType();
             if (selectedType != SkillBindType.ACTIVE && selectedType != SkillBindType.LEFT_CLICK) {
                 GuiSound.DENY.play(player);
@@ -263,6 +282,25 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
+        if (event.isRightClick()) {
+            if (!canOpenSynthesis(entry)) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            removeSynthesisSelectionAndRestore(player);
+            GuiSound.SELECT.play(player);
+            openSynthesis(player, session, entry.bindingId(), page, true);
+            return;
+        }
+        if (!event.isLeftClick()) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (session.selectedBindType() == null) {
+            GuiSound.DENY.play(player);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5858);
+            return;
+        }
         if (session.selectedBindType() != null) {
             if (!isSelectedSlotCurrentlyEnabled(astPlayer, session)
                 || !canBindToSelected(session, entry)) {
@@ -277,13 +315,6 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             saveCurrentPreset(player, session, page);
             return;
         }
-        if (!canOpenSynthesis(entry)) {
-            GuiSound.DENY.play(player);
-            return;
-        }
-        synthesisSelections.remove(player.getUniqueId());
-        GuiSound.SELECT.play(player);
-        openSynthesis(player, session, entry.bindingId(), page, true);
     }
 
     private void handleBindSlotClick(
@@ -328,25 +359,26 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         if (event.getClickedInventory() instanceof PlayerInventory) {
             InventoryEntryModel inventoryEntry = inventoryService.getOwnedEntryAtBukkitSlot(astPlayer, event.getSlot());
             ItemModel item = inventoryService.getOwnedItemModelAtBukkitSlot(astPlayer, event.getSlot());
-            if (inventoryEntry == null || item == null || materialKind(entry, item) == MaterialKind.NONE) {
+            MaterialKind kind = item == null ? MaterialKind.NONE : materialKind(entry, item);
+            if (inventoryEntry == null || item == null || !kind.usable()) {
                 GuiSound.DENY.play(player);
+                sendMaterialFailure(player, kind);
                 return;
             }
+            removeSynthesisSelectionAndRestore(player);
             synthesisSelections.put(
                 player.getUniqueId(),
-                new SynthesisSelection(inventoryEntry.getInventoryEntryId(), item)
+                new SynthesisSelection(inventoryEntry.getInventoryEntryId(), item, event.getSlot())
             );
+            player.getInventory().setItem(event.getSlot(), new ItemStack(Material.AIR));
+            player.updateInventory();
             GuiSound.SELECT.play(player);
             openSynthesis(player, session, entry.bindingId(), holder.pageIndex(), true);
             return;
         }
         if (event.getRawSlot() == SkillBindGui.BACK_SLOT) {
-            synthesisSelections.remove(player.getUniqueId());
+            removeSynthesisSelectionAndRestore(player);
             openMain(player, session, holder.pageIndex(), true);
-            return;
-        }
-        if (event.getRawSlot() == SkillBindGui.CLOSE_SLOT) {
-            restoreAndClose(player);
             return;
         }
         if (event.getRawSlot() != SkillBindGui.SYNTHESIS_RESULT_SLOT) return;
@@ -357,8 +389,9 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             return;
         }
         MaterialKind kind = materialKind(entry, selection.item());
-        if (kind == MaterialKind.NONE) {
+        if (!kind.usable()) {
             GuiSound.DENY.play(player);
+            sendMaterialFailure(player, kind);
             return;
         }
         UUID playerId = player.getUniqueId();
@@ -376,7 +409,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 selection.inventoryEntryId(),
                 accountId,
                 updated -> completeSynthesis(player, session, holder.pageIndex(), updated, operationToken),
-                error -> failSynthesis(player, session, operationToken)
+                error -> failSynthesis(player, session, entry.bindingId(), holder.pageIndex(), operationToken, error)
             );
         } else {
             scheduled = learnedSkillService.attachSigilAsync(
@@ -386,10 +419,10 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 selection.inventoryEntryId(),
                 accountId,
                 updated -> completeSynthesis(player, session, holder.pageIndex(), updated, operationToken),
-                error -> failSynthesis(player, session, operationToken)
+                error -> failSynthesis(player, session, entry.bindingId(), holder.pageIndex(), operationToken, error)
             );
         }
-        if (!scheduled) failSynthesis(player, session, operationToken);
+        if (!scheduled) failSynthesis(player, session, entry.bindingId(), holder.pageIndex(), operationToken, null);
     }
 
     private void completeSynthesis(
@@ -415,27 +448,41 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         }
     }
 
-    private void failSynthesis(Player player, SkillBindSession session, UUID operationToken) {
+    private void failSynthesis(
+        Player player,
+        SkillBindSession session,
+        String learnedSkillId,
+        int returnPage,
+        UUID operationToken,
+        @Nullable Throwable error
+    ) {
         UUID playerId = player.getUniqueId();
         if (!savingSessions.remove(playerId, operationToken) || sessions.get(playerId) != session) return;
+        removeSynthesisSelectionAndRestore(player);
         GuiSound.DENY.play(player);
-        PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5849);
+        PlayerMessageService.getInstance().send(player, mutationFailureMessage(error));
+        openSynthesis(player, session, learnedSkillId, returnPage, true);
     }
 
     private MaterialKind materialKind(SkillManagerEntry entry, ItemModel item) {
-        if (item.getSkillGem() != null
-            && item.getSkillGem().getSkillId().equals(entry.learnedSkill().getSkillId())
-            && entry.learnedSkill().getLevel() < entry.definition().getMaxLevel()) {
-            return MaterialKind.GEM;
+        if (item.getSkillGem() != null) {
+            return item.getSkillGem().getSkillId().equals(entry.learnedSkill().getSkillId())
+                && entry.learnedSkill().getLevel() < entry.definition().getMaxLevel()
+                ? MaterialKind.GEM
+                : MaterialKind.INVALID_GEM;
         }
-        if (item.getSigil() == null
-            || !entry.definition().getAllowedSigilIds().contains(item.getId())
-            || entry.learnedSkill().getSigils().size() >= sigilSlotCount(entry)) {
+        if (item.getSigil() == null) {
             return MaterialKind.NONE;
+        }
+        if (!entry.definition().getAllowedSigilIds().contains(item.getId())) {
+            return MaterialKind.SIGIL_NOT_ALLOWED;
+        }
+        if (entry.learnedSkill().getSigils().size() >= sigilSlotCount(entry)) {
+            return MaterialKind.NO_SIGIL_SLOT;
         }
         boolean duplicateGroup = entry.learnedSkill().getSigils().stream()
             .anyMatch(sigil -> sigil.getEquipGroupId().equals(item.getSigil().getEquipGroupId()));
-        return duplicateGroup ? MaterialKind.NONE : MaterialKind.SIGIL;
+        return duplicateGroup ? MaterialKind.DUPLICATE_SIGIL_GROUP : MaterialKind.SIGIL;
     }
 
     private int sigilSlotCount(SkillManagerEntry entry) {
@@ -575,7 +622,10 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         return allEntries(player).stream()
             .filter(entry -> {
                 SkillBindType selected = session.selectedBindType();
-                if (selected == null) return true;
+                if (selected == null) {
+                    return !entry.definition().getKind().isPassive()
+                        || entry.definition().getPassiveBindRequired();
+                }
                 if (selected == SkillBindType.PASSIVE) {
                     return entry.definition().getKind() == SkillKind.PASSIVE
                         && entry.definition().getPassiveBindRequired();
@@ -643,6 +693,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         if (astPlayer == null) return;
         SkillManagerEntry entry = entry(astPlayer, learnedSkillId);
         if (entry == null) {
+            removeSynthesisSelectionAndRestore(player);
             openMain(player, session, returnPage, suppressPreviousClose);
             return;
         }
@@ -655,7 +706,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             returnPage,
             entry,
             material,
-            material != null && materialKind(entry, material) != MaterialKind.NONE
+            material != null && materialKind(entry, material).usable()
         );
     }
 
@@ -670,16 +721,14 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
 
     private void returnToPrevious(Player player) {
         sessions.remove(player.getUniqueId());
-        synthesisSelections.remove(player.getUniqueId());
-        restorePlayerInventory(player);
+        removeSynthesisSelectionAndRestore(player);
         suppressClose.add(player.getUniqueId());
         if (!plugin.getGuiNavigationService().openPrevious(player)) player.closeInventory();
     }
 
     private void restoreAndClose(Player player) {
         sessions.remove(player.getUniqueId());
-        synthesisSelections.remove(player.getUniqueId());
-        restorePlayerInventory(player);
+        removeSynthesisSelectionAndRestore(player);
         suppressClose.add(player.getUniqueId());
         player.closeInventory();
     }
@@ -690,8 +739,62 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         player.updateInventory();
     }
 
-    private enum MaterialKind { NONE, GEM, SIGIL }
+    private void removeSynthesisSelectionAndRestore(@NotNull Player player) {
+        if (synthesisSelections.remove(player.getUniqueId()) != null) {
+            restorePlayerInventory(player);
+        }
+    }
 
-    private record SynthesisSelection(@NotNull UUID inventoryEntryId, @NotNull ItemModel item) {
+    private void sendMaterialFailure(@NotNull Player player, @NotNull MaterialKind kind) {
+        PlayerMsgId messageId = kind.messageId();
+        if (messageId != null) {
+            PlayerMessageService.getInstance().send(player, messageId);
+        }
+    }
+
+    private PlayerMsgId mutationFailureMessage(@Nullable Throwable error) {
+        Throwable current = error;
+        while (current != null) {
+            if (current instanceof LearnedSkillMutationException mutationException) {
+                return switch (mutationException.getFailure()) {
+                    case NO_SIGIL_SLOT -> PlayerMsgId.P_5860;
+                    case SIGIL_NOT_ALLOWED -> PlayerMsgId.P_5859;
+                    case DUPLICATE_SIGIL_GROUP -> PlayerMsgId.P_5861;
+                    case INVALID_MATERIAL, MAX_LEVEL_REACHED -> PlayerMsgId.P_5862;
+                    default -> PlayerMsgId.P_5849;
+                };
+            }
+            current = current.getCause();
+        }
+        return PlayerMsgId.P_5849;
+    }
+
+    private enum MaterialKind {
+        NONE(false, PlayerMsgId.P_5862),
+        INVALID_GEM(false, PlayerMsgId.P_5862),
+        GEM(true, null),
+        SIGIL(true, null),
+        SIGIL_NOT_ALLOWED(false, PlayerMsgId.P_5859),
+        NO_SIGIL_SLOT(false, PlayerMsgId.P_5860),
+        DUPLICATE_SIGIL_GROUP(false, PlayerMsgId.P_5861);
+
+        private final boolean usable;
+        private final PlayerMsgId messageId;
+
+        MaterialKind(boolean usable, @Nullable PlayerMsgId messageId) {
+            this.usable = usable;
+            this.messageId = messageId;
+        }
+
+        private boolean usable() {
+            return usable;
+        }
+
+        private @Nullable PlayerMsgId messageId() {
+            return messageId;
+        }
+    }
+
+    private record SynthesisSelection(@NotNull UUID inventoryEntryId, @NotNull ItemModel item, int bukkitSlot) {
     }
 }

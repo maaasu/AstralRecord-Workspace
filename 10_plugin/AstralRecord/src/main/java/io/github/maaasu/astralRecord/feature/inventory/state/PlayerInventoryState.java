@@ -296,19 +296,35 @@ public final class PlayerInventoryState {
         }
     }
 
-    /** APIから再取得した単一entryだけを反映し、無関係な並行変更は保持します。 */
-    public synchronized void reconcileAuthoritativeEntry(
+    /**
+     * APIから再取得した単一entryだけを反映し、無関係な並行変更は保持します。
+     *
+     * @return entry が消費または移動したため前の並びを前詰めする必要がある inventory ID。不要なら {@code null}
+     */
+    public synchronized @Nullable UUID reconcileAuthoritativeEntry(
         @NotNull UUID inventoryEntryId,
         @Nullable InventoryEntryModel authoritative
     ) {
-        for (List<InventoryEntryModel> entries : entriesByInventoryId.values()) {
-            entries.removeIf(entry -> entry.getInventoryEntryId().equals(inventoryEntryId));
+        UUID previousInventoryId = null;
+        for (Map.Entry<UUID, List<InventoryEntryModel>> inventoryEntries : entriesByInventoryId.entrySet()) {
+            boolean removed = inventoryEntries.getValue().removeIf(
+                entry -> entry.getInventoryEntryId().equals(inventoryEntryId)
+            );
+            if (removed && previousInventoryId == null) {
+                previousInventoryId = inventoryEntries.getKey();
+            }
         }
         if (authoritative != null && !authoritative.isDeleted()) {
             entriesByInventoryId
                 .computeIfAbsent(authoritative.getInventoryId(), ignored -> new ArrayList<>())
                 .add(authoritative);
         }
+        if (previousInventoryId == null
+            || (authoritative != null && !authoritative.isDeleted()
+                && previousInventoryId.equals(authoritative.getInventoryId()))) {
+            return null;
+        }
+        return previousInventoryId;
     }
 
     /**

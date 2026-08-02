@@ -132,6 +132,37 @@ class PluginResourceCheckerPatternTest(unittest.TestCase):
                 ),
             )
 
+    def test_skill_gui_raw_master_display_is_rejected_but_presentation_api_is_allowed(self) -> None:
+        relative = Path("io/github/maaasu/astralRecord/feature/skill/gui/ExampleGui.java")
+        forbidden = (
+            'meta.displayName(Component.text(item.getName()));\n'
+            'createItem(Material.STONE, definition.getDescription(), NamedTextColor.WHITE, List.of());\n'
+            'LegacyComponentSerializer.legacyAmpersand().deserialize(item.getLore().getFirst());\n'
+        )
+        self.assertEqual(
+            [
+                "raw skill master display: io/github/maaasu/astralRecord/feature/skill/gui/ExampleGui.java:1",
+                "raw skill master display: io/github/maaasu/astralRecord/feature/skill/gui/ExampleGui.java:2",
+                "raw skill master display: io/github/maaasu/astralRecord/feature/skill/gui/ExampleGui.java:3",
+            ],
+            CHECKER.report_raw_skill_master_display(relative, forbidden),
+        )
+        allowed = (
+            'meta.displayName(SkillPresentationUtil.itemNameComponent(item, "fallback", NamedTextColor.WHITE));\n'
+            'for (Component line : SkillPresentationUtil.skillDescriptionAndLore(definition, NamedTextColor.GRAY)) { }\n'
+        )
+        self.assertEqual([], CHECKER.report_raw_skill_master_display(relative, allowed))
+
+    def test_raw_master_guardrail_is_scoped_to_skill_gui_and_display_sinks(self) -> None:
+        source = 'String identifier = item.getName();\n'
+        self.assertEqual([], CHECKER.report_raw_skill_master_display(
+            Path("io/github/maaasu/astralRecord/feature/skill/gui/ExampleGui.java"), source
+        ))
+        self.assertEqual([], CHECKER.report_raw_skill_master_display(
+            Path("io/github/maaasu/astralRecord/feature/item/gui/ExampleGui.java"),
+            'meta.displayName(Component.text(item.getName()));\n',
+        ))
+
 
 if __name__ == "__main__":
     unittest.main()

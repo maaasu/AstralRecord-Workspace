@@ -140,6 +140,31 @@ class SkillActionRingServiceTest extends MockBukkitTestBase {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 3. action ring入力解決
+     * 検証契約: 所持済みで使用許可だけを失った action ring のバインドは、SkillService が P_5863 を通知できる発動経路へ到達する。
+     */
+    @Test
+    void ownedUnavailableRingSlotRemainsSelectableForPermissionFeedback() throws ReflectiveOperationException {
+        Class<?> availabilityType = Class.forName(SkillActionRingService.class.getName() + "$SlotAvailability");
+        Class<?> slotViewType = Class.forName(SkillActionRingService.class.getName() + "$SlotView");
+        Constructor<?> constructor = slotViewType.getDeclaredConstructor(
+            String.class, SkillDefinition.class, String.class, Material.class, boolean.class, availabilityType
+        );
+        constructor.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        Object unavailable = Enum.valueOf((Class<Enum>) availabilityType.asSubclass(Enum.class), "UNAVAILABLE");
+        Method selectable = slotViewType.getDeclaredMethod("selectable");
+        selectable.setAccessible(true);
+
+        Object owned = constructor.newInstance("locked_skill", definition(), "未許可", Material.BARRIER, true, unavailable);
+        Object unowned = constructor.newInstance("missing_skill", definition(), "未所持", Material.BARRIER, false, unavailable);
+
+        assertTrue((Boolean) selectable.invoke(owned));
+        assertFalse((Boolean) selectable.invoke(unowned));
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/4-統合フロー/13_4-統合フロー.md
      * 章・見出し: # 13_4-統合フロー > ## 2. player skill 発動 > ### 処理要点
      * 検証契約: 耐久値切れの主手 weapon では左クリック bind の候補を返さず、直接発動でもスキルを cast しない。

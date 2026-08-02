@@ -513,8 +513,11 @@ public class SkillService {
             notifyIfFailed(caster, failure, skillId);
             return failure;
         }
-        if (requiresOwnershipCheck(caster, trigger) && !ownsAndCanUse((PlayerSkillCaster) caster, skillId)) {
-            SkillCastResult failure = SkillCastResult.failure(PlayerMsgId.P_5809);
+        PlayerMsgId ownershipFailure = requiresOwnershipCheck(caster, trigger)
+            ? ownershipFailure((PlayerSkillCaster) caster, skillId)
+            : null;
+        if (ownershipFailure != null) {
+            SkillCastResult failure = SkillCastResult.failure(ownershipFailure);
             notifyIfFailed(caster, failure, skillId);
             return failure;
         }
@@ -553,7 +556,7 @@ public class SkillService {
             return failure;
         }
         if (permissionService != null && !permissionService.isPermitted(caster.player(), learned.getSkillId())) {
-            SkillCastResult failure = SkillCastResult.failure(PlayerMsgId.P_5809);
+            SkillCastResult failure = SkillCastResult.failure(PlayerMsgId.P_5863);
             notifyIfFailed(caster, failure, learned.getSkillId());
             return failure;
         }
@@ -859,20 +862,24 @@ public class SkillService {
         if (!requiresOwnershipCheck(caster, trigger)) {
             return true;
         }
-        boolean allowed;
+        PlayerMsgId denial;
         if (runtime != null) {
             LearnedSkillInstance learned = runtime.learnedSkill();
-            allowed = ownershipService != null
-                && ownershipService.ownsInstance(caster.player(), learned.getLearnedSkillId())
-                && (permissionService == null
-                    || permissionService.isPermitted(caster.player(), learned.getSkillId()));
+            if (ownershipService == null || !ownershipService.ownsInstance(caster.player(), learned.getLearnedSkillId())) {
+                denial = PlayerMsgId.P_5809;
+            } else if (permissionService != null && !permissionService.isPermitted(caster.player(), learned.getSkillId())) {
+                denial = PlayerMsgId.P_5863;
+            } else {
+                denial = null;
+            }
         } else {
-            allowed = ownsAndCanUse(caster, definition.getId());
+            denial = ownershipFailure(caster, definition.getId());
         }
-        if (!allowed) {
-            notifyIfFailed(caster, SkillCastResult.failure(PlayerMsgId.P_5809), definition.getId());
+        if (denial != null) {
+            notifyIfFailed(caster, SkillCastResult.failure(denial), definition.getId());
+            return false;
         }
-        return allowed;
+        return true;
     }
 
     /**
@@ -946,10 +953,14 @@ public class SkillService {
             && ownershipService != null;
     }
 
-    private boolean ownsAndCanUse(@NotNull PlayerSkillCaster caster, @NotNull String skillId) {
-        boolean owned = ownershipService == null || ownershipService.owns(caster.player(), skillId);
-        boolean permitted = permissionService == null || permissionService.isPermitted(caster.player(), skillId);
-        return owned && permitted;
+    private @Nullable PlayerMsgId ownershipFailure(@NotNull PlayerSkillCaster caster, @NotNull String skillId) {
+        if (ownershipService != null && !ownershipService.owns(caster.player(), skillId)) {
+            return PlayerMsgId.P_5809;
+        }
+        if (permissionService != null && !permissionService.isPermitted(caster.player(), skillId)) {
+            return PlayerMsgId.P_5863;
+        }
+        return null;
     }
 
     private float clampWalkSpeed(float value) {
@@ -1102,7 +1113,10 @@ public class SkillService {
         if (result.success()) return;
         PlayerMsgId messageId = result.messageId();
         if (messageId == null) return;
-        if (messageId == PlayerMsgId.P_5803 || messageId == PlayerMsgId.P_5804 || messageId == PlayerMsgId.P_5809) {
+        if (messageId == PlayerMsgId.P_5803
+            || messageId == PlayerMsgId.P_5804
+            || messageId == PlayerMsgId.P_5809
+            || messageId == PlayerMsgId.P_5863) {
             caster.notify(messageId, SkillPresentationUtil.plainName(registry.getDefinition(skillId), "未定義スキル"));
         } else {
             caster.notify(messageId);

@@ -1,5 +1,16 @@
 #!/usr/bin/env python3
-"""Validate AstralRecord plugin log/message resources and direct-output guardrails."""
+"""Validate AstralRecord plugin log/message resources and direct-output guardrails.
+
+Skill GUI master-display policy
+-------------------------------
+The strict scope is ``feature/skill/gui`` and ``feature/skill/view`` production sources.
+Within that scope, passing ``getName()``, ``getLore()``, or ``getDescription()`` directly
+to a display sink (Component construction, item meta display/lore, legacy deserialization,
+or the local GUI item factory) is prohibited.  GUI/View code must use the dedicated
+``SkillPresentationUtil`` component API, which delegates all legacy-color normalization to
+``ColorCodeUtil``.  The intentionally allowed exceptions are non-display business logic,
+the common presentation API itself, and sources outside the strict skill GUI/View scope.
+"""
 
 from __future__ import annotations
 
@@ -63,6 +74,11 @@ THROWABLE_ARGUMENT_PATTERN = re.compile(
     r"^(?:null|e|ex|t|throwable|exception|cause|failure|error|"
     r"\w*(?:Exception|Throwable|Failure|Error)|new\s+\w*(?:Exception|Throwable|Error)\b)$"
 )
+MASTER_DISPLAY_GETTER_PATTERN = re.compile(r"\.get(?:Name|Lore|Description)\s*\(")
+MASTER_DISPLAY_SINK_PATTERN = re.compile(
+    r"(?:Component\s*\.\s*text|(?:\w+\s*\.\s*)?(?:displayName|lore)|"
+    r"LegacyComponentSerializer\s*\.\s*\w+\s*\(\s*\)\s*\.\s*deserialize|createItem)\s*\("
+)
 
 
 def read_ids(path: Path, pattern: re.Pattern[str]) -> set[str]:
@@ -107,6 +123,61 @@ def report_matches(
         f"{label}: {relative}:{text.count(chr(10), 0, match.start()) + 1}"
         for match in pattern.finditer(text)
     ]
+
+
+def balanced_invocation_arguments(text: str, opening_parenthesis: int) -> str:
+    """Return text inside a Java/Kotlin invocation's balanced parentheses."""
+    depth = 0
+    quote: str | None = None
+    escaped = False
+    for index in range(opening_parenthesis, len(text)):
+        character = text[index]
+        if quote is not None:
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == quote:
+                quote = None
+            continue
+        if character in {'"', "'"}:
+            quote = character
+        elif character == "(":
+            depth += 1
+        elif character == ")":
+            depth -= 1
+            if depth == 0:
+                return text[opening_parenthesis + 1:index]
+    return text[opening_parenthesis + 1:]
+
+
+def is_skill_gui_or_view(relative: Path) -> bool:
+    """Return whether the relative production source belongs to the strict GUI/View scope."""
+    parts = relative.as_posix().split("/")
+    return any(
+        parts[index:index + 3] == ["feature", "skill", directory]
+        for index in range(len(parts) - 2)
+        for directory in ("gui", "view")
+    )
+
+
+def report_raw_skill_master_display(relative: Path, text: str) -> list[str]:
+    """Reject raw skill/item master text passed directly to a skill GUI/View display sink."""
+    if not is_skill_gui_or_view(relative):
+        return []
+    violations: list[str] = []
+    reported_lines: set[int] = set()
+    for sink in MASTER_DISPLAY_SINK_PATTERN.finditer(text):
+        opening_parenthesis = sink.end() - 1
+        arguments = balanced_invocation_arguments(text, opening_parenthesis)
+        if MASTER_DISPLAY_GETTER_PATTERN.search(arguments) is None:
+            continue
+        line = text.count("\n", 0, sink.start()) + 1
+        if line in reported_lines:
+            continue
+        reported_lines.add(line)
+        violations.append(f"raw skill master display: {relative.as_posix()}:{line}")
+    return violations
 
 
 def changed_source_lines(repo_root: Path, source_root: Path) -> dict[Path, set[int]]:
@@ -342,6 +413,7 @@ def scan_direct_calls(
                 text,
                 DIRECT_COMMAND_MESSAGE_LITERAL_PATTERN,
             ))
+        violations.extend(report_raw_skill_master_display(relative, text))
     return violations
 
 

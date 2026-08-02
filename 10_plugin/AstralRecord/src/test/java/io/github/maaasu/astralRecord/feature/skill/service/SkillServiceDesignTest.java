@@ -2,6 +2,9 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
+import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
@@ -16,7 +19,9 @@ import io.github.maaasu.astralRecord.feature.skill.registry.SkillRegistry;
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillRepository;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
+import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
+import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -38,7 +43,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class SkillServiceDesignTest {
+class SkillServiceDesignTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
@@ -258,6 +263,40 @@ class SkillServiceDesignTest {
         assertEquals(PlayerMsgId.P_5805, passiveResult.messageId());
         assertFalse(costlyResult.success());
         assertEquals(PlayerMsgId.P_5801, costlyResult.messageId());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 3. action ring入力解決
+     * 検証契約: 習得個体がない発動は P_5809、所持済みで現在の使用許可だけがない発動は P_5863 を返す。
+     */
+    @Test
+    void castLearnedSkillSeparatesOwnershipAndPermissionFailures() {
+        SkillService service = new SkillService(mock(SkillRepository.class), new SkillRegistry(), null);
+        SkillOwnershipService ownershipService = mock(SkillOwnershipService.class);
+        SkillPermissionService permissionService = mock(SkillPermissionService.class);
+        service.setOwnershipService(ownershipService);
+        service.setPermissionService(permissionService);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        Player bukkitPlayer = mock(Player.class);
+        when(astPlayer.getBukkit()).thenReturn(bukkitPlayer);
+        UUID accountId = UUID.randomUUID();
+        LearnedSkillInstance learned = new LearnedSkillInstance(
+            UUID.randomUUID(), accountId, "permitted_later", 1, List.of(), 0, null, null
+        );
+        PlayerSkillCaster caster = new PlayerSkillCaster(astPlayer);
+        Location location = new Location(null, 0.0D, 0.0D, 0.0D);
+
+        when(ownershipService.findInstance(astPlayer, "missing")).thenReturn(null);
+        assertEquals(PlayerMsgId.P_5809, service.castLearnedSkill(
+            caster, "missing", SkillCastTrigger.PLAYER_COMMAND, location, null, List.of()
+        ).messageId());
+
+        when(ownershipService.findInstance(astPlayer, learned.getLearnedSkillId().toString())).thenReturn(learned);
+        when(permissionService.isPermitted(astPlayer, learned.getSkillId())).thenReturn(false);
+        assertEquals(PlayerMsgId.P_5863, service.castLearnedSkill(
+            caster, learned.getLearnedSkillId().toString(), SkillCastTrigger.PLAYER_COMMAND, location, null, List.of()
+        ).messageId());
     }
 
     /**
