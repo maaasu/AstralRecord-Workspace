@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
@@ -108,9 +109,16 @@ public final class SkillCooldownBossBarService {
 
     private @NotNull String buildBossBarTitle(@NotNull SkillService.ActiveCooldown cooldown, int hiddenCount) {
         String remainingSeconds = String.format(Locale.ROOT, "%.1fs", cooldown.remainingTicks() / 20.0D);
+        String base = cooldown.skillName()
+                + ColorCodeUtil.GRAY + " "
+                + ColorCodeUtil.WHITE + remainingSeconds;
         if (hiddenCount > 0) {
-            return cooldown.skillName() + " " + remainingSeconds + " 他" + hiddenCount + "件";
+            return base
+                    + ColorCodeUtil.DARK_GRAY + " ・"
+                    + ColorCodeUtil.YELLOW + "他"
+                    + hiddenCount
+                    + ColorCodeUtil.DARK_GRAY + "件";
         }
-        return cooldown.skillName() + " " + remainingSeconds;
+        return base;
     }
 }

@@ -36,7 +36,7 @@ public class PlayerHudView {
     private static final String SIDEBAR_BAR_CHAR = "|";
 
     public void renderActionBar(Player player, StatusSnapshot snapshot) {
-        renderActionBar(player, snapshot, List.of(), null, 0L, 0.0D);
+        renderActionBar(player, snapshot, List.of(), null, 0.0D);
     }
 
     /**
@@ -51,7 +51,7 @@ public class PlayerHudView {
         StatusSnapshot snapshot,
         Collection<ActiveCondition> activeConditions
     ) {
-        renderActionBar(player, snapshot, activeConditions, null, 0L, 0.0D);
+        renderActionBar(player, snapshot, activeConditions, null, 0.0D);
     }
 
     /**
@@ -68,17 +68,16 @@ public class PlayerHudView {
         Collection<ActiveCondition> activeConditions,
         ShieldRechargeState shieldRechargeState
     ) {
-        renderActionBar(player, snapshot, activeConditions, shieldRechargeState, 0L, 0.0D);
+        renderActionBar(player, snapshot, activeConditions, shieldRechargeState, 0.0D);
     }
 
     /**
-     * 通常リソース・通常攻撃CD・状態異常・DPSを同じアクションバーへ描画します。
+     * 通常リソース・状態異常・DPSを同じアクションバーへ描画します。
      *
      * @param player 対象プレイヤー
      * @param snapshot 現在のステータス
      * @param activeConditions 現在有効な状態異常
      * @param shieldRechargeState シールドリチャージ状態。通常時は {@code null}
-     * @param attackCooldownTicks 通常攻撃の残りクールダウン（tick）
      * @param currentDps 直近1秒の秒間与ダメージ
      */
     public void renderActionBar(
@@ -86,15 +85,12 @@ public class PlayerHudView {
         StatusSnapshot snapshot,
         Collection<ActiveCondition> activeConditions,
         ShieldRechargeState shieldRechargeState,
-        long attackCooldownTicks,
         double currentDps
     ) {
         double maxHp = snapshot.getMaxValue(StatusType.MAX_HEALTH);
         double maxMp = snapshot.getMaxValue(StatusType.MAX_MANA);
         double maxEnergy = snapshot.getMaxValue(StatusType.MAX_ENERGY);
         player.sendActionBar(Component.empty()
-            .append(normalAttackActionText(attackCooldownTicks))
-            .append(Component.text("  ", NamedTextColor.DARK_GRAY))
             .append(statText("HP", snapshot.getCurrentHp(), maxHp, NamedTextColor.RED))
             .append(Component.text("  ", NamedTextColor.DARK_GRAY))
             .append(statText("MP", snapshot.getCurrentMp(), maxMp, NamedTextColor.AQUA))
@@ -137,7 +133,7 @@ public class PlayerHudView {
      * サイドバーを描画します。
      *
      * @param player 対象プレイヤー
-     * @param mspt 現在のMSPT
+     * @param tps 直前10秒のTPS平均
      * @param playerLevel アカウント単位のプレイヤーレベル
      * @param experienceProgress 現在レベル内の経験値進捗（0.0-1.0）
      * @param classLevel 現在のクラスレベル
@@ -150,7 +146,7 @@ public class PlayerHudView {
      */
     public void renderSidebar(
         Player player,
-        double mspt,
+        double tps,
         int playerLevel,
         double experienceProgress,
         int classLevel,
@@ -163,7 +159,7 @@ public class PlayerHudView {
     ) {
         renderSidebar(
             player,
-            mspt,
+            tps,
             playerLevel,
             experienceProgress,
             classLevel,
@@ -183,7 +179,7 @@ public class PlayerHudView {
      * 表示行数が15行を超えないよう、バフを優先して性能情報の表示を調整します。
      *
      * @param player 対象プレイヤー
-     * @param mspt 現在のMSPT
+     * @param tps 直前10秒のTPS平均
      * @param playerLevel アカウント単位のプレイヤーレベル
      * @param experienceProgress 現在レベル内の経験値進捗（0.0-1.0）
      * @param classLevel 現在のクラスレベル
@@ -191,14 +187,14 @@ public class PlayerHudView {
      * @param worldName 現在のワールド表示名
      * @param regionName 現在の地域表示名
      * @param regionLevel 現在の地域レベル
-     * @param showPerformanceInfo MSPT・Ping を表示するか
+     * @param showPerformanceInfo TPS・Ping を表示するか
      * @param bossInfo 挑戦中ボス情報。挑戦していない場合は null
      * @param showBuffInfo バフ情報を表示するか
      * @param activeBuffs 獲得順の有効バフ一覧
      */
     public void renderSidebar(
         Player player,
-        double mspt,
+        double tps,
         int playerLevel,
         double experienceProgress,
         int classLevel,
@@ -237,7 +233,8 @@ public class PlayerHudView {
         lines.add(ColorCodeUtil.AQUA + "オンライン" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
                 + Bukkit.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers());
         if (renderPerformance) {
-            lines.add(msptLegacyColor(mspt) + "MSPT" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + String.format("%.1f", mspt));
+            lines.add(tpsLegacyColor(tps) + "TPS(10S)" + ColorCodeUtil.GRAY + ": "
+                    + ColorCodeUtil.WHITE + String.format("%.1f", tps));
             lines.add(pingLegacyColor(ping) + "通信遅延" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + ping + "ms");
         }
         lines.add(ColorCodeUtil.BLUE + "ワールド" + ColorCodeUtil.GRAY + ": "
@@ -265,15 +262,15 @@ public class PlayerHudView {
      * Tabキー押下時のプレイヤーリストにMSPT・Pingをヘッダー/フッター表示します。
      *
      * @param player 対象プレイヤー
-     * @param mspt 現在のサーバーMSPT（平均値）
+     * @param tps 直前10秒のTPS平均
      */
-    public void renderTabList(Player player, double mspt, boolean showPerformanceInfo) {
+    public void renderTabList(Player player, double tps, boolean showPerformanceInfo) {
         int ping = player.getPing();
         Component header = Component.text()
             .append(Component.text("ASTRAL RECORD", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD))
             .append(showPerformanceInfo
-                ? Component.newline().append(Component.text("MSPT ", NamedTextColor.GRAY))
-                    .append(Component.text(String.format("%.1f", mspt), msptTextColor(mspt)))
+                ? Component.newline().append(Component.text("TPS(10S) ", NamedTextColor.GRAY))
+                    .append(Component.text(String.format("%.1f", tps), tpsTextColor(tps)))
                 : Component.empty())
             .build();
         Component footer = showPerformanceInfo
@@ -394,9 +391,9 @@ public class PlayerHudView {
         return ColorCodeUtil.DARK_AQUA + "◈─── " + label + " ───◈";
     }
 
-    private String msptLegacyColor(double mspt) {
-        if (mspt <= 25.0D) return ColorCodeUtil.GREEN;
-        if (mspt <= 40.0D) return ColorCodeUtil.YELLOW;
+    private String tpsLegacyColor(double tps) {
+        if (tps >= 19.0D) return ColorCodeUtil.GREEN;
+        if (tps >= 16.0D) return ColorCodeUtil.YELLOW;
         return ColorCodeUtil.RED;
     }
 
@@ -406,9 +403,9 @@ public class PlayerHudView {
         return ColorCodeUtil.RED;
     }
 
-    private NamedTextColor msptTextColor(double mspt) {
-        if (mspt <= 25.0D) return NamedTextColor.GREEN;
-        if (mspt <= 40.0D) return NamedTextColor.YELLOW;
+    private NamedTextColor tpsTextColor(double tps) {
+        if (tps >= 19.0D) return NamedTextColor.GREEN;
+        if (tps >= 16.0D) return NamedTextColor.YELLOW;
         return NamedTextColor.RED;
     }
 
@@ -488,16 +485,6 @@ public class PlayerHudView {
             case WEAKNESS -> "[衰]";
             case HEALING_INHIBITION -> "[阻]";
         };
-    }
-
-    private Component normalAttackActionText(long attackCooldownTicks) {
-        if (attackCooldownTicks <= 0L) {
-            return Component.text("⚔ ", NamedTextColor.GREEN, TextDecoration.BOLD)
-                .append(Component.text("●", NamedTextColor.WHITE, TextDecoration.BOLD));
-        }
-        String seconds = String.format(Locale.ROOT, "%.1f", attackCooldownTicks / 20.0D);
-        return Component.text("⚔ ", NamedTextColor.RED, TextDecoration.BOLD)
-            .append(Component.text(seconds + "s", NamedTextColor.GRAY));
     }
 
     private Component dpsActionText(double currentDps) {

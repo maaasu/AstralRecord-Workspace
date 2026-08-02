@@ -1065,7 +1065,6 @@ public final class AstralRecord extends JavaPlugin {
         itemWeaponAttackService = new ItemWeaponAttackService(inventoryService, skillService);
         itemWeaponAttackService.setEquipmentDurabilityService(equipmentDurabilityService);
         skillActionRingService.setItemWeaponAttackService(itemWeaponAttackService);
-        playerHudService.setItemWeaponAttackService(itemWeaponAttackService);
 
         // item, loot, skill, class 等のマスターデータを非同期ロード
         getServer().getScheduler().runTaskAsynchronously(this, () -> {

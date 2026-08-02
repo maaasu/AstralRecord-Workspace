@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.MobSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
@@ -1132,7 +1133,7 @@ public class SkillService {
 
     private @NotNull String resolveSkillDisplayName(@NotNull String skillId) {
         SkillDefinition definition = registry.getDefinition(skillId);
-        return SkillPresentationUtil.plainName(definition, skillId);
+        return SkillPresentationUtil.legacyName(definition, ColorCodeUtil.RED + skillId);
     }
 
     /** 共有cooldownを開始したスキルが採用した総tickを返します。 */
