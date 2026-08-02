@@ -13,9 +13,11 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillGemLearnConfirmHolder;
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.confirm.ConfirmDialogView;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -30,6 +32,8 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -84,6 +88,11 @@ public final class SkillGemLearnEventHandler extends AbstractEventHandler {
         runSafely(() -> {
             if (!(event.getWhoClicked() instanceof Player player)) return;
             if (!(event.getView().getTopInventory().getHolder() instanceof SkillGemLearnConfirmHolder holder)) return;
+            int topSize = event.getView().getTopInventory().getSize();
+            if (event.getRawSlot() >= topSize) {
+                HotbarShortcutClickSupport.handle(event, player, inventoryService);
+                return;
+            }
             event.setCancelled(true);
             if (event.getRawSlot() == ConfirmDialogView.CANCEL_SLOT) {
                 GuiSound.SELECT.play(player);
@@ -116,11 +125,14 @@ public final class SkillGemLearnEventHandler extends AbstractEventHandler {
                     restoreInventory(player);
                     GuiSound.SKILL_LEARN.play(player);
                     SkillDefinition definition = skillService.registry().getDefinition(learned.getSkillId());
-                    String name = definition == null ? learned.getSkillId() : definition.getName();
+                    String name = SkillPresentationUtil.plainName(definition, learned.getSkillId());
                     PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5856, name);
                 },
                 error -> {
                     if (!inFlight.remove(playerId, operationToken)) return;
+                    // mutateAsync は失敗時にも API 正本で状態を再同期する。確認画面を開いた
+                    // ままにするため、下部の managed inventory 表示もその状態へ追随させる。
+                    restoreInventory(player);
                     GuiSound.DENY.play(player);
                     PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5857);
                 }
@@ -134,7 +146,8 @@ public final class SkillGemLearnEventHandler extends AbstractEventHandler {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onConfirmDrag(InventoryDragEvent event) {
-        if (event.getView().getTopInventory().getHolder() instanceof SkillGemLearnConfirmHolder) {
+        if (event.getView().getTopInventory().getHolder() instanceof SkillGemLearnConfirmHolder
+            && event.getRawSlots().stream().anyMatch(slot -> slot < event.getView().getTopInventory().getSize())) {
             event.setCancelled(true);
         }
     }
@@ -147,14 +160,12 @@ public final class SkillGemLearnEventHandler extends AbstractEventHandler {
     private void openConfirm(Player player, AstPlayer astPlayer, InventoryEntryModel entry, ItemModel item) {
         String skillId = item.getSkillGem().getSkillId();
         SkillDefinition definition = skillService.registry().getDefinition(skillId);
-        String name = definition == null ? skillId : definition.getName();
         boolean duplicate = learnedSkillService.ownsSkill(astPlayer.getAccount().getUuid(), skillId);
-        Component message = Component.text(name + "を習得します。ジェムを1個消費します。", NamedTextColor.YELLOW);
+        List<Component> description = new ArrayList<>();
+        description.add(SkillPresentationUtil.skillNameComponent(definition, skillId, NamedTextColor.WHITE));
+        description.add(Component.text("スキルジェムを1個消費して習得します。", NamedTextColor.GRAY));
         if (duplicate) {
-            message = message.append(Component.newline()).append(Component.text(
-                "同じスキルを所持済みですが、上書きやレベルアップは行わず別個体として習得します。",
-                NamedTextColor.LIGHT_PURPLE
-            ));
+            description.add(Component.text("所持済みでも別個体として追加されます。", NamedTextColor.LIGHT_PURPLE));
         }
         Inventory inventory = Bukkit.createInventory(
             new SkillGemLearnConfirmHolder(entry.getInventoryEntryId(), skillId),
@@ -163,11 +174,13 @@ public final class SkillGemLearnEventHandler extends AbstractEventHandler {
         );
         confirmDialogView.render(
             inventory,
-            message,
+            Component.text("スキル習得の確認", NamedTextColor.YELLOW),
+            description,
             Component.text("習得する", NamedTextColor.GREEN),
             Component.text("キャンセル", NamedTextColor.RED)
         );
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
+        GuiSound.SKILL_CONFIRM.play(player);
     }
 
     private void restoreInventory(Player player) {

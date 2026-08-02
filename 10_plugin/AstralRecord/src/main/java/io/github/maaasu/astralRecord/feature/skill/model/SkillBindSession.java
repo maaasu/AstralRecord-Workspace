@@ -98,16 +98,41 @@ public final class SkillBindSession {
      * @return 割当できた場合は {@code true}
      */
     public boolean assignSelectedOrNextSlot(@NotNull String skillId, @NotNull SkillKind skillKind) {
+        return assignSelectedOrNextSlot(skillId, skillKind, SkillBindPreset.PASSIVE_SLOT_COUNT);
+    }
+
+    /**
+     * 選択中スロット、または現在有効な種別対応スロットへスキルを割り当てます。
+     *
+     * <p>パッシブは {@code availablePassiveSlotCount} より小さい空き枠だけを自動選択し、
+     * 発動スキルは action ring の空き枠、最後に空の左クリック枠を使用します。</p>
+     *
+     * @param skillId 割り当てる習得済みスキル個体 ID
+     * @param skillKind 割り当てるスキル種別
+     * @param availablePassiveSlotCount 現在利用できるパッシブ枠数
+     * @return 割当できた場合は {@code true}
+     */
+    public boolean assignSelectedOrNextSlot(
+        @NotNull String skillId,
+        @NotNull SkillKind skillKind,
+        int availablePassiveSlotCount
+    ) {
         SkillBindType targetType = selectedBindType;
         int targetIndex = selectedBindSlotIndex;
         if (targetType == null || targetIndex < 0 || targetIndex >= slotCount(targetType)) {
             targetType = skillKind.isPassive() ? SkillBindType.PASSIVE : SkillBindType.ACTIVE;
-            targetIndex = findNextFreeSlot(targetType == SkillBindType.ACTIVE ? activeDraft : passiveDraft);
+            targetIndex = targetType == SkillBindType.PASSIVE
+                ? findNextFreeSlot(passiveDraft, availablePassiveSlotCount)
+                : findNextFreeSlot(activeDraft);
             if (targetIndex < 0 && targetType == SkillBindType.ACTIVE && isLeftClickUnassigned()) {
                 targetType = SkillBindType.LEFT_CLICK;
                 targetIndex = 0;
             }
         } else if (!matches(targetType, skillKind)) {
+            return false;
+        }
+        if (targetType == SkillBindType.PASSIVE
+            && targetIndex >= Math.max(0, Math.min(availablePassiveSlotCount, passiveDraft.size()))) {
             return false;
         }
         if (targetIndex < 0) {
@@ -207,7 +232,12 @@ public final class SkillBindSession {
     }
 
     private int findNextFreeSlot(@NotNull List<String> slots) {
-        for (int index = 0; index < slots.size(); index++) {
+        return findNextFreeSlot(slots, slots.size());
+    }
+
+    private int findNextFreeSlot(@NotNull List<String> slots, int availableSlotCount) {
+        int limit = Math.max(0, Math.min(availableSlotCount, slots.size()));
+        for (int index = 0; index < limit; index++) {
             String skillId = slots.get(index);
             if (skillId == null || skillId.isBlank()) {
                 return index;

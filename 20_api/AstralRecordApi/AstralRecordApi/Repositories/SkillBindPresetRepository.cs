@@ -22,12 +22,31 @@ public class SkillBindPresetRepository(AstralRecordDbContext dbContext) : ISkill
             .OrderBy(x => x.PresetIndex)
             .ToListAsync();
 
+        // 個体ID導入前のプリセットには skillId が保存されている。読み出し時に所有する最古の
+        // learnedSkillId へ正規化して返すことで、次回保存を UUID 正本へ安全に移行する。
+        var ownedLearnedSkills = await dbContext.AccountLearnedSkills
+                .AsNoTracking()
+                .Where(skill => skill.AccountId == accountId && !skill.IsDeleted)
+                .OrderBy(skill => skill.CreatedAt)
+                .ThenBy(skill => skill.LearnedSkillId)
+                .Select(skill => new { skill.SkillId, skill.LearnedSkillId })
+                .ToListAsync();
+        var legacyBindingIds = ownedLearnedSkills
+            .GroupBy(skill => skill.SkillId, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                group => group.Key,
+                group => group.First().LearnedSkillId.ToString(),
+                StringComparer.OrdinalIgnoreCase);
+        var ownedBindingIds = ownedLearnedSkills
+            .Select(skill => skill.LearnedSkillId.ToString())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         var byIndex = saved.ToDictionary(x => x.PresetIndex);
         var result = new List<SkillBindPresetResponse>(PresetCount);
         for (var index = 1; index <= PresetCount; index++)
         {
             result.Add(byIndex.TryGetValue(index, out var entity)
-                ? Map(entity)
+                ? Map(entity, legacyBindingIds, ownedBindingIds)
                 : Empty(accountId, index));
         }
 
@@ -94,16 +113,22 @@ public class SkillBindPresetRepository(AstralRecordDbContext dbContext) : ISkill
         IsSaved = false,
     };
 
-    private static SkillBindPresetResponse Map(SkillBindPresetEntity entity) => new()
+    private static SkillBindPresetResponse Map(
+        SkillBindPresetEntity entity,
+        IReadOnlyDictionary<string, string>? legacyBindingIds = null,
+        IReadOnlySet<string>? ownedBindingIds = null) => new()
     {
         SkillBindPresetId = entity.SkillBindPresetId,
         AccountId = entity.AccountId,
         PresetIndex = entity.PresetIndex,
-        ActiveSkillSlots = DeserializeSlots(entity.ActiveSkillSlotsJson, ActionRingSlotCount),
+        ActiveSkillSlots = NormalizeLegacySlots(
+            DeserializeSlots(entity.ActiveSkillSlotsJson, ActionRingSlotCount), legacyBindingIds, ownedBindingIds),
         LeftClickSkillId = entity.LeftClickSkillId is null
             ? WeaponNormalAttackBindingId
-            : NormalizeSkillId(entity.LeftClickSkillId),
-        PassiveSkillSlots = DeserializeSlots(entity.PassiveSkillSlotsJson, PassiveSlotCount),
+            : NormalizeLegacyBinding(
+                entity.LeftClickSkillId, legacyBindingIds, ownedBindingIds, allowWeaponNormalAttack: true),
+        PassiveSkillSlots = NormalizeLegacySlots(
+            DeserializeSlots(entity.PassiveSkillSlotsJson, PassiveSlotCount), legacyBindingIds, ownedBindingIds),
         IsUnlocked = entity.IsUnlocked || entity.PresetIndex <= DefaultUnlockedPresetCount,
         IsSaved = true,
         Version = entity.Version,
@@ -126,6 +151,31 @@ public class SkillBindPresetRepository(AstralRecordDbContext dbContext) : ISkill
 
     private static string? NormalizeSkillId(string? skillId)
         => string.IsNullOrWhiteSpace(skillId) ? null : skillId.Trim();
+
+    private static IReadOnlyList<string?> NormalizeLegacySlots(
+        IReadOnlyList<string?> slots,
+        IReadOnlyDictionary<string, string>? legacyBindingIds,
+        IReadOnlySet<string>? ownedBindingIds)
+        => slots.Select(slot => NormalizeLegacyBinding(
+            slot, legacyBindingIds, ownedBindingIds, allowWeaponNormalAttack: false)).ToArray();
+
+    private static string? NormalizeLegacyBinding(
+        string? binding,
+        IReadOnlyDictionary<string, string>? legacyBindingIds,
+        IReadOnlySet<string>? ownedBindingIds,
+        bool allowWeaponNormalAttack)
+    {
+        var normalized = NormalizeSkillId(binding);
+        if (normalized is null)
+            return null;
+        if (string.Equals(normalized, WeaponNormalAttackBindingId, StringComparison.Ordinal))
+            return allowWeaponNormalAttack ? WeaponNormalAttackBindingId : null;
+        if (Guid.TryParse(normalized, out _))
+            return ownedBindingIds is null || ownedBindingIds.Contains(normalized) ? normalized : null;
+        return legacyBindingIds is not null && legacyBindingIds.TryGetValue(normalized, out var learnedSkillId)
+            ? learnedSkillId
+            : null;
+    }
 
     private async Task<bool> HasValidOwnedBindingsAsync(
         Guid accountId,

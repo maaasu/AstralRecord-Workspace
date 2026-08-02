@@ -65,6 +65,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * インベントリ機能のビジネスロジックを担うサービス。
@@ -97,6 +98,8 @@ public class InventoryService {
     private final InventoryPersistence persistence;
     private final InventorySaveCoordinator saveCoordinator;
     private final InventoryClickGuard clickGuard = new InventoryClickGuard();
+    /** 合成などで消費確定までプレイヤー GUI だけから隠す inventory entry です。永続状態は変更しません。 */
+    private final Map<UUID, Set<UUID>> temporarilyHiddenEntryIdsByAccount = new ConcurrentHashMap<>();
 
     /**
      * インベントリサービスを構築します。
@@ -240,6 +243,45 @@ public class InventoryService {
                 compactInventoryEntriesAfterRemoval(state, compactInventoryId);
             }
         }
+    }
+
+    /**
+     * 指定した所持アイテムを、消費を確定するまでプレイヤーインベントリ表示からだけ隠します。
+     *
+     * <p>API が素材 entry を検証して消費する処理の前に正本を削除しないため、同期保存との競合を起こしません。</p>
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param inventoryEntryId 一時的に隠す entry ID
+     */
+    public void hideOwnedEntryFromGui(@NotNull AstPlayer astPlayer, @NotNull UUID inventoryEntryId) {
+        UUID accountId = astPlayer.getAccount().getUuid();
+        temporarilyHiddenEntryIdsByAccount
+            .computeIfAbsent(accountId, ignored -> ConcurrentHashMap.newKeySet())
+            .add(inventoryEntryId);
+        requestManagedInventoryUiRefresh(astPlayer, true);
+    }
+
+    /**
+     * 一時的に隠していた所持アイテムをプレイヤーインベントリ表示へ戻します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param inventoryEntryId 復元する entry ID
+     */
+    public void restoreHiddenEntryToGui(@NotNull AstPlayer astPlayer, @NotNull UUID inventoryEntryId) {
+        UUID accountId = astPlayer.getAccount().getUuid();
+        Set<UUID> hidden = temporarilyHiddenEntryIdsByAccount.get(accountId);
+        if (hidden == null || !hidden.remove(inventoryEntryId)) {
+            return;
+        }
+        if (hidden.isEmpty()) {
+            temporarilyHiddenEntryIdsByAccount.remove(accountId, hidden);
+        }
+        requestManagedInventoryUiRefresh(astPlayer, true);
+    }
+
+    /** ログアウト時などに対象アカウントの一時表示予約を破棄します。 */
+    public void clearHiddenEntriesFromGui(@NotNull UUID accountId) {
+        temporarilyHiddenEntryIdsByAccount.remove(accountId);
     }
 
     /**
@@ -961,7 +1003,8 @@ public class InventoryService {
 
         for (InventoryEntryModel entry : entries) {
             Integer slotIndex = entry.getSlotIndex();
-            if (slotIndex == null || !NormalInventoryLayout.isManagedSlot(slotIndex, displayCapacity) || entry.isDeleted()) {
+            if (slotIndex == null || !NormalInventoryLayout.isManagedSlot(slotIndex, displayCapacity)
+                || entry.isDeleted() || isTemporarilyHidden(state.getAccountId(), entry)) {
                 continue;
             }
             int guiSlotIndex = NormalInventoryLayout.toGuiSlotIndex(slotIndex, scrollRow);
@@ -2549,7 +2592,8 @@ public class InventoryService {
         if (hotbarInventory != null) {
             for (InventoryEntryModel entry : state.snapshotEntries(hotbarInventory.getInventoryId())) {
                 Integer slot = entry.getSlotIndex();
-                if (slot != null && HotbarLayout.isManagedSlot(slot) && !entry.isDeleted()) {
+                if (slot != null && HotbarLayout.isManagedSlot(slot) && !entry.isDeleted()
+                    && !isTemporarilyHidden(state.getAccountId(), entry)) {
                     bySlot.put(slot, entry);
                 }
             }
@@ -2984,6 +3028,11 @@ public class InventoryService {
             }
             astPlayer.getBukkit().updateInventory();
         });
+    }
+
+    private boolean isTemporarilyHidden(@NotNull UUID accountId, @NotNull InventoryEntryModel entry) {
+        Set<UUID> hidden = temporarilyHiddenEntryIdsByAccount.get(accountId);
+        return hidden != null && hidden.contains(entry.getInventoryEntryId());
     }
 
     private void applyDisplayedInventoryToGui(@NotNull AstPlayer astPlayer) {

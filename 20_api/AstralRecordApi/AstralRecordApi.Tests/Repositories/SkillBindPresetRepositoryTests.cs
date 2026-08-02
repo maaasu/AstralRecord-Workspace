@@ -61,6 +61,73 @@ public class SkillBindPresetRepositoryTests
     }
 
     [Fact]
+    public async Task GetByAccountIdAsync_NormalizesLegacySkillIdsToTheOldestOwnedLearnedSkill()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using var dbContext = new AstralRecordDbContext(options);
+        await CreateSchemaAsync(dbContext);
+        var accountId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var firstLearnedSkillId = Guid.NewGuid();
+        var secondLearnedSkillId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+
+        dbContext.AccountLearnedSkills.AddRange(
+            new AccountLearnedSkillEntity
+            {
+                LearnedSkillId = firstLearnedSkillId,
+                AccountId = accountId,
+                SkillId = "mage_fireball",
+                Level = 1,
+                Version = 1,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = userId,
+                UpdatedBy = userId,
+            },
+            new AccountLearnedSkillEntity
+            {
+                LearnedSkillId = secondLearnedSkillId,
+                AccountId = accountId,
+                SkillId = "mage_fireball",
+                Level = 1,
+                Version = 1,
+                CreatedAt = now.AddMinutes(1),
+                UpdatedAt = now.AddMinutes(1),
+                CreatedBy = userId,
+                UpdatedBy = userId,
+            });
+        dbContext.SkillBindPresets.Add(new SkillBindPresetEntity
+        {
+            SkillBindPresetId = Guid.NewGuid(),
+            AccountId = accountId,
+            PresetIndex = 1,
+            ActiveSkillSlotsJson = "[\"mage_fireball\",\"00000000-0000-0000-0000-000000000000\"]",
+            LeftClickSkillId = "mage_fireball",
+            PassiveSkillSlotsJson = "[\"unknown_legacy_skill\"]",
+            IsUnlocked = true,
+            Version = 1,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = userId,
+            UpdatedBy = userId,
+        });
+        await dbContext.SaveChangesAsync();
+
+        var preset = (await new SkillBindPresetRepository(dbContext).GetByAccountIdAsync(accountId))
+            .Single(candidate => candidate.PresetIndex == 1);
+
+        Assert.Equal(firstLearnedSkillId.ToString(), preset.ActiveSkillSlots[0]);
+        Assert.Null(preset.ActiveSkillSlots[1]);
+        Assert.Equal(firstLearnedSkillId.ToString(), preset.LeftClickSkillId);
+        Assert.Null(preset.PassiveSkillSlots[0]);
+    }
+
+    [Fact]
     public async Task UpsertAsync_PreservesNullLeftClickBindingAsUnbound()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");

@@ -165,12 +165,10 @@ public final class LearnedSkillService {
                 lock.set(false);
                 return;
             }
-            if (saveError != null || !Boolean.TRUE.equals(saved)) {
-                completeFailure(accountId, sessionToken, lock, onFailure, saveError == null
-                    ? new IllegalStateException("Inventory save failed before skill mutation")
-                    : saveError);
-                return;
-            }
+            // 直前の保存キューが失敗しても、素材消費 API は inventoryEntryId を正本で検証する。
+            // ここで利用者操作を中断すると、無関係な stale entry の同期失敗だけで次のジェム習得・
+            // 合成を永続的に拒否してしまう。保存完了（成功／失敗）後に API mutation を直列実行し、
+            // 成否どちらでも素材 entry を API 正本へ再同期する。
             plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                 try {
                     LearnedSkillInstance result = mutation.execute();

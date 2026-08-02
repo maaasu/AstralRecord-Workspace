@@ -75,11 +75,7 @@ public final class PagedGuiView {
                 List.of(Component.text(pageIndex + " / " + totalPages(itemCount), NamedTextColor.GRAY))
             ));
         }
-        inventory.setItem(BACK_SLOT, createItem(
-            Material.SPECTRAL_ARROW,
-            Component.text("戻る", NamedTextColor.WHITE, TextDecoration.BOLD),
-            List.of(Component.text("前の画面へ戻ります", NamedTextColor.GRAY))
-        ));
+        inventory.setItem(BACK_SLOT, GuiItems.backButton());
         if (hasNextPage(pageIndex, itemCount)) {
             inventory.setItem(NEXT_SLOT, createItem(
                 Material.MAP,

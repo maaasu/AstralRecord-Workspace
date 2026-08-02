@@ -3,7 +3,6 @@ package io.github.maaasu.astralRecord.feature.menu.view.screen;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -28,11 +27,7 @@ public abstract class BaseMenuScreenView {
     }
 
     protected @NotNull ItemStack backItem() {
-        return createItem(
-            Material.SPECTRAL_ARROW,
-            Component.text("戻る", NamedTextColor.WHITE, TextDecoration.BOLD),
-            List.of(Component.text("前の画面へ戻ります", NamedTextColor.GRAY))
-        );
+        return GuiItems.backButton();
     }
 
     protected @NotNull ItemStack createItem(

@@ -33,6 +33,31 @@ public final class ConfirmDialogView {
         @NotNull Component confirmName,
         @NotNull Component cancelName
     ) {
+        render(
+            inventory,
+            message,
+            List.of(Component.text("選択してください", NamedTextColor.GRAY)),
+            confirmName,
+            cancelName
+        );
+    }
+
+    /**
+     * 見出しと複数行の説明を持つ確認ダイアログを描画します。
+     *
+     * @param inventory 描画先インベントリ
+     * @param message 見出し表示アイテム名
+     * @param messageLore 見出しの説明行
+     * @param confirmName 確定ボタン名
+     * @param cancelName キャンセルボタン名
+     */
+    public void render(
+        @NotNull Inventory inventory,
+        @NotNull Component message,
+        @NotNull List<Component> messageLore,
+        @NotNull Component confirmName,
+        @NotNull Component cancelName
+    ) {
         ItemStack dummy = createItem(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of());
         for (int slot = 0; slot < SIZE; slot++) {
             inventory.setItem(slot, dummy);
@@ -40,7 +65,7 @@ public final class ConfirmDialogView {
         inventory.setItem(MESSAGE_SLOT, createItem(
             Material.PAPER,
             message,
-            List.of(Component.text("選択してください", NamedTextColor.GRAY))
+            messageLore
         ));
         inventory.setItem(CONFIRM_SLOT, createItem(
             Material.LIME_CONCRETE,

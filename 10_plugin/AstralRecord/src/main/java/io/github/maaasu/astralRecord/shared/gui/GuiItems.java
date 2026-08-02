@@ -75,6 +75,19 @@ public final class GuiItems {
     }
 
     /**
+     * 前画面へ戻る GUI で共通利用する戻るボタンを生成します。
+     *
+     * @return 戻るボタン ItemStack
+     */
+    public static @NotNull ItemStack backButton() {
+        return create(
+            Material.SPECTRAL_ARROW,
+            Component.text("戻る", NamedTextColor.WHITE, TextDecoration.BOLD),
+            List.of(Component.text("前の画面へ戻ります", NamedTextColor.GRAY))
+        );
+    }
+
+    /**
      * 指定した素材と永続データキーを持つ GUI マーカーかを判定します。
      *
      * @param itemStack 判定対象

@@ -73,6 +73,7 @@ class SkillBindGuiEventHandlerTest {
             new LearnedSkillMutationException(LearnedSkillMutationFailure.NO_SIGIL_SLOT, "no slot")));
         assertEquals(PlayerMsgId.P_5861, method.invoke(handler,
             new LearnedSkillMutationException(LearnedSkillMutationFailure.DUPLICATE_SIGIL_GROUP, "duplicate")));
+        assertEquals(PlayerMsgId.P_5864, method.invoke(handler, new IllegalStateException("inventory sync failed")));
     }
 
     /**
@@ -114,10 +115,10 @@ class SkillBindGuiEventHandlerTest {
         when(ownershipService.learnedSkills(astPlayer)).thenReturn(List.of());
         when(passiveSkillService.activePassiveSlotCount(astPlayer)).thenReturn(0);
         Class<?> selectionType = Class.forName(SkillBindGuiEventHandler.class.getName() + "$SynthesisSelection");
-        var constructor = selectionType.getDeclaredConstructor(UUID.class, ItemModel.class, int.class);
+        var constructor = selectionType.getDeclaredConstructor(UUID.class, UUID.class, ItemModel.class);
         constructor.setAccessible(true);
         ((Map<UUID, Object>) fieldValue(handler, "synthesisSelections")).put(
-            playerId, constructor.newInstance(UUID.randomUUID(), mock(ItemModel.class), 12)
+            playerId, constructor.newInstance(accountId, UUID.randomUUID(), mock(ItemModel.class))
         );
 
         try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
@@ -126,6 +127,7 @@ class SkillBindGuiEventHandlerTest {
         }
 
         verify(inventoryService).applyInventoriesToGui(astPlayer);
+        verify(inventoryService).restoreHiddenEntryToGui(any(), any());
         verify(player).updateInventory();
         assertFalse(mapValue(handler, "synthesisSelections").containsKey(playerId));
     }
@@ -158,15 +160,23 @@ class SkillBindGuiEventHandlerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
      * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
-     * 検証契約: 保存中にログアウトしても、再ログイン後へ保存ロックと編集セッションを持ち越さない。
+     * 検証契約: 保存中にログアウトしても、再ログイン後へ保存ロック・編集セッション・合成素材の表示予約を持ち越さない。
      */
     @Test
     void quitClearsSavingTokenAndEditingSession() throws ReflectiveOperationException {
-        SkillBindGuiEventHandler handler = newHandler();
+        InventoryService inventoryService = mock(InventoryService.class);
+        SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
+            mock(AstralRecord.class), mock(SkillBindGui.class), mock(SkillService.class),
+            mock(SkillBindPresetService.class), mock(SkillOwnershipService.class),
+            mock(SkillPermissionService.class), mock(LearnedSkillService.class),
+            mock(PassiveSkillService.class), inventoryService
+        );
         UUID playerId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
         putMapValue(handler, "sessions", playerId, new SkillBindSession(presets(playerId)));
         putSavingToken(handler, playerId);
         setValue(handler, "suppressClose").add(playerId);
+        putSynthesisSelection(handler, playerId, accountId);
         Player player = mock(Player.class);
         when(player.getUniqueId()).thenReturn(playerId);
         PlayerQuitEvent event = mock(PlayerQuitEvent.class);
@@ -176,7 +186,9 @@ class SkillBindGuiEventHandlerTest {
 
         assertFalse(mapValue(handler, "sessions").containsKey(playerId));
         assertFalse(mapValue(handler, "savingSessions").containsKey(playerId));
+        assertFalse(mapValue(handler, "synthesisSelections").containsKey(playerId));
         assertFalse(setValue(handler, "suppressClose").contains(playerId));
+        verify(inventoryService).clearHiddenEntriesFromGui(accountId);
     }
 
     /**
@@ -272,6 +284,17 @@ class SkillBindGuiEventHandlerTest {
     @SuppressWarnings("unchecked")
     private static void putSavingToken(Object target, UUID playerId) throws ReflectiveOperationException {
         ((Map<UUID, UUID>) fieldValue(target, "savingSessions")).put(playerId, UUID.randomUUID());
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void putSynthesisSelection(SkillBindGuiEventHandler handler, UUID playerId, UUID accountId)
+        throws ReflectiveOperationException {
+        Class<?> selectionType = Class.forName(SkillBindGuiEventHandler.class.getName() + "$SynthesisSelection");
+        var constructor = selectionType.getDeclaredConstructor(UUID.class, UUID.class, ItemModel.class);
+        constructor.setAccessible(true);
+        ((Map<UUID, Object>) fieldValue(handler, "synthesisSelections")).put(
+            playerId, constructor.newInstance(accountId, UUID.randomUUID(), mock(ItemModel.class))
+        );
     }
 
     @SuppressWarnings("unchecked")
