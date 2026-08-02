@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 public class PlayerHudView {
     private static final String OBJECTIVE_NAME = "astral_info";
@@ -35,7 +36,7 @@ public class PlayerHudView {
     private static final String SIDEBAR_BAR_CHAR = "|";
 
     public void renderActionBar(Player player, StatusSnapshot snapshot) {
-        renderActionBar(player, snapshot, List.of(), null);
+        renderActionBar(player, snapshot, List.of(), null, 0L, 0.0D);
     }
 
     /**
@@ -50,7 +51,7 @@ public class PlayerHudView {
         StatusSnapshot snapshot,
         Collection<ActiveCondition> activeConditions
     ) {
-        renderActionBar(player, snapshot, activeConditions, null);
+        renderActionBar(player, snapshot, activeConditions, null, 0L, 0.0D);
     }
 
     /**
@@ -67,17 +68,41 @@ public class PlayerHudView {
         Collection<ActiveCondition> activeConditions,
         ShieldRechargeState shieldRechargeState
     ) {
+        renderActionBar(player, snapshot, activeConditions, shieldRechargeState, 0L, 0.0D);
+    }
+
+    /**
+     * 通常リソース・通常攻撃CD・状態異常・DPSを同じアクションバーへ描画します。
+     *
+     * @param player 対象プレイヤー
+     * @param snapshot 現在のステータス
+     * @param activeConditions 現在有効な状態異常
+     * @param shieldRechargeState シールドリチャージ状態。通常時は {@code null}
+     * @param attackCooldownTicks 通常攻撃の残りクールダウン（tick）
+     * @param currentDps 直近1秒の秒間与ダメージ
+     */
+    public void renderActionBar(
+        Player player,
+        StatusSnapshot snapshot,
+        Collection<ActiveCondition> activeConditions,
+        ShieldRechargeState shieldRechargeState,
+        long attackCooldownTicks,
+        double currentDps
+    ) {
         double maxHp = snapshot.getMaxValue(StatusType.MAX_HEALTH);
         double maxMp = snapshot.getMaxValue(StatusType.MAX_MANA);
         double maxEnergy = snapshot.getMaxValue(StatusType.MAX_ENERGY);
         player.sendActionBar(Component.empty()
+            .append(normalAttackActionText(attackCooldownTicks))
+            .append(Component.text("  ", NamedTextColor.DARK_GRAY))
             .append(statText("HP", snapshot.getCurrentHp(), maxHp, NamedTextColor.RED))
             .append(Component.text("  ", NamedTextColor.DARK_GRAY))
             .append(statText("MP", snapshot.getCurrentMp(), maxMp, NamedTextColor.AQUA))
             .append(Component.text("  ", NamedTextColor.DARK_GRAY))
             .append(statText("ENG", snapshot.getCurrentEnergy(), maxEnergy, NamedTextColor.YELLOW))
             .append(shieldActionText(snapshot, shieldRechargeState))
-            .append(conditionActionText(activeConditions)));
+            .append(conditionActionText(activeConditions))
+            .append(dpsActionText(currentDps)));
     }
 
     /**
@@ -463,6 +488,28 @@ public class PlayerHudView {
             case WEAKNESS -> "[衰]";
             case HEALING_INHIBITION -> "[阻]";
         };
+    }
+
+    private Component normalAttackActionText(long attackCooldownTicks) {
+        if (attackCooldownTicks <= 0L) {
+            return Component.text("⚔ ", NamedTextColor.GREEN, TextDecoration.BOLD)
+                .append(Component.text("●", NamedTextColor.WHITE, TextDecoration.BOLD));
+        }
+        String seconds = String.format(Locale.ROOT, "%.1f", attackCooldownTicks / 20.0D);
+        return Component.text("⚔ ", NamedTextColor.RED, TextDecoration.BOLD)
+            .append(Component.text(seconds + "s", NamedTextColor.GRAY));
+    }
+
+    private Component dpsActionText(double currentDps) {
+        String dps = formatOneDecimal(currentDps);
+        return Component.text("  DPS ", NamedTextColor.DARK_GRAY)
+            .append(Component.text(dps, NamedTextColor.GOLD))
+            .append(Component.text("/s", NamedTextColor.GRAY));
+    }
+
+    private String formatOneDecimal(double value) {
+        String raw = String.format(Locale.ROOT, "%.1f", value);
+        return raw.endsWith(".0") ? raw.substring(0, raw.length() - 2) : raw;
     }
 
     private NamedTextColor conditionColor(ConditionType type) {

@@ -9,6 +9,8 @@ import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
 import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeSidebarInfo;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
+import io.github.maaasu.astralRecord.feature.combat.service.CombatDpsTrackerService;
+import io.github.maaasu.astralRecord.feature.item.service.ItemWeaponAttackService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
@@ -37,6 +39,8 @@ public class PlayerHudService {
     private final BossChallengeService bossChallengeService;
     private final WorldService worldService;
     private final PlayerHudView playerHudView;
+    private CombatDpsTrackerService combatDpsTrackerService;
+    private ItemWeaponAttackService itemWeaponAttackService;
     private final Map<UUID, BukkitTask> actionBarOverrideTasks = new HashMap<>();
     private final Map<UUID, Function<AstPlayer, Component>> primaryActionBarRenderers = new HashMap<>();
     private AstralRecord plugin;
@@ -70,6 +74,14 @@ public class PlayerHudService {
         this.bossChallengeService = bossChallengeService;
         this.worldService = worldService;
         this.playerHudView = new PlayerHudView();
+    }
+
+    public void setItemWeaponAttackService(@NotNull ItemWeaponAttackService itemWeaponAttackService) {
+        this.itemWeaponAttackService = itemWeaponAttackService;
+    }
+
+    public void setCombatDpsTrackerService(@NotNull CombatDpsTrackerService combatDpsTrackerService) {
+        this.combatDpsTrackerService = combatDpsTrackerService;
     }
 
     public void start(AstralRecord plugin) {
@@ -316,6 +328,12 @@ public class PlayerHudService {
         if (!player.isOnline() || !astPlayer.getAccount().getMode().shouldProcessGameplay()) {
             return;
         }
+        long attackCooldownTicks = itemWeaponAttackService == null
+                ? 0L
+                : itemWeaponAttackService.getRemainingAttackCooldownTicks(astPlayer);
+        double currentDps = combatDpsTrackerService == null
+                ? 0.0D
+                : combatDpsTrackerService.getCurrentDps(player.getUniqueId());
         Component override = resolvePrimaryActionBar(astPlayer);
         if (override != null) {
             player.sendActionBar(override);
@@ -325,7 +343,9 @@ public class PlayerHudService {
             player,
             snapshot,
             conditionService.getActiveConditions(AstEntity.player(astPlayer)),
-            statusService.getShieldRechargeState(astPlayer)
+            statusService.getShieldRechargeState(astPlayer),
+            attackCooldownTicks,
+            currentDps
         );
     }
 

@@ -18,6 +18,7 @@ import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
 import io.github.maaasu.astralRecord.feature.boss.service.BossFieldInstanceService;
 import io.github.maaasu.astralRecord.feature.combat.event.CombatDamageEventHandler;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
+import io.github.maaasu.astralRecord.feature.combat.service.CombatDpsTrackerService;
 import io.github.maaasu.astralRecord.feature.condition.display.ConditionDisplayService;
 import io.github.maaasu.astralRecord.feature.condition.event.ConditionPlayerEventHandler;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
@@ -170,6 +171,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillCooldownBossBarService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPermissionService;
 import io.github.maaasu.astralRecord.feature.skilltree.event.SkillTreeEventHandler;
@@ -317,6 +319,7 @@ public final class AstralRecord extends JavaPlugin {
     private ItemStackPacketAdapter itemStackPacketAdapter;
     private SkillService skillService;
     private SkillActionRingService skillActionRingService;
+    private SkillCooldownBossBarService skillCooldownBossBarService;
     private PassiveSkillService passiveSkillService;
     private SkillTreeService skillTreeService;
     private SkillBindPresetService skillBindPresetService;
@@ -329,6 +332,7 @@ public final class AstralRecord extends JavaPlugin {
     private SkillTaskService activeSkillTaskService;
     private TemporarySkillEffectService temporarySkillEffectService;
     private DamageService damageService;
+    private CombatDpsTrackerService combatDpsTrackerService;
     private ConditionService conditionService;
     private ConditionDisplayService conditionDisplayService;
     private ConditionTickTask conditionTickTask;
@@ -515,6 +519,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (playerHudService != null) {
             playerHudService.stop();
+        }
+        if (skillCooldownBossBarService != null) {
+            skillCooldownBossBarService.stop();
         }
         if (statusRegenTask != null) {
             statusRegenTask.stop();
@@ -795,6 +802,8 @@ public final class AstralRecord extends JavaPlugin {
             this
         );
         mobCombatService.setDamageService(damageService);
+        combatDpsTrackerService = new CombatDpsTrackerService();
+        damageService.setCombatDpsTrackerService(combatDpsTrackerService);
         conditionDisplayService = new ConditionDisplayService(particleDisplayService, mobVanillaEffectProtectionService);
         conditionService = new ConditionService(conditionDisplayService, playerDeathService);
         conditionService.setStatusService(statusService);
@@ -860,6 +869,7 @@ public final class AstralRecord extends JavaPlugin {
             bossChallengeService,
             worldService
         );
+        playerHudService.setCombatDpsTrackerService(combatDpsTrackerService);
         skillTreeService.setPlayerHudService(playerHudService);
 
         // dodge
@@ -986,6 +996,7 @@ public final class AstralRecord extends JavaPlugin {
         // skill
         skillService = new SkillService(new SkillRepository(), new SkillRegistry(), this);
         skillBindPresetService = new SkillBindPresetService(this, new SkillBindPresetRepository());
+        skillCooldownBossBarService = new SkillCooldownBossBarService(skillService);
         skillService.setConditionService(conditionService);
         skillService.setPlayerHudService(playerHudService);
         skillService.registerExecutor(new FireBoostSkillExecutor(particleDisplayService));
@@ -1054,6 +1065,7 @@ public final class AstralRecord extends JavaPlugin {
         itemWeaponAttackService = new ItemWeaponAttackService(inventoryService, skillService);
         itemWeaponAttackService.setEquipmentDurabilityService(equipmentDurabilityService);
         skillActionRingService.setItemWeaponAttackService(itemWeaponAttackService);
+        playerHudService.setItemWeaponAttackService(itemWeaponAttackService);
 
         // item, loot, skill, class 等のマスターデータを非同期ロード
         getServer().getScheduler().runTaskAsynchronously(this, () -> {
@@ -1419,6 +1431,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         playerHudService.start(this);
+        skillCooldownBossBarService.start(this);
         statusRegenTask.start(this);
         displayTextService.start(this);
         overheadDisplayService.start(this);

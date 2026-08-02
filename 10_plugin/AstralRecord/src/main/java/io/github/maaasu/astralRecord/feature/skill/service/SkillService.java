@@ -37,6 +37,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.Collections;
@@ -649,6 +652,7 @@ public class SkillService {
                 startCooldown(
                     caster,
                     cooldownKey(definition),
+                    definition.getId(),
                     resolveCooldownTicks(effectiveStatus, definition.getCooldownTicks())
                 );
             }
@@ -971,15 +975,84 @@ public class SkillService {
      * 発動者・スキルの cooldown を開始します。
      *
      * @param caster        発動者
+     * @param cooldownId    クールダウンキー（スキルIDや統合クールダウンID）
+     * @param displaySkillId 表示用スキル ID
+     * @param cooldownTicks クールダウン（tick）
+     */
+    private void startCooldown(
+            @NotNull SkillCaster caster,
+            @NotNull String cooldownId,
+            @NotNull String displaySkillId,
+            long cooldownTicks
+    ) {
+        if (cooldownTicks <= 0L) return;
+        long now = System.currentTimeMillis();
+        long expiry = now + cooldownTicks * MS_PER_TICK;
+        cooldownExpiryByCaster
+                .computeIfAbsent(caster.casterId(), id -> new ConcurrentHashMap<>())
+                .put(normalize(cooldownId), new CooldownState(
+                        expiry,
+                        cooldownTicks,
+                        now,
+                        normalize(displaySkillId)
+                ));
+    }
+
+    /**
+     * 発動者・スキルの cooldown を開始します。
+     *
+     * @param caster        発動者
      * @param skillId       スキル ID
      * @param cooldownTicks クールダウン（tick）
      */
     public void startCooldown(@NotNull SkillCaster caster, @NotNull String skillId, long cooldownTicks) {
-        if (cooldownTicks <= 0L) return;
-        long expiry = System.currentTimeMillis() + cooldownTicks * MS_PER_TICK;
-        cooldownExpiryByCaster
-                .computeIfAbsent(caster.casterId(), id -> new ConcurrentHashMap<>())
-                .put(normalize(skillId), new CooldownState(expiry, cooldownTicks));
+        startCooldown(caster, skillId, skillId, cooldownTicks);
+    }
+
+    /**
+     * 発動者の有効なクールダウンを開始時刻の降順で取得します。
+     *
+     * @param caster 発動者
+     * @return 有効中クールダウン一覧（開始時刻の降順）
+     */
+    public @NotNull List<ActiveCooldown> getActiveCooldowns(@NotNull SkillCaster caster) {
+        return getActiveCooldowns(caster.casterId());
+    }
+
+    /**
+     * 発動者の有効なクールダウンを開始時刻の降順で取得します。
+     *
+     * @param casterId 発動者 UUID
+     * @return 有効中クールダウン一覧（開始時刻の降順）
+     */
+    public @NotNull List<ActiveCooldown> getActiveCooldowns(@NotNull UUID casterId) {
+        Map<String, CooldownState> byCaster = cooldownExpiryByCaster.get(casterId);
+        if (byCaster == null || byCaster.isEmpty()) {
+            return List.of();
+        }
+
+        long now = System.currentTimeMillis();
+        List<ActiveCooldown> activeCooldowns = new ArrayList<>();
+        Iterator<Map.Entry<String, CooldownState>> iterator = byCaster.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, CooldownState> entry = iterator.next();
+            CooldownState state = entry.getValue();
+            if (state == null || state.expiryMillis() <= now) {
+                iterator.remove();
+                continue;
+            }
+            long remainingTicks = Math.max(1L, (state.expiryMillis() - now + MS_PER_TICK - 1L) / MS_PER_TICK);
+            activeCooldowns.add(new ActiveCooldown(
+                    entry.getKey(),
+                    state.displaySkillId(),
+                    resolveSkillDisplayName(state.displaySkillId()),
+                    remainingTicks,
+                    state.durationTicks(),
+                    state.startedAtMillis()
+            ));
+        }
+        activeCooldowns.sort(Comparator.comparingLong(ActiveCooldown::startedAtMillis).reversed());
+        return activeCooldowns;
     }
 
     /**
@@ -1055,6 +1128,11 @@ public class SkillService {
             return 0L;
         }
         return Math.max(1L, (remainingMillis + MS_PER_TICK - 1L) / MS_PER_TICK);
+    }
+
+    private @NotNull String resolveSkillDisplayName(@NotNull String skillId) {
+        SkillDefinition definition = registry.getDefinition(skillId);
+        return SkillPresentationUtil.plainName(definition, skillId);
     }
 
     /** 共有cooldownを開始したスキルが採用した総tickを返します。 */
@@ -1280,7 +1358,22 @@ public class SkillService {
         }
     }
 
-    private record CooldownState(long expiryMillis, long durationTicks) {
+    public record ActiveCooldown(
+            @NotNull String cooldownKey,
+            @NotNull String displaySkillId,
+            @NotNull String skillName,
+            long remainingTicks,
+            long totalTicks,
+            long startedAtMillis
+    ) {
+    }
+
+    private record CooldownState(
+            long expiryMillis,
+            long durationTicks,
+            long startedAtMillis,
+            @NotNull String displaySkillId
+    ) {
     }
 
     private record CastingSession(@NotNull BukkitTask task, @NotNull Runnable cleanup) {

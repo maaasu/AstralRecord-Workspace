@@ -79,6 +79,7 @@ public final class DamageService {
     private ConditionService conditionService;
     private EquipmentDurabilityService equipmentDurabilityService;
     private TemporarySkillEffectService temporarySkillEffectService;
+    private CombatDpsTrackerService combatDpsTrackerService;
 
     /**
      * サービスを構築します。
@@ -198,6 +199,15 @@ public final class DamageService {
 
     public void setEquipmentDurabilityService(@Nullable EquipmentDurabilityService equipmentDurabilityService) {
         this.equipmentDurabilityService = equipmentDurabilityService;
+    }
+
+    /**
+     * 与ダメージトラッカーを設定します。
+     *
+     * @param combatDpsTrackerService DPS 集計サービス。null の場合は追跡を行いません。
+     */
+    public void setCombatDpsTrackerService(@Nullable CombatDpsTrackerService combatDpsTrackerService) {
+        this.combatDpsTrackerService = combatDpsTrackerService;
     }
 
     /**
@@ -760,6 +770,9 @@ public final class DamageService {
 
         if (result.finalDamage() <= 0.0D) {
             return;
+        }
+        if (attacker != null && attacker.isPlayer() && attacker.player() != null && combatDpsTrackerService != null) {
+            combatDpsTrackerService.recordDamage(attacker.id(), result.finalDamage());
         }
 
         if (victim.isPlayer()) {

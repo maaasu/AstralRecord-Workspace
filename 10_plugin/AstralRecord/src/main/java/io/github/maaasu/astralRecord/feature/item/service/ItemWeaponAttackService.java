@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
@@ -89,6 +90,21 @@ public final class ItemWeaponAttackService {
         }
         WeaponAttackDefinition attack = resolveAttack(equipment.getTag());
         return attack == null ? null : attack.skillId();
+    }
+
+    /**
+     * 現在装備中の通常攻撃スキルの残りクールダウン tick を返します。
+     *
+     * @param player 対象プレイヤー
+     * @return 残りクールダウン（tick）。スキルが未設定、または非クールダウン時は {@code 0}
+     */
+    public long getRemainingAttackCooldownTicks(@NotNull AstPlayer player) {
+        String skillId = currentLeftClickSkillId(player);
+        if (skillId == null) {
+            return 0L;
+        }
+        SkillCaster caster = new PlayerSkillCaster(player);
+        return skillService.getRemainingCooldownTicks(caster, skillId);
     }
 
     private void handleAttack(
