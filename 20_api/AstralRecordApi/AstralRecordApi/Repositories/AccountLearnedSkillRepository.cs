@@ -291,7 +291,22 @@ public class AccountLearnedSkillRepository(
         IReadOnlyDictionary<string, SkillResponse> skills,
         IReadOnlyDictionary<string, ItemSigilResponse> sigils)
     {
-        await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            dbContext.ChangeTracker.Clear();
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            await ReconcileInTransactionAsync(accountId, userId, skills, sigils);
+            await transaction.CommitAsync();
+        });
+    }
+
+    private async Task ReconcileInTransactionAsync(
+        Guid accountId,
+        Guid userId,
+        IReadOnlyDictionary<string, SkillResponse> skills,
+        IReadOnlyDictionary<string, ItemSigilResponse> sigils)
+    {
         var learnedSkills = await dbContext.AccountLearnedSkills
             .Include(skill => skill.Sigils)
             .Where(skill => skill.AccountId == accountId && !skill.IsDeleted)
@@ -383,7 +398,6 @@ public class AccountLearnedSkillRepository(
             await AddSigilCompensationMailAsync(userId, compensatedSigilIds, actor, now);
 
         await dbContext.SaveChangesAsync();
-        await transaction.CommitAsync();
     }
 
     private async Task RemoveDeletedBindingsAsync(

@@ -7,6 +7,7 @@ using AstralRecordApi.Repositories;
 using AstralRecordApi.Tests.TestSupport;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Xunit;
 
 namespace AstralRecordApi.Tests.Repositories;
@@ -257,6 +258,25 @@ public class AccountLearnedSkillRepositoryTests
         Assert.Equal("__weapon_normal_attack__", preset.LeftClickSkillId);
     }
 
+    /// <summary>
+    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
+    /// 検証契約: SQL Server のリトライ実行戦略が有効でも、ログイン時の習得済みスキル照合は
+    /// 実行戦略のスコープ内で Serializable transaction を開始して500にならない。
+    /// </summary>
+    [Fact]
+    public async Task GetByAccountIdAsync_ReconcilesInsideRetryExecutionStrategy()
+    {
+        await using var fixture = await TestDatabase.CreateAsync(useRetryingExecutionStrategy: true);
+        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.mage_fireball.yml", "skill", null);
+        var accountId = Guid.NewGuid();
+        await fixture.AddAccountAsync(accountId);
+
+        var result = await new AccountLearnedSkillRepository(fixture.PlayerDb, fixture.MasterDb)
+            .GetByAccountIdAsync(accountId);
+
+        Assert.Empty(result);
+    }
+
     private sealed class TestDatabase : IAsyncDisposable
     {
         private readonly SqliteConnection playerConnection;
@@ -276,19 +296,34 @@ public class AccountLearnedSkillRepositoryTests
             MasterDb = masterDb;
         }
 
-        public static async Task<TestDatabase> CreateAsync()
+        public static async Task<TestDatabase> CreateAsync(bool useRetryingExecutionStrategy = false)
         {
             var playerConnection = new SqliteConnection("Data Source=:memory:");
             var masterConnection = new SqliteConnection("Data Source=:memory:");
             await playerConnection.OpenAsync();
             await masterConnection.OpenAsync();
-            var playerDb = new AstralRecordDbContext(
-                new DbContextOptionsBuilder<AstralRecordDbContext>().UseSqlite(playerConnection).Options);
+            var playerOptions = new DbContextOptionsBuilder<AstralRecordDbContext>();
+            if (useRetryingExecutionStrategy)
+            {
+                playerOptions.UseSqlite(playerConnection, sqlite => sqlite.ExecutionStrategy(
+                    dependencies => new RetryingTestExecutionStrategy(dependencies)));
+            }
+            else
+            {
+                playerOptions.UseSqlite(playerConnection);
+            }
+            var playerDb = new AstralRecordDbContext(playerOptions.Options);
             var masterDb = new MasterDataDbContext(
                 new DbContextOptionsBuilder<MasterDataDbContext>().UseSqlite(masterConnection).Options);
             await CreatePlayerSchemaAsync(playerDb);
             await MasterDataTestSeed.CreateSchemaAsync(masterDb);
             return new TestDatabase(playerConnection, masterConnection, playerDb, masterDb);
+        }
+
+        private sealed class RetryingTestExecutionStrategy(ExecutionStrategyDependencies dependencies)
+            : ExecutionStrategy(dependencies, maxRetryCount: 1, maxRetryDelay: TimeSpan.Zero)
+        {
+            protected override bool ShouldRetryOn(Exception exception) => false;
         }
 
         public async Task SeedMasterAsync(string relativePath, string masterType, string? category)
