@@ -135,6 +135,55 @@ public class AccountLearnedSkillRepositoryTests
     }
 
     /// <summary>
+    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
+    /// 検証契約: 許可されていないシジルは消費せず、素材選択段階の拒否と同じ理由で API も拒否する。
+    /// </summary>
+    [Fact]
+    public async Task AttachSigilAsync_RejectsUnsupportedSigilWithoutConsumingIt()
+    {
+        await using var fixture = await TestDatabase.CreateAsync();
+        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.hunter_arrow_rain.yml", "skill", null);
+        await fixture.SeedMasterAsync(
+            "40_filebase/10.features.item/sigil/v1.homing_fireball_sigil.yml", "item", "sigil");
+        var accountId = Guid.NewGuid();
+        await fixture.AddAccountAsync(accountId);
+        var gemEntryId = await fixture.AddInventoryEntryAsync(
+            accountId, "skill_gem", "00_skill_gem_hunter_arrow_rain", 1);
+        var sigilEntryId = await fixture.AddInventoryEntryAsync(
+            accountId, "sigil", "homing_fireball_sigil", 1);
+
+        AccountLearnedSkillResponse learned;
+        await using (var requestDb = fixture.CreatePlayerDb())
+        {
+            learned = (await new AccountLearnedSkillRepository(requestDb, fixture.MasterDb)
+                .LearnAsync(accountId, new AccountLearnedSkillLearnRequest
+                {
+                    SkillId = "hunter_arrow_rain",
+                    GemInventoryEntryId = gemEntryId,
+                    UpdatedBy = accountId,
+                })).Skill!;
+        }
+        AccountLearnedSkillMutationResult rejected;
+        await using (var requestDb = fixture.CreatePlayerDb())
+        {
+            rejected = await new AccountLearnedSkillRepository(requestDb, fixture.MasterDb)
+                .AttachSigilAsync(accountId, learned.LearnedSkillId, new AccountLearnedSkillAttachSigilRequest
+                {
+                    SigilId = "homing_fireball_sigil",
+                    SigilInventoryEntryId = sigilEntryId,
+                    UpdatedBy = accountId,
+                });
+        }
+
+        Assert.False(rejected.Succeeded);
+        Assert.Equal(AccountLearnedSkillMutationFailure.SigilNotAllowed, rejected.Failure);
+        var sigilEntry = await fixture.PlayerDb.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == sigilEntryId);
+        Assert.Equal(1, sigilEntry.Quantity);
+        Assert.False(sigilEntry.IsDeleted);
+    }
+
+    /// <summary>
     /// 設計入力: 00_docs/40_Database設計書/table-definitions/AstralRecord/dbo.player_mail_delivery.md
     /// 検証契約: ロード時にマスタ上無効な装着シジルを削除し、同じシジルを動的お詫びメールで返却する。
     /// </summary>

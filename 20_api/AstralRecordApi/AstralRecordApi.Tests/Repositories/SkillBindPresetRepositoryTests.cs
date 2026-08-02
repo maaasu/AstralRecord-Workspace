@@ -155,6 +155,41 @@ public class SkillBindPresetRepositoryTests
         Assert.Null(loaded.Single(x => x.PresetIndex == 1).LeftClickSkillId);
     }
 
+    /// <summary>
+    /// 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+    /// 検証契約: 武器通常攻撃の予約バインドはアクションスロットへ保存でき、所持済みスキル個体としての検証を要求しない。
+    /// </summary>
+    [Fact]
+    public async Task UpsertAsync_AllowsWeaponNormalAttackInActiveSlots()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using var dbContext = new AstralRecordDbContext(options);
+        await CreateSchemaAsync(dbContext);
+        var accountId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        await dbContext.Database.ExecuteSqlInterpolatedAsync(
+            $"INSERT INTO account (uuid, is_deleted) VALUES ({accountId}, {false})");
+
+        var saved = await new SkillBindPresetRepository(dbContext).UpsertAsync(accountId, 1,
+            new SkillBindPresetUpsertRequest
+            {
+                ActiveSkillSlots = ["__weapon_normal_attack__"],
+                LeftClickSkillId = "__weapon_normal_attack__",
+                UpdatedBy = userId,
+            });
+
+        Assert.NotNull(saved);
+        Assert.Equal("__weapon_normal_attack__", saved.ActiveSkillSlots[0]);
+        Assert.Equal("__weapon_normal_attack__", saved.LeftClickSkillId);
+        var reloaded = (await new SkillBindPresetRepository(dbContext).GetByAccountIdAsync(accountId))
+            .Single(preset => preset.PresetIndex == 1);
+        Assert.Equal("__weapon_normal_attack__", reloaded.ActiveSkillSlots[0]);
+    }
+
     [Fact]
     public async Task UpsertAsync_PreservesAllNineOwnedPassiveBindingsAndRejectsUnownedIds()
     {

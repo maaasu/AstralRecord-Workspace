@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillBindSession;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindType;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillManagerEntry;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillSigilSlotDefinition;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -19,6 +20,8 @@ import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.confirm.ConfirmDialogView;
+import io.github.maaasu.astralRecord.shared.display.DisplaySeparators;
+import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -39,6 +42,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** 習得・強化・シジル合成・バインドを統合したスキルマネージャー GUI です。 */
 public final class SkillBindGui {
@@ -92,7 +96,7 @@ public final class SkillBindGui {
         int end = GuiPagination.pageEnd(page, entries.size(), CONTENT_SLOT_COUNT);
         for (int index = start; index < end; index++) {
             SkillManagerEntry entry = entries.get(index);
-            inventory.setItem(index - start + 1, createLearnedSkillItem(entry));
+            inventory.setItem(index - start + 1, createLearnedSkillItem(entry, true));
         }
 
         for (int index = 0; index < SkillBindPreset.PASSIVE_SLOT_COUNT; index++) {
@@ -108,7 +112,9 @@ public final class SkillBindGui {
                 )
             );
         }
-        inventory.setItem(NORMAL_ATTACK_SLOT, createNormalAttackItem());
+        if (shouldShowNormalAttack(session.selectedBindType())) {
+            inventory.setItem(NORMAL_ATTACK_SLOT, createNormalAttackItem());
+        }
         inventory.setItem(
             LEFT_CLICK_BIND_SLOT,
             createBindSlot(
@@ -159,7 +165,7 @@ public final class SkillBindGui {
             Component.text("スキル合成", NamedTextColor.LIGHT_PURPLE)
         );
         fill(inventory);
-        inventory.setItem(SYNTHESIS_SKILL_SLOT, createLearnedSkillItem(entry));
+        inventory.setItem(SYNTHESIS_SKILL_SLOT, createLearnedSkillItem(entry, false));
         inventory.setItem(
             SYNTHESIS_MATERIAL_SLOT,
             material == null
@@ -238,14 +244,22 @@ public final class SkillBindGui {
         };
     }
 
-    private ItemStack createLearnedSkillItem(SkillManagerEntry entry) {
+    /** パッシブ枠の設定中は、設定不能な通常攻撃を一覧から除外します。 */
+    public static boolean shouldShowNormalAttack(@Nullable SkillBindType selectedBindType) {
+        return selectedBindType != SkillBindType.PASSIVE;
+    }
+
+    private ItemStack createLearnedSkillItem(SkillManagerEntry entry, boolean listDisplay) {
         SkillDefinition skill = entry.definition();
         List<Component> lore = new ArrayList<>();
-        lore.addAll(SkillPresentationUtil.skillDescriptionAndLore(skill, NamedTextColor.GRAY));
+        lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(skill, NamedTextColor.GRAY));
         if (!lore.isEmpty()) {
-            lore.add(Component.empty());
+            lore.add(separator());
         }
-        String tagNames = SkillPresentationUtil.skillTagDisplayNames(skill);
+        appendCastCostLore(lore, skill);
+        lore.add(separator());
+        String tagNames = SkillPresentationUtil.skillTagDisplayNames(skill,
+            Set.of(MasterTagIds.Activity.ACTIVE, MasterTagIds.Activity.PASSIVE));
         if (!tagNames.isBlank()) {
             lore.add(Component.text("タグ: " + tagNames, NamedTextColor.DARK_AQUA));
         }
@@ -254,25 +268,48 @@ public final class SkillBindGui {
             NamedTextColor.GRAY
         ));
         lore.add(Component.text(
-            entry.permitted() ? "現在のクラス／ツリーで使用可能" : "現在のクラスでは使用不可",
+            entry.permitted() ? "現在のクラス／スキルツリーで使用可能" : "現在のクラス／スキルツリーでは使用不可",
             entry.permitted() ? NamedTextColor.GREEN : NamedTextColor.RED
         ));
         if (skill.getKind().isPassive() && !skill.getPassiveBindRequired()) {
             lore.add(Component.text("所持中はバインド不要で発動", NamedTextColor.AQUA));
         }
-        lore.add(Component.empty());
+        lore.add(separator());
         appendSigilSlotLore(lore, entry, entry.learnedSkill().getLevel(), null);
-        lore.add(Component.empty());
-        lore.add(Component.text("左クリック: 対応する空き枠へ自動設定", NamedTextColor.YELLOW));
-        lore.add(Component.text("枠を選択中の場合は、その枠へ優先設定", NamedTextColor.GRAY));
-        lore.add(Component.text("右クリック: スキル合成を開く", NamedTextColor.LIGHT_PURPLE));
+        if (listDisplay) {
+            lore.add(separator());
+            lore.add(Component.text("左クリック: 空き枠へ自動設定", NamedTextColor.YELLOW));
+            lore.add(Component.text("右クリック: スキル合成を開く", NamedTextColor.LIGHT_PURPLE));
+        }
         ItemStack item = createItem(
-            parseMaterial(skill.getIcon(), DEFAULT_SKILL_ICON),
+            listDisplay && !entry.permitted()
+                ? Material.LIGHT_GRAY_WOOL
+                : parseMaterial(skill.getIcon(), DEFAULT_SKILL_ICON),
             SkillPresentationUtil.skillNameComponent(skill, skill.getId(), NamedTextColor.WHITE)
                 .append(Component.text(" Lv." + entry.learnedSkill().getLevel() + "/" + skill.getMaxLevel(), NamedTextColor.GOLD)),
             lore
         );
         return withBindingId(item, entry.bindingId());
+    }
+
+    /** 消費とクールダウンを、旧 lore の一行表記から独立した読みやすい項目へ整形します。 */
+    private void appendCastCostLore(@NotNull List<Component> lore, @NotNull SkillDefinition skill) {
+        double resourceCost = skill.getResourceCost() == null ? skill.getManaCost() : skill.getResourceCost();
+        SkillResourceType resourceType = skill.getResourceType() == null
+            ? SkillResourceType.MANA
+            : skill.getResourceType();
+        String resourceName = resourceType == SkillResourceType.ENERGY ? "EN" : "MP";
+        String cost = BigDecimal.valueOf(resourceCost).stripTrailingZeros().toPlainString();
+        lore.add(Component.text("消費リソース: " + resourceName + " " + cost, NamedTextColor.AQUA));
+        if (!skill.getKind().isPassive()) {
+            String cooldownSeconds = BigDecimal.valueOf(skill.getCooldownTicks() / 20.0D)
+                .stripTrailingZeros().toPlainString();
+            lore.add(Component.text("クールダウン: " + cooldownSeconds + "秒", NamedTextColor.YELLOW));
+        }
+    }
+
+    private @NotNull Component separator() {
+        return Component.text(DisplaySeparators.SECTION, NamedTextColor.DARK_GRAY);
     }
 
     private void appendSigilEffectLore(List<Component> lore, int slotIndex, LearnedSkillSigil attached) {
@@ -462,10 +499,12 @@ public final class SkillBindGui {
         ItemModel pendingSigil = valid && material != null && material.getSigil() != null ? material : null;
         int resultingLevel = levelUp ? Math.min(skill.getMaxLevel(), currentLevel + 1) : currentLevel;
         List<Component> lore = new ArrayList<>();
-        lore.addAll(SkillPresentationUtil.skillDescriptionAndLore(skill, NamedTextColor.GRAY));
+        lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(skill, NamedTextColor.GRAY));
         if (!lore.isEmpty()) {
-            lore.add(Component.empty());
+            lore.add(separator());
         }
+        appendCastCostLore(lore, skill);
+        lore.add(separator());
         lore.add(Component.text(
             "種別: " + (skill.getKind().isPassive() ? "パッシブ" : "アクティブ"),
             NamedTextColor.GRAY
@@ -479,10 +518,10 @@ public final class SkillBindGui {
         } else if (material.getSigil() != null) {
             lore.add(Component.text("シジルを装着します（取り外し不可）", NamedTextColor.LIGHT_PURPLE));
         }
-        lore.add(Component.empty());
+        lore.add(separator());
         appendSigilSlotLore(lore, entry, resultingLevel, pendingSigil);
         if (valid) {
-            lore.add(Component.empty());
+            lore.add(separator());
             lore.add(Component.text(
                 levelUp ? "クリックでジェムを消費してレベルアップ" : "クリックでシジルを消費して装着",
                 NamedTextColor.YELLOW

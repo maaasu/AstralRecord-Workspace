@@ -12,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * スキル表示名の整形を共通化します。
@@ -132,16 +133,48 @@ public final class SkillPresentationUtil {
     }
 
     /**
+     * スキルの説明と効果文を表示用に変換します。
+     * 消費リソースとクールダウンを一行へ詰めた旧 lore は、GUI 側の専用表示と重複するため除外します。
+     */
+    public static @NotNull List<Component> skillDescriptionAndFlavorLore(
+        @Nullable SkillDefinition definition,
+        @Nullable TextColor fallbackColor
+    ) {
+        if (definition == null) {
+            return List.of();
+        }
+        List<Component> lines = new ArrayList<>();
+        appendMasterLine(lines, definition.getDescription(), fallbackColor);
+        for (String line : definition.getLore()) {
+            String plain = ColorCodeUtil.toPlainText(line, "");
+            if (plain.contains("消費") && plain.contains("クールダウン")) {
+                continue;
+            }
+            appendMasterLine(lines, line, fallbackColor);
+        }
+        return List.copyOf(lines);
+    }
+
+    /**
      * スキルタグをプレイヤー向けの日本語名へ変換します。
      *
      * @param definition スキル定義
      * @return 区切り付きの日本語タグ名。タグ未設定時は空文字列
      */
     public static @NotNull String skillTagDisplayNames(@Nullable SkillDefinition definition) {
+        return skillTagDisplayNames(definition, Set.of());
+    }
+
+    /** スキルタグを日本語表示へ変換し、種別と重複するタグなどを除外します。 */
+    public static @NotNull String skillTagDisplayNames(
+        @Nullable SkillDefinition definition,
+        @NotNull Set<String> excludedTagIds
+    ) {
         if (definition == null || definition.getTags().isEmpty()) {
             return "";
         }
         return definition.getTags().stream()
+            .filter(tag -> excludedTagIds.stream().noneMatch(excluded -> excluded.equalsIgnoreCase(tag)))
             .map(SkillPresentationUtil::skillTagDisplayName)
             .filter(tag -> !tag.isBlank())
             .distinct()

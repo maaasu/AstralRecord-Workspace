@@ -2,9 +2,12 @@ package io.github.maaasu.astralRecord.feature.skill.gui;
 
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindInventoryHolder;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindScreen;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillBindType;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SkillBindGuiLayoutTest {
     /**
@@ -41,5 +44,18 @@ class SkillBindGuiLayoutTest {
     void synthesisBackDoesNotUseSharedNavigationSlot() {
         assertEquals(49, new SkillBindInventoryHolder(SkillBindScreen.MAIN, 1, 0).getBackSlot());
         assertEquals(-1, new SkillBindInventoryHolder(SkillBindScreen.SYNTHESIS, 1, 0, "skill").getBackSlot());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/4-統合フロー/13_4-スキルバインドGUI.md
+     * 章・見出し: # 13_4-スキルバインドGUI > ## 2. バインド
+     * 検証契約: 通常攻撃はアクティブ・左クリックの設定先では表示するが、設定不能なパッシブ枠の選択中は表示しない。
+     */
+    @Test
+    void normalAttackIsHiddenOnlyWhileSelectingPassiveSlot() {
+        assertFalse(SkillBindGui.shouldShowNormalAttack(SkillBindType.PASSIVE));
+        assertTrue(SkillBindGui.shouldShowNormalAttack(SkillBindType.ACTIVE));
+        assertTrue(SkillBindGui.shouldShowNormalAttack(SkillBindType.LEFT_CLICK));
+        assertTrue(SkillBindGui.shouldShowNormalAttack(null));
     }
 }

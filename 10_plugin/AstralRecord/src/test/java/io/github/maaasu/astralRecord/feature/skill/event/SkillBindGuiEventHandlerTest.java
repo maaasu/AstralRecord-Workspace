@@ -2,8 +2,10 @@ package io.github.maaasu.astralRecord.feature.skill.event;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
+import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.model.ItemSigil;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -12,8 +14,13 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillBindInventoryHolde
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindScreen;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindSession;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationException;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationFailure;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillSigilSlotDefinition;
 import io.github.maaasu.astralRecord.feature.skill.registry.SkillRegistry;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
@@ -22,11 +29,14 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillPermissionServic
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import org.bukkit.Server;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
@@ -74,6 +84,70 @@ class SkillBindGuiEventHandlerTest {
         assertEquals(PlayerMsgId.P_5861, method.invoke(handler,
             new LearnedSkillMutationException(LearnedSkillMutationFailure.DUPLICATE_SIGIL_GROUP, "duplicate")));
         assertEquals(PlayerMsgId.P_5864, method.invoke(handler, new IllegalStateException("inventory sync failed")));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
+     * 検証契約: 非許可シジルはプレイヤーインベントリでクリックしても選択状態にせず、非表示予約・合成service呼出を行わない。
+     */
+    @Test
+    void unsupportedSigilClickDoesNotHideMaterialOrStartSynthesis() throws ReflectiveOperationException {
+        AstralRecord plugin = mock(AstralRecord.class);
+        SkillBindGui gui = mock(SkillBindGui.class);
+        SkillService skillService = mock(SkillService.class);
+        SkillOwnershipService ownershipService = mock(SkillOwnershipService.class);
+        LearnedSkillService learnedSkillService = mock(LearnedSkillService.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
+            plugin, gui, skillService, mock(SkillBindPresetService.class), ownershipService,
+            mock(SkillPermissionService.class), learnedSkillService, mock(PassiveSkillService.class), inventoryService
+        );
+        UUID accountId = UUID.randomUUID();
+        UUID learnedSkillId = UUID.randomUUID();
+        Player player = mock(Player.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        LearnedSkillInstance learned = new LearnedSkillInstance(
+            learnedSkillId, accountId, "mage_fireball", 1, List.of(), 1, null, null);
+        SkillDefinition definition = skillDefinition();
+        SkillRegistry registry = new SkillRegistry();
+        registry.replaceDefinitions(Map.of(definition.getId(), definition));
+        InventoryEntryModel inventoryEntry = mock(InventoryEntryModel.class);
+        ItemModel unsupportedSigil = mock(ItemModel.class);
+        PlayerInventory playerInventory = mock(PlayerInventory.class);
+        InventoryClickEvent event = mock(InventoryClickEvent.class);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(account.getUuid()).thenReturn(accountId);
+        when(skillService.registry()).thenReturn(registry);
+        when(ownershipService.findInstance(astPlayer, learnedSkillId.toString())).thenReturn(learned);
+        when(event.getClickedInventory()).thenReturn(playerInventory);
+        when(event.getSlot()).thenReturn(12);
+        when(inventoryService.getOwnedEntryAtBukkitSlot(astPlayer, 12)).thenReturn(inventoryEntry);
+        when(inventoryService.getOwnedItemModelAtBukkitSlot(astPlayer, 12)).thenReturn(unsupportedSigil);
+        when(unsupportedSigil.getId()).thenReturn("unsupported_sigil");
+        when(unsupportedSigil.getSigil()).thenReturn(new ItemSigil("other_group", List.of()));
+
+        try (
+            MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+            MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)
+        ) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of());
+            Method method = SkillBindGuiEventHandler.class.getDeclaredMethod(
+                "handleSynthesisClick", Player.class, SkillBindSession.class,
+                SkillBindInventoryHolder.class, InventoryClickEvent.class
+            );
+            method.setAccessible(true);
+            method.invoke(handler, player, new SkillBindSession(presets(accountId)),
+                new SkillBindInventoryHolder(SkillBindScreen.SYNTHESIS, 1, 0, learnedSkillId.toString()), event);
+        }
+
+        verify(inventoryService, never()).hideOwnedEntryFromGui(any(), any());
+        verify(learnedSkillService, never()).levelUpAsync(any(), any(), any(), any(), any(), any());
+        verify(learnedSkillService, never()).attachSigilAsync(any(), any(), any(), any(), any(), any(), any());
+        assertFalse(mapValue(handler, "synthesisSelections").containsKey(player.getUniqueId()));
     }
 
     /**
@@ -260,6 +334,15 @@ class SkillBindGuiEventHandlerTest {
             ));
         }
         return presets;
+    }
+
+    private static SkillDefinition skillDefinition() {
+        return new SkillDefinition(
+            "mage_fireball", "mage_fireball", "火焔弾", null, "FIRE_CHARGE", List.of(),
+            60L, 18.0D, 0L, 1, null, Map.of(), List.of(), SkillKind.ACTIVE, true,
+            SkillResourceType.MANA, 18.0D, "mage_fireball", 3, List.of(),
+            List.of(new SkillSigilSlotDefinition(1, 1)), List.of("allowed_sigil")
+        );
     }
 
     private static SkillBindGuiEventHandler newHandler() {

@@ -122,7 +122,8 @@ public class SkillBindPresetRepository(AstralRecordDbContext dbContext) : ISkill
         AccountId = entity.AccountId,
         PresetIndex = entity.PresetIndex,
         ActiveSkillSlots = NormalizeLegacySlots(
-            DeserializeSlots(entity.ActiveSkillSlotsJson, ActionRingSlotCount), legacyBindingIds, ownedBindingIds),
+            DeserializeSlots(entity.ActiveSkillSlotsJson, ActionRingSlotCount), legacyBindingIds, ownedBindingIds,
+            allowWeaponNormalAttack: true),
         LeftClickSkillId = entity.LeftClickSkillId is null
             ? WeaponNormalAttackBindingId
             : NormalizeLegacyBinding(
@@ -155,9 +156,10 @@ public class SkillBindPresetRepository(AstralRecordDbContext dbContext) : ISkill
     private static IReadOnlyList<string?> NormalizeLegacySlots(
         IReadOnlyList<string?> slots,
         IReadOnlyDictionary<string, string>? legacyBindingIds,
-        IReadOnlySet<string>? ownedBindingIds)
+        IReadOnlySet<string>? ownedBindingIds,
+        bool allowWeaponNormalAttack = false)
         => slots.Select(slot => NormalizeLegacyBinding(
-            slot, legacyBindingIds, ownedBindingIds, allowWeaponNormalAttack: false)).ToArray();
+            slot, legacyBindingIds, ownedBindingIds, allowWeaponNormalAttack)).ToArray();
 
     private static string? NormalizeLegacyBinding(
         string? binding,
@@ -186,8 +188,7 @@ public class SkillBindPresetRepository(AstralRecordDbContext dbContext) : ISkill
         if (!await dbContext.Accounts.AsNoTracking()
                 .AnyAsync(account => account.Uuid == accountId && !account.IsDeleted))
             return false;
-        if (activeSlots.Any(slot => string.Equals(slot, WeaponNormalAttackBindingId, StringComparison.Ordinal))
-            || passiveSlots.Any(slot => string.Equals(slot, WeaponNormalAttackBindingId, StringComparison.Ordinal)))
+        if (passiveSlots.Any(slot => string.Equals(slot, WeaponNormalAttackBindingId, StringComparison.Ordinal)))
             return false;
 
         var rawBindings = activeSlots

@@ -20,13 +20,14 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillBindType;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillManagerEntry;
-import io.github.maaasu.astralRecord.feature.skill.model.SkillSigilSlotDefinition;
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPermissionService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillSynthesisMaterialEligibility;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillSynthesisMaterialEligibility.MaterialKind;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.confirm.ConfirmDialogView;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
@@ -368,7 +369,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         if (event.getClickedInventory() instanceof PlayerInventory) {
             InventoryEntryModel inventoryEntry = inventoryService.getOwnedEntryAtBukkitSlot(astPlayer, event.getSlot());
             ItemModel item = inventoryService.getOwnedItemModelAtBukkitSlot(astPlayer, event.getSlot());
-            MaterialKind kind = item == null ? MaterialKind.NONE : materialKind(entry, item);
+            MaterialKind kind = item == null ? MaterialKind.NONE : SkillSynthesisMaterialEligibility.resolve(entry, item);
             if (inventoryEntry == null || item == null || !kind.usable()) {
                 GuiSound.DENY.play(player);
                 sendMaterialFailure(player, kind);
@@ -398,7 +399,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        MaterialKind kind = materialKind(entry, selection.item());
+        MaterialKind kind = SkillSynthesisMaterialEligibility.resolve(entry, selection.item());
         if (!kind.usable()) {
             GuiSound.DENY.play(player);
             sendMaterialFailure(player, kind);
@@ -474,38 +475,8 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         openSynthesis(player, session, learnedSkillId, returnPage, true);
     }
 
-    private MaterialKind materialKind(SkillManagerEntry entry, ItemModel item) {
-        if (item.getSkillGem() != null) {
-            return item.getSkillGem().getSkillId().equals(entry.learnedSkill().getSkillId())
-                && entry.learnedSkill().getLevel() < entry.definition().getMaxLevel()
-                ? MaterialKind.GEM
-                : MaterialKind.INVALID_GEM;
-        }
-        if (item.getSigil() == null) {
-            return MaterialKind.NONE;
-        }
-        if (!entry.definition().getAllowedSigilIds().contains(item.getId())) {
-            return MaterialKind.SIGIL_NOT_ALLOWED;
-        }
-        if (entry.learnedSkill().getSigils().size() >= sigilSlotCount(entry)) {
-            return MaterialKind.NO_SIGIL_SLOT;
-        }
-        boolean duplicateGroup = entry.learnedSkill().getSigils().stream()
-            .anyMatch(sigil -> sigil.getEquipGroupId().equals(item.getSigil().getEquipGroupId()));
-        return duplicateGroup ? MaterialKind.DUPLICATE_SIGIL_GROUP : MaterialKind.SIGIL;
-    }
-
-    private int sigilSlotCount(SkillManagerEntry entry) {
-        return entry.definition().getSigilSlotsByLevel().stream()
-            .filter(slot -> slot.getLevel() <= entry.learnedSkill().getLevel())
-            .mapToInt(SkillSigilSlotDefinition::getSlots)
-            .max()
-            .orElse(0);
-    }
-
     private boolean canOpenSynthesis(SkillManagerEntry entry) {
-        return entry.learnedSkill().getLevel() < entry.definition().getMaxLevel()
-            || entry.learnedSkill().getSigils().size() < sigilSlotCount(entry);
+        return SkillSynthesisMaterialEligibility.canOpenSynthesis(entry);
     }
 
     private boolean canBindToSelected(SkillBindSession session, SkillManagerEntry entry) {
@@ -657,7 +628,8 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             ));
         }
         result.sort(Comparator
-            .comparing((SkillManagerEntry entry) -> entry.definition().getId())
+            .comparing((SkillManagerEntry entry) -> !entry.permitted())
+            .thenComparing(entry -> entry.definition().getId())
             .thenComparing(entry -> entry.learnedSkill().getCreatedAt(), Comparator.nullsLast(Comparator.naturalOrder()))
             .thenComparing(entry -> entry.learnedSkill().getLearnedSkillId()));
         return result;
@@ -716,7 +688,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             returnPage,
             entry,
             material,
-            material != null && materialKind(entry, material).usable()
+            material != null && SkillSynthesisMaterialEligibility.resolve(entry, material).usable()
         );
     }
 
@@ -768,7 +740,13 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     }
 
     private void sendMaterialFailure(@NotNull Player player, @NotNull MaterialKind kind) {
-        PlayerMsgId messageId = kind.messageId();
+        PlayerMsgId messageId = switch (kind) {
+            case SIGIL_NOT_ALLOWED -> PlayerMsgId.P_5859;
+            case NO_SIGIL_SLOT -> PlayerMsgId.P_5860;
+            case DUPLICATE_SIGIL_GROUP -> PlayerMsgId.P_5861;
+            case NONE, INVALID_GEM -> PlayerMsgId.P_5862;
+            case GEM, SIGIL -> null;
+        };
         if (messageId != null) {
             PlayerMessageService.getInstance().send(player, messageId);
         }
@@ -789,32 +767,6 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             current = current.getCause();
         }
         return PlayerMsgId.P_5864;
-    }
-
-    private enum MaterialKind {
-        NONE(false, PlayerMsgId.P_5862),
-        INVALID_GEM(false, PlayerMsgId.P_5862),
-        GEM(true, null),
-        SIGIL(true, null),
-        SIGIL_NOT_ALLOWED(false, PlayerMsgId.P_5859),
-        NO_SIGIL_SLOT(false, PlayerMsgId.P_5860),
-        DUPLICATE_SIGIL_GROUP(false, PlayerMsgId.P_5861);
-
-        private final boolean usable;
-        private final PlayerMsgId messageId;
-
-        MaterialKind(boolean usable, @Nullable PlayerMsgId messageId) {
-            this.usable = usable;
-            this.messageId = messageId;
-        }
-
-        private boolean usable() {
-            return usable;
-        }
-
-        private @Nullable PlayerMsgId messageId() {
-            return messageId;
-        }
     }
 
     private record SynthesisSelection(
