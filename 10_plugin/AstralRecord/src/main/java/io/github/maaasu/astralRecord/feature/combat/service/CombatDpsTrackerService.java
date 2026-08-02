@@ -42,12 +42,19 @@ public final class CombatDpsTrackerService {
      * @return 1秒あたりの平均与ダメージ
      */
     public double getCurrentDps(@NotNull UUID playerId) {
+        return getAverageDps(playerId, TRACKING_WINDOW_MILLIS);
+    }
+
+    public double getAverageDps(@NotNull UUID playerId, long windowMillis) {
+        if (windowMillis <= 0L) {
+            return 0.0D;
+        }
         Deque<DamageSample> samples = damageSamplesByPlayer.get(playerId);
         if (samples == null || samples.isEmpty()) {
             return 0.0D;
         }
         long now = System.currentTimeMillis();
-        cleanupSamples(samples, now);
+        cleanupSamples(samples, now, windowMillis);
         double total = 0.0D;
         for (DamageSample sample : samples) {
             total += sample.finalDamage();
@@ -55,11 +62,15 @@ public final class CombatDpsTrackerService {
         if (samples.isEmpty()) {
             damageSamplesByPlayer.remove(playerId);
         }
-        return total;
+        return total * 1000.0D / windowMillis;
     }
 
     private void cleanupSamples(@NotNull Deque<DamageSample> samples, long now) {
-        long threshold = now - TRACKING_WINDOW_MILLIS;
+        cleanupSamples(samples, now, TRACKING_WINDOW_MILLIS);
+    }
+
+    private void cleanupSamples(@NotNull Deque<DamageSample> samples, long now, long windowMillis) {
+        long threshold = now - windowMillis;
         while (!samples.isEmpty() && samples.peekFirst().occurredAtMs() < threshold) {
             samples.removeFirst();
         }

@@ -133,7 +133,7 @@ public class PlayerHudView {
      * サイドバーを描画します。
      *
      * @param player 対象プレイヤー
-     * @param tps 直前10秒のTPS平均
+     * @param mspt 現在のMSPT
      * @param playerLevel アカウント単位のプレイヤーレベル
      * @param experienceProgress 現在レベル内の経験値進捗（0.0-1.0）
      * @param classLevel 現在のクラスレベル
@@ -146,7 +146,7 @@ public class PlayerHudView {
      */
     public void renderSidebar(
         Player player,
-        double tps,
+        double mspt,
         int playerLevel,
         double experienceProgress,
         int classLevel,
@@ -159,7 +159,7 @@ public class PlayerHudView {
     ) {
         renderSidebar(
             player,
-            tps,
+            mspt,
             playerLevel,
             experienceProgress,
             classLevel,
@@ -179,7 +179,7 @@ public class PlayerHudView {
      * 表示行数が15行を超えないよう、バフを優先して性能情報の表示を調整します。
      *
      * @param player 対象プレイヤー
-     * @param tps 直前10秒のTPS平均
+     * @param mspt 現在のMSPT
      * @param playerLevel アカウント単位のプレイヤーレベル
      * @param experienceProgress 現在レベル内の経験値進捗（0.0-1.0）
      * @param classLevel 現在のクラスレベル
@@ -187,14 +187,14 @@ public class PlayerHudView {
      * @param worldName 現在のワールド表示名
      * @param regionName 現在の地域表示名
      * @param regionLevel 現在の地域レベル
-     * @param showPerformanceInfo TPS・Ping を表示するか
+     * @param showPerformanceInfo MSPT・Ping を表示するか
      * @param bossInfo 挑戦中ボス情報。挑戦していない場合は null
      * @param showBuffInfo バフ情報を表示するか
      * @param activeBuffs 獲得順の有効バフ一覧
      */
     public void renderSidebar(
         Player player,
-        double tps,
+        double mspt,
         int playerLevel,
         double experienceProgress,
         int classLevel,
@@ -233,8 +233,7 @@ public class PlayerHudView {
         lines.add(ColorCodeUtil.AQUA + "オンライン" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
                 + Bukkit.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers());
         if (renderPerformance) {
-            lines.add(tpsLegacyColor(tps) + "TPS(10S)" + ColorCodeUtil.GRAY + ": "
-                    + ColorCodeUtil.WHITE + String.format("%.1f", tps));
+            lines.add(msptLegacyColor(mspt) + "MSPT" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + String.format("%.1f", mspt));
             lines.add(pingLegacyColor(ping) + "通信遅延" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + ping + "ms");
         }
         lines.add(ColorCodeUtil.BLUE + "ワールド" + ColorCodeUtil.GRAY + ": "
@@ -262,15 +261,15 @@ public class PlayerHudView {
      * Tabキー押下時のプレイヤーリストにMSPT・Pingをヘッダー/フッター表示します。
      *
      * @param player 対象プレイヤー
-     * @param tps 直前10秒のTPS平均
+     * @param mspt 現在のMSPT（平均値）
      */
-    public void renderTabList(Player player, double tps, boolean showPerformanceInfo) {
+    public void renderTabList(Player player, double mspt, boolean showPerformanceInfo) {
         int ping = player.getPing();
         Component header = Component.text()
             .append(Component.text("ASTRAL RECORD", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD))
             .append(showPerformanceInfo
-                ? Component.newline().append(Component.text("TPS(10S) ", NamedTextColor.GRAY))
-                    .append(Component.text(String.format("%.1f", tps), tpsTextColor(tps)))
+                ? Component.newline().append(Component.text("MSPT ", NamedTextColor.GRAY))
+                    .append(Component.text(String.format("%.1f", mspt), msptTextColor(mspt)))
                 : Component.empty())
             .build();
         Component footer = showPerformanceInfo
@@ -391,9 +390,9 @@ public class PlayerHudView {
         return ColorCodeUtil.DARK_AQUA + "◈─── " + label + " ───◈";
     }
 
-    private String tpsLegacyColor(double tps) {
-        if (tps >= 19.0D) return ColorCodeUtil.GREEN;
-        if (tps >= 16.0D) return ColorCodeUtil.YELLOW;
+    private String msptLegacyColor(double mspt) {
+        if (mspt <= 25.0D) return ColorCodeUtil.GREEN;
+        if (mspt <= 40.0D) return ColorCodeUtil.YELLOW;
         return ColorCodeUtil.RED;
     }
 
@@ -403,9 +402,9 @@ public class PlayerHudView {
         return ColorCodeUtil.RED;
     }
 
-    private NamedTextColor tpsTextColor(double tps) {
-        if (tps >= 19.0D) return NamedTextColor.GREEN;
-        if (tps >= 16.0D) return NamedTextColor.YELLOW;
+    private NamedTextColor msptTextColor(double mspt) {
+        if (mspt <= 25.0D) return NamedTextColor.GREEN;
+        if (mspt <= 40.0D) return NamedTextColor.YELLOW;
         return NamedTextColor.RED;
     }
 

@@ -23,8 +23,6 @@ import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -32,7 +30,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 
 public class PlayerHudService {
-    private static final long PERFORMANCE_SAMPLE_WINDOW_MS = 10_000L;
+    private static final long DPS_SAMPLE_WINDOW_MS = 10_000L;
     private final StatusService statusService;
     private final PlayerClassService playerClassService;
     private final AccountService accountService;
@@ -44,7 +42,6 @@ public class PlayerHudService {
     private CombatDpsTrackerService combatDpsTrackerService;
     private final Map<UUID, BukkitTask> actionBarOverrideTasks = new HashMap<>();
     private final Map<UUID, Function<AstPlayer, Component>> primaryActionBarRenderers = new HashMap<>();
-    private final Deque<TickSample> tickSamples = new ArrayDeque<>();
     private AstralRecord plugin;
     private BukkitTask task;
 
@@ -177,10 +174,7 @@ public class PlayerHudService {
     }
 
     private void updateAll() {
-        long now = System.currentTimeMillis();
-        double averageTickTime = Bukkit.getServer().getAverageTickTime();
-        addTickSample(now, averageTickTime);
-        double tpsAverage = calculateAverageTps();
+        double mspt = Bukkit.getServer().getAverageTickTime();
         for (var astPlayer : AstPlayerCache.getAll()) {
             Player player = astPlayer.getBukkit();
             if (!player.isOnline()) {
@@ -218,7 +212,7 @@ public class PlayerHudService {
                 }
                 playerHudView.renderSidebar(
                     player,
-                    tpsAverage,
+                    mspt,
                     astPlayer.getAccount().getLevel(),
                     experienceProgress,
                     astPlayer.getClassLevel(),
@@ -238,7 +232,7 @@ public class PlayerHudService {
             playerHudView.renderBars(player, snapshot);
             playerHudView.renderTabList(
                 player,
-                tpsAverage,
+                mspt,
                 playerSettingService.isPerformanceInfoDisplayEnabled(astPlayer.getUser().getUuid())
             );
         }
@@ -331,7 +325,7 @@ public class PlayerHudService {
         }
         double currentDps = combatDpsTrackerService == null
                 ? 0.0D
-                : combatDpsTrackerService.getCurrentDps(player.getUniqueId());
+                : combatDpsTrackerService.getAverageDps(player.getUniqueId(), DPS_SAMPLE_WINDOW_MS);
         Component override = resolvePrimaryActionBar(astPlayer);
         if (override != null) {
             player.sendActionBar(override);
@@ -346,33 +340,8 @@ public class PlayerHudService {
         );
     }
 
-    private void addTickSample(long now, double averageTickTime) {
-        tickSamples.addLast(new TickSample(now, averageTickTime));
-        while (!tickSamples.isEmpty() && now - tickSamples.peekFirst().measuredAtMs() > PERFORMANCE_SAMPLE_WINDOW_MS) {
-            tickSamples.removeFirst();
-        }
-    }
-
-    private double calculateAverageTps() {
-        if (tickSamples.isEmpty()) {
-            return 20.0D;
-        }
-        double tickTimeSum = 0.0D;
-        for (TickSample sample : tickSamples) {
-            tickTimeSum += sample.averageTickTime();
-        }
-        double averageMspt = tickTimeSum / tickSamples.size();
-        if (averageMspt <= 0.0D) {
-            return 20.0D;
-        }
-        return Math.clamp(1000.0D / averageMspt, 0.0D, 20.0D);
-    }
-
     private @Nullable Component resolvePrimaryActionBar(@NotNull AstPlayer astPlayer) {
         Function<AstPlayer, Component> renderer = primaryActionBarRenderers.get(astPlayer.getBukkit().getUniqueId());
         return renderer == null ? null : renderer.apply(astPlayer);
-    }
-
-    private record TickSample(long measuredAtMs, double averageTickTime) {
     }
 }
