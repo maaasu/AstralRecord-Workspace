@@ -9,7 +9,6 @@ import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
-import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Locale;
@@ -81,7 +80,7 @@ public final class SkillCooldownBossBarService {
 
     private @NotNull BossBar createBossBar(@NotNull Player player) {
         BossBar bossBar = Bukkit.createBossBar(
-                Component.empty(),
+                "",
                 BarColor.GREEN,
                 BarStyle.SOLID
         );
