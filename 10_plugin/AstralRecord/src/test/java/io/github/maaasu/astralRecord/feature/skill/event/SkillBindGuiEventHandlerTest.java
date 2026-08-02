@@ -89,7 +89,7 @@ class SkillBindGuiEventHandlerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
      * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
-     * 検証契約: 非許可シジルはプレイヤーインベントリでクリックしても選択状態にせず、非表示予約・合成service呼出を行わない。
+     * 検証契約: 非許可シジルはプレイヤーインベントリでクリックしても選択・非表示予約・合成service呼出を行わず、理由だけを結果枠へプレビューする。
      */
     @Test
     void unsupportedSigilClickDoesNotHideMaterialOrStartSynthesis() throws ReflectiveOperationException {
@@ -117,7 +117,10 @@ class SkillBindGuiEventHandlerTest {
         ItemModel unsupportedSigil = mock(ItemModel.class);
         PlayerInventory playerInventory = mock(PlayerInventory.class);
         InventoryClickEvent event = mock(InventoryClickEvent.class);
+        InventoryView view = mock(InventoryView.class);
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(player.getOpenInventory()).thenReturn(view);
+        when(view.getTopInventory()).thenReturn(mock(Inventory.class));
         when(astPlayer.getAccount()).thenReturn(account);
         when(account.getUuid()).thenReturn(accountId);
         when(skillService.registry()).thenReturn(registry);
@@ -148,6 +151,7 @@ class SkillBindGuiEventHandlerTest {
         verify(learnedSkillService, never()).levelUpAsync(any(), any(), any(), any(), any(), any());
         verify(learnedSkillService, never()).attachSigilAsync(any(), any(), any(), any(), any(), any(), any());
         assertFalse(mapValue(handler, "synthesisSelections").containsKey(player.getUniqueId()));
+        assertTrue(mapValue(handler, "synthesisPreviews").containsKey(player.getUniqueId()));
     }
 
     /**

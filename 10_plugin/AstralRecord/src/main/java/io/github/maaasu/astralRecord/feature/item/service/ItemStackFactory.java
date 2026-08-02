@@ -18,6 +18,8 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentTranscenden
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemRarity;
+import io.github.maaasu.astralRecord.feature.item.model.ItemSigil;
+import io.github.maaasu.astralRecord.feature.item.model.ItemSigilModifier;
 import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
 import io.github.maaasu.astralRecord.feature.loot.model.LootEntry;
 import io.github.maaasu.astralRecord.feature.loot.model.LootModel;
@@ -601,6 +603,7 @@ public class ItemStackFactory {
             lore.add("");
         }
         if (model.getSigil() != null) {
+            appendSigilLore(lore, model.getSigil());
             lore.add(ColorCodeUtil.LIGHT_PURPLE + "スキルマネージャーで合成");
             lore.add(ColorCodeUtil.RED + "装着後は取り外せません");
             lore.add("");
@@ -623,6 +626,26 @@ public class ItemStackFactory {
         }
 
         return lore;
+    }
+
+    /** シジル自体を手に取った時点で、装着時に得る能力を数値と日本語名で示します。 */
+    private void appendSigilLore(@NotNull List<String> lore, @NotNull ItemSigil sigil) {
+        lore.add(ColorCodeUtil.LIGHT_PURPLE + "❖ シジル効果");
+        if (sigil.getModifiers().isEmpty()) {
+            lore.add(ColorCodeUtil.GRAY + " ▸ 固有効果は説明欄を確認");
+            return;
+        }
+        for (ItemSigilModifier modifier : sigil.getModifiers()) {
+            StatusType statusType = resolveStatusTypeOrNull(modifier.getStatus());
+            String statusName = resolveStatusDisplayName(modifier.getStatus(), statusType);
+            String suffix = statusType == null ? "" : statusType.getSuffix();
+            String value = formatStatValue(modifier.getValue());
+            if (modifier.getValue() > 0.0D) {
+                value = "+" + value;
+            }
+            lore.add(ColorCodeUtil.GRAY + " ▸ " + ColorCodeUtil.AQUA
+                + statusName + ColorCodeUtil.DARK_GRAY + " : " + ColorCodeUtil.WHITE + value + suffix);
+        }
     }
 
     /**

@@ -210,7 +210,7 @@ public static class StatusTypes
                 ["MP_REGEN"] = new(StatusType.MP_REGEN, "MP_REGEN", "MP回復力", "時間経過などでMPを回復する量。", StatusCategory.UTILITY, "", 0, true),
                 ["ENERGY_REGEN"] = new(StatusType.ENERGY_REGEN, "ENERGY_REGEN", "EN回復力", "時間経過などでENを回復する量。", StatusCategory.UTILITY, "", 0, true),
                 ["MOVEMENT_SPEED"] = new(StatusType.MOVEMENT_SPEED, "MOVEMENT_SPEED", "移動速度", "フィールド上を移動する速さ。", StatusCategory.UTILITY, "", 0, true),
-                ["COOLDOWN_REDUCTION"] = new(StatusType.COOLDOWN_REDUCTION, "COOLDOWN_REDUCTION", "CD短縮", "スキルの再使用までに必要な時間を短縮する補正。", StatusCategory.UTILITY, "%", 1, true),
+                ["COOLDOWN_REDUCTION"] = new(StatusType.COOLDOWN_REDUCTION, "COOLDOWN_REDUCTION", "クールダウン短縮", "スキルの再使用までに必要な時間を短縮する補正。", StatusCategory.UTILITY, "%", 1, true),
                 ["CAST_TIME_REDUCTION"] = new(StatusType.CAST_TIME_REDUCTION, "CAST_TIME_REDUCTION", "詠唱時間短縮率", "スキルの詠唱時間を割合で短縮する補正。", StatusCategory.UTILITY, "%", 1, true),
                 ["MANA_COST_REDUCTION"] = new(StatusType.MANA_COST_REDUCTION, "MANA_COST_REDUCTION", "MP消費軽減率", "スキルのMP消費量を割合で軽減する補正。", StatusCategory.UTILITY, "%", 1, true),
                 ["ENERGY_COST_REDUCTION"] = new(StatusType.ENERGY_COST_REDUCTION, "ENERGY_COST_REDUCTION", "エネルギー消費軽減率", "スキルのエネルギー消費量を割合で軽減する補正。", StatusCategory.UTILITY, "%", 1, true),

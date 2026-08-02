@@ -3,6 +3,8 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.repository.LearnedSkillRepository;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -176,7 +178,14 @@ public final class LearnedSkillService {
                         lock.set(false);
                         return;
                     }
-                    inventoryService.reconcileAuthoritativeEntry(accountId, materialInventoryEntryId);
+                    try {
+                        inventoryService.reconcileAuthoritativeEntry(accountId, materialInventoryEntryId);
+                    } catch (Throwable reconciliationError) {
+                        // mutation は API 正本で成功している。再同期失敗で素材を復元すると二重消費に見えるため、
+                        // 成功結果を維持し、次回ロードで回復できるよう警告だけを残す。
+                        inventoryService.consumeOwnedEntryAfterAuthoritativeMutation(accountId, materialInventoryEntryId);
+                        Logger.log(LogId.W_5252, "skill_mutation_reconcile", reconciliationError.getMessage());
+                    }
                     plugin.getServer().getScheduler().runTask(plugin, () -> {
                         if (!isCurrentSession(accountId, sessionToken)) {
                             lock.set(false);

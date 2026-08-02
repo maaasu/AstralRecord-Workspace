@@ -189,7 +189,7 @@ export const STATUS_TYPES: readonly StatusTypeDefinition[] = [
   { id: "MP_REGEN", displayName: "MP回復力", description: "時間経過などでMPを回復する量。", category: "UTILITY", suffix: "", decimalPlaces: 0, supportsRange: true },
   { id: "ENERGY_REGEN", displayName: "EN回復力", description: "時間経過などでENを回復する量。", category: "UTILITY", suffix: "", decimalPlaces: 0, supportsRange: true },
   { id: "MOVEMENT_SPEED", displayName: "移動速度", description: "フィールド上を移動する速さ。", category: "UTILITY", suffix: "", decimalPlaces: 0, supportsRange: true },
-  { id: "COOLDOWN_REDUCTION", displayName: "CD短縮", description: "スキルの再使用までに必要な時間を短縮する補正。", category: "UTILITY", suffix: "%", decimalPlaces: 1, supportsRange: true },
+  { id: "COOLDOWN_REDUCTION", displayName: "クールダウン短縮", description: "スキルの再使用までに必要な時間を短縮する補正。", category: "UTILITY", suffix: "%", decimalPlaces: 1, supportsRange: true },
   { id: "CAST_TIME_REDUCTION", displayName: "詠唱時間短縮率", description: "スキルの詠唱時間を割合で短縮する補正。", category: "UTILITY", suffix: "%", decimalPlaces: 1, supportsRange: true },
   { id: "MANA_COST_REDUCTION", displayName: "MP消費軽減率", description: "スキルのMP消費量を割合で軽減する補正。", category: "UTILITY", suffix: "%", decimalPlaces: 1, supportsRange: true },
   { id: "ENERGY_COST_REDUCTION", displayName: "エネルギー消費軽減率", description: "スキルのエネルギー消費量を割合で軽減する補正。", category: "UTILITY", suffix: "%", decimalPlaces: 1, supportsRange: true },

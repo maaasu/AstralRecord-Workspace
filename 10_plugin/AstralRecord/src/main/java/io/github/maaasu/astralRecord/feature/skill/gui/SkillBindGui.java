@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillManagerEntry;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillSigilSlotDefinition;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillSynthesisMaterialEligibility.MaterialKind;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
@@ -152,7 +153,8 @@ public final class SkillBindGui {
         int returnPage,
         @NotNull SkillManagerEntry entry,
         @Nullable ItemModel material,
-        boolean validMaterial
+        @NotNull MaterialKind materialKind,
+        boolean materialSelected
     ) {
         Inventory inventory = Bukkit.createInventory(
             new SkillBindInventoryHolder(
@@ -171,11 +173,11 @@ public final class SkillBindGui {
             material == null
                 ? createItem(Material.LIGHT_GRAY_STAINED_GLASS_PANE, "素材を選択", NamedTextColor.GRAY,
                     List.of(Component.text("下のインベントリから同スキルのジェム、または対応シジルをクリック", NamedTextColor.YELLOW)))
-                : createMaterialItem(material)
+                : materialSelected ? createMaterialItem(material) : createRejectedMaterialItem(material, materialKind)
         );
         inventory.setItem(
             SYNTHESIS_RESULT_SLOT,
-            createSynthesisResult(entry, material, validMaterial)
+            createSynthesisResult(entry, material, materialKind)
         );
         inventory.setItem(BACK_SLOT, createItem(
             Material.SPECTRAL_ARROW,
@@ -327,10 +329,10 @@ public final class SkillBindGui {
             String suffix = status == null ? "" : status.getSuffix();
             String value = BigDecimal.valueOf(modifier.getValue()).stripTrailingZeros().toPlainString();
             if (modifier.getValue() > 0.0D) value = "+" + value;
-            lore.add(Component.text("    " + statusName + " " + value + suffix, NamedTextColor.AQUA));
+            lore.add(Component.text("    効果: " + statusName + " " + value + suffix, NamedTextColor.AQUA));
         }
         for (Component description : SkillPresentationUtil.itemLoreComponents(item, NamedTextColor.GRAY)) {
-            lore.add(Component.text("    ", NamedTextColor.DARK_GRAY).append(description));
+            lore.add(Component.text("    説明: ", NamedTextColor.DARK_GRAY).append(description));
         }
     }
 
@@ -379,7 +381,7 @@ public final class SkillBindGui {
         ).append(Component.text("（今回装着）", NamedTextColor.GREEN)));
         appendSigilModifierLore(lore, sigil);
         for (Component description : SkillPresentationUtil.itemLoreComponents(sigil, NamedTextColor.GRAY)) {
-            lore.add(Component.text("    ", NamedTextColor.DARK_GRAY).append(description));
+            lore.add(Component.text("    説明: ", NamedTextColor.DARK_GRAY).append(description));
         }
     }
 
@@ -484,6 +486,7 @@ public final class SkillBindGui {
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text("選択中の合成素材", NamedTextColor.GREEN));
         lore.add(Component.text("合成時に1個消費します。", NamedTextColor.RED));
+        lore.add(Component.text("クリック: 素材の選択を解除", NamedTextColor.YELLOW));
         lore.addAll(SkillPresentationUtil.itemLoreComponents(material, NamedTextColor.GRAY));
         return createItem(
             parseMaterial(material.getIcon(), Material.PRISMARINE_CRYSTALS),
@@ -492,11 +495,47 @@ public final class SkillBindGui {
         );
     }
 
-    private ItemStack createSynthesisResult(SkillManagerEntry entry, ItemModel material, boolean valid) {
+    private ItemStack createRejectedMaterialItem(@NotNull ItemModel material, @NotNull MaterialKind kind) {
+        List<Component> lore = new ArrayList<>();
+        lore.add(Component.text(materialFailureText(kind), NamedTextColor.RED));
+        lore.add(Component.text("素材は選択・消費されていません。", NamedTextColor.GRAY));
+        lore.add(Component.text("クリック: 表示を戻す", NamedTextColor.YELLOW));
+        lore.addAll(SkillPresentationUtil.itemLoreComponents(material, NamedTextColor.GRAY));
+        return createItem(
+            parseMaterial(material.getIcon(), Material.PRISMARINE_CRYSTALS),
+            SkillPresentationUtil.itemNameComponent(material, material.getId(), NamedTextColor.WHITE),
+            lore
+        );
+    }
+
+    private ItemStack createSynthesisResult(
+        @NotNull SkillManagerEntry entry,
+        @Nullable ItemModel material,
+        @NotNull MaterialKind materialKind
+    ) {
+        if (material == null) {
+            return createItem(
+                Material.LIGHT_GRAY_STAINED_GLASS_PANE,
+                "合成結果",
+                NamedTextColor.GRAY,
+                List.of(Component.text("素材をセットすると合成後の内容を表示します。", NamedTextColor.GRAY))
+            );
+        }
+        if (!materialKind.usable()) {
+            return createItem(
+                Material.BARRIER,
+                "合成できません",
+                NamedTextColor.RED,
+                List.of(
+                    Component.text(materialFailureText(materialKind), NamedTextColor.RED),
+                    Component.text("素材は消費されません。", NamedTextColor.GRAY)
+                )
+            );
+        }
         SkillDefinition skill = entry.definition();
         int currentLevel = entry.learnedSkill().getLevel();
-        boolean levelUp = valid && material != null && material.getSkillGem() != null;
-        ItemModel pendingSigil = valid && material != null && material.getSigil() != null ? material : null;
+        boolean levelUp = materialKind == MaterialKind.GEM;
+        ItemModel pendingSigil = materialKind == MaterialKind.SIGIL ? material : null;
         int resultingLevel = levelUp ? Math.min(skill.getMaxLevel(), currentLevel + 1) : currentLevel;
         List<Component> lore = new ArrayList<>();
         lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(skill, NamedTextColor.GRAY));
@@ -509,31 +548,36 @@ public final class SkillBindGui {
             "種別: " + (skill.getKind().isPassive() ? "パッシブ" : "アクティブ"),
             NamedTextColor.GRAY
         ));
-        if (material == null) {
-            lore.add(Component.text("素材を選択すると合成後の内容を確認できます。", NamedTextColor.GRAY));
-        } else if (!valid) {
-            lore.add(Component.text("この素材は合成できません。", NamedTextColor.RED));
-        } else if (material.getSkillGem() != null) {
+        if (materialKind == MaterialKind.GEM) {
             lore.add(Component.text("レベル: Lv." + currentLevel + " → Lv." + resultingLevel, NamedTextColor.GREEN));
-        } else if (material.getSigil() != null) {
+        } else if (materialKind == MaterialKind.SIGIL) {
             lore.add(Component.text("シジルを装着します（取り外し不可）", NamedTextColor.LIGHT_PURPLE));
         }
         lore.add(separator());
         appendSigilSlotLore(lore, entry, resultingLevel, pendingSigil);
-        if (valid) {
-            lore.add(separator());
-            lore.add(Component.text(
-                levelUp ? "クリックでジェムを消費してレベルアップ" : "クリックでシジルを消費して装着",
-                NamedTextColor.YELLOW
-            ));
-        }
+        lore.add(separator());
+        lore.add(Component.text(
+            levelUp ? "クリックでジェムを消費してレベルアップ" : "クリックでシジルを消費して装着",
+            NamedTextColor.YELLOW
+        ));
         return createItem(
             parseMaterial(skill.getIcon(), DEFAULT_SKILL_ICON),
-            SkillPresentationUtil.skillNameComponent(skill, skill.getId(), NamedTextColor.WHITE)
-                .append(Component.text(" Lv." + resultingLevel + "/" + skill.getMaxLevel(),
-                    valid ? NamedTextColor.GREEN : NamedTextColor.GOLD)),
+                SkillPresentationUtil.skillNameComponent(skill, skill.getId(), NamedTextColor.WHITE)
+                    .append(Component.text(" Lv." + resultingLevel + "/" + skill.getMaxLevel(),
+                    NamedTextColor.GREEN)),
             lore
         );
+    }
+
+    private @NotNull String materialFailureText(@NotNull MaterialKind kind) {
+        return switch (kind) {
+            case SIGIL_NOT_ALLOWED -> "このシジルはこのスキルに装着できません。";
+            case NO_SIGIL_SLOT -> "シジル合成枠が空いていません。";
+            case DUPLICATE_SIGIL_GROUP -> "同系統のシジルは重ねて装着できません。";
+            case INVALID_GEM -> "このジェムではレベルアップできません。";
+            case NONE -> "このアイテムは合成素材にできません。";
+            case GEM, SIGIL -> "";
+        };
     }
 
     private void fill(Inventory inventory) {
@@ -568,7 +612,7 @@ public final class SkillBindGui {
             if (modifier.getValue() > 0.0D) {
                 value = "+" + value;
             }
-            lore.add(Component.text("  " + statusName + " " + value + suffix, NamedTextColor.AQUA));
+            lore.add(Component.text("    効果: " + statusName + " " + value + suffix, NamedTextColor.AQUA));
         }
     }
 

@@ -62,6 +62,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -98,8 +99,13 @@ public class InventoryService {
     private final InventoryPersistence persistence;
     private final InventorySaveCoordinator saveCoordinator;
     private final InventoryClickGuard clickGuard = new InventoryClickGuard();
-    /** 合成などで消費確定までプレイヤー GUI だけから隠す inventory entry です。永続状態は変更しません。 */
-    private final Map<UUID, Set<UUID>> temporarilyHiddenEntryIdsByAccount = new ConcurrentHashMap<>();
+    /**
+     * 合成などで消費確定までプレイヤー GUI だけから予約する inventory entry 数です。
+     *
+     * <p>永続 state を先に減らすと、素材 entry を検証して消費する API mutation が失敗するため、
+     * 表示専用の予約として保持します。stack の全量ではなく、実際に消費予定の一個だけを除外します。</p>
+     */
+    private final Map<UUID, Map<UUID, Integer>> temporarilyHiddenEntryQuantitiesByAccount = new ConcurrentHashMap<>();
 
     /**
      * インベントリサービスを構築します。
@@ -246,7 +252,39 @@ public class InventoryService {
     }
 
     /**
-     * 指定した所持アイテムを、消費を確定するまでプレイヤーインベントリ表示からだけ隠します。
+     * API が素材を消費した後に再同期だけ失敗した場合のローカル回復です。
+     * API mutation の成功結果を優先し、対象 entry を一個だけ減らして通常の前詰め規則を適用します。
+     */
+    public void consumeOwnedEntryAfterAuthoritativeMutation(
+        @NotNull UUID accountId,
+        @NotNull UUID inventoryEntryId
+    ) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) return;
+        synchronized (state) {
+            for (InventoryModel inventory : state.snapshotInventories()) {
+                List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(inventory.getInventoryId()));
+                for (int index = 0; index < entries.size(); index++) {
+                    InventoryEntryModel entry = entries.get(index);
+                    if (entry.isDeleted() || !entry.getInventoryEntryId().equals(inventoryEntryId)) {
+                        continue;
+                    }
+                    if (entry.getQuantity() <= 1) {
+                        entries.remove(index);
+                        state.replaceEntries(inventory.getInventoryId(), entries);
+                        compactInventoryEntriesAfterRemoval(state, inventory.getInventoryId());
+                    } else {
+                        entries.set(index, withQuantity(entry, entry.getQuantity() - 1, accountId));
+                        state.replaceEntries(inventory.getInventoryId(), entries);
+                    }
+                    return;
+                }
+            }
+        }
+    }
+
+    /**
+     * 指定した所持アイテムを一個だけ、消費を確定するまでプレイヤーインベントリ表示から予約します。
      *
      * <p>API が素材 entry を検証して消費する処理の前に正本を削除しないため、同期保存との競合を起こしません。</p>
      *
@@ -255,9 +293,9 @@ public class InventoryService {
      */
     public void hideOwnedEntryFromGui(@NotNull AstPlayer astPlayer, @NotNull UUID inventoryEntryId) {
         UUID accountId = astPlayer.getAccount().getUuid();
-        temporarilyHiddenEntryIdsByAccount
-            .computeIfAbsent(accountId, ignored -> ConcurrentHashMap.newKeySet())
-            .add(inventoryEntryId);
+        temporarilyHiddenEntryQuantitiesByAccount
+            .computeIfAbsent(accountId, ignored -> new ConcurrentHashMap<>())
+            .merge(inventoryEntryId, 1, Integer::sum);
         requestManagedInventoryUiRefresh(astPlayer, true);
     }
 
@@ -269,19 +307,20 @@ public class InventoryService {
      */
     public void restoreHiddenEntryToGui(@NotNull AstPlayer astPlayer, @NotNull UUID inventoryEntryId) {
         UUID accountId = astPlayer.getAccount().getUuid();
-        Set<UUID> hidden = temporarilyHiddenEntryIdsByAccount.get(accountId);
-        if (hidden == null || !hidden.remove(inventoryEntryId)) {
+        Map<UUID, Integer> reserved = temporarilyHiddenEntryQuantitiesByAccount.get(accountId);
+        if (reserved == null || !reserved.containsKey(inventoryEntryId)) {
             return;
         }
-        if (hidden.isEmpty()) {
-            temporarilyHiddenEntryIdsByAccount.remove(accountId, hidden);
+        reserved.computeIfPresent(inventoryEntryId, (ignored, quantity) -> quantity <= 1 ? null : quantity - 1);
+        if (reserved.isEmpty()) {
+            temporarilyHiddenEntryQuantitiesByAccount.remove(accountId, reserved);
         }
         requestManagedInventoryUiRefresh(astPlayer, true);
     }
 
     /** ログアウト時などに対象アカウントの一時表示予約を破棄します。 */
     public void clearHiddenEntriesFromGui(@NotNull UUID accountId) {
-        temporarilyHiddenEntryIdsByAccount.remove(accountId);
+        temporarilyHiddenEntryQuantitiesByAccount.remove(accountId);
     }
 
     /**
@@ -992,7 +1031,11 @@ public class InventoryService {
         @NotNull PlayerInventoryState state,
         @NotNull InventoryModel inventory
     ) {
-        List<InventoryEntryModel> entries = state.snapshotEntries(inventory.getInventoryId());
+        List<InventoryEntryModel> entries = displayEntriesForGui(
+            state,
+            inventory,
+            state.snapshotEntries(inventory.getInventoryId())
+        );
         PlayerInventory playerInventory = bukkitPlayer.getInventory();
         Map<Integer, ItemStack> itemByGuiSlot = new HashMap<>();
         ItemStack filler = createManagedSlotFiller();
@@ -1004,7 +1047,7 @@ public class InventoryService {
         for (InventoryEntryModel entry : entries) {
             Integer slotIndex = entry.getSlotIndex();
             if (slotIndex == null || !NormalInventoryLayout.isManagedSlot(slotIndex, displayCapacity)
-                || entry.isDeleted() || isTemporarilyHidden(state.getAccountId(), entry)) {
+                || entry.isDeleted()) {
                 continue;
             }
             int guiSlotIndex = NormalInventoryLayout.toGuiSlotIndex(slotIndex, scrollRow);
@@ -2590,10 +2633,13 @@ public class InventoryService {
         InventoryModel hotbarInventory = state.findInventory(DEFAULT_PROFILE, InventoryType.HOTBAR);
         Map<Integer, InventoryEntryModel> bySlot = new HashMap<>();
         if (hotbarInventory != null) {
-            for (InventoryEntryModel entry : state.snapshotEntries(hotbarInventory.getInventoryId())) {
+            for (InventoryEntryModel source : state.snapshotEntries(hotbarInventory.getInventoryId())) {
+                InventoryEntryModel entry = displayEntryForGui(state.getAccountId(), source);
+                if (entry == null) {
+                    continue;
+                }
                 Integer slot = entry.getSlotIndex();
-                if (slot != null && HotbarLayout.isManagedSlot(slot) && !entry.isDeleted()
-                    && !isTemporarilyHidden(state.getAccountId(), entry)) {
+                if (slot != null && HotbarLayout.isManagedSlot(slot) && !entry.isDeleted()) {
                     bySlot.put(slot, entry);
                 }
             }
@@ -3030,9 +3076,49 @@ public class InventoryService {
         });
     }
 
-    private boolean isTemporarilyHidden(@NotNull UUID accountId, @NotNull InventoryEntryModel entry) {
-        Set<UUID> hidden = temporarilyHiddenEntryIdsByAccount.get(accountId);
-        return hidden != null && hidden.contains(entry.getInventoryEntryId());
+    /** 表示予約を反映した entry。予約で全量が隠れる場合は {@code null} を返します。 */
+    private @Nullable InventoryEntryModel displayEntryForGui(
+        @NotNull UUID accountId,
+        @NotNull InventoryEntryModel entry
+    ) {
+        if (entry.isDeleted()) {
+            return null;
+        }
+        int reserved = reservedQuantity(accountId, entry.getInventoryEntryId());
+        if (reserved <= 0) {
+            return entry;
+        }
+        long remaining = entry.getQuantity() - reserved;
+        return remaining <= 0 ? null : withQuantity(entry, remaining, accountId);
+    }
+
+    /** 表示予約を差し引き、BAG は見た目だけを通常の前詰め規則へ並べ替えます。 */
+    private @NotNull List<InventoryEntryModel> displayEntriesForGui(
+        @NotNull PlayerInventoryState state,
+        @NotNull InventoryModel inventory,
+        @NotNull List<InventoryEntryModel> sourceEntries
+    ) {
+        List<InventoryEntryModel> visible = sourceEntries.stream()
+            .map(entry -> displayEntryForGui(state.getAccountId(), entry))
+            .filter(Objects::nonNull)
+            .sorted(Comparator.<InventoryEntryModel, Integer>comparing(
+                entry -> entry.getSlotIndex() == null ? Integer.MAX_VALUE : entry.getSlotIndex()
+            ).thenComparing(InventoryEntryModel::getCreatedAt))
+            .toList();
+        if (inventory.getInventoryType() != InventoryType.BAG) {
+            return visible;
+        }
+        List<InventoryEntryModel> compacted = new ArrayList<>(visible.size());
+        int nextSlot = NormalInventoryLayout.DB_SLOT_START;
+        for (InventoryEntryModel entry : visible) {
+            compacted.add(withSlot(entry, nextSlot++, state.getAccountId()));
+        }
+        return compacted;
+    }
+
+    private int reservedQuantity(@NotNull UUID accountId, @NotNull UUID inventoryEntryId) {
+        Map<UUID, Integer> reserved = temporarilyHiddenEntryQuantitiesByAccount.get(accountId);
+        return reserved == null ? 0 : Math.max(0, reserved.getOrDefault(inventoryEntryId, 0));
     }
 
     private void applyDisplayedInventoryToGui(@NotNull AstPlayer astPlayer) {
@@ -3129,7 +3215,11 @@ public class InventoryService {
             return null;
         }
         int dbSlot = NormalInventoryLayout.toDbSlotIndex(sourceBukkitSlot, state.getBagScrollRow());
-        for (InventoryEntryModel entry : state.snapshotEntries(inventory.getInventoryId())) {
+        for (InventoryEntryModel entry : displayEntriesForGui(
+            state,
+            inventory,
+            state.snapshotEntries(inventory.getInventoryId())
+        )) {
             if (entry.isDeleted()) {
                 continue;
             }

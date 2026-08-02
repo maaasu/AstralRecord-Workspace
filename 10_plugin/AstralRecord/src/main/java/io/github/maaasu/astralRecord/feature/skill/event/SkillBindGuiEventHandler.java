@@ -72,6 +72,8 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     private final InventoryService inventoryService;
     private final Map<UUID, SkillBindSession> sessions = new ConcurrentHashMap<>();
     private final Map<UUID, SynthesisSelection> synthesisSelections = new ConcurrentHashMap<>();
+    /** 選択不可素材の理由を、消費せず合成画面のバリア表示へ渡す一時プレビューです。 */
+    private final Map<UUID, SynthesisPreview> synthesisPreviews = new ConcurrentHashMap<>();
     private final Set<UUID> suppressClose = ConcurrentHashMap.newKeySet();
     private final Map<UUID, UUID> savingSessions = new ConcurrentHashMap<>();
 
@@ -194,6 +196,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             // accountId で予約を解除する。キャッシュへ依存すると再接続後も素材が隠れ続ける。
             inventoryService.clearHiddenEntriesFromGui(selection.accountId());
         }
+        synthesisPreviews.remove(playerId);
         sessions.remove(playerId);
         suppressClose.remove(playerId);
         savingSessions.remove(playerId);
@@ -371,11 +374,17 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             ItemModel item = inventoryService.getOwnedItemModelAtBukkitSlot(astPlayer, event.getSlot());
             MaterialKind kind = item == null ? MaterialKind.NONE : SkillSynthesisMaterialEligibility.resolve(entry, item);
             if (inventoryEntry == null || item == null || !kind.usable()) {
+                removeSynthesisSelectionAndRestore(player);
+                if (item != null) {
+                    synthesisPreviews.put(player.getUniqueId(), new SynthesisPreview(item, kind));
+                    openSynthesis(player, session, entry.bindingId(), holder.pageIndex(), true);
+                }
                 GuiSound.DENY.play(player);
                 sendMaterialFailure(player, kind);
                 return;
             }
             removeSynthesisSelectionAndRestore(player);
+            synthesisPreviews.remove(player.getUniqueId());
             synthesisSelections.put(
                 player.getUniqueId(),
                 new SynthesisSelection(
@@ -389,7 +398,20 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         }
         if (event.getRawSlot() == SkillBindGui.BACK_SLOT) {
             removeSynthesisSelectionAndRestore(player);
+            synthesisPreviews.remove(player.getUniqueId());
             openMain(player, session, holder.pageIndex(), true);
+            return;
+        }
+        if (event.getRawSlot() == SkillBindGui.SYNTHESIS_MATERIAL_SLOT) {
+            boolean restored = removeSynthesisSelection(player);
+            boolean clearedPreview = synthesisPreviews.remove(player.getUniqueId()) != null;
+            if (!restored && !clearedPreview) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            restorePlayerInventory(player);
+            GuiSound.SELECT.play(player);
+            openSynthesis(player, session, entry.bindingId(), holder.pageIndex(), true);
             return;
         }
         if (event.getRawSlot() != SkillBindGui.SYNTHESIS_RESULT_SLOT) return;
@@ -401,8 +423,11 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         }
         MaterialKind kind = SkillSynthesisMaterialEligibility.resolve(entry, selection.item());
         if (!kind.usable()) {
+            removeSynthesisSelectionAndRestore(player);
+            synthesisPreviews.put(player.getUniqueId(), new SynthesisPreview(selection.item(), kind));
             GuiSound.DENY.play(player);
             sendMaterialFailure(player, kind);
+            openSynthesis(player, session, entry.bindingId(), holder.pageIndex(), true);
             return;
         }
         UUID playerId = player.getUniqueId();
@@ -446,6 +471,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         UUID playerId = player.getUniqueId();
         if (!savingSessions.remove(playerId, operationToken)) return;
         removeSynthesisSelection(player);
+        synthesisPreviews.remove(playerId);
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null || sessions.get(playerId) != session) return;
         inventoryService.applyInventoriesToGui(astPlayer);
@@ -470,6 +496,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         UUID playerId = player.getUniqueId();
         if (!savingSessions.remove(playerId, operationToken) || sessions.get(playerId) != session) return;
         removeSynthesisSelectionAndRestore(player);
+        synthesisPreviews.remove(playerId);
         GuiSound.DENY.play(player);
         PlayerMessageService.getInstance().send(player, mutationFailureMessage(error));
         openSynthesis(player, session, learnedSkillId, returnPage, true);
@@ -676,19 +703,25 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         SkillManagerEntry entry = entry(astPlayer, learnedSkillId);
         if (entry == null) {
             removeSynthesisSelectionAndRestore(player);
+            synthesisPreviews.remove(player.getUniqueId());
             openMain(player, session, returnPage, suppressPreviousClose);
             return;
         }
         if (suppressPreviousClose) suppressCloseIfSwitching(player);
         SynthesisSelection selection = synthesisSelections.get(player.getUniqueId());
-        ItemModel material = selection == null ? null : selection.item();
+        SynthesisPreview preview = selection == null ? synthesisPreviews.get(player.getUniqueId()) : null;
+        ItemModel material = selection != null ? selection.item() : preview == null ? null : preview.item();
+        MaterialKind materialKind = selection != null
+            ? SkillSynthesisMaterialEligibility.resolve(entry, selection.item())
+            : preview == null ? MaterialKind.NONE : preview.kind();
         gui.openSynthesis(
             player,
             session.selectedPresetIndex(),
             returnPage,
             entry,
             material,
-            material != null && SkillSynthesisMaterialEligibility.resolve(entry, material).usable()
+            materialKind,
+            selection != null
         );
     }
 
@@ -722,6 +755,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     }
 
     private void removeSynthesisSelectionAndRestore(@NotNull Player player) {
+        synthesisPreviews.remove(player.getUniqueId());
         if (removeSynthesisSelection(player)) {
             restorePlayerInventory(player);
         }
@@ -774,5 +808,8 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         @NotNull UUID inventoryEntryId,
         @NotNull ItemModel item
     ) {
+    }
+
+    private record SynthesisPreview(@NotNull ItemModel item, @NotNull MaterialKind kind) {
     }
 }

@@ -12,8 +12,12 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -129,6 +133,70 @@ class PlayerInventoryStateSkillMutationTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
+     * 検証契約: 合成素材の選択は永続entryを削除せず一個だけを表示予約し、単品の予約で生じた隙間だけを画面上で前詰めする。
+     */
+    @Test
+    void synthesisReservationHidesOnlyOneItemAndCompactsOnlyTheDisplay() throws ReflectiveOperationException {
+        UUID accountId = UUID.randomUUID();
+        UUID reservedId = UUID.randomUUID();
+        UUID followingId = UUID.randomUUID();
+        InventoryModel bag = DesignTestFixtures.inventory(accountId, InventoryType.BAG);
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        state.putInventory(bag);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(
+            entry(reservedId, bag.getInventoryId(), 1, "cooldown_sigil", 2L, accountId),
+            entry(followingId, bag.getInventoryId(), 2, "following", 1L, accountId)
+        ));
+        InventoryService service = inventoryService(state);
+
+        reserveForDisplay(service, accountId, reservedId);
+        List<InventoryEntryModel> stackedDisplay = displayEntries(service, state, bag);
+        assertEquals(1L, entryById(stackedDisplay, reservedId).getQuantity());
+        assertEquals(1, entryById(stackedDisplay, reservedId).getSlotIndex());
+        assertEquals(2, entryById(stackedDisplay, followingId).getSlotIndex());
+        assertEquals(2L, entryById(state.snapshotEntries(bag.getInventoryId()), reservedId).getQuantity());
+
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(
+            entry(reservedId, bag.getInventoryId(), 1, "cooldown_sigil", 1L, accountId),
+            entry(followingId, bag.getInventoryId(), 2, "following", 1L, accountId)
+        ));
+        List<InventoryEntryModel> singleDisplay = displayEntries(service, state, bag);
+        assertFalse(singleDisplay.stream().anyMatch(entry -> entry.getInventoryEntryId().equals(reservedId)));
+        assertEquals(1, entryById(singleDisplay, followingId).getSlotIndex());
+        assertEquals(2, entryById(state.snapshotEntries(bag.getInventoryId()), followingId).getSlotIndex());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
+     * 検証契約: API消費成功後の再同期失敗でも、ローカル表示は素材を復活させず一個消費した状態へ回復する。
+     */
+    @Test
+    void authoritativeSuccessFallbackConsumesOneMaterialLocally() {
+        UUID accountId = UUID.randomUUID();
+        UUID materialId = UUID.randomUUID();
+        UUID followingId = UUID.randomUUID();
+        InventoryModel bag = DesignTestFixtures.inventory(accountId, InventoryType.BAG);
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        state.putInventory(bag);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(
+            entry(materialId, bag.getInventoryId(), 1, "cooldown_sigil", 2L, accountId),
+            entry(followingId, bag.getInventoryId(), 2, "following", 1L, accountId)
+        ));
+        InventoryService service = inventoryService(state);
+
+        service.consumeOwnedEntryAfterAuthoritativeMutation(accountId, materialId);
+        assertEquals(1L, entryById(state.snapshotEntries(bag.getInventoryId()), materialId).getQuantity());
+        service.consumeOwnedEntryAfterAuthoritativeMutation(accountId, materialId);
+
+        List<InventoryEntryModel> entries = state.snapshotEntries(bag.getInventoryId());
+        assertFalse(entries.stream().anyMatch(entry -> entry.getInventoryEntryId().equals(materialId)));
+        assertEquals(1, entryById(entries, followingId).getSlotIndex());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
      * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
      * 検証契約: 一括保存応答は送信後も同一のentryだけへ反映し、待機中の並行変更を上書きしない。
@@ -169,6 +237,46 @@ class PlayerInventoryStateSkillMutationTest {
         assertEquals(8L, concurrent.getQuantity());
         assertEquals(concurrentVersion, concurrent.getUpdatedAt());
         assertTrue(state.isDirty());
+    }
+
+    private static InventoryService inventoryService(PlayerInventoryState state) {
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        registry.put(state);
+        return new InventoryService(
+            mock(InventoryRepository.class),
+            mock(EquipmentLoadoutRepository.class),
+            mock(ItemService.class),
+            mock(ItemStackFactory.class),
+            registry,
+            mock(InventoryPersistence.class),
+            mock(InventorySaveCoordinator.class)
+        );
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void reserveForDisplay(InventoryService service, UUID accountId, UUID entryId)
+        throws ReflectiveOperationException {
+        Field field = InventoryService.class.getDeclaredField("temporarilyHiddenEntryQuantitiesByAccount");
+        field.setAccessible(true);
+        ((Map<UUID, Map<UUID, Integer>>) field.get(service)).put(accountId, new HashMap<>(Map.of(entryId, 1)));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<InventoryEntryModel> displayEntries(
+        InventoryService service,
+        PlayerInventoryState state,
+        InventoryModel inventory
+    ) throws ReflectiveOperationException {
+        Method method = InventoryService.class.getDeclaredMethod(
+            "displayEntriesForGui", PlayerInventoryState.class, InventoryModel.class, List.class
+        );
+        method.setAccessible(true);
+        return (List<InventoryEntryModel>) method.invoke(
+            service,
+            state,
+            inventory,
+            state.snapshotEntries(inventory.getInventoryId())
+        );
     }
 
     private static InventoryEntryModel entry(
