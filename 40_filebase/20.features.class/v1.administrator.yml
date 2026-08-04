@@ -68,6 +68,7 @@ expRate: 100
 usableSkills:
   - skill:fire_boost
   - skill:iron_will
+  - skill:adventurer_astral_edge
   - skill:swordsman_crescent_slash
   - skill:swordsman_piercing_thrust
   - skill:swordsman_whirlwind
