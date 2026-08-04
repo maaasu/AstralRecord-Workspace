@@ -72,7 +72,7 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         assertEquals(MobState.AGGRO, mob.state());
         assertEquals(attacker.getBukkit().getUniqueId(), mob.targetId());
         assertEquals(attacker.getBukkit().getUniqueId(), mob.lastAttackerUuid());
-        verify(harness.knockbackService).apply(any(AstEntity.class), any(AstEntity.class), eq(1.0D));
+        verify(harness.knockbackService).apply(any(AstEntity.class), any(AstEntity.class), eq(0.55D));
     }
 
     /**

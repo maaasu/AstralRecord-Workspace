@@ -61,7 +61,7 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public final class DamageService {
 
-    private static final double MELEE_KNOCKBACK_MULTIPLIER = 1.0D;
+    private static final double MELEE_KNOCKBACK_MULTIPLIER = 0.55D;
     private static final double RANGED_KNOCKBACK_MULTIPLIER = 0.55D;
     private static final double MAGIC_KNOCKBACK_MULTIPLIER = 0.4D;
 
