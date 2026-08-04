@@ -6,7 +6,7 @@ shortName: "&f冒険者"
 description: "&7基礎を学びながら進路を決める見習い冒険者。"
 icon: COMPASS
 role: DEALER
-maxLevel: 100
+maxLevel: 30
 unlockLevel: 1
 baseStats:
   - status: MAX_HEALTH
@@ -60,7 +60,7 @@ growthPerLevel:
     value: 0.5
   - status: MAGIC_DEFENSE
     value: 0.5
-expRate: 100
+expRate: 58
 usableSkills: []
 tags:
   - starter
