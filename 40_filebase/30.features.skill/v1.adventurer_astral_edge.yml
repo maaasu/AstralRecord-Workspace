@@ -1,0 +1,46 @@
+# design:
+#   motif: "星術 / 斬撃"
+#   progression: 1
+schemaVersion: 1
+id: adventurer_astral_edge
+type: SKILL
+implementationId: adventurer_astral_edge
+name: "&bアストラルエッジ"
+description: "&7右から左へ薙ぎ払い、命中した敵へ追撃の突きを加える近接技。"
+icon: IRON_SWORD
+lore:
+  - "&7前方3.5mの扇形へ近接攻撃力100%の薙ぎ払い。最大5体。"
+  - "&7薙ぎ払い命中対象へ近接攻撃力50%の突き刺し。"
+  - "&8消費EN: 8 / クールダウン: 2.5秒"
+cooldownTicks: 50
+resourceType: ENERGY
+resourceCost: 8
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 3
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 4
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 5
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - cooldown_sigil
+  - cooldown_sigil_ii
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+onCast:
+  sound: entity.player.attack.sweep
+tags:
+  - active
+  - melee
+  - adventurer

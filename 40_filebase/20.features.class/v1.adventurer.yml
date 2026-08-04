@@ -61,7 +61,8 @@ growthPerLevel:
   - status: MAGIC_DEFENSE
     value: 0.5
 expRate: 58
-usableSkills: []
+usableSkills:
+  - skill:adventurer_astral_edge
 tags:
   - starter
   - beginner
