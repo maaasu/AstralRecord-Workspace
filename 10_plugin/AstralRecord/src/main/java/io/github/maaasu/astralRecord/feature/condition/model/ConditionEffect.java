@@ -4,10 +4,10 @@ package io.github.maaasu.astralRecord.feature.condition.model;
  * 状態異常の既定効果です。
  *
  * @param tickIntervalTicks DoT間隔。0はDoTなし
- * @param healthRate 1tickあたりのHP割合。0.01は1%
- * @param currentHealthBased trueなら現在HP、falseなら最大HPを基準にする
+ * @param healthRate 非DoTの1pulseあたりのHP割合。DoTでは使用しない
+ * @param currentHealthBased 非DoTのHP割合基準
  * @param basePower 固定DoT値
- * @param sourceAttackCoefficient 付与元攻撃力係数
+ * @param sourcePowerCoefficient 付与元の基準能力値係数
  * @param movementSpeedMultiplier 移動速度倍率
  * @param castTimeMultiplier 詠唱時間倍率
  * @param damageDealtMultiplier 与える最終ダメージ倍率
@@ -25,7 +25,7 @@ public record ConditionEffect(
         double healthRate,
         boolean currentHealthBased,
         double basePower,
-        double sourceAttackCoefficient,
+        double sourcePowerCoefficient,
         double movementSpeedMultiplier,
         double castTimeMultiplier,
         double damageDealtMultiplier,

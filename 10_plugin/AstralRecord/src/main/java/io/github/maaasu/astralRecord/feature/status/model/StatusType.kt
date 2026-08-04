@@ -100,6 +100,7 @@ enum class StatusType(
     CAST_TIME_REDUCTION("CAST_TIME_REDUCTION", "詠唱時間短縮率", "スキルの詠唱時間を割合で短縮する補正。", Category.UTILITY, "%", 1, true),
     MANA_COST_REDUCTION("MANA_COST_REDUCTION", "MP消費軽減率", "スキルのMP消費量を割合で軽減する補正。", Category.UTILITY, "%", 1, true),
     ENERGY_COST_REDUCTION("ENERGY_COST_REDUCTION", "エネルギー消費軽減率", "スキルのエネルギー消費量を割合で軽減する補正。", Category.UTILITY, "%", 1, true),
+    SUPPORT_POWER("SUPPORT_POWER", "支援力", "回復や支援系状態異常の基礎効果を高める能力。", Category.UTILITY, "", 0, true),
     HEALING_INCREASE("HEALING_INCREASE", "回復量増加", "自身のHP回復量を増加させる補正。", Category.UTILITY, "%", 1, true),
     CONDITION_DURATION_INCREASE("CONDITION_DURATION_INCREASE", "状態異常持続時間増加", "自身が付与する状態異常の持続時間を増加させる補正。", Category.UTILITY, "%", 1, true),
     SHIELD_RECHARGE_REDUCTION("SHIELD_RECHARGE_REDUCTION", "シールドリチャージ短縮", "シールド破壊後のリチャージ時間と攻撃による追加時間を割合で短縮する補正。", Category.UTILITY, "%", 1, true),

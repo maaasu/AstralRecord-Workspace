@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.combat.service;
 
+import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageBreakdown;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageContext;
@@ -7,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageScaling;
 import io.github.maaasu.astralRecord.feature.combat.model.SuperStarCriticalMode;
+import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -232,9 +234,23 @@ public final class DamageCalculator {
     }
 
     private double attackPower(@NotNull DamageContext context) {
-        double attack = context.attacker().statValue(StatusType.ATTACK);
-        double typedAttack = context.attacker().statValue(attackStatusType(context));
-        double primary = context.attacker().statValue(primaryStatusType(context));
+        return calculateAttackPower(context.attacker(), context.attackType());
+    }
+
+    /**
+     * 攻撃種別と基本能力値を反映した解決攻撃力を返します。
+     *
+     * @param attacker 攻撃者
+     * @param attackType 攻撃種別
+     * @return 解決攻撃力
+     */
+    public static double calculateAttackPower(
+            @NotNull AstEntity attacker,
+            @NotNull AttackType attackType
+    ) {
+        double attack = attacker.statValue(StatusType.ATTACK);
+        double typedAttack = attacker.statValue(attackType.statusType());
+        double primary = attacker.statValue(attackType.primaryStatusType());
         return attack * (1.0D + primary / 100.0D) + typedAttack;
     }
 
@@ -398,22 +414,6 @@ public final class DamageCalculator {
             return context.victim().mob().template().statValue(capStatus.name(), DEFAULT_ELEMENT_RESISTANCE_CAP);
         }
         return context.victim().statValue(capStatus);
-    }
-
-    private @NotNull StatusType attackStatusType(@NotNull DamageContext context) {
-        return switch (context.attackType()) {
-            case MELEE -> StatusType.MELEE_ATTACK;
-            case RANGED -> StatusType.RANGED_ATTACK;
-            case MAGIC -> StatusType.MAGIC_ATTACK;
-        };
-    }
-
-    private @NotNull StatusType primaryStatusType(@NotNull DamageContext context) {
-        return switch (context.attackType()) {
-            case MELEE -> StatusType.STRENGTH;
-            case RANGED -> StatusType.DEXTERITY;
-            case MAGIC -> StatusType.INTELLIGENCE;
-        };
     }
 
     private record CriticalDamage(double damage, boolean critical, boolean superStarCritical) {}

@@ -720,6 +720,7 @@ public class StatusService {
             case HP_REGEN -> 1.0D;
             case MP_REGEN -> 0.5D;
             case ENERGY_REGEN -> 5.0D;
+            case SUPPORT_POWER -> 0.0D;
             case MOVEMENT_SPEED -> 100.0D;
             case COOLDOWN_REDUCTION -> 0.0D;
             case SHIELD_RECHARGE_REDUCTION -> 0.0D;

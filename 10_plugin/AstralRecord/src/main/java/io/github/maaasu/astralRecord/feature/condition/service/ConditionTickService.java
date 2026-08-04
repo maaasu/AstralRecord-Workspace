@@ -34,11 +34,7 @@ public final class ConditionTickService {
             return;
         }
 
-        ConditionEffect effect = condition.type().defaultEffect();
-        double healthBase = effect.currentHealthBased()
-                ? condition.target().currentHealth()
-                : condition.target().maxHealth();
-        double damage = Math.max(0.0D, condition.snapshotPower() + healthBase * condition.healthRate());
+        double damage = Math.max(0.0D, condition.snapshotPower());
         if (damage > 0.0D) {
             damageService.applyConditionDamage(
                     condition.source(),

@@ -71,7 +71,7 @@ public final class SkillCombatService {
     ) {
         DamageResult result = damageService.attack(attacker, target, attackType, components, DamageSource.SKILL);
         if (!result.evaded() && (result.finalDamage() > 0.0D || result.shieldDamage() > 0.0D)) {
-            Arrays.stream(conditions).forEach(condition -> applyCondition(attacker, target, condition));
+            Arrays.stream(conditions).forEach(condition -> applyCondition(attacker, target, attackType, condition));
         }
         return result;
     }
@@ -108,12 +108,14 @@ public final class SkillCombatService {
     private void applyCondition(
             @NotNull AstEntity attacker,
             @NotNull AstEntity target,
+            @NotNull AttackType attackType,
             @NotNull ActiveSkillCondition condition
     ) {
         conditionService.applyCondition(new ConditionApplyRequest(
                 target,
                 attacker,
                 condition.type(),
+                attackType,
                 condition.durationTicks(),
                 condition.chance(),
                 condition.strength(),

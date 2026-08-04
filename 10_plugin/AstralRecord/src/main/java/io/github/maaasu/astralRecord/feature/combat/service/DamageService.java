@@ -402,9 +402,6 @@ public final class DamageService {
         }
         damage *= temporaryDamageMultiplier(attacker, victim);
         damage *= finalDamageMultiplier(attacker);
-        if (conditionType == ConditionType.POISON) {
-            damage = Math.min(damage, Math.max(0.0D, victim.currentHealth() - 1.0D));
-        }
 
         DamageResult result = new DamageResult(damage, false);
         applyDamageResult(attacker, victim, result, AttackType.MAGIC, false);

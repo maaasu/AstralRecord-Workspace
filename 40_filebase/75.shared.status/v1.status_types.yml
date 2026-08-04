@@ -96,6 +96,7 @@ statuses:
   - { id: CAST_TIME_REDUCTION, displayName: "詠唱時間短縮率", description: "スキルの詠唱時間を割合で短縮する補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
   - { id: MANA_COST_REDUCTION, displayName: "MP消費軽減率", description: "スキルのMP消費量を割合で軽減する補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
   - { id: ENERGY_COST_REDUCTION, displayName: "エネルギー消費軽減率", description: "スキルのエネルギー消費量を割合で軽減する補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
+  - { id: SUPPORT_POWER, displayName: "支援力", description: "回復や支援系状態異常の基礎効果を高める能力。", category: UTILITY }
   - { id: HEALING_INCREASE, displayName: "回復量増加", description: "自身のHP回復量を増加させる補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
   - { id: CONDITION_DURATION_INCREASE, displayName: "状態異常持続時間増加", description: "自身が付与する状態異常の持続時間を増加させる補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }
   - { id: SHIELD_RECHARGE_REDUCTION, displayName: "シールドリチャージ短縮", description: "シールド破壊後のリチャージ時間と攻撃による追加時間を割合で短縮する補正。", category: UTILITY, suffix: "%", decimalPlaces: 1 }

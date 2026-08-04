@@ -208,7 +208,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
 
         for (AstEntity victim : victims.values()) {
             DamageResult result = damageService.attack(attacker, victim, AttackType.MELEE, readDamageComponents(skill));
-            applyConditions(skill, attacker, victim, result);
+            applyConditions(skill, attacker, victim, AttackType.MELEE, result);
         }
     }
 
@@ -290,7 +290,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 AstEntity victim = findClosestTarget(currentLocation, hitRadius, attacker);
                 if (victim != null) {
                     DamageResult result = damageService.attack(attacker, victim, attackType, damageComponents);
-                    applyConditions(skill, attacker, victim, result);
+                    applyConditions(skill, attacker, victim, attackType, result);
                     spawnImpactEffect(currentLocation, attackType);
                     cancel();
                 }
@@ -616,6 +616,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             @NotNull SkillDefinition skill,
             @NotNull AstEntity attacker,
             @NotNull AstEntity victim,
+            @NotNull AttackType attackType,
             @NotNull DamageResult result
     ) {
         if (conditionService == null || result.finalDamage() <= 0.0D && result.shieldDamage() <= 0.0D) {
@@ -637,6 +638,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                     victim,
                     attacker,
                     type,
+                    attackType,
                     longParam(map, "durationTicks", type.defaultDurationTicks()),
                     doubleParam(map, "chance", 100.0D),
                     doubleParam(map, "strength", 1.0D),

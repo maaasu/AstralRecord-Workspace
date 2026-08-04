@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.condition.service;
 
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
+import io.github.maaasu.astralRecord.feature.combat.service.DamageCalculator;
 import io.github.maaasu.astralRecord.feature.condition.display.ConditionDisplayService;
 import io.github.maaasu.astralRecord.feature.condition.model.ActiveCondition;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyRequest;
@@ -299,9 +300,7 @@ public final class ConditionService {
         int interval = request.tickIntervalTicks() == null
                 ? effect.tickIntervalTicks()
                 : Math.max(0, request.tickIntervalTicks());
-        double healthRate = request.healthRate() == null
-                ? effect.healthRate()
-                : Math.max(0.0D, request.healthRate());
+        double healthRate = normalizedHealthRate(request, effect);
         long nextControlAtMs = nextControlAtMs(effect, nowMs);
         return new ActiveCondition(
                 UUID.randomUUID(),
@@ -326,19 +325,14 @@ public final class ConditionService {
     ) {
         ConditionEffect effect = request.type().defaultEffect();
         double requestedPower = snapshotPower(request, effect);
-        double requestedHealthRate = request.healthRate() == null
-                ? effect.healthRate()
-                : Math.max(0.0D, request.healthRate());
+        double requestedHealthRate = normalizedHealthRate(request, effect);
         int requestedInterval = request.tickIntervalTicks() == null
                 ? effect.tickIntervalTicks()
                 : Math.max(0, request.tickIntervalTicks());
         boolean stronger = request.strength() > existing.strength()
                 || (request.strength() == existing.strength()
-                && conditionMagnitude(
-                        request.type(), request.target(), requestedPower, requestedHealthRate, requestedInterval)
-                > conditionMagnitude(
-                        existing.type(), existing.target(), existing.snapshotPower(), existing.healthRate(),
-                        existing.tickIntervalTicks()));
+                && conditionMagnitude(requestedPower, requestedInterval)
+                > conditionMagnitude(existing.snapshotPower(), existing.tickIntervalTicks()));
 
         if (stronger) {
             existing.source(request.source());
@@ -354,18 +348,8 @@ public final class ConditionService {
         return existing;
     }
 
-    private double conditionMagnitude(
-            @NotNull ConditionType type,
-            @NotNull AstEntity target,
-            double power,
-            double healthRate,
-            int tickIntervalTicks
-    ) {
-        double healthBase = type.defaultEffect().currentHealthBased()
-                ? target.currentHealth()
-                : target.maxHealth();
-        double tickPower = power + Math.max(0.0D, healthBase) * healthRate;
-        return tickIntervalTicks <= 0 ? tickPower : tickPower / tickIntervalTicks;
+    private double conditionMagnitude(double power, int tickIntervalTicks) {
+        return tickIntervalTicks <= 0 ? power : power / tickIntervalTicks;
     }
 
     private double effectiveApplyChance(@NotNull ConditionApplyRequest request) {
@@ -385,10 +369,44 @@ public final class ConditionService {
     private double snapshotPower(@NotNull ConditionApplyRequest request, @NotNull ConditionEffect effect) {
         double base = request.basePower() == null ? effect.basePower() : request.basePower();
         double coefficient = request.powerCoefficient() == null
-                ? effect.sourceAttackCoefficient()
-                : request.powerCoefficient();
-        double sourceAttack = request.source() == null ? 0.0D : request.source().statValue(StatusType.ATTACK);
-        return Math.max(0.0D, base + sourceAttack * coefficient);
+                ? effect.sourcePowerCoefficient()
+                : Math.max(0.0D, request.powerCoefficient());
+        if (request.type().category() == ConditionCategory.DOT) {
+            coefficient = Math.min(coefficient, effect.sourcePowerCoefficient());
+        }
+        double sourcePower = sourcePower(request);
+        double power = Math.max(0.0D, base) + sourcePower * coefficient;
+        if (request.type().category() == ConditionCategory.DOT
+                && request.source() != null
+                && effect.sourcePowerCoefficient() > 0.0D) {
+            power = Math.min(power, sourcePower * effect.sourcePowerCoefficient());
+        }
+        return Math.max(0.0D, power);
+    }
+
+    private double sourcePower(@NotNull ConditionApplyRequest request) {
+        if (request.source() == null) {
+            return 0.0D;
+        }
+        if (request.type() == ConditionType.POISON) {
+            return Math.max(0.0D, request.source().statValue(StatusType.SUPPORT_POWER));
+        }
+        if (request.attackType() == null) {
+            return Math.max(0.0D, request.source().statValue(StatusType.ATTACK));
+        }
+        return Math.max(0.0D, DamageCalculator.calculateAttackPower(request.source(), request.attackType()));
+    }
+
+    private double normalizedHealthRate(
+            @NotNull ConditionApplyRequest request,
+            @NotNull ConditionEffect effect
+    ) {
+        if (request.type().category() == ConditionCategory.DOT) {
+            return 0.0D;
+        }
+        return request.healthRate() == null
+                ? Math.max(0.0D, effect.healthRate())
+                : Math.max(0.0D, request.healthRate());
     }
 
     private long adjustedDurationTicks(@NotNull ConditionApplyRequest request) {

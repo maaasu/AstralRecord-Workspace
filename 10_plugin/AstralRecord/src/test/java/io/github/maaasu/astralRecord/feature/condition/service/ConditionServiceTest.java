@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.condition.service;
 
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
+import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.condition.display.ConditionDisplayService;
 import io.github.maaasu.astralRecord.feature.condition.model.ActiveCondition;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyReason;
@@ -71,6 +72,71 @@ class ConditionServiceTest {
         assertEquals(3.0D, afterStrongerShorter.strength(), 0.0001D);
         assertEquals(15.0D, afterStrongerShorter.snapshotPower(), 0.0001D);
         assertEquals(extendedExpiry, afterStrongerShorter.expiresAtMs());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/27_1-モデル定義.md
+     * 章・見出し: # 27_1-モデル定義 > ## 2. `ConditionEffect`
+     * 検証契約: 炎上は攻撃種別の解決攻撃力を基準にし、固定値や係数上書きで種別既定係数の上限を超えない。
+     */
+    @Test
+    void burningSnapshotUsesResolvedAttackPowerWithDotCoefficientCap() {
+        ConditionService service = service();
+        AstEntity target = AstEntity.mob(mob(MobCategory.ENEMY, List.of()));
+        AstEntity source = AstEntity.mob(mob(MobCategory.ENEMY, List.of(
+            new MobBaseStat(StatusType.ATTACK.name(), 100.0D),
+            new MobBaseStat(StatusType.INTELLIGENCE.name(), 50.0D),
+            new MobBaseStat(StatusType.MAGIC_ATTACK.name(), 20.0D)
+        )));
+
+        ActiveCondition condition = service.applyCondition(new ConditionApplyRequest(
+            target,
+            source,
+            ConditionType.BURNING,
+            AttackType.MAGIC,
+            100L,
+            100.0D,
+            1.0D,
+            999.0D,
+            1.0D,
+            null,
+            null,
+            ConditionApplyReason.SKILL
+        )).condition();
+
+        assertEquals(34.0D, condition.snapshotPower(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/27_1-モデル定義.md
+     * 章・見出し: # 27_1-モデル定義 > ## 6. 状態異常ステータス
+     * 検証契約: 毒は対象HPではなく付与元のSUPPORT_POWERを基準にする。
+     */
+    @Test
+    void poisonSnapshotUsesSupportPowerInsteadOfTargetHealth() {
+        ConditionService service = service();
+        AstEntity target = AstEntity.mob(mob(MobCategory.ENEMY, List.of()));
+        AstEntity source = AstEntity.mob(mob(MobCategory.ENEMY, List.of(
+            new MobBaseStat(StatusType.SUPPORT_POWER.name(), 100.0D)
+        )));
+
+        ActiveCondition condition = service.applyCondition(new ConditionApplyRequest(
+            target,
+            source,
+            ConditionType.POISON,
+            null,
+            120L,
+            100.0D,
+            1.0D,
+            null,
+            null,
+            1.0D,
+            null,
+            ConditionApplyReason.SKILL
+        )).condition();
+
+        assertEquals(16.0D, condition.snapshotPower(), 0.0001D);
+        assertEquals(0.0D, condition.healthRate(), 0.0001D);
     }
 
     /**

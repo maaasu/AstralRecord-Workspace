@@ -82,8 +82,8 @@
 | `conditions[].durationTicks` | Long | 任意 | 種別既定 | 効果時間 |
 | `conditions[].strength` | Double | 任意 | `1.0` | 同種重複時の強さ比較値 |
 | `conditions[].basePower` | Double | 任意 | 種別既定 | 固定DoT値 |
-| `conditions[].powerCoefficient` | Double | 任意 | 種別既定 | 付与元 `ATTACK` に対するDoT係数 |
-| `conditions[].healthRate` | Double | 任意 | 種別既定 | 1 tick処理ごとのHP割合。`0.03` は3% |
+| `conditions[].powerCoefficient` | Double | 任意 | 種別既定 | 付与元の基準能力値に対するDoT係数。炎上・感電は解決攻撃力、毒は `SUPPORT_POWER` を参照し、種別既定係数を上限とする |
+| `conditions[].healthRate` | Double | 任意 | 種別既定 | 非DoT用のHP割合。DoTでは無視され、対象HPを参照しない |
 | `conditions[].tickIntervalTicks` | Integer | 任意 | 種別既定 | DoT間隔。0以下はDoTなし |
 
 同種状態異常は強い効果だけを保持し、終了時刻は既存より後になる場合だけ延長します。DoTは会心しません。状態異常の付与耐性とDoT耐性は独立し、DoT貫通はDoT耐性だけを相殺します。
@@ -92,11 +92,11 @@
 
 | 種別 | 時間 | 既定効果 |
 | --- | ---: | --- |
-| `BURNING` | 100 tick | 20 tickごとに最大HP1% |
+| `BURNING` | 100 tick | 20 tickごとに付与元の解決攻撃力×0.20 |
 | `FROZEN` | 40 tick | 全行動不能 |
 | `CHILLED` | 100 tick | 移動50%、詠唱時間2倍 |
-| `SHOCKED` | 100 tick | 最大HP1%/秒、16～32 tickごとに6 tick移動・ジャンプ不能 |
-| `POISON` | 120 tick | 現在HP3%/秒、HP1未満にしない |
+| `SHOCKED` | 100 tick | 20 tickごとに付与元の解決攻撃力×0.10、16～32 tickごとに6 tick移動・ジャンプ不能 |
+| `POISON` | 120 tick | 20 tickごとに付与元の `SUPPORT_POWER`×0.16、HP 0 まで適用 |
 | `BLINDNESS` | 100 tick | バニラ盲目 |
 | `WEAKNESS` | 100 tick | 与える最終ダメージ50% |
 | `HEALING_INHIBITION` | 100 tick | 通常の全回復を無効化 |

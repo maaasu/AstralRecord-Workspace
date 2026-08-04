@@ -589,10 +589,10 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
      * 章・見出し: # 14_3-サービス > ## 7. condition damage
-     * 検証契約: poison DoTをHP1でclampし通常/超星criticalを判定しない。
+     * 検証契約: poison DoTはHP 0まで適用でき、通常/超星criticalを判定しない。
      */
     @Test
-    void poisonConditionDamageNeverReducesHealthBelowOneAndCannotCrit() {
+    void poisonConditionDamageCanReduceHealthToZeroAndCannotCrit() {
         DamageHarness harness = damageHarness();
         MobInstance mob = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D);
         mob.currentHealth(1.2D);
@@ -604,8 +604,8 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
             ConditionType.POISON
         );
 
-        assertEquals(0.2D, result.finalDamage(), 0.0001D);
-        assertEquals(1.0D, mob.currentHealth(), 0.0001D);
+        assertEquals(5.0D, result.finalDamage(), 0.0001D);
+        assertEquals(0.0D, mob.currentHealth(), 0.0001D);
         assertEquals(false, result.critical());
     }
 

@@ -19,22 +19,21 @@ class ConditionTickServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
      * 章・見出し: # 27_3-サービス > ## 5. `ConditionTickService.tickCondition`
-     * 検証契約: 燃焼は固定snapshot 2と最大HP100の1%を合計した3 damageを与え、20tick後へ次回時刻を進める。
+     * 検証契約: 燃焼は付与時に固定したsnapshot 2だけを与え、対象HPを参照せず20tick後へ次回時刻を進める。
      */
     @Test
-    void burningUsesMaximumHealthRateAndFixedSnapshot() {
+    void burningUsesFixedSnapshotWithoutTargetHealthRate() {
         ConditionService conditionService = mock(ConditionService.class);
         DamageService damageService = mock(DamageService.class);
         AstEntity target = mock(AstEntity.class);
         AstEntity source = mock(AstEntity.class);
-        when(target.maxHealth()).thenReturn(100.0D);
         ActiveCondition condition = condition(
             ConditionType.BURNING, target, source, 2.0D, 0.01D, 20, 0L, Long.MAX_VALUE
         );
 
         new ConditionTickService(conditionService, damageService).tickCondition(condition, 100L);
 
-        verify(damageService).applyConditionDamage(source, target, 3.0D, ConditionType.BURNING);
+        verify(damageService).applyConditionDamage(source, target, 2.0D, ConditionType.BURNING);
         verify(conditionService).pulse(condition);
         assertEquals(1_100L, condition.nextTickAtMs());
     }
@@ -42,21 +41,20 @@ class ConditionTickServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
      * 章・見出し: # 27_3-サービス > ## 5. `ConditionTickService.tickCondition`
-     * 検証契約: 毒は現在HP50の3%で1.5 damageを算出する。
+     * 検証契約: 毒は対象HPに依存せず、付与時に固定したsnapshotをそのまま算出する。
      */
     @Test
-    void poisonUsesCurrentHealthRate() {
+    void poisonUsesFixedSnapshotWithoutTargetHealthRate() {
         ConditionService conditionService = mock(ConditionService.class);
         DamageService damageService = mock(DamageService.class);
         AstEntity target = mock(AstEntity.class);
-        when(target.currentHealth()).thenReturn(50.0D);
         ActiveCondition condition = condition(
-            ConditionType.POISON, target, null, 0.0D, 0.03D, 20, 0L, Long.MAX_VALUE
+            ConditionType.POISON, target, null, 16.0D, 0.03D, 20, 0L, Long.MAX_VALUE
         );
 
         new ConditionTickService(conditionService, damageService).tickCondition(condition, 100L);
 
-        verify(damageService).applyConditionDamage(null, target, 1.5D, ConditionType.POISON);
+        verify(damageService).applyConditionDamage(null, target, 16.0D, ConditionType.POISON);
     }
 
     /**
