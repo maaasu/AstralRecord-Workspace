@@ -99,14 +99,20 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         this.inventoryService = inventoryService;
     }
 
-    public void open(@NotNull Player player) {
+    /**
+     * スキルマネージャーを開きます。
+     *
+     * @param player 表示対象プレイヤー
+     * @return 習得スキルとプリセットのロードが完了して画面を開いた場合は {@code true}、未完了で拒否した場合は {@code false}
+     */
+    public boolean open(@NotNull Player player) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null
             || !presetService.hasLoadedPresets(astPlayer.getAccount().getUuid())
             || !learnedSkillService.hasLoadedSkills(astPlayer.getAccount().getUuid())) {
             GuiSound.DENY.play(player);
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5848);
-            return;
+            return false;
         }
         int presetIndex = presetService.selectedPresetIndex(astPlayer.getAccount().getUuid());
         SkillBindSession session = new SkillBindSession(presetService.getPresets(astPlayer.getAccount().getUuid()), presetIndex);
@@ -116,6 +122,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         removeSynthesisSelectionAndRestore(player);
         sessions.put(player.getUniqueId(), session);
         openMain(player, session, 0, true);
+        return true;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -218,7 +225,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 GuiSound.DENY.play(player);
                 return;
             }
-            GuiSound.SELECT.play(player);
+            GuiSound.PAGE.play(player);
             openMain(player, session, page - 1, true);
             return;
         }
@@ -228,7 +235,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 GuiSound.DENY.play(player);
                 return;
             }
-            GuiSound.SELECT.play(player);
+            GuiSound.PAGE.play(player);
             openMain(player, session, page + 1, true);
             return;
         }
@@ -279,6 +286,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             }
             session.setSlot(selectedType, session.selectedBindSlotIndex(), SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID);
             session.clearSelectedBindSlot();
+            GuiSound.SELECT.play(player);
             saveCurrentPreset(player, session, page);
             return;
         }
@@ -399,6 +407,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         if (event.getRawSlot() == SkillBindGui.BACK_SLOT) {
             removeSynthesisSelectionAndRestore(player);
             synthesisPreviews.remove(player.getUniqueId());
+            GuiSound.SELECT.play(player);
             openMain(player, session, holder.pageIndex(), true);
             return;
         }
@@ -477,7 +486,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         inventoryService.applyInventoriesToGui(astPlayer);
         passiveSkillService.markDirty(astPlayer);
         SkillManagerEntry updatedEntry = entry(astPlayer, updated.getLearnedSkillId().toString());
-        GuiSound.SELECT.play(player);
+        GuiSound.UPGRADE.play(player);
         if (updatedEntry != null && canOpenSynthesis(updatedEntry)) {
             openSynthesis(player, session, updatedEntry.bindingId(), returnPage, true);
         } else {
@@ -560,6 +569,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             passiveSkillService.reconcileNow(astPlayer);
             PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5808, presetIndex);
         }
+        GuiSound.TOGGLE.play(player);
         openMain(player, session, 0, true);
     }
 
@@ -570,10 +580,12 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (slot == ConfirmDialogView.CANCEL_SLOT) {
+            GuiSound.SELECT.play(player);
             openMain(player, session, holder.pageIndex(), true);
             return;
         }
         if (slot != ConfirmDialogView.CONFIRM_SLOT) return;
+        GuiSound.CONFIRM.play(player);
         switch (holder.action()) {
             case ACTION_SWITCH_PRESET -> switchPreset(player, session, holder.pendingPresetIndex());
             case ACTION_BACK -> returnToPrevious(player);
@@ -728,6 +740,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     private void openConfirm(Player player, SkillBindSession session, String action, int pending, Component message) {
         suppressCloseIfSwitching(player);
         gui.openConfirm(player, session.selectedPresetIndex(), action, pending, message);
+        GuiSound.CONFIRM.play(player);
     }
 
     private void suppressCloseIfSwitching(Player player) {
@@ -738,7 +751,12 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         sessions.remove(player.getUniqueId());
         removeSynthesisSelectionAndRestore(player);
         suppressClose.add(player.getUniqueId());
-        if (!plugin.getGuiNavigationService().openPrevious(player)) player.closeInventory();
+        if (plugin.getGuiNavigationService().openPrevious(player)) {
+            GuiSound.SELECT.play(player);
+            return;
+        }
+        player.closeInventory();
+        GuiSound.CLOSE.play(player);
     }
 
     private void restoreAndClose(Player player) {
@@ -746,6 +764,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         removeSynthesisSelectionAndRestore(player);
         suppressClose.add(player.getUniqueId());
         player.closeInventory();
+        GuiSound.CLOSE.play(player);
     }
 
     private void restorePlayerInventory(Player player) {

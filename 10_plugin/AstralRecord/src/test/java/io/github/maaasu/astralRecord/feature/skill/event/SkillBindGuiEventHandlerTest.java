@@ -9,11 +9,13 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemSigil;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindInventoryHolder;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindScreen;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindSession;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillBindType;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationException;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationFailure;
@@ -28,8 +30,12 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPermissionService;
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Server;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -56,7 +62,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -330,6 +338,216 @@ class SkillBindGuiEventHandlerTest {
         verify(gui).open(any(), any(), any(), any(), anyInt(), anyInt());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
+     * 検証契約: 前ページへ移動できる操作では、画面再表示前に PAGE 音を再生する。
+     */
+    @Test
+    void previousPageMovePlaysPageSound() throws ReflectiveOperationException {
+        SkillBindGui gui = mock(SkillBindGui.class);
+        SkillService skillService = mock(SkillService.class);
+        SkillOwnershipService ownershipService = mock(SkillOwnershipService.class);
+        PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
+        SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
+            mock(AstralRecord.class), gui, skillService, mock(SkillBindPresetService.class), ownershipService,
+            mock(SkillPermissionService.class), mock(LearnedSkillService.class), passiveSkillService, mock(InventoryService.class)
+        );
+        Player player = mock(Player.class);
+        Location location = mock(Location.class);
+        InventoryView view = mock(InventoryView.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        InventoryClickEvent event = mock(InventoryClickEvent.class);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(player.getLocation()).thenReturn(location);
+        when(player.getOpenInventory()).thenReturn(view);
+        when(view.getTopInventory()).thenReturn(mock(Inventory.class));
+        when(gui.isInventory(any())).thenReturn(false);
+        when(skillService.registry()).thenReturn(new SkillRegistry());
+        when(ownershipService.learnedSkills(astPlayer)).thenReturn(List.of());
+        when(event.getRawSlot()).thenReturn(SkillBindGui.PREVIOUS_PAGE_SLOT);
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            invoke(handler, "handleMainClick",
+                new Class<?>[] {Player.class, SkillBindSession.class, SkillBindInventoryHolder.class, InventoryClickEvent.class},
+                player, new SkillBindSession(presets(UUID.randomUUID())),
+                new SkillBindInventoryHolder(SkillBindScreen.MAIN, 1, 1), event);
+        }
+
+        verifySound(player, location, Sound.ITEM_BOOK_PAGE_TURN);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
+     * 検証契約: 選択済みの active 枠へ通常攻撃を設定する操作では、保存開始前に SELECT 音を再生する。
+     */
+    @Test
+    void normalAttackBindingPlaysSelectSound() throws ReflectiveOperationException {
+        SkillBindGui gui = mock(SkillBindGui.class);
+        SkillBindPresetService presetService = mock(SkillBindPresetService.class);
+        SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
+            mock(AstralRecord.class), gui, mock(SkillService.class), presetService, mock(SkillOwnershipService.class),
+            mock(SkillPermissionService.class), mock(LearnedSkillService.class), mock(PassiveSkillService.class), mock(InventoryService.class)
+        );
+        Player player = mock(Player.class);
+        Location location = mock(Location.class);
+        InventoryClickEvent event = mock(InventoryClickEvent.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        UUID accountId = UUID.randomUUID();
+        SkillBindSession session = new SkillBindSession(presets(accountId));
+        session.selectBindSlot(SkillBindType.ACTIVE, 0);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(player.getLocation()).thenReturn(location);
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(account.getUuid()).thenReturn(accountId);
+        when(event.getRawSlot()).thenReturn(SkillBindGui.NORMAL_ATTACK_SLOT);
+        when(event.isLeftClick()).thenReturn(true);
+        when(presetService.saveAsync(any(), anyInt(), any(), any(), any(), any(), any(), any())).thenReturn(true);
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            invoke(handler, "handleMainClick",
+                new Class<?>[] {Player.class, SkillBindSession.class, SkillBindInventoryHolder.class, InventoryClickEvent.class},
+                player, session, new SkillBindInventoryHolder(SkillBindScreen.MAIN, 1, 0), event);
+        }
+
+        verifySound(player, location, Sound.UI_BUTTON_CLICK);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
+     * 検証契約: 合成成功後は、更新された合成画面またはメイン画面を開く前に UPGRADE 音を再生する。
+     */
+    @Test
+    void completedSynthesisPlaysUpgradeSound() throws ReflectiveOperationException {
+        SkillBindGui gui = mock(SkillBindGui.class);
+        SkillService skillService = mock(SkillService.class);
+        SkillOwnershipService ownershipService = mock(SkillOwnershipService.class);
+        SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
+            mock(AstralRecord.class), gui, skillService, mock(SkillBindPresetService.class), ownershipService,
+            mock(SkillPermissionService.class), mock(LearnedSkillService.class), mock(PassiveSkillService.class), mock(InventoryService.class)
+        );
+        Player player = mock(Player.class);
+        Location location = mock(Location.class);
+        InventoryView view = mock(InventoryView.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        UUID playerId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
+        UUID learnedSkillId = UUID.randomUUID();
+        SkillBindSession session = new SkillBindSession(presets(accountId));
+        when(player.getUniqueId()).thenReturn(playerId);
+        when(player.getLocation()).thenReturn(location);
+        when(player.getOpenInventory()).thenReturn(view);
+        when(view.getTopInventory()).thenReturn(mock(Inventory.class));
+        when(gui.isInventory(any())).thenReturn(false);
+        when(skillService.registry()).thenReturn(new SkillRegistry());
+        when(ownershipService.learnedSkills(astPlayer)).thenReturn(List.of());
+        putMapValue(handler, "sessions", playerId, session);
+        UUID operationToken = UUID.randomUUID();
+        putSavingToken(handler, playerId, operationToken);
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            invoke(handler, "completeSynthesis",
+                new Class<?>[] {Player.class, SkillBindSession.class, int.class, LearnedSkillInstance.class, UUID.class},
+                player, session, 0, new LearnedSkillInstance(
+                    learnedSkillId, accountId, "mage_fireball", 2, List.of(), 1, null, null
+                ), operationToken);
+        }
+
+        verifySound(player, location, Sound.BLOCK_ANVIL_USE);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
+     * 検証契約: 変更破棄の確認画面を開く操作では、画面表示と同時に CONFIRM 音を再生する。
+     */
+    @Test
+    void openingDiscardConfirmationPlaysConfirmSound() throws ReflectiveOperationException {
+        SkillBindGui gui = mock(SkillBindGui.class);
+        SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
+            mock(AstralRecord.class), gui, mock(SkillService.class), mock(SkillBindPresetService.class),
+            mock(SkillOwnershipService.class), mock(SkillPermissionService.class), mock(LearnedSkillService.class),
+            mock(PassiveSkillService.class), mock(InventoryService.class)
+        );
+        Player player = mock(Player.class);
+        Location location = mock(Location.class);
+        InventoryView view = mock(InventoryView.class);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(player.getLocation()).thenReturn(location);
+        when(player.getOpenInventory()).thenReturn(view);
+        when(view.getTopInventory()).thenReturn(mock(Inventory.class));
+        when(gui.isInventory(any())).thenReturn(false);
+
+        invoke(handler, "openConfirm",
+            new Class<?>[] {Player.class, SkillBindSession.class, String.class, int.class, Component.class},
+            player, new SkillBindSession(presets(UUID.randomUUID())), "close", -1, Component.empty());
+
+        verifySound(player, location, Sound.BLOCK_NOTE_BLOCK_PLING);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
+     * 検証契約: スキルマネージャーを直開きで閉じる操作では、inventory close とともに CLOSE 音を再生する。
+     */
+    @Test
+    void directClosePlaysCloseSound() throws ReflectiveOperationException {
+        SkillBindGuiEventHandler handler = newHandler();
+        Player player = mock(Player.class);
+        Location location = mock(Location.class);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(player.getLocation()).thenReturn(location);
+
+        invoke(handler, "restoreAndClose", new Class<?>[] {Player.class}, player);
+
+        verify(player).closeInventory();
+        verifySound(player, location, Sound.BLOCK_CHEST_CLOSE);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
+     * 検証契約: プリセット未ロード時のスキルマネージャー表示は false を返し、画面を開かず DENY 音だけを再生する。
+     */
+    @Test
+    void unloadedPresetsRejectOpeningWithOnlyDenySound() {
+        SkillBindGui gui = mock(SkillBindGui.class);
+        SkillBindPresetService presetService = mock(SkillBindPresetService.class);
+        SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
+            mock(AstralRecord.class), gui, mock(SkillService.class), presetService, mock(SkillOwnershipService.class),
+            mock(SkillPermissionService.class), mock(LearnedSkillService.class), mock(PassiveSkillService.class), mock(InventoryService.class)
+        );
+        Player player = mock(Player.class);
+        Location location = mock(Location.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        PlayerMessageService messageService = mock(PlayerMessageService.class);
+        UUID accountId = UUID.randomUUID();
+        when(player.getLocation()).thenReturn(location);
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(account.getUuid()).thenReturn(accountId);
+        when(presetService.hasLoadedPresets(accountId)).thenReturn(false);
+
+        try (
+            MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+            MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)
+        ) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
+
+            assertFalse(handler.open(player));
+        }
+
+        verify(gui, never()).open(any(), any(), any(), any(), anyInt(), anyInt());
+        verifySound(player, location, Sound.BLOCK_NOTE_BLOCK_BASS);
+    }
+
     private static List<SkillBindPreset> presets(UUID accountId) {
         List<SkillBindPreset> presets = new ArrayList<>();
         for (int index = 1; index <= 6; index++) {
@@ -338,6 +556,17 @@ class SkillBindGuiEventHandlerTest {
             ));
         }
         return presets;
+    }
+
+    private static void invoke(Object target, String methodName, Class<?>[] parameterTypes, Object... arguments)
+        throws ReflectiveOperationException {
+        Method method = target.getClass().getDeclaredMethod(methodName, parameterTypes);
+        method.setAccessible(true);
+        method.invoke(target, arguments);
+    }
+
+    private static void verifySound(Player player, Location location, Sound sound) {
+        verify(player).playSound(eq(location), eq(sound), eq(SoundCategory.PLAYERS), anyFloat(), anyFloat());
     }
 
     private static SkillDefinition skillDefinition() {
@@ -370,7 +599,12 @@ class SkillBindGuiEventHandlerTest {
 
     @SuppressWarnings("unchecked")
     private static void putSavingToken(Object target, UUID playerId) throws ReflectiveOperationException {
-        ((Map<UUID, UUID>) fieldValue(target, "savingSessions")).put(playerId, UUID.randomUUID());
+        putSavingToken(target, playerId, UUID.randomUUID());
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void putSavingToken(Object target, UUID playerId, UUID operationToken) throws ReflectiveOperationException {
+        ((Map<UUID, UUID>) fieldValue(target, "savingSessions")).put(playerId, operationToken);
     }
 
     @SuppressWarnings("unchecked")
