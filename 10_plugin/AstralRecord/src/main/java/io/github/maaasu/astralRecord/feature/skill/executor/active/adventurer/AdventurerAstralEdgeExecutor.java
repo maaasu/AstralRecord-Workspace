@@ -14,7 +14,10 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 /** 右から左へ薙ぎ払い、命中対象へ追撃の突きを加える冒険者のアストラルエッジです。 */
 public final class AdventurerAstralEdgeExecutor extends PlayerActiveSkillExecutor {
@@ -23,10 +26,11 @@ public final class AdventurerAstralEdgeExecutor extends PlayerActiveSkillExecuto
     private static final String SWEEP_SCOPE = ID + ":sweep";
     private static final String THRUST_SCOPE = ID + ":thrust";
     private static final double REACH = 5.5D;
-    private static final double SWEEP_RADIUS = 5.0D;
-    private static final double SWEEP_START_ANGLE = -55.0D;
-    private static final double SWEEP_END_ANGLE = 55.0D;
+    private static final double[] SWEEP_RADII = {2.4D, 3.9D, 5.4D};
+    private static final double SWEEP_START_ANGLE = 55.0D;
+    private static final double SWEEP_END_ANGLE = -55.0D;
     private static final int SWEEP_FRAMES = 6;
+    private static final int MAX_TARGETS = 5;
 
     /** 共有発動スキルサービスで初期化します。 */
     public AdventurerAstralEdgeExecutor(@NotNull ActiveSkillServices services) {
@@ -38,10 +42,10 @@ public final class AdventurerAstralEdgeExecutor extends PlayerActiveSkillExecuto
     protected @NotNull SkillCastResult castPlayer(@NotNull PlayerActiveSkillContext context) {
         Player player = context.player();
         AstEntity attacker = context.attacker();
-        Location origin = player.getLocation().add(0.0D, 1.0D, 0.0D);
+        Location origin = context.eyeLocation();
+        var direction = context.direction();
         World castWorld = player.getWorld();
-        List<AstEntity> targets = context.services().targeting()
-                .inCone(player, REACH, 110.0D, 5, true);
+        Set<UUID> hitTargetIds = new HashSet<>();
 
         context.services().tasks().repeat(
                 player.getUniqueId(),
@@ -58,24 +62,42 @@ public final class AdventurerAstralEdgeExecutor extends PlayerActiveSkillExecuto
                             + (SWEEP_END_ANGLE - SWEEP_START_ANGLE) * frame / SWEEP_FRAMES;
                     double headEnd = SWEEP_START_ANGLE
                             + (SWEEP_END_ANGLE - SWEEP_START_ANGLE) * (frame + 1) / SWEEP_FRAMES;
-                    context.services().effects().arcSegment(
+                    for (double radius : SWEEP_RADII) {
+                        context.services().effects().viewArcSegment(
+                                origin,
+                                direction,
+                                radius,
+                                headStart,
+                                headEnd,
+                                5,
+                                SharedParticleDefinitions.ADVENTURER_ASTRAL_EDGE_CRIT
+                        );
+                        context.services().effects().viewArcSegment(
+                                origin,
+                                direction,
+                                radius,
+                                headStart,
+                                Math.min(SWEEP_START_ANGLE, headStart + 18.0D),
+                                4,
+                                SharedParticleDefinitions.ADVENTURER_ASTRAL_EDGE_SPARK
+                        );
+                    }
+                    List<AstEntity> frameTargets = context.services().targeting().inViewArcSegment(
+                            player,
                             origin,
-                            context.direction(),
-                            SWEEP_RADIUS,
+                            direction,
+                            REACH,
                             headStart,
                             headEnd,
-                            5,
-                            SharedParticleDefinitions.ADVENTURER_ASTRAL_EDGE_CRIT
+                            MAX_TARGETS,
+                            true
                     );
-                    context.services().effects().arcSegment(
-                            origin,
-                            context.direction(),
-                            SWEEP_RADIUS,
-                            Math.max(SWEEP_START_ANGLE, headStart - 18.0D),
-                            headStart,
-                            4,
-                            SharedParticleDefinitions.ADVENTURER_ASTRAL_EDGE_SPARK
-                    );
+                    for (AstEntity target : frameTargets) {
+                        if (hitTargetIds.size() >= MAX_TARGETS || !hitTargetIds.add(target.id())) {
+                            continue;
+                        }
+                        hitSweepTarget(context, attacker, player, castWorld, target);
+                    }
                 }
         );
         context.services().effects().sound(
@@ -84,47 +106,59 @@ public final class AdventurerAstralEdgeExecutor extends PlayerActiveSkillExecuto
                 1.0F,
                 1.05F
         );
-        targets.forEach(target -> context.services().combat().hit(
+        return context.success();
+    }
+
+    private void hitSweepTarget(
+            @NotNull PlayerActiveSkillContext context,
+            @NotNull AstEntity attacker,
+            @NotNull Player player,
+            @NotNull World castWorld,
+            @NotNull AstEntity target
+    ) {
+        context.services().combat().hit(
                 attacker,
                 target,
                 AttackType.MELEE,
                 DamageElement.NONE,
                 1.0D
-        ));
-
-        if (!targets.isEmpty()) {
-            context.services().tasks().later(player.getUniqueId(), THRUST_SCOPE, 4L, () -> {
-                if (!player.isOnline() || player.getWorld() != castWorld) {
-                    return;
-                }
-                targets.forEach(target -> {
-                    Location targetLocation = target.location().add(0.0D, 1.0D, 0.0D);
-                    context.services().effects().line(
-                            player.getEyeLocation(),
-                            targetLocation,
-                            0.38D,
-                            SharedParticleDefinitions.SKILL_SWORD_EDGE
-                    );
-                    context.services().combat().hit(
-                            attacker,
-                            target,
-                            AttackType.MELEE,
-                            DamageElement.NONE,
-                            0.5D
-                    );
-                    context.services().effects().point(
-                            targetLocation,
-                            SharedParticleDefinitions.SKILL_SWORD_EDGE
-                    );
-                    context.services().effects().sound(
-                            targetLocation,
-                            Sound.ENTITY_PLAYER_ATTACK_CRIT,
-                            0.85F,
-                            1.2F
-                    );
-                });
-            });
-        }
-        return context.success();
+        );
+        Location targetLocation = target.location().add(0.0D, 0.9D, 0.0D);
+        context.services().effects().sound(
+                targetLocation,
+                Sound.ENTITY_PLAYER_ATTACK_CRIT,
+                0.85F,
+                1.2F
+        );
+        String targetScope = THRUST_SCOPE + ":" + target.id();
+        context.services().tasks().later(player.getUniqueId(), targetScope, 4L, () -> {
+            if (!player.isOnline() || player.getWorld() != castWorld) {
+                return;
+            }
+            Location currentTargetLocation = target.location().add(0.0D, 0.9D, 0.0D);
+            context.services().effects().line(
+                    player.getEyeLocation(),
+                    currentTargetLocation,
+                    0.38D,
+                    SharedParticleDefinitions.SKILL_SWORD_EDGE
+            );
+            context.services().combat().hit(
+                    attacker,
+                    target,
+                    AttackType.MELEE,
+                    DamageElement.NONE,
+                    0.5D
+            );
+            context.services().effects().point(
+                    currentTargetLocation,
+                    SharedParticleDefinitions.SKILL_SWORD_EDGE
+            );
+            context.services().effects().sound(
+                    currentTargetLocation,
+                    Sound.ENTITY_PLAYER_ATTACK_CRIT,
+                    0.85F,
+                    1.2F
+            );
+        });
     }
 }

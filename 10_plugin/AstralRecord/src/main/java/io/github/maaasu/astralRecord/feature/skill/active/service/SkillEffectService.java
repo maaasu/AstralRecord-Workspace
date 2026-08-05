@@ -112,6 +112,50 @@ public final class SkillEffectService {
         particleDisplayService.spawnForNearbyViewers(origin, locations, definition);
     }
 
+    /**
+     * 視線方向を軸にした円弧を、上下方向を含めて表示します。
+     *
+     * @param origin 円弧の中心
+     * @param direction 視線方向
+     * @param radius 円弧の半径
+     * @param startAngleDegrees 開始角度。正の角度は視線から見て右側
+     * @param endAngleDegrees 終了角度
+     * @param points 表示点数
+     * @param definition パーティクル定義
+     */
+    public void viewArcSegment(
+            @NotNull Location origin,
+            @NotNull Vector direction,
+            double radius,
+            double startAngleDegrees,
+            double endAngleDegrees,
+            int points,
+            @NotNull SharedParticleDefinition definition
+    ) {
+        Vector forward = direction.clone();
+        if (forward.lengthSquared() <= 1.0E-8D) {
+            forward.setZ(1.0D);
+        }
+        forward.normalize();
+        Vector right = forward.clone().crossProduct(new Vector(0.0D, 1.0D, 0.0D));
+        if (right.lengthSquared() <= 1.0E-8D) {
+            right.setX(1.0D);
+        } else {
+            right.normalize();
+        }
+        int safePoints = Math.max(2, points);
+        List<Location> locations = new ArrayList<>(safePoints);
+        for (int index = 0; index < safePoints; index++) {
+            double fraction = (double) index / (safePoints - 1);
+            double angle = Math.toRadians(startAngleDegrees
+                    + (endAngleDegrees - startAngleDegrees) * fraction);
+            Vector offset = forward.clone().multiply(Math.cos(angle) * radius)
+                    .add(right.clone().multiply(Math.sin(angle) * radius));
+            locations.add(origin.clone().add(offset));
+        }
+        particleDisplayService.spawnForNearbyViewers(origin, locations, definition);
+    }
+
     /** 効果音を周辺プレイヤーへ再生します。 */
     public void sound(@NotNull Location location, @NotNull Sound sound, float volume, float pitch) {
         World world = location.getWorld();
