@@ -278,7 +278,8 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             );
             return;
         }
-        if (slot == SkillBindGui.NORMAL_ATTACK_SLOT) {
+        if (slot == SkillBindGui.NORMAL_ATTACK_SLOT
+            && SkillBindGui.shouldShowNormalAttack(page, session.selectedBindType())) {
             if (!event.isLeftClick()) {
                 GuiSound.DENY.play(player);
                 return;

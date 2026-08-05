@@ -105,9 +105,10 @@ public final class SkillBindGui {
 
         int start = GuiPagination.pageStart(page, CONTENT_SLOT_COUNT);
         int end = GuiPagination.pageEnd(page, entries.size(), CONTENT_SLOT_COUNT);
+        int contentSlotOffset = contentSlotOffset(page, session.selectedBindType());
         for (int index = start; index < end; index++) {
             SkillManagerEntry entry = entries.get(index);
-            inventory.setItem(index - start + 1, createLearnedSkillItem(entry, true));
+            inventory.setItem(index - start + contentSlotOffset, createLearnedSkillItem(entry, true));
         }
 
         for (int index = 0; index < SkillBindPreset.PASSIVE_SLOT_COUNT; index++) {
@@ -283,6 +284,17 @@ public final class SkillBindGui {
      */
     public static boolean shouldShowNormalAttack(int pageIndex, @Nullable SkillBindType selectedBindType) {
         return pageIndex == 0 && shouldShowNormalAttack(selectedBindType);
+    }
+
+    /**
+     * スキル一覧の描画開始位置を返します。
+     *
+     * @param pageIndex 0 始まりの一覧ページ番号
+     * @param selectedBindType 選択中のバインド種別
+     * @return 通常攻撃を表示する場合は 1、それ以外は 0
+     */
+    public static int contentSlotOffset(int pageIndex, @Nullable SkillBindType selectedBindType) {
+        return shouldShowNormalAttack(pageIndex, selectedBindType) ? 1 : 0;
     }
 
     private ItemStack createLearnedSkillItem(SkillManagerEntry entry, boolean listDisplay) {

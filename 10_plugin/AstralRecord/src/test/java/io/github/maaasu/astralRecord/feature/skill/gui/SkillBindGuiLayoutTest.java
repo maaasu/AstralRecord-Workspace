@@ -69,6 +69,10 @@ class SkillBindGuiLayoutTest {
         assertTrue(SkillBindGui.shouldShowNormalAttack(0, SkillBindType.ACTIVE));
         assertFalse(SkillBindGui.shouldShowNormalAttack(1, SkillBindType.ACTIVE));
         assertFalse(SkillBindGui.shouldShowNormalAttack(1, null));
+        // 通常攻撃を表示しないページでは、スキル一覧を slot 0 から左詰めで描画する。
+        assertEquals(0, SkillBindGui.contentSlotOffset(0, SkillBindType.PASSIVE));
+        assertEquals(0, SkillBindGui.contentSlotOffset(1, SkillBindType.ACTIVE));
+        assertEquals(1, SkillBindGui.contentSlotOffset(0, SkillBindType.ACTIVE));
     }
 
     /**
