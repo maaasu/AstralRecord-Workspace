@@ -258,6 +258,9 @@ public final class ShopGui {
         boolean exchange = isExchange(shop);
         lore.add(Component.text(exchange ? "◆ 両替情報 ◆" : "◆ 販売情報 ◆", NamedTextColor.GOLD, TextDecoration.BOLD)
             .decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text(exchange ? "受取数: " : "販売数: ", NamedTextColor.GRAY)
+            .append(Component.text(quantityText(Math.max(1, entry.amount())), NamedTextColor.AQUA, TextDecoration.BOLD))
+            .decoration(TextDecoration.ITALIC, false));
         if (!exchange || shopService.resolveGoldCost(entry) > 0) {
             lore.add(Component.text("価格: " + shopService.resolveGoldCost(entry) + " ゴールド", NamedTextColor.YELLOW)
                 .decoration(TextDecoration.ITALIC, false));
@@ -285,7 +288,7 @@ public final class ShopGui {
             .decoration(TextDecoration.ITALIC, false));
         lore.add(Component.text(exchange ? "受取通貨: " : "購入品: ", NamedTextColor.GRAY)
             .append(Component.text(shopService.resolveItemDisplayName(entry), NamedTextColor.WHITE))
-            .append(Component.text(" x" + (Math.max(1, entry.amount()) * preview.quantity()), NamedTextColor.AQUA))
+            .append(Component.text(" " + quantityText(Math.max(1, entry.amount()) * preview.quantity()), NamedTextColor.AQUA))
             .decoration(TextDecoration.ITALIC, false));
         lore.add(Component.text(exchange ? "両替口数: " : "購入数量: ", NamedTextColor.GRAY)
             .append(Component.text(String.valueOf(preview.quantity()), NamedTextColor.YELLOW))
@@ -455,6 +458,10 @@ public final class ShopGui {
             .decoration(TextDecoration.ITALIC, false);
     }
 
+    private @NotNull String quantityText(int quantity) {
+        return "×" + Math.max(1, quantity);
+    }
+
     private @NotNull Component sectionHeader(@NotNull String title) {
         return Component.text(LORE_DIVIDER, NamedTextColor.DARK_GRAY)
             .append(Component.text(" " + title + " ", NamedTextColor.GRAY))
@@ -476,7 +483,7 @@ public final class ShopGui {
         for (ShopCostItem material : materials) {
             lore.add(Component.text("• ", accentColor)
                 .append(Component.text(shopService.resolveItemDisplayName(material), NamedTextColor.WHITE))
-                .append(Component.text(" x" + material.amount(), accentColor))
+                .append(Component.text(" " + quantityText(material.amount()), accentColor))
                 .decoration(TextDecoration.ITALIC, false));
         }
     }
