@@ -16,9 +16,12 @@ public final class AdventurerSkillExecutorCatalog {
      * 冒険者用 executor をスキル表示順で生成します。
      *
      * @param services 共有発動スキルサービス
-     * @return 1個の executor
+     * @return 2個の executor
      */
     public static @NotNull List<SkillExecutor> create(@NotNull ActiveSkillServices services) {
-        return List.of(new AdventurerAstralEdgeExecutor(services));
+        return List.of(
+                new AdventurerAstralEdgeExecutor(services),
+                new AdventurerSmashExecutor(services)
+        );
     }
 }

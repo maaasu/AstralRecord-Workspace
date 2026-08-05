@@ -1,0 +1,55 @@
+# design:
+#   motif: "打撃 / 落下"
+#   progression: 1
+schemaVersion: 1
+id: adventurer_smash
+type: SKILL
+implementationId: adventurer_smash
+name: "&bスマッシュ"
+description: "&7敵を上空から地面へ叩き落とし、周囲の敵を吹き飛ばす近接技。"
+icon: IRON_AXE
+lore:
+  - "&7前方の敵1体へ近接攻撃力{skill.effectiveDamageRatio:percent}%の落下打撃。"
+  - "&7着地点の半径{skill.impactRadius}m以内にいる別の敵へ主対象の20%ダメージとノックバック。"
+  - "&8消費EN: 16 / クールダウン: 7.5秒"
+cooldownTicks: 150
+resourceType: ENERGY
+resourceCost: 16
+castTimeTicks: 12
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 3
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 4
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 5
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - cooldown_sigil
+  - cooldown_sigil_ii
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+onCast:
+  sound: entity.player.attack.strong
+tags:
+  - active
+  - melee
+  - adventurer
+params:
+  reach: 6.0
+  targetAngle: 35.0
+  impactRadius: 2.0
+  damageRatio: 2.40
+  secondaryRatio: 0.48
+  secondaryKnockback: 1.0
+  impactDelayTicks: 8
+  maxSecondaryTargets: 8
