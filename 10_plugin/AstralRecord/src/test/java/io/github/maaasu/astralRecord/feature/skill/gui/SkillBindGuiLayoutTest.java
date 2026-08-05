@@ -3,7 +3,16 @@ package io.github.maaasu.astralRecord.feature.skill.gui;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindInventoryHolder;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindScreen;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindType;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillManagerEntry;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
+import org.bukkit.Material;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -60,5 +69,42 @@ class SkillBindGuiLayoutTest {
         assertTrue(SkillBindGui.shouldShowNormalAttack(0, SkillBindType.ACTIVE));
         assertFalse(SkillBindGui.shouldShowNormalAttack(1, SkillBindType.ACTIVE));
         assertFalse(SkillBindGui.shouldShowNormalAttack(1, null));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+     * 章・見出し: # 13_3-GUI・View > ## 1. スキルマネージャー
+     * 検証契約: 使用許可を失った設定済みスキル枠は、本来のアイコンではなく薄灰色の羊毛で表示する。
+     */
+    @Test
+    void usesGrayWoolForUnpermittedBoundSkill() {
+        String bindingId = UUID.randomUUID().toString();
+        SkillManagerEntry unpermitted = entry(bindingId, false);
+        SkillManagerEntry permitted = entry(UUID.randomUUID().toString(), true);
+
+        assertEquals(
+            Material.LIGHT_GRAY_WOOL,
+            SkillBindGui.bindSlotMaterial(true, bindingId, false, unpermitted)
+        );
+        assertEquals(
+            Material.DIAMOND_SWORD,
+            SkillBindGui.bindSlotMaterial(true, permitted.bindingId(), false, permitted)
+        );
+        assertEquals(
+            Material.IRON_BARS,
+            SkillBindGui.bindSlotMaterial(false, bindingId, false, unpermitted)
+        );
+    }
+
+    private static SkillManagerEntry entry(String bindingId, boolean permitted) {
+        SkillDefinition definition = new SkillDefinition(
+            "test_skill", "test_skill", "テストスキル", null, "DIAMOND_SWORD", List.of(),
+            0L, 0.0D, 0L, 1, null, Map.of(), List.of(), SkillKind.ACTIVE, true,
+            null, null, "test_skill", 1, List.of(), List.of(), List.of()
+        );
+        LearnedSkillInstance learned = new LearnedSkillInstance(
+            UUID.fromString(bindingId), UUID.randomUUID(), "test_skill", 1, List.of(), 0, null, null
+        );
+        return new SkillManagerEntry(learned, definition, permitted);
     }
 }

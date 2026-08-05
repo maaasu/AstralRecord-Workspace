@@ -440,7 +440,18 @@ public final class SkillBindGui {
             .orElse(0);
     }
 
-    private ItemStack createBindSlot(
+    /**
+     * バインド枠の状態と習得個体を GUI 表示用 ItemStack へ変換します。
+     *
+     * @param type バインド種別
+     * @param index 種別内の枠番号
+     * @param bindingId バインドされた個体IDまたは通常攻撃予約ID
+     * @param entries 表示対象の習得個体一覧
+     * @param selected 選択中の枠かどうか
+     * @param enabled 現在設定可能な枠かどうか
+     * @return バインド枠の表示アイテム
+     */
+    ItemStack createBindSlot(
         SkillBindType type,
         int index,
         String bindingId,
@@ -468,11 +479,7 @@ public final class SkillBindGui {
             lore.add(separator());
             appendLearnedSkillDetails(lore, entry);
         }
-        Material material = !enabled ? Material.IRON_BARS
-            : bindingId == null ? Material.LIGHT_GRAY_STAINED_GLASS_PANE
-            : normalAttack ? Material.IRON_SWORD
-            : entry == null ? Material.BARRIER
-            : parseMaterial(entry.definition().getIcon(), DEFAULT_SKILL_ICON);
+        Material material = bindSlotMaterial(enabled, bindingId, normalAttack, entry);
         Component name = bindingId == null
             ? Component.text(label + "（未設定）", enabled ? NamedTextColor.WHITE : NamedTextColor.DARK_GRAY)
             : normalAttack
@@ -489,6 +496,48 @@ public final class SkillBindGui {
             item.setAmount(index + 1);
         }
         return selected ? glow(item) : item;
+    }
+
+    /**
+     * 習得個体の使用許可に応じたスキルアイコン素材を解決します。
+     *
+     * @param entry 表示対象の習得個体
+     * @return 許可時は定義アイコン、未許可時は薄灰色の羊毛
+     */
+    static @NotNull Material skillIconMaterial(@NotNull SkillManagerEntry entry) {
+        return entry.permitted()
+            ? parseMaterial(entry.definition().getIcon(), DEFAULT_SKILL_ICON)
+            : Material.LIGHT_GRAY_WOOL;
+    }
+
+    /**
+     * バインド枠の状態に応じて表示素材を選択します。
+     *
+     * @param enabled 現在設定可能な枠かどうか
+     * @param bindingId バインドID。未設定時は null
+     * @param normalAttack 通常攻撃予約IDの枠かどうか
+     * @param entry バインド対象の習得個体。解決できない場合は null
+     * @return バインド枠の表示素材
+     */
+    static @NotNull Material bindSlotMaterial(
+        boolean enabled,
+        @Nullable String bindingId,
+        boolean normalAttack,
+        @Nullable SkillManagerEntry entry
+    ) {
+        if (!enabled) {
+            return Material.IRON_BARS;
+        }
+        if (bindingId == null) {
+            return Material.LIGHT_GRAY_STAINED_GLASS_PANE;
+        }
+        if (normalAttack) {
+            return Material.IRON_SWORD;
+        }
+        if (entry == null) {
+            return Material.BARRIER;
+        }
+        return skillIconMaterial(entry);
     }
 
     private ItemStack createNormalAttackItem() {
@@ -713,7 +762,14 @@ public final class SkillBindGui {
         return item;
     }
 
-    private Material parseMaterial(String raw, Material fallback) {
+    /**
+     * Material 名を解決し、未指定または不明な場合はフォールバックを返します。
+     *
+     * @param raw 解決する Material 名
+     * @param fallback 解決に失敗した場合の素材
+     * @return 解決した素材またはフォールバック
+     */
+    private static @NotNull Material parseMaterial(@Nullable String raw, @NotNull Material fallback) {
         Material resolved = MaterialNameResolver.match(raw);
         return resolved == null ? fallback : resolved;
     }
