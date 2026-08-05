@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -43,7 +44,7 @@ class TrashServiceSoundTest {
         invokeOpenConfirm(service, player, List.of(normalizableItem()), 0);
 
         verify(player).playSound(location, Sound.BLOCK_NOTE_BLOCK_PLING, SoundCategory.PLAYERS, 0.65F, 1.35F);
-        verify(menuView).openTrashConfirm(eq(player), any(List.class), eq(0));
+        verify(menuView).openTrashConfirm(eq(player), anyList(), eq(0));
     }
 
     private void invokeOpenConfirm(TrashService service, Player player, List<ItemStack> items, int pageIndex) throws Exception {
