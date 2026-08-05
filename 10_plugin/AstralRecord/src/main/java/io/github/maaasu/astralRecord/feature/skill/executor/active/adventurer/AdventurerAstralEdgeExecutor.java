@@ -20,13 +20,6 @@ import java.util.List;
 public final class AdventurerAstralEdgeExecutor extends PlayerActiveSkillExecutor {
 
     public static final String ID = "adventurer_astral_edge";
-    private static final String SWEEP_SCOPE = ID + ":sweep";
-    private static final String THRUST_SCOPE = ID + ":thrust";
-    private static final double REACH = 5.5D;
-    private static final double SWEEP_RADIUS = 5.0D;
-    private static final double SWEEP_START_ANGLE = -55.0D;
-    private static final double SWEEP_END_ANGLE = 55.0D;
-    private static final int SWEEP_FRAMES = 6;
 
     /** 共有発動スキルサービスで初期化します。 */
     public AdventurerAstralEdgeExecutor(@NotNull ActiveSkillServices services) {
@@ -41,42 +34,15 @@ public final class AdventurerAstralEdgeExecutor extends PlayerActiveSkillExecuto
         Location origin = player.getLocation().add(0.0D, 1.0D, 0.0D);
         World castWorld = player.getWorld();
         List<AstEntity> targets = context.services().targeting()
-                .inCone(player, REACH, 110.0D, 5, true);
+                .inCone(player, 3.5D, 110.0D, 5, true);
 
-        context.services().tasks().repeat(
-                player.getUniqueId(),
-                SWEEP_SCOPE,
-                0L,
-                1L,
-                SWEEP_FRAMES,
-                frame -> {
-                    if (!player.isOnline() || player.getWorld() != castWorld) {
-                        context.services().tasks().cancel(player.getUniqueId(), SWEEP_SCOPE);
-                        return;
-                    }
-                    double headStart = SWEEP_START_ANGLE
-                            + (SWEEP_END_ANGLE - SWEEP_START_ANGLE) * frame / SWEEP_FRAMES;
-                    double headEnd = SWEEP_START_ANGLE
-                            + (SWEEP_END_ANGLE - SWEEP_START_ANGLE) * (frame + 1) / SWEEP_FRAMES;
-                    context.services().effects().arcSegment(
-                            origin,
-                            context.direction(),
-                            SWEEP_RADIUS,
-                            headStart,
-                            headEnd,
-                            5,
-                            SharedParticleDefinitions.ADVENTURER_ASTRAL_EDGE_CRIT
-                    );
-                    context.services().effects().arcSegment(
-                            origin,
-                            context.direction(),
-                            SWEEP_RADIUS,
-                            Math.max(SWEEP_START_ANGLE, headStart - 18.0D),
-                            headStart,
-                            4,
-                            SharedParticleDefinitions.ADVENTURER_ASTRAL_EDGE_SPARK
-                    );
-                }
+        context.services().effects().arc(
+                origin,
+                context.direction(),
+                3.1D,
+                110.0D,
+                11,
+                SharedParticleDefinitions.SKILL_SWORD_SWEEP
         );
         context.services().effects().sound(
                 origin,
@@ -93,7 +59,7 @@ public final class AdventurerAstralEdgeExecutor extends PlayerActiveSkillExecuto
         ));
 
         if (!targets.isEmpty()) {
-            context.services().tasks().later(player.getUniqueId(), THRUST_SCOPE, 4L, () -> {
+            context.services().tasks().later(player.getUniqueId(), ID, 4L, () -> {
                 if (!player.isOnline() || player.getWorld() != castWorld) {
                     return;
                 }

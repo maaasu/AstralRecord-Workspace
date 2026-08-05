@@ -190,10 +190,6 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("skill_sword_sweep", Particle.SWEEP_ATTACK, 1, 0.0D, 0.0D, 0.0D, 0.0D);
     public static final SharedParticleDefinition SKILL_SWORD_EDGE =
         new SharedParticleDefinition("skill_sword_edge", Particle.CRIT, 2, 0.04D, 0.04D, 0.04D, 0.02D);
-    public static final SharedParticleDefinition ADVENTURER_ASTRAL_EDGE_CRIT =
-        new SharedParticleDefinition("adventurer_astral_edge_crit", Particle.CRIT, 3, 0.04D, 0.04D, 0.04D, 0.08D);
-    public static final SharedParticleDefinition ADVENTURER_ASTRAL_EDGE_SPARK =
-        new SharedParticleDefinition("adventurer_astral_edge_spark", Particle.ELECTRIC_SPARK, 2, 0.03D, 0.03D, 0.03D, 0.04D);
     public static final SharedParticleDefinition SKILL_SWORD_GUARD_DUST =
         new SharedParticleDefinition(
             "skill_sword_guard_dust",

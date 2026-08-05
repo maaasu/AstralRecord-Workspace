@@ -82,19 +82,6 @@ public final class SkillEffectService {
             int points,
             @NotNull SharedParticleDefinition definition
     ) {
-        arcSegment(origin, direction, radius, -angleDegrees / 2.0D, angleDegrees / 2.0D, points, definition);
-    }
-
-    /** 指定した角度範囲の水平円弧を表示します。 */
-    public void arcSegment(
-            @NotNull Location origin,
-            @NotNull Vector direction,
-            double radius,
-            double startAngleDegrees,
-            double endAngleDegrees,
-            int points,
-            @NotNull SharedParticleDefinition definition
-    ) {
         Vector horizontal = direction.clone().setY(0.0D);
         if (horizontal.lengthSquared() <= 1.0E-8D) {
             horizontal.setZ(1.0D);
@@ -103,9 +90,8 @@ public final class SkillEffectService {
         int safePoints = Math.max(2, points);
         List<Location> locations = new ArrayList<>(safePoints);
         for (int index = 0; index < safePoints; index++) {
-            double fraction = (double) index / (safePoints - 1);
-            double angle = Math.toRadians(startAngleDegrees
-                    + (endAngleDegrees - startAngleDegrees) * fraction);
+            double fraction = safePoints == 1 ? 0.5D : (double) index / (safePoints - 1);
+            double angle = Math.toRadians((fraction - 0.5D) * angleDegrees);
             Vector offset = horizontal.clone().rotateAroundY(angle).multiply(radius);
             locations.add(origin.clone().add(offset));
         }
