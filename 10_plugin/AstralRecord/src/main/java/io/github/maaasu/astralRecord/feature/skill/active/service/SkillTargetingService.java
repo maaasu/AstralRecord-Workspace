@@ -83,6 +83,65 @@ public final class SkillTargetingService {
     }
 
     /**
+     * 視線方向を軸にした薙ぎ払いの角度範囲内にいる対象を返します。
+     * <p>
+     * 対象中心の視線軸からの角度と上下方向のずれを確認するため、
+     * 視点の高さと pitch を反映した薙ぎ払い判定に利用できます。
+     *
+     * @param player 発動者
+     * @param origin 発動時の視点位置
+     * @param direction 発動時の視線方向
+     * @param range 最大射程
+     * @param startAngleDegrees 判定開始角度。正の角度は視線から見て右側
+     * @param endAngleDegrees 判定終了角度
+     * @param maxTargets 最大対象数
+     * @param requireLineOfSight 遮蔽判定を行うか
+     * @return 指定角度範囲内の対象
+     */
+    public @NotNull List<AstEntity> inViewArcSegment(
+            @NotNull Player player,
+            @NotNull Location origin,
+            @NotNull Vector direction,
+            double range,
+            double startAngleDegrees,
+            double endAngleDegrees,
+            int maxTargets,
+            boolean requireLineOfSight
+    ) {
+        if (origin.getWorld() != player.getWorld()) {
+            return List.of();
+        }
+        Vector forward = normalized(direction);
+        Vector right = viewRight(forward);
+        Vector up = right.clone().crossProduct(forward).normalize();
+        double minAngle = Math.toRadians(Math.min(startAngleDegrees, endAngleDegrees));
+        double maxAngle = Math.toRadians(Math.max(startAngleDegrees, endAngleDegrees));
+        double rangeSquared = Math.max(0.0D, range) * Math.max(0.0D, range);
+        return targets(player, mob -> {
+            Location center = targetCenter(mob);
+            Vector offset = center.toVector().subtract(origin.toVector());
+            double distanceSquared = offset.lengthSquared();
+            if (distanceSquared > rangeSquared || distanceSquared <= 1.0E-8D) {
+                return false;
+            }
+            double forwardDistance = offset.dot(forward);
+            if (forwardDistance <= 0.0D) {
+                return false;
+            }
+            double angle = Math.atan2(offset.dot(right), forwardDistance);
+            return angle >= minAngle
+                    && angle <= maxAngle
+                    && Math.abs(offset.dot(up)) <= 1.35D
+                    && (!requireLineOfSight || hasLineOfSight(origin, center));
+        }).stream()
+                .sorted(Comparator.comparingDouble(target ->
+                        targetCenter(target).distanceSquared(origin)))
+                .limit(Math.max(0, maxTargets))
+                .map(AstEntity::mob)
+                .toList();
+    }
+
+    /**
      * 指定線分を中心とする capsule 内の対象を進行方向順で返します。
      *
      * @param player 発動者
@@ -319,6 +378,14 @@ public final class SkillTargetingService {
         return vector.lengthSquared() <= 1.0E-8D
                 ? new Vector(0.0D, 0.0D, 1.0D)
                 : vector.clone().normalize();
+    }
+
+    private static @NotNull Vector viewRight(@NotNull Vector forward) {
+        Vector right = forward.clone().crossProduct(new Vector(0.0D, 1.0D, 0.0D));
+        if (right.lengthSquared() <= 1.0E-8D) {
+            return new Vector(1.0D, 0.0D, 0.0D);
+        }
+        return right.normalize();
     }
 
     private static double horizontalDistanceSquared(@NotNull Location first, @NotNull Location second) {
