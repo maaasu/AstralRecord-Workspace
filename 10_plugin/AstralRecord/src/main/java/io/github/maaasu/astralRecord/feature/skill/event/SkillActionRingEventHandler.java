@@ -84,7 +84,7 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
         if (!snapshot.isMainHandInput()) {
             return List.of();
         }
-        if (player.getInventory().getHeldItemSlot() == 8) {
+        if (actionRingService.isOpen(player) && player.getInventory().getHeldItemSlot() == 8) {
             return List.of(new PlayerInputCandidate(
                 "skill-action-ring-reserved-slot",
                 InteractionTier.EXCLUSIVE_CONTEXT,
