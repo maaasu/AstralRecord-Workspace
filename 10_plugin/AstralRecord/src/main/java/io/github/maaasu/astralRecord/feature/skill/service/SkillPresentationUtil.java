@@ -1,7 +1,9 @@
 package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.skill.model.ResolvedLearnedSkill;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
 import net.kyori.adventure.text.Component;
@@ -10,14 +12,27 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
 import java.util.Set;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * スキル表示名の整形を共通化します。
  */
 public final class SkillPresentationUtil {
+    private static final Pattern SKILL_PLACEHOLDER = Pattern.compile(
+        "\\{skill\\.([A-Za-z0-9_.-]+)(?:\\[(\\d+)\\])?(?::(integer|decimal|percent|seconds|list))?\\}"
+    );
+    private static final Pattern LEGACY_ATTACK_RATIO = Pattern.compile(
+        "((?:近接|間接|魔法)攻撃力)([0-9]+(?:\\.[0-9]+)?)%"
+    );
     private SkillPresentationUtil() {
     }
 
@@ -111,6 +126,20 @@ public final class SkillPresentationUtil {
     }
 
     /**
+     * 習得個体を持たない画面向けに、基礎 params だけでスキル文を展開します。
+     *
+     * @param definition スキル定義
+     * @param text 展開対象のマスターテキスト
+     * @return プレースホルダー展開後のlegacy文字列
+     */
+    public static @NotNull String renderSkillTemplate(
+        @Nullable SkillDefinition definition,
+        @Nullable String text
+    ) {
+        return renderPlaceholders(text, definition == null ? Map.of() : definition.getParams());
+    }
+
+    /**
      * スキルマスターの説明と lore を GUI 用の行へ変換します。
      *
      * @param definition    スキル定義
@@ -125,9 +154,13 @@ public final class SkillPresentationUtil {
             return List.of();
         }
         List<Component> lines = new ArrayList<>();
-        appendMasterLine(lines, definition.getDescription(), fallbackColor);
+        appendMasterLine(
+            lines,
+            renderPlaceholders(definition.getDescription(), definition.getParams()),
+            fallbackColor
+        );
         for (String line : definition.getLore()) {
-            appendMasterLine(lines, line, fallbackColor);
+            appendMasterLine(lines, renderPlaceholders(line, definition.getParams()), fallbackColor);
         }
         return List.copyOf(lines);
     }
@@ -140,19 +173,170 @@ public final class SkillPresentationUtil {
         @Nullable SkillDefinition definition,
         @Nullable TextColor fallbackColor
     ) {
+        return skillDescriptionAndFlavorLore(definition, Map.of(), fallbackColor);
+    }
+
+    /**
+     * 習得レベル・シジル補正を反映したスキルの説明と効果文を表示用に変換します。
+     *
+     * @param resolved レベル・シジル補正済みのスキル
+     * @param fallbackColor カラーコード未指定時の色
+     * @return 補正済みプレースホルダーを展開した表示行
+     */
+    public static @NotNull List<Component> skillDescriptionAndFlavorLore(
+        @Nullable ResolvedLearnedSkill resolved,
+        @Nullable TextColor fallbackColor
+    ) {
+        if (resolved == null) return List.of();
+        return skillDescriptionAndFlavorLore(
+            resolved.definition(),
+            descriptionValues(resolved),
+            fallbackColor
+        );
+    }
+
+    private static @NotNull List<Component> skillDescriptionAndFlavorLore(
+        @Nullable SkillDefinition definition,
+        @NotNull Map<String, Object> values,
+        @Nullable TextColor fallbackColor
+    ) {
         if (definition == null) {
             return List.of();
         }
         List<Component> lines = new ArrayList<>();
-        appendMasterLine(lines, definition.getDescription(), fallbackColor);
+        appendMasterLine(lines, renderResolvedLine(definition.getDescription(), values), fallbackColor);
         for (String line : definition.getLore()) {
-            String plain = ColorCodeUtil.toPlainText(line, "");
+            String rendered = renderResolvedLine(line, values);
+            String plain = ColorCodeUtil.toPlainText(rendered, "");
             if (plain.contains("消費") && plain.contains("クールダウン")) {
                 continue;
             }
-            appendMasterLine(lines, line, fallbackColor);
+            appendMasterLine(lines, rendered, fallbackColor);
         }
         return List.copyOf(lines);
+    }
+
+    private static @NotNull String renderResolvedLine(
+        @Nullable String text,
+        @NotNull Map<String, Object> values
+    ) {
+        String rendered = renderPlaceholders(text, values);
+        if (values.containsKey("damageRatio") || values.containsKey("damageRatios")) {
+            return rendered;
+        }
+        Object rawIncrease = values.get("skillDamageIncrease");
+        if (!(rawIncrease instanceof Number number) || number.doubleValue() == 0.0D) {
+            return rendered;
+        }
+        double multiplier = 1.0D + number.doubleValue() / 100.0D;
+        Matcher matcher = LEGACY_ATTACK_RATIO.matcher(rendered);
+        StringBuffer result = new StringBuffer();
+        while (matcher.find()) {
+            double ratio = Double.parseDouble(matcher.group(2)) * multiplier;
+            matcher.appendReplacement(
+                result,
+                Matcher.quoteReplacement(matcher.group(1) + formatScalar(ratio, "decimal") + "%")
+            );
+        }
+        matcher.appendTail(result);
+        return result.toString();
+    }
+
+    /**
+     * スキルの説明文に使用する解決済み表示値を作成します。
+     * paramsの値を正本とし、レベル・シジル由来のスキルダメージ補正と、
+     * 倍率を補正した表示用エイリアスを追加します。
+     */
+    private static @NotNull Map<String, Object> descriptionValues(
+        @NotNull ResolvedLearnedSkill resolved
+    ) {
+        Map<String, Object> values = new HashMap<>();
+        values.putAll(resolved.definition().getParams());
+        values.put("level", resolved.learnedSkill().getLevel());
+        values.put("maxLevel", resolved.definition().getMaxLevel());
+        double damageIncrease = resolved.statusBonuses().getOrDefault(
+            StatusType.SKILL_DAMAGE_INCREASE,
+            0.0D
+        );
+        values.put("skillDamageIncrease", damageIncrease);
+        values.put("damageIncrease", damageIncrease);
+
+        Object damageRatio = values.get("damageRatio");
+        if (damageRatio instanceof Number number) {
+            values.put(
+                "effectiveDamageRatio",
+                number.doubleValue() * (1.0D + damageIncrease / 100.0D)
+            );
+        }
+        Object damageRatios = values.get("damageRatios");
+        if (damageRatios instanceof Collection<?> collection) {
+            List<Double> effective = new ArrayList<>();
+            for (Object value : collection) {
+                if (value instanceof Number number) {
+                    effective.add(number.doubleValue() * (1.0D + damageIncrease / 100.0D));
+                }
+            }
+            values.put("effectiveDamageRatios", List.copyOf(effective));
+            values.put("maxHits", effective.size());
+            Object bounceCount = values.get("bounceCount");
+            if (bounceCount instanceof Number number) {
+                values.put(
+                    "bounceCount",
+                    Math.min(Math.max(0, number.intValue()), Math.max(0, effective.size() - 1))
+                );
+            }
+        }
+        return Map.copyOf(values);
+    }
+
+    /** プレースホルダーを解決済み表示値へ置換します。未知の値は安全に「?」へ置換します。 */
+    private static @NotNull String renderPlaceholders(
+        @Nullable String text,
+        @NotNull Map<String, Object> values
+    ) {
+        if (text == null || text.isBlank()) return text == null ? "" : text;
+        Matcher matcher = SKILL_PLACEHOLDER.matcher(text);
+        StringBuffer result = new StringBuffer();
+        while (matcher.find()) {
+            Object value = values.get(matcher.group(1));
+            Integer index = matcher.group(2) == null ? null : Integer.valueOf(matcher.group(2));
+            String format = matcher.group(3);
+            String replacement = formatValue(value, index, format);
+            matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
+        }
+        matcher.appendTail(result);
+        return result.toString();
+    }
+
+    private static @NotNull String formatValue(
+        @Nullable Object value,
+        @Nullable Integer index,
+        @Nullable String format
+    ) {
+        if (value == null) return "?";
+        if (index != null) {
+            if (!(value instanceof List<?> list) || index < 0 || index >= list.size()) return "?";
+            return formatScalar(list.get(index), format);
+        }
+        if (value instanceof Collection<?> collection) {
+            String itemFormat = "percent".equals(format) ? "percent" : "decimal";
+            return collection.stream()
+                .map(item -> formatScalar(item, itemFormat))
+                .collect(java.util.stream.Collectors.joining(" / "));
+        }
+        return formatScalar(value, format);
+    }
+
+    private static @NotNull String formatScalar(@Nullable Object value, @Nullable String format) {
+        if (value instanceof Boolean || value instanceof String) return String.valueOf(value);
+        if (!(value instanceof Number number) || !Double.isFinite(number.doubleValue())) return "?";
+        double numeric = number.doubleValue();
+        if ("percent".equals(format)) numeric *= 100.0D;
+        if ("seconds".equals(format)) numeric /= 20.0D;
+        if ("integer".equals(format)) {
+            return BigDecimal.valueOf(numeric).setScale(0, RoundingMode.HALF_UP).toPlainString();
+        }
+        return BigDecimal.valueOf(numeric).stripTrailingZeros().toPlainString();
     }
 
     /**

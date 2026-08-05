@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
+import java.util.List;
 
 /**
  * {@link SkillDefinition#getParams()} の値を実装側から安全に参照するための補助。
@@ -65,6 +66,58 @@ public final class SkillParamReader {
         throw new SkillParameterException(key,
                 "skillId=" + skillId + " の params[" + key + "] は数値が必要です: actual="
                         + raw.getClass().getSimpleName());
+    }
+
+    /**
+     * 整数値を取得します。未定義時は {@code defaultValue} を返します。
+     *
+     * @param key キー名
+     * @param defaultValue 未定義時のデフォルト値
+     * @return 解決された整数値
+     * @throws SkillParameterException 整数へ安全に変換できない値が指定されている場合
+     */
+    public int getInt(@NotNull String key, int defaultValue) {
+        Object raw = params.get(key);
+        if (raw == null) return defaultValue;
+        if (!(raw instanceof Number number) || !Double.isFinite(number.doubleValue())) {
+            throw new SkillParameterException(key,
+                    "skillId=" + skillId + " の params[" + key + "] は数値が必要です");
+        }
+        double value = number.doubleValue();
+        if (value != Math.rint(value) || value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
+            throw new SkillParameterException(key,
+                    "skillId=" + skillId + " の params[" + key + "] は整数が必要です: actual=" + value);
+        }
+        return (int) value;
+    }
+
+    /**
+     * 数値配列を取得します。配列要素はJSON/YAML読込後のNumberである必要があります。
+     *
+     * @param key キー名
+     * @param defaultValue 未定義時のデフォルト値
+     * @return immutableな数値配列
+     * @throws SkillParameterException 配列または数値以外が指定されている場合
+     */
+    public @NotNull List<Double> getDoubleList(
+            @NotNull String key,
+            @NotNull List<Double> defaultValue
+    ) {
+        Object raw = params.get(key);
+        if (raw == null) return List.copyOf(defaultValue);
+        if (!(raw instanceof List<?> values)) {
+            throw new SkillParameterException(key,
+                    "skillId=" + skillId + " の params[" + key + "] は数値配列が必要です");
+        }
+        java.util.ArrayList<Double> result = new java.util.ArrayList<>(values.size());
+        for (Object value : values) {
+            if (!(value instanceof Number number) || !Double.isFinite(number.doubleValue())) {
+                throw new SkillParameterException(key,
+                        "skillId=" + skillId + " の params[" + key + "] に不正な配列要素があります");
+            }
+            result.add(number.doubleValue());
+        }
+        return List.copyOf(result);
     }
 
     /**

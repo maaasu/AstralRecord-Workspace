@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillSer
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -21,8 +22,6 @@ import java.util.UUID;
 public final class HunterRicochetExecutor extends PlayerActiveSkillExecutor {
 
     public static final String ID = "hunter_ricochet";
-    private static final double[] RATIOS = {1.15D, 0.90D, 0.70D, 0.55D};
-
     /** 共有発動スキルサービスで初期化します。 */
     public HunterRicochetExecutor(@NotNull ActiveSkillServices services) {
         super(ID, services);
@@ -32,14 +31,27 @@ public final class HunterRicochetExecutor extends PlayerActiveSkillExecutor {
     @Override
     protected @NotNull SkillCastResult castPlayer(@NotNull PlayerActiveSkillContext context) {
         AstEntity attacker = context.attacker();
+        SkillParamReader params = new SkillParamReader(
+                context.source().skill().getId(),
+                context.source().skill().getParams()
+        );
+        java.util.List<Double> ratios = params.getDoubleList(
+                "damageRatios",
+                java.util.List.of(1.15D, 0.90D, 0.70D, 0.55D)
+        );
+        int bounceCount = Math.max(0, params.getInt("bounceCount", ratios.size() - 1));
+        double searchRange = params.getDouble("bounceSearchRange", 5.0D);
         SkillProjectileSpec projectile = new SkillProjectileSpec(
-                15.0D, 1.6D, 0.45D, false, 1,
+                params.getDouble("projectileRange", 15.0D),
+                params.getDouble("projectileSpeed", 1.6D),
+                params.getDouble("projectileHitRadius", 0.45D),
+                false, 1,
                 SharedParticleDefinitions.SKILL_HUNTER_ARROW,
                 SharedParticleDefinitions.SKILL_HUNTER_IMPACT
         );
         context.services().projectiles().launch(
                 context.player(), context.eyeLocation(), context.direction(), projectile,
-                (first, impact) -> chain(context, attacker, first),
+                (first, impact) -> chain(context, attacker, first, ratios, bounceCount, searchRange),
                 ignored -> { }
         );
         context.services().effects().sound(context.eyeLocation(), Sound.ENTITY_ARROW_SHOOT, 1.0F, 1.05F);
@@ -49,21 +61,25 @@ public final class HunterRicochetExecutor extends PlayerActiveSkillExecutor {
     private void chain(
             @NotNull PlayerActiveSkillContext context,
             @NotNull AstEntity attacker,
-            @NotNull AstEntity first
+            @NotNull AstEntity first,
+            @NotNull java.util.List<Double> ratios,
+            int bounceCount,
+            double searchRange
     ) {
         Set<UUID> hitIds = new HashSet<>();
         AstEntity current = first;
         Location previous = context.eyeLocation();
-        for (int index = 0; index < RATIOS.length && current != null; index++) {
+        int maxHits = Math.min(ratios.size(), bounceCount + 1);
+        for (int index = 0; index < maxHits && current != null; index++) {
             Location currentCenter = current.location().clone().add(0.0D, 1.0D, 0.0D);
             context.services().effects().line(
                     previous, currentCenter, 0.4D, SharedParticleDefinitions.SKILL_HUNTER_IMPACT);
             context.services().combat().hit(
-                    attacker, current, AttackType.RANGED, DamageElement.NONE, RATIOS[index]);
+                    attacker, current, AttackType.RANGED, DamageElement.NONE, ratios.get(index));
             hitIds.add(current.id());
             previous = currentCenter;
             current = context.services().targeting().nearestFrom(
-                    context.player(), currentCenter, 5.0D, hitIds);
+                    context.player(), currentCenter, searchRange, hitIds);
         }
     }
 }

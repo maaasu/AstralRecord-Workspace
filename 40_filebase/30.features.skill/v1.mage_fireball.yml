@@ -9,8 +9,8 @@ name: "&c火焔弾"
 description: "&7火球を放ち、着弾地点を巻き込む炎と燃焼で敵を追い詰める。"
 icon: FIRE_CHARGE
 lore:
-  - "&7射程14m、着弾地点2.3mへ魔法攻撃力125%の火ダメージ。"
-  - "&760%の確率で3秒間の燃焼を付与する。"
+  - "&7射程{skill.range}m、着弾地点{skill.radius}mへ魔法攻撃力{skill.effectiveDamageRatio:percent}%の火ダメージ。最大{skill.maxTargets}体。"
+  - "&7{skill.burnChance}%の確率で{skill.burnDurationTicks:seconds}秒間の燃焼を付与する。"
   - "&8消費MP: 18 / クールダウン: 3.0秒"
 cooldownTicks: 60
 resourceType: MANA
@@ -45,3 +45,12 @@ tags:
   - active
   - magic
   - fire
+params:
+  range: 14.0
+  radius: 2.3
+  damageRatio: 1.25
+  maxTargets: 8
+  projectileSpeed: 1.25
+  projectileHitRadius: 0.65
+  burnChance: 60
+  burnDurationTicks: 60

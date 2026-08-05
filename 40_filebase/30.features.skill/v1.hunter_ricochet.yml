@@ -9,8 +9,8 @@ name: "&a跳ね矢"
 description: "&7命中した矢が近くの獲物へ次々と跳び、散らばった敵を追い射る。"
 icon: AMETHYST_SHARD
 lore:
-  - "&7最初の敵へ間接攻撃力115%のダメージ。"
-  - "&7近くの敵へ最大3回跳び、跳ぶたびに威力が下がる。"
+  - "&7最初の敵へ間接攻撃力{skill.effectiveDamageRatios[0]:percent}%のダメージ。"
+  - "&7近くの敵へ最大{skill.bounceCount}回跳び、跳ぶたびに威力が下がる。倍率: {skill.effectiveDamageRatios:percent}%"
   - "&8消費EN: 26 / クールダウン: 9.0秒"
 cooldownTicks: 180
 resourceType: ENERGY
@@ -43,3 +43,10 @@ onCast:
 tags:
   - active
   - ranged
+params:
+  projectileRange: 15.0
+  projectileSpeed: 1.6
+  projectileHitRadius: 0.45
+  damageRatios: [1.15, 0.90, 0.70, 0.55]
+  bounceSearchRange: 5.0
+  bounceCount: 3

@@ -34,6 +34,7 @@ public final class LearnedSkillResolver {
         double resourceDelta = 0.0D;
         long castTimeDelta = 0L;
         Map<String, Double> paramDeltas = new LinkedHashMap<>();
+        Map<String, Double> indexedParamDeltas = new LinkedHashMap<>();
         Map<StatusType, Double> statusBonuses = new HashMap<>();
 
         for (SkillLevelDefinition level : base.getLevels()) {
@@ -41,7 +42,13 @@ public final class LearnedSkillResolver {
             cooldownDelta += level.getCooldownTicksDelta();
             resourceDelta += level.getResourceCostDelta();
             castTimeDelta += level.getCastTimeTicksDelta();
-            level.getParamDeltas().forEach((key, value) -> paramDeltas.merge(key, value, Double::sum));
+            level.getParamDeltas().forEach((key, value) -> {
+                if (isIndexedParamKey(key)) {
+                    indexedParamDeltas.merge(key, value, Double::sum);
+                } else {
+                    paramDeltas.merge(key, value, Double::sum);
+                }
+            });
             for (SkillStatusModifierDefinition modifier : level.getStatusModifiers()) {
                 addStatusBonus(statusBonuses, modifier.getStatus(), modifier.getValue());
             }
@@ -74,6 +81,7 @@ public final class LearnedSkillResolver {
             double baseValue = current instanceof Number number ? number.doubleValue() : 0.0D;
             params.put(key, baseValue + delta);
         });
+        indexedParamDeltas.forEach((key, delta) -> applyIndexedParamDelta(params, key, delta));
 
         Double resourceCost = base.getResourceCost();
         double resolvedResourceCost = Math.max(0.0D, (resourceCost == null ? base.getManaCost() : resourceCost) + resourceDelta);
@@ -108,6 +116,30 @@ public final class LearnedSkillResolver {
         StatusType type = StatusType.fromId(rawStatus.trim().toUpperCase(java.util.Locale.ROOT));
         if (type != null && Double.isFinite(value)) {
             target.merge(type, value, Double::sum);
+        }
+    }
+
+    private static boolean isIndexedParamKey(String key) {
+        int open = key.lastIndexOf('[');
+        return open > 0 && key.endsWith("]") && open < key.length() - 2
+            && key.substring(open + 1, key.length() - 1).chars().allMatch(Character::isDigit);
+    }
+
+    private static void applyIndexedParamDelta(
+        Map<String, Object> params,
+        String indexedKey,
+        double delta
+    ) {
+        int open = indexedKey.lastIndexOf('[');
+        String key = indexedKey.substring(0, open);
+        int index = Integer.parseInt(indexedKey.substring(open + 1, indexedKey.length() - 1));
+        Object raw = params.get(key);
+        if (!(raw instanceof java.util.List<?> list) || index < 0 || index >= list.size()) return;
+        java.util.ArrayList<Object> resolved = new java.util.ArrayList<>(list);
+        Object current = resolved.get(index);
+        if (current instanceof Number number) {
+            resolved.set(index, number.doubleValue() + delta);
+            params.put(key, java.util.List.copyOf(resolved));
         }
     }
 }

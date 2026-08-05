@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillSer
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -60,6 +61,15 @@ public record PlayerActiveSkillContext(
         return direction.lengthSquared() <= 1.0E-8D
                 ? new Vector(0.0D, 0.0D, 1.0D)
                 : direction.normalize();
+    }
+
+    /**
+     * 発動時に解決済みとなった params の型付きReaderを返します。
+     *
+     * @return 実行値のReader
+     */
+    public @NotNull SkillParamReader params() {
+        return new SkillParamReader(source.skill().getId(), source.skill().getParams());
     }
 
     /**

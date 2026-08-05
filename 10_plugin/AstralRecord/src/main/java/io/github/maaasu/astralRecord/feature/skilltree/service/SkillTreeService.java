@@ -1651,11 +1651,11 @@ public class SkillTreeService {
 
     private @NotNull String firstSkillDescription(@NotNull io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition definition) {
         if (definition.getDescription() != null && !definition.getDescription().isBlank()) {
-            return definition.getDescription();
+            return SkillPresentationUtil.renderSkillTemplate(definition, definition.getDescription());
         }
         for (String line : definition.getLore()) {
             if (line != null && !line.isBlank()) {
-                return line;
+                return SkillPresentationUtil.renderSkillTemplate(definition, line);
             }
         }
         return "";

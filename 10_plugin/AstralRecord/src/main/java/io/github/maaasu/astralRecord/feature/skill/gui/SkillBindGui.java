@@ -5,6 +5,8 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemSigilModifier;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillSigil;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
+import io.github.maaasu.astralRecord.feature.skill.model.ResolvedLearnedSkill;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindInventoryHolder;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindScreen;
@@ -16,6 +18,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillSigilSlotDefinition;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillSynthesisMaterialEligibility.MaterialKind;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
@@ -44,6 +47,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 /** 習得・強化・シジル合成・バインドを統合したスキルマネージャー GUI です。 */
 public final class SkillBindGui {
@@ -68,12 +72,18 @@ public final class SkillBindGui {
     private final NamespacedKey learnedSkillIdKey;
     private final NamespacedKey dummyKey;
     private final ItemService itemService;
+    private final SkillService skillService;
     private final ConfirmDialogView confirmDialogView = new ConfirmDialogView();
 
-    public SkillBindGui(@NotNull AstralRecord plugin, @NotNull ItemService itemService) {
+    public SkillBindGui(
+        @NotNull AstralRecord plugin,
+        @NotNull ItemService itemService,
+        @NotNull SkillService skillService
+    ) {
         learnedSkillIdKey = new NamespacedKey(plugin, "skill_manager_learned_skill_id");
         dummyKey = new NamespacedKey(plugin, "skill_manager_dummy");
         this.itemService = itemService;
+        this.skillService = skillService;
     }
 
     public void open(
@@ -274,11 +284,11 @@ public final class SkillBindGui {
     /** 一覧・設定済みスロットで共通に表示する、習得済みスキルのプレイヤー向け詳細です。 */
     private void appendLearnedSkillDetails(@NotNull List<Component> lore, @NotNull SkillManagerEntry entry) {
         SkillDefinition skill = entry.definition();
-        lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(skill, NamedTextColor.GRAY));
+        lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(entry.resolved(), NamedTextColor.GRAY));
         if (!lore.isEmpty()) {
             lore.add(separator());
         }
-        appendCastCostLore(lore, skill);
+        appendCastCostLore(lore, entry.resolved());
         lore.add(separator());
         String tagNames = SkillPresentationUtil.skillTagDisplayNames(skill,
             Set.of(MasterTagIds.Activity.ACTIVE, MasterTagIds.Activity.PASSIVE));
@@ -300,8 +310,12 @@ public final class SkillBindGui {
         appendSigilSlotLore(lore, entry, entry.learnedSkill().getLevel(), null);
     }
 
-    /** 消費とクールダウンを、旧 lore の一行表記から独立した読みやすい項目へ整形します。 */
-    private void appendCastCostLore(@NotNull List<Component> lore, @NotNull SkillDefinition skill) {
+    /** 消費とクールダウンを、解決済みレベル・シジル補正込みで表示します。 */
+    private void appendCastCostLore(
+        @NotNull List<Component> lore,
+        @NotNull ResolvedLearnedSkill resolved
+    ) {
+        SkillDefinition skill = resolved.definition();
         double resourceCost = skill.getResourceCost() == null ? skill.getManaCost() : skill.getResourceCost();
         SkillResourceType resourceType = skill.getResourceType() == null
             ? SkillResourceType.MANA
@@ -310,7 +324,10 @@ public final class SkillBindGui {
         String cost = BigDecimal.valueOf(resourceCost).stripTrailingZeros().toPlainString();
         lore.add(Component.text("消費リソース: " + resourceName + " " + cost, NamedTextColor.AQUA));
         if (!skill.getKind().isPassive()) {
-            String cooldownSeconds = BigDecimal.valueOf(skill.getCooldownTicks() / 20.0D)
+            double reduction = resolved.statusBonuses().getOrDefault(StatusType.COOLDOWN_REDUCTION, 0.0D);
+            long cooldownTicks = io.github.maaasu.astralRecord.feature.combat.service.CombatTimingCalculator
+                .resolveCooldownTicks(skill.getCooldownTicks(), reduction);
+            String cooldownSeconds = BigDecimal.valueOf(cooldownTicks / 20.0D)
                 .stripTrailingZeros().toPlainString();
             lore.add(Component.text("クールダウン: " + cooldownSeconds + "秒", NamedTextColor.YELLOW));
         }
@@ -547,12 +564,13 @@ public final class SkillBindGui {
         boolean levelUp = materialKind == MaterialKind.GEM;
         ItemModel pendingSigil = materialKind == MaterialKind.SIGIL ? material : null;
         int resultingLevel = levelUp ? Math.min(skill.getMaxLevel(), currentLevel + 1) : currentLevel;
+        ResolvedLearnedSkill preview = resolvedPreview(entry, resultingLevel, pendingSigil);
         List<Component> lore = new ArrayList<>();
-        lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(skill, NamedTextColor.GRAY));
+        lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(preview, NamedTextColor.GRAY));
         if (!lore.isEmpty()) {
             lore.add(separator());
         }
-        appendCastCostLore(lore, skill);
+        appendCastCostLore(lore, preview);
         lore.add(separator());
         lore.add(Component.text(
             "種別: " + (skill.getKind().isPassive() ? "パッシブ" : "アクティブ"),
@@ -571,12 +589,49 @@ public final class SkillBindGui {
             NamedTextColor.YELLOW
         ));
         return createItem(
-            parseMaterial(skill.getIcon(), DEFAULT_SKILL_ICON),
-                SkillPresentationUtil.skillNameComponent(skill, skill.getId(), NamedTextColor.WHITE)
+            parseMaterial(preview.definition().getIcon(), DEFAULT_SKILL_ICON),
+                SkillPresentationUtil.skillNameComponent(preview.definition(), skill.getId(), NamedTextColor.WHITE)
                     .append(Component.text(" Lv." + resultingLevel + "/" + skill.getMaxLevel(),
                     NamedTextColor.GREEN)),
             lore
         );
+    }
+
+    /** 合成後の仮想レベル・シジルを実行時と同じResolverで解決します。 */
+    private @NotNull ResolvedLearnedSkill resolvedPreview(
+        @NotNull SkillManagerEntry entry,
+        int resultingLevel,
+        @Nullable ItemModel pendingSigil
+    ) {
+        LearnedSkillInstance learned = entry.learnedSkill();
+        List<LearnedSkillSigil> sigils = new ArrayList<>(learned.getSigils());
+        if (pendingSigil != null && pendingSigil.getSigil() != null) {
+            int slotCandidate = 0;
+            while (true) {
+                int candidate = slotCandidate;
+                if (sigils.stream().noneMatch(sigil -> sigil.getSlotIndex() == candidate)) break;
+                slotCandidate++;
+            }
+            int slotIndex = slotCandidate;
+            sigils.add(new LearnedSkillSigil(
+                UUID.randomUUID(),
+                pendingSigil.getId(),
+                pendingSigil.getSigil().getEquipGroupId(),
+                slotIndex
+            ));
+        }
+        LearnedSkillInstance projected = new LearnedSkillInstance(
+            learned.getLearnedSkillId(),
+            learned.getAccountId(),
+            learned.getSkillId(),
+            resultingLevel,
+            sigils,
+            learned.getVersion(),
+            learned.getCreatedAt(),
+            learned.getUpdatedAt()
+        );
+        ResolvedLearnedSkill resolved = skillService.resolveLearnedSkill(projected);
+        return resolved == null ? entry.resolved() : resolved;
     }
 
     private @NotNull String materialFailureText(@NotNull MaterialKind kind) {

@@ -53,9 +53,8 @@ public abstract class PlayerActiveSkillExecutor implements SkillExecutor {
         if (!implementationId.equals(skill.getId())) {
             throw new SkillParameterException("id", "skillId と implementationId を一致させてください");
         }
-        if (!skill.getParams().isEmpty()) {
-            throw new SkillParameterException("params", "コード定義スキルでは params を使用しません");
-        }
+        // params は実行値と説明文の共通正本として、コード定義スキルでも利用します。
+        // 個別Executorが参照する必須キー・型は各Executorの validateParams で検証できます。
     }
 
     /**

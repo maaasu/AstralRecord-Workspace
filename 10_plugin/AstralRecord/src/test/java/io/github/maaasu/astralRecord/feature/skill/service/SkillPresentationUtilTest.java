@@ -1,8 +1,11 @@
 package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
+import io.github.maaasu.astralRecord.feature.skill.model.ResolvedLearnedSkill;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -12,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -76,6 +80,72 @@ class SkillPresentationUtilTest {
 
         assertEquals(List.of("敵へ炎ダメージを与える。"), rendered);
         assertFalse(rendered.stream().anyMatch(line -> line.contains("クールダウン")));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_1-モデル定義.md
+     * 章・見出し: # 13_1-モデル定義 > ## 3. 解決済みスキル
+     * 検証契約: レベル・シジル由来のスキルダメージ補正を倍率と倍率配列へ計算し、説明文へ展開する。
+     */
+    @Test
+    void resolvedValuesExpandScalarAndArrayPlaceholders() {
+        SkillDefinition definition = new SkillDefinition(
+            "hunter_ricochet", "hunter_ricochet", "跳ね矢",
+            "射程{skill.range}m、威力{skill.effectiveDamageRatio:percent}%。",
+            "AMETHYST_SHARD", List.of(
+                "倍率: {skill.effectiveDamageRatios:percent}",
+                "先頭: {skill.effectiveDamageRatios[0]:percent}%"
+            ),
+            0L, 0.0D, 0L, 1, null,
+            Map.of(
+                "range", 15.0D,
+                "damageRatio", 1.15D,
+                "damageRatios", List.of(1.15D, 0.90D)
+            ),
+            List.of(), SkillKind.ACTIVE, true, SkillResourceType.ENERGY, 0.0D,
+            "hunter_ricochet", 2, List.of(), List.of(), List.of()
+        );
+        LearnedSkillInstance learned = new LearnedSkillInstance(
+            UUID.randomUUID(), UUID.randomUUID(), definition.getId(), 2,
+            List.of(), 0, null, null
+        );
+        ResolvedLearnedSkill resolved = new ResolvedLearnedSkill(
+            learned,
+            definition,
+            Map.of(StatusType.SKILL_DAMAGE_INCREASE, 5.0D),
+            Set.of()
+        );
+
+        List<String> rendered = SkillPresentationUtil.skillDescriptionAndFlavorLore(resolved, null).stream()
+            .map(PlainTextComponentSerializer.plainText()::serialize)
+            .toList();
+
+        assertEquals("射程15m、威力120.75%。", rendered.get(0));
+        assertEquals("倍率: 120.75 / 94.5", rendered.get(1));
+        assertEquals("先頭: 120.75%", rendered.get(2));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_1-モデル定義.md
+     * 章・見出し: # 13_1-モデル定義 > ## 3. 解決済みスキル
+     * 検証契約: 既存の固定説明文も、攻撃力倍率だけは解決済みスキル補正を反映する。
+     */
+    @Test
+    void legacyAttackRatioReflectsResolvedSkillDamageIncrease() {
+        SkillDefinition definition = definition(List.of(), List.of("&7近接攻撃力100%のダメージ。"));
+        LearnedSkillInstance learned = new LearnedSkillInstance(
+            UUID.randomUUID(), UUID.randomUUID(), definition.getId(), 2,
+            List.of(), 0, null, null
+        );
+        ResolvedLearnedSkill resolved = new ResolvedLearnedSkill(
+            learned, definition, Map.of(StatusType.SKILL_DAMAGE_INCREASE, 5.0D), Set.of()
+        );
+
+        List<String> rendered = SkillPresentationUtil.skillDescriptionAndFlavorLore(resolved, null).stream()
+            .map(PlainTextComponentSerializer.plainText()::serialize)
+            .toList();
+
+        assertEquals(List.of("近接攻撃力105%のダメージ。"), rendered);
     }
 
     private static SkillDefinition definition(List<String> tags, List<String> lore) {

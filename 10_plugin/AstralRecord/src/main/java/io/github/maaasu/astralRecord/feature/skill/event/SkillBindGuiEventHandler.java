@@ -20,6 +20,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillBindType;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillManagerEntry;
+import io.github.maaasu.astralRecord.feature.skill.model.ResolvedLearnedSkill;
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
@@ -658,13 +659,13 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     private List<SkillManagerEntry> allEntries(AstPlayer player) {
         List<SkillManagerEntry> result = new ArrayList<>();
         for (LearnedSkillInstance learned : ownershipService.learnedSkills(player)) {
-            SkillDefinition definition = skillService.registry().getDefinition(learned.getSkillId());
-            if (definition == null) continue;
-            result.add(new SkillManagerEntry(
-                learned,
-                definition,
-                permissionService.isPermitted(player, learned.getSkillId())
-            ));
+            SkillDefinition base = skillService.registry().getDefinition(learned.getSkillId());
+            if (base == null) continue;
+            ResolvedLearnedSkill resolved = skillService.resolveLearnedSkill(learned);
+            boolean permitted = permissionService.isPermitted(player, learned.getSkillId());
+            result.add(resolved == null
+                ? new SkillManagerEntry(learned, base, permitted)
+                : new SkillManagerEntry(learned, resolved.definition(), permitted, resolved));
         }
         result.sort(Comparator
             .comparing((SkillManagerEntry entry) -> !entry.permitted())
@@ -678,12 +679,13 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         if (learnedSkillId == null || learnedSkillId.isBlank()) return null;
         LearnedSkillInstance learned = ownershipService.findInstance(player, learnedSkillId);
         if (learned == null) return null;
-        SkillDefinition definition = skillService.registry().getDefinition(learned.getSkillId());
-        return definition == null ? null : new SkillManagerEntry(
-            learned,
-            definition,
-            permissionService.isPermitted(player, learned.getSkillId())
-        );
+        SkillDefinition base = skillService.registry().getDefinition(learned.getSkillId());
+        if (base == null) return null;
+        ResolvedLearnedSkill resolved = skillService.resolveLearnedSkill(learned);
+        boolean permitted = permissionService.isPermitted(player, learned.getSkillId());
+        return resolved == null
+            ? new SkillManagerEntry(learned, base, permitted)
+            : new SkillManagerEntry(learned, resolved.definition(), permitted, resolved);
     }
 
     private void openMain(Player player, SkillBindSession session, int page, boolean suppressPreviousClose) {

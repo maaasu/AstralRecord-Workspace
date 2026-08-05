@@ -1061,7 +1061,7 @@ public final class AstralRecord extends JavaPlugin {
         skillService.setPlayerCastSuccessListener((player, skillId) ->
             guideService.recordCondition(player, GuideConditionType.SKILL_CAST, skillId)
         );
-        skillBindGui = new SkillBindGui(this, itemService);
+        skillBindGui = new SkillBindGui(this, itemService, skillService);
         itemWeaponAttackService = new ItemWeaponAttackService(inventoryService, skillService);
         itemWeaponAttackService.setEquipmentDurabilityService(equipmentDurabilityService);
         skillActionRingService.setItemWeaponAttackService(itemWeaponAttackService);

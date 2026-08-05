@@ -35,7 +35,7 @@
 | `levels[].cooldownTicksDelta` | Long | 任意 | `0` | 基礎クールダウンへの加算 tick |
 | `levels[].resourceCostDelta` | Double | 任意 | `0` | 基礎消費量への加算 |
 | `levels[].castTimeTicksDelta` | Long | 任意 | `0` | 基礎詠唱時間への加算 tick |
-| `levels[].paramDeltas` | Map<String, Double> | 任意 | `{}` | 数値 params への加算。非数値 params には使用不可 |
+| `levels[].paramDeltas` | Map<String, Double> | 任意 | `{}` | 数値 params への加算。配列要素は `damageRatios[0]` のように index を指定 |
 | `levels[].statusModifiers[]` | List | 任意 | `[]` | このスキルの計算中だけ加算するステータス補正。共有カタログの既知status IDだけを指定 |
 | `sigilSlotsByLevel[]` | List | 任意 | `[]` | 指定レベル以降のシジル装着可能数。現在レベル以下で最大の定義を採用 |
 | `allowedSigilIds` | List<String> | 任意 | `[]` | このスキルへ合成可能なシジル ID |
@@ -43,16 +43,36 @@
 | `gem.rarity` | String | 必須 | - | 自動生成ジェムのレアリティ。DTO既定値へ暗黙fallbackせず各マスタで明示 |
 | `gem.tradeable` | Boolean | 任意 | `false` | 自動生成ジェムを取引可能にするか |
 | `gem.sellable` | Boolean | 任意 | `false` | 自動生成ジェムを売却可能にするか |
-| `params` | Map<String, Any> | 任意 | `{}` | 実装固有の拡張パラメータ。共通項目は定義しない |
+| `params` | Map<String, Any> | 任意 | `{}` | Executorと説明文で共有する実効値。共通項目は定義しない |
 | `tags` | List<String> | 任意 | `[]` | `76.shared.tag/v1.tags.yml`の`SKILL`対象タグID |
+
+## 説明文プレースホルダー
+
+`description` と `lore` では、解決済み `params` の値を次の形式で参照できます。
+
+| 記法 | 内容 |
+| --- | --- |
+| `{skill.range}` | 数値を自動整形して表示 |
+| `{skill.damageRatio:percent}` | `1.25` を `125` として表示 |
+| `{skill.damageRatios[0]:percent}` | 数値配列の指定要素を表示 |
+| `{skill.damageRatios:percent}` | 数値配列を ` / ` 区切りで表示 |
+| `{skill.durationTicks:seconds}` | tick値を20で割り、秒へ変換して表示 |
+| `{skill.level}` / `{skill.maxLevel}` | 習得レベル・最大レベル |
+| `{skill.skillDamageIncrease}` | レベル・シジル由来の `SKILL_DAMAGE_INCREASE` 合計 |
+| `{skill.effectiveDamageRatio:percent}` | `damageRatio × (1 + skillDamageIncrease / 100)` |
+| `{skill.effectiveDamageRatios:percent}` | `damageRatios` の各要素へ同じ補正を適用した配列 |
+
+説明文は、基礎定義を直接表示せず、`LearnedSkillResolver` がレベル差分と有効シジルを合成した値を使って展開します。未知のプレースホルダーは `?` として表示されるため、マスターデータ検証で修正します。
+
+配列は、跳ね矢のように命中順で値が異なる場合に使用します。単純な「同じ倍率を4回」は配列ではなく、倍率と回数を別の数値 params として定義します。
 
 ## 職業発動スキルの定義方針
 
 - プレイヤー向け職業発動スキルは、`id` と `implementationId` を同じ値にします。
 - ID は `swordsman_` / `hunter_` / `mage_` の職業 prefix と lowercase snake_case を組み合わせます。
 - `gem` オブジェクトと空でない `gem.rarity` は必須です。`gem.icon` 未指定時はスキルの `icon`、さらに未指定なら通常アイコンを使用します。
-- 当たり判定、攻撃種別、倍率、状態異常、演出の詳細は `implementationId` に対応する Plugin 実装を正本とし、YAML の `params` へ大量の調整値を複製しません。
-- プレイヤーが効果を判断できる倍率、範囲、時間は `description` / `lore` に記載し、実装変更時は同時に同期します。
+- 当たり判定、攻撃種別、倍率、状態異常、演出の詳細は `implementationId` に対応する Plugin 実装が解釈しますが、プレイヤーへ表示する値とレベル・シジルで変動する値は `params` を実装と説明文の共通正本にします。
+- `description` / `lore` の可変値は固定数値を直接記載せず、プレースホルダーで参照します。Executor側も同じ `params` を参照し、表示と実際の効果を一致させます。
 - リソース種別、消費量、クールダウン、詠唱時間、必要レベル、共通発動音は、それぞれの top-level 項目へ定義します。
 
 ## 共通攻撃 executor の params

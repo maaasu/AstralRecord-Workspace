@@ -61,7 +61,7 @@ class LearnedSkillResolverTest {
             20L,
             1,
             null,
-            Map.of("damage", 2.0D),
+            Map.of("damage", 2.0D, "damageRatios", List.of(1.15D, 0.90D)),
             List.of(),
             SkillKind.ACTIVE,
             true,
@@ -70,9 +70,11 @@ class LearnedSkillResolverTest {
             "fire_magic",
             3,
             List.of(
-                new SkillLevelDefinition(2, -10L, -1.0D, -2L, Map.of("damage", 3.0D),
+                new SkillLevelDefinition(2, -10L, -1.0D, -2L,
+                    Map.of("damage", 3.0D, "damageRatios[0]", 0.05D),
                     List.of(new SkillStatusModifierDefinition("SKILL_DAMAGE_INCREASE", 5.0D))),
-                new SkillLevelDefinition(3, -20L, -2.0D, -3L, Map.of("damage", 4.0D),
+                new SkillLevelDefinition(3, -20L, -2.0D, -3L,
+                    Map.of("damage", 4.0D, "damageRatios[1]", 0.05D),
                     List.of(new SkillStatusModifierDefinition("SKILL_DAMAGE_INCREASE", 6.0D)))
             ),
             List.of(new SkillSigilSlotDefinition(1, 1), new SkillSigilSlotDefinition(3, 2)),
@@ -100,6 +102,9 @@ class LearnedSkillResolverTest {
         assertEquals(7.0D, resolved.definition().getResourceCost(), 0.0001D);
         assertEquals(15L, resolved.definition().getCastTimeTicks());
         assertEquals(9.0D, ((Number) resolved.definition().getParams().get("damage")).doubleValue(), 0.0001D);
+        List<?> ratios = (List<?>) resolved.definition().getParams().get("damageRatios");
+        assertEquals(1.20D, ((Number) ratios.get(0)).doubleValue(), 0.0001D);
+        assertEquals(0.95D, ((Number) ratios.get(1)).doubleValue(), 0.0001D);
         assertEquals(21.0D, resolved.statusBonuses().get(StatusType.SKILL_DAMAGE_INCREASE), 0.0001D);
         assertTrue(resolved.hasSigil("cooldown_sigil"));
         assertFalse(resolved.hasSigil("cooldown_sigil_ii"));
