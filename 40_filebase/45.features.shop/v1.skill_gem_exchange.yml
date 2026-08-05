@@ -24,83 +24,11 @@ items:
     itemId:
       ref: item:00_skill_gem_adventurer_astral_edge
     category: skill_gem
-    amount: 1
+    amount: 3
     page: 1
     slot: 1
     requiredItems:
       - itemId:
           ref: item:skill_gem_raw_beginner
-        category: material
-        amount: 1
-  - id: astral_edge_from_intermediate_raw
-    itemId:
-      ref: item:00_skill_gem_adventurer_astral_edge
-    category: skill_gem
-    amount: 1
-    page: 1
-    slot: 2
-    requiredItems:
-      - itemId:
-          ref: item:skill_gem_raw_intermediate
-        category: material
-        amount: 1
-  - id: astral_edge_from_advanced_raw
-    itemId:
-      ref: item:00_skill_gem_adventurer_astral_edge
-    category: skill_gem
-    amount: 1
-    page: 1
-    slot: 3
-    requiredItems:
-      - itemId:
-          ref: item:skill_gem_raw_advanced
-        category: material
-        amount: 1
-  - id: astral_edge_from_saint_raw
-    itemId:
-      ref: item:00_skill_gem_adventurer_astral_edge
-    category: skill_gem
-    amount: 1
-    page: 1
-    slot: 4
-    requiredItems:
-      - itemId:
-          ref: item:skill_gem_raw_saint
-        category: material
-        amount: 1
-  - id: astral_edge_from_king_raw
-    itemId:
-      ref: item:00_skill_gem_adventurer_astral_edge
-    category: skill_gem
-    amount: 1
-    page: 1
-    slot: 5
-    requiredItems:
-      - itemId:
-          ref: item:skill_gem_raw_king
-        category: material
-        amount: 1
-  - id: astral_edge_from_emperor_raw
-    itemId:
-      ref: item:00_skill_gem_adventurer_astral_edge
-    category: skill_gem
-    amount: 1
-    page: 1
-    slot: 6
-    requiredItems:
-      - itemId:
-          ref: item:skill_gem_raw_emperor
-        category: material
-        amount: 1
-  - id: astral_edge_from_god_raw
-    itemId:
-      ref: item:00_skill_gem_adventurer_astral_edge
-    category: skill_gem
-    amount: 1
-    page: 1
-    slot: 7
-    requiredItems:
-      - itemId:
-          ref: item:skill_gem_raw_god
         category: material
         amount: 1
