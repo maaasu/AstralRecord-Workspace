@@ -1,0 +1,4 @@
+interface:
+  display_name: "AstralRecord スキル作成"
+  short_description: "Minecraft 内スキルの設計・実装を一貫して進める"
+  default_prompt: "$astralrecord-skill-author を使って、冒険者向けの新しい Minecraft スキルを追加してください。"

@@ -52,6 +52,7 @@ $<skill-name> を使って、<absolute-path> に対して <task> を行い、結
 |:--|:--|:--|
 | task worktree を作る | `$astralrecord-git-worktree-develop` | prepare と finalize の両方を担当し、worktree 管理ファイルを更新する |
 | 新規実装・仕様反映 | `$astralrecord-code` | 実装と関連設計書の同期を扱う |
+| Minecraft 内スキルの新規追加・仕様変更 | `$astralrecord-skill-author` | 依頼不足を確認してから、skill / gem / shop / Plugin / 演出 / DPS / 設計書を一貫して扱う |
 | 実装から develop merge まで一気通貫 | `$astralrecord-code-version-commit-develop` | 実装後の独立レビュー・自動修正・再レビューを含む統合入口 |
 | コードレビュー | `$astralrecord-code-review` | ソースを編集せず、固定書式の記録を task worktree に保存する |
 | コードレビュー指摘の修正 | `$astralrecord-code-fix` | レビュー結果を入力にして最小修正する |
@@ -68,6 +69,20 @@ $<skill-name> を使って、<absolute-path> に対して <task> を行い、結
 | AstralArchitectのAI建築候補作成 | `$astralarchitect-builder` | 専用CLIだけでチケットを調査し、`candidate.schem`を安全に編集する |
 
 ## 作業 Skill
+
+### `$astralrecord-skill-author`
+
+Minecraft 内でプレイヤーが使う職業スキルを追加・変更します。対象・効果・バランス・演出・入手経路が不足している場合は、実装前に必要な項目だけを質問します。
+
+使う場面:
+
+- 職業に攻撃、回復、補助、移動などの新規スキルを追加したい。
+- スキルジェム、ショップ販売、管理者利用、粒子演出、DPS をスキルとまとめて整備したい。
+
+`$astralrecord-code` との使い分け:
+
+- Minecraft 内スキルの作成・変更は `$astralrecord-skill-author` を優先する。
+- スキル以外の一般的な Plugin 実装は `$astralrecord-code` を使う。
 
 ### `$astralrecord-code`
 

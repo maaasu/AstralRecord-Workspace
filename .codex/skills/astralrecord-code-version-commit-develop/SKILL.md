@@ -13,6 +13,7 @@ Do not redefine implementation, review, fix, plugin versioning, or git workflow 
 2. Run the appropriate worker skill inside that prepared worktree:
    - `$astralrecord-code-fix` when the request supplies an `AR-CODE-*` review record to fix.
    - `$astralrecord-docs-fix` when the request supplies an `AR-DOC-*` review record to fix.
+   - `$astralrecord-skill-author` for a Minecraft in-game class skill addition or change, including skill gem, shop, administrator availability, combat balance, or visual effects.
    - `$astralrecord-code` for plugin, API, web, docs-linked implementation, database docs, resourcepack, or mixed implementation tasks.
    - `$astralrecord-master-data-author` for production-oriented filebase master creation under `40_filebase`.
    - `$skill-creator` for skill definitions, references, scripts, or `agents/openai.yaml` under `.codex/skills`.
@@ -89,6 +90,7 @@ For parallel `40_filebase` creation, this integrated skill handles one coherent 
 3. Identify the target project and choose the worker skill:
    - existing `AR-CODE-*` review record -> `$astralrecord-code-fix`
    - existing `AR-DOC-*` review record -> `$astralrecord-docs-fix`
+   - Minecraft in-game class skill addition or change -> `$astralrecord-skill-author`
    - `40_filebase` master creation -> `$astralrecord-master-data-author`
    - `.codex/skills` creation or update -> `$skill-creator`
    - other implementation tasks -> `$astralrecord-code`
