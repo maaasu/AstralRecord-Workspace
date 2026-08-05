@@ -97,7 +97,7 @@ public final class SkillForgetGui {
             List.of(
                 SkillPresentationUtil.skillNameComponent(entry.definition(), entry.definition().getId(), NamedTextColor.WHITE),
                 Component.text("習得一覧から削除されます。", NamedTextColor.GRAY),
-                Component.text("通常の忘却ではジェム・指印は戻りません。", NamedTextColor.RED)
+                Component.text("通常の忘却ではジェム・シジルは戻りません。", NamedTextColor.RED)
             ),
             Component.text("はい、忘却する", NamedTextColor.RED),
             Component.text("一覧へ戻る", NamedTextColor.GREEN)
@@ -110,7 +110,7 @@ public final class SkillForgetGui {
                 List.of(
                     Component.text("100アストラルドを消費", NamedTextColor.YELLOW),
                     Component.text("忘却するスキルのジェムを1個獲得", NamedTextColor.GREEN),
-                    Component.text("指印（シジル）は返却されません", NamedTextColor.RED),
+                    Component.text("シジルは返却されません", NamedTextColor.RED),
                     Component.text("高レベル分のジェムは返却されません", NamedTextColor.RED),
                     Component.text("返却されるジェムは1個のみです", NamedTextColor.GRAY)
                 )
