@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
+import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -392,7 +393,11 @@ public final class TeleporterService {
         if (handler == null) {
             return;
         }
-        handler.open(player, astPlayer, source, pageIndex);
+        handler.open(player, astPlayer, source, pageIndex, () -> {
+            if (pageIndex == 0) {
+                GuiSound.OPEN.play(player);
+            }
+        });
     }
 
     /**

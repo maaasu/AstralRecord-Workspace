@@ -251,6 +251,7 @@ public final class SellService {
         sellItemsByPlayer.put(player.getUniqueId(), normalized);
         suppressSellConfirmOnClose.add(player.getUniqueId());
         menuGuiTransitionService.switchGuiWithoutInventoryReload(player, () -> {
+            GuiSound.CONFIRM.play(player);
             menuView.openSellConfirm(player, normalized, pageIndex);
             menuGuiTransitionService.fillPlayerInventoryDummy(player);
         });
@@ -280,7 +281,7 @@ public final class SellService {
         if (rawSlot == MenuView.SELL_PREVIOUS_SLOT) {
             int pageIndex = currentSellPage(player.getUniqueId(), topInventory);
             if (menuView.hasPreviousSellPage(pageIndex)) {
-                GuiSound.SELECT.play(player);
+                GuiSound.PAGE.play(player);
                 rerenderSellInventory(player, topInventory, pageIndex - 1);
             } else {
                 GuiSound.DENY.play(player);
@@ -290,7 +291,7 @@ public final class SellService {
         if (rawSlot == MenuView.SELL_NEXT_SLOT) {
             int pageIndex = currentSellPage(player.getUniqueId(), topInventory);
             if (menuView.hasNextSellPage(currentSellItems, pageIndex)) {
-                GuiSound.SELECT.play(player);
+                GuiSound.PAGE.play(player);
                 rerenderSellInventory(player, topInventory, pageIndex + 1);
             } else {
                 GuiSound.DENY.play(player);

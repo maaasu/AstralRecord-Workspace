@@ -46,6 +46,26 @@ public final class TeleporterGui {
      * @param pageIndex 表示ページ
      */
     public void open(@NotNull Player player, @NotNull AstPlayer astPlayer, @NotNull WaystoneDefinition source, int pageIndex) {
+        open(player, astPlayer, source, pageIndex, () -> {
+        });
+    }
+
+    /**
+     * 指定ウェイストーンを起点に GUI を開き、実際に表示できた場合だけ完了処理を実行します。
+     *
+     * @param player 表示対象プレイヤー
+     * @param astPlayer AstralRecord プレイヤー
+     * @param source 起点ウェイストーン
+     * @param pageIndex 表示ページ
+     * @param onOpened GUI 表示後に実行する処理
+     */
+    public void open(
+            @NotNull Player player,
+            @NotNull AstPlayer astPlayer,
+            @NotNull WaystoneDefinition source,
+            int pageIndex,
+            @NotNull Runnable onOpened
+    ) {
         List<Entry> entries = teleporterService.listGuiEntries(astPlayer, source);
         int normalizedPage = normalizePage(pageIndex, entries.size());
         List<String> visibleIds = visibleIds(entries, normalizedPage);
@@ -55,7 +75,7 @@ public final class TeleporterGui {
                 ColorCodeUtil.toComponent(source.name(), source.id(), NamedTextColor.AQUA)
         );
         render(inventory, entries, normalizedPage);
-        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory, onOpened);
     }
 
     /**

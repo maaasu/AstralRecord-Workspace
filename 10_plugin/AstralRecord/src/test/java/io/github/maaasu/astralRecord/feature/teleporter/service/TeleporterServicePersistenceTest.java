@@ -1,11 +1,19 @@
 package io.github.maaasu.astralRecord.feature.teleporter.service;
 
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.teleporter.event.TeleporterGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.teleporter.gui.TeleporterGui;
 import io.github.maaasu.astralRecord.feature.teleporter.model.WaystoneDefinition;
 import io.github.maaasu.astralRecord.feature.teleporter.repository.AccountWaystoneRepository;
 import io.github.maaasu.astralRecord.feature.teleporter.repository.WaystoneDefinitionRepository;
+import io.github.maaasu.astralRecord.feature.teleporter.view.WaystonePacketView;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
+import io.github.maaasu.astralRecord.feature.world.service.WorldService;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import org.bukkit.Location;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -19,12 +27,79 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyFloat;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class TeleporterServicePersistenceTest {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/25-teleporter/3-メソッド仕様/25_3-GUI・View.md
+     * 章・見出し: # 25_3-GUI・View > ## ウェイストーンからの GUI 表示音
+     * 検証契約: ウェイストーン導線で GUI を開けた場合だけ開く音を一度再生する。
+     */
+    @Test
+    void openGuiPlaysOpenSoundAfterHandlerOpensWaystoneGui() {
+        TeleporterService service = service(mock(WaystoneDefinitionRepository.class));
+        TeleporterGui gui = mock(TeleporterGui.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        TeleporterGuiEventHandler handler = new TeleporterGuiEventHandler(gui, service, inventoryService);
+        service.setRuntimeServices(
+                inventoryService,
+                mock(WorldService.class),
+                mock(WaystonePacketView.class),
+                gui,
+                handler,
+                mock(ParticleDisplayService.class)
+        );
+        Player player = mock(Player.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        Location location = mock(Location.class);
+        WaystoneDefinition source = definition("source", "Source");
+        when(player.getLocation()).thenReturn(location);
+        doAnswer(invocation -> {
+            invocation.getArgument(4, Runnable.class).run();
+            return null;
+        }).when(gui).open(any(), any(), any(), anyInt(), any(Runnable.class));
+
+        service.openGui(player, astPlayer, source, 0);
+
+        verify(gui).open(eq(player), eq(astPlayer), eq(source), eq(0), any(Runnable.class));
+        verify(player).playSound(location, Sound.BLOCK_CHEST_OPEN, SoundCategory.PLAYERS, 0.6F, 1.28F);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/25-teleporter/3-メソッド仕様/25_3-GUI・View.md
+     * 章・見出し: # 25_3-GUI・View > ## ウェイストーンからの GUI 表示音
+     * 検証契約: GUI遷移が中止され表示完了callbackが呼ばれない場合、開く音を再生しない。
+     */
+    @Test
+    void openGuiDoesNotPlayOpenSoundWhenGuiOpenIsCancelled() {
+        TeleporterService service = service(mock(WaystoneDefinitionRepository.class));
+        TeleporterGui gui = mock(TeleporterGui.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        TeleporterGuiEventHandler handler = new TeleporterGuiEventHandler(gui, service, inventoryService);
+        service.setRuntimeServices(
+                inventoryService,
+                mock(WorldService.class),
+                mock(WaystonePacketView.class),
+                gui,
+                handler,
+                mock(ParticleDisplayService.class)
+        );
+        Player player = mock(Player.class);
+
+        service.openGui(player, mock(AstPlayer.class), definition("source", "Source"), 0);
+
+        verify(gui).open(any(), any(), any(), anyInt(), any(Runnable.class));
+        verify(player, never()).playSound(any(Location.class), any(Sound.class), any(SoundCategory.class), anyFloat(), anyFloat());
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/25-teleporter/3-メソッド仕様/25_3-サービス.md

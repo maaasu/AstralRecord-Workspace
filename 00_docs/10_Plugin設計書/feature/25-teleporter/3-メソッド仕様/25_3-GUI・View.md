@@ -54,6 +54,13 @@ TextDisplay:
 1. `InventoryService.setHotbarShortcutMode(astPlayer, true)` で共通ホットバーショートカットを有効にする。
 2. [[#テレポーター GUI 表示]] を呼び出す。
 
+## ウェイストーンからの GUI 表示音
+
+クラス名: `TeleporterService`
+物理名: `openGui`
+
+ウェイストーン操作で `TeleporterGuiEventHandler.open` が完了して GUI を表示した場合だけ `GuiSound.OPEN` を一度再生する。GUI 内のページ移動は `TeleporterGuiEventHandler` が `GuiSound.PAGE` を再生するため、この経路で `OPEN` を重ねない。
+
 ## テレポーター GUI 表示
 
 クラス名: `TeleporterGui`

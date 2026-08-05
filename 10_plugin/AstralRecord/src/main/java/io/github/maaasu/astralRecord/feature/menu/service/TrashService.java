@@ -217,6 +217,7 @@ public final class TrashService {
         }
         trashItemsByPlayer.put(player.getUniqueId(), normalized);
         suppressTrashConfirmOnClose.add(player.getUniqueId());
+        GuiSound.CONFIRM.play(player);
         menuView.openTrashConfirm(player, normalized, pageIndex);
         menuGuiTransitionService.fillPlayerInventoryDummy(player);
     }
@@ -254,7 +255,7 @@ public final class TrashService {
         if (rawSlot == MenuView.TRASH_PREVIOUS_SLOT) {
             int pageIndex = menuView.getPageIndex(topInventory);
             if (menuView.hasPreviousTrashPage(pageIndex)) {
-                GuiSound.SELECT.play(player);
+                GuiSound.PAGE.play(player);
                 open(player, pageIndex - 1);
             } else {
                 GuiSound.DENY.play(player);
@@ -264,7 +265,7 @@ public final class TrashService {
         if (rawSlot == MenuView.TRASH_NEXT_SLOT) {
             int pageIndex = menuView.getPageIndex(topInventory);
             if (menuView.hasNextTrashPage(currentTrashItems, pageIndex)) {
-                GuiSound.SELECT.play(player);
+                GuiSound.PAGE.play(player);
                 open(player, pageIndex + 1);
             } else {
                 GuiSound.DENY.play(player);

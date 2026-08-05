@@ -138,12 +138,12 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
 
         int pageIndex = playerListGui.getPageIndex(inventory);
         if (rawSlot == PlayerListGui.PREVIOUS_SLOT && playerListGui.hasPreviousPage(pageIndex)) {
-            GuiSound.SELECT.play(player);
+            GuiSound.PAGE.play(player);
             reopenList(player, inventory, pageIndex - 1);
             return;
         }
         if (rawSlot == PlayerListGui.NEXT_SLOT && playerListGui.hasNextPage(inventory)) {
-            GuiSound.SELECT.play(player);
+            GuiSound.PAGE.play(player);
             reopenList(player, inventory, pageIndex + 1);
             return;
         }

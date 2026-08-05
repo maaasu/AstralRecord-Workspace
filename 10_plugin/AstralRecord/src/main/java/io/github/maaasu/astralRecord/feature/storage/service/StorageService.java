@@ -131,7 +131,7 @@ public final class StorageService {
         List<StorageViewEntry> entries = currentStorageEntries(player, options);
         if (rawSlot == MenuView.STORAGE_PREVIOUS_SLOT) {
             if (menuView.hasPreviousStoragePage(pageIndex)) {
-                GuiSound.SELECT.play(player);
+                GuiSound.PAGE.play(player);
                 rerenderStorageInventory(player, topInventory, pageIndex - 1);
             } else {
                 GuiSound.DENY.play(player);
@@ -140,7 +140,7 @@ public final class StorageService {
         }
         if (rawSlot == MenuView.STORAGE_NEXT_SLOT) {
             if (menuView.hasNextStoragePage(entries, pageIndex)) {
-                GuiSound.SELECT.play(player);
+                GuiSound.PAGE.play(player);
                 rerenderStorageInventory(player, topInventory, pageIndex + 1);
             } else {
                 GuiSound.DENY.play(player);

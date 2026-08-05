@@ -604,12 +604,12 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         }
 
         if (rawSlot == MenuView.PAGING_PREVIOUS_SLOT && menuView.hasPreviousGuidePage(pageIndex)) {
-            GuiSound.SELECT.play(player);
+            GuiSound.PAGE.play(player);
             switchGuiWithoutInventoryReload(player, () -> menuView.openGuide(player, pageIndex - 1));
             return;
         }
         if (rawSlot == MenuView.PAGING_NEXT_SLOT && menuView.hasNextGuidePage(pageIndex)) {
-            GuiSound.SELECT.play(player);
+            GuiSound.PAGE.play(player);
             switchGuiWithoutInventoryReload(player, () -> menuView.openGuide(player, pageIndex + 1));
             return;
         }
@@ -650,7 +650,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         int pageIndex = menuView.getPageIndex(event.getView().getTopInventory());
         List<ItemStack> currencyItems = currencyItems(player);
         if (rawSlot == MenuView.PAGING_PREVIOUS_SLOT && menuView.hasPreviousCurrencyPage(pageIndex)) {
-            GuiSound.SELECT.play(player);
+            GuiSound.PAGE.play(player);
             switchGuiWithoutInventoryReload(
                 player,
                 () -> menuView.openCurrency(player, currencyItems, pageIndex - 1, exchangeUnlocked(player))
@@ -658,7 +658,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler
             return;
         }
         if (rawSlot == MenuView.PAGING_NEXT_SLOT && menuView.hasNextCurrencyPage(currencyItems, pageIndex)) {
-            GuiSound.SELECT.play(player);
+            GuiSound.PAGE.play(player);
             switchGuiWithoutInventoryReload(
                 player,
                 () -> menuView.openCurrency(player, currencyItems, pageIndex + 1, exchangeUnlocked(player))

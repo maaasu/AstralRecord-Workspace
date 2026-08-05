@@ -165,7 +165,7 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
         boolean superMode = gui.isSuperMode(inventory);
         int itemCount = entries.size();
         if (rawSlot == PagedGuiView.PREVIOUS_SLOT && gui.hasPreviousPage(pageIndex)) {
-            GuiSound.SELECT.play(player);
+            GuiSound.PAGE.play(player);
             MenuOpenEventHandler.suppressNextCloseSound(player);
             gui.openMobList(
                 player,
@@ -178,7 +178,7 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (rawSlot == PagedGuiView.NEXT_SLOT && gui.hasNextPage(pageIndex, itemCount)) {
-            GuiSound.SELECT.play(player);
+            GuiSound.PAGE.play(player);
             MenuOpenEventHandler.suppressNextCloseSound(player);
             gui.openMobList(
                 player,

@@ -155,13 +155,13 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
 
         List<MailEntry> mails = mailGuiView.getMails(topInventory);
         if (event.getRawSlot() == MailGuiView.PREVIOUS_SLOT && mailGuiView.hasPreviousPage(pageIndex)) {
-            GuiSound.SELECT.play(player);
+            GuiSound.PAGE.play(player);
             MenuOpenEventHandler.suppressNextCloseSound(player);
             mailGuiView.open(player, mails, filter, pageIndex - 1);
             return;
         }
         if (event.getRawSlot() == MailGuiView.NEXT_SLOT && mailGuiView.hasNextPage(mails, pageIndex)) {
-            GuiSound.SELECT.play(player);
+            GuiSound.PAGE.play(player);
             MenuOpenEventHandler.suppressNextCloseSound(player);
             mailGuiView.open(player, mails, filter, pageIndex + 1);
             return;

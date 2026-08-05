@@ -139,7 +139,7 @@ public final class ItemAdminGuiEventHandler extends AbstractEventHandler {
                 GuiSound.DENY.play(player);
                 return;
             }
-            GuiSound.SELECT.play(player);
+            GuiSound.PAGE.play(player);
             rerender(player, topInventory, pageIndex - 1);
             return;
         }
@@ -148,7 +148,7 @@ public final class ItemAdminGuiEventHandler extends AbstractEventHandler {
                 GuiSound.DENY.play(player);
                 return;
             }
-            GuiSound.SELECT.play(player);
+            GuiSound.PAGE.play(player);
             rerender(player, topInventory, pageIndex + 1);
             return;
         }

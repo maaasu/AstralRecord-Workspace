@@ -48,8 +48,28 @@ public final class TeleporterGuiEventHandler extends AbstractEventHandler {
      * @param pageIndex 表示ページ
      */
     public void open(@NotNull Player player, @NotNull AstPlayer astPlayer, @NotNull WaystoneDefinition source, int pageIndex) {
+        open(player, astPlayer, source, pageIndex, () -> {
+        });
+    }
+
+    /**
+     * テレポーター GUI を開き、実際に表示できた場合だけ完了処理を実行します。
+     *
+     * @param player 表示対象
+     * @param astPlayer AstralRecord プレイヤー
+     * @param source 起点ウェイストーン
+     * @param pageIndex 表示ページ
+     * @param onOpened GUI 表示後に実行する処理
+     */
+    public void open(
+            @NotNull Player player,
+            @NotNull AstPlayer astPlayer,
+            @NotNull WaystoneDefinition source,
+            int pageIndex,
+            @NotNull Runnable onOpened
+    ) {
         inventoryService.setHotbarShortcutMode(astPlayer, true);
-        gui.open(player, astPlayer, source, pageIndex);
+        gui.open(player, astPlayer, source, pageIndex, onOpened);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)

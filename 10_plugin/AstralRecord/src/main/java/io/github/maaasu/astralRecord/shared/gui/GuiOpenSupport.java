@@ -31,9 +31,24 @@ public final class GuiOpenSupport {
      * @param inventory 開く GUI
      */
     public static void open(@NotNull Player player, @NotNull Inventory inventory) {
+        open(player, inventory, () -> {
+        });
+    }
+
+    /**
+     * GUI を開き、実際に表示できた場合だけ完了処理を実行します。プラグイン GUI からの遷移はクリック同期ずれを避けるため 2 tick 後に実行します。
+     *
+     * @param player 対象プレイヤー
+     * @param inventory 開く GUI
+     * @param onOpened GUI 表示後に実行する処理
+     */
+    public static void open(@NotNull Player player, @NotNull Inventory inventory, @NotNull Runnable onOpened) {
         Inventory source = player.getOpenInventory().getTopInventory();
         if (!isPluginGui(source)) {
             player.openInventory(inventory);
+            if (player.getOpenInventory().getTopInventory() == inventory) {
+                onOpened.run();
+            }
             return;
         }
 
@@ -45,7 +60,7 @@ public final class GuiOpenSupport {
         AstralRecord plugin = AstralRecord.getPlugin(AstralRecord.class);
         BukkitTask task = plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             PENDING_TRANSITIONS.remove(playerId);
-            openIfSourceIsCurrent(player, source, inventory);
+            openIfSourceIsCurrent(player, source, inventory, onOpened);
         }, TRANSITION_DELAY_TICKS);
         PENDING_TRANSITIONS.put(playerId, task);
     }
@@ -62,11 +77,33 @@ public final class GuiOpenSupport {
         @NotNull Inventory source,
         @NotNull Inventory target
     ) {
+        openIfSourceIsCurrent(player, source, target, () -> {
+        });
+    }
+
+    /**
+     * 遷移元 GUI が引き続き開かれている場合だけ内部画面遷移を実行し、表示後の処理を実行します。
+     *
+     * @param player 対象プレイヤー
+     * @param source 遷移元 GUI
+     * @param target 遷移先 GUI
+     * @param onOpened GUI 表示後に実行する処理
+     */
+    static void openIfSourceIsCurrent(
+        @NotNull Player player,
+        @NotNull Inventory source,
+        @NotNull Inventory target,
+        @NotNull Runnable onOpened
+    ) {
         if (!player.isOnline() || player.getOpenInventory().getTopInventory() != source) {
             return;
         }
-        GuiCloseSoundPolicy.suppressNextCloseSound(player, source);
         player.openInventory(target);
+        if (player.getOpenInventory().getTopInventory() != target) {
+            return;
+        }
+        GuiCloseSoundPolicy.suppressNextCloseSound(player, source);
+        onOpened.run();
     }
 
     private static boolean isPluginGui(@Nullable Inventory inventory) {
