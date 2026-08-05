@@ -14,10 +14,13 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
+import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.trade.service.TradeService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
+import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -103,6 +106,16 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             if (!playerDetailGui.isInventory(event.getView().getTopInventory())) {
+                if (!playerDetailGui.isStatusDetailInventory(event.getView().getTopInventory())) {
+                    return;
+                }
+                event.setCancelled(true);
+                if (event.getWhoClicked() instanceof Player player) {
+                    if (HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
+                        return;
+                    }
+                    handleStatusDetailClick(player, event.getRawSlot(), event.getView().getTopInventory());
+                }
                 return;
             }
             event.setCancelled(true);
@@ -119,7 +132,8 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
     public void onInventoryDrag(@NotNull InventoryDragEvent event) {
         runSafely(() -> {
             if (!playerListGui.isInventory(event.getView().getTopInventory())
-                && !playerDetailGui.isInventory(event.getView().getTopInventory())) {
+                && !playerDetailGui.isInventory(event.getView().getTopInventory())
+                && !playerDetailGui.isStatusDetailInventory(event.getView().getTopInventory())) {
                 return;
             }
             event.setCancelled(true);
@@ -167,6 +181,26 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
     }
 
     private void handlePlayerDetailClick(@NotNull Player player, int rawSlot, @NotNull org.bukkit.inventory.Inventory inventory) {
+        StatusType.Category category = categoryForSlot(rawSlot);
+        if (category != null) {
+            UUID targetId = playerDetailGui.getTargetId(inventory);
+            Player targetPlayer = targetId == null ? null : Bukkit.getPlayer(targetId);
+            AstPlayer target = targetPlayer == null ? null : AstPlayerCache.get(targetPlayer);
+            if (target == null) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.SELECT.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
+            playerDetailGui.openStatusDetail(
+                player,
+                target,
+                category,
+                statusService.refreshStatus(target),
+                0
+            );
+            return;
+        }
         if (rawSlot == PlayerDetailGui.BUFF_SLOT) {
             UUID targetId = playerDetailGui.getTargetId(inventory);
             Player targetPlayer = targetId == null ? null : Bukkit.getPlayer(targetId);
@@ -200,6 +234,62 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         }
 
         GuiSound.DENY.play(player);
+    }
+
+    private void handleStatusDetailClick(
+        @NotNull Player player,
+        int rawSlot,
+        @NotNull org.bukkit.inventory.Inventory inventory
+    ) {
+        if (rawSlot == PagedGuiView.PREVIOUS_SLOT || rawSlot == PagedGuiView.NEXT_SLOT) {
+            StatusType.Category category = playerDetailGui.getStatusDetailCategory(inventory);
+            UUID targetId = playerDetailGui.getStatusDetailTargetId(inventory);
+            Player targetPlayer = targetId == null ? null : Bukkit.getPlayer(targetId);
+            AstPlayer target = targetPlayer == null ? null : AstPlayerCache.get(targetPlayer);
+            if (category == null || target == null) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            StatusSnapshot snapshot = statusService.refreshStatus(target);
+            int currentPage = playerDetailGui.getStatusDetailPageIndex(inventory);
+            int nextPage = rawSlot == PagedGuiView.PREVIOUS_SLOT ? currentPage - 1 : currentPage + 1;
+            int totalItems = StatusType.byCategory(category).stream()
+                .filter(type -> snapshot.getValue(type) != null)
+                .count() > Integer.MAX_VALUE
+                ? Integer.MAX_VALUE
+                : (int) StatusType.byCategory(category).stream()
+                    .filter(type -> snapshot.getValue(type) != null)
+                    .count();
+            if (rawSlot == PagedGuiView.PREVIOUS_SLOT
+                ? !new PagedGuiView().hasPreviousPage(currentPage)
+                : !new PagedGuiView().hasNextPage(currentPage, totalItems)) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.PAGE.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
+            playerDetailGui.openStatusDetail(player, target, category, snapshot, nextPage);
+            return;
+        }
+        if (rawSlot == PagedGuiView.BACK_SLOT) {
+            GuiSound.SELECT.play(player);
+            plugin.getGuiNavigationService().openPrevious(player);
+            return;
+        }
+        GuiSound.DENY.play(player);
+    }
+
+    private @Nullable StatusType.Category categoryForSlot(int rawSlot) {
+        return switch (rawSlot) {
+            case PlayerDetailGui.RESOURCE_SLOT -> StatusType.Category.RESOURCE;
+            case PlayerDetailGui.PRIMARY_SLOT -> StatusType.Category.PRIMARY;
+            case PlayerDetailGui.OFFENSE_SLOT -> StatusType.Category.OFFENSE;
+            case PlayerDetailGui.DEFENSE_SLOT -> StatusType.Category.DEFENSE;
+            case PlayerDetailGui.ELEMENT_SLOT -> StatusType.Category.ELEMENT;
+            case PlayerDetailGui.CONDITION_SLOT -> StatusType.Category.CONDITION;
+            case PlayerDetailGui.UTILITY_SLOT -> StatusType.Category.UTILITY;
+            default -> null;
+        };
     }
 
     private void handleInvite(@NotNull Player player, @NotNull UUID targetId, int pageIndex) {

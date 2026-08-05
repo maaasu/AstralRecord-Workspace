@@ -95,6 +95,39 @@ class PlayerDetailGuiTest extends MockBukkitTestBase {
         assertTrue(NamedTextColor.AQUA.equals(findTextComponent(inventory.getItem(PlayerDetailGui.ELEMENT_SLOT), "氷属性ダメージ増加").color()));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-GUI・View.md
+     * 章・見出し: # 09_3-GUI・View > ## 4. プレイヤー一覧・詳細
+     * 検証契約: プレイヤー詳細のカテゴリから、対象カテゴリのステータスを名称・説明・基礎値・補正値付きで参照できる。
+     */
+    @Test
+    void opensCategoryStatusDetailWithDescriptionAndValueBreakdown() {
+        var player = server().addPlayer();
+        var astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        WorldService worldService = mock(WorldService.class);
+        EnumMap<StatusType, StatusValue> values = new EnumMap<>(StatusType.class);
+        values.put(StatusType.MAX_HEALTH, new StatusValue(20.0D, 15.0D));
+        values.put(StatusType.MAX_MANA, new StatusValue(10.0D, 2.0D));
+        StatusSnapshot snapshot = new StatusSnapshot(values, 35.0D, 12.0D, 0.0D, 0.0D, 0L, LocalDateTime.now());
+
+        PlayerDetailGui gui = new PlayerDetailGui(worldService);
+        gui.openStatusDetail(player, astPlayer, StatusType.Category.RESOURCE, snapshot, 0);
+
+        Inventory inventory = player.getOpenInventory().getTopInventory();
+        assertTrue(gui.isStatusDetailInventory(inventory));
+        assertTrue(StatusType.Category.RESOURCE == gui.getStatusDetailCategory(inventory));
+        assertTrue(player.getUniqueId().equals(gui.getStatusDetailTargetId(inventory)));
+        ItemStack healthItem = inventory.getItem(0);
+        String itemName = PlainTextComponentSerializer.plainText()
+            .serialize(healthItem.getItemMeta().displayName());
+        String lore = plainLore(healthItem);
+        assertTrue(itemName.contains("最大HP"));
+        assertTrue(lore.contains("戦闘不能になるまでに耐えられるダメージ量の上限。"));
+        assertTrue(lore.contains("現在値: 35"));
+        assertTrue(lore.contains("基礎値: 20"));
+        assertTrue(lore.contains("合計補正: +15"));
+    }
+
     private static String plainLore(ItemStack itemStack) {
         List<Component> lore = itemStack.getItemMeta().lore();
         if (lore == null) {

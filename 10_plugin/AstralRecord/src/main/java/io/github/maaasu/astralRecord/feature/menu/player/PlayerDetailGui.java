@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
@@ -57,6 +58,7 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
     private static final String SEPARATOR = "◇════════════════◇";
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
+    private final PagedGuiView pagedGuiView = new PagedGuiView();
     private static final Set<StatusType> ELEMENT_DAMAGE_INCREASES = EnumSet.of(
         StatusType.FIRE_DAMAGE_INCREASE, StatusType.ICE_DAMAGE_INCREASE, StatusType.LIGHTNING_DAMAGE_INCREASE
     );
@@ -146,8 +148,90 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         return inventory != null && inventory.getHolder() instanceof Holder;
     }
 
+    /**
+     * ステータス詳細 GUI かどうかを判定します。
+     *
+     * @param inventory 判定対象のインベントリ
+     * @return ステータス詳細 GUI の場合は {@code true}
+     */
+    public boolean isStatusDetailInventory(@Nullable Inventory inventory) {
+        return inventory != null && inventory.getHolder() instanceof StatusDetailHolder;
+    }
+
+    /**
+     * ステータス詳細 GUI のカテゴリを取得します。
+     *
+     * @param inventory 判定対象のインベントリ
+     * @return カテゴリ、対象外の場合は {@code null}
+     */
+    public @Nullable StatusType.Category getStatusDetailCategory(@Nullable Inventory inventory) {
+        if (inventory != null && inventory.getHolder() instanceof StatusDetailHolder holder) {
+            return holder.category();
+        }
+        return null;
+    }
+
+    /**
+     * ステータス詳細 GUI のページ番号を取得します。
+     *
+     * @param inventory 判定対象のインベントリ
+     * @return ページ番号、対象外の場合は {@code 0}
+     */
+    public int getStatusDetailPageIndex(@Nullable Inventory inventory) {
+        if (inventory != null && inventory.getHolder() instanceof StatusDetailHolder holder) {
+            return holder.pageIndex();
+        }
+        return 0;
+    }
+
+    /**
+     * 指定カテゴリのステータス詳細 GUI を開きます。
+     *
+     * @param viewer 閲覧者
+     * @param target 表示対象プレイヤー
+     * @param category 表示カテゴリ
+     * @param snapshot 表示用ステータススナップショット
+     * @param pageIndex 開くページ番号
+     */
+    public void openStatusDetail(
+        @NotNull Player viewer,
+        @NotNull AstPlayer target,
+        @NotNull StatusType.Category category,
+        @NotNull StatusSnapshot snapshot,
+        int pageIndex
+    ) {
+        List<StatusType> statuses = statusesInCategory(category, snapshot);
+        int normalizedPage = pagedGuiView.normalizePage(pageIndex, statuses.size());
+        Inventory inventory = Bukkit.createInventory(
+            new StatusDetailHolder(target.getBukkit().getUniqueId(), category, normalizedPage),
+            PagedGuiView.SIZE,
+            Component.text(
+                "ステータス詳細: " + category.getDisplayName(),
+                NamedTextColor.GOLD
+            )
+        );
+        List<ItemStack> items = statuses.stream()
+            .map(type -> statusDetailItem(type, snapshot.getValue(type)))
+            .toList();
+        pagedGuiView.render(inventory, items, normalizedPage);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory);
+    }
+
     public @Nullable UUID getTargetId(@Nullable Inventory inventory) {
         if (inventory != null && inventory.getHolder() instanceof Holder holder) {
+            return holder.targetId();
+        }
+        return null;
+    }
+
+    /**
+     * ステータス詳細 GUI の対象プレイヤー ID を取得します。
+     *
+     * @param inventory 判定対象のインベントリ
+     * @return 対象プレイヤー ID、対象外の場合は {@code null}
+     */
+    public @Nullable UUID getStatusDetailTargetId(@Nullable Inventory inventory) {
+        if (inventory != null && inventory.getHolder() instanceof StatusDetailHolder holder) {
             return holder.targetId();
         }
         return null;
@@ -270,6 +354,61 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
             noItalic(Component.text("クラス情報", NamedTextColor.AQUA, TextDecoration.BOLD)),
             lore
         );
+    }
+
+    private @NotNull List<StatusType> statusesInCategory(
+        @NotNull StatusType.Category category,
+        @NotNull StatusSnapshot snapshot
+    ) {
+        return StatusType.byCategory(category).stream()
+            .filter(type -> snapshot.getValue(type) != null)
+            .sorted(Comparator.comparingInt(PlayerDetailGui::statusGroupOrder))
+            .toList();
+    }
+
+    private @NotNull ItemStack statusDetailItem(
+        @NotNull StatusType type,
+        @Nullable StatusValue value
+    ) {
+        List<Component> lore = new ArrayList<>();
+        lore.add(noItalic(Component.text(type.getDescription(), NamedTextColor.GRAY)));
+        lore.add(Component.empty());
+        if (value == null) {
+            lore.add(noItalic(Component.text("現在値: 未計算", NamedTextColor.DARK_GRAY)));
+        } else {
+            lore.add(noItalic(Component.text(
+                "現在値: " + type.formatRange(value.getMinValue(), value.getMaxValue()),
+                NamedTextColor.WHITE,
+                TextDecoration.BOLD
+            )));
+            lore.add(noItalic(Component.text(
+                "基礎値: " + type.formatRange(value.getBaseMinValue(), value.getBaseMaxValue()),
+                NamedTextColor.GRAY
+            )));
+            lore.add(noItalic(Component.text(
+                "合計補正: " + type.formatSignedRange(value.getBonusMinValue(), value.getBonusMaxValue()),
+                value.getBonusMinValue() >= 0.0D && value.getBonusMaxValue() >= 0.0D
+                    ? NamedTextColor.GREEN
+                    : NamedTextColor.RED
+            )));
+        }
+        return createItem(
+            statusMaterial(type),
+            noItalic(Component.text(type.getDisplayName(), type.namedColor(), TextDecoration.BOLD)),
+            lore
+        );
+    }
+
+    private @NotNull Material statusMaterial(@NotNull StatusType type) {
+        return switch (type.getCategory()) {
+            case RESOURCE -> Material.GOLDEN_APPLE;
+            case PRIMARY -> Material.DIAMOND;
+            case OFFENSE -> Material.NETHERITE_SWORD;
+            case DEFENSE -> Material.SHIELD;
+            case ELEMENT -> Material.PRISMARINE_CRYSTALS;
+            case CONDITION -> Material.FERMENTED_SPIDER_EYE;
+            case UTILITY -> Material.FEATHER;
+        };
     }
 
     private @NotNull Component classExperienceBar(double progress) {
@@ -473,6 +612,27 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, SIZE);
+        }
+    }
+
+    private record StatusDetailHolder(
+        @NotNull UUID targetId,
+        @NotNull StatusType.Category category,
+        int pageIndex
+    ) implements HotbarShortcutGuiHolder {
+        @Override
+        public @NotNull String getNavigationId() {
+            return "player-status-detail:" + targetId + ":" + category.name();
+        }
+
+        @Override
+        public int getBackSlot() {
+            return PagedGuiView.BACK_SLOT;
+        }
+
+        @Override
+        public @NotNull Inventory getInventory() {
+            return Bukkit.createInventory(this, PagedGuiView.SIZE);
         }
     }
 }
