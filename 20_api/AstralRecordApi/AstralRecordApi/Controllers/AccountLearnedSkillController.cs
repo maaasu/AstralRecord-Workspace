@@ -41,6 +41,13 @@ public class AccountLearnedSkillController(IAccountLearnedSkillRepository reposi
         [FromBody] AccountLearnedSkillAttachSigilRequest request)
         => ToActionResult(await repository.AttachSigilAsync(accountId, learnedSkillId, request));
 
+    [HttpPost("{learnedSkillId:guid}/forget")]
+    public async Task<IActionResult> Forget(
+        Guid accountId,
+        Guid learnedSkillId,
+        [FromBody] AccountLearnedSkillForgetRequest request)
+        => ToActionResult(await repository.ForgetAsync(accountId, learnedSkillId, request));
+
     private IActionResult ToActionResult(AccountLearnedSkillMutationResult result)
     {
         if (result.Succeeded)

@@ -147,6 +147,54 @@ public final class LearnedSkillService {
         );
     }
 
+    /**
+     * 習得済みスキル個体を API から忘却し、ロード済みキャッシュからも除去します。
+     *
+     * @param accountId アカウント ID
+     * @param learnedSkillId 忘却対象の個体 ID
+     * @param updatedBy 更新者 ID
+     * @param onSuccess API 更新成功時の処理
+     * @param onFailure API 更新失敗時の処理
+     * @return 処理を受け付けた場合は {@code true}、別の mutation 実行中なら {@code false}
+     */
+    public boolean forgetAsync(
+        @NotNull UUID accountId,
+        @NotNull UUID learnedSkillId,
+        @NotNull UUID updatedBy,
+        @NotNull Consumer<LearnedSkillInstance> onSuccess,
+        @NotNull Consumer<Throwable> onFailure
+    ) {
+        AtomicBoolean lock = mutationLocks.computeIfAbsent(accountId, ignored -> new AtomicBoolean());
+        if (!lock.compareAndSet(false, true)) return false;
+        UUID sessionToken = sessionTokens.get(accountId);
+        if (sessionToken == null) {
+            lock.set(false);
+            return false;
+        }
+
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                LearnedSkillInstance result = repository.forget(accountId, learnedSkillId, updatedBy);
+                if (!isCurrentSession(accountId, sessionToken)) {
+                    lock.set(false);
+                    return;
+                }
+                plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    lock.set(false);
+                    if (!isCurrentSession(accountId, sessionToken)) return;
+                    removeCached(accountId, learnedSkillId);
+                    onSuccess.accept(result);
+                });
+            } catch (Throwable error) {
+                plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    lock.set(false);
+                    if (isCurrentSession(accountId, sessionToken)) onFailure.accept(error);
+                });
+            }
+        });
+        return true;
+    }
+
     private boolean mutateAsync(
         UUID accountId,
         UUID materialInventoryEntryId,
@@ -243,6 +291,12 @@ public final class LearnedSkillService {
             next.add(updated);
             return normalize(next);
         });
+    }
+
+    private void removeCached(UUID accountId, UUID learnedSkillId) {
+        skillsByAccount.computeIfPresent(accountId, (ignored, current) ->
+            current.stream().filter(skill -> !skill.getLearnedSkillId().equals(learnedSkillId)).toList()
+        );
     }
 
     private static List<LearnedSkillInstance> normalize(List<LearnedSkillInstance> skills) {

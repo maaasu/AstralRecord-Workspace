@@ -39,7 +39,7 @@ block Material の場合は `Interaction` entity を当たり判定に、`BlockD
 | `id` | `params` | 説明 |
 |:--|:--|:--|
 | `message` | `message` | チャットメッセージを送信する |
-| `gui` | `type`, `shopId` | GUI を開く。`SHOP` は `shopId` 必須で、`access: NPC_ONLY` のショップもこの導線から開ける。`SELL` は売却 GUI、`CLASS` は職業選択 GUI、`STORAGE` はストレージ GUI、`EQUIPMENT_ENHANCE` は装備強化 GUI、`EQUIPMENT_REPAIR` は装備修理 GUI、`CURRENCY_EXCHANGE` は Plugin 組み込み通貨だけを扱う専用両替 GUI、`LOGIN_BONUS` はログインボーナス GUI |
+| `gui` | `type`, `shopId` | GUI を開く。`SHOP` は `shopId` 必須で、`access: NPC_ONLY` のショップもこの導線から開ける。`SELL` は売却 GUI、`CLASS` は職業選択 GUI、`STORAGE` はストレージ GUI、`EQUIPMENT_ENHANCE` は装備強化 GUI、`EQUIPMENT_REPAIR` は装備修理 GUI、`CURRENCY_EXCHANGE` は Plugin 組み込み通貨だけを扱う専用両替 GUI、`LOGIN_BONUS` はログインボーナス GUI、`SKILL_FORGET` は習得済みスキルの忘却 GUI |
 | `command` | `command` | プレイヤーとしてコマンドを実行する。先頭の `/` はあってもなくてもよい |
 
 ---

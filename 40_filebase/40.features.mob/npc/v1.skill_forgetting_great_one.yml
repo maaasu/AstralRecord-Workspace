@@ -1,0 +1,39 @@
+# design:
+#   motif: "忘却 / 古代の知識"
+#   progression: 0
+schemaVersion: 1
+id: skill_forgetting_great_one
+type: MOB
+category: NPC
+name: "&5忘却の偉人"
+title: "&7失われた知識の番人"
+level: 1
+entityType: SKELETON
+nameVisible: true
+damageImmune: true
+icon: AMETHYST_SHARD
+lore:
+  - "&7習得したスキルを忘却できる偉人。"
+  - "&7右クリックでスキル忘却を開ける。"
+tags:
+  - npc
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&5忘却の偉人&7: 右クリックで、不要になったスキルを忘却できます。"
+  rightClick:
+    - id: gui
+      params:
+        type: SKILL_FORGET

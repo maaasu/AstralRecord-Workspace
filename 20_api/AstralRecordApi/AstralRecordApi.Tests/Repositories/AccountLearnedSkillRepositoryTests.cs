@@ -326,6 +326,78 @@ public class AccountLearnedSkillRepositoryTests
         Assert.Empty(result);
     }
 
+    /// <summary>
+    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
+    /// 検証契約: 忘却は指定個体だけを論理削除し、装着シジルと全プリセットの同UUIDバインドを除去する。
+    /// </summary>
+    [Fact]
+    public async Task ForgetAsync_DeletesInstanceSigilsAndBindings()
+    {
+        await using var fixture = await TestDatabase.CreateAsync();
+        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.mage_fireball.yml", "skill", null);
+        var accountId = Guid.NewGuid();
+        await fixture.AddAccountAsync(accountId);
+        var learnedSkillId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        var learned = new AccountLearnedSkillEntity
+        {
+            LearnedSkillId = learnedSkillId,
+            AccountId = accountId,
+            SkillId = "mage_fireball",
+            Level = 1,
+            Version = 1,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = accountId,
+            UpdatedBy = accountId,
+        };
+        learned.Sigils.Add(new AccountLearnedSkillSigilEntity
+        {
+            LearnedSkillSigilId = Guid.NewGuid(),
+            LearnedSkillId = learnedSkillId,
+            SigilId = "cooldown_sigil",
+            EquipGroupId = "cooldown",
+            SlotIndex = 0,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = accountId,
+            UpdatedBy = accountId,
+        });
+        fixture.PlayerDb.AccountLearnedSkills.Add(learned);
+        fixture.PlayerDb.SkillBindPresets.Add(new SkillBindPresetEntity
+        {
+            SkillBindPresetId = Guid.NewGuid(),
+            AccountId = accountId,
+            PresetIndex = 1,
+            ActiveSkillSlotsJson = JsonSerializer.Serialize(new string?[] { learnedSkillId.ToString() }),
+            LeftClickSkillId = learnedSkillId.ToString(),
+            PassiveSkillSlotsJson = JsonSerializer.Serialize(new string?[] { learnedSkillId.ToString() }),
+            IsUnlocked = true,
+            Version = 1,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = accountId,
+            UpdatedBy = accountId,
+        });
+        await fixture.PlayerDb.SaveChangesAsync();
+
+        var result = await new AccountLearnedSkillRepository(fixture.PlayerDb, fixture.MasterDb)
+            .ForgetAsync(accountId, learnedSkillId, new AccountLearnedSkillForgetRequest
+            {
+                UpdatedBy = accountId,
+            });
+
+        Assert.True(result.Succeeded);
+        Assert.True((await fixture.PlayerDb.AccountLearnedSkills.AsNoTracking()
+            .SingleAsync(skill => skill.LearnedSkillId == learnedSkillId)).IsDeleted);
+        Assert.True(await fixture.PlayerDb.AccountLearnedSkillSigils.AsNoTracking()
+            .AllAsync(sigil => sigil.IsDeleted));
+        var preset = await fixture.PlayerDb.SkillBindPresets.AsNoTracking().SingleAsync();
+        Assert.DoesNotContain(learnedSkillId.ToString(), preset.ActiveSkillSlotsJson, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(learnedSkillId.ToString(), preset.PassiveSkillSlotsJson, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("__weapon_normal_attack__", preset.LeftClickSkillId);
+    }
+
     private sealed class TestDatabase : IAsyncDisposable
     {
         private readonly SqliteConnection playerConnection;

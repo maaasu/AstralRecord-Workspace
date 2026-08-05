@@ -16,6 +16,7 @@ import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.quest.event.QuestGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.shop.event.ShopGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.skill.event.SkillForgetGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.storage.service.StorageService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
@@ -52,6 +53,7 @@ public final class MobInteractionEventHandler
     private final QuestGuiEventHandler questGuiEventHandler;
     private final CurrencyExchangeGuiEventHandler currencyExchangeGuiEventHandler;
     private final LoginBonusService loginBonusService;
+    private final SkillForgetGuiEventHandler skillForgetGuiEventHandler;
 
     /**
      * ハンドラを生成します。
@@ -66,6 +68,7 @@ public final class MobInteractionEventHandler
      * @param questGuiEventHandler クエストボード GUI ハンドラ
      * @param currencyExchangeGuiEventHandler ゴールド両替 GUI ハンドラ
      * @param loginBonusService ログインボーナス GUI サービス
+     * @param skillForgetGuiEventHandler スキル忘却 GUI ハンドラ
      */
     public MobInteractionEventHandler(
             @NotNull MobService mobService,
@@ -77,7 +80,8 @@ public final class MobInteractionEventHandler
             @NotNull EquipmentRepairService equipmentRepairService,
             @NotNull QuestGuiEventHandler questGuiEventHandler,
             @NotNull CurrencyExchangeGuiEventHandler currencyExchangeGuiEventHandler,
-            @NotNull LoginBonusService loginBonusService) {
+            @NotNull LoginBonusService loginBonusService,
+            @NotNull SkillForgetGuiEventHandler skillForgetGuiEventHandler) {
         this.mobService = mobService;
         this.shopGuiEventHandler = shopGuiEventHandler;
         this.menuView = menuView;
@@ -88,6 +92,7 @@ public final class MobInteractionEventHandler
         this.questGuiEventHandler = questGuiEventHandler;
         this.currencyExchangeGuiEventHandler = currencyExchangeGuiEventHandler;
         this.loginBonusService = loginBonusService;
+        this.skillForgetGuiEventHandler = skillForgetGuiEventHandler;
     }
 
     @Override
@@ -200,6 +205,7 @@ public final class MobInteractionEventHandler
             case "EQUIPMENT_REPAIR", "REPAIR" -> openEquipmentRepair(player);
             case "CURRENCY_EXCHANGE", "EXCHANGE" -> currencyExchangeGuiEventHandler.open(player);
             case "LOGIN_BONUS" -> openLoginBonus(player);
+            case "SKILL_FORGET", "FORGET_SKILL" -> openSkillForget(player);
             default -> GuiSound.DENY.play(player);
         }
     }
@@ -265,6 +271,15 @@ public final class MobInteractionEventHandler
         MenuGuiTransitionService.suppressNextCloseSound(player);
         loginBonusService.openAfterDataLoaded(player);
         GuiSound.OPEN.play(player);
+    }
+
+    /**
+     * NPC からスキル忘却 GUI を開きます。
+     *
+     * @param player 対象プレイヤー
+     */
+    private void openSkillForget(@NotNull Player player) {
+        skillForgetGuiEventHandler.open(player);
     }
 
     private void executeCommand(@NotNull Player player, @NotNull MobInteractionActionConfig action) {

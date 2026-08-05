@@ -117,6 +117,19 @@ public final class SkillBindPresetService {
     }
 
     /**
+     * 指定した習得済みスキル個体を、ロード済み全プリセットのバインドから除去します。
+     *
+     * @param accountId アカウント ID
+     * @param learnedSkillId 忘却した習得済みスキル個体 ID
+     */
+    public void clearBindings(@NotNull UUID accountId, @NotNull UUID learnedSkillId) {
+        presetsByAccount.computeIfPresent(accountId, (ignored, current) -> current.stream()
+            .map(preset -> clearBindings(preset, learnedSkillId))
+            .toList()
+        );
+    }
+
+    /**
      * 指定プリセットを保存します。
      *
      * @param accountId アカウント ID
@@ -218,6 +231,26 @@ public final class SkillBindPresetService {
             normalized.add(fallback.get(normalized.size()));
         }
         return List.copyOf(normalized);
+    }
+
+    private @NotNull SkillBindPreset clearBindings(
+        @NotNull SkillBindPreset preset,
+        @NotNull UUID learnedSkillId
+    ) {
+        String target = learnedSkillId.toString();
+        List<String> active = preset.getActiveSkillSlots().stream()
+            .map(value -> target.equalsIgnoreCase(value) ? null : value)
+            .toList();
+        List<String> passive = preset.getPassiveSkillSlots().stream()
+            .map(value -> target.equalsIgnoreCase(value) ? null : value)
+            .toList();
+        String leftClick = target.equalsIgnoreCase(preset.getLeftClickSkillId())
+            ? SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID
+            : preset.getLeftClickSkillId();
+        return new SkillBindPreset(
+            preset.getPresetId(), preset.getAccountId(), preset.getPresetIndex(), active, leftClick,
+            passive, preset.isUnlocked(), preset.isSaved(), preset.getVersion()
+        );
     }
 
     private @NotNull List<SkillBindPreset> mergePreset(

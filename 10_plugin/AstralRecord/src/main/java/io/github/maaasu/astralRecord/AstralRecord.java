@@ -157,11 +157,13 @@ import io.github.maaasu.astralRecord.feature.skill.event.SkillActionRingEventHan
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillBindGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillGemLearnEventHandler;
+import io.github.maaasu.astralRecord.feature.skill.event.SkillForgetGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.executor.FireBoostSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.IronWillSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.ActiveSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui;
+import io.github.maaasu.astralRecord.feature.skill.gui.SkillForgetGui;
 import io.github.maaasu.astralRecord.feature.skill.registry.SkillRegistry;
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillBindPresetRepository;
 import io.github.maaasu.astralRecord.feature.skill.repository.LearnedSkillRepository;
@@ -1324,6 +1326,19 @@ public final class AstralRecord extends JavaPlugin {
             skillBindGuiEventHandler,
             getServer().getPluginManager()
         );
+        var skillForgetGui = new SkillForgetGui(this);
+        var skillForgetGuiEventHandler = new SkillForgetGuiEventHandler(
+            skillForgetGui,
+            skillService,
+            skillBindPresetService,
+            skillOwnershipService,
+            learnedSkillService,
+            passiveSkillService
+        );
+        eventManager.registerHandler(
+            skillForgetGuiEventHandler,
+            getServer().getPluginManager()
+        );
         var skillActionRingEventHandler = new SkillActionRingEventHandler(
             skillActionRingService,
             inventoryService
@@ -1375,7 +1390,8 @@ public final class AstralRecord extends JavaPlugin {
             equipmentRepairService,
             questGuiEventHandler,
             currencyExchangeGuiEventHandler,
-            loginBonusService
+            loginBonusService,
+            skillForgetGuiEventHandler
         );
         eventManager.registerHandler(
             new TrainingDummyGuiEventHandler(trainingDummyGui, trainingDummyService),

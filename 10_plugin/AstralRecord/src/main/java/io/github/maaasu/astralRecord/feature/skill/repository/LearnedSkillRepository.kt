@@ -65,6 +65,13 @@ class LearnedSkillRepository {
         return mutate("/api/account-skills/$accountId/$learnedSkillId/sigils", body)
     }
 
+    fun forget(accountId: UUID, learnedSkillId: UUID, updatedBy: UUID): LearnedSkillInstance {
+        val body = ApiRequestUtil.buildJsonBody {
+            addProperty("updatedBy", updatedBy.toString())
+        }
+        return mutate("/api/account-skills/$accountId/$learnedSkillId/forget", body)
+    }
+
     private fun mutate(path: String, body: String): LearnedSkillInstance {
         try {
             ApiRequestUtil.buildClient().use { client ->

@@ -171,6 +171,40 @@ public class AccountLearnedSkillRepository(
         });
     }
 
+    public async Task<AccountLearnedSkillMutationResult> ForgetAsync(
+        Guid accountId,
+        Guid learnedSkillId,
+        AccountLearnedSkillForgetRequest request)
+    {
+        return await ExecuteSerializableAsync(async () =>
+        {
+            var entity = await FindLearnedSkillAsync(accountId, learnedSkillId);
+            if (entity is null)
+                return Failure(AccountLearnedSkillMutationFailure.LearnedSkillNotFound);
+
+            var now = DateTime.UtcNow;
+            var result = Success(Map(entity));
+            entity.IsDeleted = true;
+            entity.Version += 1;
+            entity.UpdatedAt = now;
+            entity.UpdatedBy = request.UpdatedBy;
+            foreach (var sigil in entity.Sigils.Where(sigil => !sigil.IsDeleted))
+            {
+                sigil.IsDeleted = true;
+                sigil.UpdatedAt = now;
+                sigil.UpdatedBy = request.UpdatedBy;
+            }
+
+            await RemoveDeletedBindingsAsync(
+                accountId,
+                new HashSet<Guid> { learnedSkillId },
+                request.UpdatedBy,
+                now);
+            await dbContext.SaveChangesAsync();
+            return result;
+        });
+    }
+
     private async Task<AccountLearnedSkillMutationResult> ExecuteSerializableAsync(
         Func<Task<AccountLearnedSkillMutationResult>> operation)
     {

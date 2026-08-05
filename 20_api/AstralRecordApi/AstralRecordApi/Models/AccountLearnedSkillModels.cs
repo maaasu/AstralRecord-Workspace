@@ -40,6 +40,11 @@ public class AccountLearnedSkillAttachSigilRequest
     public Guid UpdatedBy { get; init; }
 }
 
+public class AccountLearnedSkillForgetRequest
+{
+    public Guid UpdatedBy { get; init; }
+}
+
 public enum AccountLearnedSkillMutationFailure
 {
     None,
