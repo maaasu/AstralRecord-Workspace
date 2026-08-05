@@ -16,12 +16,14 @@ import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
 /** 前方の敵を上空から地面へ叩き落とし、着地点の敵を押し出す冒険者のスマッシュです。 */
 public final class AdventurerSmashExecutor extends PlayerActiveSkillExecutor {
 
     public static final String ID = "adventurer_smash";
+    private static final int SHOCKWAVE_FRAMES = 6;
     /** 共有発動スキルサービスで初期化します。 */
     public AdventurerSmashExecutor(@NotNull ActiveSkillServices services) {
         super(ID, services);
@@ -68,11 +70,24 @@ public final class AdventurerSmashExecutor extends PlayerActiveSkillExecutor {
 
         Location impact = primary.location().clone().add(0.0D, 0.05D, 0.0D);
         World castWorld = impact.getWorld();
+        Vector right = context.direction().clone().crossProduct(new Vector(0.0D, 1.0D, 0.0D));
+        if (right.lengthSquared() <= 1.0E-8D) {
+            right.setX(1.0D);
+        } else {
+            right.normalize();
+        }
+        Location strikeStart = impact.clone().add(right.clone().multiply(1.35D)).add(0.0D, 3.2D, 0.0D);
         context.services().effects().line(
-                impact.clone().add(0.0D, 3.0D, 0.0D),
+                strikeStart,
                 impact,
-                0.3D,
-                SharedParticleDefinitions.SKILL_SWORD_EDGE
+                0.18D,
+                SharedParticleDefinitions.ADVENTURER_SMASH_CRIT
+        );
+        context.services().effects().line(
+                strikeStart.clone().add(right.clone().multiply(0.22D)).add(0.0D, 0.28D, 0.0D),
+                impact.clone().add(right.clone().multiply(0.12D)).add(0.0D, 0.12D, 0.0D),
+                0.22D,
+                SharedParticleDefinitions.ADVENTURER_SMASH_SPARK
         );
         context.services().tasks().later(player.getUniqueId(), ID, impactDelayTicks, () -> {
             if (!player.isOnline() || castWorld == null || player.getWorld() != castWorld) {
@@ -90,11 +105,29 @@ public final class AdventurerSmashExecutor extends PlayerActiveSkillExecutor {
                     .stream()
                     .filter(target -> !target.id().equals(primary.id()))
                     .forEach(target -> hitSecondary(context, attacker, target, impact, secondaryRatio, secondaryKnockback));
-            context.services().effects().ring(
-                    impact,
-                    impactRadius,
-                    16,
-                    SharedParticleDefinitions.SKILL_SWORD_EDGE
+            Location floor = impact.clone().subtract(0.0D, 0.15D, 0.0D);
+            context.services().effects().blockDust(floor, floor.getBlock().getBlockData());
+            context.services().effects().point(
+                    impact.clone().add(0.0D, 0.18D, 0.0D),
+                    SharedParticleDefinitions.ADVENTURER_SMASH_SWEEP
+            );
+            context.services().tasks().repeat(
+                    player.getUniqueId(),
+                    ID + ":shockwave",
+                    0L,
+                    1L,
+                    SHOCKWAVE_FRAMES,
+                    frame -> {
+                        double radius = impactRadius * (frame + 1.0D) / SHOCKWAVE_FRAMES;
+                        context.services().effects().ring(
+                                impact,
+                                radius,
+                                18 + frame * 3,
+                                frame % 2 == 0
+                                        ? SharedParticleDefinitions.ADVENTURER_SMASH_SWEEP
+                                        : SharedParticleDefinitions.ADVENTURER_SMASH_SPARK
+                        );
+                    }
             );
             context.services().effects().sound(
                     impact,

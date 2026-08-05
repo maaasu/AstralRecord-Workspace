@@ -194,6 +194,12 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("adventurer_astral_edge_crit", Particle.CRIT, 3, 0.04D, 0.04D, 0.04D, 0.08D);
     public static final SharedParticleDefinition ADVENTURER_ASTRAL_EDGE_SPARK =
         new SharedParticleDefinition("adventurer_astral_edge_spark", Particle.ELECTRIC_SPARK, 2, 0.03D, 0.03D, 0.03D, 0.04D);
+    public static final SharedParticleDefinition ADVENTURER_SMASH_CRIT =
+        new SharedParticleDefinition("adventurer_smash_crit", Particle.CRIT, 5, 0.08D, 0.12D, 0.08D, 0.12D);
+    public static final SharedParticleDefinition ADVENTURER_SMASH_SPARK =
+        new SharedParticleDefinition("adventurer_smash_spark", Particle.ELECTRIC_SPARK, 3, 0.06D, 0.08D, 0.06D, 0.08D);
+    public static final SharedParticleDefinition ADVENTURER_SMASH_SWEEP =
+        new SharedParticleDefinition("adventurer_smash_sweep", Particle.SWEEP_ATTACK, 2, 0.0D, 0.0D, 0.0D, 0.0D);
     public static final SharedParticleDefinition SKILL_SWORD_GUARD_DUST =
         new SharedParticleDefinition(
             "skill_sword_guard_dust",

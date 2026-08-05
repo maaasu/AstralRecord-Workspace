@@ -3,9 +3,11 @@ package io.github.maaasu.astralRecord.feature.skill.active.service;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
 import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
@@ -31,6 +33,20 @@ public final class SkillEffectService {
     /** 1点へ particle を表示します。 */
     public void point(@NotNull Location location, @NotNull SharedParticleDefinition definition) {
         particleDisplayService.spawnForNearbyViewers(location, definition);
+    }
+
+    /** 指定地点の地面ブロックを使った粉塵を表示します。 */
+    public void blockDust(@NotNull Location location, @NotNull BlockData blockData) {
+        particleDisplayService.spawnForNearbyViewers(
+                location,
+                Particle.BLOCK,
+                18,
+                0.42D,
+                0.12D,
+                0.42D,
+                0.22D,
+                blockData
+        );
     }
 
     /** 線分へ等間隔で particle を表示します。 */
