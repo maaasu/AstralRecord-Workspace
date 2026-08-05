@@ -12,6 +12,8 @@ public class ClassResponse
 
     public required string Name { get; init; }
 
+    public required double Order { get; init; }
+
     public required string ShortName { get; init; }
 
     public string? Description { get; init; }
@@ -44,6 +46,8 @@ public class ClassSummaryResponse
     public required string Id { get; init; }
 
     public required string Name { get; init; }
+
+    public required double Order { get; init; }
 
     public required string ShortName { get; init; }
 

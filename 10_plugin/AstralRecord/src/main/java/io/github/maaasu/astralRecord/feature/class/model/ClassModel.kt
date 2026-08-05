@@ -8,6 +8,7 @@ data class ClassModel(
     val id: String,
     val type: String,
     val name: String,
+    val order: Double,
     val shortName: String,
     val description: String?,
     val icon: String?,

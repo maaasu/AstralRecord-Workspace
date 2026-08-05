@@ -84,7 +84,7 @@ class ClassService {
      * @return ロード済み全 ClassModel
      */
     fun getLoadedClasses(): List<ClassModel> {
-        return loadedClasses.values.toList()
+        return loadedClasses.values.sortedWith(compareBy<ClassModel> { it.order }.thenBy { it.id.lowercase(Locale.ROOT) })
     }
 
     /**

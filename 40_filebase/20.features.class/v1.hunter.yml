@@ -2,6 +2,7 @@ schemaVersion: 1
 id: hunter
 type: CLASS
 name: "&aハンター"
+order: 1.2
 shortName: "&a狩猟士"
 description: "&7機動遠距離射手。"
 icon: BOW

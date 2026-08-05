@@ -28,9 +28,12 @@ public class ClassRepository(MasterDataDbContext dbContext) : IClassRepository
             {
                 Id = cls!.Id,
                 Name = cls.Name,
+                Order = cls.Order,
                 ShortName = cls.ShortName,
                 Role = cls.Role,
             })
+            .OrderBy(cls => cls.Order)
+            .ThenBy(cls => cls.Id, StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }
 

@@ -41,6 +41,32 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-モデル操作.md
+     * 章・見出し: # 03_3-モデル操作 > ## 1. model メソッド仕様 > ### 全クラス進行取得
+     * 検証契約: プレイヤー情報の全クラスレベルは、class masterのorder昇順で表示する。
+     */
+    @Test
+    fun displaysClassProgressInConfiguredOrder() {
+        val player = server().addPlayer()
+        val astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER)
+        astPlayer.setClassProgress("mage", 4, 900L)
+        astPlayer.setClassProgress("adventurer", 3, 300L)
+
+        val service = PlayerClassService()
+        service.replaceSnapshot(
+            mapOf(
+                "mage" to classModel("mage", "Mage", order = 1.3),
+                "adventurer" to classModel("adventurer", "Adventurer", order = 0.0),
+            )
+        )
+
+        assertEquals(
+            listOf("adventurer", "mage"),
+            service.getClassProgressViewEntries(astPlayer).map { it.id },
+        )
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
      * 章・見出し: # 03_3-サービス > ## 5. PlayerClassService
      * 検証契約: 現在classから複数path上の全ancestorを重複なく解決する。
@@ -141,11 +167,13 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
         name: String,
         parentIds: List<String> = emptyList(),
         shortName: String = id.takeLast(3).padStart(3, '_'),
+        order: Double = 0.0,
     ) = ClassModel(
         schemaVersion = 1,
         id = id,
         type = "CLASS",
         name = name,
+        order = order,
         shortName = shortName,
         description = null,
         icon = "EXPERIENCE_BOTTLE",

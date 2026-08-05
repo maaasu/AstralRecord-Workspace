@@ -15,6 +15,7 @@ Class（職業）のスキーマ定義。
 | `id`                       | String       | ○  | -         | classのテンプレートID（例: `warrior`）                     |
 | `type`                     | String       | ○  | -         | 種別（CLASS(cls)）                                   |
 | `name`                     | String       | ○  | -         | ゲーム内に表示される職業名                                    |
+| `order`                    | Double       | ○  | -         | クラス一覧で表示する順序。値が小さいクラスから表示する                 |
 | `shortName`                | String       | ○  | -         | チャットのプレイヤー情報に表示する3文字の職業短縮名。色コードを除いた表示文字をクラス間で一意にする |
 | `description`              | String       | ×  | Null      | 職業説明文                                            |
 | `icon`                     | String       | ×  | Null      | 表示アイコン（任意。表現は実装側に委ねる）                            |

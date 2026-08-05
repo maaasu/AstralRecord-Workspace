@@ -5,6 +5,7 @@ schemaVersion: 1
 id: administrator
 type: CLASS
 name: "&c&lアドミニストレーター"
+order: 9999
 shortName: "&c&l管理者"
 description: "&7管理コマンドでのみ選択できる、全能力が均等に成長する運営用クラス。"
 icon: NETHER_STAR
