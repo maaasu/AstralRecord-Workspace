@@ -1,0 +1,16 @@
+# design:
+#   motif: "星術 / 星晶"
+#   progression: 6
+schemaVersion: 1
+id: skill_gem_raw_king
+category: material
+name: "&6スキルジェムの原石(王級)"
+icon: TUBE_CORAL_BLOCK
+rarity: MYTHIC
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7王の力を宿したスキルジェムの原石。"
+  - "&7星晶錬成師との交換に使用できる。"
+unTradeable: false
+unSellable: false

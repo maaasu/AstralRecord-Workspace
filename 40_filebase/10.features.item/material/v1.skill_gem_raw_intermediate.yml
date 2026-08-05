@@ -1,0 +1,16 @@
+# design:
+#   motif: "星術 / 星晶"
+#   progression: 3
+schemaVersion: 1
+id: skill_gem_raw_intermediate
+category: material
+name: "&bスキルジェムの原石(中級)"
+icon: DEAD_BRAIN_CORAL_BLOCK
+rarity: RARE
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7中級の力を宿したスキルジェムの原石。"
+  - "&7星晶錬成師との交換に使用できる。"
+unTradeable: false
+unSellable: false

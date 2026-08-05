@@ -1,0 +1,41 @@
+# design:
+#   motif: "星術 / 星晶錬成"
+#   progression: 1
+schemaVersion: 1
+id: skill_gem_alchemist
+type: MOB
+category: NPC
+name: "&d星晶錬成師 セレネ"
+title: "&7スキルジェム交換"
+level: 1
+entityType: WITCH
+nameVisible: true
+damageImmune: true
+icon: AMETHYST_SHARD
+lore:
+  - "&7スキルジェムの原石を錬成する魔女。"
+  - "&7右クリックでスキルジェム交換を開ける。"
+tags:
+  - npc
+  - shop
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&d星晶錬成師 セレネ&7: 原石に眠る星の力を、ジェムへと錬成しましょう。"
+  rightClick:
+    - id: gui
+      params:
+        type: SHOP
+        shopId: skill_gem_exchange

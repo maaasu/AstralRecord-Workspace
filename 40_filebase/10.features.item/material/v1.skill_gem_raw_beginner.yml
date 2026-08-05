@@ -1,0 +1,16 @@
+# design:
+#   motif: "星術 / 星晶"
+#   progression: 2
+schemaVersion: 1
+id: skill_gem_raw_beginner
+category: material
+name: "&aスキルジェムの原石(初級)"
+icon: DEAD_TUBE_CORAL_BLOCK
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7初級の力を宿したスキルジェムの原石。"
+  - "&7星晶錬成師との交換に使用できる。"
+unTradeable: false
+unSellable: false

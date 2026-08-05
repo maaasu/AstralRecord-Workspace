@@ -1,0 +1,16 @@
+# design:
+#   motif: "星術 / 星晶"
+#   progression: 5
+schemaVersion: 1
+id: skill_gem_raw_saint
+category: material
+name: "&fスキルジェムの原石(聖級)"
+icon: HORN_CORAL_BLOCK
+rarity: LEGENDARY
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7聖なる力を宿したスキルジェムの原石。"
+  - "&7星晶錬成師との交換に使用できる。"
+unTradeable: false
+unSellable: false

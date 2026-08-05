@@ -1,0 +1,16 @@
+# design:
+#   motif: "星術 / 星晶"
+#   progression: 4
+schemaVersion: 1
+id: skill_gem_raw_advanced
+category: material
+name: "&dスキルジェムの原石(上級)"
+icon: DEAD_BUBBLE_CORAL_BLOCK
+rarity: EPIC
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7上級の力を宿したスキルジェムの原石。"
+  - "&7星晶錬成師との交換に使用できる。"
+unTradeable: false
+unSellable: false

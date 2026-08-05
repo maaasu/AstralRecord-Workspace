@@ -1,0 +1,16 @@
+# design:
+#   motif: "星術 / 星晶"
+#   progression: 1
+schemaVersion: 1
+id: skill_gem_raw
+category: material
+name: "&fスキルジェムの原石(無印)"
+icon: GRAVEL
+rarity: COMMON
+maxStack: 64
+saleValue: 0
+lore:
+  - "&7スキルジェムの核となる原石。"
+  - "&7星晶錬成師との交換に使用できる。"
+unTradeable: false
+unSellable: false
