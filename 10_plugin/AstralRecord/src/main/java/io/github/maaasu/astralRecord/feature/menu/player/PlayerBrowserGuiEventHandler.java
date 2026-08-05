@@ -106,6 +106,17 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             if (!playerDetailGui.isInventory(event.getView().getTopInventory())) {
+                if (playerDetailGui.isSkillInfoSelectionInventory(event.getView().getTopInventory())
+                    || playerDetailGui.isSkillListInventory(event.getView().getTopInventory())) {
+                    event.setCancelled(true);
+                    if (event.getWhoClicked() instanceof Player player) {
+                        if (HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
+                            return;
+                        }
+                        handleSkillInfoClick(player, event.getRawSlot(), event.getView().getTopInventory());
+                    }
+                    return;
+                }
                 if (!playerDetailGui.isStatusDetailInventory(event.getView().getTopInventory())) {
                     return;
                 }
@@ -133,7 +144,9 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         runSafely(() -> {
             if (!playerListGui.isInventory(event.getView().getTopInventory())
                 && !playerDetailGui.isInventory(event.getView().getTopInventory())
-                && !playerDetailGui.isStatusDetailInventory(event.getView().getTopInventory())) {
+                && !playerDetailGui.isStatusDetailInventory(event.getView().getTopInventory())
+                && !playerDetailGui.isSkillInfoSelectionInventory(event.getView().getTopInventory())
+                && !playerDetailGui.isSkillListInventory(event.getView().getTopInventory())) {
                 return;
             }
             event.setCancelled(true);
@@ -219,6 +232,19 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
             plugin.getMenuView().openBuff(player, targetId, statusService.getActiveBuffs(target));
             return;
         }
+        if (rawSlot == PlayerDetailGui.SKILL_INFO_SLOT) {
+            UUID targetId = playerDetailGui.getTargetId(inventory);
+            Player targetPlayer = targetId == null ? null : Bukkit.getPlayer(targetId);
+            AstPlayer target = targetPlayer == null ? null : AstPlayerCache.get(targetPlayer);
+            if (target == null) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.SELECT.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
+            playerDetailGui.openSkillInfoSelection(player, target);
+            return;
+        }
         if (rawSlot == PlayerDetailGui.TRADE_SLOT) {
             handleTradeRequest(player, inventory);
             return;
@@ -233,6 +259,71 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
             return;
         }
 
+        GuiSound.DENY.play(player);
+    }
+
+    private void handleSkillInfoClick(
+        @NotNull Player player,
+        int rawSlot,
+        @NotNull org.bukkit.inventory.Inventory inventory
+    ) {
+        UUID targetId = playerDetailGui.getSkillInfoTargetId(inventory);
+        Player targetPlayer = targetId == null ? null : Bukkit.getPlayer(targetId);
+        AstPlayer target = targetPlayer == null ? null : AstPlayerCache.get(targetPlayer);
+        if (target == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (playerDetailGui.isSkillInfoSelectionInventory(inventory)) {
+            if (rawSlot == BaseMenuScreenView.BACK_SLOT) {
+                GuiSound.SELECT.play(player);
+                plugin.getGuiNavigationService().openPrevious(player);
+                return;
+            }
+            PlayerDetailGui.SkillListType type = rawSlot == 20
+                ? PlayerDetailGui.SkillListType.PERMITTED
+                : rawSlot == 24 ? PlayerDetailGui.SkillListType.LEARNED : null;
+            if (type == null) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.SELECT.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
+            playerDetailGui.openSkillList(player, target, type, 0);
+            return;
+        }
+
+        PlayerDetailGui.SkillListType type = playerDetailGui.getSkillListType(inventory);
+        if (type == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        int page = playerDetailGui.getSkillListPageIndex(inventory);
+        if (rawSlot == PagedGuiView.BACK_SLOT) {
+            GuiSound.SELECT.play(player);
+            plugin.getGuiNavigationService().openPrevious(player);
+            return;
+        }
+        if (rawSlot == PagedGuiView.PREVIOUS_SLOT) {
+            if (page <= 0) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.PAGE.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
+            playerDetailGui.openSkillList(player, target, type, page - 1);
+            return;
+        }
+        if (rawSlot == PagedGuiView.NEXT_SLOT) {
+            if (!playerDetailGui.hasNextSkillListPage(target, type, page)) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.PAGE.play(player);
+            MenuOpenEventHandler.suppressNextCloseSound(player);
+            playerDetailGui.openSkillList(player, target, type, page + 1);
+            return;
+        }
         GuiSound.DENY.play(player);
     }
 

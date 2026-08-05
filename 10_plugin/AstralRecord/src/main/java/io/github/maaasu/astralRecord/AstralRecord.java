@@ -1037,6 +1037,12 @@ public final class AstralRecord extends JavaPlugin {
         learnedSkillService = new LearnedSkillService(this, new LearnedSkillRepository(), inventoryService);
         skillOwnershipService = new SkillOwnershipService(learnedSkillService);
         skillPermissionService = new SkillPermissionService(playerClassService, skillTreeService);
+        playerDetailGui.setSkillServices(
+            skillService,
+            skillBindPresetService,
+            learnedSkillService,
+            skillPermissionService
+        );
         skillService.setOwnershipService(skillOwnershipService);
         skillService.setPermissionService(skillPermissionService);
         var learnedSkillResolver = new LearnedSkillResolver(itemService);
