@@ -1,0 +1,46 @@
+# design:
+#   motif: "航海 / 道標を持つ旅人"
+#   progression: 0
+schemaVersion: 1
+id: wandering_adventurer
+type: MOB
+category: NPC
+name: "&6旅人レオン"
+title: "&7歩く冒険者"
+level: 1
+entityType: VILLAGER
+variant:
+  profession: CARTOGRAPHER
+  villagerType: PLAINS
+  villagerLevel: 2
+nameVisible: true
+damageImmune: true
+icon: COMPASS
+lore:
+  - "&7道と冒険の話を求めて歩き続ける冒険者。"
+  - "&7右クリックで冒険者向けのガイドを開ける。"
+tags:
+  - npc
+  - humanoid
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 100
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 8
+    speed: 0.75
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&6旅人レオン&7: 道に迷ったら、まずはガイドを読んでみるといい。次の一歩がきっと見つかるさ。"
+  rightClick:
+    - id: command
+      params:
+        command: "menu guide"
