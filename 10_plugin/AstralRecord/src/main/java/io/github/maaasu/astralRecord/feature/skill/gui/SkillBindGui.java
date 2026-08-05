@@ -123,7 +123,7 @@ public final class SkillBindGui {
                 )
             );
         }
-        if (shouldShowNormalAttack(session.selectedBindType())) {
+        if (shouldShowNormalAttack(page, session.selectedBindType())) {
             inventory.setItem(NORMAL_ATTACK_SLOT, createNormalAttackItem());
         }
         inventory.setItem(
@@ -198,15 +198,28 @@ public final class SkillBindGui {
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
+    /**
+     * 変更確認画面を開きます。
+     *
+     * @param player 表示対象プレイヤー
+     * @param selectedPresetIndex 選択中プリセット番号
+     * @param pageIndex 確認前に表示していた一覧ページ。キャンセル・切替後の復帰に引き継ぐ
+     * @param action 確認後の操作
+     * @param pendingPresetIndex 切替対象プリセット番号。切替以外では {@code -1}
+     * @param message 確認メッセージ
+     */
     public void openConfirm(
         @NotNull Player player,
         int selectedPresetIndex,
+        int pageIndex,
         @NotNull String action,
         int pendingPresetIndex,
         @NotNull Component message
     ) {
         Inventory inventory = Bukkit.createInventory(
-            new SkillBindInventoryHolder(SkillBindScreen.CONFIRM, selectedPresetIndex, action, pendingPresetIndex),
+            new SkillBindInventoryHolder(
+                SkillBindScreen.CONFIRM, selectedPresetIndex, pageIndex, action, pendingPresetIndex
+            ),
             ConfirmDialogView.SIZE,
             Component.text("確認", NamedTextColor.YELLOW)
         );
@@ -259,6 +272,17 @@ public final class SkillBindGui {
     /** パッシブ枠の設定中は、設定不能な通常攻撃を一覧から除外します。 */
     public static boolean shouldShowNormalAttack(@Nullable SkillBindType selectedBindType) {
         return selectedBindType != SkillBindType.PASSIVE;
+    }
+
+    /**
+     * 通常攻撃を現在の一覧ページへ表示するか判定します。
+     *
+     * @param pageIndex 0 始まりの一覧ページ番号
+     * @param selectedBindType 選択中のバインド種別
+     * @return 1ページ目で、通常攻撃を設定可能な場合は {@code true}
+     */
+    public static boolean shouldShowNormalAttack(int pageIndex, @Nullable SkillBindType selectedBindType) {
+        return pageIndex == 0 && shouldShowNormalAttack(selectedBindType);
     }
 
     private ItemStack createLearnedSkillItem(SkillManagerEntry entry, boolean listDisplay) {

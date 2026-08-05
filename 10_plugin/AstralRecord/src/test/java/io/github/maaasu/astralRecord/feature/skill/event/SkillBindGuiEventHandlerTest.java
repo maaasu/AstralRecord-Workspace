@@ -47,6 +47,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import java.lang.reflect.Field;
@@ -379,6 +380,45 @@ class SkillBindGuiEventHandlerTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+     * 章・見出し: # 13_3-GUI・View > ## 5. 識別とページング
+     * 検証契約: 一覧のバインド枠選択で再描画しても、表示可能な範囲で現在ページを引き継ぐ。
+     */
+    @Test
+    void bindSlotSelectionKeepsCurrentPage() throws ReflectiveOperationException {
+        SkillBindGui gui = mock(SkillBindGui.class);
+        SkillService skillService = mock(SkillService.class);
+        SkillOwnershipService ownershipService = mock(SkillOwnershipService.class);
+        PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
+        SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
+            mock(AstralRecord.class), gui, skillService, mock(SkillBindPresetService.class), ownershipService,
+            mock(SkillPermissionService.class), mock(LearnedSkillService.class), passiveSkillService, mock(InventoryService.class)
+        );
+        Player player = mock(Player.class);
+        InventoryView view = mock(InventoryView.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        SkillBindSession session = new SkillBindSession(presets(UUID.randomUUID()));
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(player.getOpenInventory()).thenReturn(view);
+        when(view.getTopInventory()).thenReturn(mock(Inventory.class));
+        when(gui.isInventory(any())).thenReturn(false);
+        when(skillService.registry()).thenReturn(new SkillRegistry());
+        when(ownershipService.learnedSkills(astPlayer)).thenReturn(List.of());
+        when(passiveSkillService.activePassiveSlotCount(astPlayer)).thenReturn(0);
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            invoke(handler, "handleBindSlotClick",
+                new Class<?>[] {Player.class, SkillBindSession.class, SkillBindType.class, int.class, int.class, int.class},
+                player, session, SkillBindType.ACTIVE, 0, 1, SkillBindPreset.ACTION_RING_SLOT_COUNT);
+        }
+
+        ArgumentCaptor<Integer> page = ArgumentCaptor.forClass(Integer.class);
+        verify(gui).open(any(), any(), any(), any(), anyInt(), page.capture());
+        assertEquals(1, page.getValue());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
      * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
      * 検証契約: 選択済みの active 枠へ通常攻撃を設定する操作では、保存開始前に SELECT 音を再生する。
@@ -485,8 +525,8 @@ class SkillBindGuiEventHandlerTest {
         when(gui.isInventory(any())).thenReturn(false);
 
         invoke(handler, "openConfirm",
-            new Class<?>[] {Player.class, SkillBindSession.class, String.class, int.class, Component.class},
-            player, new SkillBindSession(presets(UUID.randomUUID())), "close", -1, Component.empty());
+            new Class<?>[] {Player.class, SkillBindSession.class, String.class, int.class, int.class, Component.class},
+            player, new SkillBindSession(presets(UUID.randomUUID())), "close", -1, 1, Component.empty());
 
         verifySound(player, location, Sound.BLOCK_NOTE_BLOCK_PLING);
     }

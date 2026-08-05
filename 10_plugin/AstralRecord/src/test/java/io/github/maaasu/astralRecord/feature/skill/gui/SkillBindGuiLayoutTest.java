@@ -57,5 +57,8 @@ class SkillBindGuiLayoutTest {
         assertTrue(SkillBindGui.shouldShowNormalAttack(SkillBindType.ACTIVE));
         assertTrue(SkillBindGui.shouldShowNormalAttack(SkillBindType.LEFT_CLICK));
         assertTrue(SkillBindGui.shouldShowNormalAttack(null));
+        assertTrue(SkillBindGui.shouldShowNormalAttack(0, SkillBindType.ACTIVE));
+        assertFalse(SkillBindGui.shouldShowNormalAttack(1, SkillBindType.ACTIVE));
+        assertFalse(SkillBindGui.shouldShowNormalAttack(1, null));
     }
 }

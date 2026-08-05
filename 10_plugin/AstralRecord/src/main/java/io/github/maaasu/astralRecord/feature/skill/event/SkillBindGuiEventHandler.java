@@ -184,7 +184,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             }
             if (holder.screen() == SkillBindScreen.MAIN && session != null && session.isDirty()) {
                 plugin.getServer().getScheduler().runTask(plugin, () -> openConfirm(
-                    player, session, ACTION_CLOSE, -1,
+                    player, session, ACTION_CLOSE, -1, holder.pageIndex(),
                     Component.text("変更を破棄して閉じますか", NamedTextColor.YELLOW)
                 ));
                 return;
@@ -243,7 +243,10 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         if (slot == SkillBindGui.BACK_SLOT) {
             String action = ACTION_BACK;
             if (session.isDirty()) {
-                openConfirm(player, session, action, -1, Component.text("変更を破棄しますか", NamedTextColor.YELLOW));
+                openConfirm(
+                    player, session, action, -1, page,
+                    Component.text("変更を破棄しますか", NamedTextColor.YELLOW)
+                );
             } else {
                 returnToPrevious(player);
             }
@@ -251,7 +254,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         }
         int presetIndex = SkillBindGui.presetIndexAtSlot(slot);
         if (presetIndex > 0) {
-            handlePresetClick(player, session, presetIndex);
+            handlePresetClick(player, session, presetIndex, page);
             return;
         }
         if (slot >= SkillBindGui.PASSIVE_BIND_SLOT_START
@@ -362,7 +365,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         if (session.isSelectedBindSlot(type, index)) session.clearSelectedBindSlot();
         else session.selectBindSlot(type, index);
         GuiSound.SELECT.play(player);
-        openMain(player, session, 0, true);
+        openMain(player, session, page, true);
     }
 
     private void handleSynthesisClick(
@@ -546,7 +549,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         return restored;
     }
 
-    private void handlePresetClick(Player player, SkillBindSession session, int presetIndex) {
+    private void handlePresetClick(Player player, SkillBindSession session, int presetIndex, int page) {
         if (!session.presets().get(presetIndex - 1).isUnlocked()) {
             GuiSound.DENY.play(player);
             return;
@@ -554,15 +557,15 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         if (presetIndex == session.selectedPresetIndex()) return;
         if (session.isDirty()) {
             openConfirm(
-                player, session, ACTION_SWITCH_PRESET, presetIndex,
+                player, session, ACTION_SWITCH_PRESET, presetIndex, page,
                 Component.text("変更を破棄してプリセットを切り替えますか", NamedTextColor.YELLOW)
             );
             return;
         }
-        switchPreset(player, session, presetIndex);
+        switchPreset(player, session, presetIndex, page);
     }
 
-    private void switchPreset(Player player, SkillBindSession session, int presetIndex) {
+    private void switchPreset(Player player, SkillBindSession session, int presetIndex, int page) {
         session.loadPreset(presetIndex);
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer != null) {
@@ -571,7 +574,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5808, presetIndex);
         }
         GuiSound.TOGGLE.play(player);
-        openMain(player, session, 0, true);
+        openMain(player, session, page, true);
     }
 
     private void handleConfirmClick(Player player, SkillBindInventoryHolder holder, int slot) {
@@ -588,10 +591,10 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         if (slot != ConfirmDialogView.CONFIRM_SLOT) return;
         GuiSound.CONFIRM.play(player);
         switch (holder.action()) {
-            case ACTION_SWITCH_PRESET -> switchPreset(player, session, holder.pendingPresetIndex());
+            case ACTION_SWITCH_PRESET -> switchPreset(player, session, holder.pendingPresetIndex(), holder.pageIndex());
             case ACTION_BACK -> returnToPrevious(player);
             case ACTION_CLOSE -> restoreAndClose(player);
-            default -> openMain(player, session, 0, true);
+            default -> openMain(player, session, holder.pageIndex(), true);
         }
     }
 
@@ -739,9 +742,16 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         );
     }
 
-    private void openConfirm(Player player, SkillBindSession session, String action, int pending, Component message) {
+    private void openConfirm(
+        Player player,
+        SkillBindSession session,
+        String action,
+        int pending,
+        int page,
+        Component message
+    ) {
         suppressCloseIfSwitching(player);
-        gui.openConfirm(player, session.selectedPresetIndex(), action, pending, message);
+        gui.openConfirm(player, session.selectedPresetIndex(), page, action, pending, message);
         GuiSound.CONFIRM.play(player);
     }
 

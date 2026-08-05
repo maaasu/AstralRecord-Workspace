@@ -20,8 +20,27 @@ public record SkillBindInventoryHolder(
         this(screen, selectedPresetIndex, pageIndex, "", -1, "");
     }
 
+    /**
+     * 確認画面の holder を作成します。
+     *
+     * @param screen 画面種別
+     * @param selectedPresetIndex 選択中プリセット番号
+     * @param pageIndex 確認前に表示していた一覧ページ
+     * @param action 確認後の操作
+     * @param pendingPresetIndex 切替対象プリセット番号。切替以外では {@code -1}
+     */
+    public SkillBindInventoryHolder(
+        @NotNull SkillBindScreen screen,
+        int selectedPresetIndex,
+        int pageIndex,
+        @NotNull String action,
+        int pendingPresetIndex
+    ) {
+        this(screen, selectedPresetIndex, pageIndex, action, pendingPresetIndex, "");
+    }
+
     public SkillBindInventoryHolder(@NotNull SkillBindScreen screen, int selectedPresetIndex, @NotNull String action, int pendingPresetIndex) {
-        this(screen, selectedPresetIndex, 0, action, pendingPresetIndex, "");
+        this(screen, selectedPresetIndex, 0, action, pendingPresetIndex);
     }
 
     public SkillBindInventoryHolder(
