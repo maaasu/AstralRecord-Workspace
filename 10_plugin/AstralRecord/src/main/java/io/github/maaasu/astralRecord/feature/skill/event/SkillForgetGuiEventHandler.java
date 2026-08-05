@@ -1,10 +1,14 @@
 package io.github.maaasu.astralRecord.feature.skill.event;
 
+import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillForgetGui;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillForgetInventoryHolder;
@@ -12,13 +16,13 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillForgetScreen;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillManagerEntry;
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
-import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.confirm.ConfirmDialogView;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -37,29 +41,35 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /** NPC 専用スキル忘却 GUI の開閉と操作を処理します。 */
 public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
+    private final AstralRecord plugin;
     private final SkillForgetGui gui;
     private final SkillService skillService;
-    private final SkillBindPresetService presetService;
     private final SkillOwnershipService ownershipService;
     private final LearnedSkillService learnedSkillService;
     private final PassiveSkillService passiveSkillService;
+    private final InventoryService inventoryService;
+    private final ItemService itemService;
     private final Map<UUID, UUID> forgetting = new ConcurrentHashMap<>();
     private final java.util.Set<UUID> suppressClose = ConcurrentHashMap.newKeySet();
 
     public SkillForgetGuiEventHandler(
+        @NotNull AstralRecord plugin,
         @NotNull SkillForgetGui gui,
         @NotNull SkillService skillService,
-        @NotNull SkillBindPresetService presetService,
         @NotNull SkillOwnershipService ownershipService,
         @NotNull LearnedSkillService learnedSkillService,
-        @NotNull PassiveSkillService passiveSkillService
+        @NotNull PassiveSkillService passiveSkillService,
+        @NotNull InventoryService inventoryService,
+        @NotNull ItemService itemService
     ) {
+        this.plugin = plugin;
         this.gui = gui;
         this.skillService = skillService;
-        this.presetService = presetService;
         this.ownershipService = ownershipService;
         this.learnedSkillService = learnedSkillService;
         this.passiveSkillService = passiveSkillService;
+        this.inventoryService = inventoryService;
+        this.itemService = itemService;
     }
 
     /**
@@ -173,7 +183,8 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
             GuiSound.SELECT.play(player);
             return;
         }
-        if (slot != ConfirmDialogView.CONFIRM_SLOT) {
+        boolean paidForget = slot == SkillForgetGui.PAID_CONFIRM_SLOT;
+        if (slot != ConfirmDialogView.CONFIRM_SLOT && !paidForget) {
             GuiSound.DENY.play(player);
             return;
         }
@@ -196,34 +207,129 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
         UUID accountId = astPlayer.getAccount().getUuid();
         forgetting.put(playerId, learnedSkillId);
         GuiSound.CONFIRM.play(player);
+        ItemModel compensationGem = paidForget ? findSkillGem(entry.learnedSkill().getSkillId()) : null;
+        if (paidForget && compensationGem == null) {
+            rejectPaidForget(player, playerId, PlayerMsgId.P_5870);
+            return;
+        }
+        if (paidForget && !inventoryService.canAddItemToNormalInventory(astPlayer, compensationGem, 1)) {
+            rejectPaidForget(player, playerId, PlayerMsgId.P_5870);
+            return;
+        }
+        if (paidForget && !inventoryService.consumeCurrency(
+            accountId, ItemService.ASTRALD_CURRENCY_ITEM_ID, 100
+        )) {
+            rejectPaidForget(player, playerId, PlayerMsgId.P_5868);
+            return;
+        }
+        if (paidForget) {
+            inventoryService.saveNow(accountId).whenComplete((saved, saveError) ->
+                runOnMainThread(() -> {
+                    if (saveError != null || !Boolean.TRUE.equals(saved)) {
+                        refundPaidForget(player, accountId);
+                        failForget(player, playerId, PlayerMsgId.P_5867);
+                        return;
+                    }
+                    requestForget(
+                        player, playerId, accountId, learnedSkillId, entry, holder.pageIndex(),
+                        compensationGem
+                    );
+                })
+            );
+            return;
+        }
+        requestForget(player, playerId, accountId, learnedSkillId, entry, holder.pageIndex(), null);
+    }
+
+    private void requestForget(
+        @NotNull Player player,
+        @NotNull UUID playerId,
+        @NotNull UUID accountId,
+        @NotNull UUID learnedSkillId,
+        @NotNull SkillManagerEntry entry,
+        int returnPage,
+        @Nullable ItemModel compensationGem
+    ) {
         boolean accepted = learnedSkillService.forgetAsync(
             accountId,
             learnedSkillId,
             accountId,
             ignored -> {
                 forgetting.remove(playerId);
-                presetService.clearBindings(accountId, learnedSkillId);
                 AstPlayer current = AstPlayerCache.get(player);
-                if (current != null) passiveSkillService.reconcileNow(current);
+                if (current != null) {
+                    passiveSkillService.reconcileNow(current);
+                    if (compensationGem != null) {
+                        inventoryService.addItemToNormalInventory(
+                            current, compensationGem, 1, "skill_forgetting_compensation"
+                        );
+                        inventoryService.saveNow(accountId);
+                    }
+                }
                 suppressClose.add(playerId);
-                openList(player, holder.pageIndex(), true);
+                openList(player, returnPage, true);
                 GuiSound.SUCCESS.play(player);
                 PlayerMessageService.getInstance().send(
                     player,
-                    PlayerMsgId.P_5866,
+                    compensationGem == null ? PlayerMsgId.P_5866 : PlayerMsgId.P_5869,
                     SkillPresentationUtil.plainName(entry.definition(), entry.definition().getId())
                 );
             },
             error -> {
                 forgetting.remove(playerId);
-                GuiSound.DENY.play(player);
-                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5867);
+                if (compensationGem != null) refundPaidForget(player, accountId);
+                failForget(player, playerId, PlayerMsgId.P_5867);
             }
         );
         if (!accepted) {
-            forgetting.remove(playerId);
-            GuiSound.DENY.play(player);
+            if (compensationGem != null) refundPaidForget(player, accountId);
+            failForget(player, playerId, PlayerMsgId.P_5867);
         }
+    }
+
+    private void rejectPaidForget(
+        @NotNull Player player,
+        @NotNull UUID playerId,
+        @NotNull PlayerMsgId messageId
+    ) {
+        forgetting.remove(playerId);
+        GuiSound.DENY.play(player);
+        PlayerMessageService.getInstance().send(player, messageId);
+    }
+
+    private void failForget(
+        @NotNull Player player,
+        @NotNull UUID playerId,
+        @NotNull PlayerMsgId messageId
+    ) {
+        forgetting.remove(playerId);
+        GuiSound.DENY.play(player);
+        PlayerMessageService.getInstance().send(player, messageId);
+    }
+
+    private void refundPaidForget(@NotNull Player player, @NotNull UUID accountId) {
+        AstPlayer current = AstPlayerCache.get(player);
+        ItemModel astrald = itemService.findLoadedById(ItemService.ASTRALD_CURRENCY_ITEM_ID);
+        if (current != null && astrald != null) {
+            inventoryService.addItemToNormalInventory(current, astrald, 100, "skill_forgetting_refund");
+            inventoryService.saveNow(accountId);
+        }
+    }
+
+    private @Nullable ItemModel findSkillGem(@NotNull String skillId) {
+        return itemService.getLoadedItems().stream()
+            .filter(item -> item.getSkillGem() != null)
+            .filter(item -> skillId.equalsIgnoreCase(item.getSkillGem().getSkillId()))
+            .findFirst()
+            .orElse(null);
+    }
+
+    private void runOnMainThread(@NotNull Runnable action) {
+        if (Bukkit.isPrimaryThread()) {
+            action.run();
+            return;
+        }
+        plugin.getServer().getScheduler().runTask(plugin, action);
     }
 
     private void openList(@NotNull Player player, int page, boolean suppressPreviousClose) {

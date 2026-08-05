@@ -142,7 +142,8 @@ class SkillActionRingServiceTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
      * 章・見出し: # 13_3-イベント > ## 3. action ring入力解決
-     * 検証契約: 所持済みで使用許可だけを失った action ring のバインドは、SkillService が P_5863 を通知できる発動経路へ到達する。
+     * 検証契約: 所持済みで使用許可だけを失ったバインドと、忘却済みで所有しないバインドは、
+     * SkillService がそれぞれ P_5863 / P_5809 を通知できる発動経路へ到達する。
      */
     @Test
     void ownedUnavailableRingSlotRemainsSelectableForPermissionFeedback() throws ReflectiveOperationException {
@@ -158,10 +159,10 @@ class SkillActionRingServiceTest extends MockBukkitTestBase {
         selectable.setAccessible(true);
 
         Object owned = constructor.newInstance("locked_skill", definition(), "未許可", Material.BARRIER, true, unavailable);
-        Object unowned = constructor.newInstance("missing_skill", definition(), "未所持", Material.BARRIER, false, unavailable);
+        Object unowned = constructor.newInstance("missing_skill", definition(), "未習得スキル", Material.BARRIER, false, unavailable);
 
         assertTrue((Boolean) selectable.invoke(owned));
-        assertFalse((Boolean) selectable.invoke(unowned));
+        assertTrue((Boolean) selectable.invoke(unowned));
     }
 
     /**

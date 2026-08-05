@@ -319,8 +319,8 @@ public final class SkillActionRingService {
                 continue;
             }
             String displayName = definition == null
-                    ? "未定義スキル"
-                    : SkillPresentationUtil.legacyName(definition, "未定義スキル");
+                    ? "未習得スキル"
+                    : SkillPresentationUtil.legacyName(definition, "未習得スキル");
             boolean owned = learned != null;
             boolean permitted = learned != null && permissionService.isPermitted(astPlayer, learned.getSkillId());
             Material material = owned ? parseMaterial(definition == null ? null : definition.getIcon(), Material.BARRIER) : Material.BARRIER;
@@ -378,12 +378,13 @@ public final class SkillActionRingService {
             return itemWeaponAttackService != null && itemWeaponAttackService.hasLeftClickAction(astPlayer);
         }
         LearnedSkillInstance learned = ownershipService.findInstance(astPlayer, preset.getLeftClickSkillId());
-        SkillDefinition definition = learned == null ? null : skillService.registry().getDefinition(learned.getSkillId());
-        return definition != null
-            && definition.getKind() == SkillKind.ACTIVE
-            // 使用許可の最終判定は SkillService が行い、未許可時は P_5863 を表示します。
-            // ここで除外すると入力そのものが棄却され、理由をプレイヤーへ返せません。
-            && learned != null;
+        if (learned == null) {
+            // 忘却済みでもバインドは保持するため、実行時の所有チェックで P_5809 を通知します。
+            return true;
+        }
+        SkillDefinition definition = skillService.registry().getDefinition(learned.getSkillId());
+        // 使用許可の最終判定は SkillService が行い、未許可時は P_5863 を表示します。
+        return definition != null && definition.getKind() == SkillKind.ACTIVE;
     }
 
     private @Nullable SkillBindPreset selectedPreset(@NotNull AstPlayer astPlayer) {
@@ -449,7 +450,9 @@ public final class SkillActionRingService {
             // 所持済みだが使用許可を失ったスキルは赤表示のまま選択を許可し、
             // SkillService の統一経路から P_5863 をプレイヤーへ通知します。
             return availability == SlotAvailability.AVAILABLE
-                || (availability == SlotAvailability.UNAVAILABLE && owned && definition != null && skillId != null);
+                || (availability == SlotAvailability.UNAVAILABLE
+                    && skillId != null
+                    && (owned && definition != null || !owned));
         }
 
         private @NotNull SlotView refreshAvailability(

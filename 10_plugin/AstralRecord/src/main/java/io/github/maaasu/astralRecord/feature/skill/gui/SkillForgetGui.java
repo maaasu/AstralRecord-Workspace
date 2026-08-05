@@ -31,6 +31,7 @@ public final class SkillForgetGui {
     public static final int SIZE = 54;
     public static final int CONTENT_SLOT_COUNT = 45;
     public static final int PREVIOUS_PAGE_SLOT = 45;
+    public static final int PAID_CONFIRM_SLOT = 13;
     public static final int NEXT_PAGE_SLOT = 53;
 
     private static final Material DEFAULT_SKILL_ICON = Material.AMETHYST_SHARD;
@@ -95,10 +96,25 @@ public final class SkillForgetGui {
             Component.text("このスキルを忘却しますか？", NamedTextColor.YELLOW),
             List.of(
                 SkillPresentationUtil.skillNameComponent(entry.definition(), entry.definition().getId(), NamedTextColor.WHITE),
-                Component.text("習得一覧と全バインドから削除されます。", NamedTextColor.GRAY)
+                Component.text("習得一覧から削除されます。", NamedTextColor.GRAY),
+                Component.text("通常の忘却ではジェム・指印は戻りません。", NamedTextColor.RED)
             ),
-            Component.text("忘却する", NamedTextColor.RED),
+            Component.text("はい、忘却する", NamedTextColor.RED),
             Component.text("一覧へ戻る", NamedTextColor.GREEN)
+        );
+        inventory.setItem(
+            PAID_CONFIRM_SLOT,
+            GuiItems.create(
+                Material.GOLD_INGOT,
+                Component.text("忘却の代償を払う", NamedTextColor.GOLD),
+                List.of(
+                    Component.text("100アストラルドを消費", NamedTextColor.YELLOW),
+                    Component.text("忘却するスキルのジェムを1個獲得", NamedTextColor.GREEN),
+                    Component.text("指印（シジル）は返却されません", NamedTextColor.RED),
+                    Component.text("高レベル分のジェムは返却されません", NamedTextColor.RED),
+                    Component.text("返却されるジェムは1個のみです", NamedTextColor.GRAY)
+                )
+            )
         );
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }

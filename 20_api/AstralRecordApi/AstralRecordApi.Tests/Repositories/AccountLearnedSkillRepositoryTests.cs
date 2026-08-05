@@ -328,10 +328,10 @@ public class AccountLearnedSkillRepositoryTests
 
     /// <summary>
     /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
-    /// 検証契約: 忘却は指定個体だけを論理削除し、装着シジルと全プリセットの同UUIDバインドを除去する。
+    /// 検証契約: 忘却は指定個体と装着シジルだけを論理削除し、全プリセットの同UUIDバインドは保持する。
     /// </summary>
     [Fact]
-    public async Task ForgetAsync_DeletesInstanceSigilsAndBindings()
+    public async Task ForgetAsync_DeletesInstanceAndSigilsButKeepsBindings()
     {
         await using var fixture = await TestDatabase.CreateAsync();
         await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.mage_fireball.yml", "skill", null);
@@ -393,9 +393,9 @@ public class AccountLearnedSkillRepositoryTests
         Assert.True(await fixture.PlayerDb.AccountLearnedSkillSigils.AsNoTracking()
             .AllAsync(sigil => sigil.IsDeleted));
         var preset = await fixture.PlayerDb.SkillBindPresets.AsNoTracking().SingleAsync();
-        Assert.DoesNotContain(learnedSkillId.ToString(), preset.ActiveSkillSlotsJson, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain(learnedSkillId.ToString(), preset.PassiveSkillSlotsJson, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal("__weapon_normal_attack__", preset.LeftClickSkillId);
+        Assert.Contains(learnedSkillId.ToString(), preset.ActiveSkillSlotsJson, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(learnedSkillId.ToString(), preset.PassiveSkillSlotsJson, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(learnedSkillId.ToString(), preset.LeftClickSkillId);
     }
 
     private sealed class TestDatabase : IAsyncDisposable

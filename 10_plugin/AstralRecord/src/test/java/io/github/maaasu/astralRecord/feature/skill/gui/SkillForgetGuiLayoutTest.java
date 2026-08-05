@@ -16,6 +16,7 @@ class SkillForgetGuiLayoutTest {
     void listUsesFullContentAreaWithoutBackButton() {
         assertEquals(45, SkillForgetGui.CONTENT_SLOT_COUNT);
         assertEquals(45, SkillForgetGui.PREVIOUS_PAGE_SLOT);
+        assertEquals(13, SkillForgetGui.PAID_CONFIRM_SLOT);
         assertEquals(53, SkillForgetGui.NEXT_PAGE_SLOT);
     }
 

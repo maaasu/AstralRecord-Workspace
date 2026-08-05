@@ -478,6 +478,10 @@ public final class SkillBindGui {
         if (entry != null) {
             lore.add(separator());
             appendLearnedSkillDetails(lore, entry);
+        } else if (bindingId != null && !normalAttack) {
+            lore.add(separator());
+            lore.add(Component.text("未習得スキルです。発動できません。", NamedTextColor.RED));
+            lore.add(Component.text("この枠をクリックしてバインドを解除してください。", NamedTextColor.YELLOW));
         }
         Material material = bindSlotMaterial(enabled, bindingId, normalAttack, entry);
         Component name = bindingId == null
@@ -485,7 +489,7 @@ public final class SkillBindGui {
             : normalAttack
                 ? Component.text(label + ": 武器通常攻撃", enabled ? NamedTextColor.WHITE : NamedTextColor.DARK_GRAY)
                 : entry == null
-                    ? Component.text(label + ": 不明な個体", enabled ? NamedTextColor.WHITE : NamedTextColor.DARK_GRAY)
+                    ? Component.text(label + ": 未習得スキル", enabled ? NamedTextColor.RED : NamedTextColor.DARK_GRAY)
                     : Component.text(label + ": ", enabled ? NamedTextColor.WHITE : NamedTextColor.DARK_GRAY)
                         .append(SkillPresentationUtil.skillNameComponent(
                             entry.definition(), entry.definition().getId(), NamedTextColor.WHITE

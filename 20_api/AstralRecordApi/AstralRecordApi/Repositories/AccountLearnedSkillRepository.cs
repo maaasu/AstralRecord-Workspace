@@ -195,11 +195,6 @@ public class AccountLearnedSkillRepository(
                 sigil.UpdatedBy = request.UpdatedBy;
             }
 
-            await RemoveDeletedBindingsAsync(
-                accountId,
-                new HashSet<Guid> { learnedSkillId },
-                request.UpdatedBy,
-                now);
             await dbContext.SaveChangesAsync();
             return result;
         });

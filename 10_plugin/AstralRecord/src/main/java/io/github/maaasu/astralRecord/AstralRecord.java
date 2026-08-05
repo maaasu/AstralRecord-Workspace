@@ -1328,12 +1328,14 @@ public final class AstralRecord extends JavaPlugin {
         );
         var skillForgetGui = new SkillForgetGui(this);
         var skillForgetGuiEventHandler = new SkillForgetGuiEventHandler(
+            this,
             skillForgetGui,
             skillService,
-            skillBindPresetService,
             skillOwnershipService,
             learnedSkillService,
-            passiveSkillService
+            passiveSkillService,
+            inventoryService,
+            itemService
         );
         eventManager.registerHandler(
             skillForgetGuiEventHandler,
