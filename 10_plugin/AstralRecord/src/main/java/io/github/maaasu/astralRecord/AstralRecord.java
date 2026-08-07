@@ -154,12 +154,14 @@ import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTargeting
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTaskService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkillEffectService;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillActionRingEventHandler;
+import io.github.maaasu.astralRecord.feature.skill.event.MeditationSkillEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillBindGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillGemLearnEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillForgetGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.executor.FireBoostSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.IronWillSkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.MeditationSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.ActiveSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui;
@@ -170,6 +172,7 @@ import io.github.maaasu.astralRecord.feature.skill.repository.LearnedSkillReposi
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillRepository;
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillResolver;
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
+import io.github.maaasu.astralRecord.feature.skill.service.MeditationSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
@@ -323,6 +326,7 @@ public final class AstralRecord extends JavaPlugin {
     private SkillActionRingService skillActionRingService;
     private SkillCooldownBossBarService skillCooldownBossBarService;
     private PassiveSkillService passiveSkillService;
+    private MeditationSkillRuntimeService meditationSkillRuntimeService;
     private SkillTreeService skillTreeService;
     private SkillBindPresetService skillBindPresetService;
     private LearnedSkillService learnedSkillService;
@@ -600,6 +604,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (passiveSkillService != null) {
             passiveSkillService.stop();
+        }
+        if (meditationSkillRuntimeService != null) {
+            meditationSkillRuntimeService.clearAll();
         }
         if (skillTreeService != null) {
             skillTreeService.stop();
@@ -1001,6 +1008,8 @@ public final class AstralRecord extends JavaPlugin {
         skillCooldownBossBarService = new SkillCooldownBossBarService(skillService);
         skillService.setConditionService(conditionService);
         skillService.setPlayerHudService(playerHudService);
+        meditationSkillRuntimeService = new MeditationSkillRuntimeService(particleDisplayService);
+        skillService.registerExecutor(new MeditationSkillExecutor(meditationSkillRuntimeService));
         skillService.registerExecutor(new FireBoostSkillExecutor(particleDisplayService));
         skillService.registerExecutor(new IronWillSkillExecutor());
         skillService.registerExecutor(new StatusPassiveSkillExecutor());
@@ -1057,6 +1066,13 @@ public final class AstralRecord extends JavaPlugin {
         );
         passiveSkillService.setStatusService(statusService);
         statusService.setPassiveSkillService(passiveSkillService);
+        skillService.setPlayerSkillUseListener(
+            (player, skillId) -> meditationSkillRuntimeService.interrupt(player.getBukkit().getUniqueId())
+        );
+        playerClassService.setClassChangeListener(player -> passiveSkillService.reconcileNow(player));
+        damageService.setPlayerDamageListener(
+            player -> meditationSkillRuntimeService.interrupt(player.getBukkit().getUniqueId())
+        );
         skillTreeService.setStatusService(statusService);
         skillTreeService.setSkillService(skillService);
         skillTreeService.setPassiveSkillService(passiveSkillService);
@@ -1354,6 +1370,10 @@ public final class AstralRecord extends JavaPlugin {
         eventManager.registerHandler(skillActionRingEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(
             new ActiveSkillLifecycleEventHandler(activeSkillLifecycleService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new MeditationSkillEventHandler(meditationSkillRuntimeService),
             getServer().getPluginManager()
         );
         var playerModeEventHandler = new PlayerModeEventHandler(accountModeApplicationService);

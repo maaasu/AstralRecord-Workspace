@@ -55,6 +55,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
 
 /**
  * custom combat のダメージ適用を一元化するサービスです。
@@ -80,6 +81,7 @@ public final class DamageService {
     private EquipmentDurabilityService equipmentDurabilityService;
     private TemporarySkillEffectService temporarySkillEffectService;
     private CombatDpsTrackerService combatDpsTrackerService;
+    private Consumer<AstPlayer> playerDamageListener = player -> { };
 
     /**
      * サービスを構築します。
@@ -208,6 +210,15 @@ public final class DamageService {
      */
     public void setCombatDpsTrackerService(@Nullable CombatDpsTrackerService combatDpsTrackerService) {
         this.combatDpsTrackerService = combatDpsTrackerService;
+    }
+
+    /**
+     * プレイヤーへ実ダメージを適用する直前に呼び出す listener を設定します。
+     *
+     * @param listener ダメージを受けたプレイヤーを受け取る listener
+     */
+    public void setPlayerDamageListener(@NotNull Consumer<AstPlayer> listener) {
+        this.playerDamageListener = listener;
     }
 
     /**
@@ -768,6 +779,10 @@ public final class DamageService {
             playShieldEffect(victim, result.shieldBroken());
         }
 
+        if (victim.isPlayer() && victim.player() != null
+                && (result.shieldDamage() > 0.0D || result.finalDamage() > 0.0D)) {
+            playerDamageListener.accept(victim.player());
+        }
         if (result.finalDamage() <= 0.0D) {
             return;
         }

@@ -19,6 +19,7 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusType
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil
 import java.util.LinkedHashSet
 import java.util.Locale
+import java.util.function.Consumer
 import kotlin.math.roundToLong
 
 class PlayerClassService @JvmOverloads constructor(
@@ -26,9 +27,19 @@ class PlayerClassService @JvmOverloads constructor(
 ) {
     private val classService = ClassService()
     private var skillTreeService: SkillTreeService? = null
+    private var classChangeListener: Consumer<AstPlayer>? = null
 
     fun setSkillTreeService(service: SkillTreeService) {
         skillTreeService = service
+    }
+
+    /**
+     * クラス変更後に追加の状態再評価を行う listener を設定します。
+     *
+     * @param listener クラス変更後のプレイヤーを受け取る listener
+     */
+    fun setClassChangeListener(listener: Consumer<AstPlayer>) {
+        classChangeListener = listener
     }
 
     fun loadAll(): Int = classService.loadAll()
@@ -120,6 +131,7 @@ class PlayerClassService @JvmOverloads constructor(
         astPlayer.selectClass(classId)
         persistClassProgress(astPlayer)
         skillTreeService?.refreshProgressDerivedState(astPlayer)
+        classChangeListener?.accept(astPlayer)
         updatePlayerListName(astPlayer)
     }
 

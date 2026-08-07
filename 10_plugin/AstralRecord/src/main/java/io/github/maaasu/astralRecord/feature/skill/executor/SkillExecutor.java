@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillStatusModif
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -18,7 +19,7 @@ import java.util.List;
  * が要求レベル、リソース消費、クールダウンを担うため、実装側は {@code params} を解釈して
  * 個別演出・当たり判定・倍率計算等に集中する。
  * 同一実装クラスが複数のスキル定義から呼び出される前提のため、状態は持たず、
- * 入力 {@link SkillCastContext} だけから結果を導出すること。
+     * 入力 {@link SkillCastContext} だけから結果を導出すること。
  */
 public interface SkillExecutor {
 
@@ -85,6 +86,24 @@ public interface SkillExecutor {
      */
     default boolean requiresPassiveTick() {
         return false;
+    }
+
+    /**
+     * パッシブスキルが自然回復へ適用するリソース倍率を返します。
+     * <p>
+     * 倍率は {@link io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService} が
+     * 有効なパッシブ間の最大値として合成し、自然回復タスクへ渡します。
+     * ステータス補正だけのパッシブは既定値の 1.0 のままです。
+     *
+     * @param context パッシブコンテキスト
+     * @param resourceType 対象リソース
+     * @return 0 より大きい自然回復倍率
+     */
+    default double passiveResourceRegenMultiplier(
+            @NotNull PassiveSkillContext context,
+            @NotNull SkillResourceType resourceType
+    ) {
+        return 1.0D;
     }
 
     /**

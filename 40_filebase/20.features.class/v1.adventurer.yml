@@ -65,6 +65,7 @@ expRate: 58
 usableSkills:
   - skill:adventurer_astral_edge
   - skill:adventurer_smash
+  - skill:adventurer_meditation
 tags:
   - starter
   - beginner

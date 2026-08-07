@@ -25,6 +25,7 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusDefaults;
 import io.github.maaasu.astralRecord.feature.status.model.ShieldRechargeState;
@@ -794,6 +795,30 @@ public class StatusService {
             RangeEndpoint.AVERAGE,
             false
         );
+    }
+
+    /**
+     * MP / EN 自然回復へ適用するパッシブ由来の倍率を返します。
+     *
+     * @param player 対象プレイヤー
+     * @param type 自然回復ステータス。MP_REGEN または ENERGY_REGEN
+     * @return 自然回復倍率。対象外またはパッシブ未接続時は 1.0
+     */
+    public double getNaturalRegenMultiplier(
+        @NotNull AstPlayer player,
+        @NotNull StatusType type
+    ) {
+        if (passiveSkillService == null) {
+            return 1.0D;
+        }
+        SkillResourceType resourceType = switch (type) {
+            case MP_REGEN -> SkillResourceType.MANA;
+            case ENERGY_REGEN -> SkillResourceType.ENERGY;
+            default -> null;
+        };
+        return resourceType == null
+            ? 1.0D
+            : passiveSkillService.getResourceRegenMultiplier(player, resourceType);
     }
 
     /**

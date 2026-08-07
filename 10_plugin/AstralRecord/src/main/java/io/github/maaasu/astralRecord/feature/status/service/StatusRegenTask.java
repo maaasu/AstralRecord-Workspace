@@ -72,8 +72,12 @@ public class StatusRegenTask {
         StatusSnapshot snapshot = statusService.getStatus(astPlayer);
 
         double hpRegenPerSecond = snapshot.rollValue(StatusType.HP_REGEN) / REGEN_PERIOD_SECONDS;
-        double mpRegenPerSecond = snapshot.rollValue(StatusType.MP_REGEN) / REGEN_PERIOD_SECONDS;
-        double energyRegenPerSecond = snapshot.rollValue(StatusType.ENERGY_REGEN) / REGEN_PERIOD_SECONDS;
+        double mpRegenPerSecond = snapshot.rollValue(StatusType.MP_REGEN)
+            / REGEN_PERIOD_SECONDS
+            * statusService.getNaturalRegenMultiplier(astPlayer, StatusType.MP_REGEN);
+        double energyRegenPerSecond = snapshot.rollValue(StatusType.ENERGY_REGEN)
+            / REGEN_PERIOD_SECONDS
+            * statusService.getNaturalRegenMultiplier(astPlayer, StatusType.ENERGY_REGEN);
 
         if (hpRegenPerSecond > 0.0D && snapshot.getCurrentHp() < snapshot.getMaxValue(StatusType.MAX_HEALTH)) {
             statusService.recoverHp(astPlayer, hpRegenPerSecond);

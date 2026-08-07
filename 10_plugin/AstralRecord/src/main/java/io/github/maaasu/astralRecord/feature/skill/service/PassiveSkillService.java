@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.ResolvedLearnedSkill;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusModifierType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -155,6 +156,36 @@ public final class PassiveSkillService {
             }
         }
         return flat + baseValue * scalar;
+    }
+
+    /**
+     * 有効なパッシブが自然回復へ適用する倍率を返します。
+     * <p>
+     * 同一スキル個体を複数バインドしても倍率が過剰に積み上がらないよう、各 executor の
+     * 値の最大値を採用します。
+     *
+     * @param player 対象プレイヤー
+     * @param resourceType 対象リソース
+     * @return 自然回復倍率。該当パッシブがなければ 1.0
+     */
+    public double getResourceRegenMultiplier(
+        @NotNull AstPlayer player,
+        @NotNull SkillResourceType resourceType
+    ) {
+        reconcileIfNeeded(player);
+        PlayerPassiveState state = activeStates.get(player.getAccount().getUuid());
+        if (state == null) return 1.0D;
+
+        double multiplier = 1.0D;
+        for (ActivePassiveSkill active : state.skillsByInstanceId.values()) {
+            double candidate = active.executor().passiveResourceRegenMultiplier(
+                context(player, active), resourceType
+            );
+            if (Double.isFinite(candidate) && candidate > 0.0D) {
+                multiplier = Math.max(multiplier, candidate);
+            }
+        }
+        return multiplier;
     }
 
     private void tick() {

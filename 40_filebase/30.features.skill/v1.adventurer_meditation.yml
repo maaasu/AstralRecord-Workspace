@@ -1,0 +1,32 @@
+# design:
+#   motif: "静寂 / 瞑想"
+#   progression: 1
+schemaVersion: 1
+id: adventurer_meditation
+type: SKILL
+implementationId: adventurer_meditation
+name: "&dメディテーション"
+description: "&7安全な場所で精神を集中し、ENG / MP の自然回復を高速化する休息パッシブ。"
+icon: AMETHYST_SHARD
+cooldownTicks: 0
+manaCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 1
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+allowedSigilIds: []
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+passive:
+  bindRequired: true
+params:
+  chargeTicks: 100
+  regenMultiplier: 3
+  chargeParticleIntervalTicks: 10
+  activeParticleIntervalTicks: 5
+tags:
+  - passive
+  - field

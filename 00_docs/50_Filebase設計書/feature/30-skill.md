@@ -30,6 +30,12 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 
 初期段階では各職業8件、合計24件を定義します。クラスの `usableSkills` は使用許可だけを与え、習得済み個体の作成はジェム消費に限定します。
 
+## 条件付きリソース回復パッシブ
+
+冒険者の `adventurer_meditation` は、`passive.bindRequired: true` のバインド必須パッシブです。YAML の `params.chargeTicks: 100` と `params.regenMultiplier: 3` は Plugin executor が固定値として検証し、スキルレベルでは変更しません。`chargeParticleIntervalTicks` / `activeParticleIntervalTicks` は控えめな予兆・維持演出の間隔だけを指定します。
+
+このスキルは最大値や固定回復量を持たず、Plugin の自然回復処理が持つ MP / EN の既存回復量へ条件付き倍率を適用します。スニーク解除、被弾、通常攻撃、他スキル使用で runtime 状態を破棄し、再発動には再度100 tickの継続が必要です。
+
 ## progression
 
 標準的にジェムを入手できる段階、またはclass / skilltreeから使用許可を得る段階を記載します。装備・ルーン・セット効果はスキルを付与しません。

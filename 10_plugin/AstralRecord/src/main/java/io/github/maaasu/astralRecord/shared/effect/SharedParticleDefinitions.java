@@ -200,6 +200,21 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("adventurer_smash_spark", Particle.ELECTRIC_SPARK, 3, 0.06D, 0.08D, 0.06D, 0.08D);
     public static final SharedParticleDefinition ADVENTURER_SMASH_SWEEP =
         new SharedParticleDefinition("adventurer_smash_sweep", Particle.SWEEP_ATTACK, 2, 0.0D, 0.0D, 0.0D, 0.0D);
+    public static final SharedParticleDefinition ADVENTURER_MEDITATION_CHARGE =
+        new SharedParticleDefinition("adventurer_meditation_charge", Particle.ENCHANT, 2, 0.10D, 0.14D, 0.10D, 0.01D);
+    public static final SharedParticleDefinition ADVENTURER_MEDITATION_RING =
+        new SharedParticleDefinition(
+            "adventurer_meditation_ring",
+            Particle.DUST,
+            1,
+            0.01D,
+            0.01D,
+            0.01D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(150, 220, 255), 0.9F)
+        );
+    public static final SharedParticleDefinition ADVENTURER_MEDITATION_AURA =
+        new SharedParticleDefinition("adventurer_meditation_aura", Particle.ENCHANT, 1, 0.02D, 0.02D, 0.02D, 0.01D);
     public static final SharedParticleDefinition SKILL_SWORD_GUARD_DUST =
         new SharedParticleDefinition(
             "skill_sword_guard_dust",

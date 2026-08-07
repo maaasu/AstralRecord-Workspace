@@ -77,6 +77,7 @@ public class SkillService {
     private ConditionService conditionService;
     private PlayerHudService playerHudService;
     private BiConsumer<AstPlayer, String> playerCastSuccessListener = (player, skillId) -> { };
+    private BiConsumer<AstPlayer, String> playerSkillUseListener = (player, skillId) -> { };
     private final SkillCastFeedback castFeedback = new SkillCastFeedback();
     private final Map<String, SkillDefinition> builtInDefinitions = new ConcurrentHashMap<>();
 
@@ -91,6 +92,16 @@ public class SkillService {
      */
     public void setPlayerCastSuccessListener(@NotNull BiConsumer<AstPlayer, String> listener) {
         this.playerCastSuccessListener = listener;
+    }
+
+    /**
+     * プレイヤーがスキル発動を開始した時点の listener を設定します。
+     * 詠唱時間を持つスキルでも、詠唱開始直後に一度だけ呼び出されます。
+     *
+     * @param listener プレイヤーとスキル ID を受け取る listener
+     */
+    public void setPlayerSkillUseListener(@NotNull BiConsumer<AstPlayer, String> listener) {
+        this.playerSkillUseListener = listener;
     }
 
     /**
@@ -532,6 +543,8 @@ public class SkillService {
             return guard;
         }
 
+        notifyPlayerSkillUse(caster, definition);
+
         if (resolveCastTimeTicks(caster, definition) > 0L) {
             return beginCast(caster, definition, trigger, castLocation, primaryTarget, targets);
         }
@@ -582,6 +595,7 @@ public class SkillService {
             notifyIfFailed(caster, guard, definition.getId());
             return guard;
         }
+        notifyPlayerSkillUse(caster, definition);
         if (resolveCastTimeTicks(caster, definition, runtime.statusSnapshot()) > 0L) {
             return beginCast(caster, definition, trigger, castLocation, primaryTarget, targets, runtime);
         }
@@ -664,6 +678,15 @@ public class SkillService {
             notifyIfFailed(caster, result, definition.getId());
         }
         return result;
+    }
+
+    private void notifyPlayerSkillUse(
+            @NotNull SkillCaster caster,
+            @NotNull SkillDefinition definition
+    ) {
+        if (caster instanceof PlayerSkillCaster playerCaster) {
+            playerSkillUseListener.accept(playerCaster.player(), definition.getId());
+        }
     }
 
     private @NotNull SkillCastResult beginCast(
