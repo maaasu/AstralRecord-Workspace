@@ -67,6 +67,7 @@ usableSkills:
   - skill:adventurer_blast_arrow
   - skill:adventurer_smash
   - skill:adventurer_meditation
+  - skill:adventurer_quick_shot
 tags:
   - starter
   - beginner

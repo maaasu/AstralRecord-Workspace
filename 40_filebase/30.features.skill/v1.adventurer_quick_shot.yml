@@ -1,0 +1,44 @@
+# design:
+#   motif: "旅人の弓術 / 速射"
+#   progression: 1
+schemaVersion: 1
+id: adventurer_quick_shot
+type: SKILL
+implementationId: adventurer_quick_shot
+name: "&fクイックショット"
+description: "&7照準方向へ素早く矢を放つ、冒険者の基礎的な単体射撃。"
+icon: BOW
+lore:
+  - "&7射程12mの矢で間接攻撃力150%のダメージ。"
+  - "&7Lv.5では間接攻撃力180%のダメージ。貫通しない。"
+  - "&8消費EN: 6 / クールダウン: 2.0秒"
+cooldownTicks: 40
+resourceType: ENERGY
+resourceCost: 6
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 3
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 4
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 5
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - cooldown_sigil
+  - cooldown_sigil_ii
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+tags:
+  - active
+  - ranged
+  - adventurer

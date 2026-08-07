@@ -35,13 +35,14 @@ class ActiveSkillExecutorDesignTest {
     private static final Set<String> EXPECTED_SKILL_IDS = Set.of(
         "adventurer_astral_edge",
         "adventurer_blast_arrow",
-        "adventurer_smash"
+        "adventurer_smash",
+        "adventurer_quick_shot"
     );
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
-     * 検証契約: catalogが設計記載3 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
+     * 検証契約: catalogが設計記載4 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
      */
     @Test
     void catalogContainsEveryDesignedSkillIdExactlyOnce() {

@@ -104,3 +104,27 @@ items:
           ref: item:skill_gem_raw_beginner
         category: material
         amount: 1
+  - id: quick_shot_from_raw
+    itemId:
+      ref: item:00_skill_gem_adventurer_quick_shot
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 8
+    requiredItems:
+      - itemId:
+          ref: item:skill_gem_raw
+        category: material
+        amount: 1
+  - id: quick_shot_from_beginner_raw
+    itemId:
+      ref: item:00_skill_gem_adventurer_quick_shot
+    category: skill_gem
+    amount: 3
+    page: 1
+    slot: 9
+    requiredItems:
+      - itemId:
+          ref: item:skill_gem_raw_beginner
+        category: material
+        amount: 1
