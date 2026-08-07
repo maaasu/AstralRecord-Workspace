@@ -118,7 +118,7 @@ class SkillBindGuiEventHandlerTest {
         AstPlayer astPlayer = mock(AstPlayer.class);
         AccountModel account = mock(AccountModel.class);
         LearnedSkillInstance learned = new LearnedSkillInstance(
-            learnedSkillId, accountId, "mage_fireball", 1, List.of(), 1, null, null);
+            learnedSkillId, accountId, "adventurer_smash", 1, List.of(), 1, null, null);
         SkillDefinition definition = skillDefinition();
         SkillRegistry registry = new SkillRegistry();
         registry.replaceDefinitions(Map.of(definition.getId(), definition));
@@ -495,7 +495,7 @@ class SkillBindGuiEventHandlerTest {
             invoke(handler, "completeSynthesis",
                 new Class<?>[] {Player.class, SkillBindSession.class, int.class, LearnedSkillInstance.class, UUID.class},
                 player, session, 0, new LearnedSkillInstance(
-                    learnedSkillId, accountId, "mage_fireball", 2, List.of(), 1, null, null
+                    learnedSkillId, accountId, "adventurer_smash", 2, List.of(), 1, null, null
                 ), operationToken);
         }
 
@@ -611,9 +611,9 @@ class SkillBindGuiEventHandlerTest {
 
     private static SkillDefinition skillDefinition() {
         return new SkillDefinition(
-            "mage_fireball", "mage_fireball", "火焔弾", null, "FIRE_CHARGE", List.of(),
+            "adventurer_smash", "adventurer_smash", "スマッシュ", null, "IRON_SWORD", List.of(),
             60L, 18.0D, 0L, 1, null, Map.of(), List.of(), SkillKind.ACTIVE, true,
-            SkillResourceType.MANA, 18.0D, "mage_fireball", 3, List.of(),
+            SkillResourceType.ENERGY, 18.0D, "adventurer_smash", 3, List.of(),
             List.of(new SkillSigilSlotDefinition(1, 1)), List.of("allowed_sigil")
         );
     }

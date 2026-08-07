@@ -93,7 +93,7 @@ public class SkillRepositoryTests
             await MasterDataTestSeed.CreateSchemaAsync(setupContext);
             await MasterDataTestSeed.SeedEntryAsync(
                 setupContext,
-                Path.Combine(ResolveWorkspaceRoot(), "40_filebase", "30.features.skill", "v1.mage_fireball.yml"),
+                Path.Combine(ResolveWorkspaceRoot(), "40_filebase", "30.features.skill", "v1.adventurer_smash.yml"),
                 "skill",
                 null);
         }
@@ -101,9 +101,9 @@ public class SkillRepositoryTests
         var repository = new ItemRepository(dbContext);
 
         var summary = Assert.Single(repository.GetAllSummaries());
-        var gem = repository.GetById("00_skill_gem_mage_fireball");
+        var gem = repository.GetById("00_skill_gem_adventurer_smash");
 
-        Assert.Equal("00_skill_gem_mage_fireball", summary.Id);
+        Assert.Equal("00_skill_gem_adventurer_smash", summary.Id);
         Assert.Equal("skill_gem", summary.Category);
         Assert.NotNull(gem);
         Assert.Equal("skill_gem", gem.Category);
@@ -113,7 +113,7 @@ public class SkillRepositoryTests
         Assert.Equal(0, gem.MaxStack);
         Assert.True(gem.UnTradeable);
         Assert.True(gem.UnSellable);
-        Assert.Equal("mage_fireball", gem.SkillGem!.SkillId);
+        Assert.Equal("adventurer_smash", gem.SkillGem!.SkillId);
         Assert.Contains(gem.Lore, line => line.Contains("左クリック", StringComparison.Ordinal));
     }
 

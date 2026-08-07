@@ -59,15 +59,6 @@ growthPerLevel:
   - status: MP_REGEN
     value: 0.2
 expRate: 100
-usableSkills:
-  - skill:mage_fireball
-  - skill:mage_frost_nova
-  - skill:mage_chain_lightning
-  - skill:mage_arcane_lance
-  - skill:mage_meteor
-  - skill:mage_blink
-  - skill:mage_mana_barrier
-  - skill:mage_elemental_storm
 tags:
   - tier1
   - magic

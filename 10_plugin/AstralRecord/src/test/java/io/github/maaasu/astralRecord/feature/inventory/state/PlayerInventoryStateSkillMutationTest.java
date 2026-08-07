@@ -78,7 +78,7 @@ class PlayerInventoryStateSkillMutationTest {
         UUID unrelatedId = UUID.randomUUID();
         PlayerInventoryState state = new PlayerInventoryState(accountId);
         state.replaceEntriesFromLoad(inventoryId, List.of(
-            entry(targetId, inventoryId, 1, "00_skill_gem_mage_fireball", 1L, accountId),
+            entry(targetId, inventoryId, 1, "00_skill_gem_adventurer_smash", 1L, accountId),
             entry(unrelatedId, inventoryId, 2, "new_drop", 1L, accountId)
         ));
 

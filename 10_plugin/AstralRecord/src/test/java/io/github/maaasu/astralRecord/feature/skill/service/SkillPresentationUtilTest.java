@@ -90,7 +90,7 @@ class SkillPresentationUtilTest {
     @Test
     void resolvedValuesExpandScalarAndArrayPlaceholders() {
         SkillDefinition definition = new SkillDefinition(
-            "hunter_ricochet", "hunter_ricochet", "跳ね矢",
+            "adventurer_smash", "adventurer_smash", "スマッシュ",
             "射程{skill.range}m、威力{skill.effectiveDamageRatio:percent}%。",
             "AMETHYST_SHARD", List.of(
                 "倍率: {skill.effectiveDamageRatios:percent}",
@@ -103,7 +103,7 @@ class SkillPresentationUtilTest {
                 "damageRatios", List.of(1.15D, 0.90D)
             ),
             List.of(), SkillKind.ACTIVE, true, SkillResourceType.ENERGY, 0.0D,
-            "hunter_ricochet", 2, List.of(), List.of(), List.of()
+            "adventurer_smash", 2, List.of(), List.of(), List.of()
         );
         LearnedSkillInstance learned = new LearnedSkillInstance(
             UUID.randomUUID(), UUID.randomUUID(), definition.getId(), 2,
@@ -150,9 +150,9 @@ class SkillPresentationUtilTest {
 
     private static SkillDefinition definition(List<String> tags, List<String> lore) {
         return new SkillDefinition(
-            "mage_fireball", "mage_fireball", "火焔弾", null, "FIRE_CHARGE", lore,
+            "adventurer_smash", "adventurer_smash", "スマッシュ", null, "IRON_SWORD", lore,
             60L, 18.0D, 0L, 1, null, Map.of(), tags, SkillKind.ACTIVE, true,
-            SkillResourceType.MANA, 18.0D, "mage_fireball", 3, List.of(), List.of(), List.of()
+            SkillResourceType.ENERGY, 18.0D, "adventurer_smash", 3, List.of(), List.of(), List.of()
         );
     }
 }

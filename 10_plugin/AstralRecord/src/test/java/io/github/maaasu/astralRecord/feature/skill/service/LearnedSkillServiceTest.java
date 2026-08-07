@@ -40,7 +40,7 @@ class LearnedSkillServiceTest {
         UUID accountId = UUID.randomUUID();
         UUID gemEntryId = UUID.randomUUID();
         LearnedSkillInstance learned = new LearnedSkillInstance(
-            UUID.randomUUID(), accountId, "mage_fireball", 1, List.of(), 0, null, null
+            UUID.randomUUID(), accountId, "adventurer_smash", 1, List.of(), 0, null, null
         );
         AtomicReference<LearnedSkillInstance> success = new AtomicReference<>();
 
@@ -55,19 +55,19 @@ class LearnedSkillServiceTest {
             return mock(BukkitTask.class);
         }).when(scheduler).runTask(eq(plugin), any(Runnable.class));
         when(inventoryService.saveNow(accountId)).thenReturn(CompletableFuture.completedFuture(false));
-        when(repository.learn(accountId, "mage_fireball", gemEntryId, accountId)).thenReturn(learned);
+        when(repository.learn(accountId, "adventurer_smash", gemEntryId, accountId)).thenReturn(learned);
 
         LearnedSkillService service = new LearnedSkillService(plugin, repository, inventoryService);
         service.applyInitialSkills(accountId, List.of());
 
         assertTrue(service.learnAsync(
-            accountId, "mage_fireball", gemEntryId, accountId, success::set,
+            accountId, "adventurer_smash", gemEntryId, accountId, success::set,
             ignored -> { throw new AssertionError("mutation should continue after a preflight sync failure"); }
         ));
 
         assertEquals(learned, success.get());
         assertEquals(learned, service.findInstance(accountId, learned.getLearnedSkillId()));
-        verify(repository).learn(accountId, "mage_fireball", gemEntryId, accountId);
+        verify(repository).learn(accountId, "adventurer_smash", gemEntryId, accountId);
         verify(inventoryService).reconcileAuthoritativeEntry(accountId, gemEntryId);
     }
 }

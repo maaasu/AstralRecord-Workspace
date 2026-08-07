@@ -22,24 +22,24 @@ public class AccountLearnedSkillRepositoryTests
     public async Task LearnAsync_CreatesIndependentDuplicateInstances()
     {
         await using var fixture = await TestDatabase.CreateAsync();
-        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.mage_fireball.yml", "skill", null);
+        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.adventurer_smash.yml", "skill", null);
         var accountId = Guid.NewGuid();
         await fixture.AddAccountAsync(accountId);
         var firstGem = await fixture.AddInventoryEntryAsync(
-            accountId, "skill_gem", "00_skill_gem_mage_fireball", 1);
+            accountId, "skill_gem", "00_skill_gem_adventurer_smash", 1);
         var secondGem = await fixture.AddInventoryEntryAsync(
-            accountId, "skill_gem", "00_skill_gem_mage_fireball", 1);
+            accountId, "skill_gem", "00_skill_gem_adventurer_smash", 1);
         var repository = new AccountLearnedSkillRepository(fixture.PlayerDb, fixture.MasterDb);
 
         var first = await repository.LearnAsync(accountId, new AccountLearnedSkillLearnRequest
         {
-            SkillId = "mage_fireball",
+            SkillId = "adventurer_smash",
             GemInventoryEntryId = firstGem,
             UpdatedBy = accountId,
         });
         var second = await repository.LearnAsync(accountId, new AccountLearnedSkillLearnRequest
         {
-            SkillId = "mage_fireball",
+            SkillId = "adventurer_smash",
             GemInventoryEntryId = secondGem,
             UpdatedBy = accountId,
         });
@@ -49,7 +49,7 @@ public class AccountLearnedSkillRepositoryTests
         Assert.NotEqual(first.Skill!.LearnedSkillId, second.Skill!.LearnedSkillId);
         Assert.All([first.Skill, second.Skill], learned =>
         {
-            Assert.Equal("mage_fireball", learned.SkillId);
+            Assert.Equal("adventurer_smash", learned.SkillId);
             Assert.Equal(1, learned.Level);
         });
         Assert.Equal(2, await fixture.PlayerDb.AccountLearnedSkills.CountAsync(skill => !skill.IsDeleted));
@@ -64,7 +64,7 @@ public class AccountLearnedSkillRepositoryTests
     public async Task UpgradeAndAttachSigil_UseSelectedInstanceAndRejectDuplicateGroup()
     {
         await using var fixture = await TestDatabase.CreateAsync();
-        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.mage_fireball.yml", "skill", null);
+        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.adventurer_smash.yml", "skill", null);
         await fixture.SeedMasterAsync(
             "40_filebase/10.features.item/sigil/v1.cooldown_sigil.yml", "item", "sigil");
         await fixture.SeedMasterAsync(
@@ -72,9 +72,9 @@ public class AccountLearnedSkillRepositoryTests
         var accountId = Guid.NewGuid();
         await fixture.AddAccountAsync(accountId);
         var learnGem = await fixture.AddInventoryEntryAsync(
-            accountId, "skill_gem", "00_skill_gem_mage_fireball", 1);
+            accountId, "skill_gem", "00_skill_gem_adventurer_smash", 1);
         var levelGem = await fixture.AddInventoryEntryAsync(
-            accountId, "skill_gem", "00_skill_gem_mage_fireball", 1);
+            accountId, "skill_gem", "00_skill_gem_adventurer_smash", 1);
         var firstSigil = await fixture.AddInventoryEntryAsync(accountId, "sigil", "cooldown_sigil", 2);
         var secondSigil = await fixture.AddInventoryEntryAsync(accountId, "sigil", "cooldown_sigil_ii", 1);
         AccountLearnedSkillResponse learned;
@@ -83,7 +83,7 @@ public class AccountLearnedSkillRepositoryTests
             learned = (await new AccountLearnedSkillRepository(requestDb, fixture.MasterDb)
                 .LearnAsync(accountId, new AccountLearnedSkillLearnRequest
                 {
-                    SkillId = "mage_fireball",
+                    SkillId = "adventurer_smash",
                     GemInventoryEntryId = learnGem,
                     UpdatedBy = accountId,
                 })).Skill!;
@@ -142,13 +142,13 @@ public class AccountLearnedSkillRepositoryTests
     public async Task AttachSigilAsync_RejectsUnsupportedSigilWithoutConsumingIt()
     {
         await using var fixture = await TestDatabase.CreateAsync();
-        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.hunter_arrow_rain.yml", "skill", null);
+        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.adventurer_smash.yml", "skill", null);
         await fixture.SeedMasterAsync(
             "40_filebase/10.features.item/sigil/v1.homing_fireball_sigil.yml", "item", "sigil");
         var accountId = Guid.NewGuid();
         await fixture.AddAccountAsync(accountId);
         var gemEntryId = await fixture.AddInventoryEntryAsync(
-            accountId, "skill_gem", "00_skill_gem_hunter_arrow_rain", 1);
+            accountId, "skill_gem", "00_skill_gem_adventurer_smash", 1);
         var sigilEntryId = await fixture.AddInventoryEntryAsync(
             accountId, "sigil", "homing_fireball_sigil", 1);
 
@@ -158,7 +158,7 @@ public class AccountLearnedSkillRepositoryTests
             learned = (await new AccountLearnedSkillRepository(requestDb, fixture.MasterDb)
                 .LearnAsync(accountId, new AccountLearnedSkillLearnRequest
                 {
-                    SkillId = "hunter_arrow_rain",
+                    SkillId = "adventurer_smash",
                     GemInventoryEntryId = gemEntryId,
                     UpdatedBy = accountId,
                 })).Skill!;
@@ -191,7 +191,7 @@ public class AccountLearnedSkillRepositoryTests
     public async Task GetByAccountIdAsync_ReconcilesInvalidSigilAndCreatesCompensationMail()
     {
         await using var fixture = await TestDatabase.CreateAsync();
-        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.mage_fireball.yml", "skill", null);
+        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.adventurer_smash.yml", "skill", null);
         await fixture.SeedMasterAsync(
             "40_filebase/10.features.item/sigil/v1.homing_fireball_sigil.yml", "item", "sigil");
         var accountId = Guid.NewGuid();
@@ -202,7 +202,7 @@ public class AccountLearnedSkillRepositoryTests
         {
             LearnedSkillId = Guid.NewGuid(),
             AccountId = accountId,
-            SkillId = "mage_fireball",
+            SkillId = "adventurer_smash",
             Level = 1,
             Version = 1,
             CreatedAt = now,
@@ -254,18 +254,18 @@ public class AccountLearnedSkillRepositoryTests
     public async Task GetByAccountIdAsync_RemovesDeletedSkillGemLearnedInstanceAndBindings()
     {
         await using var fixture = await TestDatabase.CreateAsync();
-        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.mage_fireball.yml", "skill", null);
+        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.adventurer_smash.yml", "skill", null);
         var accountId = Guid.NewGuid();
         await fixture.AddAccountAsync(accountId);
         var gemEntryId = await fixture.AddInventoryEntryAsync(
-            accountId, "skill_gem", "00_skill_gem_mage_fireball", 1);
+            accountId, "skill_gem", "00_skill_gem_adventurer_smash", 1);
         var now = DateTime.UtcNow;
         var learnedSkillId = Guid.NewGuid();
         fixture.PlayerDb.AccountLearnedSkills.Add(new AccountLearnedSkillEntity
         {
             LearnedSkillId = learnedSkillId,
             AccountId = accountId,
-            SkillId = "mage_fireball",
+            SkillId = "adventurer_smash",
             Level = 3,
             Version = 1,
             CreatedAt = now,
@@ -289,7 +289,7 @@ public class AccountLearnedSkillRepositoryTests
             UpdatedBy = accountId,
         });
         await fixture.PlayerDb.SaveChangesAsync();
-        var skillMaster = await fixture.MasterDb.Entries.SingleAsync(entry => entry.MasterId == "mage_fireball");
+        var skillMaster = await fixture.MasterDb.Entries.SingleAsync(entry => entry.MasterId == "adventurer_smash");
         skillMaster.IsDeleted = true;
         await fixture.MasterDb.SaveChangesAsync();
 
@@ -316,7 +316,7 @@ public class AccountLearnedSkillRepositoryTests
     public async Task GetByAccountIdAsync_ReconcilesInsideRetryExecutionStrategy()
     {
         await using var fixture = await TestDatabase.CreateAsync(useRetryingExecutionStrategy: true);
-        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.mage_fireball.yml", "skill", null);
+        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.adventurer_smash.yml", "skill", null);
         var accountId = Guid.NewGuid();
         await fixture.AddAccountAsync(accountId);
 
@@ -334,7 +334,7 @@ public class AccountLearnedSkillRepositoryTests
     public async Task ForgetAsync_DeletesInstanceAndSigilsButKeepsBindings()
     {
         await using var fixture = await TestDatabase.CreateAsync();
-        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.mage_fireball.yml", "skill", null);
+        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.adventurer_smash.yml", "skill", null);
         var accountId = Guid.NewGuid();
         await fixture.AddAccountAsync(accountId);
         var learnedSkillId = Guid.NewGuid();
@@ -343,7 +343,7 @@ public class AccountLearnedSkillRepositoryTests
         {
             LearnedSkillId = learnedSkillId,
             AccountId = accountId,
-            SkillId = "mage_fireball",
+            SkillId = "adventurer_smash",
             Level = 1,
             Version = 1,
             CreatedAt = now,

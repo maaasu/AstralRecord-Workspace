@@ -189,9 +189,9 @@ ChatGPT が複数案を出す場合は、このブロックを案ごとに分け
 | 系統 | 既存 ID |
 |:--|:--|
 | 冒険者 | `adventurer_astral_edge`, `adventurer_smash` |
-| ソードマン | `swordsman_crescent_slash`, `swordsman_piercing_thrust`, `swordsman_whirlwind`, `swordsman_vanguard_rush`, `swordsman_blade_wave`, `swordsman_fortress_guard`, `swordsman_war_cry`, `swordsman_earthbreaker` |
-| ハンター | `hunter_power_shot`, `hunter_piercing_arrow`, `hunter_fan_shot`, `hunter_rapid_fire`, `hunter_backstep_shot`, `hunter_snare_trap`, `hunter_arrow_rain`, `hunter_ricochet` |
-| メイジ | `mage_fireball`, `mage_frost_nova`, `mage_chain_lightning`, `mage_arcane_lance`, `mage_meteor`, `mage_blink`, `mage_mana_barrier`, `mage_elemental_storm` |
+| ソードマン | 未定 |
+| ハンター | 未定 |
+| メイジ | 未定 |
 | 共通・管理用を含む既存スキル | `fire_boost`, `iron_will` |
 | Mob 専用 | `mob_field_heavy_slash`, `mob_glowlamp_bolt`, `mob_goblin_slash`, `mob_mountain_thunder_bolt`, `mob_savanna_heatwave_bolt`, `mob_skeleton_bow_shot` |
 

@@ -3,9 +3,6 @@ package io.github.maaasu.astralRecord.feature.skill.executor.active;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerSkillExecutorCatalog;
-import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterSkillExecutorCatalog;
-import io.github.maaasu.astralRecord.feature.skill.executor.active.mage.MageSkillExecutorCatalog;
-import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanSkillExecutorCatalog;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -18,17 +15,14 @@ public final class ActiveSkillExecutorCatalog {
     }
 
     /**
-     * 冒険者、ソードマン、ハンター、メイジの全25 executor を生成します。
+     * 実装済みの冒険者用 executor を生成します。
      *
      * @param services 共有発動スキルサービス
-     * @return 25個の executor
+     * @return 2個の executor
      */
     public static @NotNull List<SkillExecutor> create(@NotNull ActiveSkillServices services) {
-        List<SkillExecutor> executors = new ArrayList<>(25);
+        List<SkillExecutor> executors = new ArrayList<>(2);
         executors.addAll(AdventurerSkillExecutorCatalog.create(services));
-        executors.addAll(SwordsmanSkillExecutorCatalog.create(services));
-        executors.addAll(HunterSkillExecutorCatalog.create(services));
-        executors.addAll(MageSkillExecutorCatalog.create(services));
         return List.copyOf(executors);
     }
 }

@@ -20,7 +20,7 @@ public class MasterDataSeederSkillSystemTests
     public async Task ValidateReferencesAsync_ResolvesGeneratedSkillGemItemReference()
     {
         await using var fixture = await Fixture.CreateAsync();
-        var skill = fixture.AddEntry("skill", "mage_fireball", null, "{}");
+        var skill = fixture.AddEntry("skill", "adventurer_smash", null, "{}");
         fixture.Db.References.Add(new MasterDataReferenceEntity
         {
             ReferenceId = Guid.NewGuid(),
@@ -28,7 +28,7 @@ public class MasterDataSeederSkillSystemTests
             FromMasterType = "loot",
             FromMasterId = "gem_drop",
             ReferenceType = "item",
-            ReferenceIdValue = "00_skill_gem_mage_fireball",
+            ReferenceIdValue = "00_skill_gem_adventurer_smash",
             ReferencePath = "$.entries[0].ref",
             IsRequired = true,
             CreatedAt = fixture.Now,

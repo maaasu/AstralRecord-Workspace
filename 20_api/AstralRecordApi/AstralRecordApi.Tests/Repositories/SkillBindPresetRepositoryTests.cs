@@ -81,7 +81,7 @@ public class SkillBindPresetRepositoryTests
             {
                 LearnedSkillId = firstLearnedSkillId,
                 AccountId = accountId,
-                SkillId = "mage_fireball",
+                SkillId = "adventurer_smash",
                 Level = 1,
                 Version = 1,
                 CreatedAt = now,
@@ -93,7 +93,7 @@ public class SkillBindPresetRepositoryTests
             {
                 LearnedSkillId = secondLearnedSkillId,
                 AccountId = accountId,
-                SkillId = "mage_fireball",
+                SkillId = "adventurer_smash",
                 Level = 1,
                 Version = 1,
                 CreatedAt = now.AddMinutes(1),
@@ -106,8 +106,8 @@ public class SkillBindPresetRepositoryTests
             SkillBindPresetId = Guid.NewGuid(),
             AccountId = accountId,
             PresetIndex = 1,
-            ActiveSkillSlotsJson = "[\"mage_fireball\",\"00000000-0000-0000-0000-000000000000\"]",
-            LeftClickSkillId = "mage_fireball",
+            ActiveSkillSlotsJson = "[\"adventurer_smash\",\"00000000-0000-0000-0000-000000000000\"]",
+            LeftClickSkillId = "adventurer_smash",
             PassiveSkillSlotsJson = "[\"unknown_legacy_skill\"]",
             IsUnlocked = true,
             Version = 1,

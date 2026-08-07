@@ -33,37 +33,13 @@ class ActiveSkillExecutorDesignTest {
 
     private static final Set<String> EXPECTED_SKILL_IDS = Set.of(
         "adventurer_astral_edge",
-        "adventurer_smash",
-        "swordsman_blade_wave",
-        "swordsman_crescent_slash",
-        "swordsman_earthbreaker",
-        "swordsman_fortress_guard",
-        "swordsman_piercing_thrust",
-        "swordsman_vanguard_rush",
-        "swordsman_war_cry",
-        "swordsman_whirlwind",
-        "hunter_arrow_rain",
-        "hunter_backstep_shot",
-        "hunter_fan_shot",
-        "hunter_piercing_arrow",
-        "hunter_power_shot",
-        "hunter_rapid_fire",
-        "hunter_ricochet",
-        "hunter_snare_trap",
-        "mage_arcane_lance",
-        "mage_blink",
-        "mage_chain_lightning",
-        "mage_elemental_storm",
-        "mage_fireball",
-        "mage_frost_nova",
-        "mage_mana_barrier",
-        "mage_meteor"
+        "adventurer_smash"
     );
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
-     * 検証契約: catalogが設計記載26 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
+     * 検証契約: catalogが設計記載2 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
      */
     @Test
     void catalogContainsEveryDesignedSkillIdExactlyOnce() {

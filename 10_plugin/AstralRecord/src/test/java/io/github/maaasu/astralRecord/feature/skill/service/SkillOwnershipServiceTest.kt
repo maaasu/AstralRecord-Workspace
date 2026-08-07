@@ -28,14 +28,14 @@ class SkillOwnershipServiceTest : MockBukkitTestBase() {
         learnedService.applyInitialSkills(
             astPlayer.account.uuid,
             listOf(
-                learned(astPlayer.account.uuid, "mage_fireball"),
+                learned(astPlayer.account.uuid, "adventurer_smash"),
                 learned(astPlayer.account.uuid, "mob_goblin_slash"),
             ),
         )
         val service = SkillOwnershipService(learnedService)
 
-        assertEquals(setOf("mage_fireball", "mob_goblin_slash"), service.ownedSkillIds(astPlayer))
-        assertTrue(service.owns(astPlayer, "mage_fireball"))
+        assertEquals(setOf("adventurer_smash", "mob_goblin_slash"), service.ownedSkillIds(astPlayer))
+        assertTrue(service.owns(astPlayer, "adventurer_smash"))
         assertFalse(service.owns(astPlayer, "class_permission_only"))
     }
 
@@ -48,8 +48,8 @@ class SkillOwnershipServiceTest : MockBukkitTestBase() {
     fun keepsDuplicateInstancesAcrossClassChanges() {
         val astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER)
         val learnedService = learnedSkillService()
-        val first = learned(astPlayer.account.uuid, "mage_fireball")
-        val second = learned(astPlayer.account.uuid, "mage_fireball")
+        val first = learned(astPlayer.account.uuid, "adventurer_smash")
+        val second = learned(astPlayer.account.uuid, "adventurer_smash")
         learnedService.applyInitialSkills(astPlayer.account.uuid, listOf(first, second))
         val service = SkillOwnershipService(learnedService)
 
@@ -60,7 +60,7 @@ class SkillOwnershipServiceTest : MockBukkitTestBase() {
         astPlayer.selectClass("swordsman")
 
         assertEquals(2, service.learnedSkills(astPlayer).size)
-        assertTrue(service.owns(astPlayer, "mage_fireball"))
+        assertTrue(service.owns(astPlayer, "adventurer_smash"))
     }
 
     private fun learnedSkillService() = LearnedSkillService(

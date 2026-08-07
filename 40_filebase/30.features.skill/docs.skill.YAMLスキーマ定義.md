@@ -125,9 +125,9 @@
 
 ```yaml
 schemaVersion: 1
-id: swordsman_crescent_slash
+id: adventurer_smash
 type: SKILL
-implementationId: swordsman_crescent_slash
+implementationId: adventurer_smash
 name: "&f半月斬り"
 description: "&7前方を半月状に薙ぎ払う近接技。"
 icon: IRON_SWORD

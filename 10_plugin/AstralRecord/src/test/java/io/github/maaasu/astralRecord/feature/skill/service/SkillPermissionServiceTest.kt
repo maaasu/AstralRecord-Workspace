@@ -24,20 +24,20 @@ class SkillPermissionServiceTest {
         val playerClassService = mock(PlayerClassService::class.java)
         val skillTreeService = mock(SkillTreeService::class.java)
         val classModel = mock(ClassModel::class.java)
-        `when`(player.classId).thenReturn("mage")
-        `when`(playerClassService.getLoadedClass("mage")).thenReturn(classModel)
-        `when`(classModel.usableSkills).thenReturn(listOf("skill:mage_fireball", "mage_blink"))
+        `when`(player.classId).thenReturn("adventurer")
+        `when`(playerClassService.getLoadedClass("adventurer")).thenReturn(classModel)
+        `when`(classModel.usableSkills).thenReturn(listOf("skill:adventurer_astral_edge", "adventurer_smash"))
         `when`(skillTreeService.getUnlockedSkillIds(player)).thenReturn(
-            setOf("skill:swordsman_war_cry", "mage_fireball"),
+            setOf("skill:adventurer_smash", "adventurer_astral_edge"),
         )
         val service = SkillPermissionService(playerClassService, skillTreeService)
 
         assertEquals(
-            setOf("mage_fireball", "mage_blink", "swordsman_war_cry"),
+            setOf("adventurer_astral_edge", "adventurer_smash"),
             service.permittedSkillIds(player),
         )
-        assertTrue(service.isPermitted(player, "skill:mage_fireball"))
-        assertTrue(service.isPermitted(player, "swordsman_war_cry"))
-        assertFalse(service.isPermitted(player, "hunter_power_shot"))
+        assertTrue(service.isPermitted(player, "skill:adventurer_astral_edge"))
+        assertTrue(service.isPermitted(player, "adventurer_smash"))
+        assertFalse(service.isPermitted(player, "mob_goblin_slash"))
     }
 }

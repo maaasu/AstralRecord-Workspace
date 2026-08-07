@@ -88,7 +88,7 @@ class SkillGemLearnEventHandlerTest extends MockBukkitTestBase {
         InventoryEntryModel entry = mock(InventoryEntryModel.class);
         ItemModel item = mock(ItemModel.class);
         when(entry.getInventoryEntryId()).thenReturn(java.util.UUID.randomUUID());
-        when(item.getSkillGem()).thenReturn(new ItemSkillGem("mage_fireball"));
+        when(item.getSkillGem()).thenReturn(new ItemSkillGem("adventurer_smash"));
         when(inventoryService.getOwnedEntryAtBukkitSlot(astPlayer, 3)).thenReturn(entry);
         when(inventoryService.getOwnedItemModelAtBukkitSlot(astPlayer, 3)).thenReturn(item);
         SkillService skillService = new SkillService(mock(SkillRepository.class), new SkillRegistry(), null);
@@ -151,7 +151,7 @@ class SkillGemLearnEventHandlerTest extends MockBukkitTestBase {
         when(event.getRawSlot()).thenReturn(ConfirmDialogView.CONFIRM_SLOT);
         when(view.getTopInventory()).thenReturn(topInventory);
         when(topInventory.getSize()).thenReturn(27);
-        when(topInventory.getHolder()).thenReturn(new SkillGemLearnConfirmHolder(entryId, "mage_fireball"));
+        when(topInventory.getHolder()).thenReturn(new SkillGemLearnConfirmHolder(entryId, "adventurer_smash"));
         when(astPlayer.getAccount()).thenReturn(account);
         when(account.getUuid()).thenReturn(accountId);
         when(plugin.getServer()).thenReturn(server);
@@ -161,7 +161,7 @@ class SkillGemLearnEventHandlerTest extends MockBukkitTestBase {
             return mock(BukkitTask.class);
         }).when(scheduler).runTask(eq(plugin), any(Runnable.class));
         when(learnedSkillService.learnAsync(
-            eq(accountId), eq("mage_fireball"), eq(entryId), eq(accountId), any(Consumer.class), any(Consumer.class)
+            eq(accountId), eq("adventurer_smash"), eq(entryId), eq(accountId), any(Consumer.class), any(Consumer.class)
         )).thenAnswer(invocation -> {
             failure.set(invocation.getArgument(5));
             return true;

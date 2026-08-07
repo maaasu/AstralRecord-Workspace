@@ -48,7 +48,7 @@ public class InventoryRepositoryTests
             InventoryId = inventoryId,
             SlotIndex = 1,
             ItemCategory = "skill_gem",
-            ItemId = "00_skill_gem_mage_fireball",
+            ItemId = "00_skill_gem_adventurer_smash",
             Quantity = 1,
             CreatedAt = now,
             UpdatedAt = now,
@@ -69,7 +69,7 @@ public class InventoryRepositoryTests
                     ExpectedUpdatedAt = now,
                     SlotIndex = 2,
                     ItemCategory = "skill_gem",
-                    ItemId = "00_skill_gem_mage_fireball",
+                    ItemId = "00_skill_gem_adventurer_smash",
                     Quantity = 1,
                 },
                 new InventoryEntryReplaceItemRequest
@@ -177,7 +177,7 @@ public class InventoryRepositoryTests
             consumedEntryId,
             inventoryId,
             1,
-            "00_skill_gem_mage_fireball",
+            "00_skill_gem_adventurer_smash",
             accountId,
             now);
         consumed.ItemCategory = "skill_gem";
@@ -198,7 +198,7 @@ public class InventoryRepositoryTests
                         ExpectedUpdatedAt = now,
                         SlotIndex = 1,
                         ItemCategory = "skill_gem",
-                        ItemId = "00_skill_gem_mage_fireball",
+                        ItemId = "00_skill_gem_adventurer_smash",
                         Quantity = 1,
                     },
                 ],

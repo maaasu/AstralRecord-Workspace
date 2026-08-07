@@ -13,7 +13,7 @@ Class は、プレイヤーの戦闘上の役割、成長傾向、利用でき�
 - 初期職は `adventurer`、通常の一次派生職は `swordsman` / `hunter` / `mage` とします。3 職はいずれも `adventurer` Lv.10 を転職条件とし、ここからさらに枝分かれできる構造にします。
 - `acolyte` は現行クラス定義に含めません。
 - クラスは `usableSkills` で現在クラスにおける使用許可だけを定義し、スキルの習得・レベル・所持個体は変更しません。
-- `swordsman` / `hunter` / `mage` は対応する8スキルを許可し、運営検証用 `administrator` は全実装スキルを許可します。
+- `swordsman` / `hunter` / `mage` のスキルは未定とし、`usableSkills` を定義しません。運営検証用 `administrator` は実装済みスキルだけを許可します。
 - チャットのプレイヤー情報には `shortName` の3文字短縮名、タブのプレイヤーリストには `name` の正式名を表示します。`shortName` は色コードを除いてちょうど3文字かつクラス間で一意にします。
 
 ## order

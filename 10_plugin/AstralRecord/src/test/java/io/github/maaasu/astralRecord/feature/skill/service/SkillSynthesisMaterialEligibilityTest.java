@@ -29,7 +29,7 @@ class SkillSynthesisMaterialEligibilityTest {
         SkillManagerEntry entry = entry(1, List.of(), List.of("allowed_sigil"));
 
         assertEquals(SkillSynthesisMaterialEligibility.MaterialKind.GEM,
-            SkillSynthesisMaterialEligibility.resolve(entry, gem("MAGE_FIREBALL")));
+            SkillSynthesisMaterialEligibility.resolve(entry, gem("ADVENTURER_SMASH")));
         assertEquals(SkillSynthesisMaterialEligibility.MaterialKind.SIGIL,
             SkillSynthesisMaterialEligibility.resolve(entry, sigil("ALLOWED_SIGIL", "cooldown")));
     }
@@ -58,21 +58,21 @@ class SkillSynthesisMaterialEligibilityTest {
         SkillManagerEntry fullEntry = entry(3, List.of(attached), List.of("allowed_sigil"));
 
         assertEquals(SkillSynthesisMaterialEligibility.MaterialKind.INVALID_GEM,
-            SkillSynthesisMaterialEligibility.resolve(fullEntry, gem("mage_fireball")));
+            SkillSynthesisMaterialEligibility.resolve(fullEntry, gem("adventurer_smash")));
         assertEquals(SkillSynthesisMaterialEligibility.MaterialKind.DUPLICATE_SIGIL_GROUP,
             SkillSynthesisMaterialEligibility.resolve(fullEntry, sigil("allowed_sigil", "COOLDOWN")));
     }
 
     private static SkillManagerEntry entry(int level, List<LearnedSkillSigil> sigils, List<String> allowedSigils) {
         SkillDefinition definition = new SkillDefinition(
-            "mage_fireball", "mage_fireball", "火焔弾", null, "FIRE_CHARGE", List.of(),
+            "adventurer_smash", "adventurer_smash", "スマッシュ", null, "IRON_SWORD", List.of(),
             60L, 18.0D, 0L, 1, null, java.util.Map.of(), List.of(),
             io.github.maaasu.astralRecord.feature.skill.model.SkillKind.ACTIVE, true,
             io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType.MANA, 18.0D,
-            "mage_fireball", 3, List.of(), List.of(new SkillSigilSlotDefinition(1, 1)), allowedSigils
+            "adventurer_smash", 3, List.of(), List.of(new SkillSigilSlotDefinition(1, 1)), allowedSigils
         );
         LearnedSkillInstance learned = new LearnedSkillInstance(
-            UUID.randomUUID(), UUID.randomUUID(), "mage_fireball", level, sigils, 1, null, null
+            UUID.randomUUID(), UUID.randomUUID(), "adventurer_smash", level, sigils, 1, null, null
         );
         return new SkillManagerEntry(learned, definition, true);
     }

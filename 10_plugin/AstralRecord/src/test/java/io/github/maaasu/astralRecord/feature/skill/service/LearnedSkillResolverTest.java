@@ -50,8 +50,8 @@ class LearnedSkillResolverTest {
         when(itemService.findLoadedById("cooldown_sigil_ii")).thenReturn(duplicateGroupItem);
 
         SkillDefinition definition = new SkillDefinition(
-            "mage_fireball",
-            "mage_fireball",
+            "adventurer_smash",
+            "adventurer_smash",
             "ファイアボール",
             null,
             "FIRE_CHARGE",
