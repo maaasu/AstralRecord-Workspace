@@ -7,6 +7,9 @@ import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillSer
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -25,8 +28,10 @@ public final class AdventurerAstralEdgeExecutor extends PlayerActiveSkillExecuto
     public static final String ID = "adventurer_astral_edge";
     private static final String SWEEP_SCOPE = ID + ":sweep";
     private static final String THRUST_SCOPE = ID + ":thrust";
-    private static final double REACH = 5.5D;
-    private static final double[] SWEEP_RADII = {2.4D, 3.9D, 5.4D};
+    private static final double DEFAULT_REACH = 5.5D;
+    private static final int DEFAULT_MAX_TARGETS = 5;
+    private static final List<Double> DEFAULT_DAMAGE_RATIOS = List.of(1.0D, 0.5D);
+    private static final double[] SWEEP_RADIUS_BASES = {2.4D, 3.9D, 5.4D};
     private static final double SWEEP_START_ANGLE = 55.0D;
     private static final double SWEEP_END_ANGLE = -55.0D;
     private static final int SWEEP_FRAMES = 6;
@@ -39,12 +44,41 @@ public final class AdventurerAstralEdgeExecutor extends PlayerActiveSkillExecuto
 
     /** {@inheritDoc} */
     @Override
+    public void validateParams(@NotNull SkillDefinition skill) {
+        super.validateParams(skill);
+        SkillParamReader params = new SkillParamReader(skill.getId(), skill.getParams());
+        requirePositive(params, "reach");
+        List<Double> damageRatios = params.getDoubleList("damageRatios", List.of());
+        if (damageRatios.size() != DEFAULT_DAMAGE_RATIOS.size()
+                || damageRatios.stream().anyMatch(value -> !(value > 0.0D))) {
+            throw new SkillParameterException(
+                    "damageRatios",
+                    "アストラルエッジの params[damageRatios] は正数2件の配列が必要です"
+            );
+        }
+        if (params.getInt("maxTargets", 0) < 1) {
+            throw new SkillParameterException(
+                    "maxTargets",
+                    "アストラルエッジの params[maxTargets] は1以上の整数が必要です"
+            );
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
     protected @NotNull SkillCastResult castPlayer(@NotNull PlayerActiveSkillContext context) {
         Player player = context.player();
         AstEntity attacker = context.attacker();
         Location origin = context.eyeLocation();
         var direction = context.direction();
         World castWorld = player.getWorld();
+        SkillParamReader params = context.params();
+        double reach = params.getDouble("reach", DEFAULT_REACH);
+        int maxTargets = params.getInt("maxTargets", DEFAULT_MAX_TARGETS);
+        List<Double> damageRatios = params.getDoubleList("damageRatios", DEFAULT_DAMAGE_RATIOS);
+        double damageRatio = damageRatios.get(0);
+        double thrustDamageRatio = damageRatios.get(1);
+        double[] sweepRadii = scaledSweepRadii(reach);
         Set<UUID> hitTargetIds = new HashSet<>();
 
         context.services().tasks().repeat(
@@ -62,7 +96,7 @@ public final class AdventurerAstralEdgeExecutor extends PlayerActiveSkillExecuto
                             + (SWEEP_END_ANGLE - SWEEP_START_ANGLE) * frame / SWEEP_FRAMES;
                     double headEnd = SWEEP_START_ANGLE
                             + (SWEEP_END_ANGLE - SWEEP_START_ANGLE) * (frame + 1) / SWEEP_FRAMES;
-                    for (double radius : SWEEP_RADII) {
+                    for (double radius : sweepRadii) {
                         context.services().effects().viewArcSegment(
                                 origin,
                                 direction,
@@ -86,17 +120,25 @@ public final class AdventurerAstralEdgeExecutor extends PlayerActiveSkillExecuto
                             player,
                             origin,
                             direction,
-                            REACH,
+                            reach,
                             headStart,
                             headEnd,
-                            MAX_TARGETS,
+                            maxTargets,
                             true
                     );
                     for (AstEntity target : frameTargets) {
-                        if (hitTargetIds.size() >= MAX_TARGETS || !hitTargetIds.add(target.id())) {
+                        if (hitTargetIds.size() >= maxTargets || !hitTargetIds.add(target.id())) {
                             continue;
                         }
-                        hitSweepTarget(context, attacker, player, castWorld, target);
+                        hitSweepTarget(
+                                context,
+                                attacker,
+                                player,
+                                castWorld,
+                                target,
+                                damageRatio,
+                                thrustDamageRatio
+                        );
                     }
                 }
         );
@@ -114,14 +156,16 @@ public final class AdventurerAstralEdgeExecutor extends PlayerActiveSkillExecuto
             @NotNull AstEntity attacker,
             @NotNull Player player,
             @NotNull World castWorld,
-            @NotNull AstEntity target
+            @NotNull AstEntity target,
+            double damageRatio,
+            double thrustDamageRatio
     ) {
         context.services().combat().hit(
                 attacker,
                 target,
                 AttackType.MELEE,
                 DamageElement.NONE,
-                1.0D
+                damageRatio
         );
         Location targetLocation = target.location().add(0.0D, 0.9D, 0.0D);
         context.services().effects().sound(
@@ -147,7 +191,7 @@ public final class AdventurerAstralEdgeExecutor extends PlayerActiveSkillExecuto
                     target,
                     AttackType.MELEE,
                     DamageElement.NONE,
-                    0.5D
+                    thrustDamageRatio
             );
             context.services().effects().point(
                     currentTargetLocation,
@@ -160,5 +204,19 @@ public final class AdventurerAstralEdgeExecutor extends PlayerActiveSkillExecuto
                     1.2F
             );
         });
+    }
+
+    private static double[] scaledSweepRadii(double reach) {
+        double[] radii = new double[SWEEP_RADIUS_BASES.length];
+        for (int i = 0; i < SWEEP_RADIUS_BASES.length; i++) {
+            radii[i] = SWEEP_RADIUS_BASES[i] * reach / DEFAULT_REACH;
+        }
+        return radii;
+    }
+
+    private static void requirePositive(@NotNull SkillParamReader params, @NotNull String key) {
+        if (!(params.getDouble(key, 0.0D) > 0.0D)) {
+            throw new SkillParameterException(key, "アストラルエッジの params[" + key + "] は正数が必要です");
+        }
     }
 }

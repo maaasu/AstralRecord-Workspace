@@ -9,8 +9,8 @@ name: "&bアストラルエッジ"
 description: "&7右から左へ薙ぎ払い、命中した敵へ追撃の突きを加える近接技。"
 icon: IRON_SWORD
 lore:
-  - "&7前方5.5mの扇形へ近接攻撃力100%の薙ぎ払い。最大5体。"
-  - "&7薙ぎ払い命中対象へ近接攻撃力50%の突き刺し。"
+  - "&7前方{skill.reach}mの扇形へ近接攻撃力{skill.effectiveDamageRatios[0]:percent}%の薙ぎ払い。最大{skill.maxTargets}体。"
+  - "&7薙ぎ払い命中対象へ近接攻撃力{skill.effectiveDamageRatios[1]:percent}%の突き刺し。"
   - "&8消費EN: 8 / クールダウン: 2.5秒"
 cooldownTicks: 50
 resourceType: ENERGY
@@ -44,3 +44,7 @@ tags:
   - active
   - melee
   - adventurer
+params:
+  reach: 5.5
+  maxTargets: 5
+  damageRatios: [1.0, 0.5]
