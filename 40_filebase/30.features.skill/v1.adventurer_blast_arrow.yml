@@ -1,0 +1,57 @@
+# design:
+#   motif: "衝撃矢 / 範囲射撃"
+#   progression: 1
+schemaVersion: 1
+id: adventurer_blast_arrow
+type: SKILL
+implementationId: adventurer_blast_arrow
+name: "&fブラストアロー"
+description: "&7着弾地点へ衝撃を炸裂させ、密集した敵をまとめて射抜く範囲射撃。"
+icon: SPECTRAL_ARROW
+lore:
+  - "&7射程{skill.range}m、半径{skill.radius}mへ間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。最大{skill.maxTargets}体。"
+  - "&7敵または地形への着弾時だけ衝撃波が発生する。"
+  - "&8消費EN: 12 / クールダウン: 5.0秒"
+cooldownTicks: 100
+resourceType: ENERGY
+resourceCost: 12
+castTimeTicks: 6
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 3
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 4
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 5
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - cooldown_sigil
+  - cooldown_sigil_ii
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+onCast:
+  sound: entity.arrow.shoot
+tags:
+  - active
+  - ranged
+  - adventurer
+# behavior:
+#   projectile: "発動時の照準方向へ射程14mを飛翔する。最初の敵または地形ブロックへ衝突すると消滅し、最大射程へ無衝突で到達した場合は爆発せず消滅する。"
+#   impact: "衝突地点を中心に半径radius、上下radiusの範囲から最大maxTargets体へ、中心・外周で差のない無属性の間接攻撃を1回与える。持続エリア、状態異常、ノックバックは発生しない。"
+#   targets: "Mobのみを対象にし、NPCとPvP対象を含めない。Bossは通常Mobと同じく対象になる。中心から対象へのブロック遮蔽がある敵は命中しない。"
+params:
+  range: 14.0
+  radius: 2.25
+  damageRatio: 1.20
+  maxTargets: 6
+  projectileSpeed: 1.35
+  projectileHitRadius: 0.45

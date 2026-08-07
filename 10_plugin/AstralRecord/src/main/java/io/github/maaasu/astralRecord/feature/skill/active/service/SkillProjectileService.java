@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.skill.active.service;
 
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillProjectileSpec;
+import io.github.maaasu.astralRecord.feature.skill.active.model.SkillProjectileTermination;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -52,7 +53,28 @@ public final class SkillProjectileService {
             @NotNull BiConsumer<AstEntity, Location> onHit,
             @NotNull Consumer<Location> onFinish
     ) {
-        launchInternal(player, origin, direction, spec, 0.0D, 0.0D, onHit, onFinish);
+        launchInternal(player, origin, direction, spec, 0.0D, 0.0D, onHit, onFinish, null);
+    }
+
+    /**
+     * 発動者の視線方向へ仮想 projectile を発射し、終了種別を受け取ります。
+     *
+     * @param player 発動者
+     * @param origin 発射位置
+     * @param direction 発射方向
+     * @param spec projectile 仕様
+     * @param onEntityHit Mob 命中時に対象と命中位置を受け取る処理
+     * @param onTerminate Entity・Block・最大射程の終了種別と地点を受け取る処理
+     */
+    public void launchWithTermination(
+            @NotNull Player player,
+            @NotNull Location origin,
+            @NotNull Vector direction,
+            @NotNull SkillProjectileSpec spec,
+            @NotNull BiConsumer<AstEntity, Location> onEntityHit,
+            @NotNull Consumer<SkillProjectileTermination> onTerminate
+    ) {
+        launchInternal(player, origin, direction, spec, 0.0D, 0.0D, onEntityHit, ignored -> { }, onTerminate);
     }
 
     /** 近くの対象へ毎tick進行方向を補正する仮想 projectile を発射します。 */
@@ -70,7 +92,7 @@ public final class SkillProjectileService {
             player, origin, direction, spec,
             Math.max(0.0D, Math.min(1.0D, homingStrength)),
             Math.max(0.0D, homingRange),
-            onHit, onFinish
+            onHit, onFinish, null
         );
     }
 
@@ -82,7 +104,8 @@ public final class SkillProjectileService {
             double homingStrength,
             double homingRange,
             @NotNull BiConsumer<AstEntity, Location> onHit,
-            @NotNull Consumer<Location> onFinish
+            @NotNull Consumer<Location> onFinish,
+            Consumer<SkillProjectileTermination> onTerminate
     ) {
         Vector initialDirection = direction.lengthSquared() <= 1.0E-8D
                 ? new Vector(0.0D, 0.0D, 1.0D)
@@ -117,18 +140,28 @@ public final class SkillProjectileService {
                 }
             }
             double stepDistance = Math.min(spec.speed(), spec.range() - travelled[0]);
+            Location blockImpact = targetingService.blockImpact(current[0], currentDirection[0], stepDistance);
             Location next = targetingService.clippedEnd(current[0], currentDirection[0], stepDistance);
             double actualDistance = current[0].distance(next);
             effectService.line(current[0], next, 0.45D, spec.trail());
 
-            List<AstEntity> candidates = targetingService.inLine(
-                    player,
-                    current[0],
-                    currentDirection[0],
-                    Math.max(0.05D, actualDistance),
-                    spec.hitRadius(),
-                    spec.maxHits()
-            );
+            List<AstEntity> candidates = blockImpact == null
+                    ? targetingService.inLine(
+                            player,
+                            current[0],
+                            currentDirection[0],
+                            Math.max(0.05D, actualDistance),
+                            spec.hitRadius(),
+                            spec.maxHits()
+                    )
+                    : targetingService.inLineBeforeBlock(
+                            player,
+                            current[0],
+                            currentDirection[0],
+                            current[0].distance(blockImpact),
+                            spec.hitRadius(),
+                            spec.maxHits()
+                    );
             for (AstEntity candidate : candidates) {
                 if (!hitIds.add(candidate.id())) {
                     continue;
@@ -139,16 +172,26 @@ public final class SkillProjectileService {
                 }
                 onHit.accept(candidate, impact);
                 if (!spec.piercing() || hitIds.size() >= spec.maxHits()) {
-                    finish(player.getUniqueId(), scope, next, onFinish, finished);
+                    finish(
+                            player.getUniqueId(), scope, next, SkillProjectileTermination.Type.ENTITY, impact,
+                            onFinish, onTerminate, finished
+                    );
                     return;
                 }
             }
 
             travelled[0] += actualDistance;
             current[0] = next;
-            boolean blocked = actualDistance + 1.0E-6D < stepDistance;
-            if (blocked || travelled[0] + 1.0E-6D >= spec.range()) {
-                finish(player.getUniqueId(), scope, next, onFinish, finished);
+            if (blockImpact != null) {
+                finish(
+                        player.getUniqueId(), scope, next, SkillProjectileTermination.Type.BLOCK, blockImpact,
+                        onFinish, onTerminate, finished
+                );
+            } else if (travelled[0] + 1.0E-6D >= spec.range()) {
+                finish(
+                        player.getUniqueId(), scope, next, SkillProjectileTermination.Type.RANGE, next,
+                        onFinish, onTerminate, finished
+                );
             }
         });
     }
@@ -157,7 +200,10 @@ public final class SkillProjectileService {
             @NotNull UUID casterId,
             @NotNull String scope,
             @NotNull Location end,
+            @NotNull SkillProjectileTermination.Type terminationType,
+            @NotNull Location terminationLocation,
             @NotNull Consumer<Location> onFinish,
+            Consumer<SkillProjectileTermination> onTerminate,
             boolean @NotNull [] finished
     ) {
         if (finished[0]) {
@@ -166,5 +212,12 @@ public final class SkillProjectileService {
         finished[0] = true;
         taskService.cancel(casterId, scope);
         onFinish.accept(end.clone());
+        if (onTerminate != null) {
+            onTerminate.accept(new SkillProjectileTermination(
+                    terminationType,
+                    terminationLocation.clone(),
+                    end.clone()
+            ));
+        }
     }
 }

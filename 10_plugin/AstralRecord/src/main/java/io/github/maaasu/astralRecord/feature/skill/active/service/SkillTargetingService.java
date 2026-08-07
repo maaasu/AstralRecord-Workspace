@@ -165,12 +165,57 @@ public final class SkillTargetingService {
         }
         Vector normalizedDirection = normalized(direction);
         double clippedRange = origin.distance(clippedEnd(origin, normalizedDirection, range));
+        return inLineWithinRange(player, origin, normalizedDirection, clippedRange, radius, maxTargets);
+    }
+
+    /**
+     * 指定した Block 衝突面より前だけを swept capsule で検索します。
+     * <p>
+     * Block と同一距離の Mob は Block 衝突を優先するため、終端は含めません。
+     *
+     * @param player 発動者
+     * @param origin 始点
+     * @param direction 進行方向
+     * @param blockImpactDistance Block 衝突面までの距離
+     * @param radius 当たり判定半径
+     * @param maxTargets 最大対象数
+     * @return Block 衝突面より手前の命中対象
+     */
+    public @NotNull List<AstEntity> inLineBeforeBlock(
+            @NotNull Player player,
+            @NotNull Location origin,
+            @NotNull Vector direction,
+            double blockImpactDistance,
+            double radius,
+            int maxTargets
+    ) {
+        if (origin.getWorld() != player.getWorld()) {
+            return List.of();
+        }
+        return inLineWithinRange(
+                player,
+                origin,
+                normalized(direction),
+                Math.nextDown(Math.max(0.0D, blockImpactDistance)),
+                radius,
+                maxTargets
+        );
+    }
+
+    private @NotNull List<AstEntity> inLineWithinRange(
+            @NotNull Player player,
+            @NotNull Location origin,
+            @NotNull Vector normalizedDirection,
+            double range,
+            double radius,
+            int maxTargets
+    ) {
         return targets(player, mob -> {
             return Double.isFinite(lineIntersectionDistance(
                     targetBounds(mob),
                     origin.toVector(),
                     normalizedDirection,
-                    clippedRange,
+                    range,
                     radius
             ));
         }).stream()
@@ -179,7 +224,7 @@ public final class SkillTargetingService {
                                 targetBounds(mob),
                                 origin.toVector(),
                                 normalizedDirection,
-                                clippedRange,
+                                range,
                                 radius
                         ))
                         .thenComparing(mob -> mob.instanceId().toString()))
@@ -265,12 +310,38 @@ public final class SkillTargetingService {
             @NotNull Vector direction,
             double range
     ) {
-        World world = origin.getWorld();
         Vector normalizedDirection = normalized(direction);
         double safeRange = Math.max(0.0D, range);
-        if (world == null || safeRange <= 0.0D) {
+        if (origin.getWorld() == null || safeRange <= 0.0D) {
             return origin.clone();
         }
+        Location impact = blockImpact(origin, normalizedDirection, safeRange);
+        if (impact == null) {
+            return origin.clone().add(normalizedDirection.multiply(safeRange));
+        }
+        double hitDistance = impact.distance(origin);
+        return origin.clone().add(normalizedDirection.multiply(Math.max(0.0D, hitDistance - 0.1D)));
+    }
+
+    /**
+     * 指定線分で最初に衝突するブロックの正確な地点を返します。
+     *
+     * @param origin 始点
+     * @param direction 進行方向
+     * @param range 最大距離
+     * @return ブロックへ衝突する地点。衝突しない場合は null
+     */
+    public @Nullable Location blockImpact(
+            @NotNull Location origin,
+            @NotNull Vector direction,
+            double range
+    ) {
+        World world = origin.getWorld();
+        double safeRange = Math.max(0.0D, range);
+        if (world == null || safeRange <= 0.0D) {
+            return null;
+        }
+        Vector normalizedDirection = normalized(direction);
         RayTraceResult hit = world.rayTraceBlocks(
                 origin,
                 normalizedDirection,
@@ -279,10 +350,9 @@ public final class SkillTargetingService {
                 true
         );
         if (hit == null || hit.getHitPosition() == null) {
-            return origin.clone().add(normalizedDirection.multiply(safeRange));
+            return null;
         }
-        double hitDistance = hit.getHitPosition().distance(origin.toVector());
-        return origin.clone().add(normalizedDirection.multiply(Math.max(0.0D, hitDistance - 0.1D)));
+        return hit.getHitPosition().toLocation(world);
     }
 
     /**

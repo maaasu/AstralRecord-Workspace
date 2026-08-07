@@ -70,6 +70,7 @@ usableSkills:
   - skill:fire_boost
   - skill:iron_will
   - skill:adventurer_astral_edge
+  - skill:adventurer_blast_arrow
   - skill:adventurer_smash
   - skill:adventurer_meditation
   - skill:mob_field_heavy_slash

@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkill
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.ActiveSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerAstralEdgeExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerBlastArrowExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
@@ -33,13 +34,14 @@ class ActiveSkillExecutorDesignTest {
 
     private static final Set<String> EXPECTED_SKILL_IDS = Set.of(
         "adventurer_astral_edge",
+        "adventurer_blast_arrow",
         "adventurer_smash"
     );
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
-     * 検証契約: catalogが設計記載2 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
+     * 検証契約: catalogが設計記載3 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
      */
     @Test
     void catalogContainsEveryDesignedSkillIdExactlyOnce() {
@@ -80,6 +82,38 @@ class ActiveSkillExecutorDesignTest {
         assertEquals("damageRatios", exception.key());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
+     * 検証契約: ブラストアローは射程・半径・倍率・飛翔体仕様と最大対象数をマスタparamsで正しく要求する。
+     */
+    @Test
+    void blastArrowValidatesDataDrivenParams() {
+        AdventurerBlastArrowExecutor executor = new AdventurerBlastArrowExecutor(activeSkillServices());
+
+        assertDoesNotThrow(() -> executor.validateParams(blastArrowDefinition(Map.of(
+                "range", 14.0D,
+                "radius", 2.25D,
+                "damageRatio", 1.20D,
+                "maxTargets", 6,
+                "projectileSpeed", 1.35D,
+                "projectileHitRadius", 0.45D
+        ))));
+
+        SkillParameterException exception = assertThrows(
+                SkillParameterException.class,
+                () -> executor.validateParams(blastArrowDefinition(Map.of(
+                        "range", 14.0D,
+                        "radius", 2.25D,
+                        "damageRatio", 1.20D,
+                        "maxTargets", 0,
+                        "projectileSpeed", 1.35D,
+                        "projectileHitRadius", 0.45D
+                )))
+        );
+        assertEquals("maxTargets", exception.key());
+    }
+
     private static SkillDefinition astralEdgeDefinition(Map<String, Object> params) {
         return new SkillDefinition(
                 "adventurer_astral_edge",
@@ -99,6 +133,28 @@ class ActiveSkillExecutorDesignTest {
                 true,
                 SkillResourceType.ENERGY,
                 8.0D
+        );
+    }
+
+    private static SkillDefinition blastArrowDefinition(Map<String, Object> params) {
+        return new SkillDefinition(
+                "adventurer_blast_arrow",
+                "adventurer_blast_arrow",
+                "ブラストアロー",
+                null,
+                "SPECTRAL_ARROW",
+                List.of(),
+                100L,
+                6.0D,
+                0L,
+                1,
+                null,
+                params,
+                List.of("active", "ranged", "adventurer"),
+                SkillKind.ACTIVE,
+                true,
+                SkillResourceType.ENERGY,
+                12.0D
         );
     }
 

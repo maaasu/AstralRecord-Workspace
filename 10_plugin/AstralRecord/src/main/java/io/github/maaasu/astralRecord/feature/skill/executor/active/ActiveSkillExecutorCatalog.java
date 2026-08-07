@@ -18,10 +18,10 @@ public final class ActiveSkillExecutorCatalog {
      * 実装済みの冒険者用 executor を生成します。
      *
      * @param services 共有発動スキルサービス
-     * @return 2個の executor
+     * @return 3個の executor
      */
     public static @NotNull List<SkillExecutor> create(@NotNull ActiveSkillServices services) {
-        List<SkillExecutor> executors = new ArrayList<>(2);
+        List<SkillExecutor> executors = new ArrayList<>(3);
         executors.addAll(AdventurerSkillExecutorCatalog.create(services));
         return List.copyOf(executors);
     }

@@ -64,6 +64,7 @@ growthPerLevel:
 expRate: 58
 usableSkills:
   - skill:adventurer_astral_edge
+  - skill:adventurer_blast_arrow
   - skill:adventurer_smash
   - skill:adventurer_meditation
 tags:

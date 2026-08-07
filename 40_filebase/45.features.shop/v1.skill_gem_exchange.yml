@@ -80,3 +80,27 @@ items:
           ref: item:skill_gem_raw_beginner
         category: material
         amount: 1
+  - id: blast_arrow_from_raw
+    itemId:
+      ref: item:00_skill_gem_adventurer_blast_arrow
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 6
+    requiredItems:
+      - itemId:
+          ref: item:skill_gem_raw
+        category: material
+        amount: 1
+  - id: blast_arrow_from_beginner_raw
+    itemId:
+      ref: item:00_skill_gem_adventurer_blast_arrow
+    category: skill_gem
+    amount: 3
+    page: 1
+    slot: 7
+    requiredItems:
+      - itemId:
+          ref: item:skill_gem_raw_beginner
+        category: material
+        amount: 1

@@ -215,6 +215,12 @@ public final class SharedParticleDefinitions {
         );
     public static final SharedParticleDefinition ADVENTURER_MEDITATION_AURA =
         new SharedParticleDefinition("adventurer_meditation_aura", Particle.ENCHANT, 1, 0.02D, 0.02D, 0.02D, 0.01D);
+    public static final SharedParticleDefinition ADVENTURER_BLAST_ARROW_TRAIL =
+        new SharedParticleDefinition("adventurer_blast_arrow_trail", Particle.CRIT, 1, 0.02D, 0.02D, 0.02D, 0.015D);
+    public static final SharedParticleDefinition ADVENTURER_BLAST_ARROW_IMPACT =
+        new SharedParticleDefinition("adventurer_blast_arrow_impact", Particle.ELECTRIC_SPARK, 10, 0.12D, 0.12D, 0.12D, 0.08D);
+    public static final SharedParticleDefinition ADVENTURER_BLAST_ARROW_SHOCKWAVE =
+        new SharedParticleDefinition("adventurer_blast_arrow_shockwave", Particle.CLOUD, 2, 0.03D, 0.03D, 0.03D, 0.01D);
     public static final SharedParticleDefinition SKILL_SWORD_GUARD_DUST =
         new SharedParticleDefinition(
             "skill_sword_guard_dust",
