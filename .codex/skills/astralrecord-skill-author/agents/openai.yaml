@@ -1,4 +1,4 @@
 interface:
   display_name: "AstralRecord スキル作成"
-  short_description: "Minecraft 内スキルの設計・実装を一貫して進める"
-  default_prompt: "$astralrecord-skill-author を使って、冒険者向けの新しい Minecraft スキルを追加してください。"
+  short_description: "ChatGPT案を既存仕様に沿う正確なスキルへ実装する"
+  default_prompt: "$astralrecord-skill-author を使って、ChatGPTから渡されたスキル案を正確な仕様へ確定し、必要な実装・filebase・テストを進めてください。"
