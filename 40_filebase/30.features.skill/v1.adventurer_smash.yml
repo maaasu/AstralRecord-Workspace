@@ -44,6 +44,15 @@ tags:
   - active
   - melee
   - adventurer
+# behavior:
+#   primaryTarget: "前方の対象を1体だけ選択し、対象の着地点へ上空から落下させる。追加の打ち上げ・スタンは発生させない。"
+#   secondaryTargets: "着地点を中心とする impactRadius の範囲から主対象を除いて最大 maxSecondaryTargets 体を選び、主対象の成立ダメージを secondaryRatio 倍して与える。副対象がいない場合は主対象だけに命中する。"
+#   secondaryKnockback: "副対象へ着地点から外向きのノックバックを secondaryKnockback 倍で与え、KNOCKBACK_RESISTANCE の通常補正を適用する。ダメージが成立しなかった副対象にはノックバックしない。"
+#   timing: "発動時に castTimeTicks の詠唱を行い、対象選択後 impactDelayTicks tick 後に主対象・副対象への命中処理を実行する。"
+#   balance: "副対象ダメージは単体高火力の DPS へ加算せず、複数対象時の付加価値として扱う。主対象の倍率・クールダウン・コストは対象数で変化しない。"
+# visuals:
+#   cast: "主対象の右上から着地点へ向かう斜めの CRIT 軌跡と ELECTRIC_SPARK の副軌跡を表示する。"
+#   impact: "着地点の地面ブロックを使ったブロック粉塵を表示し、SWEEP_ATTACK と ELECTRIC_SPARK のリングを6 tickかけて半径0から impactRadius まで拡大する。"
 params:
   reach: 6.0
   targetAngle: 35.0
