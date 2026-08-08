@@ -2,10 +2,12 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -26,6 +28,7 @@ public final class MeditationSkillRuntimeService {
     private static final double DEFAULT_REGEN_MULTIPLIER = 3.0D;
     private static final int DEFAULT_CHARGE_PARTICLE_INTERVAL_TICKS = 10;
     private static final int DEFAULT_ACTIVE_PARTICLE_INTERVAL_TICKS = 5;
+    private static final int DEFAULT_ACTIVE_SOUND_INTERVAL_TICKS = 40;
 
     private final ParticleDisplayService particleDisplayService;
     private final Map<UUID, State> states = new ConcurrentHashMap<>();
@@ -41,6 +44,7 @@ public final class MeditationSkillRuntimeService {
 
     /**
      * バインド済みパッシブの tick を処理します。
+     * 準備中・発動中の particle と、発動中の継続音もこの tick で更新します。
      *
      * @param context 解決済みパッシブコンテキスト
      */
@@ -54,12 +58,16 @@ public final class MeditationSkillRuntimeService {
             return;
         }
 
-        int chargeTicks = readPositiveInt(context, "chargeTicks", DEFAULT_CHARGE_TICKS);
+        SkillParamReader params = new SkillParamReader(context.skill().getId(), context.skill().getParams());
+        int chargeTicks = readPositiveInt(params, "chargeTicks", DEFAULT_CHARGE_TICKS);
         int chargeInterval = readPositiveInt(
-            context, "chargeParticleIntervalTicks", DEFAULT_CHARGE_PARTICLE_INTERVAL_TICKS
+            params, "chargeParticleIntervalTicks", DEFAULT_CHARGE_PARTICLE_INTERVAL_TICKS
         );
         int activeInterval = readPositiveInt(
-            context, "activeParticleIntervalTicks", DEFAULT_ACTIVE_PARTICLE_INTERVAL_TICKS
+            params, "activeParticleIntervalTicks", DEFAULT_ACTIVE_PARTICLE_INTERVAL_TICKS
+        );
+        int activeSoundInterval = readPositiveInt(
+            params, "activeSoundIntervalTicks", DEFAULT_ACTIVE_SOUND_INTERVAL_TICKS
         );
         long activeTicks = context.activeTicks();
         if (state.sneakStartedAtTick == null) {
@@ -68,6 +76,7 @@ public final class MeditationSkillRuntimeService {
 
         if (!state.effectActive && activeTicks - state.sneakStartedAtTick >= chargeTicks) {
             state.effectActive = true;
+            state.lastSoundTick = activeTicks;
             renderActivation(player);
         }
 
@@ -75,6 +84,10 @@ public final class MeditationSkillRuntimeService {
             if (activeTicks - state.lastParticleTick >= activeInterval) {
                 state.lastParticleTick = activeTicks;
                 renderActive(player, activeTicks);
+            }
+            if (activeTicks - state.lastSoundTick >= activeSoundInterval) {
+                state.lastSoundTick = activeTicks;
+                renderActiveSound(player);
             }
         } else if (activeTicks - state.lastParticleTick >= chargeInterval) {
             state.lastParticleTick = activeTicks;
@@ -149,6 +162,23 @@ public final class MeditationSkillRuntimeService {
         );
     }
 
+    /**
+     * メディテーション発動中であることを示す控えめな環境音を再生します。
+     *
+     * @param player 発動中のプレイヤー
+     */
+    private void renderActiveSound(@NotNull Player player) {
+        Location base = player.getLocation();
+        if (base == null || base.getWorld() == null) return;
+        base.getWorld().playSound(
+            base,
+            Sound.BLOCK_BEACON_AMBIENT,
+            SoundCategory.PLAYERS,
+            0.35F,
+            1.15F
+        );
+    }
+
     private ArrayList<Location> ringLocations(@NotNull Location center, double radius, int points) {
         ArrayList<Location> locations = new ArrayList<>(points);
         for (int index = 0; index < points; index++) {
@@ -158,19 +188,27 @@ public final class MeditationSkillRuntimeService {
         return locations;
     }
 
+    /**
+     * パッシブ定義から正の整数パラメータを読み取ります。
+     *
+     * @param params スキルパラメータ reader
+     * @param key パラメータキー
+     * @param defaultValue 未定義時の既定値
+     * @return 1以上の整数値
+     * @throws io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException 値が整数でない場合
+     */
     private int readPositiveInt(
-        @NotNull PassiveSkillContext context,
+        @NotNull SkillParamReader params,
         @NotNull String key,
         int defaultValue
     ) {
-        Object raw = context.skill().getParams().get(key);
-        if (!(raw instanceof Number number)) return defaultValue;
-        return Math.max(1, number.intValue());
+        return Math.max(1, params.getInt(key, defaultValue));
     }
 
     private static final class State {
         private Long sneakStartedAtTick;
         private long lastParticleTick;
+        private long lastSoundTick;
         private boolean effectActive;
     }
 }

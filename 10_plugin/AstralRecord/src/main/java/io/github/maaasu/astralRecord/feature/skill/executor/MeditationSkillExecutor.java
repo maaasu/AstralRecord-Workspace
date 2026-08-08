@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.feature.skill.service.MeditationSkillRuntimeService;
@@ -83,15 +84,24 @@ public final class MeditationSkillExecutor implements SkillExecutor {
 
     @Override
     public void validateParams(@NotNull SkillDefinition skill) {
-        requireFixedInt(skill, "chargeTicks", FIXED_CHARGE_TICKS);
+        SkillParamReader params = new SkillParamReader(skill.getId(), skill.getParams());
+        requireFixedInt(params, "chargeTicks", FIXED_CHARGE_TICKS);
         requireFixedDouble(skill, "regenMultiplier", FIXED_REGEN_MULTIPLIER);
-        requirePositiveInt(skill, "chargeParticleIntervalTicks");
-        requirePositiveInt(skill, "activeParticleIntervalTicks");
+        requirePositiveInt(params, "chargeParticleIntervalTicks");
+        requirePositiveInt(params, "activeParticleIntervalTicks");
+        requirePositiveInt(params, "activeSoundIntervalTicks");
     }
 
-    private void requireFixedInt(@NotNull SkillDefinition skill, @NotNull String key, int expected) {
-        Object raw = skill.getParams().get(key);
-        if (!(raw instanceof Number number) || number.intValue() != expected) {
+    /**
+     * 指定されたパラメータが期待する固定 tick 値と一致することを検証します。
+     *
+     * @param params スキルパラメータ reader
+     * @param key パラメータキー
+     * @param expected 期待する固定値
+     * @throws SkillParameterException 値が未定義、整数でない、または期待値と異なる場合
+     */
+    private void requireFixedInt(@NotNull SkillParamReader params, @NotNull String key, int expected) {
+        if (params.getInt(key, Integer.MIN_VALUE) != expected) {
             throw new SkillParameterException(key, expected + " を指定してください");
         }
     }
@@ -103,9 +113,15 @@ public final class MeditationSkillExecutor implements SkillExecutor {
         }
     }
 
-    private void requirePositiveInt(@NotNull SkillDefinition skill, @NotNull String key) {
-        Object raw = skill.getParams().get(key);
-        if (!(raw instanceof Number number) || number.intValue() <= 0) {
+    /**
+     * 指定されたパラメータが1以上の整数であることを検証します。
+     *
+     * @param params スキルパラメータ reader
+     * @param key パラメータキー
+     * @throws SkillParameterException 値が未定義、整数でない、または1未満の場合
+     */
+    private void requirePositiveInt(@NotNull SkillParamReader params, @NotNull String key) {
+        if (params.getInt(key, 0) <= 0) {
             throw new SkillParameterException(key, "1 以上を指定してください");
         }
     }

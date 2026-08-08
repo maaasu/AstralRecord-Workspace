@@ -6,7 +6,7 @@ id: adventurer_meditation
 type: SKILL
 implementationId: adventurer_meditation
 name: "&dメディテーション"
-description: "&7安全な場所で精神を集中し、ENG / MP の自然回復を高速化する休息パッシブ。"
+description: "&7安全な場所で5秒間スニークして精神を集中し、ENG / MP の自然回復を高速化する休息パッシブ。発動中は粒子と環境音で状態を知らせる。"
 icon: AMETHYST_SHARD
 cooldownTicks: 0
 manaCost: 0
@@ -27,6 +27,7 @@ params:
   regenMultiplier: 3
   chargeParticleIntervalTicks: 10
   activeParticleIntervalTicks: 5
+  activeSoundIntervalTicks: 40
 tags:
   - passive
   - field

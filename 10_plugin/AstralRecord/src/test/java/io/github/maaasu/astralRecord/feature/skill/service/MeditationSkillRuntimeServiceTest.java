@@ -6,8 +6,13 @@ import io.github.maaasu.astralRecord.feature.skill.executor.MeditationSkillExecu
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import org.bukkit.Location;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 
@@ -22,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class MeditationSkillRuntimeServiceTest {
@@ -39,7 +45,8 @@ class MeditationSkillRuntimeServiceTest {
             "chargeTicks", 100,
             "regenMultiplier", 3,
             "chargeParticleIntervalTicks", 10,
-            "activeParticleIntervalTicks", 5
+            "activeParticleIntervalTicks", 5,
+            "activeSoundIntervalTicks", 40
         ));
         MeditationSkillRuntimeService runtime = new MeditationSkillRuntimeService(mock(ParticleDisplayService.class));
         PassiveSkillContext context = context(astPlayer, definition, 0L);
@@ -69,6 +76,72 @@ class MeditationSkillRuntimeServiceTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 5. メディテーション中断
+     * 検証契約: 発動時の音に加え、設定した20 tick間隔の環境音だけを再生する。
+     */
+    @Test
+    void playsAmbientSoundAtConfiguredIntervalWhileActive() {
+        UUID playerId = UUID.randomUUID();
+        AstPlayer astPlayer = player(playerId);
+        Player bukkit = astPlayer.getBukkit();
+        World world = mock(World.class);
+        Location location = new Location(world, 0.0D, 64.0D, 0.0D);
+        when(bukkit.getLocation()).thenReturn(location);
+        SkillDefinition definition = definition(Map.of(
+            "chargeTicks", 100,
+            "regenMultiplier", 3,
+            "chargeParticleIntervalTicks", 10,
+            "activeParticleIntervalTicks", 5,
+            "activeSoundIntervalTicks", 20
+        ));
+        MeditationSkillRuntimeService runtime = new MeditationSkillRuntimeService(mock(ParticleDisplayService.class));
+
+        runtime.tick(context(astPlayer, definition, 0L));
+        runtime.tick(context(astPlayer, definition, 100L));
+        verify(world).playSound(
+            location,
+            Sound.BLOCK_AMETHYST_BLOCK_CHIME,
+            0.55F,
+            1.15F
+        );
+        verify(world, org.mockito.Mockito.never()).playSound(
+            location,
+            Sound.BLOCK_BEACON_AMBIENT,
+            SoundCategory.PLAYERS,
+            0.35F,
+            1.15F
+        );
+
+        runtime.tick(context(astPlayer, definition, 119L));
+        verify(world, org.mockito.Mockito.never()).playSound(
+            location,
+            Sound.BLOCK_BEACON_AMBIENT,
+            SoundCategory.PLAYERS,
+            0.35F,
+            1.15F
+        );
+        runtime.tick(context(astPlayer, definition, 120L));
+        verify(world).playSound(
+            location,
+            Sound.BLOCK_BEACON_AMBIENT,
+            SoundCategory.PLAYERS,
+            0.35F,
+            1.15F
+        );
+
+        runtime.interrupt(playerId);
+        runtime.tick(context(astPlayer, definition, 180L));
+        verify(world, org.mockito.Mockito.times(1)).playSound(
+            location,
+            Sound.BLOCK_BEACON_AMBIENT,
+            SoundCategory.PLAYERS,
+            0.35F,
+            1.15F
+        );
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 6.1 自然回復倍率
      * 検証契約: 100 tickと3倍倍率は固定値としてexecutorのparams検証で拒否できる。
@@ -82,14 +155,61 @@ class MeditationSkillRuntimeServiceTest {
             "chargeTicks", 100,
             "regenMultiplier", 3,
             "chargeParticleIntervalTicks", 10,
-            "activeParticleIntervalTicks", 5
+            "activeParticleIntervalTicks", 5,
+            "activeSoundIntervalTicks", 40
         ))));
         assertThrows(RuntimeException.class, () -> executor.validateParams(definition(Map.of(
             "chargeTicks", 60,
             "regenMultiplier", 3,
             "chargeParticleIntervalTicks", 10,
-            "activeParticleIntervalTicks", 5
+            "activeParticleIntervalTicks", 5,
+            "activeSoundIntervalTicks", 40
         ))));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 5. メディテーション中断
+     * 検証契約: activeSoundIntervalTicks は正の整数だけを受け付け、未定義・0・小数・int範囲外を拒否する。
+     */
+    @Test
+    void validatesActiveSoundIntervalAsPositiveInt() {
+        MeditationSkillExecutor executor = new MeditationSkillExecutor(
+            new MeditationSkillRuntimeService(mock(ParticleDisplayService.class))
+        );
+        assertDoesNotThrow(() -> executor.validateParams(definition(Map.of(
+            "chargeTicks", 100,
+            "regenMultiplier", 3,
+            "chargeParticleIntervalTicks", 10,
+            "activeParticleIntervalTicks", 5,
+            "activeSoundIntervalTicks", 20
+        ))));
+
+        Map<String, Object> missing = new java.util.HashMap<>(validParams());
+        missing.remove("activeSoundIntervalTicks");
+        assertThrows(SkillParameterException.class, () -> executor.validateParams(definition(missing)));
+
+        Map<String, Object> zero = new java.util.HashMap<>(validParams());
+        zero.put("activeSoundIntervalTicks", 0);
+        assertThrows(SkillParameterException.class, () -> executor.validateParams(definition(zero)));
+
+        Map<String, Object> fractional = new java.util.HashMap<>(validParams());
+        fractional.put("activeSoundIntervalTicks", 40.5D);
+        assertThrows(SkillParameterException.class, () -> executor.validateParams(definition(fractional)));
+
+        Map<String, Object> outOfRange = new java.util.HashMap<>(validParams());
+        outOfRange.put("activeSoundIntervalTicks", (double) Integer.MAX_VALUE + 1.0D);
+        assertThrows(SkillParameterException.class, () -> executor.validateParams(definition(outOfRange)));
+    }
+
+    private static Map<String, Object> validParams() {
+        return new java.util.HashMap<>(Map.of(
+            "chargeTicks", 100,
+            "regenMultiplier", 3,
+            "chargeParticleIntervalTicks", 10,
+            "activeParticleIntervalTicks", 5,
+            "activeSoundIntervalTicks", 40
+        ));
     }
 
     private static AstPlayer player(UUID playerId) {
