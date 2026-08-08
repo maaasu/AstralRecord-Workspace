@@ -89,7 +89,6 @@ public final class CurrencyExchangeGuiEventHandler extends AbstractEventHandler 
 
     private void handleClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
         if (event.getRawSlot() == CurrencyExchangeGuiView.CLOSE_SLOT) {
-            GuiSound.CLOSE.play(player);
             player.closeInventory();
             return;
         }

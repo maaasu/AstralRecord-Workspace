@@ -4,6 +4,7 @@ import org.bukkit.inventory.Inventory;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -26,10 +27,36 @@ class GuiNavigationStateTest {
         state.recordOpen(playerList, false);
         state.recordOpen(playerDetail, false);
 
-        assertSame(playerList, state.beginBack());
-        assertTrue(state.completeBack(playerList));
-        assertSame(menu, state.beginBack());
-        assertTrue(state.completeBack(menu));
+        GuiNavigationState.BackReservation playerListBack = state.beginBack();
+        assertSame(playerList, playerListBack.inventory());
+        assertTrue(state.completeBack(playerListBack));
+        GuiNavigationState.BackReservation menuBack = state.beginBack();
+        assertSame(menu, menuBack.inventory());
+        assertTrue(state.completeBack(menuBack));
+        assertNull(state.getPreviousGui());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 4. 共通 GUI navigation session
+     * 検証契約: 戻る遷移が取消・失敗した場合は同じ履歴を復元し、古い予約 token は後続予約を変更しない。
+     */
+    @Test
+    void rollsBackCancelledBackNavigationWithoutLettingStaleTokensChangeTheLatestReservation() {
+        GuiNavigationState state = new GuiNavigationState();
+        Inventory menu = mock(Inventory.class);
+        Inventory detail = mock(Inventory.class);
+
+        state.recordOpen(menu, false);
+        state.recordOpen(detail, false);
+        GuiNavigationState.BackReservation firstReservation = state.beginBack();
+
+        assertTrue(state.rollbackBack(firstReservation));
+        GuiNavigationState.BackReservation latestReservation = state.beginBack();
+
+        assertSame(menu, latestReservation.inventory());
+        assertFalse(state.rollbackBack(firstReservation));
+        assertTrue(state.completeBack(latestReservation));
         assertNull(state.getPreviousGui());
     }
 

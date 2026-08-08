@@ -31,6 +31,7 @@ import io.github.maaasu.astralRecord.feature.world.service.ReturnToBaseService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiSupport;
+import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionEndEvent;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import io.github.maaasu.astralRecord.shared.interaction.InputClaimPolicy;
 import io.github.maaasu.astralRecord.shared.interaction.InputFamily;
@@ -227,24 +228,33 @@ public class MenuOpenEventHandler extends AbstractEventHandler
                 }
             }
             if (event.getPlayer() instanceof Player player) {
-                boolean shouldPlayCloseSound = isHotbarShortcutGui(event.getInventory())
-                    && menuGuiTransitionService.shouldPlayCloseSoundOnClose(player, event.getInventory());
-                trashService.handleClose(event.getInventory(), player);
-                sellService.handleClose(event.getInventory(), player);
-                storageService.handleClose(event);
-                if (menuGuiTransitionService.consumePlayerInventoryDummyApplied(player)
-                    && !menuGuiTransitionService.consumeSuppressedPlayerInventoryRestore(player)) {
-                    menuGuiTransitionService.restorePlayerInventory(player);
-                }
-                AstPlayer astPlayer = AstPlayerCache.get(player);
-                if (astPlayer != null) {
-                    inventoryService.setHotbarShortcutMode(astPlayer, false);
-                }
-                if (shouldPlayCloseSound) {
-                    GuiSound.CLOSE.play(player);
-                }
                 scheduleCraftShortcutRender(player);
             }
+        }, LogId.E_5600, event.getPlayer().getName());
+    }
+
+    /**
+     * GUI セッション終了時だけ共通 GUI の後片付けを実行します。
+     *
+     * @param event 共有基盤が終了を確定した GUI セッションイベント
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onGuiSessionEnd(@NotNull GuiSessionEndEvent event) {
+        runSafely(() -> {
+            Player player = event.getPlayer();
+            Inventory inventory = event.getInventory();
+            trashService.handleClose(inventory, player);
+            sellService.handleClose(inventory, player);
+            storageService.handleClose(player, inventory);
+            if (menuGuiTransitionService.consumePlayerInventoryDummyApplied(player)
+                && !menuGuiTransitionService.consumeSuppressedPlayerInventoryRestore(player)) {
+                menuGuiTransitionService.restorePlayerInventory(player);
+            }
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer != null) {
+                inventoryService.setHotbarShortcutMode(astPlayer, false);
+            }
+            scheduleCraftShortcutRender(player);
         }, LogId.E_5600, event.getPlayer().getName());
     }
 
@@ -1002,6 +1012,13 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         menuGuiTransitionService.switchGuiWithInventoryRestore(player, opener);
     }
 
+    /**
+     * 旧 GUI 呼び出し元との互換用です。
+     *
+     * @param player 対象プレイヤー
+     * @deprecated close 音は共有 GUI セッション基盤が終了確定時に判定します。
+     */
+    @Deprecated(forRemoval = false)
     public static void suppressNextCloseSound(@NotNull Player player) {
         MenuGuiTransitionService.suppressNextCloseSound(player);
     }

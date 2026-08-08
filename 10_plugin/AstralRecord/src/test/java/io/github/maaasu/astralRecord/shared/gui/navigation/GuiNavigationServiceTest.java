@@ -7,11 +7,15 @@ import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.mockbukkit.mockbukkit.MockBukkit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -53,6 +57,33 @@ class GuiNavigationServiceTest extends MockBukkitTestBase {
 
         service.registerOpen(player, menu);
         assertFalse(service.hasPrevious(player));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 4. 共通 GUI navigation session
+     * 検証契約: back 遷移の target open が cancel された場合は、取り出した履歴を rollback し、現在画面を変更しない。
+     */
+    @Test
+    void cancelledBackOpenRollsTheReservedHistoryBack() {
+        var player = server().addPlayer();
+        var astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        AstPlayerCache.put(astPlayer);
+        GuiNavigationService service = new GuiNavigationService(mock(AstralRecord.class));
+        Inventory menu = inventory("menu");
+        Inventory detail = inventory("detail");
+        server().getPluginManager().registerEvents(
+            new CancelInventoryOpenListener(menu),
+            MockBukkit.createMockPlugin("GuiNavigationCancellationTest")
+        );
+
+        service.registerOpen(player, menu);
+        service.registerOpen(player, detail);
+
+        assertTrue(service.openPrevious(player));
+        assertSame(detail, astPlayer.getGuiNavigationState().getCurrentGui());
+        assertSame(menu, astPlayer.getGuiNavigationState().getPreviousGui());
+        assertTrue(service.hasPrevious(player));
     }
 
     /**
@@ -125,6 +156,21 @@ class GuiNavigationServiceTest extends MockBukkitTestBase {
         @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, 54);
+        }
+    }
+
+    private static final class CancelInventoryOpenListener implements Listener {
+        private final Inventory target;
+
+        private CancelInventoryOpenListener(@NotNull Inventory target) {
+            this.target = target;
+        }
+
+        @EventHandler
+        public void onInventoryOpen(@NotNull InventoryOpenEvent event) {
+            if (event.getInventory() == target) {
+                event.setCancelled(true);
+            }
         }
     }
 }

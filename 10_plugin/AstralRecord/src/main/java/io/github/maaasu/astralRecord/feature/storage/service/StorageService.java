@@ -21,7 +21,6 @@ import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -200,16 +199,14 @@ public final class StorageService {
     /**
      * ストレージ GUI を閉じたときに、開いている間の変更をまとめて保存します。
      *
-     * @param event Bukkit のインベントリクローズイベント
+     * @param player GUI セッションを終了したプレイヤー
+     * @param inventory 終了したストレージ inventory
      */
-    public void handleClose(@NotNull InventoryCloseEvent event) {
-        if (!(event.getPlayer() instanceof Player player)) {
+    public void handleClose(@NotNull Player player, @NotNull Inventory inventory) {
+        if (menuView.getMenuScreen(inventory) != MenuScreen.STORAGE) {
             return;
         }
-        if (menuView.getMenuScreen(event.getInventory()) != MenuScreen.STORAGE) {
-            return;
-        }
-        if (resolveFilterType(menuView.getContentId(event.getInventory())) != null) {
+        if (resolveFilterType(menuView.getContentId(inventory)) != null) {
             return;
         }
         storageEntriesByPlayer.remove(player.getUniqueId());

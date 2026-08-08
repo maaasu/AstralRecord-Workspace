@@ -23,9 +23,34 @@ import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 class CurrencyExchangeGuiEventHandlerTest extends MockBukkitTestBase {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 5. 共通 GUI セッション遷移
+     * 検証契約: 両替 GUI の close button は inventory close だけを要求し、CLOSE 音の判定・再生を共有 GUI lifecycle と二重化しない。
+     */
+    @Test
+    void closeButtonDelegatesCloseSoundToTheSharedLifecycle() throws Exception {
+        CurrencyExchangeGuiEventHandler handler = new CurrencyExchangeGuiEventHandler(mock(CurrencyService.class));
+        Player player = mock(Player.class);
+        InventoryClickEvent event = mock(InventoryClickEvent.class);
+        when(event.getRawSlot()).thenReturn(CurrencyExchangeGuiView.CLOSE_SLOT);
+
+        Method method = CurrencyExchangeGuiEventHandler.class.getDeclaredMethod(
+            "handleClick",
+            InventoryClickEvent.class,
+            Player.class
+        );
+        method.setAccessible(true);
+        method.invoke(handler, event, player);
+
+        verify(player).closeInventory();
+        verifyNoMoreInteractions(player);
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/16-currency/16_3-メソッド仕様.md

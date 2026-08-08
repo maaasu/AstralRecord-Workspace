@@ -21,13 +21,13 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.confirm.ConfirmDialogView;
+import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionEndEvent;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.jetbrains.annotations.NotNull;
@@ -50,7 +50,6 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
     private final InventoryService inventoryService;
     private final ItemService itemService;
     private final Map<UUID, UUID> forgetting = new ConcurrentHashMap<>();
-    private final java.util.Set<UUID> suppressClose = ConcurrentHashMap.newKeySet();
 
     public SkillForgetGuiEventHandler(
         @NotNull AstralRecord plugin,
@@ -85,7 +84,7 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5848);
             return false;
         }
-        openList(player, 0, false);
+        openList(player, 0);
         GuiSound.OPEN.play(player);
         return true;
     }
@@ -118,11 +117,10 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
-    public void onInventoryClose(InventoryCloseEvent event) {
-        if (!(event.getPlayer() instanceof Player player)) return;
+    public void onGuiSessionEnd(GuiSessionEndEvent event) {
+        Player player = event.getPlayer();
         if (gui.holder(event.getInventory()) == null) return;
-        boolean suppressed = suppressClose.remove(player.getUniqueId());
-        if (!suppressed && !forgetting.containsKey(player.getUniqueId())) {
+        if (event.getReason().isCloseSoundEnabled() && !forgetting.containsKey(player.getUniqueId())) {
             GuiSound.CLOSE.play(player);
         }
     }
@@ -131,7 +129,6 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
     public void onPlayerQuit(PlayerQuitEvent event) {
         UUID playerId = event.getPlayer().getUniqueId();
         forgetting.remove(playerId);
-        suppressClose.remove(playerId);
     }
 
     private void handleListClick(
@@ -153,7 +150,7 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             GuiSound.PAGE.play(player);
-            openList(player, nextPage, true);
+            openList(player, nextPage);
             return;
         }
         if (slot < 0 || slot >= SkillForgetGui.CONTENT_SLOT_COUNT) {
@@ -164,10 +161,9 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
         SkillManagerEntry entry = entry(astPlayer, learnedSkillId);
         if (entry == null) {
             GuiSound.DENY.play(player);
-            openList(player, holder.pageIndex(), true);
+            openList(player, holder.pageIndex());
             return;
         }
-        suppressClose.add(player.getUniqueId());
         gui.openConfirm(player, entry, holder.pageIndex());
         GuiSound.CONFIRM.play(player);
     }
@@ -178,8 +174,7 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
         int slot
     ) {
         if (slot == ConfirmDialogView.CANCEL_SLOT) {
-            suppressClose.add(player.getUniqueId());
-            openList(player, holder.pageIndex(), true);
+            openList(player, holder.pageIndex());
             GuiSound.SELECT.play(player);
             return;
         }
@@ -193,7 +188,7 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
         SkillManagerEntry entry = entry(astPlayer, holder.learnedSkillId());
         if (entry == null) {
             GuiSound.DENY.play(player);
-            openList(player, holder.pageIndex(), true);
+            openList(player, holder.pageIndex());
             return;
         }
         UUID playerId = player.getUniqueId();
@@ -266,8 +261,7 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
                         inventoryService.saveNow(accountId);
                     }
                 }
-                suppressClose.add(playerId);
-                openList(player, returnPage, true);
+                openList(player, returnPage);
                 GuiSound.SUCCESS.play(player);
                 PlayerMessageService.getInstance().send(
                     player,
@@ -332,10 +326,9 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
         plugin.getServer().getScheduler().runTask(plugin, action);
     }
 
-    private void openList(@NotNull Player player, int page, boolean suppressPreviousClose) {
+    private void openList(@NotNull Player player, int page) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) return;
-        if (suppressPreviousClose) suppressClose.add(player.getUniqueId());
         gui.open(player, entries(astPlayer), page);
     }
 

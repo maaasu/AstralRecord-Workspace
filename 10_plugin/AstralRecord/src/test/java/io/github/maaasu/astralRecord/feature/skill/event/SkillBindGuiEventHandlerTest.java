@@ -30,22 +30,23 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPermissionService;
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
+import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionContinuationRequestEvent;
+import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionEndEvent;
+import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionEndReason;
 import net.kyori.adventure.text.Component;
-import org.bukkit.Server;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Server;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.PlayerInventory;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitScheduler;
-import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.plugin.PluginManager;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
@@ -55,18 +56,17 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -262,7 +262,6 @@ class SkillBindGuiEventHandlerTest {
         UUID accountId = UUID.randomUUID();
         putMapValue(handler, "sessions", playerId, new SkillBindSession(presets(playerId)));
         putSavingToken(handler, playerId);
-        setValue(handler, "suppressClose").add(playerId);
         putSynthesisSelection(handler, playerId, accountId);
         Player player = mock(Player.class);
         when(player.getUniqueId()).thenReturn(playerId);
@@ -274,69 +273,130 @@ class SkillBindGuiEventHandlerTest {
         assertFalse(mapValue(handler, "sessions").containsKey(playerId));
         assertFalse(mapValue(handler, "savingSessions").containsKey(playerId));
         assertFalse(mapValue(handler, "synthesisSelections").containsKey(playerId));
-        assertFalse(setValue(handler, "suppressClose").contains(playerId));
         verify(inventoryService).clearHiddenEntriesFromGui(accountId);
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/4-統合フロー/13_4-スキルバインドGUI.md
      * 章・見出し: # 13_4-スキルバインドGUI > ## 6. 自動保存中の close 再表示
-     * 検証契約: 自動保存中のclose後の再表示は、次のユーザー起点closeを抑止しない。
+     * 検証契約: 自動保存中の再表示は shared continuation が担当し、終了確定後に SkillBind handler 自身が古い Runnable を予約しない。
      */
     @Test
-    void closingWhileSavingReopensWithoutSuppressingTheNextClose() throws ReflectiveOperationException {
-        AstralRecord plugin = mock(AstralRecord.class);
-        Server server = mock(Server.class);
-        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+    void savingSessionEndDoesNotScheduleAStaleReopen() throws ReflectiveOperationException {
         SkillBindGui gui = mock(SkillBindGui.class);
-        SkillService skillService = mock(SkillService.class);
-        SkillBindPresetService presetService = mock(SkillBindPresetService.class);
-        SkillOwnershipService ownershipService = mock(SkillOwnershipService.class);
-        SkillPermissionService permissionService = mock(SkillPermissionService.class);
-        LearnedSkillService learnedSkillService = mock(LearnedSkillService.class);
-        PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
         InventoryService inventoryService = mock(InventoryService.class);
         SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
-            plugin, gui, skillService, presetService, ownershipService, permissionService,
-            learnedSkillService, passiveSkillService, inventoryService
+            mock(AstralRecord.class), gui, mock(SkillService.class), mock(SkillBindPresetService.class),
+            mock(SkillOwnershipService.class), mock(SkillPermissionService.class), mock(LearnedSkillService.class),
+            mock(PassiveSkillService.class), inventoryService
         );
         Player player = mock(Player.class);
-        AstPlayer astPlayer = mock(AstPlayer.class);
-        InventoryView inventoryView = mock(InventoryView.class);
         Inventory closingInventory = mock(Inventory.class);
-        Inventory reappearedInventory = mock(Inventory.class);
         UUID playerId = UUID.randomUUID();
-        List<Runnable> scheduledTasks = new ArrayList<>();
         SkillBindSession session = new SkillBindSession(presets(playerId));
 
-        when(plugin.getServer()).thenReturn(server);
-        when(server.getScheduler()).thenReturn(scheduler);
         when(player.getUniqueId()).thenReturn(playerId);
-        when(player.getOpenInventory()).thenReturn(inventoryView);
-        when(inventoryView.getTopInventory()).thenReturn(reappearedInventory);
         when(gui.holder(closingInventory)).thenReturn(new SkillBindInventoryHolder(SkillBindScreen.MAIN, 1, 0));
-        when(skillService.registry()).thenReturn(new SkillRegistry());
-        when(ownershipService.learnedSkills(astPlayer)).thenReturn(List.of());
-        doAnswer(invocation -> {
-            scheduledTasks.add(invocation.getArgument(1));
-            return mock(BukkitTask.class);
-        }).when(scheduler).runTask(any(Plugin.class), any(Runnable.class));
         putMapValue(handler, "sessions", playerId, session);
         putSavingToken(handler, playerId);
 
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(null);
+            handler.onGuiSessionEnd(new GuiSessionEndEvent(player, closingInventory, GuiSessionEndReason.MANUAL_CLOSE));
+        }
+
+        assertFalse(mapValue(handler, "sessions").containsKey(playerId));
+        assertFalse(mapValue(handler, "savingSessions").containsKey(playerId));
+        verify(gui, never()).open(any(), any(), any(), any(), anyInt(), anyInt());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/4-統合フロー/13_4-スキルバインドGUI.md
+     * 章・見出し: # 13_4-スキルバインドGUI > ## 7. 未保存変更の close 確認
+     * 検証契約: 未保存変更がある一覧画面の手動 close は、終了確定後の再表示ではなく shared continuation として破棄確認 GUI を予約する。
+     */
+    @Test
+    void dirtyMainCloseRequestsTheDiscardConfirmationThroughSharedContinuation() throws ReflectiveOperationException {
+        AstralRecord plugin = mock(AstralRecord.class);
+        Server server = mock(Server.class);
+        PluginManager pluginManager = mock(PluginManager.class);
+        SkillBindGui gui = mock(SkillBindGui.class);
+        SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
+            plugin, gui, mock(SkillService.class), mock(SkillBindPresetService.class),
+            mock(SkillOwnershipService.class), mock(SkillPermissionService.class), mock(LearnedSkillService.class),
+            mock(PassiveSkillService.class), mock(InventoryService.class)
+        );
+        Player player = mock(Player.class);
+        Inventory source = mock(Inventory.class);
+        Inventory confirm = mock(Inventory.class);
         InventoryCloseEvent closeEvent = mock(InventoryCloseEvent.class);
+        UUID playerId = UUID.randomUUID();
+        SkillBindSession session = new SkillBindSession(presets(playerId));
+        session.setSlot(SkillBindType.ACTIVE, 0, UUID.randomUUID().toString());
+
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getPluginManager()).thenReturn(pluginManager);
+        when(player.getUniqueId()).thenReturn(playerId);
+        when(player.getName()).thenReturn("player");
         when(closeEvent.getPlayer()).thenReturn(player);
-        when(closeEvent.getInventory()).thenReturn(closingInventory);
+        when(closeEvent.getInventory()).thenReturn(source);
+        when(gui.holder(source)).thenReturn(new SkillBindInventoryHolder(SkillBindScreen.MAIN, 1, 3));
+        when(gui.createConfirmInventory(anyInt(), anyInt(), any(), anyInt(), any())).thenReturn(confirm);
+        putMapValue(handler, "sessions", playerId, session);
+
+        handler.onInventoryClose(closeEvent);
+
+        ArgumentCaptor<org.bukkit.event.Event> eventCaptor = ArgumentCaptor.forClass(org.bukkit.event.Event.class);
+        verify(pluginManager).callEvent(eventCaptor.capture());
+        GuiSessionContinuationRequestEvent request = (GuiSessionContinuationRequestEvent) eventCaptor.getValue();
+        assertSame(player, request.getPlayer());
+        assertSame(source, request.getSourceInventory());
+        assertSame(confirm, request.getTargetInventorySupplier().get());
+        verify(gui).createConfirmInventory(
+            session.selectedPresetIndex(),
+            3,
+            "close",
+            -1,
+            Component.text("変更を破棄して閉じますか", net.kyori.adventure.text.format.NamedTextColor.YELLOW)
+        );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
+     * 検証契約: 遷移先表示がcancelされて共有基盤がセッション終了を確定した場合、編集session・合成素材の予約・プレイヤーinventoryを通常どおり後片付けする。
+     */
+    @Test
+    void cancelledTransitionLetsManualCloseCleanUpSessionAndSynthesisMaterial() throws ReflectiveOperationException {
+        AstralRecord plugin = mock(AstralRecord.class);
+        SkillBindGui gui = mock(SkillBindGui.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
+            plugin, gui, mock(SkillService.class), mock(SkillBindPresetService.class),
+            mock(SkillOwnershipService.class), mock(SkillPermissionService.class), mock(LearnedSkillService.class),
+            mock(PassiveSkillService.class), inventoryService
+        );
+        UUID playerId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
+        Player player = mock(Player.class);
+        Inventory inventory = mock(Inventory.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        when(player.getUniqueId()).thenReturn(playerId);
+
+        SkillBindSession session = new SkillBindSession(presets(accountId));
+        putMapValue(handler, "sessions", playerId, session);
+        putSynthesisSelection(handler, playerId, accountId);
+        when(gui.holder(inventory)).thenReturn(new SkillBindInventoryHolder(SkillBindScreen.SYNTHESIS, 1, 0));
 
         try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
             cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
-            handler.onInventoryClose(closeEvent);
-            scheduledTasks.getFirst().run();
+            handler.onGuiSessionEnd(new GuiSessionEndEvent(player, inventory, GuiSessionEndReason.MANUAL_CLOSE));
         }
 
-        assertFalse(setValue(handler, "suppressClose").contains(playerId));
-        verify(gui, never()).isInventory(reappearedInventory);
-        verify(gui).open(any(), any(), any(), any(), anyInt(), anyInt());
+        assertFalse(mapValue(handler, "sessions").containsKey(playerId));
+        assertFalse(mapValue(handler, "synthesisSelections").containsKey(playerId));
+        verify(inventoryService).clearHiddenEntriesFromGui(accountId);
+        verify(inventoryService).applyInventoriesToGui(astPlayer);
     }
 
     /**
@@ -534,20 +594,17 @@ class SkillBindGuiEventHandlerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
      * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
-     * 検証契約: スキルマネージャーを直開きで閉じる操作では、inventory close とともに CLOSE 音を再生する。
+     * 検証契約: スキルマネージャーを直開きで閉じる操作は inventory close だけを要求し、CLOSE 音は共有 GUI lifecycle が確定時に再生する。
      */
     @Test
-    void directClosePlaysCloseSound() throws ReflectiveOperationException {
+    void directCloseDelegatesCloseSoundToSharedLifecycle() throws ReflectiveOperationException {
         SkillBindGuiEventHandler handler = newHandler();
         Player player = mock(Player.class);
-        Location location = mock(Location.class);
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());
-        when(player.getLocation()).thenReturn(location);
 
         invoke(handler, "restoreAndClose", new Class<?>[] {Player.class}, player);
 
         verify(player).closeInventory();
-        verifySound(player, location, Sound.BLOCK_CHEST_CLOSE);
     }
 
     /**
@@ -656,11 +713,6 @@ class SkillBindGuiEventHandlerTest {
         ((Map<UUID, Object>) fieldValue(handler, "synthesisSelections")).put(
             playerId, constructor.newInstance(accountId, UUID.randomUUID(), mock(ItemModel.class))
         );
-    }
-
-    @SuppressWarnings("unchecked")
-    private static Set<UUID> setValue(Object target, String fieldName) throws ReflectiveOperationException {
-        return (Set<UUID>) fieldValue(target, fieldName);
     }
 
     @SuppressWarnings("unchecked")

@@ -86,8 +86,41 @@ public final class SkillBindGui {
         this.skillService = skillService;
     }
 
+    /**
+     * スキルマネージャーの一覧画面を生成して開きます。
+     *
+     * @param player 表示対象プレイヤー
+     * @param session 編集中セッション
+     * @param entries 表示対象の習得スキル
+     * @param entryByBindingId バインド ID ごとの表示対象
+     * @param activePassiveSlots 現在有効な passive 枠数
+     * @param pageIndex 表示するページ番号
+     */
     public void open(
         @NotNull Player player,
+        @NotNull SkillBindSession session,
+        @NotNull List<SkillManagerEntry> entries,
+        @NotNull Map<String, SkillManagerEntry> entryByBindingId,
+        int activePassiveSlots,
+        int pageIndex
+    ) {
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(
+            player,
+            createMainInventory(session, entries, entryByBindingId, activePassiveSlots, pageIndex)
+        );
+    }
+
+    /**
+     * スキルマネージャーの一覧画面 inventory を生成します。
+     *
+     * @param session 編集中セッション
+     * @param entries 表示対象の習得スキル
+     * @param entryByBindingId バインド ID ごとの表示対象
+     * @param activePassiveSlots 現在有効な passive 枠数
+     * @param pageIndex 表示するページ番号
+     * @return 表示用の一覧画面 inventory
+     */
+    public @NotNull Inventory createMainInventory(
         @NotNull SkillBindSession session,
         @NotNull List<SkillManagerEntry> entries,
         @NotNull Map<String, SkillManagerEntry> entryByBindingId,
@@ -155,11 +188,54 @@ public final class SkillBindGui {
         if (page + 1 < pages) {
             inventory.setItem(NEXT_PAGE_SLOT, createNextPageItem(page, pages));
         }
-        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
+        return inventory;
     }
 
+    /**
+     * スキル合成画面を生成して開きます。
+     *
+     * @param player 表示対象プレイヤー
+     * @param selectedPresetIndex 選択中プリセット番号
+     * @param returnPage 一覧へ戻るページ番号
+     * @param entry 合成対象スキル
+     * @param material 選択済みまたは拒否表示する素材
+     * @param materialKind 素材の適合結果
+     * @param materialSelected 素材を消費予約している場合は {@code true}
+     */
     public void openSynthesis(
         @NotNull Player player,
+        int selectedPresetIndex,
+        int returnPage,
+        @NotNull SkillManagerEntry entry,
+        @Nullable ItemModel material,
+        @NotNull MaterialKind materialKind,
+        boolean materialSelected
+    ) {
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(
+            player,
+            createSynthesisInventory(
+                selectedPresetIndex,
+                returnPage,
+                entry,
+                material,
+                materialKind,
+                materialSelected
+            )
+        );
+    }
+
+    /**
+     * スキル合成画面 inventory を生成します。
+     *
+     * @param selectedPresetIndex 選択中プリセット番号
+     * @param returnPage 一覧へ戻るページ番号
+     * @param entry 合成対象スキル
+     * @param material 選択済みまたは拒否表示する素材
+     * @param materialKind 素材の適合結果
+     * @param materialSelected 素材を消費予約している場合は {@code true}
+     * @return 表示用の合成画面 inventory
+     */
+    public @NotNull Inventory createSynthesisInventory(
         int selectedPresetIndex,
         int returnPage,
         @NotNull SkillManagerEntry entry,
@@ -196,7 +272,7 @@ public final class SkillBindGui {
             NamedTextColor.WHITE,
             List.of(Component.text("選択中の素材は消費せずに戻します。", NamedTextColor.GRAY))
         ));
-        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
+        return inventory;
     }
 
     /**
@@ -217,6 +293,33 @@ public final class SkillBindGui {
         int pendingPresetIndex,
         @NotNull Component message
     ) {
+        Inventory inventory = createConfirmInventory(
+            selectedPresetIndex,
+            pageIndex,
+            action,
+            pendingPresetIndex,
+            message
+        );
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
+    }
+
+    /**
+     * 変更確認画面 inventory を生成します。
+     *
+     * @param selectedPresetIndex 選択中プリセット番号
+     * @param pageIndex 確認前に表示していた一覧ページ。キャンセル・切替後の復帰に引き継ぐ
+     * @param action 確認後の操作
+     * @param pendingPresetIndex 切替対象プリセット番号。切替以外では {@code -1}
+     * @param message 確認メッセージ
+     * @return 表示用の変更確認画面 inventory
+     */
+    public @NotNull Inventory createConfirmInventory(
+        int selectedPresetIndex,
+        int pageIndex,
+        @NotNull String action,
+        int pendingPresetIndex,
+        @NotNull Component message
+    ) {
         Inventory inventory = Bukkit.createInventory(
             new SkillBindInventoryHolder(
                 SkillBindScreen.CONFIRM, selectedPresetIndex, pageIndex, action, pendingPresetIndex
@@ -230,7 +333,7 @@ public final class SkillBindGui {
             Component.text("確定", NamedTextColor.GREEN),
             Component.text("キャンセル", NamedTextColor.RED)
         );
-        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
+        return inventory;
     }
 
     public @Nullable SkillBindInventoryHolder holder(@Nullable Inventory inventory) {

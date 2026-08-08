@@ -1,10 +1,9 @@
 package io.github.maaasu.astralRecord.shared.gui;
 
 import io.github.maaasu.astralRecord.AstralRecord;
-import io.github.maaasu.astralRecord.shared.gui.sound.GuiCloseSoundPolicy;
+import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionTransitionService;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -18,8 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class GuiOpenSupport {
     private static final long TRANSITION_DELAY_TICKS = 2L;
-    private static final String PLUGIN_PACKAGE_PREFIX = "io.github.maaasu.astralRecord.";
-    private static final Map<UUID, BukkitTask> PENDING_TRANSITIONS = new ConcurrentHashMap<>();
+    private static final Map<UUID, PendingTransition> PENDING_TRANSITIONS = new ConcurrentHashMap<>();
 
     private GuiOpenSupport() {
     }
@@ -43,42 +41,54 @@ public final class GuiOpenSupport {
      * @param onOpened GUI 表示後に実行する処理
      */
     public static void open(@NotNull Player player, @NotNull Inventory inventory, @NotNull Runnable onOpened) {
+        open(player, inventory, onOpened, () -> {
+        });
+    }
+
+    /**
+     * GUI を開き、遷移結果を一度だけ通知します。プラグイン GUI からの遷移はクリック同期ずれを避けるため 2 tick 後に実行します。
+     *
+     * @param player 対象プレイヤー
+     * @param inventory 開く GUI
+     * @param onOpened GUI 表示後に実行する処理
+     * @param onCancelled GUI 表示が取消・失敗した場合に実行する処理
+     */
+    public static void open(
+        @NotNull Player player,
+        @NotNull Inventory inventory,
+        @NotNull Runnable onOpened,
+        @NotNull Runnable onCancelled
+    ) {
+        UUID playerId = player.getUniqueId();
+        PendingTransition previousTransition = PENDING_TRANSITIONS.remove(playerId);
+        if (previousTransition != null) {
+            previousTransition.cancel();
+        }
         Inventory source = player.getOpenInventory().getTopInventory();
         if (!isPluginGui(source)) {
             player.openInventory(inventory);
             if (player.getOpenInventory().getTopInventory() == inventory) {
                 onOpened.run();
+            } else {
+                onCancelled.run();
             }
             return;
         }
 
-        UUID playerId = player.getUniqueId();
-        BukkitTask previousTask = PENDING_TRANSITIONS.remove(playerId);
-        if (previousTask != null) {
-            previousTask.cancel();
-        }
         AstralRecord plugin = AstralRecord.getPlugin(AstralRecord.class);
+        PendingTransition transition = new PendingTransition(onOpened, onCancelled);
+        PENDING_TRANSITIONS.put(playerId, transition);
         BukkitTask task = plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            PENDING_TRANSITIONS.remove(playerId);
-            openIfSourceIsCurrent(player, source, inventory, onOpened);
+            if (!PENDING_TRANSITIONS.remove(playerId, transition)) {
+                return;
+            }
+            if (openIfSourceIsCurrent(player, source, inventory)) {
+                transition.opened();
+            } else {
+                transition.cancelled();
+            }
         }, TRANSITION_DELAY_TICKS);
-        PENDING_TRANSITIONS.put(playerId, task);
-    }
-
-    /**
-     * 遷移元 GUI が引き続き開かれている場合だけ内部画面遷移を実行します。
-     *
-     * @param player 対象プレイヤー
-     * @param source 遷移元 GUI
-     * @param target 遷移先 GUI
-     */
-    static void openIfSourceIsCurrent(
-        @NotNull Player player,
-        @NotNull Inventory source,
-        @NotNull Inventory target
-    ) {
-        openIfSourceIsCurrent(player, source, target, () -> {
-        });
+        transition.attach(task);
     }
 
     /**
@@ -95,22 +105,84 @@ public final class GuiOpenSupport {
         @NotNull Inventory target,
         @NotNull Runnable onOpened
     ) {
+        if (openIfSourceIsCurrent(player, source, target)) {
+            onOpened.run();
+        }
+    }
+
+    /**
+     * 遷移元 GUI が引き続き開かれている場合だけ内部画面遷移を実行します。
+     *
+     * @param player 対象プレイヤー
+     * @param source 遷移元 GUI
+     * @param target 遷移先 GUI
+     * @return 遷移先を実際に表示できた場合は {@code true}
+     */
+    static boolean openIfSourceIsCurrent(
+        @NotNull Player player,
+        @NotNull Inventory source,
+        @NotNull Inventory target
+    ) {
         if (!player.isOnline() || player.getOpenInventory().getTopInventory() != source) {
-            return;
+            return false;
         }
         player.openInventory(target);
         if (player.getOpenInventory().getTopInventory() != target) {
-            return;
+            return false;
         }
-        GuiCloseSoundPolicy.suppressNextCloseSound(player, source);
-        onOpened.run();
+        return true;
     }
 
     private static boolean isPluginGui(@Nullable Inventory inventory) {
-        if (inventory == null) {
-            return false;
+        return GuiSessionTransitionService.isPluginManagedGui(inventory);
+    }
+
+    /** 遅延 GUI 遷移の完了通知を一回だけ実行します。 */
+    private static final class PendingTransition {
+        private final Runnable onOpened;
+        private final Runnable onCancelled;
+        private BukkitTask task;
+        private boolean completed;
+
+        private PendingTransition(@NotNull Runnable onOpened, @NotNull Runnable onCancelled) {
+            this.onOpened = onOpened;
+            this.onCancelled = onCancelled;
         }
-        InventoryHolder holder = inventory.getHolder();
-        return holder != null && holder.getClass().getName().startsWith(PLUGIN_PACKAGE_PREFIX);
+
+        private synchronized void attach(@NotNull BukkitTask task) {
+            this.task = task;
+            if (completed) {
+                task.cancel();
+            }
+        }
+
+        private void opened() {
+            complete(onOpened);
+        }
+
+        private void cancelled() {
+            complete(onCancelled);
+        }
+
+        private void cancel() {
+            BukkitTask scheduledTask;
+            synchronized (this) {
+                scheduledTask = task;
+            }
+            if (scheduledTask != null) {
+                scheduledTask.cancel();
+            }
+            cancelled();
+        }
+
+        private void complete(@NotNull Runnable action) {
+            synchronized (this) {
+                if (completed) {
+                    return;
+                }
+                completed = true;
+            }
+            action.run();
+        }
     }
 }

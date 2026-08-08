@@ -30,8 +30,11 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillSynthesisMaterialEligibility;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillSynthesisMaterialEligibility.MaterialKind;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
 import io.github.maaasu.astralRecord.shared.gui.confirm.ConfirmDialogView;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
+import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionContinuationRequestEvent;
+import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionEndEvent;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -42,6 +45,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -52,7 +56,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -75,7 +78,6 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     private final Map<UUID, SynthesisSelection> synthesisSelections = new ConcurrentHashMap<>();
     /** 選択不可素材の理由を、消費せず合成画面のバリア表示へ渡す一時プレビューです。 */
     private final Map<UUID, SynthesisPreview> synthesisPreviews = new ConcurrentHashMap<>();
-    private final Set<UUID> suppressClose = ConcurrentHashMap.newKeySet();
     private final Map<UUID, UUID> savingSessions = new ConcurrentHashMap<>();
 
     public SkillBindGuiEventHandler(
@@ -122,7 +124,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         // 合成画面からコマンド等で開き直す場合も、表示予約していた素材を先に GUI へ復元する。
         removeSynthesisSelectionAndRestore(player);
         sessions.put(player.getUniqueId(), session);
-        openMain(player, session, 0, true);
+        openMain(player, session, 0);
         return true;
     }
 
@@ -166,30 +168,63 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onInventoryClose(InventoryCloseEvent event) {
+    /**
+     * 保存中または未保存変更のある close を共有 GUI セッション継続として予約します。
+     *
+     * <p>shared lifecycle の close 判定より前に再表示要求だけを登録し、実際の Inventory open は
+     * 次 tick に shared handler が行います。これにより終了音・履歴消去・feature cleanup を
+     * 発生させず、古い予約 task も session token で無効化します。</p>
+     *
+     * @param event Bukkit のインベントリ close イベント
+     */
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onInventoryClose(@NotNull InventoryCloseEvent event) {
         runSafely(() -> {
-            if (!(event.getPlayer() instanceof Player player)) return;
-            SkillBindInventoryHolder holder = gui.holder(event.getInventory());
-            if (holder == null) return;
-            UUID playerId = player.getUniqueId();
-            if (suppressClose.remove(playerId)) return;
-            SkillBindSession session = sessions.get(playerId);
-            if (savingSessions.containsKey(playerId) && session != null) {
-                plugin.getServer().getScheduler().runTask(plugin, () -> {
-                    if (holder.screen() == SkillBindScreen.SYNTHESIS) openSynthesis(player, session, holder.learnedSkillId(), holder.pageIndex(), false);
-                    else openMain(player, session, holder.pageIndex(), false);
-                });
+            if (!(event.getPlayer() instanceof Player player)) {
                 return;
             }
-            if (holder.screen() == SkillBindScreen.MAIN && session != null && session.isDirty()) {
-                plugin.getServer().getScheduler().runTask(plugin, () -> openConfirm(
-                    player, session, ACTION_CLOSE, -1, holder.pageIndex(),
-                    Component.text("変更を破棄して閉じますか", NamedTextColor.YELLOW)
+            SkillBindInventoryHolder holder = gui.holder(event.getInventory());
+            if (holder == null) {
+                return;
+            }
+            UUID playerId = player.getUniqueId();
+            SkillBindSession session = sessions.get(playerId);
+            if (session == null) {
+                return;
+            }
+            if (savingSessions.containsKey(playerId)) {
+                plugin.getServer().getPluginManager().callEvent(new GuiSessionContinuationRequestEvent(
+                    player,
+                    event.getInventory(),
+                    () -> createSavingReopenInventory(player, session, holder)
                 ));
                 return;
             }
+            if (holder.screen() == SkillBindScreen.MAIN && session.isDirty()) {
+                plugin.getServer().getPluginManager().callEvent(new GuiSessionContinuationRequestEvent(
+                    player,
+                    event.getInventory(),
+                    () -> createDiscardCloseConfirmInventory(player, session, holder),
+                    () -> GuiSound.CONFIRM.play(player)
+                ));
+            }
+        }, LogId.E_5601, event.getPlayer().getName(), "skill_manager_close_continuation");
+    }
+
+    /**
+     * スキルマネージャーのセッション終了が確定した場合だけ編集状態を後片付けします。
+     *
+     * @param event 共有基盤が発行した GUI セッション終了イベント
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onGuiSessionEnd(@NotNull GuiSessionEndEvent event) {
+        runSafely(() -> {
+            Player player = event.getPlayer();
+            SkillBindInventoryHolder holder = gui.holder(event.getInventory());
+            if (holder == null) return;
+            UUID playerId = player.getUniqueId();
             sessions.remove(playerId);
+            savingSessions.remove(playerId);
             removeSynthesisSelectionAndRestore(player);
             restorePlayerInventory(player);
         }, LogId.E_5601, event.getPlayer().getName(), "skill_manager_close");
@@ -206,7 +241,6 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         }
         synthesisPreviews.remove(playerId);
         sessions.remove(playerId);
-        suppressClose.remove(playerId);
         savingSessions.remove(playerId);
     }
 
@@ -227,7 +261,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             GuiSound.PAGE.play(player);
-            openMain(player, session, page - 1, true);
+            openMain(player, session, page - 1);
             return;
         }
         if (slot == SkillBindGui.NEXT_PAGE_SLOT) {
@@ -237,7 +271,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             GuiSound.PAGE.play(player);
-            openMain(player, session, page + 1, true);
+            openMain(player, session, page + 1);
             return;
         }
         if (slot == SkillBindGui.BACK_SLOT) {
@@ -309,7 +343,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             }
             removeSynthesisSelectionAndRestore(player);
             GuiSound.SELECT.play(player);
-            openSynthesis(player, session, entry.bindingId(), page, true);
+            openSynthesis(player, session, entry.bindingId(), page);
             return;
         }
         if (!event.isLeftClick()) {
@@ -321,7 +355,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 || !canBindToSelected(session, entry)) {
                 session.clearSelectedBindSlot();
                 GuiSound.DENY.play(player);
-                openMain(player, session, page, true);
+                openMain(player, session, page);
                 return;
             }
             session.setSlot(session.selectedBindType(), session.selectedBindSlotIndex(), entry.bindingId());
@@ -366,7 +400,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         if (session.isSelectedBindSlot(type, index)) session.clearSelectedBindSlot();
         else session.selectBindSlot(type, index);
         GuiSound.SELECT.play(player);
-        openMain(player, session, page, true);
+        openMain(player, session, page);
     }
 
     private void handleSynthesisClick(
@@ -379,7 +413,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         if (astPlayer == null) return;
         SkillManagerEntry entry = entry(astPlayer, holder.learnedSkillId());
         if (entry == null) {
-            openMain(player, session, holder.pageIndex(), true);
+            openMain(player, session, holder.pageIndex());
             return;
         }
         if (event.getClickedInventory() instanceof PlayerInventory) {
@@ -390,7 +424,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 removeSynthesisSelectionAndRestore(player);
                 if (item != null) {
                     synthesisPreviews.put(player.getUniqueId(), new SynthesisPreview(item, kind));
-                    openSynthesis(player, session, entry.bindingId(), holder.pageIndex(), true);
+                    openSynthesis(player, session, entry.bindingId(), holder.pageIndex());
                 }
                 GuiSound.DENY.play(player);
                 sendMaterialFailure(player, kind);
@@ -406,14 +440,14 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             );
             inventoryService.hideOwnedEntryFromGui(astPlayer, inventoryEntry.getInventoryEntryId());
             GuiSound.SELECT.play(player);
-            openSynthesis(player, session, entry.bindingId(), holder.pageIndex(), true);
+            openSynthesis(player, session, entry.bindingId(), holder.pageIndex());
             return;
         }
         if (event.getRawSlot() == SkillBindGui.BACK_SLOT) {
             removeSynthesisSelectionAndRestore(player);
             synthesisPreviews.remove(player.getUniqueId());
             GuiSound.SELECT.play(player);
-            openMain(player, session, holder.pageIndex(), true);
+            openMain(player, session, holder.pageIndex());
             return;
         }
         if (event.getRawSlot() == SkillBindGui.SYNTHESIS_MATERIAL_SLOT) {
@@ -425,7 +459,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             }
             restorePlayerInventory(player);
             GuiSound.SELECT.play(player);
-            openSynthesis(player, session, entry.bindingId(), holder.pageIndex(), true);
+            openSynthesis(player, session, entry.bindingId(), holder.pageIndex());
             return;
         }
         if (event.getRawSlot() != SkillBindGui.SYNTHESIS_RESULT_SLOT) return;
@@ -441,7 +475,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             synthesisPreviews.put(player.getUniqueId(), new SynthesisPreview(selection.item(), kind));
             GuiSound.DENY.play(player);
             sendMaterialFailure(player, kind);
-            openSynthesis(player, session, entry.bindingId(), holder.pageIndex(), true);
+            openSynthesis(player, session, entry.bindingId(), holder.pageIndex());
             return;
         }
         UUID playerId = player.getUniqueId();
@@ -493,9 +527,9 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         SkillManagerEntry updatedEntry = entry(astPlayer, updated.getLearnedSkillId().toString());
         GuiSound.UPGRADE.play(player);
         if (updatedEntry != null && canOpenSynthesis(updatedEntry)) {
-            openSynthesis(player, session, updatedEntry.bindingId(), returnPage, true);
+            openSynthesis(player, session, updatedEntry.bindingId(), returnPage);
         } else {
-            openMain(player, session, returnPage, true);
+            openMain(player, session, returnPage);
         }
     }
 
@@ -513,7 +547,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         synthesisPreviews.remove(playerId);
         GuiSound.DENY.play(player);
         PlayerMessageService.getInstance().send(player, mutationFailureMessage(error));
-        openSynthesis(player, session, learnedSkillId, returnPage, true);
+        openSynthesis(player, session, learnedSkillId, returnPage);
     }
 
     private boolean canOpenSynthesis(SkillManagerEntry entry) {
@@ -575,7 +609,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5808, presetIndex);
         }
         GuiSound.TOGGLE.play(player);
-        openMain(player, session, page, true);
+        openMain(player, session, page);
     }
 
     private void handleConfirmClick(Player player, SkillBindInventoryHolder holder, int slot) {
@@ -586,7 +620,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         }
         if (slot == ConfirmDialogView.CANCEL_SLOT) {
             GuiSound.SELECT.play(player);
-            openMain(player, session, holder.pageIndex(), true);
+            openMain(player, session, holder.pageIndex());
             return;
         }
         if (slot != ConfirmDialogView.CONFIRM_SLOT) return;
@@ -595,7 +629,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             case ACTION_SWITCH_PRESET -> switchPreset(player, session, holder.pendingPresetIndex(), holder.pageIndex());
             case ACTION_BACK -> returnToPrevious(player);
             case ACTION_CLOSE -> restoreAndClose(player);
-            default -> openMain(player, session, holder.pageIndex(), true);
+            default -> openMain(player, session, holder.pageIndex());
         }
     }
 
@@ -605,7 +639,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         if (restoreInvalidPassiveOverflowChanges(astPlayer, session)) {
             session.clearSelectedBindSlot();
             GuiSound.DENY.play(player);
-            openMain(player, session, page, true);
+            openMain(player, session, page);
             return;
         }
         UUID accountId = astPlayer.getAccount().getUuid();
@@ -630,10 +664,12 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 session.replaceSelectedPreset(saved);
                 AstPlayer current = AstPlayerCache.get(player);
                 if (current != null) passiveSkillService.reconcileNow(current);
-                openMain(player, session, page, true);
+                if (!isSkillManagerVisible(player)) return;
+                openMain(player, session, page);
             },
             () -> {
                 if (!savingSessions.remove(playerId, operationToken) || sessions.get(playerId) != session) return;
+                if (!isSkillManagerVisible(player)) return;
                 GuiSound.DENY.play(player);
                 PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5849);
             }
@@ -692,15 +728,20 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             : new SkillManagerEntry(learned, resolved.definition(), permitted, resolved);
     }
 
-    private void openMain(Player player, SkillBindSession session, int page, boolean suppressPreviousClose) {
+    private void openMain(Player player, SkillBindSession session, int page) {
+        Inventory inventory = createMainInventory(player, session, page);
+        if (inventory != null) {
+            GuiOpenSupport.open(player, inventory);
+        }
+    }
+
+    private @Nullable Inventory createMainInventory(Player player, SkillBindSession session, int page) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) return;
-        if (suppressPreviousClose) suppressCloseIfSwitching(player);
+        if (astPlayer == null) return null;
         List<SkillManagerEntry> visible = visibleEntries(astPlayer, session);
         Map<String, SkillManagerEntry> allById = new LinkedHashMap<>();
         for (SkillManagerEntry entry : allEntries(astPlayer)) allById.put(entry.bindingId(), entry);
-        gui.open(
-            player,
+        return gui.createMainInventory(
             session,
             visible,
             allById,
@@ -713,27 +754,35 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         Player player,
         SkillBindSession session,
         String learnedSkillId,
-        int returnPage,
-        boolean suppressPreviousClose
+        int returnPage
+    ) {
+        Inventory inventory = createSynthesisInventory(player, session, learnedSkillId, returnPage);
+        if (inventory != null) {
+            GuiOpenSupport.open(player, inventory);
+        }
+    }
+
+    private @Nullable Inventory createSynthesisInventory(
+        Player player,
+        SkillBindSession session,
+        String learnedSkillId,
+        int returnPage
     ) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) return;
+        if (astPlayer == null) return null;
         SkillManagerEntry entry = entry(astPlayer, learnedSkillId);
         if (entry == null) {
             removeSynthesisSelectionAndRestore(player);
             synthesisPreviews.remove(player.getUniqueId());
-            openMain(player, session, returnPage, suppressPreviousClose);
-            return;
+            return createMainInventory(player, session, returnPage);
         }
-        if (suppressPreviousClose) suppressCloseIfSwitching(player);
         SynthesisSelection selection = synthesisSelections.get(player.getUniqueId());
         SynthesisPreview preview = selection == null ? synthesisPreviews.get(player.getUniqueId()) : null;
         ItemModel material = selection != null ? selection.item() : preview == null ? null : preview.item();
         MaterialKind materialKind = selection != null
             ? SkillSynthesisMaterialEligibility.resolve(entry, selection.item())
             : preview == null ? MaterialKind.NONE : preview.kind();
-        gui.openSynthesis(
-            player,
+        return gui.createSynthesisInventory(
             session.selectedPresetIndex(),
             returnPage,
             entry,
@@ -741,6 +790,41 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             materialKind,
             selection != null
         );
+    }
+
+    private @Nullable Inventory createSavingReopenInventory(
+        @NotNull Player player,
+        @NotNull SkillBindSession session,
+        @NotNull SkillBindInventoryHolder closedHolder
+    ) {
+        if (sessions.get(player.getUniqueId()) != session) {
+            return null;
+        }
+        if (closedHolder.screen() == SkillBindScreen.SYNTHESIS) {
+            return createSynthesisInventory(player, session, closedHolder.learnedSkillId(), closedHolder.pageIndex());
+        }
+        return createMainInventory(player, session, closedHolder.pageIndex());
+    }
+
+    private @Nullable Inventory createDiscardCloseConfirmInventory(
+        @NotNull Player player,
+        @NotNull SkillBindSession session,
+        @NotNull SkillBindInventoryHolder closedHolder
+    ) {
+        if (sessions.get(player.getUniqueId()) != session || !session.isDirty()) {
+            return null;
+        }
+        return gui.createConfirmInventory(
+            session.selectedPresetIndex(),
+            closedHolder.pageIndex(),
+            ACTION_CLOSE,
+            -1,
+            Component.text("変更を破棄して閉じますか", NamedTextColor.YELLOW)
+        );
+    }
+
+    private boolean isSkillManagerVisible(@NotNull Player player) {
+        return gui.isInventory(player.getOpenInventory().getTopInventory());
     }
 
     private void openConfirm(
@@ -751,33 +835,23 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         int page,
         Component message
     ) {
-        suppressCloseIfSwitching(player);
         gui.openConfirm(player, session.selectedPresetIndex(), page, action, pending, message);
         GuiSound.CONFIRM.play(player);
     }
 
-    private void suppressCloseIfSwitching(Player player) {
-        if (gui.isInventory(player.getOpenInventory().getTopInventory())) suppressClose.add(player.getUniqueId());
-    }
-
     private void returnToPrevious(Player player) {
-        sessions.remove(player.getUniqueId());
-        removeSynthesisSelectionAndRestore(player);
-        suppressClose.add(player.getUniqueId());
-        if (plugin.getGuiNavigationService().openPrevious(player)) {
+        if (plugin.getGuiNavigationService().openPrevious(player, () -> {
+            sessions.remove(player.getUniqueId());
+            removeSynthesisSelectionAndRestore(player);
+        })) {
             GuiSound.SELECT.play(player);
             return;
         }
         player.closeInventory();
-        GuiSound.CLOSE.play(player);
     }
 
     private void restoreAndClose(Player player) {
-        sessions.remove(player.getUniqueId());
-        removeSynthesisSelectionAndRestore(player);
-        suppressClose.add(player.getUniqueId());
         player.closeInventory();
-        GuiSound.CLOSE.play(player);
     }
 
     private void restorePlayerInventory(Player player) {

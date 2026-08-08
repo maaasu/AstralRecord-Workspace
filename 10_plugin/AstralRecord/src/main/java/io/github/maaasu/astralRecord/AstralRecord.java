@@ -44,6 +44,8 @@ import io.github.maaasu.astralRecord.feature.guide.service.GuideReminderTask;
 import io.github.maaasu.astralRecord.shared.gui.event.GuiClickCooldownEventHandler;
 import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationEventHandler;
 import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationService;
+import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionTransitionEventHandler;
+import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionTransitionService;
 import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWaitService;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.item.event.ItemInteractionBlockEventHandler;
@@ -291,6 +293,7 @@ public final class AstralRecord extends JavaPlugin {
     private MenuView menuView;
     private MenuOpenEventHandler menuOpenEventHandler;
     private MenuGuiTransitionService menuGuiTransitionService;
+    private GuiSessionTransitionService guiSessionTransitionService;
     private GuiNavigationService guiNavigationService;
     private TrashService trashService;
     private SellService sellService;
@@ -899,6 +902,7 @@ public final class AstralRecord extends JavaPlugin {
         guideReminderTask = new GuideReminderTask(playerMessageService);
 
         // menu
+        guiSessionTransitionService = new GuiSessionTransitionService();
         guiNavigationService = new GuiNavigationService(this);
         playerGuiRenderContextFactory = new PlayerGuiRenderContextFactory(
             currencyService,
@@ -1134,6 +1138,10 @@ public final class AstralRecord extends JavaPlugin {
     private void registerPluginFeatures() {
         eventManager.registerHandler(
             new GuiClickCooldownEventHandler(inventoryService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new GuiSessionTransitionEventHandler(this, guiSessionTransitionService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

@@ -2,12 +2,12 @@ package io.github.maaasu.astralRecord.shared.gui.navigation;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionEndEvent;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.jetbrains.annotations.NotNull;
 
@@ -35,12 +35,15 @@ public final class GuiNavigationEventHandler extends AbstractEventHandler {
         }, LogId.E_5601, event.getPlayer().getName(), "gui_navigation_open");
     }
 
+    /**
+     * 終了が確定した GUI セッションだけの戻る履歴を破棄します。
+     *
+     * @param event 共有基盤が発行した GUI セッション終了イベント
+     */
     @EventHandler(priority = EventPriority.MONITOR)
-    public void onInventoryClose(@NotNull InventoryCloseEvent event) {
+    public void onGuiSessionEnd(@NotNull GuiSessionEndEvent event) {
         runSafely(() -> {
-            if (event.getPlayer() instanceof Player player) {
-                navigationService.scheduleSessionCloseCheck(player, event.getInventory());
-            }
+            navigationService.completeSessionClose(event.getPlayer(), event.getInventory());
         }, LogId.E_5601, event.getPlayer().getName(), "gui_navigation_close");
     }
 
@@ -57,7 +60,6 @@ public final class GuiNavigationEventHandler extends AbstractEventHandler {
             if (navigationService.isCloseNavigation(player, event.getView().getTopInventory())) {
                 event.setCancelled(true);
                 player.closeInventory();
-                GuiSound.CLOSE.play(player);
                 return;
             }
             if (!navigationService.isDirectBackClick(event.getView().getTopInventory(), event.getRawSlot())) {

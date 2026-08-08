@@ -7,7 +7,6 @@ import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.gui.PlayerSettingGui;
-import io.github.maaasu.astralRecord.shared.gui.sound.GuiCloseSoundPolicy;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -22,7 +21,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * メニュー系 GUI の切替時に必要なインベントリ復元と効果音抑制を管理するサービスです。
+ * メニュー系 GUI の切替時に必要なインベントリ復元を管理するサービスです。
  */
 public final class MenuGuiTransitionService {
     private final AstralRecord plugin;
@@ -107,23 +106,17 @@ public final class MenuGuiTransitionService {
     }
 
     /**
-     * GUI クローズ時の効果音抑制を消費します。
+     * 旧呼び出し元との互換用です。
+     *
+     * <p>close 音の可否は共有 GUI セッション基盤が終了確定時に判定するため、
+     * このメソッドは状態を保持しません。</p>
      *
      * @param player 対象プレイヤー
-     * @param closingInventory 閉じられた GUI inventory
-     * @return close 音を再生する場合は true
+     * @deprecated GUI 遷移時の音抑制は不要です。
      */
-    public boolean shouldPlayCloseSoundOnClose(@NotNull Player player, @NotNull Inventory closingInventory) {
-        return GuiCloseSoundPolicy.shouldPlayCloseSound(player, closingInventory);
-    }
-
-    /**
-     * 次回 GUI クローズ時の効果音を抑制します。
-     *
-     * @param player 対象プレイヤー
-     */
+    @Deprecated(forRemoval = false)
     public static void suppressNextCloseSound(@NotNull Player player) {
-        GuiCloseSoundPolicy.suppressNextCloseSound(player);
+        // 共有 GUI セッション基盤へ移行済み。既存呼び出しの互換性だけを保つ。
     }
 
     /**
@@ -147,7 +140,6 @@ public final class MenuGuiTransitionService {
      */
     public void switchGuiWithoutInventoryReload(@NotNull Player player, @NotNull Runnable opener) {
         suppressPlayerInventoryRestoreForGuiSwitch(player);
-        suppressCloseSoundForGuiSwitch(player);
         opener.run();
     }
 
@@ -159,7 +151,6 @@ public final class MenuGuiTransitionService {
      */
     public void switchGuiWithInventoryRestore(@NotNull Player player, @NotNull Runnable opener) {
         suppressPlayerInventoryRestoreForGuiSwitch(player);
-        suppressCloseSoundForGuiSwitch(player);
         opener.run();
         restorePlayerInventory(player);
     }
@@ -212,7 +203,4 @@ public final class MenuGuiTransitionService {
         }
     }
 
-    private void suppressCloseSoundForGuiSwitch(@NotNull Player player) {
-        suppressNextCloseSound(player);
-    }
 }

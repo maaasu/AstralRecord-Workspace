@@ -3,7 +3,6 @@ package io.github.maaasu.astralRecord.shared.gui.navigation;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
-import io.github.maaasu.astralRecord.shared.gui.sound.GuiCloseSoundPolicy;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
 import org.bukkit.entity.Player;
@@ -50,27 +49,19 @@ public final class GuiNavigationService {
     }
 
     /**
-     * GUI close 後に別の管理 GUI が開かれなければ、セッション履歴を破棄します。
+     * 共有 GUI セッションの終了確定後に、戻る履歴を破棄します。
      *
      * @param player 対象プレイヤー
-     * @param closedInventory 閉じられた GUI
+     * @param closedInventory 終了した GUI inventory
      */
-    public void scheduleSessionCloseCheck(@NotNull Player player, @NotNull Inventory closedInventory) {
+    public void completeSessionClose(@NotNull Player player, @NotNull Inventory closedInventory) {
         if (navigationHolder(closedInventory) == null) {
             return;
         }
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
-            AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (astPlayer == null) {
-                return;
-            }
-            Inventory openedInventory = player.getOpenInventory().getTopInventory();
-            GuiNavigationState state = astPlayer.getGuiNavigationState();
-            if (navigationHolder(openedInventory) != null && state.getCurrentGui() == openedInventory) {
-                return;
-            }
-            state.clear();
-        });
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer != null) {
+            astPlayer.getGuiNavigationState().clear();
+        }
     }
 
     /**
@@ -80,16 +71,40 @@ public final class GuiNavigationService {
      * @return 戻り先を開けた場合は {@code true}
      */
     public boolean openPrevious(@NotNull Player player) {
+        return openPrevious(player, () -> {
+        });
+    }
+
+    /**
+     * 一つ前の GUI を開き、表示に成功した場合だけ指定処理を実行します。
+     *
+     * <p>GUI のセッション終了処理は共有の {@code GuiSessionEndEvent} が担当します。
+     * このコールバックは、戻り先へ実際に遷移できたときだけ、遷移元に属する状態を
+     * 片付ける用途に限定します。</p>
+     *
+     * @param player 対象プレイヤー
+     * @param onOpened 戻り先を開けた場合に実行する処理
+     * @return 戻り先を開く予約を開始できた場合は {@code true}
+     */
+    public boolean openPrevious(@NotNull Player player, @NotNull Runnable onOpened) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) {
             return false;
         }
-        Inventory previous = astPlayer.getGuiNavigationState().beginBack();
-        if (previous == null) {
+        GuiNavigationState state = astPlayer.getGuiNavigationState();
+        GuiNavigationState.BackReservation reservation = state.beginBack();
+        if (reservation == null) {
             return false;
         }
-        GuiCloseSoundPolicy.suppressNextCloseSound(player);
-        GuiOpenSupport.open(player, previous);
+        GuiOpenSupport.open(
+            player,
+            reservation.inventory(),
+            () -> {
+                state.completeBack(reservation);
+                onOpened.run();
+            },
+            () -> state.rollbackBack(reservation)
+        );
         return true;
     }
 
@@ -101,7 +116,7 @@ public final class GuiNavigationService {
      */
     public boolean hasPrevious(@NotNull Player player) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        return astPlayer != null && astPlayer.getGuiNavigationState().getPreviousGui() != null;
+        return astPlayer != null && astPlayer.getGuiNavigationState().hasPreviousGui();
     }
 
     /**
