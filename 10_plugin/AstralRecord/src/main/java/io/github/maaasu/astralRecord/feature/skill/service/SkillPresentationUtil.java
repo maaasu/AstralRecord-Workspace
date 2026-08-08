@@ -35,9 +35,6 @@ public final class SkillPresentationUtil {
     private static final Pattern SKILL_PLACEHOLDER = Pattern.compile(
         "\\{skill\\.([A-Za-z0-9_.-]+)(?:\\[(\\d+)\\])?(?::(integer|decimal|percent|seconds|list))?\\}"
     );
-    private static final Pattern LEGACY_ATTACK_RATIO = Pattern.compile(
-        "((?:近接|間接|魔法)攻撃力)([0-9]+(?:\\.[0-9]+)?)%"
-    );
     private SkillPresentationUtil() {
     }
 
@@ -213,7 +210,7 @@ public final class SkillPresentationUtil {
             renderResolvedLineComponent(definition.getDescription(), values, fallbackColor)
         );
         for (String line : definition.getLore()) {
-            String rendered = renderResolvedLine(line, values);
+            String rendered = renderPlaceholders(line, values);
             String plain = ColorCodeUtil.toPlainText(rendered, "");
             if (plain.contains("消費") && plain.contains("クールダウン")) {
                 continue;
@@ -229,40 +226,7 @@ public final class SkillPresentationUtil {
         @Nullable TextColor fallbackColor
     ) {
         TokenizedText tokenized = tokenizePlaceholders(text, values);
-        String adjusted = applyLegacyAttackRatio(tokenized.template(), values);
-        return renderTokenizedComponent(new TokenizedText(adjusted, tokenized.replacements()), fallbackColor);
-    }
-
-    private static @NotNull String renderResolvedLine(
-        @Nullable String text,
-        @NotNull Map<String, Object> values
-    ) {
-        return applyLegacyAttackRatio(renderPlaceholders(text, values), values);
-    }
-
-    private static @NotNull String applyLegacyAttackRatio(
-        @NotNull String rendered,
-        @NotNull Map<String, Object> values
-    ) {
-        if (values.containsKey("damageRatio") || values.containsKey("damageRatios")) {
-            return rendered;
-        }
-        Object rawIncrease = values.get("skillDamageIncrease");
-        if (!(rawIncrease instanceof Number number) || number.doubleValue() == 0.0D) {
-            return rendered;
-        }
-        double multiplier = 1.0D + number.doubleValue() / 100.0D;
-        Matcher matcher = LEGACY_ATTACK_RATIO.matcher(rendered);
-        StringBuffer result = new StringBuffer();
-        while (matcher.find()) {
-            double ratio = Double.parseDouble(matcher.group(2)) * multiplier;
-            matcher.appendReplacement(
-                result,
-                Matcher.quoteReplacement(matcher.group(1) + formatScalar(ratio, "decimal") + "%")
-            );
-        }
-        matcher.appendTail(result);
-        return result.toString();
+        return renderTokenizedComponent(tokenized, fallbackColor);
     }
 
     /**

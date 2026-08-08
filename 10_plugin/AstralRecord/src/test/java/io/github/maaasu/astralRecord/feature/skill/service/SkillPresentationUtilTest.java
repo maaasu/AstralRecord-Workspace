@@ -134,10 +134,10 @@ class SkillPresentationUtilTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_1-モデル定義.md
      * 章・見出し: # 13_1-モデル定義 > ## 3. 解決済みスキル
-     * 検証契約: 既存の固定説明文も、攻撃力倍率だけは解決済みスキル補正を反映する。
+     * 検証契約: プレースホルダーを使わない固定説明文は、解決済みスキル補正で書き換えない。
      */
     @Test
-    void legacyAttackRatioReflectsResolvedSkillDamageIncrease() {
+    void fixedAttackRatioRemainsUnchangedForResolvedSkillDamageIncrease() {
         SkillDefinition definition = definition(List.of(), List.of("&7近接攻撃力100%のダメージ。"));
         LearnedSkillInstance learned = new LearnedSkillInstance(
             UUID.randomUUID(), UUID.randomUUID(), definition.getId(), 2,
@@ -151,7 +151,7 @@ class SkillPresentationUtilTest {
             .map(PlainTextComponentSerializer.plainText()::serialize)
             .toList();
 
-        assertEquals(List.of("近接攻撃力105%のダメージ。"), rendered);
+        assertEquals(List.of("近接攻撃力100%のダメージ。"), rendered);
     }
 
     private static SkillDefinition definition(List<String> tags, List<String> lore) {
