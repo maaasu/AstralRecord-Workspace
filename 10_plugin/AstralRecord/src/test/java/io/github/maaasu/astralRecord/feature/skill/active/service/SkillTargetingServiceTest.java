@@ -1,11 +1,11 @@
 package io.github.maaasu.astralRecord.feature.skill.active.service;
 
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
-import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -112,12 +112,11 @@ class SkillTargetingServiceTest {
         Player player = mock(Player.class);
         MobService mobService = mock(MobService.class);
         MobInstance mob = mock(MobInstance.class);
-        MobTemplate template = mock(MobTemplate.class);
+        MobTemplate template = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D).template();
         when(player.getWorld()).thenReturn(world);
         when(mobService.getInstances()).thenReturn(List.of(mob));
         when(mob.state()).thenReturn(MobState.IDLE);
         when(mob.template()).thenReturn(template);
-        when(template.category()).thenReturn(MobCategory.ENEMY);
         when(mob.instanceId()).thenReturn(UUID.randomUUID());
         when(mob.bukkitEntityId()).thenReturn(null);
 
