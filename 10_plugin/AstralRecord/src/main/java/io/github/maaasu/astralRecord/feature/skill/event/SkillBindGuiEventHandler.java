@@ -225,7 +225,8 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             UUID playerId = player.getUniqueId();
             sessions.remove(playerId);
             savingSessions.remove(playerId);
-            removeSynthesisSelectionAndRestore(player);
+            synthesisPreviews.remove(playerId);
+            removeSynthesisSelection(player);
             restorePlayerInventory(player);
         }, LogId.E_5601, event.getPlayer().getName(), "skill_manager_close");
     }

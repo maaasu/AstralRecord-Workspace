@@ -395,7 +395,7 @@ class SkillBindGuiEventHandlerTest {
 
         assertFalse(mapValue(handler, "sessions").containsKey(playerId));
         assertFalse(mapValue(handler, "synthesisSelections").containsKey(playerId));
-        verify(inventoryService).clearHiddenEntriesFromGui(accountId);
+        verify(inventoryService).restoreHiddenEntryToGui(eq(astPlayer), any());
         verify(inventoryService).applyInventoriesToGui(astPlayer);
     }
 
@@ -474,7 +474,7 @@ class SkillBindGuiEventHandlerTest {
         }
 
         ArgumentCaptor<Integer> page = ArgumentCaptor.forClass(Integer.class);
-        verify(gui).open(any(), any(), any(), any(), anyInt(), page.capture());
+        verify(gui).createMainInventory(any(), any(), any(), anyInt(), page.capture());
         assertEquals(1, page.getValue());
     }
 
