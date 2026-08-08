@@ -2,8 +2,8 @@ package io.github.maaasu.astralRecord.feature.skill.active.service;
 
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
-import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
@@ -37,9 +37,13 @@ public final class SkillEffectService {
 
     /** 指定地点の地面ブロックを使った粉塵を表示します。 */
     public void blockDust(@NotNull Location location, @NotNull BlockData blockData) {
+        var blockParticle = SharedParticleDefinitions.resolveParticle("BLOCK");
+        if (blockParticle == null) {
+            return;
+        }
         particleDisplayService.spawnForNearbyViewers(
                 location,
-                Particle.BLOCK,
+                blockParticle,
                 18,
                 0.42D,
                 0.12D,
