@@ -26,7 +26,7 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 |:--|:--|:--|:--|
 | `adventurer` | 近接・間接・魔法の基礎操作を試す見習い | `ENERGY` / `MANA` | 扇形、単体飛翔体、単体対象 |
 
-現行定義は冒険者の `adventurer_astral_edge`、`adventurer_smash`、`adventurer_quick_shot` の3件です。専門職の skill は未定・未実装であり、クラスの `usableSkills` は使用許可だけを与え、習得済み個体の作成はジェム消費に限定します。
+現行定義は冒険者の `adventurer_astral_edge`、`adventurer_blast_arrow`、`adventurer_smash`、`adventurer_quick_shot` の4件です。専門職の skill は未定・未実装であり、クラスの `usableSkills` は使用許可だけを与え、習得済み個体の作成はジェム消費に限定します。
 
 ## 条件付きリソース回復パッシブ
 
