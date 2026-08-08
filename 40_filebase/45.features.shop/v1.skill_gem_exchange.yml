@@ -62,22 +62,10 @@ items:
     category: skill_gem
     amount: 1
     page: 1
-    slot: 4
+    slot: 27
     requiredItems:
       - itemId:
           ref: item:skill_gem_raw
-        category: material
-        amount: 1
-  - id: meditation_from_beginner_raw
-    itemId:
-      ref: item:00_skill_gem_adventurer_meditation
-    category: skill_gem
-    amount: 3
-    page: 1
-    slot: 5
-    requiredItems:
-      - itemId:
-          ref: item:skill_gem_raw_beginner
         category: material
         amount: 1
   - id: blast_arrow_from_raw
@@ -86,7 +74,7 @@ items:
     category: skill_gem
     amount: 1
     page: 1
-    slot: 6
+    slot: 4
     requiredItems:
       - itemId:
           ref: item:skill_gem_raw
@@ -98,7 +86,7 @@ items:
     category: skill_gem
     amount: 3
     page: 1
-    slot: 7
+    slot: 5
     requiredItems:
       - itemId:
           ref: item:skill_gem_raw_beginner
@@ -110,7 +98,7 @@ items:
     category: skill_gem
     amount: 1
     page: 1
-    slot: 8
+    slot: 6
     requiredItems:
       - itemId:
           ref: item:skill_gem_raw
@@ -122,7 +110,7 @@ items:
     category: skill_gem
     amount: 3
     page: 1
-    slot: 9
+    slot: 7
     requiredItems:
       - itemId:
           ref: item:skill_gem_raw_beginner
