@@ -2,7 +2,6 @@ package io.github.maaasu.astralRecord.feature.quest.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
-import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -94,13 +93,11 @@ public final class QuestGuiEventHandler extends AbstractEventHandler {
         }
         int pageIndex = questGui.getPageIndex(event.getView().getTopInventory());
         if (event.getRawSlot() == QuestGui.PREVIOUS_PAGE_SLOT && questGui.hasPreviousPage(pageIndex)) {
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             questGui.openBoard(player, astPlayer, board, questGui.getNpcId(event.getView().getTopInventory()), pageIndex - 1);
             GuiSound.PAGE.play(player);
             return;
         }
         if (event.getRawSlot() == QuestGui.NEXT_PAGE_SLOT && questGui.hasNextPage(board, pageIndex)) {
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             questGui.openBoard(player, astPlayer, board, questGui.getNpcId(event.getView().getTopInventory()), pageIndex + 1);
             GuiSound.PAGE.play(player);
             return;
@@ -117,7 +114,6 @@ public final class QuestGuiEventHandler extends AbstractEventHandler {
             case READY_TO_TURN_IN -> questService.turnIn(astPlayer, quest, questGui.getNpcId(event.getView().getTopInventory()));
             default -> false;
         };
-        MenuOpenEventHandler.suppressNextCloseSound(player);
         questGui.openBoard(player, astPlayer, board, questGui.getNpcId(event.getView().getTopInventory()), pageIndex);
         if (!changed) {
             GuiSound.DENY.play(player);
@@ -141,7 +137,6 @@ public final class QuestGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        MenuOpenEventHandler.suppressNextCloseSound(player);
         questGui.openList(player, astPlayer);
         GuiSound.SELECT.play(player);
     }

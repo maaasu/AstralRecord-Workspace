@@ -5,7 +5,6 @@ import io.github.maaasu.astralRecord.feature.adventurerecord.gui.AdventureRecord
 import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureRecordListType;
 import io.github.maaasu.astralRecord.feature.adventurerecord.service.AdventureRecordService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
-import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -137,7 +136,6 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
         }
         if (rawSlot == AdventureRecordGui.MOB_SEARCH_SLOT) {
             GuiSound.SELECT.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             gui.openSearch(player, List.of());
             return;
         }
@@ -166,7 +164,6 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
         int itemCount = entries.size();
         if (rawSlot == PagedGuiView.PREVIOUS_SLOT && gui.hasPreviousPage(pageIndex)) {
             GuiSound.PAGE.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             gui.openMobList(
                 player,
                 listType,
@@ -179,7 +176,6 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
         }
         if (rawSlot == PagedGuiView.NEXT_SLOT && gui.hasNextPage(pageIndex, itemCount)) {
             GuiSound.PAGE.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             gui.openMobList(
                 player,
                 listType,
@@ -206,7 +202,6 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
         }
         if (gui.isSearchItemSlot(rawSlot)) {
             GuiSound.SELECT.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             gui.openSearch(player, gui.withoutSearchSlot(inventory, rawSlot));
             return;
         }
@@ -241,7 +236,6 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
         }
         selected.add(clicked.clone());
         GuiSound.SELECT.play(player);
-        MenuOpenEventHandler.suppressNextCloseSound(player);
         gui.openSearch(player, selected);
         return true;
     }
@@ -276,7 +270,6 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
                     || !current.getAccount().getUuid().equals(accountId)) {
                     return;
                 }
-                MenuOpenEventHandler.suppressNextCloseSound(online);
                 gui.openMobList(
                     online,
                     listType,

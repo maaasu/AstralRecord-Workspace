@@ -106,20 +106,6 @@ public final class MenuGuiTransitionService {
     }
 
     /**
-     * 旧呼び出し元との互換用です。
-     *
-     * <p>close 音の可否は共有 GUI セッション基盤が終了確定時に判定するため、
-     * このメソッドは状態を保持しません。</p>
-     *
-     * @param player 対象プレイヤー
-     * @deprecated GUI 遷移時の音抑制は不要です。
-     */
-    @Deprecated(forRemoval = false)
-    public static void suppressNextCloseSound(@NotNull Player player) {
-        // 共有 GUI セッション基盤へ移行済み。既存呼び出しの互換性だけを保つ。
-    }
-
-    /**
      * プレイヤー GUI 表示を現在の仮想インベントリ状態へ復元します。
      *
      * @param player 対象プレイヤー

@@ -4,7 +4,6 @@ import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.currency.model.GoldDenomination;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.currency.view.CurrencyExchangeGuiView;
-import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -45,7 +44,6 @@ public final class CurrencyExchangeGuiEventHandler extends AbstractEventHandler 
             GuiSound.DENY.play(player);
             return;
         }
-        MenuGuiTransitionService.suppressNextCloseSound(player);
         view.open(player, astPlayer.getAccount().getUuid(), currencyService);
         GuiSound.OPEN.play(player);
     }
@@ -112,7 +110,6 @@ public final class CurrencyExchangeGuiEventHandler extends AbstractEventHandler 
             return;
         }
         GuiSound.SUCCESS.play(player);
-        MenuGuiTransitionService.suppressNextCloseSound(player);
         view.open(player, astPlayer.getAccount().getUuid(), currencyService);
     }
 }

@@ -3,7 +3,6 @@ package io.github.maaasu.astralRecord.feature.loginbonus.event;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.loginbonus.service.LoginBonusService;
 import io.github.maaasu.astralRecord.feature.loginbonus.view.LoginBonusGui;
-import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
@@ -68,13 +67,11 @@ public final class LoginBonusGuiEventHandler extends AbstractEventHandler {
         }
         if (event.getRawSlot() == LoginBonusGui.PREVIOUS_MONTH_SLOT) {
             GuiSound.PAGE.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             loginBonusService.open(player, displayMonth.minusMonths(1));
             return;
         }
         if (event.getRawSlot() == LoginBonusGui.NEXT_MONTH_SLOT) {
             GuiSound.PAGE.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             loginBonusService.open(player, displayMonth.plusMonths(1));
             return;
         }
@@ -89,7 +86,6 @@ public final class LoginBonusGuiEventHandler extends AbstractEventHandler {
             }
             if (success) {
                 GuiSound.LOGIN_BONUS_REWARD.play(player);
-                MenuOpenEventHandler.suppressNextCloseSound(player);
                 loginBonusService.open(player, displayMonth);
                 return;
             }

@@ -4,7 +4,6 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
-import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.model.PartyActionResult;
@@ -204,7 +203,6 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             GuiSound.SELECT.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             playerDetailGui.openStatusDetail(
                 player,
                 target,
@@ -228,7 +226,6 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             GuiSound.SELECT.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             plugin.getMenuView().openBuff(player, targetId, statusService.getActiveBuffs(target));
             return;
         }
@@ -241,7 +238,6 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             GuiSound.SELECT.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             playerDetailGui.openSkillInfoSelection(player, target);
             return;
         }
@@ -288,7 +284,6 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             GuiSound.SELECT.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             playerDetailGui.openSkillList(player, target, type, 0);
             return;
         }
@@ -310,7 +305,6 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             GuiSound.PAGE.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             playerDetailGui.openSkillList(player, target, type, page - 1);
             return;
         }
@@ -320,7 +314,6 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             GuiSound.PAGE.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             playerDetailGui.openSkillList(player, target, type, page + 1);
             return;
         }
@@ -358,7 +351,6 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             GuiSound.PAGE.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             playerDetailGui.openStatusDetail(player, target, category, snapshot, nextPage);
             return;
         }
@@ -397,7 +389,6 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         } else {
             GuiSound.DENY.play(player);
         }
-        MenuOpenEventHandler.suppressNextCloseSound(player);
         openInviteList(player, pageIndex);
     }
 
@@ -411,12 +402,10 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         if (target == null) {
             PlayerMessageService.getInstance().send(viewer, PlayerMsgId.P_5603, playerName(targetId));
             GuiSound.DENY.play(viewer);
-            MenuOpenEventHandler.suppressNextCloseSound(viewer);
             openInfoList(viewer, pageIndex);
             return;
         }
         GuiSound.SELECT.play(viewer);
-        MenuOpenEventHandler.suppressNextCloseSound(viewer);
         openTargetDetail(viewer, target);
     }
 
@@ -459,7 +448,6 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
     }
 
     private void reopenList(@NotNull Player player, @NotNull org.bukkit.inventory.Inventory inventory, int pageIndex) {
-        MenuOpenEventHandler.suppressNextCloseSound(player);
         PlayerListPurpose purpose = playerListGui.getPurpose(inventory);
         if (purpose == PlayerListPurpose.PARTY_INVITE) {
             openInviteList(player, pageIndex);

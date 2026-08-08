@@ -4,7 +4,6 @@ import io.github.maaasu.astralRecord.feature.item.service.EquipmentEnhancementSe
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentRepairService;
 import io.github.maaasu.astralRecord.feature.currency.event.CurrencyExchangeGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.loginbonus.service.LoginBonusService;
-import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionActionConfig;
@@ -195,7 +194,6 @@ public final class MobInteractionEventHandler
             case "SHOP" -> openShop(player, action);
             case "QUEST", "QUEST_BOARD" -> openQuestBoard(player, instance, action);
             case "SELL" -> {
-                MenuGuiTransitionService.suppressNextCloseSound(player);
                 menuView.openSell(player, List.of(), 0);
                 GuiSound.OPEN.play(player);
             }
@@ -216,7 +214,6 @@ public final class MobInteractionEventHandler
             GuiSound.DENY.play(player);
             return;
         }
-        MenuGuiTransitionService.suppressNextCloseSound(player);
         shopGuiEventHandler.openFromNpc(player, shopId);
     }
 
@@ -229,7 +226,6 @@ public final class MobInteractionEventHandler
             GuiSound.DENY.play(player);
             return;
         }
-        MenuGuiTransitionService.suppressNextCloseSound(player);
         questGuiEventHandler.openBoard(player, boardId, instance.template().id());
     }
 
@@ -239,25 +235,21 @@ public final class MobInteractionEventHandler
             GuiSound.DENY.play(player);
             return;
         }
-        MenuGuiTransitionService.suppressNextCloseSound(player);
         menuView.openClass(player, astPlayer, playerClassService.getClassViewEntries(astPlayer));
         GuiSound.OPEN.play(player);
     }
 
     private void openStorage(@NotNull Player player) {
-        MenuGuiTransitionService.suppressNextCloseSound(player);
         storageService.open(player);
         GuiSound.OPEN.play(player);
     }
 
     private void openEquipmentEnhance(@NotNull Player player) {
-        MenuGuiTransitionService.suppressNextCloseSound(player);
         equipmentEnhancementService.open(player);
         GuiSound.OPEN.play(player);
     }
 
     private void openEquipmentRepair(@NotNull Player player) {
-        MenuGuiTransitionService.suppressNextCloseSound(player);
         equipmentRepairService.open(player);
         GuiSound.OPEN.play(player);
     }
@@ -268,7 +260,6 @@ public final class MobInteractionEventHandler
      * @param player 対象プレイヤー
      */
     private void openLoginBonus(@NotNull Player player) {
-        MenuGuiTransitionService.suppressNextCloseSound(player);
         loginBonusService.openAfterDataLoaded(player);
         GuiSound.OPEN.play(player);
     }

@@ -7,7 +7,6 @@ import io.github.maaasu.astralRecord.feature.mail.model.MailEntry;
 import io.github.maaasu.astralRecord.feature.mail.model.MailFilter;
 import io.github.maaasu.astralRecord.feature.mail.service.MailService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
-import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
@@ -148,7 +147,6 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
         }
         if (event.getRawSlot() == MailGuiView.FILTER_SLOT) {
             GuiSound.PAGE.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             open(player, filter.next(), 0);
             return;
         }
@@ -156,13 +154,11 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
         List<MailEntry> mails = mailGuiView.getMails(topInventory);
         if (event.getRawSlot() == MailGuiView.PREVIOUS_SLOT && mailGuiView.hasPreviousPage(pageIndex)) {
             GuiSound.PAGE.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             mailGuiView.open(player, mails, filter, pageIndex - 1);
             return;
         }
         if (event.getRawSlot() == MailGuiView.NEXT_SLOT && mailGuiView.hasNextPage(mails, pageIndex)) {
             GuiSound.PAGE.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             mailGuiView.open(player, mails, filter, pageIndex + 1);
             return;
         }
@@ -228,7 +224,6 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
             return;
         }
         (rewardReceived ? GuiSound.REWARD : GuiSound.SUCCESS).play(player);
-        MenuOpenEventHandler.suppressNextCloseSound(player);
         open(player, filter, pageIndex);
     }
 

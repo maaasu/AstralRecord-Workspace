@@ -1012,15 +1012,4 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         menuGuiTransitionService.switchGuiWithInventoryRestore(player, opener);
     }
 
-    /**
-     * 旧 GUI 呼び出し元との互換用です。
-     *
-     * @param player 対象プレイヤー
-     * @deprecated close 音は共有 GUI セッション基盤が終了確定時に判定します。
-     */
-    @Deprecated(forRemoval = false)
-    public static void suppressNextCloseSound(@NotNull Player player) {
-        MenuGuiTransitionService.suppressNextCloseSound(player);
-    }
-
 }

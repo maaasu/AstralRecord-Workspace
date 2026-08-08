@@ -3,7 +3,6 @@ package io.github.maaasu.astralRecord.feature.party.event;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
-import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.player.PlayerBrowserGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.party.gui.PartyGui;
 import io.github.maaasu.astralRecord.feature.party.gui.PartyMemberActionGui;
@@ -121,13 +120,11 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
                 : partyService.leave(astPlayer);
             sendResult(player, result);
             playResultSound(player, result);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             gui.open(player);
             return;
         }
         if (rawSlot == PartyGui.INVITE_SLOT && party.isLeader(player.getUniqueId())) {
             GuiSound.OPEN.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             playerBrowserGuiEventHandler.openInviteList(player, 0);
             return;
         }
@@ -135,7 +132,6 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
             UUID memberId = gui.getMemberId(player.getOpenInventory().getTopInventory(), rawSlot);
             if (memberId != null && !memberId.equals(player.getUniqueId()) && party.isLeader(player.getUniqueId())) {
                 GuiSound.SELECT.play(player);
-                MenuOpenEventHandler.suppressNextCloseSound(player);
                 memberActionGui.open(player, memberId);
                 return;
             }
@@ -149,7 +145,6 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
             PartyActionResult result = partyService.createParty(astPlayer);
             sendResult(player, result);
             playResultSound(player, result);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             gui.open(player);
             return;
         }
@@ -164,7 +159,6 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
             PartyActionResult result = partyService.acceptInvite(astPlayer, leader.getName());
             sendResult(player, result);
             playResultSound(player, result);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             gui.open(player);
             return;
         }
@@ -197,7 +191,6 @@ public final class PartyGuiEventHandler extends AbstractEventHandler {
         }
         sendResult(player, result);
         playResultSound(player, result);
-        MenuOpenEventHandler.suppressNextCloseSound(player);
         gui.open(player);
     }
 

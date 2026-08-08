@@ -3,7 +3,6 @@ package io.github.maaasu.astralRecord.feature.shop.event;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
-import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.shop.gui.ShopGui;
@@ -136,13 +135,11 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (event.getRawSlot() == ShopGui.PREVIOUS_PAGE_SLOT && shopGui.hasPreviousPage(pageIndex)) {
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             shopGui.openList(player, shop, pageIndex - 1);
             GuiSound.PAGE.play(player);
             return;
         }
         if (event.getRawSlot() == ShopGui.NEXT_PAGE_SLOT && shopGui.hasNextPage(shop, pageIndex)) {
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             shopGui.openList(player, shop, pageIndex + 1);
             GuiSound.PAGE.play(player);
             return;
@@ -158,7 +155,6 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        MenuOpenEventHandler.suppressNextCloseSound(player);
         shopGui.openConfirm(player, shop, entry, 1, shopService.preview(astPlayer, entry, 1), pageIndex);
         GuiSound.SELECT.play(player);
     }
@@ -191,7 +187,6 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
             default -> quantity;
         };
         if (nextQuantity != quantity) {
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             shopGui.openConfirm(player, shop, entry, nextQuantity, shopService.preview(astPlayer, entry, nextQuantity), pageIndex);
             GuiSound.SELECT.play(player);
             return;
@@ -201,12 +196,10 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (!shopService.purchase(astPlayer, entry, quantity)) {
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             shopGui.openConfirm(player, shop, entry, quantity, shopService.preview(astPlayer, entry, quantity), pageIndex);
             GuiSound.DENY.play(player);
             return;
         }
-        MenuOpenEventHandler.suppressNextCloseSound(player);
         shopGui.openConfirm(player, shop, entry, quantity, shopService.preview(astPlayer, entry, quantity), pageIndex);
         GuiSound.PURCHASE.play(player);
     }

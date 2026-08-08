@@ -246,7 +246,6 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             }
             saveEquipmentMenuSnapshot(player, topInventory);
             GuiSound.SELECT.play(player);
-            MenuOpenEventHandler.suppressNextCloseSound(player);
             var handler = AstralRecord.getInstance().getPlayerBrowserGuiEventHandler();
             if (handler == null) {
                 GuiSound.DENY.play(player);
