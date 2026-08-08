@@ -91,16 +91,17 @@ class SkillPresentationUtilTest {
     void resolvedValuesExpandScalarAndArrayPlaceholders() {
         SkillDefinition definition = new SkillDefinition(
             "adventurer_smash", "adventurer_smash", "スマッシュ",
-            "射程{skill.range}m、威力{skill.effectiveDamageRatio:percent}%。",
+            "&7射程{skill.range}m、威力{skill.effectiveDamageRatio:percent}%。持続{skill.durationTicks:seconds}秒。",
             "AMETHYST_SHARD", List.of(
                 "倍率: {skill.effectiveDamageRatios:percent}",
                 "先頭: {skill.effectiveDamageRatios[0]:percent}%"
             ),
             0L, 0.0D, 0L, 1, null,
             Map.of(
-                "range", 15.0D,
+                "range", 15.05D,
                 "damageRatio", 1.15D,
-                "damageRatios", List.of(1.15D, 0.90D)
+                "damageRatios", List.of(1.15D, 0.90D),
+                "durationTicks", 25.0D
             ),
             List.of(), SkillKind.ACTIVE, true, SkillResourceType.ENERGY, 0.0D,
             "adventurer_smash", 2, List.of(), List.of(), List.of()
@@ -116,13 +117,18 @@ class SkillPresentationUtilTest {
             Set.of()
         );
 
-        List<String> rendered = SkillPresentationUtil.skillDescriptionAndFlavorLore(resolved, null).stream()
+        List<net.kyori.adventure.text.Component> components =
+            SkillPresentationUtil.skillDescriptionAndFlavorLore(resolved, null);
+        List<String> rendered = components.stream()
             .map(PlainTextComponentSerializer.plainText()::serialize)
             .toList();
 
-        assertEquals("射程15m、威力120.75%。", rendered.get(0));
-        assertEquals("倍率: 120.75 / 94.5", rendered.get(1));
-        assertEquals("先頭: 120.75%", rendered.get(2));
+        assertEquals("射程15.1m、威力120.8%。持続1.3秒。", rendered.get(0));
+        assertEquals("倍率: 120.8 / 94.5", rendered.get(1));
+        assertEquals("先頭: 120.8%", rendered.get(2));
+
+        String legacy = LegacyComponentSerializer.legacySection().serialize(components.get(0));
+        assertEquals("§7射程§e15.1§7m、威力§e120.8§7%。持続§e1.3§7秒。", legacy);
     }
 
     /**

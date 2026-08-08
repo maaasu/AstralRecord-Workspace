@@ -7,6 +7,8 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextReplacementConfig;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -14,6 +16,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Locale;
@@ -27,6 +30,8 @@ import java.util.regex.Pattern;
  * スキル表示名の整形を共通化します。
  */
 public final class SkillPresentationUtil {
+    private static final TextColor PLACEHOLDER_COLOR = NamedTextColor.YELLOW;
+    private static final Pattern PLACEHOLDER_TOKEN = Pattern.compile("\\uE000skill_placeholder_\\d+\\uE001");
     private static final Pattern SKILL_PLACEHOLDER = Pattern.compile(
         "\\{skill\\.([A-Za-z0-9_.-]+)(?:\\[(\\d+)\\])?(?::(integer|decimal|percent|seconds|list))?\\}"
     );
@@ -156,11 +161,10 @@ public final class SkillPresentationUtil {
         List<Component> lines = new ArrayList<>();
         appendMasterLine(
             lines,
-            renderPlaceholders(definition.getDescription(), definition.getParams()),
-            fallbackColor
+            renderPlaceholdersComponent(definition.getDescription(), definition.getParams(), fallbackColor)
         );
         for (String line : definition.getLore()) {
-            appendMasterLine(lines, renderPlaceholders(line, definition.getParams()), fallbackColor);
+            appendMasterLine(lines, renderPlaceholdersComponent(line, definition.getParams(), fallbackColor));
         }
         return List.copyOf(lines);
     }
@@ -204,23 +208,42 @@ public final class SkillPresentationUtil {
             return List.of();
         }
         List<Component> lines = new ArrayList<>();
-        appendMasterLine(lines, renderResolvedLine(definition.getDescription(), values), fallbackColor);
+        appendMasterLine(
+            lines,
+            renderResolvedLineComponent(definition.getDescription(), values, fallbackColor)
+        );
         for (String line : definition.getLore()) {
             String rendered = renderResolvedLine(line, values);
             String plain = ColorCodeUtil.toPlainText(rendered, "");
             if (plain.contains("消費") && plain.contains("クールダウン")) {
                 continue;
             }
-            appendMasterLine(lines, rendered, fallbackColor);
+            appendMasterLine(lines, renderResolvedLineComponent(line, values, fallbackColor));
         }
         return List.copyOf(lines);
+    }
+
+    private static @NotNull Component renderResolvedLineComponent(
+        @Nullable String text,
+        @NotNull Map<String, Object> values,
+        @Nullable TextColor fallbackColor
+    ) {
+        TokenizedText tokenized = tokenizePlaceholders(text, values);
+        String adjusted = applyLegacyAttackRatio(tokenized.template(), values);
+        return renderTokenizedComponent(new TokenizedText(adjusted, tokenized.replacements()), fallbackColor);
     }
 
     private static @NotNull String renderResolvedLine(
         @Nullable String text,
         @NotNull Map<String, Object> values
     ) {
-        String rendered = renderPlaceholders(text, values);
+        return applyLegacyAttackRatio(renderPlaceholders(text, values), values);
+    }
+
+    private static @NotNull String applyLegacyAttackRatio(
+        @NotNull String rendered,
+        @NotNull Map<String, Object> values
+    ) {
         if (values.containsKey("damageRatio") || values.containsKey("damageRatios")) {
             return rendered;
         }
@@ -294,18 +317,58 @@ public final class SkillPresentationUtil {
         @Nullable String text,
         @NotNull Map<String, Object> values
     ) {
-        if (text == null || text.isBlank()) return text == null ? "" : text;
+        return tokenizePlaceholders(text, values).resolve();
+    }
+
+    private static @NotNull Component renderPlaceholdersComponent(
+        @Nullable String text,
+        @NotNull Map<String, Object> values,
+        @Nullable TextColor fallbackColor
+    ) {
+        return renderTokenizedComponent(tokenizePlaceholders(text, values), fallbackColor);
+    }
+
+    private static @NotNull Component renderTokenizedComponent(
+        @NotNull TokenizedText tokenized,
+        @Nullable TextColor fallbackColor
+    ) {
+        if (tokenized.template().isBlank()) {
+            return Component.empty();
+        }
+        Component component = masterTextComponent(tokenized.template(), "", fallbackColor);
+        if (tokenized.replacements().isEmpty()) {
+            return component;
+        }
+        return component.replaceText(TextReplacementConfig.builder()
+            .match(PLACEHOLDER_TOKEN)
+            .replacement((match, ignored) -> Component.text(
+                tokenized.replacements().getOrDefault(match.group(), "?"),
+                PLACEHOLDER_COLOR
+            ))
+            .build());
+    }
+
+    private static @NotNull TokenizedText tokenizePlaceholders(
+        @Nullable String text,
+        @NotNull Map<String, Object> values
+    ) {
+        if (text == null || text.isBlank()) {
+            return new TokenizedText(text == null ? "" : text, Map.of());
+        }
         Matcher matcher = SKILL_PLACEHOLDER.matcher(text);
         StringBuffer result = new StringBuffer();
+        Map<String, String> replacements = new LinkedHashMap<>();
+        int tokenIndex = 0;
         while (matcher.find()) {
             Object value = values.get(matcher.group(1));
             Integer index = matcher.group(2) == null ? null : Integer.valueOf(matcher.group(2));
             String format = matcher.group(3);
-            String replacement = formatValue(value, index, format);
-            matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
+            String token = "\uE000skill_placeholder_" + tokenIndex++ + "\uE001";
+            replacements.put(token, formatValue(value, index, format));
+            matcher.appendReplacement(result, Matcher.quoteReplacement(token));
         }
         matcher.appendTail(result);
-        return result.toString();
+        return new TokenizedText(result.toString(), Map.copyOf(replacements));
     }
 
     private static @NotNull String formatValue(
@@ -336,7 +399,10 @@ public final class SkillPresentationUtil {
         if ("integer".equals(format)) {
             return BigDecimal.valueOf(numeric).setScale(0, RoundingMode.HALF_UP).toPlainString();
         }
-        return BigDecimal.valueOf(numeric).stripTrailingZeros().toPlainString();
+        return BigDecimal.valueOf(numeric)
+            .setScale(1, RoundingMode.HALF_UP)
+            .stripTrailingZeros()
+            .toPlainString();
     }
 
     /**
@@ -415,5 +481,32 @@ public final class SkillPresentationUtil {
             return;
         }
         lines.add(masterTextComponent(text, "", fallbackColor));
+    }
+
+    private static void appendMasterLine(
+        @NotNull List<Component> lines,
+        @NotNull Component component
+    ) {
+        if (!component.equals(Component.empty())) {
+            lines.add(component);
+        }
+    }
+
+    private record TokenizedText(
+        @NotNull String template,
+        @NotNull Map<String, String> replacements
+    ) {
+        private @NotNull String resolve() {
+            Matcher matcher = PLACEHOLDER_TOKEN.matcher(template);
+            StringBuffer resolved = new StringBuffer();
+            while (matcher.find()) {
+                matcher.appendReplacement(
+                    resolved,
+                    Matcher.quoteReplacement(replacements.getOrDefault(matcher.group(), "?"))
+                );
+            }
+            matcher.appendTail(resolved);
+            return resolved.toString();
+        }
     }
 }
