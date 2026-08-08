@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.item.service;
 
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
@@ -8,6 +9,8 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import org.bukkit.inventory.EquipmentSlot;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,11 +44,34 @@ class ItemWeaponAttackServiceTest {
         InventoryService inventoryService = mock(InventoryService.class);
         AstPlayer player = mock(AstPlayer.class);
         ItemModel weapon = weaponModel();
+        AccountModel account = mock(AccountModel.class);
         EquipmentDurabilityService durabilityService = mock(EquipmentDurabilityService.class);
         when(inventoryService.getItemModelInHand(player, EquipmentSlot.HAND)).thenReturn(weapon);
+        when(player.getAccount()).thenReturn(account);
+        when(account.getLevel()).thenReturn(1);
         when(durabilityService.canUseMainHandWeapon(player)).thenReturn(false);
         ItemWeaponAttackService service = new ItemWeaponAttackService(inventoryService, mock(SkillService.class));
         service.setEquipmentDurabilityService(durabilityService);
+
+        assertFalse(service.hasUsableMainHandWeapon(player));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 武器左クリック処理
+     * 検証契約: 必要プレイヤーレベル未満の主手 weapon はスキル発動用の武器として扱わない。
+     */
+    @Test
+    void hasUsableMainHandWeaponRejectsWeaponWhenPlayerLevelIsTooLow() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        AstPlayer player = mock(AstPlayer.class);
+        ItemModel weapon = weaponModel();
+        AccountModel account = mock(AccountModel.class);
+        when(inventoryService.getItemModelInHand(player, EquipmentSlot.HAND)).thenReturn(weapon);
+        when(player.getAccount()).thenReturn(account);
+        when(account.getLevel()).thenReturn(1);
+        when(weapon.getEquipment().getRequiredLevel()).thenReturn(10);
+        ItemWeaponAttackService service = new ItemWeaponAttackService(inventoryService, mock(SkillService.class));
 
         assertFalse(service.hasUsableMainHandWeapon(player));
     }
@@ -60,8 +86,11 @@ class ItemWeaponAttackServiceTest {
         InventoryService inventoryService = mock(InventoryService.class);
         AstPlayer player = mock(AstPlayer.class);
         ItemModel weapon = weaponModel();
+        AccountModel account = mock(AccountModel.class);
         EquipmentDurabilityService durabilityService = mock(EquipmentDurabilityService.class);
         when(inventoryService.getItemModelInHand(player, EquipmentSlot.HAND)).thenReturn(weapon);
+        when(player.getAccount()).thenReturn(account);
+        when(account.getLevel()).thenReturn(1);
         when(durabilityService.canUseMainHandWeapon(player)).thenReturn(true);
         ItemWeaponAttackService service = new ItemWeaponAttackService(inventoryService, mock(SkillService.class));
         service.setEquipmentDurabilityService(durabilityService);
@@ -103,6 +132,8 @@ class ItemWeaponAttackServiceTest {
         when(model.getEquipment()).thenReturn(equipment);
         when(equipment.getSlot()).thenReturn(ItemEquipmentSlot.WEAPON);
         when(equipment.getTag()).thenReturn(tag);
+        when(equipment.getRequiredLevel()).thenReturn(0);
+        when(equipment.getRequiredClasses()).thenReturn(List.of());
         return model;
     }
 }

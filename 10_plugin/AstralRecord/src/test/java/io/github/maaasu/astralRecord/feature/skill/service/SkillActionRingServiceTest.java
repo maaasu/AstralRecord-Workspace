@@ -183,6 +183,10 @@ class SkillActionRingServiceTest extends MockBukkitTestBase {
         when(inventoryService.getItemModelInHand(player, EquipmentSlot.HAND)).thenReturn(weapon);
         when(weapon.getEquipment()).thenReturn(equipment);
         when(equipment.getSlot()).thenReturn(ItemEquipmentSlot.WEAPON);
+        when(equipment.getRequiredLevel()).thenReturn(0);
+        when(equipment.getRequiredClasses()).thenReturn(List.of());
+        when(player.getAccount()).thenReturn(account);
+        when(account.getLevel()).thenReturn(1);
         when(durabilityService.canUseMainHandWeapon(player)).thenReturn(false);
         UUID accountId = UUID.randomUUID();
         when(player.getAccount()).thenReturn(account);
@@ -194,6 +198,40 @@ class SkillActionRingServiceTest extends MockBukkitTestBase {
 
         ItemWeaponAttackService weaponAttackService = new ItemWeaponAttackService(inventoryService, skillService);
         weaponAttackService.setEquipmentDurabilityService(durabilityService);
+        SkillActionRingService service = new SkillActionRingService(
+            mock(AstralRecord.class), presetService, skillService, mock(SkillOwnershipService.class),
+            mock(SkillPermissionService.class)
+        );
+        service.setItemWeaponAttackService(weaponAttackService);
+
+        assertFalse(service.hasLeftClickBind(player));
+        service.activateLeftClickBind(player);
+        verifyNoInteractions(skillService);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/4-統合フロー/13_4-統合フロー.md
+     * 章・見出し: # 13_4-統合フロー > ## 2. player skill 発動 > ### 処理要点
+     * 検証契約: 必要レベル未満の主手 weapon では left-click bind の候補を返さず、スキルを cast しない。
+     */
+    @Test
+    void underLevelWeaponRejectsLeftClickBindBeforeCast() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        SkillBindPresetService presetService = mock(SkillBindPresetService.class);
+        SkillService skillService = mock(SkillService.class);
+        AstPlayer player = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        ItemModel weapon = mock(ItemModel.class);
+        ItemEquipment equipment = mock(ItemEquipment.class);
+        when(inventoryService.getItemModelInHand(player, EquipmentSlot.HAND)).thenReturn(weapon);
+        when(weapon.getEquipment()).thenReturn(equipment);
+        when(equipment.getSlot()).thenReturn(ItemEquipmentSlot.WEAPON);
+        when(equipment.getRequiredLevel()).thenReturn(10);
+        when(equipment.getRequiredClasses()).thenReturn(List.of());
+        when(player.getAccount()).thenReturn(account);
+        when(account.getLevel()).thenReturn(1);
+
+        ItemWeaponAttackService weaponAttackService = new ItemWeaponAttackService(inventoryService, skillService);
         SkillActionRingService service = new SkillActionRingService(
             mock(AstralRecord.class), presetService, skillService, mock(SkillOwnershipService.class),
             mock(SkillPermissionService.class)
