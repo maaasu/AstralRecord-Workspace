@@ -6,10 +6,12 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
+import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.util.BoundingBox;
+import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +21,9 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -134,5 +139,79 @@ class SkillTargetingServiceTest {
 
         assertEquals(1, beforeBlock.size());
         assertTrue(atBlock.isEmpty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 8. 冒険者マナバーストの実装契約 > ### 8.1 数値と対象形状
+     * 検証契約: inConeは視線前方のMobだけを発動者から近い順に選び、最大対象数で打ち切る。
+     */
+    @Test
+    void coneSelectsForwardMobTargetsNearestFirstAndRespectsMaxTargets() {
+        World world = mock(World.class);
+        Player player = mock(Player.class);
+        MobService mobService = mock(MobService.class);
+        MobTemplate template = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D).template();
+        MobInstance far = mockMob(template, world, 0.0D, 5.0D);
+        MobInstance behind = mockMob(template, world, 0.0D, -3.0D);
+        MobInstance side = mockMob(template, world, 4.0D, 4.0D);
+        MobInstance near = mockMob(template, world, 0.0D, 3.0D);
+        when(mobService.getInstances()).thenReturn(List.of(far, behind, side, near));
+        when(player.getWorld()).thenReturn(world);
+        when(player.getLocation()).thenReturn(new Location(world, 0.0D, 0.0D, 0.0D));
+        Location eye = new Location(world, 0.0D, 1.6D, 0.0D);
+        eye.setDirection(new Vector(0.0D, 0.0D, 1.0D));
+        when(player.getEyeLocation()).thenReturn(eye);
+
+        List<AstEntity> targets = new SkillTargetingService(mobService).inCone(
+                player, 7.0D, 60.0D, 2, true
+        );
+
+        assertEquals(2, targets.size());
+        assertEquals(near.instanceId(), targets.get(0).id());
+        assertEquals(far.instanceId(), targets.get(1).id());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 8. 冒険者マナバーストの実装契約 > ### 8.1 数値と対象形状
+     * 検証契約: inConeは遮蔽判定を有効にした場合だけ、対象中心までのブロック衝突を理由に対象を除外する。
+     */
+    @Test
+    void coneHonorsBlockLineOfSightWhenRequested() {
+        World world = mock(World.class);
+        Player player = mock(Player.class);
+        MobService mobService = mock(MobService.class);
+        MobTemplate template = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D).template();
+        MobInstance target = mockMob(template, world, 0.0D, 3.0D);
+        when(mobService.getInstances()).thenReturn(List.of(target));
+        when(player.getWorld()).thenReturn(world);
+        when(player.getLocation()).thenReturn(new Location(world, 0.0D, 0.0D, 0.0D));
+        Location eye = new Location(world, 0.0D, 1.6D, 0.0D);
+        eye.setDirection(new Vector(0.0D, 0.0D, 1.0D));
+        when(player.getEyeLocation()).thenReturn(eye);
+        when(world.rayTraceBlocks(
+                any(Location.class), any(Vector.class), anyDouble(), eq(FluidCollisionMode.NEVER), eq(true)
+        )).thenReturn(mock(RayTraceResult.class));
+
+        SkillTargetingService service = new SkillTargetingService(mobService);
+
+        assertTrue(service.inCone(player, 7.0D, 60.0D, 6, false).size() == 1);
+        assertTrue(service.inCone(player, 7.0D, 60.0D, 6, true).isEmpty());
+    }
+
+    private static MobInstance mockMob(
+            MobTemplate template,
+            World world,
+            double x,
+            double z
+    ) {
+        MobInstance mob = mock(MobInstance.class);
+        when(mob.state()).thenReturn(MobState.IDLE);
+        when(mob.template()).thenReturn(template);
+        when(mob.instanceId()).thenReturn(UUID.randomUUID());
+        when(mob.bukkitEntityId()).thenReturn(null);
+        when(mob.currentLocation()).thenReturn(new Location(world, x, 0.0D, z));
+        return mob;
     }
 }

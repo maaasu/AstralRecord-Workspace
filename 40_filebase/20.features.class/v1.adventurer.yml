@@ -65,6 +65,7 @@ expRate: 58
 usableSkills:
   - skill:adventurer_astral_edge
   - skill:adventurer_blast_arrow
+  - skill:adventurer_mana_burst
   - skill:adventurer_smash
   - skill:adventurer_meditation
   - skill:adventurer_quick_shot

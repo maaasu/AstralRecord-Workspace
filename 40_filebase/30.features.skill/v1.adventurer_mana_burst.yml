@@ -1,0 +1,55 @@
+# design:
+#   motif: "星術 / 純粋魔力の波"
+#   progression: 1
+schemaVersion: 1
+id: adventurer_mana_burst
+type: SKILL
+implementationId: adventurer_mana_burst
+name: "&fマナバースト"
+description: "&7手元に凝縮した純粋な魔力を前方へ放ち、接近した敵をまとめて攻撃する。"
+icon: AMETHYST_SHARD
+lore:
+  - "&7前方{skill.range}m・全角{skill.angle}度へ魔法攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
+  - "&7最大{skill.maxTargets}体。状態異常と属性効果は発生しない。"
+  - "&8消費MP: 13 / クールダウン: 3.0秒"
+cooldownTicks: 60
+resourceType: MANA
+resourceCost: 13
+castTimeTicks: 2
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 3
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 4
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 5
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - cooldown_sigil
+  - cooldown_sigil_ii
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+onCast:
+  sound: entity.evoker.cast_spell
+tags:
+  - active
+  - magic
+  - adventurer
+# behavior:
+#   shape: "発動者の目線方向を中心に全角60度・射程7mの前方扇形。波の表示起点は目線から前方0.35m・下方0.25mの手元/武器先端近傍とし、周囲360度には命中しない。"
+#   damage: "Mobのみを対象に最大6体へMAGIC/NONEの魔法ダメージを1回与える。状態異常、属性効果、ノックバック、追加攻撃は発生しない。"
+#   targets: "SkillTargetingService.inCone の既存規則を使用し、NPC・別world・死亡済みMob・PvP対象を除外する。ブロック遮蔽を確認し、発動者から近いMobを優先する。"
+params:
+  range: 7.0
+  angle: 60.0
+  damageRatio: 1.10
+  maxTargets: 6

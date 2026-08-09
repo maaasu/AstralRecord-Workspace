@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.ActiveSkillEx
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerAstralEdgeExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerBlastArrowExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerLightningBoltExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerManaBurstExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
@@ -36,6 +37,7 @@ class ActiveSkillExecutorDesignTest {
     private static final Set<String> EXPECTED_SKILL_IDS = Set.of(
         "adventurer_astral_edge",
         "adventurer_blast_arrow",
+        "adventurer_mana_burst",
         "adventurer_smash",
         "adventurer_quick_shot",
         "adventurer_lightning_bolt"
@@ -44,7 +46,7 @@ class ActiveSkillExecutorDesignTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
-     * 検証契約: catalogが設計記載5 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
+     * 検証契約: catalogが設計記載6 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
      */
     @Test
     void catalogContainsEveryDesignedSkillIdExactlyOnce() {
@@ -151,6 +153,34 @@ class ActiveSkillExecutorDesignTest {
         assertEquals("maxChainTargets", exception.key());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 9. 冒険者マナバーストの実装契約 > ### 9.1 数値と対象形状
+     * 検証契約: マナバーストは正の射程・倍率、180度以下の前方扇形、1体以上の最大対象数を必須とする。
+     */
+    @Test
+    void manaBurstValidatesForwardConeParams() {
+        AdventurerManaBurstExecutor executor = new AdventurerManaBurstExecutor(activeSkillServices());
+
+        assertDoesNotThrow(() -> executor.validateParams(manaBurstDefinition(Map.of(
+                "range", 7.0D,
+                "angle", 60.0D,
+                "damageRatio", 1.10D,
+                "maxTargets", 6
+        ))));
+
+        SkillParameterException exception = assertThrows(
+                SkillParameterException.class,
+                () -> executor.validateParams(manaBurstDefinition(Map.of(
+                        "range", 7.0D,
+                        "angle", 360.0D,
+                        "damageRatio", 1.10D,
+                        "maxTargets", 6
+                )))
+        );
+        assertEquals("angle", exception.key());
+    }
+
     private static SkillDefinition astralEdgeDefinition(Map<String, Object> params) {
         return new SkillDefinition(
                 "adventurer_astral_edge",
@@ -214,6 +244,28 @@ class ActiveSkillExecutorDesignTest {
                 true,
                 SkillResourceType.MANA,
                 10.0D
+        );
+    }
+
+    private static SkillDefinition manaBurstDefinition(Map<String, Object> params) {
+        return new SkillDefinition(
+                "adventurer_mana_burst",
+                "adventurer_mana_burst",
+                "マナバースト",
+                null,
+                "AMETHYST_SHARD",
+                List.of(),
+                60L,
+                13.0D,
+                2L,
+                1,
+                null,
+                params,
+                List.of("active", "magic", "adventurer"),
+                SkillKind.ACTIVE,
+                true,
+                SkillResourceType.MANA,
+                13.0D
         );
     }
 
