@@ -15,7 +15,7 @@ public record DungeonDefinition(
         int schemaVersion,
         @NotNull String id,
         @NotNull String displayName,
-        @NotNull String worldId,
+        @NotNull Entry entry,
         @NotNull IntRange partySize,
         @NotNull Generation generation,
         @NotNull Theme theme,
@@ -24,7 +24,21 @@ public record DungeonDefinition(
     public DungeonDefinition {
         id = id.trim();
         displayName = displayName.trim();
-        worldId = worldId.trim();
+    }
+
+    /** 挑戦を受け付ける通常ワールド上の地点です。 */
+    public record Entry(
+            @NotNull String worldId,
+            double x,
+            double y,
+            double z,
+            float yaw,
+            float pitch,
+            double radius
+    ) {
+        public Entry {
+            worldId = worldId.trim();
+        }
     }
 
     /** 最小値と最大値を両端を含めて表す範囲です。 */

@@ -50,36 +50,46 @@ public final class DungeonDefinitionRepository {
         return List.copyOf(definitions);
     }
 
+    /** 最小構成を既定値で補完し、一つの YAML を実行時定義へ変換します。 */
     private @NotNull DungeonDefinition parse(@NotNull YamlConfiguration yaml) {
         int schemaVersion = yaml.getInt("schemaVersion", -1);
         if (schemaVersion != 1) {
             throw new IllegalArgumentException("schemaVersion must be 1");
         }
 
-        ConfigurationSection generation = requireSection(yaml, "generation");
-        ConfigurationSection area = requireSection(generation, "area");
-        ConfigurationSection splitRatio = requireSection(generation, "splitRatio");
-        ConfigurationSection theme = requireSection(yaml, "theme");
-        ConfigurationSection pillar = requireSection(theme, "pillar");
+        ConfigurationSection entry = requireSection(yaml, "entry");
+        ConfigurationSection generation = yaml.getConfigurationSection("generation");
+        ConfigurationSection area = generation == null ? null : generation.getConfigurationSection("area");
+        ConfigurationSection splitRatio = generation == null ? null : generation.getConfigurationSection("splitRatio");
+        ConfigurationSection theme = yaml.getConfigurationSection("theme");
+        ConfigurationSection pillar = theme == null ? null : theme.getConfigurationSection("pillar");
         ConfigurationSection encounter = requireSection(yaml, "encounter");
 
         return new DungeonDefinition(
                 schemaVersion,
                 requireString(yaml, "id"),
                 requireString(yaml, "displayName"),
-                stripPrefix(requireString(yaml, "worldRef")),
-                parseRange(requireSection(yaml, "party"), "party"),
+                new DungeonDefinition.Entry(
+                        stripPrefix(requireString(entry, "worldRef")),
+                        requireDouble(entry, "x"),
+                        requireDouble(entry, "y"),
+                        requireDouble(entry, "z"),
+                        (float) optionalDouble(entry, "yaw", 0.0D),
+                        (float) optionalDouble(entry, "pitch", 0.0D),
+                        optionalDouble(entry, "radius", 2.0D)
+                ),
+                parseRange(yaml.getConfigurationSection("party"), "party", 1, 4),
                 new DungeonDefinition.Generation(
-                        requireInt(area, "width"),
-                        requireInt(area, "depth"),
-                        requireInt(generation, "baseY"),
-                        parseRange(requireSection(generation, "roomCount"), "generation.roomCount"),
-                        parseRange(requireSection(generation, "roomSize"), "generation.roomSize"),
-                        requireInt(generation, "roomHeight"),
-                        requireInt(generation, "corridorWidth"),
-                        requireInt(generation, "corridorHeight"),
-                        requireDouble(splitRatio, "min"),
-                        requireDouble(splitRatio, "max"),
+                        optionalInt(area, "width", 128),
+                        optionalInt(area, "depth", 128),
+                        optionalInt(generation, "baseY", 64),
+                        parseRange(section(generation, "roomCount"), "generation.roomCount", 7, 11),
+                        parseRange(section(generation, "roomSize"), "generation.roomSize", 11, 23),
+                        optionalInt(generation, "roomHeight", 8),
+                        optionalInt(generation, "corridorWidth", 3),
+                        optionalInt(generation, "corridorHeight", 4),
+                        optionalDouble(splitRatio, "min", 0.35D),
+                        optionalDouble(splitRatio, "max", 0.50D),
                         parseShapes(generation)
                 ),
                 new DungeonDefinition.Theme(
@@ -87,53 +97,66 @@ public final class DungeonDefinitionRepository {
                         parseMaterials(theme, "wall"),
                         parseMaterials(theme, "ceiling"),
                         parseMaterials(theme, "corridor"),
-                        requireBlock(theme, "gateMaterial", true),
+                        optionalBlock(theme, "gateMaterial", Material.IRON_BARS, true),
                         new DungeonDefinition.Pillar(
-                                pillar.getBoolean("enabled", false),
-                                requireDouble(pillar, "chance"),
-                                requireBlock(pillar, "material", true),
-                                requireStairs(pillar, "stairMaterial")
+                                pillar != null && pillar.getBoolean("enabled", false),
+                                optionalDouble(pillar, "chance", 0.35D),
+                                optionalBlock(pillar, "material", Material.CHISELED_STONE_BRICKS, true),
+                                optionalStairs(pillar, "stairMaterial", Material.STONE_BRICK_STAIRS)
                         )
                 ),
                 new DungeonDefinition.Encounter(
                         parseMobs(encounter),
-                        parseRange(requireSection(encounter, "mobsPerRoom"), "encounter.mobsPerRoom"),
-                        requireInt(encounter, "firstCombatRoomMaxMobLevel"),
+                        parseRange(encounter.getConfigurationSection("mobsPerRoom"), "encounter.mobsPerRoom", 2, 4),
+                        optionalInt(encounter, "firstCombatRoomMaxMobLevel", 10),
                         stripPrefix(requireString(encounter, "bossMobId"))
                 )
         );
     }
 
+    /** 省略時は長方形優先の既定形状一覧を返します。 */
     private @NotNull List<DungeonDefinition.WeightedShape> parseShapes(
-            @NotNull ConfigurationSection generation
+            ConfigurationSection generation
     ) {
+        if (generation == null || !generation.isList("roomShapes")) {
+            return List.of(
+                    new DungeonDefinition.WeightedShape(DungeonRoomShape.RECTANGLE, 3),
+                    new DungeonDefinition.WeightedShape(DungeonRoomShape.CYLINDER, 1)
+            );
+        }
         List<DungeonDefinition.WeightedShape> result = new ArrayList<>();
         for (Map<?, ?> entry : generation.getMapList("roomShapes")) {
             String type = requiredMapString(entry, "type", "generation.roomShapes");
             result.add(new DungeonDefinition.WeightedShape(
                     DungeonRoomShape.from(type),
-                    requiredMapInt(entry, "weight", "generation.roomShapes")
+                    optionalMapInt(entry, "weight", 1)
             ));
         }
         return List.copyOf(result);
     }
 
+    /** 対象テーマ一覧を読み、未定義時は用途別の既定 Material を返します。 */
     private @NotNull List<DungeonDefinition.WeightedMaterial> parseMaterials(
-            @NotNull ConfigurationSection theme,
+            ConfigurationSection theme,
             @NotNull String key
     ) {
+        if (theme == null || !theme.isList(key)) {
+            Material fallback = key.equals("corridor") ? Material.COBBLESTONE : Material.STONE_BRICKS;
+            return List.of(new DungeonDefinition.WeightedMaterial(fallback, 1));
+        }
         List<DungeonDefinition.WeightedMaterial> result = new ArrayList<>();
         for (Map<?, ?> entry : theme.getMapList(key)) {
             String rawMaterial = requiredMapString(entry, "material", "theme." + key);
             Material material = resolveBlock(rawMaterial, "theme." + key, true);
             result.add(new DungeonDefinition.WeightedMaterial(
                     material,
-                    requiredMapInt(entry, "weight", "theme." + key)
+                    optionalMapInt(entry, "weight", 1)
             ));
         }
         return List.copyOf(result);
     }
 
+    /** 必須の通常 Mob 一覧を相対 weight 付きで読み込みます。 */
     private @NotNull List<DungeonDefinition.WeightedMob> parseMobs(
             @NotNull ConfigurationSection encounter
     ) {
@@ -141,20 +164,47 @@ public final class DungeonDefinitionRepository {
         for (Map<?, ?> entry : encounter.getMapList("normalMobPool")) {
             result.add(new DungeonDefinition.WeightedMob(
                     stripPrefix(requiredMapString(entry, "mobId", "encounter.normalMobPool")),
-                    requiredMapInt(entry, "weight", "encounter.normalMobPool")
+                    optionalMapInt(entry, "weight", 1)
             ));
         }
         return List.copyOf(result);
     }
 
+    /** min/max の部分省略を許可し、既定値で補完した範囲を返します。 */
     private @NotNull DungeonDefinition.IntRange parseRange(
-            @NotNull ConfigurationSection section,
-            @NotNull String path
+            ConfigurationSection section,
+            @NotNull String path,
+            int defaultMin,
+            int defaultMax
     ) {
+        if (section == null) {
+            return new DungeonDefinition.IntRange(defaultMin, defaultMax);
+        }
         return new DungeonDefinition.IntRange(
-                requireInt(section, "min", path),
-                requireInt(section, "max", path)
+                optionalInt(section, "min", defaultMin),
+                optionalInt(section, "max", defaultMax)
         );
+    }
+
+    /** 親が未定義なら {@code null} のまま子セクションを解決します。 */
+    private ConfigurationSection section(ConfigurationSection parent, @NotNull String key) {
+        return parent == null ? null : parent.getConfigurationSection(key);
+    }
+
+    /** 省略可能な整数を読み、未定義なら既定値を返します。 */
+    private int optionalInt(ConfigurationSection section, @NotNull String key, int fallback) {
+        if (section == null || !section.contains(key)) {
+            return fallback;
+        }
+        return requireInt(section, key);
+    }
+
+    /** 省略可能な数値を読み、未定義なら既定値を返します。 */
+    private double optionalDouble(ConfigurationSection section, @NotNull String key, double fallback) {
+        if (section == null || !section.contains(key)) {
+            return fallback;
+        }
+        return requireDouble(section, key);
     }
 
     private @NotNull ConfigurationSection requireSection(
@@ -222,6 +272,29 @@ public final class DungeonDefinitionRepository {
         return material;
     }
 
+    /** 省略可能な block Material を検証し、未定義なら既定値を返します。 */
+    private @NotNull Material optionalBlock(
+            ConfigurationSection section,
+            @NotNull String key,
+            @NotNull Material fallback,
+            boolean solid
+    ) {
+        return section == null || !section.contains(key)
+                ? fallback
+                : requireBlock(section, key, solid);
+    }
+
+    /** 省略可能な階段 Material を検証し、未定義なら既定値を返します。 */
+    private @NotNull Material optionalStairs(
+            ConfigurationSection section,
+            @NotNull String key,
+            @NotNull Material fallback
+    ) {
+        return section == null || !section.contains(key)
+                ? fallback
+                : requireStairs(section, key);
+    }
+
     private @NotNull Material resolveBlock(
             @NotNull String raw,
             @NotNull String path,
@@ -256,6 +329,11 @@ public final class DungeonDefinitionRepository {
             return number.intValue();
         }
         throw new IllegalArgumentException("Missing integer: " + path + "." + key);
+    }
+
+    /** map 内の省略可能な整数を読み、未定義なら既定値を返します。 */
+    private int optionalMapInt(@NotNull Map<?, ?> entry, @NotNull String key, int fallback) {
+        return entry.containsKey(key) ? requiredMapInt(entry, key, key) : fallback;
     }
 
     private @NotNull String stripPrefix(@NotNull String raw) {

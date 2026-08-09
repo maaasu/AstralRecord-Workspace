@@ -884,7 +884,9 @@ public final class AstralRecord extends JavaPlugin {
             worldService,
             partyService,
             mobService,
-            playerMessageService
+            playerMessageService,
+            particleDisplayService,
+            bossHubWorldId
         );
         damageService.setMobDeathListener(dungeonService::handleMobDefeated);
         bossChallengeCancelGui = new BossChallengeCancelGui();

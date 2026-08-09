@@ -98,7 +98,7 @@ class DungeonBlockPlannerTest {
     void decoratesEveryGuaranteedPillarWithEightDirectionalStairs() {
         DungeonDefinition source = DungeonTestFixtures.definition();
         DungeonDefinition definition = new DungeonDefinition(
-                source.schemaVersion(), source.id(), source.displayName(), source.worldId(), source.partySize(),
+                source.schemaVersion(), source.id(), source.displayName(), source.entry(), source.partySize(),
                 source.generation(),
                 new DungeonDefinition.Theme(
                         source.theme().floor(), source.theme().wall(), source.theme().ceiling(),

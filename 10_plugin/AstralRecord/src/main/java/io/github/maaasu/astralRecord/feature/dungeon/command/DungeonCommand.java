@@ -72,6 +72,8 @@ public final class DungeonCommand extends AstCommand {
             );
             case PARTICIPANT_BUSY -> messages.send(astPlayer, PlayerMsgId.P_7005);
             case NOT_GAMEPLAY -> messages.send(astPlayer, PlayerMsgId.P_5065);
+            case NOT_AT_ENTRY -> messages.send(astPlayer, PlayerMsgId.P_7018);
+            case HUB_UNAVAILABLE -> messages.send(astPlayer, PlayerMsgId.P_7019);
         }
     }
 

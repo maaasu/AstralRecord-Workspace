@@ -1,0 +1,17 @@
+# design:
+#   motif: "北欧神話 / 黄昏の坑道"
+#   progression: 10
+schemaVersion: 1
+id: twilight_mine
+displayName: "黄昏の坑道"
+entry:
+  worldRef: world:midgard_greenfields
+  x: -418.5
+  y: 17.0
+  z: -366.5
+encounter:
+  normalMobPool:
+    - mobId: mob:midgard_forest_moss_wisp
+    - mobId: mob:midgard_forest_root_guard
+  firstCombatRoomMaxMobLevel: 5
+  bossMobId: mob:twilight_colossus

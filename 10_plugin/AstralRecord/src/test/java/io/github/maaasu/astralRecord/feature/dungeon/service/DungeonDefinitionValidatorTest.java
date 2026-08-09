@@ -33,7 +33,7 @@ class DungeonDefinitionValidatorTest {
         );
 
         assertDoesNotThrow(() -> validator.validateAll(
-                List.of(definition), mobs, Map.of(definition.worldId(), world(definition.worldId()))));
+                List.of(definition), mobs, Map.of(definition.entry().worldId(), world(definition.entry().worldId()))));
     }
 
     /**
@@ -45,7 +45,7 @@ class DungeonDefinitionValidatorTest {
     void rejectsDefinitionWithoutAnyEligibleFirstRoomEnemy() {
         DungeonDefinition source = DungeonTestFixtures.definition();
         DungeonDefinition invalid = new DungeonDefinition(
-                source.schemaVersion(), source.id(), source.displayName(), source.worldId(), source.partySize(),
+                source.schemaVersion(), source.id(), source.displayName(), source.entry(), source.partySize(),
                 source.generation(), source.theme(),
                 new DungeonDefinition.Encounter(
                         List.of(new DungeonDefinition.WeightedMob("strong", 1)),
@@ -60,7 +60,43 @@ class DungeonDefinitionValidatorTest {
         );
 
         assertThrows(IllegalArgumentException.class, () -> validator.validateAll(
-                List.of(invalid), mobs, Map.of(invalid.worldId(), world(invalid.worldId()))));
+                List.of(invalid), mobs, Map.of(invalid.entry().worldId(), world(invalid.entry().worldId()))));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_0-概要.md
+     * 章・見出し: # 32_0-概要 > ## 4. 主要境界と不変条件
+     * 検証契約: 挑戦受付半径は0.5から16.0の範囲だけを許可する。
+     */
+    @Test
+    void rejectsEntryRadiusOutsideSupportedRange() {
+        DungeonDefinition source = DungeonTestFixtures.definition();
+        DungeonDefinition invalid = new DungeonDefinition(
+                source.schemaVersion(),
+                source.id(),
+                source.displayName(),
+                new DungeonDefinition.Entry(
+                        source.entry().worldId(),
+                        source.entry().x(),
+                        source.entry().y(),
+                        source.entry().z(),
+                        source.entry().yaw(),
+                        source.entry().pitch(),
+                        0.25D
+                ),
+                source.partySize(),
+                source.generation(),
+                source.theme(),
+                source.encounter()
+        );
+        Map<String, MobTemplate> mobs = Map.of(
+                "weak", DungeonTestFixtures.mob("weak", 5, MobCategory.ENEMY),
+                "strong", DungeonTestFixtures.mob("strong", 20, MobCategory.ENEMY),
+                "boss", DungeonTestFixtures.mob("boss", 30, MobCategory.BOSS)
+        );
+
+        assertThrows(IllegalArgumentException.class, () -> validator.validateAll(
+                List.of(invalid), mobs, Map.of(invalid.entry().worldId(), world(invalid.entry().worldId()))));
     }
 
     private WorldMasterData world(String id) {
@@ -68,7 +104,7 @@ class DungeonDefinitionValidatorTest {
                 1,
                 id,
                 "Dungeon Instance",
-                WorldType.DUNGEON,
+                WorldType.OVERWORLD,
                 "",
                 "instances/dungeons",
                 false,

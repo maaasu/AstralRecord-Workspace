@@ -19,16 +19,20 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
+import io.github.maaasu.astralRecord.feature.world.model.WorldSpawnLocation;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -53,6 +57,10 @@ import java.util.concurrent.ThreadLocalRandom;
  * アクティブセッションは開始時のマスタと Mob テンプレートを保持するため、reload の影響を受けません。
  */
 public final class DungeonService {
+    private static final String INSTANCE_ROOT_PATH = "plugins/AstralRecord/_world_instances/dungeon";
+    private static final long ENTRY_VISUAL_PERIOD_TICKS = 10L;
+    private static final int ENTRY_FRAME_POINTS = 20;
+    private static final double ENTRY_VIEW_DISTANCE_SQUARED = 48.0D * 48.0D;
     private final AstralRecord plugin;
     private final DungeonDefinitionRepository repository;
     private final DungeonDefinitionValidator validator;
@@ -64,21 +72,39 @@ public final class DungeonService {
     private final PartyService partyService;
     private final MobService mobService;
     private final PlayerMessageService messageService;
+    private final ParticleDisplayService particleDisplayService;
+    private final String hubWorldId;
 
     private volatile Map<String, LoadedDefinition> loadedDefinitions = Map.of();
     private final Map<UUID, Session> sessionsById = new LinkedHashMap<>();
     private final Map<UUID, UUID> sessionIdByParticipant = new HashMap<>();
     private final Map<UUID, UUID> sessionIdByWorld = new HashMap<>();
     private final Map<UUID, MobBinding> mobBindings = new HashMap<>();
+    private BukkitTask entryVisualTask;
+    private long entryVisualFrame;
     private boolean stopping;
 
+    /**
+     * ダンジョン定義、生成処理、待機ハブ転送、受付演出に必要な依存を構成します。
+     *
+     * @param plugin Plugin 本体
+     * @param repository ダンジョン定義リポジトリ
+     * @param worldService World 管理サービス
+     * @param partyService パーティー管理サービス
+     * @param mobService Mob 管理サービス
+     * @param messageService プレイヤーメッセージサービス
+     * @param particleDisplayService パーティクル表示サービス
+     * @param hubWorldId 生成待機中に参加者を退避する HUB World ID
+     */
     public DungeonService(
             @NotNull AstralRecord plugin,
             @NotNull DungeonDefinitionRepository repository,
             @NotNull WorldService worldService,
             @NotNull PartyService partyService,
             @NotNull MobService mobService,
-            @NotNull PlayerMessageService messageService
+            @NotNull PlayerMessageService messageService,
+            @NotNull ParticleDisplayService particleDisplayService,
+            @NotNull String hubWorldId
     ) {
         this.plugin = plugin;
         this.repository = repository;
@@ -91,6 +117,8 @@ public final class DungeonService {
         this.partyService = partyService;
         this.mobService = mobService;
         this.messageService = messageService;
+        this.particleDisplayService = particleDisplayService;
+        this.hubWorldId = hubWorldId;
     }
 
     /** 現在ロード済みの Mob/World を参照して初回ロードします。 */
@@ -134,7 +162,8 @@ public final class DungeonService {
                     .toList();
             loaded.put(definition.id(), new LoadedDefinition(
                     definition,
-                    worldsById.get(definition.worldId()),
+                    worldsById.get(definition.entry().worldId()),
+                    createInstanceWorldData(definition),
                     normalMobs,
                     mobsById.get(definition.encounter().bossMobId())
             ));
@@ -153,10 +182,19 @@ public final class DungeonService {
         requireMainThread();
         stopping = false;
         Collection<WorldMasterData> worlds = loadedDefinitions.values().stream()
-                .map(LoadedDefinition::worldData)
+                .map(LoadedDefinition::instanceWorldData)
                 .distinct()
                 .toList();
         instanceWorldService.cleanupStaleInstances(worlds);
+        if (entryVisualTask != null) {
+            entryVisualTask.cancel();
+        }
+        entryVisualTask = Bukkit.getScheduler().runTaskTimer(
+                plugin,
+                this::tickEntryVisuals,
+                1L,
+                ENTRY_VISUAL_PERIOD_TICKS
+        );
     }
 
     /**
@@ -189,6 +227,14 @@ public final class DungeonService {
         }
         if (!AccountModeGuard.isGameplayPlayer(AstPlayerCache.get(leader))) {
             return StartRequestResult.of(StartStatus.NOT_GAMEPLAY);
+        }
+        if (!isInsideEntry(leader, loaded)) {
+            return StartRequestResult.of(StartStatus.NOT_AT_ENTRY);
+        }
+
+        WorldMasterData hubData = worldService.getById(hubWorldId);
+        if (hubData == null || worldService.resolveOrLoadWorld(hubData) == null) {
+            return StartRequestResult.of(StartStatus.HUB_UNAVAILABLE);
         }
 
         Party party = partyService.findParty(leader.getUniqueId());
@@ -225,8 +271,40 @@ public final class DungeonService {
         sessionsById.put(sessionId, session);
         Logger.log(LogId.I_7001, sessionId.toString(), dungeonId, seed, participantCount);
         message(participants, PlayerMsgId.P_7008, loaded.definition().displayName());
-        prepareAsync(session);
+        transferToHubAndPrepare(session, participants, hubData);
         return StartRequestResult.of(StartStatus.ACCEPTED);
+    }
+
+    /**
+     * 受付済み参加者を待機ハブへ転送し、最低人数を再確認して生成を開始します。
+     *
+     * @param session 受付済みセッション
+     * @param participants 受付時点のオンライン参加者
+     * @param hubData 転送先 HUB World 定義
+     */
+    private void transferToHubAndPrepare(
+            @NotNull Session session,
+            @NotNull List<Player> participants,
+            @NotNull WorldMasterData hubData
+    ) {
+        List<CompletableFuture<Boolean>> transfers = new ArrayList<>();
+        for (Player participant : participants) {
+            CompletableFuture<Boolean> transfer = worldService.teleportToSpawnAsync(participant, hubData);
+            session.entryTransfers.put(participant.getUniqueId(), transfer);
+            transfers.add(transfer);
+        }
+        CompletableFuture.allOf(transfers.toArray(CompletableFuture[]::new))
+                .whenComplete((ignored, failure) -> runMain(() -> {
+                    if (session.ending || sessionsById.get(session.id) != session) {
+                        return;
+                    }
+                    retainEligiblePreparingParticipants(session, hubData);
+                    if (session.participants.size() < session.loaded.definition().partySize().min()) {
+                        completeSession(session, EndReason.PARTICIPANT_REQUIREMENT_NOT_MET, false);
+                        return;
+                    }
+                    prepareAsync(session);
+                }));
     }
 
     private @NotNull List<Player> snapshotParticipants(@NotNull Player leader, @Nullable Party party) {
@@ -268,7 +346,7 @@ public final class DungeonService {
             instanceWorldService.create(
                     session.id,
                     session.loaded.definition(),
-                    session.loaded.worldData(),
+                    session.loaded.instanceWorldData(),
                     prepared.blocks()
             ).whenComplete((instance, worldFailure) -> runMain(() -> {
                 if (session.ending || stopping || sessionsById.get(session.id) != session) {
@@ -300,6 +378,16 @@ public final class DungeonService {
     ) {
         session.instanceWorld = instance;
         sessionIdByWorld.put(instance.world().getUID(), session.id);
+        WorldMasterData hubData = worldService.getById(hubWorldId);
+        if (hubData == null) {
+            completeSession(session, EndReason.PARTICIPANT_REQUIREMENT_NOT_MET, false);
+            return;
+        }
+        retainEligiblePreparingParticipants(session, hubData);
+        if (session.participants.size() < session.loaded.definition().partySize().min()) {
+            completeSession(session, EndReason.PARTICIPANT_REQUIREMENT_NOT_MET, false);
+            return;
+        }
         DungeonBlockPlan.Position spawn = session.blockPlan.playerSpawn();
         Location target = new Location(instance.world(), spawn.x() + 0.5D, spawn.y(), spawn.z() + 0.5D);
         List<CompletableFuture<Boolean>> transfers = new ArrayList<>();
@@ -499,12 +587,8 @@ public final class DungeonService {
             return;
         }
         World instance = session.instanceWorld == null ? null : session.instanceWorld.world();
-        if (!player.isOnline() || instance == null
-                || !player.getWorld().getUID().equals(instance.getUID())) {
+        if (!player.isOnline()) {
             finalizeParticipantRemoval(session, playerId);
-            if (player.isOnline()) {
-                messageService.send(player, PlayerMsgId.P_7015);
-            }
             return;
         }
 
@@ -520,9 +604,10 @@ public final class DungeonService {
                     if (!isCurrentParticipant(session, playerId)) {
                         return;
                     }
-                    boolean outsideInstance = !player.isOnline()
-                            || !player.getWorld().getUID().equals(instance.getUID());
-                    if ((failure == null && Boolean.TRUE.equals(success)) || outsideInstance) {
+                    boolean reachedReturnWorld = player.isOnline()
+                            && target.getWorld() != null
+                            && player.getWorld().getUID().equals(target.getWorld().getUID());
+                    if ((failure == null && Boolean.TRUE.equals(success)) || reachedReturnWorld) {
                         finalizeParticipantRemoval(session, playerId);
                         if (player.isOnline()) {
                             messageService.send(player, PlayerMsgId.P_7015);
@@ -584,6 +669,7 @@ public final class DungeonService {
         }
 
         if (session.instanceWorld == null) {
+            returnParticipants(session, null);
             return;
         }
         World instance = session.instanceWorld.world();
@@ -633,6 +719,10 @@ public final class DungeonService {
     public void stop() {
         requireMainThread();
         stopping = true;
+        if (entryVisualTask != null) {
+            entryVisualTask.cancel();
+            entryVisualTask = null;
+        }
         for (Session session : List.copyOf(sessionsById.values())) {
             session.ending = true;
             for (Set<UUID> roomMobs : session.liveMobsByRoom.values()) {
@@ -654,6 +744,14 @@ public final class DungeonService {
                 }
                 evacuateRemainingPlayers(instance);
                 instanceWorldService.destroyNow(session.instanceWorld);
+            } else {
+                for (UUID participantId : session.participants) {
+                    Player player = Bukkit.getPlayer(participantId);
+                    Location target = resolveReturnLocation(session.returnLocations.get(participantId), null);
+                    if (player != null && player.isOnline() && target != null) {
+                        PlayerTeleportService.teleport(player, target);
+                    }
+                }
             }
         }
         for (DungeonInstanceWorldService.InstanceWorld instance : instanceWorldService.activeInstances()) {
@@ -675,6 +773,181 @@ public final class DungeonService {
     /** ロード済みダンジョン ID 一覧です。 */
     public @NotNull List<String> getDungeonIds() {
         return loadedDefinitions.keySet().stream().sorted().toList();
+    }
+
+    /**
+     * 個別 World マスタを要求せず、安全な共通設定から一時 DUNGEON World 定義を作成します。
+     *
+     * @param definition ダンジョン定義
+     * @return セッション生成に使用する実行時 World 定義
+     */
+    private @NotNull WorldMasterData createInstanceWorldData(@NotNull DungeonDefinition definition) {
+        return new WorldMasterData(
+                1,
+                "dungeon_" + definition.id(),
+                definition.displayName(),
+                WorldType.DUNGEON,
+                "",
+                INSTANCE_ROOT_PATH,
+                false,
+                true,
+                definition.partySize().max(),
+                false,
+                false,
+                false,
+                false,
+                WorldSpawnLocation.defaultLocation(),
+                "Procedurally generated dungeon instance",
+                null,
+                null,
+                null
+        );
+    }
+
+    /**
+     * プレイヤーが定義された挑戦受付範囲内にいるか判定します。
+     *
+     * @param player 判定対象
+     * @param loaded 受付 World を含むロード済み定義
+     * @return 同一 World かつ受付半径内なら {@code true}
+     */
+    private boolean isInsideEntry(@NotNull Player player, @NotNull LoadedDefinition loaded) {
+        WorldMasterData currentWorld = worldService.findByBukkitWorld(player.getWorld());
+        DungeonDefinition.Entry entry = loaded.definition().entry();
+        if (currentWorld == null || !currentWorld.id().equals(entry.worldId())) {
+            return false;
+        }
+        Location center = entryLocation(entry, player.getWorld());
+        return player.getLocation().distanceSquared(center) <= entry.radius() * entry.radius();
+    }
+
+    /**
+     * 生成待機中の固定参加者から、オンライン・通常プレイ・ハブ滞在条件を満たさない者を除外します。
+     * 除外したオンライン参加者には受付前 Location への非同期転送を試みます。
+     *
+     * @param session 準備中セッション
+     * @param hubData 待機 HUB World 定義
+     */
+    private void retainEligiblePreparingParticipants(
+            @NotNull Session session,
+            @NotNull WorldMasterData hubData
+    ) {
+        World hubWorld = worldService.resolveLoadedWorld(hubData);
+        for (UUID participantId : List.copyOf(session.participants)) {
+            Player player = Bukkit.getPlayer(participantId);
+            boolean eligible = player != null
+                    && player.isOnline()
+                    && hubWorld != null
+                    && player.getWorld().getUID().equals(hubWorld.getUID())
+                    && AccountModeGuard.isGameplayPlayer(AstPlayerCache.get(player));
+            if (eligible) {
+                continue;
+            }
+            session.participants.remove(participantId);
+            sessionIdByParticipant.remove(participantId);
+            session.entryTransfers.remove(participantId);
+            if (player != null && player.isOnline()) {
+                Location target = resolveReturnLocation(session.returnLocations.get(participantId), null);
+                if (target != null) {
+                    worldService.teleportPlayerAsync(player, target, null);
+                }
+            }
+        }
+    }
+
+    /**
+     * 残存オンライン参加者を受付前 Location または安全な非 DUNGEON World へ戻します。
+     *
+     * @param session 終了対象セッション
+     * @param instance 除外すべき一時 World。未生成時は {@code null}
+     */
+    private void returnParticipants(@NotNull Session session, @Nullable World instance) {
+        for (UUID participantId : session.participants) {
+            Player player = Bukkit.getPlayer(participantId);
+            Location target = resolveReturnLocation(session.returnLocations.get(participantId), instance);
+            if (player != null && player.isOnline() && target != null) {
+                worldService.teleportPlayerAsync(player, target, null);
+            }
+        }
+    }
+
+    /** ロード済み受付地点のうち、近隣プレイヤーがいる地点へダンジョン専用演出を表示します。 */
+    private void tickEntryVisuals() {
+        double pulse = 0.08D * Math.sin(entryVisualFrame * 0.35D);
+        for (LoadedDefinition loaded : loadedDefinitions.values()) {
+            World world = worldService.resolveLoadedWorld(loaded.entryWorldData());
+            if (world == null) {
+                continue;
+            }
+            DungeonDefinition.Entry entry = loaded.definition().entry();
+            Location center = entryLocation(entry, world);
+            if (world.getPlayers().stream().noneMatch(player ->
+                    player.getLocation().distanceSquared(center) <= ENTRY_VIEW_DISTANCE_SQUARED)) {
+                continue;
+            }
+            List<Location> frame = dungeonGateFrame(center, Math.max(0.9D, entry.radius() * 0.65D), pulse);
+            particleDisplayService.spawnForNearbyViewers(
+                    center,
+                    frame,
+                    SharedParticleDefinitions.DUNGEON_ENTRY_FRAME_DUST
+            );
+            particleDisplayService.spawnForNearbyViewers(
+                    center.clone().add(0.0D, 1.25D, 0.0D),
+                    SharedParticleDefinitions.DUNGEON_ENTRY_PORTAL
+            );
+        }
+        entryVisualFrame++;
+    }
+
+    /**
+     * Boss の円環と区別できる門型パーティクル座標を生成します。
+     *
+     * @param center 受付中心と向き
+     * @param halfWidth 門の半幅
+     * @param pulse 現在フレームの上下変位
+     * @return 左右の柱と上辺を構成する座標
+     */
+    private @NotNull List<Location> dungeonGateFrame(
+            @NotNull Location center,
+            double halfWidth,
+            double pulse
+    ) {
+        List<Location> points = new ArrayList<>(ENTRY_FRAME_POINTS);
+        double yaw = Math.toRadians(center.getYaw());
+        double rightX = Math.cos(yaw);
+        double rightZ = Math.sin(yaw);
+        for (int side : List.of(-1, 1)) {
+            for (int i = 0; i <= 6; i++) {
+                points.add(center.clone().add(
+                        rightX * halfWidth * side,
+                        0.2D + (i * 0.38D) + pulse,
+                        rightZ * halfWidth * side
+                ));
+            }
+        }
+        for (int i = 0; i <= 6; i++) {
+            double offset = -halfWidth + ((halfWidth * 2.0D * i) / 6.0D);
+            points.add(center.clone().add(
+                    rightX * offset,
+                    2.48D + pulse,
+                    rightZ * offset
+            ));
+        }
+        return points;
+    }
+
+    /**
+     * マスタの受付座標を指定 Bukkit World 上の Location へ変換します。
+     *
+     * @param entry 受付座標定義
+     * @param world 解決済み受付 World
+     * @return 受付 Location
+     */
+    private @NotNull Location entryLocation(
+            @NotNull DungeonDefinition.Entry entry,
+            @NotNull World world
+    ) {
+        return new Location(world, entry.x(), entry.y(), entry.z(), entry.yaw(), entry.pitch());
     }
 
     private @NotNull DungeonLayout.Room room(@NotNull Session session, int roomId) {
@@ -741,7 +1014,8 @@ public final class DungeonService {
     /** ダンジョン定義と、同時点の参照先マスタを束ねたスナップショットです。 */
     public record LoadedDefinition(
             @NotNull DungeonDefinition definition,
-            @NotNull WorldMasterData worldData,
+            @NotNull WorldMasterData entryWorldData,
+            @NotNull WorldMasterData instanceWorldData,
             @NotNull List<LoadedMob> normalMobs,
             @NotNull MobTemplate bossMob
     ) {
@@ -762,7 +1036,9 @@ public final class DungeonService {
         NOT_PARTY_LEADER,
         PARTY_SIZE,
         PARTICIPANT_BUSY,
-        NOT_GAMEPLAY
+        NOT_GAMEPLAY,
+        NOT_AT_ENTRY,
+        HUB_UNAVAILABLE
     }
 
     /** 開始受付結果です。人数エラー時だけ min/max/current が設定されます。 */
@@ -789,6 +1065,7 @@ public final class DungeonService {
         CLEARED,
         EMPTY,
         PREPARATION_FAILED,
+        PARTICIPANT_REQUIREMENT_NOT_MET,
         TRANSFER_FAILED,
         SPAWN_FAILED
     }

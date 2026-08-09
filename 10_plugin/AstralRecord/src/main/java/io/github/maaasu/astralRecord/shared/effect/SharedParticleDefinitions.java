@@ -98,6 +98,19 @@ public final class SharedParticleDefinitions {
         );
     public static final SharedParticleDefinition BOSS_ENTRY_SOUL_FIRE =
         new SharedParticleDefinition("boss_entry_soul_fire", Particle.SOUL_FIRE_FLAME, 3, 0.16D, 0.12D, 0.16D, 0.01D);
+    public static final SharedParticleDefinition DUNGEON_ENTRY_FRAME_DUST =
+        new SharedParticleDefinition(
+            "dungeon_entry_frame_dust",
+            Particle.DUST,
+            1,
+            0.01D,
+            0.01D,
+            0.01D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(55, 225, 205), 1.0F)
+        );
+    public static final SharedParticleDefinition DUNGEON_ENTRY_PORTAL =
+        new SharedParticleDefinition("dungeon_entry_portal", Particle.PORTAL, 8, 0.42D, 0.78D, 0.10D, 0.08D);
     public static final SharedParticleDefinition BASE_RETURN_RING_END_ROD =
         new SharedParticleDefinition("base_return_ring_end_rod", Particle.END_ROD, 1, 0.0D, 0.0D, 0.0D, 0.0D);
     public static final SharedParticleDefinition BASE_RETURN_PORTAL =

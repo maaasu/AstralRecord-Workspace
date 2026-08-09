@@ -1,116 +1,67 @@
 # Dungeon YAML スキーマ定義
 
-開始要求ごとに BSP で一時ワールドへ生成する、1階層ダンジョンの静的マスタです。一つの YAML に一つのダンジョンを定義します。部屋座標や分割木は seed から実行時生成するため定義しません。
+開始要求ごとに BSP で一時ワールドへ生成する、1階層ダンジョンの静的マスタです。一つの YAML に一つのダンジョンを定義します。生成調整値には安全な既定値があり、最小構成では受付地点と Mob 参照だけを記述します。
 
-## スキーマ定義
+## 必須項目
 
-| キー | 型 | 必須 | 制約・説明 |
-|:--|:--|:--:|:--|
-| `schemaVersion` | Integer | ○ | 現在は `1` |
-| `id` | String | ○ | ダンジョン ID。ファイル間で一意 |
-| `displayName` | String | ○ | プレイヤー表示名 |
-| `worldRef` | String | ○ | `world:` 参照。`DUNGEON`, `instanceEnabled=true`, `autoLoad=false` |
-| `party.min/max` | Integer | ○ | `1..6`、min <= max。World の maxPlayers 以下 |
-| `generation.area.width/depth` | Integer | ○ | 各 `32..256`、積は 65,536 以下 |
-| `generation.baseY` | Integer | ○ | 部屋床 Y。部屋天井を含め `-60..316` 内に収める |
-| `generation.roomCount.min/max` | Integer | ○ | `3..64`。範囲から seed 抽選 |
-| `generation.roomSize.min/max` | Integer | ○ | `7..64`。各葉区画内の幅・奥行き抽選範囲 |
-| `generation.roomHeight` | Integer | ○ | `5..32`。床・天井を含む高さ |
-| `generation.corridorWidth` | Integer | ○ | `1..7` の奇数 |
-| `generation.corridorHeight` | Integer | ○ | `2..roomHeight-2`。歩行空間の高さ |
-| `generation.splitRatio.min/max` | Double | ○ | 順序を保った `0.25..0.50` |
-| `generation.roomShapes[]` | List | ○ | 一件以上 |
-| `generation.roomShapes[].type` | Enum | ○ | `RECTANGLE` / `CYLINDER` |
-| `generation.roomShapes[].weight` | Integer | ○ | 正の相対 weight |
-| `theme.floor/wall/ceiling/corridor[]` | List | ○ | 各一件以上の重み付き Material |
-| `theme.*[].material` | String | ○ | AIR ではない solid block Material |
-| `theme.*[].weight` | Integer | ○ | 正の相対 weight。合計 100 は不要 |
-| `theme.gateMaterial` | String | ○ | 通路を閉じる solid block Material |
-| `theme.pillar.enabled` | Boolean | ○ | 中央柱を抽選するか |
-| `theme.pillar.chance` | Double | ○ | 部屋ごとの生成率 `0.0..1.0` |
-| `theme.pillar.material` | String | ○ | 柱本体の solid block Material |
-| `theme.pillar.stairMaterial` | String | ○ | 末尾 `_STAIRS` の Material |
-| `encounter.normalMobPool[]` | List | ○ | 一件以上の ENEMY Mob 参照 |
-| `encounter.normalMobPool[].mobId` | String | ○ | `mob:` 参照 |
-| `encounter.normalMobPool[].weight` | Integer | ○ | 正の相対 weight |
-| `encounter.mobsPerRoom.min/max` | Integer | ○ | `1..16`。通常部屋ごとの出現数 |
-| `encounter.firstCombatRoomMaxMobLevel` | Integer | ○ | 正数。開始部屋の候補上限。条件内候補が最低一体必要 |
-| `encounter.bossMobId` | String | ○ | BOSS category の `mob:` 参照 |
+| キー | 型 | 制約・説明 |
+|:--|:--|:--|
+| `schemaVersion` | Integer | 現在は `1` |
+| `id` | String | ダンジョン ID。ファイル間で一意 |
+| `displayName` | String | プレイヤー表示名 |
+| `entry.worldRef` | String | 挑戦受付地点を置く既存 `world:` 参照 |
+| `entry.x/y/z` | Double | 挑戦受付地点 |
+| `encounter.normalMobPool[]` | List | 一件以上の ENEMY Mob 参照 |
+| `encounter.normalMobPool[].mobId` | String | `mob:` 参照 |
+| `encounter.bossMobId` | String | BOSS category の `mob:` 参照 |
 
-## YAML 例
+## 省略可能な調整項目
 
-これはスキーマ例であり、本番投入する個別ダンジョンではありません。Material の weight は相対値として扱います。
+| キー | 型 | 既定値・制約 |
+|:--|:--|:--|
+| `entry.yaw/pitch` | Double | `0.0`。門型パーティクルの向きにも使用 |
+| `entry.radius` | Double | `2.0`、`0.5..16.0` |
+| `party.min/max` | Integer | `1/4`、`1..6`、min <= max |
+| `generation.area.width/depth` | Integer | `128/128`。各 `32..256`、積 65,536 以下 |
+| `generation.baseY` | Integer | `64`。天井を含め `-60..316` 内 |
+| `generation.roomCount.min/max` | Integer | `7/11`、`3..64`。seed 抽選 |
+| `generation.roomSize.min/max` | Integer | `11/23`、`7..64` |
+| `generation.roomHeight` | Integer | `8`、`5..32` |
+| `generation.corridorWidth` | Integer | `3`、`1..7` の奇数 |
+| `generation.corridorHeight` | Integer | `4`、`2..roomHeight-2` |
+| `generation.splitRatio.min/max` | Double | `0.35/0.50`、`0.25..0.50` |
+| `generation.roomShapes[]` | List | `RECTANGLE:3`, `CYLINDER:1`。type は両列挙値、weight 省略時 `1` |
+| `theme.floor/wall/ceiling[]` | List | 各 `STONE_BRICKS:1` |
+| `theme.corridor[]` | List | `COBBLESTONE:1` |
+| `theme.*[].material` | String | AIR ではない solid block Material |
+| `theme.*[].weight` | Integer | `1`。正の相対 weight |
+| `theme.gateMaterial` | String | `IRON_BARS` |
+| `theme.pillar.enabled` | Boolean | `false` |
+| `theme.pillar.chance` | Double | `0.35`、`0.0..1.0` |
+| `theme.pillar.material` | String | `CHISELED_STONE_BRICKS` |
+| `theme.pillar.stairMaterial` | String | `STONE_BRICK_STAIRS` |
+| `encounter.normalMobPool[].weight` | Integer | `1`。正の相対 weight |
+| `encounter.mobsPerRoom.min/max` | Integer | `2/4`、`1..16` |
+| `encounter.firstCombatRoomMaxMobLevel` | Integer | `10`。開始部屋候補の level 上限 |
+
+ダンジョンごとの DUNGEON World マスタは不要です。Plugin が共通インスタンスルートと保護設定から実行時 World 定義を生成します。
+
+## 最小 YAML 例
 
 ```yaml
 schemaVersion: 1
-id: example_stone_ruins
+id: example_ruins
 displayName: "石造遺跡（例）"
-worldRef: world:example_dungeon_instance
-
-party:
-  min: 1
-  max: 4
-
-generation:
-  area:
-    width: 128
-    depth: 128
-  baseY: 64
-  roomCount:
-    min: 7
-    max: 11
-  roomSize:
-    min: 11
-    max: 23
-  roomHeight: 8
-  corridorWidth: 3
-  corridorHeight: 4
-  splitRatio:
-    min: 0.35
-    max: 0.50
-  roomShapes:
-    - type: RECTANGLE
-      weight: 70
-    - type: CYLINDER
-      weight: 30
-
-theme:
-  floor:
-    - material: STONE_BRICKS
-      weight: 60
-    - material: CRACKED_STONE_BRICKS
-      weight: 25
-    - material: MOSSY_STONE_BRICKS
-      weight: 15
-  wall:
-    - material: STONE_BRICKS
-      weight: 80
-    - material: MOSSY_STONE_BRICKS
-      weight: 20
-  ceiling:
-    - material: STONE_BRICKS
-      weight: 100
-  corridor:
-    - material: STONE_BRICKS
-      weight: 85
-    - material: MOSSY_STONE_BRICKS
-      weight: 15
-  gateMaterial: IRON_BARS
-  pillar:
-    enabled: true
-    chance: 0.35
-    material: CHISELED_STONE_BRICKS
-    stairMaterial: STONE_BRICK_STAIRS
-
+entry:
+  worldRef: world:example_overworld
+  x: 10.5
+  y: 64.0
+  z: -20.5
 encounter:
   normalMobPool:
     - mobId: mob:example_skeleton
-      weight: 70
     - mobId: mob:example_guard
-      weight: 30
-  mobsPerRoom:
-    min: 2
-    max: 5
-  firstCombatRoomMaxMobLevel: 10
   bossMobId: mob:example_ruins_boss
 ```
+
+生成範囲、部屋数、Material、柱、Mob 数を個別調整したいダンジョンだけ、省略可能項目を追加します。

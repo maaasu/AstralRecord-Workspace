@@ -4,7 +4,6 @@ import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonDefinition;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
-import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashSet;
@@ -48,24 +47,14 @@ public final class DungeonDefinitionValidator {
         }
         validateRange(definition, "party", definition.partySize(), 1, 6);
 
-        WorldMasterData world = worldsById.get(definition.worldId());
+        DungeonDefinition.Entry entry = definition.entry();
+        WorldMasterData world = worldsById.get(entry.worldId());
         if (world == null) {
-            fail(definition, "worldRef does not exist: " + definition.worldId());
+            fail(definition, "entry.worldRef does not exist: " + entry.worldId());
         }
-        if (world.worldType() != WorldType.DUNGEON || !world.instanceEnabled()) {
-            fail(definition, "worldRef must be DUNGEON and instanceEnabled=true: " + definition.worldId());
-        }
-        if (world.instanceRootPath().isBlank()) {
-            fail(definition, "worldRef.instanceRootPath is required");
-        }
-        if (world.autoLoad()) {
-            fail(definition, "procedural dungeon worldRef must use autoLoad=false");
-        }
-        if (world.allowBlockBreak() || world.allowBlockPlace() || world.allowMobSpawn()) {
-            fail(definition, "dungeon worldRef must disable block break/place and natural mob spawn");
-        }
-        if (world.maxPlayers() < definition.partySize().max()) {
-            fail(definition, "worldRef.maxPlayers is smaller than party.max");
+        if (!Double.isFinite(entry.x()) || !Double.isFinite(entry.y()) || !Double.isFinite(entry.z())
+                || !Double.isFinite(entry.radius()) || entry.radius() < 0.5D || entry.radius() > 16.0D) {
+            fail(definition, "entry coordinates must be finite and radius must be 0.5..16.0");
         }
 
         DungeonDefinition.Generation generation = definition.generation();
@@ -119,13 +108,13 @@ public final class DungeonDefinitionValidator {
         }
         validatePositiveWeights(definition, "encounter.normalMobPool", encounter.normalMobPool());
         boolean firstRoomCandidate = false;
-        for (DungeonDefinition.WeightedMob entry : encounter.normalMobPool()) {
-            MobTemplate mob = mobsById.get(entry.mobId());
+        for (DungeonDefinition.WeightedMob mobEntry : encounter.normalMobPool()) {
+            MobTemplate mob = mobsById.get(mobEntry.mobId());
             if (mob == null) {
-                fail(definition, "normal mob does not exist: " + entry.mobId());
+                fail(definition, "normal mob does not exist: " + mobEntry.mobId());
             }
             if (mob.category() != MobCategory.ENEMY) {
-                fail(definition, "normal mob must use ENEMY category: " + entry.mobId());
+                fail(definition, "normal mob must use ENEMY category: " + mobEntry.mobId());
             }
             if (mob.level() <= encounter.firstCombatRoomMaxMobLevel()) {
                 firstRoomCandidate = true;

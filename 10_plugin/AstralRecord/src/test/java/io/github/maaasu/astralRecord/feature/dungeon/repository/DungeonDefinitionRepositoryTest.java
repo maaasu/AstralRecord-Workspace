@@ -38,12 +38,43 @@ class DungeonDefinitionRepositoryTest {
         assertEquals(1, definitions.size());
         DungeonDefinition definition = definitions.getFirst();
         assertEquals("test_dungeon", definition.id());
-        assertEquals("test_world", definition.worldId());
+        assertEquals("test_world", definition.entry().worldId());
+        assertEquals(2.0D, definition.entry().radius());
         assertEquals(new DungeonDefinition.IntRange(7, 11), definition.generation().roomCount());
         assertEquals(DungeonRoomShape.CYLINDER, definition.generation().roomShapes().get(1).shape());
-        assertEquals(Material.MOSSY_STONE_BRICKS, definition.theme().floor().get(1).material());
-        assertTrue(definition.theme().pillar().enabled());
+        assertEquals(Material.STONE_BRICKS, definition.theme().floor().getFirst().material());
+        assertTrue(!definition.theme().pillar().enabled());
         assertEquals("boss", definition.encounter().bossMobId());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_1-モデル定義.md
+     * 章・見出し: # 32_1-モデル定義 > ## 1. DungeonDefinition
+     * 検証契約: 本番向け最小構成マスタが追加のWorldマスタなしでDungeonDefinitionへ読み込める。
+     */
+    @Test
+    void parsesProductionMinimalDungeonMaster() {
+        Path repositoryRoot = findRepositoryRoot();
+        Path filebase = repositoryRoot.resolve("40_filebase");
+
+        List<DungeonDefinition> definitions = FileDatabaseManager.getInstance().withReloadSnapshot(
+                new FileDatabaseManager.ReloadSnapshot(filebase.toFile()),
+                () -> new DungeonDefinitionRepository().findAll()
+        );
+
+        assertEquals(1, definitions.size());
+        assertEquals("twilight_mine", definitions.getFirst().id());
+    }
+
+    private Path findRepositoryRoot() {
+        Path current = Path.of("").toAbsolutePath().normalize();
+        while (current != null && !Files.isDirectory(current.resolve("40_filebase"))) {
+            current = current.getParent();
+        }
+        if (current == null) {
+            throw new IllegalStateException("Repository root with 40_filebase was not found");
+        }
+        return current;
     }
 
     private String yaml() {
@@ -51,63 +82,15 @@ class DungeonDefinitionRepositoryTest {
                 schemaVersion: 1
                 id: test_dungeon
                 displayName: Test Dungeon
-                worldRef: world:test_world
-                party:
-                  min: 1
-                  max: 4
-                generation:
-                  area:
-                    width: 128
-                    depth: 128
-                  baseY: 64
-                  roomCount:
-                    min: 7
-                    max: 11
-                  roomSize:
-                    min: 11
-                    max: 23
-                  roomHeight: 8
-                  corridorWidth: 3
-                  corridorHeight: 4
-                  splitRatio:
-                    min: 0.35
-                    max: 0.50
-                  roomShapes:
-                    - type: RECTANGLE
-                      weight: 70
-                    - type: CYLINDER
-                      weight: 30
-                theme:
-                  floor:
-                    - material: STONE_BRICKS
-                      weight: 60
-                    - material: MOSSY_STONE_BRICKS
-                      weight: 40
-                  wall:
-                    - material: STONE_BRICKS
-                      weight: 1
-                  ceiling:
-                    - material: STONE_BRICKS
-                      weight: 1
-                  corridor:
-                    - material: COBBLESTONE
-                      weight: 1
-                  gateMaterial: IRON_BARS
-                  pillar:
-                    enabled: true
-                    chance: 0.35
-                    material: CHISELED_STONE_BRICKS
-                    stairMaterial: STONE_BRICK_STAIRS
+                entry:
+                  worldRef: world:test_world
+                  x: 1.5
+                  y: 64.0
+                  z: 2.5
                 encounter:
                   normalMobPool:
                     - mobId: mob:weak
-                      weight: 70
                     - mobId: mob:strong
-                      weight: 30
-                  mobsPerRoom:
-                    min: 2
-                    max: 5
-                  firstCombatRoomMaxMobLevel: 10
                   bossMobId: mob:boss
                 """;
     }
