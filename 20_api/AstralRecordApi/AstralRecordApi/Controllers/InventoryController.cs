@@ -115,6 +115,7 @@ public class InventoryController(IInventoryRepository inventoryRepository) : Con
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> ReplaceEntries(Guid inventoryId, [FromBody] InventoryEntryReplaceRequest request)
     {
         if (request.Entries.Any(entry =>
@@ -123,7 +124,18 @@ public class InventoryController(IInventoryRepository inventoryRepository) : Con
 
         var replaced = await inventoryRepository.ReplaceEntriesAsync(inventoryId, request);
         if (replaced is null)
-            return NotFound();
+        {
+            var inventory = await inventoryRepository.GetByIdAsync(inventoryId);
+            if (inventory is null)
+                return NotFound();
+
+            return Conflict(new ProblemDetails
+            {
+                Status = StatusCodes.Status409Conflict,
+                Title = "Inventory entry snapshot conflict",
+                Detail = "The inventory entry snapshot is stale or contains an entry that is no longer valid.",
+            });
+        }
 
         return Ok(replaced);
     }

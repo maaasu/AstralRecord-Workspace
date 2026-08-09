@@ -555,6 +555,14 @@ public enum LogId {
      */
     W_5257(5257),
     /**
+     * インベントリ同期の詳細に失敗しました: accountId=%s, inventoryId=%s, trigger=%s, entryCount=%d, status=%d, response=%s
+     */
+    W_5258(5258),
+    /**
+     * 消失したインベントリを再関連付けしました: accountId=%s, oldInventoryId=%s, newInventoryId=%s, trigger=%s
+     */
+    W_5259(5259),
+    /**
      * 装備プリセットスロット同期に失敗しました: loadoutId=%s, slotType=%s, slotIndex=%d, reason=%s
      */
     /**

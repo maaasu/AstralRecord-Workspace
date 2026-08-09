@@ -272,7 +272,7 @@ class InventoryRepository {
                 }
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 if (response.statusCode() !in 200..299) {
-                    throw IOException("Unexpected status ${response.statusCode()} for $method $path")
+                    throw InventoryApiException(method, path, response.statusCode(), response.body())
                 }
                 return parser(response.body())
             }

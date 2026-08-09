@@ -159,6 +159,35 @@ public final class PlayerInventoryState {
     }
 
     /**
+     * API 側で再作成された inventory へ、キャッシュ済み inventory と entry の参照を移します。
+     * <p>
+     * 保存中に API の inventory 本体が失われた場合の復旧専用です。ローカル entry の内容は保持し、
+     * 新しい inventory ID へ書き換えて次回の一括保存で再登録できる状態にします。
+     *
+     * @param oldInventoryId 失われた inventory ID
+     * @param replacement 再取得または再作成した inventory
+     */
+    public synchronized void replaceInventoryReference(
+        @NotNull UUID oldInventoryId,
+        @NotNull InventoryModel replacement
+    ) {
+        for (int index = 0; index < inventories.size(); index++) {
+            if (inventories.get(index).getInventoryId().equals(oldInventoryId)) {
+                inventories.set(index, replacement);
+                break;
+            }
+        }
+        List<InventoryEntryModel> currentEntries = entriesByInventoryId.remove(oldInventoryId);
+        if (currentEntries == null) {
+            return;
+        }
+        List<InventoryEntryModel> reboundEntries = currentEntries.stream()
+            .map(entry -> withInventoryId(entry, replacement.getInventoryId()))
+            .toList();
+        entriesByInventoryId.put(replacement.getInventoryId(), new ArrayList<>(reboundEntries));
+    }
+
+    /**
      * 指定インベントリの metadataJson を更新します。
      *
      * @param inventoryId 対象UUID
@@ -335,6 +364,28 @@ public final class PlayerInventoryState {
             entry.getMetadataJson(),
             entry.getCreatedAt(),
             updatedAt,
+            entry.getCreatedBy(),
+            entry.getUpdatedBy(),
+            entry.isDeleted()
+        );
+    }
+
+    private static @NotNull InventoryEntryModel withInventoryId(
+        @NotNull InventoryEntryModel entry,
+        @NotNull UUID inventoryId
+    ) {
+        return new InventoryEntryModel(
+            entry.getInventoryEntryId(),
+            inventoryId,
+            entry.getSlotIndex(),
+            entry.getItemCategory(),
+            entry.getItemId(),
+            entry.getInstanceType(),
+            entry.getInstanceId(),
+            entry.getQuantity(),
+            entry.getMetadataJson(),
+            entry.getCreatedAt(),
+            entry.getUpdatedAt(),
             entry.getCreatedBy(),
             entry.getUpdatedBy(),
             entry.isDeleted()

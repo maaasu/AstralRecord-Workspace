@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryProfile;
 import io.github.maaasu.astralRecord.feature.inventory.repository.EquipmentLoadoutRepository;
+import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryApiException;
 import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryRepository;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -146,15 +147,66 @@ public final class InventoryPersistence {
                         .filter(e -> !e.isDeleted())
                         .map(InventoryPersistence::toDraft)
                         .toList();
+                    InventoryModel targetInventory = inventory;
                     try {
                         List<InventoryEntryModel> persisted = inventoryRepository.replaceEntries(
-                            inventory.getInventoryId(),
+                            targetInventory.getInventoryId(),
                             drafts,
                             accountId
                         );
-                        state.acknowledgePersistedEntries(inventory.getInventoryId(), entries, persisted);
+                        state.acknowledgePersistedEntries(targetInventory.getInventoryId(), entries, persisted);
+                    } catch (InventoryApiException e) {
+                        if (e.getStatusCode() != 404) {
+                            logInventorySyncFailure(accountId, targetInventory.getInventoryId(), trigger, entries.size(), e);
+                            allOk = false;
+                            continue;
+                        }
+
+                        InventoryModel replacement;
+                        try {
+                            replacement = recoverMissingInventory(state, targetInventory, accountId, trigger);
+                        } catch (RuntimeException recoveryFailure) {
+                            logInventorySyncFailure(
+                                accountId,
+                                targetInventory.getInventoryId(),
+                                trigger,
+                                entries.size(),
+                                recoveryFailure
+                            );
+                            allOk = false;
+                            continue;
+                        }
+                        if (replacement == null) {
+                            logInventorySyncFailure(accountId, targetInventory.getInventoryId(), trigger, entries.size(), e);
+                            allOk = false;
+                            continue;
+                        }
+
+                        targetInventory = replacement;
+                        entries = state.snapshotEntries(targetInventory.getInventoryId());
+                        drafts = entries.stream()
+                            .filter(entry -> !entry.isDeleted())
+                            .map(InventoryPersistence::toDraft)
+                            .toList();
+                        try {
+                            List<InventoryEntryModel> persisted = inventoryRepository.replaceEntries(
+                                targetInventory.getInventoryId(),
+                                drafts,
+                                accountId
+                            );
+                            state.acknowledgePersistedEntries(targetInventory.getInventoryId(), entries, persisted);
+                        } catch (RuntimeException retryFailure) {
+                            logInventorySyncFailure(
+                                accountId,
+                                targetInventory.getInventoryId(),
+                                trigger,
+                                entries.size(),
+                                retryFailure
+                            );
+                            allOk = false;
+                        }
                     } catch (RuntimeException e) {
-                        Logger.warn(LogId.W_5252, inventory.getInventoryId(), e.getMessage());
+                        logInventorySyncFailure(accountId, targetInventory.getInventoryId(), trigger, entries.size(), e);
                         allOk = false;
                     }
                 }
@@ -326,6 +378,94 @@ public final class InventoryPersistence {
             entry.getInventoryEntryId(),
             entry.getUpdatedAt()
         );
+    }
+
+    /**
+     * API 側で消失した inventory を同じ account/profile/type の正本へ再結合します。
+     *
+     * @param state 対象 state
+     * @param missing 消失した inventory
+     * @param accountId account ID
+     * @param trigger 保存契機
+     * @return 再結合先。復旧できない場合は null
+     */
+    private @Nullable InventoryModel recoverMissingInventory(
+        @NotNull PlayerInventoryState state,
+        @NotNull InventoryModel missing,
+        @NotNull UUID accountId,
+        @NotNull SaveTrigger trigger
+    ) {
+        InventoryModel replacement = inventoryRepository.findByAccountId(accountId).stream()
+            .filter(candidate -> candidate.isEnabled() && !candidate.isDeleted())
+            .filter(candidate -> candidate.getInventoryType() == missing.getInventoryType())
+            .filter(candidate -> candidate.getInventoryProfile().equalsIgnoreCase(missing.getInventoryProfile()))
+            .findFirst()
+            .orElse(null);
+        if (replacement == null) {
+            InventoryProfile profile = InventoryProfile.fromCode(missing.getInventoryProfile());
+            if (profile == null) {
+                return null;
+            }
+            replacement = inventoryRepository.create(
+                accountId,
+                missing.getInventoryType(),
+                missing.getSlotCapacity(),
+                accountId,
+                profile,
+                missing.getMetadataJson()
+            );
+        }
+        if (replacement.getInventoryId().equals(missing.getInventoryId())) {
+            return null;
+        }
+        state.replaceInventoryReference(missing.getInventoryId(), replacement);
+        Logger.warn(
+            LogId.W_5259,
+            accountId,
+            missing.getInventoryId(),
+            replacement.getInventoryId(),
+            trigger
+        );
+        return replacement;
+    }
+
+    /**
+     * インベントリ同期失敗の HTTP 情報と保存契機を詳細ログへ出します。
+     *
+     * @param accountId account ID
+     * @param inventoryId 対象 inventory ID
+     * @param trigger 保存契機
+     * @param entryCount ローカル entry 件数
+     * @param failure 失敗原因
+     */
+    private void logInventorySyncFailure(
+        @NotNull UUID accountId,
+        @NotNull UUID inventoryId,
+        @NotNull SaveTrigger trigger,
+        int entryCount,
+        @NotNull Throwable failure
+    ) {
+        int statusCode = failure instanceof InventoryApiException apiFailure
+            ? apiFailure.getStatusCode()
+            : -1;
+        String responseBody = failure instanceof InventoryApiException apiFailure
+            ? apiFailure.getResponseBody()
+            : "<not-http>";
+        Logger.warn(
+            LogId.W_5258,
+            accountId,
+            inventoryId,
+            trigger,
+            entryCount,
+            statusCode,
+            responseBody
+        );
+        Logger.warn(LogId.W_5252, inventoryId, failureReason(failure));
+    }
+
+    private static @NotNull String failureReason(@NotNull Throwable failure) {
+        String message = failure.getMessage();
+        return message == null || message.isBlank() ? failure.getClass().getSimpleName() : message;
     }
 
     /** ロードアウトスロットを (slotType, slotIndex) で一意化するキー。 */
