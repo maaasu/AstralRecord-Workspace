@@ -20,7 +20,7 @@
 | 14 | [[14_0-概要]] | ダメージ計算と戦闘状態 | `feature/combat` |
 | 15 | [[15_0-概要]] | ホットバー入力と item / skill action の調停 | item・inventory・skill が 28 の共通入力調停へ候補を提供する依存境界 |
 | 16 | [[16_0-概要]] | 通貨残高と両替 | `feature/currency` |
-| 17 | [[17_0-概要]] | WorldMasterData、ワールド遷移、スポーン、共通演出確認 | `feature/world`, `feature/particle`, `shared/teleport`, `shared/effect` |
+| 17 | [[17_0-概要]] | WorldMasterData、ワールド遷移、スポーン | `feature/world`, `shared/teleport`, `shared/effect` |
 | 18 | [[18_0-概要]] | メール一覧、既読化、報酬受取 | `feature/mail` |
 | 19 | [[19_0-概要]] | パーティー状態と Mob 報酬共有 | `feature/party` |
 | 20 | [[20_0-概要]] | ショップ表示、コスト preview、購入補償 | `feature/shop` |
@@ -199,7 +199,6 @@
 ### [[17_0-概要|17-world]]
 
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/world/*`
-- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/particle/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/shared/teleport/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/menu/event/MenuOpenEventHandler.java`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/service/MobService.java`
