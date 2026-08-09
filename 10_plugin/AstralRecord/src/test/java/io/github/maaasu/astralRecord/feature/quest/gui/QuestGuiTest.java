@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.quest.gui;
 
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationHolder;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
@@ -20,7 +21,7 @@ class QuestGuiTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
      * 章・見出し: # 29_3-メソッド仕様 > ## 13. NPC interaction・GUI
-     * 検証契約: 一覧では受領できない論理スロットだけを受領枠案内で埋め、slot 49には受領枠専用itemを置かない。
+     * 検証契約: 一覧では受領できない論理スロットだけを受領枠案内で埋め、slot 49には受領枠専用itemを置かず、共通ナビゲーションボタンを置く。
      */
     @Test
     void rendersQuestLimitGuidesOnlyInUnavailableListSlotsInsteadOfSlot49() {
@@ -48,6 +49,10 @@ class QuestGuiTest extends MockBukkitTestBase {
                 PlainTextComponentSerializer.plainText().serialize(guide.getItemMeta().lore().getFirst())
             );
         }
-        assertEquals(Material.BLACK_STAINED_GLASS_PANE, inventory.getItem(49).getType());
+        assertEquals(Material.SPECTRAL_ARROW, inventory.getItem(QuestGui.BACK_SLOT).getType());
+        assertEquals(
+            QuestGui.BACK_SLOT,
+            ((GuiNavigationHolder) inventory.getHolder()).getBackSlot()
+        );
     }
 }

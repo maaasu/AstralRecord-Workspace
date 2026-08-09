@@ -39,6 +39,8 @@ public final class QuestGui {
     public static final int SIZE = 54;
     public static final int MAX_LOGICAL_SLOT = 27;
     public static final int PREVIOUS_PAGE_SLOT = 45;
+    /** 共通 GUI ナビゲーションの戻る・閉じるボタンを表示するスロットです。 */
+    public static final int BACK_SLOT = 49;
     public static final int NEXT_PAGE_SLOT = 53;
 
     private final QuestService questService;
@@ -88,6 +90,7 @@ public final class QuestGui {
             Component.text("クエスト一覧", NamedTextColor.DARK_GREEN, TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false)
         );
         fillFrame(inventory);
+        inventory.setItem(BACK_SLOT, GuiItems.backButton());
         List<QuestDefinition> active = questService.activeQuests(astPlayer);
         for (int index = 0; index < Math.min(MAX_LOGICAL_SLOT + 1, active.size()); index++) {
             inventory.setItem(listSlot(index), questItem(astPlayer, active.get(index), true));
@@ -336,6 +339,16 @@ public final class QuestGui {
     }
 
     public record ListHolder() implements HotbarShortcutGuiHolder {
+        /**
+         * クエスト一覧の共通ナビゲーションボタンのスロットを返します。
+         *
+         * @return 戻るまたは閉じるボタンの raw slot
+         */
+        @Override
+        public int getBackSlot() {
+            return BACK_SLOT;
+        }
+
         @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, SIZE);
