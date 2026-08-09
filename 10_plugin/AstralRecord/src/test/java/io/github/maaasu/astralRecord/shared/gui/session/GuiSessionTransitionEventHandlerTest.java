@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Bukkit;
+import org.bukkit.Registry;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -214,7 +215,7 @@ class GuiSessionTransitionEventHandlerTest extends MockBukkitTestBase {
 
     private static long closeSoundCount(@NotNull PlayerMock player) {
         return player.getHeardSounds().stream()
-            .filter(sound -> Sound.BLOCK_CHEST_CLOSE.getKey().getKey().equals(sound.getSound()))
+            .filter(sound -> Registry.SOUND_EVENT.getKeyOrThrow(Sound.BLOCK_CHEST_CLOSE).getKey().equals(sound.getSound()))
             .count();
     }
 

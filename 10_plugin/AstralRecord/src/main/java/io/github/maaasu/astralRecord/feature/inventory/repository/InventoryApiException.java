@@ -10,6 +10,8 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class InventoryApiException extends RuntimeException {
 
+    private static final long serialVersionUID = 1L;
+
     private final String method;
     private final String path;
     private final int statusCode;

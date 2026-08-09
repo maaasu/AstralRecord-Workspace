@@ -19,6 +19,7 @@ import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionTransitionEven
 import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionTransitionService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Bukkit;
+import org.bukkit.Registry;
 import org.bukkit.Server;
 import org.bukkit.Sound;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -131,7 +132,7 @@ class MenuOpenEventHandlerTest extends MockBukkitTestBase {
 
     private static long closeSoundCount(@NotNull PlayerMock player) {
         return player.getHeardSounds().stream()
-            .filter(sound -> Sound.BLOCK_CHEST_CLOSE.getKey().getKey().equals(sound.getSound()))
+            .filter(sound -> Registry.SOUND_EVENT.getKeyOrThrow(Sound.BLOCK_CHEST_CLOSE).getKey().equals(sound.getSound()))
             .count();
     }
 

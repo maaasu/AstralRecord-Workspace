@@ -20,11 +20,6 @@ public final class DungeonVoidChunkGenerator extends ChunkGenerator {
     }
 
     @Override
-    public boolean shouldGenerateBedrock() {
-        return false;
-    }
-
-    @Override
     public boolean shouldGenerateCaves() {
         return false;
     }
