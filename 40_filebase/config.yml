@@ -79,6 +79,9 @@ referenceResolver:
   - prefix: "world:"
     database: world
     aliases: ["wd"]
+  - prefix: "dungeon:"
+    database: dungeon
+    aliases: ["dn"]
   - prefix: "mail:"
     database: mail
     aliases: ["ml"]

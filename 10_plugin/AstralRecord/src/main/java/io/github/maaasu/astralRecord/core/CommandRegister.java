@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.account.command.AccountTabCompleter
 import io.github.maaasu.astralRecord.feature.account.command.LevelCommand;
 import io.github.maaasu.astralRecord.feature.account.command.LevelTabCompleter;
 import io.github.maaasu.astralRecord.feature.boss.command.BossCommand;
+import io.github.maaasu.astralRecord.feature.dungeon.command.DungeonCommand;
 import io.github.maaasu.astralRecord.feature.gathering.command.GatheringCommand;
 import io.github.maaasu.astralRecord.feature.gathering.command.GatheringTabCompleter;
 import io.github.maaasu.astralRecord.feature.gathering.service.GatheringService;
@@ -157,6 +158,7 @@ public class CommandRegister {
         cm.registerCommand("world", worldCommand, new WorldTabCompleter(worldService));
         cm.registerCommand("wtp", new WorldTeleportCommand(worldCommand), new WorldTeleportTabCompleter(worldService));
         cm.registerCommand("boss", new BossCommand());
+        cm.registerCommand("dungeon", new DungeonCommand());
         cm.registerCommand("user", new UserCommand(), new UserTabCompleter());
         cm.registerCommand("uperm", new UserPermissionCommand("uperm", "/uperm <permission> [<player|uuid>]"), new UserPermissionTabCompleter());
         cm.registerCommand("account", new AccountCommand(), new AccountTabCompleter());

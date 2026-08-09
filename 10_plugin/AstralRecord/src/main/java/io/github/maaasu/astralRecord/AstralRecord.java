@@ -19,6 +19,9 @@ import io.github.maaasu.astralRecord.feature.boss.service.BossFieldInstanceServi
 import io.github.maaasu.astralRecord.feature.combat.event.CombatDamageEventHandler;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.combat.service.CombatDpsTrackerService;
+import io.github.maaasu.astralRecord.feature.dungeon.event.DungeonWorldEventHandler;
+import io.github.maaasu.astralRecord.feature.dungeon.repository.DungeonDefinitionRepository;
+import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
 import io.github.maaasu.astralRecord.feature.condition.display.ConditionDisplayService;
 import io.github.maaasu.astralRecord.feature.condition.event.ConditionPlayerEventHandler;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
@@ -386,6 +389,7 @@ public final class AstralRecord extends JavaPlugin {
     private BossFieldInstanceService bossFieldInstanceService;
     private BossChallengeService bossChallengeService;
     private BossChallengeCancelGui bossChallengeCancelGui;
+    private DungeonService dungeonService;
     private String joinSpawnWorldId;
     private final AtomicReference<CompletableFuture<Integer>> masterDataReloadInFlight = new AtomicReference<>();
     private final AtomicLong masterDataReloadGeneration = new AtomicLong();
@@ -537,6 +541,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (overheadDisplayService != null) {
             overheadDisplayService.stop();
+        }
+        if (dungeonService != null) {
+            dungeonService.stop();
         }
         if (bossChallengeService != null) {
             bossChallengeService.stop();
@@ -871,6 +878,15 @@ public final class AstralRecord extends JavaPlugin {
             bossHubWorldId
         );
         damageService.setBossChallengeService(bossChallengeService);
+        dungeonService = new DungeonService(
+            this,
+            new DungeonDefinitionRepository(),
+            worldService,
+            partyService,
+            mobService,
+            playerMessageService
+        );
+        damageService.setMobDeathListener(dungeonService::handleMobDefeated);
         bossChallengeCancelGui = new BossChallengeCancelGui();
         playerHudService = new PlayerHudService(
             statusService,
@@ -1122,6 +1138,8 @@ public final class AstralRecord extends JavaPlugin {
         teleporterService.loadAll();
         // world
         worldService.loadAll();
+        dungeonService.loadAll();
+        dungeonService.start();
         mobAiService = new MobAiService(mobService, mobCombatService, skillService, playerDeathService, particleDisplayService, conditionService);
         mobAiService.start();
         trainingDummyService.start();
@@ -1205,6 +1223,10 @@ public final class AstralRecord extends JavaPlugin {
         var bossEntryEventHandler = new BossEntryEventHandler(bossChallengeService);
         eventManager.registerHandler(
             new BossPlayerEventHandler(bossChallengeService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new DungeonWorldEventHandler(dungeonService),
             getServer().getPluginManager()
         );
         var bossChallengeCancelEventHandler = new BossChallengeCancelEventHandler(
@@ -1900,6 +1922,13 @@ public final class AstralRecord extends JavaPlugin {
             () -> worldService.activateDefinitionSnapshot(worldSnapshot)
         ));
 
+        var dungeonSnapshot = dungeonService.loadDefinitionSnapshot(
+            mobSnapshot,
+            worldSnapshot.worldsById()
+        );
+        loaded += dungeonSnapshot.loadedById().size();
+        publications.add(() -> dungeonService.replaceDefinitionSnapshot(dungeonSnapshot));
+
         var shopSnapshot = shopService.loadCacheSnapshot();
         loaded += shopSnapshot.size();
         publications.add(() -> shopService.replaceCacheSnapshot(shopSnapshot));
@@ -1976,6 +2005,10 @@ public final class AstralRecord extends JavaPlugin {
 
     public BossChallengeService getBossChallengeService() {
         return bossChallengeService;
+    }
+
+    public DungeonService getDungeonService() {
+        return dungeonService;
     }
 
     public PartyService getPartyService() {

@@ -20,7 +20,7 @@
 | 14 | [[14_0-概要]] | ダメージ計算と戦闘状態 | `feature/combat` |
 | 15 | [[15_0-概要]] | ホットバー入力と item / skill action の調停 | item・inventory・skill が 28 の共通入力調停へ候補を提供する依存境界 |
 | 16 | [[16_0-概要]] | 通貨残高と両替 | `feature/currency` |
-| 17 | [[17_0-概要]] | WorldMasterData、ワールド遷移、スポーン | `feature/world`, `shared/teleport`, `shared/effect` |
+| 17 | [[17_0-概要]] | WorldMasterData、ワールド遷移、スポーン、共通演出確認 | `feature/world`, `feature/particle`, `shared/teleport`, `shared/effect` |
 | 18 | [[18_0-概要]] | メール一覧、既読化、報酬受取 | `feature/mail` |
 | 19 | [[19_0-概要]] | パーティー状態と Mob 報酬共有 | `feature/party` |
 | 20 | [[20_0-概要]] | ショップ表示、コスト preview、購入補償 | `feature/shop` |
@@ -35,6 +35,7 @@
 | 29 | [[29_0-概要]] | クエスト状態、進捗、報酬、board | `feature/quest` |
 | 30 | [[30_0-概要]] | Java 用リソースパック要求と client status | `feature/resourcepack` |
 | 31 | [[31_0-概要]] | 検証用カカシの配置、共有ステータス調整、非致死・定期回復 | `feature/trainingdummy` |
+| 32 | [[32_0-概要]] | BSP ダンジョン生成、部屋戦闘、ゲート進行、一時ワールド回収 | `feature/dungeon` |
 
 ## 更新規則
 
@@ -198,6 +199,7 @@
 ### [[17_0-概要|17-world]]
 
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/world/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/particle/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/shared/teleport/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/menu/event/MenuOpenEventHandler.java`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/mob/service/MobService.java`
@@ -300,6 +302,13 @@
 
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/trainingdummy/*`
 - Plugin data folder: `training-dummies.yml`
+
+### [[32_0-概要|32-dungeon]]
+
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/dungeon/*`
+- `10_plugin/AstralRecord/src/main/resources/player.properties`（`P_7000` から `P_7017`）
+- `10_plugin/AstralRecord/src/main/resources/logger.properties`（Dungeon の `7000` 系）
+- `40_filebase/65.features.dungeon/*`
 
 ## 共通基盤所有パス
 

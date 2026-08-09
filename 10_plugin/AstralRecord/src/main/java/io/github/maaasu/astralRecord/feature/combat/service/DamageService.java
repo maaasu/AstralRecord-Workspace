@@ -82,6 +82,7 @@ public final class DamageService {
     private TemporarySkillEffectService temporarySkillEffectService;
     private CombatDpsTrackerService combatDpsTrackerService;
     private Consumer<AstPlayer> playerDamageListener = player -> { };
+    private Consumer<UUID> mobDeathListener = mobInstanceId -> { };
 
     /**
      * サービスを構築します。
@@ -177,6 +178,16 @@ public final class DamageService {
      */
     public void setBossChallengeService(@Nullable BossChallengeService bossChallengeService) {
         this.bossChallengeService = bossChallengeService;
+    }
+
+    /**
+     * Mob の報酬・破棄処理が完了した直後に呼ぶリスナーを設定します。
+     * ダンジョンなど、Mob インスタンス単位で全滅を追跡する機能が利用します。
+     *
+     * @param mobDeathListener Mob インスタンス UUID の通知先。null で無効化
+     */
+    public void setMobDeathListener(@Nullable Consumer<UUID> mobDeathListener) {
+        this.mobDeathListener = mobDeathListener == null ? mobInstanceId -> { } : mobDeathListener;
     }
 
     /**
@@ -870,6 +881,7 @@ public final class DamageService {
             } else {
                 mobCombatService.handleDeath(mob);
             }
+            mobDeathListener.accept(mob.instanceId());
         }
     }
 
