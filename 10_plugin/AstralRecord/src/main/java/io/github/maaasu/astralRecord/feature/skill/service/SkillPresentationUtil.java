@@ -138,7 +138,7 @@ public final class SkillPresentationUtil {
         @Nullable SkillDefinition definition,
         @Nullable String text
     ) {
-        return renderPlaceholders(text, definition == null ? Map.of() : definition.getParams());
+        return renderPlaceholders(text, definition == null ? Map.of() : baseDescriptionValues(definition));
     }
 
     /**
@@ -156,12 +156,13 @@ public final class SkillPresentationUtil {
             return List.of();
         }
         List<Component> lines = new ArrayList<>();
+        Map<String, Object> values = baseDescriptionValues(definition);
         appendMasterLine(
             lines,
-            renderPlaceholdersComponent(definition.getDescription(), definition.getParams(), fallbackColor)
+            renderPlaceholdersComponent(definition.getDescription(), values, fallbackColor)
         );
         for (String line : definition.getLore()) {
-            appendMasterLine(lines, renderPlaceholdersComponent(line, definition.getParams(), fallbackColor));
+            appendMasterLine(lines, renderPlaceholdersComponent(line, values, fallbackColor));
         }
         return List.copyOf(lines);
     }
@@ -174,7 +175,11 @@ public final class SkillPresentationUtil {
         @Nullable SkillDefinition definition,
         @Nullable TextColor fallbackColor
     ) {
-        return skillDescriptionAndFlavorLore(definition, Map.of(), fallbackColor);
+        return skillDescriptionAndFlavorLore(
+            definition,
+            definition == null ? Map.of() : baseDescriptionValues(definition),
+            fallbackColor
+        );
     }
 
     /**
@@ -237,14 +242,32 @@ public final class SkillPresentationUtil {
     private static @NotNull Map<String, Object> descriptionValues(
         @NotNull ResolvedLearnedSkill resolved
     ) {
-        Map<String, Object> values = new HashMap<>();
-        values.putAll(resolved.definition().getParams());
-        values.put("level", resolved.learnedSkill().getLevel());
-        values.put("maxLevel", resolved.definition().getMaxLevel());
         double damageIncrease = resolved.statusBonuses().getOrDefault(
             StatusType.SKILL_DAMAGE_INCREASE,
             0.0D
         );
+        return descriptionValues(
+            resolved.definition(),
+            damageIncrease,
+            resolved.learnedSkill().getLevel()
+        );
+    }
+
+    private static @NotNull Map<String, Object> baseDescriptionValues(
+        @NotNull SkillDefinition definition
+    ) {
+        return descriptionValues(definition, 0.0D, 1);
+    }
+
+    private static @NotNull Map<String, Object> descriptionValues(
+        @NotNull SkillDefinition definition,
+        double damageIncrease,
+        int level
+    ) {
+        Map<String, Object> values = new HashMap<>();
+        values.putAll(definition.getParams());
+        values.put("level", level);
+        values.put("maxLevel", definition.getMaxLevel());
         values.put("skillDamageIncrease", damageIncrease);
         values.put("damageIncrease", damageIncrease);
 
@@ -252,6 +275,13 @@ public final class SkillPresentationUtil {
         if (damageRatio instanceof Number number) {
             values.put(
                 "effectiveDamageRatio",
+                number.doubleValue() * (1.0D + damageIncrease / 100.0D)
+            );
+        }
+        Object chainDamageRatio = values.get("chainDamageRatio");
+        if (chainDamageRatio instanceof Number number) {
+            values.put(
+                "effectiveChainDamageRatio",
                 number.doubleValue() * (1.0D + damageIncrease / 100.0D)
             );
         }

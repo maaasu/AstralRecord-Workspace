@@ -60,6 +60,7 @@
 | `{skill.level}` / `{skill.maxLevel}` | 習得レベル・最大レベル |
 | `{skill.skillDamageIncrease}` | レベル・シジル由来の `SKILL_DAMAGE_INCREASE` 合計 |
 | `{skill.effectiveDamageRatio:percent}` | `damageRatio × (1 + skillDamageIncrease / 100)` |
+| `{skill.effectiveChainDamageRatio:percent}` | `chainDamageRatio × (1 + skillDamageIncrease / 100)` |
 | `{skill.effectiveDamageRatios:percent}` | `damageRatios` の各要素へ同じ補正を適用した配列 |
 
 説明文は、基礎定義を直接表示せず、`LearnedSkillResolver` がレベル差分と有効シジルを合成した値を使って展開します。未知のプレースホルダーは `?` として表示されるため、マスターデータ検証で修正します。

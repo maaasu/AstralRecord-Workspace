@@ -94,13 +94,15 @@ class SkillPresentationUtilTest {
             "&7射程{skill.range}m、威力{skill.effectiveDamageRatio:percent}%。持続{skill.durationTicks:seconds}秒。",
             "AMETHYST_SHARD", List.of(
                 "倍率: {skill.effectiveDamageRatios:percent}",
-                "先頭: {skill.effectiveDamageRatios[0]:percent}%"
+                "先頭: {skill.effectiveDamageRatios[0]:percent}%",
+                "連鎖: {skill.effectiveChainDamageRatio:percent}%"
             ),
             0L, 0.0D, 0L, 1, null,
             Map.of(
                 "range", 15.05D,
                 "damageRatio", 1.15D,
                 "damageRatios", List.of(1.15D, 0.90D),
+                "chainDamageRatio", 0.40D,
                 "durationTicks", 25.0D
             ),
             List.of(), SkillKind.ACTIVE, true, SkillResourceType.ENERGY, 0.0D,
@@ -126,9 +128,41 @@ class SkillPresentationUtilTest {
         assertEquals("射程15.1m、威力120.8%。持続1.3秒。", rendered.get(0));
         assertEquals("倍率: 120.8 / 94.5", rendered.get(1));
         assertEquals("先頭: 120.8%", rendered.get(2));
+        assertEquals("連鎖: 42%", rendered.get(3));
 
         String legacy = LegacyComponentSerializer.legacySection().serialize(components.get(0));
         assertEquals("§7射程§e15.1§7m、威力§e120.8§7%。持続§e1.3§7秒。", legacy);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+     * 章・見出し: # 13_3-GUI・View > ## 6. マスター表示の共通化
+     * 検証契約: 習得前のスキル表示でも、基礎倍率の effective プレースホルダーを基礎値で展開し、? を残さない。
+     */
+    @Test
+    void baseDefinitionExpandsEffectivePlaceholdersWithoutLearnedSkill() {
+        SkillDefinition definition = new SkillDefinition(
+            "adventurer_lightning_bolt", "adventurer_lightning_bolt", "ライトニングボルト",
+            "&7威力{skill.effectiveDamageRatio:percent}%。",
+            "LIGHTNING_ROD", List.of("連鎖威力: {skill.effectiveChainDamageRatio:percent}%"),
+            60L, 10.0D, 4L, 1, null,
+            Map.of("damageRatio", 1.45D, "chainDamageRatio", 0.40D),
+            List.of(), SkillKind.ACTIVE, true, SkillResourceType.MANA, 10.0D,
+            "adventurer_lightning_bolt", 5, List.of(), List.of(), List.of()
+        );
+
+        List<String> rendered = SkillPresentationUtil.skillDescriptionAndLore(definition, null).stream()
+            .map(PlainTextComponentSerializer.plainText()::serialize)
+            .toList();
+
+        assertEquals(List.of("威力145%。", "連鎖威力: 40%"), rendered);
+        assertEquals(
+            "威力145% / 連鎖威力40%",
+            SkillPresentationUtil.renderSkillTemplate(
+                definition,
+                "威力{skill.effectiveDamageRatio:percent}% / 連鎖威力{skill.effectiveChainDamageRatio:percent}%"
+            )
+        );
     }
 
     /**

@@ -14,7 +14,7 @@
 | 08 | [[08_0-概要]] | インベントリ同期、装備、保管庫 | `feature/inventory`, `feature/storage` |
 | 09 | [[09_0-概要]] | 共通メニュー、ガイド、売却導線 | `feature/menu`, `feature/guide`, `feature/sell`, `shared/gui` |
 | 10 | [[10_0-概要]] | HUD の組み立てと表示 | `feature/hud` |
-| 11 | [[11_0-概要]] | プレイヤー設定と設定 GUI | `feature/playersetting` |
+| 11 | [[11_0-概要]] | プレイヤー設定と設定 GUI | `feature/playersetting`, `feature/particle` |
 | 12 | [[12_0-概要]] | Mob、NPC、採集、スポナー、固定 text display | `feature/mob`, `feature/gathering`, `feature/spawner`, `feature/textdisplay`, `shared/display` |
 | 13 | [[13_0-概要]] | スキル発動、bind、skill tree | `feature/skill`, `feature/skilltree` |
 | 14 | [[14_0-概要]] | ダメージ計算と戦闘状態 | `feature/combat` |
@@ -149,6 +149,7 @@
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/playersetting/service/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/playersetting/OptimisticLockConflictException.java`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/playersetting/PlayerSettingMsgId.java`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/particle/command/*`
 - `10_plugin/AstralRecord/src/main/resources/logger.properties`（`W_5310` から `W_5312`、`E_5310` から `E_5314`）
 - `10_plugin/AstralRecord/src/main/resources/player.properties`（`P_5320` から `P_5326`）
 

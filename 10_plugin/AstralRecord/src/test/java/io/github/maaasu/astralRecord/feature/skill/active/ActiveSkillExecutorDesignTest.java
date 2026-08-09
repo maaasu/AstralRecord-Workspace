@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.ActiveSkillExecutorCatalog;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerAstralEdgeExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerBlastArrowExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerLightningBoltExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
@@ -36,13 +37,14 @@ class ActiveSkillExecutorDesignTest {
         "adventurer_astral_edge",
         "adventurer_blast_arrow",
         "adventurer_smash",
-        "adventurer_quick_shot"
+        "adventurer_quick_shot",
+        "adventurer_lightning_bolt"
     );
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
-     * 検証契約: catalogが設計記載4 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
+     * 検証契約: catalogが設計記載5 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
      */
     @Test
     void catalogContainsEveryDesignedSkillIdExactlyOnce() {
@@ -115,6 +117,40 @@ class ActiveSkillExecutorDesignTest {
         assertEquals("maxTargets", exception.key());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 8. 冒険者ライトニングボルトの実装契約
+     * 検証契約: ライトニングボルトは主倍率・連鎖半径・連鎖倍率・最大対象数・飛翔体値を正数として要求し、最大連鎖数0を拒否する。
+     */
+    @Test
+    void lightningBoltValidatesDataDrivenParams() {
+        AdventurerLightningBoltExecutor executor = new AdventurerLightningBoltExecutor(activeSkillServices());
+
+        assertDoesNotThrow(() -> executor.validateParams(lightningBoltDefinition(Map.of(
+                "range", 14.0D,
+                "damageRatio", 1.45D,
+                "chainRadius", 5.0D,
+                "chainDamageRatio", 0.40D,
+                "maxChainTargets", 2,
+                "projectileSpeed", 2.8D,
+                "projectileHitRadius", 0.45D
+        ))));
+
+        SkillParameterException exception = assertThrows(
+                SkillParameterException.class,
+                () -> executor.validateParams(lightningBoltDefinition(Map.of(
+                        "range", 14.0D,
+                        "damageRatio", 1.45D,
+                        "chainRadius", 5.0D,
+                        "chainDamageRatio", 0.40D,
+                        "maxChainTargets", 0,
+                        "projectileSpeed", 2.8D,
+                        "projectileHitRadius", 0.45D
+                )))
+        );
+        assertEquals("maxChainTargets", exception.key());
+    }
+
     private static SkillDefinition astralEdgeDefinition(Map<String, Object> params) {
         return new SkillDefinition(
                 "adventurer_astral_edge",
@@ -156,6 +192,28 @@ class ActiveSkillExecutorDesignTest {
                 true,
                 SkillResourceType.ENERGY,
                 12.0D
+        );
+    }
+
+    private static SkillDefinition lightningBoltDefinition(Map<String, Object> params) {
+        return new SkillDefinition(
+                "adventurer_lightning_bolt",
+                "adventurer_lightning_bolt",
+                "ライトニングボルト",
+                null,
+                "LIGHTNING_ROD",
+                List.of(),
+                60L,
+                0.0D,
+                4L,
+                1,
+                null,
+                params,
+                List.of("active", "magic", "adventurer", "lightning"),
+                SkillKind.ACTIVE,
+                true,
+                SkillResourceType.MANA,
+                10.0D
         );
     }
 

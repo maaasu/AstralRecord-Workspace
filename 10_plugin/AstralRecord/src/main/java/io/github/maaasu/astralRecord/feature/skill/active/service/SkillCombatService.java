@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyReason;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyRequest;
+import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.service.MobKnockbackService;
@@ -74,6 +75,18 @@ public final class SkillCombatService {
             Arrays.stream(conditions).forEach(condition -> applyCondition(attacker, target, attackType, condition));
         }
         return result;
+    }
+
+    /**
+     * 対象に指定した有効な状態異常が付与されているかを返します。
+     *
+     * @param target 判定対象
+     * @param type   判定する状態異常の種別
+     * @return 指定した状態異常が有効なら true
+     */
+    public boolean hasCondition(@NotNull AstEntity target, @NotNull ConditionType type) {
+        return conditionService.getActiveConditions(target).stream()
+                .anyMatch(condition -> condition.type() == type);
     }
 
     /** 対象 Mob を発動者へ向け、脅威値を加算します。 */

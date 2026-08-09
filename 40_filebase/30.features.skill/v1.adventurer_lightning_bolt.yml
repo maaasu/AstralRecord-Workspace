@@ -1,0 +1,61 @@
+# design:
+#   motif: "青白い雷光 / 条件付き雷撃連鎖"
+#   progression: 1
+schemaVersion: 1
+id: adventurer_lightning_bolt
+type: SKILL
+implementationId: adventurer_lightning_bolt
+name: "&bライトニングボルト"
+description: "&7視線方向へ一直線の雷撃を放ち、感電した敵へだけ稲妻を連鎖させる雷属性魔法。"
+icon: LIGHTNING_ROD
+lore:
+  - "&7射程{skill.range}mの雷属性魔法攻撃。主対象へ魔法攻撃力{skill.effectiveDamageRatio:percent}%のダメージ。"
+  - "&7命中対象から半径{skill.chainRadius}m以内の感電した敵へ最大{skill.maxChainTargets}体、{skill.effectiveChainDamageRatio:percent}%の追撃。"
+  - "&7本スキルでは感電を付与せず、連鎖先からの再連鎖も発生しない。"
+  - "&8消費MP: 10 / クールダウン: 3.0秒 / 詠唱: 0.2秒"
+cooldownTicks: 60
+resourceType: MANA
+resourceCost: 10
+castTimeTicks: 4
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 3
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 4
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 5
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - cooldown_sigil
+  - cooldown_sigil_ii
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+onCast:
+  sound: entity.evoker.cast_spell
+tags:
+  - active
+  - magic
+  - adventurer
+  - lightning
+# behavior:
+#   projectile: "視線方向へ射程14m、速度2.8m/tick、当たり半径0.45mの非貫通雷撃を放ち、最初のMob 1体へ命中する。Blockまたは最大射程で追加効果は発生しない。"
+#   primary: "最初の命中対象へMAGIC/LIGHTNINGの主倍率を1回だけ適用する。主対象が感電中である必要はない。"
+#   chain: "主対象から水平半径5m・上下5m以内、かつ視線遮蔽のないMobを距離順・UUID順に確認し、SHOCKED中の別対象だけ最大2体へ連鎖倍率を1回適用する。"
+#   condition: "ライトニングボルト自身はSHOCKEDを付与しない。連鎖対象からの再連鎖、同一発動内の再命中、PvP/NPC対象はない。"
+params:
+  range: 14.0
+  damageRatio: 1.45
+  chainRadius: 5.0
+  chainDamageRatio: 0.40
+  maxChainTargets: 2
+  projectileSpeed: 2.8
+  projectileHitRadius: 0.45
