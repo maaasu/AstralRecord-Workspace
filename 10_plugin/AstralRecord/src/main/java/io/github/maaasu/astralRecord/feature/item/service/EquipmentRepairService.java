@@ -66,7 +66,7 @@ public final class EquipmentRepairService {
     private final ItemReferenceResolver itemReferenceResolver;
     private final EquipmentRepairMenuScreenView view = new EquipmentRepairMenuScreenView();
     private final Map<UUID, RepairSession> sessions = new ConcurrentHashMap<>();
-    private final Set<UUID> inPlaceRepairInFlight = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> repairInFlight = ConcurrentHashMap.newKeySet();
     private StatusService statusService;
 
     /**
@@ -319,56 +319,76 @@ public final class EquipmentRepairService {
     }
 
     /**
-     * 装備加工 GUI のシフト左クリック修理を実行します。
-     * 正本の inventory entry は取り出さず、クリック時点の表示品と instance ID を照合してから
-     * ゴールドと耐久値だけを更新します。
+     * 装備加工 GUI に一時退避された装備を修理します。
+     * 選択・返却は呼び出し元が管理し、このメソッドは成功時だけ更新済みの ItemStack を返します。
      *
-     * @param player 操作したプレイヤー
-     * @param bukkitSlot クリックされた PlayerInventory スロット
-     * @param displayedItem クリック時に表示されていた ItemStack
-     * @return 装備加工の操作として処理した場合 true
+     * @param player 操作したプレイヤー。通常プレイヤーモードである必要があります。
+     * @param selectedEquipment 装備加工 GUI が一時退避している装備
+     * @return 修理成功時の更新済み装備。修理できない場合または更新失敗時は {@code null}
      */
-    public boolean repairInPlace(
+    public @Nullable ItemStack repairHeldEquipment(
         @NotNull Player player,
-        int bukkitSlot,
-        @Nullable ItemStack displayedItem
+        @Nullable ItemStack selectedEquipment
     ) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
             GuiSound.DENY.play(player);
-            return true;
+            return null;
         }
-        if (displayedItem == null || displayedItem.getType() == Material.AIR) {
-            return false;
-        }
-        InventoryEntryModel entry = inventoryService.getOwnedEntryAtBukkitSlot(astPlayer, bukkitSlot);
-        if (!matchesOwnedEntry(entry, displayedItem)) {
-            GuiSound.DENY.play(player);
-            return true;
-        }
-        ItemModel clickedModel = inventoryService.getOwnedItemModelAtBukkitSlot(astPlayer, bukkitSlot);
-        if (clickedModel == null || clickedModel.getEquipment() == null) {
-            return false;
-        }
-
-        SelectionResult selection = resolveSelection(displayedItem);
+        SelectionResult selection = resolveSelection(selectedEquipment);
         RepairContext context = selection.context();
         if (context == null) {
             GuiSound.DENY.play(player);
             PlayerMessageService.getInstance().send(player, selection.state().messageId());
-            return true;
+            return null;
         }
+        return repairSelectedEquipment(player, astPlayer, context);
+    }
 
+    /**
+     * 装備加工 GUI の一時退避中装備に対する修理情報を生成します。
+     *
+     * @param player 表示対象プレイヤー
+     * @param selectedEquipment 一時退避中の修理対象装備
+     * @return 耐久値と修理後の状態を表示する情報アイテム
+     */
+    public @NotNull ItemStack createProcessingInfoItem(
+        @NotNull Player player,
+        @Nullable ItemStack selectedEquipment
+    ) {
+        return createInfoItem(player, resolveSelection(selectedEquipment));
+    }
+
+    /**
+     * 装備加工 GUI 用に、必要ゴールドを含む修理実行アイテムを生成します。
+     *
+     * @param player 表示対象プレイヤー
+     * @param selectedEquipment 一時退避中の修理対象装備
+     * @return 修理の可否と費用を表示する実行アイテム
+     */
+    public @NotNull ItemStack createProcessingExecuteItem(
+        @NotNull Player player,
+        @Nullable ItemStack selectedEquipment
+    ) {
+        return createExecuteItem(player, resolveSelection(selectedEquipment), false);
+    }
+
+    /** 一時退避中の装備へ修理費用の消費と耐久値更新を適用します。 */
+    private @Nullable ItemStack repairSelectedEquipment(
+        @NotNull Player player,
+        @NotNull AstPlayer astPlayer,
+        @NotNull RepairContext context
+    ) {
         UUID instanceId;
         try {
             instanceId = UUID.fromString(context.instance().getEquipmentInstanceId());
         } catch (IllegalArgumentException exception) {
             GuiSound.DENY.play(player);
-            return true;
+            return null;
         }
-        if (!inPlaceRepairInFlight.add(instanceId)) {
+        if (!repairInFlight.add(instanceId)) {
             GuiSound.DENY.play(player);
-            return true;
+            return null;
         }
 
         UUID accountId = astPlayer.getAccount().getUuid();
@@ -377,14 +397,14 @@ public final class EquipmentRepairService {
             if (ownedGold < context.cost()) {
                 GuiSound.DENY.play(player);
                 PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5276);
-                return true;
+                return null;
             }
             InventoryService.InventoryStateSnapshot paymentSnapshot = inventoryService.snapshotState(accountId);
             if (paymentSnapshot == null || !inventoryService.consumeGold(accountId, context.cost())) {
-                restorePayment(paymentSnapshot, accountId, "repair_in_place_consume");
+                restorePayment(paymentSnapshot, accountId, "repair_processing_consume");
                 GuiSound.DENY.play(player);
                 PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5277);
-                return true;
+                return null;
             }
             EquipmentInstance updated = itemService.updateEquipmentDurability(
                 context.instance().getEquipmentInstanceId(),
@@ -392,13 +412,11 @@ public final class EquipmentRepairService {
                 accountId.toString()
             );
             if (updated == null) {
-                restorePayment(paymentSnapshot, accountId, "repair_in_place_update");
+                restorePayment(paymentSnapshot, accountId, "repair_processing_update");
                 GuiSound.DENY.play(player);
                 PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5277);
-                return true;
+                return null;
             }
-            inventoryService.applyInventoryToGui(astPlayer, InventoryType.BAG);
-            player.updateInventory();
             if (context.instance().getDurabilityValue() <= 0 && statusService != null) {
                 statusService.refreshStatus(astPlayer);
             }
@@ -408,39 +426,10 @@ public final class EquipmentRepairService {
                 player.getLocation().add(0.0, 1.0, 0.0),
                 SharedParticleDefinitions.EQUIPMENT_REPAIR_ENCHANT
             );
-            return true;
+            return itemStackFactory.create(context.model(), updated, 1);
         } finally {
-            inPlaceRepairInFlight.remove(instanceId);
+            repairInFlight.remove(instanceId);
         }
-    }
-
-    /** 装備加工 GUI の修理プレビュー用の費用表示を生成します。 */
-    public @NotNull ItemStack createProcessingCostItem(
-        @NotNull Player player,
-        @Nullable ItemStack selectedEquipment
-    ) {
-        return createCostItem(player, resolveSelection(selectedEquipment));
-    }
-
-    /** 装備加工 GUI の修理プレビュー用の情報表示を生成します。 */
-    public @NotNull ItemStack createProcessingInfoItem(
-        @NotNull Player player,
-        @Nullable ItemStack selectedEquipment
-    ) {
-        return createInfoItem(player, resolveSelection(selectedEquipment));
-    }
-
-    private boolean matchesOwnedEntry(
-        @Nullable InventoryEntryModel entry,
-        @NotNull ItemStack displayedItem
-    ) {
-        if (entry == null || entry.getInstanceId() == null) {
-            return false;
-        }
-        ItemReference reference = itemReferenceResolver.resolve(displayedItem);
-        return reference != null
-            && reference.hasEquipmentInstanceId()
-            && entry.getInstanceId().toString().equalsIgnoreCase(reference.equipmentInstanceId());
     }
 
     private void executeRepair(
@@ -601,7 +590,7 @@ public final class EquipmentRepairService {
         }
         ItemModel model = itemReferenceResolver.resolveItemModel(reference);
         EquipmentInstance instance = itemReferenceResolver.resolveEquipmentInstance(reference);
-        if (model == null || model.getEquipment() == null || instance == null) {
+        if (model == null || model.getEquipment() == null || instance == null || !hasPlayerFacingName(model)) {
             return new SelectionResult(SelectionState.INVALID_TARGET, model, instance, null);
         }
         if (instance.getDurabilityMax() <= 0) {
@@ -648,13 +637,13 @@ public final class EquipmentRepairService {
         RepairContext context = selection.context();
         if (context == null) {
             return createItem(
-                Material.BOOK,
+                Material.SPYGLASS,
                 Component.text("修理情報", NamedTextColor.YELLOW),
                 List.of(Component.text(selection.state().message(), NamedTextColor.RED))
             );
         }
         return createItem(
-            Material.KNOWLEDGE_BOOK,
+            Material.SPYGLASS,
             Component.text("修理情報", NamedTextColor.AQUA, TextDecoration.BOLD),
             List.of(
                 Component.text("装備: " + displayName(context.model()), NamedTextColor.GRAY),
@@ -678,16 +667,30 @@ public final class EquipmentRepairService {
         }
         AstPlayer astPlayer = AstPlayerCache.get(player);
         RepairContext context = selection.context();
-        boolean executable = AccountModeGuard.isGameplayPlayer(astPlayer)
-            && context != null
-            && ownedGold(astPlayer.getAccount().getUuid()) >= context.cost();
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer) || context == null) {
+            return createItem(
+                Material.BARRIER,
+                Component.text("修理実行", NamedTextColor.RED, TextDecoration.BOLD),
+                List.of(Component.text(selection.state().message(), NamedTextColor.RED))
+            );
+        }
+        long ownedGold = ownedGold(astPlayer.getAccount().getUuid());
+        boolean executable = ownedGold >= context.cost();
         return createItem(
-            executable ? Material.ANVIL : Material.BARRIER,
+            executable ? Material.LIME_CONCRETE : Material.BARRIER,
             Component.text("修理実行", executable ? NamedTextColor.GREEN : NamedTextColor.RED, TextDecoration.BOLD),
-            List.of(Component.text(
-                executable ? "クリックすると耐久値を最大まで回復します。" : selection.state().message(),
-                executable ? NamedTextColor.GRAY : NamedTextColor.RED
-            ))
+            List.of(
+                Component.text("クリックすると耐久値を最大まで回復します。", NamedTextColor.GRAY),
+                Component.text("回復耐久: " + context.missingDurability(), NamedTextColor.GRAY),
+                Component.text(
+                    "必要ゴールド: " + context.cost() + " / 所持: " + ownedGold,
+                    executable ? NamedTextColor.GREEN : NamedTextColor.RED
+                ),
+                Component.text(
+                    executable ? "必要ゴールドが揃っています。" : "必要ゴールドが不足しています。",
+                    executable ? NamedTextColor.GREEN : NamedTextColor.RED
+                )
+            )
         );
     }
 
@@ -867,7 +870,11 @@ public final class EquipmentRepairService {
     }
 
     private @NotNull String displayName(@NotNull ItemModel model) {
-        return ColorCodeUtil.toPlainText(model.getName(), model.getId());
+        return ColorCodeUtil.toPlainText(model.getName(), "未登録の装備");
+    }
+
+    private boolean hasPlayerFacingName(@NotNull ItemModel model) {
+        return !ColorCodeUtil.toPlainText(model.getName(), "").isBlank();
     }
 
     private @NotNull ItemStack createItem(
@@ -935,7 +942,7 @@ public final class EquipmentRepairService {
         }
 
         private @NotNull String message() {
-            return ColorCodeUtil.toPlainText(PlayerMsgResource.getMessage(messageId.getId()), messageId.getId());
+            return ColorCodeUtil.toPlainText(PlayerMsgResource.getMessage(messageId.getId()), "操作情報を取得できません。");
         }
 
         private @NotNull PlayerMsgId messageId() {

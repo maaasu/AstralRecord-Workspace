@@ -28,7 +28,6 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
-import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryType;
@@ -324,12 +323,10 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
                 GuiSound.DENY.play(player);
                 return;
             }
-            boolean shiftLeftClick = event.getClick() == ClickType.SHIFT_LEFT;
             if (equipmentEnhancementService.handlePlayerInventoryClick(
                 player,
                 event.getSlot(),
-                event.getCurrentItem(),
-                shiftLeftClick
+                event.getCurrentItem()
             )) {
                 return;
             }

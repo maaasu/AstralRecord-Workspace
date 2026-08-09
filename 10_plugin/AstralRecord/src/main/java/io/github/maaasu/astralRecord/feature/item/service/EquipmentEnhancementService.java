@@ -30,6 +30,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
@@ -65,7 +66,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class EquipmentEnhancementService {
-    private static final Component TITLE = Component.text("装備加工", NamedTextColor.GOLD);
+    private static final Component TITLE = Component.text("装備加工（修理・強化）", NamedTextColor.GOLD);
 
     private final Plugin plugin;
     private final MenuView menuView;
@@ -114,7 +115,11 @@ public final class EquipmentEnhancementService {
         this.itemReferenceResolver = new ItemReferenceResolver(itemService);
     }
 
-    /** 装備加工画面から呼び出す、その場修理サービスを接続します。 */
+    /**
+     * 装備加工画面から呼び出す、退避装備の修理サービスを接続します。
+     *
+     * @param equipmentRepairService 修理実行と修理情報表示を提供するサービス
+     */
     public void setEquipmentRepairService(@NotNull EquipmentRepairService equipmentRepairService) {
         this.equipmentRepairService = equipmentRepairService;
     }
@@ -146,7 +151,7 @@ public final class EquipmentEnhancementService {
             GuiSound.DENY.play(player);
             return;
         }
-        switchProcessingMode(player, astPlayer, session, mode);
+        switchProcessingMode(player, session, mode);
         session.closeRequested = false;
 
         Inventory inventory = Bukkit.createInventory(
@@ -204,18 +209,25 @@ public final class EquipmentEnhancementService {
      * @return 強化対象として処理した場合 true。対象外アイテムの場合 false
      */
     public boolean handlePlayerInventoryClick(@NotNull Player player, int bukkitSlot) {
-        return handlePlayerInventoryClick(player, bukkitSlot, null, false);
+        return handlePlayerInventoryClick(player, bukkitSlot, null);
     }
 
-    /** 装備加工 GUI の下段クリックを処理します。修理は装備を移動せずに実行できます。 */
+    /**
+     * 装備加工 GUI の下段クリックを処理し、両モードで装備を一時退避してセットします。
+     * 表示 ItemStack が正本 entry と一致しない場合は対象を移動しません。
+     *
+     * @param player 操作したプレイヤー
+     * @param bukkitSlot クリックされた Bukkit PlayerInventory スロット
+     * @param displayedItem クリック時に表示されていた ItemStack。照合できない場合は {@code null}
+     * @return 加工対象として処理した場合 {@code true}。対象外アイテムの場合は {@code false}
+     */
     public boolean handlePlayerInventoryClick(
         @NotNull Player player,
         int bukkitSlot,
-        @Nullable ItemStack displayedItem,
-        boolean shiftLeftClick
+        @Nullable ItemStack displayedItem
     ) {
         if (isProcessingMenu(player.getOpenInventory().getTopInventory())) {
-            return handleProcessingPlayerInventoryClick(player, bukkitSlot, displayedItem, shiftLeftClick);
+            return handleProcessingPlayerInventoryClick(player, bukkitSlot, displayedItem);
         }
         return handleEnhancementInventoryClick(player, bukkitSlot, displayedItem, false);
     }
@@ -296,59 +308,8 @@ public final class EquipmentEnhancementService {
     private boolean handleProcessingPlayerInventoryClick(
         @NotNull Player player,
         int bukkitSlot,
-        @Nullable ItemStack displayedItem,
-        boolean shiftLeftClick
+        @Nullable ItemStack displayedItem
     ) {
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
-            player.closeInventory();
-            GuiSound.DENY.play(player);
-            return true;
-        }
-        EnhancementSession session = getOrCreateSession(player, astPlayer);
-        if (session == null) {
-            player.closeInventory();
-            GuiSound.DENY.play(player);
-            return true;
-        }
-        if (session.inFlightOperationId != null) {
-            GuiSound.DENY.play(player);
-            return true;
-        }
-
-        if (session.mode == EquipmentProcessingMode.REPAIR) {
-            if (!shiftLeftClick) {
-                ItemStack preview = displayedItem == null ? player.getInventory().getItem(bukkitSlot) : displayedItem;
-                if (preview != null && preview.getType() != Material.AIR) {
-                    InventoryEntryModel entry = inventoryService.getOwnedEntryAtBukkitSlot(astPlayer, bukkitSlot);
-                    if (matchesOwnedEntry(entry, preview) && isEquipmentModel(inventoryService.getOwnedItemModelAtBukkitSlot(astPlayer, bukkitSlot))) {
-                        session.repairPreview = preview.clone();
-                        renderProcessing(player, player.getOpenInventory().getTopInventory(), session);
-                        GuiSound.SELECT.play(player);
-                        return true;
-                    }
-                }
-                GuiSound.DENY.play(player);
-                return true;
-            }
-            if (equipmentRepairService == null) {
-                GuiSound.DENY.play(player);
-                return true;
-            }
-            ItemStack current = displayedItem == null ? player.getInventory().getItem(bukkitSlot) : displayedItem;
-            boolean handled = equipmentRepairService.repairInPlace(player, bukkitSlot, current);
-            if (handled) {
-                ItemStack refreshed = player.getInventory().getItem(bukkitSlot);
-                session.repairPreview = refreshed == null ? null : refreshed.clone();
-                renderProcessing(player, player.getOpenInventory().getTopInventory(), session);
-            }
-            return handled;
-        }
-
-        if (shiftLeftClick) {
-            GuiSound.DENY.play(player);
-            return true;
-        }
         return handleEnhancementInventoryClick(player, bukkitSlot, displayedItem, true);
     }
 
@@ -369,15 +330,11 @@ public final class EquipmentEnhancementService {
             return;
         }
         if (rawSlot == EquipmentProcessingMenuScreenView.REPAIR_TAB_SLOT) {
-            switchProcessingMode(player, astPlayer, session, EquipmentProcessingMode.REPAIR);
+            switchProcessingMode(player, session, EquipmentProcessingMode.REPAIR);
             return;
         }
         if (rawSlot == EquipmentProcessingMenuScreenView.ENHANCEMENT_TAB_SLOT) {
-            switchProcessingMode(player, astPlayer, session, EquipmentProcessingMode.ENHANCEMENT);
-            return;
-        }
-        if (session.mode == EquipmentProcessingMode.REPAIR) {
-            GuiSound.DENY.play(player);
+            switchProcessingMode(player, session, EquipmentProcessingMode.ENHANCEMENT);
             return;
         }
         if (rawSlot == EquipmentProcessingMenuScreenView.TARGET_SLOT) {
@@ -391,7 +348,11 @@ public final class EquipmentEnhancementService {
             return;
         }
         if (rawSlot == EquipmentProcessingMenuScreenView.EXECUTE_SLOT) {
-            executeEnhancement(player, astPlayer, session);
+            if (session.mode == EquipmentProcessingMode.REPAIR) {
+                executeProcessingRepair(player, astPlayer, session);
+            } else {
+                executeEnhancement(player, astPlayer, session);
+            }
             return;
         }
         GuiSound.DENY.play(player);
@@ -442,6 +403,31 @@ public final class EquipmentEnhancementService {
                 detachForSave(session);
             }
         }
+    }
+
+    /**
+     * 装備加工 GUI に一時退避した装備を修理し、更新済み装備を対象枠へ保持したまま再描画します。
+     * 対象枠クリックまたは画面終了時に、強化モードと同じ返却経路で所持品へ戻します。
+     */
+    private void executeProcessingRepair(
+        @NotNull Player player,
+        @NotNull AstPlayer astPlayer,
+        @NotNull EnhancementSession session
+    ) {
+        if (equipmentRepairService == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        ItemStack repairedEquipment = equipmentRepairService.repairHeldEquipment(player, session.selectedEquipment);
+        if (repairedEquipment == null) {
+            renderProcessing(player, player.getOpenInventory().getTopInventory(), session);
+            return;
+        }
+
+        session.selectedEquipment = repairedEquipment;
+        inventoryService.applyInventoryToGui(astPlayer, InventoryType.BAG);
+        player.updateInventory();
+        renderProcessing(player, player.getOpenInventory().getTopInventory(), session);
     }
 
     private void executeEnhancement(
@@ -746,22 +732,22 @@ public final class EquipmentEnhancementService {
         @NotNull EnhancementSession session
     ) {
         boolean repairMode = session.mode == EquipmentProcessingMode.REPAIR;
-        ItemStack preview = repairMode ? session.repairPreview : session.selectedEquipment;
-        SelectionResult selection = repairMode ? null : resolveSelection(session.selectedEquipment);
+        ItemStack selectedEquipment = session.selectedEquipment;
+        SelectionResult selection = repairMode ? null : resolveSelection(selectedEquipment);
         List<MaterialRequirement> requirements = selection == null || selection.context() == null
             ? List.of()
             : collectMaterialRequirements(Objects.requireNonNull(AstPlayerCache.get(player)), selection.context());
         ItemStack infoItem = repairMode && equipmentRepairService != null
-            ? equipmentRepairService.createProcessingInfoItem(player, preview)
+            ? equipmentRepairService.createProcessingInfoItem(player, selectedEquipment)
             : repairMode
-                ? createItem(Material.BOOK, Component.text("修理情報", NamedTextColor.YELLOW), List.of(
+                ? createItem(Material.SPYGLASS, Component.text("修理情報", NamedTextColor.YELLOW), List.of(
                     Component.text("修理情報を取得できません。", NamedTextColor.RED)))
                 : createInfoItem(player, Objects.requireNonNull(selection));
-        ItemStack goldItem = repairMode && equipmentRepairService != null
-            ? equipmentRepairService.createProcessingCostItem(player, preview)
-            : createProcessingGoldItem(player, selection);
         ItemStack executeItem = repairMode
-            ? createProcessingRepairExecuteItem()
+            ? equipmentRepairService == null
+                ? createItem(Material.BARRIER, Component.text("修理実行", NamedTextColor.RED, TextDecoration.BOLD), List.of(
+                    Component.text("修理情報を取得できません。", NamedTextColor.RED)))
+                : equipmentRepairService.createProcessingExecuteItem(player, selectedEquipment)
             : createExecuteItem(
                 player,
                 Objects.requireNonNull(selection),
@@ -772,11 +758,10 @@ public final class EquipmentEnhancementService {
         processingView.render(
             inventory,
             session.mode,
-            preview == null ? null : preview.clone(),
+            selectedEquipment == null ? null : selectedEquipment.clone(),
             createProcessingGuideItem(session.mode),
             infoItem,
             repairMode ? List.of() : createMaterialItems(requirements),
-            goldItem,
             executeItem
         );
     }
@@ -784,54 +769,23 @@ public final class EquipmentEnhancementService {
     private @NotNull ItemStack createProcessingGuideItem(@NotNull EquipmentProcessingMode mode) {
         if (mode == EquipmentProcessingMode.REPAIR) {
             return createItem(
-                Material.ANVIL,
+                Material.BOOK,
                 Component.text("装備加工ガイド", NamedTextColor.GOLD, TextDecoration.BOLD),
                 List.of(
-                    Component.text("修理: 下の装備をシフト左クリック", NamedTextColor.GREEN),
-                    Component.text("装備を移動せず、その場で最大耐久まで修理します。", NamedTextColor.GRAY),
-                    Component.text("通常クリックで修理内容を確認できます。", NamedTextColor.GRAY)
+                    Component.text("修理: 下の装備をクリックしてセット", NamedTextColor.GREEN),
+                    Component.text("セットした装備の耐久と必要ゴールドを確認します。", NamedTextColor.GRAY),
+                    Component.text("修理実行をクリックすると最大耐久まで回復します。", NamedTextColor.GRAY)
                 )
             );
         }
         return createItem(
-            Material.ANVIL,
+            Material.BOOK,
             Component.text("装備加工ガイド", NamedTextColor.GOLD, TextDecoration.BOLD),
             List.of(
                 Component.text("強化: 下の装備をクリックしてセット", NamedTextColor.GREEN),
-                Component.text("必要素材・ゴールド・次の効果を確認します。", NamedTextColor.GRAY),
+                Component.text("必要素材・次の効果・必要ゴールドを確認します。", NamedTextColor.GRAY),
                 Component.text("実行ボタンをクリックすると強化します。", NamedTextColor.GRAY)
             )
-        );
-    }
-
-    private @NotNull ItemStack createProcessingRepairExecuteItem() {
-        return createItem(
-            Material.BARRIER,
-            Component.text("修理実行", NamedTextColor.GRAY, TextDecoration.BOLD),
-            List.of(Component.text("下の装備をシフト左クリックしてください。", NamedTextColor.GRAY))
-        );
-    }
-
-    private @NotNull ItemStack createProcessingGoldItem(
-        @NotNull Player player,
-        @NotNull SelectionResult selection
-    ) {
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        long ownedGold = AccountModeGuard.isGameplayPlayer(astPlayer)
-            ? inventoryService.getGoldAmount(astPlayer.getAccount().getUuid())
-            : 0L;
-        EnhancementContext context = selection.context();
-        if (context == null) {
-            return createItem(Material.GOLD_INGOT, Component.text("必要ゴールド", NamedTextColor.YELLOW, TextDecoration.BOLD), List.of(
-                Component.text("装備をセットすると必要量を表示します。", NamedTextColor.GRAY)));
-        }
-        return createItem(
-            Material.GOLD_INGOT,
-            Component.text("必要ゴールド", NamedTextColor.YELLOW, TextDecoration.BOLD),
-            List.of(Component.text(
-                context.requiredCurrency() + " / 所持 " + ownedGold,
-                ownedGold >= context.requiredCurrency() ? NamedTextColor.GREEN : NamedTextColor.RED
-            ), Component.text("実行時に消費されます。", NamedTextColor.GRAY))
         );
     }
 
@@ -840,8 +794,9 @@ public final class EquipmentEnhancementService {
         int visibleCount = Math.min(EquipmentProcessingMenuScreenView.MATERIAL_SLOT_COUNT, requirements.size());
         for (int index = 0; index < visibleCount; index++) {
             MaterialRequirement requirement = requirements.get(index);
-            ItemStack item = requirement.model() == null
-                ? createItem(Material.CHEST, Component.text(requirement.itemId(), NamedTextColor.YELLOW), List.of())
+            ItemStack item = !requirement.displayable()
+                ? createItem(Material.CHEST, Component.text("未登録の素材", NamedTextColor.RED), List.of(
+                    Component.text("素材情報を取得できません。", NamedTextColor.RED)))
                 : itemStackFactory.createDisplay(requirement.model(), 1);
             ItemMeta meta = item.getItemMeta();
             List<Component> lore = meta != null && meta.lore() != null
@@ -854,7 +809,7 @@ public final class EquipmentEnhancementService {
             ));
             lore.add(Component.text("強化実行時に消費", NamedTextColor.GRAY));
             if (index == visibleCount - 1 && requirements.size() > visibleCount) {
-                lore.add(Component.text("ほか " + (requirements.size() - visibleCount) + " 種類は情報欄を確認", NamedTextColor.YELLOW));
+                lore.add(Component.text("ほか " + (requirements.size() - visibleCount) + " 種類は実行ボタンを確認", NamedTextColor.YELLOW));
             }
             if (meta != null) {
                 meta.lore(lore);
@@ -896,8 +851,7 @@ public final class EquipmentEnhancementService {
     }
 
     private @NotNull String materialRequirementLine(@NotNull MaterialRequirement requirement) {
-        String name = requirement.model == null ? requirement.itemId : displayName(requirement.model);
-        return name + ": " + requirement.amount + " / 所持 " + requirement.ownedAmount;
+        return materialDisplayName(requirement) + ": " + requirement.amount + " / 所持 " + requirement.ownedAmount;
     }
 
     private @NotNull ItemStack createGuideItem() {
@@ -916,7 +870,7 @@ public final class EquipmentEnhancementService {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
             return createItem(
-                Material.BOOK,
+                Material.NETHER_STAR,
                 Component.text("強化情報", NamedTextColor.YELLOW),
                 List.of(Component.text("強化情報を取得できません。", NamedTextColor.RED))
             );
@@ -924,11 +878,12 @@ public final class EquipmentEnhancementService {
 
         if (selection.state() == SelectionState.NONE_SELECTED) {
             return createItem(
-                Material.BOOK,
+                Material.NETHER_STAR,
                 Component.text("強化情報", NamedTextColor.YELLOW),
                 List.of(
                     Component.text("装備をセットすると次の強化情報を表示します。", NamedTextColor.GRAY),
-                    Component.text("強化値 / 成功率 / 失敗時挙動 / 必要ゴールド", NamedTextColor.GRAY)
+                    Component.text("強化値 / 成功率 / 失敗時挙動を確認できます。", NamedTextColor.GRAY),
+                    Component.text("必要素材とゴールドは実行ボタンに表示します。", NamedTextColor.GRAY)
                 )
             );
         }
@@ -941,13 +896,12 @@ public final class EquipmentEnhancementService {
             }
             lore.add(Component.text(selection.state().message(), NamedTextColor.RED));
             return createItem(
-                Material.BOOK,
+                Material.NETHER_STAR,
                 Component.text("強化情報", NamedTextColor.YELLOW),
                 lore
             );
         }
 
-        long ownedGold = inventoryService.getGoldAmount(astPlayer.getAccount().getUuid());
         if (context.isTranscendence()) {
             ItemEquipmentTranscendence transcendence = Objects.requireNonNull(context.transcendence);
             List<Component> lore = new ArrayList<>(List.of(
@@ -965,10 +919,7 @@ public final class EquipmentEnhancementService {
             if (transcendence.getOverridesEnchantMaxSlots() != null) {
                 lore.add(Component.text("エンチャント枠: " + transcendence.getOverridesEnchantMaxSlots(), NamedTextColor.AQUA));
             }
-            lore.add(Component.text(
-                "必要ゴールド: " + context.requiredCurrency() + " / 所持: " + ownedGold,
-                ownedGold >= context.requiredCurrency() ? NamedTextColor.GREEN : NamedTextColor.RED
-            ));
+            lore.add(Component.text("必要素材とゴールドは実行ボタンを確認してください。", NamedTextColor.GRAY));
             return createItem(
                 Material.NETHER_STAR,
                 Component.text("次の状態変化", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD),
@@ -984,12 +935,9 @@ public final class EquipmentEnhancementService {
             Component.text("失敗時: " + failActionLabel(nextLevel.getFailAction()), nextLevel.getFailAction() == ItemEquipmentEnhanceFailAction.DESTROY ? NamedTextColor.RED : NamedTextColor.GRAY)
         ));
         appendEnhancementPreviewLore(lore, nextLevel);
-        lore.add(Component.text(
-            "必要ゴールド: " + context.requiredCurrency() + " / 所持: " + ownedGold,
-            ownedGold >= context.requiredCurrency() ? NamedTextColor.GREEN : NamedTextColor.RED
-        ));
+        lore.add(Component.text("必要素材とゴールドは実行ボタンを確認してください。", NamedTextColor.GRAY));
         return createItem(
-            Material.KNOWLEDGE_BOOK,
+            Material.NETHER_STAR,
             Component.text("次の強化情報", NamedTextColor.AQUA, TextDecoration.BOLD),
             lore
         );
@@ -1003,7 +951,7 @@ public final class EquipmentEnhancementService {
             String range = formatNumber(increase.getMin()) + (Double.compare(increase.getMin(), increase.getMax()) == 0
                 ? ""
                 : "～" + formatNumber(increase.getMax()));
-            lore.add(Component.text("増加: " + increase.getStatus() + " +" + range, NamedTextColor.GREEN));
+            lore.add(Component.text("増加: " + statusDisplayName(increase.getStatus()) + " +" + range, NamedTextColor.GREEN));
         }
         if (nextLevel.getDurabilityBonus() != null && nextLevel.getDurabilityBonus() != 0) {
             lore.add(Component.text("最大耐久: +" + nextLevel.getDurabilityBonus(), NamedTextColor.GREEN));
@@ -1048,35 +996,64 @@ public final class EquipmentEnhancementService {
         boolean executable = hasEnoughRequirements(astPlayer, requirements, context.requiredCurrency());
         String operationName = context.isTranscendence() ? "状態変化実行" : "強化実行";
         boolean requiresConfirmation = requiresConfirmation(context);
+        long ownedGold = inventoryService.getGoldAmount(astPlayer.getAccount().getUuid());
+        List<Component> requirementLore = createExecutionRequirementLore(context, requirements, ownedGold);
         if (executable && requiresConfirmation && confirmationPending) {
+            List<Component> lore = new ArrayList<>(requirementLore);
+            lore.add(Component.empty());
+            lore.add(Component.text("失敗すると装備が破壊されます。", NamedTextColor.RED));
+            lore.add(Component.text("確認のため、もう一度クリックしてください。", NamedTextColor.YELLOW));
             return createItem(
                 Material.RED_CONCRETE,
                 Component.text("もう一度クリックして実行", NamedTextColor.RED, TextDecoration.BOLD),
-                List.of(
-                    Component.text("失敗すると装備が破壊されます。", NamedTextColor.RED),
-                    Component.text("確認のため、もう一度クリックしてください。", NamedTextColor.YELLOW)
-                )
+                lore
             );
         }
+        List<Component> lore = new ArrayList<>();
+        lore.add(Component.text(
+            context.isTranscendence()
+                ? "クリックするとこの装備の状態変化を実行します。"
+                : "クリックするとこの装備の強化を実行します。",
+            NamedTextColor.GRAY
+        ));
+        lore.addAll(requirementLore);
+        lore.add(Component.text(
+            executable ? "必要素材とゴールドが揃っています。" : "必要素材またはゴールドが不足しています。",
+            executable ? NamedTextColor.GREEN : NamedTextColor.RED
+        ));
+        lore.add(requiresConfirmation
+            ? Component.text("失敗時: 装備破壊（実行時に確認）", NamedTextColor.RED)
+            : Component.text("実行前に内容を確認してください。", NamedTextColor.GRAY));
         return createItem(
-            executable ? Material.ANVIL : Material.BARRIER,
+            executable ? Material.LIME_CONCRETE : Material.BARRIER,
             Component.text(operationName, executable ? NamedTextColor.GREEN : NamedTextColor.RED, TextDecoration.BOLD),
-            List.of(
-                Component.text(
-                    context.isTranscendence()
-                        ? "クリックするとこの装備の状態変化を実行します。"
-                        : "クリックするとこの装備の強化を実行します。",
-                    NamedTextColor.GRAY
-                ),
-                Component.text(
-                    executable ? "必要素材とゴールドが揃っています。" : "必要素材またはゴールドが不足しています。",
-                    executable ? NamedTextColor.GREEN : NamedTextColor.RED
-                ),
-                requiresConfirmation
-                    ? Component.text("失敗時: 装備破壊（実行時に確認）", NamedTextColor.RED)
-                    : Component.text("実行前に内容を確認してください。", NamedTextColor.GRAY)
-            )
+            lore
         );
+    }
+
+    /** 実行ボタンに必要ゴールドと全消費素材をまとめて表示する lore を生成します。 */
+    private @NotNull List<Component> createExecutionRequirementLore(
+        @NotNull EnhancementContext context,
+        @NotNull List<MaterialRequirement> requirements,
+        long ownedGold
+    ) {
+        List<Component> lore = new ArrayList<>();
+        lore.add(Component.text(
+            "必要ゴールド: " + context.requiredCurrency() + " / 所持: " + ownedGold,
+            ownedGold >= context.requiredCurrency() ? NamedTextColor.GREEN : NamedTextColor.RED
+        ));
+        if (requirements.isEmpty()) {
+            lore.add(Component.text("必要素材: なし", NamedTextColor.GRAY));
+            return lore;
+        }
+        lore.add(Component.text("必要素材:", NamedTextColor.YELLOW));
+        for (MaterialRequirement requirement : requirements) {
+            lore.add(Component.text(
+                "- " + materialRequirementLine(requirement),
+                requirement.enough() ? NamedTextColor.GREEN : NamedTextColor.RED
+            ));
+        }
+        return lore;
     }
 
     private boolean requiresConfirmation(@NotNull EnhancementContext context) {
@@ -1096,7 +1073,7 @@ public final class EquipmentEnhancementService {
 
         ItemModel model = itemReferenceResolver.resolveItemModel(reference);
         EquipmentInstance instance = itemReferenceResolver.resolveEquipmentInstance(reference);
-        if (!isEquipmentModel(model) || instance == null) {
+        if (!isEquipmentModel(model) || instance == null || !hasPlayerFacingName(model)) {
             return new SelectionResult(SelectionState.INVALID_TARGET, model, instance, null);
         }
 
@@ -1163,7 +1140,7 @@ public final class EquipmentEnhancementService {
                 model = itemService.loadItem(itemId);
             }
             long ownedAmount = inventoryService.getNormalItemAmount(astPlayer.getAccount().getUuid(), itemId);
-            requirements.add(new MaterialRequirement(itemId, amount, ownedAmount, model));
+            requirements.add(new MaterialRequirement(itemId, amount, ownedAmount, model, hasPlayerFacingName(model)));
         }
         return requirements;
     }
@@ -1215,20 +1192,12 @@ public final class EquipmentEnhancementService {
 
     private void switchProcessingMode(
         @NotNull Player player,
-        @NotNull AstPlayer astPlayer,
         @NotNull EnhancementSession session,
         @NotNull EquipmentProcessingMode mode
     ) {
         if (session.mode != mode) {
-            if (session.selectedEquipment != null && session.selectedEquipment.getType() != Material.AIR) {
-                restoreHeldEquipment(astPlayer, session);
-            }
-            session.selectedEquipment = null;
-            session.selectedEntry = null;
-            session.repairPreview = null;
             session.confirmationPending = false;
             session.mode = mode;
-            inventoryService.applyInventoryToGui(astPlayer, InventoryType.BAG);
         }
         if (isProcessingMenu(player.getOpenInventory().getTopInventory())) {
             renderProcessing(player, player.getOpenInventory().getTopInventory(), session);
@@ -1351,7 +1320,6 @@ public final class EquipmentEnhancementService {
 
     private void clearHeldEquipment(@NotNull EnhancementSession session) {
         session.selectedEquipment = null;
-        session.repairPreview = null;
         session.selectedEntry = null;
         session.inFlightOperationId = null;
         session.operationFuture = null;
@@ -1449,7 +1417,26 @@ public final class EquipmentEnhancementService {
     }
 
     private @NotNull String displayName(@NotNull ItemModel model) {
-        return ColorCodeUtil.toPlainText(model.getName(), model.getId());
+        return ColorCodeUtil.toPlainText(model.getName(), "未登録の装備");
+    }
+
+    private boolean hasPlayerFacingName(@Nullable ItemModel model) {
+        return model != null && !ColorCodeUtil.toPlainText(model.getName(), "").isBlank();
+    }
+
+    private @NotNull String materialDisplayName(@NotNull MaterialRequirement requirement) {
+        if (!requirement.displayable()) {
+            return "未登録の素材";
+        }
+        return ColorCodeUtil.toPlainText(Objects.requireNonNull(requirement.model).getName(), "未登録の素材");
+    }
+
+    private @NotNull String statusDisplayName(@Nullable String statusId) {
+        if (statusId == null || statusId.isBlank()) {
+            return "未登録の能力値";
+        }
+        StatusType statusType = StatusType.fromId(statusId);
+        return statusType == null ? "未登録の能力値" : statusType.getDisplayName();
     }
 
     private @NotNull ItemStack createItem(
@@ -1467,7 +1454,6 @@ public final class EquipmentEnhancementService {
         private final InventoryType previousDisplayedType;
         private EquipmentProcessingMode mode = EquipmentProcessingMode.ENHANCEMENT;
         private ItemStack selectedEquipment;
-        private ItemStack repairPreview;
         private InventoryEntryModel selectedEntry;
         private UUID inFlightOperationId;
         private CompletableFuture<EnhancementResult> operationFuture;
@@ -1536,10 +1522,11 @@ public final class EquipmentEnhancementService {
         @NotNull String itemId,
         int amount,
         long ownedAmount,
-        @Nullable ItemModel model
+        @Nullable ItemModel model,
+        boolean displayable
     ) {
         private boolean enough() {
-            return ownedAmount >= amount;
+            return displayable && ownedAmount >= amount;
         }
     }
 
