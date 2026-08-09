@@ -9,8 +9,7 @@ name: "&fクイックショット"
 description: "&7照準方向へ素早く矢を放つ、冒険者の基礎的な単体射撃。"
 icon: BOW
 lore:
-  - "&7射程12mの矢で間接攻撃力150%のダメージ。"
-  - "&7Lv.5では間接攻撃力180%のダメージ。貫通しない。"
+  - "&7射程{skill.range}mの矢で間接攻撃力{skill.effectiveDamageRatio:percent}%のダメージ。貫通しない。"
   - "&8消費EN: 6 / クールダウン: 2.0秒"
 cooldownTicks: 40
 resourceType: ENERGY
@@ -38,6 +37,9 @@ gem:
   rarity: COMMON
   tradeable: false
   sellable: false
+params:
+  range: 12.0
+  damageRatio: 1.50
 tags:
   - active
   - ranged
