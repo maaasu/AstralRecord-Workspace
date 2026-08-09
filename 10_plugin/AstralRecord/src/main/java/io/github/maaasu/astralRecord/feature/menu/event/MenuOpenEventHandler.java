@@ -340,6 +340,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler
                     return;
                 }
                 if (menuScreen == MenuScreen.EQUIPMENT_GUI
+                    || menuScreen == MenuScreen.EQUIPMENT_PROCESSING
                     || menuScreen == MenuScreen.EQUIPMENT_ENHANCE
                     || menuScreen == MenuScreen.EQUIPMENT_REPAIR) {
                     return;
@@ -460,6 +461,8 @@ public class MenuOpenEventHandler extends AbstractEventHandler
             case BUFF -> handleBuffClick(player, event.getRawSlot());
             case CLASS -> handleClassClick(player, event.getCurrentItem(), event.getRawSlot());
             case EQUIPMENT_GUI -> {
+            }
+            case EQUIPMENT_PROCESSING -> {
             }
             case EQUIPMENT_ENHANCE -> {
             }

@@ -28,6 +28,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryType;
@@ -106,6 +107,16 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
                 handleEquipmentMenuClick(event, topInventory);
                 return;
             }
+            if (equipmentEnhancementService.isProcessingMenu(topInventory)) {
+                if (event.getWhoClicked() instanceof Player player
+                    && !AccountModeGuard.isGameplayPlayer(player)) {
+                    event.setCancelled(true);
+                    player.closeInventory();
+                    return;
+                }
+                handleProcessingMenuClick(event, topInventory);
+                return;
+            }
             if (equipmentEnhancementService.isEnhancementMenu(topInventory)) {
                 if (event.getWhoClicked() instanceof Player player
                     && !AccountModeGuard.isGameplayPlayer(player)) {
@@ -142,6 +153,10 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             if (!isEquipmentMenu(event.getInventory())) {
+                if (equipmentEnhancementService.isProcessingMenu(event.getInventory())) {
+                    equipmentEnhancementService.handleClose(player);
+                    return;
+                }
                 if (equipmentEnhancementService.isEnhancementMenu(event.getInventory())) {
                     equipmentEnhancementService.handleClose(player);
                 }
@@ -278,6 +293,44 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             if (equipmentEnhancementService.handlePlayerInventoryClick(player, event.getSlot())) {
+                return;
+            }
+            if (!HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
+                GuiSound.DENY.play(player);
+            }
+            return;
+        }
+
+        equipmentEnhancementService.handleTopClick(player, event.getRawSlot());
+    }
+
+    private void handleProcessingMenuClick(@NotNull InventoryClickEvent event, @NotNull Inventory topInventory) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+        event.setCancelled(true);
+
+        if (event.getRawSlot() >= topInventory.getSize()) {
+            if (!(event.getClickedInventory() instanceof PlayerInventory)) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer == null) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            if (event.getCursor().getType() != Material.AIR) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            boolean shiftLeftClick = event.getClick() == ClickType.SHIFT_LEFT;
+            if (equipmentEnhancementService.handlePlayerInventoryClick(
+                player,
+                event.getSlot(),
+                event.getCurrentItem(),
+                shiftLeftClick
+            )) {
                 return;
             }
             if (!HotbarShortcutClickSupport.handle(event, player, inventoryService)) {

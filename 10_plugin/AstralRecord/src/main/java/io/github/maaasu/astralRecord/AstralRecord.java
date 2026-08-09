@@ -940,6 +940,7 @@ public final class AstralRecord extends JavaPlugin {
             itemStackFactory,
             particleDisplayService
         );
+        equipmentEnhancementService.setEquipmentRepairService(equipmentRepairService);
         equipmentRepairService.setStatusService(statusService);
         equipmentDurabilityService = new EquipmentDurabilityService(inventoryService, itemService);
         equipmentDurabilityService.setStatusService(statusService);

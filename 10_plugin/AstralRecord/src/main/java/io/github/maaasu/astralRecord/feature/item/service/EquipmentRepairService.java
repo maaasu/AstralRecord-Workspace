@@ -47,6 +47,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -65,6 +66,7 @@ public final class EquipmentRepairService {
     private final ItemReferenceResolver itemReferenceResolver;
     private final EquipmentRepairMenuScreenView view = new EquipmentRepairMenuScreenView();
     private final Map<UUID, RepairSession> sessions = new ConcurrentHashMap<>();
+    private final Set<UUID> inPlaceRepairInFlight = ConcurrentHashMap.newKeySet();
     private StatusService statusService;
 
     /**
@@ -314,6 +316,131 @@ public final class EquipmentRepairService {
         }
         double multiplier = 1.0D + Math.max(0, durabilityMax - 300) / 1400.0D;
         return Math.max(1L, (long) Math.ceil(missingDurability * multiplier));
+    }
+
+    /**
+     * 装備加工 GUI のシフト左クリック修理を実行します。
+     * 正本の inventory entry は取り出さず、クリック時点の表示品と instance ID を照合してから
+     * ゴールドと耐久値だけを更新します。
+     *
+     * @param player 操作したプレイヤー
+     * @param bukkitSlot クリックされた PlayerInventory スロット
+     * @param displayedItem クリック時に表示されていた ItemStack
+     * @return 装備加工の操作として処理した場合 true
+     */
+    public boolean repairInPlace(
+        @NotNull Player player,
+        int bukkitSlot,
+        @Nullable ItemStack displayedItem
+    ) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
+            GuiSound.DENY.play(player);
+            return true;
+        }
+        if (displayedItem == null || displayedItem.getType() == Material.AIR) {
+            return false;
+        }
+        InventoryEntryModel entry = inventoryService.getOwnedEntryAtBukkitSlot(astPlayer, bukkitSlot);
+        if (!matchesOwnedEntry(entry, displayedItem)) {
+            GuiSound.DENY.play(player);
+            return true;
+        }
+        ItemModel clickedModel = inventoryService.getOwnedItemModelAtBukkitSlot(astPlayer, bukkitSlot);
+        if (clickedModel == null || clickedModel.getEquipment() == null) {
+            return false;
+        }
+
+        SelectionResult selection = resolveSelection(displayedItem);
+        RepairContext context = selection.context();
+        if (context == null) {
+            GuiSound.DENY.play(player);
+            PlayerMessageService.getInstance().send(player, selection.state().messageId());
+            return true;
+        }
+
+        UUID instanceId;
+        try {
+            instanceId = UUID.fromString(context.instance().getEquipmentInstanceId());
+        } catch (IllegalArgumentException exception) {
+            GuiSound.DENY.play(player);
+            return true;
+        }
+        if (!inPlaceRepairInFlight.add(instanceId)) {
+            GuiSound.DENY.play(player);
+            return true;
+        }
+
+        UUID accountId = astPlayer.getAccount().getUuid();
+        try {
+            long ownedGold = ownedGold(accountId);
+            if (ownedGold < context.cost()) {
+                GuiSound.DENY.play(player);
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5276);
+                return true;
+            }
+            InventoryService.InventoryStateSnapshot paymentSnapshot = inventoryService.snapshotState(accountId);
+            if (paymentSnapshot == null || !inventoryService.consumeGold(accountId, context.cost())) {
+                restorePayment(paymentSnapshot, accountId, "repair_in_place_consume");
+                GuiSound.DENY.play(player);
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5277);
+                return true;
+            }
+            EquipmentInstance updated = itemService.updateEquipmentDurability(
+                context.instance().getEquipmentInstanceId(),
+                context.instance().getDurabilityMax(),
+                accountId.toString()
+            );
+            if (updated == null) {
+                restorePayment(paymentSnapshot, accountId, "repair_in_place_update");
+                GuiSound.DENY.play(player);
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5277);
+                return true;
+            }
+            inventoryService.applyInventoryToGui(astPlayer, InventoryType.BAG);
+            player.updateInventory();
+            if (context.instance().getDurabilityValue() <= 0 && statusService != null) {
+                statusService.refreshStatus(astPlayer);
+            }
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5278, displayName(context.model()), context.cost());
+            GuiSound.REPAIR.play(player);
+            particleDisplayService.spawnForNearbyViewers(
+                player.getLocation().add(0.0, 1.0, 0.0),
+                SharedParticleDefinitions.EQUIPMENT_REPAIR_ENCHANT
+            );
+            return true;
+        } finally {
+            inPlaceRepairInFlight.remove(instanceId);
+        }
+    }
+
+    /** 装備加工 GUI の修理プレビュー用の費用表示を生成します。 */
+    public @NotNull ItemStack createProcessingCostItem(
+        @NotNull Player player,
+        @Nullable ItemStack selectedEquipment
+    ) {
+        return createCostItem(player, resolveSelection(selectedEquipment));
+    }
+
+    /** 装備加工 GUI の修理プレビュー用の情報表示を生成します。 */
+    public @NotNull ItemStack createProcessingInfoItem(
+        @NotNull Player player,
+        @Nullable ItemStack selectedEquipment
+    ) {
+        return createInfoItem(player, resolveSelection(selectedEquipment));
+    }
+
+    private boolean matchesOwnedEntry(
+        @Nullable InventoryEntryModel entry,
+        @NotNull ItemStack displayedItem
+    ) {
+        if (entry == null || entry.getInstanceId() == null) {
+            return false;
+        }
+        ItemReference reference = itemReferenceResolver.resolve(displayedItem);
+        return reference != null
+            && reference.hasEquipmentInstanceId()
+            && entry.getInstanceId().toString().equalsIgnoreCase(reference.equipmentInstanceId());
     }
 
     private void executeRepair(

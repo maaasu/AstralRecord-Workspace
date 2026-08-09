@@ -505,14 +505,9 @@ tags:
     description: 通貨交換を提供する NPC。
     category: NPC_ROLE
     appliesTo: [MOB]
-  - id: equipment_enhance
-    displayName: 装備強化
-    description: 装備強化を提供する NPC。
-    category: NPC_ROLE
-    appliesTo: [MOB]
-  - id: equipment_repair
-    displayName: 装備修理
-    description: 装備修理を提供する NPC。
+  - id: equipment_processing
+    displayName: 装備加工
+    description: 装備の修理と強化を提供する NPC。
     category: NPC_ROLE
     appliesTo: [MOB]
   - id: armor_shop
@@ -589,9 +584,9 @@ tags:
     appliesTo: [CLASS]
   - id: adventurer
     displayName: 冒険者
-    description: 冒険者クラス。
+    description: 冒険者クラスと関連スキル。
     category: THEME
-    appliesTo: [CLASS]
+    appliesTo: [CLASS, SKILL]
   - id: command-only
     displayName: コマンド限定
     description: コマンドからのみ利用する分類。

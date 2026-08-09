@@ -2,21 +2,22 @@
 #   motif: "鍛冶 / 金床"
 #   progression: 0
 schemaVersion: 1
-id: equipment_enhance
+id: equipment_processing
 type: MOB
 category: NPC
-name: "&6装備強化"
-title: "&7装備強化"
+name: "&6装備加工"
+title: "&7装備加工"
 level: 1
 entityType: ANVIL
 nameVisible: true
 damageImmune: true
 icon: ANVIL
 lore:
-  - "&7装備の強化を行う金床。"
+  - "&7ゴールドを使って装備の修理と強化を行う金床。"
+  - "&7右クリックで装備加工 GUI を開けます。"
 tags:
   - npc
-  - equipment_enhance
+  - equipment_processing
 
 baseStats:
   - status: MAX_HEALTH
@@ -32,8 +33,8 @@ interactions:
   leftClick:
     - id: message
       params:
-        message: "&6装備強化&7: 右クリックで装備強化を開けます。"
+        message: "&6装備加工&7: 右クリックで装備の修理・強化を開けます。"
   rightClick:
     - id: gui
       params:
-        type: EQUIPMENT_ENHANCE
+        type: EQUIPMENT_PROCESSING

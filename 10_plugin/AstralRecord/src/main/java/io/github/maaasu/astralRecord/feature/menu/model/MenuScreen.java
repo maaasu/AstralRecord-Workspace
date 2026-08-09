@@ -5,6 +5,7 @@ public enum MenuScreen {
     BUFF,
     CLASS,
     EQUIPMENT_GUI,
+    EQUIPMENT_PROCESSING,
     EQUIPMENT_ENHANCE,
     EQUIPMENT_REPAIR,
     CURRENCY,

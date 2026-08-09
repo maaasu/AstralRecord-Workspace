@@ -220,10 +220,8 @@ public static class MasterTagIds
         public const string CLASS_GUIDE = "class_guide";
         /// <summary>通貨交換。</summary>
         public const string CURRENCY_EXCHANGE = "currency_exchange";
-        /// <summary>装備強化。</summary>
-        public const string EQUIPMENT_ENHANCE = "equipment_enhance";
-        /// <summary>装備修理。</summary>
-        public const string EQUIPMENT_REPAIR = "equipment_repair";
+        /// <summary>装備加工。</summary>
+        public const string EQUIPMENT_PROCESSING = "equipment_processing";
         /// <summary>防具店。</summary>
         public const string ARMOR_SHOP = "armor_shop";
         /// <summary>武器店。</summary>
@@ -389,8 +387,7 @@ public static class MasterTags
                 ["acacia"] = new("acacia", "アカシア", "アカシアをモチーフとする分類。", "LOCATION", ["MOB"]),
                 ["class_guide"] = new("class_guide", "クラス案内", "クラス選択を案内する NPC。", "NPC_ROLE", ["MOB"]),
                 ["currency_exchange"] = new("currency_exchange", "通貨交換", "通貨交換を提供する NPC。", "NPC_ROLE", ["MOB"]),
-                ["equipment_enhance"] = new("equipment_enhance", "装備強化", "装備強化を提供する NPC。", "NPC_ROLE", ["MOB"]),
-                ["equipment_repair"] = new("equipment_repair", "装備修理", "装備修理を提供する NPC。", "NPC_ROLE", ["MOB"]),
+                ["equipment_processing"] = new("equipment_processing", "装備加工", "装備の修理と強化を提供する NPC。", "NPC_ROLE", ["MOB"]),
                 ["armor_shop"] = new("armor_shop", "防具店", "防具を扱う店舗 NPC。", "NPC_ROLE", ["MOB"]),
                 ["weapon_shop"] = new("weapon_shop", "武器店", "武器を扱う店舗 NPC。", "NPC_ROLE", ["MOB"]),
                 ["shop"] = new("shop", "店舗", "店舗機能を持つ NPC。", "NPC_ROLE", ["MOB"]),
@@ -405,7 +402,7 @@ public static class MasterTags
                 ["alchemy"] = new("alchemy", "錬金", "錬金・調合工程で扱うレシピ。", "CRAFTING", ["RECIPE"]),
                 ["consumable"] = new("consumable", "消耗品", "消耗品を成果物とするレシピ。", "CRAFTING", ["RECIPE"]),
                 ["administrator"] = new("administrator", "管理者", "管理者専用クラス。", "THEME", ["CLASS"]),
-                ["adventurer"] = new("adventurer", "冒険者", "冒険者クラス。", "THEME", ["CLASS"]),
+                ["adventurer"] = new("adventurer", "冒険者", "冒険者クラスと関連スキル。", "THEME", ["CLASS", "SKILL"]),
                 ["command-only"] = new("command-only", "コマンド限定", "コマンドからのみ利用する分類。", "THEME", ["CLASS"]),
                 ["astral"] = new("astral", "アストラル", "星界をモチーフとする分類。", "THEME", ["SKILLTREE_NODE"]),
                 ["azure"] = new("azure", "蒼", "蒼色をモチーフとする分類。", "THEME", ["SKILLTREE_NODE"]),

@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.mob.event;
 
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentEnhancementService;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentRepairService;
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentProcessingMode;
 import io.github.maaasu.astralRecord.feature.currency.event.CurrencyExchangeGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.loginbonus.service.LoginBonusService;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
@@ -199,8 +200,9 @@ public final class MobInteractionEventHandler
             }
             case "CLASS" -> openClass(player);
             case "STORAGE" -> openStorage(player);
-            case "EQUIPMENT_ENHANCE", "ENHANCE" -> openEquipmentEnhance(player);
-            case "EQUIPMENT_REPAIR", "REPAIR" -> openEquipmentRepair(player);
+            case "EQUIPMENT_PROCESSING", "PROCESSING" -> openEquipmentProcessing(player, EquipmentProcessingMode.ENHANCEMENT);
+            case "EQUIPMENT_ENHANCE", "ENHANCE" -> openEquipmentProcessing(player, EquipmentProcessingMode.ENHANCEMENT);
+            case "EQUIPMENT_REPAIR", "REPAIR" -> openEquipmentProcessing(player, EquipmentProcessingMode.REPAIR);
             case "CURRENCY_EXCHANGE", "EXCHANGE" -> currencyExchangeGuiEventHandler.open(player);
             case "LOGIN_BONUS" -> openLoginBonus(player);
             case "SKILL_FORGET", "FORGET_SKILL" -> openSkillForget(player);
@@ -244,13 +246,11 @@ public final class MobInteractionEventHandler
         GuiSound.OPEN.play(player);
     }
 
-    private void openEquipmentEnhance(@NotNull Player player) {
-        equipmentEnhancementService.open(player);
-        GuiSound.OPEN.play(player);
-    }
-
-    private void openEquipmentRepair(@NotNull Player player) {
-        equipmentRepairService.open(player);
+    private void openEquipmentProcessing(
+        @NotNull Player player,
+        @NotNull EquipmentProcessingMode mode
+    ) {
+        equipmentEnhancementService.open(player, mode);
         GuiSound.OPEN.play(player);
     }
 

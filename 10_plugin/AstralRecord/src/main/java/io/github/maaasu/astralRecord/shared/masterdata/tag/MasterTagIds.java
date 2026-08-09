@@ -326,11 +326,8 @@ public final class MasterTagIds {
         /** 通貨交換: 通貨交換を提供する NPC。 */
         public static final String CURRENCY_EXCHANGE = "currency_exchange";
 
-        /** 装備強化: 装備強化を提供する NPC。 */
-        public static final String EQUIPMENT_ENHANCE = "equipment_enhance";
-
-        /** 装備修理: 装備修理を提供する NPC。 */
-        public static final String EQUIPMENT_REPAIR = "equipment_repair";
+        /** 装備加工: 装備の修理と強化を提供する NPC。 */
+        public static final String EQUIPMENT_PROCESSING = "equipment_processing";
 
         /** 防具店: 防具を扱う店舗 NPC。 */
         public static final String ARMOR_SHOP = "armor_shop";
@@ -386,7 +383,7 @@ public final class MasterTagIds {
         /** 管理者: 管理者専用クラス。 */
         public static final String ADMINISTRATOR = "administrator";
 
-        /** 冒険者: 冒険者クラス。 */
+        /** 冒険者: 冒険者クラスと関連スキル。 */
         public static final String ADVENTURER = "adventurer";
 
         /** コマンド限定: コマンドからのみ利用する分類。 */
@@ -521,8 +518,7 @@ public final class MasterTagIds {
         Map.entry("acacia", new Definition("acacia", "アカシア", "アカシアをモチーフとする分類。", "LOCATION", List.of("MOB"))),
         Map.entry("class_guide", new Definition("class_guide", "クラス案内", "クラス選択を案内する NPC。", "NPC_ROLE", List.of("MOB"))),
         Map.entry("currency_exchange", new Definition("currency_exchange", "通貨交換", "通貨交換を提供する NPC。", "NPC_ROLE", List.of("MOB"))),
-        Map.entry("equipment_enhance", new Definition("equipment_enhance", "装備強化", "装備強化を提供する NPC。", "NPC_ROLE", List.of("MOB"))),
-        Map.entry("equipment_repair", new Definition("equipment_repair", "装備修理", "装備修理を提供する NPC。", "NPC_ROLE", List.of("MOB"))),
+        Map.entry("equipment_processing", new Definition("equipment_processing", "装備加工", "装備の修理と強化を提供する NPC。", "NPC_ROLE", List.of("MOB"))),
         Map.entry("armor_shop", new Definition("armor_shop", "防具店", "防具を扱う店舗 NPC。", "NPC_ROLE", List.of("MOB"))),
         Map.entry("weapon_shop", new Definition("weapon_shop", "武器店", "武器を扱う店舗 NPC。", "NPC_ROLE", List.of("MOB"))),
         Map.entry("shop", new Definition("shop", "店舗", "店舗機能を持つ NPC。", "NPC_ROLE", List.of("MOB"))),
@@ -537,7 +533,7 @@ public final class MasterTagIds {
         Map.entry("alchemy", new Definition("alchemy", "錬金", "錬金・調合工程で扱うレシピ。", "CRAFTING", List.of("RECIPE"))),
         Map.entry("consumable", new Definition("consumable", "消耗品", "消耗品を成果物とするレシピ。", "CRAFTING", List.of("RECIPE"))),
         Map.entry("administrator", new Definition("administrator", "管理者", "管理者専用クラス。", "THEME", List.of("CLASS"))),
-        Map.entry("adventurer", new Definition("adventurer", "冒険者", "冒険者クラス。", "THEME", List.of("CLASS"))),
+        Map.entry("adventurer", new Definition("adventurer", "冒険者", "冒険者クラスと関連スキル。", "THEME", List.of("CLASS", "SKILL"))),
         Map.entry("command-only", new Definition("command-only", "コマンド限定", "コマンドからのみ利用する分類。", "THEME", List.of("CLASS"))),
         Map.entry("astral", new Definition("astral", "アストラル", "星界をモチーフとする分類。", "THEME", List.of("SKILLTREE_NODE"))),
         Map.entry("azure", new Definition("azure", "蒼", "蒼色をモチーフとする分類。", "THEME", List.of("SKILLTREE_NODE"))),
